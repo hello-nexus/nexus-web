@@ -29,8 +29,7 @@ import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { useTranslation } from '../../../lib/i18n';
 import { createUuid } from '../../../lib/uuid';
 import { IconLabelButton } from '../../common/IconLabelButton/IconLabelButton';
-import { SettingSelect, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
-import { InfoRow } from '../../common/InfoList/InfoList';
+import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { PanelEmbedFrame } from './PanelEmbedFrame';
 import { QSeriesCoolerSettings } from './QSeriesCoolerSettings';
 import { useFirmwareStatus } from '../../../hooks/useFirmwareStatus';
@@ -947,7 +946,9 @@ function SettingsPanel({
           )}
 
           {!!variant && (
-            <InfoRow label={t('devices.y70.variant')} value={variant} tone="dim" />
+            <SettingRow label={t('devices.y70.variant')}>
+              <span className={styles.variantValue}>{variant}</span>
+            </SettingRow>
           )}
         </SettingsSection>
       )}
