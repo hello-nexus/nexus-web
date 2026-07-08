@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { PERF_HISTORY_SAMPLES } from '../../panel/widgets/common/panelHistoryConfig';
 
 export function prefersReducedMotion(): boolean {
@@ -28,32 +28,50 @@ function seedHistory(base: number, swing: number, spike: number): number[] {
   return out;
 }
 
+export interface TickingSpec {
+  base: number;
+  swing: number;
+  spike?: number;
+}
+
 /**
- * Animated mock telemetry for the marketing demos: a pre-seeded history
- * buffer that shifts one new sample in per tick while `active`. Frozen under
- * prefers-reduced-motion (the seeded buffer still renders a plausible trace).
+ * Animated mock telemetry for the marketing demos: pre-seeded history
+ * buffers that shift one new sample in per tick while `active`. One shared
+ * interval drives every series so the gauges move in lockstep. Frozen under
+ * prefers-reduced-motion (the seeded buffers still render plausible traces).
+ * The specs array's length is fixed at mount (buffers seed once); per-spec
+ * values may change, but added or removed entries are ignored.
  */
-export function useTickingHistory(
-  base: number,
-  swing: number,
-  opts?: { spike?: number; intervalMs?: number; active?: boolean },
-): { history: number[]; value: number } {
-  const spike = opts?.spike ?? 0;
+export function useTickingHistories(
+  specs: readonly TickingSpec[],
+  opts?: { intervalMs?: number; active?: boolean },
+): Array<{ history: number[]; value: number }> {
   const intervalMs = opts?.intervalMs ?? 1000;
   const active = opts?.active ?? true;
-  const [history, setHistory] = useState(() => seedHistory(base, swing, spike));
+  const [histories, setHistories] = useState(
+    () => specs.map(s => seedHistory(s.base, s.swing, s.spike ?? 0)));
+  // The specs array is authored inline at the call site; the walk only reads
+  // it inside the interval, so keep the latest without re-arming the timer.
+  const specsRef = useRef(specs);
+  specsRef.current = specs;
 
   useEffect(() => {
     if (!active || prefersReducedMotion()) return;
     const id = setInterval(() => {
-      setHistory(prev => {
-        const last = prev[prev.length - 1] ?? base;
-        return [...prev.slice(1), step(last, base, swing, spike)];
-      });
+      setHistories(prev => prev.map((history, i) => {
+        const s = specsRef.current[i];
+        if (!s) return history;
+        const last = history[history.length - 1] ?? s.base;
+        return [...history.slice(1), step(last, s.base, s.swing, s.spike ?? 0)];
+      }));
     }, intervalMs);
     return () => clearInterval(id);
-  }, [active, base, swing, spike, intervalMs]);
+  }, [active, intervalMs]);
 
-  const value = history[history.length - 1] ?? base;
-  return useMemo(() => ({ history, value }), [history, value]);
+  return useMemo(
+    () => histories.map((history, i) => ({
+      history,
+      value: history[history.length - 1] ?? specsRef.current[i]?.base ?? 0,
+    })),
+    [histories]);
 }

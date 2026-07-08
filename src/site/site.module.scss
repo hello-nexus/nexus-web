@@ -127,15 +127,6 @@
   @media (max-width: 560px) { display: none; }
 }
 
-.headerDownloadGroup {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-
-  @media (max-width: 760px) { display: none; }
-}
-
 // Emphasis mirrors the hero CTAs: Download filled, My System outlined.
 .headerDownload {
   @include text-button;
@@ -148,14 +139,8 @@
   transition: background 140ms ease;
 
   &:hover { background: var(--site-cta-hover); }
-}
 
-.headerAllDownloads {
-  @include text-caption;
-  color: var(--text-dim);
-  text-decoration: none;
-
-  &:hover { color: var(--text); }
+  @media (max-width: 760px) { display: none; }
 }
 
 .headerMySystem {
@@ -208,28 +193,18 @@
   align-items: center;
 }
 
-.heroHello {
-  font-family: 'Great Vibes', cursive;
-  font-size: clamp(2.2rem, 5vw, 3rem);
-  line-height: 1;
-  color: var(--text);
-  opacity: 0.85;
-  margin-bottom: 10px;
-}
-
+// Mark + wordmark stack, mirroring the app's onboarding hero.
 .heroMark {
   width: clamp(84px, 12vw, 120px);
   height: auto;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
   filter: drop-shadow(0 8px 40px rgba(255, 45, 120, 0.25));
 }
 
-.heroTagline {
-  @include text-label;
-  text-transform: uppercase;
-  letter-spacing: 0.18em;
-  color: var(--text-dim);
-  margin: 0 0 10px;
+.heroWordmark {
+  display: inline-flex;
+  color: var(--text);
+  margin-bottom: 22px;
 }
 
 .heroTitle {
@@ -256,10 +231,27 @@
   justify-content: center;
 }
 
+.heroAllDownloads {
+  @include text-label;
+  color: var(--text-dim);
+  text-decoration: none;
+  margin-top: 14px;
+
+  &:hover { color: var(--text); }
+}
+
 .heroMeta {
   @include text-caption;
   color: var(--text-dim);
-  margin-top: 26px;
+  margin-top: 20px;
+}
+
+.ctaPlatforms {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 10px;
+  opacity: 0.9;
 }
 
 // ── CTAs ─────────────────────────────────────────────────────────────────────
@@ -454,31 +446,46 @@
   gap: 14px;
 }
 
-.effectTabs {
+// Live shader thumbnails as the effect picker, filling the demo's width.
+.effectThumbs {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.effectThumb {
+  position: relative;
   display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.effectTab {
-  @include text-label;
-  padding: 6px 14px;
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--border-strong);
+  flex-direction: column;
+  gap: 4px;
+  padding: 0;
   background: transparent;
-  color: var(--text-dim);
+  border: none;
   cursor: pointer;
-  transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
 
-  &:hover { color: var(--text); border-color: var(--text-dim); }
+  &:hover .effectThumbCanvas { border-color: var(--text-dim); }
 }
 
-.effectTabActive {
-  color: var(--accent-text);
-  background: var(--accent);
-  border-color: var(--accent);
+.effectThumbCanvas {
+  aspect-ratio: 16 / 10;
+  width: 100%;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  transition: border-color 120ms ease;
+}
 
-  &:hover { color: var(--accent-text); border-color: var(--accent); }
+.effectThumbActive .effectThumbCanvas {
+  border-color: var(--accent);
+  box-shadow: 0 0 12px var(--accent-glow-shadow);
+}
+
+.effectThumbLabel {
+  @include text-caption;
+  color: var(--text-dim);
+}
+
+.effectThumbActive .effectThumbLabel {
+  color: var(--text);
 }
 
 .lightingCanvas {
@@ -518,28 +525,7 @@
 }
 
 .lightingRing {
-  grid-row: 1 / span 2;
   width: 190px;
-
-  @media (max-width: 560px) { grid-row: auto; }
-}
-
-.lightingPresets {
-  display: flex;
-  gap: 10px;
-  align-self: end;
-}
-
-.presetChip {
-  width: 44px;
-  height: 26px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-strong);
-  cursor: pointer;
-  padding: 0;
-  transition: transform 120ms ease, border-color 120ms ease;
-
-  &:hover { transform: translateY(-1px); border-color: var(--text-dim); }
 }
 
 .lightingSliders {

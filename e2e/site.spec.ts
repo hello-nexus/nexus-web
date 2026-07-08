@@ -54,12 +54,14 @@ test.describe('marketing page content', () => {
       'href', 'https://hellonexus.com/download/windows');
   });
 
-  test('interactive demos mount: palette ring, effect tabs, curve editor', async ({ page }) => {
+  test('interactive demos mount: shader thumbnails and curve editor', async ({ page }) => {
     await page.goto(`${SITE}/`);
 
     await page.getByText('Lighting that reacts to you.').scrollIntoViewIfNeeded();
-    await expect(page.getByRole('button', { name: 'Preset 1' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Fire' })).toBeVisible();
+    // The effect picker is a strip of live shader thumbnails.
+    for (const name of ['Plasma', 'Fire', 'Spiral', 'Neon Grid', 'Terrace']) {
+      await expect(page.getByRole('button', { name })).toBeVisible();
+    }
 
     await page.getByText('Quiet when idle.').scrollIntoViewIfNeeded();
     await expect(page.getByText('Fan speed').first()).toBeVisible();

@@ -49,6 +49,7 @@ export function PhonePanelPreview() {
               widget={w}
               surface="phone"
               label={t(def.meta.i18nKey)}
+              showLabel={false}
             />
           );
         })}

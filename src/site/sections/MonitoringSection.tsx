@@ -3,7 +3,7 @@ import { useTranslation } from '../../lib/i18n';
 import { GAUGE_DESIGNS } from '../../panel/widgets/monitoring/gauges';
 import type { GaugeProps } from '../../panel/widgets/monitoring/gauges';
 import { useInViewport } from '../hooks/useInViewport';
-import { useTickingHistory } from '../hooks/useTickingHistory';
+import { useTickingHistories } from '../hooks/useTickingHistory';
 import { DemoFrame } from '../components/DemoFrame';
 import styles from '../site.module.scss';
 
@@ -30,11 +30,14 @@ export function MonitoringSection() {
   const { t } = useTranslation();
   const [ref, inView] = useInViewport<HTMLElement>();
 
-  // Wide swings + short intervals so every gauge style visibly moves.
-  const cpu = useTickingHistory(44, 26, { spike: 0.3, active: inView, intervalMs: 800 });
-  const gpu = useTickingHistory(62, 10, { active: inView, intervalMs: 900 });
-  const mem = useTickingHistory(56, 14, { active: inView, intervalMs: 1000 });
-  const fan = useTickingHistory(46, 28, { spike: 0.16, active: inView, intervalMs: 700 });
+  // Wide swings so every gauge style visibly moves; one shared interval
+  // keeps the gauges updating in lockstep.
+  const [cpu, gpu, mem, fan] = useTickingHistories([
+    { base: 44, swing: 26, spike: 0.3 },
+    { base: 62, swing: 10 },
+    { base: 56, swing: 14 },
+    { base: 46, swing: 28, spike: 0.16 },
+  ], { active: inView });
 
   return (
     <section ref={ref} id="features" className={styles.section}>
