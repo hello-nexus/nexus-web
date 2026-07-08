@@ -13,7 +13,8 @@ import {
   replaceWidget,
   tryResizeWidget,
 } from '../../../panel/engine/panelLayoutOps';
-import { MAX_PANEL_PAGES } from '../../../panel/engine/panelGrid';
+import { DEFAULT_SURFACE_DPI, MAX_PANEL_PAGES } from '../../../panel/engine/panelGrid';
+import { panelGridCapacityForCanvas } from '../../../panel/engine/grid';
 import { normalizePanelLayout } from '../../../panel/engine/usePanelLayout';
 import { isSingleWidgetSurface } from '../../../panel/types';
 import { fetchService, postService } from '../../../api/service';
@@ -108,6 +109,9 @@ export function PanelDevicePage({ device, onOpenFirmware }: PanelDevicePageProps
   // attached.
   const [liveCanvas, setLiveCanvas] = useState<{ width: number; height: number } | null>(null);
   const [liveDpr, setLiveDpr] = useState<number | null>(null);
+  // Physical density from the record (capabilities.dpi, curated known
+  // displays like the Xeneon Edge); null falls back to the surface default.
+  const [liveDpi, setLiveDpi] = useState<number | null>(null);
   const [configuringWidget, setConfiguringWidget] = useState<PanelWidget | null>(null);
   // One-shot flash request forwarded to the preview iframe when an edit is
   // rejected (a resize that can't fit). nonce re-fires repeat rejections.
@@ -215,6 +219,7 @@ export function PanelDevicePage({ device, onOpenFirmware }: PanelDevicePageProps
       const ch = match?.capabilities?.cssHeight;
       setLiveCanvas(cw && ch ? { width: cw, height: ch } : null);
       setLiveDpr(match?.capabilities?.dpr ?? null);
+      setLiveDpi(match?.capabilities?.dpi ?? null);
       // Per-panel persisted settings (promoted monitors).
       setRecordReserve(match?.reserveMonitor ?? true);
       if (match?.capabilities?.orientation) setOrientation(normalizeOrientation(match.capabilities.orientation));
@@ -273,19 +278,35 @@ export function PanelDevicePage({ device, onOpenFirmware }: PanelDevicePageProps
       const ch = record.capabilities?.cssHeight;
       setLiveCanvas(cw && ch ? { width: cw, height: ch } : null);
       setLiveDpr(record.capabilities?.dpr ?? null);
+      setLiveDpi(record.capabilities?.dpi ?? null);
       setLayout(normalizePanelLayout(record.layout ?? defaultLayoutForSurface(surface), surface, deviceTouch));
     }).catch(() => {});
   });
 
-  // Editor capacity is the surface default - the live runtime may
-  // recompute based on physical size. With explicit (col, row) the
-  // user can place widgets anywhere within these bounds in the editor.
+  // Editor capacity must match the runtime grid, or placements the editor
+  // allows get clamped on the device (and canvas the device offers stays
+  // unreachable here). Promoted monitors derive it from the same capacity
+  // math the kiosk runs, on the record's physical canvas (css x dpr) and
+  // density; other surfaces use their fixed per-surface grids.
   const editorCapacity = useMemo(() => {
     if (surface === 'q60') return { gridCols: 2, pageRows: 4 };
+    const monitorCanvas = surface === 'monitor' ? (liveCanvas ?? device?.previewSize) : undefined;
+    if (surface === 'monitor' && monitorCanvas) {
+      // Physical px = canvas x dpr. liveCanvas and a real record's
+      // previewSize are CSS px (scaled by the record dpr); a simulated
+      // preset's previewSize is native px with no previewDpr (dpr 1).
+      const dpr = (liveCanvas ? liveDpr : device?.previewDpr) || 1;
+      const capacity = panelGridCapacityForCanvas(
+        Math.max(1, Math.round(monitorCanvas.width * dpr)),
+        Math.max(1, Math.round(monitorCanvas.height * dpr)),
+        { surface, dpi: liveDpi ?? device?.previewDpi ?? DEFAULT_SURFACE_DPI.monitor },
+      );
+      return { gridCols: capacity.columns, pageRows: capacity.rows };
+    }
     if (surface === 'desktop' || surface === 'monitor') return { gridCols: 8, pageRows: 6 };
     if (surface === 'y70') return { gridCols: 4, pageRows: 16 };
     return { gridCols: 4, pageRows: 16 };
-  }, [surface]);
+  }, [surface, liveCanvas, liveDpr, liveDpi, device?.previewSize, device?.previewDpi, device?.previewDpr]);
 
   const singleWidget = isSingleWidgetSurface(surface);
   const currentSingleWidget: PanelWidget | undefined = singleWidget
@@ -615,7 +636,15 @@ export function PanelDevicePage({ device, onOpenFirmware }: PanelDevicePageProps
                 onBackgroundClicked={() => setConfiguringWidget(null)}
                 canvasSize={liveCanvas ?? device?.previewSize}
                 canvasDpi={device?.previewDpi}
-                canvasIsCssPixels={!!liveCanvas}
+                // Hosted-monitor previewSize is CSS px (record cssWidth/
+                // cssHeight), so it must skip the native->CSS /DPR even before
+                // the record fetch fills liveCanvas.
+                canvasIsCssPixels={!!liveCanvas || isMonitorPanel}
+                gridDpi={liveCanvas && liveDpi
+                  ? liveDpi / (liveDpr && liveDpr > 0 ? liveDpr : 1)
+                  : (surface === 'monitor' && device?.previewDpi
+                    ? device.previewDpi / (device.previewDpr || 1)
+                    : undefined)}
                 brightness={supportsDisplayControls ? brightness : 100}
                 screenOn={supportsDisplayControls ? screenOn : true}
                 showPanel={supportsAutoLaunch ? autoLaunch : true}

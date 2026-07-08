@@ -68,6 +68,37 @@ describe('sizeToSpan', () => {
   it('maps removed legacy sizes to 4x4', () => {
     expect(sizeToSpan('4x8')).toEqual({ cols: 4, rows: 4 });
   });
+
+  // Corsair Xeneon Edge (2560x720, 14.5" -> 183 px/in) promoted as a monitor
+  // panel. Its 3.9" short side stays under the 4" column jump, so the short
+  // axis carries 4 slots: a 4x4 widget spans the full short axis and content
+  // renders at ~1.9x (cell 170 vs the 90px reference).
+  it('gives the Xeneon Edge 4 rows of large cells in landscape', () => {
+    expect(panelGridCapacityForCanvas(2560, 720, { surface: 'monitor', dpi: 183 })).toMatchObject({
+      columns: 14,
+      rows: 4,
+      cellSize: 170,
+      contentScale: 170,
+    });
+  });
+
+  it('gives the Xeneon Edge 4 columns of large cells in portrait', () => {
+    expect(panelGridCapacityForCanvas(720, 2560, { surface: 'monitor', dpi: 183 })).toMatchObject({
+      columns: 4,
+      rows: 14,
+      cellSize: 170,
+      contentScale: 170,
+    });
+  });
+
+  it('keeps the generic desk-monitor density estimate without a device dpi', () => {
+    // At the 110dpi monitor default the short side reads as over the 4"
+    // column jump, so the short axis carries 8 slots.
+    expect(panelGridCapacityForCanvas(2560, 720, { surface: 'monitor', dpi: 110 })).toMatchObject({
+      columns: 28,
+      rows: 8,
+    });
+  });
 });
 
 describe('snapStride', () => {

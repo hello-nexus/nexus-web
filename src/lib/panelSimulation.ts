@@ -41,6 +41,9 @@ export const SIMULATED_PANEL_PRESETS: readonly SimulatedPanelDefinition[] = [
   { id: 'y70',    name: 'Y70 Touch 2.5K', surface: 'y70', width: 682,  height: 2560, dpi: 337 },
   { id: 'y70-4k', name: 'Y70 Touch 4K',   surface: 'y70', width: 1100, height: 3840, dpi: 283 },
   { id: 'q60', name: 'Q60', surface: 'q60', width: 720, height: 1280, dpi: 220 },
+  // Corsair Xeneon Edge 14.5" 2560x720 strip; rides the promoted-monitor
+  // surface (a real one registers via POST /displays/{id}/panel).
+  { id: 'xeneon-edge', name: 'Xeneon Edge', surface: 'monitor', width: 2560, height: 720, dpi: 183 },
   { id: 'phone', name: 'Phone Panel', surface: 'phone', width: 1206, height: 2622, dpi: 460 },
   { id: 'tablet', name: 'Tablet Panel', surface: 'phone', width: 1640, height: 2360, dpi: 264 },
 ];

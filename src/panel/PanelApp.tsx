@@ -142,7 +142,7 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
   // stamped on it drive widget filtering. If the record is missing on the
   // server (cleared profile etc.), fall back to a viewport-inferred surface
   // so the panel still mounts instead of showing a blank page.
-  const [resolved, setResolved] = useState<{ surface: PanelSurface; touch?: boolean } | null>(null);
+  const [resolved, setResolved] = useState<{ surface: PanelSurface; touch?: boolean; dpi?: number } | null>(null);
   useEffect(() => {
     let cancelled = false;
     fetchPanelDevice(deviceId).then(record => {
@@ -151,16 +151,35 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
       setResolved({
         surface: surfaceFromRecord ?? inferSurfaceFromViewport(false),
         touch: record?.capabilities?.touch,
+        dpi: record?.capabilities?.dpi,
       });
     }).catch(() => {
       if (!cancelled) setResolved({ surface: inferSurfaceFromViewport(false) });
     });
     return () => { cancelled = true; };
   }, [deviceId]);
+  // The service re-derives promoted-monitor capabilities on topology changes
+  // (rotation, display rescale, a service update stamping new curated facts)
+  // and broadcasts panel/device. Refetch so a kiosk that mounted before the
+  // sync picks the fresh density/touch without a reload.
+  useTopicCallback('panel/device', true, (raw) => {
+    const frame = raw as { deviceId?: string } | null;
+    if (frame?.deviceId !== deviceId) return;
+    fetchPanelDevice(deviceId).then(record => {
+      const caps = record?.capabilities;
+      if (!caps) return;
+      setResolved(prev => {
+        if (!prev) return prev;
+        const surface = caps.surface ?? prev.surface;
+        if (surface === prev.surface && caps.touch === prev.touch && caps.dpi === prev.dpi) return prev;
+        return { surface, touch: caps.touch, dpi: caps.dpi };
+      });
+    }).catch(() => {});
+  });
   if (!resolved) {
     return null;
   }
-  return <PanelKioskContent deviceId={deviceId} surface={resolved.surface} deviceTouch={resolved.touch} />;
+  return <PanelKioskContent deviceId={deviceId} surface={resolved.surface} deviceTouch={resolved.touch} deviceDpi={resolved.dpi} />;
 }
 export function PanelEmbeddedContent({ openCatalogSignal = 0, appAccentColor, onSectionNavigate }: {
   openCatalogSignal?: number;
@@ -186,14 +205,14 @@ export function PanelEmbeddedContent({ openCatalogSignal = 0, appAccentColor, on
   );
 }
 
-function PanelKioskContent({ deviceId, surface, deviceTouch }: { deviceId: string; surface: PanelSurface; deviceTouch?: boolean }) {
+function PanelKioskContent({ deviceId, surface, deviceTouch, deviceDpi }: { deviceId: string; surface: PanelSurface; deviceTouch?: boolean; deviceDpi?: number }) {
   const layoutState = usePanelLayout(deviceId, surface, deviceTouch);
   return (
     <ErrorBoundary
       // eslint-disable-next-line i18next/no-literal-string -- crash-boundary diagnostic id
       label="Panel"
     >
-      <PanelContent surface={surface} deviceId={deviceId} deviceTouch={deviceTouch} layoutState={layoutState} />
+      <PanelContent surface={surface} deviceId={deviceId} deviceTouch={deviceTouch} deviceDpi={deviceDpi} layoutState={layoutState} />
     </ErrorBoundary>
   );
 }
@@ -202,6 +221,7 @@ export function PanelContent({
   surface,
   deviceId,
   deviceTouch,
+  deviceDpi,
   layoutState,
   embedded = false,
   simulator = false,
@@ -220,6 +240,9 @@ export function PanelContent({
   // Per-device touch capability (promoted monitors). Undefined falls back to
   // the surface default in surfaceSupportsTouch.
   deviceTouch?: boolean;
+  // Per-device physical density (capabilities.dpi, curated known displays).
+  // Undefined falls back to the per-surface estimate in the grid math.
+  deviceDpi?: number;
   layoutState: PanelLayoutState;
   embedded?: boolean;
   simulator?: boolean;
@@ -386,7 +409,7 @@ export function PanelContent({
   // inside the iframe like on a real touch surface.
   usePanelTextSelectionGuard(rootRef, !embedded || simulator);
   usePhoneContentScale(surface === 'phone' && loaded, rootRef);
-  const runtimeGrid = useRuntimePanelGrid(surface, rootRef, simulator);
+  const runtimeGrid = useRuntimePanelGrid(surface, rootRef, simulator, deviceDpi);
   // WebKit (Safari / macOS WKWebView) miscomputes the tokens.scss
   // tan(atan2(cell, 90px)) length-ratio used for --panel-scale, returning a
   // negative number that flips every --panel-scale-driven element 180deg

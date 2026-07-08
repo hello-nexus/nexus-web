@@ -2310,7 +2310,7 @@
   "site.download.title": "获取 Nexus",
   "site.footer.copyright": "© {year} Nexus。免费开源，采用 AGPL-3.0 许可协议。",
   "site.footer.language": "语言",
-  "site.footer.loveOpenSource": "我们 ❤ 开源",
+  "site.footer.loveOpenSource": "我们 ❤️ 开源",
   "site.footer.tagline": "为您的电脑带来监控、散热与灯光效果。",
   "site.gate.backToSite": "关于 Nexus",
   "site.gate.updateHint": "已安装但无法连接？请确认 Nexus 正在运行且为最新版本，并在浏览器询问时允许访问本地网络。",

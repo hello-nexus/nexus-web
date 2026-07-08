@@ -16,7 +16,7 @@ import plasmaFrag from './shaders/plasma.frag?raw';
 import fireFrag from './shaders/fire.frag?raw';
 import spiralFrag from './shaders/spiral.frag?raw';
 import neongridFrag from './shaders/neongrid.frag?raw';
-import terraceFrag from './shaders/terrace.frag?raw';
+import beatbuilderFrag from './shaders/beatbuilder.frag?raw';
 
 // Same composition the service performs in ShaderLibrary.Get (prelude + body);
 // priming the cache means useShaderRenderer never fetches from a service.
@@ -25,7 +25,7 @@ const SHADER_BODIES: Record<string, string> = {
   fire: fireFrag,
   spiral: spiralFrag,
   neongrid: neongridFrag,
-  terrace: terraceFrag,
+  beatbuilder: beatbuilderFrag,
 };
 for (const [name, body] of Object.entries(SHADER_BODIES)) {
   primeShaderSource(name, `${preludeFrag}\n${body}`);

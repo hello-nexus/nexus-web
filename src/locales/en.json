@@ -2455,7 +2455,7 @@
   "site.download.title": "Get Nexus",
   "site.footer.copyright": "© {year} Nexus. Free and open source under AGPL-3.0.",
   "site.footer.language": "Language",
-  "site.footer.loveOpenSource": "We ❤ open source",
+  "site.footer.loveOpenSource": "We ❤️ open source",
   "site.footer.tagline": "Monitoring, cooling, and lighting for your PC.",
   "site.gate.backToSite": "About Nexus",
   "site.gate.updateHint": "Already installed but not connecting? Make sure Nexus is running and up to date, and allow local network access if your browser asks.",
