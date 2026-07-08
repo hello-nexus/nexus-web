@@ -77,6 +77,7 @@ describe('useOemAppSeed', () => {
     await waitFor(() => expect(setLayout).toHaveBeenCalledTimes(1));
     const nextLayout: PanelLayout = setLayout.mock.calls[0][0];
     expect(nextLayout.pages[0].widgets.map(w => w.type)).toEqual(['app:com.ibuypower.control']);
+    expect(nextLayout.pages[0].widgets[0].size).toBe('2x2');
     expect(updateUiSettings).toHaveBeenCalledWith({
       oemAppSeeded: true,
       pinnedSidebarApps: ['app:com.ibuypower.control'],
