@@ -17,6 +17,9 @@ export interface SimulatorReadyMessage {
 export interface SimulatorInitMessage {
   type: 'simulator/init';
   surface: PanelSurface;
+  // Device physical density in CSS px (native dpi / device DPR) for grid
+  // capacity math; the iframe canvas is CSS-pixel sized with DPR forced to 1.
+  dpi?: number;
   layout: PanelLayout;
   theme: SimulatorTheme;
   themeMode: 'dark' | 'light';
@@ -37,6 +40,13 @@ export interface SimulatorSetDisplayMessage {
 export interface SimulatorSetLayoutMessage {
   type: 'simulator/set-layout';
   layout: PanelLayout;
+}
+
+// The record (and its dpi capability) can resolve after the iframe's init
+// handshake, so grid density gets a per-prop set message like layout/theme.
+export interface SimulatorSetGridMessage {
+  type: 'simulator/set-grid';
+  dpi?: number;
 }
 
 export interface SimulatorSetThemeMessage {
@@ -75,6 +85,7 @@ export interface SimulatorBackgroundClickedMessage {
 export type SimulatorParentToChild =
   | SimulatorInitMessage
   | SimulatorSetLayoutMessage
+  | SimulatorSetGridMessage
   | SimulatorSetThemeMessage
   | SimulatorSetSelectionMessage
   | SimulatorFlashWidgetMessage
