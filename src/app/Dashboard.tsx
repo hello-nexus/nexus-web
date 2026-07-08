@@ -54,7 +54,7 @@ import { AppBackdrop } from './AppBackdrop';
 import { BackgroundEffects } from './BackgroundEffects';
 import { SystemAccentSync } from './SystemAccentSync';
 import { ResolvedThemeSync } from './ResolvedThemeSync';
-import { SplashPage } from './SplashPage';
+import { ServiceGatePage } from './ServiceGatePage';
 import { getSidebarAppMeta } from './sidebarApps';
 import { SidebarColumn } from './SidebarColumn';
 import { CrossZoneDragProvider } from './CrossZoneDrag';
@@ -578,19 +578,19 @@ export function Dashboard() {
     }
   };
 
-  // Public website (hellonexus.com) render gate. To avoid flashing the
+  // Public website (my.hellonexus.com) render gate. To avoid flashing the
   // dashboard's pre-connection chrome, never render the layout here until the
   // connection state is known:
-  //   checking → blank themed frame (we don't yet know splash vs app)
-  //   offline / offline-installed → coming-soon splash (no local Nexus reachable)
+  //   checking → blank themed frame (we don't yet know gate vs app)
+  //   offline / offline-installed → launch / download gate (no local Nexus reachable)
   //   online → fall through to the real dashboard below
   // On the bundled local app (localhost / --app shell, isServedFromService) this
   // whole block is skipped: it shows its normal connecting / "service required"
-  // UI, NEVER the marketing splash.
+  // UI.
   if (isRemoteOrigin && status.state !== 'online') {
     return status.state === 'checking'
       ? <div style={{ minHeight: '100dvh', background: 'var(--bg)' }} />
-      : <SplashPage />;
+      : <ServiceGatePage state={status.state} />;
   }
 
   return (

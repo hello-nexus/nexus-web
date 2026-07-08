@@ -128,6 +128,16 @@
   paint-order: stroke fill;
 }
 
+// Subtle vignette over a shown thumbnail: a gentle darkening toward the edges
+// so the preview settles into the card. Clipped by .thumb's overflow; sits
+// above the image but below the label (source order).
+.thumbVignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 55%, rgb(0 0 0 / 0.26) 100%);
+}
+
 .thumbIconWrap {
   position: absolute;
   inset: 0;

@@ -1,7 +1,12 @@
 import { defineConfig, devices } from '@playwright/test';
 
 const PORT = Number(process.env.PLAYWRIGHT_PORT ?? 4173);
-const BASE_URL = `http://localhost:${PORT}`;
+// server.js host-routes `/`: my.* hosts get the SPA shell, everything else the
+// marketing page. App-surface specs need the SPA at `/`, so the baseURL is the
+// my. host (*.localhost resolves to loopback in browsers, macOS, and
+// systemd-resolved). The webServer readiness probe keeps plain localhost.
+const BASE_URL = `http://my.localhost:${PORT}`;
+const SERVER_URL = `http://localhost:${PORT}`;
 
 export default defineConfig({
   testDir: './e2e',
@@ -21,7 +26,7 @@ export default defineConfig({
   ],
   webServer: {
     command: `PORT=${PORT} node server.js`,
-    url: BASE_URL,
+    url: SERVER_URL,
     reuseExistingServer: !process.env.CI,
     timeout: 30_000,
   },
