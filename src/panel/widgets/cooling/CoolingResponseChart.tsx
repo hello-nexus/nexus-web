@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { computeCurveSpeed } from './page/CurveEditor';
 import type { CurveDef, FanState } from '../../../types/cooling';
 import type { FanChannel, TemperatureSource } from '../../../api/cooling';
+import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
+import { localizeNumbers } from '../../../lib/units';
 import styles from './CoolingResponseChart.module.scss';
 
 const TEMP_MIN = 20;
@@ -60,6 +62,7 @@ export function CoolingResponseChart({
   cpuTemp, gpuTemp, avgDuty,
 }: Props) {
   const { t } = useTranslation();
+  const { numberFormat } = useUnitPrefs();
   const wrapRef = useRef<HTMLDivElement>(null);
   const fanReadoutRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(220);
@@ -140,7 +143,7 @@ export function CoolingResponseChart({
         {hasFanReadout && (
           <div ref={fanReadoutRef} className={styles.fanReadout} aria-label={t('cooling.response.avgFanDuty')}>
             <span className={styles.fanLabel}>FANS</span>
-            <span className={styles.fanValue}>{Math.round(avgDuty!)}%</span>
+            <span className={styles.fanValue}>{localizeNumbers(`${Math.round(avgDuty!)}%`, numberFormat)}</span>
           </div>
         )}
       </div>
@@ -198,7 +201,7 @@ export function CoolingResponseChart({
         <rect x={x - BADGE_W / 2} y={badgeY} width={BADGE_W} height={BADGE_H} rx="2" className={styles.notchBadge} />
         <text x={x} y={badgeY + BADGE_H - 4} className={styles.notchText} textAnchor="middle">
           <tspan className={styles.notchLabel}>{label}</tspan>
-          <tspan className={styles.notchValue}> {Math.round(temp)}°</tspan>
+          <tspan className={styles.notchValue}> {localizeNumbers(`${Math.round(temp)}°`, numberFormat)}</tspan>
         </text>
       </g>
     );

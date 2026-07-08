@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { WidgetProps } from '../types';
+import { useUnitPrefs } from '../../../hooks/useUiSettings';
+import { resolveHour12 } from '../../../lib/units';
 import { CLOCK_DESIGNS } from './designs';
 import { safeTimeZone } from './timezones';
 
@@ -10,6 +12,7 @@ import { safeTimeZone } from './timezones';
  */
 export function ClockWidget({ widget }: WidgetProps) {
   const [now, setNow] = useState(() => new Date());
+  const { timeFormat } = useUnitPrefs();
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
@@ -26,7 +29,10 @@ export function ClockWidget({ widget }: WidgetProps) {
   // build) must never reach Intl.DateTimeFormat - it throws and crashes the
   // panel. safeTimeZone collapses anything invalid to local time.
   const tz = safeTimeZone(widget.config?.timezone as string | undefined);
-  const hour12 = (((widget.config?.format as string | undefined) ?? '24h') === '12h');
+  // 'auto' (the default) follows the global Units time-format; an explicit
+  // 12h/24h pick on this widget overrides it.
+  const formatCfg = ((widget.config?.format as string | undefined) ?? 'auto');
+  const hour12 = formatCfg === 'auto' ? resolveHour12(timeFormat) : formatCfg === '12h';
   const useAccentColor = ((widget.config?.useAccentColor as boolean | undefined) ?? false);
 
   return (

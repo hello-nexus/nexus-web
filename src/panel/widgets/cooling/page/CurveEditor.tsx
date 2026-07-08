@@ -2,7 +2,9 @@ import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from 'reac
 import { Button } from '../../../../components/common/Button/Button';
 import { Minus, TrendingUp, Activity, Combine, Trash2, RotateCcw, Pencil, ChevronDown, ChevronUp } from 'lucide-react';
 import type { CurvePoint, TemperatureSource } from '../../../../api/cooling';
+import { useUnitPrefs } from '../../../../hooks/useUiSettings';
 import { useTranslation } from '../../../../lib/i18n';
+import { localizeNumbers } from '../../../../lib/units';
 import type { CurveDef, CurveType, MixFn } from '../../../../types/cooling';
 import { PromptModal } from '../../../../components/common/PromptModal/PromptModal';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
@@ -83,12 +85,13 @@ export function computeCurveSpeed(
 // Wraps the canonical Slider with the seconds formatter so callers stay terse.
 function ResponseTimeSlider({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   const { t } = useTranslation();
+  const { numberFormat } = useUnitPrefs();
   return (
     <Slider
       // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
       orientation="stacked" editable label={t('cooling.curve.response')} value={value}
       min={0.1} max={5.0} step={0.1} trackFill
-      formatValue={v => t('cooling.curve.responseSeconds', { value: v.toFixed(1) })} onChange={onChange} />
+      formatValue={v => t('cooling.curve.responseSeconds', { value: localizeNumbers(v.toFixed(1), numberFormat) })} onChange={onChange} />
   );
 }
 
@@ -146,6 +149,7 @@ export function CurveGraph({
   limitPercent?: number;
 }) {
   const { t } = useTranslation();
+  const { numberFormat } = useUnitPrefs();
   const svgRef = useRef<SVGSVGElement>(null);
   const [width, setWidth] = useState(400);
   const rafWidthRef = useRef(0);
@@ -330,7 +334,7 @@ export function CurveGraph({
               ))}
               {hasDot && (
                 <span className={styles.curveAxisLiveX} style={{ left: `${dotLeftPct}%` }}>
-                  {t('cooling.curve.tempBadge', { temp: currentTemp!.toFixed(1) })}
+                  {t('cooling.curve.tempBadge', { temp: localizeNumbers(currentTemp!.toFixed(1), numberFormat) })}
                 </span>
               )}
             </div>
@@ -344,7 +348,7 @@ export function CurveGraph({
           ))}
           {hasDot && (
             <span className={styles.curveAxisLiveY} style={{ top: `${dotY}px` }}>
-              {dotSpeed.toFixed(0)}%
+              {localizeNumbers(`${dotSpeed.toFixed(0)}%`, numberFormat)}
             </span>
           )}
         </div>
@@ -362,6 +366,7 @@ function MixControls({ curve, allCurves, sources, onChange }: {
   onChange: (c: CurveDef) => void;
 }) {
   const { t } = useTranslation();
+  const { numberFormat } = useUnitPrefs();
   const otherCurves = useMemo(() => allCurves.filter(c => c.id !== curve.id && c.type !== 'mix'), [allCurves, curve.id]);
   const toggleId = (id: string) => {
     const ids = curve.mix.curveIds.includes(id)
@@ -392,7 +397,7 @@ function MixControls({ curve, allCurves, sources, onChange }: {
             return (
               <div key={c.id} className={styles.mixSourceRow}>
                 <span className={styles.mixSourceName}>{c.name}</span>
-                <span className={styles.mixSourceValue}>{(curveSpeedMap.get(c.id) ?? 0).toFixed(0)}%</span>
+                <span className={styles.mixSourceValue}>{localizeNumbers(`${(curveSpeedMap.get(c.id) ?? 0).toFixed(0)}%`, numberFormat)}</span>
                 <button type="button"
                   className={`${styles.switch}${selected ? ' ' + styles.switchOn : ''}`}
                   onClick={() => toggleId(c.id)}
@@ -468,6 +473,7 @@ export const CurveCard = memo(function CurveCard({
   drag?: CurveCardDrag;
 }) {
   const { t } = useTranslation();
+  const { numberFormat } = useUnitPrefs();
   const set = (partial: Partial<CurveDef>) => onChange({ ...curve, ...partial });
   const PresetIcon = presetIconFor(curve.preset);
   const isPreset = !!curve.preset;
@@ -525,7 +531,7 @@ export const CurveCard = memo(function CurveCard({
       <span className={styles.controlLabel}>{t('cooling.curve.source')}</span>
       <Select className={styles.sourceSelect} variant="ghost" value={curve.sourceId}
         onChange={v => set({ sourceId: v })} ariaLabel={t('cooling.curve.source')}>
-        {sources.map(s => (<option key={s.id} value={s.id}>{s.category} - {s.name} ({s.value.toFixed(1)}°C)</option>))}
+        {sources.map(s => (<option key={s.id} value={s.id}>{s.category} - {s.name} ({localizeNumbers(s.value.toFixed(1), numberFormat)}°C)</option>))}
       </Select>
     </label>
   ) : null;
@@ -679,8 +685,8 @@ export const CurveCard = memo(function CurveCard({
         <div className={styles.curveCardModeArea}>
           {renderTypeChips(false)}
           <HoverTooltip body={t('cooling.curve.output')} side="top">
-            <span className={styles.curveOutBadge} aria-label={`${t('cooling.curve.output')} ${output.toFixed(0)}%`}>
-              {output.toFixed(0)}%
+            <span className={styles.curveOutBadge} aria-label={`${t('cooling.curve.output')} ${localizeNumbers(`${output.toFixed(0)}%`, numberFormat)}`}>
+              {localizeNumbers(`${output.toFixed(0)}%`, numberFormat)}
             </span>
           </HoverTooltip>
         </div>

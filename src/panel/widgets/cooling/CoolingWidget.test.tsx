@@ -60,6 +60,7 @@ vi.mock('../../../hooks/useUiSettings', () => ({
     reload: vi.fn(),
   }),
   useTempSensorPrefs: () => ({ cpuId: '', gpuId: '' }),
+  useUnitPrefs: () => ({ monitoringTempUnit: 'c', timeFormat: 'system', numberFormat: 'system' }),
 }));
 
 vi.mock('../../../lib/i18n', () => ({

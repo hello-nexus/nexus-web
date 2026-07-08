@@ -10,7 +10,9 @@ import { fetchFanChannels, setFanSpeed, releaseFanAuto, type FanChannel } from '
 import { type LianLiWirelessState } from '../../../api/lianli-wireless';
 import { fanTypeKey } from './LianLiWirelessFansTab';
 import { buildLianLiWirelessCoolingChains, type LianLiWirelessCoolingChain } from './lianliWirelessCoolingUtils';
+import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
+import { formatNumber, localizeNumbers } from '../../../lib/units';
 import styles from './LianLiWirelessDevicePage.module.scss';
 
 // Matches the shell's wireless-state poll; the generic cooling channels the
@@ -140,6 +142,7 @@ function CoolingPortRow({
   onSetManual: (channelId: string, percent: number) => void;
 }) {
   const { t } = useTranslation();
+  const { numberFormat } = useUnitPrefs();
   const interactingRef = useRef(false);
   const [draft, setDraft] = useState(channel?.dutyPercent ?? 0);
 
@@ -162,7 +165,7 @@ function CoolingPortRow({
         <span className={styles.rowLabel}>{label}</span>
         <span className={styles.rowValue}>
           <Fan size={12} aria-hidden />
-          {rpm > 0 ? `${rpm.toLocaleString()} RPM` : '-'}
+          {rpm > 0 ? `${formatNumber(rpm, numberFormat)} RPM` : '-'}
         </span>
       </div>
       {isCurve ? (
@@ -191,7 +194,7 @@ function CoolingPortRow({
               min={0}
               max={100}
               step={1}
-              formatValue={v => `${Math.round(v)}%`}
+              formatValue={v => localizeNumbers(`${Math.round(v)}%`, numberFormat)}
               ariaLabel={t('devices.lianli-wireless.fanSpeed')}
               onChange={(v, commit) => {
                 const rounded = Math.round(v);

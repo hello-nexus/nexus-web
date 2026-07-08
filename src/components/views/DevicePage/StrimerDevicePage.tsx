@@ -11,7 +11,9 @@ import {
   type StrimerLighting,
   type StrimerLightingPatch,
 } from '../../../api/strimer';
+import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
+import { localizeNumbers } from '../../../lib/units';
 import styles from './LianLiDevicePage.module.scss';
 
 const PERCENT_PER_LEVEL = 25;
@@ -24,6 +26,7 @@ interface StrimerDevicePageProps {
 
 export function StrimerDevicePage({ onSectionNavigate }: StrimerDevicePageProps) {
   const { t } = useTranslation();
+  const { numberFormat } = useUnitPrefs();
   const [lighting, setLighting] = useState<StrimerLighting | null>(null);
   const [saving, setSaving] = useState(false);
   const aliveRef = useRef(true);
@@ -110,7 +113,7 @@ export function StrimerDevicePage({ onSectionNavigate }: StrimerDevicePageProps)
                   min={0}
                   max={100}
                   step={PERCENT_PER_LEVEL}
-                  formatValue={v => `${v}%`}
+                  formatValue={v => localizeNumbers(`${v}%`, numberFormat)}
                   ariaLabel={t('devices.lianli.lightingBrightnessAria')}
                   disabled={!lightingLoaded}
                   onChange={(v: number, commit?: boolean) => {
@@ -134,7 +137,7 @@ export function StrimerDevicePage({ onSectionNavigate }: StrimerDevicePageProps)
                   min={0}
                   max={100}
                   step={PERCENT_PER_LEVEL}
-                  formatValue={v => `${v}%`}
+                  formatValue={v => localizeNumbers(`${v}%`, numberFormat)}
                   ariaLabel={t('devices.lianli.lightingSpeedAria')}
                   disabled={!lightingLoaded}
                   onChange={(v: number, commit?: boolean) => {

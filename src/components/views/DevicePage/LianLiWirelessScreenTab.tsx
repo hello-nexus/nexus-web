@@ -25,7 +25,9 @@ import {
   type LianLiWirelessMediaItem,
   type LianLiWirelessMediaKind,
 } from '../../../api/lianli-wireless';
+import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
+import { localizeNumbers } from '../../../lib/units';
 import styles from './LianLiWirelessDevicePage.module.scss';
 
 const SCREENS_POLL_MS = 2000;
@@ -76,6 +78,7 @@ function contentTypeIcon(type: LianLiWirelessScreenContentType) {
  */
 export function LianLiWirelessScreenTab() {
   const { t } = useTranslation();
+  const { numberFormat } = useUnitPrefs();
   const [screens, setScreens] = useState<LianLiWirelessScreen[] | null>(null);
   const [media, setMedia] = useState<LianLiWirelessMediaItem[]>([]);
   const [selected, setSelected] = useState<Set<string>>(() => new Set());
@@ -353,7 +356,7 @@ export function LianLiWirelessScreenTab() {
           min={0}
           max={100}
           step={1}
-          formatValue={v => `${v}%`}
+          formatValue={v => localizeNumbers(`${v}%`, numberFormat)}
           ariaLabel={t('devices.lianli-wireless.brightness')}
           disabled={!representative}
           onChange={(v, commit) => {

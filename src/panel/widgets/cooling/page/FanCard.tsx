@@ -1,7 +1,9 @@
 import { memo, useRef, useState } from 'react';
 import { CircleSlash, Fan, Lock, Plus } from 'lucide-react';
 import { type FanChannel, isFanDisconnected } from '../../../../api/cooling';
+import { useUnitPrefs } from '../../../../hooks/useUiSettings';
 import { useTranslation } from '../../../../lib/i18n';
+import { formatNumber } from '../../../../lib/units';
 import type { CurveDef, FanState } from '../../../../types/cooling';
 import { EditableText } from '../../../../components/common/Editable/EditableText';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
@@ -78,6 +80,7 @@ export const FanCard = memo(function FanCard({
   drag?: SortableRowArgs;
 }) {
   const { t } = useTranslation();
+  const { numberFormat } = useUnitPrefs();
   const dutyPct = Math.max(0, Math.min(100, channel.dutyPercent));
   const swEnabled = state?.softwareControl ?? false;
   const assignedCurveId = state?.curveId ?? '';
@@ -242,7 +245,7 @@ export const FanCard = memo(function FanCard({
           <EditableText value={channel.name} onCommit={name => onRename(channel.id, name)} className={styles.editableName} />
         </span>
         <span className={styles.fanRpmReadout}>
-          <span className={styles.fanRpm}>{channel.rpm.toLocaleString()}</span>
+          <span className={styles.fanRpm}>{formatNumber(channel.rpm, numberFormat)}</span>
           <span className={styles.fanRpmLabel}>RPM</span>
         </span>
       </div>

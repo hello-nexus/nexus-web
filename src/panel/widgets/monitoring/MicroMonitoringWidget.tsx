@@ -1,7 +1,7 @@
 import { useSensors } from '../../../hooks/useSensors';
 import { useFpsSensors } from '../../../hooks/useFpsSensors';
 import { useNetworkMonitor } from '../../../hooks/useNetworkMonitor';
-import { useTempSensorPrefs } from '../../../hooks/useUiSettings';
+import { useTempSensorPrefs, useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useSharedSensorHistory } from '../common/useSharedSensorHistory';
 import type { PanelWidget } from '../../types';
 import {
@@ -18,7 +18,8 @@ import {
 import { bareSensorLabel } from './sensorNames';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { MicroBar } from './MicroBar';
-import { formatScaledDataValue } from './sensorValueFormat';
+import { formatSensorValue } from './sensorValueFormat';
+import type { NumberFormat, TempUnit } from '../../../lib/units';
 import styles from './MicroMonitoringWidget.module.scss';
 
 interface MicroMonitoringWidgetProps {
@@ -65,6 +66,7 @@ export function MicroMonitoringWidget({ widget, count }: MicroMonitoringWidgetPr
   const network = useNetworkMonitor(usesNetwork);
   const networkSensors = buildNetworkSensors(network);
   const tempPrefs = useTempSensorPrefs();
+  const { monitoringTempUnit, numberFormat } = useUnitPrefs();
 
   const bottomLabel = bottomLabelForDevice(device, sensors);
 
@@ -80,6 +82,8 @@ export function MicroMonitoringWidget({ widget, count }: MicroMonitoringWidgetPr
             device={device}
             sensorName={rawName}
             tempPrefs={tempPrefs}
+            monitoringTempUnit={monitoringTempUnit}
+            numberFormat={numberFormat}
           />
         ))}
       </div>
@@ -97,13 +101,15 @@ interface MicroRowProps {
   device: DeviceKey;
   sensorName: string;
   tempPrefs?: { cpuId: string; gpuId: string };
+  monitoringTempUnit: TempUnit;
+  numberFormat: NumberFormat;
 }
 
-function MicroRow({ sensors, fpsSensors, networkSensors, device, sensorName, tempPrefs }: MicroRowProps) {
+function MicroRow({ sensors, fpsSensors, networkSensors, device, sensorName, tempPrefs, monitoringTempUnit, numberFormat }: MicroRowProps) {
   const effectiveSensorName = device === 'network' && !sensorName ? NETWORK_SENSOR_TOTAL : sensorName;
   const sensor = resolveSensor(sensors, fpsSensors, networkSensors, device, effectiveSensorName, tempPrefs);
   const rawValue = sensor?.value ?? 0;
-  const formatted = sensor ? (formatScaledDataValue(sensor.value, sensor.units) ?? sensor.formatted) : '-';
+  const formatted = sensor ? formatSensorValue(sensor.value, sensor.units, sensor.formatted, monitoringTempUnit, numberFormat) : '-';
   const sensorDisplayName = sensor?.name ?? '';
   const label = bareSensorLabel(device, sensorDisplayName) || sensorDisplayName || effectiveSensorName;
   const sensorKey = `${device}::${effectiveSensorName || 'default'}`;

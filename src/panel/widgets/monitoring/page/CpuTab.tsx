@@ -1,8 +1,10 @@
 import type { useProcessMonitor } from '../../../../hooks/useProcessMonitor';
 import type { HardwareSensor, SensorState } from '../../../../hooks/useSensors';
+import { useUnitPrefs } from '../../../../hooks/useUiSettings';
 import { useTranslation } from '../../../../lib/i18n';
 import { StackedChart } from '../../../../components/common/StackedChart/StackedChart';
 import { RankedList } from '../../../../components/common/RankedList/RankedList';
+import { convertTemperature, localizeNumbers, tempUnitSymbol } from '../../../../lib/units';
 import { VitalsStrip, type Vital } from './VitalsStrip';
 import { RankedToggle } from './parts';
 import { rankSeries, topNWithOther } from './shared';
@@ -25,6 +27,7 @@ export function CpuTab({ cpuSeries, sensors, showAverage, onToggle }: {
   onToggle: () => void;
 }) {
   const { t } = useTranslation();
+  const { monitoringTempUnit, numberFormat } = useUnitPrefs();
 
   // No `?? sensors.cpu[0]` fallback: the first sensor could be a temperature
   // in °C, which would render as a percentage. Show 0 when 'CPU Total' absent.
@@ -37,10 +40,10 @@ export function CpuTab({ cpuSeries, sensors, showAverage, onToggle }: {
   const temp = pick(sensors.cpu, 'Temperature', ['CPU Package', 'Core (Tctl/Tdie)', 'Core (Tctl)']);
   const power = pick(sensors.cpu, 'Power', ['CPU Package', 'Package']);
   const clock = pick(sensors.cpu, 'Clock', ['Cores (Average)']);
-  const vitals: Vital[] = [{ label: t('monitoring.vital.usage'), value: `${Math.round(cpuValue)}%` }];
-  if (temp != null) vitals.push({ label: t('monitoring.vital.temp'), value: `${Math.round(temp)}°C` });
-  if (power != null) vitals.push({ label: t('monitoring.vital.power'), value: `${Math.round(power)} W` });
-  if (clock != null) vitals.push({ label: t('monitoring.vital.clock'), value: `${Math.round(clock)} MHz` });
+  const vitals: Vital[] = [{ label: t('monitoring.vital.usage'), value: localizeNumbers(`${Math.round(cpuValue)}%`, numberFormat) }];
+  if (temp != null) vitals.push({ label: t('monitoring.vital.temp'), value: localizeNumbers(`${Math.round(convertTemperature(temp, monitoringTempUnit))}${tempUnitSymbol(monitoringTempUnit)}`, numberFormat) });
+  if (power != null) vitals.push({ label: t('monitoring.vital.power'), value: localizeNumbers(`${Math.round(power)} W`, numberFormat) });
+  if (clock != null) vitals.push({ label: t('monitoring.vital.clock'), value: localizeNumbers(`${Math.round(clock)} MHz`, numberFormat) });
 
   return (
     <>
@@ -54,7 +57,7 @@ export function CpuTab({ cpuSeries, sensors, showAverage, onToggle }: {
         title={t('monitoring.tab.cpu')}
         titleRight={
           <div className={styles.chartStat}>
-            <span className={styles.chartStatValue}>{Math.round(cpuValue)}</span>
+            <span className={styles.chartStatValue}>{localizeNumbers(String(Math.round(cpuValue)), numberFormat)}</span>
             <span className={styles.chartStatUnit}>%</span>
           </div>
         }
@@ -68,7 +71,7 @@ export function CpuTab({ cpuSeries, sensors, showAverage, onToggle }: {
         title={t('monitoring.cpu.top')}
         subtitle={<RankedToggle showAverage={showAverage} onToggle={onToggle} />}
         items={ranked.map(s => ({ name: s.name, color: s.color, value: s[key] }))}
-        formatValue={(v) => `${(+v).toFixed(1)}%`}
+        formatValue={(v) => localizeNumbers(`${(+v).toFixed(1)}%`, numberFormat)}
         emptyMessage={t('monitoring.ranked.empty')}
       />
     </>

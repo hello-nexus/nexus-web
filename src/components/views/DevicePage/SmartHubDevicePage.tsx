@@ -18,7 +18,9 @@ import {
   type SmartHubFwAnimationKind,
   type SmartHubFwSetting,
 } from '../../../api/smarthub';
+import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
+import { localizeNumbers } from '../../../lib/units';
 import styles from './SmartHubDevicePage.module.scss';
 
 /**
@@ -35,6 +37,7 @@ import styles from './SmartHubDevicePage.module.scss';
  */
 export function SmartHubDevicePage() {
   const { t } = useTranslation();
+  const { numberFormat } = useUnitPrefs();
   // Tri-state: 'unknown' = still loading, 'connected' = hub up,
   // 'disconnected' = explicit not-connected response. The placeholder
   // only renders on the 'disconnected' arm.
@@ -143,7 +146,7 @@ export function SmartHubDevicePage() {
             step={1}
             editable
             trackFill
-            formatValue={v => `${Math.round(v)}%`}
+            formatValue={v => localizeNumbers(`${Math.round(v)}%`, numberFormat)}
             disabled={!settingLoaded}
             ariaLabel={t('devices.smartHub.standaloneFanPercentAria')}
             onChange={(v: number, commit?: boolean) => {
@@ -187,7 +190,7 @@ export function SmartHubDevicePage() {
             step={1}
             editable
             trackFill
-            formatValue={v => `${Math.round(v)}%`}
+            formatValue={v => localizeNumbers(`${Math.round(v)}%`, numberFormat)}
             disabled={!settingLoaded}
             ariaLabel={t('devices.y70.brightness')}
             onChange={(v: number, commit?: boolean) => {

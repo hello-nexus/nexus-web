@@ -7,7 +7,8 @@ import {
   type FanChannel, type TemperatureSource,
 } from '../../../api/cooling';
 import { useSensors } from '../../../hooks/useSensors';
-import { useTempSensorPrefs, useUiSettings } from '../../../hooks/useUiSettings';
+import { useTempSensorPrefs, useUiSettings, useUnitPrefs } from '../../../hooks/useUiSettings';
+import { convertTemperature, localizeNumbers, tempUnitSymbol, type NumberFormat, type TempUnit } from '../../../lib/units';
 import { resolveAdvancedMode } from '../common/AdvancedModeSettings';
 import { useStateChangePulse } from '../common/useStateChangePulse';
 import { SignalBarsIcon } from './SignalBarsIcon';
@@ -64,6 +65,7 @@ export function CoolingWidget({ widget }: WidgetProps) {
 
   const sensors = useSensors(!preview);
   const tempPrefs = useTempSensorPrefs();
+  const { monitoringTempUnit, numberFormat } = useUnitPrefs();
   const cpuTemp = resolveCpuTempSensor(sensors.cpu, tempPrefs.cpuId);
   const gpuTemp = resolveGpuTempSensor(sensors.gpu, tempPrefs.gpuId);
   const fanSensors = [
@@ -82,24 +84,24 @@ export function CoolingWidget({ widget }: WidgetProps) {
     if (cpuTemp) {
       list.push({
         key: 'cpu',
-        props: gaugeProps(cpuTemp.value, cpuTemp.value / TEMP_MAX * 100, formatTemp(cpuTemp.value), t('cooling.label.cpu')),
+        props: gaugeProps(cpuTemp.value, cpuTemp.value / TEMP_MAX * 100, formatTemp(cpuTemp.value, monitoringTempUnit, numberFormat), t('cooling.label.cpu')),
       });
     }
     if (gpuTemp) {
       list.push({
         key: 'gpu',
-        props: gaugeProps(gpuTemp.value, gpuTemp.value / TEMP_MAX * 100, formatTemp(gpuTemp.value), t('cooling.label.gpu')),
+        props: gaugeProps(gpuTemp.value, gpuTemp.value / TEMP_MAX * 100, formatTemp(gpuTemp.value, monitoringTempUnit, numberFormat), t('cooling.label.gpu')),
       });
     }
     if (hasFans) {
       const duty = avgDuty ?? 0;
       list.push({
         key: 'fan',
-        props: gaugeProps(duty, duty, formatDuty(duty), t('cooling.label.fan')),
+        props: gaugeProps(duty, duty, formatDuty(duty, numberFormat), t('cooling.label.fan')),
       });
     }
     return list;
-  }, [cpuTemp, gpuTemp, avgDuty, hasFans, t]);
+  }, [cpuTemp, gpuTemp, avgDuty, hasFans, t, monitoringTempUnit, numberFormat]);
 
   // Optimistic-lock window - see CoolingPage's identical pattern. When the
   // user clicks a preset, we set this to `now + WINDOW_MS` so the next few
@@ -328,12 +330,12 @@ function gaugeProps(rawValue: number, pct: number, formatted: string, label: str
   };
 }
 
-function formatTemp(value: number): string {
-  return `${Math.round(value)}°C`;
+function formatTemp(value: number, tempUnit: TempUnit, numberFormat: NumberFormat): string {
+  return localizeNumbers(`${Math.round(convertTemperature(value, tempUnit))}${tempUnitSymbol(tempUnit)}`, numberFormat);
 }
 
-function formatDuty(value: number): string {
-  return `${Math.round(value)}%`;
+function formatDuty(value: number, numberFormat: NumberFormat): string {
+  return localizeNumbers(`${Math.round(value)}%`, numberFormat);
 }
 
 export default CoolingWidget;

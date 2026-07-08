@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import classNames from 'classnames';
 import { Droplet, Fan, RefreshCw } from 'lucide-react';
+import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
+import { formatNumber, localizeNumbers } from '../../../lib/units';
 import { SectionHeader } from '../../common/SectionHeader/SectionHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { Badge } from '../../common/Badge/Badge';
@@ -20,6 +22,7 @@ interface CoolingSectionProps {
 
 export function CoolingSection({ data, loading, error, onRefresh }: CoolingSectionProps) {
   const { t } = useTranslation();
+  const { numberFormat } = useUnitPrefs();
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => { setNow(Date.now()); }, [data]);
   const state = resolveSectionState({
@@ -55,8 +58,8 @@ export function CoolingSection({ data, loading, error, onRefresh }: CoolingSecti
                 {device.name}
               </span>
               <span className={styles.coolingMeta}>
-                <span>{`${device.rpm} RPM`}</span>
-                <span>{`${device.targetDutyPercent}%`}</span>
+                <span>{`${formatNumber(device.rpm, numberFormat)} RPM`}</span>
+                <span>{localizeNumbers(`${device.targetDutyPercent}%`, numberFormat)}</span>
                 <Badge label={t(coolingStatusLabelKey(device.status))} color={coolingStatusColor(device.status)} />
                 {device.sinceUtc && device.status !== 'ok' && (
                   <span>{t('diagnostics.cooling.since', { time: relativeTimeLabel(device.sinceUtc, now, t) })}</span>

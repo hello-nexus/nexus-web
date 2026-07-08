@@ -11,7 +11,9 @@ import {
   type LianLiWirelessFan,
   type LianLiWirelessState,
 } from '../../../api/lianli-wireless';
+import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
+import { formatNumber } from '../../../lib/units';
 import styles from './LianLiWirelessDevicePage.module.scss';
 
 // Bind/unbind converge on the service in ~2-6s; give up waiting for the
@@ -215,6 +217,7 @@ function FanChain({
   onIdentify: (mac: string) => void;
 }) {
   const { t } = useTranslation();
+  const { numberFormat } = useUnitPrefs();
   const [open, setOpen] = useState(true);
   const typeLabel = t(`devices.lianli-wireless.${deviceTypeKey(fan.devType, fan.fanType)}` as Parameters<typeof t>[0]);
   const isFan = isFanDevice(fan.devType);
@@ -248,7 +251,7 @@ function FanChain({
             <span className={styles.rowLabel}>{t('devices.lianli-wireless.fanN', { n: i + 1 })}</span>
             <span className={styles.rowValue}>
               <Fan size={12} aria-hidden />
-              {rpm > 0 ? `${rpm.toLocaleString()} RPM` : '-'}
+              {rpm > 0 ? `${formatNumber(rpm, numberFormat)} RPM` : '-'}
             </span>
           </div>
         ))}

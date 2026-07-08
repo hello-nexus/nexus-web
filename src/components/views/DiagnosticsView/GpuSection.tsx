@@ -1,5 +1,7 @@
 import { Monitor, RefreshCw } from 'lucide-react';
+import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
+import { convertTemperature, localizeNumbers, tempUnitSymbol } from '../../../lib/units';
 import { SectionHeader } from '../../common/SectionHeader/SectionHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { Card } from '../../common/Card/Card';
@@ -59,11 +61,12 @@ const THROTTLE_COUNTERS: Array<{ key: keyof DiagnosticsGpu['throttle']; reason: 
 
 function GpuCard({ gpu }: { gpu: DiagnosticsGpu }) {
   const { t } = useTranslation();
+  const { monitoringTempUnit, numberFormat } = useUnitPrefs();
   return (
     <Card title={gpu.name} subtitle={`${t('diagnostics.gpu.driver')}: ${gpu.driverVersion}`}>
       <InfoList>
-        <InfoRow label={t('diagnostics.gpu.temperature')} value={`${Math.round(gpu.temperatureC)}°C`} />
-        <InfoRow label={t('diagnostics.gpu.power')} value={`${gpu.powerW.toFixed(0)}W`} />
+        <InfoRow label={t('diagnostics.gpu.temperature')} value={localizeNumbers(`${Math.round(convertTemperature(gpu.temperatureC, monitoringTempUnit))}${tempUnitSymbol(monitoringTempUnit)}`, numberFormat)} />
+        <InfoRow label={t('diagnostics.gpu.power')} value={localizeNumbers(`${gpu.powerW.toFixed(0)}W`, numberFormat)} />
         <InfoRow label={t('diagnostics.gpu.tdrCount')} value={gpu.recentTdrCount} tone={gpu.recentTdrCount > 0 ? 'bad' : 'default'} />
         <InfoRow label={t('diagnostics.gpu.driverErrorCount')} value={gpu.recentDriverErrorCount} tone={gpu.recentDriverErrorCount > 0 ? 'warn' : 'default'} />
       </InfoList>
