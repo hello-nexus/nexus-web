@@ -82,13 +82,16 @@ export function useOemAppSeed({
     if (nextLayout !== layout) setLayout(nextLayout);
 
     const pinAdds = plan.sidebarKeysToAdd.filter(isPinnableAppKey);
-    const nextPinned = pinAdds.length > 0
-      ? [...uiSettings.pinnedSidebarApps, ...pinAdds]
-      : undefined;
+    // Persist the effective tail (native pins + the OEM page-app) rather than
+    // relying on the computed default. defaultPinnedTail() derives preinstalled
+    // apps from the marketplace registry, which is empty until it loads, so a pin
+    // left unpersisted silently drops on a cold reopen. Writing it explicitly,
+    // plus the cold-load sanitizer that preserves the app key, keeps it pinned.
+    const nextPinned = [...uiSettings.pinnedSidebarApps, ...pinAdds];
 
     updateUiSettings({
       oemAppSeeded: true,
-      ...(nextPinned ? { pinnedSidebarApps: nextPinned } : {}),
+      pinnedSidebarApps: nextPinned,
     });
   }, [enabled, layoutLoaded, uiHydrated, marketplaceLoaded, uiSettings, layout, capacity, setLayout, updateUiSettings]);
 }

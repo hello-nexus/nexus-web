@@ -9,6 +9,8 @@ import { postService } from '../api/service';
 import { COOLING_PRESETS, type CoolingPresetKey } from '../panel/widgets/cooling/page/coolingPresets';
 import { EFFECTS, MODES, BASE_DEFAULTS, categoryOf, type LightingMode } from '../types/lighting';
 import { getCatalogEntries } from '../panel/widgets/registry';
+import { preinstalledIconUrl } from '../app/sidebarApps';
+import { AppIconImage } from '../components/icons/AppIconImage';
 import { DEV_TOOLS } from '../lib/devTools';
 import type { CommandContext, SearchEntry, SearchSource } from './types';
 import { requestSearchScroll } from './scroll';
@@ -180,8 +182,13 @@ const installedApps: SearchSource = (ctx) =>
     .filter(([type, m]) => !!m.Page && !CURATED_APP_VIEWS.has(type))
     .map(([type, m]) => {
       const Icon = m.meta.icon;
+      // A preinstalled (OEM) app renders its own manifest mark, same as the
+      // sidebar; every other app falls back to the generic catalog glyph.
+      const iconUrl = preinstalledIconUrl(type);
       return go(`app:${type}`, {
-        title: ctx.t(m.meta.i18nKey), icon: <Icon size={18} />, keywords: ['app'],
+        title: ctx.t(m.meta.i18nKey),
+        icon: iconUrl ? <AppIconImage src={iconUrl} size={18} /> : <Icon size={18} />,
+        keywords: ['app'],
         to: () => ctx.host.goView(type),
       });
     });

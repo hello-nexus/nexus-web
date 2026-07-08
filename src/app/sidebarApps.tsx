@@ -35,7 +35,7 @@ const DASHBOARD_META: SidebarAppMeta = {
 
 // The authed asset URL for a preinstalled (OEM bake-in) app's own manifest
 // icon, or undefined for any other app (which falls back to the generic glyph).
-function preinstalledIconUrl(key: string): string | undefined {
+export function preinstalledIconUrl(key: string): string | undefined {
   if (!isMarketplaceType(key)) return undefined;
   const id = marketplaceIdFromType(key);
   if (!id) return undefined;
