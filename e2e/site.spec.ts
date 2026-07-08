@@ -49,18 +49,36 @@ test.describe('marketing page content', () => {
     const mySystem = page.getByRole('banner').getByRole('link', { name: 'My System' });
     await expect(mySystem).toHaveAttribute('href', /my\./);
 
-    const winLink = page.getByRole('link', { name: 'Download for Windows' });
-    await expect(winLink).toHaveAttribute(
-      'href', 'https://github.com/hello-nexus/nexus/releases/latest/download/Nexus-Setup.exe');
+    const winLinks = page.getByRole('link', { name: 'Download for Windows' });
+    await expect(winLinks.first()).toHaveAttribute(
+      'href', 'https://hellonexus.com/download/windows');
   });
 
-  test('interactive demos mount: palette ring and curve editor', async ({ page }) => {
+  test('interactive demos mount: palette ring, effect tabs, curve editor', async ({ page }) => {
     await page.goto(`${SITE}/`);
 
     await page.getByText('Lighting that reacts to you.').scrollIntoViewIfNeeded();
     await expect(page.getByRole('button', { name: 'Preset 1' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Fire' })).toBeVisible();
 
     await page.getByText('Quiet when idle.').scrollIntoViewIfNeeded();
-    await expect(page.getByText('Fan speed')).toBeVisible();
+    await expect(page.getByText('Fan speed').first()).toBeVisible();
+  });
+});
+
+test.describe('downloads', () => {
+  test('/download serves the marketing downloads page', async ({ request }) => {
+    for (const base of [SITE, MY]) {
+      const html = await (await request.get(`${base}/download`)).text();
+      expect(html).toContain('assets/site-');
+    }
+  });
+
+  test('per-OS routes 302 to a GitHub release asset', async ({ request }) => {
+    const res = await request.get(`${SITE}/download/mac`, { maxRedirects: 0 });
+    expect(res.status()).toBe(302);
+    const location = res.headers()['location'] ?? '';
+    expect(location).toContain('github.com');
+    expect(location).toContain('Nexus.dmg');
   });
 });

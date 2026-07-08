@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Fan } from 'lucide-react';
 import { useTranslation } from '../../lib/i18n';
 import { CurveGraph } from '../../panel/widgets/cooling/page/CurveEditor';
 import type { CurvePoint } from '../../api/cooling';
@@ -46,18 +47,23 @@ export function CoolingSection() {
     let tick = 0;
     const id = setInterval(() => {
       tick += 1;
-      setTemp(58 + 13 * Math.sin(tick / 14) + (Math.random() - 0.5) * 2.5);
-    }, 500);
+      setTemp(58 + 13 * Math.sin(tick / 7) + (Math.random() - 0.5) * 2.5);
+    }, 1000);
     return () => clearInterval(id);
   }, [inView]);
 
   const activePoints = preview ?? points;
   const duty = Math.round(dutyAt(activePoints, temp));
+  // Spin period tracks the demo duty (higher duty, faster spin).
+  const spinSeconds = 40 / Math.max(duty, 8);
 
   return (
     <section ref={ref} className={styles.section}>
       <div className={styles.sectionText}>
-        <p className={styles.eyebrow}>{t('site.cooling.eyebrow')}</p>
+        <p className={styles.eyebrow}>
+          <Fan size={15} aria-hidden />
+          <span>{t('welcome.capabilities.cooling')}</span>
+        </p>
         <h2>{t('site.cooling.title')}</h2>
         <p className={styles.lead}>{t('site.cooling.lead')}</p>
         <ul className={styles.points}>
@@ -76,7 +82,15 @@ export function CoolingSection() {
             </div>
             <div className={styles.coolingStat}>
               <span className={styles.coolingStatLabel}>{t('site.cooling.fanLabel')}</span>
-              <span className={`${styles.coolingStatValue} ${styles.coolingStatAccent}`}>{duty}%</span>
+              <span className={`${styles.coolingStatValue} ${styles.coolingStatAccent}`}>
+                <Fan
+                  size={20}
+                  aria-hidden
+                  className={styles.fanSpin}
+                  style={{ animationDuration: `${spinSeconds.toFixed(2)}s` }}
+                />
+                {duty}%
+              </span>
             </div>
           </div>
           <CurveGraph

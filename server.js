@@ -36,54 +36,91 @@ app.get('/.well-known/assetlinks.json', (_req, res) => {
 });
 
 // Public installer download redirects. The actual binaries live in
-// hello-nexus/nexus (a separate public repo); these routes 302 to
-// GitHub's `latest/download/<asset>` alias so the URLs we hand out from
-// hellonexus.com / marketing material never need to change when we cut a
-// new version. `Cache-Control: no-store` prevents Cloudflare (in front of
-// hellonexus.com) from pinning a stale Location header if the asset map is
-// edited - the binary itself is on GitHub and out of scope here.
-//
-// Linux is intentionally absent: there's no Linux build published yet, so
-// Linux UAs and any /download/linux hit fall through to the SPA, which
-// shows the chooser with a "coming soon" affordance instead of a 404.
+// hello-nexus/nexus (a separate public repo). The per-OS routes are the
+// canonical URLs marketing material hands out - they never change across
+// versions. Each 302s to the newest downloadable release's asset, resolved
+// via the GitHub API: the latest stable when one exists, otherwise the
+// newest prerelease (no stable has shipped yet, so GitHub's static
+// `latest/download/<asset>` alias 404s; it remains the fallback when the
+// API is unreachable so a stable-era outage degrades gracefully).
+// `Cache-Control: no-store` prevents Cloudflare (in front of hellonexus.com)
+// from pinning a stale Location header.
 const RELEASES_BASE = 'https://github.com/hello-nexus/nexus/releases/latest/download';
+const RELEASES_API = 'https://api.github.com/repos/hello-nexus/nexus/releases?per_page=15';
 const DOWNLOAD_ASSETS = {
   windows: 'Nexus-Setup.exe',
   macos: 'Nexus.dmg',
+  linux: 'Nexus-Linux-x64.tar.gz',
 };
+const RELEASE_CACHE_MS = 10 * 60_000;
+// A failed refresh keeps serving the last-good map and retries sooner - the
+// static-alias fallback 404s while no stable release exists, so nulling the
+// cache on a blip would re-break every download for the full TTL.
+const RELEASE_RETRY_MS = 60_000;
+const RELEASE_API_TIMEOUT_MS = 3000;
+let releaseCache = { byName: null, expiresAt: 0 };
+let releaseRefresh = null;
 
-function detectOSFromUA(ua) {
-  const s = (ua || '').toLowerCase();
-  // iPadOS 13+ Safari reports as "Macintosh" - exclude iOS/iPadOS first so
-  // tablet/phone visitors fall through to the chooser instead of being
-  // handed an unusable .dmg.
-  if (s.includes('iphone') || s.includes('ipad') || s.includes('ipod')) return null;
-  if (s.includes('windows')) return 'windows';
-  if (s.includes('mac os') || s.includes('macintosh')) return 'macos';
-  return null;
+async function fetchReleaseAssets() {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), RELEASE_API_TIMEOUT_MS);
+  try {
+    const res = await fetch(RELEASES_API, {
+      signal: controller.signal,
+      headers: { accept: 'application/vnd.github+json' },
+    });
+    if (!res.ok) return null;
+    // Only releases carrying every per-OS asset qualify - a release caught
+    // mid-CI-upload must not become the redirect target.
+    const wanted = Object.values(DOWNLOAD_ASSETS);
+    const usable = (await res.json()).filter((r) => !r.draft
+      && wanted.every((name) => r.assets?.some((a) => a.name === name)));
+    const pick = usable.find((r) => !r.prerelease) ?? usable[0];
+    if (!pick) return null;
+    return Object.fromEntries(pick.assets.map((a) => [a.name, a.browser_download_url]));
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
-function redirectToAsset(res, os) {
+// name -> browser_download_url for the newest downloadable release, or null
+// when the API has never answered (callers fall back to the static alias).
+// Concurrent expiries share one in-flight refresh (unauthenticated GitHub
+// API allows 60 req/h/IP).
+async function resolveReleaseAssets() {
+  if (releaseCache.expiresAt > Date.now()) return releaseCache.byName;
+  releaseRefresh ??= fetchReleaseAssets().then((byName) => {
+    releaseCache = byName
+      ? { byName, expiresAt: Date.now() + RELEASE_CACHE_MS }
+      : { byName: releaseCache.byName, expiresAt: Date.now() + RELEASE_RETRY_MS };
+    releaseRefresh = null;
+    return releaseCache.byName;
+  });
+  return releaseRefresh;
+}
+
+async function redirectToAsset(res, os) {
+  const assetName = DOWNLOAD_ASSETS[os];
+  const byName = await resolveReleaseAssets();
   res.set('Cache-Control', 'no-store');
-  return res.redirect(`${RELEASES_BASE}/${DOWNLOAD_ASSETS[os]}`);
+  return res.redirect(byName?.[assetName] ?? `${RELEASES_BASE}/${assetName}`);
 }
 
-function redirectToChooser(res) {
-  res.set('Cache-Control', 'no-store');
-  return res.redirect('/');
-}
-
-app.get(['/download', '/downloads'], (req, res) => {
-  const os = detectOSFromUA(req.get('user-agent'));
-  if (!os) return redirectToChooser(res);
-  return redirectToAsset(res, os);
+// Bare /download serves the marketing downloads page (all platforms +
+// version); the SPA-shell fallthrough below routes it in the site bundle.
+app.get(['/download', '/downloads'], (_req, res) => {
+  res.set('Cache-Control', 'no-cache');
+  res.sendFile(join('site', 'index.html'), { root: join(__dirname, 'dist') });
 });
 
 app.get(['/download/win', '/download/windows', '/downloads/win', '/downloads/windows'],
   (_req, res) => redirectToAsset(res, 'windows'));
 app.get(['/download/mac', '/download/macos', '/downloads/mac', '/downloads/macos'],
   (_req, res) => redirectToAsset(res, 'macos'));
-app.get(['/download/linux', '/downloads/linux'], (_req, res) => redirectToChooser(res));
+app.get(['/download/linux', '/downloads/linux'],
+  (_req, res) => redirectToAsset(res, 'linux'));
 
 // OG meta injection for /u/:username link previews (Discord, Slack, iMessage,
 // etc. - they render og:* tags from the raw HTML response, never execute the

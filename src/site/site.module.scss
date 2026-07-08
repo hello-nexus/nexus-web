@@ -6,6 +6,15 @@
 .page {
   min-height: 100dvh;
   color: var(--text);
+  // The app disables selection globally (global.scss); a website's text must
+  // stay copyable.
+  user-select: text;
+  -webkit-user-select: text;
+  // Big-CTA blue: deeper and less saturated than the app's --accent, still
+  // bold. Scoped here so embedded app components keep their own accent.
+  --site-cta: #3b55c4;
+  --site-cta-hover: #4a66d8;
+  --site-cta-shadow: rgba(59, 85, 196, 0.42);
   // Solid backdrop: the app's --bg is translucent (it sits over the dashboard
   // ribbon); the marketing page provides its own canvas.
   background:
@@ -47,6 +56,26 @@
   gap: 10px;
   color: var(--text);
   text-decoration: none;
+
+  &:hover .brandMarkColor { opacity: 1; }
+  &:hover .brandMark > svg { opacity: 0; }
+}
+
+.brandMark {
+  position: relative;
+  display: inline-flex;
+
+  > svg { transition: opacity 140ms ease; }
+}
+
+.brandMarkColor {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: 0;
+  transition: opacity 140ms ease;
 }
 
 .brandWordmark {
@@ -98,44 +127,60 @@
   @media (max-width: 560px) { display: none; }
 }
 
-.headerDownload {
-  @include text-button;
-  color: var(--text);
-  text-decoration: none;
-  padding: 7px 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-pill);
-  transition: border-color 140ms ease, background 140ms ease;
-
-  &:hover { border-color: var(--accent); background: var(--accent-soft); }
+.headerDownloadGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
 
   @media (max-width: 760px) { display: none; }
 }
 
-.headerMySystem {
+// Emphasis mirrors the hero CTAs: Download filled, My System outlined.
+.headerDownload {
   @include text-button;
   color: var(--accent-text);
   text-decoration: none;
-  padding: 7px 16px;
+  padding: 6px 16px;
   border-radius: var(--radius-pill);
-  background: var(--accent);
-  box-shadow: 0 0 18px var(--accent-glow-shadow);
-  transition: filter 140ms ease;
+  background: var(--site-cta);
+  box-shadow: 0 0 18px var(--site-cta-shadow);
+  transition: background 140ms ease;
 
-  &:hover { filter: brightness(1.12); }
+  &:hover { background: var(--site-cta-hover); }
+}
+
+.headerAllDownloads {
+  @include text-caption;
+  color: var(--text-dim);
+  text-decoration: none;
+
+  &:hover { color: var(--text); }
+}
+
+.headerMySystem {
+  @include text-button;
+  color: var(--text);
+  text-decoration: none;
+  padding: 7px 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  transition: border-color 140ms ease, background 140ms ease;
+
+  &:hover { border-color: var(--site-cta); background: color-mix(in srgb, var(--site-cta) 14%, transparent); }
 }
 
 // ── Hero ─────────────────────────────────────────────────────────────────────
 
 .hero {
   position: relative;
-  min-height: min(88vh, 900px);
+  min-height: min(68vh, 680px);
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
   text-align: center;
-  padding: 96px 24px 72px;
+  padding: 56px 24px 48px;
 }
 
 // Compound selector: .plasmaWrap (declared later) sets position: relative,
@@ -165,18 +210,33 @@
 
 .heroHello {
   font-family: 'Great Vibes', cursive;
-  font-size: clamp(2.4rem, 6vw, 3.6rem);
+  font-size: clamp(2.2rem, 5vw, 3rem);
   line-height: 1;
   color: var(--text);
   opacity: 0.85;
-  margin-bottom: 6px;
+  margin-bottom: 10px;
+}
+
+.heroMark {
+  width: clamp(84px, 12vw, 120px);
+  height: auto;
+  margin-bottom: 14px;
+  filter: drop-shadow(0 8px 40px rgba(255, 45, 120, 0.25));
+}
+
+.heroTagline {
+  @include text-label;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--text-dim);
+  margin: 0 0 10px;
 }
 
 .heroTitle {
   @include text-display;
-  font-size: clamp(2.4rem, 6vw, 4rem);
+  font-size: clamp(2.2rem, 5vw, 3.4rem);
   line-height: 1.08;
-  margin: 0 0 18px;
+  margin: 0 0 16px;
   letter-spacing: -0.02em;
 }
 
@@ -211,13 +271,13 @@
   justify-content: center;
   color: var(--accent-text);
   text-decoration: none;
-  background: var(--accent);
+  background: var(--site-cta);
   padding: 13px 28px;
   border-radius: var(--radius-pill);
-  box-shadow: 0 4px 30px var(--accent-glow-shadow);
-  transition: filter 140ms ease, transform 140ms ease;
+  box-shadow: 0 4px 30px var(--site-cta-shadow);
+  transition: background 140ms ease, transform 140ms ease;
 
-  &:hover { filter: brightness(1.12); transform: translateY(-1px); }
+  &:hover { background: var(--site-cta-hover); transform: translateY(-1px); }
 }
 
 .ctaGhost {
@@ -232,7 +292,7 @@
   border: 1px solid var(--border-strong);
   transition: border-color 140ms ease, background 140ms ease;
 
-  &:hover { border-color: var(--accent); background: var(--accent-soft); }
+  &:hover { border-color: var(--site-cta); background: color-mix(in srgb, var(--site-cta) 14%, transparent); }
 }
 
 // ── Feature sections ─────────────────────────────────────────────────────────
@@ -266,10 +326,20 @@
 
 .eyebrow {
   @include text-label;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   text-transform: uppercase;
   letter-spacing: 0.14em;
   color: var(--accent-glow);
   margin: 0;
+
+  svg { flex-shrink: 0; }
+}
+
+.eyebrowCentered {
+  justify-content: center;
+  margin-bottom: 8px;
 }
 
 .lead {
@@ -356,7 +426,7 @@
 
 .monitoringGrid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
 }
 
@@ -369,10 +439,11 @@
 }
 
 .monitoringCell {
-  height: 170px;
+  height: 158px;
   border-radius: var(--radius);
   background: var(--surface);
   padding: 12px;
+  min-width: 0;
 }
 
 // ── Lighting demo ────────────────────────────────────────────────────────────
@@ -380,7 +451,34 @@
 .lightingDemo {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
+}
+
+.effectTabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.effectTab {
+  @include text-label;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
+
+  &:hover { color: var(--text); border-color: var(--text-dim); }
+}
+
+.effectTabActive {
+  color: var(--accent-text);
+  background: var(--accent);
+  border-color: var(--accent);
+
+  &:hover { color: var(--accent-text); border-color: var(--accent); }
 }
 
 .lightingCanvas {
@@ -488,6 +586,22 @@
 
 .coolingStatAccent {
   color: var(--accent-glow);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fanSpin {
+  animation-name: siteFanSpin;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+
+  @media (prefers-reduced-motion: reduce) { animation: none; }
+}
+
+@keyframes siteFanSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 // ── Remote demo ──────────────────────────────────────────────────────────────
@@ -496,47 +610,21 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: clamp(18px, 4vw, 44px);
   padding: 10px 0;
-  flex-wrap: wrap;
-}
-
-.remoteQrCard {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  padding: 16px;
-  border-radius: var(--radius);
-  background: var(--surface);
-  border: 1px solid var(--border);
-}
-
-.remoteQr {
-  width: 128px;
-  height: 128px;
-  fill: var(--text);
-  opacity: 0.92;
-}
-
-.remoteQrLabel {
-  @include text-caption;
-  color: var(--text-dim);
 }
 
 .phoneFrame {
   position: relative;
-  width: 180px;
-  border-radius: 26px;
+  border-radius: 30px;
   border: 2px solid var(--border-strong);
   background: #0c0c10;
-  padding: 14px 10px;
+  padding: 24px 12px 16px;
   box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
 }
 
 .phoneNotch {
   position: absolute;
-  top: 7px;
+  top: 9px;
   left: 50%;
   transform: translateX(-50%);
   width: 52px;
@@ -545,30 +633,17 @@
   background: var(--border-strong);
 }
 
-.phoneScreen {
-  margin-top: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+// panel-root wrapper for the real widgets; sized by the inline --panel-* vars
+// the section sets (same var set the add-widget catalog derives).
+.phonePanel {
+  width: calc(var(--panel-cell-size) * 2 + var(--panel-gap));
 }
 
-.phoneTile {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  border-radius: var(--radius);
-  background: var(--surface);
-  padding: 10px 12px;
-}
-
-.phoneTileLabel {
-  @include text-caption;
-  color: var(--text-dim);
-}
-
-.phoneTileValue {
-  @include text-numeric;
-  font-size: 1.15rem;
+// Suspense placeholder while the lazy widget chunk loads: hold the phone's
+// approximate screen footprint so the frame doesn't collapse.
+.phonePanelLoading {
+  width: 148px;
+  height: 480px;
 }
 
 // ── More grid ────────────────────────────────────────────────────────────────
@@ -659,8 +734,8 @@
 }
 
 .downloadPrimary {
-  border-color: var(--accent);
-  box-shadow: 0 0 34px color-mix(in srgb, var(--accent-glow-shadow) 60%, transparent);
+  border-color: var(--site-cta);
+  box-shadow: 0 0 34px color-mix(in srgb, var(--site-cta-shadow) 60%, transparent);
 }
 
 .downloadDetected {
@@ -671,7 +746,7 @@
   transform: translateX(-50%);
   padding: 3px 10px;
   border-radius: var(--radius-pill);
-  background: var(--accent);
+  background: var(--site-cta);
   color: var(--accent-text);
   white-space: nowrap;
 }
@@ -680,6 +755,40 @@
   @include text-caption;
   color: var(--text-dim);
   margin-top: 28px;
+}
+
+.downloadAllLink {
+  @include text-label;
+  display: inline-block;
+  margin-top: 12px;
+  color: var(--text-dim);
+  text-decoration: none;
+
+  &:hover { color: var(--text); }
+}
+
+// ── /download page ───────────────────────────────────────────────────────────
+
+.downloadPage {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 72px 24px 96px;
+  text-align: center;
+  min-height: 60dvh;
+
+  .lead { margin-bottom: 10px; }
+}
+
+.downloadPageTitle {
+  @include text-display;
+  font-size: clamp(2rem, 4.4vw, 3rem);
+  margin: 0 0 14px;
+}
+
+.downloadVersion {
+  @include text-caption;
+  color: var(--accent-glow);
+  margin: 0 0 32px;
 }
 
 // ── About ────────────────────────────────────────────────────────────────────

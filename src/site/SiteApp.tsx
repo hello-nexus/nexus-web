@@ -9,6 +9,7 @@ import { RemoteSection } from './sections/RemoteSection';
 import { MoreSection } from './sections/MoreSection';
 import { DownloadSection } from './sections/DownloadSection';
 import { AboutSection } from './sections/AboutSection';
+import { DownloadPage } from './DownloadPage';
 import { useInViewport } from './hooks/useInViewport';
 import styles from './site.module.scss';
 
@@ -24,6 +25,13 @@ function Reveal({ children }: { children: ReactNode }) {
 }
 
 export function SiteApp() {
+  // Site-internal routing: server.js serves this bundle for `/` and
+  // `/download` on marketing hosts.
+  const path = window.location.pathname.replace(/\/+$/, '');
+  if (path === '/download' || path === '/downloads') {
+    return <DownloadPage />;
+  }
+
   return (
     <div className={styles.page}>
       <SiteHeader />

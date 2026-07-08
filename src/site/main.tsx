@@ -13,10 +13,23 @@ import { loadStoredLanguage } from '../lib/settings';
 import { SiteApp } from './SiteApp';
 import preludeFrag from './shaders/_prelude.frag?raw';
 import plasmaFrag from './shaders/plasma.frag?raw';
+import fireFrag from './shaders/fire.frag?raw';
+import spiralFrag from './shaders/spiral.frag?raw';
+import neongridFrag from './shaders/neongrid.frag?raw';
+import terraceFrag from './shaders/terrace.frag?raw';
 
 // Same composition the service performs in ShaderLibrary.Get (prelude + body);
 // priming the cache means useShaderRenderer never fetches from a service.
-primeShaderSource('plasma', `${preludeFrag}\n${plasmaFrag}`);
+const SHADER_BODIES: Record<string, string> = {
+  plasma: plasmaFrag,
+  fire: fireFrag,
+  spiral: spiralFrag,
+  neongrid: neongridFrag,
+  terrace: terraceFrag,
+};
+for (const [name, body] of Object.entries(SHADER_BODIES)) {
+  primeShaderSource(name, `${preludeFrag}\n${body}`);
+}
 
 // A language explicitly chosen in the footer wins; otherwise match the
 // browser's preference list against the shipped locales.

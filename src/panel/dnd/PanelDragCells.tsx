@@ -410,8 +410,10 @@ export function PanelCatalogCell({
         '--panel-span-cols': span.cols,
         '--panel-span-rows': span.rows,
       } as CSSProperties}
-      role="button"
-      tabIndex={0}
+      // Presentational mounts (no onClick, e.g. the marketing phone mock)
+      // must not put a focusable no-op button in the tab order.
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : -1}
       aria-label={label}
       aria-pressed={selected || undefined}
       onClick={onClick}

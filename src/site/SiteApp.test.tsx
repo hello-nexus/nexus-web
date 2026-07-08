@@ -39,11 +39,16 @@ describe('SiteApp', () => {
     const mySystemLinks = screen.getAllByRole('link', { name: 'My System' });
     expect(mySystemLinks.length).toBeGreaterThan(0);
 
-    const win = screen.getByRole('link', { name: 'Download for Windows' });
-    expect(win).toHaveAttribute(
-      'href', 'https://github.com/hello-nexus/nexus/releases/latest/download/Nexus-Setup.exe');
+    // Canonical per-OS URLs: server.js resolves them to the newest release's
+    // assets (jsdom detects no OS -> header also links the Windows build).
+    const winLinks = screen.getAllByRole('link', { name: 'Download for Windows' });
+    for (const link of winLinks) {
+      expect(link).toHaveAttribute('href', 'https://hellonexus.com/download/windows');
+    }
     const linux = screen.getByRole('link', { name: 'Download for Linux' });
-    expect(linux).toHaveAttribute(
-      'href', 'https://github.com/hello-nexus/nexus/releases/latest/download/Nexus-x86_64.AppImage');
+    expect(linux).toHaveAttribute('href', 'https://hellonexus.com/download/linux');
+
+    const allDownloads = screen.getAllByRole('link', { name: 'All downloads' });
+    expect(allDownloads[0]).toHaveAttribute('href', '/download');
   });
 });
