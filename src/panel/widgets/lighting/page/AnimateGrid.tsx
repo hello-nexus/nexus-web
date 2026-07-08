@@ -11,7 +11,7 @@ import { EffectCard } from '../../../../components/common/EffectCard/EffectCard'
 import { useEffectThumbnail } from '../../../../hooks/useEffectThumbnail';
 import styles from '../LightingPage.module.scss';
 
-function AnimateGridCell({ fx, slot, version, active, live, panel, label, gpuAvailable, onSelect }: {
+function AnimateGridCell({ fx, slot, version, active, live, panel, label, hideLabel, gpuAvailable, onSelect }: {
   fx: EffectDef;
   slot: number;
   version: string;
@@ -19,6 +19,8 @@ function AnimateGridCell({ fx, slot, version, active, live, panel, label, gpuAva
   live: boolean;
   panel: boolean;
   label: string;
+  /** Simple colour swatches drop the on-thumbnail caption. */
+  hideLabel?: boolean;
   gpuAvailable?: boolean;
   onSelect: () => void;
 }) {
@@ -29,6 +31,7 @@ function AnimateGridCell({ fx, slot, version, active, live, panel, label, gpuAva
   return (
     <EffectCard
       overlay
+      hideLabel={hideLabel}
       dataEffectKey={fx.key}
       label={label}
       thumbUrl={url}
@@ -121,7 +124,7 @@ export function AnimateGrid({ effect, onSelect, effects = EFFECTS, slotFor, vers
             open={!collapsed.has(g.cat)}
             onToggle={() => toggle(g.cat)}
           >
-            <div className={styles.animateGridSection}>
+            <div className={`${styles.animateGridSection} ${g.cat === 'simple' ? styles.animateGridSectionSimple : ''}`}>
               {g.items.map(fx => (
                 <AnimateGridCell
                   key={fx.key}
@@ -132,6 +135,7 @@ export function AnimateGrid({ effect, onSelect, effects = EFFECTS, slotFor, vers
                   live={!!rgbActiveEffect && fx.key === rgbActiveEffect}
                   panel={!!panelEffects && panelEffects.has(fx.key)}
                   label={t(fx.labelKey)}
+                  hideLabel={g.cat === 'simple'}
                   gpuAvailable={gpuAvailable}
                   onSelect={() => onSelect(fx.key)}
                 />

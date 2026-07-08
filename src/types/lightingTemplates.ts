@@ -32,10 +32,12 @@ const COOL_MONO: Feel = { hue: 0.62, colorize: 0.75, speed: 30, saturation: 1.00
 const GREEN_MONO: Feel = { hue: 0.35, colorize: 0.75, speed: 65, saturation: 1.10, contrast: 1.05, intensity: 1 };
 
 // ── Simple solid-colour fills ──────────────────────────────────────────────
-// Each "simple" effect is the same noise-fill shader; colour comes from the
-// post-process tint. The 4 slots share a base hue (slight hue/saturation
-// variation) but differ widely in speed, so they read as distinct motion
-// while staying the same colour. colorize=1 = full tint.
+// Each "simple" effect is the same flat-swatch shader; the colour is the
+// post-process tint. The 4 slots stay the same colour but differ by a slight
+// hue nudge (param u_hueShift) plus a small saturation/contrast change: pure,
+// pastel, and two opposite nudges. White varies a warm/cool tint instead.
+// `saturation` here is HSV S (1 = full colour, 0 = white); `speed` is unused
+// (the fill is static) but kept in the feel so every slot is a full EffectState.
 const SIMPLE_HUES: Record<string, number> = {
   simplered:    0.00,
   simpleorange: 0.05,
@@ -48,31 +50,48 @@ const SIMPLE_HUES: Record<string, number> = {
 };
 
 const norm1 = (h: number): number => ((h % 1) + 1) % 1;
-const simpleColorFeels = (hue: number): [Feel, Feel, Feel, Feel] => {
-  const base = (h: number, saturation: number, speed: number, contrast = 1.0): Feel =>
-    ({ hue: norm1(h), colorize: 1, speed, saturation, contrast, intensity: 1 });
-  return [
-    base(hue,         1.10, 30),        // balanced default - moderate drift
-    base(hue + 0.015, 1.70, 75, 1.05),  // highly saturated - fast
-    base(hue - 0.020, 0.55, 12),        // desaturated - near-still
-    base(hue + 0.030, 1.35, 100),       // rich, slight hue offset - fastest
-  ];
+
+type SimpleSlots = {
+  feels: [Feel, Feel, Feel, Feel];
+  variations: [Record<string, number>, Record<string, number>, Record<string, number>, Record<string, number>];
 };
 
-function simpleFeelsFor(key: string): [Feel, Feel, Feel, Feel] | null {
-  const hue = SIMPLE_HUES[key];
-  return hue === undefined ? null : simpleColorFeels(hue);
-}
+const simpleColorSlots = (hue: number): SimpleSlots => {
+  const feel = (saturation: number, contrast: number): Feel =>
+    ({ hue: norm1(hue), colorize: 0, speed: 50, saturation, contrast, intensity: 1 });
+  return {
+    feels: [
+      feel(1.00, 1.00),  // pure vivid base colour
+      feel(0.55, 1.05),  // pastel (soft)
+      feel(1.00, 1.10),  // vivid, nudged one way + a touch deeper
+      feel(0.80, 1.00),  // slightly soft, nudged the other way
+    ],
+    variations: [{ u_hueShift: 0 }, { u_hueShift: 0 }, { u_hueShift: -1.0 }, { u_hueShift: 1.0 }],
+  };
+};
 
-// Per-slot uniform overrides shared by every simple fill. Slot 1 drops the
-// gradient and wave so it reads as a flat, even solid colour; the other slots
-// keep the SIMPLE_PARAMS defaults (gradient + gentle wave).
-const SIMPLE_PARAM_VARIATIONS: [Record<string, number>, Record<string, number>, Record<string, number>, Record<string, number>] = [
-  {},
-  { u_gradient: 0, u_wave: 0 },
-  {},
-  {},
-];
+// White fill: a hue nudge is invisible on pure white, so its 4 slots carry a
+// slight warm/cool tint (tiny HSV saturation at a warm/cool hue) plus a crisp
+// high-contrast variant.
+const simpleWhiteSlots = (): SimpleSlots => {
+  const feel = (h: number, saturation: number, contrast: number): Feel =>
+    ({ hue: h, colorize: 0, speed: 50, saturation, contrast, intensity: 1 });
+  return {
+    feels: [
+      feel(0.00, 0.00, 1.00),  // neutral white
+      feel(0.09, 0.12, 1.00),  // warm white
+      feel(0.60, 0.12, 1.00),  // cool white
+      feel(0.00, 0.00, 1.20),  // crisp white
+    ],
+    variations: [{ u_hueShift: 0 }, { u_hueShift: 0 }, { u_hueShift: 0 }, { u_hueShift: 0 }],
+  };
+};
+
+function simpleSlotsFor(key: string): SimpleSlots | null {
+  if (key === 'simplewhite') return simpleWhiteSlots();
+  const hue = SIMPLE_HUES[key];
+  return hue === undefined ? null : simpleColorSlots(hue);
+}
 
 function isRainbowSignature(f: Feel): boolean {
   return Math.abs(f.hue) < 1e-4 && Math.abs(f.colorize) < 1e-4;
@@ -642,9 +661,9 @@ export function buildDefaultTemplates(effectKey: string): EffectTemplateBundle {
   // Simple fills carry their own 4 same-colour feels and their own per-slot
   // param overrides; everything else derives its slots from the signature
   // (rainbow / warm / cool / green logic) and PARAM_VARIATIONS.
-  const simpleFeels = simpleFeelsFor(effectKey);
-  const feels = simpleFeels ?? feelsForSignature(signature);
-  const variations = simpleFeels ? SIMPLE_PARAM_VARIATIONS : PARAM_VARIATIONS[effectKey];
+  const simple = simpleSlotsFor(effectKey);
+  const feels = simple ? simple.feels : feelsForSignature(signature);
+  const variations = simple ? simple.variations : PARAM_VARIATIONS[effectKey];
   const slots: EffectState[] = feels.map((feel, i) => {
     const overrides = variations?.[i] ?? {};
     return {

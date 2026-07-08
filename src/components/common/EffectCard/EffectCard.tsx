@@ -48,12 +48,15 @@ interface EffectCardProps {
    * frame. Omit for the default 16/9 cropped behavior.
    */
   thumbAspect?: number;
+  /** Overlay mode only: suppress the on-thumbnail caption (the aria-label still
+   *  carries the name). Used by the simple colour swatches, which need no text. */
+  hideLabel?: boolean;
 }
 
 export function EffectCard({
   label, thumbUrl, active, onClick,
   audio, meta, onDelete, deleteAriaLabel,
-  asDiv, thumbOverlay, thumbStatic, cornerBadge, ariaLabel, dataEffectKey, overlay, thumbAspect,
+  asDiv, thumbOverlay, thumbStatic, cornerBadge, ariaLabel, dataEffectKey, overlay, thumbAspect, hideLabel,
 }: EffectCardProps) {
   const { t } = useTranslation();
   const className = `${styles.card} ${overlay ? styles.cardOverlay : ''} ${active ? styles.cardActive : ''}`;
@@ -87,7 +90,7 @@ export function EffectCard({
             ariaLabel={deleteAriaLabel ?? t('common.delete')}
           />
         )}
-        {overlay && <span className={styles.labelOverlay}>{label}</span>}
+        {overlay && !hideLabel && <span className={styles.labelOverlay}>{label}</span>}
       </div>
       {!overlay && <span className={styles.label}>{label}</span>}
       {!overlay && meta !== undefined && <span className={styles.meta}>{meta}</span>}
