@@ -1,13 +1,15 @@
 import type { MonitoringFrame } from '../../../../hooks/useMonitoringFrame';
 import { useTranslation } from '../../../../lib/i18n';
-import { useUiSettings } from '../../../../hooks/useUiSettings';
+import { useUiSettings, useUnitPrefs } from '../../../../hooks/useUiSettings';
 import { resolveCpuTempSensor, resolveGpuTempSensor } from '../../../../lib/tempSensorResolver';
 import { resolvePrimaryGpu } from '../../../../lib/gpuResolver';
 import { getGpuHist } from '../../../../lib/monitoringStore';
 import { Sparkline } from '../../../../components/common/Sparkline/Sparkline';
 import { UsageBar } from '../../../../components/common/UsageBar/UsageBar';
+import { formatSensorValue } from '../sensorValueFormat';
 import { formatMemoryPercent, formatPercentParts, formatRate, formatRateParts } from './shared';
 import { formatMemoryMb, formatMemoryPair } from '../../../../lib/formatMemory';
+import { localizeNumbers } from '../../../../lib/units';
 import styles from '../MonitoringPage.module.scss';
 
 export interface OverviewHist {
@@ -22,6 +24,7 @@ export function OverviewTab({ frame, hist, gpuSupported, onNavigate }: {
 }) {
   const { t } = useTranslation();
   const { settings } = useUiSettings();
+  const { monitoringTempUnit, numberFormat } = useUnitPrefs();
 
   const cpuSensors = frame?.cpu?.sensors ?? [];
   const primaryGpu = resolvePrimaryGpu(frame?.gpu ?? [], settings.preferredGpuId);
@@ -43,8 +46,8 @@ export function OverviewTab({ frame, hist, gpuSupported, onNavigate }: {
   const totalCpu = processes?.totalCpu ?? 0;
   const totalRateIn = network?.entries.reduce((s, e) => s + e.rateIn, 0) ?? 0;
   const totalRateOut = network?.entries.reduce((s, e) => s + e.rateOut, 0) ?? 0;
-  const rateInParts = formatRateParts(totalRateIn);
-  const rateOutParts = formatRateParts(totalRateOut);
+  const rateInParts = formatRateParts(totalRateIn, numberFormat);
+  const rateOutParts = formatRateParts(totalRateOut, numberFormat);
 
   const padTo60 = (arr: number[]) =>
     arr.length >= 60 ? arr.slice(-60) : [...new Array(60 - arr.length).fill(0), ...arr];
@@ -64,8 +67,8 @@ export function OverviewTab({ frame, hist, gpuSupported, onNavigate }: {
   const displayCpu = cpuFromSensor > 0 ? cpuFromSensor
     : totalCpu > 0 ? totalCpu
     : cpuHistory[cpuHistory.length - 1] ?? 0;
-  const cpuParts = formatPercentParts(displayCpu);
-  const gpuParts = gpuLoad ? formatPercentParts(gpuLoad.value) : null;
+  const cpuParts = formatPercentParts(displayCpu, numberFormat);
+  const gpuParts = gpuLoad ? formatPercentParts(gpuLoad.value, numberFormat) : null;
   const memUsedSensor = memorySensors.find(s => s.name === 'Memory Used');
   const memPctFromUsage = memUsage ? Math.round(memUsage.value) : 0;
   // theoreticalMaximum (GB) ships on the Memory Used sensor itself. Fall back
@@ -77,11 +80,13 @@ export function OverviewTab({ frame, hist, gpuSupported, onNavigate }: {
   const totalMemMb = (totalMemGbFromSensor || parseFloat(totalMemGb)) * 1024;
   const usedMemMb = memUsedSensor ? memUsedSensor.value * 1024 : (hist.mem[hist.mem.length - 1] ?? 0);
   const memPct = totalMemMb > 0 ? Math.round((usedMemMb / totalMemMb) * 100) : memPctFromUsage;
-  const displayMemPct = formatMemoryPercent(memPct || memPctFromUsage);
-  const mem = formatMemoryPair(usedMemMb, totalMemMb);
+  const displayMemPct = formatMemoryPercent(memPct || memPctFromUsage, numberFormat);
+  const mem = formatMemoryPair(usedMemMb, totalMemMb, numberFormat);
+  // mem.used/mem.total are already localized (formatMemoryPair); the fallback
+  // branch builds its own raw string and localizes it here instead.
   const memLabel = totalMemMb > 0
     ? `${mem.used} / ${mem.total} ${mem.unit}`
-    : `${(usedMemMb / 1024).toFixed(1)} / ${totalMemGb} GB`;
+    : localizeNumbers(`${(usedMemMb / 1024).toFixed(1)} / ${totalMemGb} GB`, numberFormat);
 
   // Top processes by CPU; aggregate by name first (Windows sends duplicates).
   const procMap = new Map<string, { cpu: number; mem: number; net: number }>();
@@ -119,8 +124,8 @@ export function OverviewTab({ frame, hist, gpuSupported, onNavigate }: {
             <Sparkline className={styles.sparkline} values={cpuHistory} width="100%" height={32} color="var(--accent-glow)" strokeColor="var(--accent)" sampleCount={60} padding={2} />
           </div>
           <div className={styles.dashSecondary}>
-            {cpuTemp && <span>{cpuTemp.formatted}</span>}
-            {cpuCores && <span>{t('monitoring.overview.cores', { value: cpuCores.formatted })}</span>}
+            {cpuTemp && <span>{formatSensorValue(cpuTemp.value, cpuTemp.units, cpuTemp.formatted, monitoringTempUnit, numberFormat)}</span>}
+            {cpuCores && <span>{t('monitoring.overview.cores', { value: localizeNumbers(cpuCores.formatted, numberFormat) })}</span>}
           </div>
         </button>
 
@@ -139,8 +144,8 @@ export function OverviewTab({ frame, hist, gpuSupported, onNavigate }: {
               <Sparkline className={styles.sparkline} values={gpuHistory} width="100%" height={32} color="var(--accent-glow)" strokeColor="var(--accent)" sampleCount={60} padding={2} />
             </div>
             <div className={styles.dashSecondary}>
-              {gpuTemp && <span>{gpuTemp.formatted}</span>}
-              {gpuVram && <span>{gpuVram.formatted}</span>}
+              {gpuTemp && <span>{formatSensorValue(gpuTemp.value, gpuTemp.units, gpuTemp.formatted, monitoringTempUnit, numberFormat)}</span>}
+              {gpuVram && <span>{localizeNumbers(gpuVram.formatted, numberFormat)}</span>}
             </div>
           </button>
         )}
@@ -199,7 +204,7 @@ export function OverviewTab({ frame, hist, gpuSupported, onNavigate }: {
                 <div key={mount} className={styles.dashDriveItem}>
                   <div className={styles.dashDriveHeader}>
                     <span className={styles.dashStorageName}>{mount}</span>
-                    <span className={styles.dashStorageCap}>{sc.usedSpace} / {sc.capacity}</span>
+                    <span className={styles.dashStorageCap}>{localizeNumbers(`${sc.usedSpace} / ${sc.capacity}`, numberFormat)}</span>
                   </div>
                   <UsageBar
                     value={pct / 100}
@@ -228,9 +233,9 @@ export function OverviewTab({ frame, hist, gpuSupported, onNavigate }: {
               {topProcs.map(p => (
                 <tr key={p.name}>
                   <td className={styles.procName}>{p.name}</td>
-                  <td>{p.cpu.toFixed(1)}%</td>
-                  <td>{formatMemoryMb(p.mem)}</td>
-                  <td>{formatRate(p.net)}</td>
+                  <td>{localizeNumbers(`${p.cpu.toFixed(1)}%`, numberFormat)}</td>
+                  <td>{formatMemoryMb(p.mem, numberFormat)}</td>
+                  <td>{formatRate(p.net, numberFormat)}</td>
                 </tr>
               ))}
             </tbody>

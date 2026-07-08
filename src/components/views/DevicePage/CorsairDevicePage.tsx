@@ -1,7 +1,9 @@
 import { Fan, Lightbulb, Thermometer, Unplug } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getCorsairState, type CorsairState } from '../../../api/corsair';
+import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
+import { convertTemperature, formatNumber, localizeNumbers, tempUnitSymbol } from '../../../lib/units';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
@@ -18,6 +20,7 @@ interface CorsairDevicePageProps {
 
 export function CorsairDevicePage({ onSectionNavigate }: CorsairDevicePageProps) {
   const { t } = useTranslation();
+  const { monitoringTempUnit, numberFormat } = useUnitPrefs();
   const [connection, setConnection] = useState<'unknown' | 'connected' | 'disconnected'>('unknown');
   const [state, setState] = useState<CorsairState | null>(null);
   const aliveRef = useRef(true);
@@ -111,13 +114,13 @@ export function CorsairDevicePage({ onSectionNavigate }: CorsairDevicePageProps)
                   {device.hasSpeed && (
                     <span className={styles.rowValue}>
                       <Fan size={12} aria-hidden />
-                      {device.rpm > 0 ? `${device.rpm.toLocaleString()} RPM` : '-'}
+                      {device.rpm > 0 ? `${formatNumber(device.rpm, numberFormat)} RPM` : '-'}
                     </span>
                   )}
                   {device.hasTemperature && (
                     <span className={styles.rowValue}>
                       <Thermometer size={12} aria-hidden />
-                      {device.tempC != null ? `${device.tempC.toFixed(1)} °C` : '-'}
+                      {device.tempC != null ? localizeNumbers(`${convertTemperature(device.tempC, monitoringTempUnit).toFixed(1)} ${tempUnitSymbol(monitoringTempUnit)}`, numberFormat) : '-'}
                     </span>
                   )}
                 </div>

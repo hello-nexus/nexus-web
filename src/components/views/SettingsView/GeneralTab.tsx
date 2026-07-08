@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingRow, SettingToggle, SettingSelect } from '../../common/SettingRow/SettingRow';
+import { ChipGroup } from '../../common/ChipGroup/ChipGroup';
 import { ThemeTab } from './ThemeTab';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { ScreenTimeDataControl } from '../ScreenTimeBrowse/ScreenTimeDataControl';
@@ -16,6 +17,7 @@ import {
   type Language, type NexusSettings,
 } from '../../../lib/settings';
 import type { UpdateChannel, UpdateMode } from '../../../api/update';
+import type { TempUnit, TimeFormat, NumberFormat } from '../../../lib/units';
 import friuliFlag from '../../../assets/flags/friuli.png';
 import styles from './SettingsView.module.scss';
 
@@ -148,6 +150,56 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
           checked={settings.general.showConflictAlerts}
           onChange={() => updateGeneral({ showConflictAlerts: !settings.general.showConflictAlerts })}
         />
+      </SettingsSection>
+
+      <SettingsSection title={t('settings.units.title')}>
+        <SettingRow
+          label={t('settings.units.temperature.label')}
+          anchorId="set-temp-unit"
+          description={t('settings.units.temperature.description')}
+        >
+          <ChipGroup
+            ariaLabel={t('settings.units.temperature.label')}
+            activeKey={settings.general.monitoringTempUnit}
+            onChange={k => updateGeneral({ monitoringTempUnit: k as TempUnit })}
+            options={[
+              // eslint-disable-next-line i18next/no-literal-string -- temperature unit enum value
+              { key: 'c', label: t('settings.units.temperature.celsius') },
+              // eslint-disable-next-line i18next/no-literal-string -- temperature unit enum value
+              { key: 'f', label: t('settings.units.temperature.fahrenheit') },
+            ]}
+          />
+        </SettingRow>
+        <SettingRow label={t('settings.units.time.label')} anchorId="set-time-format">
+          <ChipGroup
+            ariaLabel={t('settings.units.time.label')}
+            activeKey={settings.general.timeFormat}
+            onChange={k => updateGeneral({ timeFormat: k as TimeFormat })}
+            options={[
+              // eslint-disable-next-line i18next/no-literal-string -- time format enum value
+              { key: 'system', label: t('settings.units.system') },
+              // eslint-disable-next-line i18next/no-literal-string -- time format enum value
+              { key: '12h', label: t('settings.units.time.h12') },
+              // eslint-disable-next-line i18next/no-literal-string -- time format enum value
+              { key: '24h', label: t('settings.units.time.h24') },
+            ]}
+          />
+        </SettingRow>
+        <SettingRow label={t('settings.units.number.label')} anchorId="set-number-format">
+          <ChipGroup
+            ariaLabel={t('settings.units.number.label')}
+            activeKey={settings.general.numberFormat}
+            onChange={k => updateGeneral({ numberFormat: k as NumberFormat })}
+            options={[
+              // eslint-disable-next-line i18next/no-literal-string -- number format enum value
+              { key: 'system', label: t('settings.units.system') },
+              // eslint-disable-next-line i18next/no-literal-string -- number format specimen
+              { key: 'dot', label: '1,234.56' },
+              // eslint-disable-next-line i18next/no-literal-string -- number format specimen
+              { key: 'comma', label: '1.234,56' },
+            ]}
+          />
+        </SettingRow>
       </SettingsSection>
 
       <SettingsSection title={t('settings.theme')}>

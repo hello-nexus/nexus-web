@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { MemoryStick, RefreshCw } from 'lucide-react';
+import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
+import { localizeNumbers } from '../../../lib/units';
 import { SectionHeader } from '../../common/SectionHeader/SectionHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { Badge } from '../../common/Badge/Badge';
@@ -21,6 +23,7 @@ interface MemorySectionProps {
 
 export function MemorySection({ data, loading, error, onRefresh }: MemorySectionProps) {
   const { t } = useTranslation();
+  const { numberFormat } = useUnitPrefs();
   const { push } = useToast();
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => { setNow(Date.now()); }, [data]);
@@ -87,8 +90,8 @@ export function MemorySection({ data, loading, error, onRefresh }: MemorySection
               {data.modules.map((module, i) => (
                 <tr key={i}>
                   <td>{module.slot}</td>
-                  <td>{formatBytes(module.sizeBytes)}</td>
-                  <td>{`${module.configuredSpeedMts} MT/s`}</td>
+                  <td>{formatBytes(module.sizeBytes, numberFormat)}</td>
+                  <td>{localizeNumbers(`${module.configuredSpeedMts} MT/s`, numberFormat)}</td>
                   <td>{module.manufacturer}</td>
                   <td>{module.partNumber}</td>
                 </tr>

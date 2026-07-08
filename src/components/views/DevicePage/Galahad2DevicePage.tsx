@@ -14,7 +14,9 @@ import {
   type Galahad2Lighting,
   type Galahad2LightingPatch,
 } from '../../../api/lianli-aio';
+import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
+import { formatNumber, localizeNumbers } from '../../../lib/units';
 import styles from './LianLiDevicePage.module.scss';
 
 const PERCENT_PER_LEVEL = 25;
@@ -29,6 +31,7 @@ interface Galahad2DevicePageProps {
 
 export function Galahad2DevicePage({ onSectionNavigate }: Galahad2DevicePageProps) {
   const { t } = useTranslation();
+  const { numberFormat } = useUnitPrefs();
   const [connection, setConnection] = useState<'unknown' | 'connected' | 'disconnected'>('unknown');
   const [aioState, setAioState] = useState<Galahad2State | null>(null);
   const [lighting, setLighting] = useState<Galahad2Lighting | null>(null);
@@ -125,13 +128,13 @@ export function Galahad2DevicePage({ onSectionNavigate }: Galahad2DevicePageProp
         >
           <div className={`${styles.row} ${!stateLoaded ? styles.rowDisabled : ''}`}>
             <span className={styles.rowLabel}>{t('devices.lianli-aio.fan')}</span>
-            <span className={styles.rowValue}>{stateLoaded ? `${aioState.fanRpm} RPM` : ''}</span>
-            <span className={styles.rowValue}>{stateLoaded ? `${aioState.fanDuty}%` : ''}</span>
+            <span className={styles.rowValue}>{stateLoaded ? `${formatNumber(aioState.fanRpm, numberFormat)} RPM` : ''}</span>
+            <span className={styles.rowValue}>{stateLoaded ? localizeNumbers(`${aioState.fanDuty}%`, numberFormat) : ''}</span>
           </div>
           <div className={`${styles.row} ${!stateLoaded ? styles.rowDisabled : ''}`}>
             <span className={styles.rowLabel}>{t('devices.lianli-aio.pump')}</span>
-            <span className={styles.rowValue}>{stateLoaded ? `${aioState.pumpRpm} RPM` : ''}</span>
-            <span className={styles.rowValue}>{stateLoaded ? `${aioState.pumpDuty}%` : ''}</span>
+            <span className={styles.rowValue}>{stateLoaded ? `${formatNumber(aioState.pumpRpm, numberFormat)} RPM` : ''}</span>
+            <span className={styles.rowValue}>{stateLoaded ? localizeNumbers(`${aioState.pumpDuty}%`, numberFormat) : ''}</span>
           </div>
         </SettingsSection>
 
@@ -177,7 +180,7 @@ export function Galahad2DevicePage({ onSectionNavigate }: Galahad2DevicePageProp
                   min={0}
                   max={100}
                   step={PERCENT_PER_LEVEL}
-                  formatValue={v => `${v}%`}
+                  formatValue={v => localizeNumbers(`${v}%`, numberFormat)}
                   ariaLabel={t('devices.lianli.lightingBrightnessAria')}
                   disabled={!lightingLoaded}
                   onChange={(v: number, commit?: boolean) => {
@@ -201,7 +204,7 @@ export function Galahad2DevicePage({ onSectionNavigate }: Galahad2DevicePageProp
                   min={0}
                   max={100}
                   step={PERCENT_PER_LEVEL}
-                  formatValue={v => `${v}%`}
+                  formatValue={v => localizeNumbers(`${v}%`, numberFormat)}
                   ariaLabel={t('devices.lianli.lightingSpeedAria')}
                   disabled={!lightingLoaded}
                   onChange={(v: number, commit?: boolean) => {

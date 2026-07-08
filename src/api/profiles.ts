@@ -3,6 +3,7 @@ import { getToken } from './auth';
 import type { PanelLayout } from '../panel/types';
 import type { OverlayWidgetDto } from './overlay';
 import type { UpdateChannel, UpdateMode } from './update';
+import type { TempUnit, TimeFormat, NumberFormat } from '../lib/units';
 
 export const PROFILE_CATEGORIES = ['lighting', 'cooling', 'theme', 'dashboard'] as const;
 export type ProfileCategory = typeof PROFILE_CATEGORIES[number];
@@ -97,6 +98,16 @@ export interface UpdatePrefs {
   lastDismissedUpdateVersion: string;
 }
 
+// Display-unit choices. The service stores/echoes the strings verbatim; the
+// client owns their meaning (see lib/units.ts). Optional throughout - an older
+// service returns Preferences without this block, which the client treats as
+// the defaults.
+export interface UnitsPrefs {
+  monitoringTempUnit?: TempUnit;
+  timeFormat?: TimeFormat;
+  numberFormat?: NumberFormat;
+}
+
 // Nested preferences shape - same nesting on read (GET /preferences) and
 // write (POST /preferences). Per-domain sub-patches are partial; omitted
 // fields are unchanged.
@@ -108,6 +119,7 @@ export interface Preferences {
   cooling: CoolingPrefs;
   ui: UiPrefs;
   update?: UpdatePrefs;
+  units?: UnitsPrefs;
 }
 
 export interface PreferencesPatch {
@@ -118,6 +130,7 @@ export interface PreferencesPatch {
   cooling?: Partial<CoolingPrefs>;
   ui?: Partial<UiPrefs>;
   update?: Partial<UpdatePrefs>;
+  units?: Partial<UnitsPrefs>;
 }
 
 interface GetProfilesResponse {

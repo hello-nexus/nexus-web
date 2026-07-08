@@ -15,6 +15,10 @@ import {
   type PreferencesPatch,
 } from '../api/profiles';
 import type { UpdateChannel, UpdateMode } from '../api/update';
+import {
+  DEFAULT_TEMP_UNIT, DEFAULT_TIME_FORMAT, DEFAULT_NUMBER_FORMAT,
+  type TempUnit, type TimeFormat, type NumberFormat,
+} from '../lib/units';
 import { useTopicCallback } from './useMultiplexSocket';
 import { useTranslation } from '../lib/i18n';
 import { sanitizePinnedTail } from '../app/sidebarApps';
@@ -76,6 +80,12 @@ export interface UiSettingsValue {
   // mode buttons); default false (compact center-icon+arrows layout).
   // Per-widget config.advancedMode overrides this per instance.
   widgetAdvancedMode: boolean;
+  // Display-unit choices, server-mirrored under the preferences `units` block.
+  // monitoringTempUnit governs in-app hardware temps only (default 'c');
+  // outdoor weather keeps its own per-widget unit. See lib/units.ts.
+  monitoringTempUnit: TempUnit;
+  timeFormat: TimeFormat;
+  numberFormat: NumberFormat;
   // Server-only update prefs (not saved to localStorage).
   updateMode: UpdateMode;
   updateChannel: UpdateChannel;
@@ -120,6 +130,9 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     pinnedSidebarApps: sanitizePinnedTail(src.general.pinnedSidebarApps),
     oemAppSeeded: false,
     widgetAdvancedMode: src.general.widgetAdvancedMode,
+    monitoringTempUnit: src.general.monitoringTempUnit,
+    timeFormat: src.general.timeFormat,
+    numberFormat: src.general.numberFormat,
     updateMode: 'always' as UpdateMode,
     updateChannel: 'production' as UpdateChannel,
     lastDismissedUpdateVersion: '',
@@ -142,6 +155,9 @@ function toNexusSettings(src: UiSettingsValue): NexusSettings {
       showWindowsTrayIcon: src.showWindowsTrayIcon,
       pinnedSidebarApps: src.pinnedSidebarApps,
       widgetAdvancedMode: src.widgetAdvancedMode,
+      monitoringTempUnit: src.monitoringTempUnit,
+      timeFormat: src.timeFormat,
+      numberFormat: src.numberFormat,
     },
   };
 }
@@ -183,6 +199,12 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.updateChannel !== undefined) update.updateChannel = patch.updateChannel;
   if (patch.lastDismissedUpdateVersion !== undefined) update.lastDismissedUpdateVersion = patch.lastDismissedUpdateVersion;
   if (Object.keys(update).length > 0) out.update = update;
+  // units block
+  const units: Partial<{ monitoringTempUnit: TempUnit; timeFormat: TimeFormat; numberFormat: NumberFormat }> = {};
+  if (patch.monitoringTempUnit !== undefined) units.monitoringTempUnit = patch.monitoringTempUnit;
+  if (patch.timeFormat !== undefined) units.timeFormat = patch.timeFormat;
+  if (patch.numberFormat !== undefined) units.numberFormat = patch.numberFormat;
+  if (Object.keys(units).length > 0) out.units = units;
   return out;
 }
 
@@ -212,6 +234,9 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
     updateMode: (server.update?.updateMode as UpdateMode) ?? base.updateMode,
     updateChannel: (server.update?.updateChannel as UpdateChannel) ?? base.updateChannel,
     lastDismissedUpdateVersion: server.update?.lastDismissedUpdateVersion ?? base.lastDismissedUpdateVersion,
+    monitoringTempUnit: (server.units?.monitoringTempUnit as TempUnit) ?? base.monitoringTempUnit,
+    timeFormat: (server.units?.timeFormat as TimeFormat) ?? base.timeFormat,
+    numberFormat: (server.units?.numberFormat as NumberFormat) ?? base.numberFormat,
   };
 }
 
@@ -266,7 +291,8 @@ export function UiSettingsProvider({
     // toServerPatch produces an empty object when the patch only touches
     // client-scoped fields - short-circuit to skip a pointless POST.
     const anyBlock = serverPatch.theme || serverPatch.panel || serverPatch.overlay
-      || serverPatch.monitoring || serverPatch.cooling || serverPatch.ui || serverPatch.update;
+      || serverPatch.monitoring || serverPatch.cooling || serverPatch.ui || serverPatch.update
+      || serverPatch.units;
     if (!anyBlock) return;
     if (writeTimer.current) clearTimeout(writeTimer.current);
     // 250ms debounce collapses rapid slider-style updates into one POST.
@@ -417,4 +443,28 @@ export function useTempSensorPrefs(): { cpuId: string; gpuId: string } {
 export function usePreferredGpuId(): string {
   const ctx = useContext(UiSettingsContext);
   return ctx ? ctx.settings.preferredGpuId : '';
+}
+
+/**
+ * Read-only accessor for the display-unit preferences. Returns the defaults
+ * outside a UiSettingsProvider (preview catalog, tests, any surface without the
+ * provider) so unit-formatting callers degrade to Celsius / system / system
+ * instead of crashing - same pattern as {@link useTempSensorPrefs}.
+ */
+export function useUnitPrefs(): {
+  monitoringTempUnit: TempUnit; timeFormat: TimeFormat; numberFormat: NumberFormat;
+} {
+  const ctx = useContext(UiSettingsContext);
+  if (!ctx) {
+    return {
+      monitoringTempUnit: DEFAULT_TEMP_UNIT,
+      timeFormat: DEFAULT_TIME_FORMAT,
+      numberFormat: DEFAULT_NUMBER_FORMAT,
+    };
+  }
+  return {
+    monitoringTempUnit: ctx.settings.monitoringTempUnit,
+    timeFormat: ctx.settings.timeFormat,
+    numberFormat: ctx.settings.numberFormat,
+  };
 }

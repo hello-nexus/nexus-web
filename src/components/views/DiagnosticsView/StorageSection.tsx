@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { HardDrive, RefreshCw } from 'lucide-react';
+import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
+import { convertTemperature, formatNumber, localizeNumbers, tempUnitSymbol } from '../../../lib/units';
 import { SectionHeader } from '../../common/SectionHeader/SectionHeader';
 import { Card } from '../../common/Card/Card';
 import { Badge } from '../../common/Badge/Badge';
@@ -56,6 +58,7 @@ export function StorageSection({ data, loading, error, onRefresh }: StorageSecti
 
 function DriveCard({ drive }: { drive: DiagnosticsDrive }) {
   const { t } = useTranslation();
+  const { monitoringTempUnit, numberFormat } = useUnitPrefs();
   const [attrsOpen, setAttrsOpen] = useState(false);
 
   return (
@@ -67,13 +70,13 @@ function DriveCard({ drive }: { drive: DiagnosticsDrive }) {
       <div className={styles.driveHead}>
         <InfoList>
           <InfoRow label={t('diagnostics.storage.serial')} value={drive.serial} />
-          <InfoRow label={t('diagnostics.storage.size')} value={formatBytes(drive.sizeBytes)} />
+          <InfoRow label={t('diagnostics.storage.size')} value={formatBytes(drive.sizeBytes, numberFormat)} />
           <InfoRow
             label={t('diagnostics.storage.temperature')}
-            value={drive.temperatureC !== null ? `${Math.round(drive.temperatureC)}°C` : '-'}
+            value={drive.temperatureC !== null ? localizeNumbers(`${Math.round(convertTemperature(drive.temperatureC, monitoringTempUnit))}${tempUnitSymbol(monitoringTempUnit)}`, numberFormat) : '-'}
           />
-          <InfoRow label={t('diagnostics.storage.powerOnHours')} value={`${drive.powerOnHours}h`} />
-          <InfoRow label={t('diagnostics.storage.powerCycles')} value={String(drive.powerCycles)} />
+          <InfoRow label={t('diagnostics.storage.powerOnHours')} value={`${formatNumber(drive.powerOnHours, numberFormat)}h`} />
+          <InfoRow label={t('diagnostics.storage.powerCycles')} value={formatNumber(drive.powerCycles, numberFormat)} />
         </InfoList>
       </div>
       {drive.healthPercent !== null && (
@@ -85,7 +88,7 @@ function DriveCard({ drive }: { drive: DiagnosticsDrive }) {
                 <InfoTooltip message={t('diagnostics.storage.healthInfo')} side="top" />
               </span>
             }
-            value={`${drive.healthPercent}%`}
+            value={localizeNumbers(`${drive.healthPercent}%`, numberFormat)}
           />
           <UsageBar value={drive.healthPercent / 100} color={driveStatusColor(drive.status)} />
         </div>
@@ -106,14 +109,14 @@ function DriveCard({ drive }: { drive: DiagnosticsDrive }) {
           <SectionHeader>{t('diagnostics.storage.nvme.title')}</SectionHeader>
           <InfoList>
             <InfoRow label={t('diagnostics.storage.nvme.criticalWarning')} value={drive.nvme.criticalWarning} tone={drive.nvme.criticalWarning > 0 ? 'bad' : 'default'} />
-            <InfoRow label={t('diagnostics.storage.nvme.availableSpare')} value={`${drive.nvme.availableSpare}%`} />
-            <InfoRow label={t('diagnostics.storage.nvme.spareThreshold')} value={`${drive.nvme.spareThreshold}%`} />
-            <InfoRow label={t('diagnostics.storage.nvme.percentageUsed')} value={`${drive.nvme.percentageUsed}%`} />
+            <InfoRow label={t('diagnostics.storage.nvme.availableSpare')} value={localizeNumbers(`${drive.nvme.availableSpare}%`, numberFormat)} />
+            <InfoRow label={t('diagnostics.storage.nvme.spareThreshold')} value={localizeNumbers(`${drive.nvme.spareThreshold}%`, numberFormat)} />
+            <InfoRow label={t('diagnostics.storage.nvme.percentageUsed')} value={localizeNumbers(`${drive.nvme.percentageUsed}%`, numberFormat)} />
             <InfoRow label={t('diagnostics.storage.nvme.mediaErrors')} value={drive.nvme.mediaErrors} tone={drive.nvme.mediaErrors > 0 ? 'bad' : 'default'} />
             <InfoRow label={t('diagnostics.storage.nvme.errorLogEntries')} value={drive.nvme.errorLogEntries} />
             <InfoRow label={t('diagnostics.storage.nvme.unsafeShutdowns')} value={drive.nvme.unsafeShutdowns} />
-            <InfoRow label={t('diagnostics.storage.nvme.dataRead')} value={formatBytes(drive.nvme.dataUnitsReadBytes)} />
-            <InfoRow label={t('diagnostics.storage.nvme.dataWritten')} value={formatBytes(drive.nvme.dataUnitsWrittenBytes)} />
+            <InfoRow label={t('diagnostics.storage.nvme.dataRead')} value={formatBytes(drive.nvme.dataUnitsReadBytes, numberFormat)} />
+            <InfoRow label={t('diagnostics.storage.nvme.dataWritten')} value={formatBytes(drive.nvme.dataUnitsWrittenBytes, numberFormat)} />
           </InfoList>
         </div>
       )}

@@ -11,6 +11,7 @@ import type {
   DiagnosticsReason,
   DiagnosticsStatus,
 } from '../../../api/diagnostics';
+import { localizeNumbers, type NumberFormat } from '../../../lib/units';
 
 const STATUS_SEVERITY_RANK: Record<DiagnosticsStatus, number> = { act: 3, watch: 2, unknown: 1, ok: 0 };
 
@@ -251,7 +252,7 @@ const BYTE_UNITS = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
 /** Auto-scales a raw byte count along the B/KB/MB/GB/TB/PB ladder. Byte
  *  units are treated as universal abbreviations (unlocalized), matching the
  *  existing monitoring sensor formatter's precedent. */
-export function formatBytes(bytes: number): string {
+export function formatBytes(bytes: number, numberFormat: NumberFormat): string {
   if (!Number.isFinite(bytes) || bytes <= 0) return `0 ${BYTE_UNITS[0]}`;
   let scaled = bytes;
   let index = 0;
@@ -260,5 +261,5 @@ export function formatBytes(bytes: number): string {
     index++;
   }
   const decimals = index === 0 || Number.isInteger(scaled) ? 0 : 1;
-  return `${scaled.toFixed(decimals)} ${BYTE_UNITS[index]}`;
+  return localizeNumbers(`${scaled.toFixed(decimals)} ${BYTE_UNITS[index]}`, numberFormat);
 }

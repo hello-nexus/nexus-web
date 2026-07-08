@@ -1,6 +1,8 @@
 import { useMemo, useState, useCallback, useLayoutEffect, useRef, type ReactNode } from 'react';
 import type { SeriesEntry } from '../../../hooks/useProcessMonitor';
+import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
+import { localizeNumbers, type NumberFormat } from '../../../lib/units';
 import { formatMemoryMb } from '../../../lib/formatMemory';
 import styles from './StackedChart.module.scss';
 
@@ -71,14 +73,14 @@ function formatNum(v: number): string {
 // unit, every label scales up so we never mix small and large units on one axis.
 // Memory uses binary scaling (1 GiB = 1024 MiB); network rates use decimal
 // scaling (1 MB/s = 1000 KB/s) to match how rates are normally reported.
-function formatYLabel(val: number, yUnit: string, yMax: number): string {
-  if (yUnit === '%') return `${Math.round(val)}%`;
+function formatYLabel(val: number, yUnit: string, yMax: number, numberFormat: NumberFormat): string {
+  if (yUnit === '%') return localizeNumbers(`${Math.round(val)}%`, numberFormat);
   if (yUnit === 'KB/s') {
-    if (yMax >= 1000) return `${formatNum(val / 1000)} MB/s`;
-    return `${formatNum(val)} KB/s`;
+    if (yMax >= 1000) return localizeNumbers(`${formatNum(val / 1000)} MB/s`, numberFormat);
+    return localizeNumbers(`${formatNum(val)} KB/s`, numberFormat);
   }
-  if (yMax >= 1024) return `${formatNum(val / 1024)} GB`;
-  return `${formatNum(val)} MB`;
+  if (yMax >= 1024) return localizeNumbers(`${formatNum(val / 1024)} GB`, numberFormat);
+  return localizeNumbers(`${formatNum(val)} MB`, numberFormat);
 }
 
 /**
@@ -90,6 +92,7 @@ export function StackedChart({
   title, titleRight, series, sampleCount, yMax: fixedMax, yUnit = '%', xSeconds = 60, height = 200,
 }: StackedChartProps) {
   const { t } = useTranslation();
+  const { numberFormat } = useUnitPrefs();
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(440);
@@ -206,7 +209,7 @@ export function StackedChart({
                 stroke="var(--border)" strokeWidth="0.5" />
               <text x={PAD.left - 4} y={y + 3} fill="var(--text-dim)"
                 fontSize="11" fontFamily="var(--font-mono)" textAnchor="end">
-                {formatYLabel(tickVal, yUnit, yMax)}
+                {formatYLabel(tickVal, yUnit, yMax, numberFormat)}
               </text>
             </g>
           );
@@ -241,17 +244,17 @@ export function StackedChart({
         <div className={styles.tooltip}>
           <div className={styles.tooltipHeader}>
             {yUnit === 'MB'
-              ? t('chart.total', { value: formatMemoryMb(tooltip.total), unit: '' })
-              : t('chart.total', { value: tooltip.total, unit: yUnit === '%' ? '%' : yUnit === 'KB/s' ? ' KB/s' : '' })}
+              ? t('chart.total', { value: formatMemoryMb(tooltip.total, numberFormat), unit: '' })
+              : t('chart.total', { value: localizeNumbers(String(tooltip.total), numberFormat), unit: yUnit === '%' ? '%' : yUnit === 'KB/s' ? ' KB/s' : '' })}
           </div>
           {tooltip.items.map(item => (
             <div key={item.name} className={styles.tooltipRow}>
               <span className={styles.tooltipDot} style={{ background: item.color }} />
               <span className={styles.tooltipName}>{item.name === 'Other' ? t('monitoring.other') : item.name}</span>
               <span className={styles.tooltipVal}>
-                {yUnit === '%' ? `${item.val.toFixed(1)}%`
-                  : yUnit === 'KB/s' ? (item.val >= 1024 ? `${(item.val / 1024).toFixed(1)} MB/s` : `${Math.round(item.val)} KB/s`)
-                  : formatMemoryMb(item.val)}
+                {yUnit === '%' ? localizeNumbers(`${item.val.toFixed(1)}%`, numberFormat)
+                  : yUnit === 'KB/s' ? localizeNumbers(item.val >= 1024 ? `${(item.val / 1024).toFixed(1)} MB/s` : `${Math.round(item.val)} KB/s`, numberFormat)
+                  : formatMemoryMb(item.val, numberFormat)}
               </span>
             </div>
           ))}

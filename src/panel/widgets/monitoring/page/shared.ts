@@ -1,30 +1,31 @@
 import type { HardwareSensor } from '../../../../hooks/useSensors';
 import type { SeriesEntry } from '../../../../hooks/useProcessMonitor';
 import { OTHER_COLOR } from '../../../../lib/monitoringStore';
+import { localizeNumbers, type NumberFormat } from '../../../../lib/units';
 
-export function formatRate(bytesPerSec: number): string {
-  if (bytesPerSec >= 1024 * 1024) return `${(bytesPerSec / 1024 / 1024).toFixed(1)} MB/s`;
-  if (bytesPerSec >= 1024) return `${(bytesPerSec / 1024).toFixed(1)} KB/s`;
-  return `${Math.round(bytesPerSec)} B/s`;
+export function formatRate(bytesPerSec: number, numberFormat: NumberFormat): string {
+  if (bytesPerSec >= 1024 * 1024) return localizeNumbers(`${(bytesPerSec / 1024 / 1024).toFixed(1)} MB/s`, numberFormat);
+  if (bytesPerSec >= 1024) return localizeNumbers(`${(bytesPerSec / 1024).toFixed(1)} KB/s`, numberFormat);
+  return localizeNumbers(`${Math.round(bytesPerSec)} B/s`, numberFormat);
 }
 
 // Mirrors formatRateParts: 4-char-wide string (1.2, 12.0, 120) so the value
 // block stays a stable width and the sparkline doesn't shift between frames.
-export function formatPercentParts(percent: number): { value: string; unit: string } {
+export function formatPercentParts(percent: number, numberFormat: NumberFormat): { value: string; unit: string } {
   const v = Math.max(0, percent);
   const roundedOneDecimal = Math.round(v * 10) / 10;
   const formatted = roundedOneDecimal >= 100
     ? String(Math.round(roundedOneDecimal))
     : roundedOneDecimal.toFixed(1);
-  return { value: formatted, unit: '%' };
+  return { value: localizeNumbers(formatted, numberFormat), unit: '%' };
 }
 
-export function formatMemoryPercent(percent: number): string {
-  return String(Math.round(Math.max(0, Math.min(100, percent))));
+export function formatMemoryPercent(percent: number, numberFormat: NumberFormat): string {
+  return localizeNumbers(String(Math.round(Math.max(0, Math.min(100, percent)))), numberFormat);
 }
 
 // Step up units so the integer part stays at or below 3 digits. Decimals only below 100.
-export function formatRateParts(bytesPerSec: number): { value: string; unit: string } {
+export function formatRateParts(bytesPerSec: number, numberFormat: NumberFormat): { value: string; unit: string } {
   const units = ['B/s', 'KB/s', 'MB/s', 'GB/s', 'TB/s'];
   let value = Math.max(0, bytesPerSec);
   let i = 0;
@@ -37,13 +38,13 @@ export function formatRateParts(bytesPerSec: number): { value: string; unit: str
   else if (value < 10) formatted = value.toFixed(2);
   else if (value < 100) formatted = value.toFixed(1);
   else formatted = String(Math.round(value));
-  return { value: formatted, unit: units[i] };
+  return { value: localizeNumbers(formatted, numberFormat), unit: units[i] };
 }
 
-export function formatDataSize(kb: number): string {
-  if (kb >= 1024 * 1024) return `${(kb / (1024 * 1024)).toFixed(1)} GB`;
-  if (kb >= 1024) return `${(kb / 1024).toFixed(1)} MB`;
-  return `${Math.round(kb)} KB`;
+export function formatDataSize(kb: number, numberFormat: NumberFormat): string {
+  if (kb >= 1024 * 1024) return localizeNumbers(`${(kb / (1024 * 1024)).toFixed(1)} GB`, numberFormat);
+  if (kb >= 1024) return localizeNumbers(`${(kb / 1024).toFixed(1)} MB`, numberFormat);
+  return localizeNumbers(`${Math.round(kb)} KB`, numberFormat);
 }
 
 export function rankSeries(series: SeriesEntry[], showAverage: boolean) {
