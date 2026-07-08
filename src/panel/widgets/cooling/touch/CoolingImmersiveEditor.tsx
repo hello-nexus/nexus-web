@@ -3,7 +3,7 @@ import { Plus } from 'lucide-react';
 import { Button } from '../../../../components/common/Button/Button';
 import { Tabs } from '../../../../components/common/Tabs/Tabs';
 import { useTranslation } from '../../../../lib/i18n';
-import type { FanChannel } from '../../../../api/cooling';
+import { type FanChannel, isFanDisconnected } from '../../../../api/cooling';
 import { CurveCard, computeCurveSpeed } from '../page/CurveEditor';
 import { FanCard } from '../page/FanCard';
 import type { CoolingImmersiveController } from './useCoolingImmersive';
@@ -137,7 +137,7 @@ function FansTab({ cooling }: { cooling: CoolingImmersiveController }) {
 
   // Panel surfaces only list physically-connected channels: hardware-
   // unresponsive fans are hidden outright, not shown as a Disconnected group.
-  const live = channels.filter(c => c.classification !== 'Unresponsive');
+  const live = channels.filter(c => !isFanDisconnected(c));
   const groups = new Map<string | null, FanChannel[]>();
   for (const ch of live) {
     const key = ch.deviceId || null;

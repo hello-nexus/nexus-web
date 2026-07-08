@@ -364,6 +364,8 @@
   "cooling.curves.resetBtn": "Сброс",
   "cooling.curves.resetToDefaults": "Сбросить к значениям по умолчанию",
   "cooling.fan.disconnected": "Отключено",
+  "cooling.fan.fixed": "Фиксированная скорость",
+  "cooling.fan.fixedHint": "Фиксированная скорость - не регулируется",
   "cooling.label.cpu": "ЦП",
   "cooling.label.fan": "Вент.",
   "cooling.label.gpu": "ГП",

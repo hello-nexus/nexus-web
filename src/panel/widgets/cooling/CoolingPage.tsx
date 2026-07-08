@@ -24,7 +24,7 @@ import {
   fetchFanChannels, fetchTemperatureSources, fetchCurves,
   setFanSpeed, releaseFanAuto, saveCurves, renameFan, setFanLock,
   startCalibration, fetchCalibrations, fetchProfiles, applyProfile,
-  resetPresetCurve,
+  resetPresetCurve, isFanDisconnected,
   type FanChannel, type TemperatureSource,
   type FanCalibration,
 } from '../../../api/cooling';
@@ -684,7 +684,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     // the saved fanOrder - if a fan recovers it returns to its prior slot.
     const live: FanChannel[] = [];
     const dead: FanChannel[] = [];
-    for (const ch of base) (ch.classification === 'Unresponsive' ? dead : live).push(ch);
+    for (const ch of base) (isFanDisconnected(ch) ? dead : live).push(ch);
     return dead.length === 0 ? base : [...live, ...dead];
   }, [channels, fanOrder]);
 
@@ -700,7 +700,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // Disconnected group and can't be driven, so they don't count as "in use".
   const curveFanCounts = useMemo(() => {
     const disconnected = new Set(
-      channels.filter(c => c.classification === 'Unresponsive').map(c => c.id),
+      channels.filter(isFanDisconnected).map(c => c.id),
     );
     const m = new Map<string, number>();
     for (const [fanId, fs] of Object.entries(fanStates)) {
@@ -952,8 +952,8 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
             >
             {offStatusCard}
             {(() => {
-              const disconnected = orderedChannels.filter(c => c.classification === 'Unresponsive');
-              const live = orderedChannels.filter(c => c.classification !== 'Unresponsive');
+              const disconnected = orderedChannels.filter(isFanDisconnected);
+              const live = orderedChannels.filter(c => !isFanDisconnected(c));
               const groups = new Map<string | null, FanChannel[]>();
               for (const ch of live) {
                 const key = ch.deviceId || null;
@@ -970,7 +970,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                   compact
                   calibrating={calibrating}
                   canCreateCurve={curves.length < MAX_CURVES}
-                  highlighted={highlightedFanIds.has(ch.id) && ch.classification !== 'Unresponsive'}
+                  highlighted={highlightedFanIds.has(ch.id) && !isFanDisconnected(ch)}
                   hubMode={ch.deviceId ? hubModes[ch.deviceId] : undefined}
                   hubSupportsFirmware={ch.deviceId?.startsWith('np50:') || ch.deviceId?.startsWith('qseries:')}
                   hubSupportsBios={!ch.deviceId?.startsWith('np50:') && !ch.deviceId?.startsWith('corsair:')}

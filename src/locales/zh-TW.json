@@ -364,6 +364,8 @@
   "cooling.curves.resetBtn": "重設",
   "cooling.curves.resetToDefaults": "重設為預設值",
   "cooling.fan.disconnected": "未連接",
+  "cooling.fan.fixed": "固定轉速",
+  "cooling.fan.fixedHint": "固定轉速 - 無法控制",
   "cooling.label.cpu": "CPU",
   "cooling.label.fan": "風扇",
   "cooling.label.gpu": "GPU",

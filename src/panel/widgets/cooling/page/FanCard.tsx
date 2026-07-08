@@ -1,6 +1,6 @@
 import { memo, useRef, useState } from 'react';
-import { Fan, Lock, Plus } from 'lucide-react';
-import type { FanChannel } from '../../../../api/cooling';
+import { CircleSlash, Fan, Lock, Plus } from 'lucide-react';
+import { type FanChannel, isFanDisconnected } from '../../../../api/cooling';
 import { useTranslation } from '../../../../lib/i18n';
 import type { CurveDef, FanState } from '../../../../types/cooling';
 import { EditableText } from '../../../../components/common/Editable/EditableText';
@@ -15,9 +15,11 @@ import styles from '../CoolingPage.module.scss';
  * count), a thin duty bar, and the mode dropdown (BIOS / Manual / curves /
  * Create curve). Wire DnD also binds / unbinds when a wire layer is present.
  *
- * When the fan hardware itself is unresponsive (calibration classification
- * = "Unresponsive"), the card collapses to a single "Disconnected" marker
- * and hides the duty bar + dropdown - nothing here can drive the channel.
+ * When the fan is disconnected (calibration marked it "Unresponsive" AND it
+ * reports no RPM - see isFanDisconnected), the card collapses to a single
+ * "Disconnected" marker and hides the duty bar + dropdown - nothing here can
+ * drive the channel. A "Fixed" fan (RPM barely moves across the duty sweep)
+ * keeps its RPM readout but shows a "Fixed speed" marker and no mode dropdown.
  */
 /**
  * Hub-level cooling mode reflected back to a fan card. NP50 + MiniHub fans
@@ -100,7 +102,13 @@ export const FanCard = memo(function FanCard({
   // Hardware-level disconnect (no tach, no controllable duty). When true the
   // card collapses to a single "Disconnected" marker; the dropdown and duty
   // bar disappear because nothing the user does here will drive the channel.
-  const isHwDisconnected = channel.classification === 'Unresponsive';
+  const isHwDisconnected = isFanDisconnected(channel);
+  // Fixed-speed fan: calibration found the RPM barely moves across the full
+  // 0-100% duty sweep (classification = "Fixed"), i.e. the header ignores
+  // PWM and no software control is possible. The card keeps its live RPM
+  // readout but drops the duty bar and hard-disables the mode dropdown;
+  // re-calibration (global button) is the only way back to Controllable.
+  const isFixed = channel.classification === 'Fixed';
   // Telemetry-only channel (Q-series pump today): header readout only, no duty
   // bar or mode dropdown - nothing here drives it.
   const isReadOnly = channel.readOnly ?? false;
@@ -159,9 +167,9 @@ export const FanCard = memo(function FanCard({
   };
 
   const dragClasses = [
-    driven ? styles.fanCardActive : '',
+    driven && !isFixed ? styles.fanCardActive : '',
     compact ? styles.fanCardCompact : '',
-    isHwDisconnected ? styles.fanCardOff : '',
+    isHwDisconnected || isFixed ? styles.fanCardOff : '',
     drag?.isDragging ? drag.placeholderClassName : '',
   ].filter(Boolean).join(' ');
 
@@ -185,6 +193,11 @@ export const FanCard = memo(function FanCard({
       { value: '__create__', label: t('cooling.card.createCurve'), className: styles.fanModeOptionCreate, icon: <Plus size={14} /> },
     ] : []),
   ];
+
+  const handleModeChange = (v: string) => {
+    if (v === '__create__') { onCreateCurve(); return; }
+    onSetMode(v);
+  };
 
   return (
     <div
@@ -240,7 +253,17 @@ export const FanCard = memo(function FanCard({
         <div className={styles.fanBindingDisconnected}>
           <span>{t('cooling.fan.disconnected')}</span>
         </div>
-      ) : isReadOnly ? null : (
+      ) : isReadOnly ? null : isFixed ? (
+        // Fixed speed: keep the RPM readout in the header and swap the duty
+        // bar for a "Fixed speed" marker. No mode dropdown at all - nothing
+        // here can drive a fan whose header ignores PWM.
+        <HoverTooltip body={t('cooling.fan.fixedHint')} side="top">
+          <div className={styles.fanBindingDisconnected}>
+            <CircleSlash size={13} aria-hidden="true" />
+            <span>{t('cooling.fan.fixed')}</span>
+          </div>
+        </HoverTooltip>
+      ) : (
         <>
           <div
             ref={barRef}
@@ -286,10 +309,7 @@ export const FanCard = memo(function FanCard({
             variant="ghost"
             accentValue={highlighted}
             value={modeValue}
-            onChange={v => {
-              if (v === '__create__') { onCreateCurve(); return; }
-              onSetMode(v);
-            }}
+            onChange={handleModeChange}
             ariaLabel={t('cooling.card.mode')}
             options={modeOptions}
           />
