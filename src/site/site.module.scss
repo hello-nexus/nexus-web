@@ -872,6 +872,8 @@
 
 .footerLove {
   @include text-caption;
+  // Caption-size emoji reads as a speck; the sign-off earns body scale.
+  font-size: 0.95rem;
   color: var(--text-dim);
   margin: 0;
 }
