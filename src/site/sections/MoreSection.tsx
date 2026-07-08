@@ -17,13 +17,17 @@ export function MoreSection() {
   return (
     <section className={styles.moreSection}>
       <div className={styles.moreHeading}>
+        <p className={`${styles.eyebrow} ${styles.eyebrowCentered}`}>
+          <LayoutGrid size={15} aria-hidden />
+          <span>{t('welcome.capabilities.widgets')}</span>
+        </p>
         <h2>{t('site.more.title')}</h2>
         <p className={styles.lead}>{t('site.more.lead')}</p>
       </div>
       <div className={styles.moreGrid}>
         {CARDS.map(({ key, Icon }) => (
           <div key={key} className={styles.moreCard}>
-            <Icon size={22} className={styles.moreIcon} aria-hidden="true" />
+            <Icon size={22} className={styles.moreIcon} aria-hidden />
             <h3>{t(`site.more.${key}.title`)}</h3>
             <p>{t(`site.more.${key}.blurb`)}</p>
           </div>

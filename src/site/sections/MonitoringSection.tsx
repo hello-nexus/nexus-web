@@ -1,3 +1,4 @@
+import { Activity } from 'lucide-react';
 import { useTranslation } from '../../lib/i18n';
 import { GAUGE_DESIGNS } from '../../panel/widgets/monitoring/gauges';
 import type { GaugeProps } from '../../panel/widgets/monitoring/gauges';
@@ -7,8 +8,9 @@ import { DemoFrame } from '../components/DemoFrame';
 import styles from '../site.module.scss';
 
 const SparklineGauge = GAUGE_DESIGNS.sparkline;
-const HalfGauge = GAUGE_DESIGNS.halfgauge;
 const Arc270 = GAUGE_DESIGNS.arc270;
+const DotGrid = GAUGE_DESIGNS.dotgrid;
+const Segments = GAUGE_DESIGNS.segments;
 
 const MEMORY_TOTAL_GB = 32;
 
@@ -28,14 +30,19 @@ export function MonitoringSection() {
   const { t } = useTranslation();
   const [ref, inView] = useInViewport<HTMLElement>();
 
-  const cpu = useTickingHistory(42, 20, { spike: 0.22, active: inView });
-  const mem = useTickingHistory(58, 3, { active: inView, intervalMs: 1400 });
-  const gpu = useTickingHistory(63, 7, { active: inView, intervalMs: 1200 });
+  // Wide swings + short intervals so every gauge style visibly moves.
+  const cpu = useTickingHistory(44, 26, { spike: 0.3, active: inView, intervalMs: 800 });
+  const gpu = useTickingHistory(62, 10, { active: inView, intervalMs: 900 });
+  const mem = useTickingHistory(56, 14, { active: inView, intervalMs: 1000 });
+  const fan = useTickingHistory(46, 28, { spike: 0.16, active: inView, intervalMs: 700 });
 
   return (
     <section ref={ref} id="features" className={styles.section}>
       <div className={styles.sectionText}>
-        <p className={styles.eyebrow}>{t('site.monitoring.eyebrow')}</p>
+        <p className={styles.eyebrow}>
+          <Activity size={15} aria-hidden />
+          <span>{t('welcome.capabilities.monitoring')}</span>
+        </p>
         <h2>{t('site.monitoring.title')}</h2>
         <p className={styles.lead}>{t('site.monitoring.lead')}</p>
         <ul className={styles.points}>
@@ -51,13 +58,17 @@ export function MonitoringSection() {
               t('site.monitoring.cpuLabel'), cpu.history, cpu.value, `${cpu.value}%`)} />
           </div>
           <div className={styles.monitoringCell}>
-            <HalfGauge {...gaugeProps(
+            <Arc270 {...gaugeProps(
+              t('site.monitoring.gpuLabel'), gpu.history, gpu.value, `${gpu.value}°C`)} />
+          </div>
+          <div className={styles.monitoringCell}>
+            <DotGrid {...gaugeProps(
               t('site.monitoring.memLabel'), mem.history, mem.value,
               `${(MEMORY_TOTAL_GB * mem.value / 100).toFixed(1)} GB`)} />
           </div>
           <div className={styles.monitoringCell}>
-            <Arc270 {...gaugeProps(
-              t('site.monitoring.gpuLabel'), gpu.history, gpu.value, `${gpu.value}°C`)} />
+            <Segments {...gaugeProps(
+              t('site.cooling.fanLabel'), fan.history, fan.value, `${fan.value}%`)} />
           </div>
         </div>
       </DemoFrame>

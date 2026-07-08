@@ -78,6 +78,13 @@ so `/r/pair` QR links, `/panel/phone` relay-paired phones (whose session
 tokens live under the hellonexus.com origin), and emailed `/auth/*` links
 keep working unchanged.
 
+`/download` serves the marketing downloads page (all platforms + latest
+version). The canonical per-OS URLs `/download/windows|macos|linux` (and the
+`win`/`mac` short forms) 302 to the newest downloadable release's asset,
+resolved server-side via the GitHub releases API (latest stable, or the
+newest prerelease while no stable exists - GitHub's static `latest/download`
+alias 404s until then).
+
 `/u/:username`, `/auth/verify`, `/auth/recover`, `/login`, `/register`,
 `/recover`, and `/account` are dead-code-eliminated from `npm run
 build:service` (same `__SERVICE_BUILD__` build-define technique as the
