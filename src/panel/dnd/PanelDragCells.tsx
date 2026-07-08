@@ -381,12 +381,15 @@ export function PanelCatalogCell({
   label,
   selected = false,
   onClick,
+  showLabel = true,
 }: {
   widget: PanelWidget;
   surface?: PanelSurface;
   label: string;
   selected?: boolean;
   onClick?: () => void;
+  /** Presentational mounts (marketing phone mock) drop the name strip. */
+  showLabel?: boolean;
 }) {
   const def = lookupApp(widget.type);
   const span = sizeToSpan(widget.size);
@@ -428,9 +431,11 @@ export function PanelCatalogCell({
           </ErrorBoundary>
         </div>
       </div>
-      <div className={styles.cellLabelStrip}>
-        <WidgetCellLabel label={label} />
-      </div>
+      {showLabel && (
+        <div className={styles.cellLabelStrip}>
+          <WidgetCellLabel label={label} />
+        </div>
+      )}
     </div>
   );
 }

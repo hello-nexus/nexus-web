@@ -1,4 +1,4 @@
-import { Lightbulb, House, Gamepad2, Trophy, Hourglass, LayoutGrid } from 'lucide-react';
+import { Lightbulb, House, Gamepad2, Trophy, Hourglass, LayoutGrid, Stethoscope, Droplets, Users } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useTranslation } from '../../lib/i18n';
 import styles from '../site.module.scss';
@@ -10,6 +10,9 @@ const CARDS: Array<{ key: string; Icon: LucideIcon }> = [
   { key: 'widgets', Icon: LayoutGrid },
   { key: 'benchmarks', Icon: Trophy },
   { key: 'screentime', Icon: Hourglass },
+  { key: 'diagnostics', Icon: Stethoscope },
+  { key: 'aio', Icon: Droplets },
+  { key: 'community', Icon: Users },
 ];
 
 export function MoreSection() {

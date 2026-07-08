@@ -1,8 +1,5 @@
-import { useMemo } from 'react';
 import { useTranslation } from '../../lib/i18n';
 import { NexusMark, NexusWordmark, GithubGlyph } from '../../components/icons/NexusBrand';
-import { DOWNLOAD_URLS, type DownloadableOS } from '../../lib/downloads';
-import { detectOS } from '../../lib/platform';
 import { mySystemHref } from '../mySystemUrl';
 import styles from '../site.module.scss';
 
@@ -10,10 +7,6 @@ const GITHUB_URL = 'https://github.com/hello-nexus/nexus';
 
 export function SiteHeader() {
   const { t } = useTranslation();
-  const os: DownloadableOS = useMemo(() => {
-    const detected = detectOS();
-    return detected === 'unknown' ? 'windows' : detected;
-  }, []);
 
   return (
     <header className={styles.header}>
@@ -43,14 +36,9 @@ export function SiteHeader() {
           <a href={mySystemHref('/login')} className={styles.headerLogin}>
             {t('site.nav.login')}
           </a>
-          <span className={styles.headerDownloadGroup}>
-            <a href={DOWNLOAD_URLS[os]} className={styles.headerDownload}>
-              {t('service.required.downloadFor', { os: t(`service.required.os.${os}`) })}
-            </a>
-            <a href="/download" className={styles.headerAllDownloads}>
-              {t('site.nav.allDownloads')}
-            </a>
-          </span>
+          <a href="/#download" className={styles.headerDownload}>
+            {t('site.nav.download')}
+          </a>
           <a href={mySystemHref()} className={styles.headerMySystem}>
             {t('site.nav.mySystem')}
           </a>
