@@ -59,7 +59,7 @@ test.describe('marketing page content', () => {
 
     await page.getByText('Lighting that reacts to you.').scrollIntoViewIfNeeded();
     // The effect picker is a strip of live shader thumbnails.
-    for (const name of ['Plasma', 'Fire', 'Spiral', 'Neon Grid', 'Terrace']) {
+    for (const name of ['Plasma', 'Fire', 'Spiral', 'Neon Grid', 'Beat Builder']) {
       await expect(page.getByRole('button', { name })).toBeVisible();
     }
 

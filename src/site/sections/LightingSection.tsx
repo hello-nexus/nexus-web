@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState, type RefObject } from 'react';
 import { Lightbulb } from 'lucide-react';
 import { useTranslation } from '../../lib/i18n';
 import { PaletteRing } from '../../components/common/PaletteRing/PaletteRing';
@@ -7,19 +7,23 @@ import { defaultStateFor, defaultParamsFor, EFFECTS, type EffectState, type Effe
 import { buildDefaultTemplates } from '../../types/lightingTemplates';
 import { useInViewport } from '../hooks/useInViewport';
 import { useAutoRotateHue } from '../hooks/useAutoRotateHue';
+import { useFakeAudio } from '../hooks/useFakeAudio';
+import type { AudioSnapshot } from '../../hooks/useAudioState';
 import { DemoFrame } from '../components/DemoFrame';
 import { PlasmaCanvas } from '../components/PlasmaCanvas';
 import styles from '../site.module.scss';
 
-// Effects the demo bundles (site/main.tsx primes each composed shader), with
-// the two controls each shows under the shared Speed slider - varied so the
-// demo surfaces different parameter kinds across effects.
+// Effects the demo bundles (site/main.tsx primes each composed shader), each
+// with its three sliders ('speed'/'saturation' tokens or uniform names) -
+// varied so the demo surfaces different parameter kinds. Beat Builder rides
+// the synthetic audio feed (no speed: the beat drives it) with the three
+// highest-impact controls.
 const DEMO_EFFECTS: ReadonlyArray<{ key: string; controls: readonly string[] }> = [
-  { key: 'plasma', controls: ['u_warp', 'saturation'] },
-  { key: 'fire', controls: ['u_turbulence', 'saturation'] },
-  { key: 'spiral', controls: ['u_arms', 'u_tightness'] },
-  { key: 'neongrid', controls: ['u_density', 'u_glow'] },
-  { key: 'terrace', controls: ['u_levels', 'saturation'] },
+  { key: 'plasma', controls: ['speed', 'u_warp', 'saturation'] },
+  { key: 'fire', controls: ['speed', 'u_turbulence', 'saturation'] },
+  { key: 'spiral', controls: ['speed', 'u_arms', 'u_tightness'] },
+  { key: 'neongrid', controls: ['speed', 'u_density', 'u_glow'] },
+  { key: 'beatbuilder', controls: ['u_barCount', 'u_centerGain', 'u_flash'] },
 ];
 
 // Demo starting look: a visible arc window (not the full-wrap rainbow) so the
@@ -41,12 +45,13 @@ function thumbState(key: string): EffectState {
   return s;
 }
 
-function EffectThumb({ effectKey, active, selected, onSelect, label }: {
+function EffectThumb({ effectKey, active, selected, onSelect, label, audioRef }: {
   effectKey: string;
   active: boolean;
   selected: boolean;
   onSelect: () => void;
   label: string;
+  audioRef: RefObject<AudioSnapshot | null>;
 }) {
   // Lazy seed: a bare useRef(init) would rebuild the template state on every
   // parent render (the auto-rotating hue re-renders the section constantly).
@@ -64,10 +69,10 @@ function EffectThumb({ effectKey, active, selected, onSelect, label }: {
         effect={effectKey}
         stateRef={stateRef}
         active={active}
+        audioRef={audioRef}
         maxDevicePixelRatio={1}
         className={styles.effectThumbCanvas}
       />
-      <span className={styles.effectThumbLabel}>{label}</span>
     </button>
   );
 }
@@ -84,6 +89,7 @@ export function LightingSection() {
   const [saturation, setSaturation] = useState(base.saturation);
   const [params, setParams] = useState<Record<string, number>>(base.params);
   const { hue, colorize, onUserChange } = useAutoRotateHue(START_HUE, START_COLORIZE, inView);
+  const audioRef = useFakeAudio(inView);
 
   // Latest-value ref for the render loop; the shader reads it every frame.
   const stateRef = useRef<EffectState>(base);
@@ -122,6 +128,7 @@ export function LightingSection() {
             effect={effect}
             stateRef={stateRef}
             active={inView}
+            audioRef={audioRef}
             className={styles.lightingCanvas}
           />
           <div className={styles.effectThumbs}>
@@ -136,6 +143,7 @@ export function LightingSection() {
                   selected={key === effect}
                   onSelect={() => pickEffect(key)}
                   label={t(d.labelKey)}
+                  audioRef={audioRef}
                 />
               );
             })}
@@ -150,19 +158,24 @@ export function LightingSection() {
               />
             </div>
             <div className={styles.lightingSliders}>
-              <Slider
-                label={t('lighting.controls.speed')}
-                value={speed}
-                min={-100}
-                max={100}
-                // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-                orientation="stacked"
-                editable
-                trackFill
-                zeroMarker
-                onChange={setSpeed}
-              />
               {controls.map(name => {
+                if (name === 'speed') {
+                  return (
+                    <Slider
+                      key={`${effect}-speed`}
+                      label={t('lighting.controls.speed')}
+                      value={speed}
+                      min={-100}
+                      max={100}
+                      // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
+                      orientation="stacked"
+                      editable
+                      trackFill
+                      zeroMarker
+                      onChange={setSpeed}
+                    />
+                  );
+                }
                 if (name === 'saturation') {
                   return (
                     <Slider
