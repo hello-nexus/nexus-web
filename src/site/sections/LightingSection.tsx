@@ -167,7 +167,6 @@ export function LightingSection() {
                       value={speed}
                       min={-100}
                       max={100}
-                      // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
                       orientation="stacked"
                       editable
                       trackFill
