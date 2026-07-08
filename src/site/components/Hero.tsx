@@ -3,7 +3,7 @@ import { useTranslation } from '../../lib/i18n';
 import { NexusWordmark } from '../../components/icons/NexusBrand';
 import { PlatformIcon } from '../../components/icons/PlatformIcons';
 import { defaultStateFor } from '../../types/lighting';
-import { DOWNLOAD_URLS, ALL_DOWNLOADABLE_OS, type DownloadableOS } from '../../lib/downloads';
+import { DOWNLOAD_URLS, type DownloadableOS } from '../../lib/downloads';
 import { detectOS } from '../../lib/platform';
 import { mySystemHref } from '../mySystemUrl';
 import { useInViewport } from '../hooks/useInViewport';
@@ -43,17 +43,17 @@ export function Hero() {
         <h1 className={styles.heroTitle}>{t('site.hero.title')}</h1>
         <p className={styles.heroSubtitle}>{t('site.hero.subtitle')}</p>
         <div className={styles.heroCtas}>
-          <a href={DOWNLOAD_URLS[os]} className={styles.ctaPrimary}>
-            <span className={styles.ctaPlatforms}>
-              {ALL_DOWNLOADABLE_OS.map(p => (
-                <PlatformIcon key={p} platform={p} size={15} />
-              ))}
-            </span>
-            {t('service.required.downloadFor', { os: t(`service.required.os.${os}`) })}
-          </a>
+          <span className={styles.heroDownloadStack}>
+            <a href={DOWNLOAD_URLS[os]} className={styles.ctaPrimary}>
+              <span className={styles.ctaPlatform}>
+                <PlatformIcon platform={os} size={16} />
+              </span>
+              {t('service.required.downloadFor', { os: t(`service.required.os.${os}`) })}
+            </a>
+            <a href="/download" className={styles.heroAllDownloads}>{t('site.nav.allDownloads')}</a>
+          </span>
           <a href={mySystemHref()} className={styles.ctaGhost}>{t('site.hero.ctaMySystem')}</a>
         </div>
-        <a href="/download" className={styles.heroAllDownloads}>{t('site.nav.allDownloads')}</a>
         <p className={styles.heroMeta}>{t('site.download.free')}</p>
       </div>
     </div>

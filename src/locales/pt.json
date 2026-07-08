@@ -2299,6 +2299,7 @@
   "site.download.title": "Obtenha o Nexus",
   "site.footer.copyright": "© {year} Nexus. Grátis e de código aberto sob a AGPL-3.0.",
   "site.footer.language": "Idioma",
+  "site.footer.loveOpenSource": "Adoramos open source ❤",
   "site.footer.tagline": "Monitorização, arrefecimento e iluminação para o seu PC.",
   "site.gate.backToSite": "Sobre o Nexus",
   "site.gate.updateHint": "Já está instalado mas não liga? Certifique-se de que o Nexus está em execução e atualizado, e permita o acesso à rede local se o navegador o pedir.",
