@@ -2663,6 +2663,7 @@
   "lighting.controls.param.twinkle": "반짝임",
   "lighting.controls.param.twist": "비틀림",
   "lighting.controls.param.viscosity": "점도",
+  "lighting.controls.param.warmth": "색온도",
   "lighting.controls.param.warp": "왜곡",
   "lighting.controls.param.wave": "파동",
   "lighting.controls.param.wavelength": "파장",
