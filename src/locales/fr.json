@@ -2299,6 +2299,7 @@
   "site.download.title": "Télécharger Nexus",
   "site.footer.copyright": "© {year} Nexus. Gratuit et open source sous licence AGPL-3.0.",
   "site.footer.language": "Langue",
+  "site.footer.loveOpenSource": "Nous ❤ l'open source",
   "site.footer.tagline": "Surveillance, refroidissement et éclairage pour votre PC.",
   "site.gate.backToSite": "À propos de Nexus",
   "site.gate.updateHint": "Déjà installé mais pas de connexion ? Vérifiez que Nexus est lancé et à jour, et autorisez l'accès au réseau local si votre navigateur le demande.",

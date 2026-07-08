@@ -57,25 +57,13 @@
   color: var(--text);
   text-decoration: none;
 
-  &:hover .brandMarkColor { opacity: 1; }
-  &:hover .brandMark > svg { opacity: 0; }
+  // The global a:hover accent tint must never reach currentColor children.
+  &:hover { color: var(--text); }
 }
 
 .brandMark {
-  position: relative;
-  display: inline-flex;
-
-  > svg { transition: opacity 140ms ease; }
-}
-
-.brandMarkColor {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  display: block;
   object-fit: contain;
-  opacity: 0;
-  transition: opacity 140ms ease;
 }
 
 .brandWordmark {
@@ -138,7 +126,7 @@
   box-shadow: 0 0 18px var(--site-cta-shadow);
   transition: background 140ms ease;
 
-  &:hover { background: var(--site-cta-hover); }
+  &:hover { color: var(--accent-text); background: var(--site-cta-hover); }
 
   @media (max-width: 760px) { display: none; }
 }
@@ -152,7 +140,7 @@
   border-radius: var(--radius-pill);
   transition: border-color 140ms ease, background 140ms ease;
 
-  &:hover { border-color: var(--site-cta); background: color-mix(in srgb, var(--site-cta) 14%, transparent); }
+  &:hover { color: var(--text); border-color: var(--site-cta); background: color-mix(in srgb, var(--site-cta) 14%, transparent); }
 }
 
 // ── Hero ─────────────────────────────────────────────────────────────────────
@@ -229,13 +217,21 @@
   gap: 14px;
   flex-wrap: wrap;
   justify-content: center;
+  align-items: flex-start;
+}
+
+// Primary download button with its all-downloads link directly beneath.
+.heroDownloadStack {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
 }
 
 .heroAllDownloads {
   @include text-label;
   color: var(--text-dim);
   text-decoration: none;
-  margin-top: 14px;
 
   &:hover { color: var(--text); }
 }
@@ -246,16 +242,18 @@
   margin-top: 20px;
 }
 
-.ctaPlatforms {
+.ctaPlatform {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
   margin-right: 10px;
   opacity: 0.9;
 }
 
 // ── CTAs ─────────────────────────────────────────────────────────────────────
 
+// Both CTA hovers restate `color`: the app's global `a:hover` rule
+// (global.scss) would otherwise tint the label accent-blue on hover -
+// invisible on the filled button.
 .ctaPrimary {
   @include text-button;
   display: inline-flex;
@@ -269,7 +267,7 @@
   box-shadow: 0 4px 30px var(--site-cta-shadow);
   transition: background 140ms ease, transform 140ms ease;
 
-  &:hover { background: var(--site-cta-hover); transform: translateY(-1px); }
+  &:hover { color: var(--accent-text); background: var(--site-cta-hover); transform: translateY(-1px); }
 }
 
 .ctaGhost {
@@ -284,7 +282,7 @@
   border: 1px solid var(--border-strong);
   transition: border-color 140ms ease, background 140ms ease;
 
-  &:hover { border-color: var(--site-cta); background: color-mix(in srgb, var(--site-cta) 14%, transparent); }
+  &:hover { color: var(--text); border-color: var(--site-cta); background: color-mix(in srgb, var(--site-cta) 14%, transparent); }
 }
 
 // ── Feature sections ─────────────────────────────────────────────────────────
@@ -806,7 +804,7 @@
   border-radius: var(--radius-pill);
   transition: border-color 140ms ease, background 140ms ease;
 
-  &:hover { border-color: var(--accent); background: var(--accent-soft); }
+  &:hover { color: var(--text); border-color: var(--accent); background: var(--accent-soft); }
 }
 
 // ── Footer ───────────────────────────────────────────────────────────────────
@@ -863,10 +861,25 @@
   @media (max-width: 760px) { margin-left: 0; }
 }
 
-.footerCopyright {
-  @include text-caption;
+.footerBottom {
   max-width: 1160px;
   margin: 24px auto 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.footerLove {
+  @include text-caption;
+  color: var(--text-dim);
+  margin: 0;
+}
+
+.footerCopyright {
+  @include text-caption;
+  margin: 0;
   color: var(--text-dim);
 }
 

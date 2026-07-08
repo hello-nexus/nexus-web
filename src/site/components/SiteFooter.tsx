@@ -46,7 +46,10 @@ export function SiteFooter() {
           />
         </div>
       </div>
-      <p className={styles.footerCopyright}>{t('site.footer.copyright', { year })}</p>
+      <div className={styles.footerBottom}>
+        <p className={styles.footerLove}>{t('site.footer.loveOpenSource')}</p>
+        <p className={styles.footerCopyright}>{t('site.footer.copyright', { year })}</p>
+      </div>
     </footer>
   );
 }

@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useTranslation } from '../../lib/i18n';
+import { PlatformIcon } from '../../components/icons/PlatformIcons';
 import { DOWNLOAD_URLS, ALL_DOWNLOADABLE_OS, type DownloadableOS } from '../../lib/downloads';
 import { detectOS } from '../../lib/platform';
 import styles from '../site.module.scss';
@@ -21,6 +22,9 @@ export function DownloadCards() {
               href={DOWNLOAD_URLS[os]}
               className={primary ? styles.ctaPrimary : styles.ctaGhost}
             >
+              <span className={styles.ctaPlatform}>
+                <PlatformIcon platform={os} size={16} />
+              </span>
               {t('service.required.downloadFor', { os: t(`service.required.os.${os}`) })}
             </a>
           </div>

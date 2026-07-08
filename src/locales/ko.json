@@ -2299,6 +2299,7 @@
   "site.download.title": "Nexus 받기",
   "site.footer.copyright": "© {year} Nexus. 무료 오픈소스이며 라이선스는 AGPL-3.0입니다.",
   "site.footer.language": "언어",
+  "site.footer.loveOpenSource": "오픈 소스를 사랑합니다 ❤",
   "site.footer.tagline": "PC를 위한 모니터링, 쿨링, 라이팅.",
   "site.gate.backToSite": "Nexus 소개",
   "site.gate.updateHint": "이미 설치했는데 연결되지 않나요? Nexus가 실행 중이고 최신 버전인지 확인하고, 브라우저가 요청하면 로컬 네트워크 접근을 허용하세요.",
