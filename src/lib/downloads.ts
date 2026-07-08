@@ -1,13 +1,18 @@
 import type { DetectedOS } from './platform';
 
-const RELEASES_BASE = 'https://github.com/hello-nexus/nexus/releases/latest/download';
+// Canonical per-OS installer URLs. server.js resolves each to the newest
+// downloadable release's asset via the GitHub API (latest stable, or the
+// newest prerelease while no stable has shipped) - GitHub's static
+// `latest/download/<asset>` alias 404s until a stable release exists, so
+// clients must not link it directly.
+const DOWNLOAD_BASE = 'https://hellonexus.com/download';
 
 export type DownloadableOS = Exclude<DetectedOS, 'unknown'>;
 
 export const DOWNLOAD_URLS: Record<DownloadableOS, string> = {
-  windows: `${RELEASES_BASE}/Nexus-Setup.exe`,
-  macos: `${RELEASES_BASE}/Nexus.dmg`,
-  linux: `${RELEASES_BASE}/Nexus-x86_64.AppImage`,
+  windows: `${DOWNLOAD_BASE}/windows`,
+  macos: `${DOWNLOAD_BASE}/macos`,
+  linux: `${DOWNLOAD_BASE}/linux`,
 };
 
 export const ALL_DOWNLOADABLE_OS: readonly DownloadableOS[] = ['windows', 'macos', 'linux'];

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { ArrowLeft, Trash2, LayoutGrid, Palette, Settings, Download, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Trash2, LayoutGrid, Palette, Settings, Download, AlertTriangle, Unplug } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SIZE_ICONS } from '../../../panel/widgets/common/SizeIcons';
@@ -29,8 +29,7 @@ import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { useTranslation } from '../../../lib/i18n';
 import { createUuid } from '../../../lib/uuid';
 import { IconLabelButton } from '../../common/IconLabelButton/IconLabelButton';
-import { SettingSelect, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
-import { InfoRow } from '../../common/InfoList/InfoList';
+import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { PanelEmbedFrame } from './PanelEmbedFrame';
 import { QSeriesCoolerSettings } from './QSeriesCoolerSettings';
 import { useFirmwareStatus } from '../../../hooks/useFirmwareStatus';
@@ -391,22 +390,34 @@ export function PanelDevicePage({ device, onOpenFirmware }: PanelDevicePageProps
 
   // Decide only after both the layout and the firmware status load, so the gate
   // resolves once instead of flashing block-then-content.
+  // The firmware route emits the qseries-app item whenever the panel is
+  // reachable over adb; currentVersion === '' means reachable with qshell not
+  // installed (the install gate case). No item at all means the panel's USB
+  // is not attached - that is a disconnected panel, not a missing app.
   const panelAppItem = firmwareItems.find(item => item.deviceType === 'qseries-app');
+  const panelReachable = !!panelAppItem;
   const panelAppInstalled = !!panelAppItem && panelAppItem.currentVersion !== '';
   const fwGateReady = loaded && (!isQSeries || firmwareLoaded);
-  const showFwGate = isQSeries && fwGateReady && !panelAppInstalled;
+  const showFwGate = isQSeries && !isSimulated && fwGateReady && panelReachable && !panelAppInstalled;
+  const showDisconnected = isQSeries && !isSimulated && fwGateReady && !panelReachable;
 
   return (
     <section className={styles.page}>
       <ViewHeader
         title={pageTitle}
-        tabs={showFwGate ? undefined : tabs}
+        tabs={showFwGate || showDisconnected ? undefined : tabs}
         activeTab={activeTab}
         onTabChange={(k) => { setConfiguringWidget(null); setTab(k as Tab); }}
       />
       <div className={`${styles.pageBody} pageBody`}>
       {!fwGateReady ? (
         <div style={{ color: 'var(--text-dim)', padding: 20 }}>{t('devices.loading')}</div>
+      ) : showDisconnected ? (
+        <EmptyState
+          icon={<Unplug size={48} />}
+          title={t('devices.qseries.disconnected.title')}
+          hint={t('devices.qseries.disconnected.hint')}
+        />
       ) : showFwGate ? (
         <EmptyState
           icon={<Download size={48} />}
@@ -935,7 +946,9 @@ function SettingsPanel({
           )}
 
           {!!variant && (
-            <InfoRow label={t('devices.y70.variant')} value={variant} tone="dim" />
+            <SettingRow label={t('devices.y70.variant')}>
+              <span className={styles.variantValue}>{variant}</span>
+            </SettingRow>
           )}
         </SettingsSection>
       )}

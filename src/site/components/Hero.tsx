@@ -29,6 +29,8 @@ export function Hero() {
       <div className={styles.heroContent}>
         {/* eslint-disable-next-line i18next/no-literal-string -- decorative cursive glyph, same motif as the app icon */}
         <div className={styles.heroHello} aria-hidden="true">hello</div>
+        <img src="/nexus-mark-color.png" alt="" width={120} height={120} className={styles.heroMark} />
+        <p className={styles.heroTagline}>{t('welcome.tagline')}</p>
         <h1 className={styles.heroTitle}>{t('site.hero.title')}</h1>
         <p className={styles.heroSubtitle}>{t('site.hero.subtitle')}</p>
         <div className={styles.heroCtas}>

@@ -10,7 +10,11 @@ import styles from './MonitoringWidget.module.scss';
 
 interface PreviewSlot {
   device: DeviceKey;
+  // Summary sensor id, keyed to the live panel history buffer
+  // (`${device}::${id}`) so the preview reuses real telemetry when present.
   sensor: string;
+  // Gauge label (the summary sensor's display name).
+  label: string;
   design: GaugeDesignKey;
   // Center value the synthetic walk hovers around (percent) and its swing
   // amplitude.
@@ -19,17 +23,14 @@ interface PreviewSlot {
   // Per-sample chance of a sharp transient spike, so a CPU line reads busy
   // instead of a gentle sine. 0 = smooth mean-reverting walk.
   spike?: number;
-  // Memory shows used-of-total GB to mirror the shipped `Memory Used` default;
-  // when set, the gauge value is the GB amount and the arc is base%.
-  totalGb?: number;
 }
 
 // Catalog preview composition mirrors the shipped default monitoring tile
-// (install-defaults.json): CPU as a filled line, memory as a half gauge -
-// the two side-by-side gauges that fill the 4x2 picker tile.
+// (install-defaults.json): CPU usage as a filled line, memory usage as a half
+// gauge - the two side-by-side gauges that fill the 4x2 picker tile.
 const PREVIEW_SLOTS: PreviewSlot[] = [
-  { device: 'cpu',    sensor: 'CPU Total',   design: 'sparkline', base: 40, swing: 22, spike: 0.24 },
-  { device: 'memory', sensor: 'Memory Used', design: 'halfgauge', base: 63, swing: 3, totalGb: 16 },
+  { device: 'quick', sensor: 'summary/cpu-usage',    label: 'CPU Usage',    design: 'sparkline', base: 40, swing: 22, spike: 0.24 },
+  { device: 'quick', sensor: 'summary/memory-usage', label: 'Memory Usage', design: 'halfgauge', base: 63, swing: 3 },
 ];
 
 // Frozen, mean-reverting wiggle around `base` (so the line looks organic but
@@ -52,24 +53,18 @@ function synthHistory(base: number, swing: number, spike = 0): number[] {
 }
 
 function buildGauge(slot: PreviewSlot) {
-  // Percent slots (CPU) reuse the last ~30 s of real telemetry the live panel
-  // buffered, falling back to a synthetic walk. GB-scaled slots (Memory Used)
-  // can't be read as a percent from that buffer, so they always synthesize.
-  const live = slot.totalGb ? [] : getPanelSensorHist(`${slot.device}::${slot.sensor}`);
+  // Reuse the last ~30 s of real telemetry the live panel buffered, falling
+  // back to a synthetic walk when the catalog opens before enough samples exist.
+  const live = getPanelSensorHist(`${slot.device}::${slot.sensor}`);
   const history = live.length >= 30
     ? live.slice(-PERF_HISTORY_SAMPLES).map(v => Math.round(v))
     : synthHistory(slot.base, slot.swing, slot.spike);
   const percent = Math.max(0, Math.min(100, history[history.length - 1] ?? slot.base));
-  const formatted = slot.totalGb
-    ? `${(slot.totalGb * percent / 100).toFixed(1)} GB`
-    : `${Math.round(percent)}%`;
   const props: GaugeProps = {
-    // Arc/fill always reads `value` as a percent; the GB amount only drives the
-    // center text via `formatted`.
     value: percent,
     rawValue: percent,
-    formatted,
-    label: prefixedSensorLabel(slot.device, slot.sensor),
+    formatted: `${Math.round(percent)}%`,
+    label: prefixedSensorLabel(slot.device, slot.label),
     history,
     maxValue: 100,
     historyDomain: [0, 100],
