@@ -123,3 +123,20 @@ export function nearestPoint(points: readonly TimeSeriesPoint[], targetT: number
   }
   return best && bestDelta <= maxDeltaMs ? best : null;
 }
+
+/**
+ * The full precise timestamp for the hover tooltip header: date + exact
+ * time, independent of the caller's xTickFormat axis-tick granularity
+ * (which drops the time component entirely past a 7-day range). Omits the
+ * year when t falls in the same year as nowMs.
+ */
+export function formatTooltipTimestamp(t: number, nowMs: number, locale?: string): string {
+  const sameYear = new Date(t).getFullYear() === new Date(nowMs).getFullYear();
+  return new Date(t).toLocaleString(locale, {
+    year: sameYear ? undefined : 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}

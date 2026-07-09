@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  formatTooltipTimestamp,
   medianSpacingMs,
   nearestPoint,
   niceTicks,
@@ -126,5 +127,31 @@ describe('nearestPoint', () => {
 
   it('returns null for an empty point list', () => {
     expect(nearestPoint([], 0, 1000)).toBeNull();
+  });
+});
+
+describe('formatTooltipTimestamp', () => {
+  const nowMs = new Date('2026-07-08T12:00:00Z').getTime();
+
+  it('includes minutes precision regardless of a coarser axis-tick format', () => {
+    const t = new Date('2026-06-10T14:32:00Z').getTime();
+    expect(formatTooltipTimestamp(t, nowMs, 'en-US')).toMatch(/\d{1,2}:\d{2}/);
+  });
+
+  it('omits the year when the timestamp falls in the same year as now', () => {
+    const t = new Date('2026-06-10T14:32:00Z').getTime();
+    expect(formatTooltipTimestamp(t, nowMs, 'en-US')).not.toContain('2026');
+  });
+
+  it('includes the year when the timestamp falls in a different year than now', () => {
+    const t = new Date('2024-06-10T14:32:00Z').getTime();
+    expect(formatTooltipTimestamp(t, nowMs, 'en-US')).toContain('2024');
+  });
+
+  it('formats according to the supplied locale', () => {
+    const t = new Date('2026-06-10T14:32:00Z').getTime();
+    const de = formatTooltipTimestamp(t, nowMs, 'de-DE');
+    const en = formatTooltipTimestamp(t, nowMs, 'en-US');
+    expect(de).not.toBe(en);
   });
 });

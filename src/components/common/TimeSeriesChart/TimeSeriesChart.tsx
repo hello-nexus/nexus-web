@@ -1,6 +1,7 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from '../../../lib/i18n';
 import {
+  formatTooltipTimestamp,
   medianSpacingMs,
   nearestPoint,
   niceTicks,
@@ -49,10 +50,13 @@ export function TimeSeriesChart({
   series, height = 260, valueFormat, xTickFormat, xTickCount = 5, yTickCount = 5,
   avgLabel, maxLabel, bands, showLegend = true,
 }: TimeSeriesChartProps) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const wrapRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(440);
   const [hoverT, setHoverT] = useState<number | null>(null);
+  // Snapshot at mount rather than reading Date.now() during render (the
+  // year-omission check only needs a stable "now", not a live clock).
+  const [nowMs] = useState(() => Date.now());
 
   useLayoutEffect(() => {
     const el = wrapRef.current;
@@ -221,7 +225,7 @@ export function TimeSeriesChart({
 
       {tooltip && (
         <div className={styles.tooltip}>
-          <div className={styles.tooltipHeader}>{xTickFormat(tooltip.t)}</div>
+          <div className={styles.tooltipHeader}>{formatTooltipTimestamp(tooltip.t, nowMs, language)}</div>
           {tooltip.rows.map(row => (
             <div key={row.id} className={styles.tooltipRow}>
               <span className={styles.tooltipDot} style={{ background: row.color }} />

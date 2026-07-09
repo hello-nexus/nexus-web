@@ -125,13 +125,33 @@ describe('TimeSeriesChart', () => {
 
     fireEvent.mouseMove(svg, { clientX: 0 });
 
-    // "T0" also appears as the leftmost x-axis tick label, so scope the
-    // header check to the tooltip itself instead of screen.getByText.
+    // The tooltip header renders its own precise timestamp (not the caller's
+    // xTickFormat, which is "T0" here), so scope the check to the tooltip
+    // itself instead of screen.getByText.
     const tooltipHeader = container.querySelector('[class*="tooltipHeader"]');
-    expect(tooltipHeader).toHaveTextContent('T0');
+    expect(tooltipHeader?.textContent).toMatch(/\d{1,2}:\d{2}/);
     expect(screen.getByText('Avg 40C')).toBeInTheDocument();
     expect(screen.getByText('Max 45C')).toBeInTheDocument();
     expect(screen.getByText('Avg 35C')).toBeInTheDocument();
+  });
+
+  it('shows minute precision in the tooltip header even when xTickFormat is date-only (30d axis range)', () => {
+    // Regression: the tooltip header used to reuse xTickFormat directly, so
+    // at wide ranges (30d) where the axis formatter drops the time
+    // component entirely, the exact bucket time was hidden.
+    const dateOnlyXTickFormat = (t: number) => new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    const { container } = render(
+      <TimeSeriesChart series={makeSeries()} {...baseProps} xTickFormat={dateOnlyXTickFormat} />,
+    );
+    const svg = container.querySelector('svg')!;
+    vi.spyOn(svg, 'getBoundingClientRect').mockReturnValue({
+      left: 0, top: 0, width: 440, height: 260, right: 440, bottom: 260, x: 0, y: 0, toJSON: () => ({}),
+    });
+
+    fireEvent.mouseMove(svg, { clientX: 0 });
+
+    const tooltipHeader = container.querySelector('[class*="tooltipHeader"]');
+    expect(tooltipHeader?.textContent).toMatch(/\d{1,2}:\d{2}/);
   });
 
   it('clears the tooltip on mouse leave', () => {
