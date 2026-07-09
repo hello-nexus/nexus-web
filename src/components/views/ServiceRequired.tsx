@@ -10,13 +10,16 @@ import styles from './Placeholder.module.scss';
 interface ServiceRequiredProps {
   state?: ConnectionState;
   skeleton?: ReactNode;
+  /** Overrides the default in-app "this section requires..." message - the
+   *  standalone my. gate describes the whole page, not a section. */
+  message?: string;
 }
 
 function osLabelKey(os: DownloadableOS): string {
   return `service.required.os.${os}`;
 }
 
-export function ServiceRequired({ state = 'offline', skeleton }: ServiceRequiredProps) {
+export function ServiceRequired({ state = 'offline', skeleton, message }: ServiceRequiredProps) {
   const { t } = useTranslation();
   const detected: DetectedOS = useMemo(() => detectOS(), []);
   const primaryOS: DownloadableOS = detected === 'unknown' ? 'windows' : detected;
@@ -41,7 +44,7 @@ export function ServiceRequired({ state = 'offline', skeleton }: ServiceRequired
       <div className={styles.overlay}>
         <div className={styles.overlayCard}>
           <div className={styles.badge}>{t('service.required.badge')}</div>
-          <p className={styles.overlayMessage}>{t('service.required.message')}</p>
+          <p className={styles.overlayMessage}>{message ?? t('service.required.message')}</p>
 
           {showSafariNote && (
             <div className={styles.safariNote}>

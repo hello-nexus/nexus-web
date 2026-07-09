@@ -28,7 +28,7 @@ export function ServiceGatePage({ state }: { state: ConnectionState }) {
       {/* ServiceRequired positions its card against this wrapper's width; the
           page's centered column would otherwise shrink it to content width. */}
       <div className={styles.body}>
-        <ServiceRequired state={state} />
+        <ServiceRequired state={state} message={t('site.gate.message')} />
       </div>
       <p className={styles.updateHint}>{t('site.gate.updateHint')}</p>
       <a className={styles.backLink} href={marketingUrl()}>{t('site.gate.backToSite')}</a>

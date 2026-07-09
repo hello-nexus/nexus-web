@@ -2322,6 +2322,7 @@
   "site.footer.loveOpenSource": "Amamos el código abierto ❤️",
   "site.footer.tagline": "Monitorización, refrigeración e iluminación para tu PC.",
   "site.gate.backToSite": "Acerca de Nexus",
+  "site.gate.message": "Esta página se conecta con Nexus en este equipo.",
   "site.gate.updateHint": "¿Ya está instalado pero no se conecta? Asegúrate de que Nexus esté en ejecución y actualizado, y permite el acceso a la red local si tu navegador lo solicita.",
   "site.hero.ctaMySystem": "Abre Mi sistema",
   "site.hero.subtitle": "Nexus reúne monitorización de hardware en vivo, refrigeración inteligente e iluminación RGB espectacular en una sola app rápida, gratuita y de código abierto.",

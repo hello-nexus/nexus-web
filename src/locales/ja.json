@@ -2267,6 +2267,7 @@
   "site.footer.loveOpenSource": "オープンソースが大好き ❤️",
   "site.footer.tagline": "PCのモニタリング、冷却、ライティングを1つに。",
   "site.gate.backToSite": "Nexusについて",
+  "site.gate.message": "このページは、このコンピューターで実行中の Nexus に接続します。",
   "site.gate.updateHint": "インストール済みなのに接続できない場合は、Nexus が起動していて最新であることを確認し、ブラウザーに求められたらローカルネットワークへのアクセスを許可してください。",
   "site.hero.ctaMySystem": "マイシステムを開く",
   "site.hero.subtitle": "Nexusは、ハードウェアのリアルタイムモニタリング、スマートな冷却、美しいRGBライティングを、高速で無料のオープンソースアプリ1つにまとめます。",
