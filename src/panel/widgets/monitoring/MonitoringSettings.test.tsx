@@ -68,6 +68,7 @@ vi.mock('../../../hooks/useUiSettings', () => ({
     reload: vi.fn(),
   }),
   useTempSensorPrefs: () => ({ cpuId: '', gpuId: '' }),
+  useUnitPrefs: () => ({ monitoringTempUnit: 'c', timeFormat: 'system', numberFormat: 'system' }),
 }));
 
 function monitoringWidget(): PanelWidget {

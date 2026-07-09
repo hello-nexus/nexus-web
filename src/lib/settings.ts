@@ -1,6 +1,10 @@
 // Settings persistence layer.
 // All settings stored in localStorage, exposed via typed getters/setters.
 import type { UpdateChannel, UpdateMode } from '../api/update';
+import {
+  DEFAULT_TEMP_UNIT, DEFAULT_TIME_FORMAT, DEFAULT_NUMBER_FORMAT,
+  type TempUnit, type TimeFormat, type NumberFormat,
+} from './units';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -129,6 +133,13 @@ export interface GeneralSettings {
   // silent/balanced/turbo chips on cooling); default false (single-icon
   // -with-arrows layout). Client-only, not in the server preferences pipeline.
   widgetAdvancedMode: boolean;
+  // Display-unit choices. Server-mirrored under the preferences `units` block
+  // so they follow the profile. See lib/units.ts for their meaning. The
+  // monitoring temperature unit governs in-app hardware temps only; outdoor
+  // weather keeps its own per-widget unit.
+  monitoringTempUnit: TempUnit;
+  timeFormat: TimeFormat;
+  numberFormat: NumberFormat;
   updateMode?: UpdateMode;
   updateChannel?: UpdateChannel;
   lastDismissedUpdateVersion?: string;
@@ -160,6 +171,9 @@ export function getDefaultSettings(): NexusSettings {
       showWindowsTrayIcon: true,
       pinnedSidebarApps: ['monitoring', 'lighting', 'cooling'],
       widgetAdvancedMode: false,
+      monitoringTempUnit: DEFAULT_TEMP_UNIT,
+      timeFormat: DEFAULT_TIME_FORMAT,
+      numberFormat: DEFAULT_NUMBER_FORMAT,
     },
   };
 }
@@ -194,6 +208,23 @@ export function loadSettings(): NexusSettings {
 
 export function saveSettings(settings: NexusSettings): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+}
+
+/**
+ * The language explicitly persisted in stored settings, or null when none was
+ * ever saved. loadSettings() can't make that distinction (it merges defaults,
+ * so an unset language reads as 'en'); the marketing site needs it to prefer
+ * a saved choice over browser-language detection.
+ */
+export function loadStoredLanguage(): Language | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const lang: unknown = JSON.parse(raw)?.general?.language;
+    return LANGUAGES.includes(lang as Language) ? (lang as Language) : null;
+  } catch {
+    return null;
+  }
 }
 
 export function cachePreferencesLocally(prefs: {

@@ -1,4 +1,5 @@
 import type { HardwareSensor } from '../../../../hooks/useSensors';
+import { convertTemperature, formatNumber, localizeNumbers, tempUnitSymbol, type NumberFormat, type TempUnit } from '../../../../lib/units';
 
 export const FAN_MIN_DOMAIN_MAX = 1200;
 export const FAN_DOMAIN_STEP = 500;
@@ -23,14 +24,14 @@ export function averageTemp(...sensors: Array<HardwareSensor | undefined>): numb
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
-export function formatAverageTemp(value: number | undefined): string {
+export function formatAverageTemp(value: number | undefined, tempUnit: TempUnit, numberFormat: NumberFormat): string {
   if (value === undefined) return '--';
-  return `${Math.round(value)}°C`;
+  return localizeNumbers(`${Math.round(convertTemperature(value, tempUnit))}${tempUnitSymbol(tempUnit)}`, numberFormat);
 }
 
-export function formatFanRpm(value: number, hasFans: boolean): string {
+export function formatFanRpm(value: number, hasFans: boolean, numberFormat: NumberFormat): string {
   if (!hasFans) return '--';
-  return `${Math.round(value).toLocaleString()} RPM`;
+  return `${formatNumber(Math.round(value), numberFormat)} RPM`;
 }
 
 export function paddedSamples(values: number[], fallback: number, sampleCount: number): number[] {

@@ -1,7 +1,9 @@
 import { useMemo } from 'react';
 import { CollapsibleSection } from '../../../../components/common/CollapsibleSection/CollapsibleSection';
 import type { HardwareSensor } from '../../../../hooks/useSensors';
+import { useUnitPrefs } from '../../../../hooks/useUiSettings';
 import { useTranslation } from '../../../../lib/i18n';
+import { formatSensorValue } from '../sensorValueFormat';
 import { groupByType } from './shared';
 import styles from '../MonitoringPage.module.scss';
 
@@ -40,6 +42,7 @@ export function DetailSection({
   onToggle: (id: string) => void;
   groupTypeLabel: (type: string) => string;
 }) {
+  const { monitoringTempUnit, numberFormat } = useUnitPrefs();
   const groups = useMemo(() => groupByType(sensors), [sensors]);
   return (
     <CollapsibleSection
@@ -57,7 +60,7 @@ export function DetailSection({
             {group.sensors.map(s => (
               <div key={s.id} className={styles.detailRow}>
                 <span className={styles.detailRowLabel}>{s.name}</span>
-                <span className={styles.detailRowValue}>{s.formatted || `${s.value}`}</span>
+                <span className={styles.detailRowValue}>{formatSensorValue(s.value, s.units, s.formatted, monitoringTempUnit, numberFormat) || `${s.value}`}</span>
               </div>
             ))}
           </div>

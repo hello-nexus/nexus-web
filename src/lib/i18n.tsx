@@ -36,9 +36,16 @@ function resolveModulePath(lang: Language): string {
  * useTranslation().setLanguage(). Local state here means the provider
  * re-renders first with the new language and the async locale-file load
  * fires immediately, avoiding a one-render lag on switch.
+ *
+ * `initialLanguage` overrides the persisted-settings default for surfaces
+ * with their own detection (the marketing site matches navigator.languages).
  */
-export function I18nProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguageState] = useState<Language>(() => loadSettings().general.language);
+export function I18nProvider({ children, initialLanguage }: {
+  children: ReactNode;
+  initialLanguage?: Language;
+}) {
+  const [language, setLanguageState] = useState<Language>(
+    () => initialLanguage ?? loadSettings().general.language);
   const [translations, setTranslations] = useState<Translations>({});
 
   useEffect(() => {

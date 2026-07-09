@@ -21,6 +21,12 @@ export interface PanelDeviceCapabilitiesDto {
   cssWidth?: number;
   cssHeight?: number;
   dpr?: number;
+  // Physical density (native px/inch) of a curated known display (service
+  // KnownPanelDisplays, e.g. the Xeneon Edge). Absent for generic monitors;
+  // grid math falls back to DEFAULT_SURFACE_DPI.
+  dpi?: number;
+  // Curated display family id (e.g. 'xeneon-edge') driving sidebar branding.
+  family?: string;
 }
 
 export interface PanelDeviceRecord {

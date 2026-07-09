@@ -89,18 +89,6 @@ export function findWidgetById(layout: PanelLayout, id: string): PanelWidget | u
   return undefined;
 }
 
-// Copy of `layout` with trailing empty pages removed (keeping at least one).
-// Run after a drop so the drag-only phantom page isn't persisted unless a
-// widget landed on it.
-export function trimTrailingEmptyPages(layout: PanelLayout): PanelLayout {
-  const pages = layout.pages.slice();
-  while (pages.length > 1 && pages[pages.length - 1].widgets.length === 0) {
-    pages.pop();
-  }
-  if (pages.length === layout.pages.length) return layout;
-  return { ...layout, pages };
-}
-
 // Reads cell + row + gap sizes in px. Measures a real widget cell's
 // offsetWidth / offsetHeight (the CSS-computed size, ignoring transforms,
 // unlike getBoundingClientRect). Falls back to parsing --panel-cell-size when

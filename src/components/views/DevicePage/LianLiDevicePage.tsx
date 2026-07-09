@@ -16,7 +16,9 @@ import {
   type LianLiLighting,
   type LianLiLightingPatch,
 } from '../../../api/lianli';
+import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
+import { formatNumber, localizeNumbers } from '../../../lib/units';
 import styles from './LianLiDevicePage.module.scss';
 
 const PORT_COUNT = 4;
@@ -34,6 +36,7 @@ interface LianLiDevicePageProps {
 
 export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
   const { t } = useTranslation();
+  const { numberFormat } = useUnitPrefs();
   const [connection, setConnection] = useState<'unknown' | 'connected' | 'disconnected'>('unknown');
   const [lianliState, setLianliState] = useState<LianLiState | null>(null);
   const [lighting, setLighting] = useState<LianLiLighting | null>(null);
@@ -164,7 +167,7 @@ export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
                 ariaLabel={t('devices.lianli.fanCountAria', { n: port + 1 })}
               />
               <span className={styles.rowValue}>
-                {stateLoaded ? `${lianliState.rpm[port] ?? 0} RPM` : ''}
+                {stateLoaded ? `${formatNumber(lianliState.rpm[port] ?? 0, numberFormat)} RPM` : ''}
               </span>
             </SettingRow>
           ))}
@@ -212,7 +215,7 @@ export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
                   min={0}
                   max={100}
                   step={PERCENT_PER_LEVEL}
-                  formatValue={v => `${v}%`}
+                  formatValue={v => localizeNumbers(`${v}%`, numberFormat)}
                   ariaLabel={t('devices.lianli.lightingBrightnessAria')}
                   disabled={!lightingLoaded}
                   onChange={(v: number, commit?: boolean) => {
@@ -236,7 +239,7 @@ export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
                   min={0}
                   max={100}
                   step={PERCENT_PER_LEVEL}
-                  formatValue={v => `${v}%`}
+                  formatValue={v => localizeNumbers(`${v}%`, numberFormat)}
                   ariaLabel={t('devices.lianli.lightingSpeedAria')}
                   disabled={!lightingLoaded}
                   onChange={(v: number, commit?: boolean) => {

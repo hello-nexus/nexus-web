@@ -34,7 +34,7 @@ export function ClockSettings({ widget, onUpdate }: WidgetSettingsProps) {
   const { t } = useTranslation();
   const [tzOpen, setTzOpen] = useState(false);
   const currentDesign = ((widget.config?.design as string | undefined) ?? 'digital');
-  const format = ((widget.config?.format as string | undefined) ?? '24h');
+  const format = ((widget.config?.format as string | undefined) ?? 'auto');
   const showSeconds = ((widget.config?.showSeconds as boolean | undefined) ?? false);
   const showDate = ((widget.config?.showDate as boolean | undefined) ?? true);
   const useAccentColor = ((widget.config?.useAccentColor as boolean | undefined) ?? false);
@@ -92,6 +92,8 @@ export function ClockSettings({ widget, onUpdate }: WidgetSettingsProps) {
           label={t('panel.widget.clock.settings.timeFormat')}
           value={format}
           options={[
+            // eslint-disable-next-line i18next/no-literal-string -- enum value
+            { value: 'auto', label: t('panel.widget.clock.settings.formatAuto') },
             // eslint-disable-next-line i18next/no-literal-string -- enum value
             { value: '24h', label: t('panel.widget.clock.settings.format24h') },
             // eslint-disable-next-line i18next/no-literal-string -- enum value

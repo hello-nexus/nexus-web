@@ -1,3 +1,5 @@
+@use '../../../styles/interactions' as *;
+
 /* Canonical card surface. All bespoke card components (SensorCard, FanCard,
    ToolsView cards, Storybook entry cards) compose this so the
    chrome (background, border, radius, hover) is consistent app-wide. */
@@ -16,6 +18,10 @@
   cursor: pointer;
 
   &:hover { border-color: var(--border-strong); background: var(--bg-card-hover); }
+
+  &:focus-visible {
+    @include focus-glow-card;
+  }
 }
 
 .compact {
@@ -50,6 +56,12 @@
   font-size: var(--type-small);
   color: var(--text-dim);
   font-family: var(--font-mono);
+}
+
+.subtitleTruncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .actions {

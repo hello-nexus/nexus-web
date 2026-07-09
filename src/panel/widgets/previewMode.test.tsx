@@ -44,6 +44,7 @@ vi.mock('../../hooks/useUiSettings', () => ({
   }),
   useTempSensorPrefs: () => ({ cpuId: '', gpuId: '' }),
   usePreferredGpuId: () => '',
+  useUnitPrefs: () => ({ monitoringTempUnit: 'c', timeFormat: 'system', numberFormat: 'system' }),
 }));
 
 const fetchSpy = vi.fn(() => Promise.resolve(new Response('{}')));
@@ -87,6 +88,10 @@ const PREVIEW_CONTENT: Record<string, string[]> = {
   'smart-lights': ['smartLights.onlineOfTotal'],
   deck: ['Stream', 'Lights'],
   twitch: ['nova_streams', 'LIVE'],
+  // The mocked t() returns keys, so the overall status pill surfaces as the
+  // raw 'diagnostics.status.watch' key; the reason line falls back to the
+  // fixture's own summary text (see diagnosticsHelpers.reasonLabel).
+  diagnostics: ['diagnostics.status.watch', 'Thermal throttling active'],
   // The mocked t() returns keys, so the fixture's machineName surfaces as the
   // idle 'transfer.sendTo' status line rather than 'Nexus-PC' itself.
   transfer: ['transfer.photo', 'transfer.clipboard', 'transfer.sendTo'],

@@ -1,5 +1,6 @@
 import type { useProcessMonitor } from '../../../../hooks/useProcessMonitor';
 import type { SensorState } from '../../../../hooks/useSensors';
+import { useUnitPrefs } from '../../../../hooks/useUiSettings';
 import { useTranslation } from '../../../../lib/i18n';
 import { StackedChart } from '../../../../components/common/StackedChart/StackedChart';
 import { RankedList } from '../../../../components/common/RankedList/RankedList';
@@ -17,6 +18,7 @@ export function MemoryTab({ memSeries, sensors, showAverage, onToggle }: {
   onToggle: () => void;
 }) {
   const { t } = useTranslation();
+  const { numberFormat } = useUnitPrefs();
 
   // LHM "Memory Used" reports GB; convert to MB so the chart's MB→GB axis
   // formatter (kicks in at yMax≥1024) lines up with the per-process units used
@@ -29,7 +31,7 @@ export function MemoryTab({ memSeries, sensors, showAverage, onToggle }: {
   const chartSeries = topNWithOther(memSeries, 5);
   const { ranked, key } = rankSeries(memSeries, showAverage);
 
-  const mem = formatMemoryPair(usedMb, totalMb);
+  const mem = formatMemoryPair(usedMb, totalMb, numberFormat);
 
   return (
     <>
@@ -51,7 +53,7 @@ export function MemoryTab({ memSeries, sensors, showAverage, onToggle }: {
         title={t('monitoring.mem.top')}
         subtitle={<RankedToggle showAverage={showAverage} onToggle={onToggle} />}
         items={ranked.map(s => ({ name: s.name, color: s.color, value: s[key] }))}
-        formatValue={formatMemoryMb}
+        formatValue={v => formatMemoryMb(v, numberFormat)}
         emptyMessage={t('monitoring.ranked.empty')}
       />
     </>

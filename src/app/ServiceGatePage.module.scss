@@ -1,0 +1,41 @@
+@use '../styles/text' as *;
+
+.page {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 24px 32px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.wordmark {
+  display: inline-flex;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+// ServiceRequired's card overlays this wrapper (absolute inset); it must span
+// a real width or the page's centered column collapses it to content size.
+.body {
+  width: min(720px, 100%);
+  display: flex;
+  flex-direction: column;
+}
+
+.updateHint {
+  @include text-caption;
+  color: var(--text-dim);
+  max-width: 420px;
+  text-align: center;
+  margin: 4px 0 14px;
+}
+
+.backLink {
+  @include text-label;
+  color: var(--text-dim);
+  text-decoration: none;
+
+  &:hover { color: var(--text); }
+}

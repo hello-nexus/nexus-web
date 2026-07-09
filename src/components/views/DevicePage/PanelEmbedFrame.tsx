@@ -55,6 +55,11 @@ interface PanelEmbedFrameProps {
   // the on-device panel is fine. The fix is here, NOT in PanelApp.module.scss.
   // See .agents/rules/failure-log.md (2026-05-29).
   canvasIsCssPixels?: boolean;
+  // Device physical density in CSS px (native dpi / device DPR), forwarded in
+  // 'simulator/init' so the iframe's grid capacity math matches the on-device
+  // runtime (which measures physical px against the native dpi). Absent for
+  // surfaces whose density the runtime already estimates correctly.
+  gridDpi?: number;
   brightness: number;
   screenOn: boolean;
   showPanel: boolean;
@@ -77,6 +82,12 @@ const SURFACE_DPR: Record<string, number> = {
   // 2.5K sim renders 455×1707 and the 4K 733×2560, both above it. A real
   // connected Y70 uses canvasIsCssPixels (liveCanvas) and never hits this map.
   y70: 1.5,
+  // Promoted monitors: a real record renders via canvasIsCssPixels and never
+  // reads this; simulated presets carry native px, and the DPR is the user's
+  // Windows display scaling, which a simulation can't know - assume 100%.
+  // The dpi-derived fallback is an Android density convention and would
+  // shrink the canvas (see failure-log 2026-05-29).
+  monitor: 1,
 };
 
 function findWidget(layout: PanelLayout, id: string): PanelWidget | undefined {
@@ -100,6 +111,7 @@ export function PanelEmbedFrame({
   canvasSize,
   canvasDpi,
   canvasIsCssPixels,
+  gridDpi,
   brightness,
   screenOn,
   showPanel,
@@ -208,6 +220,7 @@ export function PanelEmbedFrame({
     post({
       type: 'simulator/init',
       surface,
+      dpi: gridDpi,
       layout,
       theme,
       themeMode,
@@ -241,6 +254,13 @@ export function PanelEmbedFrame({
     if (!childReady) return;
     post({ type: 'simulator/set-theme', theme, themeMode, deviceId });
   }, [childReady, theme, themeMode, deviceId, post]);
+
+  // Grid density can resolve after the init handshake (the device record
+  // fetch races the iframe boot), so mirror it like the other props.
+  useEffect(() => {
+    if (!childReady) return;
+    post({ type: 'simulator/set-grid', dpi: gridDpi });
+  }, [childReady, gridDpi, post]);
 
   useEffect(() => {
     if (!childReady) return;

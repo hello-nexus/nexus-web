@@ -82,6 +82,16 @@ const WIDGET_PANEL_PROFILES: Partial<Record<string, {
 
 const WIDGET_PANEL_IDS = new Set(Object.keys(WIDGET_PANEL_PROFILES));
 
+// Branding for curated promoted-display families (capabilities.family,
+// stamped by the service's KnownPanelDisplays matcher). The pretty name only
+// replaces an EDID-default record name - matched with the same contains rule
+// the service matcher uses ("CORSAIR XENEON EDGE" and "XENEON EDGE" are both
+// defaults) - so a user rename that drops the product name wins. Grid math
+// reads the dpi capability directly; this map is presentation only.
+const PROMOTED_FAMILY_BRANDING: Partial<Record<string, { name: string; icon: string }>> = {
+  'xeneon-edge': { name: 'Xeneon Edge', icon: '/assets/devices/corsair.svg' },
+};
+
 export function usePanelDevices(
   enabled: boolean,
   {
@@ -195,6 +205,7 @@ function buildPanelDevices({
       capabilities: isY70 ? Y70_CAPABILITIES : WIDGET_PANEL_CAPABILITIES,
       modalKind: isY70 ? 'y70-compat' : 'panel-editor',
       warning: device.warning,
+      firmwareType: device.firmwareType,
     });
   }
 
@@ -237,11 +248,14 @@ function buildPanelDevices({
     // CSS pixels, same convention as the Y70/phone subtitles. Reconstructing
     // native px (css x dpr) double-rounds and drifts by a pixel at 150%.
     const resolution = cssWidth > 0 && cssHeight > 0 ? `${cssWidth}x${cssHeight}` : '';
+    const branding = record.capabilities?.family ? PROMOTED_FAMILY_BRANDING[record.capabilities.family] : undefined;
+    const isDefaultName = !!branding
+      && record.displayName.toLowerCase().includes(branding.name.toLowerCase());
     devices.push({
       id: `display:${record.id}`,
       panelRecordId: record.id,
       displayId: record.displayId,
-      name: record.displayName,
+      name: isDefaultName ? branding.name : record.displayName,
       subtitle: resolution ? `${labels.online} - ${resolution}` : labels.online,
       status: 'online',
       statusLabel: labels.online,
@@ -250,7 +264,9 @@ function buildPanelDevices({
       surfaceProfileKey: `monitor-${record.id}`,
       runtimeSurface: (record.capabilities?.surface as PanelSurface | undefined) ?? 'monitor',
       previewSize: cssWidth > 0 && cssHeight > 0 ? { width: cssWidth, height: cssHeight } : undefined,
-      iconSrc: PANEL_MONITOR_ICON,
+      previewDpi: record.capabilities?.dpi,
+      previewDpr: record.capabilities?.dpr,
+      iconSrc: branding?.icon ?? PANEL_MONITOR_ICON,
       capabilities: { ...HOSTED_MONITOR_CAPABILITIES, touch: record.capabilities?.touch ?? false },
       modalKind: 'panel-editor',
     });

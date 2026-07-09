@@ -6,6 +6,8 @@ import { LightingWidget } from './LightingWidget';
 
 vi.mock('../../../api/lighting', () => ({
   effectThumbnailPath: (key: string) => `/lighting/effects/${key}/thumbnail.bmp`,
+  fetchAnimateDefaults: vi.fn(() => Promise.resolve(null)),
+  cachedAnimateDefaults: vi.fn(() => null),
   fetchAnimateSettings: vi.fn(() => Promise.resolve({ effect: 'rainbow', templates: {} })),
   fetchCurrentSync: vi.fn(() => Promise.resolve({ sync: 'rainbow' })),
   fetchLightingStatus: vi.fn(() => Promise.resolve({ gpuAvailable: true })),

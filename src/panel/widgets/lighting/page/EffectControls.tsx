@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { useTranslation } from '../../../../lib/i18n';
-import { EFFECTS, type EffectState, type EffectTemplateBundle } from '../../../../types/lighting';
+import { EFFECTS, categoryOf, type EffectState, type EffectTemplateBundle } from '../../../../types/lighting';
 import { Slider } from '../../../../components/common/Slider/Slider';
 import { Select } from '../../../../components/common/Select/Select';
 import { PaletteRing } from '../../../../components/common/PaletteRing/PaletteRing';
@@ -38,6 +38,16 @@ export const EffectControls = memo(function EffectControls({
   const def = EFFECTS.find(e => e.key === effect);
   if (!def) return null;
   const selected = bundle.selected;
+  // Simple fills are a fixed base colour: no colour wheel, no speed, no
+  // contrast. Saturation is the HSV-S post-process multiplier, floored above
+  // white (that's the dedicated White fill) and capped at 100% - the shader
+  // clamps S at 1, so slider travel above that changed nothing. White itself
+  // hides the slider (its warmth comes from presets).
+  const isSimple = categoryOf(effect) === 'simple';
+  const isSimpleWhite = effect === 'simplewhite';
+  const satMin = isSimple ? 40 : 0;
+  const satMax = isSimple ? 100 : 400;
+  const satValue = Math.max(satMin, Math.min(Math.round(state.saturation * 100), satMax));
   return (
     <div className={styles.effectControls}>
       <EffectTemplateSelector
@@ -51,22 +61,28 @@ export const EffectControls = memo(function EffectControls({
         panelSlots={panelSlots}
       />
       <div className={styles.drawerSliders}>
-        <div className={styles.paletteRingWrap}>
-          <PaletteRing
-            hue={state.hue}
-            colorize={state.colorize}
-            onChange={(hue, colorize, commit) => onChange({ hue, colorize }, commit)}
-            onCommit={onCommit}
-          />
-        </div>
+        {!isSimple && (
+          <div className={styles.paletteRingWrap}>
+            <PaletteRing
+              hue={state.hue}
+              colorize={state.colorize}
+              onChange={(hue, colorize, commit) => onChange({ hue, colorize }, commit)}
+              onCommit={onCommit}
+            />
+          </div>
+        )}
         {!def.hideSpeed && (
           <Slider orientation="stacked" editable trackFill label={t('lighting.controls.speed')} value={state.speed} min={-100} max={100} zeroMarker
             onChange={(v, commit) => onChange({ speed: v }, commit)} onCommit={onCommit} />
         )}
-        <Slider orientation="stacked" editable trackFill label={t('lighting.controls.saturation')} value={Math.round(state.saturation * 100)} min={0} max={400}
-          onChange={(v, commit) => onChange({ saturation: v / 100 }, commit)} onCommit={onCommit} />
-        <Slider orientation="stacked" editable trackFill label={t('lighting.controls.contrast')} value={Math.round(state.contrast * 100)} min={0} max={400}
-          onChange={(v, commit) => onChange({ contrast: v / 100 }, commit)} onCommit={onCommit} />
+        {!isSimpleWhite && (
+          <Slider orientation="stacked" editable trackFill label={t('lighting.controls.saturation')} value={satValue} min={satMin} max={satMax}
+            onChange={(v, commit) => onChange({ saturation: v / 100 }, commit)} onCommit={onCommit} />
+        )}
+        {!isSimple && (
+          <Slider orientation="stacked" editable trackFill label={t('lighting.controls.contrast')} value={Math.round(state.contrast * 100)} min={0} max={400}
+            onChange={(v, commit) => onChange({ contrast: v / 100 }, commit)} onCommit={onCommit} />
+        )}
         {def.showIntensity && (
           <Slider orientation="stacked" editable trackFill label={t('lighting.controls.intensity')} value={Math.round(state.intensity * 100)} min={0} max={100}
             onChange={(v, commit) => onChange({ intensity: v / 100 }, commit)} onCommit={onCommit} />
@@ -92,7 +108,7 @@ export const EffectControls = memo(function EffectControls({
           const min = Math.round(p.min * scale);
           const max = Math.round(p.max * scale);
           return (
-            <Slider orientation="stacked" editable trackFill key={p.name} label={label} value={displayValue} min={min} max={max}
+            <Slider orientation="stacked" editable trackFill key={p.name} label={label} value={displayValue} min={min} max={max} zeroMarker={p.zeroMarker}
               onChange={(v, commit) => onChange({ params: { ...state.params, [p.name]: v / scale } }, commit)}
               onCommit={onCommit} />
           );

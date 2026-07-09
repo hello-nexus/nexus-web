@@ -4,11 +4,19 @@ React + TypeScript + Vite dashboard for [Nexus](https://hellonexus.com). The sam
 bundle is shipped two ways:
 
 - **Standalone web app** - served via the bundled Node server (`npm start`)
-  or any static host. Used during development and for the marketing demo.
+  or any static host. Serves hellonexus.com (marketing site) and
+  my.hellonexus.com (the app surface) from one deployment; `server.js`
+  routes `/` by host (see Surfaces below).
 - **Service-embedded UI** - built into [`nexus-service`](https://github.com/hello-nexus/nexus-service)
   and served by the local service (Windows, macOS, Linux) on
   `http://127.0.0.1:9400` / `https://127.0.0.1:9443`. Builds with
   `npm run build:service`.
+
+The **marketing site** is a second Vite entry (`site/index.html` ->
+`src/site/`) that imports the app's real components (palette ring, shader
+renderer, curve editor, gauges) as live demos on mock data. It is emitted only
+by the standalone build - `npm run build:service` excludes the entry, so
+marketing content never ships inside the desktop app.
 
 ## Setup
 
@@ -27,9 +35,14 @@ so no extra configuration is needed.
 Standalone production build:
 
 ```bash
-npm run build      # outputs dist/
+npm run build      # outputs dist/ (SPA + dist/site/ marketing page)
 npm start          # serves dist/ at http://localhost:3000 (override with PORT)
 ```
+
+With `npm start`, `http://localhost:3000/` is the marketing page and
+`http://my.localhost:3000/` is the app surface (browsers resolve
+`*.localhost` to loopback). In `npm run dev` there is no host routing: the
+SPA is at `/` and the marketing page at `/site/` (trailing slash).
 
 Service-embedded build (normally triggered automatically by the
 `nexus-service` build, which copies `dist/` into its `wwwroot/`):
@@ -44,7 +57,7 @@ The app routes a small set of top-level surfaces from the URL path:
 
 | Path | Purpose |
 |---|---|
-| `/` | Dashboard (desktop). Connects to nexus-service over REST + WS. |
+| `/` | **Host-dependent** in the standalone deployment: `my.*` hosts (my.hellonexus.com, my.localhost) get the dashboard; every other host gets the marketing page (`dist/site/index.html`). Embedded/dev builds always serve the dashboard. On a remote origin without a reachable local service the dashboard shows the launch/download gate (`app/ServiceGatePage.tsx`). |
 | `/panel/:deviceId` | Kiosk panel surface for embedded touchscreens. |
 | `/panel/phone` | Mobile remote surface (paired via QR). |
 | `/overlay` | Per-monitor overlay hosted by `nexus-overlay.exe`. |
@@ -59,6 +72,18 @@ The app routes a small set of top-level surfaces from the URL path:
 
 `/touch` and `/panel/q60` are legacy aliases that land in the panel
 allocation flow.
+
+Only `/` is host-routed - every deeper path serves identically on all hosts,
+so `/r/pair` QR links, `/panel/phone` relay-paired phones (whose session
+tokens live under the hellonexus.com origin), and emailed `/auth/*` links
+keep working unchanged.
+
+`/download` serves the marketing downloads page (all platforms + latest
+version). The canonical per-OS URLs `/download/windows|macos|linux` (and the
+`win`/`mac` short forms) 302 to the newest downloadable release's asset,
+resolved server-side via the GitHub releases API (latest stable, or the
+newest prerelease while no stable exists - GitHub's static `latest/download`
+alias 404s until then).
 
 `/u/:username`, `/auth/verify`, `/auth/recover`, `/login`, `/register`,
 `/recover`, and `/account` are dead-code-eliminated from `npm run
@@ -93,6 +118,7 @@ Everything ships from `src/`. Top-level folders:
 | `panel/` | The kiosk/phone **panel** surface and its own rendering engine (`engine/`, `editor/`, `chrome/`, `theme/`, `dnd/`, `background/`, `overlays/`, `embed/` simulator). `panel/widgets/` holds the built-in widget implementations. |
 | `sandbox/` | Host runtime for **sandboxed SDK widgets** ("Nexus apps"): boots a hardened Web Worker per widget, installs the `nexus.*` API, and renders the worker's remote-dom tree. This is what executes third-party app bundles. |
 | `search/` | Global command palette / top search (providers, fuzzy match, frecency). |
+| `site/` | The **marketing site** (`site/index.html` entry at the repo root -> `src/site/`): long-scroll landing page whose feature demos mount the app's real components on mock data. Standalone build only. Bundled shader copies live in `src/site/shaders/` (see its README). |
 | `storybook/` | In-app component gallery - **not** the npm Storybook tool; a dev surface that previews design-system components. |
 | `styles/` | Global SCSS (variables, text, scrollbar, interactions, reset). |
 | `telemetry/` | Analytics events + a reference view listing them. |

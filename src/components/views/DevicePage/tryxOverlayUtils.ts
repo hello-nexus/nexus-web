@@ -7,6 +7,7 @@ import type { CSSProperties } from 'react';
 import type { HardwareSensor } from '../../../hooks/useSensors';
 import { bareSensorLabel, prefixedSensorLabel } from '../../../panel/widgets/monitoring/sensorNames';
 import { SENSOR_CATEGORIES } from '../../../panel/widgets/monitoring/sensorCategories';
+import { localizeNumbers, type NumberFormat } from '../../../lib/units';
 
 // Only the panel canvas's height matters here - every scaled metric below is
 // a fraction of it (width plays no part in the font/offset math).
@@ -307,7 +308,8 @@ export function tryxStorageFreePercent(usedBytes: number): number {
   return Math.max(0, Math.min(100, pct));
 }
 
-/** Remaining panel storage -> "99.4%" (one decimal). */
-export function formatTryxStorageFreePercent(usedBytes: number): string {
-  return `${tryxStorageFreePercent(usedBytes).toFixed(1)}%`;
+/** Remaining panel storage -> "99.4%" (one decimal). Shown on the web page,
+ *  not the panel itself, so it follows the app's number format setting. */
+export function formatTryxStorageFreePercent(usedBytes: number, numberFormat: NumberFormat): string {
+  return localizeNumbers(`${tryxStorageFreePercent(usedBytes).toFixed(1)}%`, numberFormat);
 }

@@ -30,6 +30,7 @@ import {
   appendWidget,
   patchWidgetById,
   previewDrag,
+  pruneEmptyPages,
   removeWidgetById,
   tryResizeWidget,
 } from './engine/panelLayoutOps';
@@ -86,7 +87,6 @@ import {
   isDashboardClickthroughType,
   noopCellPointers,
   parseDragTarget,
-  trimTrailingEmptyPages,
 } from './engine/panelLayoutHelpers';
 import {
   DESKTOP_ACTION_TRAY_HEIGHT,
@@ -142,7 +142,7 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
   // stamped on it drive widget filtering. If the record is missing on the
   // server (cleared profile etc.), fall back to a viewport-inferred surface
   // so the panel still mounts instead of showing a blank page.
-  const [resolved, setResolved] = useState<{ surface: PanelSurface; touch?: boolean } | null>(null);
+  const [resolved, setResolved] = useState<{ surface: PanelSurface; touch?: boolean; dpi?: number } | null>(null);
   useEffect(() => {
     let cancelled = false;
     fetchPanelDevice(deviceId).then(record => {
@@ -151,16 +151,35 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
       setResolved({
         surface: surfaceFromRecord ?? inferSurfaceFromViewport(false),
         touch: record?.capabilities?.touch,
+        dpi: record?.capabilities?.dpi,
       });
     }).catch(() => {
       if (!cancelled) setResolved({ surface: inferSurfaceFromViewport(false) });
     });
     return () => { cancelled = true; };
   }, [deviceId]);
+  // The service re-derives promoted-monitor capabilities on topology changes
+  // (rotation, display rescale, a service update stamping new curated facts)
+  // and broadcasts panel/device. Refetch so a kiosk that mounted before the
+  // sync picks the fresh density/touch without a reload.
+  useTopicCallback('panel/device', true, (raw) => {
+    const frame = raw as { deviceId?: string } | null;
+    if (frame?.deviceId !== deviceId) return;
+    fetchPanelDevice(deviceId).then(record => {
+      const caps = record?.capabilities;
+      if (!caps) return;
+      setResolved(prev => {
+        if (!prev) return prev;
+        const surface = caps.surface ?? prev.surface;
+        if (surface === prev.surface && caps.touch === prev.touch && caps.dpi === prev.dpi) return prev;
+        return { surface, touch: caps.touch, dpi: caps.dpi };
+      });
+    }).catch(() => {});
+  });
   if (!resolved) {
     return null;
   }
-  return <PanelKioskContent deviceId={deviceId} surface={resolved.surface} deviceTouch={resolved.touch} />;
+  return <PanelKioskContent deviceId={deviceId} surface={resolved.surface} deviceTouch={resolved.touch} deviceDpi={resolved.dpi} />;
 }
 export function PanelEmbeddedContent({ openCatalogSignal = 0, appAccentColor, onSectionNavigate }: {
   openCatalogSignal?: number;
@@ -186,14 +205,14 @@ export function PanelEmbeddedContent({ openCatalogSignal = 0, appAccentColor, on
   );
 }
 
-function PanelKioskContent({ deviceId, surface, deviceTouch }: { deviceId: string; surface: PanelSurface; deviceTouch?: boolean }) {
+function PanelKioskContent({ deviceId, surface, deviceTouch, deviceDpi }: { deviceId: string; surface: PanelSurface; deviceTouch?: boolean; deviceDpi?: number }) {
   const layoutState = usePanelLayout(deviceId, surface, deviceTouch);
   return (
     <ErrorBoundary
       // eslint-disable-next-line i18next/no-literal-string -- crash-boundary diagnostic id
       label="Panel"
     >
-      <PanelContent surface={surface} deviceId={deviceId} deviceTouch={deviceTouch} layoutState={layoutState} />
+      <PanelContent surface={surface} deviceId={deviceId} deviceTouch={deviceTouch} deviceDpi={deviceDpi} layoutState={layoutState} />
     </ErrorBoundary>
   );
 }
@@ -202,6 +221,7 @@ export function PanelContent({
   surface,
   deviceId,
   deviceTouch,
+  deviceDpi,
   layoutState,
   embedded = false,
   simulator = false,
@@ -220,6 +240,9 @@ export function PanelContent({
   // Per-device touch capability (promoted monitors). Undefined falls back to
   // the surface default in surfaceSupportsTouch.
   deviceTouch?: boolean;
+  // Per-device physical density (capabilities.dpi, curated known displays).
+  // Undefined falls back to the per-surface estimate in the grid math.
+  deviceDpi?: number;
   layoutState: PanelLayoutState;
   embedded?: boolean;
   simulator?: boolean;
@@ -386,7 +409,7 @@ export function PanelContent({
   // inside the iframe like on a real touch surface.
   usePanelTextSelectionGuard(rootRef, !embedded || simulator);
   usePhoneContentScale(surface === 'phone' && loaded, rootRef);
-  const runtimeGrid = useRuntimePanelGrid(surface, rootRef, simulator);
+  const runtimeGrid = useRuntimePanelGrid(surface, rootRef, simulator, deviceDpi);
   // WebKit (Safari / macOS WKWebView) miscomputes the tokens.scss
   // tan(atan2(cell, 90px)) length-ratio used for --panel-scale, returning a
   // negative number that flips every --panel-scale-driven element 180deg
@@ -865,10 +888,15 @@ export function PanelContent({
     // Dashboard is single-page: appendWidget no-ops if page 0 is full
     // instead of spawning a new page. Other surfaces keep multi-page.
     const dashboardSinglePage = embedded && surface === 'desktop';
-    setLayout(appendWidget(paginatedLayout, next, capacity, { singlePage: dashboardSinglePage }));
+    setLayout(appendWidget(paginatedLayout, next, capacity, {
+      singlePage: dashboardSinglePage,
+      // Land on the page the user is looking at when it has room, not the
+      // first page with a slot.
+      preferredPageId: paginatedLayout.pages[activePageIndex]?.id,
+    }));
     setPendingScrollId(next.id);
     closeSheet();
-  }, [closeSheet, embedded, paginatedLayout, capacity, setLayout, surface]);
+  }, [activePageIndex, closeSheet, embedded, paginatedLayout, capacity, setLayout, surface]);
 
   const updateWidgetConfig = useCallback((widgetId: string, config: Record<string, PanelConfigValue>) => {
     setLayout(patchWidgetById(
@@ -992,6 +1020,10 @@ export function PanelContent({
   const sensors = useSensors(surfaceSupportsTouch(surface, deviceTouch) ? pointerSensor : null);
 
   const { clearEdgeAdvance, evaluateEdgeAdvance } = useEdgeAdvance(setActivePageIndex, pageCountRef);
+  // Gesture refs for the collision detector. startX/Y is dnd-kit's press
+  // origin, against which PANEL_DRAG_START_THRESHOLD_PX is gated. lastOverId
+  // gives hysteresis - the over flips only when the cursor leaves the band.
+  const dragGestureRef = useRef<DragGestureState>({ startX: 0, startY: 0, lastOverId: null });
   const handleDndDragMove = useCallback((event: DragMoveEvent) => {
     // Drag visuals (lift, source-cell hide, menu dismiss) engage only past
     // PANEL_DRAG_START_THRESHOLD_PX from the long-press anchor. Mirrors the
@@ -1010,12 +1042,15 @@ export function PanelContent({
       setDragSnapshot(snap);
     }
     touch.handleDragMove();
-    evaluateEdgeAdvance(event.active.rect.current.translated ?? null);
+    // Pointer x = press origin + dnd-kit's activation-relative delta. The
+    // edge bands trigger off the finger as well as the rect center - a
+    // full-width widget grabbed near the leading edge can't park its
+    // center in the band (the finger hits the screen edge first). NaN
+    // anchor (coordinate-less activator) = no pointer probe.
+    const startX = dragGestureRef.current.startX;
+    const pointerX = Number.isFinite(startX) ? startX + event.delta.x : null;
+    evaluateEdgeAdvance(event.active.rect.current.translated ?? null, pointerX);
   }, [touch, evaluateEdgeAdvance]);
-  // Gesture refs for the collision detector. startX/Y is dnd-kit's press
-  // origin, against which PANEL_DRAG_START_THRESHOLD_PX is gated. lastOverId
-  // gives hysteresis - the over flips only when the cursor leaves the band.
-  const dragGestureRef = useRef<DragGestureState>({ startX: 0, startY: 0, lastOverId: null });
   // Live `over` droppable id, updated each onDragOver. The projection strategy
   // reads this to compute the make-room preview without dnd-kit's overIndex
   // (which is -1 over an empty-cell droppable - those aren't SortableContext
@@ -1048,16 +1083,21 @@ export function PanelContent({
   // on drop. Bypasses dnd-kit's SortableContext strategy, which doesn't
   // re-fire reliably with non-sortable empty droppables.
   const [previewLayout, setPreviewLayout] = useState<PanelLayout | null>(null);
+  // True when the current over target resolved but previewDrag refused it
+  // (displaced widgets have nowhere to go / 1x1 onto a larger widget).
+  // Drives the highlight's invalid tint so the refusal telegraphs mid-drag.
+  const [dropRefused, setDropRefused] = useState(false);
   useEffect(() => {
-    if (!activeDragId) { setPreviewLayout(null); return; }
+    const bail = () => { setPreviewLayout(null); setDropRefused(false); };
+    if (!activeDragId) { bail(); return; }
     const overId = currentOverIdRef.current;
-    if (!overId) { setPreviewLayout(null); return; }
+    if (!overId) { bail(); return; }
     const active = widgetById(activeDragId);
-    if (!active) { setPreviewLayout(null); return; }
+    if (!active) { bail(); return; }
     // Use dragLayout (with phantom trailing page) so previewDrag resolves the
     // new-page id when the user hovers over it.
     const target = parseDragTarget(overId, dragLayout, active);
-    if (!target) { setPreviewLayout(null); return; }
+    if (!target) { bail(); return; }
     const preview = previewDrag(
       dragLayout,
       activeDragId,
@@ -1067,6 +1107,7 @@ export function PanelContent({
       capacity,
     );
     setPreviewLayout(preview);
+    setDropRefused(preview === null);
   }, [overIdTick, activeDragId, dragLayout, capacity, widgetById]);
 
   const handleDndDragStart = useCallback((event: DragStartEvent) => {
@@ -1124,10 +1165,13 @@ export function PanelContent({
     }
     // Capture the press anchor for the collision detector's minimum-movement
     // floor. activatorEvent is the original arming pointerdown, so a
-    // sub-threshold finger jiggle after long-press shuffles nothing.
+    // sub-threshold finger jiggle after long-press shuffles nothing. NaN =
+    // no anchor (activator without coordinates); the pointer-derived edge
+    // probe skips rather than anchoring a phantom pointer at x=0, which
+    // would sit in the left band and advance the pager on every drag.
     const ae = event.activatorEvent as PointerEvent | MouseEvent | TouchEvent;
-    let startX = 0;
-    let startY = 0;
+    let startX = Number.NaN;
+    let startY = Number.NaN;
     if ('clientX' in ae && typeof (ae as PointerEvent).clientX === 'number') {
       startX = (ae as PointerEvent).clientX;
       startY = (ae as PointerEvent).clientY;
@@ -1219,13 +1263,20 @@ export function PanelContent({
           target.row,
           capacity,
         );
-        if (!preview) return;
+        if (!preview) {
+          // Refused drop (displaced widgets have nowhere to go, or a 1x1
+          // aimed at a larger widget). Flash the source cell - the same
+          // rejection affordance resize uses - instead of silently
+          // snapping back.
+          triggerFlash(activeId);
+          return;
+        }
         // No-op short-circuit: drop at source cell on the same page.
         if (preview === layoutForDrop) return;
-        // Trim trailing empty pages (keep at least one) so the drag-rendered
-        // phantom page isn't persisted unless a widget landed on it.
-        const trimmed = trimTrailingEmptyPages(preview);
-        setLayout(trimmed);
+        // Prune empty pages (drag-rendered phantom page unless a widget
+        // landed on it, AND a source page this drag emptied - a blank
+        // middle page would otherwise persist in the pager).
+        setLayout(pruneEmptyPages(preview));
         // Drop-confirm ring at the widget's final cell (next frame, after the
         // new layout paints).
         requestAnimationFrame(() => {
@@ -1345,6 +1396,7 @@ export function PanelContent({
                             paginatedLayout={paginatedLayout}
                             overIdSignal={overIdTick}
                             overIdRef={currentOverIdRef}
+                            invalid={dropRefused}
                           />
                         ) : null}
                       </div>

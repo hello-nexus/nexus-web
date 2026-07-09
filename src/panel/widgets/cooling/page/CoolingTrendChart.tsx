@@ -1,6 +1,8 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { FanChannel } from '../../../../api/cooling';
+import { useUnitPrefs } from '../../../../hooks/useUiSettings';
 import { useTranslation } from '../../../../lib/i18n';
+import { localizeNumbers } from '../../../../lib/units';
 import { PERF_HISTORY_SAMPLES } from '../../../../panel/widgets/common/panelHistoryConfig';
 import { useTopicHistory } from '../../../../panel/widgets/common/useTopicHistory';
 import {
@@ -36,6 +38,7 @@ interface Props {
  */
 export function CoolingTrendChart({ cpuTempValue, gpuTempValue, channels, height = 140, hideTitle }: Props) {
   const { t } = useTranslation();
+  const { monitoringTempUnit, numberFormat } = useUnitPrefs();
   const wrapRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(440);
 
@@ -160,16 +163,16 @@ export function CoolingTrendChart({ cpuTempValue, gpuTempValue, channels, height
           <span className={`${styles.stat} ${styles.statCpu}`}>
             <span className={styles.statSwatch} aria-hidden="true" />
             <span className={styles.statLabel}>{t('cooling.status.cpu')}</span>
-            <span className={styles.statValue}>{formatAverageTemp(cpuTempValue)}</span>
+            <span className={styles.statValue}>{formatAverageTemp(cpuTempValue, monitoringTempUnit, numberFormat)}</span>
           </span>
           <span className={`${styles.stat} ${styles.statGpu}`}>
             <span className={styles.statSwatch} aria-hidden="true" />
             <span className={styles.statLabel}>{t('cooling.status.gpu')}</span>
-            <span className={styles.statValue}>{formatAverageTemp(gpuTempValue)}</span>
+            <span className={styles.statValue}>{formatAverageTemp(gpuTempValue, monitoringTempUnit, numberFormat)}</span>
           </span>
           <span className={`${styles.stat} ${styles.statFan}`}>
             <span className={styles.statSwatch} aria-hidden="true" />
-            <span className={styles.statValue}>{formatFanRpm(fanValue, hasFans)}</span>
+            <span className={styles.statValue}>{formatFanRpm(fanValue, hasFans, numberFormat)}</span>
           </span>
         </span>
       </div>
@@ -186,9 +189,9 @@ export function CoolingTrendChart({ cpuTempValue, gpuTempValue, channels, height
             auto-stepping domain. */}
         {[0, 0.25, 0.5, 0.75, 1].map(frac => {
           const y = baseY - frac * chartH;
-          const tempLabel = `${Math.round(stackMax * frac)}°`;
+          const tempLabel = localizeNumbers(`${Math.round(stackMax * frac)}°`, numberFormat);
           const rpmValue = fanMax * frac;
-          const rpmLabel = rpmValue >= 1000 ? `${(rpmValue / 1000).toFixed(1)}k` : `${Math.round(rpmValue)}`;
+          const rpmLabel = localizeNumbers(rpmValue >= 1000 ? `${(rpmValue / 1000).toFixed(1)}k` : `${Math.round(rpmValue)}`, numberFormat);
           return (
             <g key={frac}>
               <line

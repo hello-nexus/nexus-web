@@ -66,7 +66,9 @@ import {
   type TryxSensorGroup,
   type TryxSensorsByGroup,
 } from './tryxOverlayUtils';
+import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
+import { localizeNumbers } from '../../../lib/units';
 import { useTryxSimulated } from '../../../lib/tryxSimulation';
 import styles from './TryxDevicePage.module.scss';
 
@@ -134,6 +136,7 @@ type TryxTab = 'display' | 'media';
  */
 export function TryxDevicePage() {
   const { t } = useTranslation();
+  const { numberFormat } = useUnitPrefs();
   const simulated = useTryxSimulated();
   const [status, setStatus] = useState<TryxStatus | null>(null);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -659,7 +662,7 @@ export function TryxDevicePage() {
                   min={0}
                   max={100}
                   step={1}
-                  formatValue={v => `${v}%`}
+                  formatValue={v => localizeNumbers(`${v}%`, numberFormat)}
                   ariaLabel={t('devices.tryx.brightness')}
                   disabled={!screenEnabled}
                   onChange={(v, commit) => {
@@ -740,7 +743,7 @@ export function TryxDevicePage() {
                   min={50}
                   max={150}
                   step={1}
-                  formatValue={v => `${v}%`}
+                  formatValue={v => localizeNumbers(`${v}%`, numberFormat)}
                   ariaLabel={t('devices.tryx.size')}
                   onChange={v => {
                     const rounded = Math.round(v);
@@ -854,7 +857,7 @@ export function TryxDevicePage() {
                         <UsageBar value={storageUsedPercent / 100} />
                       </div>
                       <span className={styles.hintText}>
-                        {t('devices.tryx.storageFree', { percent: formatTryxStorageFreePercent(mediaUsedBytes) })}
+                        {t('devices.tryx.storageFree', { percent: formatTryxStorageFreePercent(mediaUsedBytes, numberFormat) })}
                       </span>
                     </div>
                   </div>

@@ -6,7 +6,7 @@ import styles from './PublicPageFrame.module.scss';
 /**
  * Shared outer shell for the browser-only public account pages
  * (/u/<username>, /auth/verify, /auth/recover): dark centered column with
- * the Nexus mark linking home, matching SplashPage's aesthetic.
+ * the Nexus mark linking home.
  */
 export function PublicPageFrame({ children, maxWidth = 420 }: { children: ReactNode; maxWidth?: number }) {
   const { t } = useTranslation();

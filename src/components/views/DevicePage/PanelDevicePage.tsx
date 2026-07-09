@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { ArrowLeft, Trash2, LayoutGrid, Palette, Settings, Download, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Trash2, LayoutGrid, Palette, Settings, Download, AlertTriangle, Unplug } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SIZE_ICONS } from '../../../panel/widgets/common/SizeIcons';
@@ -13,7 +13,8 @@ import {
   replaceWidget,
   tryResizeWidget,
 } from '../../../panel/engine/panelLayoutOps';
-import { MAX_PANEL_PAGES } from '../../../panel/engine/panelGrid';
+import { DEFAULT_SURFACE_DPI, MAX_PANEL_PAGES } from '../../../panel/engine/panelGrid';
+import { panelGridCapacityForCanvas } from '../../../panel/engine/grid';
 import { normalizePanelLayout } from '../../../panel/engine/usePanelLayout';
 import { isSingleWidgetSurface } from '../../../panel/types';
 import { fetchService, postService } from '../../../api/service';
@@ -29,7 +30,7 @@ import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { useTranslation } from '../../../lib/i18n';
 import { createUuid } from '../../../lib/uuid';
 import { IconLabelButton } from '../../common/IconLabelButton/IconLabelButton';
-import { SettingSelect, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
+import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { PanelEmbedFrame } from './PanelEmbedFrame';
 import { QSeriesCoolerSettings } from './QSeriesCoolerSettings';
 import { useFirmwareStatus } from '../../../hooks/useFirmwareStatus';
@@ -108,6 +109,9 @@ export function PanelDevicePage({ device, onOpenFirmware }: PanelDevicePageProps
   // attached.
   const [liveCanvas, setLiveCanvas] = useState<{ width: number; height: number } | null>(null);
   const [liveDpr, setLiveDpr] = useState<number | null>(null);
+  // Physical density from the record (capabilities.dpi, curated known
+  // displays like the Xeneon Edge); null falls back to the surface default.
+  const [liveDpi, setLiveDpi] = useState<number | null>(null);
   const [configuringWidget, setConfiguringWidget] = useState<PanelWidget | null>(null);
   // One-shot flash request forwarded to the preview iframe when an edit is
   // rejected (a resize that can't fit). nonce re-fires repeat rejections.
@@ -215,6 +219,7 @@ export function PanelDevicePage({ device, onOpenFirmware }: PanelDevicePageProps
       const ch = match?.capabilities?.cssHeight;
       setLiveCanvas(cw && ch ? { width: cw, height: ch } : null);
       setLiveDpr(match?.capabilities?.dpr ?? null);
+      setLiveDpi(match?.capabilities?.dpi ?? null);
       // Per-panel persisted settings (promoted monitors).
       setRecordReserve(match?.reserveMonitor ?? true);
       if (match?.capabilities?.orientation) setOrientation(normalizeOrientation(match.capabilities.orientation));
@@ -273,19 +278,35 @@ export function PanelDevicePage({ device, onOpenFirmware }: PanelDevicePageProps
       const ch = record.capabilities?.cssHeight;
       setLiveCanvas(cw && ch ? { width: cw, height: ch } : null);
       setLiveDpr(record.capabilities?.dpr ?? null);
+      setLiveDpi(record.capabilities?.dpi ?? null);
       setLayout(normalizePanelLayout(record.layout ?? defaultLayoutForSurface(surface), surface, deviceTouch));
     }).catch(() => {});
   });
 
-  // Editor capacity is the surface default - the live runtime may
-  // recompute based on physical size. With explicit (col, row) the
-  // user can place widgets anywhere within these bounds in the editor.
+  // Editor capacity must match the runtime grid, or placements the editor
+  // allows get clamped on the device (and canvas the device offers stays
+  // unreachable here). Promoted monitors derive it from the same capacity
+  // math the kiosk runs, on the record's physical canvas (css x dpr) and
+  // density; other surfaces use their fixed per-surface grids.
   const editorCapacity = useMemo(() => {
     if (surface === 'q60') return { gridCols: 2, pageRows: 4 };
+    const monitorCanvas = surface === 'monitor' ? (liveCanvas ?? device?.previewSize) : undefined;
+    if (surface === 'monitor' && monitorCanvas) {
+      // Physical px = canvas x dpr. liveCanvas and a real record's
+      // previewSize are CSS px (scaled by the record dpr); a simulated
+      // preset's previewSize is native px with no previewDpr (dpr 1).
+      const dpr = (liveCanvas ? liveDpr : device?.previewDpr) || 1;
+      const capacity = panelGridCapacityForCanvas(
+        Math.max(1, Math.round(monitorCanvas.width * dpr)),
+        Math.max(1, Math.round(monitorCanvas.height * dpr)),
+        { surface, dpi: liveDpi ?? device?.previewDpi ?? DEFAULT_SURFACE_DPI.monitor },
+      );
+      return { gridCols: capacity.columns, pageRows: capacity.rows };
+    }
     if (surface === 'desktop' || surface === 'monitor') return { gridCols: 8, pageRows: 6 };
     if (surface === 'y70') return { gridCols: 4, pageRows: 16 };
     return { gridCols: 4, pageRows: 16 };
-  }, [surface]);
+  }, [surface, liveCanvas, liveDpr, liveDpi, device?.previewSize, device?.previewDpi, device?.previewDpr]);
 
   const singleWidget = isSingleWidgetSurface(surface);
   const currentSingleWidget: PanelWidget | undefined = singleWidget
@@ -315,7 +336,11 @@ export function PanelDevicePage({ device, onOpenFirmware }: PanelDevicePageProps
       col: 0,
       row: 0,
     };
-    const appended = appendWidget(layout, next, editorCapacity);
+    // Prefer the page the preview is showing; appendWidget falls back to
+    // the first page with room.
+    const appended = appendWidget(layout, next, editorCapacity, {
+      preferredPageId: layout.activePageId,
+    });
     // Jump the preview to the page the widget landed on - appendWidget spills
     // to a later page when the active one is full, so the new tile would
     // otherwise appear off-screen.
@@ -390,22 +415,34 @@ export function PanelDevicePage({ device, onOpenFirmware }: PanelDevicePageProps
 
   // Decide only after both the layout and the firmware status load, so the gate
   // resolves once instead of flashing block-then-content.
+  // The firmware route emits the qseries-app item whenever the panel is
+  // reachable over adb; currentVersion === '' means reachable with qshell not
+  // installed (the install gate case). No item at all means the panel's USB
+  // is not attached - that is a disconnected panel, not a missing app.
   const panelAppItem = firmwareItems.find(item => item.deviceType === 'qseries-app');
+  const panelReachable = !!panelAppItem;
   const panelAppInstalled = !!panelAppItem && panelAppItem.currentVersion !== '';
   const fwGateReady = loaded && (!isQSeries || firmwareLoaded);
-  const showFwGate = isQSeries && fwGateReady && !panelAppInstalled;
+  const showFwGate = isQSeries && !isSimulated && fwGateReady && panelReachable && !panelAppInstalled;
+  const showDisconnected = isQSeries && !isSimulated && fwGateReady && !panelReachable;
 
   return (
     <section className={styles.page}>
       <ViewHeader
         title={pageTitle}
-        tabs={showFwGate ? undefined : tabs}
+        tabs={showFwGate || showDisconnected ? undefined : tabs}
         activeTab={activeTab}
         onTabChange={(k) => { setConfiguringWidget(null); setTab(k as Tab); }}
       />
       <div className={`${styles.pageBody} pageBody`}>
       {!fwGateReady ? (
         <div style={{ color: 'var(--text-dim)', padding: 20 }}>{t('devices.loading')}</div>
+      ) : showDisconnected ? (
+        <EmptyState
+          icon={<Unplug size={48} />}
+          title={t('devices.qseries.disconnected.title')}
+          hint={t('devices.qseries.disconnected.hint')}
+        />
       ) : showFwGate ? (
         <EmptyState
           icon={<Download size={48} />}
@@ -557,6 +594,10 @@ export function PanelDevicePage({ device, onOpenFirmware }: PanelDevicePageProps
                       showAutoLaunch={supportsAutoLaunch}
                       usbDisconnected={usbDisconnected}
                       displayDisconnected={displayDisconnected}
+                      // The handler reports the plain id until the serial
+                      // controller identifies the variant; showing that
+                      // fallback would read as an identified base model.
+                      variant={device?.firmwareType !== device?.sourceId ? device?.firmwareType : undefined}
                     />
                   )}
                   {activeTab === 'settings' && surface === 'q60' && (
@@ -599,7 +640,15 @@ export function PanelDevicePage({ device, onOpenFirmware }: PanelDevicePageProps
                 onBackgroundClicked={() => setConfiguringWidget(null)}
                 canvasSize={liveCanvas ?? device?.previewSize}
                 canvasDpi={device?.previewDpi}
-                canvasIsCssPixels={!!liveCanvas}
+                // Hosted-monitor previewSize is CSS px (record cssWidth/
+                // cssHeight), so it must skip the native->CSS /DPR even before
+                // the record fetch fills liveCanvas.
+                canvasIsCssPixels={!!liveCanvas || isMonitorPanel}
+                gridDpi={liveCanvas && liveDpi
+                  ? liveDpi / (liveDpr && liveDpr > 0 ? liveDpr : 1)
+                  : (surface === 'monitor' && device?.previewDpi
+                    ? device.previewDpi / (device.previewDpr || 1)
+                    : undefined)}
                 brightness={supportsDisplayControls ? brightness : 100}
                 screenOn={supportsDisplayControls ? screenOn : true}
                 showPanel={supportsAutoLaunch ? autoLaunch : true}
@@ -854,6 +903,8 @@ interface SettingsPanelProps {
   usbDisconnected: boolean;
   // Y70 serial/USB up but no video display attached: nothing to render on.
   displayDisconnected: boolean;
+  // Firmware-catalog variant key (e.g. "y70-truly") for support diagnosis.
+  variant?: string;
 }
 
 function SettingsPanel({
@@ -867,6 +918,7 @@ function SettingsPanel({
   showAutoLaunch,
   usbDisconnected,
   displayDisconnected,
+  variant,
 }: SettingsPanelProps) {
   const { t } = useTranslation();
 
@@ -924,6 +976,12 @@ function SettingsPanel({
                 label: t(`devices.y70.orientation.${o}`),
               }))}
             />
+          )}
+
+          {!!variant && (
+            <SettingRow label={t('devices.y70.variant')}>
+              <span className={styles.variantValue}>{variant}</span>
+            </SettingRow>
           )}
         </SettingsSection>
       )}

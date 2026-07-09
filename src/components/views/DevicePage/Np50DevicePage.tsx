@@ -24,7 +24,9 @@ import {
   type Np50FirmwareDefaults,
   type Np50FwAnimationKind,
 } from '../../../api/np50';
+import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
+import { localizeNumbers } from '../../../lib/units';
 import styles from './Np50DevicePage.module.scss';
 
 const RECONNECT_POLL_MS = 2000;
@@ -43,6 +45,7 @@ const RECONNECT_POLL_MS = 2000;
  */
 export function Np50DevicePage() {
   const { t } = useTranslation();
+  const { numberFormat } = useUnitPrefs();
   // Tri-state: 'unknown' = still loading, 'connected' = hub up,
   // 'disconnected' = explicit not-connected response. The empty state
   // only renders on the 'disconnected' arm.
@@ -190,7 +193,7 @@ export function Np50DevicePage() {
             step={1}
             editable
             trackFill
-            formatValue={v => `${Math.round(v)}%`}
+            formatValue={v => localizeNumbers(`${Math.round(v)}%`, numberFormat)}
             disabled={!defaultsLoaded || !isStatic}
             ariaLabel={t('devices.np50.staticFanPercentAria')}
             onChange={(v: number, commit?: boolean) => {
@@ -234,7 +237,7 @@ export function Np50DevicePage() {
             step={1}
             editable
             trackFill
-            formatValue={v => `${Math.round(v)}%`}
+            formatValue={v => localizeNumbers(`${Math.round(v)}%`, numberFormat)}
             disabled={!animationLoaded}
             ariaLabel={t('devices.y70.brightness')}
             onChange={(v: number, commit?: boolean) => {
