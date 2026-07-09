@@ -1,16 +1,48 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ComponentHealthGrid } from './ComponentHealthGrid';
+import { CoolingSection } from './CoolingSection';
+import { DiagnosticsView } from './DiagnosticsView';
+import { GpuSection } from './GpuSection';
 import { IncidentsSection } from './IncidentsSection';
+import { MemorySection } from './MemorySection';
+import { StorageSection } from './StorageSection';
 import { SystemSection } from './SystemSection';
 import { ToastProvider } from '../../common/Toast/Toast';
 import { setActiveTransport } from '../../../api/service';
 import type {
   DiagnosticsComponent,
+  DiagnosticsCoolingResponse,
+  DiagnosticsGpuResponse,
+  DiagnosticsHealth,
   DiagnosticsIncident,
   DiagnosticsIncidentsResponse,
+  DiagnosticsMemoryResponse,
+  DiagnosticsSmartResponse,
   DiagnosticsSystemResponse,
 } from '../../../api/diagnostics';
+
+// Controllable health payload for the DiagnosticsView tab-navigation tests
+// below; every other domain resource stays null/empty since those tests
+// only exercise tab switching, not each section's own data rendering
+// (covered by the "headerless sections" and per-section test suites).
+let mockHealth: DiagnosticsHealth | null = null;
+
+vi.mock('../../../hooks/useDiagnosticsHealth', () => ({
+  useDiagnosticsHealth: () => ({ health: mockHealth, loading: false, error: false, mocked: false, refresh: vi.fn() }),
+}));
+
+vi.mock('../../../hooks/useDiagnosticsResource', () => ({
+  useDiagnosticsResource: () => ({ data: null, loading: false, error: false, mocked: false, refresh: vi.fn() }),
+}));
+
+vi.mock('../../../hooks/useSystemSpecs', () => ({
+  useSystemSpecs: () => ({ specs: null }),
+}));
+
+vi.mock('../../../hooks/useDiagnosticsTemperatures', () => ({
+  useDiagnosticsTemperatures: () => ({ data: null, loading: false, error: false, mocked: false, refresh: vi.fn() }),
+}));
 
 function jsonResponse(status: number, body: unknown): Response {
   return { ok: status >= 200 && status < 300, status, json: async () => body } as unknown as Response;
@@ -53,7 +85,7 @@ describe('ComponentHealthGrid', () => {
       },
     ];
 
-    render(<ComponentHealthGrid components={components} />);
+    render(<ComponentHealthGrid components={components} onNavigate={() => {}} />);
 
     // No I18nProvider in this test, so t() returns the raw key; reasonLabel's
     // fallback then correctly prefers the server summary over the unresolved
@@ -69,7 +101,7 @@ describe('ComponentHealthGrid', () => {
       { id: 'system:host', kind: 'system', name: 'System', status: 'ok', reasons: [] },
     ];
 
-    render(<ComponentHealthGrid components={components} />);
+    render(<ComponentHealthGrid components={components} onNavigate={() => {}} />);
 
     expect(screen.getByText('diagnostics.status.ok')).toBeInTheDocument();
     expect(screen.queryByRole('list')).not.toBeInTheDocument();
@@ -82,27 +114,35 @@ describe('ComponentHealthGrid', () => {
       { id: 'storage:a', kind: 'storage', name: 'Drive A', status: 'ok', reasons: [] },
     ];
 
-    render(<ComponentHealthGrid components={components} />);
+    render(<ComponentHealthGrid components={components} onNavigate={() => {}} />);
 
     const titles = screen.getAllByRole('heading', { level: 4 }).map(h => h.textContent);
     expect(titles).toEqual(['diagnostics.kind.storage', 'diagnostics.kind.gpu', 'diagnostics.kind.system']);
   });
 
-  it('scrolls the matching section into view when a card is clicked', () => {
-    const section = document.createElement('section');
-    section.id = 'diagnostics-section-gpu';
-    document.body.appendChild(section);
-    const scrollSpy = vi.spyOn(section, 'scrollIntoView').mockImplementation(() => {});
-
+  it('navigates to the matching tab when a card is clicked', () => {
+    const onNavigate = vi.fn();
     const components: DiagnosticsComponent[] = [
       { id: 'gpu:0', kind: 'gpu', name: 'GPU Model', status: 'ok', reasons: [] },
     ];
-    render(<ComponentHealthGrid components={components} />);
+    render(<ComponentHealthGrid components={components} onNavigate={onNavigate} />);
 
     fireEvent.click(screen.getByText('diagnostics.kind.gpu'));
 
-    expect(scrollSpy).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' });
-    section.remove();
+    expect(onNavigate).toHaveBeenCalledWith('gpu');
+  });
+
+  it('navigates to the matching tab via keyboard (Enter) for accessibility', () => {
+    const onNavigate = vi.fn();
+    const components: DiagnosticsComponent[] = [
+      { id: 'storage:a', kind: 'storage', name: 'Drive A', status: 'ok', reasons: [] },
+    ];
+    render(<ComponentHealthGrid components={components} onNavigate={onNavigate} />);
+
+    const card = screen.getByRole('button', { name: /diagnostics.kind.storage/ });
+    fireEvent.keyDown(card, { key: 'Enter' });
+
+    expect(onNavigate).toHaveBeenCalledWith('storage');
   });
 });
 
@@ -355,5 +395,145 @@ describe('SystemSection PnP problem mapping', () => {
     render(<SystemSection data={data} loading={false} error={false} onRefresh={() => {}} />);
 
     expect(screen.getByText('diagnostics.system.unknownDevice')).toBeInTheDocument();
+  });
+});
+
+// The tab is the title now - each domain section renders without its own
+// redundant top-level "Storage"/"Memory"/"GPU"/"Cooling"/"System" heading,
+// while sub-group headers nested inside a section (NVMe health, Throttling,
+// Last 30 days, Device problems) still render.
+describe('domain sections render without their outer kind title', () => {
+  it('StorageSection omits the outer "Storage" title but still renders drive content', () => {
+    const data: DiagnosticsSmartResponse = {
+      supported: true,
+      drives: [{
+        id: 'storage:a', name: 'Test Drive', serial: 'SN1', bus: 'nvme', sizeBytes: 1000, temperatureC: 40,
+        powerOnHours: 10, powerCycles: 1, healthPercent: 99, status: 'good', statusReasons: [], attributes: [], nvme: null,
+      }],
+    };
+    render(<StorageSection data={data} loading={false} error={false} onRefresh={() => {}} />);
+
+    expect(screen.queryByText('diagnostics.kind.storage')).not.toBeInTheDocument();
+    expect(screen.getByText('Test Drive')).toBeInTheDocument();
+  });
+
+  it('CoolingSection omits the outer "Cooling" title but still renders device rows', () => {
+    const data: DiagnosticsCoolingResponse = {
+      supported: true,
+      devices: [{ id: 'cooling:fan1', name: 'Fan 1', type: 'fan', rpm: 1000, targetDutyPercent: 50, status: 'ok', sinceUtc: null }],
+    };
+    render(<CoolingSection data={data} loading={false} error={false} onRefresh={() => {}} />);
+
+    expect(screen.queryByText('diagnostics.kind.cooling')).not.toBeInTheDocument();
+    expect(screen.getByText('Fan 1')).toBeInTheDocument();
+  });
+
+  it('GpuSection omits the outer "GPU" title but keeps its own Throttling sub-header', () => {
+    const data: DiagnosticsGpuResponse = {
+      supported: true,
+      gpus: [{
+        name: 'Test GPU', driverVersion: '1.0', temperatureC: 50, powerW: 100,
+        throttle: { active: [], swPowerCapUs: 0, swThermalUs: 0, hwThermalUs: 0, hwPowerBrakeUs: 0 }, recentTdrCount: 0,
+      }],
+    };
+    render(<GpuSection data={data} loading={false} error={false} onRefresh={() => {}} />);
+
+    expect(screen.queryByText('diagnostics.kind.gpu')).not.toBeInTheDocument();
+    expect(screen.getByText('diagnostics.gpu.throttle.title')).toBeInTheDocument();
+    expect(screen.getByText('Test GPU')).toBeInTheDocument();
+  });
+
+  it('MemorySection omits the outer "Memory" title but still renders module rows', () => {
+    const data: DiagnosticsMemoryResponse = {
+      supported: true,
+      modules: [{ slot: 'DIMM_A1', sizeBytes: 1000, maxSpeedMts: 6000, configuredSpeedMts: 6000, manufacturer: 'Test', partNumber: 'PN1' }],
+      xmpLikelyActive: null, lastTest: null, testScheduled: false,
+    };
+    render(
+      <ToastProvider>
+        <MemorySection data={data} loading={false} error={false} onRefresh={() => {}} />
+      </ToastProvider>,
+    );
+
+    expect(screen.queryByText('diagnostics.kind.memory')).not.toBeInTheDocument();
+    expect(screen.getByText('DIMM_A1')).toBeInTheDocument();
+  });
+
+  it('SystemSection omits the outer "System" title but keeps its own sub-headers', () => {
+    const data: DiagnosticsSystemResponse = {
+      supported: true,
+      pnpProblems: [],
+      counts30d: { whea: 0, bugchecks: 0, dirtyShutdowns: 0, diskErrors: 0, tdrs: 0, appCrashes: 0 },
+    };
+    render(<SystemSection data={data} loading={false} error={false} onRefresh={() => {}} />);
+
+    expect(screen.queryByText('diagnostics.kind.system')).not.toBeInTheDocument();
+    expect(screen.getByText('diagnostics.system.counts.title')).toBeInTheDocument();
+  });
+});
+
+describe('DiagnosticsView tabs', () => {
+  beforeEach(() => {
+    mockHealth = null;
+  });
+
+  // DiagnosticsView's action bar reads useToast() unconditionally (download
+  // failure messages), same as MemorySection/IncidentsSection above.
+  function renderDiagnosticsView(props: { tab: string | null; onTabChange: (tab: string) => void }) {
+    return render(
+      <ToastProvider>
+        <DiagnosticsView serviceOnline={true} connectionState="online" tab={props.tab} onTabChange={props.onTabChange} />
+      </ToastProvider>,
+    );
+  }
+
+  it('defaults to the summary tab without forcing a route write', () => {
+    const onTabChange = vi.fn();
+    renderDiagnosticsView({ tab: null, onTabChange });
+
+    expect(screen.getByRole('tab', { name: /diagnostics.tab.summary/ })).toHaveAttribute('aria-selected', 'true');
+    expect(onTabChange).not.toHaveBeenCalled();
+  });
+
+  it('keeps an invalid url tab render-only instead of normalizing history', () => {
+    const onTabChange = vi.fn();
+    renderDiagnosticsView({ tab: 'not-a-real-tab', onTabChange });
+
+    expect(screen.getByRole('tab', { name: /diagnostics.tab.summary/ })).toHaveAttribute('aria-selected', 'true');
+    expect(onTabChange).not.toHaveBeenCalled();
+  });
+
+  it('deep-links straight into a domain tab from the url param', () => {
+    renderDiagnosticsView({ tab: 'cooling', onTabChange: vi.fn() });
+
+    expect(screen.getByRole('tab', { name: /diagnostics.kind.cooling/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByText('diagnostics.temperature.title')).toBeInTheDocument();
+  });
+
+  it('clicking a tab reports the new tab key to onTabChange', () => {
+    const onTabChange = vi.fn();
+    renderDiagnosticsView({ tab: null, onTabChange });
+
+    fireEvent.click(screen.getByRole('tab', { name: /diagnostics.kind.memory/ }));
+
+    expect(onTabChange).toHaveBeenCalledWith('memory', expect.anything());
+  });
+
+  it('a Summary jump-off health card navigates straight to its domain tab', () => {
+    mockHealth = {
+      generatedAt: '2026-07-08T02:00:00Z',
+      supported: true,
+      overall: 'watch',
+      components: [{ id: 'gpu:0', kind: 'gpu', name: 'Test GPU', status: 'watch', reasons: [] }],
+    };
+    const onTabChange = vi.fn();
+    renderDiagnosticsView({ tab: null, onTabChange });
+
+    // "diagnostics.kind.gpu" also labels the GPU tab button itself (no
+    // I18nProvider means both resolve to the same raw key) - the health
+    // card's own title renders as a heading, so target that specifically.
+    fireEvent.click(screen.getByRole('heading', { level: 4, name: 'diagnostics.kind.gpu' }));
+
+    expect(onTabChange).toHaveBeenCalledWith('gpu');
   });
 });

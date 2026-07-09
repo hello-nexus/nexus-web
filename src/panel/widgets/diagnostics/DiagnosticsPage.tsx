@@ -4,11 +4,16 @@ import { DiagnosticsView } from '../../../components/views/DiagnosticsView/Diagn
 interface DiagnosticsPageProps {
   serviceOnline: boolean;
   connectionState?: ConnectionState;
+  // Controlled tab = the route subtab (so /diagnostics/cooling deep-links).
+  tab: string | null;
+  onTabChange: (tab: string) => void;
 }
 
 // Thin wrapper so the desktop dashboard route and the AppManifest's Page slot
 // both resolve to the same DiagnosticsView the deliverable specifies under
 // components/views/, instead of duplicating its content here.
-export function DiagnosticsPage({ serviceOnline, connectionState }: DiagnosticsPageProps) {
-  return <DiagnosticsView serviceOnline={serviceOnline} connectionState={connectionState} />;
+export function DiagnosticsPage({ serviceOnline, connectionState, tab, onTabChange }: DiagnosticsPageProps) {
+  return (
+    <DiagnosticsView serviceOnline={serviceOnline} connectionState={connectionState} tab={tab} onTabChange={onTabChange} />
+  );
 }

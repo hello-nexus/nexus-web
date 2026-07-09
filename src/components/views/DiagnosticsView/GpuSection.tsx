@@ -9,7 +9,7 @@ import { Badge } from '../../common/Badge/Badge';
 import { InfoList, InfoRow } from '../../common/InfoList/InfoList';
 import type { DiagnosticsFetchOptions, DiagnosticsGpu, DiagnosticsGpuResponse } from '../../../api/diagnostics';
 import { NotAvailableNote, SectionLoadError } from './DiagnosticsSectionStates';
-import { diagnosticsSectionAnchorId, durationLabel, resolveSectionState } from './diagnosticsHelpers';
+import { durationLabel, resolveSectionState } from './diagnosticsHelpers';
 import styles from './DiagnosticsView.module.scss';
 
 interface GpuSectionProps {
@@ -30,8 +30,7 @@ export function GpuSection({ data, loading, error, onRefresh }: GpuSectionProps)
   });
 
   return (
-    <section className={styles.section} id={diagnosticsSectionAnchorId('gpu')}>
-      <SectionHeader>{t('diagnostics.kind.gpu')}</SectionHeader>
+    <section className={styles.section}>
       {state === 'error' && <SectionLoadError onRetry={() => onRefresh({ force: true })} loading={loading} />}
       {state === 'notSupported' && <NotAvailableNote />}
       {state === 'empty' && <EmptyState compact icon={<Monitor size={22} />} title={t('diagnostics.gpu.empty')} />}

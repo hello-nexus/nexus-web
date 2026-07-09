@@ -1,4 +1,5 @@
 @use '../../../styles/text' as *;
+@use '../../../styles/interactions' as *;
 
 .monitoring {
   display: flex;
@@ -46,19 +47,12 @@
   flex-direction: column;
   gap: 0.5rem;
   padding: 1rem 1.25rem;
-  border: var(--border-width) solid transparent;
   border-radius: var(--radius);
   background: var(--surface);
-  cursor: pointer;
-  transition: background var(--ease-fast), border-color var(--ease-fast);
   text-align: left;
   font: inherit;
   color: inherit;
-
-  &:hover {
-    background: var(--surface-hover);
-    border: var(--border-width) solid var(--border-strong);
-  }
+  @include dash-tile-hover;
 }
 
 .dashWide {

@@ -7,6 +7,7 @@ import {
   fetchDiagnosticsGpu,
   fetchDiagnosticsHealth,
   fetchDiagnosticsIncidents,
+  fetchDiagnosticsTemperatures,
   openDiagnosticsEventViewer,
   scheduleMemoryTest,
 } from './diagnostics';
@@ -113,6 +114,40 @@ describe('fetchDiagnosticsGpu', () => {
     expect(result.mocked).toBe(true);
     expect(result.data?.gpus.length).toBeGreaterThan(0);
     expect(result.data?.gpus[0].throttle.active.length).toBeGreaterThan(0);
+  });
+});
+
+describe('fetchDiagnosticsTemperatures', () => {
+  it('requests the given hours window', async () => {
+    const fetchMock = vi.fn(async () => jsonResponse(200, { supported: true, bucketMinutes: 5, series: [], episodes: [] }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await fetchDiagnosticsTemperatures(72);
+    const [url] = fetchMock.mock.calls[0] as [string];
+    expect(url).toContain('/diagnostics/temperatures?hours=72');
+  });
+
+  it('falls back to contract-shaped mock data (cpu/gpu/storage) when the route 404s', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(404, {})));
+
+    const result = await fetchDiagnosticsTemperatures(168);
+    expect(result.mocked).toBe(true);
+    expect(result.data?.bucketMinutes).toBe(5);
+    const kinds = result.data?.series.map(s => s.kind).sort();
+    expect(kinds).toEqual(['cpu', 'gpu', 'storage']);
+    expect(result.data?.episodes.length).toBeGreaterThan(0);
+  });
+
+  it('mock episodes drop out of a narrow 24h window that predates the spike', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(404, {})));
+
+    const result = await fetchDiagnosticsTemperatures(24);
+    expect(result.data?.episodes.length).toBe(0);
+  });
+
+  it('does not fall back to mock data on a 500', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(500, {})));
+    expect(await fetchDiagnosticsTemperatures(168)).toEqual({ data: null, mocked: false });
   });
 });
 

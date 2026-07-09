@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildSpecRows,
   coolingStatusColor,
-  diagnosticsSectionAnchorId,
   driveStatusColor,
   durationToken,
   formatBytes,
@@ -17,7 +17,8 @@ import {
   statusColor,
   worstReason,
 } from './diagnosticsHelpers';
-import type { DiagnosticsComponent, DiagnosticsIncidentApp, DiagnosticsReason } from '../../../api/diagnostics';
+import type { DiagnosticsComponent, DiagnosticsGpuResponse, DiagnosticsIncidentApp, DiagnosticsMemoryResponse, DiagnosticsReason } from '../../../api/diagnostics';
+import type { SystemSpecs } from '../../../hooks/useSystemSpecs';
 
 describe('statusColor', () => {
   it('maps every status to its token', () => {
@@ -198,10 +199,58 @@ describe('orderComponentsByKind', () => {
   });
 });
 
-describe('diagnosticsSectionAnchorId', () => {
-  it('builds a stable id per kind', () => {
-    expect(diagnosticsSectionAnchorId('storage')).toBe('diagnostics-section-storage');
-    expect(diagnosticsSectionAnchorId('system')).toBe('diagnostics-section-system');
+describe('buildSpecRows', () => {
+  const translate = (key: string, params?: Record<string, string>) => {
+    if (key === 'diagnostics.specs.memoryWithXmp') return `${params?.memory} (XMP)`;
+    if (key === 'diagnostics.specs.gpuWithDriver') return `${params?.gpu} (${params?.version})`;
+    return key;
+  };
+  const specs: SystemSpecs = {
+    pcName: 'NICOLA-PC', osBuild: '26100.4351', processor: 'AMD Ryzen 7 9800X3D',
+    motherboard: 'ASUS ROG Crosshair', memory: '64 GB DDR5-6000', storage: '2 TB', graphicsCard: 'RTX 5080',
+    monitor: '', soundCard: '', networkCard: '',
+  };
+  const memory: DiagnosticsMemoryResponse = { supported: true, modules: [], xmpLikelyActive: true, lastTest: null, testScheduled: false };
+  const gpu: DiagnosticsGpuResponse = {
+    supported: true,
+    gpus: [{ name: 'NVIDIA GeForce RTX 5080', driverVersion: '591.86', temperatureC: 60, powerW: 200, throttle: { active: [], swPowerCapUs: 0, swThermalUs: 0, hwThermalUs: 0, hwPowerBrakeUs: 0 }, recentTdrCount: 0 }],
+  };
+
+  it('builds one row per known field, folding in XMP and the GPU driver version', () => {
+    expect(buildSpecRows(specs, memory, gpu, translate)).toEqual([
+      { label: 'diagnostics.specs.cpu', value: 'AMD Ryzen 7 9800X3D' },
+      { label: 'diagnostics.specs.motherboard', value: 'ASUS ROG Crosshair' },
+      { label: 'diagnostics.specs.memory', value: '64 GB DDR5-6000 (XMP)' },
+      { label: 'diagnostics.specs.gpu', value: 'RTX 5080 (591.86)' },
+      { label: 'diagnostics.specs.osBuild', value: '26100.4351' },
+      { label: 'diagnostics.specs.pcName', value: 'NICOLA-PC' },
+    ]);
+  });
+
+  it('omits the XMP suffix when XMP is not active', () => {
+    const rows = buildSpecRows(specs, { ...memory, xmpLikelyActive: false }, gpu, translate);
+    expect(rows.find(r => r.label === 'diagnostics.specs.memory')?.value).toBe('64 GB DDR5-6000');
+  });
+
+  it('falls back to the specs graphics card name when the gpu resource has no data yet', () => {
+    const rows = buildSpecRows(specs, memory, null, translate);
+    expect(rows.find(r => r.label === 'diagnostics.specs.gpu')?.value).toBe('RTX 5080');
+  });
+
+  it('never pairs a driver version onto specs.graphicsCard when more than one GPU is reported (ambiguous adapter identity)', () => {
+    const multiGpu: DiagnosticsGpuResponse = {
+      supported: true,
+      gpus: [
+        { name: 'Intel UHD Graphics 770', driverVersion: '31.0.101', temperatureC: 45, powerW: 15, throttle: { active: [], swPowerCapUs: 0, swThermalUs: 0, hwThermalUs: 0, hwPowerBrakeUs: 0 }, recentTdrCount: 0 },
+        { name: 'NVIDIA GeForce RTX 5080', driverVersion: '591.86', temperatureC: 60, powerW: 200, throttle: { active: [], swPowerCapUs: 0, swThermalUs: 0, hwThermalUs: 0, hwPowerBrakeUs: 0 }, recentTdrCount: 0 },
+      ],
+    };
+    const rows = buildSpecRows(specs, memory, multiGpu, translate);
+    expect(rows.find(r => r.label === 'diagnostics.specs.gpu')?.value).toBe('RTX 5080');
+  });
+
+  it('omits every row when nothing has loaded yet', () => {
+    expect(buildSpecRows(null, null, null, translate)).toEqual([]);
   });
 });
 

@@ -4,13 +4,18 @@
 .diagnostics {
   // No max-width cap - matches the other data-heavy views (Devices,
   // Monitoring, Cooling), which stretch to the content column's full width.
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.tabContent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
 // ── Action bar ──
-
-.actionBar {
-  margin-bottom: 0.5rem;
-}
 
 .actionBarRow {
   display: flex;
@@ -42,13 +47,13 @@
 
 // ── Sections ──
 
+// Spacing between sibling sections comes from the tab content flex gap
+// (.tabContent) - not a margin here, so a tab with one section and a tab
+// with several read with identical rhythm.
 .section {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
-  margin-top: 1.5rem;
-
-  &:first-child { margin-top: 0.5rem; }
 }
 
 .sectionHeaderRow {
@@ -268,6 +273,36 @@
   font-size: var(--type-small);
   font-family: var(--font-mono);
   flex-shrink: 0;
+}
+
+// ── Temperature history ──
+
+// Same danger-callout recipe as ConfirmModal's .noteDanger / .coolingRowStalled
+// above, at --warn instead of --bad (sustained-high is a watch, not act).
+.temperatureEpisodes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--warn);
+  background: color-mix(in srgb, var(--warn) 12%, transparent);
+  border-radius: var(--radius);
+}
+
+.temperatureEpisodesTitle {
+  color: var(--text);
+  font-weight: var(--weight-heading);
+  font-size: var(--type-small);
+}
+
+.temperatureEpisodesList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin: 0;
+  padding: 0 0 0 1.1rem;
+  color: var(--text-dim);
+  font-size: var(--type-small);
 }
 
 // ── System ──

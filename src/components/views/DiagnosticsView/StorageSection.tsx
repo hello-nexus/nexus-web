@@ -13,7 +13,7 @@ import { InfoTooltip } from '../../common/InfoTooltip/InfoTooltip';
 import { UsageBar } from '../../common/UsageBar/UsageBar';
 import type { DiagnosticsDrive, DiagnosticsFetchOptions, DiagnosticsSmartResponse, SmartAttribute } from '../../../api/diagnostics';
 import { NotAvailableNote, SectionLoadError } from './DiagnosticsSectionStates';
-import { diagnosticsSectionAnchorId, driveStatusColor, driveStatusLabelKey, formatBytes, resolveSectionState } from './diagnosticsHelpers';
+import { driveStatusColor, driveStatusLabelKey, formatBytes, resolveSectionState } from './diagnosticsHelpers';
 import styles from './DiagnosticsView.module.scss';
 
 interface StorageSectionProps {
@@ -34,8 +34,7 @@ export function StorageSection({ data, loading, error, onRefresh }: StorageSecti
   });
 
   return (
-    <section className={styles.section} id={diagnosticsSectionAnchorId('storage')}>
-      <SectionHeader>{t('diagnostics.kind.storage')}</SectionHeader>
+    <section className={styles.section}>
       {state === 'error' && <SectionLoadError onRetry={() => onRefresh({ force: true })} loading={loading} />}
       {state === 'notSupported' && <NotAvailableNote />}
       {state === 'empty' && <EmptyState compact icon={<HardDrive size={22} />} title={t('diagnostics.storage.empty')} />}

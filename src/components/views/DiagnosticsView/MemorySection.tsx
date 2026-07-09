@@ -3,7 +3,6 @@ import { MemoryStick } from 'lucide-react';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { localizeNumbers } from '../../../lib/units';
-import { SectionHeader } from '../../common/SectionHeader/SectionHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { Badge } from '../../common/Badge/Badge';
 import { Button } from '../../common/Button/Button';
@@ -11,7 +10,7 @@ import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { useToast } from '../../common/Toast/Toast';
 import { cancelMemoryTest, scheduleMemoryTest, type DiagnosticsFetchOptions, type DiagnosticsMemoryResponse } from '../../../api/diagnostics';
 import { NotAvailableNote, SectionLoadError } from './DiagnosticsSectionStates';
-import { diagnosticsSectionAnchorId, formatBytes, relativeTimeLabel, resolveSectionState } from './diagnosticsHelpers';
+import { formatBytes, relativeTimeLabel, resolveSectionState } from './diagnosticsHelpers';
 import styles from './DiagnosticsView.module.scss';
 
 interface MemorySectionProps {
@@ -62,8 +61,7 @@ export function MemorySection({ data, loading, error, onRefresh }: MemorySection
     : t('diagnostics.memory.testResult.never');
 
   return (
-    <section className={styles.section} id={diagnosticsSectionAnchorId('memory')}>
-      <SectionHeader>{t('diagnostics.kind.memory')}</SectionHeader>
+    <section className={styles.section}>
       {state === 'error' && <SectionLoadError onRetry={() => onRefresh({ force: true })} loading={loading} />}
       {state === 'notSupported' && <NotAvailableNote />}
       {state === 'empty' && <EmptyState compact icon={<MemoryStick size={22} />} title={t('diagnostics.memory.empty')} />}

@@ -4,12 +4,11 @@ import { Droplet, Fan } from 'lucide-react';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { formatNumber, localizeNumbers } from '../../../lib/units';
-import { SectionHeader } from '../../common/SectionHeader/SectionHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { Badge } from '../../common/Badge/Badge';
 import type { DiagnosticsCoolingResponse } from '../../../api/diagnostics';
 import { NotAvailableNote, SectionLoadError } from './DiagnosticsSectionStates';
-import { coolingStatusColor, coolingStatusLabelKey, diagnosticsSectionAnchorId, relativeTimeLabel, resolveSectionState } from './diagnosticsHelpers';
+import { coolingStatusColor, coolingStatusLabelKey, relativeTimeLabel, resolveSectionState } from './diagnosticsHelpers';
 import styles from './DiagnosticsView.module.scss';
 
 interface CoolingSectionProps {
@@ -33,8 +32,7 @@ export function CoolingSection({ data, loading, error, onRefresh }: CoolingSecti
   });
 
   return (
-    <section className={styles.section} id={diagnosticsSectionAnchorId('cooling')}>
-      <SectionHeader>{t('diagnostics.kind.cooling')}</SectionHeader>
+    <section className={styles.section}>
       {state === 'error' && <SectionLoadError onRetry={() => onRefresh()} loading={loading} />}
       {state === 'notSupported' && <NotAvailableNote />}
       {state === 'empty' && <EmptyState compact icon={<Fan size={22} />} title={t('diagnostics.cooling.empty')} />}

@@ -41,6 +41,27 @@
   box-shadow: 0 0 0 2px var(--accent-soft);
 }
 
+// Neutral hover lift for a whole clickable dashboard-tile card (monitoring
+// overview cards, diagnostics summary jump-off cards): the surface lifts to
+// --surface-hover with its border revealing at --border-strong, plus the
+// canonical card focus-visible ring. Layout (padding, gap, background base)
+// stays with the caller - this mixin owns only the interaction states so
+// every dash-tile-style card shares one definition instead of re-declaring it.
+@mixin dash-tile-hover {
+  border: var(--border-width) solid transparent;
+  cursor: pointer;
+  transition: background var(--ease-fast), border-color var(--ease-fast);
+
+  &:hover {
+    background: var(--surface-hover);
+    border-color: var(--border-strong);
+  }
+
+  &:focus-visible {
+    @include focus-glow-card;
+  }
+}
+
 // Pressed / active feedback. Tiny scale-down so the user feels the click on
 // touch surfaces and dense kiosk panels. Pair with a transition on transform
 // for the spring-back animation.

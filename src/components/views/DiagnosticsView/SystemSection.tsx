@@ -6,7 +6,7 @@ import { InfoList, InfoRow } from '../../common/InfoList/InfoList';
 import { InfoTooltip } from '../../common/InfoTooltip/InfoTooltip';
 import type { DiagnosticsFetchOptions, DiagnosticsSystemResponse, PnpProblem } from '../../../api/diagnostics';
 import { NotAvailableNote, SectionLoadError } from './DiagnosticsSectionStates';
-import { diagnosticsSectionAnchorId, pnpProblemLabel, resolveSectionState } from './diagnosticsHelpers';
+import { pnpProblemLabel, resolveSectionState } from './diagnosticsHelpers';
 import styles from './DiagnosticsView.module.scss';
 
 interface SystemSectionProps {
@@ -27,8 +27,7 @@ export function SystemSection({ data, loading, error, onRefresh }: SystemSection
   });
 
   return (
-    <section className={styles.section} id={diagnosticsSectionAnchorId('system')}>
-      <SectionHeader>{t('diagnostics.kind.system')}</SectionHeader>
+    <section className={styles.section}>
       {state === 'error' && <SectionLoadError onRetry={() => onRefresh({ force: true })} loading={loading} />}
       {state === 'notSupported' && <NotAvailableNote />}
       {state === 'content' && data && (
