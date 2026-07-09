@@ -24,6 +24,12 @@
   }
 }
 
+// Alternate interactive treatment matching the monitoring overview dash
+// cards (OverviewTab) instead of the default card hover above.
+.dashHover {
+  @include dash-tile-hover;
+}
+
 .compact {
   padding: 0.75rem;
 }

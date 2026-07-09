@@ -177,6 +177,11 @@ export const UI_ELEMENTS = {
   // A hover/focus tooltip (HoverTooltip) wrapping its single child trigger.
   // `body` is the text (with an optional bold `title` line); `side` placement.
   'ui-tooltip': { properties: ['title', 'body', 'side'] },
+  // A ghost icon button that copies `value` to the clipboard. The worker has no
+  // clipboard access, so the value crosses as a prop and the HOST writes it; the
+  // hover tooltip flips to a localized "Copied" confirmation after a copy.
+  // `size` is 'sm' (default) or 'md'.
+  'ui-copybutton': { properties: ['value', 'size'] },
 } as const satisfies Record<string, UiElementSpec>;
 
 export type UiElementName = keyof typeof UI_ELEMENTS;

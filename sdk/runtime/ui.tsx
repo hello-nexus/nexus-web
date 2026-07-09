@@ -254,6 +254,11 @@ export interface CollapsibleProps extends WithChildren {
 export interface TooltipProps extends WithChildren {
   body: string; title?: string; side?: 'top' | 'bottom' | 'left' | 'right';
 }
+/** A ghost icon button that copies `value` to the clipboard on press. The host
+ *  writes to the clipboard and shows a hover tooltip that confirms "Copied". */
+export interface CopyButtonProps {
+  value: string; size?: 'sm' | 'md';
+}
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export const Stack = createRemoteComponent('ui-stack' as any, ELEMENT_CTORS['ui-stack']) as unknown as React.FC<StackProps>;
@@ -295,4 +300,5 @@ export const MediaGrid = eventComponent<MediaGridProps>('ui-mediagrid', ELEMENT_
 export const ConfirmDialog = eventComponent<ConfirmDialogProps>('ui-confirm', ELEMENT_CTORS['ui-confirm'], [['onConfirm', 'confirm'], ['onCancel', 'cancel']]);
 export const Collapsible = eventComponent<CollapsibleProps>('ui-collapsible', ELEMENT_CTORS['ui-collapsible'], [['onToggle', 'toggle']]);
 export const Tooltip = createRemoteComponent('ui-tooltip' as any, ELEMENT_CTORS['ui-tooltip']) as unknown as React.FC<TooltipProps>;
+export const CopyButton = createRemoteComponent('ui-copybutton' as any, ELEMENT_CTORS['ui-copybutton']) as unknown as React.FC<CopyButtonProps>;
 /* eslint-enable @typescript-eslint/no-explicit-any */

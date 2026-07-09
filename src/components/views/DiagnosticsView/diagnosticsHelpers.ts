@@ -5,12 +5,16 @@ import type {
   CoolingDeviceStatus,
   DiagnosticsComponent,
   DiagnosticsDriveStatus,
+  DiagnosticsGpuResponse,
   DiagnosticsIncidentApp,
   DiagnosticsIncidentSeverity,
   DiagnosticsKind,
+  DiagnosticsMemoryResponse,
   DiagnosticsReason,
   DiagnosticsStatus,
 } from '../../../api/diagnostics';
+import type { SystemSpecs } from '../../../hooks/useSystemSpecs';
+import type { SystemSpecRow } from '../../common/SystemSpecsPanel/SystemSpecsPanel';
 import { localizeNumbers, type NumberFormat } from '../../../lib/units';
 
 const STATUS_SEVERITY_RANK: Record<DiagnosticsStatus, number> = { act: 3, watch: 2, unknown: 1, ok: 0 };
@@ -187,12 +191,6 @@ export function orderComponentsByKind(components: DiagnosticsComponent[]): Diagn
   return [...components].sort((a, b) => DIAGNOSTICS_KIND_ORDER.indexOf(a.kind) - DIAGNOSTICS_KIND_ORDER.indexOf(b.kind));
 }
 
-/** DOM id shared by a section's root element and the health card that scrolls
- *  to it, so the two never drift apart. */
-export function diagnosticsSectionAnchorId(kind: DiagnosticsKind): string {
-  return `diagnostics-section-${kind}`;
-}
-
 // Device Manager problem codes (Code N) mapped to their standard one-line
 // explanation. Curated subset; an unmapped code falls back to a generic
 // "Device Manager problem code N" line (pnpProblemLabel below) instead of a
@@ -262,4 +260,45 @@ export function formatBytes(bytes: number, numberFormat: NumberFormat): string {
   }
   const decimals = index === 0 || Number.isInteger(scaled) ? 0 : 1;
   return localizeNumbers(`${scaled.toFixed(decimals)} ${BYTE_UNITS[index]}`, numberFormat);
+}
+
+/**
+ * Composes the Summary tab's "PC specifications" rows for SystemSpecsPanel.
+ * Field labels reuse devices.specs.row.* - the same wording as Devices >
+ * System Specs, since this is the same component. CPU / motherboard /
+ * memory / GPU / OS build / PC name come from useSystemSpecs (GET
+ * /system/specs) - no diagnostics endpoint carries them. The XMP flag and
+ * GPU driver version fold into the value string from the diagnostics
+ * memory/gpu resources the page already fetches. Rows with no data are
+ * omitted rather than shown blank.
+ */
+export function buildSpecRows(
+  specs: SystemSpecs | null,
+  memory: DiagnosticsMemoryResponse | null,
+  gpu: DiagnosticsGpuResponse | null,
+  translate: (key: string, params?: Record<string, string>) => string,
+): SystemSpecRow[] {
+  const rows: SystemSpecRow[] = [];
+  if (specs?.processor) rows.push({ label: translate('devices.specs.row.processor'), value: specs.processor });
+  if (specs?.motherboard) rows.push({ label: translate('devices.specs.row.motherboard'), value: specs.motherboard });
+  if (specs?.memory) {
+    const value = memory?.xmpLikelyActive
+      ? translate('diagnostics.specs.memoryWithXmp', { memory: specs.memory })
+      : specs.memory;
+    rows.push({ label: translate('devices.specs.row.memory'), value });
+  }
+  // specs.graphicsCard (Windows' own primary-adapter pick) is the name of
+  // record; the diagnostics gpu resource's driver version only folds in when
+  // there's exactly one reported GPU, so a multi-GPU box never risks pairing
+  // one adapter's name with a different adapter's driver version.
+  const singleGpu = gpu?.gpus.length === 1 ? gpu.gpus[0] : undefined;
+  const gpuName = specs?.graphicsCard || singleGpu?.name;
+  if (gpuName) {
+    const version = singleGpu?.driverVersion;
+    const value = version ? translate('diagnostics.specs.gpuWithDriver', { gpu: gpuName, version }) : gpuName;
+    rows.push({ label: translate('devices.specs.row.graphicsCard'), value });
+  }
+  if (specs?.osBuild) rows.push({ label: translate('devices.specs.row.osBuild'), value: specs.osBuild });
+  if (specs?.pcName) rows.push({ label: translate('devices.specs.row.pcName'), value: specs.pcName });
+  return rows;
 }

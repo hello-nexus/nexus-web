@@ -77,6 +77,7 @@ describe('useOemAppSeed', () => {
     await waitFor(() => expect(setLayout).toHaveBeenCalledTimes(1));
     const nextLayout: PanelLayout = setLayout.mock.calls[0][0];
     expect(nextLayout.pages[0].widgets.map(w => w.type)).toEqual(['app:com.ibuypower.control']);
+    expect(nextLayout.pages[0].widgets[0].size).toBe('2x2');
     expect(updateUiSettings).toHaveBeenCalledWith({
       oemAppSeeded: true,
       pinnedSidebarApps: ['app:com.ibuypower.control'],
@@ -127,7 +128,7 @@ describe('useOemAppSeed', () => {
     expect(updateUiSettings).not.toHaveBeenCalled();
   });
 
-  it('only marks the flag when the widget and pin are already present', () => {
+  it('re-persists the pin (durably) when the widget and pin already appear present', () => {
     _seedMarketplaceRegistryForTests([
       listing({ id: 'com.ibuypower.control', name: 'iBUYPOWER', preinstalled: true, page: true }),
     ]);
@@ -151,7 +152,13 @@ describe('useOemAppSeed', () => {
     }));
 
     expect(setLayout).not.toHaveBeenCalled();
-    expect(updateUiSettings).toHaveBeenCalledWith({ oemAppSeeded: true });
+    // The pin is written back even though it appeared present: a pin that only
+    // exists in the computed default tail (registry-derived, empty on a cold
+    // reopen) must be persisted so it survives, not left to the default.
+    expect(updateUiSettings).toHaveBeenCalledWith({
+      oemAppSeeded: true,
+      pinnedSidebarApps: ['app:com.ibuypower.control'],
+    });
   });
 
   it('does nothing while disabled (non-desktop surface)', () => {

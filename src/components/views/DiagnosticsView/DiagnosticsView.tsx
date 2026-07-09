@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Download, RefreshCw } from 'lucide-react';
+import { Fan, Gpu as GpuIcon, HardDrive, LayoutDashboard, MemoryStick, ShieldCheck } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useDiagnosticsHealth } from '../../../hooks/useDiagnosticsHealth';
 import { useDiagnosticsResource } from '../../../hooks/useDiagnosticsResource';
+import { useDiagnosticsTemperatures } from '../../../hooks/useDiagnosticsTemperatures';
+import { useSystemSpecs } from '../../../hooks/useSystemSpecs';
 import {
   downloadDiagnosticsBundle,
   downloadDiagnosticsReport,
@@ -13,33 +15,33 @@ import {
   fetchDiagnosticsMemory,
   fetchDiagnosticsSmart,
   fetchDiagnosticsSystem,
+  type DiagnosticsKind,
 } from '../../../api/diagnostics';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
-import { Card } from '../../common/Card/Card';
-import { Button } from '../../common/Button/Button';
-import { Badge } from '../../common/Badge/Badge';
 import { useToast } from '../../common/Toast/Toast';
 import { ServiceRequired } from '../ServiceRequired';
 import { GenericSkeleton } from '../PageSkeleton/PageSkeleton';
-import { ComponentHealthGrid } from './ComponentHealthGrid';
-import { NotAvailableNote, SectionLoadError } from './DiagnosticsSectionStates';
 import { StorageSection } from './StorageSection';
 import { MemorySection } from './MemorySection';
 import { GpuSection } from './GpuSection';
-import { CoolingSection } from './CoolingSection';
-import { SystemSection } from './SystemSection';
-import { IncidentsSection } from './IncidentsSection';
-import { relativeTimeLabel, statusColor, statusLabelKey } from './diagnosticsHelpers';
+import { CoolingTab } from './CoolingTab';
+import { SystemTab } from './SystemTab';
+import { SummaryTab } from './SummaryTab';
+import { DEFAULT_TEMPERATURE_RANGE_HOURS, type TemperatureRangeHours } from './temperatureHelpers';
 import styles from './DiagnosticsView.module.scss';
+
+type DiagnosticsTab = 'summary' | 'storage' | 'memory' | 'gpu' | 'cooling' | 'system';
 
 interface DiagnosticsViewProps {
   serviceOnline: boolean;
   connectionState?: ConnectionState;
+  tab: string | null;
+  onTabChange: (tab: string) => void;
 }
 
 const INCIDENT_WINDOW_DAYS = 30;
 
-export function DiagnosticsView({ serviceOnline, connectionState }: DiagnosticsViewProps) {
+export function DiagnosticsView({ serviceOnline, connectionState, tab: urlTab, onTabChange }: DiagnosticsViewProps) {
   const { t } = useTranslation();
   const { push } = useToast();
   const { health, loading: healthLoading, error: healthError, mocked: healthMocked, refresh: refreshHealth } = useDiagnosticsHealth(serviceOnline);
@@ -54,6 +56,13 @@ export function DiagnosticsView({ serviceOnline, connectionState }: DiagnosticsV
   const cooling = useDiagnosticsResource(serviceOnline, fetchDiagnosticsCooling);
   const system = useDiagnosticsResource(serviceOnline, fetchDiagnosticsSystem);
   const incidents = useDiagnosticsResource(serviceOnline, useCallback(() => fetchDiagnosticsIncidents(INCIDENT_WINDOW_DAYS), []));
+  const { specs } = useSystemSpecs(serviceOnline);
+
+  // Lives here (not in CoolingTab) so the selected range and fetched data
+  // survive switching away from and back to the Cooling tab, matching every
+  // other resource on this page.
+  const [temperatureHours, setTemperatureHours] = useState<TemperatureRangeHours>(DEFAULT_TEMPERATURE_RANGE_HOURS);
+  const temperatures = useDiagnosticsTemperatures(serviceOnline, temperatureHours);
 
   const anyMocked = healthMocked || smart.mocked || memory.mocked || gpu.mocked
     || cooling.mocked || system.mocked || incidents.mocked;
@@ -70,6 +79,7 @@ export function DiagnosticsView({ serviceOnline, connectionState }: DiagnosticsV
   const { refresh: refreshCooling } = cooling;
   const { refresh: refreshSystem } = system;
   const { refresh: refreshIncidents } = incidents;
+  const { refresh: refreshTemperatures } = temperatures;
 
   const handleRefreshAll = useCallback(() => {
     refreshHealth({ force: true });
@@ -79,7 +89,8 @@ export function DiagnosticsView({ serviceOnline, connectionState }: DiagnosticsV
     refreshCooling();
     refreshSystem({ force: true });
     refreshIncidents();
-  }, [refreshHealth, refreshSmart, refreshMemory, refreshGpu, refreshCooling, refreshSystem, refreshIncidents]);
+    refreshTemperatures();
+  }, [refreshHealth, refreshSmart, refreshMemory, refreshGpu, refreshCooling, refreshSystem, refreshIncidents, refreshTemperatures]);
 
   // Clearing the Windows event logs invalidates the health overview and the
   // System section's 30-day counts in addition to Incidents itself (which
@@ -105,61 +116,59 @@ export function DiagnosticsView({ serviceOnline, connectionState }: DiagnosticsV
     if (!ok) push({ title: t('diagnostics.header.downloadReportFailed') });
   }, [push, t]);
 
+  const tabs = [
+    { key: 'summary', label: t('diagnostics.tab.summary'), icon: <LayoutDashboard size={14} /> },
+    { key: 'storage', label: t('diagnostics.kind.storage'), icon: <HardDrive size={14} /> },
+    { key: 'memory', label: t('diagnostics.kind.memory'), icon: <MemoryStick size={14} /> },
+    { key: 'gpu', label: t('diagnostics.kind.gpu'), icon: <GpuIcon size={14} /> },
+    { key: 'cooling', label: t('diagnostics.kind.cooling'), icon: <Fan size={14} /> },
+    { key: 'system', label: t('diagnostics.kind.system'), icon: <ShieldCheck size={14} /> },
+  ] as const;
+
+  const tab: DiagnosticsTab = urlTab && tabs.some(tb => tb.key === urlTab)
+    ? urlTab as DiagnosticsTab : 'summary';
+
   if (!serviceOnline) {
     return (
       <div className={styles.diagnostics}>
-        <ViewHeader title={t('diagnostics.title')} />
+        <ViewHeader title={t('diagnostics.title')} tabs={tabs} activeTab={tab} onTabChange={onTabChange} tabsDisabled />
         <ServiceRequired state={connectionState} skeleton={<GenericSkeleton />} />
       </div>
     );
   }
 
+  const renderTab = () => {
+    switch (tab) {
+      case 'summary': return (
+        <SummaryTab
+          health={health} healthLoading={healthLoading} healthError={healthError} refreshHealth={refreshHealth}
+          memory={memory.data} gpu={gpu.data} specs={specs}
+          anyMocked={anyMocked} anyLoading={anyLoading} onRefreshAll={handleRefreshAll} now={now}
+          onNavigate={(kind: DiagnosticsKind) => onTabChange(kind)}
+          downloading={downloading} downloadingReport={downloadingReport}
+          onDownload={() => void handleDownload()} onDownloadReport={() => void handleDownloadReport()}
+        />
+      );
+      case 'storage': return <StorageSection data={smart.data} loading={smart.loading} error={smart.error} onRefresh={smart.refresh} />;
+      case 'memory': return <MemorySection data={memory.data} loading={memory.loading} error={memory.error} onRefresh={memory.refresh} />;
+      case 'gpu': return <GpuSection data={gpu.data} loading={gpu.loading} error={gpu.error} onRefresh={gpu.refresh} />;
+      case 'cooling': return (
+        <CoolingTab
+          cooling={cooling}
+          temperatures={temperatures}
+          hours={temperatureHours}
+          onHoursChange={setTemperatureHours}
+        />
+      );
+      case 'system': return <SystemTab system={system} incidents={incidents} onLogsCleared={handleLogsCleared} />;
+    }
+  };
+
   return (
     <div className={styles.diagnostics}>
-      <ViewHeader title={t('diagnostics.title')} />
-      <div className="pageBody">
-        <Card className={styles.actionBar}>
-          <div className={styles.actionBarRow}>
-            <div className={styles.actionBarStatus}>
-              {health && (
-                <>
-                  <Badge label={t(statusLabelKey(health.overall))} color={statusColor(health.overall)} />
-                  <span className={styles.generatedAt}>
-                    {t('diagnostics.header.generatedAt', { time: relativeTimeLabel(health.generatedAt, now, t) })}
-                  </span>
-                </>
-              )}
-              {anyMocked && <Badge label={t('diagnostics.mockDataBadge')} color="var(--warn)" />}
-            </div>
-            <div className={styles.actionBarButtons}>
-              <Button tone="neutral" size="sm" icon={<RefreshCw size={14} />} loading={anyLoading} onClick={handleRefreshAll}>
-                {t('diagnostics.refresh')}
-              </Button>
-              <Button tone="neutral" size="sm" icon={<Download size={14} />} loading={downloadingReport} onClick={handleDownloadReport}>
-                {t('diagnostics.header.downloadReport')}
-              </Button>
-              <Button tone="neutral" size="sm" icon={<Download size={14} />} loading={downloading} onClick={handleDownload}>
-                {t('diagnostics.header.downloadBundle')}
-              </Button>
-            </div>
-          </div>
-        </Card>
-
-        {!health ? (
-          healthError ? <SectionLoadError onRetry={() => refreshHealth({ force: true })} loading={healthLoading} /> : <GenericSkeleton />
-        ) : !health.supported ? <NotAvailableNote /> : (
-          <ComponentHealthGrid components={health.components} />
-        )}
-
-        <StorageSection data={smart.data} loading={smart.loading} error={smart.error} onRefresh={smart.refresh} />
-        <MemorySection data={memory.data} loading={memory.loading} error={memory.error} onRefresh={memory.refresh} />
-        <GpuSection data={gpu.data} loading={gpu.loading} error={gpu.error} onRefresh={gpu.refresh} />
-        <CoolingSection data={cooling.data} loading={cooling.loading} error={cooling.error} onRefresh={cooling.refresh} />
-        <SystemSection data={system.data} loading={system.loading} error={system.error} onRefresh={system.refresh} />
-        <IncidentsSection
-          data={incidents.data} loading={incidents.loading} error={incidents.error}
-          onRefresh={incidents.refresh} onLogsCleared={handleLogsCleared}
-        />
+      <ViewHeader title={t('diagnostics.title')} tabs={tabs} activeTab={tab} onTabChange={onTabChange} />
+      <div className={`${styles.tabContent} pageBody`}>
+        {renderTab()}
       </div>
     </div>
   );

@@ -43,42 +43,6 @@
   }
 }
 
-.specBlock {
-  min-width: 0;
-}
-
-.specInner {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.4rem;
-  width: 100%;
-  min-width: 0;
-}
-
-.specIcon {
-  display: inline-flex;
-  color: var(--accent-glow);
-}
-
-.specLabel {
-  font-size: var(--type-mini);
-  text-transform: uppercase;
-  color: var(--text-dim);
-}
-
-.specValue {
-  width: 100%;
-  font-size: var(--type-body);
-  font-weight: var(--weight-heading);
-  color: var(--text);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  word-break: break-word;
-}
-
 .whatItMeasures {
   margin: 0;
   padding-left: 1.25rem;

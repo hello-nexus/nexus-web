@@ -12,6 +12,10 @@ import type {
   DiagnosticsMemoryResponse,
   DiagnosticsSmartResponse,
   DiagnosticsSystemResponse,
+  DiagnosticsTemperatureEpisode,
+  DiagnosticsTemperaturePoint,
+  DiagnosticsTemperatureSeries,
+  DiagnosticsTemperaturesResponse,
   ScheduleMemoryTestResponse,
 } from './diagnostics';
 
@@ -274,6 +278,136 @@ export function mockDiagnosticsCooling(): DiagnosticsCoolingResponse {
       { id: 'cooling:hyte-q60:fan2', name: 'HYTE Q60 Fan 2', type: 'fan', rpm: 1190, targetDutyPercent: 55, status: 'ok', sinceUtc: null },
     ],
   };
+}
+
+// ── Temperature history ──────────────────────────────────────────────────
+//
+// Synthesizes 7 days of 5-minute-bucket samples (bucketMinutes matches the
+// contract) ending at GENERATED_AT, then serves the caller's requested
+// window from that fixed dataset - a 30d request still only returns the 7
+// days the mock actually has, exercising the same "not enough history yet"
+// shape the real service produces on a fresh install. Deterministic (no
+// Math.random) so screenshots and snapshots stay stable across runs.
+
+const TEMP_BUCKET_MINUTES = 5;
+const TEMP_BUCKET_MS = TEMP_BUCKET_MINUTES * 60_000;
+const TEMP_HISTORY_DAYS = 7;
+const TEMP_BUCKETS_PER_DAY = (24 * 60) / TEMP_BUCKET_MINUTES;
+const TEMP_TOTAL_BUCKETS = TEMP_HISTORY_DAYS * TEMP_BUCKETS_PER_DAY;
+const TEMP_MAX_POINTS = 600;
+const GPU_SUSTAINED_THRESHOLD_C = 85;
+
+/** Small deterministic wobble in [-1, 1], distinct per series via `seed`. */
+function pseudoNoise(i: number, seed: number): number {
+  return (((i * 37 + seed * 17) % 13) - 6) / 6;
+}
+
+function buildBucketSeries(baseline: number, dailyAmplitude: number, noiseAmplitude: number, seed: number): DiagnosticsTemperaturePoint[] {
+  const endMs = new Date(GENERATED_AT).getTime();
+  const points: DiagnosticsTemperaturePoint[] = [];
+  for (let i = 0; i < TEMP_TOTAL_BUCKETS; i++) {
+    const t = endMs - (TEMP_TOTAL_BUCKETS - 1 - i) * TEMP_BUCKET_MS;
+    const daily = dailyAmplitude * Math.sin((i % TEMP_BUCKETS_PER_DAY) / TEMP_BUCKETS_PER_DAY * 2 * Math.PI - Math.PI / 2);
+    const noise = noiseAmplitude * pseudoNoise(i, seed);
+    const avg = Math.round((baseline + daily + noise) * 10) / 10;
+    const max = Math.round((avg + 1 + Math.abs(pseudoNoise(i, seed + 5)) * 3) * 10) / 10;
+    points.push({ t, avg, max });
+  }
+  return points;
+}
+
+/** Broad periodic usage-session bumps (gaming/compiling), on top of the daily cycle. */
+function addUsageBumps(points: DiagnosticsTemperaturePoint[], amplitude: number, period: number, phase: number): void {
+  for (let i = 0; i < points.length; i++) {
+    const bump = Math.max(0, Math.sin(i / period + phase)) * amplitude;
+    if (bump <= 0) continue;
+    points[i] = { ...points[i], avg: Math.round((points[i].avg + bump) * 10) / 10, max: Math.round((points[i].max + bump) * 10) / 10 };
+  }
+}
+
+/** Forces a short sustained-high run into the series (mirrors TemperatureInsights: 2+ consecutive buckets over threshold). */
+function injectSustainedHighEpisode(points: DiagnosticsTemperaturePoint[], startIndex: number, peakAvgs: number[]): void {
+  for (let j = 0; j < peakAvgs.length; j++) {
+    const idx = startIndex + j;
+    if (idx < 0 || idx >= points.length) continue;
+    const avg = peakAvgs[j];
+    points[idx] = { ...points[idx], avg, max: Math.round((avg + 2) * 10) / 10 };
+  }
+}
+
+/** Removes a contiguous run of buckets so the chart has a real gap (line break) to render, e.g. the PC sleeping for an hour. */
+function puncture(points: DiagnosticsTemperaturePoint[], startIndex: number, count: number): DiagnosticsTemperaturePoint[] {
+  return [...points.slice(0, startIndex), ...points.slice(startIndex + count)];
+}
+
+/** Merges adjacent buckets (avg of avgs, max of maxes) down to at most maxPoints, matching the contract's server-side decimation. */
+function decimate(points: DiagnosticsTemperaturePoint[], maxPoints: number): DiagnosticsTemperaturePoint[] {
+  if (points.length <= maxPoints) return points;
+  const groupSize = Math.ceil(points.length / maxPoints);
+  const decimated: DiagnosticsTemperaturePoint[] = [];
+  for (let i = 0; i < points.length; i += groupSize) {
+    const chunk = points.slice(i, i + groupSize);
+    const avg = Math.round((chunk.reduce((sum, p) => sum + p.avg, 0) / chunk.length) * 10) / 10;
+    const max = Math.round(Math.max(...chunk.map(p => p.max)) * 10) / 10;
+    decimated.push({ t: chunk[0].t, avg, max });
+  }
+  return decimated;
+}
+
+/** The last `hours` worth of buckets from a full 7-day series, capped to what the mock actually generated. */
+function windowSeries(points: DiagnosticsTemperaturePoint[], hours: number): DiagnosticsTemperaturePoint[] {
+  const cappedHours = Math.min(hours, TEMP_HISTORY_DAYS * 24);
+  const numBuckets = Math.round((cappedHours * 60) / TEMP_BUCKET_MINUTES);
+  return points.slice(-numBuckets);
+}
+
+// Falls within the 7d/30d range views but outside 24h/3d, so the episode
+// only surfaces once the user widens the range enough to include it.
+const GPU_EPISODE_DAY_OFFSET = 3;
+const GPU_EPISODE_START_INDEX = TEMP_BUCKETS_PER_DAY * GPU_EPISODE_DAY_OFFSET + 170;
+const GPU_EPISODE_PEAKS = [88, 91.5, 93, 92, 89.5, 86];
+
+const cpuFullSeries = puncture(buildBucketSeries(46, 6, 3, 1), 500, 12);
+addUsageBumps(cpuFullSeries, 14, 40, 0.4);
+
+const gpuFullSeries = buildBucketSeries(40, 4, 2.5, 2);
+addUsageBumps(gpuFullSeries, 24, 55, 1.3);
+injectSustainedHighEpisode(gpuFullSeries, GPU_EPISODE_START_INDEX, GPU_EPISODE_PEAKS);
+
+const storageFullSeries = buildBucketSeries(36, 2, 2, 3);
+
+function findSustainedHighEpisodes(points: DiagnosticsTemperaturePoint[], componentId: string, name: string, thresholdC: number): DiagnosticsTemperatureEpisode[] {
+  const episodes: DiagnosticsTemperatureEpisode[] = [];
+  let runStart = -1;
+  for (let i = 0; i <= points.length; i++) {
+    const over = i < points.length && points[i].avg >= thresholdC;
+    if (over && runStart === -1) runStart = i;
+    if (!over && runStart !== -1) {
+      const run = points.slice(runStart, i);
+      if (run.length >= 2) {
+        episodes.push({
+          componentId,
+          name,
+          startUtc: new Date(run[0].t).toISOString(),
+          endUtc: new Date(run[run.length - 1].t + TEMP_BUCKET_MS).toISOString(),
+          peakC: Math.max(...run.map(p => p.avg)),
+          thresholdC,
+        });
+      }
+      runStart = -1;
+    }
+  }
+  return episodes;
+}
+
+export function mockDiagnosticsTemperatures(hours: number): DiagnosticsTemperaturesResponse {
+  const series: DiagnosticsTemperatureSeries[] = [
+    { id: 'cpu', kind: 'cpu', name: 'AMD Ryzen 7 9800X3D', points: decimate(windowSeries(cpuFullSeries, hours), TEMP_MAX_POINTS) },
+    { id: 'gpu:0', kind: 'gpu', name: 'NVIDIA GeForce RTX 3070', points: decimate(windowSeries(gpuFullSeries, hours), TEMP_MAX_POINTS) },
+    { id: NVME_DRIVE_ID, kind: 'storage', name: 'Samsung SSD 990 PRO 2TB', points: decimate(windowSeries(storageFullSeries, hours), TEMP_MAX_POINTS) },
+  ];
+  const episodes = findSustainedHighEpisodes(windowSeries(gpuFullSeries, hours), 'gpu:0', 'NVIDIA GeForce RTX 3070', GPU_SUSTAINED_THRESHOLD_C);
+  return { supported: true, bucketMinutes: TEMP_BUCKET_MINUTES, series, episodes };
 }
 
 export function mockDiagnosticsSystem(): DiagnosticsSystemResponse {

@@ -14,11 +14,11 @@ import { GenericSkeleton } from '../../../components/views/PageSkeleton/PageSkel
 import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
 import { Button } from '../../../components/common/Button/Button';
 import { SectionHeader } from '../../../components/common/SectionHeader/SectionHeader';
+import { SystemSpecsPanel } from '../../../components/common/SystemSpecsPanel/SystemSpecsPanel';
 import { getDeviceId, getLastSubmissionId, setLastSubmissionId, submitBenchmark } from '../../../api/nexusApi';
 import { BenchmarkProgress } from './BenchmarkProgress';
 import { BenchmarkResults } from './BenchmarkResults';
 import { LeaderboardView } from './LeaderboardView';
-import { SpecBlock } from './SpecBlock';
 import styles from './BenchmarkPage.module.scss';
 
 type BenchmarkTab = 'run' | 'results' | 'leaderboards';
@@ -148,9 +148,10 @@ export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onT
             <div className={styles.specsSection}>
               <SectionHeader>{t('benchmark.run.systemTitle')}</SectionHeader>
               <div className={styles.specGrid}>
-                {SPEC_BLOCKS.map(b => (
-                  <SpecBlock key={b.key} icon={b.icon} label={t(b.labelKey)} value={b.get(specs)} />
-                ))}
+                <SystemSpecsPanel
+                  variant="tiles"
+                  rows={SPEC_BLOCKS.map(b => ({ icon: b.icon, label: t(b.labelKey), value: b.get(specs) }))}
+                />
               </div>
             </div>
           )}

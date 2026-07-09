@@ -28,16 +28,22 @@ export interface CardProps {
   // role="button" would nest a focusable descendant inside a button role,
   // which is invalid ARIA. The card stays mouse-clickable either way.
   disableInteractiveRole?: boolean;
+  // Swaps the interactive hover/focus treatment for the shared dash-tile
+  // recipe (monitoring overview cards) instead of the default card hover.
+  // Only meaningful together with `interactive` or `onClick`.
+  dashHover?: boolean;
 }
 
 export function Card({
-  title, subtitle, actions, children, interactive, compact, className, onClick, truncateSubtitle, disableInteractiveRole,
+  title, subtitle, actions, children, interactive, compact, className, onClick, truncateSubtitle, disableInteractiveRole, dashHover,
 }: CardProps) {
   const hasHeader = title !== undefined || subtitle !== undefined || actions !== undefined;
   const interactiveRole = onClick && !disableInteractiveRole;
+  const isInteractive = interactive || Boolean(onClick);
+  const interactiveClass = isInteractive ? (dashHover ? styles.dashHover : styles.interactive) : '';
   return (
     <div
-      className={`${styles.root} ${interactive || onClick ? styles.interactive : ''} ${compact ? styles.compact : ''} ${className ?? ''}`}
+      className={`${styles.root} ${interactiveClass} ${compact ? styles.compact : ''} ${className ?? ''}`}
       onClick={onClick}
       role={interactiveRole ? 'button' : undefined}
       tabIndex={interactiveRole ? 0 : undefined}

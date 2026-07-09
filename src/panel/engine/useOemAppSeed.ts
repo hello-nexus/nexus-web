@@ -21,10 +21,9 @@ import {
 import { hasOemApp, planOemAppSeed } from './oemAppSeed';
 import type { UiSettingsValue } from '../../hooks/useUiSettings';
 
-// Matches the size the OEM bake-in widget ships at in install-defaults for a
-// fresh profile - kept in lockstep so an existing profile catches up to the
-// same shape a new one gets.
-const OEM_WIDGET_SIZE: PanelWidgetSize = '4x2';
+// Size the OEM bake-in widget docks at on the dashboard. Must be one of the
+// app manifest's declared sizes (ibuypower ships 2x2 / 4x2 / 4x4).
+const OEM_WIDGET_SIZE: PanelWidgetSize = '2x2';
 
 interface UseOemAppSeedArgs {
   /** Gated to the embedded desktop dashboard - the only surface that owns dashboardLayout writes. */
@@ -83,13 +82,16 @@ export function useOemAppSeed({
     if (nextLayout !== layout) setLayout(nextLayout);
 
     const pinAdds = plan.sidebarKeysToAdd.filter(isPinnableAppKey);
-    const nextPinned = pinAdds.length > 0
-      ? [...uiSettings.pinnedSidebarApps, ...pinAdds]
-      : undefined;
+    // Persist the effective tail (native pins + the OEM page-app) rather than
+    // relying on the computed default. defaultPinnedTail() derives preinstalled
+    // apps from the marketplace registry, which is empty until it loads, so a pin
+    // left unpersisted silently drops on a cold reopen. Writing it explicitly,
+    // plus the cold-load sanitizer that preserves the app key, keeps it pinned.
+    const nextPinned = [...uiSettings.pinnedSidebarApps, ...pinAdds];
 
     updateUiSettings({
       oemAppSeeded: true,
-      ...(nextPinned ? { pinnedSidebarApps: nextPinned } : {}),
+      pinnedSidebarApps: nextPinned,
     });
   }, [enabled, layoutLoaded, uiHydrated, marketplaceLoaded, uiSettings, layout, capacity, setLayout, updateUiSettings]);
 }

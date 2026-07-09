@@ -191,6 +191,37 @@ export interface DiagnosticsCoolingResponse {
   devices: DiagnosticsCoolingDevice[];
 }
 
+export type DiagnosticsTemperatureKind = 'cpu' | 'gpu' | 'storage' | 'ram';
+
+export interface DiagnosticsTemperaturePoint {
+  t: number;
+  avg: number;
+  max: number;
+}
+
+export interface DiagnosticsTemperatureSeries {
+  id: string;
+  kind: DiagnosticsTemperatureKind;
+  name: string;
+  points: DiagnosticsTemperaturePoint[];
+}
+
+export interface DiagnosticsTemperatureEpisode {
+  componentId: string;
+  name: string;
+  startUtc: string;
+  endUtc: string;
+  peakC: number;
+  thresholdC: number;
+}
+
+export interface DiagnosticsTemperaturesResponse {
+  supported: boolean;
+  bucketMinutes: number;
+  series: DiagnosticsTemperatureSeries[];
+  episodes: DiagnosticsTemperatureEpisode[];
+}
+
 export interface PnpProblem {
   name: string;
   deviceId: string;
@@ -295,6 +326,11 @@ export function fetchDiagnosticsCooling(): Promise<DiagnosticsFetchResult<Diagno
 
 export function fetchDiagnosticsSystem(opts?: DiagnosticsFetchOptions): Promise<DiagnosticsFetchResult<DiagnosticsSystemResponse>> {
   return withMockFallback(withRefreshParam('/diagnostics/system', opts?.force), mock => mock.mockDiagnosticsSystem());
+}
+
+/** hours is clamped server-side to 1..720; the range picker only ever sends 24, 72, 168, or 720. */
+export function fetchDiagnosticsTemperatures(hours: number): Promise<DiagnosticsFetchResult<DiagnosticsTemperaturesResponse>> {
+  return withMockFallback(`/diagnostics/temperatures?hours=${hours}`, mock => mock.mockDiagnosticsTemperatures(hours));
 }
 
 export function scheduleMemoryTest(): Promise<DiagnosticsFetchResult<ScheduleMemoryTestResponse>> {

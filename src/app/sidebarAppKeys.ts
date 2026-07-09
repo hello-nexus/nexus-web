@@ -5,7 +5,7 @@
 // curated here (one design choice we don't want to derive).
 
 import { APP_REGISTRY, lookupApp } from '../panel/widgets/registry';
-import { getPreinstalledPageAppTypes, isMarketplaceType, normalizeAppType } from '../widgets/marketplaceRegistry';
+import { getPreinstalledPageAppTypes, hasMarketplaceLoadedOnce, isMarketplaceType, normalizeAppType } from '../widgets/marketplaceRegistry';
 
 export const DASHBOARD_APP_KEY = 'dashboard' as const;
 export type SidebarAppKey = string; // any app type that has a Page, or 'dashboard'
@@ -45,15 +45,23 @@ function defaultPinnedTail(): string[] {
 // server-side v11 migration never sees it), drop unknown keys (apps that
 // no longer exist, or never did), dedupe while preserving
 // first-occurrence order. Returns a brand-new array.
+//
+// An app (SDK) key can't be confirmed pinnable until the marketplace registry
+// loads (async). While it's still loading, preserve app-typed keys rather than
+// strip them, or a cold refresh would persist a tail with the OEM/user app
+// dropped and silently unpin it for good - usePanelLayout preserves unknown
+// marketplace WIDGETS through the same window. After load, a genuinely
+// uninstalled app key is not pinnable and falls through.
 export function sanitizePinnedTail(input: readonly unknown[] | undefined): string[] {
   if (!input || !Array.isArray(input)) return defaultPinnedTail();
+  const registryPending = !hasMarketplaceLoadedOnce();
   const out: string[] = [];
   const seen = new Set<string>();
   for (const entry of input) {
     if (typeof entry !== 'string') continue;
     const key = normalizeAppType(entry);
-    if (!isPinnableAppKey(key)) continue;
     if (seen.has(key)) continue;
+    if (!isPinnableAppKey(key) && !(registryPending && isMarketplaceType(key))) continue;
     seen.add(key);
     out.push(key);
   }
