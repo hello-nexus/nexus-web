@@ -1,6 +1,7 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from '../../../lib/i18n';
 import {
+  medianSpacingMs,
   nearestPoint,
   niceTicks,
   splitIntoSegments,
@@ -18,10 +19,16 @@ export interface TimeSeriesBand {
   color?: string;
 }
 
+// A gap wider than this multiple of the actual median point spacing renders
+// as a line break (and the hover tooltip stops attaching a series' value).
+// Derived from the data itself, not a nominal bucket size: server-side
+// decimation widens real point spacing well past the source bucket at wide
+// ranges, so a caller-supplied nominal size would flag every decimated point
+// as a gap and render the whole chart blank.
+const GAP_MULTIPLIER = 1.5;
+
 export interface TimeSeriesChartProps {
   series: TimeSeriesSeries[];
-  /** Bucket spacing of the source data; a gap wider than 1.5x this renders as a line break. */
-  bucketMinutes: number;
   height?: number;
   valueFormat: (value: number) => string;
   /** Caller picks the label granularity (hours/weekday/dates) for the requested range. */
@@ -39,7 +46,7 @@ export interface TimeSeriesChartProps {
 const PAD = { left: 56, right: 16, top: 12, bottom: 28 };
 
 export function TimeSeriesChart({
-  series, bucketMinutes, height = 260, valueFormat, xTickFormat, xTickCount = 5, yTickCount = 5,
+  series, height = 260, valueFormat, xTickFormat, xTickCount = 5, yTickCount = 5,
   avgLabel, maxLabel, bands, showLegend = true,
 }: TimeSeriesChartProps) {
   const { t } = useTranslation();
@@ -64,7 +71,8 @@ export function TimeSeriesChart({
 
   const domainT = useMemo(() => timeDomain(series), [series]);
   const [minV, maxV] = useMemo(() => valueDomain(series), [series]);
-  const maxGapMs = bucketMinutes * 60_000 * 1.5;
+  const spacingMs = useMemo(() => medianSpacingMs(series), [series]);
+  const maxGapMs = spacingMs !== null ? spacingMs * GAP_MULTIPLIER : Infinity;
 
   const chartW = Math.max(1, width - PAD.left - PAD.right);
   const chartH = Math.max(1, height - PAD.top - PAD.bottom);
@@ -110,13 +118,12 @@ export function TimeSeriesChart({
 
   const tooltip = useMemo(() => {
     if (hoverT === null) return null;
-    const maxDeltaMs = bucketMinutes * 60_000 * 1.5;
     const rows = series
-      .map(s => ({ name: s.name, color: s.color, point: nearestPoint(s.points, hoverT, maxDeltaMs) }))
-      .filter((r): r is { name: string; color: string; point: NonNullable<typeof r.point> } => r.point !== null);
+      .map(s => ({ id: s.id, name: s.name, color: s.color, point: nearestPoint(s.points, hoverT, maxGapMs) }))
+      .filter((r): r is { id: string; name: string; color: string; point: NonNullable<typeof r.point> } => r.point !== null);
     if (rows.length === 0) return null;
     return { t: rows[0].point.t, rows };
-  }, [hoverT, series, bucketMinutes]);
+  }, [hoverT, series, maxGapMs]);
 
   if (!domainT) {
     return (
@@ -165,6 +172,19 @@ export function TimeSeriesChart({
 
         {segmentsBySeries.map(({ s, segments }) => segments.map((segment, si) => {
           if (segment.length === 0) return null;
+          // A single-point segment (isolated between two gaps) has no line
+          // to draw - a moveto-only path is invisible - so render it as a dot.
+          if (segment.length === 1) {
+            return (
+              <circle
+                key={`${s.id}-${si}`}
+                cx={xFor(segment[0].t)}
+                cy={yFor(segment[0].avg)}
+                r={2.5}
+                fill={s.color}
+              />
+            );
+          }
           const d = segment.map((p, i) => `${i === 0 ? 'M' : 'L'}${xFor(p.t).toFixed(1)},${yFor(p.avg).toFixed(1)}`).join(' ');
           return (
             <path
@@ -203,7 +223,7 @@ export function TimeSeriesChart({
         <div className={styles.tooltip}>
           <div className={styles.tooltipHeader}>{xTickFormat(tooltip.t)}</div>
           {tooltip.rows.map(row => (
-            <div key={row.name} className={styles.tooltipRow}>
+            <div key={row.id} className={styles.tooltipRow}>
               <span className={styles.tooltipDot} style={{ background: row.color }} />
               <span className={styles.tooltipName}>{row.name}</span>
               <span className={styles.tooltipVal}>{avgLabel} {valueFormat(row.point.avg)}</span>

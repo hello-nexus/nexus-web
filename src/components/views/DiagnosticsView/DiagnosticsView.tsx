@@ -4,6 +4,7 @@ import { useTranslation } from '../../../lib/i18n';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useDiagnosticsHealth } from '../../../hooks/useDiagnosticsHealth';
 import { useDiagnosticsResource } from '../../../hooks/useDiagnosticsResource';
+import { useDiagnosticsTemperatures } from '../../../hooks/useDiagnosticsTemperatures';
 import { useSystemSpecs } from '../../../hooks/useSystemSpecs';
 import {
   downloadDiagnosticsBundle,
@@ -26,6 +27,7 @@ import { GpuSection } from './GpuSection';
 import { CoolingTab } from './CoolingTab';
 import { SystemTab } from './SystemTab';
 import { SummaryTab } from './SummaryTab';
+import { DEFAULT_TEMPERATURE_RANGE_HOURS, type TemperatureRangeHours } from './temperatureHelpers';
 import styles from './DiagnosticsView.module.scss';
 
 type DiagnosticsTab = 'summary' | 'storage' | 'memory' | 'gpu' | 'cooling' | 'system';
@@ -56,6 +58,12 @@ export function DiagnosticsView({ serviceOnline, connectionState, tab: urlTab, o
   const incidents = useDiagnosticsResource(serviceOnline, useCallback(() => fetchDiagnosticsIncidents(INCIDENT_WINDOW_DAYS), []));
   const { specs } = useSystemSpecs(serviceOnline);
 
+  // Lives here (not in CoolingTab) so the selected range and fetched data
+  // survive switching away from and back to the Cooling tab, matching every
+  // other resource on this page.
+  const [temperatureHours, setTemperatureHours] = useState<TemperatureRangeHours>(DEFAULT_TEMPERATURE_RANGE_HOURS);
+  const temperatures = useDiagnosticsTemperatures(serviceOnline, temperatureHours);
+
   const anyMocked = healthMocked || smart.mocked || memory.mocked || gpu.mocked
     || cooling.mocked || system.mocked || incidents.mocked;
   const anyLoading = healthLoading || smart.loading || memory.loading || gpu.loading
@@ -71,6 +79,7 @@ export function DiagnosticsView({ serviceOnline, connectionState, tab: urlTab, o
   const { refresh: refreshCooling } = cooling;
   const { refresh: refreshSystem } = system;
   const { refresh: refreshIncidents } = incidents;
+  const { refresh: refreshTemperatures } = temperatures;
 
   const handleRefreshAll = useCallback(() => {
     refreshHealth({ force: true });
@@ -80,7 +89,8 @@ export function DiagnosticsView({ serviceOnline, connectionState, tab: urlTab, o
     refreshCooling();
     refreshSystem({ force: true });
     refreshIncidents();
-  }, [refreshHealth, refreshSmart, refreshMemory, refreshGpu, refreshCooling, refreshSystem, refreshIncidents]);
+    refreshTemperatures();
+  }, [refreshHealth, refreshSmart, refreshMemory, refreshGpu, refreshCooling, refreshSystem, refreshIncidents, refreshTemperatures]);
 
   // Clearing the Windows event logs invalidates the health overview and the
   // System section's 30-day counts in addition to Incidents itself (which
@@ -142,7 +152,14 @@ export function DiagnosticsView({ serviceOnline, connectionState, tab: urlTab, o
       case 'storage': return <StorageSection data={smart.data} loading={smart.loading} error={smart.error} onRefresh={smart.refresh} />;
       case 'memory': return <MemorySection data={memory.data} loading={memory.loading} error={memory.error} onRefresh={memory.refresh} />;
       case 'gpu': return <GpuSection data={gpu.data} loading={gpu.loading} error={gpu.error} onRefresh={gpu.refresh} />;
-      case 'cooling': return <CoolingTab serviceOnline={serviceOnline} cooling={cooling} />;
+      case 'cooling': return (
+        <CoolingTab
+          cooling={cooling}
+          temperatures={temperatures}
+          hours={temperatureHours}
+          onHoursChange={setTemperatureHours}
+        />
+      );
       case 'system': return <SystemTab system={system} incidents={incidents} onLogsCleared={handleLogsCleared} />;
     }
   };

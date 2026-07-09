@@ -6,6 +6,7 @@ import { localizeNumbers } from '../../../lib/units';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { Badge } from '../../common/Badge/Badge';
 import { Button } from '../../common/Button/Button';
+import { Card } from '../../common/Card/Card';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { useToast } from '../../common/Toast/Toast';
 import { cancelMemoryTest, scheduleMemoryTest, type DiagnosticsFetchOptions, type DiagnosticsMemoryResponse } from '../../../api/diagnostics';
@@ -66,7 +67,7 @@ export function MemorySection({ data, loading, error, onRefresh }: MemorySection
       {state === 'notSupported' && <NotAvailableNote />}
       {state === 'empty' && <EmptyState compact icon={<MemoryStick size={22} />} title={t('diagnostics.memory.empty')} />}
       {state === 'content' && data && (
-        <>
+        <Card>
           <table className={styles.moduleTable}>
             <thead>
               <tr>
@@ -109,7 +110,7 @@ export function MemorySection({ data, loading, error, onRefresh }: MemorySection
               </Button>
             )}
           </div>
-        </>
+        </Card>
       )}
 
       <ConfirmModal

@@ -1,0 +1,93 @@
+@use '../../../styles/text' as *;
+
+// ── List variant (Devices > System Specs, Diagnostics Summary) ──
+
+.toolbar {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.card {
+  margin-top: 0.75rem;
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  padding: 0.4rem 0.9rem;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
+.row {
+  display: grid;
+  // Labels need ~140px to fit "Graphics Card" without wrapping; value takes
+  // the rest. `min-content` would clip long rig names so we hold a fixed
+  // label column.
+  grid-template-columns: 140px 1fr;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid var(--separator);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.label {
+  @include text-label;
+  font-family: var(--font-mono);
+  color: var(--text-dim);
+  margin: 0;
+}
+
+.value {
+  @include text-body;
+  color: var(--text);
+  margin: 0;
+  // Long rig names ("AMD Ryzen 9 7950X3D 16-Core Processor") still need to
+  // wrap on narrow widths; allow breaks anywhere inside.
+  overflow-wrap: anywhere;
+}
+
+// ── Tiles variant (Benchmark's pre-run "your system" summary) ──
+
+.tile {
+  min-width: 0;
+}
+
+.tileInner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.tileIcon {
+  display: inline-flex;
+  color: var(--accent-glow);
+}
+
+.tileLabel {
+  font-size: var(--type-mini);
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.tileValue {
+  width: 100%;
+  font-size: var(--type-body);
+  font-weight: var(--weight-heading);
+  color: var(--text);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}

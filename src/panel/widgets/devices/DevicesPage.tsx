@@ -10,6 +10,7 @@ import { useTranslation } from '../../../lib/i18n';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { Button } from '../../../components/common/Button/Button';
 import { Select } from '../../../components/common/Select/Select';
+import { SystemSpecsPanel } from '../../../components/common/SystemSpecsPanel/SystemSpecsPanel';
 import { Toggle } from '../../../components/common/Toggle/Toggle';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { DevicesSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
@@ -460,9 +461,8 @@ interface SpecsPanelProps {
   specs: SystemSpecs | null;
 }
 
-// Build the row list once per render. Order is identity → OS → core
-// silicon → memory → storage → display → audio → network, which also
-// reads as a spec sheet when copied to chat.
+// Order is identity -> OS -> core silicon -> memory -> storage -> display ->
+// audio -> network, which also reads as a spec sheet when copied to chat.
 function specRows(specs: SystemSpecs, t: (k: string) => string) {
   return [
     { label: t('devices.specs.row.pcName'), value: specs.pcName },
@@ -478,52 +478,19 @@ function specRows(specs: SystemSpecs, t: (k: string) => string) {
   ];
 }
 
+// Stable placeholder row count while the first fetch is in flight, so the
+// tab doesn't collapse / reflow when the data arrives.
+const SPEC_PLACEHOLDER_ROWS = Array.from({ length: 10 }, () => ({ label: '', value: '' }));
+
 function SpecsPanel({ specs }: SpecsPanelProps) {
   const { t } = useTranslation();
-  const [copied, setCopied] = useState(false);
-
-  // Render a stable placeholder list while the first fetch is in flight so the
-  // tab doesn't collapse / reflow when the data arrives.
-  const rows = specs
-    ? specRows(specs, t)
-    : Array.from({ length: 10 }, () => ({ label: '', value: '' }));
-
-  const onCopy = async () => {
-    if (!specs) return;
-    const text = specRows(specs, t)
-      .map(r => `${r.label}: ${r.value || '-'}`)
-      .join('\n');
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // Browsers without async clipboard (older WebViews on the panel side)
-      // fall back to selecting nothing - no need to surface an error here,
-      // the toast just won't appear.
-    }
-  };
-
   return (
-    <>
-      <div className={styles.specsToolbar}>
-        <Button type="button" tone="accent" size="sm" onClick={onCopy} disabled={!specs}>
-          {copied ? t('devices.specs.copied') : t('devices.specs.copy')}
-        </Button>
-      </div>
-      <div className={styles.specsCard}>
-        <dl className={styles.specsList}>
-          {rows.map((row, i) => (
-            <div key={i} className={styles.specsRow}>
-              <dt className={styles.specsLabel}>{row.label || ' '}</dt>
-              <dd className={`${styles.specsValue} selectable`} data-panel-allow-text-selection="true">
-                {specs ? (row.value || '-') : ' '}
-              </dd>
-            </div>
-          ))}
-        </dl>
-      </div>
-    </>
+    <SystemSpecsPanel
+      rows={specs ? specRows(specs, t) : SPEC_PLACEHOLDER_ROWS}
+      loading={!specs}
+      copyLabel={t('devices.specs.copy')}
+      copiedLabel={t('devices.specs.copied')}
+    />
   );
 }
 

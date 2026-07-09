@@ -2,7 +2,7 @@ import { Cpu, Monitor, MemoryStick, HardDrive, AppWindow } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import type { BenchmarkResult, BenchmarkSubScore } from '../../../types/benchmark';
 import { Card } from '../../../components/common/Card/Card';
-import { SpecBlock } from './SpecBlock';
+import { SystemSpecsPanel } from '../../../components/common/SystemSpecsPanel/SystemSpecsPanel';
 import styles from './BenchmarkPage.module.scss';
 
 interface Props {
@@ -87,7 +87,7 @@ export function BenchmarkResults({ result, submission, submitting }: Props) {
 
       <div className={styles.subGrid}>
         {subs.map(s => <SubsystemCard key={s.key} s={s} model={models[s.key] ?? ''} />)}
-        <SpecBlock icon={<AppWindow size={16} />} label={t('benchmark.leaderboard.os')} value={hw.os} />
+        <SystemSpecsPanel variant="tiles" rows={[{ icon: <AppWindow size={16} />, label: t('benchmark.leaderboard.os'), value: hw.os }]} />
       </div>
     </div>
   );

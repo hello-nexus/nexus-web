@@ -27,7 +27,6 @@ function makeSeries(): TimeSeriesSeries[] {
 }
 
 const baseProps = {
-  bucketMinutes: 60,
   valueFormat: (v: number) => `${Math.round(v)}C`,
   xTickFormat: (t: number) => `T${t}`,
   avgLabel: 'Avg',
@@ -49,11 +48,61 @@ describe('TimeSeriesChart', () => {
           { t: 0, avg: 40, max: 45 },
           { t: HOUR, avg: 50, max: 55 },
           { t: 10 * HOUR, avg: 60, max: 65 },
+          { t: 11 * HOUR, avg: 62, max: 66 },
         ],
       },
     ];
     const { container } = render(<TimeSeriesChart series={series} {...baseProps} />);
     expect(container.querySelectorAll('path[stroke="#8b5cf6"]').length).toBe(2);
+  });
+
+  it('renders one connected line across widely (decimated) spaced points, not a break per point', () => {
+    // Regression: the gap threshold used to derive from a caller-supplied
+    // nominal bucket size, so decimated data (spaced far wider than the
+    // source bucket) rendered every point as an isolated, invisible segment.
+    const WIDE = 20 * 60_000;
+    const series: TimeSeriesSeries[] = [
+      {
+        id: 'cpu', name: 'CPU', color: '#8b5cf6',
+        points: Array.from({ length: 20 }, (_, i) => ({ t: i * WIDE, avg: 40 + i, max: 45 + i })),
+      },
+    ];
+    const { container } = render(<TimeSeriesChart series={series} {...baseProps} />);
+    expect(container.querySelectorAll('path[stroke="#8b5cf6"]').length).toBe(1);
+    expect(container.querySelectorAll('circle[fill="#8b5cf6"]').length).toBe(0);
+  });
+
+  it('still breaks on a genuine gap once spacing is derived from decimated data', () => {
+    const WIDE = 20 * 60_000;
+    const series: TimeSeriesSeries[] = [
+      {
+        id: 'cpu', name: 'CPU', color: '#8b5cf6',
+        points: [
+          ...Array.from({ length: 5 }, (_, i) => ({ t: i * WIDE, avg: 40 + i, max: 45 })),
+          ...Array.from({ length: 5 }, (_, i) => ({ t: 10 * WIDE + i * WIDE, avg: 50 + i, max: 55 })),
+        ],
+      },
+    ];
+    const { container } = render(<TimeSeriesChart series={series} {...baseProps} />);
+    expect(container.querySelectorAll('path[stroke="#8b5cf6"]').length).toBe(2);
+  });
+
+  it('renders an isolated single-point segment as a dot instead of an invisible path', () => {
+    const HOUR2 = HOUR;
+    const series: TimeSeriesSeries[] = [
+      {
+        id: 'cpu', name: 'CPU', color: '#8b5cf6',
+        points: [
+          { t: 0, avg: 40, max: 45 },
+          { t: HOUR2, avg: 42, max: 46 },
+          { t: 20 * HOUR2, avg: 90, max: 95 },
+          { t: 40 * HOUR2, avg: 41, max: 44 },
+          { t: 41 * HOUR2, avg: 43, max: 47 },
+        ],
+      },
+    ];
+    const { container } = render(<TimeSeriesChart series={series} {...baseProps} />);
+    expect(container.querySelector('circle[fill="#8b5cf6"]')).toBeInTheDocument();
   });
 
   it('renders a legend entry per series', () => {

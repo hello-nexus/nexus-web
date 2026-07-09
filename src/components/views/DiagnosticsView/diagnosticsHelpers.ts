@@ -14,6 +14,7 @@ import type {
   DiagnosticsStatus,
 } from '../../../api/diagnostics';
 import type { SystemSpecs } from '../../../hooks/useSystemSpecs';
+import type { SystemSpecRow } from '../../common/SystemSpecsPanel/SystemSpecsPanel';
 import { localizeNumbers, type NumberFormat } from '../../../lib/units';
 
 const STATUS_SEVERITY_RANK: Record<DiagnosticsStatus, number> = { act: 3, watch: 2, unknown: 1, ok: 0 };
@@ -261,32 +262,30 @@ export function formatBytes(bytes: number, numberFormat: NumberFormat): string {
   return localizeNumbers(`${scaled.toFixed(decimals)} ${BYTE_UNITS[index]}`, numberFormat);
 }
 
-export interface SpecRow {
-  label: string;
-  value: string;
-}
-
 /**
- * Composes the Summary tab's "PC specifications" rows. CPU / motherboard /
+ * Composes the Summary tab's "PC specifications" rows for SystemSpecsPanel.
+ * Field labels reuse devices.specs.row.* - the same wording as Devices >
+ * System Specs, since this is the same component. CPU / motherboard /
  * memory / GPU / OS build / PC name come from useSystemSpecs (GET
  * /system/specs) - no diagnostics endpoint carries them. The XMP flag and
- * GPU driver version fold in from the diagnostics memory/gpu resources the
- * page already fetches. Rows with no data are omitted rather than shown blank.
+ * GPU driver version fold into the value string from the diagnostics
+ * memory/gpu resources the page already fetches. Rows with no data are
+ * omitted rather than shown blank.
  */
 export function buildSpecRows(
   specs: SystemSpecs | null,
   memory: DiagnosticsMemoryResponse | null,
   gpu: DiagnosticsGpuResponse | null,
   translate: (key: string, params?: Record<string, string>) => string,
-): SpecRow[] {
-  const rows: SpecRow[] = [];
-  if (specs?.processor) rows.push({ label: translate('diagnostics.specs.cpu'), value: specs.processor });
-  if (specs?.motherboard) rows.push({ label: translate('diagnostics.specs.motherboard'), value: specs.motherboard });
+): SystemSpecRow[] {
+  const rows: SystemSpecRow[] = [];
+  if (specs?.processor) rows.push({ label: translate('devices.specs.row.processor'), value: specs.processor });
+  if (specs?.motherboard) rows.push({ label: translate('devices.specs.row.motherboard'), value: specs.motherboard });
   if (specs?.memory) {
     const value = memory?.xmpLikelyActive
       ? translate('diagnostics.specs.memoryWithXmp', { memory: specs.memory })
       : specs.memory;
-    rows.push({ label: translate('diagnostics.specs.memory'), value });
+    rows.push({ label: translate('devices.specs.row.memory'), value });
   }
   // specs.graphicsCard (Windows' own primary-adapter pick) is the name of
   // record; the diagnostics gpu resource's driver version only folds in when
@@ -297,9 +296,9 @@ export function buildSpecRows(
   if (gpuName) {
     const version = singleGpu?.driverVersion;
     const value = version ? translate('diagnostics.specs.gpuWithDriver', { gpu: gpuName, version }) : gpuName;
-    rows.push({ label: translate('diagnostics.specs.gpu'), value });
+    rows.push({ label: translate('devices.specs.row.graphicsCard'), value });
   }
-  if (specs?.osBuild) rows.push({ label: translate('diagnostics.specs.osBuild'), value: specs.osBuild });
-  if (specs?.pcName) rows.push({ label: translate('diagnostics.specs.pcName'), value: specs.pcName });
+  if (specs?.osBuild) rows.push({ label: translate('devices.specs.row.osBuild'), value: specs.osBuild });
+  if (specs?.pcName) rows.push({ label: translate('devices.specs.row.pcName'), value: specs.pcName });
   return rows;
 }

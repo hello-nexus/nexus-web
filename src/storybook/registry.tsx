@@ -9,6 +9,7 @@ import { RankedList } from '../components/common/RankedList/RankedList';
 import { SensorCard } from '../components/common/SensorCard/SensorCard';
 import { Card } from '../components/common/Card/Card';
 import { InfoList, InfoRow } from '../components/common/InfoList/InfoList';
+import { SystemSpecsPanel } from '../components/common/SystemSpecsPanel/SystemSpecsPanel';
 import { Avatar } from '../components/common/Avatar/Avatar';
 import { BatteryBar } from '../components/peripherals/BatteryBar';
 import { Slider } from '../components/common/Slider/Slider';
@@ -336,6 +337,31 @@ function PreviewCard() {
   );
 }
 
+function PreviewSystemSpecsPanel() {
+  return (
+    <div className={styles.previewStack}>
+      <SystemSpecsPanel
+        rows={[
+          { label: 'Processor', value: 'AMD Ryzen 7 9800X3D' },
+          { label: 'Motherboard', value: 'ASUS ROG Crosshair' },
+          { label: 'Memory', value: '64 GB DDR5-6000' },
+        ]}
+        copyLabel="Copy"
+        copiedLabel="Copied!"
+      />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '0.75rem' }}>
+        <SystemSpecsPanel
+          variant="tiles"
+          rows={[
+            { icon: <Monitor size={20} />, label: 'GPU', value: 'RTX 5080' },
+            { icon: <Monitor size={20} />, label: 'OS', value: 'Windows 11' },
+          ]}
+        />
+      </div>
+    </div>
+  );
+}
+
 function PreviewInfoList() {
   return (
     <InfoList>
@@ -503,7 +529,6 @@ function PreviewTimeSeriesChart() {
         { id: 'cpu', name: 'CPU', color: '#8b5cf6', points: points(55, 12, 0) },
         { id: 'gpu', name: 'GPU', color: '#22d3ee', points: points(48, 18, 2) },
       ]}
-      bucketMinutes={30}
       height={220}
       valueFormat={v => `${Math.round(v)}°C`}
       xTickFormat={t => new Date(t).toLocaleDateString(undefined, { weekday: 'short' })}
@@ -1619,6 +1644,13 @@ export const REGISTRY: StorybookEntry[] = [
     description: 'Bounded widget of label/value rows. Use for compact device meta, status keys, or any vertical key/value listing. Tones: accent / good / warn / bad / dim.', Preview: PreviewInfoList,
   },
   {
+    name: 'SystemSpecsPanel', category: 'cards',
+    filePath: 'src/components/common/SystemSpecsPanel/SystemSpecsPanel.tsx',
+    description: 'The one component every system-specs surface renders through: Devices > System Specs, Benchmark\'s pre-run summary and per-run results tile, and the Diagnostics Summary tab. `variant="list"` is a copyable label:value sheet; `variant="tiles"` renders bare icon+value Card tiles with no owning grid, so a caller can drop a single tile into its own grid or lay out a whole grid of them.',
+    Preview: PreviewSystemSpecsPanel,
+    notes: 'Rows are pre-translated by the caller - the component owns no i18n keys. loading blanks every list-variant value instead of showing a "-" placeholder, for a stable row count while the first fetch is in flight. copyLabel/copiedLabel are omitted together to hide the copy toolbar (Benchmark\'s tiles never show one).',
+  },
+  {
     name: 'PairedPcsContent', category: 'cards',
     filePath: 'src/components/common/PairedPcs/PairedPcsContent.tsx',
     description: 'The phone panel\'s remembered-PCs list (swipe-up tray, phone surface only): Card + CardDeleteButton rows for every PC this phone has claimed, independent of current LAN reachability. Connect applies the record\'s token and navigates into /panel/phone; a needsRepair record offers a re-pair link instead.',
@@ -1731,7 +1763,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'TimeSeriesChart', category: 'charts',
     filePath: 'src/components/common/TimeSeriesChart/TimeSeriesChart.tsx',
-    description: 'Multi-series line chart over a real date/time domain (not a fixed live-seconds window). Tracks container width via ResizeObserver; borrows StackedChart\'s axis/tooltip frame. A gap wider than 1.5x the bucket spacing breaks the line instead of interpolating across it. Used by the Diagnostics Cooling tab\'s temperature history.', Preview: PreviewTimeSeriesChart,
+    description: 'Multi-series line chart over a real date/time domain (not a fixed live-seconds window). Tracks container width via ResizeObserver; borrows StackedChart\'s axis/tooltip frame. A gap wider than 1.5x the actual median point spacing (derived from the data, not a nominal bucket size) breaks the line instead of interpolating across it, and an isolated point renders as a dot. Used by the Diagnostics Cooling tab\'s temperature history.', Preview: PreviewTimeSeriesChart,
     notes: 'Points carry {t, avg, max}; only avg is plotted, both are shown in the hover tooltip. xTickFormat/valueFormat let the caller pick range-appropriate label granularity and unit formatting. Optional bands prop draws translucent spans (e.g. sustained-high episodes).',
   },
   {

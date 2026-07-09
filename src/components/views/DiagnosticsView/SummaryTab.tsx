@@ -12,8 +12,8 @@ import type { SystemSpecs } from '../../../hooks/useSystemSpecs';
 import { Card } from '../../common/Card/Card';
 import { Button } from '../../common/Button/Button';
 import { Badge } from '../../common/Badge/Badge';
-import { InfoList, InfoRow } from '../../common/InfoList/InfoList';
 import { SectionHeader } from '../../common/SectionHeader/SectionHeader';
+import { SystemSpecsPanel } from '../../common/SystemSpecsPanel/SystemSpecsPanel';
 import { ComponentHealthGrid } from './ComponentHealthGrid';
 import { NotAvailableNote, SectionLoadError } from './DiagnosticsSectionStates';
 import { GenericSkeleton } from '../PageSkeleton/PageSkeleton';
@@ -84,9 +84,7 @@ export function SummaryTab({
       {specRows.length > 0 && (
         <section className={styles.section}>
           <SectionHeader>{t('diagnostics.specs.title')}</SectionHeader>
-          <InfoList>
-            {specRows.map(row => <InfoRow key={row.label} label={row.label} value={row.value} />)}
-          </InfoList>
+          <SystemSpecsPanel rows={specRows} copyLabel={t('devices.specs.copy')} copiedLabel={t('devices.specs.copied')} />
         </section>
       )}
     </>

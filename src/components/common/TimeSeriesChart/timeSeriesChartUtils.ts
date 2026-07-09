@@ -16,6 +16,28 @@ export interface TimeSeriesSeries {
 }
 
 /**
+ * Median gap between consecutive points, pooled across every series, or
+ * null when there are fewer than two points anywhere to measure a gap from.
+ * Server-side decimation widens the actual point spacing well past the
+ * source bucket size at wide ranges, so gap/hover thresholds must derive
+ * from this instead of a caller-supplied nominal bucket size - otherwise
+ * every decimated point looks like an isolated gap and the chart renders
+ * blank.
+ */
+export function medianSpacingMs(series: readonly TimeSeriesSeries[]): number | null {
+  const deltas: number[] = [];
+  for (const s of series) {
+    for (let i = 1; i < s.points.length; i++) {
+      deltas.push(s.points[i].t - s.points[i - 1].t);
+    }
+  }
+  if (deltas.length === 0) return null;
+  deltas.sort((a, b) => a - b);
+  const mid = Math.floor(deltas.length / 2);
+  return deltas.length % 2 === 0 ? (deltas[mid - 1] + deltas[mid]) / 2 : deltas[mid];
+}
+
+/**
  * Splits a series' points into runs with no gap wider than maxGapMs, so a
  * missing bucket renders as a broken line instead of an interpolated one.
  * Points are assumed sorted ascending by t.

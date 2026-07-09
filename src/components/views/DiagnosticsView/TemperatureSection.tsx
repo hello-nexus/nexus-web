@@ -85,7 +85,6 @@ export function TemperatureSection({ data, loading, error, mocked, hours, onHour
           )}
           <TimeSeriesChart
             series={toChartSeries(data.series)}
-            bucketMinutes={data.bucketMinutes}
             valueFormat={v => formatTemperatureCelsius(v, monitoringTempUnit, numberFormat)}
             xTickFormat={xTickFormatForRange(hours)}
             avgLabel={t('diagnostics.temperature.avg')}

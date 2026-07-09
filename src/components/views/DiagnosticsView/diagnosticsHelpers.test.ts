@@ -218,23 +218,23 @@ describe('buildSpecRows', () => {
 
   it('builds one row per known field, folding in XMP and the GPU driver version', () => {
     expect(buildSpecRows(specs, memory, gpu, translate)).toEqual([
-      { label: 'diagnostics.specs.cpu', value: 'AMD Ryzen 7 9800X3D' },
-      { label: 'diagnostics.specs.motherboard', value: 'ASUS ROG Crosshair' },
-      { label: 'diagnostics.specs.memory', value: '64 GB DDR5-6000 (XMP)' },
-      { label: 'diagnostics.specs.gpu', value: 'RTX 5080 (591.86)' },
-      { label: 'diagnostics.specs.osBuild', value: '26100.4351' },
-      { label: 'diagnostics.specs.pcName', value: 'NICOLA-PC' },
+      { label: 'devices.specs.row.processor', value: 'AMD Ryzen 7 9800X3D' },
+      { label: 'devices.specs.row.motherboard', value: 'ASUS ROG Crosshair' },
+      { label: 'devices.specs.row.memory', value: '64 GB DDR5-6000 (XMP)' },
+      { label: 'devices.specs.row.graphicsCard', value: 'RTX 5080 (591.86)' },
+      { label: 'devices.specs.row.osBuild', value: '26100.4351' },
+      { label: 'devices.specs.row.pcName', value: 'NICOLA-PC' },
     ]);
   });
 
   it('omits the XMP suffix when XMP is not active', () => {
     const rows = buildSpecRows(specs, { ...memory, xmpLikelyActive: false }, gpu, translate);
-    expect(rows.find(r => r.label === 'diagnostics.specs.memory')?.value).toBe('64 GB DDR5-6000');
+    expect(rows.find(r => r.label === 'devices.specs.row.memory')?.value).toBe('64 GB DDR5-6000');
   });
 
   it('falls back to the specs graphics card name when the gpu resource has no data yet', () => {
     const rows = buildSpecRows(specs, memory, null, translate);
-    expect(rows.find(r => r.label === 'diagnostics.specs.gpu')?.value).toBe('RTX 5080');
+    expect(rows.find(r => r.label === 'devices.specs.row.graphicsCard')?.value).toBe('RTX 5080');
   });
 
   it('never pairs a driver version onto specs.graphicsCard when more than one GPU is reported (ambiguous adapter identity)', () => {
@@ -246,7 +246,7 @@ describe('buildSpecRows', () => {
       ],
     };
     const rows = buildSpecRows(specs, memory, multiGpu, translate);
-    expect(rows.find(r => r.label === 'diagnostics.specs.gpu')?.value).toBe('RTX 5080');
+    expect(rows.find(r => r.label === 'devices.specs.row.graphicsCard')?.value).toBe('RTX 5080');
   });
 
   it('omits every row when nothing has loaded yet', () => {

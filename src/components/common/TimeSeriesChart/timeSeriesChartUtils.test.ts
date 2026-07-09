@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  medianSpacingMs,
   nearestPoint,
   niceTicks,
   splitIntoSegments,
@@ -12,6 +13,32 @@ import {
 function pt(t: number, avg: number, max = avg): TimeSeriesPoint {
   return { t, avg, max };
 }
+
+describe('medianSpacingMs', () => {
+  it('returns the median delta across every series pooled together', () => {
+    const series: TimeSeriesSeries[] = [
+      { id: 'a', name: 'A', color: '#fff', points: [pt(0, 1), pt(100, 2), pt(200, 3)] },
+      { id: 'b', name: 'B', color: '#000', points: [pt(0, 1), pt(100, 2)] },
+    ];
+    expect(medianSpacingMs(series)).toBe(100);
+  });
+
+  it('reflects decimated (widened) spacing, not any nominal bucket size', () => {
+    const series: TimeSeriesSeries[] = [
+      { id: 'a', name: 'A', color: '#fff', points: [pt(0, 1), pt(1_200_000, 2), pt(2_400_000, 3), pt(3_600_000, 4)] },
+    ];
+    expect(medianSpacingMs(series)).toBe(1_200_000);
+  });
+
+  it('returns null when no series has two or more points', () => {
+    const series: TimeSeriesSeries[] = [{ id: 'a', name: 'A', color: '#fff', points: [pt(0, 1)] }];
+    expect(medianSpacingMs(series)).toBeNull();
+  });
+
+  it('returns null for no series at all', () => {
+    expect(medianSpacingMs([])).toBeNull();
+  });
+});
 
 describe('splitIntoSegments', () => {
   it('keeps evenly spaced points in one segment', () => {
