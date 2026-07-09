@@ -18,6 +18,7 @@ import {
   hasMarketplaceLoadedOnce,
   isMarketplaceType,
   marketplaceIdFromType,
+  normalizeAppType,
 } from '../../widgets/marketplaceRegistry';
 
 const REMOVED_WIDGET_TYPES = new Set(['y70-controls']);
@@ -59,7 +60,13 @@ function reconcileAppsAgainstRegistry(
   surface: PanelSurface,
   deviceTouch?: boolean,
 ): PanelWidget[] {
-  return widgets.flatMap((widget): PanelWidget[] => {
+  return widgets.flatMap((rawWidget): PanelWidget[] => {
+    // A pre-v11 service (my.hellonexus.com against an older LAN box) still
+    // serves legacy marketplace:-prefixed app placements; rewrite instead of
+    // treating them as unknown, or this reconcile would delete them and the
+    // layout writer would persist the loss.
+    const type = normalizeAppType(rawWidget.type);
+    const widget = type === rawWidget.type ? rawWidget : { ...rawWidget, type };
     const def = lookupApp(widget.type);
     if (!def) {
       // Marketplace widget rectangles can stick around in the layout

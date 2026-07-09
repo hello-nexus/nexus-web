@@ -5,7 +5,7 @@
 // curated here (one design choice we don't want to derive).
 
 import { APP_REGISTRY, lookupApp } from '../panel/widgets/registry';
-import { getPreinstalledPageAppTypes, isMarketplaceType } from '../widgets/marketplaceRegistry';
+import { getPreinstalledPageAppTypes, isMarketplaceType, normalizeAppType } from '../widgets/marketplaceRegistry';
 
 export const DASHBOARD_APP_KEY = 'dashboard' as const;
 export type SidebarAppKey = string; // any app type that has a Page, or 'dashboard'
@@ -40,19 +40,22 @@ function defaultPinnedTail(): string[] {
   return out;
 }
 
-// Normalize a tail array read from settings/server: drop unknown
-// keys (apps that no longer exist, or never did), dedupe while
-// preserving first-occurrence order. Returns a brand-new array.
+// Normalize a tail array read from settings/server: rewrite legacy
+// marketplace:-prefixed keys (the tail lives in client storage, so the
+// server-side v11 migration never sees it), drop unknown keys (apps that
+// no longer exist, or never did), dedupe while preserving
+// first-occurrence order. Returns a brand-new array.
 export function sanitizePinnedTail(input: readonly unknown[] | undefined): string[] {
   if (!input || !Array.isArray(input)) return defaultPinnedTail();
   const out: string[] = [];
   const seen = new Set<string>();
   for (const entry of input) {
     if (typeof entry !== 'string') continue;
-    if (!isPinnableAppKey(entry)) continue;
-    if (seen.has(entry)) continue;
-    seen.add(entry);
-    out.push(entry);
+    const key = normalizeAppType(entry);
+    if (!isPinnableAppKey(key)) continue;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(key);
   }
   return out;
 }

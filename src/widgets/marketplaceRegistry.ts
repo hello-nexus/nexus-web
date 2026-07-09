@@ -9,6 +9,20 @@ import type { AppInstalledListing } from './types';
 
 export const APP_TYPE_PREFIX = 'app:';
 
+/** Pre-rename placement prefix. Persisted data can still carry it - the
+ *  localStorage pinned-sidebar tail (never server-migrated) and layouts
+ *  served by a pre-v11 service (my.hellonexus.com version skew). Rewrite on
+ *  read via normalizeAppType; nothing may emit it. */
+export const LEGACY_APP_TYPE_PREFIX = 'marketplace:';
+
+/** Rewrite a legacy-prefixed placement type/key to the app: prefix; every
+ *  other string passes through untouched. */
+export function normalizeAppType(type: string): string {
+  return type.startsWith(LEGACY_APP_TYPE_PREFIX)
+    ? APP_TYPE_PREFIX + type.slice(LEGACY_APP_TYPE_PREFIX.length)
+    : type;
+}
+
 export function isMarketplaceType(type: string | null | undefined): boolean {
   return typeof type === 'string' && type.startsWith(APP_TYPE_PREFIX);
 }
