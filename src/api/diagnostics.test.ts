@@ -137,34 +137,39 @@ describe('scheduleMemoryTest / cancelMemoryTest', () => {
 describe('openDiagnosticsEventViewer', () => {
   it('resolves the real payload on a 2xx response', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(200, { opened: true })));
-    expect(await openDiagnosticsEventViewer()).toEqual({ data: { opened: true }, mocked: false });
+    expect(await openDiagnosticsEventViewer()).toEqual({ opened: true });
   });
 
-  it('falls back to the mock when the route 404s', async () => {
+  it('returns null on a 404 instead of faking success - LocalhostOnly rejects a non-loopback origin with 404', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(404, {})));
-    expect(await openDiagnosticsEventViewer()).toEqual({ data: { opened: true }, mocked: true });
+    expect(await openDiagnosticsEventViewer()).toBeNull();
   });
 
-  it('does not fall back to mock data on a 500', async () => {
+  it('returns null on a 500', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(500, {})));
-    expect(await openDiagnosticsEventViewer()).toEqual({ data: null, mocked: false });
+    expect(await openDiagnosticsEventViewer()).toBeNull();
   });
 });
 
 describe('clearDiagnosticsEventLogs', () => {
   it('resolves the real payload on a 2xx response', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(200, { cleared: true })));
-    expect(await clearDiagnosticsEventLogs()).toEqual({ data: { cleared: true }, mocked: false });
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(200, { cleared: true, systemError: '', applicationError: '' })));
+    expect(await clearDiagnosticsEventLogs()).toEqual({ cleared: true, systemError: '', applicationError: '' });
   });
 
-  it('falls back to the mock when the route 404s', async () => {
+  it('passes through a completed-but-partial result instead of masking it as a full success', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(200, { cleared: false, systemError: 'Access denied', applicationError: '' })));
+    expect(await clearDiagnosticsEventLogs()).toEqual({ cleared: false, systemError: 'Access denied', applicationError: '' });
+  });
+
+  it('returns null on a 404 instead of faking success', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(404, {})));
-    expect(await clearDiagnosticsEventLogs()).toEqual({ data: { cleared: true }, mocked: true });
+    expect(await clearDiagnosticsEventLogs()).toBeNull();
   });
 
-  it('does not fall back to mock data on a 500 - a real error stays a real error', async () => {
+  it('returns null on a 500 - a real error stays a real error', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(500, {})));
-    expect(await clearDiagnosticsEventLogs()).toEqual({ data: null, mocked: false });
+    expect(await clearDiagnosticsEventLogs()).toBeNull();
   });
 });
 

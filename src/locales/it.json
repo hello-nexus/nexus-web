@@ -764,6 +764,7 @@
   "diagnostics.incidents.clearLogsConfirmMessage": "Cancella i registri eventi Sistema e Applicazione di Windows per l'intero PC.",
   "diagnostics.incidents.clearLogsConfirmTitle": "Cancellare i registri eventi di Windows?",
   "diagnostics.incidents.clearLogsFailed": "Impossibile cancellare i registri eventi di Windows.",
+  "diagnostics.incidents.clearLogsFailedDetail": "Impossibile cancellare completamente i registri eventi di Windows: {detail}",
   "diagnostics.incidents.clearLogsNote": "Questa operazione non può essere annullata.",
   "diagnostics.incidents.clearLogsSuccess": "Registri eventi di Windows cancellati.",
   "diagnostics.incidents.empty": "Nessun incidente negli ultimi {days} giorni.",

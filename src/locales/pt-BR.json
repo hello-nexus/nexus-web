@@ -764,6 +764,7 @@
   "diagnostics.incidents.clearLogsConfirmMessage": "Isso limpa os logs de eventos do Windows Sistema e Aplicativo em todo este PC.",
   "diagnostics.incidents.clearLogsConfirmTitle": "Limpar os logs de eventos do Windows?",
   "diagnostics.incidents.clearLogsFailed": "Não foi possível limpar os logs de eventos do Windows.",
+  "diagnostics.incidents.clearLogsFailedDetail": "Não foi possível limpar completamente os logs de eventos do Windows: {detail}",
   "diagnostics.incidents.clearLogsNote": "Isso não pode ser desfeito.",
   "diagnostics.incidents.clearLogsSuccess": "Logs de eventos do Windows limpos.",
   "diagnostics.incidents.empty": "Nenhum incidente nos últimos {days} dias.",

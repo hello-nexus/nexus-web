@@ -764,6 +764,7 @@
   "diagnostics.incidents.clearLogsConfirmMessage": "此操作会清除整台电脑上 Windows 的“系统”和“应用程序”事件日志。",
   "diagnostics.incidents.clearLogsConfirmTitle": "清除 Windows 事件日志?",
   "diagnostics.incidents.clearLogsFailed": "无法清除 Windows 事件日志。",
+  "diagnostics.incidents.clearLogsFailedDetail": "无法完全清除 Windows 事件日志：{detail}",
   "diagnostics.incidents.clearLogsNote": "此操作无法撤销。",
   "diagnostics.incidents.clearLogsSuccess": "已清除 Windows 事件日志。",
   "diagnostics.incidents.empty": "过去 {days} 天内没有事件。",

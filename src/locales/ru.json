@@ -764,6 +764,7 @@
   "diagnostics.incidents.clearLogsConfirmMessage": "Это очищает журналы событий Windows «Система» и «Приложение» для всего этого ПК.",
   "diagnostics.incidents.clearLogsConfirmTitle": "Очистить журналы событий Windows?",
   "diagnostics.incidents.clearLogsFailed": "Не удалось очистить журналы событий Windows.",
+  "diagnostics.incidents.clearLogsFailedDetail": "Не удалось полностью очистить журналы событий Windows: {detail}",
   "diagnostics.incidents.clearLogsNote": "Это действие нельзя отменить.",
   "diagnostics.incidents.clearLogsSuccess": "Журналы событий Windows очищены.",
   "diagnostics.incidents.empty": "За последние {days} дней инцидентов не было.",

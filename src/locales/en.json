@@ -786,6 +786,7 @@
   "diagnostics.incidents.clearLogsConfirmMessage": "This clears the Windows System and Application event logs for this entire PC.",
   "diagnostics.incidents.clearLogsConfirmTitle": "Clear Windows event logs?",
   "diagnostics.incidents.clearLogsFailed": "Could not clear the Windows event logs.",
+  "diagnostics.incidents.clearLogsFailedDetail": "Could not clear the Windows event logs: {detail}",
   "diagnostics.incidents.clearLogsNote": "This can't be undone.",
   "diagnostics.incidents.clearLogsSuccess": "Windows event logs cleared.",
   "diagnostics.incidents.empty": "No incidents in the last {days} days.",

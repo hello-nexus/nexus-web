@@ -764,6 +764,7 @@
   "diagnostics.incidents.clearLogsConfirmMessage": "Dies löscht die Windows-Ereignisprotokolle System und Anwendung für diesen gesamten PC.",
   "diagnostics.incidents.clearLogsConfirmTitle": "Windows-Ereignisprotokolle löschen?",
   "diagnostics.incidents.clearLogsFailed": "Die Windows-Ereignisprotokolle konnten nicht gelöscht werden.",
+  "diagnostics.incidents.clearLogsFailedDetail": "Die Windows-Ereignisprotokolle konnten nicht vollständig gelöscht werden: {detail}",
   "diagnostics.incidents.clearLogsNote": "Dies kann nicht rückgängig gemacht werden.",
   "diagnostics.incidents.clearLogsSuccess": "Windows-Ereignisprotokolle gelöscht.",
   "diagnostics.incidents.empty": "Keine Vorfälle in den letzten {days} Tagen.",

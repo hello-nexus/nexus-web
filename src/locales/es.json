@@ -764,6 +764,7 @@
   "diagnostics.incidents.clearLogsConfirmMessage": "Esto borra los registros de eventos Sistema y Aplicación de Windows en todo este PC.",
   "diagnostics.incidents.clearLogsConfirmTitle": "¿Borrar los registros de eventos de Windows?",
   "diagnostics.incidents.clearLogsFailed": "No se pudieron borrar los registros de eventos de Windows.",
+  "diagnostics.incidents.clearLogsFailedDetail": "No se pudieron borrar completamente los registros de eventos de Windows: {detail}",
   "diagnostics.incidents.clearLogsNote": "Esto no se puede deshacer.",
   "diagnostics.incidents.clearLogsSuccess": "Registros de eventos de Windows borrados.",
   "diagnostics.incidents.empty": "No hay incidentes en los últimos {days} días.",

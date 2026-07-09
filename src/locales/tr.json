@@ -764,6 +764,7 @@
   "diagnostics.incidents.clearLogsConfirmMessage": "Bu, bu bilgisayarın tamamı için Windows Sistem ve Uygulama olay günlüklerini temizler.",
   "diagnostics.incidents.clearLogsConfirmTitle": "Windows olay günlükleri temizlensin mi?",
   "diagnostics.incidents.clearLogsFailed": "Windows olay günlükleri temizlenemedi.",
+  "diagnostics.incidents.clearLogsFailedDetail": "Windows olay günlükleri tamamen temizlenemedi: {detail}",
   "diagnostics.incidents.clearLogsNote": "Bu işlem geri alınamaz.",
   "diagnostics.incidents.clearLogsSuccess": "Windows olay günlükleri temizlendi.",
   "diagnostics.incidents.empty": "Son {days} günde olay yok.",

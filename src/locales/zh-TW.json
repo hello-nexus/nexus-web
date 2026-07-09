@@ -764,6 +764,7 @@
   "diagnostics.incidents.clearLogsConfirmMessage": "此操作會清除整台電腦上 Windows 的「系統」和「應用程式」事件記錄檔。",
   "diagnostics.incidents.clearLogsConfirmTitle": "要清除 Windows 事件記錄檔嗎?",
   "diagnostics.incidents.clearLogsFailed": "無法清除 Windows 事件記錄檔。",
+  "diagnostics.incidents.clearLogsFailedDetail": "無法完全清除 Windows 事件記錄檔：{detail}",
   "diagnostics.incidents.clearLogsNote": "此操作無法復原。",
   "diagnostics.incidents.clearLogsSuccess": "已清除 Windows 事件記錄檔。",
   "diagnostics.incidents.empty": "過去 {days} 天內沒有事件。",

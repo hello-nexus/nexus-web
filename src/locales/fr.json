@@ -764,6 +764,7 @@
   "diagnostics.incidents.clearLogsConfirmMessage": "Cela efface les journaux d'événements Windows Système et Application pour tout ce PC.",
   "diagnostics.incidents.clearLogsConfirmTitle": "Effacer les journaux d'événements Windows ?",
   "diagnostics.incidents.clearLogsFailed": "Impossible d'effacer les journaux d'événements Windows.",
+  "diagnostics.incidents.clearLogsFailedDetail": "Impossible d'effacer complètement les journaux d'événements Windows : {detail}",
   "diagnostics.incidents.clearLogsNote": "Cette action est irréversible.",
   "diagnostics.incidents.clearLogsSuccess": "Journaux d'événements Windows effacés.",
   "diagnostics.incidents.empty": "Aucun incident au cours des {days} derniers jours.",

@@ -88,7 +88,7 @@ export function IncidentsSection({ data, loading, error, onRefresh, onLogsCleare
     setOpeningViewer(true);
     const result = await openDiagnosticsEventViewer();
     setOpeningViewer(false);
-    if (!result.data?.opened) push({ title: t('diagnostics.incidents.openEventViewerFailed') });
+    if (!result?.opened) push({ title: t('diagnostics.incidents.openEventViewerFailed') });
   }, [push, t]);
 
   const [clearLogsConfirmOpen, setClearLogsConfirmOpen] = useState(false);
@@ -98,12 +98,24 @@ export function IncidentsSection({ data, loading, error, onRefresh, onLogsCleare
     setClearingLogs(true);
     const result = await clearDiagnosticsEventLogs();
     setClearingLogs(false);
-    if (result.data?.cleared) {
-      push({ title: t('diagnostics.incidents.clearLogsSuccess') });
-      onRefresh();
-      onLogsCleared();
-    } else {
+    if (!result) {
       push({ title: t('diagnostics.incidents.clearLogsFailed') });
+      return;
+    }
+    // A completed request can still leave `cleared: false` (one log failed)
+    // while having wiped the other, so every affected section resyncs
+    // regardless of the outcome.
+    onRefresh();
+    onLogsCleared();
+    if (result.cleared) {
+      push({ title: t('diagnostics.incidents.clearLogsSuccess') });
+    } else {
+      const detail = [result.systemError, result.applicationError].filter(Boolean).join('; ');
+      push({
+        title: detail
+          ? t('diagnostics.incidents.clearLogsFailedDetail', { detail })
+          : t('diagnostics.incidents.clearLogsFailed'),
+      });
     }
   }, [onLogsCleared, onRefresh, push, t]);
 
@@ -111,20 +123,22 @@ export function IncidentsSection({ data, loading, error, onRefresh, onLogsCleare
     <section className={styles.section}>
       <div className={styles.sectionHeaderRow}>
         <SectionHeader>{t('diagnostics.incidents.title')}</SectionHeader>
-        <div className={styles.incidentsHeaderActions}>
-          <Button
-            tone="ghost" size="sm" icon={<ExternalLink size={13} />} loading={openingViewer}
-            onClick={() => void handleOpenEventViewer()}
-          >
-            {t('diagnostics.incidents.openEventViewer')}
-          </Button>
-          <Button
-            tone="danger" size="sm" icon={<Trash2 size={13} />} loading={clearingLogs}
-            onClick={() => setClearLogsConfirmOpen(true)}
-          >
-            {t('diagnostics.incidents.clearLogs')}
-          </Button>
-        </div>
+        {data?.supported && (
+          <div className={styles.incidentsHeaderActions}>
+            <Button
+              tone="ghost" size="sm" icon={<ExternalLink size={13} />} loading={openingViewer}
+              onClick={() => void handleOpenEventViewer()}
+            >
+              {t('diagnostics.incidents.openEventViewer')}
+            </Button>
+            <Button
+              tone="danger" size="sm" icon={<Trash2 size={13} />} loading={clearingLogs}
+              onClick={() => setClearLogsConfirmOpen(true)}
+            >
+              {t('diagnostics.incidents.clearLogs')}
+            </Button>
+          </div>
+        )}
       </div>
       {state === 'error' && <SectionLoadError onRetry={() => onRefresh()} loading={loading} />}
       {state === 'notSupported' && <NotAvailableNote />}

@@ -773,6 +773,7 @@
   "diagnostics.incidents.clearLogsConfirmMessage": "Chest al nete i regjistris di events di Windows Sisteme e Aplicazion su dut chest PC.",
   "diagnostics.incidents.clearLogsConfirmTitle": "Netâ lis regjistrazions di events di Windows?",
   "diagnostics.incidents.clearLogsFailed": "Impussibil netâ lis regjistrazions di events di Windows.",
+  "diagnostics.incidents.clearLogsFailedDetail": "Impussibil netâ dal dut lis regjistrazions di events di Windows: {detail}",
   "diagnostics.incidents.clearLogsNote": "Chest no si pues disfâ.",
   "diagnostics.incidents.clearLogsSuccess": "Regjistrazions di events di Windows netadis.",
   "diagnostics.incidents.empty": "Nissun incident tai ultins {days} dîs.",
