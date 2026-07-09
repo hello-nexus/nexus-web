@@ -91,4 +91,32 @@ describe('importProfileFile', () => {
     expect(result).toEqual({ status: 0, body: null });
     expect(fetchMock).not.toHaveBeenCalled();
   });
+
+  it('posts to the plain import path when replace is omitted or false', async () => {
+    const fetchMock = vi.fn(async () => jsonResponse(200, { error: false, msg: 'Ok' }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const file = new File([JSON.stringify({ name: 'Gaming' })], 'profile.json', { type: 'application/json' });
+
+    await importProfileFile(file);
+    let [url] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain('/profiles/import');
+    expect(url).not.toContain('replace');
+
+    await importProfileFile(file, false);
+    [url] = fetchMock.mock.calls[1] as [string, RequestInit];
+    expect(url).toContain('/profiles/import');
+    expect(url).not.toContain('replace');
+  });
+
+  it('posts to /profiles/import?replace=true when replace is true', async () => {
+    const fetchMock = vi.fn(async () => jsonResponse(200, { error: false, msg: 'Ok' }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const file = new File([JSON.stringify({ name: 'Gaming' })], 'profile.json', { type: 'application/json' });
+    await importProfileFile(file, true);
+
+    const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain('/profiles/import?replace=true');
+  });
 });
