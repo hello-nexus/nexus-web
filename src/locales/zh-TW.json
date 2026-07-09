@@ -2313,6 +2313,7 @@
   "site.footer.loveOpenSource": "我們 ❤️ 開源",
   "site.footer.tagline": "為您的電腦帶來監控、散熱與燈光效果。",
   "site.gate.backToSite": "關於 Nexus",
+  "site.gate.message": "此頁面會連線到這台電腦上執行的 Nexus。",
   "site.gate.updateHint": "已安裝但無法連線？請確認 Nexus 正在執行且為最新版本，並在瀏覽器詢問時允許存取本機網路。",
   "site.hero.ctaMySystem": "開啟我的系統",
   "site.hero.subtitle": "Nexus 將即時硬體監控、智慧散熱與絢麗 RGB 燈光效果，集於一款快速、免費的開源應用程式之中。",

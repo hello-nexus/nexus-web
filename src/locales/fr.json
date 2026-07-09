@@ -2313,6 +2313,7 @@
   "site.footer.loveOpenSource": "Nous ❤️ l'open source",
   "site.footer.tagline": "Surveillance, refroidissement et éclairage pour votre PC.",
   "site.gate.backToSite": "À propos de Nexus",
+  "site.gate.message": "Cette page se connecte à Nexus sur cet ordinateur.",
   "site.gate.updateHint": "Déjà installé mais pas de connexion ? Vérifiez que Nexus est lancé et à jour, et autorisez l'accès au réseau local si votre navigateur le demande.",
   "site.hero.ctaMySystem": "Ouvrir mon système",
   "site.hero.subtitle": "Nexus réunit surveillance matérielle en direct, refroidissement intelligent et éclairage RGB spectaculaire dans une application rapide, gratuite et open source.",

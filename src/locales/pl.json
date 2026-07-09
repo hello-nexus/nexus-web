@@ -2313,6 +2313,7 @@
   "site.footer.loveOpenSource": "Kochamy open source ❤️",
   "site.footer.tagline": "Monitorowanie, chłodzenie i podświetlenie dla Twojego PC.",
   "site.gate.backToSite": "O Nexus",
+  "site.gate.message": "Ta strona łączy się z aplikacją Nexus na tym komputerze.",
   "site.gate.updateHint": "Zainstalowany, ale się nie łączy? Upewnij się, że Nexus działa i jest aktualny, i zezwól na dostęp do sieci lokalnej, jeśli przeglądarka o to poprosi.",
   "site.hero.ctaMySystem": "Otwórz Mój system",
   "site.hero.subtitle": "Nexus łączy monitorowanie sprzętu na żywo, inteligentne chłodzenie i oszałamiające podświetlenie RGB w jednej szybkiej, darmowej aplikacji open source.",
