@@ -102,3 +102,151 @@ describe('UiSettingsProvider - prefs-topic reload', () => {
     expect(h.fetchPreferences).toHaveBeenCalledTimes(fetchCalls + 1);
   });
 });
+
+describe('UiSettingsProvider - pinnedSidebarApps', () => {
+  const flush = () => act(async () => { await Promise.resolve(); });
+  // nexus-service has no PinnedSidebarApps field on UiSettings/UiSettingsPatch
+  // (ProfileRoutes.cs never reads or writes it), so every real GET /preferences
+  // response omits ui.pinnedSidebarApps. Mirrored here rather than including
+  // the field, so these tests fail the moment that assumption stops holding.
+  const serverPrefs = () => ({
+    theme: { themeMode: 'dark', accentColor: '#2563eb', language: 'en' },
+    ui: {},
+  });
+
+  it('pins an app by appending it to the tail and posts the full array', async () => {
+    h.fetchPreferences.mockResolvedValue(serverPrefs());
+    h.savePreferences.mockResolvedValue(undefined);
+    await act(async () => {
+      render(
+        <UiSettingsProvider serviceOnline manageDom>
+          <Consumer />
+        </UiSettingsProvider>,
+      );
+    });
+    await flush();
+
+    // 'clock' is Page-capable (isPinnableAppKey true) but left out of
+    // DEFAULT_PINNED_TAIL, so it is a realistic target for a fresh pin.
+    const tail = captured.ctx!.settings.pinnedSidebarApps;
+    await act(async () => { captured.ctx!.update({ pinnedSidebarApps: [...tail, 'clock'] }); });
+
+    expect(captured.ctx!.settings.pinnedSidebarApps).toEqual([...tail, 'clock']);
+    await act(async () => { await new Promise(r => setTimeout(r, 300)); });
+    expect(h.savePreferences).toHaveBeenCalledWith({ ui: { pinnedSidebarApps: [...tail, 'clock'] } });
+  });
+
+  it('unpins an app by removing it from the tail', async () => {
+    h.fetchPreferences.mockResolvedValue(serverPrefs());
+    h.savePreferences.mockResolvedValue(undefined);
+    await act(async () => {
+      render(
+        <UiSettingsProvider serviceOnline manageDom>
+          <Consumer />
+        </UiSettingsProvider>,
+      );
+    });
+    await flush();
+
+    const tail = captured.ctx!.settings.pinnedSidebarApps;
+    const next = tail.filter(k => k !== 'lighting');
+    await act(async () => { captured.ctx!.update({ pinnedSidebarApps: next }); });
+
+    expect(captured.ctx!.settings.pinnedSidebarApps).toEqual(next);
+    expect(captured.ctx!.settings.pinnedSidebarApps).not.toContain('lighting');
+    await act(async () => { await new Promise(r => setTimeout(r, 300)); });
+    expect(h.savePreferences).toHaveBeenCalledWith({ ui: { pinnedSidebarApps: next } });
+  });
+
+  it('reorders the tail and persists the new order', async () => {
+    h.fetchPreferences.mockResolvedValue(serverPrefs());
+    h.savePreferences.mockResolvedValue(undefined);
+    await act(async () => {
+      render(
+        <UiSettingsProvider serviceOnline manageDom>
+          <Consumer />
+        </UiSettingsProvider>,
+      );
+    });
+    await flush();
+
+    const reordered = ['cooling', 'monitoring', 'lighting'];
+    await act(async () => { captured.ctx!.update({ pinnedSidebarApps: reordered }); });
+    await act(async () => { await new Promise(r => setTimeout(r, 300)); });
+
+    expect(captured.ctx!.settings.pinnedSidebarApps).toEqual(reordered);
+    expect(h.savePreferences).toHaveBeenCalledWith({ ui: { pinnedSidebarApps: reordered } });
+  });
+
+  it('falls back to DEFAULT_PINNED_TAIL for a fresh profile (no local cache, no server value)', async () => {
+    h.fetchPreferences.mockResolvedValue(serverPrefs());
+    h.savePreferences.mockResolvedValue(undefined);
+    await act(async () => {
+      render(
+        <UiSettingsProvider serviceOnline manageDom>
+          <Consumer />
+        </UiSettingsProvider>,
+      );
+    });
+    await flush();
+
+    expect(captured.ctx!.settings.pinnedSidebarApps).toEqual(['monitoring', 'lighting', 'cooling']);
+  });
+
+  // Boot-order race: nothing in reload() may reset pinnedSidebarApps to
+  // DEFAULT_PINNED_TAIL just because the server's ui block omits the field -
+  // that fallback-to-base branch in applyServerToLocal is the only thing
+  // standing between a user's customization and getting clobbered on every
+  // hydrate (mount, profile switch, prefs-topic echo), since the service
+  // never echoes this field back at all.
+  it('does not clobber a locally held pin+reorder when the server prefs omit the field', async () => {
+    h.fetchPreferences.mockResolvedValue(serverPrefs());
+    h.savePreferences.mockResolvedValue(undefined);
+    await act(async () => {
+      render(
+        <UiSettingsProvider serviceOnline manageDom>
+          <Consumer />
+        </UiSettingsProvider>,
+      );
+    });
+    await flush();
+
+    const customTail = ['cooling', 'devices', 'lighting'];
+    await act(async () => { captured.ctx!.update({ pinnedSidebarApps: customTail }); });
+    expect(captured.ctx!.settings.pinnedSidebarApps).toEqual(customTail);
+    // Let the debounced write settle so no timer leaks into the next test.
+    await act(async () => { await new Promise(r => setTimeout(r, 300)); });
+
+    // A later hydrate (profile switch, prefs-topic echo) re-fetches while the
+    // server still has no opinion on pinnedSidebarApps.
+    h.fetchPreferences.mockResolvedValue(serverPrefs());
+    await act(async () => { captured.ctx!.reload(); });
+    await flush();
+
+    expect(captured.ctx!.settings.pinnedSidebarApps).toEqual(customTail);
+  });
+
+  // The debounced server write is the ONLY channel that could ever make this
+  // durable once nexus-service adds the field - so it must not be silently
+  // discarded around a shutdown. Guards the fix in scheduleServerWrite/the
+  // unmount cleanup: cancelling the timer alone used to drop this write.
+  it('flushes a pending pinnedSidebarApps write instead of dropping it on unmount', async () => {
+    h.fetchPreferences.mockResolvedValue(serverPrefs());
+    h.savePreferences.mockResolvedValue(undefined);
+    const view = render(
+      <UiSettingsProvider serviceOnline manageDom>
+        <Consumer />
+      </UiSettingsProvider>,
+    );
+    await flush();
+
+    const customTail = ['lighting', 'cooling', 'monitoring'];
+    await act(async () => { captured.ctx!.update({ pinnedSidebarApps: customTail }); });
+    // Unmount immediately - well inside the 250ms debounce window - the way
+    // an app-close tears the React tree down mid-debounce.
+    expect(h.savePreferences).not.toHaveBeenCalled();
+    view.unmount();
+
+    expect(h.savePreferences).toHaveBeenCalledWith({ ui: { pinnedSidebarApps: customTail } });
+  });
+});

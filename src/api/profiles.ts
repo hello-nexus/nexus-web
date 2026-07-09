@@ -83,8 +83,12 @@ export interface CoolingPrefs {
 export interface UiPrefs {
   showConflictAlerts: boolean;
   // Order of the user's pinnable sidebar apps after the locked Dashboard
-  // row. Optional - older services return Preferences without this field;
-  // the client falls back to DEFAULT_PINNED_TAIL in that case.
+  // row. Optional because nexus-service does not implement this field yet:
+  // GET /preferences never returns it and POST /preferences silently drops
+  // it (UiSettings/UiSettingsPatch on the service carry no matching
+  // property), so today this array is durable only within the browser's own
+  // local cache for the current profile/window context, not across it. The
+  // client falls back to DEFAULT_PINNED_TAIL when absent.
   pinnedSidebarApps?: string[];
   // One-time marker: the OEM bake-in app's dashboard widget + sidebar pin
   // have been reconciled onto this profile. Optional - older services

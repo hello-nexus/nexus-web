@@ -69,8 +69,9 @@ export interface UiSettingsValue {
   // cooling.preferredGpuId, shared via the Dashboard category.
   preferredGpuId: string;
   // Order of pinnable sidebar apps after the locked Dashboard row. See
-  // isPinnableAppKey in app/sidebarAppKeys.ts. Server-mirrored under
-  // ui.pinnedSidebarApps.
+  // isPinnableAppKey in app/sidebarAppKeys.ts. Posted under ui.pinnedSidebarApps,
+  // but nexus-service has no matching field yet - see UiPrefs.pinnedSidebarApps
+  // in api/profiles.ts for the durability gap this leaves.
   pinnedSidebarApps: string[];
   // One-time marker: the OEM bake-in app's dashboard widget + sidebar pin
   // have been reconciled onto this profile (see useOemAppSeed). Server-only,
@@ -227,6 +228,10 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
     preferredCpuTempSensorId: server.cooling?.preferredCpuTempSensorId ?? '',
     preferredGpuTempSensorId: server.cooling?.preferredGpuTempSensorId ?? '',
     preferredGpuId: server.cooling?.preferredGpuId ?? '',
+    // server.ui.pinnedSidebarApps is always undefined today (no service
+    // support - see the field comment above), so this always keeps `base`.
+    // That fallback is load-bearing: it is the only reason a reload doesn't
+    // reset the tail to DEFAULT_PINNED_TAIL on every hydrate.
     pinnedSidebarApps: server.ui?.pinnedSidebarApps !== undefined
       ? sanitizePinnedTail(server.ui.pinnedSidebarApps)
       : base.pinnedSidebarApps,
@@ -271,6 +276,7 @@ export function UiSettingsProvider({
   const [hydrated, setHydrated] = useState(false);
 
   const writeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingWriteRef = useRef<PreferencesPatch | null>(null);
   // backgroundMode/accentSource moved from localStorage-only to the server
   // Theme block. A window that already had saved settings before this change
   // seeds the server once so an upgrade keeps the user's choice; a fresh window
@@ -295,9 +301,14 @@ export function UiSettingsProvider({
       || serverPatch.units;
     if (!anyBlock) return;
     if (writeTimer.current) clearTimeout(writeTimer.current);
+    // Tracked so the unmount cleanup below can send this exact write instead
+    // of only cancelling the timer - otherwise a patch made just before the
+    // app closes never reaches the server.
+    pendingWriteRef.current = serverPatch;
     // 250ms debounce collapses rapid slider-style updates into one POST.
     writeTimer.current = setTimeout(() => {
       writeTimer.current = null;
+      pendingWriteRef.current = null;
       savePreferences(serverPatch).catch(() => { /* best-effort */ });
     }, 250);
   }, [serviceOnline]);
@@ -393,11 +404,17 @@ export function UiSettingsProvider({
   const reloadFromPrefsTopic = useCallback(() => reload(true), [reload]);
   useTopicCallback('prefs', !!serviceOnline, reloadFromPrefsTopic);
 
-  // Flush any pending write if the app is unmounting.
+  // Flush any pending write if the app is unmounting. Cancelling the timer
+  // alone would silently drop a patch made just before close (e.g. a pin
+  // right before the user quits) - send it immediately instead.
   useEffect(() => () => {
     if (writeTimer.current) {
       clearTimeout(writeTimer.current);
       writeTimer.current = null;
+      if (pendingWriteRef.current) {
+        savePreferences(pendingWriteRef.current).catch(() => { /* best-effort */ });
+        pendingWriteRef.current = null;
+      }
     }
   }, []);
 
