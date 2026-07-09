@@ -593,39 +593,128 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 10px 0;
+  gap: clamp(16px, 3vw, 36px);
+  padding: 10px 8px;
+
+  // Phone-width viewports: the side badge column would push the chassis past
+  // the demo card's width - stack the badges as a row above it instead.
+  @media (max-width: 480px) {
+    flex-direction: column;
+
+    .remoteBadges { flex-direction: row; }
+  }
 }
 
+.remoteBadges {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.remoteBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--accent-glow);
+}
+
+// Phone chassis proportioned like a current flagship: titanium-tone rail,
+// uniform thin bezel, pill island with a camera lens, side buttons. The
+// screen height follows the widget grid inside.
 .phoneFrame {
   position: relative;
-  border-radius: 30px;
-  border: 2px solid var(--border-strong);
-  background: #0c0c10;
-  padding: 24px 12px 16px;
-  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
+  border-radius: 42px;
+  border: 3px solid #4c4c52;
+  background: #121216;
+  padding: 9px;
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.85),
+    0 22px 52px rgba(0, 0, 0, 0.55);
 }
 
-.phoneNotch {
+%phone-button {
   position: absolute;
-  top: 9px;
+  width: 3px;
+  border-radius: 2px;
+  background: #4c4c52;
+}
+
+.phoneButtonAction {
+  @extend %phone-button;
+  left: -6px;
+  top: 84px;
+  height: 22px;
+}
+
+.phoneButtonVolUp {
+  @extend %phone-button;
+  left: -6px;
+  top: 122px;
+  height: 34px;
+}
+
+.phoneButtonVolDown {
+  @extend %phone-button;
+  left: -6px;
+  top: 164px;
+  height: 34px;
+}
+
+.phoneButtonPower {
+  @extend %phone-button;
+  right: -6px;
+  top: 132px;
+  height: 52px;
+}
+
+.phoneScreen {
+  position: relative;
+  border-radius: 34px;
+  overflow: hidden;
+  background: #050508;
+  padding: 38px 10px 14px;
+}
+
+.phoneIsland {
+  position: absolute;
+  top: 10px;
   left: 50%;
   transform: translateX(-50%);
-  width: 52px;
-  height: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 68px;
+  height: 21px;
+  padding-right: 5px;
   border-radius: var(--radius-pill);
-  background: var(--border-strong);
+  background: #000;
+  border: 1px solid #1b1b1f;
+}
+
+// Symbolic camera lens inside the island: dark ring, bluish pupil glint.
+.phoneCamera {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #3a4a6a 0%, #16181f 45%, #08080b 100%);
+  border: 1px solid #1f2026;
 }
 
 // panel-root wrapper for the real widgets; sized by the inline --panel-* vars
 // the section sets (same var set the add-widget catalog derives).
 .phonePanel {
-  width: calc(var(--panel-cell-size) * 2 + var(--panel-gap));
+  width: calc(var(--panel-cell-size) * 4 + var(--panel-gap) * 3);
 }
 
 // Suspense placeholder while the lazy widget chunk loads: hold the phone's
 // approximate screen footprint so the frame doesn't collapse.
 .phonePanelLoading {
-  width: 148px;
+  width: 236px;
   height: 480px;
 }
 
