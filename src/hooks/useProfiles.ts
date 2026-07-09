@@ -38,7 +38,7 @@ export interface UseProfilesResult {
   renameProfile: (id: string, name: string) => Promise<ProfileFetchResult<ProfileResponse>>;
   deleteProfile: (id: string) => Promise<void>;
   exportProfile: (id: string) => Promise<void>;
-  importProfile: (file: File) => Promise<ProfileFetchResult<ProfileResponse>>;
+  importProfile: (file: File, replace?: boolean) => Promise<ProfileFetchResult<ProfileResponse>>;
   reorderProfiles: (ids: string[]) => void;
   refresh: () => Promise<void>;
   loading: boolean;
@@ -107,8 +107,8 @@ export function useProfiles(enabled: boolean): UseProfilesResult {
     await apiExport(id, entry?.name ?? 'profile');
   }, [profiles]);
 
-  const importProfileFn = useCallback(async (file: File) => {
-    const result = await apiImport(file);
+  const importProfileFn = useCallback(async (file: File, replace = false) => {
+    const result = await apiImport(file, replace);
     if (result.status >= 200 && result.status < 300) await refresh();
     return result;
   }, [refresh]);

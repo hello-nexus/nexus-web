@@ -18,7 +18,8 @@ type ConfirmKind =
   | { kind: 'delete'; profileId: string; name: string }
   | { kind: 'resetProfile'; profileId: string; name: string }
   | { kind: 'resetCategory'; profileId: string; category: ProfileCategory; shared: boolean }
-  | { kind: 'shareCategory'; category: ProfileCategory; primaryName: string };
+  | { kind: 'shareCategory'; category: ProfileCategory; primaryName: string }
+  | { kind: 'replaceImport'; file: File };
 
 export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseProfilesResult; onPreferencesChanged: (prefs: Preferences) => void }) {
   const { t } = useTranslation();
@@ -55,7 +56,7 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
     setImportError(null);
     const result = await profiles.importProfile(file);
     if (result.body?.msg === 'profile_name_taken') {
-      setImportError(t('profile.importDuplicateName'));
+      setConfirmTarget({ kind: 'replaceImport', file });
     }
   };
 
@@ -80,8 +81,13 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
       await profiles.refresh();
     } else if (target.kind === 'shareCategory') {
       await sharing.setCategoryShared(target.category, true);
+    } else if (target.kind === 'replaceImport') {
+      const result = await profiles.importProfile(target.file, true);
+      if (result.body?.msg === 'profile_name_taken') {
+        setImportError(t('profile.importDuplicateName'));
+      }
     }
-  }, [confirmTarget, profiles, sharing]);
+  }, [confirmTarget, profiles, sharing, t]);
 
   const confirmCopy = useMemo(() => {
     if (!confirmTarget) return null;
@@ -118,6 +124,15 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
         }),
         note: undefined,
         confirmLabel: t('settings.profiles.sharing.shareConfirmAction'),
+        destructive: true,
+      };
+    }
+    if (confirmTarget.kind === 'replaceImport') {
+      return {
+        title: t('profile.importReplaceTitle'),
+        message: t('profile.importReplaceMessage'),
+        note: undefined,
+        confirmLabel: t('profile.importReplaceAction'),
         destructive: true,
       };
     }

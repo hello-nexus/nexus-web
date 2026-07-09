@@ -241,11 +241,12 @@ export async function exportProfile(id: string, name: string): Promise<void> {
   } catch { /* ignore download errors */ }
 }
 
-export async function importProfileFile(file: File): Promise<ProfileFetchResult<ProfileResponse>> {
+export async function importProfileFile(file: File, replace = false): Promise<ProfileFetchResult<ProfileResponse>> {
   try {
     const text = await file.text();
     const parsed = JSON.parse(text);
-    return await profileFetch<ProfileResponse>('/profiles/import', 'POST', parsed);
+    const path = replace ? '/profiles/import?replace=true' : '/profiles/import';
+    return await profileFetch<ProfileResponse>(path, 'POST', parsed);
   } catch {
     return { status: 0, body: null };
   }

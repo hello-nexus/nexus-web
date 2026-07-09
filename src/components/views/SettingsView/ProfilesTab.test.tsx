@@ -168,7 +168,7 @@ describe('ProfilesTab rename', () => {
 });
 
 describe('ProfilesTab import', () => {
-  it('shows the import-specific inline error on a 409 profile_name_taken', async () => {
+  it('on a 409 profile_name_taken, opens the replace confirm dialog instead of the inline error', async () => {
     const profiles = buildProfiles({ importProfile: vi.fn().mockResolvedValue(taken()) });
     render(<ProfilesTab profiles={profiles} onPreferencesChanged={vi.fn()} />);
 
@@ -177,7 +177,44 @@ describe('ProfilesTab import', () => {
     fireEvent.change(fileInput, { target: { files: [file] } });
 
     await waitFor(() => expect(profiles.importProfile).toHaveBeenCalled());
-    await waitFor(() => expect(screen.getByText('profile.importDuplicateName')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('profile.importReplaceTitle')).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: 'profile.importReplaceAction' })).toBeInTheDocument();
+    expect(screen.queryByText('profile.importDuplicateName')).not.toBeInTheDocument();
+  });
+
+  it('confirming the replace dialog re-imports the same file with replace=true', async () => {
+    const importProfile = vi.fn()
+      .mockResolvedValueOnce(taken())
+      .mockResolvedValue(ok(PROFILE_A));
+    const profiles = buildProfiles({ importProfile });
+    render(<ProfilesTab profiles={profiles} onPreferencesChanged={vi.fn()} />);
+
+    const file = new File([JSON.stringify({ name: 'Gaming' })], 'profile.json', { type: 'application/json' });
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    await waitFor(() => expect(screen.getByText('profile.importReplaceTitle')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'profile.importReplaceAction' }));
+
+    await waitFor(() => expect(importProfile).toHaveBeenCalledTimes(2));
+    expect(importProfile).toHaveBeenNthCalledWith(2, file, true);
+    expect(screen.queryByText('profile.importReplaceTitle')).not.toBeInTheDocument();
+  });
+
+  it('canceling the replace dialog closes it without re-importing', async () => {
+    const profiles = buildProfiles({ importProfile: vi.fn().mockResolvedValue(taken()) });
+    render(<ProfilesTab profiles={profiles} onPreferencesChanged={vi.fn()} />);
+
+    const file = new File([JSON.stringify({ name: 'Gaming' })], 'profile.json', { type: 'application/json' });
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    await waitFor(() => expect(screen.getByText('profile.importReplaceTitle')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'confirm.cancel' }));
+
+    expect(screen.queryByText('profile.importReplaceTitle')).not.toBeInTheDocument();
+    expect(profiles.importProfile).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText('profile.importDuplicateName')).not.toBeInTheDocument();
   });
 
   it('shows no error on a successful import', async () => {
@@ -190,5 +227,6 @@ describe('ProfilesTab import', () => {
 
     await waitFor(() => expect(profiles.importProfile).toHaveBeenCalled());
     expect(screen.queryByText('profile.importDuplicateName')).not.toBeInTheDocument();
+    expect(screen.queryByText('profile.importReplaceTitle')).not.toBeInTheDocument();
   });
 });
