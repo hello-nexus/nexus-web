@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useRef } from 'react';
 import { TEMPLATE_COUNT, type EffectState, type EffectTemplateBundle } from '../../../../types/lighting';
-import { buildDefaultTemplates, slotMatchesDefault, slotThumbSignature } from '../../../../types/lightingTemplates';
+import { defaultTemplatesFor, slotMatchesDefault, slotThumbSignature } from '../../../../types/lightingTemplates';
+import { cachedAnimateDefaults } from '../../../../api/lighting';
 import { useAnimateTemplates } from '../../../../hooks/useAnimateTemplates';
 import type { AnimateController } from './types';
 
@@ -36,11 +37,11 @@ export function usePanelBackgroundEffectController({
   // preset buttons render the actual shared thumbnails.
   const bundle = useMemo<EffectTemplateBundle>(() => {
     const g = globalTemplates[effect];
-    return { selected: template, slots: g ? g.slots : buildDefaultTemplates(effect).slots };
+    return { selected: template, slots: g ? g.slots : defaultTemplatesFor(effect, cachedAnimateDefaults()).slots };
   }, [globalTemplates, effect, template]);
 
   const idx = Math.min(Math.max(template, 0), TEMPLATE_COUNT - 1);
-  const canReset = !slotMatchesDefault(effect, idx, effectState);
+  const canReset = !slotMatchesDefault(effect, idx, effectState, cachedAnimateDefaults());
 
   const stateRef = useRef(effectState);
   stateRef.current = effectState;
@@ -57,7 +58,9 @@ export function usePanelBackgroundEffectController({
   }, [onCommit, onPreview]);
 
   const handleCommit = useCallback(() => { onCommit(stateRef.current); }, [onCommit]);
-  const handleReset = useCallback(() => { onCommit(buildDefaultTemplates(effect).slots[idx]); }, [effect, idx, onCommit]);
+  const handleReset = useCallback(() => {
+    onCommit(defaultTemplatesFor(effect, cachedAnimateDefaults()).slots[idx]);
+  }, [effect, idx, onCommit]);
 
   return {
     effect,

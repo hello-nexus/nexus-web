@@ -4,7 +4,7 @@ import { useTranslation } from '../../lib/i18n';
 import { PaletteRing } from '../../components/common/PaletteRing/PaletteRing';
 import { Slider } from '../../components/common/Slider/Slider';
 import { defaultStateFor, defaultParamsFor, EFFECTS, type EffectState, type EffectParamDef } from '../../types/lighting';
-import { buildDefaultTemplates } from '../../types/lightingTemplates';
+import { DEMO_SLOT_ZERO } from '../demoLooks';
 import { useInViewport } from '../hooks/useInViewport';
 import { useAutoRotateHue } from '../hooks/useAutoRotateHue';
 import { useFakeAudio } from '../hooks/useFakeAudio';
@@ -31,9 +31,10 @@ const DEMO_EFFECTS: ReadonlyArray<{ key: string; controls: readonly string[] }> 
 const START_HUE = 0.62;
 const START_COLORIZE = 0.55;
 
-// Each effect's baseline is its first preset slot (the app's default look).
+// Each effect's baseline is its first preset slot (the app's default look),
+// pinned in DEMO_SLOT_ZERO since the static site has no service to fetch from.
 function slotZero(key: string): EffectState {
-  const slot = buildDefaultTemplates(key).slots[0];
+  const slot = DEMO_SLOT_ZERO[key];
   return { ...defaultStateFor(key), ...slot, params: { ...defaultParamsFor(key), ...slot?.params } };
 }
 
@@ -167,7 +168,6 @@ export function LightingSection() {
                       value={speed}
                       min={-100}
                       max={100}
-                      // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
                       orientation="stacked"
                       editable
                       trackFill

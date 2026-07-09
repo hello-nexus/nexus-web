@@ -91,8 +91,46 @@ export interface AnimateSettings {
 export const fetchAnimateSettings = () =>
   fetchService<AnimateSettings>('/lighting/animate/settings');
 
-export const saveAnimateTemplates = (templates: Record<string, AnimateEffectTemplateBundle>) =>
-  postService('/lighting/animate/templates', { templates });
+export const saveAnimateTemplates = (templates: Record<string, AnimateEffectTemplateBundle>) => {
+  // Whole-dict replace: without the canonical defaults, untouched slots in the
+  // dict are baseline back-fills, and persisting those would permanently
+  // replace the curated default looks (verbatim on a pre-defaults service, as
+  // phantom user deltas on a new one). Reject - resolving would let
+  // success-gated callers advance committed snapshots for a look that never
+  // persisted. Edits still drive the LEDs via startAnimate, and the next
+  // hydrate retries the defaults fetch.
+  if (!animateDefaultsCache) return Promise.reject(new Error('animate defaults unavailable; template save skipped'));
+  return postService('/lighting/animate/templates', { templates });
+};
+
+// --- Canonical default template bundles ---
+// The service owns the default preset looks (4 slots per effect) and serves
+// them from /lighting/animate/defaults; the client bundles no copy. Fetched
+// once per session; /lighting/animate/settings carries only user deltas that
+// merge over these.
+
+let animateDefaultsCache: Record<string, AnimateEffectTemplateBundle> | null = null;
+let animateDefaultsInflight: Promise<Record<string, AnimateEffectTemplateBundle> | null> | null = null;
+
+/**
+ * The canonical default templates, fetched once and cached for the session.
+ * Resolves null when the service is unreachable or predates the endpoint;
+ * a later call retries so a transient failure doesn't stick.
+ */
+export const fetchAnimateDefaults = (): Promise<Record<string, AnimateEffectTemplateBundle> | null> => {
+  if (animateDefaultsCache) return Promise.resolve(animateDefaultsCache);
+  animateDefaultsInflight ??= fetchService<Record<string, AnimateEffectTemplateBundle>>('/lighting/animate/defaults')
+    .then(data => {
+      animateDefaultsCache = data;
+      return data;
+    })
+    .catch(() => null)
+    .finally(() => { animateDefaultsInflight = null; });
+  return animateDefaultsInflight;
+};
+
+/** Synchronous view of the fetched defaults for render-path fallbacks; null until the first fetch resolves. */
+export const cachedAnimateDefaults = (): Record<string, AnimateEffectTemplateBundle> | null => animateDefaultsCache;
 
 export const startAnimate = (
   effect: string,

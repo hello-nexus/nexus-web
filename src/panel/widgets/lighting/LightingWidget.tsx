@@ -4,6 +4,7 @@ import { PanelArrowButton } from '../../chrome/PanelArrowButton';
 import type { LucideIcon } from 'lucide-react';
 import {
   effectThumbnailPath,
+  fetchAnimateDefaults,
   fetchAnimateSettings,
   fetchCurrentSync,
   fetchLightingStatus,
@@ -34,7 +35,7 @@ import {
   type EffectTemplateBundle,
   type LightingMode,
 } from '../../../types/lighting';
-import { buildAllDefaultTemplates, mergeTemplates, slotThumbSignature } from '../../../types/lightingTemplates';
+import { mergeTemplates, slotThumbSignature } from '../../../types/lightingTemplates';
 import { useUiSettings } from '../../../hooks/useUiSettings';
 import { resolveAdvancedMode } from '../common/AdvancedModeSettings';
 import { useStateChangePulse } from '../common/useStateChangePulse';
@@ -67,7 +68,7 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
   const [mode, setMode] = useState<LightingMode>(preview ? LIGHTING_PREVIEW_MODE : 'none');
   const [gpuAvailable, setGpuAvailable] = useState(true);
   const [activeEffect, setActiveEffect] = useState('rainbow');
-  const [templates, setTemplates] = useState<Record<string, EffectTemplateBundle>>(buildAllDefaultTemplates);
+  const [templates, setTemplates] = useState<Record<string, EffectTemplateBundle>>({});
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const [activeMediaId, setActiveMediaId] = useState<string | null>(null);
@@ -108,19 +109,18 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
     : null;
 
   const hydrate = useCallback(async () => {
-    const [sync, animate, screen, lightStatus] = await Promise.all([
+    const [sync, animate, screen, lightStatus, defaults] = await Promise.all([
       fetchCurrentSync(),
       fetchAnimateSettings(),
       fetchScreenEffect(),
       fetchLightingStatus(),
+      fetchAnimateDefaults(),
     ]);
     setGpuAvailable(lightStatus?.gpuAvailable ?? true);
 
-    const nextTemplates = buildAllDefaultTemplates();
-    if (animate?.templates) {
-      for (const effect of EFFECTS) {
-        nextTemplates[effect.key] = mergeTemplates(effect.key, animate.templates[effect.key]);
-      }
+    const nextTemplates: Record<string, EffectTemplateBundle> = {};
+    for (const effect of EFFECTS) {
+      nextTemplates[effect.key] = mergeTemplates(effect.key, animate?.templates?.[effect.key], defaults);
     }
     setTemplates(nextTemplates);
 

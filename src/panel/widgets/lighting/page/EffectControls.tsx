@@ -40,12 +40,13 @@ export const EffectControls = memo(function EffectControls({
   const selected = bundle.selected;
   // Simple fills are a fixed base colour: no colour wheel, no speed, no
   // contrast. Saturation is the HSV-S post-process multiplier, floored above
-  // white (that's the dedicated White fill) and allowed above 100%. White
-  // itself hides the slider (its warmth comes from presets).
+  // white (that's the dedicated White fill) and capped at 100% - the shader
+  // clamps S at 1, so slider travel above that changed nothing. White itself
+  // hides the slider (its warmth comes from presets).
   const isSimple = categoryOf(effect) === 'simple';
   const isSimpleWhite = effect === 'simplewhite';
   const satMin = isSimple ? 40 : 0;
-  const satMax = isSimple ? 200 : 400;
+  const satMax = isSimple ? 100 : 400;
   const satValue = Math.max(satMin, Math.min(Math.round(state.saturation * 100), satMax));
   return (
     <div className={styles.effectControls}>

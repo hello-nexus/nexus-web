@@ -9,6 +9,7 @@ import { MediaList } from './effecteditor/MediaList';
 import { PostProcessControls } from './effecteditor/PostProcessControls';
 import type { PostProcessState } from './effecteditor/types';
 import {
+  fetchAnimateDefaults,
   fetchAnimateSettings,
   fetchCurrentSync,
   fetchMediaEffect,
@@ -28,7 +29,7 @@ import {
   type EffectTemplateBundle,
   type LightingMode,
 } from '../../../types/lighting';
-import { buildAllDefaultTemplates, mergeTemplates, slotThumbSignature } from '../../../types/lightingTemplates';
+import { mergeTemplates, slotThumbSignature } from '../../../types/lightingTemplates';
 import type { WidgetProps } from '../types';
 
 const DEFAULT_PP: PostProcessState = { hue: 0, colorize: 0, saturation: 1, contrast: 1 };
@@ -149,21 +150,20 @@ interface ImmersiveAnimateController {
 
 function useImmersiveAnimateState(): { mode: LightingMode; animate: ImmersiveAnimateController | null } {
   const [active, setActive] = useState<string>('rainbow');
-  const [templates, setTemplates] = useState<Record<string, EffectTemplateBundle>>(buildAllDefaultTemplates);
+  const [templates, setTemplates] = useState<Record<string, EffectTemplateBundle>>({});
   const [mode, setMode] = useState<LightingMode>('none');
   const stagedRef = useRef<EffectState | null>(null);
   const [, force] = useState(0);
 
   const hydrate = useCallback(async () => {
-    const [sync, settings] = await Promise.all([
+    const [sync, settings, defaults] = await Promise.all([
       fetchCurrentSync(),
       fetchAnimateSettings(),
+      fetchAnimateDefaults(),
     ]);
-    const next = buildAllDefaultTemplates();
-    if (settings?.templates) {
-      for (const e of EFFECTS) {
-        next[e.key] = mergeTemplates(e.key, settings.templates[e.key]);
-      }
+    const next: Record<string, EffectTemplateBundle> = {};
+    for (const e of EFFECTS) {
+      next[e.key] = mergeTemplates(e.key, settings?.templates?.[e.key], defaults);
     }
     setTemplates(next);
     const rawSync = sync?.sync || 'none';

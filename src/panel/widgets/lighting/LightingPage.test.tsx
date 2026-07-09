@@ -44,6 +44,8 @@ vi.mock('../../../api/lighting', async importOriginal => {
   return {
     ...actual,
     fetchCurrentSync: vi.fn(() => Promise.resolve({ sync: profileRef.current === 'old' ? 'rainbow' : 'plasma' })),
+    fetchAnimateDefaults: vi.fn(() => Promise.resolve(null)),
+    cachedAnimateDefaults: vi.fn(() => null),
     fetchAnimateSettings: vi.fn(() => Promise.resolve(profileRef.current === 'old'
       ? makeAnimateSettings('rainbow', 41)
       : makeAnimateSettings('plasma', 77))),
