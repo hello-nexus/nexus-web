@@ -2121,6 +2121,8 @@
   "screentime.weekAverage": "1日平均",
   "screentime.weekTitle": "過去7日間",
   "screentime.weekTotal": "週合計",
+  "sdk.copybutton.copied": "クリップボードにコピーしました",
+  "sdk.copybutton.copy": "クリップボードにコピー",
   "sdk.mediaimport.choose": "動画を選択",
   "sdk.mediaimport.cropping": "トリミング中…",
   "sdk.mediaimport.errorNetwork": "アップロードに失敗しました。接続を確認してください。",

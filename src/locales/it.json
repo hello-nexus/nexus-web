@@ -2176,6 +2176,8 @@
   "screentime.weekAverage": "Media giornaliera",
   "screentime.weekTitle": "Ultimi 7 giorni",
   "screentime.weekTotal": "Totale settimana",
+  "sdk.copybutton.copied": "Copiato negli appunti",
+  "sdk.copybutton.copy": "Copia negli appunti",
   "sdk.mediaimport.choose": "Scegli video",
   "sdk.mediaimport.cropping": "Ritaglio in corso…",
   "sdk.mediaimport.errorNetwork": "Caricamento fallito. Controlla la connessione.",

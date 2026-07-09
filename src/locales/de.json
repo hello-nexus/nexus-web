@@ -2176,6 +2176,8 @@
   "screentime.weekAverage": "Tagesdurchschnitt",
   "screentime.weekTitle": "Letzte 7 Tage",
   "screentime.weekTotal": "Wochensumme",
+  "sdk.copybutton.copied": "In die Zwischenablage kopiert",
+  "sdk.copybutton.copy": "In die Zwischenablage kopieren",
   "sdk.mediaimport.choose": "Video auswählen",
   "sdk.mediaimport.cropping": "Zuschneiden…",
   "sdk.mediaimport.errorNetwork": "Upload fehlgeschlagen. Verbindung prüfen.",

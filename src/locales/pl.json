@@ -2176,6 +2176,8 @@
   "screentime.weekAverage": "Średnia dzienna",
   "screentime.weekTitle": "Ostatnie 7 dni",
   "screentime.weekTotal": "Suma tygodnia",
+  "sdk.copybutton.copied": "Skopiowano do schowka",
+  "sdk.copybutton.copy": "Kopiuj do schowka",
   "sdk.mediaimport.choose": "Wybierz wideo",
   "sdk.mediaimport.cropping": "Przycinanie…",
   "sdk.mediaimport.errorNetwork": "Przesyłanie nie powiodło się. Sprawdź połączenie.",

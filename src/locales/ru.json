@@ -2176,6 +2176,8 @@
   "screentime.weekAverage": "Среднее за день",
   "screentime.weekTitle": "Последние 7 дней",
   "screentime.weekTotal": "Итого за неделю",
+  "sdk.copybutton.copied": "Скопировано в буфер обмена",
+  "sdk.copybutton.copy": "Копировать в буфер обмена",
   "sdk.mediaimport.choose": "Выбрать видео",
   "sdk.mediaimport.cropping": "Обрезка…",
   "sdk.mediaimport.errorNetwork": "Ошибка загрузки. Проверьте подключение.",

@@ -2176,6 +2176,8 @@
   "screentime.weekAverage": "Promedio diario",
   "screentime.weekTitle": "Últimos 7 días",
   "screentime.weekTotal": "Total semanal",
+  "sdk.copybutton.copied": "Copiado al portapapeles",
+  "sdk.copybutton.copy": "Copiar al portapapeles",
   "sdk.mediaimport.choose": "Elegir video",
   "sdk.mediaimport.cropping": "Recortando…",
   "sdk.mediaimport.errorNetwork": "Error al subir. Comprueba tu conexión.",

@@ -176,4 +176,27 @@ describe('RemoteTree host renderer', () => {
     });
     expect(screen.getByText('B')).toBeTruthy();
   });
+
+  it('copies the value to the clipboard and flips the label on press', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    const prior = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    try {
+      const receiver = new RemoteReceiver();
+      render(<RemoteTree receiver={receiver} />);
+      act(() => {
+        receiver.connection.mutate([
+          [MUTATION_TYPE_INSERT_CHILD, ROOT_ID, el('cp1', 'ui-copybutton', { value: 'SN-12345' }), 0],
+        ] as never);
+      });
+      // Accessible name is the pre-copy label key (i18n returns keys under test).
+      fireEvent.click(screen.getByRole('button', { name: 'sdk.copybutton.copy' }));
+      expect(writeText).toHaveBeenCalledWith('SN-12345');
+      // The confirmation flips only after the async write resolves.
+      expect(await screen.findByRole('button', { name: 'sdk.copybutton.copied' })).toBeTruthy();
+    } finally {
+      if (prior) Object.defineProperty(navigator, 'clipboard', prior);
+      else delete (navigator as { clipboard?: unknown }).clipboard;
+    }
+  });
 });
