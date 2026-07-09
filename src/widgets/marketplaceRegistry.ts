@@ -1,25 +1,39 @@
 // Module-level cache of installed marketplace widgets, surfaced into the
 // panel widget engine. The panel registry treats every installed widget as
-// a synthetic registry entry with `type = "marketplace:<id>"`, so the
+// a synthetic registry entry with `type = "app:<id>"`, so the
 // existing Add Widget catalog renders them alongside the built-in widgets
 // without per-feature plumbing.
 
 import { listInstalledApps } from './api';
 import type { AppInstalledListing } from './types';
 
-export const MARKETPLACE_TYPE_PREFIX = 'marketplace:';
+export const APP_TYPE_PREFIX = 'app:';
+
+/** Pre-rename placement prefix. Persisted data can still carry it - the
+ *  localStorage pinned-sidebar tail (never server-migrated) and layouts
+ *  served by a pre-v11 service (my.hellonexus.com version skew). Rewrite on
+ *  read via normalizeAppType; nothing may emit it. */
+export const LEGACY_APP_TYPE_PREFIX = 'marketplace:';
+
+/** Rewrite a legacy-prefixed placement type/key to the app: prefix; every
+ *  other string passes through untouched. */
+export function normalizeAppType(type: string): string {
+  return type.startsWith(LEGACY_APP_TYPE_PREFIX)
+    ? APP_TYPE_PREFIX + type.slice(LEGACY_APP_TYPE_PREFIX.length)
+    : type;
+}
 
 export function isMarketplaceType(type: string | null | undefined): boolean {
-  return typeof type === 'string' && type.startsWith(MARKETPLACE_TYPE_PREFIX);
+  return typeof type === 'string' && type.startsWith(APP_TYPE_PREFIX);
 }
 
 export function marketplaceIdFromType(type: string): string | null {
   if (!isMarketplaceType(type)) return null;
-  return type.slice(MARKETPLACE_TYPE_PREFIX.length);
+  return type.slice(APP_TYPE_PREFIX.length);
 }
 
 export function typeForMarketplace(id: string): string {
-  return `${MARKETPLACE_TYPE_PREFIX}${id}`;
+  return `${APP_TYPE_PREFIX}${id}`;
 }
 
 const cache = new Map<string, AppInstalledListing>();
@@ -51,7 +65,7 @@ export function isMarketplaceIdEnabled(id: string): boolean {
 }
 
 /**
- * `marketplace:<id>` types for installed apps flagged `preinstalled` that ship a
+ * `app:<id>` types for installed apps flagged `preinstalled` that ship a
  * page surface - the OEM bake-in set the sidebar auto-pins on a fresh profile.
  * Empty until the registry has loaded and only non-empty on a build that
  * actually bundles such an app, so non-OEM builds are unaffected.
@@ -73,7 +87,7 @@ export function isMarketplaceRegistryStale(): boolean {
 
 /**
  * Has the marketplace registry ever completed a successful load? Used by the
- * panel layout reconciler to decide whether a `marketplace:<id>` widget
+ * panel layout reconciler to decide whether an `app:<id>` widget
  * whose listing is missing should be treated as "still loading" (keep) or
  * "stale id, no longer installed" (drop silently).
  */

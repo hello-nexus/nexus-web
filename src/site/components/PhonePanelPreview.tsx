@@ -11,17 +11,22 @@ import styles from '../site.module.scss';
 // catalog cell the add-widget picker uses (preview mode, fixture data, zero
 // I/O), so the mock tracks the product's widgets as they evolve. Loaded
 // lazily: the widget registry is far too heavy for the landing page's
-// critical path.
-const PHONE_CELL_PX = 70;
+// critical path. Square cells over twice as many rows as columns keep the
+// screen at a real phone's proportions.
+const PHONE_CELL_PX = 53;
+// Cooling and other useUiSettings widgets are off-limits here: that hook
+// throws without the app's UiSettingsProvider (see the provider-coverage
+// rule); every widget below is provider-free in preview mode.
 const PHONE_WIDGETS: PanelWidget[] = [
-  { id: 'site-displays', type: 'displays', size: '2x2', col: 0, row: 0 },
-  { id: 'site-monitoring', type: 'monitoring', size: '2x2', col: 0, row: 2 },
-  { id: 'site-deck', type: 'deck', size: '2x2', col: 0, row: 4 },
+  { id: 'site-monitoring', type: 'monitoring', size: '4x2', col: 0, row: 0 },
+  { id: 'site-displays', type: 'displays', size: '4x2', col: 0, row: 2 },
+  { id: 'site-deck', type: 'deck', size: '4x2', col: 0, row: 4 },
+  { id: 'site-media', type: 'media', size: '4x2', col: 0, row: 6 },
 ];
 
 // Same var set PanelWidgetCatalog derives for its grid.
 const PHONE_PANEL_VARS = {
-  '--panel-columns': 2,
+  '--panel-columns': 4,
   '--panel-cell-size': `${PHONE_CELL_PX}px`,
   '--panel-row-size': `${PHONE_CELL_PX}px`,
   '--panel-content-scale': `${PHONE_CELL_PX}px`,

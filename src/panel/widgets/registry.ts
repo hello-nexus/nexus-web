@@ -121,7 +121,7 @@ export function lookupApp(type: string): AppManifest | undefined {
 
 /**
  * Picker source. Returns every static app plus one synthetic entry
- * per installed marketplace app, keyed by `marketplace:<id>`. The Add
+ * per installed marketplace app, keyed by `app:<id>`. The Add
  * Widget catalog iterates this so external apps show up next to the
  * built-ins with the standard preview / drag / resize chrome - no
  * custom UI.

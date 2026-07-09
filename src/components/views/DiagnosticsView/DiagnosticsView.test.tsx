@@ -330,7 +330,7 @@ describe('IncidentsSection log actions', () => {
   });
 
   it('clears the logs, force-refreshes incidents, and notifies the parent on confirm', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(200, { cleared: true })));
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(200, { cleared: true, systemError: '', applicationError: '' })));
     const onRefresh = vi.fn();
     const onLogsCleared = vi.fn();
     renderIncidents({ data: response, onRefresh, onLogsCleared });
@@ -343,7 +343,23 @@ describe('IncidentsSection log actions', () => {
     expect(screen.getByText('diagnostics.incidents.clearLogsSuccess')).toBeInTheDocument();
   });
 
-  it('shows a failure toast and does not refresh when clearing logs fails', async () => {
+  it('still refreshes and surfaces the server detail when the service only partially clears the logs', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(200, { cleared: false, systemError: 'Access denied', applicationError: '' })));
+    const onRefresh = vi.fn();
+    const onLogsCleared = vi.fn();
+    renderIncidents({ data: response, onRefresh, onLogsCleared });
+
+    fireEvent.click(screen.getByRole('button', { name: 'diagnostics.incidents.clearLogs' }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'diagnostics.incidents.clearLogs' })[1]);
+
+    // The service may have cleared one log and not the other, so both
+    // sections still resync even though the overall result is a failure.
+    await waitFor(() => expect(onRefresh).toHaveBeenCalledTimes(1));
+    expect(onLogsCleared).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('diagnostics.incidents.clearLogsFailedDetail')).toBeInTheDocument();
+  });
+
+  it('shows a failure toast and does not refresh when the request never completes', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(500, {})));
     const onRefresh = vi.fn();
     const onLogsCleared = vi.fn();
@@ -355,6 +371,16 @@ describe('IncidentsSection log actions', () => {
     await waitFor(() => expect(screen.getByText('diagnostics.incidents.clearLogsFailed')).toBeInTheDocument());
     expect(onRefresh).not.toHaveBeenCalled();
     expect(onLogsCleared).not.toHaveBeenCalled();
+  });
+
+  it('hides the Open Event Viewer / Clear Windows event logs actions while unsupported or not yet loaded', () => {
+    renderIncidents({ data: { ...response, supported: false } });
+    expect(screen.queryByRole('button', { name: 'diagnostics.incidents.openEventViewer' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'diagnostics.incidents.clearLogs' })).not.toBeInTheDocument();
+
+    renderIncidents({ data: null });
+    expect(screen.queryAllByRole('button', { name: 'diagnostics.incidents.openEventViewer' })).toHaveLength(0);
+    expect(screen.queryAllByRole('button', { name: 'diagnostics.incidents.clearLogs' })).toHaveLength(0);
   });
 });
 

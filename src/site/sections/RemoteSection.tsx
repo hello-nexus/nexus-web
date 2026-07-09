@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { Smartphone } from 'lucide-react';
+import { Smartphone, SatelliteDish, QrCode } from 'lucide-react';
 import { useTranslation } from '../../lib/i18n';
 import { useInViewport } from '../hooks/useInViewport';
 import { DemoFrame } from '../components/DemoFrame';
@@ -29,11 +29,23 @@ export function RemoteSection() {
       </div>
       <DemoFrame interactive={false} className={styles.sectionDemo}>
         <div className={styles.remoteDemo}>
+          <div className={styles.remoteBadges}>
+            <span className={styles.remoteBadge}><SatelliteDish size={22} aria-hidden /></span>
+            <span className={styles.remoteBadge}><QrCode size={22} aria-hidden /></span>
+          </div>
           <div className={styles.phoneFrame}>
-            <div className={styles.phoneNotch} />
-            <Suspense fallback={<div className={styles.phonePanelLoading} />}>
-              <PhonePanelPreview />
-            </Suspense>
+            <span className={styles.phoneButtonAction} />
+            <span className={styles.phoneButtonVolUp} />
+            <span className={styles.phoneButtonVolDown} />
+            <span className={styles.phoneButtonPower} />
+            <div className={styles.phoneScreen}>
+              <div className={styles.phoneIsland}>
+                <span className={styles.phoneCamera} />
+              </div>
+              <Suspense fallback={<div className={styles.phonePanelLoading} />}>
+                <PhonePanelPreview />
+              </Suspense>
+            </div>
           </div>
         </div>
       </DemoFrame>

@@ -460,7 +460,7 @@ export function Dashboard() {
   }, [online]);
 
   // Prime the marketplace widget cache once the service is reachable so the
-  // panel registry can resolve `marketplace:<id>` widgets on first reconcile.
+  // panel registry can resolve `app:<id>` widgets on first reconcile.
   useEffect(() => {
     if (!online) return;
     void loadMarketplaceApps();

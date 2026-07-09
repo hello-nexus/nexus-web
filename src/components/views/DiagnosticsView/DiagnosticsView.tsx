@@ -61,23 +61,34 @@ export function DiagnosticsView({ serviceOnline, connectionState, tab: urlTab, o
   const anyLoading = healthLoading || smart.loading || memory.loading || gpu.loading
     || cooling.loading || system.loading || incidents.loading;
 
+  // useDiagnosticsResource returns a new object every render; pulling out
+  // `refresh` (stable via the hook's own useCallback) keeps these two
+  // callbacks' identities stable too, instead of depending on the whole
+  // per-render object.
+  const { refresh: refreshSmart } = smart;
+  const { refresh: refreshMemory } = memory;
+  const { refresh: refreshGpu } = gpu;
+  const { refresh: refreshCooling } = cooling;
+  const { refresh: refreshSystem } = system;
+  const { refresh: refreshIncidents } = incidents;
+
   const handleRefreshAll = useCallback(() => {
     refreshHealth({ force: true });
-    smart.refresh({ force: true });
-    memory.refresh({ force: true });
-    gpu.refresh({ force: true });
-    cooling.refresh();
-    system.refresh({ force: true });
-    incidents.refresh();
-  }, [refreshHealth, smart, memory, gpu, cooling, system, incidents]);
+    refreshSmart({ force: true });
+    refreshMemory({ force: true });
+    refreshGpu({ force: true });
+    refreshCooling();
+    refreshSystem({ force: true });
+    refreshIncidents();
+  }, [refreshHealth, refreshSmart, refreshMemory, refreshGpu, refreshCooling, refreshSystem, refreshIncidents]);
 
   // Clearing the Windows event logs invalidates the health overview and the
   // System section's 30-day counts in addition to Incidents itself (which
   // force-refreshes on its own via its onRefresh prop).
   const handleLogsCleared = useCallback(() => {
     refreshHealth({ force: true });
-    system.refresh({ force: true });
-  }, [refreshHealth, system]);
+    refreshSystem({ force: true });
+  }, [refreshHealth, refreshSystem]);
 
   const [downloading, setDownloading] = useState(false);
   const handleDownload = useCallback(async () => {

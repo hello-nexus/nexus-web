@@ -8,9 +8,9 @@ import type { AppInstalledListing } from '../../widgets/types';
 import { typeForMarketplace } from '../../widgets/marketplaceRegistry';
 
 export interface OemAppSeedPlan {
-  /** marketplace:<id> types missing from the dashboard layout. */
+  /** app:<id> types missing from the dashboard layout. */
   widgetTypesToAdd: string[];
-  /** marketplace:<id> keys missing from the pinned sidebar tail. */
+  /** app:<id> keys missing from the pinned sidebar tail. */
   sidebarKeysToAdd: string[];
 }
 
