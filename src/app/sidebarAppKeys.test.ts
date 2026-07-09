@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { normalizeAppType } from '../widgets/marketplaceRegistry';
 import { sanitizePinnedTail } from './sidebarAppKeys';
 
+const registryState = vi.hoisted(() => ({ loaded: true }));
+
 vi.mock('../panel/widgets/registry', async importOriginal => {
   const actual = await importOriginal<typeof import('../panel/widgets/registry')>();
   return {
@@ -10,6 +12,14 @@ vi.mock('../panel/widgets/registry', async importOriginal => {
       type === 'app:com.test.pageapp'
         ? ({ Page: () => null } as never)
         : actual.lookupApp(type),
+  };
+});
+
+vi.mock('../widgets/marketplaceRegistry', async importOriginal => {
+  const actual = await importOriginal<typeof import('../widgets/marketplaceRegistry')>();
+  return {
+    ...actual,
+    hasMarketplaceLoadedOnce: () => registryState.loaded,
   };
 });
 
@@ -35,8 +45,19 @@ describe('sanitizePinnedTail legacy keys', () => {
       .toEqual(['app:com.test.pageapp']);
   });
 
-  it('still drops unknown keys after normalization', () => {
+  it('drops unknown keys after normalization once the registry has loaded', () => {
+    registryState.loaded = true;
     expect(sanitizePinnedTail(['marketplace:com.gone.app', 'monitoring']))
       .toEqual(['monitoring']);
+  });
+
+  it('preserves unconfirmed app keys, normalized, while the registry is loading', () => {
+    registryState.loaded = false;
+    try {
+      expect(sanitizePinnedTail(['marketplace:com.maybe.app', 'monitoring']))
+        .toEqual(['app:com.maybe.app', 'monitoring']);
+    } finally {
+      registryState.loaded = true;
+    }
   });
 });
