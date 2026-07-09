@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { MemoryStick, RefreshCw } from 'lucide-react';
+import { MemoryStick } from 'lucide-react';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { localizeNumbers } from '../../../lib/units';
@@ -63,14 +63,7 @@ export function MemorySection({ data, loading, error, onRefresh }: MemorySection
 
   return (
     <section className={styles.section} id={diagnosticsSectionAnchorId('memory')}>
-      <div className={styles.sectionHeaderRow}>
-        <SectionHeader>{t('diagnostics.kind.memory')}</SectionHeader>
-        <Button
-          tone="ghost" size="sm" icon={<RefreshCw size={13} />} loading={loading}
-          title={t('diagnostics.refresh')} aria-label={t('diagnostics.refresh')}
-          onClick={() => onRefresh({ force: true })}
-        />
-      </div>
+      <SectionHeader>{t('diagnostics.kind.memory')}</SectionHeader>
       {state === 'error' && <SectionLoadError onRetry={() => onRefresh({ force: true })} loading={loading} />}
       {state === 'notSupported' && <NotAvailableNote />}
       {state === 'empty' && <EmptyState compact icon={<MemoryStick size={22} />} title={t('diagnostics.memory.empty')} />}

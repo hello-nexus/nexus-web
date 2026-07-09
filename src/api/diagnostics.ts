@@ -166,7 +166,6 @@ export interface DiagnosticsGpu {
   powerW: number;
   throttle: GpuThrottle;
   recentTdrCount: number;
-  recentDriverErrorCount: number;
 }
 
 export interface DiagnosticsGpuResponse {
@@ -205,7 +204,6 @@ export interface DiagnosticsCounts30d {
   dirtyShutdowns: number;
   diskErrors: number;
   tdrs: number;
-  gpuDriverErrors: number;
   appCrashes: number;
 }
 
@@ -312,6 +310,33 @@ export function cancelMemoryTest(): Promise<DiagnosticsFetchResult<CancelMemoryT
     '/diagnostics/memory/test',
     mock => mock.mockCancelMemoryTest(),
     { method: 'DELETE' },
+  );
+}
+
+export interface OpenEventViewerResponse {
+  opened: boolean;
+}
+
+export interface ClearEventLogsResponse {
+  cleared: boolean;
+}
+
+export function openDiagnosticsEventViewer(): Promise<DiagnosticsFetchResult<OpenEventViewerResponse>> {
+  return withMockFallback(
+    '/diagnostics/events/open-viewer',
+    mock => mock.mockOpenEventViewer(),
+    { method: 'POST', body: {} },
+  );
+}
+
+/** Clears the Windows System and Application event logs for the whole
+ *  machine, not just Nexus's own events. Irreversible - gated by a
+ *  destructive ConfirmModal in IncidentsSection. */
+export function clearDiagnosticsEventLogs(): Promise<DiagnosticsFetchResult<ClearEventLogsResponse>> {
+  return withMockFallback(
+    '/diagnostics/events/clear',
+    mock => mock.mockClearEventLogs(),
+    { method: 'POST', body: {} },
   );
 }
 

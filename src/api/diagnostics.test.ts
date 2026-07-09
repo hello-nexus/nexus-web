@@ -1,11 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   cancelMemoryTest,
+  clearDiagnosticsEventLogs,
   downloadDiagnosticsBundle,
   downloadDiagnosticsReport,
   fetchDiagnosticsGpu,
   fetchDiagnosticsHealth,
   fetchDiagnosticsIncidents,
+  openDiagnosticsEventViewer,
   scheduleMemoryTest,
 } from './diagnostics';
 import { setActiveTransport } from './service';
@@ -129,6 +131,40 @@ describe('scheduleMemoryTest / cancelMemoryTest', () => {
   it('does not fall back to mock data on a 500', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(500, {})));
     expect(await scheduleMemoryTest()).toEqual({ data: null, mocked: false });
+  });
+});
+
+describe('openDiagnosticsEventViewer', () => {
+  it('resolves the real payload on a 2xx response', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(200, { opened: true })));
+    expect(await openDiagnosticsEventViewer()).toEqual({ data: { opened: true }, mocked: false });
+  });
+
+  it('falls back to the mock when the route 404s', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(404, {})));
+    expect(await openDiagnosticsEventViewer()).toEqual({ data: { opened: true }, mocked: true });
+  });
+
+  it('does not fall back to mock data on a 500', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(500, {})));
+    expect(await openDiagnosticsEventViewer()).toEqual({ data: null, mocked: false });
+  });
+});
+
+describe('clearDiagnosticsEventLogs', () => {
+  it('resolves the real payload on a 2xx response', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(200, { cleared: true })));
+    expect(await clearDiagnosticsEventLogs()).toEqual({ data: { cleared: true }, mocked: false });
+  });
+
+  it('falls back to the mock when the route 404s', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(404, {})));
+    expect(await clearDiagnosticsEventLogs()).toEqual({ data: { cleared: true }, mocked: true });
+  });
+
+  it('does not fall back to mock data on a 500 - a real error stays a real error', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(500, {})));
+    expect(await clearDiagnosticsEventLogs()).toEqual({ data: null, mocked: false });
   });
 });
 

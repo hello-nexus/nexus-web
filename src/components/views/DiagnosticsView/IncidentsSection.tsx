@@ -1,13 +1,21 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ComponentType } from 'react';
-import { ChevronDown, ChevronRight, Gamepad2, History, Info, OctagonAlert, RefreshCw, TriangleAlert } from 'lucide-react';
+import { ChevronDown, ChevronRight, ExternalLink, Gamepad2, History, Info, OctagonAlert, Trash2, TriangleAlert } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { SectionHeader } from '../../common/SectionHeader/SectionHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { Badge } from '../../common/Badge/Badge';
 import { Button } from '../../common/Button/Button';
 import { ChipGroup, type ChipOption } from '../../common/ChipGroup/ChipGroup';
-import type { DiagnosticsIncident, DiagnosticsIncidentSeverity, DiagnosticsIncidentsResponse } from '../../../api/diagnostics';
+import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
+import { useToast } from '../../common/Toast/Toast';
+import {
+  clearDiagnosticsEventLogs,
+  openDiagnosticsEventViewer,
+  type DiagnosticsIncident,
+  type DiagnosticsIncidentSeverity,
+  type DiagnosticsIncidentsResponse,
+} from '../../../api/diagnostics';
 import { NotAvailableNote, SectionLoadError } from './DiagnosticsSectionStates';
 import { incidentAppFaultLine, incidentSeverityColor, incidentSourceLabelKey, relativeTimeLabel, resolveSectionState } from './diagnosticsHelpers';
 import styles from './DiagnosticsView.module.scss';
@@ -17,6 +25,10 @@ interface IncidentsSectionProps {
   loading: boolean;
   error: boolean;
   onRefresh: () => void;
+  /** Called after a successful log clear, in addition to this section's own
+   *  onRefresh - the health overview and System section's counts also read
+   *  from data the clear just invalidated. */
+  onLogsCleared: () => void;
 }
 
 const SEVERITY_ICON: Record<DiagnosticsIncidentSeverity, ComponentType<{ size?: number }>> = {
@@ -28,8 +40,9 @@ const SEVERITY_ICON: Record<DiagnosticsIncidentSeverity, ComponentType<{ size?: 
 const ALL_SOURCES_KEY = 'all';
 const PAGE_SIZE = 20;
 
-export function IncidentsSection({ data, loading, error, onRefresh }: IncidentsSectionProps) {
+export function IncidentsSection({ data, loading, error, onRefresh, onLogsCleared }: IncidentsSectionProps) {
   const { t } = useTranslation();
+  const { push } = useToast();
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => { setNow(Date.now()); }, [data]);
   const [sourceFilter, setSourceFilter] = useState(ALL_SOURCES_KEY);
@@ -70,11 +83,48 @@ export function IncidentsSection({ data, loading, error, onRefresh }: IncidentsS
     ...presentSources.map(source => ({ key: source, label: t(incidentSourceLabelKey(source)) })),
   ];
 
+  const [openingViewer, setOpeningViewer] = useState(false);
+  const handleOpenEventViewer = useCallback(async () => {
+    setOpeningViewer(true);
+    const result = await openDiagnosticsEventViewer();
+    setOpeningViewer(false);
+    if (!result.data?.opened) push({ title: t('diagnostics.incidents.openEventViewerFailed') });
+  }, [push, t]);
+
+  const [clearLogsConfirmOpen, setClearLogsConfirmOpen] = useState(false);
+  const [clearingLogs, setClearingLogs] = useState(false);
+  const handleClearLogs = useCallback(async () => {
+    setClearLogsConfirmOpen(false);
+    setClearingLogs(true);
+    const result = await clearDiagnosticsEventLogs();
+    setClearingLogs(false);
+    if (result.data?.cleared) {
+      push({ title: t('diagnostics.incidents.clearLogsSuccess') });
+      onRefresh();
+      onLogsCleared();
+    } else {
+      push({ title: t('diagnostics.incidents.clearLogsFailed') });
+    }
+  }, [onLogsCleared, onRefresh, push, t]);
+
   return (
     <section className={styles.section}>
       <div className={styles.sectionHeaderRow}>
         <SectionHeader>{t('diagnostics.incidents.title')}</SectionHeader>
-        <Button tone="ghost" size="sm" icon={<RefreshCw size={13} />} loading={loading} title={t('diagnostics.refresh')} aria-label={t('diagnostics.refresh')} onClick={() => onRefresh()} />
+        <div className={styles.incidentsHeaderActions}>
+          <Button
+            tone="ghost" size="sm" icon={<ExternalLink size={13} />} loading={openingViewer}
+            onClick={() => void handleOpenEventViewer()}
+          >
+            {t('diagnostics.incidents.openEventViewer')}
+          </Button>
+          <Button
+            tone="danger" size="sm" icon={<Trash2 size={13} />} loading={clearingLogs}
+            onClick={() => setClearLogsConfirmOpen(true)}
+          >
+            {t('diagnostics.incidents.clearLogs')}
+          </Button>
+        </div>
       </div>
       {state === 'error' && <SectionLoadError onRetry={() => onRefresh()} loading={loading} />}
       {state === 'notSupported' && <NotAvailableNote />}
@@ -114,6 +164,19 @@ export function IncidentsSection({ data, loading, error, onRefresh }: IncidentsS
           )}
         </>
       )}
+
+      <ConfirmModal
+        open={clearLogsConfirmOpen}
+        title={t('diagnostics.incidents.clearLogsConfirmTitle')}
+        message={t('diagnostics.incidents.clearLogsConfirmMessage')}
+        bullets={[t('diagnostics.incidents.clearLogsBullet1'), t('diagnostics.incidents.clearLogsBullet2')]}
+        note={t('diagnostics.incidents.clearLogsNote')}
+        // eslint-disable-next-line i18next/no-literal-string -- note tone enum value
+        noteTone="danger"
+        confirmLabel={t('diagnostics.incidents.clearLogs')}
+        onConfirm={() => void handleClearLogs()}
+        onCancel={() => setClearLogsConfirmOpen(false)}
+      />
     </section>
   );
 }

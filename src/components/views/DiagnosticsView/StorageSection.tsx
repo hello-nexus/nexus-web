@@ -1,12 +1,11 @@
 import { useState } from 'react';
-import { HardDrive, RefreshCw } from 'lucide-react';
+import { HardDrive } from 'lucide-react';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { convertTemperature, formatNumber, localizeNumbers, tempUnitSymbol } from '../../../lib/units';
 import { SectionHeader } from '../../common/SectionHeader/SectionHeader';
 import { Card } from '../../common/Card/Card';
 import { Badge } from '../../common/Badge/Badge';
-import { Button } from '../../common/Button/Button';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { CollapsibleSection } from '../../common/CollapsibleSection/CollapsibleSection';
 import { InfoList, InfoRow } from '../../common/InfoList/InfoList';
@@ -36,14 +35,7 @@ export function StorageSection({ data, loading, error, onRefresh }: StorageSecti
 
   return (
     <section className={styles.section} id={diagnosticsSectionAnchorId('storage')}>
-      <div className={styles.sectionHeaderRow}>
-        <SectionHeader>{t('diagnostics.kind.storage')}</SectionHeader>
-        <Button
-          tone="ghost" size="sm" icon={<RefreshCw size={13} />} loading={loading}
-          title={t('diagnostics.refresh')} aria-label={t('diagnostics.refresh')}
-          onClick={() => onRefresh({ force: true })}
-        />
-      </div>
+      <SectionHeader>{t('diagnostics.kind.storage')}</SectionHeader>
       {state === 'error' && <SectionLoadError onRetry={() => onRefresh({ force: true })} loading={loading} />}
       {state === 'notSupported' && <NotAvailableNote />}
       {state === 'empty' && <EmptyState compact icon={<HardDrive size={22} />} title={t('diagnostics.storage.empty')} />}

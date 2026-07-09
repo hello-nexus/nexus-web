@@ -1,8 +1,7 @@
-import { RefreshCw, ShieldCheck } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { SectionHeader } from '../../common/SectionHeader/SectionHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
-import { Button } from '../../common/Button/Button';
 import { InfoList, InfoRow } from '../../common/InfoList/InfoList';
 import { InfoTooltip } from '../../common/InfoTooltip/InfoTooltip';
 import type { DiagnosticsFetchOptions, DiagnosticsSystemResponse, PnpProblem } from '../../../api/diagnostics';
@@ -29,14 +28,7 @@ export function SystemSection({ data, loading, error, onRefresh }: SystemSection
 
   return (
     <section className={styles.section} id={diagnosticsSectionAnchorId('system')}>
-      <div className={styles.sectionHeaderRow}>
-        <SectionHeader>{t('diagnostics.kind.system')}</SectionHeader>
-        <Button
-          tone="ghost" size="sm" icon={<RefreshCw size={13} />} loading={loading}
-          title={t('diagnostics.refresh')} aria-label={t('diagnostics.refresh')}
-          onClick={() => onRefresh({ force: true })}
-        />
-      </div>
+      <SectionHeader>{t('diagnostics.kind.system')}</SectionHeader>
       {state === 'error' && <SectionLoadError onRetry={() => onRefresh({ force: true })} loading={loading} />}
       {state === 'notSupported' && <NotAvailableNote />}
       {state === 'content' && data && (
@@ -48,7 +40,6 @@ export function SystemSection({ data, loading, error, onRefresh }: SystemSection
             <InfoRow label={t('diagnostics.system.counts.dirtyShutdowns')} value={data.counts30d.dirtyShutdowns} />
             <InfoRow label={t('diagnostics.system.counts.diskErrors')} value={data.counts30d.diskErrors} tone={data.counts30d.diskErrors > 0 ? 'bad' : 'default'} />
             <InfoRow label={t('diagnostics.system.counts.tdrs')} value={data.counts30d.tdrs} />
-            <InfoRow label={t('diagnostics.system.counts.gpuDriverErrors')} value={data.counts30d.gpuDriverErrors} />
             <InfoRow label={t('diagnostics.system.counts.appCrashes')} value={data.counts30d.appCrashes} />
           </InfoList>
 

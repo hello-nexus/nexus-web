@@ -5,6 +5,7 @@
 // deterministic across runs.
 import type {
   CancelMemoryTestResponse,
+  ClearEventLogsResponse,
   DiagnosticsCoolingResponse,
   DiagnosticsGpuResponse,
   DiagnosticsHealth,
@@ -12,6 +13,7 @@ import type {
   DiagnosticsMemoryResponse,
   DiagnosticsSmartResponse,
   DiagnosticsSystemResponse,
+  OpenEventViewerResponse,
   ScheduleMemoryTestResponse,
 } from './diagnostics';
 
@@ -260,7 +262,6 @@ export function mockDiagnosticsGpu(): DiagnosticsGpuResponse {
           hwPowerBrakeUs: 0,
         },
         recentTdrCount: 0,
-        recentDriverErrorCount: 2,
       },
     ],
   };
@@ -290,7 +291,6 @@ export function mockDiagnosticsSystem(): DiagnosticsSystemResponse {
       dirtyShutdowns: 3,
       diskErrors: 0,
       tdrs: 0,
-      gpuDriverErrors: 2,
       appCrashes: 5,
     },
   };
@@ -309,4 +309,12 @@ export function mockScheduleMemoryTest(): ScheduleMemoryTestResponse {
 export function mockCancelMemoryTest(): CancelMemoryTestResponse {
   mockMemoryTestScheduled = false;
   return { scheduled: false };
+}
+
+export function mockOpenEventViewer(): OpenEventViewerResponse {
+  return { opened: true };
+}
+
+export function mockClearEventLogs(): ClearEventLogsResponse {
+  return { cleared: true };
 }

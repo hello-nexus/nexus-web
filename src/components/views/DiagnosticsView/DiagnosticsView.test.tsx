@@ -1,19 +1,38 @@
-import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ComponentHealthGrid } from './ComponentHealthGrid';
 import { IncidentsSection } from './IncidentsSection';
-import { StorageSection } from './StorageSection';
-import { MemorySection } from './MemorySection';
-import { GpuSection } from './GpuSection';
-import { CoolingSection } from './CoolingSection';
 import { SystemSection } from './SystemSection';
 import { ToastProvider } from '../../common/Toast/Toast';
+import { setActiveTransport } from '../../../api/service';
 import type {
   DiagnosticsComponent,
   DiagnosticsIncident,
   DiagnosticsIncidentsResponse,
   DiagnosticsSystemResponse,
 } from '../../../api/diagnostics';
+
+function jsonResponse(status: number, body: unknown): Response {
+  return { ok: status >= 200 && status < 300, status, json: async () => body } as unknown as Response;
+}
+
+// IncidentsSection now reads useToast() unconditionally (for the Open Event
+// Viewer / Clear Windows event logs actions), so every render needs a
+// ToastProvider ancestor - matches MemorySection's existing precedent.
+function renderIncidents(props: {
+  data: DiagnosticsIncidentsResponse | null;
+  loading?: boolean;
+  error?: boolean;
+  onRefresh?: () => void;
+  onLogsCleared?: () => void;
+}) {
+  const { data, loading = false, error = false, onRefresh = () => {}, onLogsCleared = () => {} } = props;
+  return render(
+    <ToastProvider>
+      <IncidentsSection data={data} loading={loading} error={error} onRefresh={onRefresh} onLogsCleared={onLogsCleared} />
+    </ToastProvider>,
+  );
+}
 
 describe('ComponentHealthGrid', () => {
   it('renders the act state for a component in that state', () => {
@@ -133,7 +152,7 @@ describe('IncidentsSection', () => {
   };
 
   it('condenses every incident to one line with the all filter', () => {
-    render(<IncidentsSection data={response} loading={false} error={false} onRefresh={() => {}} />);
+    renderIncidents({ data: response });
 
     expect(screen.getByText('Corrected PCIe hardware error')).toBeInTheDocument();
     expect(screen.getByText('cyberpunk2077.exe crashed')).toBeInTheDocument();
@@ -144,7 +163,7 @@ describe('IncidentsSection', () => {
   });
 
   it('reveals detail, app info, and the game badge when a row is expanded', () => {
-    render(<IncidentsSection data={response} loading={false} error={false} onRefresh={() => {}} />);
+    renderIncidents({ data: response });
 
     fireEvent.click(screen.getByText('cyberpunk2077.exe crashed'));
 
@@ -154,7 +173,7 @@ describe('IncidentsSection', () => {
   });
 
   it('shows the first-seen time for a repeated incident once expanded', () => {
-    render(<IncidentsSection data={response} loading={false} error={false} onRefresh={() => {}} />);
+    renderIncidents({ data: response });
 
     fireEvent.click(screen.getByText('Corrected PCIe hardware error'));
 
@@ -167,13 +186,13 @@ describe('IncidentsSection', () => {
       windowDays: 30,
       incidents: [makeIncident({ id: 'System/1', timeUtc: '2026-07-06T23:54:42Z', source: 'whea', title: 'Corrected PCIe hardware error' })],
     };
-    render(<IncidentsSection data={singleton} loading={false} error={false} onRefresh={() => {}} />);
+    renderIncidents({ data: singleton });
 
     expect(screen.queryByRole('button', { name: /Corrected PCIe hardware error/ })).not.toBeInTheDocument();
   });
 
   it('narrows the list to one source when its filter chip is clicked', () => {
-    render(<IncidentsSection data={response} loading={false} error={false} onRefresh={() => {}} />);
+    renderIncidents({ data: response });
 
     fireEvent.click(screen.getByRole('button', { name: 'diagnostics.incidents.source.appCrash' }));
 
@@ -194,7 +213,7 @@ describe('IncidentsSection pagination', () => {
   };
 
   it('shows only the first page and a show-more control', () => {
-    render(<IncidentsSection data={bigResponse} loading={false} error={false} onRefresh={() => {}} />);
+    renderIncidents({ data: bigResponse });
 
     expect(screen.getByText('WHEA event 0')).toBeInTheDocument();
     expect(screen.queryByText('WHEA event 19')).toBeInTheDocument();
@@ -204,7 +223,7 @@ describe('IncidentsSection pagination', () => {
   });
 
   it('reveals the rest and hides the button once everything is shown', () => {
-    render(<IncidentsSection data={bigResponse} loading={false} error={false} onRefresh={() => {}} />);
+    renderIncidents({ data: bigResponse });
 
     fireEvent.click(screen.getByText('diagnostics.incidents.showMore'));
 
@@ -213,7 +232,7 @@ describe('IncidentsSection pagination', () => {
   });
 
   it('filters first, then paginates the narrowed set', () => {
-    render(<IncidentsSection data={bigResponse} loading={false} error={false} onRefresh={() => {}} />);
+    renderIncidents({ data: bigResponse });
 
     fireEvent.click(screen.getByRole('button', { name: 'diagnostics.incidents.source.appCrash' }));
 
@@ -224,47 +243,78 @@ describe('IncidentsSection pagination', () => {
   });
 });
 
-describe('section refresh buttons', () => {
-  it('force-refreshes storage, memory, gpu, and system', () => {
-    const onRefresh = vi.fn();
-    render(<StorageSection data={null} loading={false} error={false} onRefresh={onRefresh} />);
-    fireEvent.click(screen.getByRole('button', { name: 'diagnostics.refresh' }));
-    expect(onRefresh).toHaveBeenCalledWith({ force: true });
+describe('IncidentsSection log actions', () => {
+  const response: DiagnosticsIncidentsResponse = {
+    supported: true,
+    windowDays: 30,
+    incidents: [makeIncident({ id: 'System/1', timeUtc: '2026-07-06T23:54:42Z', source: 'whea', title: 'Corrected PCIe hardware error' })],
+  };
+
+  beforeEach(() => {
+    localStorage.setItem('nexus_token', 'test-token');
+    setActiveTransport('lan');
   });
 
-  it('force-refreshes memory', () => {
-    const onRefresh = vi.fn();
-    // MemorySection's schedule/cancel-test toasts need a ToastProvider ancestor.
-    render(<ToastProvider><MemorySection data={null} loading={false} error={false} onRefresh={onRefresh} /></ToastProvider>);
-    fireEvent.click(screen.getByRole('button', { name: 'diagnostics.refresh' }));
-    expect(onRefresh).toHaveBeenCalledWith({ force: true });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    setActiveTransport(null);
   });
 
-  it('force-refreshes gpu', () => {
-    const onRefresh = vi.fn();
-    render(<GpuSection data={null} loading={false} error={false} onRefresh={onRefresh} />);
-    fireEvent.click(screen.getByRole('button', { name: 'diagnostics.refresh' }));
-    expect(onRefresh).toHaveBeenCalledWith({ force: true });
+  it('opens Event Viewer via the service and shows no toast on success', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(200, { opened: true })));
+    renderIncidents({ data: response });
+
+    fireEvent.click(screen.getByRole('button', { name: 'diagnostics.incidents.openEventViewer' }));
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'diagnostics.incidents.openEventViewer' })).not.toHaveAttribute('data-loading', 'true'));
+    expect(screen.queryByText('diagnostics.incidents.openEventViewerFailed')).not.toBeInTheDocument();
   });
 
-  it('force-refreshes system', () => {
-    const onRefresh = vi.fn();
-    render(<SystemSection data={null} loading={false} error={false} onRefresh={onRefresh} />);
-    fireEvent.click(screen.getByRole('button', { name: 'diagnostics.refresh' }));
-    expect(onRefresh).toHaveBeenCalledWith({ force: true });
+  it('shows a failure toast when opening Event Viewer fails', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(500, {})));
+    renderIncidents({ data: response });
+
+    fireEvent.click(screen.getByRole('button', { name: 'diagnostics.incidents.openEventViewer' }));
+
+    await waitFor(() => expect(screen.getByText('diagnostics.incidents.openEventViewerFailed')).toBeInTheDocument());
   });
 
-  it('refreshes cooling without a force option (endpoint has no server cache to bust)', () => {
-    const onRefresh = vi.fn();
-    render(<CoolingSection data={null} loading={false} error={false} onRefresh={onRefresh} />);
-    fireEvent.click(screen.getByRole('button', { name: 'diagnostics.refresh' }));
-    expect(onRefresh).toHaveBeenCalledWith();
-    expect(onRefresh).toHaveBeenCalledTimes(1);
+  it('requires a destructive confirm before clearing Windows event logs', () => {
+    renderIncidents({ data: response });
+
+    fireEvent.click(screen.getByRole('button', { name: 'diagnostics.incidents.clearLogs' }));
+
+    expect(screen.getByText('diagnostics.incidents.clearLogsConfirmTitle')).toBeInTheDocument();
+    expect(screen.getByText('diagnostics.incidents.clearLogsConfirmMessage')).toBeInTheDocument();
+    expect(screen.getByText('diagnostics.incidents.clearLogsNote')).toBeInTheDocument();
   });
 
-  it('shows a spinner on the refresh button while a section is loading', () => {
-    render(<SystemSection data={null} loading error={false} onRefresh={() => {}} />);
-    expect(screen.getByRole('button', { name: 'diagnostics.refresh' })).toHaveAttribute('data-loading', 'true');
+  it('clears the logs, force-refreshes incidents, and notifies the parent on confirm', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(200, { cleared: true })));
+    const onRefresh = vi.fn();
+    const onLogsCleared = vi.fn();
+    renderIncidents({ data: response, onRefresh, onLogsCleared });
+
+    fireEvent.click(screen.getByRole('button', { name: 'diagnostics.incidents.clearLogs' }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'diagnostics.incidents.clearLogs' })[1]);
+
+    await waitFor(() => expect(onRefresh).toHaveBeenCalledTimes(1));
+    expect(onLogsCleared).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('diagnostics.incidents.clearLogsSuccess')).toBeInTheDocument();
+  });
+
+  it('shows a failure toast and does not refresh when clearing logs fails', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(500, {})));
+    const onRefresh = vi.fn();
+    const onLogsCleared = vi.fn();
+    renderIncidents({ data: response, onRefresh, onLogsCleared });
+
+    fireEvent.click(screen.getByRole('button', { name: 'diagnostics.incidents.clearLogs' }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'diagnostics.incidents.clearLogs' })[1]);
+
+    await waitFor(() => expect(screen.getByText('diagnostics.incidents.clearLogsFailed')).toBeInTheDocument());
+    expect(onRefresh).not.toHaveBeenCalled();
+    expect(onLogsCleared).not.toHaveBeenCalled();
   });
 });
 
@@ -272,7 +322,7 @@ describe('SystemSection PnP problem mapping', () => {
   const baseData: DiagnosticsSystemResponse = {
     supported: true,
     pnpProblems: [],
-    counts30d: { whea: 0, bugchecks: 0, dirtyShutdowns: 0, diskErrors: 0, tdrs: 0, gpuDriverErrors: 0, appCrashes: 0 },
+    counts30d: { whea: 0, bugchecks: 0, dirtyShutdowns: 0, diskErrors: 0, tdrs: 0, appCrashes: 0 },
   };
 
   it('shows the mapped human explanation for a known problem code', () => {
