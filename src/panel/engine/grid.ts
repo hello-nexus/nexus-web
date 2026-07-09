@@ -49,6 +49,17 @@ export function snapStride(span: number): number {
   return span <= 1 ? 1 : 2;
 }
 
+// Scan passes for placement searches: stride-aligned first (snap
+// aesthetics), then every cell so off-stride free space (left by 1x1
+// neighbours or a tight repack) still accepts the widget instead of
+// the search reporting "no room" while blank cells are visible.
+export function strideScanSteps(colSpan: number, rowSpan: number): { col: number; row: number }[] {
+  const col = snapStride(colSpan);
+  const row = snapStride(rowSpan);
+  if (col === 1 && row === 1) return [{ col, row }];
+  return [{ col, row }, { col: 1, row: 1 }];
+}
+
 export function panelGridCapacityForCanvas(
   width: number,
   height: number,

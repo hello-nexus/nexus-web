@@ -336,7 +336,11 @@ export function PanelDevicePage({ device, onOpenFirmware }: PanelDevicePageProps
       col: 0,
       row: 0,
     };
-    const appended = appendWidget(layout, next, editorCapacity);
+    // Prefer the page the preview is showing; appendWidget falls back to
+    // the first page with room.
+    const appended = appendWidget(layout, next, editorCapacity, {
+      preferredPageId: layout.activePageId,
+    });
     // Jump the preview to the page the widget landed on - appendWidget spills
     // to a later page when the active one is full, so the new tile would
     // otherwise appear off-screen.

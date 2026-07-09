@@ -1,6 +1,6 @@
 import type { PanelLayout, PanelPage, PanelWidget, PanelWidgetSize } from '../types';
 import { firstFreeRect, rectsOverlap, type PaginateCapacity } from './paginate';
-import { sizeToSpan, snapStride } from './grid';
+import { sizeToSpan, strideScanSteps } from './grid';
 import { createUuid } from '../../lib/uuid';
 
 interface WidgetRect { col: number; row: number; colSpan: number; rowSpan: number; }
@@ -14,17 +14,18 @@ function widgetRect(w: PanelWidget, cols: number): WidgetRect {
 
 /**
  * Appends `next` to the first page that has a free row-major rect
- * for it. If no existing page fits, a new empty page is created and
- * the widget lands at (0, 0) - unless `singlePage` is true, in which
- * case the layout is returned unchanged (the caller sees a no-op).
- * Position is set on the returned widget before insertion. Idempotent:
- * pages with stable ids stay stable.
+ * for it - `preferredPageId` (the page the user is looking at) is
+ * scanned first, then the rest in order. If no existing page fits, a
+ * new empty page is created and the widget lands at (0, 0) - unless
+ * `singlePage` is true, in which case the layout is returned unchanged
+ * (the caller sees a no-op). Position is set on the returned widget
+ * before insertion. Idempotent: pages with stable ids stay stable.
  */
 export function appendWidget(
   layout: PanelLayout,
   next: PanelWidget,
   capacity: PaginateCapacity,
-  options?: { singlePage?: boolean },
+  options?: { singlePage?: boolean; preferredPageId?: string },
 ): PanelLayout {
   const span = sizeToSpan(next.size);
   const cols = Math.max(1, capacity.gridCols);
@@ -32,7 +33,15 @@ export function appendWidget(
   const colSpan = Math.max(1, Math.min(span.cols, cols));
   const rowSpan = Math.max(1, span.rows);
 
-  for (let i = 0; i < layout.pages.length; i++) {
+  const scanOrder = layout.pages.map((_, i) => i);
+  const preferredIdx = options?.preferredPageId
+    ? layout.pages.findIndex(p => p.id === options.preferredPageId)
+    : -1;
+  if (preferredIdx > 0) {
+    scanOrder.splice(preferredIdx, 1);
+    scanOrder.unshift(preferredIdx);
+  }
+  for (const i of scanOrder) {
     const slot = firstFreeRect(layout.pages[i].widgets, cols, rows, colSpan, rowSpan);
     if (slot) {
       const placed: PanelWidget = { ...next, col: slot.col, row: slot.row };
@@ -69,10 +78,30 @@ export function replaceWidget(
 }
 
 /**
+ * Drops every empty page; when ALL pages are empty the first is kept so
+ * the renderer always has a page to show. Repoints activePageId at the
+ * nearest surviving page when its page was dropped, so id-based
+ * consumers (the desktop preview arrows) resolve the same page the
+ * on-device pager lands on via its index clamp, min(oldIndex,
+ * lastIndex). Used after remove AND after a drop: dragging the last
+ * widget off a page must not leave a blank page to swipe through.
+ */
+export function pruneEmptyPages(layout: PanelLayout): PanelLayout {
+  const nonEmpty = layout.pages.filter(page => page.widgets.length > 0);
+  const pages = nonEmpty.length > 0 ? nonEmpty : layout.pages.slice(0, 1);
+  if (pages.length === layout.pages.length) return layout;
+  let activePageId = layout.activePageId;
+  if (activePageId && !pages.some(p => p.id === activePageId)) {
+    const prevIdx = layout.pages.findIndex(p => p.id === activePageId);
+    activePageId = pages[Math.min(Math.max(prevIdx, 0), pages.length - 1)]?.id;
+  }
+  return { ...layout, pages, activePageId };
+}
+
+/**
  * Removes a widget by id. The cell stays empty: no later widget
- * shifts up to fill. If the removal empties a non-first page, the
- * page is dropped so the user does not end up paging through blank
- * pages.
+ * shifts up to fill. Pages the removal empties are pruned so the user
+ * does not end up paging through blank pages.
  */
 export function removeWidgetById(
   layout: PanelLayout,
@@ -88,31 +117,15 @@ export function removeWidgetById(
     return { ...page, widgets: next };
   });
   if (!removed) return layout;
-  // Drop trailing empty pages but keep at least one. The first page
-  // is always kept even when empty so the renderer always has a page
-  // to show.
-  const pruned: PanelPage[] = [];
-  pagesAfter.forEach((page, idx) => {
-    if (page.widgets.length === 0 && idx > 0) return;
-    pruned.push(page);
-  });
-  const pages = pruned.length === 0 ? [pagesAfter[0]] : pruned;
-  // Repoint activePageId when pruning dropped the active page so id-based
-  // consumers (the desktop preview arrows) resolve the same page the on-device
-  // pager lands on via its index clamp, min(oldIndex, lastIndex).
-  let activePageId = layout.activePageId;
-  if (activePageId && !pages.some(p => p.id === activePageId)) {
-    const prevIdx = layout.pages.findIndex(p => p.id === activePageId);
-    activePageId = pages[Math.min(Math.max(prevIdx, 0), pages.length - 1)]?.id;
-  }
-  return { ...layout, pages, activePageId };
+  return pruneEmptyPages({ ...layout, pages: pagesAfter });
 }
 
 /**
  * Patches a widget by id (resize / config). When a size change makes
  * the new rect overlap siblings, this routes through previewDrag so
  * the overlapped siblings cascade row-major into free aligned cells.
- * Rejected only when previewDrag can't home every displaced widget.
+ * When previewDrag can't home every displaced widget the patch is
+ * rejected: the ORIGINAL layout comes back, never one with overlaps.
  */
 export function patchWidgetById(
   layout: PanelLayout,
@@ -173,145 +186,11 @@ export function patchWidgetById(
     patched.row,
     capacity,
   );
-  if (!result) return patchedLayout;
+  // A failed cascade means the patched rect overlaps siblings that have
+  // nowhere to go. Reject the whole patch - patchedLayout would commit
+  // overlapping widgets, which locks out subsequent edits.
+  if (!result) return layout;
   return result;
-}
-
-/**
- * Moves `sourceId` to the cell of `overId`. If overId is occupied,
- * the two widgets swap (source takes overId's cell, overId takes
- * source's cell). If they live on different pages, the swap moves
- * both widgets across pages.
- *
- * If the target cell is empty (overId references the dragged widget's
- * own placeholder ghost from dnd-kit), the move is a no-op.
- *
- * No-op when either id is missing.
- */
-export function moveWidget(
-  layout: PanelLayout,
-  sourceId: string,
-  overId: string,
-  _capacity: PaginateCapacity,
-): PanelLayout {
-  void _capacity;
-  if (sourceId === overId) return layout;
-  let sourcePageIdx = -1;
-  let overPageIdx = -1;
-  let source: PanelWidget | undefined;
-  let over: PanelWidget | undefined;
-  for (let i = 0; i < layout.pages.length; i++) {
-    for (const w of layout.pages[i].widgets) {
-      if (w.id === sourceId) { source = w; sourcePageIdx = i; }
-      if (w.id === overId) { over = w; overPageIdx = i; }
-    }
-  }
-  if (!source || !over) return layout;
-
-  // Swap (col, row); cross-page swap also moves the widgets across
-  // pages so their containers reflect the new home.
-  const swappedSource: PanelWidget = { ...source, col: over.col, row: over.row };
-  const swappedOver: PanelWidget = { ...over, col: source.col, row: source.row };
-
-  if (sourcePageIdx === overPageIdx) {
-    const pageIdx = sourcePageIdx;
-    const widgets = layout.pages[pageIdx].widgets.map(w => {
-      if (w.id === sourceId) return swappedSource;
-      if (w.id === overId) return swappedOver;
-      return w;
-    });
-    const pages = layout.pages.map((page, idx) =>
-      idx === pageIdx ? { ...page, widgets } : page);
-    return { ...layout, pages };
-  }
-
-  const pages = layout.pages.map((page, idx) => {
-    if (idx === sourcePageIdx) {
-      // Remove source, add the swapped over.
-      return {
-        ...page,
-        widgets: page.widgets.flatMap(w => {
-          if (w.id === sourceId) return [];
-          return [w];
-        }).concat(swappedOver),
-      };
-    }
-    if (idx === overPageIdx) {
-      return {
-        ...page,
-        widgets: page.widgets.flatMap(w => {
-          if (w.id === overId) return [];
-          return [w];
-        }).concat(swappedSource),
-      };
-    }
-    return page;
-  });
-  return { ...layout, pages };
-}
-
-/**
- * Places `sourceId` on `targetPageId` with its top-left at
- * (col, row). If the resulting rect overlaps any sibling on that
- * page, returns the layout unchanged (drop refused). The widget is
- * removed from its current page if it lives elsewhere.
- */
-export function placeWidgetAt(
-  layout: PanelLayout,
-  sourceId: string,
-  targetPageId: string,
-  col: number,
-  row: number,
-  capacity: PaginateCapacity,
-): PanelLayout {
-  let sourcePageIdx = -1;
-  let source: PanelWidget | undefined;
-  for (let i = 0; i < layout.pages.length; i++) {
-    for (const w of layout.pages[i].widgets) {
-      if (w.id === sourceId) { source = w; sourcePageIdx = i; break; }
-    }
-    if (source) break;
-  }
-  if (!source) return layout;
-
-  const targetPageIdx = layout.pages.findIndex(p => p.id === targetPageId);
-  if (targetPageIdx < 0) return layout;
-
-  const cols = Math.max(1, capacity.gridCols);
-  const rows = Math.max(1, capacity.pageRows);
-  const placed: PanelWidget = { ...source, col, row };
-  const placedRect = widgetRect(placed, cols);
-  // Refuse if the rect would push past the grid edges.
-  if (placedRect.col + placedRect.colSpan > cols) return layout;
-  if (placedRect.row + placedRect.rowSpan > rows) return layout;
-
-  const targetSiblings = layout.pages[targetPageIdx].widgets.filter(w => w.id !== sourceId);
-  const collides = targetSiblings.some(other => rectsOverlap(placedRect, widgetRect(other, cols)));
-  if (collides) return layout;
-
-  // No-op if the source already sits at the requested cell on the
-  // same page - prevents a redundant write that would burst the
-  // 250 ms persistence debounce.
-  if (sourcePageIdx === targetPageIdx && source.col === col && source.row === row) {
-    return layout;
-  }
-
-  const pages = layout.pages.map((page, idx) => {
-    if (idx === sourcePageIdx && idx === targetPageIdx) {
-      return {
-        ...page,
-        widgets: page.widgets.map(w => w.id === sourceId ? placed : w),
-      };
-    }
-    if (idx === sourcePageIdx) {
-      return { ...page, widgets: page.widgets.filter(w => w.id !== sourceId) };
-    }
-    if (idx === targetPageIdx) {
-      return { ...page, widgets: [...page.widgets, placed] };
-    }
-    return page;
-  });
-  return { ...layout, pages };
 }
 
 /**
@@ -403,22 +282,23 @@ export function previewDrag(
     const span = sizeToSpan(w.size);
     const colSpan = Math.max(1, Math.min(span.cols, cols));
     const rowSpan = Math.max(1, span.rows);
-    // Snap-to-stride rule: 1x1 walks every cell, every larger size
-    // walks in 2-cell increments. Mirrors the active widget's snap
-    // grid so cascaded widgets land on the same fine-grained slots.
-    const colStep = snapStride(colSpan);
-    const rowStep = snapStride(rowSpan);
+    // Stride-aligned slots first (mirrors the active widget's snap
+    // grid), then a stride-1 pass so a displaced widget still homes
+    // into off-stride free space instead of refusing the whole drop.
     let found: { col: number; row: number } | null = null;
-    for (let r = 0; r + rowSpan <= rows && !found; r += rowStep) {
-      for (let c = 0; c + colSpan <= cols && !found; c += colStep) {
-        let fits = true;
-        for (let rr = r; rr < r + rowSpan && fits; rr++) {
-          for (let cc = c; cc < c + colSpan && fits; cc++) {
-            if (occupied[rr][cc]) fits = false;
+    for (const step of strideScanSteps(colSpan, rowSpan)) {
+      for (let r = 0; r + rowSpan <= rows && !found; r += step.row) {
+        for (let c = 0; c + colSpan <= cols && !found; c += step.col) {
+          let fits = true;
+          for (let rr = r; rr < r + rowSpan && fits; rr++) {
+            for (let cc = c; cc < c + colSpan && fits; cc++) {
+              if (occupied[rr][cc]) fits = false;
+            }
           }
+          if (fits) found = { col: c, row: r };
         }
-        if (fits) found = { col: c, row: r };
       }
+      if (found) break;
     }
     if (!found) return null;
     mark({ col: found.col, row: found.row, colSpan, rowSpan });
@@ -519,22 +399,25 @@ export function tryResizeWidget(
     a.row !== b.row ? a.row - b.row : a.col - b.col,
   );
 
+  // Stride-aligned slots first, then a stride-1 pass so displaced
+  // widgets home into off-stride free space before spilling to the
+  // next page (or failing the resize outright).
   const findFitOnPage = (
     occupied: boolean[][],
     colSpan: number,
     rowSpan: number,
   ): { col: number; row: number } | null => {
-    const colStep = snapStride(colSpan);
-    const rowStep = snapStride(rowSpan);
-    for (let r = 0; r + rowSpan <= rows; r += rowStep) {
-      for (let c = 0; c + colSpan <= cols; c += colStep) {
-        let fits = true;
-        for (let rr = r; rr < r + rowSpan && fits; rr++) {
-          for (let cc = c; cc < c + colSpan && fits; cc++) {
-            if (occupied[rr][cc]) fits = false;
+    for (const step of strideScanSteps(colSpan, rowSpan)) {
+      for (let r = 0; r + rowSpan <= rows; r += step.row) {
+        for (let c = 0; c + colSpan <= cols; c += step.col) {
+          let fits = true;
+          for (let rr = r; rr < r + rowSpan && fits; rr++) {
+            for (let cc = c; cc < c + colSpan && fits; cc++) {
+              if (occupied[rr][cc]) fits = false;
+            }
           }
+          if (fits) return { col: c, row: r };
         }
-        if (fits) return { col: c, row: r };
       }
     }
     return null;

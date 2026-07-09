@@ -90,6 +90,29 @@ async function gotoPanel(page: Page, seedRecord?: object) {
     contentType: 'application/json',
     body: JSON.stringify({ service: 'nexus', version: 'test', initialized: true, platform: 'macos' }),
   }));
+  // defaultLayoutForSurface reads the install-defaults cache (GET
+  // /defaults at bootstrap); without this stub the "default phone
+  // layout" is EMPTY and every unseeded test sees zero widgets. Shape
+  // mirrors nexus-service/data/install-defaults.json panel.layouts.phone.
+  await page.route('**/defaults', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      panel: {
+        layouts: {
+          phone: {
+            layoutSchemaVersion: 2,
+            surface: 'phone',
+            widgets: [
+              { type: 'monitoring', size: '4x2', col: 0, row: 0 },
+              { type: 'lighting', size: '4x2', col: 0, row: 2 },
+              { type: 'cooling', size: '4x2', col: 0, row: 4 },
+            ],
+          },
+        },
+      },
+    }),
+  }));
   await page.goto(`/panel/${DEVICE_ID}`);
   // Wait for the load + first paint of widgets, then settle so the
   // serviceStatus state machine and any post-mount re-renders complete.
@@ -497,6 +520,83 @@ test.describe('panel widget drag (iOS-style)', () => {
 
     const finalActive = await activeIdxOf();
     expect(finalActive, 'edge-advance must latch after one flip; not run away to page 2').toBe(1);
+  });
+
+  test('edge-advance triggers off the FINGER: full-width widget grabbed near its trailing edge still crosses pages', async ({ page }) => {
+    // Regression: the edge bands used to test only the dragged RECT's
+    // center. A full-width (4-col) widget grabbed near the edge the drag
+    // heads for moves the rect center only as far as the finger's small
+    // delta - the finger hits the screen edge while the center is still
+    // mid-viewport, so the page never advanced.
+    await gotoPanel(page, {
+      id: DEVICE_ID,
+      displayName: 'Test',
+      firstSeenAt: 0,
+      lastSeenAt: 0,
+      capabilities: { surface: 'phone' },
+      layout: {
+        layoutSchemaVersion: 2,
+        surface: 'phone',
+        pages: [
+          {
+            id: 'p0',
+            widgets: [
+              { id: 'p0-w1', type: 'clock', size: '4x4', col: 0, row: 0 },
+              { id: 'p0-w2', type: 'clock', size: '4x4', col: 0, row: 4 },
+            ],
+          },
+          {
+            id: 'p1',
+            widgets: [
+              { id: 'p1-w1', type: 'clock', size: '4x4', col: 0, row: 0 },
+            ],
+          },
+        ],
+      },
+    });
+
+    const activeIdxOf = async () =>
+      page.evaluate(() => {
+        const pages = Array.from(document.querySelectorAll<HTMLElement>('[data-panel-page-index]'));
+        return pages.findIndex(p => p.getAttribute('aria-hidden') === 'false');
+      });
+    expect(await activeIdxOf()).toBe(0);
+
+    // Grab close to the widget's right edge: the finger has only a few px
+    // of travel left to the viewport edge, so the rect center barely moves.
+    const box = await widgetRectById(page, 'p0-w1');
+    const grabX = box.x + box.width - 24;
+    const grabY = box.y + box.height / 2;
+    const viewport = page.viewportSize()!;
+    const targetX = viewport.width - 8;
+
+    const client = await page.context().newCDPSession(page);
+    try {
+      await client.send('Input.dispatchTouchEvent', {
+        type: 'touchStart',
+        touchPoints: [{ x: grabX, y: grabY, id: 1 }],
+      });
+      await new Promise(r => setTimeout(r, 500)); // long-press
+      const STEPS = 8;
+      for (let i = 1; i <= STEPS; i++) {
+        const x = grabX + (targetX - grabX) * (i / STEPS);
+        await client.send('Input.dispatchTouchEvent', {
+          type: 'touchMove',
+          touchPoints: [{ x, y: grabY, id: 1 }],
+        });
+        await new Promise(r => setTimeout(r, 30));
+      }
+      await new Promise(r => setTimeout(r, PANEL_EDGE_ADVANCE_DWELL_MS * 1.5));
+      await client.send('Input.dispatchTouchEvent', {
+        type: 'touchEnd',
+        touchPoints: [],
+      });
+    } finally {
+      await client.detach();
+    }
+    await page.waitForTimeout(400);
+
+    expect(await activeIdxOf(), 'finger dwelling at the screen edge must advance the page even when the rect center is mid-viewport').toBe(1);
   });
 
   test('cross-page hover does not apply per-cell transforms (no shifted-left flicker)', async ({ page }) => {
