@@ -377,6 +377,12 @@
   gap: 0.5rem;
 }
 
+// Static value in the variant SettingRow: the row's standard text-body type,
+// dimmed to read as information rather than a control.
+.variantValue {
+  color: var(--text-dim);
+}
+
 // Monitor-only Y70 (no USB serial channel): brightness/screen have no
 // hardware path, so the Display section leads with this instead of them
 // silently no-oping.

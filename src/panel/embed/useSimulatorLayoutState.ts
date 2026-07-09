@@ -20,6 +20,8 @@ interface PanelLayoutState {
 export interface SimulatorRuntimeState {
   ready: boolean;
   surface: PanelSurface;
+  // CSS-px density from 'simulator/init' (see SimulatorInitMessage.dpi).
+  dpi: number | undefined;
   layoutState: PanelLayoutState;
   theme: SimulatorTheme | null;
   themeMode: 'dark' | 'light';
@@ -52,6 +54,7 @@ function postToParent(message: SimulatorChildToParent) {
 export function useSimulatorLayoutState(): SimulatorRuntimeState {
   const [ready, setReady] = useState(false);
   const [surface, setSurface] = useState<PanelSurface>('y70');
+  const [dpi, setDpi] = useState<number | undefined>(undefined);
   const [layout, setLayoutLocal] = useState<PanelLayout>(SIMULATOR_FALLBACK_LAYOUT);
   const [theme, setTheme] = useState<SimulatorTheme | null>(null);
   const [themeMode, setThemeMode] = useState<'dark' | 'light'>('dark');
@@ -70,6 +73,7 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
       switch (data.type) {
         case 'simulator/init': {
           setSurface(data.surface);
+          setDpi(data.dpi);
           setLayoutLocal(data.layout);
           setTheme(data.theme);
           setThemeMode(data.themeMode);
@@ -83,6 +87,10 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
         }
         case 'simulator/set-layout': {
           setLayoutLocal(data.layout);
+          break;
+        }
+        case 'simulator/set-grid': {
+          setDpi(data.dpi);
           break;
         }
         case 'simulator/set-theme': {
@@ -137,6 +145,7 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
   return {
     ready,
     surface,
+    dpi,
     layoutState,
     theme,
     themeMode,

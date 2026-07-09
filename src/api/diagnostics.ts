@@ -56,6 +56,11 @@ export interface DiagnosticsIncident {
   detail: string;
   app: DiagnosticsIncidentApp | null;
   data: Record<string, string>;
+  // Identical repeats are grouped server-side, newest kept: repeatCount > 1
+  // means this entry stands in for that many occurrences, and firstUtc (null
+  // when repeatCount is 1) is the earliest of them.
+  repeatCount: number;
+  firstUtc: string | null;
 }
 
 export interface DiagnosticsIncidentsResponse {
@@ -161,7 +166,6 @@ export interface DiagnosticsGpu {
   powerW: number;
   throttle: GpuThrottle;
   recentTdrCount: number;
-  recentDriverErrorCount: number;
 }
 
 export interface DiagnosticsGpuResponse {
@@ -200,7 +204,6 @@ export interface DiagnosticsCounts30d {
   dirtyShutdowns: number;
   diskErrors: number;
   tdrs: number;
-  gpuDriverErrors: number;
   appCrashes: number;
 }
 
@@ -215,9 +218,20 @@ export interface DiagnosticsFetchResult<T> {
   mocked: boolean;
 }
 
+/** Passed to the cacheable GET endpoints (health/smart/gpu/memory/system) to
+ *  bust the service's server-side cache instead of returning a stale snapshot. */
+export interface DiagnosticsFetchOptions {
+  force?: boolean;
+}
+
 interface RequestOpts {
   method?: string;
   body?: unknown;
+}
+
+function withRefreshParam(path: string, force?: boolean): string {
+  if (!force) return path;
+  return `${path}${path.includes('?') ? '&' : '?'}refresh=1`;
 }
 
 async function requestJson<T>(path: string, opts?: RequestOpts): Promise<{ data: T | null; status: number }> {
@@ -255,32 +269,32 @@ async function withMockFallback<T>(
   return { data: null, mocked: false };
 }
 
-export function fetchDiagnosticsHealth(): Promise<DiagnosticsFetchResult<DiagnosticsHealth>> {
-  return withMockFallback('/diagnostics/health', mock => mock.mockDiagnosticsHealth());
+export function fetchDiagnosticsHealth(opts?: DiagnosticsFetchOptions): Promise<DiagnosticsFetchResult<DiagnosticsHealth>> {
+  return withMockFallback(withRefreshParam('/diagnostics/health', opts?.force), mock => mock.mockDiagnosticsHealth());
 }
 
 export function fetchDiagnosticsIncidents(days = 30): Promise<DiagnosticsFetchResult<DiagnosticsIncidentsResponse>> {
   return withMockFallback(`/diagnostics/incidents?days=${days}`, mock => mock.mockDiagnosticsIncidents());
 }
 
-export function fetchDiagnosticsSmart(): Promise<DiagnosticsFetchResult<DiagnosticsSmartResponse>> {
-  return withMockFallback('/diagnostics/smart', mock => mock.mockDiagnosticsSmart());
+export function fetchDiagnosticsSmart(opts?: DiagnosticsFetchOptions): Promise<DiagnosticsFetchResult<DiagnosticsSmartResponse>> {
+  return withMockFallback(withRefreshParam('/diagnostics/smart', opts?.force), mock => mock.mockDiagnosticsSmart());
 }
 
-export function fetchDiagnosticsMemory(): Promise<DiagnosticsFetchResult<DiagnosticsMemoryResponse>> {
-  return withMockFallback('/diagnostics/memory', mock => mock.mockDiagnosticsMemory());
+export function fetchDiagnosticsMemory(opts?: DiagnosticsFetchOptions): Promise<DiagnosticsFetchResult<DiagnosticsMemoryResponse>> {
+  return withMockFallback(withRefreshParam('/diagnostics/memory', opts?.force), mock => mock.mockDiagnosticsMemory());
 }
 
-export function fetchDiagnosticsGpu(): Promise<DiagnosticsFetchResult<DiagnosticsGpuResponse>> {
-  return withMockFallback('/diagnostics/gpu', mock => mock.mockDiagnosticsGpu());
+export function fetchDiagnosticsGpu(opts?: DiagnosticsFetchOptions): Promise<DiagnosticsFetchResult<DiagnosticsGpuResponse>> {
+  return withMockFallback(withRefreshParam('/diagnostics/gpu', opts?.force), mock => mock.mockDiagnosticsGpu());
 }
 
 export function fetchDiagnosticsCooling(): Promise<DiagnosticsFetchResult<DiagnosticsCoolingResponse>> {
   return withMockFallback('/diagnostics/cooling', mock => mock.mockDiagnosticsCooling());
 }
 
-export function fetchDiagnosticsSystem(): Promise<DiagnosticsFetchResult<DiagnosticsSystemResponse>> {
-  return withMockFallback('/diagnostics/system', mock => mock.mockDiagnosticsSystem());
+export function fetchDiagnosticsSystem(opts?: DiagnosticsFetchOptions): Promise<DiagnosticsFetchResult<DiagnosticsSystemResponse>> {
+  return withMockFallback(withRefreshParam('/diagnostics/system', opts?.force), mock => mock.mockDiagnosticsSystem());
 }
 
 export function scheduleMemoryTest(): Promise<DiagnosticsFetchResult<ScheduleMemoryTestResponse>> {
@@ -297,6 +311,37 @@ export function cancelMemoryTest(): Promise<DiagnosticsFetchResult<CancelMemoryT
     mock => mock.mockCancelMemoryTest(),
     { method: 'DELETE' },
   );
+}
+
+export interface OpenEventViewerResponse {
+  opened: boolean;
+}
+
+export interface ClearEventLogsResponse {
+  cleared: boolean;
+  systemError: string;
+  applicationError: string;
+}
+
+// These two bypass withMockFallback deliberately: a 404 (no such route, or
+// LocalhostOnly rejecting a non-loopback origin) must surface as a real
+// failure, not a faked "opened"/"cleared" success - unlike the read-only GET
+// endpoints above, a fake success here would report a destructive action
+// completed when nothing happened.
+export async function openDiagnosticsEventViewer(): Promise<OpenEventViewerResponse | null> {
+  const { data } = await requestJson<OpenEventViewerResponse>('/diagnostics/events/open-viewer', { method: 'POST', body: {} });
+  return data;
+}
+
+/** Clears the Windows System and Application event logs for the whole
+ *  machine, not just Nexus's own events. Irreversible - gated by a
+ *  destructive ConfirmModal in IncidentsSection. A non-null result with
+ *  `cleared: false` means the service completed the request but one or both
+ *  logs failed to clear (see systemError/applicationError) - the caller
+ *  still resyncs, since the service may have partially applied the clear. */
+export async function clearDiagnosticsEventLogs(): Promise<ClearEventLogsResponse | null> {
+  const { data } = await requestJson<ClearEventLogsResponse>('/diagnostics/events/clear', { method: 'POST', body: {} });
+  return data;
 }
 
 // Content-Disposition: attachment; filename="foo.zip" or filename*=UTF-8''foo.zip.
@@ -330,6 +375,27 @@ export async function downloadDiagnosticsBundle(): Promise<boolean> {
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
   a.download = filenameFromContentDisposition(result.headers.get('Content-Disposition'))
     ?? `nexus-diagnostics-${stamp}.zip`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  return true;
+}
+
+/**
+ * Downloads the diagnostics report PDF. Same fetchServiceBlobWithHeaders
+ * mechanism as downloadDiagnosticsBundle above: the route requires the
+ * session bearer token and may tunnel over the relay when off-LAN.
+ */
+export async function downloadDiagnosticsReport(): Promise<boolean> {
+  const result = await fetchServiceBlobWithHeaders('/diagnostics/report.pdf');
+  if (!result) return false;
+  const url = URL.createObjectURL(result.blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  a.download = filenameFromContentDisposition(result.headers.get('Content-Disposition'))
+    ?? `nexus-diagnostics-${stamp}.pdf`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

@@ -16,14 +16,14 @@ export function NotAvailableNote() {
 /** A section's fetch failed with no prior data to fall back to. Same
  *  EmptyState-with-a-retry-action idiom as PublicProfilePage's error state,
  *  so every section's error state reads identically. */
-export function SectionLoadError({ onRetry }: { onRetry: () => void }) {
+export function SectionLoadError({ onRetry, loading }: { onRetry: () => void; loading?: boolean }) {
   const { t } = useTranslation();
   return (
     <EmptyState
       compact
       icon={<TriangleAlert size={22} />}
       title={t('diagnostics.loadFailed')}
-      action={<Button size="sm" onClick={onRetry}>{t('diagnostics.retry')}</Button>}
+      action={<Button size="sm" loading={loading} onClick={onRetry}>{t('diagnostics.retry')}</Button>}
     />
   );
 }

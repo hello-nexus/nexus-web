@@ -27,6 +27,7 @@ export function PanelSimulatorContent() {
         <PanelContent
           surface={sim.surface}
           deviceId={sim.deviceId ?? undefined}
+          deviceDpi={sim.dpi}
           layoutState={sim.layoutState}
           simulator
           simulatorTheme={sim.theme}

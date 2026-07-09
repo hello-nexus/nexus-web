@@ -31,10 +31,14 @@ const REPO_ROOT = new URL('../', import.meta.url).pathname;
 //                       plus the legacy %chip-base placeholder (carries
 //                       migration debt: those rules will move to text-button
 //                       in a follow-up; until then keep this exempted)
+//   site.module.scss  - the marketing page (standalone build only) uses a
+//                       viewport-clamped display scale the app's text mixins
+//                       don't carry; its type never renders inside the app
 const ALLOWLIST = new Set([
   'styles/_text.scss',
   'styles/variables.scss',
   'styles/global.scss',
+  'site/site.module.scss',
 ]);
 
 // Properties that must come from a text mixin in component styles.

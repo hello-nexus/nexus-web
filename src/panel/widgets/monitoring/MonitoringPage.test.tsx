@@ -70,6 +70,7 @@ vi.mock('../../../hooks/useUiSettings', () => ({
       updateMock(patch);
     },
   }),
+  useUnitPrefs: () => ({ monitoringTempUnit: 'c', timeFormat: 'system', numberFormat: 'system' }),
 }));
 
 vi.mock('../../../../lib/i18n', () => ({

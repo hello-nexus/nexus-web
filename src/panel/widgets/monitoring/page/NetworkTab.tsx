@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import type { NetworkData } from '../../../../hooks/useNetworkMonitor';
+import { useUnitPrefs } from '../../../../hooks/useUiSettings';
 import { useTranslation } from '../../../../lib/i18n';
 import { NETWORK_SERIES_COLOR } from '../../../../lib/monitoringStore';
 import { StackedChart } from '../../../../components/common/StackedChart/StackedChart';
@@ -37,6 +38,7 @@ export function NetworkTab({ network, showAverage, onToggle }: {
   onToggle: () => void;
 }) {
   const { t } = useTranslation();
+  const { numberFormat } = useUnitPrefs();
 
   // Chart series tracks the Network Total sensor (B/s → KB/s for the chart's
   // KB/s→MB/s formatter). Per-process series stays in the ranked list below.
@@ -75,8 +77,8 @@ export function NetworkTab({ network, showAverage, onToggle }: {
 
   const totalIn = network.entries.reduce((s, e) => s + e.rateIn, 0);
   const totalOut = network.entries.reduce((s, e) => s + e.rateOut, 0);
-  const inParts = formatRateParts(totalIn);
-  const outParts = formatRateParts(totalOut);
+  const inParts = formatRateParts(totalIn, numberFormat);
+  const outParts = formatRateParts(totalOut, numberFormat);
 
   return (
     <>
@@ -107,7 +109,7 @@ export function NetworkTab({ network, showAverage, onToggle }: {
         title={t('monitoring.network.top')}
         subtitle={<RankedToggle showAverage={showAverage} onToggle={onToggle} />}
         items={items}
-        formatValue={showAverage ? formatDataSize : formatRate}
+        formatValue={showAverage ? (v: number) => formatDataSize(v, numberFormat) : (v: number) => formatRate(v, numberFormat)}
         emptyMessage={t('monitoring.ranked.empty')}
       />
     </>

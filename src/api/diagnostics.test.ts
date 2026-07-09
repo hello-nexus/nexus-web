@@ -1,10 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   cancelMemoryTest,
+  clearDiagnosticsEventLogs,
   downloadDiagnosticsBundle,
+  downloadDiagnosticsReport,
   fetchDiagnosticsGpu,
   fetchDiagnosticsHealth,
   fetchDiagnosticsIncidents,
+  openDiagnosticsEventViewer,
   scheduleMemoryTest,
 } from './diagnostics';
 import { setActiveTransport } from './service';
@@ -60,6 +63,26 @@ describe('fetchDiagnosticsHealth', () => {
 
     expect(await fetchDiagnosticsHealth()).toEqual({ data: null, mocked: false });
   });
+
+  it('appends ?refresh=1 when force is requested', async () => {
+    const health = { generatedAt: '2026-07-08T02:00:00Z', supported: true, overall: 'ok' as const, components: [] };
+    const fetchMock = vi.fn(async () => jsonResponse(200, health));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await fetchDiagnosticsHealth({ force: true });
+    const [url] = fetchMock.mock.calls[0] as [string];
+    expect(url).toContain('/diagnostics/health?refresh=1');
+  });
+
+  it('omits the refresh param on a plain (non-forced) fetch', async () => {
+    const health = { generatedAt: '2026-07-08T02:00:00Z', supported: true, overall: 'ok' as const, components: [] };
+    const fetchMock = vi.fn(async () => jsonResponse(200, health));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await fetchDiagnosticsHealth();
+    const [url] = fetchMock.mock.calls[0] as [string];
+    expect(url).not.toContain('refresh=1');
+  });
 });
 
 describe('fetchDiagnosticsIncidents', () => {
@@ -111,6 +134,45 @@ describe('scheduleMemoryTest / cancelMemoryTest', () => {
   });
 });
 
+describe('openDiagnosticsEventViewer', () => {
+  it('resolves the real payload on a 2xx response', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(200, { opened: true })));
+    expect(await openDiagnosticsEventViewer()).toEqual({ opened: true });
+  });
+
+  it('returns null on a 404 instead of faking success - LocalhostOnly rejects a non-loopback origin with 404', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(404, {})));
+    expect(await openDiagnosticsEventViewer()).toBeNull();
+  });
+
+  it('returns null on a 500', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(500, {})));
+    expect(await openDiagnosticsEventViewer()).toBeNull();
+  });
+});
+
+describe('clearDiagnosticsEventLogs', () => {
+  it('resolves the real payload on a 2xx response', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(200, { cleared: true, systemError: '', applicationError: '' })));
+    expect(await clearDiagnosticsEventLogs()).toEqual({ cleared: true, systemError: '', applicationError: '' });
+  });
+
+  it('passes through a completed-but-partial result instead of masking it as a full success', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(200, { cleared: false, systemError: 'Access denied', applicationError: '' })));
+    expect(await clearDiagnosticsEventLogs()).toEqual({ cleared: false, systemError: 'Access denied', applicationError: '' });
+  });
+
+  it('returns null on a 404 instead of faking success', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(404, {})));
+    expect(await clearDiagnosticsEventLogs()).toBeNull();
+  });
+
+  it('returns null on a 500 - a real error stays a real error', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(500, {})));
+    expect(await clearDiagnosticsEventLogs()).toBeNull();
+  });
+});
+
 describe('downloadDiagnosticsBundle', () => {
   it('returns false when the bundle route fails', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(404, {})));
@@ -140,6 +202,45 @@ describe('downloadDiagnosticsBundle', () => {
 
     expect(await downloadDiagnosticsBundle()).toBe(true);
     expect(downloadedName).toBe('nexus-diagnostics-y70-20260708-0900.zip');
+
+    vi.restoreAllMocks();
+    URL.createObjectURL = realCreateObjectUrl;
+    URL.revokeObjectURL = realRevokeObjectUrl;
+  });
+});
+
+describe('downloadDiagnosticsReport', () => {
+  it('returns false when the report route fails', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(404, {})));
+    expect(await downloadDiagnosticsReport()).toBe(false);
+  });
+
+  it('requests /diagnostics/report.pdf and uses the server Content-Disposition filename', async () => {
+    const realCreateObjectUrl = URL.createObjectURL;
+    const realRevokeObjectUrl = URL.revokeObjectURL;
+    URL.createObjectURL = vi.fn(() => 'blob:test');
+    URL.revokeObjectURL = vi.fn();
+    let downloadedName = '';
+    const realCreateElement = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+      const el = realCreateElement(tag);
+      if (tag === 'a') {
+        Object.defineProperty(el, 'download', {
+          get: () => downloadedName,
+          set: (v: string) => { downloadedName = v; },
+        });
+        el.click = vi.fn();
+      }
+      return el;
+    });
+
+    const fetchMock = vi.fn(async () => jsonResponse(200, {}, { 'Content-Disposition': 'attachment; filename="nexus-diagnostics-y70-20260708-0900.pdf"' }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    expect(await downloadDiagnosticsReport()).toBe(true);
+    expect(downloadedName).toBe('nexus-diagnostics-y70-20260708-0900.pdf');
+    const [url] = fetchMock.mock.calls[0] as [string];
+    expect(url).toContain('/diagnostics/report.pdf');
 
     vi.restoreAllMocks();
     URL.createObjectURL = realCreateObjectUrl;

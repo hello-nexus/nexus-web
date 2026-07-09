@@ -1,9 +1,11 @@
 import type { HardwareSensor, SensorState } from '../../../../hooks/useSensors';
+import { useUnitPrefs } from '../../../../hooks/useUiSettings';
 import { useTranslation } from '../../../../lib/i18n';
 import { StackedChart } from '../../../../components/common/StackedChart/StackedChart';
 import { RankedList } from '../../../../components/common/RankedList/RankedList';
 import { useGpuProcessData } from '../../../../hooks/useProcessMonitor';
 import { resolvePrimaryGpu } from '../../../../lib/gpuResolver';
+import { convertTemperature, localizeNumbers, tempUnitSymbol } from '../../../../lib/units';
 import { VitalsStrip, type Vital } from './VitalsStrip';
 import { RankedToggle } from './parts';
 import { rankSeries, topNWithOther } from './shared';
@@ -30,13 +32,14 @@ export function GpuTab({ sensors, preferredGpuId, onOpenSettings, showAverage, o
   onToggle: () => void;
 }) {
   const { t } = useTranslation();
+  const { monitoringTempUnit, numberFormat } = useUnitPrefs();
   const g = sensors.gpu;
   const model = sensors.gpuModel;
   const gpus = sensors.gpuComponents;
 
   const vramUsed = val(g, 'SmallData', 'GPU Memory Used') ?? 0;
   const vramTotal = val(g, 'SmallData', 'GPU Memory Total') ?? 0;
-  const vramHeadline = formatMemoryPair(vramUsed, vramTotal);
+  const vramHeadline = formatMemoryPair(vramUsed, vramTotal, numberFormat);
   // Scope the per-process charts to the picked GPU's adapter (so e.g. the iGPU
   // view doesn't include the dGPU's VRAM); "" falls back to all adapters. Feed
   // is mounted at page level; here we only read the accumulated history.
@@ -53,10 +56,10 @@ export function GpuTab({ sensors, preferredGpuId, onOpenSettings, showAverage, o
   const power = val(g, 'Power', 'GPU Package');
   const clock = val(g, 'Clock', 'GPU Core');
 
-  const vitals: Vital[] = [{ label: t('monitoring.vital.usage'), value: `${overall}%` }];
-  if (temp != null) vitals.push({ label: t('monitoring.vital.temp'), value: `${Math.round(temp)}°C` });
-  if (power != null) vitals.push({ label: t('monitoring.vital.power'), value: `${Math.round(power)} W` });
-  if (clock != null) vitals.push({ label: t('monitoring.vital.clock'), value: `${Math.round(clock)} MHz` });
+  const vitals: Vital[] = [{ label: t('monitoring.vital.usage'), value: localizeNumbers(`${overall}%`, numberFormat) }];
+  if (temp != null) vitals.push({ label: t('monitoring.vital.temp'), value: localizeNumbers(`${Math.round(convertTemperature(temp, monitoringTempUnit))}${tempUnitSymbol(monitoringTempUnit)}`, numberFormat) });
+  if (power != null) vitals.push({ label: t('monitoring.vital.power'), value: localizeNumbers(`${Math.round(power)} W`, numberFormat) });
+  if (clock != null) vitals.push({ label: t('monitoring.vital.clock'), value: localizeNumbers(`${Math.round(clock)} MHz`, numberFormat) });
 
   return (
     <>
@@ -74,7 +77,7 @@ export function GpuTab({ sensors, preferredGpuId, onOpenSettings, showAverage, o
           title={t('monitoring.gpu.byProcess')}
           titleRight={
             <div className={styles.chartStat}>
-              <span className={styles.chartStatValue}>{overall}</span>
+              <span className={styles.chartStatValue}>{localizeNumbers(String(overall), numberFormat)}</span>
               <span className={styles.chartStatUnit}>%</span>
             </div>
           }
@@ -108,10 +111,10 @@ export function GpuTab({ sensors, preferredGpuId, onOpenSettings, showAverage, o
             name: s.name,
             color: s.color,
             value: s[key],
-            sub: vram >= 1 ? formatMemoryMb(vram) : undefined,
+            sub: vram >= 1 ? formatMemoryMb(vram, numberFormat) : undefined,
           };
         })}
-        formatValue={v => `${Math.round(v)}%`}
+        formatValue={v => localizeNumbers(`${Math.round(v)}%`, numberFormat)}
         emptyMessage={t('monitoring.ranked.empty')}
       />
     </>

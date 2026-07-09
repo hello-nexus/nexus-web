@@ -287,17 +287,17 @@ describe('formatTryxSensorValue', () => {
 describe('tryxStorageFreePercent / formatTryxStorageFreePercent', () => {
   it('computes remaining percent against the fixed 2 GiB capacity', () => {
     expect(tryxStorageFreePercent(50305560)).toBeCloseTo(97.657, 3);
-    expect(formatTryxStorageFreePercent(50305560)).toBe('97.7%');
+    expect(formatTryxStorageFreePercent(50305560, 'dot')).toBe('97.7%');
   });
 
   it('reports 100% free at zero bytes used', () => {
     expect(tryxStorageFreePercent(0)).toBe(100);
-    expect(formatTryxStorageFreePercent(0)).toBe('100.0%');
+    expect(formatTryxStorageFreePercent(0, 'dot')).toBe('100.0%');
   });
 
   it('reports 0% free once used bytes reach capacity', () => {
     expect(tryxStorageFreePercent(TRYX_STORAGE_CAPACITY_BYTES)).toBe(0);
-    expect(formatTryxStorageFreePercent(TRYX_STORAGE_CAPACITY_BYTES)).toBe('0.0%');
+    expect(formatTryxStorageFreePercent(TRYX_STORAGE_CAPACITY_BYTES, 'dot')).toBe('0.0%');
   });
 
   it('clamps to 0 rather than going negative when used exceeds capacity', () => {

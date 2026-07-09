@@ -5,11 +5,13 @@ import type {
   CoolingDeviceStatus,
   DiagnosticsComponent,
   DiagnosticsDriveStatus,
+  DiagnosticsIncidentApp,
   DiagnosticsIncidentSeverity,
   DiagnosticsKind,
   DiagnosticsReason,
   DiagnosticsStatus,
 } from '../../../api/diagnostics';
+import { localizeNumbers, type NumberFormat } from '../../../lib/units';
 
 const STATUS_SEVERITY_RANK: Record<DiagnosticsStatus, number> = { act: 3, watch: 2, unknown: 1, ok: 0 };
 
@@ -68,6 +70,16 @@ export function incidentSeverityLabelKey(severity: DiagnosticsIncidentSeverity):
 
 export function incidentSourceLabelKey(source: string): string {
   return `diagnostics.incidents.source.${source}`;
+}
+
+/** "module (code)" from an incident's app fault, dropping either part when
+ *  the server left it empty so a partial fault never reads as "module ()"
+ *  or " (code)". Null when both parts are empty. */
+export function incidentAppFaultLine(app: DiagnosticsIncidentApp): string | null {
+  const module = app.faultingModule;
+  const code = app.exceptionCode;
+  if (module && code) return `${module} (${code})`;
+  return module || code || null;
 }
 
 /** A reason's translation key, built directly from its stable machine code
@@ -163,6 +175,54 @@ export function resolveSectionState(opts: {
   return 'content';
 }
 
+/** Client-side display order for health.components, matching the page's
+ *  section order (Storage, Memory, GPU, Cooling, System) regardless of what
+ *  order the server returns them in. Shared with the panel widget's dots row
+ *  so both surfaces agree on one ordering. */
+export const DIAGNOSTICS_KIND_ORDER: DiagnosticsKind[] = ['storage', 'memory', 'gpu', 'cooling', 'system'];
+
+/** Stable-sorts components by DIAGNOSTICS_KIND_ORDER; components sharing a
+ *  kind keep their relative server order. */
+export function orderComponentsByKind(components: DiagnosticsComponent[]): DiagnosticsComponent[] {
+  return [...components].sort((a, b) => DIAGNOSTICS_KIND_ORDER.indexOf(a.kind) - DIAGNOSTICS_KIND_ORDER.indexOf(b.kind));
+}
+
+/** DOM id shared by a section's root element and the health card that scrolls
+ *  to it, so the two never drift apart. */
+export function diagnosticsSectionAnchorId(kind: DiagnosticsKind): string {
+  return `diagnostics-section-${kind}`;
+}
+
+// Device Manager problem codes (Code N) mapped to their standard one-line
+// explanation. Curated subset; an unmapped code falls back to a generic
+// "Device Manager problem code N" line (pnpProblemLabel below) instead of a
+// raw translation key.
+const PNP_PROBLEM_CODE_KEYS: Record<number, string> = {
+  1: 'diagnostics.system.problemCode.1',
+  3: 'diagnostics.system.problemCode.3',
+  10: 'diagnostics.system.problemCode.10',
+  12: 'diagnostics.system.problemCode.12',
+  14: 'diagnostics.system.problemCode.14',
+  18: 'diagnostics.system.problemCode.18',
+  21: 'diagnostics.system.problemCode.21',
+  22: 'diagnostics.system.problemCode.22',
+  24: 'diagnostics.system.problemCode.24',
+  28: 'diagnostics.system.problemCode.28',
+  31: 'diagnostics.system.problemCode.31',
+  37: 'diagnostics.system.problemCode.37',
+  39: 'diagnostics.system.problemCode.39',
+  43: 'diagnostics.system.problemCode.43',
+  45: 'diagnostics.system.problemCode.45',
+};
+
+/** Human, one-line explanation of a Device Manager problem code, resolved via
+ *  the caller's t(). Unmapped codes fall back to a generic labeled line so a
+ *  future code still reads as something rather than a raw translation key. */
+export function pnpProblemLabel(code: number, translate: (key: string, params?: Record<string, string>) => string): string {
+  const key = PNP_PROBLEM_CODE_KEYS[code];
+  return key ? translate(key) : translate('diagnostics.system.problemCodeFallback', { code: String(code) });
+}
+
 /** The single highest-severity reason across every health component, or null
  *  when nothing is flagged. Used by the panel widget's compact card. */
 export function worstReason(components: DiagnosticsComponent[]): DiagnosticsReason | null {
@@ -192,7 +252,7 @@ const BYTE_UNITS = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
 /** Auto-scales a raw byte count along the B/KB/MB/GB/TB/PB ladder. Byte
  *  units are treated as universal abbreviations (unlocalized), matching the
  *  existing monitoring sensor formatter's precedent. */
-export function formatBytes(bytes: number): string {
+export function formatBytes(bytes: number, numberFormat: NumberFormat): string {
   if (!Number.isFinite(bytes) || bytes <= 0) return `0 ${BYTE_UNITS[0]}`;
   let scaled = bytes;
   let index = 0;
@@ -201,5 +261,5 @@ export function formatBytes(bytes: number): string {
     index++;
   }
   const decimals = index === 0 || Number.isInteger(scaled) ? 0 : 1;
-  return `${scaled.toFixed(decimals)} ${BYTE_UNITS[index]}`;
+  return localizeNumbers(`${scaled.toFixed(decimals)} ${BYTE_UNITS[index]}`, numberFormat);
 }

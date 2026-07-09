@@ -34,5 +34,18 @@ export default defineConfig({
   // unaffected.
   build: {
     target: 'es2019',
+    // The marketing site (site/index.html, served at hellonexus.com's root by
+    // server.js host routing) is a second entry in the standalone build only.
+    // The service build must emit the SPA alone: the csproj BuildWebForService
+    // target copies dist/** verbatim into the shipped app's wwwroot, and
+    // marketing content must never ride along.
+    rollupOptions: {
+      input: isServiceBuild
+        ? resolve(__dirname, 'index.html')
+        : {
+            app: resolve(__dirname, 'index.html'),
+            site: resolve(__dirname, 'site/index.html'),
+          },
+    },
   },
 })

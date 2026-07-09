@@ -3,6 +3,7 @@ import { Gamepad2, Music } from 'lucide-react';
 import {
   startAnimate, startScreenMirror, stopLighting, startGameSync,
   fetchLightingDevices, fetchAnimateSettings, saveAnimateTemplates,
+  fetchAnimateDefaults, cachedAnimateDefaults,
   fetchMusicReactive, setMusicReactive, setLightingDevicePower,
   fetchScreenEffect, setScreenEffect, fetchMediaEffect, setMediaEffect, fetchLedMap,
   fetchCurrentSync, fetchAvailableMappings, fetchGameSyncState, fetchGameSyncGames,
@@ -38,7 +39,7 @@ import {
   EFFECTS, MODES, defaultStateFor,
   type EffectState, type EffectTemplateBundle, type LightingMode,
 } from '../../../types/lighting';
-import { buildAllDefaultTemplates, mergeTemplates, slotMatchesDefault, slotThumbSignature } from '../../../types/lightingTemplates';
+import { defaultTemplatesFor, mergeTemplates, slotMatchesDefault, slotThumbSignature } from '../../../types/lightingTemplates';
 import { AnimateGrid } from './page/AnimateGrid';
 import { FullscreenShader } from './page/FullscreenShader';
 import { ModeControls } from './page/ModeControls';
@@ -171,6 +172,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
 
   const [activeEffect, setActiveEffect] = useState<string>('');
   const [effectTemplates, setEffectTemplates] = useState<Record<string, EffectTemplateBundle>>({});
+  // Canonical default bundles from the service (fetched once, session-cached).
+  // Kept in state so default-dependent memos recompute when they arrive.
+  const [animateDefaults, setAnimateDefaults] = useState<Record<string, EffectTemplateBundle> | null>(cachedAnimateDefaults);
   // Committed snapshot: updated on hydrate, on preset switch, and after a param
   // save lands - never during a drag. The grid + preset thumbnails (and the
   // selected highlight) read from this, so they refetch on commit, not per slider
@@ -315,8 +319,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   );
   const canReset: boolean = useMemo(
     () => !!(activeEffect && currentState
-      && !slotMatchesDefault(activeEffect, currentSelected, currentState)),
-    [activeEffect, currentState, currentSelected],
+      && !slotMatchesDefault(activeEffect, currentSelected, currentState, animateDefaults)),
+    [activeEffect, currentState, currentSelected, animateDefaults],
   );
   const throttleAnimate = useThrottle();
   const throttlePostProcess = useThrottle();
@@ -329,18 +333,25 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const effectTemplatesRef = useRef(effectTemplates);
   effectTemplatesRef.current = effectTemplates;
 
-  const hydrateAnimateSettings = useCallback((data: Awaited<ReturnType<typeof fetchAnimateSettings>>) => {
+  const hydrateAnimateSettings = useCallback(async (data: Awaited<ReturnType<typeof fetchAnimateSettings>>) => {
     if (!data) return;
-    const merged: Record<string, EffectTemplateBundle> = buildAllDefaultTemplates();
+    const defaults = await fetchAnimateDefaults();
+    setAnimateDefaults(defaults);
+    const merged: Record<string, EffectTemplateBundle> = {};
     const savedTemplates = data.templates ?? {};
     for (const fx of EFFECTS) {
-      merged[fx.key] = mergeTemplates(fx.key, savedTemplates[fx.key]);
+      merged[fx.key] = mergeTemplates(fx.key, savedTemplates[fx.key], defaults);
     }
     if (!data.templates) {
+      // Pre-templates service: fold the legacy per-effect states into slot 0
+      // and persist, but only when there is something to migrate - the service
+      // stores user deltas, so an all-defaults save is pure churn.
       const legacy = data.states ?? {};
+      let migrated = false;
       for (const fx of EFFECTS) {
         const s = legacy[fx.key];
         if (!s) continue;
+        migrated = true;
         const bundle = merged[fx.key];
         bundle.slots[0] = {
           ...bundle.slots[0],
@@ -349,7 +360,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
         };
         bundle.selected = 0;
       }
-      saveAnimateTemplates(merged).catch(() => { /* best-effort */ });
+      if (migrated) {
+        saveAnimateTemplates(merged).catch(() => { /* best-effort */ });
+      }
     }
     setEffectTemplates(merged);
     setCommittedTemplates(merged);
@@ -364,7 +377,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     if (state === undefined && templateIndex === undefined) return;
 
     setEffectTemplates(prev => {
-      const bundle = prev[effect] ?? mergeTemplates(effect, undefined);
+      const bundle = prev[effect] ?? defaultTemplatesFor(effect, cachedAnimateDefaults());
       const selected = templateIndex === undefined
         ? bundle.selected
         : Math.min(Math.max(templateIndex, 0), bundle.slots.length - 1);
@@ -405,7 +418,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       safe(fetchMusicReactive()),
       safe(fetchScreenEffect()),
       safe(fetchMediaEffect()),
-    ]).then(([
+    ]).then(async ([
       currentSync,
       animateSettings,
       musicSettings,
@@ -418,7 +431,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       setMode(modeForSync(sync));
 
       if (animateSettings) {
-        hydrateAnimateSettings(animateSettings);
+        // Await: the profile-restore effect keyed off loadedProfileLighting
+        // reads effectTemplates, which must hold the merged bundles (not the
+        // pre-hydrate {}) or the restored effect starts with the base look.
+        await hydrateAnimateSettings(animateSettings);
+        if (cancelled) return;
       }
       if (musicSettings) {
         setMusicReactiveState(!!musicSettings.enabled);
@@ -699,7 +716,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
 
   const handleStateReset = useCallback(() => {
     if (!activeEffect) return;
-    const defaults = mergeTemplates(activeEffect, undefined);
+    const defaults = defaultTemplatesFor(activeEffect, animateDefaults);
     const bundle = effectTemplates[activeEffect];
     if (!bundle) return;
     const idx = bundle.selected;
@@ -709,7 +726,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     const nextTemplates = { ...effectTemplates, [activeEffect]: nextBundle };
     writeTemplates(nextTemplates, activeEffect, true)
       .then(() => setCommittedTemplates(nextTemplates));
-  }, [activeEffect, effectTemplates, writeTemplates]);
+  }, [activeEffect, effectTemplates, writeTemplates, animateDefaults]);
 
   // Cross-panel usage drives the "used by a panel" badge. No exclusion: the
   // desktop page isn't a panel, so every panel background counts.

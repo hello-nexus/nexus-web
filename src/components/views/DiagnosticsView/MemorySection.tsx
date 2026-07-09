@@ -1,26 +1,29 @@
 import { useCallback, useEffect, useState } from 'react';
-import { MemoryStick, RefreshCw } from 'lucide-react';
+import { MemoryStick } from 'lucide-react';
+import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
+import { localizeNumbers } from '../../../lib/units';
 import { SectionHeader } from '../../common/SectionHeader/SectionHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { Badge } from '../../common/Badge/Badge';
 import { Button } from '../../common/Button/Button';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { useToast } from '../../common/Toast/Toast';
-import { cancelMemoryTest, scheduleMemoryTest, type DiagnosticsMemoryResponse } from '../../../api/diagnostics';
+import { cancelMemoryTest, scheduleMemoryTest, type DiagnosticsFetchOptions, type DiagnosticsMemoryResponse } from '../../../api/diagnostics';
 import { NotAvailableNote, SectionLoadError } from './DiagnosticsSectionStates';
-import { formatBytes, relativeTimeLabel, resolveSectionState } from './diagnosticsHelpers';
+import { diagnosticsSectionAnchorId, formatBytes, relativeTimeLabel, resolveSectionState } from './diagnosticsHelpers';
 import styles from './DiagnosticsView.module.scss';
 
 interface MemorySectionProps {
   data: DiagnosticsMemoryResponse | null;
   loading: boolean;
   error: boolean;
-  onRefresh: () => void;
+  onRefresh: (opts?: DiagnosticsFetchOptions) => void;
 }
 
 export function MemorySection({ data, loading, error, onRefresh }: MemorySectionProps) {
   const { t } = useTranslation();
+  const { numberFormat } = useUnitPrefs();
   const { push } = useToast();
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => { setNow(Date.now()); }, [data]);
@@ -59,12 +62,9 @@ export function MemorySection({ data, loading, error, onRefresh }: MemorySection
     : t('diagnostics.memory.testResult.never');
 
   return (
-    <section className={styles.section}>
-      <div className={styles.sectionHeaderRow}>
-        <SectionHeader>{t('diagnostics.kind.memory')}</SectionHeader>
-        <Button tone="ghost" size="sm" icon={<RefreshCw size={13} />} title={t('diagnostics.refresh')} aria-label={t('diagnostics.refresh')} onClick={onRefresh} />
-      </div>
-      {state === 'error' && <SectionLoadError onRetry={onRefresh} />}
+    <section className={styles.section} id={diagnosticsSectionAnchorId('memory')}>
+      <SectionHeader>{t('diagnostics.kind.memory')}</SectionHeader>
+      {state === 'error' && <SectionLoadError onRetry={() => onRefresh({ force: true })} loading={loading} />}
       {state === 'notSupported' && <NotAvailableNote />}
       {state === 'empty' && <EmptyState compact icon={<MemoryStick size={22} />} title={t('diagnostics.memory.empty')} />}
       {state === 'content' && data && (
@@ -83,8 +83,8 @@ export function MemorySection({ data, loading, error, onRefresh }: MemorySection
               {data.modules.map((module, i) => (
                 <tr key={i}>
                   <td>{module.slot}</td>
-                  <td>{formatBytes(module.sizeBytes)}</td>
-                  <td>{`${module.configuredSpeedMts} MT/s`}</td>
+                  <td>{formatBytes(module.sizeBytes, numberFormat)}</td>
+                  <td>{localizeNumbers(`${module.configuredSpeedMts} MT/s`, numberFormat)}</td>
                   <td>{module.manufacturer}</td>
                   <td>{module.partNumber}</td>
                 </tr>

@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
 import classNames from 'classnames';
-import { Droplet, Fan, RefreshCw } from 'lucide-react';
+import { Droplet, Fan } from 'lucide-react';
+import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
+import { formatNumber, localizeNumbers } from '../../../lib/units';
 import { SectionHeader } from '../../common/SectionHeader/SectionHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { Badge } from '../../common/Badge/Badge';
-import { Button } from '../../common/Button/Button';
 import type { DiagnosticsCoolingResponse } from '../../../api/diagnostics';
 import { NotAvailableNote, SectionLoadError } from './DiagnosticsSectionStates';
-import { coolingStatusColor, coolingStatusLabelKey, relativeTimeLabel, resolveSectionState } from './diagnosticsHelpers';
+import { coolingStatusColor, coolingStatusLabelKey, diagnosticsSectionAnchorId, relativeTimeLabel, resolveSectionState } from './diagnosticsHelpers';
 import styles from './DiagnosticsView.module.scss';
 
 interface CoolingSectionProps {
@@ -20,6 +21,7 @@ interface CoolingSectionProps {
 
 export function CoolingSection({ data, loading, error, onRefresh }: CoolingSectionProps) {
   const { t } = useTranslation();
+  const { numberFormat } = useUnitPrefs();
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => { setNow(Date.now()); }, [data]);
   const state = resolveSectionState({
@@ -31,12 +33,9 @@ export function CoolingSection({ data, loading, error, onRefresh }: CoolingSecti
   });
 
   return (
-    <section className={styles.section}>
-      <div className={styles.sectionHeaderRow}>
-        <SectionHeader>{t('diagnostics.kind.cooling')}</SectionHeader>
-        <Button tone="ghost" size="sm" icon={<RefreshCw size={13} />} title={t('diagnostics.refresh')} aria-label={t('diagnostics.refresh')} onClick={onRefresh} />
-      </div>
-      {state === 'error' && <SectionLoadError onRetry={onRefresh} />}
+    <section className={styles.section} id={diagnosticsSectionAnchorId('cooling')}>
+      <SectionHeader>{t('diagnostics.kind.cooling')}</SectionHeader>
+      {state === 'error' && <SectionLoadError onRetry={() => onRefresh()} loading={loading} />}
       {state === 'notSupported' && <NotAvailableNote />}
       {state === 'empty' && <EmptyState compact icon={<Fan size={22} />} title={t('diagnostics.cooling.empty')} />}
       {state === 'content' && data && (
@@ -51,8 +50,8 @@ export function CoolingSection({ data, loading, error, onRefresh }: CoolingSecti
                 {device.name}
               </span>
               <span className={styles.coolingMeta}>
-                <span>{`${device.rpm} RPM`}</span>
-                <span>{`${device.targetDutyPercent}%`}</span>
+                <span>{`${formatNumber(device.rpm, numberFormat)} RPM`}</span>
+                <span>{localizeNumbers(`${device.targetDutyPercent}%`, numberFormat)}</span>
                 <Badge label={t(coolingStatusLabelKey(device.status))} color={coolingStatusColor(device.status)} />
                 {device.sinceUtc && device.status !== 'ok' && (
                   <span>{t('diagnostics.cooling.since', { time: relativeTimeLabel(device.sinceUtc, now, t) })}</span>

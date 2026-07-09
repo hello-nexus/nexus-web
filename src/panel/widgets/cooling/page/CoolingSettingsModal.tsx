@@ -8,6 +8,7 @@ import {
 } from '../../../../lib/tempSensorResolver';
 import { Overlay } from '../../../../components/common/Overlay/Overlay';
 import { Select } from '../../../../components/common/Select/Select';
+import { localizeNumbers, type NumberFormat } from '../../../../lib/units';
 import styles from './CoolingSettingsModal.module.scss';
 
 interface CoolingSettingsModalProps {
@@ -60,6 +61,7 @@ export function CoolingSettingsModal({ open, onClose, cpuSensors, gpuSensors }: 
         defaultSuffix={t('cooling.settings.defaultSuffix')}
         emptyLabel={t('cooling.settings.empty')}
         value={settings.preferredCpuTempSensorId}
+        numberFormat={settings.numberFormat}
         onChange={id => update({ preferredCpuTempSensorId: id })}
       />
 
@@ -70,6 +72,7 @@ export function CoolingSettingsModal({ open, onClose, cpuSensors, gpuSensors }: 
         defaultSuffix={t('cooling.settings.defaultSuffix')}
         emptyLabel={t('cooling.settings.empty')}
         value={settings.preferredGpuTempSensorId}
+        numberFormat={settings.numberFormat}
         onChange={id => update({ preferredGpuTempSensorId: id })}
       />
 
@@ -97,10 +100,11 @@ interface SensorRowProps {
    *  selection when empty, so the dropdown shows the user what auto resolves
    *  to right now. */
   value: string;
+  numberFormat: NumberFormat;
   onChange: (id: string) => void;
 }
 
-function SensorRow({ label, options, defaultSensor, defaultSuffix, emptyLabel, value, onChange }: SensorRowProps) {
+function SensorRow({ label, options, defaultSensor, defaultSuffix, emptyLabel, value, numberFormat, onChange }: SensorRowProps) {
   // The visible option list must include both the user's stored pick and the
   // default sensor - otherwise the controlled `<select>` would have a `value`
   // that doesn't match any `<option>` and silently snap to the first one,
@@ -171,7 +175,7 @@ function SensorRow({ label, options, defaultSensor, defaultSuffix, emptyLabel, v
           const suffix = isDefault ? defaultSuffix : '';
           const label = isMissing
             ? `${s.name} (unavailable)`
-            : `${s.name} (${s.value.toFixed(1)}°C)${suffix}`;
+            : `${s.name} (${localizeNumbers(s.value.toFixed(1), numberFormat)}°C)${suffix}`;
           return (
             <option key={s.id} value={s.id} disabled={isMissing}>
               {label}

@@ -1,21 +1,22 @@
-import { Monitor, RefreshCw } from 'lucide-react';
+import { Monitor } from 'lucide-react';
+import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
+import { convertTemperature, localizeNumbers, tempUnitSymbol } from '../../../lib/units';
 import { SectionHeader } from '../../common/SectionHeader/SectionHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { Card } from '../../common/Card/Card';
 import { Badge } from '../../common/Badge/Badge';
-import { Button } from '../../common/Button/Button';
 import { InfoList, InfoRow } from '../../common/InfoList/InfoList';
-import type { DiagnosticsGpu, DiagnosticsGpuResponse } from '../../../api/diagnostics';
+import type { DiagnosticsFetchOptions, DiagnosticsGpu, DiagnosticsGpuResponse } from '../../../api/diagnostics';
 import { NotAvailableNote, SectionLoadError } from './DiagnosticsSectionStates';
-import { durationLabel, resolveSectionState } from './diagnosticsHelpers';
+import { diagnosticsSectionAnchorId, durationLabel, resolveSectionState } from './diagnosticsHelpers';
 import styles from './DiagnosticsView.module.scss';
 
 interface GpuSectionProps {
   data: DiagnosticsGpuResponse | null;
   loading: boolean;
   error: boolean;
-  onRefresh: () => void;
+  onRefresh: (opts?: DiagnosticsFetchOptions) => void;
 }
 
 export function GpuSection({ data, loading, error, onRefresh }: GpuSectionProps) {
@@ -29,12 +30,9 @@ export function GpuSection({ data, loading, error, onRefresh }: GpuSectionProps)
   });
 
   return (
-    <section className={styles.section}>
-      <div className={styles.sectionHeaderRow}>
-        <SectionHeader>{t('diagnostics.kind.gpu')}</SectionHeader>
-        <Button tone="ghost" size="sm" icon={<RefreshCw size={13} />} title={t('diagnostics.refresh')} aria-label={t('diagnostics.refresh')} onClick={onRefresh} />
-      </div>
-      {state === 'error' && <SectionLoadError onRetry={onRefresh} />}
+    <section className={styles.section} id={diagnosticsSectionAnchorId('gpu')}>
+      <SectionHeader>{t('diagnostics.kind.gpu')}</SectionHeader>
+      {state === 'error' && <SectionLoadError onRetry={() => onRefresh({ force: true })} loading={loading} />}
       {state === 'notSupported' && <NotAvailableNote />}
       {state === 'empty' && <EmptyState compact icon={<Monitor size={22} />} title={t('diagnostics.gpu.empty')} />}
       {state === 'content' && data && (
@@ -55,13 +53,13 @@ const THROTTLE_COUNTERS: Array<{ key: keyof DiagnosticsGpu['throttle']; reason: 
 
 function GpuCard({ gpu }: { gpu: DiagnosticsGpu }) {
   const { t } = useTranslation();
+  const { monitoringTempUnit, numberFormat } = useUnitPrefs();
   return (
     <Card title={gpu.name} subtitle={`${t('diagnostics.gpu.driver')}: ${gpu.driverVersion}`}>
       <InfoList>
-        <InfoRow label={t('diagnostics.gpu.temperature')} value={`${Math.round(gpu.temperatureC)}°C`} />
-        <InfoRow label={t('diagnostics.gpu.power')} value={`${gpu.powerW.toFixed(0)}W`} />
+        <InfoRow label={t('diagnostics.gpu.temperature')} value={localizeNumbers(`${Math.round(convertTemperature(gpu.temperatureC, monitoringTempUnit))}${tempUnitSymbol(monitoringTempUnit)}`, numberFormat)} />
+        <InfoRow label={t('diagnostics.gpu.power')} value={localizeNumbers(`${gpu.powerW.toFixed(0)}W`, numberFormat)} />
         <InfoRow label={t('diagnostics.gpu.tdrCount')} value={gpu.recentTdrCount} tone={gpu.recentTdrCount > 0 ? 'bad' : 'default'} />
-        <InfoRow label={t('diagnostics.gpu.driverErrorCount')} value={gpu.recentDriverErrorCount} tone={gpu.recentDriverErrorCount > 0 ? 'warn' : 'default'} />
       </InfoList>
 
       <SectionHeader>{t('diagnostics.gpu.throttle.title')}</SectionHeader>

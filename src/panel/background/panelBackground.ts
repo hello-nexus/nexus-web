@@ -6,7 +6,8 @@ import {
   type EffectState,
   type EffectTemplateBundle,
 } from '../../types/lighting';
-import { buildDefaultTemplates } from '../../types/lightingTemplates';
+import { defaultTemplatesFor } from '../../types/lightingTemplates';
+import { cachedAnimateDefaults } from '../../api/lighting';
 import { getInstallDefaults } from '../../api/installDefaultsCache';
 
 export type PanelBackgroundMode = 'solid' | 'shader' | 'media';
@@ -142,7 +143,7 @@ export function normalizePanelWidgetBlur(value: boolean | null | undefined): boo
 
 // The background's render state for a (effect, slot) selection. Presets are
 // universal, so prefer the user's saved bundle (global Templates); fall back to
-// the built-in defaults before it has hydrated.
+// the session-cached canonical defaults before it has hydrated.
 export function panelBackgroundState(
   effectKey: string,
   templateIndex: number,
@@ -150,7 +151,7 @@ export function panelBackgroundState(
 ): EffectState {
   const effect = normalizePanelBackgroundEffect(effectKey);
   const template = normalizePanelBackgroundTemplate(templateIndex);
-  const bundle = savedBundle ?? buildDefaultTemplates(effect);
+  const bundle = savedBundle ?? defaultTemplatesFor(effect, cachedAnimateDefaults());
   const base = defaultStateFor(effect);
   const slot = bundle.slots[template];
   return slot

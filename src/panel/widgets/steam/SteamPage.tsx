@@ -28,7 +28,9 @@ import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
 import { SearchInput } from '../../../components/common/SearchInput/SearchInput';
 import { Select } from '../../../components/common/Select/Select';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
+import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
+import { formatNumber, type NumberFormat } from '../../../lib/units';
 import { SteamLogo } from './SteamLogo';
 import styles from './SteamPage.module.scss';
 
@@ -561,6 +563,7 @@ function DrillView({
   onBack: () => void;
 }) {
   const { t } = useTranslation();
+  const { numberFormat } = useUnitPrefs();
   const [details, setDetails] = useState<SteamAppDetails | null>(null);
   const [achievements, setAchievements] = useState<SteamAchievement[]>([]);
   const [globalRarity, setGlobalRarity] = useState<Map<string, number>>(new Map());
@@ -671,7 +674,7 @@ function DrillView({
           )}
           {playerCount !== null && playerCount > 0 && (
             <div className={styles.drillLive}>
-              <span className={styles.liveDot} /> {t('steam.drill.playingNow', { count: playerCount.toLocaleString() })}
+              <span className={styles.liveDot} /> {t('steam.drill.playingNow', { count: formatNumber(playerCount, numberFormat) })}
             </div>
           )}
         </div>
@@ -690,7 +693,7 @@ function DrillView({
         />
         <StatTile
           label={t('steam.stat.playersNow')}
-          value={playerCount !== null ? playerCount.toLocaleString() : '-'}
+          value={playerCount !== null ? formatNumber(playerCount, numberFormat) : '-'}
         />
       </section>
 
@@ -746,7 +749,7 @@ function DrillView({
                 {stats.map(s => (
                   <li key={s.name} className={styles.statRow}>
                     <span className={styles.statKey}>{humanizeStatName(s.name)}</span>
-                    <span className={styles.statValue}>{formatStatValue(s.value)}</span>
+                    <span className={styles.statValue}>{formatStatValue(s.value, numberFormat)}</span>
                   </li>
                 ))}
               </ul>
@@ -867,9 +870,9 @@ function humanizeStatName(name: string) {
   return name.replace(/[_.]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
-function formatStatValue(value: number) {
+function formatStatValue(value: number, numberFormat: NumberFormat) {
   if (!Number.isFinite(value)) return '-';
-  if (Math.abs(value) >= 1000) return value.toLocaleString();
+  if (Math.abs(value) >= 1000) return formatNumber(value, numberFormat);
   if (Number.isInteger(value)) return value.toString();
-  return value.toFixed(2);
+  return formatNumber(value, numberFormat, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }

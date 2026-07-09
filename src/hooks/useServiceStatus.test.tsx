@@ -83,6 +83,16 @@ describe('useServiceStatus offline grace', () => {
     expect(result.current.state).toBe('offline-installed');
   });
 
+  it('never holds the boot checking state: first failure surfaces offline despite a grace', async () => {
+    // The service is down from the start - the grace has no good state to
+    // hold, so the very first miss must flip offline instead of leaving the
+    // page blank for the grace window (the my.hellonexus.com dark-gate bug).
+    pingMock.mockResolvedValue(null);
+    const { result } = renderHook(() => useServiceStatus(true, HOST_DISPLAY_OFFLINE_GRACE_MS));
+    await settle();
+    expect(result.current.state).toBe('offline');
+  });
+
   it('resets the grace streak after the service recovers', async () => {
     pingMock.mockResolvedValue(OK);
     const { result } = renderHook(() => useServiceStatus(true, HOST_DISPLAY_OFFLINE_GRACE_MS));

@@ -112,6 +112,27 @@ const endpointPort = import.meta.env.VITE_SERVICE_PORT
   || (isServedFromService ? locationPort : SERVICE_PORT);
 const endpoint = endpointPort ? `${SERVICE_HOST}:${endpointPort}` : SERVICE_HOST;
 
+// Chromium Local Network Access (Chrome 138+ / Edge 150): a fetch from a
+// public https origin to http://127.0.0.1 must declare its target address
+// space, or the request is blocked as mixed content before the permission
+// prompt can even show. Spread into every fetch that targets the loopback
+// service from a remote origin (my.hellonexus.com's detected-desktop probe).
+// Guards: the resolved host must actually be loopback (a VITE_SERVICE_HOST
+// LAN override would mismatch the declared space and hard-fail the fetch),
+// and the Request probe drops the member on engines whose IDL rejects the
+// 'loopback' value instead of ignoring unknown dictionary members.
+export const loopbackFetchInit: RequestInit = (() => {
+  const loopbackHost = SERVICE_HOST === 'localhost' || SERVICE_HOST === '127.0.0.1' || SERVICE_HOST === '::1';
+  if (!isRemoteOrigin || !loopbackHost) return {};
+  const init = { targetAddressSpace: 'loopback' } as RequestInit;
+  try {
+    new Request('https://probe.invalid/', init);
+    return init;
+  } catch {
+    return {};
+  }
+})();
+
 export function resolveHttp(path: string): string {
   return `${SERVICE_PROTOCOL}//${endpoint}${path}`;
 }
@@ -364,6 +385,7 @@ async function authFetch(path: string, opts: RequestOptions = {}): Promise<Respo
     if (opts.body !== undefined) headers['Content-Type'] = 'application/json';
 
     const init: RequestInit = {
+      ...loopbackFetchInit,
       method: opts.method,
       headers,
       body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
@@ -476,6 +498,7 @@ export async function authFetchWithStatus(path: string, opts: RequestOptions = {
     if (opts.body !== undefined) headers['Content-Type'] = 'application/json';
 
     const init: RequestInit = {
+      ...loopbackFetchInit,
       method: opts.method,
       headers,
       body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
@@ -546,12 +569,12 @@ export async function postServiceForm<T>(path: string, form: FormData): Promise<
     const token = await getToken();
     const headers: Record<string, string> = {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    let response = await fetch(resolveHttp(path), { method: 'POST', headers, body: form });
+    let response = await fetch(resolveHttp(path), { ...loopbackFetchInit, method: 'POST', headers, body: form });
     if (response.status === 401) {
       const newToken = await handleUnauthorized();
       if (newToken) {
         headers['Authorization'] = `Bearer ${newToken}`;
-        response = await fetch(resolveHttp(path), { method: 'POST', headers, body: form });
+        response = await fetch(resolveHttp(path), { ...loopbackFetchInit, method: 'POST', headers, body: form });
       }
     }
     if (!response.ok) return null;
@@ -608,7 +631,7 @@ export async function pingService(): Promise<PingResponse | null> {
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 3000);
-    const response = await fetch(resolveHttp('/ping'), { signal: controller.signal });
+    const response = await fetch(resolveHttp('/ping'), { ...loopbackFetchInit, signal: controller.signal });
     clearTimeout(timer);
     if (!response.ok) return null;
     return (await response.json()) as PingResponse;

@@ -271,8 +271,11 @@ function HaTileCard({
         ? t('homeAssistant.on')
         : t('homeAssistant.off');
 
+  // disableInteractiveRole: the tile's own toggle button is the focusable
+  // control; role="button" here would nest a focusable descendant inside a
+  // button role.
   return (
-    <Card interactive compact onClick={() => onOpenDetail(entity)}>
+    <Card interactive compact disableInteractiveRole onClick={() => onOpenDetail(entity)}>
       <div className={styles.tileInner} data-unreachable={!entity.reachable ? 'true' : 'false'}>
         <button
           type="button"

@@ -2,7 +2,7 @@
 // `/apps-api/installed/{id}/settings` and broadcasts changes to
 // subscribers (the Tier 2 worker host and the in-host settings form).
 
-import { fetchService, resolveHttp } from '../api/service';
+import { fetchService, loopbackFetchInit, resolveHttp } from '../api/service';
 import { getToken, handleUnauthorized } from '../api/auth';
 
 export interface WidgetSettingsDocument {
@@ -59,14 +59,14 @@ export class WidgetSettingsBridge {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     let res = await fetch(resolveHttp(`/apps-api/instance/${encodeURIComponent(this.instanceId)}/settings`), {
-      method: 'PATCH', headers, body: JSON.stringify(patch),
+      ...loopbackFetchInit, method: 'PATCH', headers, body: JSON.stringify(patch),
     });
     if (res.status === 401) {
       const next = await handleUnauthorized();
       if (next) {
         headers['Authorization'] = `Bearer ${next}`;
         res = await fetch(resolveHttp(`/apps-api/instance/${encodeURIComponent(this.instanceId)}/settings`), {
-          method: 'PATCH', headers, body: JSON.stringify(patch),
+          ...loopbackFetchInit, method: 'PATCH', headers, body: JSON.stringify(patch),
         });
       }
     }

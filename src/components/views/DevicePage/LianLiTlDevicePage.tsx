@@ -5,7 +5,9 @@ import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { getLianLiTlState, type LianLiTlState } from '../../../api/lianli-tl';
+import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
+import { formatNumber, localizeNumbers } from '../../../lib/units';
 import styles from './LianLiDevicePage.module.scss';
 
 // Polling interval matches the service RpmPollMs.
@@ -17,6 +19,7 @@ interface LianLiTlDevicePageProps {
 
 export function LianLiTlDevicePage({ onSectionNavigate }: LianLiTlDevicePageProps) {
   const { t } = useTranslation();
+  const { numberFormat } = useUnitPrefs();
   const [connection, setConnection] = useState<'unknown' | 'connected' | 'disconnected'>('unknown');
   const [tlState, setTlState] = useState<LianLiTlState | null>(null);
   const aliveRef = useRef(true);
@@ -92,8 +95,8 @@ export function LianLiTlDevicePage({ onSectionNavigate }: LianLiTlDevicePageProp
                   <span className={styles.rowLabel}>
                     {t('devices.lianli-tl.fanLabel', { port: fan.port, n: fan.fanIndex })}
                   </span>
-                  <span className={styles.rowValue}>{`${fan.rpm} RPM`}</span>
-                  <span className={styles.rowValue}>{`${fan.duty}%`}</span>
+                  <span className={styles.rowValue}>{`${formatNumber(fan.rpm, numberFormat)} RPM`}</span>
+                  <span className={styles.rowValue}>{localizeNumbers(`${fan.duty}%`, numberFormat)}</span>
                 </div>
               ))
             : <div className={`${styles.row} ${styles.rowDisabled}`} />

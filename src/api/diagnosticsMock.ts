@@ -107,6 +107,8 @@ export function mockDiagnosticsIncidents(): DiagnosticsIncidentsResponse {
         detail: 'WHEA-Logger event 17 reported a corrected hardware error on a PCIe root port.',
         app: null,
         data: { bugcheckCode: '' },
+        repeatCount: 300,
+        firstUtc: '2026-06-10T08:12:00Z',
       },
       {
         id: 'Application/8821',
@@ -123,6 +125,8 @@ export function mockDiagnosticsIncidents(): DiagnosticsIncidentsResponse {
           isGame: true,
         },
         data: {},
+        repeatCount: 1,
+        firstUtc: null,
       },
       {
         id: 'System/41003',
@@ -133,6 +137,8 @@ export function mockDiagnosticsIncidents(): DiagnosticsIncidentsResponse {
         detail: 'The system did not shut down cleanly on the previous session.',
         app: null,
         data: {},
+        repeatCount: 1,
+        firstUtc: null,
       },
       {
         id: 'Application/6120',
@@ -149,6 +155,8 @@ export function mockDiagnosticsIncidents(): DiagnosticsIncidentsResponse {
           isGame: false,
         },
         data: {},
+        repeatCount: 1,
+        firstUtc: null,
       },
       {
         id: 'System/12099',
@@ -159,6 +167,8 @@ export function mockDiagnosticsIncidents(): DiagnosticsIncidentsResponse {
         detail: 'The system restarted after a memory management bugcheck.',
         app: null,
         data: { bugcheckCode: '0x1a' },
+        repeatCount: 1,
+        firstUtc: null,
       },
     ],
   };
@@ -250,7 +260,6 @@ export function mockDiagnosticsGpu(): DiagnosticsGpuResponse {
           hwPowerBrakeUs: 0,
         },
         recentTdrCount: 0,
-        recentDriverErrorCount: 2,
       },
     ],
   };
@@ -270,14 +279,16 @@ export function mockDiagnosticsCooling(): DiagnosticsCoolingResponse {
 export function mockDiagnosticsSystem(): DiagnosticsSystemResponse {
   return {
     supported: true,
-    pnpProblems: [],
+    pnpProblems: [
+      { name: 'Unknown USB Device', deviceId: 'USB\\VID_0000&PID_0002\\5&1a2b3c4d&0&1', problemCode: 28, problemText: 'CM_PROB_FAILED_INSTALL' },
+      { name: '', deviceId: 'ACPI\\PNP0C0D\\1', problemCode: 99, problemText: 'CM_PROB_UNKNOWN' },
+    ],
     counts30d: {
       whea: 20,
       bugchecks: 1,
       dirtyShutdowns: 3,
       diskErrors: 0,
       tdrs: 0,
-      gpuDriverErrors: 2,
       appCrashes: 5,
     },
   };

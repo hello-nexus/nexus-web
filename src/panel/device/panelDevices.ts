@@ -38,6 +38,9 @@ export interface PanelDevice {
   runtimeSurface?: PanelSurface;
   previewSize?: { width: number; height: number };
   previewDpi?: number;
+  // Device DPR paired with a CSS-px previewSize (hosted-monitor records), so
+  // physical-size math can reconstruct native px before liveCanvas loads.
+  previewDpr?: number;
   iconSrc: string;
   capabilities: PanelDeviceCapabilities;
   modalKind?: PanelDeviceModalKind;
@@ -50,6 +53,9 @@ export interface PanelDevice {
   // Stamped from the backing curated DeviceListItem.warning (e.g. the Y70
   // connected as a monitor only, no USB serial channel).
   warning?: string | null;
+  // Firmware-catalog key of the connected variant from the curated device
+  // list (e.g. "y70-truly"); shown in settings for support diagnosis.
+  firmwareType?: string;
 }
 
 export const PANEL_DEVICE_ICON = '/assets/devices/y70.svg';
@@ -67,6 +73,9 @@ export const PANEL_FAMILY_ICONS: Readonly<Record<string, string>> = {
   // Q-series enumerates Q60 + Q80 under one id; the Q60 silhouette is the
   // family default.
   qseries:  '/assets/devices/q60.svg',
+  // Corsair Xeneon Edge (simulated preset id; real units are promoted
+  // monitors branded via capabilities.family in usePanelDevices).
+  'xeneon-edge': '/assets/devices/corsair.svg',
 };
 
 export function panelIconForSource(sourceId: string): string {

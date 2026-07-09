@@ -6,12 +6,32 @@
   // Monitoring, Cooling), which stretch to the content column's full width.
 }
 
-// ── Header ──
+// ── Action bar ──
 
-.headerStatus {
+.actionBar {
+  margin-bottom: 0.5rem;
+}
+
+.actionBarRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.actionBarStatus {
   display: flex;
   align-items: center;
   gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.actionBarButtons {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
 }
 
 .generatedAt {
@@ -36,6 +56,14 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.incidentsHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 // ── Component health grid ──
@@ -50,29 +78,6 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-}
-
-.healthCardHead {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
-.healthCardName {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  min-width: 0;
-  color: var(--text-dim);
-
-  span {
-    color: var(--text);
-    font-weight: var(--weight-heading);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
 }
 
 .reasonList {
@@ -122,8 +127,16 @@
   flex-wrap: wrap;
 }
 
-.driveHealthBar {
-  width: 120px;
+.driveHealthSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.healthLabelRow {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
 }
 
 .attrTableWrap {
@@ -271,15 +284,26 @@
 .pnpItem {
   display: flex;
   flex-direction: column;
+  gap: 0.15rem;
   padding: 0.4rem 0.6rem;
   background: var(--surface);
   border-radius: var(--radius-sm);
   font-size: var(--type-small);
 }
 
-.pnpCode {
+.pnpItemRow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.pnpDeviceName {
+  color: var(--text);
+  font-weight: var(--weight-heading);
+}
+
+.pnpExplanation {
   color: var(--text-dim);
-  font-family: var(--font-mono);
   font-size: var(--type-mini);
 }
 
@@ -297,37 +321,52 @@
 
 .incidentRow {
   display: flex;
-  align-items: flex-start;
-  gap: 0.6rem;
-  padding: 0.6rem 0.8rem;
+  flex-direction: column;
   background: var(--surface);
   border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.incidentSummary {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.8rem;
+
+  &[role='button'] {
+    cursor: pointer;
+
+    &:hover { background: color-mix(in srgb, var(--bg) 40%, transparent); }
+  }
 }
 
 .incidentIcon {
   flex-shrink: 0;
-  margin-top: 0.1rem;
-}
-
-.incidentBody {
-  min-width: 0;
-  flex: 1;
   display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-}
-
-.incidentTitleRow {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
 }
 
 .incidentTitle {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--text);
   font-weight: var(--weight-heading);
   font-size: var(--type-small);
+}
+
+.incidentChevron {
+  flex-shrink: 0;
+  color: var(--text-dim);
+}
+
+.incidentDetailBody {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3rem;
+  padding: 0 0.8rem 0.6rem;
 }
 
 .incidentDetail {
@@ -340,4 +379,16 @@
   color: var(--text-dim);
   font-size: var(--type-mini);
   white-space: nowrap;
+}
+
+.incidentsPager {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.1rem;
+}
+
+.incidentsPagerCount {
+  color: var(--text-dim);
+  font-size: var(--type-mini);
 }

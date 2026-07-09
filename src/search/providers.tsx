@@ -93,6 +93,9 @@ const SETTINGS_ITEMS: { tab: string; tabLabelKey: string; labelKey: string; anch
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.systemStartup.label', anchor: 'set-startup',    keywords: ['startup', 'boot', 'login', 'autostart', 'auto start', 'launch', 'start with windows'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.alerts.label',        anchor: 'set-alerts',     keywords: ['conflict', 'warnings', 'alerts', 'notifications'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.language',            anchor: 'set-language',   keywords: ['language', 'locale', 'translation'] },
+  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.units.temperature.label', anchor: 'set-temp-unit',    keywords: ['temperature', 'celsius', 'fahrenheit', 'degrees', 'units', 'temp'] },
+  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.units.time.label',        anchor: 'set-time-format',  keywords: ['time', 'clock', '12 hour', '24 hour', 'am pm', 'format', 'units'] },
+  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.units.number.label',      anchor: 'set-number-format', keywords: ['number', 'decimal', 'separator', 'comma', 'period', 'thousands', 'units', 'format'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.screentime.title',    anchor: 'set-screentime', keywords: ['screen time', 'tracking', 'usage', 'data'] },
   { tab: 'theme',   tabLabelKey: 'settings.theme',   labelKey: 'settings.accent',              anchor: 'set-accent',     keywords: ['accent', 'color', 'colour', 'highlight'] },
 ];

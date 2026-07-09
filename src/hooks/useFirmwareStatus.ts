@@ -41,7 +41,13 @@ export function useFirmwareStatus(enabled: boolean) {
     mountedRef.current = true;
     if (!enabled) return;
     void refresh();
+    // The devices topic only fires on bus changes, so a transiently failed
+    // fetch (or a server-side shell hiccup that omitted an item) would
+    // otherwise render a wrong state until the next hotplug. Slow
+    // reconciliation re-poll while a consumer is mounted.
+    const intervalId = window.setInterval(() => { void refresh(); }, 30_000);
     return () => {
+      window.clearInterval(intervalId);
       mountedRef.current = false;
     };
   }, [enabled, refresh]);

@@ -1,5 +1,5 @@
 import { getToken, handleUnauthorized } from './auth';
-import { fetchService, patchService, postService, resolveHttp } from './service';
+import { fetchService, loopbackFetchInit, patchService, postService, resolveHttp } from './service';
 
 export interface CloudAvatar {
   large: string;
@@ -95,6 +95,7 @@ async function cloudFetch<T>(path: string, method: string, payload?: unknown): P
       if (token) headers['Authorization'] = `Bearer ${token}`;
       if (payload !== undefined) headers['Content-Type'] = 'application/json';
       return {
+        ...loopbackFetchInit,
         method,
         headers,
         body: payload !== undefined ? JSON.stringify(payload) : undefined,
@@ -153,7 +154,7 @@ export async function uploadCloudAvatar(blob: Blob): Promise<CloudAvatar | null>
     const token = await getToken();
     const headers: Record<string, string> = { 'Content-Type': blob.type || 'image/png' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    const resp = await fetch(resolveHttp('/cloud/avatar'), { method: 'POST', headers, body: blob });
+    const resp = await fetch(resolveHttp('/cloud/avatar'), { ...loopbackFetchInit, method: 'POST', headers, body: blob });
     if (!resp.ok) return null;
     const data = (await resp.json()) as { avatar: CloudAvatar };
     return data.avatar ?? null;

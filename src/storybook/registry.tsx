@@ -1,7 +1,7 @@
 // Bundles the Preview* components alongside the REGISTRY data array; one
 // file per preview to satisfy the fast-refresh rule would be dozens of tiny
 // files. Storybook entries reload (not HMR) on edit.
-import { useRef, useState, type CSSProperties, type FC } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type FC } from 'react';
 import { Monitor, Palette, Sparkles, X, Plus, Settings, Download, AlertTriangle } from 'lucide-react';
 import { ViewHeader } from '../components/common/ViewHeader/ViewHeader';
 import { Sparkline } from '../components/common/Sparkline/Sparkline';
@@ -48,7 +48,8 @@ import { ToastProvider, useToast } from '../components/common/Toast/Toast';
 import { WidgetHeader } from '../components/common/WidgetHeader/WidgetHeader';
 import { DEFAULT_ACCENT, PRESET_ACCENTS } from '../lib/settings';
 import { defaultStateFor, type EffectState, type EffectTemplateBundle } from '../types/lighting';
-import { buildDefaultTemplates } from '../types/lightingTemplates';
+import { defaultTemplatesFor } from '../types/lightingTemplates';
+import { cachedAnimateDefaults, fetchAnimateDefaults } from '../api/lighting';
 import type { BatteryState } from '../hooks/usePeripherals';
 import type { HardwareSensor } from '../hooks/useSensors';
 import type { SeriesEntry } from '../hooks/useProcessMonitor';
@@ -543,9 +544,24 @@ function mergePreviewEffectState(prev: EffectState, patch: Partial<EffectState>)
   };
 }
 
+// Upgrades the preview bundle from the baseline to the canonical defaults once
+// the session cache holds them (fetching if a lighting surface hasn't already).
+function useAnimateDefaultsBundle(): [EffectTemplateBundle, (b: EffectTemplateBundle) => void] {
+  const [bundle, setBundle] = useState(() => defaultTemplatesFor(EFFECT_TEMPLATE_PREVIEW_EFFECT, cachedAnimateDefaults()));
+  useEffect(() => {
+    if (cachedAnimateDefaults()) return;
+    let cancelled = false;
+    fetchAnimateDefaults().then(defaults => {
+      if (!cancelled && defaults) setBundle(defaultTemplatesFor(EFFECT_TEMPLATE_PREVIEW_EFFECT, defaults));
+    });
+    return () => { cancelled = true; };
+  }, []);
+  return [bundle, setBundle];
+}
+
 function PreviewEffectTemplateSelector() {
   const [activeIndex, setActiveIndex] = useState(0);
-  const bundle = buildDefaultTemplates(EFFECT_TEMPLATE_PREVIEW_EFFECT);
+  const [bundle] = useAnimateDefaultsBundle();
   return (
     <EffectTemplateSelector
       className={styles.previewTemplateSelector}
@@ -559,10 +575,14 @@ function PreviewEffectTemplateSelector() {
 }
 
 function PreviewEffectControls() {
-  const [bundle, setBundle] = useState(() => buildDefaultTemplates(EFFECT_TEMPLATE_PREVIEW_EFFECT));
+  const [bundle, setBundle] = useAnimateDefaultsBundle();
   const [state, setState] = useState(() => (
     resolvePreviewEffectState(EFFECT_TEMPLATE_PREVIEW_EFFECT, bundle)
   ));
+  // Follow the async baseline-to-canonical bundle upgrade into the controls.
+  useEffect(() => {
+    setState(resolvePreviewEffectState(EFFECT_TEMPLATE_PREVIEW_EFFECT, bundle));
+  }, [bundle]);
 
   const selectTemplate = (index: number) => {
     const selected = Math.min(Math.max(index, 0), bundle.slots.length - 1);
@@ -580,7 +600,7 @@ function PreviewEffectControls() {
   };
 
   const reset = () => {
-    const next = buildDefaultTemplates(EFFECT_TEMPLATE_PREVIEW_EFFECT);
+    const next = defaultTemplatesFor(EFFECT_TEMPLATE_PREVIEW_EFFECT, cachedAnimateDefaults());
     setBundle(next);
     setState(resolvePreviewEffectState(EFFECT_TEMPLATE_PREVIEW_EFFECT, next));
   };

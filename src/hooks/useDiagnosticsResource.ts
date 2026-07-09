@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { DiagnosticsFetchResult } from '../api/diagnostics';
+import type { DiagnosticsFetchOptions, DiagnosticsFetchResult } from '../api/diagnostics';
 
 export interface DiagnosticsResourceState<T> {
   data: T | null;
   loading: boolean;
   error: boolean;
   mocked: boolean;
-  refresh: () => void;
+  refresh: (opts?: DiagnosticsFetchOptions) => void;
 }
 
 /**
@@ -14,11 +14,13 @@ export interface DiagnosticsResourceState<T> {
  * by every /diagnostics/* section (smart, memory, gpu, cooling, system,
  * incidents) so each one isn't a bespoke copy of the same fetch/mount-guard
  * boilerplate; the health overview polls separately via useDiagnosticsHealth
- * since it has its own polling interval instead of a manual refresh.
+ * since it has its own polling interval instead of a manual refresh. `refresh`
+ * forwards its opts (e.g. `{ force: true }`) straight to the fetcher; a
+ * fetcher whose endpoint has no server-side cache to bust just ignores them.
  */
 export function useDiagnosticsResource<T>(
   enabled: boolean,
-  fetcher: () => Promise<DiagnosticsFetchResult<T>>,
+  fetcher: (opts?: DiagnosticsFetchOptions) => Promise<DiagnosticsFetchResult<T>>,
 ): DiagnosticsResourceState<T> {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
@@ -32,11 +34,11 @@ export function useDiagnosticsResource<T>(
   // recently dispatched call is allowed to commit state.
   const seqRef = useRef(0);
 
-  const load = useCallback(() => {
+  const load = useCallback((opts?: DiagnosticsFetchOptions) => {
     setLoading(true);
     const seq = ++seqRef.current;
     void (async () => {
-      const result = await fetcherRef.current();
+      const result = await fetcherRef.current(opts);
       if (!mountedRef.current || seq !== seqRef.current) return;
       if (result.data !== null) {
         setData(result.data);

@@ -86,14 +86,15 @@ export function useRuntimePanelGrid(
   surface: PanelSurface,
   rootRef?: RefObject<HTMLElement | null>,
   simulator = false,
+  deviceDpi?: number,
 ): PanelGridCapacity {
   // Initialise from the surface without touching `rootRef` (no ref reads
   // during render). The effect below re-reads with the mounted root on first
   // paint.
-  const [metrics, setMetrics] = useState(() => readRuntimePanelGrid(surface, null, simulator));
+  const [metrics, setMetrics] = useState(() => readRuntimePanelGrid(surface, null, simulator, deviceDpi));
 
   useEffect(() => {
-    const update = () => setMetrics(readRuntimePanelGrid(surface, rootRef?.current ?? null, simulator));
+    const update = () => setMetrics(readRuntimePanelGrid(surface, rootRef?.current ?? null, simulator, deviceDpi));
     update();
     const observed = rootRef?.current ?? null;
     const observer = observed && typeof ResizeObserver !== 'undefined'
@@ -111,16 +112,21 @@ export function useRuntimePanelGrid(
       window.removeEventListener(PANEL_SIMULATION_CHANGED_EVENT, update);
       observer?.disconnect();
     };
-  }, [surface, rootRef, simulator]);
+  }, [surface, rootRef, simulator, deviceDpi]);
 
   return metrics;
 }
 
-export function readRuntimePanelGrid(surface: PanelSurface, root?: HTMLElement | null, simulator = false): PanelGridCapacity {
+// `deviceDpi` is the device record's physical density (capabilities.dpi,
+// stamped for curated known displays), expressed in the same pixel space the
+// runtime measures: native px on a kiosk (css x dpr), CSS px in the simulator
+// (the parent divides by the device DPR before passing it). Absent, density
+// falls back to the per-surface estimate.
+export function readRuntimePanelGrid(surface: PanelSurface, root?: HTMLElement | null, simulator = false, deviceDpi?: number): PanelGridCapacity {
   if (typeof window === 'undefined') {
     return panelGridCapacityForCanvas(682, 2560, {
       surface,
-      dpi: DEFAULT_SURFACE_DPI[surface],
+      dpi: deviceDpi ?? DEFAULT_SURFACE_DPI[surface],
       sizing: getPanelGridSizingSettings(),
     });
   }
@@ -153,7 +159,7 @@ export function readRuntimePanelGrid(surface: PanelSurface, root?: HTMLElement |
   const height = Math.max(1, Math.round(cssHeight * dpr));
   const capacity = panelGridCapacityForCanvas(width, height, {
     surface,
-    dpi: estimateRuntimePanelDpi(surface),
+    dpi: deviceDpi ?? estimateRuntimePanelDpi(surface),
     sizing: getPanelGridSizingSettings(),
   });
   // Column/row counts are decided in physical px (density), but contentScale

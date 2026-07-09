@@ -6,7 +6,7 @@ import { useSensors } from '../../../hooks/useSensors';
 import type { HardwareSensor } from '../../../hooks/useSensors';
 import { useFpsSensors } from '../../../hooks/useFpsSensors';
 import { useNetworkMonitor } from '../../../hooks/useNetworkMonitor';
-import { useTempSensorPrefs } from '../../../hooks/useUiSettings';
+import { useTempSensorPrefs, useUnitPrefs } from '../../../hooks/useUiSettings';
 import { resolveCpuTempSensor, resolveGpuTempSensor } from '../../../lib/tempSensorResolver';
 import type { WidgetProps } from '../types';
 import { useSharedSensorHistory } from '../common/useSharedSensorHistory';
@@ -17,7 +17,7 @@ import type { DeviceKey } from './perfSlots';
 import { prefixedSensorLabel } from './sensorNames';
 import { MicroMonitoringWidget } from './MicroMonitoringWidget';
 import { buildNetworkSensors, networkMaxValue, NETWORK_SENSOR_TOTAL } from './networkSensors';
-import { formatScaledDataValue } from './sensorValueFormat';
+import { formatSensorValue } from './sensorValueFormat';
 import { chartDomainForScale, DEFAULT_SCALE_MODE, type ScaleMode } from './perfDomain';
 import styles from './MonitoringWidget.module.scss';
 
@@ -245,10 +245,11 @@ interface PerfSlotProps {
 }
 
 export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, device, sensorName, design, scale = DEFAULT_SCALE_MODE, tempPrefs, selected = false, onSelect }: PerfSlotProps) {
+  const { monitoringTempUnit, numberFormat } = useUnitPrefs();
   const effectiveSensorName = device === 'network' && !sensorName ? NETWORK_SENSOR_TOTAL : sensorName;
   const sensor = resolveSensor(sensors, fpsSensors, networkSensors, device, effectiveSensorName, tempPrefs);
   const rawValue = sensor?.value ?? 0;
-  const formatted = sensor ? (formatScaledDataValue(sensor.value, sensor.units) ?? sensor.formatted) : '-';
+  const formatted = sensor ? formatSensorValue(sensor.value, sensor.units, sensor.formatted, monitoringTempUnit, numberFormat) : '-';
   const label = labelForDevice(device, sensor?.name ?? effectiveSensorName);
   // Shared key so the tile + immersive instance for the same sensor share one
   // 60-sample buffer; re-mounting in immersive shows existing history at once.
