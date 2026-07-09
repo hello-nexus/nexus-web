@@ -1,11 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   cancelMemoryTest,
+  clearDiagnosticsEventLogs,
   downloadDiagnosticsBundle,
   downloadDiagnosticsReport,
   fetchDiagnosticsGpu,
   fetchDiagnosticsHealth,
   fetchDiagnosticsIncidents,
+  openDiagnosticsEventViewer,
   scheduleMemoryTest,
 } from './diagnostics';
 import { setActiveTransport } from './service';
@@ -129,6 +131,45 @@ describe('scheduleMemoryTest / cancelMemoryTest', () => {
   it('does not fall back to mock data on a 500', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(500, {})));
     expect(await scheduleMemoryTest()).toEqual({ data: null, mocked: false });
+  });
+});
+
+describe('openDiagnosticsEventViewer', () => {
+  it('resolves the real payload on a 2xx response', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(200, { opened: true })));
+    expect(await openDiagnosticsEventViewer()).toEqual({ opened: true });
+  });
+
+  it('returns null on a 404 instead of faking success - LocalhostOnly rejects a non-loopback origin with 404', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(404, {})));
+    expect(await openDiagnosticsEventViewer()).toBeNull();
+  });
+
+  it('returns null on a 500', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(500, {})));
+    expect(await openDiagnosticsEventViewer()).toBeNull();
+  });
+});
+
+describe('clearDiagnosticsEventLogs', () => {
+  it('resolves the real payload on a 2xx response', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(200, { cleared: true, systemError: '', applicationError: '' })));
+    expect(await clearDiagnosticsEventLogs()).toEqual({ cleared: true, systemError: '', applicationError: '' });
+  });
+
+  it('passes through a completed-but-partial result instead of masking it as a full success', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(200, { cleared: false, systemError: 'Access denied', applicationError: '' })));
+    expect(await clearDiagnosticsEventLogs()).toEqual({ cleared: false, systemError: 'Access denied', applicationError: '' });
+  });
+
+  it('returns null on a 404 instead of faking success', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(404, {})));
+    expect(await clearDiagnosticsEventLogs()).toBeNull();
+  });
+
+  it('returns null on a 500 - a real error stays a real error', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(500, {})));
+    expect(await clearDiagnosticsEventLogs()).toBeNull();
   });
 });
 

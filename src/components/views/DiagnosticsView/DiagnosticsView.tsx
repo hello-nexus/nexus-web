@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Download } from 'lucide-react';
+import { Download, RefreshCw } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useDiagnosticsHealth } from '../../../hooks/useDiagnosticsHealth';
@@ -15,6 +15,7 @@ import {
   fetchDiagnosticsSystem,
 } from '../../../api/diagnostics';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
+import { Card } from '../../common/Card/Card';
 import { Button } from '../../common/Button/Button';
 import { Badge } from '../../common/Badge/Badge';
 import { useToast } from '../../common/Toast/Toast';
@@ -56,6 +57,37 @@ export function DiagnosticsView({ serviceOnline, connectionState }: DiagnosticsV
 
   const anyMocked = healthMocked || smart.mocked || memory.mocked || gpu.mocked
     || cooling.mocked || system.mocked || incidents.mocked;
+  const anyLoading = healthLoading || smart.loading || memory.loading || gpu.loading
+    || cooling.loading || system.loading || incidents.loading;
+
+  // useDiagnosticsResource returns a new object every render; pulling out
+  // `refresh` (stable via the hook's own useCallback) keeps these two
+  // callbacks' identities stable too, instead of depending on the whole
+  // per-render object.
+  const { refresh: refreshSmart } = smart;
+  const { refresh: refreshMemory } = memory;
+  const { refresh: refreshGpu } = gpu;
+  const { refresh: refreshCooling } = cooling;
+  const { refresh: refreshSystem } = system;
+  const { refresh: refreshIncidents } = incidents;
+
+  const handleRefreshAll = useCallback(() => {
+    refreshHealth({ force: true });
+    refreshSmart({ force: true });
+    refreshMemory({ force: true });
+    refreshGpu({ force: true });
+    refreshCooling();
+    refreshSystem({ force: true });
+    refreshIncidents();
+  }, [refreshHealth, refreshSmart, refreshMemory, refreshGpu, refreshCooling, refreshSystem, refreshIncidents]);
+
+  // Clearing the Windows event logs invalidates the health overview and the
+  // System section's 30-day counts in addition to Incidents itself (which
+  // force-refreshes on its own via its onRefresh prop).
+  const handleLogsCleared = useCallback(() => {
+    refreshHealth({ force: true });
+    refreshSystem({ force: true });
+  }, [refreshHealth, refreshSystem]);
 
   const [downloading, setDownloading] = useState(false);
   const handleDownload = useCallback(async () => {
@@ -84,29 +116,35 @@ export function DiagnosticsView({ serviceOnline, connectionState }: DiagnosticsV
 
   return (
     <div className={styles.diagnostics}>
-      <ViewHeader
-        title={t('diagnostics.title')}
-        actions={
-          <>
-            {health && (
-              <div className={styles.headerStatus}>
-                <Badge label={t(statusLabelKey(health.overall))} color={statusColor(health.overall)} />
-                <span className={styles.generatedAt}>
-                  {t('diagnostics.header.generatedAt', { time: relativeTimeLabel(health.generatedAt, now, t) })}
-                </span>
-              </div>
-            )}
-            {anyMocked && <Badge label={t('diagnostics.mockDataBadge')} color="var(--warn)" />}
-            <Button tone="neutral" size="sm" icon={<Download size={14} />} loading={downloading} onClick={handleDownload}>
-              {t('diagnostics.header.downloadBundle')}
-            </Button>
-            <Button tone="neutral" size="sm" icon={<Download size={14} />} loading={downloadingReport} onClick={handleDownloadReport}>
-              {t('diagnostics.header.downloadReport')}
-            </Button>
-          </>
-        }
-      />
+      <ViewHeader title={t('diagnostics.title')} />
       <div className="pageBody">
+        <Card className={styles.actionBar}>
+          <div className={styles.actionBarRow}>
+            <div className={styles.actionBarStatus}>
+              {health && (
+                <>
+                  <Badge label={t(statusLabelKey(health.overall))} color={statusColor(health.overall)} />
+                  <span className={styles.generatedAt}>
+                    {t('diagnostics.header.generatedAt', { time: relativeTimeLabel(health.generatedAt, now, t) })}
+                  </span>
+                </>
+              )}
+              {anyMocked && <Badge label={t('diagnostics.mockDataBadge')} color="var(--warn)" />}
+            </div>
+            <div className={styles.actionBarButtons}>
+              <Button tone="neutral" size="sm" icon={<RefreshCw size={14} />} loading={anyLoading} onClick={handleRefreshAll}>
+                {t('diagnostics.refresh')}
+              </Button>
+              <Button tone="neutral" size="sm" icon={<Download size={14} />} loading={downloadingReport} onClick={handleDownloadReport}>
+                {t('diagnostics.header.downloadReport')}
+              </Button>
+              <Button tone="neutral" size="sm" icon={<Download size={14} />} loading={downloading} onClick={handleDownload}>
+                {t('diagnostics.header.downloadBundle')}
+              </Button>
+            </div>
+          </div>
+        </Card>
+
         {!health ? (
           healthError ? <SectionLoadError onRetry={() => refreshHealth({ force: true })} loading={healthLoading} /> : <GenericSkeleton />
         ) : !health.supported ? <NotAvailableNote /> : (
@@ -118,7 +156,10 @@ export function DiagnosticsView({ serviceOnline, connectionState }: DiagnosticsV
         <GpuSection data={gpu.data} loading={gpu.loading} error={gpu.error} onRefresh={gpu.refresh} />
         <CoolingSection data={cooling.data} loading={cooling.loading} error={cooling.error} onRefresh={cooling.refresh} />
         <SystemSection data={system.data} loading={system.loading} error={system.error} onRefresh={system.refresh} />
-        <IncidentsSection data={incidents.data} loading={incidents.loading} error={incidents.error} onRefresh={incidents.refresh} />
+        <IncidentsSection
+          data={incidents.data} loading={incidents.loading} error={incidents.error}
+          onRefresh={incidents.refresh} onLogsCleared={handleLogsCleared}
+        />
       </div>
     </div>
   );

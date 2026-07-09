@@ -260,7 +260,6 @@ export function mockDiagnosticsGpu(): DiagnosticsGpuResponse {
           hwPowerBrakeUs: 0,
         },
         recentTdrCount: 0,
-        recentDriverErrorCount: 2,
       },
     ],
   };
@@ -290,7 +289,6 @@ export function mockDiagnosticsSystem(): DiagnosticsSystemResponse {
       dirtyShutdowns: 3,
       diskErrors: 0,
       tdrs: 0,
-      gpuDriverErrors: 2,
       appCrashes: 5,
     },
   };

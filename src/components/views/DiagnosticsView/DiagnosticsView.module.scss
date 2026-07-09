@@ -6,12 +6,32 @@
   // Monitoring, Cooling), which stretch to the content column's full width.
 }
 
-// ── Header ──
+// ── Action bar ──
 
-.headerStatus {
+.actionBar {
+  margin-bottom: 0.5rem;
+}
+
+.actionBarRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.actionBarStatus {
   display: flex;
   align-items: center;
   gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.actionBarButtons {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
 }
 
 .generatedAt {
@@ -36,6 +56,14 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.incidentsHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 // ── Component health grid ──

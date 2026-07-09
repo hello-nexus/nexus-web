@@ -166,7 +166,6 @@ export interface DiagnosticsGpu {
   powerW: number;
   throttle: GpuThrottle;
   recentTdrCount: number;
-  recentDriverErrorCount: number;
 }
 
 export interface DiagnosticsGpuResponse {
@@ -205,7 +204,6 @@ export interface DiagnosticsCounts30d {
   dirtyShutdowns: number;
   diskErrors: number;
   tdrs: number;
-  gpuDriverErrors: number;
   appCrashes: number;
 }
 
@@ -313,6 +311,37 @@ export function cancelMemoryTest(): Promise<DiagnosticsFetchResult<CancelMemoryT
     mock => mock.mockCancelMemoryTest(),
     { method: 'DELETE' },
   );
+}
+
+export interface OpenEventViewerResponse {
+  opened: boolean;
+}
+
+export interface ClearEventLogsResponse {
+  cleared: boolean;
+  systemError: string;
+  applicationError: string;
+}
+
+// These two bypass withMockFallback deliberately: a 404 (no such route, or
+// LocalhostOnly rejecting a non-loopback origin) must surface as a real
+// failure, not a faked "opened"/"cleared" success - unlike the read-only GET
+// endpoints above, a fake success here would report a destructive action
+// completed when nothing happened.
+export async function openDiagnosticsEventViewer(): Promise<OpenEventViewerResponse | null> {
+  const { data } = await requestJson<OpenEventViewerResponse>('/diagnostics/events/open-viewer', { method: 'POST', body: {} });
+  return data;
+}
+
+/** Clears the Windows System and Application event logs for the whole
+ *  machine, not just Nexus's own events. Irreversible - gated by a
+ *  destructive ConfirmModal in IncidentsSection. A non-null result with
+ *  `cleared: false` means the service completed the request but one or both
+ *  logs failed to clear (see systemError/applicationError) - the caller
+ *  still resyncs, since the service may have partially applied the clear. */
+export async function clearDiagnosticsEventLogs(): Promise<ClearEventLogsResponse | null> {
+  const { data } = await requestJson<ClearEventLogsResponse>('/diagnostics/events/clear', { method: 'POST', body: {} });
+  return data;
 }
 
 // Content-Disposition: attachment; filename="foo.zip" or filename*=UTF-8''foo.zip.
