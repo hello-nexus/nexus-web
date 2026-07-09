@@ -322,7 +322,7 @@ export function CopyButton(p: HostProps) {
       size={size}
       title={label}
       aria-label={label}
-      disabled={!value}
+      disabled={!value || !navigator.clipboard}
       icon={<Glyph size={size === 'sm' ? 14 : 16} aria-hidden="true" />}
       onClick={onCopy}
     />
