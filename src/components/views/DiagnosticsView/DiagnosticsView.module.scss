@@ -64,6 +64,29 @@
   flex-wrap: wrap;
 }
 
+.temperatureControls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.temperatureDayPicker {
+  display: flex;
+  align-items: center;
+}
+
+// A relative range chip is active, so the day picker recedes to read as the
+// unselected control; hover / keyboard focus restores it so it stays
+// discoverable as clickable.
+.temperatureDayPickerInactive {
+  opacity: 0.5;
+  transition: opacity var(--ease-fast) ease;
+
+  &:hover,
+  &:focus-within { opacity: 1; }
+}
+
 .incidentsHeaderActions {
   display: flex;
   align-items: center;
@@ -303,6 +326,48 @@
   padding: 0 0 0 1.1rem;
   color: var(--text-dim);
   font-size: var(--type-small);
+}
+
+// Mirrors TimeSeriesChart's own tooltipRow/tooltipDot/tooltipName/tooltipVal
+// recipe (a separate CSS module, not directly reusable) for the app rows
+// tooltipExtra appends after the series rows.
+.tooltipApps {
+  margin-top: 0.45rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid var(--separator);
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.tooltipAppRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tooltipAppDot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.tooltipAppName {
+  flex: 1;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tooltipAppDuration {
+  font-family: var(--font-mono);
+  font-size: var(--type-mini);
+  font-weight: var(--weight-small);
+  color: var(--text);
+  white-space: nowrap;
 }
 
 // ── System ──

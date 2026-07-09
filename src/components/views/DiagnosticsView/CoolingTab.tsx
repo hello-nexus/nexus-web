@@ -1,4 +1,4 @@
-import type { DiagnosticsCoolingResponse, DiagnosticsFetchOptions, DiagnosticsTemperaturesResponse } from '../../../api/diagnostics';
+import type { DiagnosticsCoolingResponse, DiagnosticsFetchOptions, DiagnosticsTemperatureAppsResponse, DiagnosticsTemperaturesResponse } from '../../../api/diagnostics';
 import { CoolingSection } from './CoolingSection';
 import { TemperatureSection } from './TemperatureSection';
 import type { TemperatureRangeHours } from './temperatureHelpers';
@@ -18,7 +18,10 @@ interface CoolingTabProps {
     refresh: () => void;
   };
   hours: TemperatureRangeHours;
+  date: string | null;
   onHoursChange: (hours: TemperatureRangeHours) => void;
+  onDateChange: (date: string) => void;
+  appUsageData: DiagnosticsTemperatureAppsResponse | null;
 }
 
 /**
@@ -27,7 +30,7 @@ interface CoolingTabProps {
  * they persist across tab switches instead of resetting to the default
  * range every time the user leaves and returns to this tab.
  */
-export function CoolingTab({ cooling, temperatures, hours, onHoursChange }: CoolingTabProps) {
+export function CoolingTab({ cooling, temperatures, hours, date, onHoursChange, onDateChange, appUsageData }: CoolingTabProps) {
   return (
     <>
       <TemperatureSection
@@ -36,8 +39,11 @@ export function CoolingTab({ cooling, temperatures, hours, onHoursChange }: Cool
         error={temperatures.error}
         mocked={temperatures.mocked}
         hours={hours}
+        date={date}
         onHoursChange={onHoursChange}
+        onDateChange={onDateChange}
         onRetry={temperatures.refresh}
+        appUsageData={appUsageData}
       />
       <CoolingSection data={cooling.data} loading={cooling.loading} error={cooling.error} onRefresh={cooling.refresh} />
     </>

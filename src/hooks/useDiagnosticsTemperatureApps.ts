@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { fetchDiagnosticsTemperatures, type DiagnosticsTemperatureQuery, type DiagnosticsTemperaturesResponse } from '../api/diagnostics';
+import { fetchDiagnosticsTemperatureApps, type DiagnosticsTemperatureAppsResponse, type DiagnosticsTemperatureQuery } from '../api/diagnostics';
 
-export interface UseDiagnosticsTemperatures {
-  data: DiagnosticsTemperaturesResponse | null;
+export interface UseDiagnosticsTemperatureApps {
+  data: DiagnosticsTemperatureAppsResponse | null;
   loading: boolean;
   error: boolean;
   mocked: boolean;
@@ -10,16 +10,15 @@ export interface UseDiagnosticsTemperatures {
 }
 
 /**
- * Fetch-on-mount + refetch-on-query-change for GET /diagnostics/temperatures.
- * Separate from useDiagnosticsResource because the fetcher takes a `query`
- * (hours or a single day) that changes at runtime (the Cooling tab's range
- * chips and day picker) and must retrigger the request, which the generic
- * hook's mount-only effect doesn't do. Callers must pass a `query` that only
- * changes identity when hours/date actually change (e.g. built with
- * useMemo), since it drives the effect's dependency directly.
+ * Fetch-on-enable + refetch-on-query-change for GET
+ * /diagnostics/temperatures/apps, backing the per-bucket app breakdown shown
+ * in the Cooling tab's temperature chart hover tooltip. Mirrors
+ * useDiagnosticsTemperatures's query-driven refetch. Callers must pass a
+ * `query` that only changes identity when hours/date actually change (e.g.
+ * built with useMemo), since it drives the effect's dependency directly.
  */
-export function useDiagnosticsTemperatures(enabled: boolean, query: DiagnosticsTemperatureQuery): UseDiagnosticsTemperatures {
-  const [data, setData] = useState<DiagnosticsTemperaturesResponse | null>(null);
+export function useDiagnosticsTemperatureApps(enabled: boolean, query: DiagnosticsTemperatureQuery): UseDiagnosticsTemperatureApps {
+  const [data, setData] = useState<DiagnosticsTemperatureAppsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [mocked, setMocked] = useState(false);
@@ -30,7 +29,7 @@ export function useDiagnosticsTemperatures(enabled: boolean, query: DiagnosticsT
     setLoading(true);
     const seq = ++seqRef.current;
     void (async () => {
-      const result = await fetchDiagnosticsTemperatures(q);
+      const result = await fetchDiagnosticsTemperatureApps(q);
       if (!mountedRef.current || seq !== seqRef.current) return;
       if (result.data !== null) {
         setData(result.data);

@@ -12,8 +12,12 @@ import type {
   DiagnosticsMemoryResponse,
   DiagnosticsSmartResponse,
   DiagnosticsSystemResponse,
+  DiagnosticsTemperatureAppBucket,
+  DiagnosticsTemperatureAppsResponse,
+  DiagnosticsTemperatureAppSlice,
   DiagnosticsTemperatureEpisode,
   DiagnosticsTemperaturePoint,
+  DiagnosticsTemperatureQuery,
   DiagnosticsTemperatureSeries,
   DiagnosticsTemperaturesResponse,
   ScheduleMemoryTestResponse,
@@ -284,9 +288,12 @@ export function mockDiagnosticsCooling(): DiagnosticsCoolingResponse {
 //
 // Synthesizes 7 days of 5-minute-bucket samples (bucketMinutes matches the
 // contract) ending at GENERATED_AT, then serves the caller's requested
-// window from that fixed dataset - a 30d request still only returns the 7
+// window from that fixed dataset - a 14d request still only returns the 7
 // days the mock actually has, exercising the same "not enough history yet"
-// shape the real service produces on a fresh install. Deterministic (no
+// shape the real service produces on a fresh install. A date query slices
+// the same fixed dataset down to that single calendar day (UTC) instead of
+// a rolling window; a date outside the 7 fabricated days comes back with an
+// empty series, exercising the day picker's empty state. Deterministic (no
 // Math.random) so screenshots and snapshots stay stable across runs.
 
 const TEMP_BUCKET_MINUTES = 5;
@@ -296,6 +303,9 @@ const TEMP_BUCKETS_PER_DAY = (24 * 60) / TEMP_BUCKET_MINUTES;
 const TEMP_TOTAL_BUCKETS = TEMP_HISTORY_DAYS * TEMP_BUCKETS_PER_DAY;
 const TEMP_MAX_POINTS = 600;
 const GPU_SUSTAINED_THRESHOLD_C = 85;
+// Matches the real service's retention window; the mock only fabricates
+// TEMP_HISTORY_DAYS of actual samples within that window.
+const TEMP_RETENTION_DAYS = 90;
 
 /** Small deterministic wobble in [-1, 1], distinct per series via `seed`. */
 function pseudoNoise(i: number, seed: number): number {
@@ -361,7 +371,7 @@ function windowSeries(points: DiagnosticsTemperaturePoint[], hours: number): Dia
   return points.slice(-numBuckets);
 }
 
-// Falls within the 7d/30d range views but outside 24h/3d, so the episode
+// Falls within the 7d/14d range views but outside 24h/3d, so the episode
 // only surfaces once the user widens the range enough to include it.
 const GPU_EPISODE_DAY_OFFSET = 3;
 const GPU_EPISODE_START_INDEX = TEMP_BUCKETS_PER_DAY * GPU_EPISODE_DAY_OFFSET + 170;
@@ -400,14 +410,87 @@ function findSustainedHighEpisodes(points: DiagnosticsTemperaturePoint[], compon
   return episodes;
 }
 
-export function mockDiagnosticsTemperatures(hours: number): DiagnosticsTemperaturesResponse {
+/** Points whose timestamp falls within the UTC calendar day `date` (YYYY-MM-DD). */
+function pointsForDate(points: DiagnosticsTemperaturePoint[], date: string): DiagnosticsTemperaturePoint[] {
+  const startMs = new Date(`${date}T00:00:00.000Z`).getTime();
+  const endMs = startMs + 24 * 60 * 60 * 1000;
+  return points.filter(p => p.t >= startMs && p.t < endMs);
+}
+
+function mockDiagnosticsTemperaturesForDate(date: string): DiagnosticsTemperaturesResponse {
+  const cpuPoints = pointsForDate(cpuFullSeries, date);
+  const gpuPoints = pointsForDate(gpuFullSeries, date);
+  const storagePoints = pointsForDate(storageFullSeries, date);
+  if (cpuPoints.length === 0 && gpuPoints.length === 0 && storagePoints.length === 0) {
+    return { supported: true, bucketMinutes: TEMP_BUCKET_MINUTES, retentionDays: TEMP_RETENTION_DAYS, series: [], episodes: [] };
+  }
+  const series: DiagnosticsTemperatureSeries[] = [
+    { id: 'cpu', kind: 'cpu', name: 'AMD Ryzen 7 9800X3D', points: cpuPoints },
+    { id: 'gpu:0', kind: 'gpu', name: 'NVIDIA GeForce RTX 3070', points: gpuPoints },
+    { id: NVME_DRIVE_ID, kind: 'storage', name: 'Samsung SSD 990 PRO 2TB', points: storagePoints },
+  ];
+  const episodes = findSustainedHighEpisodes(gpuPoints, 'gpu:0', 'NVIDIA GeForce RTX 3070', GPU_SUSTAINED_THRESHOLD_C);
+  return { supported: true, bucketMinutes: TEMP_BUCKET_MINUTES, retentionDays: TEMP_RETENTION_DAYS, series, episodes };
+}
+
+export function mockDiagnosticsTemperatures(query: DiagnosticsTemperatureQuery): DiagnosticsTemperaturesResponse {
+  if ('date' in query) return mockDiagnosticsTemperaturesForDate(query.date);
+  const hours = query.hours;
   const series: DiagnosticsTemperatureSeries[] = [
     { id: 'cpu', kind: 'cpu', name: 'AMD Ryzen 7 9800X3D', points: decimate(windowSeries(cpuFullSeries, hours), TEMP_MAX_POINTS) },
     { id: 'gpu:0', kind: 'gpu', name: 'NVIDIA GeForce RTX 3070', points: decimate(windowSeries(gpuFullSeries, hours), TEMP_MAX_POINTS) },
     { id: NVME_DRIVE_ID, kind: 'storage', name: 'Samsung SSD 990 PRO 2TB', points: decimate(windowSeries(storageFullSeries, hours), TEMP_MAX_POINTS) },
   ];
   const episodes = findSustainedHighEpisodes(windowSeries(gpuFullSeries, hours), 'gpu:0', 'NVIDIA GeForce RTX 3070', GPU_SUSTAINED_THRESHOLD_C);
-  return { supported: true, bucketMinutes: TEMP_BUCKET_MINUTES, series, episodes };
+  return { supported: true, bucketMinutes: TEMP_BUCKET_MINUTES, retentionDays: TEMP_RETENTION_DAYS, series, episodes };
+}
+
+// ── Temperature history: hover app breakdown ────────────────────────────
+//
+// Synthesizes the same TEMP_HISTORY_DAYS window as the temperature series
+// above (ending at GENERATED_AT), in fixed APP_BUCKET_MINUTES buckets keyed
+// by slot start. Every third bucket is idle (omitted) so the empty-hover
+// case is exercised; the rest cycle deterministically through APP_NAMES.
+
+const APP_NAMES = ['Google Chrome', 'Visual Studio Code', 'Steam', 'Slack'] as const;
+const APP_BUCKET_MINUTES = 30;
+const APP_BUCKET_MS = APP_BUCKET_MINUTES * 60_000;
+
+function buildAppBuckets(): DiagnosticsTemperatureAppBucket[] {
+  const endMs = new Date(GENERATED_AT).getTime();
+  const startMs = endMs - TEMP_HISTORY_DAYS * 24 * 60 * 60 * 1000;
+  const buckets: DiagnosticsTemperatureAppBucket[] = [];
+  let i = 0;
+  for (let t = startMs; t < endMs; t += APP_BUCKET_MS, i++) {
+    if (i % 3 === 2) continue;
+    const primary: DiagnosticsTemperatureAppSlice = {
+      appName: APP_NAMES[i % APP_NAMES.length], appId: APP_NAMES[i % APP_NAMES.length],
+      ms: (12 + (i % 5) * 3) * 60_000,
+    };
+    const apps = [primary];
+    if (i % 4 === 0) {
+      const secondaryName = APP_NAMES[(i + 1) % APP_NAMES.length];
+      apps.push({ appName: secondaryName, appId: secondaryName, ms: 5 * 60_000 });
+    }
+    buckets.push({ startUtcMs: t, apps: apps.sort((a, b) => b.ms - a.ms) });
+  }
+  return buckets;
+}
+
+const appBucketsFullHistory = buildAppBuckets();
+
+function appBucketsInWindow(startMs: number, endMs: number): DiagnosticsTemperatureAppBucket[] {
+  return appBucketsFullHistory.filter(b => b.startUtcMs >= startMs && b.startUtcMs < endMs);
+}
+
+export function mockDiagnosticsTemperatureApps(query: DiagnosticsTemperatureQuery): DiagnosticsTemperatureAppsResponse {
+  const endMs = new Date(GENERATED_AT).getTime();
+  if ('date' in query) {
+    const startMs = new Date(`${query.date}T00:00:00.000Z`).getTime();
+    return { supported: true, bucketMinutes: APP_BUCKET_MINUTES, buckets: appBucketsInWindow(startMs, startMs + 24 * 60 * 60 * 1000) };
+  }
+  const cappedHours = Math.min(query.hours, TEMP_HISTORY_DAYS * 24);
+  return { supported: true, bucketMinutes: APP_BUCKET_MINUTES, buckets: appBucketsInWindow(endMs - cappedHours * 60 * 60 * 1000, endMs) };
 }
 
 export function mockDiagnosticsSystem(): DiagnosticsSystemResponse {

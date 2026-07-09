@@ -1,22 +1,31 @@
 import { Thermometer } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
+import { colorFor } from '../../../lib/monitoringStore';
+import { formatDuration } from '../../../lib/formatDuration';
 import { Badge } from '../../common/Badge/Badge';
 import { ChipGroup, type ChipOption } from '../../common/ChipGroup/ChipGroup';
+import { DatePicker } from '../../common/DatePicker/DatePicker';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { SectionHeader } from '../../common/SectionHeader/SectionHeader';
 import { TimeSeriesChart } from '../../common/TimeSeriesChart/TimeSeriesChart';
-import type { DiagnosticsTemperaturesResponse } from '../../../api/diagnostics';
+import type { DiagnosticsTemperatureAppsResponse, DiagnosticsTemperaturesResponse } from '../../../api/diagnostics';
 import { NotAvailableNote, SectionLoadError } from './DiagnosticsSectionStates';
 import { resolveSectionState } from './diagnosticsHelpers';
 import {
+  DEFAULT_TEMPERATURE_RETENTION_DAYS,
   TEMPERATURE_RANGE_OPTIONS,
+  appsForHoverBucket,
   episodeBand,
   episodeSentence,
   formatTemperatureCelsius,
+  formatTemperatureDayLabel,
+  minSelectableTemperatureDate,
   temperatureRangeLabelKey,
   toChartSeries,
+  todayIso,
   xTickFormatForRange,
+  type AppHoverEntry,
   type TemperatureRangeHours,
 } from './temperatureHelpers';
 import styles from './DiagnosticsView.module.scss';
@@ -31,16 +40,38 @@ interface TemperatureSectionProps {
   // the Cooling tab needs to know this specific chart is fabricated.
   mocked: boolean;
   hours: TemperatureRangeHours;
+  date: string | null;
   onHoursChange: (hours: TemperatureRangeHours) => void;
+  onDateChange: (date: string) => void;
   onRetry: () => void;
+  // Per-bucket app usage backing the chart's hover tooltip; null until the
+  // fetch resolves, or when screen-time data is unavailable.
+  appUsageData: DiagnosticsTemperatureAppsResponse | null;
+}
+
+function tooltipApps(apps: AppHoverEntry[]) {
+  if (apps.length === 0) return null;
+  return (
+    <div className={styles.tooltipApps}>
+      {apps.map(a => (
+        <div key={a.appId} className={styles.tooltipAppRow}>
+          <span className={styles.tooltipAppDot} style={{ background: colorFor(a.appId) }} />
+          <span className={styles.tooltipAppName}>{a.appName}</span>
+          <span className={styles.tooltipAppDuration}>{formatDuration(a.ms)}</span>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 /**
- * The Cooling tab's temperature history block: a range picker, a
- * sustained-high-temperature episodes callout (when any exist), and the
+ * The Cooling tab's temperature history block: a range picker + day picker,
+ * a sustained-high-temperature episodes callout (when any exist), and the
  * multi-line chart. Sits above the fan/pump list.
  */
-export function TemperatureSection({ data, loading, error, mocked, hours, onHoursChange, onRetry }: TemperatureSectionProps) {
+export function TemperatureSection({
+  data, loading, error, mocked, hours, date, onHoursChange, onDateChange, onRetry, appUsageData,
+}: TemperatureSectionProps) {
   const { t } = useTranslation();
   const { monitoringTempUnit, numberFormat } = useUnitPrefs();
   const state = resolveSectionState({
@@ -51,6 +82,15 @@ export function TemperatureSection({ data, loading, error, mocked, hours, onHour
     isEmpty: (data?.series.length ?? 0) === 0,
   });
 
+  const isDateMode = date !== null;
+  // Bounds are computed in browser-local time; the service treats ?date= as its
+  // own host-local day. Identical on the localhost desktop view where the two
+  // zones match; a remote browser in another zone can pick an edge day the
+  // service then 400s or returns empty for.
+  const today = todayIso();
+  const retentionDays = data?.retentionDays ?? DEFAULT_TEMPERATURE_RETENTION_DAYS;
+  const minDate = minSelectableTemperatureDate(today, retentionDays);
+
   const rangeOptions: ChipOption[] = TEMPERATURE_RANGE_OPTIONS.map(h => ({ key: String(h), label: t(temperatureRangeLabelKey(h)) }));
 
   return (
@@ -60,17 +100,34 @@ export function TemperatureSection({ data, loading, error, mocked, hours, onHour
           <SectionHeader>{t('diagnostics.temperature.title')}</SectionHeader>
           {mocked && <Badge label={t('diagnostics.mockDataBadge')} color="var(--warn)" />}
         </div>
-        <ChipGroup
-          options={rangeOptions}
-          activeKey={String(hours)}
-          onChange={key => onHoursChange(Number(key) as TemperatureRangeHours)}
-          ariaLabel={t('diagnostics.temperature.rangeAriaLabel')}
-        />
+        <div className={styles.temperatureControls}>
+          <ChipGroup
+            options={rangeOptions}
+            activeKey={isDateMode ? '' : String(hours)}
+            onChange={key => onHoursChange(Number(key) as TemperatureRangeHours)}
+            ariaLabel={t('diagnostics.temperature.rangeAriaLabel')}
+          />
+          <div className={`${styles.temperatureDayPicker}${isDateMode ? '' : ` ${styles.temperatureDayPickerInactive}`}`}>
+            <DatePicker
+              value={date ?? today}
+              max={today}
+              min={minDate}
+              onChange={onDateChange}
+              ariaLabel={t('diagnostics.temperature.dayPickerAriaLabel')}
+            />
+          </div>
+        </div>
       </div>
 
       {state === 'error' && <SectionLoadError onRetry={onRetry} loading={loading} />}
       {state === 'notSupported' && <NotAvailableNote />}
-      {state === 'empty' && <EmptyState compact icon={<Thermometer size={22} />} title={t('diagnostics.temperature.empty')} />}
+      {state === 'empty' && (
+        <EmptyState
+          compact
+          icon={<Thermometer size={22} />}
+          title={isDateMode ? t('diagnostics.temperature.emptyDay', { date: formatTemperatureDayLabel(date) }) : t('diagnostics.temperature.empty')}
+        />
+      )}
       {state === 'content' && data && (
         <>
           {data.episodes.length > 0 && (
@@ -86,13 +143,15 @@ export function TemperatureSection({ data, loading, error, mocked, hours, onHour
           <TimeSeriesChart
             series={toChartSeries(data.series)}
             valueFormat={v => formatTemperatureCelsius(v, monitoringTempUnit, numberFormat)}
-            xTickFormat={xTickFormatForRange(hours)}
+            xTickFormat={isDateMode ? xTickFormatForRange(24) : xTickFormatForRange(hours)}
             avgLabel={t('diagnostics.temperature.avg')}
             maxLabel={t('diagnostics.temperature.max')}
             bands={data.episodes.map(episodeBand)}
+            tooltipExtra={hoverT => tooltipApps(appsForHoverBucket(appUsageData, hoverT))}
           />
         </>
       )}
     </section>
   );
 }
+

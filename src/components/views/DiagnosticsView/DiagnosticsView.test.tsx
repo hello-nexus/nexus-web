@@ -10,6 +10,8 @@ import { StorageSection } from './StorageSection';
 import { SystemSection } from './SystemSection';
 import { ToastProvider } from '../../common/Toast/Toast';
 import { setActiveTransport } from '../../../api/service';
+import { useDiagnosticsTemperatureApps } from '../../../hooks/useDiagnosticsTemperatureApps';
+import { useDiagnosticsTemperatures } from '../../../hooks/useDiagnosticsTemperatures';
 import type {
   DiagnosticsComponent,
   DiagnosticsCoolingResponse,
@@ -41,7 +43,11 @@ vi.mock('../../../hooks/useSystemSpecs', () => ({
 }));
 
 vi.mock('../../../hooks/useDiagnosticsTemperatures', () => ({
-  useDiagnosticsTemperatures: () => ({ data: null, loading: false, error: false, mocked: false, refresh: vi.fn() }),
+  useDiagnosticsTemperatures: vi.fn(() => ({ data: null, loading: false, error: false, mocked: false, refresh: vi.fn() })),
+}));
+
+vi.mock('../../../hooks/useDiagnosticsTemperatureApps', () => ({
+  useDiagnosticsTemperatureApps: vi.fn(() => ({ data: null, loading: false, error: false, mocked: false, refresh: vi.fn() })),
 }));
 
 function jsonResponse(status: number, body: unknown): Response {
@@ -561,5 +567,37 @@ describe('DiagnosticsView tabs', () => {
     fireEvent.click(screen.getByRole('heading', { level: 4, name: 'diagnostics.kind.gpu' }));
 
     expect(onTabChange).toHaveBeenCalledWith('gpu');
+  });
+
+  it('picking a day switches useDiagnosticsTemperatures to a date query, and clicking a range chip clears it back to hours', () => {
+    const temperaturesSpy = vi.mocked(useDiagnosticsTemperatures);
+    temperaturesSpy.mockClear();
+    renderDiagnosticsView({ tab: 'cooling', onTabChange: vi.fn() });
+
+    // Default range is 7d (168h).
+    expect(temperaturesSpy.mock.calls.at(-1)?.[1]).toEqual({ hours: 168 });
+
+    // The datepicker's "today" footer button is a bounds-safe way to pick a
+    // valid day without computing calendar cell positions.
+    fireEvent.click(screen.getByLabelText('diagnostics.temperature.dayPickerAriaLabel'));
+    fireEvent.click(screen.getByText('datepicker.today'));
+
+    expect(temperaturesSpy.mock.calls.at(-1)?.[1]).toHaveProperty('date');
+
+    fireEvent.click(screen.getByRole('button', { name: 'diagnostics.temperature.range.24h' }));
+
+    expect(temperaturesSpy.mock.calls.at(-1)?.[1]).toEqual({ hours: 24 });
+  });
+
+  it('fetches the hover-tooltip app breakdown whenever the service is online, sharing the temperature chart\'s query', () => {
+    const appsSpy = vi.mocked(useDiagnosticsTemperatureApps);
+    appsSpy.mockClear();
+    renderDiagnosticsView({ tab: 'cooling', onTabChange: vi.fn() });
+
+    expect(appsSpy.mock.calls.at(-1)).toEqual([true, { hours: 168 }]);
+
+    fireEvent.click(screen.getByRole('button', { name: 'diagnostics.temperature.range.24h' }));
+
+    expect(appsSpy.mock.calls.at(-1)).toEqual([true, { hours: 24 }]);
   });
 });

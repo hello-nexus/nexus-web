@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from '../../../lib/i18n';
+import { formatDuration } from '../../../lib/formatDuration';
 import * as monitoringStore from '../../../lib/monitoringStore';
 import { useScreenTime } from '../../../hooks/useScreenTime';
 import { fetchService } from '../../../api/service';
@@ -490,12 +491,3 @@ function shortDayLabel(iso: string) {
   return dt.toLocaleDateString(undefined, { weekday: 'narrow' });
 }
 
-function formatDuration(ms: number) {
-  const totalSec = Math.floor(ms / 1000);
-  const h = Math.floor(totalSec / 3600);
-  const m = Math.floor((totalSec % 3600) / 60);
-  const s = totalSec % 60;
-  if (h > 0) return `${h}h ${m}m`;
-  if (m > 0) return `${m}m`;
-  return `${s}s`;
-}

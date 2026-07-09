@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from '../../../lib/i18n';
 import {
   formatTooltipTimestamp,
@@ -42,13 +42,17 @@ export interface TimeSeriesChartProps {
   /** Subtle translucent vertical bands (e.g. sustained-high-temperature episodes). */
   bands?: readonly TimeSeriesBand[];
   showLegend?: boolean;
+  /** Extra content appended to the hover tooltip after the series rows, e.g.
+   *  a per-bucket breakdown the chart itself has no concept of. Called with
+   *  the hovered timestamp; renders nothing when it returns null. */
+  tooltipExtra?: (t: number) => ReactNode;
 }
 
 const PAD = { left: 56, right: 16, top: 12, bottom: 28 };
 
 export function TimeSeriesChart({
   series, height = 260, valueFormat, xTickFormat, xTickCount = 5, yTickCount = 5,
-  avgLabel, maxLabel, bands, showLegend = true,
+  avgLabel, maxLabel, bands, showLegend = true, tooltipExtra,
 }: TimeSeriesChartProps) {
   const { t, language } = useTranslation();
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -234,6 +238,7 @@ export function TimeSeriesChart({
               <span className={styles.tooltipVal}>{maxLabel} {valueFormat(row.point.max)}</span>
             </div>
           ))}
+          {tooltipExtra?.(tooltip.t)}
         </div>
       )}
 

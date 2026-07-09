@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Fan, Gpu as GpuIcon, HardDrive, LayoutDashboard, MemoryStick, ShieldCheck } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useDiagnosticsHealth } from '../../../hooks/useDiagnosticsHealth';
 import { useDiagnosticsResource } from '../../../hooks/useDiagnosticsResource';
+import { useDiagnosticsTemperatureApps } from '../../../hooks/useDiagnosticsTemperatureApps';
 import { useDiagnosticsTemperatures } from '../../../hooks/useDiagnosticsTemperatures';
 import { useSystemSpecs } from '../../../hooks/useSystemSpecs';
 import {
@@ -16,6 +17,7 @@ import {
   fetchDiagnosticsSmart,
   fetchDiagnosticsSystem,
   type DiagnosticsKind,
+  type DiagnosticsTemperatureQuery,
 } from '../../../api/diagnostics';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { useToast } from '../../common/Toast/Toast';
@@ -58,11 +60,26 @@ export function DiagnosticsView({ serviceOnline, connectionState, tab: urlTab, o
   const incidents = useDiagnosticsResource(serviceOnline, useCallback(() => fetchDiagnosticsIncidents(INCIDENT_WINDOW_DAYS), []));
   const { specs } = useSystemSpecs(serviceOnline);
 
-  // Lives here (not in CoolingTab) so the selected range and fetched data
+  // Lives here (not in CoolingTab) so the selected range/day and fetched data
   // survive switching away from and back to the Cooling tab, matching every
-  // other resource on this page.
+  // other resource on this page. A relative range and a specific day are
+  // mutually exclusive: picking a day switches to date mode, and clicking any
+  // range chip switches back to that relative range.
   const [temperatureHours, setTemperatureHours] = useState<TemperatureRangeHours>(DEFAULT_TEMPERATURE_RANGE_HOURS);
-  const temperatures = useDiagnosticsTemperatures(serviceOnline, temperatureHours);
+  const [temperatureDate, setTemperatureDate] = useState<string | null>(null);
+  const temperatureQuery = useMemo<DiagnosticsTemperatureQuery>(
+    () => (temperatureDate ? { date: temperatureDate } : { hours: temperatureHours }),
+    [temperatureDate, temperatureHours],
+  );
+  const temperatures = useDiagnosticsTemperatures(serviceOnline, temperatureQuery);
+  const handleTemperatureHoursChange = useCallback((next: TemperatureRangeHours) => {
+    setTemperatureHours(next);
+    setTemperatureDate(null);
+  }, []);
+
+  // Backs the temperature chart's hover tooltip app breakdown; reuses the
+  // same memoized temperatureQuery so it always covers the chart's window.
+  const temperatureApps = useDiagnosticsTemperatureApps(serviceOnline, temperatureQuery);
 
   const anyMocked = healthMocked || smart.mocked || memory.mocked || gpu.mocked
     || cooling.mocked || system.mocked || incidents.mocked;
@@ -157,7 +174,10 @@ export function DiagnosticsView({ serviceOnline, connectionState, tab: urlTab, o
           cooling={cooling}
           temperatures={temperatures}
           hours={temperatureHours}
-          onHoursChange={setTemperatureHours}
+          date={temperatureDate}
+          onHoursChange={handleTemperatureHoursChange}
+          onDateChange={setTemperatureDate}
+          appUsageData={temperatureApps.data}
         />
       );
       case 'system': return <SystemTab system={system} incidents={incidents} onLogsCleared={handleLogsCleared} />;
