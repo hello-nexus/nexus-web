@@ -54,11 +54,14 @@ export function DeckSettings({ widget, surface, desktopEditor, onUpdate, selecte
     onSelectedSlotChange?.(0);
   };
 
-  const exceedsCapacity = !!activeDeck && widgetTarget.keyCount > activeDeck.keyCount;
+  // Root keyCount alone misses a folder-only overflow (e.g. a 15-slot root
+  // that fits but a full folder inside it still drops its last slot), so the
+  // note is gated on running the actual truncation, not a capacity compare.
+  const copyPreview = activeDeck ? truncateConfigForTarget(widgetTarget.config, { kind: 'physical', keyCount: activeDeck.keyCount }) : null;
 
   const copyWidgetLayout = () => {
     if (!activeDeck) return;
-    const truncated = truncateConfigForTarget(structuredClone(widgetTarget.config), { kind: 'physical', keyCount: activeDeck.keyCount });
+    const { config: truncated } = truncateConfigForTarget(structuredClone(widgetTarget.config), { kind: 'physical', keyCount: activeDeck.keyCount });
     physical.replaceAll(truncated);
     setCopyConfirmOpen(false);
   };
@@ -68,7 +71,7 @@ export function DeckSettings({ widget, surface, desktopEditor, onUpdate, selecte
       open={copyConfirmOpen}
       title={t('panel.settings.deck.copyLayoutConfirm.title')}
       message={t('panel.settings.deck.copyLayoutConfirm.body', { name: activeDeck?.name ?? '' })}
-      note={exceedsCapacity ? t('panel.settings.deck.copyLayoutConfirm.truncated', { count: activeDeck?.keyCount ?? 0, name: activeDeck?.name ?? '' }) : undefined}
+      note={copyPreview?.truncated ? t('panel.settings.deck.copyLayoutConfirm.truncated', { count: activeDeck?.keyCount ?? 0, name: activeDeck?.name ?? '' }) : undefined}
       // eslint-disable-next-line i18next/no-literal-string -- note-tone enum value
       noteTone="danger"
       onConfirm={copyWidgetLayout}

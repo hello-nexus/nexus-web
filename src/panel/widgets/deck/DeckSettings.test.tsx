@@ -211,4 +211,47 @@ describe('DeckSettings physical-deck rail gating', () => {
     expect(copied.slots).toHaveLength(2);
     expect(copied.slots.map(s => s.label)).toEqual(['a', 'b']);
   });
+
+  it('warns of truncation when only a nested folder overflows, even though the root slot count matches the deck exactly', () => {
+    // 2x2 widget = 4 root slots, deck keyCount = 4: the root fits exactly, so a
+    // root-keyCount comparison alone would miss this. The folder inside root
+    // slot 0 holds 5 entries but the deck's folder view only has room for
+    // keyCount - 1 = 3 (Back key reserved), so it overflows on its own.
+    mockUseStreamDecks.mockReturnValue({
+      decks: [makeDeck({ keyCount: 4 })], loaded: true, rename: vi.fn(), setBrightness: vi.fn(), refresh: vi.fn(),
+    });
+    mockUsePhysicalDeckTarget.mockReturnValue({
+      target: fakePhysicalTarget({ keyCount: 4, cols: 2, rows: 2 }), loaded: true, error: false, retry: vi.fn(), replaceAll: vi.fn(),
+    });
+
+    const widgetDeck: DeckConfig = {
+      slots: [
+        { folder: { slots: Array.from({ length: 5 }, (_, i) => ({ label: `f${i}` })) } },
+        { label: 'b' }, { label: 'c' }, { label: 'd' },
+      ],
+    };
+    renderSettings(widgetDeck);
+
+    fireEvent.click(screen.getByText('My Mini Deck'));
+    fireEvent.click(screen.getByText('panel.settings.deck.copyLayout'));
+
+    expect(screen.getByText('panel.settings.deck.copyLayoutConfirm.truncated')).toBeInTheDocument();
+  });
+
+  it('does not warn of truncation when the widget layout fits entirely, including all folders', () => {
+    mockUseStreamDecks.mockReturnValue({
+      decks: [makeDeck({ keyCount: 6 })], loaded: true, rename: vi.fn(), setBrightness: vi.fn(), refresh: vi.fn(),
+    });
+    mockUsePhysicalDeckTarget.mockReturnValue({
+      target: fakePhysicalTarget({ keyCount: 6 }), loaded: true, error: false, retry: vi.fn(), replaceAll: vi.fn(),
+    });
+
+    const widgetDeck: DeckConfig = { slots: [{ folder: { slots: [{ label: 'inner' }] } }, { label: 'b' }] };
+    renderSettings(widgetDeck);
+
+    fireEvent.click(screen.getByText('My Mini Deck'));
+    fireEvent.click(screen.getByText('panel.settings.deck.copyLayout'));
+
+    expect(screen.queryByText('panel.settings.deck.copyLayoutConfirm.truncated')).toBeNull();
+  });
 });
