@@ -1167,7 +1167,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             />
           </div>
           <div className={styles.masterBrightness}>
-            <span className={styles.masterBrightnessLabel}>{t('lighting.settings.brightnessLabel')}</span>
             <GlobalBrightnessSlider serviceOnline={serviceOnline} />
           </div>
           {activeRightTab === 'devices' ? (

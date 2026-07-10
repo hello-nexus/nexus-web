@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Sun, SunDim } from 'lucide-react';
 import { fetchGlobalBrightness, setGlobalBrightness } from '../../../../api/lighting';
 import { Slider } from '../../../../components/common/Slider/Slider';
+import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { useThrottle } from '../../../../hooks/cadence';
 import { useTopicCallback } from '../../../../hooks/useMultiplexSocket';
 import { useTranslation } from '../../../../lib/i18n';
@@ -72,7 +73,9 @@ export function GlobalBrightnessSlider({ serviceOnline }: { serviceOnline: boole
 
   return (
     <div className={styles.globalBrightnessSlider}>
-      <Icon size={14} strokeWidth={1.7} className={styles.globalBrightnessIcon} aria-hidden />
+      <HoverTooltip body={t('lighting.settings.brightnessLabel')} side="top">
+        <Icon size={14} strokeWidth={1.7} className={styles.globalBrightnessIcon} aria-hidden />
+      </HoverTooltip>
       <Slider
         value={percent}
         min={0}
