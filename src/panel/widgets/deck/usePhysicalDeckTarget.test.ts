@@ -38,6 +38,12 @@ async function advance(ms: number) {
   await act(async () => { await vi.advanceTimersByTimeAsync(ms); });
 }
 
+function deferred<T>() {
+  let resolve!: (v: T) => void;
+  const promise = new Promise<T>(res => { resolve = res; });
+  return { promise, resolve };
+}
+
 async function settleInitialSync() {
   await flush();
   await advance(300);
@@ -149,6 +155,87 @@ describe('usePhysicalDeckTarget - debounced sync + rollback (RISK 2, SMELL 1)', 
     await flush();
 
     expect(result.current.target!.config.slots[0]?.label).toBe('server-value');
+  });
+
+  it('does not let a stale rollback for a previous deck corrupt the newly active deck', async () => {
+    const deckA = makeDeck({ serial: 'SN1' });
+    const { result, rerender } = renderHook(({ d }) => usePhysicalDeckTarget(d, []), { initialProps: { d: deckA } });
+    await settleInitialSync();
+
+    mockSetConfig.mockResolvedValueOnce(false);
+    const rollbackGet = deferred<DeckConfig | null>();
+    mockGetConfig.mockReturnValueOnce(rollbackGet.promise);
+
+    act(() => { result.current.target!.updateSlot([], 0, { label: 'edit-on-a' }); });
+    await advance(300);
+    await flush();
+    // A's rollback GET is now in flight but not yet resolved.
+
+    mockGetConfig.mockResolvedValue({ slots: [{ label: 'b-config' }] });
+    rerender({ d: makeDeck({ serial: 'SN2' }) });
+    await settleInitialSync();
+    expect(result.current.target!.config.slots[0].label).toBe('b-config');
+
+    await act(async () => { rollbackGet.resolve({ slots: [{ label: 'server-value-a' }] }); });
+    await flush();
+
+    expect(result.current.target!.config.slots[0].label).toBe('b-config');
+  });
+
+  it('does not let a stale rollback clobber a newer edit made during its own debounce window', async () => {
+    const { result } = renderHook(() => usePhysicalDeckTarget(makeDeck(), []));
+    await settleInitialSync();
+
+    mockSetConfig.mockResolvedValueOnce(false);
+    const rollbackGet = deferred<DeckConfig | null>();
+    mockGetConfig.mockReturnValueOnce(rollbackGet.promise);
+
+    act(() => { result.current.target!.updateSlot([], 0, { label: 'first-edit' }); });
+    await advance(300);
+    await flush();
+    // The first edit's PUT has failed and its rollback GET is in flight.
+
+    mockSetConfig.mockResolvedValueOnce(true);
+    act(() => { result.current.target!.updateSlot([], 0, { label: 'second-edit' }); });
+
+    await act(async () => { rollbackGet.resolve({ slots: [{ label: 'server-value' }] }); });
+    await flush();
+
+    // The still-pending rollback must not clobber the newer, unrelated edit.
+    expect(result.current.target!.config.slots[0].label).toBe('second-edit');
+
+    await advance(300);
+    await flush();
+
+    const putCalls = mockSetConfig.mock.calls as [string, DeckConfig][];
+    expect(putCalls[putCalls.length - 1][1].slots[0].label).toBe('second-edit');
+  });
+
+  it('gives up after repeated PUT failures and surfaces the load-failed state instead of looping forever', async () => {
+    const { result } = renderHook(() => usePhysicalDeckTarget(makeDeck(), []));
+    await settleInitialSync();
+
+    mockSetConfig.mockResolvedValue(false);
+    // A fresh object per call: setConfig with the exact same reference the
+    // rollback already applied would be a React state bail-out, which would
+    // stall the retry loop the test means to exercise.
+    mockGetConfig.mockImplementation(async () => ({ slots: [] }));
+
+    act(() => { result.current.target!.updateSlot([], 0, { label: 'edit' }); });
+
+    for (let i = 0; i < 6 && !result.current.error; i++) {
+      await advance(300);
+      await flush();
+    }
+
+    expect(result.current.error).toBe(true);
+    expect(result.current.target).toBeNull();
+
+    const putCallsAtFailure = mockSetConfig.mock.calls.length;
+    await advance(1000);
+    await flush();
+
+    expect(mockSetConfig.mock.calls.length).toBe(putCallsAtFailure);
   });
 });
 

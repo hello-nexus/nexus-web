@@ -8,6 +8,7 @@ import { resolveViewSlots } from './deckLayout';
 import type { DeckConfig } from './types';
 
 const SYNC_DEBOUNCE_MS = 300;
+const MAX_CONSECUTIVE_PUT_FAILURES = 3;
 
 function deckKeyModel(deck: StreamDeckSummary): DeckKeyModel {
   return { keyPixels: deck.keyPixels, format: deck.format, transform: resolveDeckKeyTransform(deck.model, deck.transform) };
@@ -45,12 +46,14 @@ export function usePhysicalDeckTarget(
   // sync against) the newly active deck - see the sync effect's guard below.
   const configSerialRef = useRef<string | null>(null);
   const backUploadOkRef = useRef(false);
+  const consecutiveFailuresRef = useRef(0);
 
   useEffect(() => {
     setConfig(null);
     setLoadError(false);
     configSerialRef.current = null;
     backUploadOkRef.current = false;
+    consecutiveFailuresRef.current = 0;
     if (!serial) return;
     let cancelled = false;
     void getStreamDeckConfig(serial).then(cfg => {
@@ -77,12 +80,12 @@ export function usePhysicalDeckTarget(
   }, [deck, config, loadError, persist]);
 
   // Debounced network sync: a PUT of the config plus a re-render/upload of
-  // the current view's key images, ~300ms after the last edit (typing a
-  // label otherwise fires this on every keystroke, flickering hardware). A
-  // failed PUT rolls the local state back to the server's last-known value
-  // so local and server state can't silently diverge - a physical press
-  // would otherwise run a binding the server never actually saved. The
-  // once-per-deck back-key upload retries on every sync pass until it lands.
+  // the current view's key images, so typing a label doesn't fire this on
+  // every keystroke and flicker hardware. A failed PUT rolls the local
+  // state back to the server's last-known value so local and server state
+  // can't silently diverge - a physical press would otherwise run a
+  // binding the server never actually saved. The once-per-deck back-key
+  // upload retries on every sync pass until it lands.
   const pendingRef = useRef<{ timer: ReturnType<typeof setTimeout>; run: () => void; serial: string } | null>(null);
   const generationRef = useRef(0);
   const folderKey = folderPath.join('.');
@@ -107,27 +110,47 @@ export function usePhysicalDeckTarget(
       pendingRef.current = null;
     }
 
-    const runSync = () => {
-      const generation = ++generationRef.current;
-      const isStale = () => generationRef.current !== generation;
+    // Bumped the moment this edit is scheduled (not when its timer fires),
+    // so a still-pending PUT from an older edit is already stale by the time
+    // a newer edit lands - even if the older PUT's async continuation (the
+    // failure rollback) resolves after the newer edit was scheduled but
+    // before its own timer fires.
+    const generation = ++generationRef.current;
+    const isStale = () => generationRef.current !== generation;
+    const syncSerial = deck.serial;
+    const syncConfig = config;
 
-      void setStreamDeckConfig(deck.serial, config).then(ok => {
-        if (ok || isStale()) return;
-        void getStreamDeckConfig(deck.serial).then(cfg => {
-          if (!isStale() && cfg) setConfig(cfg);
+    const runSync = () => {
+      void setStreamDeckConfig(syncSerial, syncConfig).then(ok => {
+        if (isStale()) return;
+        if (ok) {
+          consecutiveFailuresRef.current = 0;
+          return;
+        }
+        consecutiveFailuresRef.current += 1;
+        if (consecutiveFailuresRef.current >= MAX_CONSECUTIVE_PUT_FAILURES) {
+          setLoadError(true);
+          return;
+        }
+        void getStreamDeckConfig(syncSerial).then(cfg => {
+          // A rollback may resolve after the user has switched decks (this
+          // deck's config is no longer the active one) - configSerialRef
+          // guards against overwriting a different deck's state.
+          if (isStale() || configSerialRef.current !== syncSerial) return;
+          if (cfg) setConfig(cfg);
         });
       });
 
       const countFn = (depth: number) => slotCountAtDepth({ kind: 'physical', keyCount: deck.keyCount }, depth);
-      const slots = resolveViewSlots(config, folderPath, countFn);
+      const slots = resolveViewSlots(syncConfig, folderPath, countFn);
       const model = deckKeyModel(deck);
       if (slots) {
         const jobs = computeViewUploadJobs(slots, folderPath);
-        void pushDeckKeyImages(deck.serial, model, jobs, isStale);
+        void pushDeckKeyImages(syncSerial, model, jobs, isStale);
       }
       if (!backUploadOkRef.current) {
         void renderDeckBackKeyBitmap(model)
-          .then(bytes => uploadStreamDeckKeyImage(deck.serial, 'back', 0, bytes, model.format))
+          .then(bytes => uploadStreamDeckKeyImage(syncSerial, 'back', 0, bytes, model.format))
           .then(hash => { if (hash !== null && !isStale()) backUploadOkRef.current = true; });
       }
     };
