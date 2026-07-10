@@ -2181,6 +2181,7 @@
   "search.kind.open": "Открыть",
   "search.noresults": "Нет совпадений для «{query}»",
   "search.placeholder": "Поиск в Nexus",
+  "search.pressHint": "Нажмите",
   "search.section.recent": "Недавние",
   "search.section.suggestions": "Предложения",
   "search.wifi.label": "Подключение по Wi-Fi",

@@ -2181,6 +2181,7 @@
   "search.kind.open": "開啟",
   "search.noresults": "沒有符合「{query}」的結果",
   "search.placeholder": "搜尋 Nexus",
+  "search.pressHint": "按",
   "search.section.recent": "最近",
   "search.section.suggestions": "建議",
   "search.wifi.label": "Wi-Fi 配對",

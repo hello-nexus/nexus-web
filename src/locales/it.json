@@ -2181,6 +2181,7 @@
   "search.kind.open": "Apri",
   "search.noresults": "Nessun risultato per «{query}»",
   "search.placeholder": "Cerca in Nexus",
+  "search.pressHint": "Premi",
   "search.section.recent": "Recenti",
   "search.section.suggestions": "Suggerimenti",
   "search.wifi.label": "Associazione Wi-Fi",

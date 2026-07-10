@@ -2126,6 +2126,7 @@
   "search.kind.open": "開く",
   "search.noresults": "「{query}」に一致する項目はありません",
   "search.placeholder": "Nexus を検索",
+  "search.pressHint": "押す",
   "search.section.recent": "最近",
   "search.section.suggestions": "候補",
   "search.wifi.label": "Wi-Fi ペアリング",

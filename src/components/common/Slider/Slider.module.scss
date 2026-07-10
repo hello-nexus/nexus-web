@@ -22,8 +22,15 @@
   flex-direction: column;
   gap: var(--slider-stack-gap, 0);
 
+  // margin-top gives the label/value row breathing room above whatever sits
+  // before it (e.g. a settings-row separator); margin-bottom pulls it back
+  // toward the track, offsetting the range input's 40px touch-target box
+  // (global.scss) whose visible bar sits centered well below the input's
+  // own top edge.
   .head {
     @include text-button;
+    margin-top: var(--space-sm);
+    margin-bottom: calc(-1 * var(--space-md));
   }
 }
 

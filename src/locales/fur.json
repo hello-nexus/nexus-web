@@ -2190,6 +2190,7 @@
   "search.kind.open": "Vierç",
   "search.noresults": "Nissun risultât par “{query}”",
   "search.placeholder": "Cîr in Nexus",
+  "search.pressHint": "Frache",
   "search.section.recent": "Resints",
   "search.section.suggestions": "Sugjeriments",
   "search.wifi.label": "Associazion Wi-Fi",

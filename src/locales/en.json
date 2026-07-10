@@ -2315,6 +2315,7 @@
   "search.kind.open": "Open",
   "search.noresults": "No matches for “{query}”",
   "search.placeholder": "Search Nexus",
+  "search.pressHint": "Press",
   "search.section.recent": "Recent",
   "search.section.suggestions": "Suggestions",
   "search.wifi.label": "Wi-Fi pairing",

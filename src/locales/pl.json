@@ -2181,6 +2181,7 @@
   "search.kind.open": "Otwórz",
   "search.noresults": "Brak wyników dla „{query}”",
   "search.placeholder": "Szukaj w Nexus",
+  "search.pressHint": "Naciśnij",
   "search.section.recent": "Ostatnie",
   "search.section.suggestions": "Sugestie",
   "search.wifi.label": "Parowanie Wi-Fi",

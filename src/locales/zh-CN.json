@@ -2181,6 +2181,7 @@
   "search.kind.open": "打开",
   "search.noresults": "没有匹配“{query}”的结果",
   "search.placeholder": "搜索 Nexus",
+  "search.pressHint": "按",
   "search.section.recent": "最近",
   "search.section.suggestions": "建议",
   "search.wifi.label": "Wi-Fi 配对",

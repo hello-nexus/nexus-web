@@ -246,6 +246,7 @@ export function TopSearch({ pageTitle, online }: { pageTitle: string; online: bo
             <h1 className={styles.title}>{pageTitle}</h1>
           )}
           <span className={styles.kbdHint} aria-hidden>
+            <span className={styles.kbdHintLabel}>{t('search.pressHint')}</span>
             <kbd>/</kbd>
           </span>
         </button>

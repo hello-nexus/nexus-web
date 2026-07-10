@@ -2181,6 +2181,7 @@
   "search.kind.open": "Aç",
   "search.noresults": "“{query}” için sonuç yok",
   "search.placeholder": "Nexus'ta ara",
+  "search.pressHint": "Basın",
   "search.section.recent": "Son kullanılanlar",
   "search.section.suggestions": "Öneriler",
   "search.wifi.label": "Wi-Fi eşleştirme",

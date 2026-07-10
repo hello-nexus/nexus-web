@@ -2181,6 +2181,7 @@
   "search.kind.open": "Abrir",
   "search.noresults": "Sin resultados para «{query}»",
   "search.placeholder": "Buscar en Nexus",
+  "search.pressHint": "Pulsa",
   "search.section.recent": "Recientes",
   "search.section.suggestions": "Sugerencias",
   "search.wifi.label": "Emparejamiento Wi-Fi",

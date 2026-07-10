@@ -2181,6 +2181,7 @@
   "search.kind.open": "열기",
   "search.noresults": "“{query}” 검색 결과 없음",
   "search.placeholder": "Nexus 검색",
+  "search.pressHint": "누르기",
   "search.section.recent": "최근",
   "search.section.suggestions": "추천",
   "search.wifi.label": "Wi-Fi 페어링",

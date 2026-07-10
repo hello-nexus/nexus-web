@@ -2181,6 +2181,7 @@
   "search.kind.open": "Öffnen",
   "search.noresults": "Keine Treffer für „{query}“",
   "search.placeholder": "Nexus durchsuchen",
+  "search.pressHint": "Drücken Sie",
   "search.section.recent": "Zuletzt verwendet",
   "search.section.suggestions": "Vorschläge",
   "search.wifi.label": "WLAN-Kopplung",

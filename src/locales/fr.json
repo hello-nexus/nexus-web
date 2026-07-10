@@ -2181,6 +2181,7 @@
   "search.kind.open": "Ouvrir",
   "search.noresults": "Aucun résultat pour «{query}»",
   "search.placeholder": "Rechercher dans Nexus",
+  "search.pressHint": "Appuyez sur",
   "search.section.recent": "Récents",
   "search.section.suggestions": "Suggestions",
   "search.wifi.label": "Association Wi-Fi",
