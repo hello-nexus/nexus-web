@@ -68,10 +68,6 @@ export function incidentSeverityColor(severity: DiagnosticsIncidentSeverity): st
   }
 }
 
-export function incidentSeverityLabelKey(severity: DiagnosticsIncidentSeverity): string {
-  return `diagnostics.incidents.severity.${severity}`;
-}
-
 export function incidentSourceLabelKey(source: string): string {
   return `diagnostics.incidents.source.${source}`;
 }

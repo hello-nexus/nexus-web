@@ -127,15 +127,6 @@ export async function getNp50ConnectionState(): Promise<Np50ConnectionState | nu
   };
 }
 
-export function np50LiveModeFromName(name: Np50ConnectionState['coolingMode']): Np50LiveMode | null {
-  switch (name) {
-    case 'Software':    return NP50_LIVE_MODE_SOFTWARE;
-    case 'Motherboard': return NP50_LIVE_MODE_MOTHERBOARD;
-    case 'Static':      return NP50_LIVE_MODE_STATIC;
-    default:            return null;
-  }
-}
-
 // ── Hub-mode kind used by the cooling page to drive per-fan dropdown display.
 // The NP50 has no motherboard "BIOS" hand-off of its own, so FanCard surfaces
 // both hub takeovers ('motherboard' and 'firmware') as 'fw' (FW Control) - the

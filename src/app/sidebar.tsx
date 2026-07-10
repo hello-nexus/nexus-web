@@ -1,5 +1,4 @@
 import { type ReactNode, useCallback, useEffect, useState } from 'react';
-import { Unplug } from 'lucide-react';
 import classNames from 'classnames';
 import { ConflictWarningBadge } from '../components/common/Sidebar/ConflictWarning';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
@@ -10,7 +9,6 @@ import { useNewConflictPulse } from '../hooks/useNewConflictPulse';
 import { useTopicCallback } from '../hooks/useMultiplexSocket';
 import { useTranslation } from '../lib/i18n';
 import { useWindowDragRegion } from './useWindowDragRegion';
-import type { ConnectionState } from '../hooks/useServiceStatus';
 import { getUpdateStatus, UPDATE_TOPIC } from '../api/update';
 import { pingService } from '../api/service';
 import { UpdateBadge } from '../components/common/UpdateBadge/UpdateBadge';
@@ -68,37 +66,6 @@ export function ConnectedProfileSlot({ connectEpoch, children }: {
       {children}
     </div>
   );
-}
-
-// ── Not-connected badge (sits in the sidebar profile slot when offline) ──
-
-export function NotConnectedBadge({ state, t, compact }: {
-  state: ConnectionState;
-  t: (key: string, params?: Record<string, string | number>) => string;
-  compact: boolean;
-}) {
-  const label = state === 'checking'
-    ? t('status.checking')
-    : state === 'offline-installed'
-    ? t('status.offline-installed')
-    : t('status.offline');
-  const isChecking = state === 'checking';
-
-  const node = (
-    <div
-      className={classNames(styles.notConnected, { [styles.notConnectedCompact]: compact })}
-      role="status"
-      aria-live="polite"
-    >
-      <Unplug
-        size={14}
-        className={classNames(styles.notConnectedIcon, { [styles.notConnectedIconChecking]: isChecking })}
-        aria-hidden
-      />
-      {!compact && <span className={styles.notConnectedLabel}>{label}</span>}
-    </div>
-  );
-  return compact ? <HoverTooltip body={label} side="right">{node}</HoverTooltip> : node;
 }
 
 // ── Top-bar status slots (conflict + update alerts) ─────────────────────────

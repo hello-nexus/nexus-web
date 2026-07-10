@@ -74,8 +74,3 @@ export function parseReply(buf: Uint8Array): RazerReply {
     args: buf.slice(base + 8, base + 88),
   };
 }
-
-/** Does the reply indicate a successful device response? (0x02 = success per OpenRazer). */
-export function isSuccess(reply: RazerReply): boolean {
-  return reply.status === 0x02;
-}

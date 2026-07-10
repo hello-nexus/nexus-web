@@ -1917,7 +1917,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'PairingQrView', category: 'status',
     filePath: 'src/components/common/PairingQr/PairingQrView.tsx',
-    description: 'Shared pairing-QR pane: white QR square with a fade-from-white reveal on each re-mint, plus a countdown that flashes in the final 5s. Pure presentation - the caller owns minting via usePairingQrFeed. Used by the Pair-remote modal QR tab and the 2x2 pairing widget so both render identically. PairingOffState is the companion "pairing disabled" pane.',
+    description: 'Shared pairing-QR pane: white QR square with a fade-from-white reveal on each re-mint, plus a countdown that flashes in the final 5s. Pure presentation - the caller owns minting the QR token. Used by the Pair-remote modal QR tab and the 2x2 pairing widget so both render identically. PairingOffState is the companion "pairing disabled" pane.',
     Preview: PreviewPairingQr,
     notes: 'Preview is frozen (static now prop), so the countdown does not tick. variant="card" renders the smaller in-widget layout.',
   },

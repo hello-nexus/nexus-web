@@ -28,16 +28,3 @@ export function previewWallpaperUri(hue: number): string {
     + '</svg>';
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
-
-export function previewCoverUri(hue: number): string {
-  const svg =
-    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180">'
-    + '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">'
-    + `<stop offset="0" stop-color="hsl(${hue} 45% 38%)"/>`
-    + `<stop offset="1" stop-color="hsl(${(hue + 70) % 360} 45% 22%)"/>`
-    + '</linearGradient></defs>'
-    + '<rect width="320" height="180" fill="url(#g)"/>'
-    + `<circle cx="252" cy="48" r="26" fill="hsl(${hue} 50% 55% / 0.55)"/>`
-    + '</svg>';
-  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
-}

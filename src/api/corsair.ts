@@ -1,4 +1,4 @@
-import { fetchService, putService } from './service';
+import { fetchService } from './service';
 
 export interface CorsairDevice {
   channel: number;
@@ -21,8 +21,4 @@ export interface CorsairState {
 
 export function getCorsairState(): Promise<CorsairState | null> {
   return fetchService<CorsairState>('/devices/corsair/state');
-}
-
-export function setCorsairSettings(settings: { stopConflictingApps: boolean }): Promise<unknown | null> {
-  return putService('/devices/corsair/settings', settings);
 }

@@ -56,9 +56,6 @@ export interface RemoveResponse {
 export const fetchSmartLights = () =>
   fetchService<SmartLightsResponse>('/smart-lights/all');
 
-export const discoverSmartLights = (brand: string) =>
-  postService<DiscoverResponse>('/smart-lights/discover', { brand });
-
 // Scan + reconcile a brand: discovers, prunes that brand's paired lights no
 // longer present (the way to drop a removed light), and returns the discovery
 // candidates for the pair UI. Pruned lights keep their LED mappings.

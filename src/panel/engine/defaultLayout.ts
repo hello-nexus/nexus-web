@@ -2,7 +2,7 @@ import type { PanelConfigValue, PanelLayout, PanelWidget, PanelWidgetSize } from
 import { createUuid } from '../../lib/uuid';
 import { getInstallDefaults } from '../../api/installDefaultsCache';
 
-// Synchronous accessors for the four canonical surface layouts. Pulls from
+// Synchronous accessor for the canonical surface layouts. Pulls from
 // the install-defaults cache populated by `preloadInstallDefaults()` at
 // bootstrap (main.tsx). When the cache hasn't filled yet - only possible
 // during a sub-100ms race between bootstrap and the first hook init - we
@@ -37,9 +37,6 @@ function buildLayout(surface: PanelLayout['surface']): PanelLayout {
   };
 }
 
-export const defaultLayoutForY70       = (): PanelLayout => buildLayout('y70');
-export const defaultLayoutForPhone     = (): PanelLayout => buildLayout('phone');
-export const defaultLayoutForQ60       = (): PanelLayout => buildLayout('q60');
 export const defaultLayoutForDashboard = (): PanelLayout => buildLayout('desktop');
 
 export function defaultLayoutForSurface(surface: PanelLayout['surface']): PanelLayout {

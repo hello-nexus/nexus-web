@@ -565,12 +565,6 @@ export interface DeviceMapOverride {
 export const fetchDeviceMap = (deviceId: string) =>
   fetchService<DeviceMapResponse>(`/devices/lighting-devices/${encodeURIComponent(deviceId)}/device-map`);
 
-// Factory view of the device map: same shape as the normal GET, but with
-// user overrides, the stored aspect ratio, and applied community mappings
-// dropped. The partition and wired LED counts are kept.
-export const fetchDeviceMapDefaults = (deviceId: string) =>
-  fetchService<DeviceMapResponse>(`/devices/lighting-devices/${encodeURIComponent(deviceId)}/device-map?defaults=true`);
-
 // Factory reset: clears the device's stored LED overrides and aspect ratio
 // server-side and refreshes the engine.
 export const resetDeviceMap = (deviceId: string) =>

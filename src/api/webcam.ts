@@ -2,7 +2,7 @@
 // only: the service refuses relay dispatches for every /webcam route, so
 // callers gate on the live transport (isTunnelActive) before starting capture.
 
-import { fetchService, postService } from './service';
+import { postService } from './service';
 
 export const WEBCAM_STREAM_PATH = '/webcam/stream';
 
@@ -34,6 +34,3 @@ export const startWebcam = (width: number, height: number, codec: WebcamCodec) =
 
 export const stopWebcam = () =>
   postService<WebcamStatus>('/webcam/stop', {});
-
-export const fetchWebcamStatus = () =>
-  fetchService<WebcamStatus>('/webcam/status');

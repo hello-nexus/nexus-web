@@ -9,10 +9,6 @@ export type TimeFormat = 'system' | '12h' | '24h';
 // 'dot' = 1,234.56 (period decimal); 'comma' = 1.234,56 (comma decimal).
 export type NumberFormat = 'system' | 'dot' | 'comma';
 
-export const TEMP_UNITS: readonly TempUnit[] = ['c', 'f'];
-export const TIME_FORMATS: readonly TimeFormat[] = ['system', '12h', '24h'];
-export const NUMBER_FORMATS: readonly NumberFormat[] = ['system', 'dot', 'comma'];
-
 export const DEFAULT_TEMP_UNIT: TempUnit = 'c';
 export const DEFAULT_TIME_FORMAT: TimeFormat = 'system';
 export const DEFAULT_NUMBER_FORMAT: NumberFormat = 'system';
