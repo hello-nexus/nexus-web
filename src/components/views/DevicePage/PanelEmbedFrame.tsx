@@ -17,6 +17,7 @@ import {
   type SimulatorTheme,
 } from '../../../panel/embed/simulatorProtocol';
 import type { PanelLayout, PanelSurface, PanelWidget } from '../../../panel/types';
+import { simulatedPanelCssViewport } from '../../../panel/embed/simulatedPanelViewport';
 import { useTranslation } from '../../../lib/i18n';
 import styles from './PanelEmbedFrame.module.scss';
 
@@ -68,28 +69,6 @@ interface PanelEmbedFrameProps {
 const DEFAULT_CANVAS_W = 682;
 const DEFAULT_CANVAS_H = 2560;
 
-// Per-surface device-pixel-ratio used to convert native canvas
-// dimensions into CSS-pixel iframe viewport sizes. Matches what the
-// real-hardware WebView reports as `window.devicePixelRatio`. Falls
-// back to deriving from DPI (Android density convention: 160 DPI = 1
-// DPR) when the surface isn't listed here.
-const SURFACE_DPR: Record<string, number> = {
-  q60: 1.5, // Android System WebView v83 on Q60 hardware
-  // Y70 runs Edge on Windows, so its WebView DPR is the Windows display
-  // scaling (150% on the bench Y70 → 1.5), NOT the panel's physical DPI.
-  // The DPI-derived fallback over-divides (337/160≈2.1), dropping the 2.5K
-  // panel below the y70 @media(min-height:1500px) breakpoint. At 1.5 the
-  // 2.5K sim renders 455×1707 and the 4K 733×2560, both above it. A real
-  // connected Y70 uses canvasIsCssPixels (liveCanvas) and never hits this map.
-  y70: 1.5,
-  // Promoted monitors: a real record renders via canvasIsCssPixels and never
-  // reads this; simulated presets carry native px, and the DPR is the user's
-  // Windows display scaling, which a simulation can't know - assume 100%.
-  // The dpi-derived fallback is an Android density convention and would
-  // shrink the canvas (see failure-log 2026-05-29).
-  monitor: 1,
-};
-
 function findWidget(layout: PanelLayout, id: string): PanelWidget | undefined {
   for (const page of layout.pages) {
     const w = page.widgets.find(w => w.id === id);
@@ -136,21 +115,20 @@ export function PanelEmbedFrame({
   const nativeW = canvasSize?.width ?? DEFAULT_CANVAS_W;
   const nativeH = canvasSize?.height ?? DEFAULT_CANVAS_H;
   // CSS-pixel canvases (live kiosk viewport) are used as-is; native-pixel
-  // profiles convert native→CSS via the device DPR so the iframe reproduces
-  // the WebView's real --panel-cell-size math.
-  const dpr = canvasIsCssPixels ? 1 : (SURFACE_DPR[surface] ?? (canvasDpi ? canvasDpi / 160 : 1));
-  const canvasW = Math.round(nativeW / dpr);
-  const canvasH = Math.round(nativeH / dpr);
-  // Native-pixel canvases (simulated presets, per-surface profiles) know their
-  // physical density (canvasDpi, native px/inch), and the divisor above puts
-  // the iframe in CSS px, so the CSS-px density is canvasDpi/dpr. Forward it
-  // whenever the parent didn't supply one: the child's own estimate
-  // (estimateRuntimePanelDpi) reads the HOST's devicePixelRatio inside the
-  // iframe, so the simulated grid would vary with the host display. CSS-px
-  // canvases (live records) keep the parent-supplied value; their record DPR
-  // is unknown here.
-  const effectiveGridDpi = gridDpi
-    ?? (!canvasIsCssPixels && canvasDpi ? canvasDpi / dpr : undefined);
+  // profiles convert native→CSS via simulatedPanelCssViewport - the same
+  // helper the editor's capacity math uses, so the iframe grid and the editor
+  // grid agree by construction.
+  const cssViewport = canvasIsCssPixels
+    ? { cssWidth: Math.round(nativeW), cssHeight: Math.round(nativeH), cssDpi: undefined }
+    : simulatedPanelCssViewport(surface, nativeW, nativeH, canvasDpi);
+  const canvasW = cssViewport.cssWidth;
+  const canvasH = cssViewport.cssHeight;
+  // Forward the CSS-px density whenever the parent didn't supply one: the
+  // child's own estimate (estimateRuntimePanelDpi) reads the HOST's
+  // devicePixelRatio inside the iframe, so the simulated grid would vary with
+  // the host display. CSS-px canvases (live records) keep the parent-supplied
+  // value; their record DPR is unknown here.
+  const effectiveGridDpi = gridDpi ?? cssViewport.cssDpi;
   const [measured, setMeasured] = useState({
     w: canvasW * 0.35,
     h: canvasH * 0.35,

@@ -12,7 +12,6 @@ import {
 import { lookupApp, sizesForSurface, appAvailableForSurface } from '../widgets/registry';
 import { defaultLayoutForSurface } from './defaultLayout';
 import { broadcastLayoutChanged, onLayoutChanged } from './panelSync';
-import { pagesHaveOverlap, repackPage } from './paginate';
 import {
   getMarketplaceListing,
   hasMarketplaceLoadedOnce,
@@ -114,17 +113,11 @@ interface UsePanelLayoutResult {
   setLayout: (next: PanelLayout) => void;
 }
 
-// Default column count per surface used by the overlap-reflow path
-// when reconcileAppsAgainstRegistry snaps a widget's size and
-// introduces overlap with siblings.
-const SURFACE_COLS: Record<PanelSurface, number> = {
-  y70: 4,
-  phone: 4,
-  q60: 2,
-  desktop: 8,
-  monitor: 8,
-};
-
+// Geometry (positions, overlap, bounds) is NOT normalize's concern: a size
+// snap here may introduce overlap, and repaginatePanelLayout - which every
+// render path runs against the real grid capacity - repairs it there. Keeping
+// normalize geometry-neutral gives the normalize/repaginate composition a
+// fixed point at any capacity (see panelEditorLayoutSync.test.ts).
 export function normalizePanelLayout(layout: PanelLayout, surface: PanelSurface, deviceTouch?: boolean): PanelLayout {
   const reconciledPages = layout.pages.map(page => ({
     ...page,
@@ -135,24 +128,12 @@ export function normalizePanelLayout(layout: PanelLayout, surface: PanelSurface,
     ),
   }));
 
-  // Reconcile may have snapped a widget's size (e.g. 2x4 → 4x2 on a
-  // multi-widget surface), which can introduce overlap with siblings.
-  // Detect post-snap overlap and re-pack row-major in place so the UI
-  // never lands on overlapping widgets that lock out subsequent edits.
-  const reflowCols = SURFACE_COLS[surface] ?? 4;
-  const reflowedPages = pagesHaveOverlap(reconciledPages, reflowCols)
-    ? reconciledPages.map(page => ({
-        ...page,
-        widgets: repackPage(page.widgets, reflowCols),
-      }))
-    : reconciledPages;
-
   // Single-widget surface invariant: collapse to one page, one widget,
   // snapped to the surface's allowed size. The earlier reconciliation
   // pass has already normalized each widget's size via
   // normalizePanelWidgetSizeForSurface, so we just keep the first
   // surviving widget across all pages.
-  let finalPages = reflowedPages;
+  let finalPages = reconciledPages;
   if (isSingleWidgetSurface(surface)) {
     const firstWidget = reconciledPages.flatMap(p => p.widgets)[0];
     const firstPageId = reconciledPages[0]?.id;

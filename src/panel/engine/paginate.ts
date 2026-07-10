@@ -69,10 +69,6 @@ export function pageHasOverlap(widgets: readonly PanelWidget[], cols: number): b
   return false;
 }
 
-export function pagesHaveOverlap(pages: readonly PanelPage[], cols: number): boolean {
-  return pages.some(page => pageHasOverlap(page.widgets, cols));
-}
-
 /** True if every widget sits inside the grid and none overlap. */
 export function pageFitsGrid(widgets: readonly PanelWidget[], cols: number, rows: number): boolean {
   for (const w of widgets) {
@@ -81,31 +77,6 @@ export function pageFitsGrid(widgets: readonly PanelWidget[], cols: number, rows
     if (rect.col + rect.colSpan > cols || rect.row + rect.rowSpan > rows) return false;
   }
   return !pageHasOverlap(widgets, cols);
-}
-
-/**
- * Row-major repack: lays widgets out left-to-right, top-to-bottom into
- * `cols` columns in array order, recovering a gap-free layout after a
- * size snap or an orientation clamp drops widgets on top of each other.
- */
-export function repackPage(widgets: PanelWidget[], cols: number): PanelWidget[] {
-  let cursorRow = 0;
-  let cursorCol = 0;
-  let currentRowMaxSpan = 0;
-  return widgets.map(widget => {
-    const span = sizeToSpan(widget.size);
-    const colSpan = Math.max(1, Math.min(span.cols, cols));
-    const rowSpan = Math.max(1, span.rows);
-    if (cursorCol + colSpan > cols) {
-      cursorRow += currentRowMaxSpan || 1;
-      cursorCol = 0;
-      currentRowMaxSpan = 0;
-    }
-    const placed: PanelWidget = { ...widget, col: cursorCol, row: cursorRow };
-    cursorCol += colSpan;
-    if (rowSpan > currentRowMaxSpan) currentRowMaxSpan = rowSpan;
-    return placed;
-  });
 }
 
 /**

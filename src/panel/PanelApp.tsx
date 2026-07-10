@@ -501,14 +501,11 @@ export function PanelContent({
     // re-paginated default would race the in-flight fetch and overwrite the
     // user's saved edits.
     //
-    // Never auto-persist from the simulator: the parent owns layout authority
-    // (PanelEmbedFrame's set-layout/layout-changed contract), and its
-    // normalizePanelLayout repack uses fixed per-surface columns while this
-    // repagination uses runtime capacity. When the two disagree (responsive
-    // phone/monitor grids), echoing the repaginated layout ping-pongs the two
-    // transforms through postMessage forever - pegged CPU until the WebView
-    // renderer dies. Render the repaginated shape locally; echo only user
-    // edits.
+    // Never auto-persist from the simulator: the parent (PanelDevicePage)
+    // owns the persisted bytes per PanelEmbedFrame's set-layout /
+    // layout-changed contract and conforms them to the editor capacity
+    // itself; the simulator renders the repaginated shape locally and echoes
+    // only user edits (see panelEditorLayoutSync.test.ts).
     if (!loaded || simulator) return;
     if (paginatedLayout !== layout) setLayout(paginatedLayout);
   }, [paginatedLayout, layout, setLayout, loaded, simulator]);

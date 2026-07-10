@@ -7,17 +7,18 @@ import { PANEL_GRID_COLS, PANEL_Y70_PORTRAIT_ROWS } from './grid';
 import { MAX_PANEL_PAGES } from './panelGrid';
 
 // The panel editor (PanelDevicePage) owns the canonical layout and runs every
-// edit through normalizePanelLayout; the iframe simulator renders it after
-// repaginatePanelLayout against the runtime capacity. The simulator never
-// echoes repagination back (PanelApp gates the auto-persist effect on
-// !simulator) - only user edits post layout-changed. That gate exists because
-// the two transforms have no common fixed point for every layout: normalize
-// repacks overlap at fixed SURFACE_COLS with unbounded rows while repaginate
-// clamps to the runtime grid, and echoing repagination ping-ponged them
-// through postMessage forever (pegged CPU until the WebView renderer died).
-// A layout that settles under the composition is still what editor-initiated
-// ops must produce: on a non-fixed point the preview renders a different
-// placement than what persists.
+// edit through normalizePanelLayout + repaginatePanelLayout at the editor
+// capacity; the iframe simulator renders the same composition at the runtime
+// capacity. normalizePanelLayout is geometry-neutral (registry reconcile +
+// size snap only) and repaginatePanelLayout is idempotent, so the composition
+// reaches a fixed point within ONE pass for any layout at any capacity - the
+// invariant the matrix test below pins. History: normalize used to repack
+// overlap at fixed per-surface columns with unbounded rows, which shared no
+// fixed point with repaginate's bounded clamp; echoing repagination through
+// the simulator postMessage sync then ping-ponged the two forever (pegged CPU
+// until the WebView renderer died). The simulator still never echoes
+// repagination (PanelApp gates the auto-persist effect on !simulator) - the
+// parent owns the persisted bytes; only user edits post layout-changed.
 
 const Y70_CAP: PaginateCapacity = { gridCols: PANEL_GRID_COLS, pageRows: PANEL_Y70_PORTRAIT_ROWS };
 const MAX_PAGES = MAX_PANEL_PAGES;
@@ -59,18 +60,21 @@ function settlesWithin(
 }
 
 describe('panel editor layout sync', () => {
-  it('the legacy in-place resize on a full page never settles (the flicker)', () => {
+  it('an in-place grow on a full page settles immediately, rendered stacked', () => {
     const base: PanelLayout = {
       layoutSchemaVersion: 2,
       surface: 'y70',
       pages: [{ id: 'p1', widgets: fullY70Page() }],
     };
-    // Old editor path: grow a tile in place, discard other pages.
+    // A raw in-place grow over-fills the page. The composition settles (the
+    // over-capacity page keeps its clamped, overlapping positions - a stable
+    // fixed point), but the widgets render stacked; tryResizeWidget exists so
+    // an editor grow paginates instead of ever producing this shape.
     const inPlace: PanelLayout = {
       ...base,
       pages: [{ ...base.pages[0], widgets: base.pages[0].widgets.map(x => x.id === 'x0' ? { ...x, size: '4x4' } : x) }],
     };
-    expect(settlesWithin(inPlace, 20)).toBe(-1);
+    expect(settlesWithin(inPlace, 20)).toBe(0);
   });
 
   it('resizing via tryResizeWidget paginates the grow and settles immediately', () => {
@@ -97,17 +101,15 @@ describe('panel editor layout sync', () => {
     expect(settlesWithin(resized!, 20)).toBe(0);
   });
 
-  // The two layouts below reproduced the simulator CPU-spike crash: with the
-  // repagination echo in place, each cycled parent->child->parent with period
-  // 2 forever. They are pinned as non-settling to document WHY the simulator
-  // must not echo repagination - if either starts settling, the underlying
-  // transforms changed and the gate's premise should be re-checked.
+  // The two layouts below reproduced the simulator CPU-spike crash while
+  // normalize still repacked overlap at fixed per-surface columns: each cycled
+  // parent->child->parent with period 2 forever. With normalize
+  // geometry-neutral they settle in one clamp pass - kept as regression pins
+  // of the crash shapes.
 
-  it('a monitor layout wider than the runtime grid never settles (the sim-crash shape)', () => {
+  it('a monitor layout wider than the runtime grid settles in one clamp pass (the sim-crash shape)', () => {
     // T1 repro: touch monitor record, canvas 1024x600 at dpi 183 -> runtime
-    // 6x4, while normalize repacks overlap at the fixed monitor column count,
-    // which is wider. The widget at col 4 is legal there, clamped to col 2
-    // (overlap) at 6.
+    // 6x4, holding a layout authored on a wider grid (widget at col 4).
     const layout: PanelLayout = {
       layoutSchemaVersion: 2,
       surface: 'monitor',
@@ -116,13 +118,13 @@ describe('panel editor layout sync', () => {
         widgets: [w('a', '4x2', 0, 0), w('b', '4x2', 4, 0), w('c', '4x2', 0, 2)],
       }],
     };
-    expect(settlesWithin(layout, 20, 'monitor', { gridCols: 6, pageRows: 4 }, true)).toBe(-1);
+    expect(settlesWithin(layout, 20, 'monitor', { gridCols: 6, pageRows: 4 }, true)).toBe(1);
   });
 
-  it('a phone layout taller than the runtime grid never settles (the tablet-sim-crash shape)', () => {
+  it('a phone layout taller than the runtime grid settles in one clamp pass (the tablet-sim-crash shape)', () => {
     // Default phone stack (three 4x2 at rows 0/2/4) against a 4x4 runtime
-    // grid: repaginate clamps rows to <=2 (overlap kept, over-capacity),
-    // normalize repacks the overlap back down unbounded rows.
+    // grid: repaginate clamps rows to <=2 and the over-capacity page keeps
+    // the clamped positions - a stable fixed point.
     const layout: PanelLayout = {
       layoutSchemaVersion: 2,
       surface: 'phone',
@@ -131,7 +133,44 @@ describe('panel editor layout sync', () => {
         widgets: [w('a', '4x2', 0, 0), w('b', '4x2', 0, 2), w('c', '4x2', 0, 4)],
       }],
     };
-    expect(settlesWithin(layout, 20, 'phone', { gridCols: 4, pageRows: 4 })).toBe(-1);
+    expect(settlesWithin(layout, 20, 'phone', { gridCols: 4, pageRows: 4 })).toBe(1);
+  });
+
+  // The unification invariant: normalize is geometry-neutral and repaginate
+  // is idempotent, so the parent/child composition reaches a fixed point
+  // within ONE pass for ANY layout at ANY capacity - matched or not. If any
+  // cell of this matrix exceeds 1, a geometry repair crept back into
+  // normalize (or repaginate lost idempotence) and the simulator echo class
+  // of loop is possible again.
+  it('settles within one pass for adversarial layouts at every capacity', () => {
+    const shapes: Array<{ name: string; surface: PanelLayout['surface']; widgets: PanelWidget[] }> = [
+      { name: 'monitor-crash', surface: 'monitor', widgets: [w('a', '4x2', 0, 0), w('b', '4x2', 4, 0), w('c', '4x2', 0, 2)] },
+      { name: 'phone-crash', surface: 'phone', widgets: [w('a', '4x2', 0, 0), w('b', '4x2', 0, 2), w('c', '4x2', 0, 4)] },
+      { name: 'over-capacity-grow', surface: 'y70', widgets: fullY70Page().map(x => x.id === 'x0' ? { ...x, size: '4x4' as PanelWidgetSize } : x) },
+      { name: 'out-of-bounds', surface: 'phone', widgets: [w('a', '2x2', 10, 40), w('b', '4x4', 6, 2), w('c', '1x1', 3, 999)] },
+      { name: 'snap-overlap', surface: 'y70', widgets: [{ id: 'mon', type: 'monitoring', size: '2x4' as PanelWidgetSize, col: 0, row: 0 }, w('sib', '2x2', 2, 0)] },
+      { name: 'stacked-same-cell', surface: 'monitor', widgets: [w('a', '4x4', 0, 0), w('b', '4x4', 0, 0), w('c', '2x2', 0, 0)] },
+    ];
+    const capacities: PaginateCapacity[] = [
+      { gridCols: 6, pageRows: 4 },
+      { gridCols: 4, pageRows: 4 },
+      { gridCols: 4, pageRows: 16 },
+      { gridCols: 8, pageRows: 8 },
+      { gridCols: 2, pageRows: 4 },
+      { gridCols: 14, pageRows: 4 },
+    ];
+    for (const shape of shapes) {
+      for (const capacity of capacities) {
+        const layout: PanelLayout = {
+          layoutSchemaVersion: 2,
+          surface: shape.surface,
+          pages: [{ id: 'p1', widgets: shape.widgets }],
+        };
+        const settled = settlesWithin(layout, 5, shape.surface, capacity, true);
+        expect(settled, `${shape.name} at ${capacity.gridCols}x${capacity.pageRows}`).toBeGreaterThanOrEqual(0);
+        expect(settled, `${shape.name} at ${capacity.gridCols}x${capacity.pageRows}`).toBeLessThanOrEqual(1);
+      }
+    }
   });
 
   it('resizing a widget that lives on a later page keeps every page', () => {

@@ -16,6 +16,8 @@ import {
 import { DEFAULT_SURFACE_DPI, MAX_PANEL_PAGES } from '../../../panel/engine/panelGrid';
 import { panelGridCapacityForCanvas } from '../../../panel/engine/grid';
 import { normalizePanelLayout } from '../../../panel/engine/usePanelLayout';
+import { repaginatePanelLayout } from '../../../panel/engine/paginate';
+import { simulatedPanelEditorCapacity } from '../../../panel/embed/simulatedPanelViewport';
 import { isSingleWidgetSurface } from '../../../panel/types';
 import { fetchService, postService } from '../../../api/service';
 import { fetchDisplays, fetchDisplayTopology, rotateDisplay, setDisplayBrightness } from '../../../api/displays';
@@ -242,8 +244,77 @@ export function PanelDevicePage({ device, onOpenFirmware }: PanelDevicePageProps
     postService('/y70/brightness', { brightness: value }).catch(() => {});
   };
 
+  // Editor capacity must match the runtime grid, or placements the editor
+  // allows get clamped on the device (and canvas the device offers stays
+  // unreachable here). Promoted monitors derive it from the same capacity
+  // math the kiosk runs, on the record's physical canvas (css x dpr) and
+  // density; simulated phone presets derive it from the preset canvas via
+  // the shared simulator viewport math; the remaining surfaces have fixed
+  // per-surface grids.
+  const editorCapacity = useMemo(() => {
+    if (surface === 'q60') return { gridCols: 2, pageRows: 4 };
+    const monitorCanvas = surface === 'monitor' ? (liveCanvas ?? device?.previewSize) : undefined;
+    if (surface === 'monitor' && monitorCanvas) {
+      // Physical px = canvas x dpr. liveCanvas and a real record's
+      // previewSize are CSS px (scaled by the record dpr); a simulated
+      // preset's previewSize is native px with no previewDpr (dpr 1).
+      const dpr = (liveCanvas ? liveDpr : device?.previewDpr) || 1;
+      const capacity = panelGridCapacityForCanvas(
+        Math.max(1, Math.round(monitorCanvas.width * dpr)),
+        Math.max(1, Math.round(monitorCanvas.height * dpr)),
+        { surface, dpi: liveDpi ?? device?.previewDpi ?? DEFAULT_SURFACE_DPI.monitor },
+      );
+      return { gridCols: capacity.columns, pageRows: capacity.rows };
+    }
+    if (surface === 'desktop' || surface === 'monitor') return { gridCols: 8, pageRows: 6 };
+    if (surface === 'y70') return { gridCols: 4, pageRows: 16 };
+    // Phone-surface rows here are simulated presets only (real phones are
+    // self-managed and never open this editor), so the preset's native canvas
+    // + density derive the true runtime grid - shared CSS-space math with the
+    // simulator iframe. Without preset facts, fall back to the fixed phone
+    // grid.
+    if (surface === 'phone' && device?.previewSize && device?.previewDpi) {
+      return simulatedPanelEditorCapacity(
+        surface,
+        device.previewSize.width,
+        device.previewSize.height,
+        device.previewDpi,
+      );
+    }
+    return { gridCols: 4, pageRows: 16 };
+  }, [surface, liveCanvas, liveDpr, liveDpi, device?.previewSize, device?.previewDpi, device?.previewDpr]);
+
+  // True when editorCapacity reflects the device's real grid rather than a
+  // fallback guess. q60/y70 fixed grids ARE the runtime grid; monitor is
+  // derived whenever canvas facts exist; phone-sim derives from preset facts
+  // and its 4x16 fallback matches the runtime's fixed phone editor default.
+  // Only the monitor 8x6 fallback (record with no canvas facts) is a guess -
+  // geometry must never be conformed against it, or an edit repacks and
+  // persists placements of widgets the user never touched at a capacity the
+  // device may not have.
+  const editorCapacityDerived = surface !== 'monitor' || !!(liveCanvas ?? device?.previewSize);
+
+  // Conform editor state to the editor grid whenever the layout or the
+  // capacity resolves (initial record load, reverse sync, a late-arriving
+  // liveCanvas). Loop-safe: repaginatePanelLayout returns the same reference
+  // when nothing changes. Render-only until the next user edit persists -
+  // opening the editor must not write to the device record.
+  useEffect(() => {
+    if (!editorCapacityDerived) return;
+    const conformed = repaginatePanelLayout(layout, editorCapacity);
+    if (conformed !== layout) setLayout(conformed);
+  }, [layout, editorCapacity, editorCapacityDerived]);
+
   const updateLayout = useCallback((next: PanelLayout) => {
-    const normalized = normalizePanelLayout(next, surface, deviceTouch);
+    // Normalize is geometry-neutral (registry reconcile + size snap only), so
+    // conform the geometry to the editor grid before persisting - the stored
+    // bytes must be a fixed point of the capacity repair or the preview and
+    // the persisted placement diverge. Skipped while the capacity is a
+    // fallback guess; the un-conformed persist self-heals when the device
+    // next renders and auto-persists its repagination.
+    const normalized = editorCapacityDerived
+      ? repaginatePanelLayout(normalizePanelLayout(next, surface, deviceTouch), editorCapacity)
+      : normalizePanelLayout(next, surface, deviceTouch);
     setLayout(normalized);
     // Per-device editing path. If no device for this surface is registered
     // yet (no panel of this kind has ever connected), allocate one on first
@@ -262,7 +333,7 @@ export function PanelDevicePage({ device, onOpenFirmware }: PanelDevicePageProps
         return persist(record.id);
       }
     });
-  }, [editingDeviceId, surface, deviceTouch]);
+  }, [editingDeviceId, surface, deviceTouch, editorCapacity, editorCapacityDerived]);
 
   // Reverse sync: when the physical panel (or another editor) saves a layout,
   // the service broadcasts panel/device with the changed id. Refetch this
@@ -282,31 +353,6 @@ export function PanelDevicePage({ device, onOpenFirmware }: PanelDevicePageProps
       setLayout(normalizePanelLayout(record.layout ?? defaultLayoutForSurface(surface), surface, deviceTouch));
     }).catch(() => {});
   });
-
-  // Editor capacity must match the runtime grid, or placements the editor
-  // allows get clamped on the device (and canvas the device offers stays
-  // unreachable here). Promoted monitors derive it from the same capacity
-  // math the kiosk runs, on the record's physical canvas (css x dpr) and
-  // density; other surfaces use their fixed per-surface grids.
-  const editorCapacity = useMemo(() => {
-    if (surface === 'q60') return { gridCols: 2, pageRows: 4 };
-    const monitorCanvas = surface === 'monitor' ? (liveCanvas ?? device?.previewSize) : undefined;
-    if (surface === 'monitor' && monitorCanvas) {
-      // Physical px = canvas x dpr. liveCanvas and a real record's
-      // previewSize are CSS px (scaled by the record dpr); a simulated
-      // preset's previewSize is native px with no previewDpr (dpr 1).
-      const dpr = (liveCanvas ? liveDpr : device?.previewDpr) || 1;
-      const capacity = panelGridCapacityForCanvas(
-        Math.max(1, Math.round(monitorCanvas.width * dpr)),
-        Math.max(1, Math.round(monitorCanvas.height * dpr)),
-        { surface, dpi: liveDpi ?? device?.previewDpi ?? DEFAULT_SURFACE_DPI.monitor },
-      );
-      return { gridCols: capacity.columns, pageRows: capacity.rows };
-    }
-    if (surface === 'desktop' || surface === 'monitor') return { gridCols: 8, pageRows: 6 };
-    if (surface === 'y70') return { gridCols: 4, pageRows: 16 };
-    return { gridCols: 4, pageRows: 16 };
-  }, [surface, liveCanvas, liveDpr, liveDpi, device?.previewSize, device?.previewDpi, device?.previewDpr]);
 
   const singleWidget = isSingleWidgetSurface(surface);
   const currentSingleWidget: PanelWidget | undefined = singleWidget
@@ -363,12 +409,10 @@ export function PanelDevicePage({ device, onOpenFirmware }: PanelDevicePageProps
 
   const handleResizeWidget = useCallback((widgetId: string, size: PanelWidgetSize) => {
     // Cascade siblings across pages (creating pages up to MAX_PANEL_PAGES), the
-    // same engine op the on-device runtime uses. An over-capacity page has no
-    // identical representation across the runtime paginator (bounded rows) and
-    // the editor normalizer (unbounded repack) - they ping-pong via the
-    // simulator postMessage sync and the resize never settles, so a grow MUST
-    // paginate, never overflow a page in place. null = the size can't fit
-    // anywhere; reject it.
+    // same engine op the on-device runtime uses. An in-place grow on a full
+    // page over-fills it, and over-capacity pages render clamped with widgets
+    // stacked - so a grow MUST paginate, never overflow a page in place.
+    // null = the size can't fit anywhere; reject it.
     const next = tryResizeWidget(layout, widgetId, size, editorCapacity, MAX_PANEL_PAGES);
     if (!next) {
       // Doesn't fit even after cascading across pages: flash the tile in the

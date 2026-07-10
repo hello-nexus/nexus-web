@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { normalizePanelLayout } from './usePanelLayout';
+import { repaginatePanelLayout } from './paginate';
+import { sizeToSpan } from './grid';
 import type { PanelLayout, PanelWidget } from '../types';
 
 function widget(overrides: Partial<PanelWidget> & Pick<PanelWidget, 'id' | 'type' | 'size'>): PanelWidget {
@@ -71,12 +73,13 @@ describe('normalizePanelLayout registry reconciliation', () => {
     expect(twice.pages[0].widgets).toEqual(once.pages[0].widgets);
   });
 
-  it('re-flows row-major when a size snap introduces overlap with siblings', () => {
+  it('leaves geometry untouched when a size snap introduces overlap', () => {
     // monitoring at 2x4 sits at (0, 0); a 2x2 sibling at (2, 0) fits
     // beside it without overlap. On y70 the 2x4 size is reserved for
     // single-widget surfaces, so reconcile snaps it to 4x2, which
-    // overlaps the sibling at cols 2-3 / rows 0-1. The post-reconcile
-    // re-flow detects the overlap and re-packs both widgets row-major.
+    // overlaps the sibling at cols 2-3 / rows 0-1. Normalize is
+    // geometry-neutral: positions are preserved and the overlap stands,
+    // for repaginatePanelLayout to repair at the real grid capacity.
     const result = normalizePanelLayout(
       layout([
         widget({ id: 'mon', type: 'monitoring', size: '2x4', col: 0, row: 0 }),
@@ -84,14 +87,25 @@ describe('normalizePanelLayout registry reconciliation', () => {
       ]),
       'y70',
     );
-    const sizes = result.pages[0].widgets.map(w => ({ id: w.id, size: w.size, col: w.col, row: w.row }));
-    // monitoring snapped to 4x2; both widgets fit without overlap.
-    expect(sizes.find(s => s.id === 'mon')?.size).toBe('4x2');
-    expect(sizes.find(s => s.id === 'sib')?.size).toBe('2x2');
-    const rects = result.pages[0].widgets.map(w => {
-      const cols = w.size === '2x2' ? 2 : 4;
-      const rows = w.size === '2x2' ? 2 : 2;
-      return { left: w.col, right: w.col + cols, top: w.row, bottom: w.row + rows };
+    const shapes = result.pages[0].widgets.map(w => ({ id: w.id, size: w.size, col: w.col, row: w.row }));
+    expect(shapes).toEqual([
+      { id: 'mon', size: '4x2', col: 0, row: 0 },
+      { id: 'sib', size: '2x2', col: 2, row: 0 },
+    ]);
+  });
+
+  it('repaginatePanelLayout repairs the snap overlap at the real capacity', () => {
+    const normalized = normalizePanelLayout(
+      layout([
+        widget({ id: 'mon', type: 'monitoring', size: '2x4', col: 0, row: 0 }),
+        widget({ id: 'sib', type: 'cooling',    size: '2x2', col: 2, row: 0 }),
+      ]),
+      'y70',
+    );
+    const repaired = repaginatePanelLayout(normalized, { gridCols: 4, pageRows: 16 });
+    const rects = repaired.pages[0].widgets.map(w => {
+      const span = sizeToSpan(w.size);
+      return { left: w.col, right: w.col + span.cols, top: w.row, bottom: w.row + span.rows };
     });
     for (let i = 0; i < rects.length; i++) {
       for (let j = i + 1; j < rects.length; j++) {
