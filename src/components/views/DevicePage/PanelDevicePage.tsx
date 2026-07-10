@@ -18,6 +18,7 @@ import { panelGridCapacityForCanvas } from '../../../panel/engine/grid';
 import { normalizePanelLayout } from '../../../panel/engine/usePanelLayout';
 import { repaginatePanelLayout } from '../../../panel/engine/paginate';
 import { simulatedPanelEditorCapacity } from '../../../panel/embed/simulatedPanelViewport';
+import { getPanelGridSizingSettings } from '../../../lib/panelSimulation';
 import { isSingleWidgetSurface } from '../../../panel/types';
 import { fetchService, postService } from '../../../api/service';
 import { fetchDisplays, fetchDisplayTopology, rotateDisplay, setDisplayBrightness } from '../../../api/displays';
@@ -212,10 +213,14 @@ export function PanelDevicePage({ device, onOpenFirmware }: PanelDevicePageProps
       // surface scan would grab whichever was last seen. Everything else
       // (Y70 / Q-series / simulators) keeps the surface match: pick the most
       // recently active record for this surface (/panel/devices is sorted
-      // by lastSeenAt desc).
+      // by lastSeenAt desc). Display-bound records are excluded from the
+      // surface match: they are per-physical-monitor and only their own row
+      // (panelRecordId) may edit them - a simulated monitor otherwise binds a
+      // real display's record, PATCHes its layout, and inherits its canvas
+      // instead of the preset's.
       const match = device?.panelRecordId
         ? devices?.devices.find(d => d.id === device.panelRecordId)
-        : devices?.devices.find(d => d.capabilities?.surface === surface);
+        : devices?.devices.find(d => d.capabilities?.surface === surface && !d.displayId);
       setEditingDeviceId(match?.id ?? null);
       const cw = match?.capabilities?.cssWidth;
       const ch = match?.capabilities?.cssHeight;
@@ -262,7 +267,13 @@ export function PanelDevicePage({ device, onOpenFirmware }: PanelDevicePageProps
       const capacity = panelGridCapacityForCanvas(
         Math.max(1, Math.round(monitorCanvas.width * dpr)),
         Math.max(1, Math.round(monitorCanvas.height * dpr)),
-        { surface, dpi: liveDpi ?? device?.previewDpi ?? DEFAULT_SURFACE_DPI.monitor },
+        {
+          surface,
+          dpi: liveDpi ?? device?.previewDpi ?? DEFAULT_SURFACE_DPI.monitor,
+          // The kiosk's readRuntimePanelGrid honors the dev sizing knob;
+          // omitting it here diverges the editor grid whenever it is set.
+          sizing: getPanelGridSizingSettings(),
+        },
       );
       return { gridCols: capacity.columns, pageRows: capacity.rows };
     }

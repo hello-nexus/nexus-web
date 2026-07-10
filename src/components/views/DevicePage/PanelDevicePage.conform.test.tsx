@@ -192,4 +192,40 @@ describe('PanelDevicePage geometry conformance', () => {
       { id: 'b', col: 0, row: 40 },
     ]);
   });
+
+  it('never binds a display-bound record: sim edits allocate their own record and keep the preset canvas', async () => {
+    // A real promoted monitor (displayId set, 1024x600 canvas) exists; the
+    // SIMULATED monitor preset must not surface-match onto it. Its edit
+    // allocates a fresh record, and capacity comes from the preset canvas
+    // (2560x720 @ 183 -> 14x4): the widget at col 6 survives, which the
+    // hijacked 1024x600 grid (6 cols) would have clamped.
+    fetchPanelDevicesMock.mockResolvedValue({
+      devices: [{
+        id: 'real-mon',
+        displayId: 'DISPLAY1',
+        capabilities: { surface: 'monitor', touch: true, cssWidth: 1024, cssHeight: 600, dpr: 1 },
+        layout: OUT_OF_BOUNDS_LAYOUT,
+        reserveMonitor: true,
+      }],
+    });
+    const simMonitor = {
+      ...DEVICE,
+      runtimeSurface: 'monitor',
+      surfaceProfileKey: 'simulated-xeneon-edge',
+      previewSize: { width: 2560, height: 720 },
+      previewDpi: 183,
+      capabilities: { surface: 'monitor', touch: true },
+    } as PanelDevice;
+    render(<PanelDevicePage device={simMonitor} />);
+    await waitFor(() => screen.getByTestId('embed'));
+    await act(async () => { fireEvent.click(screen.getByTestId('echo-bad-layout')); });
+    await waitFor(() => expect(patchPanelDeviceMock).toHaveBeenCalled());
+    const patchedIds = patchPanelDeviceMock.mock.calls.map(c => c[0]);
+    expect(patchedIds).not.toContain('real-mon');
+    expect(patchedIds).toContain('dev1');
+    const patched = patchPanelDeviceMock.mock.calls.at(-1)?.[1]?.layout as PanelLayout;
+    const a = patched.pages[0].widgets.find(w => w.id === 'a');
+    expect(a).toMatchObject({ col: 6, row: 0 });
+    assertConformed(patched, 14, 4);
+  });
 });
