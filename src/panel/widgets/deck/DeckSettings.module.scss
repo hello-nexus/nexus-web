@@ -1,155 +1,28 @@
-.settingsRoot {
-  --deck-settings-border: var(--panel-border, var(--border));
-  --deck-settings-bg: var(--panel-element-bg, var(--surface));
-  --deck-settings-bg-hover: var(--panel-element-bg-hover, var(--bg-card-hover));
-  --deck-settings-text: var(--text);
-  --deck-settings-faint: var(--text-dim);
-  --deck-settings-accent: var(--panel-accent, var(--accent));
-
+// Outer layout for the Deck widget's settings sheet. When no physical deck
+// is detected (or on a surface where physical decks never show) `.layout`
+// has a single child (the DeckEditor content) and lays out identically to a
+// plain block - no rail, no visual change for touch-only users.
+.layout {
   display: flex;
-  flex-direction: column;
   gap: 12px;
+  align-items: flex-start;
 }
 
-.field {
+.content {
+  flex: 1 1 auto;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
-// Vertical spacing for the controls stacked inside a SettingsSection box (the
-// action-type select plus the per-action fields below it).
-.fieldStack {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.input {
-  width: 100%;
-  box-sizing: border-box;
-  background: var(--deck-settings-bg);
-  border: 1px solid var(--deck-settings-border);
-  border-radius: var(--radius-sm);
-  color: var(--deck-settings-text);
-  font-size: var(--type-small, 12px);
-  padding: 0.4rem 0.55rem;
-
-  &:focus,
-  &:focus-visible {
-    outline: none;
-    border-color: var(--deck-settings-accent);
-  }
-}
-
-textarea.input { resize: vertical; min-height: 2.4rem; }
-
-.selectWide {
-  width: 100%;
-  background: var(--deck-settings-bg);
-  border: 1px solid var(--deck-settings-border);
-  border-radius: var(--radius-sm);
-
-  select[class] {
-    background: transparent;
-    border-color: transparent;
-    box-shadow: none;
-    padding: 0.3rem 1.55rem 0.3rem 0.55rem;
-    color: var(--deck-settings-text);
-    font-size: var(--type-small, 12px);
-
-    &:focus,
-    &:focus-visible { border-color: transparent; box-shadow: none; }
-    option { background: var(--bg-elevated); color: var(--text); }
-  }
-
-  &:hover { background: var(--deck-settings-bg-hover); }
-  &:focus-within { border-color: var(--deck-settings-accent); }
-}
-
-.breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--type-mini);
-  color: var(--deck-settings-faint);
-
-  button {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    border: 0;
-    background: transparent;
-    color: var(--deck-settings-accent);
-    cursor: pointer;
-  }
-}
-
-.folderBtn,
-.addBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+.copyButton {
   align-self: flex-start;
-  padding: 6px 12px;
-  border: 1px solid var(--deck-settings-border);
-  border-radius: var(--radius-sm);
-  background: var(--deck-settings-bg);
-  color: var(--deck-settings-text);
-  font-size: var(--type-mini);
-  cursor: pointer;
-
-  &:hover { background: var(--deck-settings-bg-hover); }
 }
 
-.swatches { display: flex; flex-wrap: wrap; gap: 6px; }
-
-.swatch {
-  width: 24px;
-  height: 24px;
-  border-radius: var(--radius-sm);
-  border: 2px solid transparent;
-  cursor: pointer;
-
-  &.activeSwatch { border-color: var(--deck-settings-text); }
+.loading {
+  padding: 1rem 0;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  text-align: center;
 }
-
-.autoSwatch {
-  width: auto;
-  padding: 0 10px;
-  font-size: var(--type-tiny);
-  color: var(--deck-settings-faint);
-  background: transparent;
-  border: 1px solid var(--deck-settings-border);
-}
-
-.steps { display: flex; flex-direction: column; gap: 10px; }
-
-.step {
-  border: 1px solid var(--deck-settings-border);
-  border-radius: var(--radius);
-  padding: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.stepHead {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: var(--type-mini);
-  color: var(--deck-settings-faint);
-
-  span button { border: 0; background: transparent; color: inherit; cursor: pointer; padding: 0 3px; }
-}
-
-.branch {
-  border-left: 2px solid var(--deck-settings-border);
-  padding-left: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.branchLabel { font-size: var(--type-mini); font-weight: var(--weight-display); color: var(--deck-settings-text); }

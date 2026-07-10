@@ -142,3 +142,14 @@
 
   svg { width: 16px; height: 16px; }
 }
+
+// Reserved Back key for a physical deck's folder view (a real grid cell, not
+// an overlay - see DeckGridProps.backCell).
+.backCellButton {
+  border-style: dashed;
+  border-color: color-mix(in srgb, #94a3b8 45%, transparent);
+  background: color-mix(in srgb, #94a3b8 16%, color-mix(in srgb, var(--surface) 62%, transparent));
+  color: var(--text);
+
+  svg { width: 40%; height: 40%; }
+}

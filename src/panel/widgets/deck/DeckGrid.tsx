@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { Plus } from 'lucide-react';
+import { ChevronLeft, Plus } from 'lucide-react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { useAppIcon } from '../common/AppPicker';
 import { DECK_ICONS, autoIconName, deckCategory, categoryColor } from './deckIcons';
@@ -118,6 +118,11 @@ function cellClass(empty: boolean, selectable: boolean, selected: boolean) {
   ].filter(Boolean).join(' ');
 }
 
+export interface DeckGridBackCell {
+  onBack: () => void;
+  ariaLabel: string;
+}
+
 export interface DeckGridProps {
   slots: DeckSlot[];
   cols: number;
@@ -126,16 +131,35 @@ export interface DeckGridProps {
   dragEnabled?: boolean;
   selectedIndex?: number;
   onCell: (index: number) => void;
+  /**
+   * Reserves the first grid cell for a Back affordance instead of a slot: a
+   * physical Stream Deck has no room to overlay Back like the touch widget
+   * does (DeckWidget's floating corner button), so a folder view on hardware
+   * dedicates its top-left key to it. `slots` should already be sized to
+   * one fewer than cols*rows when this is set.
+   */
+  backCell?: DeckGridBackCell;
 }
 
 /** Pure icon grid for one folder level. The back affordance is overlaid by DeckWidget. */
-export function DeckGrid({ slots, cols, rows, selectable, dragEnabled, selectedIndex, onCell }: DeckGridProps) {
+export function DeckGrid({ slots, cols, rows, selectable, dragEnabled, selectedIndex, onCell, backCell }: DeckGridProps) {
   const Cell = dragEnabled ? DraggableCell : StaticCell;
   return (
     <div
       className={styles.grid}
       style={{ gridTemplateColumns: `repeat(${cols}, 1fr)`, gridTemplateRows: `repeat(${rows}, 1fr)` }}
     >
+      {backCell && (
+        <button
+          type="button"
+          className={`${styles.cell} ${styles.backCellButton}`}
+          aria-label={backCell.ariaLabel}
+          onClick={e => { e.stopPropagation(); backCell.onBack(); }}
+        >
+          {/* eslint-disable-next-line i18next/no-literal-string -- ARIA boolean attribute */}
+          <ChevronLeft aria-hidden="true" />
+        </button>
+      )}
       {slots.map((slot, i) => (
         <Cell
           key={i}
