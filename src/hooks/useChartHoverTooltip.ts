@@ -4,11 +4,15 @@ import { useCallback, useLayoutEffect, useRef, type RefObject } from 'react';
 // column visible beside the tooltip.
 const CURSOR_GAP = 22;
 
+// Top inset the tooltip pins to, so it stays put at the top of the chart
+// instead of tracking the cursor's vertical position.
+const TOP_MARGIN = 8;
+
 /**
- * Cursor-anchored positioning for a chart hover tooltip. The tooltip sits to
- * the right of the cursor, flips to the left when it would overflow the
- * wrapper, and is vertically centered on the cursor clamped to the wrapper -
- * so it never covers the hovered part of the chart.
+ * Cursor-anchored positioning for a chart hover tooltip. The tooltip follows
+ * the cursor horizontally (to its right, flipping left when it would overflow
+ * the wrapper) but pins to the top of the chart vertically, so it holds still
+ * instead of jumping up and down with the cursor.
  *
  * Positioning is imperative (direct style writes from the mousemove handler)
  * so the tooltip tracks the cursor without a React render per move; the
@@ -26,7 +30,7 @@ export function useChartHoverTooltip(wrapRef: RefObject<HTMLDivElement | null>, 
     let left = cursor.x + CURSOR_GAP;
     if (left + tip.offsetWidth > wrap.clientWidth) left = cursor.x - CURSOR_GAP - tip.offsetWidth;
     left = Math.max(0, Math.min(left, wrap.clientWidth - tip.offsetWidth));
-    const top = Math.max(0, Math.min(cursor.y - tip.offsetHeight / 2, wrap.clientHeight - tip.offsetHeight));
+    const top = Math.max(0, Math.min(TOP_MARGIN, wrap.clientHeight - tip.offsetHeight));
     tip.style.left = `${left}px`;
     tip.style.top = `${top}px`;
   }, [wrapRef]);
