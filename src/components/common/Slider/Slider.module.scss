@@ -22,15 +22,8 @@
   flex-direction: column;
   gap: var(--slider-stack-gap, 0);
 
-  // Breathing room above the label/value row, so it isn't flush against
-  // whatever sits before it (e.g. a settings-row separator). The range
-  // input's own touch-target box (global.scss) is fully interactive top to
-  // bottom, not just its thin visible bar, so the head can't be pulled any
-  // closer to the track without overlapping - and stealing clicks from -
-  // that hit area.
   .head {
     @include text-button;
-    margin-top: var(--space-sm);
   }
 }
 

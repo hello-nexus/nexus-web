@@ -80,7 +80,7 @@ export function SettingsTab() {
       >
         <Slider
           // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-          orientation="stacked" editable trackFill
+          orientation="inline" editable trackFill
           label={t('benchmark.phase.cpu')} ariaLabel={t('benchmark.phase.cpu')}
           value={settings.diagnosticsCpuTempC} min={60} max={105}
           formatValue={v => `${v}°C`}
@@ -88,7 +88,7 @@ export function SettingsTab() {
         />
         <Slider
           // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-          orientation="stacked" editable trackFill
+          orientation="inline" editable trackFill
           label={t('benchmark.phase.gpu')} ariaLabel={t('benchmark.phase.gpu')}
           value={settings.diagnosticsGpuTempC} min={60} max={105}
           formatValue={v => `${v}°C`}
@@ -96,7 +96,7 @@ export function SettingsTab() {
         />
         <Slider
           // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-          orientation="stacked" editable trackFill
+          orientation="inline" editable trackFill
           label={t('benchmark.phase.storage')} ariaLabel={t('benchmark.phase.storage')}
           value={settings.diagnosticsStorageTempC} min={40} max={90}
           formatValue={v => `${v}°C`}
@@ -104,7 +104,7 @@ export function SettingsTab() {
         />
         <Slider
           // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-          orientation="stacked" editable trackFill
+          orientation="inline" editable trackFill
           label={t('benchmark.phase.ram')} ariaLabel={t('benchmark.phase.ram')}
           value={settings.diagnosticsRamTempC} min={40} max={90}
           formatValue={v => `${v}°C`}
