@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
   computeViewUploadJobs, makePhysicalDeckTarget, makeWidgetDeckTarget, resolveTargetView, slotCountAtDepth,
-  type DeckTarget,
+  truncateConfigForTarget, type DeckTarget,
 } from './deckTarget';
 import type { PanelWidget } from '../types';
 import type { DeckConfig } from './types';
@@ -133,5 +133,31 @@ describe('computeViewUploadJobs', () => {
   it('joins nested folder paths with dots', () => {
     const jobs = computeViewUploadJobs([{}], [2, 5]);
     expect(jobs[0].slotPath).toBe('2.5.0');
+  });
+});
+
+describe('truncateConfigForTarget', () => {
+  const target = { kind: 'physical' as const, keyCount: 6 };
+
+  it('truncates the root level to the target keyCount', () => {
+    const source: DeckConfig = { slots: Array.from({ length: 16 }, (_, i) => ({ label: String(i) })) };
+    const result = truncateConfigForTarget(source, target);
+    expect(result.slots).toHaveLength(6);
+    expect(result.slots.map(s => s.label)).toEqual(['0', '1', '2', '3', '4', '5']);
+  });
+
+  it('truncates a nested folder to keyCount - 1 (Back key reserved)', () => {
+    const source: DeckConfig = {
+      slots: [{ folder: { slots: Array.from({ length: 16 }, (_, i) => ({ label: String(i) })) } }],
+    };
+    const result = truncateConfigForTarget(source, target);
+    expect(result.slots[0].folder!.slots).toHaveLength(5);
+  });
+
+  it('does not mutate the source and leaves a config that already fits unchanged in content', () => {
+    const source: DeckConfig = { slots: [{ label: 'a' }, { label: 'b' }] };
+    const result = truncateConfigForTarget(source, target);
+    expect(result).not.toBe(source);
+    expect(result.slots).toEqual(source.slots);
   });
 });

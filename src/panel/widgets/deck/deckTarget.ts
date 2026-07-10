@@ -40,6 +40,22 @@ export function resolveTargetView(target: DeckTarget, folderPath: readonly numbe
   return resolveViewSlots(target.config, folderPath, depthCount(target));
 }
 
+/**
+ * Deep-copies a source config, truncating every level (root and each nested
+ * folder, respecting the Back-key reservation at depth >= 1) to the given
+ * target's per-depth slot counts. Used by copy-widget-layout so the config
+ * that lands on a physical deck already matches what it can display - a
+ * plain structuredClone would leave the overflow in the data until the next
+ * edit silently dropped it via padSlots.
+ */
+export function truncateConfigForTarget(source: DeckConfig, target: Pick<DeckTarget, 'kind' | 'keyCount'>): DeckConfig {
+  const truncateLevel = (slots: readonly DeckSlot[], depth: number): DeckSlot[] =>
+    slots.slice(0, slotCountAtDepth(target, depth)).map(slot => (
+      slot.folder ? { ...slot, folder: { slots: truncateLevel(slot.folder.slots, depth + 1) } } : slot
+    ));
+  return { slots: truncateLevel(source.slots, 0) };
+}
+
 export function makeWidgetDeckTarget(
   widget: PanelWidget,
   onUpdate: (patch: Record<string, PanelConfigValue>) => void,

@@ -67,9 +67,22 @@ async function paintKey(ctx: CanvasRenderingContext2D, size: number, slot: DeckS
   if (slot.label) paintLabel(ctx, slot.label, size, iconAreaHeight, labelHeight);
 }
 
+/**
+ * Whether a key gets an icon at all. Mirrors DeckGrid's blank-empty-cell
+ * rule (StaticCell's `empty && !selectable` branch): a slot with no action,
+ * no folder, and no explicit icon renders background-only on hardware. The
+ * editor's clickable '+' placeholder is an edit-mode affordance only and
+ * must not appear in the uploaded bitmap.
+ */
+export function shouldPaintIcon(slot: DeckSlot): boolean {
+  return !!(slot.action || slot.folder || slot.icon);
+}
+
 async function paintIcon(
   ctx: CanvasRenderingContext2D, slot: DeckSlot, isFolder: boolean, canvasSize: number, iconAreaHeight: number,
 ): Promise<void> {
+  if (!shouldPaintIcon(slot)) return;
+
   const icon = slot.icon;
   const action = slot.action;
   const appId = action?.type === 'launchApp' ? action.appId : icon?.kind === 'app' ? icon.value : undefined;
