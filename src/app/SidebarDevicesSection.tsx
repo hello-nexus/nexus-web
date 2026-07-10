@@ -3,6 +3,7 @@ import classNames from 'classnames';
 import { Ghost, Usb } from 'lucide-react';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { DeviceWarningIcon } from '../components/common/DeviceWarningIcon/DeviceWarningIcon';
+import { NexusControlOffIcon } from '../components/common/NexusControlOffIcon/NexusControlOffIcon';
 import { useUnifiedDevices } from '../hooks/useUnifiedDevices';
 import { useTranslation } from '../lib/i18n';
 import { ICON_SIZE } from './sidebarNav';
@@ -125,6 +126,7 @@ export function SidebarDevicesSection({
                     />
                   )}
                   {device.warning && <DeviceWarningIcon code={device.warning} />}
+                  {device.supportsNexusControl && !device.nexusControlEnabled && <NexusControlOffIcon />}
                 </>
               )}
             </button>

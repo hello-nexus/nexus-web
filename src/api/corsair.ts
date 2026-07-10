@@ -15,7 +15,6 @@ export interface CorsairDevice {
 export interface CorsairState {
   isConnected: boolean;
   firmware: string;
-  stopConflictingApps: boolean;
   devices: CorsairDevice[];
 }
 

@@ -22,6 +22,8 @@ export interface DeviceListItem {
   // surfaced to the user; null/undefined means no issue. Code-driven so any
   // handler can flag a problem without new UI per device family.
   warning?: string | null;
+  // Conflict-app catalog id competing with this device; drives the device-page enable gate.
+  conflictAppId?: string;
 }
 
 export function useDevices(enabled: boolean) {

@@ -20,7 +20,6 @@ vi.mock('../../../api/corsair', () => ({
 const connectedState = {
   isConnected: true,
   firmware: '3.2.571',
-  stopConflictingApps: false,
   devices: [
     { channel: 1, name: 'iCUE LINK QX RGB', deviceClass: 'Fan', ledCount: 34, hasSpeed: true, hasTemperature: true, rpm: 480, tempC: 28.5, serial: 'A1B2C3D4E5F60001' },
     { channel: 2, name: 'iCUE LINK LX360', deviceClass: 'Aio', ledCount: 16, hasSpeed: false, hasTemperature: false, rpm: -1, tempC: null, serial: 'A1B2C3D4E5F60002' },
@@ -65,19 +64,11 @@ describe('CorsairDevicePage', () => {
   });
 
   it('renders disconnected placeholder when not connected', async () => {
-    mockGetCorsairState.mockResolvedValue({ isConnected: false, firmware: '', stopConflictingApps: false, devices: [] });
+    mockGetCorsairState.mockResolvedValue({ isConnected: false, firmware: '', devices: [] });
     await act(async () => {
       render(<CorsairDevicePage />);
     });
     expect(screen.getByText('devices.corsair.notConnected')).toBeInTheDocument();
-  });
-
-  it('does not render the stopConflictingApps toggle', async () => {
-    await act(async () => {
-      render(<CorsairDevicePage />);
-    });
-    expect(screen.queryByText('devices.corsair.stopConflictingApps')).not.toBeInTheDocument();
-    expect(screen.queryByRole('switch', { name: 'devices.corsair.stopConflictingAppsAria' })).not.toBeInTheDocument();
   });
 
   it('renders navigation buttons when onSectionNavigate is provided', async () => {

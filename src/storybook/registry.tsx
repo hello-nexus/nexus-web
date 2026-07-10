@@ -24,6 +24,7 @@ import { CardDeleteButton } from '../components/common/CardDeleteButton/CardDele
 import { InfoTooltip } from '../components/common/InfoTooltip/InfoTooltip';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { DeviceWarningIcon } from '../components/common/DeviceWarningIcon/DeviceWarningIcon';
+import { NexusControlOffIcon } from '../components/common/NexusControlOffIcon/NexusControlOffIcon';
 import { Popover } from '../components/common/Popover/Popover';
 import { DatePicker } from '../components/common/DatePicker/DatePicker';
 import { EffectCard } from '../components/common/EffectCard/EffectCard';
@@ -45,6 +46,7 @@ import { EmptyState } from '../components/common/EmptyState/EmptyState';
 import { Select } from '../components/common/Select/Select';
 import { IconLabelButton } from '../components/common/IconLabelButton/IconLabelButton';
 import { Button } from '../components/common/Button/Button';
+import { EndTaskButton } from '../components/common/EndTaskButton/EndTaskButton';
 import { ToastProvider, useToast } from '../components/common/Toast/Toast';
 import { WidgetHeader } from '../components/common/WidgetHeader/WidgetHeader';
 import { DEFAULT_ACCENT, PRESET_ACCENTS } from '../lib/settings';
@@ -278,6 +280,17 @@ function PreviewDeviceWarningIcon() {
       <div className={styles.previewHoverCard}>
         <span>Unknown code</span>
         <DeviceWarningIcon code="some-future-code" />
+      </div>
+    </div>
+  );
+}
+
+function PreviewNexusControlOffIcon() {
+  return (
+    <div className={styles.previewStack}>
+      <div className={styles.previewHoverCard}>
+        <span>Corsair iCUE LINK Hub</span>
+        <NexusControlOffIcon />
       </div>
     </div>
   );
@@ -850,6 +863,19 @@ function PreviewButtonMatrix() {
         <Button loading>Saving</Button>
         <Button loading loadingHidesLabel tone="danger">End task</Button>
         <Button disabled>Disabled</Button>
+      </div>
+    </div>
+  );
+}
+
+function PreviewEndTaskButton() {
+  // Swallowed in capture phase so the click never reaches EndTaskButton's own
+  // handler - it calls the real /conflicts/kill endpoint with no override prop.
+  return (
+    <div className={styles.previewStack}>
+      <div className={styles.previewHoverCard} onClickCapture={e => e.stopPropagation()}>
+        <span>iCUE</span>
+        <EndTaskButton conflictId="preview-icue" />
       </div>
     </div>
   );
@@ -1540,6 +1566,12 @@ export const REGISTRY: StorybookEntry[] = [
     fullWidth: true,
     notes: 'Reach for size="md" tone="neutral" for tertiary actions. tone="accent" for primary CTAs. tone="danger" for destructive. tone="ghost" when bordered chrome would compete with adjacent UI.',
   },
+  {
+    name: 'EndTaskButton', category: 'inputs',
+    filePath: 'src/components/common/EndTaskButton/EndTaskButton.tsx',
+    description: 'Danger Button wired to kill a detected conflicting app by catalog id (POST /conflicts/kill). Keeps its spinner up after a successful kill until the watcher clears the row; resets on failure so the user can retry. Used by ConflictWarningModal (per-row) and the device-page NexusControlOff gate.',
+    Preview: PreviewEndTaskButton,
+  },
 
   {
     name: 'SettingRow / SettingToggle / SettingSelect / SettingSlider', category: 'inputs',
@@ -1584,6 +1616,12 @@ export const REGISTRY: StorybookEntry[] = [
     description: 'Right-aligned warning glyph for a device row/card, shown whenever the service reports a device-level issue via DeviceListItem.warning. Code-driven - the warning code maps to a localized tooltip, so any handler can flag a problem without new UI per device family. Used by the sidebar DEVICES section and the Devices-page card grid.',
     Preview: PreviewDeviceWarningIcon,
     notes: 'Renders the raw code as a fallback tooltip if it has no mapped i18n key, so an unmapped code fails visibly instead of silently.',
+  },
+  {
+    name: 'NexusControlOffIcon', category: 'status',
+    filePath: 'src/components/common/NexusControlOffIcon/NexusControlOffIcon.tsx',
+    description: 'Right-aligned glyph on a sidebar device row when Nexus Control is off for that device (supportsNexusControl true, nexusControlEnabled false). A bare non-focusable icon, same pattern as DeviceWarningIcon.',
+    Preview: PreviewNexusControlOffIcon,
   },
   {
     name: 'HeartBurst', category: 'status',
