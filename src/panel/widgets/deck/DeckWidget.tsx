@@ -7,7 +7,7 @@ import { DeckGrid } from './DeckGrid';
 import { innerGridForSize, readDeckConfig, resolveViewSlots, padSlots, swapSlots, deckConfigPatch } from './deckLayout';
 import { executeDeckAction } from './deckExecutor';
 import { useDeckLiveState } from './useDeckState';
-import { autoIconName, deckCategory, categoryColor } from './deckIcons';
+import { toggleBranchSlot } from './deckIcons';
 import { usePanelPreview } from '../common/PanelPreviewContext';
 import { DECK_PREVIEW_CONFIG } from './deckPreviewData';
 import type { DeckAction, DeckSlot } from './types';
@@ -50,12 +50,7 @@ export function DeckWidget({ widget, selectedSlot, onSelectSlot, editView, onEdi
     return slots.map((s, i) => {
       if (s.action?.type !== 'toggle') return s;
       const on = toggleOn(s.action, keyFor(i));
-      const branch = on ? s.action.on : s.action.off;
-      return {
-        ...s,
-        icon: s.icon ?? { kind: 'lucide', value: autoIconName(branch) },
-        color: s.color ?? categoryColor(deckCategory(branch)),
-      };
+      return toggleBranchSlot(s, s.action, on);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slots, flips, live]);

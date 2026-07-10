@@ -10,7 +10,7 @@ import {
   Sparkles, Flame, Snowflake, Wind, Battery, Plug, Rocket, Coffee, Briefcase,
   type LucideIcon,
 } from 'lucide-react';
-import type { DeckAction } from './types';
+import type { DeckAction, DeckSlot } from './types';
 
 /** Curated stock icon set - the IconPicker source and the auto-icon source. */
 export const DECK_ICONS: Record<string, LucideIcon> = {
@@ -77,6 +77,22 @@ const CATEGORY_COLOR: Record<DeckCategory, string> = {
 
 export function categoryColor(category: DeckCategory): string {
   return CATEGORY_COLOR[category];
+}
+
+/**
+ * Resolve a toggle slot's displayed icon/color for one branch (on/off),
+ * falling back to the branch action's auto icon/category color when the slot
+ * has no explicit override. Shared by the live widget tile (driven off actual
+ * on/off state) and the physical-deck key renderer (which pre-renders both
+ * states up front).
+ */
+export function toggleBranchSlot(slot: DeckSlot, action: Extract<DeckAction, { type: 'toggle' }>, on: boolean): DeckSlot {
+  const branch = on ? action.on : action.off;
+  return {
+    ...slot,
+    icon: slot.icon ?? { kind: 'lucide', value: autoIconName(branch) },
+    color: slot.color ?? categoryColor(deckCategory(branch)),
+  };
 }
 
 // Default lucide icon name (key into DECK_ICONS) per action when no explicit
