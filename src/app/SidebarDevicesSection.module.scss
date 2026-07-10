@@ -140,6 +140,8 @@
 // simulator entry rather than a real connected panel. Dim by default
 // so it reads as supplementary metadata, not a primary control.
 .simulatedBadge {
+  display: inline-flex;
+  align-items: center;
   flex-shrink: 0;
   // Match the control-off glyph's right-edge spacing.
   margin-left: -0.15rem;
