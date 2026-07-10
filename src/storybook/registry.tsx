@@ -47,6 +47,7 @@ import { Select } from '../components/common/Select/Select';
 import { IconLabelButton } from '../components/common/IconLabelButton/IconLabelButton';
 import { Button } from '../components/common/Button/Button';
 import { EndTaskButton } from '../components/common/EndTaskButton/EndTaskButton';
+import { ConflictAppCard } from '../components/common/ConflictAppCard/ConflictAppCard';
 import { ToastProvider, useToast } from '../components/common/Toast/Toast';
 import { WidgetHeader } from '../components/common/WidgetHeader/WidgetHeader';
 import { DEFAULT_ACCENT, PRESET_ACCENTS } from '../lib/settings';
@@ -877,6 +878,16 @@ function PreviewEndTaskButton() {
         <span>iCUE</span>
         <EndTaskButton conflictId="preview-icue" />
       </div>
+    </div>
+  );
+}
+
+function PreviewConflictAppCard() {
+  // Swallowed in capture phase, same as PreviewEndTaskButton - the card's End
+  // Task button calls the real /conflicts/kill endpoint with no override prop.
+  return (
+    <div className={styles.previewStack} onClickCapture={e => e.stopPropagation()}>
+      <ConflictAppCard conflict={{ id: 'preview-icue', displayName: 'iCUE', category: 'cooling', processName: 'iCUE.exe', pid: 4212 }} />
     </div>
   );
 }
@@ -1712,6 +1723,12 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/DeviceCanvas/DeviceCanvas.tsx',
     description: 'Free-arrange device canvas for the Lighting view: drag-position device tiles, marquee multi-select, per-device LED preview driven by the live shader effect, right-click DeviceContextMenu.',
     notes: 'No live preview - needs live device geometry, LED maps, and shader state.',
+  },
+  {
+    name: 'ConflictAppCard', category: 'cards',
+    filePath: 'src/components/common/ConflictAppCard/ConflictAppCard.tsx',
+    description: 'Detected-conflict row: app name, translated category / process name / PID meta line, and an EndTaskButton. Used by ConflictWarningModal (one per detected conflict) and the device-page NexusControlOff gate (the single conflict blocking that device).',
+    Preview: PreviewConflictAppCard,
   },
 
   // ── Modals ────────────────────────────────────────────────────────────

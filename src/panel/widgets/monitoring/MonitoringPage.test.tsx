@@ -49,15 +49,27 @@ vi.mock('../../../hooks/useSensors', () => ({
   useSensors: () => sensorState,
 }));
 
+type ExtrasComponentMock = {
+  id: string;
+  name: string;
+  sensors: Array<{ id: string; name: string; type: string; value: number; units: string; formatted: string; parent: { id: string; name: string } }>;
+};
+
+const extrasState = {
+  batteries: [
+    { id: 'battery/0', name: 'Test Battery', sensors: [
+      { id: 'battery/0/charge', name: 'Charge Level', type: 'Level', value: 80, units: '%', formatted: '80%', parent: { id: 'battery/0', name: 'Test Battery' } },
+    ] },
+  ] as ExtrasComponentMock[],
+  nics: [] as ExtrasComponentMock[],
+  coolers: [] as ExtrasComponentMock[],
+  psus: [] as ExtrasComponentMock[],
+  nvmeStorage: [] as ExtrasComponentMock[],
+  embeddedControllers: [] as ExtrasComponentMock[],
+};
+
 vi.mock('../../../hooks/useSensorExtras', () => ({
-  useSensorExtras: () => ({
-    batteries: [
-      { id: 'battery/0', name: 'Test Battery', sensors: [
-        { id: 'battery/0/charge', name: 'Charge Level', type: 'Level', value: 80, units: '%', formatted: '80%', parent: { id: 'battery/0', name: 'Test Battery' } },
-      ] },
-    ],
-    nics: [], coolers: [], psus: [], nvmeStorage: [], embeddedControllers: [],
-  }),
+  useSensorExtras: () => extrasState,
 }));
 
 const updateMock = vi.fn();
@@ -147,9 +159,57 @@ describe('MonitoringPage', () => {
     // GPU has zero sensors and zero extras-equivalents -- the section must not render.
     expect(screen.queryByRole('button', { name: /monitoring\.detailed\.gpu/i })).toBeNull();
 
+    // PSU/NIC/cooler/EC extras mocks are all empty arrays -- none of their
+    // sections may render (the families this task is guarding against).
+    expect(screen.queryByRole('button', { name: /monitoring\.detailed\.psu/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /monitoring\.detailed\.nic/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /monitoring\.detailed\.cooler/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /monitoring\.detailed\.ec/i })).toBeNull();
+
     // Click toggles collapse and persists the section id through useUiSettings.
     fireEvent.click(cpuHeader);
     expect(updateMock).toHaveBeenCalledWith({ monitoringDetailedCollapsed: ['cpu'] });
+  });
+
+  it('hides the System section when the motherboard model is known but LHM reports no sensors', () => {
+    sensorState.motherboardModel = 'ASUS Test Board';
+    sensorState.motherboard = [];
+
+    render(
+      <MonitoringPage serviceOnline={true} connectionState="online" tab="detailed" onTabChange={vi.fn()} />,
+    );
+
+    expect(screen.queryByRole('button', { name: /monitoring\.detailed\.system/i })).toBeNull();
+
+    sensorState.motherboardModel = '';
+  });
+
+  it('shows the System section once the motherboard reports at least one sensor', () => {
+    sensorState.motherboardModel = 'ASUS Test Board';
+    sensorState.motherboard = [
+      { id: 'mobo/temp', name: 'System Temperature', type: 'Temperature', value: 35, units: 'C', formatted: '35 C', parent: { id: 'motherboard', name: 'mobo' } },
+    ];
+
+    render(
+      <MonitoringPage serviceOnline={true} connectionState="online" tab="detailed" onTabChange={vi.fn()} />,
+    );
+
+    expect(screen.getByRole('button', { name: /monitoring\.detailed\.system/i })).toBeInTheDocument();
+
+    sensorState.motherboardModel = '';
+    sensorState.motherboard = [];
+  });
+
+  it('hides an extras section whose only component reports zero sensors', () => {
+    extrasState.psus = [{ id: 'psu/0', name: 'Test PSU', sensors: [] }];
+
+    render(
+      <MonitoringPage serviceOnline={true} connectionState="online" tab="detailed" onTabChange={vi.fn()} />,
+    );
+
+    expect(screen.queryByRole('button', { name: /monitoring\.detailed\.psu/i })).toBeNull();
+
+    extrasState.psus = [];
   });
 
   it('hides the GPU tab when no live GPU load sensor is present (macOS / AMD-Linux)', () => {
