@@ -82,6 +82,7 @@ const CURATED_ICONS: Record<string, string> = {
   'lianli-wireless': '/assets/devices/lianli.svg',
   strimer: '/assets/devices/device.svg',
   tryx: '/assets/devices/tryx.svg',
+  streamdeck: '/assets/devices/streamdeck.svg',
 };
 
 const CURATED_SHORT_NAMES: Record<string, string> = {
@@ -104,6 +105,10 @@ const CURATED_SHORT_NAMES: Record<string, string> = {
   'lianli-wireless': 'Lian Li Uni Fan Wireless',
   strimer: 'Lian Li Strimer',
   tryx: 'Tryx Panorama',
+  // Model variants (Mini / MK.2 / XL / ...) stay on the service's own `name`
+  // for the fuller Devices-page card; the sidebar/compact row uses the
+  // family name, same as y70's resolution variants.
+  streamdeck: 'Stream Deck',
 };
 
 const FALLBACK_ICON = '/assets/devices/device.svg';

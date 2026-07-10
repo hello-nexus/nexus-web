@@ -20,6 +20,7 @@ import { LianLiWirelessDevicePage } from './LianLiWirelessDevicePage';
 import { Galahad2DevicePage } from './Galahad2DevicePage';
 import { StrimerDevicePage } from './StrimerDevicePage';
 import { TryxDevicePage } from './TryxDevicePage';
+import { StreamDeckDevicePage } from './StreamDeckDevicePage';
 import { Toggle } from '../../common/Toggle/Toggle';
 import { useTranslation } from '../../../lib/i18n';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
@@ -166,6 +167,10 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFi
 
   if (device.curatedId === 'tryx') {
     return <TryxDevicePage key={device.key} />;
+  }
+
+  if (device.curatedId === 'streamdeck') {
+    return <StreamDeckDevicePage key={device.key} />;
   }
 
   if (device.kind === 'app-device') {
