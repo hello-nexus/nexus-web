@@ -2,7 +2,7 @@ import { useCallback, useLayoutEffect, useRef, type RefObject } from 'react';
 
 // Gap between the cursor and the tooltip's near edge, keeping the hovered
 // column visible beside the tooltip.
-const CURSOR_GAP = 14;
+const CURSOR_GAP = 22;
 
 /**
  * Cursor-anchored positioning for a chart hover tooltip. The tooltip sits to
