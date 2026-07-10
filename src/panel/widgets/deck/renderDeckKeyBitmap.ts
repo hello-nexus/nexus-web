@@ -22,6 +22,19 @@ export interface DeckKeyModel {
 const JPEG_QUALITY = 0.9;
 const ICON_FRACTION = 0.62;
 const LABEL_FRACTION = 0.22;
+const BACK_KEY_COLOR = '#23262e';
+
+/**
+ * The single per-deck Back-chevron bitmap uploaded to the reserved slotPath
+ * "back" (state 0): the service pushes it to physical key 0 whenever a
+ * folder view is active. Rendered through the same pipeline as any other
+ * key via a synthetic slot, so it stays visually identical to the widget's
+ * folder-back affordance.
+ */
+export function renderDeckBackKeyBitmap(model: DeckKeyModel): Promise<Uint8Array> {
+  const backSlot: DeckSlot = { icon: { kind: 'lucide', value: 'ChevronLeft' }, color: BACK_KEY_COLOR };
+  return renderDeckKeyBitmap(backSlot, model);
+}
 
 export async function renderDeckKeyBitmap(slot: DeckSlot, model: DeckKeyModel): Promise<Uint8Array> {
   const size = model.keyPixels;

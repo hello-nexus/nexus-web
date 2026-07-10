@@ -4,6 +4,7 @@
 // remote/panel origin via the shared fetchService/putServiceBytes guards.
 import { fetchService, postService, putService, putServiceBytes } from './service';
 import type { DeckConfig } from '../panel/widgets/deck/types';
+import type { DeckKeyTransform } from '../panel/widgets/deck/deckKeyTransform';
 
 export type StreamDeckFormat = 'bmp' | 'jpeg';
 
@@ -21,6 +22,8 @@ export interface StreamDeckSummary {
   brightness: number;
   firmwareVersion?: string;
   warning?: string;
+  /** Server-authoritative; absent on a service build that predates this field (see resolveDeckKeyTransform). */
+  transform?: DeckKeyTransform;
 }
 
 interface StreamDeckListResponse {

@@ -1,10 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { getStreamDeckConfig, setStreamDeckConfig, type StreamDeckSummary } from '../../../api/streamdeck';
+import { getStreamDeckConfig, setStreamDeckConfig, uploadStreamDeckKeyImage, type StreamDeckSummary } from '../../../api/streamdeck';
 import { computeViewUploadJobs, makePhysicalDeckTarget, slotCountAtDepth, type DeckTarget } from './deckTarget';
-import { transformForModel } from './deckKeyTransform';
+import { resolveDeckKeyTransform } from './deckKeyTransform';
 import { pushDeckKeyImages } from './physicalDeckSync';
+import { renderDeckBackKeyBitmap, type DeckKeyModel } from './renderDeckKeyBitmap';
 import { emptyDeck, resolveViewSlots } from './deckLayout';
 import type { DeckConfig } from './types';
+
+function deckKeyModel(deck: StreamDeckSummary): DeckKeyModel {
+  return { keyPixels: deck.keyPixels, format: deck.format, transform: resolveDeckKeyTransform(deck.model, deck.transform) };
+}
 
 export interface UsePhysicalDeckTargetResult {
   target: DeckTarget | null;
@@ -29,12 +34,15 @@ export function usePhysicalDeckTarget(
 
   useEffect(() => {
     setConfig(null);
-    if (!serial) return;
+    if (!serial || !deck) return;
     let cancelled = false;
     void getStreamDeckConfig(serial).then(cfg => {
       if (!cancelled) setConfig(cfg ?? emptyDeck());
     });
+    const model = deckKeyModel(deck);
+    void renderDeckBackKeyBitmap(model).then(bytes => uploadStreamDeckKeyImage(serial, 'back', 0, bytes, model.format));
     return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [serial]);
 
   const persist = useCallback((next: DeckConfig) => {
@@ -56,13 +64,13 @@ export function usePhysicalDeckTarget(
     const slots = resolveViewSlots(config, folderPath, countFn);
     if (!slots) return;
     const jobs = computeViewUploadJobs(slots, folderPath);
-    const model = { keyPixels: deck.keyPixels, format: deck.format, transform: transformForModel(deck.model) };
+    const model = deckKeyModel(deck);
     void pushDeckKeyImages(deck.serial, model, jobs, () => generationRef.current !== generation);
     // deck's identity churns on every 'streamdeck' topic frame (press events,
     // other decks' brightness, ...) - keying on its scalar fields (not the
     // object) keeps this effect from re-pushing images on unrelated updates.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deck?.serial, deck?.cols, deck?.rows, deck?.keyCount, deck?.model, deck?.format, deck?.keyPixels, config, folderKey]);
+  }, [deck?.serial, deck?.cols, deck?.rows, deck?.keyCount, deck?.model, deck?.format, deck?.keyPixels, deck?.transform, config, folderKey]);
 
   const replaceAll = useCallback((next: DeckConfig) => { persist(next); }, [persist]);
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { applyKeyTransform, transformForModel, type RawImage } from './deckKeyTransform';
+import { applyKeyTransform, resolveDeckKeyTransform, transformForModel, type RawImage } from './deckKeyTransform';
 
 // 2x2 RGBA image, each pixel a distinct color, to make every permutation
 // case unambiguous:
@@ -43,6 +43,18 @@ describe('transformForModel', () => {
   it('is case and punctuation insensitive', () => {
     expect(transformForModel('mini-mk2')).toBe('mirrorXRot90');
     expect(transformForModel('MINI')).toBe('mirrorXRot90');
+  });
+});
+
+describe('resolveDeckKeyTransform', () => {
+  it('the server-provided transform wins over the model-name derivation', () => {
+    expect(resolveDeckKeyTransform('Mini', 'none')).toBe('none');
+    expect(resolveDeckKeyTransform('MK.2', 'mirrorXRot90')).toBe('mirrorXRot90');
+  });
+
+  it('falls back to the model-name derivation when the field is absent', () => {
+    expect(resolveDeckKeyTransform('Mini')).toBe('mirrorXRot90');
+    expect(resolveDeckKeyTransform('MK.2')).toBe('flipBoth');
   });
 });
 

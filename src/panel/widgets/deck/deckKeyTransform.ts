@@ -24,6 +24,15 @@ export function transformForModel(model: string): DeckKeyTransform {
   return 'flipBoth';
 }
 
+/**
+ * The /streamdeck/decks DTO's `transform` field is server-authoritative when
+ * present; the model-name derivation is only a fallback for a service build
+ * that predates the field.
+ */
+export function resolveDeckKeyTransform(model: string, explicit?: DeckKeyTransform): DeckKeyTransform {
+  return explicit ?? transformForModel(model);
+}
+
 export interface RawImage {
   width: number;
   height: number;
