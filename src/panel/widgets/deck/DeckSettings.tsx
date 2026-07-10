@@ -6,7 +6,7 @@ import { Button } from '../../../components/common/Button/Button';
 import { ConfirmModal } from '../../../components/common/ConfirmModal/ConfirmModal';
 import { DeckEditor } from './DeckEditor';
 import { DeckRail } from './DeckRail';
-import { makeWidgetDeckTarget } from './deckTarget';
+import { makeWidgetDeckTarget, truncateConfigForTarget } from './deckTarget';
 import { usePhysicalDeckTarget } from './usePhysicalDeckTarget';
 import type { WidgetSettingsProps } from '../types';
 import styles from './DeckSettings.module.scss';
@@ -54,9 +54,12 @@ export function DeckSettings({ widget, surface, desktopEditor, onUpdate, selecte
     onSelectedSlotChange?.(0);
   };
 
+  const exceedsCapacity = !!activeDeck && widgetTarget.keyCount > activeDeck.keyCount;
+
   const copyWidgetLayout = () => {
     if (!activeDeck) return;
-    physical.replaceAll(structuredClone(widgetTarget.config));
+    const truncated = truncateConfigForTarget(structuredClone(widgetTarget.config), { kind: 'physical', keyCount: activeDeck.keyCount });
+    physical.replaceAll(truncated);
     setCopyConfirmOpen(false);
   };
 
@@ -65,6 +68,9 @@ export function DeckSettings({ widget, surface, desktopEditor, onUpdate, selecte
       open={copyConfirmOpen}
       title={t('panel.settings.deck.copyLayoutConfirm.title')}
       message={t('panel.settings.deck.copyLayoutConfirm.body', { name: activeDeck?.name ?? '' })}
+      note={exceedsCapacity ? t('panel.settings.deck.copyLayoutConfirm.truncated', { count: activeDeck?.keyCount ?? 0, name: activeDeck?.name ?? '' }) : undefined}
+      // eslint-disable-next-line i18next/no-literal-string -- note-tone enum value
+      noteTone="danger"
       onConfirm={copyWidgetLayout}
       onCancel={() => setCopyConfirmOpen(false)}
     />
@@ -80,6 +86,11 @@ export function DeckSettings({ widget, surface, desktopEditor, onUpdate, selecte
       surface={surface}
       desktopEditor={desktopEditor}
     />
+  ) : isPhysical && physical.error ? (
+    <div className={styles.loadError}>
+      <span>{t('panel.settings.deck.rail.loadFailed')}</span>
+      <Button type="button" size="sm" tone="neutral" onClick={physical.retry}>{t('panel.settings.deck.rail.retry')}</Button>
+    </div>
   ) : (
     isPhysical && <div className={styles.loading}>{t('panel.settings.deck.rail.loadingConfig')}</div>
   );
@@ -100,7 +111,7 @@ export function DeckSettings({ widget, surface, desktopEditor, onUpdate, selecte
         onSelectDeck={serial => selectTarget(serial)}
       />
       <div className={styles.content}>
-        {isPhysical && activeDeck && (
+        {isPhysical && activeDeck && !physical.error && (
           <Button type="button" size="sm" tone="neutral" icon={<Copy size={14} />} onClick={() => setCopyConfirmOpen(true)} className={styles.copyButton}>
             {t('panel.settings.deck.copyLayout')}
           </Button>

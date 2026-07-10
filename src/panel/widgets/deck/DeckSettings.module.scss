@@ -26,3 +26,14 @@
   color: var(--text-dim);
   text-align: center;
 }
+
+.loadError {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 1rem 0;
+  font-size: var(--type-small);
+  color: var(--warn);
+  text-align: center;
+}

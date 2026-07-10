@@ -73,7 +73,9 @@ function renderSettings(deck: DeckConfig = { slots: [{ label: 'existing' }] }) {
 beforeEach(() => {
   vi.clearAllMocks();
   mockUsePhysicalDeckTarget.mockImplementation((deck: StreamDeckSummary | null) => (
-    deck ? { target: fakePhysicalTarget(), loaded: true, replaceAll: vi.fn() } : { target: null, loaded: false, replaceAll: vi.fn() }
+    deck
+      ? { target: fakePhysicalTarget(), loaded: true, error: false, retry: vi.fn(), replaceAll: vi.fn() }
+      : { target: null, loaded: false, error: false, retry: vi.fn(), replaceAll: vi.fn() }
   ));
 });
 
@@ -165,5 +167,48 @@ describe('DeckSettings physical-deck rail gating', () => {
       />,
     );
     expect(mockUseStreamDecks).toHaveBeenCalledWith(false);
+  });
+
+  it('shows a load-failed message with a retry action instead of the editor when the config fetch errored', () => {
+    mockUseStreamDecks.mockReturnValue({
+      decks: [makeDeck()], loaded: true, rename: vi.fn(), setBrightness: vi.fn(), refresh: vi.fn(),
+    });
+    const retry = vi.fn();
+    mockUsePhysicalDeckTarget.mockReturnValue({ target: null, loaded: true, error: true, retry, replaceAll: vi.fn() });
+    renderSettings();
+
+    fireEvent.click(screen.getByText('My Mini Deck'));
+
+    expect(screen.getByText('panel.settings.deck.rail.loadFailed')).toBeInTheDocument();
+    expect(screen.queryByText('panel.settings.deck.rail.loadingConfig')).toBeNull();
+    expect(screen.queryByText('panel.settings.deck.copyLayout')).toBeNull();
+
+    fireEvent.click(screen.getByText('panel.settings.deck.rail.retry'));
+    expect(retry).toHaveBeenCalledTimes(1);
+  });
+
+  it('warns of truncation and copies only what fits when the widget holds more slots than the deck', () => {
+    mockUseStreamDecks.mockReturnValue({
+      decks: [makeDeck({ keyCount: 2 })], loaded: true, rename: vi.fn(), setBrightness: vi.fn(), refresh: vi.fn(),
+    });
+    const replaceAll = vi.fn();
+    mockUsePhysicalDeckTarget.mockReturnValue({
+      target: fakePhysicalTarget({ keyCount: 2, cols: 2, rows: 1 }), loaded: true, error: false, retry: vi.fn(), replaceAll,
+    });
+
+    // 2x2 widget = 4 root slots, more than the deck's 2 keys.
+    const widgetDeck: DeckConfig = { slots: [{ label: 'a' }, { label: 'b' }, { label: 'c' }, { label: 'd' }] };
+    renderSettings(widgetDeck);
+
+    fireEvent.click(screen.getByText('My Mini Deck'));
+    fireEvent.click(screen.getByText('panel.settings.deck.copyLayout'));
+
+    expect(screen.getByText('panel.settings.deck.copyLayoutConfirm.truncated')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('confirm.ok'));
+
+    const copied = replaceAll.mock.calls[0][0] as DeckConfig;
+    expect(copied.slots).toHaveLength(2);
+    expect(copied.slots.map(s => s.label)).toEqual(['a', 'b']);
   });
 });
