@@ -8,13 +8,6 @@
   height: 100%;
 }
 
-// Overall status (dot + label) sits centered under the icon.
-.overallRow {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
 .icon {
   color: var(--text-dim);
 }

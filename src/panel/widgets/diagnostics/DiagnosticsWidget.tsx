@@ -48,10 +48,7 @@ export function DiagnosticsWidget({ widget }: WidgetProps) {
   return (
     <PanelWidgetShell size={widget.size} className={styles.widget}>
       <Stethoscope size={28} className={styles.icon} aria-hidden />
-      <div className={styles.overallRow}>
-        <PanelStatusDot tone={panelToneFor(health.overall)} />
-        <span className={styles.overall}>{t(statusLabelKey(health.overall))}</span>
-      </div>
+      <span className={styles.overall}>{t(statusLabelKey(health.overall))}</span>
       <div className={styles.dots}>
         {DIAGNOSTICS_KIND_ORDER.map(kind => {
           const status = kindStatus(health.components, kind);
