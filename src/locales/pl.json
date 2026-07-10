@@ -613,7 +613,7 @@
   "devices.specs.row.processor": "Procesor",
   "devices.specs.row.soundCard": "Karta dźwiękowa",
   "devices.specs.row.storage": "Magazyn danych",
-  "devices.streamdeck.brightness": "Jasnosc",
+  "devices.streamdeck.brightness": "Jasność",
   "devices.streamdeck.desktopOnly": "Zarządzanie Stream Deck jest dostępne tylko w aplikacji na komputer",
   "devices.streamdeck.elgatoConflict": "Ten Deck jest też sterowany przez oprogramowanie Elgato. Zamknij je, aby Nexus mógł przejąć Deck.",
   "devices.streamdeck.experimental": "Eksperymentalne",

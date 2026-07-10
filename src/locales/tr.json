@@ -613,7 +613,7 @@
   "devices.specs.row.processor": "İşlemci",
   "devices.specs.row.soundCard": "Ses Kartı",
   "devices.specs.row.storage": "Depolama",
-  "devices.streamdeck.brightness": "Parlaklik",
+  "devices.streamdeck.brightness": "Parlaklık",
   "devices.streamdeck.desktopOnly": "Stream Deck yönetimi yalnızca masaüstü uygulamasında kullanılabilir",
   "devices.streamdeck.elgatoConflict": "Bu Deck aynı zamanda Elgato yazılımı tarafından da kontrol ediliyor. Nexus'un Deck'i kullanabilmesi için yazılımdan çıkın.",
   "devices.streamdeck.experimental": "Deneysel",
