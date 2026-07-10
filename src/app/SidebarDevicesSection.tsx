@@ -105,7 +105,6 @@ export function SidebarDevicesSection({
                 [styles.active]: isActive,
                 [styles.itemCompact]: compact,
                 [styles.itemOffline]: !device.connected,
-                [styles.itemControlOff]: device.supportsNexusControl && !device.nexusControlEnabled,
               })}
               onClick={() => onSelect(device.key)}
               aria-label={compact ? tooltip : undefined}
@@ -120,11 +119,11 @@ export function SidebarDevicesSection({
                 <>
                   <span className={styles.label}>{device.shortName}</span>
                   {isSimulated && (
-                    <Ghost
-                      size={12}
-                      className={styles.simulatedBadge}
-                      aria-label={t('devices.panels.simulated')}
-                    />
+                    <HoverTooltip body={t('devices.panels.simulated')} side="top">
+                      <span className={styles.simulatedBadge} role="img" aria-label={t('devices.panels.simulated')}>
+                        <Ghost size={14} aria-hidden />
+                      </span>
+                    </HoverTooltip>
                   )}
                   {device.warning && <DeviceWarningIcon code={device.warning} />}
                   {device.supportsNexusControl && !device.nexusControlEnabled && <NexusControlOffIcon />}

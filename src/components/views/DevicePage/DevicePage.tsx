@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Unplug } from 'lucide-react';
+import { Unplug, ZapOff } from 'lucide-react';
 import { useUnifiedDevices, type UnifiedDevice } from '../../../hooks/useUnifiedDevices';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
@@ -232,7 +232,7 @@ function NexusControlCard({ checked, disabled, onChange }: { checked: boolean; d
   const { t } = useTranslation();
   return (
     <div className={styles.controlCard}>
-      <span className={styles.controlLabel}>{t('devices.nexusControl')}</span>
+      <span className={styles.controlLabel}><ZapOff size={13} aria-hidden />{t('devices.nexusControl')}</span>
       <Toggle checked={checked} disabled={disabled} onChange={onChange} ariaLabel={t('devices.nexusControl')} />
     </div>
   );
