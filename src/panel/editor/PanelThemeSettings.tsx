@@ -77,7 +77,10 @@ export interface PanelThemeSettingsProps {
   onWidgetOpacityCommit: (opacity: number) => void;
   onWidgetLabelsCommit: (enabled: boolean) => void;
   onWidgetBlurCommit: (enabled: boolean) => void;
-  /** Show the media background tab. Only surfaces with a display (y70, q60) support it. */
+  /** Show the media background tab. All display-backed surfaces support it; the
+   * embedded desktop deck never renders theme backgrounds (PanelApp gates on
+   * !embedded || simulator), so desktop hides it. Tunneled panels also hide it:
+   * media import is LAN-only (postServiceForm fails closed off-LAN). */
   showMediaTab?: boolean;
   /** Device aspect ratio (W/H) forwarded to the media cropper. */
   deviceAspect?: number;

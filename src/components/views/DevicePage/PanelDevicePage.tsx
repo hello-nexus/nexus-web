@@ -486,17 +486,21 @@ export function PanelDevicePage({ device, onOpenFirmware }: PanelDevicePageProps
                   )}
                   {activeTab === 'theme' && (() => {
                     // Aspect from live CSS viewport (DPR cancels); fall back to
-                    // profile native pixels (both axes at same DPR, so ratio holds).
-                    const cw = liveCanvas?.width ?? (surface === 'q60' ? 720 : 682);
-                    const ch = liveCanvas?.height ?? (surface === 'q60' ? 1280 : 2560);
+                    // the record/profile canvas (previewSize, same source as the
+                    // editorCapacity math above), then the Y70 portrait profile.
+                    const fallbackCanvas = device?.previewSize;
+                    const cw = liveCanvas?.width ?? fallbackCanvas?.width ?? (surface === 'q60' ? 720 : 682);
+                    const ch = liveCanvas?.height ?? fallbackCanvas?.height ?? (surface === 'q60' ? 1280 : 2560);
                     const devAspect = cw / ch;
                     // Bake target = the device's PHYSICAL resolution. The Q-series
                     // is fixed hardware at 720x1280, and its Android WebView already
                     // reports physical px in cssWidth (dpr is only render density),
-                    // so do NOT multiply. The Y70 is Edge-on-Windows: cssWidth is
-                    // logical px, so native = css * Windows display scaling (dpr).
-                    const nativeW = surface === 'q60' ? 720 : (liveCanvas ? Math.round(cw * (liveDpr ?? 1)) : cw);
-                    const nativeH = surface === 'q60' ? 1280 : (liveCanvas ? Math.round(ch * (liveDpr ?? 1)) : ch);
+                    // so do NOT multiply. Other surfaces report CSS px: native =
+                    // css * dpr (liveCanvas pairs with liveDpr, previewSize with
+                    // previewDpr; simulated presets are native px at dpr 1).
+                    const nativeDpr = (liveCanvas ? liveDpr : device?.previewDpr) || 1;
+                    const nativeW = surface === 'q60' ? 720 : Math.round(cw * nativeDpr);
+                    const nativeH = surface === 'q60' ? 1280 : Math.round(ch * nativeDpr);
                     return (
                       <PanelThemeSettings
                         theme={theme}
@@ -521,7 +525,7 @@ export function PanelDevicePage({ device, onOpenFirmware }: PanelDevicePageProps
                         onWidgetOpacityCommit={panelTheme.commitWidgetOpacity}
                         onWidgetLabelsCommit={panelTheme.commitWidgetLabels}
                         onWidgetBlurCommit={panelTheme.commitWidgetBlur}
-                        showMediaTab={surface === 'y70' || surface === 'q60'}
+                        showMediaTab={surface !== 'desktop'}
                         deviceAspect={devAspect}
                         deviceW={nativeW}
                         deviceH={nativeH}

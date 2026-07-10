@@ -59,7 +59,7 @@ import { isInsecureBrowserPanel } from './overlays/PanelInsecureBanner';
 import { useTranslation } from '../lib/i18n';
 import { applyHtmlChromeTheme } from '../lib/settings';
 import { fetchPanelDevice } from '../api/panel';
-import { isRemotePaired } from '../api/service';
+import { isRemotePaired, isTunnelActive } from '../api/service';
 import { createUuid } from '../lib/uuid';
 import { spawnDropRing } from '../lib/dropRing';
 import {
@@ -1603,7 +1603,7 @@ export function PanelContent({
           onThemeBackgroundOpacityPreview={panelTheme.previewBackgroundOpacity}
           onThemeBackgroundOpacityCommit={panelTheme.commitBackgroundOpacity}
           onThemeBackgroundMediaCommit={panelTheme.commitBackgroundMedia}
-          showMediaTab={surface === 'y70' || surface === 'q60'}
+          showMediaTab={surface !== 'desktop' && !isTunnelActive()}
           deviceAspect={typeof window !== 'undefined' ? window.innerWidth / window.innerHeight : undefined}
           deviceW={surface === 'q60' ? 720 : (typeof window !== 'undefined' ? Math.round(window.innerWidth * window.devicePixelRatio) : undefined)}
           deviceH={surface === 'q60' ? 1280 : (typeof window !== 'undefined' ? Math.round(window.innerHeight * window.devicePixelRatio) : undefined)}
