@@ -46,19 +46,22 @@ describe('NexusControlOff', () => {
     expect(onEnable).toHaveBeenCalledTimes(1);
   });
 
-  it('renders the disabled toggle and an End-task control when the conflicting app is running', () => {
+  it('renders the ConflictAppCard (name + PID + End Task) and a disabled Nexus Control switch when the conflicting app is running', () => {
     h.conflicts = [{ id: 'icue', displayName: 'iCUE', category: 'cooling', processName: 'iCUE.exe', pid: 42 }];
     const onEnable = vi.fn();
     render(<NexusControlOff deviceName="Corsair iCUE LINK Hub" conflictAppId="icue" onEnable={onEnable} />);
 
     expect(screen.getByText('devices.nexusControlOff.conflictHint:{"app":"iCUE"}')).toBeInTheDocument();
 
+    // ConflictAppCard row: display name and PID.
+    expect(screen.getByText('iCUE')).toBeInTheDocument();
+    expect(screen.getByText('PID 42')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'conflicts.modal.endTask' })).toBeInTheDocument();
+
     const toggle = screen.getByRole('switch', { name: 'devices.nexusControl' });
     expect(toggle).toBeDisabled();
     fireEvent.click(toggle);
     expect(onEnable).not.toHaveBeenCalled();
-
-    expect(screen.getByRole('button', { name: 'conflicts.modal.endTask' })).toBeInTheDocument();
   });
 
   it('ignores a conflict list entry that does not match conflictAppId', () => {

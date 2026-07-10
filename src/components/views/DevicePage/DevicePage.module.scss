@@ -32,9 +32,39 @@
   margin: 0;
 }
 
+// Stacks the hint, the conflict card (when present), and the Nexus Control
+// card at a readable, consistent width - the two cards stretch to fill it
+// (flex column's default cross-axis stretch), matching each other's width.
+.controlOffBody {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 28rem;
+}
+
 .controlOffHint {
   font-size: var(--type-body);
   color: var(--text-dim);
   max-width: 32rem;
   margin: 0;
+}
+
+// Nexus Control on/off switch, in the same card treatment as the
+// DevicesPage device-card control group (DevicesPage.module.scss .card).
+.controlCard {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.9rem 1.1rem;
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.controlLabel {
+  font-family: var(--font-sans);
+  font-size: var(--type-small);
+  color: var(--text);
 }

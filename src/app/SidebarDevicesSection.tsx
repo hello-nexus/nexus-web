@@ -105,6 +105,7 @@ export function SidebarDevicesSection({
                 [styles.active]: isActive,
                 [styles.itemCompact]: compact,
                 [styles.itemOffline]: !device.connected,
+                [styles.itemControlOff]: device.supportsNexusControl && !device.nexusControlEnabled,
               })}
               onClick={() => onSelect(device.key)}
               aria-label={compact ? tooltip : undefined}

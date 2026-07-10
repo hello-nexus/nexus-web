@@ -21,7 +21,7 @@ import { Galahad2DevicePage } from './Galahad2DevicePage';
 import { StrimerDevicePage } from './StrimerDevicePage';
 import { TryxDevicePage } from './TryxDevicePage';
 import { Toggle } from '../../common/Toggle/Toggle';
-import { EndTaskButton } from '../../common/EndTaskButton/EndTaskButton';
+import { ConflictAppCard } from '../../common/ConflictAppCard/ConflictAppCard';
 import { useConflictApps } from '../../../hooks/useConflictApps';
 import { useTranslation } from '../../../lib/i18n';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
@@ -204,20 +204,37 @@ export function NexusControlOff({ deviceName, conflictAppId, onEnable }: { devic
     <section className={styles.page}>
       <div className={styles.controlOff}>
         <h2 className={styles.controlOffTitle}>{deviceName}</h2>
-        {activeConflict ? (
-          <>
-            <p className={styles.controlOffHint}>{t('devices.nexusControlOff.conflictHint', { app: activeConflict.displayName })}</p>
-            <EndTaskButton conflictId={activeConflict.id} />
-            <Toggle checked={false} disabled onChange={() => {}} ariaLabel={t('devices.nexusControl')} />
-          </>
-        ) : (
-          <>
-            <p className={styles.controlOffHint}>{t('devices.nexusControlOff.enableHint')}</p>
-            <Toggle checked={false} disabled={resolvingConflict} onChange={() => onEnable()} ariaLabel={t('devices.nexusControl')} />
-          </>
-        )}
+        <div className={styles.controlOffBody}>
+          {activeConflict ? (
+            <>
+              <p className={styles.controlOffHint}>{t('devices.nexusControlOff.conflictHint', { app: activeConflict.displayName })}</p>
+              <ConflictAppCard conflict={activeConflict} />
+              <NexusControlCard checked={false} disabled onChange={() => {}} />
+            </>
+          ) : (
+            <>
+              <p className={styles.controlOffHint}>{t('devices.nexusControlOff.enableHint')}</p>
+              <NexusControlCard checked={false} disabled={resolvingConflict} onChange={onEnable} />
+            </>
+          )}
+        </div>
       </div>
     </section>
+  );
+}
+
+/**
+ * Label + toggle in a card, matching the DevicesPage device-card control
+ * group treatment (same label, same toggle) so the on/off switch reads as
+ * the same control wherever it appears.
+ */
+function NexusControlCard({ checked, disabled, onChange }: { checked: boolean; disabled?: boolean; onChange: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <div className={styles.controlCard}>
+      <span className={styles.controlLabel}>{t('devices.nexusControl')}</span>
+      <Toggle checked={checked} disabled={disabled} onChange={onChange} ariaLabel={t('devices.nexusControl')} />
+    </div>
   );
 }
 

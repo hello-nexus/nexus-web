@@ -1,7 +1,7 @@
 import { AlertTriangle, CheckCircle2, ShieldOff } from 'lucide-react';
 import type { DetectedConflict } from '../../../api/conflicts';
+import { ConflictAppCard } from '../ConflictAppCard/ConflictAppCard';
 import { DeviceModal } from '../DeviceModal/DeviceModal';
-import { EndTaskButton } from '../EndTaskButton/EndTaskButton';
 import { TopBarStatusButton } from '../TopBarStatusButton/TopBarStatusButton';
 import { useTranslation } from '../../../lib/i18n';
 import styles from './ConflictWarning.module.scss';
@@ -68,19 +68,6 @@ interface ConflictWarningModalProps {
   onSuppressedChange: (suppressed: boolean) => void;
 }
 
-type TranslateFn = (key: string, params?: Record<string, string | number>) => string;
-
-const KNOWN_CATEGORIES = new Set(['lighting', 'cooling', 'peripherals', 'monitoring']);
-
-function translateCategory(t: TranslateFn, category: string): string {
-  // A category with no matching locale string falls back to the raw value
-  // instead of showing "conflicts.category.foo".
-  if (KNOWN_CATEGORIES.has(category)) {
-    return t(`conflicts.category.${category}`);
-  }
-  return category;
-}
-
 function ConflictWarningModal({ open, conflicts, suppressed, onClose, onSuppressedChange }: ConflictWarningModalProps) {
   const { t } = useTranslation();
 
@@ -101,18 +88,8 @@ function ConflictWarningModal({ open, conflicts, suppressed, onClose, onSuppress
         {hasConflicts ? (
           <ul className={styles.list}>
             {conflicts.map(conflict => (
-              <li key={conflict.id} className={styles.row}>
-                <div className={styles.rowMain}>
-                  <div className={styles.rowName}>{conflict.displayName}</div>
-                  <div className={styles.rowMeta}>
-                    <span className={styles.rowCategory}>{translateCategory(t, conflict.category)}</span>
-                    <span className={styles.rowDot} aria-hidden>·</span>
-                    <span className={styles.rowProcess}>{conflict.processName}</span>
-                    <span className={styles.rowDot} aria-hidden>·</span>
-                    <span className={styles.rowPid}>PID {conflict.pid}</span>
-                  </div>
-                </div>
-                <EndTaskButton conflictId={conflict.id} />
+              <li key={conflict.id}>
+                <ConflictAppCard conflict={conflict} />
               </li>
             ))}
           </ul>
