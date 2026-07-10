@@ -10,8 +10,8 @@ import { fetchPanelDevice, patchPanelDevice, type PanelDevicePatch } from '../..
 import { broadcastLayoutChanged, onLayoutChanged } from '../engine/panelSync';
 import {
   DEFAULT_PANEL_BACKGROUND_EFFECT,
-  DEFAULT_PANEL_BACKGROUND_OPACITY,
   DEFAULT_PANEL_BACKGROUND_TEMPLATE,
+  defaultBackgroundOpacityForMode,
   defaultPanelWidgetBlur,
   defaultPanelWidgetLabels,
   defaultPanelWidgetOpacity,
@@ -165,7 +165,7 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
     backgroundEffect: DEFAULT_PANEL_BACKGROUND_EFFECT,
     backgroundTemplate: DEFAULT_PANEL_BACKGROUND_TEMPLATE,
     backgroundTemplates: {},
-    backgroundOpacity: DEFAULT_PANEL_BACKGROUND_OPACITY,
+    backgroundOpacity: defaultBackgroundOpacityForMode('solid'),
     backgroundEffectState: panelBackgroundState(DEFAULT_PANEL_BACKGROUND_EFFECT, DEFAULT_PANEL_BACKGROUND_TEMPLATE),
     backgroundMediaId: null,
     backgroundMediaType: null,
@@ -222,6 +222,9 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
       if (templates[effect] === undefined) {
         templates[effect] = normalizePanelBackgroundTemplate(r?.backgroundTemplate);
       }
+      const bgMode: PanelBackgroundMode = r?.backgroundMode == null && single
+        ? 'shader'
+        : normalizePanelBackgroundMode(r?.backgroundMode);
       setTheme({
         appThemeMode: normalizePanelThemeMode(t?.themeMode),
         appResolvedThemeMode: t?.resolvedThemeMode === 'dark' || t?.resolvedThemeMode === 'light'
@@ -233,11 +236,14 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
         accentColor: r?.accentColor ?? '',
         backgroundColor: r?.backgroundColor ?? '',
         backgroundColorLight: r?.backgroundColorLight ?? '',
-        backgroundMode: r?.backgroundMode == null && single ? 'shader' : normalizePanelBackgroundMode(r?.backgroundMode),
+        backgroundMode: bgMode,
         backgroundEffect: effect,
         backgroundTemplate: normalizePanelBackgroundTemplate(templates[effect]),
         backgroundTemplates: templates,
-        backgroundOpacity: normalizePanelBackgroundOpacity(r?.backgroundOpacity),
+        // No stored opacity -> mode-aware default (solid opaque, overlay 50%).
+        backgroundOpacity: r?.backgroundOpacity == null
+          ? defaultBackgroundOpacityForMode(bgMode)
+          : normalizePanelBackgroundOpacity(r.backgroundOpacity),
         // Static fallback; the returned value below is derived from the global
         // presets + the live draft.
         backgroundEffectState: panelBackgroundState(effect, normalizePanelBackgroundTemplate(templates[effect])),

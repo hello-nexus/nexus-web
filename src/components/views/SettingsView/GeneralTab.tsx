@@ -4,6 +4,7 @@ import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingRow, SettingToggle, SettingSelect } from '../../common/SettingRow/SettingRow';
 import { ChipGroup } from '../../common/ChipGroup/ChipGroup';
 import { ThemeTab } from './ThemeTab';
+import { LightingCoolingSection } from './LightingCoolingSection';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { ScreenTimeDataControl } from '../ScreenTimeBrowse/ScreenTimeDataControl';
 import { fetchService, postService } from '../../../api/service';
@@ -205,6 +206,8 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
       <SettingsSection title={t('settings.theme')}>
         <ThemeTab settings={settings} updateGeneral={updateGeneral} />
       </SettingsSection>
+
+      <LightingCoolingSection serviceOnline={serviceOnline} platform={platform} />
 
       {(platform === 'windows' || platform === 'macos') && (
         <SettingsSection title={t('settings.startupTray.title')}>

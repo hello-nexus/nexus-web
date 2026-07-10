@@ -4,7 +4,7 @@ import { Slider } from '../../components/common/Slider/Slider';
 import { Tabs } from '../../components/common/Tabs/Tabs';
 import { SectionHeader } from '../../components/common/SectionHeader/SectionHeader';
 import { SettingsSection } from '../../components/common/SettingsSection/SettingsSection';
-import { SettingToggle } from '../../components/common/SettingRow/SettingRow';
+import { SettingSlider, SettingToggle } from '../../components/common/SettingRow/SettingRow';
 import { useTranslation } from '../../lib/i18n';
 import { DEFAULT_ACCENT, PRESET_ACCENTS, THEME_MODES, type ThemeMode } from '../../lib/settings';
 import type { EffectState } from '../../types/lighting';
@@ -181,6 +181,28 @@ export function PanelThemeSettings({
     />
   );
 
+  // Opacity of the solid colour / shader / media over the theme background.
+  // First control under the Background header, applying to every mode.
+  const backgroundOpacitySlider = (
+    <Slider
+      // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
+      orientation="stacked"
+      label={label('panel.settings.backgroundOpacity', 'Background Opacity')}
+      value={backgroundOpacityPercent}
+      min={0}
+      max={100}
+      step={1}
+      trackFill={backgroundOpacityPercent}
+      formatValue={v => `${v}%`}
+      onChange={(v, commit) => {
+        const next = v / 100;
+        if (commit) onBackgroundOpacityCommit(next);
+        else onBackgroundOpacityPreview(next);
+      }}
+      onCommit={v => onBackgroundOpacityCommit(v / 100)}
+    />
+  );
+
   return (
     <div className={styles.themePanel}>
       {(!hideWidgetLabelsToggle || !hideWidgetChromeControls) && (
@@ -200,15 +222,14 @@ export function PanelThemeSettings({
             />
           )}
           {!hideWidgetChromeControls && (
-            <Slider
-              // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-              orientation="stacked"
+            <SettingSlider
+              editable
+              trackFill
               label={label('panel.settings.widgetOpacity', 'Widget opacity')}
               value={widgetOpacityPercent}
               min={0}
               max={100}
               step={1}
-              trackFill={widgetOpacityPercent}
               formatValue={v => `${v}%`}
               onChange={(v, commit) => {
                 const next = v / 100;
@@ -267,6 +288,7 @@ export function PanelThemeSettings({
           shared SectionHeader. */}
       <div className={styles.themeSection}>
         <SectionHeader>{label('devices.y70.theme.background', 'Background')}</SectionHeader>
+        {backgroundOpacitySlider}
         {theme.backgroundMode === 'solid' ? (
           <>
             {backgroundModeTabs}
@@ -288,23 +310,6 @@ export function PanelThemeSettings({
               deviceW={deviceW ?? Math.round(deviceAspect * 1280)}
               deviceH={deviceH ?? 1280}
               onSelect={(mediaId, type) => onBackgroundMediaCommit(mediaId, type)}
-            />
-            <Slider
-              // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-              orientation="stacked"
-              label={label('panel.settings.backgroundOpacity', 'Background Opacity')}
-              value={backgroundOpacityPercent}
-              min={0}
-              max={100}
-              step={1}
-              trackFill={backgroundOpacityPercent}
-              formatValue={v => `${v}%`}
-              onChange={(v, commit) => {
-                const next = v / 100;
-                if (commit) onBackgroundOpacityCommit(next);
-                else onBackgroundOpacityPreview(next);
-              }}
-              onCommit={v => onBackgroundOpacityCommit(v / 100)}
             />
           </>
         ) : (
@@ -340,37 +345,18 @@ export function PanelThemeSettings({
                 panelEffects={panelUsage.effects}
               />
             ) : (
-              <>
-                <EffectControls
-                  effect={backgroundController.effect}
-                  state={backgroundController.state}
-                  bundle={backgroundController.bundle}
-                  canReset={backgroundController.canReset}
-                  onTemplateSelect={backgroundController.onTemplateSelect}
-                  onChange={backgroundController.onChange}
-                  onCommit={backgroundController.onCommit}
-                  onReset={backgroundController.onReset}
-                  rgbActiveSlot={backgroundController.rgbActiveSlot}
-                  panelSlots={panelUsage.slotsByEffect.get(backgroundController.effect)}
-                />
-                <Slider
-                  // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-                  orientation="stacked"
-                  label={label('panel.settings.backgroundOpacity', 'Background Opacity')}
-                  value={backgroundOpacityPercent}
-                  min={0}
-                  max={100}
-                  step={1}
-                  trackFill={backgroundOpacityPercent}
-                  formatValue={v => `${v}%`}
-                  onChange={(v, commit) => {
-                    const next = v / 100;
-                    if (commit) onBackgroundOpacityCommit(next);
-                    else onBackgroundOpacityPreview(next);
-                  }}
-                  onCommit={v => onBackgroundOpacityCommit(v / 100)}
-                />
-              </>
+              <EffectControls
+                effect={backgroundController.effect}
+                state={backgroundController.state}
+                bundle={backgroundController.bundle}
+                canReset={backgroundController.canReset}
+                onTemplateSelect={backgroundController.onTemplateSelect}
+                onChange={backgroundController.onChange}
+                onCommit={backgroundController.onCommit}
+                onReset={backgroundController.onReset}
+                rgbActiveSlot={backgroundController.rgbActiveSlot}
+                panelSlots={panelUsage.slotsByEffect.get(backgroundController.effect)}
+              />
             )}
           </>
         )}

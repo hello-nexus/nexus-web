@@ -32,7 +32,8 @@
   }
   height: 100vh;
   width: 100vw;
-  background: var(--panel-background-solid);
+  // Theme dark/light backdrop; the solid/shader/media overlay paints over it.
+  background: var(--backdrop-base);
   color: var(--text);
   position: relative;
   // No padding here: the pager runs full-bleed so per-page widget shadows
@@ -59,11 +60,19 @@
   opacity: 0;
   transition: opacity 260ms ease;
   overflow: hidden;
-  background: var(--panel-background-solid);
 }
 
 .backgroundShader[data-ready='true'] {
-  opacity: var(--panel-background-opacity, 0.4);
+  opacity: var(--panel-background-opacity, 0.5);
+}
+
+.backgroundSolid {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: var(--panel-background-solid);
+  opacity: var(--panel-background-opacity, 1);
 }
 
 .backgroundShaderCanvas {

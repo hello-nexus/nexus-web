@@ -423,19 +423,27 @@ export function PanelContent({
     () => embedded ? buildEmbeddedPanelThemeVars(appAccentColor, resolvedThemeMode) : buildPanelThemeVars(effectiveTheme, resolvedThemeMode),
     [appAccentColor, embedded, effectiveTheme, resolvedThemeMode],
   );
-  const effectiveBackground = useMemo(
-    () => embedded ? 'transparent' : resolvePanelBackground(
-      effectiveTheme.backgroundColor,
-      effectiveTheme.backgroundColorLight,
-      resolvedThemeMode,
-    ),
-    [embedded, effectiveTheme.backgroundColor, effectiveTheme.backgroundColorLight, resolvedThemeMode],
+  // The panel backdrop is always the theme's dark/light background; the chosen
+  // solid colour, shader, or media sits over it as an opacity-controlled
+  // overlay. The embedded desktop deck paints no panel background so the
+  // dashboard theme shows through.
+  const showPanelBackground = !embedded || simulator;
+  const panelSolidColor = useMemo(
+    () => showPanelBackground
+      ? resolvePanelBackground(
+          effectiveTheme.backgroundColor,
+          effectiveTheme.backgroundColorLight,
+          resolvedThemeMode,
+        )
+      : 'transparent',
+    [showPanelBackground, effectiveTheme.backgroundColor, effectiveTheme.backgroundColorLight, resolvedThemeMode],
   );
+  const themeBackdrop = showPanelBackground ? 'var(--backdrop-base)' : 'transparent';
   const panelRootStyle = useMemo(
     () => ({
       ...panelThemeVars,
-      background: effectiveBackground,
-      '--panel-background-solid': effectiveBackground,
+      background: themeBackdrop,
+      '--panel-background-solid': panelSolidColor,
       '--panel-columns': runtimeGrid.columns,
       '--panel-rows': runtimeGrid.rows,
       ...(webkitSafePanelScale != null ? { '--panel-scale': webkitSafePanelScale } : {}),
@@ -447,7 +455,8 @@ export function PanelContent({
       } : {}),
     }) as CSSProperties,
     [
-      effectiveBackground,
+      panelSolidColor,
+      themeBackdrop,
       panelThemeVars,
       runtimeGrid.cellSize,
       runtimeGrid.columns,
@@ -1319,7 +1328,7 @@ export function PanelContent({
         onPointerCancel={backgroundLongPress.onPointerCancel}
         onContextMenu={handleBackgroundContextMenu}
       >
-        {(!embedded || simulator) && effectiveTheme.backgroundMode === 'shader' && (
+        {showPanelBackground && effectiveTheme.backgroundMode === 'shader' && (
           <PanelBackgroundShader
             effect={effectiveTheme.backgroundEffect}
             template={effectiveTheme.backgroundTemplate}
@@ -1329,12 +1338,19 @@ export function PanelContent({
             fullRes={simulator}
           />
         )}
-        {(!embedded || simulator) && effectiveTheme.backgroundMode === 'media' && effectiveTheme.backgroundMediaId && effectiveTheme.backgroundMediaType && deviceId && (
+        {showPanelBackground && effectiveTheme.backgroundMode === 'media' && effectiveTheme.backgroundMediaId && effectiveTheme.backgroundMediaType && deviceId && (
           <PanelBackgroundMedia
             id={effectiveTheme.backgroundMediaId}
             deviceId={deviceId}
             type={effectiveTheme.backgroundMediaType}
             opacity={effectiveTheme.backgroundOpacity}
+          />
+        )}
+        {showPanelBackground && effectiveTheme.backgroundMode === 'solid' && (
+          <div
+            className={styles.backgroundSolid}
+            style={{ '--panel-background-opacity': effectiveTheme.backgroundOpacity } as CSSProperties}
+            aria-hidden
           />
         )}
         {!loaded ? (

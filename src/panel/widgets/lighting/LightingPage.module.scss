@@ -1041,6 +1041,24 @@
   padding: 0.25rem 1rem 0.6rem 2.5rem;
 }
 
+// Master brightness bar between the Effect/Devices tabs and the pane body:
+// label on the left, the icon-track-value slider on the right, left inset
+// matched to the tabs header above it.
+.masterBrightness {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0 1rem 0.75rem 2.5rem;
+}
+
+.masterBrightnessLabel {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
 .rightPaneTabsWrap {
   display: flex;
 }

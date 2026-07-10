@@ -28,6 +28,10 @@ vi.mock('../../../hooks/useUiSettings', () => ({
   }),
 }));
 
+vi.mock('../../../hooks/useSensors', () => ({
+  useSensors: () => ({ cpu: [], gpu: [], gpuComponents: [] }),
+}));
+
 vi.mock('../../../lib/i18n', () => ({
   useTranslation: () => ({
     t: (key: string, vars?: Record<string, string>) => (

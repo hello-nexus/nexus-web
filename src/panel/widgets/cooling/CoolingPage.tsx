@@ -46,8 +46,6 @@ import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { CoolingSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
 import { FanCard, type FanCardHubMode } from './page/FanCard';
 import { CurveCard, computeCurveSpeed } from './page/CurveEditor';
-import { CoolingSettingsModal } from './page/CoolingSettingsModal';
-import { usePageSettingsAction } from '../../../app/PageChrome';
 import { COOLING_PRESETS, isCoolingPresetKey, presetIconFor, type CoolingPresetKey } from './page/coolingPresets';
 import { loadCoolingCache, saveCoolingCache } from './coolingCache';
 import { resolveCpuTempSensor, defaultCurveSourceId } from '../../../lib/tempSensorResolver';
@@ -127,7 +125,6 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   const sensors = useSensors(serviceOnline);
   const { settings } = useUiSettings();
   const cpuTemp = resolveCpuTempSensor(sensors.cpu, settings.preferredCpuTempSensorId);
-  const [settingsOpen, setSettingsOpen] = useState(false);
 
   // The curve whose graph + editor the hero card shows; a row of buttons inside
   // the card selects it. Selecting also highlights the fans bound to it. Seeded
@@ -769,11 +766,6 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     </div>
   ) : null;
 
-  // The settings affordance lives in the top bar (right of the search pill);
-  // register it while online so it opens this page's CoolingSettingsModal.
-  const openSettings = useCallback(() => setSettingsOpen(true), []);
-  usePageSettingsAction({ onOpen: openSettings, label: t('cooling.settings.open') }, serviceOnline);
-
   if (!serviceOnline) {
     return (
       <div className={styles.cooling}>
@@ -862,13 +854,6 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
 
   return (
     <div className={styles.cooling}>
-      <CoolingSettingsModal
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        cpuSensors={sensors.cpu}
-        gpuSensors={sensors.gpu}
-      />
-
       <ViewHeader
         title={t('cooling.title')}
         tabs={presetTabs}
