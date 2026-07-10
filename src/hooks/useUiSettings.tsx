@@ -13,6 +13,9 @@ import {
   fetchPreferences, savePreferences,
   type Preferences as ServerPreferences,
   type PreferencesPatch,
+  type DiagnosticsThresholds,
+  type DiagnosticsNotificationPrefs,
+  type DiagnosticsComponentPrefs,
 } from '../api/profiles';
 import type { UpdateChannel, UpdateMode } from '../api/update';
 import {
@@ -91,7 +94,55 @@ export interface UiSettingsValue {
   updateMode: UpdateMode;
   updateChannel: UpdateChannel;
   lastDismissedUpdateVersion: string;
+  // Diagnostics Settings tab preferences (preferences.diagnostics), server-only
+  // like the update block above. Flattened leaves of the wire contract in
+  // plans/diagnostics-monitoring-search-improvements.md "#2 wire contract" -
+  // see DIAGNOSTICS_SETTINGS_DEFAULTS below for the contract defaults.
+  diagnosticsCpuTempC: number;
+  diagnosticsGpuTempC: number;
+  diagnosticsStorageTempC: number;
+  diagnosticsRamTempC: number;
+  diagnosticsWarningLingerMinutes: number;
+  diagnosticsNotificationsEnabled: boolean;
+  diagnosticsNotifyHighTemp: boolean;
+  diagnosticsNotifyStorageHealth: boolean;
+  diagnosticsNotifyCooling: boolean;
+  diagnosticsNotifyMemoryTest: boolean;
+  diagnosticsNotifySystemDevices: boolean;
+  diagnosticsNotifyGpuThrottle: boolean;
+  diagnosticsNotificationCooldownMinutes: number;
+  diagnosticsComponentCpu: boolean;
+  diagnosticsComponentGpu: boolean;
+  diagnosticsComponentStorage: boolean;
+  diagnosticsComponentRam: boolean;
+  diagnosticsComponentCooling: boolean;
+  diagnosticsComponentSystem: boolean;
 }
+
+/** preferences.diagnostics contract defaults - kept in sync with the service's
+ *  DiagnosticsSettings defaults (TemperatureInsights.cs). Used for the
+ *  pre-hydrate seed below and by the Settings tab's Reset action. */
+export const DIAGNOSTICS_SETTINGS_DEFAULTS = {
+  cpuTempC: 90,
+  gpuTempC: 85,
+  storageTempC: 70,
+  ramTempC: 60,
+  warningLingerMinutes: 0,
+  notificationsEnabled: false,
+  notifyHighTemp: false,
+  notifyStorageHealth: false,
+  notifyCooling: false,
+  notifyMemoryTest: false,
+  notifySystemDevices: false,
+  notifyGpuThrottle: false,
+  notificationCooldownMinutes: 60,
+  componentCpu: true,
+  componentGpu: true,
+  componentStorage: true,
+  componentRam: true,
+  componentCooling: true,
+  componentSystem: true,
+} as const;
 
 type Patch = Partial<UiSettingsValue>;
 
@@ -137,6 +188,25 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     updateMode: 'always' as UpdateMode,
     updateChannel: 'production' as UpdateChannel,
     lastDismissedUpdateVersion: '',
+    diagnosticsCpuTempC: DIAGNOSTICS_SETTINGS_DEFAULTS.cpuTempC,
+    diagnosticsGpuTempC: DIAGNOSTICS_SETTINGS_DEFAULTS.gpuTempC,
+    diagnosticsStorageTempC: DIAGNOSTICS_SETTINGS_DEFAULTS.storageTempC,
+    diagnosticsRamTempC: DIAGNOSTICS_SETTINGS_DEFAULTS.ramTempC,
+    diagnosticsWarningLingerMinutes: DIAGNOSTICS_SETTINGS_DEFAULTS.warningLingerMinutes,
+    diagnosticsNotificationsEnabled: DIAGNOSTICS_SETTINGS_DEFAULTS.notificationsEnabled,
+    diagnosticsNotifyHighTemp: DIAGNOSTICS_SETTINGS_DEFAULTS.notifyHighTemp,
+    diagnosticsNotifyStorageHealth: DIAGNOSTICS_SETTINGS_DEFAULTS.notifyStorageHealth,
+    diagnosticsNotifyCooling: DIAGNOSTICS_SETTINGS_DEFAULTS.notifyCooling,
+    diagnosticsNotifyMemoryTest: DIAGNOSTICS_SETTINGS_DEFAULTS.notifyMemoryTest,
+    diagnosticsNotifySystemDevices: DIAGNOSTICS_SETTINGS_DEFAULTS.notifySystemDevices,
+    diagnosticsNotifyGpuThrottle: DIAGNOSTICS_SETTINGS_DEFAULTS.notifyGpuThrottle,
+    diagnosticsNotificationCooldownMinutes: DIAGNOSTICS_SETTINGS_DEFAULTS.notificationCooldownMinutes,
+    diagnosticsComponentCpu: DIAGNOSTICS_SETTINGS_DEFAULTS.componentCpu,
+    diagnosticsComponentGpu: DIAGNOSTICS_SETTINGS_DEFAULTS.componentGpu,
+    diagnosticsComponentStorage: DIAGNOSTICS_SETTINGS_DEFAULTS.componentStorage,
+    diagnosticsComponentRam: DIAGNOSTICS_SETTINGS_DEFAULTS.componentRam,
+    diagnosticsComponentCooling: DIAGNOSTICS_SETTINGS_DEFAULTS.componentCooling,
+    diagnosticsComponentSystem: DIAGNOSTICS_SETTINGS_DEFAULTS.componentSystem,
   };
 }
 
@@ -206,6 +276,34 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.timeFormat !== undefined) units.timeFormat = patch.timeFormat;
   if (patch.numberFormat !== undefined) units.numberFormat = patch.numberFormat;
   if (Object.keys(units).length > 0) out.units = units;
+  // diagnostics block
+  const thresholds: Partial<DiagnosticsThresholds> = {};
+  if (patch.diagnosticsCpuTempC !== undefined) thresholds.cpuC = patch.diagnosticsCpuTempC;
+  if (patch.diagnosticsGpuTempC !== undefined) thresholds.gpuC = patch.diagnosticsGpuTempC;
+  if (patch.diagnosticsStorageTempC !== undefined) thresholds.storageC = patch.diagnosticsStorageTempC;
+  if (patch.diagnosticsRamTempC !== undefined) thresholds.ramC = patch.diagnosticsRamTempC;
+  const notifications: Partial<DiagnosticsNotificationPrefs> = {};
+  if (patch.diagnosticsNotificationsEnabled !== undefined) notifications.enabled = patch.diagnosticsNotificationsEnabled;
+  if (patch.diagnosticsNotifyHighTemp !== undefined) notifications.highTemp = patch.diagnosticsNotifyHighTemp;
+  if (patch.diagnosticsNotifyStorageHealth !== undefined) notifications.storageHealth = patch.diagnosticsNotifyStorageHealth;
+  if (patch.diagnosticsNotifyCooling !== undefined) notifications.cooling = patch.diagnosticsNotifyCooling;
+  if (patch.diagnosticsNotifyMemoryTest !== undefined) notifications.memoryTest = patch.diagnosticsNotifyMemoryTest;
+  if (patch.diagnosticsNotifySystemDevices !== undefined) notifications.systemDevices = patch.diagnosticsNotifySystemDevices;
+  if (patch.diagnosticsNotifyGpuThrottle !== undefined) notifications.gpuThrottle = patch.diagnosticsNotifyGpuThrottle;
+  if (patch.diagnosticsNotificationCooldownMinutes !== undefined) notifications.cooldownMinutes = patch.diagnosticsNotificationCooldownMinutes;
+  const components: Partial<DiagnosticsComponentPrefs> = {};
+  if (patch.diagnosticsComponentCpu !== undefined) components.cpu = patch.diagnosticsComponentCpu;
+  if (patch.diagnosticsComponentGpu !== undefined) components.gpu = patch.diagnosticsComponentGpu;
+  if (patch.diagnosticsComponentStorage !== undefined) components.storage = patch.diagnosticsComponentStorage;
+  if (patch.diagnosticsComponentRam !== undefined) components.ram = patch.diagnosticsComponentRam;
+  if (patch.diagnosticsComponentCooling !== undefined) components.cooling = patch.diagnosticsComponentCooling;
+  if (patch.diagnosticsComponentSystem !== undefined) components.system = patch.diagnosticsComponentSystem;
+  const diagnostics: PreferencesPatch['diagnostics'] = {};
+  if (Object.keys(thresholds).length > 0) diagnostics.thresholds = thresholds;
+  if (patch.diagnosticsWarningLingerMinutes !== undefined) diagnostics.warningLingerMinutes = patch.diagnosticsWarningLingerMinutes;
+  if (Object.keys(notifications).length > 0) diagnostics.notifications = notifications;
+  if (Object.keys(components).length > 0) diagnostics.components = components;
+  if (Object.keys(diagnostics).length > 0) out.diagnostics = diagnostics;
   return out;
 }
 
@@ -242,6 +340,25 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
     monitoringTempUnit: (server.units?.monitoringTempUnit as TempUnit) ?? base.monitoringTempUnit,
     timeFormat: (server.units?.timeFormat as TimeFormat) ?? base.timeFormat,
     numberFormat: (server.units?.numberFormat as NumberFormat) ?? base.numberFormat,
+    diagnosticsCpuTempC: server.diagnostics?.thresholds?.cpuC ?? base.diagnosticsCpuTempC,
+    diagnosticsGpuTempC: server.diagnostics?.thresholds?.gpuC ?? base.diagnosticsGpuTempC,
+    diagnosticsStorageTempC: server.diagnostics?.thresholds?.storageC ?? base.diagnosticsStorageTempC,
+    diagnosticsRamTempC: server.diagnostics?.thresholds?.ramC ?? base.diagnosticsRamTempC,
+    diagnosticsWarningLingerMinutes: server.diagnostics?.warningLingerMinutes ?? base.diagnosticsWarningLingerMinutes,
+    diagnosticsNotificationsEnabled: server.diagnostics?.notifications?.enabled ?? base.diagnosticsNotificationsEnabled,
+    diagnosticsNotifyHighTemp: server.diagnostics?.notifications?.highTemp ?? base.diagnosticsNotifyHighTemp,
+    diagnosticsNotifyStorageHealth: server.diagnostics?.notifications?.storageHealth ?? base.diagnosticsNotifyStorageHealth,
+    diagnosticsNotifyCooling: server.diagnostics?.notifications?.cooling ?? base.diagnosticsNotifyCooling,
+    diagnosticsNotifyMemoryTest: server.diagnostics?.notifications?.memoryTest ?? base.diagnosticsNotifyMemoryTest,
+    diagnosticsNotifySystemDevices: server.diagnostics?.notifications?.systemDevices ?? base.diagnosticsNotifySystemDevices,
+    diagnosticsNotifyGpuThrottle: server.diagnostics?.notifications?.gpuThrottle ?? base.diagnosticsNotifyGpuThrottle,
+    diagnosticsNotificationCooldownMinutes: server.diagnostics?.notifications?.cooldownMinutes ?? base.diagnosticsNotificationCooldownMinutes,
+    diagnosticsComponentCpu: server.diagnostics?.components?.cpu ?? base.diagnosticsComponentCpu,
+    diagnosticsComponentGpu: server.diagnostics?.components?.gpu ?? base.diagnosticsComponentGpu,
+    diagnosticsComponentStorage: server.diagnostics?.components?.storage ?? base.diagnosticsComponentStorage,
+    diagnosticsComponentRam: server.diagnostics?.components?.ram ?? base.diagnosticsComponentRam,
+    diagnosticsComponentCooling: server.diagnostics?.components?.cooling ?? base.diagnosticsComponentCooling,
+    diagnosticsComponentSystem: server.diagnostics?.components?.system ?? base.diagnosticsComponentSystem,
   };
 }
 
@@ -298,7 +415,7 @@ export function UiSettingsProvider({
     // client-scoped fields - short-circuit to skip a pointless POST.
     const anyBlock = serverPatch.theme || serverPatch.panel || serverPatch.overlay
       || serverPatch.monitoring || serverPatch.cooling || serverPatch.ui || serverPatch.update
-      || serverPatch.units;
+      || serverPatch.units || serverPatch.diagnostics;
     if (!anyBlock) return;
     if (writeTimer.current) clearTimeout(writeTimer.current);
     // Tracked so the unmount cleanup below can send this exact write instead

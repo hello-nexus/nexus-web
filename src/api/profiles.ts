@@ -69,6 +69,52 @@ export interface OverlaySettings {
   layout: OverlayWidgetDto[];
 }
 
+// preferences.diagnostics - thresholds/notifications/component monitoring for
+// the Diagnostics Settings tab. Mirrors nexus-service's DiagnosticsSettings
+// POCOs verbatim (see plans/diagnostics-monitoring-search-improvements.md
+// "#2 wire contract"). Optional on Preferences: an older service omits it,
+// which the client treats as the contract defaults.
+export interface DiagnosticsThresholds {
+  cpuC: number;
+  gpuC: number;
+  storageC: number;
+  ramC: number;
+}
+
+export interface DiagnosticsNotificationPrefs {
+  enabled: boolean;
+  highTemp: boolean;
+  storageHealth: boolean;
+  cooling: boolean;
+  memoryTest: boolean;
+  systemDevices: boolean;
+  gpuThrottle: boolean;
+  cooldownMinutes: number;
+}
+
+export interface DiagnosticsComponentPrefs {
+  cpu: boolean;
+  gpu: boolean;
+  storage: boolean;
+  ram: boolean;
+  cooling: boolean;
+  system: boolean;
+}
+
+export interface DiagnosticsPrefs {
+  thresholds: DiagnosticsThresholds;
+  warningLingerMinutes: number;
+  notifications: DiagnosticsNotificationPrefs;
+  components: DiagnosticsComponentPrefs;
+}
+
+export interface DiagnosticsPrefsPatch {
+  thresholds?: Partial<DiagnosticsThresholds>;
+  warningLingerMinutes?: number;
+  notifications?: Partial<DiagnosticsNotificationPrefs>;
+  components?: Partial<DiagnosticsComponentPrefs>;
+}
+
 export interface CoolingPrefs {
   fanChannelOrder?: string[];
   // Empty string / null = "auto" (let the UI pick the default temperature
@@ -124,6 +170,7 @@ export interface Preferences {
   ui: UiPrefs;
   update?: UpdatePrefs;
   units?: UnitsPrefs;
+  diagnostics?: DiagnosticsPrefs;
 }
 
 export interface PreferencesPatch {
@@ -135,6 +182,7 @@ export interface PreferencesPatch {
   ui?: Partial<UiPrefs>;
   update?: Partial<UpdatePrefs>;
   units?: Partial<UnitsPrefs>;
+  diagnostics?: DiagnosticsPrefsPatch;
 }
 
 interface GetProfilesResponse {
