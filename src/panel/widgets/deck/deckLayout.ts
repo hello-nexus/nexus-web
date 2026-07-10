@@ -49,6 +49,16 @@ export function padSlots(slots: readonly DeckSlot[], count: number): DeckSlot[] 
   return out;
 }
 
+// A plain number applies uniformly at every folder depth (the touch widget's
+// only usage). A physical Stream Deck target instead reserves a Back key at
+// every folder depth >= 1, so it needs a smaller count there than at the
+// root - hence the depth-indexed function form. See deckTarget.ts.
+export type DepthCount = number | ((depth: number) => number);
+
+function countAt(count: DepthCount, depth: number): number {
+  return typeof count === 'function' ? count(depth) : count;
+}
+
 /**
  * The slot list shown for a folder path, padded to `count`. Returns null when
  * the folder path no longer resolves (e.g. a resize removed the folder) so the
@@ -57,13 +67,13 @@ export function padSlots(slots: readonly DeckSlot[], count: number): DeckSlot[] 
 export function resolveViewSlots(
   deck: DeckConfig,
   folderPath: readonly number[],
-  count: number,
+  count: DepthCount,
 ): DeckSlot[] | null {
-  let slots = padSlots(deck.slots, count);
-  for (const idx of folderPath) {
-    const folder = slots[idx]?.folder;
+  let slots = padSlots(deck.slots, countAt(count, 0));
+  for (let depth = 0; depth < folderPath.length; depth++) {
+    const folder = slots[folderPath[depth]]?.folder;
     if (!folder) return null;
-    slots = padSlots(folder.slots, count);
+    slots = padSlots(folder.slots, countAt(count, depth + 1));
   }
   return slots;
 }
@@ -74,11 +84,11 @@ export function updateSlotAt(
   folderPath: readonly number[],
   slotIndex: number,
   next: DeckSlot,
-  count: number,
+  count: DepthCount,
 ): DeckConfig {
   return {
     ...deck,
-    slots: mapLevel(padSlots(deck.slots, count), folderPath, 0, count, slots =>
+    slots: mapLevel(padSlots(deck.slots, countAt(count, 0)), folderPath, 0, count, slots =>
       slots.map((s, i) => (i === slotIndex ? next : s))),
   };
 }
@@ -89,12 +99,12 @@ export function swapSlots(
   folderPath: readonly number[],
   from: number,
   to: number,
-  count: number,
+  count: DepthCount,
 ): DeckConfig {
   if (from === to) return deck;
   return {
     ...deck,
-    slots: mapLevel(padSlots(deck.slots, count), folderPath, 0, count, slots => {
+    slots: mapLevel(padSlots(deck.slots, countAt(count, 0)), folderPath, 0, count, slots => {
       const out = slots.slice();
       [out[from], out[to]] = [out[to], out[from]];
       return out;
@@ -106,14 +116,14 @@ function mapLevel(
   slots: DeckSlot[],
   folderPath: readonly number[],
   depth: number,
-  count: number,
+  count: DepthCount,
   fn: (slots: DeckSlot[]) => DeckSlot[],
 ): DeckSlot[] {
   if (depth === folderPath.length) return fn(slots);
   const idx = folderPath[depth];
   return slots.map((s, i) => {
     if (i !== idx) return s;
-    const child = padSlots(s.folder?.slots ?? [], count);
+    const child = padSlots(s.folder?.slots ?? [], countAt(count, depth + 1));
     return { ...s, folder: { slots: mapLevel(child, folderPath, depth + 1, count, fn) } };
   });
 }
