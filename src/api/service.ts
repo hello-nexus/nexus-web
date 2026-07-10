@@ -584,6 +584,35 @@ export async function postServiceForm<T>(path: string, form: FormData): Promise<
   }
 }
 
+/**
+ * PUT raw bytes (not JSON) with the standard auth + 401-retry handling. Used
+ * by uploads that carry an opaque binary payload (e.g. a rendered Stream Deck
+ * key bitmap) rather than a JSON body. Same fail-closed-off-LAN behavior as
+ * postServiceForm: a binary body can't be JSON-tunneled over the relay, and
+ * this is a LocalhostOnly desktop affordance in every current caller anyway.
+ */
+export async function putServiceBytes(path: string, bytes: Uint8Array, contentType: string): Promise<Response | null> {
+  if (isTunnelActive() || blockedLocalhostFetch()) return null;
+  try {
+    const token = await getToken();
+    const headers: Record<string, string> = { 'Content-Type': contentType };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const body = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+    let response = await fetch(resolveHttp(path), { ...loopbackFetchInit, method: 'PUT', headers, body });
+    if (response.status === 401) {
+      const newToken = await handleUnauthorized();
+      if (newToken) {
+        headers['Authorization'] = `Bearer ${newToken}`;
+        response = await fetch(resolveHttp(path), { ...loopbackFetchInit, method: 'PUT', headers, body });
+      }
+    }
+    if (!response.ok) return null;
+    return response;
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchServiceBlob(path: string): Promise<Blob | null> {
   // No explicit cache directive: respect the server's Cache-Control header.
   // Effect thumbnails + app icons are static-per-key bytes; the routes that
