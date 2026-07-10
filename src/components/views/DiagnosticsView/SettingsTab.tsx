@@ -60,9 +60,12 @@ export function SettingsTab() {
   const { settings, update } = useUiSettings();
   const [resetOpen, setResetOpen] = useState(false);
 
-  const lingerOptions = durationOptions(t, LINGER_OPTIONS_MINUTES);
-  const cooldownOptions = durationOptions(t, COOLDOWN_OPTIONS_MINUTES);
   const notificationsEnabled = settings.diagnosticsNotificationsEnabled;
+  const lingerOptions = durationOptions(t, LINGER_OPTIONS_MINUTES);
+  const cooldownOptions = durationOptions(t, COOLDOWN_OPTIONS_MINUTES).map(o => ({
+    ...o,
+    disabled: !notificationsEnabled,
+  }));
 
   const doReset = () => {
     update(DEFAULT_PATCH);
