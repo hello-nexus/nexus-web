@@ -14,10 +14,11 @@ interface Props {
 }
 
 /**
- * Owns the docked-search open state + the global ⌘K / Ctrl-K shortcut, and
- * exposes both (plus the app host) via context. The search UI itself lives in
- * the top bar (TopSearch), so this provider renders only its children - mount
- * it near the app root, inside the i18n / settings / service-state providers.
+ * Owns the docked-search open state + the global `/` shortcut (⌘K / Ctrl-K
+ * still toggles it as a fallback), and exposes both (plus the app host) via
+ * context. The search UI itself lives in the top bar (TopSearch), so this
+ * provider renders only its children - mount it near the app root, inside the
+ * i18n / settings / service-state providers.
  */
 export function CommandPaletteProvider({ navigate, onPairPhone, children }: Props) {
   const [isOpen, setIsOpen] = useState(false);
@@ -34,6 +35,20 @@ export function CommandPaletteProvider({ navigate, onPairPhone, children }: Prop
       if ((e.metaKey || e.ctrlKey) && !e.altKey && (e.key === 'k' || e.key === 'K')) {
         e.preventDefault();
         setIsOpen((o) => !o);
+        return;
+      }
+      if (e.key === '/' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        const active = document.activeElement;
+        // A literal slash must still type normally in any editable surface.
+        const isEditable = active instanceof HTMLElement && (
+          active.tagName === 'INPUT'
+          || active.tagName === 'TEXTAREA'
+          || active.tagName === 'SELECT'
+          || active.isContentEditable
+        );
+        if (isEditable) return;
+        e.preventDefault();
+        setIsOpen(true);
       }
     };
     window.addEventListener('keydown', onKey);

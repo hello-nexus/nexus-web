@@ -57,7 +57,7 @@ test('command palette screenshots', async ({ page }) => {
   await page.screenshot({ path: join(OUT, '1-header-trigger.png') });
 
   // Open via the global shortcut.
-  await page.keyboard.press('Control+k');
+  await page.keyboard.press('/');
   const input = page.getByRole('combobox');
   await input.waitFor({ state: 'visible', timeout: 5000 });
   await page.waitForTimeout(300);

@@ -14,7 +14,6 @@ import { buildEntries } from './providers';
 import { scoreEntry } from './match';
 import { frecencyBoost, recordUse, snapshotFrecency, type FrecencyMap } from './frecency';
 import { tryCalc } from './calc';
-import { metaKeyLabel } from './platform';
 import { emitRadialBloomFromElement } from '../lib/backgroundEffects';
 import { HelloGreeting } from './HelloGreeting';
 import { dismissHelloGreeting, useHelloGreetingPending } from './helloGreetingStore';
@@ -28,7 +27,7 @@ const MAX_RECENTS = 5;
 
 /**
  * The top-bar search pill. Resting, it shows the page name and opens on click
- * or ⌘K. Active, it turns into an input with a results box docked directly
+ * or `/`. Active, it turns into an input with a results box docked directly
  * beneath it - no full-screen scrim, the app stays visible behind. Esc or a
  * click outside restores the page title.
  */
@@ -55,7 +54,7 @@ export function TopSearch({ pageTitle, online }: { pageTitle: string; online: bo
   useClickOutside(dockRef, close, isOpen);
 
   // The boot greeting is dismissed by any disruption: opening the palette
-  // (click, ⌘K, or typing, which all require isOpen) or a route/page change.
+  // (click, /, or typing, which all require isOpen) or a route/page change.
   const pendingGreeting = useHelloGreetingPending();
   useEffect(() => {
     if (isOpen) dismissHelloGreeting();
@@ -209,7 +208,6 @@ export function TopSearch({ pageTitle, online }: { pageTitle: string; online: bo
   const sectionLabel = isSuggestions
     ? (results.some((e) => snap.map[e.id]) ? t('search.section.recent') : t('search.section.suggestions'))
     : null;
-  const metaKey = useMemo(() => metaKeyLabel(), []);
 
   return (
     <div className={styles.dock} ref={dockRef} data-no-window-drag>
@@ -239,7 +237,7 @@ export function TopSearch({ pageTitle, online }: { pageTitle: string; online: bo
           className={classNames(styles.pill, styles.pillButton)}
           onClick={open}
           aria-label={t('search.placeholder')}
-          aria-keyshortcuts="Meta+K Control+K"
+          aria-keyshortcuts="/ Meta+K Control+K"
         >
           <Search size={15} className={styles.glyph} aria-hidden />
           {pendingGreeting ? (
@@ -248,7 +246,7 @@ export function TopSearch({ pageTitle, online }: { pageTitle: string; online: bo
             <h1 className={styles.title}>{pageTitle}</h1>
           )}
           <span className={styles.kbdHint} aria-hidden>
-            <kbd>{metaKey}</kbd><kbd>K</kbd>
+            <kbd>/</kbd>
           </span>
         </button>
       )}
