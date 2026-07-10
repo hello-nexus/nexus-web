@@ -47,8 +47,8 @@ export function DiagnosticsWidget({ widget }: WidgetProps) {
 
   return (
     <PanelWidgetShell size={widget.size} className={styles.widget}>
-      <div className={styles.headerRow}>
-        <Stethoscope size={16} className={styles.icon} aria-hidden />
+      <Stethoscope size={28} className={styles.icon} aria-hidden />
+      <div className={styles.overallRow}>
         <PanelStatusDot tone={panelToneFor(health.overall)} />
         <span className={styles.overall}>{t(statusLabelKey(health.overall))}</span>
       </div>
