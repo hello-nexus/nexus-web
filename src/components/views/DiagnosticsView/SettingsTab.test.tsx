@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { SettingsTab } from './SettingsTab';
 
@@ -62,16 +62,17 @@ describe('SettingsTab', () => {
     expect(screen.getByRole('slider', { name: /benchmark\.phase\.ram/ })).toHaveValue('60');
   });
 
-  it('commits a threshold slider drag via onCommit', async () => {
+  it('persists a threshold slider change on every onChange tick', () => {
     mockSettings = baseSettings();
     update.mockClear();
     render(<SettingsTab />);
 
     const cpuSlider = screen.getByRole('slider', { name: /benchmark\.phase\.cpu/ });
-    fireEvent.change(cpuSlider, { target: { value: '95' } });
-    fireEvent.pointerUp(cpuSlider);
+    fireEvent.change(cpuSlider, { target: { value: '92' } });
+    expect(update).toHaveBeenCalledWith({ diagnosticsCpuTempC: 92 });
 
-    await waitFor(() => expect(update).toHaveBeenCalledWith({ diagnosticsCpuTempC: 95 }));
+    fireEvent.change(cpuSlider, { target: { value: '95' } });
+    expect(update).toHaveBeenCalledWith({ diagnosticsCpuTempC: 95 });
   });
 
   it('disables the per-type notification toggles while the master switch is off', () => {

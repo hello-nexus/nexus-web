@@ -11,7 +11,7 @@ import { SettingRow, SettingToggle } from '../../common/SettingRow/SettingRow';
 
 // 0 = "clears immediately"; the rest step through the shared minutes/hours
 // duration templates (diagnostics.duration.minutes / .hours).
-const LINGER_OPTIONS_MINUTES = [0, 15, 30, 60, 120, 360, 1440] as const;
+const LINGER_OPTIONS_MINUTES = [0, 30, 60, 360, 1440] as const;
 const COOLDOWN_OPTIONS_MINUTES = [15, 30, 60, 120, 360, 1440] as const;
 
 type Translate = (key: string, params?: Record<string, string | number>) => string;
@@ -80,32 +80,32 @@ export function SettingsTab() {
       >
         <Slider
           // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-          orientation="stacked" editable trackFill
-          label={t('benchmark.phase.cpu')}
+          orientation="inline" editable trackFill
+          label={t('benchmark.phase.cpu')} ariaLabel={t('benchmark.phase.cpu')}
           value={settings.diagnosticsCpuTempC} min={60} max={105}
           formatValue={v => `${v}°C`}
           onChange={v => update({ diagnosticsCpuTempC: v })}
         />
         <Slider
           // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-          orientation="stacked" editable trackFill
-          label={t('benchmark.phase.gpu')}
+          orientation="inline" editable trackFill
+          label={t('benchmark.phase.gpu')} ariaLabel={t('benchmark.phase.gpu')}
           value={settings.diagnosticsGpuTempC} min={60} max={105}
           formatValue={v => `${v}°C`}
           onChange={v => update({ diagnosticsGpuTempC: v })}
         />
         <Slider
           // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-          orientation="stacked" editable trackFill
-          label={t('benchmark.phase.storage')}
+          orientation="inline" editable trackFill
+          label={t('benchmark.phase.storage')} ariaLabel={t('benchmark.phase.storage')}
           value={settings.diagnosticsStorageTempC} min={40} max={90}
           formatValue={v => `${v}°C`}
           onChange={v => update({ diagnosticsStorageTempC: v })}
         />
         <Slider
           // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-          orientation="stacked" editable trackFill
-          label={t('benchmark.phase.ram')}
+          orientation="inline" editable trackFill
+          label={t('benchmark.phase.ram')} ariaLabel={t('benchmark.phase.ram')}
           value={settings.diagnosticsRamTempC} min={40} max={90}
           formatValue={v => `${v}°C`}
           onChange={v => update({ diagnosticsRamTempC: v })}
