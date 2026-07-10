@@ -29,12 +29,6 @@ export interface CatalogSearchResult {
   filters: Record<string, FilterOption[]>;
 }
 
-export interface CatalogCategories {
-  lastUpdated: string;
-  retailers: Array<{ slug: string; name: string }>;
-  categories: Array<{ key: string; count: number }>;
-}
-
 export async function searchCatalog(
   category: string,
   params: CatalogSearchParams,
