@@ -77,8 +77,9 @@
   flex: none;
 }
 
-// Fixed-width holder so an inline Slider (width:100%) forms a
-// right-aligned bar in the control slot instead of collapsing.
+// Width holder so an inline Slider (width:100%) forms a right-aligned bar in
+// the control slot instead of collapsing. Caps at 12rem, shrinking on narrow
+// (mobile / panel-editor) viewports so it doesn't crowd the label.
 .sliderControl {
-  width: 16rem;
+  width: min(12rem, 45vw);
 }

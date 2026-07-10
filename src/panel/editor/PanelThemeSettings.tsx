@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { ColorPickerWithPresets } from '../../components/common/ColorPickerWithPresets/ColorPickerWithPresets';
-import { Slider } from '../../components/common/Slider/Slider';
 import { Tabs } from '../../components/common/Tabs/Tabs';
-import { SectionHeader } from '../../components/common/SectionHeader/SectionHeader';
 import { SettingsSection } from '../../components/common/SettingsSection/SettingsSection';
 import { SettingSlider, SettingToggle } from '../../components/common/SettingRow/SettingRow';
 import { useTranslation } from '../../lib/i18n';
@@ -184,15 +182,14 @@ export function PanelThemeSettings({
   // Opacity of the solid colour / shader / media over the theme background.
   // First control under the Background header, applying to every mode.
   const backgroundOpacitySlider = (
-    <Slider
-      // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-      orientation="stacked"
+    <SettingSlider
+      editable
+      trackFill
       label={label('panel.settings.backgroundOpacity', 'Background Opacity')}
       value={backgroundOpacityPercent}
       min={0}
       max={100}
       step={1}
-      trackFill={backgroundOpacityPercent}
       formatValue={v => `${v}%`}
       onChange={(v, commit) => {
         const next = v / 100;
@@ -283,84 +280,84 @@ export function PanelThemeSettings({
         </div>
       </SettingsSection>
 
-      {/* Background stays unboxed: a sticky live-preview dock + scrolling
-          effect grid, not a simple settings card. Header restyles via the
-          shared SectionHeader. */}
-      <div className={styles.themeSection}>
-        <SectionHeader>{label('devices.y70.theme.background', 'Background')}</SectionHeader>
-        {backgroundOpacitySlider}
-        {theme.backgroundMode === 'solid' ? (
-          <>
-            {backgroundModeTabs}
-            <ColorPickerWithPresets
-              value={resolvePanelBackground(theme.backgroundColor, theme.backgroundColorLight, resolvedThemeMode)}
-              presets={panelBackgroundPresets(resolvedThemeMode)}
-              fallback={panelBackgroundDefault(resolvedThemeMode)}
-              onPreview={onBackgroundPreview}
-              onCommit={onBackgroundCommit}
-            />
-          </>
-        ) : theme.backgroundMode === 'media' ? (
-          <>
-            {backgroundModeTabs}
-            <BackgroundMediaPicker
-              deviceId={deviceId ?? ''}
-              activeId={theme.backgroundMediaId}
-              deviceAspect={deviceAspect}
-              deviceW={deviceW ?? Math.round(deviceAspect * 1280)}
-              deviceH={deviceH ?? 1280}
-              onSelect={(mediaId, type) => onBackgroundMediaCommit(mediaId, type)}
-            />
-          </>
-        ) : (
-          <>
-            <div className={styles.backgroundDock}>
+      <SettingsSection title={label('devices.y70.theme.background', 'Background')} boxClassName={styles.backgroundBox}>
+        {/* One aside child so the box adds no row dividers; the shader dock is a
+            plain in-box group now, not the old sticky opaque-masked bar. */}
+        <div className={styles.backgroundContent} data-settings-aside>
+          {backgroundOpacitySlider}
+          {theme.backgroundMode === 'solid' ? (
+            <>
               {backgroundModeTabs}
-              <BackgroundEffectPreview
-                effect={backgroundEffect}
-                template={backgroundTemplate}
-                effectState={theme.backgroundEffectState}
+              <ColorPickerWithPresets
+                value={resolvePanelBackground(theme.backgroundColor, theme.backgroundColorLight, resolvedThemeMode)}
+                presets={panelBackgroundPresets(resolvedThemeMode)}
+                fallback={panelBackgroundDefault(resolvedThemeMode)}
+                onPreview={onBackgroundPreview}
+                onCommit={onBackgroundCommit}
               />
-              <Tabs
-                fullWidth
-                tabs={[
-                  // eslint-disable-next-line i18next/no-literal-string -- editor tab id
-                  { key: 'options', label: t('lighting.editor.options') },
-                  // eslint-disable-next-line i18next/no-literal-string -- editor tab id
-                  { key: 'effect', label: t('lighting.rightPane.effect') },
-                ]}
-                activeKey={editorTab}
-                onChange={key => setEditorTab(key as 'options' | 'effect')}
-                ariaLabel={t('lighting.rightPane.label')}
+            </>
+          ) : theme.backgroundMode === 'media' ? (
+            <>
+              {backgroundModeTabs}
+              <BackgroundMediaPicker
+                deviceId={deviceId ?? ''}
+                activeId={theme.backgroundMediaId}
+                deviceAspect={deviceAspect}
+                deviceW={deviceW ?? Math.round(deviceAspect * 1280)}
+                deviceH={deviceH ?? 1280}
+                onSelect={(mediaId, type) => onBackgroundMediaCommit(mediaId, type)}
               />
-            </div>
-            {editorTab === 'options' ? (
-              <AnimateGrid
-                effect={backgroundEffect}
-                onSelect={onBackgroundEffectCommit}
-                effects={PANEL_BACKGROUND_EFFECTS}
-                slotFor={backgroundController.slotFor}
-                versionFor={backgroundController.versionFor}
-                rgbActiveEffect={backgroundController.rgbActiveEffect}
-                panelEffects={panelUsage.effects}
-              />
-            ) : (
-              <EffectControls
-                effect={backgroundController.effect}
-                state={backgroundController.state}
-                bundle={backgroundController.bundle}
-                canReset={backgroundController.canReset}
-                onTemplateSelect={backgroundController.onTemplateSelect}
-                onChange={backgroundController.onChange}
-                onCommit={backgroundController.onCommit}
-                onReset={backgroundController.onReset}
-                rgbActiveSlot={backgroundController.rgbActiveSlot}
-                panelSlots={panelUsage.slotsByEffect.get(backgroundController.effect)}
-              />
-            )}
-          </>
-        )}
-      </div>
+            </>
+          ) : (
+            <>
+              <div className={styles.backgroundDock}>
+                {backgroundModeTabs}
+                <BackgroundEffectPreview
+                  effect={backgroundEffect}
+                  template={backgroundTemplate}
+                  effectState={theme.backgroundEffectState}
+                />
+                <Tabs
+                  fullWidth
+                  tabs={[
+                    // eslint-disable-next-line i18next/no-literal-string -- editor tab id
+                    { key: 'options', label: t('lighting.editor.options') },
+                    // eslint-disable-next-line i18next/no-literal-string -- editor tab id
+                    { key: 'effect', label: t('lighting.rightPane.effect') },
+                  ]}
+                  activeKey={editorTab}
+                  onChange={key => setEditorTab(key as 'options' | 'effect')}
+                  ariaLabel={t('lighting.rightPane.label')}
+                />
+              </div>
+              {editorTab === 'options' ? (
+                <AnimateGrid
+                  effect={backgroundEffect}
+                  onSelect={onBackgroundEffectCommit}
+                  effects={PANEL_BACKGROUND_EFFECTS}
+                  slotFor={backgroundController.slotFor}
+                  versionFor={backgroundController.versionFor}
+                  rgbActiveEffect={backgroundController.rgbActiveEffect}
+                  panelEffects={panelUsage.effects}
+                />
+              ) : (
+                <EffectControls
+                  effect={backgroundController.effect}
+                  state={backgroundController.state}
+                  bundle={backgroundController.bundle}
+                  canReset={backgroundController.canReset}
+                  onTemplateSelect={backgroundController.onTemplateSelect}
+                  onChange={backgroundController.onChange}
+                  onCommit={backgroundController.onCommit}
+                  onReset={backgroundController.onReset}
+                  rgbActiveSlot={backgroundController.rgbActiveSlot}
+                  panelSlots={panelUsage.slotsByEffect.get(backgroundController.effect)}
+                />
+              )}
+            </>
+          )}
+        </div>
+      </SettingsSection>
     </div>
   );
 }
