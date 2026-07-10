@@ -11,12 +11,10 @@
   gap: 10px;
 }
 
-// Background section box: tighter horizontal padding than the default settings
-// box so the solid/animation/media content isn't cramped, especially on the
-// narrow mobile panel.
+// Background section box: standard settings-box padding, so the opacity slider
+// and mode tabs sit at the same left/right inset as every other settings row.
 .backgroundBox {
   gap: 10px;
-  padding: 0.5rem 0.55rem 0.65rem;
 }
 
 .backgroundContent {
@@ -44,14 +42,21 @@
   background: var(--panel-control-bg);
 }
 
-// Shader mode: mode tabs + live preview + Options|Effect tabs as one in-box
-// group above the animate grid / effect controls. All inside the Background
-// settings box, so no sticky pin or opaque mask is needed.
+// Shader mode: mode tabs + live preview + Options|Effect tabs pin to the top of
+// the settings scroller while the animate grid / effect controls scroll under.
+// Inside the Background box now, so the pinned dock must be OPAQUE (to mask the
+// grid) AND read as the box surface: --surface layered over the opaque
+// --backdrop-base is exactly the box's own composite (box = --surface over the
+// page --backdrop-base), so the dock is seamless with the box, not a raised bar.
 .backgroundDock {
+  position: sticky;
+  top: calc(-1 * var(--settings-sticky-inset, 0px));
+  z-index: 2;
   display: flex;
   flex-direction: column;
   gap: 10px;
   padding-bottom: 4px;
+  background: linear-gradient(var(--surface), var(--surface)), var(--backdrop-base);
 }
 
 .backgroundTemplateRow {
