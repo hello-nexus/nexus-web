@@ -1,4 +1,4 @@
-import { ZapOff } from 'lucide-react';
+import { Unlink } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
 import styles from './NexusControlOffIcon.module.scss';
@@ -13,7 +13,7 @@ export function NexusControlOffIcon({ className }: { className?: string }) {
   return (
     <HoverTooltip body={label} side="top">
       <span className={`${styles.icon} ${className ?? ''}`} role="img" aria-label={label}>
-        <ZapOff size={14} aria-hidden />
+        <Unlink size={14} aria-hidden />
       </span>
     </HoverTooltip>
   );
