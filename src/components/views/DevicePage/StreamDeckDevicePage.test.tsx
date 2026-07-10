@@ -3,6 +3,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { StreamDeckSummary } from '../../../api/streamdeck';
 import type { DeckTarget } from '../../../panel/widgets/deck/deckTarget';
 
+vi.mock('../../../api/service', () => ({ isRemoteOrigin: false }));
+
 const mockUseStreamDecks = vi.fn();
 vi.mock('../../../hooks/useStreamDecks', () => ({
   useStreamDecks: () => mockUseStreamDecks(),
@@ -53,7 +55,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockRename.mockResolvedValue(true);
   mockSetBrightness.mockResolvedValue(true);
-  mockUsePhysicalDeckTarget.mockReturnValue({ target: fakeTarget(), loaded: true, replaceAll: vi.fn() });
+  mockUsePhysicalDeckTarget.mockReturnValue({ target: fakeTarget(), loaded: true, error: false, retry: vi.fn(), replaceAll: vi.fn() });
 });
 
 async function renderPage() {
@@ -126,7 +128,7 @@ describe('StreamDeckDevicePage', () => {
     mockUseStreamDecks.mockReturnValue({ decks: [makeDeck({ brightness: 40 })], loaded: true, rename: mockRename, setBrightness: mockSetBrightness });
     await renderPage();
 
-    const slider = screen.getByRole('slider', { name: 'devices.y70.brightness' });
+    const slider = screen.getByRole('slider', { name: 'devices.streamdeck.brightness' });
     fireEvent.change(slider, { target: { value: '75' } });
     fireEvent.pointerUp(slider);
     // Slider defers the commit one tick past pointerup (see Slider.tsx handleEnd).
@@ -148,5 +150,25 @@ describe('StreamDeckDevicePage', () => {
     mockUseStreamDecks.mockReturnValue({ decks: [makeDeck()], loaded: true, rename: mockRename, setBrightness: mockSetBrightness });
     await renderPage();
     expect(screen.queryByRole('button', { name: 'devices.streamdeck.pickerAria' })).toBeNull();
+  });
+
+  it('shows a generic loading state before the deck list has loaded (SMELL 3)', async () => {
+    mockUseStreamDecks.mockReturnValue({ decks: [], loaded: false, rename: mockRename, setBrightness: mockSetBrightness });
+    await renderPage();
+    expect(screen.getByText('common.loading')).toBeInTheDocument();
+    expect(screen.queryByText('devices.streamdeck.notConnected')).toBeNull();
+  });
+
+  it('shows a load-failed message with retry instead of the editor when the physical config fetch errored', async () => {
+    const retry = vi.fn();
+    mockUseStreamDecks.mockReturnValue({ decks: [makeDeck()], loaded: true, rename: mockRename, setBrightness: mockSetBrightness });
+    mockUsePhysicalDeckTarget.mockReturnValue({ target: null, loaded: true, error: true, retry, replaceAll: vi.fn() });
+    await renderPage();
+
+    expect(screen.getByText('panel.settings.deck.rail.loadFailed')).toBeInTheDocument();
+    expect(screen.queryByTestId('deck-editor')).toBeNull();
+
+    fireEvent.click(screen.getByText('panel.settings.deck.rail.retry'));
+    expect(retry).toHaveBeenCalledTimes(1);
   });
 });
