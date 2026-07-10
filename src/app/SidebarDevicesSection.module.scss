@@ -100,18 +100,6 @@
   opacity: 0.55;
 }
 
-.itemControlOff {
-  // Reads as "not managed by Nexus" rather than "disconnected": the glyph
-  // loses its colour instead of the whole row just fading, so it stays
-  // visually distinct from .itemOffline even on the collapsed rail.
-  opacity: 0.8;
-
-  .icon {
-    filter: grayscale(1);
-    opacity: 0.55;
-  }
-}
-
 // Device icon slot. The SVG assets use stroke="currentColor", which
 // only works when the SVG is rendered inline in the host DOM. To get
 // the same color treatment that lucide icons (used by the app rows)
