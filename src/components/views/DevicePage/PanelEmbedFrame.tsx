@@ -141,6 +141,16 @@ export function PanelEmbedFrame({
   const dpr = canvasIsCssPixels ? 1 : (SURFACE_DPR[surface] ?? (canvasDpi ? canvasDpi / 160 : 1));
   const canvasW = Math.round(nativeW / dpr);
   const canvasH = Math.round(nativeH / dpr);
+  // Native-pixel canvases (simulated presets, per-surface profiles) know their
+  // physical density (canvasDpi, native px/inch), and the divisor above puts
+  // the iframe in CSS px, so the CSS-px density is canvasDpi/dpr. Forward it
+  // whenever the parent didn't supply one: the child's own estimate
+  // (estimateRuntimePanelDpi) reads the HOST's devicePixelRatio inside the
+  // iframe, so the simulated grid would vary with the host display. CSS-px
+  // canvases (live records) keep the parent-supplied value; their record DPR
+  // is unknown here.
+  const effectiveGridDpi = gridDpi
+    ?? (!canvasIsCssPixels && canvasDpi ? canvasDpi / dpr : undefined);
   const [measured, setMeasured] = useState({
     w: canvasW * 0.35,
     h: canvasH * 0.35,
@@ -220,7 +230,7 @@ export function PanelEmbedFrame({
     post({
       type: 'simulator/init',
       surface,
-      dpi: gridDpi,
+      dpi: effectiveGridDpi,
       layout,
       theme,
       themeMode,
@@ -259,8 +269,8 @@ export function PanelEmbedFrame({
   // fetch races the iframe boot), so mirror it like the other props.
   useEffect(() => {
     if (!childReady) return;
-    post({ type: 'simulator/set-grid', dpi: gridDpi });
-  }, [childReady, gridDpi, post]);
+    post({ type: 'simulator/set-grid', dpi: effectiveGridDpi });
+  }, [childReady, effectiveGridDpi, post]);
 
   useEffect(() => {
     if (!childReady) return;

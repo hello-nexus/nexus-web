@@ -500,9 +500,18 @@ export function PanelContent({
     // Before `loaded`, `layout` is the local fallback default; persisting a
     // re-paginated default would race the in-flight fetch and overwrite the
     // user's saved edits.
-    if (!loaded) return;
+    //
+    // Never auto-persist from the simulator: the parent owns layout authority
+    // (PanelEmbedFrame's set-layout/layout-changed contract), and its
+    // normalizePanelLayout repack uses fixed per-surface columns while this
+    // repagination uses runtime capacity. When the two disagree (responsive
+    // phone/monitor grids), echoing the repaginated layout ping-pongs the two
+    // transforms through postMessage forever - pegged CPU until the WebView
+    // renderer dies. Render the repaginated shape locally; echo only user
+    // edits.
+    if (!loaded || simulator) return;
     if (paginatedLayout !== layout) setLayout(paginatedLayout);
-  }, [paginatedLayout, layout, setLayout, loaded]);
+  }, [paginatedLayout, layout, setLayout, loaded, simulator]);
 
   // Places the OEM bake-in app's widget + sidebar pin for a profile that
   // predates the service reporting it - the embedded desktop dashboard is
