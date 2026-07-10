@@ -37,7 +37,10 @@ export function CommandPaletteProvider({ navigate, onPairPhone, children }: Prop
         setIsOpen((o) => !o);
         return;
       }
-      if (e.key === '/' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      // AltGr (reported as Ctrl+Alt) types '/' on some layouts; allow it, but
+      // reject a real Ctrl-/Alt-/Meta-modified chord.
+      const altGraph = e.getModifierState('AltGraph');
+      if (e.key === '/' && !e.metaKey && (altGraph || (!e.ctrlKey && !e.altKey))) {
         const active = document.activeElement;
         // A literal slash must still type normally in any editable surface.
         const isEditable = active instanceof HTMLElement && (
