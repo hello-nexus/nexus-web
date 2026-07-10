@@ -281,8 +281,8 @@ export function PanelThemeSettings({
       </SettingsSection>
 
       <SettingsSection title={label('devices.y70.theme.background', 'Background')} boxClassName={styles.backgroundBox}>
-        {/* One aside child so the box adds no row dividers; the shader dock is a
-            plain in-box group now, not the old sticky opaque-masked bar. */}
+        {/* Single aside child so the box adds no row dividers between the
+            opacity slider, mode tabs, and the mode content. */}
         <div className={styles.backgroundContent} data-settings-aside>
           {backgroundOpacitySlider}
           {theme.backgroundMode === 'solid' ? (

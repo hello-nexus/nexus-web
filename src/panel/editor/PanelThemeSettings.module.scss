@@ -44,10 +44,10 @@
 
 // Shader mode: mode tabs + live preview + Options|Effect tabs pin to the top of
 // the settings scroller while the animate grid / effect controls scroll under.
-// Inside the Background box now, so the pinned dock must be OPAQUE (to mask the
-// grid) AND read as the box surface: --surface layered over the opaque
-// --backdrop-base is exactly the box's own composite (box = --surface over the
-// page --backdrop-base), so the dock is seamless with the box, not a raised bar.
+// The pinned dock must be OPAQUE (to mask the grid) and read as the enclosing
+// box surface: --surface layered over the opaque --backdrop-base is exactly the
+// box's own composite (box = --surface over the page --backdrop-base), so the
+// dock is seamless with the box rather than a raised bar.
 .backgroundDock {
   position: sticky;
   top: calc(-1 * var(--settings-sticky-inset, 0px));
