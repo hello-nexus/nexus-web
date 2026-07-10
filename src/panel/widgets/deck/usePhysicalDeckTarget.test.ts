@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { usePhysicalDeckTarget } from './usePhysicalDeckTarget';
 import { getStreamDeckConfig, setStreamDeckConfig, uploadStreamDeckKeyImage, type StreamDeckSummary } from '../../../api/streamdeck';
 import { renderDeckBackKeyBitmap, renderDeckKeyBitmap } from './renderDeckKeyBitmap';
+import type { DeckConfig } from './types';
 
 vi.mock('../../../api/streamdeck', () => ({
   getStreamDeckConfig: vi.fn(),
@@ -33,7 +34,18 @@ const flush = () => act(async () => {
   for (let i = 0; i < 5; i++) await Promise.resolve();
 });
 
+async function advance(ms: number) {
+  await act(async () => { await vi.advanceTimersByTimeAsync(ms); });
+}
+
+async function settleInitialSync() {
+  await flush();
+  await advance(300);
+  await flush();
+}
+
 beforeEach(() => {
+  vi.useFakeTimers();
   mockGetConfig.mockResolvedValue({ slots: [] });
   mockSetConfig.mockResolvedValue(true);
   mockUpload.mockResolvedValue('hash');
@@ -42,13 +54,108 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.clearAllTimers();
+  vi.useRealTimers();
   vi.clearAllMocks();
 });
 
-describe('usePhysicalDeckTarget back-key upload', () => {
+describe('usePhysicalDeckTarget - config load errors (RISK 1)', () => {
+  it('sets error and blocks editing when the initial fetch fails, never falling back to an empty config', async () => {
+    mockGetConfig.mockResolvedValue(null);
+    const { result } = renderHook(() => usePhysicalDeckTarget(makeDeck(), []));
+    await flush();
+
+    expect(result.current.error).toBe(true);
+    expect(result.current.target).toBeNull();
+    expect(result.current.loaded).toBe(true);
+    expect(mockSetConfig).not.toHaveBeenCalled();
+  });
+
+  it('retry() re-attempts a failed fetch and recovers into an editable target', async () => {
+    mockGetConfig.mockResolvedValueOnce(null);
+    const { result } = renderHook(() => usePhysicalDeckTarget(makeDeck(), []));
+    await flush();
+    expect(result.current.error).toBe(true);
+
+    mockGetConfig.mockResolvedValueOnce({ slots: [{ label: 'recovered' }] });
+    act(() => { result.current.retry(); });
+    await flush();
+
+    expect(result.current.error).toBe(false);
+    expect(result.current.target).not.toBeNull();
+    expect(result.current.target!.config.slots[0].label).toBe('recovered');
+  });
+});
+
+describe('usePhysicalDeckTarget - debounced sync + rollback (RISK 2, SMELL 1)', () => {
+  it('debounces rapid edits into a single PUT of the latest config', async () => {
+    const { result } = renderHook(() => usePhysicalDeckTarget(makeDeck(), []));
+    await settleInitialSync();
+    mockSetConfig.mockClear();
+
+    act(() => { result.current.target!.updateSlot([], 0, { label: 'a' }); });
+    await advance(100);
+    act(() => { result.current.target!.updateSlot([], 0, { label: 'ab' }); });
+    await advance(100);
+    act(() => { result.current.target!.updateSlot([], 0, { label: 'abc' }); });
+    await advance(300);
+    await flush();
+
+    expect(mockSetConfig).toHaveBeenCalledTimes(1);
+    const [, sentConfig] = mockSetConfig.mock.calls[0] as [string, DeckConfig];
+    expect(sentConfig.slots[0].label).toBe('abc');
+  });
+
+  it('flushes a pending edit immediately on unmount instead of dropping it', async () => {
+    const { result, unmount } = renderHook(() => usePhysicalDeckTarget(makeDeck(), []));
+    await settleInitialSync();
+    mockSetConfig.mockClear();
+
+    act(() => { result.current.target!.updateSlot([], 0, { label: 'unsaved' }); });
+    unmount();
+
+    expect(mockSetConfig).toHaveBeenCalledTimes(1);
+    const [, sentConfig] = mockSetConfig.mock.calls[0] as [string, DeckConfig];
+    expect(sentConfig.slots[0].label).toBe('unsaved');
+  });
+
+  it('flushes a pending edit for the previous deck when switching targets before the debounce fires', async () => {
+    const deckA = makeDeck({ serial: 'SN1' });
+    const { result, rerender } = renderHook(({ d }) => usePhysicalDeckTarget(d, []), { initialProps: { d: deckA } });
+    await settleInitialSync();
+    mockSetConfig.mockClear();
+
+    act(() => { result.current.target!.updateSlot([], 0, { label: 'switch-me' }); });
+    rerender({ d: makeDeck({ serial: 'SN2' }) });
+    await flush();
+
+    expect(mockSetConfig).toHaveBeenCalledTimes(1);
+    const [sentSerial, sentConfig] = mockSetConfig.mock.calls[0] as [string, DeckConfig];
+    expect(sentSerial).toBe('SN1');
+    expect(sentConfig.slots[0].label).toBe('switch-me');
+  });
+
+  it('rolls back local config to server truth when the PUT fails', async () => {
+    const { result } = renderHook(() => usePhysicalDeckTarget(makeDeck(), []));
+    await settleInitialSync();
+
+    mockSetConfig.mockResolvedValueOnce(false);
+    mockGetConfig.mockResolvedValueOnce({ slots: [{ label: 'server-value' }] });
+
+    act(() => { result.current.target!.updateSlot([], 0, { label: 'optimistic-edit' }); });
+    expect(result.current.target!.config.slots[0].label).toBe('optimistic-edit');
+
+    await advance(300);
+    await flush();
+
+    expect(result.current.target!.config.slots[0]?.label).toBe('server-value');
+  });
+});
+
+describe('usePhysicalDeckTarget - back-key upload', () => {
   it('renders and uploads the back-chevron bitmap once per deck to slotPath "back" state 0', async () => {
     renderHook(() => usePhysicalDeckTarget(makeDeck(), []));
-    await flush();
+    await settleInitialSync();
 
     expect(mockRenderBack).toHaveBeenCalledTimes(1);
     expect(mockUpload).toHaveBeenCalledWith('SN1', 'back', 0, expect.any(Uint8Array), 'bmp');
@@ -57,10 +164,11 @@ describe('usePhysicalDeckTarget back-key upload', () => {
   it('does not re-upload the back bitmap when only the folder path changes', async () => {
     const deck = makeDeck();
     const { rerender } = renderHook(({ fp }) => usePhysicalDeckTarget(deck, fp), { initialProps: { fp: [] as number[] } });
-    await flush();
+    await settleInitialSync();
     expect(mockRenderBack).toHaveBeenCalledTimes(1);
 
     rerender({ fp: [0] });
+    await advance(300);
     await flush();
 
     expect(mockRenderBack).toHaveBeenCalledTimes(1);
@@ -68,11 +176,11 @@ describe('usePhysicalDeckTarget back-key upload', () => {
 
   it('re-uploads the back bitmap when switching to a different deck serial', async () => {
     const { rerender } = renderHook(({ d }) => usePhysicalDeckTarget(d, []), { initialProps: { d: makeDeck({ serial: 'SN1' }) } });
-    await flush();
+    await settleInitialSync();
     expect(mockRenderBack).toHaveBeenCalledTimes(1);
 
     rerender({ d: makeDeck({ serial: 'SN2' }) });
-    await flush();
+    await settleInitialSync();
 
     expect(mockRenderBack).toHaveBeenCalledTimes(2);
     expect(mockUpload).toHaveBeenCalledWith('SN2', 'back', 0, expect.any(Uint8Array), 'bmp');
@@ -80,14 +188,14 @@ describe('usePhysicalDeckTarget back-key upload', () => {
 
   it('passes the server-authoritative transform through to the back-bitmap render model', async () => {
     renderHook(() => usePhysicalDeckTarget(makeDeck({ transform: 'none' }), []));
-    await flush();
+    await settleInitialSync();
 
     expect(mockRenderBack).toHaveBeenCalledWith({ keyPixels: 80, format: 'bmp', transform: 'none' });
   });
 
   it('falls back to the model-derived transform when the server does not send one', async () => {
     renderHook(() => usePhysicalDeckTarget(makeDeck({ model: 'Mini', transform: undefined }), []));
-    await flush();
+    await settleInitialSync();
 
     expect(mockRenderBack).toHaveBeenCalledWith({ keyPixels: 80, format: 'bmp', transform: 'mirrorXRot90' });
   });
