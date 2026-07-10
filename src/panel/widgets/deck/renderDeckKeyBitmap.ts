@@ -136,7 +136,7 @@ async function encodeJpeg(img: { width: number; height: number; data: Uint8Clamp
   canvas.height = img.height;
   const ctx = canvas.getContext('2d');
   if (!ctx) return new Uint8Array();
-  ctx.putImageData(new ImageData(img.data, img.width, img.height), 0, 0);
+  ctx.putImageData(new ImageData(new Uint8ClampedArray(img.data), img.width, img.height), 0, 0);
   const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', JPEG_QUALITY));
   if (!blob) return new Uint8Array();
   return new Uint8Array(await blob.arrayBuffer());

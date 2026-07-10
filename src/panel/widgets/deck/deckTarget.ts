@@ -2,7 +2,7 @@
 // touch widget's config.deck patch path and a physical Stream Deck's
 // serial-keyed service config both implement the same DeckTarget shape, so
 // the grid + inspector never branch on which one they're editing.
-import type { PanelConfigValue, PanelWidget } from '../types';
+import type { PanelConfigValue, PanelWidget } from '../../types';
 import type { DeckConfig, DeckSlot } from './types';
 import {
   deckConfigPatch, innerGridForSize, readDeckConfig, resolveViewSlots, swapSlots, updateSlotAt, type DepthCount,
