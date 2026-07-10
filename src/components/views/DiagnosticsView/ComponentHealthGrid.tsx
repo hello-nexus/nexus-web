@@ -39,16 +39,20 @@ export function ComponentHealthGrid({ components, onNavigate }: ComponentHealthG
           onClick={() => onNavigate(component.kind)}
         >
           {component.reasons.length > 0 && (
-            // Swallow clicks so the InfoTooltip trigger inside a reason
-            // doesn't also fire the card's own onClick via bubbling.
-            <ul className={styles.reasonList} onClick={e => e.stopPropagation()}>
+            <ul className={styles.reasonList}>
               {component.reasons.map((reason, i) => (
                 <li key={i} className={styles.reasonItem}>
                   <div className={styles.reasonText}>
                     <div className={styles.reasonLabel}>{reasonLabel(reason, t)}</div>
                     {reason.summary && <div className={styles.reasonSummary}>{reason.summary}</div>}
                   </div>
-                  {reason.detail && <InfoTooltip message={reason.detail} side="top" />}
+                  {reason.detail && (
+                    // Only the info trigger swallows the click, so tapping the
+                    // reason text still bubbles to the card's navigate onClick.
+                    <span className={styles.reasonInfo} onClick={e => e.stopPropagation()}>
+                      <InfoTooltip message={reason.detail} side="top" />
+                    </span>
+                  )}
                 </li>
               ))}
             </ul>
