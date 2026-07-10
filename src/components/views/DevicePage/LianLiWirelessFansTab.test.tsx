@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { LianLiWirelessCoolingTab } from './LianLiWirelessCoolingTab';
+import { LianLiWirelessFansTab } from './LianLiWirelessFansTab';
 import type { LianLiWirelessState } from '../../../api/lianli-wireless';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -10,6 +10,16 @@ vi.mock('../../../lib/i18n', () => ({
     t: (key: string, vars?: Record<string, unknown>) =>
       vars ? `${key}:${JSON.stringify(vars)}` : key,
   }),
+}));
+
+const mockBindLianLiWirelessFan = vi.fn();
+const mockUnbindLianLiWirelessFan = vi.fn();
+const mockIdentifyLianLiWirelessFan = vi.fn();
+
+vi.mock('../../../api/lianli-wireless', () => ({
+  bindLianLiWirelessFan: (...args: any[]) => mockBindLianLiWirelessFan(...args),
+  unbindLianLiWirelessFan: (...args: any[]) => mockUnbindLianLiWirelessFan(...args),
+  identifyLianLiWirelessFan: (...args: any[]) => mockIdentifyLianLiWirelessFan(...args),
 }));
 
 const mockFetchFanChannels = vi.fn();
@@ -54,6 +64,9 @@ beforeEach(() => {
   mockFetchFanChannels.mockResolvedValue({ channels: channelsFixture });
   mockSetFanSpeed.mockResolvedValue({ error: false });
   mockReleaseFanAuto.mockResolvedValue({ error: false });
+  mockBindLianLiWirelessFan.mockResolvedValue(true);
+  mockUnbindLianLiWirelessFan.mockResolvedValue(true);
+  mockIdentifyLianLiWirelessFan.mockResolvedValue(true);
 });
 
 afterEach(() => {
@@ -61,13 +74,15 @@ afterEach(() => {
 });
 
 async function renderTab(state: LianLiWirelessState | null = wirelessState, onSectionNavigate?: (s: string) => void) {
+  const refresh = vi.fn().mockResolvedValue(undefined);
   await act(async () => {
-    render(<LianLiWirelessCoolingTab state={state} onSectionNavigate={onSectionNavigate} />);
+    render(<LianLiWirelessFansTab state={state} refresh={refresh} onSectionNavigate={onSectionNavigate} />);
   });
+  return refresh;
 }
 
-describe('LianLiWirelessCoolingTab', () => {
-  it('renders a port row per bound fan with live RPM and its channel mode', async () => {
+describe('LianLiWirelessFansTab - cooling controls', () => {
+  it('renders each occupied port with its live RPM and channel mode in the same chain', async () => {
     await renderTab();
 
     expect(screen.getByText('devices.lianli-wireless.fanTypeSlv3Lcd')).toBeInTheDocument();
@@ -85,9 +100,39 @@ describe('LianLiWirelessCoolingTab', () => {
     expect(screen.getByRole('slider', { name: 'devices.lianli-wireless.fanSpeed' })).toBeInTheDocument();
   });
 
-  it('shows the empty note when no wireless fans are bound', async () => {
-    await renderTab({ ...wirelessState, fans: [] });
-    expect(screen.getByText('devices.lianli-wireless.noFansPaired')).toBeInTheDocument();
+  it('shows RPM but no mode controls for an unbound fan (no cooling channel registered)', async () => {
+    await renderTab({ ...wirelessState, fans: [{ ...boundFan, boundToUs: false, slot: 0 }] });
+    expect(screen.getByText('1,918 RPM')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'cooling.card.mode' })).not.toBeInTheDocument();
+  });
+
+  it('renders bind/unbind/identify actions alongside the RPM and mode controls for the same chain', async () => {
+    await renderTab();
+    expect(screen.getAllByRole('button', { name: 'cooling.card.mode' })).toHaveLength(2);
+    expect(screen.getByRole('button', { name: 'devices.lianli-wireless.unbind' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'devices.lianli-wireless.identify' })).toBeInTheDocument();
+  });
+
+  it('renders the header and bind/identify actions for a chain with fanCount 0, with no port rows', async () => {
+    await renderTab({
+      ...wirelessState,
+      fans: [{
+        mac: '112233445566',
+        masterMac: '8A0EEF6232DC',
+        boundToUs: false,
+        channel: 8,
+        slot: 2,
+        devType: 5,
+        fanType: 0,
+        fanCount: 0,
+        rpm: [0, 0, 0, 0],
+        pwm: [0, 0, 0, 0],
+      }],
+    });
+    expect(screen.getByText('devices.lianli-wireless.deviceStrimer')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'devices.lianli-wireless.bind' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'devices.lianli-wireless.identify' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'cooling.card.mode' })).not.toBeInTheDocument();
   });
 
   it('shows the curve hint and, when onSectionNavigate is provided, a Go to Cooling button', async () => {
@@ -122,6 +167,19 @@ describe('LianLiWirelessCoolingTab', () => {
     fireEvent.click(screen.getByRole('option', { name: 'cooling.card.bios' }));
 
     expect(mockReleaseFanAuto).toHaveBeenCalledWith('lianli-wireless:998D1DE566E1:port0');
+  });
+
+  it('committing the manual slider drag calls setFanSpeed with the committed value', async () => {
+    await renderTab();
+
+    const slider = screen.getByRole('slider', { name: 'devices.lianli-wireless.fanSpeed' });
+    fireEvent.change(slider, { target: { value: '80' } });
+    fireEvent.pointerUp(slider);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    expect(mockSetFanSpeed).toHaveBeenCalledWith('lianli-wireless:998D1DE566E1:port0', 80);
   });
 
   it('shows a curve-active note instead of the mode control when a port is Curve-driven', async () => {

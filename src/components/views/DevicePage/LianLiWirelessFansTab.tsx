@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Fan } from 'lucide-react';
+import { Fan, Thermometer } from 'lucide-react';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { CollapsibleSection } from '../../common/CollapsibleSection/CollapsibleSection';
+import { type SelectOption } from '../../common/Select/Select';
+import { SettingSelect } from '../../common/SettingRow/SettingRow';
+import { Slider } from '../../common/Slider/Slider';
 import { Button } from '../../common/Button/Button';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import {
@@ -11,14 +14,20 @@ import {
   type LianLiWirelessFan,
   type LianLiWirelessState,
 } from '../../../api/lianli-wireless';
+import { fetchFanChannels, setFanSpeed, releaseFanAuto, type FanChannel } from '../../../api/cooling';
+import { buildLianLiWirelessCoolingChains, type LianLiWirelessCoolingChain } from './lianliWirelessCoolingUtils';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
-import { formatNumber } from '../../../lib/units';
+import { formatNumber, localizeNumbers } from '../../../lib/units';
 import styles from './LianLiWirelessDevicePage.module.scss';
 
 // Bind/unbind converge on the service in ~2-6s; give up waiting for the
 // state poll to confirm it and let the poll speak for itself past this.
 const BIND_PENDING_TIMEOUT_MS = 10000;
+
+// Matches the shell's wireless-state poll; the generic cooling channels the
+// service derives from that same telemetry move on the same cadence.
+const FAN_CHANNELS_POLL_MS = 2000;
 
 type BindAction = 'bind' | 'unbind';
 
@@ -51,18 +60,26 @@ export function deviceTypeKey(devType: number, fanType: number):
 export interface LianLiWirelessFansTabProps {
   state: LianLiWirelessState | null;
   refresh: () => Promise<void>;
+  onSectionNavigate?: (section: string) => void;
 }
 
 /**
  * Fans tab: connection info + the discovered fan chains with live RPM,
- * bind/unbind and identify controls. The shell owns the state poll; this
- * tab owns the per-fan interaction and pending state.
+ * bind/unbind/identify controls, and (for chains bound to us) the Auto/Manual
+ * speed control for each port - driven through the generic cooling routes
+ * (the service registers every bound port as a "lianli-wireless:{mac}:port{N}"
+ * channel on IFanControlProvider/ICoolingProvider, Slv3CoolingProvider). Curve
+ * assignment is intentionally not offered here; it stays on the central
+ * Cooling page like every other fan channel. The shell owns the wireless
+ * state poll; this tab owns the per-fan interaction, pending state, and its
+ * own poll of the generic cooling channels.
  */
-export function LianLiWirelessFansTab({ state, refresh }: LianLiWirelessFansTabProps) {
+export function LianLiWirelessFansTab({ state, refresh, onSectionNavigate }: LianLiWirelessFansTabProps) {
   const { t } = useTranslation();
   const [pending, setPending] = useState<Record<string, BindAction>>({});
   const [identifying, setIdentifying] = useState<Record<string, boolean>>({});
   const [unbindTarget, setUnbindTarget] = useState<string | null>(null);
+  const [channels, setChannels] = useState<FanChannel[]>([]);
   const aliveRef = useRef(true);
   const pendingTimeoutsRef = useRef<Record<string, ReturnType<typeof window.setTimeout>>>({});
 
@@ -99,6 +116,30 @@ export function LianLiWirelessFansTab({ state, refresh }: LianLiWirelessFansTabP
       pendingTimeoutsRef.current = {};
     };
   }, []);
+
+  const refreshChannels = useCallback(async () => {
+    const r = await fetchFanChannels();
+    if (aliveRef.current && r) setChannels(r.channels);
+  }, []);
+
+  useEffect(() => {
+    void refreshChannels();
+    const onFocus = () => { void refreshChannels(); };
+    window.addEventListener('focus', onFocus);
+    const id = window.setInterval(() => { void refreshChannels(); }, FAN_CHANNELS_POLL_MS);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      window.clearInterval(id);
+    };
+  }, [refreshChannels]);
+
+  const handleSetAuto = useCallback((channelId: string) => {
+    void releaseFanAuto(channelId).then(() => refreshChannels());
+  }, [refreshChannels]);
+
+  const handleSetManual = useCallback((channelId: string, percent: number) => {
+    void setFanSpeed(channelId, percent).then(() => refreshChannels());
+  }, [refreshChannels]);
 
   // Reconcile pending bind/unbind against the freshly polled state: clear a
   // fan's pending flag once boundToUs reports the action's expected value.
@@ -149,6 +190,8 @@ export function LianLiWirelessFansTab({ state, refresh }: LianLiWirelessFansTabP
   }, []);
 
   const loaded = state !== null;
+  const coolingChains = buildLianLiWirelessCoolingChains(state?.fans ?? [], channels);
+  const coolingByMac = new Map(coolingChains.map(c => [c.mac, c]));
 
   return (
     <>
@@ -179,14 +222,30 @@ export function LianLiWirelessFansTab({ state, refresh }: LianLiWirelessFansTabP
             <FanChain
               key={fan.mac}
               fan={fan}
+              coolingChain={coolingByMac.get(fan.mac)}
               pending={pending[fan.mac]}
               identifying={!!identifying[fan.mac]}
               onBind={handleBind}
               onUnbindRequest={setUnbindTarget}
               onIdentify={handleIdentify}
+              onSetAuto={handleSetAuto}
+              onSetManual={handleSetManual}
             />
           ))
           : <p className={styles.emptyNote} data-settings-aside="true">{t('devices.lianli-wireless.noFansPaired')}</p>}
+        <p className={styles.emptyNote} data-settings-aside="true">{t('devices.lianli-wireless.coolingCurveHint')}</p>
+        {onSectionNavigate && (
+          <div className={styles.actionsRow} data-settings-aside="true">
+            <Button
+              size="sm"
+              tone="neutral"
+              icon={<Thermometer size={14} />}
+              onClick={() => onSectionNavigate('cooling')}
+            >
+              {t('devices.lianli-wireless.goToCooling')}
+            </Button>
+          </div>
+        )}
       </SettingsSection>
 
       <ConfirmModal
@@ -203,21 +262,26 @@ export function LianLiWirelessFansTab({ state, refresh }: LianLiWirelessFansTabP
 
 function FanChain({
   fan,
+  coolingChain,
   pending,
   identifying,
   onBind,
   onUnbindRequest,
   onIdentify,
+  onSetAuto,
+  onSetManual,
 }: {
   fan: LianLiWirelessFan;
+  coolingChain: LianLiWirelessCoolingChain | undefined;
   pending: BindAction | undefined;
   identifying: boolean;
   onBind: (mac: string) => void;
   onUnbindRequest: (mac: string) => void;
   onIdentify: (mac: string) => void;
+  onSetAuto: (channelId: string) => void;
+  onSetManual: (channelId: string, percent: number) => void;
 }) {
   const { t } = useTranslation();
-  const { numberFormat } = useUnitPrefs();
   const [open, setOpen] = useState(true);
   const typeLabel = t(`devices.lianli-wireless.${deviceTypeKey(fan.devType, fan.fanType)}` as Parameters<typeof t>[0]);
   const isFan = isFanDevice(fan.devType);
@@ -247,13 +311,15 @@ function FanChain({
     >
       <div className={styles.chainBody}>
         {isFan && fan.rpm.slice(0, fan.fanCount).map((rpm, i) => (
-          <div key={i} className={styles.row}>
-            <span className={styles.rowLabel}>{t('devices.lianli-wireless.fanN', { n: i + 1 })}</span>
-            <span className={styles.rowValue}>
-              <Fan size={12} aria-hidden />
-              {rpm > 0 ? `${formatNumber(rpm, numberFormat)} RPM` : '-'}
-            </span>
-          </div>
+          <FanPortRow
+            key={i}
+            label={t('devices.lianli-wireless.fanN', { n: i + 1 })}
+            rpm={rpm}
+            channel={coolingChain?.ports[i]?.channel ?? null}
+            showControls={fan.boundToUs}
+            onSetAuto={onSetAuto}
+            onSetManual={onSetManual}
+          />
         ))}
         <div className={styles.actionsRow}>
           {fan.boundToUs ? (
@@ -271,5 +337,102 @@ function FanChain({
         </div>
       </div>
     </CollapsibleSection>
+  );
+}
+
+function FanPortRow({
+  label,
+  rpm,
+  channel,
+  showControls,
+  onSetAuto,
+  onSetManual,
+}: {
+  label: string;
+  rpm: number;
+  channel: FanChannel | null;
+  showControls: boolean;
+  onSetAuto: (channelId: string) => void;
+  onSetManual: (channelId: string, percent: number) => void;
+}) {
+  const { t } = useTranslation();
+  const { numberFormat } = useUnitPrefs();
+  const interactingRef = useRef(false);
+  const [draft, setDraft] = useState(channel?.dutyPercent ?? 0);
+
+  useEffect(() => {
+    if (!interactingRef.current && channel) setDraft(channel.dutyPercent);
+  }, [channel]);
+
+  const loaded = channel !== null;
+  const isCurve = channel?.mode === 'Curve';
+  const isManual = channel?.mode === 'Manual';
+  const modeValue = isManual ? 'manual' : 'auto';
+  const modeOptions: SelectOption[] = [
+    { value: 'auto', label: t('cooling.card.bios') },
+    { value: 'manual', label: t('cooling.card.manual') },
+  ];
+
+  return (
+    <div className={styles.portBlock}>
+      <div className={styles.row}>
+        <span className={styles.rowLabel}>{label}</span>
+        <span className={styles.rowValue}>
+          <Fan size={12} aria-hidden />
+          {rpm > 0 ? `${formatNumber(rpm, numberFormat)} RPM` : '-'}
+        </span>
+      </div>
+      {showControls && (
+        isCurve ? (
+          <p className={styles.emptyNote}>{t('devices.lianli-wireless.coolingCurveActive')}</p>
+        ) : (
+          <>
+            <SettingSelect
+              label={t('cooling.card.mode')}
+              value={modeValue}
+              onChange={v => {
+                if (!channel) return;
+                if (v === 'manual') onSetManual(channel.id, draft);
+                else onSetAuto(channel.id);
+              }}
+              options={modeOptions}
+              disabled={!loaded}
+            />
+            {isManual && (
+              <Slider
+                // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
+                orientation="stacked"
+                editable
+                trackFill
+                label={t('devices.lianli-wireless.fanSpeed')}
+                value={draft}
+                min={0}
+                max={100}
+                step={1}
+                formatValue={v => localizeNumbers(`${Math.round(v)}%`, numberFormat)}
+                ariaLabel={t('devices.lianli-wireless.fanSpeed')}
+                onChange={(v, commit) => {
+                  const rounded = Math.round(v);
+                  if (commit) {
+                    interactingRef.current = false;
+                    setDraft(rounded);
+                    if (channel) onSetManual(channel.id, rounded);
+                    return;
+                  }
+                  interactingRef.current = true;
+                  setDraft(rounded);
+                }}
+                onCommit={v => {
+                  interactingRef.current = false;
+                  const rounded = Math.round(v);
+                  setDraft(rounded);
+                  if (channel) onSetManual(channel.id, rounded);
+                }}
+              />
+            )}
+          </>
+        )
+      )}
+    </div>
   );
 }
