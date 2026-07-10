@@ -141,6 +141,9 @@
 // so it reads as supplementary metadata, not a primary control.
 .simulatedBadge {
   flex-shrink: 0;
+  // Match the control-off glyph's right-edge spacing.
+  margin-left: -0.15rem;
+  margin-right: -0.1rem;
   color: var(--text-dim);
   opacity: 0.85;
 }

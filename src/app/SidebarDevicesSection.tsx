@@ -120,7 +120,7 @@ export function SidebarDevicesSection({
                   <span className={styles.label}>{device.shortName}</span>
                   {isSimulated && (
                     <Ghost
-                      size={12}
+                      size={14}
                       className={styles.simulatedBadge}
                       aria-label={t('devices.panels.simulated')}
                     />

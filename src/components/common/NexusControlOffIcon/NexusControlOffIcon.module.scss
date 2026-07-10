@@ -2,6 +2,9 @@
   display: inline-flex;
   align-items: center;
   flex-shrink: 0;
-  margin-left: auto;
+  // Right-aligned by the row's flex:1 label; the small negative margins give the
+  // label a touch more room and pull the glyph nearer the button's right edge.
+  margin-left: -0.15rem;
+  margin-right: -0.1rem;
   color: var(--text-dim);
 }
