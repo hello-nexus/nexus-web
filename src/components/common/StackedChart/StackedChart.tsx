@@ -1,5 +1,6 @@
 import { useMemo, useState, useCallback, useLayoutEffect, useRef, type ReactNode } from 'react';
 import type { SeriesEntry } from '../../../hooks/useProcessMonitor';
+import { useChartHoverTooltip } from '../../../hooks/useChartHoverTooltip';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { localizeNumbers, type NumberFormat } from '../../../lib/units';
@@ -158,14 +159,6 @@ export function StackedChart({
     });
   }, [series, n, xStep, chartH, yMax]);
 
-  const onMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
-    if (n < 2) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const svgX = ((e.clientX - rect.left) / rect.width) * width;
-    const idx = Math.round((svgX - PAD.left) / xStep);
-    setHoverIdx(Math.max(0, Math.min(n - 1, idx)));
-  }, [n, xStep, width]);
-
   const tooltip = useMemo(() => {
     if (hoverIdx === null || series.length === 0) return null;
     const items = series
@@ -175,6 +168,17 @@ export function StackedChart({
     const total = items.reduce((sum, i) => sum + i.val, 0);
     return { items, total: Math.round(total * 10) / 10 };
   }, [hoverIdx, series]);
+
+  const { tooltipRef, trackCursor } = useChartHoverTooltip(wrapRef, tooltip !== null);
+
+  const onMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
+    if (n < 2) return;
+    trackCursor(e);
+    const rect = e.currentTarget.getBoundingClientRect();
+    const svgX = ((e.clientX - rect.left) / rect.width) * width;
+    const idx = Math.round((svgX - PAD.left) / xStep);
+    setHoverIdx(Math.max(0, Math.min(n - 1, idx)));
+  }, [n, xStep, width, trackCursor]);
 
   if (series.length === 0) {
     return (
@@ -241,7 +245,7 @@ export function StackedChart({
       </svg>
 
       {tooltip && (
-        <div className={styles.tooltip}>
+        <div ref={tooltipRef} className={styles.tooltip}>
           <div className={styles.tooltipHeader}>
             {yUnit === 'MB'
               ? t('chart.total', { value: formatMemoryMb(tooltip.total, numberFormat), unit: '' })

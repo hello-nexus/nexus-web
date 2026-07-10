@@ -1,4 +1,5 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useChartHoverTooltip } from '../../../hooks/useChartHoverTooltip';
 import { useTranslation } from '../../../lib/i18n';
 import {
   formatTooltipTimestamp,
@@ -115,15 +116,6 @@ export function TimeSeriesChart({
     return ticks;
   }, [domainT, xTickCount]);
 
-  const onMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
-    if (!domainT) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const svgX = ((e.clientX - rect.left) / rect.width) * width;
-    const [minT, maxT] = domainT;
-    const frac = Math.max(0, Math.min(1, (svgX - PAD.left) / chartW));
-    setHoverT(Math.round(minT + frac * (maxT - minT)));
-  }, [domainT, chartW, width]);
-
   const tooltip = useMemo(() => {
     if (hoverT === null) return null;
     const rows = series
@@ -132,6 +124,18 @@ export function TimeSeriesChart({
     if (rows.length === 0) return null;
     return { t: rows[0].point.t, rows };
   }, [hoverT, series, maxGapMs]);
+
+  const { tooltipRef, trackCursor } = useChartHoverTooltip(wrapRef, tooltip !== null);
+
+  const onMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
+    if (!domainT) return;
+    trackCursor(e);
+    const rect = e.currentTarget.getBoundingClientRect();
+    const svgX = ((e.clientX - rect.left) / rect.width) * width;
+    const [minT, maxT] = domainT;
+    const frac = Math.max(0, Math.min(1, (svgX - PAD.left) / chartW));
+    setHoverT(Math.round(minT + frac * (maxT - minT)));
+  }, [domainT, chartW, width, trackCursor]);
 
   if (!domainT) {
     return (
@@ -228,7 +232,7 @@ export function TimeSeriesChart({
       </svg>
 
       {tooltip && (
-        <div className={styles.tooltip}>
+        <div ref={tooltipRef} className={styles.tooltip}>
           <div className={styles.tooltipHeader}>{formatTooltipTimestamp(tooltip.t, nowMs, language)}</div>
           {tooltip.rows.map(row => (
             <div key={row.id} className={styles.tooltipRow}>

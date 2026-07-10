@@ -28,9 +28,10 @@
 }
 
 .tooltip {
+  // left/top are written per mousemove by useChartHoverTooltip.
   position: absolute;
-  top: 1rem;
-  right: 1.5rem;
+  left: 0;
+  top: 0;
   background: var(--bg-elevated);
   border: 1px solid transparent;
   border-radius: var(--radius);
