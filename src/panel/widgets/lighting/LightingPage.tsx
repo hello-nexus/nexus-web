@@ -1166,13 +1166,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
               effectTabDisabled={effectTabDisabled}
             />
           </div>
-          <div className={styles.masterBrightness}>
-            <GlobalBrightnessSlider serviceOnline={serviceOnline} />
-          </div>
           {activeRightTab === 'devices' ? (
             <>
               <DevicePanel
                 devices={orderedDevices}
+                header={<GlobalBrightnessSlider serviceOnline={serviceOnline} />}
                 selectedIds={selectedDeviceIds}
                 onSelectDevice={handleSelectDevice}
                 onSetSelection={handleSetSelection}
