@@ -5,9 +5,8 @@ import { DIAGNOSTICS_SETTINGS_DEFAULTS, useUiSettings, type UiSettingsValue } fr
 import { Button } from '../../common/Button/Button';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { ChipGroup, type ChipOption } from '../../common/ChipGroup/ChipGroup';
-import { Slider } from '../../common/Slider/Slider';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
-import { SettingRow, SettingToggle } from '../../common/SettingRow/SettingRow';
+import { SettingRow, SettingToggle, SettingSlider } from '../../common/SettingRow/SettingRow';
 
 // 0 = "clears immediately"; the rest step through the shared minutes/hours
 // duration templates (diagnostics.duration.minutes / .hours).
@@ -78,35 +77,31 @@ export function SettingsTab() {
         title={t('diagnostics.settings.thresholds.title')}
         description={t('diagnostics.settings.thresholds.description')}
       >
-        <Slider
-          // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-          orientation="inline" editable trackFill
-          label={t('benchmark.phase.cpu')} ariaLabel={t('benchmark.phase.cpu')}
+        <SettingSlider
+          label={t('benchmark.phase.cpu')}
           value={settings.diagnosticsCpuTempC} min={60} max={105}
+          editable trackFill
           formatValue={v => `${v}°C`}
           onChange={v => update({ diagnosticsCpuTempC: v })}
         />
-        <Slider
-          // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-          orientation="inline" editable trackFill
-          label={t('benchmark.phase.gpu')} ariaLabel={t('benchmark.phase.gpu')}
+        <SettingSlider
+          label={t('benchmark.phase.gpu')}
           value={settings.diagnosticsGpuTempC} min={60} max={105}
+          editable trackFill
           formatValue={v => `${v}°C`}
           onChange={v => update({ diagnosticsGpuTempC: v })}
         />
-        <Slider
-          // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-          orientation="inline" editable trackFill
-          label={t('benchmark.phase.storage')} ariaLabel={t('benchmark.phase.storage')}
+        <SettingSlider
+          label={t('benchmark.phase.storage')}
           value={settings.diagnosticsStorageTempC} min={40} max={90}
+          editable trackFill
           formatValue={v => `${v}°C`}
           onChange={v => update({ diagnosticsStorageTempC: v })}
         />
-        <Slider
-          // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-          orientation="inline" editable trackFill
-          label={t('benchmark.phase.ram')} ariaLabel={t('benchmark.phase.ram')}
+        <SettingSlider
+          label={t('benchmark.phase.ram')}
           value={settings.diagnosticsRamTempC} min={40} max={90}
+          editable trackFill
           formatValue={v => `${v}°C`}
           onChange={v => update({ diagnosticsRamTempC: v })}
         />
