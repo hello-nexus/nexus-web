@@ -1794,6 +1794,7 @@
   "panel.actions.settings": "Ayarlar",
   "panel.add.noMatches": "Eşleşen widget yok",
   "panel.add.searchPlaceholder": "Widget ara...",
+  "panel.add.sizePreference": "Tercih edilen widget boyutu",
   "panel.connectedTo": "Baglanilan",
   "panel.editor.addWidgetTitle": "Bir widget ekle",
   "panel.editor.hostName.hint": "Eşleştirilmiş telefonlara ve panel tepsisinde gösterilir.",
@@ -2854,5 +2855,13 @@
   "welcome.startWithOs.label": "Windows ile başlat",
   "welcome.tagline": "Birleşik bilgisayar kontrolü",
   "welcome.title": "Nexus'a hoş geldiniz",
-  "welcome.error": "Tercihleriniz kaydedilemedi. Lütfen tekrar deneyin."
+  "welcome.error": "Tercihleriniz kaydedilemedi. Lütfen tekrar deneyin.",
+  "monitoring.settings.label": "Etiket",
+  "monitoring.settings.customLabel": "Özel etiket",
+  "monitoring.settings.resetLabel": "Sıfırla",
+  "monitoring.settings.labelAuto": "Otomatik",
+  "monitoring.settings.labelHide": "Gizle",
+  "monitoring.settings.labelCustom": "Özel",
+  "monitoring.settings.scaleAdaptive": "Uyarlanır",
+  "monitoring.settings.scaleFixed": "Sabit"
 }

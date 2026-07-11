@@ -21,9 +21,13 @@ import type { DeviceKey } from '../monitoring/perfSlots';
 import { buildNetworkSensors, networkSensorOptions, NETWORK_SENSOR_TOTAL } from '../monitoring/networkSensors';
 import { bareSensorLabel } from '../monitoring/sensorNames';
 import { extrasSensorsForDevice, sensorsForCategory, smartStorageSensors } from '../monitoring/sensorCategories';
-import { DEFAULT_SCALE_MODE, defaultFixedMax, designSupportsScale, type ScaleMode } from '../monitoring/perfDomain';
-import { resolveSensor } from '../monitoring/MonitoringWidget';
-import { SettingsSection } from '../common/SettingsRow/SettingsRow';
+import { DEFAULT_SCALE_MODE, defaultFixedMax, designSupportsRange, staticMaxForDevice, type ScaleMode } from '../monitoring/perfDomain';
+import { RotateCcw } from 'lucide-react';
+import { labelForDevice, resolveSensor } from '../monitoring/MonitoringWidget';
+import { bottomLabelForDevice } from '../monitoring/MicroMonitoringWidget';
+import { SettingsSection, SettingsRow } from '../common/SettingsRow/SettingsRow';
+import { ChipGroup } from '../../../components/common/ChipGroup/ChipGroup';
+import { DesktopOnlyBadge } from '../../../components/common/DesktopOnlyBadge/DesktopOnlyBadge';
 import styles from './MonitoringSettings.module.scss';
 
 // A blank field commits the fallback (0 for min, the sensor's default ceiling
@@ -35,9 +39,17 @@ function parseFixedRangeInput(raw: string, fallback: number): number {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-const SCALE_OPTIONS: { value: ScaleMode; label: string }[] = [
-  { value: 'adaptive', label: 'Adaptive' },
-  { value: 'fixed',    label: 'Fixed' },
+const SCALE_OPTIONS: { value: ScaleMode; labelKey: string }[] = [
+  { value: 'adaptive', labelKey: 'monitoring.settings.scaleAdaptive' },
+  { value: 'fixed',    labelKey: 'monitoring.settings.scaleFixed' },
+];
+
+// Auto / Hide / Custom caption modes. Keys are stored in `*_labelMode`
+// (absent = auto); labels route through i18n at render.
+const LABEL_MODE_OPTIONS: { key: string; labelKey: string }[] = [
+  { key: 'auto',   labelKey: 'monitoring.settings.labelAuto' },
+  { key: 'hide',   labelKey: 'monitoring.settings.labelHide' },
+  { key: 'custom', labelKey: 'monitoring.settings.labelCustom' },
 ];
 
 interface SensorOption {
@@ -251,6 +263,112 @@ function microNormalizationPatch(
   return patch;
 }
 
+// Derived label a micro sensor row would show, used as the override field's
+// placeholder. Mirrors MicroRow: strip the device prefix, fall back to the raw
+// sensor name. fps sensors don't resolve here (settings has no fps stream), so
+// they fall through to the stored name.
+function microAutoLabel(
+  device: DeviceKey,
+  rawName: string,
+  sensors: ReturnType<typeof useSensors>,
+  networkSensors: ReturnType<typeof buildNetworkSensors>,
+  extras: ReturnType<typeof useSensorExtras>,
+): string {
+  const effectiveName = device === 'network' && !rawName ? NETWORK_SENSOR_TOTAL : rawName;
+  const sensor = resolveSensor(sensors, [], networkSensors, device, effectiveName, undefined, extras);
+  const name = sensor?.name ?? '';
+  return bareSensorLabel(device, name) || name || effectiveName;
+}
+
+// Config writes for one caption's Auto/Hide/Custom chip + live text field.
+// The custom text (labelKey) is retained across mode switches - switching to
+// Auto/Hide only flips modeKey, so returning to Custom restores what was typed;
+// entering Custom the first time seeds it with the derived name so the field
+// shows real text, not a grey placeholder. Reset refills the field with the
+// current derived name (it does not leave Custom mode).
+function labelControlHandlers(
+  onUpdate: (patch: Record<string, PanelConfigValue>) => void,
+  modeKey: string,
+  labelKey: string,
+  override: string,
+  autoLabel: string,
+) {
+  return {
+    onSelectMode: (next: string) => {
+      if (next === 'custom') {
+        onUpdate(override.trim() ? { [modeKey]: 'custom' } : { [modeKey]: 'custom', [labelKey]: autoLabel });
+      } else if (next === 'hide') {
+        onUpdate({ [modeKey]: 'hide' });
+      } else {
+        onUpdate({ [modeKey]: null });
+      }
+    },
+    onChangeText: (value: string) => onUpdate({ [labelKey]: value }),
+    onReset: () => onUpdate({ [labelKey]: autoLabel }),
+  };
+}
+
+// A caption's Label control: a "Label" row with the Auto / Hide / Custom chips
+// aligned right, and (in Custom) a live text field with a reset-to-sensor-name
+// glyph. Rendered inline as the second line of the Sensor/Device block. Shared
+// by the per-slot, micro per-sensor, and micro category editors. The free-text
+// field is desktop-only (canType); a kiosk sheet shows a badge instead.
+function LabelControls({
+  mode,
+  override,
+  autoLabel,
+  canType,
+  onSelectMode,
+  onChangeText,
+  onReset,
+}: {
+  mode: string;
+  override: string;
+  autoLabel: string;
+  canType: boolean;
+  onSelectMode: (mode: string) => void;
+  onChangeText: (value: string) => void;
+  onReset: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    // data-settings-aside opts the block out of the SettingsSection hairline
+    // divider so the Label row has no separator above (the selects) or below.
+    <div className={styles.labelBlock} data-settings-aside="true">
+      <SettingsRow label={t('monitoring.settings.label')}>
+        <ChipGroup
+          ariaLabel={t('monitoring.settings.label')}
+          activeKey={mode}
+          onChange={onSelectMode}
+          options={LABEL_MODE_OPTIONS.map(o => ({ key: o.key, label: t(o.labelKey) }))}
+        />
+      </SettingsRow>
+      {mode === 'custom' && (canType ? (
+        <div className={styles.labelFieldRow}>
+          <div className={styles.labelField}>
+            <TextInput
+              size="sm"
+              value={override}
+              placeholder={autoLabel}
+              maxLength={40}
+              ariaLabel={t('monitoring.settings.customLabel')}
+              onInput={onChangeText}
+            />
+          </div>
+          <IconLabelButton
+            className={styles.labelResetBtn}
+            icon={<RotateCcw size={14} aria-hidden="true" />}
+            ariaLabel={t('monitoring.settings.resetLabel')}
+            onPress={onReset}
+          />
+        </div>
+      ) : (
+        <DesktopOnlyBadge />
+      ))}
+    </div>
+  );
+}
+
 export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, selectedSlot = 0 }: WidgetSettingsProps) {
   const { t } = useTranslation();
   const sensors = useSensors(true);
@@ -343,6 +461,22 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
       label: t(CATEGORY_LABEL_KEYS[category]),
       disabled: !deviceHasEnoughSensorsForMicro(sensors, networkSensors, extras, category, count),
     }));
+    const microCanType = canEditFreeText(surface, desktopEditor);
+    // Micro has one shared range for every bar (no per-slot scale). The default
+    // Fixed ceiling is the device's static max; the user types free overrides.
+    const microScale = (widget.config?.micro_scale as ScaleMode | undefined) ?? DEFAULT_SCALE_MODE;
+    const microFixedDefaultMax = staticMaxForDevice(microDevice);
+    const microFixedMin = (widget.config?.micro_min as number | undefined) ?? 0;
+    const microFixedMax = (widget.config?.micro_max as number | undefined) ?? microFixedDefaultMax;
+    const microFixedRangeInvalid = microFixedMin >= microFixedMax;
+    const commitMicroMin = (raw: string) => {
+      const parsed = parseFixedRangeInput(raw, 0);
+      if (parsed !== microFixedMin) onUpdate({ micro_min: parsed });
+    };
+    const commitMicroMax = (raw: string) => {
+      const parsed = parseFixedRangeInput(raw, microFixedDefaultMax);
+      if (parsed !== microFixedMax) onUpdate({ micro_max: parsed });
+    };
 
     return (
       <div className={styles.settingsRoot}>
@@ -362,25 +496,94 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
             options={microDeviceOptions}
             ariaLabel={t('monitoring.settings.device')}
           />
+          {(() => {
+            const catOverride = (widget.config?.micro_category as string | undefined) ?? '';
+            const catAuto = bottomLabelForDevice(microDevice, sensors, t);
+            return (
+              <LabelControls
+                mode={(widget.config?.micro_categoryMode as string | undefined) ?? 'auto'}
+                override={catOverride}
+                autoLabel={catAuto}
+                canType={microCanType}
+                {...labelControlHandlers(onUpdate, 'micro_categoryMode', 'micro_category', catOverride, catAuto)}
+              />
+            );
+          })()}
         </SettingsSection>
 
         <SettingsSection title={t('monitoring.settings.sensors')}>
           <div className={styles.microSensorList}>
-            {microSensorNames.map((name, i) => (
-              <Select
-                key={i}
-                className={styles.selectWide}
-                value={selectedSensorValue(microSensorOptions, name)}
-                onChange={v => onUpdate({ [`micro_sensor${i}`]: v })}
-                options={microSensorOptions}
-                ariaLabel={`Sensor ${i + 1}`}
+            {microSensorNames.map((name, i) => {
+              const sOverride = (widget.config?.[`micro_sensor${i}_label`] as string | undefined) ?? '';
+              const sAuto = microAutoLabel(microDevice, name, sensors, networkSensors, extras);
+              return (
+                <div key={i} className={styles.microSensorRow}>
+                  <Select
+                    className={styles.selectWide}
+                    value={selectedSensorValue(microSensorOptions, name)}
+                    onChange={v => onUpdate({ [`micro_sensor${i}`]: v })}
+                    options={microSensorOptions}
+                    ariaLabel={`Sensor ${i + 1}`}
+                  />
+                  <LabelControls
+                    mode={(widget.config?.[`micro_sensor${i}_labelMode`] as string | undefined) ?? 'auto'}
+                    override={sOverride}
+                    autoLabel={sAuto}
+                    canType={microCanType}
+                    {...labelControlHandlers(onUpdate, `micro_sensor${i}_labelMode`, `micro_sensor${i}_label`, sOverride, sAuto)}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </SettingsSection>
+
+        <SettingsSection title={t('monitoring.settings.range')}>
+          <div className={styles.scaleRow}>
+            {SCALE_OPTIONS.map(opt => (
+              <IconLabelButton
+                key={opt.value}
+                className={styles.scaleBtn}
+                active={opt.value === microScale}
+                label={t(opt.labelKey)}
+                onPress={() => onUpdate({ micro_scale: opt.value })}
               />
             ))}
           </div>
+          {microScale === 'fixed' && microCanType && (
+            <div className={styles.rangeRow}>
+              <div className={styles.rangeField}>
+                <span className={styles.rangeFieldLabel}>{t('monitoring.settings.rangeMin')}</span>
+                <TextInput
+                  type="number"
+                  size="sm"
+                  value={String(microFixedMin)}
+                  ariaLabel={t('monitoring.settings.rangeMin')}
+                  invalid={microFixedRangeInvalid}
+                  onBlur={commitMicroMin}
+                />
+              </div>
+              <div className={styles.rangeField}>
+                <span className={styles.rangeFieldLabel}>{t('monitoring.settings.rangeMax')}</span>
+                <TextInput
+                  type="number"
+                  size="sm"
+                  value={String(microFixedMax)}
+                  ariaLabel={t('monitoring.settings.rangeMax')}
+                  invalid={microFixedRangeInvalid}
+                  onBlur={commitMicroMax}
+                />
+              </div>
+            </div>
+          )}
         </SettingsSection>
       </div>
     );
   }
+
+  const slotLabelMode = (widget.config?.[`slot${activeSlot}_labelMode`] as string | undefined) ?? 'auto';
+  const slotLabelOverride = (widget.config?.[`slot${activeSlot}_label`] as string | undefined) ?? '';
+  const slotAutoLabel = activeConfig ? labelForDevice(activeConfig.device, activeSensor?.name ?? activeConfig.sensorName) : '';
 
   return (
     <div className={styles.settingsRoot}>
@@ -415,6 +618,13 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
                 ariaLabel={t('monitoring.settings.sensor')}
               />
             </div>
+            <LabelControls
+              mode={slotLabelMode}
+              override={slotLabelOverride}
+              autoLabel={slotAutoLabel}
+              canType={canEditFreeText(surface, desktopEditor)}
+              {...labelControlHandlers(onUpdate, `slot${activeSlot}_labelMode`, `slot${activeSlot}_label`, slotLabelOverride, slotAutoLabel)}
+            />
           </SettingsSection>
 
           <SettingsSection title={t('monitoring.settings.design')}>
@@ -437,7 +647,7 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
             </div>
           </SettingsSection>
 
-          {designSupportsScale(activeConfig.design) && (
+          {designSupportsRange(activeConfig.design) && (
             <SettingsSection title={t('monitoring.settings.range')}>
               <div className={styles.scaleRow}>
                 {SCALE_OPTIONS.map(opt => (
@@ -445,7 +655,7 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
                     key={opt.value}
                     className={styles.scaleBtn}
                     active={opt.value === activeConfig.scale}
-                    label={opt.label}
+                    label={t(opt.labelKey)}
                     onPress={() => onUpdate({ [`slot${activeSlot}_scale`]: opt.value })}
                   />
                 ))}

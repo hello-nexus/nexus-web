@@ -81,6 +81,48 @@
   gap: 6px;
 }
 
+// Each micro row stacks its sensor select above its label controls; a divider
+// keeps the per-sensor groups visually distinct in the taller list.
+.microSensorRow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 8px;
+
+  &:not(:last-child) {
+    border-bottom: 1px solid var(--border);
+  }
+}
+
+// Label chip row + optional custom field, grouped so the SettingsSection
+// hairline divider (opted out via data-settings-aside) skips the whole block.
+.labelBlock {
+  display: flex;
+  flex-direction: column;
+}
+
+// Custom text field + reset glyph, the second line under the Label chip row.
+.labelFieldRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.labelField {
+  flex: 1;
+  min-width: 0;
+}
+
+// Icon-only reset at the right end of the custom field row.
+.labelResetBtn {
+  flex: 0 0 auto;
+  --icon-label-button-height: 32px;
+  --icon-label-button-min-width: 32px;
+  --icon-label-button-padding-x: 0;
+  --icon-label-icon-size: 15px;
+}
+
 .selectSmall {
   flex: 0 0 auto;
   width: 160px;

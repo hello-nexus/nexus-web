@@ -1794,6 +1794,7 @@
   "panel.actions.settings": "设置",
   "panel.add.noMatches": "未找到匹配的小部件",
   "panel.add.searchPlaceholder": "搜索小部件...",
+  "panel.add.sizePreference": "首选小部件大小",
   "panel.connectedTo": "已连接到",
   "panel.editor.addWidgetTitle": "添加小组件",
   "panel.editor.hostName.hint": "显示给已配对的手机及面板托盘。",
@@ -2854,5 +2855,13 @@
   "welcome.startWithOs.label": "随 Windows 启动",
   "welcome.tagline": "统一电脑控制",
   "welcome.title": "欢迎使用 Nexus",
-  "welcome.error": "无法保存偏好设置，请重试。"
+  "welcome.error": "无法保存偏好设置，请重试。",
+  "monitoring.settings.label": "标签",
+  "monitoring.settings.customLabel": "自定义标签",
+  "monitoring.settings.resetLabel": "重置",
+  "monitoring.settings.labelAuto": "自动",
+  "monitoring.settings.labelHide": "隐藏",
+  "monitoring.settings.labelCustom": "自定义",
+  "monitoring.settings.scaleAdaptive": "自适应",
+  "monitoring.settings.scaleFixed": "固定"
 }

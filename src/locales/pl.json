@@ -1794,6 +1794,7 @@
   "panel.actions.settings": "Ustawienia",
   "panel.add.noMatches": "Brak pasujących widżetów",
   "panel.add.searchPlaceholder": "Szukaj widżetów...",
+  "panel.add.sizePreference": "Preferowany rozmiar widżetu",
   "panel.connectedTo": "Połączono z",
   "panel.editor.addWidgetTitle": "Dodaj widżet",
   "panel.editor.hostName.hint": "Wyświetlana sparowanym telefonom i w zasobniku panelu.",
@@ -2854,5 +2855,13 @@
   "welcome.startWithOs.label": "Uruchamiaj z Windows",
   "welcome.tagline": "Ujednolicone sterowanie komputerem",
   "welcome.title": "Witamy w Nexus",
-  "welcome.error": "Nie udało się zapisać Twoich preferencji. Spróbuj ponownie."
+  "welcome.error": "Nie udało się zapisać Twoich preferencji. Spróbuj ponownie.",
+  "monitoring.settings.label": "Etykieta",
+  "monitoring.settings.customLabel": "Własna etykieta",
+  "monitoring.settings.resetLabel": "Resetuj",
+  "monitoring.settings.labelAuto": "Auto",
+  "monitoring.settings.labelHide": "Ukryj",
+  "monitoring.settings.labelCustom": "Własny",
+  "monitoring.settings.scaleAdaptive": "Adaptacyjny",
+  "monitoring.settings.scaleFixed": "Stały"
 }
