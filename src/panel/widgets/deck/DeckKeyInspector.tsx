@@ -5,12 +5,11 @@ import { useTranslation } from '../../../lib/i18n';
 import { DECK_SWATCHES } from '../../../lib/settings';
 import { fetchService } from '../../../api/service';
 import { CollapsibleSection } from '../../../components/common/CollapsibleSection/CollapsibleSection';
-import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
+import { ChipGroup } from '../../../components/common/ChipGroup/ChipGroup';
 import { Select } from '../../../components/common/Select/Select';
 import { Slider } from '../../../components/common/Slider/Slider';
 import { SectionHeader } from '../../../components/common/SectionHeader/SectionHeader';
-import { Toggle } from '../../../components/common/Toggle/Toggle';
-import { SettingsSection } from '../common/SettingsRow/SettingsRow';
+import { SettingsSection, SettingsRow, SettingsToggle, SettingsSelect } from '../common/SettingsRow/SettingsRow';
 import { AppPicker } from '../common/AppPicker';
 import { IconPicker } from '../common/IconPicker';
 import { DesktopOnlyBadge } from '../../../components/common/DesktopOnlyBadge/DesktopOnlyBadge';
@@ -20,7 +19,7 @@ import { HotkeyInput } from './HotkeyInput';
 import { padSlots } from './deckLayout';
 import { resolveTargetView, slotCountAtDepth, type DeckTarget } from './deckTarget';
 import {
-  DECK_TITLE_FONTS, DECK_TITLE_SIZE_MAX, DECK_TITLE_SIZE_MIN, resolveDeckTitleStyle, type DeckTitleAlign,
+  DECK_TITLE_FONTS, DECK_TITLE_SIZE_OPTIONS, resolveDeckTitleStyle, type DeckTitleAlign,
 } from './deckTitleStyle';
 import type { DeckAction, DeckActionType, DeckSlot, DeckTitleStyle } from './types';
 import styles from './DeckKeyInspector.module.scss';
@@ -185,7 +184,8 @@ function ActionFields({ action, onChange, allowed, surface, desktopEditor, pageC
 
   switch (action.type) {
     case 'launchApp':
-      return <Field label={t('panel.settings.deck.action.launchApp')}><AppPicker selectedId={action.appId} onSelect={app => onChange({ type: 'launchApp', appId: app.id })} /></Field>;
+      // No wrapping Field label: the Action box header already reads "Launch app".
+      return <AppPicker selectedId={action.appId} onSelect={app => onChange({ type: 'launchApp', appId: app.id })} />;
     case 'openUrl': {
       const canType = canEditFreeText(surface, desktopEditor);
       return (
@@ -428,37 +428,53 @@ const TITLE_ALIGN_LABEL_KEY: Record<DeckTitleAlign, string> = {
   bottom: 'panel.settings.deck.titleStyle.alignBottom',
 };
 
-/** Elgato-style font panel for the slot's label: show toggle, alignment, font, size, B/I/U, and text color. */
-function TitleStyleFields({ title, onChange }: { title: DeckTitleStyle | undefined; onChange: (patch: DeckTitleStyle) => void }) {
+/**
+ * Elgato-style title panel for the slot, as standard label-left / control-right
+ * settings rows: a Show-title toggle (off by default), the title text field
+ * folded in right under it, then alignment/style as chip groups plus font,
+ * size, and text colour. All styling controls disable while the title is
+ * hidden; the text itself stays editable.
+ */
+function TitleFields({ label, title, onLabelChange, onTitleChange }: {
+  label: string | undefined;
+  title: DeckTitleStyle | undefined;
+  onLabelChange: (label: string) => void;
+  onTitleChange: (patch: DeckTitleStyle) => void;
+}) {
   const { t } = useTranslation();
   const resolved = resolveDeckTitleStyle(title);
   const disabled = !resolved.show;
 
   return (
     <>
-      <Field label={t('panel.settings.deck.titleStyle.show')}>
-        <Toggle checked={resolved.show} onChange={show => onChange({ show })} ariaLabel={t('panel.settings.deck.titleStyle.show')} />
-      </Field>
+      <SettingsToggle
+        label={t('panel.settings.deck.titleStyle.show')}
+        checked={resolved.show}
+        onChange={show => onTitleChange({ show })}
+      />
 
-      <Field label={t('panel.settings.deck.titleStyle.align')}>
-        <div className={styles.segmented} role="group" aria-label={t('panel.settings.deck.titleStyle.align')}>
-          {(['top', 'middle', 'bottom'] as const).map(align => {
+      <input
+        className={styles.input}
+        type="text"
+        value={label ?? ''}
+        placeholder={t('panel.settings.deck.labelPlaceholder')}
+        aria-label={t('panel.settings.deck.label')}
+        onChange={e => onLabelChange(e.target.value)}
+      />
+
+      <SettingsRow label={t('panel.settings.deck.titleStyle.align')} disabled={disabled}>
+        <ChipGroup
+          ariaLabel={t('panel.settings.deck.titleStyle.align')}
+          activeKey={resolved.align}
+          onChange={align => onTitleChange({ align: align as DeckTitleAlign })}
+          options={(['top', 'middle', 'bottom'] as const).map(align => {
             const Icon = TITLE_ALIGN_ICONS[align];
-            return (
-              <IconLabelButton
-                key={align}
-                icon={<Icon size={16} aria-hidden="true" />}
-                active={resolved.align === align}
-                disabled={disabled}
-                ariaLabel={t(TITLE_ALIGN_LABEL_KEY[align])}
-                onPress={() => onChange({ align })}
-              />
-            );
+            return { key: align, label: <Icon size={16} aria-hidden="true" />, ariaLabel: t(TITLE_ALIGN_LABEL_KEY[align]), disabled };
           })}
-        </div>
-      </Field>
+        />
+      </SettingsRow>
 
-      <SelectField
+      <SettingsSelect
         label={t('panel.settings.deck.titleStyle.font')}
         value={title?.font ?? 'default'}
         disabled={disabled}
@@ -466,54 +482,41 @@ function TitleStyleFields({ title, onChange }: { title: DeckTitleStyle | undefin
           value: f.id,
           label: f.label ?? t('panel.settings.deck.titleStyle.fontDefault'),
         }))}
-        onChange={font => onChange({ font })}
+        onChange={font => onTitleChange({ font })}
       />
 
-      <Field label={t('panel.settings.deck.titleStyle.size')}>
-        <input
-          className={styles.input}
-          type="number"
-          min={DECK_TITLE_SIZE_MIN}
-          max={DECK_TITLE_SIZE_MAX}
-          value={resolved.size}
-          disabled={disabled}
-          onChange={e => onChange({ size: clamp(Number(e.target.value), DECK_TITLE_SIZE_MIN, DECK_TITLE_SIZE_MAX) })}
+      <SettingsRow label={t('panel.settings.deck.titleStyle.size')} disabled={disabled}>
+        <ChipGroup
+          ariaLabel={t('panel.settings.deck.titleStyle.size')}
+          activeKey={String(resolved.size)}
+          onChange={s => onTitleChange({ size: Number(s) })}
+          options={DECK_TITLE_SIZE_OPTIONS.map(s => ({ key: String(s), label: String(s), disabled }))}
         />
-      </Field>
+      </SettingsRow>
 
-      <Field label={t('panel.settings.deck.titleStyle.style')}>
-        <div className={styles.segmented} role="group" aria-label={t('panel.settings.deck.titleStyle.style')}>
-          <IconLabelButton
-            label={<span className={styles.boldGlyph}>B</span>}
-            active={resolved.bold}
-            disabled={disabled}
-            ariaLabel={t('panel.settings.deck.titleStyle.bold')}
-            onPress={() => onChange({ bold: !resolved.bold })}
-          />
-          <IconLabelButton
-            label={<span className={styles.italicGlyph}>I</span>}
-            active={resolved.italic}
-            disabled={disabled}
-            ariaLabel={t('panel.settings.deck.titleStyle.italic')}
-            onPress={() => onChange({ italic: !resolved.italic })}
-          />
-          <IconLabelButton
-            label={<span className={styles.underlineGlyph}>U</span>}
-            active={resolved.underline}
-            disabled={disabled}
-            ariaLabel={t('panel.settings.deck.titleStyle.underline')}
-            onPress={() => onChange({ underline: !resolved.underline })}
-          />
-        </div>
-      </Field>
+      <SettingsRow label={t('panel.settings.deck.titleStyle.style')} disabled={disabled}>
+        <ChipGroup
+          multiSelect
+          ariaLabel={t('panel.settings.deck.titleStyle.style')}
+          activeKeys={new Set([resolved.bold ? 'bold' : '', resolved.italic ? 'italic' : '', resolved.underline ? 'underline' : ''].filter(Boolean))}
+          onToggleKey={k => onTitleChange({ [k]: !resolved[k as 'bold' | 'italic' | 'underline'] })}
+          options={[
+            /* eslint-disable i18next/no-literal-string -- title-style enum keys + single-glyph chip labels */
+            { key: 'bold', label: <span className={styles.boldGlyph}>B</span>, ariaLabel: t('panel.settings.deck.titleStyle.bold'), disabled },
+            { key: 'italic', label: <span className={styles.italicGlyph}>I</span>, ariaLabel: t('panel.settings.deck.titleStyle.italic'), disabled },
+            { key: 'underline', label: <span className={styles.underlineGlyph}>U</span>, ariaLabel: t('panel.settings.deck.titleStyle.underline'), disabled },
+            /* eslint-enable i18next/no-literal-string */
+          ]}
+        />
+      </SettingsRow>
 
-      <Field label={t('panel.settings.deck.titleStyle.color')}>
+      <SettingsRow label={t('panel.settings.deck.titleStyle.color')} disabled={disabled} align="start">
         <div className={styles.swatches}>
           <button
             type="button"
             disabled={disabled}
             className={`${styles.swatch} ${styles.autoSwatch} ${!title?.color ? styles.activeSwatch : ''}`}
-            onClick={() => onChange({ color: undefined })}
+            onClick={() => onTitleChange({ color: undefined })}
           >
             {t('panel.settings.deck.colorAuto')}
           </button>
@@ -524,12 +527,12 @@ function TitleStyleFields({ title, onChange }: { title: DeckTitleStyle | undefin
               disabled={disabled}
               className={`${styles.swatch} ${title?.color === c ? styles.activeSwatch : ''}`}
               style={{ background: c }}
-              onClick={() => onChange({ color: c })}
+              onClick={() => onTitleChange({ color: c })}
               aria-label={c}
             />
           ))}
         </div>
-      </Field>
+      </SettingsRow>
     </>
   );
 }
@@ -543,6 +546,14 @@ export interface DeckKeyInspectorProps {
   onSelectedSlotChange?: (slot: number) => void;
   surface?: PanelSurface;
   desktopEditor?: boolean;
+  /**
+   * Which sections to render. 'all' (default, touch widget) stacks the action
+   * picker + the key's action/icon/title editor in one column. The routed
+   * Stream Deck device page splits them across two columns: 'picker' (the full
+   * action list) on the right, 'editor' (the selected key's fields) on the
+   * left, both driven by the same target + selectedSlot.
+   */
+  part?: 'all' | 'picker' | 'editor';
 }
 
 /**
@@ -551,7 +562,7 @@ export interface DeckKeyInspectorProps {
  * grid and this inspector in separate panes while the touch widget keeps
  * composing them together via DeckEditor.
  */
-export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange, selectedSlot, onSelectedSlotChange, surface, desktopEditor }: DeckKeyInspectorProps) {
+export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange, selectedSlot, onSelectedSlotChange, surface, desktopEditor, part = 'all' }: DeckKeyInspectorProps) {
   const { t } = useTranslation();
   const viewCount = slotCountAtDepth(target, folderPath.length);
   const viewSlots = resolveTargetView(target, page, folderPath) ?? padSlots([], viewCount);
@@ -579,49 +590,65 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
     writeSlot({ ...slot, folder: undefined, action: defaultActionForPickerKind(k) });
   };
 
+  const showPicker = part !== 'editor';
+  const showEditor = part !== 'picker';
+
+  // Param-less actions (pageIndicator, page next/prev) have nothing to
+  // configure, so the Action box is suppressed for them; a folder shows its
+  // enter-folder button.
+  // A slot with no assigned action or folder has nothing to style, so the
+  // editor stays empty until one is picked from the action list.
+  const hasBinding = !!slot.action || !!slot.folder;
+  const hasActionConfig = !!slot.folder || (!!slot.action
+    && slot.action.type !== 'pageIndicator'
+    && !(slot.action.type === 'page' && slot.action.op !== 'goto'));
+
   return (
     <div className={styles.root}>
-      <SettingsSection title={t('panel.settings.deck.actionType')}>
-        <ActionCategoryPicker categories={categories} activeKind={kind} onPick={onKindChange} />
-        <div className={styles.fieldStack}>
-          {kind === 'folder' ? (
-            <button type="button" className={styles.folderBtn} onClick={() => { onFolderPathChange([...folderPath, selSlot]); onSelectedSlotChange?.(0); }}>
-              <FolderInput size={14} /> {t('panel.settings.deck.enterFolder')}
-            </button>
-          ) : slot.action ? (
-            <ActionFields action={slot.action} onChange={a => writeSlot({ ...slot, action: a })} allowed={nestedAllowed} surface={surface} desktopEditor={desktopEditor} pageCount={pageCount} />
-          ) : null}
-        </div>
-      </SettingsSection>
+      {showPicker && (
+        <SettingsSection title={t('panel.settings.deck.actionType')}>
+          <ActionCategoryPicker categories={categories} activeKind={kind} onPick={onKindChange} />
+        </SettingsSection>
+      )}
 
-      <SettingsSection title={t('panel.settings.deck.label')}>
-        <input
-          className={styles.input}
-          type="text"
-          value={slot.label ?? ''}
-          placeholder={t('panel.settings.deck.labelPlaceholder')}
-          onChange={e => writeSlot({ ...slot, label: e.target.value })}
-        />
-      </SettingsSection>
+      {showEditor && hasBinding && (
+        <>
+          {hasActionConfig && (
+            <SettingsSection title={t(`panel.settings.deck.action.${kind}`)}>
+              <div className={styles.fieldStack}>
+                {kind === 'folder' ? (
+                  <button type="button" className={styles.folderBtn} onClick={() => { onFolderPathChange([...folderPath, selSlot]); onSelectedSlotChange?.(0); }}>
+                    <FolderInput size={14} /> {t('panel.settings.deck.enterFolder')}
+                  </button>
+                ) : slot.action ? (
+                  <ActionFields action={slot.action} onChange={a => writeSlot({ ...slot, action: a })} allowed={nestedAllowed} surface={surface} desktopEditor={desktopEditor} pageCount={pageCount} />
+                ) : null}
+              </div>
+            </SettingsSection>
+          )}
 
-      <SettingsSection title={t('panel.settings.deck.titleStyle.section')}>
-        <div className={styles.fieldStack}>
-          <TitleStyleFields title={slot.title} onChange={patch => writeSlot({ ...slot, title: { ...slot.title, ...patch } })} />
-        </div>
-      </SettingsSection>
+          <SettingsSection title={t('panel.settings.icon')}>
+            <IconPicker value={slot.icon} appId={appIdForIcon} surface={surface} desktopEditor={desktopEditor} onChange={icon => writeSlot({ ...slot, icon })} />
+            <SettingsRow label={t('panel.settings.deck.color')} align="start">
+              <div className={styles.swatches}>
+                <button type="button" className={`${styles.swatch} ${styles.autoSwatch} ${!slot.color ? styles.activeSwatch : ''}`} onClick={() => writeSlot({ ...slot, color: undefined })}>{t('panel.settings.deck.colorAuto')}</button>
+                {DECK_SWATCHES.map(c => (
+                  <button key={c} type="button" className={`${styles.swatch} ${slot.color === c ? styles.activeSwatch : ''}`} style={{ background: c }} onClick={() => writeSlot({ ...slot, color: c })} aria-label={c} />
+                ))}
+              </div>
+            </SettingsRow>
+          </SettingsSection>
 
-      <SettingsSection title={t('panel.settings.icon')}>
-        <IconPicker value={slot.icon} appId={appIdForIcon} surface={surface} desktopEditor={desktopEditor} onChange={icon => writeSlot({ ...slot, icon })} />
-      </SettingsSection>
-
-      <SettingsSection title={t('panel.settings.deck.color')}>
-        <div className={styles.swatches}>
-          <button type="button" className={`${styles.swatch} ${styles.autoSwatch} ${!slot.color ? styles.activeSwatch : ''}`} onClick={() => writeSlot({ ...slot, color: undefined })}>{t('panel.settings.deck.colorAuto')}</button>
-          {DECK_SWATCHES.map(c => (
-            <button key={c} type="button" className={`${styles.swatch} ${slot.color === c ? styles.activeSwatch : ''}`} style={{ background: c }} onClick={() => writeSlot({ ...slot, color: c })} aria-label={c} />
-          ))}
-        </div>
-      </SettingsSection>
+          <SettingsSection title={t('panel.settings.deck.titleStyle.section')}>
+            <TitleFields
+              label={slot.label}
+              title={slot.title}
+              onLabelChange={label => writeSlot({ ...slot, label })}
+              onTitleChange={patch => writeSlot({ ...slot, title: { ...slot.title, ...patch } })}
+            />
+          </SettingsSection>
+        </>
+      )}
     </div>
   );
 }

@@ -5,6 +5,8 @@ export interface ChipOption {
   readonly key: string;
   readonly label: ReactNode;
   readonly disabled?: boolean;
+  // Accessible name for an icon-only chip whose visible `label` is a glyph.
+  readonly ariaLabel?: string;
 }
 
 type ChipGroupSingleProps = {
@@ -46,6 +48,7 @@ export function ChipGroup(props: ChipGroupProps) {
             key={opt.key}
             type="button"
             aria-pressed={active}
+            aria-label={opt.ariaLabel}
             disabled={opt.disabled}
             className={`chip-action${active ? ' chip-active' : ''}`}
             onClick={handleClick}

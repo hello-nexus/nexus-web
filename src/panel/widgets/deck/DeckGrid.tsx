@@ -177,7 +177,7 @@ export function DeckGrid({ slots, cols, rows, selectable, dragEnabled, selectedI
   return (
     <div
       className={square ? `${styles.grid} ${styles.square}` : styles.grid}
-      style={{ gridTemplateColumns: `repeat(${cols}, ${trackSize})`, gridTemplateRows: `repeat(${rows}, ${trackSize})` }}
+      style={{ gridTemplateColumns: `repeat(${cols}, ${trackSize})`, gridTemplateRows: `repeat(${rows}, ${trackSize})`, '--deck-cols': cols } as CSSProperties}
     >
       {backCell && (
         <button

@@ -78,17 +78,16 @@ function isBefore(a: Element, b: Element): boolean {
 }
 
 describe('DeckKeyInspector section order', () => {
-  it('renders Action, Label, Title Style, Icon, Color top to bottom', () => {
-    renderInspector();
+  it('renders Action, Icon, Title top to bottom', () => {
+    // Icon + Title only appear once the slot has an action assigned.
+    renderInspector([{ action: { type: 'hotkey', keys: '' } }]);
     const action = screen.getByText('panel.settings.deck.actionType');
-    const label = screen.getByText('panel.settings.deck.label');
-    const titleStyle = screen.getByText('panel.settings.deck.titleStyle.section');
     const icon = screen.getByText('panel.settings.icon');
-    const color = screen.getByText('panel.settings.deck.color');
-    expect(isBefore(action, label)).toBe(true);
-    expect(isBefore(label, titleStyle)).toBe(true);
-    expect(isBefore(titleStyle, icon)).toBe(true);
-    expect(isBefore(icon, color)).toBe(true);
+    const iconColor = screen.getByText('panel.settings.deck.color'); // "Icon Color", folded into the Icon box
+    const title = screen.getByText('panel.settings.deck.titleStyle.section');
+    expect(isBefore(action, icon)).toBe(true);
+    expect(isBefore(icon, iconColor)).toBe(true);
+    expect(isBefore(iconColor, title)).toBe(true);
   });
 });
 
@@ -191,22 +190,24 @@ describe('DeckKeyInspector - deckBrightness/deckSleep are physical-deck-only', (
 });
 
 describe('DeckKeyInspector title style section', () => {
-  it('defaults to Show title on', () => {
-    renderInspector([{ label: 'Hi' }]);
-    expect(screen.getByRole('switch', { name: 'panel.settings.deck.titleStyle.show' })).toBeChecked();
-  });
-
-  it('turning Show title off disables the rest of the title style controls', () => {
-    renderInspector([{ label: 'Hi' }]);
-    fireEvent.click(screen.getByRole('switch', { name: 'panel.settings.deck.titleStyle.show' }));
-
+  it('defaults to Show title off, disabling the rest of the title style controls', () => {
+    renderInspector([{ action: { type: 'hotkey', keys: '' }, label: 'Hi' }]);
     expect(screen.getByRole('switch', { name: 'panel.settings.deck.titleStyle.show' })).not.toBeChecked();
     expect(screen.getByRole('button', { name: 'panel.settings.deck.titleStyle.bold' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'panel.settings.deck.titleStyle.alignTop' })).toBeDisabled();
   });
 
+  it('turning Show title on enables the title style controls', () => {
+    renderInspector([{ action: { type: 'hotkey', keys: '' }, label: 'Hi' }]);
+    fireEvent.click(screen.getByRole('switch', { name: 'panel.settings.deck.titleStyle.show' }));
+
+    expect(screen.getByRole('switch', { name: 'panel.settings.deck.titleStyle.show' })).toBeChecked();
+    expect(screen.getByRole('button', { name: 'panel.settings.deck.titleStyle.bold' })).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: 'panel.settings.deck.titleStyle.alignTop' })).not.toBeDisabled();
+  });
+
   it('picking Bold toggles it active', () => {
-    renderInspector([{ label: 'Hi' }]);
+    renderInspector([{ action: { type: 'hotkey', keys: '' }, label: 'Hi', title: { show: true } }]);
     const bold = screen.getByRole('button', { name: 'panel.settings.deck.titleStyle.bold' });
     expect(bold).toHaveAttribute('aria-pressed', 'false');
     fireEvent.click(bold);
@@ -214,7 +215,7 @@ describe('DeckKeyInspector title style section', () => {
   });
 
   it('picking an alignment marks it active', () => {
-    renderInspector([{ label: 'Hi' }]);
+    renderInspector([{ action: { type: 'hotkey', keys: '' }, label: 'Hi', title: { show: true } }]);
     // Middle is the default.
     expect(screen.getByRole('button', { name: 'panel.settings.deck.titleStyle.alignMiddle' })).toHaveAttribute('aria-pressed', 'true');
     fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.titleStyle.alignTop' }));
@@ -223,7 +224,7 @@ describe('DeckKeyInspector title style section', () => {
   });
 
   it('renders an Auto swatch for both the key color and the title text color', () => {
-    renderInspector([{ label: 'Hi' }]);
+    renderInspector([{ action: { type: 'hotkey', keys: '' }, label: 'Hi' }]);
     // One "Auto" swatch for the key's background color (existing section) and
     // one for the title's text color (new section) - both default-selected.
     expect(screen.getAllByText('panel.settings.deck.colorAuto')).toHaveLength(2);

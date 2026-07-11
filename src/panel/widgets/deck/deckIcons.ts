@@ -180,5 +180,9 @@ export function autoIconName(action: DeckAction | undefined, isFolder = false): 
  * not overwritten in storage.
  */
 export function withPageIndicatorDisplay(slots: readonly DeckSlot[], page: number, pageCount: number): DeckSlot[] {
-  return slots.map(s => (s.action?.type === 'pageIndicator' ? { ...s, label: `${page + 1}/${pageCount}` } : s));
+  // The indicator always shows its N/M label, regardless of the per-key title
+  // default (which is off), so force its title on for the display slot.
+  return slots.map(s => (s.action?.type === 'pageIndicator'
+    ? { ...s, label: `${page + 1}/${pageCount}`, title: { ...s.title, show: true } }
+    : s));
 }

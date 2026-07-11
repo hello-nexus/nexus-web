@@ -130,8 +130,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   return (
     <div className={styles.page}>
       <ViewHeader
-        // eslint-disable-next-line i18next/no-literal-string -- brand name
-        title="Stream Deck"
+        title={t('devices.streamdeck.modelName', { model: deck.model })}
         tabs={TABS}
         activeTab={tab}
         onTabChange={k => setTab(k as StreamDeckTab)}
@@ -147,30 +146,8 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
         {activeConflict && <ConflictAppCard conflict={activeConflict} />}
 
         {tab === 'customize' ? (
-          <div className={styles.splitLayout}>
-            <div className={styles.leftPane}>
-              {target ? (
-                <DeckKeyInspector
-                  target={target}
-                  page={page}
-                  folderPath={folderPath}
-                  onFolderPathChange={setFolderPath}
-                  selectedSlot={selectedSlot}
-                  onSelectedSlotChange={setSelectedSlot}
-                  // eslint-disable-next-line i18next/no-literal-string -- PanelSurface enum value
-                  surface="desktop"
-                  desktopEditor
-                />
-              ) : configError ? (
-                <div className={styles.loadError}>
-                  <span>{t('panel.settings.deck.rail.loadFailed')}</span>
-                  <Button type="button" size="sm" tone="neutral" onClick={retryConfig}>{t('panel.settings.deck.rail.retry')}</Button>
-                </div>
-              ) : (
-                <div className={styles.loading}>{t('panel.settings.deck.rail.loadingConfig')}</div>
-              )}
-            </div>
-            <div className={styles.previewPane}>
+          <div className={styles.customizeLayout}>
+            <div className={styles.previewTop}>
               <div className={styles.previewStage}>
                 {inFolder && (
                   <div className={styles.breadcrumb}>
@@ -195,7 +172,6 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
                   </DndContext>
                 )}
               </div>
-
               {target && (
                 <div className={styles.pageNumbersRow}>
                   <DeckPageStrip
@@ -209,92 +185,117 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
                   />
                 </div>
               )}
+              {!deck.verified && (
+                <span className={styles.experimentalChip}>{t('devices.streamdeck.experimental')}</span>
+              )}
+            </div>
 
-              <div className={styles.modelRow}>
-                <div className={styles.modelName}>
-                  {t('devices.streamdeck.modelName', { model: deck.model })}
-                </div>
-                {!deck.verified && <span className={styles.experimentalChip}>{t('devices.streamdeck.experimental')}</span>}
+            <div className={styles.editorSplit}>
+              <div className={styles.editorPane}>
+                {target ? (
+                  <DeckKeyInspector
+                    target={target}
+                    page={page}
+                    folderPath={folderPath}
+                    onFolderPathChange={setFolderPath}
+                    selectedSlot={selectedSlot}
+                    onSelectedSlotChange={setSelectedSlot}
+                    // eslint-disable-next-line i18next/no-literal-string -- PanelSurface enum value
+                    surface="desktop"
+                    desktopEditor
+                    // eslint-disable-next-line i18next/no-literal-string -- render-part enum value
+                    part="editor"
+                  />
+                ) : configError ? (
+                  <div className={styles.loadError}>
+                    <span>{t('panel.settings.deck.rail.loadFailed')}</span>
+                    <Button type="button" size="sm" tone="neutral" onClick={retryConfig}>{t('panel.settings.deck.rail.retry')}</Button>
+                  </div>
+                ) : (
+                  <div className={styles.loading}>{t('panel.settings.deck.rail.loadingConfig')}</div>
+                )}
               </div>
+
+              {target && (
+                <div className={styles.pickerPane}>
+                  <DeckKeyInspector
+                    target={target}
+                    page={page}
+                    folderPath={folderPath}
+                    onFolderPathChange={setFolderPath}
+                    selectedSlot={selectedSlot}
+                    onSelectedSlotChange={setSelectedSlot}
+                    // eslint-disable-next-line i18next/no-literal-string -- PanelSurface enum value
+                    surface="desktop"
+                    desktopEditor
+                    // eslint-disable-next-line i18next/no-literal-string -- render-part enum value
+                    part="picker"
+                  />
+                </div>
+              )}
             </div>
           </div>
         ) : (
-          <div className={styles.splitLayout}>
-            <div className={styles.leftPane}>
-              <SettingsSection boxClassName={styles.sectionBox}>
-                <SettingRow label={t('devices.streamdeck.deviceName')}>
-                  <EditableText
-                    value={deck.name}
-                    onCommit={next => void rename(deck.serial, next)}
-                    maxLength={40}
-                    ariaLabel={t('devices.streamdeck.deviceName')}
-                  />
+          <div className={styles.settingsFull}>
+            <SettingsSection boxClassName={styles.sectionBox}>
+              <SettingRow label={t('devices.streamdeck.deviceName')}>
+                <EditableText
+                  value={deck.name}
+                  onCommit={next => void rename(deck.serial, next)}
+                  maxLength={40}
+                  ariaLabel={t('devices.streamdeck.deviceName')}
+                />
+              </SettingRow>
+              <SettingSelect
+                label={t('devices.streamdeck.orientation')}
+                value={String(deck.orientation ?? 0)}
+                options={ORIENTATION_OPTIONS.map(degrees => ({
+                  value: String(degrees),
+                  label: degrees === 0
+                    ? t('devices.streamdeck.orientationStandard')
+                    : t('devices.streamdeck.orientationDegrees', { n: degrees }),
+                }))}
+                onChange={v => void setOrientation(deck.serial, Number(v))}
+              />
+              <SettingSelect
+                label={t('devices.streamdeck.sleepAfter')}
+                value={String(deck.sleepAfterSeconds ?? 0)}
+                options={SLEEP_AFTER_OPTIONS.map(seconds => ({
+                  value: String(seconds),
+                  label: seconds === 0
+                    ? t('devices.streamdeck.sleepAfterNever')
+                    : t('devices.streamdeck.sleepAfterMinutes', { n: seconds / 60 }),
+                }))}
+                onChange={v => void setSleepAfterSeconds(deck.serial, Number(v))}
+              />
+              <SettingSlider
+                editable
+                trackFill
+                label={t('devices.streamdeck.brightness')}
+                value={brightnessValue}
+                min={0}
+                max={100}
+                step={1}
+                formatValue={v => localizeNumbers(`${Math.round(v)}%`, numberFormat)}
+                ariaLabel={t('devices.streamdeck.brightness')}
+                onChange={(v, commit) => {
+                  setBrightnessDraft(Math.round(v));
+                  if (commit) void setBrightness(deck.serial, Math.round(v));
+                }}
+                onCommit={v => {
+                  void setBrightness(deck.serial, Math.round(v));
+                  setBrightnessDraft(null);
+                }}
+              />
+              {deck.firmwareVersion && (
+                <SettingRow label={t('devices.streamdeck.firmware')}>
+                  <span className={styles.readOnlyValue}>{deck.firmwareVersion}</span>
                 </SettingRow>
-                <SettingSelect
-                  label={t('devices.streamdeck.orientation')}
-                  value={String(deck.orientation ?? 0)}
-                  options={ORIENTATION_OPTIONS.map(degrees => ({
-                    value: String(degrees),
-                    label: degrees === 0
-                      ? t('devices.streamdeck.orientationStandard')
-                      : t('devices.streamdeck.orientationDegrees', { n: degrees }),
-                  }))}
-                  onChange={v => void setOrientation(deck.serial, Number(v))}
-                />
-                <SettingSelect
-                  label={t('devices.streamdeck.sleepAfter')}
-                  value={String(deck.sleepAfterSeconds ?? 0)}
-                  options={SLEEP_AFTER_OPTIONS.map(seconds => ({
-                    value: String(seconds),
-                    label: seconds === 0
-                      ? t('devices.streamdeck.sleepAfterNever')
-                      : t('devices.streamdeck.sleepAfterMinutes', { n: seconds / 60 }),
-                  }))}
-                  onChange={v => void setSleepAfterSeconds(deck.serial, Number(v))}
-                />
-                <SettingSlider
-                  editable
-                  trackFill
-                  label={t('devices.streamdeck.brightness')}
-                  value={brightnessValue}
-                  min={0}
-                  max={100}
-                  step={1}
-                  formatValue={v => localizeNumbers(`${Math.round(v)}%`, numberFormat)}
-                  ariaLabel={t('devices.streamdeck.brightness')}
-                  onChange={(v, commit) => {
-                    setBrightnessDraft(Math.round(v));
-                    if (commit) void setBrightness(deck.serial, Math.round(v));
-                  }}
-                  onCommit={v => {
-                    void setBrightness(deck.serial, Math.round(v));
-                    setBrightnessDraft(null);
-                  }}
-                />
-                {deck.firmwareVersion && (
-                  <SettingRow label={t('devices.streamdeck.firmware')}>
-                    <span className={styles.readOnlyValue}>{deck.firmwareVersion}</span>
-                  </SettingRow>
-                )}
-                <SettingRow label={t('devices.streamdeck.serialNumber')}>
-                  <span className={styles.readOnlyValue}>{deck.serial}</span>
-                </SettingRow>
-              </SettingsSection>
-            </div>
-            <div className={styles.previewPane}>
-              <div className={`${styles.previewStage} ${styles.previewStageDimmed}`} aria-hidden="true">
-                {target && (
-                  <DeckGrid
-                    slots={viewSlots}
-                    cols={target.cols}
-                    rows={target.rows}
-                    square
-                    selectable={false}
-                    onCell={() => {}}
-                  />
-                )}
-              </div>
-            </div>
+              )}
+              <SettingRow label={t('devices.streamdeck.serialNumber')}>
+                <span className={styles.readOnlyValue}>{deck.serial}</span>
+              </SettingRow>
+            </SettingsSection>
           </div>
         )}
       </div>

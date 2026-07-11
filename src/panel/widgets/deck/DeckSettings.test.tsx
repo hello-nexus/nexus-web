@@ -11,7 +11,9 @@ function makeWidget(deck: DeckConfig): PanelWidget {
   return { id: 'w1', type: 'deck', size: '2x2', col: 0, row: 0, config: { deck: deck as never } };
 }
 
-function renderSettings(deck: DeckConfig = { pages: [{ slots: [{ label: 'existing' }] }] }) {
+// The slot carries an action so the icon/title editor renders (it stays hidden
+// for an unbound slot).
+function renderSettings(deck: DeckConfig = { pages: [{ slots: [{ action: { type: 'hotkey', keys: '' }, label: 'existing' }] }] }) {
   const onUpdate = vi.fn();
   const utils = render(
     <DeckSettings
@@ -41,8 +43,9 @@ describe('DeckSettings (touch widget)', () => {
     renderSettings();
 
     expect(screen.getByText('panel.settings.deck.actionType')).toBeInTheDocument();
-    expect(screen.getByText('panel.settings.deck.label')).toBeInTheDocument();
     expect(screen.getByText('panel.settings.icon')).toBeInTheDocument();
+    expect(screen.getByText('panel.settings.deck.titleStyle.section')).toBeInTheDocument();
+    // The key color now lives in the Icon box as "Icon Color".
     expect(screen.getByText('panel.settings.deck.color')).toBeInTheDocument();
   });
 

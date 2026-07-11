@@ -24,6 +24,8 @@ export const DECK_TITLE_FONTS: readonly DeckTitleFontOption[] = [
 export const DECK_TITLE_SIZE_MIN = 8;
 export const DECK_TITLE_SIZE_MAX = 30;
 export const DECK_TITLE_SIZE_DEFAULT = 16;
+// Preset title sizes offered as chips in the editor (percent of key edge).
+export const DECK_TITLE_SIZE_OPTIONS = [12, 16, 20, 24, 30] as const;
 
 export interface ResolvedDeckTitleStyle {
   show: boolean;
@@ -43,7 +45,7 @@ function clampTitleSize(size: number): number {
 export function resolveDeckTitleStyle(title: DeckSlot['title']): ResolvedDeckTitleStyle {
   const fontOption = DECK_TITLE_FONTS.find(f => f.id === title?.font) ?? DECK_TITLE_FONTS[0];
   return {
-    show: title?.show ?? true,
+    show: title?.show ?? false,
     align: title?.align ?? 'middle',
     fontFamily: fontOption.family,
     size: clampTitleSize(title?.size ?? DECK_TITLE_SIZE_DEFAULT),

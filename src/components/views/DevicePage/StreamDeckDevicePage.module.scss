@@ -66,52 +66,63 @@
   width: 100%;
 }
 
-.modelRow {
+// Customize tab: the deck preview sits at the top (outside the scroll area);
+// under it a two-column split scrolls - the key editor (left) and the action
+// picker (right, a fixed 300px column matching the lighting page's device
+// list).
+.customizeLayout {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-.modelName {
-  color: var(--text-dim);
-  font-size: var(--type-small);
-  text-align: center;
-}
-
-// Two-pane tab body (both Customize and Settings): a scrollable left column
-// (inspector or settings) and a fixed-ratio right column holding the deck grid
-// preview.
-.splitLayout {
-  display: flex;
+  flex-direction: column;
   flex: 1;
-  gap: 1.5rem;
+  min-height: 0;
+  gap: 1rem;
   overflow: hidden;
 }
 
-.leftPane {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  overflow-y: auto;
-}
-
-// Right column: preview stage, then (Customize) pagination + model name. A
-// top-aligned column so the deck canvas anchors at the top of the pane and the
-// pagination + model name stack directly below it.
-.previewPane {
-  flex: 0 0 clamp(360px, 44%, 820px);
+.previewTop {
+  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.75rem;
+}
+
+.editorSplit {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  gap: 1.5rem;
+  overflow: hidden;
+}
+
+.editorPane {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  overflow-y: auto;
+}
+
+.pickerPane {
+  flex: 0 0 300px;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+// Settings tab: a single full-width column, no preview.
+.settingsFull {
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 
 .previewStage {
   width: 100%;
   max-width: 100%;
+  // The deck grid's square cells size against this stage's width (cqi), so a
+  // wide deck shrinks to fit a narrow window instead of overflowing.
+  container-type: inline-size;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -121,12 +132,6 @@
   border-radius: var(--radius-lg);
   background: var(--surface);
   box-sizing: border-box;
-}
-
-// Settings tab: the grid mirrors the Customize view but isn't editable here.
-.previewStageDimmed {
-  opacity: 0.55;
-  pointer-events: none;
 }
 
 .breadcrumb {

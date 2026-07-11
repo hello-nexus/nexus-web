@@ -6,8 +6,10 @@
 // icon-only slots render as populated, onCell no-ops, no app-icon fetches.
 import type { DeckConfig, DeckSlot } from './types';
 
+// Titles default to hidden, so a labelled preview slot enables its title
+// explicitly to demonstrate the label on the key.
 const slot = (value: string, color: string, label?: string): DeckSlot =>
-  ({ icon: { kind: 'lucide', value }, color, ...(label ? { label } : {}) });
+  ({ icon: { kind: 'lucide', value }, color, ...(label ? { label, title: { show: true } } : {}) });
 
 export const DECK_PREVIEW_CONFIG: DeckConfig = {
   pages: [{

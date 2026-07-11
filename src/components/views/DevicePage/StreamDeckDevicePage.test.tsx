@@ -36,8 +36,8 @@ vi.mock('../../../panel/widgets/deck/usePhysicalDeckTarget', () => ({
 }));
 
 vi.mock('../../../panel/widgets/deck/DeckKeyInspector', () => ({
-  DeckKeyInspector: ({ selectedSlot }: { selectedSlot?: number }) => (
-    <div data-testid="deck-key-inspector">{selectedSlot}</div>
+  DeckKeyInspector: ({ selectedSlot, part }: { selectedSlot?: number; part?: string }) => (
+    <div data-testid={`deck-key-inspector-${part ?? 'all'}`}>{selectedSlot}</div>
   ),
 }));
 
@@ -132,7 +132,7 @@ describe('StreamDeckDevicePage', () => {
     mockUseStreamDecks.mockReturnValue(decksReturn([]));
     await renderPage();
     expect(screen.getByText('devices.streamdeck.notConnected')).toBeInTheDocument();
-    expect(screen.queryByTestId('deck-key-inspector')).toBeNull();
+    expect(screen.queryByTestId('deck-key-inspector-editor')).toBeNull();
   });
 
   it('does not offer a simulator on the not-connected empty state (moved to dev tools)', async () => {
@@ -145,10 +145,9 @@ describe('StreamDeckDevicePage', () => {
     mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
     await renderPage();
 
-    expect(screen.getByText('devices.streamdeck.modelName:{"model":"Mini"}')).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'devices.streamdeck.tab.customize' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('tab', { name: 'devices.streamdeck.tab.settings' })).toHaveAttribute('aria-selected', 'false');
-    expect(screen.getByTestId('deck-key-inspector')).toBeInTheDocument();
+    expect(screen.getByTestId('deck-key-inspector-editor')).toBeInTheDocument();
   });
 
   it('renders one grid key per slot and selecting a key updates the inspector', async () => {
@@ -159,7 +158,7 @@ describe('StreamDeckDevicePage', () => {
     expect(cells).toHaveLength(6);
 
     fireEvent.click(cells[3]);
-    expect(screen.getByTestId('deck-key-inspector').textContent).toBe('3');
+    expect(screen.getByTestId('deck-key-inspector-editor').textContent).toBe('3');
   });
 
   it('shows the Elgato-conflict warning banner only when the deck reports one', async () => {
@@ -230,7 +229,7 @@ describe('StreamDeckDevicePage', () => {
     await renderPage();
 
     expect(screen.getByText('panel.settings.deck.rail.loadFailed')).toBeInTheDocument();
-    expect(screen.queryByTestId('deck-key-inspector')).toBeNull();
+    expect(screen.queryByTestId('deck-key-inspector-editor')).toBeNull();
 
     fireEvent.click(screen.getByText('panel.settings.deck.rail.retry'));
     expect(retry).toHaveBeenCalledTimes(1);
@@ -325,11 +324,13 @@ describe('StreamDeckDevicePage', () => {
       expect(screen.queryByRole('button', { name: 'devices.streamdeck.model' })).toBeNull();
     });
 
-    it('shows the model name interpolated from the deck DTO', async () => {
+    it('labels the tab strip with the model name from the deck DTO', async () => {
       mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck({ model: 'Mini' })]));
       await renderPage();
 
-      expect(screen.getByText('devices.streamdeck.modelName:{"model":"Mini"}')).toBeInTheDocument();
+      // The model name is the page's top-bar title (set in Dashboard) + the tab
+      // strip's aria-label; it is no longer rendered as body text in the page.
+      expect(screen.getByRole('tablist', { name: 'devices.streamdeck.modelName:{"model":"Mini"}' })).toBeInTheDocument();
     });
 
     it('shows pagination as plain page-number chips, not "Page N" tabs', async () => {
@@ -343,15 +344,17 @@ describe('StreamDeckDevicePage', () => {
       expect(screen.getByText('1')).toBeInTheDocument();
     });
 
-    it('renders the key inspector on the left and the grid preview on the right', async () => {
+    it('docks the grid preview above the editor on the left, with the action picker on the right', async () => {
       mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
       const { container } = await renderPage();
 
-      const inspector = screen.getByTestId('deck-key-inspector');
       const grid = container.querySelector('[data-deck-slot-index]')!;
-      // Standard device-page split: options left, device preview right, so the
-      // inspector precedes the preview grid in DOM order.
-      expect(!!(inspector.compareDocumentPosition(grid) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
+      const editor = screen.getByTestId('deck-key-inspector-editor');
+      const picker = screen.getByTestId('deck-key-inspector-picker');
+      // Left column: preview grid docked at the top, the key editor below it.
+      expect(!!(grid.compareDocumentPosition(editor) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
+      // Right column: the action picker follows the whole left column in DOM order.
+      expect(!!(editor.compareDocumentPosition(picker) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
     });
   });
 });

@@ -16,10 +16,15 @@
   box-sizing: border-box;
 }
 
-// Physical-deck mode: fixed square keys sized like the hardware, centered in
-// the grid box rather than stretched to fill it.
+// Physical-deck mode: square keys sized like the hardware, centered in the
+// grid box rather than stretched to fill it. The cell size fits the width of
+// the nearest container-query ancestor (the device page's preview stage marks
+// itself `container-type: inline-size`), so a wide deck (XL, 8 cols) shrinks to
+// fit a narrow window instead of overflowing; capped at 78px where there's
+// room. `--deck-cols` is set by DeckGrid from its `cols` prop. Falls back to
+// the viewport when no container ancestor exists (e.g. Storybook).
 .square {
-  --deck-cell: clamp(48px, 12vmin, 78px);
+  --deck-cell: clamp(20px, calc((100cqi - 16px - (var(--deck-cols, 5) - 1) * 11px) / var(--deck-cols, 5)), 78px);
   width: max-content;
   height: max-content;
   max-width: 100%;
@@ -40,12 +45,13 @@
   // .selected::after (the selection ring) for the only two states that get one.
   border: 1px solid transparent;
   border-radius: var(--radius);
-  // Accent tint composited over a neutral backing in one solid fill, so buttons
-  // stay legible even when the widget tile is set fully transparent (the tile
-  // opacity does not cascade down to the cells).
-  background: color-mix(in srgb, var(--deck-accent, #64748b) 26%,
-    color-mix(in srgb, var(--surface) 62%, transparent));
-  color: color-mix(in srgb, var(--deck-accent, #64748b) 70%, #ffffff);
+  // Solid accent fill + white icon, matching the bitmap pushed to a physical
+  // Stream Deck exactly (renderDeckKeyBitmap fills the full accent and draws
+  // the glyph in #fff), so the on-screen preview reads the same as the hardware
+  // for both the streamdeck editor and the touch widget. The opaque fill also
+  // keeps keys legible when the widget tile is set fully transparent.
+  background: var(--deck-accent, #64748b);
+  color: #ffffff;
   font: inherit;
   padding: 5px;
   box-sizing: border-box;
@@ -54,8 +60,7 @@
   transition: transform var(--ease-fast), background var(--ease-fast), box-shadow var(--ease-fast), border-color var(--ease-fast);
 
   &:hover {
-    background: color-mix(in srgb, var(--deck-accent, #64748b) 40%,
-      color-mix(in srgb, var(--surface) 62%, transparent));
+    background: color-mix(in srgb, var(--deck-accent, #64748b) 90%, #ffffff);
   }
 
   &:active {

@@ -4,7 +4,7 @@ import { resolveDeckTitleStyle, titleFontSizeCss, DECK_TITLE_SIZE_MIN, DECK_TITL
 describe('resolveDeckTitleStyle', () => {
   it('applies every default when title is unset', () => {
     expect(resolveDeckTitleStyle(undefined)).toEqual({
-      show: true,
+      show: false,
       align: 'middle',
       fontFamily: '',
       size: DECK_TITLE_SIZE_DEFAULT,

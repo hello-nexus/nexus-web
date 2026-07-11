@@ -93,9 +93,9 @@ export interface DeckSequenceStep {
 }
 
 // Per-key title (label) styling. Every field is sparse - unset means "use the
-// default" (see deckTitleStyle.ts: show=true, align=middle, size=16, no
-// bold/italic/underline, color=white). `font` is one of DECK_TITLE_FONTS' ids,
-// not a raw CSS family, so the persisted value stays a plain enum string.
+// default" resolved in deckTitleStyle.ts (title hidden by default). `font` is
+// one of DECK_TITLE_FONTS' ids, not a raw CSS family, so the persisted value
+// stays a plain enum string.
 export interface DeckTitleStyle {
   show?: boolean;
   align?: 'top' | 'middle' | 'bottom';

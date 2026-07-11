@@ -11,6 +11,9 @@
 .list {
   flex: 1;
   min-height: 0;
+  // Cap the app list so it stays a compact scroller inside an unbounded
+  // container (the deck Launch-app box) instead of growing to the full list.
+  max-height: 260px;
   overflow-y: auto;
   display: grid;
   grid-template-columns: repeat(2, 1fr);

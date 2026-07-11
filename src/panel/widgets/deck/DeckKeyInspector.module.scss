@@ -113,15 +113,7 @@ textarea.input { resize: vertical; min-height: 2.4rem; }
   &:hover { background: color-mix(in srgb, var(--deck-settings-accent) 22%, transparent); }
 }
 
-// Row of equal-weight toggle buttons (title alignment, B/I/U) - a plain flex
-// row rather than SegmentedControl-with-borders since these sit inside an
-// already-boxed SettingsSection.
-.segmented {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
+// Glyphs used as ChipGroup labels for the B/I/U title-style chips.
 .boldGlyph { font-weight: 700; }
 .italicGlyph { font-style: italic; }
 .underlineGlyph { text-decoration: underline; }
