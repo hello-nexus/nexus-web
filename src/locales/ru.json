@@ -2854,5 +2854,12 @@
   "welcome.startWithOs.label": "Запускать вместе с Windows",
   "welcome.tagline": "Единое управление компьютером",
   "welcome.title": "Добро пожаловать в Nexus",
-  "welcome.error": "Не удалось сохранить настройки. Попробуйте ещё раз."
+  "welcome.error": "Не удалось сохранить настройки. Попробуйте ещё раз.",
+  "monitoring.settings.label": "Подпись",
+  "monitoring.settings.showLabel": "Показывать подпись",
+  "monitoring.settings.customLabel": "Своя подпись",
+  "monitoring.settings.labelCustomHint": "Своя подпись, которая не меняется при смене датчика",
+  "monitoring.settings.resetLabel": "Сброс",
+  "monitoring.settings.categorySection": "Категория",
+  "monitoring.settings.showCategory": "Показывать категорию"
 }

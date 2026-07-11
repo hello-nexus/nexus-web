@@ -188,6 +188,8 @@ export function MonitoringWidget({ widget, selectedSlot, onSelectSlot }: WidgetP
     scale: ((widget.config?.[`slot${i}_scale`] as ScaleMode | undefined) ?? DEFAULT_SCALE_MODE),
     fixedMin: widget.config?.[`slot${i}_min`] as number | undefined,
     fixedMax: widget.config?.[`slot${i}_max`] as number | undefined,
+    labelOverride: widget.config?.[`slot${i}_label`] as string | undefined,
+    labelHidden: widget.config?.[`slot${i}_labelHidden`] === true,
   }));
   const microDevice = widget.config?.micro_device as DeviceKey | undefined;
   const usesFps = isMicro
@@ -224,7 +226,7 @@ export function MonitoringWidget({ widget, selectedSlot, onSelectSlot }: WidgetP
 
   return (
     <div className={`${styles.performance} ${layoutClass}`}>
-      {slotConfigs.map(({ device, sensorName, design, scale, fixedMin, fixedMax }, i) => {
+      {slotConfigs.map(({ device, sensorName, design, scale, fixedMin, fixedMax, labelOverride, labelHidden }, i) => {
         return (
           <PerfSlot
             key={`${i}-${device}-${sensorName}`}
@@ -239,6 +241,8 @@ export function MonitoringWidget({ widget, selectedSlot, onSelectSlot }: WidgetP
             scale={scale}
             fixedMin={fixedMin}
             fixedMax={fixedMax}
+            labelOverride={labelOverride}
+            labelHidden={labelHidden}
             tempPrefs={tempPrefs}
             selected={selectable && i === activeSlot}
             onSelect={selectable ? () => onSelectSlot?.(i) : undefined}
@@ -261,18 +265,25 @@ interface PerfSlotProps {
   scale?: ScaleMode;
   fixedMin?: number;
   fixedMax?: number;
+  labelOverride?: string;
+  labelHidden?: boolean;
   tempPrefs?: TempSensorPrefs;
   selected?: boolean;
   onSelect?: () => void;
 }
 
-export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, extras, device, sensorName, design, scale = DEFAULT_SCALE_MODE, fixedMin, fixedMax, tempPrefs, selected = false, onSelect }: PerfSlotProps) {
+export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, extras, device, sensorName, design, scale = DEFAULT_SCALE_MODE, fixedMin, fixedMax, labelOverride, labelHidden = false, tempPrefs, selected = false, onSelect }: PerfSlotProps) {
   const { monitoringTempUnit, numberFormat } = useUnitPrefs();
   const effectiveSensorName = device === 'network' && !sensorName ? NETWORK_SENSOR_TOTAL : sensorName;
   const sensor = resolveSensor(sensors, fpsSensors, networkSensors, device, effectiveSensorName, tempPrefs, extras);
   const rawValue = sensor?.value ?? 0;
   const formatted = sensor ? formatSensorValue(sensor.value, sensor.units, sensor.formatted, monitoringTempUnit, numberFormat) : '-';
-  const label = labelForDevice(device, sensor?.name ?? effectiveSensorName);
+  // A per-slot custom label overrides the derived name and persists across
+  // sensor changes (config key survives the sensor swap); labelHidden blanks
+  // the visible caption while keeping resolvedLabel for the a11y name.
+  const autoLabel = labelForDevice(device, sensor?.name ?? effectiveSensorName);
+  const resolvedLabel = labelOverride?.trim() || autoLabel;
+  const label = labelHidden ? '' : resolvedLabel;
   // Shared key so the tile + immersive instance for the same sensor share one
   // 60-sample buffer; re-mounting in immersive shows existing history at once.
   const sensorKey = `${device}::${effectiveSensorName || 'default'}`;
@@ -312,7 +323,7 @@ export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, extra
       data-monitoring-slot-index={slotIndex}
       className={`${styles.slot} ${styles.slotSelectable} ${selected ? styles.slotSelected : ''}`}
       aria-pressed={selected}
-      aria-label={`Select ${label}`}
+      aria-label={`Select ${resolvedLabel}`}
       onClick={event => {
         event.stopPropagation();
         onSelect();

@@ -2854,5 +2854,12 @@
   "welcome.startWithOs.label": "Windows ile başlat",
   "welcome.tagline": "Birleşik bilgisayar kontrolü",
   "welcome.title": "Nexus'a hoş geldiniz",
-  "welcome.error": "Tercihleriniz kaydedilemedi. Lütfen tekrar deneyin."
+  "welcome.error": "Tercihleriniz kaydedilemedi. Lütfen tekrar deneyin.",
+  "monitoring.settings.label": "Etiket",
+  "monitoring.settings.showLabel": "Etiketi göster",
+  "monitoring.settings.customLabel": "Özel etiket",
+  "monitoring.settings.labelCustomHint": "Sensörü değiştirdiğinizde değişmeyen özel etiket",
+  "monitoring.settings.resetLabel": "Sıfırla",
+  "monitoring.settings.categorySection": "Kategori",
+  "monitoring.settings.showCategory": "Kategoriyi göster"
 }

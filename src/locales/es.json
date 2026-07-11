@@ -2854,5 +2854,12 @@
   "welcome.startWithOs.label": "Iniciar con Windows",
   "welcome.tagline": "Control unificado del equipo",
   "welcome.title": "Bienvenido a Nexus",
-  "welcome.error": "No se pudieron guardar tus preferencias. Inténtalo de nuevo."
+  "welcome.error": "No se pudieron guardar tus preferencias. Inténtalo de nuevo.",
+  "monitoring.settings.label": "Etiqueta",
+  "monitoring.settings.showLabel": "Mostrar etiqueta",
+  "monitoring.settings.customLabel": "Etiqueta personalizada",
+  "monitoring.settings.labelCustomHint": "Etiqueta personalizada que no cambia al cambiar de sensor",
+  "monitoring.settings.resetLabel": "Restablecer",
+  "monitoring.settings.categorySection": "Categoría",
+  "monitoring.settings.showCategory": "Mostrar categoría"
 }

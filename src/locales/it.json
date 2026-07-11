@@ -2854,5 +2854,12 @@
   "welcome.startWithOs.label": "Avvia con Windows",
   "welcome.tagline": "Controllo unificato del computer",
   "welcome.title": "Benvenuto in Nexus",
-  "welcome.error": "Impossibile salvare le tue preferenze. Riprova."
+  "welcome.error": "Impossibile salvare le tue preferenze. Riprova.",
+  "monitoring.settings.label": "Etichetta",
+  "monitoring.settings.showLabel": "Mostra etichetta",
+  "monitoring.settings.customLabel": "Etichetta personalizzata",
+  "monitoring.settings.labelCustomHint": "Etichetta personalizzata che non cambia quando cambi sensore",
+  "monitoring.settings.resetLabel": "Ripristina",
+  "monitoring.settings.categorySection": "Categoria",
+  "monitoring.settings.showCategory": "Mostra categoria"
 }

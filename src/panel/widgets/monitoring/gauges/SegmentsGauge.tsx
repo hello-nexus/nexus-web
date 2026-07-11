@@ -22,7 +22,7 @@ export function SegmentsGauge({ value, formatted, label }: GaugeProps) {
           {parts.value}
           {parts.unit && <span className="panel-gauge-unit">{parts.unit}</span>}
         </span>
-        <span className={styles.label}>{label}</span>
+        {label && <span className={styles.label}>{label}</span>}
       </div>
     </div>
   );

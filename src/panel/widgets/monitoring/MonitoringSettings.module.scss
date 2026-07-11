@@ -81,6 +81,37 @@
   gap: 6px;
 }
 
+// Each micro row stacks its sensor select above its label controls; a divider
+// keeps the per-sensor groups visually distinct in the taller list.
+.microSensorRow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 8px;
+
+  &:not(:last-child) {
+    border-bottom: 1px solid var(--border);
+  }
+}
+
+.labelRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.labelField {
+  flex: 1;
+  min-width: 0;
+}
+
+.labelResetBtn {
+  flex: 0 0 auto;
+  --icon-label-button-height: 36px;
+  --icon-label-label-size: 11px;
+}
+
 .selectSmall {
   flex: 0 0 auto;
   width: 160px;

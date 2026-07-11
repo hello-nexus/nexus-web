@@ -45,7 +45,7 @@ function readMicroSensorName(widget: PanelWidget, index: number): string {
 // labelForDevice). The SMART and extras-topic categories route through
 // the DetailedTab family-title keys instead, since this bottom label is
 // the widget's always-visible primary device caption, not a rare fallback.
-function bottomLabelForDevice(
+export function bottomLabelForDevice(
   device: DeviceKey,
   sensors: ReturnType<typeof useSensors>,
   t: (key: string) => string,
@@ -85,7 +85,12 @@ export function MicroMonitoringWidget({ widget, count }: MicroMonitoringWidgetPr
   const tempPrefs = useTempSensorPrefs();
   const { monitoringTempUnit, numberFormat } = useUnitPrefs();
 
-  const bottomLabel = bottomLabelForDevice(device, sensors, t);
+  // The bottom device caption ("GPU") is the widget's category label: a custom
+  // micro_category overrides the derived name, micro_categoryHidden drops the
+  // whole caption row and lets the bars fill the freed height.
+  const categoryOverride = (widget.config?.micro_category as string | undefined)?.trim();
+  const categoryHidden = widget.config?.micro_categoryHidden === true;
+  const bottomLabel = categoryOverride || bottomLabelForDevice(device, sensors, t);
 
   return (
     <div className={styles.micro}>
@@ -99,15 +104,19 @@ export function MicroMonitoringWidget({ widget, count }: MicroMonitoringWidgetPr
             extras={extras}
             device={device}
             sensorName={rawName}
+            labelOverride={widget.config?.[`micro_sensor${i}_label`] as string | undefined}
+            labelHidden={widget.config?.[`micro_sensor${i}_labelHidden`] === true}
             tempPrefs={tempPrefs}
             monitoringTempUnit={monitoringTempUnit}
             numberFormat={numberFormat}
           />
         ))}
       </div>
-      <HoverTooltip body={bottomLabel} side="top">
-        <div className={styles.bottomLabel}>{bottomLabel}</div>
-      </HoverTooltip>
+      {!categoryHidden && (
+        <HoverTooltip body={bottomLabel} side="top">
+          <div className={styles.bottomLabel}>{bottomLabel}</div>
+        </HoverTooltip>
+      )}
     </div>
   );
 }
@@ -119,18 +128,21 @@ interface MicroRowProps {
   extras: ReturnType<typeof useSensorExtras>;
   device: DeviceKey;
   sensorName: string;
+  labelOverride?: string;
+  labelHidden?: boolean;
   tempPrefs?: { cpuId: string; gpuId: string };
   monitoringTempUnit: TempUnit;
   numberFormat: NumberFormat;
 }
 
-function MicroRow({ sensors, fpsSensors, networkSensors, extras, device, sensorName, tempPrefs, monitoringTempUnit, numberFormat }: MicroRowProps) {
+function MicroRow({ sensors, fpsSensors, networkSensors, extras, device, sensorName, labelOverride, labelHidden = false, tempPrefs, monitoringTempUnit, numberFormat }: MicroRowProps) {
   const effectiveSensorName = device === 'network' && !sensorName ? NETWORK_SENSOR_TOTAL : sensorName;
   const sensor = resolveSensor(sensors, fpsSensors, networkSensors, device, effectiveSensorName, tempPrefs, extras);
   const rawValue = sensor?.value ?? 0;
   const formatted = sensor ? formatSensorValue(sensor.value, sensor.units, sensor.formatted, monitoringTempUnit, numberFormat) : '-';
   const sensorDisplayName = sensor?.name ?? '';
-  const label = bareSensorLabel(device, sensorDisplayName) || sensorDisplayName || effectiveSensorName;
+  const autoLabel = bareSensorLabel(device, sensorDisplayName) || sensorDisplayName || effectiveSensorName;
+  const label = labelHidden ? '' : (labelOverride?.trim() || autoLabel);
   const sensorKey = `${device}::${effectiveSensorName || 'default'}`;
   const history = useSharedSensorHistory(sensorKey, rawValue) as number[];
   const maxValue = device === 'network'

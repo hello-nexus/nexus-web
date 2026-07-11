@@ -27,7 +27,7 @@ export function NumberFillGauge({ value, formatted, label }: GaugeProps) {
           {renderText()}
         </span>
       </div>
-      <span className={styles.label}>{label}</span>
+      {label && <span className={styles.label}>{label}</span>}
     </div>
   );
 }

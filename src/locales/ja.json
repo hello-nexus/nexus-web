@@ -2854,5 +2854,12 @@
   "hello.g74": "GLHF！",
   "hello.g76": "バトルステーションを起動中。",
   "hello.g78": "実績解除：起動しました。",
-  "hello.g79": "デスクトップをリスポーン中。"
+  "hello.g79": "デスクトップをリスポーン中。",
+  "monitoring.settings.label": "ラベル",
+  "monitoring.settings.showLabel": "ラベルを表示",
+  "monitoring.settings.customLabel": "カスタムラベル",
+  "monitoring.settings.labelCustomHint": "センサーを変更しても変わらないカスタムラベル",
+  "monitoring.settings.resetLabel": "リセット",
+  "monitoring.settings.categorySection": "カテゴリ",
+  "monitoring.settings.showCategory": "カテゴリを表示"
 }

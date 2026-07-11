@@ -2854,5 +2854,12 @@
   "welcome.startWithOs.label": "Windows와 함께 실행",
   "welcome.tagline": "통합 컴퓨터 제어",
   "welcome.title": "Nexus에 오신 것을 환영합니다",
-  "welcome.error": "환경설정을 저장하지 못했습니다. 다시 시도해 주세요."
+  "welcome.error": "환경설정을 저장하지 못했습니다. 다시 시도해 주세요.",
+  "monitoring.settings.label": "라벨",
+  "monitoring.settings.showLabel": "라벨 표시",
+  "monitoring.settings.customLabel": "사용자 지정 라벨",
+  "monitoring.settings.labelCustomHint": "센서를 변경해도 유지되는 사용자 지정 라벨",
+  "monitoring.settings.resetLabel": "초기화",
+  "monitoring.settings.categorySection": "카테고리",
+  "monitoring.settings.showCategory": "카테고리 표시"
 }

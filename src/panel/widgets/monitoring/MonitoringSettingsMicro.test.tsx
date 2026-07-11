@@ -282,3 +282,52 @@ describe('MonitoringSettings - Micro mode with summary sensors present', () => {
     expect(mergedPatch(updates).micro_device).toBe('quick');
   });
 });
+
+describe('MonitoringSettings - Micro label & category controls', () => {
+  it('renders a Category section (show toggle + custom field) and per-sensor label controls', () => {
+    render(<MicroHarness initial={microWidget(4)} />);
+
+    expect(screen.getByRole('switch', { name: 'monitoring.settings.showCategory' })).toBeInTheDocument();
+    expect(screen.getAllByRole('switch', { name: 'monitoring.settings.showLabel' })).toHaveLength(4);
+    // Category caption derives from the CPU model in the fixture.
+    expect(screen.getByPlaceholderText('AMD Ryzen 7 9800X3D')).toBeInTheDocument();
+    // One category field + four per-sensor fields.
+    expect(screen.getAllByRole('textbox', { name: 'monitoring.settings.customLabel' })).toHaveLength(5);
+  });
+
+  it('toggling the category off writes micro_categoryHidden; a custom category commits micro_category', () => {
+    const updates: Record<string, PanelConfigValue>[] = [];
+    render(<MicroHarness initial={microWidget(3)} onUpdate={cfg => updates.push(cfg)} />);
+
+    act(() => {
+      fireEvent.click(screen.getByRole('switch', { name: 'monitoring.settings.showCategory' }));
+    });
+    expect(updates[updates.length - 1]).toEqual({ micro_categoryHidden: true });
+
+    const catField = screen.getByPlaceholderText('AMD Ryzen 7 9800X3D');
+    act(() => {
+      fireEvent.change(catField, { target: { value: 'My Rig' } });
+      fireEvent.blur(catField);
+    });
+    expect(updates[updates.length - 1]).toEqual({ micro_category: 'My Rig' });
+  });
+
+  it('per-sensor show toggle + custom label write the indexed micro keys', () => {
+    const updates: Record<string, PanelConfigValue>[] = [];
+    render(<MicroHarness initial={microWidget(4)} onUpdate={cfg => updates.push(cfg)} />);
+
+    const labelSwitches = screen.getAllByRole('switch', { name: 'monitoring.settings.showLabel' });
+    act(() => {
+      fireEvent.click(labelSwitches[1]);
+    });
+    expect(updates[updates.length - 1]).toEqual({ micro_sensor1_labelHidden: true });
+
+    // The category field is the first custom-label textbox; sensor i is at i+1.
+    const fields = screen.getAllByRole('textbox', { name: 'monitoring.settings.customLabel' });
+    act(() => {
+      fireEvent.change(fields[1], { target: { value: 'Load' } });
+      fireEvent.blur(fields[1]);
+    });
+    expect(updates[updates.length - 1]).toEqual({ micro_sensor0_label: 'Load' });
+  });
+});

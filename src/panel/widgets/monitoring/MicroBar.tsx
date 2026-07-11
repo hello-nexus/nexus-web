@@ -14,7 +14,7 @@ export function MicroBar({ label, formatted, fillPercent }: MicroBarProps) {
   return (
     <div className={styles.row}>
       <div className={styles.head}>
-        <span className={styles.label}>{label}</span>
+        {label && <span className={styles.label}>{label}</span>}
         <span className={styles.value}>
           {parts.value}
           {parts.unit && <span className="panel-gauge-unit">{parts.unit}</span>}
