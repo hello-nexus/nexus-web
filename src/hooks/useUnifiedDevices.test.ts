@@ -99,7 +99,7 @@ describe('useUnifiedDevices - Stream Deck per-deck entries', () => {
     expect(result.current.unified.some(d => d.key === 'curated-streamdeck')).toBe(false);
   });
 
-  it('names each entry "Stream Deck <model>" and keys it by serial', () => {
+  it('uses the generic model label for shortName and keys the entry by serial', () => {
     mockUseDevices.mockReturnValue({ devices: [makeHandlerRow({ connected: true })], controlDevice: vi.fn() });
     mockUseStreamDecks.mockReturnValue({ decks: [makeDeck({ serial: 'SN1', model: 'Mini' })] });
 
@@ -109,6 +109,36 @@ describe('useUnifiedDevices - Stream Deck per-deck entries', () => {
     expect(entry?.key).toBe('streamdeck:SN1');
     expect(entry?.shortName).toBe('devices.streamdeck.modelName:{"model":"Mini"}');
     expect(entry?.navigable).toBe(true);
+  });
+
+  it('names the entry after the deck\'s own persisted name, so two same-model decks stay distinguishable', () => {
+    mockUseDevices.mockReturnValue({ devices: [makeHandlerRow({ connected: true })], controlDevice: vi.fn() });
+    mockUseStreamDecks.mockReturnValue({
+      decks: [
+        makeDeck({ serial: 'SN1', model: 'Mini', name: 'Streaming Deck' }),
+        makeDeck({ serial: 'SN2', model: 'Mini', name: 'Editing Deck' }),
+      ],
+    });
+
+    const { result } = renderHook(() => useUnifiedDevices(true));
+    const entries = result.current.unified.filter(d => d.curatedId === 'streamdeck');
+
+    // Both share the same generic shortName (matches every other curated
+    // device's sidebar row), but `name` carries each deck's own identity.
+    expect(entries.every(d => d.shortName === 'devices.streamdeck.modelName:{"model":"Mini"}')).toBe(true);
+    expect(entries.map(d => d.name).sort()).toEqual(['Editing Deck', 'Streaming Deck']);
+  });
+
+  it('falls back to the handler-agnostic defaults when the /devices/all handler row has not loaded yet', () => {
+    mockUseDevices.mockReturnValue({ devices: [], controlDevice: vi.fn() });
+    mockUseStreamDecks.mockReturnValue({ decks: [makeDeck({ serial: 'SN1' })] });
+
+    const { result } = renderHook(() => useUnifiedDevices(true));
+    const entry = result.current.unified.find(d => d.curatedId === 'streamdeck');
+
+    expect(entry?.nexusControlEnabled).toBe(true);
+    expect(entry?.supportsNexusControl).toBe(false);
+    expect(entry?.category).toBe('controller');
   });
 
   it('mirrors the handler-level Nexus Control gate onto every deck entry', () => {

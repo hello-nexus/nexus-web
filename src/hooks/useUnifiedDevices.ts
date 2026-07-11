@@ -176,13 +176,16 @@ export function useUnifiedDevices(enabled: boolean) {
     // buildUnifiedList already skips. nexusControlEnabled/supportsNexusControl
     // are handler-level (one on/off gate for every deck), so every entry
     // mirrors the same handler row; warning/conflictAppId come straight off
-    // each deck since the service already computes them per deck.
+    // each deck since the service already computes them per deck. shortName
+    // is the generic family label (matches every other curated/panel device's
+    // sidebar row); name is the deck's own persisted name so the Devices-page
+    // card still tells two same-model decks apart.
     const streamdeckHandler = devices.find(d => d.id === 'streamdeck');
     for (const deck of streamDecks) {
       list.push({
         key: `streamdeck:${deck.serial}`,
         shortName: t('devices.streamdeck.modelName', { model: deck.model }),
-        name: t('devices.streamdeck.modelName', { model: deck.model }),
+        name: deck.name,
         subtitle: streamdeckHandler?.category ?? 'controller',
         category: streamdeckHandler?.category ?? 'controller',
         iconSrc: CURATED_ICONS.streamdeck ?? FALLBACK_ICON,
