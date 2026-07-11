@@ -6,6 +6,8 @@
 import { useMemo } from 'react';
 import { useSensors } from '../../../hooks/useSensors';
 import type { HardwareSensor } from '../../../hooks/useSensors';
+import { EMPTY_SENSOR_EXTRAS, useSensorExtras } from '../../../hooks/useSensorExtras';
+import type { SensorExtras } from '../../../hooks/useSensorExtras';
 import { useFpsSensors } from '../../../hooks/useFpsSensors';
 import { useNetworkMonitor } from '../../../hooks/useNetworkMonitor';
 import { useTempSensorPrefs, useUnitPrefs } from '../../../hooks/useUiSettings';
@@ -14,13 +16,14 @@ import type { WidgetProps } from '../types';
 import { useSharedSensorHistory } from '../common/useSharedSensorHistory';
 import { GAUGE_DESIGNS } from './gauges';
 import type { GaugeDesignKey, GaugeProps } from './gauges';
-import { DEFAULT_SLOTS, isMicroLayout, resolvedSlotCountForSize } from './perfSlots';
+import { DEFAULT_SLOTS, isExtrasBackedDevice, isMicroLayout, resolvedSlotCountForSize } from './perfSlots';
 import type { DeviceKey } from './perfSlots';
 import { prefixedSensorLabel } from './sensorNames';
+import { extrasSensorsForDevice, smartStorageSensors } from './sensorCategories';
 import { MicroMonitoringWidget } from './MicroMonitoringWidget';
 import { buildNetworkSensors, networkMaxValue, NETWORK_SENSOR_TOTAL } from './networkSensors';
 import { formatSensorValue } from './sensorValueFormat';
-import { chartDomainForScale, DEFAULT_SCALE_MODE, defaultFixedMax, staticMaxForDevice, type ScaleMode } from './perfDomain';
+import { chartDomainForScale, DEFAULT_SCALE_MODE, defaultFixedMax, isHeterogeneousTypeDevice, staticMaxForDevice, type ScaleMode } from './perfDomain';
 import styles from './MonitoringWidget.module.scss';
 
 interface TempSensorPrefs {
@@ -43,6 +46,7 @@ export function resolveSensor(
   device: DeviceKey,
   sensorKey: string,
   tempPrefs?: TempSensorPrefs,
+  extras?: SensorExtras,
 ): HardwareSensor | undefined {
   switch (device) {
     case 'quick':
@@ -92,6 +96,23 @@ export function resolveSensor(
       return sensors.storageSensors.find(s => s.id === sensorKey)
         ?? sensors.storageSensors.find(s => s.name === sensorKey)
         ?? sensors.storageSensors[0];
+    case 'smart': {
+      const list = smartStorageSensors(sensors);
+      return sensorKey
+        ? list.find(s => s.id === sensorKey) ?? list.find(s => s.name === sensorKey) ?? list[0]
+        : list[0];
+    }
+    case 'memoryModule':
+    case 'battery':
+    case 'nic':
+    case 'cooler':
+    case 'psu':
+    case 'embeddedController': {
+      const list = extrasSensorsForDevice(device, extras ?? EMPTY_SENSOR_EXTRAS);
+      return sensorKey
+        ? list.find(s => s.id === sensorKey) ?? list.find(s => s.name === sensorKey) ?? list[0]
+        : list[0];
+    }
     case 'network':
       return sensorKey
         ? networkSensors.find(s => s.name === sensorKey) ?? networkSensors.find(s => s.name === NETWORK_SENSOR_TOTAL)
@@ -115,6 +136,13 @@ export function labelForDevice(device: DeviceKey, sensorName: string): string {
     case 'motherboard': return 'MB';
     case 'fan': return 'FAN';
     case 'storage': return 'Storage';
+    case 'smart': return 'SMART';
+    case 'memoryModule': return 'DIMM';
+    case 'battery': return 'BATT';
+    case 'nic': return 'NIC';
+    case 'cooler': return 'COOL';
+    case 'psu': return 'PSU';
+    case 'embeddedController': return 'EC';
     case 'network': return 'Network';
     case 'fps': return 'FPS';
   }
@@ -131,8 +159,9 @@ export function percentForSensor(device: DeviceKey, sensor: HardwareSensor | und
   if (sensor.theoreticalMaximum && sensor.theoreticalMaximum > 0) {
     return Math.max(0, Math.min(100, (sensor.value / sensor.theoreticalMaximum) * 100));
   }
-  if (device === 'motherboard') {
-    // Motherboard sensors are heterogeneous: Load/Control/Level and
+  if (isHeterogeneousTypeDevice(device)) {
+    // Motherboard and the other mixed-bag device categories (SSD SMART,
+    // the extras-topic groups) are heterogeneous: Load/Control/Level and
     // Temperature already read 0-100, everything else (Fan, Voltage, Clock)
     // needs to scale against the resolved ceiling.
     if (sensor.type === 'Load' || sensor.type === 'Control' || sensor.type === 'Level' || sensor.type === 'Temperature') {
@@ -169,12 +198,16 @@ export function MonitoringWidget({ widget, selectedSlot, onSelectSlot }: WidgetP
   const usesNetwork = isMicro
     ? microDevice === 'network'
     : slotConfigs.some(slot => slot.device === 'network');
+  const usesExtras = isMicro
+    ? isExtrasBackedDevice(microDevice ?? 'cpu')
+    : slotConfigs.some(slot => isExtrasBackedDevice(slot.device));
   // Call hooks unconditionally (no branch, no early return) or the hooks-order
   // guard trips when slot count toggles between Micro (3/4) and multi (1/2/4).
   const sensors = useSensors(true);
   const fpsSensors = useFpsSensors(usesFps);
   const network = useNetworkMonitor(usesNetwork);
   const networkSensors = buildNetworkSensors(network);
+  const extras = useSensorExtras(usesExtras);
   const tempPrefs: TempSensorPrefs = useTempSensorPrefs();
 
   if (isMicro) {
@@ -201,6 +234,7 @@ export function MonitoringWidget({ widget, selectedSlot, onSelectSlot }: WidgetP
             sensors={sensors}
             fpsSensors={fpsSensors}
             networkSensors={networkSensors}
+            extras={extras}
             device={device}
             sensorName={sensorName}
             design={design}
@@ -222,6 +256,7 @@ interface PerfSlotProps {
   sensors: ReturnType<typeof useSensors>;
   fpsSensors: HardwareSensor[];
   networkSensors: HardwareSensor[];
+  extras?: SensorExtras;
   device: DeviceKey;
   sensorName: string;
   design: GaugeDesignKey;
@@ -233,10 +268,10 @@ interface PerfSlotProps {
   onSelect?: () => void;
 }
 
-export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, device, sensorName, design, scale = DEFAULT_SCALE_MODE, fixedMin, fixedMax, tempPrefs, selected = false, onSelect }: PerfSlotProps) {
+export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, extras, device, sensorName, design, scale = DEFAULT_SCALE_MODE, fixedMin, fixedMax, tempPrefs, selected = false, onSelect }: PerfSlotProps) {
   const { monitoringTempUnit, numberFormat } = useUnitPrefs();
   const effectiveSensorName = device === 'network' && !sensorName ? NETWORK_SENSOR_TOTAL : sensorName;
-  const sensor = resolveSensor(sensors, fpsSensors, networkSensors, device, effectiveSensorName, tempPrefs);
+  const sensor = resolveSensor(sensors, fpsSensors, networkSensors, device, effectiveSensorName, tempPrefs, extras);
   const rawValue = sensor?.value ?? 0;
   const formatted = sensor ? formatSensorValue(sensor.value, sensor.units, sensor.formatted, monitoringTempUnit, numberFormat) : '-';
   const label = labelForDevice(device, sensor?.name ?? effectiveSensorName);

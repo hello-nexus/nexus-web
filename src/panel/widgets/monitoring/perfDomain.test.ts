@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { chartDomainForScale, defaultFixedMax, designSupportsScale, niceStep, relativeHistoryDomain, staticMaxForDevice } from './perfDomain';
+import { chartDomainForScale, defaultFixedMax, designSupportsScale, isHeterogeneousTypeDevice, niceStep, relativeHistoryDomain, staticMaxForDevice } from './perfDomain';
 
 describe('designSupportsScale', () => {
   it('supports only sparkline and line', () => {
@@ -163,5 +163,43 @@ describe('relativeHistoryDomain - non-percent cpu/gpu/memory sensors are type-aw
   it('Load- and Temperature-typed cpu/gpu sensors still clamp to the 100 percent ceiling', () => {
     expect(relativeHistoryDomain('gpu', 90, [], 100, 'GPU Core', 'Load')).toEqual([0, 100]);
     expect(relativeHistoryDomain('gpu', 45, [], 100, 'GPU Core', 'Temperature')).toEqual([0, 50]);
+  });
+});
+
+describe('isHeterogeneousTypeDevice', () => {
+  it('is true for motherboard, SSD SMART, and every extras-topic device', () => {
+    expect(isHeterogeneousTypeDevice('motherboard')).toBe(true);
+    expect(isHeterogeneousTypeDevice('smart')).toBe(true);
+    expect(isHeterogeneousTypeDevice('memoryModule')).toBe(true);
+    expect(isHeterogeneousTypeDevice('battery')).toBe(true);
+    expect(isHeterogeneousTypeDevice('nic')).toBe(true);
+    expect(isHeterogeneousTypeDevice('cooler')).toBe(true);
+    expect(isHeterogeneousTypeDevice('psu')).toBe(true);
+    expect(isHeterogeneousTypeDevice('embeddedController')).toBe(true);
+  });
+
+  it('is false for the single-type-family devices', () => {
+    expect(isHeterogeneousTypeDevice('cpu')).toBe(false);
+    expect(isHeterogeneousTypeDevice('gpu')).toBe(false);
+    expect(isHeterogeneousTypeDevice('memory')).toBe(false);
+    expect(isHeterogeneousTypeDevice('storage')).toBe(false);
+    expect(isHeterogeneousTypeDevice('network')).toBe(false);
+    expect(isHeterogeneousTypeDevice('fan')).toBe(false);
+    expect(isHeterogeneousTypeDevice('fps')).toBe(false);
+  });
+});
+
+describe('relativeHistoryDomain / staticMaxForDevice - SSD SMART and extras devices reuse motherboard scaling', () => {
+  it('Fan-typed cooler sensors use the same domain as the fan device', () => {
+    expect(relativeHistoryDomain('cooler', 800, [], 2500, undefined, 'Fan')).toEqual([0, 1200]);
+  });
+
+  it('Temperature-typed smart sensors floor at 50 and cap at 100', () => {
+    expect(relativeHistoryDomain('smart', 60, [], 100, undefined, 'Temperature')).toEqual([0, 75]);
+  });
+
+  it('Voltage-typed psu sensors stretch to the observed max', () => {
+    expect(relativeHistoryDomain('psu', 1.25, [], 2, undefined, 'Voltage')).toEqual([0, 2]);
+    expect(staticMaxForDevice('psu', undefined, 'Voltage')).toBe(2);
   });
 });

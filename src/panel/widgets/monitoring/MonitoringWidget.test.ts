@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { HardwareSensor, SensorState } from '../../../hooks/useSensors';
+import type { SensorExtras } from '../../../hooks/useSensorExtras';
+import { EMPTY_SENSOR_EXTRAS } from '../../../hooks/useSensorExtras';
 import { labelForDevice, percentForSensor, resolveSensor, staticMaxForDevice } from './MonitoringWidget';
 
 function sensor(partial: Partial<HardwareSensor> & { id: string; name: string; type: string }): HardwareSensor {
@@ -93,5 +95,67 @@ describe('percentForSensor - motherboard', () => {
 
   it('returns 0 for an undefined sensor', () => {
     expect(percentForSensor('motherboard', undefined, 100)).toBe(0);
+  });
+});
+
+describe('resolveSensor - SSD SMART', () => {
+  const compositeTemp = sensor({ id: '/nvme/0/temperature/0', name: 'Composite Temperature', type: 'Temperature' });
+  const life = sensor({ id: '/nvme/0/life/0', name: 'Percentage Used', type: 'Level' });
+  const sensors: SensorState = {
+    ...EMPTY_SENSORS,
+    storageComponents: {
+      C: { id: 'C', name: 'Drive C', capacity: '1 TB', freeSpace: '', usedSpace: '', usedPercentage: '' },
+      'smart/nvme/0': { id: 'smart/nvme/0', name: 'Test NVMe', capacity: '', freeSpace: '', usedSpace: '', usedPercentage: '', sensors: [compositeTemp, life] },
+    },
+  };
+
+  it('resolves by id, falling back to name, then the first smart/*-flattened sensor', () => {
+    expect(resolveSensor(sensors, [], [], 'smart', '/nvme/0/temperature/0')?.id).toBe('/nvme/0/temperature/0');
+    expect(resolveSensor(sensors, [], [], 'smart', 'Percentage Used')?.id).toBe('/nvme/0/life/0');
+    expect(resolveSensor(sensors, [], [], 'smart', '')?.id).toBe('/nvme/0/temperature/0');
+  });
+
+  it('never resolves a DriveInfo logical-volume sensor for the smart device', () => {
+    // 'C' matches nothing in the smart/*-flattened list (DriveInfo components
+    // carry no `sensors` array), so it falls back to the first smart sensor -
+    // never a logical-volume one, since that list never contains any.
+    expect(resolveSensor(sensors, [], [], 'smart', 'C')?.id).toBe('/nvme/0/temperature/0');
+  });
+});
+
+describe('resolveSensor - extras-topic devices', () => {
+  const dimmTemp = sensor({ id: '/memory/dimm/0/temperature/0', name: 'DIMM #0', type: 'Temperature' });
+  const chargeLevel = sensor({ id: 'battery/0/charge', name: 'Charge Level', type: 'Level' });
+  const extras: SensorExtras = {
+    ...EMPTY_SENSOR_EXTRAS,
+    memoryModules: [{ id: '/memory/dimm/0', name: 'DIMM 0', sensors: [dimmTemp] }],
+    batteries: [{ id: 'battery/0', name: 'Battery', sensors: [chargeLevel] }],
+  };
+
+  it('resolves a memoryModule sensor by id from the extras param', () => {
+    expect(resolveSensor(EMPTY_SENSORS, [], [], 'memoryModule', '/memory/dimm/0/temperature/0', undefined, extras)?.id)
+      .toBe('/memory/dimm/0/temperature/0');
+  });
+
+  it('resolves a battery sensor by name from the extras param', () => {
+    expect(resolveSensor(EMPTY_SENSORS, [], [], 'battery', 'Charge Level', undefined, extras)?.id)
+      .toBe('battery/0/charge');
+  });
+
+  it('falls back to EMPTY_SENSOR_EXTRAS (no crash) when extras is omitted', () => {
+    expect(resolveSensor(EMPTY_SENSORS, [], [], 'battery', 'Charge Level')).toBeUndefined();
+  });
+});
+
+describe('percentForSensor / staticMaxForDevice - other heterogeneous devices', () => {
+  it('treat SSD SMART and the extras-topic devices the same as motherboard: Level/Temperature clamp straight through', () => {
+    expect(percentForSensor('smart', sensor({ id: 'a', name: 'a', type: 'Level', value: 12 }), 100)).toBe(12);
+    expect(percentForSensor('battery', sensor({ id: 'a', name: 'a', type: 'Temperature', value: 30 }), 100)).toBe(30);
+  });
+
+  it('scale a non-percent type against the resolved ceiling', () => {
+    expect(percentForSensor('cooler', sensor({ id: 'a', name: 'a', type: 'Fan', value: 1250 }), 2500)).toBe(50);
+    expect(staticMaxForDevice('psu', undefined, 'Voltage')).toBe(2);
+    expect(staticMaxForDevice('embeddedController', undefined, 'Clock')).toBe(6000);
   });
 });

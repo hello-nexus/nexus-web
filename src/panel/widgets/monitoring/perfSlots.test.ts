@@ -3,6 +3,7 @@ import {
   MICRO_MAX_COUNT,
   MICRO_MIN_COUNT,
   defaultSlotCountForSize,
+  isExtrasBackedDevice,
   isMicroLayout,
   microSupportsSize,
   resolvedSlotCountForSize,
@@ -88,6 +89,24 @@ describe('perfSlots', () => {
       expect(resolvedSlotCountForSize('4x2', 5)).toBe(2);
       // 2x2 has options [1, 3, 4]; 2 is not valid -> default 1.
       expect(resolvedSlotCountForSize('2x2', 2)).toBe(1);
+    });
+  });
+
+  describe('isExtrasBackedDevice', () => {
+    it('is true only for the extras-topic device categories', () => {
+      expect(isExtrasBackedDevice('memoryModule')).toBe(true);
+      expect(isExtrasBackedDevice('battery')).toBe(true);
+      expect(isExtrasBackedDevice('nic')).toBe(true);
+      expect(isExtrasBackedDevice('cooler')).toBe(true);
+      expect(isExtrasBackedDevice('psu')).toBe(true);
+      expect(isExtrasBackedDevice('embeddedController')).toBe(true);
+    });
+
+    it('is false for every non-extras device, including the storage-topic smart category', () => {
+      expect(isExtrasBackedDevice('cpu')).toBe(false);
+      expect(isExtrasBackedDevice('storage')).toBe(false);
+      expect(isExtrasBackedDevice('smart')).toBe(false);
+      expect(isExtrasBackedDevice('motherboard')).toBe(false);
     });
   });
 });

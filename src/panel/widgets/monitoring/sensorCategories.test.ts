@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { HardwareSensor, SensorState } from '../../../hooks/useSensors';
-import { FPS_SENSOR_TEMPLATE, SENSOR_CATEGORIES, sensorsForCategory } from './sensorCategories';
+import type { SensorExtras } from '../../../hooks/useSensorExtras';
+import { EMPTY_SENSOR_EXTRAS } from '../../../hooks/useSensorExtras';
+import { extrasSensorsForDevice, FPS_SENSOR_TEMPLATE, SENSOR_CATEGORIES, sensorsForCategory, smartStorageSensors } from './sensorCategories';
 
 function sensor(partial: Partial<HardwareSensor> & { id: string; name: string; type: string }): HardwareSensor {
   return { value: 0, units: '', formatted: '', parent: { id: '', name: '' }, ...partial };
@@ -57,5 +59,50 @@ describe('sensorsForCategory', () => {
     expect(FPS_SENSOR_TEMPLATE.map(s => s.id)).toEqual(['fps/current', 'fps/frame-time']);
     expect(FPS_SENSOR_TEMPLATE.map(s => s.name)).toEqual(['FPS', 'Frame Time']);
     expect(FPS_SENSOR_TEMPLATE.map(s => s.type)).toEqual(['Framerate', 'FrameTime']);
+  });
+});
+
+// smartStorageSensors and extrasSensorsForDevice are widget-only: neither is
+// part of sensorsForCategory/SENSOR_CATEGORIES, so the Tryx overlay picker
+// (which mirrors SENSOR_CATEGORIES exactly) can never resolve them.
+describe('smartStorageSensors', () => {
+  it('flattens sensors from smart/*-keyed storage components only', () => {
+    const sensors: SensorState = {
+      ...EMPTY_SENSORS,
+      storageComponents: {
+        C: { id: 'C', name: 'Drive C', capacity: '1 TB', freeSpace: '500 GB', usedSpace: '500 GB', usedPercentage: '50' },
+        'smart/nvme/0': {
+          id: 'smart/nvme/0', name: 'Test NVMe', capacity: '', freeSpace: '', usedSpace: '', usedPercentage: '',
+          sensors: [sensor({ id: '/nvme/0/temperature/0', name: 'Composite Temperature', type: 'Temperature' })],
+        },
+      },
+    };
+    expect(smartStorageSensors(sensors).map(s => s.id)).toEqual(['/nvme/0/temperature/0']);
+  });
+
+  it('returns an empty array when no smart/* component is present', () => {
+    expect(smartStorageSensors(EMPTY_SENSORS)).toEqual([]);
+  });
+});
+
+describe('extrasSensorsForDevice', () => {
+  const extras: SensorExtras = {
+    ...EMPTY_SENSOR_EXTRAS,
+    memoryModules: [{ id: '/memory/dimm/0', name: 'DIMM 0', sensors: [sensor({ id: 'dimm-temp', name: 'DIMM #0', type: 'Temperature' })] }],
+    batteries: [{ id: 'battery/0', name: 'Battery', sensors: [sensor({ id: 'battery-charge', name: 'Charge Level', type: 'Level' })] }],
+  };
+
+  it('resolves each extras-topic device to its own flattened sensor list', () => {
+    expect(extrasSensorsForDevice('memoryModule', extras).map(s => s.id)).toEqual(['dimm-temp']);
+    expect(extrasSensorsForDevice('battery', extras).map(s => s.id)).toEqual(['battery-charge']);
+    expect(extrasSensorsForDevice('nic', extras)).toEqual([]);
+    expect(extrasSensorsForDevice('cooler', extras)).toEqual([]);
+    expect(extrasSensorsForDevice('psu', extras)).toEqual([]);
+    expect(extrasSensorsForDevice('embeddedController', extras)).toEqual([]);
+  });
+
+  it('returns an empty array for a non-extras device', () => {
+    expect(extrasSensorsForDevice('cpu', extras)).toEqual([]);
+    expect(extrasSensorsForDevice('smart', extras)).toEqual([]);
   });
 });

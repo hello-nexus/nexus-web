@@ -1,4 +1,6 @@
-import type { HardwareSensor, SensorState } from '../../../hooks/useSensors';
+import { isSmartStorageComponentId, type HardwareSensor, type SensorState } from '../../../hooks/useSensors';
+import type { SensorExtras } from '../../../hooks/useSensorExtras';
+import type { DeviceKey } from './perfSlots';
 
 // Shared category set for both sensor pickers (monitoring widget + Tryx
 // overlay) so the two can never list different devices.
@@ -33,5 +35,31 @@ export function sensorsForCategory(
     case 'storage': return sensors.storageSensors;
     case 'network': return networkSensors;
     case 'fps': return fpsSensors.length ? fpsSensors : FPS_SENSOR_TEMPLATE;
+  }
+}
+
+// ── Widget-only categories ──────────────────────────────────────────────────
+// Not part of SENSOR_CATEGORIES/SensorCategory above: the Tryx overlay picker
+// (TRYX_SENSOR_GROUPS in tryxOverlayUtils.ts) mirrors that exact set, and
+// must never offer SSD SMART or the extras-topic device groups (see
+// useSensors.storageSensors and useSensorExtras for why).
+
+/** Flattened sensors from every smart/*-keyed storage component. */
+export function smartStorageSensors(sensors: SensorState): HardwareSensor[] {
+  return Object.entries(sensors.storageComponents)
+    .filter(([id]) => isSmartStorageComponentId(id))
+    .flatMap(([, component]) => component.sensors ?? []);
+}
+
+/** Flattened sensors for one extras-topic device category; [] for any other device. */
+export function extrasSensorsForDevice(device: DeviceKey, extras: SensorExtras): HardwareSensor[] {
+  switch (device) {
+    case 'memoryModule': return extras.memoryModules.flatMap(c => c.sensors ?? []);
+    case 'battery': return extras.batteries.flatMap(c => c.sensors ?? []);
+    case 'nic': return extras.nics.flatMap(c => c.sensors ?? []);
+    case 'cooler': return extras.coolers.flatMap(c => c.sensors ?? []);
+    case 'psu': return extras.psus.flatMap(c => c.sensors ?? []);
+    case 'embeddedController': return extras.embeddedControllers.flatMap(c => c.sensors ?? []);
+    default: return [];
   }
 }

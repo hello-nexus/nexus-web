@@ -66,6 +66,11 @@ const extrasState = {
   psus: [] as ExtrasComponentMock[],
   nvmeStorage: [] as ExtrasComponentMock[],
   embeddedControllers: [] as ExtrasComponentMock[],
+  memoryModules: [
+    { id: '/memory/dimm/0', name: 'Corsair - CMK16GX4M2B3200C16 (#0)', sensors: [
+      { id: '/memory/dimm/0/temperature/0', name: 'DIMM #0', type: 'Temperature', value: 38, units: '°C', formatted: '38.0 °C', parent: { id: '/memory/dimm/0', name: 'Corsair - CMK16GX4M2B3200C16 (#0)' } },
+    ] },
+  ] as ExtrasComponentMock[],
 };
 
 vi.mock('../../../hooks/useSensorExtras', () => ({
@@ -155,6 +160,11 @@ describe('MonitoringPage', () => {
 
     // Battery section also visible because the extras mock has one battery.
     expect(screen.getByRole('button', { name: /monitoring\.detailed\.battery/i })).toBeInTheDocument();
+
+    // DIMM section also visible because the extras mock has one memory module,
+    // and its temperature sensor renders in the section body.
+    expect(screen.getByRole('button', { name: /monitoring\.detailed\.memoryModule/i })).toBeInTheDocument();
+    expect(screen.getByText('DIMM #0')).toBeInTheDocument();
 
     // GPU has zero sensors and zero extras-equivalents -- the section must not render.
     expect(screen.queryByRole('button', { name: /monitoring\.detailed\.gpu/i })).toBeNull();

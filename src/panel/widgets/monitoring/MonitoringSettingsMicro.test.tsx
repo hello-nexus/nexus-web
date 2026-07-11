@@ -52,6 +52,26 @@ const mockSensors = vi.hoisted(() => ({
 
 vi.mock('../../../hooks/useSensors', () => ({
   useSensors: () => mockSensors,
+  isSmartStorageComponentId: (id: string) => id.startsWith('smart/'),
+}));
+
+// `batteries` is mutable so a single test can populate it to prove Micro's
+// eligibility check sees an extras-backed device's real sensor count even
+// when it is not the currently-selected micro_device (the widget always
+// starts on 'cpu').
+type ExtrasComponentMock = { id: string; name: string; sensors: typeof mockSensors.cpu };
+const mockExtras = vi.hoisted(() => ({
+  batteries: [] as ExtrasComponentMock[],
+  nics: [] as ExtrasComponentMock[],
+  coolers: [] as ExtrasComponentMock[],
+  psus: [] as ExtrasComponentMock[],
+  nvmeStorage: [] as ExtrasComponentMock[],
+  embeddedControllers: [] as ExtrasComponentMock[],
+  memoryModules: [] as ExtrasComponentMock[],
+}));
+
+vi.mock('../../../hooks/useSensorExtras', () => ({
+  useSensorExtras: () => mockExtras,
 }));
 
 vi.mock('../../../hooks/useFpsSensors', () => ({
@@ -192,6 +212,37 @@ describe('MonitoringSettings - Micro mode', () => {
     render(<MicroHarness initial={microWidget(4)} />);
     expect(screen.getByRole('combobox', { name: 'Sensor 1' })).toBeInTheDocument();
     expect(screen.getByRole('combobox', { name: 'Sensor 4' })).toBeInTheDocument();
+  });
+});
+
+describe('MonitoringSettings - Micro mode extras-backed device eligibility', () => {
+  const savedBatteries = mockExtras.batteries;
+
+  afterEach(() => {
+    mockExtras.batteries = savedBatteries;
+  });
+
+  it('correctly enables an extras-backed option even though it is not the currently-selected micro_device', () => {
+    // microWidget always starts on micro_device 'cpu' - the eligibility check
+    // for 'battery' must still see its real (non-empty) sensor count, not an
+    // empty list gated on 'battery' being the active selection.
+    mockExtras.batteries = [
+      { id: 'battery/0', name: 'Test Battery', sensors: [
+        { id: 'battery/0/charge', name: 'Charge Level', type: 'Level', value: 80, units: '%', formatted: '80%', parent: { id: 'battery/0', name: 'Test Battery' } },
+        { id: 'battery/0/rate', name: 'Discharge Rate', type: 'Power', value: 12, units: 'W', formatted: '12 W', parent: { id: 'battery/0', name: 'Test Battery' } },
+        { id: 'battery/0/cycles', name: 'Cycle Count', type: 'Factor', value: 40, units: '', formatted: '40', parent: { id: 'battery/0', name: 'Test Battery' } },
+      ] },
+    ];
+
+    render(<MicroHarness initial={microWidget(3)} />);
+
+    const deviceSelect = screen.getByRole('combobox', { name: 'monitoring.settings.device' }) as HTMLSelectElement;
+    const optionByValue = (value: string) =>
+      Array.from(deviceSelect.options).find(o => o.value === value)!;
+
+    expect(optionByValue('battery').disabled).toBe(false);
+    // memoryModule stays empty in this fixture - correctly still disabled.
+    expect(optionByValue('memoryModule').disabled).toBe(true);
   });
 });
 
