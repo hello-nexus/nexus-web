@@ -1,7 +1,7 @@
 import { ChevronLeft } from 'lucide-react';
 import { DndContext, PointerSensor, useSensor, useSensors, closestCenter, type DragEndEvent } from '@dnd-kit/core';
 import { useTranslation } from '../../../lib/i18n';
-import { padSlots, pageHasContent } from './deckLayout';
+import { padSlots, pageHasContent, MAX_DECK_PAGES } from './deckLayout';
 import { withPageIndicatorDisplay } from './deckIcons';
 import { resolveTargetView, slotCountAtDepth, type DeckTarget } from './deckTarget';
 import { DeckGrid } from './DeckGrid';
@@ -68,7 +68,7 @@ export function DeckEditor({ target, page, onPageChange, folderPath, onFolderPat
         pageCount={pageCount}
         currentPage={page}
         onSelectPage={onSelectPage}
-        onAddPage={() => { target.addPage(); onSelectPage(pageCount); }}
+        onAddPage={() => { if (pageCount >= MAX_DECK_PAGES) return; target.addPage(); onSelectPage(pageCount); }}
         onRemoveCurrentPage={() => { target.removePage(page); onSelectPage(Math.max(0, page - 1)); }}
         currentPageHasContent={pageHasContent(target.config.pages[page] ?? { slots: [] })}
       />

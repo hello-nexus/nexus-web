@@ -628,6 +628,13 @@ export interface DeckKeyInspectorProps {
    * left, both driven by the same target + selectedSlot.
    */
   part?: 'all' | 'picker' | 'editor';
+  /**
+   * True when the host surface's grid enters a folder on click (the routed
+   * device page's double-click-to-enter), so this inspector drops the "enter
+   * folder" button. Default false: DeckEditor's grid only selects a cell, so
+   * a folder key there still needs the button to descend into it.
+   */
+  gridEntersFolders?: boolean;
 }
 
 /**
@@ -636,7 +643,7 @@ export interface DeckKeyInspectorProps {
  * grid and this inspector in separate panes while the touch widget keeps
  * composing them together via DeckEditor.
  */
-export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange, selectedSlot, onSelectedSlotChange, surface, desktopEditor, part = 'all' }: DeckKeyInspectorProps) {
+export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange, selectedSlot, onSelectedSlotChange, surface, desktopEditor, part = 'all', gridEntersFolders = false }: DeckKeyInspectorProps) {
   const { t } = useTranslation();
   const viewCount = slotCountAtDepth(target, folderPath.length);
   const viewSlots = resolveTargetView(target, page, folderPath) ?? padSlots([], viewCount);
@@ -664,13 +671,15 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
   const showPicker = part !== 'editor';
   const showEditor = part !== 'picker';
 
-  // Param-less actions (pageIndicator, page next/prev) have nothing to
-  // configure, so the Action box is suppressed for them; a folder shows its
-  // enter-folder button.
   // A slot with no assigned action or folder has nothing to style, so the
   // editor stays empty until one is picked from the action list.
   const hasBinding = !!slot.action || !!slot.folder;
-  const hasActionConfig = !!slot.folder || (!!slot.action
+  // A surface whose grid enters folders on click (the device page) drops the
+  // enter-folder button; DeckEditor's grid only selects, so a folder key there
+  // keeps it. Param-less actions (pageIndicator, page next/prev) also have
+  // nothing to configure.
+  const showFolderEdit = kind === 'folder' && !gridEntersFolders;
+  const hasActionConfig = showFolderEdit || (!!slot.action
     && slot.action.type !== 'pageIndicator'
     && !(slot.action.type === 'page' && slot.action.op !== 'goto'));
 
@@ -687,7 +696,7 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
           {hasActionConfig && (
             <SettingsSection title={t(`panel.settings.deck.action.${kind}`)}>
               <div className={styles.fieldStack}>
-                {kind === 'folder' ? (
+                {showFolderEdit ? (
                   <button type="button" className={styles.folderBtn} onClick={() => { onFolderPathChange([...folderPath, selSlot]); onSelectedSlotChange?.(0); }}>
                     <FolderInput size={14} /> {t('panel.settings.deck.enterFolder')}
                   </button>

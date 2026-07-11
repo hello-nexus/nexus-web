@@ -1,5 +1,5 @@
 import { useState, useCallback, type ReactNode } from 'react';
-import { AlertTriangle, LayoutGrid, Monitor, Settings as SettingsIcon, Unplug, ChevronLeft, Trash2 } from 'lucide-react';
+import { AlertTriangle, LayoutGrid, Monitor, Settings as SettingsIcon, Unplug, Trash2 } from 'lucide-react';
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, pointerWithin, closestCenter, type DragEndEvent, type DragStartEvent, type CollisionDetection } from '@dnd-kit/core';
 import { useTranslation } from '../../../lib/i18n';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
@@ -13,7 +13,7 @@ import { usePhysicalDeckTarget } from '../../../panel/widgets/deck/usePhysicalDe
 import { DeckGrid } from '../../../panel/widgets/deck/DeckGrid';
 import { DeckKeyInspector, DeckDefaultTitleSettings, DeckActionDragPreview, slotForPickerKind, type DeckPickerKind } from '../../../panel/widgets/deck/DeckKeyInspector';
 import { DeckPageStrip } from '../../../panel/widgets/deck/DeckPageStrip';
-import { padSlots, pageHasContent } from '../../../panel/widgets/deck/deckLayout';
+import { padSlots, pageHasContent, MAX_DECK_PAGES } from '../../../panel/widgets/deck/deckLayout';
 import { withPageIndicatorDisplay } from '../../../panel/widgets/deck/deckIcons';
 import { resolveTargetView, slotCountAtDepth } from '../../../panel/widgets/deck/deckTarget';
 import type { DeckSlot } from '../../../panel/widgets/deck/types';
@@ -158,6 +158,13 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   const selSlot = clamp(selectedSlot, 0, Math.max(0, viewCount - 1));
   const selectedBound = !!(viewSlots[selSlot]?.action || viewSlots[selSlot]?.folder);
 
+  // First click selects a key; clicking an already-selected folder key enters
+  // it (no separate "edit folder" control). Going back is the grid's Back key.
+  const onCellClick = (i: number) => {
+    if (i === selSlot && viewSlots[i]?.folder) onEnterFolder([...folderPath, i]);
+    else setSelectedSlot(i);
+  };
+
   const onBack = () => { const next = folderPath.slice(0, -1); setFolderPath(next); setSelectedSlot(0); pushNav(page, next); };
   const onDragStart = (e: DragStartEvent) => {
     const id = String(e.active.id);
@@ -228,26 +235,20 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
                       selectable
                       dragEnabled
                       selectedIndex={selSlot}
-                      onCell={setSelectedSlot}
+                      onCell={onCellClick}
                       backCell={inFolder ? { onBack, ariaLabel: t('panel.settings.deck.back') } : undefined}
                     />
                   )}
                 </div>
                 {target && (
                   <div className={styles.pageRow}>
-                    <div className={styles.pageRowSide}>
-                      {inFolder && (
-                        <button type="button" className={styles.pageRowBtn} onClick={onBack} aria-label={t('panel.settings.deck.back')}>
-                          <ChevronLeft size={16} />
-                        </button>
-                      )}
-                    </div>
+                    <div className={styles.pageRowSide} />
                     <DeckPageStrip
                       numbered
                       pageCount={pageCount}
                       currentPage={page}
                       onSelectPage={onSelectPage}
-                      onAddPage={() => { target.addPage(); onSelectPage(pageCount); }}
+                      onAddPage={() => { if (pageCount >= MAX_DECK_PAGES) return; target.addPage(); onSelectPage(pageCount); }}
                       onRemoveCurrentPage={() => { target.removePage(page); onSelectPage(Math.max(0, page - 1)); }}
                       currentPageHasContent={pageHasContent(target.config.pages[page] ?? { slots: [] })}
                     />
@@ -279,6 +280,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
                     desktopEditor
                     // eslint-disable-next-line i18next/no-literal-string -- render-part enum value
                     part="editor"
+                    gridEntersFolders
                   />
                 ) : configError ? (
                   <div className={styles.loadError}>

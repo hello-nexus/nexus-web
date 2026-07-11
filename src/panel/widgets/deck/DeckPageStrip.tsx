@@ -5,6 +5,7 @@ import { useTranslation } from '../../../lib/i18n';
 import { Tabs, type TabDef } from '../../../components/common/Tabs/Tabs';
 import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
 import { ConfirmModal } from '../../../components/common/ConfirmModal/ConfirmModal';
+import { MAX_DECK_PAGES } from './deckLayout';
 import styles from './DeckPageStrip.module.scss';
 
 export interface DeckPageStripProps {
@@ -74,7 +75,7 @@ export function DeckPageStrip({
         {pageNav}
       </div>
       <div className={styles.controls}>
-        <button type="button" className={styles.iconBtn} aria-label={t('panel.settings.deck.page.add')} onClick={onAddPage}>
+        <button type="button" className={styles.iconBtn} aria-label={t('panel.settings.deck.page.add')} disabled={pageCount >= MAX_DECK_PAGES} onClick={onAddPage}>
           {/* eslint-disable-next-line i18next/no-literal-string -- ARIA boolean attribute */}
           <Plus size={14} aria-hidden="true" />
         </button>

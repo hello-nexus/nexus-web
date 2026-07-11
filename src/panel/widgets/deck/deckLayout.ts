@@ -171,8 +171,12 @@ function mapLevel(
   });
 }
 
-/** Appends a fresh empty page. */
+/** Upper bound on pages per deck; bounds page-strip and folder-nav growth. */
+export const MAX_DECK_PAGES = 10;
+
+/** Appends a fresh empty page, up to MAX_DECK_PAGES (no-op at the cap). */
 export function addPage(deck: DeckConfig): DeckConfig {
+  if (deck.pages.length >= MAX_DECK_PAGES) return deck;
   return { ...deck, pages: [...deck.pages, { slots: [] }] };
 }
 
