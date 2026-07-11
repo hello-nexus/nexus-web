@@ -25,6 +25,7 @@ import {
   INCIDENT_RANGE_OPTIONS,
   filterIncidentsToDomain,
   incidentEvents,
+  incidentGroupLabelKey,
   incidentLanes,
   incidentTimelineDomain,
   incidentXTickFormat,
@@ -211,7 +212,7 @@ export function IncidentsSection({
 
           {selected && (
             <div className={styles.selectedDetail}>
-              <div className={styles.selectedDetailHeader}>{t(incidentSourceLabelKey(selected.laneId))}</div>
+              <div className={styles.selectedDetailHeader}>{t(incidentGroupLabelKey(selected.laneId))}</div>
               {selected.incidents.map(incident => (
                 <IncidentDetailRow key={incident.id} incident={incident} now={now} />
               ))}
@@ -262,7 +263,7 @@ function IncidentClusterTooltip({ laneId, events, nowMs, language }: {
   const extra = events.length - shown.length;
   return (
     <div className={styles.incidentTooltip}>
-      <div className={styles.incidentTooltipHeader}>{t(incidentSourceLabelKey(laneId))}</div>
+      <div className={styles.incidentTooltipHeader}>{t(incidentGroupLabelKey(laneId))}</div>
       {shown.map(ev => {
         const Icon = SEVERITY_ICON[ev.incident.severity];
         return (
@@ -295,6 +296,7 @@ function IncidentDetailRow({ incident, now }: { incident: DiagnosticsIncident; n
         <span className={styles.incidentIcon} style={{ color: incidentSeverityColor(incident.severity) }}>
           <Icon size={15} aria-hidden />
         </span>
+        <Badge label={t(incidentSourceLabelKey(incident.source))} color="var(--text-dim)" />
         <span className={styles.incidentDetailTitle}>{incident.title}</span>
         {incident.app?.isGame && (
           <Badge label={t('diagnostics.incidents.game')} color="var(--accent)" icon={<Gamepad2 size={11} />} />

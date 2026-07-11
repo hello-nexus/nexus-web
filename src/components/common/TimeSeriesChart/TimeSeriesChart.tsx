@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useChartHoverTooltip } from '../../../hooks/useChartHoverTooltip';
 import { useTranslation } from '../../../lib/i18n';
 import {
@@ -43,6 +43,10 @@ export interface TimeSeriesChartProps {
   /** Subtle translucent vertical bands (e.g. sustained-high-temperature episodes). */
   bands?: readonly TimeSeriesBand[];
   showLegend?: boolean;
+  /** Force the x-axis window instead of deriving it from the data extent, so a
+   *  range wider than the available data shows empty space rather than
+   *  stretching the data to fill it. Falls back to the data extent when omitted. */
+  domain?: readonly [number, number];
   /** Extra content appended to the hover tooltip after the series rows, e.g.
    *  a per-bucket breakdown the chart itself has no concept of. Called with
    *  the hovered timestamp; renders nothing when it returns null. */
@@ -53,12 +57,16 @@ const PAD = { left: 56, right: 16, top: 12, bottom: 28 };
 
 export function TimeSeriesChart({
   series, height = 260, valueFormat, xTickFormat, xTickCount = 5, yTickCount = 5,
-  avgLabel, maxLabel, bands, showLegend = true, tooltipExtra,
+  avgLabel, maxLabel, bands, showLegend = true, domain, tooltipExtra,
 }: TimeSeriesChartProps) {
   const { t, language } = useTranslation();
   const wrapRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(440);
   const [hoverT, setHoverT] = useState<number | null>(null);
+  // Clips the data marks to the plot rect so a point just outside a forced
+  // domain (clock/timezone skew) cannot draw over the axis labels. Colons from
+  // useId are stripped so the url(#id) reference stays well-formed.
+  const clipId = `tsc-plot-${useId().replace(/:/g, '')}`;
   // Snapshot at mount rather than reading Date.now() during render (the
   // year-omission check only needs a stable "now", not a live clock).
   const [nowMs] = useState(() => Date.now());
@@ -78,7 +86,10 @@ export function TimeSeriesChart({
     return () => ro.disconnect();
   }, []);
 
-  const domainT = useMemo(() => timeDomain(series), [series]);
+  // An explicit domain wins so a range wider than the data leaves the empty
+  // span blank; otherwise fall back to the data's own extent.
+  const dataDomain = useMemo(() => timeDomain(series), [series]);
+  const domainT = domain ?? dataDomain;
   const [minV, maxV] = useMemo(() => valueDomain(series), [series]);
   const spacingMs = useMemo(() => medianSpacingMs(series), [series]);
   const maxGapMs = spacingMs !== null ? spacingMs * GAP_MULTIPLIER : Infinity;
@@ -158,6 +169,11 @@ export function TimeSeriesChart({
         onMouseMove={onMouseMove}
         onMouseLeave={() => setHoverT(null)}
       >
+        <defs>
+          <clipPath id={clipId}>
+            <rect x={PAD.left} y={PAD.top} width={chartW} height={chartH} />
+          </clipPath>
+        </defs>
         {yTicks.map((tick, i) => {
           const y = yFor(tick);
           return (
@@ -170,6 +186,7 @@ export function TimeSeriesChart({
           );
         })}
 
+        <g clipPath={`url(#${clipId})`}>
         {bands?.map((band, i) => (
           <rect
             key={i}
@@ -211,6 +228,7 @@ export function TimeSeriesChart({
             />
           );
         }))}
+        </g>
 
         {xTicks.map((tick, i) => (
           <text

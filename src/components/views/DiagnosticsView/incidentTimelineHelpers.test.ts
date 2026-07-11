@@ -39,20 +39,40 @@ describe('filterIncidentsToDomain', () => {
 });
 
 describe('incidentLanes', () => {
-  it('emits every category as a lane (never stripped) in reliability order, appCrash last', () => {
+  it('emits the fixed grouped lane set (never stripped), app last', () => {
     const ids = incidentLanes(k => k).map(l => l.id);
-    expect(ids).toEqual(['bugcheck', 'whea', 'liveKernel', 'tdr', 'gpuDriver', 'disk', 'dirtyShutdown', 'memDiag', 'appCrash']);
-    expect(ids[ids.length - 1]).toBe('appCrash');
+    expect(ids).toEqual(['crash', 'hardware', 'gpu', 'disk', 'shutdown', 'app']);
+    expect(ids[ids.length - 1]).toBe('app');
   });
 });
 
 describe('incidentEvents', () => {
-  it('maps severity to color and weight, carrying the incident', () => {
+  it('maps severity to color/weight and assigns the lane by group, carrying the incident', () => {
     const crit = incident({ id: 'c', timeUtc: '2026-07-06T00:00:00Z', source: 'appCrash', severity: 'critical' });
     const [event] = incidentEvents([crit]);
-    expect(event.laneId).toBe('appCrash');
+    expect(event.laneId).toBe('app');
     expect(event.weight).toBe(2);
     expect(event.color).toBe('var(--bad)');
     expect(event.incident).toBe(crit);
+  });
+
+  it('merges GPU timeout and GPU driver into one "gpu" lane', () => {
+    const events = incidentEvents([
+      incident({ id: 't', timeUtc: '2026-07-06T00:00:00Z', source: 'tdr' }),
+      incident({ id: 'd', timeUtc: '2026-07-06T00:00:00Z', source: 'gpuDriver' }),
+    ]);
+    expect(events.map(e => e.laneId)).toEqual(['gpu', 'gpu']);
+  });
+
+  it('merges bugcheck and live-kernel into one "crash" lane', () => {
+    const events = incidentEvents([
+      incident({ id: 'b', timeUtc: '2026-07-06T00:00:00Z', source: 'bugcheck' }),
+      incident({ id: 'k', timeUtc: '2026-07-06T00:00:00Z', source: 'liveKernel' }),
+    ]);
+    expect(events.map(e => e.laneId)).toEqual(['crash', 'crash']);
+  });
+
+  it('drops memDiag (memory test result) - not an incident-timeline category', () => {
+    expect(incidentEvents([incident({ id: 'm', timeUtc: '2026-07-06T00:00:00Z', source: 'memDiag' })])).toEqual([]);
   });
 });

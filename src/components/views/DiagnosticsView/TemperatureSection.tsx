@@ -22,6 +22,7 @@ import {
   formatTemperatureCelsius,
   formatTemperatureDayLabel,
   minSelectableTemperatureDate,
+  temperatureRangeDomain,
   temperatureRangeLabelKey,
   toChartSeries,
   todayIso,
@@ -89,6 +90,9 @@ export function TemperatureSection({
     const recencyMs = Math.max(data.bucketMinutes, lingerMinutes) * 60_000;
     return data.episodes.filter(ep => new Date(ep.endUtc).getTime() >= now - recencyMs);
   }, [data, lingerMinutes, now]);
+  // Force the chart's x-window to the full selected range so a range wider than
+  // the recorded data shows blank space on the left instead of stretching.
+  const chartDomain = useMemo(() => temperatureRangeDomain(hours, date, now), [hours, date, now]);
   const state = resolveSectionState({
     hasData: data !== null,
     loading,
@@ -157,6 +161,7 @@ export function TemperatureSection({
           )}
           <TimeSeriesChart
             series={toChartSeries(data.series)}
+            domain={chartDomain}
             valueFormat={v => formatTemperatureCelsius(v, monitoringTempUnit, numberFormat)}
             xTickFormat={isDateMode ? xTickFormatForRange(24) : xTickFormatForRange(hours)}
             avgLabel={t('diagnostics.temperature.avg')}

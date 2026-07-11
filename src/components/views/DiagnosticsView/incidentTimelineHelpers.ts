@@ -6,7 +6,7 @@
 // duplicating them.
 import type { DiagnosticsIncident, DiagnosticsIncidentSeverity, DiagnosticsIncidentSource } from '../../../api/diagnostics';
 import type { EventTimelineEvent, EventTimelineLane } from '../../common/EventTimeline/EventTimeline';
-import { incidentSeverityColor, incidentSourceLabelKey } from './diagnosticsHelpers';
+import { incidentSeverityColor } from './diagnosticsHelpers';
 import { TEMPERATURE_RANGE_OPTIONS, xTickFormatForRange, type TemperatureRangeHours } from './temperatureHelpers';
 
 export type IncidentRangeHours = TemperatureRangeHours;
@@ -19,12 +19,45 @@ export type IncidentTimelineQuery = { hours: IncidentRangeHours } | { date: stri
 
 const HOUR_MS = 3_600_000;
 
-// Lane order: reliability-critical sources first, app crashes last, so the
-// most severe categories sit at the top of the timeline regardless of which
-// sources happen to be present.
-const INCIDENT_SOURCE_ORDER: readonly DiagnosticsIncidentSource[] = [
-  'bugcheck', 'whea', 'liveKernel', 'tdr', 'gpuDriver', 'disk', 'dirtyShutdown', 'memDiag', 'appCrash',
-];
+// Raw incident sources collapse into a smaller set of display lanes so the
+// timeline stays readable: GPU timeout (tdr) + GPU driver faults share "GPU",
+// bugchecks + live-kernel events share "System crash". memDiag has no group -
+// the Windows Memory Diagnostic result is a test outcome (often a clean pass),
+// surfaced on the Memory tab, not the incident timeline - so it is dropped here.
+export type IncidentGroup = 'crash' | 'hardware' | 'gpu' | 'disk' | 'shutdown' | 'app';
+
+// Lane order: most reliability-critical first, app crashes last.
+const INCIDENT_GROUP_ORDER: readonly IncidentGroup[] = ['crash', 'hardware', 'gpu', 'disk', 'shutdown', 'app'];
+
+// Full Record (not Partial) so adding a source to DiagnosticsIncidentSource is a
+// compile error until it is explicitly mapped or set to null - a new source
+// must never silently vanish from the timeline. null = intentionally no lane.
+const SOURCE_TO_GROUP: Record<DiagnosticsIncidentSource, IncidentGroup | null> = {
+  bugcheck: 'crash',
+  liveKernel: 'crash',
+  whea: 'hardware',
+  tdr: 'gpu',
+  gpuDriver: 'gpu',
+  disk: 'disk',
+  dirtyShutdown: 'shutdown',
+  appCrash: 'app',
+  memDiag: null,
+};
+
+// Each group reuses an existing label key, so grouping adds no new locale keys.
+const GROUP_LABEL_KEY: Record<IncidentGroup, string> = {
+  crash: 'diagnostics.incidents.source.bugcheck',
+  hardware: 'diagnostics.incidents.source.whea',
+  gpu: 'diagnostics.kind.gpu',
+  disk: 'diagnostics.incidents.source.disk',
+  shutdown: 'diagnostics.incidents.source.dirtyShutdown',
+  app: 'diagnostics.incidents.source.appCrash',
+};
+
+/** Translation key for a lane group's header (tooltip / detail list). */
+export function incidentGroupLabelKey(group: string): string {
+  return GROUP_LABEL_KEY[group as IncidentGroup] ?? group;
+}
 
 const SEVERITY_WEIGHT: Record<DiagnosticsIncidentSeverity, number> = { critical: 2, warning: 1, info: 0 };
 
@@ -49,12 +82,12 @@ export function filterIncidentsToDomain(incidents: readonly DiagnosticsIncident[
   });
 }
 
-/** One lane per incident source, ALL categories always (never stripped), in
- *  INCIDENT_SOURCE_ORDER. The lane set is fixed so the timeline's height and
- *  lane order stay stable across ranges, and a category with no incidents in
- *  the window shows an empty track rather than disappearing. */
+/** One lane per incident GROUP, all groups always (never stripped), in
+ *  INCIDENT_GROUP_ORDER. The lane set is fixed and deliberately small so the
+ *  timeline's height/order stay stable and a group with no incidents in the
+ *  window shows an empty track rather than disappearing. */
 export function incidentLanes(translate: (key: string) => string): EventTimelineLane[] {
-  return INCIDENT_SOURCE_ORDER.map(source => ({ id: source, label: translate(incidentSourceLabelKey(source)) }));
+  return INCIDENT_GROUP_ORDER.map(group => ({ id: group, label: translate(GROUP_LABEL_KEY[group]) }));
 }
 
 /** An EventTimeline event per incident, carrying the incident itself so the
@@ -65,14 +98,20 @@ export interface IncidentTimelineEvent extends EventTimelineEvent {
 }
 
 export function incidentEvents(incidents: readonly DiagnosticsIncident[]): IncidentTimelineEvent[] {
-  return incidents.map(incident => ({
-    id: incident.id,
-    laneId: incident.source,
-    t: new Date(incident.timeUtc).getTime(),
-    color: incidentSeverityColor(incident.severity),
-    weight: SEVERITY_WEIGHT[incident.severity],
-    incident,
-  }));
+  const out: IncidentTimelineEvent[] = [];
+  for (const incident of incidents) {
+    const group = SOURCE_TO_GROUP[incident.source];
+    if (!group) continue; // dropped category (e.g. memDiag)
+    out.push({
+      id: incident.id,
+      laneId: group,
+      t: new Date(incident.timeUtc).getTime(),
+      color: incidentSeverityColor(incident.severity),
+      weight: SEVERITY_WEIGHT[incident.severity],
+      incident,
+    });
+  }
+  return out;
 }
 
 /** X-axis tick granularity for a query, reusing the temperature chart's
