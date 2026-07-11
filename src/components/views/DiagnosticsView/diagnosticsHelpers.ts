@@ -190,6 +190,10 @@ export interface DomainTile {
   domain: DiagnosticsKind;
   status: DiagnosticsStatus;
   reasons: DiagnosticsReason[];
+  // Names of the member components this tile rolls up, in member order. Shown
+  // in the tile body when nothing is flagged, so a healthy tile still says
+  // what it is watching.
+  devices: string[];
 }
 
 const DOMAIN_TILE_KINDS: readonly { domain: DiagnosticsKind; kinds: readonly DiagnosticsKind[] }[] = [
@@ -208,7 +212,7 @@ export function aggregateDomainTiles(components: DiagnosticsComponent[]): Domain
       if (STATUS_SEVERITY_RANK[member.status] > STATUS_SEVERITY_RANK[status]) status = member.status;
       reasons.push(...member.reasons);
     }
-    return { domain, status, reasons };
+    return { domain, status, reasons, devices: members.map(m => m.name) };
   });
 }
 

@@ -2,7 +2,7 @@
 // file per preview to satisfy the fast-refresh rule would be dozens of tiny
 // files. Storybook entries reload (not HMR) on edit.
 import { useEffect, useRef, useState, type CSSProperties, type FC } from 'react';
-import { Monitor, Palette, Sparkles, X, Plus, Settings, Download, AlertTriangle } from 'lucide-react';
+import { Monitor, Palette, Sparkles, X, Plus, Settings, Download, AlertTriangle, HardDrive } from 'lucide-react';
 import { ViewHeader } from '../components/common/ViewHeader/ViewHeader';
 import { Sparkline } from '../components/common/Sparkline/Sparkline';
 import { RankedList } from '../components/common/RankedList/RankedList';
@@ -351,7 +351,7 @@ function PreviewSensorCard() {
 
 function PreviewCard() {
   return (
-    <Card title="Sample card" subtitle="Compose into bespoke surfaces">
+    <Card title="Sample card" subtitle="Compose into bespoke surfaces" icon={<HardDrive size={18} />}>
       <p className={styles.previewText}>Card primitive owns background, border, padding, and the title row.</p>
     </Card>
   );
@@ -1775,7 +1775,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'Card', category: 'cards',
     filePath: 'src/components/common/Card/Card.tsx',
-    description: 'Canonical card surface (background, border, radius, padding) with optional title / subtitle / actions header. Compose for any panel. `interactive` adds a hover state; `compact` tightens padding for dense layouts (tile grids).', Preview: PreviewCard,
+    description: 'Canonical card surface (background, border, radius, padding) with optional icon / title / subtitle / actions header. Compose for any panel. `icon` renders a leading glyph before the title; `interactive` adds a hover state; `compact` tightens padding for dense layouts (tile grids).', Preview: PreviewCard,
   },
   {
     name: 'SensorCard', category: 'cards',

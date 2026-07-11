@@ -1,4 +1,5 @@
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
+import { Fan, HardDrive, MemoryStick, ShieldCheck } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { Badge } from '../../common/Badge/Badge';
 import { InfoTooltip } from '../../common/InfoTooltip/InfoTooltip';
@@ -12,6 +13,15 @@ interface ComponentHealthGridProps {
   /** Jumps to the matching domain tab - a tile's domain is exactly a tab key. */
   onNavigate: (kind: DiagnosticsKind) => void;
 }
+
+// Same glyph the domain's own tab uses, so a tile reads as the tab it opens.
+// Cooling folds GPU in, so it takes the Cooling tab's Fan icon.
+const DOMAIN_ICON: Partial<Record<DiagnosticsKind, ReactNode>> = {
+  storage: <HardDrive size={18} />,
+  memory: <MemoryStick size={18} />,
+  cooling: <Fan size={18} />,
+  system: <ShieldCheck size={18} />,
+};
 
 /** The at-a-glance overview: a fixed 2x2 of four large domain tiles - Storage,
  *  Memory, Cooling (GPU folded in), System - each aggregating the server's
@@ -30,11 +40,12 @@ export function ComponentHealthGrid({ components, onNavigate }: ComponentHealthG
           className={styles.healthCard}
           interactive
           dashHover
+          icon={DOMAIN_ICON[tile.domain]}
           title={t(`diagnostics.kind.${tile.domain}`)}
           actions={<Badge label={t(statusLabelKey(tile.status))} color={statusColor(tile.status)} />}
           onClick={() => onNavigate(tile.domain)}
         >
-          {tile.reasons.length > 0 && (
+          {tile.reasons.length > 0 ? (
             <ul className={styles.reasonList}>
               {tile.reasons.map((reason, i) => (
                 <li key={i} className={styles.reasonItem}>
@@ -52,7 +63,11 @@ export function ComponentHealthGrid({ components, onNavigate }: ComponentHealthG
                 </li>
               ))}
             </ul>
-          )}
+          ) : tile.devices.length > 0 ? (
+            // Nothing flagged: name what the tile is watching so a healthy box
+            // still carries information instead of reading as empty.
+            <div className={styles.deviceLine}>{tile.devices.join(', ')}</div>
+          ) : null}
         </Card>
       ))}
     </div>

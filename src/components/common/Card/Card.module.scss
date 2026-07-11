@@ -41,6 +41,23 @@
   gap: 0.75rem;
 }
 
+// Icon + title/subtitle grouped on the left so the glyph sits directly before
+// the title; the actions column stays pinned to the header's right edge.
+.headerMain {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+  flex: 1;
+}
+
+// Leading glyph, centered against the title by .headerMain's align-items.
+.icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--text-dim);
+}
+
 .titleCol {
   display: flex;
   flex-direction: column;
