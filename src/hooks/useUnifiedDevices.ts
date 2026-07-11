@@ -95,7 +95,7 @@ const CURATED_ICONS: Record<string, string> = {
   'lianli-wireless': '/assets/devices/lianli.svg',
   strimer: '/assets/devices/device.svg',
   tryx: '/assets/devices/tryx.svg',
-  streamdeck: '/assets/devices/streamdeck.svg',
+  streamdeck: '/assets/devices/elgato.svg',
 };
 
 const CURATED_SHORT_NAMES: Record<string, string> = {
