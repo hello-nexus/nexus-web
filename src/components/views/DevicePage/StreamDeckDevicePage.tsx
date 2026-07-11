@@ -1,10 +1,11 @@
-import { useState, type ReactNode } from 'react';
+import { useState, useCallback, type ReactNode } from 'react';
 import { AlertTriangle, LayoutGrid, Monitor, Settings as SettingsIcon, Unplug, ChevronLeft } from 'lucide-react';
 import { DndContext, PointerSensor, useSensor, useSensors, closestCenter, type DragEndEvent } from '@dnd-kit/core';
 import { useTranslation } from '../../../lib/i18n';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { localizeNumbers } from '../../../lib/units';
 import { useStreamDecks } from '../../../hooks/useStreamDecks';
+import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import type { UnifiedDevice } from '../../../hooks/useUnifiedDevices';
 import { useConflictApps } from '../../../hooks/useConflictApps';
 import { usePhysicalDeckTarget } from '../../../panel/widgets/deck/usePhysicalDeckTarget';
@@ -72,6 +73,17 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   const { target, error: configError, retry: retryConfig } = usePhysicalDeckTarget(deck, folderPath, page);
   const { conflicts } = useConflictApps(!!deck?.conflictAppId);
   const activeConflict = deck?.conflictAppId ? conflicts.find(c => c.id === deck.conflictAppId) : undefined;
+
+  // Follow the physical deck's navigation: pressing prev/next page, go-to-page,
+  // or entering/leaving a folder on the hardware broadcasts a `nav` frame, so
+  // the editor moves to the same page/folder the deck is showing.
+  useTopicCallback('streamdeck', !isRemoteOrigin && !!serial, useCallback((data: unknown) => {
+    const f = data as { kind?: string; serial?: string; page?: number; folderPath?: number[] };
+    if (f.kind !== 'nav' || f.serial !== serial) return;
+    if (typeof f.page === 'number') setPage(f.page);
+    setFolderPath(Array.isArray(f.folderPath) ? f.folderPath : []);
+    setSelectedSlot(0);
+  }, [serial]));
 
   const onSelectPage = (next: number) => { setPage(next); setFolderPath([]); setSelectedSlot(0); };
 
