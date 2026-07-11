@@ -46,14 +46,16 @@ function fakePhysicalTarget(over: Partial<DeckTarget> = {}): DeckTarget {
     cols: 3,
     rows: 2,
     keyCount: 6,
-    config: { slots: [] },
+    config: { pages: [{ slots: [] }] },
     updateSlot: vi.fn(),
     swapSlots: vi.fn(),
+    addPage: vi.fn(),
+    removePage: vi.fn(),
     ...over,
   };
 }
 
-function renderSettings(deck: DeckConfig = { slots: [{ label: 'existing' }] }) {
+function renderSettings(deck: DeckConfig = { pages: [{ slots: [{ label: 'existing' }] }] }) {
   const onUpdate = vi.fn();
   const utils = render(
     <DeckSettings
@@ -63,7 +65,7 @@ function renderSettings(deck: DeckConfig = { slots: [{ label: 'existing' }] }) {
       onResize={vi.fn()}
       selectedSlot={0}
       onSelectedSlotChange={vi.fn()}
-      editView={{ folderPath: [] }}
+      editView={{ page: 0, folderPath: [] }}
       onEditViewChange={vi.fn()}
     />,
   );
@@ -132,7 +134,7 @@ describe('DeckSettings physical-deck rail gating', () => {
     mockUseStreamDecks.mockReturnValue({ decks: [], loaded: true, rename: vi.fn(), setBrightness: vi.fn(), refresh: vi.fn() });
     render(
       <DeckSettings
-        widget={makeWidget({ slots: [] })}
+        widget={makeWidget({ pages: [{ slots: [] }] })}
         surface="y70"
         onUpdate={vi.fn()}
         onResize={vi.fn()}

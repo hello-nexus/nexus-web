@@ -72,4 +72,15 @@ describe('executeDeckAction → REST', () => {
     await executeDeckAction({ type: 'nexus', action: { op: 'y70Power', on: true } });
     expect(postService).toHaveBeenCalledWith('/y70/toggle', { toggle: false });
   });
+  it('page navigation is a no-op (handled client-side by the widget, not via REST)', async () => {
+    await executeDeckAction({ type: 'page', op: 'next' });
+    await executeDeckAction({ type: 'page', op: 'goto', target: 2 });
+    expect(postService).not.toHaveBeenCalled();
+    expect(fetchService).not.toHaveBeenCalled();
+  });
+  it('pageIndicator is a no-op (display-only)', async () => {
+    await executeDeckAction({ type: 'pageIndicator' });
+    expect(postService).not.toHaveBeenCalled();
+    expect(fetchService).not.toHaveBeenCalled();
+  });
 });

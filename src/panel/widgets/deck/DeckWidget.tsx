@@ -7,53 +7,68 @@ import { DeckGrid } from './DeckGrid';
 import { innerGridForSize, readDeckConfig, resolveViewSlots, padSlots, swapSlots, deckConfigPatch } from './deckLayout';
 import { executeDeckAction } from './deckExecutor';
 import { useDeckLiveState } from './useDeckState';
-import { toggleBranchSlot } from './deckIcons';
+import { toggleBranchSlot, withPageIndicatorDisplay } from './deckIcons';
 import { usePanelPreview } from '../common/PanelPreviewContext';
 import { DECK_PREVIEW_CONFIG } from './deckPreviewData';
 import type { DeckAction, DeckSlot } from './types';
 import styles from './DeckGrid.module.scss';
 
+const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
+
 export function DeckWidget({ widget, selectedSlot, onSelectSlot, editView, onEditViewChange, onUpdate }: WidgetProps) {
   const { t } = useTranslation();
   const preview = usePanelPreview();
   const parsed = readDeckConfig(widget);
-  const deck = preview && parsed.slots.length === 0 ? DECK_PREVIEW_CONFIG : parsed;
+  const deck = preview && parsed.pages.length === 1 && parsed.pages[0].slots.length === 0 ? DECK_PREVIEW_CONFIG : parsed;
   const { cols, rows, count } = innerGridForSize(widget.size);
   const editing = typeof onSelectSlot === 'function';
   const live = useDeckLiveState(deck, !editing && !preview);
   const [internalFolder, setInternalFolder] = useState<number[]>([]);
+  const [internalPage, setInternalPage] = useState(0);
   const [flips, setFlips] = useState<Record<string, boolean>>({});
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   const controlled = editing && !!editView && !!onEditViewChange;
+  const maxPage = Math.max(0, deck.pages.length - 1);
+  const page = clamp(controlled ? editView!.page : internalPage, 0, maxPage);
   const folderPath = controlled ? editView!.folderPath : internalFolder;
-  const setFolderPath = (fp: number[]) => (controlled ? onEditViewChange!({ folderPath: fp }) : setInternalFolder(fp));
+  const setFolderPath = (fp: number[]) => (controlled ? onEditViewChange!({ page, folderPath: fp }) : setInternalFolder(fp));
+  // Page nav resets folderPath to root (page and folder are orthogonal, but a
+  // folder path from one page rarely resolves on another).
+  const setPage = (p: number) => {
+    const next = clamp(p, 0, maxPage);
+    if (controlled) onEditViewChange!({ page: next, folderPath: [] });
+    else { setInternalPage(next); setInternalFolder([]); }
+  };
 
-  const resolved = resolveViewSlots(deck, folderPath, count);
+  const resolved = resolveViewSlots(deck, page, folderPath, count);
   const inFolder = resolved != null && folderPath.length > 0;
-  const slots = resolved ?? resolveViewSlots(deck, [], count) ?? padSlots([], count);
+  const slots = resolved ?? resolveViewSlots(deck, page, [], count) ?? padSlots([], count);
 
   // Reset a stale folder path (folder removed by a resize) in run mode.
   useEffect(() => {
     if (!controlled && resolved == null && folderPath.length > 0) setInternalFolder([]);
   }, [controlled, resolved, folderPath.length]);
 
-  const keyFor = (i: number) => `${folderPath.join('.')}:${i}`;
+  const keyFor = (i: number) => `${page}:${folderPath.join('.')}:${i}`;
 
   const toggleOn = (action: Extract<DeckAction, { type: 'toggle' }>, key: string): boolean => {
     const liveOn = live.isOn(action.state);
     return liveOn !== undefined ? liveOn : (flips[key] ?? false);
   };
 
-  // Reflect a toggle's live state in glyph/color when no explicit icon is set.
+  // Reflect the current page count/index (pageIndicator) and a toggle's live
+  // state (run mode only) in glyph/color/label when no explicit icon is set.
   const displaySlots: DeckSlot[] = useMemo(() => {
-    return slots.map((s, i) => {
+    const withIndicator = withPageIndicatorDisplay(slots, page, deck.pages.length);
+    if (editing) return withIndicator;
+    return withIndicator.map((s, i) => {
       if (s.action?.type !== 'toggle') return s;
       const on = toggleOn(s.action, keyFor(i));
       return toggleBranchSlot(s, s.action, on);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slots, flips, live]);
+  }, [slots, flips, live, page, deck.pages.length, editing]);
 
   const onCell = (i: number) => {
     if (editing) { onSelectSlot?.(i); return; }
@@ -68,6 +83,14 @@ export function DeckWidget({ widget, selectedSlot, onSelectSlot, editView, onEdi
       void executeDeckAction(target ? a.on : a.off);
       return;
     }
+    if (a.type === 'page') {
+      const total = deck.pages.length;
+      if (a.op === 'next') setPage((page + 1) % total);
+      else if (a.op === 'prev') setPage((page - 1 + total) % total);
+      else setPage(a.target ?? 0);
+      return;
+    }
+    if (a.type === 'pageIndicator') return;
     void executeDeckAction(a);
   };
 
@@ -76,12 +99,12 @@ export function DeckWidget({ widget, selectedSlot, onSelectSlot, editView, onEdi
     const from = Number(e.active.id);
     const to = e.over ? Number(e.over.id) : NaN;
     if (!Number.isFinite(from) || !Number.isFinite(to) || from === to) return;
-    onUpdate(deckConfigPatch(swapSlots(deck, folderPath, from, to, count)));
+    onUpdate(deckConfigPatch(swapSlots(deck, page, folderPath, from, to, count)));
   };
 
   const grid = (
     <DeckGrid
-      slots={editing ? slots : displaySlots}
+      slots={displaySlots}
       cols={cols}
       rows={rows}
       selectable={editing}

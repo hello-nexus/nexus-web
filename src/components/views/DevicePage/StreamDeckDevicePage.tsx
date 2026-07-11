@@ -10,7 +10,9 @@ import { useConflictApps } from '../../../hooks/useConflictApps';
 import { usePhysicalDeckTarget } from '../../../panel/widgets/deck/usePhysicalDeckTarget';
 import { DeckGrid } from '../../../panel/widgets/deck/DeckGrid';
 import { DeckKeyInspector } from '../../../panel/widgets/deck/DeckKeyInspector';
-import { padSlots } from '../../../panel/widgets/deck/deckLayout';
+import { DeckPageStrip } from '../../../panel/widgets/deck/DeckPageStrip';
+import { padSlots, pageHasContent } from '../../../panel/widgets/deck/deckLayout';
+import { withPageIndicatorDisplay } from '../../../panel/widgets/deck/deckIcons';
 import { resolveTargetView, slotCountAtDepth } from '../../../panel/widgets/deck/deckTarget';
 import { sendStreamDeckTestPattern } from '../../../api/streamdeck';
 import { isRemoteOrigin } from '../../../api/service';
@@ -63,6 +65,7 @@ export function StreamDeckDevicePage({ device, controlDevice }: StreamDeckDevice
   const { numberFormat } = useUnitPrefs();
   const { decks, loaded, rename, setBrightness, setOrientation, setSleepAfterSeconds } = useStreamDecks(true);
   const [serial, setSerial] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
   const [folderPath, setFolderPath] = useState<number[]>([]);
   const [selectedSlot, setSelectedSlot] = useState(0);
   const [brightnessDraft, setBrightnessDraft] = useState<number | null>(null);
@@ -75,11 +78,13 @@ export function StreamDeckDevicePage({ device, controlDevice }: StreamDeckDevice
   }, [decks, serial]);
 
   const deck = decks.find(d => d.serial === serial) ?? null;
-  const { target, error: configError, retry: retryConfig } = usePhysicalDeckTarget(deck, folderPath);
+  const { target, error: configError, retry: retryConfig } = usePhysicalDeckTarget(deck, folderPath, page);
   const { conflicts } = useConflictApps(!!deck?.conflictAppId);
   const activeConflict = deck?.conflictAppId ? conflicts.find(c => c.id === deck.conflictAppId) : undefined;
 
-  useEffect(() => { setBrightnessDraft(null); setFolderPath([]); setSelectedSlot(0); setTab('customize'); }, [serial]);
+  useEffect(() => { setBrightnessDraft(null); setPage(0); setFolderPath([]); setSelectedSlot(0); setTab('customize'); }, [serial]);
+
+  const onSelectPage = (next: number) => { setPage(next); setFolderPath([]); setSelectedSlot(0); };
 
   // /streamdeck/* is .LocalhostOnly(); a remote-paired session (or a browser
   // reaching the dashboard over the relay) would otherwise sit on this page
@@ -110,8 +115,13 @@ export function StreamDeckDevicePage({ device, controlDevice }: StreamDeckDevice
 
   const brightnessValue = brightnessDraft ?? deck?.brightness ?? 60;
   const inFolder = folderPath.length > 0;
+  const pageCount = target ? target.config.pages.length : 1;
   const viewCount = target ? slotCountAtDepth(target, folderPath.length) : 0;
-  const viewSlots = target ? (resolveTargetView(target, folderPath) ?? padSlots([], viewCount)) : [];
+  const viewSlots = withPageIndicatorDisplay(
+    target ? (resolveTargetView(target, page, folderPath) ?? padSlots([], viewCount)) : [],
+    page,
+    pageCount,
+  );
   const selSlot = clamp(selectedSlot, 0, Math.max(0, viewCount - 1));
 
   const onBack = () => { setFolderPath(p => p.slice(0, -1)); setSelectedSlot(0); };
@@ -120,7 +130,7 @@ export function StreamDeckDevicePage({ device, controlDevice }: StreamDeckDevice
     const from = Number(e.active.id);
     const to = e.over ? Number(e.over.id) : NaN;
     if (!Number.isFinite(from) || !Number.isFinite(to) || from === to) return;
-    target.swapSlots(folderPath, from, to);
+    target.swapSlots(page, folderPath, from, to);
   };
 
   const TABS: TabDef[] = [
@@ -177,6 +187,7 @@ export function StreamDeckDevicePage({ device, controlDevice }: StreamDeckDevice
                     {target ? (
                       <DeckKeyInspector
                         target={target}
+                        page={page}
                         folderPath={folderPath}
                         onFolderPathChange={setFolderPath}
                         selectedSlot={selectedSlot}
@@ -196,6 +207,16 @@ export function StreamDeckDevicePage({ device, controlDevice }: StreamDeckDevice
                   </div>
                   <div className={styles.previewPane}>
                     <div className={styles.previewStage}>
+                      {target && (
+                        <DeckPageStrip
+                          pageCount={pageCount}
+                          currentPage={page}
+                          onSelectPage={onSelectPage}
+                          onAddPage={() => { target.addPage(); onSelectPage(pageCount); }}
+                          onRemoveCurrentPage={() => { target.removePage(page); onSelectPage(Math.max(0, page - 1)); }}
+                          currentPageHasContent={pageHasContent(target.config.pages[page] ?? { slots: [] })}
+                        />
+                      )}
                       {inFolder && (
                         <div className={styles.breadcrumb}>
                           <button type="button" onClick={onBack}>

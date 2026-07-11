@@ -62,6 +62,12 @@ export async function executeDeckAction(action: DeckAction): Promise<void> {
     case 'toggle':
       await executeDeckAction(action.on);
       return;
+    case 'page':
+    case 'pageIndicator':
+      // Page navigation is client-local widget state (DeckWidget.onCell), not a
+      // REST call; a physical deck's page nav is service-side. No-op here so a
+      // 'page' step buried in a sequence/toggle branch never REST-errors.
+      return;
   }
 }
 

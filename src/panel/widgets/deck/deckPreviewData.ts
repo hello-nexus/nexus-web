@@ -10,14 +10,16 @@ const slot = (value: string, color: string, label?: string): DeckSlot =>
   ({ icon: { kind: 'lucide', value }, color, ...(label ? { label } : {}) });
 
 export const DECK_PREVIEW_CONFIG: DeckConfig = {
-  slots: [
-    slot('Play', '#22c55e', 'Stream'),
-    slot('Volume2', '#06b6d4'),
-    slot('Lightbulb', '#f97316', 'Lights'),
-    slot('Fan', '#14b8a6'),
-    slot('Sun', '#f59e0b'),
-    slot('Terminal', '#8b5cf6'),
-    {},
-    {},
-  ],
+  pages: [{
+    slots: [
+      slot('Play', '#22c55e', 'Stream'),
+      slot('Volume2', '#06b6d4'),
+      slot('Lightbulb', '#f97316', 'Lights'),
+      slot('Fan', '#14b8a6'),
+      slot('Sun', '#f59e0b'),
+      slot('Terminal', '#8b5cf6'),
+      {},
+      {},
+    ],
+  }],
 };

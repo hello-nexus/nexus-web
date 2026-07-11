@@ -1,14 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import {
   innerGridForSize, normalizeDeckConfig, padSlots, resolveViewSlots, updateSlotAt, swapSlots, emptyDeck,
-  defaultDeckConfig, deckConfigPatch,
+  defaultDeckConfig, deckConfigPatch, addPage, removePage, pageHasContent,
 } from './deckLayout';
 import { deckApp } from './index';
 import type { DeckConfig } from './types';
 
 describe('defaultDeckConfig', () => {
-  it('seeds a new deck with volume up/down + open settings', () => {
-    expect(defaultDeckConfig().slots.map(s => s.action)).toEqual([
+  it('seeds a new deck with volume up/down + open settings on a single page', () => {
+    expect(defaultDeckConfig().pages).toHaveLength(1);
+    expect(defaultDeckConfig().pages[0].slots.map(s => s.action)).toEqual([
       { type: 'system', action: { op: 'volumeUp' } },
       { type: 'system', action: { op: 'volumeDown' } },
       { type: 'system', action: { op: 'openSettings' } },
@@ -32,14 +33,33 @@ describe('innerGridForSize', () => {
 });
 
 describe('normalizeDeckConfig', () => {
-  it('returns empty slots for junk input', () => {
-    expect(normalizeDeckConfig(undefined).slots).toEqual([]);
-    expect(normalizeDeckConfig({}).slots).toEqual([]);
-    expect(emptyDeck().slots).toEqual([]);
+  it('returns one empty page for junk input', () => {
+    expect(normalizeDeckConfig(undefined).pages).toEqual([{ slots: [] }]);
+    expect(normalizeDeckConfig({}).pages).toEqual([{ slots: [] }]);
+    expect(emptyDeck().pages).toEqual([{ slots: [] }]);
   });
-  it('preserves valid slots', () => {
+
+  it('migrates a legacy single-grid { slots } config to a single page', () => {
     const cfg = normalizeDeckConfig({ slots: [{ label: 'x' }] });
-    expect(cfg.slots[0].label).toBe('x');
+    expect(cfg.pages).toHaveLength(1);
+    expect(cfg.pages[0].slots[0].label).toBe('x');
+  });
+
+  it('preserves a valid { pages } config', () => {
+    const cfg = normalizeDeckConfig({ pages: [{ slots: [{ label: 'p0' }] }, { slots: [{ label: 'p1' }] }] });
+    expect(cfg.pages).toHaveLength(2);
+    expect(cfg.pages[0].slots[0].label).toBe('p0');
+    expect(cfg.pages[1].slots[0].label).toBe('p1');
+  });
+
+  it('falls back to one empty page for an empty pages array', () => {
+    expect(normalizeDeckConfig({ pages: [] }).pages).toEqual([{ slots: [] }]);
+  });
+
+  it('normalizes a junk page entry to an empty page', () => {
+    const cfg = normalizeDeckConfig({ pages: [null, { slots: [{ label: 'ok' }] }] });
+    expect(cfg.pages[0]).toEqual({ slots: [] });
+    expect(cfg.pages[1].slots[0].label).toBe('ok');
   });
 });
 
@@ -54,44 +74,113 @@ describe('padSlots', () => {
 });
 
 describe('resolveViewSlots', () => {
-  const deck: DeckConfig = { slots: [{ folder: { slots: [{ label: 'inner' }] } }] };
+  const deck: DeckConfig = { pages: [{ slots: [{ folder: { slots: [{ label: 'inner' }] } }] }] };
   it('resolves top-level slots padded to count', () => {
-    const slots = resolveViewSlots(deck, [], 4);
+    const slots = resolveViewSlots(deck, 0, [], 4);
     expect(slots).toHaveLength(4);
     expect(slots![0].folder).toBeTruthy();
   });
   it('drills into a folder path', () => {
-    expect(resolveViewSlots(deck, [0], 4)![0].label).toBe('inner');
+    expect(resolveViewSlots(deck, 0, [0], 4)![0].label).toBe('inner');
   });
   it('returns null for an invalid folder path', () => {
-    expect(resolveViewSlots(deck, [1], 4)).toBeNull();
+    expect(resolveViewSlots(deck, 0, [1], 4)).toBeNull();
+  });
+  it('resolves slots on a non-zero page', () => {
+    const twoPages: DeckConfig = { pages: [{ slots: [{ label: 'p0' }] }, { slots: [{ label: 'p1' }] }] };
+    expect(resolveViewSlots(twoPages, 1, [], 4)![0].label).toBe('p1');
+  });
+  it('treats an out-of-range page as empty', () => {
+    expect(resolveViewSlots(deck, 5, [], 4)).toHaveLength(4);
   });
 });
 
 describe('updateSlotAt', () => {
-  it('replaces a top-level slot immutably', () => {
+  it('replaces a top-level slot immutably on page 0', () => {
     const deck = emptyDeck();
-    const next = updateSlotAt(deck, [], 2, { label: 'set' }, 4);
+    const next = updateSlotAt(deck, 0, [], 2, { label: 'set' }, 4);
     expect(next).not.toBe(deck);
-    expect(next.slots[2].label).toBe('set');
-    expect(deck.slots).toHaveLength(0); // original untouched
+    expect(next.pages[0].slots[2].label).toBe('set');
+    expect(deck.pages[0].slots).toHaveLength(0); // original untouched
   });
   it('replaces a slot inside a folder', () => {
-    const deck: DeckConfig = { slots: [{ folder: { slots: [] } }] };
-    const next = updateSlotAt(deck, [0], 1, { label: 'deep' }, 4);
-    expect(next.slots[0].folder!.slots[1].label).toBe('deep');
+    const deck: DeckConfig = { pages: [{ slots: [{ folder: { slots: [] } }] }] };
+    const next = updateSlotAt(deck, 0, [0], 1, { label: 'deep' }, 4);
+    expect(next.pages[0].slots[0].folder!.slots[1].label).toBe('deep');
+  });
+  it('replaces a slot on a non-zero page without touching other pages', () => {
+    const deck: DeckConfig = { pages: [{ slots: [{ label: 'p0' }] }, { slots: [] }] };
+    const next = updateSlotAt(deck, 1, [], 0, { label: 'p1-set' }, 4);
+    expect(next.pages[1].slots[0].label).toBe('p1-set');
+    expect(next.pages[0].slots[0].label).toBe('p0');
+  });
+  it('clamps an out-of-range page index instead of creating sparse pages', () => {
+    const deck: DeckConfig = { pages: [{ slots: [] }, { slots: [] }] };
+    const next = updateSlotAt(deck, 5, [], 0, { label: 'clamped' }, 4);
+    expect(next.pages).toHaveLength(2);
+    expect(next.pages[1].slots[0].label).toBe('clamped');
   });
 });
 
 describe('swapSlots', () => {
-  it('swaps two slots at the top level', () => {
-    const deck: DeckConfig = { slots: [{ label: 'a' }, { label: 'b' }] };
-    const next = swapSlots(deck, [], 0, 1, 4);
-    expect(next.slots[0].label).toBe('b');
-    expect(next.slots[1].label).toBe('a');
+  it('swaps two slots at the top level of page 0', () => {
+    const deck: DeckConfig = { pages: [{ slots: [{ label: 'a' }, { label: 'b' }] }] };
+    const next = swapSlots(deck, 0, [], 0, 1, 4);
+    expect(next.pages[0].slots[0].label).toBe('b');
+    expect(next.pages[0].slots[1].label).toBe('a');
   });
   it('is a no-op when from === to', () => {
     const deck = emptyDeck();
-    expect(swapSlots(deck, [], 1, 1, 4)).toBe(deck);
+    expect(swapSlots(deck, 0, [], 1, 1, 4)).toBe(deck);
+  });
+  it('swaps slots on a non-zero page', () => {
+    const deck: DeckConfig = { pages: [{ slots: [] }, { slots: [{ label: 'a' }, { label: 'b' }] }] };
+    const next = swapSlots(deck, 1, [], 0, 1, 4);
+    expect(next.pages[1].slots[0].label).toBe('b');
+    expect(next.pages[1].slots[1].label).toBe('a');
+  });
+  it('clamps an out-of-range page index instead of creating sparse pages', () => {
+    const deck: DeckConfig = { pages: [{ slots: [{ label: 'a' }, { label: 'b' }] }] };
+    const next = swapSlots(deck, 9, [], 0, 1, 4);
+    expect(next.pages).toHaveLength(1);
+    expect(next.pages[0].slots[0].label).toBe('b');
+    expect(next.pages[0].slots[1].label).toBe('a');
+  });
+});
+
+describe('addPage / removePage / pageHasContent', () => {
+  it('appends a fresh empty page', () => {
+    const deck: DeckConfig = { pages: [{ slots: [{ label: 'a' }] }] };
+    const next = addPage(deck);
+    expect(next.pages).toHaveLength(2);
+    expect(next.pages[1]).toEqual({ slots: [] });
+    expect(next.pages[0]).toBe(deck.pages[0]); // untouched
+  });
+
+  it('removes the page at the given index', () => {
+    const deck: DeckConfig = { pages: [{ slots: [{ label: 'a' }] }, { slots: [{ label: 'b' }] }] };
+    const next = removePage(deck, 0);
+    expect(next.pages).toHaveLength(1);
+    expect(next.pages[0].slots[0].label).toBe('b');
+  });
+
+  it('is a no-op removing the last remaining page', () => {
+    const deck: DeckConfig = { pages: [{ slots: [{ label: 'a' }] }] };
+    expect(removePage(deck, 0)).toBe(deck);
+  });
+
+  it('pageHasContent is false for an all-empty page', () => {
+    expect(pageHasContent({ slots: [{}, {}] })).toBe(false);
+  });
+
+  it('pageHasContent is true when a slot has an action, icon, or label', () => {
+    expect(pageHasContent({ slots: [{ action: { type: 'hotkey', keys: 'a' } }] })).toBe(true);
+    expect(pageHasContent({ slots: [{ icon: { kind: 'emoji', value: '🎮' } }] })).toBe(true);
+    expect(pageHasContent({ slots: [{ label: 'x' }] })).toBe(true);
+  });
+
+  it('pageHasContent is true when a nested folder slot has content', () => {
+    const page = { slots: [{ folder: { slots: [{ label: 'nested' }] } }] };
+    expect(pageHasContent(page)).toBe(true);
   });
 });

@@ -157,7 +157,7 @@ export default function OverlayShell() {
   const [selectedMonitoringSlot, setSelectedMonitoringSlot] = useState(0);
   // Foldered slot widgets (deck) share their folder view between the live tile
   // and the edit sheet, mirroring selectedMonitoringSlot.
-  const [deckEditView, setDeckEditView] = useState<DeckEditView>({ folderPath: [] });
+  const [deckEditView, setDeckEditView] = useState<DeckEditView>({ page: 0, folderPath: [] });
   // The edit sheet measures and reports its rendered rect; the host carves
   // out this rect (plus widget rects) so the rest of the screen stays
   // see-through and click-through to the desktop.

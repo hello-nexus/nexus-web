@@ -52,7 +52,7 @@ async function settleInitialSync() {
 
 beforeEach(() => {
   vi.useFakeTimers();
-  mockGetConfig.mockResolvedValue({ slots: [] });
+  mockGetConfig.mockResolvedValue({ pages: [{ slots: [] }] });
   mockSetConfig.mockResolvedValue(true);
   mockUpload.mockResolvedValue('hash');
   mockRenderBack.mockResolvedValue(new Uint8Array([1]));
@@ -83,13 +83,40 @@ describe('usePhysicalDeckTarget - config load errors (RISK 1)', () => {
     await flush();
     expect(result.current.error).toBe(true);
 
-    mockGetConfig.mockResolvedValueOnce({ slots: [{ label: 'recovered' }] });
+    mockGetConfig.mockResolvedValueOnce({ pages: [{ slots: [{ label: 'recovered' }] }] });
     act(() => { result.current.retry(); });
     await flush();
 
     expect(result.current.error).toBe(false);
     expect(result.current.target).not.toBeNull();
-    expect(result.current.target!.config.slots[0].label).toBe('recovered');
+    expect(result.current.target!.config.pages[0].slots[0].label).toBe('recovered');
+  });
+
+  it('normalizes a pre-pagination legacy { slots } response from the service into a single page', async () => {
+    // A service build that predates pagination still returns the old shape;
+    // the physical-deck fetch path must migrate it the same as the widget's
+    // readDeckConfig does, or every pages[]-aware helper sees an undefined .pages.
+    mockGetConfig.mockResolvedValue({ slots: [{ label: 'legacy' }] } as never);
+    const { result } = renderHook(() => usePhysicalDeckTarget(makeDeck(), []));
+    await flush();
+
+    expect(result.current.target!.config.pages).toHaveLength(1);
+    expect(result.current.target!.config.pages[0].slots[0].label).toBe('legacy');
+  });
+
+  it('normalizes a legacy { slots } response returned by the rollback re-fetch after a failed PUT', async () => {
+    const { result } = renderHook(() => usePhysicalDeckTarget(makeDeck(), []));
+    await settleInitialSync();
+
+    mockSetConfig.mockResolvedValueOnce(false);
+    mockGetConfig.mockResolvedValueOnce({ slots: [{ label: 'legacy-rollback' }] } as never);
+
+    act(() => { result.current.target!.updateSlot(0, [], 0, { label: 'optimistic' }); });
+    await advance(300);
+    await flush();
+
+    expect(result.current.target!.config.pages).toHaveLength(1);
+    expect(result.current.target!.config.pages[0].slots[0]?.label).toBe('legacy-rollback');
   });
 });
 
@@ -99,17 +126,17 @@ describe('usePhysicalDeckTarget - debounced sync + rollback (RISK 2, SMELL 1)', 
     await settleInitialSync();
     mockSetConfig.mockClear();
 
-    act(() => { result.current.target!.updateSlot([], 0, { label: 'a' }); });
+    act(() => { result.current.target!.updateSlot(0, [], 0, { label: 'a' }); });
     await advance(100);
-    act(() => { result.current.target!.updateSlot([], 0, { label: 'ab' }); });
+    act(() => { result.current.target!.updateSlot(0, [], 0, { label: 'ab' }); });
     await advance(100);
-    act(() => { result.current.target!.updateSlot([], 0, { label: 'abc' }); });
+    act(() => { result.current.target!.updateSlot(0, [], 0, { label: 'abc' }); });
     await advance(300);
     await flush();
 
     expect(mockSetConfig).toHaveBeenCalledTimes(1);
     const [, sentConfig] = mockSetConfig.mock.calls[0] as [string, DeckConfig];
-    expect(sentConfig.slots[0].label).toBe('abc');
+    expect(sentConfig.pages[0].slots[0].label).toBe('abc');
   });
 
   it('flushes a pending edit immediately on unmount instead of dropping it', async () => {
@@ -117,12 +144,12 @@ describe('usePhysicalDeckTarget - debounced sync + rollback (RISK 2, SMELL 1)', 
     await settleInitialSync();
     mockSetConfig.mockClear();
 
-    act(() => { result.current.target!.updateSlot([], 0, { label: 'unsaved' }); });
+    act(() => { result.current.target!.updateSlot(0, [], 0, { label: 'unsaved' }); });
     unmount();
 
     expect(mockSetConfig).toHaveBeenCalledTimes(1);
     const [, sentConfig] = mockSetConfig.mock.calls[0] as [string, DeckConfig];
-    expect(sentConfig.slots[0].label).toBe('unsaved');
+    expect(sentConfig.pages[0].slots[0].label).toBe('unsaved');
   });
 
   it('flushes a pending edit for the previous deck when switching targets before the debounce fires', async () => {
@@ -131,14 +158,14 @@ describe('usePhysicalDeckTarget - debounced sync + rollback (RISK 2, SMELL 1)', 
     await settleInitialSync();
     mockSetConfig.mockClear();
 
-    act(() => { result.current.target!.updateSlot([], 0, { label: 'switch-me' }); });
+    act(() => { result.current.target!.updateSlot(0, [], 0, { label: 'switch-me' }); });
     rerender({ d: makeDeck({ serial: 'SN2' }) });
     await flush();
 
     expect(mockSetConfig).toHaveBeenCalledTimes(1);
     const [sentSerial, sentConfig] = mockSetConfig.mock.calls[0] as [string, DeckConfig];
     expect(sentSerial).toBe('SN1');
-    expect(sentConfig.slots[0].label).toBe('switch-me');
+    expect(sentConfig.pages[0].slots[0].label).toBe('switch-me');
   });
 
   it('rolls back local config to server truth when the PUT fails', async () => {
@@ -146,15 +173,15 @@ describe('usePhysicalDeckTarget - debounced sync + rollback (RISK 2, SMELL 1)', 
     await settleInitialSync();
 
     mockSetConfig.mockResolvedValueOnce(false);
-    mockGetConfig.mockResolvedValueOnce({ slots: [{ label: 'server-value' }] });
+    mockGetConfig.mockResolvedValueOnce({ pages: [{ slots: [{ label: 'server-value' }] }] });
 
-    act(() => { result.current.target!.updateSlot([], 0, { label: 'optimistic-edit' }); });
-    expect(result.current.target!.config.slots[0].label).toBe('optimistic-edit');
+    act(() => { result.current.target!.updateSlot(0, [], 0, { label: 'optimistic-edit' }); });
+    expect(result.current.target!.config.pages[0].slots[0].label).toBe('optimistic-edit');
 
     await advance(300);
     await flush();
 
-    expect(result.current.target!.config.slots[0]?.label).toBe('server-value');
+    expect(result.current.target!.config.pages[0].slots[0]?.label).toBe('server-value');
   });
 
   it('does not let a stale rollback for a previous deck corrupt the newly active deck', async () => {
@@ -166,20 +193,20 @@ describe('usePhysicalDeckTarget - debounced sync + rollback (RISK 2, SMELL 1)', 
     const rollbackGet = deferred<DeckConfig | null>();
     mockGetConfig.mockReturnValueOnce(rollbackGet.promise);
 
-    act(() => { result.current.target!.updateSlot([], 0, { label: 'edit-on-a' }); });
+    act(() => { result.current.target!.updateSlot(0, [], 0, { label: 'edit-on-a' }); });
     await advance(300);
     await flush();
     // A's rollback GET is now in flight but not yet resolved.
 
-    mockGetConfig.mockResolvedValue({ slots: [{ label: 'b-config' }] });
+    mockGetConfig.mockResolvedValue({ pages: [{ slots: [{ label: 'b-config' }] }] });
     rerender({ d: makeDeck({ serial: 'SN2' }) });
     await settleInitialSync();
-    expect(result.current.target!.config.slots[0].label).toBe('b-config');
+    expect(result.current.target!.config.pages[0].slots[0].label).toBe('b-config');
 
-    await act(async () => { rollbackGet.resolve({ slots: [{ label: 'server-value-a' }] }); });
+    await act(async () => { rollbackGet.resolve({ pages: [{ slots: [{ label: 'server-value-a' }] }] }); });
     await flush();
 
-    expect(result.current.target!.config.slots[0].label).toBe('b-config');
+    expect(result.current.target!.config.pages[0].slots[0].label).toBe('b-config');
   });
 
   it('does not let a stale rollback clobber a newer edit made during its own debounce window', async () => {
@@ -190,25 +217,25 @@ describe('usePhysicalDeckTarget - debounced sync + rollback (RISK 2, SMELL 1)', 
     const rollbackGet = deferred<DeckConfig | null>();
     mockGetConfig.mockReturnValueOnce(rollbackGet.promise);
 
-    act(() => { result.current.target!.updateSlot([], 0, { label: 'first-edit' }); });
+    act(() => { result.current.target!.updateSlot(0, [], 0, { label: 'first-edit' }); });
     await advance(300);
     await flush();
     // The first edit's PUT has failed and its rollback GET is in flight.
 
     mockSetConfig.mockResolvedValueOnce(true);
-    act(() => { result.current.target!.updateSlot([], 0, { label: 'second-edit' }); });
+    act(() => { result.current.target!.updateSlot(0, [], 0, { label: 'second-edit' }); });
 
-    await act(async () => { rollbackGet.resolve({ slots: [{ label: 'server-value' }] }); });
+    await act(async () => { rollbackGet.resolve({ pages: [{ slots: [{ label: 'server-value' }] }] }); });
     await flush();
 
     // The still-pending rollback must not clobber the newer, unrelated edit.
-    expect(result.current.target!.config.slots[0].label).toBe('second-edit');
+    expect(result.current.target!.config.pages[0].slots[0].label).toBe('second-edit');
 
     await advance(300);
     await flush();
 
     const putCalls = mockSetConfig.mock.calls as [string, DeckConfig][];
-    expect(putCalls[putCalls.length - 1][1].slots[0].label).toBe('second-edit');
+    expect(putCalls[putCalls.length - 1][1].pages[0].slots[0].label).toBe('second-edit');
   });
 
   it('gives up after repeated PUT failures and surfaces the load-failed state instead of looping forever', async () => {
@@ -219,9 +246,9 @@ describe('usePhysicalDeckTarget - debounced sync + rollback (RISK 2, SMELL 1)', 
     // A fresh object per call: setConfig with the exact same reference the
     // rollback already applied would be a React state bail-out, which would
     // stall the retry loop the test means to exercise.
-    mockGetConfig.mockImplementation(async () => ({ slots: [] }));
+    mockGetConfig.mockImplementation(async () => ({ pages: [{ slots: [] }] }));
 
-    act(() => { result.current.target!.updateSlot([], 0, { label: 'edit' }); });
+    act(() => { result.current.target!.updateSlot(0, [], 0, { label: 'edit' }); });
 
     for (let i = 0; i < 6 && !result.current.error; i++) {
       await advance(300);
@@ -299,5 +326,30 @@ describe('usePhysicalDeckTarget - back-key upload', () => {
     await settleInitialSync();
 
     expect(mockRenderBack).toHaveBeenCalledWith(expect.objectContaining({ orientation: 0 }));
+  });
+});
+
+describe('usePhysicalDeckTarget - page navigation', () => {
+  it('resolves the view for the given page and re-renders key images when the page changes', async () => {
+    mockGetConfig.mockResolvedValue({ pages: [{ slots: [{ label: 'p0' }] }, { slots: [{ label: 'p1' }] }] });
+    const deck = makeDeck();
+    const { rerender } = renderHook(({ p }) => usePhysicalDeckTarget(deck, [], p), { initialProps: { p: 0 } });
+    await settleInitialSync();
+    const keyCallsOnPage0 = mockRenderKey.mock.calls.length;
+    expect(keyCallsOnPage0).toBeGreaterThan(0);
+
+    rerender({ p: 1 });
+    await advance(300);
+    await flush();
+
+    expect(mockRenderKey.mock.calls.length).toBeGreaterThan(keyCallsOnPage0);
+  });
+
+  it('defaults to page 0 when no page argument is given', async () => {
+    mockGetConfig.mockResolvedValue({ pages: [{ slots: [{ label: 'p0' }] }, { slots: [{ label: 'p1' }] }] });
+    const { result } = renderHook(() => usePhysicalDeckTarget(makeDeck(), []));
+    await settleInitialSync();
+
+    expect(result.current.target!.config.pages[0].slots[0].label).toBe('p0');
   });
 });

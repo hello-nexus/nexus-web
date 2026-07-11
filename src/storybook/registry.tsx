@@ -87,6 +87,7 @@ import { IconPicker } from '../panel/widgets/common/IconPicker';
 import type { DeckIcon, DeckConfig } from '../panel/widgets/deck/types';
 import { DeckRail } from '../panel/widgets/deck/DeckRail';
 import { DeckEditor } from '../panel/widgets/deck/DeckEditor';
+import { DeckPageStrip } from '../panel/widgets/deck/DeckPageStrip';
 import { makePhysicalDeckTarget } from '../panel/widgets/deck/deckTarget';
 import type { StreamDeckSummary } from '../api/streamdeck';
 import { MediaCropper } from '../components/common/MediaCropper/MediaCropper';
@@ -1309,7 +1310,8 @@ function PreviewDeckRail() {
 // story exercises the same code path DeckSettings/StreamDeckDevicePage do:
 // a 2x3 Mini-shaped grid, editable in place.
 function PreviewDeckEditorPhysical() {
-  const [config, setConfig] = useState<DeckConfig>({ slots: [] });
+  const [config, setConfig] = useState<DeckConfig>({ pages: [{ slots: [] }] });
+  const [page, setPage] = useState(0);
   const [folderPath, setFolderPath] = useState<number[]>([]);
   const [selectedSlot, setSelectedSlot] = useState(0);
   const target = makePhysicalDeckTarget(3, 2, 6, config, setConfig);
@@ -1317,12 +1319,36 @@ function PreviewDeckEditorPhysical() {
     <div style={{ width: '100%', maxWidth: 420 }}>
       <DeckEditor
         target={target}
+        page={page}
+        onPageChange={p => { setPage(p); setFolderPath([]); }}
         folderPath={folderPath}
         onFolderPathChange={setFolderPath}
         selectedSlot={selectedSlot}
         onSelectedSlotChange={setSelectedSlot}
         surface="desktop"
         desktopEditor
+      />
+    </div>
+  );
+}
+
+function PreviewDeckPageStrip() {
+  const [pageCount, setPageCount] = useState(3);
+  const [page, setPage] = useState(0);
+  const [hasContent, setHasContent] = useState<Record<number, boolean>>({ 1: true });
+  return (
+    <div style={{ width: '100%', maxWidth: 420 }}>
+      <DeckPageStrip
+        pageCount={pageCount}
+        currentPage={page}
+        onSelectPage={setPage}
+        onAddPage={() => { setPageCount(n => n + 1); setPage(pageCount); }}
+        onRemoveCurrentPage={() => {
+          setPageCount(n => Math.max(1, n - 1));
+          setHasContent(prev => { const next = { ...prev }; delete next[page]; return next; });
+          setPage(p => Math.max(0, p - 1));
+        }}
+        currentPageHasContent={!!hasContent[page]}
       />
     </div>
   );
@@ -2249,5 +2275,12 @@ export const REGISTRY: StorybookEntry[] = [
     description: 'Shared grid + inspector for one Deck target. The touch widget renders its own grid elsewhere (the live tile) so DeckEditor only adds the inspector there; a physical Stream Deck has no other tile, so DeckEditor renders the live key grid (drag-reorder, reserved Back key inside a folder) too. This story drives it against a real physical target (makePhysicalDeckTarget) shaped like a Mini (2x3).',
     Preview: PreviewDeckEditorPhysical,
     notes: 'Pick a key, set an action, then use "Folder" + "Edit folder" to see the reserved Back key.',
+  },
+  {
+    name: 'DeckPageStrip', category: 'panel-kit',
+    filePath: 'src/panel/widgets/deck/DeckPageStrip.tsx',
+    description: 'Page strip for a deck\'s pagination: a Tabs row switching between pages, an add-page control, and a remove-current-page control guarded against dropping the last page and confirmed when the page has content. Shared by the touch widget settings sheet (DeckEditor) and the physical Stream Deck Customize tab (StreamDeckDevicePage).',
+    Preview: PreviewDeckPageStrip,
+    notes: 'Page 2 (index 1) starts marked as having content, so removing it while selected opens the confirm modal; other pages remove instantly.',
   },
 ];

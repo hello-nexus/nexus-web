@@ -1,0 +1,41 @@
+.strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+// The tab bar can outgrow its column on a many-page deck; scroll it
+// horizontally instead of squeezing every tab or wrapping the row.
+.tabsScroll {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+}
+
+.iconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+
+  &:hover:not(:disabled) { background: var(--bg-card-hover); }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}

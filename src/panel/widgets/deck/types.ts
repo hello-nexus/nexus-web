@@ -49,6 +49,14 @@ export interface DeckToggleState {
   deviceId?: string; // lightingPower
 }
 
+// ── Page navigation (Navigation action group) ──
+export type DeckPageOp = 'next' | 'prev' | 'goto';
+
+export interface DeckPageAction {
+  op: DeckPageOp;
+  target?: number; // goto: 0-based page index
+}
+
 export type DeckAction =
   | { type: 'launchApp'; appId: string }
   | { type: 'openFile'; path: string }
@@ -62,7 +70,9 @@ export type DeckAction =
   | { type: 'audioInput'; deviceId: string }
   | { type: 'nexus'; action: DeckNexusAction }
   | { type: 'sequence'; steps: DeckSequenceStep[] }
-  | { type: 'toggle'; on: DeckAction; off: DeckAction; state?: DeckToggleState };
+  | { type: 'toggle'; on: DeckAction; off: DeckAction; state?: DeckToggleState }
+  | { type: 'page'; op: DeckPageOp; target?: number }
+  | { type: 'pageIndicator' };
 
 export type DeckActionType = DeckAction['type'];
 
@@ -86,6 +96,13 @@ export interface DeckFolder {
   slots: DeckSlot[];
 }
 
-export interface DeckConfig {
+// One page's grid. Folders (DeckFolder) still nest within a page via
+// slot.folder; a page is the outer, ordered-list-of-pages axis a deck's
+// page-navigation keys move between.
+export interface DeckPage {
   slots: DeckSlot[];
+}
+
+export interface DeckConfig {
+  pages: DeckPage[];
 }

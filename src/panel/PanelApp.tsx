@@ -367,7 +367,7 @@ export function PanelContent({
   const [sheetClosing, setSheetClosing] = useState(false);
   const [editingWidgetId, setEditingWidgetId] = useState<string | null>(null);
   const [selectedMonitoringSlot, setSelectedMonitoringSlot] = useState(0);
-  const [deckEditView, setDeckEditView] = useState<DeckEditView>({ folderPath: [] });
+  const [deckEditView, setDeckEditView] = useState<DeckEditView>({ page: 0, folderPath: [] });
   const [editorDockMotion, setEditorDockMotion] = useState<EditorDockMotion | null>(null);
   const { flashedWidgets, triggerFlash } = useFlashWidgets();
   // Flash the widget when the simulator parent rejects an action (e.g. a resize
@@ -977,7 +977,7 @@ export function PanelContent({
       ? def.resolveInitialSelection({ point, widget })
       : undefined;
     setSelectedMonitoringSlot(initial?.selectedSlot ?? 0);
-    setDeckEditView({ folderPath: [] });
+    setDeckEditView({ page: 0, folderPath: [] });
     setEditingWidgetId(widget.id);
     setSheetMode('settings');
   }, [clearCloseTimer, surface]);

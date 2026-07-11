@@ -20,18 +20,64 @@ import styles from './DeckKeyInspector.module.scss';
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 
-// NOTE: audioOutput / audioInput are intentionally omitted - switching the
-// default audio endpoint needs IPolicyConfig in the user session and isn't
-// reliably verifiable yet (see deck plan: deferred). The action kinds + backend
-// route remain for a future verified re-enable; they're just not offered here.
-const TOP_KINDS: (DeckActionType | 'folder')[] = [
-  'launchApp', 'openUrl', 'openFile', 'openFolder', 'system', 'hotkey', 'text',
-  'power', 'nexus', 'sequence', 'toggle', 'folder',
-];
+// NOTE: audioOutput / audioInput are intentionally omitted from every
+// category - switching the default audio endpoint needs IPolicyConfig in the
+// user session and isn't reliably verifiable yet (see deck plan: deferred).
+// The action kinds + backend route remain for a future verified re-enable;
+// they're just not offered here.
 const NESTED_KINDS: DeckActionType[] = [
   'launchApp', 'openUrl', 'openFile', 'openFolder', 'system', 'hotkey', 'text',
   'power', 'nexus',
 ];
+
+// A slot's action-type picker is two-tier (category, then a kind within it),
+// mirroring Elgato's own action browser. Most kinds map 1:1 onto DeckAction's
+// `type` discriminant; 'folder' has no action (it's slot.folder), and the
+// page-navigate action's three ops (prev/next/goto) are split into distinct
+// picker entries so each shows as its own Navigation item instead of one
+// "Page" entry plus a nested op selector.
+type DeckPickerKind = Exclude<DeckActionType, 'page'> | 'folder' | 'pagePrev' | 'pageNext' | 'pageGoto';
+
+interface DeckActionCategory {
+  key: 'navigation' | 'system' | 'nexus' | 'multi';
+  labelKey: string;
+  kinds: DeckPickerKind[];
+}
+
+const DECK_ACTION_CATEGORIES: DeckActionCategory[] = [
+  {
+    key: 'navigation',
+    labelKey: 'panel.settings.deck.category.navigation',
+    kinds: ['folder', 'pagePrev', 'pageNext', 'pageGoto', 'pageIndicator'],
+  },
+  {
+    key: 'system',
+    labelKey: 'panel.settings.deck.category.system',
+    kinds: ['launchApp', 'openUrl', 'openFile', 'openFolder', 'system', 'hotkey', 'text', 'power'],
+  },
+  {
+    key: 'nexus',
+    labelKey: 'panel.settings.deck.category.nexus',
+    kinds: ['nexus'],
+  },
+  {
+    key: 'multi',
+    labelKey: 'panel.settings.deck.category.multiAction',
+    kinds: ['sequence', 'toggle'],
+  },
+];
+
+function actionToPickerKind(slot: DeckSlot): DeckPickerKind {
+  if (slot.folder) return 'folder';
+  const a = slot.action;
+  if (!a) return 'launchApp';
+  if (a.type === 'page') return a.op === 'goto' ? 'pageGoto' : a.op === 'prev' ? 'pagePrev' : 'pageNext';
+  return a.type;
+}
+
+function categoryForKind(kind: DeckPickerKind): DeckActionCategory {
+  return DECK_ACTION_CATEGORIES.find(c => c.kinds.includes(kind)) ?? DECK_ACTION_CATEGORIES[1];
+}
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return <div className={styles.field}><SectionHeader>{label}</SectionHeader>{children}</div>;
@@ -52,6 +98,17 @@ export function defaultActionFor(kind: DeckActionType): DeckAction {
     case 'nexus': return { type: 'nexus', action: { op: 'rgbEffect' } };
     case 'sequence': return { type: 'sequence', steps: [] };
     case 'toggle': return { type: 'toggle', on: { type: 'system', action: { op: 'muteToggle' } }, off: { type: 'system', action: { op: 'muteToggle' } }, state: { kind: 'mute' } };
+    case 'page': return { type: 'page', op: 'next' };
+    case 'pageIndicator': return { type: 'pageIndicator' };
+  }
+}
+
+function defaultActionForPickerKind(kind: Exclude<DeckPickerKind, 'folder'>): DeckAction {
+  switch (kind) {
+    case 'pagePrev': return { type: 'page', op: 'prev' };
+    case 'pageNext': return { type: 'page', op: 'next' };
+    case 'pageGoto': return { type: 'page', op: 'goto', target: 0 };
+    default: return defaultActionFor(kind);
   }
 }
 
@@ -74,8 +131,8 @@ function SelectField({ label, value, options, onChange }: { label: string; value
   );
 }
 
-function ActionEditor({ action, onChange, showType, allowed, surface, desktopEditor }: {
-  action: DeckAction; onChange: (a: DeckAction) => void; showType: boolean; allowed: DeckActionType[]; surface?: PanelSurface; desktopEditor?: boolean;
+function ActionEditor({ action, onChange, showType, allowed, surface, desktopEditor, pageCount }: {
+  action: DeckAction; onChange: (a: DeckAction) => void; showType: boolean; allowed: DeckActionType[]; surface?: PanelSurface; desktopEditor?: boolean; pageCount?: number;
 }) {
   const { t } = useTranslation();
   return (
@@ -88,12 +145,14 @@ function ActionEditor({ action, onChange, showType, allowed, surface, desktopEdi
           onChange={k => onChange(defaultActionFor(k as DeckActionType))}
         />
       )}
-      <ActionFields action={action} onChange={onChange} surface={surface} desktopEditor={desktopEditor} />
+      <ActionFields action={action} onChange={onChange} surface={surface} desktopEditor={desktopEditor} pageCount={pageCount} />
     </>
   );
 }
 
-function ActionFields({ action, onChange, surface, desktopEditor }: { action: DeckAction; onChange: (a: DeckAction) => void; surface?: PanelSurface; desktopEditor?: boolean }) {
+function ActionFields({ action, onChange, surface, desktopEditor, pageCount }: {
+  action: DeckAction; onChange: (a: DeckAction) => void; surface?: PanelSurface; desktopEditor?: boolean; pageCount?: number;
+}) {
   const { t } = useTranslation();
   const audioOut = useServiceOptions('/system/audio/devices', d => ((d as { outputs?: { id: string; name: string }[] })?.outputs ?? []).map(x => ({ value: x.id, label: x.name })));
   const audioIn = useServiceOptions('/system/audio/devices', d => ((d as { inputs?: { id: string; name: string }[] })?.inputs ?? []).map(x => ({ value: x.id, label: x.name })));
@@ -153,6 +212,17 @@ function ActionFields({ action, onChange, surface, desktopEditor }: { action: De
       return <SequenceEditor action={action} onChange={onChange} surface={surface} desktopEditor={desktopEditor} />;
     case 'toggle':
       return <ToggleEditor action={action} onChange={onChange} surface={surface} desktopEditor={desktopEditor} />;
+    case 'page':
+      return action.op === 'goto' ? (
+        <SelectField
+          label={t('panel.settings.deck.targetPage')}
+          value={String(action.target ?? 0)}
+          options={Array.from({ length: Math.max(1, pageCount ?? 1) }, (_, i) => ({ value: String(i), label: t('panel.settings.deck.page.tab', { n: i + 1 }) }))}
+          onChange={v => onChange({ ...action, target: Number(v) })}
+        />
+      ) : null;
+    case 'pageIndicator':
+      return null;
     default:
       return null;
   }
@@ -228,6 +298,7 @@ function ToggleEditor({ action, onChange, surface, desktopEditor }: { action: Ex
 
 export interface DeckKeyInspectorProps {
   target: DeckTarget;
+  page: number;
   folderPath: readonly number[];
   onFolderPathChange: (folderPath: number[]) => void;
   selectedSlot?: number;
@@ -242,21 +313,29 @@ export interface DeckKeyInspectorProps {
  * the grid and this inspector in separate panes (grid-right, inspector-left)
  * while the touch widget keeps composing them together via DeckEditor.
  */
-export function DeckKeyInspector({ target, folderPath, onFolderPathChange, selectedSlot, onSelectedSlotChange, surface, desktopEditor }: DeckKeyInspectorProps) {
+export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange, selectedSlot, onSelectedSlotChange, surface, desktopEditor }: DeckKeyInspectorProps) {
   const { t } = useTranslation();
   const viewCount = slotCountAtDepth(target, folderPath.length);
-  const viewSlots = resolveTargetView(target, folderPath) ?? padSlots([], viewCount);
+  const viewSlots = resolveTargetView(target, page, folderPath) ?? padSlots([], viewCount);
   const selSlot = clamp(selectedSlot ?? 0, 0, Math.max(0, viewCount - 1));
   const slot = viewSlots[selSlot] ?? {};
+  const pageCount = target.config.pages.length;
 
-  const writeSlot = (next: DeckSlot) => target.updateSlot(folderPath, selSlot, next);
+  const writeSlot = (next: DeckSlot) => target.updateSlot(page, folderPath, selSlot, next);
 
-  const kind: DeckActionType | 'folder' = slot.folder ? 'folder' : (slot.action?.type ?? 'launchApp');
+  const kind = actionToPickerKind(slot);
+  const category = categoryForKind(kind);
   const appIdForIcon = slot.action?.type === 'launchApp' ? slot.action.appId : undefined;
 
-  const onKindChange = (k: DeckActionType | 'folder') => {
-    if (k === 'folder') writeSlot({ ...slot, action: undefined, folder: slot.folder ?? { slots: [] } });
-    else writeSlot({ ...slot, folder: undefined, action: defaultActionFor(k) });
+  const onKindChange = (k: DeckPickerKind) => {
+    if (k === 'folder') { writeSlot({ ...slot, action: undefined, folder: slot.folder ?? { slots: [] } }); return; }
+    writeSlot({ ...slot, folder: undefined, action: defaultActionForPickerKind(k) });
+  };
+
+  const onCategoryChange = (key: string) => {
+    const cat = DECK_ACTION_CATEGORIES.find(c => c.key === key);
+    if (!cat || cat.kinds.includes(kind)) return;
+    onKindChange(cat.kinds[0]);
   };
 
   return (
@@ -280,11 +359,20 @@ export function DeckKeyInspector({ target, folderPath, onFolderPathChange, selec
 
       <SettingsSection title={t('panel.settings.deck.actionType')}>
         <div className={styles.fieldStack}>
+          <Field label={t('panel.settings.deck.actionCategory')}>
+            <Select
+              className={styles.selectWide}
+              value={category.key}
+              options={DECK_ACTION_CATEGORIES.map(c => ({ value: c.key, label: t(c.labelKey) }))}
+              onChange={onCategoryChange}
+              ariaLabel={t('panel.settings.deck.actionCategory')}
+            />
+          </Field>
           <Select
             className={styles.selectWide}
             value={kind}
-            options={TOP_KINDS.map(k => ({ value: k, label: t(`panel.settings.deck.action.${k}`) }))}
-            onChange={k => onKindChange(k as DeckActionType | 'folder')}
+            options={category.kinds.map(k => ({ value: k, label: t(`panel.settings.deck.action.${k}`) }))}
+            onChange={k => onKindChange(k as DeckPickerKind)}
             ariaLabel={t('panel.settings.deck.actionType')}
           />
           {kind === 'folder' ? (
@@ -292,7 +380,7 @@ export function DeckKeyInspector({ target, folderPath, onFolderPathChange, selec
               <FolderInput size={14} /> {t('panel.settings.deck.enterFolder')}
             </button>
           ) : slot.action ? (
-            <ActionEditor action={slot.action} onChange={a => writeSlot({ ...slot, action: a })} showType={false} allowed={NESTED_KINDS} surface={surface} desktopEditor={desktopEditor} />
+            <ActionEditor action={slot.action} onChange={a => writeSlot({ ...slot, action: a })} showType={false} allowed={NESTED_KINDS} surface={surface} desktopEditor={desktopEditor} pageCount={pageCount} />
           ) : null}
         </div>
       </SettingsSection>

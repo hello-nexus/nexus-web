@@ -5,7 +5,8 @@
 import type { PanelConfigValue, PanelWidget } from '../../types';
 import type { DeckConfig, DeckSlot } from './types';
 import {
-  deckConfigPatch, innerGridForSize, readDeckConfig, resolveViewSlots, swapSlots, updateSlotAt, type DepthCount,
+  addPage, deckConfigPatch, innerGridForSize, readDeckConfig, removePage, resolveViewSlots, swapSlots, updateSlotAt,
+  type DepthCount,
 } from './deckLayout';
 import { toggleBranchSlot } from './deckIcons';
 
@@ -16,8 +17,10 @@ export interface DeckTarget {
   /** Root-level slot count (the widget's size grid, or the deck's keyCount). */
   keyCount: number;
   config: DeckConfig;
-  updateSlot(folderPath: readonly number[], slotIndex: number, next: DeckSlot): void;
-  swapSlots(folderPath: readonly number[], from: number, to: number): void;
+  updateSlot(page: number, folderPath: readonly number[], slotIndex: number, next: DeckSlot): void;
+  swapSlots(page: number, folderPath: readonly number[], from: number, to: number): void;
+  addPage(): void;
+  removePage(page: number): void;
 }
 
 /**
@@ -35,9 +38,9 @@ function depthCount(target: Pick<DeckTarget, 'kind' | 'keyCount'>): DepthCount {
   return (depth: number) => slotCountAtDepth(target, depth);
 }
 
-/** Slots shown for a folder path, resolved against a target's per-depth counts. */
-export function resolveTargetView(target: DeckTarget, folderPath: readonly number[]): DeckSlot[] | null {
-  return resolveViewSlots(target.config, folderPath, depthCount(target));
+/** Slots shown for a page + folder path, resolved against a target's per-depth counts. */
+export function resolveTargetView(target: DeckTarget, page: number, folderPath: readonly number[]): DeckSlot[] | null {
+  return resolveViewSlots(target.config, page, folderPath, depthCount(target));
 }
 
 export function makeWidgetDeckTarget(
@@ -53,11 +56,17 @@ export function makeWidgetDeckTarget(
     rows,
     keyCount: count,
     config,
-    updateSlot(folderPath, slotIndex, next) {
-      onUpdate(deckConfigPatch(updateSlotAt(config, folderPath, slotIndex, next, depthCount(target))));
+    updateSlot(page, folderPath, slotIndex, next) {
+      onUpdate(deckConfigPatch(updateSlotAt(config, page, folderPath, slotIndex, next, depthCount(target))));
     },
-    swapSlots(folderPath, from, to) {
-      onUpdate(deckConfigPatch(swapSlots(config, folderPath, from, to, depthCount(target))));
+    swapSlots(page, folderPath, from, to) {
+      onUpdate(deckConfigPatch(swapSlots(config, page, folderPath, from, to, depthCount(target))));
+    },
+    addPage() {
+      onUpdate(deckConfigPatch(addPage(config)));
+    },
+    removePage(page) {
+      onUpdate(deckConfigPatch(removePage(config, page)));
     },
   };
 }
@@ -76,12 +85,18 @@ export function makePhysicalDeckTarget(
     rows,
     keyCount,
     config,
-    updateSlot(folderPath, slotIndex, next) {
-      persist(updateSlotAt(config, folderPath, slotIndex, next, depthCount(target)));
+    updateSlot(page, folderPath, slotIndex, next) {
+      persist(updateSlotAt(config, page, folderPath, slotIndex, next, depthCount(target)));
     },
-    swapSlots(folderPath, from, to) {
-      const nextConfig = swapSlots(config, folderPath, from, to, depthCount(target));
+    swapSlots(page, folderPath, from, to) {
+      const nextConfig = swapSlots(config, page, folderPath, from, to, depthCount(target));
       if (nextConfig !== config) persist(nextConfig);
+    },
+    addPage() {
+      persist(addPage(config));
+    },
+    removePage(page) {
+      persist(removePage(config, page));
     },
   };
 }

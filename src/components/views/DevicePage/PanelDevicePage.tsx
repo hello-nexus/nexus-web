@@ -749,7 +749,7 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeMode = 'dark'
   const slotCountOptions = isMonitoringWidget ? slotCountOptionsForSize(widget.size) : [];
   const slotCount = resolvedSlotCountForSize(widget.size, widget.config?.slotCount as number | undefined);
   const [selectedMonitoringSlot, setSelectedMonitoringSlot] = useState(0);
-  const [deckEditView, setDeckEditView] = useState<DeckEditView>({ folderPath: [] });
+  const [deckEditView, setDeckEditView] = useState<DeckEditView>({ page: 0, folderPath: [] });
 
   const handleConfigUpdate = (config: Record<string, PanelConfigValue>) => {
     onUpdate(widget.id, { ...widget.config, ...config });

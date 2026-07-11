@@ -35,25 +35,34 @@ export function DeckSettings({ widget, surface, desktopEditor, onUpdate, selecte
   const activeDeck = decks.find(d => d.serial === activeSerial) ?? null;
 
   const [physicalFolderPath, setPhysicalFolderPath] = useState<number[]>([]);
-  const physical = usePhysicalDeckTarget(activeDeck, physicalFolderPath);
+  const [physicalPage, setPhysicalPage] = useState(0);
+  const physical = usePhysicalDeckTarget(activeDeck, physicalFolderPath, physicalPage);
 
   const isPhysical = activeDeck !== null;
   const target = isPhysical ? physical.target : widgetTarget;
+  const page = isPhysical ? physicalPage : (editView?.page ?? 0);
   const folderPath = isPhysical ? physicalFolderPath : (editView?.folderPath ?? []);
+  const onPageChange = (next: number) => {
+    if (isPhysical) { setPhysicalPage(next); setPhysicalFolderPath([]); }
+    else onEditViewChange?.({ page: next, folderPath: [] });
+  };
   const onFolderPathChange = (next: number[]) => {
     if (isPhysical) setPhysicalFolderPath(next);
-    else onEditViewChange?.({ folderPath: next });
+    else onEditViewChange?.({ page, folderPath: next });
   };
 
   const selectTarget = (serial: string | null) => {
     setActiveSerial(serial);
     setPhysicalFolderPath([]);
+    setPhysicalPage(0);
     onSelectedSlotChange?.(0);
   };
 
   const editorBody = target ? (
     <DeckEditor
       target={target}
+      page={page}
+      onPageChange={onPageChange}
       folderPath={folderPath}
       onFolderPathChange={onFolderPathChange}
       selectedSlot={selectedSlot}

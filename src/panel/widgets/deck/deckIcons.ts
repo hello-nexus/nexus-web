@@ -29,7 +29,7 @@ export const DECK_ICON_NAMES: string[] = Object.keys(DECK_ICONS);
 
 export type DeckCategory =
   | 'launch' | 'open' | 'volume' | 'media' | 'brightness' | 'keyboard' | 'text'
-  | 'power' | 'audio' | 'nexus' | 'sequence' | 'toggle' | 'folder' | 'empty';
+  | 'power' | 'audio' | 'nexus' | 'sequence' | 'toggle' | 'folder' | 'navigation' | 'empty';
 
 /** Maps an action to a visual category (drives the auto icon + color). */
 export function deckCategory(action: DeckAction | undefined): DeckCategory {
@@ -52,6 +52,8 @@ export function deckCategory(action: DeckAction | undefined): DeckCategory {
     case 'nexus': return 'nexus';
     case 'sequence': return 'sequence';
     case 'toggle': return 'toggle';
+    case 'page':
+    case 'pageIndicator': return 'navigation';
     default: return 'empty';
   }
 }
@@ -72,6 +74,7 @@ const CATEGORY_COLOR: Record<DeckCategory, string> = {
   sequence: '#eab308',   // yellow
   toggle: '#14b8a6',     // teal
   folder: '#94a3b8',     // neutral
+  navigation: '#6366f1', // indigo
   empty: '#475569',
 };
 
@@ -148,6 +151,25 @@ export function autoIconName(action: DeckAction | undefined, isFolder = false): 
       }
     case 'sequence': return 'ListOrdered';
     case 'toggle': return 'ToggleLeft';
+    case 'page':
+      switch (action.op) {
+        case 'prev': return 'ChevronLeft';
+        case 'next': return 'ChevronRight';
+        case 'goto': return 'Layers';
+        default: return 'Layers';
+      }
+    case 'pageIndicator': return 'Layers';
     default: return 'Plus';
   }
+}
+
+/**
+ * Resolves a pageIndicator slot's displayed label to "currentPage/total"
+ * (1-based) for rendering. Only affects the returned copy used for
+ * display (DeckGrid cells, hardware key bitmaps) - never the persisted
+ * config, so a user-typed label on the slot is superseded at render time,
+ * not overwritten in storage.
+ */
+export function withPageIndicatorDisplay(slots: readonly DeckSlot[], page: number, pageCount: number): DeckSlot[] {
+  return slots.map(s => (s.action?.type === 'pageIndicator' ? { ...s, label: `${page + 1}/${pageCount}` } : s));
 }

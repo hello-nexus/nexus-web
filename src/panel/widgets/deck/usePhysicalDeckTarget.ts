@@ -4,7 +4,8 @@ import { computeViewUploadJobs, makePhysicalDeckTarget, slotCountAtDepth, type D
 import { resolveDeckKeyTransform, type DeckOrientation } from './deckKeyTransform';
 import { pushDeckKeyImages } from './physicalDeckSync';
 import { renderDeckBackKeyBitmap, type DeckKeyModel } from './renderDeckKeyBitmap';
-import { resolveViewSlots } from './deckLayout';
+import { normalizeDeckConfig, resolveViewSlots } from './deckLayout';
+import { withPageIndicatorDisplay } from './deckIcons';
 import type { DeckConfig } from './types';
 
 const SYNC_DEBOUNCE_MS = 300;
@@ -44,6 +45,7 @@ export interface UsePhysicalDeckTargetResult {
 export function usePhysicalDeckTarget(
   deck: StreamDeckSummary | null,
   folderPath: readonly number[],
+  page = 0,
 ): UsePhysicalDeckTargetResult {
   const [config, setConfig] = useState<DeckConfig | null>(null);
   const [loadError, setLoadError] = useState(false);
@@ -68,7 +70,11 @@ export function usePhysicalDeckTarget(
       if (cancelled) return;
       if (cfg) {
         configSerialRef.current = serial;
-        setConfig(cfg);
+        // A pre-pagination service build still returns the legacy { slots }
+        // shape; normalize on every read the same as the widget path
+        // (readDeckConfig) so a not-yet-upgraded server response can't reach
+        // pages-shaped code as an undefined `.pages`.
+        setConfig(normalizeDeckConfig(cfg));
       } else {
         setLoadError(true);
       }
@@ -145,15 +151,16 @@ export function usePhysicalDeckTarget(
           // deck's config is no longer the active one) - configSerialRef
           // guards against overwriting a different deck's state.
           if (isStale() || configSerialRef.current !== syncSerial) return;
-          if (cfg) setConfig(cfg);
+          if (cfg) setConfig(normalizeDeckConfig(cfg));
         });
       });
 
       const countFn = (depth: number) => slotCountAtDepth({ kind: 'physical', keyCount: deck.keyCount }, depth);
-      const slots = resolveViewSlots(syncConfig, folderPath, countFn);
+      const slots = resolveViewSlots(syncConfig, page, folderPath, countFn);
       const model = deckKeyModel(deck);
       if (slots) {
-        const jobs = computeViewUploadJobs(slots, folderPath);
+        const displaySlots = withPageIndicatorDisplay(slots, page, syncConfig.pages.length);
+        const jobs = computeViewUploadJobs(displaySlots, folderPath);
         void pushDeckKeyImages(syncSerial, model, jobs, isStale);
       }
       if (!backUploadOkRef.current) {
@@ -169,7 +176,7 @@ export function usePhysicalDeckTarget(
     // other decks' brightness, ...) - keying on its scalar fields (not the
     // object) keeps this effect from re-scheduling on unrelated updates.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deck?.serial, deck?.cols, deck?.rows, deck?.keyCount, deck?.model, deck?.format, deck?.keyPixels, deck?.transform, deck?.orientation, config, loadError, folderKey]);
+  }, [deck?.serial, deck?.cols, deck?.rows, deck?.keyCount, deck?.model, deck?.format, deck?.keyPixels, deck?.transform, deck?.orientation, config, loadError, folderKey, page]);
 
   useEffect(() => flushPending, [flushPending]);
 

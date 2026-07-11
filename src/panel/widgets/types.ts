@@ -47,8 +47,10 @@ export interface WidgetProps {
   onUpdate?: (config: Record<string, PanelConfigValue>) => void;
 }
 
-// Which folder path a foldered widget (deck) is currently showing in edit mode.
+// Which page + folder path a paged/foldered widget (deck) is currently
+// showing in edit mode.
 export interface DeckEditView {
+  page: number;
   folderPath: number[];
 }
 
