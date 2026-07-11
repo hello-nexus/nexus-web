@@ -168,10 +168,11 @@ describe('MonitoringSettings - Micro mode', () => {
     expect(last.slot1_design).toBeUndefined();
   });
 
-  it('disables device options that cannot fill the active slot count', () => {
+  it('disables device options that cannot fill the active slot count, and hides ones with zero sensors', () => {
     render(<MicroHarness initial={microWidget(3)} />);
 
     const deviceSelect = screen.getByRole('combobox', { name: 'monitoring.settings.device' }) as HTMLSelectElement;
+    const values = Array.from(deviceSelect.options).map(o => o.value);
     const optionByValue = (value: string) =>
       Array.from(deviceSelect.options).find(o => o.value === value)!;
 
@@ -179,13 +180,14 @@ describe('MonitoringSettings - Micro mode', () => {
     expect(optionByValue('cpu').disabled).toBe(false);
     expect(optionByValue('gpu').disabled).toBe(false);
     expect(optionByValue('network').disabled).toBe(false);
-    // memory (1) and fps (1) do not have enough sensors.
+    // memory (1) has sensors but not enough for count=3 - shown, disabled.
     expect(optionByValue('memory').disabled).toBe(true);
+    // fps always resolves its capability-template sensors - shown, disabled (2 < 3).
     expect(optionByValue('fps').disabled).toBe(true);
-    // No motherboard sensors in this fixture.
-    expect(optionByValue('motherboard').disabled).toBe(true);
-    // No summary sensors in this fixture.
-    expect(optionByValue('quick').disabled).toBe(true);
+    // No motherboard or summary sensors in this fixture, and neither is the
+    // active micro_device (cpu) - both are hidden outright, not just disabled.
+    expect(values).not.toContain('motherboard');
+    expect(values).not.toContain('quick');
   });
 
   it('hides Network from the picker at count=4 (only 3 distinct network sensors exist)', () => {
@@ -237,12 +239,13 @@ describe('MonitoringSettings - Micro mode extras-backed device eligibility', () 
     render(<MicroHarness initial={microWidget(3)} />);
 
     const deviceSelect = screen.getByRole('combobox', { name: 'monitoring.settings.device' }) as HTMLSelectElement;
+    const values = Array.from(deviceSelect.options).map(o => o.value);
     const optionByValue = (value: string) =>
       Array.from(deviceSelect.options).find(o => o.value === value)!;
 
     expect(optionByValue('battery').disabled).toBe(false);
-    // memoryModule stays empty in this fixture - correctly still disabled.
-    expect(optionByValue('memoryModule').disabled).toBe(true);
+    // memoryModule stays empty in this fixture - hidden outright, not merely disabled.
+    expect(values).not.toContain('memoryModule');
   });
 });
 

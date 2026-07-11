@@ -14,7 +14,6 @@ import { DESIGN_ICONS } from '../monitoring/gauges/DesignIcons';
 import type { GaugeDesignKey } from '../monitoring/gauges';
 import {
   DEFAULT_SLOTS,
-  isExtrasBackedDevice,
   isMicroLayout,
   resolvedSlotCountForSize,
 } from '../monitoring/perfSlots';
@@ -136,6 +135,24 @@ function sensorsForDevice(
   }
 
   return uniqueOptions(options);
+}
+
+// Categories with 0 sensors are hidden from the picker - offering one just
+// resolves to a permanently empty gauge. Two categories are exempt: the
+// picker's own currently-selected device (so the Select's value never goes
+// stale/blank if its category loses its last sensor mid-session) and 'fps',
+// a capability category that only populates while a game is running.
+function visibleDeviceKeys(
+  currentDevice: DeviceKey,
+  sensors: ReturnType<typeof useSensors>,
+  networkSensors: ReturnType<typeof buildNetworkSensors>,
+  extras: ReturnType<typeof useSensorExtras>,
+): DeviceKey[] {
+  return DEVICE_OPTION_KEYS.filter(device =>
+    device === currentDevice ||
+    device === 'fps' ||
+    sensorsForDevice(sensors, networkSensors, extras, device).length > 0
+  );
 }
 
 function defaultSensorForDevice(
@@ -260,26 +277,14 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
   const usesNetwork = isMicro
     ? microDevice === 'network'
     : slotConfigs.some(slot => slot.device === 'network');
-  // In Micro mode the device picker computes a `disabled` flag for EVERY
-  // option (deviceHasEnoughSensorsForMicro below), not just the currently
-  // selected one - unlike network/fps (whose eligibility list has a fixed
-  // shape regardless of subscription state: buildNetworkSensors always
-  // returns 3 items, FPS_SENSOR_TEMPLATE covers the fps fallback), the
-  // extras-backed categories' sensor counts are only known once the topic is
-  // actually subscribed. Gating on just the current microDevice would leave
-  // every OTHER extras-backed option permanently "0 sensors" -> disabled,
-  // even on hardware that has them.
-  const usesExtras = isMicro
-    ? true
-    : slotConfigs.some(slot => isExtrasBackedDevice(slot.device));
+  // Hiding empty categories (visibleDeviceKeys below) needs every
+  // extras-backed category's real sensor count up front, not just the
+  // active slot's - so the settings pane always subscribes while open. It
+  // is transient, mounted only while a widget is being edited.
+  const usesExtras = true;
   const network = useNetworkMonitor(usesNetwork);
   const networkSensors = buildNetworkSensors(network);
   const extras = useSensorExtras(usesExtras);
-
-  const deviceOptions: { value: DeviceKey; label: string }[] = DEVICE_OPTION_KEYS.map(category => ({
-    value: category,
-    label: t(CATEGORY_LABEL_KEYS[category]),
-  }));
 
   // The Fan category folded into Motherboard. Migrate any slot (or micro) device
   // still stored as the legacy 'fan' so the picker shows Motherboard instead of a
@@ -310,6 +315,8 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
   // Rendered only in non-Micro mode, but computed unconditionally so the
   // hook count above never depends on the isMicro branch.
   const activeConfig = slotConfigs[activeSlot] ?? slotConfigs[0];
+  const deviceOptions: { value: DeviceKey; label: string }[] = visibleDeviceKeys(activeConfig?.device ?? 'cpu', sensors, networkSensors, extras)
+    .map(category => ({ value: category, label: t(CATEGORY_LABEL_KEYS[category]) }));
   const sensorOptions = activeConfig ? sensorsForDevice(sensors, networkSensors, extras, activeConfig.device) : [];
   const sensorValue = activeConfig ? selectedSensorValue(sensorOptions, activeConfig.sensorName) : '';
   const activeSensor = activeConfig ? resolveSensor(sensors, [], networkSensors, activeConfig.device, sensorValue, undefined, extras) : undefined;
@@ -331,9 +338,10 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
 
   if (isMicro) {
     const microSensorOptions = sensorsForDevice(sensors, networkSensors, extras, microDevice);
-    const microDeviceOptions = deviceOptions.map(opt => ({
-      ...opt,
-      disabled: !deviceHasEnoughSensorsForMicro(sensors, networkSensors, extras, opt.value, count),
+    const microDeviceOptions = visibleDeviceKeys(microDevice, sensors, networkSensors, extras).map(category => ({
+      value: category,
+      label: t(CATEGORY_LABEL_KEYS[category]),
+      disabled: !deviceHasEnoughSensorsForMicro(sensors, networkSensors, extras, category, count),
     }));
 
     return (

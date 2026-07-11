@@ -254,7 +254,8 @@ describe('MonitoringSettings', () => {
     const deviceSelect = screen.getByRole('combobox', { name: 'monitoring.settings.device' }) as HTMLSelectElement;
     const values = Array.from(deviceSelect.options).map(o => o.value);
 
-    // Every Tryx-shared category is offered, in the same relative order -
+    // Every Tryx-shared category resolves at least one sensor in this
+    // fixture, so all of them stay visible, in the same relative order -
     // the two pickers must never disagree on this subset.
     const sharedOnly = values.filter(v => (TRYX_SENSOR_GROUPS as readonly string[]).includes(v));
     expect(sharedOnly).toEqual([...SENSOR_CATEGORIES]);
@@ -266,9 +267,13 @@ describe('MonitoringSettings', () => {
     // sensor the service can never find, permanently showing "--".
     const widgetOnlyDevices = ['smart', 'memoryModule', 'battery', 'cooler', 'psu', 'embeddedController'];
     for (const device of widgetOnlyDevices) {
-      expect(values).toContain(device);
       expect(TRYX_SENSOR_GROUPS as readonly string[]).not.toContain(device);
     }
+
+    // smart/memoryModule/battery resolve sensors in this fixture and stay
+    // visible; cooler/psu/embeddedController resolve none and are hidden.
+    expect(values).toEqual(expect.arrayContaining(['smart', 'memoryModule', 'battery']));
+    expect(values).not.toEqual(expect.arrayContaining(['cooler', 'psu', 'embeddedController']));
   });
 
   it('migrates a widget saved on the pre-motherboard "fan" device to motherboard, keeping its fan sensor resolvable and not offering "fan" in the picker', () => {
@@ -309,6 +314,85 @@ describe('MonitoringSettings', () => {
     const deviceSelect = screen.getByRole('combobox', { name: 'monitoring.settings.device' }) as HTMLSelectElement;
     const values = Array.from(deviceSelect.options).map(o => o.value);
     expect(values).not.toContain('fan');
+  });
+});
+
+describe('MonitoringSettings - hides empty categories from the picker', () => {
+  const savedBatteries = mockExtras.batteries;
+  const savedGpu = mockSensors.gpu;
+
+  afterEach(() => {
+    mockExtras.batteries = savedBatteries;
+    mockSensors.gpu = savedGpu;
+  });
+
+  it('hides an extras category with zero sensors (battery) when it is not the active slot device', () => {
+    mockExtras.batteries = [];
+    render(<MonitoringEditorHarness onUpdate={vi.fn()} />);
+
+    const deviceSelect = screen.getByRole('combobox', { name: 'monitoring.settings.device' }) as HTMLSelectElement;
+    const values = Array.from(deviceSelect.options).map(o => o.value);
+    expect(values).not.toContain('battery');
+  });
+
+  it('keeps a populated extras category (memoryModule) in the picker', () => {
+    render(<MonitoringEditorHarness onUpdate={vi.fn()} />);
+
+    const deviceSelect = screen.getByRole('combobox', { name: 'monitoring.settings.device' }) as HTMLSelectElement;
+    const values = Array.from(deviceSelect.options).map(o => o.value);
+    expect(values).toContain('memoryModule');
+  });
+
+  it('keeps fps in the picker regardless of sensor count - it only populates during a live capture', () => {
+    render(<MonitoringEditorHarness onUpdate={vi.fn()} />);
+
+    const deviceSelect = screen.getByRole('combobox', { name: 'monitoring.settings.device' }) as HTMLSelectElement;
+    const values = Array.from(deviceSelect.options).map(o => o.value);
+    expect(values).toContain('fps');
+  });
+
+  it('hides gpu when the box has no GPU sensors and gpu is not the active slot device', () => {
+    mockSensors.gpu = [];
+    render(<MonitoringEditorHarness onUpdate={vi.fn()} />);
+
+    // Active slot is 0 (cpu); slot 1 (gpu) is not selected, so gpu's
+    // now-empty category loses the current-device exception.
+    const deviceSelect = screen.getByRole('combobox', { name: 'monitoring.settings.device' }) as HTMLSelectElement;
+    const values = Array.from(deviceSelect.options).map(o => o.value);
+    expect(values).not.toContain('gpu');
+  });
+
+  it('keeps the active slot device visible even when its category has zero sensors', () => {
+    mockExtras.batteries = [];
+    function BatteryWidgetHarness() {
+      const [widget, setWidget] = useState<PanelWidget>({
+        id: 'monitoring-battery',
+        type: 'monitoring',
+        size: '4x2',
+        col: 0,
+        row: 0,
+        config: {
+          slotCount: 1,
+          slot0_device: 'battery',
+          slot0_sensor: '',
+          slot0_design: 'sparkline',
+        },
+      });
+      return (
+        <MonitoringSettings
+          widget={widget}
+          onUpdate={cfg => setWidget(prev => ({ ...prev, config: { ...prev.config, ...cfg } }))}
+          onResize={vi.fn()}
+          selectedSlot={0}
+        />
+      );
+    }
+
+    render(<BatteryWidgetHarness />);
+
+    const deviceSelect = screen.getByRole('combobox', { name: 'monitoring.settings.device' }) as HTMLSelectElement;
+    const values = Array.from(deviceSelect.options).map(o => o.value);
+    expect(values).toContain('battery');
   });
 });
 
