@@ -80,6 +80,39 @@ describe('normalizeDeckConfig', () => {
     expect(view![0].action).toEqual(monitoringAction);
     expect(view![0].label).toBe('CPU');
   });
+
+  it('strips a legacy text action `paste` key on read so old configs keep loading', () => {
+    const legacyText = { type: 'text', text: 'hi', paste: false };
+    const cfg = normalizeDeckConfig({ pages: [{ slots: [{ action: legacyText }] }] });
+    expect(cfg.pages[0].slots[0].action).toEqual({ type: 'text', text: 'hi' });
+  });
+
+  it('strips a legacy paste key nested in a folder, a sequence step, and a toggle branch', () => {
+    const legacyText = { type: 'text', text: 'hi', paste: true };
+    const cfg = normalizeDeckConfig({
+      pages: [{
+        slots: [
+          { folder: { slots: [{ action: legacyText }] } },
+          { action: { type: 'sequence', steps: [{ action: legacyText }] } },
+          { action: { type: 'toggle', on: legacyText, off: legacyText } },
+        ],
+      }],
+    });
+    const [folderSlot, sequenceSlot, toggleSlot] = cfg.pages[0].slots;
+    expect(folderSlot.folder!.slots[0].action).toEqual({ type: 'text', text: 'hi' });
+    expect((sequenceSlot.action as { steps: { action: unknown }[] }).steps[0].action).toEqual({ type: 'text', text: 'hi' });
+    expect(toggleSlot.action).toEqual({ type: 'toggle', on: { type: 'text', text: 'hi' }, off: { type: 'text', text: 'hi' } });
+  });
+
+  it('strips a legacy paste key through the pre-pagination { slots } migration path', () => {
+    const cfg = normalizeDeckConfig({ slots: [{ action: { type: 'text', text: 'hi', paste: true } }] });
+    expect(cfg.pages[0].slots[0].action).toEqual({ type: 'text', text: 'hi' });
+  });
+
+  it('leaves a text action with no paste key unchanged', () => {
+    const cfg = normalizeDeckConfig({ pages: [{ slots: [{ action: { type: 'text', text: 'hi' } }] }] });
+    expect(cfg.pages[0].slots[0].action).toEqual({ type: 'text', text: 'hi' });
+  });
 });
 
 describe('padSlots', () => {

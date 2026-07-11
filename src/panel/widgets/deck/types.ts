@@ -72,7 +72,7 @@ export type DeckAction =
   | { type: 'openUrl'; url: string }
   | { type: 'system'; action: DeckSystemAction }
   | { type: 'hotkey'; keys: string }
-  | { type: 'text'; text: string; paste?: boolean }
+  | { type: 'text'; text: string }
   | { type: 'power'; action: 'lock' | 'sleep' | 'shutdown' | 'restart' | 'logout' }
   | { type: 'audioOutput'; deviceId: string }
   | { type: 'audioInput'; deviceId: string }
