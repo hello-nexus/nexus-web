@@ -1,5 +1,6 @@
 import classNames from 'classnames';
 import type { ReactNode } from 'react';
+import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
 
 export interface ChipOption {
   readonly key: string;
@@ -7,8 +8,10 @@ export interface ChipOption {
   readonly disabled?: boolean;
   // Accessible name for an icon-only chip whose visible `label` is a glyph.
   readonly ariaLabel?: string;
-  // Native hover tooltip.
-  readonly title?: string;
+  // Hover tooltip body, rendered through the shared HoverTooltip. A disabled
+  // chip is unfocusable, so its tooltip has no keyboard path - avoid pairing
+  // tooltip with disabled.
+  readonly tooltip?: string;
 }
 
 type ChipGroupSingleProps = {
@@ -45,13 +48,12 @@ export function ChipGroup(props: ChipGroupProps) {
         const handleClick = props.multiSelect
           ? () => props.onToggleKey(opt.key)
           : () => props.onChange(opt.key);
-        return (
+        const chip = (
           <button
             key={opt.key}
             type="button"
             aria-pressed={active}
             aria-label={opt.ariaLabel}
-            title={opt.title}
             disabled={opt.disabled}
             className={`chip-action${active ? ' chip-active' : ''}`}
             onClick={handleClick}
@@ -59,6 +61,11 @@ export function ChipGroup(props: ChipGroupProps) {
             {opt.label}
           </button>
         );
+        // HoverTooltip clones onto the button (no wrapper DOM), so the
+        // chip-group layout and direct-child selectors are unaffected.
+        return opt.tooltip
+          ? <HoverTooltip key={opt.key} body={opt.tooltip}>{chip}</HoverTooltip>
+          : chip;
       })}
     </div>
   );
