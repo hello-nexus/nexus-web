@@ -612,6 +612,7 @@
   "devices.specs.row.soundCard": "声卡",
   "devices.specs.row.storage": "存储",
   "devices.streamdeck.brightness": "亮度",
+  "devices.streamdeck.defaultTitle": "默认标题样式",
   "devices.streamdeck.desktopOnly": "Stream Deck 管理仅在桌面应用中可用",
   "devices.streamdeck.deviceName": "设备名称",
   "devices.streamdeck.elgatoConflict": "此 Deck 目前也由 Elgato 软件驱动。退出该软件以便让 Nexus 接管此 Deck。",

@@ -612,6 +612,7 @@
   "devices.specs.row.soundCard": "Soundkarte",
   "devices.specs.row.storage": "Speicher",
   "devices.streamdeck.brightness": "Helligkeit",
+  "devices.streamdeck.defaultTitle": "Standard-Titelstil",
   "devices.streamdeck.desktopOnly": "Die Stream Deck-Verwaltung ist nur in der Desktop-App verfügbar",
   "devices.streamdeck.deviceName": "Gerätename",
   "devices.streamdeck.elgatoConflict": "Dieses Deck wird auch von der Elgato-Software gesteuert. Beenden Sie sie, damit Nexus das Deck übernehmen kann.",

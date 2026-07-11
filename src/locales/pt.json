@@ -612,6 +612,7 @@
   "devices.specs.row.soundCard": "Placa de som",
   "devices.specs.row.storage": "Armazenamento",
   "devices.streamdeck.brightness": "Brilho",
+  "devices.streamdeck.defaultTitle": "Estilo de título padrão",
   "devices.streamdeck.desktopOnly": "A gestão do Stream Deck só está disponível na aplicação de ambiente de trabalho",
   "devices.streamdeck.deviceName": "Nome do dispositivo",
   "devices.streamdeck.elgatoConflict": "Este Deck também está a ser controlado pelo software da Elgato. Feche-o para que o Nexus controle o Deck.",

@@ -10,7 +10,7 @@ import type { UnifiedDevice } from '../../../hooks/useUnifiedDevices';
 import { useConflictApps } from '../../../hooks/useConflictApps';
 import { usePhysicalDeckTarget } from '../../../panel/widgets/deck/usePhysicalDeckTarget';
 import { DeckGrid } from '../../../panel/widgets/deck/DeckGrid';
-import { DeckKeyInspector, slotForPickerKind, type DeckPickerKind } from '../../../panel/widgets/deck/DeckKeyInspector';
+import { DeckKeyInspector, DeckDefaultTitleSettings, slotForPickerKind, type DeckPickerKind } from '../../../panel/widgets/deck/DeckKeyInspector';
 import { DeckPageStrip } from '../../../panel/widgets/deck/DeckPageStrip';
 import { padSlots, pageHasContent } from '../../../panel/widgets/deck/deckLayout';
 import { withPageIndicatorDisplay } from '../../../panel/widgets/deck/deckIcons';
@@ -135,7 +135,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
     // otherwise a cell was dragged onto another cell to reorder.
     if (activeId.startsWith('pick:')) {
       const kind = activeId.slice('pick:'.length) as DeckPickerKind;
-      target.updateSlot(page, folderPath, to, slotForPickerKind(kind, viewSlots[to] ?? {}));
+      target.updateSlot(page, folderPath, to, slotForPickerKind(kind, viewSlots[to] ?? {}, target.config.defaultTitleStyle));
       setSelectedSlot(to);
       return;
     }
@@ -318,6 +318,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
                 <span className={styles.readOnlyValue}>{deck.serial}</span>
               </SettingRow>
             </SettingsSection>
+            {target && <DeckDefaultTitleSettings target={target} />}
           </div>
         )}
       </div>

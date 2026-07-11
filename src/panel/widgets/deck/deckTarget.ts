@@ -3,7 +3,7 @@
 // serial-keyed service config both implement the same DeckTarget shape, so
 // the grid + inspector never branch on which one they're editing.
 import type { PanelConfigValue, PanelWidget } from '../../types';
-import type { DeckConfig, DeckSlot } from './types';
+import type { DeckConfig, DeckSlot, DeckTitleStyle } from './types';
 import {
   addPage, deckConfigPatch, innerGridForSize, readDeckConfig, removePage, resolveViewSlots, swapSlots, updateSlotAt,
   type DepthCount,
@@ -21,6 +21,8 @@ export interface DeckTarget {
   swapSlots(page: number, folderPath: readonly number[], from: number, to: number): void;
   addPage(): void;
   removePage(page: number): void;
+  /** Deck-wide default title style seeded onto newly bound keys. */
+  setTitleDefault(next: DeckTitleStyle | undefined): void;
 }
 
 /**
@@ -68,6 +70,9 @@ export function makeWidgetDeckTarget(
     removePage(page) {
       onUpdate(deckConfigPatch(removePage(config, page)));
     },
+    setTitleDefault(next) {
+      onUpdate(deckConfigPatch({ ...config, defaultTitleStyle: next }));
+    },
   };
 }
 
@@ -97,6 +102,9 @@ export function makePhysicalDeckTarget(
     },
     removePage(page) {
       persist(removePage(config, page));
+    },
+    setTitleDefault(next) {
+      persist({ ...config, defaultTitleStyle: next });
     },
   };
 }

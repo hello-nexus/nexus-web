@@ -621,6 +621,7 @@
   "devices.specs.row.soundCard": "Schede audio",
   "devices.specs.row.storage": "Archiviazion",
   "devices.streamdeck.brightness": "Luminositât",
+  "devices.streamdeck.defaultTitle": "Stîl dal titul predefinît",
   "devices.streamdeck.desktopOnly": "La gjestion dal Stream Deck e je disponibile nome te aplicazion desktop",
   "devices.streamdeck.deviceName": "Non dal dispositîf",
   "devices.streamdeck.elgatoConflict": "Chest Deck al è controlât ancje dal software Elgato. Siere lu par lassâ che Nexus al gjestìssi il Deck.",

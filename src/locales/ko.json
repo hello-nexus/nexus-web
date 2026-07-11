@@ -612,6 +612,7 @@
   "devices.specs.row.soundCard": "사운드 카드",
   "devices.specs.row.storage": "저장 장치",
   "devices.streamdeck.brightness": "밝기",
+  "devices.streamdeck.defaultTitle": "기본 제목 스타일",
   "devices.streamdeck.desktopOnly": "Stream Deck 관리는 데스크톱 앱에서만 사용할 수 있습니다",
   "devices.streamdeck.deviceName": "장치 이름",
   "devices.streamdeck.elgatoConflict": "이 Deck은 Elgato 소프트웨어에서도 제어하고 있습니다. 종료하면 Nexus가 Deck을 관리할 수 있습니다.",

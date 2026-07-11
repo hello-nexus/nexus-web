@@ -612,6 +612,7 @@
   "devices.specs.row.soundCard": "音效卡",
   "devices.specs.row.storage": "儲存裝置",
   "devices.streamdeck.brightness": "亮度",
+  "devices.streamdeck.defaultTitle": "預設標題樣式",
   "devices.streamdeck.desktopOnly": "Stream Deck 管理僅在桌面應用程式中可用",
   "devices.streamdeck.deviceName": "裝置名稱",
   "devices.streamdeck.elgatoConflict": "此 Deck 目前也由 Elgato 軟體驅動。結束該軟體以便讓 Nexus 接管此 Deck。",

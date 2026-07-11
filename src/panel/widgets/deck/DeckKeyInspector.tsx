@@ -140,11 +140,13 @@ function defaultActionForPickerKind(kind: Exclude<DeckPickerKind, 'folder'>): De
 
 /**
  * The slot a picker kind produces, keeping the target slot's icon/label/color.
+ * A freshly bound slot (no title yet) inherits the deck's default title style.
  * Shared by click-to-pick and drag-drop-onto-a-slot so both assign identically.
  */
-export function slotForPickerKind(kind: DeckPickerKind, base: DeckSlot = {}): DeckSlot {
-  if (kind === 'folder') return { ...base, action: undefined, folder: base.folder ?? { slots: [] } };
-  return { ...base, folder: undefined, action: defaultActionForPickerKind(kind) };
+export function slotForPickerKind(kind: DeckPickerKind, base: DeckSlot = {}, titleDefault?: DeckTitleStyle): DeckSlot {
+  const title = base.title ?? (titleDefault ? { ...titleDefault } : undefined);
+  if (kind === 'folder') return { ...base, title, action: undefined, folder: base.folder ?? { slots: [] } };
+  return { ...base, title, folder: undefined, action: defaultActionForPickerKind(kind) };
 }
 
 /** Lucide icon for a picker kind, matching a bound slot's auto-icon. */
@@ -474,10 +476,12 @@ const TITLE_ALIGN_LABEL_KEY: Record<DeckTitleAlign, string> = {
  * size, and text colour. All styling controls disable while the title is
  * hidden; the text itself stays editable.
  */
-function TitleFields({ label, title, onLabelChange, onTitleChange }: {
-  label: string | undefined;
+function TitleFields({ label, title, hideText, onLabelChange, onTitleChange }: {
+  label?: string;
   title: DeckTitleStyle | undefined;
-  onLabelChange: (label: string) => void;
+  // When true (the deck-wide default editor) the per-key title text is omitted.
+  hideText?: boolean;
+  onLabelChange?: (label: string) => void;
   onTitleChange: (patch: DeckTitleStyle) => void;
 }) {
   const { t } = useTranslation();
@@ -492,14 +496,16 @@ function TitleFields({ label, title, onLabelChange, onTitleChange }: {
         onChange={show => onTitleChange({ show })}
       />
 
-      <input
-        className={styles.input}
-        type="text"
-        value={label ?? ''}
-        placeholder={t('panel.settings.deck.labelPlaceholder')}
-        aria-label={t('panel.settings.deck.label')}
-        onChange={e => onLabelChange(e.target.value)}
-      />
+      {!hideText && (
+        <input
+          className={styles.input}
+          type="text"
+          value={label ?? ''}
+          placeholder={t('panel.settings.deck.labelPlaceholder')}
+          aria-label={t('panel.settings.deck.label')}
+          onChange={e => onLabelChange?.(e.target.value)}
+        />
+      )}
 
       <SettingsRow label={t('panel.settings.deck.titleStyle.align')} disabled={disabled}>
         <ChipGroup
@@ -576,6 +582,24 @@ function TitleFields({ label, title, onLabelChange, onTitleChange }: {
   );
 }
 
+/**
+ * Deck-wide "Default Title Style" editor for the Settings tab: the same title
+ * panel as a key (minus the per-key text), bound to config.defaultTitleStyle.
+ * New keys inherit it (see slotForPickerKind).
+ */
+export function DeckDefaultTitleSettings({ target }: { target: DeckTarget }) {
+  const { t } = useTranslation();
+  return (
+    <SettingsSection title={t('devices.streamdeck.defaultTitle')}>
+      <TitleFields
+        hideText
+        title={target.config.defaultTitleStyle}
+        onTitleChange={patch => target.setTitleDefault({ ...target.config.defaultTitleStyle, ...patch })}
+      />
+    </SettingsSection>
+  );
+}
+
 export interface DeckKeyInspectorProps {
   target: DeckTarget;
   page: number;
@@ -624,7 +648,7 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
         .map(c => ({ ...c, kinds: kindsForTarget(c.kinds, target.kind) }))
         .filter(c => c.kinds.length > 0);
 
-  const onKindChange = (k: DeckPickerKind) => writeSlot(slotForPickerKind(k, slot));
+  const onKindChange = (k: DeckPickerKind) => writeSlot(slotForPickerKind(k, slot, target.config.defaultTitleStyle));
 
   const showPicker = part !== 'editor';
   const showEditor = part !== 'picker';

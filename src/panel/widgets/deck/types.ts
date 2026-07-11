@@ -129,4 +129,7 @@ export interface DeckPage {
 
 export interface DeckConfig {
   pages: DeckPage[];
+  // Deck-wide default title style seeded onto a key when an action is first
+  // assigned to it (see slotForPickerKind). Edited on the Settings tab.
+  defaultTitleStyle?: DeckTitleStyle;
 }

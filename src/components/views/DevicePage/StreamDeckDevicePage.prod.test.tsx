@@ -17,6 +17,8 @@ vi.mock('../../../hooks/useConflictApps', () => ({
 }));
 vi.mock('../../../panel/widgets/deck/DeckKeyInspector', () => ({
   DeckKeyInspector: () => <div data-testid="deck-key-inspector" />,
+  DeckDefaultTitleSettings: () => <div data-testid="deck-default-title" />,
+  slotForPickerKind: (_kind: string, base: object = {}) => base,
 }));
 
 function makeDeck(over: Partial<StreamDeckSummary> = {}): StreamDeckSummary {

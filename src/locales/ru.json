@@ -612,6 +612,7 @@
   "devices.specs.row.soundCard": "Звуковая карта",
   "devices.specs.row.storage": "Накопитель",
   "devices.streamdeck.brightness": "Яркость",
+  "devices.streamdeck.defaultTitle": "Стиль заголовка по умолчанию",
   "devices.streamdeck.desktopOnly": "Управление Stream Deck доступно только в приложении для рабочего стола",
   "devices.streamdeck.deviceName": "Имя устройства",
   "devices.streamdeck.elgatoConflict": "Deck также управляется программой Elgato. Закройте её, чтобы Nexus мог управлять Deck.",

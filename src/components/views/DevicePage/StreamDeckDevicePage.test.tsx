@@ -39,6 +39,8 @@ vi.mock('../../../panel/widgets/deck/DeckKeyInspector', () => ({
   DeckKeyInspector: ({ selectedSlot, part }: { selectedSlot?: number; part?: string }) => (
     <div data-testid={`deck-key-inspector-${part ?? 'all'}`}>{selectedSlot}</div>
   ),
+  DeckDefaultTitleSettings: () => <div data-testid="deck-default-title" />,
+  slotForPickerKind: (_kind: string, base: object = {}) => base,
 }));
 
 import { StreamDeckDevicePage } from './StreamDeckDevicePage';

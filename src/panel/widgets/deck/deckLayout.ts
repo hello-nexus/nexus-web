@@ -53,13 +53,16 @@ function normalizePage(raw: unknown): DeckPage {
  */
 export function normalizeDeckConfig(raw: unknown): DeckConfig {
   if (!raw || typeof raw !== 'object') return emptyDeck();
-  const obj = raw as { pages?: unknown; slots?: unknown };
+  const obj = raw as { pages?: unknown; slots?: unknown; defaultTitleStyle?: unknown };
+  const defaultTitleStyle = obj.defaultTitleStyle && typeof obj.defaultTitleStyle === 'object'
+    ? (obj.defaultTitleStyle as DeckConfig['defaultTitleStyle'])
+    : undefined;
   if (Array.isArray(obj.pages)) {
     const pages = obj.pages.map(normalizePage);
-    return { pages: pages.length > 0 ? pages : [{ slots: [] }] };
+    return { pages: pages.length > 0 ? pages : [{ slots: [] }], defaultTitleStyle };
   }
   if (Array.isArray(obj.slots)) {
-    return { pages: [{ slots: obj.slots as DeckSlot[] }] };
+    return { pages: [{ slots: obj.slots as DeckSlot[] }], defaultTitleStyle };
   }
   return emptyDeck();
 }
