@@ -17,6 +17,11 @@ export interface SimulatorReadyMessage {
 export interface SimulatorInitMessage {
   type: 'simulator/init';
   surface: PanelSurface;
+  // Per-device touch capability (promoted monitors). Undefined falls back to
+  // the surface default in surfaceSupportsTouch; the editor's drag sensor and
+  // dock gate on it, so a touch monitor must forward true or its preview can't
+  // be dragged.
+  deviceTouch?: boolean;
   // Device physical density in CSS px (native dpi / device DPR) for grid
   // capacity math; the iframe canvas is CSS-pixel sized with DPR forced to 1.
   dpi?: number;
@@ -47,6 +52,13 @@ export interface SimulatorSetLayoutMessage {
 export interface SimulatorSetGridMessage {
   type: 'simulator/set-grid';
   dpi?: number;
+}
+
+// Per-device touch can also resolve after init (the record fetch races the
+// iframe boot), so it mirrors like the grid density.
+export interface SimulatorSetTouchMessage {
+  type: 'simulator/set-touch';
+  deviceTouch?: boolean;
 }
 
 export interface SimulatorSetThemeMessage {
@@ -86,6 +98,7 @@ export type SimulatorParentToChild =
   | SimulatorInitMessage
   | SimulatorSetLayoutMessage
   | SimulatorSetGridMessage
+  | SimulatorSetTouchMessage
   | SimulatorSetThemeMessage
   | SimulatorSetSelectionMessage
   | SimulatorFlashWidgetMessage

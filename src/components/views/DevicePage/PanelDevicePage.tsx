@@ -712,6 +712,7 @@ export function PanelDevicePage({ device, onOpenFirmware }: PanelDevicePageProps
                 screenOn={supportsDisplayControls ? screenOn : true}
                 showPanel={supportsAutoLaunch ? autoLaunch : true}
                 deviceId={editingDeviceId ?? undefined}
+                deviceTouch={deviceTouch}
               />
             </div>
           </div>
