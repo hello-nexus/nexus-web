@@ -7,7 +7,20 @@
 }
 
 .search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin: 4px 0 12px;
+}
+
+.searchInput {
+  flex: 1;
+}
+
+// Right-aligns the chips when the search input is hidden (keyboard-less
+// on-device sheets render chips only).
+.sizeChips {
+  margin-left: auto;
 }
 
 .scroller {

@@ -23,7 +23,7 @@ import { extrasSensorsForDevice, smartStorageSensors } from './sensorCategories'
 import { MicroMonitoringWidget } from './MicroMonitoringWidget';
 import { buildNetworkSensors, networkMaxValue, NETWORK_SENSOR_TOTAL } from './networkSensors';
 import { formatSensorValue } from './sensorValueFormat';
-import { chartDomainForScale, DEFAULT_SCALE_MODE, defaultFixedMax, isHeterogeneousTypeDevice, staticMaxForDevice, type ScaleMode } from './perfDomain';
+import { chartDomainForScale, DEFAULT_SCALE_MODE, defaultFixedMax, designIsFill, fixedFillPercent, isHeterogeneousTypeDevice, staticMaxForDevice, type ScaleMode } from './perfDomain';
 import styles from './MonitoringWidget.module.scss';
 
 interface TempSensorPrefs {
@@ -148,6 +148,17 @@ export function labelForDevice(device: DeviceKey, sensorName: string): string {
 
 export { staticMaxForDevice };
 
+// A slot/sensor caption has three modes stored as `labelMode` (absent = auto):
+// 'hide' blanks it, 'custom' shows the stored `label` (falling back to the
+// derived name until the user types), auto shows the derived name. The stored
+// custom text is retained across mode switches; only Reset clears it, so the
+// caller keeps it in `label` regardless of the active mode.
+export function displayLabel(mode: string | undefined, override: string | undefined, autoLabel: string): string {
+  if (mode === 'hide') return '';
+  if (mode === 'custom') return override?.trim() || autoLabel;
+  return autoLabel;
+}
+
 export function percentForSensor(device: DeviceKey, sensor: HardwareSensor | undefined, maxValue: number): number {
   if (!sensor) return 0;
   // Prefer the sensor's own ceiling when present. Memory Used / VRAM Used on
@@ -188,6 +199,8 @@ export function MonitoringWidget({ widget, selectedSlot, onSelectSlot }: WidgetP
     scale: ((widget.config?.[`slot${i}_scale`] as ScaleMode | undefined) ?? DEFAULT_SCALE_MODE),
     fixedMin: widget.config?.[`slot${i}_min`] as number | undefined,
     fixedMax: widget.config?.[`slot${i}_max`] as number | undefined,
+    labelOverride: widget.config?.[`slot${i}_label`] as string | undefined,
+    labelMode: widget.config?.[`slot${i}_labelMode`] as string | undefined,
   }));
   const microDevice = widget.config?.micro_device as DeviceKey | undefined;
   const usesFps = isMicro
@@ -224,7 +237,7 @@ export function MonitoringWidget({ widget, selectedSlot, onSelectSlot }: WidgetP
 
   return (
     <div className={`${styles.performance} ${layoutClass}`}>
-      {slotConfigs.map(({ device, sensorName, design, scale, fixedMin, fixedMax }, i) => {
+      {slotConfigs.map(({ device, sensorName, design, scale, fixedMin, fixedMax, labelOverride, labelMode }, i) => {
         return (
           <PerfSlot
             key={`${i}-${device}-${sensorName}`}
@@ -239,6 +252,8 @@ export function MonitoringWidget({ widget, selectedSlot, onSelectSlot }: WidgetP
             scale={scale}
             fixedMin={fixedMin}
             fixedMax={fixedMax}
+            labelOverride={labelOverride}
+            labelMode={labelMode}
             tempPrefs={tempPrefs}
             selected={selectable && i === activeSlot}
             onSelect={selectable ? () => onSelectSlot?.(i) : undefined}
@@ -261,18 +276,24 @@ interface PerfSlotProps {
   scale?: ScaleMode;
   fixedMin?: number;
   fixedMax?: number;
+  labelOverride?: string;
+  labelMode?: string;
   tempPrefs?: TempSensorPrefs;
   selected?: boolean;
   onSelect?: () => void;
 }
 
-export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, extras, device, sensorName, design, scale = DEFAULT_SCALE_MODE, fixedMin, fixedMax, tempPrefs, selected = false, onSelect }: PerfSlotProps) {
+export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, extras, device, sensorName, design, scale = DEFAULT_SCALE_MODE, fixedMin, fixedMax, labelOverride, labelMode, tempPrefs, selected = false, onSelect }: PerfSlotProps) {
   const { monitoringTempUnit, numberFormat } = useUnitPrefs();
   const effectiveSensorName = device === 'network' && !sensorName ? NETWORK_SENSOR_TOTAL : sensorName;
   const sensor = resolveSensor(sensors, fpsSensors, networkSensors, device, effectiveSensorName, tempPrefs, extras);
   const rawValue = sensor?.value ?? 0;
   const formatted = sensor ? formatSensorValue(sensor.value, sensor.units, sensor.formatted, monitoringTempUnit, numberFormat) : '-';
-  const label = labelForDevice(device, sensor?.name ?? effectiveSensorName);
+  // Auto / hide / custom caption; the stored custom text survives sensor
+  // changes and mode switches. The a11y name stays meaningful even when hidden.
+  const autoLabel = labelForDevice(device, sensor?.name ?? effectiveSensorName);
+  const label = displayLabel(labelMode, labelOverride, autoLabel);
+  const resolvedLabel = labelMode === 'custom' ? (labelOverride?.trim() || autoLabel) : autoLabel;
   // Shared key so the tile + immersive instance for the same sensor share one
   // 60-sample buffer; re-mounting in immersive shows existing history at once.
   const sensorKey = `${device}::${effectiveSensorName || 'default'}`;
@@ -281,9 +302,13 @@ export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, extra
   const maxValue = device === 'network'
     ? networkMaxValue(rawValue, history)
     : sensorMax || staticMaxForDevice(device, sensor?.name, sensor?.type);
-  const value = percentForSensor(device, sensor, maxValue);
   const fixedDefaultMax = defaultFixedMax(device, sensor, effectiveSensorName);
   const [domainMin, domainMax] = chartDomainForScale(device, rawValue, history, maxValue, scale, sensor?.name, sensor?.type, fixedMin, fixedMax, fixedDefaultMax);
+  // Value-fill gauges scale to the Fixed [min, max] window when set; otherwise
+  // (and for every history design) the natural percent fill is used.
+  const value = scale === 'fixed' && designIsFill(design)
+    ? fixedFillPercent(rawValue, domainMin, domainMax)
+    : percentForSensor(device, sensor, maxValue);
   // Stable tuple reference so the Sparkline path-memo keys on bound values,
   // not array identity.
   const historyDomain = useMemo<[number, number]>(() => [domainMin, domainMax], [domainMin, domainMax]);
@@ -312,7 +337,7 @@ export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, extra
       data-monitoring-slot-index={slotIndex}
       className={`${styles.slot} ${styles.slotSelectable} ${selected ? styles.slotSelected : ''}`}
       aria-pressed={selected}
-      aria-label={`Select ${label}`}
+      aria-label={`Select ${resolvedLabel}`}
       onClick={event => {
         event.stopPropagation();
         onSelect();

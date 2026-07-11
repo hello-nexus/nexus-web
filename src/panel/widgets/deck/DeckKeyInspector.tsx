@@ -163,9 +163,13 @@ export function slotForPickerKind(kind: DeckPickerKind, base: DeckSlot = {}, tit
   return { ...base, title, folder: undefined, action: defaultActionForPickerKind(kind) };
 }
 
-/** Lucide icon for a picker kind, matching a bound slot's auto-icon. */
+/**
+ * Lucide icon for a picker kind, matching a bound slot's auto-icon. 'power'
+ * is special-cased to the generic Power glyph rather than defaultActionForPickerKind's
+ * sub-op (lock) - an on-key auto icon stays sub-op aware via autoIconName.
+ */
 export function pickerKindIcon(kind: DeckPickerKind) {
-  const name = kind === 'folder' ? 'Folder' : autoIconName(defaultActionForPickerKind(kind));
+  const name = kind === 'folder' ? 'Folder' : kind === 'power' ? 'Power' : autoIconName(defaultActionForPickerKind(kind));
   return DECK_ICONS[name] ?? Plus;
 }
 

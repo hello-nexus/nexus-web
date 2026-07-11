@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
+import { Lock, Power } from 'lucide-react';
 import { makePhysicalDeckTarget, makeWidgetDeckTarget } from './deckTarget';
 import type { PanelWidget } from '../types';
 import type { PanelSurface } from '../../types';
@@ -31,7 +32,7 @@ vi.mock('../../../hooks/useSensors', async (importOriginal) => {
   };
 });
 
-import { DeckKeyInspector, defaultActionFor } from './DeckKeyInspector';
+import { DeckKeyInspector, defaultActionFor, pickerKindIcon } from './DeckKeyInspector';
 
 describe('defaultActionFor - new Stream Deck action kinds', () => {
   it('deckBrightness defaults to op set at 50%', () => {
@@ -137,6 +138,11 @@ describe('DeckKeyInspector action picker - collapsible category list', () => {
 
     expect(screen.getByRole('option', { name: 'panel.settings.deck.action.hotkey' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByText('panel.settings.deck.hotkey')).toBeInTheDocument();
+  });
+
+  it('shows the generic Power icon for the power picker row, not its lock sub-op default', () => {
+    expect(pickerKindIcon('power')).toBe(Power);
+    expect(pickerKindIcon('power')).not.toBe(Lock);
   });
 
   it('offers a Stream Deck category containing Deck Brightness and Deck Sleep on a physical target', () => {

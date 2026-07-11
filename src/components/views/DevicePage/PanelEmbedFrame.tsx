@@ -35,6 +35,10 @@ interface PanelEmbedFrameProps {
   onBackgroundClicked: () => void;
   /** Panel device record id. Forwarded to the simulator iframe so it can render media backgrounds. */
   deviceId?: string;
+  // Per-device touch capability, forwarded in 'simulator/init'. The preview's
+  // drag sensor gates on it (surfaceSupportsTouch); a touch monitor must pass
+  // true or the editor can't drag-rearrange its widgets.
+  deviceTouch?: boolean;
   canvasSize?: { width: number; height: number };
   // Device DPI. Converts native canvas dimensions into the CSS-pixel
   // viewport the device exposes to its WebView, so the iframe reproduces
@@ -95,6 +99,7 @@ export function PanelEmbedFrame({
   screenOn,
   showPanel,
   deviceId,
+  deviceTouch,
 }: PanelEmbedFrameProps) {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -208,6 +213,7 @@ export function PanelEmbedFrame({
     post({
       type: 'simulator/init',
       surface,
+      deviceTouch,
       dpi: effectiveGridDpi,
       layout,
       theme,
@@ -249,6 +255,13 @@ export function PanelEmbedFrame({
     if (!childReady) return;
     post({ type: 'simulator/set-grid', dpi: effectiveGridDpi });
   }, [childReady, effectiveGridDpi, post]);
+
+  // Touch capability can resolve after init the same way (record fetch),
+  // so mirror it too - the preview's drag sensor gates on it.
+  useEffect(() => {
+    if (!childReady) return;
+    post({ type: 'simulator/set-touch', deviceTouch });
+  }, [childReady, deviceTouch, post]);
 
   useEffect(() => {
     if (!childReady) return;

@@ -1794,6 +1794,7 @@
   "panel.actions.settings": "Einstellungen",
   "panel.add.noMatches": "Keine Widgets gefunden",
   "panel.add.searchPlaceholder": "Widgets suchen...",
+  "panel.add.sizePreference": "Bevorzugte Widget-Größe",
   "panel.connectedTo": "Verbunden mit",
   "panel.editor.addWidgetTitle": "Widget hinzufügen",
   "panel.editor.hostName.hint": "Wird gekoppelten Telefonen und im Panel-Infobereich angezeigt.",
@@ -2867,5 +2868,13 @@
   "welcome.startWithOs.label": "Mit Windows starten",
   "welcome.tagline": "Einheitliche Computersteuerung",
   "welcome.title": "Willkommen bei Nexus",
-  "welcome.error": "Ihre Einstellungen konnten nicht gespeichert werden. Bitte versuchen Sie es erneut."
+  "welcome.error": "Ihre Einstellungen konnten nicht gespeichert werden. Bitte versuchen Sie es erneut.",
+  "monitoring.settings.label": "Beschriftung",
+  "monitoring.settings.customLabel": "Eigene Beschriftung",
+  "monitoring.settings.resetLabel": "Zurücksetzen",
+  "monitoring.settings.labelAuto": "Auto",
+  "monitoring.settings.labelHide": "Ausblenden",
+  "monitoring.settings.labelCustom": "Eigene",
+  "monitoring.settings.scaleAdaptive": "Adaptiv",
+  "monitoring.settings.scaleFixed": "Fest"
 }

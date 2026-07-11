@@ -29,7 +29,7 @@ const device: UnifiedDevice = {
   name: 'Stream Deck Mini',
   subtitle: 'controller',
   category: 'controller',
-  iconSrc: '/assets/devices/streamdeck.svg',
+  iconSrc: '/assets/devices/elgato.svg',
   connected: true,
   kind: 'curated',
   curatedId: 'streamdeck',

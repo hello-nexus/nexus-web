@@ -1794,6 +1794,7 @@
   "panel.actions.settings": "Настройки",
   "panel.add.noMatches": "Виджеты не найдены",
   "panel.add.searchPlaceholder": "Поиск виджетов...",
+  "panel.add.sizePreference": "Предпочтительный размер виджета",
   "panel.connectedTo": "Подключено к",
   "panel.editor.addWidgetTitle": "Добавить виджет",
   "panel.editor.hostName.hint": "Показывается сопряжённым телефонам и в трее панели.",
@@ -2867,5 +2868,13 @@
   "welcome.startWithOs.label": "Запускать вместе с Windows",
   "welcome.tagline": "Единое управление компьютером",
   "welcome.title": "Добро пожаловать в Nexus",
-  "welcome.error": "Не удалось сохранить настройки. Попробуйте ещё раз."
+  "welcome.error": "Не удалось сохранить настройки. Попробуйте ещё раз.",
+  "monitoring.settings.label": "Подпись",
+  "monitoring.settings.customLabel": "Своя подпись",
+  "monitoring.settings.resetLabel": "Сброс",
+  "monitoring.settings.labelAuto": "Авто",
+  "monitoring.settings.labelHide": "Скрыть",
+  "monitoring.settings.labelCustom": "Свой",
+  "monitoring.settings.scaleAdaptive": "Адаптивный",
+  "monitoring.settings.scaleFixed": "Фиксированный"
 }

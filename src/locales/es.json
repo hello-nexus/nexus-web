@@ -1794,6 +1794,7 @@
   "panel.actions.settings": "Ajustes",
   "panel.add.noMatches": "Ningún widget encontrado",
   "panel.add.searchPlaceholder": "Buscar widgets...",
+  "panel.add.sizePreference": "Tamaño de widget preferido",
   "panel.connectedTo": "Conectado a",
   "panel.editor.addWidgetTitle": "Añadir un widget",
   "panel.editor.hostName.hint": "Se muestra a los teléfonos emparejados y en la bandeja del panel.",
@@ -2867,5 +2868,13 @@
   "welcome.startWithOs.label": "Iniciar con Windows",
   "welcome.tagline": "Control unificado del equipo",
   "welcome.title": "Bienvenido a Nexus",
-  "welcome.error": "No se pudieron guardar tus preferencias. Inténtalo de nuevo."
+  "welcome.error": "No se pudieron guardar tus preferencias. Inténtalo de nuevo.",
+  "monitoring.settings.label": "Etiqueta",
+  "monitoring.settings.customLabel": "Etiqueta personalizada",
+  "monitoring.settings.resetLabel": "Restablecer",
+  "monitoring.settings.labelAuto": "Auto",
+  "monitoring.settings.labelHide": "Ocultar",
+  "monitoring.settings.labelCustom": "Personalizado",
+  "monitoring.settings.scaleAdaptive": "Adaptable",
+  "monitoring.settings.scaleFixed": "Fijo"
 }

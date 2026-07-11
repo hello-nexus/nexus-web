@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PanelWidgetCatalog } from './PanelWidgetCatalog';
 import type { PanelSurface } from '../types';
 
@@ -37,7 +37,7 @@ vi.mock('../widgets/registry', () => {
     media: {
       meta: {
         i18nKey: 'panel.widget.media',
-        sizes: ['2x2'],
+        sizes: ['2x2', '4x2'],
         touch: false,
       },
     },
@@ -55,7 +55,8 @@ vi.mock('../widgets/registry', () => {
     // Mirror getCatalogEntries (built-in + marketplace). Tests don't register
     // marketplace widgets, so that list stays empty.
     getCatalogEntries: () => Object.entries(REGISTRY),
-    pickerSizeFor: () => '2x2',
+    sizesForSurface: (meta: MockMeta) => meta.sizes,
+    pickerSizeFor: (meta: MockMeta) => (meta.sizes.includes('4x2') ? '4x2' : meta.sizes[0]),
     appAvailableForSurface: (meta: MockMeta, surface: PanelSurface) => {
       // Runtime rule: touch-required widgets hidden on the no-touch q60.
       if (meta.touch && surface === 'q60') return false;
@@ -78,19 +79,25 @@ vi.mock('../../widgets/marketplaceRegistry', () => ({
 
 vi.mock('../dnd/PanelDragCells', () => ({
   PanelCatalogCell: ({
+    widget,
     label,
     onClick,
   }: {
+    widget: { size: string };
     label: string;
     onClick: () => void;
   }) => (
-    <button type="button" onClick={onClick}>
+    <button type="button" data-size={widget.size} onClick={onClick}>
       {label}
     </button>
   ),
 }));
 
 describe('PanelWidgetCatalog', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
   it('keeps the add-widget search input unfocused when the sheet opens', () => {
     render(<PanelWidgetCatalog surface="phone" onAdd={vi.fn()} />);
 
@@ -119,5 +126,42 @@ describe('PanelWidgetCatalog', () => {
 
     expect(screen.getByRole('button', { name: 'panel.widget.clock' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'panel.widget.discord' })).toBeNull();
+  });
+
+  it('previews widgets at 2x2 by default when they support it', () => {
+    render(<PanelWidgetCatalog surface="desktop" onAdd={vi.fn()} />);
+
+    expect(screen.getByRole('button', { name: 'panel.widget.media' })).toHaveAttribute('data-size', '2x2');
+    expect(screen.getByRole('button', { name: 'panel.widget.lighting' })).toHaveAttribute('data-size', '4x4');
+  });
+
+  it('switches supporting widgets to 4x2 via the size chips and persists the choice', () => {
+    const onAdd = vi.fn();
+    render(<PanelWidgetCatalog surface="desktop" onAdd={onAdd} />);
+
+    fireEvent.click(screen.getByRole('button', { name: '4x2' }));
+
+    // Widgets without a 4x2 variant keep their own shape.
+    expect(screen.getByRole('button', { name: 'panel.widget.media' })).toHaveAttribute('data-size', '4x2');
+    expect(screen.getByRole('button', { name: 'panel.widget.clock' })).toHaveAttribute('data-size', '2x2');
+    expect(screen.getByRole('button', { name: 'panel.widget.lighting' })).toHaveAttribute('data-size', '4x4');
+    expect(localStorage.getItem('nexus.catalog.preferredSize')).toBe(JSON.stringify('4x2'));
+
+    // Adding inserts at the browsed size.
+    fireEvent.click(screen.getByRole('button', { name: 'panel.widget.media' }));
+    expect(onAdd).toHaveBeenCalledWith('media', '4x2');
+  });
+
+  it('seeds the size preference from localStorage', () => {
+    localStorage.setItem('nexus.catalog.preferredSize', JSON.stringify('4x2'));
+    render(<PanelWidgetCatalog surface="desktop" onAdd={vi.fn()} />);
+
+    expect(screen.getByRole('button', { name: 'panel.widget.media' })).toHaveAttribute('data-size', '4x2');
+  });
+
+  it('hides the size chips on single-widget surfaces', () => {
+    render(<PanelWidgetCatalog surface="q60" onAdd={vi.fn()} />);
+
+    expect(screen.queryByRole('group', { name: 'panel.add.sizePreference' })).toBeNull();
   });
 });

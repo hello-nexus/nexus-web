@@ -3,7 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import type { PanelConfigValue, PanelSurface, PanelWidget } from '../../types';
 import { MonitoringWidget } from '../monitoring/MonitoringWidget';
-import { GAUGE_DESIGN_KEYS } from '../monitoring/gauges';
+import { GAUGE_DESIGN_KEYS, GAUGE_DESIGN_LABELS } from '../monitoring/gauges';
 import { MonitoringSettings } from './MonitoringSettings';
 import { resolveSensor } from './MonitoringWidget';
 import { SENSOR_CATEGORIES } from './sensorCategories';
@@ -162,8 +162,9 @@ describe('MonitoringSettings', () => {
     expect(screen.queryByText(/Sensor 2/i)).not.toBeInTheDocument();
 
     expect(screen.getAllByRole('combobox')).toHaveLength(2);
-    // 2 slot-select buttons + design buttons + 2 range buttons (sparkline supports scale)
-    expect(screen.getAllByRole('button').filter(button => button.hasAttribute('aria-pressed'))).toHaveLength(2 + GAUGE_DESIGN_KEYS.length + 2);
+    // 2 slot-select buttons + design buttons + 2 range buttons (sparkline
+    // supports scale) + 3 Label chips (Auto/Hide/Custom; reset hidden in Auto)
+    expect(screen.getAllByRole('button').filter(button => button.hasAttribute('aria-pressed'))).toHaveLength(2 + GAUGE_DESIGN_KEYS.length + 2 + 3);
   });
 
   it('updates the selected rendered sensor slot', () => {
@@ -403,25 +404,36 @@ describe('MonitoringSettings - fixed range fields', () => {
     // Slot 0 (cpu/sparkline, scalable) defaults to Adaptive - no range fields yet.
     expect(screen.queryByRole('spinbutton', { name: 'monitoring.settings.rangeMin' })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Fixed' }));
+    fireEvent.click(screen.getByRole('button', { name: 'monitoring.settings.scaleFixed' }));
 
     expect(screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMin' })).toBeInTheDocument();
     expect(screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMax' })).toBeInTheDocument();
   });
 
-  it('does not render for a design that does not support scale', () => {
+  it('does not render for a design with no range (Large Value / text)', () => {
     render(<MonitoringEditorHarness onUpdate={vi.fn()} />);
 
     fireEvent.click(screen.getByRole('button', { name: /select gpu core/i }));
-    expect(screen.queryByRole('button', { name: 'Adaptive' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Fixed' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: GAUGE_DESIGN_LABELS.text }));
+    expect(screen.queryByRole('button', { name: 'monitoring.settings.scaleAdaptive' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'monitoring.settings.scaleFixed' })).not.toBeInTheDocument();
     expect(screen.queryByRole('spinbutton', { name: 'monitoring.settings.rangeMin' })).not.toBeInTheDocument();
+  });
+
+  it('renders the range for a value-fill design (Progress Bar / bar)', () => {
+    render(<MonitoringEditorHarness onUpdate={vi.fn()} />);
+
+    // slot1 defaults to the bar design (a value-fill gauge).
+    fireEvent.click(screen.getByRole('button', { name: /select gpu core/i }));
+    expect(screen.getByRole('button', { name: 'monitoring.settings.scaleAdaptive' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'monitoring.settings.scaleFixed' }));
+    expect(screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMin' })).toBeInTheDocument();
   });
 
   it('seeds the fields from the stored override, defaulting to 0 and the sensor ceiling when unset', () => {
     render(<MonitoringEditorHarness onUpdate={vi.fn()} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Fixed' }));
+    fireEvent.click(screen.getByRole('button', { name: 'monitoring.settings.scaleFixed' }));
 
     const minInput = screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMin' }) as HTMLInputElement;
     const maxInput = screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMax' }) as HTMLInputElement;
@@ -433,7 +445,7 @@ describe('MonitoringSettings - fixed range fields', () => {
     const onUpdate = vi.fn();
     render(<MonitoringEditorHarness onUpdate={onUpdate} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Fixed' }));
+    fireEvent.click(screen.getByRole('button', { name: 'monitoring.settings.scaleFixed' }));
     const minInput = screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMin' });
     fireEvent.change(minInput, { target: { value: '20' } });
     fireEvent.blur(minInput);
@@ -445,7 +457,7 @@ describe('MonitoringSettings - fixed range fields', () => {
     const onUpdate = vi.fn();
     render(<MonitoringEditorHarness onUpdate={onUpdate} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Fixed' }));
+    fireEvent.click(screen.getByRole('button', { name: 'monitoring.settings.scaleFixed' }));
     const maxInput = screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMax' });
     fireEvent.change(maxInput, { target: { value: '250' } });
     fireEvent.blur(maxInput);
@@ -457,7 +469,7 @@ describe('MonitoringSettings - fixed range fields', () => {
     const onUpdate = vi.fn();
     render(<MonitoringEditorHarness onUpdate={onUpdate} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Fixed' }));
+    fireEvent.click(screen.getByRole('button', { name: 'monitoring.settings.scaleFixed' }));
     const minInput = screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMin' });
     fireEvent.blur(minInput);
 
@@ -468,7 +480,7 @@ describe('MonitoringSettings - fixed range fields', () => {
     const onUpdate = vi.fn();
     render(<MonitoringEditorHarness onUpdate={onUpdate} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Fixed' }));
+    fireEvent.click(screen.getByRole('button', { name: 'monitoring.settings.scaleFixed' }));
     const minInput = screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMin' });
     fireEvent.change(minInput, { target: { value: '20' } });
     fireEvent.blur(minInput);
@@ -492,7 +504,7 @@ describe('MonitoringSettings - fixed range fields', () => {
     const onUpdate = vi.fn();
     render(<MonitoringEditorHarness onUpdate={onUpdate} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Fixed' }));
+    fireEvent.click(screen.getByRole('button', { name: 'monitoring.settings.scaleFixed' }));
     // Seeded default max is 100 (fixedDefaultMax); typing a min above it inverts the range.
     const minInput = screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMin' });
     fireEvent.change(minInput, { target: { value: '150' } });
@@ -506,9 +518,9 @@ describe('MonitoringSettings - fixed range fields', () => {
   it('is hidden on a touch surface with no keyboard and no desktopEditor override; the Adaptive/Fixed toggle stays', () => {
     render(<MonitoringEditorHarness onUpdate={vi.fn()} surface="y70" />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Fixed' }));
+    fireEvent.click(screen.getByRole('button', { name: 'monitoring.settings.scaleFixed' }));
 
-    expect(screen.getByRole('button', { name: 'Fixed' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'monitoring.settings.scaleFixed' })).toBeInTheDocument();
     expect(screen.queryByRole('spinbutton', { name: 'monitoring.settings.rangeMin' })).not.toBeInTheDocument();
     expect(screen.queryByRole('spinbutton', { name: 'monitoring.settings.rangeMax' })).not.toBeInTheDocument();
   });
@@ -517,7 +529,7 @@ describe('MonitoringSettings - fixed range fields', () => {
     const onUpdate = vi.fn();
     render(<MonitoringEditorHarness onUpdate={onUpdate} surface="y70" desktopEditor />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Fixed' }));
+    fireEvent.click(screen.getByRole('button', { name: 'monitoring.settings.scaleFixed' }));
     const minInput = screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMin' });
     fireEvent.change(minInput, { target: { value: '15' } });
     fireEvent.blur(minInput);
@@ -529,7 +541,7 @@ describe('MonitoringSettings - fixed range fields', () => {
     const onUpdate = vi.fn();
     render(<MonitoringEditorHarness onUpdate={onUpdate} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Fixed' }));
+    fireEvent.click(screen.getByRole('button', { name: 'monitoring.settings.scaleFixed' }));
     const minInput = screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMin' });
     fireEvent.change(minInput, { target: { value: '20' } });
     fireEvent.blur(minInput);
@@ -635,5 +647,151 @@ describe('resolveSensor - id-keyed lookup', () => {
     const result = resolveSensor(sensors, [], [], 'cpu', 'CPU Total');
     expect(result?.name).toBe('CPU Total');
     expect(result?.id).toBe('/intelcpu/0/load/0');
+  });
+});
+
+describe('MonitoringWidget - per-slot label modes', () => {
+  function widgetWith(config: Record<string, PanelConfigValue>): PanelWidget {
+    return {
+      id: 'm', type: 'monitoring', size: '4x2', col: 0, row: 0,
+      config: {
+        slotCount: 2,
+        slot0_device: 'cpu', slot0_sensor: 'CPU Total', slot0_design: 'sparkline',
+        slot1_device: 'gpu', slot1_sensor: 'GPU Core', slot1_design: 'bar',
+        ...config,
+      },
+    };
+  }
+
+  it('custom mode renders the stored label instead of the derived name', () => {
+    render(<MonitoringWidget widget={widgetWith({ slot0_labelMode: 'custom', slot0_label: 'My CPU' })} />);
+    expect(screen.getByText('My CPU')).toBeInTheDocument();
+    expect(screen.queryByText('CPU Total')).not.toBeInTheDocument();
+    expect(screen.getByText('GPU Core')).toBeInTheDocument();
+  });
+
+  it('hide mode omits the slot label, leaving other slots untouched', () => {
+    render(<MonitoringWidget widget={widgetWith({ slot0_labelMode: 'hide' })} />);
+    expect(screen.queryByText('CPU Total')).not.toBeInTheDocument();
+    expect(screen.getByText('GPU Core')).toBeInTheDocument();
+  });
+
+  it('auto mode ignores a remembered custom label (text kept but not shown)', () => {
+    render(<MonitoringWidget widget={widgetWith({ slot0_label: 'My CPU' })} />);
+    expect(screen.getByText('CPU Total')).toBeInTheDocument();
+    expect(screen.queryByText('My CPU')).not.toBeInTheDocument();
+  });
+});
+
+describe('MonitoringSettings - per-slot Label chip', () => {
+  const chip = (name: string) => screen.getByRole('button', { name });
+  const AUTO = 'monitoring.settings.labelAuto';
+  const HIDE = 'monitoring.settings.labelHide';
+  const CUSTOM = 'monitoring.settings.labelCustom';
+  const RESET = 'monitoring.settings.resetLabel';
+  const FIELD = 'monitoring.settings.customLabel';
+
+  it('defaults to Auto with no reset and no text field', () => {
+    render(<MonitoringEditorHarness onUpdate={vi.fn()} desktopEditor />);
+    expect(chip(AUTO)).toHaveAttribute('aria-pressed', 'true');
+    expect(chip(HIDE)).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.queryByRole('button', { name: RESET })).not.toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: FIELD })).not.toBeInTheDocument();
+  });
+
+  it('Hide writes labelMode hide', () => {
+    const onUpdate = vi.fn();
+    render(<MonitoringEditorHarness onUpdate={onUpdate} desktopEditor />);
+    fireEvent.click(chip(HIDE));
+    expect(onUpdate).toHaveBeenLastCalledWith({ slot0_labelMode: 'hide' });
+  });
+
+  it('Custom seeds the field with the derived name and reveals it + reset', () => {
+    const onUpdate = vi.fn();
+    render(<MonitoringEditorHarness onUpdate={onUpdate} desktopEditor />);
+    fireEvent.click(chip(CUSTOM));
+    expect(onUpdate).toHaveBeenLastCalledWith({ slot0_labelMode: 'custom', slot0_label: 'CPU Total' });
+    expect(screen.getByRole('textbox', { name: FIELD })).toHaveValue('CPU Total');
+    expect(screen.getByRole('button', { name: RESET })).toBeInTheDocument();
+  });
+
+  it('typing updates the label live (per keystroke) and the gauge follows', () => {
+    const onUpdate = vi.fn();
+    render(<MonitoringEditorHarness onUpdate={onUpdate} desktopEditor />);
+    fireEvent.click(chip(CUSTOM));
+    fireEvent.input(screen.getByRole('textbox', { name: FIELD }), { target: { value: 'Hot' } });
+    expect(onUpdate).toHaveBeenLastCalledWith({ slot0_label: 'Hot' });
+    expect(screen.getByText('Hot')).toBeInTheDocument();
+  });
+
+  it('remembers the custom text across Auto <-> Custom (no re-seed on return)', () => {
+    const onUpdate = vi.fn();
+    render(<MonitoringEditorHarness onUpdate={onUpdate} desktopEditor />);
+    fireEvent.click(chip(CUSTOM));
+    fireEvent.input(screen.getByRole('textbox', { name: FIELD }), { target: { value: 'Hot' } });
+
+    fireEvent.click(chip(AUTO));
+    expect(onUpdate).toHaveBeenLastCalledWith({ slot0_labelMode: null });
+    expect(screen.queryByRole('textbox', { name: FIELD })).not.toBeInTheDocument();
+
+    fireEvent.click(chip(CUSTOM));
+    expect(onUpdate).toHaveBeenLastCalledWith({ slot0_labelMode: 'custom' });
+    expect(screen.getByRole('textbox', { name: FIELD })).toHaveValue('Hot');
+  });
+
+  it('Reset refills the field with the sensor name and stays in Custom', () => {
+    const onUpdate = vi.fn();
+    render(<MonitoringEditorHarness onUpdate={onUpdate} desktopEditor />);
+    fireEvent.click(chip(CUSTOM));
+    fireEvent.input(screen.getByRole('textbox', { name: FIELD }), { target: { value: 'Hot' } });
+
+    fireEvent.click(screen.getByRole('button', { name: RESET }));
+    expect(onUpdate).toHaveBeenLastCalledWith({ slot0_label: 'CPU Total' });
+    expect(chip(CUSTOM)).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('textbox', { name: FIELD })).toHaveValue('CPU Total');
+  });
+
+  it('on a keyboard-less kiosk, chips work but Custom shows a badge instead of the field', () => {
+    render(<MonitoringEditorHarness onUpdate={vi.fn()} surface="y70" />);
+    fireEvent.click(chip(CUSTOM));
+    expect(screen.queryByRole('textbox', { name: FIELD })).not.toBeInTheDocument();
+    expect(screen.getByText('common.desktopOnly')).toBeInTheDocument();
+  });
+});
+
+describe('MicroMonitoringWidget - label / category modes', () => {
+  function microWidgetWith(config: Record<string, PanelConfigValue>): PanelWidget {
+    return { id: 'mm', type: 'monitoring', size: '4x2', col: 0, row: 0, config: { slotCount: 3, micro_device: 'cpu', ...config } };
+  }
+
+  it('custom category caption replaces the derived one', () => {
+    render(<MonitoringWidget widget={microWidgetWith({ micro_categoryMode: 'custom', micro_category: 'My Rig' })} />);
+    expect(screen.getAllByText('My Rig').length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText('CPU')).not.toBeInTheDocument();
+  });
+
+  it('hidden category drops the caption row, bars still render', () => {
+    render(<MonitoringWidget widget={microWidgetWith({ micro_categoryMode: 'hide' })} />);
+    expect(screen.queryByText('CPU')).not.toBeInTheDocument();
+    expect(screen.getAllByText('Total').length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('custom per-sensor label applies to a micro bar', () => {
+    render(<MonitoringWidget widget={microWidgetWith({ micro_sensor0_labelMode: 'custom', micro_sensor0_label: 'Custom0' })} />);
+    expect(screen.getByText('Custom0')).toBeInTheDocument();
+  });
+});
+
+describe('Label block has no section divider', () => {
+  it('the Label block carries data-settings-aside and is a non-first child of the Sensor box', () => {
+    render(<MonitoringEditorHarness onUpdate={vi.fn()} desktopEditor />);
+    const block = screen.getByRole('button', { name: 'monitoring.settings.labelAuto' })
+      .closest('[data-settings-aside="true"]') as HTMLElement;
+    expect(block).not.toBeNull();
+    const box = block.parentElement as HTMLElement;
+    // Sits after the device/sensor selects, so the section hairline would apply
+    // to it were it not opted out via data-settings-aside.
+    expect(box.children.length).toBeGreaterThan(1);
+    expect(box.firstElementChild).not.toBe(block);
   });
 });

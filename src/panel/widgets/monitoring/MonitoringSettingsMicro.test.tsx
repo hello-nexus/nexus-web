@@ -282,3 +282,71 @@ describe('MonitoringSettings - Micro mode with summary sensors present', () => {
     expect(mergedPatch(updates).micro_device).toBe('quick');
   });
 });
+
+describe('MonitoringSettings - Micro Label chips (category + per-sensor)', () => {
+  const AUTO = 'monitoring.settings.labelAuto';
+  const HIDE = 'monitoring.settings.labelHide';
+  const CUSTOM = 'monitoring.settings.labelCustom';
+  const FIELD = 'monitoring.settings.customLabel';
+
+  it('renders a Label chip set for the category and each sensor', () => {
+    render(<MicroHarness initial={microWidget(4)} />);
+    // category + 4 sensors = 5 chip sets
+    expect(screen.getAllByRole('button', { name: AUTO })).toHaveLength(5);
+    expect(screen.getAllByRole('button', { name: HIDE })).toHaveLength(5);
+    expect(screen.getAllByRole('button', { name: CUSTOM })).toHaveLength(5);
+  });
+
+  it('category Hide / Custom write micro_categoryMode + seed micro_category, then live-edit', () => {
+    const updates: Record<string, PanelConfigValue>[] = [];
+    render(<MicroHarness initial={microWidget(3)} onUpdate={cfg => updates.push(cfg)} />);
+
+    // Category is the first LabelControls in DOM order.
+    act(() => { fireEvent.click(screen.getAllByRole('button', { name: HIDE })[0]); });
+    expect(updates[updates.length - 1]).toEqual({ micro_categoryMode: 'hide' });
+
+    act(() => { fireEvent.click(screen.getAllByRole('button', { name: CUSTOM })[0]); });
+    expect(updates[updates.length - 1]).toEqual({ micro_categoryMode: 'custom', micro_category: 'AMD Ryzen 7 9800X3D' });
+
+    // Only the category is in Custom now -> a single custom-label field.
+    act(() => { fireEvent.input(screen.getByRole('textbox', { name: FIELD }), { target: { value: 'My Rig' } }); });
+    expect(updates[updates.length - 1]).toEqual({ micro_category: 'My Rig' });
+  });
+
+  it('per-sensor Custom / Hide write the indexed micro keys', () => {
+    const updates: Record<string, PanelConfigValue>[] = [];
+    render(<MicroHarness initial={microWidget(4)} onUpdate={cfg => updates.push(cfg)} />);
+
+    // Custom chips in DOM order: [category, sensor0, sensor1, sensor2, sensor3].
+    act(() => { fireEvent.click(screen.getAllByRole('button', { name: CUSTOM })[1]); });
+    expect(updates[updates.length - 1]).toEqual({ micro_sensor0_labelMode: 'custom', micro_sensor0_label: 'Total' });
+
+    act(() => { fireEvent.input(screen.getByRole('textbox', { name: FIELD }), { target: { value: 'Load' } }); });
+    expect(updates[updates.length - 1]).toEqual({ micro_sensor0_label: 'Load' });
+
+    act(() => { fireEvent.click(screen.getAllByRole('button', { name: HIDE })[2]); }); // sensor1
+    expect(updates[updates.length - 1]).toEqual({ micro_sensor1_labelMode: 'hide' });
+  });
+});
+
+describe('MonitoringSettings - Micro shared range', () => {
+  it('is adaptive by default; Fixed writes micro_scale and reveals one shared min/max', () => {
+    const updates: Record<string, PanelConfigValue>[] = [];
+    render(<MicroHarness initial={microWidget(4)} onUpdate={cfg => updates.push(cfg)} />);
+
+    expect(screen.getByRole('button', { name: 'monitoring.settings.scaleAdaptive' })).toBeInTheDocument();
+    expect(screen.queryByRole('spinbutton', { name: 'monitoring.settings.rangeMin' })).not.toBeInTheDocument();
+
+    act(() => { fireEvent.click(screen.getByRole('button', { name: 'monitoring.settings.scaleFixed' })); });
+    expect(updates[updates.length - 1]).toEqual({ micro_scale: 'fixed' });
+
+    // One shared min + one shared max (not per-sensor).
+    expect(screen.getAllByRole('spinbutton', { name: 'monitoring.settings.rangeMin' })).toHaveLength(1);
+    const min = screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMin' });
+    const max = screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMax' });
+    act(() => { fireEvent.change(min, { target: { value: '10' } }); fireEvent.blur(min); });
+    expect(updates[updates.length - 1]).toEqual({ micro_min: 10 });
+    act(() => { fireEvent.change(max, { target: { value: '90' } }); fireEvent.blur(max); });
+    expect(updates[updates.length - 1]).toEqual({ micro_max: 90 });
+  });
+});

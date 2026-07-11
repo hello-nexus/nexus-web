@@ -13,11 +13,13 @@ import {
 } from './networkSensors';
 import { isExtrasBackedDevice, type DeviceKey } from './perfSlots';
 import {
+  displayLabel,
   percentForSensor,
   resolveSensor,
   staticMaxForDevice,
 } from './MonitoringWidget';
 import { bareSensorLabel } from './sensorNames';
+import { chartDomainForScale, defaultFixedMax, DEFAULT_SCALE_MODE, fixedFillPercent, type ScaleMode } from './perfDomain';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { MicroBar } from './MicroBar';
 import { formatSensorValue } from './sensorValueFormat';
@@ -45,7 +47,7 @@ function readMicroSensorName(widget: PanelWidget, index: number): string {
 // labelForDevice). The SMART and extras-topic categories route through
 // the DetailedTab family-title keys instead, since this bottom label is
 // the widget's always-visible primary device caption, not a rare fallback.
-function bottomLabelForDevice(
+export function bottomLabelForDevice(
   device: DeviceKey,
   sensors: ReturnType<typeof useSensors>,
   t: (key: string) => string,
@@ -85,7 +87,17 @@ export function MicroMonitoringWidget({ widget, count }: MicroMonitoringWidgetPr
   const tempPrefs = useTempSensorPrefs();
   const { monitoringTempUnit, numberFormat } = useUnitPrefs();
 
-  const bottomLabel = bottomLabelForDevice(device, sensors, t);
+  // The bottom device caption ("GPU") is the widget's category label with the
+  // same auto/hide/custom model as a sensor caption: 'hide' drops the whole row
+  // and lets the bars fill the freed height, 'custom' shows micro_category.
+  const categoryMode = widget.config?.micro_categoryMode as string | undefined;
+  const categoryHidden = categoryMode === 'hide';
+  const bottomLabel = displayLabel(categoryMode, widget.config?.micro_category as string | undefined, bottomLabelForDevice(device, sensors, t));
+
+  // One Fixed range shared by every bar (Micro has no per-slot scale).
+  const microScale = (widget.config?.micro_scale as ScaleMode | undefined) ?? DEFAULT_SCALE_MODE;
+  const microMin = widget.config?.micro_min as number | undefined;
+  const microMax = widget.config?.micro_max as number | undefined;
 
   return (
     <div className={styles.micro}>
@@ -99,15 +111,22 @@ export function MicroMonitoringWidget({ widget, count }: MicroMonitoringWidgetPr
             extras={extras}
             device={device}
             sensorName={rawName}
+            labelOverride={widget.config?.[`micro_sensor${i}_label`] as string | undefined}
+            labelMode={widget.config?.[`micro_sensor${i}_labelMode`] as string | undefined}
+            scale={microScale}
+            fixedMin={microMin}
+            fixedMax={microMax}
             tempPrefs={tempPrefs}
             monitoringTempUnit={monitoringTempUnit}
             numberFormat={numberFormat}
           />
         ))}
       </div>
-      <HoverTooltip body={bottomLabel} side="top">
-        <div className={styles.bottomLabel}>{bottomLabel}</div>
-      </HoverTooltip>
+      {!categoryHidden && (
+        <HoverTooltip body={bottomLabel} side="top">
+          <div className={styles.bottomLabel}>{bottomLabel}</div>
+        </HoverTooltip>
+      )}
     </div>
   );
 }
@@ -119,24 +138,35 @@ interface MicroRowProps {
   extras: ReturnType<typeof useSensorExtras>;
   device: DeviceKey;
   sensorName: string;
+  labelOverride?: string;
+  labelMode?: string;
+  scale: ScaleMode;
+  fixedMin?: number;
+  fixedMax?: number;
   tempPrefs?: { cpuId: string; gpuId: string };
   monitoringTempUnit: TempUnit;
   numberFormat: NumberFormat;
 }
 
-function MicroRow({ sensors, fpsSensors, networkSensors, extras, device, sensorName, tempPrefs, monitoringTempUnit, numberFormat }: MicroRowProps) {
+function MicroRow({ sensors, fpsSensors, networkSensors, extras, device, sensorName, labelOverride, labelMode, scale, fixedMin, fixedMax, tempPrefs, monitoringTempUnit, numberFormat }: MicroRowProps) {
   const effectiveSensorName = device === 'network' && !sensorName ? NETWORK_SENSOR_TOTAL : sensorName;
   const sensor = resolveSensor(sensors, fpsSensors, networkSensors, device, effectiveSensorName, tempPrefs, extras);
   const rawValue = sensor?.value ?? 0;
   const formatted = sensor ? formatSensorValue(sensor.value, sensor.units, sensor.formatted, monitoringTempUnit, numberFormat) : '-';
   const sensorDisplayName = sensor?.name ?? '';
-  const label = bareSensorLabel(device, sensorDisplayName) || sensorDisplayName || effectiveSensorName;
+  const autoLabel = bareSensorLabel(device, sensorDisplayName) || sensorDisplayName || effectiveSensorName;
+  const label = displayLabel(labelMode, labelOverride, autoLabel);
   const sensorKey = `${device}::${effectiveSensorName || 'default'}`;
   const history = useSharedSensorHistory(sensorKey, rawValue) as number[];
   const maxValue = device === 'network'
     ? networkMaxValue(rawValue, history)
     : staticMaxForDevice(device, sensor?.name, sensor?.type);
-  const fillPercent = percentForSensor(device, sensor, maxValue);
+  // A shared Fixed range scales every bar to the same [min, max] window;
+  // adaptive keeps each bar's natural percent fill.
+  const [domainMin, domainMax] = chartDomainForScale(device, rawValue, history, maxValue, scale, sensor?.name, sensor?.type, fixedMin, fixedMax, defaultFixedMax(device, sensor, effectiveSensorName));
+  const fillPercent = scale === 'fixed'
+    ? fixedFillPercent(rawValue, domainMin, domainMax)
+    : percentForSensor(device, sensor, maxValue);
 
   return <MicroBar label={label} formatted={formatted} fillPercent={fillPercent} />;
 }

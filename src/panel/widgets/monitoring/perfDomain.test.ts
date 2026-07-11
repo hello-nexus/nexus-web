@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { chartDomainForScale, defaultFixedMax, designSupportsScale, isHeterogeneousTypeDevice, relativeHistoryDomain, staticMaxForDevice } from './perfDomain';
+import { chartDomainForScale, defaultFixedMax, designIsFill, designSupportsRange, designSupportsScale, fixedFillPercent, isHeterogeneousTypeDevice, relativeHistoryDomain, staticMaxForDevice } from './perfDomain';
 
 describe('designSupportsScale', () => {
   it('supports only sparkline and line', () => {
@@ -187,5 +187,30 @@ describe('relativeHistoryDomain / staticMaxForDevice - SSD SMART and extras devi
   it('Voltage-typed psu sensors stretch to the observed max', () => {
     expect(relativeHistoryDomain('psu', 1.25, [], 2, undefined, 'Voltage')).toEqual([0, 2]);
     expect(staticMaxForDevice('psu', undefined, 'Voltage')).toBe(2);
+  });
+});
+
+describe('range helpers (designIsFill / designSupportsRange / fixedFillPercent)', () => {
+  it('classifies value-fill vs history vs number-only designs', () => {
+    expect(designIsFill('bar')).toBe(true);
+    expect(designIsFill('dial')).toBe(true);
+    expect(designIsFill('waterLevel')).toBe(true);
+    expect(designIsFill('sparkline')).toBe(false); // history
+    expect(designIsFill('text')).toBe(false);      // number-only
+  });
+
+  it('offers the range to fill + history designs, but not text / microbars', () => {
+    expect(designSupportsRange('bar')).toBe(true);       // fill
+    expect(designSupportsRange('sparkline')).toBe(true); // history
+    expect(designSupportsRange('text')).toBe(false);
+    expect(designSupportsRange('microbars')).toBe(false);
+  });
+
+  it('scales a fill to the [min, max] window, clamped 0-100', () => {
+    expect(fixedFillPercent(50, 0, 100)).toBe(50);
+    expect(fixedFillPercent(60, 40, 80)).toBe(50);   // (60-40)/40
+    expect(fixedFillPercent(30, 40, 80)).toBe(0);    // below min -> clamped
+    expect(fixedFillPercent(100, 40, 80)).toBe(100); // above max -> clamped
+    expect(fixedFillPercent(50, 80, 80)).toBe(0);    // degenerate window
   });
 });
