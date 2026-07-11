@@ -1794,6 +1794,7 @@
   "panel.actions.settings": "Ustawienia",
   "panel.add.noMatches": "Brak pasujących widżetów",
   "panel.add.searchPlaceholder": "Szukaj widżetów...",
+  "panel.add.sizePreference": "Preferowany rozmiar widżetu",
   "panel.connectedTo": "Połączono z",
   "panel.editor.addWidgetTitle": "Dodaj widżet",
   "panel.editor.hostName.hint": "Wyświetlana sparowanym telefonom i w zasobniku panelu.",

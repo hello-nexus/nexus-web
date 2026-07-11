@@ -1794,6 +1794,7 @@
   "panel.actions.settings": "설정",
   "panel.add.noMatches": "일치하는 위젯이 없습니다",
   "panel.add.searchPlaceholder": "위젯 검색...",
+  "panel.add.sizePreference": "선호하는 위젯 크기",
   "panel.connectedTo": "연결 대상",
   "panel.editor.addWidgetTitle": "위젯 추가",
   "panel.editor.hostName.hint": "페어링된 휴대폰과 패널 트레이에 표시됩니다.",

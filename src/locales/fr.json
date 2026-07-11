@@ -1794,6 +1794,7 @@
   "panel.actions.settings": "Paramètres",
   "panel.add.noMatches": "Aucun widget trouvé",
   "panel.add.searchPlaceholder": "Rechercher des widgets...",
+  "panel.add.sizePreference": "Taille de widget préférée",
   "panel.connectedTo": "Connecté à",
   "panel.editor.addWidgetTitle": "Ajouter un widget",
   "panel.editor.hostName.hint": "Affiché aux téléphones appairés et dans la zone de notification du panneau.",

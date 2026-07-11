@@ -1,7 +1,9 @@
 import { useEffect, useLayoutEffect, useReducer, useRef, useState, type CSSProperties } from 'react';
+import { ChipGroup } from '../../components/common/ChipGroup/ChipGroup';
 import { SearchInput } from '../../components/common/SearchInput/SearchInput';
+import { usePersistentState } from '../../hooks/usePersistentState';
 import { useTranslation } from '../../lib/i18n';
-import { surfaceSupportsTextInput, type PanelLayout, type PanelSurface, type PanelWidget, type PanelWidgetSize } from '../types';
+import { singleWidgetSurfaceSize, surfaceSupportsTextInput, type PanelLayout, type PanelSurface, type PanelWidget, type PanelWidgetSize } from '../types';
 import { PANEL_GRID_GAP, sizeToSpan } from '../engine/grid';
 import { PHONE_WIDGET_REFERENCE_CELL } from '../engine/panelGrid';
 import { appendWidget } from '../engine/panelLayoutOps';
@@ -23,6 +25,18 @@ import styles from './PanelWidgetCatalog.module.scss';
 // narrow add-widget sheet lands on 4 columns (like the phone panel); wider
 // device-page panes step up to 8 / 12.
 const CATALOG_TARGET_CELL = 100;
+
+// Browse-size preference: which of the common 2x2/4x2 pair the catalog
+// previews (and inserts) when the widget supports it on the surface.
+// Widgets without the preferred size keep their own shape.
+const CATALOG_SIZE_KEY = 'nexus.catalog.preferredSize';
+type CatalogPreferredSize = '2x2' | '4x2';
+
+// Size tokens, identical across locales.
+const SIZE_PREF_OPTIONS = [
+  { key: '2x2', label: '2x2' },
+  { key: '4x2', label: '4x2' },
+] as const;
 
 type CatalogEntry = ReturnType<typeof getCatalogEntries>[number];
 
@@ -63,6 +77,8 @@ export function PanelWidgetCatalog({
 }: PanelWidgetCatalogProps) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
+  const [preferredSize, setPreferredSize] = usePersistentState<CatalogPreferredSize>(CATALOG_SIZE_KEY, '2x2');
+  const changePreferredSize = (key: string) => setPreferredSize(key === '4x2' ? '4x2' : '2x2');
   // Force re-render on marketplace registry refresh - the catalog reads a
   // module-level cache React can't observe without an explicit subscription.
   const forceRender = useReducer((r: number) => r + 1, 0)[1];
@@ -99,6 +115,14 @@ export function PanelWidgetCatalog({
     variant === 'desktop-modal' ? styles.desktop : '',
     className ?? '',
   ].filter(Boolean).join(' ');
+
+  // No search field on a keyboard-less surface (Y70 kiosk, Q-series): it
+  // can't be typed into on-device. A desktop modal editing such a panel
+  // keeps it: the operator types on their own keyboard, not the target
+  // surface's. The size chips are tap-driven so they stay; single-widget
+  // surfaces are locked to one size and get no chips.
+  const showSearch = searchable && (variant === 'desktop-modal' || surfaceSupportsTextInput(surface));
+  const showSizeChips = singleWidgetSurfaceSize(surface) === undefined;
 
   // Measure the available width, then pick a multiple-of-4 column count sized so
   // each cell sits near the target. Cell size drives the panel grid vars below.
@@ -147,16 +171,14 @@ export function PanelWidgetCatalog({
   // widgets are held back and laid out left-to-right on fresh rows BELOW
   // everything else, so the smallest tiles always group at the bottom of the
   // grid instead of back-filling gaps higher up.
-  // Picker size for a widget, adjusted for the browse grid's width. At exactly
-  // 4 columns a 4x2 spans the full row (one widget per row); prefer the
-  // half-width 2x2 where the widget supports it so the narrow grid stays
-  // compact. Wider grids (8 / 12 / ...) keep the panel's 4x2 preference.
+  // Picker size for a widget: the user's preferred browse size when the
+  // widget supports it on this surface, else the widget's own picker size
+  // (sole-size widgets and single-widget surfaces keep their shape).
   const pickSize = (meta: CatalogEntry[1]['meta']): PanelWidgetSize => {
-    const size = pickerSizeFor(meta, surface, deviceTouch);
-    if (cols === 4 && size === '4x2' && sizesForSurface(meta, surface, deviceTouch).includes('2x2')) {
-      return '2x2';
+    if (sizesForSurface(meta, surface, deviceTouch).includes(preferredSize)) {
+      return preferredSize;
     }
-    return size;
+    return pickerSizeFor(meta, surface, deviceTouch);
   };
 
   const packEntries = (items: CatalogEntry[]): PanelWidget[] => {
@@ -211,22 +233,30 @@ export function PanelWidgetCatalog({
       data-surface={surface}
       style={catalogStyle}
     >
-      {/* No search field on a keyboard-less surface (Y70 kiosk, Q-series): it
-          can't be typed into on-device. A desktop modal editing such a panel
-          keeps it: the operator types on their own keyboard, not the target
-          surface's. */}
-      {searchable && (variant === 'desktop-modal' || surfaceSupportsTextInput(surface)) && (
+      {(showSearch || showSizeChips) && (
         <div className={styles.search}>
-          <SearchInput
-            value={query}
-            onChange={setQuery}
-            placeholder={t('panel.add.searchPlaceholder')}
-            // Autofocus only where a keyboard is present and focus is wanted:
-            // the desktop modal and the desktop dashboard's add-widget sheet.
-            // The phone renders the field but stays unfocused so the on-screen
-            // keyboard doesn't pop up.
-            autoFocus={variant === 'desktop-modal' || surface === 'desktop'}
-          />
+          {showSearch && (
+            <SearchInput
+              className={styles.searchInput}
+              value={query}
+              onChange={setQuery}
+              placeholder={t('panel.add.searchPlaceholder')}
+              // Autofocus only where a keyboard is present and focus is wanted:
+              // the desktop modal and the desktop dashboard's add-widget sheet.
+              // The phone renders the field but stays unfocused so the on-screen
+              // keyboard doesn't pop up.
+              autoFocus={variant === 'desktop-modal' || surface === 'desktop'}
+            />
+          )}
+          {showSizeChips && (
+            <ChipGroup
+              className={styles.sizeChips}
+              ariaLabel={t('panel.add.sizePreference')}
+              options={SIZE_PREF_OPTIONS}
+              activeKey={preferredSize}
+              onChange={changePreferredSize}
+            />
+          )}
         </div>
       )}
       <div className={styles.scroller}>

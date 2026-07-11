@@ -1794,6 +1794,7 @@
   "panel.actions.settings": "Einstellungen",
   "panel.add.noMatches": "Keine Widgets gefunden",
   "panel.add.searchPlaceholder": "Widgets suchen...",
+  "panel.add.sizePreference": "Bevorzugte Widget-Größe",
   "panel.connectedTo": "Verbunden mit",
   "panel.editor.addWidgetTitle": "Widget hinzufügen",
   "panel.editor.hostName.hint": "Wird gekoppelten Telefonen und im Panel-Infobereich angezeigt.",

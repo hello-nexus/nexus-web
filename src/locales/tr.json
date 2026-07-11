@@ -1794,6 +1794,7 @@
   "panel.actions.settings": "Ayarlar",
   "panel.add.noMatches": "Eşleşen widget yok",
   "panel.add.searchPlaceholder": "Widget ara...",
+  "panel.add.sizePreference": "Tercih edilen widget boyutu",
   "panel.connectedTo": "Baglanilan",
   "panel.editor.addWidgetTitle": "Bir widget ekle",
   "panel.editor.hostName.hint": "Eşleştirilmiş telefonlara ve panel tepsisinde gösterilir.",

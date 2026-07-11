@@ -1794,6 +1794,7 @@
   "panel.actions.settings": "設定",
   "panel.add.noMatches": "找不到符合的小工具",
   "panel.add.searchPlaceholder": "搜尋小工具...",
+  "panel.add.sizePreference": "偏好的小工具大小",
   "panel.connectedTo": "已連線到",
   "panel.editor.addWidgetTitle": "新增小工具",
   "panel.editor.hostName.hint": "顯示給已配對的手機，以及在面板系統匣中顯示。",

@@ -1794,6 +1794,7 @@
   "panel.actions.settings": "Настройки",
   "panel.add.noMatches": "Виджеты не найдены",
   "panel.add.searchPlaceholder": "Поиск виджетов...",
+  "panel.add.sizePreference": "Предпочтительный размер виджета",
   "panel.connectedTo": "Подключено к",
   "panel.editor.addWidgetTitle": "Добавить виджет",
   "panel.editor.hostName.hint": "Показывается сопряжённым телефонам и в трее панели.",
