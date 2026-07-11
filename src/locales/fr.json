@@ -495,6 +495,8 @@
   "devices.lianli-wireless.notConnected": "Lian Li Uni Fan Wireless non connecté",
   "devices.lianli-wireless.rotationDegrees": "{n}°",
   "devices.lianli-wireless.rotationLabel": "Rotation",
+  "devices.lianli-wireless.rpmUnavailable": "Pas de tr/min",
+  "devices.lianli-wireless.rpmUnavailableHint": "Ce contrôleur ne peut pas indiquer le régime des ventilateurs. Le réglage de la vitesse reste possible.",
   "devices.lianli-wireless.screenGroupAll": "Tous",
   "devices.lianli-wireless.screensAria": "Sélectionner l'écran",
   "devices.lianli-wireless.screensSection": "Écrans",

@@ -78,6 +78,20 @@
   color: var(--text);
 }
 
+// RPM readout when the controller cannot report it: same layout as .rowValue,
+// dimmed and with a help cursor to read as informational rather than a value.
+.rowValueMuted {
+  flex: 0 0 6.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.3rem;
+  white-space: nowrap;
+  font-size: var(--type-small);
+  color: var(--text-muted);
+  cursor: help;
+}
+
 .chainBody {
   display: flex;
   flex-direction: column;

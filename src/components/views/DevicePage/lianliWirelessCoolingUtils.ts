@@ -17,6 +17,8 @@ export function lianliWirelessPortChannelId(mac: string, port: number): string {
 export interface LianLiWirelessCoolingPort {
   port: number;
   rpm: number;
+  /** True when the controller drives this port but cannot report its RPM. */
+  rpmUnavailable: boolean;
   /** Null until the /cooling/fans poll has a matching entry. */
   channel: FanChannel | null;
 }
@@ -29,10 +31,11 @@ export interface LianLiWirelessCoolingChain {
 
 /**
  * Groups the bound fan chains from the wireless state with their matching
- * generic cooling channels. A chain with no matching channel yet (the
- * /cooling/fans poll hasn't caught up) still renders with `channel: null`
- * ports so the RPM readout (sourced from the wireless state, not the
- * channel) shows immediately.
+ * generic cooling channels. A controller that does not enumerate its fans
+ * reports fanCount 0 but the service still registers a channel per physical
+ * port (flagged rpmUnavailable) so the ports stay controllable; the port
+ * count therefore comes from the channels when present, falling back to
+ * fanCount until the /cooling/fans poll catches up.
  */
 export function buildLianLiWirelessCoolingChains(
   fans: readonly LianLiWirelessFan[],
@@ -44,13 +47,20 @@ export function buildLianLiWirelessCoolingChains(
   }
   const chains: LianLiWirelessCoolingChain[] = [];
   for (const fan of fans) {
-    if (!fan.boundToUs || fan.fanCount <= 0) continue;
+    if (!fan.boundToUs) continue;
+    const chainChannelCount = channels.filter(
+      ch => ch.id.startsWith(`${CHANNEL_PREFIX}${fan.mac}:port`),
+    ).length;
+    const portCount = chainChannelCount > 0 ? chainChannelCount : fan.fanCount;
+    if (portCount <= 0) continue;
     const ports: LianLiWirelessCoolingPort[] = [];
-    for (let port = 0; port < fan.fanCount; port++) {
+    for (let port = 0; port < portCount; port++) {
+      const channel = byId.get(lianliWirelessPortChannelId(fan.mac, port)) ?? null;
       ports.push({
         port,
         rpm: fan.rpm[port] ?? 0,
-        channel: byId.get(lianliWirelessPortChannelId(fan.mac, port)) ?? null,
+        rpmUnavailable: channel?.rpmUnavailable ?? fan.fanCount <= 0,
+        channel,
       });
     }
     chains.push({ mac: fan.mac, fanType: fan.fanType, ports });

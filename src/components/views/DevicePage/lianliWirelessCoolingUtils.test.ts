@@ -51,15 +51,15 @@ describe('buildLianLiWirelessCoolingChains', () => {
     expect(chains[0].mac).toBe(fan.mac);
     expect(chains[0].fanType).toBe(fan.fanType);
     expect(chains[0].ports).toHaveLength(3);
-    expect(chains[0].ports[0]).toEqual({ port: 0, rpm: 1918, channel: channels[0] });
-    expect(chains[0].ports[1]).toEqual({ port: 1, rpm: 1905, channel: channels[1] });
-    expect(chains[0].ports[2]).toEqual({ port: 2, rpm: 1892, channel: channels[2] });
+    expect(chains[0].ports[0]).toEqual({ port: 0, rpm: 1918, rpmUnavailable: false, channel: channels[0] });
+    expect(chains[0].ports[1]).toEqual({ port: 1, rpm: 1905, rpmUnavailable: false, channel: channels[1] });
+    expect(chains[0].ports[2]).toEqual({ port: 2, rpm: 1892, rpmUnavailable: false, channel: channels[2] });
   });
 
   it('leaves channel null when the /cooling/fans poll has no matching entry yet', () => {
     const fan = makeFan({ fanCount: 1 });
     const chains = buildLianLiWirelessCoolingChains([fan], []);
-    expect(chains[0].ports).toEqual([{ port: 0, rpm: 1918, channel: null }]);
+    expect(chains[0].ports).toEqual([{ port: 0, rpm: 1918, rpmUnavailable: false, channel: null }]);
   });
 
   it('skips fans not bound to us', () => {
@@ -67,9 +67,23 @@ describe('buildLianLiWirelessCoolingChains', () => {
     expect(buildLianLiWirelessCoolingChains([fan], [])).toEqual([]);
   });
 
-  it('skips a bound fan reporting zero fans (transient chain state)', () => {
+  it('waits for channels before showing a bound chain that reports zero fans', () => {
     const fan = makeFan({ fanCount: 0 });
     expect(buildLianLiWirelessCoolingChains([fan], [])).toEqual([]);
+  });
+
+  it('exposes a bound zero-fan chain as controllable, rpm-unavailable ports once its channels arrive', () => {
+    const fan = makeFan({ fanCount: 0 });
+    const channels = [
+      makeChannel({ id: lianliWirelessPortChannelId(fan.mac, 0), dutyPercent: 50, mode: 'Manual', rpmUnavailable: true }),
+      makeChannel({ id: lianliWirelessPortChannelId(fan.mac, 1), dutyPercent: 50, mode: 'Manual', rpmUnavailable: true }),
+      makeChannel({ id: lianliWirelessPortChannelId(fan.mac, 2), dutyPercent: 50, mode: 'Manual', rpmUnavailable: true }),
+      makeChannel({ id: lianliWirelessPortChannelId(fan.mac, 3), dutyPercent: 50, mode: 'Manual', rpmUnavailable: true }),
+    ];
+    const chains = buildLianLiWirelessCoolingChains([fan], channels);
+    expect(chains[0].ports).toHaveLength(4);
+    expect(chains[0].ports.every(p => p.rpmUnavailable)).toBe(true);
+    expect(chains[0].ports[0].channel).toBe(channels[0]);
   });
 
   it('ignores channels belonging to other providers', () => {

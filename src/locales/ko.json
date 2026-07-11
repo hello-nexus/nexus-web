@@ -495,6 +495,8 @@
   "devices.lianli-wireless.notConnected": "Lian Li Uni Fan Wireless가 연결되지 않음",
   "devices.lianli-wireless.rotationDegrees": "{n}°",
   "devices.lianli-wireless.rotationLabel": "회전",
+  "devices.lianli-wireless.rpmUnavailable": "RPM 없음",
+  "devices.lianli-wireless.rpmUnavailableHint": "이 컨트롤러는 팬 RPM을 보고할 수 없습니다. 속도 제어는 계속 작동합니다.",
   "devices.lianli-wireless.screenGroupAll": "모두",
   "devices.lianli-wireless.screensAria": "화면 선택",
   "devices.lianli-wireless.screensSection": "화면",

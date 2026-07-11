@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Fan, Thermometer } from 'lucide-react';
+import { Fan, GaugeCircle, Thermometer } from 'lucide-react';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { CollapsibleSection } from '../../common/CollapsibleSection/CollapsibleSection';
+import { HoverTooltip } from '../../common/HoverTooltip/HoverTooltip';
 import { type SelectOption } from '../../common/Select/Select';
 import { SettingSelect } from '../../common/SettingRow/SettingRow';
 import { Slider } from '../../common/Slider/Slider';
@@ -15,7 +16,7 @@ import {
   type LianLiWirelessState,
 } from '../../../api/lianli-wireless';
 import { fetchFanChannels, setFanSpeed, releaseFanAuto, type FanChannel } from '../../../api/cooling';
-import { buildLianLiWirelessCoolingChains, type LianLiWirelessCoolingChain } from './lianliWirelessCoolingUtils';
+import { buildLianLiWirelessCoolingChains, type LianLiWirelessCoolingChain, type LianLiWirelessCoolingPort } from './lianliWirelessCoolingUtils';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { formatNumber, localizeNumbers } from '../../../lib/units';
@@ -287,6 +288,12 @@ function FanChain({
   const isFan = isFanDevice(fan.devType);
   const busy = pending !== undefined || identifying;
 
+  // A bound chain's ports come from the cooling chain (which reflects the
+  // controller's port count even when it reports no fans); an unbound chain has
+  // no cooling channels, so fall back to its reported RPM slots (read-only).
+  const portRows: LianLiWirelessCoolingPort[] = coolingChain?.ports
+    ?? fan.rpm.slice(0, fan.fanCount).map((rpm, i) => ({ port: i, rpm, rpmUnavailable: false, channel: null }));
+
   const bindLabel = pending === 'bind'
     ? t('devices.lianli-wireless.binding')
     : t('devices.lianli-wireless.bind');
@@ -310,12 +317,13 @@ function FanChain({
       }
     >
       <div className={styles.chainBody}>
-        {isFan && fan.rpm.slice(0, fan.fanCount).map((rpm, i) => (
+        {isFan && portRows.map(p => (
           <FanPortRow
-            key={i}
-            label={t('devices.lianli-wireless.fanN', { n: i + 1 })}
-            rpm={rpm}
-            channel={coolingChain?.ports[i]?.channel ?? null}
+            key={p.port}
+            label={t('devices.lianli-wireless.fanN', { n: p.port + 1 })}
+            rpm={p.rpm}
+            rpmUnavailable={p.rpmUnavailable}
+            channel={p.channel}
             showControls={fan.boundToUs}
             onSetAuto={onSetAuto}
             onSetManual={onSetManual}
@@ -343,6 +351,7 @@ function FanChain({
 function FanPortRow({
   label,
   rpm,
+  rpmUnavailable,
   channel,
   showControls,
   onSetAuto,
@@ -350,6 +359,7 @@ function FanPortRow({
 }: {
   label: string;
   rpm: number;
+  rpmUnavailable: boolean;
   channel: FanChannel | null;
   showControls: boolean;
   onSetAuto: (channelId: string) => void;
@@ -377,10 +387,19 @@ function FanPortRow({
     <div className={styles.portBlock}>
       <div className={styles.row}>
         <span className={styles.rowLabel}>{label}</span>
-        <span className={styles.rowValue}>
-          <Fan size={12} aria-hidden />
-          {rpm > 0 ? `${formatNumber(rpm, numberFormat)} RPM` : '-'}
-        </span>
+        {rpmUnavailable ? (
+          <HoverTooltip body={t('devices.lianli-wireless.rpmUnavailableHint')}>
+            <span className={styles.rowValueMuted}>
+              <GaugeCircle size={12} aria-hidden />
+              {t('devices.lianli-wireless.rpmUnavailable')}
+            </span>
+          </HoverTooltip>
+        ) : (
+          <span className={styles.rowValue}>
+            <Fan size={12} aria-hidden />
+            {rpm > 0 ? `${formatNumber(rpm, numberFormat)} RPM` : '-'}
+          </span>
+        )}
       </div>
       {showControls && (
         isCurve ? (

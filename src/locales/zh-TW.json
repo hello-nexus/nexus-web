@@ -495,6 +495,8 @@
   "devices.lianli-wireless.notConnected": "Lian Li Uni Fan Wireless 未連線",
   "devices.lianli-wireless.rotationDegrees": "{n}°",
   "devices.lianli-wireless.rotationLabel": "旋轉",
+  "devices.lianli-wireless.rpmUnavailable": "無轉速",
+  "devices.lianli-wireless.rpmUnavailableHint": "此控制器無法回報風扇轉速。轉速控制仍可使用。",
   "devices.lianli-wireless.screenGroupAll": "全部",
   "devices.lianli-wireless.screensAria": "選擇螢幕",
   "devices.lianli-wireless.screensSection": "螢幕",
