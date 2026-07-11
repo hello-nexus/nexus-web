@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import type { PanelConfigValue, PanelSurface, PanelWidget } from '../../types';
 import { MonitoringWidget } from '../monitoring/MonitoringWidget';
@@ -312,17 +312,17 @@ describe('MonitoringSettings', () => {
   });
 });
 
-describe('MonitoringSettings - fixed range slider', () => {
+describe('MonitoringSettings - fixed range fields', () => {
   it('renders only when the active slot is on Fixed scale', () => {
     render(<MonitoringEditorHarness onUpdate={vi.fn()} />);
 
-    // Slot 0 (cpu/sparkline, scalable) defaults to Adaptive - no range slider yet.
-    expect(screen.queryByRole('slider', { name: 'monitoring.settings.rangeMin' })).not.toBeInTheDocument();
+    // Slot 0 (cpu/sparkline, scalable) defaults to Adaptive - no range fields yet.
+    expect(screen.queryByRole('spinbutton', { name: 'monitoring.settings.rangeMin' })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Fixed' }));
 
-    expect(screen.getByRole('slider', { name: 'monitoring.settings.rangeMin' })).toBeInTheDocument();
-    expect(screen.getByRole('slider', { name: 'monitoring.settings.rangeMax' })).toBeInTheDocument();
+    expect(screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMin' })).toBeInTheDocument();
+    expect(screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMax' })).toBeInTheDocument();
   });
 
   it('does not render for a design that does not support scale', () => {
@@ -331,68 +331,135 @@ describe('MonitoringSettings - fixed range slider', () => {
     fireEvent.click(screen.getByRole('button', { name: /select gpu core/i }));
     expect(screen.queryByRole('button', { name: 'Adaptive' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Fixed' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('slider', { name: 'monitoring.settings.rangeMin' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('spinbutton', { name: 'monitoring.settings.rangeMin' })).not.toBeInTheDocument();
   });
 
-  it('persists slot0_min and slot0_max together on drag release, not on every drag tick', async () => {
+  it('seeds the fields from the stored override, defaulting to 0 and the sensor ceiling when unset', () => {
+    render(<MonitoringEditorHarness onUpdate={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Fixed' }));
+
+    const minInput = screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMin' }) as HTMLInputElement;
+    const maxInput = screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMax' }) as HTMLInputElement;
+    expect(minInput.value).toBe('0');
+    expect(maxInput.value).toBe('100');
+  });
+
+  it('commits slot0_min on blur', () => {
     const onUpdate = vi.fn();
     render(<MonitoringEditorHarness onUpdate={onUpdate} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Fixed' }));
-    const minSlider = screen.getByRole('slider', { name: 'monitoring.settings.rangeMin' });
+    const minInput = screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMin' });
+    fireEvent.change(minInput, { target: { value: '20' } });
+    fireEvent.blur(minInput);
 
-    fireEvent.change(minSlider, { target: { value: '20' } });
-    expect(onUpdate).not.toHaveBeenCalledWith(expect.objectContaining({ slot0_min: expect.anything() }));
-
-    fireEvent.pointerUp(minSlider);
-    await waitFor(() => expect(onUpdate).toHaveBeenLastCalledWith({ slot0_min: 20, slot0_max: 100 }));
+    expect(onUpdate).toHaveBeenLastCalledWith({ slot0_min: 20 });
   });
 
-  it('gates editable typed inputs on surface/desktopEditor: not editable on a touch surface with no desktopEditor', () => {
+  it('commits slot0_max on blur, honoring a value above the sensor default ceiling', () => {
+    const onUpdate = vi.fn();
+    render(<MonitoringEditorHarness onUpdate={onUpdate} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Fixed' }));
+    const maxInput = screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMax' });
+    fireEvent.change(maxInput, { target: { value: '250' } });
+    fireEvent.blur(maxInput);
+
+    expect(onUpdate).toHaveBeenLastCalledWith({ slot0_max: 250 });
+  });
+
+  it('does not commit on a no-op blur (value unchanged from the seeded default)', () => {
+    const onUpdate = vi.fn();
+    render(<MonitoringEditorHarness onUpdate={onUpdate} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Fixed' }));
+    const minInput = screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMin' });
+    fireEvent.blur(minInput);
+
+    expect(onUpdate).not.toHaveBeenCalledWith(expect.objectContaining({ slot0_min: expect.anything() }));
+  });
+
+  it('a blank min field commits 0, and a blank max field commits the sensor default ceiling', () => {
+    const onUpdate = vi.fn();
+    render(<MonitoringEditorHarness onUpdate={onUpdate} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Fixed' }));
+    const minInput = screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMin' });
+    fireEvent.change(minInput, { target: { value: '20' } });
+    fireEvent.blur(minInput);
+    expect(onUpdate).toHaveBeenLastCalledWith({ slot0_min: 20 });
+
+    fireEvent.change(minInput, { target: { value: '' } });
+    fireEvent.blur(minInput);
+    expect(onUpdate).toHaveBeenLastCalledWith({ slot0_min: 0 });
+
+    const maxInput = screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMax' });
+    fireEvent.change(maxInput, { target: { value: '250' } });
+    fireEvent.blur(maxInput);
+    expect(onUpdate).toHaveBeenLastCalledWith({ slot0_max: 250 });
+
+    fireEvent.change(maxInput, { target: { value: '' } });
+    fireEvent.blur(maxInput);
+    expect(onUpdate).toHaveBeenLastCalledWith({ slot0_max: 100 });
+  });
+
+  it('flags both fields invalid when the typed range is inverted, matching the render-time fallback', () => {
+    const onUpdate = vi.fn();
+    render(<MonitoringEditorHarness onUpdate={onUpdate} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Fixed' }));
+    // Seeded default max is 100 (fixedDefaultMax); typing a min above it inverts the range.
+    const minInput = screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMin' });
+    fireEvent.change(minInput, { target: { value: '150' } });
+    fireEvent.blur(minInput);
+
+    const maxInput = screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMax' });
+    expect(minInput).toHaveAttribute('aria-invalid', 'true');
+    expect(maxInput).toHaveAttribute('aria-invalid', 'true');
+  });
+
+  it('is hidden on a touch surface with no keyboard and no desktopEditor override; the Adaptive/Fixed toggle stays', () => {
     render(<MonitoringEditorHarness onUpdate={vi.fn()} surface="y70" />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Fixed' }));
 
-    expect(screen.getByRole('slider', { name: 'monitoring.settings.rangeMin' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'monitoring.settings.rangeMin' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Fixed' })).toBeInTheDocument();
+    expect(screen.queryByRole('spinbutton', { name: 'monitoring.settings.rangeMin' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('spinbutton', { name: 'monitoring.settings.rangeMax' })).not.toBeInTheDocument();
   });
 
-  it('gates editable typed inputs on surface/desktopEditor: editable when desktopEditor overrides a touch surface', () => {
+  it('renders when desktopEditor overrides a touch surface', () => {
     const onUpdate = vi.fn();
     render(<MonitoringEditorHarness onUpdate={onUpdate} surface="y70" desktopEditor />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Fixed' }));
-    const minValue = screen.getByRole('button', { name: 'monitoring.settings.rangeMin' });
-    fireEvent.click(minValue);
+    const minInput = screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMin' });
+    fireEvent.change(minInput, { target: { value: '15' } });
+    fireEvent.blur(minInput);
 
-    const input = screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMin' });
-    fireEvent.change(input, { target: { value: '15' } });
-    fireEvent.keyDown(input, { key: 'Enter' });
-
-    // Typed edits commit through onChange(v, true) directly, not the deferred
-    // drag-release onCommit - no waitFor needed.
-    expect(onUpdate).toHaveBeenLastCalledWith({ slot0_min: 15, slot0_max: 100 });
+    expect(onUpdate).toHaveBeenLastCalledWith({ slot0_min: 15 });
   });
 
-  it('clears a stale min/max override on a device swap, resetting the slider to the new sensor default', async () => {
+  it('clears a stale min/max override on a device swap, resetting the fields to the new sensor default', () => {
     const onUpdate = vi.fn();
     render(<MonitoringEditorHarness onUpdate={onUpdate} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Fixed' }));
-    const minSlider = screen.getByRole('slider', { name: 'monitoring.settings.rangeMin' });
-    fireEvent.change(minSlider, { target: { value: '20' } });
-    fireEvent.pointerUp(minSlider);
-    await waitFor(() => expect(onUpdate).toHaveBeenLastCalledWith({ slot0_min: 20, slot0_max: 100 }));
+    const minInput = screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMin' });
+    fireEvent.change(minInput, { target: { value: '20' } });
+    fireEvent.blur(minInput);
+    expect(onUpdate).toHaveBeenLastCalledWith({ slot0_min: 20 });
 
     fireEvent.change(screen.getByRole('combobox', { name: 'monitoring.settings.device' }), { target: { value: 'motherboard' } });
     expect(onUpdate).toHaveBeenLastCalledWith(expect.objectContaining({ slot0_min: null, slot0_max: null }));
 
-    // motherboard's default sensor (Fan 1, dmax 2500) replaces cpu's 20-100
-    // override - the stale numbers never carry over to the new sensor.
-    const resetMinSlider = screen.getByRole('slider', { name: 'monitoring.settings.rangeMin' }) as HTMLInputElement;
-    const resetMaxSlider = screen.getByRole('slider', { name: 'monitoring.settings.rangeMax' }) as HTMLInputElement;
-    expect(resetMinSlider.value).toBe('0');
-    expect(resetMaxSlider.value).toBe('2500');
+    // motherboard's default sensor (Fan 1, dmax 2500) replaces cpu's stale
+    // 20 override - the stale number never carries over to the new sensor.
+    const resetMinInput = screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMin' }) as HTMLInputElement;
+    const resetMaxInput = screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMax' }) as HTMLInputElement;
+    expect(resetMinInput.value).toBe('0');
+    expect(resetMaxInput.value).toBe('2500');
   });
 });
 

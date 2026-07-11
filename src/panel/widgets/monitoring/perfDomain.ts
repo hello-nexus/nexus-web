@@ -79,41 +79,16 @@ export function chartDomainForScale(
 ): [number, number] {
   if (scale === 'fixed') {
     const dmax = Number.isFinite(fixedDefaultMax) && (fixedDefaultMax as number) > 0 ? (fixedDefaultMax as number) : staticMax;
-    const rawMax = Number.isFinite(fixedMax) && (fixedMax as number) > 0 ? (fixedMax as number) : dmax;
-    const rawMin = Number.isFinite(fixedMin) ? (fixedMin as number) : 0;
-    // A stored min/max can outlive the slot's device/sensor swapping to one
-    // with a smaller ceiling; clamp into [0, dmax] so a stale override
-    // degrades to the guard below instead of an inverted or negative-span
-    // domain.
-    const max = Math.max(0, Math.min(rawMax, dmax));
-    const min = Math.max(0, Math.min(rawMin, dmax));
+    // The user types free values in the settings pane, so a max above the
+    // sensor's default ceiling is honored as-is; only an inverted or
+    // degenerate range falls back to the sensor default (below). A stale
+    // override surviving a device/sensor swap is cleared at the settings
+    // layer instead (slot{N}_min/max reset to null on device/sensor change).
+    const min = Math.max(0, Number.isFinite(fixedMin) ? (fixedMin as number) : 0);
+    const max = Number.isFinite(fixedMax) && (fixedMax as number) > 0 ? (fixedMax as number) : dmax;
     return min < max ? [min, max] : [0, dmax];
   }
   return relativeHistoryDomain(device, rawValue, history, staticMax, sensorName, sensorType);
-}
-
-// Nearest "nice" 1/2/5-times-power-of-ten value to `raw`, used to pick a
-// slider step that scales with the axis instead of a flat 1 unit (which
-// leaves a sub-100 ceiling, e.g. a 2V sensor, with only 3 selectable values).
-function nearestNiceValue(raw: number): number {
-  if (!Number.isFinite(raw) || raw <= 0) return 1;
-  const exponent = Math.floor(Math.log10(raw));
-  let best = Math.pow(10, exponent);
-  let bestDist = Math.abs(raw - best);
-  for (let exp = exponent - 1; exp <= exponent + 1; exp++) {
-    for (const mult of [1, 2, 5]) {
-      const candidate = mult * Math.pow(10, exp);
-      const dist = Math.abs(raw - candidate);
-      if (dist < bestDist) { bestDist = dist; best = candidate; }
-    }
-  }
-  return best;
-}
-
-// Slider step for a Fixed-range ceiling of `defMax`: roughly 100 steps
-// across the axis, snapped to a nice round increment.
-export function niceStep(defMax: number): number {
-  return nearestNiceValue(defMax / 100);
 }
 
 const PERCENT_FLOOR = 25;

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useTranslation } from '../../../lib/i18n';
 import { useSensors } from '../../../hooks/useSensors';
 import { useSensorExtras } from '../../../hooks/useSensorExtras';
@@ -8,7 +8,7 @@ import type { PanelConfigValue } from '../../types';
 import { canEditFreeText } from '../../types';
 import { Select } from '../../../components/common/Select/Select';
 import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
-import { RangeSlider } from '../../../components/common/Slider/RangeSlider';
+import { TextInput } from '../../../components/common/TextInput/TextInput';
 import { GAUGE_DESIGN_KEYS, GAUGE_DESIGN_LABELS } from '../monitoring/gauges';
 import { DESIGN_ICONS } from '../monitoring/gauges/DesignIcons';
 import type { GaugeDesignKey } from '../monitoring/gauges';
@@ -22,10 +22,19 @@ import type { DeviceKey } from '../monitoring/perfSlots';
 import { buildNetworkSensors, networkSensorOptions, NETWORK_SENSOR_TOTAL } from '../monitoring/networkSensors';
 import { bareSensorLabel } from '../monitoring/sensorNames';
 import { extrasSensorsForDevice, sensorsForCategory, smartStorageSensors } from '../monitoring/sensorCategories';
-import { chartDomainForScale, DEFAULT_SCALE_MODE, defaultFixedMax, designSupportsScale, niceStep, type ScaleMode } from '../monitoring/perfDomain';
+import { DEFAULT_SCALE_MODE, defaultFixedMax, designSupportsScale, type ScaleMode } from '../monitoring/perfDomain';
 import { resolveSensor } from '../monitoring/MonitoringWidget';
 import { SettingsSection } from '../common/SettingsRow/SettingsRow';
 import styles from './MonitoringSettings.module.scss';
+
+// A blank field commits the fallback (0 for min, the sensor's default ceiling
+// for max) rather than parsing "" to 0 via Number().
+function parseFixedRangeInput(raw: string, fallback: number): number {
+  const trimmed = raw.trim();
+  if (trimmed === '') return fallback;
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
 
 const SCALE_OPTIONS: { value: ScaleMode; label: string }[] = [
   { value: 'adaptive', label: 'Adaptive' },
@@ -300,33 +309,26 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
     if (Object.keys(patch).length > 0) onUpdate(patch);
   }, [isMicro, count, widget, sensors, networkSensors, extras, onUpdate]);
 
-  // Rendered only in non-Micro mode, but computed unconditionally (with the
-  // hooks below) so the hook count never depends on the isMicro branch.
+  // Rendered only in non-Micro mode, but computed unconditionally so the
+  // hook count above never depends on the isMicro branch.
   const activeConfig = slotConfigs[activeSlot] ?? slotConfigs[0];
   const sensorOptions = activeConfig ? sensorsForDevice(sensors, networkSensors, extras, activeConfig.device) : [];
   const sensorValue = activeConfig ? selectedSensorValue(sensorOptions, activeConfig.sensorName) : '';
   const activeSensor = activeConfig ? resolveSensor(sensors, [], networkSensors, activeConfig.device, sensorValue, undefined, extras) : undefined;
   const fixedDefaultMax = activeConfig ? defaultFixedMax(activeConfig.device, activeSensor, activeConfig.sensorName) : 100;
-  const fixedRangeStep = niceStep(fixedDefaultMax);
-  // Route the stored override through the same clamp the live gauge applies
-  // (chartDomainForScale), so a stale min/max surviving a device/sensor swap
-  // degrades identically here and on the tile - never an inverted or
-  // off-track handle - instead of duplicating the clamp logic.
-  const [storedRangeMin, storedRangeMax] = activeConfig
-    ? chartDomainForScale(activeConfig.device, 0, [], fixedDefaultMax, 'fixed', undefined, undefined, activeConfig.fixedMin, activeConfig.fixedMax, fixedDefaultMax)
-    : [0, 100];
-
-  // Live drag preview, independent of the persisted config: PerfSlot/Settings
-  // re-render on every live sensor tick, so feeding the RangeSlider straight
-  // from widget.config would snap the thumb back mid-drag on the next tick.
-  const [liveFixedRange, setLiveFixedRange] = useState<[number, number] | null>(null);
-  useEffect(() => {
-    setLiveFixedRange(null);
-  }, [activeSlot, activeConfig?.device, activeConfig?.sensorName]);
-  const fixedRangeValue: [number, number] = liveFixedRange ?? [storedRangeMin, storedRangeMax];
-  const commitFixedRange = (v: [number, number]) => {
-    setLiveFixedRange(null);
-    onUpdate({ [`slot${activeSlot}_min`]: v[0], [`slot${activeSlot}_max`]: v[1] });
+  const fixedRangeMin = activeConfig?.fixedMin ?? 0;
+  const fixedRangeMax = activeConfig?.fixedMax ?? fixedDefaultMax;
+  // An inverted/degenerate typed range falls back to [0, fixedDefaultMax] at
+  // render time (chartDomainForScale); flag both fields so that fallback
+  // isn't silent.
+  const fixedRangeInvalid = fixedRangeMin >= fixedRangeMax;
+  const commitFixedMin = (raw: string) => {
+    const parsed = parseFixedRangeInput(raw, 0);
+    if (parsed !== fixedRangeMin) onUpdate({ [`slot${activeSlot}_min`]: parsed });
+  };
+  const commitFixedMax = (raw: string) => {
+    const parsed = parseFixedRangeInput(raw, fixedDefaultMax);
+    if (parsed !== fixedRangeMax) onUpdate({ [`slot${activeSlot}_max`]: parsed });
   };
 
   if (isMicro) {
@@ -442,22 +444,31 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
                   />
                 ))}
               </div>
-              {activeConfig.scale === 'fixed' && (
-                <RangeSlider
-                  className={styles.fixedRangeSlider}
-                  // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-                  orientation="stacked"
-                  editable={canEditFreeText(surface, desktopEditor)}
-                  value={fixedRangeValue}
-                  min={0}
-                  max={fixedDefaultMax}
-                  step={fixedRangeStep}
-                  minGap={fixedRangeStep}
-                  onChange={(v, commit) => (commit ? commitFixedRange(v) : setLiveFixedRange(v))}
-                  onCommit={commitFixedRange}
-                  ariaLabelMin={t('monitoring.settings.rangeMin')}
-                  ariaLabelMax={t('monitoring.settings.rangeMax')}
-                />
+              {activeConfig.scale === 'fixed' && canEditFreeText(surface, desktopEditor) && (
+                <div className={styles.rangeRow}>
+                  <div className={styles.rangeField}>
+                    <span className={styles.rangeFieldLabel}>{t('monitoring.settings.rangeMin')}</span>
+                    <TextInput
+                      type="number"
+                      size="sm"
+                      value={String(fixedRangeMin)}
+                      ariaLabel={t('monitoring.settings.rangeMin')}
+                      invalid={fixedRangeInvalid}
+                      onBlur={commitFixedMin}
+                    />
+                  </div>
+                  <div className={styles.rangeField}>
+                    <span className={styles.rangeFieldLabel}>{t('monitoring.settings.rangeMax')}</span>
+                    <TextInput
+                      type="number"
+                      size="sm"
+                      value={String(fixedRangeMax)}
+                      ariaLabel={t('monitoring.settings.rangeMax')}
+                      invalid={fixedRangeInvalid}
+                      onBlur={commitFixedMax}
+                    />
+                  </div>
+                </div>
               )}
             </SettingsSection>
           )}

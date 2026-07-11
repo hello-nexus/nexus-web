@@ -1,3 +1,5 @@
+@use '../../../styles/text' as *;
+
 .settingsRoot {
   --icon-label-button-height: 52px;
   --icon-label-button-min-width: 58px;
@@ -48,8 +50,23 @@
   --icon-label-button-height: 36px;
 }
 
-.fixedRangeSlider {
+.rangeRow {
+  display: flex;
+  gap: 8px;
   margin-top: 0.6rem;
+}
+
+.rangeField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.rangeFieldLabel {
+  @include text-caption;
+  color: var(--text-dim);
 }
 
 .sensorRow {
