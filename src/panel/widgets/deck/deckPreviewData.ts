@@ -11,6 +11,14 @@ import type { DeckConfig, DeckSlot } from './types';
 const slot = (value: string, color: string, label?: string): DeckSlot =>
   ({ icon: { kind: 'lucide', value }, color, ...(label ? { label, title: { show: true } } : {}) });
 
+// Demonstrates the monitoring tile alongside the icon-based keys. DeckMonitoringCell
+// never resolves this action's category/sensor in preview mode (it renders its
+// own frozen fixture, see PREVIEW_SENSOR_NAME/PREVIEW_FORMATTED there) - the
+// values here just need to be contract-shaped, not live.
+const monitoringSlot: DeckSlot = {
+  action: { type: 'monitoring', category: 'quick', sensor: 'summary/cpu-usage', style: 'line', showName: true, press: 'none' },
+};
+
 export const DECK_PREVIEW_CONFIG: DeckConfig = {
   pages: [{
     slots: [
@@ -20,7 +28,7 @@ export const DECK_PREVIEW_CONFIG: DeckConfig = {
       slot('Fan', '#14b8a6'),
       slot('Sun', '#f59e0b'),
       slot('Terminal', '#8b5cf6'),
-      {},
+      monitoringSlot,
       {},
     ],
   }],

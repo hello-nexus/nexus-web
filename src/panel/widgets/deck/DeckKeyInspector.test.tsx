@@ -3,10 +3,33 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { makePhysicalDeckTarget, makeWidgetDeckTarget } from './deckTarget';
 import type { PanelWidget } from '../types';
+import type { PanelSurface } from '../../types';
 import type { DeckConfig, DeckSlot } from './types';
 
 vi.mock('../common/AppPicker', () => ({ useAppIcon: () => null, AppPicker: () => null }));
 vi.mock('../../../api/service', () => ({ fetchService: vi.fn().mockResolvedValue(null) }));
+
+// A minimal, deterministic sensor fixture: 'quick' and 'cpu' each carry one
+// sensor (so both categories stay visible under visibleDeviceKeys' "0
+// sensors -> hidden" rule); gpu/memory/motherboard/storage stay empty.
+vi.mock('../../../hooks/useSensors', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../hooks/useSensors')>();
+  return {
+    ...actual,
+    useSensors: () => ({
+      summary: [
+        { id: 'summary/cpu-usage', name: 'CPU Usage', type: 'Load', value: 10, units: '%', formatted: '10 %', parent: { id: 'summary', name: 'Quick' } },
+      ],
+      cpu: [
+        { id: 'cpu/load/0', name: 'CPU Total', type: 'Load', value: 12, units: '%', formatted: '12 %', parent: { id: 'cpu', name: 'CPU' } },
+      ],
+      gpu: [], gpuModel: '', gpuComponents: [],
+      memory: [], storage: [], storageComponents: {}, storageSensors: [],
+      motherboard: [],
+      motherboardModel: '', cpuModel: '', gpuModels: [], memoryTotal: '',
+    }),
+  };
+});
 
 import { DeckKeyInspector, defaultActionFor } from './DeckKeyInspector';
 
@@ -29,7 +52,7 @@ describe('defaultActionFor - new Stream Deck action kinds', () => {
  * (the same factory StreamDeckDevicePage uses) over a useState-backed config
  * so picker interactions round-trip exactly like production.
  */
-function Harness({ initialSlots }: { initialSlots: DeckSlot[] }) {
+function Harness({ initialSlots, surface, desktopEditor }: { initialSlots: DeckSlot[]; surface?: PanelSurface; desktopEditor?: boolean }) {
   const [config, setConfig] = useState<DeckConfig>({ pages: [{ slots: initialSlots }] });
   const target = makePhysicalDeckTarget(2, 1, initialSlots.length, config, setConfig);
   return (
@@ -40,6 +63,8 @@ function Harness({ initialSlots }: { initialSlots: DeckSlot[] }) {
       onFolderPathChange={() => {}}
       selectedSlot={0}
       onSelectedSlotChange={() => {}}
+      surface={surface}
+      desktopEditor={desktopEditor}
     />
   );
 }
@@ -228,5 +253,123 @@ describe('DeckKeyInspector title style section', () => {
     // One "Auto" swatch for the key's background color (existing section) and
     // one for the title's text color (new section) - both default-selected.
     expect(screen.getAllByText('panel.settings.deck.colorAuto')).toHaveLength(2);
+  });
+});
+
+const MONITORING_ACTION = {
+  type: 'monitoring' as const, category: 'cpu' as const, sensor: 'cpu/load/0', style: 'line' as const, showName: true, press: 'none' as const,
+};
+
+describe('DeckKeyInspector - monitoring action', () => {
+  it('offers Monitoring inside the Nexus category on both physical and widget targets', () => {
+    renderInspector();
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.action.monitoring' })).toBeInTheDocument();
+    renderWidgetInspector();
+    expect(screen.getAllByRole('option', { name: 'panel.settings.deck.action.monitoring' }).length).toBeGreaterThan(0);
+  });
+
+  it('picking Monitoring assigns the default action shape and self-heals a concrete sensor id', async () => {
+    renderInspector();
+    fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.action.monitoring' }));
+
+    // The action box title AND the still-visible picker entry both show this
+    // text (the picker highlights the now-active kind), so both match.
+    expect(screen.getAllByText('panel.settings.deck.action.monitoring').length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.monitoringStyleOp' }));
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.monitoringStyle.line' })).toHaveAttribute('aria-selected', 'true');
+
+    // defaultActionFor seeds category 'cpu' with sensor: '' - the mocked cpu
+    // sensor list has exactly one entry, which the self-heal effect writes in.
+    expect(await screen.findByText('Total (Load)')).toBeInTheDocument();
+  });
+
+  it('switching category resets the sensor to the first option of the new category', async () => {
+    renderInspector([{ action: MONITORING_ACTION }]);
+    expect(await screen.findByText('Total (Load)')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'monitoring.settings.device' }));
+    fireEvent.click(screen.getByRole('option', { name: 'monitoring.settings.category.quick' }));
+
+    expect(await screen.findByText('CPU Usage')).toBeInTheDocument();
+    expect(screen.queryByText('Total (Load)')).toBeNull();
+  });
+
+  it('changing style persists the new value', () => {
+    renderInspector([{ action: MONITORING_ACTION }]);
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.monitoringStyleOp' }));
+    fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.monitoringStyle.radial' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.monitoringStyleOp' }));
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.monitoringStyle.radial' })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('changing the on-press action persists the new value', () => {
+    renderInspector([{ action: MONITORING_ACTION }]);
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.monitoringPressOp' }));
+    fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.monitoringPress.taskManager' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.monitoringPressOp' }));
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.monitoringPress.taskManager' })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('toggling Show name off disables the reused title-style controls', () => {
+    renderInspector([{ action: MONITORING_ACTION }]);
+    expect(screen.getByRole('switch', { name: 'panel.settings.deck.monitoringShowName' })).toBeChecked();
+    expect(screen.getByRole('button', { name: 'panel.settings.deck.titleStyle.bold' })).not.toBeDisabled();
+
+    fireEvent.click(screen.getByRole('switch', { name: 'panel.settings.deck.monitoringShowName' }));
+
+    expect(screen.getByRole('switch', { name: 'panel.settings.deck.monitoringShowName' })).not.toBeChecked();
+    expect(screen.getByRole('button', { name: 'panel.settings.deck.titleStyle.bold' })).toBeDisabled();
+  });
+
+  it('hides the generic Icon picker and the Show-title/align/underline controls, showing a Background swatch instead', () => {
+    renderInspector([{ action: MONITORING_ACTION }]);
+    expect(screen.queryByText('panel.settings.icon')).toBeNull();
+    expect(screen.queryByRole('switch', { name: 'panel.settings.deck.titleStyle.show' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'panel.settings.deck.titleStyle.alignTop' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'panel.settings.deck.titleStyle.underline' })).toBeNull();
+    expect(screen.getByText('panel.settings.deck.monitoringBackground')).toBeInTheDocument();
+  });
+
+  it('carries a separate accent-color swatch row from the background and name-color swatches', () => {
+    renderInspector([{ action: MONITORING_ACTION }]);
+    // Three independent color swatch rows, each defaulting to Auto: the tile
+    // background (slot.color), the graph/arc accent (action.color), and the
+    // name's text color (slot.title.color, via the reused TitleFields).
+    expect(screen.getAllByText('panel.settings.deck.colorAuto')).toHaveLength(3);
+  });
+});
+
+describe('DeckKeyInspector action picker - search', () => {
+  it('filters kinds by localized label and hides categories with zero matches', () => {
+    renderInspector();
+    fireEvent.change(screen.getByRole('textbox', { name: 'panel.settings.deck.actionSearch' }), { target: { value: 'hotkey' } });
+
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.action.hotkey' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.action.hotkeySwitch' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'panel.settings.deck.action.launchApp' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'panel.settings.deck.category.navigation' })).toBeNull();
+  });
+
+  it('clearing the search restores every category', () => {
+    renderInspector();
+    const search = screen.getByRole('textbox', { name: 'panel.settings.deck.actionSearch' });
+    fireEvent.change(search, { target: { value: 'hotkey' } });
+    fireEvent.change(search, { target: { value: '' } });
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.action.launchApp' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'panel.settings.deck.category.navigation' })).toBeInTheDocument();
+  });
+
+  it('hides the search bar on a keyboard-less surface (Y70)', () => {
+    render(<Harness initialSlots={[{}]} surface="y70" />);
+    expect(screen.queryByRole('textbox', { name: 'panel.settings.deck.actionSearch' })).toBeNull();
+    // Every action is still offered - only the search affordance is gone.
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.action.launchApp' })).toBeInTheDocument();
+  });
+
+  it('shows the search bar on Y70 when desktopEditor is set (the routed device-page split editor)', () => {
+    render(<Harness initialSlots={[{}]} surface="y70" desktopEditor />);
+    expect(screen.getByRole('textbox', { name: 'panel.settings.deck.actionSearch' })).toBeInTheDocument();
   });
 });

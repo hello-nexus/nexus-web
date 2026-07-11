@@ -35,6 +35,13 @@ describe('DeckWidget', () => {
     expect(executeDeckAction).toHaveBeenCalledWith({ type: 'openUrl', url: 'https://x.com' });
   });
 
+  it('dispatches a monitoring slot press the same as any other action', () => {
+    const deck: DeckPage[] = [{ slots: [{ action: { type: 'monitoring', category: 'cpu', sensor: 'x', style: 'line', press: 'taskManager' } }] }];
+    const { container } = render(<DeckWidget widget={widget(deck)} />);
+    fireEvent.click(container.querySelector('[data-deck-slot-index="0"]')!);
+    expect(executeDeckAction).toHaveBeenCalledWith({ type: 'monitoring', category: 'cpu', sensor: 'x', style: 'line', press: 'taskManager' });
+  });
+
   it('does not dispatch an empty slot', () => {
     const { container } = render(<DeckWidget widget={widget([{ slots: [] }])} />);
     const cell = container.querySelector('[data-deck-slot-index="0"]')!;

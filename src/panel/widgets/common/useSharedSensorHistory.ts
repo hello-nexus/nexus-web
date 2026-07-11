@@ -21,26 +21,35 @@ import {
  *
  * Subscription is per-key: only consumers of "cpu::CPU Total" wake on a
  * CPU push, so a GPU tile next door doesn't re-render on every CPU sample.
+ *
+ * `enabled` (default true) gates every subscription AND the push effect - a
+ * disabled caller (e.g. a widget-catalog preview mount) must never write
+ * into this shared, key-addressed store: two mounts can share the exact same
+ * key (a preview fixture happens to reuse a real category::sensor id), and
+ * an ungated push would silently flatline a live widget's history elsewhere.
  */
-export function useSharedSensorHistory(key: string, value: number): readonly number[] {
+export function useSharedSensorHistory(key: string, value: number, enabled = true): readonly number[] {
   const [, force] = useState(0);
   const [tick, setTick] = useState(getFrameTick);
 
   useEffect(() => {
+    if (!enabled) return;
     const fn = () => setTick(getFrameTick());
     subscribe(fn);
     return () => unsubscribe(fn);
-  }, []);
+  }, [enabled]);
 
   useEffect(() => {
+    if (!enabled) return;
     pushPanelSensorSample(key, value);
-  }, [key, tick, value]);
+  }, [enabled, key, tick, value]);
 
   useEffect(() => {
+    if (!enabled) return;
     const fn = () => force(n => n + 1);
     subscribePanelSensorKey(key, fn);
     return () => unsubscribePanelSensorKey(key, fn);
-  }, [key]);
+  }, [enabled, key]);
 
   return getPanelSensorHist(key);
 }

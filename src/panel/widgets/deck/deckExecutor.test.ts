@@ -8,6 +8,7 @@ vi.mock('../../../api/service', () => ({
 }));
 
 import { executeDeckAction, parseHotkey } from './deckExecutor';
+import { onDeckOpenMonitoring } from './deckMonitoringNav';
 
 describe('parseHotkey', () => {
   it('parses modifiers + a letter', () => {
@@ -110,5 +111,40 @@ describe('executeDeckAction → REST', () => {
     await executeDeckAction(second);
     expect(postService).toHaveBeenNthCalledWith(1, '/system/input/keys', { key: 'KeyA', ctrl: false, shift: false, alt: true, meta: false });
     expect(postService).toHaveBeenNthCalledWith(2, '/system/input/keys', { key: 'KeyC', ctrl: false, shift: false, alt: true, meta: false });
+  });
+});
+
+describe('executeDeckAction → monitoring press', () => {
+  beforeEach(() => { postService.mockClear(); fetchService.mockClear(); });
+
+  const monitoringAction = (press: 'none' | 'taskManager' | 'monitoringPage' | undefined) => ({
+    type: 'monitoring' as const, category: 'cpu' as const, sensor: 'x', style: 'line' as const, press,
+  });
+
+  it('taskManager opens the OS task manager via the service', async () => {
+    await executeDeckAction(monitoringAction('taskManager'));
+    expect(postService).toHaveBeenCalledWith('/system/open-task-manager', {});
+  });
+
+  it('monitoringPage fires the deck-open-monitoring bridge event', async () => {
+    const handler = vi.fn();
+    const off = onDeckOpenMonitoring(handler);
+    await executeDeckAction(monitoringAction('monitoringPage'));
+    off();
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect(postService).not.toHaveBeenCalled();
+  });
+
+  it('monitoringPage is a no-op REST-wise with no listener registered (panel surfaces)', async () => {
+    await executeDeckAction(monitoringAction('monitoringPage'));
+    expect(postService).not.toHaveBeenCalled();
+    expect(fetchService).not.toHaveBeenCalled();
+  });
+
+  it('none/absent press does nothing', async () => {
+    await executeDeckAction(monitoringAction('none'));
+    await executeDeckAction(monitoringAction(undefined));
+    expect(postService).not.toHaveBeenCalled();
+    expect(fetchService).not.toHaveBeenCalled();
   });
 });

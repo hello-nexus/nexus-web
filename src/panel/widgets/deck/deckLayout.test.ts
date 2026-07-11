@@ -61,6 +61,25 @@ describe('normalizeDeckConfig', () => {
     expect(cfg.pages[0]).toEqual({ slots: [] });
     expect(cfg.pages[1].slots[0].label).toBe('ok');
   });
+
+  it('round-trips a monitoring action through normalize/updateSlotAt/resolveViewSlots unchanged', () => {
+    const monitoringAction = {
+      type: 'monitoring' as const,
+      category: 'cpu' as const,
+      sensor: 'summary/cpu-usage',
+      style: 'radial' as const,
+      color: '#4da3ff',
+      showName: true,
+      press: 'taskManager' as const,
+    };
+    const cfg = normalizeDeckConfig({ pages: [{ slots: [{ action: monitoringAction }] }] });
+    expect(cfg.pages[0].slots[0].action).toEqual(monitoringAction);
+
+    const updated = updateSlotAt(cfg, 0, [], 0, { action: monitoringAction, label: 'CPU' }, 4);
+    const view = resolveViewSlots(updated, 0, [], 4);
+    expect(view![0].action).toEqual(monitoringAction);
+    expect(view![0].label).toBe('CPU');
+  });
 });
 
 describe('padSlots', () => {

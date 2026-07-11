@@ -57,6 +57,14 @@ export interface DeckPageAction {
   target?: number; // goto: 0-based page index
 }
 
+// ── Live monitoring tile ──
+// v1 category set - excludes network/fps (name-keyed, source-mismatched
+// between web and service) and the extras-topic categories (memoryModule,
+// battery, cooler, psu, embeddedController).
+export type DeckMonitoringCategory = 'quick' | 'cpu' | 'gpu' | 'memory' | 'motherboard' | 'storage';
+export type DeckMonitoringStyle = 'line' | 'radial' | 'number';
+export type DeckMonitoringPress = 'none' | 'taskManager' | 'monitoringPage';
+
 export type DeckAction =
   | { type: 'launchApp'; appId: string }
   | { type: 'openFile'; path: string }
@@ -80,7 +88,20 @@ export type DeckAction =
   | { type: 'deckSleep' }
   // Alternates keysA/keysB (same string format as `hotkey`.keys) on
   // successive presses.
-  | { type: 'hotkeySwitch'; keysA: string; keysB: string };
+  | { type: 'hotkeySwitch'; keysA: string; keysB: string }
+  // Live sensor tile - rendered server-side on a physical Stream Deck (see
+  // DeckMonitoringCell/deckTarget's upload-job skip) and client-side for the
+  // touch widget + device-page grid preview. `sensor` is always a concrete
+  // HardwareSensor.id, never the 'Temperature' preferred-sensor sentinel.
+  | {
+      type: 'monitoring';
+      category: DeckMonitoringCategory;
+      sensor: string;
+      style: DeckMonitoringStyle;
+      color?: string;
+      showName?: boolean;
+      press?: DeckMonitoringPress;
+    };
 
 export type DeckActionType = DeckAction['type'];
 

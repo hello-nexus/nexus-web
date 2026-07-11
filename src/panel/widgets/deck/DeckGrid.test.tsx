@@ -92,3 +92,28 @@ describe('DeckGrid cell border rules', () => {
     expect(second.className).toContain(styles.selected);
   });
 });
+
+describe('DeckGrid monitoring cell', () => {
+  it('renders the live tile (never the icon wrapper) for a monitoring slot', () => {
+    const slots: DeckSlot[] = [{
+      action: { type: 'monitoring', category: 'cpu', sensor: 'x', style: 'number', showName: false },
+    }];
+    const { container } = render(
+      <DeckGrid slots={slots} cols={1} rows={1} selectable={false} onCell={() => {}} />,
+    );
+    const cell = container.querySelector('[data-deck-slot-index="0"]')!;
+    expect(cell.querySelector(`.${styles.iconWrap}`)).toBeNull();
+    // No live sensor data outside a websocket connection - the tile falls
+    // back to its placeholder rather than crashing or showing nothing.
+    expect(cell.textContent).toContain('--');
+  });
+
+  it('is never treated as an empty/dashed-border cell', () => {
+    const slots: DeckSlot[] = [{ action: { type: 'monitoring', category: 'cpu', sensor: '', style: 'line' } }];
+    const { container } = render(
+      <DeckGrid slots={slots} cols={1} rows={1} selectable onCell={() => {}} selectedIndex={-1} />,
+    );
+    const cell = container.querySelector('[data-deck-slot-index="0"]')!;
+    expect(cell.className).not.toContain(styles.empty);
+  });
+});

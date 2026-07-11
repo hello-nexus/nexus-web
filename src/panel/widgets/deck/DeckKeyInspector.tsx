@@ -5,9 +5,12 @@ import { Button } from '../../../components/common/Button/Button';
 import { useTranslation } from '../../../lib/i18n';
 import { DECK_SWATCHES } from '../../../lib/settings';
 import { fetchService } from '../../../api/service';
+import { useSensors } from '../../../hooks/useSensors';
+import { EMPTY_SENSOR_EXTRAS } from '../../../hooks/useSensorExtras';
 import { CollapsibleSection } from '../../../components/common/CollapsibleSection/CollapsibleSection';
 import { ChipGroup } from '../../../components/common/ChipGroup/ChipGroup';
 import { Select } from '../../../components/common/Select/Select';
+import { SearchInput } from '../../../components/common/SearchInput/SearchInput';
 import { Slider } from '../../../components/common/Slider/Slider';
 import { SectionHeader } from '../../../components/common/SectionHeader/SectionHeader';
 import { SettingsSection, SettingsRow, SettingsToggle, SettingsSelect } from '../common/SettingsRow/SettingsRow';
@@ -23,7 +26,11 @@ import {
   DECK_TITLE_FONTS, DECK_TITLE_SIZE_OPTIONS, resolveDeckTitleStyle, type DeckTitleAlign,
 } from './deckTitleStyle';
 import { DECK_ICONS, autoIconName } from './deckIcons';
-import type { DeckAction, DeckActionType, DeckSlot, DeckTitleStyle } from './types';
+import { DECK_MONITORING_CATEGORIES } from './deckMonitoring';
+import { CATEGORY_LABEL_KEYS, selectedSensorValue, sensorsForDevice, visibleDeviceKeys } from '../monitoring/sensorPicker';
+import type {
+  DeckAction, DeckActionType, DeckMonitoringCategory, DeckMonitoringPress, DeckMonitoringStyle, DeckSlot, DeckTitleStyle,
+} from './types';
 import styles from './DeckKeyInspector.module.scss';
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
@@ -33,6 +40,10 @@ const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n
 // user session and isn't reliably verifiable yet (see deck plan: deferred).
 // The action kinds + backend route remain for a future verified re-enable;
 // they're just not offered here.
+// 'monitoring' is a standalone live-display key type (like 'sequence' or
+// 'toggle'), not a nestable sub-action, so it's excluded from NESTED_KINDS the
+// same way those are - a sequence step or toggle branch fires once on press,
+// which doesn't fit a continuously-rendered sensor tile.
 const NESTED_KINDS: DeckActionType[] = [
   'launchApp', 'openUrl', 'openFile', 'openFolder', 'system', 'hotkey', 'hotkeySwitch',
   'text', 'power', 'nexus', 'deckBrightness', 'deckSleep',
@@ -81,7 +92,7 @@ const DECK_ACTION_CATEGORIES: DeckActionCategory[] = [
   {
     key: 'nexus',
     labelKey: 'panel.settings.deck.category.nexus',
-    kinds: ['nexus'],
+    kinds: ['nexus', 'monitoring'],
   },
   {
     key: 'multi',
@@ -119,6 +130,9 @@ export function defaultActionFor(kind: DeckActionType): DeckAction {
     case 'audioOutput': return { type: 'audioOutput', deviceId: '' };
     case 'audioInput': return { type: 'audioInput', deviceId: '' };
     case 'nexus': return { type: 'nexus', action: { op: 'rgbEffect' } };
+    case 'monitoring': return {
+      type: 'monitoring', category: 'cpu', sensor: '', style: 'line', showName: true, press: 'none',
+    };
     case 'sequence': return { type: 'sequence', steps: [] };
     case 'toggle': return { type: 'toggle', on: { type: 'system', action: { op: 'muteToggle' } }, off: { type: 'system', action: { op: 'muteToggle' } }, state: { kind: 'mute' } };
     case 'page': return { type: 'page', op: 'next' };
@@ -293,6 +307,8 @@ function ActionFields({ action, onChange, allowed, surface, desktopEditor, pageC
       return <p className={styles.description}>{t('panel.settings.deck.deckSleepDescription')}</p>;
     case 'nexus':
       return <NexusFields action={action} onChange={onChange} />;
+    case 'monitoring':
+      return <MonitoringFields action={action} onChange={onChange} />;
     case 'sequence':
       return <SequenceEditor action={action} onChange={onChange} allowed={allowed} surface={surface} desktopEditor={desktopEditor} />;
     case 'toggle':
@@ -332,6 +348,64 @@ function NexusFields({ action, onChange }: { action: Extract<DeckAction, { type:
       {a.op === 'y70Power' && <SelectField label={t('panel.settings.deck.on')} value={(a.on ?? true) ? 'yes' : 'no'} options={[{ value: 'yes', label: t('panel.settings.deck.stateOn') }, { value: 'no', label: t('panel.settings.deck.stateOff') }]} onChange={v => set({ on: v === 'yes' })} />}
       {a.op === 'y70Brightness' && <Field label={t('panel.settings.deck.value')}><input className={styles.input} type="number" min={0} max={100} value={a.value ?? 0} onChange={e => set({ value: clamp(Number(e.target.value), 0, 100) })} /></Field>}
       {a.op === 'y70Rotation' && <SelectField label={t('panel.settings.deck.orientation')} value={a.orientation ?? 'landscape'} options={['landscape', 'portrait'].map(o => ({ value: o, label: t(`panel.settings.deck.${o}`) }))} onChange={orientation => set({ orientation })} />}
+    </>
+  );
+}
+
+const MONITORING_STYLES: DeckMonitoringStyle[] = ['line', 'radial', 'number'];
+const MONITORING_PRESSES: DeckMonitoringPress[] = ['none', 'taskManager', 'monitoringPage'];
+
+function MonitoringFields({ action, onChange }: { action: Extract<DeckAction, { type: 'monitoring' }>; onChange: (a: DeckAction) => void }) {
+  const { t } = useTranslation();
+  const sensors = useSensors(true);
+  const categoryOptions = visibleDeviceKeys(DECK_MONITORING_CATEGORIES, action.category, sensors, [], EMPTY_SENSOR_EXTRAS)
+    .map(category => ({ value: category, label: t(CATEGORY_LABEL_KEYS[category]) }));
+  const sensorOptions = sensorsForDevice(sensors, [], EMPTY_SENSOR_EXTRAS, action.category);
+  const sensorValue = selectedSensorValue(sensorOptions, action.sensor);
+
+  // action.sensor starts '' (defaultActionFor has no live sensor data to pick
+  // from) and must self-heal off a stale id after a category swap too - seed
+  // the first resolvable concrete id once sensorValue differs from storage.
+  useEffect(() => {
+    if (sensorValue && sensorValue !== action.sensor) onChange({ ...action, sensor: sensorValue });
+  }, [sensorValue, action, onChange]);
+
+  return (
+    <>
+      <SelectField
+        label={t('monitoring.settings.device')}
+        value={action.category}
+        options={categoryOptions}
+        onChange={category => onChange({ ...action, category: category as DeckMonitoringCategory, sensor: '' })}
+      />
+      <SelectField
+        label={t('monitoring.settings.sensor')}
+        value={sensorValue}
+        options={sensorOptions}
+        onChange={sensor => onChange({ ...action, sensor })}
+      />
+      <SelectField
+        label={t('panel.settings.deck.monitoringStyleOp')}
+        value={action.style}
+        options={MONITORING_STYLES.map(style => ({ value: style, label: t(`panel.settings.deck.monitoringStyle.${style}`) }))}
+        onChange={style => onChange({ ...action, style: style as DeckMonitoringStyle })}
+      />
+      <SwatchRow
+        label={t('panel.settings.deck.monitoringColor')}
+        value={action.color}
+        onChange={color => onChange({ ...action, color })}
+      />
+      <SettingsToggle
+        label={t('panel.settings.deck.monitoringShowName')}
+        checked={action.showName ?? true}
+        onChange={showName => onChange({ ...action, showName })}
+      />
+      <SelectField
+        label={t('panel.settings.deck.monitoringPressOp')}
+        value={action.press ?? 'none'}
+        options={MONITORING_PRESSES.map(press => ({ value: press, label: t(`panel.settings.deck.monitoringPress.${press}`) }))}
+        onChange={press => onChange({ ...action, press: press as DeckMonitoringPress })}
+      />
     </>
   );
 }
@@ -432,11 +506,13 @@ export function DeckActionDragPreview({ kind }: { kind: DeckPickerKind }) {
  * changes to a kind in a different category) so the active kind's highlight is
  * never hidden inside a collapsed group.
  */
-function ActionCategoryPicker({ categories, activeKind, onPick }: {
+function ActionCategoryPicker({ categories, activeKind, onPick, surface, desktopEditor }: {
   categories: DeckActionCategory[]; activeKind: DeckPickerKind; onPick: (k: DeckPickerKind) => void;
+  surface?: PanelSurface; desktopEditor?: boolean;
 }) {
   const { t } = useTranslation();
   const [openKeys, setOpenKeys] = useState<Set<string>>(() => new Set(categories.map(c => c.key)));
+  const [query, setQuery] = useState('');
   const activeCategoryKey = categoryForKind(activeKind).key;
   useEffect(() => {
     setOpenKeys(prev => (prev.has(activeCategoryKey) ? prev : new Set(prev).add(activeCategoryKey)));
@@ -447,13 +523,33 @@ function ActionCategoryPicker({ categories, activeKind, onPick }: {
     return next;
   });
 
+  // Y70-class surfaces have no keyboard - canEditFreeText hides the search
+  // bar there, same gating as IconPicker/WeatherSettings.
+  const showSearch = canEditFreeText(surface, desktopEditor);
+  const trimmedQuery = query.trim().toLowerCase();
+  const filteredCategories = trimmedQuery
+    ? categories
+        .map(cat => ({ ...cat, kinds: cat.kinds.filter(k => t(`panel.settings.deck.action.${k}`).toLowerCase().includes(trimmedQuery)) }))
+        .filter(cat => cat.kinds.length > 0)
+    : categories;
+
   return (
     <div className={styles.categoryList}>
-      {categories.map(cat => (
+      {showSearch && (
+        <SearchInput
+          value={query}
+          onChange={setQuery}
+          placeholder={t('panel.settings.deck.actionSearch')}
+          ariaLabel={t('panel.settings.deck.actionSearch')}
+        />
+      )}
+      {filteredCategories.map(cat => (
         <CollapsibleSection
           key={cat.key}
           title={t(cat.labelKey)}
-          open={openKeys.has(cat.key)}
+          // A search in progress auto-expands every category with a match,
+          // so results are never hidden behind a manually-collapsed group.
+          open={trimmedQuery.length > 0 ? true : openKeys.has(cat.key)}
           onToggle={() => toggleOpen(cat.key)}
           compact
         >
@@ -487,25 +583,38 @@ const TITLE_ALIGN_LABEL_KEY: Record<DeckTitleAlign, string> = {
  * size, and text colour. All styling controls disable while the title is
  * hidden; the text itself stays editable.
  */
-function TitleFields({ label, title, hideText, onLabelChange, onTitleChange }: {
+function TitleFields({
+  label, title, hideText, hideShow, hideAlign, hideUnderline, disabled: disabledProp, onLabelChange, onTitleChange,
+}: {
   label?: string;
   title: DeckTitleStyle | undefined;
   // When true (the deck-wide default editor) the per-key title text is omitted.
   hideText?: boolean;
+  // Omits the Show-title toggle; the caller (a fixed-visibility renderer like
+  // the monitoring tile's own showName field) supplies `disabled` instead.
+  hideShow?: boolean;
+  // Omits the alignment row for a renderer with a fixed text position.
+  hideAlign?: boolean;
+  // Drops Underline from the Style chip group for a renderer that doesn't draw it.
+  hideUnderline?: boolean;
+  // Only read when hideShow is true.
+  disabled?: boolean;
   onLabelChange?: (label: string) => void;
   onTitleChange: (patch: DeckTitleStyle) => void;
 }) {
   const { t } = useTranslation();
   const resolved = resolveDeckTitleStyle(title);
-  const disabled = !resolved.show;
+  const disabled = hideShow ? !!disabledProp : !resolved.show;
 
   return (
     <>
-      <SettingsToggle
-        label={t('panel.settings.deck.titleStyle.show')}
-        checked={resolved.show}
-        onChange={show => onTitleChange({ show })}
-      />
+      {!hideShow && (
+        <SettingsToggle
+          label={t('panel.settings.deck.titleStyle.show')}
+          checked={resolved.show}
+          onChange={show => onTitleChange({ show })}
+        />
+      )}
 
       {!hideText && (
         <input
@@ -518,17 +627,19 @@ function TitleFields({ label, title, hideText, onLabelChange, onTitleChange }: {
         />
       )}
 
-      <SettingsRow label={t('panel.settings.deck.titleStyle.align')} disabled={disabled}>
-        <ChipGroup
-          ariaLabel={t('panel.settings.deck.titleStyle.align')}
-          activeKey={resolved.align}
-          onChange={align => onTitleChange({ align: align as DeckTitleAlign })}
-          options={(['top', 'middle', 'bottom'] as const).map(align => {
-            const Icon = TITLE_ALIGN_ICONS[align];
-            return { key: align, label: <Icon size={16} aria-hidden="true" />, ariaLabel: t(TITLE_ALIGN_LABEL_KEY[align]), disabled };
-          })}
-        />
-      </SettingsRow>
+      {!hideAlign && (
+        <SettingsRow label={t('panel.settings.deck.titleStyle.align')} disabled={disabled}>
+          <ChipGroup
+            ariaLabel={t('panel.settings.deck.titleStyle.align')}
+            activeKey={resolved.align}
+            onChange={align => onTitleChange({ align: align as DeckTitleAlign })}
+            options={(['top', 'middle', 'bottom'] as const).map(align => {
+              const Icon = TITLE_ALIGN_ICONS[align];
+              return { key: align, label: <Icon size={16} aria-hidden="true" />, ariaLabel: t(TITLE_ALIGN_LABEL_KEY[align]), disabled };
+            })}
+          />
+        </SettingsRow>
+      )}
 
       <SettingsSelect
         label={t('panel.settings.deck.titleStyle.font')}
@@ -554,42 +665,65 @@ function TitleFields({ label, title, hideText, onLabelChange, onTitleChange }: {
         <ChipGroup
           multiSelect
           ariaLabel={t('panel.settings.deck.titleStyle.style')}
-          activeKeys={new Set([resolved.bold ? 'bold' : '', resolved.italic ? 'italic' : '', resolved.underline ? 'underline' : ''].filter(Boolean))}
+          activeKeys={new Set([
+            resolved.bold ? 'bold' : '',
+            resolved.italic ? 'italic' : '',
+            !hideUnderline && resolved.underline ? 'underline' : '',
+          ].filter(Boolean))}
           onToggleKey={k => onTitleChange({ [k]: !resolved[k as 'bold' | 'italic' | 'underline'] })}
           options={[
             /* eslint-disable i18next/no-literal-string -- title-style enum keys + single-glyph chip labels */
             { key: 'bold', label: <span className={styles.boldGlyph}>B</span>, ariaLabel: t('panel.settings.deck.titleStyle.bold'), disabled },
             { key: 'italic', label: <span className={styles.italicGlyph}>I</span>, ariaLabel: t('panel.settings.deck.titleStyle.italic'), disabled },
-            { key: 'underline', label: <span className={styles.underlineGlyph}>U</span>, ariaLabel: t('panel.settings.deck.titleStyle.underline'), disabled },
+            ...(hideUnderline ? [] : [
+              { key: 'underline', label: <span className={styles.underlineGlyph}>U</span>, ariaLabel: t('panel.settings.deck.titleStyle.underline'), disabled },
+            ]),
             /* eslint-enable i18next/no-literal-string */
           ]}
         />
       </SettingsRow>
 
-      <SettingsRow label={t('panel.settings.deck.titleStyle.color')} disabled={disabled} align="start">
-        <div className={styles.swatches}>
+      <SwatchRow
+        label={t('panel.settings.deck.titleStyle.color')}
+        value={title?.color}
+        disabled={disabled}
+        onChange={color => onTitleChange({ color })}
+      />
+    </>
+  );
+}
+
+/** Shared color-swatch row: an "Auto" chip (unsets the field) plus DECK_SWATCHES. */
+function SwatchRow({ label, value, onChange, disabled = false }: {
+  // Omit when the row is the sole control in an already-titled section (e.g.
+  // the monitoring background swatch) so the label isn't repeated verbatim.
+  label?: string; value: string | undefined; onChange: (color: string | undefined) => void; disabled?: boolean;
+}) {
+  const { t } = useTranslation();
+  return (
+    <SettingsRow label={label} disabled={disabled} align="start">
+      <div className={styles.swatches}>
+        <button
+          type="button"
+          disabled={disabled}
+          className={`${styles.swatch} ${styles.autoSwatch} ${!value ? styles.activeSwatch : ''}`}
+          onClick={() => onChange(undefined)}
+        >
+          {t('panel.settings.deck.colorAuto')}
+        </button>
+        {DECK_SWATCHES.map(c => (
           <button
+            key={c}
             type="button"
             disabled={disabled}
-            className={`${styles.swatch} ${styles.autoSwatch} ${!title?.color ? styles.activeSwatch : ''}`}
-            onClick={() => onTitleChange({ color: undefined })}
-          >
-            {t('panel.settings.deck.colorAuto')}
-          </button>
-          {DECK_SWATCHES.map(c => (
-            <button
-              key={c}
-              type="button"
-              disabled={disabled}
-              className={`${styles.swatch} ${title?.color === c ? styles.activeSwatch : ''}`}
-              style={{ background: c }}
-              onClick={() => onTitleChange({ color: c })}
-              aria-label={c}
-            />
-          ))}
-        </div>
-      </SettingsRow>
-    </>
+            className={`${styles.swatch} ${value === c ? styles.activeSwatch : ''}`}
+            style={{ background: c }}
+            onClick={() => onChange(c)}
+            aria-label={c}
+          />
+        ))}
+      </div>
+    </SettingsRow>
   );
 }
 
@@ -683,11 +817,21 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
     && slot.action.type !== 'pageIndicator'
     && !(slot.action.type === 'page' && slot.action.op !== 'goto'));
 
+  // A monitoring tile never shows slot.icon (see the tile layout contract) -
+  // its background is slot.color and its name comes from slot.label/title,
+  // styled minus the fields the tile ignores (show/align/underline; the
+  // action's own showName + a fixed position replace those). Both are edited
+  // inline here (not inside MonitoringFields/ActionFields, which only ever
+  // see the bare action - no DeckSlot) instead of the generic Icon/Title
+  // sections every other kind gets.
+  const isMonitoring = slot.action?.type === 'monitoring';
+  const monitoringShowName = slot.action?.type === 'monitoring' ? (slot.action.showName ?? true) : true;
+
   return (
     <div className={styles.root}>
       {showPicker && (
         <SettingsSection title={t('panel.settings.deck.actionType')}>
-          <ActionCategoryPicker categories={categories} activeKind={kind} onPick={onKindChange} />
+          <ActionCategoryPicker categories={categories} activeKind={kind} onPick={onKindChange} surface={surface} desktopEditor={desktopEditor} />
         </SettingsSection>
       )}
 
@@ -707,22 +851,28 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
             </SettingsSection>
           )}
 
-          <SettingsSection title={t('panel.settings.icon')}>
-            <IconPicker value={slot.icon} appId={appIdForIcon} surface={surface} desktopEditor={desktopEditor} onChange={icon => writeSlot({ ...slot, icon })} />
-            <SettingsRow label={t('panel.settings.deck.color')} align="start">
-              <div className={styles.swatches}>
-                <button type="button" className={`${styles.swatch} ${styles.autoSwatch} ${!slot.color ? styles.activeSwatch : ''}`} onClick={() => writeSlot({ ...slot, color: undefined })}>{t('panel.settings.deck.colorAuto')}</button>
-                {DECK_SWATCHES.map(c => (
-                  <button key={c} type="button" className={`${styles.swatch} ${slot.color === c ? styles.activeSwatch : ''}`} style={{ background: c }} onClick={() => writeSlot({ ...slot, color: c })} aria-label={c} />
-                ))}
-              </div>
-            </SettingsRow>
-          </SettingsSection>
+          {isMonitoring ? (
+            <SettingsSection title={t('panel.settings.deck.monitoringBackground')}>
+              <SwatchRow
+                value={slot.color}
+                onChange={color => writeSlot({ ...slot, color })}
+              />
+            </SettingsSection>
+          ) : (
+            <SettingsSection title={t('panel.settings.icon')}>
+              <IconPicker value={slot.icon} appId={appIdForIcon} surface={surface} desktopEditor={desktopEditor} onChange={icon => writeSlot({ ...slot, icon })} />
+              <SwatchRow label={t('panel.settings.deck.color')} value={slot.color} onChange={color => writeSlot({ ...slot, color })} />
+            </SettingsSection>
+          )}
 
           <SettingsSection title={t('panel.settings.deck.titleStyle.section')}>
             <TitleFields
               label={slot.label}
               title={slot.title}
+              hideShow={isMonitoring}
+              hideAlign={isMonitoring}
+              hideUnderline={isMonitoring}
+              disabled={isMonitoring ? !monitoringShowName : undefined}
               onLabelChange={label => writeSlot({ ...slot, label })}
               onTitleChange={patch => writeSlot({ ...slot, title: { ...slot.title, ...patch } })}
             />

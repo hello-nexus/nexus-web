@@ -4,6 +4,8 @@ import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { useAppIcon } from '../common/AppPicker';
 import { DECK_ICONS, autoIconName, deckCategory, categoryColor } from './deckIcons';
 import { resolveDeckTitleStyle, titleFontSizeCss } from './deckTitleStyle';
+import { DeckMonitoringCell } from './DeckMonitoringCell';
+import { DECK_MONITORING_TILE_BG } from './deckMonitoring';
 import type { DeckSlot } from './types';
 import styles from './DeckGrid.module.scss';
 
@@ -29,6 +31,19 @@ function useCellVisual(slot: DeckSlot): { accent: string; content: ReactNode; em
   // A slot with an explicit icon isn't "empty" even before an action is chosen,
   // so a picked icon renders immediately (not only after picking an action).
   const empty = !action && !isFolder && !icon;
+
+  // A monitoring tile draws its own name/graph/value content (never
+  // slot.icon) - see the tile layout contract in
+  // plans/deck-monitoring-and-presets.md. It's never "empty" (always shows a
+  // live or placeholder reading) and uses a near-black default accent instead
+  // of the auto category color, since it has no icon to color-code.
+  if (action?.type === 'monitoring') {
+    return {
+      accent: slot.color ?? DECK_MONITORING_TILE_BG,
+      content: <DeckMonitoringCell action={action} label={slot.label} title={slot.title} />,
+      empty: false,
+    };
+  }
 
   let iconEl: ReactNode;
   if (icon?.kind === 'emoji') {

@@ -35,6 +35,7 @@ import { useProfiles } from '../hooks/useProfiles';
 import { useCloudAccounts } from '../hooks/useCloudAccounts';
 import { useSyncStatus } from '../hooks/useSyncStatus';
 import { useRoute } from '../hooks/useRoute';
+import { onDeckOpenMonitoring } from '../panel/widgets/deck/deckMonitoringNav';
 import { useBuilder } from '../hooks/useBuilder';
 import { useUnifiedDevices } from '../hooks/useUnifiedDevices';
 import { fetchPanelRemoteControlState } from '../api/panel';
@@ -232,6 +233,10 @@ export function Dashboard() {
   const handleNavigateSettings = useCallback(() => {
     navigate('system', 'settings');
   }, [navigate]);
+
+  // Bridges a monitoring deck tile's `press: 'monitoringPage'` (deckExecutor
+  // has no router access) to this surface's in-app Monitoring page.
+  useEffect(() => onDeckOpenMonitoring(() => navigate('system', 'monitoring')), [navigate]);
 
   // The profile dropdown's "Manage profiles" lands on the standalone Profiles
   // page, not Settings.

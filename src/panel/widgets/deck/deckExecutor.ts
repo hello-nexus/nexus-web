@@ -3,7 +3,8 @@ import { startAnimate, setGlobalBrightness, setLightingDevicePower } from '../..
 import { applyProfile, setFanSpeed } from '../../../api/cooling';
 import { controlMedia } from '../../../hooks/useMedia';
 import type { MediaSession } from '../../../hooks/useMedia';
-import type { DeckAction, DeckSequenceStep, DeckSystemAction, DeckNexusAction } from './types';
+import { requestOpenMonitoring } from './deckMonitoringNav';
+import type { DeckAction, DeckMonitoringPress, DeckSequenceStep, DeckSystemAction, DeckNexusAction } from './types';
 
 const DEFAULT_GAP_MS = 60;
 const VOLUME_STEP = 0.05;
@@ -55,6 +56,9 @@ export async function executeDeckAction(action: DeckAction): Promise<void> {
       return;
     case 'nexus':
       await runNexus(action.action);
+      return;
+    case 'monitoring':
+      await runMonitoringPress(action.press ?? 'none');
       return;
     case 'sequence':
       await runSequence(action.steps);
@@ -170,6 +174,33 @@ async function runNexus(a: DeckNexusAction): Promise<void> {
       return;
     case 'y70Rotation':
       if (a.orientation) await postService('/y70/rotation', { orientation: a.orientation });
+      return;
+  }
+}
+
+/**
+ * Tapping a monitoring tile is optional (the tile's primary job is display,
+ * not control). 'taskManager' opens the OS's process manager via the
+ * service (taskmgr.exe / Activity Monitor - see DeckActionExecutor's port
+ * of this for a physical key). 'monitoringPage' asks the desktop dashboard's
+ * router to navigate there (no-op on a surface with no Monitoring page, e.g.
+ * the panel).
+ *
+ * TODO: /system/open-task-manager has no matching service route yet -
+ * SystemActions.OpenTaskManager is only wired to the physical-key press path
+ * (DeckActionExecutor), not exposed over HTTP. postService fails closed
+ * (returns null, no throw), so this silently no-ops from a touch-widget
+ * press until the service adds the route.
+ */
+async function runMonitoringPress(press: DeckMonitoringPress): Promise<void> {
+  switch (press) {
+    case 'taskManager':
+      await postService('/system/open-task-manager', {});
+      return;
+    case 'monitoringPage':
+      requestOpenMonitoring();
+      return;
+    case 'none':
       return;
   }
 }

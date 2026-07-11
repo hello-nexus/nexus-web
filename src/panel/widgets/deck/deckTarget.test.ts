@@ -190,4 +190,15 @@ describe('computeViewUploadJobs', () => {
     const jobs = computeViewUploadJobs([{}], [2, 5]);
     expect(jobs[0].slotPath).toBe('2.5.0');
   });
+
+  it('skips monitoring slots entirely (the service renders those keys itself)', () => {
+    const monitoringSlot = {
+      action: { type: 'monitoring' as const, category: 'cpu' as const, sensor: 'x', style: 'line' as const },
+    };
+    const jobs = computeViewUploadJobs([{ label: 'a' }, monitoringSlot, {}], []);
+    expect(jobs).toEqual([
+      { slotPath: '0', state: 0, slot: { label: 'a' } },
+      { slotPath: '2', state: 0, slot: {} },
+    ]);
+  });
 });

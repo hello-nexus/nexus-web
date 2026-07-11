@@ -8,6 +8,7 @@ import {
   Download, Upload, Link, Bell, Sliders, Cpu, RefreshCw, Disc, Tv, Speaker,
   ArrowUp, ArrowDown, Command, MousePointer, Clipboard, Save, Copy, Eye,
   Sparkles, Flame, Snowflake, Wind, Battery, Plug, Rocket, Coffee, Briefcase,
+  Activity,
   type LucideIcon,
 } from 'lucide-react';
 import type { DeckAction, DeckSlot } from './types';
@@ -23,13 +24,14 @@ export const DECK_ICONS: Record<string, LucideIcon> = {
   Download, Upload, Link, Bell, Sliders, Cpu, RefreshCw, Disc, Tv, Speaker,
   ArrowUp, ArrowDown, Command, MousePointer, Clipboard, Save, Copy, Eye,
   Sparkles, Flame, Snowflake, Wind, Battery, Plug, Rocket, Coffee, Briefcase,
+  Activity,
 };
 
 export const DECK_ICON_NAMES: string[] = Object.keys(DECK_ICONS);
 
 export type DeckCategory =
   | 'launch' | 'open' | 'volume' | 'media' | 'brightness' | 'keyboard' | 'text'
-  | 'power' | 'audio' | 'nexus' | 'sequence' | 'toggle' | 'folder' | 'navigation'
+  | 'power' | 'audio' | 'nexus' | 'monitoring' | 'sequence' | 'toggle' | 'folder' | 'navigation'
   | 'streamdeck' | 'empty';
 
 /** Maps an action to a visual category (drives the auto icon + color). */
@@ -52,6 +54,7 @@ export function deckCategory(action: DeckAction | undefined): DeckCategory {
     case 'audioOutput':
     case 'audioInput': return 'audio';
     case 'nexus': return 'nexus';
+    case 'monitoring': return 'monitoring';
     case 'sequence': return 'sequence';
     case 'toggle': return 'toggle';
     case 'page':
@@ -75,6 +78,7 @@ const CATEGORY_COLOR: Record<DeckCategory, string> = {
   power: '#ef4444',      // red
   audio: '#3b82f6',      // blue
   nexus: '#f97316',      // orange
+  monitoring: '#4da3ff', // accent blue - matches the tile's default graph accent
   sequence: '#eab308',   // yellow
   toggle: '#14b8a6',     // teal
   folder: '#94a3b8',     // neutral
@@ -155,6 +159,7 @@ export function autoIconName(action: DeckAction | undefined, isFolder = false): 
         case 'y70Rotation': return 'Monitor';
         default: return 'Zap';
       }
+    case 'monitoring': return 'Activity';
     case 'sequence': return 'ListOrdered';
     case 'toggle': return 'ToggleLeft';
     case 'page':
