@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  buildSpecRows,
+  aggregateDomainTiles,
   coolingStatusColor,
   driveStatusColor,
   durationToken,
@@ -8,7 +8,6 @@ import {
   incidentAppFaultLine,
   incidentSeverityColor,
   kindStatus,
-  orderComponentsByKind,
   pnpProblemLabel,
   reasonLabel,
   reasonLabelKey,
@@ -17,8 +16,7 @@ import {
   statusColor,
   worstReason,
 } from './diagnosticsHelpers';
-import type { DiagnosticsComponent, DiagnosticsGpuResponse, DiagnosticsIncidentApp, DiagnosticsMemoryResponse, DiagnosticsReason } from '../../../api/diagnostics';
-import type { SystemSpecs } from '../../../hooks/useSystemSpecs';
+import type { DiagnosticsComponent, DiagnosticsIncidentApp, DiagnosticsReason } from '../../../api/diagnostics';
 
 describe('statusColor', () => {
   it('maps every status to its token', () => {
@@ -163,94 +161,34 @@ describe('formatBytes', () => {
   });
 });
 
-describe('orderComponentsByKind', () => {
-  it('reorders to storage, memory, gpu, cooling, system regardless of server order', () => {
-    const components: DiagnosticsComponent[] = [
-      { id: 'system:host', kind: 'system', name: 'System', status: 'ok', reasons: [] },
-      { id: 'gpu:0', kind: 'gpu', name: 'GPU', status: 'ok', reasons: [] },
-      { id: 'cooling:pump', kind: 'cooling', name: 'Pump', status: 'ok', reasons: [] },
-      { id: 'storage:a', kind: 'storage', name: 'Drive A', status: 'ok', reasons: [] },
-      { id: 'memory:aggregate', kind: 'memory', name: 'Memory', status: 'ok', reasons: [] },
-    ];
+describe('aggregateDomainTiles', () => {
+  const comp = (kind: DiagnosticsComponent['kind'], status: DiagnosticsComponent['status'], reasons: DiagnosticsReason[] = []): DiagnosticsComponent =>
+    ({ id: `${kind}:x`, kind, name: kind, status, reasons });
 
-    expect(orderComponentsByKind(components).map(c => c.kind))
-      .toEqual(['storage', 'memory', 'gpu', 'cooling', 'system']);
+  it('always returns the four domains in storage/memory/cooling/system order', () => {
+    expect(aggregateDomainTiles([]).map(t => t.domain)).toEqual(['storage', 'memory', 'cooling', 'system']);
   });
 
-  it('keeps the relative server order for components sharing a kind', () => {
-    const components: DiagnosticsComponent[] = [
-      { id: 'storage:b', kind: 'storage', name: 'Drive B', status: 'ok', reasons: [] },
-      { id: 'storage:a', kind: 'storage', name: 'Drive A', status: 'ok', reasons: [] },
-    ];
-
-    expect(orderComponentsByKind(components).map(c => c.id)).toEqual(['storage:b', 'storage:a']);
+  it('marks a domain with no component as unknown, an unflagged domain as ok', () => {
+    const tiles = aggregateDomainTiles([comp('memory', 'ok')]);
+    expect(tiles.find(t => t.domain === 'storage')?.status).toBe('unknown');
+    expect(tiles.find(t => t.domain === 'memory')?.status).toBe('ok');
   });
 
-  it('does not mutate the input array', () => {
-    const components: DiagnosticsComponent[] = [
-      { id: 'system:host', kind: 'system', name: 'System', status: 'ok', reasons: [] },
-      { id: 'storage:a', kind: 'storage', name: 'Drive A', status: 'ok', reasons: [] },
-    ];
-    const original = [...components];
-
-    orderComponentsByKind(components);
-
-    expect(components).toEqual(original);
-  });
-});
-
-describe('buildSpecRows', () => {
-  const translate = (key: string, params?: Record<string, string>) => {
-    if (key === 'diagnostics.specs.memoryWithXmp') return `${params?.memory} (XMP)`;
-    if (key === 'diagnostics.specs.gpuWithDriver') return `${params?.gpu} (${params?.version})`;
-    return key;
-  };
-  const specs: SystemSpecs = {
-    pcName: 'NICOLA-PC', osBuild: '26100.4351', processor: 'AMD Ryzen 7 9800X3D',
-    motherboard: 'ASUS ROG Crosshair', memory: '64 GB DDR5-6000', storage: '2 TB', graphicsCard: 'RTX 5080',
-    monitor: '', soundCard: '', networkCard: '',
-  };
-  const memory: DiagnosticsMemoryResponse = { supported: true, modules: [], xmpLikelyActive: true, lastTest: null, testScheduled: false };
-  const gpu: DiagnosticsGpuResponse = {
-    supported: true,
-    gpus: [{ name: 'NVIDIA GeForce RTX 5080', driverVersion: '591.86', temperatureC: 60, powerW: 200, throttle: { active: [], swPowerCapUs: 0, swThermalUs: 0, hwThermalUs: 0, hwPowerBrakeUs: 0 }, recentTdrCount: 0 }],
-  };
-
-  it('builds one row per known field, folding in XMP and the GPU driver version', () => {
-    expect(buildSpecRows(specs, memory, gpu, translate)).toEqual([
-      { label: 'devices.specs.row.processor', value: 'AMD Ryzen 7 9800X3D' },
-      { label: 'devices.specs.row.motherboard', value: 'ASUS ROG Crosshair' },
-      { label: 'devices.specs.row.memory', value: '64 GB DDR5-6000 (XMP)' },
-      { label: 'devices.specs.row.graphicsCard', value: 'RTX 5080 (591.86)' },
-      { label: 'devices.specs.row.osBuild', value: '26100.4351' },
-      { label: 'devices.specs.row.pcName', value: 'NICOLA-PC' },
+  it('folds GPU into the Cooling tile, taking the worst status and concatenating reasons', () => {
+    const gpuReason: DiagnosticsReason = { code: 'gpu.thermalThrottle', severity: 'watch', summary: 'throttling', detail: 'd' };
+    const tiles = aggregateDomainTiles([
+      comp('cooling', 'ok'),
+      { id: 'gpu:0', kind: 'gpu', name: 'GPU', status: 'watch', reasons: [gpuReason] },
     ]);
+    const cooling = tiles.find(t => t.domain === 'cooling');
+    expect(cooling?.status).toBe('watch');
+    expect(cooling?.reasons).toContain(gpuReason);
   });
 
-  it('omits the XMP suffix when XMP is not active', () => {
-    const rows = buildSpecRows(specs, { ...memory, xmpLikelyActive: false }, gpu, translate);
-    expect(rows.find(r => r.label === 'devices.specs.row.memory')?.value).toBe('64 GB DDR5-6000');
-  });
-
-  it('falls back to the specs graphics card name when the gpu resource has no data yet', () => {
-    const rows = buildSpecRows(specs, memory, null, translate);
-    expect(rows.find(r => r.label === 'devices.specs.row.graphicsCard')?.value).toBe('RTX 5080');
-  });
-
-  it('never pairs a driver version onto specs.graphicsCard when more than one GPU is reported (ambiguous adapter identity)', () => {
-    const multiGpu: DiagnosticsGpuResponse = {
-      supported: true,
-      gpus: [
-        { name: 'Intel UHD Graphics 770', driverVersion: '31.0.101', temperatureC: 45, powerW: 15, throttle: { active: [], swPowerCapUs: 0, swThermalUs: 0, hwThermalUs: 0, hwPowerBrakeUs: 0 }, recentTdrCount: 0 },
-        { name: 'NVIDIA GeForce RTX 5080', driverVersion: '591.86', temperatureC: 60, powerW: 200, throttle: { active: [], swPowerCapUs: 0, swThermalUs: 0, hwThermalUs: 0, hwPowerBrakeUs: 0 }, recentTdrCount: 0 },
-      ],
-    };
-    const rows = buildSpecRows(specs, memory, multiGpu, translate);
-    expect(rows.find(r => r.label === 'devices.specs.row.graphicsCard')?.value).toBe('RTX 5080');
-  });
-
-  it('omits every row when nothing has loaded yet', () => {
-    expect(buildSpecRows(null, null, null, translate)).toEqual([]);
+  it('takes the worst status across multiple same-domain components', () => {
+    const tiles = aggregateDomainTiles([comp('storage', 'ok'), comp('storage', 'act')]);
+    expect(tiles.find(t => t.domain === 'storage')?.status).toBe('act');
   });
 });
 

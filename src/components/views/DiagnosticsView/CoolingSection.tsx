@@ -6,6 +6,7 @@ import { useTranslation } from '../../../lib/i18n';
 import { formatNumber, localizeNumbers } from '../../../lib/units';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { Badge } from '../../common/Badge/Badge';
+import { SectionHeader } from '../../common/SectionHeader/SectionHeader';
 import type { DiagnosticsCoolingResponse } from '../../../api/diagnostics';
 import { NotAvailableNote, SectionLoadError } from './DiagnosticsSectionStates';
 import { coolingStatusColor, coolingStatusLabelKey, relativeTimeLabel, resolveSectionState } from './diagnosticsHelpers';
@@ -16,9 +17,12 @@ interface CoolingSectionProps {
   loading: boolean;
   error: boolean;
   onRefresh: () => void;
+  /** Optional group header - the Cooling tab labels this "Fans"; standalone
+   *  renders (tests) pass none and stay headerless. */
+  heading?: string;
 }
 
-export function CoolingSection({ data, loading, error, onRefresh }: CoolingSectionProps) {
+export function CoolingSection({ data, loading, error, onRefresh, heading }: CoolingSectionProps) {
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
   const [now, setNow] = useState(() => Date.now());
@@ -33,6 +37,7 @@ export function CoolingSection({ data, loading, error, onRefresh }: CoolingSecti
 
   return (
     <section className={styles.section}>
+      {heading && <SectionHeader>{heading}</SectionHeader>}
       {state === 'error' && <SectionLoadError onRetry={() => onRefresh()} loading={loading} />}
       {state === 'notSupported' && <NotAvailableNote />}
       {state === 'empty' && <EmptyState compact icon={<Fan size={22} />} title={t('diagnostics.cooling.empty')} />}

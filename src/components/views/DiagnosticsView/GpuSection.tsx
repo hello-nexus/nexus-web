@@ -17,9 +17,12 @@ interface GpuSectionProps {
   loading: boolean;
   error: boolean;
   onRefresh: (opts?: DiagnosticsFetchOptions) => void;
+  /** Optional group header - the Cooling tab labels this "GPU" since GPU health
+   *  now lives there; standalone renders (tests) pass none and stay headerless. */
+  heading?: string;
 }
 
-export function GpuSection({ data, loading, error, onRefresh }: GpuSectionProps) {
+export function GpuSection({ data, loading, error, onRefresh, heading }: GpuSectionProps) {
   const { t } = useTranslation();
   const state = resolveSectionState({
     hasData: data !== null,
@@ -31,6 +34,7 @@ export function GpuSection({ data, loading, error, onRefresh }: GpuSectionProps)
 
   return (
     <section className={styles.section}>
+      {heading && <SectionHeader>{heading}</SectionHeader>}
       {state === 'error' && <SectionLoadError onRetry={() => onRefresh({ force: true })} loading={loading} />}
       {state === 'notSupported' && <NotAvailableNote />}
       {state === 'empty' && <EmptyState compact icon={<Monitor size={22} />} title={t('diagnostics.gpu.empty')} />}

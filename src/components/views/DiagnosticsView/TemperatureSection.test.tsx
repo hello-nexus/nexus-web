@@ -199,3 +199,29 @@ describe('TemperatureSection empty day state', () => {
     expect(screen.getByText('diagnostics.temperature.empty')).toBeInTheDocument();
   });
 });
+
+describe('TemperatureSection sustained-high callout (warning-linger gate)', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-11T12:00:00Z'));
+  });
+  afterEach(() => vi.useRealTimers());
+
+  const episode = (endUtc: string) => ({
+    componentId: 'gpu:0', name: 'GPU', startUtc: '2026-07-11T11:00:00Z', endUtc, peakC: 93, thresholdC: 85,
+  });
+
+  it('shows the callout while an episode is active (ended within a bucket of now)', () => {
+    // Ends 1 min ago, inside bucketMinutes(5) - a current warning even at the
+    // default linger of 0.
+    renderSection({ data: baseData({ episodes: [episode('2026-07-11T11:59:00Z')] }) });
+    expect(screen.getByText('diagnostics.temperature.episodesTitle')).toBeInTheDocument();
+  });
+
+  it('hides the callout for an episode that ended long ago (linger 0)', () => {
+    // Ended 3 hours ago, well past bucketMinutes; nothing lingers -> hidden,
+    // even though the chart band for it still renders.
+    renderSection({ data: baseData({ episodes: [episode('2026-07-11T09:00:00Z')] }) });
+    expect(screen.queryByText('diagnostics.temperature.episodesTitle')).not.toBeInTheDocument();
+  });
+});

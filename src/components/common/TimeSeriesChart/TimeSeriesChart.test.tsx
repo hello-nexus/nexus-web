@@ -116,6 +116,15 @@ describe('TimeSeriesChart', () => {
     expect(screen.getByText('chart.waiting')).toBeInTheDocument();
   });
 
+  it('spans an explicit domain wider than the data instead of stretching the data to fill it', () => {
+    // Data covers 0..2h; the domain forces 0..10h, so the axis ends at 10h and
+    // the data occupies only the left fifth (blank on the right).
+    const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} domain={[0, 10 * HOUR]} />);
+    const tickLabels = Array.from(container.querySelectorAll('text')).map(t => t.textContent);
+    expect(tickLabels).toContain(`T${10 * HOUR}`);   // domain end
+    expect(tickLabels).not.toContain(`T${2 * HOUR}`); // data extent, would show if squished
+  });
+
   it('shows a per-series avg/max tooltip on hover', () => {
     const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} />);
     const svg = container.querySelector('svg')!;

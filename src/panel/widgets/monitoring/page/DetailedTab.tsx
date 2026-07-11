@@ -53,6 +53,9 @@ export function DetailedTab({ sensors }: { sensors: ReturnType<typeof useSensors
   entries.push({ id: 'cpu', title: t('monitoring.detailed.cpu'), subtitle: sensors.cpuModel, sensors: sensors.cpu });
   entries.push({ id: 'gpu', title: t('monitoring.detailed.gpu'), subtitle: sensors.gpuModel, sensors: sensors.gpu });
   entries.push({ id: 'memory', title: t('monitoring.detailed.memory'), subtitle: specs?.memory, sensors: sensors.memory });
+  // One section per DIMM (temperature, capacity, SPD timings), headed by its
+  // part number. Empty when the platform can't reach SMBus/SPD (e.g. a VM).
+  pushExtras('memoryModule', t('monitoring.detailed.memoryModule'), extras.memoryModules);
   // One section per physical storage drive (NVMe + SATA), headed by its model.
   // extras.nvmeStorage is every HardwareType.Storage device LHM reports, each
   // carrying its own sensors.
@@ -67,7 +70,6 @@ export function DetailedTab({ sensors }: { sensors: ReturnType<typeof useSensors
   pushExtras('battery', t('monitoring.detailed.battery'), extras.batteries);
   pushExtras('psu', t('monitoring.detailed.psu'), extras.psus);
   pushExtras('cooler', t('monitoring.detailed.cooler'), extras.coolers);
-  pushExtras('nic', t('monitoring.detailed.nic'), extras.nics);
   pushExtras('ec', t('monitoring.detailed.ec'), extras.embeddedControllers);
 
   // Single gate for every section: a header never renders over an empty body.
@@ -82,7 +84,7 @@ export function DetailedTab({ sensors }: { sensors: ReturnType<typeof useSensors
           title={entry.title}
           subtitle={entry.subtitle}
           sensors={entry.sensors}
-          collapsed={isCollapsed(entry.id)}
+          isCollapsed={isCollapsed}
           onToggle={onToggle}
           groupTypeLabel={groupTypeLabel}
         />

@@ -76,7 +76,10 @@ export function Sparkline({
 
     const points = samples.map((v, i) => {
       const x = i * stepX;
-      const normalized = (v - min) / range;
+      // A user-set Fixed-range min/max can sit inside the sample range, so
+      // clamp: an out-of-domain sample draws pinned to the floor/ceiling
+      // instead of escaping the chart's drawable height.
+      const normalized = Math.max(0, Math.min(1, (v - min) / range));
       const y = height - padding - normalized * usableHeight;
       return [x, y] as const;
     });

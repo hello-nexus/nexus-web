@@ -82,6 +82,10 @@
   --accent-soft: rgba(37, 99, 235, 0.12);
   --accent-glow-shadow: rgba(37, 99, 235, 0.45);
   --accent-text: #ffffff;
+  // Muted accent for a slider's "capped" fill zone. Static (recomputed by
+  // applyAccentColor for custom accents); NOT color-mix - it flows into a
+  // linear-gradient and the Q60 panel WebView is Chromium 83 (see --text).
+  --slider-fill-dim: #3a5889;
 
   // Status
   --good: #10b981;
@@ -235,6 +239,9 @@
   --accent-soft: rgba(37, 99, 235, 0.1);
   --accent-glow-shadow: rgba(37, 99, 235, 0.35);
   --accent-text: #ffffff;
+  // Muted accent for a slider's "capped" fill zone (light theme). Static;
+  // recomputed by applyAccentColor for custom accents. NOT color-mix.
+  --slider-fill-dim: #8ca9da;
 
   --good: #059669;
   --warn: #d97706;

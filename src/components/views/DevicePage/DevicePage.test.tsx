@@ -83,6 +83,14 @@ describe('NexusControlOff', () => {
     expect(onEnable).not.toHaveBeenCalled();
   });
 
+  it('shows the experimental badge under the switch only for experimental devices', () => {
+    const { rerender } = render(<NexusControlOff deviceName="Lian Li Uni Hub" experimental onEnable={vi.fn()} />);
+    expect(screen.getByText('devices.experimental.badge')).toBeInTheDocument();
+
+    rerender(<NexusControlOff deviceName="HYTE NP50" experimental={false} onEnable={vi.fn()} />);
+    expect(screen.queryByText('devices.experimental.badge')).not.toBeInTheDocument();
+  });
+
   it('does not gate the enable toggle on readiness for a device with no possible conflict', () => {
     h.ready = false;
     const onEnable = vi.fn();

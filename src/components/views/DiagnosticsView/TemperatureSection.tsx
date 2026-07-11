@@ -1,6 +1,7 @@
-import { Thermometer } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Thermometer, TriangleAlert } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
-import { useUnitPrefs } from '../../../hooks/useUiSettings';
+import { useDiagnosticsWarningLingerMinutes, useUnitPrefs } from '../../../hooks/useUiSettings';
 import { colorFor } from '../../../lib/monitoringStore';
 import { formatDuration } from '../../../lib/formatDuration';
 import { Badge } from '../../common/Badge/Badge';
@@ -18,9 +19,11 @@ import {
   appsForHoverBucket,
   episodeBand,
   episodeSentence,
+  episodesAtTime,
   formatTemperatureCelsius,
   formatTemperatureDayLabel,
   minSelectableTemperatureDate,
+  temperatureRangeDomain,
   temperatureRangeLabelKey,
   toChartSeries,
   todayIso,
@@ -74,6 +77,23 @@ export function TemperatureSection({
 }: TemperatureSectionProps) {
   const { t } = useTranslation();
   const { monitoringTempUnit, numberFormat } = useUnitPrefs();
+  const lingerMinutes = useDiagnosticsWarningLingerMinutes();
+  // Re-snapshot "now" per fresh poll so the recency check below stays current
+  // without reading Date.now() during render.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => { setNow(Date.now()); }, [data]);
+  // The "sustained high temperatures" callout is a current-warning banner, not
+  // a history log: an episode qualifies only while it is still active or ended
+  // within the user's warning-linger window (0 = immediate, so only ongoing /
+  // last-bucket episodes show). The chart bands still render every episode.
+  const recentEpisodes = useMemo(() => {
+    if (!data) return [];
+    const recencyMs = Math.max(data.bucketMinutes, lingerMinutes) * 60_000;
+    return data.episodes.filter(ep => new Date(ep.endUtc).getTime() >= now - recencyMs);
+  }, [data, lingerMinutes, now]);
+  // Force the chart's x-window to the full selected range so a range wider than
+  // the recorded data shows blank space on the left instead of stretching.
+  const chartDomain = useMemo(() => temperatureRangeDomain(hours, date, now), [hours, date, now]);
   const state = resolveSectionState({
     hasData: data !== null,
     loading,
@@ -130,11 +150,11 @@ export function TemperatureSection({
       )}
       {state === 'content' && data && (
         <>
-          {data.episodes.length > 0 && (
+          {recentEpisodes.length > 0 && (
             <div className={styles.temperatureEpisodes}>
               <div className={styles.temperatureEpisodesTitle}>{t('diagnostics.temperature.episodesTitle')}</div>
               <ul className={styles.temperatureEpisodesList}>
-                {data.episodes.map((episode, i) => (
+                {recentEpisodes.map((episode, i) => (
                   <li key={i}>{episodeSentence(episode, monitoringTempUnit, numberFormat, t)}</li>
                 ))}
               </ul>
@@ -142,12 +162,35 @@ export function TemperatureSection({
           )}
           <TimeSeriesChart
             series={toChartSeries(data.series)}
+            domain={chartDomain}
             valueFormat={v => formatTemperatureCelsius(v, monitoringTempUnit, numberFormat)}
             xTickFormat={isDateMode ? xTickFormatForRange(24) : xTickFormatForRange(hours)}
             avgLabel={t('diagnostics.temperature.avg')}
             maxLabel={t('diagnostics.temperature.max')}
             bands={data.episodes.map(episodeBand)}
-            tooltipExtra={hoverT => tooltipApps(appsForHoverBucket(appUsageData, hoverT))}
+            tooltipExtra={hoverT => {
+              const warnings = episodesAtTime(data.episodes, hoverT);
+              const apps = appsForHoverBucket(appUsageData, hoverT);
+              if (warnings.length === 0 && apps.length === 0) return null;
+              return (
+                <>
+                  {warnings.length > 0 && (
+                    <div className={styles.tooltipWarnings}>
+                      <div className={styles.tooltipWarningTitle}>
+                        <TriangleAlert size={12} aria-hidden />
+                        {t('diagnostics.temperature.episodesTitle')}
+                      </div>
+                      {warnings.map((episode, i) => (
+                        <div key={i} className={styles.tooltipWarningRow}>
+                          {episodeSentence(episode, monitoringTempUnit, numberFormat, t)}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {tooltipApps(apps)}
+                </>
+              );
+            }}
           />
         </>
       )}

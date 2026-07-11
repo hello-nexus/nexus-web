@@ -23,6 +23,7 @@ import { TryxDevicePage } from './TryxDevicePage';
 import { StreamDeckDevicePage } from './StreamDeckDevicePage';
 import { Toggle } from '../../common/Toggle/Toggle';
 import { ConflictAppCard } from '../../common/ConflictAppCard/ConflictAppCard';
+import { ExperimentalBadge } from '../../common/ExperimentalBadge/ExperimentalBadge';
 import { useConflictApps } from '../../../hooks/useConflictApps';
 import { useTranslation } from '../../../lib/i18n';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
@@ -108,6 +109,7 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFi
         key={device.key}
         deviceName={device.name}
         conflictAppId={device.conflictAppId}
+        experimental={device.experimental}
         onEnable={() => controlDevice(device.curatedId as string, true)}
       />
     );
@@ -197,7 +199,7 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFi
   );
 }
 
-export function NexusControlOff({ deviceName, conflictAppId, onEnable }: { deviceName: string; conflictAppId?: string; onEnable: () => void }) {
+export function NexusControlOff({ deviceName, conflictAppId, experimental, onEnable }: { deviceName: string; conflictAppId?: string; experimental?: boolean; onEnable: () => void }) {
   const { t } = useTranslation();
   const { conflicts, ready } = useConflictApps(true);
   const activeConflict = conflictAppId ? conflicts.find(c => c.id === conflictAppId) : undefined;
@@ -223,6 +225,7 @@ export function NexusControlOff({ deviceName, conflictAppId, onEnable }: { devic
             </>
           )}
         </div>
+        {experimental && <ExperimentalBadge />}
       </div>
     </section>
   );

@@ -1,9 +1,10 @@
 import { PerfSlot } from './MonitoringWidget';
-import { DEFAULT_SLOTS, isMicroLayout, resolvedSlotCountForSize } from './perfSlots';
+import { DEFAULT_SLOTS, isExtrasBackedDevice, isMicroLayout, resolvedSlotCountForSize } from './perfSlots';
 import type { DeviceKey } from './perfSlots';
 import type { GaugeDesignKey } from './gauges';
 import { ImmersiveLayout } from '../common/ImmersiveLayout';
 import { useSensors } from '../../../hooks/useSensors';
+import { useSensorExtras } from '../../../hooks/useSensorExtras';
 import { useFpsSensors } from '../../../hooks/useFpsSensors';
 import { useNetworkMonitor } from '../../../hooks/useNetworkMonitor';
 import type { WidgetProps } from '../types';
@@ -38,11 +39,15 @@ export function MonitoringTouch({ widget, immersiveGrid }: WidgetProps) {
   const usesNetwork = isMicro
     ? microDevice === 'network'
     : slotConfigs.some(s => s.device === 'network');
+  const usesExtras = isMicro
+    ? isExtrasBackedDevice(microDevice ?? 'cpu')
+    : slotConfigs.some(s => isExtrasBackedDevice(s.device));
   // Hooks must run on every render regardless of mode (see MonitoringWidget).
   const sensors = useSensors(true);
   const fpsSensors = useFpsSensors(usesFps);
   const network = useNetworkMonitor(usesNetwork);
   const networkSensors = buildNetworkSensors(network);
+  const extras = useSensorExtras(usesExtras);
 
   if (isMicro) {
     return (
@@ -60,6 +65,7 @@ export function MonitoringTouch({ widget, immersiveGrid }: WidgetProps) {
         sensors={sensors}
         fpsSensors={fpsSensors}
         networkSensors={networkSensors}
+        extras={extras}
         device={device}
         sensorName={sensorName}
         design={design}

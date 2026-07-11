@@ -14,8 +14,10 @@ import { DASHBOARD_APP_KEY } from './sidebarAppKeys';
 export {
   DASHBOARD_APP_KEY,
   DEFAULT_PINNED_TAIL,
+  appendRecent,
   isPinnableAppKey,
   sanitizePinnedTail,
+  sanitizeRecents,
   type SidebarAppKey,
 } from './sidebarAppKeys';
 

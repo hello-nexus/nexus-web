@@ -66,6 +66,11 @@ const extrasState = {
   psus: [] as ExtrasComponentMock[],
   nvmeStorage: [] as ExtrasComponentMock[],
   embeddedControllers: [] as ExtrasComponentMock[],
+  memoryModules: [
+    { id: '/memory/dimm/0', name: 'Corsair - CMK16GX4M2B3200C16 (#0)', sensors: [
+      { id: '/memory/dimm/0/temperature/0', name: 'DIMM #0', type: 'Temperature', value: 38, units: '°C', formatted: '38.0 °C', parent: { id: '/memory/dimm/0', name: 'Corsair - CMK16GX4M2B3200C16 (#0)' } },
+    ] },
+  ] as ExtrasComponentMock[],
 };
 
 vi.mock('../../../hooks/useSensorExtras', () => ({
@@ -156,19 +161,90 @@ describe('MonitoringPage', () => {
     // Battery section also visible because the extras mock has one battery.
     expect(screen.getByRole('button', { name: /monitoring\.detailed\.battery/i })).toBeInTheDocument();
 
+    // DIMM section also visible because the extras mock has one memory module,
+    // and its temperature sensor renders in the section body.
+    expect(screen.getByRole('button', { name: /monitoring\.detailed\.memoryModule/i })).toBeInTheDocument();
+    expect(screen.getByText('DIMM #0')).toBeInTheDocument();
+
     // GPU has zero sensors and zero extras-equivalents -- the section must not render.
     expect(screen.queryByRole('button', { name: /monitoring\.detailed\.gpu/i })).toBeNull();
 
-    // PSU/NIC/cooler/EC extras mocks are all empty arrays -- none of their
+    // PSU/cooler/EC extras mocks are all empty arrays -- none of their
     // sections may render (the families this task is guarding against).
     expect(screen.queryByRole('button', { name: /monitoring\.detailed\.psu/i })).toBeNull();
-    expect(screen.queryByRole('button', { name: /monitoring\.detailed\.nic/i })).toBeNull();
     expect(screen.queryByRole('button', { name: /monitoring\.detailed\.cooler/i })).toBeNull();
     expect(screen.queryByRole('button', { name: /monitoring\.detailed\.ec/i })).toBeNull();
 
     // Click toggles collapse and persists the section id through useUiSettings.
     fireEvent.click(cpuHeader);
     expect(updateMock).toHaveBeenCalledWith({ monitoringDetailedCollapsed: ['cpu'] });
+  });
+
+  it('nests a collapsible sensor-type group inside each family section', () => {
+    collapsedState = [];
+    updateMock.mockClear();
+
+    render(
+      <MonitoringPage
+        serviceOnline={true}
+        connectionState="online"
+        tab="detailed"
+        onTabChange={vi.fn()}
+      />,
+    );
+
+    // The CPU family's one sensor is type "Load" -- its nested group header
+    // renders as its own toggle button, expanded by default.
+    const cpuLoadGroup = screen.getByRole('button', { name: /^Load$/ });
+    expect(cpuLoadGroup).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText('CPU Total')).toBeInTheDocument();
+
+    // Toggling the group persists the composite family/group id, independent
+    // of the family's own id.
+    fireEvent.click(cpuLoadGroup);
+    expect(updateMock).toHaveBeenCalledWith({ monitoringDetailedCollapsed: ['cpu/Load'] });
+  });
+
+  it('hides a collapsed group\'s rows without collapsing its family section', () => {
+    collapsedState = ['cpu/Load'];
+
+    render(
+      <MonitoringPage
+        serviceOnline={true}
+        connectionState="online"
+        tab="detailed"
+        onTabChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: /^Load$/ })).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByText('CPU Total')).toBeNull();
+    // The family header stays expanded -- a collapsed nested group must not
+    // collapse the section it lives in.
+    expect(screen.getByRole('button', { name: /monitoring\.detailed\.cpu/i })).toHaveAttribute('aria-expanded', 'true');
+
+    collapsedState = [];
+  });
+
+  it('collapsing the family section also hides its nested groups', () => {
+    collapsedState = ['cpu'];
+
+    render(
+      <MonitoringPage
+        serviceOnline={true}
+        connectionState="online"
+        tab="detailed"
+        onTabChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: /monitoring\.detailed\.cpu/i })).toHaveAttribute('aria-expanded', 'false');
+    // A collapsed family renders no body, so the nested group header is gone
+    // from the DOM too, not merely its rows.
+    expect(screen.queryByRole('button', { name: /^Load$/ })).toBeNull();
+    expect(screen.queryByText('CPU Total')).toBeNull();
+
+    collapsedState = [];
   });
 
   it('hides the System section when the motherboard model is known but LHM reports no sensors', () => {

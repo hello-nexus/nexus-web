@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { chartDomainForScale, designSupportsScale, relativeHistoryDomain } from './perfDomain';
+import { chartDomainForScale, defaultFixedMax, designSupportsScale, isHeterogeneousTypeDevice, relativeHistoryDomain, staticMaxForDevice } from './perfDomain';
 
 describe('designSupportsScale', () => {
   it('supports only sparkline and line', () => {
@@ -10,9 +10,82 @@ describe('designSupportsScale', () => {
 });
 
 describe('chartDomainForScale', () => {
-  it('returns [0, staticMax] verbatim on fixed scale, regardless of device/type', () => {
+  it('returns [0, staticMax] verbatim on fixed scale with no overrides, regardless of device/type', () => {
     expect(chartDomainForScale('cpu', 42, [], 100, 'fixed')).toEqual([0, 100]);
     expect(chartDomainForScale('motherboard', 1.2, [], 2, 'fixed', undefined, 'Voltage')).toEqual([0, 2]);
+  });
+
+  it('fixed honors an explicit fixedMin/fixedMax user override', () => {
+    expect(chartDomainForScale('cpu', 42, [], 100, 'fixed', undefined, undefined, 10, 80)).toEqual([10, 80]);
+  });
+
+  it('fixed falls back to fixedDefaultMax (not staticMax) when overrides are absent', () => {
+    expect(chartDomainForScale('gpu', 8000, [], 16000, 'fixed', undefined, undefined, undefined, undefined, 32000)).toEqual([0, 32000]);
+  });
+
+  it('fixed falls back to staticMax when fixedDefaultMax is absent or non-positive', () => {
+    expect(chartDomainForScale('cpu', 42, [], 100, 'fixed', undefined, undefined, undefined, undefined, 0)).toEqual([0, 100]);
+    expect(chartDomainForScale('cpu', 42, [], 100, 'fixed', undefined, undefined, undefined, undefined, -5)).toEqual([0, 100]);
+  });
+
+  it('an inverted or degenerate min/max override falls back to [0, fixedDefaultMax]', () => {
+    expect(chartDomainForScale('cpu', 42, [], 100, 'fixed', undefined, undefined, 80, 10)).toEqual([0, 100]);
+    expect(chartDomainForScale('cpu', 42, [], 100, 'fixed', undefined, undefined, 50, 50)).toEqual([0, 100]);
+  });
+
+  it('a non-positive fixedMax override is ignored in favor of fixedDefaultMax', () => {
+    expect(chartDomainForScale('cpu', 42, [], 100, 'fixed', undefined, undefined, 10, 0)).toEqual([10, 100]);
+  });
+
+  it('honors a user-typed max above fixedDefaultMax instead of clamping it down', () => {
+    // The settings pane no longer restricts typed values to the sensor's
+    // default ceiling (dmax 100); a stale override is cleared at the
+    // settings layer on device/sensor swap instead (slot{N}_min/max reset).
+    expect(chartDomainForScale('cpu', 30, [], 100, 'fixed', undefined, undefined, 2000, 15000, 100)).toEqual([2000, 15000]);
+  });
+
+  it('leaves an override untouched when both bounds already fit inside dmax', () => {
+    expect(chartDomainForScale('cpu', 30, [], 100, 'fixed', undefined, undefined, 20, 80, 100)).toEqual([20, 80]);
+  });
+
+  it('honors a max override above dmax while the min stays as typed', () => {
+    expect(chartDomainForScale('cpu', 30, [], 100, 'fixed', undefined, undefined, 20, 15000, 100)).toEqual([20, 15000]);
+  });
+
+  it('clamps a negative min up to 0', () => {
+    expect(chartDomainForScale('cpu', 30, [], 100, 'fixed', undefined, undefined, -50, 80, 100)).toEqual([0, 80]);
+  });
+
+  it('an inverted min/max still falls back to [0, dmax] even when both exceed dmax', () => {
+    expect(chartDomainForScale('cpu', 30, [], 100, 'fixed', undefined, undefined, 15000, 2000, 100)).toEqual([0, 100]);
+  });
+});
+
+describe('staticMaxForDevice - network', () => {
+  it('returns a 1 Gbps ceiling in the sensor\'s own bytes/sec unit, not the percent-scale fallback', () => {
+    expect(staticMaxForDevice('network', undefined, 'Rate')).toBe(125_000_000);
+  });
+});
+
+describe('defaultFixedMax', () => {
+  it('prefers the sensor theoreticalMaximum when present and positive', () => {
+    const sensor = { id: 'x', name: 'GPU Memory Used', type: 'SmallData', value: 8000, units: 'MB', formatted: '8000 MB', theoreticalMaximum: 16000, parent: { id: 'gpu', name: 'GPU' } };
+    expect(defaultFixedMax('gpu', sensor)).toBe(16000);
+  });
+
+  it('falls back to staticMaxForDevice when the sensor has no theoreticalMaximum', () => {
+    const sensor = { id: 'x', name: 'Fan 1', type: 'Fan', value: 1200, units: 'RPM', formatted: '1200 RPM', parent: { id: 'mobo', name: 'Motherboard' } };
+    expect(defaultFixedMax('motherboard', sensor)).toBe(2500);
+  });
+
+  it('falls back to staticMaxForDevice using nameFallback when the sensor is undefined', () => {
+    expect(defaultFixedMax('fps', undefined, 'Frame Time')).toBe(50);
+    expect(defaultFixedMax('fps', undefined, 'FPS')).toBe(240);
+  });
+
+  it('network sensors carry no theoreticalMaximum, so it falls back to the 1 Gbps ceiling', () => {
+    const sensor = { id: 'network-total', name: 'Network Total', type: 'Rate', value: 5_000_000, units: 'B/s', formatted: '5 MB/s', parent: { id: 'network', name: 'Network' } };
+    expect(defaultFixedMax('network', sensor)).toBe(125_000_000);
   });
 });
 
@@ -77,5 +150,42 @@ describe('relativeHistoryDomain - non-percent cpu/gpu/memory sensors are type-aw
   it('Load- and Temperature-typed cpu/gpu sensors still clamp to the 100 percent ceiling', () => {
     expect(relativeHistoryDomain('gpu', 90, [], 100, 'GPU Core', 'Load')).toEqual([0, 100]);
     expect(relativeHistoryDomain('gpu', 45, [], 100, 'GPU Core', 'Temperature')).toEqual([0, 50]);
+  });
+});
+
+describe('isHeterogeneousTypeDevice', () => {
+  it('is true for motherboard, SSD SMART, and every extras-topic device', () => {
+    expect(isHeterogeneousTypeDevice('motherboard')).toBe(true);
+    expect(isHeterogeneousTypeDevice('smart')).toBe(true);
+    expect(isHeterogeneousTypeDevice('memoryModule')).toBe(true);
+    expect(isHeterogeneousTypeDevice('battery')).toBe(true);
+    expect(isHeterogeneousTypeDevice('cooler')).toBe(true);
+    expect(isHeterogeneousTypeDevice('psu')).toBe(true);
+    expect(isHeterogeneousTypeDevice('embeddedController')).toBe(true);
+  });
+
+  it('is false for the single-type-family devices', () => {
+    expect(isHeterogeneousTypeDevice('cpu')).toBe(false);
+    expect(isHeterogeneousTypeDevice('gpu')).toBe(false);
+    expect(isHeterogeneousTypeDevice('memory')).toBe(false);
+    expect(isHeterogeneousTypeDevice('storage')).toBe(false);
+    expect(isHeterogeneousTypeDevice('network')).toBe(false);
+    expect(isHeterogeneousTypeDevice('fan')).toBe(false);
+    expect(isHeterogeneousTypeDevice('fps')).toBe(false);
+  });
+});
+
+describe('relativeHistoryDomain / staticMaxForDevice - SSD SMART and extras devices reuse motherboard scaling', () => {
+  it('Fan-typed cooler sensors use the same domain as the fan device', () => {
+    expect(relativeHistoryDomain('cooler', 800, [], 2500, undefined, 'Fan')).toEqual([0, 1200]);
+  });
+
+  it('Temperature-typed smart sensors floor at 50 and cap at 100', () => {
+    expect(relativeHistoryDomain('smart', 60, [], 100, undefined, 'Temperature')).toEqual([0, 75]);
+  });
+
+  it('Voltage-typed psu sensors stretch to the observed max', () => {
+    expect(relativeHistoryDomain('psu', 1.25, [], 2, undefined, 'Voltage')).toEqual([0, 2]);
+    expect(staticMaxForDevice('psu', undefined, 'Voltage')).toBe(2);
   });
 });

@@ -4,43 +4,39 @@ import { Badge } from '../../common/Badge/Badge';
 import { InfoTooltip } from '../../common/InfoTooltip/InfoTooltip';
 import { Card } from '../../common/Card/Card';
 import type { DiagnosticsComponent, DiagnosticsKind } from '../../../api/diagnostics';
-import { orderComponentsByKind, reasonLabel, statusColor, statusLabelKey } from './diagnosticsHelpers';
+import { aggregateDomainTiles, reasonLabel, statusColor, statusLabelKey } from './diagnosticsHelpers';
 import styles from './DiagnosticsView.module.scss';
 
 interface ComponentHealthGridProps {
   components: DiagnosticsComponent[];
-  /** Jumps to the matching domain tab - a component's kind is exactly a tab key. */
+  /** Jumps to the matching domain tab - a tile's domain is exactly a tab key. */
   onNavigate: (kind: DiagnosticsKind) => void;
 }
 
-/** The at-a-glance overview grid: one card per health.components[] entry
- *  (storage/memory/gpu/cooling/system), each with a status pill and its
- *  reasons. Ordered to match the tab order (not the server's order) and
- *  clickable to jump to that domain's tab, which shows the richer
- *  per-endpoint data - this grid is the "what needs a look" summary. Hover/
- *  focus treatment matches the monitoring overview's dash cards (dashHover),
- *  not the default Card hover, per the visual-parity requirement. */
+/** The at-a-glance overview: a fixed 2x2 of four large domain tiles - Storage,
+ *  Memory, Cooling (GPU folded in), System - each aggregating the server's
+ *  per-device health.components into one worst-status roll-up with its flagged
+ *  reasons. Clickable to jump to that domain's tab, which shows the richer
+ *  per-endpoint data. Hover/focus treatment matches the monitoring overview's
+ *  dash cards (dashHover), per the visual-parity requirement. */
 export function ComponentHealthGrid({ components, onNavigate }: ComponentHealthGridProps) {
   const { t } = useTranslation();
-  const ordered = useMemo(() => orderComponentsByKind(components), [components]);
+  const tiles = useMemo(() => aggregateDomainTiles(components), [components]);
   return (
     <div className={styles.grid}>
-      {ordered.map(component => (
+      {tiles.map(tile => (
         <Card
-          key={component.id}
+          key={tile.domain}
           className={styles.healthCard}
-          compact
           interactive
           dashHover
-          title={t(`diagnostics.kind.${component.kind}`)}
-          subtitle={component.name !== t(`diagnostics.kind.${component.kind}`) ? component.name : undefined}
-          truncateSubtitle
-          actions={<Badge label={t(statusLabelKey(component.status))} color={statusColor(component.status)} />}
-          onClick={() => onNavigate(component.kind)}
+          title={t(`diagnostics.kind.${tile.domain}`)}
+          actions={<Badge label={t(statusLabelKey(tile.status))} color={statusColor(tile.status)} />}
+          onClick={() => onNavigate(tile.domain)}
         >
-          {component.reasons.length > 0 && (
+          {tile.reasons.length > 0 && (
             <ul className={styles.reasonList}>
-              {component.reasons.map((reason, i) => (
+              {tile.reasons.map((reason, i) => (
                 <li key={i} className={styles.reasonItem}>
                   <div className={styles.reasonText}>
                     <div className={styles.reasonLabel}>{reasonLabel(reason, t)}</div>

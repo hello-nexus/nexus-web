@@ -50,6 +50,10 @@ export interface UnifiedDevice {
   // True only for first-party curated handlers; gates whether the on/off
   // toggle renders. False for panel/peripheral/app-device and plugin devices.
   supportsNexusControl: boolean;
+  // True for a Nexus Control device driving non-HYTE/iBUYPOWER hardware
+  // (experimental support); drives the "Experimental" badge. Always false when
+  // supportsNexusControl is false.
+  experimental: boolean;
   // Device-level issue code (e.g. "usb-disconnected") surfaced as a warning
   // icon on the sidebar row and the Devices-page card; undefined = no issue.
   warning?: string;
@@ -223,6 +227,7 @@ export function useUnifiedDevices(enabled: boolean) {
         navigable: true,
         nexusControlEnabled: true,
         supportsNexusControl: false,
+        experimental: false,
       });
     }
     return list;
@@ -238,7 +243,7 @@ export function useUnifiedDevices(enabled: boolean) {
 
 function buildUnifiedList(
   panelDevices: PanelDevice[],
-  curated: { id: string; name: string; category: string; connected: boolean; firmwareVersion: string; nexusControlEnabled?: boolean; supportsNexusControl?: boolean; warning?: string | null; conflictAppId?: string }[],
+  curated: { id: string; name: string; category: string; connected: boolean; firmwareVersion: string; nexusControlEnabled?: boolean; supportsNexusControl?: boolean; experimental?: boolean; warning?: string | null; conflictAppId?: string }[],
   peripherals: Peripheral[],
   deviceApps: AppInstalledListing[] = [],
 ): UnifiedDevice[] {
@@ -273,6 +278,7 @@ function buildUnifiedList(
       navigable: true,
       nexusControlEnabled: backing?.nexusControlEnabled ?? true,
       supportsNexusControl: backing?.supportsNexusControl ?? false,
+      experimental: backing?.experimental ?? false,
       warning: p.warning ?? undefined,
       conflictAppId: backing?.conflictAppId,
     });
@@ -298,6 +304,7 @@ function buildUnifiedList(
       navigable: !CURATED_WITHOUT_PAGE.has(d.id),
       nexusControlEnabled: d.nexusControlEnabled ?? true,
       supportsNexusControl: d.supportsNexusControl ?? false,
+      experimental: d.experimental ?? false,
       warning: d.warning ?? undefined,
       conflictAppId: d.conflictAppId,
     });
@@ -321,6 +328,7 @@ function buildUnifiedList(
       navigable: p.capabilities.length > 0,
       nexusControlEnabled: true,
       supportsNexusControl: false,
+      experimental: false,
     });
   }
 
@@ -337,6 +345,7 @@ function buildUnifiedList(
       navigable: true,
       nexusControlEnabled: true,
       supportsNexusControl: false,
+      experimental: false,
     });
   }
 

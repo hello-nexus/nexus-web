@@ -110,6 +110,19 @@ export function xTickFormatForRange(hours: TemperatureRangeHours): (t: number) =
   return (t: number) => new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
+/** The [start, end] epoch-ms window the chart x-axis should span for the
+ *  selected range, so a range wider than the available data leaves the empty
+ *  span blank instead of stretching the data. A date resolves to that
+ *  browser-local calendar day; hours is a window ending at nowMs. */
+export function temperatureRangeDomain(hours: TemperatureRangeHours, date: string | null, nowMs: number): [number, number] {
+  if (date !== null) {
+    const [y, m, d] = date.split('-').map(Number);
+    const start = new Date(y, m - 1, d, 0, 0, 0, 0).getTime();
+    return [start, start + 24 * 3_600_000];
+  }
+  return [nowMs - hours * 3_600_000, nowMs];
+}
+
 /** Converts a raw Celsius value to the user's preferred unit and formats it with its symbol. */
 export function formatTemperatureCelsius(celsius: number, tempUnit: TempUnit, numberFormat: NumberFormat): string {
   return localizeNumbers(`${Math.round(convertTemperature(celsius, tempUnit))}${tempUnitSymbol(tempUnit)}`, numberFormat);
@@ -133,6 +146,16 @@ export function episodeDurationToken(startUtc: string, endUtc: string): EpisodeD
 /** A translucent chart band spanning an episode - the chart draws it behind the lines. */
 export function episodeBand(episode: DiagnosticsTemperatureEpisode): { startT: number; endT: number; color: string } {
   return { startT: new Date(episode.startUtc).getTime(), endT: new Date(episode.endUtc).getTime(), color: 'var(--warn)' };
+}
+
+/** Episodes whose span covers timestamp `t` (inclusive) - the chart bands the
+ *  cursor is currently over, surfaced in the hover tooltip as a warning. */
+export function episodesAtTime(episodes: readonly DiagnosticsTemperatureEpisode[], t: number): DiagnosticsTemperatureEpisode[] {
+  return episodes.filter(ep => {
+    const start = new Date(ep.startUtc).getTime();
+    const end = new Date(ep.endUtc).getTime();
+    return t >= start && t <= end;
+  });
 }
 
 export interface AppHoverEntry {

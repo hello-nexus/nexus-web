@@ -1,3 +1,4 @@
+import type { HardwareSensor } from '../../../hooks/useSensors';
 import type { DeviceKey } from './perfSlots';
 import type { GaugeDesignKey } from './gauges';
 
@@ -14,6 +15,56 @@ export function designSupportsScale(design: GaugeDesignKey): boolean {
   return SCALABLE_DESIGNS.has(design);
 }
 
+// Adaptive fallback ceiling for a Clock sensor on a heterogeneous-type
+// device (motherboard and the other mixed-bag categories below) with no
+// theoreticalMaximum - clock sensors don't carry an installed-capacity max
+// the way Data sensors do.
+const HETEROGENEOUS_CLOCK_MAX = 6000;
+
+// Fixed-mode default ceiling for network sensors, in the sensor's own unit
+// (bytes/sec - see networkSensors.ts formatNetworkRate). 1 Gbps. Network
+// sensors carry no theoreticalMaximum, so this is the only ceiling
+// defaultFixedMax has to offer; unlike the adaptive networkMaxValue it does
+// not track live throughput, or a Fixed axis wouldn't stay fixed.
+const NETWORK_FIXED_DEFAULT_MAX_BPS = 125_000_000;
+
+// Devices whose sensors are a heterogeneous LHM component (mixed Load/
+// Control/Level/Temperature alongside Fan/Clock/Voltage/Data/etc), needing
+// the same type-aware scaling motherboard already uses - SSD SMART and every
+// extras-topic device group are the same shape of mixed bag.
+const HETEROGENEOUS_TYPE_DEVICES = new Set<DeviceKey>([
+  'motherboard', 'smart', 'memoryModule', 'battery', 'cooler', 'psu', 'embeddedController',
+]);
+
+export function isHeterogeneousTypeDevice(device: DeviceKey): boolean {
+  return HETEROGENEOUS_TYPE_DEVICES.has(device);
+}
+
+export function staticMaxForDevice(device: DeviceKey, sensorName?: string, sensorType?: string): number {
+  if (device === 'fan') return 2500;
+  if (device === 'storage') return 100;
+  if (device === 'fps') return sensorName === 'Frame Time' ? 50 : 240;
+  if (device === 'network') return NETWORK_FIXED_DEFAULT_MAX_BPS;
+  if (isHeterogeneousTypeDevice(device)) {
+    switch (sensorType) {
+      case 'Fan': return 2500;
+      case 'Clock': return HETEROGENEOUS_CLOCK_MAX;
+      case 'Voltage': return 2;
+      default: return 100;
+    }
+  }
+  // Load/temperature/clock sensors: percentage max.
+  return 100;
+}
+
+// Ceiling for a slot's Fixed-range upper bound when the user hasn't set an
+// override: the sensor's own capacity when it carries one, else the same
+// per-device static ceiling the adaptive path falls back to.
+export function defaultFixedMax(device: DeviceKey, sensor: HardwareSensor | undefined, nameFallback?: string): number {
+  const sMax = sensor?.theoreticalMaximum && sensor.theoreticalMaximum > 0 ? sensor.theoreticalMaximum : 0;
+  return sMax || staticMaxForDevice(device, sensor?.name ?? nameFallback, sensor?.type);
+}
+
 export function chartDomainForScale(
   device: DeviceKey,
   rawValue: number,
@@ -22,8 +73,21 @@ export function chartDomainForScale(
   scale: ScaleMode,
   sensorName?: string,
   sensorType?: string,
+  fixedMin?: number,
+  fixedMax?: number,
+  fixedDefaultMax?: number,
 ): [number, number] {
-  if (scale === 'fixed') return [0, staticMax];
+  if (scale === 'fixed') {
+    const dmax = Number.isFinite(fixedDefaultMax) && (fixedDefaultMax as number) > 0 ? (fixedDefaultMax as number) : staticMax;
+    // The user types free values in the settings pane, so a max above the
+    // sensor's default ceiling is honored as-is; only an inverted or
+    // degenerate range falls back to the sensor default (below). A stale
+    // override surviving a device/sensor swap is cleared at the settings
+    // layer instead (slot{N}_min/max reset to null on device/sensor change).
+    const min = Math.max(0, Number.isFinite(fixedMin) ? (fixedMin as number) : 0);
+    const max = Number.isFinite(fixedMax) && (fixedMax as number) > 0 ? (fixedMax as number) : dmax;
+    return min < max ? [min, max] : [0, dmax];
+  }
   return relativeHistoryDomain(device, rawValue, history, staticMax, sensorName, sensorType);
 }
 
@@ -35,7 +99,7 @@ const FPS_FLOOR = 60;
 const FPS_STEP = 30;
 const FRAME_TIME_FLOOR = 20;
 const FRAME_TIME_STEP = 10;
-const MOTHERBOARD_TEMP_FLOOR = 50;
+const HETEROGENEOUS_TEMP_FLOOR = 50;
 
 /**
  * Relative chart domain for the panel performance line gauges. Lower bound
@@ -70,13 +134,13 @@ export function relativeHistoryDomain(
     }
     return [0, Math.max(FPS_FLOOR, Math.ceil(observed / FPS_STEP) * FPS_STEP)];
   }
-  if (device === 'motherboard') {
+  if (isHeterogeneousTypeDevice(device)) {
     if (sensorType === 'Fan') {
       return [0, Math.max(FAN_FLOOR, Math.ceil(observed / FAN_STEP) * FAN_STEP)];
     }
     if (sensorType === 'Temperature') {
       const stretched = Math.ceil(observed / PERCENT_STEP) * PERCENT_STEP;
-      return [0, Math.max(MOTHERBOARD_TEMP_FLOOR, Math.min(100, stretched))];
+      return [0, Math.max(HETEROGENEOUS_TEMP_FLOOR, Math.min(100, stretched))];
     }
     if (sensorType === 'Load' || sensorType === 'Control' || sensorType === 'Level') {
       const stretched = Math.ceil(observed / PERCENT_STEP) * PERCENT_STEP;

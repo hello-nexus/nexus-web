@@ -1,6 +1,9 @@
 import type { DiagnosticsFetchOptions, DiagnosticsIncidentsResponse, DiagnosticsSystemResponse } from '../../../api/diagnostics';
 import { IncidentsSection } from './IncidentsSection';
+import { IncidentCounts } from './IncidentCounts';
 import { SystemSection } from './SystemSection';
+import type { IncidentRangeHours } from './incidentTimelineHelpers';
+import styles from './DiagnosticsView.module.scss';
 
 interface SystemTabProps {
   system: {
@@ -16,17 +19,30 @@ interface SystemTabProps {
     refresh: () => void;
   };
   onLogsCleared: () => void;
+  incidentHours: IncidentRangeHours;
+  incidentDate: string | null;
+  onIncidentHoursChange: (hours: IncidentRangeHours) => void;
+  onIncidentDateChange: (date: string) => void;
 }
 
-/** System tab: the last-30-days counters + PnP problems, followed by Incidents (Open Event Viewer / Clear logs). */
-export function SystemTab({ system, incidents, onLogsCleared }: SystemTabProps) {
+/** System tab: the incident timeline (with its log actions + clicked-event
+ *  detail), then a two-column row under it - the "Last 30 days" counters on the
+ *  left and the Device Manager problems on the right. */
+export function SystemTab({
+  system, incidents, onLogsCleared, incidentHours, incidentDate, onIncidentHoursChange, onIncidentDateChange,
+}: SystemTabProps) {
   return (
     <>
-      <SystemSection data={system.data} loading={system.loading} error={system.error} onRefresh={system.refresh} />
       <IncidentsSection
         data={incidents.data} loading={incidents.loading} error={incidents.error}
         onRefresh={incidents.refresh} onLogsCleared={onLogsCleared}
+        hours={incidentHours} date={incidentDate}
+        onHoursChange={onIncidentHoursChange} onDateChange={onIncidentDateChange}
       />
+      <div className={styles.diagSplit}>
+        <IncidentCounts counts30d={system.data?.counts30d ?? null} />
+        <SystemSection data={system.data} loading={system.loading} error={system.error} onRefresh={system.refresh} />
+      </div>
     </>
   );
 }

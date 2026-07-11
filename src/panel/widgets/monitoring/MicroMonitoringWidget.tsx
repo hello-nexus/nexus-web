@@ -1,7 +1,9 @@
 import { useSensors } from '../../../hooks/useSensors';
+import { useSensorExtras } from '../../../hooks/useSensorExtras';
 import { useFpsSensors } from '../../../hooks/useFpsSensors';
 import { useNetworkMonitor } from '../../../hooks/useNetworkMonitor';
 import { useTempSensorPrefs, useUnitPrefs } from '../../../hooks/useUiSettings';
+import { useTranslation } from '../../../lib/i18n';
 import { useSharedSensorHistory } from '../common/useSharedSensorHistory';
 import type { PanelWidget } from '../../types';
 import {
@@ -9,7 +11,7 @@ import {
   networkMaxValue,
   NETWORK_SENSOR_TOTAL,
 } from './networkSensors';
-import type { DeviceKey } from './perfSlots';
+import { isExtrasBackedDevice, type DeviceKey } from './perfSlots';
 import {
   percentForSensor,
   resolveSensor,
@@ -38,9 +40,15 @@ function readMicroSensorName(widget: PanelWidget, index: number): string {
   return ((widget.config?.[`micro_sensor${index}`] as string | undefined) ?? '');
 }
 
+// quick/cpu/gpu/memory/motherboard/fan/storage/network/fps stay plain
+// literals, not routed through i18n (mirrors MonitoringWidget's
+// labelForDevice). The SMART and extras-topic categories route through
+// the DetailedTab family-title keys instead, since this bottom label is
+// the widget's always-visible primary device caption, not a rare fallback.
 function bottomLabelForDevice(
   device: DeviceKey,
   sensors: ReturnType<typeof useSensors>,
+  t: (key: string) => string,
 ): string {
   switch (device) {
     case 'quick': return 'Quick';
@@ -50,25 +58,34 @@ function bottomLabelForDevice(
     case 'motherboard': return sensors.motherboardModel || 'Motherboard';
     case 'fan': return sensors.motherboardModel || 'Fan';
     case 'storage': return 'Storage';
+    case 'smart': return t('monitoring.settings.category.smart');
+    case 'memoryModule': return t('monitoring.detailed.memoryModule');
+    case 'battery': return t('monitoring.detailed.battery');
+    case 'cooler': return t('monitoring.detailed.cooler');
+    case 'psu': return t('monitoring.detailed.psu');
+    case 'embeddedController': return t('monitoring.detailed.ec');
     case 'network': return 'Network';
     case 'fps': return 'FPS';
   }
 }
 
 export function MicroMonitoringWidget({ widget, count }: MicroMonitoringWidgetProps) {
+  const { t } = useTranslation();
   const device = readMicroDevice(widget);
   const sensorNames = Array.from({ length: count }, (_, i) => readMicroSensorName(widget, i));
 
   const usesFps = device === 'fps';
   const usesNetwork = device === 'network';
+  const usesExtras = isExtrasBackedDevice(device);
   const sensors = useSensors(true);
   const fpsSensors = useFpsSensors(usesFps);
   const network = useNetworkMonitor(usesNetwork);
   const networkSensors = buildNetworkSensors(network);
+  const extras = useSensorExtras(usesExtras);
   const tempPrefs = useTempSensorPrefs();
   const { monitoringTempUnit, numberFormat } = useUnitPrefs();
 
-  const bottomLabel = bottomLabelForDevice(device, sensors);
+  const bottomLabel = bottomLabelForDevice(device, sensors, t);
 
   return (
     <div className={styles.micro}>
@@ -79,6 +96,7 @@ export function MicroMonitoringWidget({ widget, count }: MicroMonitoringWidgetPr
             sensors={sensors}
             fpsSensors={fpsSensors}
             networkSensors={networkSensors}
+            extras={extras}
             device={device}
             sensorName={rawName}
             tempPrefs={tempPrefs}
@@ -98,6 +116,7 @@ interface MicroRowProps {
   sensors: ReturnType<typeof useSensors>;
   fpsSensors: ReturnType<typeof useFpsSensors>;
   networkSensors: ReturnType<typeof buildNetworkSensors>;
+  extras: ReturnType<typeof useSensorExtras>;
   device: DeviceKey;
   sensorName: string;
   tempPrefs?: { cpuId: string; gpuId: string };
@@ -105,9 +124,9 @@ interface MicroRowProps {
   numberFormat: NumberFormat;
 }
 
-function MicroRow({ sensors, fpsSensors, networkSensors, device, sensorName, tempPrefs, monitoringTempUnit, numberFormat }: MicroRowProps) {
+function MicroRow({ sensors, fpsSensors, networkSensors, extras, device, sensorName, tempPrefs, monitoringTempUnit, numberFormat }: MicroRowProps) {
   const effectiveSensorName = device === 'network' && !sensorName ? NETWORK_SENSOR_TOTAL : sensorName;
-  const sensor = resolveSensor(sensors, fpsSensors, networkSensors, device, effectiveSensorName, tempPrefs);
+  const sensor = resolveSensor(sensors, fpsSensors, networkSensors, device, effectiveSensorName, tempPrefs, extras);
   const rawValue = sensor?.value ?? 0;
   const formatted = sensor ? formatSensorValue(sensor.value, sensor.units, sensor.formatted, monitoringTempUnit, numberFormat) : '-';
   const sensorDisplayName = sensor?.name ?? '';

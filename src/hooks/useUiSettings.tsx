@@ -24,7 +24,7 @@ import {
 } from '../lib/units';
 import { useTopicCallback } from './useMultiplexSocket';
 import { useTranslation } from '../lib/i18n';
-import { sanitizePinnedTail } from '../app/sidebarApps';
+import { sanitizePinnedTail, sanitizeRecents } from '../app/sidebarApps';
 
 /**
  * Unified user-settings hook.
@@ -76,6 +76,11 @@ export interface UiSettingsValue {
   // but nexus-service has no matching field yet - see UiPrefs.pinnedSidebarApps
   // in api/profiles.ts for the durability gap this leaves.
   pinnedSidebarApps: string[];
+  // Recently opened unpinned apps, oldest first - the sidebar's below-separator
+  // "recently opened" rows (macOS dock semantics). Posted under
+  // ui.recentSidebarApps; same durability gap as pinnedSidebarApps above (see
+  // UiPrefs.recentSidebarApps in api/profiles.ts).
+  recentSidebarApps: string[];
   // One-time marker: the OEM bake-in app's dashboard widget + sidebar pin
   // have been reconciled onto this profile (see useOemAppSeed). Server-only,
   // like the update block below - not mirrored to localStorage.
@@ -128,13 +133,16 @@ export const DIAGNOSTICS_SETTINGS_DEFAULTS = {
   storageTempC: 70,
   ramTempC: 60,
   warningLingerMinutes: 0,
+  // Master switch off by default; every category on, so turning notifications
+  // on alerts for all of them without extra setup. Mirrors the service
+  // DiagnosticsNotifications defaults.
   notificationsEnabled: false,
-  notifyHighTemp: false,
-  notifyStorageHealth: false,
-  notifyCooling: false,
-  notifyMemoryTest: false,
-  notifySystemDevices: false,
-  notifyGpuThrottle: false,
+  notifyHighTemp: true,
+  notifyStorageHealth: true,
+  notifyCooling: true,
+  notifyMemoryTest: true,
+  notifySystemDevices: true,
+  notifyGpuThrottle: true,
   notificationCooldownMinutes: 60,
   componentCpu: true,
   componentGpu: true,
@@ -180,6 +188,7 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     preferredGpuTempSensorId: '',
     preferredGpuId: '',
     pinnedSidebarApps: sanitizePinnedTail(src.general.pinnedSidebarApps),
+    recentSidebarApps: sanitizeRecents(src.general.recentSidebarApps),
     oemAppSeeded: false,
     widgetAdvancedMode: src.general.widgetAdvancedMode,
     monitoringTempUnit: src.general.monitoringTempUnit,
@@ -225,6 +234,7 @@ function toNexusSettings(src: UiSettingsValue): NexusSettings {
       showMacStatusBarIcon: src.showMacStatusBarIcon,
       showWindowsTrayIcon: src.showWindowsTrayIcon,
       pinnedSidebarApps: src.pinnedSidebarApps,
+      recentSidebarApps: src.recentSidebarApps,
       widgetAdvancedMode: src.widgetAdvancedMode,
       monitoringTempUnit: src.monitoringTempUnit,
       timeFormat: src.timeFormat,
@@ -259,9 +269,10 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.preferredGpuId !== undefined) cooling.preferredGpuId = patch.preferredGpuId;
   if (Object.keys(cooling).length > 0) out.cooling = cooling;
   // ui block
-  const ui: Partial<{ showConflictAlerts: boolean; pinnedSidebarApps: string[]; oemAppSeeded: boolean }> = {};
+  const ui: Partial<{ showConflictAlerts: boolean; pinnedSidebarApps: string[]; recentSidebarApps: string[]; oemAppSeeded: boolean }> = {};
   if (patch.showConflictAlerts !== undefined) ui.showConflictAlerts = patch.showConflictAlerts;
   if (patch.pinnedSidebarApps !== undefined) ui.pinnedSidebarApps = patch.pinnedSidebarApps;
+  if (patch.recentSidebarApps !== undefined) ui.recentSidebarApps = patch.recentSidebarApps;
   if (patch.oemAppSeeded !== undefined) ui.oemAppSeeded = patch.oemAppSeeded;
   if (Object.keys(ui).length > 0) out.ui = ui;
   // update block
@@ -333,6 +344,12 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
     pinnedSidebarApps: server.ui?.pinnedSidebarApps !== undefined
       ? sanitizePinnedTail(server.ui.pinnedSidebarApps)
       : base.pinnedSidebarApps,
+    // server.ui.recentSidebarApps is always undefined today (no service
+    // support - see the field comment above), so this always keeps `base`,
+    // same load-bearing fallback as pinnedSidebarApps.
+    recentSidebarApps: server.ui?.recentSidebarApps !== undefined
+      ? sanitizeRecents(server.ui.recentSidebarApps)
+      : base.recentSidebarApps,
     oemAppSeeded: server.ui?.oemAppSeeded ?? base.oemAppSeeded,
     updateMode: (server.update?.updateMode as UpdateMode) ?? base.updateMode,
     updateChannel: (server.update?.updateChannel as UpdateChannel) ?? base.updateChannel,
@@ -504,6 +521,7 @@ export function UiSettingsProvider({
         showMacStatusBarIcon: prefs.monitoring?.showMacStatusBarIcon,
         showWindowsTrayIcon: prefs.monitoring?.showWindowsTrayIcon,
         pinnedSidebarApps: prefs.ui?.pinnedSidebarApps,
+        recentSidebarApps: prefs.ui?.recentSidebarApps,
       });
     }).catch(() => { /* best-effort */ });
   }, [serviceOnline, persistLocal, setLanguage, manageDom, scheduleServerWrite]);
@@ -601,4 +619,15 @@ export function useUnitPrefs(): {
     timeFormat: ctx.settings.timeFormat,
     numberFormat: ctx.settings.numberFormat,
   };
+}
+
+/**
+ * Read-only accessor for how long a temperature warning lingers after the
+ * episode ends (minutes; 0 = clears immediately). Returns the contract default
+ * outside a UiSettingsProvider (tests, harness) so callers degrade instead of
+ * crashing - same pattern as {@link useUnitPrefs}.
+ */
+export function useDiagnosticsWarningLingerMinutes(): number {
+  const ctx = useContext(UiSettingsContext);
+  return ctx ? ctx.settings.diagnosticsWarningLingerMinutes : DIAGNOSTICS_SETTINGS_DEFAULTS.warningLingerMinutes;
 }

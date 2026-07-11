@@ -67,6 +67,18 @@ const EMPTY: SensorState = {
   motherboardModel: '', cpuModel: '', gpuModels: [], memoryTotal: '',
 };
 
+// Marker prefix the service puts on LHM SMART physical-drive component keys
+// (e.g. "smart/nvme/0"), distinct from the DriveInfo logical-volume keys
+// ("C:", "D:"). Mirrors the service's LhmComponentIdentifiers.IsSmartStorageComponent.
+// The child sensors keep raw LHM ids and a `parent.id` that collides with
+// extras.nvmeStorage's component id, so this component-key check is the only
+// reliable way to distinguish SMART storage.
+const SMART_STORAGE_ID_PREFIX = 'smart/';
+
+export function isSmartStorageComponentId(id: string): boolean {
+  return id.startsWith(SMART_STORAGE_ID_PREFIX);
+}
+
 /**
  * Subscribes to individual sensor topics via the multiplexed WebSocket.
  * Zero HTTP requests for sensor data - the service controls the push
@@ -96,7 +108,16 @@ export function useSensors(enabled: boolean): SensorState {
       memory: memComponent?.sensors ?? [],
       storage: [],
       storageComponents: drives,
-      storageSensors: Object.values(drives).flatMap(drive => drive.sensors ?? []),
+      // Excludes smart/* components: this feeds both the monitoring widget's
+      // 'storage' category and the Tryx overlay picker (sensorCategories.ts),
+      // and the service's own TryxPanoramaHub never resolves a smart/* sensor
+      // id (it calls GetStorageComponents(includeSmart: false)), so including
+      // them here would let a user pick an overlay sensor that always
+      // renders "--". SSD SMART is surfaced separately for the widget only,
+      // see sensorCategories.smartStorageSensors.
+      storageSensors: Object.entries(drives)
+        .filter(([id]) => !isSmartStorageComponentId(id))
+        .flatMap(([, drive]) => drive.sensors ?? []),
       motherboard: moboComponent?.sensors ?? [],
       motherboardModel: moboComponent?.name ?? '',
       cpuModel: cpuComponent?.name ?? '',

@@ -1,14 +1,15 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { ComponentType } from 'react';
-import { ChevronDown, ChevronRight, ExternalLink, Gamepad2, History, Info, OctagonAlert, Trash2, TriangleAlert } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState, type ComponentType } from 'react';
+import { ExternalLink, Gamepad2, Info, OctagonAlert, Trash2, TriangleAlert } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { SectionHeader } from '../../common/SectionHeader/SectionHeader';
-import { EmptyState } from '../../common/EmptyState/EmptyState';
-import { Badge } from '../../common/Badge/Badge';
 import { Button } from '../../common/Button/Button';
+import { Badge } from '../../common/Badge/Badge';
 import { ChipGroup, type ChipOption } from '../../common/ChipGroup/ChipGroup';
+import { DatePicker } from '../../common/DatePicker/DatePicker';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { useToast } from '../../common/Toast/Toast';
+import { EventTimeline, eventTimelineClusterKey } from '../../common/EventTimeline/EventTimeline';
+import { formatTooltipTimestamp } from '../../common/TimeSeriesChart/timeSeriesChartUtils';
 import {
   clearDiagnosticsEventLogs,
   openDiagnosticsEventViewer,
@@ -18,6 +19,19 @@ import {
 } from '../../../api/diagnostics';
 import { NotAvailableNote, SectionLoadError } from './DiagnosticsSectionStates';
 import { incidentAppFaultLine, incidentSeverityColor, incidentSourceLabelKey, relativeTimeLabel, resolveSectionState } from './diagnosticsHelpers';
+import {
+  INCIDENT_RANGE_OPTIONS,
+  filterIncidentsToDomain,
+  incidentEvents,
+  incidentGroupLabelKey,
+  incidentLanes,
+  incidentTimelineDomain,
+  incidentXTickFormat,
+  type IncidentRangeHours,
+  type IncidentTimelineEvent,
+  type IncidentTimelineQuery,
+} from './incidentTimelineHelpers';
+import { minSelectableTemperatureDate, temperatureRangeLabelKey, todayIso } from './temperatureHelpers';
 import styles from './DiagnosticsView.module.scss';
 
 interface IncidentsSectionProps {
@@ -29,6 +43,10 @@ interface IncidentsSectionProps {
    *  onRefresh - the health overview and System section's counts also read
    *  from data the clear just invalidated. */
   onLogsCleared: () => void;
+  hours: IncidentRangeHours;
+  date: string | null;
+  onHoursChange: (hours: IncidentRangeHours) => void;
+  onDateChange: (date: string) => void;
 }
 
 const SEVERITY_ICON: Record<DiagnosticsIncidentSeverity, ComponentType<{ size?: number }>> = {
@@ -37,24 +55,28 @@ const SEVERITY_ICON: Record<DiagnosticsIncidentSeverity, ComponentType<{ size?: 
   info: Info,
 };
 
-const ALL_SOURCES_KEY = 'all';
-const PAGE_SIZE = 20;
+interface SelectedCluster {
+  key: string;
+  laneId: string;
+  incidents: DiagnosticsIncident[];
+}
 
-export function IncidentsSection({ data, loading, error, onRefresh, onLogsCleared }: IncidentsSectionProps) {
-  const { t } = useTranslation();
+/**
+ * System tab incidents shown as a swimlane timeline: one lane per incident
+ * category (all categories always, empty tracks included), a dot at each
+ * event's exact time colored by severity, over the full selected 24h/3d/7d/14d
+ * range or day - the axis never squishes to the data. The range picker sits to
+ * the right of the title (matching the Cooling temperature chart). Under the
+ * graph: the log actions, then the clicked dot's incident detail list. The
+ * 30-day counters and Device problems sit below this section (see SystemTab).
+ */
+export function IncidentsSection({
+  data, loading, error, onRefresh, onLogsCleared, hours, date, onHoursChange, onDateChange,
+}: IncidentsSectionProps) {
+  const { t, language } = useTranslation();
   const { push } = useToast();
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => { setNow(Date.now()); }, [data]);
-  const [sourceFilter, setSourceFilter] = useState(ALL_SOURCES_KEY);
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  // Reset the reveal depth during render (not an effect) when the filter or
-  // the underlying data changes, so the narrowed/reshuffled set never paints
-  // with a stale (possibly too-large) visibleCount from a prior "Show more".
-  const [prevResetKey, setPrevResetKey] = useState({ data, sourceFilter });
-  if (prevResetKey.data !== data || prevResetKey.sourceFilter !== sourceFilter) {
-    setPrevResetKey({ data, sourceFilter });
-    setVisibleCount(PAGE_SIZE);
-  }
 
   const state = resolveSectionState({
     hasData: data !== null,
@@ -64,24 +86,28 @@ export function IncidentsSection({ data, loading, error, onRefresh, onLogsCleare
     isEmpty: (data?.incidents.length ?? 0) === 0,
   });
 
-  const presentSources = useMemo(() => {
-    if (!data) return [];
-    return Array.from(new Set(data.incidents.map(incident => incident.source)));
-  }, [data]);
+  const isDateMode = date !== null;
+  const query = useMemo<IncidentTimelineQuery>(() => (date !== null ? { date } : { hours }), [date, hours]);
+  const domain = useMemo(() => incidentTimelineDomain(query, now), [query, now]);
+  const filtered = useMemo(() => (data ? filterIncidentsToDomain(data.incidents, domain) : []), [data, domain]);
+  // Fixed lane set (every category), so the timeline height/order stay stable
+  // and an empty category still shows an empty track.
+  const lanes = useMemo(() => incidentLanes(t), [t]);
+  const events = useMemo(() => incidentEvents(filtered), [filtered]);
 
-  const filtered = useMemo(() => {
-    if (!data) return [];
-    if (sourceFilter === ALL_SOURCES_KEY) return data.incidents;
-    return data.incidents.filter(incident => incident.source === sourceFilter);
-  }, [data, sourceFilter]);
+  // The dot whose detail list is open. Cleared during render (not an effect)
+  // when the data or range changes so a stale cluster never lingers.
+  const [selected, setSelected] = useState<SelectedCluster | null>(null);
+  const [resetKey, setResetKey] = useState({ data, hours, date });
+  if (resetKey.data !== data || resetKey.hours !== hours || resetKey.date !== date) {
+    setResetKey({ data, hours, date });
+    setSelected(null);
+  }
 
-  const paged = filtered.slice(0, visibleCount);
-  const hasMore = filtered.length > paged.length;
-
-  const chipOptions: ChipOption[] = [
-    { key: ALL_SOURCES_KEY, label: t('diagnostics.incidents.filter.all') },
-    ...presentSources.map(source => ({ key: source, label: t(incidentSourceLabelKey(source)) })),
-  ];
+  const today = todayIso();
+  const windowDays = data?.windowDays ?? 30;
+  const minDate = minSelectableTemperatureDate(today, windowDays);
+  const rangeOptions: ChipOption[] = INCIDENT_RANGE_OPTIONS.map(h => ({ key: String(h), label: t(temperatureRangeLabelKey(h)) }));
 
   const [openingViewer, setOpeningViewer] = useState(false);
   const handleOpenEventViewer = useCallback(async () => {
@@ -123,8 +149,48 @@ export function IncidentsSection({ data, loading, error, onRefresh, onLogsCleare
     <section className={styles.section}>
       <div className={styles.sectionHeaderRow}>
         <SectionHeader>{t('diagnostics.incidents.title')}</SectionHeader>
-        {data?.supported && (
-          <div className={styles.incidentsHeaderActions}>
+        <div className={styles.temperatureControls}>
+          <ChipGroup
+            options={rangeOptions}
+            activeKey={isDateMode ? '' : String(hours)}
+            onChange={key => onHoursChange(Number(key) as IncidentRangeHours)}
+            ariaLabel={t('diagnostics.incidents.rangeAriaLabel')}
+          />
+          <div className={`${styles.temperatureDayPicker}${isDateMode ? '' : ` ${styles.temperatureDayPickerInactive}`}`}>
+            <DatePicker
+              value={date ?? today}
+              max={today}
+              min={minDate}
+              onChange={onDateChange}
+              ariaLabel={t('diagnostics.incidents.dayPickerAriaLabel')}
+            />
+          </div>
+        </div>
+      </div>
+
+      {state === 'error' && <SectionLoadError onRetry={() => onRefresh()} loading={loading} />}
+      {state === 'notSupported' && <NotAvailableNote />}
+      {data?.supported && (state === 'content' || state === 'empty') && (
+        <>
+          <EventTimeline
+            lanes={lanes}
+            events={events}
+            domain={domain}
+            xTickFormat={incidentXTickFormat(query)}
+            ariaLabel={t('diagnostics.incidents.title')}
+            selectedKey={selected?.key ?? null}
+            onSelect={cluster => {
+              const key = eventTimelineClusterKey(cluster);
+              setSelected(prev => (prev?.key === key
+                ? null
+                : { key, laneId: cluster.laneId, incidents: cluster.events.map(e => e.incident) }));
+            }}
+            renderTooltip={cluster => (
+              <IncidentClusterTooltip laneId={cluster.laneId} events={cluster.events} nowMs={now} language={language} />
+            )}
+          />
+
+          <div className={styles.incidentsActions}>
             <Button
               tone="ghost" size="sm" icon={<ExternalLink size={13} />} loading={openingViewer}
               onClick={() => void handleOpenEventViewer()}
@@ -138,42 +204,13 @@ export function IncidentsSection({ data, loading, error, onRefresh, onLogsCleare
               {t('diagnostics.incidents.clearLogs')}
             </Button>
           </div>
-        )}
-      </div>
-      {state === 'error' && <SectionLoadError onRetry={() => onRefresh()} loading={loading} />}
-      {state === 'notSupported' && <NotAvailableNote />}
-      {state === 'empty' && (
-        <EmptyState
-          compact
-          icon={<History size={22} />}
-          title={t('diagnostics.incidents.empty', { days: String(data?.windowDays ?? 30) })}
-        />
-      )}
-      {state === 'content' && data && (
-        <>
-          {presentSources.length > 1 && (
-            <div className={styles.incidentFilters}>
-              <ChipGroup
-                options={chipOptions}
-                activeKey={sourceFilter}
-                onChange={setSourceFilter}
-                ariaLabel={t('diagnostics.incidents.title')}
-              />
-            </div>
-          )}
-          <div className={styles.incidentsList}>
-            {paged.map(incident => <IncidentRow key={incident.id} incident={incident} now={now} />)}
-          </div>
-          {filtered.length > PAGE_SIZE && (
-            <div className={styles.incidentsPager}>
-              <span className={styles.incidentsPagerCount}>
-                {t('diagnostics.incidents.shownOfTotal', { shown: String(paged.length), total: String(filtered.length) })}
-              </span>
-              {hasMore && (
-                <Button tone="ghost" size="sm" onClick={() => setVisibleCount(c => c + PAGE_SIZE)}>
-                  {t('diagnostics.incidents.showMore')}
-                </Button>
-              )}
+
+          {selected && (
+            <div className={styles.selectedDetail}>
+              <div className={styles.selectedDetailHeader}>{t(incidentGroupLabelKey(selected.laneId))}</div>
+              {selected.incidents.map(incident => (
+                <IncidentDetailRow key={incident.id} incident={incident} now={now} />
+              ))}
             </div>
           )}
         </>
@@ -195,69 +232,67 @@ export function IncidentsSection({ data, loading, error, onRefresh, onLogsCleare
   );
 }
 
-function IncidentRow({ incident, now }: { incident: DiagnosticsIncident; now: number }) {
+function IncidentClusterTooltip({ laneId, events, nowMs, language }: {
+  laneId: string;
+  events: IncidentTimelineEvent[];
+  nowMs: number;
+  language: string;
+}) {
   const { t } = useTranslation();
-  const [expanded, setExpanded] = useState(false);
-  const Icon = SEVERITY_ICON[incident.severity];
-  const hasDetail = Boolean(incident.detail) || incident.app !== null || incident.repeatCount > 1;
-  const appFaultLine = incident.app ? incidentAppFaultLine(incident.app) : null;
-
-  const toggle = () => setExpanded(e => !e);
-  const summary = (
-    <>
-      <span className={styles.incidentIcon} style={{ color: incidentSeverityColor(incident.severity) }}>
-        <Icon size={16} aria-hidden />
-      </span>
-      <Badge label={t(incidentSourceLabelKey(incident.source))} color="var(--text-dim)" />
-      <span className={styles.incidentTitle}>{incident.title}</span>
-      {incident.repeatCount > 1 && (
-        <Badge label={t('diagnostics.incidents.repeatCount', { n: String(incident.repeatCount) })} color="var(--text-dim)" />
-      )}
-      <span className={styles.incidentTime}>{relativeTimeLabel(incident.timeUtc, now, t)}</span>
-      {hasDetail && (
-        expanded
-          ? <ChevronDown size={14} className={styles.incidentChevron} aria-hidden />
-          : <ChevronRight size={14} className={styles.incidentChevron} aria-hidden />
-      )}
-    </>
-  );
-
+  const MAX_ROWS = 6;
+  const shown = events.slice(0, MAX_ROWS);
+  const extra = events.length - shown.length;
   return (
-    <div className={styles.incidentRow}>
-      {hasDetail ? (
-        <div
-          className={styles.incidentSummary}
-          role="button"
-          tabIndex={0}
-          aria-expanded={expanded}
-          onClick={toggle}
-          onKeyDown={e => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              toggle();
-            }
-          }}
-        >
-          {summary}
-        </div>
-      ) : (
-        <div className={styles.incidentSummary}>{summary}</div>
+    <div className={styles.incidentTooltip}>
+      <div className={styles.incidentTooltipHeader}>{t(incidentGroupLabelKey(laneId))}</div>
+      {shown.map(ev => {
+        const Icon = SEVERITY_ICON[ev.incident.severity];
+        return (
+          <div key={ev.id} className={styles.incidentTooltipRow}>
+            <span className={styles.incidentIcon} style={{ color: incidentSeverityColor(ev.incident.severity) }}>
+              <Icon size={13} aria-hidden />
+            </span>
+            <span className={styles.incidentTooltipTitle}>{ev.incident.title}</span>
+            <span className={styles.incidentTooltipTime}>{formatTooltipTimestamp(ev.t, nowMs, language)}</span>
+          </div>
+        );
+      })}
+      {extra > 0 && (
+        <div className={styles.incidentTooltipMore}>{t('diagnostics.incidents.moreCount', { n: String(extra) })}</div>
       )}
-      {expanded && hasDetail && (
-        <div className={styles.incidentDetailBody}>
-          {incident.app?.isGame && (
-            <Badge label={t('diagnostics.incidents.game')} color="var(--accent)" icon={<Gamepad2 size={11} />} />
-          )}
-          {incident.detail && <div className={styles.incidentDetail}>{incident.detail}</div>}
-          {incident.app && (
-            <div className={styles.incidentDetail}>{`${incident.app.name} - ${incident.app.path}`}</div>
-          )}
-          {appFaultLine && <div className={styles.incidentDetail}>{appFaultLine}</div>}
-          {incident.repeatCount > 1 && incident.firstUtc && (
-            <div className={styles.incidentDetail}>
-              {t('diagnostics.incidents.firstSeen', { time: relativeTimeLabel(incident.firstUtc, now, t) })}
-            </div>
-          )}
+    </div>
+  );
+}
+
+/** Full detail for one incident, shown in the under-graph list when its dot is
+ *  clicked - severity + title + time, then the server detail, the faulting app,
+ *  and repeat/first-seen. */
+function IncidentDetailRow({ incident, now }: { incident: DiagnosticsIncident; now: number }) {
+  const { t } = useTranslation();
+  const Icon = SEVERITY_ICON[incident.severity];
+  const appFaultLine = incident.app ? incidentAppFaultLine(incident.app) : null;
+  return (
+    <div className={styles.incidentDetailItem}>
+      <div className={styles.incidentDetailHead}>
+        <span className={styles.incidentIcon} style={{ color: incidentSeverityColor(incident.severity) }}>
+          <Icon size={15} aria-hidden />
+        </span>
+        <Badge label={t(incidentSourceLabelKey(incident.source))} color="var(--text-dim)" />
+        <span className={styles.incidentDetailTitle}>{incident.title}</span>
+        {incident.app?.isGame && (
+          <Badge label={t('diagnostics.incidents.game')} color="var(--accent)" icon={<Gamepad2 size={11} />} />
+        )}
+        {incident.repeatCount > 1 && (
+          <Badge label={t('diagnostics.incidents.repeatCount', { n: String(incident.repeatCount) })} color="var(--text-dim)" />
+        )}
+        <span className={styles.incidentDetailTime}>{relativeTimeLabel(incident.timeUtc, now, t)}</span>
+      </div>
+      {incident.detail && <div className={styles.incidentDetailLine}>{incident.detail}</div>}
+      {incident.app && <div className={styles.incidentDetailLine}>{`${incident.app.name} - ${incident.app.path}`}</div>}
+      {appFaultLine && <div className={styles.incidentDetailLine}>{appFaultLine}</div>}
+      {incident.repeatCount > 1 && incident.firstUtc && (
+        <div className={styles.incidentDetailLine}>
+          {t('diagnostics.incidents.firstSeen', { time: relativeTimeLabel(incident.firstUtc, now, t) })}
         </div>
       )}
     </div>

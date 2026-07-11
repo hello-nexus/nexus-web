@@ -1,4 +1,5 @@
 import type { MonitoringFrame } from '../../../../hooks/useMonitoringFrame';
+import { isSmartStorageComponentId } from '../../../../hooks/useSensors';
 import { useTranslation } from '../../../../lib/i18n';
 import { useUiSettings, useUnitPrefs } from '../../../../hooks/useUiSettings';
 import { resolveCpuTempSensor, resolveGpuTempSensor } from '../../../../lib/tempSensorResolver';
@@ -32,6 +33,10 @@ export function OverviewTab({ frame, hist, gpuSupported, onNavigate }: {
   const gpuName = primaryGpu?.name ?? frame?.gpuModels?.[0] ?? '';
   const memorySensors = frame?.memory?.sensors ?? [];
   const storageComponents = frame?.storage ?? {};
+  // The storage topic also carries LHM SMART components (smart/*), alongside
+  // the DriveInfo logical-volume ones (C:, D:, ...) - exclude them so the
+  // capacity cards below only ever map the latter.
+  const capacityEntries = Object.entries(storageComponents).filter(([id]) => !isSmartStorageComponentId(id));
   const processes = frame?.processes;
   const network = frame?.network;
 
@@ -198,7 +203,7 @@ export function OverviewTab({ frame, hist, gpuSupported, onNavigate }: {
             <span className={styles.dashCardTitle}>{t('monitoring.detailed.storage')}</span>
           </div>
           <div className={styles.dashStorageList}>
-            {Object.entries(storageComponents).map(([mount, sc]) => {
+            {capacityEntries.map(([mount, sc]) => {
               const pct = parseFloat(sc.usedPercentage) || 0;
               return (
                 <div key={mount} className={styles.dashDriveItem}>

@@ -5,16 +5,12 @@ import type {
   CoolingDeviceStatus,
   DiagnosticsComponent,
   DiagnosticsDriveStatus,
-  DiagnosticsGpuResponse,
   DiagnosticsIncidentApp,
   DiagnosticsIncidentSeverity,
   DiagnosticsKind,
-  DiagnosticsMemoryResponse,
   DiagnosticsReason,
   DiagnosticsStatus,
 } from '../../../api/diagnostics';
-import type { SystemSpecs } from '../../../hooks/useSystemSpecs';
-import type { SystemSpecRow } from '../../common/SystemSpecsPanel/SystemSpecsPanel';
 import { localizeNumbers, type NumberFormat } from '../../../lib/units';
 
 const STATUS_SEVERITY_RANK: Record<DiagnosticsStatus, number> = { act: 3, watch: 2, unknown: 1, ok: 0 };
@@ -181,10 +177,39 @@ export function resolveSectionState(opts: {
  *  so both surfaces agree on one ordering. */
 export const DIAGNOSTICS_KIND_ORDER: DiagnosticsKind[] = ['storage', 'memory', 'gpu', 'cooling', 'system'];
 
-/** Stable-sorts components by DIAGNOSTICS_KIND_ORDER; components sharing a
- *  kind keep their relative server order. */
-export function orderComponentsByKind(components: DiagnosticsComponent[]): DiagnosticsComponent[] {
-  return [...components].sort((a, b) => DIAGNOSTICS_KIND_ORDER.indexOf(a.kind) - DIAGNOSTICS_KIND_ORDER.indexOf(b.kind));
+/** One summary tile per hardware domain, aggregating the server's per-device
+ *  health.components into a fixed 2x2: Storage / Memory / Cooling / System.
+ *  GPU folds into Cooling (its temperature already lives in the Cooling tab's
+ *  chart; its throttle is a thermal/power signal). Tile status is the worst of
+ *  its members by STATUS_SEVERITY_RANK - 'unknown' when a domain has no
+ *  component at all - matching kindStatus so the widget dots and these tiles
+ *  agree. Reasons are concatenated in member order so the tile lists every
+ *  flagged sub-device. The domain is a valid tab key, so a tile navigates
+ *  straight to its tab. */
+export interface DomainTile {
+  domain: DiagnosticsKind;
+  status: DiagnosticsStatus;
+  reasons: DiagnosticsReason[];
+}
+
+const DOMAIN_TILE_KINDS: readonly { domain: DiagnosticsKind; kinds: readonly DiagnosticsKind[] }[] = [
+  { domain: 'storage', kinds: ['storage'] },
+  { domain: 'memory', kinds: ['memory'] },
+  { domain: 'cooling', kinds: ['cooling', 'gpu'] },
+  { domain: 'system', kinds: ['system'] },
+];
+
+export function aggregateDomainTiles(components: DiagnosticsComponent[]): DomainTile[] {
+  return DOMAIN_TILE_KINDS.map(({ domain, kinds }) => {
+    const members = components.filter(c => kinds.includes(c.kind));
+    let status: DiagnosticsStatus = members.length === 0 ? 'unknown' : 'ok';
+    const reasons: DiagnosticsReason[] = [];
+    for (const member of members) {
+      if (STATUS_SEVERITY_RANK[member.status] > STATUS_SEVERITY_RANK[status]) status = member.status;
+      reasons.push(...member.reasons);
+    }
+    return { domain, status, reasons };
+  });
 }
 
 // Device Manager problem codes (Code N) mapped to their standard one-line
@@ -256,45 +281,4 @@ export function formatBytes(bytes: number, numberFormat: NumberFormat): string {
   }
   const decimals = index === 0 || Number.isInteger(scaled) ? 0 : 1;
   return localizeNumbers(`${scaled.toFixed(decimals)} ${BYTE_UNITS[index]}`, numberFormat);
-}
-
-/**
- * Composes the Summary tab's "PC specifications" rows for SystemSpecsPanel.
- * Field labels reuse devices.specs.row.* - the same wording as Devices >
- * System Specs, since this is the same component. CPU / motherboard /
- * memory / GPU / OS build / PC name come from useSystemSpecs (GET
- * /system/specs) - no diagnostics endpoint carries them. The XMP flag and
- * GPU driver version fold into the value string from the diagnostics
- * memory/gpu resources the page already fetches. Rows with no data are
- * omitted rather than shown blank.
- */
-export function buildSpecRows(
-  specs: SystemSpecs | null,
-  memory: DiagnosticsMemoryResponse | null,
-  gpu: DiagnosticsGpuResponse | null,
-  translate: (key: string, params?: Record<string, string>) => string,
-): SystemSpecRow[] {
-  const rows: SystemSpecRow[] = [];
-  if (specs?.processor) rows.push({ label: translate('devices.specs.row.processor'), value: specs.processor });
-  if (specs?.motherboard) rows.push({ label: translate('devices.specs.row.motherboard'), value: specs.motherboard });
-  if (specs?.memory) {
-    const value = memory?.xmpLikelyActive
-      ? translate('diagnostics.specs.memoryWithXmp', { memory: specs.memory })
-      : specs.memory;
-    rows.push({ label: translate('devices.specs.row.memory'), value });
-  }
-  // specs.graphicsCard (Windows' own primary-adapter pick) is the name of
-  // record; the diagnostics gpu resource's driver version only folds in when
-  // there's exactly one reported GPU, so a multi-GPU box never risks pairing
-  // one adapter's name with a different adapter's driver version.
-  const singleGpu = gpu?.gpus.length === 1 ? gpu.gpus[0] : undefined;
-  const gpuName = specs?.graphicsCard || singleGpu?.name;
-  if (gpuName) {
-    const version = singleGpu?.driverVersion;
-    const value = version ? translate('diagnostics.specs.gpuWithDriver', { gpu: gpuName, version }) : gpuName;
-    rows.push({ label: translate('devices.specs.row.graphicsCard'), value });
-  }
-  if (specs?.osBuild) rows.push({ label: translate('devices.specs.row.osBuild'), value: specs.osBuild });
-  if (specs?.pcName) rows.push({ label: translate('devices.specs.row.pcName'), value: specs.pcName });
-  return rows;
 }
