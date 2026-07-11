@@ -133,13 +133,16 @@ export const DIAGNOSTICS_SETTINGS_DEFAULTS = {
   storageTempC: 70,
   ramTempC: 60,
   warningLingerMinutes: 0,
+  // Master switch off by default; every category on, so turning notifications
+  // on alerts for all of them without extra setup. Mirrors the service
+  // DiagnosticsNotifications defaults.
   notificationsEnabled: false,
-  notifyHighTemp: false,
-  notifyStorageHealth: false,
-  notifyCooling: false,
-  notifyMemoryTest: false,
-  notifySystemDevices: false,
-  notifyGpuThrottle: false,
+  notifyHighTemp: true,
+  notifyStorageHealth: true,
+  notifyCooling: true,
+  notifyMemoryTest: true,
+  notifySystemDevices: true,
+  notifyGpuThrottle: true,
   notificationCooldownMinutes: 60,
   componentCpu: true,
   componentGpu: true,

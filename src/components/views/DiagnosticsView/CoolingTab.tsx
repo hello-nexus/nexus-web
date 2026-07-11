@@ -63,7 +63,7 @@ export function CoolingTab({ cooling, gpu, temperatures, hours, date, onHoursCha
         onRetry={temperatures.refresh}
         appUsageData={appUsageData}
       />
-      <div className={styles.coolingSplit}>
+      <div className={styles.diagSplit}>
         <GpuSection
           data={gpu.data} loading={gpu.loading} error={gpu.error} onRefresh={gpu.refresh}
           heading={t('diagnostics.kind.gpu')}

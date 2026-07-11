@@ -20,8 +20,7 @@ interface SystemSectionProps {
 
 /** System tab: the Device Manager problem list. Each row expands to its raw
  *  code/text/instance-id, and a header action opens Device Manager itself
- *  (devmgmt.msc, no per-device selection). The 30-day event counts moved to
- *  the incidents timeline section below this one. */
+ *  (devmgmt.msc, no per-device selection). */
 export function SystemSection({ data, loading, error, onRefresh }: SystemSectionProps) {
   const { t } = useTranslation();
   const { push } = useToast();

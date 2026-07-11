@@ -7,14 +7,12 @@ import { Badge } from '../../common/Badge/Badge';
 import { ChipGroup, type ChipOption } from '../../common/ChipGroup/ChipGroup';
 import { DatePicker } from '../../common/DatePicker/DatePicker';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
-import { InfoList, InfoRow } from '../../common/InfoList/InfoList';
 import { useToast } from '../../common/Toast/Toast';
 import { EventTimeline, eventTimelineClusterKey } from '../../common/EventTimeline/EventTimeline';
 import { formatTooltipTimestamp } from '../../common/TimeSeriesChart/timeSeriesChartUtils';
 import {
   clearDiagnosticsEventLogs,
   openDiagnosticsEventViewer,
-  type DiagnosticsCounts30d,
   type DiagnosticsIncident,
   type DiagnosticsIncidentSeverity,
   type DiagnosticsIncidentsResponse,
@@ -45,9 +43,6 @@ interface IncidentsSectionProps {
    *  onRefresh - the health overview and System section's counts also read
    *  from data the clear just invalidated. */
   onLogsCleared: () => void;
-  /** The 30-day event counters, shown under the timeline. From the system
-   *  resource (a different endpoint than incidents), so passed in separately. */
-  counts30d: DiagnosticsCounts30d | null;
   hours: IncidentRangeHours;
   date: string | null;
   onHoursChange: (hours: IncidentRangeHours) => void;
@@ -72,11 +67,11 @@ interface SelectedCluster {
  * event's exact time colored by severity, over the full selected 24h/3d/7d/14d
  * range or day - the axis never squishes to the data. The range picker sits to
  * the right of the title (matching the Cooling temperature chart). Under the
- * graph: the log actions, then the clicked dot's incident detail list, then the
- * 30-day counters.
+ * graph: the log actions, then the clicked dot's incident detail list. The
+ * 30-day counters and Device problems sit below this section (see SystemTab).
  */
 export function IncidentsSection({
-  data, loading, error, onRefresh, onLogsCleared, counts30d, hours, date, onHoursChange, onDateChange,
+  data, loading, error, onRefresh, onLogsCleared, hours, date, onHoursChange, onDateChange,
 }: IncidentsSectionProps) {
   const { t, language } = useTranslation();
   const { push } = useToast();
@@ -216,20 +211,6 @@ export function IncidentsSection({
               {selected.incidents.map(incident => (
                 <IncidentDetailRow key={incident.id} incident={incident} now={now} />
               ))}
-            </div>
-          )}
-
-          {counts30d && (
-            <div className={styles.countsBlock}>
-              <SectionHeader>{t('diagnostics.system.counts.title')}</SectionHeader>
-              <InfoList>
-                <InfoRow label={t('diagnostics.system.counts.whea')} value={counts30d.whea} />
-                <InfoRow label={t('diagnostics.system.counts.bugchecks')} value={counts30d.bugchecks} tone={counts30d.bugchecks > 0 ? 'bad' : 'default'} />
-                <InfoRow label={t('diagnostics.system.counts.dirtyShutdowns')} value={counts30d.dirtyShutdowns} />
-                <InfoRow label={t('diagnostics.system.counts.diskErrors')} value={counts30d.diskErrors} tone={counts30d.diskErrors > 0 ? 'bad' : 'default'} />
-                <InfoRow label={t('diagnostics.system.counts.tdrs')} value={counts30d.tdrs} />
-                <InfoRow label={t('diagnostics.system.counts.appCrashes')} value={counts30d.appCrashes} />
-              </InfoList>
             </div>
           )}
         </>

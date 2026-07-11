@@ -5,6 +5,7 @@ import { CoolingSection } from './CoolingSection';
 import { DiagnosticsView } from './DiagnosticsView';
 import { GpuSection } from './GpuSection';
 import { IncidentsSection } from './IncidentsSection';
+import { IncidentCounts } from './IncidentCounts';
 import { MemorySection } from './MemorySection';
 import { StorageSection } from './StorageSection';
 import { SystemSection } from './SystemSection';
@@ -60,7 +61,6 @@ function renderIncidents(props: {
   error?: boolean;
   onRefresh?: () => void;
   onLogsCleared?: () => void;
-  counts30d?: DiagnosticsCounts30d | null;
   hours?: 24 | 72 | 168 | 336;
   date?: string | null;
   onHoursChange?: (hours: 24 | 72 | 168 | 336) => void;
@@ -68,17 +68,30 @@ function renderIncidents(props: {
 }) {
   const {
     data, loading = false, error = false, onRefresh = () => {}, onLogsCleared = () => {},
-    counts30d = null, hours = 168, date = null, onHoursChange = () => {}, onDateChange = () => {},
+    hours = 168, date = null, onHoursChange = () => {}, onDateChange = () => {},
   } = props;
   return render(
     <ToastProvider>
       <IncidentsSection
         data={data} loading={loading} error={error} onRefresh={onRefresh} onLogsCleared={onLogsCleared}
-        counts30d={counts30d} hours={hours} date={date} onHoursChange={onHoursChange} onDateChange={onDateChange}
+        hours={hours} date={date} onHoursChange={onHoursChange} onDateChange={onDateChange}
       />
     </ToastProvider>,
   );
 }
+
+describe('IncidentCounts', () => {
+  it('renders the Last 30 days counters', () => {
+    render(<IncidentCounts counts30d={{ whea: 6, bugchecks: 0, dirtyShutdowns: 7, diskErrors: 0, tdrs: 0, appCrashes: 88 }} />);
+    expect(screen.getByText('diagnostics.system.counts.title')).toBeInTheDocument();
+    expect(screen.getByText('88')).toBeInTheDocument();
+  });
+
+  it('renders nothing when the counts have not loaded', () => {
+    const { container } = render(<IncidentCounts counts30d={null} />);
+    expect(container).toBeEmptyDOMElement();
+  });
+});
 
 function renderSystem(data: DiagnosticsSystemResponse | null) {
   return render(
@@ -152,7 +165,7 @@ describe('IncidentsSection timeline', () => {
   };
 
   it('renders every category as a lane (empty ones included) and a dot per incident', () => {
-    const { container } = renderIncidents({ data: response, counts30d: zeroCounts });
+    const { container } = renderIncidents({ data: response });
     // Categories with incidents...
     expect(screen.getByText('diagnostics.incidents.source.whea')).toBeInTheDocument();
     expect(screen.getByText('diagnostics.incidents.source.appCrash')).toBeInTheDocument();
@@ -163,7 +176,7 @@ describe('IncidentsSection timeline', () => {
   });
 
   it('reveals the underlying incident in a tooltip on hover', () => {
-    const { container } = renderIncidents({ data: response, counts30d: zeroCounts });
+    const { container } = renderIncidents({ data: response });
     fireEvent.mouseEnter(container.querySelectorAll('circle[fill="transparent"]')[0]);
     expect(screen.getByText('Corrected PCIe hardware error')).toBeInTheDocument();
   });
@@ -177,7 +190,7 @@ describe('IncidentsSection timeline', () => {
         app: { name: 'game.exe', path: 'D:/game.exe', exceptionCode: 'c0000005', faultingModule: 'nv.dll', isGame: true },
       })],
     };
-    const { container } = renderIncidents({ data: withApp, counts30d: zeroCounts });
+    const { container } = renderIncidents({ data: withApp });
     // The server detail line + game badge only appear once the dot is clicked.
     expect(screen.queryByText('Exception c0000005 in nv.dll.')).not.toBeInTheDocument();
     fireEvent.click(container.querySelectorAll('circle[fill="transparent"]')[0]);
@@ -185,19 +198,14 @@ describe('IncidentsSection timeline', () => {
     expect(screen.getByText('diagnostics.incidents.game')).toBeInTheDocument();
   });
 
-  it('shows the 30-day counters under the timeline', () => {
-    renderIncidents({ data: response, counts30d: { ...zeroCounts, whea: 2, appCrashes: 3 } });
-    expect(screen.getByText('diagnostics.system.counts.title')).toBeInTheDocument();
-  });
-
   it('offers the 24h/3d/7d/14d range chips', () => {
-    renderIncidents({ data: response, counts30d: zeroCounts });
+    renderIncidents({ data: response });
     expect(screen.getByRole('button', { name: 'diagnostics.temperature.range.24h' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'diagnostics.temperature.range.14d' })).toBeInTheDocument();
   });
 
   it('still renders the full-range timeline (all lanes) when no incident falls in the range', () => {
-    const { container } = renderIncidents({ data: response, counts30d: zeroCounts, hours: 24 });
+    const { container } = renderIncidents({ data: response, hours: 24 });
     expect(screen.getByText('diagnostics.incidents.source.whea')).toBeInTheDocument();
     expect(container.querySelectorAll('circle[fill="transparent"]')).toHaveLength(0);
     expect(screen.queryByText('Corrected PCIe hardware error')).not.toBeInTheDocument();
