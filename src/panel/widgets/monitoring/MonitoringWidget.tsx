@@ -153,8 +153,6 @@ export { staticMaxForDevice };
 // derived name until the user types), auto shows the derived name. The stored
 // custom text is retained across mode switches; only Reset clears it, so the
 // caller keeps it in `label` regardless of the active mode.
-export type LabelMode = 'hide' | 'custom';
-
 export function displayLabel(mode: string | undefined, override: string | undefined, autoLabel: string): string {
   if (mode === 'hide') return '';
   if (mode === 'custom') return override?.trim() || autoLabel;
