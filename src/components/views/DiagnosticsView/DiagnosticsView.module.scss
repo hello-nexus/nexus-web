@@ -96,16 +96,28 @@
 
 // ── Component health grid ──
 
+// Fixed 2x2 of large domain tiles (Storage / Memory / Cooling / System). Two
+// columns on any comfortable width, collapsing to a single column when the
+// content area is too narrow for two readable tiles.
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.75rem;
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
 }
 
 .healthCard {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  min-height: 116px;
+  // A resting border so each domain reads as a distinct tile - the shared
+  // dash-tile hover keeps a transparent border and --surface sits very close
+  // to --bg, so without this the four tiles blur into the page.
+  border-color: var(--border);
 }
 
 .reasonList {
@@ -389,22 +401,36 @@
 .pnpItem {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
-  padding: 0.4rem 0.6rem;
   background: var(--surface);
   border-radius: var(--radius-sm);
   font-size: var(--type-small);
+  overflow: hidden;
 }
 
-.pnpItemRow {
+.pnpItemMain {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.5rem;
+  padding: 0.45rem 0.6rem;
+  cursor: pointer;
+
+  &:hover { background: color-mix(in srgb, var(--bg) 40%, transparent); }
+}
+
+.pnpHeaderText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  flex: 1;
+  min-width: 0;
 }
 
 .pnpDeviceName {
   color: var(--text);
   font-weight: var(--weight-heading);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .pnpExplanation {
@@ -412,37 +438,22 @@
   font-size: var(--type-mini);
 }
 
-// ── Incidents ──
-
-.incidentFilters {
-  margin-bottom: 0.25rem;
+.pnpChevron {
+  flex-shrink: 0;
+  color: var(--text-dim);
 }
 
-.incidentsList {
+.pnpDetail {
+  padding: 0 0.6rem 0.5rem;
+}
+
+// ── Incidents (timeline) ──
+
+// The 30-day event counters, shown under the timeline.
+.countsBlock {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
-}
-
-.incidentRow {
-  display: flex;
-  flex-direction: column;
-  background: var(--surface);
-  border-radius: var(--radius);
-  overflow: hidden;
-}
-
-.incidentSummary {
-  display: flex;
-  align-items: center;
   gap: 0.6rem;
-  padding: 0.6rem 0.8rem;
-
-  &[role='button'] {
-    cursor: pointer;
-
-    &:hover { background: color-mix(in srgb, var(--bg) 40%, transparent); }
-  }
 }
 
 .incidentIcon {
@@ -450,50 +461,48 @@
   display: flex;
 }
 
-.incidentTitle {
-  min-width: 0;
+// Per-cluster tooltip body rendered inside EventTimeline's tooltip shell.
+.incidentTooltip {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.incidentTooltipHeader {
+  font-family: var(--font-mono);
+  font-size: var(--type-mini);
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--separator);
+}
+
+.incidentTooltipRow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.incidentTooltipTitle {
   flex: 1;
+  min-width: 0;
+  font-size: var(--type-small);
+  color: var(--text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--text);
-  font-weight: var(--weight-heading);
-  font-size: var(--type-small);
 }
 
-.incidentChevron {
+.incidentTooltipTime {
   flex-shrink: 0;
-  color: var(--text-dim);
-}
-
-.incidentDetailBody {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.3rem;
-  padding: 0 0.8rem 0.6rem;
-}
-
-.incidentDetail {
-  color: var(--text-dim);
+  font-family: var(--font-mono);
   font-size: var(--type-mini);
-}
-
-.incidentTime {
-  flex-shrink: 0;
   color: var(--text-dim);
-  font-size: var(--type-mini);
   white-space: nowrap;
 }
 
-.incidentsPager {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  margin-top: 0.1rem;
-}
-
-.incidentsPagerCount {
-  color: var(--text-dim);
+.incidentTooltipMore {
   font-size: var(--type-mini);
+  color: var(--text-dim);
 }

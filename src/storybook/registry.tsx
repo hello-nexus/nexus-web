@@ -93,6 +93,7 @@ import { RangeBar } from '../components/common/RangeBar/RangeBar';
 import { Badge as StorybookBadge } from '../components/common/Badge/Badge';
 import { SeriesChart } from '../components/common/SeriesChart/SeriesChart';
 import { TimeSeriesChart } from '../components/common/TimeSeriesChart/TimeSeriesChart';
+import { EventTimeline } from '../components/common/EventTimeline/EventTimeline';
 import { TextInput } from '../components/common/TextInput/TextInput';
 import { Ring as StorybookRing } from '../components/common/Ring/Ring';
 import { Gauge as StorybookGauge } from '../components/common/Gauge/Gauge';
@@ -553,6 +554,36 @@ function PreviewTimeSeriesChart() {
           <span style={{ width: 8, height: 8, borderRadius: 2, background: '#8b5cf6', flexShrink: 0 }} />
           <span style={{ fontSize: 'var(--type-small)', color: 'var(--text-dim)' }}>Chrome</span>
           <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 'var(--type-mini)' }}>20m</span>
+        </div>
+      )}
+    />
+  );
+}
+
+function PreviewEventTimeline() {
+  const [now] = useState(() => Date.now());
+  const HOUR = 3_600_000;
+  const lanes = [
+    { id: 'appCrash', label: 'App crash' },
+    { id: 'whea', label: 'WHEA' },
+    { id: 'tdr', label: 'GPU reset' },
+  ];
+  const events = [
+    { id: 'e1', laneId: 'appCrash', t: now - 20 * HOUR, color: 'var(--bad)', weight: 2 },
+    { id: 'e2', laneId: 'appCrash', t: now - 19.7 * HOUR, color: 'var(--bad)', weight: 2 },
+    { id: 'e3', laneId: 'whea', t: now - 12 * HOUR, color: 'var(--warn)', weight: 1 },
+    { id: 'e4', laneId: 'whea', t: now - 5 * HOUR, color: 'var(--warn)', weight: 1 },
+    { id: 'e5', laneId: 'tdr', t: now - 2 * HOUR, color: 'var(--warn)', weight: 1 },
+  ];
+  return (
+    <EventTimeline
+      lanes={lanes}
+      events={events}
+      domain={[now - 24 * HOUR, now]}
+      xTickFormat={t => new Date(t).toLocaleTimeString(undefined, { hour: 'numeric' })}
+      renderTooltip={cluster => (
+        <div style={{ fontSize: 'var(--type-small)' }}>
+          {cluster.events.length} event{cluster.events.length > 1 ? 's' : ''} in {cluster.laneId}
         </div>
       )}
     />
@@ -1827,6 +1858,12 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/TimeSeriesChart/TimeSeriesChart.tsx',
     description: 'Multi-series line chart over a real date/time domain (not a fixed live-seconds window). Tracks container width via ResizeObserver; borrows StackedChart\'s axis/tooltip frame. A gap wider than 1.5x the actual median point spacing (derived from the data, not a nominal bucket size) breaks the line instead of interpolating across it, and an isolated point renders as a dot. Used by the Diagnostics Cooling tab\'s temperature history.', Preview: PreviewTimeSeriesChart,
     notes: 'Points carry {t, avg, max}; only avg is plotted, both are shown in the hover tooltip. xTickFormat/valueFormat let the caller pick range-appropriate label granularity and unit formatting. Optional bands prop draws translucent spans (e.g. sustained-high episodes). Optional tooltipExtra(t) appends caller content after the series rows (e.g. the Cooling tab\'s per-bucket app breakdown) - renders nothing when it returns null.',
+  },
+  {
+    name: 'EventTimeline', category: 'charts',
+    filePath: 'src/components/common/EventTimeline/EventTimeline.tsx',
+    description: 'Swimlane timeline of discrete events: one lane per category, dots plotted at each event\'s exact time and colored by the caller (e.g. severity). Tracks container width via ResizeObserver; near-coincident same-lane events collapse into one counted dot so wide ranges stay legible. Used by the Diagnostics System tab\'s incident timeline.', Preview: PreviewEventTimeline,
+    notes: 'Events carry {laneId, t, color, weight?}; a mixed cluster takes its highest-weight event\'s color. Hover shows an anchored tooltip (renderTooltip(cluster)); click pins it for touch. domain sets the x window; xTickFormat picks label granularity.',
   },
   {
     name: 'UsageBar', category: 'charts',

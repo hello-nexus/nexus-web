@@ -391,6 +391,10 @@ export interface OpenEventViewerResponse {
   opened: boolean;
 }
 
+export interface OpenDeviceManagerResponse {
+  opened: boolean;
+}
+
 export interface ClearEventLogsResponse {
   cleared: boolean;
   systemError: string;
@@ -404,6 +408,15 @@ export interface ClearEventLogsResponse {
 // completed when nothing happened.
 export async function openDiagnosticsEventViewer(): Promise<OpenEventViewerResponse | null> {
   const { data } = await requestJson<OpenEventViewerResponse>('/diagnostics/events/open-viewer', { method: 'POST', body: {} });
+  return data;
+}
+
+/** Opens Windows Device Manager (devmgmt.msc) via the user-session helper.
+ *  Same reasoning as openDiagnosticsEventViewer above: bypasses the mock
+ *  fallback so a 404 surfaces as a real failure rather than a faked "opened".
+ *  No per-device selection - devmgmt.msc takes no device argument. */
+export async function openDiagnosticsDeviceManager(): Promise<OpenDeviceManagerResponse | null> {
+  const { data } = await requestJson<OpenDeviceManagerResponse>('/diagnostics/devices/open-manager', { method: 'POST', body: {} });
   return data;
 }
 

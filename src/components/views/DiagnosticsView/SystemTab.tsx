@@ -1,6 +1,7 @@
 import type { DiagnosticsFetchOptions, DiagnosticsIncidentsResponse, DiagnosticsSystemResponse } from '../../../api/diagnostics';
 import { IncidentsSection } from './IncidentsSection';
 import { SystemSection } from './SystemSection';
+import type { IncidentRangeHours } from './incidentTimelineHelpers';
 
 interface SystemTabProps {
   system: {
@@ -16,16 +17,26 @@ interface SystemTabProps {
     refresh: () => void;
   };
   onLogsCleared: () => void;
+  incidentHours: IncidentRangeHours;
+  incidentDate: string | null;
+  onIncidentHoursChange: (hours: IncidentRangeHours) => void;
+  onIncidentDateChange: (date: string) => void;
 }
 
-/** System tab: the last-30-days counters + PnP problems, followed by Incidents (Open Event Viewer / Clear logs). */
-export function SystemTab({ system, incidents, onLogsCleared }: SystemTabProps) {
+/** System tab: Device Manager problems, then the incident timeline (with the
+ *  30-day counters and Open Event Viewer / Clear logs actions). */
+export function SystemTab({
+  system, incidents, onLogsCleared, incidentHours, incidentDate, onIncidentHoursChange, onIncidentDateChange,
+}: SystemTabProps) {
   return (
     <>
       <SystemSection data={system.data} loading={system.loading} error={system.error} onRefresh={system.refresh} />
       <IncidentsSection
         data={incidents.data} loading={incidents.loading} error={incidents.error}
         onRefresh={incidents.refresh} onLogsCleared={onLogsCleared}
+        counts30d={system.data?.counts30d ?? null}
+        hours={incidentHours} date={incidentDate}
+        onHoursChange={onIncidentHoursChange} onDateChange={onIncidentDateChange}
       />
     </>
   );

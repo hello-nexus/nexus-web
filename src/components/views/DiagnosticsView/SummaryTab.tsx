@@ -1,23 +1,17 @@
-import { useMemo } from 'react';
 import { Download, RefreshCw } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import type {
   DiagnosticsFetchOptions,
-  DiagnosticsGpuResponse,
   DiagnosticsHealth,
   DiagnosticsKind,
-  DiagnosticsMemoryResponse,
 } from '../../../api/diagnostics';
-import type { SystemSpecs } from '../../../hooks/useSystemSpecs';
 import { Card } from '../../common/Card/Card';
 import { Button } from '../../common/Button/Button';
 import { Badge } from '../../common/Badge/Badge';
-import { SectionHeader } from '../../common/SectionHeader/SectionHeader';
-import { SystemSpecsPanel } from '../../common/SystemSpecsPanel/SystemSpecsPanel';
 import { ComponentHealthGrid } from './ComponentHealthGrid';
 import { NotAvailableNote, SectionLoadError } from './DiagnosticsSectionStates';
 import { GenericSkeleton } from '../PageSkeleton/PageSkeleton';
-import { buildSpecRows, relativeTimeLabel, statusColor, statusLabelKey } from './diagnosticsHelpers';
+import { relativeTimeLabel, statusColor, statusLabelKey } from './diagnosticsHelpers';
 import styles from './DiagnosticsView.module.scss';
 
 interface SummaryTabProps {
@@ -25,9 +19,6 @@ interface SummaryTabProps {
   healthLoading: boolean;
   healthError: boolean;
   refreshHealth: (opts?: DiagnosticsFetchOptions) => void;
-  memory: DiagnosticsMemoryResponse | null;
-  gpu: DiagnosticsGpuResponse | null;
-  specs: SystemSpecs | null;
   anyMocked: boolean;
   anyLoading: boolean;
   onRefreshAll: () => void;
@@ -40,11 +31,10 @@ interface SummaryTabProps {
 }
 
 export function SummaryTab({
-  health, healthLoading, healthError, refreshHealth, memory, gpu, specs, anyMocked, anyLoading, onRefreshAll, now,
+  health, healthLoading, healthError, refreshHealth, anyMocked, anyLoading, onRefreshAll, now,
   onNavigate, downloading, downloadingReport, onDownload, onDownloadReport,
 }: SummaryTabProps) {
   const { t } = useTranslation();
-  const specRows = useMemo(() => buildSpecRows(specs, memory, gpu, t), [specs, memory, gpu, t]);
 
   return (
     <>
@@ -79,13 +69,6 @@ export function SummaryTab({
         healthError ? <SectionLoadError onRetry={() => refreshHealth({ force: true })} loading={healthLoading} /> : <GenericSkeleton />
       ) : !health.supported ? <NotAvailableNote /> : (
         <ComponentHealthGrid components={health.components} onNavigate={onNavigate} />
-      )}
-
-      {specRows.length > 0 && (
-        <section className={styles.section}>
-          <SectionHeader>{t('diagnostics.specs.title')}</SectionHeader>
-          <SystemSpecsPanel rows={specRows} copyLabel={t('devices.specs.copy')} copiedLabel={t('devices.specs.copied')} />
-        </section>
       )}
     </>
   );

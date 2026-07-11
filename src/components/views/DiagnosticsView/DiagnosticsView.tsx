@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Fan, Gpu as GpuIcon, HardDrive, LayoutDashboard, MemoryStick, Settings as SettingsIcon, ShieldCheck } from 'lucide-react';
+import { Fan, HardDrive, LayoutDashboard, MemoryStick, Settings as SettingsIcon, ShieldCheck } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useDiagnosticsHealth } from '../../../hooks/useDiagnosticsHealth';
 import { useDiagnosticsResource } from '../../../hooks/useDiagnosticsResource';
 import { useDiagnosticsTemperatureApps } from '../../../hooks/useDiagnosticsTemperatureApps';
 import { useDiagnosticsTemperatures } from '../../../hooks/useDiagnosticsTemperatures';
-import { useSystemSpecs } from '../../../hooks/useSystemSpecs';
 import {
   downloadDiagnosticsBundle,
   downloadDiagnosticsReport,
@@ -25,15 +24,15 @@ import { ServiceRequired } from '../ServiceRequired';
 import { GenericSkeleton } from '../PageSkeleton/PageSkeleton';
 import { StorageSection } from './StorageSection';
 import { MemorySection } from './MemorySection';
-import { GpuSection } from './GpuSection';
 import { CoolingTab } from './CoolingTab';
 import { SystemTab } from './SystemTab';
 import { SummaryTab } from './SummaryTab';
 import { SettingsTab } from './SettingsTab';
 import { DEFAULT_TEMPERATURE_RANGE_HOURS, type TemperatureRangeHours } from './temperatureHelpers';
+import { DEFAULT_INCIDENT_RANGE_HOURS, type IncidentRangeHours } from './incidentTimelineHelpers';
 import styles from './DiagnosticsView.module.scss';
 
-type DiagnosticsTab = 'summary' | 'storage' | 'memory' | 'gpu' | 'cooling' | 'system' | 'settings';
+type DiagnosticsTab = 'summary' | 'storage' | 'memory' | 'cooling' | 'system' | 'settings';
 
 interface DiagnosticsViewProps {
   serviceOnline: boolean;
@@ -59,7 +58,6 @@ export function DiagnosticsView({ serviceOnline, connectionState, tab: urlTab, o
   const cooling = useDiagnosticsResource(serviceOnline, fetchDiagnosticsCooling);
   const system = useDiagnosticsResource(serviceOnline, fetchDiagnosticsSystem);
   const incidents = useDiagnosticsResource(serviceOnline, useCallback(() => fetchDiagnosticsIncidents(INCIDENT_WINDOW_DAYS), []));
-  const { specs } = useSystemSpecs(serviceOnline);
 
   // Lives here (not in CoolingTab) so the selected range/day and fetched data
   // survive switching away from and back to the Cooling tab, matching every
@@ -76,6 +74,16 @@ export function DiagnosticsView({ serviceOnline, connectionState, tab: urlTab, o
   const handleTemperatureHoursChange = useCallback((next: TemperatureRangeHours) => {
     setTemperatureHours(next);
     setTemperatureDate(null);
+  }, []);
+
+  // The System tab's incident timeline reuses the same relative-range /
+  // specific-day model as the temperature chart, kept here so it persists
+  // across tab switches. Range filtering is client-side over the 30-day fetch.
+  const [incidentHours, setIncidentHours] = useState<IncidentRangeHours>(DEFAULT_INCIDENT_RANGE_HOURS);
+  const [incidentDate, setIncidentDate] = useState<string | null>(null);
+  const handleIncidentHoursChange = useCallback((next: IncidentRangeHours) => {
+    setIncidentHours(next);
+    setIncidentDate(null);
   }, []);
 
   // Backs the temperature chart's hover tooltip app breakdown; reuses the
@@ -138,14 +146,16 @@ export function DiagnosticsView({ serviceOnline, connectionState, tab: urlTab, o
     { key: 'summary', label: t('diagnostics.tab.summary'), icon: <LayoutDashboard size={14} /> },
     { key: 'storage', label: t('diagnostics.kind.storage'), icon: <HardDrive size={14} /> },
     { key: 'memory', label: t('diagnostics.kind.memory'), icon: <MemoryStick size={14} /> },
-    { key: 'gpu', label: t('diagnostics.kind.gpu'), icon: <GpuIcon size={14} /> },
     { key: 'cooling', label: t('diagnostics.kind.cooling'), icon: <Fan size={14} /> },
     { key: 'system', label: t('diagnostics.kind.system'), icon: <ShieldCheck size={14} /> },
     { key: 'settings', label: t('diagnostics.tab.settings'), icon: <SettingsIcon size={14} /> },
   ] as const;
 
-  const tab: DiagnosticsTab = urlTab && tabs.some(tb => tb.key === urlTab)
-    ? urlTab as DiagnosticsTab : 'summary';
+  // GPU is no longer its own tab (folded into Cooling); an old ?tab=gpu deep
+  // link lands on Cooling, where GPU health now lives.
+  const requestedTab = urlTab === 'gpu' ? 'cooling' : urlTab;
+  const tab: DiagnosticsTab = requestedTab && tabs.some(tb => tb.key === requestedTab)
+    ? requestedTab as DiagnosticsTab : 'summary';
 
   if (!serviceOnline) {
     return (
@@ -161,7 +171,6 @@ export function DiagnosticsView({ serviceOnline, connectionState, tab: urlTab, o
       case 'summary': return (
         <SummaryTab
           health={health} healthLoading={healthLoading} healthError={healthError} refreshHealth={refreshHealth}
-          memory={memory.data} gpu={gpu.data} specs={specs}
           anyMocked={anyMocked} anyLoading={anyLoading} onRefreshAll={handleRefreshAll} now={now}
           onNavigate={(kind: DiagnosticsKind) => onTabChange(kind)}
           downloading={downloading} downloadingReport={downloadingReport}
@@ -170,10 +179,10 @@ export function DiagnosticsView({ serviceOnline, connectionState, tab: urlTab, o
       );
       case 'storage': return <StorageSection data={smart.data} loading={smart.loading} error={smart.error} onRefresh={smart.refresh} />;
       case 'memory': return <MemorySection data={memory.data} loading={memory.loading} error={memory.error} onRefresh={memory.refresh} />;
-      case 'gpu': return <GpuSection data={gpu.data} loading={gpu.loading} error={gpu.error} onRefresh={gpu.refresh} />;
       case 'cooling': return (
         <CoolingTab
           cooling={cooling}
+          gpu={gpu}
           temperatures={temperatures}
           hours={temperatureHours}
           date={temperatureDate}
@@ -182,7 +191,13 @@ export function DiagnosticsView({ serviceOnline, connectionState, tab: urlTab, o
           appUsageData={temperatureApps.data}
         />
       );
-      case 'system': return <SystemTab system={system} incidents={incidents} onLogsCleared={handleLogsCleared} />;
+      case 'system': return (
+        <SystemTab
+          system={system} incidents={incidents} onLogsCleared={handleLogsCleared}
+          incidentHours={incidentHours} incidentDate={incidentDate}
+          onIncidentHoursChange={handleIncidentHoursChange} onIncidentDateChange={setIncidentDate}
+        />
+      );
       case 'settings': return <SettingsTab />;
     }
   };
