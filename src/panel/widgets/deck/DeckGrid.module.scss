@@ -6,7 +6,10 @@
 
 .grid {
   display: grid;
-  gap: 8px;
+  // Deck-wide gap: a touch of separation between keys on every surface
+  // (widget tiles + physical preview). Bumping it also shrinks the 1fr
+  // widget cells slightly, which is the intended "smaller keys" look.
+  gap: 11px;
   height: 100%;
   width: 100%;
   padding: 8px;
@@ -16,7 +19,7 @@
 // Physical-deck mode: fixed square keys sized like the hardware, centered in
 // the grid box rather than stretched to fill it.
 .square {
-  --deck-cell: clamp(52px, 13vmin, 84px);
+  --deck-cell: clamp(48px, 12vmin, 78px);
   width: max-content;
   height: max-content;
   max-width: 100%;

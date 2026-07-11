@@ -14,10 +14,11 @@
 // Physical-deck-only: the live key grid, sized so a 4x8 (XL) deck stays
 // readable inside the settings sheet without dwarfing the inspector below it.
 .gridBox {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 180px;
+  // Compact device-like preview window that hugs the square key grid, so the
+  // page can stay full width without stretching the deck across it.
+  align-self: flex-start;
+  width: fit-content;
+  max-width: 100%;
   padding: 12px;
   border: 1px solid var(--deck-settings-border);
   border-radius: var(--radius);
