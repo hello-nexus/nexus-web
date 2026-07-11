@@ -2310,6 +2310,7 @@
   "sidebar.devices.empty": "Keine Geräte verbunden",
   "sidebar.expand": "Seitenleiste ausklappen",
   "sidebar.pin": "An Seitenleiste anheften",
+  "sidebar.removeFromRecents": "Aus Seitenleiste entfernen",
   "sidebar.section.apps": "Apps",
   "sidebar.section.devices": "Geräte",
   "sidebar.unpin": "Aus Seitenleiste lösen",

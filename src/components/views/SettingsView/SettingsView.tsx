@@ -37,6 +37,7 @@ export function SettingsView({ serviceOnline, connectionState, platform }: Setti
       showMacStatusBarIcon: ui.showMacStatusBarIcon,
       showWindowsTrayIcon: ui.showWindowsTrayIcon,
       pinnedSidebarApps: ui.pinnedSidebarApps,
+      recentSidebarApps: ui.recentSidebarApps,
       widgetAdvancedMode: ui.widgetAdvancedMode,
       monitoringTempUnit: ui.monitoringTempUnit,
       timeFormat: ui.timeFormat,

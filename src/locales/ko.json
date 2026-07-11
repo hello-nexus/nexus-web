@@ -2310,6 +2310,7 @@
   "sidebar.devices.empty": "연결된 장치 없음",
   "sidebar.expand": "사이드바 펼치기",
   "sidebar.pin": "사이드바에 고정",
+  "sidebar.removeFromRecents": "사이드바에서 제거",
   "sidebar.section.apps": "앱",
   "sidebar.section.devices": "장치",
   "sidebar.unpin": "사이드바에서 고정 해제",

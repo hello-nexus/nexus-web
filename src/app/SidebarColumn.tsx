@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import classNames from 'classnames';
-import { LayoutGrid, Pin, PinOff } from 'lucide-react';
+import { LayoutGrid, Pin, PinOff, X } from 'lucide-react';
 import { Sidebar } from '../components/common/Sidebar/Sidebar';
 import { useUiSettings } from '../hooks/useUiSettings';
 import type { ServiceState } from '../hooks/useServiceState';
@@ -12,9 +12,11 @@ import { SidebarDevicesSection } from './SidebarDevicesSection';
 import { ICON_SIZE } from './sidebarNav';
 import {
   DASHBOARD_APP_KEY,
+  appendRecent,
   getSidebarAppMeta,
   isPinnableAppKey,
   sanitizePinnedTail,
+  sanitizeRecents,
 } from './sidebarApps';
 import { useCrossZoneDrag } from './CrossZoneDrag';
 import styles from '../App.module.scss';
@@ -91,7 +93,8 @@ export function SidebarColumn({
 
   // Right-click context menu state. Held here so the menu portal dismisses
   // on outside click without each row tracking its own open state. `pinned`
-  // picks the menu: a pinned row offers Unpin, the running row offers Pin.
+  // picks the menu: a pinned row offers Unpin; a recent row offers Pin (plus
+  // Remove, unless it's the currently-active view - see the menu render below).
   const [ctxMenu, setCtxMenu] = useState<{ key: string; x: number; y: number; pinned: boolean } | null>(null);
   const handleItemContextMenu = (key: string, event: React.MouseEvent) => {
     setCtxMenu({ key, x: event.clientX, y: event.clientY, pinned: tail.includes(key) });
@@ -99,30 +102,61 @@ export function SidebarColumn({
   const handleUnpin = (key: string) => {
     update({ pinnedSidebarApps: tail.filter(k => k !== key) });
   };
+  // Pinning (menu, or the drag-up-to-pin gesture below) also strips the key
+  // from recents - an app is never shown both above and below the separator.
   const handlePin = (key: string) => {
     if (!isPinnableAppKey(key) || tail.includes(key)) return;
-    update({ pinnedSidebarApps: [...tail, key] });
+    update({
+      pinnedSidebarApps: [...tail, key],
+      recentSidebarApps: sanitizeRecents(settings.recentSidebarApps).filter(k => k !== key),
+    });
+  };
+  const handleRemoveRecent = (key: string) => {
+    update({ recentSidebarApps: sanitizeRecents(settings.recentSidebarApps).filter(k => k !== key) });
   };
 
-  // Taskbar semantics for unpinned apps: while an unpinned app's page is
-  // open, it surfaces as a transient row below the pinned tail (behind a
-  // hairline separator). It unmounts when the user navigates off the page;
-  // right-click → Pin makes it a permanent tail row.
-  const runningUnpinned = (() => {
-    if (!isPinnableAppKey(serviceNavActive) || tail.includes(serviceNavActive)) return null;
-    const meta = getSidebarAppMeta(serviceNavActive);
-    if (!meta) return null;
-    return { key: serviceNavActive, label: t(meta.i18nKey), icon: meta.icon };
-  })();
-  // Drop-pin from dragging the running row above the fold: insert at the
-  // slot it was dropped on.
-  const handleRunningPinAt = (index: number) => {
-    if (!runningUnpinned || tail.includes(runningUnpinned.key)) return;
+  // Taskbar / macOS-dock semantics: recently opened pinnable apps that
+  // aren't pinned surface as rows below the pinned tail (behind a hairline
+  // separator), stable FIFO order, oldest evicted first. Excludes anything
+  // already pinned - handlePin/handleRunningPinAt/handlePinDrop strip the
+  // recents entry the moment it's pinned, but this filter also guards a
+  // stale/hand-edited prefs blob.
+  const storedRecents = sanitizeRecents(settings.recentSidebarApps).filter(k => !tail.includes(k));
+  // Render the just-opened app immediately, even a tick before the append
+  // effect below persists it - otherwise navigating to a new unpinned app
+  // flashes an empty slot for one render.
+  const recents = isPinnableAppKey(serviceNavActive) && !tail.includes(serviceNavActive)
+    ? appendRecent(storedRecents, serviceNavActive)
+    : storedRecents;
+  const recentItems = recents.flatMap(key => {
+    const meta = getSidebarAppMeta(key);
+    if (!meta) return [];
+    return [{ key, label: t(meta.i18nKey), icon: meta.icon }];
+  });
+
+  // Persists the FIFO append: stable order, no-op when the app is already in
+  // the list (appendRecent enforces the cap). Depends on the raw settings
+  // arrays - not `tail` / `recents` above, which are freshly allocated every
+  // render and would refire this effect (and loop) on every render.
+  useEffect(() => {
+    if (!isPinnableAppKey(serviceNavActive)) return;
+    if (sanitizePinnedTail(settings.pinnedSidebarApps).includes(serviceNavActive)) return;
+    const recentsNow = sanitizeRecents(settings.recentSidebarApps);
+    const next = appendRecent(recentsNow, serviceNavActive);
+    if (next !== recentsNow) update({ recentSidebarApps: next });
+  }, [serviceNavActive, settings.pinnedSidebarApps, settings.recentSidebarApps, update]);
+
+  // Drop-pin from dragging a recent row above the fold: insert at the slot it
+  // was dropped on and strip it from recents.
+  const handleRunningPinAt = (key: string, index: number) => {
+    if (!isPinnableAppKey(key) || tail.includes(key)) return;
     const next = [...tail];
-    next.splice(Math.max(0, Math.min(index, next.length)), 0, runningUnpinned.key);
-    update({ pinnedSidebarApps: next });
+    next.splice(Math.max(0, Math.min(index, next.length)), 0, key);
+    update({
+      pinnedSidebarApps: next,
+      recentSidebarApps: sanitizeRecents(settings.recentSidebarApps).filter(k => k !== key),
+    });
   };
-
 
   // Cross-zone drop from the dashboard panel. Published by PanelContent
   // when a pinnable widget enters its drag state; null otherwise.
@@ -133,7 +167,10 @@ export function SidebarColumn({
     const next = [...tail];
     const idx = Math.max(0, Math.min(insertionIndex, next.length));
     next.splice(idx, 0, draggingPinnableType);
-    update({ pinnedSidebarApps: next });
+    update({
+      pinnedSidebarApps: next,
+      recentSidebarApps: sanitizeRecents(settings.recentSidebarApps).filter(k => k !== draggingPinnableType),
+    });
   };
 
   return (
@@ -154,7 +191,7 @@ export function SidebarColumn({
         serviceState={serviceState}
         onTailReorder={handleTailReorder}
         onItemContextMenu={handleItemContextMenu}
-        runningItem={runningUnpinned}
+        runningItems={recentItems}
         onRunningPinAt={handleRunningPinAt}
         compact={compact}
         extraItems={portalNav}
@@ -200,6 +237,17 @@ export function SidebarColumn({
               icon: <Pin size={14} />,
               onSelect: () => handlePin(ctxMenu.key),
             },
+            // Remove only for a recent row that isn't the current view - the
+            // active row always stays visible below the separator.
+            ...(ctxMenu.key === serviceNavActive ? [] : [
+              {
+                // eslint-disable-next-line i18next/no-literal-string -- menu item id
+                key: 'remove',
+                label: t('sidebar.removeFromRecents'),
+                icon: <X size={14} />,
+                onSelect: () => handleRemoveRecent(ctxMenu.key),
+              },
+            ]),
           ]}
           onClose={() => setCtxMenu(null)}
         />
