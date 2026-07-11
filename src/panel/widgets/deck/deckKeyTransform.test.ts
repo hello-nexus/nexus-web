@@ -72,16 +72,17 @@ describe('applyKeyTransform', () => {
     expect(pixel(out, 1, 1)).toEqual([255, 0, 0, 255]); // was TL (red)
   });
 
-  it('mirrorXRot90 mirrors horizontally then rotates 90 clockwise', () => {
+  it('mirrorXRot90 mirrors horizontally then rotates 90 counterclockwise', () => {
     const out = applyKeyTransform(makeSquare(), 'mirrorXRot90');
     // mirror X: TL<->TR, BL<->BR -> [green, red / white, blue]
-    // rotate 90 CW of that 2x2: (x,y) -> (h-1-y, x)
+    // rotate 90 CCW of that 2x2: (x,y) -> (y, w-1-x); net effect is a
+    // transpose of the original (mirrorX then CCW cancel to a diagonal flip).
     expect(out.width).toBe(2);
     expect(out.height).toBe(2);
-    expect(pixel(out, 0, 0)).toEqual([255, 255, 255, 255]); // white
-    expect(pixel(out, 1, 0)).toEqual([0, 255, 0, 255]); // green
-    expect(pixel(out, 0, 1)).toEqual([0, 0, 255, 255]); // blue
-    expect(pixel(out, 1, 1)).toEqual([255, 0, 0, 255]); // red
+    expect(pixel(out, 0, 0)).toEqual([255, 0, 0, 255]); // red
+    expect(pixel(out, 1, 0)).toEqual([0, 0, 255, 255]); // blue
+    expect(pixel(out, 0, 1)).toEqual([0, 255, 0, 255]); // green
+    expect(pixel(out, 1, 1)).toEqual([255, 255, 255, 255]); // white
   });
 
   it('rotate90 swaps width/height for a non-square image', () => {

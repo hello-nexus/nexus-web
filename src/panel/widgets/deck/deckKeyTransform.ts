@@ -8,7 +8,8 @@ export type DeckKeyTransform = 'none' | 'flipBoth' | 'mirrorXRot90';
 // Gen-1 Mini family ships upside-down + mirrored relative to the drawn
 // image (elgato-streamdeck crate src/info.rs ImageMode); everything else in
 // the button-only catalog (§1 of the streamdeck plan) is flip-both, except
-// the screenless Pedal.
+// the screenless Pedal. The Mini family needs a counterclockwise rotation
+// (rotate90Ccw below), confirmed against a physical Mini.
 const MIRROR_ROT90_MODELS = new Set(['mini', 'minimk2', 'minidiscord', 'minimk2module']);
 const NO_TRANSFORM_MODELS = new Set(['pedal']);
 
@@ -70,17 +71,17 @@ function mirrorX(img: RawImage): RawImage {
   return { width, height, data: out };
 }
 
-// Clockwise 90 degree rotation: (x, y) in the source lands at
-// (height-1-y, x) in the destination, so the output is height x width.
-function rotate90Cw(img: RawImage): RawImage {
+// Counterclockwise 90 degree rotation: (x, y) in the source lands at
+// (y, width-1-x) in the destination, so the output is height x width.
+function rotate90Ccw(img: RawImage): RawImage {
   const { width, height, data } = img;
   const out = new Uint8ClampedArray(data.length);
   const outWidth = height;
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const srcOffset = (y * width + x) * 4;
-      const dstX = height - 1 - y;
-      const dstY = x;
+      const dstX = y;
+      const dstY = width - 1 - x;
       const dstOffset = (dstY * outWidth + dstX) * 4;
       out[dstOffset] = data[srcOffset];
       out[dstOffset + 1] = data[srcOffset + 1];
@@ -96,6 +97,6 @@ export function applyKeyTransform(img: RawImage, transform: DeckKeyTransform): R
   switch (transform) {
     case 'none': return img;
     case 'flipBoth': return rotate180(img);
-    case 'mirrorXRot90': return rotate90Cw(mirrorX(img));
+    case 'mirrorXRot90': return rotate90Ccw(mirrorX(img));
   }
 }
