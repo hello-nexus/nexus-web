@@ -12,7 +12,6 @@ export const diagnosticsApp: AppManifest = {
     icon: Stethoscope,
     sizes: ['2x2', '4x2'],
     defaultSize: '2x2',
-    pickerSize: '4x2',
     supportsImmersive: { portrait: false, landscape: false },
     touch: false,
     hasConfig: false,

@@ -13,7 +13,6 @@ export const benchmarkApp: AppManifest = {
     icon: Gauge,
     sizes: ['2x2', '4x2'],
     defaultSize: '2x2',
-    pickerSize: '4x2',
     supportsImmersive: { portrait: true, landscape: true },
     touch: true,
     hasConfig: false,

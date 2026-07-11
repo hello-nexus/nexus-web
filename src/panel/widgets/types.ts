@@ -86,11 +86,6 @@ export interface AppMetadata {
   icon: LucideIcon;
   sizes: PanelWidgetSize[];
   defaultSize: PanelWidgetSize;
-  // Size used both for the add-widget preview tile and for the inserted
-  // widget when the user picks it. Optional override - when absent, the
-  // smallest sensible size from `sizes` is chosen (2x2, then 4x2, then 4x4).
-  // Set explicitly for "detailed" widgets where 2x2 is too cramped.
-  pickerSize?: PanelWidgetSize;
   // When false, the app is hidden from the Add-a-Widget picker: it can't be
   // newly added, but already-placed instances keep rendering (lookupApp and the
   // layout reconciler ignore this flag). Defaults to listed. SDK apps derive it

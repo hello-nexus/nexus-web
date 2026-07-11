@@ -210,17 +210,15 @@ export function sizesForSurface(meta: AppManifest['meta'], surface?: PanelSurfac
 
 // Fallback size for the add-widget picker (preview + insertion size), used
 // when the catalog's browse-size preference isn't among the widget's sizes
-// for the surface. An explicit `pickerSize` wins; otherwise the larger of
-// the common 2x2/4x2 pair (4x2), falling back to a widget's sole supported
-// size (4x4 / 2x2 / 1x1). Single-widget surfaces (Q60, locked to 2x4)
-// short-circuit: `sizesForSurface` already collapsed to the one allowed
-// size.
+// for the surface: the larger of the common 2x2/4x2 pair (4x2), falling
+// back to a widget's sole supported size (4x4 / 2x2 / 1x1). Single-widget
+// surfaces (Q60, locked to 2x4) short-circuit: `sizesForSurface` already
+// collapsed to the one allowed size.
 export function pickerSizeFor(meta: AppManifest['meta'], surface?: PanelSurface, deviceTouch?: boolean): PanelWidgetSize {
   const sizes = sizesForSurface(meta, surface, deviceTouch);
   if (surface && singleWidgetSurfaceSize(surface) && sizes.length > 0) {
     return sizes[0];
   }
-  if (meta.pickerSize && sizes.includes(meta.pickerSize)) return meta.pickerSize;
   if (sizes.includes('4x2')) return '4x2';
   if (sizes.length === 1) return sizes[0];
   // Mixed sizes without 4x2 (e.g. 2x2 + 4x4) - no current widget produces
