@@ -10,6 +10,7 @@ import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import type { UnifiedDevice } from '../../../hooks/useUnifiedDevices';
 import { useConflictApps } from '../../../hooks/useConflictApps';
 import { usePhysicalDeckTarget } from '../../../panel/widgets/deck/usePhysicalDeckTarget';
+import { useDeckPresets } from '../../../panel/widgets/deck/useDeckPresets';
 import { DeckGrid } from '../../../panel/widgets/deck/DeckGrid';
 import { DeckKeyInspector, DeckDefaultTitleSettings, DeckActionDragPreview, slotForPickerKind, type DeckPickerKind } from '../../../panel/widgets/deck/DeckKeyInspector';
 import { DeckPageStrip } from '../../../panel/widgets/deck/DeckPageStrip';
@@ -19,6 +20,7 @@ import { resolveTargetView, slotCountAtDepth } from '../../../panel/widgets/deck
 import type { DeckSlot } from '../../../panel/widgets/deck/types';
 import { isRemoteOrigin } from '../../../api/service';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
+import { PresetToolbar } from '../../common/PresetToolbar/PresetToolbar';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import type { TabDef } from '../../common/Tabs/Tabs';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
@@ -98,6 +100,14 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   const { target, error: configError, retry: retryConfig } = usePhysicalDeckTarget(deck, folderPath, page);
   const { conflicts } = useConflictApps(!!deck?.conflictAppId);
   const activeConflict = deck?.conflictAppId ? conflicts.find(c => c.id === deck.conflictAppId) : undefined;
+
+  const deckPresets = useDeckPresets(serial);
+  // A preset's config + key images are applied server-side; retryConfig()
+  // re-fetches usePhysicalDeckTarget's config so the editor reflects it.
+  const onDeckPresetLoad = useCallback(async (id: string) => {
+    await deckPresets.handleLoad(id);
+    retryConfig();
+  }, [deckPresets, retryConfig]);
 
   // Follow the physical deck's navigation: pressing prev/next page, go-to-page,
   // or entering/leaving a folder on the hardware broadcasts a `nav` frame, so
@@ -209,6 +219,18 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
         tabs={TABS}
         activeTab={tab}
         onTabChange={k => setTab(k as StreamDeckTab)}
+        tabActions={tab === 'customize' && deckPresets.available ? (
+          <PresetToolbar
+            presets={deckPresets.presets}
+            activeId={deckPresets.activeId}
+            presetCount={deckPresets.presetCount}
+            showHistory={false}
+            onLoad={onDeckPresetLoad}
+            onCreate={deckPresets.handleCreate}
+            onRename={deckPresets.handleRename}
+            onDelete={deckPresets.handleDelete}
+          />
+        ) : undefined}
       />
       <div className={`${styles.pageBody} pageBody`}>
         {deck.warning && (

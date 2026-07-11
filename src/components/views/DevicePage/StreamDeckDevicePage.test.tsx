@@ -35,6 +35,11 @@ vi.mock('../../../panel/widgets/deck/usePhysicalDeckTarget', () => ({
   usePhysicalDeckTarget: (deck: StreamDeckSummary | null) => mockUsePhysicalDeckTarget(deck),
 }));
 
+const mockUseDeckPresets = vi.fn();
+vi.mock('../../../panel/widgets/deck/useDeckPresets', () => ({
+  useDeckPresets: () => mockUseDeckPresets(),
+}));
+
 vi.mock('../../../panel/widgets/deck/DeckKeyInspector', () => ({
   DeckKeyInspector: ({ selectedSlot, part }: { selectedSlot?: number; part?: string }) => (
     <div data-testid={`deck-key-inspector-${part ?? 'all'}`}>{selectedSlot}</div>
@@ -97,6 +102,20 @@ const mockSetOrientation = vi.fn();
 const mockSetSleepAfterSeconds = vi.fn();
 const mockRefresh = vi.fn();
 const mockControlDevice = vi.fn();
+const mockDeckPresetHandleLoad = vi.fn();
+const mockDeckPresetHandleCreate = vi.fn();
+const mockDeckPresetHandleRename = vi.fn();
+const mockDeckPresetHandleDelete = vi.fn();
+
+function deckPresetsReturn(over: Partial<{ presets: Array<{ id: string; name: string }>; activeId: string | null; presetCount: number; available: boolean }> = {}) {
+  return {
+    presets: [], activeId: null, presetCount: 0, available: false,
+    loadPresets: vi.fn(), handleCreate: mockDeckPresetHandleCreate,
+    handleRename: mockDeckPresetHandleRename, handleDelete: mockDeckPresetHandleDelete,
+    handleLoad: mockDeckPresetHandleLoad,
+    ...over,
+  };
+}
 
 function decksReturn(decks: StreamDeckSummary[], loaded = true) {
   return {
@@ -115,6 +134,7 @@ beforeEach(() => {
   mockSetSleepAfterSeconds.mockResolvedValue(true);
   mockControlDevice.mockResolvedValue(undefined);
   mockUsePhysicalDeckTarget.mockReturnValue({ target: fakeTarget(), loaded: true, error: false, retry: vi.fn() });
+  mockUseDeckPresets.mockReturnValue(deckPresetsReturn());
 });
 
 async function renderPage(device: UnifiedDevice = makeUnifiedDevice()) {
@@ -357,6 +377,63 @@ describe('StreamDeckDevicePage', () => {
       expect(!!(grid.compareDocumentPosition(editor) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
       // Right column: the action picker follows the whole left column in DOM order.
       expect(!!(editor.compareDocumentPosition(picker) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
+    });
+  });
+
+  describe('Presets toolbar', () => {
+    it('is hidden when the preset routes are unavailable (older service build / 404)', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+      mockUseDeckPresets.mockReturnValue(deckPresetsReturn({ available: false }));
+      await renderPage();
+
+      expect(screen.queryByRole('button', { name: 'lighting.layoutPresets.placeholder' })).toBeNull();
+    });
+
+    it('renders top-right on the Customize tab once the preset routes are available', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+      mockUseDeckPresets.mockReturnValue(deckPresetsReturn({
+        available: true, presets: [{ id: 'p1', name: 'Streaming layout' }], activeId: 'p1', presetCount: 1,
+      }));
+      await renderPage();
+
+      expect(screen.getByRole('button', { name: 'lighting.layoutPresets.placeholder' })).toBeInTheDocument();
+    });
+
+    it('is not shown on the Settings tab', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+      mockUseDeckPresets.mockReturnValue(deckPresetsReturn({ available: true, presets: [{ id: 'p1', name: 'A' }], activeId: 'p1', presetCount: 1 }));
+      await renderPage();
+      switchToSettingsTab();
+
+      expect(screen.queryByRole('button', { name: 'lighting.layoutPresets.placeholder' })).toBeNull();
+    });
+
+    it('has no Reset/Undo/Redo controls (deck config has no history)', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+      mockUseDeckPresets.mockReturnValue(deckPresetsReturn({ available: true, presets: [{ id: 'p1', name: 'A' }], activeId: 'p1', presetCount: 1 }));
+      await renderPage();
+
+      expect(screen.queryByRole('button', { name: 'lighting.layoutPresets.reset' })).toBeNull();
+      expect(screen.queryByRole('button', { name: 'lighting.layoutPresets.undo' })).toBeNull();
+      expect(screen.queryByRole('button', { name: 'lighting.layoutPresets.redo' })).toBeNull();
+    });
+
+    it('loading a preset activates it then re-fetches the physical deck config', async () => {
+      const retry = vi.fn();
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+      mockUsePhysicalDeckTarget.mockReturnValue({ target: fakeTarget(), loaded: true, error: false, retry });
+      mockUseDeckPresets.mockReturnValue(deckPresetsReturn({ available: true, presets: [{ id: 'p1', name: 'A' }, { id: 'p2', name: 'B' }], activeId: 'p1', presetCount: 2 }));
+      mockDeckPresetHandleLoad.mockResolvedValue(undefined);
+      await renderPage();
+
+      fireEvent.click(screen.getByRole('button', { name: 'lighting.layoutPresets.placeholder' }));
+      await act(async () => {
+        fireEvent.click(screen.getByRole('option', { name: 'B' }));
+        await Promise.resolve();
+      });
+
+      expect(mockDeckPresetHandleLoad).toHaveBeenCalledWith('p2');
+      expect(retry).toHaveBeenCalledTimes(1);
     });
   });
 });

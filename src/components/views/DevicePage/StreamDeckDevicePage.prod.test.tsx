@@ -43,6 +43,12 @@ vi.mock('../../../hooks/useStreamDecks', () => ({
 vi.mock('../../../panel/widgets/deck/usePhysicalDeckTarget', () => ({
   usePhysicalDeckTarget: () => ({ target: fakeTarget(), loaded: true, error: false, retry: vi.fn() }),
 }));
+vi.mock('../../../panel/widgets/deck/useDeckPresets', () => ({
+  useDeckPresets: () => ({
+    presets: [], activeId: null, presetCount: 0, available: false,
+    loadPresets: vi.fn(), handleCreate: vi.fn(), handleRename: vi.fn(), handleDelete: vi.fn(), handleLoad: vi.fn(),
+  }),
+}));
 
 import { StreamDeckDevicePage } from './StreamDeckDevicePage';
 

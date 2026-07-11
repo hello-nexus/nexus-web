@@ -17,6 +17,12 @@ vi.mock('../../../hooks/useConflictApps', () => ({
 vi.mock('../../../panel/widgets/deck/usePhysicalDeckTarget', () => ({
   usePhysicalDeckTarget: () => ({ target: null, loaded: false, error: false, retry: vi.fn() }),
 }));
+vi.mock('../../../panel/widgets/deck/useDeckPresets', () => ({
+  useDeckPresets: () => ({
+    presets: [], activeId: null, presetCount: 0, available: false,
+    loadPresets: vi.fn(), handleCreate: vi.fn(), handleRename: vi.fn(), handleDelete: vi.fn(), handleLoad: vi.fn(),
+  }),
+}));
 vi.mock('../../../panel/widgets/deck/DeckKeyInspector', () => ({
   DeckKeyInspector: () => <div data-testid="deck-key-inspector" />,
 }));

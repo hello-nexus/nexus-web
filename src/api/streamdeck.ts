@@ -108,6 +108,42 @@ export async function setStreamDeckNav(serial: string, page: number, folderPath:
   return acked(await postService<ApiResponseWrapper>(`/streamdeck/decks/${encodeURIComponent(serial)}/nav`, { page, folderPath }));
 }
 
+export interface DeckPreset {
+  id: string;
+  name: string;
+}
+
+interface DeckPresetsResponse {
+  presets: DeckPreset[];
+  activeId: string | null;
+}
+
+export async function fetchDeckPresets(serial: string): Promise<DeckPresetsResponse | null> {
+  return fetchService<DeckPresetsResponse>(`/streamdeck/decks/${encodeURIComponent(serial)}/presets`);
+}
+
+export async function createDeckPreset(serial: string, name: string): Promise<{ preset: DeckPreset; activeId: string | null } | null> {
+  return postService(`/streamdeck/decks/${encodeURIComponent(serial)}/presets`, { name });
+}
+
+export async function updateDeckPreset(serial: string, id: string, patch: { name?: string; saveCurrent?: boolean }): Promise<boolean> {
+  return acked(await putService<ApiResponseWrapper>(`/streamdeck/decks/${encodeURIComponent(serial)}/presets/${encodeURIComponent(id)}`, patch));
+}
+
+export async function deleteDeckPreset(serial: string, id: string): Promise<{ activeId: string | null } | null> {
+  return deleteService(`/streamdeck/decks/${encodeURIComponent(serial)}/presets/${encodeURIComponent(id)}`);
+}
+
+/** Applies the preset's saved config + key images to the live deck and refreshes what's on-screen. */
+export async function activateDeckPreset(serial: string, id: string): Promise<boolean> {
+  return acked(await postService<ApiResponseWrapper>(`/streamdeck/decks/${encodeURIComponent(serial)}/presets/${encodeURIComponent(id)}/activate`, {}));
+}
+
+/** Sets the active-preset pointer only, without applying the preset's config. */
+export async function setActiveDeckPreset(serial: string, id: string | null): Promise<boolean> {
+  return acked(await putService<ApiResponseWrapper>(`/streamdeck/decks/${encodeURIComponent(serial)}/presets/active`, { id }));
+}
+
 export interface StreamDeckDevModel {
   productId: string;
   name: string;

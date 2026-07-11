@@ -2263,10 +2263,10 @@ export const REGISTRY: StorybookEntry[] = [
     notes: 'No live preview -- requires a running service for the Run tab and cloud API for Leaderboards.',
   },
   {
-    name: 'LayoutToolbar', category: 'panel-kit',
-    filePath: 'src/panel/widgets/lighting/page/LayoutToolbar.tsx',
-    description: 'Toolbar for lighting canvas layout presets: preset dropdown (with Rename/Delete when active), Save / New / Reset icon buttons, Undo/Redo with keyboard shortcuts.',
-    notes: 'No live preview -- bound to live preset state via useLayoutPresets and requires a running service.',
+    name: 'PresetToolbar', category: 'inputs',
+    filePath: 'src/components/common/PresetToolbar/PresetToolbar.tsx',
+    description: 'Generic named-preset manager: dropdown (with Rename/Delete when active and a capped New preset... entry), optionally paired with Reset / Undo / Redo icon buttons via showHistory. Used by the lighting canvas layout toolbar (full history controls) and the Stream Deck page (dropdown only).',
+    notes: 'No live preview -- bound to live preset state via useLayoutPresets / useDeckPresets and requires a running service.',
   },
   {
     name: 'CorsairDevicePage', category: 'panel-kit',
