@@ -72,6 +72,7 @@ import { SettingsSection } from '../components/common/SettingsSection/SettingsSe
 import { SettingSelect, SettingSlider, SettingToggle } from '../components/common/SettingRow/SettingRow';
 import { ServiceLaunchButton } from '../components/common/ServiceLaunchButton/ServiceLaunchButton';
 import { DesktopOnlyBadge } from '../components/common/DesktopOnlyBadge/DesktopOnlyBadge';
+import { ExperimentalBadge } from '../components/common/ExperimentalBadge/ExperimentalBadge';
 import { PairingQrView } from '../components/common/PairingQr/PairingQrView';
 import { AboutModal } from '../components/common/AboutModal/AboutModal';
 import { HeartBurst, useHeartBurstTrigger } from '../components/common/HeartBurst/HeartBurst';
@@ -1336,6 +1337,10 @@ function PreviewDesktopOnlyBadge() {
   return <DesktopOnlyBadge />;
 }
 
+function PreviewExperimentalBadge() {
+  return <ExperimentalBadge />;
+}
+
 // Inline SVG sample image (160x90) for the cropper preview.
 // Provides a visible still without loading a remote asset.
 const SAMPLE_CROP_SRC = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYwIiBoZWlnaHQ9IjkwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxNjAiIGhlaWdodD0iOTAiIGZpbGw9IiMzMzM2NTMiLz48dGV4dCB4PSI4MCIgeT0iNTAiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnNhbXBsZTwvdGV4dD48L3N2Zz4=';
@@ -1983,6 +1988,12 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/DesktopOnlyBadge/DesktopOnlyBadge.tsx',
     description: 'Pill badge shown below a field or control that is unavailable on keyboard-less surfaces (Y70 / Q-series). Monitor icon + caption from common.desktopOnly. No props required; usable anywhere a feature is gated on surfaceSupportsTextInput returning false.',
     Preview: PreviewDesktopOnlyBadge,
+  },
+  {
+    name: 'ExperimentalBadge', category: 'status',
+    filePath: 'src/components/common/ExperimentalBadge/ExperimentalBadge.tsx',
+    description: 'Pill badge flagging a device whose support is experimental (non-HYTE/iBUYPOWER hardware). Composes Badge inside a HoverTooltip that spells out the caveat. Shown left of the Nexus Link control on the Devices list and under the on/off switch on the device page.',
+    Preview: PreviewExperimentalBadge,
   },
   {
     name: 'Toast', category: 'status',

@@ -17,6 +17,7 @@ import { DevicesSkeleton } from '../../../components/views/PageSkeleton/PageSkel
 import { SupportedDevicesModal } from '../../../components/common/SupportedDevicesModal/SupportedDevicesModal';
 import { DeviceModal } from '../../../components/common/DeviceModal/DeviceModal';
 import { DeviceWarningIcon } from '../../../components/common/DeviceWarningIcon/DeviceWarningIcon';
+import { ExperimentalBadge } from '../../../components/common/ExperimentalBadge/ExperimentalBadge';
 import { DisplaysView } from '../../../components/views/DisplaysView/DisplaysView';
 import styles from './DevicesPage.module.scss';
 
@@ -233,6 +234,7 @@ function DeviceCard({
         {meta && <span className={styles.rowMeta}>{meta}</span>}
       </div>
       {device.warning && <DeviceWarningIcon code={device.warning} />}
+      {device.experimental && <ExperimentalBadge />}
       {onToggleControl && (
         // Stop click + keydown so toggling the control doesn't also fire the
         // card's onClick / Enter-key navigation.
