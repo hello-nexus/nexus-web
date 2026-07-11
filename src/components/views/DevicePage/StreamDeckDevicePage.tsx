@@ -14,7 +14,10 @@ import { DeckPageStrip } from '../../../panel/widgets/deck/DeckPageStrip';
 import { padSlots, pageHasContent } from '../../../panel/widgets/deck/deckLayout';
 import { withPageIndicatorDisplay } from '../../../panel/widgets/deck/deckIcons';
 import { resolveTargetView, slotCountAtDepth } from '../../../panel/widgets/deck/deckTarget';
-import { sendStreamDeckTestPattern } from '../../../api/streamdeck';
+import {
+  sendStreamDeckTestPattern, getStreamDeckDevModels, simulateStreamDeck, clearSimulatedStreamDeck,
+  type StreamDeckDevModel,
+} from '../../../api/streamdeck';
 import { isRemoteOrigin } from '../../../api/service';
 import { DEV_TOOLS } from '../../../lib/devTools';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
@@ -45,6 +48,64 @@ function PageShell({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * Dev-tools-only model picker: spins up (or clears) a simulated Stream Deck
+ * via the service's /streamdeck/dev/* routes, so a bench box with no
+ * hardware attached can still design a layout. `onDone` refetches the deck
+ * list; the 'streamdeck' topic broadcast also triggers a refetch, but the
+ * explicit call keeps this responsive even if that broadcast is missed.
+ */
+function StreamDeckSimulatorControls({ showClear, onDone }: { showClear?: boolean; onDone: () => void }) {
+  const { t } = useTranslation();
+  const [models, setModels] = useState<StreamDeckDevModel[]>([]);
+  const [productId, setProductId] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void getStreamDeckDevModels().then(list => {
+      if (cancelled) return;
+      setModels(list);
+      setProductId(prev => prev || list[0]?.productId || '');
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  const onSimulate = async () => {
+    if (!productId || busy) return;
+    setBusy(true);
+    try { await simulateStreamDeck(productId); } finally { setBusy(false); }
+    onDone();
+  };
+
+  const onClear = async () => {
+    if (busy) return;
+    setBusy(true);
+    try { await clearSimulatedStreamDeck(); } finally { setBusy(false); }
+    onDone();
+  };
+
+  return (
+    <div className={styles.simulateControls}>
+      <Select
+        className={styles.simulateSelect}
+        value={productId}
+        options={models.map(m => ({ value: m.productId, label: m.name }))}
+        onChange={setProductId}
+        ariaLabel={t('devices.streamdeck.model')}
+      />
+      <Button type="button" size="sm" tone="neutral" disabled={!productId || busy} onClick={() => void onSimulate()}>
+        {t('devices.streamdeck.simulate.button')}
+      </Button>
+      {showClear && (
+        <Button type="button" size="sm" tone="neutral" disabled={busy} onClick={() => void onClear()}>
+          {t('devices.streamdeck.simulate.clearButton')}
+        </Button>
+      )}
+    </div>
+  );
+}
+
 interface StreamDeckDevicePageProps {
   device: UnifiedDevice;
   controlDevice: (id: string, nextEnabled: boolean) => Promise<void>;
@@ -63,7 +124,7 @@ interface StreamDeckDevicePageProps {
 export function StreamDeckDevicePage({ device, controlDevice }: StreamDeckDevicePageProps) {
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
-  const { decks, loaded, rename, setBrightness, setOrientation, setSleepAfterSeconds } = useStreamDecks(true);
+  const { decks, loaded, rename, setBrightness, setOrientation, setSleepAfterSeconds, refresh } = useStreamDecks(true);
   const [serial, setSerial] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [folderPath, setFolderPath] = useState<number[]>([]);
@@ -108,7 +169,16 @@ export function StreamDeckDevicePage({ device, controlDevice }: StreamDeckDevice
   if (decks.length === 0) {
     return (
       <PageShell>
-        <EmptyState icon={<Unplug size={40} />} title={t('devices.streamdeck.notConnected')} />
+        <EmptyState
+          icon={<Unplug size={40} />}
+          title={t('devices.streamdeck.notConnected')}
+          action={DEV_TOOLS ? (
+            <div className={styles.simulateCard}>
+              <span className={styles.simulateTitle}>{t('devices.streamdeck.simulate.title')}</span>
+              <StreamDeckSimulatorControls onDone={refresh} />
+            </div>
+          ) : undefined}
+        />
       </PageShell>
     );
   }
@@ -310,6 +380,11 @@ export function StreamDeckDevicePage({ device, controlDevice }: StreamDeckDevice
                       <SettingRow label={t('devices.streamdeck.serialNumber')}>
                         <span className={styles.readOnlyValue}>{deck.serial}</span>
                       </SettingRow>
+                      {DEV_TOOLS && (
+                        <SettingRow label={t('devices.streamdeck.simulate.changeModel')} align="start">
+                          <StreamDeckSimulatorControls showClear onDone={refresh} />
+                        </SettingRow>
+                      )}
                       {DEV_TOOLS && (
                         <SettingRow>
                           <Button type="button" size="sm" tone="neutral" onClick={() => void sendStreamDeckTestPattern(deck.serial)}>

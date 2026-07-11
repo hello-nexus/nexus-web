@@ -29,7 +29,8 @@ export const DECK_ICON_NAMES: string[] = Object.keys(DECK_ICONS);
 
 export type DeckCategory =
   | 'launch' | 'open' | 'volume' | 'media' | 'brightness' | 'keyboard' | 'text'
-  | 'power' | 'audio' | 'nexus' | 'sequence' | 'toggle' | 'folder' | 'navigation' | 'empty';
+  | 'power' | 'audio' | 'nexus' | 'sequence' | 'toggle' | 'folder' | 'navigation'
+  | 'streamdeck' | 'empty';
 
 /** Maps an action to a visual category (drives the auto icon + color). */
 export function deckCategory(action: DeckAction | undefined): DeckCategory {
@@ -44,7 +45,8 @@ export function deckCategory(action: DeckAction | undefined): DeckCategory {
       if (action.action.op.startsWith('volume') || action.action.op === 'muteToggle') return 'volume';
       if (action.action.op.startsWith('media')) return 'media';
       return 'brightness';
-    case 'hotkey': return 'keyboard';
+    case 'hotkey':
+    case 'hotkeySwitch': return 'keyboard';
     case 'text': return 'text';
     case 'power': return 'power';
     case 'audioOutput':
@@ -54,6 +56,8 @@ export function deckCategory(action: DeckAction | undefined): DeckCategory {
     case 'toggle': return 'toggle';
     case 'page':
     case 'pageIndicator': return 'navigation';
+    case 'deckBrightness':
+    case 'deckSleep': return 'streamdeck';
     default: return 'empty';
   }
 }
@@ -75,6 +79,7 @@ const CATEGORY_COLOR: Record<DeckCategory, string> = {
   toggle: '#14b8a6',     // teal
   folder: '#94a3b8',     // neutral
   navigation: '#6366f1', // indigo
+  streamdeck: '#f43f5e', // rose
   empty: '#475569',
 };
 
@@ -124,6 +129,7 @@ export function autoIconName(action: DeckAction | undefined, isFolder = false): 
         default: return 'Sliders';
       }
     case 'hotkey': return 'Keyboard';
+    case 'hotkeySwitch': return 'RefreshCw';
     case 'text': return 'Type';
     case 'power':
       switch (action.action) {
@@ -159,6 +165,9 @@ export function autoIconName(action: DeckAction | undefined, isFolder = false): 
         default: return 'Layers';
       }
     case 'pageIndicator': return 'Layers';
+    case 'deckBrightness':
+      return action.op === 'down' ? 'SunDim' : 'Sun';
+    case 'deckSleep': return 'Moon';
     default: return 'Plus';
   }
 }

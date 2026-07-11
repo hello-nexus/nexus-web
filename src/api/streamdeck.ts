@@ -2,7 +2,7 @@
 // StreamDeckRoutes.cs). Every route is .LocalhostOnly() - a desktop-only
 // hardware configuration surface - so every call here fails closed on a
 // remote/panel origin via the shared fetchService/putServiceBytes guards.
-import { fetchService, postService, putService, putServiceBytes } from './service';
+import { fetchService, postService, putService, putServiceBytes, deleteService } from './service';
 import type { DeckConfig } from '../panel/widgets/deck/types';
 import type { DeckKeyTransform } from '../panel/widgets/deck/deckKeyTransform';
 
@@ -101,4 +101,32 @@ export async function uploadStreamDeckKeyImage(
 /** Dev-tools-only: push a test pattern to every key so a bench Stream Deck can be sanity-checked without editing a layout. */
 export async function sendStreamDeckTestPattern(serial: string): Promise<boolean> {
   return acked(await postService<ApiResponseWrapper>(`/streamdeck/decks/${encodeURIComponent(serial)}/test-pattern`, {}));
+}
+
+export interface StreamDeckDevModel {
+  productId: string;
+  name: string;
+  rows: number;
+  cols: number;
+  keyCount: number;
+}
+
+interface StreamDeckDevModelsResponse {
+  models: StreamDeckDevModel[];
+}
+
+/** Dev-tools-only: every model the service can simulate, so a bench box with no hardware can design a layout for any deck size. */
+export async function getStreamDeckDevModels(): Promise<StreamDeckDevModel[]> {
+  const res = await fetchService<StreamDeckDevModelsResponse>('/streamdeck/dev/models');
+  return res?.models ?? [];
+}
+
+/** Dev-tools-only: spin up a simulated deck of the given model; it then appears in getStreamDecks(). */
+export async function simulateStreamDeck(productId: string): Promise<boolean> {
+  return acked(await postService<ApiResponseWrapper>('/streamdeck/dev/simulate', { productId }));
+}
+
+/** Dev-tools-only: remove the simulated deck. */
+export async function clearSimulatedStreamDeck(): Promise<boolean> {
+  return acked(await deleteService<ApiResponseWrapper>('/streamdeck/dev/simulate'));
 }

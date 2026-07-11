@@ -83,4 +83,32 @@ describe('executeDeckAction → REST', () => {
     expect(postService).not.toHaveBeenCalled();
     expect(fetchService).not.toHaveBeenCalled();
   });
+  it('deckBrightness is a no-op on the widget (physical-deck-only)', async () => {
+    await executeDeckAction({ type: 'deckBrightness', op: 'set', value: 50 });
+    await executeDeckAction({ type: 'deckBrightness', op: 'up', step: 10 });
+    expect(postService).not.toHaveBeenCalled();
+    expect(fetchService).not.toHaveBeenCalled();
+  });
+  it('deckSleep is a no-op on the widget (physical-deck-only)', async () => {
+    await executeDeckAction({ type: 'deckSleep' });
+    expect(postService).not.toHaveBeenCalled();
+    expect(fetchService).not.toHaveBeenCalled();
+  });
+  it('hotkeySwitch alternates keysA/keysB across successive presses', async () => {
+    const action = { type: 'hotkeySwitch' as const, keysA: 'ctrl+1', keysB: 'ctrl+2' };
+    await executeDeckAction(action);
+    expect(postService).toHaveBeenNthCalledWith(1, '/system/input/keys', { key: 'Digit1', ctrl: true, shift: false, alt: false, meta: false });
+    await executeDeckAction(action);
+    expect(postService).toHaveBeenNthCalledWith(2, '/system/input/keys', { key: 'Digit2', ctrl: true, shift: false, alt: false, meta: false });
+    await executeDeckAction(action);
+    expect(postService).toHaveBeenNthCalledWith(3, '/system/input/keys', { key: 'Digit1', ctrl: true, shift: false, alt: false, meta: false });
+  });
+  it('hotkeySwitch latches independently per keysA/keysB pair', async () => {
+    const first = { type: 'hotkeySwitch' as const, keysA: 'alt+a', keysB: 'alt+b' };
+    const second = { type: 'hotkeySwitch' as const, keysA: 'alt+c', keysB: 'alt+d' };
+    await executeDeckAction(first);
+    await executeDeckAction(second);
+    expect(postService).toHaveBeenNthCalledWith(1, '/system/input/keys', { key: 'KeyA', ctrl: false, shift: false, alt: true, meta: false });
+    expect(postService).toHaveBeenNthCalledWith(2, '/system/input/keys', { key: 'KeyC', ctrl: false, shift: false, alt: true, meta: false });
+  });
 });

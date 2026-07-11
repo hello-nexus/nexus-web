@@ -72,7 +72,15 @@ export type DeckAction =
   | { type: 'sequence'; steps: DeckSequenceStep[] }
   | { type: 'toggle'; on: DeckAction; off: DeckAction; state?: DeckToggleState }
   | { type: 'page'; op: DeckPageOp; target?: number }
-  | { type: 'pageIndicator' };
+  | { type: 'pageIndicator' }
+  // Physical-deck-only: the deck's own screen brightness/blank state. No-op
+  // on the touch widget (see deckExecutor); a physical Stream Deck's service
+  // handler applies these on key press.
+  | { type: 'deckBrightness'; op: 'set' | 'up' | 'down'; value?: number; step?: number }
+  | { type: 'deckSleep' }
+  // Alternates keysA/keysB (same string format as `hotkey`.keys) on
+  // successive presses.
+  | { type: 'hotkeySwitch'; keysA: string; keysB: string };
 
 export type DeckActionType = DeckAction['type'];
 

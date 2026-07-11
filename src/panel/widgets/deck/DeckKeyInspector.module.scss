@@ -17,6 +17,13 @@
   gap: 8px;
 }
 
+.description {
+  margin: 0;
+  font-size: var(--type-small, 12px);
+  color: var(--deck-settings-faint);
+  line-height: 1.4;
+}
+
 // Vertical spacing for the controls stacked inside a SettingsSection box (the
 // action-type select plus the per-action fields below it).
 .fieldStack {

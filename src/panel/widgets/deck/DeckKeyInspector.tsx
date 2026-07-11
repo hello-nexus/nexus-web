@@ -5,6 +5,7 @@ import { useTranslation } from '../../../lib/i18n';
 import { DECK_SWATCHES } from '../../../lib/settings';
 import { fetchService } from '../../../api/service';
 import { Select } from '../../../components/common/Select/Select';
+import { Slider } from '../../../components/common/Slider/Slider';
 import { SectionHeader } from '../../../components/common/SectionHeader/SectionHeader';
 import { SettingsSection } from '../common/SettingsRow/SettingsRow';
 import { AppPicker } from '../common/AppPicker';
@@ -26,8 +27,8 @@ const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n
 // The action kinds + backend route remain for a future verified re-enable;
 // they're just not offered here.
 const NESTED_KINDS: DeckActionType[] = [
-  'launchApp', 'openUrl', 'openFile', 'openFolder', 'system', 'hotkey', 'text',
-  'power', 'nexus',
+  'launchApp', 'openUrl', 'openFile', 'openFolder', 'system', 'hotkey', 'hotkeySwitch',
+  'text', 'power', 'nexus', 'deckBrightness', 'deckSleep',
 ];
 
 // A slot's action-type picker is two-tier (category, then a kind within it),
@@ -39,7 +40,7 @@ const NESTED_KINDS: DeckActionType[] = [
 type DeckPickerKind = Exclude<DeckActionType, 'page'> | 'folder' | 'pagePrev' | 'pageNext' | 'pageGoto';
 
 interface DeckActionCategory {
-  key: 'navigation' | 'system' | 'nexus' | 'multi';
+  key: 'navigation' | 'streamdeck' | 'system' | 'nexus' | 'multi';
   labelKey: string;
   kinds: DeckPickerKind[];
 }
@@ -51,9 +52,14 @@ const DECK_ACTION_CATEGORIES: DeckActionCategory[] = [
     kinds: ['folder', 'pagePrev', 'pageNext', 'pageGoto', 'pageIndicator'],
   },
   {
+    key: 'streamdeck',
+    labelKey: 'panel.settings.deck.category.streamdeck',
+    kinds: ['deckBrightness', 'deckSleep'],
+  },
+  {
     key: 'system',
     labelKey: 'panel.settings.deck.category.system',
-    kinds: ['launchApp', 'openUrl', 'openFile', 'openFolder', 'system', 'hotkey', 'text', 'power'],
+    kinds: ['launchApp', 'openUrl', 'openFile', 'openFolder', 'system', 'hotkey', 'hotkeySwitch', 'text', 'power'],
   },
   {
     key: 'nexus',
@@ -100,6 +106,9 @@ export function defaultActionFor(kind: DeckActionType): DeckAction {
     case 'toggle': return { type: 'toggle', on: { type: 'system', action: { op: 'muteToggle' } }, off: { type: 'system', action: { op: 'muteToggle' } }, state: { kind: 'mute' } };
     case 'page': return { type: 'page', op: 'next' };
     case 'pageIndicator': return { type: 'pageIndicator' };
+    case 'deckBrightness': return { type: 'deckBrightness', op: 'set', value: 50 };
+    case 'deckSleep': return { type: 'deckSleep' };
+    case 'hotkeySwitch': return { type: 'hotkeySwitch', keysA: '', keysB: '' };
   }
 }
 
@@ -190,6 +199,13 @@ function ActionFields({ action, onChange, surface, desktopEditor, pageCount }: {
     }
     case 'hotkey':
       return <Field label={t('panel.settings.deck.hotkey')}><HotkeyInput value={action.keys} onChange={keys => onChange({ ...action, keys })} /></Field>;
+    case 'hotkeySwitch':
+      return (
+        <>
+          <Field label={t('panel.settings.deck.hotkeySwitch.firstPress')}><HotkeyInput value={action.keysA} onChange={keysA => onChange({ ...action, keysA })} /></Field>
+          <Field label={t('panel.settings.deck.hotkeySwitch.secondPress')}><HotkeyInput value={action.keysB} onChange={keysB => onChange({ ...action, keysB })} /></Field>
+        </>
+      );
     case 'text':
       return (
         <>
@@ -206,6 +222,40 @@ function ActionFields({ action, onChange, surface, desktopEditor, pageCount }: {
       return <SelectField label={t('panel.settings.deck.audioOutput')} value={action.deviceId} options={audioOut} onChange={id => onChange({ type: 'audioOutput', deviceId: id })} />;
     case 'audioInput':
       return <SelectField label={t('panel.settings.deck.audioInput')} value={action.deviceId} options={audioIn} onChange={id => onChange({ type: 'audioInput', deviceId: id })} />;
+    case 'deckBrightness': {
+      const ops = ['set', 'up', 'down'];
+      return (
+        <>
+          <SelectField
+            label={t('panel.settings.deck.deckBrightnessOp')}
+            value={action.op}
+            options={ops.map(o => ({ value: o, label: t(`panel.settings.deck.deckBrightness.${o}`) }))}
+            onChange={op => onChange({ ...action, op: op as typeof action.op })}
+          />
+          {action.op === 'set' && (
+            <Slider
+              // eslint-disable-next-line i18next/no-literal-string -- Slider orientation enum value
+              orientation="stacked"
+              editable
+              trackFill
+              label={t('panel.settings.deck.value')}
+              ariaLabel={t('panel.settings.deck.value')}
+              value={action.value ?? 50}
+              min={0}
+              max={100}
+              onChange={v => onChange({ ...action, value: clamp(Math.round(v), 0, 100) })}
+            />
+          )}
+          {action.op !== 'set' && (
+            <Field label={t('panel.settings.deck.step')}>
+              <input className={styles.input} type="number" min={1} max={100} value={action.step ?? 10} onChange={e => onChange({ ...action, step: clamp(Number(e.target.value), 1, 100) })} />
+            </Field>
+          )}
+        </>
+      );
+    }
+    case 'deckSleep':
+      return <p className={styles.description}>{t('panel.settings.deck.deckSleepDescription')}</p>;
     case 'nexus':
       return <NexusFields action={action} onChange={onChange} />;
     case 'sequence':

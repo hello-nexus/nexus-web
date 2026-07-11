@@ -68,7 +68,32 @@ export async function executeDeckAction(action: DeckAction): Promise<void> {
       // REST call; a physical deck's page nav is service-side. No-op here so a
       // 'page' step buried in a sequence/toggle branch never REST-errors.
       return;
+    case 'deckBrightness':
+    case 'deckSleep':
+      // Physical-deck-only: these control a physical Stream Deck's own screen
+      // (brightness / blank-until-next-press). The touch widget has no
+      // physical deck to act on; the service applies them when a real device
+      // key is pressed.
+      return;
+    case 'hotkeySwitch': {
+      const keys = nextHotkeySwitchKeys(action);
+      const body = parseHotkey(keys);
+      if (body) await postService('/system/input/keys', body);
+      return;
+    }
   }
+}
+
+// Best-effort widget-side alternation: keyed by the action's own key pair, so
+// two slots sharing the exact same keysA/keysB share a latch. The service
+// owns the authoritative per-key latch for a physical deck's own presses.
+const hotkeySwitchLatch = new Map<string, boolean>();
+
+function nextHotkeySwitchKeys(action: Extract<DeckAction, { type: 'hotkeySwitch' }>): string {
+  const latchKey = `${action.keysA} ${action.keysB}`;
+  const useB = hotkeySwitchLatch.get(latchKey) ?? false;
+  hotkeySwitchLatch.set(latchKey, !useB);
+  return useB ? action.keysB : action.keysA;
 }
 
 async function runSystem(a: DeckSystemAction): Promise<void> {
