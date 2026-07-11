@@ -31,6 +31,16 @@ const NESTED_KINDS: DeckActionType[] = [
   'text', 'power', 'nexus', 'deckBrightness', 'deckSleep',
 ];
 
+// deckBrightness/deckSleep control a physical Stream Deck's own screen (see
+// deckExecutor's no-op comment); on a widget target they'd be a silent dead
+// button, so they're filtered out of every picker (top-level and nested
+// sequence/toggle steps) unless the target is a physical deck.
+const PHYSICAL_ONLY_KINDS = new Set(['deckBrightness', 'deckSleep']);
+
+function kindsForTarget<K extends string>(kinds: K[], targetKind: DeckTarget['kind']): K[] {
+  return targetKind === 'physical' ? kinds : kinds.filter(k => !PHYSICAL_ONLY_KINDS.has(k));
+}
+
 // A slot's action-type picker is two-tier (category, then a kind within it),
 // mirroring Elgato's own action browser. Most kinds map 1:1 onto DeckAction's
 // `type` discriminant; 'folder' has no action (it's slot.folder), and the
@@ -154,13 +164,13 @@ function ActionEditor({ action, onChange, showType, allowed, surface, desktopEdi
           onChange={k => onChange(defaultActionFor(k as DeckActionType))}
         />
       )}
-      <ActionFields action={action} onChange={onChange} surface={surface} desktopEditor={desktopEditor} pageCount={pageCount} />
+      <ActionFields action={action} onChange={onChange} allowed={allowed} surface={surface} desktopEditor={desktopEditor} pageCount={pageCount} />
     </>
   );
 }
 
-function ActionFields({ action, onChange, surface, desktopEditor, pageCount }: {
-  action: DeckAction; onChange: (a: DeckAction) => void; surface?: PanelSurface; desktopEditor?: boolean; pageCount?: number;
+function ActionFields({ action, onChange, allowed, surface, desktopEditor, pageCount }: {
+  action: DeckAction; onChange: (a: DeckAction) => void; allowed: DeckActionType[]; surface?: PanelSurface; desktopEditor?: boolean; pageCount?: number;
 }) {
   const { t } = useTranslation();
   const audioOut = useServiceOptions('/system/audio/devices', d => ((d as { outputs?: { id: string; name: string }[] })?.outputs ?? []).map(x => ({ value: x.id, label: x.name })));
@@ -259,9 +269,9 @@ function ActionFields({ action, onChange, surface, desktopEditor, pageCount }: {
     case 'nexus':
       return <NexusFields action={action} onChange={onChange} />;
     case 'sequence':
-      return <SequenceEditor action={action} onChange={onChange} surface={surface} desktopEditor={desktopEditor} />;
+      return <SequenceEditor action={action} onChange={onChange} allowed={allowed} surface={surface} desktopEditor={desktopEditor} />;
     case 'toggle':
-      return <ToggleEditor action={action} onChange={onChange} surface={surface} desktopEditor={desktopEditor} />;
+      return <ToggleEditor action={action} onChange={onChange} allowed={allowed} surface={surface} desktopEditor={desktopEditor} />;
     case 'page':
       return action.op === 'goto' ? (
         <SelectField
@@ -301,7 +311,7 @@ function NexusFields({ action, onChange }: { action: Extract<DeckAction, { type:
   );
 }
 
-function SequenceEditor({ action, onChange, surface, desktopEditor }: { action: Extract<DeckAction, { type: 'sequence' }>; onChange: (a: DeckAction) => void; surface?: PanelSurface; desktopEditor?: boolean }) {
+function SequenceEditor({ action, onChange, allowed, surface, desktopEditor }: { action: Extract<DeckAction, { type: 'sequence' }>; onChange: (a: DeckAction) => void; allowed: DeckActionType[]; surface?: PanelSurface; desktopEditor?: boolean }) {
   const { t } = useTranslation();
   const steps = action.steps;
   const setSteps = (next: typeof steps) => onChange({ type: 'sequence', steps: next });
@@ -317,7 +327,7 @@ function SequenceEditor({ action, onChange, surface, desktopEditor }: { action: 
               <button type="button" onClick={() => setSteps(steps.filter((_, j) => j !== i))}>✕</button>
             </span>
           </div>
-          <ActionEditor action={step.action} onChange={a => setSteps(steps.map((s, j) => (j === i ? { ...s, action: a } : s)))} showType allowed={NESTED_KINDS} surface={surface} desktopEditor={desktopEditor} />
+          <ActionEditor action={step.action} onChange={a => setSteps(steps.map((s, j) => (j === i ? { ...s, action: a } : s)))} showType allowed={allowed} surface={surface} desktopEditor={desktopEditor} />
           <Field label={t('panel.settings.deck.sequence.gapMs')}><input className={styles.input} type="number" min={0} value={step.gapAfterMs ?? 60} onChange={e => setSteps(steps.map((s, j) => (j === i ? { ...s, gapAfterMs: Math.max(0, Number(e.target.value)) } : s)))} /></Field>
         </div>
       ))}
@@ -328,7 +338,7 @@ function SequenceEditor({ action, onChange, surface, desktopEditor }: { action: 
   );
 }
 
-function ToggleEditor({ action, onChange, surface, desktopEditor }: { action: Extract<DeckAction, { type: 'toggle' }>; onChange: (a: DeckAction) => void; surface?: PanelSurface; desktopEditor?: boolean }) {
+function ToggleEditor({ action, onChange, allowed, surface, desktopEditor }: { action: Extract<DeckAction, { type: 'toggle' }>; onChange: (a: DeckAction) => void; allowed: DeckActionType[]; surface?: PanelSurface; desktopEditor?: boolean }) {
   const { t } = useTranslation();
   const stateKinds = ['mute', 'lightingPower', 'internal'];
   return (
@@ -336,11 +346,11 @@ function ToggleEditor({ action, onChange, surface, desktopEditor }: { action: Ex
       <SelectField label={t('panel.settings.deck.toggle.stateSource')} value={action.state?.kind ?? 'internal'} options={stateKinds.map(k => ({ value: k, label: t(`panel.settings.deck.toggle.state.${k}`) }))} onChange={kind => onChange({ ...action, state: { kind: kind as 'mute' } })} />
       <div className={styles.branch}>
         <div className={styles.branchLabel}>{t('panel.settings.deck.toggle.onPress')}</div>
-        <ActionEditor action={action.on} onChange={on => onChange({ ...action, on })} showType allowed={NESTED_KINDS} surface={surface} desktopEditor={desktopEditor} />
+        <ActionEditor action={action.on} onChange={on => onChange({ ...action, on })} showType allowed={allowed} surface={surface} desktopEditor={desktopEditor} />
       </div>
       <div className={styles.branch}>
         <div className={styles.branchLabel}>{t('panel.settings.deck.toggle.alternatePress')}</div>
-        <ActionEditor action={action.off} onChange={off => onChange({ ...action, off })} showType allowed={NESTED_KINDS} surface={surface} desktopEditor={desktopEditor} />
+        <ActionEditor action={action.off} onChange={off => onChange({ ...action, off })} showType allowed={allowed} surface={surface} desktopEditor={desktopEditor} />
       </div>
     </>
   );
@@ -377,13 +387,24 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
   const category = categoryForKind(kind);
   const appIdForIcon = slot.action?.type === 'launchApp' ? slot.action.appId : undefined;
 
+  // A widget target has no physical Stream Deck to act on, so deckBrightness/
+  // deckSleep are hidden here (and from every nested sequence/toggle step
+  // below) rather than offered as a silent no-op button.
+  const nestedAllowed = kindsForTarget(NESTED_KINDS, target.kind);
+  const categories = target.kind === 'physical'
+    ? DECK_ACTION_CATEGORIES
+    : DECK_ACTION_CATEGORIES
+        .map(c => ({ ...c, kinds: kindsForTarget(c.kinds, target.kind) }))
+        .filter(c => c.kinds.length > 0);
+  const visibleKinds = kindsForTarget(category.kinds, target.kind);
+
   const onKindChange = (k: DeckPickerKind) => {
     if (k === 'folder') { writeSlot({ ...slot, action: undefined, folder: slot.folder ?? { slots: [] } }); return; }
     writeSlot({ ...slot, folder: undefined, action: defaultActionForPickerKind(k) });
   };
 
   const onCategoryChange = (key: string) => {
-    const cat = DECK_ACTION_CATEGORIES.find(c => c.key === key);
+    const cat = categories.find(c => c.key === key);
     if (!cat || cat.kinds.includes(kind)) return;
     onKindChange(cat.kinds[0]);
   };
@@ -413,7 +434,7 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
             <Select
               className={styles.selectWide}
               value={category.key}
-              options={DECK_ACTION_CATEGORIES.map(c => ({ value: c.key, label: t(c.labelKey) }))}
+              options={categories.map(c => ({ value: c.key, label: t(c.labelKey) }))}
               onChange={onCategoryChange}
               ariaLabel={t('panel.settings.deck.actionCategory')}
             />
@@ -421,7 +442,7 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
           <Select
             className={styles.selectWide}
             value={kind}
-            options={category.kinds.map(k => ({ value: k, label: t(`panel.settings.deck.action.${k}`) }))}
+            options={visibleKinds.map(k => ({ value: k, label: t(`panel.settings.deck.action.${k}`) }))}
             onChange={k => onKindChange(k as DeckPickerKind)}
             ariaLabel={t('panel.settings.deck.actionType')}
           />
@@ -430,7 +451,7 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
               <FolderInput size={14} /> {t('panel.settings.deck.enterFolder')}
             </button>
           ) : slot.action ? (
-            <ActionEditor action={slot.action} onChange={a => writeSlot({ ...slot, action: a })} showType={false} allowed={NESTED_KINDS} surface={surface} desktopEditor={desktopEditor} pageCount={pageCount} />
+            <ActionEditor action={slot.action} onChange={a => writeSlot({ ...slot, action: a })} showType={false} allowed={nestedAllowed} surface={surface} desktopEditor={desktopEditor} pageCount={pageCount} />
           ) : null}
         </div>
       </SettingsSection>

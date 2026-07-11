@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import { makePhysicalDeckTarget } from './deckTarget';
+import { makePhysicalDeckTarget, makeWidgetDeckTarget } from './deckTarget';
+import type { PanelWidget } from '../types';
 import type { DeckConfig, DeckSlot } from './types';
 
 vi.mock('../common/AppPicker', () => ({ useAppIcon: () => null, AppPicker: () => null }));
@@ -45,6 +46,31 @@ function Harness({ initialSlots }: { initialSlots: DeckSlot[] }) {
 
 function renderInspector(slots: DeckSlot[] = [{}]) {
   render(<Harness initialSlots={slots} />);
+}
+
+/** Same round-tripping contract as Harness, but over a touch-widget target (the
+ * one editing surface with no physical Stream Deck to actually apply
+ * deckBrightness/deckSleep). */
+function WidgetHarness({ initialSlots }: { initialSlots: DeckSlot[] }) {
+  const [widget, setWidget] = useState<PanelWidget>({
+    id: 'w1', type: 'deck', size: '2x2', col: 0, row: 0,
+    config: { deck: { pages: [{ slots: initialSlots }] } as never },
+  });
+  const target = makeWidgetDeckTarget(widget, patch => setWidget(w => ({ ...w, config: { ...w.config, ...patch } })));
+  return (
+    <DeckKeyInspector
+      target={target}
+      page={0}
+      folderPath={[]}
+      onFolderPathChange={() => {}}
+      selectedSlot={0}
+      onSelectedSlotChange={() => {}}
+    />
+  );
+}
+
+function renderWidgetInspector(slots: DeckSlot[] = [{}]) {
+  render(<WidgetHarness initialSlots={slots} />);
 }
 
 function openCategoryPicker() {
@@ -105,5 +131,41 @@ describe('DeckKeyInspector action picker - Stream Deck category', () => {
 
     openKindPicker();
     expect(screen.getByRole('option', { name: 'panel.settings.deck.action.hotkeySwitch' })).toBeInTheDocument();
+  });
+});
+
+describe('DeckKeyInspector - deckBrightness/deckSleep are physical-deck-only', () => {
+  it('hides the Stream Deck category entirely on a touch-widget target', () => {
+    renderWidgetInspector();
+    openCategoryPicker();
+
+    expect(screen.queryByRole('option', { name: 'panel.settings.deck.category.streamdeck' })).toBeNull();
+    // Every other category is still offered - only the physical-only one is gone.
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.category.system' })).toBeInTheDocument();
+  });
+
+  it('omits deckBrightness/deckSleep from a nested sequence step on a widget target', () => {
+    renderWidgetInspector();
+    openCategoryPicker();
+    fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.category.multiAction' }));
+    openKindPicker();
+    fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.action.sequence' }));
+
+    fireEvent.click(screen.getByText('panel.settings.deck.sequence.addStep'));
+    // Two "actionType" pickers now exist (the outer slot's, already showing
+    // "Sequence", and the new step's own type Select) - the step's is last.
+    const typePickers = screen.getAllByRole('button', { name: 'panel.settings.deck.actionType' });
+    fireEvent.click(typePickers[typePickers.length - 1]);
+
+    expect(screen.queryByRole('option', { name: 'panel.settings.deck.action.deckBrightness' })).toBeNull();
+    expect(screen.queryByRole('option', { name: 'panel.settings.deck.action.deckSleep' })).toBeNull();
+    // hotkeySwitch works everywhere (best-effort on the widget), so it stays offered.
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.action.hotkeySwitch' })).toBeInTheDocument();
+  });
+
+  it('still offers the Stream Deck category and its kinds on a physical target', () => {
+    renderInspector();
+    openCategoryPicker();
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.category.streamdeck' })).toBeInTheDocument();
   });
 });
