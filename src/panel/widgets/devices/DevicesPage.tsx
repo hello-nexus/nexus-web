@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Usb, Monitor, Microchip, FileText, Cable, BookOpen } from 'lucide-react';
+import { Usb, Monitor, Microchip, FileText, Cable, BookOpen, Link } from 'lucide-react';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useUsbDevices, type UsbDeviceDetail } from '../../../hooks/useUsbDevices';
 import { useUnifiedDevices, type UnifiedDevice } from '../../../hooks/useUnifiedDevices';
@@ -241,7 +241,7 @@ function DeviceCard({
           onClick={e => e.stopPropagation()}
           onKeyDown={e => e.stopPropagation()}
         >
-          <span className={styles.controlLabel}>{t('devices.nexusControl')}</span>
+          <span className={styles.controlLabel}><Link size={13} aria-hidden />{t('devices.nexusControl')}</span>
           <Toggle
             checked={device.nexusControlEnabled}
             onChange={onToggleControl}

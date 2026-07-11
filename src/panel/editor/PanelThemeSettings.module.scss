@@ -4,16 +4,22 @@
   gap: 22px;
 }
 
-.themeSection {
-  display: flex;
-  flex-direction: column;
+// Per-section spacing for the SettingsSection box: these sections stack
+// toggles + sliders + tabs + pickers (not self-padded rows), so the box needs
+// an explicit gap between them.
+.themeBox {
   gap: 10px;
 }
 
-// Per-section spacing for the SettingsSection box: these sections stack
-// toggles + sliders + tabs + pickers (not self-padded rows), so the box needs
-// an explicit gap the way .themeSection used to provide.
-.themeBox {
+// Background section box: standard settings-box padding, so the opacity slider
+// and mode tabs sit at the same left/right inset as every other settings row.
+.backgroundBox {
+  gap: 10px;
+}
+
+.backgroundContent {
+  display: flex;
+  flex-direction: column;
   gap: 10px;
 }
 
@@ -36,28 +42,21 @@
   background: var(--panel-control-bg);
 }
 
-// Shader mode: mode tabs + live preview + Options|Effect tabs + chips pin to
-// the top of the page scroller (sheet .settingsBody / desktop .tabContent)
-// while the animate grid / effect controls scroll underneath. Opaque-ish
-// background masks the content sliding under; the desktop device page mounts
-// outside .panel-root, hence the --bg fallback.
+// Shader mode: mode tabs + live preview + Options|Effect tabs pin to the top of
+// the settings scroller while the animate grid / effect controls scroll under.
+// The pinned dock must be OPAQUE (to mask the grid) and read as the enclosing
+// box surface: --surface layered over the opaque --backdrop-base is exactly the
+// box's own composite (box = --surface over the page --backdrop-base), so the
+// dock is seamless with the box rather than a raised bar.
 .backgroundDock {
   position: sticky;
-  // Pull up over the host scroller's padding-top (--settings-sticky-inset,
-  // declared next to that padding) so the pinned dock sits flush with the
-  // scrollport edge and scrolled content can't peek above it.
   top: calc(-1 * var(--settings-sticky-inset, 0px));
   z-index: 2;
   display: flex;
   flex-direction: column;
   gap: 10px;
   padding-bottom: 4px;
-  // Fully-opaque, and matched to the SAME backdrop the effect grid scrolls over
-  // (the app-shell --backdrop-base, not a card/elevated surface) so the pinned
-  // dock reads as empty scroll space instead of a raised box. The old
-  // --panel-sheet-bg was the elevated surface at 98% opacity - a lighter bar
-  // that also let scrolled thumbnails ghost through the 2% gap.
-  background: var(--backdrop-base);
+  background: linear-gradient(var(--surface), var(--surface)), var(--backdrop-base);
 }
 
 .backgroundTemplateRow {

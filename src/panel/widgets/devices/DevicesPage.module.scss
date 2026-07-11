@@ -116,6 +116,9 @@
 }
 
 .controlLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   font-family: var(--font-sans);
   font-size: var(--type-small);
   color: var(--text);

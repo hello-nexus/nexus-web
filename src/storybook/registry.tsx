@@ -24,6 +24,7 @@ import { CardDeleteButton } from '../components/common/CardDeleteButton/CardDele
 import { InfoTooltip } from '../components/common/InfoTooltip/InfoTooltip';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { DeviceWarningIcon } from '../components/common/DeviceWarningIcon/DeviceWarningIcon';
+import { NexusControlOffIcon } from '../components/common/NexusControlOffIcon/NexusControlOffIcon';
 import { Popover } from '../components/common/Popover/Popover';
 import { DatePicker } from '../components/common/DatePicker/DatePicker';
 import { EffectCard } from '../components/common/EffectCard/EffectCard';
@@ -45,6 +46,8 @@ import { EmptyState } from '../components/common/EmptyState/EmptyState';
 import { Select } from '../components/common/Select/Select';
 import { IconLabelButton } from '../components/common/IconLabelButton/IconLabelButton';
 import { Button } from '../components/common/Button/Button';
+import { EndTaskButton } from '../components/common/EndTaskButton/EndTaskButton';
+import { ConflictAppCard } from '../components/common/ConflictAppCard/ConflictAppCard';
 import { ToastProvider, useToast } from '../components/common/Toast/Toast';
 import { WidgetHeader } from '../components/common/WidgetHeader/WidgetHeader';
 import { DEFAULT_ACCENT, PRESET_ACCENTS } from '../lib/settings';
@@ -138,7 +141,7 @@ export interface StorybookEntry {
 
 function PreviewSliderInline() {
   const [v, setV] = useState(50);
-  return <Slider label="Sample" value={v} min={0} max={100} onChange={setV} />;
+  return <Slider label="Sample" value={v} min={0} max={100} onChange={setV} marker={Math.round(v / 2)} />;
 }
 
 function PreviewSliderStacked() {
@@ -282,6 +285,17 @@ function PreviewDeviceWarningIcon() {
       <div className={styles.previewHoverCard}>
         <span>Unknown code</span>
         <DeviceWarningIcon code="some-future-code" />
+      </div>
+    </div>
+  );
+}
+
+function PreviewNexusControlOffIcon() {
+  return (
+    <div className={styles.previewStack}>
+      <div className={styles.previewHoverCard}>
+        <span>Corsair iCUE LINK Hub</span>
+        <NexusControlOffIcon />
       </div>
     </div>
   );
@@ -855,6 +869,29 @@ function PreviewButtonMatrix() {
         <Button loading loadingHidesLabel tone="danger">End task</Button>
         <Button disabled>Disabled</Button>
       </div>
+    </div>
+  );
+}
+
+function PreviewEndTaskButton() {
+  // Swallowed in capture phase so the click never reaches EndTaskButton's own
+  // handler - it calls the real /conflicts/kill endpoint with no override prop.
+  return (
+    <div className={styles.previewStack}>
+      <div className={styles.previewHoverCard} onClickCapture={e => e.stopPropagation()}>
+        <span>iCUE</span>
+        <EndTaskButton conflictId="preview-icue" />
+      </div>
+    </div>
+  );
+}
+
+function PreviewConflictAppCard() {
+  // Swallowed in capture phase, same as PreviewEndTaskButton - the card's End
+  // Task button calls the real /conflicts/kill endpoint with no override prop.
+  return (
+    <div className={styles.previewStack} onClickCapture={e => e.stopPropagation()}>
+      <ConflictAppCard conflict={{ id: 'preview-icue', displayName: 'iCUE', category: 'cooling', processName: 'iCUE.exe', pid: 4212 }} />
     </div>
   );
 }
@@ -1506,7 +1543,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'Slider (inline)', category: 'inputs',
     filePath: 'src/components/common/Slider/Slider.tsx',
-    description: 'Inline label | track | value layout. Default orientation. Every slider now paints the accent fill track + bright (white-on-dark) thumb - there is no un-filled variant.', Preview: PreviewSliderInline,
+    description: 'Inline label | track | value layout. Default orientation. Every slider now paints the accent fill track + bright (white-on-dark) thumb - there is no un-filled variant. The optional marker prop draws a caret at a secondary value (shown here at half the thumb) - used for effective brightness after the master multiplier - and markerLabel stacks a node (e.g. an info affordance) above that caret.', Preview: PreviewSliderInline,
   },
   {
     name: 'Slider (stacked, editable, zero marker)', category: 'inputs',
@@ -1591,6 +1628,12 @@ export const REGISTRY: StorybookEntry[] = [
     fullWidth: true,
     notes: 'Reach for size="md" tone="neutral" for tertiary actions. tone="accent" for primary CTAs. tone="danger" for destructive. tone="ghost" when bordered chrome would compete with adjacent UI.',
   },
+  {
+    name: 'EndTaskButton', category: 'inputs',
+    filePath: 'src/components/common/EndTaskButton/EndTaskButton.tsx',
+    description: 'Danger Button wired to kill a detected conflicting app by catalog id (POST /conflicts/kill). Keeps its spinner up after a successful kill until the watcher clears the row; resets on failure so the user can retry. Used by ConflictWarningModal (per-row) and the device-page NexusControlOff gate.',
+    Preview: PreviewEndTaskButton,
+  },
 
   {
     name: 'SettingRow / SettingToggle / SettingSelect / SettingSlider', category: 'inputs',
@@ -1635,6 +1678,12 @@ export const REGISTRY: StorybookEntry[] = [
     description: 'Right-aligned warning glyph for a device row/card, shown whenever the service reports a device-level issue via DeviceListItem.warning. Code-driven - the warning code maps to a localized tooltip, so any handler can flag a problem without new UI per device family. Used by the sidebar DEVICES section and the Devices-page card grid.',
     Preview: PreviewDeviceWarningIcon,
     notes: 'Renders the raw code as a fallback tooltip if it has no mapped i18n key, so an unmapped code fails visibly instead of silently.',
+  },
+  {
+    name: 'NexusControlOffIcon', category: 'status',
+    filePath: 'src/components/common/NexusControlOffIcon/NexusControlOffIcon.tsx',
+    description: 'Right-aligned glyph on a sidebar device row when Nexus Control is off for that device (supportsNexusControl true, nexusControlEnabled false). A bare non-focusable icon, same pattern as DeviceWarningIcon.',
+    Preview: PreviewNexusControlOffIcon,
   },
   {
     name: 'HeartBurst', category: 'status',
@@ -1725,6 +1774,12 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/DeviceCanvas/DeviceCanvas.tsx',
     description: 'Free-arrange device canvas for the Lighting view: drag-position device tiles, marquee multi-select, per-device LED preview driven by the live shader effect, right-click DeviceContextMenu.',
     notes: 'No live preview - needs live device geometry, LED maps, and shader state.',
+  },
+  {
+    name: 'ConflictAppCard', category: 'cards',
+    filePath: 'src/components/common/ConflictAppCard/ConflictAppCard.tsx',
+    description: 'Detected-conflict row: app name, translated category / process name / PID meta line, and an EndTaskButton. Used by ConflictWarningModal (one per detected conflict) and the device-page NexusControlOff gate (the single conflict blocking that device).',
+    Preview: PreviewConflictAppCard,
   },
 
   // ── Modals ────────────────────────────────────────────────────────────

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Fan, Gpu as GpuIcon, HardDrive, LayoutDashboard, MemoryStick, ShieldCheck } from 'lucide-react';
+import { Fan, Gpu as GpuIcon, HardDrive, LayoutDashboard, MemoryStick, Settings as SettingsIcon, ShieldCheck } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useDiagnosticsHealth } from '../../../hooks/useDiagnosticsHealth';
@@ -29,10 +29,11 @@ import { GpuSection } from './GpuSection';
 import { CoolingTab } from './CoolingTab';
 import { SystemTab } from './SystemTab';
 import { SummaryTab } from './SummaryTab';
+import { SettingsTab } from './SettingsTab';
 import { DEFAULT_TEMPERATURE_RANGE_HOURS, type TemperatureRangeHours } from './temperatureHelpers';
 import styles from './DiagnosticsView.module.scss';
 
-type DiagnosticsTab = 'summary' | 'storage' | 'memory' | 'gpu' | 'cooling' | 'system';
+type DiagnosticsTab = 'summary' | 'storage' | 'memory' | 'gpu' | 'cooling' | 'system' | 'settings';
 
 interface DiagnosticsViewProps {
   serviceOnline: boolean;
@@ -140,6 +141,7 @@ export function DiagnosticsView({ serviceOnline, connectionState, tab: urlTab, o
     { key: 'gpu', label: t('diagnostics.kind.gpu'), icon: <GpuIcon size={14} /> },
     { key: 'cooling', label: t('diagnostics.kind.cooling'), icon: <Fan size={14} /> },
     { key: 'system', label: t('diagnostics.kind.system'), icon: <ShieldCheck size={14} /> },
+    { key: 'settings', label: t('diagnostics.tab.settings'), icon: <SettingsIcon size={14} /> },
   ] as const;
 
   const tab: DiagnosticsTab = urlTab && tabs.some(tb => tb.key === urlTab)
@@ -181,6 +183,7 @@ export function DiagnosticsView({ serviceOnline, connectionState, tab: urlTab, o
         />
       );
       case 'system': return <SystemTab system={system} incidents={incidents} onLogsCleared={handleLogsCleared} />;
+      case 'settings': return <SettingsTab />;
     }
   };
 

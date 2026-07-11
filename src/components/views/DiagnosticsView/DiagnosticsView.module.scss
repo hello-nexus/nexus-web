@@ -139,6 +139,11 @@
   color: var(--text-dim);
 }
 
+.reasonInfo {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
 // ── Storage ──
 
 .driveGrid {

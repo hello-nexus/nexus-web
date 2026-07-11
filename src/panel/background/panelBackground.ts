@@ -15,7 +15,17 @@ export type PanelResolvedTheme = 'dark' | 'light';
 
 export const DEFAULT_PANEL_BACKGROUND_EFFECT = 'aurora';
 export const DEFAULT_PANEL_BACKGROUND_TEMPLATE = 0;
-export const DEFAULT_PANEL_BACKGROUND_OPACITY = 0.4;
+// Background opacity defaults are mode-aware: a solid colour reads as the full
+// backdrop (opaque), while a shader/media overlay sits half-strength over the
+// theme background so widgets stay legible. Applied at record-read time when a
+// panel has no stored opacity; normalizePanelBackgroundOpacity only clamps an
+// already-stored concrete value.
+export const DEFAULT_SOLID_BACKGROUND_OPACITY = 1;
+export const DEFAULT_OVERLAY_BACKGROUND_OPACITY = 0.5;
+
+export function defaultBackgroundOpacityForMode(mode: PanelBackgroundMode): number {
+  return mode === 'solid' ? DEFAULT_SOLID_BACKGROUND_OPACITY : DEFAULT_OVERLAY_BACKGROUND_OPACITY;
+}
 // Widget-surface defaults are mastered by the service in
 // nexus-service/data/install-defaults.json (panel.*), served at /defaults into
 // the install-defaults cache. Read through the cache for one source of truth
@@ -122,7 +132,7 @@ export function normalizePanelBackgroundTemplate(value: number | null | undefine
 }
 
 export function normalizePanelBackgroundOpacity(value: number | null | undefined): number {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return DEFAULT_PANEL_BACKGROUND_OPACITY;
+  if (typeof value !== 'number' || !Number.isFinite(value)) return DEFAULT_OVERLAY_BACKGROUND_OPACITY;
   return Math.min(Math.max(value, 0), 1);
 }
 

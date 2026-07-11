@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Unplug } from 'lucide-react';
+import { Unplug, Link } from 'lucide-react';
 import { useUnifiedDevices, type UnifiedDevice } from '../../../hooks/useUnifiedDevices';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
@@ -22,6 +22,8 @@ import { StrimerDevicePage } from './StrimerDevicePage';
 import { TryxDevicePage } from './TryxDevicePage';
 import { StreamDeckDevicePage } from './StreamDeckDevicePage';
 import { Toggle } from '../../common/Toggle/Toggle';
+import { ConflictAppCard } from '../../common/ConflictAppCard/ConflictAppCard';
+import { useConflictApps } from '../../../hooks/useConflictApps';
 import { useTranslation } from '../../../lib/i18n';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import styles from './DevicePage.module.scss';
@@ -105,6 +107,7 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFi
       <NexusControlOff
         key={device.key}
         deviceName={device.name}
+        conflictAppId={device.conflictAppId}
         onEnable={() => controlDevice(device.curatedId as string, true)}
       />
     );
@@ -194,16 +197,49 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFi
   );
 }
 
-function NexusControlOff({ deviceName, onEnable }: { deviceName: string; onEnable: () => void }) {
+export function NexusControlOff({ deviceName, conflictAppId, onEnable }: { deviceName: string; conflictAppId?: string; onEnable: () => void }) {
   const { t } = useTranslation();
+  const { conflicts, ready } = useConflictApps(true);
+  const activeConflict = conflictAppId ? conflicts.find(c => c.id === conflictAppId) : undefined;
+  // Before the first conflicts snapshot resolves, an absent activeConflict is
+  // unknown rather than confirmed clear - keep the enable toggle disabled so
+  // the user can't turn Control on while a real conflict may still surface.
+  const resolvingConflict = Boolean(conflictAppId) && !ready;
   return (
     <section className={styles.page}>
       <div className={styles.controlOff}>
-        <h2 className={styles.controlOffTitle}>{t('devices.nexusControl')}</h2>
-        <p className={styles.controlOffHint}>{t('devices.nexusControlOffHint', { name: deviceName })}</p>
-        <Toggle checked={false} onChange={() => onEnable()} ariaLabel={t('devices.nexusControl')} />
+        <h2 className={styles.controlOffTitle}>{deviceName}</h2>
+        <div className={styles.controlOffBody}>
+          {activeConflict ? (
+            <>
+              <p className={styles.controlOffHint}>{t('devices.nexusControlOff.conflictHint', { app: activeConflict.displayName })}</p>
+              <ConflictAppCard conflict={activeConflict} />
+              <NexusControlCard checked={false} disabled onChange={() => {}} />
+            </>
+          ) : (
+            <>
+              <p className={styles.controlOffHint}>{t('devices.nexusControlOff.enableHint')}</p>
+              <NexusControlCard checked={false} disabled={resolvingConflict} onChange={onEnable} />
+            </>
+          )}
+        </div>
       </div>
     </section>
+  );
+}
+
+/**
+ * Label + toggle in a card, matching the DevicesPage device-card control
+ * group treatment (same label, same toggle) so the on/off switch reads as
+ * the same control wherever it appears.
+ */
+function NexusControlCard({ checked, disabled, onChange }: { checked: boolean; disabled?: boolean; onChange: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <div className={styles.controlCard}>
+      <span className={styles.controlLabel}><Link size={13} aria-hidden />{t('devices.nexusControl')}</span>
+      <Toggle checked={checked} disabled={disabled} onChange={onChange} ariaLabel={t('devices.nexusControl')} />
+    </div>
   );
 }
 

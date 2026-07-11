@@ -1,3 +1,4 @@
+import { type ReactNode } from 'react';
 import { Cpu, Plus } from 'lucide-react';
 import { type LightingDevice, type LayoutPreset } from '../../../../api/lighting';
 import { useTranslation } from '../../../../lib/i18n';
@@ -44,8 +45,10 @@ type DeviceBlock =
  * using the same component/styling as a motherboard group: a chevron, the brand
  * name, a group power switch, and its lights as indented child cards.
  */
-export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelection, onTogglePower, onSetPower, lightingOff, onOpenSettings, onDeviceReorder, communityCounts, onOpenCommunity, smartHubFirmwareControl, onSetSmartHubFirmwareControl, lianLiFirmwareActive, onOpenSmartLights, presets, layoutActiveId, presetCount, canUndo, canRedo, onPresetLoad, onPresetCreate, onPresetRename, onPresetDelete, onLayoutReset, onLayoutUndo, onLayoutRedo }: {
+export function DevicePanel({ devices, header, selectedIds, onSelectDevice, onSetSelection, onTogglePower, onSetPower, lightingOff, onOpenSettings, onDeviceReorder, communityCounts, onOpenCommunity, smartHubFirmwareControl, onSetSmartHubFirmwareControl, lianLiFirmwareActive, onOpenSmartLights, presets, layoutActiveId, presetCount, canUndo, canRedo, onPresetLoad, onPresetCreate, onPresetRename, onPresetDelete, onLayoutReset, onLayoutUndo, onLayoutRedo }: {
   devices: LightingDevice[];
+  /** Optional control rendered at the top of the scrolling list (master brightness). */
+  header?: ReactNode;
   /** Device ids currently selected (single-tap → 1-element set, canvas marquee → N-element set). */
   selectedIds: Set<string>;
   /** Single-replace click: clears the set and selects only this id (or null to clear). */
@@ -252,6 +255,7 @@ export function DevicePanel({ devices, selectedIds, onSelectDevice, onSetSelecti
   return (
     <aside className={styles.devicePanel}>
       <div className={styles.deviceList}>
+        {header}
         <LayoutToolbar
           presets={presets}
           activeId={layoutActiveId}

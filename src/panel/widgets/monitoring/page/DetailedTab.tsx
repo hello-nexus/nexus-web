@@ -35,12 +35,12 @@ export function DetailedTab({ sensors }: { sensors: ReturnType<typeof useSensors
 
   const entries: Entry[] = [];
 
-  // One section per discovered hardware unit. Hides automatically when a family
-  // has zero entries (e.g. desktops with no battery). Multiple units of one kind
-  // get numbered suffixes; the unit's model name rides in the subtitle.
+  // Multiple units of one kind get numbered suffixes; the unit's model name
+  // rides in the subtitle. Filtered below with every other section, so a
+  // family with zero entries (e.g. a desktop with no battery) contributes
+  // nothing to the list.
   const pushExtras = (kind: string, label: string, list: ExtrasComponent[]) => {
     list.forEach((c, i) => {
-      if (c.sensors.length === 0) return;
       entries.push({
         id: `${kind}/${c.id || i}`,
         title: list.length > 1 ? `${label} ${i + 1}` : label,
@@ -50,23 +50,19 @@ export function DetailedTab({ sensors }: { sensors: ReturnType<typeof useSensors
     });
   };
 
-  if (sensors.cpu.length > 0)
-    entries.push({ id: 'cpu', title: t('monitoring.detailed.cpu'), subtitle: sensors.cpuModel, sensors: sensors.cpu });
-  if (sensors.gpu.length > 0)
-    entries.push({ id: 'gpu', title: t('monitoring.detailed.gpu'), subtitle: sensors.gpuModel, sensors: sensors.gpu });
-  if (sensors.memory.length > 0)
-    entries.push({ id: 'memory', title: t('monitoring.detailed.memory'), subtitle: specs?.memory, sensors: sensors.memory });
+  entries.push({ id: 'cpu', title: t('monitoring.detailed.cpu'), subtitle: sensors.cpuModel, sensors: sensors.cpu });
+  entries.push({ id: 'gpu', title: t('monitoring.detailed.gpu'), subtitle: sensors.gpuModel, sensors: sensors.gpu });
+  entries.push({ id: 'memory', title: t('monitoring.detailed.memory'), subtitle: specs?.memory, sensors: sensors.memory });
   // One section per physical storage drive (NVMe + SATA), headed by its model.
   // extras.nvmeStorage is every HardwareType.Storage device LHM reports, each
   // carrying its own sensors.
   pushExtras('storage', t('monitoring.detailed.storage'), extras.nvmeStorage);
-  if (sensors.motherboard.length > 0 || sensors.motherboardModel)
-    entries.push({
-      id: 'motherboard',
-      title: t('monitoring.detailed.system'),
-      subtitle: sensors.motherboardModel,
-      sensors: sensors.motherboard,
-    });
+  entries.push({
+    id: 'motherboard',
+    title: t('monitoring.detailed.system'),
+    subtitle: sensors.motherboardModel,
+    sensors: sensors.motherboard,
+  });
 
   pushExtras('battery', t('monitoring.detailed.battery'), extras.batteries);
   pushExtras('psu', t('monitoring.detailed.psu'), extras.psus);
@@ -74,9 +70,12 @@ export function DetailedTab({ sensors }: { sensors: ReturnType<typeof useSensors
   pushExtras('nic', t('monitoring.detailed.nic'), extras.nics);
   pushExtras('ec', t('monitoring.detailed.ec'), extras.embeddedControllers);
 
+  // Single gate for every section: a header never renders over an empty body.
+  const visibleEntries = entries.filter(entry => entry.sensors.length > 0);
+
   return (
     <div className={styles.detailedRoot}>
-      {entries.map(entry => (
+      {visibleEntries.map(entry => (
         <DetailSection
           key={entry.id}
           id={entry.id}

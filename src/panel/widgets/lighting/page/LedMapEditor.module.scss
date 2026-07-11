@@ -438,6 +438,13 @@
   text-align: right;
 }
 
+// Info (i) stacked above the effective-brightness caret inside the slider
+// track; shrink the trigger so the indicator group stays compact.
+.markerInfo button {
+  width: 16px;
+  height: 16px;
+}
+
 .spacer { flex: 1; }
 
 .iconBtn {

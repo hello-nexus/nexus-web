@@ -69,6 +69,7 @@ The app routes a small set of top-level surfaces from the URL path:
 | `/register` | Public account creation page. Browser-only. |
 | `/recover` | Public lost-password request+poll flow. Browser-only. |
 | `/account` | Public signed-in account page (profile management, no sync). Browser-only. |
+| `/telemetry-reference` | Dev reference view listing the analytics events the app emits. |
 
 `/touch` and `/panel/q60` are legacy aliases that land in the panel
 allocation flow.
@@ -109,6 +110,7 @@ Everything ships from `src/`. Top-level folders:
 |---|---|
 | `api/` | Typed REST/WS clients for `nexus-service` + the cloud API - one file per domain (`cooling`, `lighting`, `displays`, `keeb`, `gallery`, `panel`, `internetPairing`…). Host resolution lives in `api/service.ts`. |
 | `app/` | Desktop **dashboard shell**: `Dashboard.tsx`, sidebar, pairing modals, panel entrypoint + routing, window caption buttons. `app/public/` holds the browser-only public account pages (see Surfaces above). |
+| `assets/` | Static image assets bundled into the app (e.g. `flags/` for locale flags). |
 | `components/` | Shared React components - `common/` (design-system primitives), `views/` (full dashboard sections), `builder/` (PC-builder UI), `peripherals/`, `icons/`. |
 | `diag/` | Renderer diagnostics - the memory/health probe that reports JS-heap, DOM-node, and reconnect samples to the service log (`/diagnostics/client-mem`) on significant change. |
 | `hooks/` | Reusable hooks, mostly data/state (`useDevices`, `useCooling`, `useMultiplexSocket`…). |
@@ -157,6 +159,8 @@ npm run audit:styles     # style audits (also: audit:css-chunks, audit:text-styl
   `https://api.hellonexus.com`; set this to point the embedded build at a
   local/staging API instead.
 - `VITE_RELAY_URL` - relay origin override for local relay testing.
+- `VITE_LAN_SEALED` - set to `1` to force the LAN-sealed transport (also
+  toggleable at runtime via `localStorage['nexus.lanSealed']`). Debug flag.
 - `NEXUS_API_BASE` - `server.js`-only (not a Vite define): the nexus-api
   origin `/u/:username` OG injection fetches against. Defaults to
   `https://api.hellonexus.com`.

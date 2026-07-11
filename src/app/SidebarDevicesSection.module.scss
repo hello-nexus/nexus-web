@@ -125,14 +125,27 @@
   -webkit-mask-position: center;
 }
 
-.label { white-space: nowrap; }
+// Fills the row and truncates so a long device name (e.g. "Lian Li Uni Fan
+// Wireless") can never push the right-aligned status badge off the button.
+// min-width: 0 is required or the flex item refuses to shrink below its text.
+.label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 // Small flask icon sitting after the device name to flag it as a
 // simulator entry rather than a real connected panel. Dim by default
 // so it reads as supplementary metadata, not a primary control.
 .simulatedBadge {
+  display: inline-flex;
+  align-items: center;
   flex-shrink: 0;
-  margin-left: 0.35rem;
+  // Match the control-off glyph's right-edge spacing.
+  margin-left: -0.15rem;
+  margin-right: -0.1rem;
   color: var(--text-dim);
   opacity: 0.85;
 }

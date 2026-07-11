@@ -3,6 +3,7 @@ import classNames from 'classnames';
 import { Ghost, Usb } from 'lucide-react';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { DeviceWarningIcon } from '../components/common/DeviceWarningIcon/DeviceWarningIcon';
+import { NexusControlOffIcon } from '../components/common/NexusControlOffIcon/NexusControlOffIcon';
 import { useUnifiedDevices } from '../hooks/useUnifiedDevices';
 import { useTranslation } from '../lib/i18n';
 import { ICON_SIZE } from './sidebarNav';
@@ -118,13 +119,14 @@ export function SidebarDevicesSection({
                 <>
                   <span className={styles.label}>{device.shortName}</span>
                   {isSimulated && (
-                    <Ghost
-                      size={12}
-                      className={styles.simulatedBadge}
-                      aria-label={t('devices.panels.simulated')}
-                    />
+                    <HoverTooltip body={t('devices.panels.simulated')} side="top">
+                      <span className={styles.simulatedBadge} role="img" aria-label={t('devices.panels.simulated')}>
+                        <Ghost size={14} aria-hidden />
+                      </span>
+                    </HoverTooltip>
                   )}
                   {device.warning && <DeviceWarningIcon code={device.warning} />}
+                  {device.supportsNexusControl && !device.nexusControlEnabled && <NexusControlOffIcon />}
                 </>
               )}
             </button>

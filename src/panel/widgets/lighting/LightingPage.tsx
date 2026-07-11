@@ -29,11 +29,9 @@ import { emitRadialBloomFromElement } from '../../../lib/backgroundEffects';
 import { LIGHTING_MODE_ICONS } from '../../../lib/lightingModeIcons';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
-import { usePageSettingsAction } from '../../../app/PageChrome';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { LightingSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
 import { DeviceCanvas } from '../../../components/common/DeviceCanvas/DeviceCanvas';
-import { useSensors } from '../../../hooks/useSensors';
 import { usePanelBackgroundUsage } from '../../../hooks/usePanelBackgroundUsage';
 import {
   EFFECTS, MODES, defaultStateFor,
@@ -48,7 +46,7 @@ import { GameSyncLeftPane } from './page/GameSyncLeftPane';
 import { LedMapEditor } from './page/LedMapEditor';
 import { visibleCards } from './page/zoneUtils';
 import { OpenRgbButton } from './page/OpenRgbButton';
-import { LightingSettingsModal } from './page/LightingSettingsModal';
+import { GlobalBrightnessSlider } from './page/GlobalBrightnessSlider';
 import { RightPaneTabs, type RightPaneTab } from './page/RightPaneTabs';
 import { EffectTab, type PostProcessState } from './page/EffectTab';
 import { useThrottle } from '../../../hooks/cadence';
@@ -113,7 +111,6 @@ function loadDeviceOrder(): string[] {
 
 export function LightingPage({ serviceOnline, serviceState, connectionState, activeProfileId, platform = '', onSectionNavigate }: LightingViewProps) {
   const { t } = useTranslation();
-  const sensors = useSensors(serviceOnline);
   const { mode, setMode, rawSync, setRawSync, synced } = useLightingSync(serviceOnline, activeProfileId);
   // Game Sync requires the Windows Chroma capture shim; hide it on non-Windows
   // (empty platform = ping not yet resolved, keep hidden to avoid a flash).
@@ -136,7 +133,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const handleDragActiveChange = useCallback((active: boolean) => {
     deviceDraggingRef.current = active;
   }, []);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   // Multi-selection on the canvas + right-side device panel. The set drives
   // visual highlighting on both surfaces; `primaryDeviceId` is the single
   // device used for LED-dot rendering on the canvas and for the LED-map
@@ -1077,11 +1073,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // modes it renders an empty state and the tab header is disabled.
   const effectTabDisabled = effectiveMode === 'none' || effectiveMode === 'gamesync';
 
-  // The settings affordance lives in the top bar (right of the search pill);
-  // register it while online so it opens this page's LightingSettingsModal.
-  const openSettings = useCallback(() => setSettingsOpen(true), []);
-  usePageSettingsAction({ onOpen: openSettings, label: t('lighting.settings.open') }, serviceOnline);
-
   if (!serviceOnline) {
     return (
       <div className={styles.lighting}>
@@ -1093,13 +1084,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
 
   return (
     <div className={styles.lighting}>
-      <LightingSettingsModal
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        serviceOnline={serviceOnline}
-        platform={platform}
-        gpus={sensors.gpuComponents}
-      />
       {/* ViewHeader lives in the left grid column so the device column (right)
           can rise to the very top of the page, level with the mode tabs. Capped
           at --page-max (pageBody) so the page matches every other view's width. */}
@@ -1186,6 +1170,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             <>
               <DevicePanel
                 devices={orderedDevices}
+                header={<GlobalBrightnessSlider serviceOnline={serviceOnline} />}
                 selectedIds={selectedDeviceIds}
                 onSelectDevice={handleSelectDevice}
                 onSetSelection={handleSetSelection}

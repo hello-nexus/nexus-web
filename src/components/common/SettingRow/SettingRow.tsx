@@ -141,6 +141,7 @@ export function SettingSlider({
   disabled,
   anchorId,
   ariaLabel,
+  controlWidth,
 }: {
   label?: string;
   description?: ReactNode;
@@ -156,10 +157,12 @@ export function SettingSlider({
   disabled?: boolean;
   anchorId?: string;
   ariaLabel?: string;
+  // Overrides the default control width (min(12rem, 45vw)); pass a CSS length.
+  controlWidth?: string;
 }) {
   return (
     <SettingRow label={label} description={description} disabled={disabled} anchorId={anchorId}>
-      <div className={styles.sliderControl}>
+      <div className={styles.sliderControl} style={controlWidth ? { width: controlWidth } : undefined}>
         <Slider
           value={value}
           min={min}
