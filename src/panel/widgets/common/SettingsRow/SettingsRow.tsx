@@ -15,8 +15,9 @@ export {
 } from '../../../../components/common/SettingRow/SettingRow';
 
 // Header-above-box settings group, shared with the dashboard Settings pages.
-export function SettingsSection({ title, children }: { title: string; children: ReactNode }) {
-  return <SettingsSectionBase title={title}>{children}</SettingsSectionBase>;
+// `action` renders a trailing control on the title row (e.g. a delete button).
+export function SettingsSection({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
+  return <SettingsSectionBase title={title} action={action}>{children}</SettingsSectionBase>;
 }
 
 export function SettingsInput(props: InputHTMLAttributes<HTMLInputElement>) {

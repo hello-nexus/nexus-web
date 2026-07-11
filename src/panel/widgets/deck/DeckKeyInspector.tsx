@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, AlignVerticalJustifyStart, FolderInput } from 'lucide-react';
+import { AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, AlignVerticalJustifyStart, FolderInput, Plus, Trash2 } from 'lucide-react';
+import { useDraggable } from '@dnd-kit/core';
 import { Button } from '../../../components/common/Button/Button';
 import { useTranslation } from '../../../lib/i18n';
 import { DECK_SWATCHES } from '../../../lib/settings';
@@ -21,6 +22,7 @@ import { resolveTargetView, slotCountAtDepth, type DeckTarget } from './deckTarg
 import {
   DECK_TITLE_FONTS, DECK_TITLE_SIZE_OPTIONS, resolveDeckTitleStyle, type DeckTitleAlign,
 } from './deckTitleStyle';
+import { DECK_ICONS, autoIconName } from './deckIcons';
 import type { DeckAction, DeckActionType, DeckSlot, DeckTitleStyle } from './types';
 import styles from './DeckKeyInspector.module.scss';
 
@@ -52,7 +54,7 @@ function kindsForTarget<K extends string>(kinds: K[], targetKind: DeckTarget['ki
 // page-navigate action's three ops (prev/next/goto) are split into distinct
 // picker entries so each shows as its own Navigation item instead of one
 // "Page" entry plus a nested op selector.
-type DeckPickerKind = Exclude<DeckActionType, 'page'> | 'folder' | 'pagePrev' | 'pageNext' | 'pageGoto';
+export type DeckPickerKind = Exclude<DeckActionType, 'page'> | 'folder' | 'pagePrev' | 'pageNext' | 'pageGoto';
 
 interface DeckActionCategory {
   key: 'navigation' | 'streamdeck' | 'system' | 'nexus' | 'multi';
@@ -134,6 +136,21 @@ function defaultActionForPickerKind(kind: Exclude<DeckPickerKind, 'folder'>): De
     case 'pageGoto': return { type: 'page', op: 'goto', target: 0 };
     default: return defaultActionFor(kind);
   }
+}
+
+/**
+ * The slot a picker kind produces, keeping the target slot's icon/label/color.
+ * Shared by click-to-pick and drag-drop-onto-a-slot so both assign identically.
+ */
+export function slotForPickerKind(kind: DeckPickerKind, base: DeckSlot = {}): DeckSlot {
+  if (kind === 'folder') return { ...base, action: undefined, folder: base.folder ?? { slots: [] } };
+  return { ...base, folder: undefined, action: defaultActionForPickerKind(kind) };
+}
+
+/** Lucide icon for a picker kind, matching a bound slot's auto-icon. */
+export function pickerKindIcon(kind: DeckPickerKind) {
+  const name = kind === 'folder' ? 'Folder' : autoIconName(defaultActionForPickerKind(kind));
+  return DECK_ICONS[name] ?? Plus;
 }
 
 function useServiceOptions(path: string, map: (data: unknown) => { value: string; label: string }[]): { value: string; label: string }[] {
@@ -363,6 +380,37 @@ function ToggleEditor({ action, onChange, allowed, surface, desktopEditor }: { a
 }
 
 /**
+ * One action-kind entry in the picker: an icon + label. Clicking assigns it to
+ * the selected slot; dragging it onto a slot in the grid assigns it there (the
+ * grid's DndContext, in StreamDeckDevicePage, resolves the `pick:<kind>` id).
+ */
+function PickerKindItem({ kind, active, onPick }: { kind: DeckPickerKind; active: boolean; onPick: (k: DeckPickerKind) => void }) {
+  const { t } = useTranslation();
+  const drag = useDraggable({ id: `pick:${kind}` });
+  const Icon = pickerKindIcon(kind);
+  return (
+    <button
+      ref={drag.setNodeRef}
+      {...drag.attributes}
+      {...drag.listeners}
+      type="button"
+      role="option"
+      aria-selected={active}
+      className={`${styles.kindItem} ${active ? styles.kindItemActive : ''}`}
+      style={{
+        transform: drag.transform ? `translate3d(${drag.transform.x}px, ${drag.transform.y}px, 0)` : undefined,
+        opacity: drag.isDragging ? 0.6 : undefined,
+        zIndex: drag.isDragging ? 20 : undefined,
+      }}
+      onClick={() => onPick(kind)}
+    >
+      <Icon size={14} aria-hidden className={styles.kindIcon} />
+      {t(`panel.settings.deck.action.${kind}`)}
+    </button>
+  );
+}
+
+/**
  * Expandable list of action categories, replacing a category+kind Select
  * pair: each category is its own collapsible group, and its body lists that
  * category's kinds as clickable entries. Every category starts expanded so
@@ -398,16 +446,7 @@ function ActionCategoryPicker({ categories, activeKind, onPick }: {
         >
           <div className={styles.kindList} role="listbox" aria-label={t(cat.labelKey)}>
             {cat.kinds.map(k => (
-              <button
-                key={k}
-                type="button"
-                role="option"
-                aria-selected={k === activeKind}
-                className={`${styles.kindItem} ${k === activeKind ? styles.kindItemActive : ''}`}
-                onClick={() => onPick(k)}
-              >
-                {t(`panel.settings.deck.action.${k}`)}
-              </button>
+              <PickerKindItem key={k} kind={k} active={k === activeKind} onPick={onPick} />
             ))}
           </div>
         </CollapsibleSection>
@@ -585,10 +624,7 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
         .map(c => ({ ...c, kinds: kindsForTarget(c.kinds, target.kind) }))
         .filter(c => c.kinds.length > 0);
 
-  const onKindChange = (k: DeckPickerKind) => {
-    if (k === 'folder') { writeSlot({ ...slot, action: undefined, folder: slot.folder ?? { slots: [] } }); return; }
-    writeSlot({ ...slot, folder: undefined, action: defaultActionForPickerKind(k) });
-  };
+  const onKindChange = (k: DeckPickerKind) => writeSlot(slotForPickerKind(k, slot));
 
   const showPicker = part !== 'editor';
   const showEditor = part !== 'picker';
@@ -614,7 +650,14 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
       {showEditor && hasBinding && (
         <>
           {hasActionConfig && (
-            <SettingsSection title={t(`panel.settings.deck.action.${kind}`)}>
+            <SettingsSection
+              title={t(`panel.settings.deck.action.${kind}`)}
+              action={(
+                <button type="button" className={styles.deleteBtn} onClick={() => writeSlot({})} aria-label={t('common.delete')}>
+                  <Trash2 size={14} aria-hidden />
+                </button>
+              )}
+            >
               <div className={styles.fieldStack}>
                 {kind === 'folder' ? (
                   <button type="button" className={styles.folderBtn} onClick={() => { onFolderPathChange([...folderPath, selSlot]); onSelectedSlotChange?.(0); }}>

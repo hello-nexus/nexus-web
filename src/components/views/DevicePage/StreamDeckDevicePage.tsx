@@ -9,7 +9,7 @@ import type { UnifiedDevice } from '../../../hooks/useUnifiedDevices';
 import { useConflictApps } from '../../../hooks/useConflictApps';
 import { usePhysicalDeckTarget } from '../../../panel/widgets/deck/usePhysicalDeckTarget';
 import { DeckGrid } from '../../../panel/widgets/deck/DeckGrid';
-import { DeckKeyInspector } from '../../../panel/widgets/deck/DeckKeyInspector';
+import { DeckKeyInspector, slotForPickerKind, type DeckPickerKind } from '../../../panel/widgets/deck/DeckKeyInspector';
 import { DeckPageStrip } from '../../../panel/widgets/deck/DeckPageStrip';
 import { padSlots, pageHasContent } from '../../../panel/widgets/deck/deckLayout';
 import { withPageIndicatorDisplay } from '../../../panel/widgets/deck/deckIcons';
@@ -116,9 +116,19 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   const onBack = () => { setFolderPath(p => p.slice(0, -1)); setSelectedSlot(0); };
   const onDragEnd = (e: DragEndEvent) => {
     if (!target) return;
-    const from = Number(e.active.id);
+    const activeId = String(e.active.id);
     const to = e.over ? Number(e.over.id) : NaN;
-    if (!Number.isFinite(from) || !Number.isFinite(to) || from === to) return;
+    if (!Number.isFinite(to)) return;
+    // An action dragged from the picker (`pick:<kind>`) assigns to that slot;
+    // otherwise a cell was dragged onto another cell to reorder.
+    if (activeId.startsWith('pick:')) {
+      const kind = activeId.slice('pick:'.length) as DeckPickerKind;
+      target.updateSlot(page, folderPath, to, slotForPickerKind(kind, viewSlots[to] ?? {}));
+      setSelectedSlot(to);
+      return;
+    }
+    const from = Number(activeId);
+    if (!Number.isFinite(from) || from === to) return;
     target.swapSlots(page, folderPath, from, to);
   };
 
@@ -146,6 +156,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
         {activeConflict && <ConflictAppCard conflict={activeConflict} />}
 
         {tab === 'customize' ? (
+          <DndContext sensors={dragSensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
           <div className={styles.customizeSplit}>
             <div className={styles.leftCol}>
               <div className={styles.previewTop}>
@@ -158,19 +169,17 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
                     </div>
                   )}
                   {target && (
-                    <DndContext sensors={dragSensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-                      <DeckGrid
-                        slots={viewSlots}
-                        cols={target.cols}
-                        rows={target.rows}
-                        square
-                        selectable
-                        dragEnabled
-                        selectedIndex={selSlot}
-                        onCell={setSelectedSlot}
-                        backCell={inFolder ? { onBack, ariaLabel: t('panel.settings.deck.back') } : undefined}
-                      />
-                    </DndContext>
+                    <DeckGrid
+                      slots={viewSlots}
+                      cols={target.cols}
+                      rows={target.rows}
+                      square
+                      selectable
+                      dragEnabled
+                      selectedIndex={selSlot}
+                      onCell={setSelectedSlot}
+                      backCell={inFolder ? { onBack, ariaLabel: t('panel.settings.deck.back') } : undefined}
+                    />
                   )}
                 </div>
                 {target && (
@@ -235,6 +244,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
               </div>
             )}
           </div>
+          </DndContext>
         ) : (
           <div className={styles.settingsFull}>
             <SettingsSection boxClassName={styles.sectionBox}>
