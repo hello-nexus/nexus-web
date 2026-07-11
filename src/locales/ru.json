@@ -2309,6 +2309,7 @@
   "sidebar.devices.empty": "Нет подключённых устройств",
   "sidebar.expand": "Развернуть боковую панель",
   "sidebar.pin": "Закрепить на боковой панели",
+  "sidebar.removeFromRecents": "Удалить с боковой панели",
   "sidebar.section.apps": "Приложения",
   "sidebar.section.devices": "Устройства",
   "sidebar.unpin": "Открепить с боковой панели",

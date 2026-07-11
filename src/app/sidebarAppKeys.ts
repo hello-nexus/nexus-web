@@ -67,3 +67,42 @@ export function sanitizePinnedTail(input: readonly unknown[] | undefined): strin
   }
   return out;
 }
+
+// FIFO window for the sidebar's below-separator "recently opened" rows
+// (macOS dock semantics) - the last RECENTS_CAP unpinned apps opened,
+// oldest first.
+const RECENTS_CAP = 3;
+
+// Normalize a recents array read from settings/server: same legacy-prefix
+// rewrite and pinnable-key filter as sanitizePinnedTail, deduped preserving
+// first-occurrence order, then capped to the last RECENTS_CAP entries (the
+// newest). Whether a key is currently pinned is not this function's concern -
+// callers filter pinned keys out separately, since this sanitizer has no
+// pinned-tail context and pinning is meant to strip the recents entry anyway.
+export function sanitizeRecents(input: readonly unknown[] | undefined): string[] {
+  if (!input || !Array.isArray(input)) return [];
+  const registryPending = !hasMarketplaceLoadedOnce();
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const entry of input) {
+    if (typeof entry !== 'string') continue;
+    const key = normalizeAppType(entry);
+    if (seen.has(key)) continue;
+    if (!isPinnableAppKey(key) && !(registryPending && isMarketplaceType(key))) continue;
+    seen.add(key);
+    out.push(key);
+  }
+  return out.slice(-RECENTS_CAP);
+}
+
+// Append `key` to the recents FIFO: a newly opened key is appended at the
+// end, evicting the oldest (index 0) once the list would exceed RECENTS_CAP.
+// Re-opening a key already in the list is a no-op - its position, and its
+// position in the eviction order, never changes. Returns the same array
+// reference (not a copy) on the no-op path, so a caller can skip a write by
+// comparing the result to its input with `!==`.
+export function appendRecent(list: readonly string[], key: string): string[] {
+  if (list.includes(key)) return list as string[];
+  const next = [...list, key];
+  return next.length > RECENTS_CAP ? next.slice(next.length - RECENTS_CAP) : next;
+}

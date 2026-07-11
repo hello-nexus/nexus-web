@@ -2309,6 +2309,7 @@
   "sidebar.devices.empty": "Aucun appareil connecté",
   "sidebar.expand": "Développer la barre latérale",
   "sidebar.pin": "Épingler à la barre latérale",
+  "sidebar.removeFromRecents": "Retirer de la barre latérale",
   "sidebar.section.apps": "Applications",
   "sidebar.section.devices": "Appareils",
   "sidebar.unpin": "Détacher de la barre latérale",

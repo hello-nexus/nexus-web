@@ -2309,6 +2309,7 @@
   "sidebar.devices.empty": "Nenhum dispositivo conectado",
   "sidebar.expand": "Expandir barra lateral",
   "sidebar.pin": "Fixar na barra lateral",
+  "sidebar.removeFromRecents": "Remover da barra lateral",
   "sidebar.section.apps": "Apps",
   "sidebar.section.devices": "Dispositivos",
   "sidebar.unpin": "Desafixar da barra lateral",

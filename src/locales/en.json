@@ -2454,6 +2454,7 @@
   "sidebar.devices.empty": "No devices connected",
   "sidebar.expand": "Expand sidebar",
   "sidebar.pin": "Pin to sidebar",
+  "sidebar.removeFromRecents": "Remove from sidebar",
   "sidebar.section.apps": "Apps",
   "sidebar.section.devices": "Devices",
   "sidebar.unpin": "Unpin from sidebar",
