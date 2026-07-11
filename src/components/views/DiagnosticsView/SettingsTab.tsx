@@ -12,6 +12,8 @@ import { SettingRow, SettingToggle, SettingSlider } from '../../common/SettingRo
 // duration templates (diagnostics.duration.minutes / .hours).
 const LINGER_OPTIONS_MINUTES = [0, 30, 60, 360, 1440] as const;
 const COOLDOWN_OPTIONS_MINUTES = [15, 30, 60, 120, 360, 1440] as const;
+// A touch wider than the default SettingSlider control (min(12rem, 45vw)).
+const TEMP_SLIDER_WIDTH = 'min(16rem, 45vw)';
 
 type Translate = (key: string, params?: Record<string, string | number>) => string;
 
@@ -80,28 +82,28 @@ export function SettingsTab() {
         <SettingSlider
           label={t('benchmark.phase.cpu')}
           value={settings.diagnosticsCpuTempC} min={60} max={105}
-          editable trackFill
+          editable trackFill controlWidth={TEMP_SLIDER_WIDTH}
           formatValue={v => `${v}°C`}
           onChange={v => update({ diagnosticsCpuTempC: v })}
         />
         <SettingSlider
           label={t('benchmark.phase.gpu')}
           value={settings.diagnosticsGpuTempC} min={60} max={105}
-          editable trackFill
+          editable trackFill controlWidth={TEMP_SLIDER_WIDTH}
           formatValue={v => `${v}°C`}
           onChange={v => update({ diagnosticsGpuTempC: v })}
         />
         <SettingSlider
           label={t('benchmark.phase.storage')}
           value={settings.diagnosticsStorageTempC} min={40} max={90}
-          editable trackFill
+          editable trackFill controlWidth={TEMP_SLIDER_WIDTH}
           formatValue={v => `${v}°C`}
           onChange={v => update({ diagnosticsStorageTempC: v })}
         />
         <SettingSlider
           label={t('benchmark.phase.ram')}
           value={settings.diagnosticsRamTempC} min={40} max={90}
-          editable trackFill
+          editable trackFill controlWidth={TEMP_SLIDER_WIDTH}
           formatValue={v => `${v}°C`}
           onChange={v => update({ diagnosticsRamTempC: v })}
         />
