@@ -1691,6 +1691,8 @@
   "monitoring.settings.device": "Gerät",
   "monitoring.settings.open": "Überwachungseinstellungen",
   "monitoring.settings.range": "Bereich",
+  "monitoring.settings.rangeMax": "Max",
+  "monitoring.settings.rangeMin": "Min",
   "monitoring.settings.sensor": "Sensor",
   "monitoring.settings.sensors": "Sensoren",
   "monitoring.settings.title": "Überwachungseinstellungen",

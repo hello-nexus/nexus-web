@@ -1691,6 +1691,8 @@
   "monitoring.settings.device": "Устройство",
   "monitoring.settings.open": "Настройки мониторинга",
   "monitoring.settings.range": "Диапазон",
+  "monitoring.settings.rangeMax": "Макс",
+  "monitoring.settings.rangeMin": "Мин",
   "monitoring.settings.sensor": "Датчик",
   "monitoring.settings.sensors": "Датчики",
   "monitoring.settings.title": "Настройки мониторинга",

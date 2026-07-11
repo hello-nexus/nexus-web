@@ -1,3 +1,4 @@
+import type { HardwareSensor } from '../../../hooks/useSensors';
 import type { DeviceKey } from './perfSlots';
 import type { GaugeDesignKey } from './gauges';
 
@@ -14,6 +15,43 @@ export function designSupportsScale(design: GaugeDesignKey): boolean {
   return SCALABLE_DESIGNS.has(design);
 }
 
+// Adaptive fallback ceiling for a motherboard Clock sensor with no
+// theoreticalMaximum - clock sensors don't carry an installed-capacity max
+// the way Data sensors do.
+const MOTHERBOARD_CLOCK_MAX = 6000;
+
+// Fixed-mode default ceiling for network sensors, in the sensor's own unit
+// (bytes/sec - see networkSensors.ts formatNetworkRate). 1 Gbps. Network
+// sensors carry no theoreticalMaximum, so this is the only ceiling
+// defaultFixedMax has to offer; unlike the adaptive networkMaxValue it does
+// not track live throughput, or a Fixed axis wouldn't stay fixed.
+const NETWORK_FIXED_DEFAULT_MAX_BPS = 125_000_000;
+
+export function staticMaxForDevice(device: DeviceKey, sensorName?: string, sensorType?: string): number {
+  if (device === 'fan') return 2500;
+  if (device === 'storage') return 100;
+  if (device === 'fps') return sensorName === 'Frame Time' ? 50 : 240;
+  if (device === 'network') return NETWORK_FIXED_DEFAULT_MAX_BPS;
+  if (device === 'motherboard') {
+    switch (sensorType) {
+      case 'Fan': return 2500;
+      case 'Clock': return MOTHERBOARD_CLOCK_MAX;
+      case 'Voltage': return 2;
+      default: return 100;
+    }
+  }
+  // Load/temperature/clock sensors: percentage max.
+  return 100;
+}
+
+// Ceiling for a slot's Fixed-range upper bound when the user hasn't set an
+// override: the sensor's own capacity when it carries one, else the same
+// per-device static ceiling the adaptive path falls back to.
+export function defaultFixedMax(device: DeviceKey, sensor: HardwareSensor | undefined, nameFallback?: string): number {
+  const sMax = sensor?.theoreticalMaximum && sensor.theoreticalMaximum > 0 ? sensor.theoreticalMaximum : 0;
+  return sMax || staticMaxForDevice(device, sensor?.name ?? nameFallback, sensor?.type);
+}
+
 export function chartDomainForScale(
   device: DeviceKey,
   rawValue: number,
@@ -22,9 +60,47 @@ export function chartDomainForScale(
   scale: ScaleMode,
   sensorName?: string,
   sensorType?: string,
+  fixedMin?: number,
+  fixedMax?: number,
+  fixedDefaultMax?: number,
 ): [number, number] {
-  if (scale === 'fixed') return [0, staticMax];
+  if (scale === 'fixed') {
+    const dmax = Number.isFinite(fixedDefaultMax) && (fixedDefaultMax as number) > 0 ? (fixedDefaultMax as number) : staticMax;
+    const rawMax = Number.isFinite(fixedMax) && (fixedMax as number) > 0 ? (fixedMax as number) : dmax;
+    const rawMin = Number.isFinite(fixedMin) ? (fixedMin as number) : 0;
+    // A stored min/max can outlive the slot's device/sensor swapping to one
+    // with a smaller ceiling; clamp into [0, dmax] so a stale override
+    // degrades to the guard below instead of an inverted or negative-span
+    // domain.
+    const max = Math.max(0, Math.min(rawMax, dmax));
+    const min = Math.max(0, Math.min(rawMin, dmax));
+    return min < max ? [min, max] : [0, dmax];
+  }
   return relativeHistoryDomain(device, rawValue, history, staticMax, sensorName, sensorType);
+}
+
+// Nearest "nice" 1/2/5-times-power-of-ten value to `raw`, used to pick a
+// slider step that scales with the axis instead of a flat 1 unit (which
+// leaves a sub-100 ceiling, e.g. a 2V sensor, with only 3 selectable values).
+function nearestNiceValue(raw: number): number {
+  if (!Number.isFinite(raw) || raw <= 0) return 1;
+  const exponent = Math.floor(Math.log10(raw));
+  let best = Math.pow(10, exponent);
+  let bestDist = Math.abs(raw - best);
+  for (let exp = exponent - 1; exp <= exponent + 1; exp++) {
+    for (const mult of [1, 2, 5]) {
+      const candidate = mult * Math.pow(10, exp);
+      const dist = Math.abs(raw - candidate);
+      if (dist < bestDist) { bestDist = dist; best = candidate; }
+    }
+  }
+  return best;
+}
+
+// Slider step for a Fixed-range ceiling of `defMax`: roughly 100 steps
+// across the axis, snapped to a nice round increment.
+export function niceStep(defMax: number): number {
+  return nearestNiceValue(defMax / 100);
 }
 
 const PERCENT_FLOOR = 25;

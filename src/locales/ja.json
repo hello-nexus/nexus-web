@@ -1636,6 +1636,8 @@
   "monitoring.settings.device": "デバイス",
   "monitoring.settings.open": "モニタリング設定",
   "monitoring.settings.range": "範囲",
+  "monitoring.settings.rangeMax": "最大",
+  "monitoring.settings.rangeMin": "最小",
   "monitoring.settings.sensor": "センサー",
   "monitoring.settings.sensors": "センサー",
   "monitoring.settings.title": "モニタリング設定",

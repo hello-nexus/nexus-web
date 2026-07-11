@@ -1,6 +1,8 @@
-// resolveSensor/labelForDevice/staticMaxForDevice/percentForSensor are the
-// pure helpers MonitoringWidget and PerfSlot use, not consumed elsewhere.
- 
+// resolveSensor/labelForDevice/percentForSensor are the pure helpers
+// MonitoringWidget and PerfSlot use, not consumed elsewhere.
+// staticMaxForDevice lives in perfDomain.ts; re-exported here for its
+// existing importers (MicroMonitoringWidget, MonitoringWidget.test).
+
 import { useMemo } from 'react';
 import { useSensors } from '../../../hooks/useSensors';
 import type { HardwareSensor } from '../../../hooks/useSensors';
@@ -18,7 +20,7 @@ import { prefixedSensorLabel } from './sensorNames';
 import { MicroMonitoringWidget } from './MicroMonitoringWidget';
 import { buildNetworkSensors, networkMaxValue, NETWORK_SENSOR_TOTAL } from './networkSensors';
 import { formatSensorValue } from './sensorValueFormat';
-import { chartDomainForScale, DEFAULT_SCALE_MODE, type ScaleMode } from './perfDomain';
+import { chartDomainForScale, DEFAULT_SCALE_MODE, defaultFixedMax, staticMaxForDevice, type ScaleMode } from './perfDomain';
 import styles from './MonitoringWidget.module.scss';
 
 interface TempSensorPrefs {
@@ -118,26 +120,7 @@ export function labelForDevice(device: DeviceKey, sensorName: string): string {
   }
 }
 
-// Adaptive fallback ceiling for a motherboard Clock sensor with no
-// theoreticalMaximum - clock sensors don't carry an installed-capacity max
-// the way Data sensors do.
-const MOTHERBOARD_CLOCK_MAX = 6000;
-
-export function staticMaxForDevice(device: DeviceKey, sensorName?: string, sensorType?: string): number {
-  if (device === 'fan') return 2500;
-  if (device === 'storage') return 100;
-  if (device === 'fps') return sensorName === 'Frame Time' ? 50 : 240;
-  if (device === 'motherboard') {
-    switch (sensorType) {
-      case 'Fan': return 2500;
-      case 'Clock': return MOTHERBOARD_CLOCK_MAX;
-      case 'Voltage': return 2;
-      default: return 100;
-    }
-  }
-  // Load/temperature/clock sensors: percentage max.
-  return 100;
-}
+export { staticMaxForDevice };
 
 export function percentForSensor(device: DeviceKey, sensor: HardwareSensor | undefined, maxValue: number): number {
   if (!sensor) return 0;
@@ -176,6 +159,8 @@ export function MonitoringWidget({ widget, selectedSlot, onSelectSlot }: WidgetP
     sensorName: ((widget.config?.[`slot${i}_sensor`] as string | undefined) ?? DEFAULT_SLOTS[i]?.sensor ?? ''),
     design: ((widget.config?.[`slot${i}_design`] as GaugeDesignKey | undefined) ?? DEFAULT_SLOTS[i]?.design ?? 'sparkline'),
     scale: ((widget.config?.[`slot${i}_scale`] as ScaleMode | undefined) ?? DEFAULT_SCALE_MODE),
+    fixedMin: widget.config?.[`slot${i}_min`] as number | undefined,
+    fixedMax: widget.config?.[`slot${i}_max`] as number | undefined,
   }));
   const microDevice = widget.config?.micro_device as DeviceKey | undefined;
   const usesFps = isMicro
@@ -208,7 +193,7 @@ export function MonitoringWidget({ widget, selectedSlot, onSelectSlot }: WidgetP
 
   return (
     <div className={`${styles.performance} ${layoutClass}`}>
-      {slotConfigs.map(({ device, sensorName, design, scale }, i) => {
+      {slotConfigs.map(({ device, sensorName, design, scale, fixedMin, fixedMax }, i) => {
         return (
           <PerfSlot
             key={`${i}-${device}-${sensorName}`}
@@ -220,6 +205,8 @@ export function MonitoringWidget({ widget, selectedSlot, onSelectSlot }: WidgetP
             sensorName={sensorName}
             design={design}
             scale={scale}
+            fixedMin={fixedMin}
+            fixedMax={fixedMax}
             tempPrefs={tempPrefs}
             selected={selectable && i === activeSlot}
             onSelect={selectable ? () => onSelectSlot?.(i) : undefined}
@@ -239,12 +226,14 @@ interface PerfSlotProps {
   sensorName: string;
   design: GaugeDesignKey;
   scale?: ScaleMode;
+  fixedMin?: number;
+  fixedMax?: number;
   tempPrefs?: TempSensorPrefs;
   selected?: boolean;
   onSelect?: () => void;
 }
 
-export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, device, sensorName, design, scale = DEFAULT_SCALE_MODE, tempPrefs, selected = false, onSelect }: PerfSlotProps) {
+export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, device, sensorName, design, scale = DEFAULT_SCALE_MODE, fixedMin, fixedMax, tempPrefs, selected = false, onSelect }: PerfSlotProps) {
   const { monitoringTempUnit, numberFormat } = useUnitPrefs();
   const effectiveSensorName = device === 'network' && !sensorName ? NETWORK_SENSOR_TOTAL : sensorName;
   const sensor = resolveSensor(sensors, fpsSensors, networkSensors, device, effectiveSensorName, tempPrefs);
@@ -260,7 +249,8 @@ export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, devic
     ? networkMaxValue(rawValue, history)
     : sensorMax || staticMaxForDevice(device, sensor?.name, sensor?.type);
   const value = percentForSensor(device, sensor, maxValue);
-  const [domainMin, domainMax] = chartDomainForScale(device, rawValue, history, maxValue, scale, sensor?.name, sensor?.type);
+  const fixedDefaultMax = defaultFixedMax(device, sensor, effectiveSensorName);
+  const [domainMin, domainMax] = chartDomainForScale(device, rawValue, history, maxValue, scale, sensor?.name, sensor?.type, fixedMin, fixedMax, fixedDefaultMax);
   // Stable tuple reference so the Sparkline path-memo keys on bound values,
   // not array identity.
   const historyDomain = useMemo<[number, number]>(() => [domainMin, domainMax], [domainMin, domainMax]);

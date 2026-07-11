@@ -1829,6 +1829,8 @@
   "monitoring.settings.device": "Device",
   "monitoring.settings.open": "Monitoring settings",
   "monitoring.settings.range": "Range",
+  "monitoring.settings.rangeMax": "Max",
+  "monitoring.settings.rangeMin": "Min",
   "monitoring.settings.sensor": "Sensor",
   "monitoring.settings.sensors": "Sensors",
   "monitoring.settings.title": "Monitoring settings",

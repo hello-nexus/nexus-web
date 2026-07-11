@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { chartDomainForScale, designSupportsScale, relativeHistoryDomain } from './perfDomain';
+import { chartDomainForScale, defaultFixedMax, designSupportsScale, niceStep, relativeHistoryDomain, staticMaxForDevice } from './perfDomain';
 
 describe('designSupportsScale', () => {
   it('supports only sparkline and line', () => {
@@ -10,9 +10,95 @@ describe('designSupportsScale', () => {
 });
 
 describe('chartDomainForScale', () => {
-  it('returns [0, staticMax] verbatim on fixed scale, regardless of device/type', () => {
+  it('returns [0, staticMax] verbatim on fixed scale with no overrides, regardless of device/type', () => {
     expect(chartDomainForScale('cpu', 42, [], 100, 'fixed')).toEqual([0, 100]);
     expect(chartDomainForScale('motherboard', 1.2, [], 2, 'fixed', undefined, 'Voltage')).toEqual([0, 2]);
+  });
+
+  it('fixed honors an explicit fixedMin/fixedMax user override', () => {
+    expect(chartDomainForScale('cpu', 42, [], 100, 'fixed', undefined, undefined, 10, 80)).toEqual([10, 80]);
+  });
+
+  it('fixed falls back to fixedDefaultMax (not staticMax) when overrides are absent', () => {
+    expect(chartDomainForScale('gpu', 8000, [], 16000, 'fixed', undefined, undefined, undefined, undefined, 32000)).toEqual([0, 32000]);
+  });
+
+  it('fixed falls back to staticMax when fixedDefaultMax is absent or non-positive', () => {
+    expect(chartDomainForScale('cpu', 42, [], 100, 'fixed', undefined, undefined, undefined, undefined, 0)).toEqual([0, 100]);
+    expect(chartDomainForScale('cpu', 42, [], 100, 'fixed', undefined, undefined, undefined, undefined, -5)).toEqual([0, 100]);
+  });
+
+  it('an inverted or degenerate min/max override falls back to [0, fixedDefaultMax]', () => {
+    expect(chartDomainForScale('cpu', 42, [], 100, 'fixed', undefined, undefined, 80, 10)).toEqual([0, 100]);
+    expect(chartDomainForScale('cpu', 42, [], 100, 'fixed', undefined, undefined, 50, 50)).toEqual([0, 100]);
+  });
+
+  it('a non-positive fixedMax override is ignored in favor of fixedDefaultMax', () => {
+    expect(chartDomainForScale('cpu', 42, [], 100, 'fixed', undefined, undefined, 10, 0)).toEqual([10, 100]);
+  });
+
+  it('clamps a stale min/max override into [0, dmax] when it outlives a device/sensor swap to a smaller ceiling', () => {
+    // Fixed [2000, 15000] set on a GPU Memory sensor (dmax 16000); the slot
+    // swaps to a 0-100 CPU Load sensor (dmax 100) without clearing the override.
+    expect(chartDomainForScale('cpu', 30, [], 100, 'fixed', undefined, undefined, 2000, 15000, 100)).toEqual([0, 100]);
+  });
+
+  it('leaves an override untouched when both bounds already fit inside dmax', () => {
+    expect(chartDomainForScale('cpu', 30, [], 100, 'fixed', undefined, undefined, 20, 80, 100)).toEqual([20, 80]);
+  });
+
+  it('clamps only the bound that exceeds dmax, keeping the other as-is', () => {
+    expect(chartDomainForScale('cpu', 30, [], 100, 'fixed', undefined, undefined, 20, 15000, 100)).toEqual([20, 100]);
+  });
+
+  it('clamps a negative min up to 0', () => {
+    expect(chartDomainForScale('cpu', 30, [], 100, 'fixed', undefined, undefined, -50, 80, 100)).toEqual([0, 80]);
+  });
+});
+
+describe('staticMaxForDevice - network', () => {
+  it('returns a 1 Gbps ceiling in the sensor\'s own bytes/sec unit, not the percent-scale fallback', () => {
+    expect(staticMaxForDevice('network', undefined, 'Rate')).toBe(125_000_000);
+  });
+});
+
+describe('niceStep', () => {
+  it('picks the nearest 1/2/5-times-power-of-ten step, roughly 100 steps across the axis', () => {
+    expect(niceStep(2)).toBe(0.02);
+    expect(niceStep(6000)).toBe(50);
+    expect(niceStep(16000)).toBe(200);
+  });
+
+  it('keeps step 1 for the common 0-100 percent ceiling', () => {
+    expect(niceStep(100)).toBe(1);
+  });
+
+  it('falls back to 1 for a non-positive or non-finite ceiling', () => {
+    expect(niceStep(0)).toBe(1);
+    expect(niceStep(-5)).toBe(1);
+    expect(niceStep(NaN)).toBe(1);
+  });
+});
+
+describe('defaultFixedMax', () => {
+  it('prefers the sensor theoreticalMaximum when present and positive', () => {
+    const sensor = { id: 'x', name: 'GPU Memory Used', type: 'SmallData', value: 8000, units: 'MB', formatted: '8000 MB', theoreticalMaximum: 16000, parent: { id: 'gpu', name: 'GPU' } };
+    expect(defaultFixedMax('gpu', sensor)).toBe(16000);
+  });
+
+  it('falls back to staticMaxForDevice when the sensor has no theoreticalMaximum', () => {
+    const sensor = { id: 'x', name: 'Fan 1', type: 'Fan', value: 1200, units: 'RPM', formatted: '1200 RPM', parent: { id: 'mobo', name: 'Motherboard' } };
+    expect(defaultFixedMax('motherboard', sensor)).toBe(2500);
+  });
+
+  it('falls back to staticMaxForDevice using nameFallback when the sensor is undefined', () => {
+    expect(defaultFixedMax('fps', undefined, 'Frame Time')).toBe(50);
+    expect(defaultFixedMax('fps', undefined, 'FPS')).toBe(240);
+  });
+
+  it('network sensors carry no theoreticalMaximum, so it falls back to the 1 Gbps ceiling', () => {
+    const sensor = { id: 'network-total', name: 'Network Total', type: 'Rate', value: 5_000_000, units: 'B/s', formatted: '5 MB/s', parent: { id: 'network', name: 'Network' } };
+    expect(defaultFixedMax('network', sensor)).toBe(125_000_000);
   });
 });
 

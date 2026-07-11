@@ -1691,6 +1691,8 @@
   "monitoring.settings.device": "Cihaz",
   "monitoring.settings.open": "İzleme ayarları",
   "monitoring.settings.range": "Aralık",
+  "monitoring.settings.rangeMax": "Maks",
+  "monitoring.settings.rangeMin": "Min",
   "monitoring.settings.sensor": "Sensör",
   "monitoring.settings.sensors": "Sensörler",
   "monitoring.settings.title": "İzleme ayarları",

@@ -1691,6 +1691,8 @@
   "monitoring.settings.device": "Dispositivo",
   "monitoring.settings.open": "Ajustes de monitorización",
   "monitoring.settings.range": "Rango",
+  "monitoring.settings.rangeMax": "Máx",
+  "monitoring.settings.rangeMin": "Mín",
   "monitoring.settings.sensor": "Sensor",
   "monitoring.settings.sensors": "Sensores",
   "monitoring.settings.title": "Ajustes de monitorización",

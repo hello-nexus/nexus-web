@@ -1,11 +1,13 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from '../../../lib/i18n';
 import { useSensors } from '../../../hooks/useSensors';
 import { useNetworkMonitor } from '../../../hooks/useNetworkMonitor';
 import type { WidgetSettingsProps } from '../types';
 import type { PanelConfigValue } from '../../types';
+import { canEditFreeText } from '../../types';
 import { Select } from '../../../components/common/Select/Select';
 import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
+import { RangeSlider } from '../../../components/common/Slider/RangeSlider';
 import { GAUGE_DESIGN_KEYS, GAUGE_DESIGN_LABELS } from '../monitoring/gauges';
 import { DESIGN_ICONS } from '../monitoring/gauges/DesignIcons';
 import type { GaugeDesignKey } from '../monitoring/gauges';
@@ -19,7 +21,8 @@ import { buildNetworkSensors, networkSensorOptions, NETWORK_SENSOR_TOTAL } from 
 import { bareSensorLabel } from '../monitoring/sensorNames';
 import { SENSOR_CATEGORIES, sensorsForCategory } from '../monitoring/sensorCategories';
 import type { SensorCategory } from '../monitoring/sensorCategories';
-import { DEFAULT_SCALE_MODE, designSupportsScale, type ScaleMode } from '../monitoring/perfDomain';
+import { chartDomainForScale, DEFAULT_SCALE_MODE, defaultFixedMax, designSupportsScale, niceStep, type ScaleMode } from '../monitoring/perfDomain';
+import { resolveSensor } from '../monitoring/MonitoringWidget';
 import { SettingsSection } from '../common/SettingsRow/SettingsRow';
 import styles from './MonitoringSettings.module.scss';
 
@@ -185,7 +188,7 @@ function microNormalizationPatch(
   return patch;
 }
 
-export function MonitoringSettings({ widget, onUpdate, selectedSlot = 0 }: WidgetSettingsProps) {
+export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, selectedSlot = 0 }: WidgetSettingsProps) {
   const { t } = useTranslation();
   const sensors = useSensors(true);
   const count = resolvedSlotCountForSize(widget.size, (widget.config?.slotCount as number | undefined));
@@ -200,7 +203,9 @@ export function MonitoringSettings({ widget, onUpdate, selectedSlot = 0 }: Widge
       : sensorName;
     const design = ((widget.config?.[`slot${i}_design`] as GaugeDesignKey | undefined) ?? DEFAULT_SLOTS[i]?.design ?? 'sparkline');
     const scale = ((widget.config?.[`slot${i}_scale`] as ScaleMode | undefined) ?? DEFAULT_SCALE_MODE);
-    return { device, sensorName: effectiveSensorName, design, scale };
+    const fixedMin = widget.config?.[`slot${i}_min`] as number | undefined;
+    const fixedMax = widget.config?.[`slot${i}_max`] as number | undefined;
+    return { device, sensorName: effectiveSensorName, design, scale, fixedMin, fixedMax };
   });
 
   const microDevice = ((widget.config?.micro_device as DeviceKey | undefined) ?? 'cpu');
@@ -237,6 +242,35 @@ export function MonitoringSettings({ widget, onUpdate, selectedSlot = 0 }: Widge
     const patch = microNormalizationPatch(widget, sensors, networkSensors, count);
     if (Object.keys(patch).length > 0) onUpdate(patch);
   }, [isMicro, count, widget, sensors, networkSensors, onUpdate]);
+
+  // Rendered only in non-Micro mode, but computed unconditionally (with the
+  // hooks below) so the hook count never depends on the isMicro branch.
+  const activeConfig = slotConfigs[activeSlot] ?? slotConfigs[0];
+  const sensorOptions = activeConfig ? sensorsForDevice(sensors, networkSensors, activeConfig.device) : [];
+  const sensorValue = activeConfig ? selectedSensorValue(sensorOptions, activeConfig.sensorName) : '';
+  const activeSensor = activeConfig ? resolveSensor(sensors, [], networkSensors, activeConfig.device, sensorValue) : undefined;
+  const fixedDefaultMax = activeConfig ? defaultFixedMax(activeConfig.device, activeSensor, activeConfig.sensorName) : 100;
+  const fixedRangeStep = niceStep(fixedDefaultMax);
+  // Route the stored override through the same clamp the live gauge applies
+  // (chartDomainForScale), so a stale min/max surviving a device/sensor swap
+  // degrades identically here and on the tile - never an inverted or
+  // off-track handle - instead of duplicating the clamp logic.
+  const [storedRangeMin, storedRangeMax] = activeConfig
+    ? chartDomainForScale(activeConfig.device, 0, [], fixedDefaultMax, 'fixed', undefined, undefined, activeConfig.fixedMin, activeConfig.fixedMax, fixedDefaultMax)
+    : [0, 100];
+
+  // Live drag preview, independent of the persisted config: PerfSlot/Settings
+  // re-render on every live sensor tick, so feeding the RangeSlider straight
+  // from widget.config would snap the thumb back mid-drag on the next tick.
+  const [liveFixedRange, setLiveFixedRange] = useState<[number, number] | null>(null);
+  useEffect(() => {
+    setLiveFixedRange(null);
+  }, [activeSlot, activeConfig?.device, activeConfig?.sensorName]);
+  const fixedRangeValue: [number, number] = liveFixedRange ?? [storedRangeMin, storedRangeMax];
+  const commitFixedRange = (v: [number, number]) => {
+    setLiveFixedRange(null);
+    onUpdate({ [`slot${activeSlot}_min`]: v[0], [`slot${activeSlot}_max`]: v[1] });
+  };
 
   if (isMicro) {
     const microSensorOptions = sensorsForDevice(sensors, networkSensors, microDevice);
@@ -283,10 +317,6 @@ export function MonitoringSettings({ widget, onUpdate, selectedSlot = 0 }: Widge
     );
   }
 
-  const activeConfig = slotConfigs[activeSlot] ?? slotConfigs[0];
-  const sensorOptions = activeConfig ? sensorsForDevice(sensors, networkSensors, activeConfig.device) : [];
-  const sensorValue = activeConfig ? selectedSensorValue(sensorOptions, activeConfig.sensorName) : '';
-
   return (
     <div className={styles.settingsRoot}>
       {activeConfig && (
@@ -299,6 +329,11 @@ export function MonitoringSettings({ widget, onUpdate, selectedSlot = 0 }: Widge
                 onChange={v => onUpdate({
                   [`slot${activeSlot}_device`]: v,
                   [`slot${activeSlot}_sensor`]: defaultSensorForDevice(v as DeviceKey, sensors, networkSensors),
+                  // A Fixed-range override is scoped to the sensor it was set
+                  // on; a device swap invalidates it, so the newly-selected
+                  // sensor falls back to its own default range.
+                  [`slot${activeSlot}_min`]: null,
+                  [`slot${activeSlot}_max`]: null,
                 })}
                 options={DEVICE_OPTIONS}
                 ariaLabel={t('monitoring.settings.device')}
@@ -306,7 +341,11 @@ export function MonitoringSettings({ widget, onUpdate, selectedSlot = 0 }: Widge
               <Select
                 className={styles.selectWide}
                 value={sensorValue}
-                onChange={v => onUpdate({ [`slot${activeSlot}_sensor`]: v })}
+                onChange={v => onUpdate({
+                  [`slot${activeSlot}_sensor`]: v,
+                  [`slot${activeSlot}_min`]: null,
+                  [`slot${activeSlot}_max`]: null,
+                })}
                 options={sensorOptions}
                 ariaLabel={t('monitoring.settings.sensor')}
               />
@@ -346,6 +385,23 @@ export function MonitoringSettings({ widget, onUpdate, selectedSlot = 0 }: Widge
                   />
                 ))}
               </div>
+              {activeConfig.scale === 'fixed' && (
+                <RangeSlider
+                  className={styles.fixedRangeSlider}
+                  // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
+                  orientation="stacked"
+                  editable={canEditFreeText(surface, desktopEditor)}
+                  value={fixedRangeValue}
+                  min={0}
+                  max={fixedDefaultMax}
+                  step={fixedRangeStep}
+                  minGap={fixedRangeStep}
+                  onChange={(v, commit) => (commit ? commitFixedRange(v) : setLiveFixedRange(v))}
+                  onCommit={commitFixedRange}
+                  ariaLabelMin={t('monitoring.settings.rangeMin')}
+                  ariaLabelMax={t('monitoring.settings.rangeMax')}
+                />
+              )}
             </SettingsSection>
           )}
         </>

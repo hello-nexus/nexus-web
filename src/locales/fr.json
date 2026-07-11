@@ -1691,6 +1691,8 @@
   "monitoring.settings.device": "Appareil",
   "monitoring.settings.open": "Paramètres de surveillance",
   "monitoring.settings.range": "Plage",
+  "monitoring.settings.rangeMax": "Max",
+  "monitoring.settings.rangeMin": "Min",
   "monitoring.settings.sensor": "Capteur",
   "monitoring.settings.sensors": "Capteurs",
   "monitoring.settings.title": "Paramètres de surveillance",

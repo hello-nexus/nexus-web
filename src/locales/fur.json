@@ -1704,6 +1704,8 @@
   "monitoring.settings.device": "Dispositîf",
   "monitoring.settings.open": "Impostazions di monitoraç",
   "monitoring.settings.range": "Interval",
+  "monitoring.settings.rangeMax": "Max",
+  "monitoring.settings.rangeMin": "Min",
   "monitoring.settings.sensor": "Sensôr",
   "monitoring.settings.sensors": "Sensôrs",
   "monitoring.settings.title": "Impostazions di monitoraç",

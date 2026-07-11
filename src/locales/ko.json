@@ -1691,6 +1691,8 @@
   "monitoring.settings.device": "장치",
   "monitoring.settings.open": "모니터링 설정",
   "monitoring.settings.range": "범위",
+  "monitoring.settings.rangeMax": "최대",
+  "monitoring.settings.rangeMin": "최소",
   "monitoring.settings.sensor": "센서",
   "monitoring.settings.sensors": "센서",
   "monitoring.settings.title": "모니터링 설정",

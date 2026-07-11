@@ -1691,6 +1691,8 @@
   "monitoring.settings.device": "Urządzenie",
   "monitoring.settings.open": "Ustawienia monitorowania",
   "monitoring.settings.range": "Zakres",
+  "monitoring.settings.rangeMax": "Maks",
+  "monitoring.settings.rangeMin": "Min",
   "monitoring.settings.sensor": "Czujnik",
   "monitoring.settings.sensors": "Czujniki",
   "monitoring.settings.title": "Ustawienia monitorowania",
