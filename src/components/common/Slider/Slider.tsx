@@ -1,4 +1,4 @@
-import { useEffect, useRef, type CSSProperties, type PointerEventHandler } from 'react';
+import { useEffect, useRef, type CSSProperties, type PointerEventHandler, type ReactNode } from 'react';
 import { EditableNumber } from '../Editable/EditableNumber';
 import styles from './Slider.module.scss';
 
@@ -47,6 +47,13 @@ export interface SliderProps {
   onPointerCancel?: PointerEventHandler<HTMLInputElement>;
   disabled?: boolean;
   trackFill?: boolean | number;
+  /** Pointer drawn at this value (in [min, max]) on the track, marking a
+      secondary level such as the effective brightness after the global
+      multiplier. Omit to draw no pointer. */
+  marker?: number;
+  /** Optional node stacked directly above the marker caret (e.g. an info
+      affordance). Interactive; only rendered when `marker` is set. */
+  markerLabel?: ReactNode;
   ariaLabel?: string;
   className?: string;
 }
@@ -55,7 +62,7 @@ export function Slider({
   label = '', value, min, max, step = 1,
   orientation = 'inline', editable = false, zeroMarker = false, showRange = false,
   formatValue, onChange, onCommit, onPointerDown, onPointerCancel,
-  disabled, trackFill, ariaLabel, className,
+  disabled, trackFill, marker, markerLabel, ariaLabel, className,
 }: SliderProps) {
   const latestInputValueRef = useRef(value);
   const onCommitRef = useRef(onCommit);
@@ -82,6 +89,13 @@ export function Slider({
     '--slider-fill-start': `${fillStartPct}%`,
     '--slider-fill-end': `${fillEndPct}%`,
   } as CSSProperties;
+  const markerPct = marker != null ? clamp(((marker - min) / (max - min)) * 100) : null;
+  const markerNode = markerPct != null ? (
+    <span className={styles.marker} style={{ left: `${markerPct}%` }}>
+      {markerLabel != null && <span className={styles.markerLabel}>{markerLabel}</span>}
+      <span className={styles.markerCaret} aria-hidden />
+    </span>
+  ) : null;
 
   useEffect(() => {
     latestInputValueRef.current = value;
@@ -163,6 +177,7 @@ export function Slider({
         <div className={styles.track}>
           {range}
           {showZero && <span className={styles.zeroTick} style={{ left: `${zeroPct}%` }} />}
+          {markerNode}
         </div>
       </div>
     );
@@ -178,6 +193,7 @@ export function Slider({
         <div className={styles.track}>
           {range}
           {showZero && <span className={styles.zeroTick} style={{ left: `${zeroPct}%` }} />}
+          {markerNode}
         </div>
         {showRange && (
           <div className={styles.rangeLabels}>
@@ -199,6 +215,7 @@ export function Slider({
       <div className={styles.track}>
         {range}
         {showZero && <span className={styles.zeroTick} style={{ left: `${zeroPct}%` }} />}
+        {markerNode}
       </div>
       {inlineValueNode}
     </div>

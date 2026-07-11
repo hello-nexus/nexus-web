@@ -13,6 +13,7 @@ export interface FanChannel {
   kind?: string; // "Fan" | "Pump" - hardware channel type reported by the service
   locked?: boolean; // skipped by the global preset buttons; still settable from the mode dropdown
   readOnly?: boolean; // telemetry-only channel: header readout, no duty bar / mode control
+  rpmUnavailable?: boolean; // duty is controllable but RPM cannot be read (SLV3 wireless chain that does not enumerate its fans)
   minRpm?: number | null;
   maxRpm?: number | null;
   minDuty?: number | null;
