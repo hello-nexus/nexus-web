@@ -556,8 +556,8 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
 
   // ── Per-zone brightness ───────────────────────────────────────────────
 
-  // Per-zone brightness multiplier (0..100). Multiplies the global
-  // brightness slider so the effective output is `global * zone / 100`.
+  // Per-zone brightness (0..100). Capped by the global brightness slider, so
+  // the effective output is `min(global, zone / 100)` - never brighter.
   const [brightness, setBrightness] = useState<number>(() => zoneCard?.brightness ?? 100);
   // Master brightness (0..100), read-only. Below 100 it dims this zone's
   // output, so the slider surfaces the effective level (pointer + info).
@@ -1986,13 +1986,11 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     ? stagedPartition.kind === 'edited'
     : structure !== null && !structure.isDefaultPartition;
 
-  // A master brightness below 100 scales this zone down; surface where the
-  // effective output actually lands. Hidden until the master value loads and
-  // whenever the effective level equals the slider value (master 100, or a
-  // rounding tie near it) - a coincident caret conveys nothing.
+  // Master brightness caps output: a zone set above it can't render brighter.
+  // Show the cap indicator only when this zone is set past the cap (which
+  // implies master < 100) and once the master value has loaded.
   const master = globalBrightness ?? 100;
-  const effectiveBrightness = Math.round((brightness * master) / 100);
-  const showEffectiveBrightness = globalBrightness != null && effectiveBrightness !== brightness;
+  const showCap = globalBrightness != null && brightness > master;
 
   return (
     <DeviceModal
@@ -2261,10 +2259,11 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
                   onChange={handleBrightnessChange}
                   onCommit={handleBrightnessCommit}
                   trackFill
-                  marker={zoneCard && showEffectiveBrightness ? effectiveBrightness : undefined}
-                  markerLabel={zoneCard && showEffectiveBrightness ? (
+                  fillCap={zoneCard && showCap ? master : undefined}
+                  marker={zoneCard && showCap ? master : undefined}
+                  markerLabel={zoneCard && showCap ? (
                     <InfoTooltip
-                      message={t('lighting.ledMap.effectiveBrightnessInfo', { global: master, effective: effectiveBrightness })}
+                      message={t('lighting.ledMap.effectiveBrightnessInfo', { master })}
                       side="bottom"
                       className={styles.markerInfo}
                     />

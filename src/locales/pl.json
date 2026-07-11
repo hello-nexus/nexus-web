@@ -1508,7 +1508,7 @@
   "lighting.ledMap.deleteHint": "Del aby usunac",
   "lighting.ledMap.discard": "Odrzuc zmiany",
   "lighting.ledMap.dragHint": "Przeciagnij diody LED, aby zmienic pozycje",
-  "lighting.ledMap.effectiveBrightnessInfo": "Rzeczywista jasność wynosi {effective}% z powodu jasności głównej wynoszącej {global}%.",
+  "lighting.ledMap.effectiveBrightnessInfo": "Jasność główna ogranicza wyjście do {master}%, więc to urządzenie nie może być jaśniejsze.",
   "lighting.ledMap.flipH": "Odbij w poziomie",
   "lighting.ledMap.flipV": "Odbij w pionie",
   "lighting.ledMap.group": "Grupuj",

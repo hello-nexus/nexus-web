@@ -1508,7 +1508,7 @@
   "lighting.ledMap.deleteHint": "Kaldirmak icin Del",
   "lighting.ledMap.discard": "Degisiklikleri iptal et",
   "lighting.ledMap.dragHint": "Yeniden konumlandirmak icin LED'leri surukleyin",
-  "lighting.ledMap.effectiveBrightnessInfo": "Ana parlaklık %{global} olduğu için gerçek parlaklık %{effective}.",
+  "lighting.ledMap.effectiveBrightnessInfo": "Ana parlaklık çıkışı %{master} ile sınırlar, bu yüzden bu cihaz daha parlak olamaz.",
   "lighting.ledMap.flipH": "Yatay cevir",
   "lighting.ledMap.flipV": "Dikey cevir",
   "lighting.ledMap.group": "Grupla",

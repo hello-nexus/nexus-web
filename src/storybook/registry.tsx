@@ -137,8 +137,9 @@ export interface StorybookEntry {
 /* ── Previews ────────────────────────────────────────────────────────────── */
 
 function PreviewSliderInline() {
-  const [v, setV] = useState(50);
-  return <Slider label="Sample" value={v} min={0} max={100} onChange={setV} marker={Math.round(v / 2)} />;
+  const [v, setV] = useState(75);
+  const cap = v > 60 ? 60 : undefined;
+  return <Slider label="Sample" value={v} min={0} max={100} onChange={setV} fillCap={cap} marker={cap} />;
 }
 
 function PreviewSliderStacked() {
@@ -1523,7 +1524,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'Slider (inline)', category: 'inputs',
     filePath: 'src/components/common/Slider/Slider.tsx',
-    description: 'Inline label | track | value layout. Default orientation. Every slider now paints the accent fill track + bright (white-on-dark) thumb - there is no un-filled variant. The optional marker prop draws a caret at a secondary value (shown here at half the thumb) - used for effective brightness after the master multiplier - and markerLabel stacks a node (e.g. an info affordance) above that caret.', Preview: PreviewSliderInline,
+    description: 'Inline label | track | value layout. Default orientation. Every slider now paints the accent fill track + bright (white-on-dark) thumb - there is no un-filled variant. The optional marker prop draws a caret at a secondary value and markerLabel stacks a node (e.g. an info affordance) above it; fillCap dims the fill past a cap value (shown here past 60) to signal a level the device is set above but cannot exceed.', Preview: PreviewSliderInline,
   },
   {
     name: 'Slider (stacked, editable, zero marker)', category: 'inputs',

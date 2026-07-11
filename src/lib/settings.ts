@@ -488,4 +488,10 @@ export function applyAccentColor(hex: string): void {
   root.setProperty('--accent-soft',        hslCss(h, s, l, softAlpha));
   root.setProperty('--accent-glow-shadow', hslCss(h, s, l, glowShadowAlpha));
   root.setProperty('--accent-text',        accentText);
+  // Muted accent for a slider's "capped" fill zone; follows the accent hue.
+  // hslCss (not color-mix) so it stays valid inside the track gradient on the
+  // Chromium-83 Q60 panel.
+  const dimS = clamp(baseS * 0.7);
+  const dimL = effective === 'dark' ? clamp(glowL * 0.6, 26, 46) : clamp(glowL + 10, 62, 84);
+  root.setProperty('--slider-fill-dim',    hslCss(h, dimS, dimL));
 }

@@ -1508,7 +1508,7 @@
   "lighting.ledMap.deleteHint": "Entf zum Entfernen",
   "lighting.ledMap.discard": "Aenderungen verwerfen",
   "lighting.ledMap.dragHint": "LEDs ziehen zum Neupositionieren",
-  "lighting.ledMap.effectiveBrightnessInfo": "Die reale Helligkeit beträgt {effective}% aufgrund der Gesamthelligkeit von {global}%.",
+  "lighting.ledMap.effectiveBrightnessInfo": "Die Gesamthelligkeit begrenzt die Ausgabe auf {master}%, sodass dieses Gerät nicht heller werden kann.",
   "lighting.ledMap.flipH": "Horizontal spiegeln",
   "lighting.ledMap.flipV": "Vertikal spiegeln",
   "lighting.ledMap.group": "Gruppieren",

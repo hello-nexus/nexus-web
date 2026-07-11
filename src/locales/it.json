@@ -1508,7 +1508,7 @@
   "lighting.ledMap.deleteHint": "Canc per rimuovere",
   "lighting.ledMap.discard": "Scarta modifiche",
   "lighting.ledMap.dragHint": "Trascina i LED per riposizionare",
-  "lighting.ledMap.effectiveBrightnessInfo": "La luminosità reale è del {effective}% a causa della luminosità generale del {global}%.",
+  "lighting.ledMap.effectiveBrightnessInfo": "La luminosità generale limita l'uscita al {master}%, quindi questo dispositivo non può essere più luminoso.",
   "lighting.ledMap.flipH": "Capovolgi orizzontalmente",
   "lighting.ledMap.flipV": "Capovolgi verticalmente",
   "lighting.ledMap.group": "Raggruppa",
