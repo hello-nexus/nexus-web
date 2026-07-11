@@ -19,6 +19,7 @@ import {
   staticMaxForDevice,
 } from './MonitoringWidget';
 import { bareSensorLabel } from './sensorNames';
+import { chartDomainForScale, defaultFixedMax, DEFAULT_SCALE_MODE, fixedFillPercent, type ScaleMode } from './perfDomain';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { MicroBar } from './MicroBar';
 import { formatSensorValue } from './sensorValueFormat';
@@ -93,6 +94,11 @@ export function MicroMonitoringWidget({ widget, count }: MicroMonitoringWidgetPr
   const categoryHidden = categoryMode === 'hide';
   const bottomLabel = displayLabel(categoryMode, widget.config?.micro_category as string | undefined, bottomLabelForDevice(device, sensors, t));
 
+  // One Fixed range shared by every bar (Micro has no per-slot scale).
+  const microScale = (widget.config?.micro_scale as ScaleMode | undefined) ?? DEFAULT_SCALE_MODE;
+  const microMin = widget.config?.micro_min as number | undefined;
+  const microMax = widget.config?.micro_max as number | undefined;
+
   return (
     <div className={styles.micro}>
       <div className={styles.rows}>
@@ -107,6 +113,9 @@ export function MicroMonitoringWidget({ widget, count }: MicroMonitoringWidgetPr
             sensorName={rawName}
             labelOverride={widget.config?.[`micro_sensor${i}_label`] as string | undefined}
             labelMode={widget.config?.[`micro_sensor${i}_labelMode`] as string | undefined}
+            scale={microScale}
+            fixedMin={microMin}
+            fixedMax={microMax}
             tempPrefs={tempPrefs}
             monitoringTempUnit={monitoringTempUnit}
             numberFormat={numberFormat}
@@ -131,12 +140,15 @@ interface MicroRowProps {
   sensorName: string;
   labelOverride?: string;
   labelMode?: string;
+  scale: ScaleMode;
+  fixedMin?: number;
+  fixedMax?: number;
   tempPrefs?: { cpuId: string; gpuId: string };
   monitoringTempUnit: TempUnit;
   numberFormat: NumberFormat;
 }
 
-function MicroRow({ sensors, fpsSensors, networkSensors, extras, device, sensorName, labelOverride, labelMode, tempPrefs, monitoringTempUnit, numberFormat }: MicroRowProps) {
+function MicroRow({ sensors, fpsSensors, networkSensors, extras, device, sensorName, labelOverride, labelMode, scale, fixedMin, fixedMax, tempPrefs, monitoringTempUnit, numberFormat }: MicroRowProps) {
   const effectiveSensorName = device === 'network' && !sensorName ? NETWORK_SENSOR_TOTAL : sensorName;
   const sensor = resolveSensor(sensors, fpsSensors, networkSensors, device, effectiveSensorName, tempPrefs, extras);
   const rawValue = sensor?.value ?? 0;
@@ -149,7 +161,12 @@ function MicroRow({ sensors, fpsSensors, networkSensors, extras, device, sensorN
   const maxValue = device === 'network'
     ? networkMaxValue(rawValue, history)
     : staticMaxForDevice(device, sensor?.name, sensor?.type);
-  const fillPercent = percentForSensor(device, sensor, maxValue);
+  // A shared Fixed range scales every bar to the same [min, max] window;
+  // adaptive keeps each bar's natural percent fill.
+  const [domainMin, domainMax] = chartDomainForScale(device, rawValue, history, maxValue, scale, sensor?.name, sensor?.type, fixedMin, fixedMax, defaultFixedMax(device, sensor, effectiveSensorName));
+  const fillPercent = scale === 'fixed'
+    ? fixedFillPercent(rawValue, domainMin, domainMax)
+    : percentForSensor(device, sensor, maxValue);
 
   return <MicroBar label={label} formatted={formatted} fillPercent={fillPercent} />;
 }

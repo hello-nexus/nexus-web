@@ -2860,5 +2860,7 @@
   "monitoring.settings.resetLabel": "重置",
   "monitoring.settings.labelAuto": "自动",
   "monitoring.settings.labelHide": "隐藏",
-  "monitoring.settings.labelCustom": "自定义"
+  "monitoring.settings.labelCustom": "自定义",
+  "monitoring.settings.scaleAdaptive": "自适应",
+  "monitoring.settings.scaleFixed": "固定"
 }

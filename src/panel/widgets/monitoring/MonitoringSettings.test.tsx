@@ -3,7 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import type { PanelConfigValue, PanelSurface, PanelWidget } from '../../types';
 import { MonitoringWidget } from '../monitoring/MonitoringWidget';
-import { GAUGE_DESIGN_KEYS } from '../monitoring/gauges';
+import { GAUGE_DESIGN_KEYS, GAUGE_DESIGN_LABELS } from '../monitoring/gauges';
 import { MonitoringSettings } from './MonitoringSettings';
 import { resolveSensor } from './MonitoringWidget';
 import { SENSOR_CATEGORIES } from './sensorCategories';
@@ -404,25 +404,36 @@ describe('MonitoringSettings - fixed range fields', () => {
     // Slot 0 (cpu/sparkline, scalable) defaults to Adaptive - no range fields yet.
     expect(screen.queryByRole('spinbutton', { name: 'monitoring.settings.rangeMin' })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Fixed' }));
+    fireEvent.click(screen.getByRole('button', { name: 'monitoring.settings.scaleFixed' }));
 
     expect(screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMin' })).toBeInTheDocument();
     expect(screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMax' })).toBeInTheDocument();
   });
 
-  it('does not render for a design that does not support scale', () => {
+  it('does not render for a design with no range (Large Value / text)', () => {
     render(<MonitoringEditorHarness onUpdate={vi.fn()} />);
 
     fireEvent.click(screen.getByRole('button', { name: /select gpu core/i }));
-    expect(screen.queryByRole('button', { name: 'Adaptive' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Fixed' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: GAUGE_DESIGN_LABELS.text }));
+    expect(screen.queryByRole('button', { name: 'monitoring.settings.scaleAdaptive' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'monitoring.settings.scaleFixed' })).not.toBeInTheDocument();
     expect(screen.queryByRole('spinbutton', { name: 'monitoring.settings.rangeMin' })).not.toBeInTheDocument();
+  });
+
+  it('renders the range for a value-fill design (Progress Bar / bar)', () => {
+    render(<MonitoringEditorHarness onUpdate={vi.fn()} />);
+
+    // slot1 defaults to the bar design (a value-fill gauge).
+    fireEvent.click(screen.getByRole('button', { name: /select gpu core/i }));
+    expect(screen.getByRole('button', { name: 'monitoring.settings.scaleAdaptive' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'monitoring.settings.scaleFixed' }));
+    expect(screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMin' })).toBeInTheDocument();
   });
 
   it('seeds the fields from the stored override, defaulting to 0 and the sensor ceiling when unset', () => {
     render(<MonitoringEditorHarness onUpdate={vi.fn()} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Fixed' }));
+    fireEvent.click(screen.getByRole('button', { name: 'monitoring.settings.scaleFixed' }));
 
     const minInput = screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMin' }) as HTMLInputElement;
     const maxInput = screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMax' }) as HTMLInputElement;
@@ -434,7 +445,7 @@ describe('MonitoringSettings - fixed range fields', () => {
     const onUpdate = vi.fn();
     render(<MonitoringEditorHarness onUpdate={onUpdate} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Fixed' }));
+    fireEvent.click(screen.getByRole('button', { name: 'monitoring.settings.scaleFixed' }));
     const minInput = screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMin' });
     fireEvent.change(minInput, { target: { value: '20' } });
     fireEvent.blur(minInput);
@@ -446,7 +457,7 @@ describe('MonitoringSettings - fixed range fields', () => {
     const onUpdate = vi.fn();
     render(<MonitoringEditorHarness onUpdate={onUpdate} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Fixed' }));
+    fireEvent.click(screen.getByRole('button', { name: 'monitoring.settings.scaleFixed' }));
     const maxInput = screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMax' });
     fireEvent.change(maxInput, { target: { value: '250' } });
     fireEvent.blur(maxInput);
@@ -458,7 +469,7 @@ describe('MonitoringSettings - fixed range fields', () => {
     const onUpdate = vi.fn();
     render(<MonitoringEditorHarness onUpdate={onUpdate} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Fixed' }));
+    fireEvent.click(screen.getByRole('button', { name: 'monitoring.settings.scaleFixed' }));
     const minInput = screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMin' });
     fireEvent.blur(minInput);
 
@@ -469,7 +480,7 @@ describe('MonitoringSettings - fixed range fields', () => {
     const onUpdate = vi.fn();
     render(<MonitoringEditorHarness onUpdate={onUpdate} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Fixed' }));
+    fireEvent.click(screen.getByRole('button', { name: 'monitoring.settings.scaleFixed' }));
     const minInput = screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMin' });
     fireEvent.change(minInput, { target: { value: '20' } });
     fireEvent.blur(minInput);
@@ -493,7 +504,7 @@ describe('MonitoringSettings - fixed range fields', () => {
     const onUpdate = vi.fn();
     render(<MonitoringEditorHarness onUpdate={onUpdate} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Fixed' }));
+    fireEvent.click(screen.getByRole('button', { name: 'monitoring.settings.scaleFixed' }));
     // Seeded default max is 100 (fixedDefaultMax); typing a min above it inverts the range.
     const minInput = screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMin' });
     fireEvent.change(minInput, { target: { value: '150' } });
@@ -507,9 +518,9 @@ describe('MonitoringSettings - fixed range fields', () => {
   it('is hidden on a touch surface with no keyboard and no desktopEditor override; the Adaptive/Fixed toggle stays', () => {
     render(<MonitoringEditorHarness onUpdate={vi.fn()} surface="y70" />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Fixed' }));
+    fireEvent.click(screen.getByRole('button', { name: 'monitoring.settings.scaleFixed' }));
 
-    expect(screen.getByRole('button', { name: 'Fixed' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'monitoring.settings.scaleFixed' })).toBeInTheDocument();
     expect(screen.queryByRole('spinbutton', { name: 'monitoring.settings.rangeMin' })).not.toBeInTheDocument();
     expect(screen.queryByRole('spinbutton', { name: 'monitoring.settings.rangeMax' })).not.toBeInTheDocument();
   });
@@ -518,7 +529,7 @@ describe('MonitoringSettings - fixed range fields', () => {
     const onUpdate = vi.fn();
     render(<MonitoringEditorHarness onUpdate={onUpdate} surface="y70" desktopEditor />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Fixed' }));
+    fireEvent.click(screen.getByRole('button', { name: 'monitoring.settings.scaleFixed' }));
     const minInput = screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMin' });
     fireEvent.change(minInput, { target: { value: '15' } });
     fireEvent.blur(minInput);
@@ -530,7 +541,7 @@ describe('MonitoringSettings - fixed range fields', () => {
     const onUpdate = vi.fn();
     render(<MonitoringEditorHarness onUpdate={onUpdate} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Fixed' }));
+    fireEvent.click(screen.getByRole('button', { name: 'monitoring.settings.scaleFixed' }));
     const minInput = screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMin' });
     fireEvent.change(minInput, { target: { value: '20' } });
     fireEvent.blur(minInput);

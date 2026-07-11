@@ -2860,5 +2860,7 @@
   "monitoring.settings.resetLabel": "Réinitialiser",
   "monitoring.settings.labelAuto": "Auto",
   "monitoring.settings.labelHide": "Masquer",
-  "monitoring.settings.labelCustom": "Personnalisé"
+  "monitoring.settings.labelCustom": "Personnalisé",
+  "monitoring.settings.scaleAdaptive": "Adaptatif",
+  "monitoring.settings.scaleFixed": "Fixe"
 }

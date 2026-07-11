@@ -21,7 +21,7 @@ import type { DeviceKey } from '../monitoring/perfSlots';
 import { buildNetworkSensors, networkSensorOptions, NETWORK_SENSOR_TOTAL } from '../monitoring/networkSensors';
 import { bareSensorLabel } from '../monitoring/sensorNames';
 import { extrasSensorsForDevice, sensorsForCategory, smartStorageSensors } from '../monitoring/sensorCategories';
-import { DEFAULT_SCALE_MODE, defaultFixedMax, designSupportsScale, type ScaleMode } from '../monitoring/perfDomain';
+import { DEFAULT_SCALE_MODE, defaultFixedMax, designSupportsRange, staticMaxForDevice, type ScaleMode } from '../monitoring/perfDomain';
 import { RotateCcw } from 'lucide-react';
 import { labelForDevice, resolveSensor } from '../monitoring/MonitoringWidget';
 import { bottomLabelForDevice } from '../monitoring/MicroMonitoringWidget';
@@ -39,9 +39,9 @@ function parseFixedRangeInput(raw: string, fallback: number): number {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-const SCALE_OPTIONS: { value: ScaleMode; label: string }[] = [
-  { value: 'adaptive', label: 'Adaptive' },
-  { value: 'fixed',    label: 'Fixed' },
+const SCALE_OPTIONS: { value: ScaleMode; labelKey: string }[] = [
+  { value: 'adaptive', labelKey: 'monitoring.settings.scaleAdaptive' },
+  { value: 'fixed',    labelKey: 'monitoring.settings.scaleFixed' },
 ];
 
 // Auto / Hide / Custom caption modes. Keys are stored in `*_labelMode`
@@ -460,6 +460,21 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
       disabled: !deviceHasEnoughSensorsForMicro(sensors, networkSensors, extras, category, count),
     }));
     const microCanType = canEditFreeText(surface, desktopEditor);
+    // Micro has one shared range for every bar (no per-slot scale). The default
+    // Fixed ceiling is the device's static max; the user types free overrides.
+    const microScale = (widget.config?.micro_scale as ScaleMode | undefined) ?? DEFAULT_SCALE_MODE;
+    const microFixedDefaultMax = staticMaxForDevice(microDevice);
+    const microFixedMin = (widget.config?.micro_min as number | undefined) ?? 0;
+    const microFixedMax = (widget.config?.micro_max as number | undefined) ?? microFixedDefaultMax;
+    const microFixedRangeInvalid = microFixedMin >= microFixedMax;
+    const commitMicroMin = (raw: string) => {
+      const parsed = parseFixedRangeInput(raw, 0);
+      if (parsed !== microFixedMin) onUpdate({ micro_min: parsed });
+    };
+    const commitMicroMax = (raw: string) => {
+      const parsed = parseFixedRangeInput(raw, microFixedDefaultMax);
+      if (parsed !== microFixedMax) onUpdate({ micro_max: parsed });
+    };
 
     return (
       <div className={styles.settingsRoot}>
@@ -519,6 +534,46 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
               );
             })}
           </div>
+        </SettingsSection>
+
+        <SettingsSection title={t('monitoring.settings.range')}>
+          <div className={styles.scaleRow}>
+            {SCALE_OPTIONS.map(opt => (
+              <IconLabelButton
+                key={opt.value}
+                className={styles.scaleBtn}
+                active={opt.value === microScale}
+                label={t(opt.labelKey)}
+                onPress={() => onUpdate({ micro_scale: opt.value })}
+              />
+            ))}
+          </div>
+          {microScale === 'fixed' && microCanType && (
+            <div className={styles.rangeRow}>
+              <div className={styles.rangeField}>
+                <span className={styles.rangeFieldLabel}>{t('monitoring.settings.rangeMin')}</span>
+                <TextInput
+                  type="number"
+                  size="sm"
+                  value={String(microFixedMin)}
+                  ariaLabel={t('monitoring.settings.rangeMin')}
+                  invalid={microFixedRangeInvalid}
+                  onBlur={commitMicroMin}
+                />
+              </div>
+              <div className={styles.rangeField}>
+                <span className={styles.rangeFieldLabel}>{t('monitoring.settings.rangeMax')}</span>
+                <TextInput
+                  type="number"
+                  size="sm"
+                  value={String(microFixedMax)}
+                  ariaLabel={t('monitoring.settings.rangeMax')}
+                  invalid={microFixedRangeInvalid}
+                  onBlur={commitMicroMax}
+                />
+              </div>
+            </div>
+          )}
         </SettingsSection>
       </div>
     );
@@ -590,7 +645,7 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
             </div>
           </SettingsSection>
 
-          {designSupportsScale(activeConfig.design) && (
+          {designSupportsRange(activeConfig.design) && (
             <SettingsSection title={t('monitoring.settings.range')}>
               <div className={styles.scaleRow}>
                 {SCALE_OPTIONS.map(opt => (
@@ -598,7 +653,7 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
                     key={opt.value}
                     className={styles.scaleBtn}
                     active={opt.value === activeConfig.scale}
-                    label={opt.label}
+                    label={t(opt.labelKey)}
                     onPress={() => onUpdate({ [`slot${activeSlot}_scale`]: opt.value })}
                   />
                 ))}

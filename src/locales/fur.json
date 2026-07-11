@@ -2860,5 +2860,7 @@
   "monitoring.settings.resetLabel": "Ripristine",
   "monitoring.settings.labelAuto": "Auto",
   "monitoring.settings.labelHide": "Plate",
-  "monitoring.settings.labelCustom": "Personalizât"
+  "monitoring.settings.labelCustom": "Personalizât",
+  "monitoring.settings.scaleAdaptive": "Adatîf",
+  "monitoring.settings.scaleFixed": "Fis"
 }

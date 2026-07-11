@@ -2860,5 +2860,7 @@
   "monitoring.settings.resetLabel": "リセット",
   "monitoring.settings.labelAuto": "自動",
   "monitoring.settings.labelHide": "非表示",
-  "monitoring.settings.labelCustom": "カスタム"
+  "monitoring.settings.labelCustom": "カスタム",
+  "monitoring.settings.scaleAdaptive": "自動",
+  "monitoring.settings.scaleFixed": "固定"
 }

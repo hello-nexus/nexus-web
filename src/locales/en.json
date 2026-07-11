@@ -1873,6 +1873,8 @@
   "monitoring.settings.rangeMax": "Max",
   "monitoring.settings.rangeMin": "Min",
   "monitoring.settings.resetLabel": "Reset",
+  "monitoring.settings.scaleAdaptive": "Adaptive",
+  "monitoring.settings.scaleFixed": "Fixed",
   "monitoring.settings.sensor": "Sensor",
   "monitoring.settings.sensors": "Sensors",
   "monitoring.settings.title": "Monitoring settings",

@@ -11,8 +11,36 @@ const SCALABLE_DESIGNS = new Set<GaugeDesignKey>([
   'sparkline', 'line', 'mirrorwave', 'heatmap', 'backdrop',
 ]);
 
+// Value-fill designs (a single proportion, not a history chart). Adaptive keeps
+// their natural fill (value against the sensor's own/percent ceiling); Fixed
+// scales the fill to a user [min, max] window instead. `text` shows only a
+// number and `microbars` renders per-sample without a Y domain, so neither
+// takes a range.
+const FILL_DESIGNS = new Set<GaugeDesignKey>([
+  'waterLevel', 'caterpillar', 'bar', 'hbar', 'dotgrid', 'halfgauge',
+  'numberfill', 'thermo', 'arc270', 'wedge', 'battery', 'segments', 'dial', 'tickring',
+]);
+
 export function designSupportsScale(design: GaugeDesignKey): boolean {
   return SCALABLE_DESIGNS.has(design);
+}
+
+export function designIsFill(design: GaugeDesignKey): boolean {
+  return FILL_DESIGNS.has(design);
+}
+
+// Every design that offers the Range control: the history-scaled ones plus the
+// value-fill ones (all but `text` and `microbars`).
+export function designSupportsRange(design: GaugeDesignKey): boolean {
+  return SCALABLE_DESIGNS.has(design) || FILL_DESIGNS.has(design);
+}
+
+// Fill percent for a value-fill gauge against an explicit [min, max] window
+// (Fixed range). Clamped to 0-100; the caller passes a validated domain so
+// max > min holds.
+export function fixedFillPercent(raw: number, min: number, max: number): number {
+  if (!(max > min)) return 0;
+  return Math.max(0, Math.min(100, ((raw - min) / (max - min)) * 100));
 }
 
 // Adaptive fallback ceiling for a Clock sensor on a heterogeneous-type

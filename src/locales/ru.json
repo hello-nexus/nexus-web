@@ -2860,5 +2860,7 @@
   "monitoring.settings.resetLabel": "Сброс",
   "monitoring.settings.labelAuto": "Авто",
   "monitoring.settings.labelHide": "Скрыть",
-  "monitoring.settings.labelCustom": "Свой"
+  "monitoring.settings.labelCustom": "Свой",
+  "monitoring.settings.scaleAdaptive": "Адаптивный",
+  "monitoring.settings.scaleFixed": "Фиксированный"
 }

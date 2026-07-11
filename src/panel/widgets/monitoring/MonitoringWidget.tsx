@@ -23,7 +23,7 @@ import { extrasSensorsForDevice, smartStorageSensors } from './sensorCategories'
 import { MicroMonitoringWidget } from './MicroMonitoringWidget';
 import { buildNetworkSensors, networkMaxValue, NETWORK_SENSOR_TOTAL } from './networkSensors';
 import { formatSensorValue } from './sensorValueFormat';
-import { chartDomainForScale, DEFAULT_SCALE_MODE, defaultFixedMax, isHeterogeneousTypeDevice, staticMaxForDevice, type ScaleMode } from './perfDomain';
+import { chartDomainForScale, DEFAULT_SCALE_MODE, defaultFixedMax, designIsFill, fixedFillPercent, isHeterogeneousTypeDevice, staticMaxForDevice, type ScaleMode } from './perfDomain';
 import styles from './MonitoringWidget.module.scss';
 
 interface TempSensorPrefs {
@@ -304,9 +304,13 @@ export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, extra
   const maxValue = device === 'network'
     ? networkMaxValue(rawValue, history)
     : sensorMax || staticMaxForDevice(device, sensor?.name, sensor?.type);
-  const value = percentForSensor(device, sensor, maxValue);
   const fixedDefaultMax = defaultFixedMax(device, sensor, effectiveSensorName);
   const [domainMin, domainMax] = chartDomainForScale(device, rawValue, history, maxValue, scale, sensor?.name, sensor?.type, fixedMin, fixedMax, fixedDefaultMax);
+  // Value-fill gauges scale to the Fixed [min, max] window when set; otherwise
+  // (and for every history design) the natural percent fill is used.
+  const value = scale === 'fixed' && designIsFill(design)
+    ? fixedFillPercent(rawValue, domainMin, domainMax)
+    : percentForSensor(device, sensor, maxValue);
   // Stable tuple reference so the Sparkline path-memo keys on bound values,
   // not array identity.
   const historyDomain = useMemo<[number, number]>(() => [domainMin, domainMax], [domainMin, domainMax]);

@@ -2860,5 +2860,7 @@
   "monitoring.settings.resetLabel": "Sıfırla",
   "monitoring.settings.labelAuto": "Otomatik",
   "monitoring.settings.labelHide": "Gizle",
-  "monitoring.settings.labelCustom": "Özel"
+  "monitoring.settings.labelCustom": "Özel",
+  "monitoring.settings.scaleAdaptive": "Uyarlanır",
+  "monitoring.settings.scaleFixed": "Sabit"
 }

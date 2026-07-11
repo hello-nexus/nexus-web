@@ -328,3 +328,25 @@ describe('MonitoringSettings - Micro Label chips (category + per-sensor)', () =>
     expect(updates[updates.length - 1]).toEqual({ micro_sensor1_labelMode: 'hide' });
   });
 });
+
+describe('MonitoringSettings - Micro shared range', () => {
+  it('is adaptive by default; Fixed writes micro_scale and reveals one shared min/max', () => {
+    const updates: Record<string, PanelConfigValue>[] = [];
+    render(<MicroHarness initial={microWidget(4)} onUpdate={cfg => updates.push(cfg)} />);
+
+    expect(screen.getByRole('button', { name: 'monitoring.settings.scaleAdaptive' })).toBeInTheDocument();
+    expect(screen.queryByRole('spinbutton', { name: 'monitoring.settings.rangeMin' })).not.toBeInTheDocument();
+
+    act(() => { fireEvent.click(screen.getByRole('button', { name: 'monitoring.settings.scaleFixed' })); });
+    expect(updates[updates.length - 1]).toEqual({ micro_scale: 'fixed' });
+
+    // One shared min + one shared max (not per-sensor).
+    expect(screen.getAllByRole('spinbutton', { name: 'monitoring.settings.rangeMin' })).toHaveLength(1);
+    const min = screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMin' });
+    const max = screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMax' });
+    act(() => { fireEvent.change(min, { target: { value: '10' } }); fireEvent.blur(min); });
+    expect(updates[updates.length - 1]).toEqual({ micro_min: 10 });
+    act(() => { fireEvent.change(max, { target: { value: '90' } }); fireEvent.blur(max); });
+    expect(updates[updates.length - 1]).toEqual({ micro_max: 90 });
+  });
+});
