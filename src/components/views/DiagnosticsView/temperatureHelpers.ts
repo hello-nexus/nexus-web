@@ -148,6 +148,16 @@ export function episodeBand(episode: DiagnosticsTemperatureEpisode): { startT: n
   return { startT: new Date(episode.startUtc).getTime(), endT: new Date(episode.endUtc).getTime(), color: 'var(--warn)' };
 }
 
+/** Episodes whose span covers timestamp `t` (inclusive) - the chart bands the
+ *  cursor is currently over, surfaced in the hover tooltip as a warning. */
+export function episodesAtTime(episodes: readonly DiagnosticsTemperatureEpisode[], t: number): DiagnosticsTemperatureEpisode[] {
+  return episodes.filter(ep => {
+    const start = new Date(ep.startUtc).getTime();
+    const end = new Date(ep.endUtc).getTime();
+    return t >= start && t <= end;
+  });
+}
+
 export interface AppHoverEntry {
   appId: string;
   appName: string;

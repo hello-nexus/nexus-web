@@ -5,6 +5,7 @@ import {
   episodeBand,
   episodeDurationToken,
   episodeSentence,
+  episodesAtTime,
   formatTemperatureCelsius,
   formatTemperatureDayLabel,
   minSelectableTemperatureDate,
@@ -156,6 +157,35 @@ describe('episodeBand', () => {
       endT: new Date('2026-07-05T12:20:00Z').getTime(),
       color: 'var(--warn)',
     });
+  });
+});
+
+describe('episodesAtTime', () => {
+  const episode = (startUtc: string, endUtc: string, name = 'GPU'): DiagnosticsTemperatureEpisode => ({
+    componentId: 'gpu:0', name, startUtc, endUtc, peakC: 93, thresholdC: 85,
+  });
+  const at = (iso: string) => new Date(iso).getTime();
+
+  it('returns episodes whose span covers the timestamp, inclusive of both ends', () => {
+    const episodes = [episode('2026-07-05T12:00:00Z', '2026-07-05T12:20:00Z')];
+    expect(episodesAtTime(episodes, at('2026-07-05T12:10:00Z'))).toHaveLength(1);
+    expect(episodesAtTime(episodes, at('2026-07-05T12:00:00Z'))).toHaveLength(1);
+    expect(episodesAtTime(episodes, at('2026-07-05T12:20:00Z'))).toHaveLength(1);
+  });
+
+  it('excludes episodes the timestamp falls outside of', () => {
+    const episodes = [episode('2026-07-05T12:00:00Z', '2026-07-05T12:20:00Z')];
+    expect(episodesAtTime(episodes, at('2026-07-05T11:59:00Z'))).toHaveLength(0);
+    expect(episodesAtTime(episodes, at('2026-07-05T12:21:00Z'))).toHaveLength(0);
+  });
+
+  it('returns every overlapping episode when spans cover the same instant', () => {
+    const episodes = [
+      episode('2026-07-05T12:00:00Z', '2026-07-05T12:30:00Z', 'GPU'),
+      episode('2026-07-05T12:10:00Z', '2026-07-05T12:40:00Z', 'CPU'),
+    ];
+    const hit = episodesAtTime(episodes, at('2026-07-05T12:20:00Z'));
+    expect(hit.map(e => e.name)).toEqual(['GPU', 'CPU']);
   });
 });
 

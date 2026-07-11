@@ -361,6 +361,31 @@
   font-size: var(--type-small);
 }
 
+// Warning block the tooltipExtra prepends when the cursor is over a
+// sustained-high-temperature band; shares the app-rows separator recipe.
+.tooltipWarnings {
+  margin-top: 0.45rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid var(--separator);
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.tooltipWarningTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: var(--type-small);
+  font-weight: var(--weight-body);
+  color: var(--warn);
+}
+
+.tooltipWarningRow {
+  font-size: var(--type-mini);
+  color: var(--text-dim);
+}
+
 // Mirrors TimeSeriesChart's own tooltipRow/tooltipDot/tooltipName/tooltipVal
 // recipe (a separate CSS module, not directly reusable) for the app rows
 // tooltipExtra appends after the series rows.

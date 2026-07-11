@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Thermometer } from 'lucide-react';
+import { Thermometer, TriangleAlert } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { useDiagnosticsWarningLingerMinutes, useUnitPrefs } from '../../../hooks/useUiSettings';
 import { colorFor } from '../../../lib/monitoringStore';
@@ -19,6 +19,7 @@ import {
   appsForHoverBucket,
   episodeBand,
   episodeSentence,
+  episodesAtTime,
   formatTemperatureCelsius,
   formatTemperatureDayLabel,
   minSelectableTemperatureDate,
@@ -167,7 +168,29 @@ export function TemperatureSection({
             avgLabel={t('diagnostics.temperature.avg')}
             maxLabel={t('diagnostics.temperature.max')}
             bands={data.episodes.map(episodeBand)}
-            tooltipExtra={hoverT => tooltipApps(appsForHoverBucket(appUsageData, hoverT))}
+            tooltipExtra={hoverT => {
+              const warnings = episodesAtTime(data.episodes, hoverT);
+              const apps = appsForHoverBucket(appUsageData, hoverT);
+              if (warnings.length === 0 && apps.length === 0) return null;
+              return (
+                <>
+                  {warnings.length > 0 && (
+                    <div className={styles.tooltipWarnings}>
+                      <div className={styles.tooltipWarningTitle}>
+                        <TriangleAlert size={12} aria-hidden />
+                        {t('diagnostics.temperature.episodesTitle')}
+                      </div>
+                      {warnings.map((episode, i) => (
+                        <div key={i} className={styles.tooltipWarningRow}>
+                          {episodeSentence(episode, monitoringTempUnit, numberFormat, t)}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {tooltipApps(apps)}
+                </>
+              );
+            }}
           />
         </>
       )}
