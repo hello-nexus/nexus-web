@@ -45,7 +45,7 @@ function Harness({ initialSlots }: { initialSlots: DeckSlot[] }) {
 }
 
 function renderInspector(slots: DeckSlot[] = [{}]) {
-  render(<Harness initialSlots={slots} />);
+  return render(<Harness initialSlots={slots} />);
 }
 
 /** Same round-tripping contract as Harness, but over a touch-widget target (the
@@ -73,23 +73,56 @@ function renderWidgetInspector(slots: DeckSlot[] = [{}]) {
   render(<WidgetHarness initialSlots={slots} />);
 }
 
-function openCategoryPicker() {
-  fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.actionCategory' }));
+function openCategory(labelKey: string) {
+  fireEvent.click(screen.getByRole('button', { name: labelKey }));
 }
 
-function openKindPicker() {
-  fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.actionType' }));
+function isBefore(a: Element, b: Element): boolean {
+  return !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
 }
 
-describe('DeckKeyInspector action picker - Stream Deck category', () => {
-  it('offers a Stream Deck category containing Deck Brightness and Deck Sleep', () => {
+describe('DeckKeyInspector section order', () => {
+  it('renders Action, Label, Title Style, Icon, Color top to bottom', () => {
     renderInspector();
-    openCategoryPicker();
-    fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.category.streamdeck' }));
+    const action = screen.getByText('panel.settings.deck.actionType');
+    const label = screen.getByText('panel.settings.deck.label');
+    const titleStyle = screen.getByText('panel.settings.deck.titleStyle.section');
+    const icon = screen.getByText('panel.settings.icon');
+    const color = screen.getByText('panel.settings.deck.color');
+    expect(isBefore(action, label)).toBe(true);
+    expect(isBefore(label, titleStyle)).toBe(true);
+    expect(isBefore(titleStyle, icon)).toBe(true);
+    expect(isBefore(icon, color)).toBe(true);
+  });
+});
 
-    openKindPicker();
+describe('DeckKeyInspector action picker - collapsible category list', () => {
+  it('starts with the current kind\'s category expanded and highlights the active kind', () => {
+    renderInspector([{ action: { type: 'hotkey', keys: '' } }]);
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.action.hotkey' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.action.launchApp' })).toHaveAttribute('aria-selected', 'false');
+  });
+
+  it('keeps other categories collapsed until clicked', () => {
+    renderInspector([{ action: { type: 'hotkey', keys: '' } }]);
+    expect(screen.queryByRole('option', { name: 'panel.settings.deck.action.deckBrightness' })).toBeNull();
+
+    openCategory('panel.settings.deck.category.streamdeck');
     expect(screen.getByRole('option', { name: 'panel.settings.deck.action.deckBrightness' })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'panel.settings.deck.action.deckSleep' })).toBeInTheDocument();
+  });
+
+  it('clicking a kind entry selects that action and updates the highlight', () => {
+    renderInspector();
+    fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.action.hotkey' }));
+
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.action.hotkey' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByText('panel.settings.deck.hotkey')).toBeInTheDocument();
+  });
+
+  it('offers a Stream Deck category containing Deck Brightness and Deck Sleep on a physical target', () => {
+    renderInspector();
+    expect(screen.getByRole('button', { name: 'panel.settings.deck.category.streamdeck' })).toBeInTheDocument();
   });
 
   it('deckBrightness shows a value slider for op "set" and swaps to a step field for "up"/"down"', () => {
@@ -124,12 +157,8 @@ describe('DeckKeyInspector action picker - Stream Deck category', () => {
     expect(screen.getByText('panel.settings.deck.hotkeySet')).toBeInTheDocument();
   });
 
-  it('lists Hotkey Switch inside the System category picker', () => {
+  it('lists Hotkey Switch inside the System category (open by default for a launchApp slot)', () => {
     renderInspector();
-    openCategoryPicker();
-    fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.category.system' }));
-
-    openKindPicker();
     expect(screen.getByRole('option', { name: 'panel.settings.deck.action.hotkeySwitch' })).toBeInTheDocument();
   });
 });
@@ -137,35 +166,72 @@ describe('DeckKeyInspector action picker - Stream Deck category', () => {
 describe('DeckKeyInspector - deckBrightness/deckSleep are physical-deck-only', () => {
   it('hides the Stream Deck category entirely on a touch-widget target', () => {
     renderWidgetInspector();
-    openCategoryPicker();
 
-    expect(screen.queryByRole('option', { name: 'panel.settings.deck.category.streamdeck' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'panel.settings.deck.category.streamdeck' })).toBeNull();
+    expect(screen.queryByRole('option', { name: 'panel.settings.deck.action.deckBrightness' })).toBeNull();
     // Every other category is still offered - only the physical-only one is gone.
-    expect(screen.getByRole('option', { name: 'panel.settings.deck.category.system' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'panel.settings.deck.category.system' })).toBeInTheDocument();
   });
 
   it('omits deckBrightness/deckSleep from a nested sequence step on a widget target', () => {
     renderWidgetInspector();
-    openCategoryPicker();
-    fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.category.multiAction' }));
-    openKindPicker();
+    openCategory('panel.settings.deck.category.multiAction');
     fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.action.sequence' }));
 
     fireEvent.click(screen.getByText('panel.settings.deck.sequence.addStep'));
-    // Two "actionType" pickers now exist (the outer slot's, already showing
-    // "Sequence", and the new step's own type Select) - the step's is last.
-    const typePickers = screen.getAllByRole('button', { name: 'panel.settings.deck.actionType' });
-    fireEvent.click(typePickers[typePickers.length - 1]);
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.actionType' }));
 
     expect(screen.queryByRole('option', { name: 'panel.settings.deck.action.deckBrightness' })).toBeNull();
     expect(screen.queryByRole('option', { name: 'panel.settings.deck.action.deckSleep' })).toBeNull();
-    // hotkeySwitch works everywhere (best-effort on the widget), so it stays offered.
-    expect(screen.getByRole('option', { name: 'panel.settings.deck.action.hotkeySwitch' })).toBeInTheDocument();
+    // hotkeySwitch works everywhere (best-effort on the widget), so the step's
+    // own Select popup (an <li>, unlike the top-level category list's <button>
+    // entries) still offers it.
+    const hotkeySwitchOptions = screen.getAllByRole('option', { name: 'panel.settings.deck.action.hotkeySwitch' });
+    expect(hotkeySwitchOptions.some(o => o.tagName === 'LI')).toBe(true);
   });
 
-  it('still offers the Stream Deck category and its kinds on a physical target', () => {
+  it('still offers the Stream Deck category on a physical target', () => {
     renderInspector();
-    openCategoryPicker();
-    expect(screen.getByRole('option', { name: 'panel.settings.deck.category.streamdeck' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'panel.settings.deck.category.streamdeck' })).toBeInTheDocument();
+  });
+});
+
+describe('DeckKeyInspector title style section', () => {
+  it('defaults to Show title on', () => {
+    renderInspector([{ label: 'Hi' }]);
+    expect(screen.getByRole('switch', { name: 'panel.settings.deck.titleStyle.show' })).toBeChecked();
+  });
+
+  it('turning Show title off disables the rest of the title style controls', () => {
+    renderInspector([{ label: 'Hi' }]);
+    fireEvent.click(screen.getByRole('switch', { name: 'panel.settings.deck.titleStyle.show' }));
+
+    expect(screen.getByRole('switch', { name: 'panel.settings.deck.titleStyle.show' })).not.toBeChecked();
+    expect(screen.getByRole('button', { name: 'panel.settings.deck.titleStyle.bold' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'panel.settings.deck.titleStyle.alignTop' })).toBeDisabled();
+  });
+
+  it('picking Bold toggles it active', () => {
+    renderInspector([{ label: 'Hi' }]);
+    const bold = screen.getByRole('button', { name: 'panel.settings.deck.titleStyle.bold' });
+    expect(bold).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(bold);
+    expect(screen.getByRole('button', { name: 'panel.settings.deck.titleStyle.bold' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('picking an alignment marks it active', () => {
+    renderInspector([{ label: 'Hi' }]);
+    // Middle is the default.
+    expect(screen.getByRole('button', { name: 'panel.settings.deck.titleStyle.alignMiddle' })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.titleStyle.alignTop' }));
+    expect(screen.getByRole('button', { name: 'panel.settings.deck.titleStyle.alignTop' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'panel.settings.deck.titleStyle.alignMiddle' })).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('renders an Auto swatch for both the key color and the title text color', () => {
+    renderInspector([{ label: 'Hi' }]);
+    // One "Auto" swatch for the key's background color (existing section) and
+    // one for the title's text color (new section) - both default-selected.
+    expect(screen.getAllByText('panel.settings.deck.colorAuto')).toHaveLength(2);
   });
 });

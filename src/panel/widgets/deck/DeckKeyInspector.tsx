@@ -1,12 +1,15 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { FolderInput } from 'lucide-react';
+import { AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, AlignVerticalJustifyStart, FolderInput } from 'lucide-react';
 import { Button } from '../../../components/common/Button/Button';
 import { useTranslation } from '../../../lib/i18n';
 import { DECK_SWATCHES } from '../../../lib/settings';
 import { fetchService } from '../../../api/service';
+import { CollapsibleSection } from '../../../components/common/CollapsibleSection/CollapsibleSection';
+import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
 import { Select } from '../../../components/common/Select/Select';
 import { Slider } from '../../../components/common/Slider/Slider';
 import { SectionHeader } from '../../../components/common/SectionHeader/SectionHeader';
+import { Toggle } from '../../../components/common/Toggle/Toggle';
 import { SettingsSection } from '../common/SettingsRow/SettingsRow';
 import { AppPicker } from '../common/AppPicker';
 import { IconPicker } from '../common/IconPicker';
@@ -16,7 +19,10 @@ import type { PanelSurface } from '../../types';
 import { HotkeyInput } from './HotkeyInput';
 import { padSlots } from './deckLayout';
 import { resolveTargetView, slotCountAtDepth, type DeckTarget } from './deckTarget';
-import type { DeckAction, DeckActionType, DeckSlot } from './types';
+import {
+  DECK_TITLE_FONTS, DECK_TITLE_SIZE_MAX, DECK_TITLE_SIZE_MIN, resolveDeckTitleStyle, type DeckTitleAlign,
+} from './deckTitleStyle';
+import type { DeckAction, DeckActionType, DeckSlot, DeckTitleStyle } from './types';
 import styles from './DeckKeyInspector.module.scss';
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
@@ -142,10 +148,10 @@ function useServiceOptions(path: string, map: (data: unknown) => { value: string
   return opts;
 }
 
-function SelectField({ label, value, options, onChange }: { label: string; value: string; options: { value: string; label: string }[]; onChange: (v: string) => void }) {
+function SelectField({ label, value, options, onChange, disabled }: { label: string; value: string; options: { value: string; label: string }[]; onChange: (v: string) => void; disabled?: boolean }) {
   return (
     <Field label={label}>
-      <Select className={styles.selectWide} value={value} options={options} onChange={onChange} ariaLabel={label} />
+      <Select className={styles.selectWide} value={value} options={options} onChange={onChange} ariaLabel={label} disabled={disabled} />
     </Field>
   );
 }
@@ -356,6 +362,182 @@ function ToggleEditor({ action, onChange, allowed, surface, desktopEditor }: { a
   );
 }
 
+/**
+ * Expandable list of action categories, replacing a category+kind Select
+ * pair: each category is its own collapsible group, and its body lists that
+ * category's kinds as clickable entries. Multiple categories can be expanded
+ * at once; the category holding the slot's current kind is always kept
+ * expanded (including when the selected slot changes to a kind in a
+ * different category) so the active kind's highlight is never hidden inside
+ * a collapsed group.
+ */
+function ActionCategoryPicker({ categories, activeKind, onPick }: {
+  categories: DeckActionCategory[]; activeKind: DeckPickerKind; onPick: (k: DeckPickerKind) => void;
+}) {
+  const { t } = useTranslation();
+  const [openKeys, setOpenKeys] = useState<Set<string>>(() => new Set([categoryForKind(activeKind).key]));
+  const activeCategoryKey = categoryForKind(activeKind).key;
+  useEffect(() => {
+    setOpenKeys(prev => (prev.has(activeCategoryKey) ? prev : new Set(prev).add(activeCategoryKey)));
+  }, [activeCategoryKey]);
+  const toggleOpen = (key: string) => setOpenKeys(prev => {
+    const next = new Set(prev);
+    if (next.has(key)) next.delete(key); else next.add(key);
+    return next;
+  });
+
+  return (
+    <div className={styles.categoryList}>
+      {categories.map(cat => (
+        <CollapsibleSection
+          key={cat.key}
+          title={t(cat.labelKey)}
+          open={openKeys.has(cat.key)}
+          onToggle={() => toggleOpen(cat.key)}
+          compact
+        >
+          <div className={styles.kindList} role="listbox" aria-label={t(cat.labelKey)}>
+            {cat.kinds.map(k => (
+              <button
+                key={k}
+                type="button"
+                role="option"
+                aria-selected={k === activeKind}
+                className={`${styles.kindItem} ${k === activeKind ? styles.kindItemActive : ''}`}
+                onClick={() => onPick(k)}
+              >
+                {t(`panel.settings.deck.action.${k}`)}
+              </button>
+            ))}
+          </div>
+        </CollapsibleSection>
+      ))}
+    </div>
+  );
+}
+
+const TITLE_ALIGN_ICONS: Record<DeckTitleAlign, typeof AlignVerticalJustifyStart> = {
+  top: AlignVerticalJustifyStart,
+  middle: AlignVerticalJustifyCenter,
+  bottom: AlignVerticalJustifyEnd,
+};
+
+const TITLE_ALIGN_LABEL_KEY: Record<DeckTitleAlign, string> = {
+  top: 'panel.settings.deck.titleStyle.alignTop',
+  middle: 'panel.settings.deck.titleStyle.alignMiddle',
+  bottom: 'panel.settings.deck.titleStyle.alignBottom',
+};
+
+// Every id but 'default' is a proper-noun font family name - stays English in
+// every locale (see DECK_TITLE_FONTS in deckTitleStyle.ts for the CSS stacks).
+const TITLE_FONT_NAME: Record<string, string> = { arial: 'Arial', georgia: 'Georgia', courierNew: 'Courier New' };
+
+/** Elgato-style font panel for the slot's label: show toggle, alignment, font, size, B/I/U, and text color. */
+function TitleStyleFields({ title, onChange }: { title: DeckTitleStyle | undefined; onChange: (patch: DeckTitleStyle) => void }) {
+  const { t } = useTranslation();
+  const resolved = resolveDeckTitleStyle(title);
+  const disabled = !resolved.show;
+
+  return (
+    <>
+      <Field label={t('panel.settings.deck.titleStyle.show')}>
+        <Toggle checked={resolved.show} onChange={show => onChange({ show })} ariaLabel={t('panel.settings.deck.titleStyle.show')} />
+      </Field>
+
+      <Field label={t('panel.settings.deck.titleStyle.align')}>
+        <div className={styles.segmented} role="group" aria-label={t('panel.settings.deck.titleStyle.align')}>
+          {(['top', 'middle', 'bottom'] as const).map(align => {
+            const Icon = TITLE_ALIGN_ICONS[align];
+            return (
+              <IconLabelButton
+                key={align}
+                icon={<Icon size={16} aria-hidden="true" />}
+                active={resolved.align === align}
+                disabled={disabled}
+                ariaLabel={t(TITLE_ALIGN_LABEL_KEY[align])}
+                onPress={() => onChange({ align })}
+              />
+            );
+          })}
+        </div>
+      </Field>
+
+      <SelectField
+        label={t('panel.settings.deck.titleStyle.font')}
+        value={title?.font ?? 'default'}
+        disabled={disabled}
+        options={DECK_TITLE_FONTS.map(f => ({
+          value: f.id,
+          label: f.id === 'default' ? t('panel.settings.deck.titleStyle.fontDefault') : TITLE_FONT_NAME[f.id],
+        }))}
+        onChange={font => onChange({ font })}
+      />
+
+      <Field label={t('panel.settings.deck.titleStyle.size')}>
+        <input
+          className={styles.input}
+          type="number"
+          min={DECK_TITLE_SIZE_MIN}
+          max={DECK_TITLE_SIZE_MAX}
+          value={resolved.size}
+          disabled={disabled}
+          onChange={e => onChange({ size: clamp(Number(e.target.value), DECK_TITLE_SIZE_MIN, DECK_TITLE_SIZE_MAX) })}
+        />
+      </Field>
+
+      <Field label={t('panel.settings.deck.titleStyle.style')}>
+        <div className={styles.segmented}>
+          <IconLabelButton
+            label={<span className={styles.boldGlyph}>B</span>}
+            active={resolved.bold}
+            disabled={disabled}
+            ariaLabel={t('panel.settings.deck.titleStyle.bold')}
+            onPress={() => onChange({ bold: !resolved.bold })}
+          />
+          <IconLabelButton
+            label={<span className={styles.italicGlyph}>I</span>}
+            active={resolved.italic}
+            disabled={disabled}
+            ariaLabel={t('panel.settings.deck.titleStyle.italic')}
+            onPress={() => onChange({ italic: !resolved.italic })}
+          />
+          <IconLabelButton
+            label={<span className={styles.underlineGlyph}>U</span>}
+            active={resolved.underline}
+            disabled={disabled}
+            ariaLabel={t('panel.settings.deck.titleStyle.underline')}
+            onPress={() => onChange({ underline: !resolved.underline })}
+          />
+        </div>
+      </Field>
+
+      <Field label={t('panel.settings.deck.titleStyle.color')}>
+        <div className={styles.swatches}>
+          <button
+            type="button"
+            disabled={disabled}
+            className={`${styles.swatch} ${styles.autoSwatch} ${!title?.color ? styles.activeSwatch : ''}`}
+            onClick={() => onChange({ color: undefined })}
+          >
+            {t('panel.settings.deck.colorAuto')}
+          </button>
+          {DECK_SWATCHES.map(c => (
+            <button
+              key={c}
+              type="button"
+              disabled={disabled}
+              className={`${styles.swatch} ${title?.color === c ? styles.activeSwatch : ''}`}
+              style={{ background: c }}
+              onClick={() => onChange({ color: c })}
+              aria-label={c}
+            />
+          ))}
+        </div>
+      </Field>
+    </>
+  );
+}
+
 export interface DeckKeyInspectorProps {
   target: DeckTarget;
   page: number;
@@ -368,10 +550,10 @@ export interface DeckKeyInspectorProps {
 }
 
 /**
- * Icon / color / label / action-type editor for the slot currently selected
- * in a Deck target's grid. Split out of DeckEditor so a device page can place
- * the grid and this inspector in separate panes (grid-right, inspector-left)
- * while the touch widget keeps composing them together via DeckEditor.
+ * Action / label / icon / color editor for the slot currently selected in a
+ * Deck target's grid. Split out of DeckEditor so a device page can place the
+ * grid and this inspector in separate panes while the touch widget keeps
+ * composing them together via DeckEditor.
  */
 export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange, selectedSlot, onSelectedSlotChange, surface, desktopEditor }: DeckKeyInspectorProps) {
   const { t } = useTranslation();
@@ -384,7 +566,6 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
   const writeSlot = (next: DeckSlot) => target.updateSlot(page, folderPath, selSlot, next);
 
   const kind = actionToPickerKind(slot);
-  const category = categoryForKind(kind);
   const appIdForIcon = slot.action?.type === 'launchApp' ? slot.action.appId : undefined;
 
   // A widget target has no physical Stream Deck to act on, so deckBrightness/
@@ -396,21 +577,43 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
     : DECK_ACTION_CATEGORIES
         .map(c => ({ ...c, kinds: kindsForTarget(c.kinds, target.kind) }))
         .filter(c => c.kinds.length > 0);
-  const visibleKinds = kindsForTarget(category.kinds, target.kind);
 
   const onKindChange = (k: DeckPickerKind) => {
     if (k === 'folder') { writeSlot({ ...slot, action: undefined, folder: slot.folder ?? { slots: [] } }); return; }
     writeSlot({ ...slot, folder: undefined, action: defaultActionForPickerKind(k) });
   };
 
-  const onCategoryChange = (key: string) => {
-    const cat = categories.find(c => c.key === key);
-    if (!cat || cat.kinds.includes(kind)) return;
-    onKindChange(cat.kinds[0]);
-  };
-
   return (
     <div className={styles.root}>
+      <SettingsSection title={t('panel.settings.deck.actionType')}>
+        <ActionCategoryPicker categories={categories} activeKind={kind} onPick={onKindChange} />
+        <div className={styles.fieldStack}>
+          {kind === 'folder' ? (
+            <button type="button" className={styles.folderBtn} onClick={() => { onFolderPathChange([...folderPath, selSlot]); onSelectedSlotChange?.(0); }}>
+              <FolderInput size={14} /> {t('panel.settings.deck.enterFolder')}
+            </button>
+          ) : slot.action ? (
+            <ActionFields action={slot.action} onChange={a => writeSlot({ ...slot, action: a })} allowed={nestedAllowed} surface={surface} desktopEditor={desktopEditor} pageCount={pageCount} />
+          ) : null}
+        </div>
+      </SettingsSection>
+
+      <SettingsSection title={t('panel.settings.deck.label')}>
+        <input
+          className={styles.input}
+          type="text"
+          value={slot.label ?? ''}
+          placeholder={t('panel.settings.deck.labelPlaceholder')}
+          onChange={e => writeSlot({ ...slot, label: e.target.value })}
+        />
+      </SettingsSection>
+
+      <SettingsSection title={t('panel.settings.deck.titleStyle.section')}>
+        <div className={styles.fieldStack}>
+          <TitleStyleFields title={slot.title} onChange={patch => writeSlot({ ...slot, title: { ...slot.title, ...patch } })} />
+        </div>
+      </SettingsSection>
+
       <SettingsSection title={t('panel.settings.icon')}>
         <IconPicker value={slot.icon} appId={appIdForIcon} surface={surface} desktopEditor={desktopEditor} onChange={icon => writeSlot({ ...slot, icon })} />
       </SettingsSection>
@@ -421,38 +624,6 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
           {DECK_SWATCHES.map(c => (
             <button key={c} type="button" className={`${styles.swatch} ${slot.color === c ? styles.activeSwatch : ''}`} style={{ background: c }} onClick={() => writeSlot({ ...slot, color: c })} aria-label={c} />
           ))}
-        </div>
-      </SettingsSection>
-
-      <SettingsSection title={t('panel.settings.deck.label')}>
-        <input className={styles.input} type="text" value={slot.label ?? ''} onChange={e => writeSlot({ ...slot, label: e.target.value })} />
-      </SettingsSection>
-
-      <SettingsSection title={t('panel.settings.deck.actionType')}>
-        <div className={styles.fieldStack}>
-          <Field label={t('panel.settings.deck.actionCategory')}>
-            <Select
-              className={styles.selectWide}
-              value={category.key}
-              options={categories.map(c => ({ value: c.key, label: t(c.labelKey) }))}
-              onChange={onCategoryChange}
-              ariaLabel={t('panel.settings.deck.actionCategory')}
-            />
-          </Field>
-          <Select
-            className={styles.selectWide}
-            value={kind}
-            options={visibleKinds.map(k => ({ value: k, label: t(`panel.settings.deck.action.${k}`) }))}
-            onChange={k => onKindChange(k as DeckPickerKind)}
-            ariaLabel={t('panel.settings.deck.actionType')}
-          />
-          {kind === 'folder' ? (
-            <button type="button" className={styles.folderBtn} onClick={() => { onFolderPathChange([...folderPath, selSlot]); onSelectedSlotChange?.(0); }}>
-              <FolderInput size={14} /> {t('panel.settings.deck.enterFolder')}
-            </button>
-          ) : slot.action ? (
-            <ActionEditor action={slot.action} onChange={a => writeSlot({ ...slot, action: a })} showType={false} allowed={nestedAllowed} surface={surface} desktopEditor={desktopEditor} pageCount={pageCount} />
-          ) : null}
         </div>
       </SettingsSection>
     </div>

@@ -36,7 +36,9 @@
   min-height: 0;
   overflow: hidden;
   container-type: size;
-  border: 1px solid color-mix(in srgb, var(--deck-accent, #64748b) 50%, transparent);
+  // No border on a populated, unselected cell - see .empty (blank) and
+  // .selected::after (the selection ring) for the only two states that get one.
+  border: 1px solid transparent;
   border-radius: var(--radius);
   // Accent tint composited over a neutral backing in one solid fill, so buttons
   // stay legible even when the widget tile is set fully transparent (the tile
@@ -77,8 +79,8 @@
 .selectable::after {
   content: '';
   position: absolute;
-  inset: -1px;
-  border: 2px dashed transparent;
+  inset: -2px;
+  border: 4px dashed transparent;
   border-radius: inherit;
   pointer-events: none;
   transition: border-color var(--ease);
@@ -127,17 +129,16 @@
 }
 
 // Overlaid caption, not a flex sibling of .iconWrap - keeps the icon's box
-// (and rendered size) identical whether or not a label is present. White fill
-// with a dark stroke/shadow (mirrors EffectCard.labelOverlay) stays legible
-// over any icon or --deck-accent color, unlike a scrim tuned to one theme.
+// (and rendered size) identical whether or not a label is present. A dark
+// stroke/shadow (mirrors EffectCard.labelOverlay) keeps it legible over any
+// icon or --deck-accent color, unlike a scrim tuned to one theme. Font size,
+// weight, style, decoration and color come from deckTitleStyle.ts inline
+// (per-slot); only the vertical anchor (top/middle/bottom) is a class here.
 .label {
   position: absolute;
   left: 3px;
   right: 3px;
-  bottom: 3px;
-  font-size: clamp(9px, 16cqmin, 13px);
   line-height: 1.2;
-  color: #ffffff;
   text-align: center;
   white-space: nowrap;
   overflow: hidden;
@@ -149,6 +150,10 @@
   -webkit-text-stroke: 0.6px rgb(0 0 0 / 0.85);
   paint-order: stroke fill;
 }
+
+.labelAlignTop { top: 3px; }
+.labelAlignMiddle { top: 50%; transform: translateY(-50%); }
+.labelAlignBottom { bottom: 3px; }
 
 .back {
   position: absolute;

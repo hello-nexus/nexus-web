@@ -86,6 +86,31 @@ describe('DeckPageStrip', () => {
     expect(onRemove).toHaveBeenCalledTimes(1);
   });
 
+  it('numbered mode renders plain page-number chips instead of "Page N" tabs', () => {
+    const onSelectPage = vi.fn();
+    render(
+      <DeckPageStrip
+        numbered
+        pageCount={3}
+        currentPage={0}
+        onSelectPage={onSelectPage}
+        onAddPage={vi.fn()}
+        onRemoveCurrentPage={vi.fn()}
+        currentPageHasContent={false}
+      />,
+    );
+    expect(screen.queryByRole('tab')).toBeNull();
+    expect(screen.queryByText('panel.settings.deck.page.tab')).toBeNull();
+
+    const chips = screen.getAllByText(/^[123]$/);
+    expect(chips).toHaveLength(3);
+    fireEvent.click(chips[2]);
+    expect(onSelectPage).toHaveBeenCalledWith(2);
+
+    // The add/remove controls are unchanged in numbered mode.
+    expect(screen.getByRole('button', { name: 'panel.settings.deck.page.add' })).toBeInTheDocument();
+  });
+
   it('cancelling the confirm leaves the page untouched', () => {
     const onRemove = vi.fn();
     render(

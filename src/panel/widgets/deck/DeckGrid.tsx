@@ -3,6 +3,7 @@ import { ChevronLeft, Plus } from 'lucide-react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { useAppIcon } from '../common/AppPicker';
 import { DECK_ICONS, autoIconName, deckCategory, categoryColor } from './deckIcons';
+import { resolveDeckTitleStyle, titleFontSizeCss } from './deckTitleStyle';
 import type { DeckSlot } from './types';
 import styles from './DeckGrid.module.scss';
 
@@ -11,6 +12,12 @@ function renderLucide(name: string) {
   // eslint-disable-next-line i18next/no-literal-string -- ARIA boolean attribute
   return <Comp aria-hidden="true" />;
 }
+
+const LABEL_ALIGN_CLASS = {
+  top: 'labelAlignTop',
+  middle: 'labelAlignMiddle',
+  bottom: 'labelAlignBottom',
+} as const;
 
 /** Visual content (icon + optional label) + the accent for a slot. */
 function useCellVisual(slot: DeckSlot): { accent: string; content: ReactNode; empty: boolean } {
@@ -39,10 +46,25 @@ function useCellVisual(slot: DeckSlot): { accent: string; content: ReactNode; em
   }
 
   const accent = slot.color ?? categoryColor(isFolder ? 'folder' : deckCategory(action));
+  const titleStyle = resolveDeckTitleStyle(slot.title);
   const content = (
     <>
       <span className={styles.iconWrap}>{iconEl}</span>
-      {slot.label ? <span className={styles.label}>{slot.label}</span> : null}
+      {slot.label && titleStyle.show ? (
+        <span
+          className={`${styles.label} ${styles[LABEL_ALIGN_CLASS[titleStyle.align]]}`}
+          style={{
+            fontSize: titleFontSizeCss(titleStyle.size),
+            fontFamily: titleStyle.fontFamily || undefined,
+            fontWeight: titleStyle.bold ? 700 : undefined,
+            fontStyle: titleStyle.italic ? 'italic' : undefined,
+            textDecoration: titleStyle.underline ? 'underline' : undefined,
+            color: titleStyle.color,
+          }}
+        >
+          {slot.label}
+        </span>
+      ) : null}
     </>
   );
   return { accent, content, empty };

@@ -2,6 +2,7 @@ import { render, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { DeckGrid } from './DeckGrid';
 import type { DeckSlot } from './types';
+import styles from './DeckGrid.module.scss';
 
 vi.mock('../common/AppPicker', () => ({ useAppIcon: () => null }));
 
@@ -57,5 +58,37 @@ describe('DeckGrid backCell (physical folder views)', () => {
     );
     fireEvent.click(container.querySelector('[data-deck-slot-index="1"]')!);
     expect(onCell).toHaveBeenCalledWith(1);
+  });
+});
+
+describe('DeckGrid cell border rules', () => {
+  it('a populated, unselected cell gets no border class at all', () => {
+    const slots: DeckSlot[] = [{ action: { type: 'hotkey', keys: '' } }];
+    const { container } = render(
+      <DeckGrid slots={slots} cols={1} rows={1} selectable onCell={() => {}} selectedIndex={-1} />,
+    );
+    const cell = container.querySelector('[data-deck-slot-index="0"]')!;
+    expect(cell.className).not.toContain(styles.empty);
+    expect(cell.className).not.toContain(styles.selected);
+  });
+
+  it('a blank slot gets the dashed empty border regardless of selection', () => {
+    const slots: DeckSlot[] = [{}];
+    const { container } = render(
+      <DeckGrid slots={slots} cols={1} rows={1} selectable selectedIndex={0} onCell={() => {}} />,
+    );
+    const cell = container.querySelector('[data-deck-slot-index="0"]')!;
+    expect(cell.className).toContain(styles.empty);
+  });
+
+  it('the selected cell gets the selected ring class; other cells do not', () => {
+    const slots: DeckSlot[] = [{ label: 'a' }, { label: 'b' }];
+    const { container } = render(
+      <DeckGrid slots={slots} cols={2} rows={1} selectable selectedIndex={1} onCell={() => {}} />,
+    );
+    const first = container.querySelector('[data-deck-slot-index="0"]')!;
+    const second = container.querySelector('[data-deck-slot-index="1"]')!;
+    expect(first.className).not.toContain(styles.selected);
+    expect(second.className).toContain(styles.selected);
   });
 });

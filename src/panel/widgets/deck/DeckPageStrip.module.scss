@@ -13,6 +13,23 @@
   overflow-x: auto;
 }
 
+// Number chips (Customize tab pagination), matching the Keeb device page's
+// layer chips so both read as the same "page/layer number" affordance.
+.numberChips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.numberChip {
+  --icon-label-button-height: 24px;
+  --icon-label-button-min-width: 28px;
+  --icon-label-button-padding-x: 8px;
+  --icon-label-button-padding-y: 2px;
+  --icon-label-label-size: 12px;
+}
+
 .controls {
   display: flex;
   align-items: center;

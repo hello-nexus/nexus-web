@@ -41,18 +41,14 @@ vi.mock('../../../panel/widgets/deck/DeckKeyInspector', () => ({
   ),
 }));
 
-const mockSendTestPattern = vi.fn();
 const mockGetDevModels = vi.fn();
 const mockSimulate = vi.fn();
-const mockClearSimulated = vi.fn();
 vi.mock('../../../api/streamdeck', async () => {
   const actual = await vi.importActual<typeof import('../../../api/streamdeck')>('../../../api/streamdeck');
   return {
     ...actual,
-    sendStreamDeckTestPattern: (...a: unknown[]) => mockSendTestPattern(...a),
     getStreamDeckDevModels: (...a: unknown[]) => mockGetDevModels(...a),
     simulateStreamDeck: (...a: unknown[]) => mockSimulate(...a),
-    clearSimulatedStreamDeck: (...a: unknown[]) => mockClearSimulated(...a),
   };
 });
 
@@ -129,7 +125,6 @@ beforeEach(() => {
   mockUsePhysicalDeckTarget.mockReturnValue({ target: fakeTarget(), loaded: true, error: false, retry: vi.fn() });
   mockGetDevModels.mockResolvedValue([]);
   mockSimulate.mockResolvedValue(true);
-  mockClearSimulated.mockResolvedValue(true);
 });
 
 async function renderPage(device: UnifiedDevice = makeUnifiedDevice()) {
@@ -342,52 +337,50 @@ describe('StreamDeckDevicePage', () => {
       expect(screen.queryByText('devices.streamdeck.firmware')).toBeNull();
     });
 
-    it('sends a test pattern for the active deck when the dev-tools action is pressed', async () => {
-      mockSendTestPattern.mockResolvedValue(true);
-      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
-      await renderPage();
-      switchToSettingsTab();
-
-      const button = screen.queryByText('devices.streamdeck.sendTestPattern');
-      if (!button) return; // DEV_TOOLS off in this build; nothing to press.
-      fireEvent.click(button);
-      await act(async () => { await Promise.resolve(); });
-      expect(mockSendTestPattern).toHaveBeenCalledWith('SN1');
-    });
-
-    it('simulates a different model and clears the simulation from the Settings tab', async () => {
-      mockGetDevModels.mockResolvedValue([
-        { productId: 'mk2', name: 'Stream Deck MK.2', rows: 2, cols: 4, keyCount: 8 },
-      ]);
-      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
-      await renderPage();
-      switchToSettingsTab();
-
-      const label = screen.queryByText('devices.streamdeck.simulate.changeModel');
-      if (!label) return; // DEV_TOOLS off in this build; nothing to press.
-      await act(async () => { await Promise.resolve(); });
-
-      fireEvent.click(screen.getByText('devices.streamdeck.simulate.button'));
-      await act(async () => { await Promise.resolve(); });
-      expect(mockSimulate).toHaveBeenCalledWith('mk2');
-      expect(mockRefresh).toHaveBeenCalledTimes(1);
-
-      fireEvent.click(screen.getByText('devices.streamdeck.simulate.clearButton'));
-      await act(async () => { await Promise.resolve(); });
-      expect(mockClearSimulated).toHaveBeenCalledTimes(1);
-      expect(mockRefresh).toHaveBeenCalledTimes(2);
-    });
-
-    it('toggles Nexus Link through controlDevice using the resolved device curatedId', async () => {
+    it('no longer offers the Nexus Link toggle, model simulation, or test pattern (moved to dev tools)', async () => {
       mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
       await renderPage(makeUnifiedDevice({ curatedId: 'streamdeck', nexusControlEnabled: true }));
       switchToSettingsTab();
 
-      const toggle = screen.getByRole('switch', { name: 'devices.nexusControl' });
-      expect(toggle).not.toBeDisabled();
-      fireEvent.click(toggle);
+      expect(screen.queryByRole('switch', { name: 'devices.nexusControl' })).toBeNull();
+      expect(screen.queryByText('devices.streamdeck.simulate.changeModel')).toBeNull();
+      expect(screen.queryByText('devices.streamdeck.sendTestPattern')).toBeNull();
+    });
+  });
 
-      expect(mockControlDevice).toHaveBeenCalledWith('streamdeck', false);
+  describe('Customize tab layout', () => {
+    it('has no model dropdown - the connected deck is shown without a chooser', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+      await renderPage();
+
+      expect(screen.queryByRole('button', { name: 'devices.streamdeck.model' })).toBeNull();
+    });
+
+    it('shows the model name prefixed with "Stream Deck"', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck({ model: 'Mini' })]));
+      await renderPage();
+
+      expect(screen.getByText('Stream Deck Mini')).toBeInTheDocument();
+    });
+
+    it('shows pagination as plain page-number chips, not "Page N" tabs', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+      await renderPage();
+
+      // The Customize/Settings ViewHeader tabs are the only role="tab"
+      // elements - pagination itself must not add another tab strip.
+      const tabNames = screen.getAllByRole('tab').map(tab => tab.textContent);
+      expect(tabNames).toEqual(['devices.streamdeck.tab.customize', 'devices.streamdeck.tab.settings']);
+      expect(screen.getByText('1')).toBeInTheDocument();
+    });
+
+    it('renders the grid preview above the key inspector', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+      const { container } = await renderPage();
+
+      const grid = container.querySelector('[data-deck-slot-index]')!;
+      const inspector = screen.getByTestId('deck-key-inspector');
+      expect(!!(grid.compareDocumentPosition(inspector) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
     });
   });
 });

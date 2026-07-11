@@ -15,7 +15,7 @@ import { padSlots, pageHasContent } from '../../../panel/widgets/deck/deckLayout
 import { withPageIndicatorDisplay } from '../../../panel/widgets/deck/deckIcons';
 import { resolveTargetView, slotCountAtDepth } from '../../../panel/widgets/deck/deckTarget';
 import {
-  sendStreamDeckTestPattern, getStreamDeckDevModels, simulateStreamDeck, clearSimulatedStreamDeck,
+  getStreamDeckDevModels, simulateStreamDeck,
   type StreamDeckDevModel,
 } from '../../../api/streamdeck';
 import { isRemoteOrigin } from '../../../api/service';
@@ -25,7 +25,7 @@ import type { TabDef } from '../../common/Tabs/Tabs';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { EditableText } from '../../common/Editable/EditableText';
 import { Select } from '../../common/Select/Select';
-import { SettingRow, SettingToggle, SettingSelect, SettingSlider } from '../../common/SettingRow/SettingRow';
+import { SettingRow, SettingSelect, SettingSlider } from '../../common/SettingRow/SettingRow';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { ConflictAppCard } from '../../common/ConflictAppCard/ConflictAppCard';
 import { Button } from '../../common/Button/Button';
@@ -49,13 +49,13 @@ function PageShell({ children }: { children: ReactNode }) {
 }
 
 /**
- * Dev-tools-only model picker: spins up (or clears) a simulated Stream Deck
- * via the service's /streamdeck/dev/* routes, so a bench box with no
- * hardware attached can still design a layout. `onDone` refetches the deck
- * list; the 'streamdeck' topic broadcast also triggers a refetch, but the
- * explicit call keeps this responsive even if that broadcast is missed.
+ * Dev-tools-only model picker: spins up a simulated Stream Deck via the
+ * service's /streamdeck/dev/* routes, so a bench box with no hardware
+ * attached can still design a layout. `onDone` refetches the deck list; the
+ * 'streamdeck' topic broadcast also triggers a refetch, but the explicit call
+ * keeps this responsive even if that broadcast is missed.
  */
-function StreamDeckSimulatorControls({ showClear, onDone }: { showClear?: boolean; onDone: () => void }) {
+function StreamDeckSimulatorControls({ onDone }: { onDone: () => void }) {
   const { t } = useTranslation();
   const [models, setModels] = useState<StreamDeckDevModel[]>([]);
   const [productId, setProductId] = useState('');
@@ -78,13 +78,6 @@ function StreamDeckSimulatorControls({ showClear, onDone }: { showClear?: boolea
     onDone();
   };
 
-  const onClear = async () => {
-    if (busy) return;
-    setBusy(true);
-    try { await clearSimulatedStreamDeck(); } finally { setBusy(false); }
-    onDone();
-  };
-
   return (
     <div className={styles.simulateControls}>
       <Select
@@ -97,11 +90,6 @@ function StreamDeckSimulatorControls({ showClear, onDone }: { showClear?: boolea
       <Button type="button" size="sm" tone="neutral" disabled={!productId || busy} onClick={() => void onSimulate()}>
         {t('devices.streamdeck.simulate.button')}
       </Button>
-      {showClear && (
-        <Button type="button" size="sm" tone="neutral" disabled={busy} onClick={() => void onClear()}>
-          {t('devices.streamdeck.simulate.clearButton')}
-        </Button>
-      )}
     </div>
   );
 }
@@ -112,16 +100,16 @@ interface StreamDeckDevicePageProps {
 }
 
 /**
- * Routed device page for a physical Stream Deck: a Customize tab (grid on
- * the right, key inspector on the left) and a Settings tab (device prefs on
- * the left, a read-only preview of the same grid on the right). The
- * underlying handler is a singleton row (one 'streamdeck' curated device),
- * so multiple physical decks are picked with a plain dropdown here rather
- * than the widget-editing rail's UX. `device`/`controlDevice` come from the
- * router's own useUnifiedDevices call so the Nexus Link toggle here shares
- * state with the NexusControlOff gate that swaps this whole page out.
+ * Routed device page for a physical Stream Deck: a Customize tab (the deck
+ * preview docked at the top, page-number pagination, the model name, then the
+ * shared key inspector) and a Settings tab (device prefs on the left, a
+ * read-only preview of the same grid on the right). The underlying handler is
+ * a singleton row (one 'streamdeck' curated device), so multiple physical
+ * decks are picked with a plain dropdown here rather than the widget-editing
+ * rail's UX. A connected deck auto-selects itself - there is no model chooser.
  */
-export function StreamDeckDevicePage({ device, controlDevice }: StreamDeckDevicePageProps) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- signature matches the device-page router's call site (DevicePage.tsx); this page has no per-device settings of its own
+export function StreamDeckDevicePage(_props: StreamDeckDevicePageProps) {
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
   const { decks, loaded, rename, setBrightness, setOrientation, setSleepAfterSeconds, refresh } = useStreamDecks(true);
@@ -250,167 +238,153 @@ export function StreamDeckDevicePage({ device, controlDevice }: StreamDeckDevice
               {!deck.verified && <span className={styles.experimentalChip}>{t('devices.streamdeck.experimental')}</span>}
             </div>
 
-            <div className={styles.splitLayout}>
-              {tab === 'customize' ? (
-                <>
-                  <div className={styles.leftPane}>
-                    {target ? (
-                      <DeckKeyInspector
-                        target={target}
-                        page={page}
-                        folderPath={folderPath}
-                        onFolderPathChange={setFolderPath}
-                        selectedSlot={selectedSlot}
-                        onSelectedSlotChange={setSelectedSlot}
-                        // eslint-disable-next-line i18next/no-literal-string -- PanelSurface enum value
-                        surface="desktop"
-                        desktopEditor
+            {tab === 'customize' ? (
+              <div className={styles.customizeLayout}>
+                <div className={styles.previewStage}>
+                  {inFolder && (
+                    <div className={styles.breadcrumb}>
+                      <button type="button" onClick={onBack}>
+                        <ChevronLeft size={14} /> {t('panel.settings.deck.back')}
+                      </button>
+                    </div>
+                  )}
+                  {target && (
+                    <DndContext sensors={dragSensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+                      <DeckGrid
+                        slots={viewSlots}
+                        cols={target.cols}
+                        rows={target.rows}
+                        square
+                        selectable
+                        dragEnabled
+                        selectedIndex={selSlot}
+                        onCell={setSelectedSlot}
+                        backCell={inFolder ? { onBack, ariaLabel: t('panel.settings.deck.back') } : undefined}
                       />
-                    ) : configError ? (
-                      <div className={styles.loadError}>
-                        <span>{t('panel.settings.deck.rail.loadFailed')}</span>
-                        <Button type="button" size="sm" tone="neutral" onClick={retryConfig}>{t('panel.settings.deck.rail.retry')}</Button>
-                      </div>
-                    ) : (
-                      <div className={styles.loading}>{t('panel.settings.deck.rail.loadingConfig')}</div>
+                    </DndContext>
+                  )}
+                </div>
+
+                {target && (
+                  <div className={styles.pageNumbersRow}>
+                    <DeckPageStrip
+                      numbered
+                      pageCount={pageCount}
+                      currentPage={page}
+                      onSelectPage={onSelectPage}
+                      onAddPage={() => { target.addPage(); onSelectPage(pageCount); }}
+                      onRemoveCurrentPage={() => { target.removePage(page); onSelectPage(Math.max(0, page - 1)); }}
+                      currentPageHasContent={pageHasContent(target.config.pages[page] ?? { slots: [] })}
+                    />
+                  </div>
+                )}
+
+                <div className={styles.modelName}>
+                  {`Stream Deck ${deck.model}`}
+                </div>
+
+                <div className={styles.inspectorBelow}>
+                  {target ? (
+                    <DeckKeyInspector
+                      target={target}
+                      page={page}
+                      folderPath={folderPath}
+                      onFolderPathChange={setFolderPath}
+                      selectedSlot={selectedSlot}
+                      onSelectedSlotChange={setSelectedSlot}
+                      // eslint-disable-next-line i18next/no-literal-string -- PanelSurface enum value
+                      surface="desktop"
+                      desktopEditor
+                    />
+                  ) : configError ? (
+                    <div className={styles.loadError}>
+                      <span>{t('panel.settings.deck.rail.loadFailed')}</span>
+                      <Button type="button" size="sm" tone="neutral" onClick={retryConfig}>{t('panel.settings.deck.rail.retry')}</Button>
+                    </div>
+                  ) : (
+                    <div className={styles.loading}>{t('panel.settings.deck.rail.loadingConfig')}</div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className={styles.splitLayout}>
+                <div className={styles.leftPane}>
+                  <SettingsSection boxClassName={styles.sectionBox}>
+                    <SettingRow label={t('devices.streamdeck.deviceName')}>
+                      <EditableText
+                        value={deck.name}
+                        onCommit={next => void rename(deck.serial, next)}
+                        maxLength={40}
+                        ariaLabel={t('devices.streamdeck.deviceName')}
+                      />
+                    </SettingRow>
+                    <SettingSelect
+                      label={t('devices.streamdeck.orientation')}
+                      value={String(deck.orientation ?? 0)}
+                      options={ORIENTATION_OPTIONS.map(degrees => ({
+                        value: String(degrees),
+                        label: degrees === 0
+                          ? t('devices.streamdeck.orientationStandard')
+                          : t('devices.streamdeck.orientationDegrees', { n: degrees }),
+                      }))}
+                      onChange={v => void setOrientation(deck.serial, Number(v))}
+                    />
+                    <SettingSelect
+                      label={t('devices.streamdeck.sleepAfter')}
+                      value={String(deck.sleepAfterSeconds ?? 0)}
+                      options={SLEEP_AFTER_OPTIONS.map(seconds => ({
+                        value: String(seconds),
+                        label: seconds === 0
+                          ? t('devices.streamdeck.sleepAfterNever')
+                          : t('devices.streamdeck.sleepAfterMinutes', { n: seconds / 60 }),
+                      }))}
+                      onChange={v => void setSleepAfterSeconds(deck.serial, Number(v))}
+                    />
+                    <SettingSlider
+                      editable
+                      trackFill
+                      label={t('devices.streamdeck.brightness')}
+                      value={brightnessValue}
+                      min={0}
+                      max={100}
+                      step={1}
+                      formatValue={v => localizeNumbers(`${Math.round(v)}%`, numberFormat)}
+                      ariaLabel={t('devices.streamdeck.brightness')}
+                      onChange={(v, commit) => {
+                        setBrightnessDraft(Math.round(v));
+                        if (commit) void setBrightness(deck.serial, Math.round(v));
+                      }}
+                      onCommit={v => {
+                        void setBrightness(deck.serial, Math.round(v));
+                        setBrightnessDraft(null);
+                      }}
+                    />
+                    {deck.firmwareVersion && (
+                      <SettingRow label={t('devices.streamdeck.firmware')}>
+                        <span className={styles.readOnlyValue}>{deck.firmwareVersion}</span>
+                      </SettingRow>
+                    )}
+                    <SettingRow label={t('devices.streamdeck.serialNumber')}>
+                      <span className={styles.readOnlyValue}>{deck.serial}</span>
+                    </SettingRow>
+                  </SettingsSection>
+                </div>
+                <div className={styles.previewPane}>
+                  <div className={`${styles.previewStage} ${styles.previewStageDimmed}`} aria-hidden="true">
+                    {target && (
+                      <DeckGrid
+                        slots={viewSlots}
+                        cols={target.cols}
+                        rows={target.rows}
+                        square
+                        selectable={false}
+                        onCell={() => {}}
+                      />
                     )}
                   </div>
-                  <div className={styles.previewPane}>
-                    <div className={styles.previewStage}>
-                      {target && (
-                        <DeckPageStrip
-                          pageCount={pageCount}
-                          currentPage={page}
-                          onSelectPage={onSelectPage}
-                          onAddPage={() => { target.addPage(); onSelectPage(pageCount); }}
-                          onRemoveCurrentPage={() => { target.removePage(page); onSelectPage(Math.max(0, page - 1)); }}
-                          currentPageHasContent={pageHasContent(target.config.pages[page] ?? { slots: [] })}
-                        />
-                      )}
-                      {inFolder && (
-                        <div className={styles.breadcrumb}>
-                          <button type="button" onClick={onBack}>
-                            <ChevronLeft size={14} /> {t('panel.settings.deck.back')}
-                          </button>
-                        </div>
-                      )}
-                      {target && (
-                        <DndContext sensors={dragSensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-                          <DeckGrid
-                            slots={viewSlots}
-                            cols={target.cols}
-                            rows={target.rows}
-                            square
-                            selectable
-                            dragEnabled
-                            selectedIndex={selSlot}
-                            onCell={setSelectedSlot}
-                            backCell={inFolder ? { onBack, ariaLabel: t('panel.settings.deck.back') } : undefined}
-                          />
-                        </DndContext>
-                      )}
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className={styles.leftPane}>
-                    <SettingsSection boxClassName={styles.sectionBox}>
-                      <SettingRow label={t('devices.streamdeck.deviceName')}>
-                        <EditableText
-                          value={deck.name}
-                          onCommit={next => void rename(deck.serial, next)}
-                          maxLength={40}
-                          ariaLabel={t('devices.streamdeck.deviceName')}
-                        />
-                      </SettingRow>
-                      <SettingToggle
-                        label={t('devices.nexusControl')}
-                        checked={device.nexusControlEnabled}
-                        onChange={next => {
-                          if (device.curatedId) void controlDevice(device.curatedId, next);
-                        }}
-                      />
-                      <SettingSelect
-                        label={t('devices.streamdeck.orientation')}
-                        value={String(deck.orientation ?? 0)}
-                        options={ORIENTATION_OPTIONS.map(degrees => ({
-                          value: String(degrees),
-                          label: degrees === 0
-                            ? t('devices.streamdeck.orientationStandard')
-                            : t('devices.streamdeck.orientationDegrees', { n: degrees }),
-                        }))}
-                        onChange={v => void setOrientation(deck.serial, Number(v))}
-                      />
-                      <SettingSelect
-                        label={t('devices.streamdeck.sleepAfter')}
-                        value={String(deck.sleepAfterSeconds ?? 0)}
-                        options={SLEEP_AFTER_OPTIONS.map(seconds => ({
-                          value: String(seconds),
-                          label: seconds === 0
-                            ? t('devices.streamdeck.sleepAfterNever')
-                            : t('devices.streamdeck.sleepAfterMinutes', { n: seconds / 60 }),
-                        }))}
-                        onChange={v => void setSleepAfterSeconds(deck.serial, Number(v))}
-                      />
-                      <SettingSlider
-                        editable
-                        trackFill
-                        label={t('devices.streamdeck.brightness')}
-                        value={brightnessValue}
-                        min={0}
-                        max={100}
-                        step={1}
-                        formatValue={v => localizeNumbers(`${Math.round(v)}%`, numberFormat)}
-                        ariaLabel={t('devices.streamdeck.brightness')}
-                        onChange={(v, commit) => {
-                          setBrightnessDraft(Math.round(v));
-                          if (commit) void setBrightness(deck.serial, Math.round(v));
-                        }}
-                        onCommit={v => {
-                          void setBrightness(deck.serial, Math.round(v));
-                          setBrightnessDraft(null);
-                        }}
-                      />
-                      {deck.firmwareVersion && (
-                        <SettingRow label={t('devices.streamdeck.firmware')}>
-                          <span className={styles.readOnlyValue}>{deck.firmwareVersion}</span>
-                        </SettingRow>
-                      )}
-                      <SettingRow label={t('devices.streamdeck.serialNumber')}>
-                        <span className={styles.readOnlyValue}>{deck.serial}</span>
-                      </SettingRow>
-                      {DEV_TOOLS && (
-                        <SettingRow label={t('devices.streamdeck.simulate.changeModel')} align="start">
-                          <StreamDeckSimulatorControls showClear onDone={refresh} />
-                        </SettingRow>
-                      )}
-                      {DEV_TOOLS && (
-                        <SettingRow>
-                          <Button type="button" size="sm" tone="neutral" onClick={() => void sendStreamDeckTestPattern(deck.serial)}>
-                            {t('devices.streamdeck.sendTestPattern')}
-                          </Button>
-                        </SettingRow>
-                      )}
-                    </SettingsSection>
-                  </div>
-                  <div className={styles.previewPane}>
-                    <div className={`${styles.previewStage} ${styles.previewStageDimmed}`} aria-hidden="true">
-                      {target && (
-                        <DeckGrid
-                          slots={viewSlots}
-                          cols={target.cols}
-                          rows={target.rows}
-                          square
-                          selectable={false}
-                          onCell={() => {}}
-                        />
-                      )}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>

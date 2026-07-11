@@ -85,11 +85,9 @@ import { WidgetCellLabel } from '../panel/widgets/common/WidgetCellLabel';
 import { SIZE_ICONS } from '../panel/widgets/common/SizeIcons';
 import { IconPicker } from '../panel/widgets/common/IconPicker';
 import type { DeckIcon, DeckConfig } from '../panel/widgets/deck/types';
-import { DeckRail } from '../panel/widgets/deck/DeckRail';
 import { DeckEditor } from '../panel/widgets/deck/DeckEditor';
 import { DeckPageStrip } from '../panel/widgets/deck/DeckPageStrip';
 import { makePhysicalDeckTarget } from '../panel/widgets/deck/deckTarget';
-import type { StreamDeckSummary } from '../api/streamdeck';
 import { MediaCropper } from '../components/common/MediaCropper/MediaCropper';
 import { SyncConflictModal } from '../components/common/SyncConflictModal/SyncConflictModal';
 import { Spinner as StorybookSpinner } from '../components/common/Spinner/Spinner';
@@ -1282,30 +1280,6 @@ function PreviewIconPicker() {
   );
 }
 
-function PreviewDeckRail() {
-  const [activeSerial, setActiveSerial] = useState<string | null>(null);
-  const decks: StreamDeckSummary[] = [
-    {
-      serial: 'SN1', model: 'Mini', name: 'Stream Deck Mini', connected: true, verified: true,
-      rows: 2, cols: 3, keyCount: 6, keyPixels: 80, format: 'bmp', brightness: 60,
-    },
-    {
-      serial: 'SN2', model: 'MK.2', name: 'Stream Deck MK.2', connected: false, verified: true,
-      rows: 3, cols: 5, keyCount: 15, keyPixels: 72, format: 'jpeg', brightness: 40,
-    },
-  ];
-  return (
-    <div style={{ width: 160 }}>
-      <DeckRail
-        decks={decks}
-        activeSerial={activeSerial}
-        onSelectWidget={() => setActiveSerial(null)}
-        onSelectDeck={setActiveSerial}
-      />
-    </div>
-  );
-}
-
 // Uses the real makePhysicalDeckTarget factory (not a bespoke mock) so the
 // story exercises the same code path DeckSettings/StreamDeckDevicePage do:
 // a 2x3 Mini-shaped grid, editable in place.
@@ -2262,12 +2236,6 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/panel/widgets/home-assistant/HomeAssistantPage.tsx',
     description: 'Home Assistant management page: setup form (URL + long-lived access token) or entity list (lights and switches grouped by area, with toggle, brightness slider, and color picker per entity).',
     notes: 'No live preview -- requires a running service with Home Assistant configured.',
-  },
-  {
-    name: 'DeckRail', category: 'panel-kit',
-    filePath: 'src/panel/widgets/deck/DeckRail.tsx',
-    description: 'Left rail of Deck edit targets shown in the Deck editing surface once at least one physical Stream Deck is detected: "This widget" plus one row per physical deck (model icon, name, connection dot). Absent entirely with zero physical decks.',
-    Preview: PreviewDeckRail,
   },
   {
     name: 'DeckEditor (physical target)', category: 'panel-kit',

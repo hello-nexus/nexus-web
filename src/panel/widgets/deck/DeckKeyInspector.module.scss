@@ -74,6 +74,60 @@ textarea.input { resize: vertical; min-height: 2.4rem; }
   &:focus-within { border-color: var(--deck-settings-accent); }
 }
 
+// Expandable action category list, replacing the old category+kind Select
+// pair - see ActionCategoryPicker.
+.categoryList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 1px solid var(--deck-settings-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.kindList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 2px 4px 6px;
+}
+
+.kindItem {
+  display: block;
+  width: 100%;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--deck-settings-text);
+  font-size: var(--type-small, 12px);
+  text-align: left;
+  cursor: pointer;
+
+  &:hover { background: var(--deck-settings-bg-hover); }
+}
+
+.kindItemActive {
+  background: color-mix(in srgb, var(--deck-settings-accent) 16%, transparent);
+  color: var(--deck-settings-accent);
+  font-weight: var(--weight-strong, 600);
+
+  &:hover { background: color-mix(in srgb, var(--deck-settings-accent) 22%, transparent); }
+}
+
+// Row of equal-weight toggle buttons (title alignment, B/I/U) - a plain flex
+// row rather than SegmentedControl-with-borders since these sit inside an
+// already-boxed SettingsSection.
+.segmented {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.boldGlyph { font-weight: 700; }
+.italicGlyph { font-style: italic; }
+.underlineGlyph { text-decoration: underline; }
+
 .folderBtn {
   display: inline-flex;
   align-items: center;
@@ -100,6 +154,11 @@ textarea.input { resize: vertical; min-height: 2.4rem; }
   cursor: pointer;
 
   &.activeSwatch { border-color: var(--deck-settings-text); }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
 }
 
 .autoSwatch {

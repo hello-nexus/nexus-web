@@ -10,6 +10,7 @@ import { fetchServiceBlob } from '../../../api/service';
 import { DECK_ICONS, autoIconName, deckCategory, categoryColor } from './deckIcons';
 import { applyKeyTransform, applyOrientation, type DeckKeyTransform, type DeckOrientation } from './deckKeyTransform';
 import { encodeBmp } from './encodeBmp';
+import { resolveDeckTitleStyle, type ResolvedDeckTitleStyle } from './deckTitleStyle';
 import type { DeckSlot } from './types';
 import type { StreamDeckFormat } from '../../../api/streamdeck';
 
@@ -23,7 +24,6 @@ export interface DeckKeyModel {
 
 const JPEG_QUALITY = 0.9;
 const ICON_FRACTION = 0.62;
-const LABEL_FRACTION = 0.22;
 const BACK_KEY_COLOR = '#23262e';
 
 /**
@@ -64,12 +64,12 @@ async function paintKey(ctx: CanvasRenderingContext2D, size: number, slot: DeckS
 
   if (!shouldPaintIcon(slot)) return;
 
-  const labelHeight = slot.label ? Math.round(size * LABEL_FRACTION) : 0;
-  const iconAreaHeight = size - labelHeight;
+  // The icon always fills the whole key - the label overlays on top instead
+  // of sharing the canvas with it, mirroring DeckGrid's on-screen cell.
+  await paintIcon(ctx, slot, isFolder, size);
 
-  await paintIcon(ctx, slot, isFolder, size, iconAreaHeight);
-
-  if (slot.label) paintLabel(ctx, slot.label, size, iconAreaHeight, labelHeight);
+  const titleStyle = resolveDeckTitleStyle(slot.title);
+  if (slot.label && titleStyle.show) paintLabel(ctx, slot.label, size, titleStyle);
 }
 
 /**
@@ -85,14 +85,14 @@ export function shouldPaintIcon(slot: DeckSlot): boolean {
 }
 
 async function paintIcon(
-  ctx: CanvasRenderingContext2D, slot: DeckSlot, isFolder: boolean, canvasSize: number, iconAreaHeight: number,
+  ctx: CanvasRenderingContext2D, slot: DeckSlot, isFolder: boolean, canvasSize: number,
 ): Promise<void> {
   const icon = slot.icon;
   const action = slot.action;
   const appId = action?.type === 'launchApp' ? action.appId : icon?.kind === 'app' ? icon.value : undefined;
   const cx = canvasSize / 2;
-  const cy = iconAreaHeight / 2;
-  const target = Math.round(Math.min(canvasSize, iconAreaHeight) * ICON_FRACTION);
+  const cy = canvasSize / 2;
+  const target = Math.round(canvasSize * ICON_FRACTION);
   if (target <= 0) return;
 
   if (icon?.kind === 'emoji') {
@@ -113,18 +113,52 @@ async function paintIcon(
   if (img) drawCentered(ctx, img, cx, cy, target);
 }
 
-function paintLabel(ctx: CanvasRenderingContext2D, label: string, canvasSize: number, top: number, height: number): void {
-  ctx.fillStyle = '#ffffff';
-  ctx.font = `${Math.max(10, Math.round(height * 0.55))}px sans-serif`;
+/**
+ * Overlays the label on top of the icon (never shrinking it), honoring the
+ * slot's title style: alignment, font, size (a percentage of the key's edge
+ * length, matching titleFontSizeCss's cqmin basis on-screen), weight, style,
+ * underline, and color. The dark stroke pass under the fill mirrors the
+ * on-screen label's text-shadow/text-stroke treatment so both stay legible
+ * over any icon or accent color.
+ */
+function paintLabel(ctx: CanvasRenderingContext2D, label: string, canvasSize: number, style: ResolvedDeckTitleStyle): void {
+  const fontPx = Math.max(8, Math.round((canvasSize * style.size) / 100));
+  const family = style.fontFamily || 'sans-serif';
+  const weight = style.bold ? 'bold ' : '';
+  const slant = style.italic ? 'italic ' : '';
+  ctx.font = `${slant}${weight}${fontPx}px ${family}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
+
+  const pad = Math.round(canvasSize * 0.06);
+  const y = style.align === 'top' ? pad + fontPx / 2
+    : style.align === 'bottom' ? canvasSize - pad - fontPx / 2
+      : canvasSize / 2;
+
   const maxWidth = canvasSize * 0.92;
   let text = label;
   while (text.length > 1 && ctx.measureText(text).width > maxWidth) {
     text = text.slice(0, -1);
   }
   if (text !== label && text.length > 1) text = `${text.slice(0, -1)}…`;
-  ctx.fillText(text, canvasSize / 2, top + height / 2);
+
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = Math.max(2, Math.round(fontPx * 0.18));
+  ctx.strokeStyle = 'rgba(0, 0, 0, 0.85)';
+  ctx.strokeText(text, canvasSize / 2, y);
+  ctx.fillStyle = style.color;
+  ctx.fillText(text, canvasSize / 2, y);
+
+  if (style.underline) {
+    const halfWidth = ctx.measureText(text).width / 2;
+    const underlineY = y + fontPx * 0.42;
+    ctx.strokeStyle = style.color;
+    ctx.lineWidth = Math.max(1, Math.round(fontPx * 0.06));
+    ctx.beginPath();
+    ctx.moveTo(canvasSize / 2 - halfWidth, underlineY);
+    ctx.lineTo(canvasSize / 2 + halfWidth, underlineY);
+    ctx.stroke();
+  }
 }
 
 function drawCentered(ctx: CanvasRenderingContext2D, img: HTMLImageElement, cx: number, cy: number, targetSize: number): void {

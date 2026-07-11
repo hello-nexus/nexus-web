@@ -92,10 +92,26 @@ export interface DeckSequenceStep {
   gapAfterMs?: number;
 }
 
+// Per-key title (label) styling. Every field is sparse - unset means "use the
+// default" (see deckTitleStyle.ts: show=true, align=middle, size=16, no
+// bold/italic/underline, color=white). `font` is one of DECK_TITLE_FONTS' ids,
+// not a raw CSS family, so the persisted value stays a plain enum string.
+export interface DeckTitleStyle {
+  show?: boolean;
+  align?: 'top' | 'middle' | 'bottom';
+  font?: string;
+  size?: number;
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+  color?: string;
+}
+
 export interface DeckSlot {
   icon?: DeckIcon;     // unset → auto icon by action category
-  label?: string;      // shown when set (no global toggle); icon shrinks to fit
+  label?: string;      // shown when set (no global toggle); overlays the icon, never shrinks it
   color?: string;      // unset → auto color by action category; else override token/hex
+  title?: DeckTitleStyle; // styling for `label`; unset → deckTitleStyle.ts defaults
   action?: DeckAction; // a slot is an action OR a folder OR empty
   folder?: DeckFolder;
 }
