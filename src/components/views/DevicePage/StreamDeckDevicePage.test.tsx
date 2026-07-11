@@ -41,17 +41,6 @@ vi.mock('../../../panel/widgets/deck/DeckKeyInspector', () => ({
   ),
 }));
 
-const mockGetDevModels = vi.fn();
-const mockSimulate = vi.fn();
-vi.mock('../../../api/streamdeck', async () => {
-  const actual = await vi.importActual<typeof import('../../../api/streamdeck')>('../../../api/streamdeck');
-  return {
-    ...actual,
-    getStreamDeckDevModels: (...a: unknown[]) => mockGetDevModels(...a),
-    simulateStreamDeck: (...a: unknown[]) => mockSimulate(...a),
-  };
-});
-
 import { StreamDeckDevicePage } from './StreamDeckDevicePage';
 import type { UnifiedDevice } from '../../../hooks/useUnifiedDevices';
 
@@ -123,8 +112,6 @@ beforeEach(() => {
   mockSetSleepAfterSeconds.mockResolvedValue(true);
   mockControlDevice.mockResolvedValue(undefined);
   mockUsePhysicalDeckTarget.mockReturnValue({ target: fakeTarget(), loaded: true, error: false, retry: vi.fn() });
-  mockGetDevModels.mockResolvedValue([]);
-  mockSimulate.mockResolvedValue(true);
 });
 
 async function renderPage(device: UnifiedDevice = makeUnifiedDevice()) {
@@ -147,27 +134,10 @@ describe('StreamDeckDevicePage', () => {
     expect(screen.queryByTestId('deck-key-inspector')).toBeNull();
   });
 
-  describe('dev-tools simulator picker (no hardware connected)', () => {
-    it('lists the fetched models and simulates the selected one, then refreshes the deck list', async () => {
-      mockGetDevModels.mockResolvedValue([
-        { productId: 'mk2', name: 'Stream Deck MK.2', rows: 2, cols: 4, keyCount: 8 },
-        { productId: 'xl', name: 'Stream Deck XL', rows: 4, cols: 8, keyCount: 32 },
-      ]);
-      mockUseStreamDecks.mockReturnValue(decksReturn([]));
-      await renderPage();
-
-      const button = screen.queryByText('devices.streamdeck.simulate.title');
-      if (!button) return; // DEV_TOOLS off in this build; nothing to press.
-      await act(async () => { await Promise.resolve(); });
-
-      fireEvent.click(screen.getByRole('button', { name: 'devices.streamdeck.model' }));
-      fireEvent.click(screen.getByRole('option', { name: 'Stream Deck XL' }));
-      fireEvent.click(screen.getByText('devices.streamdeck.simulate.button'));
-      await act(async () => { await Promise.resolve(); });
-
-      expect(mockSimulate).toHaveBeenCalledWith('xl');
-      expect(mockRefresh).toHaveBeenCalled();
-    });
+  it('does not offer a simulator on the not-connected empty state (moved to dev tools)', async () => {
+    mockUseStreamDecks.mockReturnValue(decksReturn([]));
+    await renderPage();
+    expect(screen.queryByRole('button', { name: 'devices.streamdeck.model' })).toBeNull();
   });
 
   it('renders both tabs, defaulting to Customize, and hosts the key inspector + grid for a connected deck', async () => {
@@ -337,14 +307,12 @@ describe('StreamDeckDevicePage', () => {
       expect(screen.queryByText('devices.streamdeck.firmware')).toBeNull();
     });
 
-    it('no longer offers the Nexus Link toggle, model simulation, or test pattern (moved to dev tools)', async () => {
+    it('no longer offers the Nexus Link toggle (moved to dev tools)', async () => {
       mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
       await renderPage(makeUnifiedDevice({ curatedId: 'streamdeck', nexusControlEnabled: true }));
       switchToSettingsTab();
 
       expect(screen.queryByRole('switch', { name: 'devices.nexusControl' })).toBeNull();
-      expect(screen.queryByText('devices.streamdeck.simulate.changeModel')).toBeNull();
-      expect(screen.queryByText('devices.streamdeck.sendTestPattern')).toBeNull();
     });
   });
 

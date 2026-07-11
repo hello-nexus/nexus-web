@@ -34,6 +34,16 @@ import { FontDebugCard } from './FontDebugCard';
 import { HelloGreetingCard } from './HelloGreetingCard';
 import { fetchInstallDefaults, fetchInstallDefaultsSnapshot, type InstallDefaultsDocument } from '../../api/installDefaults';
 import { DeviceModal } from '../common/DeviceModal/DeviceModal';
+import { Select } from '../common/Select/Select';
+import { useStreamDecks } from '../../hooks/useStreamDecks';
+import {
+  getStreamDeckDevModels,
+  simulateStreamDeck,
+  clearSimulatedStreamDeck,
+  sendStreamDeckTestPattern,
+  type StreamDeckDevModel,
+} from '../../api/streamdeck';
+import { DEV_TOOLS } from '../../lib/devTools';
 import styles from './ToolsView.module.scss';
 
 interface ToolsViewProps {
@@ -74,6 +84,7 @@ export function ToolsView({ serviceOnline, connectionState }: ToolsViewProps) {
             <TelemetryEventsCard />
             <InstallDefaultsCard />
             <PawnIoCard />
+            {DEV_TOOLS && <StreamDeckSimCard />}
             <PanelSimulatorCard />
             <FontDebugCard />
             <HelloGreetingCard />
@@ -164,6 +175,94 @@ function PawnIoCard() {
       ) : (
         <span className={styles.dim}>{t('tools.pawnio.loading')}</span>
       )}
+    </Card>
+  );
+}
+
+/**
+ * Dev-tools-only: spins up a simulated Stream Deck via the service's
+ * /streamdeck/dev/* routes so a bench box with no hardware attached can
+ * still design a layout, plus the test-pattern push that used to live on
+ * the device page. A simulated or real deck then shows up under Devices,
+ * where its page carries no model chooser of its own - a connected deck
+ * always auto-selects itself.
+ */
+export function StreamDeckSimCard() {
+  const { t } = useTranslation();
+  const { decks, refresh } = useStreamDecks(true);
+  const [models, setModels] = useState<StreamDeckDevModel[]>([]);
+  const [productId, setProductId] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void getStreamDeckDevModels().then(list => {
+      if (cancelled) return;
+      setModels(list);
+      setProductId(prev => prev || list[0]?.productId || '');
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  // The service names the simulated surface `sim-<productId hex>`
+  // (StreamDeckConnectionWorker.SetSimulatedModel); the deck DTO has no
+  // separate flag telling a simulated deck apart from a real one.
+  const simulatedDeck = decks.find(d => d.serial.startsWith('sim-')) ?? null;
+  const targetDeck = decks[0] ?? null;
+
+  const onSimulate = async () => {
+    if (!productId || busy) return;
+    setBusy(true);
+    try { await simulateStreamDeck(productId); } finally { setBusy(false); }
+    refresh();
+  };
+
+  const onClear = async () => {
+    if (busy) return;
+    setBusy(true);
+    try { await clearSimulatedStreamDeck(); } finally { setBusy(false); }
+    refresh();
+  };
+
+  const onTestPattern = async () => {
+    if (!targetDeck || busy) return;
+    setBusy(true);
+    try { await sendStreamDeckTestPattern(targetDeck.serial); } finally { setBusy(false); }
+  };
+
+  return (
+    <Card title={t('tools.streamdeckSim.title')}>
+      <span className={styles.dim}>{t('tools.streamdeckSim.label')}</span>
+      <div className={styles.simTuningRow}>
+        <Select
+          value={productId}
+          options={models.map(m => ({
+            value: m.productId,
+            label: t('tools.streamdeckSim.modelOption', { name: `Stream Deck ${m.name}`, count: m.keyCount }),
+          }))}
+          onChange={setProductId}
+          ariaLabel={t('devices.streamdeck.model')}
+        />
+        <Button tone="accent" size="sm" disabled={!productId || busy} onClick={() => void onSimulate()}>
+          {t('tools.streamdeckSim.simulateButton')}
+        </Button>
+      </div>
+      <div className={styles.kv}>
+        <span>{t('tools.streamdeckSim.active')}</span>
+        <span className={styles.val}>
+          {simulatedDeck
+            ? t('devices.streamdeck.modelName', { model: simulatedDeck.model })
+            : t('tools.streamdeckSim.noneActive')}
+        </span>
+      </div>
+      <div className={styles.actionsRow}>
+        <Button tone="danger" size="sm" disabled={!simulatedDeck || busy} onClick={() => void onClear()}>
+          {t('tools.streamdeckSim.clearButton')}
+        </Button>
+        <Button tone="neutral" size="sm" disabled={!targetDeck || busy} onClick={() => void onTestPattern()}>
+          {t('tools.streamdeckSim.sendTestPattern')}
+        </Button>
+      </div>
     </Card>
   );
 }

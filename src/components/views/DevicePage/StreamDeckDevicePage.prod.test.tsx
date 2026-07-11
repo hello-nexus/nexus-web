@@ -4,11 +4,10 @@ import type { StreamDeckSummary } from '../../../api/streamdeck';
 import type { UnifiedDevice } from '../../../hooks/useUnifiedDevices';
 import type { DeckTarget } from '../../../panel/widgets/deck/deckTarget';
 
-// Force a production build: dev tools off. The Stream Deck simulator picker
-// (both the not-connected empty-state card and the Settings-tab "simulate a
-// different model" row) and the pre-existing test-pattern button must all
-// disappear - they are bench-only affordances with no server route in a
-// release build.
+// Force a production build: dev tools off. The device page itself never
+// rendered a model chooser or test-pattern button even in dev builds (they
+// live on the Tools page now); this asserts that stays true under DEV_TOOLS
+// off too.
 vi.mock('../../../lib/devTools', () => ({ DEV_TOOLS: false }));
 
 vi.mock('../../../api/service', () => ({ isRemoteOrigin: false }));
@@ -65,7 +64,7 @@ afterEach(() => {
 });
 
 describe('StreamDeckDevicePage without dev tools', () => {
-  it('does not show the simulator card on the not-connected empty state', async () => {
+  it('does not show a simulator on the not-connected empty state', async () => {
     mockUseStreamDecks.mockReturnValue({
       decks: [], loaded: true, rename: vi.fn(), setBrightness: vi.fn(),
       setOrientation: vi.fn(), setSleepAfterSeconds: vi.fn(), refresh: vi.fn(),
@@ -73,10 +72,10 @@ describe('StreamDeckDevicePage without dev tools', () => {
     await act(async () => { render(<StreamDeckDevicePage device={device} controlDevice={vi.fn()} />); });
 
     expect(screen.getByText('devices.streamdeck.notConnected')).toBeInTheDocument();
-    expect(screen.queryByText('devices.streamdeck.simulate.title')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'devices.streamdeck.model' })).toBeNull();
   });
 
-  it('does not show the model picker or the test-pattern button on the Settings tab', async () => {
+  it('does not show a model picker on the Settings tab', async () => {
     mockUseStreamDecks.mockReturnValue({
       decks: [makeDeck()], loaded: true, rename: vi.fn(), setBrightness: vi.fn(),
       setOrientation: vi.fn(), setSleepAfterSeconds: vi.fn(), refresh: vi.fn(),
@@ -84,9 +83,6 @@ describe('StreamDeckDevicePage without dev tools', () => {
     await act(async () => { render(<StreamDeckDevicePage device={device} controlDevice={vi.fn()} />); });
     fireEvent.click(screen.getByRole('tab', { name: 'devices.streamdeck.tab.settings' }));
 
-    expect(screen.queryByText('devices.streamdeck.simulate.changeModel')).toBeNull();
-    expect(screen.queryByText('devices.streamdeck.simulate.button')).toBeNull();
-    expect(screen.queryByText('devices.streamdeck.simulate.clearButton')).toBeNull();
-    expect(screen.queryByText('devices.streamdeck.sendTestPattern')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'devices.streamdeck.model' })).toBeNull();
   });
 });

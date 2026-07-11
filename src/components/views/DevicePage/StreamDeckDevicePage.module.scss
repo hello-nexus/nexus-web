@@ -174,26 +174,3 @@
 .readOnlyValue {
   color: var(--text-dim);
 }
-
-.simulateCard {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-
-.simulateTitle {
-  font-size: var(--type-small);
-  color: var(--text-dim);
-}
-
-.simulateControls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.simulateSelect {
-  min-width: 160px;
-}
