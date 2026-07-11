@@ -623,8 +623,6 @@
   "devices.streamdeck.orientation": "显示方向",
   "devices.streamdeck.orientationDegrees": "{n}°",
   "devices.streamdeck.orientationStandard": "标准",
-  "devices.streamdeck.pickerAria": "选择 Stream Deck",
-  "devices.streamdeck.renameAria": "重命名 Stream Deck",
   "devices.streamdeck.serialNumber": "序列号",
   "devices.streamdeck.sleepAfter": "休眠延迟",
   "devices.streamdeck.sleepAfterMinutes": "{n}分钟",

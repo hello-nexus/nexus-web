@@ -623,8 +623,6 @@
   "devices.streamdeck.orientation": "表示の向き",
   "devices.streamdeck.orientationDegrees": "{n}°",
   "devices.streamdeck.orientationStandard": "標準",
-  "devices.streamdeck.pickerAria": "Stream Deck を選択",
-  "devices.streamdeck.renameAria": "Stream Deck の名前を変更",
   "devices.streamdeck.serialNumber": "シリアル番号",
   "devices.streamdeck.sleepAfter": "スリープ",
   "devices.streamdeck.sleepAfterMinutes": "{n}分",

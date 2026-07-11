@@ -623,8 +623,6 @@
   "devices.streamdeck.orientation": "Görsel Yön",
   "devices.streamdeck.orientationDegrees": "{n}°",
   "devices.streamdeck.orientationStandard": "Standart",
-  "devices.streamdeck.pickerAria": "Stream Deck seç",
-  "devices.streamdeck.renameAria": "Stream Deck'i yeniden adlandır",
   "devices.streamdeck.serialNumber": "Seri numarası",
   "devices.streamdeck.sleepAfter": "Uyku süresi",
   "devices.streamdeck.sleepAfterMinutes": "{n}dk",

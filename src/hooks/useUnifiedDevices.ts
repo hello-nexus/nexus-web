@@ -7,6 +7,7 @@ import { useDevices } from './useDevices';
 import { usePanelDevices } from './usePanelDevices';
 import { usePeripherals, type Peripheral } from './usePeripherals';
 import { useWebHidPeripherals } from './useWebHidPeripherals';
+import { useStreamDecks } from './useStreamDecks';
 import {
   getConnectedSimulatedPanels,
   PANEL_SIMULATION_CHANGED_EVENT,
@@ -55,6 +56,11 @@ export interface UnifiedDevice {
   // Conflict-app catalog id competing with this device; drives the
   // device-page enable gate when Nexus Control is off.
   conflictAppId?: string;
+  // Present only on a per-deck Stream Deck entry (curatedId 'streamdeck'):
+  // the specific physical deck's serial. Threads through DevicePage to
+  // StreamDeckDevicePage so the page shows exactly this deck - one sidebar
+  // entry per deck, no in-page picker.
+  streamdeckSerial?: string;
 }
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -108,10 +114,6 @@ const CURATED_SHORT_NAMES: Record<string, string> = {
   'lianli-wireless': 'Lian Li Uni Fan Wireless',
   strimer: 'Lian Li Strimer',
   tryx: 'Tryx Panorama',
-  // Model variants (Mini / MK.2 / XL / ...) stay on the service's own `name`
-  // for the fuller Devices-page card; the sidebar/compact row uses the
-  // family name, same as y70's resolution variants.
-  streamdeck: 'Stream Deck',
 };
 
 const FALLBACK_ICON = '/assets/devices/device.svg';
@@ -146,6 +148,7 @@ export function useUnifiedDevices(enabled: boolean) {
   const { devices, controlDevice } = useDevices(enabled);
   const peripherals = usePeripherals(enabled);
   const webhid = useWebHidPeripherals(enabled);
+  const { decks: streamDecks } = useStreamDecks(enabled);
   // Y70 follows the same rules as every other panel: in the list only if
   // (a) physically connected to this host, or (b) its simulator is active
   // (then it's in `simulatedPanels`). No always-on phantom.
@@ -167,6 +170,35 @@ export function useUnifiedDevices(enabled: boolean) {
     // Pair Phone modal via /panel/phone/sessions instead.
     const filteredPanels = panels.devices.filter(p => !isRemotePanel(p.connectionKind));
     const list = buildUnifiedList(filteredPanels, devices, merged, deviceApps);
+
+    // Stream Deck: one sidebar/Devices-page entry PER physical deck (real or
+    // simulated), keyed by serial - not the single 'streamdeck' handler row
+    // buildUnifiedList already skips. nexusControlEnabled/supportsNexusControl
+    // are handler-level (one on/off gate for every deck), so every entry
+    // mirrors the same handler row; warning/conflictAppId come straight off
+    // each deck since the service already computes them per deck.
+    const streamdeckHandler = devices.find(d => d.id === 'streamdeck');
+    for (const deck of streamDecks) {
+      list.push({
+        key: `streamdeck:${deck.serial}`,
+        shortName: t('devices.streamdeck.modelName', { model: deck.model }),
+        name: t('devices.streamdeck.modelName', { model: deck.model }),
+        subtitle: streamdeckHandler?.category ?? 'controller',
+        category: streamdeckHandler?.category ?? 'controller',
+        iconSrc: CURATED_ICONS.streamdeck ?? FALLBACK_ICON,
+        connected: deck.connected,
+        firmwareVersion: deck.firmwareVersion || undefined,
+        kind: 'curated',
+        curatedId: 'streamdeck',
+        streamdeckSerial: deck.serial,
+        navigable: true,
+        nexusControlEnabled: streamdeckHandler?.nexusControlEnabled ?? true,
+        supportsNexusControl: streamdeckHandler?.supportsNexusControl ?? false,
+        warning: deck.warning,
+        conflictAppId: deck.conflictAppId,
+      });
+    }
+
     // Dev-tools: a simulated Tryx so the device page renders with no hardware.
     // Skipped if a real Tryx is already present, to avoid a duplicate row.
     if (tryxSimulated && !list.some(d => d.curatedId === 'tryx')) {
@@ -187,7 +219,7 @@ export function useUnifiedDevices(enabled: boolean) {
       });
     }
     return list;
-  }, [panels.devices, devices, merged, deviceApps, tryxSimulated, t]);
+  }, [panels.devices, devices, merged, deviceApps, streamDecks, tryxSimulated, t]);
 
   return {
     unified,
@@ -241,6 +273,9 @@ function buildUnifiedList(
 
   for (const d of curated) {
     if (claimedCuratedIds.has(d.id)) continue;
+    // Superseded by the per-deck 'streamdeck' entries built in
+    // useUnifiedDevices, so the singleton handler row never doubles them up.
+    if (d.id === 'streamdeck') continue;
     if (!d.connected) continue;
     list.push({
       key: `curated-${d.id}`,

@@ -19,11 +19,6 @@
   scrollbar-gutter: stable;
 }
 
-.deckPicker {
-  align-self: flex-start;
-  min-width: 200px;
-}
-
 .warningBanner {
   display: flex;
   align-items: center;
@@ -35,17 +30,6 @@
   font-size: var(--type-small);
 
   svg { flex-shrink: 0; }
-}
-
-.header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.nameEdit {
-  font-size: var(--type-heading);
-  font-weight: var(--weight-heading);
 }
 
 .experimentalChip {
@@ -91,6 +75,13 @@
   display: flex;
   justify-content: center;
   width: 100%;
+}
+
+.modelRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 .modelName {

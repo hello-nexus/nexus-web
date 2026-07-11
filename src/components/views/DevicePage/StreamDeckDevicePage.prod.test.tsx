@@ -45,15 +45,16 @@ vi.mock('../../../panel/widgets/deck/usePhysicalDeckTarget', () => ({
 import { StreamDeckDevicePage } from './StreamDeckDevicePage';
 
 const device: UnifiedDevice = {
-  key: 'curated-streamdeck',
-  shortName: 'Stream Deck',
-  name: 'Stream Deck',
+  key: 'streamdeck:SN1',
+  shortName: 'Stream Deck Mini',
+  name: 'Stream Deck Mini',
   subtitle: 'controller',
   category: 'controller',
   iconSrc: '/assets/devices/streamdeck.svg',
   connected: true,
   kind: 'curated',
   curatedId: 'streamdeck',
+  streamdeckSerial: 'SN1',
   navigable: true,
   nexusControlEnabled: true,
   supportsNexusControl: true,

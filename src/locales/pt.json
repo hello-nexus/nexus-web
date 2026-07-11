@@ -623,8 +623,6 @@
   "devices.streamdeck.orientation": "Orientação visual",
   "devices.streamdeck.orientationDegrees": "{n}°",
   "devices.streamdeck.orientationStandard": "Padrão",
-  "devices.streamdeck.pickerAria": "Selecionar Stream Deck",
-  "devices.streamdeck.renameAria": "Mudar o nome do Stream Deck",
   "devices.streamdeck.serialNumber": "Número de série",
   "devices.streamdeck.sleepAfter": "Suspender após",
   "devices.streamdeck.sleepAfterMinutes": "{n}m",

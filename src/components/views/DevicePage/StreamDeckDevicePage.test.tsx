@@ -46,15 +46,16 @@ import type { UnifiedDevice } from '../../../hooks/useUnifiedDevices';
 
 function makeUnifiedDevice(over: Partial<UnifiedDevice> = {}): UnifiedDevice {
   return {
-    key: 'curated-streamdeck',
-    shortName: 'Stream Deck',
-    name: 'Stream Deck',
+    key: 'streamdeck:SN1',
+    shortName: 'Stream Deck Mini',
+    name: 'Stream Deck Mini',
     subtitle: 'controller',
     category: 'controller',
     iconSrc: '/assets/devices/streamdeck.svg',
     connected: true,
     kind: 'curated',
     curatedId: 'streamdeck',
+    streamdeckSerial: 'SN1',
     navigable: true,
     nexusControlEnabled: true,
     supportsNexusControl: true,
@@ -144,7 +145,7 @@ describe('StreamDeckDevicePage', () => {
     mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
     await renderPage();
 
-    expect(screen.getByText('My Mini Deck')).toBeInTheDocument();
+    expect(screen.getByText('devices.streamdeck.modelName:{"model":"Mini"}')).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'devices.streamdeck.tab.customize' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('tab', { name: 'devices.streamdeck.tab.settings' })).toHaveAttribute('aria-selected', 'false');
     expect(screen.getByTestId('deck-key-inspector')).toBeInTheDocument();
@@ -189,9 +190,10 @@ describe('StreamDeckDevicePage', () => {
     expect(screen.getByText('devices.streamdeck.experimental')).toBeInTheDocument();
   });
 
-  it('renames the deck through the rename hook', async () => {
+  it('renames the deck through the rename hook from the Settings tab', async () => {
     mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
     await renderPage();
+    switchToSettingsTab();
 
     fireEvent.click(screen.getByText('My Mini Deck'));
     const input = screen.getByDisplayValue('My Mini Deck');
@@ -201,18 +203,17 @@ describe('StreamDeckDevicePage', () => {
     expect(mockRename).toHaveBeenCalledWith('SN1', 'Renamed Deck');
   });
 
-  it('shows a deck picker only when more than one physical deck is connected', async () => {
+  it('shows exactly the deck matching the entry\'s serial when multiple decks are loaded', async () => {
     mockUseStreamDecks.mockReturnValue(decksReturn([
       makeDeck({ serial: 'SN1', name: 'Deck One' }), makeDeck({ serial: 'SN2', name: 'Deck Two' }),
     ]));
-    await renderPage();
-    expect(screen.getByRole('button', { name: 'devices.streamdeck.pickerAria' })).toBeInTheDocument();
-  });
+    await renderPage(makeUnifiedDevice({ key: 'streamdeck:SN2', streamdeckSerial: 'SN2' }));
+    switchToSettingsTab();
 
-  it('does not show a deck picker for a single connected deck', async () => {
-    mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
-    await renderPage();
-    expect(screen.queryByRole('button', { name: 'devices.streamdeck.pickerAria' })).toBeNull();
+    expect(screen.getByText('SN2')).toBeInTheDocument();
+    expect(screen.queryByText('SN1')).toBeNull();
+    expect(screen.getByText('Deck Two')).toBeInTheDocument();
+    expect(screen.queryByText('Deck One')).toBeNull();
   });
 
   it('shows a generic loading state before the deck list has loaded (SMELL 3)', async () => {
