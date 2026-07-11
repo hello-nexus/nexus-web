@@ -188,6 +188,23 @@ describe('DeckKeyInspector action picker - collapsible category list', () => {
   });
 });
 
+describe('DeckKeyInspector - text action', () => {
+  it('renders only the text field, no paste toggle', () => {
+    const { container } = renderInspector([{ action: { type: 'text', text: 'hello' } }]);
+    expect(screen.getByText('panel.settings.deck.text')).toBeInTheDocument();
+    const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
+    expect(textarea.value).toBe('hello');
+    expect(screen.queryByText('panel.settings.deck.paste')).toBeNull();
+  });
+
+  it('updating the text field persists the new value', () => {
+    const { container } = renderInspector([{ action: { type: 'text', text: '' } }]);
+    const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
+    fireEvent.change(textarea, { target: { value: 'typed' } });
+    expect(textarea.value).toBe('typed');
+  });
+});
+
 describe('DeckKeyInspector - deckBrightness/deckSleep are physical-deck-only', () => {
   it('hides the Stream Deck category entirely on a touch-widget target', () => {
     renderWidgetInspector();

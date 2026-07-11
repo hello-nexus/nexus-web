@@ -53,9 +53,9 @@ describe('executeDeckAction → REST', () => {
     await executeDeckAction({ type: 'hotkey', keys: 'ctrl+c' });
     expect(postService).toHaveBeenCalledWith('/system/input/keys', { key: 'KeyC', ctrl: true, shift: false, alt: false, meta: false });
   });
-  it('text → /system/input/text', async () => {
-    await executeDeckAction({ type: 'text', text: 'hi', paste: true });
-    expect(postService).toHaveBeenCalledWith('/system/input/text', { text: 'hi', paste: true });
+  it('text → /system/input/text with no paste field', async () => {
+    await executeDeckAction({ type: 'text', text: 'hi' });
+    expect(postService).toHaveBeenCalledWith('/system/input/text', { text: 'hi' });
   });
   it('audio output device', async () => {
     await executeDeckAction({ type: 'audioOutput', deviceId: 'spk' });

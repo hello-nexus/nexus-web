@@ -92,7 +92,7 @@ export function PanelWidgetCatalog({
     key: size,
     label: SIZE_PREF_ICONS[size],
     ariaLabel: size,
-    title: t('panel.add.preferSize', { size }),
+    tooltip: t('panel.add.preferSize', { size }),
   }));
   // Force re-render on marketplace registry refresh - the catalog reads a
   // module-level cache React can't observe without an explicit subscription.

@@ -1,5 +1,5 @@
 import type { PanelWidget, PanelWidgetSize, PanelConfigValue } from '../../types';
-import type { DeckConfig, DeckPage, DeckSlot } from './types';
+import type { DeckAction, DeckConfig, DeckPage, DeckSlot } from './types';
 
 export interface InnerGrid { cols: number; rows: number; count: number; }
 
@@ -38,10 +38,36 @@ export function readDeckConfig(widget: PanelWidget): DeckConfig {
   return normalizeDeckConfig(widget.config?.deck as unknown);
 }
 
+// A persisted text action may still carry a `paste` key the type no longer
+// declares. Strip it wherever it appears (a top-level slot, a folder, a
+// sequence step, or a toggle branch) so an unrelated edit elsewhere in the
+// config never round-trips it back out through deckConfigPatch's whole-tree
+// serialize.
+function stripLegacyTextPaste(action: DeckAction): DeckAction {
+  if (action.type === 'text' && 'paste' in action) {
+    const rest = { ...action } as DeckAction & { paste?: unknown };
+    delete rest.paste;
+    return rest as DeckAction;
+  }
+  if (action.type === 'sequence') {
+    return { ...action, steps: action.steps.map(step => ({ ...step, action: stripLegacyTextPaste(step.action) })) };
+  }
+  if (action.type === 'toggle') {
+    return { ...action, on: stripLegacyTextPaste(action.on), off: stripLegacyTextPaste(action.off) };
+  }
+  return action;
+}
+
+function stripLegacySlot(slot: DeckSlot): DeckSlot {
+  if (slot.action) return { ...slot, action: stripLegacyTextPaste(slot.action) };
+  if (slot.folder) return { ...slot, folder: { slots: slot.folder.slots.map(stripLegacySlot) } };
+  return slot;
+}
+
 function normalizePage(raw: unknown): DeckPage {
   if (!raw || typeof raw !== 'object') return { slots: [] };
   const slots = (raw as { slots?: unknown }).slots;
-  return { slots: Array.isArray(slots) ? (slots as DeckSlot[]) : [] };
+  return { slots: Array.isArray(slots) ? (slots as DeckSlot[]).map(stripLegacySlot) : [] };
 }
 
 /**
@@ -62,7 +88,7 @@ export function normalizeDeckConfig(raw: unknown): DeckConfig {
     return { pages: pages.length > 0 ? pages : [{ slots: [] }], defaultTitleStyle };
   }
   if (Array.isArray(obj.slots)) {
-    return { pages: [{ slots: obj.slots as DeckSlot[] }], defaultTitleStyle };
+    return { pages: [{ slots: (obj.slots as DeckSlot[]).map(stripLegacySlot) }], defaultTitleStyle };
   }
   return emptyDeck();
 }
