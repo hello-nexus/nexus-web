@@ -1509,6 +1509,7 @@
   "lighting.ledMap.deleteHint": "Suppr pour retirer",
   "lighting.ledMap.discard": "Annuler les modifications",
   "lighting.ledMap.dragHint": "Glissez les LEDs pour repositionner",
+  "lighting.ledMap.effectiveBrightnessInfo": "La luminosité réelle est de {effective}% en raison de la luminosité générale de {global}%.",
   "lighting.ledMap.flipH": "Retourner horizontalement",
   "lighting.ledMap.flipV": "Retourner verticalement",
   "lighting.ledMap.group": "Grouper",

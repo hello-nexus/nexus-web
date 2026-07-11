@@ -18,8 +18,10 @@ import { DeviceModal } from '../../../../components/common/DeviceModal/DeviceMod
 import { ConfirmModal } from '../../../../components/common/ConfirmModal/ConfirmModal';
 import { PromptModal } from '../../../../components/common/PromptModal/PromptModal';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
+import { InfoTooltip } from '../../../../components/common/InfoTooltip/InfoTooltip';
 import { Slider } from '../../../../components/common/Slider/Slider';
 import { useThrottle } from '../../../../hooks/cadence';
+import { useGlobalBrightness } from './useGlobalBrightness';
 import { isApplePlatform, isMultiSelectModifier } from '../../../../lib/platform';
 import { CommunityMappingsPanel } from './CommunityMappingsPanel';
 import {
@@ -557,6 +559,9 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   // Per-zone brightness multiplier (0..100). Multiplies the global
   // brightness slider so the effective output is `global * zone / 100`.
   const [brightness, setBrightness] = useState<number>(() => zoneCard?.brightness ?? 100);
+  // Master brightness (0..100), read-only. Below 100 it dims this zone's
+  // output, so the slider surfaces the effective level (pointer + info).
+  const globalBrightness = useGlobalBrightness();
   // Per-zone color, shown only for smart lights. Local state is degrees /
   // percent for the sliders; the service wants 0..1 floats. The card carries
   // hue/saturation as 0..1.
@@ -1981,6 +1986,14 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     ? stagedPartition.kind === 'edited'
     : structure !== null && !structure.isDefaultPartition;
 
+  // A master brightness below 100 scales this zone down; surface where the
+  // effective output actually lands. Hidden until the master value loads and
+  // whenever the effective level equals the slider value (master 100, or a
+  // rounding tie near it) - a coincident caret conveys nothing.
+  const master = globalBrightness ?? 100;
+  const effectiveBrightness = Math.round((brightness * master) / 100);
+  const showEffectiveBrightness = globalBrightness != null && effectiveBrightness !== brightness;
+
   return (
     <DeviceModal
       open
@@ -2248,6 +2261,14 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
                   onChange={handleBrightnessChange}
                   onCommit={handleBrightnessCommit}
                   trackFill
+                  marker={zoneCard && showEffectiveBrightness ? effectiveBrightness : undefined}
+                  markerLabel={zoneCard && showEffectiveBrightness ? (
+                    <InfoTooltip
+                      message={t('lighting.ledMap.effectiveBrightnessInfo', { global: master, effective: effectiveBrightness })}
+                      side="bottom"
+                      className={styles.markerInfo}
+                    />
+                  ) : undefined}
                   disabled={!zoneCard}
                   ariaLabel={t('lighting.devices.brightness')}
                   className={styles.brightnessTrack}

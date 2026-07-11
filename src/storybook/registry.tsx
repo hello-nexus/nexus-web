@@ -137,7 +137,7 @@ export interface StorybookEntry {
 
 function PreviewSliderInline() {
   const [v, setV] = useState(50);
-  return <Slider label="Sample" value={v} min={0} max={100} onChange={setV} />;
+  return <Slider label="Sample" value={v} min={0} max={100} onChange={setV} marker={Math.round(v / 2)} />;
 }
 
 function PreviewSliderStacked() {
@@ -1492,7 +1492,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'Slider (inline)', category: 'inputs',
     filePath: 'src/components/common/Slider/Slider.tsx',
-    description: 'Inline label | track | value layout. Default orientation. Every slider now paints the accent fill track + bright (white-on-dark) thumb - there is no un-filled variant.', Preview: PreviewSliderInline,
+    description: 'Inline label | track | value layout. Default orientation. Every slider now paints the accent fill track + bright (white-on-dark) thumb - there is no un-filled variant. The optional marker prop draws a caret at a secondary value (shown here at half the thumb) - used for effective brightness after the master multiplier - and markerLabel stacks a node (e.g. an info affordance) above that caret.', Preview: PreviewSliderInline,
   },
   {
     name: 'Slider (stacked, editable, zero marker)', category: 'inputs',

@@ -1454,6 +1454,7 @@
   "lighting.ledMap.deleteHint": "Delキーで削除",
   "lighting.ledMap.discard": "変更を破棄",
   "lighting.ledMap.dragHint": "LEDをドラッグして位置変更",
+  "lighting.ledMap.effectiveBrightnessInfo": "マスター明るさが{global}%のため、実際の明るさは{effective}%です。",
   "lighting.ledMap.flipH": "水平反転",
   "lighting.ledMap.flipV": "垂直反転",
   "lighting.ledMap.group": "グループ化",

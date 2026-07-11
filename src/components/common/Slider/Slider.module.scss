@@ -99,6 +99,38 @@
   opacity: 0.8;
 }
 
+/* Secondary-level indicator: a downward caret pointing at a value on the track,
+   with an optional label (e.g. an info affordance) stacked above it. Anchored
+   at the track center and grown upward so the caret tip clears the fill line
+   instead of overlapping it. var(--text) caret + drop-shadow matches the
+   PaletteRing indicator so both "pointer" affordances read the same. */
+.marker {
+  position: absolute;
+  bottom: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  pointer-events: none;
+}
+
+.markerCaret {
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 6px solid var(--text);
+  margin-bottom: 5px;
+  filter: drop-shadow(0 0 1.5px rgb(0 0 0 / var(--alpha-strong)));
+}
+
+.markerLabel {
+  pointer-events: auto;
+  display: flex;
+  line-height: 0;
+}
+
 .rangeLabels {
   display: flex;
   justify-content: space-between;

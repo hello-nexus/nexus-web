@@ -1509,6 +1509,7 @@
   "lighting.ledMap.deleteHint": "Del 鍵移除",
   "lighting.ledMap.discard": "放棄變更",
   "lighting.ledMap.dragHint": "拖動 LED 重新定位",
+  "lighting.ledMap.effectiveBrightnessInfo": "由於主亮度為 {global}%,實際亮度為 {effective}%。",
   "lighting.ledMap.flipH": "水平翻轉",
   "lighting.ledMap.flipV": "垂直翻轉",
   "lighting.ledMap.group": "群組",

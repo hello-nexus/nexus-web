@@ -1509,6 +1509,7 @@
   "lighting.ledMap.deleteHint": "Del для удаления",
   "lighting.ledMap.discard": "Отменить изменения",
   "lighting.ledMap.dragHint": "Перетащите светодиоды для изменения позиции",
+  "lighting.ledMap.effectiveBrightnessInfo": "Реальная яркость составляет {effective}% из-за общей яркости {global}%.",
   "lighting.ledMap.flipH": "Отразить по горизонтали",
   "lighting.ledMap.flipV": "Отразить по вертикали",
   "lighting.ledMap.group": "Сгруппировать",
