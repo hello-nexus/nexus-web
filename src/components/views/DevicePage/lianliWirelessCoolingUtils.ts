@@ -48,6 +48,8 @@ export function buildLianLiWirelessCoolingChains(
   const chains: LianLiWirelessCoolingChain[] = [];
   for (const fan of fans) {
     if (!fan.boundToUs) continue;
+    // The service registers contiguous port0..portN-1 channels per chain, so
+    // the channel count doubles as the highest port index + 1.
     const chainChannelCount = channels.filter(
       ch => ch.id.startsWith(`${CHANNEL_PREFIX}${fan.mac}:port`),
     ).length;

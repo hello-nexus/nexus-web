@@ -72,6 +72,21 @@ describe('buildLianLiWirelessCoolingChains', () => {
     expect(buildLianLiWirelessCoolingChains([fan], [])).toEqual([]);
   });
 
+  it('honors the channel rpmUnavailable flag independently of fanCount', () => {
+    // fanCount > 0 (fallback would be false) but the channel flags it: the flag wins.
+    const fan = makeFan({ fanCount: 1 });
+    const flagged = makeChannel({ id: lianliWirelessPortChannelId(fan.mac, 0), rpmUnavailable: true });
+    const chains = buildLianLiWirelessCoolingChains([fan], [flagged]);
+    expect(chains[0].ports[0].rpmUnavailable).toBe(true);
+  });
+
+  it('lets a channel rpmUnavailable false override the zero-fan fallback', () => {
+    const fan = makeFan({ fanCount: 0 });
+    const ch = makeChannel({ id: lianliWirelessPortChannelId(fan.mac, 0), rpmUnavailable: false });
+    const chains = buildLianLiWirelessCoolingChains([fan], [ch]);
+    expect(chains[0].ports[0].rpmUnavailable).toBe(false);
+  });
+
   it('exposes a bound zero-fan chain as controllable, rpm-unavailable ports once its channels arrive', () => {
     const fan = makeFan({ fanCount: 0 });
     const channels = [
