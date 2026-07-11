@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, AlignVerticalJustifyStart, FolderInput, Plus, Trash2 } from 'lucide-react';
+import { AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, AlignVerticalJustifyStart, FolderInput, Plus } from 'lucide-react';
 import { useDraggable } from '@dnd-kit/core';
 import { Button } from '../../../components/common/Button/Button';
 import { useTranslation } from '../../../lib/i18n';
@@ -399,16 +399,27 @@ function PickerKindItem({ kind, active, onPick }: { kind: DeckPickerKind; active
       role="option"
       aria-selected={active}
       className={`${styles.kindItem} ${active ? styles.kindItemActive : ''}`}
-      style={{
-        transform: drag.transform ? `translate3d(${drag.transform.x}px, ${drag.transform.y}px, 0)` : undefined,
-        opacity: drag.isDragging ? 0.6 : undefined,
-        zIndex: drag.isDragging ? 20 : undefined,
-      }}
+      // No transform here: the drag visual is a portal-rendered DragOverlay
+      // (StreamDeckDevicePage), so it isn't clipped by the picker's overflow.
+      // The original just dims in place while dragging.
+      style={{ opacity: drag.isDragging ? 0.4 : undefined }}
       onClick={() => onPick(kind)}
     >
       <Icon size={14} aria-hidden className={styles.kindIcon} />
       {t(`panel.settings.deck.action.${kind}`)}
     </button>
+  );
+}
+
+/** Floating chip shown in the DragOverlay while an action is dragged from the picker. */
+export function DeckActionDragPreview({ kind }: { kind: DeckPickerKind }) {
+  const { t } = useTranslation();
+  const Icon = pickerKindIcon(kind);
+  return (
+    <div className={`${styles.kindItem} ${styles.kindItemActive} ${styles.kindDragPreview}`}>
+      <Icon size={14} aria-hidden className={styles.kindIcon} />
+      {t(`panel.settings.deck.action.${kind}`)}
+    </div>
   );
 }
 
@@ -674,14 +685,7 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
       {showEditor && hasBinding && (
         <>
           {hasActionConfig && (
-            <SettingsSection
-              title={t(`panel.settings.deck.action.${kind}`)}
-              action={(
-                <button type="button" className={styles.deleteBtn} onClick={() => writeSlot({})} aria-label={t('common.delete')}>
-                  <Trash2 size={14} aria-hidden />
-                </button>
-              )}
-            >
+            <SettingsSection title={t(`panel.settings.deck.action.${kind}`)}>
               <div className={styles.fieldStack}>
                 {kind === 'folder' ? (
                   <button type="button" className={styles.folderBtn} onClick={() => { onFolderPathChange([...folderPath, selSlot]); onSelectedSlotChange?.(0); }}>

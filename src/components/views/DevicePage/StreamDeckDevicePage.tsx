@@ -1,6 +1,6 @@
 import { useState, useCallback, type ReactNode } from 'react';
 import { AlertTriangle, LayoutGrid, Monitor, Settings as SettingsIcon, Unplug, ChevronLeft } from 'lucide-react';
-import { DndContext, PointerSensor, useSensor, useSensors, closestCenter, type DragEndEvent } from '@dnd-kit/core';
+import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, pointerWithin, closestCenter, type DragEndEvent, type DragStartEvent, type CollisionDetection } from '@dnd-kit/core';
 import { useTranslation } from '../../../lib/i18n';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { localizeNumbers } from '../../../lib/units';
@@ -10,12 +10,14 @@ import type { UnifiedDevice } from '../../../hooks/useUnifiedDevices';
 import { useConflictApps } from '../../../hooks/useConflictApps';
 import { usePhysicalDeckTarget } from '../../../panel/widgets/deck/usePhysicalDeckTarget';
 import { DeckGrid } from '../../../panel/widgets/deck/DeckGrid';
-import { DeckKeyInspector, DeckDefaultTitleSettings, slotForPickerKind, type DeckPickerKind } from '../../../panel/widgets/deck/DeckKeyInspector';
+import { DeckKeyInspector, DeckDefaultTitleSettings, DeckActionDragPreview, slotForPickerKind, type DeckPickerKind } from '../../../panel/widgets/deck/DeckKeyInspector';
 import { DeckPageStrip } from '../../../panel/widgets/deck/DeckPageStrip';
 import { padSlots, pageHasContent } from '../../../panel/widgets/deck/deckLayout';
 import { withPageIndicatorDisplay } from '../../../panel/widgets/deck/deckIcons';
 import { resolveTargetView, slotCountAtDepth } from '../../../panel/widgets/deck/deckTarget';
+import type { DeckSlot } from '../../../panel/widgets/deck/types';
 import { isRemoteOrigin } from '../../../api/service';
+import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import type { TabDef } from '../../common/Tabs/Tabs';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
@@ -27,6 +29,26 @@ import { Button } from '../../common/Button/Button';
 import styles from './StreamDeckDevicePage.module.scss';
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
+
+// Total bound keys inside a folder (recursively), so a delete-folder confirm
+// can tell the user how many keys go with it.
+function countBoundSlots(slots: readonly DeckSlot[]): number {
+  let n = 0;
+  for (const s of slots) {
+    if (s.action || s.folder) n++;
+    if (s.folder) n += countBoundSlots(s.folder.slots);
+  }
+  return n;
+}
+
+// Resolve the drop to the key under the pointer (so an assigned/reordered key
+// lands where the cursor is, matching the hover highlight), not the nearest
+// cell center of the dragged element - which, for a wide picker row, sits off
+// to the side and dropped onto the wrong key.
+const dropCollision: CollisionDetection = args => {
+  const p = pointerWithin(args);
+  return p.length > 0 ? p : closestCenter(args);
+};
 
 type StreamDeckTab = 'customize' | 'settings';
 
@@ -67,6 +89,8 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   const [selectedSlot, setSelectedSlot] = useState(0);
   const [brightnessDraft, setBrightnessDraft] = useState<number | null>(null);
   const [tab, setTab] = useState<StreamDeckTab>('customize');
+  const [activeDragKind, setActiveDragKind] = useState<DeckPickerKind | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ index: number; count: number } | null>(null);
   const dragSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   const deck = decks.find(d => d.serial === serial) ?? null;
@@ -126,7 +150,12 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   const selSlot = clamp(selectedSlot, 0, Math.max(0, viewCount - 1));
 
   const onBack = () => { setFolderPath(p => p.slice(0, -1)); setSelectedSlot(0); };
+  const onDragStart = (e: DragStartEvent) => {
+    const id = String(e.active.id);
+    setActiveDragKind(id.startsWith('pick:') ? (id.slice('pick:'.length) as DeckPickerKind) : null);
+  };
   const onDragEnd = (e: DragEndEvent) => {
+    setActiveDragKind(null);
     if (!target) return;
     const activeId = String(e.active.id);
     const to = e.over ? Number(e.over.id) : NaN;
@@ -142,6 +171,14 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
     const from = Number(activeId);
     if (!Number.isFinite(from) || from === to) return;
     target.swapSlots(page, folderPath, from, to);
+  };
+
+  const clearSlot = (i: number) => { if (target) target.updateSlot(page, folderPath, i, {}); };
+  const requestDelete = (i: number) => {
+    const s = viewSlots[i];
+    const count = s?.folder ? countBoundSlots(s.folder.slots) : 0;
+    if (count > 0) setDeleteConfirm({ index: i, count });
+    else clearSlot(i);
   };
 
   const TABS: TabDef[] = [
@@ -168,7 +205,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
         {activeConflict && <ConflictAppCard conflict={activeConflict} />}
 
         {tab === 'customize' ? (
-          <DndContext sensors={dragSensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+          <DndContext sensors={dragSensors} collisionDetection={dropCollision} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setActiveDragKind(null)}>
           <div className={styles.customizeSplit}>
             <div className={styles.leftCol}>
               <div className={styles.previewTop}>
@@ -190,6 +227,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
                       dragEnabled
                       selectedIndex={selSlot}
                       onCell={setSelectedSlot}
+                      onDelete={requestDelete}
                       backCell={inFolder ? { onBack, ariaLabel: t('panel.settings.deck.back') } : undefined}
                     />
                   )}
@@ -256,10 +294,13 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
               </div>
             )}
           </div>
+          <DragOverlay dropAnimation={null}>
+            {activeDragKind ? <DeckActionDragPreview kind={activeDragKind} /> : null}
+          </DragOverlay>
           </DndContext>
         ) : (
           <div className={styles.settingsFull}>
-            <SettingsSection boxClassName={styles.sectionBox}>
+            <SettingsSection>
               <SettingRow label={t('devices.streamdeck.deviceName')}>
                 <EditableText
                   value={deck.name}
@@ -322,6 +363,14 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
           </div>
         )}
       </div>
+      <ConfirmModal
+        open={!!deleteConfirm}
+        title={t('panel.settings.deck.deleteFolder.title')}
+        message={t('panel.settings.deck.deleteFolder.body', { count: deleteConfirm?.count ?? 0 })}
+        destructive
+        onConfirm={() => { if (deleteConfirm) clearSlot(deleteConfirm.index); setDeleteConfirm(null); }}
+        onCancel={() => setDeleteConfirm(null)}
+      />
     </div>
   );
 }

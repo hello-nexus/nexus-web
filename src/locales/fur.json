@@ -1874,6 +1874,8 @@
   "panel.settings.deck.deckBrightness.up": "Alce",
   "panel.settings.deck.deckBrightnessOp": "Azion di luminositât",
   "panel.settings.deck.deckSleepDescription": "Al distude il schermi dal Deck fintremai ae prossime pression di un tast.",
+  "panel.settings.deck.deleteFolder.body": "Cheste cartele e ten {count} botons. Eliminantle si gjave dut ce che al è dentri.",
+  "panel.settings.deck.deleteFolder.title": "Eliminâ cartele?",
   "panel.settings.deck.device": "Dispositîf",
   "panel.settings.deck.display": "Visôr",
   "panel.settings.deck.effect": "Efiet",

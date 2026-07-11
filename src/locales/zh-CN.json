@@ -1865,6 +1865,8 @@
   "panel.settings.deck.deckBrightness.up": "增大",
   "panel.settings.deck.deckBrightnessOp": "亮度操作",
   "panel.settings.deck.deckSleepDescription": "熄灭 Deck 屏幕，直到下一次按键。",
+  "panel.settings.deck.deleteFolder.body": "此文件夹包含 {count} 个按键。删除它将移除其中的所有内容。",
+  "panel.settings.deck.deleteFolder.title": "删除文件夹？",
   "panel.settings.deck.device": "设备",
   "panel.settings.deck.display": "显示",
   "panel.settings.deck.effect": "效果",

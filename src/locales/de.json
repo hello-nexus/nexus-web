@@ -1865,6 +1865,8 @@
   "panel.settings.deck.deckBrightness.up": "Erhöhen",
   "panel.settings.deck.deckBrightnessOp": "Helligkeitsaktion",
   "panel.settings.deck.deckSleepDescription": "Schaltet den Bildschirm des Decks bis zum nächsten Tastendruck aus.",
+  "panel.settings.deck.deleteFolder.body": "Dieser Ordner enthält {count} Tasten. Beim Löschen wird der gesamte Inhalt entfernt.",
+  "panel.settings.deck.deleteFolder.title": "Ordner löschen?",
   "panel.settings.deck.device": "Gerät",
   "panel.settings.deck.display": "Anzeige",
   "panel.settings.deck.effect": "Effekt",

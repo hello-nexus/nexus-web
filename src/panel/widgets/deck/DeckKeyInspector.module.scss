@@ -113,6 +113,17 @@ textarea.input { resize: vertical; min-height: 2.4rem; }
   color: var(--deck-settings-faint);
 }
 
+// The floating chip in the DragOverlay - opaque with a shadow so it reads as
+// lifted above the grid + boxes while dragging.
+.kindDragPreview {
+  width: auto;
+  cursor: grabbing;
+  background: var(--deck-settings-bg, var(--surface));
+  border: 1px solid var(--deck-settings-accent);
+  box-shadow: var(--shadow-lg, 0 8px 24px rgb(0 0 0 / 0.35));
+  pointer-events: none;
+}
+
 .kindItemActive {
   background: color-mix(in srgb, var(--deck-settings-accent) 16%, transparent);
   color: var(--deck-settings-accent);
@@ -121,24 +132,6 @@ textarea.input { resize: vertical; min-height: 2.4rem; }
   &:hover { background: color-mix(in srgb, var(--deck-settings-accent) 22%, transparent); }
 
   .kindIcon { color: var(--deck-settings-accent); }
-}
-
-// Trash affordance in the Action box header (SettingsSection action slot).
-.deleteBtn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 3px;
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--deck-settings-faint);
-  cursor: pointer;
-
-  &:hover {
-    color: var(--danger, #ef4444);
-    background: var(--deck-settings-bg-hover);
-  }
 }
 
 // Glyphs used as ChipGroup labels for the B/I/U title-style chips.

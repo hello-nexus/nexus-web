@@ -110,11 +110,15 @@
   overflow-y: auto;
 }
 
-// Settings tab: a single full-width column, no preview.
+// Settings tab: a single full-width column, no preview. Standard 1.5rem gap
+// between sections (matches the main Settings pages).
 .settingsFull {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
 .previewStage {
@@ -151,10 +155,6 @@
     color: var(--accent);
     cursor: pointer;
   }
-}
-
-.sectionBox {
-  gap: 0.75rem;
 }
 
 .readOnlyValue {

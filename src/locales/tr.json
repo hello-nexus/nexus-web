@@ -1865,6 +1865,8 @@
   "panel.settings.deck.deckBrightness.up": "Artır",
   "panel.settings.deck.deckBrightnessOp": "Parlaklık eylemi",
   "panel.settings.deck.deckSleepDescription": "Bir sonraki tuşa basılana kadar Deck ekranını karartır.",
+  "panel.settings.deck.deleteFolder.body": "Bu klasörde {count} tuş var. Silmek içindekilerin tümünü kaldırır.",
+  "panel.settings.deck.deleteFolder.title": "Klasör silinsin mi?",
   "panel.settings.deck.device": "Cihaz",
   "panel.settings.deck.display": "Görüntü",
   "panel.settings.deck.effect": "Efekt",

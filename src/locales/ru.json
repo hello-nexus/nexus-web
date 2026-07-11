@@ -1865,6 +1865,8 @@
   "panel.settings.deck.deckBrightness.up": "Ярче",
   "panel.settings.deck.deckBrightnessOp": "Действие с яркостью",
   "panel.settings.deck.deckSleepDescription": "Гасит экран Deck до следующего нажатия клавиши.",
+  "panel.settings.deck.deleteFolder.body": "В этой папке {count} кнопок. Удаление удалит всё содержимое.",
+  "panel.settings.deck.deleteFolder.title": "Удалить папку?",
   "panel.settings.deck.device": "Устройство",
   "panel.settings.deck.display": "Дисплей",
   "panel.settings.deck.effect": "Эффект",

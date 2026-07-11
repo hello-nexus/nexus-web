@@ -1865,6 +1865,8 @@
   "panel.settings.deck.deckBrightness.up": "Zwiększ",
   "panel.settings.deck.deckBrightnessOp": "Akcja jasności",
   "panel.settings.deck.deckSleepDescription": "Wygasza ekran Deck do momentu następnego naciśnięcia przycisku.",
+  "panel.settings.deck.deleteFolder.body": "Ten folder zawiera {count} klawiszy. Usunięcie go usunie całą zawartość.",
+  "panel.settings.deck.deleteFolder.title": "Usunąć folder?",
   "panel.settings.deck.device": "Urządzenie",
   "panel.settings.deck.display": "Wyświetlanie",
   "panel.settings.deck.effect": "Efekt",

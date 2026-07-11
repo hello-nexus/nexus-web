@@ -1865,6 +1865,8 @@
   "panel.settings.deck.deckBrightness.up": "Aumentar",
   "panel.settings.deck.deckBrightnessOp": "Acción del brillo",
   "panel.settings.deck.deckSleepDescription": "Apaga la pantalla del Deck hasta la próxima pulsación de una tecla.",
+  "panel.settings.deck.deleteFolder.body": "Esta carpeta contiene {count} botones. Al eliminarla se borra todo su contenido.",
+  "panel.settings.deck.deleteFolder.title": "¿Eliminar carpeta?",
   "panel.settings.deck.device": "Dispositivo",
   "panel.settings.deck.display": "Pantalla",
   "panel.settings.deck.effect": "Efecto",
