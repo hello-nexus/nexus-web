@@ -31,14 +31,18 @@ export function RankedToggle({ showAverage, onToggle }: { showAverage: boolean; 
 
 // Plain in-flow section. Click anywhere on the header to toggle the body.
 // No sticky positioning, no scroll spying -- the headers scroll with content.
+// Two nesting levels of the same collapsible primitive: the family header
+// (this section) and, per sensor-type group inside it, a compact nested one.
+// Both read/write the same flat `isCollapsed`/`onToggle` id set - a group's
+// id is the family id plus its sensor type (`${id}/${group.type}`).
 export function DetailSection({
-  id, title, subtitle, sensors, collapsed, onToggle, groupTypeLabel,
+  id, title, subtitle, sensors, isCollapsed, onToggle, groupTypeLabel,
 }: {
   id: string;
   title: string;
   subtitle?: string;
   sensors: HardwareSensor[];
-  collapsed: boolean;
+  isCollapsed: (id: string) => boolean;
   onToggle: (id: string) => void;
   groupTypeLabel: (type: string) => string;
 }) {
@@ -49,22 +53,32 @@ export function DetailSection({
       className={styles.detailSection}
       sectionId={id}
       title={title}
-      open={!collapsed}
+      open={!isCollapsed(id)}
       onToggle={() => onToggle(id)}
       right={subtitle ? <span className={styles.detailSubtitle}>{subtitle}</span> : undefined}
     >
       <div className={styles.detailBody}>
-        {groups.map(group => (
-          <div key={group.type} className={styles.detailGroup}>
-            <div className={styles.detailGroupLabel}>{groupTypeLabel(group.type)}</div>
-            {group.sensors.map(s => (
-              <div key={s.id} className={styles.detailRow}>
-                <span className={styles.detailRowLabel}>{s.name}</span>
-                <span className={styles.detailRowValue}>{formatSensorValue(s.value, s.units, s.formatted, monitoringTempUnit, numberFormat) || `${s.value}`}</span>
-              </div>
-            ))}
-          </div>
-        ))}
+        {groups.map(group => {
+          const groupId = `${id}/${group.type}`;
+          return (
+            <CollapsibleSection
+              key={group.type}
+              compact
+              className={styles.detailGroup}
+              sectionId={groupId}
+              title={groupTypeLabel(group.type)}
+              open={!isCollapsed(groupId)}
+              onToggle={() => onToggle(groupId)}
+            >
+              {group.sensors.map(s => (
+                <div key={s.id} className={styles.detailRow}>
+                  <span className={styles.detailRowLabel}>{s.name}</span>
+                  <span className={styles.detailRowValue}>{formatSensorValue(s.value, s.units, s.formatted, monitoringTempUnit, numberFormat) || `${s.value}`}</span>
+                </div>
+              ))}
+            </CollapsibleSection>
+          );
+        })}
       </div>
     </CollapsibleSection>
   );

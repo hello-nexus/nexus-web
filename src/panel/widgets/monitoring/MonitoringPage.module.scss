@@ -434,15 +434,11 @@
   padding: 0.5rem 0.75rem 0.85rem;
 }
 
+// Nested CollapsibleSection (compact) for a sensor-type group; the shared
+// component supplies the header chrome, this only offsets it as a child of
+// the family section above it.
 .detailGroup {
-  display: flex;
-  flex-direction: column;
-}
-
-.detailGroupLabel {
-  @include text-label;
-  color: var(--text-dim);
-  padding: 0.25rem 0 0.2rem;
+  margin-left: 0.5rem;
 }
 
 .detailRow {

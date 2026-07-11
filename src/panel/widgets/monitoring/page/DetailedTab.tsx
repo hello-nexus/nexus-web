@@ -82,7 +82,7 @@ export function DetailedTab({ sensors }: { sensors: ReturnType<typeof useSensors
           title={entry.title}
           subtitle={entry.subtitle}
           sensors={entry.sensors}
-          collapsed={isCollapsed(entry.id)}
+          isCollapsed={isCollapsed}
           onToggle={onToggle}
           groupTypeLabel={groupTypeLabel}
         />
