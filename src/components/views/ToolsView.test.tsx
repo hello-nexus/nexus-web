@@ -19,7 +19,6 @@ vi.mock('../../hooks/useStreamDecks', () => ({
 const mockGetDevModels = vi.fn();
 const mockSimulate = vi.fn();
 const mockClearSimulated = vi.fn();
-const mockSendTestPattern = vi.fn();
 vi.mock('../../api/streamdeck', async () => {
   const actual = await vi.importActual<typeof import('../../api/streamdeck')>('../../api/streamdeck');
   return {
@@ -27,11 +26,10 @@ vi.mock('../../api/streamdeck', async () => {
     getStreamDeckDevModels: (...a: unknown[]) => mockGetDevModels(...a),
     simulateStreamDeck: (...a: unknown[]) => mockSimulate(...a),
     clearSimulatedStreamDeck: (...a: unknown[]) => mockClearSimulated(...a),
-    sendStreamDeckTestPattern: (...a: unknown[]) => mockSendTestPattern(...a),
   };
 });
 
-import { StreamDeckSimCard } from './ToolsView';
+import { StreamDeckSimRow } from './ToolsView';
 
 function makeDeck(over: Partial<StreamDeckSummary> = {}): StreamDeckSummary {
   return {
@@ -56,17 +54,16 @@ beforeEach(() => {
   ]);
   mockSimulate.mockResolvedValue(true);
   mockClearSimulated.mockResolvedValue(true);
-  mockSendTestPattern.mockResolvedValue(true);
   mockUseStreamDecks.mockReturnValue(decksReturn([]));
 });
 
 async function renderCard() {
-  await act(async () => { render(<StreamDeckSimCard />); });
+  await act(async () => { render(<StreamDeckSimRow />); });
   // Let the model-fetch effect resolve.
   await act(async () => { await Promise.resolve(); });
 }
 
-describe('StreamDeckSimCard', () => {
+describe('StreamDeckSimRow', () => {
   it('lists every fetched model with its key count', async () => {
     await renderCard();
     fireEvent.click(screen.getByRole('button', { name: 'devices.streamdeck.model' }));
@@ -82,57 +79,36 @@ describe('StreamDeckSimCard', () => {
     })).toBeInTheDocument();
   });
 
-  it('simulates the selected model and refreshes the deck list', async () => {
+  it('connects the selected model and refreshes the deck list', async () => {
     await renderCard();
     fireEvent.click(screen.getByRole('button', { name: 'devices.streamdeck.model' }));
     fireEvent.click(screen.getByRole('option', {
       name: 'tools.streamdeckSim.modelOption:{"name":"Stream Deck XL","count":32}',
     }));
-    fireEvent.click(screen.getByText('tools.streamdeckSim.simulateButton'));
+    fireEvent.click(screen.getByRole('button', { name: 'Connect' }));
     await act(async () => { await Promise.resolve(); });
 
     expect(mockSimulate).toHaveBeenCalledWith('xl');
     expect(mockRefresh).toHaveBeenCalled();
   });
 
-  it('shows the simulated deck as active and clears it', async () => {
+  it('shows Disconnect while a simulated deck is active and clears it', async () => {
     mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
     await renderCard();
 
-    expect(screen.getByText('devices.streamdeck.modelName:{"model":"MK.2"}')).toBeInTheDocument();
-    const clearButton = screen.getByRole('button', { name: 'tools.streamdeckSim.clearButton' });
-    expect(clearButton).not.toBeDisabled();
-
-    fireEvent.click(clearButton);
+    const disconnect = screen.getByRole('button', { name: 'Disconnect' });
+    fireEvent.click(disconnect);
     await act(async () => { await Promise.resolve(); });
 
     expect(mockClearSimulated).toHaveBeenCalled();
     expect(mockRefresh).toHaveBeenCalled();
   });
 
-  it('shows none active and disables Clear when only a real (non-simulated) deck is connected', async () => {
+  it('shows Connect (not Disconnect) when only a real, non-simulated deck is connected', async () => {
     mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck({ serial: 'REAL-SERIAL-1' })]));
     await renderCard();
 
-    expect(screen.getByText('tools.streamdeckSim.noneActive')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'tools.streamdeckSim.clearButton' })).toBeDisabled();
-  });
-
-  it('disables Clear and Send test pattern when there is no active deck at all', async () => {
-    await renderCard();
-
-    expect(screen.getByText('tools.streamdeckSim.noneActive')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'tools.streamdeckSim.clearButton' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'tools.streamdeckSim.sendTestPattern' })).toBeDisabled();
-  });
-
-  it('sends a test pattern to the first connected deck', async () => {
-    mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck({ serial: 'REAL-SERIAL-1' })]));
-    await renderCard();
-
-    fireEvent.click(screen.getByRole('button', { name: 'tools.streamdeckSim.sendTestPattern' }));
-    await act(async () => { await Promise.resolve(); });
-
-    expect(mockSendTestPattern).toHaveBeenCalledWith('REAL-SERIAL-1');
+    expect(screen.getByRole('button', { name: 'Connect' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Disconnect' })).toBeNull();
   });
 });

@@ -40,7 +40,6 @@ import {
   getStreamDeckDevModels,
   simulateStreamDeck,
   clearSimulatedStreamDeck,
-  sendStreamDeckTestPattern,
   type StreamDeckDevModel,
 } from '../../api/streamdeck';
 import { DEV_TOOLS } from '../../lib/devTools';
@@ -84,7 +83,6 @@ export function ToolsView({ serviceOnline, connectionState }: ToolsViewProps) {
             <TelemetryEventsCard />
             <InstallDefaultsCard />
             <PawnIoCard />
-            {DEV_TOOLS && <StreamDeckSimCard />}
             <PanelSimulatorCard />
             <FontDebugCard />
             <HelloGreetingCard />
@@ -180,14 +178,13 @@ function PawnIoCard() {
 }
 
 /**
- * Dev-tools-only: spins up a simulated Stream Deck via the service's
- * /streamdeck/dev/* routes so a bench box with no hardware attached can
- * still design a layout, plus the test-pattern push that used to live on
- * the device page. A simulated or real deck then shows up under Devices,
- * where its page carries no model chooser of its own - a connected deck
- * always auto-selects itself.
+ * Dev-tools-only: a row in the Simulators block that spins up a simulated
+ * Stream Deck via the service's /streamdeck/dev/* routes so a bench box with no
+ * hardware attached can design a layout. Picks a model from the dropdown, then
+ * Connect/Disconnect like every other simulator - the simulated deck shows up
+ * under Devices only while connected and never touches a real deck.
  */
-export function StreamDeckSimCard() {
+export function StreamDeckSimRow() {
   const { t } = useTranslation();
   const { decks, refresh } = useStreamDecks(true);
   const [models, setModels] = useState<StreamDeckDevModel[]>([]);
@@ -208,32 +205,25 @@ export function StreamDeckSimCard() {
   // (StreamDeckConnectionWorker.SetSimulatedModel); the deck DTO has no
   // separate flag telling a simulated deck apart from a real one.
   const simulatedDeck = decks.find(d => d.serial.startsWith('sim-')) ?? null;
-  const targetDeck = decks[0] ?? null;
+  const connected = !!simulatedDeck;
 
-  const onSimulate = async () => {
-    if (!productId || busy) return;
-    setBusy(true);
-    try { await simulateStreamDeck(productId); } finally { setBusy(false); }
-    refresh();
-  };
-
-  const onClear = async () => {
+  const onToggle = async () => {
     if (busy) return;
     setBusy(true);
-    try { await clearSimulatedStreamDeck(); } finally { setBusy(false); }
+    try {
+      if (connected) await clearSimulatedStreamDeck();
+      else if (productId) await simulateStreamDeck(productId);
+    } finally { setBusy(false); }
     refresh();
-  };
-
-  const onTestPattern = async () => {
-    if (!targetDeck || busy) return;
-    setBusy(true);
-    try { await sendStreamDeckTestPattern(targetDeck.serial); } finally { setBusy(false); }
   };
 
   return (
-    <Card title={t('tools.streamdeckSim.title')}>
-      <span className={styles.dim}>{t('tools.streamdeckSim.label')}</span>
-      <div className={styles.simTuningRow}>
+    <div className={styles.simRow}>
+      <div className={styles.simMeta}>
+        <strong>{t('tools.streamdeckSim.title')}</strong>
+        <span>{t('tools.streamdeckSim.label')}</span>
+      </div>
+      <div className={styles.streamdeckSimControls}>
         <Select
           value={productId}
           options={models.map(m => ({
@@ -241,29 +231,15 @@ export function StreamDeckSimCard() {
             label: t('tools.streamdeckSim.modelOption', { name: `Stream Deck ${m.name}`, count: m.keyCount }),
           }))}
           onChange={setProductId}
+          disabled={connected || busy}
           ariaLabel={t('devices.streamdeck.model')}
         />
-        <Button tone="accent" size="sm" disabled={!productId || busy} onClick={() => void onSimulate()}>
-          {t('tools.streamdeckSim.simulateButton')}
+        <Button type="button" tone={connected ? 'danger' : 'accent'} size="sm" disabled={busy || (!connected && !productId)} onClick={() => void onToggle()}>
+          {/* eslint-disable-next-line i18next/no-literal-string -- dev-tools sim toggle, matches panel rows */}
+          {connected ? 'Disconnect' : 'Connect'}
         </Button>
       </div>
-      <div className={styles.kv}>
-        <span>{t('tools.streamdeckSim.active')}</span>
-        <span className={styles.val}>
-          {simulatedDeck
-            ? t('devices.streamdeck.modelName', { model: simulatedDeck.model })
-            : t('tools.streamdeckSim.noneActive')}
-        </span>
-      </div>
-      <div className={styles.actionsRow}>
-        <Button tone="danger" size="sm" disabled={!simulatedDeck || busy} onClick={() => void onClear()}>
-          {t('tools.streamdeckSim.clearButton')}
-        </Button>
-        <Button tone="neutral" size="sm" disabled={!targetDeck || busy} onClick={() => void onTestPattern()}>
-          {t('tools.streamdeckSim.sendTestPattern')}
-        </Button>
-      </div>
-    </Card>
+    </div>
   );
 }
 
@@ -569,6 +545,7 @@ function PanelSimulatorCard() {
             {tryxOn ? 'Disconnect' : 'Connect'}
           </Button>
         </div>
+        {DEV_TOOLS && <StreamDeckSimRow />}
       </div>
     </Card>
   );

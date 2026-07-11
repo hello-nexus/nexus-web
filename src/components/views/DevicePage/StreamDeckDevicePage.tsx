@@ -146,51 +146,51 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
         {activeConflict && <ConflictAppCard conflict={activeConflict} />}
 
         {tab === 'customize' ? (
-          <div className={styles.customizeLayout}>
-            <div className={styles.previewTop}>
-              <div className={styles.previewStage}>
-                {inFolder && (
-                  <div className={styles.breadcrumb}>
-                    <button type="button" onClick={onBack}>
-                      <ChevronLeft size={14} /> {t('panel.settings.deck.back')}
-                    </button>
+          <div className={styles.customizeSplit}>
+            <div className={styles.leftCol}>
+              <div className={styles.previewTop}>
+                <div className={styles.previewStage}>
+                  {inFolder && (
+                    <div className={styles.breadcrumb}>
+                      <button type="button" onClick={onBack}>
+                        <ChevronLeft size={14} /> {t('panel.settings.deck.back')}
+                      </button>
+                    </div>
+                  )}
+                  {target && (
+                    <DndContext sensors={dragSensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+                      <DeckGrid
+                        slots={viewSlots}
+                        cols={target.cols}
+                        rows={target.rows}
+                        square
+                        selectable
+                        dragEnabled
+                        selectedIndex={selSlot}
+                        onCell={setSelectedSlot}
+                        backCell={inFolder ? { onBack, ariaLabel: t('panel.settings.deck.back') } : undefined}
+                      />
+                    </DndContext>
+                  )}
+                </div>
+                {target && (
+                  <div className={styles.pageNumbersRow}>
+                    <DeckPageStrip
+                      numbered
+                      pageCount={pageCount}
+                      currentPage={page}
+                      onSelectPage={onSelectPage}
+                      onAddPage={() => { target.addPage(); onSelectPage(pageCount); }}
+                      onRemoveCurrentPage={() => { target.removePage(page); onSelectPage(Math.max(0, page - 1)); }}
+                      currentPageHasContent={pageHasContent(target.config.pages[page] ?? { slots: [] })}
+                    />
                   </div>
                 )}
-                {target && (
-                  <DndContext sensors={dragSensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-                    <DeckGrid
-                      slots={viewSlots}
-                      cols={target.cols}
-                      rows={target.rows}
-                      square
-                      selectable
-                      dragEnabled
-                      selectedIndex={selSlot}
-                      onCell={setSelectedSlot}
-                      backCell={inFolder ? { onBack, ariaLabel: t('panel.settings.deck.back') } : undefined}
-                    />
-                  </DndContext>
+                {!deck.verified && (
+                  <span className={styles.experimentalChip}>{t('devices.streamdeck.experimental')}</span>
                 )}
               </div>
-              {target && (
-                <div className={styles.pageNumbersRow}>
-                  <DeckPageStrip
-                    numbered
-                    pageCount={pageCount}
-                    currentPage={page}
-                    onSelectPage={onSelectPage}
-                    onAddPage={() => { target.addPage(); onSelectPage(pageCount); }}
-                    onRemoveCurrentPage={() => { target.removePage(page); onSelectPage(Math.max(0, page - 1)); }}
-                    currentPageHasContent={pageHasContent(target.config.pages[page] ?? { slots: [] })}
-                  />
-                </div>
-              )}
-              {!deck.verified && (
-                <span className={styles.experimentalChip}>{t('devices.streamdeck.experimental')}</span>
-              )}
-            </div>
 
-            <div className={styles.editorSplit}>
               <div className={styles.editorPane}>
                 {target ? (
                   <DeckKeyInspector
@@ -215,25 +215,25 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
                   <div className={styles.loading}>{t('panel.settings.deck.rail.loadingConfig')}</div>
                 )}
               </div>
-
-              {target && (
-                <div className={styles.pickerPane}>
-                  <DeckKeyInspector
-                    target={target}
-                    page={page}
-                    folderPath={folderPath}
-                    onFolderPathChange={setFolderPath}
-                    selectedSlot={selectedSlot}
-                    onSelectedSlotChange={setSelectedSlot}
-                    // eslint-disable-next-line i18next/no-literal-string -- PanelSurface enum value
-                    surface="desktop"
-                    desktopEditor
-                    // eslint-disable-next-line i18next/no-literal-string -- render-part enum value
-                    part="picker"
-                  />
-                </div>
-              )}
             </div>
+
+            {target && (
+              <div className={styles.pickerPane}>
+                <DeckKeyInspector
+                  target={target}
+                  page={page}
+                  folderPath={folderPath}
+                  onFolderPathChange={setFolderPath}
+                  selectedSlot={selectedSlot}
+                  onSelectedSlotChange={setSelectedSlot}
+                  // eslint-disable-next-line i18next/no-literal-string -- PanelSurface enum value
+                  surface="desktop"
+                  desktopEditor
+                  // eslint-disable-next-line i18next/no-literal-string -- render-part enum value
+                  part="picker"
+                />
+              </div>
+            )}
           </div>
         ) : (
           <div className={styles.settingsFull}>

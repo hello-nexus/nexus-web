@@ -182,6 +182,10 @@ export function useUnifiedDevices(enabled: boolean) {
     // card still tells two same-model decks apart.
     const streamdeckHandler = devices.find(d => d.id === 'streamdeck');
     for (const deck of streamDecks) {
+      // A simulated deck (serial `sim-*`) only belongs in the list while its
+      // simulator is active; a disconnected one is a leftover persisted record,
+      // not a device the user owns, so it must not show as a phantom entry.
+      if (deck.serial.startsWith('sim-') && !deck.connected) continue;
       list.push({
         key: `streamdeck:${deck.serial}`,
         shortName: t('devices.streamdeck.modelName', { model: deck.model }),

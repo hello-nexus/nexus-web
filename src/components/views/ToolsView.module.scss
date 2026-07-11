@@ -103,6 +103,14 @@
   background: var(--bg-card-hover);
 }
 
+// Model dropdown + Connect/Disconnect for the Stream Deck simulator row, sharing
+// the trailing `auto` grid column of .simRow.
+.streamdeckSimControls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .simMeta {
   display: flex;
   flex-direction: column;

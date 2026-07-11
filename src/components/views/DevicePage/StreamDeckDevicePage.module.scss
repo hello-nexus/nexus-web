@@ -66,17 +66,25 @@
   width: 100%;
 }
 
-// Customize tab: the deck preview sits at the top (outside the scroll area);
-// under it a two-column split scrolls - the key editor (left) and the action
-// picker (right, a fixed 300px column matching the lighting page's device
-// list).
-.customizeLayout {
+// Customize tab: a two-column split. The left column holds the deck preview
+// pinned at its top (outside the scroll) with the key editor scrolling under
+// it; the right column is the action picker - a fixed 300px scroller matching
+// the lighting page's device-list width.
+.customizeSplit {
   display: flex;
-  flex-direction: column;
   flex: 1;
   min-height: 0;
-  gap: 1rem;
+  gap: 1.5rem;
   overflow: hidden;
+}
+
+.leftCol {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  gap: 1rem;
 }
 
 .previewTop {
@@ -87,17 +95,9 @@
   gap: 0.75rem;
 }
 
-.editorSplit {
-  display: flex;
-  flex: 1;
-  min-height: 0;
-  gap: 1.5rem;
-  overflow: hidden;
-}
-
 .editorPane {
   flex: 1;
-  min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 1rem;
