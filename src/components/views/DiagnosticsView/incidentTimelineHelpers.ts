@@ -49,12 +49,12 @@ export function filterIncidentsToDomain(incidents: readonly DiagnosticsIncident[
   });
 }
 
-/** One lane per source present in `incidents`, in INCIDENT_SOURCE_ORDER. */
-export function incidentLanes(incidents: readonly DiagnosticsIncident[], translate: (key: string) => string): EventTimelineLane[] {
-  const present = new Set(incidents.map(incident => incident.source));
-  return INCIDENT_SOURCE_ORDER
-    .filter(source => present.has(source))
-    .map(source => ({ id: source, label: translate(incidentSourceLabelKey(source)) }));
+/** One lane per incident source, ALL categories always (never stripped), in
+ *  INCIDENT_SOURCE_ORDER. The lane set is fixed so the timeline's height and
+ *  lane order stay stable across ranges, and a category with no incidents in
+ *  the window shows an empty track rather than disappearing. */
+export function incidentLanes(translate: (key: string) => string): EventTimelineLane[] {
+  return INCIDENT_SOURCE_ORDER.map(source => ({ id: source, label: translate(incidentSourceLabelKey(source)) }));
 }
 
 /** An EventTimeline event per incident, carrying the incident itself so the

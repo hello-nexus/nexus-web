@@ -1864,7 +1864,7 @@ export const REGISTRY: StorybookEntry[] = [
     name: 'EventTimeline', category: 'charts',
     filePath: 'src/components/common/EventTimeline/EventTimeline.tsx',
     description: 'Swimlane timeline of discrete events: one lane per category, dots plotted at each event\'s exact time and colored by the caller (e.g. severity). Tracks container width via ResizeObserver; near-coincident same-lane events collapse into one counted dot so wide ranges stay legible. Used by the Diagnostics System tab\'s incident timeline.', Preview: PreviewEventTimeline,
-    notes: 'Events carry {laneId, t, color, weight?}; a mixed cluster takes its highest-weight event\'s color. Hover shows an anchored tooltip (renderTooltip(cluster)); click pins it for touch. domain sets the x window; xTickFormat picks label granularity.',
+    notes: 'Events carry {laneId, t, color, weight?}; a mixed cluster takes its highest-weight event\'s color. Hover shows an anchored tooltip (renderTooltip(cluster)); click fires onSelect(cluster) and the caller-controlled selectedKey draws a persistent highlight. domain sets the x window (never squished to the data); xTickFormat picks label granularity.',
   },
   {
     name: 'UsageBar', category: 'charts',

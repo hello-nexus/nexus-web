@@ -23,14 +23,13 @@ interface SystemTabProps {
   onIncidentDateChange: (date: string) => void;
 }
 
-/** System tab: Device Manager problems, then the incident timeline (with the
- *  30-day counters and Open Event Viewer / Clear logs actions). */
+/** System tab: the incident timeline (with its log actions, clicked-event
+ *  detail, and 30-day counters), then the Device Manager problems under it. */
 export function SystemTab({
   system, incidents, onLogsCleared, incidentHours, incidentDate, onIncidentHoursChange, onIncidentDateChange,
 }: SystemTabProps) {
   return (
     <>
-      <SystemSection data={system.data} loading={system.loading} error={system.error} onRefresh={system.refresh} />
       <IncidentsSection
         data={incidents.data} loading={incidents.loading} error={incidents.error}
         onRefresh={incidents.refresh} onLogsCleared={onLogsCleared}
@@ -38,6 +37,7 @@ export function SystemTab({
         hours={incidentHours} date={incidentDate}
         onHoursChange={onIncidentHoursChange} onDateChange={onIncidentDateChange}
       />
+      <SystemSection data={system.data} loading={system.loading} error={system.error} onRefresh={system.refresh} />
     </>
   );
 }

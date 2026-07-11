@@ -10,6 +10,7 @@ import { CoolingSection } from './CoolingSection';
 import { GpuSection } from './GpuSection';
 import { TemperatureSection } from './TemperatureSection';
 import type { TemperatureRangeHours } from './temperatureHelpers';
+import styles from './DiagnosticsView.module.scss';
 
 interface CoolingTabProps {
   cooling: {
@@ -62,11 +63,16 @@ export function CoolingTab({ cooling, gpu, temperatures, hours, date, onHoursCha
         onRetry={temperatures.refresh}
         appUsageData={appUsageData}
       />
-      <CoolingSection data={cooling.data} loading={cooling.loading} error={cooling.error} onRefresh={cooling.refresh} />
-      <GpuSection
-        data={gpu.data} loading={gpu.loading} error={gpu.error} onRefresh={gpu.refresh}
-        heading={t('diagnostics.kind.gpu')}
-      />
+      <div className={styles.coolingSplit}>
+        <GpuSection
+          data={gpu.data} loading={gpu.loading} error={gpu.error} onRefresh={gpu.refresh}
+          heading={t('diagnostics.kind.gpu')}
+        />
+        <CoolingSection
+          data={cooling.data} loading={cooling.loading} error={cooling.error} onRefresh={cooling.refresh}
+          heading={t('diagnostics.cooling.fansTitle')}
+        />
+      </div>
     </>
   );
 }

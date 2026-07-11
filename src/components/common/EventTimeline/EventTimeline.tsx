@@ -34,11 +34,21 @@ export interface EventTimelineProps<E extends EventTimelineEvent> {
   xTickFormat: (t: number) => string;
   xTickCount?: number;
   laneHeight?: number;
-  /** Tooltip body for a hovered/pinned cluster; the shell (position, chrome) is
-   *  the component's. */
+  /** Tooltip body for the hovered cluster; the shell (position, chrome) is the
+   *  component's. */
   renderTooltip: (cluster: EventTimelineCluster<E>) => ReactNode;
+  /** Cluster key (`${laneId}:${firstEventId}`) of the currently-selected dot,
+   *  drawn with a persistent highlight. Selection is controlled by the caller. */
+  selectedKey?: string | null;
+  /** Fired when a dot is clicked, so the caller can open the cluster's detail. */
+  onSelect?: (cluster: EventTimelineCluster<E>) => void;
   ariaLabel?: string;
   emptyLabel?: string;
+}
+
+/** The stable cluster key a caller compares against `selectedKey`. */
+export function eventTimelineClusterKey<E extends EventTimelineEvent>(cluster: EventTimelineCluster<E>): string {
+  return `${cluster.laneId}:${cluster.events[0].id}`;
 }
 
 const PAD = { top: 14, bottom: 26 };
@@ -67,12 +77,12 @@ function laneCenterY(index: number, laneHeight: number): number {
  * TimeSeriesChart's conventions so the two charts read as one system.
  */
 export function EventTimeline<E extends EventTimelineEvent>({
-  lanes, events, domain, xTickFormat, xTickCount = 5, laneHeight = 34, renderTooltip, ariaLabel, emptyLabel,
+  lanes, events, domain, xTickFormat, xTickCount = 5, laneHeight = 34, renderTooltip,
+  selectedKey, onSelect, ariaLabel, emptyLabel,
 }: EventTimelineProps<E>) {
   const plotRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(440);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [pinnedId, setPinnedId] = useState<string | null>(null);
 
   useLayoutEffect(() => {
     const el = plotRef.current;
@@ -151,9 +161,9 @@ export function EventTimeline<E extends EventTimelineEvent>({
     return ticks;
   }, [minT, span, xTickCount]);
 
-  const clusterKey = (c: EventTimelineCluster<E>) => `${c.laneId}:${c.events[0].id}`;
-  const shownId = activeId ?? pinnedId;
-  const active = shownId ? clusters.find(c => clusterKey(c) === shownId) ?? null : null;
+  // The tooltip follows the hovered dot only; selection (the persistent
+  // highlight) is controlled by the caller via selectedKey/onSelect.
+  const active = activeId ? clusters.find(c => eventTimelineClusterKey(c) === activeId) ?? null : null;
 
   if (lanes.length === 0) {
     return (
@@ -185,7 +195,6 @@ export function EventTimeline<E extends EventTimelineEvent>({
             preserveAspectRatio="none"
             role="img"
             aria-label={ariaLabel}
-            onClick={() => setPinnedId(null)}
           >
             {lanes.map((lane, i) => {
               const y = laneCenterY(i, laneHeight);
@@ -209,8 +218,10 @@ export function EventTimeline<E extends EventTimelineEvent>({
             {clusters.map(cluster => {
               const cx = xFor(cluster.t);
               const cy = laneCenterY(laneIndex.get(cluster.laneId) ?? 0, laneHeight);
-              const key = clusterKey(cluster);
-              const isActive = key === shownId;
+              const key = eventTimelineClusterKey(cluster);
+              const isHovered = key === activeId;
+              const isSelected = key === selectedKey;
+              const isEmphasized = isHovered || isSelected;
               const count = cluster.events.length;
               return (
                 <g key={key} className={styles.dotGroup}>
@@ -221,11 +232,11 @@ export function EventTimeline<E extends EventTimelineEvent>({
                     fill="transparent"
                     onMouseEnter={() => setActiveId(key)}
                     onMouseLeave={() => setActiveId(prev => (prev === key ? null : prev))}
-                    onClick={e => { e.stopPropagation(); setPinnedId(key); }}
+                    onClick={e => { e.stopPropagation(); onSelect?.(cluster); }}
                   />
-                  <circle cx={cx} cy={cy} r={isActive ? DOT_R + 1.5 : DOT_R} fill={cluster.color} pointerEvents="none" />
-                  {isActive && (
-                    <circle cx={cx} cy={cy} r={DOT_R + 3.5} fill="none" stroke={cluster.color} strokeOpacity={0.4} strokeWidth="1.5" pointerEvents="none" />
+                  <circle cx={cx} cy={cy} r={isEmphasized ? DOT_R + 1.5 : DOT_R} fill={cluster.color} pointerEvents="none" />
+                  {isEmphasized && (
+                    <circle cx={cx} cy={cy} r={DOT_R + 3.5} fill="none" stroke={cluster.color} strokeOpacity={isSelected ? 0.75 : 0.4} strokeWidth="1.5" pointerEvents="none" />
                   )}
                   {count > 1 && (
                     <text x={cx + DOT_R + 4} y={cy + 3.5} fill="var(--text-dim)" fontSize="10" fontFamily="var(--font-mono)" pointerEvents="none">

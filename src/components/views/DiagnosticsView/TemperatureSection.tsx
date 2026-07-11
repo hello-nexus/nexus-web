@@ -1,6 +1,7 @@
+import { useEffect, useMemo, useState } from 'react';
 import { Thermometer } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
-import { useUnitPrefs } from '../../../hooks/useUiSettings';
+import { useDiagnosticsWarningLingerMinutes, useUnitPrefs } from '../../../hooks/useUiSettings';
 import { colorFor } from '../../../lib/monitoringStore';
 import { formatDuration } from '../../../lib/formatDuration';
 import { Badge } from '../../common/Badge/Badge';
@@ -74,6 +75,20 @@ export function TemperatureSection({
 }: TemperatureSectionProps) {
   const { t } = useTranslation();
   const { monitoringTempUnit, numberFormat } = useUnitPrefs();
+  const lingerMinutes = useDiagnosticsWarningLingerMinutes();
+  // Re-snapshot "now" per fresh poll so the recency check below stays current
+  // without reading Date.now() during render.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => { setNow(Date.now()); }, [data]);
+  // The "sustained high temperatures" callout is a current-warning banner, not
+  // a history log: an episode qualifies only while it is still active or ended
+  // within the user's warning-linger window (0 = immediate, so only ongoing /
+  // last-bucket episodes show). The chart bands still render every episode.
+  const recentEpisodes = useMemo(() => {
+    if (!data) return [];
+    const recencyMs = Math.max(data.bucketMinutes, lingerMinutes) * 60_000;
+    return data.episodes.filter(ep => new Date(ep.endUtc).getTime() >= now - recencyMs);
+  }, [data, lingerMinutes, now]);
   const state = resolveSectionState({
     hasData: data !== null,
     loading,
@@ -130,11 +145,11 @@ export function TemperatureSection({
       )}
       {state === 'content' && data && (
         <>
-          {data.episodes.length > 0 && (
+          {recentEpisodes.length > 0 && (
             <div className={styles.temperatureEpisodes}>
               <div className={styles.temperatureEpisodesTitle}>{t('diagnostics.temperature.episodesTitle')}</div>
               <ul className={styles.temperatureEpisodesList}>
-                {data.episodes.map((episode, i) => (
+                {recentEpisodes.map((episode, i) => (
                   <li key={i}>{episodeSentence(episode, monitoringTempUnit, numberFormat, t)}</li>
                 ))}
               </ul>

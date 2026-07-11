@@ -617,3 +617,14 @@ export function useUnitPrefs(): {
     numberFormat: ctx.settings.numberFormat,
   };
 }
+
+/**
+ * Read-only accessor for how long a temperature warning lingers after the
+ * episode ends (minutes; 0 = clears immediately). Returns the contract default
+ * outside a UiSettingsProvider (tests, harness) so callers degrade instead of
+ * crashing - same pattern as {@link useUnitPrefs}.
+ */
+export function useDiagnosticsWarningLingerMinutes(): number {
+  const ctx = useContext(UiSettingsContext);
+  return ctx ? ctx.settings.diagnosticsWarningLingerMinutes : DIAGNOSTICS_SETTINGS_DEFAULTS.warningLingerMinutes;
+}

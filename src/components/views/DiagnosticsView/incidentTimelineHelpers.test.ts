@@ -39,13 +39,10 @@ describe('filterIncidentsToDomain', () => {
 });
 
 describe('incidentLanes', () => {
-  it('emits one lane per present source in reliability order (appCrash last)', () => {
-    const list = [
-      incident({ id: '1', timeUtc: '2026-07-06T00:00:00Z', source: 'appCrash' }),
-      incident({ id: '2', timeUtc: '2026-07-06T00:00:00Z', source: 'whea' }),
-      incident({ id: '3', timeUtc: '2026-07-06T00:00:00Z', source: 'appCrash' }),
-    ];
-    expect(incidentLanes(list, k => k).map(l => l.id)).toEqual(['whea', 'appCrash']);
+  it('emits every category as a lane (never stripped) in reliability order, appCrash last', () => {
+    const ids = incidentLanes(k => k).map(l => l.id);
+    expect(ids).toEqual(['bugcheck', 'whea', 'liveKernel', 'tdr', 'gpuDriver', 'disk', 'dirtyShutdown', 'memDiag', 'appCrash']);
+    expect(ids[ids.length - 1]).toBe('appCrash');
   });
 });
 

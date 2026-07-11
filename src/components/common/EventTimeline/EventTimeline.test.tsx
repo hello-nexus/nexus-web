@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { EventTimeline, type EventTimelineEvent, type EventTimelineLane } from './EventTimeline';
 
@@ -61,11 +61,21 @@ describe('EventTimeline', () => {
     expect(screen.queryByText('1 in a var(--warn)')).not.toBeInTheDocument();
   });
 
-  it('pins a tooltip on click so it survives pointer leave', () => {
-    const { container } = renderTimeline();
-    const hit = container.querySelectorAll('circle[fill="transparent"]')[2];
-    fireEvent.click(hit);
-    expect(screen.getByText('1 in b var(--text-dim)')).toBeInTheDocument();
+  it('calls onSelect with the clicked cluster (selection is caller-controlled)', () => {
+    const onSelect = vi.fn();
+    const { container } = render(
+      <EventTimeline
+        lanes={lanes}
+        events={events}
+        domain={[0, 1000]}
+        xTickFormat={t => String(t)}
+        renderTooltip={cluster => <div>{`${cluster.events.length} in ${cluster.laneId}`}</div>}
+        onSelect={onSelect}
+      />,
+    );
+    fireEvent.click(container.querySelectorAll('circle[fill="transparent"]')[2]);
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onSelect.mock.calls[0][0].laneId).toBe('b');
   });
 
   it('renders the empty label when there are no lanes', () => {

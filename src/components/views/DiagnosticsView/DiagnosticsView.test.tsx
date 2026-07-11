@@ -151,10 +151,14 @@ describe('IncidentsSection timeline', () => {
     ],
   };
 
-  it('renders one lane per present source and one dot per incident', () => {
+  it('renders every category as a lane (empty ones included) and a dot per incident', () => {
     const { container } = renderIncidents({ data: response, counts30d: zeroCounts });
+    // Categories with incidents...
     expect(screen.getByText('diagnostics.incidents.source.whea')).toBeInTheDocument();
     expect(screen.getByText('diagnostics.incidents.source.appCrash')).toBeInTheDocument();
+    // ...and a category with none is still a lane, never stripped.
+    expect(screen.getByText('diagnostics.incidents.source.bugcheck')).toBeInTheDocument();
+    // One hit target per incident (empty lanes contribute no dots).
     expect(container.querySelectorAll('circle[fill="transparent"]')).toHaveLength(2);
   });
 
@@ -162,6 +166,23 @@ describe('IncidentsSection timeline', () => {
     const { container } = renderIncidents({ data: response, counts30d: zeroCounts });
     fireEvent.mouseEnter(container.querySelectorAll('circle[fill="transparent"]')[0]);
     expect(screen.getByText('Corrected PCIe hardware error')).toBeInTheDocument();
+  });
+
+  it('opens the clicked incident detail under the graph, hidden until clicked', () => {
+    const withApp: DiagnosticsIncidentsResponse = {
+      supported: true, windowDays: 30,
+      incidents: [makeIncident({
+        id: 'App/9', timeUtc: '2026-07-06T10:00:00Z', source: 'appCrash', severity: 'critical', title: 'game.exe crashed',
+        detail: 'Exception c0000005 in nv.dll.',
+        app: { name: 'game.exe', path: 'D:/game.exe', exceptionCode: 'c0000005', faultingModule: 'nv.dll', isGame: true },
+      })],
+    };
+    const { container } = renderIncidents({ data: withApp, counts30d: zeroCounts });
+    // The server detail line + game badge only appear once the dot is clicked.
+    expect(screen.queryByText('Exception c0000005 in nv.dll.')).not.toBeInTheDocument();
+    fireEvent.click(container.querySelectorAll('circle[fill="transparent"]')[0]);
+    expect(screen.getByText('Exception c0000005 in nv.dll.')).toBeInTheDocument();
+    expect(screen.getByText('diagnostics.incidents.game')).toBeInTheDocument();
   });
 
   it('shows the 30-day counters under the timeline', () => {
@@ -175,9 +196,10 @@ describe('IncidentsSection timeline', () => {
     expect(screen.getByRole('button', { name: 'diagnostics.temperature.range.14d' })).toBeInTheDocument();
   });
 
-  it('shows an empty message when no incident falls inside the selected range', () => {
-    renderIncidents({ data: response, counts30d: zeroCounts, hours: 24 });
-    expect(screen.getByText('diagnostics.incidents.emptyRange')).toBeInTheDocument();
+  it('still renders the full-range timeline (all lanes) when no incident falls in the range', () => {
+    const { container } = renderIncidents({ data: response, counts30d: zeroCounts, hours: 24 });
+    expect(screen.getByText('diagnostics.incidents.source.whea')).toBeInTheDocument();
+    expect(container.querySelectorAll('circle[fill="transparent"]')).toHaveLength(0);
     expect(screen.queryByText('Corrected PCIe hardware error')).not.toBeInTheDocument();
   });
 });
