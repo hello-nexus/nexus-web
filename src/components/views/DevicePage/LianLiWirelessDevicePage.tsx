@@ -1,18 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Fan, Thermometer, MonitorSmartphone, Unplug } from 'lucide-react';
+import { Fan, MonitorSmartphone, Unplug } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { getLianLiWirelessState, type LianLiWirelessState } from '../../../api/lianli-wireless';
 import { useTranslation } from '../../../lib/i18n';
 import { LianLiWirelessFansTab } from './LianLiWirelessFansTab';
-import { LianLiWirelessCoolingTab } from './LianLiWirelessCoolingTab';
 import { LianLiWirelessScreenTab } from './LianLiWirelessScreenTab';
 import styles from './LianLiWirelessDevicePage.module.scss';
 
 // Polling interval matches the service RpmPollMs.
 const RPM_POLL_MS = 2000;
 
-type LianLiWirelessTab = 'fans' | 'cooling' | 'screen';
+type LianLiWirelessTab = 'fans' | 'screen';
 
 interface LianLiWirelessDevicePageProps {
   onSectionNavigate?: (section: string) => void;
@@ -79,7 +78,6 @@ export function LianLiWirelessDevicePage({ onSectionNavigate }: LianLiWirelessDe
 
   const tabs = [
     { key: 'fans', label: t('devices.lianli-wireless.tab.fans'), icon: <Fan size={14} /> },
-    { key: 'cooling', label: t('devices.lianli-wireless.tab.cooling'), icon: <Thermometer size={14} /> },
     { key: 'screen', label: t('devices.lianli-wireless.tab.screen'), icon: <MonitorSmartphone size={14} /> },
   ];
 
@@ -98,9 +96,8 @@ export function LianLiWirelessDevicePage({ onSectionNavigate }: LianLiWirelessDe
         {/* Tab body stays mounted across a transient disconnect so a fan's
             in-flight bind/unbind pending state survives the reconnect. */}
         <div className={styles.tabBody} hidden={disconnected}>
-          {activeTab === 'fans' && <LianLiWirelessFansTab state={state} refresh={refresh} />}
-          {activeTab === 'cooling' && (
-            <LianLiWirelessCoolingTab state={state} onSectionNavigate={onSectionNavigate} />
+          {activeTab === 'fans' && (
+            <LianLiWirelessFansTab state={state} refresh={refresh} onSectionNavigate={onSectionNavigate} />
           )}
           {activeTab === 'screen' && <LianLiWirelessScreenTab />}
         </div>
