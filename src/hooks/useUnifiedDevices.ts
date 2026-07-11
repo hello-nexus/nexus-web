@@ -205,6 +205,7 @@ export function useUnifiedDevices(enabled: boolean) {
         navigable: true,
         nexusControlEnabled: streamdeckHandler?.nexusControlEnabled ?? true,
         supportsNexusControl: streamdeckHandler?.supportsNexusControl ?? false,
+        experimental: false,
         warning: deck.warning,
         conflictAppId: deck.conflictAppId,
       });
