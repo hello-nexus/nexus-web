@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
   computeViewUploadJobs, makePhysicalDeckTarget, makeWidgetDeckTarget, resolveTargetView, slotCountAtDepth,
-  truncateConfigForTarget, type DeckTarget,
+  type DeckTarget,
 } from './deckTarget';
 import type { PanelWidget } from '../types';
 import type { DeckConfig } from './types';
@@ -133,42 +133,5 @@ describe('computeViewUploadJobs', () => {
   it('joins nested folder paths with dots', () => {
     const jobs = computeViewUploadJobs([{}], [2, 5]);
     expect(jobs[0].slotPath).toBe('2.5.0');
-  });
-});
-
-describe('truncateConfigForTarget', () => {
-  const target = { kind: 'physical' as const, keyCount: 6 };
-
-  it('truncates the root level to the target keyCount and reports truncated: true', () => {
-    const source: DeckConfig = { slots: Array.from({ length: 16 }, (_, i) => ({ label: String(i) })) };
-    const { config, truncated } = truncateConfigForTarget(source, target);
-    expect(config.slots).toHaveLength(6);
-    expect(config.slots.map(s => s.label)).toEqual(['0', '1', '2', '3', '4', '5']);
-    expect(truncated).toBe(true);
-  });
-
-  it('truncates a nested folder to keyCount - 1 (Back key reserved) and reports truncated: true even when the root fits', () => {
-    const source: DeckConfig = {
-      // Root has 1 slot (fits easily); the folder inside it is the only overflow.
-      slots: [{ folder: { slots: Array.from({ length: 16 }, (_, i) => ({ label: String(i) })) } }],
-    };
-    const { config, truncated } = truncateConfigForTarget(source, target);
-    expect(config.slots[0].folder!.slots).toHaveLength(5);
-    expect(truncated).toBe(true);
-  });
-
-  it('does not mutate the source and reports truncated: false when everything already fits', () => {
-    const source: DeckConfig = { slots: [{ label: 'a' }, { label: 'b' }] };
-    const { config, truncated } = truncateConfigForTarget(source, target);
-    expect(config).not.toBe(source);
-    expect(config.slots).toEqual(source.slots);
-    expect(truncated).toBe(false);
-  });
-
-  it('reports truncated: false for a full root that exactly fits, even with a folder that would overflow at a deeper level than reached', () => {
-    // Root at exactly keyCount, no folders at all: nothing to truncate anywhere.
-    const source: DeckConfig = { slots: Array.from({ length: 6 }, (_, i) => ({ label: String(i) })) };
-    const { truncated } = truncateConfigForTarget(source, target);
-    expect(truncated).toBe(false);
   });
 });

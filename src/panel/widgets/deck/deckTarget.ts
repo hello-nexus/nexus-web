@@ -40,36 +40,6 @@ export function resolveTargetView(target: DeckTarget, folderPath: readonly numbe
   return resolveViewSlots(target.config, folderPath, depthCount(target));
 }
 
-export interface TruncateResult {
-  config: DeckConfig;
-  /** True if any level (root or a nested folder) held more slots than the target could show. */
-  truncated: boolean;
-}
-
-/**
- * Deep-copies a source config, truncating every level (root and each nested
- * folder, respecting the Back-key reservation at depth >= 1) to the given
- * target's per-depth slot counts. Used by copy-widget-layout so the config
- * that lands on a physical deck already matches what it can display - a
- * plain structuredClone would leave the overflow in the data until the next
- * edit silently dropped it via padSlots. Root-level counts alone don't tell
- * a caller whether truncation happened - a folder can overflow even when the
- * root fits - so this reports it directly rather than making the caller
- * infer it from keyCount comparisons.
- */
-export function truncateConfigForTarget(source: DeckConfig, target: Pick<DeckTarget, 'kind' | 'keyCount'>): TruncateResult {
-  let truncated = false;
-  const truncateLevel = (slots: readonly DeckSlot[], depth: number): DeckSlot[] => {
-    const count = slotCountAtDepth(target, depth);
-    if (slots.length > count) truncated = true;
-    return slots.slice(0, count).map(slot => (
-      slot.folder ? { ...slot, folder: { slots: truncateLevel(slot.folder.slots, depth + 1) } } : slot
-    ));
-  };
-  const slots = truncateLevel(source.slots, 0);
-  return { config: { slots }, truncated };
-}
-
 export function makeWidgetDeckTarget(
   widget: PanelWidget,
   onUpdate: (patch: Record<string, PanelConfigValue>) => void,

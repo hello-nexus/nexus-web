@@ -173,7 +173,7 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFi
   }
 
   if (device.curatedId === 'streamdeck') {
-    return <StreamDeckDevicePage key={device.key} />;
+    return <StreamDeckDevicePage key={device.key} device={device} controlDevice={controlDevice} />;
   }
 
   if (device.kind === 'app-device') {

@@ -8,7 +8,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { fetchServiceBlob } from '../../../api/service';
 import { DECK_ICONS, autoIconName, deckCategory, categoryColor } from './deckIcons';
-import { applyKeyTransform, type DeckKeyTransform } from './deckKeyTransform';
+import { applyKeyTransform, applyOrientation, type DeckKeyTransform, type DeckOrientation } from './deckKeyTransform';
 import { encodeBmp } from './encodeBmp';
 import type { DeckSlot } from './types';
 import type { StreamDeckFormat } from '../../../api/streamdeck';
@@ -17,6 +17,8 @@ export interface DeckKeyModel {
   keyPixels: number;
   format: StreamDeckFormat;
   transform: DeckKeyTransform;
+  /** User mounting rotation; defaults to 0 (upright) when absent. */
+  orientation?: DeckOrientation;
 }
 
 const JPEG_QUALITY = 0.9;
@@ -47,7 +49,8 @@ export async function renderDeckKeyBitmap(slot: DeckSlot, model: DeckKeyModel): 
   await paintKey(ctx, size, slot);
 
   const raw = ctx.getImageData(0, 0, size, size);
-  const transformed = applyKeyTransform({ width: size, height: size, data: raw.data }, model.transform);
+  const oriented = applyOrientation({ width: size, height: size, data: raw.data }, model.orientation ?? 0);
+  const transformed = applyKeyTransform(oriented, model.transform);
 
   if (model.format === 'bmp') return encodeBmp(transformed);
   return encodeJpeg(transformed);

@@ -20,8 +20,14 @@ export interface StreamDeckSummary {
   keyPixels: number;
   format: StreamDeckFormat;
   brightness: number;
+  /** User mounting rotation, degrees: 0, 90, 180, or 270. Always sent by the DTO; optional here only so older test fixtures need not set it. */
+  orientation?: number;
+  /** Seconds of no key input before the deck blanks; 0 disables sleep-after. Always sent by the DTO; optional here for the same reason. */
+  sleepAfterSeconds?: number;
   firmwareVersion?: string;
   warning?: string;
+  /** ConflictAppCatalog id to pass to POST /conflicts/kill when warning is set. */
+  conflictAppId?: string;
   /** Server-authoritative; absent on a service build that predates this field (see resolveDeckKeyTransform). */
   transform?: DeckKeyTransform;
 }
@@ -55,7 +61,10 @@ export async function getStreamDecks(): Promise<StreamDeckSummary[]> {
   return res?.decks ?? [];
 }
 
-export async function updateStreamDeck(serial: string, patch: { name?: string; brightness?: number }): Promise<boolean> {
+export async function updateStreamDeck(
+  serial: string,
+  patch: { name?: string; brightness?: number; orientation?: number; sleepAfterSeconds?: number },
+): Promise<boolean> {
   return acked(await postService<ApiResponseWrapper>(`/streamdeck/decks/${encodeURIComponent(serial)}`, patch));
 }
 

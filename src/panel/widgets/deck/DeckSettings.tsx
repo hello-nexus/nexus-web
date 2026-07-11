@@ -1,12 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Copy } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { useStreamDecks } from '../../../hooks/useStreamDecks';
 import { Button } from '../../../components/common/Button/Button';
-import { ConfirmModal } from '../../../components/common/ConfirmModal/ConfirmModal';
 import { DeckEditor } from './DeckEditor';
 import { DeckRail } from './DeckRail';
-import { makeWidgetDeckTarget, truncateConfigForTarget } from './deckTarget';
+import { makeWidgetDeckTarget } from './deckTarget';
 import { usePhysicalDeckTarget } from './usePhysicalDeckTarget';
 import type { WidgetSettingsProps } from '../types';
 import styles from './DeckSettings.module.scss';
@@ -22,7 +20,6 @@ import styles from './DeckSettings.module.scss';
  */
 export function DeckSettings({ widget, surface, desktopEditor, onUpdate, selectedSlot, onSelectedSlotChange, editView, onEditViewChange }: WidgetSettingsProps) {
   const { t } = useTranslation();
-  const [copyConfirmOpen, setCopyConfirmOpen] = useState(false);
   const widgetTarget = makeWidgetDeckTarget(widget, onUpdate);
 
   // Physical decks are a hardware peripheral of THIS host; only the local
@@ -54,31 +51,6 @@ export function DeckSettings({ widget, surface, desktopEditor, onUpdate, selecte
     onSelectedSlotChange?.(0);
   };
 
-  // Root keyCount alone misses a folder-only overflow (e.g. a 15-slot root
-  // that fits but a full folder inside it still drops its last slot), so the
-  // note is gated on running the actual truncation, not a capacity compare.
-  const copyPreview = activeDeck ? truncateConfigForTarget(widgetTarget.config, { kind: 'physical', keyCount: activeDeck.keyCount }) : null;
-
-  const copyWidgetLayout = () => {
-    if (!activeDeck) return;
-    const { config: truncated } = truncateConfigForTarget(structuredClone(widgetTarget.config), { kind: 'physical', keyCount: activeDeck.keyCount });
-    physical.replaceAll(truncated);
-    setCopyConfirmOpen(false);
-  };
-
-  const confirmModal = (
-    <ConfirmModal
-      open={copyConfirmOpen}
-      title={t('panel.settings.deck.copyLayoutConfirm.title')}
-      message={t('panel.settings.deck.copyLayoutConfirm.body', { name: activeDeck?.name ?? '' })}
-      note={copyPreview?.truncated ? t('panel.settings.deck.copyLayoutConfirm.truncated', { count: activeDeck?.keyCount ?? 0, name: activeDeck?.name ?? '' }) : undefined}
-      // eslint-disable-next-line i18next/no-literal-string -- note-tone enum value
-      noteTone="danger"
-      onConfirm={copyWidgetLayout}
-      onCancel={() => setCopyConfirmOpen(false)}
-    />
-  );
-
   const editorBody = target ? (
     <DeckEditor
       target={target}
@@ -102,7 +74,7 @@ export function DeckSettings({ widget, surface, desktopEditor, onUpdate, selecte
   // before this was extracted (no rail, no extra wrapper) so a touch-only
   // panel's DOM/behavior is unchanged.
   if (decks.length === 0) {
-    return <>{editorBody}{confirmModal}</>;
+    return <>{editorBody}</>;
   }
 
   return (
@@ -114,14 +86,8 @@ export function DeckSettings({ widget, surface, desktopEditor, onUpdate, selecte
         onSelectDeck={serial => selectTarget(serial)}
       />
       <div className={styles.content}>
-        {isPhysical && activeDeck && !physical.error && (
-          <Button type="button" size="sm" tone="neutral" icon={<Copy size={14} />} onClick={() => setCopyConfirmOpen(true)} className={styles.copyButton}>
-            {t('panel.settings.deck.copyLayout')}
-          </Button>
-        )}
         {editorBody}
       </div>
-      {confirmModal}
     </div>
   );
 }

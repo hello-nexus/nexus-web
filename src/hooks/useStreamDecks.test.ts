@@ -133,4 +133,48 @@ describe('useStreamDecks', () => {
     expect(ok).toBe(true);
     expect(mockUpdate).toHaveBeenCalledWith('ABC123', { brightness: 90 });
   });
+
+  it('setOrientation optimistically updates and keeps the value on success', async () => {
+    mockGetDecks.mockResolvedValue([makeDeck({ orientation: 0 })]);
+    const { result } = renderHook(() => useStreamDecks(true));
+    await flush();
+
+    let ok = false;
+    act(() => { void result.current.setOrientation('ABC123', 90).then(v => { ok = v; }); });
+    expect(result.current.decks[0].orientation).toBe(90);
+
+    await flush();
+    expect(ok).toBe(true);
+    expect(mockUpdate).toHaveBeenCalledWith('ABC123', { orientation: 90 });
+  });
+
+  it('setOrientation reverts through a refresh on failure', async () => {
+    mockGetDecks.mockResolvedValue([makeDeck({ orientation: 0 })]);
+    const { result } = renderHook(() => useStreamDecks(true));
+    await flush();
+
+    mockUpdate.mockResolvedValueOnce(false);
+    mockGetDecks.mockResolvedValueOnce([makeDeck({ orientation: 0 })]);
+
+    let ok = true;
+    await act(async () => { ok = await result.current.setOrientation('ABC123', 180); });
+    await flush();
+
+    expect(ok).toBe(false);
+    expect(result.current.decks[0].orientation).toBe(0);
+  });
+
+  it('setSleepAfterSeconds optimistically updates and keeps the value on success', async () => {
+    mockGetDecks.mockResolvedValue([makeDeck({ sleepAfterSeconds: 0 })]);
+    const { result } = renderHook(() => useStreamDecks(true));
+    await flush();
+
+    let ok = false;
+    act(() => { void result.current.setSleepAfterSeconds('ABC123', 300).then(v => { ok = v; }); });
+    expect(result.current.decks[0].sleepAfterSeconds).toBe(300);
+
+    await flush();
+    expect(ok).toBe(true);
+    expect(mockUpdate).toHaveBeenCalledWith('ABC123', { sleepAfterSeconds: 300 });
+  });
 });

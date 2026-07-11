@@ -49,5 +49,19 @@ export function useStreamDecks(enabled: boolean) {
     return ok;
   }, [refresh]);
 
-  return { decks, loaded, rename, setBrightness, refresh };
+  const setOrientation = useCallback(async (serial: string, orientation: number) => {
+    setDecks(prev => prev.map(d => (d.serial === serial ? { ...d, orientation } : d)));
+    const ok = await updateStreamDeck(serial, { orientation });
+    if (!ok) await refresh();
+    return ok;
+  }, [refresh]);
+
+  const setSleepAfterSeconds = useCallback(async (serial: string, sleepAfterSeconds: number) => {
+    setDecks(prev => prev.map(d => (d.serial === serial ? { ...d, sleepAfterSeconds } : d)));
+    const ok = await updateStreamDeck(serial, { sleepAfterSeconds });
+    if (!ok) await refresh();
+    return ok;
+  }, [refresh]);
+
+  return { decks, loaded, rename, setBrightness, setOrientation, setSleepAfterSeconds, refresh };
 }

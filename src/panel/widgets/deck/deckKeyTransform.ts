@@ -5,6 +5,9 @@
 
 export type DeckKeyTransform = 'none' | 'flipBoth' | 'mirrorXRot90';
 
+/** User-set mounting rotation of the whole deck, clockwise degrees from its default orientation. */
+export type DeckOrientation = 0 | 90 | 180 | 270;
+
 // Gen-1 Mini family ships upside-down + mirrored relative to the drawn
 // image (elgato-streamdeck crate src/info.rs ImageMode); everything else in
 // the button-only catalog (§1 of the streamdeck plan) is flip-both, except
@@ -92,11 +95,49 @@ function rotate90Ccw(img: RawImage): RawImage {
   return { width: outWidth, height: width, data: out };
 }
 
+// Clockwise 90 degree rotation: (x, y) in the source lands at
+// (height-1-y, x) in the destination, so the output is height x width.
+function rotate90Cw(img: RawImage): RawImage {
+  const { width, height, data } = img;
+  const out = new Uint8ClampedArray(data.length);
+  const outWidth = height;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const srcOffset = (y * width + x) * 4;
+      const dstX = height - 1 - y;
+      const dstY = x;
+      const dstOffset = (dstY * outWidth + dstX) * 4;
+      out[dstOffset] = data[srcOffset];
+      out[dstOffset + 1] = data[srcOffset + 1];
+      out[dstOffset + 2] = data[srcOffset + 2];
+      out[dstOffset + 3] = data[srcOffset + 3];
+    }
+  }
+  return { width: outWidth, height: width, data: out };
+}
+
 /** Apply a model's wire transform to a freshly-painted (unrotated) key bitmap. */
 export function applyKeyTransform(img: RawImage, transform: DeckKeyTransform): RawImage {
   switch (transform) {
     case 'none': return img;
     case 'flipBoth': return rotate180(img);
     case 'mirrorXRot90': return rotate90Ccw(mirrorX(img));
+  }
+}
+
+/**
+ * Counter-rotates a freshly-painted key bitmap to compensate for the deck's
+ * physical mounting rotation, so content still reads upright to the viewer.
+ * A deck mounted rotated 90 clockwise needs its content rotated 90
+ * counterclockwise, and vice versa; 180 is its own inverse. Runs before
+ * applyKeyTransform, which is a separate, fixed per-model hardware wiring
+ * quirk independent of how the user has physically mounted the deck.
+ */
+export function applyOrientation(img: RawImage, orientation: DeckOrientation): RawImage {
+  switch (orientation) {
+    case 0: return img;
+    case 90: return rotate90Ccw(img);
+    case 180: return rotate180(img);
+    case 270: return rotate90Cw(img);
   }
 }

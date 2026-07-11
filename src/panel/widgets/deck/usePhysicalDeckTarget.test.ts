@@ -277,13 +277,27 @@ describe('usePhysicalDeckTarget - back-key upload', () => {
     renderHook(() => usePhysicalDeckTarget(makeDeck({ transform: 'none' }), []));
     await settleInitialSync();
 
-    expect(mockRenderBack).toHaveBeenCalledWith({ keyPixels: 80, format: 'bmp', transform: 'none' });
+    expect(mockRenderBack).toHaveBeenCalledWith({ keyPixels: 80, format: 'bmp', transform: 'none', orientation: 0 });
   });
 
   it('falls back to the model-derived transform when the server does not send one', async () => {
     renderHook(() => usePhysicalDeckTarget(makeDeck({ model: 'Mini', transform: undefined }), []));
     await settleInitialSync();
 
-    expect(mockRenderBack).toHaveBeenCalledWith({ keyPixels: 80, format: 'bmp', transform: 'mirrorXRot90' });
+    expect(mockRenderBack).toHaveBeenCalledWith({ keyPixels: 80, format: 'bmp', transform: 'mirrorXRot90', orientation: 0 });
+  });
+
+  it('passes through a user-set mounting orientation to the back-bitmap render model', async () => {
+    renderHook(() => usePhysicalDeckTarget(makeDeck({ orientation: 180 }), []));
+    await settleInitialSync();
+
+    expect(mockRenderBack).toHaveBeenCalledWith(expect.objectContaining({ orientation: 180 }));
+  });
+
+  it('normalizes an out-of-range or absent orientation to 0', async () => {
+    renderHook(() => usePhysicalDeckTarget(makeDeck({ orientation: 45 }), []));
+    await settleInitialSync();
+
+    expect(mockRenderBack).toHaveBeenCalledWith(expect.objectContaining({ orientation: 0 }));
   });
 });

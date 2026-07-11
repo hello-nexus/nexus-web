@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getStreamDeckConfig, setStreamDeckConfig, uploadStreamDeckKeyImage, type StreamDeckSummary } from '../../../api/streamdeck';
 import { computeViewUploadJobs, makePhysicalDeckTarget, slotCountAtDepth, type DeckTarget } from './deckTarget';
-import { resolveDeckKeyTransform } from './deckKeyTransform';
+import { resolveDeckKeyTransform, type DeckOrientation } from './deckKeyTransform';
 import { pushDeckKeyImages } from './physicalDeckSync';
 import { renderDeckBackKeyBitmap, type DeckKeyModel } from './renderDeckKeyBitmap';
 import { resolveViewSlots } from './deckLayout';
@@ -11,7 +11,17 @@ const SYNC_DEBOUNCE_MS = 300;
 const MAX_CONSECUTIVE_PUT_FAILURES = 3;
 
 function deckKeyModel(deck: StreamDeckSummary): DeckKeyModel {
-  return { keyPixels: deck.keyPixels, format: deck.format, transform: resolveDeckKeyTransform(deck.model, deck.transform) };
+  return {
+    keyPixels: deck.keyPixels,
+    format: deck.format,
+    transform: resolveDeckKeyTransform(deck.model, deck.transform),
+    orientation: normalizeOrientation(deck.orientation),
+  };
+}
+
+/** Clamps a possibly-absent/stale/out-of-range persisted value to the four supported rotations. */
+function normalizeOrientation(degrees: number | undefined): DeckOrientation {
+  return degrees === 90 || degrees === 180 || degrees === 270 ? degrees : 0;
 }
 
 export interface UsePhysicalDeckTargetResult {
@@ -20,8 +30,6 @@ export interface UsePhysicalDeckTargetResult {
   /** True once the initial config fetch has settled with a failure. target stays null (no editing) until retry() succeeds. */
   error: boolean;
   retry: () => void;
-  /** Deep-replaces the whole config tree (copy-widget-layout) and re-renders the current view. */
-  replaceAll: (next: DeckConfig) => void;
 }
 
 /**
@@ -161,11 +169,9 @@ export function usePhysicalDeckTarget(
     // other decks' brightness, ...) - keying on its scalar fields (not the
     // object) keeps this effect from re-scheduling on unrelated updates.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deck?.serial, deck?.cols, deck?.rows, deck?.keyCount, deck?.model, deck?.format, deck?.keyPixels, deck?.transform, config, loadError, folderKey]);
+  }, [deck?.serial, deck?.cols, deck?.rows, deck?.keyCount, deck?.model, deck?.format, deck?.keyPixels, deck?.transform, deck?.orientation, config, loadError, folderKey]);
 
   useEffect(() => flushPending, [flushPending]);
 
-  const replaceAll = useCallback((next: DeckConfig) => { setConfig(next); }, []);
-
-  return { target, loaded: config !== null || loadError, error: loadError, retry, replaceAll };
+  return { target, loaded: config !== null || loadError, error: loadError, retry };
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { applyKeyTransform, resolveDeckKeyTransform, transformForModel, type RawImage } from './deckKeyTransform';
+import { applyKeyTransform, applyOrientation, resolveDeckKeyTransform, transformForModel, type RawImage } from './deckKeyTransform';
 
 // 2x2 RGBA image, each pixel a distinct color, to make every permutation
 // case unambiguous:
@@ -96,5 +96,58 @@ describe('applyKeyTransform', () => {
     const out = applyKeyTransform(wide, 'mirrorXRot90');
     expect(out.width).toBe(1);
     expect(out.height).toBe(3);
+  });
+});
+
+describe('applyOrientation', () => {
+  it('0 is a pass-through', () => {
+    const img = makeSquare();
+    expect(applyOrientation(img, 0)).toBe(img);
+  });
+
+  it('180 reverses the pixel order', () => {
+    const out = applyOrientation(makeSquare(), 180);
+    expect(pixel(out, 0, 0)).toEqual([255, 255, 255, 255]); // was BR (white)
+    expect(pixel(out, 1, 1)).toEqual([255, 0, 0, 255]); // was TL (red)
+  });
+
+  it('90 (mount rotated 90 clockwise) counter-rotates the content counterclockwise', () => {
+    const out = applyOrientation(makeSquare(), 90);
+    expect(pixel(out, 0, 0)).toEqual([0, 255, 0, 255]); // green (was TR)
+    expect(pixel(out, 1, 0)).toEqual([255, 255, 255, 255]); // white (was BR)
+    expect(pixel(out, 0, 1)).toEqual([255, 0, 0, 255]); // red (was TL)
+    expect(pixel(out, 1, 1)).toEqual([0, 0, 255, 255]); // blue (was BL)
+  });
+
+  it('270 (mount rotated 90 counterclockwise) counter-rotates the content clockwise', () => {
+    const out = applyOrientation(makeSquare(), 270);
+    expect(pixel(out, 0, 0)).toEqual([0, 0, 255, 255]); // blue (was BL)
+    expect(pixel(out, 1, 0)).toEqual([255, 0, 0, 255]); // red (was TL)
+    expect(pixel(out, 0, 1)).toEqual([255, 255, 255, 255]); // white (was BR)
+    expect(pixel(out, 1, 1)).toEqual([0, 255, 0, 255]); // green (was TR)
+  });
+
+  it('rotate90 swaps width/height for a non-square image', () => {
+    const wide: RawImage = {
+      width: 3,
+      height: 1,
+      data: new Uint8ClampedArray([
+        255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255,
+      ]),
+    };
+    const out = applyOrientation(wide, 90);
+    expect(out.width).toBe(1);
+    expect(out.height).toBe(3);
+  });
+});
+
+describe('composed user orientation + model wire transform', () => {
+  it('rotates the content by orientation before the model transform runs', () => {
+    const rotated = applyOrientation(makeSquare(), 270);
+    const composed = applyKeyTransform(rotated, 'flipBoth');
+    expect(pixel(composed, 0, 0)).toEqual([0, 255, 0, 255]); // green
+    expect(pixel(composed, 1, 0)).toEqual([255, 255, 255, 255]); // white
+    expect(pixel(composed, 0, 1)).toEqual([255, 0, 0, 255]); // red
+    expect(pixel(composed, 1, 1)).toEqual([0, 0, 255, 255]); // blue
   });
 });

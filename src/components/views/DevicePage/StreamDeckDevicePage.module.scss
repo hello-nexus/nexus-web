@@ -58,8 +58,6 @@
   letter-spacing: 0.04em;
 }
 
-.info { max-width: 320px; }
-
 .loading {
   padding: 1rem 0;
   font-size: var(--type-small);
@@ -76,4 +74,75 @@
   font-size: var(--type-small);
   color: var(--warn);
   text-align: center;
+}
+
+// Two-pane tab body: a scrollable left column (inspector or settings) and a
+// fixed-ratio right column holding the deck grid preview.
+.splitLayout {
+  display: flex;
+  flex: 1;
+  gap: 1.5rem;
+  overflow: hidden;
+}
+
+.leftPane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow-y: auto;
+}
+
+.previewPane {
+  flex: 0 0 clamp(360px, 44%, 820px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.previewStage {
+  width: 100%;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-sizing: border-box;
+}
+
+// Settings tab: the grid mirrors the Customize view but isn't editable here.
+.previewStageDimmed {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  font-size: var(--type-mini);
+  color: var(--text-dim);
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: 0;
+    background: transparent;
+    color: var(--accent);
+    cursor: pointer;
+  }
+}
+
+.sectionBox {
+  gap: 0.75rem;
+}
+
+.readOnlyValue {
+  color: var(--text-dim);
 }
