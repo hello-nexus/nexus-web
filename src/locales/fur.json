@@ -1803,6 +1803,7 @@
   "panel.actions.settings": "Impostazions",
   "panel.add.noMatches": "Nissun widget al corispuint",
   "panel.add.searchPlaceholder": "Cîr widget...",
+  "panel.add.sizePreference": "Dimension preferide dal widget",
   "panel.connectedTo": "Conetût a",
   "panel.editor.addWidgetTitle": "Zonte un widget",
   "panel.editor.hostName.hint": "Mostrât ai telefonos associâts e te bare dal panel.",

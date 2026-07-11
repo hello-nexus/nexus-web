@@ -1739,6 +1739,7 @@
   "panel.actions.settings": "設定",
   "panel.add.noMatches": "一致するウィジェットがありません",
   "panel.add.searchPlaceholder": "ウィジェットを検索...",
+  "panel.add.sizePreference": "優先ウィジェットサイズ",
   "panel.connectedTo": "接続先",
   "panel.editor.addWidgetTitle": "ウィジェットを追加",
   "panel.editor.hostName.hint": "ペアリングしたスマートフォンやパネルトレイに表示されます。",
