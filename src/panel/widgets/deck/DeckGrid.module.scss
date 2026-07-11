@@ -13,6 +13,16 @@
   box-sizing: border-box;
 }
 
+// Physical-deck mode: fixed square keys sized like the hardware, centered in
+// the grid box rather than stretched to fill it.
+.square {
+  --deck-cell: clamp(52px, 13vmin, 84px);
+  width: max-content;
+  height: max-content;
+  max-width: 100%;
+  margin: auto;
+}
+
 .cell {
   position: relative;
   display: flex;

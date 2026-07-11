@@ -139,15 +139,23 @@ export interface DeckGridProps {
    * one fewer than cols*rows when this is set.
    */
   backCell?: DeckGridBackCell;
+  /**
+   * Fixed square keys at a device-like size, centered, instead of stretching
+   * cells to fill the container. Used by the physical Stream Deck editor so the
+   * grid mirrors the hardware's square-button layout; the touch widget leaves
+   * this off and fills its tile.
+   */
+  square?: boolean;
 }
 
 /** Pure icon grid for one folder level. The back affordance is overlaid by DeckWidget. */
-export function DeckGrid({ slots, cols, rows, selectable, dragEnabled, selectedIndex, onCell, backCell }: DeckGridProps) {
+export function DeckGrid({ slots, cols, rows, selectable, dragEnabled, selectedIndex, onCell, backCell, square }: DeckGridProps) {
   const Cell = dragEnabled ? DraggableCell : StaticCell;
+  const trackSize = square ? 'var(--deck-cell)' : '1fr';
   return (
     <div
-      className={styles.grid}
-      style={{ gridTemplateColumns: `repeat(${cols}, 1fr)`, gridTemplateRows: `repeat(${rows}, 1fr)` }}
+      className={square ? `${styles.grid} ${styles.square}` : styles.grid}
+      style={{ gridTemplateColumns: `repeat(${cols}, ${trackSize})`, gridTemplateRows: `repeat(${rows}, ${trackSize})` }}
     >
       {backCell && (
         <button

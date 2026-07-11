@@ -292,6 +292,7 @@ export function DeckEditor({ target, folderPath, onFolderPathChange, selectedSlo
               slots={viewSlots}
               cols={target.cols}
               rows={target.rows}
+              square
               selectable
               dragEnabled
               selectedIndex={selSlot}
