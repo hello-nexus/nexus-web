@@ -1793,6 +1793,7 @@
   "panel.actions.pairing": "페어링",
   "panel.actions.settings": "설정",
   "panel.add.noMatches": "일치하는 위젯이 없습니다",
+  "panel.add.preferSize": "{size} 선호",
   "panel.add.searchPlaceholder": "위젯 검색...",
   "panel.add.sizePreference": "선호하는 위젯 크기",
   "panel.connectedTo": "연결 대상",

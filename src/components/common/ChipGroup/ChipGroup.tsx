@@ -7,6 +7,8 @@ export interface ChipOption {
   readonly disabled?: boolean;
   // Accessible name for an icon-only chip whose visible `label` is a glyph.
   readonly ariaLabel?: string;
+  // Native hover tooltip.
+  readonly title?: string;
 }
 
 type ChipGroupSingleProps = {
@@ -49,6 +51,7 @@ export function ChipGroup(props: ChipGroupProps) {
             type="button"
             aria-pressed={active}
             aria-label={opt.ariaLabel}
+            title={opt.title}
             disabled={opt.disabled}
             className={`chip-action${active ? ' chip-active' : ''}`}
             onClick={handleClick}

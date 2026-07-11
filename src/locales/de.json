@@ -1793,6 +1793,7 @@
   "panel.actions.pairing": "Kopplung",
   "panel.actions.settings": "Einstellungen",
   "panel.add.noMatches": "Keine Widgets gefunden",
+  "panel.add.preferSize": "{size} bevorzugen",
   "panel.add.searchPlaceholder": "Widgets suchen...",
   "panel.add.sizePreference": "Bevorzugte Widget-Größe",
   "panel.connectedTo": "Verbunden mit",

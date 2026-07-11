@@ -1802,6 +1802,7 @@
   "panel.actions.pairing": "Associazion",
   "panel.actions.settings": "Impostazions",
   "panel.add.noMatches": "Nissun widget al corispuint",
+  "panel.add.preferSize": "Preferî {size}",
   "panel.add.searchPlaceholder": "Cîr widget...",
   "panel.add.sizePreference": "Dimension preferide dal widget",
   "panel.connectedTo": "Conetût a",

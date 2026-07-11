@@ -135,6 +135,14 @@ describe('PanelWidgetCatalog', () => {
     expect(screen.getByRole('button', { name: 'panel.widget.lighting' })).toHaveAttribute('data-size', '4x4');
   });
 
+  it('renders the size chips as icon buttons with a hover tooltip', () => {
+    render(<PanelWidgetCatalog surface="desktop" onAdd={vi.fn()} />);
+
+    const chip = screen.getByRole('button', { name: '4x2' });
+    expect(chip).toHaveAttribute('title', 'panel.add.preferSize');
+    expect(chip.querySelector('svg')).not.toBeNull();
+  });
+
   it('switches supporting widgets to 4x2 via the size chips and persists the choice', () => {
     const onAdd = vi.fn();
     render(<PanelWidgetCatalog surface="desktop" onAdd={onAdd} />);

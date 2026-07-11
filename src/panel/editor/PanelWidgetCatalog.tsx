@@ -15,6 +15,7 @@ import {
 } from '../../widgets/marketplaceRegistry';
 import { DEV_TOOLS } from '../../lib/devTools';
 import { PanelCatalogCell } from '../dnd/PanelDragCells';
+import { SIZE_ICONS } from '../widgets/common/SizeIcons';
 import panelStyles from '../PanelApp.module.scss';
 import styles from './PanelWidgetCatalog.module.scss';
 
@@ -32,11 +33,19 @@ const CATALOG_TARGET_CELL = 100;
 const CATALOG_SIZE_KEY = 'nexus.catalog.preferredSize';
 type CatalogPreferredSize = '2x2' | '4x2';
 
-// Size tokens, identical across locales.
-const SIZE_PREF_OPTIONS = [
-  { key: '2x2', label: '2x2' },
-  { key: '4x2', label: '4x2' },
-] as const;
+const TwoByTwoIcon = SIZE_ICONS['2x2'];
+const FourByTwoIcon = SIZE_ICONS['4x2'];
+
+// Icon-only chips; the size tokens ride as aria-labels, identical across
+// locales. The shared glyphs draw inside a square viewBox, which visually
+// shrinks the 4x2's wide footprint at chip scale - the viewBox overrides
+// crop each glyph to its drawn bounds so the 4x2 renders wider than tall.
+const SIZE_PREF_ICONS = {
+  '2x2': <TwoByTwoIcon width={16} height={16} viewBox="2 2 28 28" aria-hidden="true" />,
+  '4x2': <FourByTwoIcon width={21} height={16} viewBox="0 4 32 24" aria-hidden="true" />,
+} as const;
+
+const SIZE_PREF_KEYS: readonly CatalogPreferredSize[] = ['2x2', '4x2'];
 
 type CatalogEntry = ReturnType<typeof getCatalogEntries>[number];
 
@@ -79,6 +88,12 @@ export function PanelWidgetCatalog({
   const [query, setQuery] = useState('');
   const [preferredSize, setPreferredSize] = usePersistentState<CatalogPreferredSize>(CATALOG_SIZE_KEY, '2x2');
   const changePreferredSize = (key: string) => setPreferredSize(key === '4x2' ? '4x2' : '2x2');
+  const sizePrefOptions = SIZE_PREF_KEYS.map(size => ({
+    key: size,
+    label: SIZE_PREF_ICONS[size],
+    ariaLabel: size,
+    title: t('panel.add.preferSize', { size }),
+  }));
   // Force re-render on marketplace registry refresh - the catalog reads a
   // module-level cache React can't observe without an explicit subscription.
   const forceRender = useReducer((r: number) => r + 1, 0)[1];
@@ -252,7 +267,7 @@ export function PanelWidgetCatalog({
             <ChipGroup
               className={styles.sizeChips}
               ariaLabel={t('panel.add.sizePreference')}
-              options={SIZE_PREF_OPTIONS}
+              options={sizePrefOptions}
               activeKey={preferredSize}
               onChange={changePreferredSize}
             />

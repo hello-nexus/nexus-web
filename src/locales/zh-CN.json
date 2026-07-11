@@ -1793,6 +1793,7 @@
   "panel.actions.pairing": "配对",
   "panel.actions.settings": "设置",
   "panel.add.noMatches": "未找到匹配的小部件",
+  "panel.add.preferSize": "首选{size}",
   "panel.add.searchPlaceholder": "搜索小部件...",
   "panel.add.sizePreference": "首选小部件大小",
   "panel.connectedTo": "已连接到",

@@ -1793,6 +1793,7 @@
   "panel.actions.pairing": "Eşleştirme",
   "panel.actions.settings": "Ayarlar",
   "panel.add.noMatches": "Eşleşen widget yok",
+  "panel.add.preferSize": "{size} tercih et",
   "panel.add.searchPlaceholder": "Widget ara...",
   "panel.add.sizePreference": "Tercih edilen widget boyutu",
   "panel.connectedTo": "Baglanilan",

@@ -1793,6 +1793,7 @@
   "panel.actions.pairing": "Сопряжение",
   "panel.actions.settings": "Настройки",
   "panel.add.noMatches": "Виджеты не найдены",
+  "panel.add.preferSize": "Предпочитать {size}",
   "panel.add.searchPlaceholder": "Поиск виджетов...",
   "panel.add.sizePreference": "Предпочтительный размер виджета",
   "panel.connectedTo": "Подключено к",

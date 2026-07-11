@@ -1793,6 +1793,7 @@
   "panel.actions.pairing": "Parowanie",
   "panel.actions.settings": "Ustawienia",
   "panel.add.noMatches": "Brak pasujących widżetów",
+  "panel.add.preferSize": "Preferuj {size}",
   "panel.add.searchPlaceholder": "Szukaj widżetów...",
   "panel.add.sizePreference": "Preferowany rozmiar widżetu",
   "panel.connectedTo": "Połączono z",

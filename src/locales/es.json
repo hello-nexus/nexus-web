@@ -1793,6 +1793,7 @@
   "panel.actions.pairing": "Emparejamiento",
   "panel.actions.settings": "Ajustes",
   "panel.add.noMatches": "Ningún widget encontrado",
+  "panel.add.preferSize": "Preferir {size}",
   "panel.add.searchPlaceholder": "Buscar widgets...",
   "panel.add.sizePreference": "Tamaño de widget preferido",
   "panel.connectedTo": "Conectado a",

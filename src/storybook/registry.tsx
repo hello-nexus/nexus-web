@@ -429,9 +429,9 @@ function PreviewChipGroup() {
   return <ChipGroup
     ariaLabel="Sample chip group"
     options={[
-      { key: 'quiet', label: 'Quiet' },
-      { key: 'balanced', label: 'Balanced' },
-      { key: 'turbo', label: 'Turbo' },
+      { key: 'quiet', label: 'Quiet', title: 'Prefer quiet' },
+      { key: 'balanced', label: 'Balanced', title: 'Prefer balanced' },
+      { key: 'turbo', label: 'Turbo', title: 'Prefer turbo' },
     ]}
     activeKey={active}
     onChange={setActive}

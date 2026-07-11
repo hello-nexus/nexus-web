@@ -1935,6 +1935,7 @@
   "panel.actions.pairing": "Pairing",
   "panel.actions.settings": "Settings",
   "panel.add.noMatches": "No widgets match",
+  "panel.add.preferSize": "Prefer {size}",
   "panel.add.searchPlaceholder": "Search widgets...",
   "panel.add.sizePreference": "Preferred widget size",
   "panel.connectedTo": "Connected to",
