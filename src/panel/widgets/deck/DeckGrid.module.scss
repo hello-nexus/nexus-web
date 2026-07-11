@@ -74,32 +74,6 @@
     outline: 2px solid var(--panel-accent, var(--accent));
     outline-offset: 2px;
   }
-
-  &:hover .cellTrash,
-  &:focus-within .cellTrash { opacity: 1; }
-}
-
-// Hover-reveal trash in a filled key's top-right corner (edit mode only).
-.cellTrash {
-  position: absolute;
-  top: 3px;
-  right: 3px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  border-radius: var(--radius-sm);
-  background: rgb(0 0 0 / 0.55);
-  color: #fff;
-  opacity: 0;
-  transition: opacity var(--ease-fast), background var(--ease-fast);
-  cursor: pointer;
-  z-index: 3;
-
-  svg { width: 13px; height: 13px; }
-
-  &:hover { background: var(--danger, #ef4444); }
 }
 
 .empty {

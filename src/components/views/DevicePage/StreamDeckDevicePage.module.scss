@@ -60,10 +60,40 @@
   text-align: center;
 }
 
-.pageNumbersRow {
-  display: flex;
-  justify-content: center;
+// Page row under the preview: back (left) | page chips (center) | delete
+// (right). A 1fr/auto/1fr grid keeps the chips centered regardless of the side
+// buttons, so entering a folder doesn't shift the deck preview up or down.
+.pageRow {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
   width: 100%;
+  gap: 8px;
+}
+
+.pageRowSide {
+  display: flex;
+  align-items: center;
+  justify-self: start;
+}
+
+.pageRowRight {
+  justify-self: end;
+}
+
+.pageRowBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+
+  &:hover { background: var(--bg-card-hover); color: var(--text); }
 }
 
 // Customize tab: a two-column split. The left column holds the deck preview

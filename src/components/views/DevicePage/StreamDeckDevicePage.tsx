@@ -1,10 +1,11 @@
 import { useState, useCallback, type ReactNode } from 'react';
-import { AlertTriangle, LayoutGrid, Monitor, Settings as SettingsIcon, Unplug, ChevronLeft } from 'lucide-react';
+import { AlertTriangle, LayoutGrid, Monitor, Settings as SettingsIcon, Unplug, ChevronLeft, Trash2 } from 'lucide-react';
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, pointerWithin, closestCenter, type DragEndEvent, type DragStartEvent, type CollisionDetection } from '@dnd-kit/core';
 import { useTranslation } from '../../../lib/i18n';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { localizeNumbers } from '../../../lib/units';
 import { useStreamDecks } from '../../../hooks/useStreamDecks';
+import { setStreamDeckNav } from '../../../api/streamdeck';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import type { UnifiedDevice } from '../../../hooks/useUnifiedDevices';
 import { useConflictApps } from '../../../hooks/useConflictApps';
@@ -109,7 +110,14 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
     setSelectedSlot(0);
   }, [serial]));
 
-  const onSelectPage = (next: number) => { setPage(next); setFolderPath([]); setSelectedSlot(0); };
+  // Mirror an editor-initiated nav onto the hardware (desktop -> device). Only
+  // user actions call this; the `nav`-frame subscription above (device ->
+  // desktop) sets state without pushing, so the two directions never echo.
+  const pushNav = useCallback((p: number, fp: readonly number[]) => {
+    if (serial) void setStreamDeckNav(serial, p, fp);
+  }, [serial]);
+  const onSelectPage = (next: number) => { setPage(next); setFolderPath([]); setSelectedSlot(0); pushNav(next, []); };
+  const onEnterFolder = (next: number[]) => { setFolderPath(next); setSelectedSlot(0); pushNav(page, next); };
 
   // /streamdeck/* is .LocalhostOnly(); a remote-paired session (or a browser
   // reaching the dashboard over the relay) would otherwise sit on this page
@@ -148,8 +156,9 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
     pageCount,
   );
   const selSlot = clamp(selectedSlot, 0, Math.max(0, viewCount - 1));
+  const selectedBound = !!(viewSlots[selSlot]?.action || viewSlots[selSlot]?.folder);
 
-  const onBack = () => { setFolderPath(p => p.slice(0, -1)); setSelectedSlot(0); };
+  const onBack = () => { const next = folderPath.slice(0, -1); setFolderPath(next); setSelectedSlot(0); pushNav(page, next); };
   const onDragStart = (e: DragStartEvent) => {
     const id = String(e.active.id);
     setActiveDragKind(id.startsWith('pick:') ? (id.slice('pick:'.length) as DeckPickerKind) : null);
@@ -210,13 +219,6 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
             <div className={styles.leftCol}>
               <div className={styles.previewTop}>
                 <div className={styles.previewStage}>
-                  {inFolder && (
-                    <div className={styles.breadcrumb}>
-                      <button type="button" onClick={onBack}>
-                        <ChevronLeft size={14} /> {t('panel.settings.deck.back')}
-                      </button>
-                    </div>
-                  )}
                   {target && (
                     <DeckGrid
                       slots={viewSlots}
@@ -227,13 +229,19 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
                       dragEnabled
                       selectedIndex={selSlot}
                       onCell={setSelectedSlot}
-                      onDelete={requestDelete}
                       backCell={inFolder ? { onBack, ariaLabel: t('panel.settings.deck.back') } : undefined}
                     />
                   )}
                 </div>
                 {target && (
-                  <div className={styles.pageNumbersRow}>
+                  <div className={styles.pageRow}>
+                    <div className={styles.pageRowSide}>
+                      {inFolder && (
+                        <button type="button" className={styles.pageRowBtn} onClick={onBack} aria-label={t('panel.settings.deck.back')}>
+                          <ChevronLeft size={16} />
+                        </button>
+                      )}
+                    </div>
                     <DeckPageStrip
                       numbered
                       pageCount={pageCount}
@@ -243,6 +251,13 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
                       onRemoveCurrentPage={() => { target.removePage(page); onSelectPage(Math.max(0, page - 1)); }}
                       currentPageHasContent={pageHasContent(target.config.pages[page] ?? { slots: [] })}
                     />
+                    <div className={`${styles.pageRowSide} ${styles.pageRowRight}`}>
+                      {selectedBound && (
+                        <button type="button" className={styles.pageRowBtn} onClick={() => requestDelete(selSlot)} aria-label={t('common.delete')}>
+                          <Trash2 size={16} />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
                 {!deck.verified && (
@@ -256,7 +271,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
                     target={target}
                     page={page}
                     folderPath={folderPath}
-                    onFolderPathChange={setFolderPath}
+                    onFolderPathChange={onEnterFolder}
                     selectedSlot={selectedSlot}
                     onSelectedSlotChange={setSelectedSlot}
                     // eslint-disable-next-line i18next/no-literal-string -- PanelSurface enum value
@@ -282,7 +297,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
                   target={target}
                   page={page}
                   folderPath={folderPath}
-                  onFolderPathChange={setFolderPath}
+                  onFolderPathChange={onEnterFolder}
                   selectedSlot={selectedSlot}
                   onSelectedSlotChange={setSelectedSlot}
                   // eslint-disable-next-line i18next/no-literal-string -- PanelSurface enum value

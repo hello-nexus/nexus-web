@@ -103,6 +103,11 @@ export async function sendStreamDeckTestPattern(serial: string): Promise<boolean
   return acked(await postService<ApiResponseWrapper>(`/streamdeck/decks/${encodeURIComponent(serial)}/test-pattern`, {}));
 }
 
+/** Mirror the editor's current page + folder onto the physical deck (desktop -> device nav). */
+export async function setStreamDeckNav(serial: string, page: number, folderPath: readonly number[]): Promise<boolean> {
+  return acked(await postService<ApiResponseWrapper>(`/streamdeck/decks/${encodeURIComponent(serial)}/nav`, { page, folderPath }));
+}
+
 export interface StreamDeckDevModel {
   productId: string;
   name: string;

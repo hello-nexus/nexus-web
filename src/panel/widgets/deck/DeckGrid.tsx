@@ -1,7 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { ChevronLeft, Plus, Trash2 } from 'lucide-react';
+import { ChevronLeft, Plus } from 'lucide-react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
-import { useTranslation } from '../../../lib/i18n';
 import { useAppIcon } from '../common/AppPicker';
 import { DECK_ICONS, autoIconName, deckCategory, categoryColor } from './deckIcons';
 import { resolveDeckTitleStyle, titleFontSizeCss } from './deckTitleStyle';
@@ -77,30 +76,10 @@ interface CellProps {
   selectable: boolean;
   selected: boolean;
   onClick: () => void;
-  /** Clears this key. When set (and the key isn't blank) a hover trash shows. */
-  onDelete?: () => void;
-}
-
-/** Hover-reveal trash in a filled cell's top-right corner; clears the key. */
-function CellTrash({ onDelete }: { onDelete: () => void }) {
-  const { t } = useTranslation();
-  return (
-    <span
-      className={styles.cellTrash}
-      role="button"
-      tabIndex={-1}
-      aria-label={t('common.delete')}
-      onPointerDown={e => e.stopPropagation()}
-      onClick={e => { e.stopPropagation(); onDelete(); }}
-    >
-      {/* eslint-disable-next-line i18next/no-literal-string -- ARIA boolean attribute */}
-      <Trash2 aria-hidden="true" />
-    </span>
-  );
 }
 
 /** Run/select cell (no drag). */
-function StaticCell({ slot, index, selectable, selected, onClick, onDelete }: CellProps) {
+function StaticCell({ slot, index, selectable, selected, onClick }: CellProps) {
   const { accent, content, empty } = useCellVisual(slot);
   if (empty && !selectable) {
     return <div className={`${styles.cell} ${styles.empty}`} data-deck-slot-index={index} />;
@@ -117,13 +96,12 @@ function StaticCell({ slot, index, selectable, selected, onClick, onDelete }: Ce
       onContextMenu={e => { if (selectable) e.stopPropagation(); }}
     >
       {content}
-      {!empty && onDelete && <CellTrash onDelete={onDelete} />}
     </button>
   );
 }
 
 /** Edit-mode cell: draggable (if it has content) + droppable, plus selectable. */
-function DraggableCell({ slot, index, selected, onClick, onDelete }: CellProps) {
+function DraggableCell({ slot, index, selected, onClick }: CellProps) {
   const { accent, content, empty } = useCellVisual(slot);
   const id = String(index);
   const drag = useDraggable({ id, disabled: empty });
@@ -149,7 +127,6 @@ function DraggableCell({ slot, index, selected, onClick, onDelete }: CellProps) 
       onContextMenu={e => e.stopPropagation()}
     >
       {content}
-      {!empty && onDelete && !drag.isDragging && <CellTrash onDelete={onDelete} />}
     </button>
   );
 }
@@ -176,8 +153,6 @@ export interface DeckGridProps {
   dragEnabled?: boolean;
   selectedIndex?: number;
   onCell: (index: number) => void;
-  /** Clears the slot at `index`; when set, a filled cell shows a hover trash. */
-  onDelete?: (index: number) => void;
   /**
    * Reserves the first grid cell for a Back affordance instead of a slot: a
    * physical Stream Deck has no room to overlay Back like the touch widget
@@ -196,7 +171,7 @@ export interface DeckGridProps {
 }
 
 /** Pure icon grid for one folder level. The back affordance is overlaid by DeckWidget. */
-export function DeckGrid({ slots, cols, rows, selectable, dragEnabled, selectedIndex, onCell, onDelete, backCell, square }: DeckGridProps) {
+export function DeckGrid({ slots, cols, rows, selectable, dragEnabled, selectedIndex, onCell, backCell, square }: DeckGridProps) {
   const Cell = dragEnabled ? DraggableCell : StaticCell;
   const trackSize = square ? 'var(--deck-cell)' : '1fr';
   return (
@@ -223,7 +198,6 @@ export function DeckGrid({ slots, cols, rows, selectable, dragEnabled, selectedI
           selectable={selectable}
           selected={selectable && i === selectedIndex}
           onClick={() => onCell(i)}
-          onDelete={onDelete ? () => onDelete(i) : undefined}
         />
       ))}
     </div>
