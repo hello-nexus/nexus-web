@@ -33,6 +33,9 @@
   @include text-numeric;
 
   flex: 0 0 auto;
+  // Pin to the right edge so a hidden label (no flex:1 spacer) leaves the
+  // value where it sits in labeled bars, not left-shifted.
+  margin-left: auto;
   color: var(--text);
   white-space: nowrap;
 
