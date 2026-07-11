@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import { Lock, Power } from 'lucide-react';
 import { makePhysicalDeckTarget, makeWidgetDeckTarget } from './deckTarget';
 import type { PanelWidget } from '../types';
@@ -8,7 +8,19 @@ import type { PanelSurface } from '../../types';
 import type { DeckConfig, DeckSlot } from './types';
 
 vi.mock('../common/AppPicker', () => ({ useAppIcon: () => null, AppPicker: () => null }));
-vi.mock('../../../api/service', () => ({ fetchService: vi.fn().mockResolvedValue(null) }));
+vi.mock('../../../api/service', () => ({
+  fetchService: vi.fn().mockResolvedValue(null),
+  isRelayActive: vi.fn(() => false),
+  isDirectActive: vi.fn(() => false),
+  pickSystemPath: vi.fn(() => Promise.resolve(null)),
+}));
+vi.mock('../../../app/windowActions', () => ({
+  isWindowsAppShell: vi.fn(() => false),
+  isMacAppShell: vi.fn(() => false),
+}));
+
+import { isDirectActive, isRelayActive, pickSystemPath } from '../../../api/service';
+import { isMacAppShell, isWindowsAppShell } from '../../../app/windowActions';
 
 // A minimal, deterministic sensor fixture: 'quick' and 'cpu' each carry one
 // sensor (so both categories stay visible under visibleDeviceKeys' "0
@@ -377,5 +389,106 @@ describe('DeckKeyInspector action picker - search', () => {
   it('shows the search bar on Y70 when desktopEditor is set (the routed device-page split editor)', () => {
     render(<Harness initialSlots={[{}]} surface="y70" desktopEditor />);
     expect(screen.getByRole('textbox', { name: 'panel.settings.deck.actionSearch' })).toBeInTheDocument();
+  });
+});
+
+describe('DeckKeyInspector - openFile/openFolder Browse button', () => {
+  afterEach(() => {
+    vi.mocked(isWindowsAppShell).mockReturnValue(false);
+    vi.mocked(isMacAppShell).mockReturnValue(false);
+    vi.mocked(isRelayActive).mockReturnValue(false);
+    vi.mocked(isDirectActive).mockReturnValue(false);
+  });
+
+  it('hides Browse in a plain browser tab (no app shell)', () => {
+    renderInspector([{ action: { type: 'openFile', path: '' } }]);
+    expect(screen.queryByRole('button', { name: 'panel.settings.deck.browse' })).toBeNull();
+  });
+
+  it('shows Browse inside the Windows app shell', () => {
+    vi.mocked(isWindowsAppShell).mockReturnValue(true);
+    renderInspector([{ action: { type: 'openFile', path: '' } }]);
+    expect(screen.getByRole('button', { name: 'panel.settings.deck.browse' })).toBeInTheDocument();
+  });
+
+  it('shows Browse inside the macOS app shell', () => {
+    vi.mocked(isMacAppShell).mockReturnValue(true);
+    renderInspector([{ action: { type: 'openFolder', path: '' } }]);
+    expect(screen.getByRole('button', { name: 'panel.settings.deck.browse' })).toBeInTheDocument();
+  });
+
+  it('hides Browse over an active relay session even inside the app shell', () => {
+    vi.mocked(isWindowsAppShell).mockReturnValue(true);
+    vi.mocked(isRelayActive).mockReturnValue(true);
+    renderInspector([{ action: { type: 'openFile', path: '' } }]);
+    expect(screen.queryByRole('button', { name: 'panel.settings.deck.browse' })).toBeNull();
+  });
+
+  it('hides Browse over an active direct-connect session even inside the app shell', () => {
+    vi.mocked(isWindowsAppShell).mockReturnValue(true);
+    vi.mocked(isDirectActive).mockReturnValue(true);
+    renderInspector([{ action: { type: 'openFile', path: '' } }]);
+    expect(screen.queryByRole('button', { name: 'panel.settings.deck.browse' })).toBeNull();
+  });
+
+  it('hides Browse on a keyboard-less surface (Y70) even inside the app shell', () => {
+    vi.mocked(isWindowsAppShell).mockReturnValue(true);
+    render(<Harness initialSlots={[{ action: { type: 'openFile', path: '' } }]} surface="y70" />);
+    expect(screen.queryByRole('button', { name: 'panel.settings.deck.browse' })).toBeNull();
+  });
+
+  it('passes folder=false for openFile and fills the input with the picked path', async () => {
+    vi.mocked(isWindowsAppShell).mockReturnValue(true);
+    vi.mocked(pickSystemPath).mockResolvedValueOnce('C:\\Users\\me\\notes.txt');
+    renderInspector([{ action: { type: 'openFile', path: '' } }]);
+
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.browse' }));
+
+    expect(await screen.findByDisplayValue('C:\\Users\\me\\notes.txt')).toBeInTheDocument();
+    expect(vi.mocked(pickSystemPath)).toHaveBeenCalledWith(false);
+  });
+
+  it('passes folder=true for openFolder', async () => {
+    vi.mocked(isWindowsAppShell).mockReturnValue(true);
+    vi.mocked(pickSystemPath).mockResolvedValueOnce('C:\\Users\\me\\Documents');
+    renderInspector([{ action: { type: 'openFolder', path: '' } }]);
+
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.browse' }));
+
+    await waitFor(() => expect(vi.mocked(pickSystemPath)).toHaveBeenCalledWith(true));
+  });
+
+  it('a cancelled dialog leaves the existing path untouched', async () => {
+    vi.mocked(isWindowsAppShell).mockReturnValue(true);
+    vi.mocked(pickSystemPath).mockResolvedValueOnce(null);
+    renderInspector([{ action: { type: 'openFolder', path: 'C:\\existing' } }]);
+
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.browse' }));
+    await waitFor(() => expect(vi.mocked(pickSystemPath)).toHaveBeenCalled());
+
+    expect(screen.getByDisplayValue('C:\\existing')).toBeInTheDocument();
+  });
+
+  it('the path input stays hand-editable after Browse renders', () => {
+    vi.mocked(isWindowsAppShell).mockReturnValue(true);
+    renderInspector([{ action: { type: 'openFile', path: '' } }]);
+
+    const input = document.querySelector('[class*=pathRow] input') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: 'C:\\typed\\path.txt' } });
+    expect(screen.getByDisplayValue('C:\\typed\\path.txt')).toBeInTheDocument();
+  });
+
+  it('disables Browse while the dialog is open, re-enabling once it resolves', async () => {
+    vi.mocked(isWindowsAppShell).mockReturnValue(true);
+    let resolvePick: (path: string | null) => void = () => {};
+    vi.mocked(pickSystemPath).mockReturnValueOnce(new Promise(resolve => { resolvePick = resolve; }));
+    renderInspector([{ action: { type: 'openFile', path: '' } }]);
+
+    const browse = screen.getByRole('button', { name: 'panel.settings.deck.browse' });
+    fireEvent.click(browse);
+    expect(browse).toBeDisabled();
+
+    resolvePick(null);
+    await waitFor(() => expect(browse).not.toBeDisabled());
   });
 });

@@ -2019,6 +2019,7 @@
   "panel.settings.deck.audioInput": "Input device",
   "panel.settings.deck.audioOutput": "Output device",
   "panel.settings.deck.back": "Back",
+  "panel.settings.deck.browse": "Browse…",
   "panel.settings.deck.category.multiAction": "Multi-action",
   "panel.settings.deck.category.navigation": "Navigation",
   "panel.settings.deck.category.nexus": "Nexus",

@@ -1877,6 +1877,7 @@
   "panel.settings.deck.audioInput": "Périphérique d'entrée",
   "panel.settings.deck.audioOutput": "Périphérique de sortie",
   "panel.settings.deck.back": "Retour",
+  "panel.settings.deck.browse": "Parcourir…",
   "panel.settings.deck.category.multiAction": "Action multiple",
   "panel.settings.deck.category.navigation": "Navigation",
   "panel.settings.deck.category.nexus": "Nexus",

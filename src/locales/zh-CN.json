@@ -1877,6 +1877,7 @@
   "panel.settings.deck.audioInput": "输入设备",
   "panel.settings.deck.audioOutput": "输出设备",
   "panel.settings.deck.back": "返回",
+  "panel.settings.deck.browse": "浏览…",
   "panel.settings.deck.category.multiAction": "多重操作",
   "panel.settings.deck.category.navigation": "导航",
   "panel.settings.deck.category.nexus": "Nexus",

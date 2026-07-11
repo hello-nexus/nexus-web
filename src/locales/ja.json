@@ -1822,6 +1822,7 @@
   "panel.settings.deck.audioInput": "入力デバイス",
   "panel.settings.deck.audioOutput": "出力デバイス",
   "panel.settings.deck.back": "戻る",
+  "panel.settings.deck.browse": "参照…",
   "panel.settings.deck.category.multiAction": "マルチアクション",
   "panel.settings.deck.category.navigation": "ナビゲーション",
   "panel.settings.deck.category.nexus": "Nexus",
