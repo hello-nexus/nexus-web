@@ -6,20 +6,20 @@ import type { GaugeDesignKey } from './gauges';
 // either picker (see MonitoringSettings' DEVICE_OPTIONS).
 //
 // 'smart' (LHM SSD SMART, storage topic) and the extras-topic categories
-// ('memoryModule', 'battery', 'nic', 'cooler', 'psu', 'embeddedController')
-// are widget-only: they are deliberately NOT part of sensorCategories.ts'
+// ('memoryModule', 'battery', 'cooler', 'psu', 'embeddedController') are
+// widget-only: they are deliberately NOT part of sensorCategories.ts'
 // SENSOR_CATEGORIES, so the Tryx overlay picker (which mirrors that shared
 // set) never offers them - see useSensors.storageSensors and
 // useSensorExtras for why each is gated off that surface.
 export type DeviceKey =
   | 'quick' | 'cpu' | 'gpu' | 'memory' | 'motherboard' | 'fan' | 'storage' | 'network' | 'fps'
-  | 'smart' | 'memoryModule' | 'battery' | 'nic' | 'cooler' | 'psu' | 'embeddedController';
+  | 'smart' | 'memoryModule' | 'battery' | 'cooler' | 'psu' | 'embeddedController';
 
 // DeviceKeys resolved from the "extras" topic (useSensorExtras), as opposed
 // to the always-on "storage"/summary topics. Widgets gate their extras
 // subscription on whether any active slot uses one of these.
 export const EXTRAS_DEVICE_KEYS: readonly DeviceKey[] = [
-  'memoryModule', 'battery', 'nic', 'cooler', 'psu', 'embeddedController',
+  'memoryModule', 'battery', 'cooler', 'psu', 'embeddedController',
 ];
 
 export function isExtrasBackedDevice(device: DeviceKey): boolean {

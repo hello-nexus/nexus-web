@@ -104,7 +104,6 @@ export function resolveSensor(
     }
     case 'memoryModule':
     case 'battery':
-    case 'nic':
     case 'cooler':
     case 'psu':
     case 'embeddedController': {
@@ -139,7 +138,6 @@ export function labelForDevice(device: DeviceKey, sensorName: string): string {
     case 'smart': return 'SMART';
     case 'memoryModule': return 'DIMM';
     case 'battery': return 'BATT';
-    case 'nic': return 'NIC';
     case 'cooler': return 'COOL';
     case 'psu': return 'PSU';
     case 'embeddedController': return 'EC';

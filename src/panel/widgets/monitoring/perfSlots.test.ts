@@ -96,7 +96,6 @@ describe('perfSlots', () => {
     it('is true only for the extras-topic device categories', () => {
       expect(isExtrasBackedDevice('memoryModule')).toBe(true);
       expect(isExtrasBackedDevice('battery')).toBe(true);
-      expect(isExtrasBackedDevice('nic')).toBe(true);
       expect(isExtrasBackedDevice('cooler')).toBe(true);
       expect(isExtrasBackedDevice('psu')).toBe(true);
       expect(isExtrasBackedDevice('embeddedController')).toBe(true);

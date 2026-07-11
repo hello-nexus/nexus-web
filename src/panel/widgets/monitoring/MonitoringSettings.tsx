@@ -54,7 +54,7 @@ interface SensorOption {
 const DEVICE_OPTION_KEYS: readonly DeviceKey[] = [
   'quick', 'cpu', 'gpu', 'memory', 'memoryModule', 'motherboard',
   'storage', 'smart', 'network', 'fps',
-  'battery', 'nic', 'cooler', 'psu', 'embeddedController',
+  'battery', 'cooler', 'psu', 'embeddedController',
 ];
 
 const CATEGORY_LABEL_KEYS: Record<DeviceKey, string> = {
@@ -71,7 +71,6 @@ const CATEGORY_LABEL_KEYS: Record<DeviceKey, string> = {
   network: 'monitoring.settings.category.network',
   fps: 'monitoring.settings.category.fps',
   battery: 'monitoring.settings.category.battery',
-  nic: 'monitoring.settings.category.nic',
   cooler: 'monitoring.settings.category.cooler',
   psu: 'monitoring.settings.category.psu',
   embeddedController: 'monitoring.settings.category.embeddedController',
@@ -115,7 +114,6 @@ function sensorsForDevice(
       break;
     case 'memoryModule':
     case 'battery':
-    case 'nic':
     case 'cooler':
     case 'psu':
     case 'embeddedController':

@@ -95,7 +95,6 @@ describe('extrasSensorsForDevice', () => {
   it('resolves each extras-topic device to its own flattened sensor list', () => {
     expect(extrasSensorsForDevice('memoryModule', extras).map(s => s.id)).toEqual(['dimm-temp']);
     expect(extrasSensorsForDevice('battery', extras).map(s => s.id)).toEqual(['battery-charge']);
-    expect(extrasSensorsForDevice('nic', extras)).toEqual([]);
     expect(extrasSensorsForDevice('cooler', extras)).toEqual([]);
     expect(extrasSensorsForDevice('psu', extras)).toEqual([]);
     expect(extrasSensorsForDevice('embeddedController', extras)).toEqual([]);

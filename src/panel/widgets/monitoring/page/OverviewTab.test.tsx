@@ -57,45 +57,19 @@ describe('OverviewTab - storage', () => {
     expect(screen.queryByText(/^\s*\/\s*$/)).not.toBeInTheDocument();
   });
 
-  it('renders a distinct SMART card per smart/*-keyed component, with its sensors and model name', () => {
+  it('renders no SMART card on the Overview even when the storage topic carries smart/* components', () => {
     const frame = baseFrame({
       'smart/nvme/0': {
         id: 'smart/nvme/0', name: 'Samsung 990 Pro 1TB', capacity: '', freeSpace: '', usedSpace: '', usedPercentage: '',
         sensors: [
           { id: '/nvme/0/temperature/0', name: 'Composite Temperature', type: 'Temperature', value: 42, units: '°C', formatted: '42.0 °C', parent: { id: '/nvme/0', name: 'Samsung 990 Pro 1TB' } },
-          { id: '/nvme/0/life/0', name: 'Percentage Used', type: 'Level', value: 3, units: '%', formatted: '3 %', parent: { id: '/nvme/0', name: 'Samsung 990 Pro 1TB' } },
         ],
       },
     });
 
     render(<OverviewTab frame={frame} hist={EMPTY_HIST} gpuSupported={false} onNavigate={vi.fn()} />);
 
-    expect(screen.getByText('Samsung 990 Pro 1TB')).toBeInTheDocument();
-    expect(screen.getByText('Composite Temperature')).toBeInTheDocument();
-    expect(screen.getByText('42.0 °C')).toBeInTheDocument();
-    expect(screen.getByText('Percentage Used')).toBeInTheDocument();
-    expect(screen.getByText('3 %')).toBeInTheDocument();
-  });
-
-  it('numbers multiple SMART cards when more than one physical drive reports SMART data', () => {
-    const frame = baseFrame({
-      'smart/nvme/0': { id: 'smart/nvme/0', name: 'Drive A', capacity: '', freeSpace: '', usedSpace: '', usedPercentage: '', sensors: [] },
-      'smart/nvme/1': { id: 'smart/nvme/1', name: 'Drive B', capacity: '', freeSpace: '', usedSpace: '', usedPercentage: '', sensors: [] },
-    });
-
-    render(<OverviewTab frame={frame} hist={EMPTY_HIST} gpuSupported={false} onNavigate={vi.fn()} />);
-
-    expect(screen.getByText('monitoring.overview.smart 1')).toBeInTheDocument();
-    expect(screen.getByText('monitoring.overview.smart 2')).toBeInTheDocument();
-  });
-
-  it('renders no SMART card when the storage topic carries no smart/* component', () => {
-    const frame = baseFrame({
-      C: { id: 'C', name: 'C', capacity: '1 TB', freeSpace: '500 GB', usedSpace: '500 GB', usedPercentage: '50' },
-    });
-
-    render(<OverviewTab frame={frame} hist={EMPTY_HIST} gpuSupported={false} onNavigate={vi.fn()} />);
-
-    expect(screen.queryByText(/monitoring\.overview\.smart/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Samsung 990 Pro 1TB')).not.toBeInTheDocument();
+    expect(screen.queryByText('Composite Temperature')).not.toBeInTheDocument();
   });
 });

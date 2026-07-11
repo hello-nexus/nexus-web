@@ -169,10 +169,9 @@ describe('MonitoringPage', () => {
     // GPU has zero sensors and zero extras-equivalents -- the section must not render.
     expect(screen.queryByRole('button', { name: /monitoring\.detailed\.gpu/i })).toBeNull();
 
-    // PSU/NIC/cooler/EC extras mocks are all empty arrays -- none of their
+    // PSU/cooler/EC extras mocks are all empty arrays -- none of their
     // sections may render (the families this task is guarding against).
     expect(screen.queryByRole('button', { name: /monitoring\.detailed\.psu/i })).toBeNull();
-    expect(screen.queryByRole('button', { name: /monitoring\.detailed\.nic/i })).toBeNull();
     expect(screen.queryByRole('button', { name: /monitoring\.detailed\.cooler/i })).toBeNull();
     expect(screen.queryByRole('button', { name: /monitoring\.detailed\.ec/i })).toBeNull();
 

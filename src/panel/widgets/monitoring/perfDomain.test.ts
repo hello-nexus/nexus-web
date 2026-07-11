@@ -159,7 +159,6 @@ describe('isHeterogeneousTypeDevice', () => {
     expect(isHeterogeneousTypeDevice('smart')).toBe(true);
     expect(isHeterogeneousTypeDevice('memoryModule')).toBe(true);
     expect(isHeterogeneousTypeDevice('battery')).toBe(true);
-    expect(isHeterogeneousTypeDevice('nic')).toBe(true);
     expect(isHeterogeneousTypeDevice('cooler')).toBe(true);
     expect(isHeterogeneousTypeDevice('psu')).toBe(true);
     expect(isHeterogeneousTypeDevice('embeddedController')).toBe(true);

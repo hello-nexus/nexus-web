@@ -61,7 +61,6 @@ function bottomLabelForDevice(
     case 'smart': return t('monitoring.settings.category.smart');
     case 'memoryModule': return t('monitoring.detailed.memoryModule');
     case 'battery': return t('monitoring.detailed.battery');
-    case 'nic': return t('monitoring.detailed.nic');
     case 'cooler': return t('monitoring.detailed.cooler');
     case 'psu': return t('monitoring.detailed.psu');
     case 'embeddedController': return t('monitoring.detailed.ec');

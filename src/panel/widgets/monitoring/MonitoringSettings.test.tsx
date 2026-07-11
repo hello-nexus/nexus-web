@@ -264,7 +264,7 @@ describe('MonitoringSettings', () => {
     // Tryx overlay picker never resolves them (see useSensors.storageSensors
     // and useSensorExtras), so offering them there would let a user pick a
     // sensor the service can never find, permanently showing "--".
-    const widgetOnlyDevices = ['smart', 'memoryModule', 'battery', 'nic', 'cooler', 'psu', 'embeddedController'];
+    const widgetOnlyDevices = ['smart', 'memoryModule', 'battery', 'cooler', 'psu', 'embeddedController'];
     for (const device of widgetOnlyDevices) {
       expect(values).toContain(device);
       expect(TRYX_SENSOR_GROUPS as readonly string[]).not.toContain(device);

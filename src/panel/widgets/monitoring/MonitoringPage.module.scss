@@ -42,15 +42,6 @@
   & > * { flex: 1; min-width: 0; }
 }
 
-// SSD SMART cards: unlike overviewRow, sized to content (SensorCard already
-// caps its own width) and wraps instead of stretching, since the number of
-// physical drives varies.
-.overviewSmartRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-}
-
 .dashCard {
   display: flex;
   flex-direction: column;

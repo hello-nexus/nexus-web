@@ -33,7 +33,7 @@ const NETWORK_FIXED_DEFAULT_MAX_BPS = 125_000_000;
 // the same type-aware scaling motherboard already uses - SSD SMART and every
 // extras-topic device group are the same shape of mixed bag.
 const HETEROGENEOUS_TYPE_DEVICES = new Set<DeviceKey>([
-  'motherboard', 'smart', 'memoryModule', 'battery', 'nic', 'cooler', 'psu', 'embeddedController',
+  'motherboard', 'smart', 'memoryModule', 'battery', 'cooler', 'psu', 'embeddedController',
 ]);
 
 export function isHeterogeneousTypeDevice(device: DeviceKey): boolean {
