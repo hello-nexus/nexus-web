@@ -48,12 +48,13 @@ interface StreamDeckDevicePageProps {
 }
 
 /**
- * Routed device page for one physical Stream Deck: a Customize tab (the deck
- * preview docked at the top, page-number pagination, the model name, then the
- * shared key inspector) and a Settings tab (device prefs on the left, a
- * read-only preview of the same grid on the right). Each connected/persisted
- * deck gets its own sidebar entry (see useUnifiedDevices), so `device` always
- * identifies exactly one deck by serial - there is no in-page deck picker.
+ * Routed device page for one physical Stream Deck, in the standard device-page
+ * split: the Customize tab has the shared key inspector on the left and, on the
+ * right, the top-aligned deck preview with page-number pagination and the model
+ * name below it; the Settings tab has device prefs on the left and a read-only
+ * preview of the same grid on the right. Each connected/persisted deck gets its
+ * own sidebar entry (see useUnifiedDevices), so `device` always identifies
+ * exactly one deck by serial - there is no in-page deck picker.
  */
 export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   const { t } = useTranslation();
@@ -146,54 +147,8 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
         {activeConflict && <ConflictAppCard conflict={activeConflict} />}
 
         {tab === 'customize' ? (
-          <div className={styles.customizeLayout}>
-            <div className={styles.previewStage}>
-              {inFolder && (
-                <div className={styles.breadcrumb}>
-                  <button type="button" onClick={onBack}>
-                    <ChevronLeft size={14} /> {t('panel.settings.deck.back')}
-                  </button>
-                </div>
-              )}
-              {target && (
-                <DndContext sensors={dragSensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-                  <DeckGrid
-                    slots={viewSlots}
-                    cols={target.cols}
-                    rows={target.rows}
-                    square
-                    selectable
-                    dragEnabled
-                    selectedIndex={selSlot}
-                    onCell={setSelectedSlot}
-                    backCell={inFolder ? { onBack, ariaLabel: t('panel.settings.deck.back') } : undefined}
-                  />
-                </DndContext>
-              )}
-            </div>
-
-            {target && (
-              <div className={styles.pageNumbersRow}>
-                <DeckPageStrip
-                  numbered
-                  pageCount={pageCount}
-                  currentPage={page}
-                  onSelectPage={onSelectPage}
-                  onAddPage={() => { target.addPage(); onSelectPage(pageCount); }}
-                  onRemoveCurrentPage={() => { target.removePage(page); onSelectPage(Math.max(0, page - 1)); }}
-                  currentPageHasContent={pageHasContent(target.config.pages[page] ?? { slots: [] })}
-                />
-              </div>
-            )}
-
-            <div className={styles.modelRow}>
-              <div className={styles.modelName}>
-                {t('devices.streamdeck.modelName', { model: deck.model })}
-              </div>
-              {!deck.verified && <span className={styles.experimentalChip}>{t('devices.streamdeck.experimental')}</span>}
-            </div>
-
-            <div className={styles.inspectorBelow}>
+          <div className={styles.splitLayout}>
+            <div className={styles.leftPane}>
               {target ? (
                 <DeckKeyInspector
                   target={target}
@@ -214,6 +169,53 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
               ) : (
                 <div className={styles.loading}>{t('panel.settings.deck.rail.loadingConfig')}</div>
               )}
+            </div>
+            <div className={styles.previewPane}>
+              <div className={styles.previewStage}>
+                {inFolder && (
+                  <div className={styles.breadcrumb}>
+                    <button type="button" onClick={onBack}>
+                      <ChevronLeft size={14} /> {t('panel.settings.deck.back')}
+                    </button>
+                  </div>
+                )}
+                {target && (
+                  <DndContext sensors={dragSensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+                    <DeckGrid
+                      slots={viewSlots}
+                      cols={target.cols}
+                      rows={target.rows}
+                      square
+                      selectable
+                      dragEnabled
+                      selectedIndex={selSlot}
+                      onCell={setSelectedSlot}
+                      backCell={inFolder ? { onBack, ariaLabel: t('panel.settings.deck.back') } : undefined}
+                    />
+                  </DndContext>
+                )}
+              </div>
+
+              {target && (
+                <div className={styles.pageNumbersRow}>
+                  <DeckPageStrip
+                    numbered
+                    pageCount={pageCount}
+                    currentPage={page}
+                    onSelectPage={onSelectPage}
+                    onAddPage={() => { target.addPage(); onSelectPage(pageCount); }}
+                    onRemoveCurrentPage={() => { target.removePage(page); onSelectPage(Math.max(0, page - 1)); }}
+                    currentPageHasContent={pageHasContent(target.config.pages[page] ?? { slots: [] })}
+                  />
+                </div>
+              )}
+
+              <div className={styles.modelRow}>
+                <div className={styles.modelName}>
+                  {t('devices.streamdeck.modelName', { model: deck.model })}
+                </div>
+                {!deck.verified && <span className={styles.experimentalChip}>{t('devices.streamdeck.experimental')}</span>}
+              </div>
             </div>
           </div>
         ) : (

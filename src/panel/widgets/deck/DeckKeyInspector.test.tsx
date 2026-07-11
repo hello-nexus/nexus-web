@@ -73,10 +73,6 @@ function renderWidgetInspector(slots: DeckSlot[] = [{}]) {
   render(<WidgetHarness initialSlots={slots} />);
 }
 
-function openCategory(labelKey: string) {
-  fireEvent.click(screen.getByRole('button', { name: labelKey }));
-}
-
 function isBefore(a: Element, b: Element): boolean {
   return !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
 }
@@ -103,11 +99,10 @@ describe('DeckKeyInspector action picker - collapsible category list', () => {
     expect(screen.getByRole('option', { name: 'panel.settings.deck.action.launchApp' })).toHaveAttribute('aria-selected', 'false');
   });
 
-  it('keeps other categories collapsed until clicked', () => {
+  it('shows every category expanded by default', () => {
     renderInspector([{ action: { type: 'hotkey', keys: '' } }]);
-    expect(screen.queryByRole('option', { name: 'panel.settings.deck.action.deckBrightness' })).toBeNull();
-
-    openCategory('panel.settings.deck.category.streamdeck');
+    // Every category starts expanded, so a Stream Deck category action is
+    // present without first clicking its header.
     expect(screen.getByRole('option', { name: 'panel.settings.deck.action.deckBrightness' })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'panel.settings.deck.action.deckSleep' })).toBeInTheDocument();
   });
@@ -175,7 +170,6 @@ describe('DeckKeyInspector - deckBrightness/deckSleep are physical-deck-only', (
 
   it('omits deckBrightness/deckSleep from a nested sequence step on a widget target', () => {
     renderWidgetInspector();
-    openCategory('panel.settings.deck.category.multiAction');
     fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.action.sequence' }));
 
     fireEvent.click(screen.getByText('panel.settings.deck.sequence.addStep'));

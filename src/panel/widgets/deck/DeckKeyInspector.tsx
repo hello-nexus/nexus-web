@@ -365,17 +365,17 @@ function ToggleEditor({ action, onChange, allowed, surface, desktopEditor }: { a
 /**
  * Expandable list of action categories, replacing a category+kind Select
  * pair: each category is its own collapsible group, and its body lists that
- * category's kinds as clickable entries. Multiple categories can be expanded
- * at once; the category holding the slot's current kind is always kept
- * expanded (including when the selected slot changes to a kind in a
- * different category) so the active kind's highlight is never hidden inside
- * a collapsed group.
+ * category's kinds as clickable entries. Every category starts expanded so
+ * the full action set is visible at a glance; the category holding the slot's
+ * current kind is always kept expanded (including when the selected slot
+ * changes to a kind in a different category) so the active kind's highlight is
+ * never hidden inside a collapsed group.
  */
 function ActionCategoryPicker({ categories, activeKind, onPick }: {
   categories: DeckActionCategory[]; activeKind: DeckPickerKind; onPick: (k: DeckPickerKind) => void;
 }) {
   const { t } = useTranslation();
-  const [openKeys, setOpenKeys] = useState<Set<string>>(() => new Set([categoryForKind(activeKind).key]));
+  const [openKeys, setOpenKeys] = useState<Set<string>>(() => new Set(categories.map(c => c.key)));
   const activeCategoryKey = categoryForKind(activeKind).key;
   useEffect(() => {
     setOpenKeys(prev => (prev.has(activeCategoryKey) ? prev : new Set(prev).add(activeCategoryKey)));

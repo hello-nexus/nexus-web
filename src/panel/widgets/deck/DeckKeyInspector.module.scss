@@ -75,14 +75,12 @@ textarea.input { resize: vertical; min-height: 2.4rem; }
 }
 
 // Expandable action category list, replacing the old category+kind Select
-// pair - see ActionCategoryPicker.
+// pair - see ActionCategoryPicker. Borderless: the categories sit directly in
+// the already-boxed SettingsSection.
 .categoryList {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  border: 1px solid var(--deck-settings-border);
-  border-radius: var(--radius);
-  overflow: hidden;
 }
 
 .kindList {

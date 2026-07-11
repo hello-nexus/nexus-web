@@ -343,13 +343,15 @@ describe('StreamDeckDevicePage', () => {
       expect(screen.getByText('1')).toBeInTheDocument();
     });
 
-    it('renders the grid preview above the key inspector', async () => {
+    it('renders the key inspector on the left and the grid preview on the right', async () => {
       mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
       const { container } = await renderPage();
 
-      const grid = container.querySelector('[data-deck-slot-index]')!;
       const inspector = screen.getByTestId('deck-key-inspector');
-      expect(!!(grid.compareDocumentPosition(inspector) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
+      const grid = container.querySelector('[data-deck-slot-index]')!;
+      // Standard device-page split: options left, device preview right, so the
+      // inspector precedes the preview grid in DOM order.
+      expect(!!(inspector.compareDocumentPosition(grid) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
     });
   });
 });
