@@ -2858,7 +2858,6 @@
   "monitoring.settings.label": "라벨",
   "monitoring.settings.customLabel": "사용자 지정 라벨",
   "monitoring.settings.resetLabel": "초기화",
-  "monitoring.settings.categorySection": "카테고리",
   "monitoring.settings.labelAuto": "자동",
   "monitoring.settings.labelHide": "숨김",
   "monitoring.settings.labelCustom": "사용자 지정"

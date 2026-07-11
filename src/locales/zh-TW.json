@@ -2858,7 +2858,6 @@
   "monitoring.settings.label": "標籤",
   "monitoring.settings.customLabel": "自訂標籤",
   "monitoring.settings.resetLabel": "重設",
-  "monitoring.settings.categorySection": "類別",
   "monitoring.settings.labelAuto": "自動",
   "monitoring.settings.labelHide": "隱藏",
   "monitoring.settings.labelCustom": "自訂"

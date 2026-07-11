@@ -2858,7 +2858,6 @@
   "monitoring.settings.label": "Beschriftung",
   "monitoring.settings.customLabel": "Eigene Beschriftung",
   "monitoring.settings.resetLabel": "Zurücksetzen",
-  "monitoring.settings.categorySection": "Kategorie",
   "monitoring.settings.labelAuto": "Auto",
   "monitoring.settings.labelHide": "Ausblenden",
   "monitoring.settings.labelCustom": "Eigene"

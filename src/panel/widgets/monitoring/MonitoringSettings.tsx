@@ -25,7 +25,7 @@ import { DEFAULT_SCALE_MODE, defaultFixedMax, designSupportsScale, type ScaleMod
 import { RotateCcw } from 'lucide-react';
 import { labelForDevice, resolveSensor } from '../monitoring/MonitoringWidget';
 import { bottomLabelForDevice } from '../monitoring/MicroMonitoringWidget';
-import { SettingsSection } from '../common/SettingsRow/SettingsRow';
+import { SettingsSection, SettingsRow } from '../common/SettingsRow/SettingsRow';
 import { ChipGroup } from '../../../components/common/ChipGroup/ChipGroup';
 import { DesktopOnlyBadge } from '../../../components/common/DesktopOnlyBadge/DesktopOnlyBadge';
 import styles from './MonitoringSettings.module.scss';
@@ -284,7 +284,8 @@ function microAutoLabel(
 // The custom text (labelKey) is retained across mode switches - switching to
 // Auto/Hide only flips modeKey, so returning to Custom restores what was typed;
 // entering Custom the first time seeds it with the derived name so the field
-// shows real text, not a grey placeholder. Only Reset clears the text.
+// shows real text, not a grey placeholder. Reset refills the field with the
+// current derived name (it does not leave Custom mode).
 function labelControlHandlers(
   onUpdate: (patch: Record<string, PanelConfigValue>) => void,
   modeKey: string,
@@ -303,13 +304,14 @@ function labelControlHandlers(
       }
     },
     onChangeText: (value: string) => onUpdate({ [labelKey]: value }),
-    onReset: () => onUpdate({ [modeKey]: null, [labelKey]: null }),
+    onReset: () => onUpdate({ [labelKey]: autoLabel }),
   };
 }
 
-// A caption's Label control: an Auto / Hide / Custom chip row with a reset
-// glyph at the far right, and (in Custom) a live-updating text field. Shared by
-// the per-slot, micro per-sensor, and micro category editors. The free-text
+// A caption's Label control: a "Label" row with the Auto / Hide / Custom chips
+// aligned right, and (in Custom) a live text field with a reset-to-sensor-name
+// glyph. Rendered inline as the second line of the Sensor/Device block. Shared
+// by the per-slot, micro per-sensor, and micro category editors. The free-text
 // field is desktop-only (canType); a kiosk sheet shows a badge instead.
 function LabelControls({
   mode,
@@ -329,34 +331,33 @@ function LabelControls({
   onReset: () => void;
 }) {
   const { t } = useTranslation();
-  const showReset = mode !== 'auto' || override.trim().length > 0;
   return (
     <>
-      <div className={styles.labelModeRow}>
+      <SettingsRow label={t('monitoring.settings.label')}>
         <ChipGroup
           ariaLabel={t('monitoring.settings.label')}
           activeKey={mode}
           onChange={onSelectMode}
           options={LABEL_MODE_OPTIONS.map(o => ({ key: o.key, label: t(o.labelKey) }))}
         />
-        {showReset && (
+      </SettingsRow>
+      {mode === 'custom' && (canType ? (
+        <div className={styles.labelFieldRow}>
+          <div className={styles.labelField}>
+            <TextInput
+              size="sm"
+              value={override}
+              placeholder={autoLabel}
+              maxLength={40}
+              ariaLabel={t('monitoring.settings.customLabel')}
+              onInput={onChangeText}
+            />
+          </div>
           <IconLabelButton
             className={styles.labelResetBtn}
             icon={<RotateCcw size={14} aria-hidden="true" />}
             ariaLabel={t('monitoring.settings.resetLabel')}
             onPress={onReset}
-          />
-        )}
-      </div>
-      {mode === 'custom' && (canType ? (
-        <div className={styles.labelField}>
-          <TextInput
-            size="sm"
-            value={override}
-            placeholder={autoLabel}
-            maxLength={40}
-            ariaLabel={t('monitoring.settings.customLabel')}
-            onInput={onChangeText}
           />
         </div>
       ) : (
@@ -478,9 +479,6 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
             options={microDeviceOptions}
             ariaLabel={t('monitoring.settings.device')}
           />
-        </SettingsSection>
-
-        <SettingsSection title={t('monitoring.settings.categorySection')}>
           {(() => {
             const catOverride = (widget.config?.micro_category as string | undefined) ?? '';
             const catAuto = bottomLabelForDevice(microDevice, sensors, t);
@@ -563,9 +561,6 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
                 ariaLabel={t('monitoring.settings.sensor')}
               />
             </div>
-          </SettingsSection>
-
-          <SettingsSection title={t('monitoring.settings.label')}>
             <LabelControls
               mode={slotLabelMode}
               override={slotLabelOverride}

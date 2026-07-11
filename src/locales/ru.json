@@ -2858,7 +2858,6 @@
   "monitoring.settings.label": "Подпись",
   "monitoring.settings.customLabel": "Своя подпись",
   "monitoring.settings.resetLabel": "Сброс",
-  "monitoring.settings.categorySection": "Категория",
   "monitoring.settings.labelAuto": "Авто",
   "monitoring.settings.labelHide": "Скрыть",
   "monitoring.settings.labelCustom": "Свой"

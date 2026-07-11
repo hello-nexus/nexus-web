@@ -1859,7 +1859,6 @@
   "monitoring.settings.category.quick": "Quick",
   "monitoring.settings.category.smart": "SSD SMART",
   "monitoring.settings.category.storage": "Storage",
-  "monitoring.settings.categorySection": "Category",
   "monitoring.settings.close": "Done",
   "monitoring.settings.customLabel": "Custom label",
   "monitoring.settings.description": "Choose which GPU's stats appear across the dashboard.",

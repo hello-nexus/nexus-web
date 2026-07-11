@@ -94,21 +94,22 @@
   }
 }
 
-.labelModeRow {
+// Custom text field + reset glyph, the second line under the Label chip row.
+.labelFieldRow {
   display: flex;
   gap: 8px;
   align-items: center;
-}
-
-.labelField {
-  min-width: 0;
   margin-top: 6px;
 }
 
-// Icon-only reset pinned to the far right of the chip row.
+.labelField {
+  flex: 1;
+  min-width: 0;
+}
+
+// Icon-only reset at the right end of the custom field row.
 .labelResetBtn {
   flex: 0 0 auto;
-  margin-left: auto;
   --icon-label-button-height: 32px;
   --icon-label-button-min-width: 32px;
   --icon-label-button-padding-x: 0;

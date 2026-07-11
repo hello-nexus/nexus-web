@@ -713,7 +713,7 @@ describe('MonitoringSettings - per-slot Label chip', () => {
     expect(screen.getByText('Hot')).toBeInTheDocument();
   });
 
-  it('remembers the custom text across Auto <-> Custom; only Reset clears it', () => {
+  it('remembers the custom text across Auto <-> Custom (no re-seed on return)', () => {
     const onUpdate = vi.fn();
     render(<MonitoringEditorHarness onUpdate={onUpdate} desktopEditor />);
     fireEvent.click(chip(CUSTOM));
@@ -726,11 +726,18 @@ describe('MonitoringSettings - per-slot Label chip', () => {
     fireEvent.click(chip(CUSTOM));
     expect(onUpdate).toHaveBeenLastCalledWith({ slot0_labelMode: 'custom' });
     expect(screen.getByRole('textbox', { name: FIELD })).toHaveValue('Hot');
+  });
+
+  it('Reset refills the field with the sensor name and stays in Custom', () => {
+    const onUpdate = vi.fn();
+    render(<MonitoringEditorHarness onUpdate={onUpdate} desktopEditor />);
+    fireEvent.click(chip(CUSTOM));
+    fireEvent.input(screen.getByRole('textbox', { name: FIELD }), { target: { value: 'Hot' } });
 
     fireEvent.click(screen.getByRole('button', { name: RESET }));
-    expect(onUpdate).toHaveBeenLastCalledWith({ slot0_labelMode: null, slot0_label: null });
-    expect(chip(AUTO)).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.queryByRole('button', { name: RESET })).not.toBeInTheDocument();
+    expect(onUpdate).toHaveBeenLastCalledWith({ slot0_label: 'CPU Total' });
+    expect(chip(CUSTOM)).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('textbox', { name: FIELD })).toHaveValue('CPU Total');
   });
 
   it('on a keyboard-less kiosk, chips work but Custom shows a badge instead of the field', () => {

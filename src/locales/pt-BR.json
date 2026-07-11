@@ -2858,7 +2858,6 @@
   "monitoring.settings.label": "Rótulo",
   "monitoring.settings.customLabel": "Rótulo personalizado",
   "monitoring.settings.resetLabel": "Resetar",
-  "monitoring.settings.categorySection": "Categoria",
   "monitoring.settings.labelAuto": "Auto",
   "monitoring.settings.labelHide": "Ocultar",
   "monitoring.settings.labelCustom": "Personalizado"

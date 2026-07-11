@@ -2858,7 +2858,6 @@
   "monitoring.settings.label": "Etiqueta",
   "monitoring.settings.customLabel": "Etiqueta personalizada",
   "monitoring.settings.resetLabel": "Restablecer",
-  "monitoring.settings.categorySection": "Categoría",
   "monitoring.settings.labelAuto": "Auto",
   "monitoring.settings.labelHide": "Ocultar",
   "monitoring.settings.labelCustom": "Personalizado"

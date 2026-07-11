@@ -2858,7 +2858,6 @@
   "monitoring.settings.label": "Etiket",
   "monitoring.settings.customLabel": "Özel etiket",
   "monitoring.settings.resetLabel": "Sıfırla",
-  "monitoring.settings.categorySection": "Kategori",
   "monitoring.settings.labelAuto": "Otomatik",
   "monitoring.settings.labelHide": "Gizle",
   "monitoring.settings.labelCustom": "Özel"
