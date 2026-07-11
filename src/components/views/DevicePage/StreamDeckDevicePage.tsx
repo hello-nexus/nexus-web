@@ -280,7 +280,7 @@ export function StreamDeckDevicePage(_props: StreamDeckDevicePageProps) {
                 )}
 
                 <div className={styles.modelName}>
-                  {`Stream Deck ${deck.model}`}
+                  {t('devices.streamdeck.modelName', { model: deck.model })}
                 </div>
 
                 <div className={styles.inspectorBelow}>

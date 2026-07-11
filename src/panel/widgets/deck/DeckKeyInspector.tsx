@@ -428,10 +428,6 @@ const TITLE_ALIGN_LABEL_KEY: Record<DeckTitleAlign, string> = {
   bottom: 'panel.settings.deck.titleStyle.alignBottom',
 };
 
-// Every id but 'default' is a proper-noun font family name - stays English in
-// every locale (see DECK_TITLE_FONTS in deckTitleStyle.ts for the CSS stacks).
-const TITLE_FONT_NAME: Record<string, string> = { arial: 'Arial', georgia: 'Georgia', courierNew: 'Courier New' };
-
 /** Elgato-style font panel for the slot's label: show toggle, alignment, font, size, B/I/U, and text color. */
 function TitleStyleFields({ title, onChange }: { title: DeckTitleStyle | undefined; onChange: (patch: DeckTitleStyle) => void }) {
   const { t } = useTranslation();
@@ -468,7 +464,7 @@ function TitleStyleFields({ title, onChange }: { title: DeckTitleStyle | undefin
         disabled={disabled}
         options={DECK_TITLE_FONTS.map(f => ({
           value: f.id,
-          label: f.id === 'default' ? t('panel.settings.deck.titleStyle.fontDefault') : TITLE_FONT_NAME[f.id],
+          label: f.label ?? t('panel.settings.deck.titleStyle.fontDefault'),
         }))}
         onChange={font => onChange({ font })}
       />
@@ -486,7 +482,7 @@ function TitleStyleFields({ title, onChange }: { title: DeckTitleStyle | undefin
       </Field>
 
       <Field label={t('panel.settings.deck.titleStyle.style')}>
-        <div className={styles.segmented}>
+        <div className={styles.segmented} role="group" aria-label={t('panel.settings.deck.titleStyle.style')}>
           <IconLabelButton
             label={<span className={styles.boldGlyph}>B</span>}
             active={resolved.bold}

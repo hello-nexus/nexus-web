@@ -356,11 +356,11 @@ describe('StreamDeckDevicePage', () => {
       expect(screen.queryByRole('button', { name: 'devices.streamdeck.model' })).toBeNull();
     });
 
-    it('shows the model name prefixed with "Stream Deck"', async () => {
+    it('shows the model name interpolated from the deck DTO', async () => {
       mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck({ model: 'Mini' })]));
       await renderPage();
 
-      expect(screen.getByText('Stream Deck Mini')).toBeInTheDocument();
+      expect(screen.getByText('devices.streamdeck.modelName:{"model":"Mini"}')).toBeInTheDocument();
     });
 
     it('shows pagination as plain page-number chips, not "Page N" tabs', async () => {

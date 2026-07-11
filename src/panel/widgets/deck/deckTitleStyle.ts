@@ -9,13 +9,16 @@ export interface DeckTitleFontOption {
   id: string;
   // CSS font-family stack; '' means "inherit the surface's default font".
   family: string;
+  // Proper-noun display name for the picker; absent for 'default', whose
+  // label the caller translates via t('panel.settings.deck.titleStyle.fontDefault').
+  label?: string;
 }
 
 export const DECK_TITLE_FONTS: readonly DeckTitleFontOption[] = [
   { id: 'default', family: '' },
-  { id: 'arial', family: 'Arial, Helvetica, sans-serif' },
-  { id: 'georgia', family: 'Georgia, "Times New Roman", serif' },
-  { id: 'courierNew', family: '"Courier New", Courier, monospace' },
+  { id: 'arial', family: 'Arial, Helvetica, sans-serif', label: 'Arial' },
+  { id: 'georgia', family: 'Georgia, "Times New Roman", serif', label: 'Georgia' },
+  { id: 'courierNew', family: '"Courier New", Courier, monospace', label: 'Courier New' },
 ];
 
 export const DECK_TITLE_SIZE_MIN = 8;

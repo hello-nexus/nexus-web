@@ -618,6 +618,7 @@
   "devices.streamdeck.experimental": "実験的",
   "devices.streamdeck.firmware": "ファームウェア",
   "devices.streamdeck.model": "モデル",
+  "devices.streamdeck.modelName": "Stream Deck {model}",
   "devices.streamdeck.notConnected": "Stream Deck が接続されていません",
   "devices.streamdeck.orientation": "表示の向き",
   "devices.streamdeck.orientationDegrees": "{n}°",

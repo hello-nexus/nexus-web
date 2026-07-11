@@ -618,6 +618,7 @@
   "devices.streamdeck.experimental": "Экспериментально",
   "devices.streamdeck.firmware": "Прошивка",
   "devices.streamdeck.model": "Модель",
+  "devices.streamdeck.modelName": "Stream Deck {model}",
   "devices.streamdeck.notConnected": "Stream Deck не подключён",
   "devices.streamdeck.orientation": "Визуальная ориентация",
   "devices.streamdeck.orientationDegrees": "{n}°",

@@ -2247,7 +2247,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'DeckPageStrip', category: 'panel-kit',
     filePath: 'src/panel/widgets/deck/DeckPageStrip.tsx',
-    description: 'Page strip for a deck\'s pagination: a Tabs row switching between pages, an add-page control, and a remove-current-page control guarded against dropping the last page and confirmed when the page has content. Shared by the touch widget settings sheet (DeckEditor) and the physical Stream Deck Customize tab (StreamDeckDevicePage).',
+    description: 'Page strip for a deck\'s pagination: a Tabs row switching between pages (or, with the `numbered` prop, plain page-number chips matching the Keeb device page\'s layer chips), an add-page control, and a remove-current-page control guarded against dropping the last page and confirmed when the page has content. Shared by the touch widget settings sheet (DeckEditor, Tabs) and the physical Stream Deck Customize tab (StreamDeckDevicePage, numbered chips).',
     Preview: PreviewDeckPageStrip,
     notes: 'Page 2 (index 1) starts marked as having content, so removing it while selected opens the confirm modal; other pages remove instantly.',
   },

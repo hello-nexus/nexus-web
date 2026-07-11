@@ -618,6 +618,7 @@
   "devices.streamdeck.experimental": "实验性",
   "devices.streamdeck.firmware": "固件",
   "devices.streamdeck.model": "型号",
+  "devices.streamdeck.modelName": "Stream Deck {model}",
   "devices.streamdeck.notConnected": "Stream Deck 未连接",
   "devices.streamdeck.orientation": "显示方向",
   "devices.streamdeck.orientationDegrees": "{n}°",

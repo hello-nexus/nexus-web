@@ -618,6 +618,7 @@
   "devices.streamdeck.experimental": "Expérimental",
   "devices.streamdeck.firmware": "Firmware",
   "devices.streamdeck.model": "Modèle",
+  "devices.streamdeck.modelName": "Stream Deck {model}",
   "devices.streamdeck.notConnected": "Stream Deck non connecté",
   "devices.streamdeck.orientation": "Orientation visuelle",
   "devices.streamdeck.orientationDegrees": "{n}°",
