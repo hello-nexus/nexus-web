@@ -1644,7 +1644,7 @@
   "lighting.ledMap.deleteHint": "Del to remove",
   "lighting.ledMap.discard": "Discard changes",
   "lighting.ledMap.dragHint": "Drag LEDs to reposition",
-  "lighting.ledMap.effectiveBrightnessInfo": "Real brightness is {effective}% due to the master brightness at {global}%.",
+  "lighting.ledMap.effectiveBrightnessInfo": "Master brightness caps output at {master}%, so this device can't go any brighter.",
   "lighting.ledMap.flipH": "Flip horizontally",
   "lighting.ledMap.flipV": "Flip vertically",
   "lighting.ledMap.group": "Group",

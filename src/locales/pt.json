@@ -1509,7 +1509,7 @@
   "lighting.ledMap.deleteHint": "Del para remover",
   "lighting.ledMap.discard": "Descartar alteracoes",
   "lighting.ledMap.dragHint": "Arraste LEDs para reposicionar",
-  "lighting.ledMap.effectiveBrightnessInfo": "O brilho real é de {effective}% devido ao brilho geral de {global}%.",
+  "lighting.ledMap.effectiveBrightnessInfo": "O brilho geral limita a saída a {master}%, por isso este dispositivo não pode ficar mais brilhante.",
   "lighting.ledMap.flipH": "Inverter horizontalmente",
   "lighting.ledMap.flipV": "Inverter verticalmente",
   "lighting.ledMap.group": "Agrupar",

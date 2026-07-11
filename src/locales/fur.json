@@ -1518,7 +1518,7 @@
   "lighting.ledMap.deleteHint": "Del par gjavâ",
   "lighting.ledMap.discard": "Scarte lis modifichis",
   "lighting.ledMap.dragHint": "Strissine i LED par tornâ a posizionâ",
-  "lighting.ledMap.effectiveBrightnessInfo": "La luminositât reâl e je dal {effective}% par vie de la luminositât principâl di {global}%.",
+  "lighting.ledMap.effectiveBrightnessInfo": "La luminositât principâl e limite la jessude al {master}%, cussì chest dispositîf nol pò jessi plui luminôs.",
   "lighting.ledMap.flipH": "Ribalte in orizontâl",
   "lighting.ledMap.flipV": "Ribalte in verticâl",
   "lighting.ledMap.group": "Ingrupe",

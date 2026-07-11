@@ -209,6 +209,13 @@ input[type="range"][data-fill] {
   // band identically without a separate ::-moz-range-progress override
   // (which only paints from track start to thumb and can't represent a
   // centred band).
+  // Between --slider-fill-cap and --slider-fill-end the accent is dimmed, so a
+  // slider fill can show a "capped" zone (set but ineffective). --slider-fill-cap
+  // defaults to --slider-fill-end, collapsing the dim zone to zero width, so a
+  // slider that never sets it renders as a single-tone accent fill.
+  // --slider-fill-dim is a static muted accent (set by applyAccentColor); NOT
+  // color-mix() - the Q60 panel WebView is Chromium 83, and an unsupported
+  // function inside linear-gradient() would invalidate the whole background.
   &::-webkit-slider-runnable-track,
   &::-moz-range-track {
     height: 6px;
@@ -218,7 +225,9 @@ input[type="range"][data-fill] {
       var(--border-strong) 0,
       var(--border-strong) var(--slider-fill-start, 0%),
       var(--accent-glow, var(--accent)) var(--slider-fill-start, 0%),
-      var(--accent-glow, var(--accent)) var(--slider-fill-end, 0%),
+      var(--accent-glow, var(--accent)) var(--slider-fill-cap, var(--slider-fill-end, 0%)),
+      var(--slider-fill-dim, var(--accent-glow, var(--accent))) var(--slider-fill-cap, var(--slider-fill-end, 0%)),
+      var(--slider-fill-dim, var(--accent-glow, var(--accent))) var(--slider-fill-end, 0%),
       var(--border-strong) var(--slider-fill-end, 0%),
       var(--border-strong) 100%
     );

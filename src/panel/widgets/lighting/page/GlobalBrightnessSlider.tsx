@@ -9,10 +9,11 @@ import { useTranslation } from '../../../../lib/i18n';
 import styles from '../LightingPage.module.scss';
 
 /**
- * Master brightness slider at the top of the lighting page. Multiplies
- * each per-device brightness before colour reaches hardware: effective
- * LED brightness is `global * device / 100`. Stored 0..1 on the
- * service side, surfaced 0..100% in the UI.
+ * Master brightness slider at the top of the lighting page. Caps each
+ * per-device brightness before colour reaches hardware: effective LED
+ * brightness is `min(global, device / 100)`, so a device never renders
+ * brighter than master. Stored 0..1 on the service side, surfaced
+ * 0..100% in the UI.
  *
  * Layout: [sun icon] [bare track] [value]. Same Sun glyph the Displays
  * widget uses for monitor brightness.

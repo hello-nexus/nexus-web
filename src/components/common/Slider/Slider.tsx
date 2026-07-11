@@ -48,12 +48,16 @@ export interface SliderProps {
   disabled?: boolean;
   trackFill?: boolean | number;
   /** Pointer drawn at this value (in [min, max]) on the track, marking a
-      secondary level such as the effective brightness after the global
-      multiplier. Omit to draw no pointer. */
+      secondary level such as the master-brightness cap. Omit to draw no
+      pointer. */
   marker?: number;
   /** Optional node stacked directly above the marker caret (e.g. an info
       affordance). Interactive; only rendered when `marker` is set. */
   markerLabel?: ReactNode;
+  /** When the fill runs past this value (in [min, max]), the portion beyond it
+      is painted in a dimmed accent - e.g. a master-brightness cap the device is
+      set above. Requires trackFill; omit for a single-tone fill. */
+  fillCap?: number;
   ariaLabel?: string;
   className?: string;
 }
@@ -62,7 +66,7 @@ export function Slider({
   label = '', value, min, max, step = 1,
   orientation = 'inline', editable = false, zeroMarker = false, showRange = false,
   formatValue, onChange, onCommit, onPointerDown, onPointerCancel,
-  disabled, trackFill, marker, markerLabel, ariaLabel, className,
+  disabled, trackFill, marker, markerLabel, fillCap, ariaLabel, className,
 }: SliderProps) {
   const latestInputValueRef = useRef(value);
   const onCommitRef = useRef(onCommit);
@@ -85,9 +89,12 @@ export function Slider({
   } else {
     fillEndPct = clamp(valuePct);
   }
+  // Never past the fill end, or the gradient stops would decrease and mispaint.
+  const capPct = fillCap != null ? Math.min(clamp(((fillCap - min) / (max - min)) * 100), fillEndPct) : null;
   const trackStyle = {
     '--slider-fill-start': `${fillStartPct}%`,
     '--slider-fill-end': `${fillEndPct}%`,
+    ...(capPct != null ? { '--slider-fill-cap': `${capPct}%` } : {}),
   } as CSSProperties;
   const markerPct = marker != null ? clamp(((marker - min) / (max - min)) * 100) : null;
   const markerNode = markerPct != null ? (

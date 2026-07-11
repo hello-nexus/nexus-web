@@ -1509,7 +1509,7 @@
   "lighting.ledMap.deleteHint": "Supr para quitar",
   "lighting.ledMap.discard": "Descartar cambios",
   "lighting.ledMap.dragHint": "Arrastra LEDs para reposicionar",
-  "lighting.ledMap.effectiveBrightnessInfo": "El brillo real es del {effective}% debido al brillo maestro del {global}%.",
+  "lighting.ledMap.effectiveBrightnessInfo": "El brillo maestro limita la salida al {master}%, por lo que este dispositivo no puede ser más brillante.",
   "lighting.ledMap.flipH": "Voltear horizontalmente",
   "lighting.ledMap.flipV": "Voltear verticalmente",
   "lighting.ledMap.group": "Agrupar",

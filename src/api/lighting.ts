@@ -349,8 +349,9 @@ export const applyDeviceLayouts = (layouts: Record<string, DeviceLayoutDto>) =>
 export const setLightingDevicePower = (id: string, on: boolean) =>
   postService('/devices/lighting-devices/power', { id, on });
 
-// Per-device brightness multiplier (0..100). Applied in the RGB bridge so the
-// canvas preview stays at full brightness while the LED output dims.
+// Per-device brightness (0..100). Applied in the RGB bridge, capped by the
+// master brightness, so the canvas preview stays at full brightness while the
+// LED output dims.
 export const setLightingDeviceBrightness = (id: string, brightness: number) =>
   postService('/devices/lighting-devices/brightness', { id, brightness });
 
@@ -359,8 +360,8 @@ export const setLightingDeviceBrightness = (id: string, brightness: number) =>
 export const setLightingDeviceColor = (id: string, hue: number, saturation: number) =>
   postService('/devices/lighting-devices/color', { id, hue, saturation });
 
-// Master brightness multiplier (0..1). Multiplies every per-device value so
-// the effective brightness for an LED is `global * device / 100`.
+// Master brightness cap (0..1). Caps every per-device value so the effective
+// brightness for an LED is `min(global, device / 100)` - never brighter.
 export const fetchGlobalBrightness = () =>
   fetchService<{ value: number }>('/lighting/global-brightness');
 
