@@ -162,8 +162,9 @@ describe('MonitoringSettings', () => {
     expect(screen.queryByText(/Sensor 2/i)).not.toBeInTheDocument();
 
     expect(screen.getAllByRole('combobox')).toHaveLength(2);
-    // 2 slot-select buttons + design buttons + 2 range buttons (sparkline supports scale)
-    expect(screen.getAllByRole('button').filter(button => button.hasAttribute('aria-pressed'))).toHaveLength(2 + GAUGE_DESIGN_KEYS.length + 2);
+    // 2 slot-select buttons + design buttons + 2 range buttons (sparkline
+    // supports scale) + 3 Label chips (Auto/Hide/Custom; reset hidden in Auto)
+    expect(screen.getAllByRole('button').filter(button => button.hasAttribute('aria-pressed'))).toHaveLength(2 + GAUGE_DESIGN_KEYS.length + 2 + 3);
   });
 
   it('updates the selected rendered sensor slot', () => {
@@ -638,7 +639,7 @@ describe('resolveSensor - id-keyed lookup', () => {
   });
 });
 
-describe('MonitoringWidget - per-slot label override / hide', () => {
+describe('MonitoringWidget - per-slot label modes', () => {
   function widgetWith(config: Record<string, PanelConfigValue>): PanelWidget {
     return {
       id: 'm', type: 'monitoring', size: '4x2', col: 0, row: 0,
@@ -651,106 +652,114 @@ describe('MonitoringWidget - per-slot label override / hide', () => {
     };
   }
 
-  it('renders a custom label in place of the derived name', () => {
-    render(<MonitoringWidget widget={widgetWith({ slot0_label: 'My CPU' })} />);
+  it('custom mode renders the stored label instead of the derived name', () => {
+    render(<MonitoringWidget widget={widgetWith({ slot0_labelMode: 'custom', slot0_label: 'My CPU' })} />);
     expect(screen.getByText('My CPU')).toBeInTheDocument();
     expect(screen.queryByText('CPU Total')).not.toBeInTheDocument();
     expect(screen.getByText('GPU Core')).toBeInTheDocument();
   });
 
-  it('omits the slot label when labelHidden is set, leaving other slots untouched', () => {
-    render(<MonitoringWidget widget={widgetWith({ slot0_labelHidden: true })} />);
+  it('hide mode omits the slot label, leaving other slots untouched', () => {
+    render(<MonitoringWidget widget={widgetWith({ slot0_labelMode: 'hide' })} />);
     expect(screen.queryByText('CPU Total')).not.toBeInTheDocument();
     expect(screen.getByText('GPU Core')).toBeInTheDocument();
   });
 
-  it('keeps a custom label when the label is hidden (override survives hide)', () => {
-    render(<MonitoringWidget widget={widgetWith({ slot0_label: 'My CPU', slot0_labelHidden: true })} />);
+  it('auto mode ignores a remembered custom label (text kept but not shown)', () => {
+    render(<MonitoringWidget widget={widgetWith({ slot0_label: 'My CPU' })} />);
+    expect(screen.getByText('CPU Total')).toBeInTheDocument();
     expect(screen.queryByText('My CPU')).not.toBeInTheDocument();
   });
 });
 
-describe('MonitoringSettings - per-slot label controls', () => {
-  it('shows a Label section: show-label toggle on + custom field with the derived name as placeholder', () => {
+describe('MonitoringSettings - per-slot Label chip', () => {
+  const chip = (name: string) => screen.getByRole('button', { name });
+  const AUTO = 'monitoring.settings.labelAuto';
+  const HIDE = 'monitoring.settings.labelHide';
+  const CUSTOM = 'monitoring.settings.labelCustom';
+  const RESET = 'monitoring.settings.resetLabel';
+  const FIELD = 'monitoring.settings.customLabel';
+
+  it('defaults to Auto with no reset and no text field', () => {
     render(<MonitoringEditorHarness onUpdate={vi.fn()} desktopEditor />);
-
-    expect(screen.getByRole('switch', { name: 'monitoring.settings.showLabel' })).toBeChecked();
-    const field = screen.getByRole('textbox', { name: 'monitoring.settings.customLabel' });
-    expect(field).toHaveAttribute('placeholder', 'CPU Total');
-    expect(screen.queryByRole('button', { name: 'monitoring.settings.resetLabel' })).not.toBeInTheDocument();
-    expect(screen.queryByText('monitoring.settings.labelCustomHint')).not.toBeInTheDocument();
+    expect(chip(AUTO)).toHaveAttribute('aria-pressed', 'true');
+    expect(chip(HIDE)).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.queryByRole('button', { name: RESET })).not.toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: FIELD })).not.toBeInTheDocument();
   });
 
-  it('toggling show-label off writes labelHidden true; on clears it to null', () => {
+  it('Hide writes labelMode hide', () => {
     const onUpdate = vi.fn();
     render(<MonitoringEditorHarness onUpdate={onUpdate} desktopEditor />);
-
-    fireEvent.click(screen.getByRole('switch', { name: 'monitoring.settings.showLabel' }));
-    expect(onUpdate).toHaveBeenLastCalledWith({ slot0_labelHidden: true });
-
-    fireEvent.click(screen.getByRole('switch', { name: 'monitoring.settings.showLabel' }));
-    expect(onUpdate).toHaveBeenLastCalledWith({ slot0_labelHidden: null });
+    fireEvent.click(chip(HIDE));
+    expect(onUpdate).toHaveBeenLastCalledWith({ slot0_labelMode: 'hide' });
   });
 
-  it('commits a custom label on blur, reveals Reset + hint, and persists it across a device change', () => {
+  it('Custom seeds the field with the derived name and reveals it + reset', () => {
     const onUpdate = vi.fn();
     render(<MonitoringEditorHarness onUpdate={onUpdate} desktopEditor />);
-
-    const field = screen.getByRole('textbox', { name: 'monitoring.settings.customLabel' });
-    fireEvent.change(field, { target: { value: 'My CPU' } });
-    fireEvent.blur(field);
-    expect(onUpdate).toHaveBeenLastCalledWith({ slot0_label: 'My CPU' });
-    expect(screen.getByRole('button', { name: 'monitoring.settings.resetLabel' })).toBeInTheDocument();
-    expect(screen.getByText('monitoring.settings.labelCustomHint')).toBeInTheDocument();
-
-    // Switching the device must not clear the label override.
-    fireEvent.change(screen.getByRole('combobox', { name: 'monitoring.settings.device' }), { target: { value: 'gpu' } });
-    const last = onUpdate.mock.calls[onUpdate.mock.calls.length - 1][0];
-    expect('slot0_label' in last).toBe(false);
-    expect(screen.getByRole('textbox', { name: 'monitoring.settings.customLabel' })).toHaveValue('My CPU');
-    expect(screen.getByRole('button', { name: 'monitoring.settings.resetLabel' })).toBeInTheDocument();
+    fireEvent.click(chip(CUSTOM));
+    expect(onUpdate).toHaveBeenLastCalledWith({ slot0_labelMode: 'custom', slot0_label: 'CPU Total' });
+    expect(screen.getByRole('textbox', { name: FIELD })).toHaveValue('CPU Total');
+    expect(screen.getByRole('button', { name: RESET })).toBeInTheDocument();
   });
 
-  it('Reset writes null and removes the Reset control', () => {
+  it('typing updates the label live (per keystroke) and the gauge follows', () => {
     const onUpdate = vi.fn();
     render(<MonitoringEditorHarness onUpdate={onUpdate} desktopEditor />);
-
-    const field = screen.getByRole('textbox', { name: 'monitoring.settings.customLabel' });
-    fireEvent.change(field, { target: { value: 'My CPU' } });
-    fireEvent.blur(field);
-    fireEvent.click(screen.getByRole('button', { name: 'monitoring.settings.resetLabel' }));
-    expect(onUpdate).toHaveBeenLastCalledWith({ slot0_label: null });
-    expect(screen.queryByRole('button', { name: 'monitoring.settings.resetLabel' })).not.toBeInTheDocument();
+    fireEvent.click(chip(CUSTOM));
+    fireEvent.input(screen.getByRole('textbox', { name: FIELD }), { target: { value: 'Hot' } });
+    expect(onUpdate).toHaveBeenLastCalledWith({ slot0_label: 'Hot' });
+    expect(screen.getByText('Hot')).toBeInTheDocument();
   });
 
-  it('on a keyboard-less kiosk surface the toggle stays but the free-text field is replaced by a badge', () => {
+  it('remembers the custom text across Auto <-> Custom; only Reset clears it', () => {
+    const onUpdate = vi.fn();
+    render(<MonitoringEditorHarness onUpdate={onUpdate} desktopEditor />);
+    fireEvent.click(chip(CUSTOM));
+    fireEvent.input(screen.getByRole('textbox', { name: FIELD }), { target: { value: 'Hot' } });
+
+    fireEvent.click(chip(AUTO));
+    expect(onUpdate).toHaveBeenLastCalledWith({ slot0_labelMode: null });
+    expect(screen.queryByRole('textbox', { name: FIELD })).not.toBeInTheDocument();
+
+    fireEvent.click(chip(CUSTOM));
+    expect(onUpdate).toHaveBeenLastCalledWith({ slot0_labelMode: 'custom' });
+    expect(screen.getByRole('textbox', { name: FIELD })).toHaveValue('Hot');
+
+    fireEvent.click(screen.getByRole('button', { name: RESET }));
+    expect(onUpdate).toHaveBeenLastCalledWith({ slot0_labelMode: null, slot0_label: null });
+    expect(chip(AUTO)).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByRole('button', { name: RESET })).not.toBeInTheDocument();
+  });
+
+  it('on a keyboard-less kiosk, chips work but Custom shows a badge instead of the field', () => {
     render(<MonitoringEditorHarness onUpdate={vi.fn()} surface="y70" />);
-
-    expect(screen.getByRole('switch', { name: 'monitoring.settings.showLabel' })).toBeInTheDocument();
-    expect(screen.queryByRole('textbox', { name: 'monitoring.settings.customLabel' })).not.toBeInTheDocument();
+    fireEvent.click(chip(CUSTOM));
+    expect(screen.queryByRole('textbox', { name: FIELD })).not.toBeInTheDocument();
     expect(screen.getByText('common.desktopOnly')).toBeInTheDocument();
   });
 });
 
-describe('MicroMonitoringWidget - label / category override', () => {
+describe('MicroMonitoringWidget - label / category modes', () => {
   function microWidgetWith(config: Record<string, PanelConfigValue>): PanelWidget {
     return { id: 'mm', type: 'monitoring', size: '4x2', col: 0, row: 0, config: { slotCount: 3, micro_device: 'cpu', ...config } };
   }
 
-  it('renders a custom category caption in place of the derived one', () => {
-    render(<MonitoringWidget widget={microWidgetWith({ micro_category: 'My Rig' })} />);
+  it('custom category caption replaces the derived one', () => {
+    render(<MonitoringWidget widget={microWidgetWith({ micro_categoryMode: 'custom', micro_category: 'My Rig' })} />);
     expect(screen.getAllByText('My Rig').length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByText('CPU')).not.toBeInTheDocument();
   });
 
-  it('drops the category caption when micro_categoryHidden is set, bars still render', () => {
-    render(<MonitoringWidget widget={microWidgetWith({ micro_categoryHidden: true })} />);
+  it('hidden category drops the caption row, bars still render', () => {
+    render(<MonitoringWidget widget={microWidgetWith({ micro_categoryMode: 'hide' })} />);
     expect(screen.queryByText('CPU')).not.toBeInTheDocument();
     expect(screen.getAllByText('Total').length).toBeGreaterThanOrEqual(1);
   });
 
-  it('applies a per-sensor label override to a micro bar', () => {
-    render(<MonitoringWidget widget={microWidgetWith({ micro_sensor0_label: 'Custom0' })} />);
+  it('custom per-sensor label applies to a micro bar', () => {
+    render(<MonitoringWidget widget={microWidgetWith({ micro_sensor0_labelMode: 'custom', micro_sensor0_label: 'Custom0' })} />);
     expect(screen.getByText('Custom0')).toBeInTheDocument();
   });
 });

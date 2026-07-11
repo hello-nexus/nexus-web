@@ -22,9 +22,11 @@ import { buildNetworkSensors, networkSensorOptions, NETWORK_SENSOR_TOTAL } from 
 import { bareSensorLabel } from '../monitoring/sensorNames';
 import { extrasSensorsForDevice, sensorsForCategory, smartStorageSensors } from '../monitoring/sensorCategories';
 import { DEFAULT_SCALE_MODE, defaultFixedMax, designSupportsScale, type ScaleMode } from '../monitoring/perfDomain';
+import { RotateCcw } from 'lucide-react';
 import { labelForDevice, resolveSensor } from '../monitoring/MonitoringWidget';
 import { bottomLabelForDevice } from '../monitoring/MicroMonitoringWidget';
-import { SettingsSection, SettingsToggle, SettingsHint } from '../common/SettingsRow/SettingsRow';
+import { SettingsSection } from '../common/SettingsRow/SettingsRow';
+import { ChipGroup } from '../../../components/common/ChipGroup/ChipGroup';
 import { DesktopOnlyBadge } from '../../../components/common/DesktopOnlyBadge/DesktopOnlyBadge';
 import styles from './MonitoringSettings.module.scss';
 
@@ -40,6 +42,14 @@ function parseFixedRangeInput(raw: string, fallback: number): number {
 const SCALE_OPTIONS: { value: ScaleMode; label: string }[] = [
   { value: 'adaptive', label: 'Adaptive' },
   { value: 'fixed',    label: 'Fixed' },
+];
+
+// Auto / Hide / Custom caption modes. Keys are stored in `*_labelMode`
+// (absent = auto); labels route through i18n at render.
+const LABEL_MODE_OPTIONS: { key: string; labelKey: string }[] = [
+  { key: 'auto',   labelKey: 'monitoring.settings.labelAuto' },
+  { key: 'hide',   labelKey: 'monitoring.settings.labelHide' },
+  { key: 'custom', labelKey: 'monitoring.settings.labelCustom' },
 ];
 
 interface SensorOption {
@@ -270,66 +280,88 @@ function microAutoLabel(
   return bareSensorLabel(device, name) || name || effectiveName;
 }
 
-// Show-label toggle + custom-label override field, shared by the per-slot,
-// micro per-sensor, and micro category editors. An empty field is automatic
-// (placeholder shows the derived name); a non-empty override is stored as-is
-// and persists across sensor changes, so a Reset control and a persistence
-// hint surface only while one is set. The free-text field is desktop-only
-// (canType); a kiosk sheet shows the badge and keeps just the toggle.
+// Config writes for one caption's Auto/Hide/Custom chip + live text field.
+// The custom text (labelKey) is retained across mode switches - switching to
+// Auto/Hide only flips modeKey, so returning to Custom restores what was typed;
+// entering Custom the first time seeds it with the derived name so the field
+// shows real text, not a grey placeholder. Only Reset clears the text.
+function labelControlHandlers(
+  onUpdate: (patch: Record<string, PanelConfigValue>) => void,
+  modeKey: string,
+  labelKey: string,
+  override: string,
+  autoLabel: string,
+) {
+  return {
+    onSelectMode: (next: string) => {
+      if (next === 'custom') {
+        onUpdate(override.trim() ? { [modeKey]: 'custom' } : { [modeKey]: 'custom', [labelKey]: autoLabel });
+      } else if (next === 'hide') {
+        onUpdate({ [modeKey]: 'hide' });
+      } else {
+        onUpdate({ [modeKey]: null });
+      }
+    },
+    onChangeText: (value: string) => onUpdate({ [labelKey]: value }),
+    onReset: () => onUpdate({ [modeKey]: null, [labelKey]: null }),
+  };
+}
+
+// A caption's Label control: an Auto / Hide / Custom chip row with a reset
+// glyph at the far right, and (in Custom) a live-updating text field. Shared by
+// the per-slot, micro per-sensor, and micro category editors. The free-text
+// field is desktop-only (canType); a kiosk sheet shows a badge instead.
 function LabelControls({
-  toggleLabel,
-  hidden,
+  mode,
   override,
   autoLabel,
   canType,
-  onSetHidden,
-  onSetLabel,
+  onSelectMode,
+  onChangeText,
+  onReset,
 }: {
-  toggleLabel: string;
-  hidden: boolean;
+  mode: string;
   override: string;
   autoLabel: string;
   canType: boolean;
-  onSetHidden: (hidden: boolean) => void;
-  onSetLabel: (label: string | null) => void;
+  onSelectMode: (mode: string) => void;
+  onChangeText: (value: string) => void;
+  onReset: () => void;
 }) {
   const { t } = useTranslation();
-  const hasOverride = override.trim().length > 0;
-  const commit = (raw: string) => {
-    const trimmed = raw.trim();
-    onSetLabel(trimmed ? trimmed : null);
-  };
+  const showReset = mode !== 'auto' || override.trim().length > 0;
   return (
     <>
-      <SettingsToggle label={toggleLabel} checked={!hidden} onChange={show => onSetHidden(!show)} />
-      {canType ? (
-        <>
-          <div className={styles.labelRow}>
-            <div className={styles.labelField}>
-              <TextInput
-                size="sm"
-                value={override}
-                placeholder={autoLabel}
-                maxLength={40}
-                ariaLabel={t('monitoring.settings.customLabel')}
-                onBlur={commit}
-                onSubmit={commit}
-              />
-            </div>
-            {hasOverride && (
-              <IconLabelButton
-                className={styles.labelResetBtn}
-                label={t('monitoring.settings.resetLabel')}
-                ariaLabel={t('monitoring.settings.resetLabel')}
-                onPress={() => onSetLabel(null)}
-              />
-            )}
-          </div>
-          {hasOverride && <SettingsHint>{t('monitoring.settings.labelCustomHint')}</SettingsHint>}
-        </>
+      <div className={styles.labelModeRow}>
+        <ChipGroup
+          ariaLabel={t('monitoring.settings.label')}
+          activeKey={mode}
+          onChange={onSelectMode}
+          options={LABEL_MODE_OPTIONS.map(o => ({ key: o.key, label: t(o.labelKey) }))}
+        />
+        {showReset && (
+          <IconLabelButton
+            className={styles.labelResetBtn}
+            icon={<RotateCcw size={14} aria-hidden="true" />}
+            ariaLabel={t('monitoring.settings.resetLabel')}
+            onPress={onReset}
+          />
+        )}
+      </div>
+      {mode === 'custom' && (canType ? (
+        <div className={styles.labelField}>
+          <TextInput
+            size="sm"
+            value={override}
+            placeholder={autoLabel}
+            maxLength={40}
+            ariaLabel={t('monitoring.settings.customLabel')}
+            onInput={onChangeText}
+          />
+        </div>
       ) : (
         <DesktopOnlyBadge />
-      )}
+      ))}
     </>
   );
 }
@@ -426,6 +458,7 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
       label: t(CATEGORY_LABEL_KEYS[category]),
       disabled: !deviceHasEnoughSensorsForMicro(sensors, networkSensors, extras, category, count),
     }));
+    const microCanType = canEditFreeText(surface, desktopEditor);
 
     return (
       <div className={styles.settingsRoot}>
@@ -448,46 +481,52 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
         </SettingsSection>
 
         <SettingsSection title={t('monitoring.settings.categorySection')}>
-          <LabelControls
-            toggleLabel={t('monitoring.settings.showCategory')}
-            hidden={widget.config?.micro_categoryHidden === true}
-            override={(widget.config?.micro_category as string | undefined) ?? ''}
-            autoLabel={bottomLabelForDevice(microDevice, sensors, t)}
-            canType={canEditFreeText(surface, desktopEditor)}
-            onSetHidden={h => onUpdate({ micro_categoryHidden: h ? true : null })}
-            onSetLabel={l => onUpdate({ micro_category: l })}
-          />
+          {(() => {
+            const catOverride = (widget.config?.micro_category as string | undefined) ?? '';
+            const catAuto = bottomLabelForDevice(microDevice, sensors, t);
+            return (
+              <LabelControls
+                mode={(widget.config?.micro_categoryMode as string | undefined) ?? 'auto'}
+                override={catOverride}
+                autoLabel={catAuto}
+                canType={microCanType}
+                {...labelControlHandlers(onUpdate, 'micro_categoryMode', 'micro_category', catOverride, catAuto)}
+              />
+            );
+          })()}
         </SettingsSection>
 
         <SettingsSection title={t('monitoring.settings.sensors')}>
           <div className={styles.microSensorList}>
-            {microSensorNames.map((name, i) => (
-              <div key={i} className={styles.microSensorRow}>
-                <Select
-                  className={styles.selectWide}
-                  value={selectedSensorValue(microSensorOptions, name)}
-                  onChange={v => onUpdate({ [`micro_sensor${i}`]: v })}
-                  options={microSensorOptions}
-                  ariaLabel={`Sensor ${i + 1}`}
-                />
-                <LabelControls
-                  toggleLabel={t('monitoring.settings.showLabel')}
-                  hidden={widget.config?.[`micro_sensor${i}_labelHidden`] === true}
-                  override={(widget.config?.[`micro_sensor${i}_label`] as string | undefined) ?? ''}
-                  autoLabel={microAutoLabel(microDevice, name, sensors, networkSensors, extras)}
-                  canType={canEditFreeText(surface, desktopEditor)}
-                  onSetHidden={h => onUpdate({ [`micro_sensor${i}_labelHidden`]: h ? true : null })}
-                  onSetLabel={l => onUpdate({ [`micro_sensor${i}_label`]: l })}
-                />
-              </div>
-            ))}
+            {microSensorNames.map((name, i) => {
+              const sOverride = (widget.config?.[`micro_sensor${i}_label`] as string | undefined) ?? '';
+              const sAuto = microAutoLabel(microDevice, name, sensors, networkSensors, extras);
+              return (
+                <div key={i} className={styles.microSensorRow}>
+                  <Select
+                    className={styles.selectWide}
+                    value={selectedSensorValue(microSensorOptions, name)}
+                    onChange={v => onUpdate({ [`micro_sensor${i}`]: v })}
+                    options={microSensorOptions}
+                    ariaLabel={`Sensor ${i + 1}`}
+                  />
+                  <LabelControls
+                    mode={(widget.config?.[`micro_sensor${i}_labelMode`] as string | undefined) ?? 'auto'}
+                    override={sOverride}
+                    autoLabel={sAuto}
+                    canType={microCanType}
+                    {...labelControlHandlers(onUpdate, `micro_sensor${i}_labelMode`, `micro_sensor${i}_label`, sOverride, sAuto)}
+                  />
+                </div>
+              );
+            })}
           </div>
         </SettingsSection>
       </div>
     );
   }
 
-  const slotLabelHidden = widget.config?.[`slot${activeSlot}_labelHidden`] === true;
+  const slotLabelMode = (widget.config?.[`slot${activeSlot}_labelMode`] as string | undefined) ?? 'auto';
   const slotLabelOverride = (widget.config?.[`slot${activeSlot}_label`] as string | undefined) ?? '';
   const slotAutoLabel = activeConfig ? labelForDevice(activeConfig.device, activeSensor?.name ?? activeConfig.sensorName) : '';
 
@@ -528,13 +567,11 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
 
           <SettingsSection title={t('monitoring.settings.label')}>
             <LabelControls
-              toggleLabel={t('monitoring.settings.showLabel')}
-              hidden={slotLabelHidden}
+              mode={slotLabelMode}
               override={slotLabelOverride}
               autoLabel={slotAutoLabel}
               canType={canEditFreeText(surface, desktopEditor)}
-              onSetHidden={h => onUpdate({ [`slot${activeSlot}_labelHidden`]: h ? true : null })}
-              onSetLabel={l => onUpdate({ [`slot${activeSlot}_label`]: l })}
+              {...labelControlHandlers(onUpdate, `slot${activeSlot}_labelMode`, `slot${activeSlot}_label`, slotLabelOverride, slotAutoLabel)}
             />
           </SettingsSection>
 

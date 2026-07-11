@@ -2856,10 +2856,10 @@
   "welcome.title": "Bem-vindo ao Nexus",
   "welcome.error": "Não foi possível salvar suas preferências. Tente novamente.",
   "monitoring.settings.label": "Rótulo",
-  "monitoring.settings.showLabel": "Mostrar rótulo",
   "monitoring.settings.customLabel": "Rótulo personalizado",
-  "monitoring.settings.labelCustomHint": "Rótulo personalizado que não muda ao trocar de sensor",
   "monitoring.settings.resetLabel": "Resetar",
   "monitoring.settings.categorySection": "Categoria",
-  "monitoring.settings.showCategory": "Mostrar categoria"
+  "monitoring.settings.labelAuto": "Auto",
+  "monitoring.settings.labelHide": "Ocultar",
+  "monitoring.settings.labelCustom": "Personalizado"
 }

@@ -2856,10 +2856,10 @@
   "welcome.title": "Nexus'a hoş geldiniz",
   "welcome.error": "Tercihleriniz kaydedilemedi. Lütfen tekrar deneyin.",
   "monitoring.settings.label": "Etiket",
-  "monitoring.settings.showLabel": "Etiketi göster",
   "monitoring.settings.customLabel": "Özel etiket",
-  "monitoring.settings.labelCustomHint": "Sensörü değiştirdiğinizde değişmeyen özel etiket",
   "monitoring.settings.resetLabel": "Sıfırla",
   "monitoring.settings.categorySection": "Kategori",
-  "monitoring.settings.showCategory": "Kategoriyi göster"
+  "monitoring.settings.labelAuto": "Otomatik",
+  "monitoring.settings.labelHide": "Gizle",
+  "monitoring.settings.labelCustom": "Özel"
 }

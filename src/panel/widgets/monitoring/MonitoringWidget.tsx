@@ -148,6 +148,19 @@ export function labelForDevice(device: DeviceKey, sensorName: string): string {
 
 export { staticMaxForDevice };
 
+// A slot/sensor caption has three modes stored as `labelMode` (absent = auto):
+// 'hide' blanks it, 'custom' shows the stored `label` (falling back to the
+// derived name until the user types), auto shows the derived name. The stored
+// custom text is retained across mode switches; only Reset clears it, so the
+// caller keeps it in `label` regardless of the active mode.
+export type LabelMode = 'hide' | 'custom';
+
+export function displayLabel(mode: string | undefined, override: string | undefined, autoLabel: string): string {
+  if (mode === 'hide') return '';
+  if (mode === 'custom') return override?.trim() || autoLabel;
+  return autoLabel;
+}
+
 export function percentForSensor(device: DeviceKey, sensor: HardwareSensor | undefined, maxValue: number): number {
   if (!sensor) return 0;
   // Prefer the sensor's own ceiling when present. Memory Used / VRAM Used on
@@ -189,7 +202,7 @@ export function MonitoringWidget({ widget, selectedSlot, onSelectSlot }: WidgetP
     fixedMin: widget.config?.[`slot${i}_min`] as number | undefined,
     fixedMax: widget.config?.[`slot${i}_max`] as number | undefined,
     labelOverride: widget.config?.[`slot${i}_label`] as string | undefined,
-    labelHidden: widget.config?.[`slot${i}_labelHidden`] === true,
+    labelMode: widget.config?.[`slot${i}_labelMode`] as string | undefined,
   }));
   const microDevice = widget.config?.micro_device as DeviceKey | undefined;
   const usesFps = isMicro
@@ -226,7 +239,7 @@ export function MonitoringWidget({ widget, selectedSlot, onSelectSlot }: WidgetP
 
   return (
     <div className={`${styles.performance} ${layoutClass}`}>
-      {slotConfigs.map(({ device, sensorName, design, scale, fixedMin, fixedMax, labelOverride, labelHidden }, i) => {
+      {slotConfigs.map(({ device, sensorName, design, scale, fixedMin, fixedMax, labelOverride, labelMode }, i) => {
         return (
           <PerfSlot
             key={`${i}-${device}-${sensorName}`}
@@ -242,7 +255,7 @@ export function MonitoringWidget({ widget, selectedSlot, onSelectSlot }: WidgetP
             fixedMin={fixedMin}
             fixedMax={fixedMax}
             labelOverride={labelOverride}
-            labelHidden={labelHidden}
+            labelMode={labelMode}
             tempPrefs={tempPrefs}
             selected={selectable && i === activeSlot}
             onSelect={selectable ? () => onSelectSlot?.(i) : undefined}
@@ -266,24 +279,23 @@ interface PerfSlotProps {
   fixedMin?: number;
   fixedMax?: number;
   labelOverride?: string;
-  labelHidden?: boolean;
+  labelMode?: string;
   tempPrefs?: TempSensorPrefs;
   selected?: boolean;
   onSelect?: () => void;
 }
 
-export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, extras, device, sensorName, design, scale = DEFAULT_SCALE_MODE, fixedMin, fixedMax, labelOverride, labelHidden = false, tempPrefs, selected = false, onSelect }: PerfSlotProps) {
+export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, extras, device, sensorName, design, scale = DEFAULT_SCALE_MODE, fixedMin, fixedMax, labelOverride, labelMode, tempPrefs, selected = false, onSelect }: PerfSlotProps) {
   const { monitoringTempUnit, numberFormat } = useUnitPrefs();
   const effectiveSensorName = device === 'network' && !sensorName ? NETWORK_SENSOR_TOTAL : sensorName;
   const sensor = resolveSensor(sensors, fpsSensors, networkSensors, device, effectiveSensorName, tempPrefs, extras);
   const rawValue = sensor?.value ?? 0;
   const formatted = sensor ? formatSensorValue(sensor.value, sensor.units, sensor.formatted, monitoringTempUnit, numberFormat) : '-';
-  // A per-slot custom label overrides the derived name and persists across
-  // sensor changes (config key survives the sensor swap); labelHidden blanks
-  // the visible caption while keeping resolvedLabel for the a11y name.
+  // Auto / hide / custom caption; the stored custom text survives sensor
+  // changes and mode switches. The a11y name stays meaningful even when hidden.
   const autoLabel = labelForDevice(device, sensor?.name ?? effectiveSensorName);
-  const resolvedLabel = labelOverride?.trim() || autoLabel;
-  const label = labelHidden ? '' : resolvedLabel;
+  const label = displayLabel(labelMode, labelOverride, autoLabel);
+  const resolvedLabel = labelMode === 'custom' ? (labelOverride?.trim() || autoLabel) : autoLabel;
   // Shared key so the tile + immersive instance for the same sensor share one
   // 60-sample buffer; re-mounting in immersive shows existing history at once.
   const sensorKey = `${device}::${effectiveSensorName || 'default'}`;

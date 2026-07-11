@@ -94,22 +94,25 @@
   }
 }
 
-.labelRow {
+.labelModeRow {
   display: flex;
   gap: 8px;
   align-items: center;
-  margin-top: 6px;
 }
 
 .labelField {
-  flex: 1;
   min-width: 0;
+  margin-top: 6px;
 }
 
+// Icon-only reset pinned to the far right of the chip row.
 .labelResetBtn {
   flex: 0 0 auto;
-  --icon-label-button-height: 36px;
-  --icon-label-label-size: 11px;
+  margin-left: auto;
+  --icon-label-button-height: 32px;
+  --icon-label-button-min-width: 32px;
+  --icon-label-button-padding-x: 0;
+  --icon-label-icon-size: 15px;
 }
 
 .selectSmall {

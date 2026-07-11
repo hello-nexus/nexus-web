@@ -2856,10 +2856,10 @@
   "welcome.title": "欢迎使用 Nexus",
   "welcome.error": "无法保存偏好设置，请重试。",
   "monitoring.settings.label": "标签",
-  "monitoring.settings.showLabel": "显示标签",
   "monitoring.settings.customLabel": "自定义标签",
-  "monitoring.settings.labelCustomHint": "切换传感器时保持不变的自定义标签",
   "monitoring.settings.resetLabel": "重置",
   "monitoring.settings.categorySection": "类别",
-  "monitoring.settings.showCategory": "显示类别"
+  "monitoring.settings.labelAuto": "自动",
+  "monitoring.settings.labelHide": "隐藏",
+  "monitoring.settings.labelCustom": "自定义"
 }

@@ -2856,10 +2856,10 @@
   "welcome.title": "Benvignûts in Nexus",
   "welcome.error": "No si è rivât a salvâ lis tôs preferencis. Torne prove.",
   "monitoring.settings.label": "Etichete",
-  "monitoring.settings.showLabel": "Mostre etichete",
   "monitoring.settings.customLabel": "Etichete personalizade",
-  "monitoring.settings.labelCustomHint": "Etichete personalizade che no cambie cuant che tu cambiis sensôr",
   "monitoring.settings.resetLabel": "Ripristine",
   "monitoring.settings.categorySection": "Categorie",
-  "monitoring.settings.showCategory": "Mostre categorie"
+  "monitoring.settings.labelAuto": "Auto",
+  "monitoring.settings.labelHide": "Plate",
+  "monitoring.settings.labelCustom": "Personalizât"
 }

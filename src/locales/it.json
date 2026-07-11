@@ -2856,10 +2856,10 @@
   "welcome.title": "Benvenuto in Nexus",
   "welcome.error": "Impossibile salvare le tue preferenze. Riprova.",
   "monitoring.settings.label": "Etichetta",
-  "monitoring.settings.showLabel": "Mostra etichetta",
   "monitoring.settings.customLabel": "Etichetta personalizzata",
-  "monitoring.settings.labelCustomHint": "Etichetta personalizzata che non cambia quando cambi sensore",
   "monitoring.settings.resetLabel": "Ripristina",
   "monitoring.settings.categorySection": "Categoria",
-  "monitoring.settings.showCategory": "Mostra categoria"
+  "monitoring.settings.labelAuto": "Auto",
+  "monitoring.settings.labelHide": "Nascondi",
+  "monitoring.settings.labelCustom": "Personalizzato"
 }

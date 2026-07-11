@@ -2856,10 +2856,10 @@
   "welcome.title": "Добро пожаловать в Nexus",
   "welcome.error": "Не удалось сохранить настройки. Попробуйте ещё раз.",
   "monitoring.settings.label": "Подпись",
-  "monitoring.settings.showLabel": "Показывать подпись",
   "monitoring.settings.customLabel": "Своя подпись",
-  "monitoring.settings.labelCustomHint": "Своя подпись, которая не меняется при смене датчика",
   "monitoring.settings.resetLabel": "Сброс",
   "monitoring.settings.categorySection": "Категория",
-  "monitoring.settings.showCategory": "Показывать категорию"
+  "monitoring.settings.labelAuto": "Авто",
+  "monitoring.settings.labelHide": "Скрыть",
+  "monitoring.settings.labelCustom": "Свой"
 }

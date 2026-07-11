@@ -2856,10 +2856,10 @@
   "welcome.title": "Bienvenue sur Nexus",
   "welcome.error": "Impossible d'enregistrer vos préférences. Veuillez réessayer.",
   "monitoring.settings.label": "Étiquette",
-  "monitoring.settings.showLabel": "Afficher l'étiquette",
   "monitoring.settings.customLabel": "Étiquette personnalisée",
-  "monitoring.settings.labelCustomHint": "Étiquette personnalisée qui ne change pas quand vous changez de capteur",
   "monitoring.settings.resetLabel": "Réinitialiser",
   "monitoring.settings.categorySection": "Catégorie",
-  "monitoring.settings.showCategory": "Afficher la catégorie"
+  "monitoring.settings.labelAuto": "Auto",
+  "monitoring.settings.labelHide": "Masquer",
+  "monitoring.settings.labelCustom": "Personnalisé"
 }
