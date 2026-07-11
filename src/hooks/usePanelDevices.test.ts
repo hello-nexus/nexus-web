@@ -1,0 +1,67 @@
+import { describe, expect, it } from 'vitest';
+import { buildPanelDevices } from './usePanelDevices';
+import type { PanelDeviceRecord } from '../api/panel';
+
+const LABELS = {
+  simulated: 'Simulated',
+  phone: 'Phone',
+  online: 'Online',
+  paired: 'Paired',
+  recentlyActive: 'Recently active',
+  running: 'Running',
+  simulatedSuffix: ' (Simulated)',
+};
+
+function xeneonRecord(displayName: string): PanelDeviceRecord {
+  return {
+    id: 'rec-1',
+    displayName,
+    firstSeenAt: 0,
+    lastSeenAt: 1,
+    displayId: 'disp-1',
+    capabilities: {
+      surface: 'monitor',
+      family: 'xeneon-edge',
+      touch: true,
+      cssWidth: 1707,
+      cssHeight: 480,
+      dpr: 1.5,
+      dpi: 183,
+    },
+  };
+}
+
+function firstDevice(record: PanelDeviceRecord) {
+  const devices = buildPanelDevices({
+    curatedDevices: [],
+    phoneSessions: [],
+    records: [record],
+    status: null,
+    simulatedPanels: [],
+    labels: LABELS,
+  });
+  return devices[0];
+}
+
+describe('buildPanelDevices promoted-monitor branding', () => {
+  it('replaces the Windows PnP-identity default name with the family name', () => {
+    const device = firstDevice(xeneonRecord('CRX ED00'));
+    expect(device.name).toBe('Xeneon Edge');
+    expect(device.iconSrc).toBe('/assets/devices/corsair.svg');
+  });
+
+  it('replaces the EDID product-name default with the family name', () => {
+    expect(firstDevice(xeneonRecord('CORSAIR XENEON EDGE')).name).toBe('Xeneon Edge');
+    expect(firstDevice(xeneonRecord('XENEON EDGE')).name).toBe('Xeneon Edge');
+  });
+
+  it('keeps a user rename but still shows the family icon', () => {
+    const device = firstDevice(xeneonRecord('Living Room Strip'));
+    expect(device.name).toBe('Living Room Strip');
+    expect(device.iconSrc).toBe('/assets/devices/corsair.svg');
+  });
+
+  it('carries the record touch capability onto the device entry', () => {
+    expect(firstDevice(xeneonRecord('CRX ED00')).capabilities.touch).toBe(true);
+  });
+});

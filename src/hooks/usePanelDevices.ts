@@ -83,13 +83,15 @@ const WIDGET_PANEL_PROFILES: Partial<Record<string, {
 const WIDGET_PANEL_IDS = new Set(Object.keys(WIDGET_PANEL_PROFILES));
 
 // Branding for curated promoted-display families (capabilities.family,
-// stamped by the service's KnownPanelDisplays matcher). The pretty name only
-// replaces an EDID-default record name - matched with the same contains rule
-// the service matcher uses ("CORSAIR XENEON EDGE" and "XENEON EDGE" are both
-// defaults) - so a user rename that drops the product name wins. Grid math
-// reads the dpi capability directly; this map is presentation only.
-const PROMOTED_FAMILY_BRANDING: Partial<Record<string, { name: string; icon: string }>> = {
-  'xeneon-edge': { name: 'Xeneon Edge', icon: '/assets/devices/corsair.svg' },
+// stamped by the service's KnownPanelDisplays matcher). The pretty name
+// replaces an OS-default record name - the product-name form ("CORSAIR XENEON
+// EDGE" / "XENEON EDGE", matched by contains) OR the Windows PnP-identity form
+// ("CRX ED00", the "{EISA id} {hex product}" the topology provider composes
+// when the EDID product name never surfaces; matched exactly). A user rename
+// to anything else wins. Grid math reads the dpi capability directly; this map
+// is presentation only.
+const PROMOTED_FAMILY_BRANDING: Partial<Record<string, { name: string; icon: string; defaultNames: readonly string[] }>> = {
+  'xeneon-edge': { name: 'Xeneon Edge', icon: '/assets/devices/corsair.svg', defaultNames: ['crx ed00'] },
 };
 
 export function usePanelDevices(
@@ -156,7 +158,7 @@ export function usePanelDevices(
   return { devices, loading };
 }
 
-function buildPanelDevices({
+export function buildPanelDevices({
   curatedDevices,
   phoneSessions,
   records,
@@ -249,8 +251,10 @@ function buildPanelDevices({
     // native px (css x dpr) double-rounds and drifts by a pixel at 150%.
     const resolution = cssWidth > 0 && cssHeight > 0 ? `${cssWidth}x${cssHeight}` : '';
     const branding = record.capabilities?.family ? PROMOTED_FAMILY_BRANDING[record.capabilities.family] : undefined;
+    const normalizedName = record.displayName.trim().toLowerCase();
     const isDefaultName = !!branding
-      && record.displayName.toLowerCase().includes(branding.name.toLowerCase());
+      && (normalizedName.includes(branding.name.toLowerCase())
+        || branding.defaultNames.includes(normalizedName));
     devices.push({
       id: `display:${record.id}`,
       panelRecordId: record.id,
