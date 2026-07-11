@@ -781,3 +781,17 @@ describe('MicroMonitoringWidget - label / category modes', () => {
     expect(screen.getByText('Custom0')).toBeInTheDocument();
   });
 });
+
+describe('Label block has no section divider', () => {
+  it('the Label block carries data-settings-aside and is a non-first child of the Sensor box', () => {
+    render(<MonitoringEditorHarness onUpdate={vi.fn()} desktopEditor />);
+    const block = screen.getByRole('button', { name: 'monitoring.settings.labelAuto' })
+      .closest('[data-settings-aside="true"]') as HTMLElement;
+    expect(block).not.toBeNull();
+    const box = block.parentElement as HTMLElement;
+    // Sits after the device/sensor selects, so the section hairline would apply
+    // to it were it not opted out via data-settings-aside.
+    expect(box.children.length).toBeGreaterThan(1);
+    expect(box.firstElementChild).not.toBe(block);
+  });
+});

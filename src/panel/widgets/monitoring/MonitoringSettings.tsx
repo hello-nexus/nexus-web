@@ -332,7 +332,9 @@ function LabelControls({
 }) {
   const { t } = useTranslation();
   return (
-    <>
+    // data-settings-aside opts the block out of the SettingsSection hairline
+    // divider so the Label row has no separator above (the selects) or below.
+    <div className={styles.labelBlock} data-settings-aside="true">
       <SettingsRow label={t('monitoring.settings.label')}>
         <ChipGroup
           ariaLabel={t('monitoring.settings.label')}
@@ -363,7 +365,7 @@ function LabelControls({
       ) : (
         <DesktopOnlyBadge />
       ))}
-    </>
+    </div>
   );
 }
 

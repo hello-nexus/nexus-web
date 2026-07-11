@@ -94,6 +94,13 @@
   }
 }
 
+// Label chip row + optional custom field, grouped so the SettingsSection
+// hairline divider (opted out via data-settings-aside) skips the whole block.
+.labelBlock {
+  display: flex;
+  flex-direction: column;
+}
+
 // Custom text field + reset glyph, the second line under the Label chip row.
 .labelFieldRow {
   display: flex;
