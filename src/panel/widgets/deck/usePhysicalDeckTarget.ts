@@ -31,6 +31,13 @@ export interface UsePhysicalDeckTargetResult {
   /** True once the initial config fetch has settled with a failure. target stays null (no editing) until retry() succeeds. */
   error: boolean;
   retry: () => void;
+  /**
+   * Applies a full config snapshot through the same debounced PUT + key-image
+   * resync as a normal edit, without invoking onCommit - for a caller (undo/
+   * redo, reset) that already manages its own history and just needs the
+   * restored state to reach the server and the hardware.
+   */
+  applyConfig: (next: DeckConfig) => void;
 }
 
 /**
@@ -41,11 +48,18 @@ export interface UsePhysicalDeckTargetResult {
  * config over the deck's real stored layout on the user's first edit would
  * otherwise be silent data loss. Pass `deck: null` to disable (no fetch, no
  * target).
+ *
+ * `onCommit`, when given, fires with the pre-edit config every time the
+ * returned target's updateSlot/swapSlots/addPage/removePage/setTitleDefault
+ * commits a change - the single choke point every editor action funnels
+ * through, so a caller can build undo history there instead of instrumenting
+ * each widget. `applyConfig` bypasses it (see above).
  */
 export function usePhysicalDeckTarget(
   deck: StreamDeckSummary | null,
   folderPath: readonly number[],
   page = 0,
+  onCommit?: (prev: DeckConfig) => void,
 ): UsePhysicalDeckTargetResult {
   const [config, setConfig] = useState<DeckConfig | null>(null);
   const [loadError, setLoadError] = useState(false);
@@ -57,6 +71,10 @@ export function usePhysicalDeckTarget(
   const configSerialRef = useRef<string | null>(null);
   const backUploadOkRef = useRef(false);
   const consecutiveFailuresRef = useRef(0);
+  const onCommitRef = useRef(onCommit);
+  onCommitRef.current = onCommit;
+  const liveConfigRef = useRef<DeckConfig | null>(null);
+  liveConfigRef.current = config;
 
   useEffect(() => {
     setConfig(null);
@@ -85,6 +103,12 @@ export function usePhysicalDeckTarget(
   const retry = useCallback(() => setRetryToken(t => t + 1), []);
 
   const persist = useCallback((next: DeckConfig) => {
+    const prev = liveConfigRef.current;
+    if (prev) onCommitRef.current?.(prev);
+    setConfig(next);
+  }, []);
+
+  const applyConfig = useCallback((next: DeckConfig) => {
     setConfig(next);
   }, []);
 
@@ -180,5 +204,5 @@ export function usePhysicalDeckTarget(
 
   useEffect(() => flushPending, [flushPending]);
 
-  return { target, loaded: config !== null || loadError, error: loadError, retry };
+  return { target, loaded: config !== null || loadError, error: loadError, retry, applyConfig };
 }

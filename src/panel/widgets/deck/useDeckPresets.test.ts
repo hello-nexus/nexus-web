@@ -128,3 +128,64 @@ describe('useDeckPresets', () => {
     expect(mockActivate).toHaveBeenCalledWith('SN1', 'a');
   });
 });
+
+describe('useDeckPresets - scheduleAutoSave', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.clearAllTimers();
+    vi.useRealTimers();
+  });
+
+  it('debounces into a single saveCurrent PUT once a preset is active', async () => {
+    mockFetch.mockResolvedValue({ presets: [{ id: 'a', name: 'Streaming' }], activeId: 'a' });
+    const { result } = renderHook(() => useDeckPresets('SN1'));
+    await act(async () => { await vi.runOnlyPendingTimersAsync(); });
+
+    act(() => { result.current.scheduleAutoSave(); });
+    act(() => { result.current.scheduleAutoSave(); });
+    act(() => { result.current.scheduleAutoSave(); });
+    expect(mockUpdate).not.toHaveBeenCalled();
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+
+    expect(mockUpdate).toHaveBeenCalledTimes(1);
+    expect(mockUpdate).toHaveBeenCalledWith('SN1', 'a', { saveCurrent: true });
+  });
+
+  it('does not schedule a save when no preset is active', async () => {
+    mockFetch.mockResolvedValue({ presets: [], activeId: null });
+    const { result } = renderHook(() => useDeckPresets('SN1'));
+    await act(async () => { await vi.runOnlyPendingTimersAsync(); });
+
+    act(() => { result.current.scheduleAutoSave(); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+
+    expect(mockUpdate).not.toHaveBeenCalled();
+  });
+
+  it('does not save on unmount when nothing was scheduled', async () => {
+    mockFetch.mockResolvedValue({ presets: [{ id: 'a', name: 'Streaming' }], activeId: 'a' });
+    const { unmount } = renderHook(() => useDeckPresets('SN1'));
+    await act(async () => { await vi.runOnlyPendingTimersAsync(); });
+
+    unmount();
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+
+    expect(mockUpdate).not.toHaveBeenCalled();
+  });
+
+  it('flushes a still-pending save immediately on unmount instead of dropping it', async () => {
+    mockFetch.mockResolvedValue({ presets: [{ id: 'a', name: 'Streaming' }], activeId: 'a' });
+    const { result, unmount } = renderHook(() => useDeckPresets('SN1'));
+    await act(async () => { await vi.runOnlyPendingTimersAsync(); });
+
+    act(() => { result.current.scheduleAutoSave(); });
+    unmount();
+
+    expect(mockUpdate).toHaveBeenCalledTimes(1);
+    expect(mockUpdate).toHaveBeenCalledWith('SN1', 'a', { saveCurrent: true });
+  });
+});

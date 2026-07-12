@@ -544,6 +544,23 @@ export async function postService<T>(path: string, body: unknown, signal?: Abort
   return r ? (await r.json()) as T : null;
 }
 
+interface SystemPickPathResponse {
+  path: string | null;
+  error?: boolean;
+  msg?: string;
+}
+
+/**
+ * Opens the native OS file/folder dialog on the host PC (the same
+ * Session-0-safe picker the gallery's pickGalleryPaths uses) and resolves
+ * with the chosen absolute path. Null covers both a user cancel and a failed
+ * request - callers leave whatever they were editing untouched either way.
+ */
+export async function pickSystemPath(folder: boolean): Promise<string | null> {
+  const res = await postService<SystemPickPathResponse>('/system/pick-path', { folder });
+  return res?.path ?? null;
+}
+
 export async function putService<T>(path: string, body: unknown): Promise<T | null> {
   const r = await authFetch(path, { method: 'PUT', body });
   return r ? (await r.json()) as T : null;

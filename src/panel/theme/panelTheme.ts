@@ -105,11 +105,14 @@ export function buildPanelThemeVars(theme: PanelThemeState, resolvedThemeMode: R
     : theme.accentColor || theme.appAccentColor;
   const accentVars = deriveAccentVars(accentColor || DEFAULT_ACCENT, resolvedThemeMode);
   // Widget surface alpha (user-controlled). .panel-card in tokens.scss applies
-  // it via color-mix so only the background fades, not the contents.
+  // it via color-mix so only the background fades, not the contents. Live panels
+  // fill from the OPAQUE surface variant (not the translucent --surface embedded
+  // hosts use), so the slider is the sole transparency source and 100% is solid.
   const widgetOpacityPct = Math.round(normalizePanelWidgetOpacity(theme.widgetOpacity) * 100);
   const vars: Record<string, string> = {
     ...accentVars,
     '--panel-card-bg': 'var(--surface)',
+    '--panel-card-fill': 'var(--panel-card-fill-opaque)',
     '--panel-card-bg-opacity': `${widgetOpacityPct}%`,
     '--panel-accent': accentVars['--accent'],
     '--panel-accent-glow': accentVars['--accent-glow'],
