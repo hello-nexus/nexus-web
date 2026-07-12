@@ -1908,6 +1908,7 @@
   "panel.settings.deck.deckSleepDescription": "熄滅 Deck 螢幕，直到下一次按鍵。",
   "panel.settings.deck.deleteFolder.body": "此資料夾包含 {count} 個按鍵。刪除它將移除其中的所有內容。",
   "panel.settings.deck.deleteFolder.title": "刪除資料夾？",
+  "panel.settings.deck.deleteKey": "刪除按鍵",
   "panel.settings.deck.device": "裝置",
   "panel.settings.deck.display": "顯示",
   "panel.settings.deck.effect": "效果",

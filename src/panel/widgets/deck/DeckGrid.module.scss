@@ -42,7 +42,7 @@
   overflow: hidden;
   container-type: size;
   // No border on a populated, unselected cell - see .empty (blank) and
-  // .selected::after (the selection ring) for the only two states that get one.
+  // .selected (the selection ring) for the only two states that get one.
   border: 1px solid transparent;
   border-radius: var(--radius);
   // Solid accent fill + white icon, matching the bitmap pushed to a physical
@@ -84,27 +84,32 @@
   cursor: default;
 }
 
-.selectable::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  box-shadow: inset 0 0 0 4px transparent;
-  border-radius: inherit;
-  pointer-events: none;
-  transition: box-shadow var(--ease);
+// Ring/drop-indicator shadow layers, composed via custom properties on
+// .cell's own box (never a ::after descendant) so both can render at once -
+// a selected key that is also a drag drop target. .cell's own
+// overflow:hidden clips a descendant's box-shadow (a ::after pseudo-element
+// counts as one) but never its own - box-shadow is part of the box's own
+// decoration, not its content - so keeping the ring on .cell itself lets it
+// paint fully outside the tile with no clipping. Zero layout shift:
+// box-shadow never participates in the box model, so toggling selection
+// changes no size, gap, or scroll extent. .grid's own padding below exceeds
+// .selected's ring spread on every side, at every deck size, so no
+// ancestor's overflow (previewStage, gridBox, or a widget card) can reach
+// it either - keep that margin whenever either value changes.
+.selectable {
+  --deck-ring-shadow: 0 0 0 0 transparent;
+  --deck-drop-shadow: 0 0 0 0 transparent;
+  box-shadow: var(--deck-drop-shadow), var(--deck-ring-shadow);
 }
 
-// Selected: the same thick solid accent ring the lighting page's animation
-// browser uses for a selected shader thumbnail (EffectCard.module.scss
-// .cardOverlay.cardActive). Unlike EffectCard's outset ring this one is
-// INSET: .cell clips with overflow:hidden, so an outset shadow on the inner
-// ::after paints entirely outside the clip and is invisible.
-.selected::after {
-  box-shadow: inset 0 0 0 4px var(--panel-accent, var(--accent));
+// Same solid accent ring the lighting page's animation browser uses for a
+// selected shader thumbnail (EffectCard.module.scss .cardOverlay.cardActive).
+.selected {
+  --deck-ring-shadow: 0 0 0 4px var(--panel-accent, var(--accent));
 }
 
 .dropOver {
-  box-shadow: inset 0 0 0 2px var(--panel-accent, var(--accent));
+  --deck-drop-shadow: inset 0 0 0 2px var(--panel-accent, var(--accent));
 }
 
 // Icon fills the full button regardless of whether a label is present - the

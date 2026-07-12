@@ -2050,6 +2050,7 @@
   "panel.settings.deck.deckSleepDescription": "Blanks the deck's screen until the next key press.",
   "panel.settings.deck.deleteFolder.body": "This folder holds {count} keys. Deleting it removes everything inside.",
   "panel.settings.deck.deleteFolder.title": "Delete folder?",
+  "panel.settings.deck.deleteKey": "Delete key",
   "panel.settings.deck.device": "Device",
   "panel.settings.deck.display": "Display",
   "panel.settings.deck.effect": "Effect",

@@ -1908,6 +1908,7 @@
   "panel.settings.deck.deckSleepDescription": "Spegne lo schermo del Deck fino alla prossima pressione di un tasto.",
   "panel.settings.deck.deleteFolder.body": "Questa cartella contiene {count} tasti. Eliminandola rimuovi tutto il contenuto.",
   "panel.settings.deck.deleteFolder.title": "Eliminare la cartella?",
+  "panel.settings.deck.deleteKey": "Elimina tasto",
   "panel.settings.deck.device": "Dispositivo",
   "panel.settings.deck.display": "Schermo",
   "panel.settings.deck.effect": "Effetto",

@@ -1908,6 +1908,7 @@
   "panel.settings.deck.deckSleepDescription": "Éteint l'écran du Deck jusqu'à la prochaine pression sur une touche.",
   "panel.settings.deck.deleteFolder.body": "Ce dossier contient {count} touches. Le supprimer efface tout son contenu.",
   "panel.settings.deck.deleteFolder.title": "Supprimer le dossier ?",
+  "panel.settings.deck.deleteKey": "Supprimer la touche",
   "panel.settings.deck.device": "Appareil",
   "panel.settings.deck.display": "Affichage",
   "panel.settings.deck.effect": "Effet",

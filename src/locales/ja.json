@@ -1853,6 +1853,7 @@
   "panel.settings.deck.deckSleepDescription": "次にキーが押されるまで Deck の画面を消灯します。",
   "panel.settings.deck.deleteFolder.body": "このフォルダには{count}個のキーがあります。削除するとすべての内容が削除されます。",
   "panel.settings.deck.deleteFolder.title": "フォルダを削除しますか？",
+  "panel.settings.deck.deleteKey": "キーを削除",
   "panel.settings.deck.device": "デバイス",
   "panel.settings.deck.display": "表示",
   "panel.settings.deck.effect": "エフェクト",
