@@ -1915,6 +1915,7 @@
   "panel.settings.deck.device": "Dispositivo",
   "panel.settings.deck.display": "Pantalla",
   "panel.settings.deck.effect": "Efecto",
+  "panel.settings.deck.emptyKeyHint": "Elige una acción o arrástrala a este botón.",
   "panel.settings.deck.enterFolder": "Editar carpeta",
   "panel.settings.deck.fan": "Ventilador",
   "panel.settings.deck.fanProfile": "Perfil",

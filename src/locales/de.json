@@ -1915,6 +1915,7 @@
   "panel.settings.deck.device": "Gerät",
   "panel.settings.deck.display": "Anzeige",
   "panel.settings.deck.effect": "Effekt",
+  "panel.settings.deck.emptyKeyHint": "Wähle eine Aktion aus, oder ziehe eine auf diese Taste.",
   "panel.settings.deck.enterFolder": "Ordner bearbeiten",
   "panel.settings.deck.fan": "Lüfter",
   "panel.settings.deck.fanProfile": "Profil",

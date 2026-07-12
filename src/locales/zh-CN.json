@@ -1915,6 +1915,7 @@
   "panel.settings.deck.device": "设备",
   "panel.settings.deck.display": "显示",
   "panel.settings.deck.effect": "效果",
+  "panel.settings.deck.emptyKeyHint": "选择一个操作，或将其拖到此按键上。",
   "panel.settings.deck.enterFolder": "编辑文件夹",
   "panel.settings.deck.fan": "风扇",
   "panel.settings.deck.fanProfile": "配置文件",

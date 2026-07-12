@@ -1915,6 +1915,7 @@
   "panel.settings.deck.device": "장치",
   "panel.settings.deck.display": "디스플레이",
   "panel.settings.deck.effect": "효과",
+  "panel.settings.deck.emptyKeyHint": "동작을 선택하거나 이 키로 드래그하세요.",
   "panel.settings.deck.enterFolder": "폴더 편집",
   "panel.settings.deck.fan": "팬",
   "panel.settings.deck.fanProfile": "프로필",

@@ -9,6 +9,7 @@ import { isMacAppShell, isWindowsAppShell } from '../../../app/windowActions';
 import { useSensors } from '../../../hooks/useSensors';
 import { EMPTY_SENSOR_EXTRAS } from '../../../hooks/useSensorExtras';
 import { CollapsibleSection } from '../../../components/common/CollapsibleSection/CollapsibleSection';
+import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
 import { ChipGroup } from '../../../components/common/ChipGroup/ChipGroup';
 import { Select } from '../../../components/common/Select/Select';
 import { SearchInput } from '../../../components/common/SearchInput/SearchInput';
@@ -1010,6 +1011,15 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
         <SettingsSection title={t('panel.settings.deck.actionType')}>
           <ActionCategoryPicker categories={categories} activeKind={kind} onPick={onKindChange} surface={surface} desktopEditor={desktopEditor} />
         </SettingsSection>
+      )}
+
+      {/* The split device-page layout (part='editor') puts this pane in its
+          own column with no picker beside it, so an unbound key would
+          otherwise render nothing here while still visibly selected. The
+          stacked touch-widget layout (part='all') keeps the picker directly
+          above this spot, so it's left unchanged. */}
+      {showEditor && !hasBinding && part === 'editor' && (
+        <EmptyState compact title={t('panel.settings.deck.emptyKeyHint')} />
       )}
 
       {showEditor && hasBinding && (

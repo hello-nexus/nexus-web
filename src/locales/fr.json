@@ -1915,6 +1915,7 @@
   "panel.settings.deck.device": "Appareil",
   "panel.settings.deck.display": "Affichage",
   "panel.settings.deck.effect": "Effet",
+  "panel.settings.deck.emptyKeyHint": "Choisissez une action ou faites-la glisser sur cette touche.",
   "panel.settings.deck.enterFolder": "Modifier le dossier",
   "panel.settings.deck.fan": "Ventilateur",
   "panel.settings.deck.fanProfile": "Profil",

@@ -1915,6 +1915,7 @@
   "panel.settings.deck.device": "Urządzenie",
   "panel.settings.deck.display": "Wyświetlanie",
   "panel.settings.deck.effect": "Efekt",
+  "panel.settings.deck.emptyKeyHint": "Wybierz akcję lub przeciągnij ją na ten klawisz.",
   "panel.settings.deck.enterFolder": "Edytuj folder",
   "panel.settings.deck.fan": "Wentylator",
   "panel.settings.deck.fanProfile": "Profil",

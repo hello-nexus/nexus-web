@@ -1915,6 +1915,7 @@
   "panel.settings.deck.device": "裝置",
   "panel.settings.deck.display": "顯示",
   "panel.settings.deck.effect": "效果",
+  "panel.settings.deck.emptyKeyHint": "選擇一個動作，或將其拖到此按鍵上。",
   "panel.settings.deck.enterFolder": "編輯資料夾",
   "panel.settings.deck.fan": "風扇",
   "panel.settings.deck.fanProfile": "設定檔",
