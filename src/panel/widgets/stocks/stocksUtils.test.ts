@@ -5,6 +5,7 @@ import {
   formatStockChangePercent,
   formatStockPrice,
   isStockUp,
+  isWideStockSize,
   normalizeSymbols,
   resolveMode,
   resolvePeriod,
@@ -148,6 +149,16 @@ describe('stockGraphRows', () => {
     expect(stockGraphRows('4x2')).toBe(3);
     expect(stockGraphRows('2x4')).toBe(6);
     expect(stockGraphRows('4x4')).toBe(6);
+  });
+});
+
+describe('isWideStockSize', () => {
+  it('is true only for the 4-wide sizes', () => {
+    expect(isWideStockSize('4x2')).toBe(true);
+    expect(isWideStockSize('4x4')).toBe(true);
+    expect(isWideStockSize('2x2')).toBe(false);
+    expect(isWideStockSize('2x4')).toBe(false);
+    expect(isWideStockSize('1x1')).toBe(false);
   });
 });
 

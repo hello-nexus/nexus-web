@@ -113,6 +113,13 @@ export function stockGraphRows(size: PanelWidgetSize): number {
   return GRAPH_ROWS[size] ?? GRAPH_ROWS['4x2'];
 }
 
+const WIDE_GRAPH_SIZES = new Set<PanelWidgetSize>(['4x2', '4x4']);
+
+/** Whether a graph-mode row has enough width for the single-line label|chart|price layout, vs the stacked two-line variant. */
+export function isWideStockSize(size: PanelWidgetSize): boolean {
+  return WIDE_GRAPH_SIZES.has(size);
+}
+
 /** Column-major split: the first ceil(n / columns) items fill column 1, the remainder column 2. */
 export function splitColumns<T>(items: T[], columns: number): T[][] {
   if (columns <= 1) return [items];

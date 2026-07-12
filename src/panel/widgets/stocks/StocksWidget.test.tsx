@@ -50,7 +50,7 @@ describe('StocksWidget', () => {
     expect(fetchStockQuotesMock).toHaveBeenCalledWith(expect.any(Array), '1D');
   });
 
-  it('requests the configured range in graph mode', async () => {
+  it('requests the configured range and uses the single-line chart layout at a 4-wide size', async () => {
     fetchStockQuotesMock.mockResolvedValue({
       range: '1mo',
       quotes: [{ symbol: 'AAPL', name: 'Apple Inc.', price: 315.32, change: 3.87, changePercent: 1.24, series: [300, 305, 310, 315.32] }],
@@ -59,6 +59,19 @@ describe('StocksWidget', () => {
     expect(await screen.findByText('AAPL')).toBeInTheDocument();
     expect(screen.getByText(applePrice)).toBeInTheDocument();
     expect(fetchStockQuotesMock).toHaveBeenCalledWith(['AAPL'], '1M');
+    expect(document.querySelector('svg')).toHaveAttribute('height', '28');
+  });
+
+  it('stacks label+price above chart+chip at a 2-wide graph size', async () => {
+    fetchStockQuotesMock.mockResolvedValue({
+      range: '1mo',
+      quotes: [{ symbol: 'AAPL', name: 'Apple Inc.', price: 315.32, change: 3.87, changePercent: 1.24, series: [300, 305, 310, 315.32] }],
+    });
+    render(<StocksWidget widget={stocksWidget('2x2', { mode: 'graph', period: '1M', symbols: 'AAPL' })} />);
+    expect(await screen.findByText('AAPL')).toBeInTheDocument();
+    expect(screen.getByText(applePrice)).toBeInTheDocument();
+    expect(screen.getByText('+1.24%')).toBeInTheDocument();
+    expect(document.querySelector('svg')).toHaveAttribute('height', '20');
   });
 
   it('renders a placeholder price for a symbol the service omitted', async () => {

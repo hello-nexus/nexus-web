@@ -7,6 +7,7 @@ import {
   formatStockChangePercent,
   formatStockPrice,
   isStockUp,
+  isWideStockSize,
   splitColumns,
   stockGraphRows,
   stockLabel,
@@ -47,23 +48,44 @@ function ListRow({ quote, numberFormat }: { quote: StockQuote; numberFormat: Num
   );
 }
 
-function GraphRow({ quote, numberFormat }: { quote: StockQuote; numberFormat: NumberFormat }) {
+function GraphRow({ quote, numberFormat, stacked }: { quote: StockQuote; numberFormat: NumberFormat; stacked: boolean }) {
   const up = isStockUp(quote.change);
   const color = stockAccentColor(up);
   const series = quote.series ?? [];
+  const chip = (
+    <span className={`${styles.chip} ${up ? styles.chipUp : styles.chipDown}`}>
+      {formatStockChangePercent(quote.changePercent, numberFormat)}
+    </span>
+  );
+  const chart = series.length > 1 && (
+    <Sparkline values={series} width="100%" viewWidth={100} height={stacked ? 20 : 28} showFill color={color} strokeColor={color} />
+  );
+
+  // Narrow (2-wide) sizes can't fit label|chart|price on one line without
+  // crushing the chart or truncating the label to a couple of characters, so
+  // they stack label+price above chart+chip instead.
+  if (stacked) {
+    return (
+      <div className={styles.graphRowStacked}>
+        <div className={styles.graphStackedLine1}>
+          <span className={styles.graphStackedLabel}>{stockLabel(quote.symbol)}</span>
+          <span className={styles.graphStackedPrice}>{formatStockPrice(quote.price, numberFormat)}</span>
+        </div>
+        <div className={styles.graphStackedLine2}>
+          <div className={styles.graphChart}>{chart}</div>
+          {chip}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.graphRow}>
       <span className={styles.graphLabel}>{stockLabel(quote.symbol)}</span>
-      <div className={styles.graphChart}>
-        {series.length > 1 && (
-          <Sparkline values={series} width="100%" viewWidth={100} height={28} showFill color={color} strokeColor={color} />
-        )}
-      </div>
+      <div className={styles.graphChart}>{chart}</div>
       <div className={styles.graphMeta}>
         <span className={styles.graphPrice}>{formatStockPrice(quote.price, numberFormat)}</span>
-        <span className={`${styles.chip} ${up ? styles.chipUp : styles.chipDown}`}>
-          {formatStockChangePercent(quote.changePercent, numberFormat)}
-        </span>
+        {chip}
       </div>
     </div>
   );
@@ -81,9 +103,12 @@ export function StocksView({ size, mode, symbols, quotes, loaded, numberFormat }
 
   if (mode === 'graph') {
     const visible = rows.slice(0, stockGraphRows(size));
+    const stacked = !isWideStockSize(size);
     return (
       <div className={styles.graphRoot}>
-        {visible.map(quote => <GraphRow key={quote.symbol} quote={quote} numberFormat={numberFormat} />)}
+        {visible.map(quote => (
+          <GraphRow key={quote.symbol} quote={quote} numberFormat={numberFormat} stacked={stacked} />
+        ))}
       </div>
     );
   }
