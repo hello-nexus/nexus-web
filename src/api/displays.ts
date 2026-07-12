@@ -1,4 +1,4 @@
-import { deleteService, fetchService, postService } from './service';
+import { authFetchWithStatus, deleteService, fetchService, postService } from './service';
 import type { PanelDeviceRecord } from './panel';
 
 export interface DisplayCapabilities {
@@ -121,4 +121,21 @@ export async function fetchDisplayBrightness(id: string): Promise<DisplayBrightn
 
 export async function setDisplayBrightness(id: string, brightness: number): Promise<DisplayBrightnessResponse | null> {
   return postService<DisplayBrightnessResponse>(`/displays/${encodeURIComponent(id)}/brightness`, { brightness });
+}
+
+export interface TouchMappingRepairResponse {
+  status: 'repaired' | 'alreadyCorrect' | 'noPanel' | 'noDigitizer' | 'noHelper' | 'failed';
+  detail?: string;
+}
+
+export async function repairTouchMapping(): Promise<TouchMappingRepairResponse | null> {
+  return postService<TouchMappingRepairResponse>('/displays/touch-mapping/repair', {});
+}
+
+// The wizard endpoint replies 202 with no body (the wizard runs on the host,
+// not over this request), so it is checked by status rather than parsed as
+// JSON like the other mutators here.
+export async function launchTouchSetupWizard(): Promise<boolean> {
+  const { status } = await authFetchWithStatus('/displays/touch-mapping/setup-wizard', { method: 'POST', body: {} });
+  return status === 202;
 }

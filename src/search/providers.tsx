@@ -1,19 +1,46 @@
 import type { ReactNode } from 'react';
-import { Moon, Sun, Monitor, Smartphone, Palette, Power, MonitorUp, Film, Sparkles, Wifi, Cloud, RadioTower, SlidersHorizontal, UserRound, FlaskConical, Gamepad2, Bug, FolderOpen } from 'lucide-react';
+import {
+  Moon, Sun, Monitor, Smartphone, Palette, Power, MonitorUp, Film, Sparkles, Wifi, Cloud, RadioTower,
+  SlidersHorizontal, UserRound, FlaskConical, Gamepad2, Bug, FolderOpen, Info, MessageCircle, RefreshCw,
+  Music, Lightbulb, VolumeX, Play, SkipForward, SkipBack, Lock, LayoutGrid, AppWindow, Crosshair,
+  ScrollText, Wrench, Download, Upload, Plus, Disc, Radio, Mic, Headphones,
+} from 'lucide-react';
 import { NAV_ICONS } from '../app/sidebarNav';
-import { LANGUAGES, LANGUAGE_LABELS, PRESET_ACCENTS, type ThemeMode } from '../lib/settings';
+import {
+  LANGUAGES, LANGUAGE_LABELS, PRESET_ACCENTS, BACKGROUND_MODES,
+  type ThemeMode, type BackgroundMode,
+} from '../lib/settings';
+import { hostSupportsGlass } from '../app/windowActions';
 import { applyProfile } from '../api/cooling';
 import { setPanelRemoteControlEnabled, setPanelRelay, setPanelPairBroadcast } from '../api/panel';
-import { startAnimate, stopLighting, startScreenMirror, startGameSync } from '../api/lighting';
+import {
+  startAnimate, stopLighting, startScreenMirror, startGameSync,
+  setMusicReactive, setGlobalBrightness, setLightingDevicePower, identifyLightingDevice,
+  rescanLightingDevices, reselectScreen, triggerGameSyncScan,
+} from '../api/lighting';
+import { setBrandEnabled, setSmartLightEnabled } from '../api/smartLights';
+import { setTrackingEnabled } from '../hooks/useScreenTimeBrowse';
+import { controlActiveMedia } from '../hooks/useMedia';
+import { setSystemMuted, systemPower } from '../api/system';
+import { toggleObsRecording, toggleObsStreaming } from '../api/obs';
+import { setDiscordMute, setDiscordDeaf } from '../api/discord';
+import { syncCloudNow } from '../api/cloud';
+import { exportProfile } from '../api/profiles';
+import {
+  openDiagnosticsEventViewer, openDiagnosticsDeviceManager, downloadDiagnosticsReport,
+} from '../api/diagnostics';
 import { postService } from '../api/service';
+import type { UpdateMode, UpdateChannel } from '../api/update';
 import { COOLING_PRESETS, type CoolingPresetKey } from '../panel/widgets/cooling/page/coolingPresets';
 import { EFFECTS, MODES, BASE_DEFAULTS, categoryOf, type LightingMode } from '../types/lighting';
 import { getCatalogEntries } from '../panel/widgets/registry';
 import { preinstalledIconUrl } from '../app/sidebarApps';
 import { AppIconImage } from '../components/icons/AppIconImage';
 import { DEV_TOOLS } from '../lib/devTools';
+import { DISCORD_INVITE_URL, GITHUB_ISSUES_URL } from '../lib/externalLinks';
 import type { CommandContext, SearchEntry, SearchSource } from './types';
 import { requestSearchScroll } from './scroll';
+import { fireSearchSignal } from './signals';
 import styles from './TopSearch.module.scss';
 
 // ── Entry factories ─────────────────────────────────────────────────────────
@@ -75,6 +102,40 @@ const navDisplays: SearchSource = (ctx) => [go('nav:displays', {
   to: () => ctx.host.goView('devices', 'displays'),
 })];
 
+// Every routed subtab, titled "Page › Tab" from the tab's own label key so it
+// deep-links exactly where the page's tab strip would land. Displays has its
+// curated entry above; the diagnostics view lives behind `app:diagnostics`.
+const SUBTABS: { view: string; sub: string; viewLabelKey: string; labelKey: string; keywords: string[] }[] = [
+  { view: 'monitoring', sub: 'cpu',      viewLabelKey: 'nav.monitoring', labelKey: 'monitoring.tab.cpu',      keywords: ['cpu', 'processor', 'cores', 'usage'] },
+  { view: 'monitoring', sub: 'gpu',      viewLabelKey: 'nav.monitoring', labelKey: 'monitoring.tab.gpu',      keywords: ['gpu', 'graphics', 'vram', 'usage'] },
+  { view: 'monitoring', sub: 'memory',   viewLabelKey: 'nav.monitoring', labelKey: 'monitoring.tab.memory',   keywords: ['ram', 'memory', 'usage'] },
+  { view: 'monitoring', sub: 'network',  viewLabelKey: 'nav.monitoring', labelKey: 'monitoring.tab.network',  keywords: ['network', 'ethernet', 'wifi', 'bandwidth', 'speed'] },
+  { view: 'monitoring', sub: 'detailed', viewLabelKey: 'nav.monitoring', labelKey: 'monitoring.tab.detailed', keywords: ['sensors', 'detailed', 'all sensors', 'list'] },
+  { view: 'screentime', sub: 'day',      viewLabelKey: 'screentime.title', labelKey: 'screentime.tab.day',    keywords: ['today', 'daily', 'screen time'] },
+  { view: 'screentime', sub: 'week',     viewLabelKey: 'screentime.title', labelKey: 'screentime.tab.week',   keywords: ['weekly', 'screen time'] },
+  { view: 'screentime', sub: 'month',    viewLabelKey: 'screentime.title', labelKey: 'screentime.tab.month',  keywords: ['monthly', 'screen time'] },
+  { view: 'screentime', sub: 'app',      viewLabelKey: 'screentime.title', labelKey: 'screentime.tab.app',    keywords: ['per app', 'app usage', 'screen time'] },
+  { view: 'benchmark',  sub: 'run',          viewLabelKey: 'benchmark.title', labelKey: 'benchmark.tab.run',          keywords: ['benchmark', 'test', 'score', 'fps'] },
+  { view: 'benchmark',  sub: 'results',      viewLabelKey: 'benchmark.title', labelKey: 'benchmark.tab.results',      keywords: ['benchmark', 'history', 'scores'] },
+  { view: 'benchmark',  sub: 'leaderboards', viewLabelKey: 'benchmark.title', labelKey: 'benchmark.tab.leaderboards', keywords: ['benchmark', 'leaderboard', 'ranking', 'compare'] },
+  { view: 'devices',    sub: 'firmware', viewLabelKey: 'devices.title', labelKey: 'devices.tabs.firmware', keywords: ['firmware', 'flash', 'fw', 'update'] },
+  { view: 'devices',    sub: 'specs',    viewLabelKey: 'devices.title', labelKey: 'devices.tabs.specs',    keywords: ['specs', 'specifications', 'system info', 'hardware info'] },
+  { view: 'diagnostics', sub: 'storage', viewLabelKey: 'diagnostics.title', labelKey: 'diagnostics.kind.storage', keywords: ['disk', 'ssd', 'nvme', 'smart', 'health', 'storage'] },
+  // Memory-test scheduling stays on this tab behind its own confirm (it arms
+  // a reboot-time diagnostic), so the subtab is the palette's way in.
+  { view: 'diagnostics', sub: 'memory',  viewLabelKey: 'diagnostics.title', labelKey: 'diagnostics.kind.memory',  keywords: ['ram', 'memory', 'memtest', 'memory test', 'health'] },
+  { view: 'diagnostics', sub: 'cooling', viewLabelKey: 'diagnostics.title', labelKey: 'diagnostics.kind.cooling', keywords: ['thermals', 'temperature', 'throttle', 'health'] },
+  { view: 'diagnostics', sub: 'system',  viewLabelKey: 'diagnostics.title', labelKey: 'diagnostics.kind.system',  keywords: ['drivers', 'devices', 'events', 'health'] },
+  { view: 'diagnostics', sub: 'settings', viewLabelKey: 'diagnostics.title', labelKey: 'diagnostics.tab.settings', keywords: ['thresholds', 'notifications', 'alerts'] },
+];
+const navSubtabs: SearchSource = (ctx) =>
+  SUBTABS.map((s) => go(`nav:${s.view}/${s.sub}`, {
+    title: `${ctx.t(s.viewLabelKey)} › ${ctx.t(s.labelKey)}`,
+    icon: NAV_ICONS[s.view] ?? <LayoutGrid size={18} />,
+    keywords: s.keywords,
+    to: () => ctx.host.goView(s.view, s.sub),
+  }));
+
 // Settings is one scroller now (no sub-tabs), so these all deep-link to the
 // single Settings page. Profiles and Dev tools moved to their own pages - see
 // `standalonePages` below.
@@ -87,10 +148,12 @@ const SETTINGS_TABS: { tab: string; labelKey: string; keywords: string[] }[] = [
 // "Show icon in tray" toggle, not just the tab. `anchor` is the id stamped on
 // the matching control (via SettingRow's anchorId), so selecting one navigates
 // to Settings and scrolls to + shines that exact row.
-const SETTINGS_ITEMS: { tab: string; tabLabelKey: string; labelKey: string; anchor: string; keywords: string[] }[] = [
-  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.windowsTray.label',  anchor: 'set-tray',       keywords: ['tray', 'system tray', 'notification area', 'taskbar', 'icon', 'windows'] },
-  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.macStatusBar.label',  anchor: 'set-menubar',    keywords: ['menu bar', 'status bar', 'menubar', 'macos', 'mac', 'icon'] },
-  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.systemStartup.label', anchor: 'set-startup',    keywords: ['startup', 'boot', 'login', 'autostart', 'auto start', 'launch', 'start with windows'] },
+// `platforms` limits a row to the hosts whose Settings page renders it, so
+// "tray" on macOS doesn't offer a scroll target that isn't there.
+const SETTINGS_ITEMS: { tab: string; tabLabelKey: string; labelKey: string; anchor: string; keywords: string[]; platforms?: string[] }[] = [
+  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.windowsTray.label',  anchor: 'set-tray',       keywords: ['tray', 'system tray', 'notification area', 'taskbar', 'icon', 'windows'], platforms: ['windows'] },
+  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.macStatusBar.label',  anchor: 'set-menubar',    keywords: ['menu bar', 'status bar', 'menubar', 'macos', 'mac', 'icon'], platforms: ['macos'] },
+  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.systemStartup.label', anchor: 'set-startup',    keywords: ['startup', 'boot', 'login', 'autostart', 'auto start', 'launch', 'start with windows'], platforms: ['windows'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.alerts.label',        anchor: 'set-alerts',     keywords: ['conflict', 'warnings', 'alerts', 'notifications'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.language',            anchor: 'set-language',   keywords: ['language', 'locale', 'translation'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.units.temperature.label', anchor: 'set-temp-unit',    keywords: ['temperature', 'celsius', 'fahrenheit', 'degrees', 'units', 'temp'] },
@@ -98,6 +161,16 @@ const SETTINGS_ITEMS: { tab: string; tabLabelKey: string; labelKey: string; anch
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.units.number.label',      anchor: 'set-number-format', keywords: ['number', 'decimal', 'separator', 'comma', 'period', 'thousands', 'units', 'format'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.screentime.title',    anchor: 'set-screentime', keywords: ['screen time', 'tracking', 'usage', 'data'] },
   { tab: 'theme',   tabLabelKey: 'settings.theme',   labelKey: 'settings.accent',              anchor: 'set-accent',     keywords: ['accent', 'color', 'colour', 'highlight'] },
+  { tab: 'theme',   tabLabelKey: 'settings.theme',   labelKey: 'settings.theme',               anchor: 'set-theme-mode', keywords: ['theme', 'dark', 'light', 'appearance', 'mode'] },
+  { tab: 'theme',   tabLabelKey: 'settings.theme',   labelKey: 'settings.background',          anchor: 'set-background', keywords: ['background', 'glass', 'flat', 'gradient', 'transparency', 'blur'] },
+  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'lighting.renderGpu.label',     anchor: 'set-render-gpu', keywords: ['render', 'gpu', 'shader', 'graphics card'], platforms: ['windows', 'linux'] },
+  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'cooling.settings.cpuLabel',    anchor: 'set-cpu-sensor', keywords: ['cpu', 'temp', 'temperature', 'sensor', 'source'] },
+  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'cooling.settings.gpuLabel',    anchor: 'set-gpu-sensor', keywords: ['gpu', 'temp', 'temperature', 'sensor', 'source'] },
+  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.updates.mode.label',    anchor: 'set-update-mode',    keywords: ['update', 'updates', 'automatic', 'install', 'mode'], platforms: ['windows'] },
+  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.updates.channel.label', anchor: 'set-update-channel', keywords: ['update', 'updates', 'channel', 'beta', 'production'], platforms: ['windows'] },
+  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.telemetry.label',     anchor: 'set-telemetry',  keywords: ['telemetry', 'privacy', 'anonymous', 'data', 'consent'] },
+  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.shutDown.label',      anchor: 'set-shutdown',   keywords: ['shut down', 'shutdown', 'stop', 'quit', 'exit', 'close'], platforms: ['windows', 'macos'] },
+  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.factoryReset.label',  anchor: 'set-factory-reset', keywords: ['factory reset', 'reset', 'wipe', 'erase', 'defaults', 'clean'] },
 ];
 
 const THEMES: { mode: ThemeMode; labelKey: string; icon: ReactNode; words: string[] }[] = [
@@ -152,11 +225,13 @@ const settingsTabs: SearchSource = (ctx) =>
   }));
 
 const settingsItems: SearchSource = (ctx) =>
-  SETTINGS_ITEMS.map((s) => go(`setting:${s.labelKey}`, {
-    title: ctx.t(s.labelKey), subtitle: `${ctx.t('settings.title')} › ${ctx.t(s.tabLabelKey)}`,
-    icon: NAV_ICONS.settings, keywords: s.keywords,
-    to: () => { ctx.host.goView('settings'); requestSearchScroll(s.anchor); },
-  }));
+  SETTINGS_ITEMS
+    .filter((s) => !s.platforms || s.platforms.includes(ctx.platform))
+    .map((s) => go(`setting:${s.labelKey}`, {
+      title: ctx.t(s.labelKey), subtitle: `${ctx.t('settings.title')} › ${ctx.t(s.tabLabelKey)}`,
+      icon: NAV_ICONS.settings, keywords: s.keywords,
+      to: () => { ctx.host.goView('settings'); requestSearchScroll(s.anchor); },
+    }));
 
 // Standalone pages that used to be Settings tabs: Profiles (top-bar profile
 // menu) and Dev tools (top-bar "..." menu). Indexed here so search still
@@ -171,6 +246,10 @@ const standalonePages: SearchSource = (ctx) => [
     title: ctx.t('settings.tab.tools'), icon: <FlaskConical size={18} />,
     keywords: ['developer', 'dev tools', 'debug', 'advanced', 'storybook', 'diagnostics'],
     to: () => ctx.host.goView('tools'),
+  }), go('page:account', {
+    title: ctx.t('account.title'), icon: <UserRound size={18} />,
+    keywords: ['account', 'sign in', 'login', 'log in', 'register', 'cloud', 'sync', 'password', 'sign out', 'log out'],
+    to: () => ctx.host.goView('account'),
   })] : []),
 ];
 
@@ -180,6 +259,34 @@ const standalonePages: SearchSource = (ctx) => [
 // the curated NAV rows above (their page-open carries hand-tuned keywords paired
 // with the cooling/lighting action entries) are skipped so they list once.
 const CURATED_APP_VIEWS = new Set(NAV.map((n) => n.view));
+
+// Hand-tuned synonyms per app, so "hue" finds Smart Lights and "leaderboard"
+// finds Benchmark. Apps absent here still match on their localized title.
+const APP_KEYWORDS: Record<string, string[]> = {
+  clock: ['time', 'timezone', 'world clock'],
+  calendar: ['events', 'schedule', 'agenda', 'date'],
+  gallery: ['photos', 'images', 'pictures', 'slideshow', 'wallpaper'],
+  steam: ['games', 'game library', 'launch', 'valve', 'playtime'],
+  'smart-lights': ['hue', 'govee', 'nanoleaf', 'philips', 'bulb', 'smart', 'lamp'],
+  'home-assistant': ['hass', 'home automation', 'smart home', 'entities', 'iot'],
+  benchmark: ['leaderboard', 'leaderboards', 'score', 'fps', 'stress test', 'performance test'],
+  diagnostics: ['health', 'smart', 'memory test', 'troubleshoot', 'events', 'drivers'],
+  media: ['music', 'player', 'spotify', 'now playing', 'playback'],
+  weather: ['forecast', 'rain', 'outdoor', 'temperature'],
+  stocks: ['market', 'shares', 'ticker', 'finance', 'portfolio'],
+  obs: ['stream', 'record', 'studio', 'scenes', 'broadcast'],
+  discord: ['voice', 'chat', 'call'],
+  twitch: ['stream', 'chat', 'viewers', 'live'],
+  deck: ['macros', 'buttons', 'stream deck', 'shortcuts', 'launcher'],
+  displays: ['monitors', 'screens', 'panels'],
+  timer: ['countdown', 'alarm'],
+  stopwatch: ['laps', 'timing'],
+  calculator: ['math', 'arithmetic'],
+  camera: ['webcam', 'video'],
+  transfer: ['files', 'send', 'phone', 'share'],
+  emoji: ['emotes', 'reactions'],
+};
+
 const installedApps: SearchSource = (ctx) =>
   getCatalogEntries()
     .filter(([type, m]) => !!m.Page && !CURATED_APP_VIEWS.has(type))
@@ -191,16 +298,39 @@ const installedApps: SearchSource = (ctx) =>
       return go(`app:${type}`, {
         title: ctx.t(m.meta.i18nKey),
         icon: iconUrl ? <AppIconImage src={iconUrl} size={18} /> : <Icon size={18} />,
-        keywords: ['app'],
+        keywords: ['app', ...(APP_KEYWORDS[type] ?? [])],
         to: () => ctx.host.goView(type),
       });
     });
 
+// Widget-only apps (no page) open the dashboard's add-widget catalog, so
+// searching "weather" lands somewhere useful instead of nowhere. The catalog
+// itself is the picker; the signal survives the navigation.
+const widgetApps: SearchSource = (ctx) =>
+  getCatalogEntries()
+    // Same delisting gate as the widget catalog itself, so search never
+    // offers an "Add widget" whose picker won't show the app.
+    .filter(([, m]) => !m.Page && (DEV_TOOLS || m.meta.listed !== false))
+    .map(([type, m]) => {
+      const Icon = m.meta.icon;
+      return go(`widget:${type}`, {
+        title: ctx.t(m.meta.i18nKey),
+        subtitle: ctx.t('devices.y70.editor.addWidget'),
+        icon: <Icon size={18} />,
+        keywords: ['widget', 'app', 'add', ...(APP_KEYWORDS[type] ?? [])],
+        to: () => { ctx.host.goView('dashboard'); fireSearchSignal('add-widget'); },
+      });
+    });
+
 const devices: SearchSource = (ctx) =>
-  ctx.devices.map((d) => go(`device:${d.key}`, {
-    title: d.name, keywords: ['device'],
-    icon: <img className={styles.deviceIcon} src={d.iconSrc} alt="" aria-hidden />,
-    to: () => ctx.host.goView('device', d.key),
+  ctx.devices.map((d) => ({
+    ...go(`device:${d.key}`, {
+      title: d.name, keywords: ['device'],
+      icon: <img className={styles.deviceIcon} src={d.iconSrc} alt="" aria-hidden />,
+      to: () => ctx.host.goView('device', d.key),
+    }),
+    // An unplugged device stays findable; the hint says why it looks idle.
+    hint: d.connected ? undefined : ctx.t('search.hint.disconnected'),
   }));
 
 const cooling: SearchSource = (ctx) => {
@@ -269,6 +399,20 @@ const appearance: SearchSource = (ctx) => {
       run: () => ctx.updateSettings({ language: lang }),
     }));
   }
+  // Background style, minus glass where the host can't composite it - the
+  // same gate the Settings picker applies.
+  const backgroundModes: readonly BackgroundMode[] = hostSupportsGlass()
+    ? BACKGROUND_MODES
+    : BACKGROUND_MODES.filter((m) => m !== 'glass');
+  for (const mode of backgroundModes) {
+    out.push(act(`appearance:background-${mode}`, {
+      title: `${ctx.t('settings.background')} · ${ctx.t(`settings.background.${mode}`)}`,
+      icon: <Monitor size={18} />,
+      keywords: ['background', 'appearance', 'style', mode, 'glass', 'transparency'],
+      hint: ctx.settings.backgroundMode === mode ? active : undefined,
+      run: () => ctx.updateSettings({ backgroundMode: mode }),
+    }));
+  }
   return out;
 };
 
@@ -307,16 +451,18 @@ const remoteAccess: SearchSource = (ctx) => {
 
 // Boolean settings as single toggles (the action half), paired with the
 // settings-item entries above that open the tab. Generic over UiSettingsValue.
-const TOGGLES: { id: string; labelKey: string; field: 'showWindowsTrayIcon' | 'showMacStatusBarIcon' | 'showConflictAlerts'; words: string[] }[] = [
-  { id: 'tray',    labelKey: 'settings.windowsTray.label',  field: 'showWindowsTrayIcon', words: ['tray', 'icon', 'windows', 'taskbar', 'notification area'] },
-  { id: 'menubar', labelKey: 'settings.macStatusBar.label', field: 'showMacStatusBarIcon', words: ['menu bar', 'status bar', 'macos', 'mac', 'icon'] },
+const TOGGLES: { id: string; labelKey: string; field: 'showWindowsTrayIcon' | 'showMacStatusBarIcon' | 'showConflictAlerts'; words: string[]; platforms?: string[] }[] = [
+  { id: 'tray',    labelKey: 'settings.windowsTray.label',  field: 'showWindowsTrayIcon', words: ['tray', 'icon', 'windows', 'taskbar', 'notification area'], platforms: ['windows'] },
+  { id: 'menubar', labelKey: 'settings.macStatusBar.label', field: 'showMacStatusBarIcon', words: ['menu bar', 'status bar', 'macos', 'mac', 'icon'], platforms: ['macos'] },
   { id: 'alerts',  labelKey: 'settings.alerts.label',       field: 'showConflictAlerts', words: ['conflict', 'alerts', 'warnings', 'notifications'] },
 ];
 const settingsToggles: SearchSource = (ctx) =>
-  TOGGLES.map(({ id, labelKey, field, words }) => toggleEntry(`toggle:${id}`, {
-    label: ctx.t(labelKey), icon: <SlidersHorizontal size={18} />, keywords: ['setting', ...words],
-    isOn: ctx.settings[field], set: (en) => ctx.updateSettings({ [field]: en } as Partial<typeof ctx.settings>),
-  }));
+  TOGGLES
+    .filter(({ platforms }) => !platforms || platforms.includes(ctx.platform))
+    .map(({ id, labelKey, field, words }) => toggleEntry(`toggle:${id}`, {
+      label: ctx.t(labelKey), icon: <SlidersHorizontal size={18} />, keywords: ['setting', ...words],
+      isOn: ctx.settings[field], set: (en) => ctx.updateSettings({ [field]: en } as Partial<typeof ctx.settings>),
+    }));
 
 // Switch the active profile directly; the Profiles page is the open half.
 const profilesSource: SearchSource = (ctx) => {
@@ -330,10 +476,303 @@ const profilesSource: SearchSource = (ctx) => {
   }));
 };
 
-// ── Registry ────────────────────────────────────────────────────────────────
-// Add a source here to add a category of results. Order is cosmetic - entries
-// are ranked by relevance, not source order.
-const GITHUB_ISSUES_URL = 'https://github.com/hello-nexus/nexus-service/issues';
+// Manage-profiles one-shots. Create needs a name prompt so it opens the page;
+// the destructive ones (delete, reset) stay on the page behind their confirms.
+const profilesExtra: SearchSource = (ctx) => {
+  const out: SearchEntry[] = [
+    go('profiles:create', {
+      title: ctx.t('profile.create'), subtitle: ctx.t('settings.tab.profiles'),
+      icon: <Plus size={18} />,
+      keywords: ['profile', 'create', 'new', 'add'],
+      to: () => ctx.host.goView('profiles'),
+    }),
+  ];
+  const activeProfile = ctx.profiles.find((p) => p.id === ctx.activeProfileId);
+  if (ctx.online && activeProfile) {
+    out.push(act('profiles:export', {
+      title: `${ctx.t('profile.export')} · ${activeProfile.name}`,
+      subtitle: ctx.t('settings.tab.profiles'), icon: <Upload size={18} />,
+      keywords: ['profile', 'export', 'backup', 'save', 'json'],
+      run: () => { void exportProfile(activeProfile.id, activeProfile.name); },
+    }));
+  }
+  return out;
+};
+
+// One-keystroke opens for chrome that otherwise hides in menus and page
+// headers. Cross-page opens navigate first; the signal survives the mount.
+const quickOpens: SearchSource = (ctx) => [
+  go('open:check-updates', {
+    title: ctx.t('update.menu.check'), icon: <RefreshCw size={18} />,
+    keywords: ['update', 'updates', 'upgrade', 'version', 'check', 'install', 'new version'],
+    to: () => fireSearchSignal('update-modal'),
+  }),
+  go('open:about', {
+    title: ctx.t('nav.about'), icon: <Info size={18} />,
+    keywords: ['about', 'version', 'info', 'credits'],
+    to: () => fireSearchSignal('about'),
+  }),
+  go('open:discord-invite', {
+    title: ctx.t('nav.discord'), icon: <MessageCircle size={18} />,
+    keywords: ['discord', 'community', 'chat', 'help', 'support', 'invite'],
+    to: () => { window.open(DISCORD_INVITE_URL, '_blank', 'noopener,noreferrer'); },
+  }),
+  go('open:add-widget', {
+    title: ctx.t('devices.y70.editor.addWidget'), icon: <LayoutGrid size={18} />,
+    keywords: ['widget', 'add', 'catalog', 'apps', 'install', 'dashboard', 'edit'],
+    to: () => { ctx.host.goView('dashboard'); fireSearchSignal('add-widget'); },
+  }),
+  go('open:desktop-widgets', {
+    title: ctx.t('dashboard.desktopWidgets'), icon: <AppWindow size={18} />,
+    keywords: ['desktop', 'widgets', 'overlay', 'floating'],
+    to: () => { ctx.host.goView('dashboard'); fireSearchSignal('desktop-widgets'); },
+  }),
+  go('open:connected-devices', {
+    title: ctx.t('devices.connected.browse'), icon: NAV_ICONS.devices,
+    keywords: ['connected', 'devices', 'usb', 'plugged in'],
+    to: () => { ctx.host.goView('devices'); fireSearchSignal('devices-connected'); },
+  }),
+  go('open:supported-devices', {
+    title: ctx.t('devices.supported.browse'), icon: NAV_ICONS.devices,
+    keywords: ['supported', 'devices', 'compatibility', 'compatible', 'hardware'],
+    to: () => { ctx.host.goView('devices'); fireSearchSignal('devices-supported'); },
+  }),
+];
+
+// Update preferences as direct actions; their Settings rows are the open half.
+const UPDATE_MODES: UpdateMode[] = ['always', 'download', 'notify'];
+const UPDATE_CHANNELS: UpdateChannel[] = ['production', 'beta'];
+const updatePrefs: SearchSource = (ctx) => {
+  if (ctx.platform !== 'windows') return [];
+  const active = ctx.t('search.hint.active');
+  return [
+    ...UPDATE_MODES.map((mode) => act(`update-mode:${mode}`, {
+      title: `${ctx.t('settings.updates.mode.label')} · ${ctx.t(`settings.updates.mode.${mode}`)}`,
+      icon: <Download size={18} />,
+      keywords: ['update', 'updates', 'automatic', 'mode', mode],
+      hint: ctx.settings.updateMode === mode ? active : undefined,
+      run: () => ctx.updateSettings({ updateMode: mode }),
+    })),
+    ...UPDATE_CHANNELS.map((ch) => act(`update-channel:${ch}`, {
+      title: `${ctx.t('settings.updates.channel.label')} · ${ctx.t(`settings.updates.channel.${ch}`)}`,
+      icon: <Download size={18} />,
+      keywords: ['update', 'updates', 'channel', ch],
+      hint: ctx.settings.updateChannel === ch ? active : undefined,
+      run: () => ctx.updateSettings({ updateChannel: ch }),
+    })),
+  ];
+};
+
+// Server-authoritative privacy switches, present only when their state
+// actually loaded (telemetry hides on surfaces that can't reach consent).
+const privacyToggles: SearchSource = (ctx) => {
+  const out: SearchEntry[] = [];
+  if (ctx.live.telemetry !== null) {
+    out.push(toggleEntry('toggle:telemetry', {
+      label: ctx.t('settings.telemetry.label'), icon: <SlidersHorizontal size={18} />,
+      keywords: ['telemetry', 'privacy', 'anonymous', 'analytics', 'data', 'setting'],
+      isOn: ctx.live.telemetry, set: (en) => { void postService('/telemetry/consent', { enabled: en }).catch(() => {}); },
+    }));
+  }
+  if (ctx.live.tracking !== null) {
+    out.push(toggleEntry('toggle:screentime-tracking', {
+      label: ctx.t('settings.screentime.tracking'), icon: <SlidersHorizontal size={18} />,
+      keywords: ['screen time', 'tracking', 'usage', 'privacy', 'setting'],
+      isOn: ctx.live.tracking, set: (en) => { void setTrackingEnabled(en).catch(() => {}); },
+    }));
+  }
+  return out;
+};
+
+// Lighting one-shots + the music-reactive modifier, alongside the modes above.
+const BRIGHTNESS_STEPS = [25, 50, 75, 100];
+const lightingExtras: SearchSource = (ctx) => {
+  if (!ctx.online) return [];
+  const out: SearchEntry[] = [];
+  if (ctx.live.musicReactive !== null) {
+    out.push(toggleEntry('toggle:music-reactive', {
+      label: ctx.t('lighting.musicReactive'), icon: <Music size={18} />,
+      keywords: ['music', 'audio', 'reactive', 'sound', 'beat', 'lighting', 'rgb'],
+      isOn: ctx.live.musicReactive, set: (en) => { void setMusicReactive(en).catch(() => {}); },
+    }));
+  }
+  const active = ctx.t('search.hint.active');
+  const current = ctx.live.globalBrightness;
+  for (const pct of BRIGHTNESS_STEPS) {
+    out.push(act(`brightness:${pct}`, {
+      title: `${ctx.t('lighting.devices.brightness')} · ${pct}%`,
+      subtitle: ctx.t('lighting.title'), icon: <Sun size={18} />,
+      keywords: ['brightness', 'bright', 'dim', 'lighting', 'rgb', String(pct)],
+      hint: current !== null && Math.round(current * 100) === pct ? active : undefined,
+      run: () => { void setGlobalBrightness(pct / 100).catch(() => {}); },
+    }));
+  }
+  out.push(act('lighting:rescan', {
+    title: ctx.t('lighting.devices.rescan'), subtitle: ctx.t('lighting.title'),
+    icon: <RefreshCw size={18} />,
+    keywords: ['rescan', 'refresh', 'detect', 'openrgb', 'devices'],
+    run: () => { void rescanLightingDevices().catch(() => {}); },
+  }));
+  out.push(act('lighting:reselect-screen', {
+    title: ctx.t('lighting.controls.changeScreen'), subtitle: ctx.t('lighting.mode.screen'),
+    icon: <MonitorUp size={18} />,
+    keywords: ['mirror', 'region', 'screen', 'area', 'monitor', 'change'],
+    run: () => { void reselectScreen().catch(() => {}); },
+  }));
+  return out;
+};
+
+// Per-device lighting rows from the palette-open snapshot: a power switch and
+// an identify flash for every zone card the lighting page shows.
+const lightingDeviceActions: SearchSource = (ctx) => {
+  if (!ctx.online || !ctx.live.lightingDevices) return [];
+  return ctx.live.lightingDevices.flatMap((d) => [
+    toggleEntry(`light-power:${d.id}`, {
+      label: d.name, icon: <Lightbulb size={18} />,
+      keywords: ['power', 'led', 'light', 'device', d.name],
+      isOn: d.ledsOn, set: (en) => { void setLightingDevicePower(d.id, en).catch(() => {}); },
+    }),
+    act(`light-identify:${d.id}`, {
+      title: `${ctx.t('lighting.devices.identify')} · ${d.name}`,
+      subtitle: ctx.t('lighting.title'), icon: <Crosshair size={18} />,
+      keywords: ['identify', 'find', 'locate', 'blink', 'flash', d.name],
+      run: () => { void identifyLightingDevice(d.id).catch(() => {}); },
+    }),
+  ]);
+};
+
+// Smart-light brand enables + per-light switches, mirroring the page's rows.
+const smartLightsSource: SearchSource = (ctx) => {
+  if (!ctx.online || !ctx.live.smartLights) return [];
+  const out: SearchEntry[] = [];
+  for (const [brand, enabled] of Object.entries(ctx.live.smartLights.brandEnabled ?? {})) {
+    const name = brand.charAt(0).toUpperCase() + brand.slice(1);
+    out.push(toggleEntry(`smart-brand:${brand}`, {
+      label: `${ctx.t('smartLights.title')} · ${name}`, icon: <Lightbulb size={18} />,
+      keywords: ['smart', 'lights', 'brand', brand, 'bulb'],
+      isOn: enabled, set: (en) => { void setBrandEnabled(brand, en).catch(() => {}); },
+    }));
+  }
+  for (const light of ctx.live.smartLights.devices) {
+    out.push(toggleEntry(`smart-light:${light.id}`, {
+      label: light.name, icon: <Lightbulb size={18} />,
+      keywords: ['smart', 'light', 'bulb', 'lamp', light.brand, light.name],
+      isOn: light.enabled, set: (en) => { void setSmartLightEnabled(light.id, en).catch(() => {}); },
+    }));
+  }
+  return out;
+};
+
+// Game Sync's installed-games rescan; the mode itself is in lightingModes.
+const gameSyncScan: SearchSource = (ctx) => {
+  if (!ctx.online || ctx.platform !== 'windows') return [];
+  return [act('gamesync:scan', {
+    title: `${ctx.t('lighting.mode.gamesync')} · ${ctx.t('lighting.gameSync.games.rescan')}`,
+    icon: <Gamepad2 size={18} />,
+    keywords: ['game', 'sync', 'scan', 'rescan', 'games', 'detect', 'steam'],
+    run: () => { void triggerGameSyncScan().catch(() => {}); },
+  })];
+};
+
+// OBS + Discord live controls, present only while the integration reports a
+// state to flip (OBS connected; Discord in a voice channel).
+const integrations: SearchSource = (ctx) => {
+  const out: SearchEntry[] = [];
+  const obs = ctx.live.obs;
+  if (obs?.connected) {
+    out.push(toggleEntry('obs:recording', {
+      label: `OBS · ${ctx.t('panel.widget.obs.record')}`, icon: <Disc size={18} />,
+      keywords: ['obs', 'record', 'recording', 'capture'],
+      isOn: obs.recording, set: () => { void toggleObsRecording().catch(() => {}); },
+    }));
+    out.push(toggleEntry('obs:streaming', {
+      label: `OBS · ${ctx.t('panel.widget.obs.stream')}`, icon: <Radio size={18} />,
+      keywords: ['obs', 'stream', 'streaming', 'live', 'broadcast'],
+      isOn: obs.streaming, set: () => { void toggleObsStreaming().catch(() => {}); },
+    }));
+  }
+  const discord = ctx.live.discord;
+  if (discord?.connected && discord.voiceState) {
+    out.push(toggleEntry('discord:mute', {
+      label: `Discord · ${ctx.t('discord.mute')}`, icon: <Mic size={18} />,
+      keywords: ['discord', 'mute', 'microphone', 'mic', 'voice'],
+      isOn: discord.voiceState.selfMute, set: (en) => { void setDiscordMute(en).catch(() => {}); },
+    }));
+    out.push(toggleEntry('discord:deafen', {
+      label: `Discord · ${ctx.t('discord.deafen')}`, icon: <Headphones size={18} />,
+      keywords: ['discord', 'deafen', 'deaf', 'audio', 'voice'],
+      isOn: discord.voiceState.selfDeaf, set: (en) => { void setDiscordDeaf(en).catch(() => {}); },
+    }));
+  }
+  return out;
+};
+
+// Host-machine controls: audio, the active media session, and (Windows) the
+// lock/sleep power verbs the deck widget already drives.
+const systemMedia: SearchSource = (ctx) => {
+  if (!ctx.online) return [];
+  const out: SearchEntry[] = [];
+  if (ctx.live.volume?.supported) {
+    out.push(toggleEntry('system:mute', {
+      label: ctx.t('panel.settings.deck.system.muteToggle'), icon: <VolumeX size={18} />,
+      keywords: ['mute', 'unmute', 'volume', 'sound', 'audio', 'silence'],
+      isOn: ctx.live.volume.muted, set: (en) => { void setSystemMuted(en).catch(() => {}); },
+    }));
+    out.push(
+      act('media:playpause', {
+        title: ctx.t('panel.settings.deck.system.mediaPlayPause'), icon: <Play size={18} />,
+        keywords: ['play', 'pause', 'music', 'media', 'song', 'resume'],
+        run: () => { void controlActiveMedia('playpause').catch(() => {}); },
+      }),
+      act('media:next', {
+        title: ctx.t('panel.settings.deck.system.mediaNext'), icon: <SkipForward size={18} />,
+        keywords: ['next', 'skip', 'track', 'song', 'media', 'music'],
+        run: () => { void controlActiveMedia('next').catch(() => {}); },
+      }),
+      act('media:previous', {
+        title: ctx.t('panel.settings.deck.system.mediaPrev'), icon: <SkipBack size={18} />,
+        keywords: ['previous', 'back', 'track', 'song', 'media', 'music'],
+        run: () => { void controlActiveMedia('previous').catch(() => {}); },
+      }),
+    );
+  }
+  if (ctx.platform === 'windows') {
+    out.push(
+      act('system:lock', {
+        title: ctx.t('panel.settings.deck.power.lock'), icon: <Lock size={18} />,
+        keywords: ['lock', 'lock screen', 'lock pc', 'away'],
+        run: () => { void systemPower('lock').catch(() => {}); },
+      }),
+      act('system:sleep', {
+        title: ctx.t('panel.settings.deck.power.sleep'), icon: <Moon size={18} />,
+        keywords: ['sleep', 'suspend', 'standby'],
+        run: () => { void systemPower('sleep').catch(() => {}); },
+      }),
+    );
+  }
+  return out;
+};
+
+// Cloud account one-shots, dev-gated like the Account page. Sign-out opens
+// the page (its flow also clears local tokens); sync-now is safe directly.
+const accountExtra: SearchSource = (ctx) => {
+  if (!DEV_TOOLS || !ctx.live.cloud?.activeAccountId) return [];
+  return [
+    act('account:sync-now', {
+      title: ctx.t('account.sync.syncNow'), subtitle: ctx.t('account.title'),
+      icon: <RefreshCw size={18} />,
+      keywords: ['sync', 'cloud', 'account', 'profiles', 'upload'],
+      run: () => { void syncCloudNow().catch(() => {}); },
+    }),
+    go('account:sign-out', {
+      title: ctx.t('account.danger.logOut.label'), subtitle: ctx.t('account.title'),
+      icon: <UserRound size={18} />,
+      keywords: ['sign out', 'log out', 'logout', 'account'],
+      to: () => ctx.host.goView('account'),
+    }),
+  ];
+};
+
 const diagnostics: SearchSource = (ctx) => [
   act('diag:open-logs', {
     title: ctx.t('settings.diagnostics.openLogsButton'),
@@ -349,12 +788,43 @@ const diagnostics: SearchSource = (ctx) => [
     keywords: ['bug', 'report', 'feedback', 'issue', 'github', 'problem'],
     run: () => { window.open(GITHUB_ISSUES_URL, '_blank', 'noopener,noreferrer'); },
   }),
+  ...(ctx.online ? [
+    act('diag:download-report', {
+      title: ctx.t('diagnostics.header.downloadReport'),
+      subtitle: ctx.t('diagnostics.title'),
+      icon: <Download size={18} />,
+      keywords: ['diagnostics', 'report', 'bundle', 'export', 'download', 'support'],
+      run: () => { void downloadDiagnosticsReport().catch(() => {}); },
+    }),
+  ] : []),
+  ...(ctx.online && ctx.platform === 'windows' ? [
+    act('diag:event-viewer', {
+      title: ctx.t('diagnostics.incidents.openEventViewer'),
+      subtitle: ctx.t('diagnostics.title'),
+      icon: <ScrollText size={18} />,
+      keywords: ['event', 'viewer', 'events', 'log', 'windows', 'incidents'],
+      run: () => { void openDiagnosticsEventViewer().catch(() => {}); },
+    }),
+    act('diag:device-manager', {
+      title: ctx.t('diagnostics.system.openDeviceManager'),
+      subtitle: ctx.t('diagnostics.title'),
+      icon: <Wrench size={18} />,
+      keywords: ['device', 'manager', 'drivers', 'hardware', 'windows'],
+      run: () => { void openDiagnosticsDeviceManager().catch(() => {}); },
+    }),
+  ] : []),
 ];
 
+// ── Registry ────────────────────────────────────────────────────────────────
+// Add a source here to add a category of results. Order is cosmetic - entries
+// are ranked by relevance, not source order.
 export const SOURCES: SearchSource[] = [
-  navigation, navDisplays, settingsTabs, settingsItems, standalonePages, installedApps, devices, profilesSource,
-  cooling, lightingModes, lightingEffects, appearance,
-  actions, remoteAccess, settingsToggles, diagnostics,
+  navigation, navDisplays, navSubtabs, settingsTabs, settingsItems, standalonePages,
+  installedApps, widgetApps, devices, profilesSource, profilesExtra,
+  cooling, lightingModes, lightingEffects, lightingExtras, lightingDeviceActions,
+  smartLightsSource, gameSyncScan, appearance, updatePrefs,
+  actions, quickOpens, remoteAccess, settingsToggles, privacyToggles,
+  integrations, systemMedia, accountExtra, diagnostics,
 ];
 
 /** Every source's entries for the current context, flattened. */

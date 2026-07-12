@@ -1,13 +1,19 @@
 // AuthBackend adapter for the public website (hellonexus.com): talks to
 // api.hellonexus.com directly, no local Nexus service involved. The browser
 // is the token holder here (unlike the in-app LocalServiceBackend, where
-// nexus-service holds the tokens): the access token lives in memory only
-// (cleared on reload), the refresh token lives in localStorage. Every authed
-// call retries exactly once after a silent refresh on a 401. A device-grant
-// recovery poll (grantId + deviceSecret, generated in the browser) mirrors
-// nexus-service's CloudAccountService.StartRecoveryAsync, since the browser
-// has to remember its own grant across page polls instead of a server
-// process holding it.
+// nexus-service holds the tokens): the access token always lives in memory
+// only (cleared on reload). On a hosted-web origin (isWebCookieMode - the
+// hellonexus.com domain tree, plus its local dev-server equivalent) the
+// refresh token lives in a HttpOnly cookie the server sets and reads - it
+// never reaches JS, so localStorage stays untouched; every such request
+// carries the X-Nexus-Auth: web header + credentials:'include'. Every other
+// origin (the embedded desktop SPA, a paired-phone LAN host) keeps the
+// refresh token in localStorage, the original body-token flow, byte for
+// byte. Every authed call retries exactly once after a silent refresh on a
+// 401. A device-grant recovery poll (grantId + deviceSecret, generated in the
+// browser) mirrors nexus-service's CloudAccountService.StartRecoveryAsync,
+// since the browser has to remember its own grant across page polls instead
+// of a server process holding it.
 
 import type {
   AuthAccount, AuthAvatar, AuthBackend, AuthDeleteResponse, AuthEnvelope,
@@ -23,6 +29,32 @@ const RECOVERY_GRANT_STORAGE_KEY = 'nexus_direct_recovery_grant';
 const ACCESS_TOKEN_LIFETIME_MS = 15 * 60 * 1000;
 const REFRESH_SKEW_MS = 45 * 1000;
 
+// nexus-api's CORS allow-list (STATIC_ORIGINS in main.ts) is the actual
+// security boundary; this only decides which client-side flow to use, so it
+// mirrors that list's dev entry. hellonexus.com and every subdomain (incl.
+// my.) opt in; anything else - the embedded desktop SPA on :9400/:9443, a
+// paired-phone LAN host, an unlisted dev port - stays on the body-token flow.
+const WEB_COOKIE_DEV_HOSTNAME = 'localhost';
+const WEB_COOKIE_DEV_PORT = '5173';
+
+/** True when this page should use the cross-origin cookie session instead of a body-carried refresh token. */
+export function isWebCookieMode(): boolean {
+  if (typeof window === 'undefined') return false;
+  const host = window.location.hostname.toLowerCase();
+  if (host === 'hellonexus.com' || host.endsWith('.hellonexus.com')) return true;
+  return host === WEB_COOKIE_DEV_HOSTNAME && window.location.port === WEB_COOKIE_DEV_PORT;
+}
+
+// The custom header forces a CORS preflight, so it is only ever attached in
+// cookie mode - everywhere else the request stays a CORS-simple request.
+function authHeaders(cookieMode: boolean, base: Record<string, string>): Record<string, string> {
+  return cookieMode ? { ...base, 'X-Nexus-Auth': 'web' } : base;
+}
+
+function fetchCredentials(cookieMode: boolean): RequestCredentials | undefined {
+  return cookieMode ? 'include' : undefined;
+}
+
 interface ApiPublicAccount {
   id: string;
   email: string;
@@ -35,7 +67,9 @@ interface ApiPublicAccount {
 
 interface ApiAuthSession {
   accessToken: string;
-  refreshToken: string;
+  // Web-flagged (cookie-mode) responses omit this - the session cookie
+  // carries it instead.
+  refreshToken?: string;
   account: ApiPublicAccount;
 }
 
@@ -99,9 +133,12 @@ function clearStoredRecoveryGrant(): void {
 
 // The refresh token is written before the access token is cached: a crash
 // between the two lines must never leave the session with neither a usable
-// access token nor the (now server-rotated) refresh token.
-function applySession(session: ApiAuthSession): void {
-  setStoredRefreshToken(session.refreshToken);
+// access token nor the (now server-rotated) refresh token. cookieMode gates
+// the write explicitly - the token must never reach localStorage on a
+// hosted-web origin, even if a future server response shape were to carry
+// one unexpectedly.
+function applySession(session: ApiAuthSession, cookieMode: boolean): void {
+  if (!cookieMode && session.refreshToken) setStoredRefreshToken(session.refreshToken);
   accessToken = session.accessToken;
   accessTokenExpiresAt = Date.now() + ACCESS_TOKEN_LIFETIME_MS;
   cachedAccount = mapAccount(session.account);
@@ -155,25 +192,37 @@ function refreshAccessToken(): Promise<string | null> {
   return refreshInFlight;
 }
 
+// Body flow (cookieMode false): needs a stored token, sends it in the body,
+// gets a rotated one back - unchanged from before cookie mode existed.
+// Cookie flow: the session cookie is HttpOnly, so JS can't check for one
+// first - every call here doubles as the bootstrap-on-load probe. A stored
+// legacy token (a pre-cookie-mode session's localStorage copy) rides the
+// body of that SAME call for a one-time migration: the server validates it
+// like a normal body refresh, sets the cookie on success, and the body is
+// cleared below so every later cookie-mode call is a bare cookie bootstrap.
 async function doRefresh(): Promise<string | null> {
-  const stored = getStoredRefreshToken();
-  if (!stored) return null;
+  const cookieMode = isWebCookieMode();
+  const legacy = getStoredRefreshToken();
+  if (!cookieMode && !legacy) return null;
   try {
     const res = await fetch(`${BASE}/auth/refresh`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken: stored }),
+      headers: authHeaders(cookieMode, { 'Content-Type': 'application/json' }),
+      credentials: fetchCredentials(cookieMode),
+      body: JSON.stringify(legacy ? { refreshToken: legacy } : {}),
     });
     if (!res.ok) {
-      // A definitive rejection (reuse-detected or expired) means this refresh
-      // token is dead server-side; a 5xx/network blip is not - keep the
-      // stored token so a later retry can still use it.
+      // A definitive rejection means the token (migration) or cookie
+      // (bootstrap) this call carried is not a live session; a 5xx/network
+      // blip is not, so a still-unmigrated legacy token survives for a
+      // later retry.
       if (res.status === 401 || res.status === 403) clearSession();
       return null;
     }
     const session = await tryParseJson<ApiAuthSession>(res);
     if (!session) return null;
-    applySession(session);
+    applySession(session, cookieMode);
+    if (cookieMode && legacy) clearStoredRefreshToken();
     return accessToken;
   } catch {
     return null;
@@ -217,13 +266,20 @@ async function toEnvelopeResult<T extends AuthEnvelope>(res: Response | null): P
   return { status: res.status, body: await buildErrorBody<T>(res) };
 }
 
+/** The last-known signed-in account (from login/refresh/recovery), or null. Read by the public pages' post-auth redirect without an extra round trip. */
+export function getCachedAccount(): AuthAccount | null {
+  return cachedAccount;
+}
+
 export const directApiBackend: AuthBackend = {
   login: async (identifier, password) => {
+    const cookieMode = isWebCookieMode();
     let res: Response;
     try {
       res = await fetch(`${BASE}/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders(cookieMode, { 'Content-Type': 'application/json' }),
+        credentials: fetchCredentials(cookieMode),
         body: JSON.stringify({ identifier, password }),
       });
     } catch {
@@ -232,7 +288,7 @@ export const directApiBackend: AuthBackend = {
     if (res.ok) {
       const session = await tryParseJson<ApiAuthSession>(res);
       if (!session) return { status: res.status, body: null };
-      applySession(session);
+      applySession(session, cookieMode);
       return { status: res.status, body: { error: false, ...mapAccount(session.account) } };
     }
     return { status: res.status, body: await buildErrorBody<AuthLoginResponse>(res) };
@@ -254,14 +310,18 @@ export const directApiBackend: AuthBackend = {
   },
 
   logout: async () => {
+    const cookieMode = isWebCookieMode();
     const stored = getStoredRefreshToken();
     try {
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const headers = authHeaders(cookieMode, { 'Content-Type': 'application/json' });
       if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
       await fetch(`${BASE}/auth/logout`, {
         method: 'POST',
         headers,
-        body: JSON.stringify(stored ? { refreshToken: stored } : {}),
+        credentials: fetchCredentials(cookieMode),
+        // Cookie mode never sends a body token - the server reads (and
+        // clears) the session cookie itself.
+        body: JSON.stringify(!cookieMode && stored ? { refreshToken: stored } : {}),
       });
     } catch {
       // best-effort: the local session clears below regardless
@@ -307,11 +367,13 @@ export const directApiBackend: AuthBackend = {
       sessionStorage.removeItem(RECOVERY_GRANT_STORAGE_KEY);
       return null;
     }
+    const cookieMode = isWebCookieMode();
     let res: Response;
     try {
       res = await fetch(`${BASE}/auth/recovery/poll`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders(cookieMode, { 'Content-Type': 'application/json' }),
+        credentials: fetchCredentials(cookieMode),
         body: JSON.stringify(grant),
       });
     } catch {
@@ -328,8 +390,12 @@ export const directApiBackend: AuthBackend = {
       account?: ApiPublicAccount;
     }>(res);
     if (!data) return null;
-    if (data.status === 'approved' && data.accessToken && data.refreshToken && data.account) {
-      applySession({ accessToken: data.accessToken, refreshToken: data.refreshToken, account: data.account });
+    // A cookie-mode (web-flagged) approval omits refreshToken - the cookie
+    // carries it instead, same as login/refresh; the body flow still
+    // requires one, so a malformed body-flow response doesn't report a
+    // signed-in state with nothing durable behind it.
+    if (data.status === 'approved' && data.accessToken && data.account && (cookieMode || data.refreshToken)) {
+      applySession({ accessToken: data.accessToken, refreshToken: data.refreshToken, account: data.account }, cookieMode);
       sessionStorage.removeItem(RECOVERY_GRANT_STORAGE_KEY);
       return { status: 'approved' };
     }

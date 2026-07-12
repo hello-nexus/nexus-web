@@ -86,6 +86,15 @@ export function usePhysicalDeckTarget(
   onCommitRef.current = onCommit;
   const liveConfigRef = useRef<DeckConfig | null>(null);
   liveConfigRef.current = config;
+  // Set whenever `config` is about to change to a value freshly fetched from
+  // the server (initial load) rather than a local edit, so the debounce-sync
+  // effect below can skip PUTting it straight back. Without this, opening a
+  // device page schedules a same-value "echo PUT" after the sync debounce on
+  // every mount; if the user edits and navigates away+back inside that
+  // window, the flushed edit PUT and the new mount's echo PUT of the
+  // pre-edit config race, and the echo PUT can land last and silently
+  // revert the edit.
+  const skipNextConfigPutRef = useRef(false);
 
   useEffect(() => {
     setConfig(null);
@@ -101,6 +110,7 @@ export function usePhysicalDeckTarget(
       if (cancelled) return;
       if (cfg) {
         configSerialRef.current = serial;
+        skipNextConfigPutRef.current = true;
         // A pre-pagination service build still returns the legacy { slots }
         // shape; normalize on every read the same as the widget path
         // (readDeckConfig) so a not-yet-upgraded server response can't reach
@@ -169,27 +179,35 @@ export function usePhysicalDeckTarget(
     const isStale = () => generationRef.current !== generation;
     const syncSerial = deck.serial;
     const syncConfig = config;
+    // Consumed here (schedule time), not inside runSync (fire time): an edit
+    // made before this timer fires reschedules a new effect run with the
+    // flag already cleared, so only a sync that carries zero local edits
+    // since the last load skips the PUT.
+    const skipConfigPut = skipNextConfigPutRef.current;
+    skipNextConfigPutRef.current = false;
 
     const runSync = () => {
-      void setStreamDeckConfig(syncSerial, syncConfig).then(ok => {
-        if (isStale()) return;
-        if (ok) {
-          consecutiveFailuresRef.current = 0;
-          return;
-        }
-        consecutiveFailuresRef.current += 1;
-        if (consecutiveFailuresRef.current >= MAX_CONSECUTIVE_PUT_FAILURES) {
-          setLoadError(true);
-          return;
-        }
-        void getStreamDeckConfig(syncSerial).then(cfg => {
-          // A rollback may resolve after the user has switched decks (this
-          // deck's config is no longer the active one) - configSerialRef
-          // guards against overwriting a different deck's state.
-          if (isStale() || configSerialRef.current !== syncSerial) return;
-          if (cfg) setConfig(normalizeDeckConfig(cfg));
+      if (!skipConfigPut) {
+        void setStreamDeckConfig(syncSerial, syncConfig).then(ok => {
+          if (isStale()) return;
+          if (ok) {
+            consecutiveFailuresRef.current = 0;
+            return;
+          }
+          consecutiveFailuresRef.current += 1;
+          if (consecutiveFailuresRef.current >= MAX_CONSECUTIVE_PUT_FAILURES) {
+            setLoadError(true);
+            return;
+          }
+          void getStreamDeckConfig(syncSerial).then(cfg => {
+            // A rollback may resolve after the user has switched decks (this
+            // deck's config is no longer the active one) - configSerialRef
+            // guards against overwriting a different deck's state.
+            if (isStale() || configSerialRef.current !== syncSerial) return;
+            if (cfg) setConfig(normalizeDeckConfig(cfg));
+          });
         });
-      });
+      }
 
       const model = deckKeyModel(deck);
       const modelSignature = `${model.format}:${model.transform}:${model.orientation}:${model.keyPixels}`;

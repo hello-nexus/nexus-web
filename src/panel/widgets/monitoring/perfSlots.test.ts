@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
   MICRO_MAX_COUNT,
   MICRO_MIN_COUNT,
+  MICRO_WIDE_COUNTS,
   defaultSlotCountForSize,
   isExtrasBackedDevice,
   isMicroLayout,
+  isTwoColumnMicro,
   microSupportsSize,
   resolvedSlotCountForSize,
   slotCountOptionsForSize,
@@ -16,8 +18,8 @@ describe('perfSlots', () => {
       expect(slotCountOptionsForSize('2x2')).toEqual([1, MICRO_MIN_COUNT, MICRO_MAX_COUNT]);
     });
 
-    it('exposes both Micro counts on 4x2 alongside 1 and 2', () => {
-      expect(slotCountOptionsForSize('4x2')).toEqual([1, 2, MICRO_MIN_COUNT, MICRO_MAX_COUNT]);
+    it('exposes both Micro counts plus the wide 6/8 counts on 4x2 alongside 1 and 2', () => {
+      expect(slotCountOptionsForSize('4x2')).toEqual([1, 2, MICRO_MIN_COUNT, MICRO_MAX_COUNT, ...MICRO_WIDE_COUNTS]);
     });
 
     it('does not expose Micro counts on 4x4 (count=4 there is the multi-sensor 2x2 grid)', () => {
@@ -47,6 +49,11 @@ describe('perfSlots', () => {
       expect(isMicroLayout('4x2', 4)).toBe(true);
     });
 
+    it('treats the wide 6/8 counts as Micro on 4x2', () => {
+      expect(isMicroLayout('4x2', 6)).toBe(true);
+      expect(isMicroLayout('4x2', 8)).toBe(true);
+    });
+
     it('still treats count=4 on 4x4 as multi (not Micro)', () => {
       expect(isMicroLayout('4x4', 4)).toBe(false);
       expect(isMicroLayout('4x4', 2)).toBe(false);
@@ -55,6 +62,16 @@ describe('perfSlots', () => {
     it('rejects sub-Micro counts even on supported sizes', () => {
       expect(isMicroLayout('2x2', 1)).toBe(false);
       expect(isMicroLayout('4x2', 2)).toBe(false);
+    });
+  });
+
+  describe('isTwoColumnMicro', () => {
+    it('is true only for the wide 6/8 counts', () => {
+      expect(isTwoColumnMicro(6)).toBe(true);
+      expect(isTwoColumnMicro(8)).toBe(true);
+      expect(isTwoColumnMicro(3)).toBe(false);
+      expect(isTwoColumnMicro(4)).toBe(false);
+      expect(isTwoColumnMicro(2)).toBe(false);
     });
   });
 
@@ -82,11 +99,20 @@ describe('perfSlots', () => {
       expect(resolvedSlotCountForSize('4x2', MICRO_MAX_COUNT)).toBe(MICRO_MAX_COUNT);
     });
 
+    it('preserves the wide 6/8 counts on 4x2 but rejects them on 2x2', () => {
+      expect(resolvedSlotCountForSize('4x2', 6)).toBe(6);
+      expect(resolvedSlotCountForSize('4x2', 8)).toBe(8);
+      // 2x2 does not offer the wide counts -> falls back to its default.
+      expect(resolvedSlotCountForSize('2x2', 6)).toBe(1);
+      expect(resolvedSlotCountForSize('2x2', 8)).toBe(1);
+    });
+
     it('clamps an invalid count to the size default rather than the legacy bounds', () => {
       // 4x4 has options [2, 4]; 3 is not valid -> default (4), not clamped to 2.
       expect(resolvedSlotCountForSize('4x4', 3)).toBe(4);
-      // 4x2 has options [1, 2, 3, 4]; 5 is not valid -> default 2.
+      // 4x2 has options [1, 2, 3, 4, 6, 8]; 5 and 7 are not valid -> default 2.
       expect(resolvedSlotCountForSize('4x2', 5)).toBe(2);
+      expect(resolvedSlotCountForSize('4x2', 7)).toBe(2);
       // 2x2 has options [1, 3, 4]; 2 is not valid -> default 1.
       expect(resolvedSlotCountForSize('2x2', 2)).toBe(1);
     });

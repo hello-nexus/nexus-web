@@ -1,6 +1,7 @@
 // Deck widget data model. Every shape here is a subtype of PanelConfigValue
 // (string | number | boolean | null | arrays | plain objects) so the whole tree
 // persists directly under `widget.config.deck`.
+import type { ScaleMode } from '../monitoring/perfDomain';
 
 export type DeckIconKind = 'lucide' | 'emoji' | 'app';
 
@@ -93,6 +94,11 @@ export type DeckAction =
   // DeckMonitoringCell/deckTarget's upload-job skip) and client-side for the
   // touch widget + device-page grid preview. `sensor` is always a concrete
   // HardwareSensor.id, never the 'Temperature' preferred-sensor sentinel.
+  // `labelText` set is the Custom-label discriminant (showName still gates
+  // visibility): absent + showName true = Auto (sensor name); showName false
+  // = Hidden regardless of labelText. `scale: 'fixed'` uses [min, max] as the
+  // domain for line/segments/backdrop (an invalid or absent range falls back
+  // to adaptive); ignored for the 'number' style.
   | {
       type: 'monitoring';
       category: DeckMonitoringCategory;
@@ -101,6 +107,10 @@ export type DeckAction =
       color?: string;
       showName?: boolean;
       press?: DeckMonitoringPress;
+      labelText?: string;
+      scale?: ScaleMode;
+      min?: number;
+      max?: number;
     };
 
 export type DeckActionType = DeckAction['type'];
@@ -153,4 +163,13 @@ export interface DeckConfig {
   // Deck-wide default title style seeded onto a key when an action is first
   // assigned to it (see slotForPickerKind). Edited on the Settings tab.
   defaultTitleStyle?: DeckTitleStyle;
+}
+
+// A widget-local snapshot of the widget's own DeckConfig, stored beside `deck`
+// on the same widget.config (see deckWidgetPresetsPatch in deckLayout.ts) -
+// no service routes, no cross-device sharing.
+export interface DeckWidgetPreset {
+  id: string;
+  name: string;
+  deck: DeckConfig;
 }

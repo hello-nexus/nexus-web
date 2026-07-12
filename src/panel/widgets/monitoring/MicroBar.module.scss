@@ -47,3 +47,51 @@
     font-size: var(--type-tiny);
   }
 }
+
+// Fill and Graph designs turn each row into a full-height rounded surface with
+// the caption overlaid; they grow to share the column height evenly.
+.rowFill,
+.rowGraph {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  border-radius: var(--panel-element-radius);
+  overflow: hidden;
+  background: var(--gauge-track);
+}
+
+// Fill: a dim accent sweeps left-to-right to the sensor value over the track.
+.fillBar {
+  position: absolute;
+  inset: 0 auto 0 0;
+  height: 100%;
+  background: var(--panel-accent-shadow);
+}
+
+// Graph: a dim filled history trace stretched over the whole row.
+.graphChart {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+
+  :global(svg) {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+}
+
+// The caption rides above the fill/graph background, vertically centered.
+.rowFill .head,
+.rowGraph .head {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  align-items: center;
+  padding: 0 8px;
+}

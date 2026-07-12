@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, AlignVerticalJustifyStart, FolderInput, FolderOpen, Plus } from 'lucide-react';
+import { AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, AlignVerticalJustifyStart, FolderInput, FolderOpen, Plus, Trash2 } from 'lucide-react';
 import { useDraggable } from '@dnd-kit/core';
 import { Button } from '../../../components/common/Button/Button';
 import { useTranslation } from '../../../lib/i18n';
@@ -14,6 +14,8 @@ import { Select } from '../../../components/common/Select/Select';
 import { SearchInput } from '../../../components/common/SearchInput/SearchInput';
 import { Slider } from '../../../components/common/Slider/Slider';
 import { SectionHeader } from '../../../components/common/SectionHeader/SectionHeader';
+import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
+import { TextInput } from '../../../components/common/TextInput/TextInput';
 import { SettingsSection, SettingsRow, SettingsToggle, SettingsSelect } from '../common/SettingsRow/SettingsRow';
 import { AppPicker } from '../common/AppPicker';
 import { IconPicker } from '../common/IconPicker';
@@ -27,8 +29,12 @@ import {
   DECK_TITLE_FONTS, DECK_TITLE_SIZE_OPTIONS, resolveDeckTitleStyle, type DeckTitleAlign,
 } from './deckTitleStyle';
 import { DECK_ICONS, autoIconName } from './deckIcons';
-import { DECK_MONITORING_CATEGORIES } from './deckMonitoring';
+import { DECK_MONITORING_CATEGORIES, resolveMonitoringSensor } from './deckMonitoring';
 import { CATEGORY_LABEL_KEYS, selectedSensorValue, sensorsForDevice, visibleDeviceKeys } from '../monitoring/sensorPicker';
+import { labelForDevice } from '../monitoring/MonitoringWidget';
+import { LabelControls, SCALE_OPTIONS, parseFixedRangeInput } from '../monitoring/MonitoringSettings';
+import { DESIGN_ICONS } from '../monitoring/gauges/DesignIcons';
+import { defaultFixedMax } from '../monitoring/perfDomain';
 import type {
   DeckAction, DeckActionType, DeckMonitoringCategory, DeckMonitoringPress, DeckMonitoringStyle, DeckSlot, DeckTitleStyle,
 } from './types';
@@ -342,7 +348,7 @@ function ActionFields({ action, onChange, allowed, surface, desktopEditor, pageC
     case 'nexus':
       return <NexusFields action={action} onChange={onChange} />;
     case 'monitoring':
-      return <MonitoringFields action={action} onChange={onChange} />;
+      return <MonitoringFields action={action} onChange={onChange} surface={surface} desktopEditor={desktopEditor} />;
     case 'sequence':
       return <SequenceEditor action={action} onChange={onChange} allowed={allowed} surface={surface} desktopEditor={desktopEditor} />;
     case 'toggle':
@@ -389,13 +395,43 @@ function NexusFields({ action, onChange }: { action: Extract<DeckAction, { type:
 const MONITORING_STYLES: DeckMonitoringStyle[] = ['line', 'segments', 'backdrop', 'number'];
 const MONITORING_PRESSES: DeckMonitoringPress[] = ['none', 'taskManager', 'monitoringPage'];
 
-function MonitoringFields({ action, onChange }: { action: Extract<DeckAction, { type: 'monitoring' }>; onChange: (a: DeckAction) => void }) {
+// Icon reused from the monitoring widget's DESIGN_ICONS per style: 'line' is
+// the wire contract's filled sparkline (the widget's 'sparkline' key, not its
+// unfilled 'line'); 'number' reuses the widget's plain large-value icon
+// ('text'), not 'numberfill' (a proportional fill-of-the-glyph effect the
+// deck tile's number style doesn't have).
+const MONITORING_STYLE_ICON_KEY: Record<DeckMonitoringStyle, string> = {
+  line: 'sparkline',
+  segments: 'segments',
+  backdrop: 'backdrop',
+  number: 'text',
+};
+
+type MonitoringAction = Extract<DeckAction, { type: 'monitoring' }>;
+
+function clearMonitoringLabelText(action: MonitoringAction): MonitoringAction {
+  const next = { ...action };
+  delete next.labelText;
+  return next;
+}
+
+function clearMonitoringFixedRange(action: MonitoringAction): MonitoringAction {
+  const next = { ...action };
+  delete next.min;
+  delete next.max;
+  return next;
+}
+
+function MonitoringFields({ action, onChange, surface, desktopEditor }: {
+  action: MonitoringAction; onChange: (a: DeckAction) => void; surface?: PanelSurface; desktopEditor?: boolean;
+}) {
   const { t } = useTranslation();
   const sensors = useSensors(true);
   const categoryOptions = visibleDeviceKeys(DECK_MONITORING_CATEGORIES, action.category, sensors, [], EMPTY_SENSOR_EXTRAS)
     .map(category => ({ value: category, label: t(CATEGORY_LABEL_KEYS[category]) }));
   const sensorOptions = sensorsForDevice(sensors, [], EMPTY_SENSOR_EXTRAS, action.category);
   const sensorValue = selectedSensorValue(sensorOptions, action.sensor);
+  const activeSensor = resolveMonitoringSensor(sensors, action.category, sensorValue);
 
   // action.sensor starts '' (defaultActionFor has no live sensor data to pick
   // from) and must self-heal off a stale id after a category swap too - seed
@@ -404,36 +440,136 @@ function MonitoringFields({ action, onChange }: { action: Extract<DeckAction, { 
     if (sensorValue && sensorValue !== action.sensor) onChange({ ...action, sensor: sensorValue });
   }, [sensorValue, action, onChange]);
 
+  const canType = canEditFreeText(surface, desktopEditor);
+  const autoLabel = labelForDevice(action.category, activeSensor?.name ?? '');
+  const labelOverride = action.labelText ?? '';
+  // Derived, not stored: Hide wins regardless of labelText (kept intact so a
+  // later Custom pick restores it); otherwise labelText's presence alone
+  // means Custom (see the wire contract's discriminant, types.ts).
+  const labelMode = action.showName === false ? 'hide' : (action.labelText !== undefined ? 'custom' : 'auto');
+
+  const scale = action.scale ?? 'adaptive';
+  const fixedDefaultMax = defaultFixedMax(action.category, activeSensor, action.sensor);
+  const rangeMin = action.min ?? 0;
+  const rangeMax = action.max ?? fixedDefaultMax;
+  const rangeInvalid = rangeMin >= rangeMax;
+  const commitRangeMin = (raw: string) => {
+    const parsed = parseFixedRangeInput(raw, 0);
+    if (parsed !== rangeMin) onChange({ ...action, min: parsed });
+  };
+  const commitRangeMax = (raw: string) => {
+    const parsed = parseFixedRangeInput(raw, fixedDefaultMax);
+    if (parsed !== rangeMax) onChange({ ...action, max: parsed });
+  };
+
   return (
     <>
-      <SelectField
-        label={t('monitoring.settings.device')}
-        value={action.category}
-        options={categoryOptions}
-        onChange={category => onChange({ ...action, category: category as DeckMonitoringCategory, sensor: '' })}
-      />
-      <SelectField
-        label={t('monitoring.settings.sensor')}
-        value={sensorValue}
-        options={sensorOptions}
-        onChange={sensor => onChange({ ...action, sensor })}
-      />
-      <SelectField
-        label={t('panel.settings.deck.monitoringStyleOp')}
-        value={action.style}
-        options={MONITORING_STYLES.map(style => ({ value: style, label: t(`panel.settings.deck.monitoringStyle.${style}`) }))}
-        onChange={style => onChange({ ...action, style: style as DeckMonitoringStyle })}
-      />
-      <SwatchRow
-        label={t('panel.settings.deck.monitoringColor')}
-        value={action.color}
-        onChange={color => onChange({ ...action, color })}
-      />
-      <SettingsToggle
-        label={t('panel.settings.deck.monitoringShowName')}
-        checked={action.showName ?? true}
-        onChange={showName => onChange({ ...action, showName })}
-      />
+      <SettingsSection title={t('monitoring.settings.sensor')}>
+        <div className={styles.sensorRow}>
+          <Select
+            className={styles.selectSmall}
+            value={action.category}
+            options={categoryOptions}
+            onChange={category => onChange({
+              ...clearMonitoringFixedRange(action), category: category as DeckMonitoringCategory, sensor: '',
+            })}
+            ariaLabel={t('monitoring.settings.device')}
+          />
+          <Select
+            className={styles.selectWide}
+            value={sensorValue}
+            options={sensorOptions}
+            onChange={sensor => onChange({ ...clearMonitoringFixedRange(action), sensor })}
+            ariaLabel={t('monitoring.settings.sensor')}
+          />
+        </div>
+        <LabelControls
+          mode={labelMode}
+          override={labelOverride}
+          autoLabel={autoLabel}
+          canType={canType}
+          onSelectMode={next => {
+            if (next === 'hide') { onChange({ ...action, showName: false }); return; }
+            if (next === 'custom') {
+              onChange(labelOverride.trim()
+                ? { ...action, showName: true }
+                : { ...action, showName: true, labelText: autoLabel });
+              return;
+            }
+            onChange({ ...clearMonitoringLabelText(action), showName: true });
+          }}
+          onChangeText={value => onChange({ ...action, labelText: value })}
+          onReset={() => onChange({ ...action, labelText: autoLabel })}
+        />
+      </SettingsSection>
+
+      <SettingsSection title={t('monitoring.settings.design')}>
+        <div className={styles.designRow}>
+          {MONITORING_STYLES.map(style => {
+            const Icon = DESIGN_ICONS[MONITORING_STYLE_ICON_KEY[style]];
+            const label = t(`panel.settings.deck.monitoringStyle.${style}`);
+            return (
+              <IconLabelButton
+                key={style}
+                className={styles.designBtn}
+                active={style === action.style}
+                icon={Icon ? <Icon aria-hidden="true" /> : undefined}
+                title={label}
+                ariaLabel={label}
+                onPress={() => onChange({ ...action, style })}
+              />
+            );
+          })}
+        </div>
+        <SwatchRow
+          label={t('panel.settings.deck.monitoringColor')}
+          value={action.color}
+          onChange={color => onChange({ ...action, color })}
+        />
+      </SettingsSection>
+
+      {action.style !== 'number' && (
+        <SettingsSection title={t('monitoring.settings.range')}>
+          <div className={styles.scaleRow}>
+            {SCALE_OPTIONS.map(opt => (
+              <IconLabelButton
+                key={opt.value}
+                className={styles.scaleBtn}
+                active={opt.value === scale}
+                label={t(opt.labelKey)}
+                onPress={() => onChange({ ...action, scale: opt.value })}
+              />
+            ))}
+          </div>
+          {scale === 'fixed' && canType && (
+            <div className={styles.rangeRow}>
+              <div className={styles.rangeField}>
+                <span className={styles.rangeFieldLabel}>{t('monitoring.settings.rangeMin')}</span>
+                <TextInput
+                  type="number"
+                  size="sm"
+                  value={String(rangeMin)}
+                  ariaLabel={t('monitoring.settings.rangeMin')}
+                  invalid={rangeInvalid}
+                  onBlur={commitRangeMin}
+                />
+              </div>
+              <div className={styles.rangeField}>
+                <span className={styles.rangeFieldLabel}>{t('monitoring.settings.rangeMax')}</span>
+                <TextInput
+                  type="number"
+                  size="sm"
+                  value={String(rangeMax)}
+                  ariaLabel={t('monitoring.settings.rangeMax')}
+                  invalid={rangeInvalid}
+                  onBlur={commitRangeMax}
+                />
+              </div>
+            </div>
+          )}
+        </SettingsSection>
+      )}
+
       <SelectField
         label={t('panel.settings.deck.monitoringPressOp')}
         value={action.press ?? 'none'}
@@ -803,6 +939,13 @@ export interface DeckKeyInspectorProps {
    * a folder key there still needs the button to descend into it.
    */
   gridEntersFolders?: boolean;
+  /**
+   * Renders a destructive Delete action at the bottom of the editor fields,
+   * clearing the slot currently open here. Omitted -> no delete control (the
+   * caller decides what clearing means - a direct clear vs. a confirm for a
+   * folder with bound content - matching the grid's own onDeleteSlot).
+   */
+  onDeleteSlot?: () => void;
 }
 
 /**
@@ -811,7 +954,7 @@ export interface DeckKeyInspectorProps {
  * grid and this inspector in separate panes while the touch widget keeps
  * composing them together via DeckEditor.
  */
-export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange, selectedSlot, onSelectedSlotChange, surface, desktopEditor, part = 'all', gridEntersFolders = false }: DeckKeyInspectorProps) {
+export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange, selectedSlot, onSelectedSlotChange, surface, desktopEditor, part = 'all', gridEntersFolders = false, onDeleteSlot }: DeckKeyInspectorProps) {
   const { t } = useTranslation();
   const viewCount = slotCountAtDepth(target, folderPath.length);
   const viewSlots = resolveTargetView(target, page, folderPath) ?? padSlots([], viewCount);
@@ -903,6 +1046,7 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
             <TitleFields
               label={slot.label}
               title={slot.title}
+              hideText={isMonitoring}
               hideShow={isMonitoring}
               hideAlign={isMonitoring}
               hideUnderline={isMonitoring}
@@ -911,6 +1055,12 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
               onTitleChange={patch => writeSlot({ ...slot, title: { ...slot.title, ...patch } })}
             />
           </SettingsSection>
+
+          {onDeleteSlot && (
+            <Button type="button" tone="danger" className={styles.deleteBtn} icon={<Trash2 size={14} aria-hidden />} onClick={onDeleteSlot}>
+              {t('panel.settings.deck.deleteKey')}
+            </Button>
+          )}
         </>
       )}
     </div>

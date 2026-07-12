@@ -2,9 +2,11 @@ import { describe, it, expect } from 'vitest';
 import {
   innerGridForSize, normalizeDeckConfig, padSlots, resolveViewSlots, updateSlotAt, swapSlots, emptyDeck,
   defaultDeckConfig, deckConfigPatch, addPage, removePage, pageHasContent,
+  DECK_WIDGET_PRESET_CAP, readDeckWidgetPresets, deckWidgetPresetsPatch,
 } from './deckLayout';
 import { deckApp } from './index';
 import type { DeckConfig } from './types';
+import type { PanelWidget } from '../../types';
 
 describe('defaultDeckConfig', () => {
   it('seeds a new deck with volume up/down + open settings on a single page', () => {
@@ -79,6 +81,21 @@ describe('normalizeDeckConfig', () => {
     const view = resolveViewSlots(updated, 0, [], 4);
     expect(view![0].action).toEqual(monitoringAction);
     expect(view![0].label).toBe('CPU');
+  });
+
+  it('round-trips a monitoring action carrying the v3 fields (labelText, scale, min, max) unchanged', () => {
+    const monitoringAction = {
+      type: 'monitoring' as const,
+      category: 'cpu' as const,
+      sensor: 'summary/cpu-usage',
+      style: 'line' as const,
+      labelText: 'My CPU',
+      scale: 'fixed' as const,
+      min: 10,
+      max: 90,
+    };
+    const cfg = normalizeDeckConfig({ pages: [{ slots: [{ action: monitoringAction }] }] });
+    expect(cfg.pages[0].slots[0].action).toEqual(monitoringAction);
   });
 
   it('maps a legacy persisted "radial" monitoring style to "segments" on read', () => {
@@ -264,5 +281,79 @@ describe('addPage / removePage / pageHasContent', () => {
   it('pageHasContent is true when a nested folder slot has content', () => {
     const page = { slots: [{ folder: { slots: [{ label: 'nested' }] } }] };
     expect(pageHasContent(page)).toBe(true);
+  });
+});
+
+function widgetWithConfig(config: PanelWidget['config']): PanelWidget {
+  return { id: 'w1', type: 'deck', size: '2x2', col: 0, row: 0, config };
+}
+
+describe('readDeckWidgetPresets', () => {
+  it('reads an empty state for a legacy widget with no preset keys at all', () => {
+    const widget = widgetWithConfig({ deck: emptyDeck() as never });
+    expect(readDeckWidgetPresets(widget)).toEqual({ presets: [], activeId: null });
+  });
+
+  it('reads an empty state for a widget with no config at all', () => {
+    const widget = widgetWithConfig(undefined);
+    expect(readDeckWidgetPresets(widget)).toEqual({ presets: [], activeId: null });
+  });
+
+  it('reads back a well-formed presets list and active pointer', () => {
+    const deck: DeckConfig = { pages: [{ slots: [{ label: 'a' }] }] };
+    const widget = widgetWithConfig({
+      deckPresets: [{ id: 'p1', name: 'Streaming', deck: deck as never }] as never,
+      deckActivePresetId: 'p1',
+    });
+    const state = readDeckWidgetPresets(widget);
+    expect(state.presets).toEqual([{ id: 'p1', name: 'Streaming', deck }]);
+    expect(state.activeId).toBe('p1');
+  });
+
+  it('normalizes each preset\'s own deck config the same as readDeckConfig', () => {
+    const widget = widgetWithConfig({
+      deckPresets: [{ id: 'p1', name: 'Legacy', deck: { slots: [{ label: 'x' }] } }] as never,
+    });
+    expect(readDeckWidgetPresets(widget).presets[0].deck).toEqual({ pages: [{ slots: [{ label: 'x' }] }] });
+  });
+
+  it('drops malformed entries (missing id/name) instead of throwing', () => {
+    const widget = widgetWithConfig({
+      deckPresets: [{ name: 'no id' }, { id: 'p1' }, 'junk', null, { id: 'p2', name: 'ok' }] as never,
+    });
+    expect(readDeckWidgetPresets(widget).presets.map(p => p.id)).toEqual(['p2']);
+  });
+
+  it('ignores a non-array deckPresets value', () => {
+    const widget = widgetWithConfig({ deckPresets: 'not an array' as never });
+    expect(readDeckWidgetPresets(widget).presets).toEqual([]);
+  });
+
+  it('resolves activeId to null when it does not match a surviving preset', () => {
+    const widget = widgetWithConfig({
+      deckPresets: [{ id: 'p1', name: 'a', deck: emptyDeck() as never }] as never,
+      deckActivePresetId: 'gone',
+    });
+    expect(readDeckWidgetPresets(widget).activeId).toBeNull();
+  });
+
+  it('caps the presets list at DECK_WIDGET_PRESET_CAP entries', () => {
+    const many = Array.from({ length: 15 }, (_, i) => ({ id: `p${i}`, name: `P${i}`, deck: emptyDeck() as never }));
+    const widget = widgetWithConfig({ deckPresets: many as never });
+    expect(readDeckWidgetPresets(widget).presets).toHaveLength(DECK_WIDGET_PRESET_CAP);
+  });
+});
+
+describe('deckWidgetPresetsPatch', () => {
+  it('shapes a patch with the presets list and active pointer as siblings of `deck`', () => {
+    const deck: DeckConfig = emptyDeck();
+    const preset = { id: 'p1', name: 'Streaming', deck };
+    const patch = deckWidgetPresetsPatch([preset], 'p1');
+    expect(patch).toEqual({ deckPresets: [preset], deckActivePresetId: 'p1' });
+    expect(patch).not.toHaveProperty('deck');
+  });
+
+  it('carries a null active pointer through unchanged', () => {
+    expect(deckWidgetPresetsPatch([], null)).toEqual({ deckPresets: [], deckActivePresetId: null });
   });
 });

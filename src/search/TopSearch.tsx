@@ -6,11 +6,13 @@ import { useUiSettings } from '../hooks/useUiSettings';
 import { useUnifiedDevices } from '../hooks/useUnifiedDevices';
 import { useProfiles } from '../hooks/useProfiles';
 import { usePanelToggles } from './usePanelToggles';
+import { useSearchLiveState } from './useSearchLiveState';
 import { useClickOutside } from '../hooks/useClickOutside';
 import { useCommandPalette } from './CommandPaletteContext';
 import { subscribeMarketplaceRegistry } from '../widgets/marketplaceRegistry';
 import type { CommandContext, PaletteDevice, SearchEntry } from './types';
 import { buildEntries } from './providers';
+import { buildParamEntries } from './paramActions';
 import { scoreEntry } from './match';
 import { frecencyBoost, recordUse, snapshotFrecency, type FrecencyMap } from './frecency';
 import { tryCalc } from './calc';
@@ -31,13 +33,14 @@ const MAX_RECENTS = 5;
  * beneath it - no full-screen scrim, the app stays visible behind. Esc or a
  * click outside restores the page title.
  */
-export function TopSearch({ pageTitle, online }: { pageTitle: string; online: boolean }) {
+export function TopSearch({ pageTitle, online, platform }: { pageTitle: string; online: boolean; platform: string }) {
   const { isOpen, open, close, host } = useCommandPalette();
   const { t } = useTranslation();
   const { settings, update } = useUiSettings();
   const { unified } = useUnifiedDevices(isOpen);
   const { profiles, activeId, switchProfile } = useProfiles(isOpen);
   const panel = usePanelToggles(isOpen);
+  const live = useSearchLiveState(isOpen && online);
 
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
@@ -88,17 +91,17 @@ export function TopSearch({ pageTitle, online }: { pageTitle: string; online: bo
 
   const devices = useMemo<PaletteDevice[]>(
     () => unified
-      .filter((d) => d.navigable && d.connected)
-      .map((d) => ({ key: d.key, name: d.shortName || d.name, subtitle: d.subtitle, iconSrc: d.iconSrc })),
+      .filter((d) => d.navigable)
+      .map((d) => ({ key: d.key, name: d.shortName || d.name, subtitle: d.subtitle, iconSrc: d.iconSrc, connected: d.connected })),
     [unified],
   );
 
   const ctx = useMemo<CommandContext>(() => ({
-    t, online, devices, settings, updateSettings: update, host, close, panel,
+    t, online, devices, settings, updateSettings: update, host, close, panel, platform, live,
     profiles: profiles.map((p) => ({ id: p.id, name: p.name })),
     activeProfileId: activeId,
     switchProfile: (id) => { void switchProfile(id); },
-  }), [t, online, devices, settings, update, host, close, panel, profiles, activeId, switchProfile]);
+  }), [t, online, devices, settings, update, host, close, panel, platform, live, profiles, activeId, switchProfile]);
 
   // marketTick busts the memo when the marketplace registry refreshes (the
   // installed-apps source reads a module cache that isn't part of ctx).
@@ -131,16 +134,18 @@ export function TopSearch({ pageTitle, online }: { pageTitle: string; online: bo
         .slice(0, MAX_RESULTS)
         .map((x) => x.e);
     }
+    // Query-synthesized entries: the calculator result and value-setting
+    // actions ("brightness 60") lead the list when the query parses as one.
+    const synthesized: SearchEntry[] = [...buildParamEntries(query, ctx)];
     if (calc) {
-      const compute: SearchEntry = {
+      synthesized.unshift({
         id: 'compute', title: calc.value, subtitle: `${calc.expr} =`, kind: 'action',
         icon: <Calculator size={18} />, hint: t('search.calc.copy'),
         run: () => { try { void navigator.clipboard?.writeText(calc.value); } catch { /* clipboard blocked */ } },
-      };
-      return [compute, ...list];
+      });
     }
-    return list;
-  }, [query, entries, snap, calc, t]);
+    return synthesized.length > 0 ? [...synthesized, ...list] : list;
+  }, [query, entries, snap, calc, t, ctx]);
 
   useEffect(() => { setActive((i) => (i >= results.length ? 0 : i)); }, [results.length]);
   useEffect(() => { setActive(0); }, [query]);

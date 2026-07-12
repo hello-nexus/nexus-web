@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import classNames from 'classnames';
 import {
   ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen,
@@ -13,7 +13,9 @@ import { useClickOutside } from '../hooks/useClickOutside';
 import { useTranslation } from '../lib/i18n';
 import { DEV_TOOLS } from '../lib/devTools';
 import { useCommandPaletteOptional } from '../search/CommandPaletteContext';
+import { useSearchSignal } from '../search/signals';
 import { TopSearch } from '../search/TopSearch';
+import { DISCORD_INVITE_URL } from '../lib/externalLinks';
 import { CaptionButtons } from './CaptionButtons';
 import { usePageChrome } from './PageChrome';
 import { useWindowDragRegion } from './useWindowDragRegion';
@@ -23,8 +25,6 @@ import type { UseProfilesResult } from '../hooks/useProfiles';
 import type { UseCloudAccountsResult } from '../hooks/useCloudAccounts';
 import type { Preferences } from '../api/profiles';
 import styles from './TopBar.module.scss';
-
-const DISCORD_URL = 'https://discord.gg/MXAuxKKfVM';
 
 interface TopBarProps {
   // Sidebar collapse toggle. Hidden when the current section renders no
@@ -40,6 +40,8 @@ interface TopBarProps {
   goBack: () => void;
   goForward: () => void;
   online: boolean;
+  // Host OS from /ping, forwarded to the search palette's platform gates.
+  platform: string;
   connectionState: ConnectionState;
   // Bumped on every offline -> online transition so the profile slot replays
   // its fade-in once (mirrors the old sidebar header behavior).
@@ -114,7 +116,7 @@ function TopBarMenu({ onNavigateSettings, onNavigateTools, onOpenAbout, onOpenUp
             </button>
           )}
           <a className={styles.menuItem} role="menuitem"
-            href={DISCORD_URL} target="_blank" rel="noopener noreferrer"
+            href={DISCORD_INVITE_URL} target="_blank" rel="noopener noreferrer"
             onClick={close}>
             <DiscordGlyph size={14} /> {t('nav.discord')}
           </a>
@@ -138,6 +140,7 @@ export function TopBar({
   goBack,
   goForward,
   online,
+  platform,
   connectionState,
   connectEpoch,
   profiles,
@@ -155,6 +158,8 @@ export function TopBar({
   const { t } = useTranslation();
   const [aboutOpen, setAboutOpen] = useState(false);
   const palette = useCommandPaletteOptional();
+  // Search's About entry opens the modal this bar owns.
+  useSearchSignal('about', useCallback(() => setAboutOpen(true), []));
   // Settings affordance for the active page (Lighting / Cooling register one),
   // surfaced as a round button just right of the search pill.
   const pageSettings = usePageChrome()?.settings ?? null;
@@ -214,7 +219,7 @@ export function TopBar({
           kiosk / iOS). The page name is the document's primary heading - the
           in-page <h1>s were removed when titles moved into the top bar. */}
       {palette ? (
-        <TopSearch pageTitle={pageTitle} online={online} />
+        <TopSearch pageTitle={pageTitle} online={online} platform={platform} />
       ) : (
         <div className={styles.searchBar}>
           <h1 className={styles.searchTitle}>{pageTitle}</h1>

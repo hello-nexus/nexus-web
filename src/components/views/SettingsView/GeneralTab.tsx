@@ -246,6 +246,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
         <SettingsSection title={t('settings.updates.title')}>
           <SettingSelect
             label={t('settings.updates.mode.label')}
+            anchorId="set-update-mode"
             description={t('settings.updates.mode.description')}
             value={settings.general.updateMode ?? 'always'}
             options={[
@@ -260,6 +261,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
           />
           <SettingSelect
             label={t('settings.updates.channel.label')}
+            anchorId="set-update-channel"
             description={t('settings.updates.channel.description')}
             value={settings.general.updateChannel ?? 'production'}
             options={[
@@ -278,6 +280,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
           <div className={styles.telemetryRow}>
             <SettingToggle
               label={t('settings.telemetry.label')}
+              anchorId="set-telemetry"
               description={buildTelemetryConsentDescription(t)}
               checked={telemetryOn}
               onChange={toggleTelemetry}
@@ -337,6 +340,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
         {(platform === 'windows' || platform === 'macos') && (
           <SettingRow
             label={t('settings.shutDown.label')}
+            anchorId="set-shutdown"
             description={flashing ? t('settings.shutDown.flashBlocked') : t('settings.shutDown.description')}
           >
             <Button
@@ -353,6 +357,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
 
         <SettingRow
           label={t('settings.factoryReset.label')}
+          anchorId="set-factory-reset"
           description={flashing ? t('settings.factoryReset.flashBlocked') : t('settings.factoryReset.description')}
         >
           <Button

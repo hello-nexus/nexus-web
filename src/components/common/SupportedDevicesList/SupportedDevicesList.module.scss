@@ -1,0 +1,111 @@
+@use '../../../styles/text' as *;
+
+// Zebra alternation lives on dedicated custom properties (not the shared
+// --text/--surface tokens) so a host page that doesn't load the app's token
+// sheet still gets a correct dark look, and can override either step to
+// match its own light/dark theme.
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  @include text-button;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: 0.45rem 0.7rem;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.table th {
+  @include text-label;
+  font-family: var(--font-mono);
+  color: var(--text-dim);
+  background: var(--bg);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.table td {
+  color: var(--text);
+}
+
+.row {
+  &:nth-child(odd):not(.detected) {
+    background: var(--devices-row-alt, rgba(255, 255, 255, 0.035));
+  }
+
+  &:hover:not(.detected) {
+    background: var(--devices-row-hover, rgba(255, 255, 255, 0.07));
+  }
+
+  &.detected {
+    background: var(--accent-soft);
+
+    &:hover {
+      background: var(--accent-soft);
+      filter: brightness(1.1);
+    }
+  }
+}
+
+.colStatus {
+  width: 24px;
+  padding-left: 0.85rem !important;
+}
+
+.colMono {
+  font-family: var(--font-mono);
+}
+
+.dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--good);
+  box-shadow: 0 0 6px var(--good);
+}
+
+.brand {
+  @include text-label;
+  font-family: var(--font-mono);
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.sourceIcon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.model {
+  font-weight: var(--weight-heading);
+  color: var(--text);
+}
+
+.type {
+  @include text-label;
+  font-family: var(--font-mono);
+  color: var(--text-dim);
+}
+
+.mono {
+  @include text-numeric;
+  color: var(--text-dim);
+}
+
+.caps {
+  @include text-caption;
+  font-family: var(--font-mono);
+  color: var(--text-dim);
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

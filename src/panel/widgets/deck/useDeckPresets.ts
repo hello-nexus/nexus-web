@@ -4,12 +4,11 @@ import {
   deleteDeckPreset, activateDeckPreset,
   type DeckPreset,
 } from '../../../api/streamdeck';
+import { AUTO_SAVE_DEBOUNCE_MS } from './deckLayout';
 
-// Trailing-edge debounce so a burst of edits (typing a label, dragging a
-// key) collapses into one saveCurrent PUT, mirroring the config sync debounce
-// in usePhysicalDeckTarget.ts. Exported so StreamDeckDevicePage's undo-history
-// burst coalescing uses the same window.
-export const AUTO_SAVE_DEBOUNCE_MS = 1000;
+// Re-exported so StreamDeckDevicePage's undo-history burst coalescing uses
+// the same window as this hook's own saveCurrent debounce below.
+export { AUTO_SAVE_DEBOUNCE_MS };
 
 export interface UseDeckPresetsResult {
   presets: DeckPreset[];

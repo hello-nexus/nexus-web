@@ -13,8 +13,10 @@ import { GAUGE_DESIGN_KEYS, GAUGE_DESIGN_LABELS } from '../monitoring/gauges';
 import { DESIGN_ICONS } from '../monitoring/gauges/DesignIcons';
 import type { GaugeDesignKey } from '../monitoring/gauges';
 import {
+  DEFAULT_MICRO_DESIGN,
   DEFAULT_SLOTS,
   isMicroLayout,
+  MICRO_DESIGN_KEYS,
   resolvedSlotCountForSize,
 } from '../monitoring/perfSlots';
 import type { DeviceKey } from '../monitoring/perfSlots';
@@ -34,14 +36,14 @@ import styles from './MonitoringSettings.module.scss';
 
 // A blank field commits the fallback (0 for min, the sensor's default ceiling
 // for max) rather than parsing "" to 0 via Number().
-function parseFixedRangeInput(raw: string, fallback: number): number {
+export function parseFixedRangeInput(raw: string, fallback: number): number {
   const trimmed = raw.trim();
   if (trimmed === '') return fallback;
   const parsed = Number(trimmed);
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-const SCALE_OPTIONS: { value: ScaleMode; labelKey: string }[] = [
+export const SCALE_OPTIONS: { value: ScaleMode; labelKey: string }[] = [
   { value: 'adaptive', labelKey: 'monitoring.settings.scaleAdaptive' },
   { value: 'fixed',    labelKey: 'monitoring.settings.scaleFixed' },
 ];
@@ -182,9 +184,10 @@ function labelControlHandlers(
 // A caption's Label control: a "Label" row with the Auto / Hide / Custom chips
 // aligned right, and (in Custom) a live text field with a reset-to-sensor-name
 // glyph. Rendered inline as the second line of the Sensor/Device block. Shared
-// by the per-slot, micro per-sensor, and micro category editors. The free-text
-// field is desktop-only (canType); a kiosk sheet shows a badge instead.
-function LabelControls({
+// by the per-slot, micro per-sensor, and micro category editors, and (exported)
+// by the deck Monitoring action editor. The free-text field is desktop-only
+// (canType); a kiosk sheet shows a badge instead.
+export function LabelControls({
   mode,
   override,
   autoLabel,
@@ -333,6 +336,8 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
       disabled: !deviceHasEnoughSensorsForMicro(sensors, networkSensors, extras, category, count),
     }));
     const microCanType = canEditFreeText(surface, desktopEditor);
+    // Row style shared by every bar (Bars / Fill / Graph).
+    const microDesign = (widget.config?.micro_design as GaugeDesignKey | undefined) ?? DEFAULT_MICRO_DESIGN;
     // Micro has one shared range for every bar (no per-slot scale). The default
     // Fixed ceiling is the device's static max; the user types free overrides.
     const microScale = (widget.config?.micro_scale as ScaleMode | undefined) ?? DEFAULT_SCALE_MODE;
@@ -404,6 +409,25 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
                     {...labelControlHandlers(onUpdate, `micro_sensor${i}_labelMode`, `micro_sensor${i}_label`, sOverride, sAuto)}
                   />
                 </div>
+              );
+            })}
+          </div>
+        </SettingsSection>
+
+        <SettingsSection title={t('monitoring.settings.design')}>
+          <div className={styles.microDesignRow}>
+            {MICRO_DESIGN_KEYS.map(k => {
+              const Icon = DESIGN_ICONS[k];
+              return (
+                <IconLabelButton
+                  key={k}
+                  className={styles.microDesignBtn}
+                  active={k === microDesign}
+                  icon={Icon ? <Icon aria-hidden="true" /> : undefined}
+                  title={GAUGE_DESIGN_LABELS[k]}
+                  ariaLabel={GAUGE_DESIGN_LABELS[k]}
+                  onPress={() => onUpdate({ micro_design: k })}
+                />
               );
             })}
           </div>

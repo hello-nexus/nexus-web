@@ -5,6 +5,7 @@ import { useUiSettings } from '../../../hooks/useUiSettings';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { useTranslation } from '../../../lib/i18n';
 import { PanelEmbeddedContent } from '../../../panel/PanelApp';
+import { useSearchSignal } from '../../../search/signals';
 import { ServiceRequired } from '../ServiceRequired';
 import { GenericSkeleton } from '../PageSkeleton/PageSkeleton';
 import { OverlayWidgetsModal } from './OverlayWidgetsModal';
@@ -46,6 +47,11 @@ function DashboardOnline({ onSectionNavigate }: { onSectionNavigate?: DashboardS
   }, [refreshDesktopWidgetCount]);
 
   useTopicCallback('prefs', true, () => { void refreshDesktopWidgetCount(); });
+
+  // Search entries open these from anywhere: the palette navigates to the
+  // dashboard first, then the pending signal lands here on mount.
+  useSearchSignal('add-widget', useCallback(() => setAddWidgetSignal((value) => value + 1), []));
+  useSearchSignal('desktop-widgets', useCallback(() => setDesktopModalOpen(true), []));
 
   return (
     <div className={styles.dashboard}>

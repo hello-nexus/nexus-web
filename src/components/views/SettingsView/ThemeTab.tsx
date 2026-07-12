@@ -76,7 +76,7 @@ export function ThemeTab({ settings, updateGeneral }: ThemeTabProps) {
 
   return (
     <>
-      <SettingRow label={t('settings.theme')}>
+      <SettingRow label={t('settings.theme')} anchorId="set-theme-mode">
         <ChipGroup
           ariaLabel={t('settings.theme')}
           activeKey={settings.general.themeMode}
@@ -85,7 +85,7 @@ export function ThemeTab({ settings, updateGeneral }: ThemeTabProps) {
         />
       </SettingRow>
 
-      <SettingRow label={t('settings.background')}>
+      <SettingRow label={t('settings.background')} anchorId="set-background">
         <ChipGroup
           ariaLabel={t('settings.background')}
           activeKey={backgroundActiveKey}

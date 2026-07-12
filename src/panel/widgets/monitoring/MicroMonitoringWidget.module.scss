@@ -21,6 +21,17 @@
   min-width: 0;
 }
 
+// Two-column Micro (6/8 slots on the wide 4x2 tile): 3+3 or 4+4 rows split into
+// side-by-side columns, sharing the single bottom caption below.
+.columns {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  min-height: 0;
+  min-width: 0;
+}
+
 .bottomLabel {
   @include text-caption;
 
