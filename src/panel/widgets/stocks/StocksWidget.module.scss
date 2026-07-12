@@ -114,10 +114,13 @@
   white-space: nowrap;
 }
 
+// Height is set inline via --stock-chart-height (StocksView.tsx), the same
+// value fed to the Sparkline's height prop, so the rendered box and the
+// SVG's viewBox stay in sync.
 .graphChart {
   flex: 1;
   min-width: 0;
-  height: 28px;
+  height: var(--stock-chart-height);
 
   svg {
     display: block;
@@ -165,10 +168,6 @@
   align-items: center;
   gap: 8px;
   min-width: 0;
-
-  .graphChart {
-    height: 20px;
-  }
 }
 
 .graphMeta {

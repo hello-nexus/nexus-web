@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_SYMBOLS,
   MAX_SYMBOLS,
+  STOCK_GRAPH_CHART_HEIGHT_STACKED,
+  STOCK_GRAPH_CHART_HEIGHT_WIDE,
   formatStockChangePercent,
   formatStockPrice,
   isStockUp,
@@ -11,6 +13,7 @@ import {
   resolvePeriod,
   resolveSymbols,
   splitColumns,
+  stockGraphChartHeight,
   stockGraphRows,
   stockLabel,
   stockListLayout,
@@ -159,6 +162,13 @@ describe('isWideStockSize', () => {
     expect(isWideStockSize('2x2')).toBe(false);
     expect(isWideStockSize('2x4')).toBe(false);
     expect(isWideStockSize('1x1')).toBe(false);
+  });
+});
+
+describe('stockGraphChartHeight', () => {
+  it('returns the wide constant when not stacked and the stacked constant when stacked', () => {
+    expect(stockGraphChartHeight(false)).toBe(STOCK_GRAPH_CHART_HEIGHT_WIDE);
+    expect(stockGraphChartHeight(true)).toBe(STOCK_GRAPH_CHART_HEIGHT_STACKED);
   });
 });
 

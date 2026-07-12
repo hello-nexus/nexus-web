@@ -120,6 +120,18 @@ export function isWideStockSize(size: PanelWidgetSize): boolean {
   return WIDE_GRAPH_SIZES.has(size);
 }
 
+export const STOCK_GRAPH_CHART_HEIGHT_WIDE = 28;
+export const STOCK_GRAPH_CHART_HEIGHT_STACKED = 20;
+
+/**
+ * The single source for a graph row's chart height: callers feed the same
+ * number into both the Sparkline height prop (viewBox math) and the chart
+ * container's CSS height, so the two can't drift apart.
+ */
+export function stockGraphChartHeight(stacked: boolean): number {
+  return stacked ? STOCK_GRAPH_CHART_HEIGHT_STACKED : STOCK_GRAPH_CHART_HEIGHT_WIDE;
+}
+
 /** Column-major split: the first ceil(n / columns) items fill column 1, the remainder column 2. */
 export function splitColumns<T>(items: T[], columns: number): T[][] {
   if (columns <= 1) return [items];

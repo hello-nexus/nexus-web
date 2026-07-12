@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import type { StockQuote } from '../../../api/stocks';
 import { useTranslation } from '../../../lib/i18n';
 import { Sparkline } from '../../../components/common/Sparkline/Sparkline';
@@ -9,6 +10,7 @@ import {
   isStockUp,
   isWideStockSize,
   splitColumns,
+  stockGraphChartHeight,
   stockGraphRows,
   stockLabel,
   stockListLayout,
@@ -52,13 +54,17 @@ function GraphRow({ quote, numberFormat, stacked }: { quote: StockQuote; numberF
   const up = isStockUp(quote.change);
   const color = stockAccentColor(up);
   const series = quote.series ?? [];
+  const chartHeight = stockGraphChartHeight(stacked);
+  // Feeds both the Sparkline's viewBox math and the container's CSS height
+  // from the same value, so the two can't drift apart.
+  const chartStyle = { '--stock-chart-height': `${chartHeight}px` } as CSSProperties;
   const chip = (
     <span className={`${styles.chip} ${up ? styles.chipUp : styles.chipDown}`}>
       {formatStockChangePercent(quote.changePercent, numberFormat)}
     </span>
   );
   const chart = series.length > 1 && (
-    <Sparkline values={series} width="100%" viewWidth={100} height={stacked ? 20 : 28} showFill color={color} strokeColor={color} />
+    <Sparkline values={series} width="100%" viewWidth={100} height={chartHeight} showFill color={color} strokeColor={color} />
   );
 
   // Narrow (2-wide) sizes can't fit label|chart|price on one line without
@@ -72,7 +78,7 @@ function GraphRow({ quote, numberFormat, stacked }: { quote: StockQuote; numberF
           <span className={styles.graphStackedPrice}>{formatStockPrice(quote.price, numberFormat)}</span>
         </div>
         <div className={styles.graphStackedLine2}>
-          <div className={styles.graphChart}>{chart}</div>
+          <div className={styles.graphChart} style={chartStyle}>{chart}</div>
           {chip}
         </div>
       </div>
@@ -82,7 +88,7 @@ function GraphRow({ quote, numberFormat, stacked }: { quote: StockQuote; numberF
   return (
     <div className={styles.graphRow}>
       <span className={styles.graphLabel}>{stockLabel(quote.symbol)}</span>
-      <div className={styles.graphChart}>{chart}</div>
+      <div className={styles.graphChart} style={chartStyle}>{chart}</div>
       <div className={styles.graphMeta}>
         <span className={styles.graphPrice}>{formatStockPrice(quote.price, numberFormat)}</span>
         {chip}
