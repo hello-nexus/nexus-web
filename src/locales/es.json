@@ -627,6 +627,8 @@
   "devices.streamdeck.orientation": "Orientación visual",
   "devices.streamdeck.orientationDegrees": "{n}°",
   "devices.streamdeck.orientationStandard": "Estándar",
+  "devices.streamdeck.presets.reset": "Restablecer Deck",
+  "devices.streamdeck.presets.resetConfirm": "¿Restablecer el Deck a una sola página vacía?",
   "devices.streamdeck.serialNumber": "Número de serie",
   "devices.streamdeck.sleepAfter": "Reposo tras",
   "devices.streamdeck.sleepAfterMinutes": "{n}m",

@@ -627,6 +627,8 @@
   "devices.streamdeck.orientation": "顯示方向",
   "devices.streamdeck.orientationDegrees": "{n}°",
   "devices.streamdeck.orientationStandard": "標準",
+  "devices.streamdeck.presets.reset": "重置 Deck",
+  "devices.streamdeck.presets.resetConfirm": "將 Deck 重置為單一空白頁面？",
   "devices.streamdeck.serialNumber": "序號",
   "devices.streamdeck.sleepAfter": "睡眠延遲",
   "devices.streamdeck.sleepAfterMinutes": "{n}分鐘",

@@ -27,8 +27,7 @@ interface PresetToolbarProps {
   onRename: (id: string, name: string) => void;
   onDelete: (id: string) => void;
   /** Reset + Undo/Redo controls. Off for callers with no editable history to
-   *  undo (e.g. deck config presets); on (default) matches the original
-   *  lighting-canvas toolbar. */
+   *  undo; on (default) matches the original lighting-canvas toolbar. */
   showHistory?: boolean;
   canUndo?: boolean;
   canRedo?: boolean;
@@ -38,6 +37,12 @@ interface PresetToolbarProps {
   /** Prefix for every string key this toolbar reads, so a caller can supply
    *  its own translated copy instead of the lighting layout-preset strings. */
   translationPrefix?: string;
+  /** Full i18n key overrides for just the reset button/confirm text, when
+   *  `translationPrefix`'s reset wording is lighting-specific ("Reset
+   *  layout") and doesn't fit this caller's domain. Fall back to
+   *  `${translationPrefix}.reset` / `.resetConfirm`. */
+  resetLabelKey?: string;
+  resetConfirmKey?: string;
 }
 
 export function PresetToolbar({
@@ -45,9 +50,12 @@ export function PresetToolbar({
   onLoad, onCreate, onRename, onDelete,
   showHistory = true, canUndo = false, canRedo = false, onReset, onUndo, onRedo,
   translationPrefix = 'lighting.layoutPresets',
+  resetLabelKey, resetConfirmKey,
 }: PresetToolbarProps) {
   const { t } = useTranslation();
   const key = (suffix: string) => `${translationPrefix}.${suffix}`;
+  const resetKey = resetLabelKey ?? key('reset');
+  const resetConfirmMessageKey = resetConfirmKey ?? key('resetConfirm');
   const [promptOpen, setPromptOpen] = useState(false);
   const [promptMode, setPromptMode] = useState<'create' | 'rename'>('create');
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -123,8 +131,8 @@ export function PresetToolbar({
             tone="ghost"
             size="sm"
             icon={<RotateCcw size={14} />}
-            title={t(key('reset'))}
-            aria-label={t(key('reset'))}
+            title={t(resetKey)}
+            aria-label={t(resetKey)}
             onClick={() => setResetConfirmOpen(true)}
           />
           <div className={styles.sep} aria-hidden="true" />
@@ -168,8 +176,8 @@ export function PresetToolbar({
       {showHistory && (
         <ConfirmModal
           open={resetConfirmOpen}
-          title={t(key('reset'))}
-          message={t(key('resetConfirm'))}
+          title={t(resetKey)}
+          message={t(resetConfirmMessageKey)}
           onConfirm={() => { setResetConfirmOpen(false); onReset?.(); }}
           onCancel={() => setResetConfirmOpen(false)}
         />

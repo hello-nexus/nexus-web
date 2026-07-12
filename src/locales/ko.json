@@ -627,6 +627,8 @@
   "devices.streamdeck.orientation": "화면 방향",
   "devices.streamdeck.orientationDegrees": "{n}°",
   "devices.streamdeck.orientationStandard": "표준",
+  "devices.streamdeck.presets.reset": "Deck 초기화",
+  "devices.streamdeck.presets.resetConfirm": "Deck을 빈 페이지 하나로 초기화할까요?",
   "devices.streamdeck.serialNumber": "일련번호",
   "devices.streamdeck.sleepAfter": "대기 시간",
   "devices.streamdeck.sleepAfterMinutes": "{n}분",
