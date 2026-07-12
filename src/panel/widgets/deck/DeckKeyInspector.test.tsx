@@ -320,10 +320,20 @@ describe('DeckKeyInspector - monitoring action', () => {
   it('changing style persists the new value', () => {
     renderInspector([{ action: MONITORING_ACTION }]);
     fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.monitoringStyleOp' }));
-    fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.monitoringStyle.radial' }));
+    fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.monitoringStyle.backdrop' }));
 
     fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.monitoringStyleOp' }));
-    expect(screen.getByRole('option', { name: 'panel.settings.deck.monitoringStyle.radial' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.monitoringStyle.backdrop' })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('offers all four styles: line, segments, backdrop, number', () => {
+    renderInspector([{ action: MONITORING_ACTION }]);
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.monitoringStyleOp' }));
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.monitoringStyle.line' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.monitoringStyle.segments' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.monitoringStyle.backdrop' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.monitoringStyle.number' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'panel.settings.deck.monitoringStyle.radial' })).toBeNull();
   });
 
   it('changing the on-press action persists the new value', () => {

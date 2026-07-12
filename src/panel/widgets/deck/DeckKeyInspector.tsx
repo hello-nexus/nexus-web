@@ -352,7 +352,7 @@ function NexusFields({ action, onChange }: { action: Extract<DeckAction, { type:
   );
 }
 
-const MONITORING_STYLES: DeckMonitoringStyle[] = ['line', 'radial', 'number'];
+const MONITORING_STYLES: DeckMonitoringStyle[] = ['line', 'segments', 'backdrop', 'number'];
 const MONITORING_PRESSES: DeckMonitoringPress[] = ['none', 'taskManager', 'monitoringPage'];
 
 function MonitoringFields({ action, onChange }: { action: Extract<DeckAction, { type: 'monitoring' }>; onChange: (a: DeckAction) => void }) {
