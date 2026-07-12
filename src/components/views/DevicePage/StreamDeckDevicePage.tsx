@@ -397,6 +397,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
                       selectedIndex={selSlot}
                       onCell={onCellClick}
                       backCell={inFolder ? { onBack, ariaLabel: t('panel.settings.deck.back') } : undefined}
+                      onDeleteSlot={requestDelete}
                     />
                   )}
                 </div>
@@ -441,6 +442,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
                     // eslint-disable-next-line i18next/no-literal-string -- render-part enum value
                     part="editor"
                     gridEntersFolders
+                    onDeleteSlot={() => requestDelete(selSlot)}
                   />
                 ) : configError ? (
                   <div className={styles.loadError}>

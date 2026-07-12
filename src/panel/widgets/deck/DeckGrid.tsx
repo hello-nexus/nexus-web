@@ -1,6 +1,8 @@
-import type { CSSProperties, ReactNode } from 'react';
-import { Undo2, Plus } from 'lucide-react';
+import { useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
+import { Undo2, Plus, Trash2 } from 'lucide-react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
+import { useTranslation } from '../../../lib/i18n';
+import { DeviceContextMenu, type DeviceMenuItem } from '../../../components/common/DeviceCanvas/DeviceContextMenu';
 import { useAppIcon } from '../common/AppPicker';
 import { DECK_ICONS, autoIconName, deckCategory, categoryColor } from './deckIcons';
 import { resolveDeckTitleStyle, titleFontSizeCss } from './deckTitleStyle';
@@ -91,10 +93,12 @@ interface CellProps {
   selectable: boolean;
   selected: boolean;
   onClick: () => void;
+  /** Right-click on a non-empty cell; omitted when the grid offers no delete action. */
+  onCellContextMenu?: (e: ReactMouseEvent<HTMLButtonElement>, index: number, empty: boolean) => void;
 }
 
 /** Run/select cell (no drag). */
-function StaticCell({ slot, index, selectable, selected, onClick }: CellProps) {
+function StaticCell({ slot, index, selectable, selected, onClick, onCellContextMenu }: CellProps) {
   const { accent, content, empty } = useCellVisual(slot);
   if (empty && !selectable) {
     return <div className={`${styles.cell} ${styles.empty}`} data-deck-slot-index={index} />;
@@ -108,7 +112,7 @@ function StaticCell({ slot, index, selectable, selected, onClick }: CellProps) {
       aria-pressed={selectable ? selected : undefined}
       onClick={e => { e.stopPropagation(); onClick(); }}
       onPointerDown={e => e.stopPropagation()}
-      onContextMenu={e => { if (selectable) e.stopPropagation(); }}
+      onContextMenu={e => { if (selectable) e.stopPropagation(); onCellContextMenu?.(e, index, empty); }}
     >
       {content}
     </button>
@@ -116,7 +120,7 @@ function StaticCell({ slot, index, selectable, selected, onClick }: CellProps) {
 }
 
 /** Edit-mode cell: draggable (if it has content) + droppable, plus selectable. */
-function DraggableCell({ slot, index, selected, onClick }: CellProps) {
+function DraggableCell({ slot, index, selected, onClick, onCellContextMenu }: CellProps) {
   const { accent, content, empty } = useCellVisual(slot);
   const id = String(index);
   const drag = useDraggable({ id, disabled: empty });
@@ -139,7 +143,7 @@ function DraggableCell({ slot, index, selected, onClick }: CellProps) {
       style={style}
       aria-pressed={selected}
       onClick={e => { e.stopPropagation(); onClick(); }}
-      onContextMenu={e => e.stopPropagation()}
+      onContextMenu={e => { e.stopPropagation(); onCellContextMenu?.(e, index, empty); }}
     >
       {content}
     </button>
@@ -183,12 +187,40 @@ export interface DeckGridProps {
    * this off and fills its tile.
    */
   square?: boolean;
+  /**
+   * Right-click delete: when set, a non-empty cell's context menu (reusing
+   * DeviceContextMenu, the lighting device canvas's menu) offers a Delete
+   * action that reports the picked index back here. The caller decides what
+   * clearing means (a direct clear vs. a confirm for a folder with bound
+   * content), matching the existing delete affordance elsewhere in the same
+   * editor.
+   */
+  onDeleteSlot?: (index: number) => void;
 }
 
 /** Pure icon grid for one folder level. The back affordance is overlaid by DeckWidget. */
-export function DeckGrid({ slots, cols, rows, selectable, dragEnabled, selectedIndex, onCell, backCell, square }: DeckGridProps) {
+export function DeckGrid({ slots, cols, rows, selectable, dragEnabled, selectedIndex, onCell, backCell, square, onDeleteSlot }: DeckGridProps) {
+  const { t } = useTranslation();
+  const [ctxMenu, setCtxMenu] = useState<{ index: number; x: number; y: number } | null>(null);
   const Cell = dragEnabled ? DraggableCell : StaticCell;
   const trackSize = square ? 'var(--deck-cell)' : '1fr';
+
+  const handleCellContextMenu = onDeleteSlot
+    ? (e: ReactMouseEvent<HTMLButtonElement>, index: number, empty: boolean) => {
+        if (empty) return;
+        e.preventDefault();
+        setCtxMenu({ index, x: e.clientX, y: e.clientY });
+      }
+    : undefined;
+
+  const deleteMenuItems: DeviceMenuItem[] = ctxMenu && onDeleteSlot ? [{
+    key: 'delete',
+    // eslint-disable-next-line i18next/no-literal-string -- ARIA boolean attribute
+    icon: <Trash2 size={14} aria-hidden="true" />,
+    label: t('common.delete'),
+    onSelect: () => onDeleteSlot(ctxMenu.index),
+  }] : [];
+
   return (
     <div
       className={square ? `${styles.grid} ${styles.square}` : styles.grid}
@@ -213,8 +245,18 @@ export function DeckGrid({ slots, cols, rows, selectable, dragEnabled, selectedI
           selectable={selectable}
           selected={selectable && i === selectedIndex}
           onClick={() => onCell(i)}
+          onCellContextMenu={handleCellContextMenu}
         />
       ))}
+      {ctxMenu && onDeleteSlot && (
+        <DeviceContextMenu
+          key={`${ctxMenu.index}:${ctxMenu.x}:${ctxMenu.y}`}
+          x={ctxMenu.x}
+          y={ctxMenu.y}
+          items={deleteMenuItems}
+          onClose={() => setCtxMenu(null)}
+        />
+      )}
     </div>
   );
 }

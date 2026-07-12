@@ -1908,6 +1908,7 @@
   "panel.settings.deck.deckSleepDescription": "다음 키를 누를 때까지 Deck의 화면을 끕니다.",
   "panel.settings.deck.deleteFolder.body": "이 폴더에는 {count}개의 키가 있습니다. 삭제하면 모든 내용이 제거됩니다.",
   "panel.settings.deck.deleteFolder.title": "폴더를 삭제할까요?",
+  "panel.settings.deck.deleteKey": "키 삭제",
   "panel.settings.deck.device": "장치",
   "panel.settings.deck.display": "디스플레이",
   "panel.settings.deck.effect": "효과",

@@ -1908,6 +1908,7 @@
   "panel.settings.deck.deckSleepDescription": "Apaga a tela do Deck até o próximo pressionamento de uma tecla.",
   "panel.settings.deck.deleteFolder.body": "Esta pasta contém {count} botões. Excluí-la remove todo o conteúdo.",
   "panel.settings.deck.deleteFolder.title": "Excluir pasta?",
+  "panel.settings.deck.deleteKey": "Excluir botão",
   "panel.settings.deck.device": "Dispositivo",
   "panel.settings.deck.display": "Exibição",
   "panel.settings.deck.effect": "Efeito",

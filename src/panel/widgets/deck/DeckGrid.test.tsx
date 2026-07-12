@@ -1,4 +1,4 @@
-import { render, fireEvent } from '@testing-library/react';
+import { render, fireEvent, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { DeckGrid } from './DeckGrid';
 import type { DeckSlot } from './types';
@@ -131,5 +131,71 @@ describe('DeckGrid monitoring cell', () => {
     );
     const cell = container.querySelector('[data-deck-slot-index="0"]')!;
     expect(cell.className).not.toContain(styles.empty);
+  });
+});
+
+describe('DeckGrid selection ring - zero layout shift', () => {
+  it('toggling selection changes only the class list, never an inline style (size/gap/scroll extent stay identical)', () => {
+    const slots: DeckSlot[] = [{ label: 'a' }, { label: 'b' }];
+    const { container, rerender } = render(
+      <DeckGrid slots={slots} cols={2} rows={1} selectable selectedIndex={-1} onCell={() => {}} />,
+    );
+    const cell = container.querySelector('[data-deck-slot-index="0"]')!;
+    // The ring is an outset box-shadow custom property on the cell's own
+    // class (see DeckGrid.module.scss .selected) - never a border/padding/
+    // margin swap and never a wrapper element, so selecting/deselecting can
+    // only change className, not the box model or DOM shape.
+    const styleBefore = cell.getAttribute('style');
+    const childCountBefore = container.querySelectorAll('[data-deck-slot-index]').length;
+
+    rerender(<DeckGrid slots={slots} cols={2} rows={1} selectable selectedIndex={0} onCell={() => {}} />);
+
+    const selectedCell = container.querySelector('[data-deck-slot-index="0"]')!;
+    expect(selectedCell.className).toContain(styles.selected);
+    expect(selectedCell.getAttribute('style')).toBe(styleBefore);
+    expect(container.querySelectorAll('[data-deck-slot-index]').length).toBe(childCountBefore);
+  });
+});
+
+describe('DeckGrid right-click delete', () => {
+  it('right-clicking a populated cell opens a menu with a Delete entry and reports the index on selection', () => {
+    const slots: DeckSlot[] = [
+      { action: { type: 'hotkey', keys: '' } },
+      { action: { type: 'hotkey', keys: '' } },
+    ];
+    const onDeleteSlot = vi.fn();
+    const { container } = render(
+      <DeckGrid slots={slots} cols={2} rows={1} selectable selectedIndex={-1} onCell={() => {}} onDeleteSlot={onDeleteSlot} />,
+    );
+
+    const notPrevented = fireEvent.contextMenu(container.querySelector('[data-deck-slot-index="1"]')!);
+    // dispatchEvent returns false once preventDefault() was called during
+    // dispatch - the browser's own context menu must never appear here.
+    expect(notPrevented).toBe(false);
+
+    fireEvent.click(screen.getByText('common.delete'));
+    expect(onDeleteSlot).toHaveBeenCalledWith(1);
+  });
+
+  it('right-clicking an empty cell does not open the menu (nothing to delete)', () => {
+    const slots: DeckSlot[] = [{}];
+    const onDeleteSlot = vi.fn();
+    const { container } = render(
+      <DeckGrid slots={slots} cols={1} rows={1} selectable selectedIndex={-1} onCell={() => {}} onDeleteSlot={onDeleteSlot} />,
+    );
+
+    const notPrevented = fireEvent.contextMenu(container.querySelector('[data-deck-slot-index="0"]')!);
+    expect(notPrevented).toBe(true);
+    expect(screen.queryByText('common.delete')).toBeNull();
+  });
+
+  it('omitting onDeleteSlot never renders a context menu (backward compatible with every other DeckGrid caller)', () => {
+    const slots: DeckSlot[] = [{ action: { type: 'hotkey', keys: '' } }];
+    const { container } = render(
+      <DeckGrid slots={slots} cols={1} rows={1} selectable selectedIndex={-1} onCell={() => {}} />,
+    );
+
+    fireEvent.contextMenu(container.querySelector('[data-deck-slot-index="0"]')!);
+    expect(screen.queryByText('common.delete')).toBeNull();
   });
 });
