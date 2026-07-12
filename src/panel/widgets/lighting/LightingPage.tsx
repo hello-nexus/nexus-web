@@ -4,7 +4,7 @@ import {
   startAnimate, startScreenMirror, stopLighting, startGameSync,
   fetchLightingDevices, fetchAnimateSettings, saveAnimateTemplates,
   fetchAnimateDefaults, cachedAnimateDefaults,
-  fetchMusicReactive, setMusicReactive, setLightingDevicePower,
+  fetchMusicReactive, setMusicReactive, setLightingDevicePower, setLightingDeviceDriven,
   fetchScreenEffect, setScreenEffect, fetchMediaEffect, setMediaEffect, fetchLedMap,
   fetchCurrentSync, fetchAvailableMappings, fetchGameSyncState, fetchGameSyncGames,
   steamArtworkUrl, resolveActiveGame,
@@ -799,6 +799,21 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     setDevices(prev => prev.map(d => d.id === id ? { ...d, ledsOn: on } : d));
   }, []);
 
+  // "Driven" mirrors the power toggle/setter pair above, but controls whether
+  // Nexus pushes frames to the device at all (distinct from power, which
+  // drives it to black).
+  const handleToggleDriven = useCallback((id: string) => {
+    const current = devicesRef.current.find(d => d.id === id);
+    if (!current) return;
+    const nextDriven = current.driven === false;
+    setLightingDeviceDriven(id, nextDriven).catch(() => { /* 3s poll reconciles */ });
+    setDevices(prev => prev.map(d => d.id === id ? { ...d, driven: nextDriven } : d));
+  }, []);
+  const handleSetDriven = useCallback((id: string, driven: boolean) => {
+    setLightingDeviceDriven(id, driven).catch(() => { /* 3s poll reconciles */ });
+    setDevices(prev => prev.map(d => d.id === id ? { ...d, driven } : d));
+  }, []);
+
   // Device list ordering: HTML5 drag/drop on ZoneCard, persisted to
   // localStorage. Mirrors the fan-card reorder pattern, but local-only -
   // device identity is per-machine, not per-profile.
@@ -1176,6 +1191,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                 onSetSelection={handleSetSelection}
                 onTogglePower={handleTogglePower}
                 onSetPower={handleSetPower}
+                onToggleDriven={handleToggleDriven}
+                onSetDriven={handleSetDriven}
                 lightingOff={effectiveMode === 'none'}
                 onOpenSettings={handleOpenSettings}
                 onDeviceReorder={(newOrder) => setDeviceOrder(newOrder)}
