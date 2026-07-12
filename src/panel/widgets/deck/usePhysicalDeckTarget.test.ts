@@ -266,6 +266,99 @@ describe('usePhysicalDeckTarget - debounced sync + rollback (RISK 2, SMELL 1)', 
   });
 });
 
+describe('usePhysicalDeckTarget - mount does not echo an unedited config back to the server', () => {
+  it('never PUTs after the initial load when no edit was made', async () => {
+    const { result } = renderHook(() => usePhysicalDeckTarget(makeDeck()));
+    await flush();
+    await advance(300);
+    await flush();
+
+    expect(result.current.target).not.toBeNull();
+    expect(mockSetConfig).not.toHaveBeenCalled();
+  });
+
+  // A device page open+close with no edit used to schedule a same-value PUT
+  // 300ms after every mount. If a genuine edit lands on the server in that
+  // window from elsewhere (a flushed edit from a fast unmount+remount, a
+  // second session), that echo-PUT can fire after it and silently revert it
+  // - see the two tests below for the exact race this closes.
+  it('an edit made after the initial load still PUTs normally', async () => {
+    const { result } = renderHook(() => usePhysicalDeckTarget(makeDeck()));
+    await settleInitialSync();
+    mockSetConfig.mockClear();
+
+    act(() => { result.current.target!.updateSlot(0, [], 0, { label: 'edited' }); });
+    await advance(300);
+    await flush();
+
+    expect(mockSetConfig).toHaveBeenCalledTimes(1);
+    const [, sentConfig] = mockSetConfig.mock.calls[0] as [string, DeckConfig];
+    expect(sentConfig.pages[0].slots[0].label).toBe('edited');
+  });
+
+  it('a remounts echo-PUT of the pre-edit config does not clobber an edit flushed on unmount before it lands', async () => {
+    const { result, unmount } = renderHook(() => usePhysicalDeckTarget(makeDeck()));
+    await settleInitialSync();
+    mockSetConfig.mockClear();
+
+    // The unmount-flushed PUT stays in flight - mirrors a real network round
+    // trip outliving the unmount (navigate away, then straight back).
+    const flushedPut = deferred<boolean>();
+    mockSetConfig.mockReturnValueOnce(flushedPut.promise);
+
+    act(() => { result.current.target!.updateSlot(0, [], 0, { label: 'edited' }); });
+    unmount();
+    expect(mockSetConfig).toHaveBeenCalledTimes(1);
+
+    // A fresh mount's GET still returns the pre-edit server value - the
+    // flushed PUT above has not resolved yet.
+    mockSetConfig.mockResolvedValue(true);
+    const { result: result2 } = renderHook(() => usePhysicalDeckTarget(makeDeck()));
+    await flush();
+    expect(result2.current.target!.config.pages[0].slots).toHaveLength(0);
+
+    await act(async () => { flushedPut.resolve(true); });
+    await flush();
+    // The remounted instance's own debounce-sync effect, scheduled once its
+    // GET landed, must not PUT that stale config straight back.
+    await advance(300);
+    await flush();
+
+    expect(mockSetConfig).toHaveBeenCalledTimes(1);
+    const [, sentConfig] = mockSetConfig.mock.calls[0] as [string, DeckConfig];
+    expect(sentConfig.pages[0].slots[0].label).toBe('edited');
+  });
+
+  it('protects every field of an edited slot, not just one, from the same remount echo-PUT race', async () => {
+    const { result, unmount } = renderHook(() => usePhysicalDeckTarget(makeDeck()));
+    await settleInitialSync();
+    mockSetConfig.mockClear();
+
+    const flushedPut = deferred<boolean>();
+    mockSetConfig.mockReturnValueOnce(flushedPut.promise);
+
+    const editedAction = {
+      type: 'monitoring' as const, category: 'cpu' as const, sensor: 'cpu/load/0', style: 'segments' as const,
+      showName: true, labelText: 'Hello', scale: 'fixed' as const, min: 10, max: 90, color: '#ff0000',
+    };
+    act(() => { result.current.target!.updateSlot(0, [], 0, { action: editedAction }); });
+    unmount();
+
+    mockSetConfig.mockResolvedValue(true);
+    renderHook(() => usePhysicalDeckTarget(makeDeck()));
+    await flush();
+
+    await act(async () => { flushedPut.resolve(true); });
+    await flush();
+    await advance(300);
+    await flush();
+
+    expect(mockSetConfig).toHaveBeenCalledTimes(1);
+    const [, sentConfig] = mockSetConfig.mock.calls[0] as [string, DeckConfig];
+    expect(sentConfig.pages[0].slots[0].action).toEqual(editedAction);
+  });
+});
+
 describe('usePhysicalDeckTarget - back-key upload', () => {
   it('renders and uploads the back-key bitmap once per deck to slotPath "back" state 0', async () => {
     renderHook(() => usePhysicalDeckTarget(makeDeck()));

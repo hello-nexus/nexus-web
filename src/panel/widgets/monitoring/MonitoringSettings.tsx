@@ -13,8 +13,10 @@ import { GAUGE_DESIGN_KEYS, GAUGE_DESIGN_LABELS } from '../monitoring/gauges';
 import { DESIGN_ICONS } from '../monitoring/gauges/DesignIcons';
 import type { GaugeDesignKey } from '../monitoring/gauges';
 import {
+  DEFAULT_MICRO_DESIGN,
   DEFAULT_SLOTS,
   isMicroLayout,
+  MICRO_DESIGN_KEYS,
   resolvedSlotCountForSize,
 } from '../monitoring/perfSlots';
 import type { DeviceKey } from '../monitoring/perfSlots';
@@ -334,6 +336,8 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
       disabled: !deviceHasEnoughSensorsForMicro(sensors, networkSensors, extras, category, count),
     }));
     const microCanType = canEditFreeText(surface, desktopEditor);
+    // Row style shared by every bar (Bars / Fill / Graph).
+    const microDesign = (widget.config?.micro_design as GaugeDesignKey | undefined) ?? DEFAULT_MICRO_DESIGN;
     // Micro has one shared range for every bar (no per-slot scale). The default
     // Fixed ceiling is the device's static max; the user types free overrides.
     const microScale = (widget.config?.micro_scale as ScaleMode | undefined) ?? DEFAULT_SCALE_MODE;
@@ -405,6 +409,25 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
                     {...labelControlHandlers(onUpdate, `micro_sensor${i}_labelMode`, `micro_sensor${i}_label`, sOverride, sAuto)}
                   />
                 </div>
+              );
+            })}
+          </div>
+        </SettingsSection>
+
+        <SettingsSection title={t('monitoring.settings.design')}>
+          <div className={styles.microDesignRow}>
+            {MICRO_DESIGN_KEYS.map(k => {
+              const Icon = DESIGN_ICONS[k];
+              return (
+                <IconLabelButton
+                  key={k}
+                  className={styles.microDesignBtn}
+                  active={k === microDesign}
+                  icon={Icon ? <Icon aria-hidden="true" /> : undefined}
+                  title={GAUGE_DESIGN_LABELS[k]}
+                  ariaLabel={GAUGE_DESIGN_LABELS[k]}
+                  onPress={() => onUpdate({ micro_design: k })}
+                />
               );
             })}
           </div>

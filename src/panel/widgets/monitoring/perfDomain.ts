@@ -17,7 +17,7 @@ const SCALABLE_DESIGNS = new Set<GaugeDesignKey>([
 // number and `microbars` renders per-sample without a Y domain, so neither
 // takes a range.
 const FILL_DESIGNS = new Set<GaugeDesignKey>([
-  'waterLevel', 'caterpillar', 'bar', 'hbar', 'dotgrid', 'halfgauge',
+  'waterLevel', 'caterpillar', 'bar', 'fill', 'hbar', 'dotgrid', 'halfgauge',
   'numberfill', 'thermo', 'arc270', 'wedge', 'battery', 'segments', 'dial', 'tickring',
 ]);
 

@@ -1,11 +1,14 @@
 import type { ReactNode } from 'react';
 import type { UiSettingsValue } from '../hooks/useUiSettings';
+import type { SearchLiveState } from './useSearchLiveState';
 
 export interface PaletteDevice {
   key: string;
   name: string;
   subtitle: string;
   iconSrc: string;
+  /** Disconnected devices stay findable; their entry says so in the hint. */
+  connected: boolean;
 }
 
 /** App-level capabilities a provider entry can invoke. Supplied by the host
@@ -36,6 +39,11 @@ export interface CommandContext {
   updateSettings: (patch: Partial<UiSettingsValue>) => void;
   /** Live remote-access on/off state, so those become single toggles. */
   panel: { remoteEnabled: boolean; relayEnabled: boolean; wifiEnabled: boolean };
+  /** Host OS ('windows' | 'macos' | 'linux' | ''), gating platform-bound
+   *  entries the same way their Settings rows gate themselves. */
+  platform: string;
+  /** Snapshot of stateful service data fetched at palette open. */
+  live: SearchLiveState;
   host: CommandHost;
   /** Close the palette. Most entries don't need this - the palette closes
    *  itself after run() unless the entry sets keepOpen. */

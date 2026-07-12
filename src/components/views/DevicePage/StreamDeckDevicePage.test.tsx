@@ -49,6 +49,13 @@ vi.mock('../../../api/streamdeck', () => ({
   setStreamDeckNav: (serial: string, page: number, folderPath: readonly number[]) => mockSetStreamDeckNav(serial, page, folderPath),
 }));
 
+let capturedNavCallback: ((data: unknown) => void) | null = null;
+vi.mock('../../../hooks/useMultiplexSocket', () => ({
+  useTopicCallback: (_topic: string, enabled: boolean, cb: (data: unknown) => void) => {
+    capturedNavCallback = enabled ? cb : null;
+  },
+}));
+
 vi.mock('../../../panel/widgets/deck/DeckKeyInspector', () => ({
   DeckKeyInspector: ({ selectedSlot, part }: { selectedSlot?: number; part?: string }) => (
     <div data-testid={`deck-key-inspector-${part ?? 'all'}`}>{selectedSlot}</div>
@@ -150,6 +157,7 @@ function decksReturn(decks: StreamDeckSummary[], loaded = true) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  capturedNavCallback = null;
   h.conflicts = [];
   mockRename.mockResolvedValue(true);
   mockSetBrightness.mockResolvedValue(true);
@@ -728,6 +736,60 @@ describe('StreamDeckDevicePage', () => {
       expect(pageChip(1)).toHaveAttribute('aria-pressed', 'true');
       expect(screen.queryAllByRole('button', { name: /panel.settings.deck.page.tab/ })).toHaveLength(1);
       expect(mockSetStreamDeckNav).toHaveBeenCalledWith('SN1', 0, []);
+    });
+  });
+
+  describe('Initial view seeded from the deck summary (currentPage/folderPath)', () => {
+    function pageChip(n: number) {
+      return screen.getByRole('button', { name: `panel.settings.deck.page.tab:{"n":${n}}` });
+    }
+
+    it('opens at the summarys currentPage when present', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck({ currentPage: 2 })]));
+      mockUsePhysicalDeckTarget.mockReturnValue({
+        target: fakeTargetWithPages([{ slots: [] }, { slots: [] }, { slots: [] }]),
+        loaded: true, error: false, retry: vi.fn(),
+      });
+      await renderPage();
+
+      expect(pageChip(3)).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    it('opens inside the summarys folderPath when present', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck({ folderPath: [0] })]));
+      mockUsePhysicalDeckTarget.mockReturnValue({
+        target: fakeTargetWithPages([{ slots: [{ folder: { slots: [] } }] }]),
+        loaded: true, error: false, retry: vi.fn(),
+      });
+      await renderPage();
+
+      expect(screen.getByRole('button', { name: 'panel.settings.deck.back' })).toBeInTheDocument();
+    });
+
+    it('falls back to page 1, root folder when the summary predates these fields (older service build)', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+      mockUsePhysicalDeckTarget.mockReturnValue({
+        target: fakeTargetWithPages([{ slots: [] }, { slots: [] }]),
+        loaded: true, error: false, retry: vi.fn(),
+      });
+      await renderPage();
+
+      expect(pageChip(1)).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.queryByRole('button', { name: 'panel.settings.deck.back' })).toBeNull();
+    });
+
+    it('a later nav frame from the hardware still wins over the seeded view', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck({ currentPage: 0 })]));
+      mockUsePhysicalDeckTarget.mockReturnValue({
+        target: fakeTargetWithPages([{ slots: [] }, { slots: [] }, { slots: [] }]),
+        loaded: true, error: false, retry: vi.fn(),
+      });
+      await renderPage();
+      expect(pageChip(1)).toHaveAttribute('aria-pressed', 'true');
+
+      act(() => { capturedNavCallback?.({ kind: 'nav', serial: 'SN1', page: 2, folderPath: [] }); });
+
+      expect(pageChip(3)).toHaveAttribute('aria-pressed', 'true');
     });
   });
 });

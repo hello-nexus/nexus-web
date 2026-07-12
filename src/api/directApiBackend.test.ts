@@ -29,10 +29,33 @@ function emptyResponse(status: number): Response {
 // Each test gets a fresh module instance so the closure-held in-memory
 // access token / cached account never leaks between cases - only
 // localStorage/sessionStorage (cleared in beforeEach) simulate persistence.
-async function freshBackend(): Promise<AuthBackend> {
+async function freshModule() {
   vi.resetModules();
-  const mod = await import('./directApiBackend');
-  return mod.directApiBackend;
+  return import('./directApiBackend');
+}
+
+async function freshBackend(): Promise<AuthBackend> {
+  return (await freshModule()).directApiBackend;
+}
+
+// isWebCookieMode() reads window.location fresh on every call (no
+// module-level caching), so this stub needs no vi.resetModules() pairing -
+// it just has to be in place before the code under test runs.
+const realLocation = window.location;
+function stubHostname(hostname: string, port = ''): void {
+  Object.defineProperty(window, 'location', {
+    value: {
+      hostname,
+      port,
+      protocol: 'https:',
+      host: port ? `${hostname}:${port}` : hostname,
+      href: `https://${hostname}/`,
+      pathname: '/',
+      search: '',
+      hash: '',
+    },
+    configurable: true,
+  });
 }
 
 describe('directApiBackend', () => {
@@ -48,6 +71,7 @@ describe('directApiBackend', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    Object.defineProperty(window, 'location', { value: realLocation, configurable: true });
   });
 
   describe('login', () => {
@@ -311,6 +335,222 @@ describe('directApiBackend', () => {
       expect(result.status).toBe(401);
       expect(result.body).toEqual({ error: true, msg: 'current password is incorrect' });
       expect(localStorage.getItem(REFRESH_KEY)).toBe('refresh-1');
+    });
+  });
+
+  describe('isWebCookieMode', () => {
+    it.each([
+      ['hellonexus.com', ''],
+      ['my.hellonexus.com', ''],
+      ['store.hellonexus.com', ''],
+      ['localhost', '5173'],
+    ])('is true for the hosted-web origin %s:%s', async (hostname, port) => {
+      stubHostname(hostname, port);
+      const { isWebCookieMode } = await freshModule();
+
+      expect(isWebCookieMode()).toBe(true);
+    });
+
+    it.each([
+      ['localhost', '3000'],
+      ['localhost', '9400'],
+      ['127.0.0.1', '9400'],
+      ['192.168.1.50', '9400'],
+      // A hostname that merely contains the domain as a substring must never
+      // match - only an exact host or a real subdomain does.
+      ['evilhellonexus.com', ''],
+      ['hellonexus.com.attacker.example', ''],
+    ])('is false for the loopback/service/unlisted origin %s:%s', async (hostname, port) => {
+      stubHostname(hostname, port);
+      const { isWebCookieMode } = await freshModule();
+
+      expect(isWebCookieMode()).toBe(false);
+    });
+  });
+
+  describe('cookie mode: header + credentials injection', () => {
+    beforeEach(() => {
+      stubHostname('hellonexus.com');
+    });
+
+    it('login sends the web header + credentials, and a response with no refreshToken never touches localStorage', async () => {
+      fetchMock.mockResolvedValueOnce(jsonResponse(200, {
+        accessToken: 'access-1',
+        account: mkApiAccount(),
+      }));
+      const { directApiBackend: backend, getCachedAccount } = await freshModule();
+
+      const result = await backend.login('alpha', 'hunter22');
+
+      expect(result.status).toBe(200);
+      expect(result.body).toMatchObject({ error: false, username: 'alpha' });
+      expect(localStorage.getItem(REFRESH_KEY)).toBeNull();
+      expect(getCachedAccount()?.username).toBe('alpha');
+      const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(init.headers).toMatchObject({ 'X-Nexus-Auth': 'web' });
+      expect(init.credentials).toBe('include');
+    });
+
+    it('logout sends the web header + credentials with no body token, even with a legacy token still in storage', async () => {
+      localStorage.setItem(REFRESH_KEY, 'legacy-token');
+      fetchMock.mockResolvedValueOnce(emptyResponse(204));
+      const { directApiBackend: backend } = await freshModule();
+
+      await backend.logout();
+
+      const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(init.headers).toMatchObject({ 'X-Nexus-Auth': 'web' });
+      expect(init.credentials).toBe('include');
+      expect(init.body).toBe(JSON.stringify({}));
+      // Logout still clears any lingering legacy copy as a defensive cleanup.
+      expect(localStorage.getItem(REFRESH_KEY)).toBeNull();
+    });
+
+    it('an approved recovery poll applies a refreshToken-less session without ever touching localStorage', async () => {
+      sessionStorage.setItem(RECOVERY_GRANT_KEY, JSON.stringify({ grantId: 'g1', deviceSecret: 'x'.repeat(32) }));
+      fetchMock.mockResolvedValueOnce(jsonResponse(200, {
+        status: 'approved', accessToken: 'access-1', account: mkApiAccount(),
+      }));
+      const { directApiBackend: backend } = await freshModule();
+
+      const status = await backend.recoveryStatus();
+
+      expect(status).toEqual({ status: 'approved' });
+      expect(localStorage.getItem(REFRESH_KEY)).toBeNull();
+      const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(init.headers).toMatchObject({ 'X-Nexus-Auth': 'web' });
+      expect(init.credentials).toBe('include');
+    });
+  });
+
+  describe('cookie mode: bootstrap on load + one-time localStorage migration', () => {
+    beforeEach(() => {
+      stubHostname('hellonexus.com');
+    });
+
+    it('with no stored token, getAccount() still fires a credentialed refresh probe - the cookie is invisible to JS', async () => {
+      fetchMock
+        .mockResolvedValueOnce(jsonResponse(200, { accessToken: 'access-1', account: mkApiAccount() }))
+        .mockResolvedValueOnce(jsonResponse(200, mkApiAccount()));
+      const { directApiBackend: backend } = await freshModule();
+
+      const account = await backend.getAccount();
+
+      expect(account?.username).toBe('alpha');
+      expect(fetchMock).toHaveBeenNthCalledWith(1, `${BASE}/auth/refresh`, expect.objectContaining({
+        body: JSON.stringify({}),
+        credentials: 'include',
+      }));
+      expect(localStorage.getItem(REFRESH_KEY)).toBeNull();
+    });
+
+    it('migrates an existing localStorage refresh token: sends it once in the body, then deletes the local copy', async () => {
+      localStorage.setItem(REFRESH_KEY, 'legacy-token');
+      fetchMock
+        .mockResolvedValueOnce(jsonResponse(200, { accessToken: 'access-1', account: mkApiAccount() }))
+        .mockResolvedValueOnce(jsonResponse(200, mkApiAccount()));
+      const { directApiBackend: backend } = await freshModule();
+
+      await backend.getAccount();
+
+      expect(fetchMock).toHaveBeenNthCalledWith(1, `${BASE}/auth/refresh`, expect.objectContaining({
+        body: JSON.stringify({ refreshToken: 'legacy-token' }),
+        credentials: 'include',
+      }));
+      const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(init.headers).toMatchObject({ 'X-Nexus-Auth': 'web' });
+      expect(localStorage.getItem(REFRESH_KEY)).toBeNull();
+    });
+
+    it('a definitive rejection (401) of the migration token drops the stale localStorage copy', async () => {
+      localStorage.setItem(REFRESH_KEY, 'dead-token');
+      fetchMock.mockResolvedValueOnce(jsonResponse(401, { message: 'refresh token reuse detected' }));
+      const { directApiBackend: backend } = await freshModule();
+
+      const account = await backend.getAccount();
+
+      expect(account).toBeNull();
+      expect(localStorage.getItem(REFRESH_KEY)).toBeNull();
+    });
+
+    it('a network failure during migration leaves the localStorage copy in place for a retry on the next load', async () => {
+      localStorage.setItem(REFRESH_KEY, 'legacy-token');
+      fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+      const { directApiBackend: backend } = await freshModule();
+
+      const account = await backend.getAccount();
+
+      expect(account).toBeNull();
+      expect(localStorage.getItem(REFRESH_KEY)).toBe('legacy-token');
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('non-hosted-web origins stay on the unchanged body-token flow', () => {
+    it('login never attaches the cookie-mode header or credentials', async () => {
+      fetchMock.mockResolvedValueOnce(jsonResponse(200, {
+        accessToken: 'access-1', refreshToken: 'refresh-1', account: mkApiAccount(),
+      }));
+      const backend = await freshBackend();
+
+      await backend.login('alpha', 'hunter22');
+
+      const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(init.headers).not.toHaveProperty('X-Nexus-Auth');
+      expect(init.credentials).toBeUndefined();
+    });
+
+    it('logout never attaches the cookie-mode header or credentials', async () => {
+      localStorage.setItem(REFRESH_KEY, 'refresh-1');
+      fetchMock.mockResolvedValueOnce(emptyResponse(204));
+      const backend = await freshBackend();
+
+      await backend.logout();
+
+      const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(init.headers).not.toHaveProperty('X-Nexus-Auth');
+      expect(init.credentials).toBeUndefined();
+    });
+
+    it('the refresh bootstrap (via getAccount) never attaches the cookie-mode header or credentials', async () => {
+      localStorage.setItem(REFRESH_KEY, 'refresh-0');
+      fetchMock
+        .mockResolvedValueOnce(jsonResponse(200, { accessToken: 'access-1', refreshToken: 'refresh-1', account: mkApiAccount() }))
+        .mockResolvedValueOnce(jsonResponse(200, mkApiAccount()));
+      const backend = await freshBackend();
+
+      await backend.getAccount();
+
+      const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(init.headers).not.toHaveProperty('X-Nexus-Auth');
+      expect(init.credentials).toBeUndefined();
+    });
+
+    it('recoveryStatus never attaches the cookie-mode header or credentials', async () => {
+      sessionStorage.setItem(RECOVERY_GRANT_KEY, JSON.stringify({ grantId: 'g1', deviceSecret: 'x'.repeat(32) }));
+      fetchMock.mockResolvedValueOnce(jsonResponse(200, { status: 'pending' }));
+      const backend = await freshBackend();
+
+      await backend.recoveryStatus();
+
+      const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(init.headers).not.toHaveProperty('X-Nexus-Auth');
+      expect(init.credentials).toBeUndefined();
+    });
+
+    it('an approved recovery poll missing refreshToken never applies or stores a session', async () => {
+      sessionStorage.setItem(RECOVERY_GRANT_KEY, JSON.stringify({ grantId: 'g1', deviceSecret: 'x'.repeat(32) }));
+      fetchMock.mockResolvedValueOnce(jsonResponse(200, {
+        status: 'approved', accessToken: 'access-1', account: mkApiAccount(),
+      }));
+      const { directApiBackend: backend, getCachedAccount } = await freshModule();
+
+      await backend.recoveryStatus();
+
+      expect(getCachedAccount()).toBeNull();
+      expect(localStorage.getItem(REFRESH_KEY)).toBeNull();
+      // Nothing was durably applied, so the grant survives for a retry.
+      expect(sessionStorage.getItem(RECOVERY_GRANT_KEY)).not.toBeNull();
     });
   });
 });

@@ -60,6 +60,7 @@ import { getSidebarAppMeta } from './sidebarApps';
 import { SidebarColumn } from './SidebarColumn';
 import { CrossZoneDragProvider } from './CrossZoneDrag';
 import { CommandPaletteProvider } from '../search/CommandPaletteProvider';
+import { useSearchSignal } from '../search/signals';
 import { checkHelloGreetingOnce } from '../search/helloGreetingStore';
 import { PairPhoneModal } from './PairPhoneModal';
 import { WelcomeScreen } from '../components/common/WelcomeScreen/WelcomeScreen';
@@ -457,6 +458,10 @@ export function Dashboard() {
     setUpdateModalOpen(true);
   }, []);
 
+  // Search's "Check for updates" entry opens the modal this component owns
+  // (the modal auto-checks on open).
+  useSearchSignal('update-modal', useCallback(() => { void handleUpdateOpen(); }, [handleUpdateOpen]));
+
   // Bump on every offline -> online transition so the profile dropdown
   // remounts and replays its fade-in once.
   const wasOnlineRef = useRef(online);
@@ -658,6 +663,7 @@ export function Dashboard() {
               goBack={goBack}
               goForward={goForward}
               online={online}
+              platform={status.ping?.platform ?? ''}
               connectionState={status.state}
               connectEpoch={connectEpoch}
               profiles={profilesHook}

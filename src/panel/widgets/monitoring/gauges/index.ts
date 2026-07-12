@@ -21,6 +21,7 @@ import { HeatmapGauge } from './HeatmapGauge';
 import { DialGauge } from './DialGauge';
 import { TickRingGauge } from './TickRingGauge';
 import { BackdropGauge } from './BackdropGauge';
+import { FillGauge } from './FillGauge';
 
 export type { GaugeProps, GaugeDesignKey };
 
@@ -46,6 +47,7 @@ export const GAUGE_DESIGNS: Record<GaugeDesignKey, ComponentType<GaugeProps>> = 
   dial: DialGauge,
   tickring: TickRingGauge,
   backdrop: BackdropGauge,
+  fill: FillGauge,
 };
 
 export const GAUGE_DESIGN_LABELS: Record<GaugeDesignKey, string> = {
@@ -70,13 +72,14 @@ export const GAUGE_DESIGN_LABELS: Record<GaugeDesignKey, string> = {
   dial: 'Dial',
   tickring: 'Tick Ring',
   backdrop: 'Backdrop',
+  fill: 'Fill',
 };
 
 export const GAUGE_DESIGN_KEYS: GaugeDesignKey[] = [
   'sparkline', 'line', 'mirrorwave', 'backdrop',
   'microbars', 'heatmap', 'segments',
   'text', 'numberfill',
-  'bar', 'thermo', 'battery', 'hbar', 'dotgrid',
+  'bar', 'fill', 'thermo', 'battery', 'hbar', 'dotgrid',
   'waterLevel',
   'caterpillar', 'tickring', 'halfgauge', 'arc270', 'wedge', 'dial',
 ];

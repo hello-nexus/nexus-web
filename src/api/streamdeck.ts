@@ -30,6 +30,16 @@ export interface StreamDeckSummary {
   conflictAppId?: string;
   /** Server-authoritative; absent on a service build that predates this field (see resolveDeckKeyTransform). */
   transform?: DeckKeyTransform;
+  /**
+   * The physical deck's live page/folder, same semantics as the 'nav'
+   * multiplex frame (see StreamDeckDevicePage's topic subscription). Seeds
+   * the device page's initial view so it opens on what the hardware is
+   * actually showing instead of always page 0; absent on a service build
+   * that predates this field, in which case the editor falls back to page 0.
+   */
+  currentPage?: number;
+  /** Paired with currentPage; absent has the same page-0-root meaning as an empty array. */
+  folderPath?: number[];
 }
 
 interface StreamDeckListResponse {

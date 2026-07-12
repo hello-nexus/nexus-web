@@ -21,9 +21,10 @@ const RATCHETS = [
     // Panel monitoring gauges carry their value/label type inline: the value
     // font-size is the sanctioned em tier (per _text.scss), and line-height /
     // letter-spacing match every existing gauge. New gauge designs add more of
-    // that same idiom, so the cap tracks up with them. The calendar widget's
-    // date/day/month display fonts are the same em-tier idiom (like the clock).
-    baseline: 504,
+    // that same idiom, so the cap tracks up with them (the Fill gauge added 4).
+    // The calendar widget's date/day/month display fonts are the same em-tier
+    // idiom (like the clock).
+    baseline: 508,
     hint: 'use the @include text-* mixins or var(--type-*/--weight-*) tokens from _text.scss (run "npm run audit:text-styles" for the list)',
   },
 ] as const;

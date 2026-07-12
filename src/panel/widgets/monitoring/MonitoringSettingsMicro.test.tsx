@@ -202,12 +202,21 @@ describe('MonitoringSettings - Micro mode', () => {
     expect(optionByValue('network').disabled).toBe(true);
   });
 
-  it('renders count sensor selects (3 for count=3) with no Design grid', () => {
+  it('renders count sensor selects (3 for count=3) plus the shared Progress Bar/Fill/Backdrop design grid', () => {
     render(<MicroHarness initial={microWidget(3)} />);
     expect(screen.getByRole('combobox', { name: 'Sensor 1' })).toBeInTheDocument();
     expect(screen.getByRole('combobox', { name: 'Sensor 3' })).toBeInTheDocument();
     expect(screen.queryByRole('combobox', { name: 'Sensor 4' })).not.toBeInTheDocument();
-    expect(screen.queryByText(/Design/i)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Progress Bar' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Fill' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Backdrop' })).toBeInTheDocument();
+  });
+
+  it('selecting a design writes micro_design (multi-sensor keys untouched)', () => {
+    const updates: Record<string, PanelConfigValue>[] = [];
+    render(<MicroHarness initial={microWidget(3)} onUpdate={cfg => updates.push(cfg)} />);
+    act(() => { fireEvent.click(screen.getByRole('button', { name: 'Backdrop' })); });
+    expect(updates[updates.length - 1]).toEqual({ micro_design: 'backdrop' });
   });
 
   it('renders 4 sensor selects when count=4', () => {

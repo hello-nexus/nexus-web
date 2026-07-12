@@ -38,6 +38,17 @@ export interface SlotConfig {
 export const MICRO_MIN_COUNT = 3;
 export const MICRO_MAX_COUNT = 4;
 
+// Wide Micro counts split their rows into two side-by-side columns (3+3, 4+4).
+// Offered only on the wide 4x2 tile - a square 2x2 has no room for two columns.
+export const MICRO_WIDE_COUNTS = [6, 8] as const;
+
+// The Micro layout reuses a subset of the gauge design vocabulary for its row
+// style: Progress Bar (caption over a thin fill track), Fill (value fill
+// sweeping the whole row behind the caption), and Backdrop (dim filled history
+// graph behind the caption). Rendered by MicroBar, not the tile GaugeComponents.
+export const MICRO_DESIGN_KEYS: GaugeDesignKey[] = ['bar', 'fill', 'backdrop'];
+export const DEFAULT_MICRO_DESIGN: GaugeDesignKey = 'bar';
+
 export const DEFAULT_SLOTS: SlotConfig[] = [
   { device: 'quick', sensor: 'summary/cpu-usage',    design: 'sparkline' },
   { device: 'quick', sensor: 'summary/memory-usage', design: 'halfgauge' },
@@ -61,7 +72,7 @@ export function slotCountOptionsForSize(size: PanelWidgetSize): number[] {
   switch (size) {
     case '4x4': return [2, 4];
     case '2x4': return [2];
-    case '4x2': return [1, 2, MICRO_MIN_COUNT, MICRO_MAX_COUNT];
+    case '4x2': return [1, 2, MICRO_MIN_COUNT, MICRO_MAX_COUNT, ...MICRO_WIDE_COUNTS];
     case '2x2': return [1, MICRO_MIN_COUNT, MICRO_MAX_COUNT];
     default: return [1];
   }
@@ -75,7 +86,13 @@ export function microSupportsSize(size: PanelWidgetSize): boolean {
 // required - count=4 means Micro on 2x2/4x2 but multi on 4x4.
 export function isMicroLayout(size: PanelWidgetSize, count: number): boolean {
   if (!microSupportsSize(size)) return false;
-  return count >= MICRO_MIN_COUNT && count <= MICRO_MAX_COUNT;
+  return (count >= MICRO_MIN_COUNT && count <= MICRO_MAX_COUNT) || isTwoColumnMicro(count);
+}
+
+// Wide Micro counts (6/8) lay their rows out in two columns; 3/4 stay a single
+// column. Only reachable on 4x2, the sole size offering the wide counts.
+export function isTwoColumnMicro(count: number): boolean {
+  return (MICRO_WIDE_COUNTS as readonly number[]).includes(count);
 }
 
 export function resolvedSlotCountForSize(

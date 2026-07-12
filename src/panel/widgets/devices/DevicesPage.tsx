@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Usb, Monitor, Microchip, FileText, Cable, BookOpen, Link } from 'lucide-react';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useUsbDevices, type UsbDeviceDetail } from '../../../hooks/useUsbDevices';
@@ -19,6 +19,7 @@ import { DeviceModal } from '../../../components/common/DeviceModal/DeviceModal'
 import { DeviceWarningIcon } from '../../../components/common/DeviceWarningIcon/DeviceWarningIcon';
 import { ExperimentalBadge } from '../../../components/common/ExperimentalBadge/ExperimentalBadge';
 import { DisplaysView } from '../../../components/views/DisplaysView/DisplaysView';
+import { useSearchSignal } from '../../../search/signals';
 import styles from './DevicesPage.module.scss';
 
 interface DevicesViewProps {
@@ -49,6 +50,11 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
   };
   const [supportedModalOpen, setSupportedModalOpen] = useState(false);
   const [connectedModalOpen, setConnectedModalOpen] = useState(false);
+
+  // Search entries open these from anywhere: the palette navigates here
+  // first, then the pending signal lands on mount.
+  useSearchSignal('devices-connected', useCallback(() => setConnectedModalOpen(true), []));
+  useSearchSignal('devices-supported', useCallback(() => setSupportedModalOpen(true), []));
 
   const availableActive = tab === 'available';
   const { unified, merged, webhidAvailable, controlDevice } = useUnifiedDevices(serviceOnline && availableActive);
