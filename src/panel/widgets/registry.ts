@@ -26,6 +26,7 @@ import { clockApp } from './clock';
 import { monitoringApp } from './monitoring';
 import { mediaApp } from './media';
 import { weatherApp } from './weather';
+import { stocksApp } from './stocks';
 import { screentimeApp } from './screentime';
 import { lightingApp } from './lighting';
 import { smartLightsApp } from './smart-lights';
@@ -56,6 +57,7 @@ export const APP_REGISTRY: Record<string, AppManifest> = {
   monitoring: monitoringApp,
   media:      mediaApp,
   weather:    weatherApp,
+  stocks:     stocksApp,
   screentime: screentimeApp,
   lighting:   lightingApp,
   'smart-lights': smartLightsApp,

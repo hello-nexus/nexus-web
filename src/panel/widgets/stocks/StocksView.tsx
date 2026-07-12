@@ -1,0 +1,106 @@
+import type { StockQuote } from '../../../api/stocks';
+import { useTranslation } from '../../../lib/i18n';
+import { Sparkline } from '../../../components/common/Sparkline/Sparkline';
+import type { NumberFormat } from '../../../lib/units';
+import type { PanelWidgetSize } from '../../types';
+import {
+  formatStockChangePercent,
+  formatStockPrice,
+  isStockUp,
+  splitColumns,
+  stockGraphRows,
+  stockLabel,
+  stockListLayout,
+  type StockDisplayMode,
+} from './stocksUtils';
+import styles from './StocksWidget.module.scss';
+
+// Presentational-only render, shared by the live StocksWidget and the static
+// StocksPreview catalog face - identical layout math either way, only the
+// `quotes` source differs (live fetch vs a frozen fixture).
+
+interface StocksViewProps {
+  size: PanelWidgetSize;
+  mode: StockDisplayMode;
+  symbols: string[];
+  quotes: StockQuote[] | null;
+  loaded: boolean;
+  numberFormat: NumberFormat;
+}
+
+function stockAccentColor(up: boolean): string {
+  return up ? 'var(--panel-good)' : 'var(--panel-bad)';
+}
+
+function ListRow({ quote, numberFormat }: { quote: StockQuote; numberFormat: NumberFormat }) {
+  const hasChange = typeof quote.change === 'number' && Number.isFinite(quote.change);
+  const up = isStockUp(quote.change);
+  return (
+    <div className={styles.listRow}>
+      <span
+        className={`${styles.arrow} ${hasChange ? (up ? styles.arrowUp : styles.arrowDown) : styles.arrowPlaceholder}`}
+        aria-hidden="true"
+      />
+      <span className={styles.listLabel}>{stockLabel(quote.symbol)}</span>
+      <span className={styles.listPrice}>{formatStockPrice(quote.price, numberFormat)}</span>
+    </div>
+  );
+}
+
+function GraphRow({ quote, numberFormat }: { quote: StockQuote; numberFormat: NumberFormat }) {
+  const up = isStockUp(quote.change);
+  const color = stockAccentColor(up);
+  const series = quote.series ?? [];
+  return (
+    <div className={styles.graphRow}>
+      <span className={styles.graphLabel}>{stockLabel(quote.symbol)}</span>
+      <div className={styles.graphChart}>
+        {series.length > 1 && (
+          <Sparkline values={series} width="100%" viewWidth={100} height={28} showFill color={color} strokeColor={color} />
+        )}
+      </div>
+      <div className={styles.graphMeta}>
+        <span className={styles.graphPrice}>{formatStockPrice(quote.price, numberFormat)}</span>
+        <span className={`${styles.chip} ${up ? styles.chipUp : styles.chipDown}`}>
+          {formatStockChangePercent(quote.changePercent, numberFormat)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+export function StocksView({ size, mode, symbols, quotes, loaded, numberFormat }: StocksViewProps) {
+  const { t } = useTranslation();
+
+  if (quotes === null) {
+    return <div className={styles.empty}>{loaded ? t('panel.widget.stocks.noData') : t('common.loading')}</div>;
+  }
+
+  const bySymbol = new Map(quotes.map(q => [q.symbol, q]));
+  const rows: StockQuote[] = symbols.map(symbol => bySymbol.get(symbol) ?? { symbol });
+
+  if (mode === 'graph') {
+    const visible = rows.slice(0, stockGraphRows(size));
+    return (
+      <div className={styles.graphRoot}>
+        {visible.map(quote => <GraphRow key={quote.symbol} quote={quote} numberFormat={numberFormat} />)}
+      </div>
+    );
+  }
+
+  const layout = stockListLayout(size);
+  const visible = rows.slice(0, layout.columns * layout.rows);
+  const columns = splitColumns(visible, layout.columns);
+  const listClass = `${styles.listRoot} ${size === '4x4' ? styles.listLarge : ''}`;
+  return (
+    <div className={listClass}>
+      {columns.map((col, i) => (
+        <div className={styles.listColumn} key={i}>
+          {col.map(quote => <ListRow key={quote.symbol} quote={quote} numberFormat={numberFormat} />)}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export default StocksView;
