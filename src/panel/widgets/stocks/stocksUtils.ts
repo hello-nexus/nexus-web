@@ -71,8 +71,12 @@ export function formatStockPrice(value: number | null | undefined, numberFormat:
 /** changePercent arrives from the service already in percent units, not a fraction. */
 export function formatStockChangePercent(value: number | null | undefined, numberFormat: NumberFormat): string {
   if (value === null || value === undefined || !Number.isFinite(value)) return PRICE_PLACEHOLDER;
-  const sign = value >= 0 ? '+' : '';
-  return `${sign}${formatNumber(value, numberFormat, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
+  // Collapse negative zero to positive zero first: value >= 0 already reads
+  // -0 as non-negative, but Intl.NumberFormat still renders -0 with its own
+  // minus sign, which would otherwise double up with the '+' below.
+  const normalized = value === 0 ? 0 : value;
+  const sign = normalized >= 0 ? '+' : '';
+  return `${sign}${formatNumber(normalized, numberFormat, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
 }
 
 /** Sign of `change`; missing/non-finite/zero all read as up, matching the reference app. */

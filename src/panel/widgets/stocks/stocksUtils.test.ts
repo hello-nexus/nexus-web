@@ -110,6 +110,10 @@ describe('formatStockChangePercent', () => {
   it('renders a placeholder for missing values', () => {
     expect(formatStockChangePercent(undefined, 'dot')).toBe('--');
   });
+
+  it('does not double up the sign on negative zero', () => {
+    expect(formatStockChangePercent(-0, 'dot')).toBe('+0.00%');
+  });
 });
 
 describe('isStockUp', () => {
