@@ -51,6 +51,14 @@
 
 textarea.input { resize: vertical; min-height: 2.4rem; }
 
+.pathRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  .input { flex: 1; min-width: 0; }
+}
+
 .selectWide {
   width: 100%;
   background: var(--deck-settings-bg);
