@@ -267,7 +267,7 @@ describe('usePhysicalDeckTarget - debounced sync + rollback (RISK 2, SMELL 1)', 
 });
 
 describe('usePhysicalDeckTarget - back-key upload', () => {
-  it('renders and uploads the back-chevron bitmap once per deck to slotPath "back" state 0', async () => {
+  it('renders and uploads the back-key bitmap once per deck to slotPath "back" state 0', async () => {
     renderHook(() => usePhysicalDeckTarget(makeDeck(), []));
     await settleInitialSync();
 

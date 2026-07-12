@@ -40,6 +40,11 @@ vi.mock('../../../panel/widgets/deck/useDeckPresets', () => ({
   useDeckPresets: () => mockUseDeckPresets(),
 }));
 
+const mockSetStreamDeckNav = vi.fn();
+vi.mock('../../../api/streamdeck', () => ({
+  setStreamDeckNav: (serial: string, page: number, folderPath: readonly number[]) => mockSetStreamDeckNav(serial, page, folderPath),
+}));
+
 vi.mock('../../../panel/widgets/deck/DeckKeyInspector', () => ({
   DeckKeyInspector: ({ selectedSlot, part }: { selectedSlot?: number; part?: string }) => (
     <div data-testid={`deck-key-inspector-${part ?? 'all'}`}>{selectedSlot}</div>
@@ -96,6 +101,10 @@ function fakeTarget(): DeckTarget {
   };
 }
 
+function fakeTargetWithPages(pages: DeckTarget['config']['pages']): DeckTarget {
+  return { ...fakeTarget(), config: { pages } };
+}
+
 const mockRename = vi.fn();
 const mockSetBrightness = vi.fn();
 const mockSetOrientation = vi.fn();
@@ -133,6 +142,7 @@ beforeEach(() => {
   mockSetOrientation.mockResolvedValue(true);
   mockSetSleepAfterSeconds.mockResolvedValue(true);
   mockControlDevice.mockResolvedValue(undefined);
+  mockSetStreamDeckNav.mockResolvedValue(true);
   mockUsePhysicalDeckTarget.mockReturnValue({ target: fakeTarget(), loaded: true, error: false, retry: vi.fn() });
   mockUseDeckPresets.mockReturnValue(deckPresetsReturn());
 });
@@ -434,6 +444,106 @@ describe('StreamDeckDevicePage', () => {
 
       expect(mockDeckPresetHandleLoad).toHaveBeenCalledWith('p2');
       expect(retry).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('Second-click page navigation (mirrors folder double-click-enter)', () => {
+    function pageChip(n: number) {
+      return screen.getByRole('button', { name: `panel.settings.deck.page.tab:{"n":${n}}` });
+    }
+
+    it('a first click on an unselected page-nav key only selects it, without navigating', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+      mockUsePhysicalDeckTarget.mockReturnValue({
+        target: fakeTargetWithPages([
+          { slots: [{}, {}, { action: { type: 'page', op: 'next' } }] },
+          { slots: [] },
+        ]),
+        loaded: true, error: false, retry: vi.fn(),
+      });
+      const { container } = await renderPage();
+
+      fireEvent.click(container.querySelectorAll('[data-deck-slot-index]')[2]);
+
+      expect(screen.getByTestId('deck-key-inspector-editor').textContent).toBe('2');
+      expect(pageChip(1)).toHaveAttribute('aria-pressed', 'true');
+      expect(mockSetStreamDeckNav).not.toHaveBeenCalled();
+    });
+
+    it('a second click on the already-selected next key navigates to the next page and resets selection to 0', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+      mockUsePhysicalDeckTarget.mockReturnValue({
+        target: fakeTargetWithPages([
+          { slots: [{}, {}, { action: { type: 'page', op: 'next' } }] },
+          { slots: [] },
+        ]),
+        loaded: true, error: false, retry: vi.fn(),
+      });
+      const { container } = await renderPage();
+      const cell = container.querySelectorAll('[data-deck-slot-index]')[2];
+
+      fireEvent.click(cell);
+      fireEvent.click(cell);
+
+      expect(pageChip(2)).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByTestId('deck-key-inspector-editor').textContent).toBe('0');
+      expect(mockSetStreamDeckNav).toHaveBeenCalledWith('SN1', 1, []);
+    });
+
+    it('a second click on an already-selected goto key jumps straight to its target page', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+      mockUsePhysicalDeckTarget.mockReturnValue({
+        target: fakeTargetWithPages([
+          { slots: [{ action: { type: 'page', op: 'goto', target: 2 } }] },
+          { slots: [] },
+          { slots: [] },
+        ]),
+        loaded: true, error: false, retry: vi.fn(),
+      });
+      const { container } = await renderPage();
+      const cell = container.querySelectorAll('[data-deck-slot-index]')[0];
+
+      fireEvent.click(cell);
+      fireEvent.click(cell);
+
+      expect(pageChip(3)).toHaveAttribute('aria-pressed', 'true');
+      expect(mockSetStreamDeckNav).toHaveBeenCalledWith('SN1', 2, []);
+    });
+
+    it('clamps at the first page instead of going negative, matching the physical deck\'s clamp (prev at page 0)', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+      mockUsePhysicalDeckTarget.mockReturnValue({
+        target: fakeTargetWithPages([
+          { slots: [{ action: { type: 'page', op: 'prev' } }] },
+          { slots: [] },
+        ]),
+        loaded: true, error: false, retry: vi.fn(),
+      });
+      const { container } = await renderPage();
+      const cell = container.querySelectorAll('[data-deck-slot-index]')[0];
+
+      fireEvent.click(cell);
+      fireEvent.click(cell);
+
+      expect(pageChip(1)).toHaveAttribute('aria-pressed', 'true');
+      expect(mockSetStreamDeckNav).toHaveBeenCalledWith('SN1', 0, []);
+    });
+
+    it('clamps at the last page instead of overshooting, matching the physical deck\'s clamp (next on a single-page deck)', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+      mockUsePhysicalDeckTarget.mockReturnValue({
+        target: fakeTargetWithPages([{ slots: [{ action: { type: 'page', op: 'next' } }] }]),
+        loaded: true, error: false, retry: vi.fn(),
+      });
+      const { container } = await renderPage();
+      const cell = container.querySelectorAll('[data-deck-slot-index]')[0];
+
+      fireEvent.click(cell);
+      fireEvent.click(cell);
+
+      expect(pageChip(1)).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.queryAllByRole('button', { name: /panel.settings.deck.page.tab/ })).toHaveLength(1);
+      expect(mockSetStreamDeckNav).toHaveBeenCalledWith('SN1', 0, []);
     });
   });
 });

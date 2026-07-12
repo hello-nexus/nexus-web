@@ -68,7 +68,7 @@
   }
 
   // A hard keyboard-focus outline, not a soft box-shadow glow (which read as a
-  // halo over the selection ring). Mouse selection shows only the dashed
+  // halo over the selection ring). Mouse selection shows only the solid
   // .selected ring.
   &:focus-visible {
     outline: 2px solid var(--panel-accent, var(--accent));
@@ -87,20 +87,19 @@
 .selectable::after {
   content: '';
   position: absolute;
-  inset: -2px;
-  border: 4px dashed transparent;
+  inset: 0;
+  box-shadow: 0 0 0 4px transparent;
   border-radius: inherit;
   pointer-events: none;
-  transition: border-color var(--ease);
+  transition: box-shadow var(--ease);
 }
 
-// Selected: the same dashed ring as the base, just thicker + accent-colored, so
-// the current key reads as a bold dotted outline (no solid ring, no glow).
+// Selected: the same thick solid accent ring the lighting page's animation
+// browser uses for a selected shader thumbnail (EffectCard.module.scss
+// .cardOverlay.cardActive). An outset box-shadow rather than a border, so it
+// paints outside the cell's own box and never shrinks or shifts its content.
 .selected::after {
-  inset: -3px;
-  border-width: 4px;
-  border-style: dashed;
-  border-color: var(--panel-accent, var(--accent));
+  box-shadow: 0 0 0 4px var(--panel-accent, var(--accent));
 }
 
 .dropOver {

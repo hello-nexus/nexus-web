@@ -169,10 +169,22 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   const selectedBound = !!(viewSlots[selSlot]?.action || viewSlots[selSlot]?.folder);
 
   // First click selects a key; clicking an already-selected folder key enters
-  // it (no separate "edit folder" control). Going back is the grid's Back key.
+  // it, and clicking an already-selected page-nav key (next/prev/goto)
+  // navigates the editor to that page, clamped like the physical deck's own
+  // page-nav handling (StreamDeckConnectionWorker.HandlePageAction). Going
+  // back is the grid's Back key.
   const onCellClick = (i: number) => {
-    if (i === selSlot && viewSlots[i]?.folder) onEnterFolder([...folderPath, i]);
-    else setSelectedSlot(i);
+    const slot = viewSlots[i];
+    if (i === selSlot) {
+      if (slot?.folder) { onEnterFolder([...folderPath, i]); return; }
+      if (slot?.action?.type === 'page') {
+        const a = slot.action;
+        const rawNext = a.op === 'next' ? page + 1 : a.op === 'prev' ? page - 1 : (a.target ?? page);
+        onSelectPage(clamp(rawNext, 0, pageCount - 1));
+        return;
+      }
+    }
+    setSelectedSlot(i);
   };
 
   const onBack = () => { const next = folderPath.slice(0, -1); setFolderPath(next); setSelectedSlot(0); pushNav(page, next); };
