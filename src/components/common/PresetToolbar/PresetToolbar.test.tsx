@@ -171,6 +171,34 @@ describe('PresetToolbar (showHistory=false)', () => {
   });
 });
 
+describe('PresetToolbar (allowCreateRename=false)', () => {
+  it('hides the "New preset..." option', () => {
+    render(<PresetToolbar {...defaultProps({ allowCreateRename: false })} />);
+    expect(screen.queryByRole('option', { name: 'lighting.layoutPresets.newOption' })).toBeNull();
+  });
+
+  it('hides the rename option for the active preset', () => {
+    render(<PresetToolbar {...defaultProps({ presets: [PRESET_A], activeId: 'a', allowCreateRename: false })} />);
+    expect(screen.queryByRole('option', { name: 'lighting.layoutPresets.rename' })).toBeNull();
+  });
+
+  it('still offers delete for the active preset', () => {
+    render(<PresetToolbar {...defaultProps({ presets: [PRESET_A], activeId: 'a', allowCreateRename: false })} />);
+    expect(screen.getByRole('option', { name: 'lighting.layoutPresets.delete' })).toBeTruthy();
+  });
+
+  it('still lists existing presets for switching', () => {
+    render(<PresetToolbar {...defaultProps({ presets: [PRESET_A], activeId: null, allowCreateRename: false })} />);
+    expect(screen.getByRole('option', { name: 'My Preset' })).toBeTruthy();
+  });
+
+  it('defaults to allowing create/rename when the prop is omitted', () => {
+    render(<PresetToolbar {...defaultProps({ presets: [PRESET_A], activeId: 'a' })} />);
+    expect(screen.getByRole('option', { name: 'lighting.layoutPresets.rename' })).toBeTruthy();
+    expect(screen.getByRole('option', { name: 'lighting.layoutPresets.newOption' })).toBeTruthy();
+  });
+});
+
 describe('PresetToolbar (resetLabelKey/resetConfirmKey overrides)', () => {
   it('uses the override key for the reset button instead of translationPrefix.reset', () => {
     render(<PresetToolbar {...defaultProps({ resetLabelKey: 'devices.streamdeck.presets.reset' })} />);

@@ -43,6 +43,10 @@ interface PresetToolbarProps {
    *  `${translationPrefix}.reset` / `.resetConfirm`. */
   resetLabelKey?: string;
   resetConfirmKey?: string;
+  /** Hides the create/rename options - both open a PromptModal text input,
+   *  unusable on a keyboardless surface. Switching and deleting stay
+   *  available. Defaults to true (every existing caller keeps typing). */
+  allowCreateRename?: boolean;
 }
 
 export function PresetToolbar({
@@ -51,6 +55,7 @@ export function PresetToolbar({
   showHistory = true, canUndo = false, canRedo = false, onReset, onUndo, onRedo,
   translationPrefix = 'lighting.layoutPresets',
   resetLabelKey, resetConfirmKey,
+  allowCreateRename = true,
 }: PresetToolbarProps) {
   const { t } = useTranslation();
   const key = (suffix: string) => `${translationPrefix}.${suffix}`;
@@ -70,10 +75,10 @@ export function PresetToolbar({
     ...presets.map(p => ({ value: p.id, label: p.name })),
     ...(activeId ? [
       { value: '__sep__', label: '', divider: true },
-      { value: '__rename__', label: t(key('rename')), className: styles.actionOption, icon: <Pencil size={14} /> },
+      ...(allowCreateRename ? [{ value: '__rename__', label: t(key('rename')), className: styles.actionOption, icon: <Pencil size={14} /> }] : []),
       { value: '__delete__', label: t(key('delete')), className: styles.actionOption, icon: <Trash2 size={14} /> },
     ] : []),
-    { value: '__create__', label: t(key('newOption')), className: styles.createOption, disabled: atCap, icon: <Plus size={14} /> },
+    ...(allowCreateRename ? [{ value: '__create__', label: t(key('newOption')), className: styles.createOption, disabled: atCap, icon: <Plus size={14} /> }] : []),
   ];
 
   const handleSelectChange = (value: string) => {

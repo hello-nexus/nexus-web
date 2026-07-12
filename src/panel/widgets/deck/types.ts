@@ -164,3 +164,12 @@ export interface DeckConfig {
   // assigned to it (see slotForPickerKind). Edited on the Settings tab.
   defaultTitleStyle?: DeckTitleStyle;
 }
+
+// A widget-local snapshot of the widget's own DeckConfig, stored beside `deck`
+// on the same widget.config (see deckWidgetPresetsPatch in deckLayout.ts) -
+// no service routes, no cross-device sharing.
+export interface DeckWidgetPreset {
+  id: string;
+  name: string;
+  deck: DeckConfig;
+}
