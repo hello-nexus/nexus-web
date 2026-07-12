@@ -11,7 +11,8 @@ import {
   networkMaxValue,
   NETWORK_SENSOR_TOTAL,
 } from './networkSensors';
-import { isExtrasBackedDevice, type DeviceKey } from './perfSlots';
+import { DEFAULT_MICRO_DESIGN, isExtrasBackedDevice, isTwoColumnMicro, type DeviceKey } from './perfSlots';
+import type { GaugeDesignKey } from './gauges/types';
 import {
   displayLabel,
   percentForSensor,
@@ -98,30 +99,43 @@ export function MicroMonitoringWidget({ widget, count }: MicroMonitoringWidgetPr
   const microScale = (widget.config?.micro_scale as ScaleMode | undefined) ?? DEFAULT_SCALE_MODE;
   const microMin = widget.config?.micro_min as number | undefined;
   const microMax = widget.config?.micro_max as number | undefined;
+  // Row style shared by every bar; a 6/8-slot Micro splits the rows into two
+  // columns (3+3, 4+4) under the one shared caption.
+  const microDesign = (widget.config?.micro_design as GaugeDesignKey | undefined) ?? DEFAULT_MICRO_DESIGN;
+  const twoColumn = isTwoColumnMicro(count);
+
+  const rowEls = sensorNames.map((rawName, i) => (
+    <MicroRow
+      key={`${i}-${device}-${rawName}`}
+      sensors={sensors}
+      fpsSensors={fpsSensors}
+      networkSensors={networkSensors}
+      extras={extras}
+      device={device}
+      sensorName={rawName}
+      labelOverride={widget.config?.[`micro_sensor${i}_label`] as string | undefined}
+      labelMode={widget.config?.[`micro_sensor${i}_labelMode`] as string | undefined}
+      design={microDesign}
+      scale={microScale}
+      fixedMin={microMin}
+      fixedMax={microMax}
+      tempPrefs={tempPrefs}
+      monitoringTempUnit={monitoringTempUnit}
+      numberFormat={numberFormat}
+    />
+  ));
+  const half = Math.ceil(count / 2);
 
   return (
     <div className={styles.micro}>
-      <div className={styles.rows}>
-        {sensorNames.map((rawName, i) => (
-          <MicroRow
-            key={`${i}-${device}-${rawName}`}
-            sensors={sensors}
-            fpsSensors={fpsSensors}
-            networkSensors={networkSensors}
-            extras={extras}
-            device={device}
-            sensorName={rawName}
-            labelOverride={widget.config?.[`micro_sensor${i}_label`] as string | undefined}
-            labelMode={widget.config?.[`micro_sensor${i}_labelMode`] as string | undefined}
-            scale={microScale}
-            fixedMin={microMin}
-            fixedMax={microMax}
-            tempPrefs={tempPrefs}
-            monitoringTempUnit={monitoringTempUnit}
-            numberFormat={numberFormat}
-          />
-        ))}
-      </div>
+      {twoColumn ? (
+        <div className={styles.columns}>
+          <div className={styles.rows}>{rowEls.slice(0, half)}</div>
+          <div className={styles.rows}>{rowEls.slice(half)}</div>
+        </div>
+      ) : (
+        <div className={styles.rows}>{rowEls}</div>
+      )}
       {!categoryHidden && (
         <HoverTooltip body={bottomLabel} side="top">
           <div className={styles.bottomLabel}>{bottomLabel}</div>
@@ -140,6 +154,7 @@ interface MicroRowProps {
   sensorName: string;
   labelOverride?: string;
   labelMode?: string;
+  design: GaugeDesignKey;
   scale: ScaleMode;
   fixedMin?: number;
   fixedMax?: number;
@@ -148,7 +163,7 @@ interface MicroRowProps {
   numberFormat: NumberFormat;
 }
 
-function MicroRow({ sensors, fpsSensors, networkSensors, extras, device, sensorName, labelOverride, labelMode, scale, fixedMin, fixedMax, tempPrefs, monitoringTempUnit, numberFormat }: MicroRowProps) {
+function MicroRow({ sensors, fpsSensors, networkSensors, extras, device, sensorName, labelOverride, labelMode, design, scale, fixedMin, fixedMax, tempPrefs, monitoringTempUnit, numberFormat }: MicroRowProps) {
   const effectiveSensorName = device === 'network' && !sensorName ? NETWORK_SENSOR_TOTAL : sensorName;
   const sensor = resolveSensor(sensors, fpsSensors, networkSensors, device, effectiveSensorName, tempPrefs, extras);
   const rawValue = sensor?.value ?? 0;
@@ -168,5 +183,14 @@ function MicroRow({ sensors, fpsSensors, networkSensors, extras, device, sensorN
     ? fixedFillPercent(rawValue, domainMin, domainMax)
     : percentForSensor(device, sensor, maxValue);
 
-  return <MicroBar label={label} formatted={formatted} fillPercent={fillPercent} />;
+  return (
+    <MicroBar
+      label={label}
+      formatted={formatted}
+      fillPercent={fillPercent}
+      design={design}
+      history={history}
+      historyDomain={[domainMin, domainMax]}
+    />
+  );
 }

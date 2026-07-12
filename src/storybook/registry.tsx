@@ -38,6 +38,7 @@ import { UsageBar } from '../components/common/UsageBar/UsageBar';
 import { CapacityBar } from '../components/common/CapacityBar/CapacityBar';
 import { StackedChart } from '../components/common/StackedChart/StackedChart';
 import { SupportedDevicesModal } from '../components/common/SupportedDevicesModal/SupportedDevicesModal';
+import { SupportedDevicesList, type SupportedDeviceRow } from '../components/common/SupportedDevicesList/SupportedDevicesList';
 import { Overlay } from '../components/common/Overlay/Overlay';
 import { ColorPickerWithPresets } from '../components/common/ColorPickerWithPresets/ColorPickerWithPresets';
 import { SearchInput } from '../components/common/SearchInput/SearchInput';
@@ -608,6 +609,22 @@ function PreviewSupportedDevicesModal() {
         source="all"
       />
     </>
+  );
+}
+
+const SUPPORTED_DEVICES_LIST_STUB: SupportedDeviceRow[] = [
+  { vendor: 'Razer', model: 'BlackWidow V4 Pro', category: 'keyboard', vendorId: '0x1532', productId: '0x0290', capabilities: ['RGB', 'Macro', 'Media Keys'], source: 'nexus' },
+  { vendor: 'Corsair', model: 'iCUE LINK Hub', category: 'lighting', vendorId: '0x1B1C', productId: '0x0C3F', capabilities: ['RGB', 'Fan Control'], source: 'openrgb' },
+  { vendor: 'Logitech', model: 'G Pro X Superlight 2', category: 'mouse', vendorId: '0x046D', productId: '0xC094', capabilities: ['RGB', 'Battery'], source: 'nexus' },
+  { vendor: 'NZXT', model: 'Kraken Elite RGB', category: 'cooling', vendorId: '0x1E71', productId: '0x2007', capabilities: ['RGB', 'LCD', 'Pump Speed'], source: 'openrgb' },
+];
+
+function PreviewSupportedDevicesList() {
+  return (
+    <SupportedDevicesList
+      devices={SUPPORTED_DEVICES_LIST_STUB}
+      detectedVidPids={new Set(['0x1532:0x0290'])}
+    />
   );
 }
 
@@ -1846,8 +1863,14 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'SupportedDevicesModal', category: 'modals',
     filePath: 'src/components/common/SupportedDevicesModal/SupportedDevicesModal.tsx',
-    description: 'Fullscreen device catalogue browser with search + pagination + highlight of currently-detected VID/PIDs. Used by the Devices view to surface the full supported-hardware list (peripherals + lighting merged).', Preview: PreviewSupportedDevicesModal,
+    description: 'Fullscreen device catalogue browser with search + pagination + highlight of currently-detected VID/PIDs. Used by the Devices view to surface the full supported-hardware list (peripherals + lighting merged). Composes SupportedDevicesList for the rows.', Preview: PreviewSupportedDevicesModal,
     notes: 'source="peripherals" | "lighting" selects which catalogue to load. Pass detectedVidPids to mark already-connected devices.',
+  },
+  {
+    name: 'SupportedDevicesList', category: 'cards',
+    filePath: 'src/components/common/SupportedDevicesList/SupportedDevicesList.tsx',
+    description: 'Presentational device-catalog table: source badge, brand, model, type, VID:PID, capabilities. Odd rows carry a subtle greyscale wash instead of row-separator lines. No fetch, no provider hooks - the caller supplies the rows, so this also mounts cleanly outside the app tree (SupportedDevicesModal in-app; the marketing site elsewhere) and renders via react-dom/server for SEO.', Preview: PreviewSupportedDevicesList,
+    notes: 'Zebra and hover backgrounds ride --devices-row-alt / --devices-row-hover custom properties with dark-friendly defaults, so a host page can override either without touching the component. detectedVidPids is optional - omit it entirely when the host has no notion of "connected".',
   },
   {
     name: 'AboutModal', category: 'modals',

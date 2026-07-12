@@ -44,6 +44,12 @@
   // channel reads equally in both themes. The accent fill carries the contrast.
   --gauge-track: rgba(255, 255, 255, 0.05);
 
+  // Zebra wash for SupportedDevicesList: dedicated (not --bg-card-hover) so a
+  // host page rendering that component outside the app (the marketing site)
+  // can override either step without pulling in the rest of this token file.
+  --devices-row-alt: rgba(255, 255, 255, 0.035);
+  --devices-row-hover: rgba(255, 255, 255, 0.07);
+
   // The one "activatable surface" colour: every interactive element + box
   // container base bg (widgets, top search bar, buttons, profile avatar,
   // deselected pills, toggle-off track, dropdown menus, pair box, and ALL
@@ -217,6 +223,8 @@
   --surface: rgba(255, 255, 255, 0.6);
   --surface-hover: rgba(255, 255, 255, 0.8);  // hover: a variation of --surface
   --gauge-track: rgba(0, 0, 0, 0.06);
+  --devices-row-alt: rgba(0, 0, 0, 0.035);
+  --devices-row-hover: rgba(0, 0, 0, 0.07);
 
   // Dark-on-light grey so the control border shows on the near-white fill.
   --control-border: rgba(26, 26, 46, 0.12);

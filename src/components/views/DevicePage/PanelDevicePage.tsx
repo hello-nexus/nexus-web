@@ -21,7 +21,14 @@ import { simulatedPanelEditorCapacity } from '../../../panel/embed/simulatedPane
 import { getPanelGridSizingSettings } from '../../../lib/panelSimulation';
 import { isSingleWidgetSurface } from '../../../panel/types';
 import { fetchService, postService } from '../../../api/service';
-import { fetchDisplays, fetchDisplayTopology, rotateDisplay, setDisplayBrightness } from '../../../api/displays';
+import {
+  fetchDisplays,
+  fetchDisplayTopology,
+  launchTouchSetupWizard,
+  repairTouchMapping,
+  rotateDisplay,
+  setDisplayBrightness,
+} from '../../../api/displays';
 import { fetchPreferences, savePreferences } from '../../../api/profiles';
 import {
   allocatePanelDevice,
@@ -34,6 +41,8 @@ import { useTranslation } from '../../../lib/i18n';
 import { createUuid } from '../../../lib/uuid';
 import { IconLabelButton } from '../../common/IconLabelButton/IconLabelButton';
 import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
+import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
+import { useToast } from '../../common/Toast/Toast';
 import { PanelEmbedFrame } from './PanelEmbedFrame';
 import { QSeriesCoolerSettings } from './QSeriesCoolerSettings';
 import { useFirmwareStatus } from '../../../hooks/useFirmwareStatus';
@@ -88,6 +97,15 @@ function normalizeOrientation(value: string | undefined | null): Y70Orientation 
   return (Y70_ORIENTATIONS as readonly string[]).includes(value)
     ? (value as Y70Orientation)
     : 'PortraitFlipped';
+}
+
+const TOUCH_REPAIR_ERROR_STATUSES = ['noPanel', 'noDigitizer', 'noHelper', 'failed'] as const;
+type TouchRepairErrorStatus = (typeof TOUCH_REPAIR_ERROR_STATUSES)[number];
+
+function toTouchRepairErrorStatus(status: string): TouchRepairErrorStatus {
+  return (TOUCH_REPAIR_ERROR_STATUSES as readonly string[]).includes(status)
+    ? (status as TouchRepairErrorStatus)
+    : 'failed';
 }
 
 type Tab = 'widgets' | 'theme' | 'settings';
@@ -992,6 +1010,40 @@ function SettingsPanel({
   variant,
 }: SettingsPanelProps) {
   const { t } = useTranslation();
+  const { push } = useToast();
+  const [touchRepairBusy, setTouchRepairBusy] = useState(false);
+  const [touchWizardConfirmOpen, setTouchWizardConfirmOpen] = useState(false);
+
+  const handleRepairTouchMapping = useCallback(async () => {
+    setTouchRepairBusy(true);
+    try {
+      const result = await repairTouchMapping();
+      const status = result?.status ?? 'failed';
+      if (status === 'repaired') {
+        push({ title: t('devices.y70.touchRepair.repaired') });
+        return;
+      }
+      if (status === 'alreadyCorrect') {
+        push({ title: t('devices.y70.touchRepair.alreadyCorrect') });
+        return;
+      }
+      const errorStatus = toTouchRepairErrorStatus(status);
+      push({ title: t(`devices.y70.touchRepair.error.${errorStatus}`) });
+      if (errorStatus === 'failed') setTouchWizardConfirmOpen(true);
+    } finally {
+      setTouchRepairBusy(false);
+    }
+  }, [push, t]);
+
+  const handleLaunchTouchWizard = useCallback(async () => {
+    setTouchWizardConfirmOpen(false);
+    let launched = false;
+    try {
+      launched = await launchTouchSetupWizard();
+    } finally {
+      push({ title: t(launched ? 'devices.y70.touchRepair.wizardLaunched' : 'devices.y70.touchRepair.wizardLaunchFailed') });
+    }
+  }, [push, t]);
 
   return (
     <div className={styles.settingsContent}>
@@ -1049,6 +1101,22 @@ function SettingsPanel({
             />
           )}
 
+          <SettingRow
+            label={t('devices.y70.touchRepair')}
+            description={t('devices.y70.touchRepairHint')}
+          >
+            <Button
+              type="button"
+              tone="neutral"
+              size="sm"
+              loading={touchRepairBusy}
+              disabled={usbDisconnected}
+              onClick={() => void handleRepairTouchMapping()}
+            >
+              {t('devices.y70.touchRepairButton')}
+            </Button>
+          </SettingRow>
+
           {!!variant && (
             <SettingRow label={t('devices.y70.variant')}>
               <span className={styles.variantValue}>{variant}</span>
@@ -1074,6 +1142,16 @@ function SettingsPanel({
           />
         </SettingsSection>
       )}
+
+      <ConfirmModal
+        open={touchWizardConfirmOpen}
+        title={t('devices.y70.touchRepair.wizardConfirmTitle')}
+        message={t('devices.y70.touchRepair.wizardConfirmMessage')}
+        confirmLabel={t('devices.y70.touchRepair.wizardConfirmButton')}
+        destructive={false}
+        onConfirm={() => void handleLaunchTouchWizard()}
+        onCancel={() => setTouchWizardConfirmOpen(false)}
+      />
     </div>
   );
 }

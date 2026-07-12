@@ -1,9 +1,8 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from '../../../lib/i18n';
-import { useSupportedDevices, type SupportedDevice, type SupportedSource } from '../../../hooks/useSupportedDevices';
+import { useSupportedDevices, type SupportedSource } from '../../../hooks/useSupportedDevices';
 import { DeviceModal } from '../DeviceModal/DeviceModal';
-import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
-import { NexusMark, OpenRgbGlyph } from '../../icons/NexusBrand';
+import { SupportedDevicesList } from '../SupportedDevicesList/SupportedDevicesList';
 import { SearchInput } from '../SearchInput/SearchInput';
 import styles from './SupportedDevicesModal.module.scss';
 
@@ -81,27 +80,7 @@ export function SupportedDevicesModal({
           {current.length === 0 && !loading ? (
             <div className={styles.empty}>{t('supported.empty')}</div>
           ) : (
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th className={styles.colStatus}></th>
-                  <th>{t('supported.col.brand')}</th>
-                  <th>{t('supported.col.model')}</th>
-                  <th>{t('supported.col.type')}</th>
-                  <th className={styles.colMono}>{t('supported.col.vidPid')}</th>
-                  <th>{t('supported.col.capabilities')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {current.map((d, i) => (
-                  <DeviceRow
-                    key={`${safePage}-${i}-${d.vendor}-${d.model}`}
-                    device={d}
-                    detected={detectedVidPids?.has(`${d.vendorId.toLowerCase()}:${d.productId.toLowerCase()}`) ?? false}
-                  />
-                ))}
-              </tbody>
-            </table>
+            <SupportedDevicesList devices={current} detectedVidPids={detectedVidPids} />
           )}
         </div>
 
@@ -118,38 +97,5 @@ export function SupportedDevicesModal({
         )}
       </div>
     </DeviceModal>
-  );
-}
-
-function DeviceRow({ device, detected }: { device: SupportedDevice; detected: boolean }) {
-  const { t } = useTranslation();
-  const sourceName = device.source === 'nexus' ? 'Nexus' : device.source === 'openrgb' ? 'OpenRGB' : null;
-  const sourceLabel = sourceName !== null ? t('supported.source.drivenBy', { name: sourceName }) : null;
-  return (
-    <tr className={detected ? styles.detected : ''}>
-      <td className={styles.colStatus}>
-        {detected && (
-          <HoverTooltip body={t('supported.connected')} side="right">
-            <span className={styles.dot} aria-label={t('supported.connected')} />
-          </HoverTooltip>
-        )}
-      </td>
-      <td className={styles.brand}>
-        {sourceLabel !== null && (
-          <HoverTooltip body={sourceLabel} side="right">
-            <span className={styles.sourceIcon} aria-label={sourceLabel}>
-              <span aria-hidden={true}>
-                {device.source === 'nexus' ? <NexusMark size={14} /> : <OpenRgbGlyph size={14} />}
-              </span>
-            </span>
-          </HoverTooltip>
-        )}
-        {device.vendor}
-      </td>
-      <td className={styles.model}>{device.model}</td>
-      <td className={styles.type}>{device.category}</td>
-      <td className={styles.mono}>{device.vendorId}:{device.productId.replace(/^0x/, '')}</td>
-      <td className={styles.caps}>{device.capabilities.join(' · ')}</td>
-    </tr>
   );
 }
