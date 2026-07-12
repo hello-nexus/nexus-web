@@ -233,6 +233,17 @@ function BackdropIcon(p: P) {
   );
 }
 
+function FillIcon(p: P) {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...p}>
+      <rect x="3" y="7" width="18" height="10" rx="2.5" fill="currentColor" opacity="0.18" />
+      <clipPath id="fill-icon-clip"><rect x="3" y="7" width="18" height="10" rx="2.5" /></clipPath>
+      <rect x="3" y="7" width="11" height="10" fill="currentColor" opacity="0.4" clipPath="url(#fill-icon-clip)" />
+      <text x="12" y="15" textAnchor="middle" fontFamily="sans-serif" fontWeight="800" fontSize="8" fill="currentColor">42</text>
+    </svg>
+  );
+}
+
 export const DESIGN_ICONS: Record<string, React.FC<P>> = {
   sparkline: AreaIcon,
   text: ValueIcon,
@@ -255,4 +266,5 @@ export const DESIGN_ICONS: Record<string, React.FC<P>> = {
   dial: DialIcon,
   tickring: TickRingIcon,
   backdrop: BackdropIcon,
+  fill: FillIcon,
 };

@@ -1,5 +1,6 @@
 import type { SVGProps } from 'react';
 import type { PanelWidgetSize } from '../../types';
+import { isMicroLayout } from './perfSlots';
 
 type IconProps = SVGProps<SVGSVGElement>;
 
@@ -64,11 +65,71 @@ export function FourSlotsIcon(props: IconProps) {
   );
 }
 
+// Single-column Micro counts (3/4): the 6/8 icons without the middle column
+// split, mirroring the single-column bar layout the widget renders.
+export function ThreeRowsIcon(props: IconProps) {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+      <rect x="3.5" y="5" width="17" height="2.8" rx="1.4" fill="currentColor" />
+      <rect x="3.5" y="10.6" width="17" height="2.8" rx="1.4" fill="currentColor" />
+      <rect x="3.5" y="16.2" width="17" height="2.8" rx="1.4" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function FourRowsIcon(props: IconProps) {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+      <rect x="3.5" y="3.8" width="17" height="2.4" rx="1.2" fill="currentColor" />
+      <rect x="3.5" y="8.5" width="17" height="2.4" rx="1.2" fill="currentColor" />
+      <rect x="3.5" y="13.2" width="17" height="2.4" rx="1.2" fill="currentColor" />
+      <rect x="3.5" y="17.9" width="17" height="2.4" rx="1.2" fill="currentColor" />
+    </svg>
+  );
+}
+
+// Wide Micro counts (6/8 on 4x2): two columns of horizontal rows (3+3, 4+4),
+// mirroring the two-column bar layout the widget renders.
+export function SixSlotsIcon(props: IconProps) {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+      <rect x="3.5" y="5" width="7.5" height="2.8" rx="1.4" fill="currentColor" />
+      <rect x="3.5" y="10.6" width="7.5" height="2.8" rx="1.4" fill="currentColor" />
+      <rect x="3.5" y="16.2" width="7.5" height="2.8" rx="1.4" fill="currentColor" />
+      <rect x="13" y="5" width="7.5" height="2.8" rx="1.4" fill="currentColor" />
+      <rect x="13" y="10.6" width="7.5" height="2.8" rx="1.4" fill="currentColor" />
+      <rect x="13" y="16.2" width="7.5" height="2.8" rx="1.4" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function EightSlotsIcon(props: IconProps) {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+      <rect x="3.5" y="3.8" width="7.5" height="2.4" rx="1.2" fill="currentColor" />
+      <rect x="3.5" y="8.5" width="7.5" height="2.4" rx="1.2" fill="currentColor" />
+      <rect x="3.5" y="13.2" width="7.5" height="2.4" rx="1.2" fill="currentColor" />
+      <rect x="3.5" y="17.9" width="7.5" height="2.4" rx="1.2" fill="currentColor" />
+      <rect x="13" y="3.8" width="7.5" height="2.4" rx="1.2" fill="currentColor" />
+      <rect x="13" y="8.5" width="7.5" height="2.4" rx="1.2" fill="currentColor" />
+      <rect x="13" y="13.2" width="7.5" height="2.4" rx="1.2" fill="currentColor" />
+      <rect x="13" y="17.9" width="7.5" height="2.4" rx="1.2" fill="currentColor" />
+    </svg>
+  );
+}
+
 export function SlotCountIcon({
   count,
   size,
   ...props
 }: IconProps & { count: number; size: PanelWidgetSize }) {
+  if (count >= 8) return <EightSlotsIcon {...props} />;
+  if (count === 6) return <SixSlotsIcon {...props} />;
+  // Micro 3/4 render as a single column of rows (horizontal lines); count=4 on
+  // 4x4 is the multi-sensor 2x2 grid instead, so gate on the Micro layout.
+  if (isMicroLayout(size, count)) {
+    return count === 3 ? <ThreeRowsIcon {...props} /> : <FourRowsIcon {...props} />;
+  }
   if (count >= 4) return <FourSlotsIcon {...props} />;
   if (count === 2) {
     return size === '4x4' || size === '2x4' ? <TwoRectangleSlotsIcon {...props} /> : <TwoSquareSlotsIcon {...props} />;

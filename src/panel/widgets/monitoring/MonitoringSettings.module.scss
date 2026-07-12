@@ -38,6 +38,19 @@
   --icon-label-button-height: 46px;
 }
 
+// The Micro design picker has only three options; keep them at their standard
+// button size, left-aligned and wrapping, instead of stretching full-width.
+.microDesignRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.microDesignBtn {
+  --icon-label-icon-size: 24px;
+  --icon-label-button-height: 46px;
+}
+
 .scaleRow {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

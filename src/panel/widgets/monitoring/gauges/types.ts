@@ -33,4 +33,5 @@ export type GaugeDesignKey =
   | 'heatmap'
   | 'dial'
   | 'tickring'
-  | 'backdrop';
+  | 'backdrop'
+  | 'fill';

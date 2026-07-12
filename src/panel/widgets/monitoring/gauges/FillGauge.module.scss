@@ -1,0 +1,50 @@
+.fill {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  padding: 6px 6px 8px;
+  overflow: hidden;
+  border-radius: var(--panel-element-radius);
+  background: var(--gauge-track);
+}
+
+.bar {
+  position: absolute;
+  inset: 0 auto 0 0;
+  height: 100%;
+  background: var(--panel-accent-shadow);
+}
+
+.info {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  pointer-events: none;
+}
+
+.value {
+  font-size: 1.6em;
+  font-weight: var(--weight-display);
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.label {
+  font-size: var(--type-tiny);
+  font-weight: var(--weight-strong);
+  color: var(--text-dim);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
