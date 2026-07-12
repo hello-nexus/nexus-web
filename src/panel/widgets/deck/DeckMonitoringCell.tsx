@@ -30,6 +30,15 @@ const PREVIEW_VALUE = 58;
 const PREVIEW_HISTORY = [22, 28, 24, 35, 40, 38, 45, 42, 50, 46, 55, 48, 60, 52, 58];
 const PREVIEW_SENSOR_TYPE = 'Load';
 
+// The monitoring page's BackdropGauge dims its fill via the
+// --panel-accent-shadow token (src/styles/variables.scss
+// --accent-glow-shadow), the accent hue at the app's dark-theme alpha. The
+// tile has no light/dark concept of its own - an arbitrary per-key accent
+// over a near-black default - so it mirrors that dark-theme alpha as a fixed
+// constant applied to the accent hex directly, instead of resolving a themed
+// CSS variable.
+const BACKDROP_FILL_OPACITY = 0.45;
+
 // Discrete fill bar, same segment count and round-to-nearest idiom as the
 // monitoring page's SegmentsGauge - not that component directly, since it
 // also renders its own value/label (the tile already places those at fixed
@@ -99,8 +108,22 @@ export function DeckMonitoringCell({ action, label, title }: DeckMonitoringCellP
 
   return (
     <div className={styles.tile}>
+      {action.style === 'backdrop' && (
+        <div className={styles.backdropChart}>
+          <Sparkline
+            values={history}
+            domain={monitoringLineDomain(domain)}
+            color={accent}
+            strokeWidth={0}
+            fillOpacity={BACKDROP_FILL_OPACITY}
+            showFill
+            width={100}
+            height={100}
+          />
+        </div>
+      )}
       {showName && <span className={styles.name} style={nameStyle}>{name}</span>}
-      {action.style === 'number' ? (
+      {action.style === 'number' || action.style === 'backdrop' ? (
         <div className={styles.numberWrap}>
           <span className={styles.numberValue} style={valueStyle}>{parts.value}</span>
           {parts.unit && <span className={styles.numberUnit} style={valueStyle}>{parts.unit}</span>}
@@ -110,17 +133,6 @@ export function DeckMonitoringCell({ action, label, title }: DeckMonitoringCellP
           <div className={styles.graph}>
             {action.style === 'segments' ? (
               <SegmentsBar fraction={monitoringFillFraction(rawValue, domain)} color={accent} />
-            ) : action.style === 'backdrop' ? (
-              <Sparkline
-                values={history}
-                domain={monitoringLineDomain(domain)}
-                color={accent}
-                strokeWidth={0}
-                fillOpacity={1}
-                showFill
-                width={100}
-                height={40}
-              />
             ) : (
               <Sparkline
                 values={history}
