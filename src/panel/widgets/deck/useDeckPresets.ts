@@ -7,8 +7,9 @@ import {
 
 // Trailing-edge debounce so a burst of edits (typing a label, dragging a
 // key) collapses into one saveCurrent PUT, mirroring the config sync debounce
-// in usePhysicalDeckTarget.ts.
-const AUTO_SAVE_DEBOUNCE_MS = 1000;
+// in usePhysicalDeckTarget.ts. Exported so StreamDeckDevicePage's undo-history
+// burst coalescing uses the same window.
+export const AUTO_SAVE_DEBOUNCE_MS = 1000;
 
 export interface UseDeckPresetsResult {
   presets: DeckPreset[];

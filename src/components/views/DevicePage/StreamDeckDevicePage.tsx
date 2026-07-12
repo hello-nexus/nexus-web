@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, type ReactNode } from 'react';
+import { useState, useCallback, useEffect, useRef, type ReactNode } from 'react';
 import { AlertTriangle, LayoutGrid, Monitor, Settings as SettingsIcon, Unplug, Trash2 } from 'lucide-react';
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, pointerWithin, closestCenter, type DragEndEvent, type DragStartEvent, type CollisionDetection } from '@dnd-kit/core';
 import { useTranslation } from '../../../lib/i18n';
@@ -11,7 +11,7 @@ import { useUndoRedo } from '../../../hooks/useUndoRedo';
 import type { UnifiedDevice } from '../../../hooks/useUnifiedDevices';
 import { useConflictApps } from '../../../hooks/useConflictApps';
 import { usePhysicalDeckTarget } from '../../../panel/widgets/deck/usePhysicalDeckTarget';
-import { useDeckPresets } from '../../../panel/widgets/deck/useDeckPresets';
+import { useDeckPresets, AUTO_SAVE_DEBOUNCE_MS } from '../../../panel/widgets/deck/useDeckPresets';
 import { DeckGrid } from '../../../panel/widgets/deck/DeckGrid';
 import { DeckKeyInspector, DeckDefaultTitleSettings, DeckActionDragPreview, slotForPickerKind, type DeckPickerKind } from '../../../panel/widgets/deck/DeckKeyInspector';
 import { DeckPageStrip } from '../../../panel/widgets/deck/DeckPageStrip';
@@ -108,8 +108,29 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   // each widget. pushDeckHistoryRef breaks the circular dependency: onCommit
   // is needed before useUndoRedo (below) exists to supply the real push.
   const pushDeckHistoryRef = useRef<(prev: DeckConfig) => void>(() => {});
+
+  // A rapid run of commits (typing a label keystroke by keystroke, dragging)
+  // collapses into one history entry: the first commit of a burst pushes its
+  // pre-edit config immediately, and burstTimerRef staying set through
+  // AUTO_SAVE_DEBOUNCE_MS of quiet marks every later commit in the run as a
+  // continuation, so only the value from before the run ever lands on the
+  // undo stack. Once the timer lapses, the next commit starts a new burst.
+  const burstTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Undo/redo/reset/preset-load close an in-flight burst before acting, so an
+  // edit made right after one of those doesn't get folded into a burst whose
+  // anchor no longer matches the (now undone/redone/reset/switched) config.
+  const closeCommitBurst = useCallback(() => {
+    if (burstTimerRef.current) {
+      clearTimeout(burstTimerRef.current);
+      burstTimerRef.current = null;
+    }
+  }, []);
+  useEffect(() => closeCommitBurst, [closeCommitBurst]);
+
   const onDeckConfigCommit = useCallback((prev: DeckConfig) => {
-    pushDeckHistoryRef.current(prev);
+    if (!burstTimerRef.current) pushDeckHistoryRef.current(prev);
+    else clearTimeout(burstTimerRef.current);
+    burstTimerRef.current = setTimeout(() => { burstTimerRef.current = null; }, AUTO_SAVE_DEBOUNCE_MS);
     scheduleAutoSave();
   }, [scheduleAutoSave]);
 
@@ -120,9 +141,10 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   // A preset's config + key images are applied server-side; retryConfig()
   // re-fetches usePhysicalDeckTarget's config so the editor reflects it.
   const onDeckPresetLoad = useCallback(async (id: string) => {
+    closeCommitBurst();
     await deckPresets.handleLoad(id);
     retryConfig();
-  }, [deckPresets, retryConfig]);
+  }, [closeCommitBurst, deckPresets, retryConfig]);
 
   // Undo/redo apply the restored DeckConfig through applyConfig - the same
   // debounced PUT + key-image resync path a normal edit takes - and re-save
@@ -134,19 +156,21 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
 
   const handleUndoDeck = useCallback(() => {
     if (!target) return;
+    closeCommitBurst();
     const restored = undoRedoRef.current.undo(target.config);
     if (!restored) return;
     applyConfig(restored);
     scheduleAutoSave();
-  }, [target, applyConfig, scheduleAutoSave]);
+  }, [target, applyConfig, scheduleAutoSave, closeCommitBurst]);
 
   const handleRedoDeck = useCallback(() => {
     if (!target) return;
+    closeCommitBurst();
     const restored = undoRedoRef.current.redo(target.config);
     if (!restored) return;
     applyConfig(restored);
     scheduleAutoSave();
-  }, [target, applyConfig, scheduleAutoSave]);
+  }, [target, applyConfig, scheduleAutoSave, closeCommitBurst]);
 
   const {
     push: pushDeckHistory,
@@ -168,10 +192,20 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   // single empty page through the same update path as every other edit.
   const handleDeckReset = useCallback(() => {
     if (!target) return;
+    closeCommitBurst();
     pushDeckHistory(target.config);
     applyConfig(emptyDeck());
     scheduleAutoSave();
-  }, [target, applyConfig, pushDeckHistory, scheduleAutoSave]);
+  }, [target, applyConfig, pushDeckHistory, scheduleAutoSave, closeCommitBurst]);
+
+  // DeckDefaultTitleSettings (Settings tab) commits through the same
+  // onDeckConfigCommit choke point as the Customize tab's key editor, so a
+  // tab switch mid-burst must close it - otherwise an edit on the other tab
+  // lands inside a burst anchored on an unrelated field's pre-edit config.
+  const handleTabChange = useCallback((next: StreamDeckTab) => {
+    closeCommitBurst();
+    setTab(next);
+  }, [closeCommitBurst]);
 
   // Follow the physical deck's navigation: pressing prev/next page, go-to-page,
   // or entering/leaving a folder on the hardware broadcasts a `nav` frame, so
@@ -282,7 +316,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
         title={t('devices.streamdeck.modelName', { model: deck.model })}
         tabs={TABS}
         activeTab={tab}
-        onTabChange={k => setTab(k as StreamDeckTab)}
+        onTabChange={k => handleTabChange(k as StreamDeckTab)}
         tabActions={tab === 'customize' && deckPresets.available ? (
           <PresetToolbar
             presets={deckPresets.presets}
