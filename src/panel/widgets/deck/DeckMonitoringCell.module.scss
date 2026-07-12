@@ -85,14 +85,16 @@
   opacity: 0.8;
 }
 
-.radialSvg {
-  width: 82%;
-  height: 82%;
+.segGroup {
+  display: flex;
+  align-items: stretch;
+  gap: 3px;
+  width: 86%;
+  height: 100%;
 }
 
-.radialTrack {
-  fill: none;
-  stroke: rgb(255 255 255 / 0.18);
-  stroke-width: 9;
-  stroke-linecap: round;
+.seg {
+  flex: 1;
+  min-width: 2px;
+  border-radius: var(--radius-sm);
 }

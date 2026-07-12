@@ -1,5 +1,5 @@
 import type { PanelWidget, PanelWidgetSize, PanelConfigValue } from '../../types';
-import type { DeckAction, DeckConfig, DeckPage, DeckSlot } from './types';
+import type { DeckAction, DeckConfig, DeckMonitoringStyle, DeckPage, DeckSlot } from './types';
 
 export interface InnerGrid { cols: number; rows: number; count: number; }
 
@@ -58,8 +58,30 @@ function stripLegacyTextPaste(action: DeckAction): DeckAction {
   return action;
 }
 
+// 'radial' was replaced by 'segments'; a persisted config can still carry it.
+function normalizeMonitoringStyle(style: DeckMonitoringStyle): DeckMonitoringStyle {
+  return (style as string) === 'radial' ? 'segments' : style;
+}
+
+// A persisted monitoring action may still carry the legacy 'radial' style
+// (replaced by 'segments'); map it forward wherever it appears, same
+// recursion shape as stripLegacyTextPaste.
+function normalizeLegacyMonitoringStyle(action: DeckAction): DeckAction {
+  if (action.type === 'monitoring') {
+    const style = normalizeMonitoringStyle(action.style);
+    return style === action.style ? action : { ...action, style };
+  }
+  if (action.type === 'sequence') {
+    return { ...action, steps: action.steps.map(step => ({ ...step, action: normalizeLegacyMonitoringStyle(step.action) })) };
+  }
+  if (action.type === 'toggle') {
+    return { ...action, on: normalizeLegacyMonitoringStyle(action.on), off: normalizeLegacyMonitoringStyle(action.off) };
+  }
+  return action;
+}
+
 function stripLegacySlot(slot: DeckSlot): DeckSlot {
-  if (slot.action) return { ...slot, action: stripLegacyTextPaste(slot.action) };
+  if (slot.action) return { ...slot, action: normalizeLegacyMonitoringStyle(stripLegacyTextPaste(slot.action)) };
   if (slot.folder) return { ...slot, folder: { slots: slot.folder.slots.map(stripLegacySlot) } };
   return slot;
 }
