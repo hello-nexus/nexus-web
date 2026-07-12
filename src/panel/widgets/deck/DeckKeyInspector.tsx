@@ -132,7 +132,7 @@ export function defaultActionFor(kind: DeckActionType): DeckAction {
     case 'audioInput': return { type: 'audioInput', deviceId: '' };
     case 'nexus': return { type: 'nexus', action: { op: 'rgbEffect' } };
     case 'monitoring': return {
-      type: 'monitoring', category: 'cpu', sensor: '', style: 'line', showName: true, press: 'none',
+      type: 'monitoring', category: 'quick', sensor: 'summary/cpu-usage', style: 'line', showName: true, press: 'none',
     };
     case 'sequence': return { type: 'sequence', steps: [] };
     case 'toggle': return { type: 'toggle', on: { type: 'system', action: { op: 'muteToggle' } }, off: { type: 'system', action: { op: 'muteToggle' } }, state: { kind: 'mute' } };

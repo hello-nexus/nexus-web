@@ -303,7 +303,7 @@ describe('DeckKeyInspector - monitoring action', () => {
     expect(screen.getAllByRole('option', { name: 'panel.settings.deck.action.monitoring' }).length).toBeGreaterThan(0);
   });
 
-  it('picking Monitoring assigns the default action shape and self-heals a concrete sensor id', async () => {
+  it('picking Monitoring assigns the default action seeded with Quick CPU usage', async () => {
     renderInspector();
     fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.action.monitoring' }));
 
@@ -313,9 +313,8 @@ describe('DeckKeyInspector - monitoring action', () => {
     fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.monitoringStyleOp' }));
     expect(screen.getByRole('option', { name: 'panel.settings.deck.monitoringStyle.line' })).toHaveAttribute('aria-selected', 'true');
 
-    // defaultActionFor seeds category 'cpu' with sensor: '' - the mocked cpu
-    // sensor list has exactly one entry, which the self-heal effect writes in.
-    expect(await screen.findByText('Total (Load)')).toBeInTheDocument();
+    // defaultActionFor seeds category 'quick' with the summary/cpu-usage id.
+    expect(await screen.findByText('CPU Usage')).toBeInTheDocument();
   });
 
   it('switching category resets the sensor to the first option of the new category', async () => {
