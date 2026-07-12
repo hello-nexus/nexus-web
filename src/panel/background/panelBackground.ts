@@ -33,7 +33,7 @@ export function defaultBackgroundOpacityForMode(mode: PanelBackgroundMode): numb
 // fallback before the cache fills, and must match the JSON.
 const WIDGET_OPACITY_FALLBACK = 1;
 const WIDGET_LABELS_FALLBACK = false;
-const WIDGET_BLUR_FALLBACK = true;
+const WIDGET_BLUR_FALLBACK = false;
 
 export const defaultPanelWidgetOpacity = (): number =>
   getInstallDefaults()?.panel.widgetOpacity ?? WIDGET_OPACITY_FALLBACK;
