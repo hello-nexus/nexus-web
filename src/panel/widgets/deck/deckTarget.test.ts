@@ -1,10 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
-  computeViewUploadJobs, makePhysicalDeckTarget, makeWidgetDeckTarget, resolveTargetView, slotCountAtDepth,
+  computeDeckUploadJobs, deckImageSlotPath, makePhysicalDeckTarget, makeWidgetDeckTarget, resolveTargetView, slotCountAtDepth,
   type DeckTarget,
 } from './deckTarget';
 import type { PanelWidget } from '../types';
-import type { DeckConfig } from './types';
+import type { DeckConfig, DeckSlot } from './types';
 
 describe('slotCountAtDepth', () => {
   it('widget targets hold the same count at every depth', () => {
@@ -158,47 +158,92 @@ describe('resolveTargetView', () => {
   });
 });
 
-describe('computeViewUploadJobs', () => {
-  it('emits one job per non-toggle slot at state 0', () => {
-    const slots = [{ label: 'a' }, {}];
-    const jobs = computeViewUploadJobs(slots, []);
+describe('deckImageSlotPath', () => {
+  it('prepends the page to the dot-joined folder/slot chain (DeckConfigNavigation grammar)', () => {
+    expect(deckImageSlotPath(0, '3')).toBe('0.3');
+    expect(deckImageSlotPath(2, '1.5')).toBe('2.1.5');
+  });
+});
+
+describe('computeDeckUploadJobs', () => {
+  function physicalTarget(config: DeckConfig, keyCount = 6): Pick<DeckTarget, 'kind' | 'keyCount' | 'config'> {
+    return { kind: 'physical', keyCount, config };
+  }
+
+  it('emits one job per non-toggle slot at state 0, for the page it lives on', () => {
+    const config: DeckConfig = { pages: [{ slots: [{ label: 'a' }, {}] }] };
+    const jobs = computeDeckUploadJobs(physicalTarget(config, 2));
     expect(jobs).toEqual([
-      { slotPath: '0', state: 0, slot: slots[0] },
-      { slotPath: '1', state: 0, slot: slots[1] },
+      { page: 0, slotPath: '0', state: 0, slot: { label: 'a' } },
+      { page: 0, slotPath: '1', state: 0, slot: {} },
     ]);
   });
 
   it('emits both states for a toggle slot, each resolved to its branch', () => {
-    const toggleSlot = {
+    const toggleSlot: DeckSlot = {
       action: {
-        type: 'toggle' as const,
-        on: { type: 'system' as const, action: { op: 'muteToggle' as const } },
-        off: { type: 'system' as const, action: { op: 'muteToggle' as const } },
-        state: { kind: 'mute' as const },
+        type: 'toggle',
+        on: { type: 'system', action: { op: 'muteToggle' } },
+        off: { type: 'system', action: { op: 'muteToggle' } },
+        state: { kind: 'mute' },
       },
     };
-    const jobs = computeViewUploadJobs([toggleSlot], [2]);
-    expect(jobs).toHaveLength(2);
-    expect(jobs[0]).toMatchObject({ slotPath: '2.0', state: 0 });
-    expect(jobs[1]).toMatchObject({ slotPath: '2.0', state: 1 });
+    const config: DeckConfig = { pages: [{ slots: [{}, {}, toggleSlot] }] };
+    const jobs = computeDeckUploadJobs(physicalTarget(config, 3));
+    const toggleJobs = jobs.filter(j => j.slotPath === '2');
+    expect(toggleJobs).toHaveLength(2);
+    expect(toggleJobs[0]).toMatchObject({ page: 0, slotPath: '2', state: 0 });
+    expect(toggleJobs[1]).toMatchObject({ page: 0, slotPath: '2', state: 1 });
     // Both states get an auto icon/color derived from the (identical) branches.
-    expect(jobs[0].slot.icon).toBeTruthy();
-    expect(jobs[1].slot.icon).toBeTruthy();
+    expect(toggleJobs[0].slot.icon).toBeTruthy();
+    expect(toggleJobs[1].slot.icon).toBeTruthy();
   });
 
-  it('joins nested folder paths with dots', () => {
-    const jobs = computeViewUploadJobs([{}], [2, 5]);
-    expect(jobs[0].slotPath).toBe('2.5.0');
-  });
-
-  it('skips monitoring slots entirely (the service renders those keys itself)', () => {
-    const monitoringSlot = {
-      action: { type: 'monitoring' as const, category: 'cpu' as const, sensor: 'x', style: 'line' as const },
+  it('skips monitoring slots entirely, on every page (the service renders those keys itself)', () => {
+    const monitoringSlot: DeckSlot = { action: { type: 'monitoring', category: 'cpu', sensor: 'x', style: 'line' } };
+    const config: DeckConfig = {
+      pages: [
+        { slots: [monitoringSlot, { label: 'kept-0' }] },
+        { slots: [monitoringSlot, { label: 'kept-1' }] },
+      ],
     };
-    const jobs = computeViewUploadJobs([{ label: 'a' }, monitoringSlot, {}], []);
-    expect(jobs).toEqual([
-      { slotPath: '0', state: 0, slot: { label: 'a' } },
-      { slotPath: '2', state: 0, slot: {} },
-    ]);
+    const jobs = computeDeckUploadJobs(physicalTarget(config, 2));
+    expect(jobs.some(j => j.slot.action?.type === 'monitoring')).toBe(false);
+    expect(jobs).toEqual(expect.arrayContaining([
+      expect.objectContaining({ page: 0, slotPath: '1', slot: expect.objectContaining({ label: 'kept-0' }) }),
+      expect.objectContaining({ page: 1, slotPath: '1', slot: expect.objectContaining({ label: 'kept-1' }) }),
+    ]));
+  });
+
+  it('recurses into nested folders, threading the folder chain through slotPath at every depth', () => {
+    const config: DeckConfig = {
+      pages: [{
+        slots: [{ folder: { slots: [{ folder: { slots: [{ label: 'deep' }] } }] } }],
+      }],
+    };
+    const jobs = computeDeckUploadJobs(physicalTarget(config));
+    const deep = jobs.find(j => j.slot.label === 'deep');
+    expect(deep).toMatchObject({ page: 0, slotPath: '0.0.0' });
+    expect(deckImageSlotPath(deep!.page, deep!.slotPath)).toBe('0.0.0.0');
+  });
+
+  it('page-qualifies keys so the same slot index reused across pages does not collide', () => {
+    const config: DeckConfig = { pages: [{ slots: [{ label: 'a' }] }, { slots: [{ label: 'b' }] }] };
+    const jobs = computeDeckUploadJobs(physicalTarget(config, 1));
+    const keys = jobs.map(j => `${deckImageSlotPath(j.page, j.slotPath)}/${j.state}`);
+    expect(new Set(keys).size).toBe(keys.length);
+    expect(keys).toEqual(expect.arrayContaining(['0.0/0', '1.0/0']));
+  });
+
+  it("bakes each page's own page-indicator label, not whichever page is currently navigated", () => {
+    const config: DeckConfig = {
+      pages: [
+        { slots: [{ action: { type: 'pageIndicator' } }] },
+        { slots: [{ action: { type: 'pageIndicator' } }] },
+      ],
+    };
+    const jobs = computeDeckUploadJobs(physicalTarget(config, 1));
+    expect(jobs.find(j => j.page === 0)?.slot.label).toBe('1/2');
+    expect(jobs.find(j => j.page === 1)?.slot.label).toBe('2/2');
   });
 });

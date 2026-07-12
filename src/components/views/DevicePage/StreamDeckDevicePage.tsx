@@ -97,7 +97,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   const dragSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   const deck = decks.find(d => d.serial === serial) ?? null;
-  const { target, error: configError, retry: retryConfig } = usePhysicalDeckTarget(deck, folderPath, page);
+  const { target, error: configError, retry: retryConfig } = usePhysicalDeckTarget(deck);
   const { conflicts } = useConflictApps(!!deck?.conflictAppId);
   const activeConflict = deck?.conflictAppId ? conflicts.find(c => c.id === deck.conflictAppId) : undefined;
 

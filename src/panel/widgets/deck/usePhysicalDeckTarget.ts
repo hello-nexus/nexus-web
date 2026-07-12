@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getStreamDeckConfig, setStreamDeckConfig, uploadStreamDeckKeyImage, type StreamDeckSummary } from '../../../api/streamdeck';
-import { computeViewUploadJobs, makePhysicalDeckTarget, slotCountAtDepth, type DeckTarget } from './deckTarget';
+import { computeDeckUploadJobs, makePhysicalDeckTarget, type DeckTarget } from './deckTarget';
 import { resolveDeckKeyTransform, type DeckOrientation } from './deckKeyTransform';
 import { pushDeckKeyImages } from './physicalDeckSync';
 import { renderDeckBackKeyBitmap, type DeckKeyModel } from './renderDeckKeyBitmap';
-import { normalizeDeckConfig, resolveViewSlots } from './deckLayout';
-import { withPageIndicatorDisplay } from './deckIcons';
+import { normalizeDeckConfig } from './deckLayout';
 import type { DeckConfig } from './types';
 
 const SYNC_DEBOUNCE_MS = 300;
@@ -41,11 +40,15 @@ export interface UsePhysicalDeckTargetResult {
  * config over the deck's real stored layout on the user's first edit would
  * otherwise be silent data loss. Pass `deck: null` to disable (no fetch, no
  * target).
+ *
+ * Every sync uploads the ENTIRE config tree (every page, every reachable
+ * folder), each key page-qualified (see deckTarget.computeDeckUploadJobs /
+ * deckImageSlotPath) so two pages reusing the same slot index address
+ * distinct hardware images. Navigating the editor's own view never needs to
+ * trigger this sync; only a config edit does.
  */
 export function usePhysicalDeckTarget(
   deck: StreamDeckSummary | null,
-  folderPath: readonly number[],
-  page = 0,
 ): UsePhysicalDeckTargetResult {
   const [config, setConfig] = useState<DeckConfig | null>(null);
   const [loadError, setLoadError] = useState(false);
@@ -57,6 +60,14 @@ export function usePhysicalDeckTarget(
   const configSerialRef = useRef<string | null>(null);
   const backUploadOkRef = useRef(false);
   const consecutiveFailuresRef = useRef(0);
+  // Content signature per uploaded key ("{page}.{slotPath}/{state}"), so a
+  // sync pass skips the render + upload for a key whose slot content hasn't
+  // changed since it last landed - see physicalDeckSync.pushDeckKeyImages.
+  const uploadedJobsRef = useRef<Map<string, string>>(new Map());
+  // Format/transform/orientation/keyPixels together determine the rendered
+  // bytes for a given slot; when any of them changes, every cached signature
+  // is stale even though the slot content itself didn't change.
+  const modelSignatureRef = useRef<string | null>(null);
 
   useEffect(() => {
     setConfig(null);
@@ -64,6 +75,8 @@ export function usePhysicalDeckTarget(
     configSerialRef.current = null;
     backUploadOkRef.current = false;
     consecutiveFailuresRef.current = 0;
+    uploadedJobsRef.current = new Map();
+    modelSignatureRef.current = null;
     if (!serial) return;
     let cancelled = false;
     void getStreamDeckConfig(serial).then(cfg => {
@@ -94,7 +107,7 @@ export function usePhysicalDeckTarget(
   }, [deck, config, loadError, persist]);
 
   // Debounced network sync: a PUT of the config plus a re-render/upload of
-  // the current view's key images, so typing a label doesn't fire this on
+  // the whole tree's key images, so typing a label doesn't fire this on
   // every keystroke and flicker hardware. A failed PUT rolls the local
   // state back to the server's last-known value so local and server state
   // can't silently diverge - a physical press would otherwise run a
@@ -102,7 +115,6 @@ export function usePhysicalDeckTarget(
   // upload retries on every sync pass until it lands.
   const pendingRef = useRef<{ timer: ReturnType<typeof setTimeout>; run: () => void; serial: string } | null>(null);
   const generationRef = useRef(0);
-  const folderKey = folderPath.join('.');
 
   const flushPending = useCallback(() => {
     const pending = pendingRef.current;
@@ -155,14 +167,14 @@ export function usePhysicalDeckTarget(
         });
       });
 
-      const countFn = (depth: number) => slotCountAtDepth({ kind: 'physical', keyCount: deck.keyCount }, depth);
-      const slots = resolveViewSlots(syncConfig, page, folderPath, countFn);
       const model = deckKeyModel(deck);
-      if (slots) {
-        const displaySlots = withPageIndicatorDisplay(slots, page, syncConfig.pages.length);
-        const jobs = computeViewUploadJobs(displaySlots, folderPath);
-        void pushDeckKeyImages(syncSerial, model, jobs, isStale);
+      const modelSignature = `${model.format}:${model.transform}:${model.orientation}:${model.keyPixels}`;
+      if (modelSignatureRef.current !== modelSignature) {
+        uploadedJobsRef.current = new Map();
+        modelSignatureRef.current = modelSignature;
       }
+      const jobs = computeDeckUploadJobs({ kind: 'physical', keyCount: deck.keyCount, config: syncConfig });
+      void pushDeckKeyImages(syncSerial, model, jobs, isStale, uploadedJobsRef.current);
       if (!backUploadOkRef.current) {
         void renderDeckBackKeyBitmap(model)
           .then(bytes => uploadStreamDeckKeyImage(syncSerial, 'back', 0, bytes, model.format))
@@ -176,7 +188,7 @@ export function usePhysicalDeckTarget(
     // other decks' brightness, ...) - keying on its scalar fields (not the
     // object) keeps this effect from re-scheduling on unrelated updates.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deck?.serial, deck?.cols, deck?.rows, deck?.keyCount, deck?.model, deck?.format, deck?.keyPixels, deck?.transform, deck?.orientation, config, loadError, folderKey, page]);
+  }, [deck?.serial, deck?.cols, deck?.rows, deck?.keyCount, deck?.model, deck?.format, deck?.keyPixels, deck?.transform, deck?.orientation, config, loadError]);
 
   useEffect(() => flushPending, [flushPending]);
 

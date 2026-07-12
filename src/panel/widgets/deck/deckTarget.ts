@@ -5,10 +5,10 @@
 import type { PanelConfigValue, PanelWidget } from '../../types';
 import type { DeckConfig, DeckSlot, DeckTitleStyle } from './types';
 import {
-  addPage, deckConfigPatch, innerGridForSize, readDeckConfig, removePage, resolveViewSlots, swapSlots, updateSlotAt,
+  addPage, deckConfigPatch, innerGridForSize, padSlots, readDeckConfig, removePage, resolveViewSlots, swapSlots, updateSlotAt,
   type DepthCount,
 } from './deckLayout';
-import { toggleBranchSlot } from './deckIcons';
+import { toggleBranchSlot, withPageIndicatorDisplay } from './deckIcons';
 
 export interface DeckTarget {
   kind: 'widget' | 'physical';
@@ -110,35 +110,73 @@ export function makePhysicalDeckTarget(
 }
 
 export interface DeckUploadJob {
+  page: number;
   slotPath: string;
   state: 0 | 1;
   slot: DeckSlot;
 }
 
 /**
- * Every key image that needs (re)rendering + uploading for one resolved
- * folder view. Toggle slots render both states up front, each already
- * resolved to that branch's icon/color (state 0 = off, state 1 = on) so the
- * renderer never needs to know about toggle semantics; everything else
- * renders once at state 0.
+ * Page-qualified slotPath for the images route: the page index leads the
+ * same dot-joined index-chain grammar DeckConfigNavigation.ParseSlotPath /
+ * BuildSlotPath already define ("0.3", "2.1.5"). The reserved back key stays
+ * page-independent (the literal "back", built where it's uploaded) and never
+ * goes through this.
+ */
+export function deckImageSlotPath(page: number, slotPath: string): string {
+  return `${page}.${slotPath}`;
+}
+
+/**
+ * Every key image job for one resolved folder view. Toggle slots render both
+ * states up front, each already resolved to that branch's icon/color (state
+ * 0 = off, state 1 = on) so the renderer never needs to know about toggle
+ * semantics; everything else renders once at state 0.
  *
  * A 'monitoring' slot's key image is never uploaded from here: the service
  * owns those pixels (StreamDeckConnectionWorker's per-tick render loop), so a
  * web-driven upload would fight it and briefly stomp the live tile on every
  * config sync. DeckGrid shows the live gauge in its place instead.
  */
-export function computeViewUploadJobs(slots: readonly DeckSlot[], folderPath: readonly number[]): DeckUploadJob[] {
+function viewUploadJobs(slots: readonly DeckSlot[], page: number, folderPath: readonly number[]): DeckUploadJob[] {
   const jobs: DeckUploadJob[] = [];
   slots.forEach((slot, i) => {
     if (slot.action?.type === 'monitoring') return;
     const slotPath = [...folderPath, i].join('.');
     const action = slot.action;
     if (action?.type === 'toggle') {
-      jobs.push({ slotPath, state: 0, slot: toggleBranchSlot(slot, action, false) });
-      jobs.push({ slotPath, state: 1, slot: toggleBranchSlot(slot, action, true) });
+      jobs.push({ page, slotPath, state: 0, slot: toggleBranchSlot(slot, action, false) });
+      jobs.push({ page, slotPath, state: 1, slot: toggleBranchSlot(slot, action, true) });
     } else {
-      jobs.push({ slotPath, state: 0, slot });
+      jobs.push({ page, slotPath, state: 0, slot });
     }
+  });
+  return jobs;
+}
+
+/**
+ * Every key image job across the WHOLE deck tree: every page, and every
+ * folder reachable within it (recursing into `.folder` slots), each job
+ * page-qualified so pages that reuse the same slot indices no longer
+ * overwrite each other's ImageRefs entries server-side (the image-refs v2
+ * contract). Slot counts follow the same physical Back-key reservation as a
+ * live view (slotCountAtDepth), and a page's `pageIndicator` slot bakes that
+ * page's own "N/total" label - it is static per page, not the currently
+ * navigated page, so a full-tree sweep renders it correctly without knowing
+ * which page the hardware is showing.
+ */
+export function computeDeckUploadJobs(target: Pick<DeckTarget, 'kind' | 'keyCount' | 'config'>): DeckUploadJob[] {
+  const jobs: DeckUploadJob[] = [];
+  const pageCount = target.config.pages.length;
+  target.config.pages.forEach((pageConfig, page) => {
+    const walk = (rawSlots: readonly DeckSlot[], folderPath: readonly number[], depth: number): void => {
+      const slots = padSlots(rawSlots, slotCountAtDepth(target, depth));
+      jobs.push(...viewUploadJobs(withPageIndicatorDisplay(slots, page, pageCount), page, folderPath));
+      slots.forEach((slot, i) => {
+        if (slot.folder) walk(slot.folder.slots, [...folderPath, i], depth + 1);
+      });
+    };
+    walk(pageConfig.slots, [], 0);
   });
   return jobs;
 }

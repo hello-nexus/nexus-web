@@ -78,7 +78,12 @@ export async function setStreamDeckConfig(serial: string, config: DeckConfig): P
   return res !== null;
 }
 
-/** slotPath is the dot-joined slot index chain from the deck's root ("3", "2.5"). */
+/**
+ * slotPath is page-qualified: the page index leads the dot-joined folder/slot
+ * index chain from that page's root ("0.3", "2.1.5" - see deckTarget's
+ * deckImageSlotPath), or the reserved literal "back" for the folder-back key,
+ * which stays page-independent.
+ */
 export async function uploadStreamDeckKeyImage(
   serial: string,
   slotPath: string,

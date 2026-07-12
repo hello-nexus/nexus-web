@@ -68,7 +68,7 @@ afterEach(() => {
 describe('usePhysicalDeckTarget - config load errors (RISK 1)', () => {
   it('sets error and blocks editing when the initial fetch fails, never falling back to an empty config', async () => {
     mockGetConfig.mockResolvedValue(null);
-    const { result } = renderHook(() => usePhysicalDeckTarget(makeDeck(), []));
+    const { result } = renderHook(() => usePhysicalDeckTarget(makeDeck()));
     await flush();
 
     expect(result.current.error).toBe(true);
@@ -79,7 +79,7 @@ describe('usePhysicalDeckTarget - config load errors (RISK 1)', () => {
 
   it('retry() re-attempts a failed fetch and recovers into an editable target', async () => {
     mockGetConfig.mockResolvedValueOnce(null);
-    const { result } = renderHook(() => usePhysicalDeckTarget(makeDeck(), []));
+    const { result } = renderHook(() => usePhysicalDeckTarget(makeDeck()));
     await flush();
     expect(result.current.error).toBe(true);
 
@@ -97,7 +97,7 @@ describe('usePhysicalDeckTarget - config load errors (RISK 1)', () => {
     // the physical-deck fetch path must migrate it the same as the widget's
     // readDeckConfig does, or every pages[]-aware helper sees an undefined .pages.
     mockGetConfig.mockResolvedValue({ slots: [{ label: 'legacy' }] } as never);
-    const { result } = renderHook(() => usePhysicalDeckTarget(makeDeck(), []));
+    const { result } = renderHook(() => usePhysicalDeckTarget(makeDeck()));
     await flush();
 
     expect(result.current.target!.config.pages).toHaveLength(1);
@@ -105,7 +105,7 @@ describe('usePhysicalDeckTarget - config load errors (RISK 1)', () => {
   });
 
   it('normalizes a legacy { slots } response returned by the rollback re-fetch after a failed PUT', async () => {
-    const { result } = renderHook(() => usePhysicalDeckTarget(makeDeck(), []));
+    const { result } = renderHook(() => usePhysicalDeckTarget(makeDeck()));
     await settleInitialSync();
 
     mockSetConfig.mockResolvedValueOnce(false);
@@ -122,7 +122,7 @@ describe('usePhysicalDeckTarget - config load errors (RISK 1)', () => {
 
 describe('usePhysicalDeckTarget - debounced sync + rollback (RISK 2, SMELL 1)', () => {
   it('debounces rapid edits into a single PUT of the latest config', async () => {
-    const { result } = renderHook(() => usePhysicalDeckTarget(makeDeck(), []));
+    const { result } = renderHook(() => usePhysicalDeckTarget(makeDeck()));
     await settleInitialSync();
     mockSetConfig.mockClear();
 
@@ -140,7 +140,7 @@ describe('usePhysicalDeckTarget - debounced sync + rollback (RISK 2, SMELL 1)', 
   });
 
   it('flushes a pending edit immediately on unmount instead of dropping it', async () => {
-    const { result, unmount } = renderHook(() => usePhysicalDeckTarget(makeDeck(), []));
+    const { result, unmount } = renderHook(() => usePhysicalDeckTarget(makeDeck()));
     await settleInitialSync();
     mockSetConfig.mockClear();
 
@@ -154,7 +154,7 @@ describe('usePhysicalDeckTarget - debounced sync + rollback (RISK 2, SMELL 1)', 
 
   it('flushes a pending edit for the previous deck when switching targets before the debounce fires', async () => {
     const deckA = makeDeck({ serial: 'SN1' });
-    const { result, rerender } = renderHook(({ d }) => usePhysicalDeckTarget(d, []), { initialProps: { d: deckA } });
+    const { result, rerender } = renderHook(({ d }) => usePhysicalDeckTarget(d), { initialProps: { d: deckA } });
     await settleInitialSync();
     mockSetConfig.mockClear();
 
@@ -169,7 +169,7 @@ describe('usePhysicalDeckTarget - debounced sync + rollback (RISK 2, SMELL 1)', 
   });
 
   it('rolls back local config to server truth when the PUT fails', async () => {
-    const { result } = renderHook(() => usePhysicalDeckTarget(makeDeck(), []));
+    const { result } = renderHook(() => usePhysicalDeckTarget(makeDeck()));
     await settleInitialSync();
 
     mockSetConfig.mockResolvedValueOnce(false);
@@ -186,7 +186,7 @@ describe('usePhysicalDeckTarget - debounced sync + rollback (RISK 2, SMELL 1)', 
 
   it('does not let a stale rollback for a previous deck corrupt the newly active deck', async () => {
     const deckA = makeDeck({ serial: 'SN1' });
-    const { result, rerender } = renderHook(({ d }) => usePhysicalDeckTarget(d, []), { initialProps: { d: deckA } });
+    const { result, rerender } = renderHook(({ d }) => usePhysicalDeckTarget(d), { initialProps: { d: deckA } });
     await settleInitialSync();
 
     mockSetConfig.mockResolvedValueOnce(false);
@@ -210,7 +210,7 @@ describe('usePhysicalDeckTarget - debounced sync + rollback (RISK 2, SMELL 1)', 
   });
 
   it('does not let a stale rollback clobber a newer edit made during its own debounce window', async () => {
-    const { result } = renderHook(() => usePhysicalDeckTarget(makeDeck(), []));
+    const { result } = renderHook(() => usePhysicalDeckTarget(makeDeck()));
     await settleInitialSync();
 
     mockSetConfig.mockResolvedValueOnce(false);
@@ -239,7 +239,7 @@ describe('usePhysicalDeckTarget - debounced sync + rollback (RISK 2, SMELL 1)', 
   });
 
   it('gives up after repeated PUT failures and surfaces the load-failed state instead of looping forever', async () => {
-    const { result } = renderHook(() => usePhysicalDeckTarget(makeDeck(), []));
+    const { result } = renderHook(() => usePhysicalDeckTarget(makeDeck()));
     await settleInitialSync();
 
     mockSetConfig.mockResolvedValue(false);
@@ -268,28 +268,15 @@ describe('usePhysicalDeckTarget - debounced sync + rollback (RISK 2, SMELL 1)', 
 
 describe('usePhysicalDeckTarget - back-key upload', () => {
   it('renders and uploads the back-chevron bitmap once per deck to slotPath "back" state 0', async () => {
-    renderHook(() => usePhysicalDeckTarget(makeDeck(), []));
+    renderHook(() => usePhysicalDeckTarget(makeDeck()));
     await settleInitialSync();
 
     expect(mockRenderBack).toHaveBeenCalledTimes(1);
     expect(mockUpload).toHaveBeenCalledWith('SN1', 'back', 0, expect.any(Uint8Array), 'bmp');
   });
 
-  it('does not re-upload the back bitmap when only the folder path changes', async () => {
-    const deck = makeDeck();
-    const { rerender } = renderHook(({ fp }) => usePhysicalDeckTarget(deck, fp), { initialProps: { fp: [] as number[] } });
-    await settleInitialSync();
-    expect(mockRenderBack).toHaveBeenCalledTimes(1);
-
-    rerender({ fp: [0] });
-    await advance(300);
-    await flush();
-
-    expect(mockRenderBack).toHaveBeenCalledTimes(1);
-  });
-
   it('re-uploads the back bitmap when switching to a different deck serial', async () => {
-    const { rerender } = renderHook(({ d }) => usePhysicalDeckTarget(d, []), { initialProps: { d: makeDeck({ serial: 'SN1' }) } });
+    const { rerender } = renderHook(({ d }) => usePhysicalDeckTarget(d), { initialProps: { d: makeDeck({ serial: 'SN1' }) } });
     await settleInitialSync();
     expect(mockRenderBack).toHaveBeenCalledTimes(1);
 
@@ -301,55 +288,98 @@ describe('usePhysicalDeckTarget - back-key upload', () => {
   });
 
   it('passes the server-authoritative transform through to the back-bitmap render model', async () => {
-    renderHook(() => usePhysicalDeckTarget(makeDeck({ transform: 'none' }), []));
+    renderHook(() => usePhysicalDeckTarget(makeDeck({ transform: 'none' })));
     await settleInitialSync();
 
     expect(mockRenderBack).toHaveBeenCalledWith({ keyPixels: 80, format: 'bmp', transform: 'none', orientation: 0 });
   });
 
   it('falls back to the model-derived transform when the server does not send one', async () => {
-    renderHook(() => usePhysicalDeckTarget(makeDeck({ model: 'Mini', transform: undefined }), []));
+    renderHook(() => usePhysicalDeckTarget(makeDeck({ model: 'Mini', transform: undefined })));
     await settleInitialSync();
 
     expect(mockRenderBack).toHaveBeenCalledWith({ keyPixels: 80, format: 'bmp', transform: 'mirrorXRot90', orientation: 0 });
   });
 
   it('passes through a user-set mounting orientation to the back-bitmap render model', async () => {
-    renderHook(() => usePhysicalDeckTarget(makeDeck({ orientation: 180 }), []));
+    renderHook(() => usePhysicalDeckTarget(makeDeck({ orientation: 180 })));
     await settleInitialSync();
 
     expect(mockRenderBack).toHaveBeenCalledWith(expect.objectContaining({ orientation: 180 }));
   });
 
   it('normalizes an out-of-range or absent orientation to 0', async () => {
-    renderHook(() => usePhysicalDeckTarget(makeDeck({ orientation: 45 }), []));
+    renderHook(() => usePhysicalDeckTarget(makeDeck({ orientation: 45 })));
     await settleInitialSync();
 
     expect(mockRenderBack).toHaveBeenCalledWith(expect.objectContaining({ orientation: 0 }));
   });
 });
 
-describe('usePhysicalDeckTarget - page navigation', () => {
-  it('resolves the view for the given page and re-renders key images when the page changes', async () => {
+describe('usePhysicalDeckTarget - full-tree upload (image-refs v2)', () => {
+  it('uploads every page on the initial sync, not just page 0, with page-qualified slot paths', async () => {
     mockGetConfig.mockResolvedValue({ pages: [{ slots: [{ label: 'p0' }] }, { slots: [{ label: 'p1' }] }] });
-    const deck = makeDeck();
-    const { rerender } = renderHook(({ p }) => usePhysicalDeckTarget(deck, [], p), { initialProps: { p: 0 } });
+    renderHook(() => usePhysicalDeckTarget(makeDeck()));
     await settleInitialSync();
-    const keyCallsOnPage0 = mockRenderKey.mock.calls.length;
-    expect(keyCallsOnPage0).toBeGreaterThan(0);
 
-    rerender({ p: 1 });
+    const slotPaths = mockUpload.mock.calls.map(c => c[1]);
+    expect(slotPaths).toContain('0.0');
+    expect(slotPaths).toContain('1.0');
+  });
+
+  it('uploads a folder view nested under a page even though it is never the on-screen view', async () => {
+    mockGetConfig.mockResolvedValue({
+      pages: [{ slots: [{ folder: { slots: [{ label: 'nested' }] } }] }],
+    });
+    renderHook(() => usePhysicalDeckTarget(makeDeck()));
+    await settleInitialSync();
+
+    const slotPaths = mockUpload.mock.calls.map(c => c[1]);
+    expect(slotPaths).toContain('0.0.0');
+  });
+
+  it('does not re-render or re-upload a key whose slot content is unchanged by a later edit', async () => {
+    mockGetConfig.mockResolvedValue({ pages: [{ slots: [{ label: 'a' }, { label: 'b' }] }] });
+    const { result } = renderHook(() => usePhysicalDeckTarget(makeDeck()));
+    await settleInitialSync();
+    mockRenderKey.mockClear();
+    mockUpload.mockClear();
+
+    act(() => { result.current.target!.updateSlot(0, [], 0, { label: 'a-edited' }); });
     await advance(300);
     await flush();
 
-    expect(mockRenderKey.mock.calls.length).toBeGreaterThan(keyCallsOnPage0);
+    const editedCalls = mockUpload.mock.calls.filter(c => c[1] === '0.0');
+    const untouchedCalls = mockUpload.mock.calls.filter(c => c[1] === '0.1');
+    expect(editedCalls.length).toBeGreaterThan(0);
+    expect(untouchedCalls).toHaveLength(0);
   });
 
-  it('defaults to page 0 when no page argument is given', async () => {
-    mockGetConfig.mockResolvedValue({ pages: [{ slots: [{ label: 'p0' }] }, { slots: [{ label: 'p1' }] }] });
-    const { result } = renderHook(() => usePhysicalDeckTarget(makeDeck(), []));
+  it('bails out of an in-flight upload sweep once a newer edit supersedes it', async () => {
+    mockGetConfig.mockResolvedValue({ pages: [{ slots: [{ label: 'a' }, { label: 'b' }, { label: 'c' }] }] });
+    const { result } = renderHook(() => usePhysicalDeckTarget(makeDeck()));
     await settleInitialSync();
+    mockRenderKey.mockClear();
+    mockUpload.mockClear();
 
-    expect(result.current.target!.config.pages[0].slots[0].label).toBe('p0');
+    const stalled = deferred<Uint8Array>();
+    mockRenderKey.mockReturnValueOnce(stalled.promise);
+    act(() => { result.current.target!.updateSlot(0, [], 0, { label: 'a-first' }); });
+    await advance(300);
+    await flush();
+    // Slot 0's changed content triggers a render that is now stuck; slots 1
+    // and 2 are unchanged from the initial sync, so diffing skips them.
+
+    mockRenderKey.mockResolvedValue(new Uint8Array([9]));
+    act(() => { result.current.target!.updateSlot(0, [], 0, { label: 'a-second' }); });
+    await advance(300);
+    await flush();
+
+    await act(async () => { stalled.resolve(new Uint8Array([1])); });
+    await flush();
+
+    // The stale sweep's job for slot 0 must never reach the upload call once
+    // superseded - only the newer sweep's render/upload for it should land.
+    expect(mockUpload.mock.calls.filter(c => c[1] === '0.0' && c[3] instanceof Uint8Array && c[3][0] === 1)).toHaveLength(0);
   });
 });
