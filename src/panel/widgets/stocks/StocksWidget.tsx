@@ -18,6 +18,7 @@ export function StocksWidget({ widget }: WidgetProps) {
   // period setting.
   const period = mode === 'list' ? '1D' : configuredPeriod;
   const symbolsRaw = widget.config?.symbols as string | undefined;
+  const useAccentColor = ((widget.config?.useAccentColor as boolean | undefined) ?? false);
   const symbols = useMemo(() => resolveSymbols(symbolsRaw), [symbolsRaw]);
 
   const [quotes, setQuotes] = useState<StockQuote[] | null>(null);
@@ -46,6 +47,7 @@ export function StocksWidget({ widget }: WidgetProps) {
       quotes={quotes}
       loaded={loaded}
       numberFormat={numberFormat}
+      useAccentColor={useAccentColor}
     />
   );
 }

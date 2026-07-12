@@ -2130,6 +2130,7 @@
   "panel.widget.stocks.settings.style": "Stîl",
   "panel.widget.stocks.settings.symbols": "Simbui",
   "panel.widget.stocks.settings.symbolsHint": "Simbui Yahoo Finance separâts di virgulis, p.e. AAPL, ^GSPC, EURUSD=X",
+  "panel.widget.stocks.settings.useAccentColor": "Dopre colôr di acent",
   "panel.widget.stopwatch": "Cronometri",
   "panel.widget.timer": "Timer",
   "panel.widget.timer.decrease": "Diminuìs {unit}",

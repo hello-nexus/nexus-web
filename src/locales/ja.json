@@ -2066,6 +2066,7 @@
   "panel.widget.stocks.settings.style": "スタイル",
   "panel.widget.stocks.settings.symbols": "銘柄",
   "panel.widget.stocks.settings.symbolsHint": "カンマ区切りのYahoo Finance銘柄。例:AAPL, ^GSPC, EURUSD=X",
+  "panel.widget.stocks.settings.useAccentColor": "アクセントカラーを使用",
   "panel.widget.stopwatch": "ストップウォッチ",
   "panel.widget.timer": "タイマー",
   "panel.widget.timer.decrease": "{unit}を減らす",

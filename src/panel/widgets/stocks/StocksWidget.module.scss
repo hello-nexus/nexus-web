@@ -13,6 +13,19 @@
   text-align: center;
 }
 
+// Trend colors resolve through these so the accent override below can
+// re-point every consumer (arrows, sparklines, chips) at once.
+.listRoot,
+.graphRoot {
+  --stock-up: var(--panel-good);
+  --stock-down: var(--panel-bad);
+}
+
+.accent {
+  --stock-up: var(--panel-accent);
+  --stock-down: var(--panel-accent);
+}
+
 // ── List mode: colored triangle + bold ticker + right-aligned price ───────
 
 .listRoot {
@@ -53,11 +66,11 @@
 }
 
 .arrowUp {
-  border-bottom: 6px solid var(--panel-good);
+  border-bottom: 6px solid var(--stock-up);
 }
 
 .arrowDown {
-  border-top: 6px solid var(--panel-bad);
+  border-top: 6px solid var(--stock-down);
 }
 
 .listLabel {
@@ -194,11 +207,11 @@
 }
 
 .chipUp {
-  color: var(--panel-good);
-  background: color-mix(in srgb, var(--panel-good) 18%, transparent);
+  color: var(--stock-up);
+  background: color-mix(in srgb, var(--stock-up) 18%, transparent);
 }
 
 .chipDown {
-  color: var(--panel-bad);
-  background: color-mix(in srgb, var(--panel-bad) 18%, transparent);
+  color: var(--stock-down);
+  background: color-mix(in srgb, var(--stock-down) 18%, transparent);
 }

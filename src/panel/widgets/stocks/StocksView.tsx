@@ -29,10 +29,13 @@ interface StocksViewProps {
   quotes: StockQuote[] | null;
   loaded: boolean;
   numberFormat: NumberFormat;
+  useAccentColor: boolean;
 }
 
-function stockAccentColor(up: boolean): string {
-  return up ? 'var(--panel-good)' : 'var(--panel-bad)';
+// Resolves through the root's --stock-up/--stock-down, which the .accent
+// class re-points at --panel-accent.
+function stockTrendColor(up: boolean): string {
+  return up ? 'var(--stock-up)' : 'var(--stock-down)';
 }
 
 function ListRow({ quote, numberFormat }: { quote: StockQuote; numberFormat: NumberFormat }) {
@@ -52,7 +55,7 @@ function ListRow({ quote, numberFormat }: { quote: StockQuote; numberFormat: Num
 
 function GraphRow({ quote, numberFormat, stacked }: { quote: StockQuote; numberFormat: NumberFormat; stacked: boolean }) {
   const up = isStockUp(quote.change);
-  const color = stockAccentColor(up);
+  const color = stockTrendColor(up);
   const series = quote.series ?? [];
   const chartHeight = stockGraphChartHeight(stacked);
   // Feeds both the Sparkline's viewBox math and the container's CSS height
@@ -97,7 +100,7 @@ function GraphRow({ quote, numberFormat, stacked }: { quote: StockQuote; numberF
   );
 }
 
-export function StocksView({ size, mode, symbols, quotes, loaded, numberFormat }: StocksViewProps) {
+export function StocksView({ size, mode, symbols, quotes, loaded, numberFormat, useAccentColor }: StocksViewProps) {
   const { t } = useTranslation();
 
   if (quotes === null) {
@@ -111,7 +114,7 @@ export function StocksView({ size, mode, symbols, quotes, loaded, numberFormat }
     const visible = rows.slice(0, stockGraphRows(size));
     const stacked = !isWideStockSize(size);
     return (
-      <div className={styles.graphRoot}>
+      <div className={`${styles.graphRoot} ${useAccentColor ? styles.accent : ''}`}>
         {visible.map(quote => (
           <GraphRow key={quote.symbol} quote={quote} numberFormat={numberFormat} stacked={stacked} />
         ))}
@@ -122,7 +125,7 @@ export function StocksView({ size, mode, symbols, quotes, loaded, numberFormat }
   const layout = stockListLayout(size);
   const visible = rows.slice(0, layout.columns * layout.rows);
   const columns = splitColumns(visible, layout.columns);
-  const listClass = `${styles.listRoot} ${size === '4x4' ? styles.listLarge : ''}`;
+  const listClass = `${styles.listRoot} ${size === '4x4' ? styles.listLarge : ''} ${useAccentColor ? styles.accent : ''}`;
   return (
     <div className={listClass}>
       {columns.map((col, i) => (

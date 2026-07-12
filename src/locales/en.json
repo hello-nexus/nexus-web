@@ -2263,6 +2263,7 @@
   "panel.widget.stocks.settings.style": "Style",
   "panel.widget.stocks.settings.symbols": "Symbols",
   "panel.widget.stocks.settings.symbolsHint": "Comma-separated Yahoo Finance symbols, e.g. AAPL, ^GSPC, EURUSD=X",
+  "panel.widget.stocks.settings.useAccentColor": "Use accent color",
   "panel.widget.stopwatch": "Stopwatch",
   "panel.widget.timer": "Timer",
   "panel.widget.timer.decrease": "Decrease {unit}",

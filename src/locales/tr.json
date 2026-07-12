@@ -2121,6 +2121,7 @@
   "panel.widget.stocks.settings.style": "Stil",
   "panel.widget.stocks.settings.symbols": "Semboller",
   "panel.widget.stocks.settings.symbolsHint": "Virgülle ayrılmış Yahoo Finance sembolleri, örn. AAPL, ^GSPC, EURUSD=X",
+  "panel.widget.stocks.settings.useAccentColor": "Vurgu rengini kullan",
   "panel.widget.stopwatch": "Kronometre",
   "panel.widget.timer": "Zamanlayici",
   "panel.widget.timer.decrease": "{unit} azalt",

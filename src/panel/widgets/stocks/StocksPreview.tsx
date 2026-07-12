@@ -22,6 +22,7 @@ export function StocksPreview({ widget }: WidgetProps) {
       quotes={STOCKS_PREVIEW}
       loaded
       numberFormat={numberFormat}
+      useAccentColor={false}
     />
   );
 }

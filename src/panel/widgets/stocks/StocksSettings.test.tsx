@@ -30,6 +30,7 @@ vi.mock('../../../lib/i18n', () => {
     'panel.widget.stocks.settings.period1y': '1Y',
     'panel.widget.stocks.settings.symbols': 'Symbols',
     'panel.widget.stocks.settings.symbolsHint': 'Comma-separated Yahoo Finance symbols, e.g. AAPL, ^GSPC, EURUSD=X',
+    'panel.widget.stocks.settings.useAccentColor': 'Use accent color',
     'common.desktopOnly': 'Full options available on desktop',
   };
   const t = (key: string) => dict[key] ?? key;
@@ -41,10 +42,11 @@ vi.mock('../../../components/common/DesktopOnlyBadge/DesktopOnlyBadge', () => ({
 }));
 
 vi.mock('../../../components/common/IconLabelButton/IconLabelButton', () => ({
-  IconLabelButton: ({ label, active, onPress, className }: {
+  IconLabelButton: ({ label, active, onPress, className, ariaLabel, title }: {
     label?: ReactNode; active?: boolean; onPress?: () => void; className?: string;
+    ariaLabel?: string; title?: string;
   }) => (
-    <button type="button" className={className} aria-pressed={active} onClick={onPress}>{label}</button>
+    <button type="button" className={className} aria-label={ariaLabel} title={title} aria-pressed={active} onClick={onPress}>{label}</button>
   ),
 }));
 
@@ -94,6 +96,15 @@ describe('StocksSettings', () => {
     fireEvent.change(input, { target: { value: '   ' } });
     fireEvent.blur(input);
     expect(onUpdate).toHaveBeenCalledWith({ symbols: DEFAULT_SYMBOLS });
+  });
+
+  it('defaults the accent toggle off and emits the config patch when switched on', () => {
+    const onUpdate = vi.fn();
+    render(<StocksSettings widget={stocksWidget()} surface="desktop" onUpdate={onUpdate} onResize={vi.fn()} />);
+    const toggle = screen.getByRole('switch', { name: 'Use accent color' });
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
+    fireEvent.click(toggle);
+    expect(onUpdate).toHaveBeenCalledWith({ useAccentColor: true });
   });
 
   it('hides the free-text symbols field on a keyboard-less surface', () => {

@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { PanelWidget } from '../../types';
 import { StocksWidget } from './StocksWidget';
 import { formatStockPrice } from './stocksUtils';
+import styles from './StocksWidget.module.scss';
 
 const fetchStockQuotesMock = vi.hoisted(() => vi.fn());
 
@@ -85,5 +86,17 @@ describe('StocksWidget', () => {
     fetchStockQuotesMock.mockResolvedValue(null);
     render(<StocksWidget widget={stocksWidget('4x2')} />);
     expect(await screen.findByText('No data')).toBeInTheDocument();
+  });
+
+  it('applies the accent override class only when useAccentColor is set', async () => {
+    fetchStockQuotesMock.mockResolvedValue({ range: '1d', quotes: [] });
+    const accented = render(<StocksWidget widget={stocksWidget('4x2', { symbols: 'AAPL', useAccentColor: true })} />);
+    expect(await accented.findByText('AAPL')).toBeInTheDocument();
+    expect(accented.container.firstElementChild?.className).toContain(styles.accent);
+    accented.unmount();
+
+    const plain = render(<StocksWidget widget={stocksWidget('4x2', { symbols: 'AAPL' })} />);
+    expect(await plain.findByText('AAPL')).toBeInTheDocument();
+    expect(plain.container.firstElementChild?.className).not.toContain(styles.accent);
   });
 });

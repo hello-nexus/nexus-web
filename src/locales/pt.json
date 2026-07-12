@@ -2121,6 +2121,7 @@
   "panel.widget.stocks.settings.style": "Estilo",
   "panel.widget.stocks.settings.symbols": "Símbolos",
   "panel.widget.stocks.settings.symbolsHint": "Símbolos do Yahoo Finance separados por vírgulas, por exemplo, AAPL, ^GSPC, EURUSD=X",
+  "panel.widget.stocks.settings.useAccentColor": "Usar cor de destaque",
   "panel.widget.stopwatch": "Cronometro",
   "panel.widget.timer": "Temporizador",
   "panel.widget.timer.decrease": "Diminuir {unit}",

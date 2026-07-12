@@ -2121,6 +2121,7 @@
   "panel.widget.stocks.settings.style": "Стиль",
   "panel.widget.stocks.settings.symbols": "Символы",
   "panel.widget.stocks.settings.symbolsHint": "Символы Yahoo Finance через запятую, например AAPL, ^GSPC, EURUSD=X",
+  "panel.widget.stocks.settings.useAccentColor": "Использовать цвет акцента",
   "panel.widget.stopwatch": "Секундомер",
   "panel.widget.timer": "Таймер",
   "panel.widget.timer.decrease": "Уменьшить {unit}",

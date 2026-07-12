@@ -2121,6 +2121,7 @@
   "panel.widget.stocks.settings.style": "스타일",
   "panel.widget.stocks.settings.symbols": "종목",
   "panel.widget.stocks.settings.symbolsHint": "쉼표로 구분된 Yahoo Finance 종목 코드, 예: AAPL, ^GSPC, EURUSD=X",
+  "panel.widget.stocks.settings.useAccentColor": "강조 색상 사용",
   "panel.widget.stopwatch": "스톱워치",
   "panel.widget.timer": "타이머",
   "panel.widget.timer.decrease": "{unit} 줄이기",

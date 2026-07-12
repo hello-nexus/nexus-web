@@ -2121,6 +2121,7 @@
   "panel.widget.stocks.settings.style": "樣式",
   "panel.widget.stocks.settings.symbols": "股票代碼",
   "panel.widget.stocks.settings.symbolsHint": "以半形逗號分隔的 Yahoo Finance 代碼，例如 AAPL, ^GSPC, EURUSD=X",
+  "panel.widget.stocks.settings.useAccentColor": "使用強調色",
   "panel.widget.stopwatch": "碼錶",
   "panel.widget.timer": "計時器",
   "panel.widget.timer.decrease": "減少{unit}",

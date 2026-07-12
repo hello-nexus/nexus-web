@@ -6,7 +6,7 @@ import { useTranslation } from '../../../lib/i18n';
 import { canEditFreeText } from '../../types';
 import type { WidgetSettingsProps } from '../types';
 import {
-  SettingsHint, SettingsInput, SettingsRow, SettingsSection, SettingsSelect,
+  SettingsHint, SettingsInput, SettingsRow, SettingsSection, SettingsSelect, SettingsToggle,
 } from '../common/SettingsRow/SettingsRow';
 import { DEFAULT_SYMBOLS, normalizeSymbols, resolveMode, resolvePeriod } from './stocksUtils';
 import styles from './StocksSettings.module.scss';
@@ -15,6 +15,7 @@ export function StocksSettings({ widget, surface, desktopEditor, onUpdate }: Wid
   const { t } = useTranslation();
   const mode = resolveMode(widget.config?.mode);
   const period = resolvePeriod(widget.config?.period);
+  const useAccentColor = ((widget.config?.useAccentColor as boolean | undefined) ?? false);
   const savedSymbols = (widget.config?.symbols as string | undefined) ?? DEFAULT_SYMBOLS;
   const [symbolsInput, setSymbolsInput] = useState(savedSymbols);
   const hasKeyboard = canEditFreeText(surface, desktopEditor);
@@ -31,17 +32,17 @@ export function StocksSettings({ widget, surface, desktopEditor, onUpdate }: Wid
       <SettingsSection title={t('panel.widget.stocks.settings.style')}>
         <div className={styles.modeRow}>
           <IconLabelButton
-            className={styles.modeBtn}
             active={mode === 'list'}
             icon={<LayoutList aria-hidden="true" />}
-            label={t('panel.widget.stocks.settings.list')}
+            title={t('panel.widget.stocks.settings.list')}
+            ariaLabel={t('panel.widget.stocks.settings.list')}
             onPress={() => onUpdate({ mode: 'list' })}
           />
           <IconLabelButton
-            className={styles.modeBtn}
             active={mode === 'graph'}
             icon={<LineChart aria-hidden="true" />}
-            label={t('panel.widget.stocks.settings.graph')}
+            title={t('panel.widget.stocks.settings.graph')}
+            ariaLabel={t('panel.widget.stocks.settings.graph')}
             onPress={() => onUpdate({ mode: 'graph' })}
           />
         </div>
@@ -64,6 +65,11 @@ export function StocksSettings({ widget, surface, desktopEditor, onUpdate }: Wid
             onChange={value => onUpdate({ period: value })}
           />
         )}
+        <SettingsToggle
+          label={t('panel.widget.stocks.settings.useAccentColor')}
+          checked={useAccentColor}
+          onChange={checked => onUpdate({ useAccentColor: checked })}
+        />
       </SettingsSection>
 
       <SettingsSection title={t('panel.widget.stocks.settings.symbols')}>
