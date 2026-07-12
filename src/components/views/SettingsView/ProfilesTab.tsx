@@ -64,6 +64,7 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
 
   const primaryId = sharing.config?.primaryProfileId ?? profiles.activeId;
   const sharedCats = useMemo(() => sharing.config?.sharedCategories ?? [], [sharing.config]);
+  const counts = useMemo(() => sharing.config?.counts ?? {}, [sharing.config]);
   const onlyOneProfile = profiles.profiles.length <= 1;
 
   const handleConfirm = useCallback(async () => {
@@ -329,6 +330,7 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
         sharing={sharing}
         primaryId={primaryId}
         sharedCats={sharedCats}
+        counts={counts}
         onlyOneProfile={onlyOneProfile}
         onResetCategory={(profileId, category, shared) =>
           setConfirmTarget({ kind: 'resetCategory', profileId, category, shared })

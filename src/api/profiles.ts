@@ -5,7 +5,7 @@ import type { OverlayWidgetDto } from './overlay';
 import type { UpdateChannel, UpdateMode } from './update';
 import type { TempUnit, TimeFormat, NumberFormat } from '../lib/units';
 
-export const PROFILE_CATEGORIES = ['lighting', 'cooling', 'theme', 'dashboard'] as const;
+export const PROFILE_CATEGORIES = ['lighting', 'cooling', 'theme', 'dashboard', 'device'] as const;
 export type ProfileCategory = typeof PROFILE_CATEGORIES[number];
 
 export interface ProfileEntry {
@@ -254,9 +254,16 @@ export interface SharingConfig {
   primaryProfileId: string | null;
   sharedCategories: ProfileCategory[];
   allCategories: ProfileCategory[];
+  // Active-profile user-preset count per category (e.g. saved lighting
+  // effects, Stream Deck profiles). Only lighting and device are ever > 0
+  // today. Defaulted to {} in fetchSharing for an older service that omits it.
+  counts: Record<string, number>;
 }
 
-export const fetchSharing = () => fetchService<SharingConfig>('/profiles/sharing');
+export const fetchSharing = async (): Promise<SharingConfig | null> => {
+  const data = await fetchService<SharingConfig>('/profiles/sharing');
+  return data ? { ...data, counts: data.counts ?? {} } : null;
+};
 
 export const setPrimaryProfile = (profileId: string) =>
   putService('/profiles/sharing/primary', { profileId });

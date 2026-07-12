@@ -120,6 +120,22 @@
   padding: 0.6rem 0;
 }
 
+// Leading-icon variant of .note for the sharing section's "create another
+// profile" hint - a touch more prominent than a plain dim note since it
+// points at an action, not just background context.
+.sharingHint {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text);
+  margin: 0 0 0.5rem;
+
+  svg {
+    flex-shrink: 0;
+    color: var(--accent);
+  }
+}
+
 
 // ── Profiles tab ──
 
