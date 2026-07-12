@@ -64,10 +64,19 @@ const EMPTY_STATE: KeyboardState = {
 // settings) within ~1.5 s.
 const POLL_MS = 1500;
 
+/// The fetch layer blind-casts JSON, so a mixed-deploy window (old service,
+/// new web) can deliver a state payload missing fields the type declares.
+/// Anchor every server payload on EMPTY_STATE so render code never sees an
+/// undefined grid.
+function normalizeState(st: KeyboardState | null | undefined): KeyboardState {
+  if (!st) return EMPTY_STATE;
+  return { ...EMPTY_STATE, ...st, keys: st.keys ?? [] };
+}
+
 /// Apply a single SetLayerKeyBody to the keys grid by replacing one cell.
 /// Returns a new state with deep-cloned `keys` so React sees the change.
 function applyKeyOverride(prev: KeyboardState, body: SetLayerKeyBody): KeyboardState {
-  const keys = prev.keys.map(row => row.slice());
+  const keys = (prev.keys ?? []).map(row => row.slice());
   while (keys.length <= body.x) keys.push([]);
   while (keys[body.x].length <= body.y) keys[body.x].push({ mode: '', function: '', input: null });
   keys[body.x][body.y] = { mode: body.mode, function: body.func, input: body.input ?? null };
@@ -104,7 +113,7 @@ export function useKeeb(enabled: boolean): UseKeebApi {
       if (cancelledRef.current) return;
       if (pendingWritesRef.current > 0) return;
       if (writeGenerationRef.current !== generation) return;
-      if (st) setState(st);
+      if (st) setState(normalizeState(st));
       if (se) setSettings(se);
     } catch {
       // A poll tick that dies mid-flight (service restart) retries on the
@@ -162,7 +171,7 @@ export function useKeeb(enabled: boolean): UseKeebApi {
     setState(prev => applyKeyOverride(prev, body));
     return runWrite(async () => {
       const r = await setKeebLayerKey(layer, body);
-      if (r && pendingWritesRef.current === 1 && layerRef.current === layer) setState(r.state);
+      if (r && pendingWritesRef.current === 1 && layerRef.current === layer) setState(normalizeState(r.state));
       return r !== null;
     });
   }, [layer, runWrite]);
@@ -173,7 +182,7 @@ export function useKeeb(enabled: boolean): UseKeebApi {
     setState(prev => ({ ...prev, keys: [] }));
     return runWrite(async () => {
       const r = await resetKeebLayer(layer);
-      if (r && pendingWritesRef.current === 1 && layerRef.current === layer) setState(r.state);
+      if (r && pendingWritesRef.current === 1 && layerRef.current === layer) setState(normalizeState(r.state));
       return r !== null;
     });
   }, [layer, runWrite]);

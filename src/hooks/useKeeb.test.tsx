@@ -131,7 +131,7 @@ describe('useKeeb', () => {
     await flush();
 
     expect(result.current.loading).toBe(false);
-    expect(result.current.state).toBe(server);
+    expect(result.current.state).toStrictEqual(server);
     expect(result.current.settings).toEqual(makeSettings());
   });
 
@@ -144,7 +144,7 @@ describe('useKeeb', () => {
     await advance(1500);
 
     expect(mockState).toHaveBeenCalledTimes(2);
-    expect(result.current.state).toBe(next);
+    expect(result.current.state).toStrictEqual(next);
 
     await advance(1500);
     expect(mockState).toHaveBeenCalledTimes(3);
@@ -203,7 +203,7 @@ describe('useKeeb', () => {
 
     expect(ok).toBe(true);
     // The server-returned authoritative state replaced the optimistic one.
-    expect(result.current.state).toBe(ack);
+    expect(result.current.state).toStrictEqual(ack);
     // Success: no resync fetch beyond the initial one.
     expect(mockState).toHaveBeenCalledTimes(1);
   });
@@ -228,7 +228,7 @@ describe('useKeeb', () => {
     expect(ok).toBe(false);
     // The resync fetch fired once the failed write settled.
     expect(mockState).toHaveBeenCalledTimes(2);
-    expect(result.current.state).toBe(reverted);
+    expect(result.current.state).toStrictEqual(reverted);
     expect(result.current.state.keys).toEqual([[{ mode: 'StandardKey', function: 'A', input: null }]]);
   });
 
@@ -251,7 +251,7 @@ describe('useKeeb', () => {
 
     expect(ok).toBe(false);
     expect(mockState).toHaveBeenCalledTimes(2);
-    expect(result.current.state).toBe(reverted);
+    expect(result.current.state).toStrictEqual(reverted);
   });
 
   it('saveFirmwareLighting merges optimistic settings and returns the api result', async () => {
@@ -466,7 +466,7 @@ describe('useKeeb', () => {
 
     // The next poll paints the real layer-2 board.
     await advance(1500);
-    expect(result.current.state).toBe(layer2);
+    expect(result.current.state).toStrictEqual(layer2);
   });
 
   it('discards a poll that started before a write completed', async () => {

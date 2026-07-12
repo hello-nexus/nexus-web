@@ -104,6 +104,32 @@ describe('KeebMacroView - recorder', () => {
     keys.forEach(k => expect(k.duration).toBeGreaterThanOrEqual(10));
   });
 
+  it('records measured gaps as the previous action durations', async () => {
+    // A settable clock: React also calls performance.now internally, so the
+    // mock must be positional-safe (same value until the test advances it).
+    let virtualNow = 1000;
+    const nowSpy = vi.spyOn(performance, 'now').mockImplementation(() => virtualNow);
+    try {
+      renderView();
+      fireEvent.click(screen.getByRole('button', { name: 'keeb.macro.start' }));
+      await tick();
+      fireEvent.keyDown(window, { code: 'ControlLeft' });
+      virtualNow = 1120;
+      fireEvent.keyDown(window, { code: 'KeyC' });
+      virtualNow = 1250;
+      fireEvent.keyUp(window, { code: 'KeyC' });
+      virtualNow = 1400;
+      fireEvent.keyUp(window, { code: 'ControlLeft' });
+      fireEvent.click(screen.getByRole('button', { name: 'keeb.macro.stop' }));
+      await tick();
+      await tick();
+      // Each action's duration = time to the NEXT action; the tail keeps 10.
+      expect(lastSavedKeys().map(k => k.duration)).toEqual([120, 130, 150, 10]);
+    } finally {
+      nowSpy.mockRestore();
+    }
+  });
+
   it('preserves overlapping holds in order (Ctrl+C chord)', async () => {
     renderView();
     fireEvent.click(screen.getByRole('button', { name: 'keeb.macro.start' }));
@@ -327,6 +353,6 @@ describe('KeebMacroView - save diagnostics', () => {
     renderView();
     await tick();
 
-    expect(screen.getByText('keeb.macro.budget used=6 max=252')).toBeInTheDocument();
+    expect(screen.getByText('keeb.macro.budget used=6 max=248')).toBeInTheDocument();
   });
 });

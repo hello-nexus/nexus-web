@@ -80,7 +80,7 @@ export function KeebKeyboard({
   const rightWheelSelected = selected?.kind === 'wheel' && selected.side === 'right';
 
   const renderKey = (cell: { function: string; mode: string; style?: CSSProperties }, x: number, y: number, opts?: { stripAbsolute?: boolean }) => {
-    const assigned: KeebKey | undefined = useDefaults ? undefined : state.keys[x]?.[y];
+    const assigned: KeebKey | undefined = useDefaults ? undefined : state.keys?.[x]?.[y];
     const func = assigned?.function || cell.function;
     const isSelected = selected?.kind === 'key' && selected.x === x && selected.y === y;
     const glyph = getKeyGlyph(func, layout);

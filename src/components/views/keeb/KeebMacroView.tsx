@@ -13,9 +13,10 @@ type DelayMode = 'record' | 'custom';
 
 const normalize = (ms: number) => Math.max(10, Math.round(ms / 10) * 10);
 
-// Onboard stream budget: 256 bytes minus the 2-byte repeat header and the
-// 2-byte terminator. Entries cost 2 bytes (delay <= 1260 ms) or 4 (longer).
-const BUDGET_BYTES = 252;
+// Onboard stream budget: 256 bytes minus the 2-byte repeat header, the
+// 2-byte terminator, and the firmware's 4-byte reserved tail (its factory
+// sentinel). Entries cost 2 bytes (delay <= 1260 ms) or 4 (longer).
+const BUDGET_BYTES = 248;
 const entryBytes = (k: MacroKey) => (Math.max(1, Math.round(k.duration / 10)) <= 126 ? 2 : 4);
 const usedBytes = (keys: MacroKey[]) => keys.reduce((sum, k) => sum + entryBytes(k), 0);
 
@@ -103,18 +104,21 @@ export function KeebMacroView({ loadMacro, saveMacro }: KeebMacroViewProps) {
   const pushAction = useCallback((key: string, type: MacroKey['type']) => {
     const now = performance.now();
     const custom = delayModeRef.current === 'custom';
+    // Capture the previous timestamp BEFORE scheduling the state update: the
+    // updater runs later in the render, after the ref has already advanced
+    // to this event, so reading it inside would measure a zero gap.
+    const prevAt = lastEventAtRef.current;
+    lastEventAtRef.current = now;
     setRecordings(list => {
       const next = [...list];
       // Finalize the previous action's duration with the measured gap. In
       // custom mode every action keeps the fixed delay instead.
-      if (!custom && next.length > 0 && lastEventAtRef.current !== null) {
-        const gap = normalize(now - lastEventAtRef.current);
-        next[next.length - 1] = { ...next[next.length - 1], duration: gap };
+      if (!custom && next.length > 0 && prevAt !== null) {
+        next[next.length - 1] = { ...next[next.length - 1], duration: normalize(now - prevAt) };
       }
       next.push({ key, type, duration: custom ? normalize(customDelayRef.current) : 10 });
       return next;
     });
-    lastEventAtRef.current = now;
   }, []);
 
   const record = useCallback((event: KeyboardEvent) => {

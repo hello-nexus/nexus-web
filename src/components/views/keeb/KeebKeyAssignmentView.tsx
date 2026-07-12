@@ -83,7 +83,7 @@ export function KeebKeyAssignmentView({
   // from the source list.
   const sourceSelected: KeebSelection = (() => {
     if (!selected) return null;
-    const assigned = state.keys[selected.x]?.[selected.y];
+    const assigned = state.keys?.[selected.x]?.[selected.y];
     const currentFn = assigned?.function
       ?? sourceRows[selected.x]?.[selected.y]?.function;
     if (!currentFn) return null;
