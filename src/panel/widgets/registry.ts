@@ -23,6 +23,7 @@ import {
 // exports its AppManifest from its `index.ts`; this file aggregates
 // them into the registry consumed by the panel engine.
 import { clockApp } from './clock';
+import { calendarApp } from './calendar';
 import { monitoringApp } from './monitoring';
 import { mediaApp } from './media';
 import { weatherApp } from './weather';
@@ -53,6 +54,7 @@ import { diagnosticsApp } from './diagnostics';
 // fullscreen), Settings (right-click sheet).
 export const APP_REGISTRY: Record<string, AppManifest> = {
   clock:      clockApp,
+  calendar:   calendarApp,
   monitoring: monitoringApp,
   media:      mediaApp,
   weather:    weatherApp,

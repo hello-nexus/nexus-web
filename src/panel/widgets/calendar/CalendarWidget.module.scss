@@ -1,0 +1,174 @@
+// ── Simple date card ─────────────────────────────────────────────
+.card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 16px;
+  color: var(--text);
+  text-align: center;
+  line-height: 1;
+
+  &.s-2x2 { font-size: 2em; padding: 14px; }
+  &.s-4x2 { font-size: 2.3em; }
+  &.s-4x4 { font-size: 3.2em; padding: 22px; }
+  &.s-2x4 { font-size: 2.6em; padding: 20px; }
+}
+
+.weekday {
+  font-size: 0.62em;
+  font-weight: var(--weight-body);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--panel-accent);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.day {
+  font-size: 2.1em;
+  font-weight: var(--weight-display);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 0.95;
+}
+
+.monthYear {
+  font-size: 0.5em;
+  font-weight: var(--weight-body);
+  color: var(--text-dim);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// ── Month grid ───────────────────────────────────────────────────
+.month {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  color: var(--text);
+  line-height: 1;
+  min-width: 0;
+  min-height: 0;
+
+  // font-size (the grid's scale knob) lives on .calBody, not here, so the date
+  // block beside the grid inherits the panel base and renders identically to
+  // the standalone simple card.
+  &.s-2x2 { flex-direction: column; padding: 18px 26px; }
+  &.s-4x2 { flex-direction: row; align-items: stretch; gap: 20px; padding: 16px 40px; }
+  &.s-4x4 { flex-direction: column; padding: 30px 32px; }
+  &.s-2x4 { flex-direction: column; justify-content: space-between; gap: 14px; padding: 30px 26px; }
+}
+
+.calBody {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  gap: 0.5em;
+}
+
+.s-2x2 .calBody { font-size: 1em; }
+.s-4x2 .calBody { font-size: 1.05em; }
+// 4x4 fills the cell so the day block can center in the space under the header.
+.s-4x4 .calBody { font-size: 1.5em; flex: 1; }
+.s-2x4 .calBody { font-size: 1.05em; flex: 0 0 auto; }
+
+// Large + portrait grids stay at content height (compact rows) rather than
+// stretching to fill; the portrait is pinned low.
+.s-4x4 .grid { flex: 0 0 auto; row-gap: 0.55em; margin-bottom: auto; }
+.s-2x4 .grid { flex: 0 0 auto; row-gap: 0.5em; }
+
+// Center the weekday row + days in the space below the month header so the
+// block sits lower instead of crowding the top.
+.s-4x4 .weekRow { margin-top: auto; }
+
+// Extra breathing room between the month header and the day grid on the large
+// square.
+.s-4x4 .header { margin-bottom: 0.4em; }
+
+.header {
+  font-size: 0.9em;
+  font-weight: var(--weight-display);
+  letter-spacing: -0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.weekRow {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.weekName {
+  font-size: 0.56em;
+  font-weight: var(--weight-body);
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--text-dim);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  flex: 1;
+  min-height: 0;
+  row-gap: 0.15em;
+}
+
+.cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 0;
+}
+
+.dayNum {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6em;
+  height: 1.6em;
+  font-size: 0.68em;
+  font-variant-numeric: tabular-nums;
+  border-radius: 50%;
+}
+
+.weekend .dayNum {
+  color: var(--text-dim);
+}
+
+.today .dayNum {
+  background: var(--panel-accent);
+  color: var(--accent-text);
+  font-weight: var(--weight-body);
+}
+
+// ── Date block beside (4x2) / above (2x4) the grid ───────────────
+.aside {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.s-4x2 .aside {
+  flex-basis: 42%;
+  text-align: center;
+}
+
+.s-2x4 .aside {
+  align-items: center;
+  text-align: center;
+}
