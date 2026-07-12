@@ -18,7 +18,6 @@ export const monitoringApp: AppManifest = {
     icon: Activity,
     sizes: ['2x2', '2x4', '4x2', '4x4'],
     defaultSize: '4x4',
-    pickerSize: '4x2',
     supportsImmersive: { portrait: true, landscape: true },
     hasConfig: true,
     touch: false,

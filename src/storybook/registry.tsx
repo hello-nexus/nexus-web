@@ -2,7 +2,7 @@
 // file per preview to satisfy the fast-refresh rule would be dozens of tiny
 // files. Storybook entries reload (not HMR) on edit.
 import { useEffect, useRef, useState, type CSSProperties, type FC } from 'react';
-import { Monitor, Palette, Sparkles, X, Plus, Settings, Download, AlertTriangle } from 'lucide-react';
+import { Monitor, Palette, Sparkles, X, Plus, Settings, Download, AlertTriangle, HardDrive } from 'lucide-react';
 import { ViewHeader } from '../components/common/ViewHeader/ViewHeader';
 import { Sparkline } from '../components/common/Sparkline/Sparkline';
 import { RankedList } from '../components/common/RankedList/RankedList';
@@ -351,7 +351,7 @@ function PreviewSensorCard() {
 
 function PreviewCard() {
   return (
-    <Card title="Sample card" subtitle="Compose into bespoke surfaces">
+    <Card title="Sample card" subtitle="Compose into bespoke surfaces" icon={<HardDrive size={18} />}>
       <p className={styles.previewText}>Card primitive owns background, border, padding, and the title row.</p>
     </Card>
   );
@@ -429,9 +429,9 @@ function PreviewChipGroup() {
   return <ChipGroup
     ariaLabel="Sample chip group"
     options={[
-      { key: 'quiet', label: 'Quiet', title: 'Prefer quiet' },
-      { key: 'balanced', label: 'Balanced', title: 'Prefer balanced' },
-      { key: 'turbo', label: 'Turbo', title: 'Prefer turbo' },
+      { key: 'quiet', label: 'Quiet', tooltip: 'Prefer quiet' },
+      { key: 'balanced', label: 'Balanced', tooltip: 'Prefer balanced' },
+      { key: 'turbo', label: 'Turbo', tooltip: 'Prefer turbo' },
     ]}
     activeKey={active}
     onChange={setActive}
@@ -1775,7 +1775,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'Card', category: 'cards',
     filePath: 'src/components/common/Card/Card.tsx',
-    description: 'Canonical card surface (background, border, radius, padding) with optional title / subtitle / actions header. Compose for any panel. `interactive` adds a hover state; `compact` tightens padding for dense layouts (tile grids).', Preview: PreviewCard,
+    description: 'Canonical card surface (background, border, radius, padding) with optional icon / title / subtitle / actions header. Compose for any panel. `icon` renders a leading glyph before the title; `interactive` adds a hover state; `compact` tightens padding for dense layouts (tile grids).', Preview: PreviewCard,
   },
   {
     name: 'SensorCard', category: 'cards',
@@ -2263,10 +2263,10 @@ export const REGISTRY: StorybookEntry[] = [
     notes: 'No live preview -- requires a running service for the Run tab and cloud API for Leaderboards.',
   },
   {
-    name: 'LayoutToolbar', category: 'panel-kit',
-    filePath: 'src/panel/widgets/lighting/page/LayoutToolbar.tsx',
-    description: 'Toolbar for lighting canvas layout presets: preset dropdown (with Rename/Delete when active), Save / New / Reset icon buttons, Undo/Redo with keyboard shortcuts.',
-    notes: 'No live preview -- bound to live preset state via useLayoutPresets and requires a running service.',
+    name: 'PresetToolbar', category: 'inputs',
+    filePath: 'src/components/common/PresetToolbar/PresetToolbar.tsx',
+    description: 'Generic named-preset manager: dropdown (with Rename/Delete when active and a capped New preset... entry), optionally paired with Reset / Undo / Redo icon buttons via showHistory. Used by the lighting canvas layout toolbar (full history controls) and the Stream Deck page (dropdown only).',
+    notes: 'No live preview -- bound to live preset state via useLayoutPresets / useDeckPresets and requires a running service.',
   },
   {
     name: 'CorsairDevicePage', category: 'panel-kit',

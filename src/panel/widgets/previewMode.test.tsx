@@ -138,8 +138,8 @@ describe('widget preview mode', () => {
   for (const [type, def] of Object.entries(APP_REGISTRY)) {
     const pickerSize = pickerSizeFor(def.meta);
     const sizes = new Set<PanelWidgetSize>([pickerSize]);
-    // The 4-column sheet catalog downgrades 4x2 picker tiles to 2x2 - the
-    // compact branch must render from the same fixture.
+    // The catalog's browse-size preference renders 2x2-capable tiles at 2x2 -
+    // the compact branch must render from the same fixture.
     if (def.meta.sizes.includes('2x2')) sizes.add('2x2');
 
     for (const size of sizes) {

@@ -126,7 +126,7 @@ export function defaultActionFor(kind: DeckActionType): DeckAction {
     case 'openFolder': return { type: 'openFolder', path: '' };
     case 'system': return { type: 'system', action: { op: 'volumeUp' } };
     case 'hotkey': return { type: 'hotkey', keys: '' };
-    case 'text': return { type: 'text', text: '', paste: true };
+    case 'text': return { type: 'text', text: '' };
     case 'power': return { type: 'power', action: 'lock' };
     case 'audioOutput': return { type: 'audioOutput', deviceId: '' };
     case 'audioInput': return { type: 'audioInput', deviceId: '' };
@@ -295,11 +295,7 @@ function ActionFields({ action, onChange, allowed, surface, desktopEditor, pageC
       );
     case 'text':
       return (
-        <>
-          <Field label={t('panel.settings.deck.text')}><textarea className={styles.input} value={action.text} rows={2} onChange={e => onChange({ ...action, text: e.target.value })} /></Field>
-          {/* eslint-disable-next-line i18next/no-literal-string -- option enum values */}
-          <SelectField label={t('panel.settings.deck.paste')} value={(action.paste ?? true) ? 'yes' : 'no'} options={[{ value: 'yes', label: t('panel.settings.deck.pasteOn') }, { value: 'no', label: t('panel.settings.deck.pasteOff') }]} onChange={v => onChange({ ...action, paste: v === 'yes' })} />
-        </>
+        <Field label={t('panel.settings.deck.text')}><textarea className={styles.input} value={action.text} rows={2} onChange={e => onChange({ ...action, text: e.target.value })} /></Field>
       );
     case 'power': {
       const ops = ['lock', 'sleep', 'shutdown', 'restart', 'logout'];
@@ -390,7 +386,7 @@ function NexusFields({ action, onChange }: { action: Extract<DeckAction, { type:
   );
 }
 
-const MONITORING_STYLES: DeckMonitoringStyle[] = ['line', 'radial', 'number'];
+const MONITORING_STYLES: DeckMonitoringStyle[] = ['line', 'segments', 'backdrop', 'number'];
 const MONITORING_PRESSES: DeckMonitoringPress[] = ['none', 'taskManager', 'monitoringPage'];
 
 function MonitoringFields({ action, onChange }: { action: Extract<DeckAction, { type: 'monitoring' }>; onChange: (a: DeckAction) => void }) {

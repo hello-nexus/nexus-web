@@ -267,7 +267,7 @@ describe('usePhysicalDeckTarget - debounced sync + rollback (RISK 2, SMELL 1)', 
 });
 
 describe('usePhysicalDeckTarget - back-key upload', () => {
-  it('renders and uploads the back-chevron bitmap once per deck to slotPath "back" state 0', async () => {
+  it('renders and uploads the back-key bitmap once per deck to slotPath "back" state 0', async () => {
     renderHook(() => usePhysicalDeckTarget(makeDeck(), []));
     await settleInitialSync();
 
@@ -351,5 +351,48 @@ describe('usePhysicalDeckTarget - page navigation', () => {
     await settleInitialSync();
 
     expect(result.current.target!.config.pages[0].slots[0].label).toBe('p0');
+  });
+});
+
+describe('usePhysicalDeckTarget - onCommit + applyConfig (undo/redo/reset choke point)', () => {
+  it('calls onCommit with the pre-edit config once a target edit commits, but not on initial load', async () => {
+    const onCommit = vi.fn();
+    const { result } = renderHook(() => usePhysicalDeckTarget(makeDeck(), [], 0, onCommit));
+    await settleInitialSync();
+
+    expect(onCommit).not.toHaveBeenCalled();
+
+    act(() => { result.current.target!.updateSlot(0, [], 0, { label: 'edited' }); });
+
+    expect(onCommit).toHaveBeenCalledTimes(1);
+    expect(onCommit).toHaveBeenCalledWith({ pages: [{ slots: [] }] });
+  });
+
+  it('applyConfig sets the config without invoking onCommit', async () => {
+    const onCommit = vi.fn();
+    const { result } = renderHook(() => usePhysicalDeckTarget(makeDeck(), [], 0, onCommit));
+    await settleInitialSync();
+
+    const restored: DeckConfig = { pages: [{ slots: [{ label: 'restored' }] }] };
+    act(() => { result.current.applyConfig(restored); });
+
+    expect(onCommit).not.toHaveBeenCalled();
+    expect(result.current.target!.config).toEqual(restored);
+  });
+
+  it('applyConfig triggers the same debounced PUT + key-image resync as a normal edit', async () => {
+    const { result } = renderHook(() => usePhysicalDeckTarget(makeDeck(), []));
+    await settleInitialSync();
+    mockSetConfig.mockClear();
+
+    const restored: DeckConfig = { pages: [{ slots: [{ label: 'restored' }] }] };
+    act(() => { result.current.applyConfig(restored); });
+    await advance(300);
+    await flush();
+
+    expect(mockSetConfig).toHaveBeenCalledTimes(1);
+    const [sentSerial, sentConfig] = mockSetConfig.mock.calls[0] as [string, DeckConfig];
+    expect(sentSerial).toBe('SN1');
+    expect(sentConfig).toEqual(restored);
   });
 });

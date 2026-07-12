@@ -32,8 +32,19 @@
   --panel-scrim-bg: rgb(0 0 0 / var(--alpha-strong));
 
   --panel-card-radius: var(--radius);
-  // Widget cards use the shared --surface token (the app-wide activatable bg).
+  // Inner widget elements (Steam/cooling/lighting sub-cards, the Discord card
+  // border) read --panel-card-bg = the shared translucent --surface directly.
   --panel-card-bg: var(--surface);
+  // The .panel-card fill. Defaults to translucent --surface so embedded hosts
+  // (desktop dashboard, floating overlay - both buildEmbeddedPanelThemeVars)
+  // keep their frosted look. Live device panels (buildPanelThemeVars) swap in
+  // --panel-card-fill-opaque so the widget-opacity slider is the sole source of
+  // card transparency there: 100% renders a solid box, 0% is fully clear.
+  --panel-card-fill: var(--surface);
+  // Opaque equivalent of --surface: its tint flattened over the theme
+  // --backdrop-base. The color-mix weight must track --surface's alpha; light
+  // mirror in the [data-theme='light'] block.
+  --panel-card-fill-opaque: color-mix(in srgb, #000 40%, var(--backdrop-base));
   // User-controlled widget surface alpha. Applied via color-mix on
   // .panel-card so only the background, border, and shadow fade with the
   // slider; contents (text, icons, charts) stay fully opaque. Written as
@@ -129,6 +140,7 @@
 .panel-root[data-theme='light'] {
   --panel-scrim-bg: rgba(248, 250, 252, 0.48);
   --panel-card-border: transparent;
+  --panel-card-fill-opaque: color-mix(in srgb, #fff 60%, var(--backdrop-base));
 }
 
 // Sensor unit suffix inside any monitoring gauge (% / RPM / GB / °C / etc).
@@ -145,7 +157,7 @@
 }
 
 .panel-card {
-  background-color: color-mix(in srgb, var(--panel-card-bg) var(--panel-card-bg-opacity, 100%), transparent);
+  background-color: color-mix(in srgb, var(--panel-card-fill) var(--panel-card-bg-opacity, 100%), transparent);
   // Border fades with the user's widget opacity slider so a 0% widget has zero
   // visible chrome - just the contents floating over the panel background.
   // .panel-chip and other consumers of --panel-card-border are intentionally

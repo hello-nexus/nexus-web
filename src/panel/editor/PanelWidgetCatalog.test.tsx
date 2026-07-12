@@ -139,8 +139,10 @@ describe('PanelWidgetCatalog', () => {
     render(<PanelWidgetCatalog surface="desktop" onAdd={vi.fn()} />);
 
     const chip = screen.getByRole('button', { name: '4x2' });
-    expect(chip).toHaveAttribute('title', 'panel.add.preferSize');
     expect(chip.querySelector('svg')).not.toBeNull();
+    // Focus opens the shared HoverTooltip immediately (no rest delay).
+    fireEvent.focus(chip);
+    expect(screen.getByRole('tooltip')).toHaveTextContent('panel.add.preferSize');
   });
 
   it('switches supporting widgets to 4x2 via the size chips and persists the choice', () => {

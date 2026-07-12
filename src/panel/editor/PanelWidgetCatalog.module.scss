@@ -21,6 +21,13 @@
 // on-device sheets render chips only).
 .sizeChips {
   margin-left: auto;
+
+  // Icon-only chips: a fixed footprint keeps both buttons the same size
+  // even though the 4x2 glyph draws wider than the 2x2.
+  :global(.chip-action) {
+    width: 44px;
+    padding-inline: 0;
+  }
 }
 
 .scroller {

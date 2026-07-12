@@ -200,6 +200,23 @@ describe('DeckKeyInspector action picker - collapsible category list', () => {
   });
 });
 
+describe('DeckKeyInspector - text action', () => {
+  it('renders only the text field, no paste toggle', () => {
+    const { container } = renderInspector([{ action: { type: 'text', text: 'hello' } }]);
+    expect(screen.getByText('panel.settings.deck.text')).toBeInTheDocument();
+    const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
+    expect(textarea.value).toBe('hello');
+    expect(screen.queryByText('panel.settings.deck.paste')).toBeNull();
+  });
+
+  it('updating the text field persists the new value', () => {
+    const { container } = renderInspector([{ action: { type: 'text', text: '' } }]);
+    const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
+    fireEvent.change(textarea, { target: { value: 'typed' } });
+    expect(textarea.value).toBe('typed');
+  });
+});
+
 describe('DeckKeyInspector - deckBrightness/deckSleep are physical-deck-only', () => {
   it('hides the Stream Deck category entirely on a touch-widget target', () => {
     renderWidgetInspector();
@@ -315,10 +332,20 @@ describe('DeckKeyInspector - monitoring action', () => {
   it('changing style persists the new value', () => {
     renderInspector([{ action: MONITORING_ACTION }]);
     fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.monitoringStyleOp' }));
-    fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.monitoringStyle.radial' }));
+    fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.monitoringStyle.backdrop' }));
 
     fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.monitoringStyleOp' }));
-    expect(screen.getByRole('option', { name: 'panel.settings.deck.monitoringStyle.radial' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.monitoringStyle.backdrop' })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('offers all four styles: line, segments, backdrop, number', () => {
+    renderInspector([{ action: MONITORING_ACTION }]);
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.monitoringStyleOp' }));
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.monitoringStyle.line' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.monitoringStyle.segments' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.monitoringStyle.backdrop' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.monitoringStyle.number' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'panel.settings.deck.monitoringStyle.radial' })).toBeNull();
   });
 
   it('changing the on-press action persists the new value', () => {

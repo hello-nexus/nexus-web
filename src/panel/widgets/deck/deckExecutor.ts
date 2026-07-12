@@ -43,7 +43,7 @@ export async function executeDeckAction(action: DeckAction): Promise<void> {
       return;
     }
     case 'text':
-      await postService('/system/input/text', { text: action.text, paste: action.paste ?? true });
+      await postService('/system/input/text', { text: action.text });
       return;
     case 'power':
       await postService(`/system/power/${action.action}`, {});

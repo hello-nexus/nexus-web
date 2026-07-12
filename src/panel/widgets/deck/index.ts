@@ -11,7 +11,6 @@ export const deckApp: AppManifest = {
     icon: LayoutGrid,
     sizes: ['2x2', '4x2', '4x4'],
     defaultSize: '4x2',
-    pickerSize: '4x2',
     supportsImmersive: { portrait: false, landscape: false },
     hasConfig: true,
     touch: true,

@@ -697,10 +697,11 @@
     filter 140ms ease-out;
 }
 
-// Frosted-glass widget blur (data-widget-blur). Gated to shader mode: over a
-// solid colour a blurred backdrop is identical to the colour, so solid panels
-// skip the pass. Hard radius, never animated - tweening backdrop-filter
-// re-runs an uncacheable gaussian every frame and janks on the panel SoCs.
+// Frosted-glass widget blur (data-widget-blur). Applied over shader and media
+// backgrounds; only solid mode skips the pass, since a blurred solid colour is
+// identical to the colour. Hard radius, never animated - tweening
+// backdrop-filter re-runs an uncacheable gaussian every frame and janks on the
+// panel SoCs.
 //
 // Write ONLY the unprefixed property: lightningcss autoprefixes it to emit
 // both `backdrop-filter` AND `-webkit-backdrop-filter`. Hand-writing the
@@ -711,7 +712,7 @@
 // `:not([data-widget-opaque='true'])` skips the pass at 100% widget opacity:
 // the blurred backdrop is fully hidden behind the card, so there's nothing
 // to render. Render-time skip only; the toggle setting is unchanged.
-.panelRoot[data-widget-blur='true'][data-background-mode='shader']:not([data-widget-opaque='true']) .cell {
+.panelRoot[data-widget-blur='true']:not([data-background-mode='solid']):not([data-widget-opaque='true']) .cell {
   backdrop-filter: blur(16px);
 }
 

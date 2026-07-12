@@ -15,6 +15,10 @@ export interface CardProps {
   title?: ReactNode;
   subtitle?: ReactNode;
   actions?: ReactNode;
+  // A leading glyph rendered before the title, centered against the title
+  // line. Rendered aria-hidden: purely decorative, so keep any meaning in the
+  // title itself.
+  icon?: ReactNode;
   children?: ReactNode;
   interactive?: boolean;
   compact?: boolean;
@@ -35,9 +39,9 @@ export interface CardProps {
 }
 
 export function Card({
-  title, subtitle, actions, children, interactive, compact, className, onClick, truncateSubtitle, disableInteractiveRole, dashHover,
+  title, subtitle, actions, icon, children, interactive, compact, className, onClick, truncateSubtitle, disableInteractiveRole, dashHover,
 }: CardProps) {
-  const hasHeader = title !== undefined || subtitle !== undefined || actions !== undefined;
+  const hasHeader = title !== undefined || subtitle !== undefined || actions !== undefined || icon !== undefined;
   const interactiveRole = onClick && !disableInteractiveRole;
   const isInteractive = interactive || Boolean(onClick);
   const interactiveClass = isInteractive ? (dashHover ? styles.dashHover : styles.interactive) : '';
@@ -60,11 +64,14 @@ export function Card({
     >
       {hasHeader && (
         <div className={styles.header}>
-          <div className={styles.titleCol}>
-            {title !== undefined && <h4 className={styles.title}>{title}</h4>}
-            {subtitle !== undefined && (
-              <span className={`${styles.subtitle} ${truncateSubtitle ? styles.subtitleTruncate : ''}`}>{subtitle}</span>
-            )}
+          <div className={styles.headerMain}>
+            {icon !== undefined && <span className={styles.icon} aria-hidden="true">{icon}</span>}
+            <div className={styles.titleCol}>
+              {title !== undefined && <h4 className={styles.title}>{title}</h4>}
+              {subtitle !== undefined && (
+                <span className={`${styles.subtitle} ${truncateSubtitle ? styles.subtitleTruncate : ''}`}>{subtitle}</span>
+              )}
+            </div>
           </div>
           {actions !== undefined && <div className={styles.actions}>{actions}</div>}
         </div>

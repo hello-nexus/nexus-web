@@ -62,7 +62,7 @@ export interface DeckPageAction {
 // between web and service) and the extras-topic categories (memoryModule,
 // battery, cooler, psu, embeddedController).
 export type DeckMonitoringCategory = 'quick' | 'cpu' | 'gpu' | 'memory' | 'motherboard' | 'storage';
-export type DeckMonitoringStyle = 'line' | 'radial' | 'number';
+export type DeckMonitoringStyle = 'line' | 'segments' | 'backdrop' | 'number';
 export type DeckMonitoringPress = 'none' | 'taskManager' | 'monitoringPage';
 
 export type DeckAction =
@@ -72,7 +72,7 @@ export type DeckAction =
   | { type: 'openUrl'; url: string }
   | { type: 'system'; action: DeckSystemAction }
   | { type: 'hotkey'; keys: string }
-  | { type: 'text'; text: string; paste?: boolean }
+  | { type: 'text'; text: string }
   | { type: 'power'; action: 'lock' | 'sleep' | 'shutdown' | 'restart' | 'logout' }
   | { type: 'audioOutput'; deviceId: string }
   | { type: 'audioInput'; deviceId: string }

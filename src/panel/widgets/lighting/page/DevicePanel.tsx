@@ -2,7 +2,7 @@ import { type ReactNode } from 'react';
 import { Cpu, Plus } from 'lucide-react';
 import { type LightingDevice, type LayoutPreset } from '../../../../api/lighting';
 import { useTranslation } from '../../../../lib/i18n';
-import { LayoutToolbar } from './LayoutToolbar';
+import { PresetToolbar } from '../../../../components/common/PresetToolbar/PresetToolbar';
 import { usePersistentState } from '../../../../hooks/usePersistentState';
 import { ZoneCard } from './ZoneCard';
 import { MotherboardGroup } from './MotherboardGroup';
@@ -256,7 +256,7 @@ export function DevicePanel({ devices, header, selectedIds, onSelectDevice, onSe
     <aside className={styles.devicePanel}>
       <div className={styles.deviceList}>
         {header}
-        <LayoutToolbar
+        <PresetToolbar
           presets={presets}
           activeId={layoutActiveId}
           presetCount={presetCount}
