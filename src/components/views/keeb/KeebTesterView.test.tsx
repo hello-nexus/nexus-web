@@ -28,7 +28,7 @@ describe('KeebTesterView - local-mode key capture', () => {
 
   it('a keydown updates the Latest panel + adds a history row', () => {
     render(<KeebTesterView />);
-    fireEvent.keyDown(window, { key: 'a', keyCode: 65 });
+    fireEvent.keyDown(window, { key: 'a', code: 'KeyA' });
     // Single-char keys render as uppercase per the view's normalization.
     expect(screen.queryByText('keeb.tester.empty')).toBeNull();
     expect(screen.getAllByText('A').length).toBeGreaterThanOrEqual(1);
@@ -36,18 +36,18 @@ describe('KeebTesterView - local-mode key capture', () => {
 
   it('repeats do NOT pile new rows into the history', () => {
     render(<KeebTesterView />);
-    fireEvent.keyDown(window, { key: 'a', keyCode: 65 });
-    fireEvent.keyDown(window, { key: 'a', keyCode: 65, repeat: true });
-    fireEvent.keyDown(window, { key: 'a', keyCode: 65, repeat: true });
+    fireEvent.keyDown(window, { key: 'a', code: 'KeyA' });
+    fireEvent.keyDown(window, { key: 'a', code: 'KeyA', repeat: true });
+    fireEvent.keyDown(window, { key: 'a', code: 'KeyA', repeat: true });
     // Should be exactly one captured 'A' entry (latest + history row both
     // show it, but the history list itself only has one row for it).
-    const rowsWithA = screen.getAllByText(/^A \(kc 65\)$/);
+    const rowsWithA = screen.getAllByText(/^A · KeyA$/);
     expect(rowsWithA.length).toBe(1);
   });
 
   it('Reset button clears the captured history and Latest panel', () => {
     render(<KeebTesterView />);
-    fireEvent.keyDown(window, { key: 'a', keyCode: 65 });
+    fireEvent.keyDown(window, { key: 'a', code: 'KeyA' });
     expect(screen.getAllByText('A').length).toBeGreaterThanOrEqual(1);
 
     fireEvent.click(screen.getByRole('button', { name: 'keeb.tester.reset' }));

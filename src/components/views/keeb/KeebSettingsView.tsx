@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp } from 'lucide-react';
 import type { KeebSettings, RGBA } from '../../../api/keeb';
 import { HsvPicker } from '../../common/HsvPicker/HsvPicker';
 import { IconLabelButton } from '../../common/IconLabelButton/IconLabelButton';
-import { SettingRow, SettingSelect, SettingToggle } from '../../common/SettingRow/SettingRow';
+import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
-import { Slider } from '../../common/Slider/Slider';
 import { useThrottle } from '../../../hooks/cadence';
 import { useTranslation } from '../../../lib/i18n';
 import styles from './KeebSettingsView.module.scss';
@@ -25,7 +24,7 @@ const DIRECTIONS: { value: string; icon: ReactNode }[] = [
 
 export interface KeebSettingsViewProps {
   settings: KeebSettings | null;
-  onSaveFirmwareLighting: (next: Pick<KeebSettings, 'animationMode' | 'speed' | 'direction' | 'brightness' | 'keyIndicator'>) => Promise<void>;
+  onSaveFirmwareLighting: (next: Pick<KeebSettings, 'animationMode' | 'speed' | 'direction' | 'brightness'>) => Promise<void>;
   onSavePassiveLighting: (next: Pick<KeebSettings, 'keyReactive' | 'keyReactiveMask' | 'keyReactiveMode' | 'keyReactiveColor'>) => Promise<void>;
   onSaveGameMode: (body: { altF4: boolean; altTab: boolean; shiftTab: boolean; windowsKey: boolean }) => Promise<void>;
 }
@@ -43,16 +42,22 @@ export function KeebSettingsView({
   // Mirror server state locally so sliders feel instant. We push through to
   // the server on commit (slider release / select change).
   const [local, setLocal] = useState<KeebSettings | null>(settings);
+  // Always-current copy for the push builders: a throttled trailing push must
+  // send the values at FIRE time, not the render it was scheduled in, or it
+  // reverts a sibling field changed inside the throttle window.
+  const localRef = useRef<KeebSettings | null>(settings);
+  useEffect(() => { localRef.current = local; }, [local]);
 
   // Re-sync whenever the server-side fetch refreshes.
   useEffect(() => { setLocal(settings); }, [settings]);
 
   // Brightness sends live while dragging (throttled) so the keeb dims as you
-  // drag, and once more on release. The Slider's onChange `commit` flag is only
-  // true for typed input, so relying on it left drag changes unsent.
-  const brightnessThrottle = useThrottle();
+  // drag, and once more on release. Each send is a full 0x06 HID page write
+  // with 20 ms settles on the device side; pace well below the UI cadence.
+  const brightnessThrottle = useThrottle(150);
 
   const setLocalField = useCallback(<K extends keyof KeebSettings>(key: K, value: KeebSettings[K]) => {
+    if (localRef.current) localRef.current = { ...localRef.current, [key]: value };
     setLocal(prev => prev ? { ...prev, [key]: value } : prev);
   }, []);
 
@@ -61,19 +66,20 @@ export function KeebSettingsView({
   }
 
   const pushFw = (patch: Partial<KeebSettings>) => {
-    const next = { ...local, ...patch };
+    const next = { ...(localRef.current ?? local), ...patch };
+    localRef.current = next;
     setLocal(next);
     void onSaveFirmwareLighting({
       animationMode: next.animationMode,
       speed: next.speed,
       direction: next.direction,
       brightness: next.brightness,
-      keyIndicator: next.keyIndicator,
     });
   };
 
   const pushPassive = (patch: Partial<KeebSettings>) => {
-    const next = { ...local, ...patch };
+    const next = { ...(localRef.current ?? local), ...patch };
+    localRef.current = next;
     setLocal(next);
     void onSavePassiveLighting({
       keyReactive: next.keyReactive,
@@ -84,7 +90,8 @@ export function KeebSettingsView({
   };
 
   const pushGameMode = (patch: Partial<Pick<KeebSettings, 'altF4Disabled' | 'altTabDisabled' | 'shiftKeyDisabled' | 'windowsKeyDisabled'>>) => {
-    const next = { ...local, ...patch };
+    const next = { ...(localRef.current ?? local), ...patch };
+    localRef.current = next;
     setLocal(next);
     void onSaveGameMode({
       altF4: next.altF4Disabled,
@@ -109,20 +116,21 @@ export function KeebSettingsView({
           onChange={v => pushFw({ speed: v })}
           options={FW_SPEEDS.map(s => ({ value: s, label: t(`keeb.speed.${s}`) }))}
         />
-        <SettingRow label={t('keeb.settings.brightness')}>
-          <Slider
-            min={0}
-            max={100}
-            value={local.brightness}
-            onChange={v => {
-              setLocalField('brightness', v);
-              brightnessThrottle(() => pushFw({ brightness: v }));
-            }}
-            onCommit={v => pushFw({ brightness: v })}
-            ariaLabel={t('keeb.settings.brightness')}
-            formatValue={v => `${v}%`}
-          />
-        </SettingRow>
+        <SettingSlider
+          label={t('keeb.settings.brightness')}
+          min={0}
+          max={100}
+          value={local.brightness}
+          editable
+          trackFill
+          onChange={v => {
+            setLocalField('brightness', v);
+            brightnessThrottle(() => pushFw({ brightness: v }));
+          }}
+          onCommit={v => pushFw({ brightness: v })}
+          ariaLabel={t('keeb.settings.brightness')}
+          formatValue={v => `${v}%`}
+        />
         <SettingRow label={t('keeb.settings.direction')}>
           <div className={styles.iconGroup}>
             {DIRECTIONS.map(d => (

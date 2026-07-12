@@ -16,8 +16,7 @@ export type KeyAssignmentMode =
   | 'MacroKey'
   | 'LayerKey'
   | 'ProfileKey'
-  | 'RGBKey'
-  | 'SoftwareKey';
+  | 'RGBKey';
 
 export interface KeebKey {
   mode: KeyAssignmentMode | '';
@@ -48,12 +47,10 @@ export interface KeebSettings {
   // Absent on services that predate rotary state in the settings response.
   rotaryLeft?: string;
   rotaryRight?: string;
-  rotarySensitivity?: string;
   animationMode: string;
   speed: string;
   direction: string;
   brightness: number;
-  keyIndicator: boolean;
   keyReactive: boolean;
   keyReactiveMask: boolean;
   keyReactiveMode: string;
@@ -65,7 +62,6 @@ export interface SetFirmwareLightingBody {
   speed: string;
   direction: string;
   brightness: number;
-  keyIndicator: boolean;
 }
 
 export interface SetPassiveLightingBody {
@@ -90,27 +86,15 @@ export interface SetLayerKeyBody {
   input?: number | null;
 }
 
-export interface RotaryAppOverride {
-  targetId: string;
-  left: string;
-  right: string;
-}
-
 export interface SetRotaryWheelsBody {
   left: string;
   right: string;
-  apps: RotaryAppOverride[];
 }
 
 export interface MacroKey {
   key: string;
   duration: number;
-  type: 'Make' | 'Break' | 'KeyDown' | 'KeyUp';
-  category: string;
-  meta?: boolean;
-  ctrl?: boolean;
-  alt?: boolean;
-  shift?: boolean;
+  type: 'Make' | 'Break';
 }
 
 export interface KeebMacro {
@@ -129,6 +113,23 @@ interface GetMacroResponse extends ApiResponseWrapper {
   macro: KeebMacro;
 }
 
+/// POST /keeb/macro response: the acked macro plus what could not reach the
+/// keyboard - keys with no HID mapping, overflow truncation, and whether the
+/// onboard write happened (false while disconnected: persisted, applied on
+/// reconnect).
+export interface SetMacroResponse extends ApiResponseWrapper {
+  macro: KeebMacro;
+  truncated: boolean;
+  droppedKeys: string[];
+  wroteDevice: boolean;
+}
+
+/// POST /keeb/layer/{n}/key and /reset response.
+export interface SetLayerKeyResponse extends ApiResponseWrapper {
+  state: KeyboardState;
+  wroteDevice: boolean;
+}
+
 interface GetRotaryFunctionsResponse extends ApiResponseWrapper {
   functions: string[];
 }
@@ -139,12 +140,14 @@ export async function getKeebState(layer: KeebLayer = 0): Promise<KeyboardState 
   return await fetchService<KeyboardState>(`/keeb/state?layer=${layer}`);
 }
 
-export async function setKeebLayerKey(layer: KeebLayer, body: SetLayerKeyBody): Promise<KeyboardState | null> {
-  return await postService<KeyboardState>(`/keeb/layer/${layer}/key`, body);
+export async function setKeebLayerKey(layer: KeebLayer, body: SetLayerKeyBody): Promise<SetLayerKeyResponse | null> {
+  const r = await postService<SetLayerKeyResponse>(`/keeb/layer/${layer}/key`, body);
+  return r && r.error !== true ? r : null;
 }
 
-export async function resetKeebLayer(layer: KeebLayer): Promise<KeyboardState | null> {
-  return await postService<KeyboardState>(`/keeb/layer/${layer}/reset`, {});
+export async function resetKeebLayer(layer: KeebLayer): Promise<SetLayerKeyResponse | null> {
+  const r = await postService<SetLayerKeyResponse>(`/keeb/layer/${layer}/reset`, {});
+  return r && r.error !== true ? r : null;
 }
 
 export async function getKeebSettings(): Promise<KeebSettings | null> {
@@ -179,16 +182,12 @@ export async function setKeebRotary(body: SetRotaryWheelsBody): Promise<boolean>
   return acked(await postService<ApiResponseWrapper>('/keeb/rotary', body));
 }
 
-export async function setKeebRotarySensitivity(sensitivity: string): Promise<boolean> {
-  return acked(await postService<ApiResponseWrapper>('/keeb/rotary/sensitivity', { sensitivity }));
-}
-
 export async function getKeebMacro(index: number): Promise<KeebMacro | null> {
   const r = await fetchService<GetMacroResponse>(`/keeb/macro/${index}`);
   return r?.macro ?? null;
 }
 
-export async function setKeebMacro(index: number, keys: MacroKey[]): Promise<KeebMacro | null> {
-  const r = await postService<GetMacroResponse>(`/keeb/macro/${index}`, { keys });
-  return r?.macro ?? null;
+export async function setKeebMacro(index: number, keys: MacroKey[]): Promise<SetMacroResponse | null> {
+  const r = await postService<SetMacroResponse>(`/keeb/macro/${index}`, { keys });
+  return r && r.error !== true ? r : null;
 }

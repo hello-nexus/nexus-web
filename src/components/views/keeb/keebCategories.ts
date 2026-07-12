@@ -272,6 +272,11 @@ export function getRotaryFunctionTooltipKey(type: string): string {
   return `keeb.rotaryTip.${type}`;
 }
 
-export const ROTARY_SENSITIVITIES: readonly string[] = [
-  'Slow', 'Steady', 'Balanced', 'Fast', 'Turbo',
+/// The two "clear this key" assignments offered under the source keyboard in
+/// the Keyboard category. None restores the key's factory function;
+/// PassThrough makes the key fall through to the layer below (layers 1-3 -
+/// on the base layer there is nothing to fall through to).
+export const SPECIAL_ASSIGNMENTS: readonly AssignmentFunction[] = [
+  { labelKey: 'keeb.fn.None', keyFunction: 'None', mode: 'StandardKey' },
+  { labelKey: 'keeb.fn.PassThrough', keyFunction: 'PassThrough', mode: 'StandardKey' },
 ] as const;
