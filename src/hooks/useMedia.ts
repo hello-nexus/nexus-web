@@ -61,3 +61,15 @@ export function useMedia(enabled: boolean, pollingRateMs = 2000): MediaState {
 export async function controlMedia(source: string, action: string): Promise<void> {
   await postService(`/api/media/${encodeURIComponent(source)}/control`, { action });
 }
+
+/**
+ * Control the active session: the playing one, falling back to the first.
+ * No-op when nothing is playing anywhere.
+ */
+export async function controlActiveMedia(action: 'playpause' | 'next' | 'previous'): Promise<void> {
+  const sessions = await fetchService<Record<string, MediaSession>>('/api/media');
+  const entries = Object.entries(sessions ?? {});
+  if (entries.length === 0) return;
+  const active = entries.find(([, s]) => s.playback?.playing && !s.playback?.stopped) ?? entries[0];
+  await controlMedia(active[0], action);
+}

@@ -98,6 +98,7 @@ export function LightingCoolingSection({ serviceOnline, platform }: LightingCool
         {showGpuPicker && (
           <SettingSelect
             label={t('lighting.renderGpu.label')}
+            anchorId="set-render-gpu"
             description={t('lighting.renderGpu.hint')}
             value={renderGpu}
             options={gpuSelectOptions}
@@ -106,6 +107,7 @@ export function LightingCoolingSection({ serviceOnline, platform }: LightingCool
         )}
         <SensorRow
           label={t('cooling.settings.cpuLabel')}
+          anchorId="set-cpu-sensor"
           options={cpuOptions}
           defaultSensor={cpuDefault}
           defaultSuffix={t('cooling.settings.defaultSuffix')}
@@ -116,6 +118,7 @@ export function LightingCoolingSection({ serviceOnline, platform }: LightingCool
         />
         <SensorRow
           label={t('cooling.settings.gpuLabel')}
+          anchorId="set-gpu-sensor"
           options={gpuOptions}
           defaultSensor={gpuDefault}
           defaultSuffix={t('cooling.settings.defaultSuffix')}
@@ -149,6 +152,8 @@ export function LightingCoolingSection({ serviceOnline, platform }: LightingCool
 
 interface SensorRowProps {
   label: string;
+  /** Search deep-link target stamped on the row (SettingRow anchorId). */
+  anchorId?: string;
   options: readonly HardwareSensor[];
   /** Sensor the auto picker would land on. Marked "(default)" in the list. */
   defaultSensor?: HardwareSensor;
@@ -160,7 +165,7 @@ interface SensorRowProps {
   onChange: (id: string) => void;
 }
 
-function SensorRow({ label, options, defaultSensor, defaultSuffix, emptyLabel, value, numberFormat, onChange }: SensorRowProps) {
+function SensorRow({ label, anchorId, options, defaultSensor, defaultSuffix, emptyLabel, value, numberFormat, onChange }: SensorRowProps) {
   // The visible option list must include both the stored pick and the default
   // sensor, or the controlled <select> would carry a value with no matching
   // <option> and snap to the first one (then persist it on the next change).
@@ -195,11 +200,11 @@ function SensorRow({ label, options, defaultSensor, defaultSuffix, emptyLabel, v
   };
 
   if (visibleOptions.length === 0) {
-    return <SettingRow label={label} description={emptyLabel} />;
+    return <SettingRow label={label} anchorId={anchorId} description={emptyLabel} />;
   }
 
   return (
-    <SettingRow label={label}>
+    <SettingRow label={label} anchorId={anchorId}>
       <Select value={displayedValue} onChange={handleChange} ariaLabel={label}>
         {visibleOptions.map(s => {
           const isDefault = s.id === defaultSensor?.id;
