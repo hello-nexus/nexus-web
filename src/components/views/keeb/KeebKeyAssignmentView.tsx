@@ -13,6 +13,7 @@ import { getKeebLayoutRows } from './keebLayout';
 import {
   ASSIGNMENT_CATEGORIES,
   CATEGORY_LABEL_KEYS,
+  SPECIAL_ASSIGNMENTS,
   getAssignmentCategories,
   type KeebAssignmentCategory,
 } from './keebCategories';
@@ -135,23 +136,41 @@ export function KeebKeyAssignmentView({
       )}
 
       {category === 'Keyboard' && (
-        <div ref={sourceStage.ref} className={styles.sourceStageWrap}>
-          <div className={styles.sourceStage} style={{ zoom: sourceStage.zoom }}>
-            <KeebKeyboard
-              state={state}
-              disabled={disabled}
-              // Highlight reflects what the target is currently mapped to; a
-              // click on a different source key rebinds. Wheels are hidden
-              // because picking a wheel-as-source isn't a valid rebind here.
-              // useDefaults keeps the picker showing the printed-legend layout
-              // even after the firmware has been remapped.
-              selected={sourceSelected}
-              hideWheels
-              useDefaults
-              onSelect={onSourceSelect}
-            />
+        <>
+          <div ref={sourceStage.ref} className={styles.sourceStageWrap}>
+            <div className={styles.sourceStage} style={{ zoom: sourceStage.zoom }}>
+              <KeebKeyboard
+                state={state}
+                disabled={disabled}
+                // Highlight reflects what the target is currently mapped to; a
+                // click on a different source key rebinds. Wheels are hidden
+                // because picking a wheel-as-source isn't a valid rebind here.
+                // useDefaults keeps the picker showing the printed-legend layout
+                // even after the firmware has been remapped.
+                selected={sourceSelected}
+                hideWheels
+                useDefaults
+                onSelect={onSourceSelect}
+              />
+            </div>
           </div>
-        </div>
+          <div className={styles.specialTiles}>
+            {SPECIAL_ASSIGNMENTS.map(fn => {
+              // Fall-through has nothing below it on the base layer.
+              const unavailable = fn.keyFunction === 'PassThrough' && state.layer === 0;
+              return (
+                <IconLabelButton
+                  key={fn.keyFunction}
+                  label={t(fn.labelKey)}
+                  disabled={disabled || unavailable}
+                  title={unavailable ? t('keeb.assign.passThroughBaseLayer') : t(`keeb.assignTip.${fn.keyFunction}`)}
+                  ariaLabel={t(fn.labelKey)}
+                  onPress={() => void onTile(fn.keyFunction, fn.mode, fn.input)}
+                />
+              );
+            })}
+          </div>
+        </>
       )}
 
       {category !== 'Keyboard' && (

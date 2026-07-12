@@ -14,7 +14,6 @@ const h = vi.hoisted(() => ({
   savePassiveLighting: vi.fn(),
   saveGameMode: vi.fn(),
   saveRotary: vi.fn(),
-  saveRotarySensitivity: vi.fn(),
   loadMacro: vi.fn(),
   saveMacro: vi.fn(),
   state: null as unknown as KeyboardState,
@@ -56,12 +55,11 @@ vi.mock('../../../hooks/useKeeb', () => ({
     savePassiveLighting: h.savePassiveLighting,
     saveGameMode: h.saveGameMode,
     saveRotary: h.saveRotary,
-    saveRotarySensitivity: h.saveRotarySensitivity,
   }),
 }));
 
 vi.mock('../keeb/KeebKeyboard', () => ({
-  KEEB_RENDER_WIDTH: 2030,
+  KEEB_RENDER_WIDTH: 1620,
   KeebKeyboard: (props: any) => {
     h.captured.keyboard.push(props);
     return (
@@ -145,7 +143,6 @@ beforeEach(() => {
     h.savePassiveLighting,
     h.saveGameMode,
     h.saveRotary,
-    h.saveRotarySensitivity,
   ]) {
     fn.mockReset();
     fn.mockResolvedValue(true);
@@ -260,13 +257,11 @@ describe('KeebDevicePage', () => {
       h.settings = {
         rotaryLeft: 'Scale',
         rotaryRight: 'AltTab',
-        rotarySensitivity: 'Fast',
       } as any;
       render(<KeebDevicePage />);
       selectWheel();
       expect(lastRotary().left).toBe('Scale');
       expect(lastRotary().right).toBe('AltTab');
-      expect(lastRotary().sensitivity).toBe('Fast');
     });
 
     it('keeps the rotary defaults when the service omits the fields', () => {
@@ -275,7 +270,6 @@ describe('KeebDevicePage', () => {
       selectWheel();
       expect(lastRotary().left).toBe('VolumeAdjustment');
       expect(lastRotary().right).toBe('ScrollY');
-      expect(lastRotary().sensitivity).toBe('Balanced');
     });
   });
 
@@ -358,21 +352,5 @@ describe('KeebDevicePage', () => {
       expect(lastRotary().right).toBe('B');
     });
 
-    it('reverts sensitivity on failure and keeps it on success', async () => {
-      render(<KeebDevicePage />);
-      selectWheel();
-
-      h.saveRotarySensitivity.mockResolvedValue(false);
-      await act(async () => {
-        await lastRotary().onSetSensitivity('Fast');
-      });
-      expect(lastRotary().sensitivity).toBe('Balanced');
-
-      h.saveRotarySensitivity.mockResolvedValue(true);
-      await act(async () => {
-        await lastRotary().onSetSensitivity('Fast');
-      });
-      expect(lastRotary().sensitivity).toBe('Fast');
-    });
   });
 });

@@ -42,7 +42,6 @@ export function KeebDevicePage() {
   const [selected, setSelected] = useState<KeebSelection>(null);
   const [rotaryLeft, setRotaryLeft] = useState('VolumeAdjustment');
   const [rotaryRight, setRotaryRight] = useState('ScrollY');
-  const [sensitivity, setSensitivity] = useState('Balanced');
 
   // Rotary state mirrors the persisted server values (services that predate
   // the rotary fields omit them - keep the defaults then). The poll pauses
@@ -52,17 +51,15 @@ export function KeebDevicePage() {
     if (!s) return;
     if (s.rotaryLeft) setRotaryLeft(s.rotaryLeft);
     if (s.rotaryRight) setRotaryRight(s.rotaryRight);
-    if (s.rotarySensitivity) setSensitivity(s.rotarySensitivity);
   }, [keeb.settings]);
 
   // Fit the fixed-pixel keyboard render to the window width.
   const stage = useFitZoom(KEEB_RENDER_WIDTH, 0.55);
 
-  // Sequence guards: a slow failing rotary write must not revert a newer
+  // Sequence guard: a slow failing rotary write must not revert a newer
   // value the user has since picked (a wrong revert would stand until the
   // settings poll mirrors the server value back).
   const rotarySeqRef = useRef(0);
-  const sensitivitySeqRef = useRef(0);
 
   // One toast per failure burst: a failing service makes every write fail,
   // and a slider commit can fire several in quick succession.
@@ -99,7 +96,7 @@ export function KeebDevicePage() {
         activeTab={tab}
         onTabChange={(k) => setTab(k as Tab)}
         tabActions={tab === 'key-assignment' ? (
-          <div className={pageStyles.layerChips} aria-label={t('keeb.layer')}>
+          <div className={pageStyles.layerChips} role="group" aria-label={t('keeb.layer')}>
             <LayersIcon size={14} className={pageStyles.layerChipsIcon} aria-hidden />
             {KEEB_LAYERS.map(l => (
               <IconLabelButton
@@ -135,7 +132,6 @@ export function KeebDevicePage() {
               wheel={selected.side}
               left={rotaryLeft}
               right={rotaryRight}
-              sensitivity={sensitivity}
               onSetRotary={async body => {
                 const seq = ++rotarySeqRef.current;
                 const prev = { left: rotaryLeft, right: rotaryRight };
@@ -144,14 +140,6 @@ export function KeebDevicePage() {
                 if (!reportWrite(await keeb.saveRotary(body)) && seq === rotarySeqRef.current) {
                   setRotaryLeft(prev.left);
                   setRotaryRight(prev.right);
-                }
-              }}
-              onSetSensitivity={async s => {
-                const seq = ++sensitivitySeqRef.current;
-                const prev = sensitivity;
-                setSensitivity(s);
-                if (!reportWrite(await keeb.saveRotarySensitivity(s)) && seq === sensitivitySeqRef.current) {
-                  setSensitivity(prev);
                 }
               }}
             />

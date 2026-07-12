@@ -10,7 +10,7 @@ import styles from './KeebKeyboard.module.scss';
 /// little slack. Stages divide their container width by this to compute the
 /// fit zoom; overestimating only costs a sliver of size, underestimating
 /// clips the board.
-export const KEEB_RENDER_WIDTH = 2030;
+export const KEEB_RENDER_WIDTH = 1620;
 
 /// What the user has selected on the keyboard. Either a physical key (drives
 /// function-category writes) or one of the two rotary wheels (drives rotary
@@ -112,6 +112,7 @@ export function KeebKeyboard({
         style={style}
         title={func}
         disabled={disabled}
+        aria-pressed={isSelected}
         onClick={() => onSelect?.({ kind: 'key', x, y })}
       >
         {glyph}
