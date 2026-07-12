@@ -5,6 +5,7 @@
 import type { HardwareSensor, SensorState } from '../../../hooks/useSensors';
 import { resolveSensor } from '../monitoring/MonitoringWidget';
 import type { DeviceKey } from '../monitoring/perfSlots';
+import type { ScaleMode } from '../monitoring/perfDomain';
 import type { DeckMonitoringCategory } from './types';
 
 // v1 category set per the wire contract - excludes network/fps (name-keyed,
@@ -92,4 +93,22 @@ export function monitoringFillFraction(rawValue: number, domain: readonly [numbe
 export function monitoringLineDomain(domain: readonly [number, number]): [number, number] {
   const [min, max] = domain;
   return max > min ? [min, max] : [min - 1, max + 1];
+}
+
+/**
+ * User-typed [min, max] domain override for `scale: 'fixed'`. Returns
+ * undefined (adaptive fallback) unless scale is 'fixed' and both bounds are
+ * finite with max strictly greater than min - callers combine this with
+ * monitoringTileDomain via `??` so an invalid or absent range is silently
+ * adaptive rather than crashing the fill/axis math.
+ */
+export function monitoringFixedDomain(
+  scale: ScaleMode | undefined,
+  min: number | undefined,
+  max: number | undefined,
+): [number, number] | undefined {
+  if (scale !== 'fixed') return undefined;
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return undefined;
+  if (!((max as number) > (min as number))) return undefined;
+  return [min as number, max as number];
 }

@@ -15,7 +15,7 @@ import { splitFormatted } from '../monitoring/gauges/format';
 import { labelForDevice } from '../monitoring/MonitoringWidget';
 import {
   DECK_MONITORING_DEFAULT_COLOR,
-  monitoringFillFraction, monitoringLineDomain, monitoringSensorKey, monitoringTileDomain, resolveMonitoringSensor,
+  monitoringFillFraction, monitoringFixedDomain, monitoringLineDomain, monitoringSensorKey, monitoringTileDomain, resolveMonitoringSensor,
 } from './deckMonitoring';
 import { resolveDeckTitleStyle, titleFontSizeCss } from './deckTitleStyle';
 import type { DeckAction, DeckSlot } from './types';
@@ -66,11 +66,10 @@ function SegmentsBar({ fraction, color }: { fraction: number; color: string }) {
 
 export interface DeckMonitoringCellProps {
   action: Extract<DeckAction, { type: 'monitoring' }>;
-  label?: DeckSlot['label'];
   title?: DeckSlot['title'];
 }
 
-export function DeckMonitoringCell({ action, label, title }: DeckMonitoringCellProps) {
+export function DeckMonitoringCell({ action, title }: DeckMonitoringCellProps) {
   const preview = usePanelPreview();
   const { monitoringTempUnit, numberFormat } = useUnitPrefs();
   const sensors = useSensors(!preview);
@@ -84,14 +83,15 @@ export function DeckMonitoringCell({ action, label, title }: DeckMonitoringCellP
   const history = preview ? PREVIEW_HISTORY : (liveHistory as number[]);
   // An unresolved sensor still shows the tile chrome (name + background),
   // falling back to the category's generic label instead of blanking.
-  const name = label || (preview ? PREVIEW_SENSOR_NAME : labelForDevice(action.category, sensor?.name ?? ''));
+  const name = action.labelText || (preview ? PREVIEW_SENSOR_NAME : labelForDevice(action.category, sensor?.name ?? ''));
   const formatted = preview
     ? PREVIEW_FORMATTED
     : sensor ? formatSensorValue(sensor.value, sensor.units, sensor.formatted, monitoringTempUnit, numberFormat) : '--';
   const showName = action.showName ?? true;
   const accent = action.color || DECK_MONITORING_DEFAULT_COLOR;
   const titleStyle = resolveDeckTitleStyle(title);
-  const domain = monitoringTileDomain(preview ? PREVIEW_SENSOR_TYPE : sensor?.type, history, rawValue);
+  const domain = monitoringFixedDomain(action.scale, action.min, action.max)
+    ?? monitoringTileDomain(preview ? PREVIEW_SENSOR_TYPE : sensor?.type, history, rawValue);
   const parts = splitFormatted(formatted);
 
   const nameStyle: CSSProperties = {

@@ -82,6 +82,84 @@ textarea.input { resize: vertical; min-height: 2.4rem; }
   &:focus-within { border-color: var(--deck-settings-accent); }
 }
 
+// Category + sensor Selects on one row, the Monitoring action editor's Sensor
+// section (mirrors MonitoringSettings' own sensorRow/selectSmall).
+.sensorRow {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.selectSmall {
+  flex: 0 0 auto;
+  width: 160px;
+  background: var(--deck-settings-bg);
+  border: 1px solid var(--deck-settings-border);
+  border-radius: var(--radius-sm);
+
+  select[class] {
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+    padding: 0.3rem 1.55rem 0.3rem 0.55rem;
+    color: var(--deck-settings-text);
+    font-size: var(--type-small);
+
+    &:focus,
+    &:focus-visible { border-color: transparent; box-shadow: none; }
+    option { background: var(--bg-elevated); color: var(--text); }
+  }
+
+  &:hover { background: var(--deck-settings-bg-hover); }
+  &:focus-within { border-color: var(--deck-settings-accent); }
+}
+
+// Monitoring action editor's Design icon-button grid.
+.designRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(46px, 1fr));
+  gap: 6px;
+}
+
+.designBtn {
+  width: 100%;
+  min-width: 0;
+  --icon-label-icon-size: 24px;
+  --icon-label-button-height: 46px;
+}
+
+// Monitoring action editor's Adaptive/Fixed Range chips + min/max fields.
+.scaleRow {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.scaleBtn {
+  width: 100%;
+  min-width: 0;
+  --icon-label-button-height: 36px;
+}
+
+.rangeRow {
+  display: flex;
+  gap: 8px;
+  margin-top: 0.6rem;
+}
+
+.rangeField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.rangeFieldLabel {
+  font-size: var(--type-mini);
+  color: var(--deck-settings-faint);
+}
+
 // Expandable action category list, replacing the old category+kind Select
 // pair - see ActionCategoryPicker. Borderless: the categories sit directly in
 // the already-boxed SettingsSection.

@@ -81,6 +81,21 @@ describe('normalizeDeckConfig', () => {
     expect(view![0].label).toBe('CPU');
   });
 
+  it('round-trips a monitoring action carrying the v3 fields (labelText, scale, min, max) unchanged', () => {
+    const monitoringAction = {
+      type: 'monitoring' as const,
+      category: 'cpu' as const,
+      sensor: 'summary/cpu-usage',
+      style: 'line' as const,
+      labelText: 'My CPU',
+      scale: 'fixed' as const,
+      min: 10,
+      max: 90,
+    };
+    const cfg = normalizeDeckConfig({ pages: [{ slots: [{ action: monitoringAction }] }] });
+    expect(cfg.pages[0].slots[0].action).toEqual(monitoringAction);
+  });
+
   it('maps a legacy persisted "radial" monitoring style to "segments" on read', () => {
     const legacyAction = { type: 'monitoring', category: 'cpu', sensor: 'summary/cpu-usage', style: 'radial' };
     const cfg = normalizeDeckConfig({ pages: [{ slots: [{ action: legacyAction }] }] });

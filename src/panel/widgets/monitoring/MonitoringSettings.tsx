@@ -34,14 +34,14 @@ import styles from './MonitoringSettings.module.scss';
 
 // A blank field commits the fallback (0 for min, the sensor's default ceiling
 // for max) rather than parsing "" to 0 via Number().
-function parseFixedRangeInput(raw: string, fallback: number): number {
+export function parseFixedRangeInput(raw: string, fallback: number): number {
   const trimmed = raw.trim();
   if (trimmed === '') return fallback;
   const parsed = Number(trimmed);
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-const SCALE_OPTIONS: { value: ScaleMode; labelKey: string }[] = [
+export const SCALE_OPTIONS: { value: ScaleMode; labelKey: string }[] = [
   { value: 'adaptive', labelKey: 'monitoring.settings.scaleAdaptive' },
   { value: 'fixed',    labelKey: 'monitoring.settings.scaleFixed' },
 ];
@@ -182,9 +182,10 @@ function labelControlHandlers(
 // A caption's Label control: a "Label" row with the Auto / Hide / Custom chips
 // aligned right, and (in Custom) a live text field with a reset-to-sensor-name
 // glyph. Rendered inline as the second line of the Sensor/Device block. Shared
-// by the per-slot, micro per-sensor, and micro category editors. The free-text
-// field is desktop-only (canType); a kiosk sheet shows a badge instead.
-function LabelControls({
+// by the per-slot, micro per-sensor, and micro category editors, and (exported)
+// by the deck Monitoring action editor. The free-text field is desktop-only
+// (canType); a kiosk sheet shows a badge instead.
+export function LabelControls({
   mode,
   override,
   autoLabel,

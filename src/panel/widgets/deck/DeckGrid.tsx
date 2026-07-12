@@ -40,7 +40,7 @@ function useCellVisual(slot: DeckSlot): { accent: string; content: ReactNode; em
   if (action?.type === 'monitoring') {
     return {
       accent: slot.color ?? DECK_MONITORING_TILE_BG,
-      content: <DeckMonitoringCell action={action} label={slot.label} title={slot.title} />,
+      content: <DeckMonitoringCell action={action} title={slot.title} />,
       empty: false,
     };
   }

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   DECK_MONITORING_CATEGORIES,
-  monitoringFillFraction, monitoringLineDomain, monitoringSensorKey, monitoringTileDomain, resolveMonitoringSensor,
+  monitoringFillFraction, monitoringFixedDomain, monitoringLineDomain, monitoringSensorKey, monitoringTileDomain, resolveMonitoringSensor,
 } from './deckMonitoring';
 import type { SensorState } from '../../../hooks/useSensors';
 
@@ -97,5 +97,27 @@ describe('monitoringLineDomain', () => {
   it('widens a degenerate domain by 1 on each side so the line is drawable', () => {
     expect(monitoringLineDomain([7, 7])).toEqual([6, 8]);
     expect(monitoringLineDomain([0, 0])).toEqual([-1, 1]);
+  });
+});
+
+describe('monitoringFixedDomain', () => {
+  it('returns undefined (adaptive fallback) when scale is not fixed', () => {
+    expect(monitoringFixedDomain('adaptive', 0, 100)).toBeUndefined();
+    expect(monitoringFixedDomain(undefined, 0, 100)).toBeUndefined();
+  });
+
+  it('returns [min, max] for a valid fixed range', () => {
+    expect(monitoringFixedDomain('fixed', 10, 90)).toEqual([10, 90]);
+  });
+
+  it('falls back to undefined for an inverted or degenerate range', () => {
+    expect(monitoringFixedDomain('fixed', 90, 10)).toBeUndefined();
+    expect(monitoringFixedDomain('fixed', 50, 50)).toBeUndefined();
+  });
+
+  it('falls back to undefined when min or max is missing or non-finite', () => {
+    expect(monitoringFixedDomain('fixed', undefined, 90)).toBeUndefined();
+    expect(monitoringFixedDomain('fixed', 0, undefined)).toBeUndefined();
+    expect(monitoringFixedDomain('fixed', 0, Number.POSITIVE_INFINITY)).toBeUndefined();
   });
 });

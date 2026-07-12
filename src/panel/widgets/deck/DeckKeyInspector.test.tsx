@@ -310,8 +310,7 @@ describe('DeckKeyInspector - monitoring action', () => {
     // The action box title AND the still-visible picker entry both show this
     // text (the picker highlights the now-active kind), so both match.
     expect(screen.getAllByText('panel.settings.deck.action.monitoring').length).toBeGreaterThan(0);
-    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.monitoringStyleOp' }));
-    expect(screen.getByRole('option', { name: 'panel.settings.deck.monitoringStyle.line' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('button', { name: 'panel.settings.deck.monitoringStyle.line' })).toHaveAttribute('aria-pressed', 'true');
 
     // defaultActionFor seeds category 'quick' with the summary/cpu-usage id.
     expect(await screen.findByText('CPU Usage')).toBeInTheDocument();
@@ -328,25 +327,6 @@ describe('DeckKeyInspector - monitoring action', () => {
     expect(screen.queryByText('Total (Load)')).toBeNull();
   });
 
-  it('changing style persists the new value', () => {
-    renderInspector([{ action: MONITORING_ACTION }]);
-    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.monitoringStyleOp' }));
-    fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.monitoringStyle.backdrop' }));
-
-    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.monitoringStyleOp' }));
-    expect(screen.getByRole('option', { name: 'panel.settings.deck.monitoringStyle.backdrop' })).toHaveAttribute('aria-selected', 'true');
-  });
-
-  it('offers all four styles: line, segments, backdrop, number', () => {
-    renderInspector([{ action: MONITORING_ACTION }]);
-    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.monitoringStyleOp' }));
-    expect(screen.getByRole('option', { name: 'panel.settings.deck.monitoringStyle.line' })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'panel.settings.deck.monitoringStyle.segments' })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'panel.settings.deck.monitoringStyle.backdrop' })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'panel.settings.deck.monitoringStyle.number' })).toBeInTheDocument();
-    expect(screen.queryByRole('option', { name: 'panel.settings.deck.monitoringStyle.radial' })).toBeNull();
-  });
-
   it('changing the on-press action persists the new value', () => {
     renderInspector([{ action: MONITORING_ACTION }]);
     fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.monitoringPressOp' }));
@@ -354,17 +334,6 @@ describe('DeckKeyInspector - monitoring action', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.monitoringPressOp' }));
     expect(screen.getByRole('option', { name: 'panel.settings.deck.monitoringPress.taskManager' })).toHaveAttribute('aria-selected', 'true');
-  });
-
-  it('toggling Show name off disables the reused title-style controls', () => {
-    renderInspector([{ action: MONITORING_ACTION }]);
-    expect(screen.getByRole('switch', { name: 'panel.settings.deck.monitoringShowName' })).toBeChecked();
-    expect(screen.getByRole('button', { name: 'panel.settings.deck.titleStyle.bold' })).not.toBeDisabled();
-
-    fireEvent.click(screen.getByRole('switch', { name: 'panel.settings.deck.monitoringShowName' }));
-
-    expect(screen.getByRole('switch', { name: 'panel.settings.deck.monitoringShowName' })).not.toBeChecked();
-    expect(screen.getByRole('button', { name: 'panel.settings.deck.titleStyle.bold' })).toBeDisabled();
   });
 
   it('hides the generic Icon picker and the Show-title/align/underline controls, showing a Background swatch instead', () => {
@@ -376,12 +345,180 @@ describe('DeckKeyInspector - monitoring action', () => {
     expect(screen.getByText('panel.settings.deck.monitoringBackground')).toBeInTheDocument();
   });
 
+  it('hides the generic per-key label text field - the Sensor section\'s Label chips own the name now', () => {
+    renderInspector([{ action: MONITORING_ACTION }]);
+    expect(screen.queryByRole('textbox', { name: 'panel.settings.deck.label' })).toBeNull();
+  });
+
   it('carries a separate accent-color swatch row from the background and name-color swatches', () => {
     renderInspector([{ action: MONITORING_ACTION }]);
     // Three independent color swatch rows, each defaulting to Auto: the tile
-    // background (slot.color), the graph/arc accent (action.color), and the
-    // name's text color (slot.title.color, via the reused TitleFields).
+    // background (slot.color), the graph/arc accent (action.color, now inside
+    // the Design section), and the name's text color (slot.title.color, via
+    // the reused TitleFields).
     expect(screen.getAllByText('panel.settings.deck.colorAuto')).toHaveLength(3);
+  });
+
+  describe('Design section', () => {
+    it('renders exactly the four wire-contract styles (no legacy radial) and writes the chosen one', () => {
+      renderInspector([{ action: MONITORING_ACTION }]);
+      for (const style of ['line', 'segments', 'backdrop', 'number']) {
+        expect(screen.getByRole('button', { name: `panel.settings.deck.monitoringStyle.${style}` })).toBeInTheDocument();
+      }
+      expect(screen.queryByRole('button', { name: 'panel.settings.deck.monitoringStyle.radial' })).toBeNull();
+
+      expect(screen.getByRole('button', { name: 'panel.settings.deck.monitoringStyle.line' })).toHaveAttribute('aria-pressed', 'true');
+      fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.monitoringStyle.backdrop' }));
+      expect(screen.getByRole('button', { name: 'panel.settings.deck.monitoringStyle.backdrop' })).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByRole('button', { name: 'panel.settings.deck.monitoringStyle.line' })).toHaveAttribute('aria-pressed', 'false');
+    });
+  });
+
+  describe('Range section (Adaptive/Fixed)', () => {
+    it('is hidden for the number style (a plain value has no domain)', () => {
+      renderInspector([{ action: { ...MONITORING_ACTION, style: 'number' as const } }]);
+      expect(screen.queryByText('monitoring.settings.range')).toBeNull();
+    });
+
+    it('defaults to Adaptive, with no min/max fields', () => {
+      renderInspector([{ action: MONITORING_ACTION }]);
+      expect(screen.getByRole('button', { name: 'monitoring.settings.scaleAdaptive' })).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.queryByRole('spinbutton', { name: 'monitoring.settings.rangeMin' })).toBeNull();
+    });
+
+    it('selecting Fixed reveals min/max fields seeded 0 and the sensor default ceiling, and writes scale', () => {
+      renderInspector([{ action: MONITORING_ACTION }]);
+      fireEvent.click(screen.getByRole('button', { name: 'monitoring.settings.scaleFixed' }));
+
+      expect(screen.getByRole('button', { name: 'monitoring.settings.scaleFixed' })).toHaveAttribute('aria-pressed', 'true');
+      const minInput = screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMin' }) as HTMLInputElement;
+      const maxInput = screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMax' }) as HTMLInputElement;
+      expect(minInput.value).toBe('0');
+      expect(maxInput.value).toBe('100');
+    });
+
+    it('commits min and max on blur', () => {
+      renderInspector([{ action: MONITORING_ACTION }]);
+      fireEvent.click(screen.getByRole('button', { name: 'monitoring.settings.scaleFixed' }));
+
+      const minInput = screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMin' });
+      fireEvent.change(minInput, { target: { value: '20' } });
+      fireEvent.blur(minInput);
+      const maxInput = screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMax' });
+      fireEvent.change(maxInput, { target: { value: '90' } });
+      fireEvent.blur(maxInput);
+
+      expect(screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMin' })).toHaveValue(20);
+      expect(screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMax' })).toHaveValue(90);
+    });
+
+    it('flags both fields invalid when the typed range is inverted', () => {
+      renderInspector([{ action: MONITORING_ACTION }]);
+      fireEvent.click(screen.getByRole('button', { name: 'monitoring.settings.scaleFixed' }));
+
+      const minInput = screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMin' });
+      fireEvent.change(minInput, { target: { value: '150' } });
+      fireEvent.blur(minInput);
+
+      expect(screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMin' })).toHaveAttribute('aria-invalid', 'true');
+      expect(screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMax' })).toHaveAttribute('aria-invalid', 'true');
+    });
+
+    it('is hidden on a touch surface with no keyboard and no desktopEditor override; the Adaptive/Fixed chips stay', () => {
+      render(<Harness initialSlots={[{ action: MONITORING_ACTION }]} surface="y70" />);
+      fireEvent.click(screen.getByRole('button', { name: 'monitoring.settings.scaleFixed' }));
+
+      expect(screen.getByRole('button', { name: 'monitoring.settings.scaleFixed' })).toBeInTheDocument();
+      expect(screen.queryByRole('spinbutton', { name: 'monitoring.settings.rangeMin' })).toBeNull();
+    });
+
+    it('switching category or sensor clears a stored Fixed range (scoped to the sensor it was set on)', async () => {
+      renderInspector([{ action: { ...MONITORING_ACTION, scale: 'fixed' as const, min: 20, max: 80 } }]);
+      expect(await screen.findByText('Total (Load)')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'monitoring.settings.device' }));
+      fireEvent.click(screen.getByRole('option', { name: 'monitoring.settings.category.quick' }));
+
+      await screen.findByText('CPU Usage');
+      const minInput = screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMin' }) as HTMLInputElement;
+      expect(minInput.value).toBe('0');
+    });
+  });
+
+  describe('Sensor Label chips (Auto / Hide / Custom)', () => {
+    const chip = (name: string) => screen.getByRole('button', { name });
+    const AUTO = 'monitoring.settings.labelAuto';
+    const HIDE = 'monitoring.settings.labelHide';
+    const CUSTOM = 'monitoring.settings.labelCustom';
+    const RESET = 'monitoring.settings.resetLabel';
+    const FIELD = 'monitoring.settings.customLabel';
+
+    it('defaults to Auto for a legacy action carrying none of the v3 fields', () => {
+      renderInspector([{ action: MONITORING_ACTION }]);
+      expect(chip(AUTO)).toHaveAttribute('aria-pressed', 'true');
+      expect(chip(HIDE)).toHaveAttribute('aria-pressed', 'false');
+      expect(screen.queryByRole('textbox', { name: FIELD })).toBeNull();
+    });
+
+    it('Hide writes showName false and leaves labelText untouched', () => {
+      renderInspector([{ action: { ...MONITORING_ACTION, showName: true, labelText: 'Kept' } }]);
+      expect(chip(CUSTOM)).toHaveAttribute('aria-pressed', 'true');
+
+      fireEvent.click(chip(HIDE));
+      expect(chip(HIDE)).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.queryByRole('textbox', { name: FIELD })).toBeNull();
+
+      // Custom right after Hide restores the preserved text - Hide never
+      // cleared labelText, only flipped showName.
+      fireEvent.click(chip(CUSTOM));
+      expect(screen.getByRole('textbox', { name: FIELD })).toHaveValue('Kept');
+    });
+
+    it('Custom with no prior text seeds the field with the derived sensor name and writes showName true', () => {
+      renderInspector([{ action: MONITORING_ACTION }]);
+      fireEvent.click(chip(CUSTOM));
+      expect(screen.getByRole('textbox', { name: FIELD })).toHaveValue('CPU Total');
+      expect(screen.getByRole('button', { name: RESET })).toBeInTheDocument();
+    });
+
+    it('typing updates labelText live and the tile name follows', () => {
+      renderInspector([{ action: MONITORING_ACTION }]);
+      fireEvent.click(chip(CUSTOM));
+      fireEvent.input(screen.getByRole('textbox', { name: FIELD }), { target: { value: 'Hot' } });
+      expect(screen.getByRole('textbox', { name: FIELD })).toHaveValue('Hot');
+    });
+
+    it('Auto clears labelText entirely (the contract discriminant, not just an inactive mode)', () => {
+      renderInspector([{ action: MONITORING_ACTION }]);
+      fireEvent.click(chip(CUSTOM));
+      fireEvent.input(screen.getByRole('textbox', { name: FIELD }), { target: { value: 'Hot' } });
+
+      fireEvent.click(chip(AUTO));
+      expect(chip(AUTO)).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.queryByRole('textbox', { name: FIELD })).toBeNull();
+
+      // Re-entering Custom re-seeds from the derived name - Auto cleared the
+      // typed text (unlike the monitoring widget's own mode, which keeps a
+      // separate mode key and never clears the override).
+      fireEvent.click(chip(CUSTOM));
+      expect(screen.getByRole('textbox', { name: FIELD })).toHaveValue('CPU Total');
+    });
+
+    it('Reset refills the field with the derived sensor name and stays in Custom', () => {
+      renderInspector([{ action: MONITORING_ACTION }]);
+      fireEvent.click(chip(CUSTOM));
+      fireEvent.input(screen.getByRole('textbox', { name: FIELD }), { target: { value: 'Hot' } });
+
+      fireEvent.click(screen.getByRole('button', { name: RESET }));
+      expect(chip(CUSTOM)).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByRole('textbox', { name: FIELD })).toHaveValue('CPU Total');
+    });
+
+    it('on a keyboard-less kiosk, chips work but Custom shows a badge instead of the field', () => {
+      render(<Harness initialSlots={[{ action: MONITORING_ACTION }]} surface="y70" />);
+      fireEvent.click(chip(CUSTOM));
+      expect(screen.queryByRole('textbox', { name: FIELD })).toBeNull();
+      expect(screen.getByText('common.desktopOnly')).toBeInTheDocument();
+    });
   });
 });
 
