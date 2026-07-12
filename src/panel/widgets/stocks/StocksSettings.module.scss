@@ -1,3 +1,5 @@
+@use '../../../styles/icon-buttons' as *;
+
 .container {
   display: flex;
   flex-direction: column;
@@ -5,22 +7,7 @@
 }
 
 .modeRow {
-  // Mirrors the WidgetEditSheet .actions size-button vars; keep in sync.
-  --icon-label-button-height: 36px;
-  --icon-label-button-min-width: 36px;
-  --icon-label-button-padding-x: 0;
-  --icon-label-button-padding-y: 0;
-  --icon-label-button-gap: 0;
-  --icon-label-button-radius: var(--radius-sm);
-  --icon-label-button-border: var(--panel-border);
-  --icon-label-button-bg: var(--panel-control-bg);
-  --icon-label-button-bg-hover: var(--panel-element-bg-hover);
-  --icon-label-button-text: var(--text-dim);
-  --icon-label-button-text-hover: var(--text);
-  --icon-label-button-active-border: var(--panel-accent, var(--accent));
-  --icon-label-button-active-bg: var(--panel-accent-soft, var(--accent-soft));
-  --icon-label-button-active-text: var(--text);
-  --icon-label-icon-size: 21px;
+  @include edit-sheet-icon-buttons;
 
   display: flex;
   gap: 6px;
