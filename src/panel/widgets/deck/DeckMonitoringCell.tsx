@@ -30,37 +30,37 @@ const PREVIEW_VALUE = 58;
 const PREVIEW_HISTORY = [22, 28, 24, 35, 40, 38, 45, 42, 50, 46, 55, 48, 60, 52, 58];
 const PREVIEW_SENSOR_TYPE = 'Load';
 
-const RADIAL_RADIUS = 38;
-// Same arc-with-a-bottom-gap idiom as Arc270Gauge, at this tile's own scale -
-// not a shared component, since the tile places the value/name outside the
-// ring instead of stacked inside it.
-const RADIAL_ARC_DEG = 270;
-const RADIAL_START_DEG = 135;
-const RADIAL_ARC_LENGTH = (RADIAL_ARC_DEG / 360) * 2 * Math.PI * RADIAL_RADIUS;
+// The monitoring page's BackdropGauge dims its fill via the
+// --panel-accent-shadow token (src/styles/variables.scss
+// --accent-glow-shadow), the accent hue at the app's dark-theme alpha. The
+// tile has no light/dark concept of its own - an arbitrary per-key accent
+// over a near-black default - so it mirrors that dark-theme alpha as a fixed
+// constant applied to the accent hex directly, instead of resolving a themed
+// CSS variable.
+const BACKDROP_FILL_OPACITY = 0.45;
 
-function radialPolarPoint(angleDeg: number) {
-  const rad = (angleDeg * Math.PI) / 180;
-  return { x: 50 + RADIAL_RADIUS * Math.cos(rad), y: 50 + RADIAL_RADIUS * Math.sin(rad) };
-}
-const RADIAL_START = radialPolarPoint(RADIAL_START_DEG);
-const RADIAL_END = radialPolarPoint(RADIAL_START_DEG + RADIAL_ARC_DEG);
-const RADIAL_ARC_PATH = `M ${RADIAL_START.x.toFixed(3)} ${RADIAL_START.y.toFixed(3)} A ${RADIAL_RADIUS} ${RADIAL_RADIUS} 0 1 1 ${RADIAL_END.x.toFixed(3)} ${RADIAL_END.y.toFixed(3)}`;
+// Discrete fill bar, same segment count and round-to-nearest idiom as the
+// monitoring page's SegmentsGauge - not that component directly, since it
+// also renders its own value/label (the tile already places those at fixed
+// top/bottom positions outside the graph band). The empty-segment color is a
+// fixed translucent white rather than the themed --gauge-track: the tile
+// paints over an arbitrary per-key accent/background color, not the app's
+// light/dark surface.
+const SEGMENTS_COUNT = 16;
+const SEGMENTS_TRACK_COLOR = 'rgb(255 255 255 / 0.18)';
 
-function RadialRing({ fraction, color }: { fraction: number; color: string }) {
-  const fillLength = fraction * RADIAL_ARC_LENGTH;
-  const gapLength = RADIAL_ARC_LENGTH - fillLength;
+function SegmentsBar({ fraction, color }: { fraction: number; color: string }) {
+  const filledCount = Math.round(fraction * SEGMENTS_COUNT);
   return (
-    <svg className={styles.radialSvg} viewBox="0 0 100 100" aria-hidden="true">
-      <path d={RADIAL_ARC_PATH} className={styles.radialTrack} />
-      <path
-        d={RADIAL_ARC_PATH}
-        stroke={color}
-        strokeWidth={9}
-        strokeLinecap="round"
-        fill="none"
-        strokeDasharray={`${fillLength} ${gapLength}`}
-      />
-    </svg>
+    <div className={styles.segGroup}>
+      {Array.from({ length: SEGMENTS_COUNT }, (_, i) => (
+        <div
+          key={i}
+          className={styles.seg}
+          style={{ background: i < filledCount ? color : SEGMENTS_TRACK_COLOR }}
+        />
+      ))}
+    </div>
   );
 }
 
@@ -108,8 +108,22 @@ export function DeckMonitoringCell({ action, label, title }: DeckMonitoringCellP
 
   return (
     <div className={styles.tile}>
+      {action.style === 'backdrop' && (
+        <div className={styles.backdropChart}>
+          <Sparkline
+            values={history}
+            domain={monitoringLineDomain(domain)}
+            color={accent}
+            strokeWidth={0}
+            fillOpacity={BACKDROP_FILL_OPACITY}
+            showFill
+            width={100}
+            height={100}
+          />
+        </div>
+      )}
       {showName && <span className={styles.name} style={nameStyle}>{name}</span>}
-      {action.style === 'number' ? (
+      {action.style === 'number' || action.style === 'backdrop' ? (
         <div className={styles.numberWrap}>
           <span className={styles.numberValue} style={valueStyle}>{parts.value}</span>
           {parts.unit && <span className={styles.numberUnit} style={valueStyle}>{parts.unit}</span>}
@@ -117,8 +131,8 @@ export function DeckMonitoringCell({ action, label, title }: DeckMonitoringCellP
       ) : (
         <>
           <div className={styles.graph}>
-            {action.style === 'radial' ? (
-              <RadialRing fraction={monitoringFillFraction(rawValue, domain)} color={accent} />
+            {action.style === 'segments' ? (
+              <SegmentsBar fraction={monitoringFillFraction(rawValue, domain)} color={accent} />
             ) : (
               <Sparkline
                 values={history}

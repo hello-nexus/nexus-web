@@ -190,15 +190,6 @@ describe('aggregateDomainTiles', () => {
     const tiles = aggregateDomainTiles([comp('storage', 'ok'), comp('storage', 'act')]);
     expect(tiles.find(t => t.domain === 'storage')?.status).toBe('act');
   });
-
-  it('lists member device names in member order, empty when the domain has none', () => {
-    const tiles = aggregateDomainTiles([
-      { id: 'storage:a', kind: 'storage', name: 'Drive A', status: 'ok', reasons: [] },
-      { id: 'storage:b', kind: 'storage', name: 'Drive B', status: 'ok', reasons: [] },
-    ]);
-    expect(tiles.find(t => t.domain === 'storage')?.devices).toEqual(['Drive A', 'Drive B']);
-    expect(tiles.find(t => t.domain === 'memory')?.devices).toEqual([]);
-  });
 });
 
 describe('pnpProblemLabel', () => {

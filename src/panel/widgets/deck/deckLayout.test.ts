@@ -67,7 +67,7 @@ describe('normalizeDeckConfig', () => {
       type: 'monitoring' as const,
       category: 'cpu' as const,
       sensor: 'summary/cpu-usage',
-      style: 'radial' as const,
+      style: 'segments' as const,
       color: '#4da3ff',
       showName: true,
       press: 'taskManager' as const,
@@ -79,6 +79,36 @@ describe('normalizeDeckConfig', () => {
     const view = resolveViewSlots(updated, 0, [], 4);
     expect(view![0].action).toEqual(monitoringAction);
     expect(view![0].label).toBe('CPU');
+  });
+
+  it('maps a legacy persisted "radial" monitoring style to "segments" on read', () => {
+    const legacyAction = { type: 'monitoring', category: 'cpu', sensor: 'summary/cpu-usage', style: 'radial' };
+    const cfg = normalizeDeckConfig({ pages: [{ slots: [{ action: legacyAction }] }] });
+    expect(cfg.pages[0].slots[0].action).toEqual({ ...legacyAction, style: 'segments' });
+  });
+
+  it('maps a legacy "radial" style nested in a folder, a sequence step, and a toggle branch', () => {
+    const legacyAction = { type: 'monitoring', category: 'cpu', sensor: 'summary/cpu-usage', style: 'radial' };
+    const cfg = normalizeDeckConfig({
+      pages: [{
+        slots: [
+          { folder: { slots: [{ action: legacyAction }] } },
+          { action: { type: 'sequence', steps: [{ action: legacyAction }] } },
+          { action: { type: 'toggle', on: legacyAction, off: legacyAction } },
+        ],
+      }],
+    });
+    const expected = { ...legacyAction, style: 'segments' };
+    const [folderSlot, sequenceSlot, toggleSlot] = cfg.pages[0].slots;
+    expect(folderSlot.folder!.slots[0].action).toEqual(expected);
+    expect((sequenceSlot.action as { steps: { action: unknown }[] }).steps[0].action).toEqual(expected);
+    expect(toggleSlot.action).toEqual({ type: 'toggle', on: expected, off: expected });
+  });
+
+  it('leaves a monitoring action with a current style unchanged', () => {
+    const action = { type: 'monitoring', category: 'cpu', sensor: 'summary/cpu-usage', style: 'backdrop' };
+    const cfg = normalizeDeckConfig({ pages: [{ slots: [{ action }] }] });
+    expect(cfg.pages[0].slots[0].action).toEqual(action);
   });
 
   it('strips a legacy text action `paste` key on read so old configs keep loading', () => {

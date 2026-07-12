@@ -6,6 +6,7 @@
 
 @use '../styles/scrollbar' as *;
 @use '../styles/text' as *;
+@use '../styles/icon-buttons' as *;
 
 .panelRoot {
   --panel-columns: 4;
@@ -697,10 +698,11 @@
     filter 140ms ease-out;
 }
 
-// Frosted-glass widget blur (data-widget-blur). Gated to shader mode: over a
-// solid colour a blurred backdrop is identical to the colour, so solid panels
-// skip the pass. Hard radius, never animated - tweening backdrop-filter
-// re-runs an uncacheable gaussian every frame and janks on the panel SoCs.
+// Frosted-glass widget blur (data-widget-blur). Applied over shader and media
+// backgrounds; only solid mode skips the pass, since a blurred solid colour is
+// identical to the colour. Hard radius, never animated - tweening
+// backdrop-filter re-runs an uncacheable gaussian every frame and janks on the
+// panel SoCs.
 //
 // Write ONLY the unprefixed property: lightningcss autoprefixes it to emit
 // both `backdrop-filter` AND `-webkit-backdrop-filter`. Hand-writing the
@@ -711,7 +713,7 @@
 // `:not([data-widget-opaque='true'])` skips the pass at 100% widget opacity:
 // the blurred backdrop is fully hidden behind the card, so there's nothing
 // to render. Render-time skip only; the toggle setting is unchanged.
-.panelRoot[data-widget-blur='true'][data-background-mode='shader']:not([data-widget-opaque='true']) .cell {
+.panelRoot[data-widget-blur='true']:not([data-background-mode='solid']):not([data-widget-opaque='true']) .cell {
   backdrop-filter: blur(16px);
 }
 
@@ -1180,22 +1182,7 @@
 
 .editorActions {
   --widget-control-title-color: var(--text-dim);
-  --icon-label-button-height: 36px;
-  --icon-label-button-min-width: 36px;
-  --icon-label-button-padding-x: 0;
-  --icon-label-button-padding-y: 0;
-  --icon-label-button-gap: 0;
-  --icon-label-button-radius: var(--radius-sm);
-  --icon-label-button-border: var(--panel-border);
-  --icon-label-button-bg: var(--panel-control-bg);
-  --icon-label-button-bg-hover: var(--panel-element-bg-hover);
-  --icon-label-button-text: var(--text-dim);
-  --icon-label-button-text-hover: var(--text);
-  --icon-label-button-active-border: var(--panel-accent);
-  --icon-label-button-active-bg: var(--panel-accent-soft);
-  --icon-label-button-active-text: var(--text);
-  --icon-label-icon-size: 21px;
-  --icon-label-label-size: 10px;
+  @include edit-sheet-icon-buttons;
 
   display: flex;
   align-items: flex-start;

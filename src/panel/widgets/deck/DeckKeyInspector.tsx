@@ -1,10 +1,11 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, AlignVerticalJustifyStart, FolderInput, Plus } from 'lucide-react';
+import { AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, AlignVerticalJustifyStart, FolderInput, FolderOpen, Plus } from 'lucide-react';
 import { useDraggable } from '@dnd-kit/core';
 import { Button } from '../../../components/common/Button/Button';
 import { useTranslation } from '../../../lib/i18n';
 import { DECK_SWATCHES } from '../../../lib/settings';
-import { fetchService } from '../../../api/service';
+import { fetchService, isDirectActive, isRelayActive, pickSystemPath } from '../../../api/service';
+import { isMacAppShell, isWindowsAppShell } from '../../../app/windowActions';
 import { useSensors } from '../../../hooks/useSensors';
 import { EMPTY_SENSOR_EXTRAS } from '../../../hooks/useSensorExtras';
 import { CollapsibleSection } from '../../../components/common/CollapsibleSection/CollapsibleSection';
@@ -218,6 +219,10 @@ function ActionFields({ action, onChange, allowed, surface, desktopEditor, pageC
   const audioOut = useServiceOptions('/system/audio/devices', d => ((d as { outputs?: { id: string; name: string }[] })?.outputs ?? []).map(x => ({ value: x.id, label: x.name })));
   const audioIn = useServiceOptions('/system/audio/devices', d => ((d as { inputs?: { id: string; name: string }[] })?.inputs ?? []).map(x => ({ value: x.id, label: x.name })));
   const displays = useServiceOptions('/displays', d => ((d as { displays?: { id: string; name?: string; label?: string }[] })?.displays ?? []).map(x => ({ value: x.id, label: x.name ?? x.label ?? x.id })));
+  // The native picker dialog runs on the host PC and can stay open for as
+  // long as the user takes to answer it - this only guards against a
+  // double-click re-opening a second dialog, not a brief request gap.
+  const [browsing, setBrowsing] = useState(false);
 
   switch (action.type) {
     case 'launchApp':
@@ -234,8 +239,37 @@ function ActionFields({ action, onChange, allowed, surface, desktopEditor, pageC
       );
     }
     case 'openFile':
-    case 'openFolder':
-      return <Field label={t('panel.settings.deck.path')}><input className={styles.input} type="text" value={action.path} onChange={e => onChange({ ...action, path: e.target.value })} /></Field>;
+    case 'openFolder': {
+      const folder = action.type === 'openFolder';
+      // The native dialog only exists on the desktop app shells talking
+      // directly to the local service - a relay/direct remote session has no
+      // host PC screen to show it on, same reasoning as canEditFreeText's own
+      // desktopEditor-forced-true case not implying a real shell is present.
+      const canBrowse = canEditFreeText(surface, desktopEditor)
+        && (isWindowsAppShell() || isMacAppShell())
+        && !isRelayActive() && !isDirectActive();
+      const handleBrowse = async () => {
+        setBrowsing(true);
+        try {
+          const path = await pickSystemPath(folder);
+          if (path) onChange({ ...action, path });
+        } finally {
+          setBrowsing(false);
+        }
+      };
+      return (
+        <Field label={t('panel.settings.deck.path')}>
+          <div className={styles.pathRow}>
+            <input className={styles.input} type="text" value={action.path} onChange={e => onChange({ ...action, path: e.target.value })} />
+            {canBrowse && (
+              <Button type="button" size="sm" tone="neutral" icon={<FolderOpen size={14} aria-hidden />} disabled={browsing} onClick={handleBrowse}>
+                {t('panel.settings.deck.browse')}
+              </Button>
+            )}
+          </div>
+        </Field>
+      );
+    }
     case 'system': {
       const a = action.action;
       const ops = ['volumeUp', 'volumeDown', 'volumeSet', 'muteToggle', 'mediaPlayPause', 'mediaNext', 'mediaPrev', 'brightnessUp', 'brightnessDown', 'brightnessSet', 'openSettings'];
@@ -352,7 +386,7 @@ function NexusFields({ action, onChange }: { action: Extract<DeckAction, { type:
   );
 }
 
-const MONITORING_STYLES: DeckMonitoringStyle[] = ['line', 'radial', 'number'];
+const MONITORING_STYLES: DeckMonitoringStyle[] = ['line', 'segments', 'backdrop', 'number'];
 const MONITORING_PRESSES: DeckMonitoringPress[] = ['none', 'taskManager', 'monitoringPage'];
 
 function MonitoringFields({ action, onChange }: { action: Extract<DeckAction, { type: 'monitoring' }>; onChange: (a: DeckAction) => void }) {

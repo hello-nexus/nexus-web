@@ -26,15 +26,18 @@ const JPEG_QUALITY = 0.9;
 const ICON_FRACTION = 0.62;
 const BACK_KEY_COLOR = '#23262e';
 
+/** Go-up-a-level glyph for the Back key, shared by the hardware bitmap and DeckGrid's reserved back cell. */
+export const DECK_BACK_KEY_ICON = 'Undo2';
+
 /**
- * The single per-deck Back-chevron bitmap uploaded to the reserved slotPath
+ * The single per-deck Back-key bitmap uploaded to the reserved slotPath
  * "back" (state 0): the service pushes it to physical key 0 whenever a
  * folder view is active. Rendered through the same pipeline as any other
  * key via a synthetic slot, so it stays visually identical to the widget's
  * folder-back affordance.
  */
 export function renderDeckBackKeyBitmap(model: DeckKeyModel): Promise<Uint8Array> {
-  const backSlot: DeckSlot = { icon: { kind: 'lucide', value: 'ChevronLeft' }, color: BACK_KEY_COLOR };
+  const backSlot: DeckSlot = { icon: { kind: 'lucide', value: DECK_BACK_KEY_ICON }, color: BACK_KEY_COLOR };
   return renderDeckKeyBitmap(backSlot, model);
 }
 

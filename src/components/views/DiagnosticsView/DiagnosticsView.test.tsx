@@ -124,15 +124,6 @@ describe('ComponentHealthGrid domain tiles', () => {
     expect(screen.getAllByText('GPU is throttling').length).toBeGreaterThan(0);
   });
 
-  it('names the monitored devices in a healthy tile body', () => {
-    const components: DiagnosticsComponent[] = [
-      { id: 'storage:a', kind: 'storage', name: 'Samsung SSD 990 PRO', status: 'ok', reasons: [] },
-      { id: 'storage:b', kind: 'storage', name: 'WD Blue 4TB', status: 'ok', reasons: [] },
-    ];
-    render(<ComponentHealthGrid components={components} onNavigate={() => {}} />);
-    expect(screen.getByText('Samsung SSD 990 PRO, WD Blue 4TB')).toBeInTheDocument();
-  });
-
   it('navigates to the matching tab when a tile is clicked', () => {
     const onNavigate = vi.fn();
     render(<ComponentHealthGrid components={[]} onNavigate={onNavigate} />);

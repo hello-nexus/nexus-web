@@ -45,7 +45,7 @@ export function ComponentHealthGrid({ components, onNavigate }: ComponentHealthG
           actions={<Badge label={t(statusLabelKey(tile.status))} color={statusColor(tile.status)} />}
           onClick={() => onNavigate(tile.domain)}
         >
-          {tile.reasons.length > 0 ? (
+          {tile.reasons.length > 0 && (
             <ul className={styles.reasonList}>
               {tile.reasons.map((reason, i) => (
                 <li key={i} className={styles.reasonItem}>
@@ -63,11 +63,7 @@ export function ComponentHealthGrid({ components, onNavigate }: ComponentHealthG
                 </li>
               ))}
             </ul>
-          ) : tile.devices.length > 0 ? (
-            // Nothing flagged: name what the tile is watching so a healthy box
-            // still carries information instead of reading as empty.
-            <div className={styles.deviceLine}>{tile.devices.join(', ')}</div>
-          ) : null}
+          )}
         </Card>
       ))}
     </div>

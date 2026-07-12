@@ -1,0 +1,15 @@
+@use '../../../styles/icon-buttons' as *;
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.modeRow {
+  @include edit-sheet-icon-buttons;
+
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}

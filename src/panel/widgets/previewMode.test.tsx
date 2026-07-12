@@ -82,6 +82,7 @@ const PREVIEW_CONTENT: Record<string, string[]> = {
   obs: ['Gameplay'],
   media: ['Midnight Drive', 'The Wavelengths'],
   weather: ['Mostly sunny', 'San Francisco', 'panel.widget.weather.hiLo'],
+  stocks: ['Dow Jones', 'NASDAQ', 'AAPL', '52,637'],
   screentime: ['Figma', 'Chrome'],
   displays: ['DISPLAY 1', 'DISPLAY 2'],
   cooling: ['cooling.preset.balanced'],

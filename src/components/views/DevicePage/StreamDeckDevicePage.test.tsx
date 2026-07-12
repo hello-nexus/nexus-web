@@ -2,6 +2,8 @@ import { act, render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { StreamDeckSummary } from '../../../api/streamdeck';
 import type { DeckTarget } from '../../../panel/widgets/deck/deckTarget';
+import { emptyDeck } from '../../../panel/widgets/deck/deckLayout';
+import type { DeckConfig } from '../../../panel/widgets/deck/types';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -32,12 +34,19 @@ vi.mock('../../../hooks/useConflictApps', () => ({
 
 const mockUsePhysicalDeckTarget = vi.fn();
 vi.mock('../../../panel/widgets/deck/usePhysicalDeckTarget', () => ({
-  usePhysicalDeckTarget: (deck: StreamDeckSummary | null) => mockUsePhysicalDeckTarget(deck),
+  usePhysicalDeckTarget: (deck: StreamDeckSummary | null, onCommit?: (prev: DeckConfig) => void) =>
+    mockUsePhysicalDeckTarget(deck, onCommit),
 }));
 
 const mockUseDeckPresets = vi.fn();
 vi.mock('../../../panel/widgets/deck/useDeckPresets', () => ({
   useDeckPresets: () => mockUseDeckPresets(),
+  AUTO_SAVE_DEBOUNCE_MS: 1000,
+}));
+
+const mockSetStreamDeckNav = vi.fn();
+vi.mock('../../../api/streamdeck', () => ({
+  setStreamDeckNav: (serial: string, page: number, folderPath: readonly number[]) => mockSetStreamDeckNav(serial, page, folderPath),
 }));
 
 vi.mock('../../../panel/widgets/deck/DeckKeyInspector', () => ({
@@ -96,6 +105,17 @@ function fakeTarget(): DeckTarget {
   };
 }
 
+/** The onCommit callback StreamDeckDevicePage passed into the (mocked) usePhysicalDeckTarget on its most recent call - invoking it simulates the target's update path committing an edit. */
+function latestOnCommit(): (prev: DeckConfig) => void {
+  const calls = mockUsePhysicalDeckTarget.mock.calls;
+  const args = calls[calls.length - 1] as [unknown, (prev: DeckConfig) => void];
+  return args[1];
+}
+
+function fakeTargetWithPages(pages: DeckTarget['config']['pages']): DeckTarget {
+  return { ...fakeTarget(), config: { pages } };
+}
+
 const mockRename = vi.fn();
 const mockSetBrightness = vi.fn();
 const mockSetOrientation = vi.fn();
@@ -106,6 +126,8 @@ const mockDeckPresetHandleLoad = vi.fn();
 const mockDeckPresetHandleCreate = vi.fn();
 const mockDeckPresetHandleRename = vi.fn();
 const mockDeckPresetHandleDelete = vi.fn();
+const mockScheduleAutoSave = vi.fn();
+const mockApplyConfig = vi.fn();
 
 function deckPresetsReturn(over: Partial<{ presets: Array<{ id: string; name: string }>; activeId: string | null; presetCount: number; available: boolean }> = {}) {
   return {
@@ -113,6 +135,7 @@ function deckPresetsReturn(over: Partial<{ presets: Array<{ id: string; name: st
     loadPresets: vi.fn(), handleCreate: mockDeckPresetHandleCreate,
     handleRename: mockDeckPresetHandleRename, handleDelete: mockDeckPresetHandleDelete,
     handleLoad: mockDeckPresetHandleLoad,
+    scheduleAutoSave: mockScheduleAutoSave,
     ...over,
   };
 }
@@ -133,7 +156,8 @@ beforeEach(() => {
   mockSetOrientation.mockResolvedValue(true);
   mockSetSleepAfterSeconds.mockResolvedValue(true);
   mockControlDevice.mockResolvedValue(undefined);
-  mockUsePhysicalDeckTarget.mockReturnValue({ target: fakeTarget(), loaded: true, error: false, retry: vi.fn() });
+  mockSetStreamDeckNav.mockResolvedValue(true);
+  mockUsePhysicalDeckTarget.mockReturnValue({ target: fakeTarget(), loaded: true, error: false, retry: vi.fn(), applyConfig: mockApplyConfig });
   mockUseDeckPresets.mockReturnValue(deckPresetsReturn());
 });
 
@@ -408,20 +432,82 @@ describe('StreamDeckDevicePage', () => {
       expect(screen.queryByRole('button', { name: 'lighting.layoutPresets.placeholder' })).toBeNull();
     });
 
-    it('has no Reset/Undo/Redo controls (deck config has no history)', async () => {
+    it('shows Reset/Undo/Redo controls, with Undo/Redo disabled until a config edit is committed', async () => {
       mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
       mockUseDeckPresets.mockReturnValue(deckPresetsReturn({ available: true, presets: [{ id: 'p1', name: 'A' }], activeId: 'p1', presetCount: 1 }));
       await renderPage();
 
-      expect(screen.queryByRole('button', { name: 'lighting.layoutPresets.reset' })).toBeNull();
-      expect(screen.queryByRole('button', { name: 'lighting.layoutPresets.undo' })).toBeNull();
-      expect(screen.queryByRole('button', { name: 'lighting.layoutPresets.redo' })).toBeNull();
+      expect(screen.getByRole('button', { name: 'devices.streamdeck.presets.reset' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'lighting.layoutPresets.undo' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'lighting.layoutPresets.redo' })).toBeDisabled();
+    });
+
+    it('a committed config edit pushes undo history and schedules the preset auto-save', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+      mockUseDeckPresets.mockReturnValue(deckPresetsReturn({ available: true, presets: [{ id: 'p1', name: 'A' }], activeId: 'p1', presetCount: 1 }));
+      await renderPage();
+
+      const onCommit = latestOnCommit();
+      act(() => { onCommit({ pages: [{ slots: [{ label: 'before' }] }] }); });
+
+      expect(mockScheduleAutoSave).toHaveBeenCalledTimes(1);
+      expect(screen.getByRole('button', { name: 'lighting.layoutPresets.undo' })).not.toBeDisabled();
+    });
+
+    it('clicking Undo restores the pre-edit config through applyConfig and re-schedules auto-save', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+      mockUseDeckPresets.mockReturnValue(deckPresetsReturn({ available: true, presets: [{ id: 'p1', name: 'A' }], activeId: 'p1', presetCount: 1 }));
+      await renderPage();
+
+      const priorConfig: DeckConfig = { pages: [{ slots: [{ label: 'before' }] }] };
+      act(() => { latestOnCommit()(priorConfig); });
+      mockScheduleAutoSave.mockClear();
+
+      fireEvent.click(screen.getByRole('button', { name: 'lighting.layoutPresets.undo' }));
+
+      expect(mockApplyConfig).toHaveBeenCalledWith(priorConfig);
+      expect(mockScheduleAutoSave).toHaveBeenCalledTimes(1);
+      expect(screen.getByRole('button', { name: 'lighting.layoutPresets.undo' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'lighting.layoutPresets.redo' })).not.toBeDisabled();
+    });
+
+    it('clicking Redo after an Undo re-applies the undone config and re-schedules auto-save', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+      mockUseDeckPresets.mockReturnValue(deckPresetsReturn({ available: true, presets: [{ id: 'p1', name: 'A' }], activeId: 'p1', presetCount: 1 }));
+      await renderPage();
+
+      const priorConfig: DeckConfig = { pages: [{ slots: [{ label: 'before' }] }] };
+      act(() => { latestOnCommit()(priorConfig); });
+      fireEvent.click(screen.getByRole('button', { name: 'lighting.layoutPresets.undo' }));
+      mockApplyConfig.mockClear();
+      mockScheduleAutoSave.mockClear();
+
+      fireEvent.click(screen.getByRole('button', { name: 'lighting.layoutPresets.redo' }));
+
+      // The target's current config is the fakeTarget() default - what Undo
+      // moved onto the redo stack - so Redo hands it back to applyConfig.
+      expect(mockApplyConfig).toHaveBeenCalledWith({ pages: [{ slots: [] }] });
+      expect(mockScheduleAutoSave).toHaveBeenCalledTimes(1);
+      expect(screen.getByRole('button', { name: 'lighting.layoutPresets.redo' })).toBeDisabled();
+    });
+
+    it('Reset (after confirm) clears the config to a single empty page, is itself undoable, and schedules auto-save', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+      mockUseDeckPresets.mockReturnValue(deckPresetsReturn({ available: true, presets: [{ id: 'p1', name: 'A' }], activeId: 'p1', presetCount: 1 }));
+      await renderPage();
+
+      fireEvent.click(screen.getByRole('button', { name: 'devices.streamdeck.presets.reset' }));
+      fireEvent.click(screen.getByRole('button', { name: 'confirm.ok' }));
+
+      expect(mockApplyConfig).toHaveBeenCalledWith(emptyDeck());
+      expect(mockScheduleAutoSave).toHaveBeenCalledTimes(1);
+      expect(screen.getByRole('button', { name: 'lighting.layoutPresets.undo' })).not.toBeDisabled();
     });
 
     it('loading a preset activates it then re-fetches the physical deck config', async () => {
       const retry = vi.fn();
       mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
-      mockUsePhysicalDeckTarget.mockReturnValue({ target: fakeTarget(), loaded: true, error: false, retry });
+      mockUsePhysicalDeckTarget.mockReturnValue({ target: fakeTarget(), loaded: true, error: false, retry, applyConfig: mockApplyConfig });
       mockUseDeckPresets.mockReturnValue(deckPresetsReturn({ available: true, presets: [{ id: 'p1', name: 'A' }, { id: 'p2', name: 'B' }], activeId: 'p1', presetCount: 2 }));
       mockDeckPresetHandleLoad.mockResolvedValue(undefined);
       await renderPage();
@@ -434,6 +520,214 @@ describe('StreamDeckDevicePage', () => {
 
       expect(mockDeckPresetHandleLoad).toHaveBeenCalledWith('p2');
       expect(retry).toHaveBeenCalledTimes(1);
+    });
+
+    describe('undo-history burst coalescing', () => {
+      beforeEach(() => {
+        vi.useFakeTimers();
+      });
+
+      afterEach(() => {
+        vi.clearAllTimers();
+        vi.useRealTimers();
+      });
+
+      it('collapses a rapid run of commits into one history entry anchored on the first prev', async () => {
+        mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+        mockUseDeckPresets.mockReturnValue(deckPresetsReturn({ available: true, presets: [{ id: 'p1', name: 'A' }], activeId: 'p1', presetCount: 1 }));
+        await renderPage();
+
+        const first: DeckConfig = { pages: [{ slots: [{ label: 'M' }] }] };
+        const second: DeckConfig = { pages: [{ slots: [{ label: 'Mu' }] }] };
+        const third: DeckConfig = { pages: [{ slots: [{ label: 'Mus' }] }] };
+        const onCommit = latestOnCommit();
+
+        act(() => { onCommit(first); });
+        expect(screen.getByRole('button', { name: 'lighting.layoutPresets.undo' })).not.toBeDisabled();
+        act(() => { vi.advanceTimersByTime(200); });
+        act(() => { onCommit(second); });
+        act(() => { vi.advanceTimersByTime(200); });
+        act(() => { onCommit(third); });
+
+        fireEvent.click(screen.getByRole('button', { name: 'lighting.layoutPresets.undo' }));
+
+        expect(mockApplyConfig).toHaveBeenCalledTimes(1);
+        expect(mockApplyConfig).toHaveBeenCalledWith(first);
+        expect(screen.getByRole('button', { name: 'lighting.layoutPresets.undo' })).toBeDisabled();
+      });
+
+      it('starts a new history entry once the coalescing window has elapsed since the last commit', async () => {
+        mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+        mockUseDeckPresets.mockReturnValue(deckPresetsReturn({ available: true, presets: [{ id: 'p1', name: 'A' }], activeId: 'p1', presetCount: 1 }));
+        await renderPage();
+
+        const first: DeckConfig = { pages: [{ slots: [{ label: 'M' }] }] };
+        const second: DeckConfig = { pages: [{ slots: [{ label: 'Music' }] }] };
+        const onCommit = latestOnCommit();
+
+        act(() => { onCommit(first); });
+        act(() => { vi.advanceTimersByTime(1000); });
+        act(() => { onCommit(second); });
+
+        fireEvent.click(screen.getByRole('button', { name: 'lighting.layoutPresets.undo' }));
+        expect(mockApplyConfig).toHaveBeenCalledWith(second);
+        expect(screen.getByRole('button', { name: 'lighting.layoutPresets.undo' })).not.toBeDisabled();
+
+        mockApplyConfig.mockClear();
+        fireEvent.click(screen.getByRole('button', { name: 'lighting.layoutPresets.undo' }));
+        expect(mockApplyConfig).toHaveBeenCalledWith(first);
+        expect(screen.getByRole('button', { name: 'lighting.layoutPresets.undo' })).toBeDisabled();
+      });
+
+      it('closes an open burst on Undo so the next edit starts its own entry instead of being coalesced into the stale burst', async () => {
+        mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+        mockUseDeckPresets.mockReturnValue(deckPresetsReturn({ available: true, presets: [{ id: 'p1', name: 'A' }], activeId: 'p1', presetCount: 1 }));
+        await renderPage();
+
+        const anchor: DeckConfig = { pages: [{ slots: [{ label: 'before' }] }] };
+        const onCommit = latestOnCommit();
+
+        act(() => { onCommit(anchor); });
+        fireEvent.click(screen.getByRole('button', { name: 'lighting.layoutPresets.undo' }));
+        expect(mockApplyConfig).toHaveBeenCalledWith(anchor);
+        expect(screen.getByRole('button', { name: 'lighting.layoutPresets.undo' })).toBeDisabled();
+
+        mockApplyConfig.mockClear();
+        const postUndoEdit: DeckConfig = { pages: [{ slots: [{ label: 'after-undo' }] }] };
+        // Still inside what would have been the flushed burst's window - the
+        // burst must already be closed, or this looks like a continuation and
+        // never pushes.
+        act(() => { onCommit(postUndoEdit); });
+
+        expect(screen.getByRole('button', { name: 'lighting.layoutPresets.undo' })).not.toBeDisabled();
+        fireEvent.click(screen.getByRole('button', { name: 'lighting.layoutPresets.undo' }));
+        expect(mockApplyConfig).toHaveBeenCalledWith(postUndoEdit);
+      });
+
+      it('closes an open burst on a tab switch so an edit on the other tab (e.g. DeckDefaultTitleSettings on Settings) gets its own entry', async () => {
+        mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+        mockUseDeckPresets.mockReturnValue(deckPresetsReturn({ available: true, presets: [{ id: 'p1', name: 'A' }], activeId: 'p1', presetCount: 1 }));
+        await renderPage();
+
+        const first: DeckConfig = { pages: [{ slots: [{ label: 'customize-edit' }] }] };
+        const second: DeckConfig = { pages: [{ slots: [{ label: 'settings-edit' }] }] };
+        const onCommit = latestOnCommit();
+
+        act(() => { onCommit(first); });
+        switchToSettingsTab();
+        // Still inside what would have been the open burst's window.
+        act(() => { onCommit(second); });
+        fireEvent.click(screen.getByRole('tab', { name: 'devices.streamdeck.tab.customize' }));
+
+        fireEvent.click(screen.getByRole('button', { name: 'lighting.layoutPresets.undo' }));
+        expect(mockApplyConfig).toHaveBeenCalledWith(second);
+        expect(screen.getByRole('button', { name: 'lighting.layoutPresets.undo' })).not.toBeDisabled();
+
+        mockApplyConfig.mockClear();
+        fireEvent.click(screen.getByRole('button', { name: 'lighting.layoutPresets.undo' }));
+        expect(mockApplyConfig).toHaveBeenCalledWith(first);
+        expect(screen.getByRole('button', { name: 'lighting.layoutPresets.undo' })).toBeDisabled();
+      });
+    });
+  });
+
+  describe('Second-click page navigation (mirrors folder double-click-enter)', () => {
+    function pageChip(n: number) {
+      return screen.getByRole('button', { name: `panel.settings.deck.page.tab:{"n":${n}}` });
+    }
+
+    it('a first click on an unselected page-nav key only selects it, without navigating', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+      mockUsePhysicalDeckTarget.mockReturnValue({
+        target: fakeTargetWithPages([
+          { slots: [{}, {}, { action: { type: 'page', op: 'next' } }] },
+          { slots: [] },
+        ]),
+        loaded: true, error: false, retry: vi.fn(),
+      });
+      const { container } = await renderPage();
+
+      fireEvent.click(container.querySelectorAll('[data-deck-slot-index]')[2]);
+
+      expect(screen.getByTestId('deck-key-inspector-editor').textContent).toBe('2');
+      expect(pageChip(1)).toHaveAttribute('aria-pressed', 'true');
+      expect(mockSetStreamDeckNav).not.toHaveBeenCalled();
+    });
+
+    it('a second click on the already-selected next key navigates to the next page and resets selection to 0', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+      mockUsePhysicalDeckTarget.mockReturnValue({
+        target: fakeTargetWithPages([
+          { slots: [{}, {}, { action: { type: 'page', op: 'next' } }] },
+          { slots: [] },
+        ]),
+        loaded: true, error: false, retry: vi.fn(),
+      });
+      const { container } = await renderPage();
+      const cell = container.querySelectorAll('[data-deck-slot-index]')[2];
+
+      fireEvent.click(cell);
+      fireEvent.click(cell);
+
+      expect(pageChip(2)).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByTestId('deck-key-inspector-editor').textContent).toBe('0');
+      expect(mockSetStreamDeckNav).toHaveBeenCalledWith('SN1', 1, []);
+    });
+
+    it('a second click on an already-selected goto key jumps straight to its target page', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+      mockUsePhysicalDeckTarget.mockReturnValue({
+        target: fakeTargetWithPages([
+          { slots: [{ action: { type: 'page', op: 'goto', target: 2 } }] },
+          { slots: [] },
+          { slots: [] },
+        ]),
+        loaded: true, error: false, retry: vi.fn(),
+      });
+      const { container } = await renderPage();
+      const cell = container.querySelectorAll('[data-deck-slot-index]')[0];
+
+      fireEvent.click(cell);
+      fireEvent.click(cell);
+
+      expect(pageChip(3)).toHaveAttribute('aria-pressed', 'true');
+      expect(mockSetStreamDeckNav).toHaveBeenCalledWith('SN1', 2, []);
+    });
+
+    it('clamps at the first page instead of going negative, matching the physical deck\'s clamp (prev at page 0)', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+      mockUsePhysicalDeckTarget.mockReturnValue({
+        target: fakeTargetWithPages([
+          { slots: [{ action: { type: 'page', op: 'prev' } }] },
+          { slots: [] },
+        ]),
+        loaded: true, error: false, retry: vi.fn(),
+      });
+      const { container } = await renderPage();
+      const cell = container.querySelectorAll('[data-deck-slot-index]')[0];
+
+      fireEvent.click(cell);
+      fireEvent.click(cell);
+
+      expect(pageChip(1)).toHaveAttribute('aria-pressed', 'true');
+      expect(mockSetStreamDeckNav).toHaveBeenCalledWith('SN1', 0, []);
+    });
+
+    it('clamps at the last page instead of overshooting, matching the physical deck\'s clamp (next on a single-page deck)', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+      mockUsePhysicalDeckTarget.mockReturnValue({
+        target: fakeTargetWithPages([{ slots: [{ action: { type: 'page', op: 'next' } }] }]),
+        loaded: true, error: false, retry: vi.fn(),
+      });
+      const { container } = await renderPage();
+      const cell = container.querySelectorAll('[data-deck-slot-index]')[0];
+
+      fireEvent.click(cell);
+      fireEvent.click(cell);
+
+      expect(pageChip(1)).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.queryAllByRole('button', { name: /panel.settings.deck.page.tab/ })).toHaveLength(1);
+      expect(mockSetStreamDeckNav).toHaveBeenCalledWith('SN1', 0, []);
     });
   });
 });

@@ -43,6 +43,22 @@ describe('DeckGrid backCell (physical folder views)', () => {
     expect(onBack).toHaveBeenCalledTimes(1);
   });
 
+  it('renders the Back cell with the curved go-up-a-level glyph, matching the physical back-key bitmap', () => {
+    const { container } = render(
+      <DeckGrid
+        slots={[{ label: 'a' }]}
+        cols={2}
+        rows={1}
+        selectable={false}
+        onCell={() => {}}
+        backCell={{ onBack: () => {}, ariaLabel: 'Back' }}
+      />,
+    );
+    const backButton = container.querySelector('button[aria-label="Back"]')!;
+    expect(backButton.querySelector('svg.lucide-undo-2')).not.toBeNull();
+    expect(backButton.querySelector('svg.lucide-chevron-left')).toBeNull();
+  });
+
   it('onCell receives the logical slot index, unaffected by the Back cell taking the first grid position', () => {
     const slots: DeckSlot[] = [{ label: 'a' }, { label: 'b' }];
     const onCell = vi.fn();

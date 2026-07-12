@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { ChevronLeft, Plus } from 'lucide-react';
+import { Undo2, Plus } from 'lucide-react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { useAppIcon } from '../common/AppPicker';
 import { DECK_ICONS, autoIconName, deckCategory, categoryColor } from './deckIcons';
@@ -202,7 +202,7 @@ export function DeckGrid({ slots, cols, rows, selectable, dragEnabled, selectedI
           onClick={e => { e.stopPropagation(); backCell.onBack(); }}
         >
           {/* eslint-disable-next-line i18next/no-literal-string -- ARIA boolean attribute */}
-          <ChevronLeft aria-hidden="true" />
+          <Undo2 aria-hidden="true" />
         </button>
       )}
       {slots.map((slot, i) => (
