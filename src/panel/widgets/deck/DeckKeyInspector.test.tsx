@@ -65,7 +65,9 @@ describe('defaultActionFor - new Stream Deck action kinds', () => {
  * (the same factory StreamDeckDevicePage uses) over a useState-backed config
  * so picker interactions round-trip exactly like production.
  */
-function Harness({ initialSlots, surface, desktopEditor }: { initialSlots: DeckSlot[]; surface?: PanelSurface; desktopEditor?: boolean }) {
+function Harness({ initialSlots, surface, desktopEditor, part, onDeleteSlot }: {
+  initialSlots: DeckSlot[]; surface?: PanelSurface; desktopEditor?: boolean; part?: 'all' | 'picker' | 'editor'; onDeleteSlot?: () => void;
+}) {
   const [config, setConfig] = useState<DeckConfig>({ pages: [{ slots: initialSlots }] });
   const target = makePhysicalDeckTarget(2, 1, initialSlots.length, config, setConfig);
   return (
@@ -78,6 +80,8 @@ function Harness({ initialSlots, surface, desktopEditor }: { initialSlots: DeckS
       onSelectedSlotChange={() => {}}
       surface={surface}
       desktopEditor={desktopEditor}
+      part={part}
+      onDeleteSlot={onDeleteSlot}
     />
   );
 }
@@ -653,5 +657,59 @@ describe('DeckKeyInspector - openFile/openFolder Browse button', () => {
 
     resolvePick(null);
     await waitFor(() => expect(browse).not.toBeDisabled());
+  });
+});
+
+describe('DeckKeyInspector - delete action', () => {
+  it('renders no delete control when onDeleteSlot is omitted (every existing caller)', () => {
+    render(<Harness initialSlots={[{ action: { type: 'hotkey', keys: '' } }]} />);
+    expect(screen.queryByText('panel.settings.deck.deleteKey')).toBeNull();
+  });
+
+  it('renders the delete control at the bottom of the editor once a binding exists, and it calls onDeleteSlot', () => {
+    const onDeleteSlot = vi.fn();
+    render(<Harness initialSlots={[{ action: { type: 'hotkey', keys: '' } }]} onDeleteSlot={onDeleteSlot} />);
+
+    const title = screen.getByText('panel.settings.deck.titleStyle.section');
+    const deleteBtn = screen.getByRole('button', { name: 'panel.settings.deck.deleteKey' });
+    expect(isBefore(title, deleteBtn)).toBe(true);
+
+    fireEvent.click(deleteBtn);
+    expect(onDeleteSlot).toHaveBeenCalledTimes(1);
+  });
+
+  it('hides the delete control for an unbound (empty) slot, even when onDeleteSlot is provided', () => {
+    render(<Harness initialSlots={[{}]} onDeleteSlot={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: 'panel.settings.deck.deleteKey' })).toBeNull();
+  });
+
+  it('hides the delete control on the picker-only pane (nothing to delete there)', () => {
+    render(<Harness initialSlots={[{ action: { type: 'hotkey', keys: '' } }]} part="picker" onDeleteSlot={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: 'panel.settings.deck.deleteKey' })).toBeNull();
+  });
+
+  it('clearing the slot via onDeleteSlot hides the editor fields - the panel closes reactively, with no separate close call needed', () => {
+    function SelfClearingHarness({ initialSlots }: { initialSlots: DeckSlot[] }) {
+      const [config, setConfig] = useState<DeckConfig>({ pages: [{ slots: initialSlots }] });
+      const target = makePhysicalDeckTarget(2, 1, initialSlots.length, config, setConfig);
+      return (
+        <DeckKeyInspector
+          target={target}
+          page={0}
+          folderPath={[]}
+          onFolderPathChange={() => {}}
+          selectedSlot={0}
+          onSelectedSlotChange={() => {}}
+          onDeleteSlot={() => target.updateSlot(0, [], 0, {})}
+        />
+      );
+    }
+    render(<SelfClearingHarness initialSlots={[{ action: { type: 'hotkey', keys: '' } }]} />);
+    expect(screen.getByText('panel.settings.deck.titleStyle.section')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.deleteKey' }));
+
+    expect(screen.queryByText('panel.settings.deck.titleStyle.section')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'panel.settings.deck.deleteKey' })).toBeNull();
   });
 });

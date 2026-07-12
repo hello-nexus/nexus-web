@@ -19,7 +19,6 @@ import {
   setKeebMacro,
   setKeebPassiveLighting,
   setKeebRotary,
-  setKeebRotarySensitivity,
 } from './keeb';
 import { fetchService, postService } from './service';
 
@@ -48,7 +47,6 @@ const settings: KeebSettings = {
   speed: 'Medium',
   direction: 'Left',
   brightness: 50,
-  keyIndicator: false,
   keyReactive: false,
   keyReactiveMask: false,
   keyReactiveMode: 'Single',
@@ -65,7 +63,6 @@ describe('boolean settings wrappers', () => {
     speed: 'Fast',
     direction: 'Right',
     brightness: 80,
-    keyIndicator: true,
   };
   const plBody: SetPassiveLightingBody = {
     keyReactive: true,
@@ -74,7 +71,7 @@ describe('boolean settings wrappers', () => {
     keyReactiveColor: { r: 0, g: 255, b: 0, a: 255 },
   };
   const gmBody: SetGameModeBody = { altF4: true, altTab: false, shiftTab: true, windowsKey: false };
-  const rotBody: SetRotaryWheelsBody = { left: 'Volume', right: 'Zoom', apps: [] };
+  const rotBody: SetRotaryWheelsBody = { left: 'Volume', right: 'Zoom' };
 
   it('return true when the service acks (non-null response)', async () => {
     mockPost.mockResolvedValue({ error: false });
@@ -82,7 +79,6 @@ describe('boolean settings wrappers', () => {
     await expect(setKeebPassiveLighting(plBody)).resolves.toBe(true);
     await expect(setKeebGameMode(gmBody)).resolves.toBe(true);
     await expect(setKeebRotary(rotBody)).resolves.toBe(true);
-    await expect(setKeebRotarySensitivity('High')).resolves.toBe(true);
   });
 
   it('return false when the post fails (null response)', async () => {
@@ -91,7 +87,6 @@ describe('boolean settings wrappers', () => {
     await expect(setKeebPassiveLighting(plBody)).resolves.toBe(false);
     await expect(setKeebGameMode(gmBody)).resolves.toBe(false);
     await expect(setKeebRotary(rotBody)).resolves.toBe(false);
-    await expect(setKeebRotarySensitivity('High')).resolves.toBe(false);
   });
 
   it('return false on a 200 carrying the ApiResponse.Fail envelope', async () => {
@@ -110,8 +105,6 @@ describe('boolean settings wrappers', () => {
     expect(mockPost).toHaveBeenLastCalledWith('/keeb/game-mode', gmBody);
     await setKeebRotary(rotBody);
     expect(mockPost).toHaveBeenLastCalledWith('/keeb/rotary', rotBody);
-    await setKeebRotarySensitivity('Low');
-    expect(mockPost).toHaveBeenLastCalledWith('/keeb/rotary/sensitivity', { sensitivity: 'Low' });
   });
 });
 
@@ -161,10 +154,16 @@ describe('macros', () => {
     await expect(getKeebMacro(5)).resolves.toBeNull();
   });
 
-  it('setKeebMacro posts the keys and unwraps the macro', async () => {
-    mockPost.mockResolvedValue({ error: false, macro });
-    await expect(setKeebMacro(5, macro.keys)).resolves.toBe(macro);
+  it('setKeebMacro posts the keys and returns the full save response', async () => {
+    const resp = { error: false, macro, truncated: false, droppedKeys: [], wroteDevice: true };
+    mockPost.mockResolvedValue(resp);
+    await expect(setKeebMacro(5, macro.keys)).resolves.toBe(resp);
     expect(mockPost).toHaveBeenCalledWith('/keeb/macro/5', { keys: macro.keys });
+  });
+
+  it('setKeebMacro returns null on a 200 carrying error:true', async () => {
+    mockPost.mockResolvedValue({ error: true, msg: 'macro verify mismatch' });
+    await expect(setKeebMacro(5, macro.keys)).resolves.toBeNull();
   });
 
   it('setKeebMacro returns null when the post fails', async () => {

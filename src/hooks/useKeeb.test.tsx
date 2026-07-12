@@ -6,6 +6,8 @@ import {
   type KeebSettings,
   type KeyboardState,
   type SetLayerKeyBody,
+  type SetLayerKeyResponse,
+  type SetMacroResponse,
   getKeebMacro,
   getKeebSettings,
   getKeebState,
@@ -16,7 +18,6 @@ import {
   setKeebMacro,
   setKeebPassiveLighting,
   setKeebRotary,
-  setKeebRotarySensitivity,
 } from '../api/keeb';
 
 vi.mock('../api/keeb', () => ({
@@ -30,7 +31,6 @@ vi.mock('../api/keeb', () => ({
   setKeebMacro: vi.fn(),
   setKeebPassiveLighting: vi.fn(),
   setKeebRotary: vi.fn(),
-  setKeebRotarySensitivity: vi.fn(),
 }));
 
 const mockState = vi.mocked(getKeebState);
@@ -43,7 +43,6 @@ const mockFw = vi.mocked(setKeebFirmwareLighting);
 const mockPassive = vi.mocked(setKeebPassiveLighting);
 const mockGameMode = vi.mocked(setKeebGameMode);
 const mockRotary = vi.mocked(setKeebRotary);
-const mockSensitivity = vi.mocked(setKeebRotarySensitivity);
 
 function makeState(over: Partial<KeyboardState> = {}): KeyboardState {
   return {
@@ -66,7 +65,6 @@ function makeSettings(over: Partial<KeebSettings> = {}): KeebSettings {
     speed: 'Medium',
     direction: 'Left',
     brightness: 50,
-    keyIndicator: false,
     keyReactive: false,
     keyReactiveMask: false,
     keyReactiveMode: 'Single',
@@ -84,6 +82,10 @@ const flush = () => act(async () => {
 async function advance(ms: number) {
   await act(async () => { await vi.advanceTimersByTimeAsync(ms); });
   await flush();
+}
+
+function ackFor(state: KeyboardState): SetLayerKeyResponse {
+  return { state, wroteDevice: true };
 }
 
 function deferred<T>() {
@@ -129,7 +131,7 @@ describe('useKeeb', () => {
     await flush();
 
     expect(result.current.loading).toBe(false);
-    expect(result.current.state).toBe(server);
+    expect(result.current.state).toStrictEqual(server);
     expect(result.current.settings).toEqual(makeSettings());
   });
 
@@ -142,7 +144,7 @@ describe('useKeeb', () => {
     await advance(1500);
 
     expect(mockState).toHaveBeenCalledTimes(2);
-    expect(result.current.state).toBe(next);
+    expect(result.current.state).toStrictEqual(next);
 
     await advance(1500);
     expect(mockState).toHaveBeenCalledTimes(3);
@@ -156,7 +158,7 @@ describe('useKeeb', () => {
     mockRotary.mockReturnValue(write.promise);
     let pending!: Promise<boolean>;
     act(() => {
-      pending = result.current.saveRotary({ left: 'Volume', right: 'Zoom', apps: [] });
+      pending = result.current.saveRotary({ left: 'Volume', right: 'Zoom' });
     });
 
     await advance(1500);
@@ -181,7 +183,7 @@ describe('useKeeb', () => {
     const { result } = await renderKeeb();
 
     const ack = makeState({ profile: 9 });
-    const write = deferred<KeyboardState | null>();
+    const write = deferred<SetLayerKeyResponse | null>();
     mockSetKey.mockReturnValue(write.promise);
 
     const body: SetLayerKeyBody = { x: 0, y: 0, func: 'B', mode: 'MediaKey' };
@@ -194,14 +196,14 @@ describe('useKeeb', () => {
 
     let ok = false;
     await act(async () => {
-      write.resolve(ack);
+      write.resolve(ackFor(ack));
       ok = await pending;
     });
     await flush();
 
     expect(ok).toBe(true);
     // The server-returned authoritative state replaced the optimistic one.
-    expect(result.current.state).toBe(ack);
+    expect(result.current.state).toStrictEqual(ack);
     // Success: no resync fetch beyond the initial one.
     expect(mockState).toHaveBeenCalledTimes(1);
   });
@@ -226,7 +228,7 @@ describe('useKeeb', () => {
     expect(ok).toBe(false);
     // The resync fetch fired once the failed write settled.
     expect(mockState).toHaveBeenCalledTimes(2);
-    expect(result.current.state).toBe(reverted);
+    expect(result.current.state).toStrictEqual(reverted);
     expect(result.current.state.keys).toEqual([[{ mode: 'StandardKey', function: 'A', input: null }]]);
   });
 
@@ -249,7 +251,7 @@ describe('useKeeb', () => {
 
     expect(ok).toBe(false);
     expect(mockState).toHaveBeenCalledTimes(2);
-    expect(result.current.state).toBe(reverted);
+    expect(result.current.state).toStrictEqual(reverted);
   });
 
   it('saveFirmwareLighting merges optimistic settings and returns the api result', async () => {
@@ -261,7 +263,6 @@ describe('useKeeb', () => {
       speed: 'Fast',
       direction: 'Right',
       brightness: 80,
-      keyIndicator: true,
     };
     let pending!: Promise<boolean>;
     act(() => { pending = result.current.saveFirmwareLighting(body); });
@@ -324,23 +325,23 @@ describe('useKeeb', () => {
     expect(mockGameMode).toHaveBeenCalledWith(body);
   });
 
-  it('saveRotary and saveRotarySensitivity pass through and return the api booleans', async () => {
+  it('saveRotary passes through, and a failure schedules the resync', async () => {
     const { result } = await renderKeeb();
-    mockRotary.mockResolvedValue(true);
-    mockSensitivity.mockResolvedValue(false);
+    mockRotary.mockResolvedValueOnce(true);
 
-    const body = { left: 'Volume', right: 'Zoom', apps: [] };
+    const body = { left: 'Volume', right: 'Zoom' };
     let okRotary = false;
     await act(async () => { okRotary = await result.current.saveRotary(body); });
     expect(okRotary).toBe(true);
     expect(mockRotary).toHaveBeenCalledWith(body);
+    expect(mockState).toHaveBeenCalledTimes(1);
 
-    let okSensitivity = true;
-    await act(async () => { okSensitivity = await result.current.saveRotarySensitivity('High'); });
+    mockRotary.mockResolvedValueOnce(false);
+    let okFail = true;
+    await act(async () => { okFail = await result.current.saveRotary(body); });
     await flush();
-    expect(okSensitivity).toBe(false);
-    expect(mockSensitivity).toHaveBeenCalledWith('High');
-    // The failed sensitivity write scheduled a resync fetch.
+    expect(okFail).toBe(false);
+    // The failed write scheduled a resync fetch.
     expect(mockState).toHaveBeenCalledTimes(2);
   });
 
@@ -348,9 +349,9 @@ describe('useKeeb', () => {
     const { result } = await renderKeeb();
     expect(mockState).toHaveBeenCalledTimes(1);
 
-    const write = deferred<KeebMacro | null>();
+    const write = deferred<SetMacroResponse | null>();
     mockSetMacro.mockReturnValue(write.promise);
-    let pending!: Promise<KeebMacro | null>;
+    let pending!: Promise<SetMacroResponse | null>;
     act(() => { pending = result.current.saveMacro(2, []); });
     expect(mockSetMacro).toHaveBeenCalledWith(2, []);
 
@@ -360,13 +361,15 @@ describe('useKeeb', () => {
     expect(mockState).toHaveBeenCalledTimes(1);
     expect(mockSettings).toHaveBeenCalledTimes(1);
 
-    const macro: KeebMacro = { index: 2, keys: [] };
-    let saved: KeebMacro | null = null;
+    const resp: SetMacroResponse = {
+      macro: { index: 2, keys: [] }, truncated: false, droppedKeys: [], wroteDevice: true,
+    };
+    let saved: SetMacroResponse | null = null;
     await act(async () => {
-      write.resolve(macro);
+      write.resolve(resp);
       saved = await pending;
     });
-    expect(saved).toBe(macro);
+    expect(saved).toBe(resp);
 
     // Acked: polling resumes, no resync was needed.
     await advance(1500);
@@ -378,7 +381,9 @@ describe('useKeeb', () => {
     expect(mockState).toHaveBeenCalledTimes(1);
 
     mockSetMacro.mockResolvedValue(null);
-    let saved: KeebMacro | null = { index: 0, keys: [] };
+    let saved: SetMacroResponse | null = {
+      macro: { index: 0, keys: [] }, truncated: false, droppedKeys: [], wroteDevice: true,
+    };
     await act(async () => { saved = await result.current.saveMacro(1, []); });
     await flush();
 
@@ -433,6 +438,37 @@ describe('useKeeb', () => {
     expect(mockState).toHaveBeenLastCalledWith(2);
   });
 
+  it('does not adopt a setKey ack after the user switched layers', async () => {
+    const { result } = await renderKeeb();
+
+    const write = deferred<SetLayerKeyResponse | null>();
+    mockSetKey.mockReturnValue(write.promise);
+    const body: SetLayerKeyBody = { x: 0, y: 0, func: 'B', mode: 'MediaKey' };
+    let pending!: Promise<boolean>;
+    act(() => { pending = result.current.setKey(body); });
+
+    // The user switches layers while the write is in flight (the poll for
+    // layer 2 stays suppressed until the write settles).
+    const layer2 = makeState({ layer: 2 });
+    mockState.mockResolvedValue(layer2);
+    await act(async () => { result.current.setLayer(2); });
+    await flush();
+
+    // The stale ack (a layer-0 board) resolves; it must not repaint layer 2.
+    const staleAck = makeState({ keys: [[{ mode: 'MediaKey', function: 'StaleAck', input: null }]] });
+    await act(async () => {
+      write.resolve(ackFor(staleAck));
+      await pending;
+    });
+    await flush();
+    expect(result.current.state).not.toBe(staleAck);
+    expect(result.current.state.keys[0]?.[0]?.function).not.toBe('StaleAck');
+
+    // The next poll paints the real layer-2 board.
+    await advance(1500);
+    expect(result.current.state).toStrictEqual(layer2);
+  });
+
   it('discards a poll that started before a write completed', async () => {
     const { result } = await renderKeeb();
 
@@ -444,7 +480,7 @@ describe('useKeeb', () => {
     // A write lands while that poll is still out: server acks with the
     // post-write layer state.
     const acked = makeState({ keys: [[{ mode: 'MediaKey', function: 'VolumeUp', input: null }]] });
-    mockSetKey.mockResolvedValueOnce(acked);
+    mockSetKey.mockResolvedValueOnce(ackFor(acked));
     const body: SetLayerKeyBody = { x: 0, y: 0, func: 'VolumeUp', mode: 'MediaKey', input: null };
     await act(async () => { await result.current.setKey(body); });
     expect(result.current.state.keys[0][0].function).toBe('VolumeUp');

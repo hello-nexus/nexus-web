@@ -82,7 +82,6 @@ export function getKeyGlyph(func: string, layout: KeebLayoutKind = 'ANSI'): Reac
     case 'RightAlt': return 'Alt';
     case 'LeftGUI':
     case 'RightGUI': return '⊞';
-    case 'Application': return '≣';
     case 'PassThrough': return <ChevronDown size={ICON_SIZE} />;
     case 'UpArrow': return <ChevronUp size={ICON_SIZE} />;
     case 'DownArrow': return <ChevronDown size={ICON_SIZE} />;
@@ -98,24 +97,6 @@ export function getKeyGlyph(func: string, layout: KeebLayoutKind = 'ANSI'): Reac
     case 'Rewind': return '⏪';
     case 'FastForward': return '⏩';
     case 'KeyboardPower': return <Power size={ICON_SIZE} />;
-    case 'KeypadSlash': return '/';
-    case 'KeypadAsterisk': return '*';
-    case 'KeypadMinus': return '-';
-    case 'KeypadPlus': return '+';
-    case 'KeypadEnter': return 'Enter';
-    case 'Keypad1End': return '1 End';
-    case 'Keypad2DownArrow': return '2 ↓';
-    case 'Keypad3PageDown': return '3 PgDn';
-    case 'Keypad4LeftArrow': return '4 ←';
-    case 'Keypad5': return '5';
-    case 'Keypad6RightArrow': return '6 →';
-    case 'Keypad7Home': return '7 Home';
-    case 'Keypad8UpArrow': return '8 ↑';
-    case 'Keypad9PageUp': return '9 PgUp';
-    case 'Keypad0Insert': return '0 Ins';
-    case 'KeypadPeriodDelete': return '. Del';
-    case 'KeypadComma': return ',';
-    case 'KeypadEqual': return '=';
     case 'MOSwitch': return 'MO';
     case 'TGSwitch': return 'TG';
     case 'TOSwitch': return <ToggleRight size={ICON_SIZE} />;
