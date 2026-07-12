@@ -24,7 +24,7 @@ const RATCHETS = [
     // that same idiom, so the cap tracks up with them (the Fill gauge added 4).
     // The calendar widget's date/day/month display fonts are the same em-tier
     // idiom (like the clock).
-    baseline: 508,
+    baseline: 502,
     hint: 'use the @include text-* mixins or var(--type-*/--weight-*) tokens from _text.scss (run "npm run audit:text-styles" for the list)',
   },
 ] as const;
