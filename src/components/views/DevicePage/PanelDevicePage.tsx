@@ -99,6 +99,15 @@ function normalizeOrientation(value: string | undefined | null): Y70Orientation 
     : 'PortraitFlipped';
 }
 
+const TOUCH_REPAIR_ERROR_STATUSES = ['noPanel', 'noDigitizer', 'noHelper', 'failed'] as const;
+type TouchRepairErrorStatus = (typeof TOUCH_REPAIR_ERROR_STATUSES)[number];
+
+function toTouchRepairErrorStatus(status: string): TouchRepairErrorStatus {
+  return (TOUCH_REPAIR_ERROR_STATUSES as readonly string[]).includes(status)
+    ? (status as TouchRepairErrorStatus)
+    : 'failed';
+}
+
 type Tab = 'widgets' | 'theme' | 'settings';
 
 export function PanelDevicePage({ device, onOpenFirmware }: PanelDevicePageProps) {
@@ -1007,25 +1016,33 @@ function SettingsPanel({
 
   const handleRepairTouchMapping = useCallback(async () => {
     setTouchRepairBusy(true);
-    const result = await repairTouchMapping();
-    setTouchRepairBusy(false);
-    const status = result?.status ?? 'failed';
-    if (status === 'repaired') {
-      push({ title: t('devices.y70.touchRepair.repaired') });
-      return;
+    try {
+      const result = await repairTouchMapping();
+      const status = result?.status ?? 'failed';
+      if (status === 'repaired') {
+        push({ title: t('devices.y70.touchRepair.repaired') });
+        return;
+      }
+      if (status === 'alreadyCorrect') {
+        push({ title: t('devices.y70.touchRepair.alreadyCorrect') });
+        return;
+      }
+      const errorStatus = toTouchRepairErrorStatus(status);
+      push({ title: t(`devices.y70.touchRepair.error.${errorStatus}`) });
+      if (errorStatus === 'failed') setTouchWizardConfirmOpen(true);
+    } finally {
+      setTouchRepairBusy(false);
     }
-    if (status === 'alreadyCorrect') {
-      push({ title: t('devices.y70.touchRepair.alreadyCorrect') });
-      return;
-    }
-    push({ title: t(`devices.y70.touchRepair.error.${status}`) });
-    if (status === 'failed') setTouchWizardConfirmOpen(true);
   }, [push, t]);
 
   const handleLaunchTouchWizard = useCallback(async () => {
     setTouchWizardConfirmOpen(false);
-    const launched = await launchTouchSetupWizard();
-    push({ title: t(launched ? 'devices.y70.touchRepair.wizardLaunched' : 'devices.y70.touchRepair.wizardLaunchFailed') });
+    let launched = false;
+    try {
+      launched = await launchTouchSetupWizard();
+    } finally {
+      push({ title: t(launched ? 'devices.y70.touchRepair.wizardLaunched' : 'devices.y70.touchRepair.wizardLaunchFailed') });
+    }
   }, [push, t]);
 
   return (
@@ -1093,6 +1110,7 @@ function SettingsPanel({
               tone="neutral"
               size="sm"
               loading={touchRepairBusy}
+              disabled={usbDisconnected}
               onClick={() => void handleRepairTouchMapping()}
             >
               {t('devices.y70.touchRepairButton')}
