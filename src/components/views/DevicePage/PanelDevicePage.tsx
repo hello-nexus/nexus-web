@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { ArrowLeft, Trash2, LayoutGrid, Palette, Settings, Download, AlertTriangle, Unplug } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
@@ -41,7 +41,7 @@ import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { Button } from '../../common/Button/Button';
 import { PanelArrowButton } from '../../../panel/chrome/PanelArrowButton';
 import { broadcastLayoutChanged } from '../../../panel/engine/panelSync';
-import { usePanelTheme, useResolvedPanelThemeMode } from '../../../panel/theme/panelTheme';
+import { buildPanelThemeVars, usePanelTheme, useResolvedPanelThemeMode } from '../../../panel/theme/panelTheme';
 import { PanelThemeSettings } from '../../../panel/editor/PanelThemeSettings';
 import { lookupApp, sizesForSurface } from '../../../panel/widgets/registry';
 import type { DeckEditView } from '../../../panel/widgets/types';
@@ -189,6 +189,11 @@ export function PanelDevicePage({ device, onOpenFirmware }: PanelDevicePageProps
   const desktopResolvedThemeMode = useResolvedPanelThemeMode(
     theme.appResolvedThemeMode || theme.appThemeMode,
   );
+  // The widget preview + add-widget catalog render inside the desktop chrome,
+  // where --accent is the desktop app's, not this panel's. Inject the panel's
+  // accent vars (at the preview's own resolved mode) so previews highlight in
+  // the panel's hue instead of the desktop default.
+  const panelPreviewThemeStyle = buildPanelThemeVars(theme, desktopResolvedThemeMode);
 
   useEffect(() => {
     if (!open) return;
@@ -520,6 +525,7 @@ export function PanelDevicePage({ device, onOpenFirmware }: PanelDevicePageProps
                 surface={surface}
                 deviceTouch={deviceTouch}
                 themeMode={desktopResolvedThemeMode}
+                themeStyle={panelPreviewThemeStyle}
                 onBack={() => setConfiguringWidget(null)}
                 onUpdate={handleUpdateWidgetConfig}
                 onResize={handleResizeWidget}
@@ -537,6 +543,8 @@ export function PanelDevicePage({ device, onOpenFirmware }: PanelDevicePageProps
                       remote={isRemotePanel(device?.connectionKind)}
                       className={styles.catalog}
                       selectedWidgetType={currentSingleWidget?.type}
+                      themeMode={desktopResolvedThemeMode}
+                      themeStyle={panelPreviewThemeStyle}
                     />
                   )}
                   {activeTab === 'theme' && (() => {
@@ -730,13 +738,16 @@ interface InlineWidgetSettingsProps {
   surface: PanelSurface;
   deviceTouch?: boolean;
   themeMode?: 'dark' | 'light';
+  // Panel accent vars injected onto the preview root so the widget preview
+  // highlights in the panel's accent, not the desktop chrome's.
+  themeStyle?: CSSProperties;
   onBack: () => void;
   onUpdate: (widgetId: string, config: Record<string, PanelConfigValue>) => void;
   onResize: (widgetId: string, size: PanelWidgetSize) => void;
   onRemove: (widgetId: string) => void;
 }
 
-function InlineWidgetSettings({ widget, surface, deviceTouch, themeMode = 'dark', onBack, onUpdate, onResize, onRemove }: InlineWidgetSettingsProps) {
+function InlineWidgetSettings({ widget, surface, deviceTouch, themeMode = 'dark', themeStyle, onBack, onUpdate, onResize, onRemove }: InlineWidgetSettingsProps) {
   const { t } = useTranslation();
   const def = lookupApp(widget.type);
   const widgetLabel = def ? (t(def.meta.i18nKey) || widget.type) : widget.type;
@@ -800,7 +811,7 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeMode = 'dark'
             <div
               className={`panel-root ${usesSlotSelection ? styles.inlineSettingsPreviewRootInteractive : styles.inlineSettingsPreviewRoot}`}
               data-theme={themeMode}
-              style={{ width: previewW, height: previewH }}
+              style={{ ...themeStyle, width: previewW, height: previewH }}
             >
               <div className={`panel-card ${styles.inlineSettingsPreviewCard}`}>
                 <ErrorBoundary label={widget.type}>
