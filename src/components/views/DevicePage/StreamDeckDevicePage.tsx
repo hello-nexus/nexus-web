@@ -101,6 +101,26 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   const deckPresets = useDeckPresets(serial);
   const { scheduleAutoSave } = deckPresets;
 
+  // Seeds the initial view from the deck summary's own live page/folder
+  // (same fields the 'nav' frame carries) so the editor opens on whatever
+  // the hardware is actually showing - page 3, inside a folder - instead of
+  // always page 0. One-shot: only the FIRST summary this page instance sees
+  // seeds anything, so the deck list's frequent 'streamdeck'-topic-driven
+  // refreshes (press events, other decks' brightness, ...) never re-seed
+  // over the user's own navigation. Below, the 'nav' frame subscription runs
+  // unconditionally on every frame, so a hardware press after this seed has
+  // run always wins. A press whose frame arrives before the deck summary's
+  // first GET resolves is a known gap: this effect still fires once `deck`
+  // loads and unconditionally overwrites page/folderPath with that (by then
+  // stale) summary snapshot.
+  const seededNavRef = useRef(false);
+  useEffect(() => {
+    if (seededNavRef.current || !deck) return;
+    seededNavRef.current = true;
+    if (typeof deck.currentPage === 'number') setPage(deck.currentPage);
+    if (Array.isArray(deck.folderPath)) setFolderPath(deck.folderPath);
+  }, [deck]);
+
   // Every commit funnels through usePhysicalDeckTarget's target.updateSlot/
   // swapSlots/addPage/removePage/setTitleDefault -> persist, the single
   // choke point onCommit fires from - so history + auto-save cover assign/
