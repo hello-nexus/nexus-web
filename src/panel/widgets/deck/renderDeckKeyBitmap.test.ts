@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { shouldPaintIcon } from './renderDeckKeyBitmap';
+import { shouldPaintIcon, DECK_BACK_KEY_ICON } from './renderDeckKeyBitmap';
+import { DECK_ICONS } from './deckIcons';
 import type { DeckSlot } from './types';
 
 describe('shouldPaintIcon', () => {
@@ -26,5 +27,12 @@ describe('shouldPaintIcon', () => {
   it('is true when an explicit icon is set even with no action yet', () => {
     const slot: DeckSlot = { icon: { kind: 'lucide', value: 'Rocket' } };
     expect(shouldPaintIcon(slot)).toBe(true);
+  });
+});
+
+describe('DECK_BACK_KEY_ICON', () => {
+  it('is the curved go-up-a-level glyph, not a chevron, and is registered in DECK_ICONS', () => {
+    expect(DECK_BACK_KEY_ICON).toBe('Undo2');
+    expect(DECK_ICONS[DECK_BACK_KEY_ICON]).toBeDefined();
   });
 });

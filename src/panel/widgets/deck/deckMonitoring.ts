@@ -69,12 +69,12 @@ export function monitoringTileDomain(
 }
 
 /**
- * Radial fill fraction: value against the domain's upper bound (min is not
- * subtracted - a Fixed 0-100 domain already floors at 0, and an adaptive
- * domain's floor only shapes the line chart's axis, not the ring), clamped
- * [0, 1]. A degenerate domain (fewer than 2 distinct observed values, so
- * min === max) renders at a neutral half-fill rather than snapping to empty
- * or full.
+ * Fill fraction for the 'segments' tile style: value against the domain's
+ * upper bound (min is not subtracted - a Fixed 0-100 domain already floors at
+ * 0, and an adaptive domain's floor only shapes the line chart's axis, not
+ * the fill), clamped [0, 1]. A degenerate domain (fewer than 2 distinct
+ * observed values, so min === max) renders at a neutral half-fill rather than
+ * snapping to empty or full.
  */
 export function monitoringFillFraction(rawValue: number, domain: readonly [number, number]): number {
   const [min, max] = domain;
