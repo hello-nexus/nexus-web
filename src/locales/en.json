@@ -2054,6 +2054,7 @@
   "panel.settings.deck.device": "Device",
   "panel.settings.deck.display": "Display",
   "panel.settings.deck.effect": "Effect",
+  "panel.settings.deck.emptyKeyHint": "Choose an action, or drag one onto this key.",
   "panel.settings.deck.enterFolder": "Edit folder",
   "panel.settings.deck.fan": "Fan",
   "panel.settings.deck.fanProfile": "Profile",

@@ -713,3 +713,25 @@ describe('DeckKeyInspector - delete action', () => {
     expect(screen.queryByRole('button', { name: 'panel.settings.deck.deleteKey' })).toBeNull();
   });
 });
+
+describe('DeckKeyInspector - empty key hint (split editor pane)', () => {
+  it('shows the pick-an-action hint when an unbound key is selected in the editor pane', () => {
+    render(<Harness initialSlots={[{}]} part="editor" />);
+    expect(screen.getByText('panel.settings.deck.emptyKeyHint')).toBeInTheDocument();
+  });
+
+  it('hides the hint once the selected key has a binding', () => {
+    render(<Harness initialSlots={[{ action: { type: 'hotkey', keys: '' } }]} part="editor" />);
+    expect(screen.queryByText('panel.settings.deck.emptyKeyHint')).toBeNull();
+  });
+
+  it('never shows the hint on the picker-only pane', () => {
+    render(<Harness initialSlots={[{}]} part="picker" />);
+    expect(screen.queryByText('panel.settings.deck.emptyKeyHint')).toBeNull();
+  });
+
+  it('leaves the stacked touch-widget layout unchanged - no hint for an unbound key there', () => {
+    render(<Harness initialSlots={[{}]} part="all" />);
+    expect(screen.queryByText('panel.settings.deck.emptyKeyHint')).toBeNull();
+  });
+});

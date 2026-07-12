@@ -1912,6 +1912,7 @@
   "panel.settings.deck.device": "Устройство",
   "panel.settings.deck.display": "Дисплей",
   "panel.settings.deck.effect": "Эффект",
+  "panel.settings.deck.emptyKeyHint": "Выберите действие или перетащите его на эту кнопку.",
   "panel.settings.deck.enterFolder": "Изменить папку",
   "panel.settings.deck.fan": "Вентилятор",
   "panel.settings.deck.fanProfile": "Профиль",

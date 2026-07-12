@@ -1912,6 +1912,7 @@
   "panel.settings.deck.device": "Dispositivo",
   "panel.settings.deck.display": "Schermo",
   "panel.settings.deck.effect": "Effetto",
+  "panel.settings.deck.emptyKeyHint": "Scegli un'azione o trascinala su questo tasto.",
   "panel.settings.deck.enterFolder": "Modifica cartella",
   "panel.settings.deck.fan": "Ventola",
   "panel.settings.deck.fanProfile": "Profilo",

@@ -1857,6 +1857,7 @@
   "panel.settings.deck.device": "デバイス",
   "panel.settings.deck.display": "表示",
   "panel.settings.deck.effect": "エフェクト",
+  "panel.settings.deck.emptyKeyHint": "アクションを選択するか、このキーにドラッグしてください。",
   "panel.settings.deck.enterFolder": "フォルダーを編集",
   "panel.settings.deck.fan": "ファン",
   "panel.settings.deck.fanProfile": "プロファイル",

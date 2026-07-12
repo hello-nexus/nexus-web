@@ -1912,6 +1912,7 @@
   "panel.settings.deck.device": "Dispositivo",
   "panel.settings.deck.display": "Ecrã",
   "panel.settings.deck.effect": "Efeito",
+  "panel.settings.deck.emptyKeyHint": "Escolha uma ação ou arraste uma para este botão.",
   "panel.settings.deck.enterFolder": "Editar pasta",
   "panel.settings.deck.fan": "Ventilador",
   "panel.settings.deck.fanProfile": "Perfil",
