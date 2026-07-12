@@ -1,9 +1,14 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   fetchDeckPresets, createDeckPreset, updateDeckPreset,
   deleteDeckPreset, activateDeckPreset,
   type DeckPreset,
 } from '../../../api/streamdeck';
+
+// Trailing-edge debounce so a burst of edits (typing a label, dragging a
+// key) collapses into one saveCurrent PUT, mirroring the config sync debounce
+// in usePhysicalDeckTarget.ts.
+const AUTO_SAVE_DEBOUNCE_MS = 1000;
 
 export interface UseDeckPresetsResult {
   presets: DeckPreset[];
@@ -19,6 +24,10 @@ export interface UseDeckPresetsResult {
   handleRename: (id: string, name: string) => Promise<void>;
   handleDelete: (id: string) => Promise<void>;
   handleLoad: (id: string) => Promise<void>;
+  /** Debounced saveCurrent into the active preset; a no-op when no preset is
+   *  active. Called on every committed deck-config edit (including undo/
+   *  redo/reset) so an active preset auto-saves with no manual save step. */
+  scheduleAutoSave: () => void;
 }
 
 export function useDeckPresets(serial: string | null): UseDeckPresetsResult {
@@ -68,6 +77,34 @@ export function useDeckPresets(serial: string | null): UseDeckPresetsResult {
     await loadPresets();
   }, [serial, loadPresets]);
 
+  const serialRef = useRef(serial);
+  serialRef.current = serial;
+  const activeIdRef = useRef(activeId);
+  activeIdRef.current = activeId;
+  const pendingAutoSaveRef = useRef<{ timer: ReturnType<typeof setTimeout>; run: () => void } | null>(null);
+
+  const scheduleAutoSave = useCallback(() => {
+    const s = serialRef.current;
+    const id = activeIdRef.current;
+    if (!s || !id) return;
+    if (pendingAutoSaveRef.current) clearTimeout(pendingAutoSaveRef.current.timer);
+    const run = () => {
+      pendingAutoSaveRef.current = null;
+      void updateDeckPreset(s, id, { saveCurrent: true });
+    };
+    pendingAutoSaveRef.current = { timer: setTimeout(run, AUTO_SAVE_DEBOUNCE_MS), run };
+  }, []);
+
+  // Flush rather than drop a still-pending auto-save on unmount (navigating
+  // away within the debounce window), mirroring usePhysicalDeckTarget.ts's
+  // own config-sync flush-on-unmount.
+  useEffect(() => () => {
+    const pending = pendingAutoSaveRef.current;
+    if (!pending) return;
+    clearTimeout(pending.timer);
+    pending.run();
+  }, []);
+
   return {
     presets,
     activeId,
@@ -78,5 +115,6 @@ export function useDeckPresets(serial: string | null): UseDeckPresetsResult {
     handleRename,
     handleDelete,
     handleLoad,
+    scheduleAutoSave,
   };
 }

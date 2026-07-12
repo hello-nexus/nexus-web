@@ -627,6 +627,8 @@
   "devices.streamdeck.orientation": "Görsel Yön",
   "devices.streamdeck.orientationDegrees": "{n}°",
   "devices.streamdeck.orientationStandard": "Standart",
+  "devices.streamdeck.presets.reset": "Deck'i Sıfırla",
+  "devices.streamdeck.presets.resetConfirm": "Deck tek boş bir sayfaya sıfırlansın mı?",
   "devices.streamdeck.serialNumber": "Seri numarası",
   "devices.streamdeck.sleepAfter": "Uyku süresi",
   "devices.streamdeck.sleepAfterMinutes": "{n}dk",

@@ -627,6 +627,8 @@
   "devices.streamdeck.orientation": "表示の向き",
   "devices.streamdeck.orientationDegrees": "{n}°",
   "devices.streamdeck.orientationStandard": "標準",
+  "devices.streamdeck.presets.reset": "Deck をリセット",
+  "devices.streamdeck.presets.resetConfirm": "Deck を単一の空のページにリセットしますか？",
   "devices.streamdeck.serialNumber": "シリアル番号",
   "devices.streamdeck.sleepAfter": "スリープ",
   "devices.streamdeck.sleepAfterMinutes": "{n}分",

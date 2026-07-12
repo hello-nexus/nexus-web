@@ -1,4 +1,4 @@
-import { useState, useCallback, type ReactNode } from 'react';
+import { useState, useCallback, useRef, type ReactNode } from 'react';
 import { AlertTriangle, LayoutGrid, Monitor, Settings as SettingsIcon, Unplug, Trash2 } from 'lucide-react';
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, pointerWithin, closestCenter, type DragEndEvent, type DragStartEvent, type CollisionDetection } from '@dnd-kit/core';
 import { useTranslation } from '../../../lib/i18n';
@@ -7,6 +7,7 @@ import { localizeNumbers } from '../../../lib/units';
 import { useStreamDecks } from '../../../hooks/useStreamDecks';
 import { setStreamDeckNav } from '../../../api/streamdeck';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
+import { useUndoRedo } from '../../../hooks/useUndoRedo';
 import type { UnifiedDevice } from '../../../hooks/useUnifiedDevices';
 import { useConflictApps } from '../../../hooks/useConflictApps';
 import { usePhysicalDeckTarget } from '../../../panel/widgets/deck/usePhysicalDeckTarget';
@@ -14,10 +15,10 @@ import { useDeckPresets } from '../../../panel/widgets/deck/useDeckPresets';
 import { DeckGrid } from '../../../panel/widgets/deck/DeckGrid';
 import { DeckKeyInspector, DeckDefaultTitleSettings, DeckActionDragPreview, slotForPickerKind, type DeckPickerKind } from '../../../panel/widgets/deck/DeckKeyInspector';
 import { DeckPageStrip } from '../../../panel/widgets/deck/DeckPageStrip';
-import { padSlots, pageHasContent, MAX_DECK_PAGES } from '../../../panel/widgets/deck/deckLayout';
+import { padSlots, pageHasContent, emptyDeck, MAX_DECK_PAGES } from '../../../panel/widgets/deck/deckLayout';
 import { withPageIndicatorDisplay } from '../../../panel/widgets/deck/deckIcons';
 import { resolveTargetView, slotCountAtDepth } from '../../../panel/widgets/deck/deckTarget';
-import type { DeckSlot } from '../../../panel/widgets/deck/types';
+import type { DeckConfig, DeckSlot } from '../../../panel/widgets/deck/types';
 import { isRemoteOrigin } from '../../../api/service';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { PresetToolbar } from '../../common/PresetToolbar/PresetToolbar';
@@ -97,17 +98,80 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   const dragSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   const deck = decks.find(d => d.serial === serial) ?? null;
-  const { target, error: configError, retry: retryConfig } = usePhysicalDeckTarget(deck, folderPath, page);
+  const deckPresets = useDeckPresets(serial);
+  const { scheduleAutoSave } = deckPresets;
+
+  // Every commit funnels through usePhysicalDeckTarget's target.updateSlot/
+  // swapSlots/addPage/removePage/setTitleDefault -> persist, the single
+  // choke point onCommit fires from - so history + auto-save cover assign/
+  // edit/label/icon/color/title/folder/page/clear/drag without instrumenting
+  // each widget. pushDeckHistoryRef breaks the circular dependency: onCommit
+  // is needed before useUndoRedo (below) exists to supply the real push.
+  const pushDeckHistoryRef = useRef<(prev: DeckConfig) => void>(() => {});
+  const onDeckConfigCommit = useCallback((prev: DeckConfig) => {
+    pushDeckHistoryRef.current(prev);
+    scheduleAutoSave();
+  }, [scheduleAutoSave]);
+
+  const { target, error: configError, retry: retryConfig, applyConfig } = usePhysicalDeckTarget(deck, folderPath, page, onDeckConfigCommit);
   const { conflicts } = useConflictApps(!!deck?.conflictAppId);
   const activeConflict = deck?.conflictAppId ? conflicts.find(c => c.id === deck.conflictAppId) : undefined;
 
-  const deckPresets = useDeckPresets(serial);
   // A preset's config + key images are applied server-side; retryConfig()
   // re-fetches usePhysicalDeckTarget's config so the editor reflects it.
   const onDeckPresetLoad = useCallback(async (id: string) => {
     await deckPresets.handleLoad(id);
     retryConfig();
   }, [deckPresets, retryConfig]);
+
+  // Undo/redo apply the restored DeckConfig through applyConfig - the same
+  // debounced PUT + key-image resync path a normal edit takes - and re-save
+  // the active preset exactly like a fresh edit would.
+  const undoRedoRef = useRef<{
+    undo: (current: DeckConfig) => DeckConfig | null;
+    redo: (current: DeckConfig) => DeckConfig | null;
+  }>({ undo: () => null, redo: () => null });
+
+  const handleUndoDeck = useCallback(() => {
+    if (!target) return;
+    const restored = undoRedoRef.current.undo(target.config);
+    if (!restored) return;
+    applyConfig(restored);
+    scheduleAutoSave();
+  }, [target, applyConfig, scheduleAutoSave]);
+
+  const handleRedoDeck = useCallback(() => {
+    if (!target) return;
+    const restored = undoRedoRef.current.redo(target.config);
+    if (!restored) return;
+    applyConfig(restored);
+    scheduleAutoSave();
+  }, [target, applyConfig, scheduleAutoSave]);
+
+  const {
+    push: pushDeckHistory,
+    undo: undoDeck,
+    redo: redoDeck,
+    canUndo: canUndoDeck,
+    canRedo: canRedoDeck,
+  } = useUndoRedo<DeckConfig>({
+    maxDepth: 50,
+    enabled: tab === 'customize',
+    onUndo: handleUndoDeck,
+    onRedo: handleRedoDeck,
+  });
+
+  undoRedoRef.current = { undo: undoDeck, redo: redoDeck };
+  pushDeckHistoryRef.current = pushDeckHistory;
+
+  // Reset pushes the pre-reset config so it can be undone, then clears to a
+  // single empty page through the same update path as every other edit.
+  const handleDeckReset = useCallback(() => {
+    if (!target) return;
+    pushDeckHistory(target.config);
+    applyConfig(emptyDeck());
+    scheduleAutoSave();
+  }, [target, applyConfig, pushDeckHistory, scheduleAutoSave]);
 
   // Follow the physical deck's navigation: pressing prev/next page, go-to-page,
   // or entering/leaving a folder on the hardware broadcasts a `nav` frame, so
@@ -224,11 +288,19 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
             presets={deckPresets.presets}
             activeId={deckPresets.activeId}
             presetCount={deckPresets.presetCount}
-            showHistory={false}
+            canUndo={canUndoDeck}
+            canRedo={canRedoDeck}
             onLoad={onDeckPresetLoad}
             onCreate={deckPresets.handleCreate}
             onRename={deckPresets.handleRename}
             onDelete={deckPresets.handleDelete}
+            onReset={handleDeckReset}
+            onUndo={handleUndoDeck}
+            onRedo={handleRedoDeck}
+            // eslint-disable-next-line i18next/no-literal-string -- i18n key name, not literal UI text
+            resetLabelKey="devices.streamdeck.presets.reset"
+            // eslint-disable-next-line i18next/no-literal-string -- i18n key name, not literal UI text
+            resetConfirmKey="devices.streamdeck.presets.resetConfirm"
           />
         ) : undefined}
       />

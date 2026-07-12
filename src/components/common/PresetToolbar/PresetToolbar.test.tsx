@@ -137,36 +137,49 @@ describe('PresetToolbar (lighting layout-preset mode)', () => {
   });
 });
 
-describe('PresetToolbar (deck preset mode, showHistory=false)', () => {
-  function deckProps(overrides: Partial<Parameters<typeof PresetToolbar>[0]> = {}) {
+describe('PresetToolbar (showHistory=false)', () => {
+  function noHistoryProps(overrides: Partial<Parameters<typeof PresetToolbar>[0]> = {}) {
     return defaultProps({ showHistory: false, ...overrides });
   }
 
   it('hides the reset button', () => {
-    render(<PresetToolbar {...deckProps()} />);
+    render(<PresetToolbar {...noHistoryProps()} />);
     expect(screen.queryByRole('button', { name: 'lighting.layoutPresets.reset' })).toBeNull();
   });
 
   it('hides the undo button', () => {
-    render(<PresetToolbar {...deckProps()} />);
+    render(<PresetToolbar {...noHistoryProps()} />);
     expect(screen.queryByRole('button', { name: 'lighting.layoutPresets.undo' })).toBeNull();
   });
 
   it('hides the redo button', () => {
-    render(<PresetToolbar {...deckProps()} />);
+    render(<PresetToolbar {...noHistoryProps()} />);
     expect(screen.queryByRole('button', { name: 'lighting.layoutPresets.redo' })).toBeNull();
   });
 
   it('still renders the preset select', () => {
-    render(<PresetToolbar {...deckProps({ presets: [PRESET_A], activeId: 'a' })} />);
+    render(<PresetToolbar {...noHistoryProps({ presets: [PRESET_A], activeId: 'a' })} />);
     expect(screen.getByTestId('preset-trigger')).toHaveTextContent('My Preset');
   });
 
   it('still offers rename/delete for the active preset and create at the cap', () => {
     const presets = Array.from({ length: 10 }, (_, i) => ({ id: `p${i}`, name: `Preset ${i}` }));
-    render(<PresetToolbar {...deckProps({ presets, activeId: 'p0', presetCount: 10 })} />);
+    render(<PresetToolbar {...noHistoryProps({ presets, activeId: 'p0', presetCount: 10 })} />);
     expect(screen.getByRole('option', { name: 'lighting.layoutPresets.rename' })).toBeTruthy();
     expect(screen.getByRole('option', { name: 'lighting.layoutPresets.delete' })).toBeTruthy();
     expect(screen.getByRole('option', { name: 'lighting.layoutPresets.newOption' })).toBeDisabled();
+  });
+});
+
+describe('PresetToolbar (resetLabelKey/resetConfirmKey overrides)', () => {
+  it('uses the override key for the reset button instead of translationPrefix.reset', () => {
+    render(<PresetToolbar {...defaultProps({ resetLabelKey: 'devices.streamdeck.presets.reset' })} />);
+    expect(screen.getByRole('button', { name: 'devices.streamdeck.presets.reset' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'lighting.layoutPresets.reset' })).toBeNull();
+  });
+
+  it('falls back to translationPrefix.reset when no override is given', () => {
+    render(<PresetToolbar {...defaultProps()} />);
+    expect(screen.getByRole('button', { name: 'lighting.layoutPresets.reset' })).toBeTruthy();
   });
 });

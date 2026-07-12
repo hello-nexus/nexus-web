@@ -2,6 +2,8 @@ import { act, render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { StreamDeckSummary } from '../../../api/streamdeck';
 import type { DeckTarget } from '../../../panel/widgets/deck/deckTarget';
+import { emptyDeck } from '../../../panel/widgets/deck/deckLayout';
+import type { DeckConfig } from '../../../panel/widgets/deck/types';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -32,7 +34,8 @@ vi.mock('../../../hooks/useConflictApps', () => ({
 
 const mockUsePhysicalDeckTarget = vi.fn();
 vi.mock('../../../panel/widgets/deck/usePhysicalDeckTarget', () => ({
-  usePhysicalDeckTarget: (deck: StreamDeckSummary | null) => mockUsePhysicalDeckTarget(deck),
+  usePhysicalDeckTarget: (deck: StreamDeckSummary | null, folderPath: number[], page: number, onCommit?: (prev: DeckConfig) => void) =>
+    mockUsePhysicalDeckTarget(deck, folderPath, page, onCommit),
 }));
 
 const mockUseDeckPresets = vi.fn();
@@ -96,6 +99,13 @@ function fakeTarget(): DeckTarget {
   };
 }
 
+/** The onCommit callback StreamDeckDevicePage passed into the (mocked) usePhysicalDeckTarget on its most recent call - invoking it simulates the target's update path committing an edit. */
+function latestOnCommit(): (prev: DeckConfig) => void {
+  const calls = mockUsePhysicalDeckTarget.mock.calls;
+  const args = calls[calls.length - 1] as [unknown, unknown, unknown, (prev: DeckConfig) => void];
+  return args[3];
+}
+
 const mockRename = vi.fn();
 const mockSetBrightness = vi.fn();
 const mockSetOrientation = vi.fn();
@@ -106,6 +116,8 @@ const mockDeckPresetHandleLoad = vi.fn();
 const mockDeckPresetHandleCreate = vi.fn();
 const mockDeckPresetHandleRename = vi.fn();
 const mockDeckPresetHandleDelete = vi.fn();
+const mockScheduleAutoSave = vi.fn();
+const mockApplyConfig = vi.fn();
 
 function deckPresetsReturn(over: Partial<{ presets: Array<{ id: string; name: string }>; activeId: string | null; presetCount: number; available: boolean }> = {}) {
   return {
@@ -113,6 +125,7 @@ function deckPresetsReturn(over: Partial<{ presets: Array<{ id: string; name: st
     loadPresets: vi.fn(), handleCreate: mockDeckPresetHandleCreate,
     handleRename: mockDeckPresetHandleRename, handleDelete: mockDeckPresetHandleDelete,
     handleLoad: mockDeckPresetHandleLoad,
+    scheduleAutoSave: mockScheduleAutoSave,
     ...over,
   };
 }
@@ -133,7 +146,7 @@ beforeEach(() => {
   mockSetOrientation.mockResolvedValue(true);
   mockSetSleepAfterSeconds.mockResolvedValue(true);
   mockControlDevice.mockResolvedValue(undefined);
-  mockUsePhysicalDeckTarget.mockReturnValue({ target: fakeTarget(), loaded: true, error: false, retry: vi.fn() });
+  mockUsePhysicalDeckTarget.mockReturnValue({ target: fakeTarget(), loaded: true, error: false, retry: vi.fn(), applyConfig: mockApplyConfig });
   mockUseDeckPresets.mockReturnValue(deckPresetsReturn());
 });
 
@@ -408,20 +421,82 @@ describe('StreamDeckDevicePage', () => {
       expect(screen.queryByRole('button', { name: 'lighting.layoutPresets.placeholder' })).toBeNull();
     });
 
-    it('has no Reset/Undo/Redo controls (deck config has no history)', async () => {
+    it('shows Reset/Undo/Redo controls, with Undo/Redo disabled until a config edit is committed', async () => {
       mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
       mockUseDeckPresets.mockReturnValue(deckPresetsReturn({ available: true, presets: [{ id: 'p1', name: 'A' }], activeId: 'p1', presetCount: 1 }));
       await renderPage();
 
-      expect(screen.queryByRole('button', { name: 'lighting.layoutPresets.reset' })).toBeNull();
-      expect(screen.queryByRole('button', { name: 'lighting.layoutPresets.undo' })).toBeNull();
-      expect(screen.queryByRole('button', { name: 'lighting.layoutPresets.redo' })).toBeNull();
+      expect(screen.getByRole('button', { name: 'devices.streamdeck.presets.reset' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'lighting.layoutPresets.undo' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'lighting.layoutPresets.redo' })).toBeDisabled();
+    });
+
+    it('a committed config edit pushes undo history and schedules the preset auto-save', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+      mockUseDeckPresets.mockReturnValue(deckPresetsReturn({ available: true, presets: [{ id: 'p1', name: 'A' }], activeId: 'p1', presetCount: 1 }));
+      await renderPage();
+
+      const onCommit = latestOnCommit();
+      act(() => { onCommit({ pages: [{ slots: [{ label: 'before' }] }] }); });
+
+      expect(mockScheduleAutoSave).toHaveBeenCalledTimes(1);
+      expect(screen.getByRole('button', { name: 'lighting.layoutPresets.undo' })).not.toBeDisabled();
+    });
+
+    it('clicking Undo restores the pre-edit config through applyConfig and re-schedules auto-save', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+      mockUseDeckPresets.mockReturnValue(deckPresetsReturn({ available: true, presets: [{ id: 'p1', name: 'A' }], activeId: 'p1', presetCount: 1 }));
+      await renderPage();
+
+      const priorConfig: DeckConfig = { pages: [{ slots: [{ label: 'before' }] }] };
+      act(() => { latestOnCommit()(priorConfig); });
+      mockScheduleAutoSave.mockClear();
+
+      fireEvent.click(screen.getByRole('button', { name: 'lighting.layoutPresets.undo' }));
+
+      expect(mockApplyConfig).toHaveBeenCalledWith(priorConfig);
+      expect(mockScheduleAutoSave).toHaveBeenCalledTimes(1);
+      expect(screen.getByRole('button', { name: 'lighting.layoutPresets.undo' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'lighting.layoutPresets.redo' })).not.toBeDisabled();
+    });
+
+    it('clicking Redo after an Undo re-applies the undone config and re-schedules auto-save', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+      mockUseDeckPresets.mockReturnValue(deckPresetsReturn({ available: true, presets: [{ id: 'p1', name: 'A' }], activeId: 'p1', presetCount: 1 }));
+      await renderPage();
+
+      const priorConfig: DeckConfig = { pages: [{ slots: [{ label: 'before' }] }] };
+      act(() => { latestOnCommit()(priorConfig); });
+      fireEvent.click(screen.getByRole('button', { name: 'lighting.layoutPresets.undo' }));
+      mockApplyConfig.mockClear();
+      mockScheduleAutoSave.mockClear();
+
+      fireEvent.click(screen.getByRole('button', { name: 'lighting.layoutPresets.redo' }));
+
+      // The target's current config is the fakeTarget() default - what Undo
+      // moved onto the redo stack - so Redo hands it back to applyConfig.
+      expect(mockApplyConfig).toHaveBeenCalledWith({ pages: [{ slots: [] }] });
+      expect(mockScheduleAutoSave).toHaveBeenCalledTimes(1);
+      expect(screen.getByRole('button', { name: 'lighting.layoutPresets.redo' })).toBeDisabled();
+    });
+
+    it('Reset (after confirm) clears the config to a single empty page, is itself undoable, and schedules auto-save', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+      mockUseDeckPresets.mockReturnValue(deckPresetsReturn({ available: true, presets: [{ id: 'p1', name: 'A' }], activeId: 'p1', presetCount: 1 }));
+      await renderPage();
+
+      fireEvent.click(screen.getByRole('button', { name: 'devices.streamdeck.presets.reset' }));
+      fireEvent.click(screen.getByRole('button', { name: 'confirm.ok' }));
+
+      expect(mockApplyConfig).toHaveBeenCalledWith(emptyDeck());
+      expect(mockScheduleAutoSave).toHaveBeenCalledTimes(1);
+      expect(screen.getByRole('button', { name: 'lighting.layoutPresets.undo' })).not.toBeDisabled();
     });
 
     it('loading a preset activates it then re-fetches the physical deck config', async () => {
       const retry = vi.fn();
       mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
-      mockUsePhysicalDeckTarget.mockReturnValue({ target: fakeTarget(), loaded: true, error: false, retry });
+      mockUsePhysicalDeckTarget.mockReturnValue({ target: fakeTarget(), loaded: true, error: false, retry, applyConfig: mockApplyConfig });
       mockUseDeckPresets.mockReturnValue(deckPresetsReturn({ available: true, presets: [{ id: 'p1', name: 'A' }, { id: 'p2', name: 'B' }], activeId: 'p1', presetCount: 2 }));
       mockDeckPresetHandleLoad.mockResolvedValue(undefined);
       await renderPage();

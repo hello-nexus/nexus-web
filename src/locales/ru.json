@@ -627,6 +627,8 @@
   "devices.streamdeck.orientation": "Визуальная ориентация",
   "devices.streamdeck.orientationDegrees": "{n}°",
   "devices.streamdeck.orientationStandard": "Стандартная",
+  "devices.streamdeck.presets.reset": "Сбросить Deck",
+  "devices.streamdeck.presets.resetConfirm": "Сбросить Deck до одной пустой страницы?",
   "devices.streamdeck.serialNumber": "Серийный номер",
   "devices.streamdeck.sleepAfter": "Сон через",
   "devices.streamdeck.sleepAfterMinutes": "{n} мин",
