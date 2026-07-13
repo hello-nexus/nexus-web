@@ -19,7 +19,7 @@ import { IconLabelButton } from '../../../components/common/IconLabelButton/Icon
 import { TextInput } from '../../../components/common/TextInput/TextInput';
 import { SettingsSection, SettingsRow, SettingsToggle, SettingsSelect } from '../common/SettingsRow/SettingsRow';
 import { AppPicker } from '../common/AppPicker';
-import { IconPicker } from '../common/IconPicker';
+import { IconPicker, type Tab as IconPickerTab } from '../common/IconPicker';
 import { DesktopOnlyBadge } from '../../../components/common/DesktopOnlyBadge/DesktopOnlyBadge';
 import { canEditFreeText } from '../../types';
 import type { PanelSurface } from '../../types';
@@ -962,6 +962,11 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
   const selSlot = clamp(selectedSlot ?? 0, 0, Math.max(0, viewCount - 1));
   const slot = viewSlots[selSlot] ?? {};
   const pageCount = target.config.pages.length;
+  // Identifies the selected slot's position so IconPicker (keyed on this
+  // below) remounts on every slot change instead of carrying its tab state
+  // over from whatever slot was selected before.
+  const slotKey = `${page}:${folderPath.join('.')}:${selSlot}`;
+  const [iconTab, setIconTab] = useState<IconPickerTab>('auto');
 
   const writeSlot = (next: DeckSlot) => target.updateSlot(page, folderPath, selSlot, next);
 
@@ -1047,8 +1052,19 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
             </SettingsSection>
           ) : (
             <SettingsSection title={t('panel.settings.icon')}>
-              <IconPicker value={slot.icon} appId={appIdForIcon} surface={surface} desktopEditor={desktopEditor} onChange={icon => writeSlot({ ...slot, icon })} />
-              <SwatchRow label={t('panel.settings.deck.color')} value={slot.color} onChange={color => writeSlot({ ...slot, color })} />
+              <IconPicker
+                key={slotKey}
+                value={slot.icon}
+                appId={appIdForIcon}
+                surface={surface}
+                desktopEditor={desktopEditor}
+                onChange={icon => writeSlot({ ...slot, icon })}
+                onTabChange={setIconTab}
+              />
+              {/* A full-bleed Custom image ignores the tile color, so the swatch
+                  dims while that tab is active - it would otherwise look live
+                  while having no visible effect. */}
+              <SwatchRow label={t('panel.settings.deck.color')} value={slot.color} disabled={iconTab === 'custom'} onChange={color => writeSlot({ ...slot, color })} />
             </SettingsSection>
           )}
 

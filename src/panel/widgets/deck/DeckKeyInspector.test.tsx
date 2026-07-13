@@ -660,6 +660,69 @@ describe('DeckKeyInspector - openFile/openFolder Browse button', () => {
   });
 });
 
+describe('DeckKeyInspector - Bug 6: Icon Color dims while the Custom image tab is active', () => {
+  // The Icon Color swatch is the first "Auto" button in DOM order - the Icon
+  // section renders above the Title section (see "section order" above),
+  // whose own text-color swatch shares the same colorAuto label.
+  const iconColorSwatch = () => screen.getAllByRole('button', { name: 'panel.settings.deck.colorAuto' })[0];
+
+  it('starts enabled on Auto, dims on Custom, and re-enables when switching away', () => {
+    renderInspector([{ action: { type: 'hotkey', keys: '' } }]);
+    expect(iconColorSwatch()).not.toBeDisabled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'panel.iconPicker.custom' }));
+    expect(iconColorSwatch()).toBeDisabled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'panel.iconPicker.icons' }));
+    expect(iconColorSwatch()).not.toBeDisabled();
+  });
+
+  it('does not dim any of the monitoring swatches (no IconPicker there at all)', () => {
+    renderInspector([{ action: MONITORING_ACTION }]);
+    for (const swatch of screen.getAllByRole('button', { name: 'panel.settings.deck.colorAuto' })) {
+      expect(swatch).not.toBeDisabled();
+    }
+  });
+});
+
+describe('DeckKeyInspector - IconPicker remounts per slot (no sticky tab across slots)', () => {
+  function SlotSwitchHarness() {
+    const [config, setConfig] = useState<DeckConfig>({
+      pages: [{
+        slots: [
+          { action: { type: 'hotkey', keys: '' }, icon: { kind: 'image', value: 'abc' } },
+          { action: { type: 'openUrl', url: '' } },
+        ],
+      }],
+    });
+    const [selected, setSelected] = useState(0);
+    const target = makePhysicalDeckTarget(2, 1, 2, config, setConfig);
+    return (
+      <>
+        <button type="button" onClick={() => setSelected(1)}>select second slot</button>
+        <DeckKeyInspector
+          target={target}
+          page={0}
+          folderPath={[]}
+          onFolderPathChange={() => {}}
+          selectedSlot={selected}
+          onSelectedSlotChange={setSelected}
+        />
+      </>
+    );
+  }
+
+  it('resets to the new slot\'s own tab instead of keeping the previously selected slot\'s tab', () => {
+    render(<SlotSwitchHarness />);
+    expect(screen.getByRole('button', { name: 'panel.iconPicker.custom' })).toHaveAttribute('aria-pressed', 'true');
+
+    fireEvent.click(screen.getByText('select second slot'));
+
+    expect(screen.getByRole('button', { name: 'panel.iconPicker.auto' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'panel.iconPicker.custom' })).toHaveAttribute('aria-pressed', 'false');
+  });
+});
+
 describe('DeckKeyInspector - delete action', () => {
   it('renders no delete control when onDeleteSlot is omitted (every existing caller)', () => {
     render(<Harness initialSlots={[{ action: { type: 'hotkey', keys: '' } }]} />);

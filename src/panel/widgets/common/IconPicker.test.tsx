@@ -45,6 +45,50 @@ describe('IconPicker tabs', () => {
   });
 });
 
+describe('IconPicker onTabChange', () => {
+  it('fires once at mount with the tab computed from the initial value', () => {
+    const onTabChange = vi.fn();
+    render(<IconPicker value={{ kind: 'lucide', value: 'Rocket' }} onChange={vi.fn()} onTabChange={onTabChange} />);
+    expect(onTabChange).toHaveBeenCalledWith('icons');
+  });
+
+  it('fires again whenever the user switches tabs', () => {
+    const onTabChange = vi.fn();
+    render(<IconPicker value={undefined} onChange={vi.fn()} onTabChange={onTabChange} />);
+    onTabChange.mockClear();
+    fireEvent.click(screen.getByRole('button', { name: 'panel.iconPicker.custom' }));
+    expect(onTabChange).toHaveBeenCalledWith('custom');
+  });
+});
+
+describe('IconPicker Bug 5 - custom image survives Auto <-> Custom', () => {
+  it('remembers the uploaded image id and re-emits it when returning to Custom after Auto', async () => {
+    const { onChange, container, rerender } = renderPicker();
+    fireEvent.click(screen.getByRole('button', { name: 'panel.iconPicker.custom' }));
+
+    const file = new File(['x'], 'photo.png', { type: 'image/png' });
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [file] } });
+    await waitFor(() => expect(onChange).toHaveBeenCalledWith({ kind: 'image', value: 'uploaded-id-1' }));
+
+    // The parent commits the uploaded icon; simulate that round trip.
+    rerender(<IconPicker value={{ kind: 'image', value: 'uploaded-id-1' }} onChange={onChange} surface="desktop" desktopEditor />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'panel.iconPicker.auto' }));
+    expect(onChange).toHaveBeenLastCalledWith(undefined);
+    rerender(<IconPicker value={undefined} onChange={onChange} surface="desktop" desktopEditor />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'panel.iconPicker.custom' }));
+    expect(onChange).toHaveBeenLastCalledWith({ kind: 'image', value: 'uploaded-id-1' });
+  });
+
+  it('does not re-emit when Custom is picked with no prior image ever set', () => {
+    const { onChange } = renderPicker();
+    fireEvent.click(screen.getByRole('button', { name: 'panel.iconPicker.custom' }));
+    expect(onChange).not.toHaveBeenCalled();
+  });
+});
+
 describe('IconPicker custom upload flow', () => {
   beforeEach(() => { vi.clearAllMocks(); });
 

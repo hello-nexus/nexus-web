@@ -1,5 +1,8 @@
-import { useState, type KeyboardEvent } from 'react';
+import { useMemo, useState, type KeyboardEvent } from 'react';
 import { useTranslation } from '../../../lib/i18n';
+import { Select, type SelectOption } from '../../../components/common/Select/Select';
+import { HOTKEY_PRESET_CATEGORIES, findHotkeyPreset, hotkeyPresetId } from './hotkeyPresets';
+import styles from './HotkeyInput.module.scss';
 
 interface HotkeyInputProps {
   value: string;
@@ -16,6 +19,9 @@ const NAMED: Record<string, string> = {
   Backspace: 'backspace', Delete: 'delete', Insert: 'insert', Home: 'home', End: 'end',
   PageUp: 'pageup', PageDown: 'pagedown',
   ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
+  PrintScreen: 'printscreen', Period: '.', Comma: ',', Minus: '-', Equal: '=',
+  BracketLeft: '[', BracketRight: ']', Backquote: '`', Slash: '/',
+  Semicolon: ';', Quote: "'",
 };
 
 function codeToToken(code: string): string {
@@ -25,7 +31,13 @@ function codeToToken(code: string): string {
   return NAMED[code] ?? '';
 }
 
-/** Captures a key chord and emits a "ctrl+shift+m"-style string the executor parses. */
+/**
+ * Captures a key chord and emits a "ctrl+shift+m"-style string the executor
+ * parses. Rendered as a text-input-styled field that still records on
+ * click/focus; a "Preset actions" dropdown above it fills the field from a
+ * categorized preset list (mirrors Stream Deck's own hotkey picker) without
+ * requiring a capture at all.
+ */
 export function HotkeyInput({ value, onChange }: HotkeyInputProps) {
   const { t } = useTranslation();
   const [capturing, setCapturing] = useState(false);
@@ -45,14 +57,42 @@ export function HotkeyInput({ value, onChange }: HotkeyInputProps) {
     setCapturing(false);
   };
 
+  const presetOptions = useMemo<SelectOption[]>(() => {
+    const opts: SelectOption[] = [];
+    HOTKEY_PRESET_CATEGORIES.forEach((category, categoryIndex) => {
+      if (categoryIndex > 0) opts.push({ value: `sep-${category.key}`, label: '', divider: true });
+      opts.push({ value: `header-${category.key}`, label: t(category.labelKey), disabled: true });
+      category.presets.forEach((preset, presetIndex) => {
+        opts.push({ value: hotkeyPresetId(category.key, presetIndex), label: t(preset.labelKey) });
+      });
+    });
+    return opts;
+  }, [t]);
+
+  const applyPreset = (id: string) => {
+    const preset = findHotkeyPreset(id);
+    if (preset) onChange(preset.keys);
+  };
+
   return (
-    <button
-      type="button"
-      onClick={() => setCapturing(true)}
-      onBlur={() => setCapturing(false)}
-      onKeyDown={capturing ? onKeyDown : undefined}
-    >
-      {capturing ? t('panel.settings.deck.hotkeyCapture') : (value || t('panel.settings.deck.hotkeySet'))}
-    </button>
+    <div className={styles.root}>
+      <Select
+        className={styles.presetSelect}
+        value=""
+        onChange={applyPreset}
+        options={presetOptions}
+        placeholder={t('panel.settings.deck.hotkeyPreset.placeholder')}
+        ariaLabel={t('panel.settings.deck.hotkeyPreset.placeholder')}
+      />
+      <button
+        type="button"
+        className={styles.field}
+        onClick={() => setCapturing(true)}
+        onBlur={() => setCapturing(false)}
+        onKeyDown={capturing ? onKeyDown : undefined}
+      >
+        {capturing ? t('panel.settings.deck.hotkeyCapture') : (value || t('panel.settings.deck.hotkeySet'))}
+      </button>
+    </div>
   );
 }
