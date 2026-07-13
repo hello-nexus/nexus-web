@@ -3,11 +3,12 @@
 // persists directly under `widget.config.deck`.
 import type { ScaleMode } from '../monitoring/perfDomain';
 
-export type DeckIconKind = 'lucide' | 'emoji' | 'app';
+export type DeckIconKind = 'lucide' | 'emoji' | 'app' | 'image';
 
 export interface DeckIcon {
   kind: DeckIconKind;
-  // lucide → icon name in DECK_ICONS; emoji → the glyph/text; app → appId.
+  // lucide → icon name in DECK_ICONS; emoji → the glyph/text; app → appId;
+  // image → the uploaded image id (sha256 hex), served from /deck/images/{id}.
   value: string;
 }
 
@@ -163,13 +164,4 @@ export interface DeckConfig {
   // Deck-wide default title style seeded onto a key when an action is first
   // assigned to it (see slotForPickerKind). Edited on the Settings tab.
   defaultTitleStyle?: DeckTitleStyle;
-}
-
-// A widget-local snapshot of the widget's own DeckConfig, stored beside `deck`
-// on the same widget.config (see deckWidgetPresetsPatch in deckLayout.ts) -
-// no service routes, no cross-device sharing.
-export interface DeckWidgetPreset {
-  id: string;
-  name: string;
-  deck: DeckConfig;
 }

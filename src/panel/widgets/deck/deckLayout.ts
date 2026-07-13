@@ -1,5 +1,5 @@
 import type { PanelWidget, PanelWidgetSize, PanelConfigValue } from '../../types';
-import type { DeckAction, DeckConfig, DeckMonitoringStyle, DeckPage, DeckSlot, DeckWidgetPreset } from './types';
+import type { DeckAction, DeckConfig, DeckMonitoringStyle, DeckPage, DeckSlot } from './types';
 
 export interface InnerGrid { cols: number; rows: number; count: number; }
 
@@ -250,52 +250,8 @@ export function deckConfigPatch(deck: DeckConfig): Record<string, PanelConfigVal
   return { deck: deck as unknown as PanelConfigValue };
 }
 
-// Upper bound on widget-local deck presets, matching the physical Stream
-// Deck's per-serial preset cap (PresetToolbar's own default `cap`).
-export const DECK_WIDGET_PRESET_CAP = 10;
-
 // Trailing-edge debounce so a burst of edits (typing a label, dragging a key)
-// collapses into one auto-save, shared by both the widget-local presets hook
-// (useDeckWidgetPresets.ts) and the physical Stream Deck's service-backed one
-// (useDeckPresets.ts, which re-exports this same value for
-// StreamDeckDevicePage's undo-history burst coalescing).
+// collapses into one auto-save; used by the physical Stream Deck's
+// service-backed presets (useDeckPresets.ts, which re-exports this same value
+// for StreamDeckDevicePage's undo-history burst coalescing).
 export const AUTO_SAVE_DEBOUNCE_MS = 1000;
-
-function normalizeDeckWidgetPreset(raw: unknown): DeckWidgetPreset | null {
-  if (!raw || typeof raw !== 'object') return null;
-  const obj = raw as { id?: unknown; name?: unknown; deck?: unknown };
-  if (typeof obj.id !== 'string' || !obj.id) return null;
-  if (typeof obj.name !== 'string') return null;
-  return { id: obj.id, name: obj.name, deck: normalizeDeckConfig(obj.deck) };
-}
-
-export interface DeckWidgetPresetsState {
-  presets: DeckWidgetPreset[];
-  activeId: string | null;
-}
-
-/**
- * Widget-local presets stored beside `deck` on the same widget.config
- * (deckPresets / deckActivePresetId), tolerating absent or malformed data so
- * a widget saved before this feature shipped reads as zero presets. An
- * activeId that no longer matches a surviving preset (e.g. the pointed-to
- * entry was stripped by the cap or a malformed-entry filter) resolves to
- * null rather than dangling.
- */
-export function readDeckWidgetPresets(widget: PanelWidget): DeckWidgetPresetsState {
-  const rawPresets = widget.config?.deckPresets;
-  const presets = Array.isArray(rawPresets)
-    ? rawPresets.map(normalizeDeckWidgetPreset).filter((p): p is DeckWidgetPreset => p !== null).slice(0, DECK_WIDGET_PRESET_CAP)
-    : [];
-  const rawActiveId = widget.config?.deckActivePresetId;
-  const activeId = typeof rawActiveId === 'string' && presets.some(p => p.id === rawActiveId) ? rawActiveId : null;
-  return { presets, activeId };
-}
-
-/** Persist the presets list + active pointer back through onUpdate, as siblings of the `deck` key. */
-export function deckWidgetPresetsPatch(presets: readonly DeckWidgetPreset[], activeId: string | null): Record<string, PanelConfigValue> {
-  return {
-    deckPresets: presets as unknown as PanelConfigValue,
-    deckActivePresetId: activeId,
-  };
-}
