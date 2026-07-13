@@ -546,6 +546,8 @@
   "devices.streamdeck.deviceName": "Cihaz Adı",
   "devices.streamdeck.elgatoConflict": "Bu Deck aynı zamanda Elgato yazılımı tarafından da kontrol ediliyor. Nexus'un Deck'i kullanabilmesi için yazılımdan çıkın.",
   "devices.streamdeck.firmware": "Ürün Yazılımı",
+  "devices.streamdeck.import.reason.audioPath": "İçe aktarıldı, ancak ses dosyasının ayarlanması gerekiyor",
+  "devices.streamdeck.import.reason.monitoringSensor": "İçe aktarıldı, ancak eşlenen sensörü kontrol edin",
   "devices.streamdeck.model": "Model",
   "devices.streamdeck.modelName": "Stream Deck {model}",
   "devices.streamdeck.notConnected": "Stream Deck bağlı değil",

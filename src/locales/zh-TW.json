@@ -546,6 +546,8 @@
   "devices.streamdeck.deviceName": "裝置名稱",
   "devices.streamdeck.elgatoConflict": "此 Deck 目前也由 Elgato 軟體驅動。結束該軟體以便讓 Nexus 接管此 Deck。",
   "devices.streamdeck.firmware": "韌體",
+  "devices.streamdeck.import.reason.audioPath": "已匯入，但仍需設定音訊檔案",
+  "devices.streamdeck.import.reason.monitoringSensor": "已匯入，但請核對對應的感測器",
   "devices.streamdeck.model": "型號",
   "devices.streamdeck.modelName": "Stream Deck {model}",
   "devices.streamdeck.notConnected": "Stream Deck 未連接",

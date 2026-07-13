@@ -31,6 +31,7 @@ describe('unmappedReasonKey', () => {
     const reasons: ElgatoUnmappedReason[] = [
       'plugin', 'unsupported', 'hotkey', 'open', 'website', 'text', 'media',
       'multiStep', 'encoder', 'pageLimit', 'hotkeyExtraSlots', 'textEnterIgnored',
+      'monitoringSensor', 'audioPath',
     ];
     for (const reason of reasons) {
       expect(unmappedReasonKey(reason)).toBe(`devices.streamdeck.import.reason.${reason}`);

@@ -546,6 +546,8 @@
   "devices.streamdeck.deviceName": "Имя устройства",
   "devices.streamdeck.elgatoConflict": "Deck также управляется программой Elgato. Закройте её, чтобы Nexus мог управлять Deck.",
   "devices.streamdeck.firmware": "Прошивка",
+  "devices.streamdeck.import.reason.audioPath": "Импортировано, но аудиофайл ещё нужно указать",
+  "devices.streamdeck.import.reason.monitoringSensor": "Импортировано, но стоит проверить сопоставленный датчик",
   "devices.streamdeck.model": "Модель",
   "devices.streamdeck.modelName": "Stream Deck {model}",
   "devices.streamdeck.notConnected": "Stream Deck не подключён",

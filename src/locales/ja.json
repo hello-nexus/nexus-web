@@ -546,6 +546,8 @@
   "devices.streamdeck.deviceName": "デバイス名",
   "devices.streamdeck.elgatoConflict": "この Deck は Elgato のソフトウェアからも制御されています。終了すると Nexus が Deck を管理できます。",
   "devices.streamdeck.firmware": "ファームウェア",
+  "devices.streamdeck.import.reason.audioPath": "インポートされましたが、音声ファイルの設定がまだ必要です",
+  "devices.streamdeck.import.reason.monitoringSensor": "インポートされましたが、割り当てられたセンサーを確認してください",
   "devices.streamdeck.model": "モデル",
   "devices.streamdeck.modelName": "Stream Deck {model}",
   "devices.streamdeck.notConnected": "Stream Deck が接続されていません",

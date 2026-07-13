@@ -546,6 +546,8 @@
   "devices.streamdeck.deviceName": "Nombre del dispositivo",
   "devices.streamdeck.elgatoConflict": "Este Deck también está siendo controlado por el software de Elgato. Ciérralo para que Nexus controle el Deck.",
   "devices.streamdeck.firmware": "Firmware",
+  "devices.streamdeck.import.reason.audioPath": "Importado, pero aún falta definir el archivo de audio",
+  "devices.streamdeck.import.reason.monitoringSensor": "Importado, pero conviene verificar el sensor asignado",
   "devices.streamdeck.model": "Modelo",
   "devices.streamdeck.modelName": "Stream Deck {model}",
   "devices.streamdeck.notConnected": "Stream Deck no conectado",
