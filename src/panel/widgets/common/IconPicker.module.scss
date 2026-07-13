@@ -8,17 +8,11 @@
   gap: 8px;
 }
 
-// Mode switch (Auto / Icons / Emoji): square icon-label tiles, same control as
-// the widget Size / Layout pickers.
+// Mode switch (Auto / Icons / Emoji / Custom): standard-size icon-label
+// tiles, same control as the widget Size / Layout pickers.
 .tabRow {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
   gap: 6px;
-}
-
-.tabButton {
-  width: 100%;
-  min-width: 0;
 }
 
 .search {
@@ -104,4 +98,54 @@
   cursor: pointer;
 
   &:hover { background: var(--panel-element-bg-hover, var(--bg-card-hover)); }
+}
+
+.customTab {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.customPreview {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--panel-border, var(--border));
+}
+
+.customPreviewImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.customPreviewSkeleton {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--panel-element-bg-hover, var(--bg-card-hover));
+}
+
+.uploadBtn {
+  padding: 6px 12px;
+  border: 1px solid var(--panel-border, var(--border));
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font-size: var(--type-small);
+  cursor: pointer;
+
+  &:hover:not(:disabled) { border-color: var(--panel-accent, var(--accent)); }
+  &:disabled { opacity: 0.6; cursor: default; }
+}
+
+.hiddenInput {
+  display: none;
+}
+
+.uploadError {
+  font-size: var(--type-mini);
+  color: var(--bad);
 }

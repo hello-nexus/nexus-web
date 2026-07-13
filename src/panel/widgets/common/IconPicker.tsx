@@ -1,11 +1,14 @@
-import { useMemo, useState } from 'react';
-import { Sparkles, Shapes, Smile } from 'lucide-react';
+import { useMemo, useRef, useState } from 'react';
+import { Sparkles, Shapes, Smile, ImagePlus } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
 import { SearchInput } from '../../../components/common/SearchInput/SearchInput';
 import { canEditFreeText, type PanelSurface } from '../../types';
 import { DECK_ICONS, DECK_ICON_NAMES } from '../deck/deckIcons';
 import { CATEGORIES as EMOJI_CATEGORIES, CATEGORY_KEYS as EMOJI_CATEGORY_KEYS } from '../emoji/EmojiWidget';
+import { useDeckImage } from '../deck/useDeckImage';
+import { resizeDeckImage } from '../deck/resizeDeckImage';
+import { uploadDeckImage } from '../../../api/deckImages';
 import type { DeckIcon } from '../deck/types';
 import styles from './IconPicker.module.scss';
 
@@ -13,6 +16,7 @@ const TAB_DEFS = [
   { key: 'auto', icon: Sparkles, labelKey: 'panel.iconPicker.auto' },
   { key: 'icons', icon: Shapes, labelKey: 'panel.iconPicker.icons' },
   { key: 'emoji', icon: Smile, labelKey: 'panel.iconPicker.emoji' },
+  { key: 'custom', icon: ImagePlus, labelKey: 'panel.iconPicker.custom' },
 ] as const;
 
 interface IconPickerProps {
@@ -28,11 +32,12 @@ interface IconPickerProps {
   desktopEditor?: boolean;
 }
 
-type Tab = 'auto' | 'icons' | 'emoji';
+type Tab = 'auto' | 'icons' | 'emoji' | 'custom';
 
-function tabForValue(value?: DeckIcon): Tab {
+export function tabForValue(value?: DeckIcon): Tab {
   if (value?.kind === 'lucide') return 'icons';
   if (value?.kind === 'emoji') return 'emoji';
+  if (value?.kind === 'image') return 'custom';
   return 'auto'; // undefined or app icon → Auto
 }
 
@@ -41,7 +46,11 @@ export function IconPicker({ value, onChange, surface, desktopEditor }: IconPick
   const [tab, setTab] = useState<Tab>(() => tabForValue(value));
   const [query, setQuery] = useState('');
   const [emojiCat, setEmojiCat] = useState(EMOJI_CATEGORY_KEYS[0]);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const showSearch = canEditFreeText(surface, desktopEditor);
+  const previewUrl = useDeckImage(value?.kind === 'image' ? value.value : undefined);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -54,13 +63,30 @@ export function IconPicker({ value, onChange, surface, desktopEditor }: IconPick
     if (k === 'auto') onChange(undefined); // Auto = no explicit icon (derives from the action / app)
   };
 
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    setUploadError(null);
+    setUploading(true);
+    try {
+      const resized = await resizeDeckImage(file);
+      const id = await uploadDeckImage(resized);
+      if (!id) { setUploadError(t('panel.iconPicker.uploadFailed')); return; }
+      onChange({ kind: 'image', value: id });
+    } catch {
+      setUploadError(t('panel.iconPicker.uploadFailed'));
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
     <div className={styles.picker}>
       <div className={styles.tabRow} role="tablist" aria-label={t('panel.settings.icon')}>
         {TAB_DEFS.map(({ key, icon: Icon, labelKey }) => (
           <IconLabelButton
             key={key}
-            className={styles.tabButton}
             active={tab === key}
             icon={<Icon aria-hidden="true" />}
             label={t(labelKey)}
@@ -135,6 +161,35 @@ export function IconPicker({ value, onChange, surface, desktopEditor }: IconPick
             })}
           </div>
         </>
+      )}
+
+      {tab === 'custom' && (
+        <div className={styles.customTab}>
+          {value?.kind === 'image' && (
+            <div className={styles.customPreview}>
+              {previewUrl
+                ? <img src={previewUrl} alt="" className={styles.customPreviewImg} />
+                : <span className={styles.customPreviewSkeleton} aria-hidden="true" />}
+            </div>
+          )}
+          <button
+            type="button"
+            className={styles.uploadBtn}
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+          >
+            {uploading ? t('panel.iconPicker.uploading') : t('panel.iconPicker.uploadImage')}
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className={styles.hiddenInput}
+            onChange={handleFileChange}
+          />
+          {!value && !uploading && <div className={styles.autoHint}>{t('panel.iconPicker.customHint')}</div>}
+          {uploadError && <div className={styles.uploadError}>{uploadError}</div>}
+        </div>
       )}
     </div>
   );
