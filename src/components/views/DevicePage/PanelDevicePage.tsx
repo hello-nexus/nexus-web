@@ -10,7 +10,7 @@ import {
   appendWidget,
   patchWidgetById,
   removeWidgetById,
-  replaceWidget,
+  swapSingleWidget,
   tryResizeWidget,
 } from '../../../panel/engine/panelLayoutOps';
 import { DEFAULT_SURFACE_DPI, MAX_PANEL_PAGES } from '../../../panel/engine/panelGrid';
@@ -402,14 +402,11 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       // Clicking the catalog tile already on the device is a no-op.
       const current = layout.pages[0]?.widgets[0];
       if (current && current.type === type) return;
-      const next: PanelWidget = {
-        id: createUuid(),
-        type,
-        size,
-        col: 0,
-        row: 0,
-      };
-      updateLayout(replaceWidget(layout, next));
+      // swapSingleWidget preserves each type's config on the layout, so
+      // switching widgets restores prior settings (persisted like multi-widget
+      // panels' configs, not reset on every swap).
+      const next: PanelWidget = { id: createUuid(), type, size, col: 0, row: 0 };
+      updateLayout(swapSingleWidget(layout, next));
       return;
     }
     const next: PanelWidget = {

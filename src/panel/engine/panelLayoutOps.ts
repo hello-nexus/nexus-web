@@ -78,6 +78,26 @@ export function replaceWidget(
 }
 
 /**
+ * Single-widget surface swap that preserves each widget type's config across
+ * swaps: stashes the outgoing widget's config into `singleWidgetConfigs` (keyed
+ * by type) and restores the incoming type's remembered config onto `next`, then
+ * replaces the shown widget. `next.config` is ignored - the remembered config
+ * for `next.type` wins (empty for a type shown for the first time).
+ */
+export function swapSingleWidget(
+  layout: PanelLayout,
+  next: PanelWidget,
+): PanelLayout {
+  const current = layout.pages[0]?.widgets[0];
+  const remembered = layout.singleWidgetConfigs ?? {};
+  const nextRemembered = current
+    ? { ...remembered, [current.type]: current.config ?? {} }
+    : remembered;
+  const restored: PanelWidget = { ...next, config: nextRemembered[next.type] };
+  return { ...replaceWidget(layout, restored), singleWidgetConfigs: nextRemembered };
+}
+
+/**
  * Drops every empty page; when ALL pages are empty the first is kept so
  * the renderer always has a page to show. Repoints activePageId at the
  * nearest surviving page when its page was dropped, so id-based
