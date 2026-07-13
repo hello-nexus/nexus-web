@@ -110,14 +110,16 @@
   }
 }
 
-/* Listbox: portaled to <body>; top/left/width/max-height set inline. */
+/* Menu box: portaled to <body>; top/left/width/max-height set inline. Holds the
+   optional search field pinned above the scrolling list. The box itself doesn't
+   scroll (the list does), so the field stays put while options scroll under it. */
 .menu {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   margin: 0;
   padding: 0.25rem;
-  list-style: none;
-  // Vertical scroll only; options ellipsize within the menu width (see .option),
-  // so x stays hidden with no sideways scroll.
-  overflow: hidden auto;
+  overflow: hidden;
   background: var(--bg-elevated);
   border: var(--border-width) solid transparent;
   border-radius: var(--radius-sm);
@@ -127,6 +129,57 @@
   z-index: var(--z-popover);
   outline: none;
   animation: select-menu-in 0.12s ease-out both;
+}
+
+/* Scrolling option list. Fills the box below the search field and takes the
+   inline max-height's overflow. Vertical scroll only; options ellipsize within
+   the menu width (see .option), so x stays hidden with no sideways scroll. */
+.list {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow: hidden auto;
+  outline: none;
+}
+
+/* In-menu search field (long lists, keyboard devices only). */
+.searchRow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.15rem 0.4rem 0.3rem;
+  margin-bottom: 0.2rem;
+  border-bottom: var(--border-width) solid var(--separator);
+}
+
+.searchIcon {
+  flex: none;
+  color: var(--text-dim);
+}
+
+.searchInput {
+  flex: 1 1 auto;
+  min-width: 0;
+  appearance: none;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-family: inherit;
+  font-size: var(--type-small);
+  padding: 0.2rem 0;
+
+  &::placeholder { color: var(--text-dim); }
+}
+
+/* Shown in place of the list when the query matches nothing. */
+.noResults {
+  padding: 0.45rem 0.6rem;
+  color: var(--text-dim);
+  font-size: var(--type-small);
+  white-space: nowrap;
 }
 
 /* Opacity only: the menu carries an inline `transform: scale()` to match the
@@ -156,6 +209,10 @@
 
 .option.selected {
   color: var(--accent);
+  // Dim accent fill, the app-wide selected-row treatment (--accent-soft). Ordered
+  // after .active so the current value keeps its tint when it opens as the active
+  // row; arrowing to another row shows the neutral hover there.
+  background: var(--accent-soft);
 }
 
 .option.optionDisabled {

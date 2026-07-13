@@ -45,7 +45,7 @@ type DeviceBlock =
  * using the same component/styling as a motherboard group: a chevron, the brand
  * name, a group power switch, and its lights as indented child cards.
  */
-export function DevicePanel({ devices, header, selectedIds, onSelectDevice, onSetSelection, onTogglePower, onSetPower, lightingOff, onOpenSettings, onDeviceReorder, communityCounts, onOpenCommunity, smartHubFirmwareControl, onSetSmartHubFirmwareControl, lianLiFirmwareActive, onOpenSmartLights, presets, layoutActiveId, presetCount, canUndo, canRedo, onPresetLoad, onPresetCreate, onPresetRename, onPresetDelete, onLayoutReset, onLayoutUndo, onLayoutRedo }: {
+export function DevicePanel({ devices, header, selectedIds, onSelectDevice, onSetSelection, onTogglePower, onSetPower, onToggleDriven, onSetDriven, lightingOff, onOpenSettings, onDeviceReorder, communityCounts, onOpenCommunity, smartHubFirmwareControl, onSetSmartHubFirmwareControl, lianLiFirmwareActive, onOpenSmartLights, presets, layoutActiveId, presetCount, canUndo, canRedo, onPresetLoad, onPresetCreate, onPresetRename, onPresetDelete, onLayoutReset, onLayoutUndo, onLayoutRedo }: {
   devices: LightingDevice[];
   /** Optional control rendered at the top of the scrolling list (master brightness). */
   header?: ReactNode;
@@ -59,6 +59,10 @@ export function DevicePanel({ devices, header, selectedIds, onSelectDevice, onSe
   /** Absolute set (vs. toggle). Used by group headers so a "turn all off" click
    *  can't accidentally re-enable any already-off member. */
   onSetPower: (id: string, on: boolean) => void;
+  /** Per-zone toggle for whether Nexus pushes frames to the device at all. */
+  onToggleDriven: (id: string) => void;
+  /** Absolute set, mirroring onSetPower, used by group headers. */
+  onSetDriven: (id: string, driven: boolean) => void;
   /** Whether the lighting mode is 'none' (off). Swaps the empty message. */
   lightingOff: boolean;
   onOpenSettings: (id: string) => void;
@@ -180,6 +184,7 @@ export function DevicePanel({ devices, header, selectedIds, onSelectDevice, onSe
       indent={indent}
       onSelect={additive => handleZoneSelect(d.id, additive)}
       onTogglePower={() => onTogglePower(d.id)}
+      onToggleDriven={() => onToggleDriven(d.id)}
       onOpenSettings={() => onOpenSettings(d.id)}
       drag={drag}
       communityCount={communityCounts?.[d.id]}
@@ -195,6 +200,8 @@ export function DevicePanel({ devices, header, selectedIds, onSelectDevice, onSe
     const { groupKey, label, isBrand, isSmartHub, devices: members } = block;
     const groupOn = members.some(z => z.ledsOn);
     const handleToggle = () => { const target = !groupOn; for (const z of members) onSetPower(z.id, target); };
+    const groupDriven = members.some(z => z.driven !== false);
+    const handleToggleDriven = () => { const target = !groupDriven; for (const z of members) onSetDriven(z.id, target); };
     const fwOn = isSmartHub && !!smartHubFirmwareControl;
     const leftAction = isSmartHub && onSetSmartHubFirmwareControl ? (
       <HoverTooltip
@@ -218,6 +225,7 @@ export function DevicePanel({ devices, header, selectedIds, onSelectDevice, onSe
     return (
       <MotherboardGroup key={groupKey} parentName={label} ariaLabel={isBrand ? label : undefined}
         groupOn={groupOn} onTogglePower={handleToggle}
+        groupDriven={groupDriven} onToggleDriven={handleToggleDriven}
         collapsed={isCollapsed(groupKey)} onToggleCollapsed={() => toggleCollapsed(groupKey)}
         leftAction={leftAction} powerDisabled={fwOn}
         notice={noticeFor(members[0])}

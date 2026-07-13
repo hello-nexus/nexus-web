@@ -1,4 +1,4 @@
-import { Settings, Power, Eye, Lightbulb, Users, Cpu } from 'lucide-react';
+import { Settings, Power, Ban, Eye, Lightbulb, Users, Cpu } from 'lucide-react';
 import {
   identifyLightingDevice,
   type LightingDevice,
@@ -25,6 +25,7 @@ export function ZoneCard({
   indent,
   onSelect,
   onTogglePower,
+  onToggleDriven,
   onOpenSettings,
   drag,
   communityCount,
@@ -42,6 +43,7 @@ export function ZoneCard({
    *  caller can implement additive selection without ZoneCard owning a Set. */
   onSelect: (additive: boolean) => void;
   onTogglePower: () => void;
+  onToggleDriven: () => void;
   onOpenSettings: () => void;
   /** Optional dnd-kit drag wiring for reorderable lists. */
   drag?: SortableRowArgs;
@@ -83,7 +85,7 @@ export function ZoneCard({
         styles.deviceCard,
         selected && !firmwareControlled ? styles.deviceCardSelected : '',
         unavailable ? styles.deviceCardUnavailable : '',
-        !unavailable && (!device.ledsOn || firmwareControlled) ? styles.deviceCardPoweredOff : '',
+        !unavailable && (!device.ledsOn || firmwareControlled || device.driven === false) ? styles.deviceCardPoweredOff : '',
         indent ? styles.deviceCardZone : '',
         drag?.isDragging ? drag.placeholderClassName : '',
       ].filter(Boolean).join(' ')}
@@ -159,18 +161,32 @@ export function ZoneCard({
               </button>
             </HoverTooltip>
             {!unavailable && (
-              <HoverTooltip body={t(device.ledsOn ? 'lighting.devices.powerOn' : 'lighting.devices.powerOff')} side="top">
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={device.ledsOn}
-                  className={`${styles.deviceSettingsBtn} ${device.ledsOn ? '' : styles.devicePowerBtnPersistent}`}
-                  aria-label={t(device.ledsOn ? 'lighting.devices.powerOn' : 'lighting.devices.powerOff')}
-                  onClick={e => { e.stopPropagation(); onTogglePower(); }}
-                >
-                  <Power />
-                </button>
-              </HoverTooltip>
+              <>
+                <HoverTooltip body={t(device.driven === false ? 'lighting.devices.notDriven' : 'lighting.devices.driven')} side="top">
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={device.driven !== false}
+                    className={`${styles.deviceSettingsBtn} ${device.driven === false ? styles.devicePowerBtnPersistent : ''}`}
+                    aria-label={t(device.driven === false ? 'lighting.devices.notDriven' : 'lighting.devices.driven')}
+                    onClick={e => { e.stopPropagation(); onToggleDriven(); }}
+                  >
+                    <Ban />
+                  </button>
+                </HoverTooltip>
+                <HoverTooltip body={t(device.ledsOn ? 'lighting.devices.powerOn' : 'lighting.devices.powerOff')} side="top">
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={device.ledsOn}
+                    className={`${styles.deviceSettingsBtn} ${device.ledsOn ? '' : styles.devicePowerBtnPersistent}`}
+                    aria-label={t(device.ledsOn ? 'lighting.devices.powerOn' : 'lighting.devices.powerOff')}
+                    onClick={e => { e.stopPropagation(); onTogglePower(); }}
+                  >
+                    <Power />
+                  </button>
+                </HoverTooltip>
+              </>
             )}
           </div>
         )}

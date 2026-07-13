@@ -37,9 +37,16 @@ import {
 
 export type KeebLayoutKind = 'ANSI' | 'ISO';
 
-const ICON_SIZE = 14;
+// Keyboard-key icon glyphs match the cap height of the text legends they sit
+// beside by default; chip labels pass a smaller size.
+export const KEY_GLYPH_ICON_SIZE = 26;
+export const CHIP_GLYPH_ICON_SIZE = 15;
 
-export function getKeyGlyph(func: string, layout: KeebLayoutKind = 'ANSI'): ReactNode {
+export function getKeyGlyph(
+  func: string,
+  layout: KeebLayoutKind = 'ANSI',
+  iconSize: number = KEY_GLYPH_ICON_SIZE,
+): ReactNode {
   switch (func) {
     case '':
     case 'None': return '';
@@ -82,88 +89,69 @@ export function getKeyGlyph(func: string, layout: KeebLayoutKind = 'ANSI'): Reac
     case 'RightAlt': return 'Alt';
     case 'LeftGUI':
     case 'RightGUI': return '⊞';
-    case 'Application': return '≣';
-    case 'PassThrough': return <ChevronDown size={ICON_SIZE} />;
-    case 'UpArrow': return <ChevronUp size={ICON_SIZE} />;
-    case 'DownArrow': return <ChevronDown size={ICON_SIZE} />;
-    case 'LeftArrow': return <ChevronLeft size={ICON_SIZE} />;
-    case 'RightArrow': return <ChevronRight size={ICON_SIZE} />;
-    case 'Stop': return <Square size={ICON_SIZE} />;
-    case 'PlayAndPause': return <Play size={ICON_SIZE} />;
-    case 'Mute': return <VolumeX size={ICON_SIZE} />;
-    case 'VolumeUp': return <Volume2 size={ICON_SIZE} />;
-    case 'VolumeDown': return <Volume size={ICON_SIZE} />;
+    case 'PassThrough': return <ChevronDown size={iconSize} />;
+    case 'UpArrow': return <ChevronUp size={iconSize} />;
+    case 'DownArrow': return <ChevronDown size={iconSize} />;
+    case 'LeftArrow': return <ChevronLeft size={iconSize} />;
+    case 'RightArrow': return <ChevronRight size={iconSize} />;
+    case 'Stop': return <Square size={iconSize} />;
+    case 'PlayAndPause': return <Play size={iconSize} />;
+    case 'Mute': return <VolumeX size={iconSize} />;
+    case 'VolumeUp': return <Volume2 size={iconSize} />;
+    case 'VolumeDown': return <Volume size={iconSize} />;
     case 'ScanPreviousTrack': return '⏮';
     case 'ScanNextTrack': return '⏭';
     case 'Rewind': return '⏪';
     case 'FastForward': return '⏩';
-    case 'KeyboardPower': return <Power size={ICON_SIZE} />;
-    case 'KeypadSlash': return '/';
-    case 'KeypadAsterisk': return '*';
-    case 'KeypadMinus': return '-';
-    case 'KeypadPlus': return '+';
-    case 'KeypadEnter': return 'Enter';
-    case 'Keypad1End': return '1 End';
-    case 'Keypad2DownArrow': return '2 ↓';
-    case 'Keypad3PageDown': return '3 PgDn';
-    case 'Keypad4LeftArrow': return '4 ←';
-    case 'Keypad5': return '5';
-    case 'Keypad6RightArrow': return '6 →';
-    case 'Keypad7Home': return '7 Home';
-    case 'Keypad8UpArrow': return '8 ↑';
-    case 'Keypad9PageUp': return '9 PgUp';
-    case 'Keypad0Insert': return '0 Ins';
-    case 'KeypadPeriodDelete': return '. Del';
-    case 'KeypadComma': return ',';
-    case 'KeypadEqual': return '=';
+    case 'KeyboardPower': return <Power size={iconSize} />;
     case 'MOSwitch': return 'MO';
     case 'TGSwitch': return 'TG';
-    case 'TOSwitch': return <ToggleRight size={ICON_SIZE} />;
+    case 'TOSwitch': return <ToggleRight size={iconSize} />;
     case 'DFSwitch': return 'DF';
     case 'MouseLButton': return 'LMB';
     case 'MouseRButton': return 'RMB';
-    case 'MouseMButton': return <MousePointer2 size={ICON_SIZE} />;
+    case 'MouseMButton': return <MousePointer2 size={iconSize} />;
     case 'MouseB4Button': return '4';
     case 'MouseB5Button': return '5';
-    case 'MouseWheelUp': return <ArrowUp size={ICON_SIZE} />;
-    case 'MouseWheelDown': return <ArrowDown size={ICON_SIZE} />;
+    case 'MouseWheelUp': return <ArrowUp size={iconSize} />;
+    case 'MouseWheelDown': return <ArrowDown size={iconSize} />;
     case 'MouseACPanLeft':
-    case 'MouseXPanLeft': return <ArrowLeft size={ICON_SIZE} />;
+    case 'MouseXPanLeft': return <ArrowLeft size={iconSize} />;
     case 'MouseACPanRight':
-    case 'MouseXPanRight': return <ArrowRight size={ICON_SIZE} />;
-    case 'MouseXPanUp': return <ArrowUp size={ICON_SIZE} />;
-    case 'MouseXPanDown': return <ArrowDown size={ICON_SIZE} />;
-    case 'MediaSelect': return <Music size={ICON_SIZE} />;
-    case 'Mail': return <Mail size={ICON_SIZE} />;
-    case 'Calculator': return <Calculator size={ICON_SIZE} />;
-    case 'MyComputer': return <Monitor size={ICON_SIZE} />;
-    case 'WebSearch': return <Search size={ICON_SIZE} />;
-    case 'WebHome': return <House size={ICON_SIZE} />;
-    case 'WebFavorite': return <Heart size={ICON_SIZE} />;
-    case 'WebForward': return <ArrowRight size={ICON_SIZE} />;
-    case 'WebBack': return <ArrowLeft size={ICON_SIZE} />;
-    case 'WebRefresh': return <RefreshCw size={ICON_SIZE} />;
-    case 'WebStop': return <Square size={ICON_SIZE} />;
-    case 'Power': return <Power size={ICON_SIZE} />;
-    case 'Sleep': return <Moon size={ICON_SIZE} />;
-    case 'Wake': return <Monitor size={ICON_SIZE} />;
-    case 'RGBOnOff': return <ToggleRight size={ICON_SIZE} />;
-    case 'RGBEffectLoop': return <RotateCcw size={ICON_SIZE} />;
+    case 'MouseXPanRight': return <ArrowRight size={iconSize} />;
+    case 'MouseXPanUp': return <ArrowUp size={iconSize} />;
+    case 'MouseXPanDown': return <ArrowDown size={iconSize} />;
+    case 'MediaSelect': return <Music size={iconSize} />;
+    case 'Mail': return <Mail size={iconSize} />;
+    case 'Calculator': return <Calculator size={iconSize} />;
+    case 'MyComputer': return <Monitor size={iconSize} />;
+    case 'WebSearch': return <Search size={iconSize} />;
+    case 'WebHome': return <House size={iconSize} />;
+    case 'WebFavorite': return <Heart size={iconSize} />;
+    case 'WebForward': return <ArrowRight size={iconSize} />;
+    case 'WebBack': return <ArrowLeft size={iconSize} />;
+    case 'WebRefresh': return <RefreshCw size={iconSize} />;
+    case 'WebStop': return <Square size={iconSize} />;
+    case 'Power': return <Power size={iconSize} />;
+    case 'Sleep': return <Moon size={iconSize} />;
+    case 'Wake': return <Monitor size={iconSize} />;
+    case 'RGBOnOff': return <ToggleRight size={iconSize} />;
+    case 'RGBEffectLoop': return <RotateCcw size={iconSize} />;
     case 'RGBEffectValue': return 'FX';
     case 'BrightnessIncrease':
     case 'SpeedIncrease':
-    case 'ColorIncrease': return <ArrowUp size={ICON_SIZE} />;
+    case 'ColorIncrease': return <ArrowUp size={iconSize} />;
     case 'BrightnessDecrease':
     case 'SpeedDecrease':
-    case 'ColorDecrease': return <ArrowDown size={ICON_SIZE} />;
+    case 'ColorDecrease': return <ArrowDown size={iconSize} />;
     case 'SpeedLoop':
     case 'ColorLoop':
-    case 'ProfilePlusLoop': return <InfinityIcon size={ICON_SIZE} />;
+    case 'ProfilePlusLoop': return <InfinityIcon size={iconSize} />;
     case 'DirectionLoop': return '↻';
     case 'DirectionValue': return 'Dir';
-    case 'ProfilePlus': return <ArrowRight size={ICON_SIZE} />;
-    case 'ProfileMinus': return <ArrowLeft size={ICON_SIZE} />;
-    case 'ProfileValue': return <User size={ICON_SIZE} />;
+    case 'ProfilePlus': return <ArrowRight size={iconSize} />;
+    case 'ProfileMinus': return <ArrowLeft size={iconSize} />;
+    case 'ProfileValue': return <User size={iconSize} />;
     case 'NumLock': return 'Num Lock';
     case 'Macro1': case 'Macro2': case 'Macro3': case 'Macro4':
     case 'Macro5': case 'Macro6': case 'Macro7': case 'Macro8':

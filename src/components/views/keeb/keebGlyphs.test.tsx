@@ -6,9 +6,9 @@ import { getKeebLayoutRows } from './keebLayout';
 
 const LAYOUTS: readonly KeebLayoutKind[] = ['ANSI', 'ISO'];
 
-// The implementation intentionally renders these as an empty string; every
-// other function on the physical board must produce a visible glyph.
-const INTENTIONALLY_BLANK = new Set(['None']);
+// 'None' (an unassigned cell in server state) intentionally renders as an
+// empty string; every function on the physical board must produce a visible
+// glyph.
 
 function boardFunctions(layout: KeebLayoutKind): string[] {
   return getKeebLayoutRows(layout).flat().map(key => key.function);
@@ -18,9 +18,8 @@ describe('getKeyGlyph over the physical board', () => {
   for (const layout of LAYOUTS) {
     it(`renders a non-blank glyph for every ${layout} key`, () => {
       const fns = boardFunctions(layout);
-      expect(fns.length).toBeGreaterThan(80); // sanity: full TKL+pad board
+      expect(fns.length).toBeGreaterThan(90); // sanity: the full 93-key board
       for (const fn of fns) {
-        if (INTENTIONALLY_BLANK.has(fn)) continue;
         const glyph = getKeyGlyph(fn, layout);
         expect(glyph, `${layout} key '${fn}' rendered blank`).toBeTruthy();
       }
@@ -30,12 +29,6 @@ describe('getKeyGlyph over the physical board', () => {
   it('maps None (and the empty function) to an empty string by design', () => {
     expect(getKeyGlyph('None')).toBe('');
     expect(getKeyGlyph('')).toBe('');
-    // Keep the skip list honest: every skipped function must actually be on
-    // the board somewhere, otherwise the entry is dead weight.
-    const onBoard = new Set([...boardFunctions('ANSI'), ...boardFunctions('ISO')]);
-    for (const fn of INTENTIONALLY_BLANK) {
-      expect(onBoard.has(fn), `'${fn}' is in the skip list but not on the board`).toBe(true);
-    }
   });
 });
 

@@ -1,4 +1,4 @@
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Search } from 'lucide-react';
 import {
   Children,
   isValidElement,
@@ -8,10 +8,12 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type ChangeEvent,
   type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
 } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from '../../../lib/i18n';
 import classNames from 'classnames';
 import styles from './Select.module.scss';
 
@@ -25,6 +27,13 @@ import styles from './Select.module.scss';
  * Accepts a flat `options` array or `<option>` children (value + text, with a
  * per-option `className`/`disabled` carried through). optgroups are unsupported,
  * unused in this codebase.
+ *
+ * A long dropdown grows an in-menu search field: on a device that has a fine
+ * pointer and hover (mouse/keyboard desktop; not touch phones or the touch
+ * kiosk) and once the list reaches SEARCH_MIN_OPTIONS, the open menu focuses a
+ * search input that substring-filters the options. Arrow keys still walk the
+ * (filtered) list and highlight the active row while focus stays in the input,
+ * so typing narrows and Enter commits without leaving the keyboard.
  */
 export interface SelectOption {
   value: string;
@@ -74,6 +83,19 @@ const MAX_MENU_WIDTH = 448;
 const MENU_WIDTH_PAD = 12;
 const TYPEAHEAD_RESET_MS = 700;
 
+// The in-menu search field appears only from this many entries up; below it a
+// short list is faster to eyeball than to type.
+const SEARCH_MIN_OPTIONS = 8;
+// The search field is a keyboard affordance: only offer it where there is a
+// real keyboard and pointer. `(hover: hover) and (pointer: fine)` is true on a
+// mouse/trackpad desktop and false on touch phones and the touch kiosk, which
+// have no keyboard to type into it.
+function supportsPointerSearch(): boolean {
+  return typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+}
+
 function flattenText(node: ReactNode): string {
   if (node == null || typeof node === 'boolean') return '';
   if (typeof node === 'string' || typeof node === 'number') return String(node);
@@ -91,6 +113,15 @@ function optionsFromChildren(children: ReactNode): SelectOption[] {
     out.push({ value: String(p.value ?? ''), label: flattenText(p.children), disabled: p.disabled, className: p.className });
   });
   return out;
+}
+
+// Case-insensitive substring filter. An empty query keeps the list intact
+// (dividers included); a non-empty query drops dividers, which only group the
+// full list and read as noise once it is narrowed.
+function filterOptions(opts: readonly SelectOption[], raw: string): readonly SelectOption[] {
+  const needle = raw.trim().toLowerCase();
+  if (!needle) return opts;
+  return opts.filter(o => !o.divider && o.label.toLowerCase().includes(needle));
 }
 
 // Dividers and disabled options are never focusable or selectable.
@@ -121,24 +152,48 @@ export function Select({
   value, onChange, options, children, disabled,
   ariaLabel, className, variant = 'standard', accentValue, placeholder,
 }: SelectProps) {
+  const { t } = useTranslation();
   const resolved = options ? options : optionsFromChildren(children);
   const selectedIndex = resolved.findIndex(o => o.value === value);
   const selectedLabel = selectedIndex >= 0 ? resolved[selectedIndex].label : '';
   const selectedIcon = selectedIndex >= 0 ? resolved[selectedIndex].icon : undefined;
   const showPlaceholder = selectedIndex < 0 && placeholder != null;
 
+  // Offer the search field only on a keyboard/pointer device and once the list
+  // is long enough to be worth typing through. The device class is read once
+  // per mount; it does not change mid-session.
+  const [pointerSearch] = useState(supportsPointerSearch);
+  const searchEnabled =
+    pointerSearch && resolved.filter(o => !o.divider).length >= SEARCH_MIN_OPTIONS;
+
   const wrapperRef = useRef<HTMLSpanElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
-  const menuRef = useRef<HTMLUListElement | null>(null);
+  // menuRef is the portaled box (search field + list); listRef is the scrolling
+  // option list inside it. Positioning sizes the box; scrolling and per-option
+  // measurement target the list.
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const listRef = useRef<HTMLUListElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const typeahead = useRef({ buffer: '', time: 0 });
   const pendingOpenScroll = useRef(false);
+  // Pinned menu width for the current open session so filtering does not resize
+  // the box as the list narrows. Reset on every open/close.
+  const openWidthRef = useRef<number | null>(null);
+  // Focus lands once per open, after the menu is visible. Reset on open/close.
+  const didFocusRef = useRef(false);
   const [open, setOpen] = useState(false);
   const [coords, setCoords] = useState<MenuCoords | null>(null);
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [query, setQuery] = useState('');
+
+  // The options the menu currently renders: filtered while a query is present,
+  // the full list otherwise. activeIndex indexes into this.
+  const visible = searchEnabled ? filterOptions(resolved, query) : resolved;
 
   const baseId = useId();
   const listboxId = `${baseId}-listbox`;
   const optionId = (i: number) => `${baseId}-opt-${i}`;
+  const activeDescendant = activeIndex >= 0 ? optionId(activeIndex) : undefined;
 
   // Anchor the menu under the trigger, flipping above when there's more room
   // there, and cap its height to the chosen side so a long list scrolls inside
@@ -155,42 +210,49 @@ export function Select({
   const reposition = useCallback(() => {
     const trigger = triggerRef.current;
     const menu = menuRef.current;
-    if (!trigger || !menu) return;
+    const list = listRef.current;
+    if (!trigger || !menu || !list) return;
     const r = trigger.getBoundingClientRect();
     const baseWidth = trigger.offsetWidth || r.width;
     const scale = baseWidth > 0 ? r.width / baseWidth : 1;
+    const maxWidth = Math.max(baseWidth, Math.min(MAX_MENU_WIDTH, (window.innerWidth - 2 * MARGIN) / scale));
     // Size the menu to its widest option, floored at the trigger width and
     // capped at MAX_MENU_WIDTH and the viewport (all base px, since the menu
-    // carries the panel-zoom transform). Set the bounds, read the resolved
-    // width back, then pin it as a fixed width so wrapping stays stable for the
-    // scrollHeight measurement below. offsetWidth is the unscaled layout box.
-    const maxWidth = Math.max(baseWidth, Math.min(MAX_MENU_WIDTH, (window.innerWidth - 2 * MARGIN) / scale));
-    // Options clip (overflow:hidden) so labels past the cap ellipsize, but that
-    // clip shrinks the menu's max-content below the label width. Neutralize it
-    // while measuring so the menu sizes to the full widest label, then add a
-    // small pad so options aren't cramped against the edge.
-    const optionEls = Array.from(menu.children) as HTMLElement[];
-    for (const o of optionEls) o.style.overflow = 'visible';
-    menu.style.width = 'max-content';
-    menu.style.minWidth = `${baseWidth}px`;
-    menu.style.maxWidth = `${maxWidth}px`;
-    const measured = menu.offsetWidth;
-    for (const o of optionEls) o.style.overflow = '';
-    const width = Math.min(maxWidth, measured + MENU_WIDTH_PAD);
-    menu.style.width = `${width}px`;
-    menu.style.minWidth = '';
-    menu.style.maxWidth = '';
+    // carries the panel-zoom transform), then pin that width for the session so
+    // filtering does not reflow the box. Options clip (overflow:hidden) so
+    // labels past the cap ellipsize, but that clip shrinks the menu's
+    // max-content below the label width; neutralize it while measuring so the
+    // menu sizes to the full widest label, then add a small pad. offsetWidth is
+    // the unscaled layout box.
+    let width = openWidthRef.current;
+    if (width == null) {
+      const optionEls = Array.from(list.children) as HTMLElement[];
+      for (const o of optionEls) o.style.overflow = 'visible';
+      menu.style.width = 'max-content';
+      menu.style.minWidth = `${baseWidth}px`;
+      menu.style.maxWidth = `${maxWidth}px`;
+      const measured = menu.offsetWidth;
+      for (const o of optionEls) o.style.overflow = '';
+      width = Math.min(maxWidth, measured + MENU_WIDTH_PAD);
+      menu.style.width = `${width}px`;
+      menu.style.minWidth = '';
+      menu.style.maxWidth = '';
+      openWidthRef.current = width;
+    } else {
+      menu.style.width = `${width}px`;
+    }
     const visualWidth = width * scale;
     const spaceBelow = window.innerHeight - r.bottom - MARGIN;
     const spaceAbove = r.top - MARGIN;
     const placeBelow = spaceBelow >= spaceAbove;
     const avail = Math.max(MIN_MENU_HEIGHT, (placeBelow ? spaceBelow : spaceAbove) - GAP);
-    // scrollHeight is content+padding; max-height is border-box (global
-    // box-sizing), so add the vertical border or the menu scrolls by the border
-    // width even when every option fits. offsetHeight-clientHeight is the
-    // vertical border (x-overflow is hidden, so no horizontal scrollbar in it).
-    // Unscaled; visual = * scale.
-    const naturalHeight = menu.scrollHeight + (menu.offsetHeight - menu.clientHeight);
+    // The list is the scroller (the search field stays pinned above it), so
+    // measure its full content height (scrollHeight ignores the max-height clip)
+    // plus the non-list chrome (padding, border, search field), which is stable
+    // whether or not the list is currently constrained. Unscaled; visual =
+    // * scale.
+    const chrome = menu.offsetHeight - list.offsetHeight;
+    const naturalHeight = chrome + list.scrollHeight;
     const visualHeight = Math.min(naturalHeight * scale, avail);
     const top = placeBelow ? r.bottom + GAP : r.top - GAP - visualHeight;
     const maxLeft = window.innerWidth - visualWidth - MARGIN;
@@ -202,10 +264,16 @@ export function Select({
   const close = useCallback((refocus = false) => {
     setOpen(false);
     setCoords(null);
+    setQuery('');
+    openWidthRef.current = null;
+    didFocusRef.current = false;
     if (refocus) triggerRef.current?.focus();
   }, []);
 
   const openMenu = () => {
+    setQuery('');
+    openWidthRef.current = null;
+    didFocusRef.current = false;
     setActiveIndex(selectedIndex >= 0 ? selectedIndex : firstEnabled(resolved));
     pendingOpenScroll.current = true;
     setOpen(true);
@@ -217,20 +285,30 @@ export function Select({
   };
 
   // Render the menu hidden first so its content size is measurable, then fit
-  // width, cap height, and position.
+  // width, cap height, and position. Re-fit when the visible count changes so
+  // filtering re-clamps the height and flip side.
   useLayoutEffect(() => {
     if (open) reposition();
-  }, [open, reposition, resolved.length]);
+  }, [open, reposition, visible.length]);
+
+  // Focus the search field (or the list when there is none) once the menu is
+  // visible - coords set means reposition has run and cleared the initial
+  // visibility:hidden, so .focus() actually takes. Guarded to fire once per
+  // open so filtering (which re-runs reposition) doesn't yank the caret.
+  useLayoutEffect(() => {
+    if (!open || !coords || didFocusRef.current) return;
+    didFocusRef.current = true;
+    (searchEnabled ? inputRef.current : listRef.current)?.focus();
+  }, [open, coords, searchEnabled]);
 
   useEffect(() => {
     if (!open) return;
-    menuRef.current?.focus();
     const onPointerDown = (e: PointerEvent) => {
       const t = e.target as Node;
       if (wrapperRef.current?.contains(t) || menuRef.current?.contains(t)) return;
       close();
     };
-    // Capture scroll also fires for the menu's own overflow scrolling, which
+    // Capture scroll also fires for the list's own overflow scrolling, which
     // doesn't move the trigger; only reposition on scrolls outside the menu.
     const onScroll = (e: Event) => { if (!menuRef.current?.contains(e.target as Node)) reposition(); };
     document.addEventListener('pointerdown', onPointerDown, true);
@@ -245,22 +323,22 @@ export function Select({
 
   // On open, once reposition has sized the menu (coords set), center the
   // selected option. scrollIntoView/nearest can't do this at open time: the
-  // menu is briefly full-height (nothing overflows) until maxHeight lands, and
+  // list is briefly full-height (nothing overflows) until maxHeight lands, and
   // the nav effect below doesn't depend on coords so it never re-fires. Layout
   // effect so scrollTop commits before paint.
   useLayoutEffect(() => {
     if (!open || !coords || !pendingOpenScroll.current) return;
     pendingOpenScroll.current = false;
-    const menu = menuRef.current;
+    const list = listRef.current;
     const target = activeIndex >= 0 ? activeIndex : selectedIndex;
-    const el = target >= 0 ? (menu?.children[target] as HTMLElement | undefined) : undefined;
-    if (menu && el) menu.scrollTop = Math.max(0, el.offsetTop - (menu.clientHeight - el.offsetHeight) / 2);
+    const el = target >= 0 ? (list?.children[target] as HTMLElement | undefined) : undefined;
+    if (list && el) list.scrollTop = Math.max(0, el.offsetTop - (list.clientHeight - el.offsetHeight) / 2);
   }, [open, coords, activeIndex, selectedIndex]);
 
   // Keep the active option visible during keyboard nav (minimal scroll).
   useEffect(() => {
     if (!open || activeIndex < 0) return;
-    (menuRef.current?.children[activeIndex] as HTMLElement | undefined)?.scrollIntoView({ block: 'nearest' });
+    (listRef.current?.children[activeIndex] as HTMLElement | undefined)?.scrollIntoView({ block: 'nearest' });
   }, [open, activeIndex]);
 
   const onTriggerKeyDown = (e: ReactKeyboardEvent) => {
@@ -274,16 +352,40 @@ export function Select({
     }
   };
 
+  // Arrow/Enter/Escape drive the list; typing and caret keys (Home/End) fall
+  // through to the input so the query edits normally.
+  const onInputKeyDown = (e: ReactKeyboardEvent) => {
+    switch (e.key) {
+      case 'ArrowDown': e.preventDefault(); setActiveIndex(i => nextEnabled(visible, i, 1)); break;
+      case 'ArrowUp': e.preventDefault(); setActiveIndex(i => nextEnabled(visible, i, -1)); break;
+      case 'Enter': {
+        e.preventDefault();
+        const opt = visible[activeIndex];
+        if (opt && selectable(opt)) commit(opt.value);
+        break;
+      }
+      case 'Escape': e.preventDefault(); close(true); break;
+      case 'Tab': close(); break;
+    }
+  };
+
+  const onInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const q = e.target.value;
+    setQuery(q);
+    const next = filterOptions(resolved, q);
+    setActiveIndex(q.trim() ? firstEnabled(next) : (selectedIndex >= 0 ? selectedIndex : firstEnabled(next)));
+  };
+
   const onMenuKeyDown = (e: ReactKeyboardEvent) => {
     switch (e.key) {
-      case 'ArrowDown': e.preventDefault(); setActiveIndex(i => nextEnabled(resolved, i, 1)); break;
-      case 'ArrowUp': e.preventDefault(); setActiveIndex(i => nextEnabled(resolved, i, -1)); break;
-      case 'Home': e.preventDefault(); setActiveIndex(firstEnabled(resolved)); break;
-      case 'End': e.preventDefault(); setActiveIndex(lastEnabled(resolved)); break;
+      case 'ArrowDown': e.preventDefault(); setActiveIndex(i => nextEnabled(visible, i, 1)); break;
+      case 'ArrowUp': e.preventDefault(); setActiveIndex(i => nextEnabled(visible, i, -1)); break;
+      case 'Home': e.preventDefault(); setActiveIndex(firstEnabled(visible)); break;
+      case 'End': e.preventDefault(); setActiveIndex(lastEnabled(visible)); break;
       case 'Enter':
       case ' ': {
         e.preventDefault();
-        const opt = resolved[activeIndex];
+        const opt = visible[activeIndex];
         if (opt && selectable(opt)) commit(opt.value);
         break;
       }
@@ -295,7 +397,7 @@ export function Select({
           const ta = typeahead.current;
           ta.buffer = (now - ta.time > TYPEAHEAD_RESET_MS ? '' : ta.buffer) + e.key.toLowerCase();
           ta.time = now;
-          const match = resolved.findIndex(o => selectable(o) && o.label.toLowerCase().startsWith(ta.buffer));
+          const match = visible.findIndex(o => selectable(o) && o.label.toLowerCase().startsWith(ta.buffer));
           if (match >= 0) setActiveIndex(match);
         }
     }
@@ -328,13 +430,8 @@ export function Select({
         aria-hidden="true"
       />
       {open && createPortal(
-        <ul
+        <div
           ref={menuRef}
-          id={listboxId}
-          role="listbox"
-          tabIndex={-1}
-          aria-label={ariaLabel}
-          aria-activedescendant={activeIndex >= 0 ? optionId(activeIndex) : undefined}
           className={styles.menu}
           style={{
             position: 'fixed',
@@ -349,36 +446,81 @@ export function Select({
             transformOrigin: 'top left',
             visibility: coords ? 'visible' : 'hidden',
           }}
-          onKeyDown={onMenuKeyDown}
         >
-          {resolved.map((opt, i) => opt.divider ? (
-            // Structural rule, removed from the a11y tree so it isn't announced
-            // as an empty option.
-            <li key={`${opt.value}-${i}`} className={styles.divider} aria-hidden="true" />
-          ) : (
-            <li
-              key={`${opt.value}-${i}`}
-              id={optionId(i)}
-              role="option"
-              // Surfaces the full label when an option ellipsizes.
-              title={opt.label}
-              aria-selected={opt.value === value}
-              aria-disabled={opt.disabled || undefined}
-              className={classNames(
-                styles.option,
-                opt.className,
-                i === activeIndex && styles.active,
-                opt.value === value && styles.selected,
-                opt.disabled && styles.optionDisabled,
-              )}
-              onPointerEnter={() => { if (!opt.disabled) setActiveIndex(i); }}
-              onClick={() => { if (!opt.disabled) commit(opt.value); }}
-            >
-              {opt.icon && <span className={styles.optionIcon} aria-hidden="true">{opt.icon}</span>}
-              {opt.label}
-            </li>
-          ))}
-        </ul>,
+          {searchEnabled && (
+            <div className={styles.searchRow}>
+              <Search
+                className={styles.searchIcon}
+                size={14}
+                strokeWidth={2}
+                aria-hidden="true"
+              />
+              <input
+                ref={inputRef}
+                type="text"
+                className={styles.searchInput}
+                role="combobox"
+                aria-expanded
+                aria-controls={listboxId}
+                aria-autocomplete="list"
+                aria-activedescendant={activeDescendant}
+                aria-label={t('select.searchAria')}
+                placeholder={t('select.searchPlaceholder')}
+                value={query}
+                onChange={onInputChange}
+                onKeyDown={onInputKeyDown}
+                autoComplete="off"
+                spellCheck={false}
+                // Minimal intrinsic width so the field doesn't inflate the menu's
+                // max-content sizing; flex:1 grows it to fill the row.
+                size={1}
+              />
+            </div>
+          )}
+          <ul
+            ref={listRef}
+            id={listboxId}
+            role="listbox"
+            tabIndex={-1}
+            aria-label={ariaLabel}
+            aria-activedescendant={activeDescendant}
+            className={styles.list}
+            onKeyDown={onMenuKeyDown}
+          >
+            {visible.length === 0 ? (
+              // Not an option row - kept out of the listbox a11y semantics.
+              <li className={styles.noResults} role="presentation">{t('select.noResults')}</li>
+            ) : (
+              visible.map((opt, i) => opt.divider ? (
+                // Structural rule, removed from the a11y tree so it isn't
+                // announced as an empty option.
+                <li key={`${opt.value}-${i}`} className={styles.divider} aria-hidden="true" />
+              ) : (
+                <li
+                  key={`${opt.value}-${i}`}
+                  id={optionId(i)}
+                  role="option"
+                  // Surfaces the full label when an option ellipsizes.
+                  title={opt.label}
+                  aria-selected={opt.value === value}
+                  aria-disabled={opt.disabled || undefined}
+                  className={classNames(
+                    styles.option,
+                    opt.className,
+                    i === activeIndex && styles.active,
+                    opt.value === value && styles.selected,
+                    opt.disabled && styles.optionDisabled,
+                  )}
+                  onPointerEnter={() => { if (!opt.disabled) setActiveIndex(i); }}
+                  onClick={() => { if (!opt.disabled) commit(opt.value); }}
+                >
+                  {opt.icon && <span className={styles.optionIcon} aria-hidden="true">{opt.icon}</span>}
+                  {opt.label}
+                </li>
+              ))
+            )}
+          </ul>
+        </div>,
         document.body,
       )}
     </span>

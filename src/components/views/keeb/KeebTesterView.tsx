@@ -1,23 +1,22 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Keyboard, RefreshCw } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
-import { Card } from '../../common/Card/Card';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { InfoList, InfoRow } from '../../common/InfoList/InfoList';
+import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { useTranslation } from '../../../lib/i18n';
 import styles from './KeebTesterView.module.scss';
 
 interface TouchEntry {
   key: string;
-  keycode: number;
+  code: string;
   timestamp: number;
 }
 
-/// Key Tester tab body. The firmware-driven `keeb.tester` WebSocket topic
-/// isn't wired (Phase 7 in plans/keeb-support.md), so this runs in Local
-/// Mode: it listens to window keydown events, testable without hardware.
-/// The page mounts this view only on the tester tab, so the mount lifetime
-/// gates the global key listener.
+/// Key Tester tab body. Runs in Local Mode: it listens to window keydown
+/// events, so it verifies real keystrokes end-to-end (keyboard -> OS ->
+/// browser) without any service round-trip. The page mounts this view only
+/// on the tester tab, so the mount lifetime gates the global key listener.
 export function KeebTesterView() {
   const { t } = useTranslation();
   const [history, setHistory] = useState<TouchEntry[]>([]);
@@ -27,7 +26,7 @@ export function KeebTesterView() {
     setHistory(prev => [
       {
         key: event.key.length === 1 ? event.key.toUpperCase() : event.key,
-        keycode: event.keyCode || 0,
+        code: event.code,
         timestamp: Date.now(),
       },
       ...prev,
@@ -44,10 +43,10 @@ export function KeebTesterView() {
 
   return (
     <div className={styles.container}>
-      <Card
+      <SettingsSection
         title={t('keeb.tester.localMode')}
-        subtitle={t('keeb.tester.localModeHint')}
-        actions={
+        description={t('keeb.tester.localModeHint')}
+        action={
           <Button size="sm" tone="neutral" icon={<RefreshCw size={14} aria-hidden="true" />} onClick={onReset}>
             {t('keeb.tester.reset')}
           </Button>
@@ -55,15 +54,15 @@ export function KeebTesterView() {
       >
         <InfoList>
           <InfoRow label={t('keeb.tester.key')} value={latest?.key ?? '-'} />
-          <InfoRow label={t('keeb.tester.keycode')} value={latest?.keycode ?? '-'} />
+          <InfoRow label={t('keeb.tester.code')} value={latest?.code ?? '-'} />
           <InfoRow
             label={t('keeb.tester.time')}
             value={latest ? new Date(latest.timestamp).toLocaleTimeString() : '-'}
           />
         </InfoList>
-      </Card>
+      </SettingsSection>
 
-      <Card title={t('keeb.tester.history')}>
+      <SettingsSection title={t('keeb.tester.history')}>
         {history.length === 0 ? (
           <EmptyState
             icon={<Keyboard size={24} aria-hidden="true" />}
@@ -75,13 +74,13 @@ export function KeebTesterView() {
             {history.map(entry => (
               <InfoRow
                 key={`${entry.timestamp}-${entry.key}`}
-                label={`${entry.key} (kc ${entry.keycode})`}
+                label={`${entry.key} · ${entry.code}`}
                 value={new Date(entry.timestamp).toLocaleTimeString()}
               />
             ))}
           </InfoList>
         )}
-      </Card>
+      </SettingsSection>
     </div>
   );
 }

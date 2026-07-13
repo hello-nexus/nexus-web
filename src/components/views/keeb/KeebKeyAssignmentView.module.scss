@@ -18,40 +18,50 @@
   margin: 0;
   padding: 10px 14px;
   border-radius: var(--radius-sm);
-  background: var(--panel-card-bg, rgba(255, 255, 255, 0.03));
-  border: 1px dashed var(--panel-card-border, rgba(255, 255, 255, 0.1));
+  background: var(--surface);
+  border: 1px dashed var(--border);
   color: var(--text-dim);
   font-size: var(--type-mini);
 }
 
 .grid {
   display: grid;
-  // Two columns of group cards, collapsing to one on a narrow window.
-  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  // Titled surface boxes, two-up on a wide window and one-up when narrow.
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
   gap: var(--space-md);
+  align-items: start;
 }
 
-.groupCard {
-  // Card supplies the chrome; we just need section spacing inside it.
-  gap: var(--space-md);
-}
-
-.section {
+// One labeled block per assignment section inside a group's surface box.
+.chipSection {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+  padding: 10px 0;
 }
 
-.sectionTitle {
+.chipSectionLabel {
   @include text-label;
-  margin: 0;
   color: var(--text-dim);
 }
 
-.tiles {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+// Chip rows wrap; the shared .chip-group is inline with no wrap on its own.
+.chips {
+  width: 100%;
+  flex-wrap: wrap;
   gap: 6px;
+}
+
+// Icon-carrying function chip: glyph sits inside, before the name.
+.chipLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.chipIcon {
+  display: inline-flex;
+  align-items: center;
 }
 
 // Source-keyboard stage (Keyboard category): a second KeebKeyboard render
@@ -65,4 +75,16 @@
   display: flex;
   justify-content: center;
   padding: 4px 0 0;
+}
+
+.specialRow {
+  display: flex;
+  justify-content: center;
+}
+
+.specialHint {
+  margin: 0;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: var(--type-mini);
 }

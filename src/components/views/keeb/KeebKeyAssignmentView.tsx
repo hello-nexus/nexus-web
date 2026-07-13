@@ -1,19 +1,22 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { RotateCcw } from 'lucide-react';
 import type { KeyboardState, SetLayerKeyBody } from '../../../api/keeb';
 import { Button } from '../../common/Button/Button';
-import { Card } from '../../common/Card/Card';
+import { ChipGroup, type ChipOption } from '../../common/ChipGroup/ChipGroup';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
-import { IconLabelButton } from '../../common/IconLabelButton/IconLabelButton';
+import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { Tabs, type TabDef } from '../../common/Tabs/Tabs';
 import { useTranslation } from '../../../lib/i18n';
 import { KEEB_RENDER_WIDTH, KeebKeyboard, type KeebSelection } from './KeebKeyboard';
 import { useFitZoom } from './useFitZoom';
+import { CHIP_GLYPH_ICON_SIZE, getKeyGlyph, type KeebLayoutKind } from './keebGlyphs';
 import { getKeebLayoutRows } from './keebLayout';
 import {
   ASSIGNMENT_CATEGORIES,
   CATEGORY_LABEL_KEYS,
+  SPECIAL_ASSIGNMENTS,
   getAssignmentCategories,
+  type AssignmentFunction,
   type KeebAssignmentCategory,
 } from './keebCategories';
 import styles from './KeebKeyAssignmentView.module.scss';
@@ -27,13 +30,29 @@ export interface KeebKeyAssignmentViewProps {
   resetLayer: () => Promise<void>;
 }
 
+/// A function's chip label: the shared key glyph (when it is an icon) sits
+/// inside the chip beside the localized name. String glyphs are dropped - they
+/// only repeat the label.
+function chipLabel(fn: AssignmentFunction, layout: KeebLayoutKind, text: string): ReactNode {
+  const glyph = getKeyGlyph(fn.keyFunction, layout, CHIP_GLYPH_ICON_SIZE);
+  if (typeof glyph === 'string') return text;
+  return (
+    <span className={styles.chipLabel}>
+      <span className={styles.chipIcon} aria-hidden="true">{glyph}</span>
+      {text}
+    </span>
+  );
+}
+
 /// Key Assignment tab body. Category tabs at the top + content below.
 ///
 /// `Keyboard` category renders a second keyboard graphic as a click-to-pick
 /// source: tap a key there and its default function is assigned to the cell
 /// selected on the main keyboard above.
 ///
-/// All other categories render their function tiles in titled cards.
+/// Every other category renders its functions as chip groups inside titled
+/// surface boxes; the chip matching the selected key's current function reads
+/// as active.
 export function KeebKeyAssignmentView({
   selected,
   state,
@@ -53,16 +72,34 @@ export function KeebKeyAssignmentView({
 
   const categories = getAssignmentCategories();
   const groups = category === 'Keyboard' ? [] : categories[category];
+  const layoutKind: KeebLayoutKind = state.layout === 'ISO' ? 'ISO' : 'ANSI';
 
   const onTile = async (keyFunction: string, mode: SetLayerKeyBody['mode'], input?: number | null) => {
     if (!selected) return;
     await setKey({ x: selected.x, y: selected.y, func: keyFunction, mode, input: input ?? null });
   };
 
+  // The selected key's current firmware function - the chip carrying it reads
+  // as active across whichever group holds it.
+  const currentFn = (selected ? state.keys?.[selected.x]?.[selected.y]?.function : '') ?? '';
+
+  const buildOptions = (functions: AssignmentFunction[]): ChipOption[] =>
+    functions.map(fn => ({
+      key: fn.keyFunction,
+      label: chipLabel(fn, layoutKind, t(fn.labelKey, fn.labelParams)),
+      disabled: !selected,
+      // A disabled chip is unfocusable, so skip the tooltip then.
+      tooltip: selected ? fn.keyFunction : undefined,
+    }));
+
+  const onPick = (functions: readonly AssignmentFunction[], key: string) => {
+    const fn = functions.find(f => f.keyFunction === key);
+    if (fn) void onTile(fn.keyFunction, fn.mode, fn.input);
+  };
+
   // Click on the source keyboard → look up that cell's default function
   // (StandardKey + Mode comes from the layout data) and write it onto the
   // selected target cell on the main keyboard.
-  const layoutKind = state.layout === 'ISO' ? 'ISO' : 'ANSI';
   const sourceRows = useMemo(() => getKeebLayoutRows(layoutKind), [layoutKind]);
   const onSourceSelect = async (selection: KeebSelection) => {
     if (selection?.kind !== 'key' || !selected) return;
@@ -82,20 +119,35 @@ export function KeebKeyAssignmentView({
   // from the source list.
   const sourceSelected: KeebSelection = (() => {
     if (!selected) return null;
-    const assigned = state.keys[selected.x]?.[selected.y];
-    const currentFn = assigned?.function
+    const assigned = state.keys?.[selected.x]?.[selected.y];
+    const fn = assigned?.function
       ?? sourceRows[selected.x]?.[selected.y]?.function;
-    if (!currentFn) return null;
+    if (!fn) return null;
     for (let x = 0; x < sourceRows.length; x++) {
       const row = sourceRows[x];
       for (let y = 0; y < row.length; y++) {
-        if (row[y].function === currentFn) return { kind: 'key', x, y };
+        if (row[y].function === fn) return { kind: 'key', x, y };
       }
     }
     return null;
   })();
 
   const disabled = !selected;
+
+  // None restores the factory function; PassThrough falls through to the layer
+  // below (nothing to fall through to on the base layer).
+  const specialOptions: ChipOption[] = SPECIAL_ASSIGNMENTS.map(fn => {
+    const unavailable = fn.keyFunction === 'PassThrough' && state.layer === 0;
+    const off = disabled || unavailable;
+    return {
+      key: fn.keyFunction,
+      label: t(fn.labelKey),
+      disabled: off,
+      tooltip: off
+        ? undefined
+        : t(`keeb.assignTip.${fn.keyFunction}`),
+    };
+  });
 
   return (
     <div className={styles.container}>
@@ -135,47 +187,59 @@ export function KeebKeyAssignmentView({
       )}
 
       {category === 'Keyboard' && (
-        <div ref={sourceStage.ref} className={styles.sourceStageWrap}>
-          <div className={styles.sourceStage} style={{ zoom: sourceStage.zoom }}>
-            <KeebKeyboard
-              state={state}
-              disabled={disabled}
-              // Highlight reflects what the target is currently mapped to; a
-              // click on a different source key rebinds. Wheels are hidden
-              // because picking a wheel-as-source isn't a valid rebind here.
-              // useDefaults keeps the picker showing the printed-legend layout
-              // even after the firmware has been remapped.
-              selected={sourceSelected}
-              hideWheels
-              useDefaults
-              onSelect={onSourceSelect}
+        <>
+          <div ref={sourceStage.ref} className={styles.sourceStageWrap}>
+            <div className={styles.sourceStage} style={{ zoom: sourceStage.zoom }}>
+              <KeebKeyboard
+                state={state}
+                disabled={disabled}
+                // Highlight reflects what the target is currently mapped to; a
+                // click on a different source key rebinds. Wheels are hidden
+                // because picking a wheel-as-source isn't a valid rebind here.
+                // useDefaults keeps the picker showing the printed-legend layout
+                // even after the firmware has been remapped.
+                selected={sourceSelected}
+                hideWheels
+                useDefaults
+                onSelect={onSourceSelect}
+              />
+            </div>
+          </div>
+          <div className={styles.specialRow}>
+            <ChipGroup
+              className={styles.chips}
+              options={specialOptions}
+              activeKey={currentFn}
+              onChange={key => onPick(SPECIAL_ASSIGNMENTS, key)}
             />
           </div>
-        </div>
+          {state.layer === 0 && (
+            // Pass Through is disabled on the base layer; say why, since a
+            // disabled chip is unfocusable and can carry no tooltip.
+            <p className={styles.specialHint} aria-live="polite">
+              {t('keeb.assign.passThroughBaseLayer')}
+            </p>
+          )}
+        </>
       )}
 
       {category !== 'Keyboard' && (
         <div className={styles.grid}>
           {groups.map(group => (
-            <Card key={group.titleKey} title={t(group.titleKey)} className={styles.groupCard}>
+            <SettingsSection key={group.titleKey} title={t(group.titleKey)}>
               {group.sections.map(section => (
-                <div key={section.titleKey} className={styles.section}>
-                  <h4 className={styles.sectionTitle}>{t(section.titleKey)}</h4>
-                  <div className={styles.tiles}>
-                    {section.functions.map(fn => (
-                      <IconLabelButton
-                        key={fn.keyFunction}
-                        label={t(fn.labelKey, fn.labelParams)}
-                        disabled={disabled}
-                        title={fn.keyFunction}
-                        ariaLabel={t(fn.labelKey, fn.labelParams)}
-                        onPress={() => void onTile(fn.keyFunction, fn.mode, fn.input)}
-                      />
-                    ))}
-                  </div>
+                <div key={section.titleKey} className={styles.chipSection}>
+                  <span className={styles.chipSectionLabel}>{t(section.titleKey)}</span>
+                  <ChipGroup
+                    className={styles.chips}
+                    options={buildOptions(section.functions)}
+                    activeKey={currentFn}
+                    onChange={key => onPick(section.functions, key)}
+                    ariaLabel={t(section.titleKey)}
+                  />
                 </div>
               ))}
-            </Card>
+            </SettingsSection>
           ))}
         </div>
       )}

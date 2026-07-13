@@ -15,8 +15,8 @@
   gap: var(--space-xs);
   padding: 10px;
   border-radius: var(--radius);
-  background: var(--panel-card-bg, rgba(255, 255, 255, 0.03));
-  border: 1px solid var(--panel-card-border, rgba(255, 255, 255, 0.06));
+  background: var(--surface);
+  border: var(--border-width) solid transparent;
   overflow-y: auto;
   scrollbar-gutter: stable;
 }
@@ -62,7 +62,7 @@
   width: 80px;
   padding: var(--space-xs) var(--space-sm);
   border-radius: var(--radius-sm);
-  border: 1px solid var(--panel-card-border, rgba(255, 255, 255, 0.12));
+  border: 1px solid var(--control-border);
   background: transparent;
   color: var(--text);
   font-size: var(--type-mini);
@@ -75,51 +75,86 @@
 
 .actions {
   display: flex;
+  align-items: center;
   gap: var(--space-sm);
   margin-left: auto;
 }
 
-.recordingList {
+// The recorded press/release stream, rendered as standard setting rows inside
+// a surface box (SettingsSection). Fills the editor's remaining height and
+// scrolls internally.
+.recordSection {
   flex: 1;
   min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  padding: var(--space-md);
-  border-radius: var(--radius);
-  background: var(--panel-card-bg, rgba(255, 255, 255, 0.02));
-  border: 1px solid var(--panel-card-border, rgba(255, 255, 255, 0.06));
+}
+
+.recordBox {
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   scrollbar-gutter: stable;
 }
 
-.recordRow {
-  display: grid;
-  grid-template-columns: 1fr 80px 90px 24px;
-  gap: var(--space-sm);
+// Duration input + delete, right-aligned in the row's control slot.
+.rowControls {
+  display: inline-flex;
   align-items: center;
-  padding: 6px 10px;
-  border-radius: var(--radius-sm);
-  background: var(--panel-bg, rgba(20, 20, 24, 0.4));
-  font-size: var(--type-mini);
-}
-
-.recordKey {
-  font-family: var(--font-mono);
-  color: var(--text);
-}
-
-.recordType {
-  @include text-label;
-  color: var(--text-dim);
+  gap: 6px;
 }
 
 .recordDuration {
+  width: 72px;
   padding: var(--space-xs) 6px;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--panel-card-border, rgba(255, 255, 255, 0.1));
+  border: 1px solid var(--control-border);
   background: transparent;
   color: var(--text);
   font-size: var(--type-mini);
   text-align: right;
+}
+
+.rowDelete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--surface-hover);
+    color: var(--text);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+}
+
+.budget {
+  font-size: var(--type-tiny);
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  align-self: center;
+}
+
+.budgetOver {
+  color: var(--danger, #e5484d);
+}
+
+.notice {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-sm);
+  border: var(--border-width) solid var(--border);
+  background: var(--surface);
+  color: var(--text-dim);
+  font-size: var(--type-mini);
 }

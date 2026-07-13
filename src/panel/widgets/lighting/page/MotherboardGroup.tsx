@@ -1,4 +1,4 @@
-import { Power } from 'lucide-react';
+import { Power, Ban } from 'lucide-react';
 import { useTranslation } from '../../../../lib/i18n';
 import { CollapsibleSection } from '../../../../components/common/CollapsibleSection/CollapsibleSection';
 import { type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
@@ -19,6 +19,8 @@ export function MotherboardGroup({
   parentName,
   groupOn,
   onTogglePower,
+  groupDriven,
+  onToggleDriven,
   children,
   ariaLabel,
   collapsed,
@@ -34,6 +36,11 @@ export function MotherboardGroup({
   groupOn: boolean;
   /** Flips every child zone to the opposite of {@link groupOn}. */
   onTogglePower: () => void;
+  /** True iff at least one child zone is driven. Drives the icon state and
+   *  the persistent-when-off visibility of the group driven button. */
+  groupDriven: boolean;
+  /** Sets every child zone's driven state to the opposite of {@link groupDriven}. */
+  onToggleDriven: () => void;
   children: React.ReactNode;
   /** Toggle a11y label. Defaults to the motherboard wording; provider groups
    *  (Philips Hue, …) pass their own so this collapsible group reads correctly. */
@@ -68,6 +75,18 @@ export function MotherboardGroup({
       right={
         <>
           {leftAction}
+          <HoverTooltip body={t(groupDriven ? 'lighting.devices.driven' : 'lighting.devices.notDriven')} side="top">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={groupDriven}
+              className={`${styles.deviceSettingsBtn} ${groupDriven ? '' : styles.devicePowerBtnPersistent}`}
+              aria-label={t(groupDriven ? 'lighting.devices.driven' : 'lighting.devices.notDriven')}
+              onClick={e => { e.stopPropagation(); onToggleDriven(); }}
+            >
+              <Ban />
+            </button>
+          </HoverTooltip>
           <HoverTooltip body={t(groupOn ? 'lighting.devices.powerOn' : 'lighting.devices.powerOff')} side="top">
             <button
               type="button"
