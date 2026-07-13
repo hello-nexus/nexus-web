@@ -12,6 +12,7 @@ import { DECK_ICONS, autoIconName, deckCategory, categoryColor } from './deckIco
 import { applyKeyTransform, applyOrientation, type DeckKeyTransform, type DeckOrientation } from './deckKeyTransform';
 import { encodeBmp } from './encodeBmp';
 import { resolveDeckTitleStyle, type ResolvedDeckTitleStyle } from './deckTitleStyle';
+import { coverFitRect } from './coverFitRect';
 import type { DeckSlot } from './types';
 import type { StreamDeckFormat } from '../../../api/streamdeck';
 
@@ -178,14 +179,6 @@ function drawCentered(ctx: CanvasRenderingContext2D, img: HTMLImageElement, cx: 
   const w = img.width * scale;
   const h = img.height * scale;
   ctx.drawImage(img, cx - w / 2, cy - h / 2, w, h);
-}
-
-/** Scale + center-offset an image so it cover-fits a `size` square, cropping the overflowing dimension. */
-export function coverFitRect(imgWidth: number, imgHeight: number, size: number): { x: number; y: number; w: number; h: number } {
-  const scale = Math.max(size / imgWidth, size / imgHeight);
-  const w = imgWidth * scale;
-  const h = imgHeight * scale;
-  return { x: (size - w) / 2, y: (size - h) / 2, w, h };
 }
 
 /** Cover-fit fill of the whole key face, unlike drawCentered's glyph-sized fit. */

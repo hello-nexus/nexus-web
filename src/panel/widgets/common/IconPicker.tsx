@@ -3,6 +3,7 @@ import { Sparkles, Shapes, Smile, ImagePlus } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
 import { SearchInput } from '../../../components/common/SearchInput/SearchInput';
+import { Button } from '../../../components/common/Button/Button';
 import { canEditFreeText, type PanelSurface } from '../../types';
 import { DECK_ICONS, DECK_ICON_NAMES } from '../deck/deckIcons';
 import { CATEGORIES as EMOJI_CATEGORIES, CATEGORY_KEYS as EMOJI_CATEGORY_KEYS } from '../emoji/EmojiWidget';
@@ -172,14 +173,9 @@ export function IconPicker({ value, onChange, surface, desktopEditor }: IconPick
                 : <span className={styles.customPreviewSkeleton} aria-hidden="true" />}
             </div>
           )}
-          <button
-            type="button"
-            className={styles.uploadBtn}
-            onClick={() => fileRef.current?.click()}
-            disabled={uploading}
-          >
-            {uploading ? t('panel.iconPicker.uploading') : t('panel.iconPicker.uploadImage')}
-          </button>
+          <Button type="button" tone="neutral" size="sm" loading={uploading} onClick={() => fileRef.current?.click()}>
+            {t('panel.iconPicker.uploadImage')}
+          </Button>
           <input
             ref={fileRef}
             type="file"
