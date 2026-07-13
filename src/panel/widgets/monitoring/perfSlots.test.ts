@@ -7,6 +7,7 @@ import {
   isExtrasBackedDevice,
   isMicroLayout,
   isTwoColumnMicro,
+  isWideMicroCount,
   microSupportsSize,
   resolvedSlotCountForSize,
   slotCountOptionsForSize,
@@ -26,17 +27,17 @@ describe('perfSlots', () => {
       expect(slotCountOptionsForSize('4x4')).toEqual([2, 4]);
     });
 
-    it('does not expose Micro counts on 2x4 (tall)', () => {
-      expect(slotCountOptionsForSize('2x4')).toEqual([2]);
+    it('exposes the Micro counts (incl. wide 6/8) on the tall 2x4 alongside 2', () => {
+      expect(slotCountOptionsForSize('2x4')).toEqual([2, MICRO_MIN_COUNT, MICRO_MAX_COUNT, ...MICRO_WIDE_COUNTS]);
     });
   });
 
   describe('microSupportsSize', () => {
-    it('only 2x2 and 4x2 support the Micro layout', () => {
+    it('2x2, 4x2 and 2x4 support the Micro layout; 4x4 and 1x1 do not', () => {
       expect(microSupportsSize('2x2')).toBe(true);
       expect(microSupportsSize('4x2')).toBe(true);
+      expect(microSupportsSize('2x4')).toBe(true);
       expect(microSupportsSize('4x4')).toBe(false);
-      expect(microSupportsSize('2x4')).toBe(false);
       expect(microSupportsSize('1x1')).toBe(false);
     });
   });
@@ -47,11 +48,15 @@ describe('perfSlots', () => {
       expect(isMicroLayout('2x2', 4)).toBe(true);
       expect(isMicroLayout('4x2', 3)).toBe(true);
       expect(isMicroLayout('4x2', 4)).toBe(true);
+      expect(isMicroLayout('2x4', 3)).toBe(true);
+      expect(isMicroLayout('2x4', 4)).toBe(true);
     });
 
-    it('treats the wide 6/8 counts as Micro on 4x2', () => {
+    it('treats the wide 6/8 counts as Micro on the wide 4x2 and the tall 2x4', () => {
       expect(isMicroLayout('4x2', 6)).toBe(true);
       expect(isMicroLayout('4x2', 8)).toBe(true);
+      expect(isMicroLayout('2x4', 6)).toBe(true);
+      expect(isMicroLayout('2x4', 8)).toBe(true);
     });
 
     it('still treats count=4 on 4x4 as multi (not Micro)', () => {
@@ -66,12 +71,28 @@ describe('perfSlots', () => {
   });
 
   describe('isTwoColumnMicro', () => {
-    it('is true only for the wide 6/8 counts', () => {
-      expect(isTwoColumnMicro(6)).toBe(true);
-      expect(isTwoColumnMicro(8)).toBe(true);
-      expect(isTwoColumnMicro(3)).toBe(false);
-      expect(isTwoColumnMicro(4)).toBe(false);
-      expect(isTwoColumnMicro(2)).toBe(false);
+    it('is true only for the wide 6/8 counts on the wide 4x2', () => {
+      expect(isTwoColumnMicro('4x2', 6)).toBe(true);
+      expect(isTwoColumnMicro('4x2', 8)).toBe(true);
+      expect(isTwoColumnMicro('4x2', 3)).toBe(false);
+      expect(isTwoColumnMicro('4x2', 4)).toBe(false);
+      expect(isTwoColumnMicro('4x2', 2)).toBe(false);
+    });
+
+    it('is false on the tall 2x4 - it stacks 6/8 in a single column', () => {
+      expect(isTwoColumnMicro('2x4', 6)).toBe(false);
+      expect(isTwoColumnMicro('2x4', 8)).toBe(false);
+      expect(isTwoColumnMicro('2x4', 3)).toBe(false);
+    });
+  });
+
+  describe('isWideMicroCount', () => {
+    it('is true only for the 6/8 counts, regardless of size', () => {
+      expect(isWideMicroCount(6)).toBe(true);
+      expect(isWideMicroCount(8)).toBe(true);
+      expect(isWideMicroCount(3)).toBe(false);
+      expect(isWideMicroCount(4)).toBe(false);
+      expect(isWideMicroCount(2)).toBe(false);
     });
   });
 
@@ -99,9 +120,11 @@ describe('perfSlots', () => {
       expect(resolvedSlotCountForSize('4x2', MICRO_MAX_COUNT)).toBe(MICRO_MAX_COUNT);
     });
 
-    it('preserves the wide 6/8 counts on 4x2 but rejects them on 2x2', () => {
+    it('preserves the wide 6/8 counts on 4x2 and 2x4 but rejects them on 2x2', () => {
       expect(resolvedSlotCountForSize('4x2', 6)).toBe(6);
       expect(resolvedSlotCountForSize('4x2', 8)).toBe(8);
+      expect(resolvedSlotCountForSize('2x4', 6)).toBe(6);
+      expect(resolvedSlotCountForSize('2x4', 8)).toBe(8);
       // 2x2 does not offer the wide counts -> falls back to its default.
       expect(resolvedSlotCountForSize('2x2', 6)).toBe(1);
       expect(resolvedSlotCountForSize('2x2', 8)).toBe(1);
