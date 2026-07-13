@@ -26,10 +26,19 @@ export function SharingSection({ profiles, sharing, primaryId, sharedCats, count
   const { t } = useTranslation();
   const primaryName = profiles.profiles.find(p => p.id === primaryId)?.name ?? '';
 
+  // The custom i18n t() only does single-brace substitution, no <Trans>-style
+  // node interpolation - split on the raw token to highlight the profile name
+  // in a non-dim span. Falls back to a plain string if a locale ever drops
+  // the token so the sentence still renders correctly.
+  const explainParts = t('settings.profiles.sharing.explainV2').split('{primary}');
+  const explainDescription = explainParts.length === 2
+    ? <>{explainParts[0]}<span className={styles.primaryName}>{primaryName}</span>{explainParts[1]}</>
+    : t('settings.profiles.sharing.explainV2', { primary: primaryName });
+
   return (
     <SettingsSection
       title={t('settings.profiles.sharing.heading')}
-      description={t('settings.profiles.sharing.explainV2', { primary: primaryName })}
+      description={explainDescription}
     >
       {onlyOneProfile && (
         <p className={`${styles.note} ${styles.sharingHint}`} data-settings-aside="true">
@@ -48,11 +57,11 @@ export function SharingSection({ profiles, sharing, primaryId, sharedCats, count
             description={t(`settings.profiles.sharing.cat.${category}.desc`)}
           >
             {count > 0 && (
-              <span role="img" aria-label={t(
-                count === 1 ? 'settings.profiles.sharing.presetCountAria.one' : 'settings.profiles.sharing.presetCountAria.other',
-                { count },
-              )}>
-                <Badge label={String(count)} />
+              <span className={styles.presetCountBadge}>
+                <Badge label={t(
+                  count === 1 ? 'settings.profiles.sharing.presetCount.one' : 'settings.profiles.sharing.presetCount.other',
+                  { count },
+                )} />
               </span>
             )}
             <Tabs
