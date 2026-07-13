@@ -19,6 +19,15 @@
 }
 .panel-root[data-surface='phone'] { --panel-scale: var(--panel-widget-scale, 1); } // measured live by usePhoneContentScale
 .panel-root[data-surface='q60']   { --panel-scale: 2.5; } // Chrome 83 can't parse CSS trig; 480px ÷ 2col ÷ 90 ≈ 2.5
+// The device-page preview iframe runs in a modern browser (Edge/Chromium) that
+// can evaluate the trig ratio, so derive --panel-scale from the actual cell size
+// like every other surface rather than the Chrome-83 literal above, which was
+// calibrated for the Q60's legacy narrower viewport and under-scales the wider
+// viewport current firmware reports. Scoped to the simulator: the physical Q60
+// (Chrome 83) keeps the literal.
+.panel-root[data-simulator][data-surface='q60'] {
+  --panel-scale: tan(atan2(var(--panel-content-scale, var(--panel-cell-size, 90px)), 90px));
+}
 // Dashboard widgets sit flat on the app backdrop - drop their shadow (phone/kiosk keep theirs).
 .panel-root[data-surface='desktop'] { --panel-card-shadow-color: transparent; }
 
