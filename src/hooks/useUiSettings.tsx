@@ -318,6 +318,28 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   return out;
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+// Deep-merge a newer server patch onto a still-pending one. Nested domain
+// blocks (theme, diagnostics.thresholds, ...) merge field-by-field; arrays and
+// scalars replace. Two update() calls inside the debounce window must both
+// reach the server - dropping a field lets its stale server value echo back
+// over the 'prefs' topic and revert the UI (e.g. flipping accentSource to
+// 'system' while SystemAccentSync re-asserts accentColor in the same window).
+function mergeServerPatch(
+  base: Record<string, unknown>,
+  incoming: Record<string, unknown>,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = { ...base };
+  for (const [key, value] of Object.entries(incoming)) {
+    const prev = out[key];
+    out[key] = isPlainObject(prev) && isPlainObject(value) ? mergeServerPatch(prev, value) : value;
+  }
+  return out;
+}
+
 function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): UiSettingsValue {
   return {
     ...base,
@@ -435,15 +457,20 @@ export function UiSettingsProvider({
       || serverPatch.units || serverPatch.diagnostics;
     if (!anyBlock) return;
     if (writeTimer.current) clearTimeout(writeTimer.current);
-    // Tracked so the unmount cleanup below can send this exact write instead
-    // of only cancelling the timer - otherwise a patch made just before the
-    // app closes never reaches the server.
-    pendingWriteRef.current = serverPatch;
+    // Merge into (not replace) the still-pending patch so fields from separate
+    // update() calls inside the debounce window all survive into one POST.
+    // Also tracked so the unmount cleanup below can send this exact write
+    // instead of only cancelling the timer - otherwise a patch made just before
+    // the app closes never reaches the server.
+    pendingWriteRef.current = pendingWriteRef.current
+      ? mergeServerPatch(pendingWriteRef.current as Record<string, unknown>, serverPatch as Record<string, unknown>) as PreferencesPatch
+      : serverPatch;
     // 250ms debounce collapses rapid slider-style updates into one POST.
     writeTimer.current = setTimeout(() => {
       writeTimer.current = null;
+      const toSend = pendingWriteRef.current;
       pendingWriteRef.current = null;
-      savePreferences(serverPatch).catch(() => { /* best-effort */ });
+      if (toSend) savePreferences(toSend).catch(() => { /* best-effort */ });
     }, 250);
   }, [serviceOnline]);
 
