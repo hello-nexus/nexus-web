@@ -2,35 +2,13 @@
 // in dev, https://hellonexus.com/api in production). Separate from service.ts
 // which talks to the local nexus-service on :9400.
 
-import type { LeaderboardResponse, MatchResponse } from '../types/benchmark';
+import type { LeaderboardResponse } from '../types/benchmark';
 
 const DEFAULT_API = 'http://localhost:3000';
 const BASE = import.meta.env.VITE_API_URL ?? DEFAULT_API;
 
-export async function matchComponents(
-  query: { cpuModel?: string; gpuModels?: string[]; ramModel?: string; storageModel?: string },
-  signal?: AbortSignal,
-): Promise<MatchResponse | null> {
-  try {
-    const res = await fetch(`${BASE}/catalog/match`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(query),
-      signal,
-    });
-    if (!res.ok) return null;
-    return (await res.json()) as MatchResponse;
-  } catch {
-    return null;
-  }
-}
-
 export interface SubmitBenchmarkBody {
   deviceId: string;
-  cpuComponentId?: string | null;
-  gpuComponentIds?: string[];
-  ramComponentId?: string | null;
-  storageComponentId?: string | null;
   cpuModel?: string;
   gpuModels?: string[];
   cpuScore: number;
