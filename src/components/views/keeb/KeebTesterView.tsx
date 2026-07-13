@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Keyboard, RefreshCw } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
-import { Card } from '../../common/Card/Card';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { InfoList, InfoRow } from '../../common/InfoList/InfoList';
+import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { useTranslation } from '../../../lib/i18n';
 import styles from './KeebTesterView.module.scss';
 
@@ -43,10 +43,10 @@ export function KeebTesterView() {
 
   return (
     <div className={styles.container}>
-      <Card
+      <SettingsSection
         title={t('keeb.tester.localMode')}
-        subtitle={t('keeb.tester.localModeHint')}
-        actions={
+        description={t('keeb.tester.localModeHint')}
+        action={
           <Button size="sm" tone="neutral" icon={<RefreshCw size={14} aria-hidden="true" />} onClick={onReset}>
             {t('keeb.tester.reset')}
           </Button>
@@ -60,9 +60,9 @@ export function KeebTesterView() {
             value={latest ? new Date(latest.timestamp).toLocaleTimeString() : '-'}
           />
         </InfoList>
-      </Card>
+      </SettingsSection>
 
-      <Card title={t('keeb.tester.history')}>
+      <SettingsSection title={t('keeb.tester.history')}>
         {history.length === 0 ? (
           <EmptyState
             icon={<Keyboard size={24} aria-hidden="true" />}
@@ -80,7 +80,7 @@ export function KeebTesterView() {
             ))}
           </InfoList>
         )}
-      </Card>
+      </SettingsSection>
     </div>
   );
 }

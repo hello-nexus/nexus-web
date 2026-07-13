@@ -176,7 +176,7 @@ describe('KeebMacroView - recorder', () => {
     }));
     renderView();
     await tick();
-    expect(screen.getAllByRole('listitem')).toHaveLength(2);
+    expect(screen.getAllByRole('button', { name: /keeb\.macro\.deleteEntryAria/ })).toHaveLength(2);
 
     fireEvent.click(screen.getByRole('button', { name: 'keeb.macro.start' }));
     fireEvent.keyDown(window, { code: 'KeyA' });

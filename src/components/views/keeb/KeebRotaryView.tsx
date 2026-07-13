@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import type { SetRotaryWheelsBody } from '../../../api/keeb';
 import { getKeebRotaryFunctions } from '../../../api/keeb';
-import { IconLabelButton } from '../../common/IconLabelButton/IconLabelButton';
+import { ChipGroup, type ChipOption } from '../../common/ChipGroup/ChipGroup';
+import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { useTranslation } from '../../../lib/i18n';
 import {
   getRotaryFunctionLabelKey,
@@ -19,10 +20,10 @@ export interface KeebRotaryViewProps {
 
 const DEFAULT_FN = 'VolumeAdjustment';
 
-/// Rotary Assignment tab body. Function tiles drive the active wheel
-/// (selected via the wheel buttons on the keyboard render above). The
-/// firmware executes the wheel functions natively - volume, brightness,
-/// scroll - with no host round-trip.
+/// Rotary Assignment tab body. Function chips drive the active wheel (selected
+/// via the wheel buttons on the keyboard render above); the chip carrying the
+/// wheel's current function reads as active. The firmware executes the wheel
+/// functions natively - volume, brightness, scroll - with no host round-trip.
 export function KeebRotaryView({
   wheel,
   left,
@@ -56,6 +57,12 @@ export function KeebRotaryView({
     return tip === key ? undefined : tip;
   };
 
+  const options: ChipOption[] = functions.map(fnName => ({
+    key: fnName,
+    label: functionLabel(fnName),
+    tooltip: functionTooltip(fnName),
+  }));
+
   const handlePick = async (fnName: string) => {
     const body: SetRotaryWheelsBody = wheel === 'left'
       ? { left: fnName, right }
@@ -63,26 +70,21 @@ export function KeebRotaryView({
     await onSetRotary(body);
   };
 
+  const title = wheel === 'left' ? t('keeb.rotary.editingLeft') : t('keeb.rotary.editingRight');
+
   return (
     <div className={styles.container}>
-      <header className={styles.header}>
-        <div className={styles.wheelBadge} aria-live="polite">
-          {wheel === 'left' ? t('keeb.rotary.editingLeft') : t('keeb.rotary.editingRight')}
-        </div>
-      </header>
-
-      <div className={styles.tiles}>
-        {functions.map(fnName => (
-          <IconLabelButton
-            key={fnName}
-            label={functionLabel(fnName)}
-            active={fallbackActive === fnName}
-            title={functionTooltip(fnName)}
-            ariaLabel={functionLabel(fnName)}
-            onPress={() => void handlePick(fnName)}
+      <SettingsSection title={title}>
+        <div className={styles.chipSection}>
+          <ChipGroup
+            className={styles.chips}
+            options={options}
+            activeKey={fallbackActive}
+            onChange={fnName => void handlePick(fnName)}
+            ariaLabel={title}
           />
-        ))}
-      </div>
+        </div>
+      </SettingsSection>
     </div>
   );
 }

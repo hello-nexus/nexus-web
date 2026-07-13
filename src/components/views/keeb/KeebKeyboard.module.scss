@@ -12,10 +12,10 @@ $wheel-size: 110px;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 16px 25px;
-  border-radius: 40px;  // bespoke: physical keyboard-chassis illustration, no token rung
-  background: var(--panel-card-bg, rgba(255, 255, 255, 0.04));
-  border: 1px solid var(--panel-card-border, rgba(255, 255, 255, 0.08));
+  padding: 22px 30px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: var(--border-width) solid var(--border);
   width: fit-content;
   user-select: none;
 }

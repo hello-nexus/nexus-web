@@ -4,6 +4,8 @@ import type { KeebMacro, MacroKey, SetMacroResponse } from '../../../api/keeb';
 import { Button } from '../../common/Button/Button';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { IconLabelButton } from '../../common/IconLabelButton/IconLabelButton';
+import { SettingRow } from '../../common/SettingRow/SettingRow';
+import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { Tabs, type TabDef } from '../../common/Tabs/Tabs';
 import { useTranslation } from '../../../lib/i18n';
 import styles from './KeebMacroView.module.scss';
@@ -308,45 +310,52 @@ export function KeebMacroView({ loadMacro, saveMacro }: KeebMacroViewProps) {
           </div>
         )}
 
-        <div className={styles.recordingList} role="list" aria-live="polite">
-          {recordings.length === 0 && (
+        <SettingsSection
+          className={styles.recordSection}
+          boxClassName={styles.recordBox}
+          ariaLabel={t('keeb.macro.slotsAria')}
+        >
+          {recordings.length === 0 ? (
             <EmptyState
               icon={<ListVideo size={24} aria-hidden="true" />}
               title={t('keeb.macro.emptyTitle')}
               hint={t('keeb.macro.emptyHint')}
               compact
             />
-          )}
-          {recordings.map((k, i) => (
-            <div key={`${k.key}-${k.type}-${i}`} className={styles.recordRow} role="listitem">
-              <span className={styles.recordKey}>{keyLabel(k.key)}</span>
-              <span className={styles.recordType}>
-                {k.type === 'Make' ? t('keeb.macro.press') : t('keeb.macro.release')}
-              </span>
-              <input
-                type="number"
-                min={10}
-                step={10}
-                value={k.duration}
-                disabled={isRecording}
-                onChange={e => onDurationEdit(i, e.target.value)}
-                onBlur={() => void onDurationCommit(i)}
-                className={styles.recordDuration}
-                aria-label={t('keeb.macro.durationAria', { key: keyLabel(k.key), type: k.type })}
-              />
-              <span className={styles.unit}>{t('keeb.macro.ms')}</span>
-              <button
-                type="button"
-                className={styles.rowDelete}
-                disabled={isRecording}
-                aria-label={t('keeb.macro.deleteEntryAria', { key: keyLabel(k.key), type: k.type })}
-                onClick={() => void onDeleteRow(i)}
+          ) : (
+            recordings.map((k, i) => (
+              <SettingRow
+                key={`${k.key}-${k.type}-${i}`}
+                label={keyLabel(k.key)}
+                description={k.type === 'Make' ? t('keeb.macro.press') : t('keeb.macro.release')}
               >
-                <X size={13} aria-hidden="true" />
-              </button>
-            </div>
-          ))}
-        </div>
+                <div className={styles.rowControls}>
+                  <input
+                    type="number"
+                    min={10}
+                    step={10}
+                    value={k.duration}
+                    disabled={isRecording}
+                    onChange={e => onDurationEdit(i, e.target.value)}
+                    onBlur={() => void onDurationCommit(i)}
+                    className={styles.recordDuration}
+                    aria-label={t('keeb.macro.durationAria', { key: keyLabel(k.key), type: k.type })}
+                  />
+                  <span className={styles.unit}>{t('keeb.macro.ms')}</span>
+                  <button
+                    type="button"
+                    className={styles.rowDelete}
+                    disabled={isRecording}
+                    aria-label={t('keeb.macro.deleteEntryAria', { key: keyLabel(k.key), type: k.type })}
+                    onClick={() => void onDeleteRow(i)}
+                  >
+                    <X size={14} aria-hidden="true" />
+                  </button>
+                </div>
+              </SettingRow>
+            ))
+          )}
+        </SettingsSection>
       </section>
     </div>
   );
