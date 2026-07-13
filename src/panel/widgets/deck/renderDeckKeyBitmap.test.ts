@@ -28,6 +28,11 @@ describe('shouldPaintIcon', () => {
     const slot: DeckSlot = { icon: { kind: 'lucide', value: 'Rocket' } };
     expect(shouldPaintIcon(slot)).toBe(true);
   });
+
+  it('is true for a custom image icon even with no action yet', () => {
+    const slot: DeckSlot = { icon: { kind: 'image', value: 'abc123' } };
+    expect(shouldPaintIcon(slot)).toBe(true);
+  });
 });
 
 describe('DECK_BACK_KEY_ICON', () => {

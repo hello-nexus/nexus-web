@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { PresetToolbar, type PresetToolbarPreset } from './PresetToolbar';
 
@@ -209,5 +209,46 @@ describe('PresetToolbar (resetLabelKey/resetConfirmKey overrides)', () => {
   it('falls back to translationPrefix.reset when no override is given', () => {
     render(<PresetToolbar {...defaultProps()} />);
     expect(screen.getByRole('button', { name: 'lighting.layoutPresets.reset' })).toBeTruthy();
+  });
+});
+
+describe('PresetToolbar (onImport)', () => {
+  it('does not render an import option when onImport is omitted (every existing caller)', () => {
+    render(<PresetToolbar {...defaultProps()} />);
+    expect(screen.queryByRole('option', { name: 'lighting.layoutPresets.importOption' })).toBeNull();
+  });
+
+  it('appends an import option after "New preset..." when onImport is set', () => {
+    render(<PresetToolbar {...defaultProps({ onImport: vi.fn() })} />);
+    const options = screen.getAllByRole('option').map(o => o.textContent);
+    const createIndex = options.indexOf('lighting.layoutPresets.newOption');
+    const importIndex = options.indexOf('lighting.layoutPresets.importOption');
+    expect(createIndex).toBeGreaterThanOrEqual(0);
+    expect(importIndex).toBeGreaterThan(createIndex);
+  });
+
+  it('uses importLabelKey to override the option label', () => {
+    render(<PresetToolbar {...defaultProps({ onImport: vi.fn(), importLabelKey: 'devices.streamdeck.presets.importOption' })} />);
+    expect(screen.getByRole('option', { name: 'devices.streamdeck.presets.importOption' })).toBeTruthy();
+    expect(screen.queryByRole('option', { name: 'lighting.layoutPresets.importOption' })).toBeNull();
+  });
+
+  it('fires onImport when the import option is selected', () => {
+    const onImport = vi.fn();
+    render(<PresetToolbar {...defaultProps({ onImport })} />);
+    fireEvent.change(screen.getByTestId('preset-select'), { target: { value: '__import__' } });
+    expect(onImport).toHaveBeenCalledTimes(1);
+  });
+
+  it('disables the import option at the cap, like create', () => {
+    const presets = Array.from({ length: 10 }, (_, i) => ({ id: `p${i}`, name: `Preset ${i}` }));
+    render(<PresetToolbar {...defaultProps({ presets, presetCount: 10, onImport: vi.fn() })} />);
+    expect(screen.getByRole('option', { name: 'lighting.layoutPresets.importOption' })).toBeDisabled();
+  });
+
+  it('does not disable the import option below the cap', () => {
+    const presets = Array.from({ length: 9 }, (_, i) => ({ id: `p${i}`, name: `Preset ${i}` }));
+    render(<PresetToolbar {...defaultProps({ presets, presetCount: 9, onImport: vi.fn() })} />);
+    expect(screen.getByRole('option', { name: 'lighting.layoutPresets.importOption' })).not.toBeDisabled();
   });
 });

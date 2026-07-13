@@ -4,6 +4,7 @@ import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { useTranslation } from '../../../lib/i18n';
 import { DeviceContextMenu, type DeviceMenuItem } from '../../../components/common/DeviceCanvas/DeviceContextMenu';
 import { useAppIcon } from '../common/AppPicker';
+import { useDeckImage } from './useDeckImage';
 import { DECK_ICONS, autoIconName, deckCategory, categoryColor } from './deckIcons';
 import { resolveDeckTitleStyle, titleFontSizeCss } from './deckTitleStyle';
 import { DeckMonitoringCell } from './DeckMonitoringCell';
@@ -30,6 +31,7 @@ function useCellVisual(slot: DeckSlot): { accent: string; content: ReactNode; em
   const icon = slot.icon;
   const appId = action?.type === 'launchApp' ? action.appId : icon?.kind === 'app' ? icon.value : undefined;
   const appIconUrl = useAppIcon(appId); // unconditional (null for undefined appId)
+  const imageIconUrl = useDeckImage(icon?.kind === 'image' ? icon.value : undefined); // unconditional
   // A slot with an explicit icon isn't "empty" even before an action is chosen,
   // so a picked icon renders immediately (not only after picking an action).
   const empty = !action && !isFolder && !icon;
@@ -52,6 +54,8 @@ function useCellVisual(slot: DeckSlot): { accent: string; content: ReactNode; em
     iconEl = <span className={styles.emoji}>{icon.value}</span>;
   } else if (icon?.kind === 'lucide') {
     iconEl = <span className={styles.icon}>{renderLucide(icon.value)}</span>;
+  } else if (icon?.kind === 'image') {
+    iconEl = imageIconUrl ? <img src={imageIconUrl} className={styles.customImage} alt="" /> : null;
   } else if (appId) {
     iconEl = appIconUrl
       ? <img src={appIconUrl} className={styles.appIcon} alt="" />

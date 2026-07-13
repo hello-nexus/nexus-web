@@ -23,6 +23,7 @@ import type { DeckConfig, DeckSlot } from '../../../panel/widgets/deck/types';
 import { isRemoteOrigin } from '../../../api/service';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { PresetToolbar } from '../../common/PresetToolbar/PresetToolbar';
+import { ElgatoImportModal } from './ElgatoImportModal';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import type { TabDef } from '../../common/Tabs/Tabs';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
@@ -98,6 +99,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   const [tab, setTab] = useState<StreamDeckTab>('customize');
   const [activeDragKind, setActiveDragKind] = useState<DeckPickerKind | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ index: number; count: number } | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
   const dragSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   const deck = decks.find(d => d.serial === serial) ?? null;
@@ -400,10 +402,13 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
             onReset={handleDeckReset}
             onUndo={handleUndoDeck}
             onRedo={handleRedoDeck}
+            onImport={() => setImportOpen(true)}
             // eslint-disable-next-line i18next/no-literal-string -- i18n key name, not literal UI text
             resetLabelKey="devices.streamdeck.presets.reset"
             // eslint-disable-next-line i18next/no-literal-string -- i18n key name, not literal UI text
             resetConfirmKey="devices.streamdeck.presets.resetConfirm"
+            // eslint-disable-next-line i18next/no-literal-string -- i18n key name, not literal UI text
+            importLabelKey="devices.streamdeck.presets.importOption"
           />
         ) : undefined}
       />
@@ -584,6 +589,15 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
         onConfirm={() => { if (deleteConfirm) clearSlot(deleteConfirm.index); setDeleteConfirm(null); }}
         onCancel={() => setDeleteConfirm(null)}
       />
+      {serial && (
+        <ElgatoImportModal
+          open={importOpen}
+          onClose={() => setImportOpen(false)}
+          serial={serial}
+          existingPresetNames={deckPresets.presets.map(p => p.name)}
+          onImported={() => { void deckPresets.loadPresets(); }}
+        />
+      )}
     </div>
   );
 }

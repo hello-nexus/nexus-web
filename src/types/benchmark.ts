@@ -1,5 +1,3 @@
-import type { ComponentCategory, ComponentOption } from './builder';
-
 export interface BenchmarkBaselines {
   cpu: number;
   gpu: number;
@@ -92,29 +90,3 @@ export interface StartBenchmarkResponse {
   started: boolean;
   error?: string;
 }
-
-/** A match candidate returned by the nexus-api fuzzy matcher. */
-export interface MatchCandidate {
-  id: string;
-  title: string;
-  brand: string | null;
-  chip: string | null;
-  normalizedKey: string;
-  confidence: number;
-}
-
-export interface MatchResponse {
-  cpu?: MatchCandidate | null;
-  gpu?: MatchCandidate[];
-  ram?: MatchCandidate | null;
-  storage?: MatchCandidate | null;
-}
-
-export interface DetectedComponents {
-  cpu?: ComponentOption;
-  gpu?: ComponentOption[];
-  ram?: ComponentOption;
-  storage?: ComponentOption;
-}
-
-export type DetectedByCategory = Partial<Record<ComponentCategory, ComponentOption[]>>;

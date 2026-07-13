@@ -12,6 +12,7 @@ import { bootDebugFont } from './lib/debugFont';
 import { preloadInstallDefaults } from './api/installDefaultsCache';
 import { isRemoteOrigin } from './api/service';
 import { initMemoryProbe } from './diag/memoryProbe';
+import { initBuildReloadWatcher } from './lib/buildReloadWatcher';
 
 // Apply persisted theme mode + accent color before first paint so there's
 // no flash of the default violet.
@@ -40,6 +41,10 @@ createRoot(document.getElementById('root')!).render(
     <App />
   </StrictMode>
 );
+
+// Refresh long-lived clients (kiosk panels, dashboard) onto a newly deployed
+// web bundle. Only calls location.reload(); never touches adb/USB/the tunnel.
+initBuildReloadWatcher();
 
 // Register the offline service worker. Only runs on HTTPS or localhost contexts
 // (browsers refuse SW registration on plain HTTP for non-loopback origins).

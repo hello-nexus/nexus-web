@@ -4,6 +4,7 @@ import { PanelArrowButton } from '../../chrome/PanelArrowButton';
 import { PanelWidgetEmpty } from '../common/PanelWidgetChrome';
 import { usePanelPreview } from '../common/PanelPreviewContext';
 import { previewWallpaperUri } from '../common/previewAssets';
+import { Button } from '../../../components/common/Button/Button';
 import { useTranslation } from '../../../lib/i18n';
 import { recallGalleryPosition, rememberGalleryPosition, useGalleryImageLoader, useGalleryItems } from './useGallery';
 import type { WidgetProps } from '../types';
@@ -24,7 +25,7 @@ const GALLERY_PREVIEW_URL = previewWallpaperUri(210);
  * interactive element - center-tap still enters immersive on panels and
  * click-through opens the gallery page on the desktop dashboard.
  */
-export function GalleryWidget({ widget, immersive }: WidgetProps & { immersive?: boolean }) {
+export function GalleryWidget({ widget, immersive, onSectionNavigate }: WidgetProps & { immersive?: boolean }) {
   const { t } = useTranslation();
   const preview = usePanelPreview();
   const mode = ((widget.config?.mode as string | undefined) ?? 'single');
@@ -161,11 +162,19 @@ export function GalleryWidget({ widget, immersive }: WidgetProps & { immersive?:
   }
 
   if (loaded && count === 0) {
+    // Desktop replaces the "add images on the gallery page" text with a button
+    // straight to that page; device (no onSectionNavigate) keeps the text since
+    // there is nowhere to navigate to.
     return (
       <PanelWidgetEmpty
         icon={<ImageIcon size={22} />}
         title={t('gallery.empty.title')}
-        text={t('gallery.empty.text')}
+        text={onSectionNavigate ? undefined : t('gallery.empty.text')}
+        action={onSectionNavigate ? (
+          <Button size="sm" icon={<ImageIcon size={14} />} onClick={() => onSectionNavigate('gallery')}>
+            {t('gallery.manage')}
+          </Button>
+        ) : undefined}
       />
     );
   }

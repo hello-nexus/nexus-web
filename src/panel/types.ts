@@ -120,4 +120,10 @@ export interface PanelLayout {
   surface: PanelSurface;
   pages: PanelPage[];
   activePageId?: string;
+  // Single-widget surfaces (Q-series) show one widget at a time; swapping which
+  // widget is shown would otherwise discard the outgoing one's config. This
+  // remembers each widget type's last config so switching back restores it.
+  // Keyed by widget type. Unused (undefined) on multi-widget surfaces, where
+  // every widget's config already lives on its own PanelWidget in `pages`.
+  singleWidgetConfigs?: Record<string, Record<string, PanelConfigValue>>;
 }

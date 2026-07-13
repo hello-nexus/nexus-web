@@ -148,6 +148,19 @@
   object-fit: contain;
 }
 
+// Custom uploaded art fills the whole key face (cover-fit), unlike the
+// glyph-sized .appIcon/.icon - matches renderDeckKeyBitmap's full-bleed draw
+// for the same icon kind. Absolutely positioned against .cell (the nearest
+// positioned ancestor) so it escapes .iconWrap's padded flex box; .cell's
+// own overflow:hidden + border-radius clip it to the key shape.
+.customImage {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 // Overlaid caption, not a flex sibling of .iconWrap - keeps the icon's box
 // (and rendered size) identical whether or not a label is present. A dark
 // stroke/shadow (mirrors EffectCard.labelOverlay) keeps it legible over any

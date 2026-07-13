@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { RotateCcw, Undo2, Redo2, Pencil, Trash2, Plus } from 'lucide-react';
+import { RotateCcw, Undo2, Redo2, Pencil, Trash2, Plus, Import } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { isApplePlatform } from '../../../lib/platform';
 import { Button } from '../Button/Button';
@@ -26,6 +26,13 @@ interface PresetToolbarProps {
   onCreate: (name: string) => Promise<{ error: boolean; msg?: string }>;
   onRename: (id: string, name: string) => void;
   onDelete: (id: string) => void;
+  /** Appends an "Import preset..." option after "New preset...", disabled at
+   *  cap the same way. Omit to hide the option entirely (every existing
+   *  caller). */
+  onImport?: () => void;
+  /** i18n key for the import option's label, falling back to
+   *  `${translationPrefix}.importOption` like resetLabelKey does for reset. */
+  importLabelKey?: string;
   /** Reset + Undo/Redo controls. Off for callers with no editable history to
    *  undo; on (default) matches the original lighting-canvas toolbar. */
   showHistory?: boolean;
@@ -51,7 +58,7 @@ interface PresetToolbarProps {
 
 export function PresetToolbar({
   presets, activeId, presetCount, cap = PRESET_CAP,
-  onLoad, onCreate, onRename, onDelete,
+  onLoad, onCreate, onRename, onDelete, onImport, importLabelKey,
   showHistory = true, canUndo = false, canRedo = false, onReset, onUndo, onRedo,
   translationPrefix = 'lighting.layoutPresets',
   resetLabelKey, resetConfirmKey,
@@ -61,6 +68,7 @@ export function PresetToolbar({
   const key = (suffix: string) => `${translationPrefix}.${suffix}`;
   const resetKey = resetLabelKey ?? key('reset');
   const resetConfirmMessageKey = resetConfirmKey ?? key('resetConfirm');
+  const importKey = importLabelKey ?? key('importOption');
   const [promptOpen, setPromptOpen] = useState(false);
   const [promptMode, setPromptMode] = useState<'create' | 'rename'>('create');
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -79,10 +87,12 @@ export function PresetToolbar({
       { value: '__delete__', label: t(key('delete')), className: styles.actionOption, icon: <Trash2 size={14} /> },
     ] : []),
     ...(allowCreateRename ? [{ value: '__create__', label: t(key('newOption')), className: styles.createOption, disabled: atCap, icon: <Plus size={14} /> }] : []),
+    ...(onImport ? [{ value: '__import__', label: t(importKey), className: styles.createOption, disabled: atCap, icon: <Import size={14} /> }] : []),
   ];
 
   const handleSelectChange = (value: string) => {
     if (presets.some(p => p.id === value)) { onLoad(value); return; }
+    if (value === '__import__') { onImport?.(); return; }
     if (value === '__create__') {
       setPromptMode('create');
       setCreateError(null);

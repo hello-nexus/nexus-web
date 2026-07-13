@@ -2027,12 +2027,6 @@ export const REGISTRY: StorybookEntry[] = [
     description: 'Thin rule separating groups of rows in a dropdown or menu popover. Used by ProfileDropdown to split Account / Profiles / actions.',
     Preview: PreviewMenuDivider,
   },
-  {
-    name: 'LeaderboardView', category: 'navigation',
-    filePath: 'src/components/views/LeaderboardView/LeaderboardView.tsx',
-    description: 'Full leaderboard view for the Benchmark feature. Fetches paginated entries from nexus-api, supports version filtering via the shared Select component, expands each row inline for hardware detail. Pass onBack to show a back button.',
-  },
-
   // ── Status ────────────────────────────────────────────────────────────
   {
     name: 'Spinner', category: 'status',
@@ -2240,7 +2234,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'IconPicker', category: 'panel-kit',
     filePath: 'src/panel/widgets/common/IconPicker.tsx',
-    description: 'Auto / Icons / Emoji tabbed picker for deck-button glyphs. Searches the lucide deck set, browses the emoji categories, Auto derives from the action or app. Returns a DeckIcon or undefined (auto).',
+    description: 'Auto / Icons / Emoji / Custom tabbed picker for deck-button glyphs. Searches the lucide deck set, browses the emoji categories, Custom uploads (client-resized to a square target) and stores an image server-side, Auto derives from the action or app. Returns a DeckIcon or undefined (auto).',
     Preview: PreviewIconPicker,
   },
   {
@@ -2288,7 +2282,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'PresetToolbar', category: 'inputs',
     filePath: 'src/components/common/PresetToolbar/PresetToolbar.tsx',
-    description: 'Generic named-preset manager: dropdown (with Rename/Delete when active and a capped New preset... entry), optionally paired with Reset / Undo / Redo icon buttons via showHistory. Used by the lighting canvas layout toolbar (full history controls) and the Stream Deck page (dropdown only).',
+    description: 'Generic named-preset manager: dropdown (with Rename/Delete when active and a capped New preset... entry, plus an optional capped Import preset... entry via onImport), optionally paired with Reset / Undo / Redo icon buttons via showHistory. Used by the lighting canvas layout toolbar (full history controls) and the Stream Deck page (dropdown + onImport opening the Elgato import modal).',
     notes: 'No live preview -- bound to live preset state via useLayoutPresets / useDeckPresets and requires a running service.',
   },
   {

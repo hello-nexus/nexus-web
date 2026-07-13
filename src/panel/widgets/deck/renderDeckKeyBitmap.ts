@@ -7,10 +7,12 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { fetchServiceBlob } from '../../../api/service';
+import { fetchDeckImage } from '../../../api/deckImages';
 import { DECK_ICONS, autoIconName, deckCategory, categoryColor } from './deckIcons';
 import { applyKeyTransform, applyOrientation, type DeckKeyTransform, type DeckOrientation } from './deckKeyTransform';
 import { encodeBmp } from './encodeBmp';
 import { resolveDeckTitleStyle, type ResolvedDeckTitleStyle } from './deckTitleStyle';
+import { coverFitRect } from './coverFitRect';
 import type { DeckSlot } from './types';
 import type { StreamDeckFormat } from '../../../api/streamdeck';
 
@@ -109,6 +111,11 @@ async function paintIcon(
     return;
   }
 
+  if (icon?.kind === 'image') {
+    const img = await loadDeckImage(icon.value);
+    if (img) { drawCover(ctx, img, canvasSize); return; }
+  }
+
   if (appId) {
     const img = await loadAppIcon(appId);
     if (img) { drawCentered(ctx, img, cx, cy, target); return; }
@@ -174,6 +181,12 @@ function drawCentered(ctx: CanvasRenderingContext2D, img: HTMLImageElement, cx: 
   ctx.drawImage(img, cx - w / 2, cy - h / 2, w, h);
 }
 
+/** Cover-fit fill of the whole key face, unlike drawCentered's glyph-sized fit. */
+function drawCover(ctx: CanvasRenderingContext2D, img: HTMLImageElement, size: number): void {
+  const { x, y, w, h } = coverFitRect(img.width, img.height, size);
+  ctx.drawImage(img, x, y, w, h);
+}
+
 function loadImage(src: string): Promise<HTMLImageElement | null> {
   return new Promise(resolve => {
     const img = new Image();
@@ -185,6 +198,17 @@ function loadImage(src: string): Promise<HTMLImageElement | null> {
 
 async function loadAppIcon(appId: string): Promise<HTMLImageElement | null> {
   const blob = await fetchServiceBlob(`/shortcuts/icon?targetId=${encodeURIComponent(appId)}`);
+  if (!blob || blob.size === 0) return null;
+  const url = URL.createObjectURL(blob);
+  try {
+    return await loadImage(url);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+async function loadDeckImage(id: string): Promise<HTMLImageElement | null> {
+  const blob = await fetchDeckImage(id);
   if (!blob || blob.size === 0) return null;
   const url = URL.createObjectURL(blob);
   try {

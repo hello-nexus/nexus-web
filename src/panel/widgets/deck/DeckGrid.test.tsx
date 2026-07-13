@@ -5,6 +5,7 @@ import type { DeckSlot } from './types';
 import styles from './DeckGrid.module.scss';
 
 vi.mock('../common/AppPicker', () => ({ useAppIcon: () => null }));
+vi.mock('./useDeckImage', () => ({ useDeckImage: (id?: string) => (id ? 'blob:mock-image' : null) }));
 
 describe('DeckGrid backCell (physical folder views)', () => {
   it('renders every slot with no leading cell when backCell is absent (touch widget path, unchanged)', () => {
@@ -154,6 +155,28 @@ describe('DeckGrid selection ring - zero layout shift', () => {
     expect(selectedCell.className).toContain(styles.selected);
     expect(selectedCell.getAttribute('style')).toBe(styleBefore);
     expect(container.querySelectorAll('[data-deck-slot-index]').length).toBe(childCountBefore);
+  });
+});
+
+describe('DeckGrid custom image icon', () => {
+  it('renders an img with the blob URL for a slot whose icon kind is image', () => {
+    const slots: DeckSlot[] = [{ icon: { kind: 'image', value: 'abc123' } }];
+    const { container } = render(
+      <DeckGrid slots={slots} cols={1} rows={1} selectable={false} onCell={() => {}} />,
+    );
+    const cell = container.querySelector('[data-deck-slot-index="0"]')!;
+    const img = cell.querySelector(`img.${styles.customImage}`);
+    expect(img).not.toBeNull();
+    expect(img?.getAttribute('src')).toBe('blob:mock-image');
+  });
+
+  it('counts an image-icon slot as non-empty even with no action bound', () => {
+    const slots: DeckSlot[] = [{ icon: { kind: 'image', value: 'abc123' } }];
+    const { container } = render(
+      <DeckGrid slots={slots} cols={1} rows={1} selectable selectedIndex={-1} onCell={() => {}} />,
+    );
+    const cell = container.querySelector('[data-deck-slot-index="0"]')!;
+    expect(cell.className).not.toContain(styles.empty);
   });
 });
 

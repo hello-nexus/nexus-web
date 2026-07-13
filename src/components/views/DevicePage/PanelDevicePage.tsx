@@ -10,7 +10,7 @@ import {
   appendWidget,
   patchWidgetById,
   removeWidgetById,
-  replaceWidget,
+  swapSingleWidget,
   tryResizeWidget,
 } from '../../../panel/engine/panelLayoutOps';
 import { DEFAULT_SURFACE_DPI, MAX_PANEL_PAGES } from '../../../panel/engine/panelGrid';
@@ -74,6 +74,9 @@ interface PanelDevicePageProps {
   // Threaded from the app router (Dashboard); useRoute is per-instance, so a
   // navigate() owned here would update the URL but not drive the visible page.
   onOpenFirmware?: () => void;
+  // Deep-link a widget's edit sheet to a dashboard section (e.g. the gallery
+  // widget's "Manage gallery" button opening the gallery page).
+  onSectionNavigate?: (section: string) => void;
 }
 
 interface BrightnessResponse { brightness: number }
@@ -110,7 +113,7 @@ function toTouchRepairErrorStatus(status: string): TouchRepairErrorStatus {
 
 type Tab = 'widgets' | 'theme' | 'settings';
 
-export function PanelDevicePage({ device, onOpenFirmware }: PanelDevicePageProps) {
+export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: PanelDevicePageProps) {
   const { t } = useTranslation();
   const isQSeries = device?.runtimeSurface === 'q60';
   const { items: firmwareItems, loaded: firmwareLoaded } = useFirmwareStatus(isQSeries);
@@ -399,14 +402,11 @@ export function PanelDevicePage({ device, onOpenFirmware }: PanelDevicePageProps
       // Clicking the catalog tile already on the device is a no-op.
       const current = layout.pages[0]?.widgets[0];
       if (current && current.type === type) return;
-      const next: PanelWidget = {
-        id: createUuid(),
-        type,
-        size,
-        col: 0,
-        row: 0,
-      };
-      updateLayout(replaceWidget(layout, next));
+      // swapSingleWidget preserves each type's config on the layout, so
+      // switching widgets restores prior settings (persisted like multi-widget
+      // panels' configs, not reset on every swap).
+      const next: PanelWidget = { id: createUuid(), type, size, col: 0, row: 0 };
+      updateLayout(swapSingleWidget(layout, next));
       return;
     }
     const next: PanelWidget = {
@@ -548,6 +548,7 @@ export function PanelDevicePage({ device, onOpenFirmware }: PanelDevicePageProps
                 onUpdate={handleUpdateWidgetConfig}
                 onResize={handleResizeWidget}
                 onRemove={(id) => { handleRemoveWidget(id); setConfiguringWidget(null); }}
+                onSectionNavigate={onSectionNavigate}
               />
             ) : (
               <>
@@ -763,9 +764,10 @@ interface InlineWidgetSettingsProps {
   onUpdate: (widgetId: string, config: Record<string, PanelConfigValue>) => void;
   onResize: (widgetId: string, size: PanelWidgetSize) => void;
   onRemove: (widgetId: string) => void;
+  onSectionNavigate?: (section: string) => void;
 }
 
-function InlineWidgetSettings({ widget, surface, deviceTouch, themeMode = 'dark', themeStyle, onBack, onUpdate, onResize, onRemove }: InlineWidgetSettingsProps) {
+function InlineWidgetSettings({ widget, surface, deviceTouch, themeMode = 'dark', themeStyle, onBack, onUpdate, onResize, onRemove, onSectionNavigate }: InlineWidgetSettingsProps) {
   const { t } = useTranslation();
   const def = lookupApp(widget.type);
   const widgetLabel = def ? (t(def.meta.i18nKey) || widget.type) : widget.type;
@@ -897,6 +899,7 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeMode = 'dark'
             onSelectedSlotChange={usesSlotSelection ? setSelectedMonitoringSlot : undefined}
             editView={usesSlotSelection ? deckEditView : undefined}
             onEditViewChange={usesSlotSelection ? setDeckEditView : undefined}
+            onSectionNavigate={onSectionNavigate}
           />
         ) : (
           <div className={styles.inlineSettingsEmpty}>

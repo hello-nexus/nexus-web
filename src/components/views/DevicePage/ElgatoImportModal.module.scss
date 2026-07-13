@@ -1,0 +1,149 @@
+@use '../../../styles/text' as *;
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.loadingRow {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-xl) 0;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+
+  &:hover {
+    border-color: var(--accent);
+  }
+
+  &[data-active='true'] {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+}
+
+.rowName {
+  @include text-body;
+  font-weight: var(--weight-display);
+}
+
+.rowMeta {
+  @include text-caption;
+  color: var(--text-dim);
+}
+
+.error {
+  @include text-caption;
+  color: var(--bad);
+  margin: 0;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-md);
+}
+
+.capNote {
+  @include text-caption;
+  color: var(--text-dim);
+}
+
+.result {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.resultTitle {
+  @include text-heading;
+  margin: 0;
+}
+
+.resultPresetName {
+  @include text-body;
+  margin: 0;
+}
+
+.resultHint {
+  @include text-caption;
+  color: var(--text-dim);
+  margin: 0;
+}
+
+.mappedSummary {
+  @include text-body;
+  margin: 0;
+}
+
+.unmapped {
+  border-top: var(--border-width) solid var(--border);
+  padding-top: var(--space-sm);
+}
+
+.unmappedHeader {
+  @include text-label;
+  color: var(--text-dim);
+  margin: 0 0 var(--space-xs);
+}
+
+.unmappedList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.unmappedItem {
+  @include text-caption;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px;
+  color: var(--text-dim);
+}
+
+.unmappedPosition {
+  color: var(--text);
+  font-weight: var(--weight-display);
+}
+
+.unmappedName {
+  color: var(--text);
+}
+
+.unmappedReason {
+  color: var(--text-dim);
+}
+
+.unmappedDetail {
+  color: var(--text-dim);
+}
