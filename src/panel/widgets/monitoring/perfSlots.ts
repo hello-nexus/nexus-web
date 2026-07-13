@@ -38,8 +38,9 @@ export interface SlotConfig {
 export const MICRO_MIN_COUNT = 3;
 export const MICRO_MAX_COUNT = 4;
 
-// Wide Micro counts split their rows into two side-by-side columns (3+3, 4+4).
-// Offered only on the wide 4x2 tile - a square 2x2 has no room for two columns.
+// Wide Micro counts (6/8). On the wide 4x2 tile they split into two side-by-side
+// columns (3+3, 4+4); on the tall 2x4 they stack in one column. A square 2x2 has
+// room for neither, so it never offers them.
 export const MICRO_WIDE_COUNTS = [6, 8] as const;
 
 // The Micro layout reuses a subset of the gauge design vocabulary for its row
@@ -71,7 +72,7 @@ export function defaultSlotCountForSize(size: PanelWidgetSize): number {
 export function slotCountOptionsForSize(size: PanelWidgetSize): number[] {
   switch (size) {
     case '4x4': return [2, 4];
-    case '2x4': return [2];
+    case '2x4': return [2, MICRO_MIN_COUNT, MICRO_MAX_COUNT, ...MICRO_WIDE_COUNTS];
     case '4x2': return [1, 2, MICRO_MIN_COUNT, MICRO_MAX_COUNT, ...MICRO_WIDE_COUNTS];
     case '2x2': return [1, MICRO_MIN_COUNT, MICRO_MAX_COUNT];
     default: return [1];
@@ -79,20 +80,26 @@ export function slotCountOptionsForSize(size: PanelWidgetSize): number[] {
 }
 
 export function microSupportsSize(size: PanelWidgetSize): boolean {
-  return size === '2x2' || size === '4x2';
+  return size === '2x2' || size === '4x2' || size === '2x4';
 }
 
 // Whether a (size, count) pair signals the Micro layout. Both inputs are
-// required - count=4 means Micro on 2x2/4x2 but multi on 4x4.
+// required - count=4 means Micro on 2x2/4x2/2x4 but multi on 4x4.
 export function isMicroLayout(size: PanelWidgetSize, count: number): boolean {
   if (!microSupportsSize(size)) return false;
-  return (count >= MICRO_MIN_COUNT && count <= MICRO_MAX_COUNT) || isTwoColumnMicro(count);
+  return (count >= MICRO_MIN_COUNT && count <= MICRO_MAX_COUNT) || isWideMicroCount(count);
 }
 
-// Wide Micro counts (6/8) lay their rows out in two columns; 3/4 stay a single
-// column. Only reachable on 4x2, the sole size offering the wide counts.
-export function isTwoColumnMicro(count: number): boolean {
+// A Micro slot count (6/8). Membership only - the single/two-column layout
+// decision is size-dependent (see isTwoColumnMicro).
+export function isWideMicroCount(count: number): boolean {
   return (MICRO_WIDE_COUNTS as readonly number[]).includes(count);
+}
+
+// The wide 6/8 counts lay out in two columns only on the wide 4x2 tile; the
+// tall 2x4 stacks them in one column, and 3/4 stay single-column everywhere.
+export function isTwoColumnMicro(size: PanelWidgetSize, count: number): boolean {
+  return size === '4x2' && isWideMicroCount(count);
 }
 
 export function resolvedSlotCountForSize(
