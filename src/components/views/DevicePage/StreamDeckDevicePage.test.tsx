@@ -240,10 +240,10 @@ describe('StreamDeckDevicePage', () => {
     expect(screen.getByRole('button', { name: 'conflicts.modal.endTask' })).toBeInTheDocument();
   });
 
-  it('shows an experimental chip only for an unverified model', async () => {
+  it('does not render an experimental chip, even for an unverified model', async () => {
     mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck({ verified: false })]));
     await renderPage();
-    expect(screen.getByText('devices.streamdeck.experimental')).toBeInTheDocument();
+    expect(screen.queryByText('devices.streamdeck.experimental')).toBeNull();
   });
 
   it('renames the deck through the rename hook from the Settings tab', async () => {

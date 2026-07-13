@@ -619,7 +619,6 @@
   "devices.streamdeck.desktopOnly": "Stream Deck 管理仅在桌面应用中可用",
   "devices.streamdeck.deviceName": "设备名称",
   "devices.streamdeck.elgatoConflict": "此 Deck 目前也由 Elgato 软件驱动。退出该软件以便让 Nexus 接管此 Deck。",
-  "devices.streamdeck.experimental": "实验性",
   "devices.streamdeck.firmware": "固件",
   "devices.streamdeck.model": "型号",
   "devices.streamdeck.modelName": "Stream Deck {model}",

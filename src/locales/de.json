@@ -619,7 +619,6 @@
   "devices.streamdeck.desktopOnly": "Die Stream Deck-Verwaltung ist nur in der Desktop-App verfügbar",
   "devices.streamdeck.deviceName": "Gerätename",
   "devices.streamdeck.elgatoConflict": "Dieses Deck wird auch von der Elgato-Software gesteuert. Beenden Sie sie, damit Nexus das Deck übernehmen kann.",
-  "devices.streamdeck.experimental": "Experimentell",
   "devices.streamdeck.firmware": "Firmware",
   "devices.streamdeck.model": "Modell",
   "devices.streamdeck.modelName": "Stream Deck {model}",

@@ -619,7 +619,6 @@
   "devices.streamdeck.desktopOnly": "Stream Deck 관리는 데스크톱 앱에서만 사용할 수 있습니다",
   "devices.streamdeck.deviceName": "장치 이름",
   "devices.streamdeck.elgatoConflict": "이 Deck은 Elgato 소프트웨어에서도 제어하고 있습니다. 종료하면 Nexus가 Deck을 관리할 수 있습니다.",
-  "devices.streamdeck.experimental": "실험적",
   "devices.streamdeck.firmware": "펌웨어",
   "devices.streamdeck.model": "모델",
   "devices.streamdeck.modelName": "Stream Deck {model}",

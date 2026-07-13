@@ -32,16 +32,6 @@
   svg { flex-shrink: 0; }
 }
 
-.experimentalChip {
-  padding: 2px 8px;
-  border-radius: var(--radius-pill, 999px);
-  background: color-mix(in srgb, var(--warn) 18%, transparent);
-  color: var(--warn);
-  font-size: var(--type-tiny);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
 .loading {
   padding: 1rem 0;
   font-size: var(--type-small);

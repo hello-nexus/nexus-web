@@ -203,8 +203,10 @@ export function StreamDeckSimRow() {
 
   // The service names the simulated surface `sim-<productId hex>`
   // (StreamDeckConnectionWorker.SetSimulatedModel); the deck DTO has no
-  // separate flag telling a simulated deck apart from a real one.
-  const simulatedDeck = decks.find(d => d.serial.startsWith('sim-')) ?? null;
+  // separate flag telling a simulated deck apart from a real one. Require
+  // `connected` so a persisted-but-offline sim record (left if the service
+  // hasn't purged it) doesn't keep the toggle stuck "on".
+  const simulatedDeck = decks.find(d => d.serial.startsWith('sim-') && d.connected) ?? null;
   const connected = !!simulatedDeck;
 
   const onToggle = async () => {

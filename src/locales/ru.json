@@ -619,7 +619,6 @@
   "devices.streamdeck.desktopOnly": "Управление Stream Deck доступно только в приложении для рабочего стола",
   "devices.streamdeck.deviceName": "Имя устройства",
   "devices.streamdeck.elgatoConflict": "Deck также управляется программой Elgato. Закройте её, чтобы Nexus мог управлять Deck.",
-  "devices.streamdeck.experimental": "Экспериментально",
   "devices.streamdeck.firmware": "Прошивка",
   "devices.streamdeck.model": "Модель",
   "devices.streamdeck.modelName": "Stream Deck {model}",

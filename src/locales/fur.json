@@ -628,7 +628,6 @@
   "devices.streamdeck.desktopOnly": "La gjestion dal Stream Deck e je disponibile nome te aplicazion desktop",
   "devices.streamdeck.deviceName": "Non dal dispositîf",
   "devices.streamdeck.elgatoConflict": "Chest Deck al è controlât ancje dal software Elgato. Siere lu par lassâ che Nexus al gjestìssi il Deck.",
-  "devices.streamdeck.experimental": "Sperimentâl",
   "devices.streamdeck.firmware": "Firmware",
   "devices.streamdeck.model": "Model",
   "devices.streamdeck.modelName": "Stream Deck {model}",

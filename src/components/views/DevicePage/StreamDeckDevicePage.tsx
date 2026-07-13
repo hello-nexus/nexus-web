@@ -459,9 +459,6 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
                     </div>
                   </div>
                 )}
-                {!deck.verified && (
-                  <span className={styles.experimentalChip}>{t('devices.streamdeck.experimental')}</span>
-                )}
               </div>
 
               <div className={styles.editorPane}>
