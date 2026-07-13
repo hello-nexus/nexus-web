@@ -111,7 +111,7 @@ Everything ships from `src/`. Top-level folders:
 | `api/` | Typed REST/WS clients for `nexus-service` + the cloud API - one file per domain (`cooling`, `lighting`, `displays`, `keeb`, `gallery`, `panel`, `internetPairing`…). Host resolution lives in `api/service.ts`. |
 | `app/` | Desktop **dashboard shell**: `Dashboard.tsx`, sidebar, pairing modals, panel entrypoint + routing, window caption buttons. `app/public/` holds the browser-only public account pages (see Surfaces above). |
 | `assets/` | Static image assets bundled into the app (e.g. `flags/` for locale flags). |
-| `components/` | Shared React components - `common/` (design-system primitives), `views/` (full dashboard sections), `builder/` (PC-builder UI), `peripherals/`, `icons/`. |
+| `components/` | Shared React components - `common/` (design-system primitives), `views/` (full dashboard sections), `peripherals/`, `icons/`. |
 | `diag/` | Renderer diagnostics - the memory/health probe that reports JS-heap, DOM-node, and reconnect samples to the service log (`/diagnostics/client-mem`) on significant change. |
 | `hooks/` | Reusable hooks, mostly data/state (`useDevices`, `useCooling`, `useMultiplexSocket`…). |
 | `lib/` | Non-React utilities + stores (`appStore`, `monitoringStore`, `i18n`, `settings`, `webhid/`, codecs, sensor resolvers). |

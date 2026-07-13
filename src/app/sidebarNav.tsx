@@ -1,16 +1,16 @@
 import { type ReactNode } from 'react';
 import {
   Activity, LayoutDashboard, Lightbulb, Fan, Settings,
-  Usb, Wrench, Gauge, Users, LampCeiling, House, Stethoscope,
+  Usb, Gauge, LampCeiling, House, Stethoscope,
 } from 'lucide-react';
 import { ScreenTimeIcon } from '../panel/widgets/screentime/screentimeIcon';
 
 export const ICON_SIZE = 18;
 
-// Builder / Benchmark / Community sidebar entries are hidden; routes still
-// resolve so bookmarked URLs keep working. Typed instead of `[] as const`
-// so consumers see the element union rather than `never`.
-export const PORTAL_NAV_KEYS: readonly ('builder' | 'benchmark' | 'community')[] = [];
+// The Benchmark sidebar entry is hidden until the portal launches. Typed
+// instead of `[] as const` so consumers see the element union rather than
+// `never`.
+export const PORTAL_NAV_KEYS: readonly 'benchmark'[] = [];
 
 export const NAV_ICONS: Record<string, ReactNode> = {
   dashboard:  <LayoutDashboard size={ICON_SIZE} />,
@@ -23,7 +23,5 @@ export const NAV_ICONS: Record<string, ReactNode> = {
   devices:    <Usb size={ICON_SIZE} />,
   diagnostics: <Stethoscope size={ICON_SIZE} />,
   settings:   <Settings size={ICON_SIZE} />,
-  builder:    <Wrench size={ICON_SIZE} />,
   benchmark:  <Gauge size={ICON_SIZE} />,
-  community:  <Users size={ICON_SIZE} />,
 };

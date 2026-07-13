@@ -1,5 +1,7 @@
+import { ImageIcon } from 'lucide-react';
 import type { WidgetSettingsProps } from '../types';
 import { SettingsSelect, SettingsSection, SettingsToggle, SettingsHint } from '../common/SettingsRow/SettingsRow';
+import { Button } from '../../../components/common/Button/Button';
 import { useTranslation } from '../../../lib/i18n';
 import styles from './GallerySettings.module.scss';
 
@@ -7,7 +9,7 @@ const INTERVAL_SECONDS = [5, 10, 15, 30, 60];
 
 // Per-instance display settings only. The image sources are per-system
 // shared and managed on the gallery page, never from the edit sheet.
-export function GallerySettings({ widget, onUpdate }: WidgetSettingsProps) {
+export function GallerySettings({ widget, onUpdate, onSectionNavigate }: WidgetSettingsProps) {
   const { t } = useTranslation();
   const mode = ((widget.config?.mode as string | undefined) ?? 'single');
   const interval = String(((widget.config?.interval as number | undefined) ?? 10));
@@ -46,7 +48,15 @@ export function GallerySettings({ widget, onUpdate }: WidgetSettingsProps) {
           onChange={v => onUpdate({ fit: v })}
         />
       </SettingsSection>
-      <SettingsHint>{t('gallery.settings.manageHint')}</SettingsHint>
+      {onSectionNavigate ? (
+        // Desktop editor: jump straight to the gallery page. On device the nav
+        // callback is absent, so the text explanation stays.
+        <Button size="sm" tone="ghost" icon={<ImageIcon size={14} />} onClick={() => onSectionNavigate('gallery')}>
+          {t('gallery.manage')}
+        </Button>
+      ) : (
+        <SettingsHint>{t('gallery.settings.manageHint')}</SettingsHint>
+      )}
     </div>
   );
 }
