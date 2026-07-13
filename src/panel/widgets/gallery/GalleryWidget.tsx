@@ -162,15 +162,16 @@ export function GalleryWidget({ widget, immersive, onSectionNavigate }: WidgetPr
   }
 
   if (loaded && count === 0) {
+    // Desktop replaces the "add images on the gallery page" text with a button
+    // straight to that page; device (no onSectionNavigate) keeps the text since
+    // there is nowhere to navigate to.
     return (
       <PanelWidgetEmpty
         icon={<ImageIcon size={22} />}
         title={t('gallery.empty.title')}
-        text={t('gallery.empty.text')}
-        // Desktop only: onSectionNavigate is undefined on device panels, where
-        // there is no gallery page to jump to, so the text explanation stays.
+        text={onSectionNavigate ? undefined : t('gallery.empty.text')}
         action={onSectionNavigate ? (
-          <Button size="sm" tone="ghost" icon={<ImageIcon size={14} />} onClick={() => onSectionNavigate('gallery')}>
+          <Button size="sm" icon={<ImageIcon size={14} />} onClick={() => onSectionNavigate('gallery')}>
             {t('gallery.manage')}
           </Button>
         ) : undefined}

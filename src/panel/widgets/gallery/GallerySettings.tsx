@@ -51,7 +51,7 @@ export function GallerySettings({ widget, onUpdate, onSectionNavigate }: WidgetS
       {onSectionNavigate ? (
         // Desktop editor: jump straight to the gallery page. On device the nav
         // callback is absent, so the text explanation stays.
-        <Button size="sm" tone="ghost" icon={<ImageIcon size={14} />} onClick={() => onSectionNavigate('gallery')}>
+        <Button size="sm" icon={<ImageIcon size={14} />} onClick={() => onSectionNavigate('gallery')}>
           {t('gallery.manage')}
         </Button>
       ) : (

@@ -844,6 +844,9 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeMode = 'dark'
                     onSelectSlot={usesSlotSelection ? setSelectedMonitoringSlot : undefined}
                     editView={usesSlotSelection ? deckEditView : undefined}
                     onEditViewChange={usesSlotSelection ? setDeckEditView : undefined}
+                    // Desktop editor preview reflects desktop behavior (e.g. the
+                    // gallery empty state's "Manage gallery" button).
+                    onSectionNavigate={onSectionNavigate}
                   />
                 </ErrorBoundary>
               </div>

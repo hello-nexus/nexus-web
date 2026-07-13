@@ -121,10 +121,14 @@
   }
 }
 
-// Q-series statusOnly + tall: bigger album art since there are no controls.
+// Q-series statusOnly + tall: full-width square album art since there are no
+// controls. max-height MUST be reset - the .statusOnly.full rule below caps it
+// at 116px (equal specificity, later in source), which otherwise clamps the
+// aspect-ratio:1 square into a wide rectangle.
 .statusOnly.tall.full {
   .artWrap {
     max-width: 100%;
+    max-height: none;
   }
 }
 

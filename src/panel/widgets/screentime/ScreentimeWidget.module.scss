@@ -6,8 +6,18 @@
   height: 100%;
   width: 100%;
   padding: 14px 16px;
+  gap: 12px;
   box-sizing: border-box;
   color: var(--text);
+}
+
+// Total screen time for the day - the prominent number at the top.
+.total {
+  @include text-display;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  flex: 0 0 auto;
 }
 
 // Top-aligned stack of view-only usage bars, evenly spaced.

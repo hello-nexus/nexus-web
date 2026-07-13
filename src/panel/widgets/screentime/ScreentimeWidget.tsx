@@ -21,13 +21,16 @@ export function ScreentimeWidget({ widget }: WidgetProps) {
   const live = useScreenTime();
   const { history } = preview ? SCREENTIME_PREVIEW : live;
 
-  // The taller tiles fit twice as many bars as the short ones.
-  const maxApps = widget.size === '2x4' || widget.size === '4x4' ? 8 : 4;
+  const totalMs = history.reduce((sum, app) => sum + app.totalMs, 0);
+  // Taller tiles fit more bars; the total-time header above the list eats the
+  // vertical room the extra bars would need on the short tiles.
+  const maxApps = widget.size === '2x4' || widget.size === '4x4' ? 7 : 3;
   const top = history.slice().sort((a, b) => b.totalMs - a.totalMs).slice(0, maxApps);
   const maxMs = top.length > 0 ? top[0].totalMs : 1;
 
   return (
     <div className={styles.screentime}>
+      <div className={styles.total}>{formatHm(totalMs)}</div>
       {top.length === 0 ? (
         <div className={styles.empty}>{t('panel.screentime.empty')}</div>
       ) : (
