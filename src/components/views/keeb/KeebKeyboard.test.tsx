@@ -40,9 +40,9 @@ describe('KeebKeyboard - render', () => {
     //   5:16 (CapsLock + ASDF + Return + numpad row)
     //   6:17 (LeftShift + ZXC + RightShift + UpArrow + numpad + KeypadEqual)
     //   7:13 (bottom-row modifiers + Space + arrows + Keypad0 + KeypadPeriodDelete)
-    // Total cells = 112, plus 2 wheel buttons = 114.
+    // Total cells = 93 physical keys, plus 2 wheel buttons = 95.
     const buttons = container.querySelectorAll('button');
-    expect(buttons.length).toBe(114);
+    expect(buttons.length).toBe(95);
   });
 
   it('renders the two rotary wheel buttons inline on row 0', () => {
@@ -91,18 +91,17 @@ describe('KeebKeyboard - render', () => {
     expect(rgb.style.left).toBe('');
   });
 
-  it('forwards inline width/margin from the layout data (e.g. Backspace, Tab, Space, KeypadPlus)', () => {
+  it('forwards inline width/margin from the layout data (e.g. Backspace, Tab, Space, RightShift)', () => {
     const { container } = render(<KeebKeyboard state={buildState()} />);
     const bs = container.querySelector('button[title="Backspace"]') as HTMLButtonElement;
     const tab = container.querySelector('button[title="Tab"]') as HTMLButtonElement;
     const space = container.querySelector('button[title="Space"]') as HTMLButtonElement;
-    const kp = container.querySelector('button[title="KeypadPlus"]') as HTMLButtonElement;
+    const rshift = container.querySelector('button[title="RightShift"]') as HTMLButtonElement;
     expect(bs.style.width).toBe('205px');
     expect(bs.style.marginRight).toBe('30px');
     expect(tab.style.width).toBe('140px');
     expect(space.style.width).toBe('508px');
-    expect(kp.style.height).toBe('145px');
-    expect(kp.style.marginTop).toBe('80px');
+    expect(rshift.style.width).toBe('254px');
   });
 
   it('renders ANSI Backslash on row 4, ISO Return instead', () => {

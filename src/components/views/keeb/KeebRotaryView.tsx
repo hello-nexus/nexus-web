@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react';
 import type { SetRotaryWheelsBody } from '../../../api/keeb';
 import { getKeebRotaryFunctions } from '../../../api/keeb';
-import { IconLabelButton } from '../../common/IconLabelButton/IconLabelButton';
-import { Select } from '../../common/Select/Select';
+import { ChipGroup, type ChipOption } from '../../common/ChipGroup/ChipGroup';
+import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { useTranslation } from '../../../lib/i18n';
 import {
-  ROTARY_SENSITIVITIES,
   getRotaryFunctionLabelKey,
   getRotaryFunctionTooltipKey,
 } from './keebCategories';
@@ -16,27 +15,20 @@ export interface KeebRotaryViewProps {
   /** Current global wheel assignment (left + right). */
   left: string;
   right: string;
-  sensitivity: string;
   onSetRotary: (body: SetRotaryWheelsBody) => Promise<void>;
-  onSetSensitivity: (s: string) => Promise<void>;
 }
 
 const DEFAULT_FN = 'VolumeAdjustment';
 
-/// Rotary Assignment tab body. Function tiles drive the active wheel
-/// (selected via the wheel buttons on the keyboard render above), with a
-/// sensitivity selector at the top.
-///
-/// TODO: Per-app overrides - once `AppDetection` exposes a running-app
-/// list in nexus-service, swap the "All Applications" placeholder for a
-/// real picker. Scope is global only.
+/// Rotary Assignment tab body. Function chips drive the active wheel (selected
+/// via the wheel buttons on the keyboard render above); the chip carrying the
+/// wheel's current function reads as active. The firmware executes the wheel
+/// functions natively - volume, brightness, scroll - with no host round-trip.
 export function KeebRotaryView({
   wheel,
   left,
   right,
-  sensitivity,
   onSetRotary,
-  onSetSensitivity,
 }: KeebRotaryViewProps) {
   const { t } = useTranslation();
   const [functions, setFunctions] = useState<string[]>([]);
@@ -65,55 +57,34 @@ export function KeebRotaryView({
     return tip === key ? undefined : tip;
   };
 
+  const options: ChipOption[] = functions.map(fnName => ({
+    key: fnName,
+    label: functionLabel(fnName),
+    tooltip: functionTooltip(fnName),
+  }));
+
   const handlePick = async (fnName: string) => {
     const body: SetRotaryWheelsBody = wheel === 'left'
-      ? { left: fnName, right, apps: [] }
-      : { left, right: fnName, apps: [] };
+      ? { left: fnName, right }
+      : { left, right: fnName };
     await onSetRotary(body);
   };
 
+  const title = wheel === 'left' ? t('keeb.rotary.editingLeft') : t('keeb.rotary.editingRight');
+
   return (
     <div className={styles.container}>
-      <header className={styles.header}>
-        <div className={styles.field}>
-          <span className={styles.fieldLabel}>{t('keeb.rotary.scope')}</span>
-          <Select
-            value="all"
-            onChange={() => { /* no-op until AppDetection lands */ }}
-            // eslint-disable-next-line i18next/no-literal-string -- option value id
-            options={[{ value: 'all', label: t('keeb.rotary.allApps') }]}
-            ariaLabel={t('keeb.rotary.scopeAria')}
-            disabled
+      <SettingsSection title={title}>
+        <div className={styles.chipSection}>
+          <ChipGroup
+            className={styles.chips}
+            options={options}
+            activeKey={fallbackActive}
+            onChange={fnName => void handlePick(fnName)}
+            ariaLabel={title}
           />
         </div>
-
-        <div className={styles.field}>
-          <span className={styles.fieldLabel}>{t('keeb.rotary.sensitivity')}</span>
-          <Select
-            value={sensitivity || 'Balanced'}
-            onChange={v => void onSetSensitivity(v)}
-            options={ROTARY_SENSITIVITIES.map(s => ({ value: s, label: t(`keeb.sens.${s}`) }))}
-            ariaLabel={t('keeb.rotary.sensitivityAria')}
-          />
-        </div>
-
-        <div className={styles.wheelBadge} aria-live="polite">
-          {wheel === 'left' ? t('keeb.rotary.editingLeft') : t('keeb.rotary.editingRight')}
-        </div>
-      </header>
-
-      <div className={styles.tiles}>
-        {functions.map(fnName => (
-          <IconLabelButton
-            key={fnName}
-            label={functionLabel(fnName)}
-            active={fallbackActive === fnName}
-            title={functionTooltip(fnName)}
-            ariaLabel={fnName}
-            onPress={() => void handlePick(fnName)}
-          />
-        ))}
-      </div>
+      </SettingsSection>
     </div>
   );
 }

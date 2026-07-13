@@ -1,8 +1,8 @@
-// Layout data tests - pin the physical layout shape of the Keeb TKL render
-// against the legacy nexus app exactly. The byte indices, gaps, oversized
-// keys, and ANSI/ISO-conditional cells are firmware contract; a typo or a
-// well-meaning cleanup that changes a marginLeft would silently swap which
-// key the user clicks. These tests catch that.
+// Layout data tests - pin the physical layout shape of the Keeb TKL render.
+// Every cell is a real key verified against a factory layer-table dump; the
+// (x, y) coordinates are the wire contract with the service's KeebLayerMap,
+// so a typo or a well-meaning cleanup that inserts or removes a cell would
+// silently swap which key the user remaps. These tests catch that.
 
 import { describe, it, expect } from 'vitest';
 import { getKeebLayoutRows } from './keebLayout';
@@ -43,19 +43,19 @@ describe('keebLayout - row shape', () => {
     expect(r.find(k => k.function === 'F12')?.style?.marginRight).toBe(30);
   });
 
-  it('row 2 None + PassThrough are the wide split keys', () => {
+  it('row 2 carries no phantom None/PassThrough filler keys', () => {
     const r = getKeebLayoutRows('ANSI')[2];
-    const none = r.find(k => k.function === 'None');
-    const passthrough = r.find(k => k.function === 'PassThrough');
-    expect(none?.style).toMatchObject({ marginLeft: 35, width: 160 });
-    expect(passthrough?.style?.width).toBe(160);
+    expect(r.find(k => k.function === 'None')).toBeUndefined();
+    expect(r.find(k => k.function === 'PassThrough')).toBeUndefined();
+    expect(r).toHaveLength(16);
+    expect(r[r.length - 1].function).toBe('Pause');
   });
 
   it('row 3 Backspace is the oversized 205-wide key with 30-margin gap to nav', () => {
     const r = getKeebLayoutRows('ANSI')[3];
     const bs = r.find(k => k.function === 'Backspace');
     expect(bs?.style).toMatchObject({ width: 205, marginRight: 30 });
-    expect(r.find(k => k.function === 'NumLock')?.style?.marginLeft).toBe(35);
+    expect(r[r.length - 1].function).toBe('PageUp');
   });
 
   it('row 4 ANSI ends with Backslash 140-wide; ISO swaps it for Return', () => {
@@ -70,10 +70,12 @@ describe('keebLayout - row shape', () => {
     expect(iso.find(k => k.function === 'Backslash')).toBeUndefined();
   });
 
-  it('row 4 KeypadPlus is the tall 145-high key with 80 top margin', () => {
-    const r = getKeebLayoutRows('ANSI')[4];
-    const kp = r.find(k => k.function === 'KeypadPlus');
-    expect(kp?.style).toMatchObject({ marginTop: 80, height: 145 });
+  it('no keypad cells exist anywhere (the board is a true TKL)', () => {
+    for (const layout of ['ANSI', 'ISO'] as const) {
+      const keypadCells = getKeebLayoutRows(layout).flat()
+        .filter(k => k.function.startsWith('Keypad') || k.function === 'NumLock');
+      expect(keypadCells).toEqual([]);
+    }
   });
 
   it('row 5 CapsLock width swaps 158 ↔ 170 between ANSI and ISO', () => {
@@ -81,12 +83,12 @@ describe('keebLayout - row shape', () => {
     expect(getKeebLayoutRows('ISO')[5][0].style?.width).toBe(170);
   });
 
-  it('row 5 ANSI ends with Return (width 210); ISO uses NonUsPound + 124 margin', () => {
+  it('row 5 ANSI ends with Return (width 210); ISO uses NonUsPound', () => {
     const ansi = getKeebLayoutRows('ANSI')[5];
     const iso = getKeebLayoutRows('ISO')[5];
-    expect(ansi.find(k => k.function === 'Return')?.style?.width).toBe(210);
-    expect(iso.find(k => k.function === 'NonUsPound')?.style?.marginRight).toBe(124);
-    expect(getKeebLayoutRows('ANSI')[5].find(k => k.function === 'Keypad4LeftArrow')?.style?.marginLeft).toBe(313);
+    expect(ansi[ansi.length - 1].function).toBe('Return');
+    expect(ansi[ansi.length - 1].style?.width).toBe(210);
+    expect(iso[iso.length - 1].function).toBe('NonUsPound');
   });
 
   it('row 6 LeftShift width swaps 200 ↔ 114 (ISO inserts NonUsBackslash)', () => {
@@ -99,12 +101,11 @@ describe('keebLayout - row shape', () => {
     expect(ansi[1].function).toBe('Z');
   });
 
-  it('row 6 RightShift, UpArrow and Keypad column have the legacy offsets', () => {
+  it('row 6 RightShift and UpArrow keep their offsets and close the row', () => {
     const r = getKeebLayoutRows('ANSI')[6];
     expect(r.find(k => k.function === 'RightShift')?.style?.width).toBe(254);
     expect(r.find(k => k.function === 'UpArrow')?.style?.marginLeft).toBe(108);
-    expect(r.find(k => k.function === 'Keypad1End')?.style?.marginLeft).toBe(119);
-    expect(r.find(k => k.function === 'KeypadEqual')?.style).toMatchObject({ marginTop: 80, height: 140 });
+    expect(r[r.length - 1].function).toBe('UpArrow');
   });
 
   it('row 7 bottom row has fixed-width modifiers + 508-wide Space + MOSwitch as LayerKey', () => {
@@ -113,11 +114,13 @@ describe('keebLayout - row shape', () => {
     const mo = r.find(k => k.function === 'MOSwitch');
     expect(mo?.mode).toBe('LayerKey');
     expect(mo?.style?.width).toBe(105);
-    // ANSI has Application between MOSwitch and RightControl; ISO swaps to RightGUI
-    expect(r.find(k => k.function === 'Application')?.style?.width).toBe(105);
+    // Both layouts carry RGui at this position - the firmware default is
+    // 0xE7 even on ANSI boards, so no Application cell exists.
+    expect(r.find(k => k.function === 'RightGUI')?.style?.width).toBe(105);
+    expect(r.find(k => k.function === 'Application')).toBeUndefined();
     expect(getKeebLayoutRows('ISO')[7].find(k => k.function === 'RightGUI')?.style?.width).toBe(105);
     expect(r.find(k => k.function === 'LeftArrow')?.style?.marginLeft).toBe(24);
-    expect(r.find(k => k.function === 'Keypad0Insert')?.style).toMatchObject({ width: 161, marginLeft: 33 });
+    expect(r[r.length - 1].function).toBe('RightArrow');
   });
 
   it('the only media-key cells are the five physical media buttons on row 1', () => {
@@ -127,14 +130,15 @@ describe('keebLayout - row shape', () => {
     }
   });
 
-  it('total cell count is stable across ANSI / ISO (ISO adds NonUsBackslash, removes Backslash)', () => {
+  it('total cell count matches the physical board (ISO adds NonUsBackslash)', () => {
     const ansiTotal = getKeebLayoutRows('ANSI').reduce((n, r) => n + r.length, 0);
     const isoTotal = getKeebLayoutRows('ISO').reduce((n, r) => n + r.length, 0);
     // Row 4: ANSI has Backslash, ISO has Return - same count.
     // Row 5: ANSI has Return, ISO has NonUsPound - same count.
     // Row 6: ISO inserts NonUsBackslash (one extra cell).
-    // Row 7: ANSI Application vs ISO RightGUI - same count.
-    expect(ansiTotal).toBe(112);
+    // 93 keys = every non-sentinel populated slot in the factory dump
+    // (91 standard/media/MO keys + the RGB key + nothing else).
+    expect(ansiTotal).toBe(93);
     expect(isoTotal).toBe(ansiTotal + 1);
   });
 });

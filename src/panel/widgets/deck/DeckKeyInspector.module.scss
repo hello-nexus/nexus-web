@@ -297,3 +297,10 @@ textarea.input { resize: vertical; min-height: 2.4rem; }
 }
 
 .branchLabel { font-size: var(--type-mini); font-weight: var(--weight-display); color: var(--deck-settings-text); }
+
+// Destructive delete action at the bottom of the editor fields (see
+// DeckKeyInspector's onDeleteSlot) - full width so it reads as the terminal
+// action of the fieldStack rather than a compact inline button.
+.deleteBtn {
+  width: 100%;
+}

@@ -8,6 +8,7 @@ import {
   type SetFirmwareLightingBody,
   type SetGameModeBody,
   type SetLayerKeyBody,
+  type SetMacroResponse,
   type SetPassiveLightingBody,
   type SetRotaryWheelsBody,
   getKeebMacro,
@@ -20,10 +21,9 @@ import {
   setKeebMacro,
   setKeebPassiveLighting,
   setKeebRotary,
-  setKeebRotarySensitivity,
 } from '../api/keeb';
 
-/// State + setters for the keeb modal.
+/// State + setters for the keeb page.
 ///
 /// Writes apply OPTIMISTICALLY: local state updates before the POST so the UI
 /// reflects the click instantly, even though the HID round-trip on the service
@@ -43,12 +43,11 @@ export interface UseKeebApi {
   setKey: (body: SetLayerKeyBody) => Promise<boolean>;
   resetLayer: () => Promise<boolean>;
   loadMacro: (index: number) => Promise<KeebMacro | null>;
-  saveMacro: (index: number, keys: MacroKey[]) => Promise<KeebMacro | null>;
+  saveMacro: (index: number, keys: MacroKey[]) => Promise<SetMacroResponse | null>;
   saveFirmwareLighting: (body: SetFirmwareLightingBody) => Promise<boolean>;
   savePassiveLighting: (body: SetPassiveLightingBody) => Promise<boolean>;
   saveGameMode: (body: SetGameModeBody) => Promise<boolean>;
   saveRotary: (body: SetRotaryWheelsBody) => Promise<boolean>;
-  saveRotarySensitivity: (s: string) => Promise<boolean>;
 }
 
 const EMPTY_STATE: KeyboardState = {
@@ -65,12 +64,21 @@ const EMPTY_STATE: KeyboardState = {
 // settings) within ~1.5 s.
 const POLL_MS = 1500;
 
+/// The fetch layer blind-casts JSON, so a mixed-deploy window (old service,
+/// new web) can deliver a state payload missing fields the type declares.
+/// Anchor every server payload on EMPTY_STATE so render code never sees an
+/// undefined grid.
+function normalizeState(st: KeyboardState | null | undefined): KeyboardState {
+  if (!st) return EMPTY_STATE;
+  return { ...EMPTY_STATE, ...st, keys: st.keys ?? [] };
+}
+
 /// Apply a single SetLayerKeyBody to the keys grid by replacing one cell.
 /// Returns a new state with deep-cloned `keys` so React sees the change.
 function applyKeyOverride(prev: KeyboardState, body: SetLayerKeyBody): KeyboardState {
-  const keys = prev.keys.map(row => row.slice());
+  const keys = (prev.keys ?? []).map(row => row.slice());
   while (keys.length <= body.x) keys.push([]);
-  while (keys[body.x].length <= body.y) keys[body.x].push({ mode: 'StandardKey', function: '', input: null });
+  while (keys[body.x].length <= body.y) keys[body.x].push({ mode: '', function: '', input: null });
   keys[body.x][body.y] = { mode: body.mode, function: body.func, input: body.input ?? null };
   return { ...prev, keys };
 }
@@ -105,8 +113,11 @@ export function useKeeb(enabled: boolean): UseKeebApi {
       if (cancelledRef.current) return;
       if (pendingWritesRef.current > 0) return;
       if (writeGenerationRef.current !== generation) return;
-      if (st) setState(st);
+      if (st) setState(normalizeState(st));
       if (se) setSettings(se);
+    } catch {
+      // A poll tick that dies mid-flight (service restart) retries on the
+      // next interval; surfacing it would spam the console every 1.5 s.
     } finally {
       if (!cancelledRef.current) setLoading(false);
     }
@@ -153,13 +164,14 @@ export function useKeeb(enabled: boolean): UseKeebApi {
   /// service returns the authoritative layer state, which replaces the
   /// optimistic one; on failure runWrite refetches and the cell reverts.
   /// The ack snapshot is adopted only when no OTHER write is still in flight
-  /// (the counter includes this write) - a snapshot taken before a newer
-  /// write would visually revert that write's optimistic cell.
+  /// (the counter includes this write) AND the user is still viewing the
+  /// layer the write targeted - a snapshot from a previous layer would paint
+  /// the wrong board under the active layer chip.
   const setKey = useCallback(async (body: SetLayerKeyBody) => {
     setState(prev => applyKeyOverride(prev, body));
     return runWrite(async () => {
       const r = await setKeebLayerKey(layer, body);
-      if (r && pendingWritesRef.current === 1) setState(r);
+      if (r && pendingWritesRef.current === 1 && layerRef.current === layer) setState(normalizeState(r.state));
       return r !== null;
     });
   }, [layer, runWrite]);
@@ -170,7 +182,7 @@ export function useKeeb(enabled: boolean): UseKeebApi {
     setState(prev => ({ ...prev, keys: [] }));
     return runWrite(async () => {
       const r = await resetKeebLayer(layer);
-      if (r && pendingWritesRef.current === 1) setState(r);
+      if (r && pendingWritesRef.current === 1 && layerRef.current === layer) setState(normalizeState(r.state));
       return r !== null;
     });
   }, [layer, runWrite]);
@@ -181,10 +193,11 @@ export function useKeeb(enabled: boolean): UseKeebApi {
   }, []);
 
   /// Counts as a pending write (the poll skips while it is in flight); a null
-  /// ack schedules the standard resync. Returns the acked macro so the caller
-  /// can adopt the server copy.
+  /// ack schedules the standard resync. Returns the full save response so the
+  /// caller can adopt the server copy and surface truncation / dropped keys /
+  /// offline saves.
   const saveMacro = useCallback(async (index: number, keys: MacroKey[]) => {
-    let saved: KeebMacro | null = null;
+    let saved: SetMacroResponse | null = null;
     await runWrite(async () => {
       saved = await setKeebMacro(index, keys);
       return saved !== null;
@@ -217,10 +230,6 @@ export function useKeeb(enabled: boolean): UseKeebApi {
     return runWrite(() => setKeebRotary(body));
   }, [runWrite]);
 
-  const saveRotarySensitivity = useCallback(async (s: string) => {
-    return runWrite(() => setKeebRotarySensitivity(s));
-  }, [runWrite]);
-
   return {
     state,
     settings,
@@ -235,6 +244,5 @@ export function useKeeb(enabled: boolean): UseKeebApi {
     savePassiveLighting,
     saveGameMode,
     saveRotary,
-    saveRotarySensitivity,
   };
 }

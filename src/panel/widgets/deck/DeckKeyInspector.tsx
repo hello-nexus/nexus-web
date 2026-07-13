@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, AlignVerticalJustifyStart, FolderInput, FolderOpen, Plus } from 'lucide-react';
+import { AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, AlignVerticalJustifyStart, FolderInput, FolderOpen, Plus, Trash2 } from 'lucide-react';
 import { useDraggable } from '@dnd-kit/core';
 import { Button } from '../../../components/common/Button/Button';
 import { useTranslation } from '../../../lib/i18n';
@@ -9,6 +9,7 @@ import { isMacAppShell, isWindowsAppShell } from '../../../app/windowActions';
 import { useSensors } from '../../../hooks/useSensors';
 import { EMPTY_SENSOR_EXTRAS } from '../../../hooks/useSensorExtras';
 import { CollapsibleSection } from '../../../components/common/CollapsibleSection/CollapsibleSection';
+import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
 import { ChipGroup } from '../../../components/common/ChipGroup/ChipGroup';
 import { Select } from '../../../components/common/Select/Select';
 import { SearchInput } from '../../../components/common/SearchInput/SearchInput';
@@ -939,6 +940,13 @@ export interface DeckKeyInspectorProps {
    * a folder key there still needs the button to descend into it.
    */
   gridEntersFolders?: boolean;
+  /**
+   * Renders a destructive Delete action at the bottom of the editor fields,
+   * clearing the slot currently open here. Omitted -> no delete control (the
+   * caller decides what clearing means - a direct clear vs. a confirm for a
+   * folder with bound content - matching the grid's own onDeleteSlot).
+   */
+  onDeleteSlot?: () => void;
 }
 
 /**
@@ -947,7 +955,7 @@ export interface DeckKeyInspectorProps {
  * grid and this inspector in separate panes while the touch widget keeps
  * composing them together via DeckEditor.
  */
-export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange, selectedSlot, onSelectedSlotChange, surface, desktopEditor, part = 'all', gridEntersFolders = false }: DeckKeyInspectorProps) {
+export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange, selectedSlot, onSelectedSlotChange, surface, desktopEditor, part = 'all', gridEntersFolders = false, onDeleteSlot }: DeckKeyInspectorProps) {
   const { t } = useTranslation();
   const viewCount = slotCountAtDepth(target, folderPath.length);
   const viewSlots = resolveTargetView(target, page, folderPath) ?? padSlots([], viewCount);
@@ -1005,6 +1013,15 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
         </SettingsSection>
       )}
 
+      {/* The split device-page layout (part='editor') puts this pane in its
+          own column with no picker beside it, so an unbound key would
+          otherwise render nothing here while still visibly selected. The
+          stacked touch-widget layout (part='all') keeps the picker directly
+          above this spot, so it's left unchanged. */}
+      {showEditor && !hasBinding && part === 'editor' && (
+        <EmptyState compact title={t('panel.settings.deck.emptyKeyHint')} />
+      )}
+
       {showEditor && hasBinding && (
         <>
           {hasActionConfig && (
@@ -1048,6 +1065,12 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
               onTitleChange={patch => writeSlot({ ...slot, title: { ...slot.title, ...patch } })}
             />
           </SettingsSection>
+
+          {onDeleteSlot && (
+            <Button type="button" tone="danger" className={styles.deleteBtn} icon={<Trash2 size={14} aria-hidden />} onClick={onDeleteSlot}>
+              {t('panel.settings.deck.deleteKey')}
+            </Button>
+          )}
         </>
       )}
     </div>

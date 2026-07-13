@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { Select } from './Select';
 
 const OPTIONS = [
@@ -104,5 +104,84 @@ describe('Select', () => {
   it('shows selected label (not placeholder) when value matches an option', () => {
     render(<Select value="b" onChange={vi.fn()} options={OPTIONS} ariaLabel="fruit" placeholder="Pick one" />);
     expect(screen.getByRole('button', { name: 'fruit' })).toHaveTextContent('Banana');
+  });
+});
+
+// The in-menu search field is gated on a keyboard/pointer device
+// (`(hover: hover) and (pointer: fine)`), which jsdom lacks by default. Stub
+// matchMedia to that class so the gate is on, as it is on a desktop.
+describe('Select in-menu search', () => {
+  const FRUITS = ['Apple', 'Apricot', 'Banana', 'Blueberry', 'Cherry', 'Grape', 'Mango', 'Orange', 'Peach', 'Pear']
+    .map((label, i) => ({ value: `f${i}`, label }));
+
+  beforeEach(() => {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: query === '(hover: hover) and (pointer: fine)',
+      media: query,
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }));
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('grows a focused search field once the list reaches the threshold', () => {
+    render(<Select value="f0" onChange={vi.fn()} options={FRUITS} ariaLabel="fruit" />);
+    open();
+    expect(screen.getByRole('combobox')).toHaveFocus();
+  });
+
+  it('stays a plain dropdown below the threshold', () => {
+    render(<Select value="a" onChange={vi.fn()} options={OPTIONS} ariaLabel="fruit" />);
+    open();
+    expect(screen.queryByRole('combobox')).toBeNull();
+  });
+
+  it('substring-filters options as you type', () => {
+    render(<Select value="f0" onChange={vi.fn()} options={FRUITS} ariaLabel="fruit" />);
+    open();
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'ap' } });
+    expect(screen.getAllByRole('option').map(o => o.textContent)).toEqual(['Apple', 'Apricot', 'Grape']);
+  });
+
+  it('walks the filtered list with arrows while the field keeps focus, and commits on Enter', () => {
+    const onChange = vi.fn();
+    render(<Select value="f0" onChange={onChange} options={FRUITS} ariaLabel="fruit" />);
+    open();
+    const box = screen.getByRole('combobox');
+    fireEvent.change(box, { target: { value: 'ap' } });
+    // Active resets to the first match (Apple); ArrowDown → Apricot.
+    fireEvent.keyDown(box, { key: 'ArrowDown' });
+    expect(box).toHaveFocus();
+    fireEvent.keyDown(box, { key: 'Enter' });
+    expect(onChange).toHaveBeenCalledWith('f1');
+  });
+
+  it('shows a no-results message and commits nothing when the query matches none', () => {
+    const onChange = vi.fn();
+    render(<Select value="f0" onChange={onChange} options={FRUITS} ariaLabel="fruit" />);
+    open();
+    const box = screen.getByRole('combobox');
+    fireEvent.change(box, { target: { value: 'zzz' } });
+    expect(screen.queryAllByRole('option')).toHaveLength(0);
+    fireEvent.keyDown(box, { key: 'Enter' });
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('drops dividers from the filtered results', () => {
+    const withDivider = [
+      ...FRUITS.slice(0, 5),
+      { value: '__sep__', label: '', divider: true },
+      ...FRUITS.slice(5),
+    ];
+    render(<Select value="f0" onChange={vi.fn()} options={withDivider} ariaLabel="fruit" />);
+    open();
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'a' } });
+    const labels = screen.getAllByRole('option').map(o => o.textContent);
+    expect(labels).not.toContain('');
+    expect(labels).toEqual(['Apple', 'Apricot', 'Banana', 'Grape', 'Mango', 'Orange', 'Peach', 'Pear']);
   });
 });

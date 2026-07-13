@@ -57,8 +57,11 @@ vi.mock('../../../hooks/useMultiplexSocket', () => ({
 }));
 
 vi.mock('../../../panel/widgets/deck/DeckKeyInspector', () => ({
-  DeckKeyInspector: ({ selectedSlot, part }: { selectedSlot?: number; part?: string }) => (
-    <div data-testid={`deck-key-inspector-${part ?? 'all'}`}>{selectedSlot}</div>
+  DeckKeyInspector: ({ selectedSlot, part, onDeleteSlot }: { selectedSlot?: number; part?: string; onDeleteSlot?: () => void }) => (
+    <>
+      <div data-testid={`deck-key-inspector-${part ?? 'all'}`}>{selectedSlot}</div>
+      {onDeleteSlot && <button type="button" onClick={onDeleteSlot}>editor-delete</button>}
+    </>
   ),
   DeckDefaultTitleSettings: () => <div data-testid="deck-default-title" />,
   slotForPickerKind: (_kind: string, base: object = {}) => base,
@@ -409,6 +412,75 @@ describe('StreamDeckDevicePage', () => {
       expect(!!(grid.compareDocumentPosition(editor) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
       // Right column: the action picker follows the whole left column in DOM order.
       expect(!!(editor.compareDocumentPosition(picker) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
+    });
+  });
+
+  describe('Right-click / edit-panel delete (the physical config PUT path)', () => {
+    it('right-clicking a populated key opens a Delete menu that clears the slot through target.updateSlot', async () => {
+      const target = fakeTargetWithPages([{ slots: [{ action: { type: 'hotkey', keys: '' } }] }]);
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+      mockUsePhysicalDeckTarget.mockReturnValue({ target, loaded: true, error: false, retry: vi.fn() });
+      const { container } = await renderPage();
+
+      const cell = container.querySelectorAll('[data-deck-slot-index]')[0];
+      const notPrevented = fireEvent.contextMenu(cell);
+      expect(notPrevented).toBe(false);
+      fireEvent.click(screen.getByText('common.delete'));
+
+      expect(target.updateSlot).toHaveBeenCalledWith(0, [], 0, {});
+    });
+
+    it('right-clicking an empty key never opens the menu (nothing to delete)', async () => {
+      const target = fakeTargetWithPages([{ slots: [{}] }]);
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+      mockUsePhysicalDeckTarget.mockReturnValue({ target, loaded: true, error: false, retry: vi.fn() });
+      const { container } = await renderPage();
+
+      fireEvent.contextMenu(container.querySelectorAll('[data-deck-slot-index]')[0]);
+      expect(screen.queryByText('common.delete')).toBeNull();
+      expect(target.updateSlot).not.toHaveBeenCalled();
+    });
+
+    it('right-clicking a folder key with bound content opens the delete-folder confirm instead of clearing immediately', async () => {
+      const target = fakeTargetWithPages([{
+        slots: [{ folder: { slots: [{ action: { type: 'hotkey', keys: '' } }] } }],
+      }]);
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+      mockUsePhysicalDeckTarget.mockReturnValue({ target, loaded: true, error: false, retry: vi.fn() });
+      const { container } = await renderPage();
+
+      fireEvent.contextMenu(container.querySelectorAll('[data-deck-slot-index]')[0]);
+      fireEvent.click(screen.getByText('common.delete'));
+
+      expect(screen.getByText('panel.settings.deck.deleteFolder.title')).toBeInTheDocument();
+      expect(target.updateSlot).not.toHaveBeenCalled();
+
+      fireEvent.click(screen.getByRole('button', { name: 'confirm.ok' }));
+      expect(target.updateSlot).toHaveBeenCalledWith(0, [], 0, {});
+    });
+
+    it('the edit panel delete button clears the selected slot through the same requestDelete path as the other two entry points', async () => {
+      const target = fakeTargetWithPages([{ slots: [{ action: { type: 'hotkey', keys: '' } }] }]);
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+      mockUsePhysicalDeckTarget.mockReturnValue({ target, loaded: true, error: false, retry: vi.fn() });
+      await renderPage();
+
+      fireEvent.click(screen.getByText('editor-delete'));
+      expect(target.updateSlot).toHaveBeenCalledWith(0, [], 0, {});
+    });
+
+    it('the edit panel delete button opens the delete-folder confirm for a bound folder, matching the context-menu path', async () => {
+      const target = fakeTargetWithPages([{
+        slots: [{ folder: { slots: [{ action: { type: 'hotkey', keys: '' } }] } }],
+      }]);
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+      mockUsePhysicalDeckTarget.mockReturnValue({ target, loaded: true, error: false, retry: vi.fn() });
+      await renderPage();
+
+      fireEvent.click(screen.getByText('editor-delete'));
+
+      expect(screen.getByText('panel.settings.deck.deleteFolder.title')).toBeInTheDocument();
+      expect(target.updateSlot).not.toHaveBeenCalled();
     });
   });
 

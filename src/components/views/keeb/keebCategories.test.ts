@@ -4,7 +4,7 @@ import en from '../../../locales/en.json';
 import {
   ASSIGNMENT_CATEGORIES,
   CATEGORY_LABEL_KEYS,
-  ROTARY_SENSITIVITIES,
+  SPECIAL_ASSIGNMENTS,
   getAssignmentCategories,
   getRotaryFunctionLabelKey,
   getRotaryFunctionTooltipKey,
@@ -170,10 +170,12 @@ describe('locale parity guard (en.json)', () => {
     }
   });
 
-  it('every rotary sensitivity has a keeb.sens.* key in en.json', () => {
-    expect(ROTARY_SENSITIVITIES.length).toBeGreaterThan(0);
-    for (const s of ROTARY_SENSITIVITIES) {
-      expectKey(`keeb.sens.${s}`, `sensitivity ${s}`);
+  it('the special clear-key assignments carry locale keys and firmware-known functions', () => {
+    expect(SPECIAL_ASSIGNMENTS.map(f => f.keyFunction)).toEqual(['None', 'PassThrough']);
+    for (const f of SPECIAL_ASSIGNMENTS) {
+      expectKey(f.labelKey, `special ${f.keyFunction}`);
+      expectKey(`keeb.assignTip.${f.keyFunction}`, `special tip ${f.keyFunction}`);
+      expect(f.mode).toBe('StandardKey');
     }
   });
 

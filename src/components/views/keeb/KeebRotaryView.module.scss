@@ -5,37 +5,15 @@
   padding: var(--space-sm) var(--space-md) var(--space-md);
 }
 
-.header {
+.chipSection {
   display: flex;
-  align-items: center;
-  gap: var(--space-lg);
+  flex-direction: column;
+  gap: 8px;
+  padding: 6px 0;
+}
+
+.chips {
+  width: 100%;
   flex-wrap: wrap;
-}
-
-.field {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-}
-
-.fieldLabel {
-  font-size: var(--type-mini);
-  color: var(--text-dim);
-}
-
-.wheelBadge {
-  margin-left: auto;
-  padding: 6px var(--space-md);
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--accent);
-  background: var(--accent-bg, rgba(107, 138, 255, 0.15));
-  color: var(--text);
-  font-size: var(--type-mini);
-  font-weight: var(--weight-strong);
-}
-
-.tiles {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 6px;
 }
