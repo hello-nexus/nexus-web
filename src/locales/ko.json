@@ -1818,6 +1818,7 @@
   "panel.settings.deck.action.system": "시스템",
   "panel.settings.deck.action.text": "텍스트 입력",
   "panel.settings.deck.action.toggle": "토글",
+  "panel.settings.deck.action.weather": "날씨",
   "panel.settings.deck.actionSearch": "검색…",
   "panel.settings.deck.actionType": "동작",
   "panel.settings.deck.audioInput": "입력 장치",

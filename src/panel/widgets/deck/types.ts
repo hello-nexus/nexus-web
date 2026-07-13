@@ -112,6 +112,18 @@ export type DeckAction =
       scale?: ScaleMode;
       min?: number;
       max?: number;
+    }
+  // Live weather tile - same server-side provider as the weather widget
+  // (GET /api/weather). Absent lat/lon means auto (server IP geolocation);
+  // city/cc are set alongside lat/lon from the same geocode pick, never
+  // independently.
+  | {
+      type: 'weather';
+      lat?: number;
+      lon?: number;
+      city?: string;
+      cc?: string;
+      units?: 'C' | 'F' | 'auto';
     };
 
 export type DeckActionType = DeckAction['type'];

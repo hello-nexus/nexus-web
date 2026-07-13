@@ -59,6 +59,16 @@ textarea.input { resize: vertical; min-height: 2.4rem; }
   .input { flex: 1; min-width: 0; }
 }
 
+.weatherLocationLabel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--type-small, 12px);
+  color: var(--deck-settings-text);
+}
+
 .selectWide {
   width: 100%;
   background: var(--deck-settings-bg);

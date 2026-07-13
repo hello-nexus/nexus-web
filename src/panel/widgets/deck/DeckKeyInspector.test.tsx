@@ -18,6 +18,9 @@ vi.mock('../../../app/windowActions', () => ({
   isWindowsAppShell: vi.fn(() => false),
   isMacAppShell: vi.fn(() => false),
 }));
+vi.mock('../../../api/weather', () => ({
+  geocodeWeatherLocations: vi.fn(() => Promise.resolve({ results: [] })),
+}));
 
 import { isDirectActive, isRelayActive, pickSystemPath } from '../../../api/service';
 import { isMacAppShell, isWindowsAppShell } from '../../../app/windowActions';
@@ -523,6 +526,67 @@ describe('DeckKeyInspector - monitoring action', () => {
       expect(screen.queryByRole('textbox', { name: FIELD })).toBeNull();
       expect(screen.getByText('common.desktopOnly')).toBeInTheDocument();
     });
+  });
+});
+
+describe('DeckKeyInspector - weather action', () => {
+  it('offers Weather inside the Nexus category', () => {
+    renderInspector();
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.action.weather' })).toBeInTheDocument();
+  });
+
+  it('picking Weather assigns the default action (auto units, no location)', () => {
+    expect(defaultActionFor('weather')).toEqual({ type: 'weather', units: 'auto' });
+
+    renderInspector();
+    fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.action.weather' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'panel.widget.weather.settings.temperature' }));
+    expect(screen.getByRole('option', { name: 'panel.widget.weather.settings.auto' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.queryByText('panel.widget.weather.settings.currentLocation')).toBeNull();
+  });
+
+  it('hides the generic Icon picker, showing a Background swatch instead', () => {
+    renderInspector([{ action: { type: 'weather', units: 'auto' } }]);
+    expect(screen.queryByText('panel.settings.icon')).toBeNull();
+    expect(screen.getByText('panel.settings.deck.monitoringBackground')).toBeInTheDocument();
+  });
+
+  it('hides Show-title/align/underline title controls, matching the monitoring tile treatment', () => {
+    renderInspector([{ action: { type: 'weather', units: 'auto' } }]);
+    expect(screen.queryByRole('switch', { name: 'panel.settings.deck.titleStyle.show' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'panel.settings.deck.titleStyle.alignTop' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'panel.settings.deck.titleStyle.underline' })).toBeNull();
+    // Bold/size/font/color stay - the tile applies them to the city text.
+    expect(screen.getByRole('button', { name: 'panel.settings.deck.titleStyle.bold' })).not.toBeDisabled();
+  });
+
+  it('shows the units select defaulting to Auto and persists a change to Fahrenheit', () => {
+    renderInspector([{ action: { type: 'weather', units: 'auto' } }]);
+    fireEvent.click(screen.getByRole('button', { name: 'panel.widget.weather.settings.temperature' }));
+    fireEvent.click(screen.getByRole('option', { name: 'panel.widget.weather.settings.fahrenheit' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'panel.widget.weather.settings.temperature' }));
+    expect(screen.getByRole('option', { name: 'panel.widget.weather.settings.fahrenheit' })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('shows the current location and clears it back to auto', () => {
+    renderInspector([{ action: { type: 'weather', units: 'auto', lat: 1, lon: 2, city: 'Berlin', cc: 'DE' } }]);
+    expect(screen.getByText('panel.widget.weather.settings.currentLocation')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'panel.widget.weather.settings.clearLocation' }));
+    expect(screen.queryByText('panel.widget.weather.settings.currentLocation')).toBeNull();
+  });
+
+  it('shows the location search field on a keyboard surface with no location yet', () => {
+    renderInspector([{ action: { type: 'weather', units: 'auto' } }]);
+    expect(screen.getByPlaceholderText('panel.widget.weather.settings.searchLocation')).toBeInTheDocument();
+  });
+
+  it('shows a desktop-only badge instead of the search field on a keyboard-less surface with no location', () => {
+    render(<Harness initialSlots={[{ action: { type: 'weather', units: 'auto' } }]} surface="y70" />);
+    expect(screen.queryByPlaceholderText('panel.widget.weather.settings.searchLocation')).toBeNull();
+    expect(screen.getByText('common.desktopOnly')).toBeInTheDocument();
   });
 });
 

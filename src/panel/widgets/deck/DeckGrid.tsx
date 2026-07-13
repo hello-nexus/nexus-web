@@ -8,6 +8,7 @@ import { useDeckImage } from './useDeckImage';
 import { DECK_ICONS, autoIconName, deckCategory, categoryColor } from './deckIcons';
 import { resolveDeckTitleStyle, titleFontSizeCss } from './deckTitleStyle';
 import { DeckMonitoringCell } from './DeckMonitoringCell';
+import { DeckWeatherCell } from './DeckWeatherCell';
 import { DECK_MONITORING_TILE_BG } from './deckMonitoring';
 import type { DeckSlot } from './types';
 import styles from './DeckGrid.module.scss';
@@ -45,6 +46,14 @@ function useCellVisual(slot: DeckSlot): { accent: string; content: ReactNode; em
     return {
       accent: slot.color ?? DECK_MONITORING_TILE_BG,
       content: <DeckMonitoringCell action={action} title={slot.title} />,
+      empty: false,
+    };
+  }
+
+  if (action?.type === 'weather') {
+    return {
+      accent: slot.color ?? DECK_MONITORING_TILE_BG,
+      content: <DeckWeatherCell action={action} title={slot.title} />,
       empty: false,
     };
   }

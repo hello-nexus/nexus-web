@@ -8,7 +8,7 @@ import {
   Download, Upload, Link, Bell, Sliders, Cpu, RefreshCw, Disc, Tv, Speaker,
   ArrowUp, ArrowDown, Command, MousePointer, Clipboard, Save, Copy, Eye,
   Sparkles, Flame, Snowflake, Wind, Battery, Plug, Rocket, Coffee, Briefcase,
-  Activity,
+  Activity, CloudSun,
   type LucideIcon,
 } from 'lucide-react';
 import type { DeckAction, DeckSlot } from './types';
@@ -24,14 +24,14 @@ export const DECK_ICONS: Record<string, LucideIcon> = {
   Download, Upload, Link, Bell, Sliders, Cpu, RefreshCw, Disc, Tv, Speaker,
   ArrowUp, ArrowDown, Command, MousePointer, Clipboard, Save, Copy, Eye,
   Sparkles, Flame, Snowflake, Wind, Battery, Plug, Rocket, Coffee, Briefcase,
-  Activity,
+  Activity, CloudSun,
 };
 
 export const DECK_ICON_NAMES: string[] = Object.keys(DECK_ICONS);
 
 export type DeckCategory =
   | 'launch' | 'open' | 'volume' | 'media' | 'brightness' | 'keyboard' | 'text'
-  | 'power' | 'audio' | 'nexus' | 'monitoring' | 'sequence' | 'toggle' | 'folder' | 'navigation'
+  | 'power' | 'audio' | 'nexus' | 'monitoring' | 'weather' | 'sequence' | 'toggle' | 'folder' | 'navigation'
   | 'streamdeck' | 'empty';
 
 /** Maps an action to a visual category (drives the auto icon + color). */
@@ -55,6 +55,7 @@ export function deckCategory(action: DeckAction | undefined): DeckCategory {
     case 'audioInput': return 'audio';
     case 'nexus': return 'nexus';
     case 'monitoring': return 'monitoring';
+    case 'weather': return 'weather';
     case 'sequence': return 'sequence';
     case 'toggle': return 'toggle';
     case 'page':
@@ -79,6 +80,7 @@ const CATEGORY_COLOR: Record<DeckCategory, string> = {
   audio: '#3b82f6',      // blue
   nexus: '#f97316',      // orange
   monitoring: '#4da3ff', // accent blue - matches the tile's default graph accent
+  weather: '#0ea5e9',    // sky
   sequence: '#eab308',   // yellow
   toggle: '#14b8a6',     // teal
   folder: '#94a3b8',     // neutral
@@ -160,6 +162,7 @@ export function autoIconName(action: DeckAction | undefined, isFolder = false): 
         default: return 'Zap';
       }
     case 'monitoring': return 'Activity';
+    case 'weather': return 'CloudSun';
     case 'sequence': return 'ListOrdered';
     case 'toggle': return 'ToggleLeft';
     case 'page':

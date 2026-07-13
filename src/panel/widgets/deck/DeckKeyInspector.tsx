@@ -36,6 +36,8 @@ import { labelForDevice } from '../monitoring/MonitoringWidget';
 import { LabelControls, SCALE_OPTIONS, parseFixedRangeInput } from '../monitoring/MonitoringSettings';
 import { DESIGN_ICONS } from '../monitoring/gauges/DesignIcons';
 import { defaultFixedMax } from '../monitoring/perfDomain';
+import { WeatherLocationSearch } from '../weather/WeatherLocationSearch';
+import type { WeatherGeocodeResult } from '../../../api/weather';
 import type {
   DeckAction, DeckActionType, DeckMonitoringCategory, DeckMonitoringPress, DeckMonitoringStyle, DeckSlot, DeckTitleStyle,
 } from './types';
@@ -100,7 +102,7 @@ const DECK_ACTION_CATEGORIES: DeckActionCategory[] = [
   {
     key: 'nexus',
     labelKey: 'panel.settings.deck.category.nexus',
-    kinds: ['nexus', 'monitoring'],
+    kinds: ['nexus', 'monitoring', 'weather'],
   },
   {
     key: 'multi',
@@ -141,6 +143,7 @@ export function defaultActionFor(kind: DeckActionType): DeckAction {
     case 'monitoring': return {
       type: 'monitoring', category: 'quick', sensor: 'summary/cpu-usage', style: 'line', showName: true, press: 'none',
     };
+    case 'weather': return { type: 'weather', units: 'auto' };
     case 'sequence': return { type: 'sequence', steps: [] };
     case 'toggle': return { type: 'toggle', on: { type: 'system', action: { op: 'muteToggle' } }, off: { type: 'system', action: { op: 'muteToggle' } }, state: { kind: 'mute' } };
     case 'page': return { type: 'page', op: 'next' };
@@ -350,6 +353,8 @@ function ActionFields({ action, onChange, allowed, surface, desktopEditor, pageC
       return <NexusFields action={action} onChange={onChange} />;
     case 'monitoring':
       return <MonitoringFields action={action} onChange={onChange} surface={surface} desktopEditor={desktopEditor} />;
+    case 'weather':
+      return <WeatherFields action={action} onChange={onChange} surface={surface} desktopEditor={desktopEditor} />;
     case 'sequence':
       return <SequenceEditor action={action} onChange={onChange} allowed={allowed} surface={surface} desktopEditor={desktopEditor} />;
     case 'toggle':
@@ -576,6 +581,64 @@ function MonitoringFields({ action, onChange, surface, desktopEditor }: {
         value={action.press ?? 'none'}
         options={MONITORING_PRESSES.map(press => ({ value: press, label: t(`panel.settings.deck.monitoringPress.${press}`) }))}
         onChange={press => onChange({ ...action, press: press as DeckMonitoringPress })}
+      />
+    </>
+  );
+}
+
+type WeatherAction = Extract<DeckAction, { type: 'weather' }>;
+
+function WeatherFields({ action, onChange, surface, desktopEditor }: {
+  action: WeatherAction; onChange: (a: DeckAction) => void; surface?: PanelSurface; desktopEditor?: boolean;
+}) {
+  const { t } = useTranslation();
+  const hasKeyboard = canEditFreeText(surface, desktopEditor);
+  const hasLocation = action.lat !== undefined && action.lon !== undefined;
+
+  function selectLocation(result: WeatherGeocodeResult) {
+    onChange({
+      ...action, lat: result.latitude, lon: result.longitude, city: result.name, cc: result.countryCode,
+    });
+  }
+
+  function clearLocation() {
+    const next = { ...action };
+    delete next.lat;
+    delete next.lon;
+    delete next.city;
+    delete next.cc;
+    onChange(next);
+  }
+
+  return (
+    <>
+      <Field label={t('panel.widget.weather.settings.location')}>
+        {hasLocation && (
+          <div className={styles.pathRow}>
+            <span className={styles.weatherLocationLabel}>
+              {t('panel.widget.weather.settings.currentLocation', { location: [action.city, action.cc].filter(Boolean).join(', ') })}
+            </span>
+            <Button type="button" size="sm" tone="neutral" onClick={clearLocation}>
+              {t('panel.widget.weather.settings.clearLocation')}
+            </Button>
+          </div>
+        )}
+        {hasKeyboard ? (
+          <WeatherLocationSearch hasKeyboard={hasKeyboard} onSelect={selectLocation} />
+        ) : (
+          !hasLocation && <DesktopOnlyBadge />
+        )}
+      </Field>
+      <SelectField
+        label={t('panel.widget.weather.settings.temperature')}
+        value={action.units ?? 'auto'}
+        options={[
+          // eslint-disable-next-line i18next/no-literal-string -- enum value
+          { value: 'auto', label: t('panel.widget.weather.settings.auto') },
+          { value: 'C', label: t('panel.widget.weather.settings.celsius') },
+          { value: 'F', label: t('panel.widget.weather.settings.fahrenheit') },
+        ]}
+        onChange={units => onChange({ ...action, units: units as WeatherAction['units'] })}
       />
     </>
   );
@@ -1009,6 +1072,12 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
   // sections every other kind gets.
   const isMonitoring = slot.action?.type === 'monitoring';
   const monitoringShowName = slot.action?.type === 'monitoring' ? (slot.action.showName ?? true) : true;
+  // A weather tile draws its own icon/temperature/city content (never
+  // slot.icon), the same reasoning as the monitoring tile above - it shares
+  // that tile's Background-only color section and title-style subset (no
+  // Show/Align/Underline controls, since the city text is always shown at a
+  // fixed position).
+  const isWeather = slot.action?.type === 'weather';
 
   return (
     <div className={styles.root}>
@@ -1043,7 +1112,7 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
             </SettingsSection>
           )}
 
-          {isMonitoring ? (
+          {isMonitoring || isWeather ? (
             <SettingsSection title={t('panel.settings.deck.monitoringBackground')}>
               <SwatchRow
                 value={slot.color}
@@ -1072,11 +1141,11 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
             <TitleFields
               label={slot.label}
               title={slot.title}
-              hideText={isMonitoring}
-              hideShow={isMonitoring}
-              hideAlign={isMonitoring}
-              hideUnderline={isMonitoring}
-              disabled={isMonitoring ? !monitoringShowName : undefined}
+              hideText={isMonitoring || isWeather}
+              hideShow={isMonitoring || isWeather}
+              hideAlign={isMonitoring || isWeather}
+              hideUnderline={isMonitoring || isWeather}
+              disabled={isMonitoring ? !monitoringShowName : isWeather ? false : undefined}
               onLabelChange={label => writeSlot({ ...slot, label })}
               onTitleChange={patch => writeSlot({ ...slot, title: { ...slot.title, ...patch } })}
             />
