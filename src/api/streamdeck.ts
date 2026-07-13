@@ -123,6 +123,30 @@ export async function setStreamDeckNav(serial: string, page: number, folderPath:
   return acked(await postService<ApiResponseWrapper>(`/streamdeck/decks/${encodeURIComponent(serial)}/nav`, { page, folderPath }));
 }
 
+/** A blank-key hold-to-edit intent (see StreamDeckConnectionWorker); page/folderPath/keyIndex address the held key in the editor. */
+export interface PendingDeckEdit {
+  serial: string;
+  page: number;
+  folderPath: number[];
+  keyIndex: number;
+  /** One-shot id (epoch ms); the client dedupes the live frame against this boot fetch on it. */
+  token: number;
+}
+
+interface PendingDeckEditResponse {
+  edit: PendingDeckEdit | null;
+}
+
+/**
+ * The blank-key hold-to-edit intent the service is holding (within its
+ * PendingEditTtl) for a freshly-opened dashboard to consume, or null when
+ * nothing is pending. Mirrors the live 'editRequest' multiplex frame's payload.
+ */
+export async function getPendingDeckEdit(): Promise<PendingDeckEdit | null> {
+  const res = await fetchService<PendingDeckEditResponse>('/streamdeck/pending-edit');
+  return res?.edit ?? null;
+}
+
 export interface DeckPreset {
   id: string;
   name: string;
