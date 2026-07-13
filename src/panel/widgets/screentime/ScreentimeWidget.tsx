@@ -19,41 +19,33 @@ export function ScreentimeWidget({ widget }: WidgetProps) {
   const preview = usePanelPreview();
   // Hook stays mounted (store read only, no network); preview overrides data.
   const live = useScreenTime();
-  const { focus, history } = preview ? SCREENTIME_PREVIEW : live;
+  const { history } = preview ? SCREENTIME_PREVIEW : live;
 
-  const totalMs = history.reduce((sum, app) => sum + app.totalMs, 0);
-  const top = history.slice().sort((a, b) => b.totalMs - a.totalMs).slice(0, 4);
+  // The taller tiles fit twice as many bars as the short ones.
+  const maxApps = widget.size === '2x4' || widget.size === '4x4' ? 8 : 4;
+  const top = history.slice().sort((a, b) => b.totalMs - a.totalMs).slice(0, maxApps);
   const maxMs = top.length > 0 ? top[0].totalMs : 1;
-
-  const showList = widget.size !== '2x2';
 
   return (
     <div className={styles.screentime}>
-      <div className={styles.top}>
-        <div>
-          <div className={styles.label}>{t('panel.screentime.title')}</div>
-          <div className={styles.total}>{formatHm(totalMs)}</div>
-        </div>
-        {focus ? <div className={styles.focus}>{focus.name}</div> : null}
-      </div>
-      {showList && (
+      {top.length === 0 ? (
+        <div className={styles.empty}>{t('panel.screentime.empty')}</div>
+      ) : (
         <ul className={styles.list}>
-          {top.length === 0 ? (
-            <li className={styles.empty}>{t('panel.screentime.empty')}</li>
-          ) : (
-            top.map(app => (
-              <li key={app.name} className={styles.row}>
+          {top.map(app => (
+            <li key={app.name} className={styles.row}>
+              <div className={styles.rowHead}>
                 <span className={styles.rowName}>{app.name}</span>
-                <span className={styles.rowBar}>
-                  <span
-                    className={styles.rowBarFill}
-                    style={{ width: `${Math.round((app.totalMs / maxMs) * 100)}%` }}
-                  />
-                </span>
                 <span className={styles.rowValue}>{formatHm(app.totalMs)}</span>
-              </li>
-            ))
-          )}
+              </div>
+              <div className={styles.rowBar}>
+                <div
+                  className={styles.rowBarFill}
+                  style={{ width: `${Math.round((app.totalMs / maxMs) * 100)}%` }}
+                />
+              </div>
+            </li>
+          ))}
         </ul>
       )}
     </div>
