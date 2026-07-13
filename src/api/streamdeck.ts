@@ -161,8 +161,8 @@ export async function fetchDeckPresets(serial: string): Promise<DeckPresetsRespo
   return fetchService<DeckPresetsResponse>(`/streamdeck/decks/${encodeURIComponent(serial)}/presets`);
 }
 
-export async function createDeckPreset(serial: string, name: string): Promise<{ preset: DeckPreset; activeId: string | null } | null> {
-  return postService(`/streamdeck/decks/${encodeURIComponent(serial)}/presets`, { name });
+export async function createDeckPreset(serial: string, name: string, config?: DeckConfig): Promise<{ preset: DeckPreset; activeId: string | null } | null> {
+  return postService(`/streamdeck/decks/${encodeURIComponent(serial)}/presets`, config ? { name, config } : { name });
 }
 
 export async function updateDeckPreset(serial: string, id: string, patch: { name?: string; saveCurrent?: boolean }): Promise<boolean> {
@@ -209,4 +209,51 @@ export async function simulateStreamDeck(productId: string): Promise<boolean> {
 /** Dev-tools-only: remove the simulated deck. */
 export async function clearSimulatedStreamDeck(): Promise<boolean> {
   return acked(await deleteService<ApiResponseWrapper>('/streamdeck/dev/simulate'));
+}
+
+export interface ElgatoProfileSummary {
+  id: string;
+  name: string;
+  model: string;
+  modelLabel: string;
+  pageCount: number;
+  keyCount: number;
+}
+
+export type ElgatoProfilesStatus = 'ok' | 'notFound' | 'unsupportedVersion';
+
+export interface ElgatoProfilesResponse {
+  status: ElgatoProfilesStatus;
+  profiles: ElgatoProfileSummary[];
+}
+
+/** Lists profiles from the local Elgato Stream Deck install, or a status explaining why none are available. */
+export async function fetchElgatoProfiles(): Promise<ElgatoProfilesResponse | null> {
+  return fetchService<ElgatoProfilesResponse>('/streamdeck/elgato/profiles');
+}
+
+export type ElgatoUnmappedReason = 'plugin' | 'unsupported' | 'hotkey' | 'media' | 'multiStep' | 'encoder' | 'pageLimit';
+
+export interface ElgatoUnmappedKey {
+  page: number;
+  position: string;
+  name: string;
+  reason: ElgatoUnmappedReason;
+  detail?: string;
+}
+
+export interface ElgatoImportReport {
+  totalKeys: number;
+  mappedKeys: number;
+  unmapped: ElgatoUnmappedKey[];
+}
+
+export interface ElgatoImportResult {
+  config: DeckConfig;
+  report: ElgatoImportReport;
+}
+
+/** Translates one Elgato profile into a DeckConfig + a mapped/unmapped report. Null on a 404 (unknown id) or transport failure. */
+export async function importElgatoProfile(id: string): Promise<ElgatoImportResult | null> {
+  return postService<ElgatoImportResult>(`/streamdeck/elgato/profiles/${encodeURIComponent(id)}/import`, {});
 }
