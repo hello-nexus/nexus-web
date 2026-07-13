@@ -120,6 +120,38 @@
   padding: 0.6rem 0;
 }
 
+// Leading-icon variant of .note for the sharing section's "create another
+// profile" hint - a touch more prominent than a plain dim note since it
+// points at an action, not just background context.
+.sharingHint {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text);
+  margin: 0 0 0.5rem;
+
+  svg {
+    flex-shrink: 0;
+    color: var(--accent);
+  }
+}
+
+
+// ── Sharing section ──
+
+// Extra breathing room between the preset-count badge and the Per-profile /
+// Shared tabs, beyond the row control's own inter-child gap.
+.presetCountBadge {
+  margin-right: var(--space-sm);
+}
+
+// Highlights the interpolated primary-profile name inside the sharing
+// section's dim description text (SettingsSection's .description is
+// --text-dim; this lifts just the name to the bright body text color).
+.primaryName {
+  color: var(--text);
+  font-weight: var(--weight-strong);
+}
 
 // ── Profiles tab ──
 

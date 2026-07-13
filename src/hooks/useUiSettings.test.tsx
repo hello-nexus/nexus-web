@@ -250,3 +250,60 @@ describe('UiSettingsProvider - pinnedSidebarApps', () => {
     expect(h.savePreferences).toHaveBeenCalledWith({ ui: { pinnedSidebarApps: customTail } });
   });
 });
+
+describe('UiSettingsProvider - debounced write merge', () => {
+  const flush = () => act(async () => { await Promise.resolve(); });
+
+  // Regression: switching accent back to 'system' flipped the button to
+  // 'custom'. Selecting 'system' writes accentSource, then SystemAccentSync
+  // re-asserts accentColor in the same debounce window. scheduleServerWrite
+  // used to replace the pending patch, so only accentColor reached the server;
+  // accentSource stayed 'custom' there and its 'prefs' echo reverted the UI.
+  // Both fields must be merged into one POST.
+  it('merges two update() calls in the debounce window into a single write', async () => {
+    h.fetchPreferences.mockResolvedValue(prefs('dark'));
+    h.savePreferences.mockResolvedValue(undefined);
+    await act(async () => {
+      render(
+        <UiSettingsProvider serviceOnline manageDom>
+          <Consumer />
+        </UiSettingsProvider>,
+      );
+    });
+    await flush();
+
+    await act(async () => { captured.ctx!.update({ accentSource: 'system' }); });
+    await act(async () => { captured.ctx!.update({ accentColor: '#0078d4' }); });
+    // Let the debounce flush.
+    await act(async () => { await new Promise(r => setTimeout(r, 300)); });
+
+    expect(h.savePreferences).toHaveBeenCalledTimes(1);
+    expect(h.savePreferences).toHaveBeenCalledWith({
+      theme: { accentSource: 'system', accentColor: '#0078d4' },
+    });
+  });
+
+  // A nested diagnostics sub-block written across two calls must not lose the
+  // first sub-object - the merge recurses one level past the domain block.
+  it('deep-merges nested domain sub-blocks written across two calls', async () => {
+    h.fetchPreferences.mockResolvedValue(prefs('dark'));
+    h.savePreferences.mockResolvedValue(undefined);
+    await act(async () => {
+      render(
+        <UiSettingsProvider serviceOnline manageDom>
+          <Consumer />
+        </UiSettingsProvider>,
+      );
+    });
+    await flush();
+
+    await act(async () => { captured.ctx!.update({ diagnosticsCpuTempC: 80 }); });
+    await act(async () => { captured.ctx!.update({ diagnosticsGpuTempC: 75 }); });
+    await act(async () => { await new Promise(r => setTimeout(r, 300)); });
+
+    expect(h.savePreferences).toHaveBeenCalledTimes(1);
+    expect(h.savePreferences).toHaveBeenCalledWith({
+      diagnostics: { thresholds: { cpuC: 80, gpuC: 75 } },
+    });
+  });
+});
