@@ -11,6 +11,7 @@ import { useUndoRedo } from '../../../hooks/useUndoRedo';
 import type { UnifiedDevice } from '../../../hooks/useUnifiedDevices';
 import { useConflictApps } from '../../../hooks/useConflictApps';
 import { usePhysicalDeckTarget } from '../../../panel/widgets/deck/usePhysicalDeckTarget';
+import { takePendingDeckEditorTarget, onDeckOpenEditor } from '../../../panel/widgets/deck/deckOpenEditorNav';
 import { useDeckPresets, AUTO_SAVE_DEBOUNCE_MS } from '../../../panel/widgets/deck/useDeckPresets';
 import { DeckGrid } from '../../../panel/widgets/deck/DeckGrid';
 import { DeckKeyInspector, DeckDefaultTitleSettings, DeckActionDragPreview, slotForPickerKind, type DeckPickerKind } from '../../../panel/widgets/deck/DeckKeyInspector';
@@ -91,6 +92,8 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   const [page, setPage] = useState(0);
   const [folderPath, setFolderPath] = useState<number[]>([]);
   const [selectedSlot, setSelectedSlot] = useState(0);
+  const [pendingFlashSlot, setPendingFlashSlot] = useState<number | null>(null);
+  const previewStageRef = useRef<HTMLDivElement | null>(null);
   const [brightnessDraft, setBrightnessDraft] = useState<number | null>(null);
   const [tab, setTab] = useState<StreamDeckTab>('customize');
   const [activeDragKind, setActiveDragKind] = useState<DeckPickerKind | null>(null);
@@ -120,6 +123,26 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
     if (typeof deck.currentPage === 'number') setPage(deck.currentPage);
     if (Array.isArray(deck.folderPath)) setFolderPath(deck.folderPath);
   }, [deck]);
+
+  // A blank-key hold-to-edit that navigated here (or fired while already on
+  // this deck) selects the held key on the Customize tab, and pulses it once
+  // the grid has rendered. Marks the nav seed done so the summary's live
+  // page/folder can't clobber the held target when `deck` loads afterward.
+  const applyEditorTarget = useCallback(() => {
+    if (!serial) return;
+    const target = takePendingDeckEditorTarget(serial);
+    if (!target) return;
+    seededNavRef.current = true;
+    setTab('customize');
+    setPage(target.page);
+    setFolderPath(target.folderPath);
+    setSelectedSlot(target.keyIndex);
+    setPendingFlashSlot(target.keyIndex);
+  }, [serial]);
+  useEffect(() => {
+    applyEditorTarget();
+    return onDeckOpenEditor(applyEditorTarget);
+  }, [applyEditorTarget]);
 
   // Every commit funnels through usePhysicalDeckTarget's target.updateSlot/
   // swapSlots/addPage/removePage/setTitleDefault -> persist, the single
@@ -155,6 +178,20 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   }, [scheduleAutoSave]);
 
   const { target, error: configError, retry: retryConfig, applyConfig } = usePhysicalDeckTarget(deck, onDeckConfigCommit);
+
+  // Pulse the held key once the grid has rendered it (target loaded), so a
+  // hold-to-edit arrival draws the eye to the selected key.
+  useEffect(() => {
+    if (pendingFlashSlot == null || !target) return;
+    const cell = previewStageRef.current?.querySelector<HTMLElement>(`[data-deck-slot-index="${pendingFlashSlot}"]`);
+    if (!cell) return;
+    setPendingFlashSlot(null);
+    cell.animate?.(
+      [{ transform: 'scale(1)' }, { transform: 'scale(1.12)' }, { transform: 'scale(1)' }],
+      { duration: 480, iterations: 2, easing: 'ease-in-out' },
+    );
+  }, [pendingFlashSlot, target]);
+
   const { conflicts } = useConflictApps(!!deck?.conflictAppId);
   const activeConflict = deck?.conflictAppId ? conflicts.find(c => c.id === deck.conflictAppId) : undefined;
 
@@ -385,7 +422,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
           <div className={styles.customizeSplit}>
             <div className={styles.leftCol}>
               <div className={styles.previewTop}>
-                <div className={styles.previewStage}>
+                <div className={styles.previewStage} ref={previewStageRef}>
                   {target && (
                     <DeckGrid
                       slots={viewSlots}

@@ -36,11 +36,13 @@ import { useCloudAccounts } from '../hooks/useCloudAccounts';
 import { useSyncStatus } from '../hooks/useSyncStatus';
 import { useRoute } from '../hooks/useRoute';
 import { onDeckOpenMonitoring } from '../panel/widgets/deck/deckMonitoringNav';
+import { requestOpenDeckEditor } from '../panel/widgets/deck/deckOpenEditorNav';
+import { getPendingDeckEdit, type PendingDeckEdit } from '../api/streamdeck';
 import { useBuilder } from '../hooks/useBuilder';
 import { useUnifiedDevices } from '../hooks/useUnifiedDevices';
 import { fetchPanelRemoteControlState } from '../api/panel';
 import { isRemoteOrigin } from '../api/service';
-import { MultiplexContext, useMultiplexConnection } from '../hooks/useMultiplexSocket';
+import { MultiplexContext, useMultiplexConnection, useTopicCallback } from '../hooks/useMultiplexSocket';
 import { UiSettingsProvider } from '../hooks/useUiSettings';
 import { useTranslation } from '../lib/i18n';
 import { applyThemeMode, applyAccentColor, cachePreferencesLocally } from '../lib/settings';
@@ -128,6 +130,64 @@ function UpdateAutoOpener({ online, onOpen }: {
     check();
     return () => { cancelled = true; if (timer) clearTimeout(timer); };
   }, [online, onOpen]);
+
+  return null;
+}
+
+const DECK_EDIT_SHOWN_KEY = 'nexus.deckEditShownFor';
+
+// True only the first time it sees a given hold token, so a reload within the
+// service's pending-edit hold window doesn't re-hijack navigation, and a live
+// frame plus the boot-time GET of the same hold open the editor exactly once.
+function markDeckEditShown(token: number): boolean {
+  try {
+    const key = String(token);
+    if (localStorage.getItem(DECK_EDIT_SHOWN_KEY) === key) return false;
+    localStorage.setItem(DECK_EDIT_SHOWN_KEY, key);
+  } catch { /* localStorage unavailable; fall through and open */ }
+  return true;
+}
+
+// Bridges a blank-key hold-to-edit (StreamDeckConnectionWorker) to this
+// surface: the live 'editRequest' frame when the dashboard is already open, and
+// a boot-time GET for a hold that fired while it was closed (the same hold's
+// OpenApp launched this window). Both dedupe on the hold token.
+function DeckEditAutoOpener({ online, onOpen }: {
+  online: boolean;
+  onOpen: (edit: PendingDeckEdit) => void;
+}) {
+  const fire = useCallback((edit: PendingDeckEdit) => {
+    if (markDeckEditShown(edit.token)) onOpen(edit);
+  }, [onOpen]);
+
+  useTopicCallback('streamdeck', online && !isRemoteOrigin, useCallback((data: unknown) => {
+    const f = data as { kind?: string; serial?: string; page?: number; folderPath?: number[]; keyIndex?: number; token?: number };
+    if (f.kind !== 'editRequest' || !f.serial || typeof f.token !== 'number') return;
+    fire({
+      serial: f.serial,
+      page: typeof f.page === 'number' ? f.page : 0,
+      folderPath: Array.isArray(f.folderPath) ? f.folderPath : [],
+      keyIndex: typeof f.keyIndex === 'number' ? f.keyIndex : 0,
+      token: f.token,
+    });
+  }, [fire]));
+
+  // The service holds the intent until it ages out, and set it before the
+  // OpenApp that launched us, so a fetch on connect catches a hold that fired
+  // while the app was closed. firedRef latches only after an edit is found, so
+  // an online-flip mid-fetch (reconnect while the fresh service is spinning up)
+  // re-fetches instead of dropping the cold-start edit.
+  const firedRef = useRef(false);
+  useEffect(() => {
+    if (!online || isRemoteOrigin || firedRef.current) return;
+    let cancelled = false;
+    getPendingDeckEdit().then(edit => {
+      if (cancelled || firedRef.current || !edit) return;
+      firedRef.current = true;
+      fire(edit);
+    });
+    return () => { cancelled = true; };
+  }, [online, fire]);
 
   return null;
 }
@@ -238,6 +298,13 @@ export function Dashboard() {
   // Bridges a monitoring deck tile's `press: 'monitoringPage'` (deckExecutor
   // has no router access) to this surface's in-app Monitoring page.
   useEffect(() => onDeckOpenMonitoring(() => navigate('system', 'monitoring')), [navigate]);
+
+  // Navigate to the held deck's editor and hand the target to the (possibly
+  // about-to-mount) device page, which selects the held key.
+  const handleOpenDeckEditor = useCallback((edit: PendingDeckEdit) => {
+    navigate('system', 'device', `streamdeck:${edit.serial}`);
+    requestOpenDeckEditor({ serial: edit.serial, page: edit.page, folderPath: edit.folderPath, keyIndex: edit.keyIndex });
+  }, [navigate]);
 
   // The profile dropdown's "Manage profiles" lands on the standalone Profiles
   // page, not Settings.
@@ -744,6 +811,7 @@ export function Dashboard() {
           onClose={() => setPairPhoneOpen(false)}
         />
         <UpdateAutoOpener online={online} onOpen={handleUpdateOpen} />
+        <DeckEditAutoOpener online={online} onOpen={handleOpenDeckEditor} />
         <UpdateModalWithDismiss
           open={updateModalOpen}
           onClose={() => { setUpdateModalOpen(false); setStartedInstall(false); }}

@@ -61,7 +61,10 @@ export async function renderDeckKeyBitmap(slot: DeckSlot, model: DeckKeyModel): 
 
 async function paintKey(ctx: CanvasRenderingContext2D, size: number, slot: DeckSlot): Promise<void> {
   const isFolder = !!slot.folder;
-  const accent = slot.color ?? categoryColor(isFolder ? 'folder' : deckCategory(slot.action));
+  // An unassigned key (no action, folder, icon, or color) renders off (black),
+  // matching the deck's own firmware, instead of the category-default fill.
+  const isBlankOff = !slot.action && !slot.folder && !slot.icon && !slot.color;
+  const accent = isBlankOff ? '#000000' : (slot.color ?? categoryColor(isFolder ? 'folder' : deckCategory(slot.action)));
   ctx.fillStyle = accent;
   ctx.fillRect(0, 0, size, size);
 
