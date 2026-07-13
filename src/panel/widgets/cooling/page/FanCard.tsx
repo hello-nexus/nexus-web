@@ -1,4 +1,4 @@
-import { memo, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { CircleSlash, Fan, Lock, Plus } from 'lucide-react';
 import { type FanChannel, isFanDisconnected } from '../../../../api/cooling';
 import { useUnitPrefs } from '../../../../hooks/useUiSettings';
@@ -117,11 +117,35 @@ export const FanCard = memo(function FanCard({
   const isReadOnly = channel.readOnly ?? false;
   const locked = channel.locked ?? false;
 
-  const [manualTarget, setManualTarget] = useState(channel.mode === 'Manual' ? channel.dutyPercent : 50);
+  // Local drag intent. null = no unconfirmed user input; the knob follows the
+  // live server duty, so a manual level restored server-side (leaving a
+  // preset for Custom) renders without waiting for a remount. Set on drag so
+  // the knob never snaps back mid-gesture while the realtime duty catches up.
+  const [manualTarget, setManualTarget] = useState<number | null>(null);
   const barRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
   const speedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSpeedRef = useRef<number | null>(null);
+
+  // Another regime took the fan over (curve / BIOS / firmware): drop the
+  // local intent so the next Manual phase starts from the server's duty.
+  // Keyed on the state-derived regime, NOT channel.mode - hub providers
+  // report "Manual" from their software-controlled flag even while a curve
+  // drives the fan, so mode never flips on a hub fan's preset phase.
+  useEffect(() => {
+    if (!isManual) setManualTarget(null);
+  }, [isManual]);
+
+  // Confirmation: once the live duty reports the dragged value (and nothing
+  // is in flight), hand the knob back to the server so a later change from
+  // another window/panel is not masked by this one's stale intent.
+  useEffect(() => {
+    if (manualTarget === null) return;
+    if (draggingRef.current || pendingSpeedRef.current !== null || speedTimerRef.current !== null) return;
+    if (dutyPct === manualTarget) setManualTarget(null);
+  }, [dutyPct, manualTarget]);
+
+  const targetPct = manualTarget ?? dutyPct;
 
   const commitSpeed = (pct: number) => {
     const clamped = Math.max(0, Math.min(100, Math.round(pct)));
@@ -294,8 +318,8 @@ export const FanCard = memo(function FanCard({
             {isManual ? (
               <>
                 <div className={styles.fanDutyFillActual} style={{ width: `${dutyPct}%` }} />
-                <div className={styles.fanDutyFillTarget} style={{ width: `${manualTarget}%` }} />
-                <div className={styles.fanDutyKnob} style={{ left: `${manualTarget}%` }} />
+                <div className={styles.fanDutyFillTarget} style={{ width: `${targetPct}%` }} />
+                <div className={styles.fanDutyKnob} style={{ left: `${targetPct}%` }} />
               </>
             ) : (
               <div className={styles.fanDutyFill} style={{ width: `${dutyPct}%` }} />
