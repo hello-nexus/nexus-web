@@ -93,7 +93,13 @@ export function swapSingleWidget(
   const nextRemembered = current
     ? { ...remembered, [current.type]: current.config ?? {} }
     : remembered;
-  const restored: PanelWidget = { ...next, config: nextRemembered[next.type] };
+  // Copy the restored config so the active widget and the remembered snapshot
+  // never alias; undefined stays undefined so a first-shown type gets defaults.
+  const restoredConfig = nextRemembered[next.type];
+  const restored: PanelWidget = {
+    ...next,
+    config: restoredConfig ? { ...restoredConfig } : undefined,
+  };
   return { ...replaceWidget(layout, restored), singleWidgetConfigs: nextRemembered };
 }
 
