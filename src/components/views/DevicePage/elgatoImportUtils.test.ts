@@ -28,9 +28,16 @@ describe('dedupePresetName', () => {
 
 describe('unmappedReasonKey', () => {
   it('maps every reason code to its devices.streamdeck.import.reason.* key', () => {
-    const reasons: ElgatoUnmappedReason[] = ['plugin', 'unsupported', 'hotkey', 'media', 'multiStep', 'encoder', 'pageLimit'];
+    const reasons: ElgatoUnmappedReason[] = [
+      'plugin', 'unsupported', 'hotkey', 'open', 'website', 'text', 'media',
+      'multiStep', 'encoder', 'pageLimit', 'hotkeyExtraSlots', 'textEnterIgnored',
+    ];
     for (const reason of reasons) {
       expect(unmappedReasonKey(reason)).toBe(`devices.streamdeck.import.reason.${reason}`);
     }
+  });
+
+  it('falls back to the unknown key for a code the client does not recognize', () => {
+    expect(unmappedReasonKey('somethingNew')).toBe('devices.streamdeck.import.reason.unknown');
   });
 });

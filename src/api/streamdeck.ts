@@ -232,7 +232,9 @@ export async function fetchElgatoProfiles(): Promise<ElgatoProfilesResponse | nu
   return fetchService<ElgatoProfilesResponse>('/streamdeck/elgato/profiles');
 }
 
-export type ElgatoUnmappedReason = 'plugin' | 'unsupported' | 'hotkey' | 'media' | 'multiStep' | 'encoder' | 'pageLimit';
+export type ElgatoUnmappedReason =
+  | 'plugin' | 'unsupported' | 'hotkey' | 'open' | 'website' | 'text' | 'media'
+  | 'multiStep' | 'encoder' | 'pageLimit' | 'hotkeyExtraSlots' | 'textEnterIgnored';
 
 export interface ElgatoUnmappedKey {
   page: number;

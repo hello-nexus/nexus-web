@@ -2240,7 +2240,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'IconPicker', category: 'panel-kit',
     filePath: 'src/panel/widgets/common/IconPicker.tsx',
-    description: 'Auto / Icons / Emoji / Custom tabbed picker for deck-button glyphs. Searches the lucide deck set, browses the emoji categories, Custom uploads (client-resized to 144x144) and stores an image server-side, Auto derives from the action or app. Returns a DeckIcon or undefined (auto).',
+    description: 'Auto / Icons / Emoji / Custom tabbed picker for deck-button glyphs. Searches the lucide deck set, browses the emoji categories, Custom uploads (client-resized to a square target) and stores an image server-side, Auto derives from the action or app. Returns a DeckIcon or undefined (auto).',
     Preview: PreviewIconPicker,
   },
   {
