@@ -56,7 +56,7 @@ const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n
 // which doesn't fit a continuously-rendered sensor tile.
 const NESTED_KINDS: DeckActionType[] = [
   'launchApp', 'openUrl', 'openFile', 'openFolder', 'system', 'hotkey', 'hotkeySwitch',
-  'text', 'power', 'nexus', 'deckBrightness', 'deckSleep',
+  'text', 'power', 'nexus', 'deckBrightness', 'deckSleep', 'playAudio',
 ];
 
 // deckBrightness/deckSleep control a physical Stream Deck's own screen (see
@@ -97,7 +97,7 @@ const DECK_ACTION_CATEGORIES: DeckActionCategory[] = [
   {
     key: 'system',
     labelKey: 'panel.settings.deck.category.system',
-    kinds: ['launchApp', 'openUrl', 'openFile', 'openFolder', 'system', 'hotkey', 'hotkeySwitch', 'text', 'power'],
+    kinds: ['launchApp', 'openUrl', 'openFile', 'openFolder', 'system', 'hotkey', 'hotkeySwitch', 'text', 'power', 'playAudio'],
   },
   {
     key: 'nexus',
@@ -144,6 +144,7 @@ export function defaultActionFor(kind: DeckActionType): DeckAction {
       type: 'monitoring', category: 'quick', sensor: 'summary/cpu-usage', style: 'line', showName: true, press: 'none',
     };
     case 'weather': return { type: 'weather', units: 'auto' };
+    case 'playAudio': return { type: 'playAudio', path: '', volume: 100 };
     case 'sequence': return { type: 'sequence', steps: [] };
     case 'toggle': return { type: 'toggle', on: { type: 'system', action: { op: 'muteToggle' } }, off: { type: 'system', action: { op: 'muteToggle' } }, state: { kind: 'mute' } };
     case 'page': return { type: 'page', op: 'next' };
@@ -355,6 +356,8 @@ function ActionFields({ action, onChange, allowed, surface, desktopEditor, pageC
       return <MonitoringFields action={action} onChange={onChange} surface={surface} desktopEditor={desktopEditor} />;
     case 'weather':
       return <WeatherFields action={action} onChange={onChange} surface={surface} desktopEditor={desktopEditor} />;
+    case 'playAudio':
+      return <PlayAudioFields action={action} onChange={onChange} surface={surface} desktopEditor={desktopEditor} />;
     case 'sequence':
       return <SequenceEditor action={action} onChange={onChange} allowed={allowed} surface={surface} desktopEditor={desktopEditor} />;
     case 'toggle':
@@ -639,6 +642,55 @@ function WeatherFields({ action, onChange, surface, desktopEditor }: {
           { value: 'F', label: t('panel.widget.weather.settings.fahrenheit') },
         ]}
         onChange={units => onChange({ ...action, units: units as WeatherAction['units'] })}
+      />
+    </>
+  );
+}
+
+type PlayAudioAction = Extract<DeckAction, { type: 'playAudio' }>;
+
+function PlayAudioFields({ action, onChange, surface, desktopEditor }: {
+  action: PlayAudioAction; onChange: (a: DeckAction) => void; surface?: PanelSurface; desktopEditor?: boolean;
+}) {
+  const { t } = useTranslation();
+  const canBrowse = canEditFreeText(surface, desktopEditor)
+    && (isWindowsAppShell() || isMacAppShell())
+    && !isRelayActive() && !isDirectActive();
+  const [browsing, setBrowsing] = useState(false);
+
+  const handleBrowse = async () => {
+    setBrowsing(true);
+    try {
+      const path = await pickSystemPath(false);
+      if (path) onChange({ ...action, path });
+    } finally {
+      setBrowsing(false);
+    }
+  };
+
+  return (
+    <>
+      <Field label={t('panel.settings.deck.path')}>
+        <div className={styles.pathRow}>
+          <input className={styles.input} type="text" value={action.path} onChange={e => onChange({ ...action, path: e.target.value })} />
+          {canBrowse && (
+            <Button type="button" size="sm" tone="neutral" icon={<FolderOpen size={14} aria-hidden />} disabled={browsing} onClick={handleBrowse}>
+              {t('panel.settings.deck.browse')}
+            </Button>
+          )}
+        </div>
+      </Field>
+      <Slider
+        // eslint-disable-next-line i18next/no-literal-string -- Slider orientation enum value
+        orientation="stacked"
+        editable
+        trackFill
+        label={t('panel.settings.deck.value')}
+        ariaLabel={t('panel.settings.deck.value')}
+        value={action.volume ?? 100}
+        min={0}
+        max={100}
+        onChange={v => onChange({ ...action, volume: clamp(Math.round(v), 0, 100) })}
       />
     </>
   );

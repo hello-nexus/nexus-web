@@ -1813,6 +1813,7 @@
   "panel.settings.deck.action.pageIndicator": "Индикатор страницы",
   "panel.settings.deck.action.pageNext": "Следующая страница",
   "panel.settings.deck.action.pagePrev": "Предыдущая страница",
+  "panel.settings.deck.action.playAudio": "Воспроизвести звук",
   "panel.settings.deck.action.power": "Питание",
   "panel.settings.deck.action.sequence": "Последовательность",
   "panel.settings.deck.action.system": "Система",

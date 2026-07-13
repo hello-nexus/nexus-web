@@ -124,7 +124,10 @@ export type DeckAction =
       city?: string;
       cc?: string;
       units?: 'C' | 'F' | 'auto';
-    };
+    }
+  // Full native audio playback - see the service's AudioFilePlayer. volume is
+  // 0-100; absent means the platform default.
+  | { type: 'playAudio'; path: string; volume?: number };
 
 export type DeckActionType = DeckAction['type'];
 

@@ -56,6 +56,7 @@ export function deckCategory(action: DeckAction | undefined): DeckCategory {
     case 'nexus': return 'nexus';
     case 'monitoring': return 'monitoring';
     case 'weather': return 'weather';
+    case 'playAudio': return 'media';
     case 'sequence': return 'sequence';
     case 'toggle': return 'toggle';
     case 'page':
@@ -163,6 +164,7 @@ export function autoIconName(action: DeckAction | undefined, isFolder = false): 
       }
     case 'monitoring': return 'Activity';
     case 'weather': return 'CloudSun';
+    case 'playAudio': return 'Music';
     case 'sequence': return 'ListOrdered';
     case 'toggle': return 'ToggleLeft';
     case 'page':

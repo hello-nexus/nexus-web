@@ -54,6 +54,15 @@ export async function executeDeckAction(action: DeckAction): Promise<void> {
     case 'audioInput':
       await postService('/system/audio/default-input', { deviceId: action.deviceId });
       return;
+    case 'playAudio':
+      // No route was in the DeckActionConverter wire contract for a
+      // touch-widget-triggered playback trigger (only the stored path/volume
+      // fields); a physical deck's press plays server-side via
+      // DeckActionExecutor, which this touch-widget dispatcher never reaches.
+      // POST /system/audio/play mirrors this file's naming convention - the
+      // service side must confirm or correct the route/payload shape.
+      await postService('/system/audio/play', { path: action.path, volume: action.volume });
+      return;
     case 'nexus':
       await runNexus(action.action);
       return;

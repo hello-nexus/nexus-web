@@ -1813,6 +1813,7 @@
   "panel.settings.deck.action.pageIndicator": "Indicateur de page",
   "panel.settings.deck.action.pageNext": "Page suivante",
   "panel.settings.deck.action.pagePrev": "Page précédente",
+  "panel.settings.deck.action.playAudio": "Lire un son",
   "panel.settings.deck.action.power": "Alimentation",
   "panel.settings.deck.action.sequence": "Séquence",
   "panel.settings.deck.action.system": "Système",

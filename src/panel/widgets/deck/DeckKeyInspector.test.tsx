@@ -590,6 +590,76 @@ describe('DeckKeyInspector - weather action', () => {
   });
 });
 
+describe('DeckKeyInspector - playAudio action', () => {
+  afterEach(() => {
+    vi.mocked(isWindowsAppShell).mockReturnValue(false);
+    vi.mocked(isMacAppShell).mockReturnValue(false);
+  });
+
+  it('offers Play Audio inside the System category', () => {
+    renderInspector();
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.action.playAudio' })).toBeInTheDocument();
+  });
+
+  it('picking Play Audio assigns the default action (empty path, full volume)', () => {
+    expect(defaultActionFor('playAudio')).toEqual({ type: 'playAudio', path: '', volume: 100 });
+
+    renderInspector();
+    fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.action.playAudio' }));
+
+    const pathInput = document.querySelector('[class*=pathRow] input') as HTMLInputElement;
+    expect(pathInput.value).toBe('');
+    const slider = screen.getByRole('slider', { name: 'panel.settings.deck.value' }) as HTMLInputElement;
+    expect(slider.value).toBe('100');
+  });
+
+  it('typing a path persists it', () => {
+    renderInspector([{ action: { type: 'playAudio', path: '', volume: 100 } }]);
+    const input = document.querySelector('[class*=pathRow] input') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: 'C:\\sounds\\boop.wav' } });
+    expect(screen.getByDisplayValue('C:\\sounds\\boop.wav')).toBeInTheDocument();
+  });
+
+  it('shows Browse inside the Windows app shell and fills the path from the picked file', async () => {
+    vi.mocked(isWindowsAppShell).mockReturnValue(true);
+    vi.mocked(pickSystemPath).mockResolvedValueOnce('C:\\sounds\\boop.wav');
+    renderInspector([{ action: { type: 'playAudio', path: '', volume: 100 } }]);
+
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.browse' }));
+    expect(await screen.findByDisplayValue('C:\\sounds\\boop.wav')).toBeInTheDocument();
+    expect(vi.mocked(pickSystemPath)).toHaveBeenCalledWith(false);
+  });
+
+  it('hides Browse in a plain browser tab (no app shell)', () => {
+    renderInspector([{ action: { type: 'playAudio', path: '', volume: 100 } }]);
+    expect(screen.queryByRole('button', { name: 'panel.settings.deck.browse' })).toBeNull();
+  });
+
+  it('renders the volume slider at the stored value', () => {
+    renderInspector([{ action: { type: 'playAudio', path: '/tmp/x.wav', volume: 42 } }]);
+    const slider = screen.getByRole('slider', { name: 'panel.settings.deck.value' }) as HTMLInputElement;
+    expect(slider.value).toBe('42');
+  });
+
+  it('defaults the slider to full volume when volume is unset', () => {
+    renderInspector([{ action: { type: 'playAudio', path: '/tmp/x.wav' } }]);
+    const slider = screen.getByRole('slider', { name: 'panel.settings.deck.value' }) as HTMLInputElement;
+    expect(slider.value).toBe('100');
+  });
+
+  it('is nestable inside a sequence step (a one-shot press, unlike weather/monitoring)', () => {
+    renderInspector();
+    fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.action.sequence' }));
+    fireEvent.click(screen.getByText('panel.settings.deck.sequence.addStep'));
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.actionType' }));
+    // The step's own Select popup renders its options as <li>, distinct from
+    // the top-level category picker's <button> entries (see the hotkeySwitch
+    // nesting test above for the same distinction).
+    const playAudioOptions = screen.getAllByRole('option', { name: 'panel.settings.deck.action.playAudio' });
+    expect(playAudioOptions.some(o => o.tagName === 'LI')).toBe(true);
+  });
+});
+
 describe('DeckKeyInspector action picker - search', () => {
   it('filters kinds by localized label and hides categories with zero matches', () => {
     renderInspector();
