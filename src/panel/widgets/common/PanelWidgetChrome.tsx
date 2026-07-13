@@ -86,12 +86,14 @@ export function PanelWidgetEmpty({
   icon,
   title,
   text,
+  action,
 }: {
   icon: ReactNode;
   title: string;
   text?: string;
+  action?: ReactNode;
 }) {
-  return <EmptyState compact icon={icon} title={title} hint={text} />;
+  return <EmptyState compact icon={icon} title={title} hint={text} action={action} />;
 }
 
 export function PanelStatusDot({ tone }: { tone: StatusTone }) {

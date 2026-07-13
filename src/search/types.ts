@@ -16,7 +16,7 @@ export interface PaletteDevice {
 export interface CommandHost {
   /** Navigate to a /system view (optionally a subtab). */
   goView: (view: string, subtab?: string | null) => void;
-  /** Navigate to a top-level section (builder/benchmark/community). */
+  /** Navigate to a top-level section. */
   goSection: (section: string) => void;
   /** Open the pair-phone modal. */
   pairPhone: () => void;

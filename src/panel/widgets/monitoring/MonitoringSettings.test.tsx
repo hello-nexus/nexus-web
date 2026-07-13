@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi, afterEach } from 'vitest';
-import type { PanelConfigValue, PanelSurface, PanelWidget } from '../../types';
+import type { PanelConfigValue, PanelSurface, PanelWidget, PanelWidgetSize } from '../../types';
 import { MonitoringWidget } from '../monitoring/MonitoringWidget';
 import { GAUGE_DESIGN_KEYS, GAUGE_DESIGN_LABELS } from '../monitoring/gauges';
 import { MonitoringSettings } from './MonitoringSettings';
@@ -779,6 +779,36 @@ describe('MicroMonitoringWidget - label / category modes', () => {
   it('custom per-sensor label applies to a micro bar', () => {
     render(<MonitoringWidget widget={microWidgetWith({ micro_sensor0_labelMode: 'custom', micro_sensor0_label: 'Custom0' })} />);
     expect(screen.getByText('Custom0')).toBeInTheDocument();
+  });
+});
+
+describe('MicroMonitoringWidget - column layout by size', () => {
+  function microWidget(size: PanelWidgetSize, count: number): PanelWidget {
+    return { id: 'mm', type: 'monitoring', size, col: 0, row: 0, config: { slotCount: count, micro_device: 'cpu' } };
+  }
+
+  // The .micro root's first element child is the layout container: a single
+  // `.rows` (all bars) or a `.columns` wrapper of two `.rows`. Assert on tree
+  // shape, not the hashed CSS-module class names.
+  function layoutContainer(container: HTMLElement): HTMLElement {
+    return container.firstElementChild!.firstElementChild as HTMLElement;
+  }
+
+  it('stacks the wide 6/8 counts in a single column on the tall 2x4', () => {
+    const { container } = render(<MonitoringWidget widget={microWidget('2x4', 8)} />);
+    expect(screen.getAllByText('Total')).toHaveLength(8);
+    // One column: the layout container holds all 8 bars directly.
+    expect(layoutContainer(container).children).toHaveLength(8);
+  });
+
+  it('splits the wide 6/8 counts into two columns on the wide 4x2', () => {
+    const { container } = render(<MonitoringWidget widget={microWidget('4x2', 8)} />);
+    expect(screen.getAllByText('Total')).toHaveLength(8);
+    // Two columns: the layout container is a wrapper of two 4-bar `.rows`.
+    const layout = layoutContainer(container);
+    expect(layout.children).toHaveLength(2);
+    expect(layout.children[0].children).toHaveLength(4);
+    expect(layout.children[1].children).toHaveLength(4);
   });
 });
 

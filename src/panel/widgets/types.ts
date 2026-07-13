@@ -71,6 +71,10 @@ export interface WidgetSettingsProps {
   // Shared paged/foldered edit view (deck) - see WidgetProps.editView.
   editView?: DeckEditView;
   onEditViewChange?: (view: DeckEditView) => void;
+  // Deep-link to a dashboard section. Only wired by the desktop panel editor
+  // (PanelDevicePage); undefined on device, where a settings sheet cannot
+  // navigate the host app.
+  onSectionNavigate?: DashboardSectionNavigate;
 }
 
 // Props passed to an App's desktop SPA Page. Each Page declares its

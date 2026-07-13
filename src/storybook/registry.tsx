@@ -2027,12 +2027,6 @@ export const REGISTRY: StorybookEntry[] = [
     description: 'Thin rule separating groups of rows in a dropdown or menu popover. Used by ProfileDropdown to split Account / Profiles / actions.',
     Preview: PreviewMenuDivider,
   },
-  {
-    name: 'LeaderboardView', category: 'navigation',
-    filePath: 'src/components/views/LeaderboardView/LeaderboardView.tsx',
-    description: 'Full leaderboard view for the Benchmark feature. Fetches paginated entries from nexus-api, supports version filtering via the shared Select component, expands each row inline for hardware detail. Pass onBack to show a back button.',
-  },
-
   // ── Status ────────────────────────────────────────────────────────────
   {
     name: 'Spinner', category: 'status',

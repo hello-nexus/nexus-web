@@ -123,7 +123,7 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFi
     // the previous device, so the new page paints at the old device's
     // scale until the tree is torn down. Remounting rebuilds the iframe
     // against the new device's canvas/DPR.
-    return <PanelDevicePage key={device.key} device={device.panelDevice} onOpenFirmware={onOpenFirmware} />;
+    return <PanelDevicePage key={device.key} device={device.panelDevice} onOpenFirmware={onOpenFirmware} onSectionNavigate={onSectionNavigate} />;
   }
 
   if (device.kind === 'peripheral' && device.peripheral) {

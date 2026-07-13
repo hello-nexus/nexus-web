@@ -99,10 +99,11 @@ export function MicroMonitoringWidget({ widget, count }: MicroMonitoringWidgetPr
   const microScale = (widget.config?.micro_scale as ScaleMode | undefined) ?? DEFAULT_SCALE_MODE;
   const microMin = widget.config?.micro_min as number | undefined;
   const microMax = widget.config?.micro_max as number | undefined;
-  // Row style shared by every bar; a 6/8-slot Micro splits the rows into two
-  // columns (3+3, 4+4) under the one shared caption.
+  // Row style shared by every bar; a 6/8-slot Micro on the wide 4x2 splits the
+  // rows into two columns (3+3, 4+4) under the one shared caption. The tall 2x4
+  // keeps all rows in one column.
   const microDesign = (widget.config?.micro_design as GaugeDesignKey | undefined) ?? DEFAULT_MICRO_DESIGN;
-  const twoColumn = isTwoColumnMicro(count);
+  const twoColumn = isTwoColumnMicro(widget.size, count);
 
   const rowEls = sensorNames.map((rawName, i) => (
     <MicroRow

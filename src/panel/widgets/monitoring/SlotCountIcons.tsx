@@ -1,6 +1,6 @@
 import type { SVGProps } from 'react';
 import type { PanelWidgetSize } from '../../types';
-import { isMicroLayout } from './perfSlots';
+import { isMicroLayout, isTwoColumnMicro } from './perfSlots';
 
 type IconProps = SVGProps<SVGSVGElement>;
 
@@ -88,6 +88,36 @@ export function FourRowsIcon(props: IconProps) {
   );
 }
 
+// Wide Micro counts stacked in one column (6/8 on the tall 2x4): the widget
+// keeps all rows in a single column there instead of splitting into two.
+export function SixRowsIcon(props: IconProps) {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+      <rect x="3.5" y="3.2" width="17" height="2" rx="1" fill="currentColor" />
+      <rect x="3.5" y="6.5" width="17" height="2" rx="1" fill="currentColor" />
+      <rect x="3.5" y="9.8" width="17" height="2" rx="1" fill="currentColor" />
+      <rect x="3.5" y="13.1" width="17" height="2" rx="1" fill="currentColor" />
+      <rect x="3.5" y="16.4" width="17" height="2" rx="1" fill="currentColor" />
+      <rect x="3.5" y="19.7" width="17" height="2" rx="1" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function EightRowsIcon(props: IconProps) {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+      <rect x="3.5" y="2.6" width="17" height="1.6" rx="0.8" fill="currentColor" />
+      <rect x="3.5" y="5.1" width="17" height="1.6" rx="0.8" fill="currentColor" />
+      <rect x="3.5" y="7.6" width="17" height="1.6" rx="0.8" fill="currentColor" />
+      <rect x="3.5" y="10.1" width="17" height="1.6" rx="0.8" fill="currentColor" />
+      <rect x="3.5" y="12.6" width="17" height="1.6" rx="0.8" fill="currentColor" />
+      <rect x="3.5" y="15.1" width="17" height="1.6" rx="0.8" fill="currentColor" />
+      <rect x="3.5" y="17.6" width="17" height="1.6" rx="0.8" fill="currentColor" />
+      <rect x="3.5" y="20.1" width="17" height="1.6" rx="0.8" fill="currentColor" />
+    </svg>
+  );
+}
+
 // Wide Micro counts (6/8 on 4x2): two columns of horizontal rows (3+3, 4+4),
 // mirroring the two-column bar layout the widget renders.
 export function SixSlotsIcon(props: IconProps) {
@@ -123,8 +153,10 @@ export function SlotCountIcon({
   size,
   ...props
 }: IconProps & { count: number; size: PanelWidgetSize }) {
-  if (count >= 8) return <EightSlotsIcon {...props} />;
-  if (count === 6) return <SixSlotsIcon {...props} />;
+  // 6/8 split into two columns only on the wide 4x2; the tall 2x4 stacks them
+  // in one column (single-column rows icons).
+  if (count >= 8) return isTwoColumnMicro(size, count) ? <EightSlotsIcon {...props} /> : <EightRowsIcon {...props} />;
+  if (count === 6) return isTwoColumnMicro(size, count) ? <SixSlotsIcon {...props} /> : <SixRowsIcon {...props} />;
   // Micro 3/4 render as a single column of rows (horizontal lines); count=4 on
   // 4x4 is the multi-sensor 2x2 grid instead, so gate on the Micro layout.
   if (isMicroLayout(size, count)) {

@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom';
 import classNames from 'classnames';
 import { Placeholder } from '../components/views/Placeholder';
 import { ErrorBoundary } from '../components/common/ErrorBoundary/ErrorBoundary';
-import { ComponentDetailView } from '../components/views/ComponentDetailView';
 import { AppsView } from '../components/views/AppsView/AppsView';
 import { OpenInAppBanner } from '../components/common/OpenInAppBanner/OpenInAppBanner';
 import { SettingsView } from '../components/views/SettingsView/SettingsView';
@@ -34,11 +33,10 @@ import { useOnboardingStatus } from '../hooks/useOnboardingStatus';
 import { useProfiles } from '../hooks/useProfiles';
 import { useCloudAccounts } from '../hooks/useCloudAccounts';
 import { useSyncStatus } from '../hooks/useSyncStatus';
-import { useRoute } from '../hooks/useRoute';
+import { useRoute, type Section } from '../hooks/useRoute';
 import { onDeckOpenMonitoring } from '../panel/widgets/deck/deckMonitoringNav';
 import { requestOpenDeckEditor } from '../panel/widgets/deck/deckOpenEditorNav';
 import { getPendingDeckEdit, type PendingDeckEdit } from '../api/streamdeck';
-import { useBuilder } from '../hooks/useBuilder';
 import { useUnifiedDevices } from '../hooks/useUnifiedDevices';
 import { fetchPanelRemoteControlState } from '../api/panel';
 import { isRemoteOrigin } from '../api/service';
@@ -48,7 +46,6 @@ import { useTranslation } from '../lib/i18n';
 import { applyThemeMode, applyAccentColor, cachePreferencesLocally } from '../lib/settings';
 import type { Preferences } from '../api/profiles';
 import type { Language, ThemeMode } from '../lib/settings';
-import type { ComponentCategory, ComponentOption } from '../types/builder';
 import { NAV_ICONS, PORTAL_NAV_KEYS } from './sidebarNav';
 import { PageVersionLabel } from './sidebar';
 import { TopBar } from './TopBar';
@@ -79,8 +76,6 @@ import { DEV_TOOLS } from '../lib/devTools';
 import styles from '../App.module.scss';
 
 const PORTAL_URL = 'https://hellonexus.com';
-
-const BuilderView = lazy(() => import('../components/views/BuilderView'));
 
 const WHATS_NEW_SHOWN_KEY = 'nexus.whatsNewShownFor';
 
@@ -233,8 +228,8 @@ function ResizeStrip({ className, edge }: { className: string; edge: NexusResize
 
 export function Dashboard() {
   const {
-    section, view, subtab, componentId, fromCategory,
-    navigate, setView, setSubtab, navigateToComponent,
+    section, view, subtab,
+    navigate, setView, setSubtab,
     canGoBack, canGoForward, goBack, goForward,
   } = useRoute();
   const status = useServiceStatus(true, DESKTOP_OFFLINE_GRACE_MS);
@@ -261,9 +256,6 @@ export function Dashboard() {
   // title on /system/device/<key>.
   const unifiedDevices = useUnifiedDevices(online);
   const { t, setLanguage } = useTranslation();
-
-  // Builder state (needed for sidebar in builder mode)
-  const { build, dispatch, issues, wattage } = useBuilder();
 
   // Always-on monitoring: subscribe to composite frame + screentime at app
   // level so the store keeps accumulating (sparklines / history) across tab
@@ -333,30 +325,10 @@ export function Dashboard() {
   }, [section, setView, navigate]);
 
   const handlePortalNavChange = useCallback((key: string) => {
-    navigate(key as 'builder' | 'community');
+    navigate(key as Section);
   }, [navigate]);
 
-  const handleViewDetail = useCallback((component: ComponentOption) => {
-    const currentCategory = section === 'builder' && view && view !== 'component' ? view : null;
-    // Prefer normalizedKey over the raw UUID so the URL reads as a product
-    // name ("/builder/component/amd-ryzen-9-7950x") rather than a GUID. The
-    // API's getComponent(category, id) matches on either, so older links to
-    // the UUID form still resolve.
-    const slug = component.normalizedKey || component.id;
-    navigateToComponent(slug, currentCategory);
-  }, [navigateToComponent, section, view]);
-
-  const totalPrice = Object.entries(build.slots).reduce((sum, [cat, entries]) => {
-    if (build.ownedSlots.includes(cat as ComponentCategory)) return sum;
-    for (const entry of entries) {
-      if (entry.selection?.bestPrice != null) {
-        sum += entry.selection.bestPrice;
-      }
-    }
-    return sum;
-  }, 0);
-
-  // Portal entries (System Builder / Benchmark / Community).
+  // Portal entries (Benchmark).
   // Service build: external <a> to hellonexus.com (new tab).
   // Full build: in-app navigate (entries are real SPA routes on hellonexus.com).
   const portalNav = PORTAL_NAV_KEYS.map(key => ({
@@ -372,7 +344,7 @@ export function Dashboard() {
   // In service build the sidebar is only meaningful on /system (the
   // PORTAL entries open hellonexus.com in a new tab and never change `section`
   // locally). In the full build sidebar must render on every section so users
-  // landing on /builder, /benchmark, or /community still have nav.
+  // landing on a portal entry still have nav.
   const hasSidebar = !__SERVICE_BUILD__ || section === 'system';
   const serviceNavActive = section === 'system' ? activeView : '';
   const portalNavActive = section !== 'system' ? section : '';
@@ -552,40 +524,6 @@ export function Dashboard() {
     switch (section) {
       case 'system':
         return renderSystemView();
-      case 'builder':
-        // Component detail page
-        if (view === 'component' && componentId) {
-          return (
-            <ComponentDetailView
-              componentId={componentId}
-              category={fromCategory as ComponentCategory | undefined}
-              dispatch={dispatch}
-              onBack={() => navigate('builder', fromCategory ?? undefined)}
-            />
-          );
-        }
-        return (
-          <Suspense fallback={<Placeholder title={t('nav.section.builder')} />}>
-            <BuilderView
-              category={(view as ComponentCategory) || null}
-              build={build}
-              dispatch={dispatch}
-              issues={issues}
-              wattage={wattage}
-              totalPrice={totalPrice}
-              onCategoryChange={(cat) => {
-                if (cat) {
-                  setView(cat);
-                } else {
-                  navigate('builder');
-                }
-              }}
-              onViewDetail={handleViewDetail}
-            />
-          </Suspense>
-        );
-      case 'community':
-        return <Placeholder title={t('nav.section.community')} />;
       default:
         return <Placeholder title={section} />;
     }
