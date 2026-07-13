@@ -261,8 +261,8 @@ export interface LightingDevice {
   iconType?: string;
   ledsOn: boolean;
   /** Whether Nexus pushes lighting frames to this device. Undefined on older
-   *  services; the UI treats that as true (driven). */
-  driven?: boolean;
+   *  services; the UI treats that as true (controlled). */
+  controlled?: boolean;
   brightness?: number;
   /** Current hue, 0..1. Set only for color-capable smart lights. */
   hue?: number;
@@ -354,8 +354,8 @@ export const setLightingDevicePower = (id: string, on: boolean) =>
 
 // Excludes the device from the frame push entirely (distinct from power,
 // which drives it to black).
-export const setLightingDeviceDriven = (id: string, driven: boolean) =>
-  postService('/devices/lighting-devices/driven', { id, driven });
+export const setLightingDeviceControlled = (id: string, controlled: boolean) =>
+  postService('/devices/lighting-devices/controlled', { id, controlled });
 
 // Per-device brightness (0..100). Applied in the RGB bridge, capped by the
 // master brightness, so the canvas preview stays at full brightness while the

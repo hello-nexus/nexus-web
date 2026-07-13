@@ -25,7 +25,7 @@ export function ZoneCard({
   indent,
   onSelect,
   onTogglePower,
-  onToggleDriven,
+  onToggleControlled,
   onOpenSettings,
   drag,
   communityCount,
@@ -43,7 +43,7 @@ export function ZoneCard({
    *  caller can implement additive selection without ZoneCard owning a Set. */
   onSelect: (additive: boolean) => void;
   onTogglePower: () => void;
-  onToggleDriven: () => void;
+  onToggleControlled: () => void;
   onOpenSettings: () => void;
   /** Optional dnd-kit drag wiring for reorderable lists. */
   drag?: SortableRowArgs;
@@ -85,7 +85,7 @@ export function ZoneCard({
         styles.deviceCard,
         selected && !firmwareControlled ? styles.deviceCardSelected : '',
         unavailable ? styles.deviceCardUnavailable : '',
-        !unavailable && (!device.ledsOn || firmwareControlled || device.driven === false) ? styles.deviceCardPoweredOff : '',
+        !unavailable && (!device.ledsOn || firmwareControlled || device.controlled === false) ? styles.deviceCardPoweredOff : '',
         indent ? styles.deviceCardZone : '',
         drag?.isDragging ? drag.placeholderClassName : '',
       ].filter(Boolean).join(' ')}
@@ -162,14 +162,14 @@ export function ZoneCard({
             </HoverTooltip>
             {!unavailable && (
               <>
-                <HoverTooltip body={t(device.driven === false ? 'lighting.devices.notDriven' : 'lighting.devices.driven')} side="top">
+                <HoverTooltip body={t(device.controlled === false ? 'lighting.devices.notControlled' : 'lighting.devices.controlled')} side="top">
                   <button
                     type="button"
                     role="switch"
-                    aria-checked={device.driven !== false}
-                    className={`${styles.deviceSettingsBtn} ${device.driven === false ? styles.devicePowerBtnPersistent : ''}`}
-                    aria-label={t(device.driven === false ? 'lighting.devices.notDriven' : 'lighting.devices.driven')}
-                    onClick={e => { e.stopPropagation(); onToggleDriven(); }}
+                    aria-checked={device.controlled !== false}
+                    className={`${styles.deviceSettingsBtn} ${device.controlled === false ? styles.devicePowerBtnPersistent : ''}`}
+                    aria-label={t(device.controlled === false ? 'lighting.devices.notControlled' : 'lighting.devices.controlled')}
+                    onClick={e => { e.stopPropagation(); onToggleControlled(); }}
                   >
                     <Ban />
                   </button>

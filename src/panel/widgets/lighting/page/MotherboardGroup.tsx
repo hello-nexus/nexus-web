@@ -19,8 +19,8 @@ export function MotherboardGroup({
   parentName,
   groupOn,
   onTogglePower,
-  groupDriven,
-  onToggleDriven,
+  groupControlled,
+  onToggleControlled,
   children,
   ariaLabel,
   collapsed,
@@ -36,11 +36,11 @@ export function MotherboardGroup({
   groupOn: boolean;
   /** Flips every child zone to the opposite of {@link groupOn}. */
   onTogglePower: () => void;
-  /** True iff at least one child zone is driven. Drives the icon state and
-   *  the persistent-when-off visibility of the group driven button. */
-  groupDriven: boolean;
-  /** Sets every child zone's driven state to the opposite of {@link groupDriven}. */
-  onToggleDriven: () => void;
+  /** True iff at least one child zone is controlled. Drives the icon state and
+   *  the persistent-when-off visibility of the group controlled button. */
+  groupControlled: boolean;
+  /** Sets every child zone's controlled state to the opposite of {@link groupControlled}. */
+  onToggleControlled: () => void;
   children: React.ReactNode;
   /** Toggle a11y label. Defaults to the motherboard wording; provider groups
    *  (Philips Hue, …) pass their own so this collapsible group reads correctly. */
@@ -75,14 +75,14 @@ export function MotherboardGroup({
       right={
         <>
           {leftAction}
-          <HoverTooltip body={t(groupDriven ? 'lighting.devices.driven' : 'lighting.devices.notDriven')} side="top">
+          <HoverTooltip body={t(groupControlled ? 'lighting.devices.controlled' : 'lighting.devices.notControlled')} side="top">
             <button
               type="button"
               role="switch"
-              aria-checked={groupDriven}
-              className={`${styles.deviceSettingsBtn} ${groupDriven ? '' : styles.devicePowerBtnPersistent}`}
-              aria-label={t(groupDriven ? 'lighting.devices.driven' : 'lighting.devices.notDriven')}
-              onClick={e => { e.stopPropagation(); onToggleDriven(); }}
+              aria-checked={groupControlled}
+              className={`${styles.deviceSettingsBtn} ${groupControlled ? '' : styles.devicePowerBtnPersistent}`}
+              aria-label={t(groupControlled ? 'lighting.devices.controlled' : 'lighting.devices.notControlled')}
+              onClick={e => { e.stopPropagation(); onToggleControlled(); }}
             >
               <Ban />
             </button>
