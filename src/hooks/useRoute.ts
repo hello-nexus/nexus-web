@@ -8,29 +8,22 @@ import { useState, useEffect, useCallback, useRef, startTransition } from 'react
  *   /system                    → redirect to /system/dashboard
  *   /system/:view              → MonitoringView, LightingView, etc.
  *   /system/:view/:subtab      → e.g. /system/monitoring/cpu
- *   /builder                   → Builder table view
- *   /builder/:category         → Builder with that category's picker open
- *   /community                 → Placeholder
  *   /touch                     → panel kiosk entrypoint (handled before this hook)
  */
 
-export type Section = 'system' | 'builder' | 'community';
+export type Section = 'system';
 
 interface Route {
   section: Section;
   view: string | null;
   subtab: string | null;
-  /** For /builder/component/:id - holds the component ID */
-  componentId: string | null;
-  /** For /builder/component/:id?from=:category - originating category for Back nav */
-  fromCategory: string | null;
 }
 
 const DEFAULT_SECTION: Section = 'system';
 const DEFAULT_VIEW = 'dashboard';
 const DEFAULT_MONITORING_SUBTAB = 'overview';
 
-const VALID_SECTIONS: readonly string[] = ['system', 'builder', 'community'];
+const VALID_SECTIONS: readonly string[] = ['system'];
 
 function isSection(s: string): s is Section {
   return VALID_SECTIONS.includes(s);
@@ -39,7 +32,6 @@ function isSection(s: string): s is Section {
 function parsePath(): Route {
   const parts = window.location.pathname.split('/').filter(Boolean);
   const rawSection = parts[0] || '';
-  const fromCategory = new URLSearchParams(window.location.search).get('from');
 
   // Handle legacy flat routes (e.g. /monitoring, /cooling, /settings)
   const SERVICE_VIEWS = ['dashboard', 'monitoring', 'lighting', 'cooling', 'devices', 'device', 'displays', 'clock', 'gallery', 'settings', 'profiles', 'account', 'tools'];
@@ -48,32 +40,17 @@ function parsePath(): Route {
       section: 'system',
       view: rawSection,
       subtab: parts[1] || null,
-      componentId: null,
-      fromCategory: null,
     });
   }
 
   if (!isSection(rawSection)) {
-    return { section: DEFAULT_SECTION, view: DEFAULT_VIEW, subtab: null, componentId: null, fromCategory: null };
-  }
-
-  // Handle /builder/component/:id
-  if (rawSection === 'builder' && parts[1] === 'component' && parts[2]) {
-    return {
-      section: 'builder',
-      view: 'component',
-      subtab: null,
-      componentId: parts[2],
-      fromCategory,
-    };
+    return { section: DEFAULT_SECTION, view: DEFAULT_VIEW, subtab: null };
   }
 
   return normalizeSystemRoute({
     section: rawSection,
     view: parts[1] || null,
     subtab: parts[2] || null,
-    componentId: null,
-    fromCategory: null,
   });
 }
 
@@ -103,10 +80,6 @@ function buildPath(section: Section, view?: string | null, subtab?: string | nul
 }
 
 function routeToPath(route: Route): string {
-  if (route.section === 'builder' && route.view === 'component' && route.componentId) {
-    const qs = route.fromCategory ? `?from=${encodeURIComponent(route.fromCategory)}` : '';
-    return `/builder/component/${route.componentId}${qs}`;
-  }
   return buildPath(route.section, route.view, route.subtab);
 }
 
@@ -118,8 +91,6 @@ function applyRouteDefaults(route: Route): Route {
       ...route,
       view: DEFAULT_VIEW,
       subtab: null,
-      componentId: null,
-      fromCategory: null,
     };
   }
 
@@ -127,8 +98,6 @@ function applyRouteDefaults(route: Route): Route {
     return {
       ...route,
       subtab: DEFAULT_MONITORING_SUBTAB,
-      componentId: null,
-      fromCategory: null,
     };
   }
 
@@ -220,8 +189,8 @@ export function useRoute() {
   // Shared commit for forward navigation. pushState appends to session
   // history; mirror the entry in historyRef and truncate forward entries
   // (browser semantics: navigating after going back drops the forward
-  // chain). On an unchanged path, still refresh the mirror slot so non-URL
-  // Route fields (e.g. fromCategory) don't go stale.
+  // chain). On an unchanged path, still refresh the mirror slot so the
+  // Route stays in sync with what was committed.
   const commit = useCallback((next: Route) => {
     const path = routeToPath(next);
     const currentPath = window.location.pathname + window.location.search;
@@ -246,8 +215,6 @@ export function useRoute() {
       section,
       view: view ?? null,
       subtab: subtab ?? null,
-      componentId: null,
-      fromCategory: null,
     });
     commit(next);
   }, [commit]);
@@ -261,25 +228,13 @@ export function useRoute() {
       ...routeRef.current,
       view,
       subtab: subtab ?? null,
-      componentId: null,
-      fromCategory: null,
     });
     commit(next);
   }, [commit]);
 
   const setSubtab = useCallback((subtab: string) => {
     const prev = routeRef.current;
-    commit({ ...prev, subtab, componentId: null, fromCategory: null });
-  }, [commit]);
-
-  const navigateToComponent = useCallback((componentId: string, fromCategory?: string | null) => {
-    commit({
-      section: 'builder',
-      view: 'component',
-      subtab: null,
-      componentId,
-      fromCategory: fromCategory ?? null,
-    });
+    commit({ ...prev, subtab });
   }, [commit]);
 
   // Drive back/forward through window.history so mouse side buttons and the
@@ -305,12 +260,9 @@ export function useRoute() {
     section: route.section,
     view: route.view,
     subtab: route.subtab,
-    componentId: route.componentId,
-    fromCategory: route.fromCategory,
     navigate,
     setView,
     setSubtab,
-    navigateToComponent,
     canGoBack,
     canGoForward,
     goBack,

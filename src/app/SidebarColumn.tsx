@@ -35,7 +35,7 @@ interface SidebarColumnProps {
   serviceNavActive: string;
   onServiceNavChange: (key: string) => void;
   // Empty in service builds today; rendered as the secondary section
-  // (External-link entries like Builder/Benchmark/Community).
+  // (external-link entries like Benchmark).
   portalNav: readonly ExtraNavItem[];
   portalNavActive: string;
   onPortalNavChange: (key: string) => void;
