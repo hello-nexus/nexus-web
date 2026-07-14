@@ -24,6 +24,7 @@ export function SettingRow({
   disabled,
   anchorId,
   align,
+  orientation = 'inline',
   stackOnNarrow,
 }: {
   label?: string;
@@ -44,6 +45,11 @@ export function SettingRow({
   // Vertical alignment of label vs control. Default center; 'start' top-aligns
   // for a tall control (e.g. a color picker).
   align?: 'center' | 'start';
+  // 'stacked' gives the control its own full-width line under the label, for a
+  // control too wide to sit beside it (a wrapping swatch grid). The control
+  // never shrinks, so inline it would hold its max-content width and squeeze
+  // the label into a wrapped column instead of wrapping itself.
+  orientation?: 'inline' | 'stacked';
   // Opt-in: below the narrow-viewport breakpoint, stack the control under the
   // description instead of squeezing both onto one line. Off by default so
   // the many fixed-width call sites (lighting pages, panel sheets, device
@@ -56,6 +62,7 @@ export function SettingRow({
     styles.row,
     disabled && styles.disabled,
     align === 'start' && styles.alignStart,
+    orientation === 'stacked' && styles.stacked,
     stackOnNarrow && styles.stackNarrow,
   ].filter(Boolean).join(' ');
   return (

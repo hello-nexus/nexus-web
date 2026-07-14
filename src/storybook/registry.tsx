@@ -70,7 +70,7 @@ import { MenuDivider } from '../components/common/MenuDivider/MenuDivider';
 import { CollapsibleSection } from '../components/common/CollapsibleSection/CollapsibleSection';
 import { SortableList } from '../components/common/SortableList/SortableList';
 import { SettingsSection } from '../components/common/SettingsSection/SettingsSection';
-import { SettingSelect, SettingSlider, SettingToggle } from '../components/common/SettingRow/SettingRow';
+import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../components/common/SettingRow/SettingRow';
 import { ServiceLaunchButton } from '../components/common/ServiceLaunchButton/ServiceLaunchButton';
 import { DesktopOnlyBadge } from '../components/common/DesktopOnlyBadge/DesktopOnlyBadge';
 import { ExperimentalBadge } from '../components/common/ExperimentalBadge/ExperimentalBadge';
@@ -1190,6 +1190,12 @@ function PreviewSettingRow() {
         options={[{ value: 'quiet', label: 'Quiet' }, { value: 'balanced', label: 'Balanced' }, { value: 'max', label: 'Max' }]} />
       <SettingSlider label="Brightness" value={level} min={0} max={100} step={1} editable trackFill
         formatValue={v => `${Math.round(v)}%`} onChange={v => setLevel(v)} />
+      <SettingRow label="Icon color" orientation="stacked">
+        <div className={styles.previewRow}>
+          {['#ef4444', '#f97316', '#f59e0b', '#22c55e', '#14b8a6', '#06b6d4', '#3b82f6', '#8b5cf6']
+            .map(c => <span key={c} className={styles.previewSwatch} style={{ background: c }} />)}
+        </div>
+      </SettingRow>
     </div>
   );
 }
@@ -1702,7 +1708,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'SettingRow / SettingToggle / SettingSelect / SettingSlider', category: 'inputs',
     filePath: 'src/components/common/SettingRow/SettingRow.tsx',
-    description: 'Canonical settings row: label (+ optional description / icon) left, control right. The one settings row for the whole app (Settings pages, lighting/keeb pages, panel editor sheet, device Settings tab); the panel SettingsRow re-exports it. SettingToggle, SettingSelect, and SettingSlider (a right-aligned inline slider bar) bundle the matching control.',
+    description: 'Canonical settings row: label (+ optional description / icon) left, control right - or orientation="stacked" for a control too wide to sit beside the label (a wrapping swatch grid), which drops it onto its own full-width line beneath. The one settings row for the whole app (Settings pages, lighting/keeb pages, panel editor sheet, device Settings tab); the panel SettingsRow re-exports it. SettingToggle, SettingSelect, and SettingSlider (a right-aligned inline slider bar) bundle the matching control.',
     Preview: PreviewSettingRow,
     notes: 'Token fallbacks (--panel-* → app globals) keep it correct inside .panel-root and on the dashboard. No per-row divider - rules belong to SectionHeader.',
   },

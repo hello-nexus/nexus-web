@@ -310,6 +310,12 @@
   gap: 0.5rem;
   align-items: center;
 }
+
+.previewSwatch {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+}
 .previewHoverCard {
   display: flex;
   align-items: center;

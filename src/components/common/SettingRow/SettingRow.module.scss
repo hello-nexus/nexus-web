@@ -22,12 +22,22 @@
   align-items: flex-start;
 }
 
+// Stacked: the control takes its own full-width line under the label (see the
+// orientation prop). Compound selector so it outranks .alignStart's align-items
+// whatever the block order.
+.row.stacked {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+
 // Opt-in (stackOnNarrow prop): below the breakpoint, drop the control under
 // the description instead of squeezing both into a fixed-width control's
 // leftover space - a long description otherwise wraps one or two words per
 // line. `.control` switches from shrink-to-fit to full row width so its
-// children (e.g. a text input + button) lay out sensibly stacked.
-.stackNarrow {
+// children (e.g. a text input + button) lay out sensibly stacked. Compound
+// selector for the same reason as .row.stacked above.
+.row.stackNarrow {
   @media (max-width: 480px) {
     flex-direction: column;
     align-items: stretch;
