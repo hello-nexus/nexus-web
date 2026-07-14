@@ -1,10 +1,11 @@
-// Thin client for the remote nexus-api (NestJS, default http://localhost:3000
-// in dev, https://hellonexus.com/api in production). Separate from service.ts
-// which talks to the local nexus-service on :9400.
+// Thin client for the remote nexus-api (NestJS). Separate from service.ts
+// which talks to the local nexus-service on :9400. The production origin is
+// the compiled-in default so a build missing VITE_API_URL still works; the
+// committed .env.development points `npm run dev` at a local API.
 
 import type { LeaderboardResponse } from '../types/benchmark';
 
-const DEFAULT_API = 'http://localhost:3000';
+const DEFAULT_API = 'https://api.hellonexus.com';
 const BASE = import.meta.env.VITE_API_URL ?? DEFAULT_API;
 
 export interface SubmitBenchmarkBody {

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AuthBackend } from './authBackend';
 
-const BASE = 'http://localhost:3000';
+const BASE = 'https://api.hellonexus.com';
 const REFRESH_KEY = 'nexus_direct_refresh_token';
 const RECOVERY_GRANT_KEY = 'nexus_direct_recovery_grant';
 
