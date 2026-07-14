@@ -9,7 +9,7 @@ export const weatherApp: AppManifest = {
     type: 'weather',
     i18nKey: 'panel.widget.weather',
     icon: Cloud,
-    sizes: ['2x2', '4x2', '4x4'],
+    sizes: ['2x2', '2x4', '4x2', '4x4'],
     defaultSize: '4x2',
     supportsImmersive: { portrait: false, landscape: false },
     hasConfig: true,

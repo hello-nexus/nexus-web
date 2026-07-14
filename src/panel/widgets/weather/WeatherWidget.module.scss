@@ -354,3 +354,30 @@ $dim: 0.55;
   justify-content: center;
   height: 100%;
 }
+
+// Bar-less daily row (2x4): the range track is replaced by this spacer so the
+// low/high stay in the same columns as the 4x4 bar layout.
+.dailySpacer {
+  flex: 1;
+  min-width: 0;
+}
+
+// 2x4 portrait (q60 single-widget surface): the 2x2 current block stacked over
+// the bar-less daily list.
+.portrait {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 18px;
+  box-sizing: border-box;
+}
+
+// Reuse the 2x2 compact block, detached from its full-height centering so the
+// daily list below takes the remaining space.
+.portrait .portraitCurrent {
+  height: auto;
+  flex-shrink: 0;
+  padding: 0;
+}

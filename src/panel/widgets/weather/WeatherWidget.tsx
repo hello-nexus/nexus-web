@@ -153,6 +153,7 @@ export function WeatherWidget({ widget }: WidgetProps) {
   const wide = widget.size === '4x2';
   const large = widget.size === '4x4';
   const compact = widget.size === '2x2';
+  const portrait = widget.size === '2x4';
 
   const now = referenceNow || 0;
   const hourlyItems = (snap?.hourly ?? [])
@@ -225,6 +226,58 @@ export function WeatherWidget({ widget }: WidgetProps) {
     );
   };
 
+  // 4x4 shows a per-day range bar; 2x4 drops the bar and keeps a flex spacer so
+  // the low/high stay aligned to the same columns.
+  const renderDailyList = (showBars: boolean) => (
+    <div className={styles.dailyList}>
+      {dailyItems.length > 0 ? dailyItems.map((item, index) => {
+        const min = dailyMin(item, unit) ?? weekMin;
+        const max = dailyMax(item, unit) ?? weekMax;
+        const barLeft = Math.max(0, Math.min(100, ((min - weekMin) / weekRange) * 100));
+        const barRight = Math.max(0, Math.min(100, ((weekMax - max) / weekRange) * 100));
+        const barStyle = {
+          '--weather-bar-left': `${barLeft}%`,
+          '--weather-bar-right': `${barRight}%`,
+        } as CSSProperties;
+        return (
+          <div key={`${item.date}-${index}`} className={styles.dailyRow}>
+            <span className={styles.dailyDay}>{dayLabel(item.date, index)}</span>
+            <div className={styles.dailyIcon}>
+              <WeatherIcon code={item.weatherCode} className={styles.dailyIconSvg} strokeWidth={1.6} />
+            </div>
+            <span className={styles.dailyLo}>{formatTemp(min)}</span>
+            {showBars ? (
+              <div className={styles.dailyBarTrack}>
+                <div className={styles.dailyBarFill} style={barStyle} />
+              </div>
+            ) : (
+              <span className={styles.dailySpacer} />
+            )}
+            <span className={styles.dailyHi}>{formatTemp(max)}</span>
+          </div>
+        );
+      }) : (
+        <div className={styles.forecastEmpty}>{loaded ? t('panel.widget.weather.noForecast') : t('common.loading')}</div>
+      )}
+    </div>
+  );
+
+  const renderCurrentBlock = (sizeClass: string, showStats: boolean) => (
+    <div className={`${styles.compact} ${sizeClass}`}>
+      <div className={styles.compactCurrent}>
+        <div className={styles.compactIconWrap}>
+          <WeatherIcon code={snap?.weatherCode} className={styles.compactIcon} strokeWidth={1.4} />
+        </div>
+        <div className={styles.compactReadout}>
+          <div className={styles.compactTemp}>{tempText}</div>
+        </div>
+      </div>
+      {showStats && renderStats(styles.compactStats)}
+      {showCondition && <div className={styles.compactCondition}>{snap?.condition || ''}</div>}
+      {showLocation && <div className={styles.compactLocation}>{snap?.locationLabel || ''}</div>}
+    </div>
+  );
+
   if (large) {
     return (
       <div className={styles.large}>
@@ -232,33 +285,7 @@ export function WeatherWidget({ widget }: WidgetProps) {
         {renderHourly()}
 
         <div className={styles.divider} />
-        <div className={styles.dailyList}>
-          {dailyItems.length > 0 ? dailyItems.map((item, index) => {
-            const min = dailyMin(item, unit) ?? weekMin;
-            const max = dailyMax(item, unit) ?? weekMax;
-            const barLeft = Math.max(0, Math.min(100, ((min - weekMin) / weekRange) * 100));
-            const barRight = Math.max(0, Math.min(100, ((weekMax - max) / weekRange) * 100));
-            const barStyle = {
-              '--weather-bar-left': `${barLeft}%`,
-              '--weather-bar-right': `${barRight}%`,
-            } as CSSProperties;
-            return (
-              <div key={`${item.date}-${index}`} className={styles.dailyRow}>
-                <span className={styles.dailyDay}>{dayLabel(item.date, index)}</span>
-                <div className={styles.dailyIcon}>
-                  <WeatherIcon code={item.weatherCode} className={styles.dailyIconSvg} strokeWidth={1.6} />
-                </div>
-                <span className={styles.dailyLo}>{formatTemp(min)}</span>
-                <div className={styles.dailyBarTrack}>
-                  <div className={styles.dailyBarFill} style={barStyle} />
-                </div>
-                <span className={styles.dailyHi}>{formatTemp(max)}</span>
-              </div>
-            );
-          }) : (
-            <div className={styles.forecastEmpty}>{loaded ? t('panel.widget.weather.noForecast') : t('common.loading')}</div>
-          )}
-        </div>
+        {renderDailyList(true)}
       </div>
     );
   }
@@ -272,21 +299,17 @@ export function WeatherWidget({ widget }: WidgetProps) {
     );
   }
 
-  return (
-    <div className={`${styles.compact} ${compact ? styles.compact2x2 : styles.compact1x1}`}>
-      <div className={styles.compactCurrent}>
-        <div className={styles.compactIconWrap}>
-          <WeatherIcon code={snap?.weatherCode} className={styles.compactIcon} strokeWidth={1.4} />
-        </div>
-        <div className={styles.compactReadout}>
-          <div className={styles.compactTemp}>{tempText}</div>
-        </div>
+  if (portrait) {
+    return (
+      <div className={styles.portrait}>
+        {renderCurrentBlock(`${styles.compact2x2} ${styles.portraitCurrent}`, true)}
+        <div className={styles.divider} />
+        {renderDailyList(false)}
       </div>
-      {compact && renderStats(styles.compactStats)}
-      {showCondition && <div className={styles.compactCondition}>{snap?.condition || ''}</div>}
-      {showLocation && <div className={styles.compactLocation}>{snap?.locationLabel || ''}</div>}
-    </div>
-  );
+    );
+  }
+
+  return renderCurrentBlock(compact ? styles.compact2x2 : styles.compact1x1, compact);
 }
 
 export default WeatherWidget;
