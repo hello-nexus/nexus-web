@@ -46,6 +46,7 @@
   "account.password.updated": "密碼已更新",
   "account.privacy.description": "在公開個人檔案頁面上隱藏你的裝置和活動，僅保留使用者名稱和頭像可見。",
   "account.privacy.label": "隱私帳戶",
+  "account.publicProfile.view": "查看公開個人檔案",
   "account.recovery.cancel": "取消",
   "account.recovery.email": "電子郵件",
   "account.recovery.expiredMessage": "此連結已過期，請重新申請以繼續重設密碼。",

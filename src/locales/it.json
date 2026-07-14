@@ -46,6 +46,7 @@
   "account.password.updated": "Password aggiornata",
   "account.privacy.description": "Nascondi i tuoi computer e la tua attività dalla pagina profilo pubblica. Resteranno visibili solo nome utente e avatar.",
   "account.privacy.label": "Account privato",
+  "account.publicProfile.view": "Vedi profilo pubblico",
   "account.recovery.cancel": "Annulla",
   "account.recovery.email": "E-mail",
   "account.recovery.expiredMessage": "Il link è scaduto. Richiedine uno nuovo per continuare a reimpostare la password.",

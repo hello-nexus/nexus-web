@@ -46,6 +46,7 @@
   "account.password.updated": "Contraseña actualizada",
   "account.privacy.description": "Oculte sus equipos y actividad de su página de perfil pública. Solo su nombre de usuario y avatar permanecerán visibles.",
   "account.privacy.label": "Cuenta privada",
+  "account.publicProfile.view": "Ver perfil público",
   "account.recovery.cancel": "Cancelar",
   "account.recovery.email": "Correo electrónico",
   "account.recovery.expiredMessage": "Ese enlace ha caducado. Solicite uno nuevo para restablecer su contraseña.",

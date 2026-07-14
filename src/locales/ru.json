@@ -46,6 +46,7 @@
   "account.password.updated": "Пароль обновлён",
   "account.privacy.description": "Скройте свои устройства и активность на публичной странице профиля. Останутся видны только имя пользователя и аватар.",
   "account.privacy.label": "Приватный аккаунт",
+  "account.publicProfile.view": "Просмотреть публичный профиль",
   "account.recovery.cancel": "Отмена",
   "account.recovery.email": "Email",
   "account.recovery.expiredMessage": "Срок действия ссылки истёк. Запросите новую, чтобы продолжить сброс пароля.",

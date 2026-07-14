@@ -46,6 +46,7 @@
   "account.password.updated": "パスワードを更新しました",
   "account.privacy.description": "公開プロフィールページからマシンとアクティビティを非表示にします。ユーザー名とアバターのみが表示されたままになります。",
   "account.privacy.label": "非公開アカウント",
+  "account.publicProfile.view": "公開プロフィールを表示",
   "account.recovery.cancel": "キャンセル",
   "account.recovery.email": "メールアドレス",
   "account.recovery.expiredMessage": "このリンクは期限切れです。パスワードのリセットを続けるには、新しいリンクをリクエストしてください。",

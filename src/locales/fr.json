@@ -46,6 +46,7 @@
   "account.password.updated": "Mot de passe mis à jour",
   "account.privacy.description": "Masquez vos machines et votre activité sur votre page de profil publique. Seuls votre nom d'utilisateur et votre avatar restent visibles.",
   "account.privacy.label": "Compte privé",
+  "account.publicProfile.view": "Voir le profil public",
   "account.recovery.cancel": "Annuler",
   "account.recovery.email": "E-mail",
   "account.recovery.expiredMessage": "Ce lien a expiré. Demandez-en un nouveau pour continuer à réinitialiser votre mot de passe.",

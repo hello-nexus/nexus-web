@@ -46,6 +46,7 @@
   "account.password.updated": "Palavra-passe atualizada",
   "account.privacy.description": "Oculte as suas máquinas e atividade da sua página de perfil pública. Apenas o seu nome de utilizador e avatar permanecem visíveis.",
   "account.privacy.label": "Conta privada",
+  "account.publicProfile.view": "Ver perfil público",
   "account.recovery.cancel": "Cancelar",
   "account.recovery.email": "E-mail",
   "account.recovery.expiredMessage": "Esse link expirou. Peça um novo para continuar a repor a sua palavra-passe.",

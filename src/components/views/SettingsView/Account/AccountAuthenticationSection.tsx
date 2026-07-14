@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react';
-import { BadgeCheck, Camera } from 'lucide-react';
+import { BadgeCheck, Camera, ExternalLink } from 'lucide-react';
 import { Badge } from '../../../common/Badge/Badge';
 import { Button } from '../../../common/Button/Button';
 import { TextInput } from '../../../common/TextInput/TextInput';
@@ -27,6 +27,12 @@ interface AccountAuthenticationSectionProps {
 }
 
 const AVATAR_OUTPUT_SIZE = 512;
+
+// Absolute (not relative) so the link works from every origin this section
+// renders on: hellonexus.com itself, the in-app desktop dashboard, and
+// my.hellonexus.com - none of which should resolve /u/<username> against
+// their own origin.
+const PUBLIC_PROFILE_ORIGIN = 'https://hellonexus.com';
 
 async function cropToAvatarBlob(objectUrl: string, crop: NormalizedCrop): Promise<Blob | null> {
   const image = new Image();
@@ -225,6 +231,15 @@ export function AccountAuthenticationSection({
             )}
           </div>
           <span className={styles.accountEmail}>{account.email}</span>
+          <a
+            className={styles.publicProfileLink}
+            href={`${PUBLIC_PROFILE_ORIGIN}/u/${encodeURIComponent(account.username)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {t('account.publicProfile.view')}
+            <ExternalLink size={12} aria-hidden={true} />
+          </a>
         </div>
       </div>
       {avatarError && <p className={styles.error} role="alert" data-settings-aside="true">{avatarError}</p>}
@@ -232,7 +247,7 @@ export function AccountAuthenticationSection({
         <MediaCropper src={cropSrc} aspect={1} busy={avatarBusy} onConfirm={c => void handleCropConfirm(c)} onCancel={handleCropCancel} />
       )}
 
-      <SettingRow label={t('account.username.label')} description={t('account.username.description')}>
+      <SettingRow label={t('account.username.label')} description={t('account.username.description')} stackOnNarrow>
         <div className={styles.inlineField}>
           <TextInput
             value={usernameValue}
@@ -262,7 +277,7 @@ export function AccountAuthenticationSection({
         </p>
       )}
 
-      <SettingRow label={t('account.password.title')} description={t('account.password.description')}>
+      <SettingRow label={t('account.password.title')} description={t('account.password.description')} stackOnNarrow>
         <Button type="button" tone="neutral" size="sm" onClick={() => setPasswordModalOpen(true)}>
           {t('account.password.change')}
         </Button>
@@ -274,6 +289,7 @@ export function AccountAuthenticationSection({
         checked={account.isPrivate}
         onChange={() => void handlePrivacyToggle()}
         disabled={privacySaving}
+        stackOnNarrow
       />
 
       <ChangePasswordModal

@@ -46,6 +46,7 @@
   "account.password.updated": "Hasło zaktualizowane",
   "account.privacy.description": "Ukryj swoje komputery i aktywność na publicznej stronie profilu. Widoczne pozostaną tylko nazwa użytkownika i awatar.",
   "account.privacy.label": "Konto prywatne",
+  "account.publicProfile.view": "Zobacz publiczny profil",
   "account.recovery.cancel": "Anuluj",
   "account.recovery.email": "E-mail",
   "account.recovery.expiredMessage": "Ten link wygasł. Poproś o nowy, aby kontynuować resetowanie hasła.",

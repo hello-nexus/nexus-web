@@ -46,6 +46,7 @@
   "account.password.updated": "密码已更新",
   "account.privacy.description": "在公开个人主页上隐藏你的设备和活动，仅保留用户名和头像可见。",
   "account.privacy.label": "隐私账户",
+  "account.publicProfile.view": "查看公开个人主页",
   "account.recovery.cancel": "取消",
   "account.recovery.email": "电子邮箱",
   "account.recovery.expiredMessage": "该链接已过期，请重新获取以继续重置密码。",

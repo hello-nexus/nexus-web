@@ -46,6 +46,7 @@
   "account.password.updated": "Passwort aktualisiert",
   "account.privacy.description": "Verbergen Sie Ihre Geräte und Aktivitäten auf Ihrer öffentlichen Profilseite. Nur Ihr Benutzername und Avatar bleiben sichtbar.",
   "account.privacy.label": "Privates Konto",
+  "account.publicProfile.view": "Öffentliches Profil anzeigen",
   "account.recovery.cancel": "Abbrechen",
   "account.recovery.email": "E-Mail",
   "account.recovery.expiredMessage": "Dieser Link ist abgelaufen. Fordern Sie einen neuen an, um Ihr Passwort weiter zurückzusetzen.",

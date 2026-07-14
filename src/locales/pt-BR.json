@@ -46,6 +46,7 @@
   "account.password.updated": "Senha atualizada",
   "account.privacy.description": "Oculte suas máquinas e atividade da sua página de perfil pública. Apenas seu nome de usuário e avatar permanecerão visíveis.",
   "account.privacy.label": "Conta privada",
+  "account.publicProfile.view": "Ver perfil público",
   "account.recovery.cancel": "Cancelar",
   "account.recovery.email": "E-mail",
   "account.recovery.expiredMessage": "Esse link expirou. Solicite um novo para continuar redefinindo sua senha.",

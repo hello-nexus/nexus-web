@@ -46,6 +46,7 @@
   "account.password.updated": "Password updated",
   "account.privacy.description": "Hide your machines and activity from your public profile page. Only your username and avatar stay visible.",
   "account.privacy.label": "Private account",
+  "account.publicProfile.view": "View public profile",
   "account.recovery.cancel": "Cancel",
   "account.recovery.email": "Email",
   "account.recovery.expiredMessage": "That link expired. Request a new one to keep resetting your password.",

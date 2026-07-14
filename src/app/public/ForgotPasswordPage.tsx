@@ -33,7 +33,7 @@ export function ForgotPasswordPage() {
 
   return (
     <ToastProvider>
-      <PublicPageFrame maxWidth={signedIn ? 480 : 420}>
+      <PublicPageFrame maxWidth={signedIn ? 640 : 420}>
         {signedIn && account ? (
           <>
             <AccountAuthenticationSection

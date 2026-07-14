@@ -33,7 +33,7 @@ export function AccountPage() {
 
   return (
     <ToastProvider>
-      <PublicPageFrame maxWidth={480}>
+      <PublicPageFrame maxWidth={640}>
         <AccountAuthenticationSection
           backend={directApiBackend}
           account={account}

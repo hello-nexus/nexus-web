@@ -24,6 +24,7 @@ export function SettingRow({
   disabled,
   anchorId,
   align,
+  stackOnNarrow,
 }: {
   label?: string;
   description?: ReactNode;
@@ -43,9 +44,20 @@ export function SettingRow({
   // Vertical alignment of label vs control. Default center; 'start' top-aligns
   // for a tall control (e.g. a color picker).
   align?: 'center' | 'start';
+  // Opt-in: below the narrow-viewport breakpoint, stack the control under the
+  // description instead of squeezing both onto one line. Off by default so
+  // the many fixed-width call sites (lighting pages, panel sheets, device
+  // tabs) keep their side-by-side layout unchanged; set this on rows whose
+  // description is long enough to wrap hard against a wide control (e.g. the
+  // account username/password/privacy rows).
+  stackOnNarrow?: boolean;
 }) {
-  const cls = [styles.row, disabled && styles.disabled, align === 'start' && styles.alignStart]
-    .filter(Boolean).join(' ');
+  const cls = [
+    styles.row,
+    disabled && styles.disabled,
+    align === 'start' && styles.alignStart,
+    stackOnNarrow && styles.stackNarrow,
+  ].filter(Boolean).join(' ');
   return (
     <div id={anchorId} data-search-anchor={anchorId} className={cls}>
       {icon && iconLeading && <span className={styles.leadingIcon} aria-hidden="true">{icon}</span>}
@@ -75,6 +87,7 @@ export function SettingToggle({
   disabled,
   anchorId,
   ariaLabel,
+  stackOnNarrow,
 }: {
   label: string;
   description?: ReactNode;
@@ -85,6 +98,7 @@ export function SettingToggle({
   disabled?: boolean;
   anchorId?: string;
   ariaLabel?: string;
+  stackOnNarrow?: boolean;
 }) {
   return (
     <SettingRow
@@ -94,6 +108,7 @@ export function SettingToggle({
       iconLeading={iconLeading}
       disabled={disabled}
       anchorId={anchorId}
+      stackOnNarrow={stackOnNarrow}
     >
       <Toggle checked={checked} onChange={onChange} disabled={disabled} ariaLabel={ariaLabel ?? label} />
     </SettingRow>

@@ -46,6 +46,7 @@
   "account.password.updated": "비밀번호가 업데이트되었습니다",
   "account.privacy.description": "공개 프로필 페이지에서 기기와 활동을 숨깁니다. 사용자 이름과 아바타만 계속 표시됩니다.",
   "account.privacy.label": "비공개 계정",
+  "account.publicProfile.view": "공개 프로필 보기",
   "account.recovery.cancel": "취소",
   "account.recovery.email": "이메일",
   "account.recovery.expiredMessage": "링크가 만료되었습니다. 비밀번호 재설정을 계속하려면 새 링크를 요청하세요.",

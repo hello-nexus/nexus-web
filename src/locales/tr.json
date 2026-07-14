@@ -46,6 +46,7 @@
   "account.password.updated": "Parola güncellendi",
   "account.privacy.description": "Cihazlarınızı ve etkinliğinizi herkese açık profil sayfanızdan gizleyin. Yalnızca kullanıcı adınız ve avatarınız görünür kalır.",
   "account.privacy.label": "Gizli hesap",
+  "account.publicProfile.view": "Herkese açık profili görüntüle",
   "account.recovery.cancel": "İptal",
   "account.recovery.email": "E-posta",
   "account.recovery.expiredMessage": "Bu bağlantının süresi doldu. Parolanızı sıfırlamaya devam etmek için yeni bir bağlantı isteyin.",

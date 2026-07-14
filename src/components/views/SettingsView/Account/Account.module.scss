@@ -177,6 +177,20 @@
   color: var(--text-dim);
 }
 
+.publicProfileLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  width: fit-content;
+  font-size: var(--type-small);
+  color: var(--accent-glow);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
 .hiddenInput {
   display: none;
 }
