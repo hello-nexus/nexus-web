@@ -86,6 +86,7 @@ import { PanelPageIndicator } from '../panel/chrome/PanelPageIndicator';
 import { WidgetCellLabel } from '../panel/widgets/common/WidgetCellLabel';
 import { SIZE_ICONS } from '../panel/widgets/common/SizeIcons';
 import { IconPicker } from '../panel/widgets/common/IconPicker';
+import { EmojiPicker } from '../panel/widgets/common/EmojiPicker';
 import type { DeckIcon, DeckConfig } from '../panel/widgets/deck/types';
 import { DeckEditor } from '../panel/widgets/deck/DeckEditor';
 import { DeckPageStrip } from '../panel/widgets/deck/DeckPageStrip';
@@ -1330,6 +1331,15 @@ function PreviewIconPicker() {
   );
 }
 
+function PreviewEmojiPicker() {
+  const [emoji, setEmoji] = useState<string | undefined>('\u{1F600}');
+  return (
+    <div style={{ width: '100%', maxWidth: 320 }}>
+      <EmojiPicker value={emoji} onSelect={setEmoji} searchable />
+    </div>
+  );
+}
+
 // Uses the real makePhysicalDeckTarget factory (not a bespoke mock) so the
 // story exercises the same code path DeckSettings/StreamDeckDevicePage do:
 // a 2x3 Mini-shaped grid, editable in place.
@@ -2236,6 +2246,12 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/panel/widgets/common/IconPicker.tsx',
     description: 'Auto / Icons / Emoji / Custom tabbed picker for deck-button glyphs. Searches the lucide deck set, browses the emoji categories, Custom uploads (client-resized to a square target) and stores an image server-side, Auto derives from the action or app. Returns a DeckIcon or undefined (auto).',
     Preview: PreviewIconPicker,
+  },
+  {
+    name: 'EmojiPicker', category: 'panel-kit',
+    filePath: 'src/panel/widgets/common/EmojiPicker.tsx',
+    description: 'Category-tab-and-grid emoji browser shared by the Emoji widget and the IconPicker emoji tab. searchable renders a search input above the tabs and swaps the grid to keyword-matched results while a query is present; value highlights the matching emoji.',
+    Preview: PreviewEmojiPicker,
   },
   {
     name: 'WidgetEditSheet', category: 'panel-kit',

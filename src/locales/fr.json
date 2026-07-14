@@ -1771,6 +1771,7 @@
   "panel.iconPicker.auto": "Auto",
   "panel.iconPicker.autoHint": "Icône automatique selon l'action",
   "panel.iconPicker.emoji": "Emoji",
+  "panel.iconPicker.emojiSearch": "Rechercher un Emoji…",
   "panel.iconPicker.icons": "Icônes",
   "panel.iconPicker.search": "Rechercher…",
   "panel.immersive.close": "Fermer la vue immersive",

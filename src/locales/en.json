@@ -1947,6 +1947,7 @@
   "panel.iconPicker.custom": "Custom",
   "panel.iconPicker.customHint": "Upload an image to use as this key's icon",
   "panel.iconPicker.emoji": "Emoji",
+  "panel.iconPicker.emojiSearch": "Search emoji…",
   "panel.iconPicker.icons": "Icons",
   "panel.iconPicker.search": "Search…",
   "panel.iconPicker.uploadFailed": "Upload failed. Try again.",
