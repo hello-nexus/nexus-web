@@ -202,6 +202,11 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   const onDeckPresetLoad = useCallback(async (id: string) => {
     closeCommitBurst();
     await deckPresets.handleLoad(id);
+    // A loaded preset opens on page 1 at the top level, not wherever the editor
+    // was left; the service resets the physical deck's nav to match.
+    setPage(0);
+    setFolderPath([]);
+    setSelectedSlot(0);
     retryConfig();
   }, [closeCommitBurst, deckPresets, retryConfig]);
 
