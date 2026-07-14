@@ -987,7 +987,8 @@ function SwatchRow({ label, value, onChange, disabled = false }: {
 }) {
   const { t } = useTranslation();
   return (
-    <SettingsRow label={label} disabled={disabled} align="start">
+    // eslint-disable-next-line i18next/no-literal-string -- row layout enum
+    <SettingsRow label={label} disabled={disabled} orientation="stacked">
       <div className={styles.swatches}>
         <button
           type="button"
