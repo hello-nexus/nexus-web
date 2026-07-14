@@ -210,6 +210,20 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
     retryConfig();
   }, [closeCommitBurst, deckPresets, retryConfig]);
 
+  // Deleting the active preset promotes the first remaining one server-side and
+  // applies its layout; re-render it in the editor (from page 1) so the view
+  // shows the promoted preset rather than the deleted one's stale config.
+  const onDeckPresetDelete = useCallback(async (id: string) => {
+    const wasActive = deckPresets.activeId === id;
+    await deckPresets.handleDelete(id);
+    if (wasActive) {
+      setPage(0);
+      setFolderPath([]);
+      setSelectedSlot(0);
+      retryConfig();
+    }
+  }, [deckPresets, retryConfig]);
+
   // Undo/redo apply the restored DeckConfig through applyConfig - the same
   // debounced PUT + key-image resync path a normal edit takes - and re-save
   // the active preset exactly like a fresh edit would.
@@ -403,7 +417,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
             onLoad={onDeckPresetLoad}
             onCreate={deckPresets.handleCreate}
             onRename={deckPresets.handleRename}
-            onDelete={deckPresets.handleDelete}
+            onDelete={onDeckPresetDelete}
             onReset={handleDeckReset}
             onUndo={handleUndoDeck}
             onRedo={handleRedoDeck}
