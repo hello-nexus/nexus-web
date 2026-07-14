@@ -215,6 +215,22 @@ describe('computeDeckUploadJobs', () => {
     ]));
   });
 
+  it('skips weather slots entirely, on every page (the service renders those keys itself)', () => {
+    const weatherSlot: DeckSlot = { action: { type: 'weather', units: 'auto' } };
+    const config: DeckConfig = {
+      pages: [
+        { slots: [weatherSlot, { label: 'kept-0' }] },
+        { slots: [weatherSlot, { label: 'kept-1' }] },
+      ],
+    };
+    const jobs = computeDeckUploadJobs(physicalTarget(config, 2));
+    expect(jobs.some(j => j.slot.action?.type === 'weather')).toBe(false);
+    expect(jobs).toEqual(expect.arrayContaining([
+      expect.objectContaining({ page: 0, slotPath: '1', slot: expect.objectContaining({ label: 'kept-0' }) }),
+      expect.objectContaining({ page: 1, slotPath: '1', slot: expect.objectContaining({ label: 'kept-1' }) }),
+    ]));
+  });
+
   it('recurses into nested folders, threading the folder chain through slotPath at every depth', () => {
     const config: DeckConfig = {
       pages: [{

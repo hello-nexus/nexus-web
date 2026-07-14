@@ -19,7 +19,7 @@ import { IconLabelButton } from '../../../components/common/IconLabelButton/Icon
 import { TextInput } from '../../../components/common/TextInput/TextInput';
 import { SettingsSection, SettingsRow, SettingsToggle, SettingsSelect } from '../common/SettingsRow/SettingsRow';
 import { AppPicker } from '../common/AppPicker';
-import { IconPicker } from '../common/IconPicker';
+import { IconPicker, type Tab as IconPickerTab } from '../common/IconPicker';
 import { DesktopOnlyBadge } from '../../../components/common/DesktopOnlyBadge/DesktopOnlyBadge';
 import { canEditFreeText } from '../../types';
 import type { PanelSurface } from '../../types';
@@ -36,6 +36,8 @@ import { labelForDevice } from '../monitoring/MonitoringWidget';
 import { LabelControls, SCALE_OPTIONS, parseFixedRangeInput } from '../monitoring/MonitoringSettings';
 import { DESIGN_ICONS } from '../monitoring/gauges/DesignIcons';
 import { defaultFixedMax } from '../monitoring/perfDomain';
+import { WeatherLocationSearch } from '../weather/WeatherLocationSearch';
+import type { WeatherGeocodeResult } from '../../../api/weather';
 import type {
   DeckAction, DeckActionType, DeckMonitoringCategory, DeckMonitoringPress, DeckMonitoringStyle, DeckSlot, DeckTitleStyle,
 } from './types';
@@ -54,7 +56,7 @@ const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n
 // which doesn't fit a continuously-rendered sensor tile.
 const NESTED_KINDS: DeckActionType[] = [
   'launchApp', 'openUrl', 'openFile', 'openFolder', 'system', 'hotkey', 'hotkeySwitch',
-  'text', 'power', 'nexus', 'deckBrightness', 'deckSleep',
+  'text', 'power', 'nexus', 'deckBrightness', 'deckSleep', 'playAudio',
 ];
 
 // deckBrightness/deckSleep control a physical Stream Deck's own screen (see
@@ -95,12 +97,12 @@ const DECK_ACTION_CATEGORIES: DeckActionCategory[] = [
   {
     key: 'system',
     labelKey: 'panel.settings.deck.category.system',
-    kinds: ['launchApp', 'openUrl', 'openFile', 'openFolder', 'system', 'hotkey', 'hotkeySwitch', 'text', 'power'],
+    kinds: ['launchApp', 'openUrl', 'openFile', 'openFolder', 'system', 'hotkey', 'hotkeySwitch', 'text', 'power', 'playAudio'],
   },
   {
     key: 'nexus',
     labelKey: 'panel.settings.deck.category.nexus',
-    kinds: ['nexus', 'monitoring'],
+    kinds: ['nexus', 'monitoring', 'weather'],
   },
   {
     key: 'multi',
@@ -141,6 +143,8 @@ export function defaultActionFor(kind: DeckActionType): DeckAction {
     case 'monitoring': return {
       type: 'monitoring', category: 'quick', sensor: 'summary/cpu-usage', style: 'line', showName: true, press: 'none',
     };
+    case 'weather': return { type: 'weather', units: 'auto' };
+    case 'playAudio': return { type: 'playAudio', path: '', volume: 100 };
     case 'sequence': return { type: 'sequence', steps: [] };
     case 'toggle': return { type: 'toggle', on: { type: 'system', action: { op: 'muteToggle' } }, off: { type: 'system', action: { op: 'muteToggle' } }, state: { kind: 'mute' } };
     case 'page': return { type: 'page', op: 'next' };
@@ -350,6 +354,10 @@ function ActionFields({ action, onChange, allowed, surface, desktopEditor, pageC
       return <NexusFields action={action} onChange={onChange} />;
     case 'monitoring':
       return <MonitoringFields action={action} onChange={onChange} surface={surface} desktopEditor={desktopEditor} />;
+    case 'weather':
+      return <WeatherFields action={action} onChange={onChange} surface={surface} desktopEditor={desktopEditor} />;
+    case 'playAudio':
+      return <PlayAudioFields action={action} onChange={onChange} surface={surface} desktopEditor={desktopEditor} />;
     case 'sequence':
       return <SequenceEditor action={action} onChange={onChange} allowed={allowed} surface={surface} desktopEditor={desktopEditor} />;
     case 'toggle':
@@ -576,6 +584,113 @@ function MonitoringFields({ action, onChange, surface, desktopEditor }: {
         value={action.press ?? 'none'}
         options={MONITORING_PRESSES.map(press => ({ value: press, label: t(`panel.settings.deck.monitoringPress.${press}`) }))}
         onChange={press => onChange({ ...action, press: press as DeckMonitoringPress })}
+      />
+    </>
+  );
+}
+
+type WeatherAction = Extract<DeckAction, { type: 'weather' }>;
+
+function WeatherFields({ action, onChange, surface, desktopEditor }: {
+  action: WeatherAction; onChange: (a: DeckAction) => void; surface?: PanelSurface; desktopEditor?: boolean;
+}) {
+  const { t } = useTranslation();
+  const hasKeyboard = canEditFreeText(surface, desktopEditor);
+  const hasLocation = action.lat !== undefined && action.lon !== undefined;
+
+  function selectLocation(result: WeatherGeocodeResult) {
+    onChange({
+      ...action, lat: result.latitude, lon: result.longitude, city: result.name, cc: result.countryCode,
+    });
+  }
+
+  function clearLocation() {
+    const next = { ...action };
+    delete next.lat;
+    delete next.lon;
+    delete next.city;
+    delete next.cc;
+    onChange(next);
+  }
+
+  return (
+    <>
+      <Field label={t('panel.widget.weather.settings.location')}>
+        {hasLocation && (
+          <div className={styles.pathRow}>
+            <span className={styles.weatherLocationLabel}>
+              {t('panel.widget.weather.settings.currentLocation', { location: [action.city, action.cc].filter(Boolean).join(', ') })}
+            </span>
+            <Button type="button" size="sm" tone="neutral" onClick={clearLocation}>
+              {t('panel.widget.weather.settings.clearLocation')}
+            </Button>
+          </div>
+        )}
+        {hasKeyboard ? (
+          <WeatherLocationSearch hasKeyboard={hasKeyboard} onSelect={selectLocation} />
+        ) : (
+          !hasLocation && <DesktopOnlyBadge />
+        )}
+      </Field>
+      <SelectField
+        label={t('panel.widget.weather.settings.temperature')}
+        value={action.units ?? 'auto'}
+        options={[
+          // eslint-disable-next-line i18next/no-literal-string -- enum value
+          { value: 'auto', label: t('panel.widget.weather.settings.auto') },
+          { value: 'C', label: t('panel.widget.weather.settings.celsius') },
+          { value: 'F', label: t('panel.widget.weather.settings.fahrenheit') },
+        ]}
+        onChange={units => onChange({ ...action, units: units as WeatherAction['units'] })}
+      />
+    </>
+  );
+}
+
+type PlayAudioAction = Extract<DeckAction, { type: 'playAudio' }>;
+
+function PlayAudioFields({ action, onChange, surface, desktopEditor }: {
+  action: PlayAudioAction; onChange: (a: DeckAction) => void; surface?: PanelSurface; desktopEditor?: boolean;
+}) {
+  const { t } = useTranslation();
+  const canBrowse = canEditFreeText(surface, desktopEditor)
+    && (isWindowsAppShell() || isMacAppShell())
+    && !isRelayActive() && !isDirectActive();
+  const [browsing, setBrowsing] = useState(false);
+
+  const handleBrowse = async () => {
+    setBrowsing(true);
+    try {
+      const path = await pickSystemPath(false);
+      if (path) onChange({ ...action, path });
+    } finally {
+      setBrowsing(false);
+    }
+  };
+
+  return (
+    <>
+      <Field label={t('panel.settings.deck.path')}>
+        <div className={styles.pathRow}>
+          <input className={styles.input} type="text" value={action.path} onChange={e => onChange({ ...action, path: e.target.value })} />
+          {canBrowse && (
+            <Button type="button" size="sm" tone="neutral" icon={<FolderOpen size={14} aria-hidden />} disabled={browsing} onClick={handleBrowse}>
+              {t('panel.settings.deck.browse')}
+            </Button>
+          )}
+        </div>
+      </Field>
+      <Slider
+        // eslint-disable-next-line i18next/no-literal-string -- Slider orientation enum value
+        orientation="inline"
+        editable
+        trackFill
+        label={t('panel.settings.deck.volume')}
+        ariaLabel={t('panel.settings.deck.volume')}
+        value={action.volume ?? 100}
+        min={0}
+        max={100}
+        onChange={v => onChange({ ...action, volume: clamp(Math.round(v), 0, 100) })}
       />
     </>
   );
@@ -962,6 +1077,11 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
   const selSlot = clamp(selectedSlot ?? 0, 0, Math.max(0, viewCount - 1));
   const slot = viewSlots[selSlot] ?? {};
   const pageCount = target.config.pages.length;
+  // Identifies the selected slot's position so IconPicker (keyed on this
+  // below) remounts on every slot change instead of carrying its tab state
+  // over from whatever slot was selected before.
+  const slotKey = `${page}:${folderPath.join('.')}:${selSlot}`;
+  const [iconTab, setIconTab] = useState<IconPickerTab>('auto');
 
   const writeSlot = (next: DeckSlot) => target.updateSlot(page, folderPath, selSlot, next);
 
@@ -1004,6 +1124,12 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
   // sections every other kind gets.
   const isMonitoring = slot.action?.type === 'monitoring';
   const monitoringShowName = slot.action?.type === 'monitoring' ? (slot.action.showName ?? true) : true;
+  // A weather tile draws its own icon/temperature/city content (never
+  // slot.icon), the same reasoning as the monitoring tile above - it shares
+  // that tile's Background-only color section and title-style subset (no
+  // Show/Align/Underline controls, since the city text is always shown at a
+  // fixed position).
+  const isWeather = slot.action?.type === 'weather';
 
   return (
     <div className={styles.root}>
@@ -1038,7 +1164,7 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
             </SettingsSection>
           )}
 
-          {isMonitoring ? (
+          {isMonitoring || isWeather ? (
             <SettingsSection title={t('panel.settings.deck.monitoringBackground')}>
               <SwatchRow
                 value={slot.color}
@@ -1047,8 +1173,19 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
             </SettingsSection>
           ) : (
             <SettingsSection title={t('panel.settings.icon')}>
-              <IconPicker value={slot.icon} appId={appIdForIcon} surface={surface} desktopEditor={desktopEditor} onChange={icon => writeSlot({ ...slot, icon })} />
-              <SwatchRow label={t('panel.settings.deck.color')} value={slot.color} onChange={color => writeSlot({ ...slot, color })} />
+              <IconPicker
+                key={slotKey}
+                value={slot.icon}
+                appId={appIdForIcon}
+                surface={surface}
+                desktopEditor={desktopEditor}
+                onChange={icon => writeSlot({ ...slot, icon })}
+                onTabChange={setIconTab}
+              />
+              {/* A full-bleed Custom image ignores the tile color, so the swatch
+                  dims while that tab is active - it would otherwise look live
+                  while having no visible effect. */}
+              <SwatchRow label={t('panel.settings.deck.color')} value={slot.color} disabled={iconTab === 'custom'} onChange={color => writeSlot({ ...slot, color })} />
             </SettingsSection>
           )}
 
@@ -1056,11 +1193,11 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
             <TitleFields
               label={slot.label}
               title={slot.title}
-              hideText={isMonitoring}
-              hideShow={isMonitoring}
-              hideAlign={isMonitoring}
-              hideUnderline={isMonitoring}
-              disabled={isMonitoring ? !monitoringShowName : undefined}
+              hideText={isMonitoring || isWeather}
+              hideShow={isMonitoring || isWeather}
+              hideAlign={isMonitoring || isWeather}
+              hideUnderline={isMonitoring || isWeather}
+              disabled={isMonitoring ? !monitoringShowName : isWeather ? false : undefined}
               onLabelChange={label => writeSlot({ ...slot, label })}
               onTitleChange={patch => writeSlot({ ...slot, title: { ...slot.title, ...patch } })}
             />

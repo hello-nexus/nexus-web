@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Sparkles, Shapes, Smile, ImagePlus } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
@@ -31,9 +31,13 @@ interface IconPickerProps {
   // True when rendered in a desktop editor context; keeps the search input
   // visible even when the target surface has no keyboard.
   desktopEditor?: boolean;
+  // Fires whenever the active tab changes, including the tab computed at
+  // mount - a caller uses this to react to the Custom tab being active (e.g.
+  // dimming a tile-color control a full-bleed image would ignore).
+  onTabChange?: (tab: Tab) => void;
 }
 
-type Tab = 'auto' | 'icons' | 'emoji' | 'custom';
+export type Tab = 'auto' | 'icons' | 'emoji' | 'custom';
 
 export function tabForValue(value?: DeckIcon): Tab {
   if (value?.kind === 'lucide') return 'icons';
@@ -42,7 +46,7 @@ export function tabForValue(value?: DeckIcon): Tab {
   return 'auto'; // undefined or app icon → Auto
 }
 
-export function IconPicker({ value, onChange, surface, desktopEditor }: IconPickerProps) {
+export function IconPicker({ value, onChange, surface, desktopEditor, onTabChange }: IconPickerProps) {
   const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>(() => tabForValue(value));
   const [query, setQuery] = useState('');
@@ -53,6 +57,17 @@ export function IconPicker({ value, onChange, surface, desktopEditor }: IconPick
   const showSearch = canEditFreeText(surface, desktopEditor);
   const previewUrl = useDeckImage(value?.kind === 'image' ? value.value : undefined);
 
+  // Remembers the last uploaded/selected image id across a round trip through
+  // Auto (or any other tab) and back to Custom, so switching away and back
+  // doesn't read as "the image was cleared".
+  const lastImageId = useRef<string | undefined>(value?.kind === 'image' ? value.value : undefined);
+  if (value?.kind === 'image') lastImageId.current = value.value;
+
+  useEffect(() => {
+    onTabChange?.(tab);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return q ? DECK_ICON_NAMES.filter(n => n.toLowerCase().includes(q)) : DECK_ICON_NAMES;
@@ -61,7 +76,10 @@ export function IconPicker({ value, onChange, surface, desktopEditor }: IconPick
   const onTab = (key: string) => {
     const k = key as Tab;
     setTab(k);
-    if (k === 'auto') onChange(undefined); // Auto = no explicit icon (derives from the action / app)
+    if (k === 'auto') { onChange(undefined); return; } // Auto = no explicit icon (derives from the action / app)
+    if (k === 'custom' && value?.kind !== 'image' && lastImageId.current) {
+      onChange({ kind: 'image', value: lastImageId.current });
+    }
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {

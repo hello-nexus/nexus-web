@@ -1,0 +1,32 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.presetSelect {
+  width: 100%;
+  background: var(--panel-element-bg, var(--surface));
+  border: 1px solid var(--panel-border, var(--border));
+  border-radius: var(--radius-sm);
+}
+
+.field {
+  width: 100%;
+  box-sizing: border-box;
+  text-align: left;
+  background: var(--panel-element-bg, var(--surface));
+  border: 1px solid var(--panel-border, var(--border));
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: var(--type-small, 12px);
+  font-family: inherit;
+  padding: 0.4rem 0.55rem;
+  cursor: pointer;
+
+  &:focus,
+  &:focus-visible {
+    outline: none;
+    border-color: var(--panel-accent, var(--accent));
+  }
+}

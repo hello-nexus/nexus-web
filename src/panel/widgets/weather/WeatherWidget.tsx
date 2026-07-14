@@ -25,7 +25,7 @@ interface WeatherSnapshot {
 
 const FAHRENHEIT_COUNTRIES = new Set(['US', 'BS', 'BZ', 'KY', 'LR', 'PW', 'FM', 'MH']);
 
-function resolveUnit(setting: string | undefined, countryCode: string | undefined): 'C' | 'F' {
+export function resolveUnit(setting: string | undefined, countryCode: string | undefined): 'C' | 'F' {
   if (setting === 'C' || setting === 'F') return setting;
   return countryCode && FAHRENHEIT_COUNTRIES.has(countryCode.toUpperCase()) ? 'F' : 'C';
 }
@@ -57,7 +57,7 @@ const DAY_LABEL_KEYS = [
   'panel.widget.weather.day.sat',
 ];
 
-function WeatherIcon({
+export function WeatherIcon({
   code,
   className,
   strokeWidth,
@@ -79,7 +79,7 @@ function WeatherIcon({
   return <HelpCircle className={className} strokeWidth={strokeWidth} />;
 }
 
-function formatTemp(value: number | null | undefined, fallback = '--') {
+export function formatTemp(value: number | null | undefined, fallback = '--') {
   return value === null || value === undefined ? fallback : `${Math.round(value)}°`;
 }
 

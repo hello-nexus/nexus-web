@@ -18,6 +18,9 @@ vi.mock('../../../app/windowActions', () => ({
   isWindowsAppShell: vi.fn(() => false),
   isMacAppShell: vi.fn(() => false),
 }));
+vi.mock('../../../api/weather', () => ({
+  geocodeWeatherLocations: vi.fn(() => Promise.resolve({ results: [] })),
+}));
 
 import { isDirectActive, isRelayActive, pickSystemPath } from '../../../api/service';
 import { isMacAppShell, isWindowsAppShell } from '../../../app/windowActions';
@@ -526,6 +529,137 @@ describe('DeckKeyInspector - monitoring action', () => {
   });
 });
 
+describe('DeckKeyInspector - weather action', () => {
+  it('offers Weather inside the Nexus category', () => {
+    renderInspector();
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.action.weather' })).toBeInTheDocument();
+  });
+
+  it('picking Weather assigns the default action (auto units, no location)', () => {
+    expect(defaultActionFor('weather')).toEqual({ type: 'weather', units: 'auto' });
+
+    renderInspector();
+    fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.action.weather' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'panel.widget.weather.settings.temperature' }));
+    expect(screen.getByRole('option', { name: 'panel.widget.weather.settings.auto' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.queryByText('panel.widget.weather.settings.currentLocation')).toBeNull();
+  });
+
+  it('hides the generic Icon picker, showing a Background swatch instead', () => {
+    renderInspector([{ action: { type: 'weather', units: 'auto' } }]);
+    expect(screen.queryByText('panel.settings.icon')).toBeNull();
+    expect(screen.getByText('panel.settings.deck.monitoringBackground')).toBeInTheDocument();
+  });
+
+  it('hides Show-title/align/underline title controls, matching the monitoring tile treatment', () => {
+    renderInspector([{ action: { type: 'weather', units: 'auto' } }]);
+    expect(screen.queryByRole('switch', { name: 'panel.settings.deck.titleStyle.show' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'panel.settings.deck.titleStyle.alignTop' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'panel.settings.deck.titleStyle.underline' })).toBeNull();
+    // Bold/size/font/color stay - the tile applies them to the city text.
+    expect(screen.getByRole('button', { name: 'panel.settings.deck.titleStyle.bold' })).not.toBeDisabled();
+  });
+
+  it('shows the units select defaulting to Auto and persists a change to Fahrenheit', () => {
+    renderInspector([{ action: { type: 'weather', units: 'auto' } }]);
+    fireEvent.click(screen.getByRole('button', { name: 'panel.widget.weather.settings.temperature' }));
+    fireEvent.click(screen.getByRole('option', { name: 'panel.widget.weather.settings.fahrenheit' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'panel.widget.weather.settings.temperature' }));
+    expect(screen.getByRole('option', { name: 'panel.widget.weather.settings.fahrenheit' })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('shows the current location and clears it back to auto', () => {
+    renderInspector([{ action: { type: 'weather', units: 'auto', lat: 1, lon: 2, city: 'Berlin', cc: 'DE' } }]);
+    expect(screen.getByText('panel.widget.weather.settings.currentLocation')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'panel.widget.weather.settings.clearLocation' }));
+    expect(screen.queryByText('panel.widget.weather.settings.currentLocation')).toBeNull();
+  });
+
+  it('shows the location search field on a keyboard surface with no location yet', () => {
+    renderInspector([{ action: { type: 'weather', units: 'auto' } }]);
+    expect(screen.getByPlaceholderText('panel.widget.weather.settings.searchLocation')).toBeInTheDocument();
+  });
+
+  it('shows a desktop-only badge instead of the search field on a keyboard-less surface with no location', () => {
+    render(<Harness initialSlots={[{ action: { type: 'weather', units: 'auto' } }]} surface="y70" />);
+    expect(screen.queryByPlaceholderText('panel.widget.weather.settings.searchLocation')).toBeNull();
+    expect(screen.getByText('common.desktopOnly')).toBeInTheDocument();
+  });
+});
+
+describe('DeckKeyInspector - playAudio action', () => {
+  afterEach(() => {
+    vi.mocked(isWindowsAppShell).mockReturnValue(false);
+    vi.mocked(isMacAppShell).mockReturnValue(false);
+  });
+
+  it('offers Play Audio inside the System category', () => {
+    renderInspector();
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.action.playAudio' })).toBeInTheDocument();
+  });
+
+  it('picking Play Audio assigns the default action (empty path, full volume)', () => {
+    expect(defaultActionFor('playAudio')).toEqual({ type: 'playAudio', path: '', volume: 100 });
+
+    renderInspector();
+    fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.action.playAudio' }));
+
+    const pathInput = document.querySelector('[class*=pathRow] input') as HTMLInputElement;
+    expect(pathInput.value).toBe('');
+    const slider = screen.getByRole('slider', { name: 'panel.settings.deck.volume' }) as HTMLInputElement;
+    expect(slider.value).toBe('100');
+  });
+
+  it('typing a path persists it', () => {
+    renderInspector([{ action: { type: 'playAudio', path: '', volume: 100 } }]);
+    const input = document.querySelector('[class*=pathRow] input') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: 'C:\\sounds\\boop.wav' } });
+    expect(screen.getByDisplayValue('C:\\sounds\\boop.wav')).toBeInTheDocument();
+  });
+
+  it('shows Browse inside the Windows app shell and fills the path from the picked file', async () => {
+    vi.mocked(isWindowsAppShell).mockReturnValue(true);
+    vi.mocked(pickSystemPath).mockResolvedValueOnce('C:\\sounds\\boop.wav');
+    renderInspector([{ action: { type: 'playAudio', path: '', volume: 100 } }]);
+
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.browse' }));
+    expect(await screen.findByDisplayValue('C:\\sounds\\boop.wav')).toBeInTheDocument();
+    expect(vi.mocked(pickSystemPath)).toHaveBeenCalledWith(false);
+  });
+
+  it('hides Browse in a plain browser tab (no app shell)', () => {
+    renderInspector([{ action: { type: 'playAudio', path: '', volume: 100 } }]);
+    expect(screen.queryByRole('button', { name: 'panel.settings.deck.browse' })).toBeNull();
+  });
+
+  it('renders the volume slider at the stored value', () => {
+    renderInspector([{ action: { type: 'playAudio', path: '/tmp/x.wav', volume: 42 } }]);
+    const slider = screen.getByRole('slider', { name: 'panel.settings.deck.volume' }) as HTMLInputElement;
+    expect(slider.value).toBe('42');
+  });
+
+  it('defaults the slider to full volume when volume is unset', () => {
+    renderInspector([{ action: { type: 'playAudio', path: '/tmp/x.wav' } }]);
+    const slider = screen.getByRole('slider', { name: 'panel.settings.deck.volume' }) as HTMLInputElement;
+    expect(slider.value).toBe('100');
+  });
+
+  it('is nestable inside a sequence step (a one-shot press, unlike weather/monitoring)', () => {
+    renderInspector();
+    fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.action.sequence' }));
+    fireEvent.click(screen.getByText('panel.settings.deck.sequence.addStep'));
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.actionType' }));
+    // The step's own Select popup renders its options as <li>, distinct from
+    // the top-level category picker's <button> entries (see the hotkeySwitch
+    // nesting test above for the same distinction).
+    const playAudioOptions = screen.getAllByRole('option', { name: 'panel.settings.deck.action.playAudio' });
+    expect(playAudioOptions.some(o => o.tagName === 'LI')).toBe(true);
+  });
+});
+
 describe('DeckKeyInspector action picker - search', () => {
   it('filters kinds by localized label and hides categories with zero matches', () => {
     renderInspector();
@@ -657,6 +791,69 @@ describe('DeckKeyInspector - openFile/openFolder Browse button', () => {
 
     resolvePick(null);
     await waitFor(() => expect(browse).not.toBeDisabled());
+  });
+});
+
+describe('DeckKeyInspector - Bug 6: Icon Color dims while the Custom image tab is active', () => {
+  // The Icon Color swatch is the first "Auto" button in DOM order - the Icon
+  // section renders above the Title section (see "section order" above),
+  // whose own text-color swatch shares the same colorAuto label.
+  const iconColorSwatch = () => screen.getAllByRole('button', { name: 'panel.settings.deck.colorAuto' })[0];
+
+  it('starts enabled on Auto, dims on Custom, and re-enables when switching away', () => {
+    renderInspector([{ action: { type: 'hotkey', keys: '' } }]);
+    expect(iconColorSwatch()).not.toBeDisabled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'panel.iconPicker.custom' }));
+    expect(iconColorSwatch()).toBeDisabled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'panel.iconPicker.icons' }));
+    expect(iconColorSwatch()).not.toBeDisabled();
+  });
+
+  it('does not dim any of the monitoring swatches (no IconPicker there at all)', () => {
+    renderInspector([{ action: MONITORING_ACTION }]);
+    for (const swatch of screen.getAllByRole('button', { name: 'panel.settings.deck.colorAuto' })) {
+      expect(swatch).not.toBeDisabled();
+    }
+  });
+});
+
+describe('DeckKeyInspector - IconPicker remounts per slot (no sticky tab across slots)', () => {
+  function SlotSwitchHarness() {
+    const [config, setConfig] = useState<DeckConfig>({
+      pages: [{
+        slots: [
+          { action: { type: 'hotkey', keys: '' }, icon: { kind: 'image', value: 'abc' } },
+          { action: { type: 'openUrl', url: '' } },
+        ],
+      }],
+    });
+    const [selected, setSelected] = useState(0);
+    const target = makePhysicalDeckTarget(2, 1, 2, config, setConfig);
+    return (
+      <>
+        <button type="button" onClick={() => setSelected(1)}>select second slot</button>
+        <DeckKeyInspector
+          target={target}
+          page={0}
+          folderPath={[]}
+          onFolderPathChange={() => {}}
+          selectedSlot={selected}
+          onSelectedSlotChange={setSelected}
+        />
+      </>
+    );
+  }
+
+  it('resets to the new slot\'s own tab instead of keeping the previously selected slot\'s tab', () => {
+    render(<SlotSwitchHarness />);
+    expect(screen.getByRole('button', { name: 'panel.iconPicker.custom' })).toHaveAttribute('aria-pressed', 'true');
+
+    fireEvent.click(screen.getByText('select second slot'));
+
+    expect(screen.getByRole('button', { name: 'panel.iconPicker.auto' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'panel.iconPicker.custom' })).toHaveAttribute('aria-pressed', 'false');
   });
 });
 

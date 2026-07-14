@@ -133,15 +133,16 @@ export function deckImageSlotPath(page: number, slotPath: string): string {
  * 0 = off, state 1 = on) so the renderer never needs to know about toggle
  * semantics; everything else renders once at state 0.
  *
- * A 'monitoring' slot's key image is never uploaded from here: the service
- * owns those pixels (StreamDeckConnectionWorker's per-tick render loop), so a
- * web-driven upload would fight it and briefly stomp the live tile on every
- * config sync. DeckGrid shows the live gauge in its place instead.
+ * A 'monitoring' or 'weather' slot's key image is never uploaded from here:
+ * the service owns those pixels (StreamDeckConnectionWorker's per-tick render
+ * loop), so a web-driven upload would fight it and briefly stomp the live
+ * tile on every config sync. DeckGrid shows the live gauge/weather tile in
+ * its place instead.
  */
 function viewUploadJobs(slots: readonly DeckSlot[], page: number, folderPath: readonly number[]): DeckUploadJob[] {
   const jobs: DeckUploadJob[] = [];
   slots.forEach((slot, i) => {
-    if (slot.action?.type === 'monitoring') return;
+    if (slot.action?.type === 'monitoring' || slot.action?.type === 'weather') return;
     const slotPath = [...folderPath, i].join('.');
     const action = slot.action;
     if (action?.type === 'toggle') {

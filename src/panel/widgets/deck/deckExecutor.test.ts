@@ -28,6 +28,13 @@ describe('parseHotkey', () => {
     expect(parseHotkey('')).toBeNull();
     expect(parseHotkey('ctrl+shift')).toBeNull();
   });
+  it('maps the preset punctuation keys the touch presets emit', () => {
+    // Emoji Picker + the screenshot presets - dead on touch panels before these.
+    expect(parseHotkey('meta+.')).toEqual({ key: 'Period', ctrl: false, shift: false, alt: false, meta: true });
+    expect(parseHotkey('printscreen')?.key).toBe('PrintScreen');
+    expect(parseHotkey('meta+printscreen')?.key).toBe('PrintScreen');
+    expect(parseHotkey('alt+printscreen')).toEqual({ key: 'PrintScreen', ctrl: false, shift: false, alt: true, meta: false });
+  });
 });
 
 describe('executeDeckAction → REST', () => {
@@ -146,5 +153,29 @@ describe('executeDeckAction → monitoring press', () => {
     await executeDeckAction(monitoringAction(undefined));
     expect(postService).not.toHaveBeenCalled();
     expect(fetchService).not.toHaveBeenCalled();
+  });
+});
+
+describe('executeDeckAction → weather', () => {
+  beforeEach(() => { postService.mockClear(); fetchService.mockClear(); });
+
+  it('is a no-op on press - display-only, no press field in the wire contract', async () => {
+    await executeDeckAction({ type: 'weather', units: 'auto' });
+    expect(postService).not.toHaveBeenCalled();
+    expect(fetchService).not.toHaveBeenCalled();
+  });
+});
+
+describe('executeDeckAction → playAudio', () => {
+  beforeEach(() => { postService.mockClear(); fetchService.mockClear(); });
+
+  it('posts the stored path and volume to the audio-play route', async () => {
+    await executeDeckAction({ type: 'playAudio', path: 'C:\\sounds\\boop.wav', volume: 80 });
+    expect(postService).toHaveBeenCalledWith('/system/audio/play', { path: 'C:\\sounds\\boop.wav', volume: 80 });
+  });
+
+  it('passes an undefined volume through unchanged (server-side default)', async () => {
+    await executeDeckAction({ type: 'playAudio', path: '/tmp/boop.wav' });
+    expect(postService).toHaveBeenCalledWith('/system/audio/play', { path: '/tmp/boop.wav', volume: undefined });
   });
 });

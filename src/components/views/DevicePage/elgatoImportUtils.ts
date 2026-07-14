@@ -29,6 +29,8 @@ const REASON_KEYS: Record<ElgatoUnmappedReason, string> = {
   pageLimit: 'devices.streamdeck.import.reason.pageLimit',
   hotkeyExtraSlots: 'devices.streamdeck.import.reason.hotkeyExtraSlots',
   textEnterIgnored: 'devices.streamdeck.import.reason.textEnterIgnored',
+  monitoringSensor: 'devices.streamdeck.import.reason.monitoringSensor',
+  audioPath: 'devices.streamdeck.import.reason.audioPath',
 };
 
 /**

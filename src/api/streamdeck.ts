@@ -234,7 +234,8 @@ export async function fetchElgatoProfiles(): Promise<ElgatoProfilesResponse | nu
 
 export type ElgatoUnmappedReason =
   | 'plugin' | 'unsupported' | 'hotkey' | 'open' | 'website' | 'text' | 'media'
-  | 'multiStep' | 'encoder' | 'pageLimit' | 'hotkeyExtraSlots' | 'textEnterIgnored';
+  | 'multiStep' | 'encoder' | 'pageLimit' | 'hotkeyExtraSlots' | 'textEnterIgnored'
+  | 'monitoringSensor' | 'audioPath';
 
 export interface ElgatoUnmappedKey {
   page: number;
