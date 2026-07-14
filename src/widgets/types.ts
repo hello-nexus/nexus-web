@@ -77,8 +77,7 @@ export interface AppInstalledListing {
   settings?: AppManifestSettingEntry[];
   sizes?: string[];
   defaultSize?: string;
-  source: 'dev' | 'user' | 'bundled' | string;
-  trusted: boolean;
+  source: 'user' | 'bundled' | string;
   /** OEM bake-in: a bundled app to treat as active at first boot (its page
    *  section is auto-pinned), no user "add" required. */
   preinstalled?: boolean;
@@ -99,7 +98,7 @@ export interface AppCatalogEntry {
   iconUrl?: string | null;
   surfaces: string[];
   capabilities: AppManifestCapabilities;
-  source: 'bundled' | 'dev' | 'user' | string;
+  source: 'bundled' | 'user' | string;
   installed: boolean;
 }
 

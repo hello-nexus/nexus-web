@@ -11,7 +11,6 @@ function listing(over: Partial<AppInstalledListing>): AppInstalledListing {
     surfaces: ['dashboard'],
     capabilities: {} as AppManifestCapabilities,
     source: 'bundled',
-    trusted: true,
     ...over,
   };
 }
