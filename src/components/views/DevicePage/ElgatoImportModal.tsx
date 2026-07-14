@@ -21,16 +21,17 @@ interface ElgatoImportModalProps {
   serial: string;
   /** Existing preset names on this deck, for dedupe + cap gating. */
   existingPresetNames: string[];
-  /** Called once a preset has actually been created, so the caller can
-   *  refresh its preset list immediately (before the user hits Done). */
-  onImported: () => void;
+  /** Called with the new preset's id once it has been created, so the caller
+   *  can refresh its preset list AND load the imported config into the editor
+   *  (before the user hits Done). */
+  onImported: (presetId: string) => void;
 }
 
 /**
  * Import flow for the local Elgato Stream Deck install: fetch profiles ->
  * pick one -> translate + create a Nexus preset from it -> show the mapped/
- * unmapped report. The created preset is never auto-activated; the user
- * switches to it from the preset dropdown like any other preset.
+ * unmapped report. The caller loads the created preset so the editor and the
+ * physical deck show the imported layout immediately.
  */
 export function ElgatoImportModal({ open, onClose, serial, existingPresetNames, onImported }: ElgatoImportModalProps) {
   const { t } = useTranslation();
@@ -80,7 +81,7 @@ export function ElgatoImportModal({ open, onClose, serial, existingPresetNames, 
       return;
     }
     setResult({ presetName: name, report: importRes.report });
-    onImported();
+    onImported(createRes.preset.id);
   };
 
   return (

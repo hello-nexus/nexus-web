@@ -6,7 +6,7 @@ import { SearchInput } from '../../../components/common/SearchInput/SearchInput'
 import { Button } from '../../../components/common/Button/Button';
 import { canEditFreeText, type PanelSurface } from '../../types';
 import { DECK_ICONS, DECK_ICON_NAMES } from '../deck/deckIcons';
-import { CATEGORIES as EMOJI_CATEGORIES, CATEGORY_KEYS as EMOJI_CATEGORY_KEYS } from '../emoji/EmojiWidget';
+import { EmojiPicker } from './EmojiPicker';
 import { useDeckImage } from '../deck/useDeckImage';
 import { resizeDeckImage } from '../deck/resizeDeckImage';
 import { uploadDeckImage } from '../../../api/deckImages';
@@ -50,7 +50,6 @@ export function IconPicker({ value, onChange, surface, desktopEditor, onTabChang
   const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>(() => tabForValue(value));
   const [query, setQuery] = useState('');
-  const [emojiCat, setEmojiCat] = useState(EMOJI_CATEGORY_KEYS[0]);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -150,36 +149,11 @@ export function IconPicker({ value, onChange, surface, desktopEditor, onTabChang
       )}
 
       {tab === 'emoji' && (
-        <>
-          <div className={styles.emojiCats}>
-            {EMOJI_CATEGORY_KEYS.map(key => (
-              <button
-                key={key}
-                type="button"
-                className={`${styles.emojiCatBtn} ${emojiCat === key ? styles.activeIcon : ''}`}
-                aria-label={key}
-                onClick={() => setEmojiCat(key)}
-              >
-                {EMOJI_CATEGORIES[key].icon}
-              </button>
-            ))}
-          </div>
-          <div className={styles.emojiGrid} data-panel-scrollable="true">
-            {EMOJI_CATEGORIES[emojiCat].emojis.map((emoji, i) => {
-              const active = value?.kind === 'emoji' && value.value === emoji;
-              return (
-                <button
-                  key={`${emojiCat}-${i}`}
-                  type="button"
-                  className={`${styles.emojiBtn} ${active ? styles.activeIcon : ''}`}
-                  onClick={() => onChange({ kind: 'emoji', value: emoji })}
-                >
-                  {emoji}
-                </button>
-              );
-            })}
-          </div>
-        </>
+        <EmojiPicker
+          value={value?.kind === 'emoji' ? value.value : undefined}
+          onSelect={emoji => onChange({ kind: 'emoji', value: emoji })}
+          searchable={showSearch}
+        />
       )}
 
       {tab === 'custom' && (

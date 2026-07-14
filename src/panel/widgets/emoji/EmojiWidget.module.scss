@@ -1,4 +1,3 @@
-@use '../../../styles/scrollbar' as *;
 @use '../../../styles/text' as *;
 
 .container {
@@ -10,75 +9,13 @@
   position: relative;
 }
 
-.tabs {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  padding: 6px 8px;
-  overflow-x: auto;
-  flex-shrink: 0;
-  border-bottom: 1px solid var(--separator);
-}
+// The widget fills the whole cell, so the shared picker's grid should grow
+// with it instead of stopping at the icon picker's compact inline cap.
+.picker {
+  --emoji-picker-grid-max-height: none;
 
-.tab {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 40px;
-  height: 36px;
-  border: none;
-  border-radius: var(--panel-element-radius, var(--radius-sm));
-  background: transparent;
-  font-size: 20px;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: background var(--ease-fast);
-  padding: 0 4px;
-
-  &:hover {
-    background: var(--panel-element-bg-hover);
-  }
-
-  &.activeTab {
-    background: var(--panel-element-bg-active);
-    box-shadow: inset 0 -2px 0 var(--panel-accent);
-  }
-}
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
-  gap: 2px;
-  padding: 8px;
-  overflow-y: auto;
   flex: 1;
-  @include scrollbar-visible($gutter: false);
-}
-
-.emojiBtn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  aspect-ratio: 1;
-  min-height: 40px;
-  border: none;
-  border-radius: var(--panel-element-radius, var(--radius-sm));
-  background: transparent;
-  font-size: 22px;
-  cursor: pointer;
-  transition: background var(--ease-fast), transform var(--ease-fast);
-  padding: 0;
-
-  &:hover {
-    background: var(--panel-element-bg-hover);
-    transform: scale(1.15);
-  }
-
-  &:active {
-    background: var(--panel-element-bg-active);
-    transform: scale(0.95);
-  }
+  min-height: 0;
 }
 
 .toast {

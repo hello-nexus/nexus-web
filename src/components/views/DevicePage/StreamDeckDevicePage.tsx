@@ -595,7 +595,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
           onClose={() => setImportOpen(false)}
           serial={serial}
           existingPresetNames={deckPresets.presets.map(p => p.name)}
-          onImported={() => { void deckPresets.loadPresets(); }}
+          onImported={id => { void (async () => { await deckPresets.loadPresets(); await onDeckPresetLoad(id); })(); }}
         />
       )}
     </div>

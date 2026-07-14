@@ -1,0 +1,1800 @@
+{
+"⌚": [
+"watch"
+],
+"⌨️": [
+"keyboard"
+],
+"⏰": [
+"alarm",
+"clock"
+],
+"⏱️": [
+"stopwatch"
+],
+"⏲️": [
+"clock",
+"timer"
+],
+"☎️": [
+"black",
+"telephone"
+],
+"☢️": [
+"radioactive",
+"sign"
+],
+"☣️": [
+"biohazard",
+"sign"
+],
+"☦️": [
+"cross",
+"orthodox"
+],
+"☪️": [
+"and",
+"crescent",
+"star"
+],
+"☮️": [
+"peace",
+"symbol"
+],
+"☯️": [
+"yang",
+"yin"
+],
+"☸️": [
+"dharma",
+"of",
+"wheel"
+],
+"☹️": [
+"face",
+"frowning",
+"white"
+],
+"♈": [
+"aries"
+],
+"♉": [
+"taurus"
+],
+"♊": [
+"gemini"
+],
+"♋": [
+"cancer"
+],
+"♌": [
+"leo"
+],
+"♍": [
+"virgo"
+],
+"♎": [
+"libra"
+],
+"♏": [
+"scorpius"
+],
+"♐": [
+"sagittarius"
+],
+"♑": [
+"capricorn"
+],
+"♒": [
+"aquarius"
+],
+"♓": [
+"pisces"
+],
+"⚒️": [
+"and",
+"hammer",
+"pick"
+],
+"⚖️": [
+"scales"
+],
+"⚛️": [
+"atom",
+"symbol"
+],
+"⚽": [
+"ball",
+"soccer"
+],
+"⚾": [
+"baseball"
+],
+"⛎": [
+"ophiuchus"
+],
+"⛏️": [
+"pick"
+],
+"⛳": [
+"flag",
+"hole",
+"in"
+],
+"⛴️": [
+"ferry"
+],
+"⛵": [
+"sailboat"
+],
+"⛷️": [
+"skier"
+],
+"⛸️": [
+"ice",
+"skate"
+],
+"⛹️": [
+"ball",
+"person",
+"with"
+],
+"✈️": [
+"airplane"
+],
+"✝️": [
+"cross",
+"latin"
+],
+"✡️": [
+"david",
+"of",
+"star"
+],
+"❣️": [
+"exclamation",
+"heart",
+"heavy",
+"mark",
+"ornament"
+],
+"❤️": [
+"black",
+"heart",
+"heavy"
+],
+"❤️‍🔥": [
+"black",
+"fire",
+"heart",
+"heavy"
+],
+"❤️‍🩹": [
+"adhesive",
+"bandage",
+"black",
+"heart",
+"heavy"
+],
+"🆔": [
+"id",
+"squared"
+],
+"🈚": [
+"7121",
+"cjk",
+"ideograph",
+"squared",
+"unified"
+],
+"🈶": [
+"6709",
+"cjk",
+"ideograph",
+"squared",
+"unified"
+],
+"🉑": [
+"accept",
+"circled",
+"ideograph"
+],
+"🌭": [
+"dog",
+"hot"
+],
+"🌮": [
+"taco"
+],
+"🌯": [
+"burrito"
+],
+"🌰": [
+"chestnut"
+],
+"🌶️": [
+"hot",
+"pepper"
+],
+"🌽": [
+"ear",
+"maize",
+"of"
+],
+"🍄": [
+"mushroom"
+],
+"🍅": [
+"tomato"
+],
+"🍆": [
+"aubergine"
+],
+"🍇": [
+"grapes"
+],
+"🍈": [
+"melon"
+],
+"🍉": [
+"watermelon"
+],
+"🍊": [
+"tangerine"
+],
+"🍋": [
+"lemon"
+],
+"🍌": [
+"banana"
+],
+"🍍": [
+"pineapple"
+],
+"🍎": [
+"apple",
+"red"
+],
+"🍏": [
+"apple",
+"green"
+],
+"🍐": [
+"pear"
+],
+"🍑": [
+"peach"
+],
+"🍒": [
+"cherries"
+],
+"🍓": [
+"strawberry"
+],
+"🍔": [
+"hamburger"
+],
+"🍕": [
+"of",
+"pizza",
+"slice"
+],
+"🍖": [
+"bone",
+"meat",
+"on"
+],
+"🍗": [
+"leg",
+"poultry"
+],
+"🍞": [
+"bread"
+],
+"🍟": [
+"french",
+"fries"
+],
+"🍲": [
+"food",
+"of",
+"pot"
+],
+"🍳": [
+"cooking"
+],
+"🍿": [
+"popcorn"
+],
+"🎖️": [
+"medal",
+"military"
+],
+"🎗️": [
+"reminder",
+"ribbon"
+],
+"🎙️": [
+"microphone",
+"studio"
+],
+"🎚️": [
+"level",
+"slider"
+],
+"🎛️": [
+"control",
+"knobs"
+],
+"🎞️": [
+"film",
+"frames"
+],
+"🎟️": [
+"admission",
+"tickets"
+],
+"🎣": [
+"and",
+"fish",
+"fishing",
+"pole"
+],
+"🎥": [
+"camera",
+"movie"
+],
+"🎪": [
+"circus",
+"tent"
+],
+"🎫": [
+"ticket"
+],
+"🎱": [
+"billiards"
+],
+"🎽": [
+"running",
+"sash",
+"shirt",
+"with"
+],
+"🎾": [
+"and",
+"ball",
+"racquet",
+"tennis"
+],
+"🎿": [
+"and",
+"boot",
+"ski"
+],
+"🏀": [
+"and",
+"basketball",
+"hoop"
+],
+"🏂": [
+"snowboarder"
+],
+"🏄": [
+"surfer"
+],
+"🏅": [
+"medal",
+"sports"
+],
+"🏆": [
+"trophy"
+],
+"🏇": [
+"horse",
+"racing"
+],
+"🏈": [
+"american",
+"football"
+],
+"🏉": [
+"football",
+"rugby"
+],
+"🏊": [
+"swimmer"
+],
+"🏋️": [
+"lifter",
+"weight"
+],
+"🏌️": [
+"golfer"
+],
+"🏎️": [
+"car",
+"racing"
+],
+"🏏": [
+"and",
+"ball",
+"bat",
+"cricket"
+],
+"🏐": [
+"volleyball"
+],
+"🏑": [
+"and",
+"ball",
+"field",
+"hockey",
+"stick"
+],
+"🏒": [
+"and",
+"hockey",
+"ice",
+"puck",
+"stick"
+],
+"🏓": [
+"and",
+"ball",
+"paddle",
+"table",
+"tennis"
+],
+"🏵️": [
+"rosette"
+],
+"🏸": [
+"and",
+"badminton",
+"racquet",
+"shuttlecock"
+],
+"🏹": [
+"and",
+"arrow",
+"bow"
+],
+"🐅": [
+"tiger"
+],
+"🐆": [
+"leopard"
+],
+"🐊": [
+"crocodile"
+],
+"🐋": [
+"whale"
+],
+"🐌": [
+"snail"
+],
+"🐍": [
+"snake"
+],
+"🐔": [
+"chicken"
+],
+"🐗": [
+"boar"
+],
+"🐙": [
+"octopus"
+],
+"🐛": [
+"bug"
+],
+"🐜": [
+"ant"
+],
+"🐝": [
+"honeybee"
+],
+"🐞": [
+"beetle",
+"lady"
+],
+"🐟": [
+"fish"
+],
+"🐠": [
+"fish",
+"tropical"
+],
+"🐡": [
+"blowfish"
+],
+"🐢": [
+"turtle"
+],
+"🐤": [
+"baby",
+"chick"
+],
+"🐦": [
+"bird"
+],
+"🐧": [
+"penguin"
+],
+"🐨": [
+"koala"
+],
+"🐬": [
+"dolphin"
+],
+"🐭": [
+"face",
+"mouse"
+],
+"🐮": [
+"cow",
+"face"
+],
+"🐯": [
+"face",
+"tiger"
+],
+"🐰": [
+"face",
+"rabbit"
+],
+"🐱": [
+"cat",
+"face"
+],
+"🐳": [
+"spouting",
+"whale"
+],
+"🐴": [
+"face",
+"horse"
+],
+"🐵": [
+"face",
+"monkey"
+],
+"🐶": [
+"dog",
+"face"
+],
+"🐷": [
+"face",
+"pig"
+],
+"🐸": [
+"face",
+"frog"
+],
+"🐹": [
+"face",
+"hamster"
+],
+"🐺": [
+"face",
+"wolf"
+],
+"🐻": [
+"bear",
+"face"
+],
+"🐻‍❄️": [
+"bear",
+"face",
+"snowflake"
+],
+"🐼": [
+"face",
+"panda"
+],
+"💎": [
+"gem",
+"stone"
+],
+"💓": [
+"beating",
+"heart"
+],
+"💔": [
+"broken",
+"heart"
+],
+"💕": [
+"hearts",
+"two"
+],
+"💖": [
+"heart",
+"sparkling"
+],
+"💗": [
+"growing",
+"heart"
+],
+"💘": [
+"arrow",
+"heart",
+"with"
+],
+"💙": [
+"blue",
+"heart"
+],
+"💚": [
+"green",
+"heart"
+],
+"💛": [
+"heart",
+"yellow"
+],
+"💜": [
+"heart",
+"purple"
+],
+"💝": [
+"heart",
+"ribbon",
+"with"
+],
+"💞": [
+"hearts",
+"revolving"
+],
+"💟": [
+"decoration",
+"heart"
+],
+"💡": [
+"bulb",
+"electric",
+"light"
+],
+"💰": [
+"bag",
+"money"
+],
+"💳": [
+"card",
+"credit"
+],
+"💴": [
+"banknote",
+"sign",
+"with",
+"yen"
+],
+"💵": [
+"banknote",
+"dollar",
+"sign",
+"with"
+],
+"💶": [
+"banknote",
+"euro",
+"sign",
+"with"
+],
+"💷": [
+"banknote",
+"pound",
+"sign",
+"with"
+],
+"💺": [
+"seat"
+],
+"💻": [
+"computer",
+"personal"
+],
+"💽": [
+"minidisc"
+],
+"💾": [
+"disk",
+"floppy"
+],
+"💿": [
+"disc",
+"optical"
+],
+"📀": [
+"dvd"
+],
+"📞": [
+"receiver",
+"telephone"
+],
+"📟": [
+"pager"
+],
+"📠": [
+"fax",
+"machine"
+],
+"📱": [
+"mobile",
+"phone"
+],
+"📳": [
+"mode",
+"vibration"
+],
+"📴": [
+"mobile",
+"off",
+"phone"
+],
+"📷": [
+"camera"
+],
+"📸": [
+"camera",
+"flash",
+"with"
+],
+"📹": [
+"camera",
+"video"
+],
+"📺": [
+"television"
+],
+"📻": [
+"radio"
+],
+"📼": [
+"videocassette"
+],
+"📽️": [
+"film",
+"projector"
+],
+"🔦": [
+"electric",
+"torch"
+],
+"🔧": [
+"wrench"
+],
+"🔨": [
+"hammer"
+],
+"🔩": [
+"and",
+"bolt",
+"nut"
+],
+"🔯": [
+"dot",
+"middle",
+"pointed",
+"six",
+"star",
+"with"
+],
+"🕉️": [
+"om",
+"symbol"
+],
+"🕯️": [
+"candle"
+],
+"🕰️": [
+"clock",
+"mantelpiece"
+],
+"🕷️": [
+"spider"
+],
+"🕹️": [
+"joystick"
+],
+"🖤": [
+"black",
+"heart"
+],
+"🖥️": [
+"computer",
+"desktop"
+],
+"🖨️": [
+"printer"
+],
+"🖱️": [
+"button",
+"mouse",
+"three"
+],
+"🖲️": [
+"trackball"
+],
+"🗜️": [
+"compression"
+],
+"😀": [
+"face",
+"grinning"
+],
+"😁": [
+"eyes",
+"face",
+"grinning",
+"smiling",
+"with"
+],
+"😂": [
+"face",
+"joy",
+"of",
+"tears",
+"with"
+],
+"😃": [
+"face",
+"mouth",
+"open",
+"smiling",
+"with"
+],
+"😄": [
+"and",
+"eyes",
+"face",
+"mouth",
+"open",
+"smiling",
+"with"
+],
+"😅": [
+"and",
+"cold",
+"face",
+"mouth",
+"open",
+"smiling",
+"sweat",
+"with"
+],
+"😆": [
+"and",
+"closed",
+"eyes",
+"face",
+"mouth",
+"open",
+"smiling",
+"tightly",
+"with"
+],
+"😇": [
+"face",
+"halo",
+"smiling",
+"with"
+],
+"😉": [
+"face",
+"winking"
+],
+"😊": [
+"eyes",
+"face",
+"smiling",
+"with"
+],
+"😋": [
+"delicious",
+"face",
+"food",
+"savouring"
+],
+"😌": [
+"face",
+"relieved"
+],
+"😍": [
+"eyes",
+"face",
+"heart",
+"shaped",
+"smiling",
+"with"
+],
+"😎": [
+"face",
+"smiling",
+"sunglasses",
+"with"
+],
+"😏": [
+"face",
+"smirking"
+],
+"😐": [
+"face",
+"neutral"
+],
+"😑": [
+"expressionless",
+"face"
+],
+"😒": [
+"face",
+"unamused"
+],
+"😓": [
+"cold",
+"face",
+"sweat",
+"with"
+],
+"😔": [
+"face",
+"pensive"
+],
+"😕": [
+"confused",
+"face"
+],
+"😖": [
+"confounded",
+"face"
+],
+"😗": [
+"face",
+"kissing"
+],
+"😘": [
+"face",
+"kiss",
+"throwing"
+],
+"😚": [
+"closed",
+"eyes",
+"face",
+"kissing",
+"with"
+],
+"😛": [
+"face",
+"out",
+"stuck",
+"tongue",
+"with"
+],
+"😜": [
+"and",
+"eye",
+"face",
+"out",
+"stuck",
+"tongue",
+"winking",
+"with"
+],
+"😝": [
+"and",
+"closed",
+"eyes",
+"face",
+"out",
+"stuck",
+"tightly",
+"tongue",
+"with"
+],
+"😞": [
+"disappointed",
+"face"
+],
+"😟": [
+"face",
+"worried"
+],
+"😢": [
+"crying",
+"face"
+],
+"😣": [
+"face",
+"persevering"
+],
+"😥": [
+"but",
+"disappointed",
+"face",
+"relieved"
+],
+"😦": [
+"face",
+"frowning",
+"mouth",
+"open",
+"with"
+],
+"😧": [
+"anguished",
+"face"
+],
+"😨": [
+"face",
+"fearful"
+],
+"😩": [
+"face",
+"weary"
+],
+"😪": [
+"face",
+"sleepy"
+],
+"😫": [
+"face",
+"tired"
+],
+"😬": [
+"face",
+"grimacing"
+],
+"😭": [
+"crying",
+"face",
+"loudly"
+],
+"😮": [
+"face",
+"mouth",
+"open",
+"with"
+],
+"😮‍💨": [
+"dash",
+"face",
+"mouth",
+"open",
+"symbol",
+"with"
+],
+"😯": [
+"face",
+"hushed"
+],
+"😰": [
+"and",
+"cold",
+"face",
+"mouth",
+"open",
+"sweat",
+"with"
+],
+"😱": [
+"face",
+"fear",
+"in",
+"screaming"
+],
+"😲": [
+"astonished",
+"face"
+],
+"😳": [
+"face",
+"flushed"
+],
+"😴": [
+"face",
+"sleeping"
+],
+"😵": [
+"dizzy",
+"face"
+],
+"😶": [
+"face",
+"mouth",
+"without"
+],
+"😷": [
+"face",
+"mask",
+"medical",
+"with"
+],
+"🙂": [
+"face",
+"slightly",
+"smiling"
+],
+"🙄": [
+"eyes",
+"face",
+"rolling",
+"with"
+],
+"🚀": [
+"rocket"
+],
+"🚁": [
+"helicopter"
+],
+"🚂": [
+"locomotive",
+"steam"
+],
+"🚃": [
+"car",
+"railway"
+],
+"🚄": [
+"high",
+"speed",
+"train"
+],
+"🚅": [
+"bullet",
+"high",
+"nose",
+"speed",
+"train",
+"with"
+],
+"🚆": [
+"train"
+],
+"🚇": [
+"metro"
+],
+"🚈": [
+"light",
+"rail"
+],
+"🚉": [
+"station"
+],
+"🚊": [
+"tram"
+],
+"🚋": [
+"car",
+"tram"
+],
+"🚌": [
+"bus"
+],
+"🚍": [
+"bus",
+"oncoming"
+],
+"🚎": [
+"trolleybus"
+],
+"🚐": [
+"minibus"
+],
+"🚑": [
+"ambulance"
+],
+"🚒": [
+"engine",
+"fire"
+],
+"🚓": [
+"car",
+"police"
+],
+"🚔": [
+"car",
+"oncoming",
+"police"
+],
+"🚕": [
+"taxi"
+],
+"🚖": [
+"oncoming",
+"taxi"
+],
+"🚗": [
+"automobile"
+],
+"🚘": [
+"automobile",
+"oncoming"
+],
+"🚙": [
+"recreational",
+"vehicle"
+],
+"🚚": [
+"delivery",
+"truck"
+],
+"🚛": [
+"articulated",
+"lorry"
+],
+"🚜": [
+"tractor"
+],
+"🚝": [
+"monorail"
+],
+"🚞": [
+"mountain",
+"railway"
+],
+"🚟": [
+"railway",
+"suspension"
+],
+"🚠": [
+"cableway",
+"mountain"
+],
+"🚡": [
+"aerial",
+"tramway"
+],
+"🚢": [
+"ship"
+],
+"🚣": [
+"rowboat"
+],
+"🚤": [
+"speedboat"
+],
+"🚲": [
+"bicycle"
+],
+"🚴": [
+"bicyclist"
+],
+"🚵": [
+"bicyclist",
+"mountain"
+],
+"🛐": [
+"of",
+"place",
+"worship"
+],
+"🛞": [
+"wheel"
+],
+"🛠️": [
+"and",
+"hammer",
+"wrench"
+],
+"🛢️": [
+"drum",
+"oil"
+],
+"🛥️": [
+"boat",
+"motor"
+],
+"🛫": [
+"airplane",
+"departure"
+],
+"🛬": [
+"airplane",
+"arriving"
+],
+"🛳️": [
+"passenger",
+"ship"
+],
+"🛴": [
+"scooter"
+],
+"🛵": [
+"motor",
+"scooter"
+],
+"🛶": [
+"canoe"
+],
+"🛷": [
+"sled"
+],
+"🛸": [
+"flying",
+"saucer"
+],
+"🛹": [
+"skateboard"
+],
+"🛺": [
+"auto",
+"rickshaw"
+],
+"🛻": [
+"pickup",
+"truck"
+],
+"🛼": [
+"roller",
+"skate"
+],
+"🤍": [
+"heart",
+"white"
+],
+"🤎": [
+"brown",
+"heart"
+],
+"🤑": [
+"face",
+"money",
+"mouth"
+],
+"🤒": [
+"face",
+"thermometer",
+"with"
+],
+"🤓": [
+"face",
+"nerd"
+],
+"🤔": [
+"face",
+"thinking"
+],
+"🤕": [
+"bandage",
+"face",
+"head",
+"with"
+],
+"🤗": [
+"face",
+"hugging"
+],
+"🤠": [
+"cowboy",
+"face",
+"hat",
+"with"
+],
+"🤢": [
+"face",
+"nauseated"
+],
+"🤣": [
+"floor",
+"laughing",
+"on",
+"rolling",
+"the"
+],
+"🤤": [
+"drooling",
+"face"
+],
+"🤥": [
+"face",
+"lying"
+],
+"🤩": [
+"eyes",
+"face",
+"grinning",
+"star",
+"with"
+],
+"🤪": [
+"and",
+"eye",
+"face",
+"grinning",
+"large",
+"one",
+"small",
+"with"
+],
+"🤫": [
+"closed",
+"covering",
+"face",
+"finger",
+"lips",
+"with"
+],
+"🤭": [
+"and",
+"covering",
+"eyes",
+"face",
+"hand",
+"mouth",
+"smiling",
+"with"
+],
+"🤮": [
+"face",
+"mouth",
+"open",
+"vomiting",
+"with"
+],
+"🤯": [
+"exploding",
+"face",
+"head",
+"shocked",
+"with"
+],
+"🤸": [
+"cartwheel",
+"doing",
+"person"
+],
+"🤺": [
+"fencer"
+],
+"🤽": [
+"polo",
+"water"
+],
+"🤾": [
+"handball"
+],
+"🤿": [
+"diving",
+"mask"
+],
+"🥅": [
+"goal",
+"net"
+],
+"🥇": [
+"first",
+"medal",
+"place"
+],
+"🥈": [
+"medal",
+"place",
+"second"
+],
+"🥉": [
+"medal",
+"place",
+"third"
+],
+"🥊": [
+"boxing",
+"glove"
+],
+"🥋": [
+"arts",
+"martial",
+"uniform"
+],
+"🥌": [
+"curling",
+"stone"
+],
+"🥍": [
+"and",
+"ball",
+"lacrosse",
+"stick"
+],
+"🥎": [
+"softball"
+],
+"🥏": [
+"disc",
+"flying"
+],
+"🥐": [
+"croissant"
+],
+"🥑": [
+"avocado"
+],
+"🥒": [
+"cucumber"
+],
+"🥓": [
+"bacon"
+],
+"🥔": [
+"potato"
+],
+"🥕": [
+"carrot"
+],
+"🥖": [
+"baguette",
+"bread"
+],
+"🥗": [
+"green",
+"salad"
+],
+"🥘": [
+"food",
+"of",
+"pan",
+"shallow"
+],
+"🥙": [
+"flatbread",
+"stuffed"
+],
+"🥚": [
+"egg"
+],
+"🥜": [
+"peanuts"
+],
+"🥝": [
+"kiwifruit"
+],
+"🥞": [
+"pancakes"
+],
+"🥣": [
+"bowl",
+"spoon",
+"with"
+],
+"🥥": [
+"coconut"
+],
+"🥦": [
+"broccoli"
+],
+"🥨": [
+"pretzel"
+],
+"🥩": [
+"cut",
+"meat",
+"of"
+],
+"🥪": [
+"sandwich"
+],
+"🥬": [
+"green",
+"leafy"
+],
+"🥭": [
+"mango"
+],
+"🥯": [
+"bagel"
+],
+"🥰": [
+"and",
+"eyes",
+"face",
+"hearts",
+"smiling",
+"three",
+"with"
+],
+"🥱": [
+"face",
+"yawning"
+],
+"🥳": [
+"and",
+"face",
+"hat",
+"horn",
+"party",
+"with"
+],
+"🥴": [
+"and",
+"eyes",
+"face",
+"mouth",
+"uneven",
+"wavy",
+"with"
+],
+"🥵": [
+"face",
+"overheated"
+],
+"🥶": [
+"face",
+"freezing"
+],
+"🥸": [
+"disguised",
+"face"
+],
+"🥺": [
+"eyes",
+"face",
+"pleading",
+"with"
+],
+"🦀": [
+"crab"
+],
+"🦁": [
+"face",
+"lion"
+],
+"🦄": [
+"face",
+"unicorn"
+],
+"🦅": [
+"eagle"
+],
+"🦆": [
+"duck"
+],
+"🦇": [
+"bat"
+],
+"🦈": [
+"shark"
+],
+"🦉": [
+"owl"
+],
+"🦊": [
+"face",
+"fox"
+],
+"🦋": [
+"butterfly"
+],
+"🦎": [
+"lizard"
+],
+"🦐": [
+"shrimp"
+],
+"🦑": [
+"squid"
+],
+"🦕": [
+"sauropod"
+],
+"🦖": [
+"rex"
+],
+"🦗": [
+"cricket"
+],
+"🦞": [
+"lobster"
+],
+"🦟": [
+"mosquito"
+],
+"🧀": [
+"cheese",
+"wedge"
+],
+"🧄": [
+"garlic"
+],
+"🧅": [
+"onion"
+],
+"🧆": [
+"falafel"
+],
+"🧇": [
+"waffle"
+],
+"🧈": [
+"butter"
+],
+"🧐": [
+"face",
+"monocle",
+"with"
+],
+"🧗": [
+"climbing",
+"person"
+],
+"🧘": [
+"in",
+"lotus",
+"person",
+"position"
+],
+"🧡": [
+"heart",
+"orange"
+],
+"🧭": [
+"compass"
+],
+"🧯": [
+"extinguisher",
+"fire"
+],
+"🧰": [
+"toolbox"
+],
+"🪀": [
+"yo"
+],
+"🪁": [
+"kite"
+],
+"🪂": [
+"parachute"
+],
+"🪃": [
+"boomerang"
+],
+"🪙": [
+"coin"
+],
+"🪚": [
+"carpentry",
+"saw"
+],
+"🪛": [
+"screwdriver"
+],
+"🪜": [
+"ladder"
+],
+"🪪": [
+"card",
+"identification"
+],
+"🪬": [
+"hamsa"
+],
+"🪱": [
+"worm"
+],
+"🪲": [
+"beetle"
+],
+"🪳": [
+"cockroach"
+],
+"🫐": [
+"blueberries"
+],
+"🫑": [
+"bell",
+"pepper"
+],
+"🫓": [
+"flatbread"
+],
+"🫔": [
+"tamale"
+],
+"🫕": [
+"fondue"
+],
+"🫘": [
+"beans"
+]
+}

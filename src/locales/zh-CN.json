@@ -1771,6 +1771,7 @@
   "panel.iconPicker.auto": "自动",
   "panel.iconPicker.autoHint": "根据操作自动选择图标",
   "panel.iconPicker.emoji": "Emoji",
+  "panel.iconPicker.emojiSearch": "搜索 Emoji…",
   "panel.iconPicker.icons": "图标",
   "panel.iconPicker.search": "搜索…",
   "panel.immersive.close": "关闭沉浸视图",
