@@ -1307,6 +1307,7 @@ export function PanelContent({
         className={`panel-root ${styles.panelRoot}`}
         data-theme={resolvedThemeMode}
         data-surface={surface}
+        data-simulator={simulator ? 'true' : undefined}
         data-background-mode={embedded ? 'solid' : effectiveTheme.backgroundMode}
         data-show-widget-labels={effectiveTheme.widgetLabels ? 'true' : 'false'}
         data-widget-blur={effectiveTheme.widgetBlur ? 'true' : 'false'}
