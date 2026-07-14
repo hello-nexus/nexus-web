@@ -609,7 +609,7 @@ describe('DeckKeyInspector - playAudio action', () => {
 
     const pathInput = document.querySelector('[class*=pathRow] input') as HTMLInputElement;
     expect(pathInput.value).toBe('');
-    const slider = screen.getByRole('slider', { name: 'panel.settings.deck.value' }) as HTMLInputElement;
+    const slider = screen.getByRole('slider', { name: 'panel.settings.deck.volume' }) as HTMLInputElement;
     expect(slider.value).toBe('100');
   });
 
@@ -637,13 +637,13 @@ describe('DeckKeyInspector - playAudio action', () => {
 
   it('renders the volume slider at the stored value', () => {
     renderInspector([{ action: { type: 'playAudio', path: '/tmp/x.wav', volume: 42 } }]);
-    const slider = screen.getByRole('slider', { name: 'panel.settings.deck.value' }) as HTMLInputElement;
+    const slider = screen.getByRole('slider', { name: 'panel.settings.deck.volume' }) as HTMLInputElement;
     expect(slider.value).toBe('42');
   });
 
   it('defaults the slider to full volume when volume is unset', () => {
     renderInspector([{ action: { type: 'playAudio', path: '/tmp/x.wav' } }]);
-    const slider = screen.getByRole('slider', { name: 'panel.settings.deck.value' }) as HTMLInputElement;
+    const slider = screen.getByRole('slider', { name: 'panel.settings.deck.volume' }) as HTMLInputElement;
     expect(slider.value).toBe('100');
   });
 

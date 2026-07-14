@@ -1974,6 +1974,7 @@
   "panel.settings.deck.toggle.state.mute": "Silencio",
   "panel.settings.deck.toggle.stateSource": "Fuente de estado",
   "panel.settings.deck.value": "Valor",
+  "panel.settings.deck.volume": "Volumen",
   "panel.settings.icon": "Icono",
   "panel.settings.loadingApps": "Cargando...",
   "panel.settings.noApps": "No se encontraron aplicaciones",

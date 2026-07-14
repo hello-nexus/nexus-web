@@ -1974,6 +1974,7 @@
   "panel.settings.deck.toggle.state.mute": "静音",
   "panel.settings.deck.toggle.stateSource": "状态来源",
   "panel.settings.deck.value": "数值",
+  "panel.settings.deck.volume": "音量",
   "panel.settings.icon": "图标",
   "panel.settings.loadingApps": "加载中...",
   "panel.settings.noApps": "未找到应用",

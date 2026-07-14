@@ -682,11 +682,11 @@ function PlayAudioFields({ action, onChange, surface, desktopEditor }: {
       </Field>
       <Slider
         // eslint-disable-next-line i18next/no-literal-string -- Slider orientation enum value
-        orientation="stacked"
+        orientation="inline"
         editable
         trackFill
-        label={t('panel.settings.deck.value')}
-        ariaLabel={t('panel.settings.deck.value')}
+        label={t('panel.settings.deck.volume')}
+        ariaLabel={t('panel.settings.deck.volume')}
         value={action.volume ?? 100}
         min={0}
         max={100}

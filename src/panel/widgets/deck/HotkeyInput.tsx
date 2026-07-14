@@ -14,14 +14,16 @@ const MOD_CODES = new Set([
   'AltLeft', 'AltRight', 'MetaLeft', 'MetaRight',
 ]);
 
+// Only keys the executors (touch /system/input/keys and the physical
+// DeckActionExecutor) can actually inject are capturable; capturing a key that
+// no injector maps would store a chord that silently does nothing. Period and
+// PrintScreen are the punctuation the preset list needs and both injectors map.
 const NAMED: Record<string, string> = {
   Space: 'space', Enter: 'enter', NumpadEnter: 'enter', Tab: 'tab', Escape: 'escape',
   Backspace: 'backspace', Delete: 'delete', Insert: 'insert', Home: 'home', End: 'end',
   PageUp: 'pageup', PageDown: 'pagedown',
   ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
-  PrintScreen: 'printscreen', Period: '.', Comma: ',', Minus: '-', Equal: '=',
-  BracketLeft: '[', BracketRight: ']', Backquote: '`', Slash: '/',
-  Semicolon: ';', Quote: "'",
+  PrintScreen: 'printscreen', Period: '.',
 };
 
 function codeToToken(code: string): string {

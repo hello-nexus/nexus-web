@@ -260,6 +260,7 @@ function canonicalKey(tok: string): string {
     backspace: 'Backspace', delete: 'Delete', del: 'Delete', insert: 'Insert',
     home: 'Home', end: 'End', pageup: 'PageUp', pagedown: 'PageDown',
     up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight',
+    printscreen: 'PrintScreen', '.': 'Period',
   };
   return named[tok] ?? '';
 }

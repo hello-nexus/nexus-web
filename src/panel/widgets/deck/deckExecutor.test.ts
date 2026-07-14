@@ -28,6 +28,13 @@ describe('parseHotkey', () => {
     expect(parseHotkey('')).toBeNull();
     expect(parseHotkey('ctrl+shift')).toBeNull();
   });
+  it('maps the preset punctuation keys the touch presets emit', () => {
+    // Emoji Picker + the screenshot presets - dead on touch panels before these.
+    expect(parseHotkey('meta+.')).toEqual({ key: 'Period', ctrl: false, shift: false, alt: false, meta: true });
+    expect(parseHotkey('printscreen')?.key).toBe('PrintScreen');
+    expect(parseHotkey('meta+printscreen')?.key).toBe('PrintScreen');
+    expect(parseHotkey('alt+printscreen')).toEqual({ key: 'PrintScreen', ctrl: false, shift: false, alt: true, meta: false });
+  });
 });
 
 describe('executeDeckAction → REST', () => {

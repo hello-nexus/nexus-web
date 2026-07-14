@@ -2152,6 +2152,7 @@
   "panel.settings.deck.toggle.state.mute": "Mute",
   "panel.settings.deck.toggle.stateSource": "State source",
   "panel.settings.deck.value": "Value",
+  "panel.settings.deck.volume": "Volume",
   "panel.settings.icon": "Icon",
   "panel.settings.loadingApps": "Loading...",
   "panel.settings.noApps": "No applications found",

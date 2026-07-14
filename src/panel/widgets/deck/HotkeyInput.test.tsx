@@ -38,20 +38,13 @@ describe('HotkeyInput capture', () => {
     expect(onChange).toHaveBeenLastCalledWith('meta+.');
   });
 
-  it('captures the punctuation tokens added for completeness', () => {
+  it('ignores keys no injector can send (unmapped punctuation)', () => {
     const onChange = vi.fn();
     render(<HotkeyInput value="" onChange={onChange} />);
     const field = screen.getByText('panel.settings.deck.hotkeySet');
-    const cases: [string, string][] = [
-      ['Comma', ','], ['Minus', '-'], ['Equal', '='],
-      ['BracketLeft', '['], ['BracketRight', ']'], ['Backquote', '`'],
-      ['Slash', '/'], ['Semicolon', ';'], ['Quote', "'"],
-    ];
-    for (const [code, token] of cases) {
-      fireEvent.click(field);
-      fireEvent.keyDown(field, { code, ctrlKey: true });
-      expect(onChange).toHaveBeenLastCalledWith(`ctrl+${token}`);
-    }
+    fireEvent.click(field);
+    fireEvent.keyDown(field, { code: 'Comma', ctrlKey: true });
+    expect(onChange).not.toHaveBeenCalled();
   });
 
   it('ignores a bare modifier keydown, waiting for the following non-modifier key', () => {

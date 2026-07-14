@@ -1974,6 +1974,7 @@
   "panel.settings.deck.toggle.state.mute": "Звук выключен",
   "panel.settings.deck.toggle.stateSource": "Источник состояния",
   "panel.settings.deck.value": "Значение",
+  "panel.settings.deck.volume": "Громкость",
   "panel.settings.icon": "Значок",
   "panel.settings.loadingApps": "Загрузка...",
   "panel.settings.noApps": "Приложения не найдены",
