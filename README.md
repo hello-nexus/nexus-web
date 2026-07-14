@@ -155,9 +155,11 @@ npm run audit:styles     # style audits (also: audit:css-chunks, audit:text-styl
 - `VITE_SERVICE_HOST` / `VITE_SERVICE_PORT` / `VITE_SERVICE_PROTOCOL` -
   override how the app reaches the local service. Defaults to
   `127.0.0.1:9400`; the embedded build is same-origin.
-- `VITE_API_URL` - cloud API origin. `npm run build:service` bakes in
-  `https://api.hellonexus.com`; set this to point the embedded build at a
-  local/staging API instead.
+- `VITE_API_URL` - cloud API origin override. The compiled-in default is
+  `https://api.hellonexus.com`, so every production build works without it;
+  the committed `.env.development` points `npm run dev` at
+  `http://localhost:3000`. Set it explicitly to target a local/staging API
+  from a build.
 - `VITE_RELAY_URL` - relay origin override for local relay testing.
 - `VITE_LAN_SEALED` - set to `1` to force the LAN-sealed transport (also
   toggleable at runtime via `localStorage['nexus.lanSealed']`). Debug flag.

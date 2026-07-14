@@ -20,7 +20,7 @@ import type {
   AuthLoginResponse, AuthPasswordResponse, AuthRegisterResponse, AuthUsernameResponse,
 } from './authBackend';
 
-const DEFAULT_API = 'http://localhost:3000';
+const DEFAULT_API = 'https://api.hellonexus.com';
 const BASE = import.meta.env.VITE_API_URL ?? DEFAULT_API;
 
 const REFRESH_STORAGE_KEY = 'nexus_direct_refresh_token';

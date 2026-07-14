@@ -1,9 +1,10 @@
 // Thin client for nexus-api's PUBLIC account routes: profile lookup, email
 // verification, and lost-password recovery links. Backs the browser-only
 // surfaces (/u/<username>, /auth/verify, /auth/recover) - reuses
-// nexusApi.ts's base-URL convention (VITE_API_URL with a local-dev default).
+// nexusApi.ts's base-URL convention (production default, VITE_API_URL
+// override).
 
-const DEFAULT_API = 'http://localhost:3000';
+const DEFAULT_API = 'https://api.hellonexus.com';
 const BASE = import.meta.env.VITE_API_URL ?? DEFAULT_API;
 
 export interface PublicAccountAvatar {
