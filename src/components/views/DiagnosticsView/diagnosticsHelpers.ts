@@ -13,6 +13,10 @@ import type {
 } from '../../../api/diagnostics';
 import { localizeNumbers, type NumberFormat } from '../../../lib/units';
 
+// Shown in place of a reading the service sends as null. Deliberately not a
+// locale key: it renders the same in every locale.
+export const UNAVAILABLE = '-';
+
 const STATUS_SEVERITY_RANK: Record<DiagnosticsStatus, number> = { act: 3, watch: 2, unknown: 1, ok: 0 };
 
 /** ok/watch/act/unknown -> the CSS color token the status pill/dot uses. */
