@@ -25,6 +25,7 @@ import { InfoTooltip } from '../components/common/InfoTooltip/InfoTooltip';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { DeviceWarningIcon } from '../components/common/DeviceWarningIcon/DeviceWarningIcon';
 import { NexusControlOffIcon } from '../components/common/NexusControlOffIcon/NexusControlOffIcon';
+import { NexusControlCard } from '../components/common/NexusControlCard/NexusControlCard';
 import { Popover } from '../components/common/Popover/Popover';
 import { DatePicker } from '../components/common/DatePicker/DatePicker';
 import { EffectCard } from '../components/common/EffectCard/EffectCard';
@@ -303,6 +304,11 @@ function PreviewNexusControlOffIcon() {
       </div>
     </div>
   );
+}
+
+function PreviewNexusControlCard() {
+  const [checked, setChecked] = useState(true);
+  return <NexusControlCard checked={checked} onChange={() => setChecked(c => !c)} />;
 }
 
 function PreviewCardDeleteButton() {
@@ -1754,6 +1760,12 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/NexusControlOffIcon/NexusControlOffIcon.tsx',
     description: 'Right-aligned glyph on a sidebar device row when Nexus Control is off for that device (supportsNexusControl true, nexusControlEnabled false). A bare non-focusable icon, same pattern as DeviceWarningIcon.',
     Preview: PreviewNexusControlOffIcon,
+  },
+  {
+    name: 'NexusControlCard', category: 'cards',
+    filePath: 'src/components/common/NexusControlCard/NexusControlCard.tsx',
+    description: 'Label + toggle in a card: the "Nexus Link" on/off switch. Used by the curated-device NexusControlOff full-page gate (DevicePage) and the promoted-monitor panel page (PanelDevicePage), so turning a device or a promoted display off/on reads as the same control everywhere.',
+    Preview: PreviewNexusControlCard,
   },
   {
     name: 'HeartBurst', category: 'status',

@@ -43,6 +43,13 @@
   overflow: hidden;
 }
 
+// Nexus Link toggle: pinned above the tab content so it stays visible across
+// the widgets/theme/settings tabs, not scoped to one of them.
+.nexusLinkRow {
+  flex-shrink: 0;
+  margin-bottom: 0.75rem;
+}
+
 // Preview pane reserves a minimum horizontal slot so the panel canvas
 // never collapses to a sliver. `height: 100%` forces a parent-determined
 // cross-axis size; without it the pane sizes to the iframe's natural

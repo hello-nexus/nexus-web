@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Unplug, Link } from 'lucide-react';
+import { Unplug } from 'lucide-react';
 import { useUnifiedDevices, type UnifiedDevice } from '../../../hooks/useUnifiedDevices';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
@@ -21,7 +21,7 @@ import { Galahad2DevicePage } from './Galahad2DevicePage';
 import { StrimerDevicePage } from './StrimerDevicePage';
 import { TryxDevicePage } from './TryxDevicePage';
 import { StreamDeckDevicePage } from './StreamDeckDevicePage';
-import { Toggle } from '../../common/Toggle/Toggle';
+import { NexusControlCard } from '../../common/NexusControlCard/NexusControlCard';
 import { ConflictAppCard } from '../../common/ConflictAppCard/ConflictAppCard';
 import { ExperimentalBadge } from '../../common/ExperimentalBadge/ExperimentalBadge';
 import { useConflictApps } from '../../../hooks/useConflictApps';
@@ -228,21 +228,6 @@ export function NexusControlOff({ deviceName, conflictAppId, experimental, onEna
         {experimental && <ExperimentalBadge />}
       </div>
     </section>
-  );
-}
-
-/**
- * Label + toggle in a card, matching the DevicesPage device-card control
- * group treatment (same label, same toggle) so the on/off switch reads as
- * the same control wherever it appears.
- */
-function NexusControlCard({ checked, disabled, onChange }: { checked: boolean; disabled?: boolean; onChange: () => void }) {
-  const { t } = useTranslation();
-  return (
-    <div className={styles.controlCard}>
-      <span className={styles.controlLabel}><Link size={13} aria-hidden />{t('devices.nexusControl')}</span>
-      <Toggle checked={checked} disabled={disabled} onChange={onChange} ariaLabel={t('devices.nexusControl')} />
-    </div>
   );
 }
 
