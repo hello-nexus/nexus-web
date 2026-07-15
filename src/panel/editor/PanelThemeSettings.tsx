@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { ColorPickerWithPresets } from '../../components/common/ColorPickerWithPresets/ColorPickerWithPresets';
 import { Tabs } from '../../components/common/Tabs/Tabs';
+import { ChipGroup } from '../../components/common/ChipGroup/ChipGroup';
 import { SettingsSection } from '../../components/common/SettingsSection/SettingsSection';
-import { SettingSlider, SettingToggle } from '../../components/common/SettingRow/SettingRow';
+import { SettingRow, SettingSlider, SettingToggle } from '../../components/common/SettingRow/SettingRow';
 import { useTranslation } from '../../lib/i18n';
 import { DEFAULT_ACCENT, PRESET_ACCENTS, THEME_MODES, type ThemeMode } from '../../lib/settings';
 import type { EffectState } from '../../types/lighting';
+import { PANEL_WIDGET_PADDING_SETTINGS, type PanelWidgetPaddingSetting } from '../engine/grid';
 import {
   PANEL_BACKGROUND_EFFECTS,
   normalizePanelBackgroundEffect,
@@ -51,6 +53,7 @@ export interface PanelThemeSettingsState {
   widgetOpacity: number;
   widgetLabels: boolean;
   widgetBlur: boolean;
+  widgetPadding: PanelWidgetPaddingSetting;
 }
 
 export interface PanelThemeSettingsProps {
@@ -75,6 +78,7 @@ export interface PanelThemeSettingsProps {
   onWidgetOpacityCommit: (opacity: number) => void;
   onWidgetLabelsCommit: (enabled: boolean) => void;
   onWidgetBlurCommit: (enabled: boolean) => void;
+  onWidgetPaddingCommit: (setting: PanelWidgetPaddingSetting) => void;
   /** Show the media background tab. All display-backed surfaces support it; the
    * embedded desktop deck never renders theme backgrounds (PanelApp gates on
    * !embedded || simulator), so desktop hides it. Tunneled panels also hide it:
@@ -120,6 +124,7 @@ export function PanelThemeSettings({
   onWidgetOpacityCommit,
   onWidgetLabelsCommit,
   onWidgetBlurCommit,
+  onWidgetPaddingCommit,
   showMediaTab = false,
   deviceAspect = 9 / 16,
   deviceW,
@@ -137,6 +142,9 @@ export function PanelThemeSettings({
   const backgroundTemplate = normalizePanelBackgroundTemplate(theme.backgroundTemplate);
   const backgroundOpacityPercent = Math.round(theme.backgroundOpacity * 100);
   const widgetOpacityPercent = Math.round(theme.widgetOpacity * 100);
+  const widgetPaddingLabel = label('panel.settings.widgetPadding', 'Widget padding');
+  const widgetPaddingFallback = (setting: PanelWidgetPaddingSetting) =>
+    setting === 'none' ? 'None' : setting === 'small' ? 'Small' : 'Large';
 
   // Options | Effect tab and chip-filter state, owned here (not by the
   // EffectEditor shell) so the preview + tab bars + chips can sit in one
@@ -235,6 +243,19 @@ export function PanelThemeSettings({
               }}
               onCommit={v => onWidgetOpacityCommit(v / 100)}
             />
+          )}
+          {!hideWidgetChromeControls && (
+            <SettingRow label={widgetPaddingLabel}>
+              <ChipGroup
+                ariaLabel={widgetPaddingLabel}
+                activeKey={theme.widgetPadding}
+                onChange={key => onWidgetPaddingCommit(key as PanelWidgetPaddingSetting)}
+                options={PANEL_WIDGET_PADDING_SETTINGS.map(setting => ({
+                  key: setting,
+                  label: label(`panel.settings.widgetPadding.${setting}`, widgetPaddingFallback(setting)),
+                }))}
+              />
+            </SettingRow>
           )}
         </SettingsSection>
       )}

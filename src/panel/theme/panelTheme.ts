@@ -15,6 +15,7 @@ import {
   defaultPanelWidgetBlur,
   defaultPanelWidgetLabels,
   defaultPanelWidgetOpacity,
+  defaultPanelWidgetPadding,
   normalizePanelBackgroundEffect,
   normalizePanelBackgroundMode,
   normalizePanelBackgroundOpacity,
@@ -22,6 +23,7 @@ import {
   normalizePanelWidgetBlur,
   normalizePanelWidgetLabels,
   normalizePanelWidgetOpacity,
+  normalizePanelWidgetPadding,
   panelBackgroundPair,
   panelBackgroundState,
   type PanelBackgroundMode,
@@ -29,6 +31,7 @@ import {
 import { useAnimateTemplates } from '../../hooks/useAnimateTemplates';
 import { saveAnimateTemplates } from '../../api/lighting';
 import type { EffectState } from '../../types/lighting';
+import type { PanelWidgetPaddingSetting } from '../engine/grid';
 import type { PanelThemeSettingsState, ResolvedPanelThemeMode } from '../editor/PanelThemeSettings';
 import { isSingleWidgetSurface, type PanelSurface } from '../types';
 
@@ -175,6 +178,7 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
     widgetOpacity: defaultPanelWidgetOpacity(),
     widgetLabels: defaultPanelWidgetLabels(),
     widgetBlur: defaultPanelWidgetBlur(),
+    widgetPadding: defaultPanelWidgetPadding(),
   });
   const resolvedMode = useResolvedPanelThemeMode(
     // In sync mode prefer the desktop's *resolved* theme (concrete dark/light,
@@ -255,6 +259,7 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
         widgetOpacity: r?.widgetOpacity == null && single ? 0 : normalizePanelWidgetOpacity(r?.widgetOpacity),
         widgetLabels: normalizePanelWidgetLabels(r?.widgetLabels),
         widgetBlur: normalizePanelWidgetBlur(r?.widgetBlur),
+        widgetPadding: r?.widgetPadding == null && single ? 'none' : normalizePanelWidgetPadding(r?.widgetPadding),
       });
     }).catch(() => { /* keep local theme */ });
   }, [enabled, deviceId]);
@@ -399,6 +404,12 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
     persistPatch({ widgetBlur: next });
   }, [persistPatch]);
 
+  const commitWidgetPadding = useCallback((setting: PanelWidgetPaddingSetting) => {
+    const next = normalizePanelWidgetPadding(setting);
+    setTheme(prev => ({ ...prev, widgetPadding: next }));
+    persistPatch({ widgetPadding: next });
+  }, [persistPatch]);
+
   // The background's live render state: a draft while editing, else the global
   // preset slot for the per-panel selection.
   const backgroundEffectState = draftBackgroundState
@@ -433,5 +444,6 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
     commitWidgetOpacity,
     commitWidgetLabels,
     commitWidgetBlur,
+    commitWidgetPadding,
   };
 }

@@ -87,14 +87,17 @@ export function useRuntimePanelGrid(
   rootRef?: RefObject<HTMLElement | null>,
   simulator = false,
   deviceDpi?: number,
+  // Widget-padding ratio (panelWidgetPaddingRatio of the theme setting).
+  // Defaults to 0 for callers that don't have a theme in scope.
+  widgetPaddingRatio = 0,
 ): PanelGridCapacity {
   // Initialise from the surface without touching `rootRef` (no ref reads
   // during render). The effect below re-reads with the mounted root on first
   // paint.
-  const [metrics, setMetrics] = useState(() => readRuntimePanelGrid(surface, null, simulator, deviceDpi));
+  const [metrics, setMetrics] = useState(() => readRuntimePanelGrid(surface, null, simulator, deviceDpi, widgetPaddingRatio));
 
   useEffect(() => {
-    const update = () => setMetrics(readRuntimePanelGrid(surface, rootRef?.current ?? null, simulator, deviceDpi));
+    const update = () => setMetrics(readRuntimePanelGrid(surface, rootRef?.current ?? null, simulator, deviceDpi, widgetPaddingRatio));
     update();
     const observed = rootRef?.current ?? null;
     const observer = observed && typeof ResizeObserver !== 'undefined'
@@ -112,7 +115,7 @@ export function useRuntimePanelGrid(
       window.removeEventListener(PANEL_SIMULATION_CHANGED_EVENT, update);
       observer?.disconnect();
     };
-  }, [surface, rootRef, simulator, deviceDpi]);
+  }, [surface, rootRef, simulator, deviceDpi, widgetPaddingRatio]);
 
   return metrics;
 }
@@ -122,24 +125,36 @@ export function useRuntimePanelGrid(
 // runtime measures: native px on a kiosk (css x dpr), CSS px in the simulator
 // (the parent divides by the device DPR before passing it). Absent, density
 // falls back to the per-surface estimate.
-export function readRuntimePanelGrid(surface: PanelSurface, root?: HTMLElement | null, simulator = false, deviceDpi?: number): PanelGridCapacity {
+export function readRuntimePanelGrid(
+  surface: PanelSurface,
+  root?: HTMLElement | null,
+  simulator = false,
+  deviceDpi?: number,
+  widgetPaddingRatio = 0,
+): PanelGridCapacity {
   if (typeof window === 'undefined') {
     return panelGridCapacityForCanvas(682, 2560, {
       surface,
       dpi: deviceDpi ?? DEFAULT_SURFACE_DPI[surface],
       sizing: getPanelGridSizingSettings(),
+      paddingRatio: widgetPaddingRatio,
     });
   }
 
   if (surface === 'desktop') {
     // Desktop dashboard uses a fixed cell size so window resize doesn't
-    // rescale widgets; the grid clips past its container instead.
+    // rescale widgets; the grid clips past its container instead. The cell
+    // isn't canvas-derived, so gap is solved directly against it rather than
+    // via resolvePanelSpacing; page padding stays 0 (the embedded grid sits
+    // inside the shared .content wrapper, which already insets it).
     return {
       columns: DESKTOP_GRID_COLUMNS,
       rows: DESKTOP_GRID_ROWS,
       cellSize: DESKTOP_GRID_REFERENCE_CELL,
       rowSize: DESKTOP_GRID_REFERENCE_CELL,
       contentScale: DESKTOP_GRID_REFERENCE_CELL,
+      gap: widgetPaddingRatio * DESKTOP_GRID_REFERENCE_CELL,
+      padding: 0,
     };
   }
 
@@ -161,13 +176,20 @@ export function readRuntimePanelGrid(surface: PanelSurface, root?: HTMLElement |
     surface,
     dpi: deviceDpi ?? estimateRuntimePanelDpi(surface),
     sizing: getPanelGridSizingSettings(),
+    paddingRatio: widgetPaddingRatio,
   });
   // Column/row counts are decided in physical px (density), but contentScale
-  // drives --panel-scale, a CSS transform, so it must be CSS px. At >100%
-  // Windows scaling the CSS viewport shrinks while physical px stays, so a
-  // physical-based scale renders widget content ~dpr times too large. No-op at
-  // 100% (dpr 1) and for the simulator (dpr forced to 1 above).
-  return { ...capacity, contentScale: capacity.contentScale / dpr };
+  // (and gap/padding, injected as CSS custom properties) drive CSS lengths,
+  // so they must be CSS px. At >100% Windows scaling the CSS viewport shrinks
+  // while physical px stays, so a physical-based value renders ~dpr times too
+  // large. No-op at 100% (dpr 1) and for the simulator (dpr forced to 1
+  // above).
+  return {
+    ...capacity,
+    contentScale: capacity.contentScale / dpr,
+    gap: capacity.gap / dpr,
+    padding: capacity.padding / dpr,
+  };
 }
 
 export function estimateRuntimePanelDpi(surface: PanelSurface): number {

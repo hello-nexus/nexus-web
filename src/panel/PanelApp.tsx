@@ -23,7 +23,7 @@ import { PANEL_CONTEXT_MENU_TRIGGER_MS, usePanelTouchMode } from './engine/usePa
 import { useLongPress } from './engine/useLongPress';
 import { usePanelTextSelectionGuard } from './engine/usePanelTextSelectionGuard';
 import { usePanelViewportLock } from './engine/usePanelViewportLock';
-import { sizeToSpan } from './engine/grid';
+import { panelWidgetPaddingRatio, sizeToSpan } from './engine/grid';
 import { repaginatePanelLayout, type PaginateCapacity } from './engine/paginate';
 import {
   allCellsForPage,
@@ -281,7 +281,7 @@ export function PanelContent({
   const baseTheme = simulator && simulatorTheme ? simulatorTheme : panelTheme.theme;
   const effectiveTheme = useMemo(
     () => isSingleWidgetSurface(surface)
-      ? { ...baseTheme, widgetLabels: false, widgetBlur: false, widgetOpacity: 0 }
+      ? { ...baseTheme, widgetLabels: false, widgetBlur: false, widgetOpacity: 0, widgetPadding: 'none' as const }
       : baseTheme,
     [baseTheme, surface],
   );
@@ -409,7 +409,8 @@ export function PanelContent({
   // inside the iframe like on a real touch surface.
   usePanelTextSelectionGuard(rootRef, !embedded || simulator);
   usePhoneContentScale(surface === 'phone' && loaded, rootRef);
-  const runtimeGrid = useRuntimePanelGrid(surface, rootRef, simulator, deviceDpi);
+  const widgetPaddingRatio = panelWidgetPaddingRatio(effectiveTheme.widgetPadding);
+  const runtimeGrid = useRuntimePanelGrid(surface, rootRef, simulator, deviceDpi, widgetPaddingRatio);
   // WebKit (Safari / macOS WKWebView) miscomputes the tokens.scss
   // tan(atan2(cell, 90px)) length-ratio used for --panel-scale, returning a
   // negative number that flips every --panel-scale-driven element 180deg
@@ -446,6 +447,11 @@ export function PanelContent({
       '--panel-background-solid': panelSolidColor,
       '--panel-columns': runtimeGrid.columns,
       '--panel-rows': runtimeGrid.rows,
+      // Feeds --panel-gap / --panel-page-padding (tokens.scss, per-surface
+      // blocks) via var(), so panelGridCapacityForCanvas's resolved value and
+      // the CSS-rendered gap/padding always agree - it is a plain px length,
+      // never itself derived from --panel-gap, so no cyclic var() chain.
+      '--panel-widget-padding': `${runtimeGrid.gap}px`,
       ...(webkitSafePanelScale != null ? { '--panel-scale': webkitSafePanelScale } : {}),
       ...(surface === 'desktop' ? {
         '--panel-cell-size': `${runtimeGrid.cellSize}px`,
@@ -461,6 +467,7 @@ export function PanelContent({
       runtimeGrid.cellSize,
       runtimeGrid.columns,
       runtimeGrid.contentScale,
+      runtimeGrid.gap,
       runtimeGrid.rowSize,
       runtimeGrid.rows,
       surface,
@@ -1634,6 +1641,7 @@ export function PanelContent({
           onThemeWidgetOpacityCommit={panelTheme.commitWidgetOpacity}
           onThemeWidgetLabelsCommit={panelTheme.commitWidgetLabels}
           onThemeWidgetBlurCommit={panelTheme.commitWidgetBlur}
+          onThemeWidgetPaddingCommit={panelTheme.commitWidgetPadding}
           machineName={machineName}
           showHostName={connectionIdentityVisible}
           onMachineNameCommit={onMachineNameCommit}

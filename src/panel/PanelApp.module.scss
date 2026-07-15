@@ -372,10 +372,10 @@
   --panel-cell-size: calc((100vw - var(--panel-page-padding-left) - var(--panel-page-padding-right) - (var(--panel-columns) - 1) * var(--panel-gap)) / var(--panel-columns));
   // Per-card horizontal margin stays 0: the page padding is the only inset.
   --panel-widget-card-margin-x: 0px;
-  --panel-page-padding-top: 8px;
-  --panel-page-padding-right: 8px;
-  --panel-page-padding-bottom: 8px;
-  --panel-page-padding-left: 8px;
+  --panel-page-padding-top: var(--panel-widget-padding, 8px);
+  --panel-page-padding-right: var(--panel-widget-padding, 8px);
+  --panel-page-padding-bottom: var(--panel-widget-padding, 8px);
+  --panel-page-padding-left: var(--panel-widget-padding, 8px);
   // Fit all --panel-rows into the canvas height. Without this the grid falls
   // back to square rows (grid-auto-rows: --panel-cell-size); at 16 rows that's
   // taller than the panel, so the bottom rows clip off-screen and read as if
@@ -405,14 +405,17 @@
 .panelRoot[data-surface='phone'] {
   --panel-columns: 4;
   --panel-rows: 4;
-  --panel-gap: 8px;
+  --panel-gap: var(--panel-widget-padding, 8px);
   --panel-widget-scale: 1;
   --panel-card-radius: var(--radius-lg);
   --panel-actions-height: 58px;
-  --panel-safe-top: max(8px, env(safe-area-inset-top));
-  --panel-safe-right: max(8px, env(safe-area-inset-right));
-  --panel-safe-bottom: max(8px, env(safe-area-inset-bottom));
-  --panel-safe-left: max(8px, env(safe-area-inset-left));
+  // The device notch/rounded-corner inset always wins over a smaller resolved
+  // padding; a larger resolved padding (the "large" setting) still grows past
+  // it.
+  --panel-safe-top: max(var(--panel-widget-padding, 8px), env(safe-area-inset-top));
+  --panel-safe-right: max(var(--panel-widget-padding, 8px), env(safe-area-inset-right));
+  --panel-safe-bottom: max(var(--panel-widget-padding, 8px), env(safe-area-inset-bottom));
+  --panel-safe-left: max(var(--panel-widget-padding, 8px), env(safe-area-inset-left));
   --panel-page-padding: var(--panel-safe-left);
   --panel-page-padding-top: var(--panel-safe-top);
   --panel-page-padding-right: var(--panel-safe-right);
@@ -570,12 +573,12 @@
 // content proportions identical to the catalog card previews.
 @media (max-width: 800px) and (min-height: 1500px) {
   .panelRoot {
-    --panel-gap: 8px;
-    --panel-page-padding: 8px;
-    --panel-page-padding-top: 8px;
-    --panel-page-padding-right: 8px;
-    --panel-page-padding-bottom: 8px;
-    --panel-page-padding-left: 8px;
+    --panel-gap: var(--panel-widget-padding, 8px);
+    --panel-page-padding: var(--panel-widget-padding, 8px);
+    --panel-page-padding-top: var(--panel-widget-padding, 8px);
+    --panel-page-padding-right: var(--panel-widget-padding, 8px);
+    --panel-page-padding-bottom: var(--panel-widget-padding, 8px);
+    --panel-page-padding-left: var(--panel-widget-padding, 8px);
     --panel-widget-card-margin-x: 0px;
     --panel-cell-size: calc((100vw - var(--panel-page-padding-left) - var(--panel-page-padding-right) - (var(--panel-columns) - 1) * var(--panel-gap)) / var(--panel-columns));
   }

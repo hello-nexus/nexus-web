@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { panelGridCapacityForCanvas, panelPhysicalSize, sizeToSpan, snapStride, PANEL_GRID_COLS } from './grid';
+import {
+  panelGridCapacityForCanvas,
+  panelPhysicalSize,
+  panelWidgetPaddingRatio,
+  resolvePanelSpacing,
+  sizeToSpan,
+  snapStride,
+  PANEL_GRID_COLS,
+} from './grid';
 
 describe('sizeToSpan', () => {
   it('maps all widget sizes correctly', () => {
@@ -110,5 +118,64 @@ describe('snapStride', () => {
     expect(snapStride(2)).toBe(2);
     expect(snapStride(4)).toBe(2);
     expect(snapStride(8)).toBe(2);
+  });
+});
+
+describe('resolvePanelSpacing', () => {
+  it('solves gap = padding = ratio * cellSize exactly, satisfying the perimeter equation', () => {
+    for (const [extent, count, ratio] of [[734, 4, 0.045], [2560, 14, 0.079], [1206, 8, 0.045]] as const) {
+      const { gap, padding, cellSize } = resolvePanelSpacing(extent, count, ratio);
+      expect(padding).toBe(gap);
+      expect(gap).toBeCloseTo(ratio * cellSize, 10);
+      // count cells + (count - 1) internal gaps + 2 outer paddings reconstructs extent.
+      expect(count * cellSize + (count - 1) * gap + 2 * padding).toBeCloseTo(extent, 6);
+    }
+  });
+
+  it('collapses to zero gap/padding at ratio 0', () => {
+    expect(resolvePanelSpacing(1000, 4, 0)).toEqual({ gap: 0, padding: 0, cellSize: 250 });
+  });
+});
+
+describe('panelGridCapacityForCanvas paddingRatio', () => {
+  it('keeps gap/padding at the flat 8/8 default when paddingRatio is omitted (backward compatible)', () => {
+    const cap = panelGridCapacityForCanvas(734, 2560, { surface: 'y70', dpi: 337 });
+    expect(cap.gap).toBe(8);
+    expect(cap.padding).toBe(8);
+  });
+
+  it('resolves gap/padding to the same proportion of the cell on every surface at a given ratio', () => {
+    const small = panelWidgetPaddingRatio('small');
+    const large = panelWidgetPaddingRatio('large');
+    expect(small).toBeCloseTo(0.045, 5);
+    expect(large).toBeCloseTo(0.079, 5);
+
+    // Ground-truth device canvases from the panel gap/padding proportionality
+    // work: two y70 panel resolutions, the Xeneon Edge (a 'monitor' surface),
+    // and a tablet-class phone. Widely different cell sizes; gap/cellSize
+    // must land on the same ratio for every one.
+    const devices: { width: number; height: number; surface: 'y70' | 'monitor' | 'phone'; dpi: number }[] = [
+      { width: 734, height: 2560, surface: 'y70', dpi: 337 },
+      { width: 1100, height: 3840, surface: 'y70', dpi: 337 },
+      { width: 2560, height: 720, surface: 'monitor', dpi: 183 },
+      { width: 1206, height: 2622, surface: 'phone', dpi: 460 },
+    ];
+    for (const { width, height, surface, dpi } of devices) {
+      for (const ratio of [small, large]) {
+        const cap = panelGridCapacityForCanvas(width, height, { surface, dpi, paddingRatio: ratio });
+        expect(cap.gap / cap.cellSize).toBeCloseTo(ratio, 5);
+        expect(cap.padding).toBe(cap.gap);
+      }
+    }
+  });
+
+  it('forces q60 (a single-widget surface) to zero gap/padding regardless of the ratio', () => {
+    const large = panelWidgetPaddingRatio('large');
+    const cap = panelGridCapacityForCanvas(720, 1280, { surface: 'q60', dpi: 220, paddingRatio: large });
+    expect(cap.gap).toBe(0);
+    expect(cap.padding).toBe(0);
+    // Fully edge-to-edge: with zero gap/padding the 2-column cell is exactly
+    // half the canvas width, unaffected by the nonzero widget-padding setting.
+    expect(cap.cellSize).toBe(360);
   });
 });

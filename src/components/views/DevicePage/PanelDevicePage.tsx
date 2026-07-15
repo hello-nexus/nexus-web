@@ -14,7 +14,8 @@ import {
   tryResizeWidget,
 } from '../../../panel/engine/panelLayoutOps';
 import { DEFAULT_SURFACE_DPI, MAX_PANEL_PAGES } from '../../../panel/engine/panelGrid';
-import { panelGridCapacityForCanvas } from '../../../panel/engine/grid';
+import { panelGridCapacityForCanvas, panelWidgetPaddingRatio } from '../../../panel/engine/grid';
+import { normalizePanelWidgetPadding } from '../../../panel/background/panelBackground';
 import { normalizePanelLayout } from '../../../panel/engine/usePanelLayout';
 import { repaginatePanelLayout } from '../../../panel/engine/paginate';
 import { simulatedPanelEditorCapacity } from '../../../panel/embed/simulatedPanelViewport';
@@ -284,6 +285,10 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // per-surface grids.
   const editorCapacity = useMemo(() => {
     if (surface === 'q60') return { gridCols: 2, pageRows: 4 };
+    // Row counts on gap-derived surfaces (below) must resolve against the
+    // same ratio the live grid renders with, or the editor allows placements
+    // the device can't actually fit (or clamps ones it could).
+    const paddingRatio = panelWidgetPaddingRatio(normalizePanelWidgetPadding(theme.widgetPadding));
     const monitorCanvas = surface === 'monitor' ? (liveCanvas ?? device?.previewSize) : undefined;
     if (surface === 'monitor' && monitorCanvas) {
       // Physical px = canvas x dpr. liveCanvas and a real record's
@@ -299,6 +304,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
           // The kiosk's readRuntimePanelGrid honors the dev sizing knob;
           // omitting it here diverges the editor grid whenever it is set.
           sizing: getPanelGridSizingSettings(),
+          paddingRatio,
         },
       );
       return { gridCols: capacity.columns, pageRows: capacity.rows };
@@ -316,10 +322,11 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
         device.previewSize.width,
         device.previewSize.height,
         device.previewDpi,
+        paddingRatio,
       );
     }
     return { gridCols: 4, pageRows: 16 };
-  }, [surface, liveCanvas, liveDpr, liveDpi, device?.previewSize, device?.previewDpi, device?.previewDpr]);
+  }, [surface, liveCanvas, liveDpr, liveDpi, device?.previewSize, device?.previewDpi, device?.previewDpr, theme.widgetPadding]);
 
   // True when editorCapacity reflects the device's real grid rather than a
   // fallback guess. q60/y70 fixed grids ARE the runtime grid; monitor is
@@ -607,6 +614,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         onWidgetOpacityCommit={panelTheme.commitWidgetOpacity}
                         onWidgetLabelsCommit={panelTheme.commitWidgetLabels}
                         onWidgetBlurCommit={panelTheme.commitWidgetBlur}
+                        onWidgetPaddingCommit={panelTheme.commitWidgetPadding}
                         showMediaTab={surface !== 'desktop'}
                         deviceAspect={devAspect}
                         deviceW={nativeW}

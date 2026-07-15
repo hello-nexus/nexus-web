@@ -1,4 +1,5 @@
 import {
+  isSingleWidgetSurface,
   normalizePanelWidgetSize,
   type PanelSurface,
   type PanelWidgetSize,
@@ -18,18 +19,60 @@ export const PANEL_GRID_GAP = 8;
 export const PANEL_GRID_PREVIEW_PADDING = 8;
 export const DEFAULT_PANEL_GRID_SHORT_SIDE_JUMP_INCHES = 4;
 
+// The Theme "Widget padding" control. Gap and page padding are both solved
+// as this fraction of the resolved cell size (resolvePanelSpacing), so the
+// inset reads as the same proportion of a widget on every device instead of
+// a flat px value that reads thicker on a small cell and thinner on a large
+// one. 'small' reproduces the panel's original y70 look; 'large' is a
+// user-facing bump on top of it.
+export const PANEL_WIDGET_PADDING_SETTINGS = ['none', 'small', 'large'] as const;
+export type PanelWidgetPaddingSetting = typeof PANEL_WIDGET_PADDING_SETTINGS[number];
+
+export const PANEL_WIDGET_PADDING_RATIOS: Readonly<Record<PanelWidgetPaddingSetting, number>> = {
+  none: 0,
+  small: 0.045,
+  large: 0.079,
+};
+
+export function panelWidgetPaddingRatio(setting: PanelWidgetPaddingSetting): number {
+  return PANEL_WIDGET_PADDING_RATIOS[setting];
+}
+
 export interface PanelGridCapacity {
   columns: number;
   rows: number;
   cellSize: number;
   rowSize: number;
   contentScale: number;
+  gap: number;
+  padding: number;
 }
 
 export interface GridSpan { cols: number; rows: number; }
 
 export interface PanelGridSizing {
   shortSideJumpAtInches?: number;
+}
+
+export interface PanelSpacing {
+  gap: number;
+  padding: number;
+  cellSize: number;
+}
+
+// Solves gap = padding = ratio * cellSize directly from the extent and cell
+// count, avoiding the circular CSS dependency a var()-chain formula would hit
+// (gap needs cellSize, cellSize needs gap). `extent = count * cellSize +
+// (count + 1) * gap` (the (count - 1) internal gaps plus 2 outer paddings)
+// substituted with gap = ratio * cellSize solves to this closed form directly
+// - no iteration.
+export function resolvePanelSpacing(extent: number, count: number, ratio: number): PanelSpacing {
+  const safeExtent = Math.max(1, extent);
+  const safeCount = Math.max(1, count);
+  const safeRatio = Math.max(0, ratio);
+  const cellSize = safeExtent / (safeCount + safeRatio * (safeCount + 1));
+  const gap = safeRatio * cellSize;
+  return { gap, padding: gap, cellSize };
 }
 
 export function sizeToSpan(size: PanelWidgetSize | string): GridSpan {
@@ -71,6 +114,7 @@ export function panelGridCapacityForCanvas(
     rows,
     gap = PANEL_GRID_GAP,
     padding = PANEL_GRID_PREVIEW_PADDING,
+    paddingRatio,
   }: {
     surface?: PanelSurface;
     dpi?: number;
@@ -79,6 +123,11 @@ export function panelGridCapacityForCanvas(
     rows?: number;
     gap?: number;
     padding?: number;
+    // When set, gap/padding are solved via resolvePanelSpacing instead of
+    // using the gap/padding arguments directly. Forced to 0 on a
+    // single-widget surface (q60) regardless of the value passed in - any
+    // inset there reads as a border around the one tile.
+    paddingRatio?: number;
   } = {},
 ): PanelGridCapacity {
   const defaultColumns = surface === 'q60'
@@ -90,14 +139,31 @@ export function panelGridCapacityForCanvas(
       ? PANEL_Y70_PORTRAIT_ROWS
       : undefined;
   const fixedRows = rows ?? defaultRows;
-  const safeGap = Math.max(0, gap);
-  const safePadding = Math.max(0, padding);
   const canvasW = Math.max(1, width);
   const canvasH = Math.max(1, height);
+  const resolvedPaddingRatio = paddingRatio === undefined
+    ? undefined
+    : isSingleWidgetSurface(surface) ? 0 : paddingRatio;
 
   // Phone + promoted-monitor surfaces are fully responsive: in landscape the
   // short-axis capacity becomes rows and columns derive from the wider axis.
-  if ((surface === 'phone' || surface === 'monitor') && canvasW > canvasH && columns === undefined && fixedRows == null) {
+  const isPhoneLandscape = (surface === 'phone' || surface === 'monitor')
+    && canvasW > canvasH && columns === undefined && fixedRows == null;
+
+  let safeGap: number;
+  let safePadding: number;
+  if (resolvedPaddingRatio === undefined) {
+    safeGap = Math.max(0, gap);
+    safePadding = Math.max(0, padding);
+  } else {
+    const spacing = isPhoneLandscape
+      ? resolvePanelSpacing(canvasH, toEvenRound(defaultColumns), resolvedPaddingRatio)
+      : resolvePanelSpacing(canvasW, toEvenRound(columns ?? defaultColumns), resolvedPaddingRatio);
+    safeGap = spacing.gap;
+    safePadding = spacing.padding;
+  }
+
+  if (isPhoneLandscape) {
     return phoneLandscapeGridCapacityForCanvas(canvasW, canvasH, defaultColumns, safeGap, safePadding);
   }
 
@@ -122,6 +188,8 @@ export function panelGridCapacityForCanvas(
     // short rows don't shrink widget content; the cellScaler CSS override handles
     // the non-square card height per-surface.
     contentScale: cellSize,
+    gap: safeGap,
+    padding: safePadding,
   };
 }
 
@@ -144,6 +212,8 @@ function phoneLandscapeGridCapacityForCanvas(
     cellSize: rowSize,
     rowSize,
     contentScale: rowSize,
+    gap: safeGap,
+    padding: safePadding,
   };
 }
 
