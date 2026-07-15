@@ -637,8 +637,6 @@
   "devices.xeneonEdge.contrast": "Kontrast",
   "devices.xeneonEdge.green": "Yeşil",
   "devices.xeneonEdge.red": "Kırmızı",
-  "devices.xeneonEdge.restoreColors": "Varsayılan renkleri geri yükle",
-  "devices.xeneonEdge.restoreColorsHint": "Kırmızı, yeşil ve maviyi panelin fabrika renklerine sıfırlar. Parlaklık, arka ışık ve kontrast etkilenmez.",
   "devices.y70.brightness": "Parlaklik",
   "devices.y70.display": "Ekran",
   "devices.y70.editor.addWidget": "Widget Ekle",
@@ -2940,5 +2938,7 @@
   "devices.streamdeck.import.reason.media": "Bu medya kontrolü desteklenmiyor",
   "devices.streamdeck.import.reason.multiStep": "Bu çoklu eylem adımı desteklenmiyor",
   "devices.streamdeck.import.reason.encoder": "Döner düğme eylemleri desteklenmiyor",
-  "devices.streamdeck.import.reason.pageLimit": "Atlandı: en fazla sayfa sayısını aşıyor"
+  "devices.streamdeck.import.reason.pageLimit": "Atlandı: en fazla sayfa sayısını aşıyor",
+  "devices.xeneonEdge.restoreDefaults": "Varsayılanları geri yükle",
+  "devices.xeneonEdge.restoreDefaultsHint": "Parlaklığı, arka ışığı, kontrastı ve kırmızı, yeşil, mavi değerlerini panelin fabrika ayarlarına sıfırlar."
 }

@@ -28,7 +28,7 @@ import {
   fetchXeneonEdgeSettings,
   launchTouchSetupWizard,
   repairTouchMapping,
-  restoreXeneonEdgeColors,
+  restoreXeneonEdgeDefaults,
   rotateDisplay,
   setDisplayBrightness,
   setXeneonEdgeSettings,
@@ -395,14 +395,17 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     void setXeneonEdgeSettings(device.displayId, xeneonEdgePatchFor(key, value)).catch(() => {});
   };
 
-  const restoreXeneonColors = async () => {
+  const restoreXeneonDefaults = async () => {
     if (!device?.displayId) return;
     setRestoringXeneonColors(true);
     try {
-      const result = await restoreXeneonEdgeColors(device.displayId);
+      const result = await restoreXeneonEdgeDefaults(device.displayId).catch(() => null);
       if (!result) return;
+      // The restore covers all six, so every field comes back set.
       setXeneonSettings(prev => (prev ? {
-        ...prev,
+        brightness: result.brightness ?? prev.brightness,
+        backlight: result.backlight ?? prev.backlight,
+        contrast: result.contrast ?? prev.contrast,
         red: result.red ?? prev.red,
         green: result.green ?? prev.green,
         blue: result.blue ?? prev.blue,
@@ -795,7 +798,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                       xeneonSettings={isXeneonEdgePanel ? xeneonSettings : null}
                       onXeneonChange={previewXeneonControl}
                       onXeneonCommit={commitXeneonControl}
-                      onRestoreXeneonColors={() => void restoreXeneonColors()}
+                      onRestoreXeneonColors={() => void restoreXeneonDefaults()}
                       restoringXeneonColors={restoringXeneonColors}
                     />
                   )}
@@ -1186,6 +1189,10 @@ function MonitorSettingsPanel({
           value={xeneonSettings[key]}
           min={min}
           max={max}
+          // A restore is a serialized HID round-trip per control (no
+          // server-side coalescing) and rewrites all six, so block a
+          // concurrent drag on any field it is about to overwrite.
+          disabled={restoringXeneonColors}
           onChange={(value, commit) => {
             onXeneonChange(key, value);
             if (commit) onXeneonCommit(key, value);
@@ -1193,22 +1200,6 @@ function MonitorSettingsPanel({
           onCommit={(value) => onXeneonCommit(key, value)}
         />
       ))}
-      {xeneonSettings !== null && (
-        <SettingRow
-          label={t('devices.xeneonEdge.restoreColors')}
-          description={t('devices.xeneonEdge.restoreColorsHint')}
-        >
-          <Button
-            type="button"
-            tone="neutral"
-            size="sm"
-            loading={restoringXeneonColors}
-            onClick={onRestoreXeneonColors}
-          >
-            {t('devices.xeneonEdge.restoreColors')}
-          </Button>
-        </SettingRow>
-      )}
       {autoOrient !== null && (
         <SettingToggle
           label={t('devices.xeneonEdge.autoOrient')}
@@ -1230,6 +1221,22 @@ function MonitorSettingsPanel({
           checked={reserveMonitor}
           onChange={onReserveMonitorToggle}
         />
+      )}
+      {xeneonSettings !== null && (
+        <SettingRow
+          label={t('devices.xeneonEdge.restoreDefaults')}
+          description={t('devices.xeneonEdge.restoreDefaultsHint')}
+        >
+          <Button
+            type="button"
+            tone="neutral"
+            size="sm"
+            loading={restoringXeneonColors}
+            onClick={onRestoreXeneonColors}
+          >
+            {t('devices.xeneonEdge.restoreDefaults')}
+          </Button>
+        </SettingRow>
       )}
       </SettingsSection>
     </div>

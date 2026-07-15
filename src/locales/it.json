@@ -637,8 +637,6 @@
   "devices.xeneonEdge.contrast": "Contrasto",
   "devices.xeneonEdge.green": "Verde",
   "devices.xeneonEdge.red": "Rosso",
-  "devices.xeneonEdge.restoreColors": "Ripristina colori predefiniti",
-  "devices.xeneonEdge.restoreColorsHint": "Ripristina rosso, verde e blu ai colori di fabbrica del pannello. Luminosità, retroilluminazione e contrasto non vengono modificati.",
   "devices.y70.brightness": "Luminosità",
   "devices.y70.display": "Display",
   "devices.y70.editor.addWidget": "Aggiungi widget",
@@ -2940,5 +2938,7 @@
   "devices.streamdeck.import.reason.media": "Questo controllo multimediale non è supportato",
   "devices.streamdeck.import.reason.multiStep": "Questo passaggio multi-azione non è supportato",
   "devices.streamdeck.import.reason.encoder": "Le azioni della manopola non sono supportate",
-  "devices.streamdeck.import.reason.pageLimit": "Saltata: supera il numero massimo di pagine"
+  "devices.streamdeck.import.reason.pageLimit": "Saltata: supera il numero massimo di pagine",
+  "devices.xeneonEdge.restoreDefaults": "Ripristina valori predefiniti",
+  "devices.xeneonEdge.restoreDefaultsHint": "Reimposta luminosità, retroilluminazione, contrasto e i valori di rosso, verde e blu sulle impostazioni di fabbrica del pannello."
 }

@@ -637,8 +637,6 @@
   "devices.xeneonEdge.contrast": "Contraste",
   "devices.xeneonEdge.green": "Verde",
   "devices.xeneonEdge.red": "Vermelho",
-  "devices.xeneonEdge.restoreColors": "Restaurar cores padrão",
-  "devices.xeneonEdge.restoreColorsHint": "Restaura o vermelho, o verde e o azul para as cores de fábrica do painel. O brilho, a retroiluminação e o contraste não são afetados.",
   "devices.y70.brightness": "Brilho",
   "devices.y70.display": "Tela",
   "devices.y70.editor.addWidget": "Adicionar Widget",
@@ -2940,5 +2938,7 @@
   "devices.streamdeck.import.reason.media": "Este controle de mídia não é compatível",
   "devices.streamdeck.import.reason.multiStep": "Esta etapa de ação múltipla não é compatível",
   "devices.streamdeck.import.reason.encoder": "Ações de dial não são compatíveis",
-  "devices.streamdeck.import.reason.pageLimit": "Ignorada: excede o número máximo de páginas"
+  "devices.streamdeck.import.reason.pageLimit": "Ignorada: excede o número máximo de páginas",
+  "devices.xeneonEdge.restoreDefaults": "Restaurar padrões",
+  "devices.xeneonEdge.restoreDefaultsHint": "Redefine brilho, luz de fundo, contraste e os valores de vermelho, verde e azul para os ajustes de fábrica do painel."
 }

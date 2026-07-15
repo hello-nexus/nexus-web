@@ -646,8 +646,6 @@
   "devices.xeneonEdge.contrast": "Contrast",
   "devices.xeneonEdge.green": "Vert",
   "devices.xeneonEdge.red": "Ros",
-  "devices.xeneonEdge.restoreColors": "Ripristine i colôrs predefinîts",
-  "devices.xeneonEdge.restoreColorsHint": "Al ripristine il ros, il vert e il blu ai colôrs di fabriche dal panel. Luminositât, retroiluminazion e contrast no vegnin tocjâts.",
   "devices.y70.brightness": "Luminositât",
   "devices.y70.display": "Display",
   "devices.y70.editor.addWidget": "Zonte widget",
@@ -2940,5 +2938,7 @@
   "devices.streamdeck.import.reason.media": "Chest control multimedial nol è supuartât",
   "devices.streamdeck.import.reason.multiStep": "Chest passaç di azion multiple nol è supuartât",
   "devices.streamdeck.import.reason.encoder": "Lis azions di rotele no son supuartadis",
-  "devices.streamdeck.import.reason.pageLimit": "Salte: al supere il numar massim di pagjinis"
+  "devices.streamdeck.import.reason.pageLimit": "Salte: al supere il numar massim di pagjinis",
+  "devices.xeneonEdge.restoreDefaults": "Ripristine i valôrs predefinîts",
+  "devices.xeneonEdge.restoreDefaultsHint": "Al torne a meti luminositât, retroiluminazion, contrast e ros, vert e blu sui valôrs di fabriche dal panel."
 }

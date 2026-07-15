@@ -10,7 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const fetchPanelDevicesMock = vi.fn();
 const fetchXeneonEdgeSettingsMock = vi.fn();
 const setXeneonEdgeSettingsMock = vi.fn();
-const restoreXeneonEdgeColorsMock = vi.fn();
+const restoreXeneonEdgeDefaultsMock = vi.fn();
 
 vi.mock('../../../api/service', () => ({
   fetchService: vi.fn().mockResolvedValue(null),
@@ -29,7 +29,7 @@ vi.mock('../../../api/displays', () => ({
     hint: '',
   }),
   fetchXeneonEdgeSettings: (...a: unknown[]) => fetchXeneonEdgeSettingsMock(...a),
-  restoreXeneonEdgeColors: (...a: unknown[]) => restoreXeneonEdgeColorsMock(...a),
+  restoreXeneonEdgeDefaults: (...a: unknown[]) => restoreXeneonEdgeDefaultsMock(...a),
   rotateDisplay: vi.fn().mockResolvedValue(null),
   setDisplayBrightness: vi.fn().mockResolvedValue(null),
   setXeneonEdgeSettings: (...a: unknown[]) => setXeneonEdgeSettingsMock(...a),
@@ -106,7 +106,7 @@ const CONTRAST_LABEL = 'devices.xeneonEdge.contrast';
 const RED_LABEL = 'devices.xeneonEdge.red';
 const GREEN_LABEL = 'devices.xeneonEdge.green';
 const BLUE_LABEL = 'devices.xeneonEdge.blue';
-const RESTORE_LABEL = 'devices.xeneonEdge.restoreColors';
+const RESTORE_LABEL = 'devices.xeneonEdge.restoreDefaults';
 
 async function openSettingsTab() {
   fireEvent.click(await screen.findByRole('tab', { name: SETTINGS_TAB }));
@@ -124,7 +124,7 @@ beforeEach(() => {
     brightness: 42, backlight: 80, contrast: 55, red: 200, green: 90, blue: 30,
   });
   setXeneonEdgeSettingsMock.mockReset().mockResolvedValue(null);
-  restoreXeneonEdgeColorsMock.mockReset().mockResolvedValue(null);
+  restoreXeneonEdgeDefaultsMock.mockReset().mockResolvedValue(null);
 });
 
 afterEach(() => vi.restoreAllMocks());
@@ -162,22 +162,44 @@ describe('PanelDevicePage Xeneon Edge native settings', () => {
     expect(setXeneonEdgeSettingsMock).toHaveBeenCalledTimes(1);
   });
 
-  it('restores only red/green/blue and leaves brightness/backlight/contrast untouched', async () => {
-    restoreXeneonEdgeColorsMock.mockResolvedValue({
-      brightness: null, backlight: null, contrast: null, red: 151, green: 127, blue: 139,
+  it('restores every control to its factory value, not just the colors', async () => {
+    restoreXeneonEdgeDefaultsMock.mockResolvedValue({
+      brightness: 50, backlight: 100, contrast: 50, red: 151, green: 127, blue: 139,
     });
     render(<PanelDevicePage device={DEVICE} />);
     await openSettingsTab();
 
     fireEvent.click(await screen.findByRole('button', { name: RESTORE_LABEL }));
-    await waitFor(() => expect(restoreXeneonEdgeColorsMock).toHaveBeenCalledWith('disp1'));
+    await waitFor(() => expect(restoreXeneonEdgeDefaultsMock).toHaveBeenCalledWith('disp1'));
 
     await waitFor(() => expect(screen.getByRole('slider', { name: RED_LABEL })).toHaveValue('151'));
     expect(screen.getByRole('slider', { name: GREEN_LABEL })).toHaveValue('127');
     expect(screen.getByRole('slider', { name: BLUE_LABEL })).toHaveValue('139');
-    // Untouched by the restore response (still the values read on open).
-    expect(screen.getByRole('slider', { name: BRIGHTNESS_LABEL })).toHaveValue('42');
-    expect(screen.getByRole('slider', { name: BACKLIGHT_LABEL })).toHaveValue('80');
-    expect(screen.getByRole('slider', { name: CONTRAST_LABEL })).toHaveValue('55');
+    // The panel's own 0xff command only covers RGB, so the service writes all
+    // six: the sliders must land on their factory values too, not stay put.
+    expect(screen.getByRole('slider', { name: BRIGHTNESS_LABEL })).toHaveValue('50');
+    expect(screen.getByRole('slider', { name: BACKLIGHT_LABEL })).toHaveValue('100');
+    expect(screen.getByRole('slider', { name: CONTRAST_LABEL })).toHaveValue('50');
+  });
+
+  it('disables every slider while a restore is in flight', async () => {
+    let resolveRestore: (v: { brightness: number; backlight: number; contrast: number; red: number; green: number; blue: number }) => void = () => {};
+    restoreXeneonEdgeDefaultsMock.mockReturnValue(new Promise(resolve => { resolveRestore = resolve; }));
+    render(<PanelDevicePage device={DEVICE} />);
+    await openSettingsTab();
+
+    fireEvent.click(await screen.findByRole('button', { name: RESTORE_LABEL }));
+
+    // A restore rewrites all six over a serialized HID channel, so a drag on
+    // any of them would race a value it is about to overwrite.
+    await waitFor(() => expect(screen.getByRole('slider', { name: RED_LABEL })).toBeDisabled());
+    expect(screen.getByRole('slider', { name: GREEN_LABEL })).toBeDisabled();
+    expect(screen.getByRole('slider', { name: BLUE_LABEL })).toBeDisabled();
+    expect(screen.getByRole('slider', { name: BRIGHTNESS_LABEL })).toBeDisabled();
+    expect(screen.getByRole('slider', { name: BACKLIGHT_LABEL })).toBeDisabled();
+    expect(screen.getByRole('slider', { name: CONTRAST_LABEL })).toBeDisabled();
+
+    resolveRestore({ brightness: 50, backlight: 100, contrast: 50, red: 151, green: 127, blue: 139 });
+    await waitFor(() => expect(screen.getByRole('slider', { name: RED_LABEL })).not.toBeDisabled());
   });
 });

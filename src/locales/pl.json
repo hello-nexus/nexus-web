@@ -637,8 +637,6 @@
   "devices.xeneonEdge.contrast": "Kontrast",
   "devices.xeneonEdge.green": "Zielony",
   "devices.xeneonEdge.red": "Czerwony",
-  "devices.xeneonEdge.restoreColors": "Przywróć domyślne kolory",
-  "devices.xeneonEdge.restoreColorsHint": "Przywraca czerwony, zielony i niebieski do fabrycznych kolorów panelu. Jasność, podświetlenie i kontrast pozostają bez zmian.",
   "devices.y70.brightness": "Jasnosc",
   "devices.y70.display": "Wyswietlacz",
   "devices.y70.editor.addWidget": "Dodaj widget",
@@ -2940,5 +2938,7 @@
   "devices.streamdeck.import.reason.media": "Ta funkcja multimedialna nie jest obsługiwana",
   "devices.streamdeck.import.reason.multiStep": "Ten krok akcji wieloetapowej nie jest obsługiwany",
   "devices.streamdeck.import.reason.encoder": "Akcje pokrętła nie są obsługiwane",
-  "devices.streamdeck.import.reason.pageLimit": "Pominięto: przekracza maksymalną liczbę stron"
+  "devices.streamdeck.import.reason.pageLimit": "Pominięto: przekracza maksymalną liczbę stron",
+  "devices.xeneonEdge.restoreDefaults": "Przywróć ustawienia domyślne",
+  "devices.xeneonEdge.restoreDefaultsHint": "Przywraca jasność, podświetlenie, kontrast oraz wartości czerwieni, zieleni i błękitu do fabrycznych ustawień panelu."
 }

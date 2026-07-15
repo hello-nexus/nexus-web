@@ -637,8 +637,6 @@
   "devices.xeneonEdge.contrast": "对比度",
   "devices.xeneonEdge.green": "绿色",
   "devices.xeneonEdge.red": "红色",
-  "devices.xeneonEdge.restoreColors": "恢复默认颜色",
-  "devices.xeneonEdge.restoreColorsHint": "将红色、绿色和蓝色恢复为面板的出厂颜色。亮度、背光和对比度不受影响。",
   "devices.y70.brightness": "亮度",
   "devices.y70.display": "显示",
   "devices.y70.editor.addWidget": "添加小组件",
@@ -2940,5 +2938,7 @@
   "devices.streamdeck.import.reason.media": "不支持此媒体控制",
   "devices.streamdeck.import.reason.multiStep": "不支持此多步骤操作中的这一步",
   "devices.streamdeck.import.reason.encoder": "不支持旋钮操作",
-  "devices.streamdeck.import.reason.pageLimit": "已跳过：超出最大页数"
+  "devices.streamdeck.import.reason.pageLimit": "已跳过：超出最大页数",
+  "devices.xeneonEdge.restoreDefaults": "恢复默认设置",
+  "devices.xeneonEdge.restoreDefaultsHint": "将亮度、背光、对比度以及红、绿、蓝重置为面板的出厂值。"
 }

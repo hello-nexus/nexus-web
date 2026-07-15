@@ -149,10 +149,10 @@ export async function setXeneonEdgeSettings(
   return postService<XeneonEdgeSettings>(`/displays/${encodeURIComponent(id)}/xeneon-settings`, patch);
 }
 
-// Restores the panel's factory RGB colors only; brightness/backlight/contrast
-// are left untouched and come back null in the response.
-export async function restoreXeneonEdgeColors(id: string): Promise<XeneonEdgeSettings | null> {
-  return postService<XeneonEdgeSettings>(`/displays/${encodeURIComponent(id)}/xeneon-settings/restore-colors`, {});
+// Restores every control to its factory value. The panel's own restore command
+// only covers RGB, so the service writes all six individually.
+export async function restoreXeneonEdgeDefaults(id: string): Promise<XeneonEdgeSettings | null> {
+  return postService<XeneonEdgeSettings>(`/displays/${encodeURIComponent(id)}/xeneon-settings/restore-defaults`, {});
 }
 
 export interface TouchMappingRepairResponse {

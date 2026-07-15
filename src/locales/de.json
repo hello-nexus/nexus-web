@@ -637,8 +637,6 @@
   "devices.xeneonEdge.contrast": "Kontrast",
   "devices.xeneonEdge.green": "Grün",
   "devices.xeneonEdge.red": "Rot",
-  "devices.xeneonEdge.restoreColors": "Standardfarben wiederherstellen",
-  "devices.xeneonEdge.restoreColorsHint": "Setzt Rot, Grün und Blau auf die Werksfarben des Panels zurück. Helligkeit, Hintergrundbeleuchtung und Kontrast bleiben unverändert.",
   "devices.y70.brightness": "Helligkeit",
   "devices.y70.display": "Display",
   "devices.y70.editor.addWidget": "Widget hinzufügen",
@@ -2940,5 +2938,7 @@
   "devices.streamdeck.import.reason.media": "Diese Medientaste wird nicht unterstützt",
   "devices.streamdeck.import.reason.multiStep": "Dieser Mehrfachaktionsschritt wird nicht unterstützt",
   "devices.streamdeck.import.reason.encoder": "Drehregler-Aktionen werden nicht unterstützt",
-  "devices.streamdeck.import.reason.pageLimit": "Übersprungen: überschreitet die maximale Seitenzahl"
+  "devices.streamdeck.import.reason.pageLimit": "Übersprungen: überschreitet die maximale Seitenzahl",
+  "devices.xeneonEdge.restoreDefaults": "Standardwerte wiederherstellen",
+  "devices.xeneonEdge.restoreDefaultsHint": "Setzt Helligkeit, Hintergrundbeleuchtung, Kontrast sowie Rot, Grün und Blau auf die Werkseinstellungen des Panels zurück."
 }

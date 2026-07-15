@@ -637,8 +637,6 @@
   "devices.xeneonEdge.contrast": "Контраст",
   "devices.xeneonEdge.green": "Зелёный",
   "devices.xeneonEdge.red": "Красный",
-  "devices.xeneonEdge.restoreColors": "Восстановить цвета по умолчанию",
-  "devices.xeneonEdge.restoreColorsHint": "Восстанавливает красный, зелёный и синий до заводских цветов панели. Яркость, подсветка и контраст не затрагиваются.",
   "devices.y70.brightness": "Яркость",
   "devices.y70.display": "Дисплей",
   "devices.y70.editor.addWidget": "Добавить виджет",
@@ -2940,5 +2938,7 @@
   "devices.streamdeck.import.reason.media": "Это медиа-действие не поддерживается",
   "devices.streamdeck.import.reason.multiStep": "Этот шаг многошагового действия не поддерживается",
   "devices.streamdeck.import.reason.encoder": "Действия поворотного регулятора не поддерживаются",
-  "devices.streamdeck.import.reason.pageLimit": "Пропущено: превышено максимальное количество страниц"
+  "devices.streamdeck.import.reason.pageLimit": "Пропущено: превышено максимальное количество страниц",
+  "devices.xeneonEdge.restoreDefaults": "Восстановить значения по умолчанию",
+  "devices.xeneonEdge.restoreDefaultsHint": "Сбрасывает яркость, подсветку, контрастность, а также красный, зелёный и синий до заводских значений панели."
 }
