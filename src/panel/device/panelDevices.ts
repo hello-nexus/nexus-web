@@ -56,6 +56,9 @@ export interface PanelDevice {
   // Firmware-catalog key of the connected variant from the curated device
   // list (e.g. "y70-truly"); shown in settings for support diagnosis.
   firmwareType?: string;
+  // Display-bound panel (promoted monitor): whether Nexus Link is on.
+  // Absent for every other panel kind - there is no such toggle there.
+  linkEnabled?: boolean;
 }
 
 export const PANEL_DEVICE_ICON = '/assets/devices/y70.svg';

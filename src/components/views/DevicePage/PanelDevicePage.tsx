@@ -159,10 +159,10 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // Promoted monitor panels: bound to an OS display (per-panel reserve +
   // rotation live on the record / displays API).
   const isMonitorPanel = !!device?.displayId && !!device?.panelRecordId;
-  // Nexus Link off (DELETE /displays/{id}/panel) keeps the record but drops
-  // it from the panel device list, so this page is only ever reachable while
-  // the link is on - the toggle here always renders checked and only ever
-  // turns off.
+  // Nexus Link off (DELETE /displays/{id}/panel) keeps the record, but
+  // DevicePage's off-gate intercepts before this page mounts, so this page
+  // is only ever reached while the link is on - the toggle here always
+  // renders checked and only ever turns off.
   const [turningLinkOff, setTurningLinkOff] = useState(false);
   const handleNexusLinkOff = useCallback(() => {
     const displayId = device?.displayId;

@@ -10,6 +10,7 @@ const LABELS = {
   recentlyActive: 'Recently active',
   running: 'Running',
   simulatedSuffix: ' (Simulated)',
+  linkOff: 'Nexus Link is off',
 };
 
 function xeneonRecord(displayName: string): PanelDeviceRecord {
@@ -63,5 +64,44 @@ describe('buildPanelDevices promoted-monitor branding', () => {
 
   it('carries the record touch capability onto the device entry', () => {
     expect(firstDevice(xeneonRecord('CRX ED00')).capabilities.touch).toBe(true);
+  });
+});
+
+describe('buildPanelDevices Nexus Link off state', () => {
+  it('keeps a disabled record in the list (physically attached, unmanaged rather than disconnected)', () => {
+    const record = { ...xeneonRecord('Xeneon Edge'), enabled: false };
+    const devices = buildPanelDevices({
+      curatedDevices: [],
+      phoneSessions: [],
+      records: [record],
+      status: null,
+      simulatedPanels: [],
+      labels: LABELS,
+    });
+    expect(devices).toHaveLength(1);
+    expect(devices[0].linkEnabled).toBe(false);
+    expect(devices[0].subtitle).toBe('Nexus Link is off');
+  });
+
+  it('marks an enabled (or absent-enabled) record as linkEnabled with the resolution subtitle', () => {
+    const enabledDevice = firstDevice({ ...xeneonRecord('Xeneon Edge'), enabled: true });
+    expect(enabledDevice.linkEnabled).toBe(true);
+    expect(enabledDevice.subtitle).toBe('Online - 1707x480');
+
+    const absentEnabledDevice = firstDevice(xeneonRecord('Xeneon Edge'));
+    expect(absentEnabledDevice.linkEnabled).toBe(true);
+  });
+
+  it('still hides a disabled record whose bound monitor is unplugged', () => {
+    const record = { ...xeneonRecord('Xeneon Edge'), enabled: false, displayAttached: false };
+    const devices = buildPanelDevices({
+      curatedDevices: [],
+      phoneSessions: [],
+      records: [record],
+      status: null,
+      simulatedPanels: [],
+      labels: LABELS,
+    });
+    expect(devices).toHaveLength(0);
   });
 });

@@ -151,6 +151,7 @@ export function usePanelDevices(
         recentlyActive: t('phonePair.statusRecentlyActive'),
         running: t('devices.panels.running'),
         simulatedSuffix: t('devices.panels.simulatedSuffix'),
+        linkOff: t('devices.nexusControlOff.sidebarTooltip'),
       },
     });
   }, [curatedDevices, phoneSessions, records, status, simulatedPanels, t]);
@@ -179,6 +180,7 @@ export function buildPanelDevices({
     recentlyActive: string;
     running: string;
     simulatedSuffix: string;
+    linkOff: string;
   };
 }): PanelDevice[] {
   const devices: PanelDevice[] = [];
@@ -241,10 +243,13 @@ export function buildPanelDevices({
   // service created on POST /displays/{id}/panel. Hidden while the bound
   // monitor is unplugged (displayAttached === false); unknown topology
   // (null/undefined) keeps the row visible rather than flickering it away.
+  // A record with Nexus Link off (enabled === false) stays in the list too -
+  // the monitor stays physically attached, unmanaged rather than
+  // disconnected - so its device page can show an accurate off state instead
+  // of "not connected".
   for (const record of records) {
-    // Off panels keep their record (config persistence) but host no kiosk -
-    // no device entry until turned back on from the Displays tab.
-    if (!record.displayId || record.displayAttached === false || record.enabled === false) continue;
+    if (!record.displayId || record.displayAttached === false) continue;
+    const linkEnabled = record.enabled !== false;
     const cssWidth = record.capabilities?.cssWidth ?? 0;
     const cssHeight = record.capabilities?.cssHeight ?? 0;
     // CSS pixels, same convention as the Y70/phone subtitles. Reconstructing
@@ -260,7 +265,9 @@ export function buildPanelDevices({
       panelRecordId: record.id,
       displayId: record.displayId,
       name: isDefaultName ? branding.name : record.displayName,
-      subtitle: resolution ? `${labels.online} - ${resolution}` : labels.online,
+      subtitle: !linkEnabled
+        ? labels.linkOff
+        : (resolution ? `${labels.online} - ${resolution}` : labels.online),
       status: 'online',
       statusLabel: labels.online,
       connectionKind: 'attached-monitor',
@@ -273,6 +280,7 @@ export function buildPanelDevices({
       iconSrc: branding?.icon ?? PANEL_MONITOR_ICON,
       capabilities: { ...HOSTED_MONITOR_CAPABILITIES, touch: record.capabilities?.touch ?? false },
       modalKind: 'panel-editor',
+      linkEnabled,
     });
   }
 

@@ -25,6 +25,8 @@ import { NexusControlCard } from '../../common/NexusControlCard/NexusControlCard
 import { ConflictAppCard } from '../../common/ConflictAppCard/ConflictAppCard';
 import { ExperimentalBadge } from '../../common/ExperimentalBadge/ExperimentalBadge';
 import { useConflictApps } from '../../../hooks/useConflictApps';
+import { useToast } from '../../common/Toast/Toast';
+import { promoteDisplayToPanel } from '../../../api/displays';
 import { useTranslation } from '../../../lib/i18n';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import styles from './DevicePage.module.scss';
@@ -59,6 +61,7 @@ interface DevicePageProps {
 
 export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFirmware, onSectionNavigate }: DevicePageProps) {
   const { t } = useTranslation();
+  const { push } = useToast();
   const { unified, controlDevice } = useUnifiedDevices(serviceOnline);
   const device = useMemo<UnifiedDevice | undefined>(
     () => unified.find(d => d.key === deviceKey),
@@ -111,6 +114,29 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFi
         conflictAppId={device.conflictAppId}
         experimental={device.experimental}
         onEnable={() => controlDevice(device.curatedId as string, true)}
+      />
+    );
+  }
+
+  // Promoted-monitor panel with Nexus Link off: the record (layout, theme,
+  // settings) persists but hosts no kiosk. The monitor stays physically
+  // attached and working as a normal display, unmanaged rather than
+  // disconnected - so collapse to the same re-enable gate a curated device
+  // gets when Nexus Control is off, instead of falling through to
+  // PanelDevicePage (whose toggle only ever renders checked/on).
+  const offMonitorDisplayId = device.kind === 'panel' && device.panelDevice?.linkEnabled === false
+    ? device.panelDevice.displayId
+    : undefined;
+  if (offMonitorDisplayId) {
+    return (
+      <NexusControlOff
+        key={device.key}
+        deviceName={device.name}
+        onEnable={() => {
+          void promoteDisplayToPanel(offMonitorDisplayId).then(record => {
+            if (!record) push({ title: t('displays.error.promote') });
+          });
+        }}
       />
     );
   }

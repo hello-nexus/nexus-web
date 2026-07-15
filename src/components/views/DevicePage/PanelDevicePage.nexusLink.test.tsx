@@ -5,9 +5,10 @@ import type { PanelLayout } from '../../../panel/types';
 // Nexus Link on a promoted-monitor panel page (the Xeneon Edge and any other
 // promoted display): turning it off calls DELETE /displays/{id}/panel
 // (demoteDisplayPanel), which keeps the record but stops hosting the kiosk.
-// The toggle only ever renders checked, since the page itself is unreachable
-// once the record is disabled (usePanelDevices drops it from the device
-// list) - see PanelDevicePage's isMonitorPanel comment.
+// The toggle only ever renders checked, since DevicePage's off-gate
+// intercepts a disabled record before PanelDevicePage mounts - see
+// DevicePage.tsx's offMonitorDisplayId branch and PanelDevicePage's
+// isMonitorPanel comment.
 
 const fetchPanelDevicesMock = vi.fn();
 const demoteDisplayPanelMock = vi.fn();
