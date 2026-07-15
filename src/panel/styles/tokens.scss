@@ -68,8 +68,15 @@
   // (--panel-accent) is the only widget border. Light theme mirrors below.
   --panel-card-border: transparent;
 
-  --panel-gap: 12px;
-  --panel-page-padding: 10px;
+  // --panel-widget-padding is the Theme "Widget padding" setting, resolved to
+  // a concrete px length by useRuntimePanelGrid (grid.ts resolvePanelSpacing)
+  // and injected inline per panel instance (PanelApp.tsx). Gap and page
+  // padding both default to it so every surface that doesn't pin its own
+  // value (q60, desktop's padding) stays proportionally consistent. The
+  // fallback here only applies with no inline override (SSR, overlays that
+  // mount a bare .panel-root before the runtime grid measures).
+  --panel-gap: var(--panel-widget-padding, 8px);
+  --panel-page-padding: var(--panel-widget-padding, 8px);
   --panel-cell-size: 172px;
 
   // Widget label / card-inset variables. Moved from PanelApp.module.scss to

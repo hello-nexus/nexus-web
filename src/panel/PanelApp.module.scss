@@ -367,15 +367,13 @@
   // when the fluid 1fr cell is actually wider (~268px on Y70 at 100% Windows
   // scaling, ~176px at 150%). Keeps the kiosk scaling-aware and the simulator
   // iframe faithful at whatever canvas size the kiosk reports.
-  --panel-cell-size: calc((100vw - (var(--panel-columns) - 1) * var(--panel-gap, 10px)) / var(--panel-columns));
-  // Y70 widgets run full-bleed horizontally: no left/right page padding and
-  // no per-card horizontal margin, so the 4-column grid spans the entire
-  // viewport width. Keep 8px top/bottom so the first/last row still breathes.
+  --panel-cell-size: calc((100vw - var(--panel-page-padding-left) - var(--panel-page-padding-right) - (var(--panel-columns) - 1) * var(--panel-gap)) / var(--panel-columns));
+  // Per-card horizontal margin stays 0: the page padding is the only inset.
   --panel-widget-card-margin-x: 0px;
-  --panel-page-padding-top: 8px;
-  --panel-page-padding-right: 0px;
-  --panel-page-padding-bottom: 8px;
-  --panel-page-padding-left: 0px;
+  --panel-page-padding-top: var(--panel-widget-padding, 8px);
+  --panel-page-padding-right: var(--panel-widget-padding, 8px);
+  --panel-page-padding-bottom: var(--panel-widget-padding, 8px);
+  --panel-page-padding-left: var(--panel-widget-padding, 8px);
   // Fit all --panel-rows into the canvas height. Without this the grid falls
   // back to square rows (grid-auto-rows: --panel-cell-size); at 16 rows that's
   // taller than the panel, so the bottom rows clip off-screen and read as if
@@ -405,14 +403,17 @@
 .panelRoot[data-surface='phone'] {
   --panel-columns: 4;
   --panel-rows: 4;
-  --panel-gap: 8px;
+  --panel-gap: var(--panel-widget-padding, 8px);
   --panel-widget-scale: 1;
   --panel-card-radius: var(--radius-lg);
   --panel-actions-height: 58px;
-  --panel-safe-top: max(8px, env(safe-area-inset-top));
-  --panel-safe-right: max(8px, env(safe-area-inset-right));
-  --panel-safe-bottom: max(8px, env(safe-area-inset-bottom));
-  --panel-safe-left: max(8px, env(safe-area-inset-left));
+  // The device notch/rounded-corner inset always wins over a smaller resolved
+  // padding; a larger resolved padding (the "large" setting) still grows past
+  // it.
+  --panel-safe-top: max(var(--panel-widget-padding, 8px), env(safe-area-inset-top));
+  --panel-safe-right: max(var(--panel-widget-padding, 8px), env(safe-area-inset-right));
+  --panel-safe-bottom: max(var(--panel-widget-padding, 8px), env(safe-area-inset-bottom));
+  --panel-safe-left: max(var(--panel-widget-padding, 8px), env(safe-area-inset-left));
   --panel-page-padding: var(--panel-safe-left);
   --panel-page-padding-top: var(--panel-safe-top);
   --panel-page-padding-right: var(--panel-safe-right);
@@ -432,11 +433,12 @@
 .panelRoot[data-surface='q60'] {
   --panel-columns: 2;
   --panel-rows: 4;
-  --panel-gap: 8px;
   // Fully edge-to-edge: the Q60 is a single-widget immersive surface, so any
-  // page padding or card margin reads as a border. Zero all four sides + the
-  // card margin so the widget fills the entire screen. The row-size + cell-size
-  // calcs below drop the padding terms to match (no inset to subtract).
+  // gap, page padding or card margin reads as a border. Zero the gap and all
+  // four sides + the card margin so the widget fills the entire screen. The
+  // row-size + cell-size calcs below drop the padding terms to match (no
+  // inset to subtract).
+  --panel-gap: 0px;
   --panel-page-padding: 0px;
   --panel-page-padding-top: 0px;
   --panel-page-padding-right: 0px;
@@ -502,10 +504,18 @@
   --_grid-h: calc(var(--_rows) * var(--panel-row-size) + (var(--_rows) - 1) * var(--_gap));
 }
 
+// Widget padding 'none' means adjacent widgets sit flush, so a corner radius
+// would carve backdrop-coloured notches between them. Two attribute selectors
+// outrank the single-attribute [data-surface] radius rules regardless of
+// stylesheet order. Single-widget surfaces never carry data-widget-padding
+// (PanelApp.tsx), so they keep their radius.
+.panelRoot[data-surface][data-widget-padding='none'] {
+  --panel-card-radius: 0;
+}
+
 .panelRoot[data-surface='desktop'] {
   --panel-columns: 8;
   --panel-rows: 8;
-  --panel-gap: 10px;
   // No page padding on the embedded desktop grid: it lives inside the shared
   // .content wrapper (which already insets every view), so the grid sits flush
   // with the ViewHeader title and every other page's content. Extra padding
@@ -570,16 +580,14 @@
 // content proportions identical to the catalog card previews.
 @media (max-width: 800px) and (min-height: 1500px) {
   .panelRoot {
-    --panel-gap: 8px;
-    --panel-page-padding: 8px;
-    --panel-page-padding-top: 8px;
-    // Full-bleed left/right (matches the y70 surface block): widgets reach
-    // the screen edges so the 4-column grid uses the full viewport width.
-    --panel-page-padding-right: 0px;
-    --panel-page-padding-bottom: 8px;
-    --panel-page-padding-left: 0px;
+    --panel-gap: var(--panel-widget-padding, 8px);
+    --panel-page-padding: var(--panel-widget-padding, 8px);
+    --panel-page-padding-top: var(--panel-widget-padding, 8px);
+    --panel-page-padding-right: var(--panel-widget-padding, 8px);
+    --panel-page-padding-bottom: var(--panel-widget-padding, 8px);
+    --panel-page-padding-left: var(--panel-widget-padding, 8px);
     --panel-widget-card-margin-x: 0px;
-    --panel-cell-size: calc((100vw - (var(--panel-columns) - 1) * var(--panel-gap)) / var(--panel-columns));
+    --panel-cell-size: calc((100vw - var(--panel-page-padding-left) - var(--panel-page-padding-right) - (var(--panel-columns) - 1) * var(--panel-gap)) / var(--panel-columns));
   }
 }
 
