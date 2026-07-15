@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Settings, Eye, Maximize2, Minimize2, RotateCw, RotateCcw, Power } from 'lucide-react';
 import type { LightingDevice, LedMapEntry } from '../../../api/lighting';
 import { saveDeviceLayout, identifyLightingDevice } from '../../../api/lighting';
@@ -58,7 +58,142 @@ const CW = 1000;
 const CH = 600;
 const PAD = 0;
 
+/** The minimize preset's rect. MIN_BOX_H is at the height floor LightingPage
+ *  applies to every incoming device rect, so a minimized frame survives a reload
+ *  unchanged (at 30 it silently came back doubled). */
+const MIN_BOX_W = 240;
+const MIN_BOX_H = 60;
+/** Inset of the default grid. Distinct from PAD, which is the drag clamp. */
+const GRID_PAD = 12;
+/** Half the vertical offset between neighbouring grid columns. A name is drawn
+ *  at its card's center, so a row of cards sharing one center line stacks every
+ *  name on that line. */
+const COLUMN_STAGGER_Y = 24;
+
+/** The slot a layout reset would give this device: a square-ish grid scaled to
+ *  the device count, spread over the whole canvas, neighbouring columns offset
+ *  vertically. Mirrors the service's CanvasGridLayout.Slot
+ *  (nexus-service/src/Lighting/CanvasGridLayout.cs), which owns the same layout
+ *  for fresh installs and for the reset endpoint. Change them together. */
+function defaultSlot(index: number, totalCount: number): { x: number; y: number; w: number; h: number } {
+  if (totalCount <= 0 || index < 0) return { x: GRID_PAD, y: GRID_PAD, w: MIN_BOX_W, h: MIN_BOX_H };
+  const n = Math.max(1, totalCount);
+  const availW = CW - 2 * GRID_PAD;
+  const availH = CH - 2 * GRID_PAD;
+  // cols ~ sqrt(n * aspect) so the grid mirrors the canvas shape.
+  const cols = Math.max(1, Math.ceil(Math.sqrt(n * (availW / availH))));
+  const rows = Math.max(1, Math.ceil(n / cols));
+  const cellW = availW / cols;
+  const cellH = availH / rows;
+  const w = Math.min(MIN_BOX_W, cellW * 0.92);
+  const h = Math.min(MIN_BOX_H, cellH * 0.7);
+  const total = cols * rows;
+  const s = ((index % total) + total) % total;
+  const col = s % cols;
+  const row = Math.floor(s / cols);
+  // Clamped to the cell's spare height so a staggered card cannot reach the
+  // neighbouring row. Once the grid is dense enough for the clamp to bind, the
+  // card sits flush to its cell edge and neighbouring columns separate by twice
+  // the slack instead.
+  const slack = (cellH - h) * 0.5;
+  const stagger = Math.min(COLUMN_STAGGER_Y, slack);
+  let x = GRID_PAD + col * cellW + (cellW - w) * 0.5;
+  let y = GRID_PAD + row * cellH + slack + (col % 2 === 0 ? -stagger : stagger);
+  if (x + w > CW - GRID_PAD) x = CW - GRID_PAD - w;
+  if (y + h > CH - GRID_PAD) y = CH - GRID_PAD - h;
+  if (x < GRID_PAD) x = GRID_PAD;
+  if (y < GRID_PAD) y = GRID_PAD;
+  return { x, y, w, h };
+}
+
+/** Returns each target to the default grid slot for its place among the frames
+ *  on the canvas, so no two on-canvas frames can land on each other. Indexes into
+ *  the frames the canvas holds, not the service's full device list, so a canvas
+ *  with parked or powered-off frames hidden packs the rest gaplessly instead of
+ *  reserving slots nothing occupies; it matches the reset layout exactly when
+ *  none are hidden. A hidden frame keeps its own rect, so switching one back on
+ *  can reveal it under a slot taken meanwhile. */
+function minimizeInto(targets: LightingDevice[], all: LightingDevice[]): void {
+  for (const t of targets) {
+    const i = all.indexOf(t);
+    const { x, y, w, h } = defaultSlot(i < 0 ? 0 : i, all.length);
+    t.canvasX = x;
+    t.canvasY = y;
+    t.canvasW = w;
+    t.canvasH = h;
+  }
+}
+
 type DragMode = 'move' | 'resize-br';
+
+/** Label bounding box in canvas units. */
+type LabelSize = { w: number; h: number };
+
+/** Resolved label center in canvas units. */
+type LabelPos = { cx: number; cy: number };
+
+const LABEL_GAP = 5;
+
+/** Resolves each label's center so no two labels overlap. A label keeps its
+ *  frame's center X and steps up/down in alternating whole-row increments until
+ *  its box is clear, so labels that are far apart horizontally never move.
+ *  Smallest frames place first: a large frame's label yields to the small
+ *  frames stacked on top of it, and stays inside its own box either way.
+ *  `pinned` ids place before everything: they hold their frame's center and the
+ *  rest yield, so the name on the card the user is dragging or has selected
+ *  tracks its frame instead of hopping rows as other labels come and go.
+ *  Returns id -> center in canvas units; ids with no measured size are absent. */
+function layoutLabels(
+  devices: LightingDevice[],
+  sizes: Map<string, LabelSize>,
+  pinned?: Set<string> | null,
+): Map<string, LabelPos> {
+  const out = new Map<string, LabelPos>();
+  const placed: { x1: number; x2: number; y1: number; y2: number }[] = [];
+  // Pinned first, then area ascending, id as tie-break so placement is stable
+  // across renders (equal-area frames must not swap rows on a re-render).
+  const rank = (d: LightingDevice) => (pinned?.has(d.id) ? 0 : 1);
+  const order = [...devices].sort((a, b) =>
+    rank(a) - rank(b)
+    || (a.canvasW * a.canvasH) - (b.canvasW * b.canvasH)
+    || (a.id < b.id ? -1 : 1));
+  for (const dev of order) {
+    const size = sizes.get(dev.id);
+    if (!size) continue;
+    const halfW = size.w / 2;
+    const halfH = size.h / 2;
+    // The canvas clips overflow and the label is no longer nested in its frame,
+    // so an edge-parked frame's name would lose text without this.
+    const cx = Math.max(halfW, Math.min(CW - halfW, dev.canvasX + dev.canvasW / 2));
+    const x1 = cx - halfW;
+    const x2 = cx + halfW;
+    const step = size.h + LABEL_GAP;
+    const home = Math.max(halfH, Math.min(CH - halfH, dev.canvasY + dev.canvasH / 2));
+    let best = home;
+    // The alternating sequence spends half its steps on the side the home row is
+    // nearest, so the budget must span the canvas twice over to reach the far
+    // edge from a row against either end. Too small and an edge-parked pile runs
+    // out of steps with free rows below it.
+    const maxK = Math.ceil(CH / step);
+    for (let i = 0; i <= 2 * maxK; i++) {
+      // 0, +1, -1, +2, -2 ... so a label settles on the nearest free row.
+      const k = i === 0 ? 0 : (i % 2 === 1 ? Math.ceil(i / 2) : -Math.ceil(i / 2));
+      const c = home + k * step;
+      // Off-canvas candidates are skipped, not clamped onto the edge row, which
+      // would retest one row many times over.
+      if (c < halfH || c > CH - halfH) continue;
+      const y1 = c - halfH;
+      const y2 = c + halfH;
+      if (!placed.some(p => !(p.x2 <= x1 || p.x1 >= x2 || p.y2 <= y1 || p.y1 >= y2))) {
+        best = c;
+        break;
+      }
+    }
+    out.set(dev.id, { cx, cy: best });
+    placed.push({ x1, x2, y1: best - halfH, y2: best + halfH });
+  }
+  return out;
+}
 
 const CanvasBackground = memo(function CanvasBackground({ canvasPixels, canvasW, canvasH }: {
   canvasPixels: Uint8Array | null; canvasW: number; canvasH: number;
@@ -123,6 +258,15 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
   // Right-click context menu anchored at the click point. Opening it never
   // changes the selection - a right-click is not a left-click.
   const [ctxMenu, setCtxMenu] = useState<{ id: string; x: number; y: number } | null>(null);
+  // Labels render in their own layer above every frame, so hovering one cannot
+  // reach its frame through CSS - the frame reads this to light itself up.
+  const [hoveredLabelId, setHoveredLabelId] = useState<string | null>(null);
+  const labelElsRef = useRef(new Map<string, HTMLSpanElement>());
+  // Measured against the label layer, not containerRef: a parent's ref is still
+  // null while this component's layout effect runs, so containerRef would skip
+  // the first measure. The layer is inset:0 on the canvas, so the rect matches.
+  const labelLayerRef = useRef<HTMLDivElement>(null);
+  const [labelSizes, setLabelSizes] = useState<Map<string, LabelSize>>(new Map());
   const containerSizeRef = useRef({ w: 675, h: 380 });
   useEffect(() => {
     const el = containerRef.current;
@@ -142,7 +286,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
   primaryDeviceIdRef.current = primaryDeviceId;
   // Captures primary at pointer-down so pointer-up can cycle through the stack
   // relative to what was selected before the tap, not after startDrag overwrites it.
-  const tapRef = useRef<{ prevPrimary: string | null; moved: boolean } | null>(null);
+  const tapRef = useRef<{ prevPrimary: string | null; moved: boolean; viaLabel: boolean } | null>(null);
 
   // Latest-ref so the document-level Escape handler sees the current set
   // without re-binding the listener on every selection change.
@@ -169,11 +313,11 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
     return { x: ((cx - r.left) / r.width) * CW, y: ((cy - r.top) / r.height) * CH };
   }, [containerRef]);
 
-  const startDrag = useCallback((e: React.PointerEvent, dev: LightingDevice, mode: DragMode) => {
+  const startDrag = useCallback((e: React.PointerEvent, dev: LightingDevice, mode: DragMode, viaLabel = false) => {
     if (e.button !== 0) return; // right/middle click never starts a drag
     e.preventDefault(); e.stopPropagation();
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
-    tapRef.current = { prevPrimary: primaryDeviceIdRef.current, moved: false };
+    tapRef.current = { prevPrimary: primaryDeviceIdRef.current, moved: false, viaLabel };
     onDragActiveChange?.(true);
     const p = toCanvas(e.clientX, e.clientY);
     // Group drag triggers when the user grabs a frame that's already part of a
@@ -194,7 +338,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
 
   // Cmd/Ctrl+click on a frame: toggle membership without starting a drag. Plain
   // click on a frame still falls through to startDrag.
-  const handleFramePointerDown = useCallback((e: React.PointerEvent, dev: LightingDevice) => {
+  const handleFramePointerDown = useCallback((e: React.PointerEvent, dev: LightingDevice, viaLabel = false) => {
     if (e.button !== 0) return; // right-click is handled by onContextMenu, not selection
     if (isMultiSelectModifier(e)) {
       e.preventDefault(); e.stopPropagation();
@@ -220,7 +364,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
       }
       return;
     }
-    startDrag(e, dev, 'move');
+    startDrag(e, dev, 'move', viaLabel);
   }, [selectedIds, primaryDeviceId, devices, onSetSelection, startDrag]);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
@@ -345,7 +489,9 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
     onDragActiveChange?.(false);
     setDrag(null);
     // Tap-cycle (no drag, no group): step through the stack at the click point.
-    if (!tap || tap.moved || drag.groupOrigs) return;
+    // A tap on a name names its device outright, so it must not cycle - the
+    // label is the escape hatch from having to guess the stacking order.
+    if (!tap || tap.moved || tap.viaLabel || drag.groupOrigs) return;
     const stack = [...devices].reverse().filter(d =>
       drag.startX >= d.canvasX && drag.startX <= d.canvasX + d.canvasW &&
       drag.startY >= d.canvasY && drag.startY <= d.canvasY + d.canvasH
@@ -403,7 +549,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
     && dev.canvasX + dev.canvasW >= CW - PAD - 0.5
     && dev.canvasY + dev.canvasH >= CH - PAD - 0.5, []);
 
-  // Mutates dev's rect to the full-canvas or the small centered box; no save/
+  // Mutates dev's rect to the full canvas or to its default grid slot; no save/
   // render side effects so group maximize can set every target one direction.
   const setMaximized = useCallback((dev: LightingDevice, maximize: boolean) => {
     if (maximize) {
@@ -412,12 +558,9 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
       dev.canvasW = CW - 2 * PAD;
       dev.canvasH = CH - 2 * PAD;
     } else {
-      dev.canvasX = CW / 2 - 60;
-      dev.canvasY = CH / 2 - 15;
-      dev.canvasW = 120;
-      dev.canvasH = 30;
+      minimizeInto([dev], devices);
     }
-  }, []);
+  }, [devices]);
 
   const handleMaximize = useCallback((dev: LightingDevice) => {
     onBeforeLayoutSaveRef.current?.();
@@ -471,6 +614,56 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
     await handlePointerUp();
   }, [marquee, handlePointerUp, onDragActiveChange]);
 
+  // Lexend is font-display:swap, so a cold-cache first measure reads fallback
+  // metrics that no signature here would invalidate. Re-measure once the real
+  // face is active.
+  const [fontsTick, setFontsTick] = useState(0);
+  useEffect(() => {
+    if (!document.fonts) return;
+    let alive = true;
+    void document.fonts.ready.then(() => { if (alive) setFontsTick(t => t + 1); });
+    return () => { alive = false; };
+  }, []);
+
+  // A label's box only changes when its text, rotation, the font, or the
+  // container scale does - never when a frame moves. Keying the measure on that
+  // signature keeps a drag (which re-renders at pointer rate) off the
+  // layout-thrash path. JSON encodes the fields unambiguously without needing
+  // a delimiter no device name can contain.
+  const labelSig = JSON.stringify(devices.map(d => [d.id, d.name, d.canvasRotation ?? 0]));
+  const { w: contW, h: contH } = containerSizeRef.current;
+  useLayoutEffect(() => {
+    const el = labelLayerRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    if (r.width === 0 || r.height === 0) return;
+    const next = new Map<string, LabelSize>();
+    for (const [id, span] of labelElsRef.current) {
+      // getBoundingClientRect is the post-transform box, so a rotated label
+      // reports the swapped extents the AABB de-collision needs.
+      const b = span.getBoundingClientRect();
+      next.set(id, { w: (b.width / r.width) * CW, h: (b.height / r.height) * CH });
+    }
+    setLabelSizes(prev => {
+      const same = prev.size === next.size && [...next].every(([id, s]) => {
+        const p = prev.get(id);
+        return p != null && Math.abs(p.w - s.w) < 0.5 && Math.abs(p.h - s.h) < 0.5;
+      });
+      return same ? prev : next;
+    });
+  }, [labelSig, contW, contH, fontsTick]);
+
+  // Recomputed every render: frame rects mutate in place during a drag, so a
+  // memo keyed on them would serve a stale layout.
+  // The dragged frames, plus the primary. Dropping the pin at pointer-up would
+  // hand the home row straight back and hop the name the drag just held still;
+  // the drag selects what it grabs, so the primary carries the pin afterwards.
+  const pinnedIds = new Set<string>(
+    drag ? (drag.groupOrigs ? [...drag.groupOrigs.keys()] : [drag.id]) : [],
+  );
+  if (primaryDeviceId) pinnedIds.add(primaryDeviceId);
+  const labelLayout = layoutLabels(devices, labelSizes, pinnedIds);
+
   // Marquee rect in % units so it scales with the container without a
   // separate transform. Math.min/max so the rect renders regardless of
   // which corner the user dragged from.
@@ -498,7 +691,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
         const bgY = -(dev.canvasY / CH) * h;
         return (
           <div key={dev.id}
-            className={`${styles.device} ${drag?.id === dev.id ? styles.dragging : ''} ${selected ? styles.selected : ''} ${deemphasized ? styles.deemphasized : ''}`}
+            className={`${styles.device} ${drag?.id === dev.id ? styles.dragging : ''} ${selected ? styles.selected : ''} ${deemphasized ? styles.deemphasized : ''} ${hoveredLabelId === dev.id ? styles.labelHover : ''}`}
             style={{
               left: `${(dev.canvasX / CW) * 100}%`, top: `${(dev.canvasY / CH) * 100}%`,
               width: `${(dev.canvasW / CW) * 100}%`, height: `${(dev.canvasH / CH) * 100}%`,
@@ -506,7 +699,6 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
             }}
             onPointerDown={e => handleFramePointerDown(e, dev)}
             onContextMenu={e => handleFrameContextMenu(e, dev)}>
-            <span className={styles.deviceLabel} style={{ transform: `rotate(${rot}deg)` }}>{dev.name}</span>
             <div className={styles.resizeHandle} onPointerDown={e => startDrag(e, dev, 'resize-br')} />
             {isPrimary && selectedDeviceLeds && selectedDeviceLeds
               .filter(l => !l.disabled)
@@ -523,6 +715,36 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
           </div>
         );
       })}
+      {/* Labels live above every frame so a name is always readable and always
+          hittable, whatever the frame stacking is. The layer itself is
+          click-through; only the names take pointer events. */}
+      <div ref={labelLayerRef} className={styles.labelLayer}>
+        {devices.map(dev => {
+          const selected = selectedIds.has(dev.id);
+          const deemphasized = selectedIds.size > 0 && !selected;
+          const rot = ((dev.canvasRotation ?? 0) % 360 + 360) % 360;
+          // Pre-measure fallback keeps the label at its frame's center, which is
+          // where the un-decollided layout already puts it.
+          const pos = labelLayout.get(dev.id);
+          const cx = pos?.cx ?? dev.canvasX + dev.canvasW / 2;
+          const cy = pos?.cy ?? dev.canvasY + dev.canvasH / 2;
+          return (
+            <span key={dev.id}
+              ref={el => { if (el) labelElsRef.current.set(dev.id, el); else labelElsRef.current.delete(dev.id); }}
+              className={`${styles.deviceLabel} ${deemphasized ? styles.deemphasized : ''}`}
+              style={{
+                left: `${(cx / CW) * 100}%`, top: `${(cy / CH) * 100}%`,
+                transform: `translate(-50%, -50%) rotate(${rot}deg)`,
+              }}
+              onPointerDown={e => handleFramePointerDown(e, dev, true)}
+              onContextMenu={e => handleFrameContextMenu(e, dev)}
+              onPointerEnter={() => setHoveredLabelId(dev.id)}
+              onPointerLeave={() => setHoveredLabelId(cur => (cur === dev.id ? null : cur))}>
+              {dev.name}
+            </span>
+          );
+        })}
+      </div>
       {marqueeRect && <div className={styles.marquee} style={marqueeRect} />}
       {ctxMenu && (() => {
         const dev = devices.find(d => d.id === ctxMenu.id);

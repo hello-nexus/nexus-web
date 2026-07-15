@@ -1854,7 +1854,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'DeviceCanvas', category: 'cards',
     filePath: 'src/components/common/DeviceCanvas/DeviceCanvas.tsx',
-    description: 'Free-arrange device canvas for the Lighting view: drag-position device tiles, marquee multi-select, per-device LED preview driven by the live shader effect, right-click DeviceContextMenu.',
+    description: 'Free-arrange device canvas for the Lighting view: drag-position device tiles, marquee multi-select, per-device LED preview driven by the live shader effect, right-click DeviceContextMenu. Device names render in a layer above every frame, de-collided vertically so they never overlap; clicking a name selects (and drags) that device whatever the frame stacking.',
     notes: 'No live preview - needs live device geometry, LED maps, and shader state.',
   },
   {
