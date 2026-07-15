@@ -506,6 +506,15 @@
   --_grid-h: calc(var(--_rows) * var(--panel-row-size) + (var(--_rows) - 1) * var(--_gap));
 }
 
+// Widget padding 'none' means adjacent widgets sit flush, so a corner radius
+// would carve backdrop-coloured notches between them. Two attribute selectors
+// outrank the single-attribute [data-surface] radius rules regardless of
+// stylesheet order. Single-widget surfaces never carry data-widget-padding
+// (PanelApp.tsx), so they keep their radius.
+.panelRoot[data-surface][data-widget-padding='none'] {
+  --panel-card-radius: 0;
+}
+
 .panelRoot[data-surface='desktop'] {
   --panel-columns: 8;
   --panel-rows: 8;
