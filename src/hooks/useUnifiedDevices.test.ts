@@ -191,3 +191,40 @@ describe('useUnifiedDevices - Stream Deck per-deck entries', () => {
     expect(result.current.unified.some(d => d.curatedId === 'streamdeck')).toBe(false);
   });
 });
+
+describe('useUnifiedDevices - iBUYPOWER AW5', () => {
+  function makeAw5(over: Partial<DeviceListItem> = {}): DeviceListItem {
+    return makeHandlerRow({
+      id: 'aw5',
+      name: 'iBUYPOWER AW5',
+      category: 'cooler',
+      connected: true,
+      // The vendor driver owns the cooler, so the service reports no control gate.
+      supportsNexusControl: false,
+      ...over,
+    });
+  }
+
+  it('lists the AW5 but keeps it out of the sidebar, search, and detail routes', () => {
+    mockUseDevices.mockReturnValue({ devices: [makeAw5()], controlDevice: vi.fn() });
+
+    const { result } = renderHook(() => useUnifiedDevices(true));
+    const entry = result.current.unified.find(d => d.curatedId === 'aw5');
+
+    expect(entry).toBeDefined();
+    expect(entry?.connected).toBe(true);
+    // navigable gates the sidebar row, TopSearch, and the clickable card - the
+    // AW5 has nothing to configure, so it stays a status row like the MiniHub.
+    expect(entry?.navigable).toBe(false);
+    expect(entry?.supportsNexusControl).toBe(false);
+  });
+
+  it('drops out of the list when the cooler is unplugged', () => {
+    // The handler is always registered, so an unplugged AW5 arrives as a row
+    // with connected:false - never an absent one. That is the gate under test.
+    mockUseDevices.mockReturnValue({ devices: [makeAw5({ connected: false })], controlDevice: vi.fn() });
+
+    const { result } = renderHook(() => useUnifiedDevices(true));
+    expect(result.current.unified.some(d => d.curatedId === 'aw5')).toBe(false);
+  });
+});
