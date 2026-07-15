@@ -139,9 +139,12 @@
   --shadow-md: 0 8px 24px rgb(0 0 0 / var(--alpha-medium));
   --shadow-xl: 0 20px 60px rgb(0 0 0 / var(--alpha-medium));
 
-  // Blur radii. 2 rungs cover backdrop-filter / filter: blur() use cases.
-  --blur-sm: 8px;          // subtle veils, popover backdrops
-  --blur-lg: 20px;         // heavy modal backdrops, panel actions tray
+  // Blur radii. Frost weight comes from the surface tint alpha (--alpha-*),
+  // not the radius: lowering a radius to "optimise" buys nothing, and below
+  // ~8px Skia stops downscaling and gets slower on large surfaces.
+  --blur-backdrop: 16px;   // backdrop-filter on any real surface: scrims, sheets, menus, trays, widget glass
+  --blur-chip: 8px;        // backdrop-filter on controls too small for a wide kernel to read as frost
+  --blur-defocus: 0.5px;   // filter: blur() de-emphasis of an element's own content
 
   // Animation timing. Three rungs cover the 50-300ms range. Use via
   // `transition: bg var(--ease) ease` etc.

@@ -32,9 +32,10 @@ const SHADOWS: TokenSpec[] = [
   { cssVar: '--shadow-xl', description: '0 20px 60px - modals, dialogs' },
 ];
 
-const BLURS: TokenSpec[] = [
-  { cssVar: '--blur-sm', description: '8px - subtle veils, popover backdrops' },
-  { cssVar: '--blur-lg', description: '20px - heavy modal backdrops, panel actions tray' },
+const BLURS: (TokenSpec & { mode?: 'filter' })[] = [
+  { cssVar: '--blur-backdrop', description: '16px - backdrop-filter on any real surface: scrims, sheets, menus, trays, widget glass' },
+  { cssVar: '--blur-chip', description: '8px - backdrop-filter on controls too small for a wide kernel to read as frost' },
+  { cssVar: '--blur-defocus', description: '0.5px - filter: blur() de-emphasis of an element\'s own content', mode: 'filter' },
 ];
 
 const SIZES: TokenSpec[] = [
@@ -146,11 +147,18 @@ export function SurfaceStyles() {
         <div className={styles.blurGrid}>
           {BLURS.map(t => (
             <div key={t.cssVar} className={styles.blurCell}>
-              <div className={styles.blurSwatch}>
-                <div
-                  className={styles.blurOverlay}
-                  style={{ backdropFilter: `blur(var(${t.cssVar}))`, WebkitBackdropFilter: `blur(var(${t.cssVar}))` }}
-                />
+              {/* defocus blurs the element's OWN content, so it demos on the
+                  swatch itself rather than through a backdrop overlay. */}
+              <div
+                className={styles.blurSwatch}
+                style={t.mode === 'filter' ? { filter: `blur(var(${t.cssVar}))` } : undefined}
+              >
+                {t.mode !== 'filter' && (
+                  <div
+                    className={styles.blurOverlay}
+                    style={{ backdropFilter: `blur(var(${t.cssVar}))`, WebkitBackdropFilter: `blur(var(${t.cssVar}))` }}
+                  />
+                )}
               </div>
               <code className={styles.tokenName}>{t.cssVar}</code>
               <span className={styles.tokenDesc}>{t.description}</span>

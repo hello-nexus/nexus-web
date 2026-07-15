@@ -35,8 +35,7 @@
   position: sticky;
   top: 0;
   z-index: 20;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(var(--blur-backdrop));
   background: rgba(10, 10, 13, 0.72);
   border-bottom: 1px solid var(--border);
 }

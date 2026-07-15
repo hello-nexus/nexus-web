@@ -11,7 +11,7 @@
   padding: 10px 12px;
   border-radius: var(--radius-lg);
   background: var(--panel-sheet-bg);
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(var(--blur-backdrop));
   border: 1px solid var(--panel-border);
   display: flex;
   flex-direction: column;

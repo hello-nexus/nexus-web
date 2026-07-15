@@ -12,8 +12,18 @@ const RATCHETS = [
   {
     script: 'audit-styles.mjs',
     pattern: /(\d+) total findings/,
-    baseline: 854,
+    baseline: 722,
     hint: 'use the --radius/--shadow/--alpha/--blur/--ease tokens and text mixins instead of raw values (run "npm run audit:styles" for the list)',
+  },
+  {
+    // Blur is fully migrated, so it is pinned at 0 rather than left to hide
+    // under the total's slack.
+    script: 'audit-styles.mjs',
+    args: ['--axis=blur'],
+    label: 'audit-styles.mjs --axis=blur',
+    pattern: /(\d+) total findings/,
+    baseline: 0,
+    hint: 'use --blur-backdrop / --blur-chip / --blur-defocus, and never hand-write -webkit-backdrop-filter (lightningcss autoprefixes the unprefixed property; writing the prefix makes it DROP the unprefixed one, which renders nothing on Blink)',
   },
   {
     script: 'audit-text-styles.mjs',
@@ -31,8 +41,8 @@ const RATCHETS = [
 
 const REPO_ROOT = join(__dirname, '..', '..', '..');
 
-function findings(script: string, pattern: RegExp): number {
-  const out = execFileSync('node', [join(REPO_ROOT, 'scripts', script)], {
+function findings(script: string, pattern: RegExp, args: readonly string[] = []): number {
+  const out = execFileSync('node', [join(REPO_ROOT, 'scripts', script), ...args], {
     cwd: REPO_ROOT,
     encoding: 'utf8',
     maxBuffer: 16 * 1024 * 1024,
@@ -45,14 +55,14 @@ function findings(script: string, pattern: RegExp): number {
 }
 
 describe('style drift ratchet', () => {
-  it.each(RATCHETS.map(r => [r.script, r] as const))('%s finding count does not grow', (_name, ratchet) => {
-    const count = findings(ratchet.script, ratchet.pattern);
+  it.each(RATCHETS.map(r => [('label' in r ? r.label : r.script), r] as const))('%s finding count does not grow', (label, ratchet) => {
+    const count = findings(ratchet.script, ratchet.pattern, 'args' in ratchet ? ratchet.args : []);
     expect(
       count,
-      `${ratchet.script} findings grew ${ratchet.baseline} -> ${count}; ${ratchet.hint}`,
+      `${label} findings grew ${ratchet.baseline} -> ${count}; ${ratchet.hint}`,
     ).toBeLessThanOrEqual(ratchet.baseline);
     if (count < ratchet.baseline) {
-      console.warn(`${ratchet.script} findings dropped to ${count}; ratchet the baseline down to lock it in`);
+      console.warn(`${label} findings dropped to ${count}; ratchet the baseline down to lock it in`);
     }
   });
 });

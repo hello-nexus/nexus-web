@@ -7,8 +7,7 @@
   padding: 4px 10px;
   border-radius: var(--radius-pill);
   background: color-mix(in srgb, black 28%, transparent);
-  backdrop-filter: blur(10px) saturate(0.9);
-  -webkit-backdrop-filter: blur(10px) saturate(0.9);
+  backdrop-filter: blur(var(--blur-chip)) saturate(0.9);
   pointer-events: none;
   opacity: 1;
   transition: opacity 320ms ease;
