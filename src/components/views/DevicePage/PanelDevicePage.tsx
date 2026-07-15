@@ -37,6 +37,7 @@ import {
   fetchPanelDevices,
   patchPanelDevice,
 } from '../../../api/panel';
+import { getQSeriesRotation, setQSeriesRotation, type QSeriesOrientation } from '../../../api/qseries';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { useTranslation } from '../../../lib/i18n';
 import { createUuid } from '../../../lib/uuid';
@@ -86,6 +87,9 @@ interface ToggleResponse { toggle: boolean }
 
 const Y70_ORIENTATIONS = ['Landscape', 'Portrait', 'LandscapeFlipped', 'PortraitFlipped'] as const;
 type Y70Orientation = (typeof Y70_ORIENTATIONS)[number];
+
+// Q60/Q80 mount portrait or portrait-flipped only; no landscape orientation exists.
+const QSERIES_ORIENTATIONS: readonly Y70Orientation[] = ['Portrait', 'PortraitFlipped'];
 
 function normalizeOrientation(value: string | undefined | null): Y70Orientation {
   // The Y70 panel is a fixed portrait strip; an unset/unknown value defaults to
@@ -224,15 +228,17 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       supportsDisplayControls ? fetchService<BrightnessResponse>('/y70/brightness') : Promise.resolve(null),
       supportsDisplayControls ? fetchService<RotationParams>('/y70/rotation') : Promise.resolve(null),
       supportsDisplayControls ? fetchService<ToggleResponse>('/y70/toggle') : Promise.resolve(null),
+      isQSeries ? getQSeriesRotation() : Promise.resolve(null),
       fetchPreferences(),
       fetchPanelDevices(),
-    ]).then(([b, r, tog, prefs, devices]) => {
+    ]).then(([b, r, tog, qRotation, prefs, devices]) => {
       if (cancelled) return;
       if (b) setBrightness(b.brightness);
       if (r) {
         setOrientation(normalizeOrientation(r.orientation));
         setForceOrientation(r.forceOrientation ?? true);
       }
+      if (qRotation) setOrientation(normalizeOrientation(qRotation.orientation));
       // /y70/toggle returns the persisted ScreenOff value, not "screen on".
       if (tog) setScreenOn(!tog.toggle);
       // Record-backed entries (promoted monitors) bind by their explicit
@@ -268,7 +274,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       setLoaded(true);
     }).catch(() => { if (!cancelled) setLoaded(true); });
     return () => { cancelled = true; };
-  }, [surface, supportsDisplayControls, device?.panelRecordId, device?.capabilities.touch]);
+  }, [surface, supportsDisplayControls, isQSeries, device?.panelRecordId, device?.capabilities.touch]);
 
   const pushBrightness = (value: number) => {
     setBrightness(value);
@@ -696,6 +702,20 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                     />
                   )}
                   {activeTab === 'settings' && surface === 'q60' && (
+                    <MonitorSettingsPanel
+                      brightness={null}
+                      onBrightness={() => {}}
+                      orientation={orientation}
+                      onOrientation={(next) => {
+                        setOrientation(next);
+                        void setQSeriesRotation(next as QSeriesOrientation).catch(() => {});
+                      }}
+                      orientationOptions={QSERIES_ORIENTATIONS}
+                      reserveMonitor={null}
+                      onReserveMonitorToggle={() => {}}
+                    />
+                  )}
+                  {activeTab === 'settings' && surface === 'q60' && (
                     <QSeriesCoolerSettings />
                   )}
                 </div>
@@ -920,11 +940,38 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeMode = 'dark'
   );
 }
 
+// --- Orientation select row ---
+//
+// Shared by the Y70, monitor, and Q-series display settings panels below;
+// only the option list and the commit handler differ per surface.
+
+interface OrientationSelectRowProps {
+  value: Y70Orientation;
+  onChange: (value: Y70Orientation) => void;
+  options: readonly Y70Orientation[];
+}
+
+function OrientationSelectRow({ value, onChange, options }: OrientationSelectRowProps) {
+  const { t } = useTranslation();
+  return (
+    <SettingSelect
+      label={t('devices.y70.orientation')}
+      value={value}
+      onChange={(v) => onChange(v as Y70Orientation)}
+      options={options.map(o => ({
+        value: o,
+        label: t(`devices.y70.orientation.${o}`),
+      }))}
+    />
+  );
+}
+
 // --- Monitor (promoted display) settings ---
 //
 // Per-panel persisted settings for display-bound panels: DDC/CI brightness
 // (when the monitor exposes it), OS rotation, and the per-record
-// "keep panel clear of other windows" reserve. Null props hide a row.
+// "keep panel clear of other windows" reserve. Null props hide a row - also
+// reused for the Q-series hub, which only ever supplies orientation.
 
 interface MonitorSettingsPanelProps {
   brightness: number | null;
@@ -958,15 +1005,7 @@ function MonitorSettingsPanel({
         />
       )}
       {orientation !== null && (
-        <SettingSelect
-          label={t('devices.y70.orientation')}
-          value={orientation}
-          onChange={(v) => onOrientation(v as Y70Orientation)}
-          options={orientationOptions.map(o => ({
-            value: o,
-            label: t(`devices.y70.orientation.${o}`),
-          }))}
-        />
+        <OrientationSelectRow value={orientation} onChange={onOrientation} options={orientationOptions} />
       )}
       {reserveMonitor !== null && (
         <SettingToggle
@@ -1102,15 +1141,7 @@ function SettingsPanel({
           />
 
           {!forceOrientation && (
-            <SettingSelect
-              label={t('devices.y70.orientation')}
-              value={orientation}
-              onChange={(v) => onOrientation(v as Y70Orientation)}
-              options={orientationOptions.map(o => ({
-                value: o,
-                label: t(`devices.y70.orientation.${o}`),
-              }))}
-            />
+            <OrientationSelectRow value={orientation} onChange={onOrientation} options={orientationOptions} />
           )}
 
           <SettingRow
