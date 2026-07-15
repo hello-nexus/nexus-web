@@ -504,6 +504,7 @@
   "devices.panels.running": "运行中",
   "devices.panels.simulated": "模拟测试面板",
   "devices.panels.simulatedSuffix": "（模拟）",
+  "devices.simulated": "模拟",
   "devices.panels.simulatorFrameTitle": "面板模拟器",
   "devices.panels.widgetSettings.back": "返回",
   "devices.panels.widgetSettings.layout": "布局",

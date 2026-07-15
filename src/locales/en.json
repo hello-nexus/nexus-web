@@ -542,6 +542,7 @@
   "devices.qseries.fwGate.hint": "The Nexus panel app isn't installed on this Q-series panel. Install it to enable these controls.",
   "devices.qseries.fwGate.title": "Panel app required",
   "devices.saving": "Saving…",
+  "devices.simulated": "Simulated",
   "devices.smartHub.fanSection": "Standalone fan behaviour",
   "devices.smartHub.fanSectionDescription1": "Persisted to the hub's flash. 5 seconds after the last host fan write, the hub applies this duty to all four PWM ports - the PC is off, asleep, or the service stopped.",
   "devices.smartHub.fanSectionDescription2": "This hub has no motherboard PWM input; live fan control comes from Nexus cooling.",

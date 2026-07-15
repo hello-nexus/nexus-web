@@ -504,6 +504,7 @@
   "devices.panels.running": "実行中",
   "devices.panels.simulated": "シミュレートされたテストパネル",
   "devices.panels.simulatedSuffix": "（シミュレート）",
+  "devices.simulated": "シミュレート",
   "devices.panels.simulatorFrameTitle": "パネルシミュレーター",
   "devices.panels.widgetSettings.back": "戻る",
   "devices.panels.widgetSettings.layout": "レイアウト",

@@ -504,6 +504,7 @@
   "devices.panels.running": "執行中",
   "devices.panels.simulated": "模擬測試面板",
   "devices.panels.simulatedSuffix": "（模擬）",
+  "devices.simulated": "模擬",
   "devices.panels.simulatorFrameTitle": "面板模擬器",
   "devices.panels.widgetSettings.back": "返回",
   "devices.panels.widgetSettings.layout": "版面配置",

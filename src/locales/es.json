@@ -504,6 +504,7 @@
   "devices.panels.running": "En ejecución",
   "devices.panels.simulated": "Panel de prueba simulado",
   "devices.panels.simulatedSuffix": " (simulado)",
+  "devices.simulated": "Simulado",
   "devices.panels.simulatorFrameTitle": "Simulador de panel",
   "devices.panels.widgetSettings.back": "Atrás",
   "devices.panels.widgetSettings.layout": "Disposición",

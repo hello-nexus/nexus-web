@@ -504,6 +504,7 @@
   "devices.panels.running": "실행 중",
   "devices.panels.simulated": "시뮬레이션된 테스트 패널",
   "devices.panels.simulatedSuffix": "(시뮬레이션)",
+  "devices.simulated": "시뮬레이션",
   "devices.panels.simulatorFrameTitle": "패널 시뮬레이터",
   "devices.panels.widgetSettings.back": "뒤로",
   "devices.panels.widgetSettings.layout": "레이아웃",

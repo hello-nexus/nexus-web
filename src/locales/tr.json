@@ -504,6 +504,7 @@
   "devices.panels.running": "Çalışıyor",
   "devices.panels.simulated": "Simüle test paneli",
   "devices.panels.simulatedSuffix": " (simüle)",
+  "devices.simulated": "Simüle",
   "devices.panels.simulatorFrameTitle": "Panel simülatörü",
   "devices.panels.widgetSettings.back": "Geri",
   "devices.panels.widgetSettings.layout": "Düzen",

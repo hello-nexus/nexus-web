@@ -504,6 +504,7 @@
   "devices.panels.running": "Работает",
   "devices.panels.simulated": "Симулированная тестовая панель",
   "devices.panels.simulatedSuffix": " (симуляция)",
+  "devices.simulated": "Симуляция",
   "devices.panels.simulatorFrameTitle": "Симулятор панели",
   "devices.panels.widgetSettings.back": "Назад",
   "devices.panels.widgetSettings.layout": "Раскладка",
