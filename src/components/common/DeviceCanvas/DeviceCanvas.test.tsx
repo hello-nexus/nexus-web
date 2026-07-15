@@ -1,6 +1,7 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { DeviceCanvas } from './DeviceCanvas';
+import styles from './DeviceCanvas.module.scss';
 import type { LightingDevice } from '../../../api/lighting';
 
 vi.mock('../../../lib/i18n', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
@@ -146,20 +147,20 @@ describe('DeviceCanvas', () => {
     );
 
     const label = screen.getByText('Test Device 3');
-    expect(label.style.transform).toBe('rotate(0deg)');
+    expect(label.style.transform).toBe('translate(-50%, -50%) rotate(0deg)');
   });
 
   it('a tap that does not move fires no onBeforeLayoutSave (no no-op undo snapshot)', () => {
     const device = dragDevice('dev4', 'Tap Device');
     const onBeforeLayoutSave = vi.fn();
-    render(
+    const { container } = render(
       <DeviceCanvas
         devices={[device]} canvasPixels={null} canvasW={1000} canvasH={500}
         selectedIds={new Set()} primaryDeviceId={null}
         onSelectDevice={vi.fn()} onSetSelection={vi.fn()} onBeforeLayoutSave={onBeforeLayoutSave}
       />
     );
-    const frame = screen.getByText('Tap Device').parentElement!;
+    const frame = container.querySelector(`.${styles.device}`)!;
     fireEvent.pointerDown(frame, { button: 0, clientX: 150, clientY: 150 });
     fireEvent.pointerUp(frame, { clientX: 150, clientY: 150 });
     expect(onBeforeLayoutSave).not.toHaveBeenCalled();
@@ -172,19 +173,274 @@ describe('DeviceCanvas', () => {
     const rectSpy = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue(
       { left: 0, top: 0, width: 1000, height: 500, right: 1000, bottom: 500, x: 0, y: 0, toJSON() {} } as DOMRect,
     );
-    render(
+    const { container } = render(
       <DeviceCanvas
         devices={[device]} canvasPixels={null} canvasW={1000} canvasH={500}
         selectedIds={new Set()} primaryDeviceId={null}
         onSelectDevice={vi.fn()} onSetSelection={vi.fn()} onBeforeLayoutSave={onBeforeLayoutSave}
       />
     );
-    const frame = screen.getByText('Drag Device').parentElement!;
+    const frame = container.querySelector(`.${styles.device}`)!;
     fireEvent.pointerDown(frame, { button: 0, clientX: 150, clientY: 150 });
     fireEvent.pointerMove(frame, { clientX: 300, clientY: 150 });
     fireEvent.pointerMove(frame, { clientX: 320, clientY: 150 });
     fireEvent.pointerUp(frame, { clientX: 320, clientY: 150 });
     expect(onBeforeLayoutSave).toHaveBeenCalledTimes(1);
+    rectSpy.mockRestore();
+  });
+
+  // Sizes every label 100x20 px inside a 1000x600 px canvas, so px map 1:1 onto
+  // the CW=1000 / CH=600 canvas units the de-collision works in.
+  function mockLabelRects() {
+    return vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
+      const label = this.classList.contains(styles.deviceLabel);
+      const w = label ? 100 : 1000;
+      const h = label ? 20 : 600;
+      return { left: 0, top: 0, width: w, height: h, right: w, bottom: h, x: 0, y: 0, toJSON() {} } as DOMRect;
+    });
+  }
+
+  /** Both frames share the exact center, the state the minimize preset produces. */
+  function stackedDevice(id: string, name: string): LightingDevice {
+    return {
+      id, name, ledsOn: true, ledCount: 0,
+      canvasX: 400, canvasY: 290, canvasW: 200, canvasH: 20, canvasRotation: 0,
+    } as unknown as LightingDevice;
+  }
+
+  it('pushes co-located labels apart vertically instead of stacking them', () => {
+    const rectSpy = mockLabelRects();
+    render(
+      <DeviceCanvas
+        devices={[stackedDevice('a', 'Alpha'), stackedDevice('b', 'Bravo')]}
+        canvasPixels={null} canvasW={1000} canvasH={500}
+        selectedIds={new Set()} primaryDeviceId={null}
+        onSelectDevice={vi.fn()} onSetSelection={vi.fn()}
+      />
+    );
+    // Equal area, so id breaks the tie: 'a' keeps the home row at cy=300
+    // (300/600 = 50%), 'b' steps one row down to 325 (325/600 = 54.17%).
+    expect(screen.getByText('Alpha').style.top).toBe('50%');
+    expect(screen.getByText('Bravo').style.top).toBe(`${(325 / 600) * 100}%`);
+    // Same center X: de-collision only moves labels vertically.
+    expect(screen.getByText('Alpha').style.left).toBe('50%');
+    expect(screen.getByText('Bravo').style.left).toBe('50%');
+    rectSpy.mockRestore();
+  });
+
+  it('leaves horizontally clear labels on their home row', () => {
+    const rectSpy = mockLabelRects();
+    const far = stackedDevice('b', 'Bravo');
+    far.canvasX = 0; // center 100, 100-wide label spans 50..150 - clear of 'a' at 450..550
+    render(
+      <DeviceCanvas
+        devices={[stackedDevice('a', 'Alpha'), far]}
+        canvasPixels={null} canvasW={1000} canvasH={500}
+        selectedIds={new Set()} primaryDeviceId={null}
+        onSelectDevice={vi.fn()} onSetSelection={vi.fn()}
+      />
+    );
+    expect(screen.getByText('Alpha').style.top).toBe('50%');
+    expect(screen.getByText('Bravo').style.top).toBe('50%');
+    rectSpy.mockRestore();
+  });
+
+  /** Fills the canvas, which is what isMaximized() geometrically tests for. */
+  function maximizedDevice(id: string, name: string): LightingDevice {
+    return {
+      id, name, ledsOn: true, ledCount: 0,
+      canvasX: 0, canvasY: 0, canvasW: 1000, canvasH: 600, canvasRotation: 0,
+    } as unknown as LightingDevice;
+  }
+
+  it('minimizing a group tiles the frames into distinct slots', () => {
+    const devices = [
+      maximizedDevice('a', 'Alpha'), maximizedDevice('b', 'Bravo'), maximizedDevice('c', 'Charlie'),
+    ];
+    render(
+      <DeviceCanvas
+        devices={devices} canvasPixels={null} canvasW={1000} canvasH={500}
+        selectedIds={new Set(['a', 'b', 'c'])} primaryDeviceId="a"
+        onSelectDevice={vi.fn()} onSetSelection={vi.fn()}
+      />
+    );
+    fireEvent.contextMenu(screen.getByText('Alpha'));
+    fireEvent.click(screen.getByText('lighting.devices.minimizeCount'));
+
+    for (const d of devices) {
+      expect(d.canvasW).toBe(240);
+      expect(d.canvasH).toBe(60);
+    }
+    for (let i = 0; i < devices.length; i++)
+    for (let j = i + 1; j < devices.length; j++) {
+      const a = devices[i];
+      const b = devices[j];
+      const overlap = !(a.canvasX + a.canvasW <= b.canvasX || b.canvasX + b.canvasW <= a.canvasX
+        || a.canvasY + a.canvasH <= b.canvasY || b.canvasY + b.canvasH <= a.canvasY);
+      expect(overlap).toBe(false);
+    }
+  });
+
+  it('minimizing spreads frames down the canvas and staggers neighbouring columns', () => {
+    const devices = [
+      maximizedDevice('a', 'Alpha'), maximizedDevice('b', 'Bravo'),
+      maximizedDevice('c', 'Charlie'), maximizedDevice('d', 'Delta'),
+    ];
+    render(
+      <DeviceCanvas
+        devices={devices} canvasPixels={null} canvasW={1000} canvasH={500}
+        selectedIds={new Set(['a', 'b', 'c', 'd'])} primaryDeviceId="a"
+        onSelectDevice={vi.fn()} onSetSelection={vi.fn()}
+      />
+    );
+    fireEvent.contextMenu(screen.getByText('Alpha'));
+    fireEvent.click(screen.getByText('lighting.devices.minimizeCount'));
+
+    // Neighbouring columns must not share a center line, or their names collide.
+    expect(devices[0].canvasY).not.toBe(devices[1].canvasY);
+    // The grid uses the whole canvas, not just the top strip: with 4 frames the
+    // second row sits well below the first.
+    const lowest = Math.max(...devices.map(d => d.canvasY));
+    expect(lowest).toBeGreaterThan(300);
+    // Still inside the canvas.
+    for (const d of devices) {
+      expect(d.canvasX).toBeGreaterThanOrEqual(12);
+      expect(d.canvasY).toBeGreaterThanOrEqual(12);
+      expect(d.canvasX + d.canvasW).toBeLessThanOrEqual(1000 - 12);
+      expect(d.canvasY + d.canvasH).toBeLessThanOrEqual(600 - 12);
+    }
+  });
+
+  it('pins the dragged card\'s name to its frame instead of shuffling it', () => {
+    const rectSpy = mockLabelRects();
+    // Both centered on (500,300). 'Bravo' is the bigger frame, so by area it
+    // normally loses the home row to 'Alpha' and gets pushed down.
+    const small = stackedDevice('a', 'Alpha');
+    const big = stackedDevice('b', 'Bravo');
+    big.canvasX = 100; big.canvasY = 100; big.canvasW = 800; big.canvasH = 400;
+    const { container } = render(
+      <DeviceCanvas
+        devices={[small, big]} canvasPixels={null} canvasW={1000} canvasH={500}
+        selectedIds={new Set()} primaryDeviceId={null}
+        onSelectDevice={vi.fn()} onSetSelection={vi.fn()}
+      />
+    );
+    // Undragged: the small frame owns the home row.
+    expect(screen.getByText('Alpha').style.top).toBe('50%');
+    expect(screen.getByText('Bravo').style.top).toBe(`${(325 / 600) * 100}%`);
+
+    // Grab the big frame: its name must take the home row (its frame's centre)
+    // and 'Alpha' yields, so the dragged name tracks the cursor.
+    const bigFrame = container.querySelectorAll(`.${styles.device}`)[1];
+    fireEvent.pointerDown(bigFrame, { button: 0, clientX: 500, clientY: 300 });
+    expect(screen.getByText('Bravo').style.top).toBe('50%');
+    expect(screen.getByText('Alpha').style.top).toBe(`${(325 / 600) * 100}%`);
+    rectSpy.mockRestore();
+  });
+
+  it('keeps the selected card\'s name on its frame once a drag ends', () => {
+    const rectSpy = mockLabelRects();
+    // 'Bravo' is the bigger frame, so by area it loses the home row to 'Alpha'.
+    // A drag selects what it grabs, so the primary has to hold the pin after the
+    // drag clears, or the name hops back the instant the button releases.
+    const small = stackedDevice('a', 'Alpha');
+    const big = stackedDevice('b', 'Bravo');
+    big.canvasX = 100; big.canvasY = 100; big.canvasW = 800; big.canvasH = 400;
+    render(
+      <DeviceCanvas
+        devices={[small, big]} canvasPixels={null} canvasW={1000} canvasH={500}
+        selectedIds={new Set(['b'])} primaryDeviceId="b"
+        onSelectDevice={vi.fn()} onSetSelection={vi.fn()}
+      />
+    );
+    expect(screen.getByText('Bravo').style.top).toBe('50%');
+    expect(screen.getByText('Alpha').style.top).toBe(`${(325 / 600) * 100}%`);
+    rectSpy.mockRestore();
+  });
+
+  it('keeps an edge-parked frame\'s name inside the canvas', () => {
+    const rectSpy = mockLabelRects();
+    const edge = stackedDevice('a', 'Alpha');
+    edge.canvasX = 0; edge.canvasW = 60; // center 30, but the label is 100 wide
+    render(
+      <DeviceCanvas
+        devices={[edge]} canvasPixels={null} canvasW={1000} canvasH={500}
+        selectedIds={new Set()} primaryDeviceId={null}
+        onSelectDevice={vi.fn()} onSetSelection={vi.fn()}
+      />
+    );
+    // Unclamped this centers at 30 and the canvas (overflow:hidden) eats the
+    // leading 20 units of text. Clamped to halfW, the whole name stays visible.
+    expect(screen.getByText('Alpha').style.left).toBe('5%');
+    rectSpy.mockRestore();
+  });
+
+  it('a tap on a name selects that device without cycling the stack under it', async () => {
+    const rectSpy = mockLabelRects();
+    const onSelectDevice = vi.fn();
+    // Three co-located frames, 'c' primary and topmost. Tapping 'a's name must
+    // select 'a' and stop; the tap-cycle would step 'c' -> 'b' instead. Two
+    // frames cannot prove this: the cycle lands on 'a' either way.
+    render(
+      <DeviceCanvas
+        devices={[stackedDevice('a', 'Alpha'), stackedDevice('b', 'Bravo'), stackedDevice('c', 'Charlie')]}
+        canvasPixels={null} canvasW={1000} canvasH={500}
+        selectedIds={new Set(['c'])} primaryDeviceId="c"
+        onSelectDevice={onSelectDevice} onSetSelection={vi.fn()}
+      />
+    );
+    const label = screen.getByText('Alpha');
+    fireEvent.pointerDown(label, { button: 0, clientX: 500, clientY: 300 });
+    fireEvent.pointerUp(label, { clientX: 500, clientY: 300 });
+    // handlePointerUp is async and reaches the tap-cycle only after an awaited
+    // save; without flushing, the assertions run before the branch under test.
+    await act(async () => {});
+    expect(onSelectDevice).toHaveBeenCalledTimes(1);
+    expect(onSelectDevice).toHaveBeenCalledWith('a');
+    rectSpy.mockRestore();
+  });
+
+  it('a tap on a frame still cycles one level deeper into the stack', async () => {
+    const rectSpy = mockLabelRects();
+    const onSelectDevice = vi.fn();
+    // Same stack, tapped on the frame body instead of a name: the cycle must
+    // still step 'c' -> 'b'. Pins that viaLabel narrows the guard, not removes it.
+    const { container } = render(
+      <DeviceCanvas
+        devices={[stackedDevice('a', 'Alpha'), stackedDevice('b', 'Bravo'), stackedDevice('c', 'Charlie')]}
+        canvasPixels={null} canvasW={1000} canvasH={500}
+        selectedIds={new Set(['c'])} primaryDeviceId="c"
+        onSelectDevice={onSelectDevice} onSetSelection={vi.fn()}
+      />
+    );
+    const frame = container.querySelector(`.${styles.device}`)!;
+    fireEvent.pointerDown(frame, { button: 0, clientX: 500, clientY: 300 });
+    fireEvent.pointerUp(frame, { clientX: 500, clientY: 300 });
+    await act(async () => {});
+    expect(onSelectDevice).toHaveBeenLastCalledWith('b');
+    rectSpy.mockRestore();
+  });
+
+  it('fans labels down the canvas from a top-edge pile', () => {
+    const rectSpy = mockLabelRects();
+    // 20 frames pinned at the top edge, so every upward step is wasted and the
+    // 20th label needs 20 downward rows. The alternating search spends half its
+    // steps upward, so the budget has to span the canvas twice over to get
+    // there. 20 * 25 units fits CH=600, so every label should get its own row.
+    const devices = Array.from({ length: 20 }, (_, i) => {
+      const d = stackedDevice(`d${i}`, `Device ${i}`);
+      d.canvasY = 0; d.canvasH = 20;
+      return d;
+    });
+    render(
+      <DeviceCanvas
+        devices={devices} canvasPixels={null} canvasW={1000} canvasH={500}
+        selectedIds={new Set()} primaryDeviceId={null}
+        onSelectDevice={vi.fn()} onSetSelection={vi.fn()}
+      />
+    );
+    const tops = devices.map(d => screen.getByText(d.name).style.top);
+    expect(new Set(tops).size).toBe(20);
     rectSpy.mockRestore();
   });
 });

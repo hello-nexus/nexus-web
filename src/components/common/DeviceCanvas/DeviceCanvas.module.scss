@@ -58,9 +58,6 @@
   background-image: radial-gradient(circle, rgb(255 255 255 / var(--alpha-faint)) 0.8px, transparent 1.2px);
   background-size: 8px 8px;
   cursor: grab;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   overflow: visible;
   z-index: 2;
   transition: border-color var(--ease-fast), background var(--ease-fast);
@@ -85,32 +82,63 @@
   }
 
   // While a selection is active the unselected frames recede so the selection
-  // reads as the focus: no border, faded label, no drop-shadow. This wins over
-  // :hover, so a receded frame shows no border or resize handle until selected.
+  // reads as the focus: no border, no drop-shadow. This wins over :hover, so a
+  // receded frame shows no border or resize handle until selected.
   &.deemphasized {
     border-color: transparent;
 
-    .deviceLabel {
-      opacity: var(--alpha-medium);
-      text-shadow: none;
-    }
-
     &:hover .resizeHandle { opacity: 0; }
+  }
+
+  // De-collision can park a name away from its frame, so pointing at the name is
+  // the only thing tying the two together. The label sits in its own layer, so
+  // it no longer triggers the frame's :hover; this restores what that gave,
+  // including the resize handle the name covers on a small frame. The :not()s
+  // outrank .deemphasized (revealing a receded frame) while leaving the selected
+  // and dragging accents alone; pointer capture withholds pointerleave for a
+  // label-initiated drag, so excluding .dragging keeps this off the dragged frame.
+  &.labelHover:not(.selected):not(.dragging) {
+    border-color: rgba(255, 255, 255, 0.8);
+
+    .resizeHandle { opacity: 1; }
   }
 }
 
+.labelLayer {
+  position: absolute;
+  inset: 0;
+  // Clears every .device tier, so a name is never buried by a frame.
+  z-index: 11;
+  pointer-events: none;
+}
+
 .deviceLabel {
+  position: absolute;
   font-size: var(--type-small);
   color: #fff;
   text-align: center;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 90%;
-  pointer-events: none;
+  // Backstop against a pathological name spanning the canvas; the frame no
+  // longer clips it, so this is the only cap.
+  max-width: 40%;
+  pointer-events: auto;
+  cursor: grab;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
   font-weight: var(--weight-body);
   transition: opacity var(--ease-fast);
+
+  // Receding follows the frames, but pointing at a name always brings it back
+  // to full strength: it is the hit target for selecting a buried layer.
+  &.deemphasized:not(:hover) {
+    opacity: var(--alpha-medium);
+    text-shadow: none;
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
 }
 
 .ledDot {

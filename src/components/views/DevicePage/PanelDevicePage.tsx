@@ -22,6 +22,7 @@ import { getPanelGridSizingSettings } from '../../../lib/panelSimulation';
 import { isSingleWidgetSurface } from '../../../panel/types';
 import { fetchService, postService } from '../../../api/service';
 import {
+  demoteDisplayPanel,
   fetchDisplays,
   fetchDisplayTopology,
   launchTouchSetupWizard,
@@ -42,6 +43,7 @@ import { createUuid } from '../../../lib/uuid';
 import { IconLabelButton } from '../../common/IconLabelButton/IconLabelButton';
 import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
+import { NexusControlCard } from '../../common/NexusControlCard/NexusControlCard';
 import { useToast } from '../../common/Toast/Toast';
 import { PanelEmbedFrame } from './PanelEmbedFrame';
 import { QSeriesCoolerSettings } from './QSeriesCoolerSettings';
@@ -115,6 +117,7 @@ type Tab = 'widgets' | 'theme' | 'settings';
 
 export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: PanelDevicePageProps) {
   const { t } = useTranslation();
+  const { push } = useToast();
   const isQSeries = device?.runtimeSurface === 'q60';
   const { items: firmwareItems, loaded: firmwareLoaded } = useFirmwareStatus(isQSeries);
   const [tab, setTab] = useState<Tab>('widgets');
@@ -156,6 +159,21 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // Promoted monitor panels: bound to an OS display (per-panel reserve +
   // rotation live on the record / displays API).
   const isMonitorPanel = !!device?.displayId && !!device?.panelRecordId;
+  // Nexus Link off (DELETE /displays/{id}/panel) keeps the record but drops
+  // it from the panel device list, so this page is only ever reachable while
+  // the link is on - the toggle here always renders checked and only ever
+  // turns off.
+  const [turningLinkOff, setTurningLinkOff] = useState(false);
+  const handleNexusLinkOff = useCallback(() => {
+    const displayId = device?.displayId;
+    if (!displayId || turningLinkOff) return;
+    setTurningLinkOff(true);
+    demoteDisplayPanel(displayId)
+      .then(result => {
+        if (!result) push({ title: t('displays.error.demote') });
+      })
+      .finally(() => setTurningLinkOff(false));
+  }, [device?.displayId, turningLinkOff, push, t]);
   // The record's touch flag is authoritative once loaded; the device entry's
   // UI capability seeds it for first paint.
   const deviceTouch = recordTouch ?? device?.capabilities.touch;
@@ -552,6 +570,11 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
               />
             ) : (
               <>
+                {isMonitorPanel && (
+                  <div className={styles.nexusLinkRow}>
+                    <NexusControlCard checked disabled={turningLinkOff} onChange={handleNexusLinkOff} />
+                  </div>
+                )}
                 <div className={`${styles.tabContent}${activeTab === 'widgets' ? ` ${styles.tabContentCatalog}` : ''}`}>
                   {activeTab === 'widgets' && (
                     <PanelWidgetCatalog

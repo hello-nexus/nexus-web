@@ -14,11 +14,15 @@ const Y70_EDITOR_CAP = { gridCols: 4, pageRows: 16 };
 const fetchPanelDevicesMock = vi.fn();
 const patchPanelDeviceMock = vi.fn();
 
+vi.mock('../../common/Toast/Toast', () => ({
+  useToast: () => ({ push: vi.fn() }),
+}));
 vi.mock('../../../api/service', () => ({
   fetchService: vi.fn().mockResolvedValue(null),
   postService: vi.fn().mockResolvedValue(null),
 }));
 vi.mock('../../../api/displays', () => ({
+  demoteDisplayPanel: vi.fn().mockResolvedValue(null),
   fetchDisplays: vi.fn().mockResolvedValue({ displays: [] }),
   fetchDisplayTopology: vi.fn().mockResolvedValue(null),
   rotateDisplay: vi.fn().mockResolvedValue(null),

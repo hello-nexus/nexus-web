@@ -1,0 +1,19 @@
+.controlCard {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.9rem 1.1rem;
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.controlLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-family: var(--font-sans);
+  font-size: var(--type-small);
+  color: var(--text);
+}

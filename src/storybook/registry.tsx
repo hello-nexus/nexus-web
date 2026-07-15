@@ -25,6 +25,7 @@ import { InfoTooltip } from '../components/common/InfoTooltip/InfoTooltip';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { DeviceWarningIcon } from '../components/common/DeviceWarningIcon/DeviceWarningIcon';
 import { NexusControlOffIcon } from '../components/common/NexusControlOffIcon/NexusControlOffIcon';
+import { NexusControlCard } from '../components/common/NexusControlCard/NexusControlCard';
 import { Popover } from '../components/common/Popover/Popover';
 import { DatePicker } from '../components/common/DatePicker/DatePicker';
 import { EffectCard } from '../components/common/EffectCard/EffectCard';
@@ -303,6 +304,11 @@ function PreviewNexusControlOffIcon() {
       </div>
     </div>
   );
+}
+
+function PreviewNexusControlCard() {
+  const [checked, setChecked] = useState(true);
+  return <NexusControlCard checked={checked} onChange={() => setChecked(c => !c)} />;
 }
 
 function PreviewCardDeleteButton() {
@@ -1756,6 +1762,12 @@ export const REGISTRY: StorybookEntry[] = [
     Preview: PreviewNexusControlOffIcon,
   },
   {
+    name: 'NexusControlCard', category: 'cards',
+    filePath: 'src/components/common/NexusControlCard/NexusControlCard.tsx',
+    description: 'Label + toggle in a card: the "Nexus Link" on/off switch. Used by the curated-device NexusControlOff full-page gate (DevicePage) and the promoted-monitor panel page (PanelDevicePage), so turning a device or a promoted display off/on reads as the same control everywhere.',
+    Preview: PreviewNexusControlCard,
+  },
+  {
     name: 'HeartBurst', category: 'status',
     filePath: 'src/components/common/HeartBurst/HeartBurst.tsx',
     description: 'Burst of small red hearts rising and drifting apart, then unmounting - fired from the telemetry consent toggle on an off-to-on flip. Pure CSS transform/opacity keyframes, each heart self-removes on its own animationend. useHeartBurstTrigger derives the required burstKey from a boolean so the burst never fires on mount.', Preview: PreviewHeartBurst,
@@ -1842,7 +1854,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'DeviceCanvas', category: 'cards',
     filePath: 'src/components/common/DeviceCanvas/DeviceCanvas.tsx',
-    description: 'Free-arrange device canvas for the Lighting view: drag-position device tiles, marquee multi-select, per-device LED preview driven by the live shader effect, right-click DeviceContextMenu.',
+    description: 'Free-arrange device canvas for the Lighting view: drag-position device tiles, marquee multi-select, per-device LED preview driven by the live shader effect, right-click DeviceContextMenu. Device names render in a layer above every frame, de-collided vertically so they never overlap; clicking a name selects (and drags) that device whatever the frame stacking.',
     notes: 'No live preview - needs live device geometry, LED maps, and shader state.',
   },
   {
