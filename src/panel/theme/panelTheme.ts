@@ -125,6 +125,25 @@ export function buildPanelThemeVars(theme: PanelThemeState, resolvedThemeMode: R
   return vars as CSSProperties;
 }
 
+// Per-surface theme overrides applied at render time (persisted theme is
+// never mutated). Single-widget surfaces (q-series) force labels off so the
+// tile fills the canvas, and force widget blur off + opacity 0 so the tile
+// floats clean over the shader with no card chrome. The embedded desktop
+// dashboard has no per-device theme record - usePanelTheme's fetch is gated
+// on `enabled` (false whenever the caller passes kioskBehavior, itself false
+// when embedded) - so its widgetPadding never resolves past baseTheme's
+// initial default; this forces it to 'large' as a surface-level default
+// instead.
+export function resolveEffectivePanelTheme(baseTheme: PanelThemeState, surface: PanelSurface): PanelThemeState {
+  if (isSingleWidgetSurface(surface)) {
+    return { ...baseTheme, widgetLabels: false, widgetBlur: false, widgetOpacity: 0, widgetPadding: 'none' };
+  }
+  if (surface === 'desktop') {
+    return { ...baseTheme, widgetPadding: 'large' };
+  }
+  return baseTheme;
+}
+
 // Panel browsers (kiosk Edge, iOS WKWebView, other tabs) have their own
 // localStorage; this fetch surfaces the desktop app's language choice.
 // Mirrors usePanelTheme's fetch-and-apply shape.

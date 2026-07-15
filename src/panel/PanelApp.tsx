@@ -110,6 +110,7 @@ import {
 import {
   buildEmbeddedPanelThemeVars,
   buildPanelThemeVars,
+  resolveEffectivePanelTheme,
   useDocumentResolvedThemeMode,
   usePanelLanguageSync,
   usePanelTheme,
@@ -273,18 +274,10 @@ export function PanelContent({
   // stays disabled), so effectiveTheme uses the parent-supplied state
   // wherever the runtime would read panelTheme.theme; otherwise the iframe
   // shows the default theme (its fetch never runs).
-  // Single-widget surfaces (q-series) force labels off so the tile fills the
-  // canvas (no ~14px label footer), and force widget blur off + opacity 0 so
-  // the single tile floats clean over the shader (no card chrome) and the weak
-  // panel GPU skips the backdrop-filter. Render-time flip; persisted theme
-  // intact. Same forced-for-q-series treatment as the half-res shader cap.
+  // Render-time per-surface overrides (persisted theme intact); see
+  // resolveEffectivePanelTheme for what each surface forces.
   const baseTheme = simulator && simulatorTheme ? simulatorTheme : panelTheme.theme;
-  const effectiveTheme = useMemo(
-    () => isSingleWidgetSurface(surface)
-      ? { ...baseTheme, widgetLabels: false, widgetBlur: false, widgetOpacity: 0, widgetPadding: 'none' as const }
-      : baseTheme,
-    [baseTheme, surface],
-  );
+  const effectiveTheme = useMemo(() => resolveEffectivePanelTheme(baseTheme, surface), [baseTheme, surface]);
   usePanelLanguageSync(kioskBehavior);
   // In sync mode prefer the desktop's *resolved* theme (concrete dark/light,
   // tracking the desktop OS); fall back to appThemeMode when unpublished -

@@ -91,6 +91,10 @@
   // before the label dominates very large cells.
   --panel-widget-label-strip: clamp(18px, calc(var(--panel-cell-size, 172px) * 0.15), 28px);
   --panel-widget-label-font-size: clamp(12px, calc(var(--panel-cell-size, 172px) * 0.10), 18px);
+  // Breathing room between the card's bottom edge and the label text below
+  // it. Zeroed alongside --panel-widget-label-strip when labels are off, so
+  // no residual gap survives between vertically stacked cards.
+  --panel-widget-label-gap: 2px;
   // Widget content fills its grid cell edge-to-edge on every surface (the only
   // separation between widgets is --panel-gap). Cells are separated by the grid
   // gap, not a per-card margin, so a widget's background (e.g. the lighting
@@ -124,6 +128,7 @@
 
 .panel-root[data-show-widget-labels='false'] {
   --panel-widget-label-strip: 0px;
+  --panel-widget-label-gap: 0px;
   --panel-widget-card-margin-x: 0px;
   --panel-widget-card-bottom-gap: 0px;
   --panel-widget-card-inner-pad: 0px;
