@@ -204,5 +204,7 @@ export const saveCurves = (body: {
 export const startCalibration = (fanIds: string[]) =>
   postService<{ sessionId: string; error: boolean; msg: string }>('/cooling/calibrate', { fanIds });
 
-export const fetchCalibrations = () =>
-  fetchService<{ calibrations: FanCalibration[] }>('/cooling/calibrations');
+/** The last run's results. Each live fan's stored calibration arrives on its
+ *  channel from /cooling/fans instead. */
+export const fetchCalibrationResults = () =>
+  fetchService<{ calibrations: FanCalibration[] }>('/cooling/calibration/results');
