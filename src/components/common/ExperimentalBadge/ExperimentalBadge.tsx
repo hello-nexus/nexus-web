@@ -7,7 +7,7 @@ import styles from './ExperimentalBadge.module.scss';
 /**
  * Pill badge flagging a device whose support is experimental - non-HYTE/iBUYPOWER
  * hardware Nexus drives on a best-effort basis. Hover/pointer reveals a tooltip
- * spelling out the caveat. Rendered left of the Nexus Link control on the Devices
+ * spelling out the caveat. Rendered left of the Nexus Control switch on the Devices
  * list and under the on/off switch on the device page.
  */
 export function ExperimentalBadge({ className }: { className?: string }) {
