@@ -243,7 +243,7 @@ export function buildPanelDevices({
   // service created on POST /displays/{id}/panel. Hidden while the bound
   // monitor is unplugged (displayAttached === false); unknown topology
   // (null/undefined) keeps the row visible rather than flickering it away.
-  // A record with Nexus Link off (enabled === false) stays in the list too -
+  // A record with Nexus Control off (enabled === false) stays in the list too -
   // the monitor stays physically attached, unmanaged rather than
   // disconnected - so its device page can show an accurate off state instead
   // of "not connected".

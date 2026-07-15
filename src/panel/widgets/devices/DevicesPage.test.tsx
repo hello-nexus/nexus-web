@@ -31,7 +31,8 @@ vi.mock('../../../hooks/useUsbDevices', () => ({
 }));
 
 let mockUnified: UnifiedDevice[] = [];
-vi.mock('../../../hooks/useUnifiedDevices', () => ({
+vi.mock('../../../hooks/useUnifiedDevices', async importOriginal => ({
+  ...(await importOriginal<typeof import('../../../hooks/useUnifiedDevices')>()),
   useUnifiedDevices: () => ({
     unified: mockUnified,
     merged: [],
@@ -169,5 +170,33 @@ describe('DevicesPage device-row Nexus Link/Control toggle', () => {
     mockUnified = [curatedRow({ supportsNexusControl: false })];
     render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
     expect(screen.queryByRole('switch', { name: 'devices.nexusControl' })).toBeNull();
+  });
+});
+
+describe('DevicesPage device-card secondary line', () => {
+  it('renders nothing under the name for a real device, whatever its subtitle carries', () => {
+    mockUnified = [monitorRow()];
+    render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
+
+    expect(screen.getByText('Xeneon Edge')).toBeTruthy();
+    expect(screen.queryByText('devices.simulated')).toBeNull();
+    // The card used to echo subtitle/category/FW/serial under the name.
+    expect(screen.queryByText(/Online/)).toBeNull();
+  });
+
+  it('marks a simulated panel, which carries the marker on its panel record', () => {
+    mockUnified = [monitorRow({
+      panelDevice: { ...monitorRow().panelDevice!, connectionKind: 'simulated' },
+    })];
+    render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
+
+    expect(screen.getByText('devices.simulated')).toBeTruthy();
+  });
+
+  it('marks a simulated non-panel device, which sets the flag directly', () => {
+    mockUnified = [curatedRow({ simulated: true })];
+    render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
+
+    expect(screen.getByText('devices.simulated')).toBeTruthy();
   });
 });

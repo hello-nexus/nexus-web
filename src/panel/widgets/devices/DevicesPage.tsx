@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { Usb, Monitor, Microchip, FileText, Cable, BookOpen, Link } from 'lucide-react';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useUsbDevices, type UsbDeviceDetail } from '../../../hooks/useUsbDevices';
-import { useUnifiedDevices, type UnifiedDevice } from '../../../hooks/useUnifiedDevices';
+import { useUnifiedDevices, isSimulatedDevice, type UnifiedDevice } from '../../../hooks/useUnifiedDevices';
 import { useFirmwareStatus, type FirmwareStatusItem } from '../../../hooks/useFirmwareStatus';
 import { useFlashStatus, type FlashStatus } from '../../../hooks/useFlashStatus';
 import { useSystemSpecs, type SystemSpecs } from '../../../hooks/useSystemSpecs';
@@ -220,19 +220,6 @@ function ConnectedDevicesModal({ open, onClose, devices, loading, onRefresh }: C
   );
 }
 
-// Secondary line under the device name: category, then firmware and serial
-// when the device record carries them (peripherals expose serial; curated
-// devices and peripherals expose firmware). Joined with middots.
-function deviceMetaLine(device: UnifiedDevice): string {
-  const parts: string[] = [];
-  if (device.subtitle) parts.push(device.subtitle.charAt(0).toUpperCase() + device.subtitle.slice(1));
-  const fw = device.firmwareVersion ?? device.peripheral?.firmwareVersion;
-  if (fw) parts.push(`FW ${fw}`);
-  const serial = device.peripheral?.serial;
-  if (serial) parts.push(`SN ${serial}`);
-  return parts.join('  ·  ');
-}
-
 function DeviceCard({
   device, onClick, onToggleControl,
 }: {
@@ -241,7 +228,9 @@ function DeviceCard({
   onToggleControl?: (next: boolean) => void;
 }) {
   const { t } = useTranslation();
-  const meta = deviceMetaLine(device);
+  // Connection state is the dimmed card and category is the icon, so only a
+  // simulated device has a fact left for a second line.
+  const meta = isSimulatedDevice(device) ? t('devices.simulated') : '';
   const body = (
     <>
       <span className={styles.rowIconTile}>

@@ -23,7 +23,7 @@ import {
 import {
   fetchFanChannels, fetchTemperatureSources, fetchCurves,
   setFanSpeed, releaseFanAuto, saveCurves, renameFan, setFanLock,
-  startCalibration, fetchCalibrations, fetchProfiles, applyProfile,
+  startCalibration, fetchCalibrationResults, fetchProfiles, applyProfile,
   resetPresetCurve, isFanDisconnected,
   type FanChannel, type TemperatureSource,
   type FanCalibration,
@@ -151,8 +151,14 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
       }
     }
 
-    if (fans?.channels) {
-      setChannels(fans.channels);
+    if (fans?.channels) setChannels(fans.channels);
+
+    // fanStates joins the fan list with the curve outputs, so it can only be
+    // rebuilt when BOTH fetches land - fetchService returns null on any non-2xx.
+    // Rebuilding from a null curves response drops every curve and binding, and
+    // the next edit persists that empty set back to the service, wiping the
+    // presets. An empty curves array is a legitimate state and still rebuilds.
+    if (fans?.channels && saved?.curves) {
       const restored: Record<string, FanState> = {};
       for (const ch of fans.channels) {
         if (ch.mode === 'Manual') {
@@ -161,7 +167,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
       }
 
       setCurves(curveDefsFromApi(saved));
-      for (const c of saved?.curves ?? []) {
+      for (const c of saved.curves) {
         for (const out of c.outputs ?? []) {
           restored[out.id] = { softwareControl: true, curveId: c.id };
         }
@@ -340,7 +346,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     const cur = serviceState.cooling?.calibrationState;
     if (cur === 'complete' && prevCalStateRef.current === 'running') {
       fetchFanChannels().then(fans => { if (fans?.channels) setChannels(fans.channels); });
-      fetchCalibrations().then(r => { if (r?.calibrations) setCalibrationResults(r.calibrations); });
+      fetchCalibrationResults().then(r => { if (r?.calibrations) setCalibrationResults(r.calibrations); });
     }
     prevCalStateRef.current = cur;
   }, [serviceState.cooling?.calibrationState]);

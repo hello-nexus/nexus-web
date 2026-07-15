@@ -13,7 +13,7 @@ interface NexusControlCardProps {
  * Label + toggle in a card, matching the DevicesPage device-card control
  * group treatment (same label, same toggle) so the on/off switch reads as
  * the same control wherever it appears. Used by DevicePage's NexusControlOff
- * gate (curated devices and a promoted monitor with Nexus Link off).
+ * gate (curated devices and a promoted monitor with Nexus Control off).
  */
 export function NexusControlCard({ checked, disabled, onChange }: NexusControlCardProps) {
   const { t } = useTranslation();

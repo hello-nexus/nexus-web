@@ -116,14 +116,16 @@ export function useCoolingImmersive(): CoolingImmersiveController {
       if (isCoolingPresetKey(profiles.active)) setActivePreset(profiles.active);
     }
 
-    if (fans?.channels) {
-      setChannels(fans.channels);
+    if (fans?.channels) setChannels(fans.channels);
+
+    // Both fetches must land before rebuilding the join - see CoolingPage.
+    if (fans?.channels && saved?.curves) {
       const restored: Record<string, FanState> = {};
       for (const ch of fans.channels) {
         if (ch.mode === 'Manual') restored[ch.id] = { softwareControl: true, curveId: null };
       }
       setCurves(curveDefsFromApi(saved));
-      for (const c of saved?.curves ?? []) {
+      for (const c of saved.curves) {
         for (const out of c.outputs ?? []) {
           restored[out.id] = { softwareControl: true, curveId: c.id };
         }
