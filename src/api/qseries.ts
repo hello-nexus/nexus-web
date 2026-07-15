@@ -2,7 +2,7 @@
 // the Q60 device page's settings tab. Pump speed itself is driven through the
 // cooling fan-channel path; these cover the hub-wide firmware settings.
 
-import { fetchService, putService } from './service';
+import { fetchService, postService, putService } from './service';
 
 // Hub control mode (matches QSeriesCoolerProtocol.ControlMode* on the service).
 export const QSERIES_MODE_SOFTWARE = 1;
@@ -62,3 +62,18 @@ export const setQSeriesFirmwareCurve = (
   fan: QSeriesCurvePoint[],
 ): Promise<unknown | null> =>
   putService('/devices/qseries/firmware-curve', { pump, fan });
+
+// ── Panel orientation (mirrors /y70/rotation in shape and auth; Q60/Q80
+// mount portrait or portrait-flipped only, no landscape) ──
+
+export type QSeriesOrientation = 'Portrait' | 'PortraitFlipped';
+
+export interface QSeriesRotation {
+  orientation: QSeriesOrientation;
+}
+
+export const getQSeriesRotation = (): Promise<QSeriesRotation | null> =>
+  fetchService<QSeriesRotation>('/qseries/rotation');
+
+export const setQSeriesRotation = (orientation: QSeriesOrientation): Promise<{ ok: boolean } | null> =>
+  postService('/qseries/rotation', { orientation });

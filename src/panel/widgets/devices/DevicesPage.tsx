@@ -234,10 +234,11 @@ function DeviceCard({
   const body = (
     <>
       <span className={styles.rowIconTile}>
+        {/* Decorative: the only available label is the service's raw
+            untranslated category enum. */}
         <span
           className={styles.rowIcon}
-          role="img"
-          aria-label={device.category}
+          aria-hidden
           style={{ ['--icon-url' as string]: `url(${device.iconSrc})` }}
         />
       </span>

@@ -95,7 +95,7 @@ export function SidebarDevicesSection({
           const isActive = device.key === activeDeviceKey;
           const isSimulated = isSimulatedDevice(device);
           const tooltip = isSimulated
-            ? `${device.shortName} (${t('devices.panels.simulated')})`
+            ? `${device.shortName} (${t('devices.simulated')})`
             : device.shortName;
           const row = (
             <button
@@ -119,8 +119,8 @@ export function SidebarDevicesSection({
                 <>
                   <span className={styles.label}>{device.shortName}</span>
                   {isSimulated && (
-                    <HoverTooltip body={t('devices.panels.simulated')} side="top">
-                      <span className={styles.simulatedBadge} role="img" aria-label={t('devices.panels.simulated')}>
+                    <HoverTooltip body={t('devices.simulated')} side="top">
+                      <span className={styles.simulatedBadge} role="img" aria-label={t('devices.simulated')}>
                         <Ghost size={14} aria-hidden />
                       </span>
                     </HoverTooltip>

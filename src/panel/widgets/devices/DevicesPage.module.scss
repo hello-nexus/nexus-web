@@ -100,9 +100,7 @@
 
 .rowMeta {
   @include text-caption;
-  font-family: var(--font-mono);
   color: var(--text-dim);
-  letter-spacing: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
