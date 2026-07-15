@@ -37,7 +37,13 @@ import {
   fetchPanelDevices,
   patchPanelDevice,
 } from '../../../api/panel';
-import { getQSeriesRotation, setQSeriesRotation, type QSeriesOrientation } from '../../../api/qseries';
+import {
+  getQSeriesRotation,
+  setQSeriesRotation,
+  getQSeriesDisplay,
+  setQSeriesDisplay,
+  type QSeriesOrientation,
+} from '../../../api/qseries';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { useTranslation } from '../../../lib/i18n';
 import { createUuid } from '../../../lib/uuid';
@@ -129,6 +135,9 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const [screenOn, setScreenOn] = useState(true);
   const [autoLaunch, setAutoLaunch] = useState(true);
   const [reserveMonitor, setReserveMonitor] = useState(true);
+  const [qSeriesBrightness, setQSeriesBrightness] = useState(100);
+  const [qSeriesScreenOff, setQSeriesScreenOff] = useState(false);
+  const [qSeriesSleepWithHost, setQSeriesSleepWithHost] = useState(true);
   const [loaded, setLoaded] = useState(false);
   const [layout, setLayout] = useState<PanelLayout>(() => defaultLayoutForSurface('y70'));
   const [editingDeviceId, setEditingDeviceId] = useState<string | null>(null);
@@ -229,9 +238,10 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       supportsDisplayControls ? fetchService<RotationParams>('/y70/rotation') : Promise.resolve(null),
       supportsDisplayControls ? fetchService<ToggleResponse>('/y70/toggle') : Promise.resolve(null),
       isQSeries ? getQSeriesRotation() : Promise.resolve(null),
+      isQSeries ? getQSeriesDisplay() : Promise.resolve(null),
       fetchPreferences(),
       fetchPanelDevices(),
-    ]).then(([b, r, tog, qRotation, prefs, devices]) => {
+    ]).then(([b, r, tog, qRotation, qDisplay, prefs, devices]) => {
       if (cancelled) return;
       if (b) setBrightness(b.brightness);
       if (r) {
@@ -239,6 +249,11 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
         setForceOrientation(r.forceOrientation ?? true);
       }
       if (qRotation) setOrientation(normalizeOrientation(qRotation.orientation));
+      if (qDisplay) {
+        setQSeriesBrightness(qDisplay.brightness);
+        setQSeriesScreenOff(qDisplay.screenOff);
+        setQSeriesSleepWithHost(qDisplay.sleepWithHost);
+      }
       // /y70/toggle returns the persisted ScreenOff value, not "screen on".
       if (tog) setScreenOn(!tog.toggle);
       // Record-backed entries (promoted monitors) bind by their explicit
@@ -644,6 +659,10 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         if (device?.displayId) void rotateDisplay(device.displayId, next).catch(() => {});
                       }}
                       orientationOptions={Y70_ORIENTATIONS}
+                      screenOff={null}
+                      onScreenOffToggle={() => {}}
+                      sleepWithHost={null}
+                      onSleepWithHostToggle={() => {}}
                       reserveMonitor={monitorReserve ? recordReserve : null}
                       onReserveMonitorToggle={() => {
                         const next = !recordReserve;
@@ -702,21 +721,36 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                     />
                   )}
                   {activeTab === 'settings' && surface === 'q60' && (
-                    <MonitorSettingsPanel
-                      brightness={null}
-                      onBrightness={() => {}}
-                      orientation={orientation}
-                      onOrientation={(next) => {
-                        setOrientation(next);
-                        void setQSeriesRotation(next as QSeriesOrientation).catch(() => {});
-                      }}
-                      orientationOptions={QSERIES_ORIENTATIONS}
-                      reserveMonitor={null}
-                      onReserveMonitorToggle={() => {}}
-                    />
-                  )}
-                  {activeTab === 'settings' && surface === 'q60' && (
-                    <QSeriesCoolerSettings />
+                    <div className={styles.settingsContent}>
+                      <MonitorSettingsPanel
+                        brightness={qSeriesBrightness}
+                        onBrightness={(value) => {
+                          setQSeriesBrightness(value);
+                          void setQSeriesDisplay({ brightness: value }).catch(() => {});
+                        }}
+                        orientation={orientation}
+                        onOrientation={(next) => {
+                          setOrientation(next);
+                          void setQSeriesRotation(next as QSeriesOrientation).catch(() => {});
+                        }}
+                        orientationOptions={QSERIES_ORIENTATIONS}
+                        screenOff={qSeriesScreenOff}
+                        onScreenOffToggle={() => {
+                          const next = !qSeriesScreenOff;
+                          setQSeriesScreenOff(next);
+                          void setQSeriesDisplay({ screenOff: next }).catch(() => {});
+                        }}
+                        sleepWithHost={qSeriesSleepWithHost}
+                        onSleepWithHostToggle={() => {
+                          const next = !qSeriesSleepWithHost;
+                          setQSeriesSleepWithHost(next);
+                          void setQSeriesDisplay({ sleepWithHost: next }).catch(() => {});
+                        }}
+                        reserveMonitor={null}
+                        onReserveMonitorToggle={() => {}}
+                      />
+                      <QSeriesCoolerSettings />
+                    </div>
                   )}
                 </div>
               </>
@@ -979,6 +1013,10 @@ interface MonitorSettingsPanelProps {
   orientation: Y70Orientation | null;
   onOrientation: (v: Y70Orientation) => void;
   orientationOptions: readonly Y70Orientation[];
+  screenOff: boolean | null;
+  onScreenOffToggle: () => void;
+  sleepWithHost: boolean | null;
+  onSleepWithHostToggle: () => void;
   reserveMonitor: boolean | null;
   onReserveMonitorToggle: () => void;
 }
@@ -986,6 +1024,8 @@ interface MonitorSettingsPanelProps {
 function MonitorSettingsPanel({
   brightness, onBrightness,
   orientation, onOrientation, orientationOptions,
+  screenOff, onScreenOffToggle,
+  sleepWithHost, onSleepWithHostToggle,
   reserveMonitor, onReserveMonitorToggle,
 }: MonitorSettingsPanelProps) {
   const { t } = useTranslation();
@@ -1006,6 +1046,21 @@ function MonitorSettingsPanel({
       )}
       {orientation !== null && (
         <OrientationSelectRow value={orientation} onChange={onOrientation} options={orientationOptions} />
+      )}
+      {screenOff !== null && (
+        <SettingToggle
+          label={t('devices.qseries.screen')}
+          checked={!screenOff}
+          onChange={onScreenOffToggle}
+        />
+      )}
+      {sleepWithHost !== null && (
+        <SettingToggle
+          label={t('devices.qseries.sleepWithHost')}
+          description={t('devices.qseries.sleepWithHostHint')}
+          checked={sleepWithHost}
+          onChange={onSleepWithHostToggle}
+        />
       )}
       {reserveMonitor !== null && (
         <SettingToggle

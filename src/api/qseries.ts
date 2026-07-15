@@ -77,3 +77,19 @@ export const getQSeriesRotation = (): Promise<QSeriesRotation | null> =>
 
 export const setQSeriesRotation = (orientation: QSeriesOrientation): Promise<{ ok: boolean } | null> =>
   postService('/qseries/rotation', { orientation });
+
+// ── Display (brightness, screen power, sleep-with-host) ──
+
+export interface QSeriesDisplay {
+  brightness: number;
+  screenOff: boolean;
+  sleepWithHost: boolean;
+}
+
+export const getQSeriesDisplay = (): Promise<QSeriesDisplay | null> =>
+  fetchService<QSeriesDisplay>('/qseries/display');
+
+export const setQSeriesDisplay = (
+  patch: Partial<QSeriesDisplay>,
+): Promise<unknown | null> =>
+  postService('/qseries/display', patch);
