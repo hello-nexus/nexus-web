@@ -19,23 +19,18 @@ export const PANEL_GRID_GAP = 8;
 export const PANEL_GRID_PREVIEW_PADDING = 8;
 export const DEFAULT_PANEL_GRID_SHORT_SIDE_JUMP_INCHES = 4;
 
-// The Theme "Widget padding" control. Gap and page padding are both solved
-// as this fraction of the resolved cell size (resolvePanelSpacing), so the
-// inset reads as the same proportion of a widget on every device instead of
-// a flat px value that reads thicker on a small cell and thinner on a large
-// one. 'small' reproduces the panel's original y70 look; 'large' is a
-// user-facing bump on top of it.
-export const PANEL_WIDGET_PADDING_SETTINGS = ['none', 'small', 'large'] as const;
-export type PanelWidgetPaddingSetting = typeof PANEL_WIDGET_PADDING_SETTINGS[number];
+// The Theme "Widget padding" control is a 0-100% slider. Gap and page padding
+// are both solved as a fraction of the resolved cell size (resolvePanelSpacing),
+// so the inset reads as the same proportion of a widget on every device
+// instead of a flat px value that reads thicker on a small cell and thinner
+// on a large one. 50% (the default) reproduces the panel's original y70
+// look; this constant is the ratio at 100%, tune it to change the slider's
+// entire range proportionally.
+export const PANEL_WIDGET_PADDING_MAX_RATIO = 0.09;
 
-export const PANEL_WIDGET_PADDING_RATIOS: Readonly<Record<PanelWidgetPaddingSetting, number>> = {
-  none: 0,
-  small: 0.045,
-  large: 0.079,
-};
-
-export function panelWidgetPaddingRatio(setting: PanelWidgetPaddingSetting): number {
-  return PANEL_WIDGET_PADDING_RATIOS[setting];
+export function panelWidgetPaddingRatio(percent: number): number {
+  const safePercent = Math.min(100, Math.max(0, percent));
+  return (safePercent / 100) * PANEL_WIDGET_PADDING_MAX_RATIO;
 }
 
 export interface PanelGridCapacity {

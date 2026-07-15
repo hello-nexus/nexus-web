@@ -614,6 +614,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         onWidgetOpacityCommit={panelTheme.commitWidgetOpacity}
                         onWidgetLabelsCommit={panelTheme.commitWidgetLabels}
                         onWidgetBlurCommit={panelTheme.commitWidgetBlur}
+                        onWidgetPaddingPreview={panelTheme.previewWidgetPadding}
                         onWidgetPaddingCommit={panelTheme.commitWidgetPadding}
                         showMediaTab={surface !== 'desktop'}
                         deviceAspect={devAspect}

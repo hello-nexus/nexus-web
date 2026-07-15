@@ -9,7 +9,6 @@ import {
 import { defaultTemplatesFor } from '../../types/lightingTemplates';
 import { cachedAnimateDefaults } from '../../api/lighting';
 import { getInstallDefaults } from '../../api/installDefaultsCache';
-import { PANEL_WIDGET_PADDING_SETTINGS, type PanelWidgetPaddingSetting } from '../engine/grid';
 
 export type PanelBackgroundMode = 'solid' | 'shader' | 'media';
 export type PanelResolvedTheme = 'dark' | 'light';
@@ -35,9 +34,11 @@ export function defaultBackgroundOpacityForMode(mode: PanelBackgroundMode): numb
 const WIDGET_OPACITY_FALLBACK = 0.5;
 const WIDGET_LABELS_FALLBACK = false;
 const WIDGET_BLUR_FALLBACK = false;
-// Not read from install-defaults: the service DTO has no widgetPadding field
-// yet (client-only default until a matching PanelDeviceDto property lands).
-const WIDGET_PADDING_FALLBACK: PanelWidgetPaddingSetting = 'small';
+// Not read from install-defaults: install-defaults.json has no widgetPadding
+// entry (the service DTO stores it as a nullable percent, defaulting to this
+// constant client-side, same as a null WidgetOpacity would if it had no
+// install-defaults entry either).
+const WIDGET_PADDING_DEFAULT_PERCENT = 50;
 
 export const defaultPanelWidgetOpacity = (): number =>
   getInstallDefaults()?.panel.widgetOpacity ?? WIDGET_OPACITY_FALLBACK;
@@ -45,7 +46,7 @@ export const defaultPanelWidgetLabels = (): boolean =>
   getInstallDefaults()?.panel.widgetLabels ?? WIDGET_LABELS_FALLBACK;
 export const defaultPanelWidgetBlur = (): boolean =>
   getInstallDefaults()?.panel.widgetBlur ?? WIDGET_BLUR_FALLBACK;
-export const defaultPanelWidgetPadding = (): PanelWidgetPaddingSetting => WIDGET_PADDING_FALLBACK;
+export const defaultPanelWidgetPadding = (): number => WIDGET_PADDING_DEFAULT_PERCENT;
 
 export const PANEL_BACKGROUND_EFFECTS: EffectDef[] = EFFECTS.filter(effect => !effect.audio);
 
@@ -156,10 +157,9 @@ export function normalizePanelWidgetBlur(value: boolean | null | undefined): boo
   return value;
 }
 
-export function normalizePanelWidgetPadding(value: string | null | undefined): PanelWidgetPaddingSetting {
-  return (PANEL_WIDGET_PADDING_SETTINGS as readonly string[]).includes(value ?? '')
-    ? value as PanelWidgetPaddingSetting
-    : defaultPanelWidgetPadding();
+export function normalizePanelWidgetPadding(value: number | null | undefined): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return defaultPanelWidgetPadding();
+  return Math.min(Math.max(value, 0), 100);
 }
 
 // The background's render state for a (effect, slot) selection. Presets are

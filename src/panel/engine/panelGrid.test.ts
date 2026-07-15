@@ -4,7 +4,7 @@ import { panelWidgetPaddingRatio } from './grid';
 
 describe('readRuntimePanelGrid desktop gap', () => {
   it('solves gap directly against the fixed reference cell (desktop cell size is not canvas-derived)', () => {
-    const large = panelWidgetPaddingRatio('large');
+    const large = panelWidgetPaddingRatio(100);
     const cap = readRuntimePanelGrid('desktop', null, false, undefined, large);
     expect(cap.cellSize).toBe(DESKTOP_GRID_REFERENCE_CELL);
     expect(cap.gap).toBeCloseTo(large * DESKTOP_GRID_REFERENCE_CELL, 10);

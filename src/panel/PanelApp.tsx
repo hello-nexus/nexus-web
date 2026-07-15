@@ -1310,10 +1310,14 @@ export function PanelContent({
         data-simulator={simulator ? 'true' : undefined}
         data-background-mode={embedded ? 'solid' : effectiveTheme.backgroundMode}
         data-show-widget-labels={effectiveTheme.widgetLabels ? 'true' : 'false'}
-        // Omitted on single-widget surfaces: they force widgetPadding 'none'
+        // Omitted on single-widget surfaces: they force widgetPadding 0
         // internally, and squaring their corners would round-trip onto a
-        // surface with no adjacent widget to sit flush against.
-        data-widget-padding={isSingleWidgetSurface(surface) ? undefined : effectiveTheme.widgetPadding}
+        // surface with no adjacent widget to sit flush against. Stamped
+        // 'none' only at the resolved 0% (flush corners); any other percent
+        // leaves the attribute unset (default rounded radius).
+        data-widget-padding={
+          isSingleWidgetSurface(surface) ? undefined : effectiveTheme.widgetPadding <= 0 ? 'none' : undefined
+        }
         data-widget-blur={effectiveTheme.widgetBlur ? 'true' : 'false'}
         data-widget-opaque={effectiveTheme.widgetOpacity >= 1 ? 'true' : undefined}
         data-context-menu-open={contextMenuWidgetId ? 'true' : undefined}
@@ -1638,6 +1642,7 @@ export function PanelContent({
           onThemeWidgetOpacityCommit={panelTheme.commitWidgetOpacity}
           onThemeWidgetLabelsCommit={panelTheme.commitWidgetLabels}
           onThemeWidgetBlurCommit={panelTheme.commitWidgetBlur}
+          onThemeWidgetPaddingPreview={panelTheme.previewWidgetPadding}
           onThemeWidgetPaddingCommit={panelTheme.commitWidgetPadding}
           machineName={machineName}
           showHostName={connectionIdentityVisible}

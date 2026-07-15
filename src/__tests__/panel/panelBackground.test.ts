@@ -4,7 +4,9 @@ import {
   BG_PRESETS_LIGHT,
   DEFAULT_PANEL_BG_DARK,
   DEFAULT_PANEL_BG_LIGHT,
+  defaultPanelWidgetPadding,
   isPanelBackgroundPreset,
+  normalizePanelWidgetPadding,
   panelBackgroundPair,
   panelBackgroundPresets,
   resolvePanelBackground,
@@ -107,5 +109,20 @@ describe('panelBackgroundPair', () => {
   it('falls back to identical hex for non-preset custom values', () => {
     expect(panelBackgroundPair('#abcdef')).toEqual({ dark: '#abcdef', light: '#abcdef' });
     expect(panelBackgroundPair('#0a0a10')).toEqual({ dark: '#0a0a10', light: '#0a0a10' });
+  });
+});
+
+describe('normalizePanelWidgetPadding', () => {
+  it('defaults to 50 percent', () => {
+    expect(defaultPanelWidgetPadding()).toBe(50);
+    expect(normalizePanelWidgetPadding(null)).toBe(50);
+    expect(normalizePanelWidgetPadding(undefined)).toBe(50);
+    expect(normalizePanelWidgetPadding(Number.NaN)).toBe(50);
+  });
+
+  it('clamps a stored value to 0-100', () => {
+    expect(normalizePanelWidgetPadding(-20)).toBe(0);
+    expect(normalizePanelWidgetPadding(150)).toBe(100);
+    expect(normalizePanelWidgetPadding(75)).toBe(75);
   });
 });

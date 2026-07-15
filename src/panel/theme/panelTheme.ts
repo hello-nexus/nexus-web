@@ -31,7 +31,6 @@ import {
 import { useAnimateTemplates } from '../../hooks/useAnimateTemplates';
 import { saveAnimateTemplates } from '../../api/lighting';
 import type { EffectState } from '../../types/lighting';
-import type { PanelWidgetPaddingSetting } from '../engine/grid';
 import type { PanelThemeSettingsState, ResolvedPanelThemeMode } from '../editor/PanelThemeSettings';
 import { isSingleWidgetSurface, type PanelSurface } from '../types';
 
@@ -132,14 +131,14 @@ export function buildPanelThemeVars(theme: PanelThemeState, resolvedThemeMode: R
 // dashboard has no per-device theme record - usePanelTheme's fetch is gated
 // on `enabled` (false whenever the caller passes kioskBehavior, itself false
 // when embedded) - so its widgetPadding never resolves past baseTheme's
-// initial default; this forces it to 'large' as a surface-level default
-// instead.
+// initial default; this forces it to the slider's maximum (100%) as a
+// surface-level default instead.
 export function resolveEffectivePanelTheme(baseTheme: PanelThemeState, surface: PanelSurface): PanelThemeState {
   if (isSingleWidgetSurface(surface)) {
-    return { ...baseTheme, widgetLabels: false, widgetBlur: false, widgetOpacity: 0, widgetPadding: 'none' };
+    return { ...baseTheme, widgetLabels: false, widgetBlur: false, widgetOpacity: 0, widgetPadding: 0 };
   }
   if (surface === 'desktop') {
-    return { ...baseTheme, widgetPadding: 'large' };
+    return { ...baseTheme, widgetPadding: 100 };
   }
   return baseTheme;
 }
@@ -278,7 +277,7 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
         widgetOpacity: r?.widgetOpacity == null && single ? 0 : normalizePanelWidgetOpacity(r?.widgetOpacity),
         widgetLabels: normalizePanelWidgetLabels(r?.widgetLabels),
         widgetBlur: normalizePanelWidgetBlur(r?.widgetBlur),
-        widgetPadding: r?.widgetPadding == null && single ? 'none' : normalizePanelWidgetPadding(r?.widgetPadding),
+        widgetPadding: r?.widgetPadding == null && single ? 0 : normalizePanelWidgetPadding(r?.widgetPadding),
       });
     }).catch(() => { /* keep local theme */ });
   }, [enabled, deviceId]);
@@ -423,8 +422,8 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
     persistPatch({ widgetBlur: next });
   }, [persistPatch]);
 
-  const commitWidgetPadding = useCallback((setting: PanelWidgetPaddingSetting) => {
-    const next = normalizePanelWidgetPadding(setting);
+  const commitWidgetPadding = useCallback((percent: number) => {
+    const next = normalizePanelWidgetPadding(percent);
     setTheme(prev => ({ ...prev, widgetPadding: next }));
     persistPatch({ widgetPadding: next });
   }, [persistPatch]);
@@ -463,6 +462,9 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
     commitWidgetOpacity,
     commitWidgetLabels,
     commitWidgetBlur,
+    previewWidgetPadding: (percent: number) => setTheme(prev => (
+      { ...prev, widgetPadding: normalizePanelWidgetPadding(percent) }
+    )),
     commitWidgetPadding,
   };
 }

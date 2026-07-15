@@ -21,7 +21,6 @@ import type { PanelConfigValue, PanelSurface, PanelWidget, PanelWidgetSize } fro
 import { isSingleWidgetSurface } from '../types';
 import type { PanelBackgroundMode } from '../background/panelBackground';
 import type { PanelThemeState } from '../theme/panelTheme';
-import type { PanelWidgetPaddingSetting } from '../engine/grid';
 import styles from '../PanelApp.module.scss';
 
 export type SheetMode = 'catalog' | 'settings' | 'panelSettings' | 'pairRemote' | 'pairedPcs';
@@ -58,6 +57,7 @@ export function PanelEditorSheet({
   onThemeWidgetOpacityCommit,
   onThemeWidgetLabelsCommit,
   onThemeWidgetBlurCommit,
+  onThemeWidgetPaddingPreview,
   onThemeWidgetPaddingCommit,
   showMediaTab = false,
   deviceAspect,
@@ -108,7 +108,8 @@ export function PanelEditorSheet({
   onThemeWidgetOpacityCommit: (opacity: number) => void;
   onThemeWidgetLabelsCommit: (enabled: boolean) => void;
   onThemeWidgetBlurCommit: (enabled: boolean) => void;
-  onThemeWidgetPaddingCommit: (setting: PanelWidgetPaddingSetting) => void;
+  onThemeWidgetPaddingPreview: (percent: number) => void;
+  onThemeWidgetPaddingCommit: (percent: number) => void;
   showMediaTab?: boolean;
   deviceAspect?: number;
   deviceW?: number;
@@ -361,6 +362,7 @@ export function PanelEditorSheet({
               onWidgetOpacityCommit={onThemeWidgetOpacityCommit}
               onWidgetLabelsCommit={onThemeWidgetLabelsCommit}
               onWidgetBlurCommit={onThemeWidgetBlurCommit}
+              onWidgetPaddingPreview={onThemeWidgetPaddingPreview}
               onWidgetPaddingCommit={onThemeWidgetPaddingCommit}
               hideWidgetChromeControls={isSingleWidgetSurface(surface)}
             />

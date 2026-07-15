@@ -7,7 +7,23 @@ import {
   sizeToSpan,
   snapStride,
   PANEL_GRID_COLS,
+  PANEL_WIDGET_PADDING_MAX_RATIO,
 } from './grid';
+
+describe('panelWidgetPaddingRatio', () => {
+  it('maps percent linearly onto the max ratio', () => {
+    expect(panelWidgetPaddingRatio(0)).toBe(0);
+    expect(panelWidgetPaddingRatio(25)).toBeCloseTo(PANEL_WIDGET_PADDING_MAX_RATIO * 0.25, 10);
+    expect(panelWidgetPaddingRatio(50)).toBeCloseTo(PANEL_WIDGET_PADDING_MAX_RATIO * 0.5, 10);
+    expect(panelWidgetPaddingRatio(75)).toBeCloseTo(PANEL_WIDGET_PADDING_MAX_RATIO * 0.75, 10);
+    expect(panelWidgetPaddingRatio(100)).toBeCloseTo(PANEL_WIDGET_PADDING_MAX_RATIO, 10);
+  });
+
+  it('clamps out-of-range percent to 0-100', () => {
+    expect(panelWidgetPaddingRatio(-10)).toBe(0);
+    expect(panelWidgetPaddingRatio(150)).toBeCloseTo(PANEL_WIDGET_PADDING_MAX_RATIO, 10);
+  });
+});
 
 describe('sizeToSpan', () => {
   it('maps all widget sizes correctly', () => {
@@ -145,10 +161,10 @@ describe('panelGridCapacityForCanvas paddingRatio', () => {
   });
 
   it('resolves gap/padding to the same proportion of the cell on every surface at a given ratio', () => {
-    const small = panelWidgetPaddingRatio('small');
-    const large = panelWidgetPaddingRatio('large');
+    const small = panelWidgetPaddingRatio(50);
+    const large = panelWidgetPaddingRatio(100);
     expect(small).toBeCloseTo(0.045, 5);
-    expect(large).toBeCloseTo(0.079, 5);
+    expect(large).toBeCloseTo(0.09, 5);
 
     // Ground-truth device canvases from the panel gap/padding proportionality
     // work: two y70 panel resolutions, the Xeneon Edge (a 'monitor' surface),
@@ -170,7 +186,7 @@ describe('panelGridCapacityForCanvas paddingRatio', () => {
   });
 
   it('forces q60 (a single-widget surface) to zero gap/padding regardless of the ratio', () => {
-    const large = panelWidgetPaddingRatio('large');
+    const large = panelWidgetPaddingRatio(100);
     const cap = panelGridCapacityForCanvas(720, 1280, { surface: 'q60', dpi: 220, paddingRatio: large });
     expect(cap.gap).toBe(0);
     expect(cap.padding).toBe(0);
