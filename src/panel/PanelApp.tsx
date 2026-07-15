@@ -1528,7 +1528,7 @@ export function PanelContent({
             x={ctxPoint.x}
             y={ctxPoint.y}
             currentSize={ctxWidget.size}
-            sizes={sizesForSurface(def.meta, surface)}
+            sizes={sizesForSurface(def.meta, surface, deviceTouch)}
             hasConfig
             surface={surface}
             themeMode={resolvedThemeMode}
