@@ -143,6 +143,51 @@ describe('useUnifiedDevices - Stream Deck per-deck entries', () => {
     expect(isSimulatedDevice(bySerial('SN1'))).toBe(false);
   });
 
+  // Turning Nexus Control off makes StreamDeckConnectionWorker.Tick call
+  // DisconnectAll, so every deck reports connected=false even though the
+  // hardware is still enumerated. Reporting that as disconnected dimmed the
+  // deck as unplugged on every surface and stranded its device page on the
+  // "not connected" empty state, with no switch to turn control back on.
+  it('reports a released deck as connected while Nexus Control is off and the hardware is still enumerated', () => {
+    mockUseDevices.mockReturnValue({
+      devices: [makeHandlerRow({ connected: true, nexusControlEnabled: false, supportsNexusControl: true })],
+      controlDevice: vi.fn(),
+    });
+    mockUseStreamDecks.mockReturnValue({ decks: [makeDeck({ serial: 'SN1', connected: false })] });
+
+    const { result } = renderHook(() => useUnifiedDevices(true));
+
+    expect(result.current.unified.find(d => d.streamdeckSerial === 'SN1')?.connected).toBe(true);
+  });
+
+  it('still reports a deck as disconnected when control is off and the hardware is gone', () => {
+    mockUseDevices.mockReturnValue({
+      devices: [makeHandlerRow({ connected: false, nexusControlEnabled: false, supportsNexusControl: true })],
+      controlDevice: vi.fn(),
+    });
+    mockUseStreamDecks.mockReturnValue({ decks: [makeDeck({ serial: 'SN1', connected: false })] });
+
+    const { result } = renderHook(() => useUnifiedDevices(true));
+
+    expect(result.current.unified.find(d => d.streamdeckSerial === 'SN1')?.connected).toBe(false);
+  });
+
+  it('leaves per-deck connected authoritative while control is on', () => {
+    mockUseDevices.mockReturnValue({
+      devices: [makeHandlerRow({ connected: true, nexusControlEnabled: true, supportsNexusControl: true })],
+      controlDevice: vi.fn(),
+    });
+    mockUseStreamDecks.mockReturnValue({
+      decks: [makeDeck({ serial: 'SN1', connected: true }), makeDeck({ serial: 'SN2', connected: false })],
+    });
+
+    const { result } = renderHook(() => useUnifiedDevices(true));
+    const bySerial = (s: string) => result.current.unified.find(d => d.streamdeckSerial === s);
+
+    expect(bySerial('SN1')?.connected).toBe(true);
+    expect(bySerial('SN2')?.connected).toBe(false);
+  });
+
   it('falls back to the handler-agnostic defaults when the /devices/all handler row has not loaded yet', () => {
     mockUseDevices.mockReturnValue({ devices: [], controlDevice: vi.fn() });
     mockUseStreamDecks.mockReturnValue({ decks: [makeDeck({ serial: 'SN1' })] });

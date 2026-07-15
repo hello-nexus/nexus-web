@@ -202,6 +202,18 @@ export function useUnifiedDevices(enabled: boolean) {
     // sidebar row); name is the deck's own persisted name so the Devices-page
     // card still tells two same-model decks apart.
     const streamdeckHandler = devices.find(d => d.id === 'streamdeck');
+    const deckSupportsControl = streamdeckHandler?.supportsNexusControl ?? false;
+    const deckControlEnabled = streamdeckHandler?.nexusControlEnabled ?? true;
+    // A deck's own `connected` tracks whether the worker holds its HID open,
+    // and StreamDeckConnectionWorker.Tick drops every surface while Nexus
+    // Control is off - a deliberate release, not an absence. The handler row's
+    // `connected` is USB enumeration, which the gate never touches, so it
+    // still answers "is the hardware there".
+    // The handler signal is per-model, not per-deck, and deck records persist
+    // unpruned: while control is off, every deck ever attached to this machine
+    // reads attached as long as any one of them is plugged in.
+    const deckControlOff = deckSupportsControl && !deckControlEnabled;
+    const deckPresentWhileReleased = deckControlOff && (streamdeckHandler?.connected ?? false);
     for (const deck of streamDecks) {
       // A simulated deck (serial `sim-*`) only belongs in the list while its
       // simulator is active; a disconnected one is a leftover persisted record,
@@ -214,14 +226,14 @@ export function useUnifiedDevices(enabled: boolean) {
         subtitle: streamdeckHandler?.category ?? 'controller',
         category: streamdeckHandler?.category ?? 'controller',
         iconSrc: CURATED_ICONS.streamdeck ?? FALLBACK_ICON,
-        connected: deck.connected,
+        connected: deck.connected || deckPresentWhileReleased,
         kind: 'curated',
         curatedId: 'streamdeck',
         streamdeckSerial: deck.serial,
         simulated: deck.serial.startsWith('sim-'),
         navigable: true,
-        nexusControlEnabled: streamdeckHandler?.nexusControlEnabled ?? true,
-        supportsNexusControl: streamdeckHandler?.supportsNexusControl ?? false,
+        nexusControlEnabled: deckControlEnabled,
+        supportsNexusControl: deckSupportsControl,
         experimental: false,
         warning: deck.warning,
         conflictAppId: deck.conflictAppId,
