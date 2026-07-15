@@ -392,7 +392,16 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const commitXeneonControl = (key: XeneonEdgeControlKey, value: number) => {
     previewXeneonControl(key, value);
     if (!device?.displayId) return;
-    void setXeneonEdgeSettings(device.displayId, xeneonEdgePatchFor(key, value)).catch(() => {});
+    // The response carries what the panel actually applied, which is not
+    // always what was asked: the service clamps to the control's range, and a
+    // write can fail. Show the panel's value, not the requested one.
+    void setXeneonEdgeSettings(device.displayId, xeneonEdgePatchFor(key, value))
+      .then(applied => {
+        const echoed = applied?.[key];
+        if (typeof echoed !== 'number') return;
+        setXeneonSettings(prev => (prev ? { ...prev, [key]: echoed } : prev));
+      })
+      .catch(() => {});
   };
 
   const restoreXeneonDefaults = async () => {

@@ -147,6 +147,25 @@ describe('PanelDevicePage Xeneon Edge native settings', () => {
     expect(screen.getByRole('slider', { name: BLUE_LABEL })).toHaveValue('30');
   });
 
+  it('shows the value the panel applied, not the one requested', async () => {
+    // A 0x0f ack means the panel received the write, not that it committed it.
+    // The response carries what actually landed, so the slider must follow it
+    // rather than the request. Both values are in range: an out-of-range one
+    // would be clamped by the range input itself and prove nothing.
+    setXeneonEdgeSettingsMock.mockResolvedValue({
+      brightness: null, backlight: null, contrast: null, red: 200, green: null, blue: null,
+    });
+    render(<PanelDevicePage device={DEVICE} />);
+    await openSettingsTab();
+
+    const redSlider = await screen.findByRole('slider', { name: RED_LABEL });
+    fireEvent.change(redSlider, { target: { value: '100' } });
+    fireEvent.pointerUp(redSlider);
+
+    await waitFor(() => expect(setXeneonEdgeSettingsMock).toHaveBeenCalledWith('disp1', { red: 100 }));
+    await waitFor(() => expect(screen.getByRole('slider', { name: RED_LABEL })).toHaveValue('200'));
+  });
+
   it('does not write on every drag tick, only commits once on pointer-up', async () => {
     render(<PanelDevicePage device={DEVICE} />);
     await openSettingsTab();
