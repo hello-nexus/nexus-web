@@ -25,10 +25,14 @@ import { fetchService, postService } from '../../../api/service';
 import {
   fetchDisplays,
   fetchDisplayTopology,
+  fetchXeneonEdgeSettings,
   launchTouchSetupWizard,
   repairTouchMapping,
+  restoreXeneonEdgeColors,
   rotateDisplay,
   setDisplayBrightness,
+  setXeneonEdgeSettings,
+  type XeneonEdgeSettings,
 } from '../../../api/displays';
 import { fetchPreferences, savePreferences } from '../../../api/profiles';
 import {
@@ -114,6 +118,48 @@ function toTouchRepairErrorStatus(status: string): TouchRepairErrorStatus {
 
 type Tab = 'widgets' | 'theme' | 'settings';
 
+type XeneonEdgeControlKey = 'brightness' | 'backlight' | 'contrast' | 'red' | 'green' | 'blue';
+
+interface XeneonEdgeSettingsValues {
+  brightness: number;
+  backlight: number;
+  contrast: number;
+  red: number;
+  green: number;
+  blue: number;
+}
+
+// Bench-measured factory defaults (nexus-service XeneonEdgeDefaults); used
+// only as a fallback if a settings read comes back with an unset field.
+const XENEON_EDGE_DEFAULTS: XeneonEdgeSettingsValues = {
+  brightness: 50,
+  backlight: 100,
+  contrast: 50,
+  red: 151,
+  green: 127,
+  blue: 139,
+};
+
+function xeneonEdgePatchFor(key: XeneonEdgeControlKey, value: number): Partial<XeneonEdgeSettings> {
+  switch (key) {
+    case 'brightness': return { brightness: value };
+    case 'backlight': return { backlight: value };
+    case 'contrast': return { contrast: value };
+    case 'red': return { red: value };
+    case 'green': return { green: value };
+    case 'blue': return { blue: value };
+  }
+}
+
+const XENEON_EDGE_CONTROLS: { key: XeneonEdgeControlKey; labelKey: string; min: number; max: number }[] = [
+  { key: 'brightness', labelKey: 'devices.y70.brightness', min: 0, max: 100 },
+  { key: 'backlight', labelKey: 'devices.xeneonEdge.backlight', min: 0, max: 100 },
+  { key: 'contrast', labelKey: 'devices.xeneonEdge.contrast', min: 0, max: 100 },
+  { key: 'red', labelKey: 'devices.xeneonEdge.red', min: 0, max: 255 },
+  { key: 'green', labelKey: 'devices.xeneonEdge.green', min: 0, max: 255 },
+  { key: 'blue', labelKey: 'devices.xeneonEdge.blue', min: 0, max: 255 },
+];
+
 export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: PanelDevicePageProps) {
   const { t } = useTranslation();
   const isQSeries = device?.runtimeSurface === 'q60';
@@ -143,7 +189,11 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const [flashSignal, setFlashSignal] = useState<{ widgetId: string; nonce: number } | null>(null);
   // Per-panel persisted settings off the device record (promoted monitors).
   const [recordReserve, setRecordReserve] = useState(true);
+  const [recordAutoOrient, setRecordAutoOrient] = useState(true);
   const [recordTouch, setRecordTouch] = useState<boolean | undefined>(undefined);
+  // Curated display family (capabilities.family, e.g. 'xeneon-edge') off the
+  // matched record - drives which promoted-monitor-only settings apply.
+  const [recordFamily, setRecordFamily] = useState<string | undefined>(undefined);
   const surface = device?.runtimeSurface ?? 'y70';
   const supportsDisplayControls = device?.capabilities.displayControls ?? surface === 'y70';
   const supportsAutoLaunch = device?.capabilities.launchClose ?? surface === 'y70';
@@ -191,8 +241,57 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   }, [isMonitorPanel]);
   const monitorRotation = isMonitorPanel && hostCaps?.rotation === true;
   const monitorReserve = isMonitorPanel && hostCaps?.reserve === true;
+  // Only the curated Xeneon Edge family carries a physical orientation
+  // sensor; other promoted monitors keep the manual-only rotation picker.
+  const monitorAutoOrient = monitorRotation && recordFamily === 'xeneon-edge';
+  // Independent of host rotation support: the Xeneon Edge's native settings
+  // tab (brightness/backlight/contrast/RGB) must stay reachable even when
+  // this host implements neither DDC nor OS rotation.
+  const isXeneonEdgePanel = isMonitorPanel && recordFamily === 'xeneon-edge';
+  // The Xeneon Edge's native settings block (msgid 0x0e read, ~1s on the
+  // bench) - null hides the whole block until the read completes.
+  const [xeneonSettings, setXeneonSettings] = useState<XeneonEdgeSettingsValues | null>(null);
+  const [restoringXeneonColors, setRestoringXeneonColors] = useState(false);
+  useEffect(() => {
+    if (!isXeneonEdgePanel || !device?.displayId) return;
+    let cancelled = false;
+    fetchXeneonEdgeSettings(device.displayId).then(settings => {
+      if (cancelled || !settings) return;
+      setXeneonSettings({
+        brightness: settings.brightness ?? XENEON_EDGE_DEFAULTS.brightness,
+        backlight: settings.backlight ?? XENEON_EDGE_DEFAULTS.backlight,
+        contrast: settings.contrast ?? XENEON_EDGE_DEFAULTS.contrast,
+        red: settings.red ?? XENEON_EDGE_DEFAULTS.red,
+        green: settings.green ?? XENEON_EDGE_DEFAULTS.green,
+        blue: settings.blue ?? XENEON_EDGE_DEFAULTS.blue,
+      });
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [isXeneonEdgePanel, device?.displayId]);
+  // Strip panels turned landscape (Y70 682x2560 = 3.75, Xeneon Edge
+  // 2560x720 = 3.56) leave the canvas a sliver inside the tall side-by-side
+  // preview column, so they stack instead: options above, canvas docked
+  // below. Q-series (1.78) and ordinary monitors (16:9 = 1.78, 21:9 = 2.33)
+  // stay side-by-side.
+  //
+  // Both halves of this read the SAME canvas the preview frame renders, so
+  // the dock and the canvas flip in one state update. Deriving the landscape
+  // test from `orientation` instead splits it across two writers a rotation
+  // updates at different times - the auto-orient worker rewrites orientation
+  // immediately, while cssWidth/cssHeight only land when
+  // DisplayTopologyWatcher's 500ms debounce fires SyncPromotedPanelCapabilities
+  // - so the layout would visibly restack half a second before the canvas.
+  const STRIP_ASPECT_MIN = 2.5;
+  const previewCanvas = liveCanvas ?? device?.previewSize;
+  const isStripPanel = !!previewCanvas && previewCanvas.width > 0 && previewCanvas.height > 0
+    && Math.max(previewCanvas.width, previewCanvas.height)
+       / Math.min(previewCanvas.width, previewCanvas.height) >= STRIP_ASPECT_MIN;
+  const dockPreview = isStripPanel && previewCanvas!.width > previewCanvas!.height;
   const settingsAvailable = supportsDisplayControls || supportsAutoLaunch || ddcSupported
     || monitorRotation || monitorReserve
+    // The Xeneon Edge's native settings replace DDC brightness for this
+    // family, so it must not depend on ddcSupported/monitorRotation.
+    || isXeneonEdgePanel
     // Q60 carries an AIO cooler, so its settings tab hosts the cooler firmware options.
     || surface === 'q60';
   const activeTab: Tab = tab === 'settings' && !settingsAvailable ? 'widgets' : tab;
@@ -256,6 +355,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       setLiveDpi(match?.capabilities?.dpi ?? null);
       // Per-panel persisted settings (promoted monitors).
       setRecordReserve(match?.reserveMonitor ?? true);
+      setRecordAutoOrient(match?.autoOrient ?? true);
+      setRecordFamily(match?.capabilities?.family);
       if (match?.capabilities?.orientation) setOrientation(normalizeOrientation(match.capabilities.orientation));
       const touchFromRecord = match?.capabilities?.touch ?? device?.capabilities.touch;
       setRecordTouch(match?.capabilities?.touch);
@@ -274,6 +375,35 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     setBrightness(value);
     if (!supportsDisplayControls) return;
     postService('/y70/brightness', { brightness: value }).catch(() => {});
+  };
+
+  // Live preview only - no HID write. Keeps the slider silky during drag; the
+  // write fires once from previewXeneonControl's callers on commit.
+  const previewXeneonControl = (key: XeneonEdgeControlKey, value: number) => {
+    setXeneonSettings(prev => (prev ? { ...prev, [key]: value } : prev));
+  };
+
+  const commitXeneonControl = (key: XeneonEdgeControlKey, value: number) => {
+    previewXeneonControl(key, value);
+    if (!device?.displayId) return;
+    void setXeneonEdgeSettings(device.displayId, xeneonEdgePatchFor(key, value)).catch(() => {});
+  };
+
+  const restoreXeneonColors = async () => {
+    if (!device?.displayId) return;
+    setRestoringXeneonColors(true);
+    try {
+      const result = await restoreXeneonEdgeColors(device.displayId);
+      if (!result) return;
+      setXeneonSettings(prev => (prev ? {
+        ...prev,
+        red: result.red ?? prev.red,
+        green: result.green ?? prev.green,
+        blue: result.blue ?? prev.blue,
+      } : prev));
+    } finally {
+      setRestoringXeneonColors(false);
+    }
   };
 
   // Editor capacity must match the runtime grid, or placements the editor
@@ -394,6 +524,11 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       setLiveCanvas(cw && ch ? { width: cw, height: ch } : null);
       setLiveDpr(record.capabilities?.dpr ?? null);
       setLiveDpi(record.capabilities?.dpi ?? null);
+      // A physical rotation (Xeneon Edge auto-orient) rewrites the record's
+      // orientation and broadcasts here. Without this the page keeps its
+      // mount-time value, so the rotation picker and the landscape preview
+      // dock never track a panel the user turns in their hands.
+      if (record.capabilities?.orientation) setOrientation(normalizeOrientation(record.capabilities.orientation));
       setLayout(normalizePanelLayout(record.layout ?? defaultLayoutForSurface(surface), surface, deviceTouch));
     }).catch(() => {});
   });
@@ -540,8 +675,9 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
           }
         />
       ) : (
-        <div className={styles.splitLayout}>
-          {/* Options pane on the left; live preview on the right. */}
+        <div className={styles.splitLayout} data-layout={dockPreview ? 'stacked' : 'columns'}>
+          {/* Options pane on the left; live preview on the right. Landscape
+              strip panels stack instead: options above, canvas docked below. */}
           <div className={styles.leftPane}>
             {configuringWidget ? (
               <InlineWidgetSettings
@@ -638,12 +774,23 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         if (device?.displayId) void rotateDisplay(device.displayId, next).catch(() => {});
                       }}
                       orientationOptions={Y70_ORIENTATIONS}
+                      autoOrient={monitorAutoOrient ? recordAutoOrient : null}
+                      onAutoOrientToggle={() => {
+                        const next = !recordAutoOrient;
+                        setRecordAutoOrient(next);
+                        if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { autoOrient: next }).catch(() => {});
+                      }}
                       reserveMonitor={monitorReserve ? recordReserve : null}
                       onReserveMonitorToggle={() => {
                         const next = !recordReserve;
                         setRecordReserve(next);
                         if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { reserveMonitor: next }).catch(() => {});
                       }}
+                      xeneonSettings={isXeneonEdgePanel ? xeneonSettings : null}
+                      onXeneonChange={previewXeneonControl}
+                      onXeneonCommit={commitXeneonControl}
+                      onRestoreXeneonColors={() => void restoreXeneonColors()}
+                      restoringXeneonColors={restoringXeneonColors}
                     />
                   )}
                   {activeTab === 'settings' && (supportsDisplayControls || supportsAutoLaunch) && (
@@ -932,14 +1079,30 @@ interface MonitorSettingsPanelProps {
   orientation: Y70Orientation | null;
   onOrientation: (v: Y70Orientation) => void;
   orientationOptions: readonly Y70Orientation[];
+  // Null hides the row (no orientation sensor on this panel family).
+  autoOrient: boolean | null;
+  onAutoOrientToggle: () => void;
   reserveMonitor: boolean | null;
   onReserveMonitorToggle: () => void;
+  // Corsair Xeneon Edge native settings (brightness/backlight/contrast/RGB).
+  // Null hides the whole block: not this panel family, or the ~1s HID read
+  // hasn't resolved yet.
+  xeneonSettings: XeneonEdgeSettingsValues | null;
+  // Live preview during drag - no HID write.
+  onXeneonChange: (key: XeneonEdgeControlKey, value: number) => void;
+  // Fires the HID write; called once per drag gesture or typed edit.
+  onXeneonCommit: (key: XeneonEdgeControlKey, value: number) => void;
+  onRestoreXeneonColors: () => void;
+  restoringXeneonColors: boolean;
 }
 
 function MonitorSettingsPanel({
   brightness, onBrightness,
   orientation, onOrientation, orientationOptions,
+  autoOrient, onAutoOrientToggle,
   reserveMonitor, onReserveMonitorToggle,
+  xeneonSettings, onXeneonChange, onXeneonCommit,
+  onRestoreXeneonColors, restoringXeneonColors,
 }: MonitorSettingsPanelProps) {
   const { t } = useTranslation();
   return (
@@ -957,7 +1120,47 @@ function MonitorSettingsPanel({
           onCommit={onBrightness}
         />
       )}
-      {orientation !== null && (
+      {xeneonSettings !== null && XENEON_EDGE_CONTROLS.map(({ key, labelKey, min, max }) => (
+        <SettingSlider
+          key={key}
+          editable
+          trackFill
+          label={t(labelKey)}
+          value={xeneonSettings[key]}
+          min={min}
+          max={max}
+          onChange={(value, commit) => {
+            onXeneonChange(key, value);
+            if (commit) onXeneonCommit(key, value);
+          }}
+          onCommit={(value) => onXeneonCommit(key, value)}
+        />
+      ))}
+      {xeneonSettings !== null && (
+        <SettingRow
+          label={t('devices.xeneonEdge.restoreColors')}
+          description={t('devices.xeneonEdge.restoreColorsHint')}
+        >
+          <Button
+            type="button"
+            tone="neutral"
+            size="sm"
+            loading={restoringXeneonColors}
+            onClick={onRestoreXeneonColors}
+          >
+            {t('devices.xeneonEdge.restoreColors')}
+          </Button>
+        </SettingRow>
+      )}
+      {autoOrient !== null && (
+        <SettingToggle
+          label={t('devices.xeneonEdge.autoOrient')}
+          description={t('devices.xeneonEdge.autoOrientHint')}
+          checked={autoOrient}
+          onChange={onAutoOrientToggle}
+        />
+      )}
+      {orientation !== null && (autoOrient === null || !autoOrient) && (
         <SettingSelect
           label={t('devices.y70.orientation')}
           value={orientation}

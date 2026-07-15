@@ -73,6 +73,29 @@
   align-self: center;
 }
 
+// Landscape strip panels (Y70 / Xeneon Edge): stack instead of side-by-side.
+// The DOM is already leftPane then previewPane, so column order docks the
+// canvas at the bottom without reordering.
+.splitLayout[data-layout='stacked'] {
+  flex-direction: column;
+}
+
+// leftPane keeps flex:1 + min-height:0 from the base rule, which is what
+// bottoms its inner scroller out at the dock's top edge.
+
+// The pane's cross axis swaps in column flow: width comes free from the
+// parent, and HEIGHT becomes the axis the embed frame fits against. It has to
+// stay definite for the same reason the row rule pins a width - a
+// content-sized height collapses against the iframe's self-scaling. The clamp
+// suits a 32:9 canvas (2560x720 across ~900px reads ~253px tall) and
+// letterboxes when narrower.
+.splitLayout[data-layout='stacked'] .previewPane {
+  flex: 0 0 auto;
+  width: 100%;
+  height: clamp(180px, 30vh, 320px);
+  margin-bottom: 0.75rem;
+}
+
 // Wrapper the PanelEmbedFrame ResizeObserver measures. Mirrors the pane
 // dimensions so the iframe's fit-height math reflects the visible canvas
 // region exactly.
