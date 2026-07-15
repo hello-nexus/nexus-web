@@ -296,7 +296,7 @@ function buildUnifiedList(
       navigable: true,
       nexusControlEnabled: isPromotedMonitor ? (p.linkEnabled ?? true) : (backing?.nexusControlEnabled ?? true),
       // A simulated panel has no hardware to hand back to another app, so the
-      // Nexus Link gate is meaningless on it.
+      // Nexus Control gate is meaningless on it.
       supportsNexusControl: isSimulated
         ? false
         : isPromotedMonitor ? true : (backing?.supportsNexusControl ?? false),
