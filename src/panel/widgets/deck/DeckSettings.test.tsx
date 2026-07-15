@@ -7,7 +7,11 @@ vi.mock('../common/AppPicker', () => ({ useAppIcon: () => null, AppPicker: () =>
 
 import { DeckSettings } from './DeckSettings';
 
-const EXISTING_DECK: DeckConfig = { pages: [{ slots: [{ action: { type: 'hotkey', keys: '' }, label: 'existing' }] }] };
+// title.show is on so the title text field renders: Show-title off hides it
+// along with the rest of the title fields.
+const EXISTING_DECK: DeckConfig = {
+  pages: [{ slots: [{ action: { type: 'hotkey', keys: '' }, label: 'existing', title: { show: true } }] }],
+};
 
 function makeWidget(deck: DeckConfig, extraConfig: Record<string, PanelConfigValue> = {}): PanelWidget {
   return { id: 'w1', type: 'deck', size: '2x2', col: 0, row: 0, config: { deck: deck as never, ...extraConfig } };

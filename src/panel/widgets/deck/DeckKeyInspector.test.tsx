@@ -257,18 +257,20 @@ describe('DeckKeyInspector - deckBrightness/deckSleep are physical-deck-only', (
 });
 
 describe('DeckKeyInspector title style section', () => {
-  it('defaults to Show title off, disabling the rest of the title style controls', () => {
+  it('defaults to Show title off, hiding the text field and the rest of the title style controls', () => {
     renderInspector([{ action: { type: 'hotkey', keys: '' }, label: 'Hi' }]);
     expect(screen.getByRole('switch', { name: 'panel.settings.deck.titleStyle.show' })).not.toBeChecked();
-    expect(screen.getByRole('button', { name: 'panel.settings.deck.titleStyle.bold' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'panel.settings.deck.titleStyle.alignTop' })).toBeDisabled();
+    expect(screen.queryByPlaceholderText('panel.settings.deck.labelPlaceholder')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'panel.settings.deck.titleStyle.bold' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'panel.settings.deck.titleStyle.alignTop' })).toBeNull();
   });
 
-  it('turning Show title on enables the title style controls', () => {
+  it('turning Show title on reveals the text field and the title style controls', () => {
     renderInspector([{ action: { type: 'hotkey', keys: '' }, label: 'Hi' }]);
     fireEvent.click(screen.getByRole('switch', { name: 'panel.settings.deck.titleStyle.show' }));
 
     expect(screen.getByRole('switch', { name: 'panel.settings.deck.titleStyle.show' })).toBeChecked();
+    expect(screen.getByPlaceholderText('panel.settings.deck.labelPlaceholder')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'panel.settings.deck.titleStyle.bold' })).not.toBeDisabled();
     expect(screen.getByRole('button', { name: 'panel.settings.deck.titleStyle.alignTop' })).not.toBeDisabled();
   });
@@ -291,7 +293,8 @@ describe('DeckKeyInspector title style section', () => {
   });
 
   it('renders an Auto swatch for both the key color and the title text color', () => {
-    renderInspector([{ action: { type: 'hotkey', keys: '' }, label: 'Hi' }]);
+    // Show title on: off hides the title text colour row along with the rest.
+    renderInspector([{ action: { type: 'hotkey', keys: '' }, label: 'Hi', title: { show: true } }]);
     // One "Auto" swatch for the key's background color (existing section) and
     // one for the title's text color (new section) - both default-selected.
     expect(screen.getAllByText('panel.settings.deck.colorAuto')).toHaveLength(2);

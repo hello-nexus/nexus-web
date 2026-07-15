@@ -866,8 +866,9 @@ const TITLE_ALIGN_LABEL_KEY: Record<DeckTitleAlign, string> = {
  * Elgato-style title panel for the slot, as standard label-left / control-right
  * settings rows: a Show-title toggle (off by default), the title text field
  * folded in right under it, then alignment/style as chip groups plus font,
- * size, and text colour. All styling controls disable while the title is
- * hidden; the text itself stays editable.
+ * size, and text colour. Show-title off leaves only the toggle; the text field
+ * and every styling control are hidden, and their values are kept for when it
+ * goes back on.
  */
 function TitleFields({
   label, title, hideText, hideShow, hideAlign, hideUnderline, disabled: disabledProp, onLabelChange, onTitleChange,
@@ -890,7 +891,12 @@ function TitleFields({
 }) {
   const { t } = useTranslation();
   const resolved = resolveDeckTitleStyle(title);
-  const disabled = hideShow ? !!disabledProp : !resolved.show;
+  // Off hides the fields rather than greying them: the toggle sits directly
+  // above, so it reads as the cause. The hideShow path greys instead (below) -
+  // its gate is the action's own label-mode field, a section away, so rows
+  // vanishing there would have no visible cause.
+  const showFields = !!hideShow || resolved.show;
+  const disabled = !!hideShow && !!disabledProp;
 
   return (
     <>
@@ -902,79 +908,83 @@ function TitleFields({
         />
       )}
 
-      {!hideText && (
-        <input
-          className={styles.input}
-          type="text"
-          value={label ?? ''}
-          placeholder={t('panel.settings.deck.labelPlaceholder')}
-          aria-label={t('panel.settings.deck.label')}
-          onChange={e => onLabelChange?.(e.target.value)}
-        />
-      )}
+      {showFields && (
+        <>
+          {!hideText && (
+            <input
+              className={styles.input}
+              type="text"
+              value={label ?? ''}
+              placeholder={t('panel.settings.deck.labelPlaceholder')}
+              aria-label={t('panel.settings.deck.label')}
+              onChange={e => onLabelChange?.(e.target.value)}
+            />
+          )}
 
-      {!hideAlign && (
-        <SettingsRow label={t('panel.settings.deck.titleStyle.align')} disabled={disabled}>
-          <ChipGroup
-            ariaLabel={t('panel.settings.deck.titleStyle.align')}
-            activeKey={resolved.align}
-            onChange={align => onTitleChange({ align: align as DeckTitleAlign })}
-            options={(['top', 'middle', 'bottom'] as const).map(align => {
-              const Icon = TITLE_ALIGN_ICONS[align];
-              return { key: align, label: <Icon size={16} aria-hidden="true" />, ariaLabel: t(TITLE_ALIGN_LABEL_KEY[align]), disabled };
-            })}
+          {!hideAlign && (
+            <SettingsRow label={t('panel.settings.deck.titleStyle.align')} disabled={disabled}>
+              <ChipGroup
+                ariaLabel={t('panel.settings.deck.titleStyle.align')}
+                activeKey={resolved.align}
+                onChange={align => onTitleChange({ align: align as DeckTitleAlign })}
+                options={(['top', 'middle', 'bottom'] as const).map(align => {
+                  const Icon = TITLE_ALIGN_ICONS[align];
+                  return { key: align, label: <Icon size={16} aria-hidden="true" />, ariaLabel: t(TITLE_ALIGN_LABEL_KEY[align]), disabled };
+                })}
+              />
+            </SettingsRow>
+          )}
+
+          <SettingsSelect
+            label={t('panel.settings.deck.titleStyle.font')}
+            value={title?.font ?? 'default'}
+            disabled={disabled}
+            options={DECK_TITLE_FONTS.map(f => ({
+              value: f.id,
+              label: f.label ?? t('panel.settings.deck.titleStyle.fontDefault'),
+            }))}
+            onChange={font => onTitleChange({ font })}
           />
-        </SettingsRow>
+
+          <SettingsRow label={t('panel.settings.deck.titleStyle.size')} disabled={disabled}>
+            <ChipGroup
+              ariaLabel={t('panel.settings.deck.titleStyle.size')}
+              activeKey={String(resolved.size)}
+              onChange={s => onTitleChange({ size: Number(s) })}
+              options={DECK_TITLE_SIZE_OPTIONS.map(s => ({ key: String(s), label: String(s), disabled }))}
+            />
+          </SettingsRow>
+
+          <SettingsRow label={t('panel.settings.deck.titleStyle.style')} disabled={disabled}>
+            <ChipGroup
+              multiSelect
+              ariaLabel={t('panel.settings.deck.titleStyle.style')}
+              activeKeys={new Set([
+                resolved.bold ? 'bold' : '',
+                resolved.italic ? 'italic' : '',
+                !hideUnderline && resolved.underline ? 'underline' : '',
+              ].filter(Boolean))}
+              onToggleKey={k => onTitleChange({ [k]: !resolved[k as 'bold' | 'italic' | 'underline'] })}
+              options={[
+                /* eslint-disable i18next/no-literal-string -- title-style enum keys + single-glyph chip labels */
+                { key: 'bold', label: <span className={styles.boldGlyph}>B</span>, ariaLabel: t('panel.settings.deck.titleStyle.bold'), disabled },
+                { key: 'italic', label: <span className={styles.italicGlyph}>I</span>, ariaLabel: t('panel.settings.deck.titleStyle.italic'), disabled },
+                ...(hideUnderline ? [] : [
+                  { key: 'underline', label: <span className={styles.underlineGlyph}>U</span>, ariaLabel: t('panel.settings.deck.titleStyle.underline'), disabled },
+                ]),
+                /* eslint-enable i18next/no-literal-string */
+              ]}
+            />
+          </SettingsRow>
+
+          <SwatchRow
+            label={t('panel.settings.deck.titleStyle.color')}
+            value={title?.color}
+            disabled={disabled}
+            onChange={color => onTitleChange({ color })}
+          />
+        </>
       )}
-
-      <SettingsSelect
-        label={t('panel.settings.deck.titleStyle.font')}
-        value={title?.font ?? 'default'}
-        disabled={disabled}
-        options={DECK_TITLE_FONTS.map(f => ({
-          value: f.id,
-          label: f.label ?? t('panel.settings.deck.titleStyle.fontDefault'),
-        }))}
-        onChange={font => onTitleChange({ font })}
-      />
-
-      <SettingsRow label={t('panel.settings.deck.titleStyle.size')} disabled={disabled}>
-        <ChipGroup
-          ariaLabel={t('panel.settings.deck.titleStyle.size')}
-          activeKey={String(resolved.size)}
-          onChange={s => onTitleChange({ size: Number(s) })}
-          options={DECK_TITLE_SIZE_OPTIONS.map(s => ({ key: String(s), label: String(s), disabled }))}
-        />
-      </SettingsRow>
-
-      <SettingsRow label={t('panel.settings.deck.titleStyle.style')} disabled={disabled}>
-        <ChipGroup
-          multiSelect
-          ariaLabel={t('panel.settings.deck.titleStyle.style')}
-          activeKeys={new Set([
-            resolved.bold ? 'bold' : '',
-            resolved.italic ? 'italic' : '',
-            !hideUnderline && resolved.underline ? 'underline' : '',
-          ].filter(Boolean))}
-          onToggleKey={k => onTitleChange({ [k]: !resolved[k as 'bold' | 'italic' | 'underline'] })}
-          options={[
-            /* eslint-disable i18next/no-literal-string -- title-style enum keys + single-glyph chip labels */
-            { key: 'bold', label: <span className={styles.boldGlyph}>B</span>, ariaLabel: t('panel.settings.deck.titleStyle.bold'), disabled },
-            { key: 'italic', label: <span className={styles.italicGlyph}>I</span>, ariaLabel: t('panel.settings.deck.titleStyle.italic'), disabled },
-            ...(hideUnderline ? [] : [
-              { key: 'underline', label: <span className={styles.underlineGlyph}>U</span>, ariaLabel: t('panel.settings.deck.titleStyle.underline'), disabled },
-            ]),
-            /* eslint-enable i18next/no-literal-string */
-          ]}
-        />
-      </SettingsRow>
-
-      <SwatchRow
-        label={t('panel.settings.deck.titleStyle.color')}
-        value={title?.color}
-        disabled={disabled}
-        onChange={color => onTitleChange({ color })}
-      />
     </>
   );
 }
