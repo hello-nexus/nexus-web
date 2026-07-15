@@ -5,10 +5,11 @@ import type { PanelDevice } from '../panel/device/panelDevices';
 
 // The sidebar DEVICES section shows the same "Nexus Link off" glyph for a
 // promoted-monitor panel (Xeneon Edge and similar) whose Nexus Link toggle is
-// off as it already shows for a curated device with Nexus Control off - even
-// though a promoted monitor never sets `supportsNexusControl` (see
-// useUnifiedDevices.ts: that flag is curated-handler-only), the icon's own
-// gate also checks `panelDevice.linkEnabled` directly.
+// off as it already shows for a curated device with Nexus Control off. Both
+// go through the same `supportsNexusControl && !nexusControlEnabled` gate -
+// useUnifiedDevices.ts mirrors a promoted monitor's `panelDevice.linkEnabled`
+// into `nexusControlEnabled` and always sets `supportsNexusControl` for it, so
+// the icon needs no panel-specific check of its own.
 
 vi.mock('../lib/i18n', () => ({
   useTranslation: () => ({
@@ -57,8 +58,10 @@ function monitorDevice(overrides: Partial<UnifiedDevice> = {}): UnifiedDevice {
     kind: 'panel',
     panelDevice: monitorPanelDevice(),
     navigable: true,
-    nexusControlEnabled: true,
-    supportsNexusControl: false,
+    // Mirrors the default fixture's linkEnabled: false, per
+    // useUnifiedDevices.ts's promoted-monitor mapping.
+    nexusControlEnabled: false,
+    supportsNexusControl: true,
     experimental: false,
     ...overrides,
   };
@@ -85,7 +88,10 @@ describe('SidebarDevicesSection Nexus Link off indicator', () => {
   });
 
   it('does not show the off glyph for a promoted monitor whose Nexus Link is on', () => {
-    mockUnified = [monitorDevice({ panelDevice: monitorPanelDevice({ linkEnabled: true }) })];
+    mockUnified = [monitorDevice({
+      panelDevice: monitorPanelDevice({ linkEnabled: true }),
+      nexusControlEnabled: true,
+    })];
     renderSidebar();
     expect(screen.queryByRole('img', { name: 'devices.nexusControlOff.sidebarTooltip' })).not.toBeInTheDocument();
   });

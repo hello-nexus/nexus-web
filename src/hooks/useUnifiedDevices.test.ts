@@ -2,6 +2,7 @@ import { renderHook } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { DeviceListItem } from './useDevices';
 import type { StreamDeckSummary } from '../api/streamdeck';
+import type { PanelDevice } from '../panel/device/panelDevices';
 
 const mockUseDevices = vi.fn();
 vi.mock('./useDevices', () => ({
@@ -226,5 +227,116 @@ describe('useUnifiedDevices - iBUYPOWER AW5', () => {
 
     const { result } = renderHook(() => useUnifiedDevices(true));
     expect(result.current.unified.some(d => d.curatedId === 'aw5')).toBe(false);
+  });
+});
+
+function makePanelDevice(over: Partial<PanelDevice> = {}): PanelDevice {
+  return {
+    id: 'device:y70',
+    name: 'Y70 Touch',
+    subtitle: '',
+    status: 'online',
+    statusLabel: 'Online',
+    connectionKind: 'attached-monitor',
+    managementMode: 'managed',
+    surfaceProfileKey: 'y70-portrait',
+    runtimeSurface: 'y70',
+    iconSrc: '/assets/devices/y70.svg',
+    capabilities: {
+      layout: true, theme: true, displayControls: true, launchClose: true,
+      pairing: false, presence: false, touch: true,
+    },
+    ...over,
+  };
+}
+
+describe('useUnifiedDevices - promoted-monitor panel Nexus Link toggle', () => {
+  function makeMonitorPanel(over: Partial<PanelDevice> = {}): PanelDevice {
+    return makePanelDevice({
+      id: 'display:rec1',
+      name: 'Xeneon Edge',
+      surfaceProfileKey: 'monitor-rec1',
+      runtimeSurface: 'monitor',
+      displayId: 'disp1',
+      panelRecordId: 'rec1',
+      capabilities: {
+        layout: true, theme: true, displayControls: false, launchClose: false,
+        pairing: false, presence: false, touch: true,
+      },
+      linkEnabled: true,
+      ...over,
+    });
+  }
+
+  it('has no first-party handler backing it, yet gets a working row toggle mirroring linkEnabled: false', () => {
+    mockUsePanelDevices.mockReturnValue({ devices: [makeMonitorPanel({ linkEnabled: false })], loading: false });
+
+    const { result } = renderHook(() => useUnifiedDevices(true));
+    const entry = result.current.unified.find(d => d.key === 'panel-display:rec1');
+
+    expect(entry).toBeDefined();
+    expect(entry?.curatedId).toBeUndefined();
+    expect(entry?.supportsNexusControl).toBe(true);
+    expect(entry?.nexusControlEnabled).toBe(false);
+    expect(entry?.experimental).toBe(false);
+  });
+
+  it('mirrors linkEnabled: true as an on toggle', () => {
+    mockUsePanelDevices.mockReturnValue({ devices: [makeMonitorPanel({ linkEnabled: true })], loading: false });
+
+    const { result } = renderHook(() => useUnifiedDevices(true));
+    const entry = result.current.unified.find(d => d.key === 'panel-display:rec1');
+
+    expect(entry?.supportsNexusControl).toBe(true);
+    expect(entry?.nexusControlEnabled).toBe(true);
+  });
+
+  it('defaults nexusControlEnabled to true when linkEnabled is absent', () => {
+    mockUsePanelDevices.mockReturnValue({ devices: [makeMonitorPanel({ linkEnabled: undefined })], loading: false });
+
+    const { result } = renderHook(() => useUnifiedDevices(true));
+    const entry = result.current.unified.find(d => d.key === 'panel-display:rec1');
+
+    expect(entry?.supportsNexusControl).toBe(true);
+    expect(entry?.nexusControlEnabled).toBe(true);
+  });
+});
+
+describe('useUnifiedDevices - curated-backed panel entries unaffected by the promoted-monitor widening', () => {
+  it('a first-party hardware panel (Y70) keeps mirroring its own handler gate, not the promoted-monitor default', () => {
+    mockUseDevices.mockReturnValue({
+      devices: [makeHandlerRow({
+        id: 'y70', name: 'Y70 Touch', category: 'display', connected: true,
+        nexusControlEnabled: false, supportsNexusControl: true, experimental: true,
+      })],
+      controlDevice: vi.fn(),
+    });
+    mockUsePanelDevices.mockReturnValue({
+      devices: [makePanelDevice({ id: 'device:y70', sourceId: 'y70' })],
+      loading: false,
+    });
+
+    const { result } = renderHook(() => useUnifiedDevices(true));
+    const entry = result.current.unified.find(d => d.key === 'panel-device:y70');
+
+    expect(entry?.curatedId).toBe('y70');
+    expect(entry?.supportsNexusControl).toBe(true);
+    expect(entry?.nexusControlEnabled).toBe(false);
+    expect(entry?.experimental).toBe(true);
+  });
+
+  it('a first-party hardware panel with no backing handler row still gets no toggle (unchanged default)', () => {
+    mockUseDevices.mockReturnValue({ devices: [], controlDevice: vi.fn() });
+    mockUsePanelDevices.mockReturnValue({
+      devices: [makePanelDevice({ id: 'device:y70', sourceId: 'y70' })],
+      loading: false,
+    });
+
+    const { result } = renderHook(() => useUnifiedDevices(true));
+    const entry = result.current.unified.find(d => d.key === 'panel-device:y70');
+
+    expect(entry?.curatedId).toBe('y70');
+    expect(entry?.supportsNexusControl).toBe(false);
+    expect(entry?.nexusControlEnabled).toBe(true);
   });
 });

@@ -126,8 +126,7 @@ export function SidebarDevicesSection({
                     </HoverTooltip>
                   )}
                   {device.warning && <DeviceWarningIcon code={device.warning} />}
-                  {((device.supportsNexusControl && !device.nexusControlEnabled)
-                    || device.panelDevice?.linkEnabled === false) && <NexusControlOffIcon />}
+                  {device.supportsNexusControl && !device.nexusControlEnabled && <NexusControlOffIcon />}
                 </>
               )}
             </button>

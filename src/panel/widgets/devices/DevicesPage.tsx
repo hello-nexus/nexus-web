@@ -20,6 +20,8 @@ import { DeviceWarningIcon } from '../../../components/common/DeviceWarningIcon/
 import { ExperimentalBadge } from '../../../components/common/ExperimentalBadge/ExperimentalBadge';
 import { DisplaysView } from '../../../components/views/DisplaysView/DisplaysView';
 import { useSearchSignal } from '../../../search/signals';
+import { promoteDisplayToPanel, demoteDisplayPanel } from '../../../api/displays';
+import { useToast } from '../../../components/common/Toast/Toast';
 import styles from './DevicesPage.module.scss';
 
 interface DevicesViewProps {
@@ -42,6 +44,7 @@ const TAB_KEYS: readonly string[] = ['available', 'displays', 'firmware', 'specs
 
 export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, tab: routedTab, onTabChange }: DevicesViewProps) {
   const { t } = useTranslation();
+  const { push } = useToast();
   const [localTab, setLocalTab] = useState<TabKey>('available');
   const tab: TabKey = routedTab && TAB_KEYS.includes(routedTab) ? (routedTab as TabKey) : localTab;
   const setTab = (next: TabKey) => {
@@ -58,6 +61,14 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
 
   const availableActive = tab === 'available';
   const { unified, merged, webhidAvailable, controlDevice } = useUnifiedDevices(serviceOnline && availableActive);
+  // A promoted-monitor panel row (Xeneon Edge, etc) has no first-party
+  // handler to gate through controlDevice - its on/off toggle is the same
+  // display promote/demote the Displays tab uses (see DisplaysView.tsx).
+  const toggleLink = useCallback((displayId: string, next: boolean) => {
+    void (next ? promoteDisplayToPanel(displayId) : demoteDisplayPanel(displayId)).then(result => {
+      if (!result) push({ title: t(next ? 'displays.error.promote' : 'displays.error.demote') });
+    });
+  }, [push, t]);
   // Single USB subscription, reused for both the catalog "detected" highlight
   // and the Connected Devices modal - no second socket subscription.
   const allUsb = useUsbDevices(serviceOnline);
@@ -124,18 +135,24 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
                 <div className={styles.empty}>{t('devices.available.none')}</div>
               ) : (
                 <div className={styles.list}>
-                  {orderedDevices.map(d => (
-                    <DeviceCard
-                      key={d.key}
-                      device={d}
-                      onClick={() => onDeviceSelect(d.key)}
-                      onToggleControl={
-                        d.curatedId && d.supportsNexusControl
-                          ? (next) => void controlDevice(d.curatedId as string, next)
-                          : undefined
-                      }
-                    />
-                  ))}
+                  {orderedDevices.map(d => {
+                    const linkDisplayId = d.kind === 'panel' ? d.panelDevice?.displayId : undefined;
+                    const onToggleControl = !d.supportsNexusControl
+                      ? undefined
+                      : linkDisplayId
+                        ? (next: boolean) => toggleLink(linkDisplayId, next)
+                        : d.curatedId
+                          ? (next: boolean) => void controlDevice(d.curatedId as string, next)
+                          : undefined;
+                    return (
+                      <DeviceCard
+                        key={d.key}
+                        device={d}
+                        onClick={() => onDeviceSelect(d.key)}
+                        onToggleControl={onToggleControl}
+                      />
+                    );
+                  })}
                 </div>
               )}
             </>

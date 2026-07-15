@@ -44,14 +44,21 @@ export interface UnifiedDevice {
   // pages (e.g. MiniHub - fans on Cooling, ARGB on Lighting) are
   // non-navigable so a click doesn't land on a "no page yet" placeholder.
   navigable: boolean;
-  // Whether the service actively controls this device. Always true for
-  // non-curated kinds (panel/peripheral/app-device), which have no toggle.
+  // Whether the device is actively managed. For a first-party curated
+  // handler this mirrors the handler's on/off gate; for a promoted-monitor
+  // panel entry (panelDevice.displayId set) it mirrors panelDevice.linkEnabled.
+  // Always true for every other kind (peripheral/app-device, non-monitor
+  // panels), which have no toggle.
   nexusControlEnabled: boolean;
-  // True only for first-party curated handlers; gates whether the on/off
-  // toggle renders. False for panel/peripheral/app-device and plugin devices.
+  // Gates whether the on/off toggle renders on the Devices-page row. True for
+  // first-party curated handlers, and for a promoted-monitor panel entry
+  // (panelDevice.displayId set) - its toggle calls the display promote/demote
+  // API instead of the handler control API. False for every other
+  // panel/peripheral/app-device kind and plugin devices.
   supportsNexusControl: boolean;
   // True for a Nexus Control device driving non-HYTE/iBUYPOWER hardware
-  // (experimental support); drives the "Experimental" badge. Always false when
+  // (experimental support); drives the "Experimental" badge. Always false for
+  // panel devices (no promoted-monitor handler is experimental) and whenever
   // supportsNexusControl is false.
   experimental: boolean;
   // Device-level issue code (e.g. "usb-disconnected") surfaced as a warning
@@ -270,6 +277,11 @@ function buildUnifiedList(
     // A hardware panel (Q60/Y70) is backed by a first-party handler of the same
     // id; inherit its Nexus Control gate so the toggle shows on the panel card.
     const backing = sourceId ? curated.find(c => c.id === sourceId) : undefined;
+    // A promoted-monitor panel (Xeneon Edge, etc) has no first-party handler
+    // (no sourceId) - its on/off state is the record's own `linkEnabled`, and
+    // the row toggle always renders for it (DevicesPage wires it to the
+    // display promote/demote API, not controlDevice).
+    const isPromotedMonitor = !!p.displayId;
     list.push({
       key: `panel-${p.id}`,
       shortName,
@@ -282,8 +294,8 @@ function buildUnifiedList(
       panelDevice: p,
       curatedId: sourceId,
       navigable: true,
-      nexusControlEnabled: backing?.nexusControlEnabled ?? true,
-      supportsNexusControl: backing?.supportsNexusControl ?? false,
+      nexusControlEnabled: isPromotedMonitor ? (p.linkEnabled ?? true) : (backing?.nexusControlEnabled ?? true),
+      supportsNexusControl: isPromotedMonitor ? true : (backing?.supportsNexusControl ?? false),
       experimental: backing?.experimental ?? false,
       warning: p.warning ?? undefined,
       conflictAppId: backing?.conflictAppId,

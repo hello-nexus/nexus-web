@@ -8,8 +8,8 @@ import type { PanelDevice } from '../../../panel/device/panelDevices';
 // usePanelDevices.test.ts), so DevicePage must route it to an accurate
 // off-state gate instead of the generic "not connected" empty state, with a
 // toggle that calls POST /displays/{id}/panel (promoteDisplayToPanel) to
-// turn it back on. Contrast PanelDevicePage.nexusLink.test.tsx, which covers
-// the reverse direction (the on-page toggle turning Nexus Link off).
+// turn it back on. Contrast DevicesPage.test.tsx, which covers the reverse
+// direction (the Devices-page row toggle turning Nexus Link off).
 
 const promoteDisplayToPanelMock = vi.fn();
 const toastPushMock = vi.fn();

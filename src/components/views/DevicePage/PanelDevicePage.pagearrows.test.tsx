@@ -14,9 +14,6 @@ const Y70_EDITOR_CAP = { gridCols: 4, pageRows: 16 };
 const fetchPanelDevicesMock = vi.fn();
 const patchPanelDeviceMock = vi.fn();
 
-vi.mock('../../common/Toast/Toast', () => ({
-  useToast: () => ({ push: vi.fn() }),
-}));
 vi.mock('../../../api/service', () => ({
   fetchService: vi.fn().mockResolvedValue(null),
   postService: vi.fn().mockResolvedValue(null),

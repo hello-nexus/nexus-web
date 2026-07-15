@@ -14,9 +14,6 @@ let firmwareItems: unknown[] = [];
 
 const fetchPanelDevicesMock = vi.fn();
 
-vi.mock('../../common/Toast/Toast', () => ({
-  useToast: () => ({ push: vi.fn() }),
-}));
 vi.mock('../../../api/service', () => ({
   fetchService: vi.fn((url: string) =>
     url === '/devices/firmware/status'

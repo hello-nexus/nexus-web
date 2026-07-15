@@ -1764,7 +1764,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'NexusControlCard', category: 'cards',
     filePath: 'src/components/common/NexusControlCard/NexusControlCard.tsx',
-    description: 'Label + toggle in a card: the "Nexus Link" on/off switch. Used by the curated-device NexusControlOff full-page gate (DevicePage) and the promoted-monitor panel page (PanelDevicePage), so turning a device or a promoted display off/on reads as the same control everywhere.',
+    description: 'Label + toggle in a card: the "Nexus Link" on/off switch. Used by DevicePage\'s NexusControlOff full-page gate, shown for both a curated device with Nexus Control off and a promoted monitor with Nexus Link off - the row-level toggle for both lives on the Devices-page device row instead.',
     Preview: PreviewNexusControlCard,
   },
   {
