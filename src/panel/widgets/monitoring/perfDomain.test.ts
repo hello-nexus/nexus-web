@@ -68,6 +68,21 @@ describe('staticMaxForDevice - network', () => {
 });
 
 describe('defaultFixedMax', () => {
+  it('gives a Clock sensor a MHz-scale fixed ceiling on every device, not just the mixed-bag ones', () => {
+    // A core clock reads in the thousands; the percent fallback of 100 pegs a
+    // Fixed-range gauge at full. cpu/gpu carry per-core clocks and Quick carries
+    // CPU Clock / GPU Clock, so this is not a motherboard-only concern.
+    expect(staticMaxForDevice('quick', 'CPU Clock', 'Clock')).toBe(6000);
+    expect(staticMaxForDevice('cpu', 'P-Core #1', 'Clock')).toBe(6000);
+    expect(staticMaxForDevice('gpu', 'GPU Core', 'Clock')).toBe(6000);
+    expect(staticMaxForDevice('motherboard', 'Bus Speed', 'Clock')).toBe(6000);
+  });
+
+  it('leaves percent-typed sensors on the 100 ceiling', () => {
+    expect(staticMaxForDevice('quick', 'CPU Usage', 'Load')).toBe(100);
+    expect(staticMaxForDevice('quick', 'CPU Temperature', 'Temperature')).toBe(100);
+  });
+
   it('prefers the sensor theoreticalMaximum when present and positive', () => {
     const sensor = { id: 'x', name: 'GPU Memory Used', type: 'SmallData', value: 8000, units: 'MB', formatted: '8000 MB', theoreticalMaximum: 16000, parent: { id: 'gpu', name: 'GPU' } };
     expect(defaultFixedMax('gpu', sensor)).toBe(16000);

@@ -43,11 +43,11 @@ export function fixedFillPercent(raw: number, min: number, max: number): number 
   return Math.max(0, Math.min(100, ((raw - min) / (max - min)) * 100));
 }
 
-// Adaptive fallback ceiling for a Clock sensor on a heterogeneous-type
-// device (motherboard and the other mixed-bag categories below) with no
-// theoreticalMaximum - clock sensors don't carry an installed-capacity max
-// the way Data sensors do.
-const HETEROGENEOUS_CLOCK_MAX = 6000;
+// Fixed-range ceiling for a Clock sensor on any device. Clock sensors carry no
+// theoreticalMaximum the way Data sensors do, and a core clock reads in the
+// thousands of MHz, so the 100 that percent-typed sensors fall back to pegs the
+// gauge at full instead of scaling it.
+const CLOCK_FIXED_MAX = 6000;
 
 // Fixed-mode default ceiling for network sensors, in the sensor's own unit
 // (bytes/sec - see networkSensors.ts formatNetworkRate). 1 Gbps. Network
@@ -76,12 +76,15 @@ export function staticMaxForDevice(device: DeviceKey, sensorName?: string, senso
   if (isHeterogeneousTypeDevice(device)) {
     switch (sensorType) {
       case 'Fan': return 2500;
-      case 'Clock': return HETEROGENEOUS_CLOCK_MAX;
+      case 'Clock': return CLOCK_FIXED_MAX;
       case 'Voltage': return 2;
       default: return 100;
     }
   }
-  // Load/temperature/clock sensors: percentage max.
+  // Not only the mixed-bag devices: cpu/gpu expose per-core clocks, and Quick
+  // carries CPU Clock / GPU Clock, all of which read in the thousands.
+  if (sensorType === 'Clock') return CLOCK_FIXED_MAX;
+  // Load/temperature sensors: percentage max.
   return 100;
 }
 
