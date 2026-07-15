@@ -9,7 +9,7 @@ import { Badge } from '../../common/Badge/Badge';
 import { SectionHeader } from '../../common/SectionHeader/SectionHeader';
 import type { DiagnosticsCoolingResponse } from '../../../api/diagnostics';
 import { NotAvailableNote, SectionLoadError } from './DiagnosticsSectionStates';
-import { coolingStatusColor, coolingStatusLabelKey, relativeTimeLabel, resolveSectionState } from './diagnosticsHelpers';
+import { coolingStatusColor, coolingStatusLabelKey, relativeTimeLabel, resolveSectionState, UNAVAILABLE } from './diagnosticsHelpers';
 import styles from './DiagnosticsView.module.scss';
 
 interface CoolingSectionProps {
@@ -53,8 +53,8 @@ export function CoolingSection({ data, loading, error, onRefresh, heading }: Coo
                 {device.name}
               </span>
               <span className={styles.coolingMeta}>
-                <span>{`${formatNumber(device.rpm, numberFormat)} RPM`}</span>
-                <span>{localizeNumbers(`${device.targetDutyPercent}%`, numberFormat)}</span>
+                <span>{device.rpm !== null ? `${formatNumber(device.rpm, numberFormat)} RPM` : UNAVAILABLE}</span>
+                <span>{device.targetDutyPercent !== null ? localizeNumbers(`${device.targetDutyPercent}%`, numberFormat) : UNAVAILABLE}</span>
                 <Badge label={t(coolingStatusLabelKey(device.status))} color={coolingStatusColor(device.status)} />
                 {device.sinceUtc && device.status !== 'ok' && (
                   <span>{t('diagnostics.cooling.since', { time: relativeTimeLabel(device.sinceUtc, now, t) })}</span>

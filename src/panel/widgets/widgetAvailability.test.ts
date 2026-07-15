@@ -293,7 +293,6 @@ describe('marketplace listing derives from the preinstalled + page signal', () =
       surfaces: ['dashboard'],
       capabilities: {} as AppManifestCapabilities,
       source: 'bundled',
-      trusted: true,
       ...over,
     };
   }
