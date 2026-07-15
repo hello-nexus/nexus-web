@@ -11,7 +11,7 @@ import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { useToast } from '../../common/Toast/Toast';
 import { cancelMemoryTest, scheduleMemoryTest, type DiagnosticsFetchOptions, type DiagnosticsMemoryResponse } from '../../../api/diagnostics';
 import { NotAvailableNote, SectionLoadError } from './DiagnosticsSectionStates';
-import { formatBytes, relativeTimeLabel, resolveSectionState } from './diagnosticsHelpers';
+import { formatBytes, relativeTimeLabel, resolveSectionState, UNAVAILABLE } from './diagnosticsHelpers';
 import styles from './DiagnosticsView.module.scss';
 
 interface MemorySectionProps {
@@ -82,10 +82,10 @@ export function MemorySection({ data, loading, error, onRefresh }: MemorySection
               {data.modules.map((module, i) => (
                 <tr key={i}>
                   <td>{module.slot}</td>
-                  <td>{formatBytes(module.sizeBytes, numberFormat)}</td>
-                  <td>{localizeNumbers(`${module.configuredSpeedMts} MT/s`, numberFormat)}</td>
-                  <td>{module.manufacturer}</td>
-                  <td>{module.partNumber}</td>
+                  <td>{module.sizeBytes !== null ? formatBytes(module.sizeBytes, numberFormat) : UNAVAILABLE}</td>
+                  <td>{module.configuredSpeedMts !== null ? localizeNumbers(`${module.configuredSpeedMts} MT/s`, numberFormat) : UNAVAILABLE}</td>
+                  <td>{module.manufacturer ?? UNAVAILABLE}</td>
+                  <td>{module.partNumber ?? UNAVAILABLE}</td>
                 </tr>
               ))}
             </tbody>

@@ -13,7 +13,7 @@ import { InfoTooltip } from '../../common/InfoTooltip/InfoTooltip';
 import { UsageBar } from '../../common/UsageBar/UsageBar';
 import type { DiagnosticsDrive, DiagnosticsFetchOptions, DiagnosticsSmartResponse, SmartAttribute } from '../../../api/diagnostics';
 import { NotAvailableNote, SectionLoadError } from './DiagnosticsSectionStates';
-import { driveStatusColor, driveStatusLabelKey, formatBytes, resolveSectionState } from './diagnosticsHelpers';
+import { driveStatusColor, driveStatusLabelKey, formatBytes, resolveSectionState, UNAVAILABLE } from './diagnosticsHelpers';
 import styles from './DiagnosticsView.module.scss';
 
 interface StorageSectionProps {
@@ -61,13 +61,22 @@ function DriveCard({ drive }: { drive: DiagnosticsDrive }) {
       <div className={styles.driveHead}>
         <InfoList>
           <InfoRow label={t('diagnostics.storage.serial')} value={drive.serial} />
-          <InfoRow label={t('diagnostics.storage.size')} value={formatBytes(drive.sizeBytes, numberFormat)} />
+          <InfoRow
+            label={t('diagnostics.storage.size')}
+            value={drive.sizeBytes !== null ? formatBytes(drive.sizeBytes, numberFormat) : UNAVAILABLE}
+          />
           <InfoRow
             label={t('diagnostics.storage.temperature')}
-            value={drive.temperatureC !== null ? localizeNumbers(`${Math.round(convertTemperature(drive.temperatureC, monitoringTempUnit))}${tempUnitSymbol(monitoringTempUnit)}`, numberFormat) : '-'}
+            value={drive.temperatureC !== null ? localizeNumbers(`${Math.round(convertTemperature(drive.temperatureC, monitoringTempUnit))}${tempUnitSymbol(monitoringTempUnit)}`, numberFormat) : UNAVAILABLE}
           />
-          <InfoRow label={t('diagnostics.storage.powerOnHours')} value={`${formatNumber(drive.powerOnHours, numberFormat)}h`} />
-          <InfoRow label={t('diagnostics.storage.powerCycles')} value={formatNumber(drive.powerCycles, numberFormat)} />
+          <InfoRow
+            label={t('diagnostics.storage.powerOnHours')}
+            value={drive.powerOnHours !== null ? `${formatNumber(drive.powerOnHours, numberFormat)}h` : UNAVAILABLE}
+          />
+          <InfoRow
+            label={t('diagnostics.storage.powerCycles')}
+            value={drive.powerCycles !== null ? formatNumber(drive.powerCycles, numberFormat) : UNAVAILABLE}
+          />
         </InfoList>
       </div>
       {drive.healthPercent !== null && (

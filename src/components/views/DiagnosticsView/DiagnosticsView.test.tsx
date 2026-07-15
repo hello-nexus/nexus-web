@@ -389,6 +389,27 @@ describe('domain sections render without their outer kind title', () => {
     expect(screen.getByText('Test Drive')).toBeInTheDocument();
   });
 
+  // A drive without SMART support: the service sends every reading as null.
+  it('StorageSection falls back to "-" for a drive with no SMART readings', () => {
+    const data: DiagnosticsSmartResponse = {
+      supported: true,
+      drives: [{
+        id: 'storage:a', name: 'USB Stick', serial: 'SN1', bus: 'usb', sizeBytes: null, temperatureC: null,
+        powerOnHours: null, powerCycles: null, healthPercent: null, status: 'unknown', statusReasons: [],
+        attributes: [], nvme: null,
+      }],
+    };
+    render(<StorageSection data={data} loading={false} error={false} onRefresh={() => {}} />);
+
+    expect(screen.getByText('USB Stick')).toBeInTheDocument();
+    // Guarded, so no "0 B" for size and no "nullh" / "null" for the counters.
+    expect(screen.getByText('diagnostics.storage.size').nextSibling).toHaveTextContent('-');
+    expect(screen.getByText('diagnostics.storage.powerOnHours').nextSibling).toHaveTextContent('-');
+    expect(screen.getByText('diagnostics.storage.powerCycles').nextSibling).toHaveTextContent('-');
+    expect(screen.queryByText('0 B')).not.toBeInTheDocument();
+    expect(screen.queryByText('nullh')).not.toBeInTheDocument();
+  });
+
   it('CoolingSection omits the outer "Cooling" title but still renders device rows', () => {
     const data: DiagnosticsCoolingResponse = {
       supported: true,
@@ -398,6 +419,18 @@ describe('domain sections render without their outer kind title', () => {
 
     expect(screen.queryByText('diagnostics.kind.cooling')).not.toBeInTheDocument();
     expect(screen.getByText('Fan 1')).toBeInTheDocument();
+  });
+
+  it('CoolingSection falls back to "-" for a device with no rpm or duty reading', () => {
+    const data: DiagnosticsCoolingResponse = {
+      supported: true,
+      devices: [{ id: 'cooling:fan1', name: 'Fan 1', type: 'fan', rpm: null, targetDutyPercent: null, status: 'unknown', sinceUtc: null }],
+    };
+    render(<CoolingSection data={data} loading={false} error={false} onRefresh={() => {}} />);
+
+    expect(screen.getByText('Fan 1')).toBeInTheDocument();
+    expect(screen.queryByText('null RPM')).not.toBeInTheDocument();
+    expect(screen.queryByText('null%')).not.toBeInTheDocument();
   });
 
   it('GpuSection omits its kind title by default but renders a passed heading and its Throttling sub-header', () => {
@@ -416,6 +449,44 @@ describe('domain sections render without their outer kind title', () => {
     expect(screen.getByText('Test GPU')).toBeInTheDocument();
   });
 
+  // Verbatim GET /diagnostics/gpu payload from an RTX 3070, the shape that
+  // crashed the Cooling tab: NVML reports temperature but no power draw.
+  it('GpuSection renders a GPU whose power draw is null', () => {
+    const data: DiagnosticsGpuResponse = {
+      supported: true,
+      gpus: [{
+        name: 'NVIDIA GeForce RTX 3070', driverVersion: '591.86', temperatureC: 68, powerW: null,
+        throttle: { active: [], swPowerCapUs: 175300906112, swThermalUs: 0, hwThermalUs: null, hwPowerBrakeUs: 0 },
+        recentTdrCount: 0,
+      }],
+    };
+    render(<GpuSection data={data} loading={false} error={false} onRefresh={() => {}} heading="GPU health" />);
+
+    expect(screen.getByText('NVIDIA GeForce RTX 3070')).toBeInTheDocument();
+    expect(screen.getByText('diagnostics.gpu.power').nextSibling).toHaveTextContent('-');
+    expect(screen.getByText('diagnostics.gpu.temperature').nextSibling).toHaveTextContent('68');
+    // A populated counter still renders; the null and zero ones are omitted.
+    expect(screen.getByText('diagnostics.gpu.throttle.swPower')).toBeInTheDocument();
+    expect(screen.queryByText('diagnostics.gpu.throttle.hwThermal')).not.toBeInTheDocument();
+  });
+
+  it('GpuSection falls back to "-" for every reading the service omits', () => {
+    const data: DiagnosticsGpuResponse = {
+      supported: true,
+      gpus: [{
+        name: 'Test GPU', driverVersion: null, temperatureC: null, powerW: null,
+        throttle: { active: [], swPowerCapUs: null, swThermalUs: null, hwThermalUs: null, hwPowerBrakeUs: null },
+        recentTdrCount: 0,
+      }],
+    };
+    render(<GpuSection data={data} loading={false} error={false} onRefresh={() => {}} />);
+
+    expect(screen.getByText('Test GPU')).toBeInTheDocument();
+    expect(screen.getByText('diagnostics.gpu.driver: -')).toBeInTheDocument();
+    expect(screen.getByText('diagnostics.gpu.temperature').nextSibling).toHaveTextContent('-');
+    expect(screen.getByText('diagnostics.gpu.power').nextSibling).toHaveTextContent('-');
+  });
+
   it('MemorySection omits the outer "Memory" title but still renders module rows', () => {
     const data: DiagnosticsMemoryResponse = {
       supported: true,
@@ -430,6 +501,23 @@ describe('domain sections render without their outer kind title', () => {
 
     expect(screen.queryByText('diagnostics.kind.memory')).not.toBeInTheDocument();
     expect(screen.getByText('DIMM_A1')).toBeInTheDocument();
+  });
+
+  // A DIMM reporting every field as unknown: the parser emits null for each.
+  it('MemorySection falls back to "-" for module fields the SMBIOS record omits', () => {
+    const data: DiagnosticsMemoryResponse = {
+      supported: true,
+      modules: [{ slot: 'DIMM_A1', sizeBytes: null, maxSpeedMts: null, configuredSpeedMts: null, manufacturer: null, partNumber: null }],
+      xmpLikelyActive: null, lastTest: null, testScheduled: false,
+    };
+    render(
+      <ToastProvider>
+        <MemorySection data={data} loading={false} error={false} onRefresh={() => {}} />
+      </ToastProvider>,
+    );
+
+    // Guarded, so no "null MT/s" and no "0 B" for a size the parser never read.
+    expect(screen.getAllByRole('cell').map(c => c.textContent)).toEqual(['DIMM_A1', '-', '-', '-', '-']);
   });
 
   it('SystemSection omits the outer "System" title but keeps its Device problems header', () => {

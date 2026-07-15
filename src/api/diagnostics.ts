@@ -94,15 +94,18 @@ export interface NvmeHealth {
   dataUnitsWrittenBytes: number;
 }
 
+// Nullable per SmartDriveInfo (nexus-service SmartHealthMonitor.cs): a drive
+// with no SMART support returns early with only id/name/serial/bus/sizeBytes
+// set, so every reading below it is null.
 export interface DiagnosticsDrive {
   id: string;
   name: string;
   serial: string;
   bus: DiagnosticsDriveBus;
-  sizeBytes: number;
+  sizeBytes: number | null;
   temperatureC: number | null;
-  powerOnHours: number;
-  powerCycles: number;
+  powerOnHours: number | null;
+  powerCycles: number | null;
   healthPercent: number | null;
   status: DiagnosticsDriveStatus;
   statusReasons: string[];
@@ -115,13 +118,16 @@ export interface DiagnosticsSmartResponse {
   drives: DiagnosticsDrive[];
 }
 
+// Nullable per MemoryModuleInfo (nexus-service SmbiosParser.cs): each field is
+// null when the SMBIOS Type 17 record is too short to carry it, or carries the
+// spec's unknown value. Only slot is always present.
 export interface MemoryModule {
   slot: string;
-  sizeBytes: number;
-  maxSpeedMts: number;
-  configuredSpeedMts: number;
-  manufacturer: string;
-  partNumber: string;
+  sizeBytes: number | null;
+  maxSpeedMts: number | null;
+  configuredSpeedMts: number | null;
+  manufacturer: string | null;
+  partNumber: string | null;
 }
 
 export type MemoryTestResultValue = 'passed' | 'failed' | 'unknown';
@@ -129,7 +135,7 @@ export type MemoryTestResultValue = 'passed' | 'failed' | 'unknown';
 export interface MemoryTestResult {
   timeUtc: string;
   result: MemoryTestResultValue;
-  detail: string;
+  detail: string | null;
 }
 
 export interface DiagnosticsMemoryResponse {
@@ -151,19 +157,25 @@ export interface CancelMemoryTestResponse {
 
 export type GpuThrottleReason = 'swPower' | 'hwSlowdown' | 'hwThermal' | 'hwPowerBrake' | 'swThermal' | 'other';
 
+// Nullable per GpuThrottleInfo (nexus-service GpuHealthMonitor.cs): the three
+// NVML-backed counters go null when the violation-status read returns
+// non-Success; hwThermalUs has no NVML source and is always null.
 export interface GpuThrottle {
   active: GpuThrottleReason[];
-  swPowerCapUs: number;
-  swThermalUs: number;
-  hwThermalUs: number;
-  hwPowerBrakeUs: number;
+  swPowerCapUs: number | null;
+  swThermalUs: number | null;
+  hwThermalUs: number | null;
+  hwPowerBrakeUs: number | null;
 }
 
+// Nullable per GpuInfoWire (nexus-service DiagnosticsHealthRoutes.cs).
+// driverVersion is one driver-level query shared by every card; temperatureC
+// and powerW go null when that card's NVML read returns non-Success.
 export interface DiagnosticsGpu {
   name: string;
-  driverVersion: string;
-  temperatureC: number;
-  powerW: number;
+  driverVersion: string | null;
+  temperatureC: number | null;
+  powerW: number | null;
   throttle: GpuThrottle;
   recentTdrCount: number;
 }
@@ -176,12 +188,15 @@ export interface DiagnosticsGpuResponse {
 export type CoolingDeviceType = 'pump' | 'fan';
 export type CoolingDeviceStatus = 'ok' | 'stalled' | 'suspect' | 'unknown';
 
+// rpm/targetDutyPercent are nullable per CoolingStallDevice (nexus-service
+// CoolingStallDetector.cs). The only production feeder sources both from
+// non-nullable ints, so nulls do not reach the wire today.
 export interface DiagnosticsCoolingDevice {
   id: string;
   name: string;
   type: CoolingDeviceType;
-  rpm: number;
-  targetDutyPercent: number;
+  rpm: number | null;
+  targetDutyPercent: number | null;
   status: CoolingDeviceStatus;
   sinceUtc: string | null;
 }
@@ -397,8 +412,8 @@ export interface OpenDeviceManagerResponse {
 
 export interface ClearEventLogsResponse {
   cleared: boolean;
-  systemError: string;
-  applicationError: string;
+  systemError: string | null;
+  applicationError: string | null;
 }
 
 // These two bypass withMockFallback deliberately: a 404 (no such route, or

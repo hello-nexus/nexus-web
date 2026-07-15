@@ -27,6 +27,7 @@ const GENERATED_AT = '2026-07-08T02:00:00Z';
 
 const NVME_DRIVE_ID = 'storage:S6Z1NX0T123456';
 const SATA_DRIVE_ID = 'storage:WD-WCC7K1234567';
+const USB_DRIVE_ID = 'storage:4C530001180213108453';
 
 export function mockDiagnosticsHealth(): DiagnosticsHealth {
   return {
@@ -234,6 +235,24 @@ export function mockDiagnosticsSmart(): DiagnosticsSmartResponse {
         ],
         nvme: null,
       },
+      // A drive without SMART support: the service returns early with only
+      // id/name/serial/bus/sizeBytes set, so every reading is null. Do not
+      // populate them.
+      {
+        id: USB_DRIVE_ID,
+        name: 'SanDisk Ultra USB 3.0',
+        serial: '4C530001180213108453',
+        bus: 'usb',
+        sizeBytes: 61530439680,
+        temperatureC: null,
+        powerOnHours: null,
+        powerCycles: null,
+        healthPercent: null,
+        status: 'unknown',
+        statusReasons: [],
+        attributes: [],
+        nvme: null,
+      },
     ],
   };
 }
@@ -243,7 +262,9 @@ export function mockDiagnosticsMemory(): DiagnosticsMemoryResponse {
     supported: true,
     modules: [
       { slot: 'DIMM_A1', sizeBytes: 17179869184, maxSpeedMts: 6000, configuredSpeedMts: 6000, manufacturer: 'Corsair', partNumber: 'CMK32GX5M2B6000C36' },
-      { slot: 'DIMM_B1', sizeBytes: 17179869184, maxSpeedMts: 6000, configuredSpeedMts: 6000, manufacturer: 'Corsair', partNumber: 'CMK32GX5M2B6000C36' },
+      // A pre-2.7 SMBIOS record, which has no configured-speed field, whose
+      // Manufacturer/Part Number string indices are 0. Do not populate.
+      { slot: 'DIMM_B1', sizeBytes: 17179869184, maxSpeedMts: 6000, configuredSpeedMts: null, manufacturer: null, partNumber: null },
     ],
     xmpLikelyActive: true,
     lastTest: null,
