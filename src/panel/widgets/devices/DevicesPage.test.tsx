@@ -174,6 +174,17 @@ describe('DevicesPage device-row Nexus Link/Control toggle', () => {
 });
 
 describe('DevicesPage device-card secondary line', () => {
+  // The card glyph is aria-hidden, so .rowName is the button's only accessible
+  // name. Labelling the glyph prefixed the raw category enum onto it
+  // ("display Xeneon Edge"). Toggle-less fixture: a rendered Nexus Control
+  // toggle contributes its own label to the card's name.
+  it('names the card button after the device alone', () => {
+    mockUnified = [monitorRow({ supportsNexusControl: false })];
+    render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
+
+    expect(screen.getByRole('button', { name: 'Xeneon Edge' })).toBeTruthy();
+  });
+
   it('renders nothing under the name for a real device, whatever its subtitle carries', () => {
     mockUnified = [monitorRow()];
     render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
