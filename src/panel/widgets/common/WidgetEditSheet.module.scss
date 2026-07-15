@@ -10,7 +10,7 @@
   padding: 16px 18px;
   border-radius: var(--radius-lg);
   background: var(--panel-sheet-bg);
-  backdrop-filter: blur(18px);
+  backdrop-filter: blur(var(--blur-backdrop));
   border: 1px solid var(--panel-border);
   box-shadow: var(--shadow-xl);
   font-family: var(--panel-font);

@@ -12,7 +12,9 @@
  *   radius   - border-radius literal pixels (must use --radius-* tokens)
  *   shadow   - box-shadow with literal rgba (must use --shadow-* tokens)
  *   alpha    - rgba() / color-mix percentage literals (must use --alpha-* tokens)
- *   blur     - blur(<px>) outside known token values (must use --blur-* tokens)
+ *   blur     - blur(<px>) literals (must use --blur-backdrop / --blur-defocus).
+ *              @keyframes blocks are skipped: a motion curve's blur is an
+ *              animation endpoint, not a surface, and has no rung to snap to.
  *   timing   - transition / animation duration literals (must use --ease-* tokens)
  *
  * Spacing and control-size axes intentionally NOT audited yet - they would
@@ -61,7 +63,7 @@ const ALLOWLIST = {
   blur: new Set([
     'styles/variables.scss',
     'styles/global.scss',
-    'panel/PanelOfflineOverlay.module.scss',
+    'panel/widgets/discord/DiscordWidget.module.scss', // spoiler redaction, must stay illegible
   ]),
   timing: new Set([
     'styles/variables.scss',
@@ -76,6 +78,10 @@ const RADIUS_RAW = /\bborder-radius\s*:\s*([^;]+);/g;
 const SHADOW_RAW = /\bbox-shadow\s*:\s*([^;]+);/g;
 const ALPHA_RAW = /\brgba\s*\(/g; // any rgba() literal is suspect
 const BLUR_RAW = /\bblur\s*\(\s*([0-9.]+)px\s*\)/g;
+// lightningcss autoprefixes `backdrop-filter`. Hand-writing the -webkit- twin
+// makes it DROP the unprefixed declaration, which silently kills the effect on
+// Blink (WebView2 kiosk / Android WebView / desktop Chrome).
+const WEBKIT_BACKDROP_RAW = /-webkit-backdrop-filter\s*:/g;
 const TIMING_RAW = /(?:transition|animation)[^;]*?(\b(?:0\.[0-9]+s|[0-9]+ms)\b)/g;
 
 // Per-axis line-level skip (comments, var declarations, etc.)
@@ -122,9 +128,22 @@ function isShadowException(value) {
   return true; // anything without rgba is fine
 }
 
-function isBlurException(px) {
-  // 8 (sm) and 20 (lg) are the canonical rungs.
-  return px === '8' || px === '20';
+// Blur axis: no raw literal is canonical any more - every surface goes
+// through --blur-backdrop / --blur-defocus. Only @keyframes blocks (motion
+// endpoints, see keyframeRanges) and the allowlist above are exempt.
+function keyframeRanges(text) {
+  const ranges = [];
+  for (const m of text.matchAll(/@keyframes\s+[\w-]+\s*\{/g)) {
+    let depth = 0, i = m.index + m[0].length - 1;
+    for (; i < text.length; i++) {
+      if (text[i] === '{') depth++;
+      else if (text[i] === '}' && --depth === 0) break;
+    }
+    // Unbalanced block: exempting to EOF would silently blind the axis for the
+    // rest of the file. Skip the range instead.
+    if (depth === 0) ranges.push([m.index, i]);
+  }
+  return ranges;
 }
 
 function* walk(dir) {
@@ -190,11 +209,17 @@ for (const file of walk(ROOT)) {
   }
 
   if (!isAllowed(rel, 'blur')) {
+    for (const m of text.matchAll(WEBKIT_BACKDROP_RAW)) {
+      const lineNum = text.slice(0, m.index).split('\n').length;
+      if (isCommentOrVarDecl(lines[lineNum - 1])) continue;
+      findings.blur.push({ file: repoPath, line: lineNum,
+                           decl: '-webkit-backdrop-filter (write the unprefixed property only)' });
+    }
+    const kf = keyframeRanges(text);
     for (const m of text.matchAll(BLUR_RAW)) {
-      if (!isBlurException(m[1])) {
-        const lineNum = text.slice(0, m.index).split('\n').length;
-        findings.blur.push({ file: repoPath, line: lineNum, decl: m[0].trim() });
-      }
+      if (kf.some(([a, b]) => m.index > a && m.index < b)) continue;
+      const lineNum = text.slice(0, m.index).split('\n').length;
+      findings.blur.push({ file: repoPath, line: lineNum, decl: m[0].trim() });
     }
   }
 
@@ -223,7 +248,7 @@ const HEADERS = {
   radius:  'RADIUS   - raw border-radius literal (use --radius-* / --radius-pill / --radius-lg)',
   shadow:  'SHADOW   - raw box-shadow with literal rgba (use --shadow-sm / --shadow-md / --shadow-xl)',
   alpha:   'ALPHA    - raw rgba() literal (use --alpha-faint / --alpha-medium / --alpha-strong via rgb(R G B / var(...)))',
-  blur:    'BLUR     - raw blur() outside 8/20 (use --blur-sm / --blur-lg)',
+  blur:    'BLUR     - raw blur() literal (use --blur-backdrop / --blur-defocus) or hand-written -webkit-backdrop-filter',
   timing:  'TIMING   - raw transition / animation duration (use --ease-fast / --ease / --ease-slow)',
 };
 

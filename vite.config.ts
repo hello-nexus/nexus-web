@@ -33,6 +33,11 @@ export default defineConfig({
   // small. Y70 / desktop / phone all run modern Chromium/Edge, so they're
   // unaffected.
   build: {
+    // `cssTarget` inherits this. It MUST keep a Safari/iOS target: no source
+    // hand-writes `-webkit-backdrop-filter` (doing so makes lightningcss drop
+    // the unprefixed property and kills the effect on Blink), so this target is
+    // the only thing emitting the prefix iOS WKWebView needs. Setting
+    // cssTarget:'esnext' or cssMinify:'esbuild' silently unfrosts iOS.
     target: 'es2019',
     // The marketing site (site/index.html, served at hellonexus.com's root by
     // server.js host routing) is a second entry in the standalone build only.

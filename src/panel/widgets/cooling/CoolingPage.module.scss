@@ -389,6 +389,9 @@
 // div without changing its existing layout.
 .fanListWrap {
   position: relative;
+  // flex:1 stretches the wrap to fill the aside so .calibrationOverlay
+  // (absolute, inset 0) covers every fan row. Without it the wrap collapses to
+  // content height and rows scrolled off-screen stay clickable through it.
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -403,7 +406,7 @@
   align-items: center;
   justify-content: center;
   background: rgba(10, 11, 14, 0.55);
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(var(--blur-backdrop));
   border-radius: var(--radius);
   pointer-events: auto;
 }
@@ -432,66 +435,6 @@
   max-width: 16rem;
   line-height: 1.4;
 }
-
-// ── Calibration lock (bug 4) ──────────────────────────────────────────────
-// While the cycle runs the user shouldn't be able to nudge fan modes,
-// rename, drag wires, or change setpoints. We layer a translucent shield
-// over the fan list, dim its content, AND set `inert` on the underlying
-// container so keyboard + AT routing also stops at the shield. The
-// shield carries its own copy of the spinner + status text so the user
-// always sees the cycle is in flight without having to scroll.
-.fanListWrap {
-  position: relative;
-  // Stretch to fill the aside vertically so the lock overlay covers
-  // every fan row. Without this the wrap collapses to the content
-  // height and the overlay only covers visible cards, letting clicks
-  // through to cards scrolled off-screen.
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  flex: 1;
-}
-.calibrationLock {
-  position: absolute;
-  inset: 0;
-  z-index: 5;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  gap: 0.6rem;
-  padding: 1.25rem;
-  text-align: center;
-  background: rgba(8, 9, 14, 0.72);
-  backdrop-filter: blur(4px);
-  border-radius: var(--radius);
-  // Sit on top of the device-group headers but UNDER the wire SVG (which
-  // is on z-index 10 already). The shield is purely UX feedback; wires
-  // are inert.
-  pointer-events: auto;
-  // Soft fade-in on calibration start so the surface doesn't pop.
-  animation: lockFadeIn 0.18s ease;
-}
-@keyframes lockFadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-.calibrationLockTitle {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  font-size: var(--type-body);
-  font-weight: var(--weight-heading);
-  color: var(--text);
-}
-.calibrationLockHelp {
-  max-width: 32ch;
-  font-size: var(--type-small);
-  color: var(--text-dim);
-  line-height: 1.4;
-}
-// Fan list under the lock fades to mark it as inactive.
-.fanListLocked { opacity: 0.35; filter: saturate(0.6); }
 
 // ── Disconnected fans bottom group (bug 5) ────────────────────────────────
 // One collapsible block, default closed, at the very bottom of the fan
