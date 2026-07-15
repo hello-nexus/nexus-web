@@ -39,7 +39,7 @@ vi.mock('../lib/i18n', () => ({
   }),
 }));
 
-import { useUnifiedDevices } from './useUnifiedDevices';
+import { useUnifiedDevices, isSimulatedDevice } from './useUnifiedDevices';
 
 function makeHandlerRow(over: Partial<DeviceListItem> = {}): DeviceListItem {
   return {
@@ -128,6 +128,19 @@ describe('useUnifiedDevices - Stream Deck per-deck entries', () => {
     // device's sidebar row), but `name` carries each deck's own identity.
     expect(entries.every(d => d.shortName === 'devices.streamdeck.modelName:{"model":"Mini"}')).toBe(true);
     expect(entries.map(d => d.name).sort()).toEqual(['Editing Deck', 'Streaming Deck']);
+  });
+
+  it('marks a simulated deck simulated, and a real one not', () => {
+    mockUseDevices.mockReturnValue({ devices: [makeHandlerRow({ connected: true })], controlDevice: vi.fn() });
+    mockUseStreamDecks.mockReturnValue({
+      decks: [makeDeck({ serial: 'sim-1' }), makeDeck({ serial: 'SN1' })],
+    });
+
+    const { result } = renderHook(() => useUnifiedDevices(true));
+    const bySerial = (s: string) => result.current.unified.find(d => d.streamdeckSerial === s)!;
+
+    expect(isSimulatedDevice(bySerial('sim-1'))).toBe(true);
+    expect(isSimulatedDevice(bySerial('SN1'))).toBe(false);
   });
 
   it('falls back to the handler-agnostic defaults when the /devices/all handler row has not loaded yet', () => {

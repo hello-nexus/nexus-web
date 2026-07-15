@@ -31,7 +31,6 @@ export interface UnifiedDevice {
   category: string;
   iconSrc: string;
   connected: boolean;
-  firmwareVersion?: string;
   kind: UnifiedDeviceKind;
   curatedId?: string;
   peripheral?: Peripheral;
@@ -72,6 +71,12 @@ export interface UnifiedDevice {
   // StreamDeckDevicePage so the page shows exactly this deck - one sidebar
   // entry per deck, no in-page picker.
   streamdeckSerial?: string;
+}
+
+// A simulated panel carries the marker on its panel record; the Tryx sim sets
+// `simulated` directly. Neither marker alone covers both.
+export function isSimulatedDevice(device: UnifiedDevice): boolean {
+  return device.panelDevice?.connectionKind === 'simulated' || device.simulated === true;
 }
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -210,10 +215,10 @@ export function useUnifiedDevices(enabled: boolean) {
         category: streamdeckHandler?.category ?? 'controller',
         iconSrc: CURATED_ICONS.streamdeck ?? FALLBACK_ICON,
         connected: deck.connected,
-        firmwareVersion: deck.firmwareVersion || undefined,
         kind: 'curated',
         curatedId: 'streamdeck',
         streamdeckSerial: deck.serial,
+        simulated: deck.serial.startsWith('sim-'),
         navigable: true,
         nexusControlEnabled: streamdeckHandler?.nexusControlEnabled ?? true,
         supportsNexusControl: streamdeckHandler?.supportsNexusControl ?? false,
@@ -296,7 +301,7 @@ function buildUnifiedList(
       navigable: true,
       nexusControlEnabled: isPromotedMonitor ? (p.linkEnabled ?? true) : (backing?.nexusControlEnabled ?? true),
       // A simulated panel has no hardware to hand back to another app, so the
-      // Nexus Link gate is meaningless on it.
+      // Nexus Control gate is meaningless on it.
       supportsNexusControl: isSimulated
         ? false
         : isPromotedMonitor ? true : (backing?.supportsNexusControl ?? false),
@@ -320,7 +325,6 @@ function buildUnifiedList(
       category: d.category,
       iconSrc: CURATED_ICONS[d.id] || CATEGORY_ICONS[d.category] || FALLBACK_ICON,
       connected: d.connected,
-      firmwareVersion: d.firmwareVersion || undefined,
       kind: 'curated',
       curatedId: d.id,
       navigable: !CURATED_WITHOUT_PAGE.has(d.id),

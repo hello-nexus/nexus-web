@@ -33,7 +33,8 @@ vi.mock('./PanelDevicePage', () => ({
 }));
 
 let mockUnified: UnifiedDevice[] = [];
-vi.mock('../../../hooks/useUnifiedDevices', () => ({
+vi.mock('../../../hooks/useUnifiedDevices', async importOriginal => ({
+  ...(await importOriginal<typeof import('../../../hooks/useUnifiedDevices')>()),
   useUnifiedDevices: () => ({ unified: mockUnified, controlDevice: vi.fn() }),
 }));
 

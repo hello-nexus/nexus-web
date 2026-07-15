@@ -4,7 +4,7 @@ import { Ghost, Usb } from 'lucide-react';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { DeviceWarningIcon } from '../components/common/DeviceWarningIcon/DeviceWarningIcon';
 import { NexusControlOffIcon } from '../components/common/NexusControlOffIcon/NexusControlOffIcon';
-import { useUnifiedDevices } from '../hooks/useUnifiedDevices';
+import { useUnifiedDevices, isSimulatedDevice } from '../hooks/useUnifiedDevices';
 import { useTranslation } from '../lib/i18n';
 import { ICON_SIZE } from './sidebarNav';
 import styles from './SidebarDevicesSection.module.scss';
@@ -93,7 +93,7 @@ export function SidebarDevicesSection({
       ) : (
         sorted.map(device => {
           const isActive = device.key === activeDeviceKey;
-          const isSimulated = device.panelDevice?.connectionKind === 'simulated' || device.simulated === true;
+          const isSimulated = isSimulatedDevice(device);
           const tooltip = isSimulated
             ? `${device.shortName} (${t('devices.panels.simulated')})`
             : device.shortName;

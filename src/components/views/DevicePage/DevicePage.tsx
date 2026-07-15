@@ -118,7 +118,7 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFi
     );
   }
 
-  // Promoted-monitor panel with Nexus Link off: the record (layout, theme,
+  // Promoted-monitor panel with Nexus Control off: the record (layout, theme,
   // settings) persists but hosts no kiosk. The monitor stays physically
   // attached and working as a normal display, unmanaged rather than
   // disconnected - so collapse to the same re-enable gate a curated device

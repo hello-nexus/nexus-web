@@ -1766,7 +1766,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'NexusControlCard', category: 'cards',
     filePath: 'src/components/common/NexusControlCard/NexusControlCard.tsx',
-    description: 'Label + toggle in a card: the "Nexus Link" on/off switch. Used by DevicePage\'s NexusControlOff full-page gate, shown for both a curated device with Nexus Control off and a promoted monitor with Nexus Link off - the row-level toggle for both lives on the Devices-page device row instead.',
+    description: 'Label + toggle in a card: the "Nexus Control" on/off switch. Used by DevicePage\'s NexusControlOff full-page gate, shown for both a curated device and a promoted monitor with Nexus Control off - the row-level toggle for both lives on the Devices-page device row instead.',
     Preview: PreviewNexusControlCard,
   },
   {
@@ -2090,7 +2090,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'ExperimentalBadge', category: 'status',
     filePath: 'src/components/common/ExperimentalBadge/ExperimentalBadge.tsx',
-    description: 'Pill badge flagging a device whose support is experimental (non-HYTE/iBUYPOWER hardware). Composes Badge inside a HoverTooltip that spells out the caveat. Shown left of the Nexus Link control on the Devices list and under the on/off switch on the device page.',
+    description: 'Pill badge flagging a device whose support is experimental (non-HYTE/iBUYPOWER hardware). Composes Badge inside a HoverTooltip that spells out the caveat. Shown left of the Nexus Control switch on the Devices list and under the on/off switch on the device page.',
     Preview: PreviewExperimentalBadge,
   },
   {
