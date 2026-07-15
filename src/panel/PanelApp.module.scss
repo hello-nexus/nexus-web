@@ -386,6 +386,20 @@
   --panel-content-scale: var(--panel-cell-size);
 }
 
+// Promoted OS monitors (Xeneon Edge, etc): --panel-rows is canvas-derived
+// (grid.ts), not a fixed count, so it needs a live formula rather than a
+// per-surface literal. Without --panel-row-size the grid falls back to the
+// square --panel-cell-size (tokens.scss), overflowing the bottom row past the
+// page padding. Mirror .page's own padding fallback chain (PanelPager.module
+// .scss) so the two can never disagree regardless of what they resolve to.
+.panelRoot[data-surface='monitor'] {
+  --panel-row-size: calc((100vh - var(--panel-page-padding-top, var(--panel-page-padding, 0)) - var(--panel-page-padding-bottom, var(--panel-page-padding, 0)) - (var(--panel-rows) - 1) * var(--panel-gap, 10px)) / var(--panel-rows));
+  // Cells are square by design here (grid.ts derives columns from this same
+  // row height), but --panel-cell-size is only the columns-only approximation
+  // above - min() keeps the cellScaler from sizing past the real row track.
+  --panel-content-scale: min(var(--panel-cell-size), var(--panel-row-size));
+}
+
 .panelRoot[data-surface='phone'] {
   --panel-columns: 4;
   --panel-rows: 4;
