@@ -89,6 +89,8 @@ const CURATED_ICONS: Record<string, string> = {
   keeb: '/assets/devices/keeb.svg',
   np50: '/assets/devices/np50.svg',
   'fan-hub': '/assets/devices/ibuypower.svg',
+  // No AW5 art yet; the brand mark reads better here than the generic glyph.
+  aw5: '/assets/devices/ibuypower.svg',
   smarthub: '/assets/devices/smarthub.svg',
   'lianli-tl': '/assets/devices/lianli.svg',
   'lianli-aio': '/assets/devices/lianli.svg',
@@ -113,6 +115,7 @@ const CURATED_SHORT_NAMES: Record<string, string> = {
   keeb: 'Keeb',
   lianli: 'Lian Li Uni Hub',
   'fan-hub': 'iBUYPOWER MiniHub',
+  aw5: 'iBUYPOWER AW5',
   'lianli-tl': 'Lian Li Uni Fan TL',
   'lianli-aio': 'Lian Li Galahad II',
   'lianli-wireless': 'Lian Li Uni Fan Wireless',
@@ -127,7 +130,9 @@ const FALLBACK_ICON = '/assets/devices/device.svg';
 // (status/firmware) but don't give them a sidebar row or a clickable card
 // that would land on the empty "no page yet" placeholder.
 //   fan-hub (iBUYPOWER MiniHub): fans → Cooling page, ARGB → Lighting page.
-const CURATED_WITHOUT_PAGE = new Set<string>(['fan-hub']);
+//   aw5 (iBUYPOWER AW5): the vendor driver owns the cooler; Nexus only reports
+//     that it is present, so there is nothing to configure anywhere.
+const CURATED_WITHOUT_PAGE = new Set<string>(['fan-hub', 'aw5']);
 
 export function useUnifiedDevices(enabled: boolean) {
   const { t } = useTranslation();
