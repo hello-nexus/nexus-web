@@ -386,13 +386,17 @@
   --panel-content-scale: var(--panel-cell-size);
 }
 
-// Promoted OS monitors (Xeneon Edge, etc): --panel-rows is canvas-derived
-// (grid.ts), not a fixed count, so it needs a live formula rather than a
-// per-surface literal. Without --panel-row-size the grid falls back to the
-// square --panel-cell-size (tokens.scss), overflowing the bottom row past the
-// page padding. Mirror .page's own padding fallback chain (PanelPager.module
-// .scss) so the two can never disagree regardless of what they resolve to.
+// Promoted OS monitors (Xeneon Edge, etc): --panel-columns/--panel-rows are
+// canvas-derived (grid.ts), not fixed counts, so both cell axes need a live
+// formula rather than a per-surface literal. Without --panel-row-size the
+// grid falls back to the square --panel-cell-size (tokens.scss), overflowing
+// the bottom row past the page padding; the generic --panel-cell-size
+// fallback (tokens.scss) assumes zero page padding, undersizing the
+// cellScaler override below against the real column track. Mirror .page's
+// own padding fallback chain (PanelPager.module.scss) on both axes so none
+// of the three can disagree regardless of what they resolve to.
 .panelRoot[data-surface='monitor'] {
+  --panel-cell-size: calc((100vw - var(--panel-page-padding-left, var(--panel-page-padding, 0)) - var(--panel-page-padding-right, var(--panel-page-padding, 0)) - (var(--panel-columns) - 1) * var(--panel-gap, 10px)) / var(--panel-columns));
   --panel-row-size: calc((100vh - var(--panel-page-padding-top, var(--panel-page-padding, 0)) - var(--panel-page-padding-bottom, var(--panel-page-padding, 0)) - (var(--panel-rows) - 1) * var(--panel-gap, 10px)) / var(--panel-rows));
   // Cells are square by design here (grid.ts derives columns from this same
   // row height), but --panel-cell-size is only the columns-only approximation
@@ -486,6 +490,16 @@
 // from the real row size so the content box fills the card height instead of
 // being clipped to the square --panel-content-scale reference.
 .panelRoot[data-surface='y70'] .cellScaler {
+  --_grid-w: calc(var(--_cols) * var(--panel-cell-size) + (var(--_cols) - 1) * var(--_gap));
+  --_grid-h: calc(var(--_rows) * var(--panel-row-size) + (var(--_rows) - 1) * var(--_gap));
+}
+
+// Promoted-monitor cells are non-square (the integer column/row split leaves
+// a remainder on each axis independently); --panel-content-scale = min(cell,
+// row) collapses --_content to the short axis, leaving a horizontal inset
+// that reads as a border on wide-aspect canvases. Same per-axis fix as
+// q60/y70 above.
+.panelRoot[data-surface='monitor'] .cellScaler {
   --_grid-w: calc(var(--_cols) * var(--panel-cell-size) + (var(--_cols) - 1) * var(--_gap));
   --_grid-h: calc(var(--_rows) * var(--panel-row-size) + (var(--_rows) - 1) * var(--_gap));
 }

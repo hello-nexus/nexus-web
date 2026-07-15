@@ -13,8 +13,12 @@
 // (desktop) ⇒ 1, no-op.
 .panel-root { --panel-scale: tan(atan2(var(--panel-content-scale, var(--panel-cell-size, 90px)), 90px)); }
 // Overlays (immersive, editor sheet) mount as a bare .panel-root with no
-// module cell-size - derive it from columns + gap + viewport here.
-.panel-root:not([data-surface='phone']):not([data-surface='desktop']) {
+// module cell-size - derive it from columns + gap + viewport here. This
+// selector's three :not() clauses give it higher specificity than a bare
+// [data-surface='x'] module rule, so every surface with its own
+// --panel-cell-size formula (assumes zero page padding, unlike monitor's)
+// must be excluded here or this rule silently overrides that surface's own.
+.panel-root:not([data-surface='phone']):not([data-surface='desktop']):not([data-surface='monitor']) {
   --panel-cell-size: calc((100vw - (var(--panel-columns, 4) - 1) * var(--panel-gap, 10px)) / var(--panel-columns, 4));
 }
 .panel-root[data-surface='phone'] { --panel-scale: var(--panel-widget-scale, 1); } // measured live by usePhoneContentScale
