@@ -50,6 +50,17 @@ export interface AuthFetchResult<T> {
   body: T | null;
 }
 
+export interface AccountDeviceItem {
+  installId: string;
+  hostname: string;
+  specs: Record<string, string>;
+  /** Client-added entry (no telemetry backing it) vs an auto-reported install. */
+  manual: boolean;
+  lastSeenAt: string;
+}
+
+export type AuthDeviceUpsertResponse = AuthEnvelope & Partial<AccountDeviceItem>;
+
 export interface AuthBackend {
   login(identifier: string, password: string): Promise<AuthFetchResult<AuthLoginResponse>>;
   register(email: string, password: string, username: string): Promise<AuthFetchResult<AuthRegisterResponse>>;
@@ -66,4 +77,12 @@ export interface AuthBackend {
   setPrivate(isPrivate: boolean): Promise<boolean>;
   deleteAccount(currentPassword?: string): Promise<AuthFetchResult<AuthDeleteResponse>>;
   uploadAvatar(blob: Blob): Promise<AuthAvatar | null>;
+  // Device management (My devices) is a public-web-only affordance today:
+  // nexus-api's /account/devices routes have no local-service proxy, so only
+  // DirectApiBackend implements these. Optional so LocalServiceBackend (the
+  // in-app dashboard) simply omits them - AccountDevicesSection renders
+  // nothing when a backend leaves them undefined.
+  listDevices?(): Promise<AccountDeviceItem[] | null>;
+  upsertDevice?(installId: string, patch: { hostname: string; specs: Record<string, string>; manual?: boolean }): Promise<AuthFetchResult<AuthDeviceUpsertResponse>>;
+  deleteDevice?(installId: string): Promise<boolean>;
 }
