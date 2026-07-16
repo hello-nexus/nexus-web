@@ -3,8 +3,9 @@ import type { SystemSpecs } from '../../hooks/useSystemSpecs';
 // Identity -> OS -> core silicon -> memory -> storage -> display -> audio ->
 // network. Mirrors DevicesPage's specRows order for the same
 // SystemSpecsResponse shape; the public account API returns any subset of
-// these fields.
-const SPEC_FIELD_ORDER: (keyof SystemSpecs)[] = [
+// these fields. Exported so the account devices editor (ManualDeviceModal)
+// can build the same labeled fields for a manual entry's form.
+export const SPEC_FIELD_ORDER: (keyof SystemSpecs)[] = [
   'pcName', 'osBuild', 'processor', 'motherboard', 'memory',
   'storage', 'graphicsCard', 'monitor', 'soundCard', 'networkCard',
 ];
