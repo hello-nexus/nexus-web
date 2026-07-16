@@ -131,6 +131,49 @@ describe('useMetricHistory', () => {
     expect(result.current.domain[1]).toBe(NOW + 1000);
   });
 
+  it('drops a stale live-tail response that resolves after a newer poll already landed', async () => {
+    fetchMock.mockResolvedValue({ data: emptyResp(), mocked: false });
+    const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
+    await advance(0);
+
+    const first = deferred<{ data: MetricHistoryResponse | null; mocked: boolean }>();
+    fetchMock.mockImplementationOnce(() => first.promise);
+    await advance(1_000);
+
+    const second = deferred<{ data: MetricHistoryResponse | null; mocked: boolean }>();
+    fetchMock.mockImplementationOnce(() => second.promise);
+    await advance(1_000);
+
+    // Newer poll (seq 2) resolves before the older one (seq 1).
+    await act(async () => {
+      second.resolve({ data: resp('cpu', [{ t: NOW + 2000, avg: 20, max: 22 }]), mocked: false });
+      await Promise.resolve();
+    });
+    await act(async () => {
+      first.resolve({ data: resp('cpu', [{ t: NOW + 1000, avg: 10, max: 12 }]), mocked: false });
+      await Promise.resolve();
+    });
+
+    const cpu = result.current.series.find(s => s.id === 'cpu');
+    expect(cpu?.points).toEqual([{ t: NOW + 2000, avg: 20, max: 22 }]);
+  });
+
+  it('bounds the brush\'s pannable fullDomain to a narrower server retention window', async () => {
+    fetchMock.mockResolvedValue({ data: { ...emptyResp(), retentionDays: 2 }, mocked: false });
+    const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
+    await advance(0);
+
+    expect(result.current.fullDomain).toEqual([NOW - 2 * DAY, NOW]);
+  });
+
+  it('fullDomain defaults to the 7d silhouette window when retention is at least that wide', async () => {
+    fetchMock.mockResolvedValue({ data: emptyResp(), mocked: false });
+    const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
+    await advance(0);
+
+    expect(result.current.fullDomain).toEqual([NOW - 7 * DAY, NOW]);
+  });
+
   it('does not poll the live tail while detached from following', async () => {
     const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
     await advance(0);

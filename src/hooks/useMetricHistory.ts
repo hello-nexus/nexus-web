@@ -7,7 +7,8 @@ import {
   type ViewportState,
 } from '../panel/widgets/monitoring/page/metricHistoryHelpers';
 
-const SILHOUETTE_WINDOW_MS = 7 * 24 * 3_600_000;
+const DAY_MS = 24 * 3_600_000;
+const SILHOUETTE_WINDOW_MS = 7 * DAY_MS;
 const SILHOUETTE_MAX_POINTS = 600;
 const SILHOUETTE_REFRESH_MS = 60_000;
 
@@ -108,6 +109,7 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
   const mountedRef = useRef(true);
   const silhouetteSeqRef = useRef(0);
   const viewportSeqRef = useRef(0);
+  const tailSeqRef = useRef(0);
   const lastLoadedTRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -176,11 +178,17 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
   useEffect(() => {
     if (!enabled) return;
     const delay = lastPhaseRef.current === 'drag' ? VIEWPORT_DEBOUNCE_MS : 0;
-    const { from, to } = viewportRef.current;
-    const timer = window.setTimeout(() => loadViewport(from, to, seriesQuery), delay);
+    // from/to are read from the ref inside the callback (fired later), not
+    // captured now - a live tick that lands during the debounce window still
+    // slides the viewport, and this fetch must use that fresher window
+    // rather than a stale snapshot from when the timer was scheduled.
+    const timer = window.setTimeout(() => {
+      const { from, to } = viewportRef.current;
+      loadViewport(from, to, seriesQuery);
+    }, delay);
     return () => window.clearTimeout(timer);
-    // fetchEpoch is the trigger for user/timer-driven refetches; viewport's
-    // from/to are read from the ref so a live tick alone never retriggers this.
+    // fetchEpoch is the trigger for user/timer-driven refetches; a live tick
+    // alone never retriggers this (see the ref read above).
   }, [enabled, seriesQuery, fetchEpoch, loadViewport]);
 
   // Full re-decimation every 60s, independent of following/dragging.
@@ -200,9 +208,10 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
     const timer = window.setInterval(() => {
       const requestNow = Date.now();
       const from = (lastLoadedTRef.current ?? requestNow - LIVE_TAIL_BOOTSTRAP_MS) + 1;
+      const seq = ++tailSeqRef.current;
       void (async () => {
         const result = await fetchMonitoringHistory({ from, to: requestNow, maxPoints: LIVE_TAIL_MAX_POINTS, series: seriesQuery });
-        if (!mountedRef.current || !result.data) return;
+        if (!mountedRef.current || seq !== tailSeqRef.current || !result.data) return;
         const tail = result.data.series;
         const t = newestT(tail);
         if (t === null) return;
@@ -232,11 +241,15 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
     setFetchEpoch(e => e + 1);
   }, [loadSilhouette, seriesQuery]);
 
+  // Never lets the brush pan past what the server actually retains, even
+  // when that's narrower than the 7d silhouette window (a fresh install).
+  const fullDomainStart = nowRef.current - Math.min(SILHOUETTE_WINDOW_MS, retentionDays * DAY_MS);
+
   return {
     silhouette,
     series,
     domain: [viewport.from, viewport.to],
-    fullDomain: [nowRef.current - SILHOUETTE_WINDOW_MS, nowRef.current],
+    fullDomain: [fullDomainStart, nowRef.current],
     rangeKey: viewport.rangeKey,
     following: viewport.following,
     loading,

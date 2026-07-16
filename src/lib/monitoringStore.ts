@@ -30,7 +30,7 @@ function colorFor(name: string): string {
   return c;
 }
 
-export { SERIES_COLORS, OTHER_COLOR, colorFor };
+export { SERIES_COLORS, colorFor };
 
 // ── Process history ──────────────────────────────────────────────────────
 //
