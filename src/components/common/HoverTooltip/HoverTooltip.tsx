@@ -6,8 +6,10 @@ import styles from './HoverTooltip.module.scss';
 interface HoverTooltipProps {
   /** Bold first line of the tooltip body. Optional - omit for a single-line tooltip. */
   title?: string;
-  /** Description shown below the title (or as the only line if title is omitted). */
-  body: string;
+  /** Description shown below the title (or as the only line if title is
+   *  omitted). Usually a string; accepts any ReactNode for a multi-line body
+   *  (e.g. one line per list item, separated with <br />). */
+  body: ReactNode;
   /** Preferred side. Default 'bottom'. */
   side?: 'top' | 'bottom' | 'right' | 'left';
   /** Trigger content. MUST be a single React element (button, div, span, etc.).
