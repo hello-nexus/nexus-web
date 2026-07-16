@@ -1827,7 +1827,7 @@
   "panel.settings.backgroundMode.solid": "Sólido",
   "panel.settings.backgroundOpacity": "Opacidad del fondo",
   "panel.settings.backgroundShow": "Mostrar el fondo",
-  "panel.settings.backgroundShow.desc": "Desactivado muestra el escritorio detrás de los widgets",
+  "panel.settings.backgroundShow.desc": "Desactivado muestra el fondo de pantalla del escritorio detrás de los widgets",
   "panel.settings.channel": "Canal",
   "panel.settings.connectForApps": "Conectar al escritorio para ver aplicaciones",
   "panel.settings.deck.action.audioInput": "Entrada de audio",

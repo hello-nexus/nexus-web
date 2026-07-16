@@ -1827,7 +1827,7 @@
   "panel.settings.backgroundMode.solid": "純色",
   "panel.settings.backgroundOpacity": "背景不透明度",
   "panel.settings.backgroundShow": "顯示背景",
-  "panel.settings.backgroundShow.desc": "關閉後小工具後方將顯示桌面",
+  "panel.settings.backgroundShow.desc": "關閉後小工具後方將顯示桌面桌布",
   "panel.settings.channel": "頻道",
   "panel.settings.connectForApps": "連線到桌面以瀏覽應用",
   "panel.settings.deck.action.audioInput": "音訊輸入",

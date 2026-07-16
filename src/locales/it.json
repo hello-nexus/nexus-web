@@ -1827,7 +1827,7 @@
   "panel.settings.backgroundMode.solid": "Solido",
   "panel.settings.backgroundOpacity": "Opacità sfondo",
   "panel.settings.backgroundShow": "Mostra sfondo",
-  "panel.settings.backgroundShow.desc": "Disattivato mostra il desktop dietro i widget",
+  "panel.settings.backgroundShow.desc": "Disattivato mostra lo sfondo del desktop dietro i widget",
   "panel.settings.channel": "Canale",
   "panel.settings.connectForApps": "Connetti al desktop per cercare le app",
   "panel.settings.deck.action.audioInput": "Ingresso audio",

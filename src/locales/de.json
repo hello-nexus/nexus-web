@@ -1827,7 +1827,7 @@
   "panel.settings.backgroundMode.solid": "Einfarbig",
   "panel.settings.backgroundOpacity": "Hintergrunddeckkraft",
   "panel.settings.backgroundShow": "Hintergrund anzeigen",
-  "panel.settings.backgroundShow.desc": "Aus zeigt den Desktop hinter den Widgets",
+  "panel.settings.backgroundShow.desc": "Aus zeigt das Desktop-Hintergrundbild hinter den Widgets",
   "panel.settings.channel": "Kanal",
   "panel.settings.connectForApps": "Mit Desktop verbinden um Apps anzuzeigen",
   "panel.settings.deck.action.audioInput": "Audioeingabe",

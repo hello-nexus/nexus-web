@@ -1827,7 +1827,7 @@
   "panel.settings.backgroundMode.solid": "Düz renk",
   "panel.settings.backgroundOpacity": "Arka plan opaklığı",
   "panel.settings.backgroundShow": "Arka planı göster",
-  "panel.settings.backgroundShow.desc": "Kapalıyken widget'ların arkasında masaüstü görünür",
+  "panel.settings.backgroundShow.desc": "Kapalıyken widget'ların arkasında masaüstü duvar kağıdı görünür",
   "panel.settings.channel": "Kanal",
   "panel.settings.connectForApps": "Uygulamalari gormek icin masaustune baglanin",
   "panel.settings.deck.action.audioInput": "Ses girişi",

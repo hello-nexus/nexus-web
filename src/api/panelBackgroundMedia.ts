@@ -62,6 +62,15 @@ export function backgroundMediaThumbnailPath(deviceId: string, id: string): stri
   return `/panel/devices/${encodeURIComponent(deviceId)}/background-media/${encodeURIComponent(id)}/thumbnail`;
 }
 
+// The console user's wallpaper cropped to this panel monitor (width/height in
+// native px). `revision` busts the browser cache when the service broadcasts
+// a desktopWallpaper change.
+export function desktopWallpaperUrl(width: number, height: number, revision: number): string {
+  const base = resolveHttp(`/panel/desktop-wallpaper?width=${width}&height=${height}&r=${revision}`);
+  const tok = tokenParam();
+  return tok ? `${base}&${tok}` : base;
+}
+
 export function backgroundMediaFileUrl(deviceId: string, id: string): string {
   const base = resolveHttp(`/panel/devices/${encodeURIComponent(deviceId)}/background-media/${encodeURIComponent(id)}/file`);
   const tok = tokenParam();
