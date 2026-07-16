@@ -23,6 +23,6 @@ export function wiredPanelClass(surface: PanelSurface): 'cabled' | 'host-display
  * only display-bound records (promoted OS monitors, displayId set) and the
  * Y70 qualify.
  */
-export function supportsDesktopSeeThrough(surface: PanelSurface, displayBound: boolean): boolean {
+export function supportsDesktopWallpaper(surface: PanelSurface, displayBound: boolean): boolean {
   return surface === 'y70' || (surface === 'monitor' && displayBound);
 }

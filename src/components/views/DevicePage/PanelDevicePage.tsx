@@ -21,7 +21,7 @@ import { repaginatePanelLayout } from '../../../panel/engine/paginate';
 import { simulatedPanelEditorCapacity } from '../../../panel/embed/simulatedPanelViewport';
 import { getPanelGridSizingSettings } from '../../../lib/panelSimulation';
 import { isSingleWidgetSurface } from '../../../panel/types';
-import { supportsDesktopSeeThrough } from '../../../panel/device/wiredPanel';
+import { supportsDesktopWallpaper } from '../../../panel/device/wiredPanel';
 import { fetchService, postService } from '../../../api/service';
 import {
   fetchDisplays,
@@ -774,7 +774,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         onBackgroundCommit={panelTheme.commitBackground}
                         onBackgroundModeCommit={panelTheme.commitBackgroundMode}
                         onBackgroundEnabledCommit={panelTheme.commitBackgroundEnabled}
-                        showBackgroundToggle={supportsDesktopSeeThrough(surface, !!device?.displayId)}
+                        showBackgroundToggle={supportsDesktopWallpaper(surface, !!device?.displayId)}
                         onBackgroundEffectCommit={panelTheme.commitBackgroundEffect}
                         onBackgroundTemplateCommit={panelTheme.commitBackgroundTemplate}
                         onBackgroundEffectStatePreview={panelTheme.previewBackgroundEffectState}

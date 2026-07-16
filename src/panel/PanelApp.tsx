@@ -47,7 +47,7 @@ import { ErrorBoundary } from '../components/common/ErrorBoundary/ErrorBoundary'
 import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
 import { useMultiplex, useTopic, useTopicCallback } from '../hooks/useMultiplexSocket';
 import { useServiceStatus, HOST_DISPLAY_OFFLINE_GRACE_MS } from '../hooks/useServiceStatus';
-import { supportsDesktopSeeThrough, wiredPanelClass } from './device/wiredPanel';
+import { supportsDesktopWallpaper, wiredPanelClass } from './device/wiredPanel';
 import { useUiSettings } from '../hooks/useUiSettings';
 import {
   isPinnableAppKey,
@@ -432,12 +432,12 @@ export function PanelContent({
   // Background toggled off on a kiosk-hosted panel: the theme layers are
   // replaced by the monitor's own wallpaper (PanelBackgroundDesktop) - the
   // desktop look with no icons, taskbar, or windows, which per-pixel window
-  // transparency could not exclude. See supportsDesktopSeeThrough for why
+  // transparency could not exclude. See supportsDesktopWallpaper for why
   // surface alone is not the gate.
-  const seeThroughAvailable = supportsDesktopSeeThrough(surface, displayBound);
+  const wallpaperBackgroundAvailable = supportsDesktopWallpaper(surface, displayBound);
   const backgroundOff = showPanelBackground
     && effectiveTheme.backgroundEnabled === false
-    && seeThroughAvailable;
+    && wallpaperBackgroundAvailable;
   const showBackgroundLayers = showPanelBackground && !backgroundOff;
   const panelSolidColor = useMemo(
     () => showPanelBackground
@@ -1646,7 +1646,7 @@ export function PanelContent({
           onThemeBackgroundCommit={panelTheme.commitBackground}
           onThemeBackgroundModeCommit={panelTheme.commitBackgroundMode}
           onThemeBackgroundEnabledCommit={panelTheme.commitBackgroundEnabled}
-          showBackgroundToggle={seeThroughAvailable}
+          showBackgroundToggle={wallpaperBackgroundAvailable}
           onThemeBackgroundEffectCommit={panelTheme.commitBackgroundEffect}
           onThemeBackgroundTemplateCommit={panelTheme.commitBackgroundTemplate}
           onThemeBackgroundEffectStatePreview={panelTheme.previewBackgroundEffectState}
