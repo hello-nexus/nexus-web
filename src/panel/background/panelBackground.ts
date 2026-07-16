@@ -11,6 +11,7 @@ import { cachedAnimateDefaults } from '../../api/lighting';
 import { getInstallDefaults } from '../../api/installDefaultsCache';
 
 export type PanelBackgroundMode = 'solid' | 'shader' | 'media';
+export type PanelBackgroundFrost = 'none' | 'light' | 'heavy';
 export type PanelResolvedTheme = 'dark' | 'light';
 
 export const DEFAULT_PANEL_BACKGROUND_EFFECT = 'aurora';
@@ -33,7 +34,6 @@ export function defaultBackgroundOpacityForMode(mode: PanelBackgroundMode): numb
 // fallback before the cache fills, and must match the JSON.
 const WIDGET_OPACITY_FALLBACK = 0.5;
 const WIDGET_LABELS_FALLBACK = false;
-const WIDGET_BLUR_FALLBACK = false;
 // Not read from install-defaults: install-defaults.json has no widgetPadding
 // entry (the service DTO stores it as a nullable percent, defaulting to this
 // constant client-side, same as a null WidgetOpacity would if it had no
@@ -44,8 +44,6 @@ export const defaultPanelWidgetOpacity = (): number =>
   getInstallDefaults()?.panel.widgetOpacity ?? WIDGET_OPACITY_FALLBACK;
 export const defaultPanelWidgetLabels = (): boolean =>
   getInstallDefaults()?.panel.widgetLabels ?? WIDGET_LABELS_FALLBACK;
-export const defaultPanelWidgetBlur = (): boolean =>
-  getInstallDefaults()?.panel.widgetBlur ?? WIDGET_BLUR_FALLBACK;
 export const defaultPanelWidgetPadding = (): number => WIDGET_PADDING_DEFAULT_PERCENT;
 
 export const PANEL_BACKGROUND_EFFECTS: EffectDef[] = EFFECTS.filter(effect => !effect.audio);
@@ -156,9 +154,8 @@ export function normalizePanelWidgetLabels(value: boolean | null | undefined): b
   return value;
 }
 
-export function normalizePanelWidgetBlur(value: boolean | null | undefined): boolean {
-  if (typeof value !== 'boolean') return defaultPanelWidgetBlur();
-  return value;
+export function normalizePanelBackgroundFrost(value: string | null | undefined): PanelBackgroundFrost {
+  return value === 'light' || value === 'heavy' ? value : 'none';
 }
 
 export function normalizePanelWidgetPadding(value: number | null | undefined): number {

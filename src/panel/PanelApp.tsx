@@ -440,6 +440,11 @@ export function PanelContent({
     && effectiveTheme.backgroundEnabled === false
     && wallpaperBackgroundAvailable;
   const showBackgroundLayers = showPanelBackground && !backgroundOff;
+  // Frosted glass over the background layer (shader / media / wallpaper).
+  // Solid mode renders no frost pass: a blurred solid colour is the colour.
+  const backgroundFrost = (backgroundOff || (showBackgroundLayers && effectiveTheme.backgroundMode !== 'solid'))
+    ? effectiveTheme.backgroundFrost
+    : 'none';
   const panelSolidColor = useMemo(
     () => showPanelBackground
       ? resolvePanelBackground(
@@ -1342,7 +1347,6 @@ export function PanelContent({
         data-theme={resolvedThemeMode}
         data-surface={surface}
         data-simulator={simulator ? 'true' : undefined}
-        data-background-mode={embedded ? 'solid' : effectiveTheme.backgroundMode}
         data-show-widget-labels={effectiveTheme.widgetLabels ? 'true' : 'false'}
         // Omitted on single-widget surfaces: they force widgetPadding 0
         // internally, and squaring their corners would round-trip onto a
@@ -1352,8 +1356,6 @@ export function PanelContent({
         data-widget-padding={
           isSingleWidgetSurface(surface) ? undefined : effectiveTheme.widgetPadding <= 0 ? 'none' : undefined
         }
-        data-widget-blur={effectiveTheme.widgetBlur ? 'true' : 'false'}
-        data-widget-opaque={effectiveTheme.widgetOpacity >= 1 ? 'true' : undefined}
         data-context-menu-open={contextMenuWidgetId ? 'true' : undefined}
         data-editing={surface === 'phone' && sheetMode === 'settings' ? 'true' : undefined}
         data-connection-intro={connectionIntroHost ? 'active' : undefined}
@@ -1396,6 +1398,9 @@ export function PanelContent({
             style={{ '--panel-background-opacity': effectiveTheme.backgroundOpacity } as CSSProperties}
             aria-hidden
           />
+        )}
+        {backgroundFrost !== 'none' && (
+          <div className={styles.backgroundFrost} data-level={backgroundFrost} aria-hidden />
         )}
         {!loaded ? (
           <div className={styles.loading}><Spinner size={28} /></div>
@@ -1679,7 +1684,7 @@ export function PanelContent({
           onThemeWidgetOpacityPreview={panelTheme.previewWidgetOpacity}
           onThemeWidgetOpacityCommit={panelTheme.commitWidgetOpacity}
           onThemeWidgetLabelsCommit={panelTheme.commitWidgetLabels}
-          onThemeWidgetBlurCommit={panelTheme.commitWidgetBlur}
+          onThemeBackgroundFrostCommit={panelTheme.commitBackgroundFrost}
           onThemeWidgetPaddingPreview={panelTheme.previewWidgetPadding}
           onThemeWidgetPaddingCommit={panelTheme.commitWidgetPadding}
           machineName={machineName}

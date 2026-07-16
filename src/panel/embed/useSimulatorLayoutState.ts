@@ -24,6 +24,8 @@ export interface SimulatorRuntimeState {
   deviceTouch: boolean | undefined;
   // CSS-px density from 'simulator/init' (see SimulatorInitMessage.dpi).
   dpi: number | undefined;
+  // Display-bound record (see SimulatorInitMessage.displayBound).
+  displayBound: boolean | undefined;
   layoutState: PanelLayoutState;
   theme: SimulatorTheme | null;
   themeMode: 'dark' | 'light';
@@ -58,6 +60,7 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
   const [surface, setSurface] = useState<PanelSurface>('y70');
   const [deviceTouch, setDeviceTouch] = useState<boolean | undefined>(undefined);
   const [dpi, setDpi] = useState<number | undefined>(undefined);
+  const [displayBound, setDisplayBound] = useState<boolean | undefined>(undefined);
   const [layout, setLayoutLocal] = useState<PanelLayout>(SIMULATOR_FALLBACK_LAYOUT);
   const [theme, setTheme] = useState<SimulatorTheme | null>(null);
   const [themeMode, setThemeMode] = useState<'dark' | 'light'>('dark');
@@ -78,6 +81,7 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
           setSurface(data.surface);
           setDeviceTouch(data.deviceTouch);
           setDpi(data.dpi);
+          setDisplayBound(data.displayBound);
           setLayoutLocal(data.layout);
           setTheme(data.theme);
           setThemeMode(data.themeMode);
@@ -99,6 +103,10 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
         }
         case 'simulator/set-touch': {
           setDeviceTouch(data.deviceTouch);
+          break;
+        }
+        case 'simulator/set-display-bound': {
+          setDisplayBound(data.displayBound);
           break;
         }
         case 'simulator/set-theme': {
@@ -155,6 +163,7 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
     surface,
     deviceTouch,
     dpi,
+    displayBound,
     layoutState,
     theme,
     themeMode,

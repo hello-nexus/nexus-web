@@ -1,8 +1,9 @@
 import { useState } from 'react';
+import { ChipGroup } from '../../components/common/ChipGroup/ChipGroup';
 import { ColorPickerWithPresets } from '../../components/common/ColorPickerWithPresets/ColorPickerWithPresets';
 import { Tabs } from '../../components/common/Tabs/Tabs';
 import { SettingsSection } from '../../components/common/SettingsSection/SettingsSection';
-import { SettingSlider, SettingToggle } from '../../components/common/SettingRow/SettingRow';
+import { SettingRow, SettingSlider, SettingToggle } from '../../components/common/SettingRow/SettingRow';
 import { useTranslation } from '../../lib/i18n';
 import { DEFAULT_ACCENT, PRESET_ACCENTS, THEME_MODES, type ThemeMode } from '../../lib/settings';
 import type { EffectState } from '../../types/lighting';
@@ -13,6 +14,7 @@ import {
   panelBackgroundDefault,
   panelBackgroundPresets,
   resolvePanelBackground,
+  type PanelBackgroundFrost,
   type PanelBackgroundMode,
 } from '../background/panelBackground';
 import { BackgroundEffectPreview } from '../widgets/lighting/effecteditor/BackgroundEffectPreview';
@@ -51,9 +53,10 @@ export interface PanelThemeSettingsState {
   backgroundEffectState: EffectState;
   backgroundMediaId: string | null;
   backgroundMediaType: 'static' | 'animated' | null;
+  // Frosted-glass blur over the background layer (shader / media / wallpaper).
+  backgroundFrost: PanelBackgroundFrost;
   widgetOpacity: number;
   widgetLabels: boolean;
-  widgetBlur: boolean;
   // Percent 0-100 (see defaultPanelWidgetPadding, PANEL_WIDGET_PADDING_MAX_RATIO).
   widgetPadding: number;
 }
@@ -77,10 +80,10 @@ export interface PanelThemeSettingsProps {
   onBackgroundOpacityPreview: (opacity: number) => void;
   onBackgroundOpacityCommit: (opacity: number) => void;
   onBackgroundMediaCommit: (mediaId: string | null, type: 'static' | 'animated' | null) => void;
+  onBackgroundFrostCommit: (level: PanelBackgroundFrost) => void;
   onWidgetOpacityPreview: (opacity: number) => void;
   onWidgetOpacityCommit: (opacity: number) => void;
   onWidgetLabelsCommit: (enabled: boolean) => void;
-  onWidgetBlurCommit: (enabled: boolean) => void;
   onWidgetPaddingPreview: (percent: number) => void;
   onWidgetPaddingCommit: (percent: number) => void;
   /** Show the media background tab. All display-backed surfaces support it; the
@@ -97,8 +100,8 @@ export interface PanelThemeSettingsProps {
   /** Hide the widget-labels toggle. Single-widget surfaces (q-series) lock
    * labels off. */
   hideWidgetLabelsToggle?: boolean;
-  /** Hide the widget blur + opacity controls. Single-widget surfaces (q-series)
-   * force blur off and the tile fully transparent, so the controls don't apply. */
+  /** Hide the widget opacity + padding controls. Single-widget surfaces
+   * (q-series) force the tile fully transparent, so they don't apply. */
   hideWidgetChromeControls?: boolean;
   /** This panel's device id, excluded from the "used by a panel" badge so its
    * own background never badges itself. */
@@ -128,10 +131,10 @@ export function PanelThemeSettings({
   onBackgroundOpacityPreview,
   onBackgroundOpacityCommit,
   onBackgroundMediaCommit,
+  onBackgroundFrostCommit,
   onWidgetOpacityPreview,
   onWidgetOpacityCommit,
   onWidgetLabelsCommit,
-  onWidgetBlurCommit,
   onWidgetPaddingPreview,
   onWidgetPaddingCommit,
   showMediaTab = false,
@@ -153,6 +156,10 @@ export function PanelThemeSettings({
   const backgroundOpacityPercent = Math.round(theme.backgroundOpacity * 100);
   const widgetOpacityPercent = Math.round(theme.widgetOpacity * 100);
   const widgetPaddingLabel = label('panel.settings.widgetPadding', 'Widget padding');
+  // Frost renders over the wallpaper and the shader / media layers; solid mode
+  // has no frost pass, so the control disables there.
+  const frostApplies = (showBackgroundToggle && !theme.backgroundEnabled)
+    || theme.backgroundMode !== 'solid';
 
   // Options | Effect tab and chip-filter state, owned here (not by the
   // EffectEditor shell) so the preview + tab bars + chips can sit in one
@@ -225,13 +232,6 @@ export function PanelThemeSettings({
               label={label('panel.settings.widgetLabels', 'Widget labels')}
               checked={theme.widgetLabels}
               onChange={onWidgetLabelsCommit}
-            />
-          )}
-          {!hideWidgetChromeControls && (
-            <SettingToggle
-              label={label('panel.settings.widgetBlur', 'Widget blur')}
-              checked={theme.widgetBlur}
-              onChange={onWidgetBlurCommit}
             />
           )}
           {!hideWidgetChromeControls && (
@@ -328,6 +328,23 @@ export function PanelThemeSettings({
               onChange={useWallpaper => onBackgroundEnabledCommit(!useWallpaper)}
             />
           )}
+          {/* Stays visible (and active) in wallpaper mode, which hides the
+              controls below. */}
+          <SettingRow label={label('panel.settings.backgroundFrost', 'Frosted glass')} disabled={!frostApplies}>
+            <ChipGroup
+              options={[
+                // eslint-disable-next-line i18next/no-literal-string -- frost-level enum id
+                { key: 'none', label: label('panel.settings.backgroundFrost.none', 'None'), disabled: !frostApplies },
+                // eslint-disable-next-line i18next/no-literal-string -- frost-level enum id
+                { key: 'light', label: label('panel.settings.backgroundFrost.light', 'Light'), disabled: !frostApplies },
+                // eslint-disable-next-line i18next/no-literal-string -- frost-level enum id
+                { key: 'heavy', label: label('panel.settings.backgroundFrost.heavy', 'Heavy'), disabled: !frostApplies },
+              ]}
+              activeKey={theme.backgroundFrost}
+              onChange={key => onBackgroundFrostCommit(key as PanelBackgroundFrost)}
+              ariaLabel={label('panel.settings.backgroundFrost', 'Frosted glass')}
+            />
+          </SettingRow>
           {showBackgroundToggle && !theme.backgroundEnabled ? null : (
           <>
           {backgroundOpacitySlider}

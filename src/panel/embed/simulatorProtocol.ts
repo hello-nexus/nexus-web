@@ -25,6 +25,10 @@ export interface SimulatorInitMessage {
   // Device physical density in CSS px (native dpi / device DPR) for grid
   // capacity math; the iframe canvas is CSS-pixel sized with DPR forced to 1.
   dpi?: number;
+  // True when the record is display-bound (promoted OS monitor, displayId
+  // set). The desktop see-through gate (supportsDesktopWallpaper) needs it,
+  // or a 'monitor' preview never renders the wallpaper layer.
+  displayBound?: boolean;
   layout: PanelLayout;
   theme: SimulatorTheme;
   themeMode: 'dark' | 'light';
@@ -59,6 +63,12 @@ export interface SimulatorSetGridMessage {
 export interface SimulatorSetTouchMessage {
   type: 'simulator/set-touch';
   deviceTouch?: boolean;
+}
+
+// displayBound resolves from the same record fetch, so it mirrors too.
+export interface SimulatorSetDisplayBoundMessage {
+  type: 'simulator/set-display-bound';
+  displayBound?: boolean;
 }
 
 export interface SimulatorSetThemeMessage {
@@ -99,6 +109,7 @@ export type SimulatorParentToChild =
   | SimulatorSetLayoutMessage
   | SimulatorSetGridMessage
   | SimulatorSetTouchMessage
+  | SimulatorSetDisplayBoundMessage
   | SimulatorSetThemeMessage
   | SimulatorSetSelectionMessage
   | SimulatorFlashWidgetMessage

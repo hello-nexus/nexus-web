@@ -829,10 +829,10 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         onBackgroundOpacityPreview={panelTheme.previewBackgroundOpacity}
                         onBackgroundOpacityCommit={panelTheme.commitBackgroundOpacity}
                         onBackgroundMediaCommit={panelTheme.commitBackgroundMedia}
+                        onBackgroundFrostCommit={panelTheme.commitBackgroundFrost}
                         onWidgetOpacityPreview={panelTheme.previewWidgetOpacity}
                         onWidgetOpacityCommit={panelTheme.commitWidgetOpacity}
                         onWidgetLabelsCommit={panelTheme.commitWidgetLabels}
-                        onWidgetBlurCommit={panelTheme.commitWidgetBlur}
                         onWidgetPaddingPreview={panelTheme.previewWidgetPadding}
                         onWidgetPaddingCommit={panelTheme.commitWidgetPadding}
                         showMediaTab={surface !== 'desktop'}
@@ -1023,6 +1023,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                 showPanel={supportsAutoLaunch ? autoLaunch : true}
                 deviceId={editingDeviceId ?? undefined}
                 deviceTouch={deviceTouch}
+                displayBound={!!device?.displayId}
               />
             </div>
           </div>

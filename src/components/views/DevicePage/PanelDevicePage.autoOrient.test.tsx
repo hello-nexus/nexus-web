@@ -49,7 +49,7 @@ vi.mock('../../../panel/theme/panelTheme', () => ({
     commitBackground: vi.fn(), commitBackgroundMode: vi.fn(), commitBackgroundEffect: vi.fn(),
     commitBackgroundTemplate: vi.fn(), previewBackgroundEffectState: vi.fn(), commitBackgroundEffectState: vi.fn(),
     previewBackgroundOpacity: vi.fn(), commitBackgroundOpacity: vi.fn(), previewWidgetOpacity: vi.fn(),
-    commitWidgetOpacity: vi.fn(), commitWidgetLabels: vi.fn(), commitWidgetBlur: vi.fn(),
+    commitWidgetOpacity: vi.fn(), commitWidgetLabels: vi.fn(), commitBackgroundFrost: vi.fn(),
   }),
   buildPanelThemeVars: () => ({}),
   useResolvedPanelThemeMode: () => 'dark',
