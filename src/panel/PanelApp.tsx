@@ -486,9 +486,9 @@ export function PanelContent({
   );
 
   // ---------- Pagination derived from layout ----------
-  // Touch surfaces hoist the focused widget above the editor's backdrop-blur
-  // scrim, else the edited widget disappears under the blur. q60 is
-  // display-only so editing never engages. See .cellEditorDocked rules.
+  // Touch surfaces hoist the focused widget above the editor's scrim, else
+  // the edited widget reads dimmed under it. q60 is display-only so editing
+  // never engages. See .cellEditorDocked rules.
   const editorDockSupported = surfaceSupportsTouch(surface, deviceTouch);
   const isLandscape = useIsLandscape(surface);
   const capacity = useMemo<PaginateCapacity>(

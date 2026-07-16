@@ -1015,8 +1015,9 @@
   // No z-index on the backdrop: it must NOT form a stacking context, so the
   // child .editorSheet (z 230 below) can paint above the docked widget (z 200)
   // when the drawer is anchored higher than the widget's full height.
-  background: var(--panel-scrim-bg);
-  backdrop-filter: blur(var(--blur-backdrop));
+  // Plain darkening, no blur - the actions tray's scrim treatment - so the
+  // stage widgets and background stay readable while editing the theme.
+  background: color-mix(in srgb, black 32%, transparent);
   display: flex;
   justify-content: flex-end;
   align-items: stretch;
