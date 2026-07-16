@@ -59,7 +59,10 @@ export interface TimeSeriesChartProps {
   yDomain?: readonly [number | null, number | null];
 }
 
-const PAD = { left: 56, right: 16, top: 12, bottom: 28 };
+// Exported so companion elements drawn outside the chart itself (e.g.
+// TempRibbon, sitting directly under the plot) can inset by the same amount
+// and stay pixel-aligned with it, given the same container width.
+export const CHART_PAD = { left: 56, right: 16, top: 12, bottom: 28 };
 
 export function TimeSeriesChart({
   series, height = 260, valueFormat, xTickFormat, xTickCount = 5, yTickCount = 5,
@@ -100,19 +103,19 @@ export function TimeSeriesChart({
   const spacingMs = useMemo(() => medianSpacingMs(series), [series]);
   const maxGapMs = spacingMs !== null ? spacingMs * GAP_MULTIPLIER : Infinity;
 
-  const chartW = Math.max(1, width - PAD.left - PAD.right);
-  const chartH = Math.max(1, height - PAD.top - PAD.bottom);
+  const chartW = Math.max(1, width - CHART_PAD.left - CHART_PAD.right);
+  const chartH = Math.max(1, height - CHART_PAD.top - CHART_PAD.bottom);
 
   const xFor = useCallback((t2: number) => {
-    if (!domainT) return PAD.left;
+    if (!domainT) return CHART_PAD.left;
     const [minT, maxT] = domainT;
     const span = maxT - minT || 1;
-    return PAD.left + ((t2 - minT) / span) * chartW;
+    return CHART_PAD.left + ((t2 - minT) / span) * chartW;
   }, [domainT, chartW]);
 
   const yFor = useCallback((v: number) => {
     const span = maxV - minV || 1;
-    return PAD.top + chartH - ((v - minV) / span) * chartH;
+    return CHART_PAD.top + chartH - ((v - minV) / span) * chartH;
   }, [minV, maxV, chartH]);
 
   const segmentsBySeries = useMemo(
@@ -150,7 +153,7 @@ export function TimeSeriesChart({
     const rect = e.currentTarget.getBoundingClientRect();
     const svgX = ((e.clientX - rect.left) / rect.width) * width;
     const [minT, maxT] = domainT;
-    const frac = Math.max(0, Math.min(1, (svgX - PAD.left) / chartW));
+    const frac = Math.max(0, Math.min(1, (svgX - CHART_PAD.left) / chartW));
     setHoverT(Math.round(minT + frac * (maxT - minT)));
   }, [domainT, chartW, width, trackCursor]);
 
@@ -177,15 +180,15 @@ export function TimeSeriesChart({
       >
         <defs>
           <clipPath id={clipId}>
-            <rect x={PAD.left} y={PAD.top} width={chartW} height={chartH} />
+            <rect x={CHART_PAD.left} y={CHART_PAD.top} width={chartW} height={chartH} />
           </clipPath>
         </defs>
         {yTicks.map((tick, i) => {
           const y = yFor(tick);
           return (
             <g key={i}>
-              <line x1={PAD.left} y1={y} x2={width - PAD.right} y2={y} stroke="var(--border)" strokeWidth="0.5" />
-              <text x={PAD.left - 6} y={y + 3} fill="var(--text-dim)" fontSize="11" fontFamily="var(--font-mono)" textAnchor="end">
+              <line x1={CHART_PAD.left} y1={y} x2={width - CHART_PAD.right} y2={y} stroke="var(--border)" strokeWidth="0.5" />
+              <text x={CHART_PAD.left - 6} y={y + 3} fill="var(--text-dim)" fontSize="11" fontFamily="var(--font-mono)" textAnchor="end">
                 {valueFormat(tick)}
               </text>
             </g>
@@ -197,7 +200,7 @@ export function TimeSeriesChart({
           <rect
             key={i}
             x={xFor(band.startT)}
-            y={PAD.top}
+            y={CHART_PAD.top}
             width={Math.max(1, xFor(band.endT) - xFor(band.startT))}
             height={chartH}
             fill={band.color ?? 'var(--bad)'}
@@ -239,8 +242,8 @@ export function TimeSeriesChart({
         {xTicks.map((tick, i) => (
           <text
             key={i}
-            x={Math.min(Math.max(xFor(tick), PAD.left), width - PAD.right)}
-            y={PAD.top + chartH + 16}
+            x={Math.min(Math.max(xFor(tick), CHART_PAD.left), width - CHART_PAD.right)}
+            y={CHART_PAD.top + chartH + 16}
             fill="var(--text-dim)"
             fontSize="11"
             fontFamily="var(--font-mono)"
@@ -251,7 +254,7 @@ export function TimeSeriesChart({
         ))}
 
         {hoverX !== null && (
-          <line x1={hoverX} y1={PAD.top} x2={hoverX} y2={PAD.top + chartH} stroke="var(--text)" strokeWidth="1" strokeDasharray="3,3" opacity="0.5" />
+          <line x1={hoverX} y1={CHART_PAD.top} x2={hoverX} y2={CHART_PAD.top + chartH} stroke="var(--text)" strokeWidth="1" strokeDasharray="3,3" opacity="0.5" />
         )}
       </svg>
 

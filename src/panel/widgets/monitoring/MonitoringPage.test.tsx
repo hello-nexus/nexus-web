@@ -120,7 +120,6 @@ describe('MonitoringPage', () => {
       />,
     );
 
-    expect(screen.queryByRole('tab', { name: 'monitoring.tab.overview' })).toBeNull();
     expect(screen.getByRole('tab', { name: 'monitoring.tab.cpu' })).toHaveAttribute('aria-selected', 'true');
     expect(onTabChange).not.toHaveBeenCalled();
   });

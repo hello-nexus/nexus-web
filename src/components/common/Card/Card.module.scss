@@ -24,8 +24,9 @@
   }
 }
 
-// Alternate interactive treatment matching the monitoring overview dash
-// cards (OverviewTab) instead of the default card hover above.
+// Alternate interactive treatment for tiles that should read as dashboard
+// cards (the diagnostics health-grid tiles) instead of the default card
+// hover above.
 .dashHover {
   @include dash-tile-hover;
 }

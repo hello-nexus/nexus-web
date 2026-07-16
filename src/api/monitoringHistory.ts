@@ -1,10 +1,14 @@
 // Monitoring history API client - typed wrapper over the local service's
-// GET /monitoring/history (contract: plans/metrics-history.md in the parent
-// repo). The service route doesn't exist yet, so a 404 here falls back to
-// contract-shaped mock data in a dev build; any other failure (network
-// down, 500) is a real error, not masked. The mock module is dynamically
-// imported behind the raw build-define gate below so it never enters a
-// production bundle - see api/diagnostics.ts for the same pattern.
+// GET /monitoring/history?from=<utcMs>&to=<utcMs>&maxPoints=<n>&series=<csv>,
+// returning { supported, retentionDays, stepSeconds, series }. The service
+// route doesn't exist yet, so a 404 here falls back to contract-shaped mock
+// data in a dev build; in a production build (no mock available) a 404 is
+// reported as `unsupported` rather than an error, since a service that
+// predates this route is a normal deployment state, not a failure.
+// Any other failure (network down, 500) is a real error, not masked. The
+// mock module is dynamically imported behind the raw build-define gate below
+// so it never enters a production bundle - see api/diagnostics.ts for the
+// same pattern.
 
 import { authFetchWithStatus } from './service';
 
@@ -45,6 +49,20 @@ export interface MetricHistoryQuery {
 export interface MetricHistoryFetchResult {
   data: MetricHistoryResponse | null;
   mocked: boolean;
+  /** True when the service returned 404 and no mock is available (production
+   *  build) - the route isn't there, distinct from a real request failure. */
+  unsupported: boolean;
+}
+
+export type HistoryFetchOutcome = 'ok' | 'mockFallback' | 'unsupported' | 'error';
+
+/** Pure classification of a raw fetch result, split out from
+ *  fetchMonitoringHistory so the 404-without-mock (production) branch is
+ *  unit-testable without depending on the module's build-time DEV gate. */
+export function classifyHistoryFetch(data: unknown, status: number, mockAvailable: boolean): HistoryFetchOutcome {
+  if (data !== null) return 'ok';
+  if (status === 404) return mockAvailable ? 'mockFallback' : 'unsupported';
+  return 'error';
 }
 
 function buildQuery(query: MetricHistoryQuery): string {
@@ -78,10 +96,14 @@ const loadMonitoringHistoryMock = (import.meta.env.DEV || __DEV_TOOLS__)
 
 export async function fetchMonitoringHistory(query: MetricHistoryQuery): Promise<MetricHistoryFetchResult> {
   const { data, status } = await requestJson<MetricHistoryResponse>(`/monitoring/history?${buildQuery(query)}`);
-  if (data !== null) return { data, mocked: false };
-  if (status === 404 && loadMonitoringHistoryMock) {
-    const mock = await loadMonitoringHistoryMock();
-    return { data: mock.mockMonitoringHistory(query), mocked: true };
+  const outcome = classifyHistoryFetch(data, status, loadMonitoringHistoryMock !== null);
+  switch (outcome) {
+    case 'ok': return { data, mocked: false, unsupported: false };
+    case 'mockFallback': {
+      const mock = await loadMonitoringHistoryMock!();
+      return { data: mock.mockMonitoringHistory(query), mocked: true, unsupported: false };
+    }
+    case 'unsupported': return { data: null, mocked: false, unsupported: true };
+    case 'error': return { data: null, mocked: false, unsupported: false };
   }
-  return { data: null, mocked: false };
 }

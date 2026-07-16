@@ -5,9 +5,6 @@ import type { NetworkEntry } from '../hooks/useNetworkMonitor';
 const MAX_SAMPLES = 60;
 const TOP_PROCS = 20;
 
-// Headline series color for the network tab chart.
-export const NETWORK_SERIES_COLOR = '#10b981';
-
 const SERIES_COLORS = [
   '#8b5cf6', '#f472b6', '#22d3ee', '#10b981', '#f59e0b',
   '#ef4444', '#6366f1', '#ec4899', '#14b8a6', '#f97316',
