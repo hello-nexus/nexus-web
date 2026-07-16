@@ -17,7 +17,7 @@ export const coolingApp: AppManifest = {
     icon: Fan,
     sizes: ['2x2', '2x4', '4x2', '4x4'],
     defaultSize: '2x2',
-    supportsImmersive: { portrait: true, landscape: false },
+    supportsImmersive: { portrait: true, landscape: true },
     hasConfig: true,
     touch: true,
   },

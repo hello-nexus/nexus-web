@@ -1,0 +1,19 @@
+// Curated product-name fallbacks for hub fan groups whose channels carry no
+// deviceName (pre-existing installs / older service builds). Keyed by the
+// deviceId prefix; shared by the desktop cooling page and the immersive
+// editor so both render the same group headers.
+const PREFIX_NAMES: readonly [string, string][] = [
+  ['np50:', 'HYTE NP50'],
+  ['minihub:', 'iBUYPOWER MiniHub'],
+  ['smarthub:', 'HYTE SmartHub'],
+  ['lianli:', 'Lian Li Uni Hub SL-Infinity'],
+  ['corsair:', 'Corsair iCUE LINK'],
+];
+
+export function fanDeviceGroupName(deviceId: string, deviceName?: string | null): string {
+  if (deviceName) return deviceName;
+  for (const [prefix, name] of PREFIX_NAMES) {
+    if (deviceId.startsWith(prefix)) return name;
+  }
+  return deviceId;
+}

@@ -246,13 +246,6 @@
   font-size: var(--type-small); font-weight: var(--weight-body); color: var(--text);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;
 }
-// Static curve name in the card header. Same typography as .editableName but no
-// edit affordance - renaming is the footer's Rename button, not an inline edit.
-.curveName {
-  font-size: var(--type-small); font-weight: var(--weight-body); color: var(--text);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;
-}
-
 // ── Calibration ───────────────────────────────────────────────────────────
 .calibrationBanner {
   display: flex; align-items: center; gap: 0.75rem;
@@ -617,90 +610,25 @@
 
 // ── Curves list ────────────────────────────────────────────────────────────
 .curvesEmpty { color: var(--text-dim); font-size: var(--type-small); text-align: center; padding: 1rem 0; margin: 0; }
-// Cards stack vertically and fill the available width so we can see more
-// curves at once. Within each card, content splits left (meta) / right
-// (mode-specific details).
-.curvesList { display: flex; flex-direction: column; gap: 0.75rem; align-items: stretch; }
 
 // ── Curve Card ─────────────────────────────────────────────────────────────
-// Stacked layout: header on top (always visible), body below (only when
-// expanded), chevron pinned to the bottom edge. The header itself owns the
-// 2-column split (title left, mode selector + duty % right), so the top
-// strip of the card looks identical whether the body is rendered or not.
+// Hero card: the curve block on the page's left column and in the immersive
+// editor. Graph on top, curve selector, then the options stacked underneath.
+// Static card surface - not a click/drag target.
 .curveCard {
   position: relative;
   display: flex;
   flex-direction: column;
   gap: 0.55rem;
-  // Bottom padding leaves clearance for the absolutely-positioned chevron so
-  // header / body content never sits underneath it.
-  padding: 0.85rem 1rem 1.5rem;
+  padding: 0.85rem 1rem;
   width: 100%;
   border: var(--border-width) solid transparent; border-radius: var(--radius);
   background: var(--surface);
-  cursor: grab;
-  transition: background var(--ease-fast) ease, border-color var(--ease-fast) ease, opacity var(--ease-fast) ease, box-shadow var(--ease-fast) ease;
-  &:hover { background: var(--bg-card-hover); }
-  &:active { cursor: grabbing; }
 }
 
-// Live output % chip rendered inline at the end of the mode area. Reserves
-// enough width for the full "100%" string so the chip selector to its left
-// never shifts horizontally as the duty value changes (0% -> 100%).
-.curveOutBadge {
-  display: inline-block;
-  box-sizing: border-box;
-  min-width: 3rem;
-  text-align: right;
-  font-family: var(--font-mono);
-  font-size: var(--type-small);
-  // Body-text color keeps the value legible; the accent-tinted chip behind
-  // it carries the "live readout" emphasis on its own.
-  color: var(--text);
-  font-variant-numeric: tabular-nums;
-  padding: 0.15rem 0.5rem;
-  border-radius: var(--radius-sm);
-  background: var(--accent-soft);
-  border: 1px solid var(--accent-glow-shadow);
-  line-height: 1;
-  flex-shrink: 0;
-}
-// Wire output nub. Small circle straddling the curve card's right edge -
-// half inside the card, half poking into the wire gutter. Rendered as a
-// child of .curveCardHeader so its vertical center always tracks the
-// header row, regardless of whether the per-type editor body below is
-// rendered. Horizontal offset reaches back through the card's right
-// padding (1rem) plus a half-nub overshoot (8px) so the nub center lands
-// exactly on the card's outer right edge. .curvesScroll uses
-// overflow-clip-margin so the outer half stays visible past the scroll
-// container's right edge.
-.curveOutNub {
-  position: absolute;
-  right: calc(-1rem - 8px);
-  top: 50%;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  // Page bg (darker than the card surface) so the empty nub reads as a
-  // hollow recess punched into the card edge instead of a flush dot.
-  background: var(--bg);
-  // Border matches the card's own border so unconnected nubs blend into
-  // the card's outline instead of reading as a separate marker.
-  border: 1.5px solid var(--border);
-  cursor: grab;
-  touch-action: none;
-  z-index: 2;
-  transform: translateY(-50%);
-  transition: transform var(--ease-fast) ease, box-shadow var(--ease) ease, background var(--ease) ease, border-color var(--ease) ease;
-  &:hover { transform: translateY(-50%) scale(1.25); }
-  &:active { cursor: grabbing; }
-  &:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-}
-// Inner dot that lights up when a wire is attached. A smaller circle inside
-// the nub ring (instead of filling the whole nub) so the connection signal
-// reads as a discrete dot - the outer ring stays neutral so it keeps blending
-// into the card outline.
-.curveOutNub::before,
+// Inner dot that lights up when a wire is attached: a smaller circle inside
+// the nub ring so the connection signal reads as a discrete dot - the outer
+// ring stays neutral and blends into the card outline.
 .fanInNub::before {
   content: '';
   position: absolute;
@@ -710,22 +638,14 @@
   pointer-events: none;
   transition: background var(--ease) ease;
 }
-.curveOutNub.nubConnected::before,
 .fanInNub.nubConnected::before {
   background: var(--accent);
 }
-// Invisible hit-area extension. The visible nub stays small (so the wire
-// gutter doesn't look crowded), but the click/touch target reaches well
-// outside the ring so the user can grab and drag without pixel-hunting.
-// Hits inside the extended box trigger pointerdown on the parent nub.
-//
-// Reach is capped so the outer half of the hit area never leaves the
-// gutter the parent scroller exposes via overflow-clip-margin: visible
-// nub half-width + ::after inset must equal that margin or hits past the
-// edge get clipped. Vertical reach assumes the nub's parent uses
-// overflow: visible (.curveCardHeader / .fanDutyBar today); changing
-// those to overflow: hidden would silently shrink the touch target.
-.curveOutNub::after,
+// Invisible hit-area extension. The visible nub stays small, but the
+// click/touch target reaches well outside the ring so the user can grab
+// and drag without pixel-hunting. Vertical reach assumes the nub's parent
+// (.fanDutyBar) uses overflow: visible; changing it to overflow: hidden
+// would silently shrink the touch target.
 .fanInNub::after {
   content: '';
   position: absolute;
@@ -733,64 +653,13 @@
   border-radius: 50%;
 }
 
-// Footer row for the per-type editor body. Holds the preset Reset button
-// (when applicable) alongside Remove. Left-aligned so the centered chevron
-// at the card's bottom stays free.
+// Footer row of the curve card. Holds Rename and the preset Reset button
+// (when applicable) alongside Remove.
 .curveCardFooterActions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
   align-self: flex-start;
-}
-
-.curveCardDragging { opacity: 0.5; }
-.curveCardDragOver {
-  outline: 2px dashed var(--accent);
-  outline-offset: -2px;
-}
-
-// Per-type editor body (source picker / sliders / graph / mix controls +
-// remove button). Rendered only when the card is expanded. The header above
-// stays identical between collapsed and expanded states, so the body is the
-// only thing the chevron toggle adds/removes.
-.curveCardBody {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  min-width: 0;
-}
-
-// "In use" = at least one fan is currently bound to this curve. Same accent
-// tint as .fanCardActive so curves and fans share one visual language for
-// "driving / driven". Border stays neutral.
-.curveCardInUse {
-  background: var(--accent-soft);
-
-  &:hover { background: var(--accent-soft); }
-}
-
-// Highlighted = this curve is on the currently-hovered or expanded wire
-// path. Mirror of .fanCardHighlighted so paired endpoints light up together.
-.curveCardHighlighted,
-.curveCardHighlighted:hover { border-color: var(--accent); }
-
-// Collapsed cards show only the header; the per-type editor body is not
-// rendered. Header layout is identical across collapsed and expanded so
-// the top strip never shifts when toggling.
-.curveCardCollapsed { cursor: pointer; }
-.curveCardExpanded { cursor: default; }
-// Hero card on the desktop page: the curve block in the left column. Selectors
-// on top, then the graph, then the options stacked underneath. Always the
-// classic card surface (no hover shift); not a click/drag target.
-.curveCardPinned {
-  padding: 0.85rem 1rem;
-  // Static container: the base .curveCard carries a grab/grabbing cursor for the
-  // draggable immersive cards; override both so the pinned hero never reads as
-  // draggable.
-  cursor: default;
-  background: var(--surface);
-  &:hover { background: var(--surface); }
-  &:active { cursor: default; }
 }
 
 // Graph sits on top, full width.
@@ -803,29 +672,6 @@
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
-}
-// Chevron at the bottom-center of every curve card. Click toggles expansion.
-// Card body clicks only expand; collapse is the chevron's job.
-.curveCardChevron {
-  position: absolute;
-  bottom: 2px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 22px;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: var(--text-dim);
-  cursor: pointer;
-  border-radius: var(--radius-sm);
-  transition: color var(--ease-fast) ease;
-  z-index: 2;
-  &:hover { color: var(--accent); }
-  &:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 }
 
 // Curve-type chip-action buttons. Icon-only in a tight horizontal row;
@@ -974,56 +820,6 @@
 
 .textDim { color: var(--text-dim); font-size: var(--type-small); }
 
-// ── Curve card header ────────────────────────────────────────────────────
-// 2-column row: title on the left half, mode selector cluster on the right
-// half (aligned to the left edge of the right half). The wire output nub
-// is rendered inside this row so its vertical center always tracks the
-// header, regardless of whether the editor body below is rendered.
-// `position: relative` anchors the absolutely-positioned nub.
-.curveCardHeader {
-  position: relative;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  align-items: center;
-  column-gap: 1rem;
-  min-width: 0;
-}
-.curveCardTitle { display: flex; align-items: center; gap: 0.4rem; min-width: 0; }
-
-// Right half of the header: chip selector pushed to the right with a
-// generous gap before the duty % chip so the two read as separate clusters
-// even though they share the row. Active mode is shown only by the chip's
-// fill; per-mode hint text is delivered via the chip's hover tooltip.
-.curveCardModeArea {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 1.5rem;
-  min-width: 0;
-}
-.presetGlyph {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px; height: 22px;
-  border-radius: var(--radius-sm);
-  background: var(--accent-soft);
-  color: var(--accent-glow);
-  flex: 0 0 auto;
-}
-.presetName {
-  font-size: var(--type-body);
-  font-weight: var(--weight-body);
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.presetHint {
-  margin: 0.25rem 0 0;
-  font-size: var(--type-small);
-  color: var(--text-dim);
-}
 // ── Curve Graph ────────────────────────────────────────────────────────────
 .curveGraphWrap { display: flex; flex-direction: column; gap: 0.35rem; }
 .curveGraphFrame {
@@ -1143,14 +939,8 @@
 .controlLabel { min-width: 80px; font-size: var(--type-small); color: var(--text-dim); flex-shrink: 0; }
 
 // ── Fan input nub ─────────────────────────────────────────────────────────
-// Pokes out the left edge of every fan card into the wire gutter so the
-// bezier path lands cleanly. Same visual contract as .curveOutNub - keeping
-// the two ends symmetric helps the user pair them up by eye.
-// Mirror of .curveOutNub: small circle straddling the fan card's left edge.
-// Same neutral-by-default + accented-on-connect behavior so both ends speak
-// the same visual language. .fanList uses overflow-clip-margin so the outer
-// half stays visible past the scroll container's left edge.
-// Mirror of .curveOutNub. Rendered as a child of .fanDutyBar so the nub's
+// Small circle straddling the fan card's left edge, neutral by default and
+// accented on connect. Rendered as a child of .fanDutyBar so the nub's
 // vertical center always tracks the duty bar's center, regardless of how
 // tall the header / dropdown rows above and below it grow. Horizontal
 // offset reaches back through the card's content padding so the nub center
