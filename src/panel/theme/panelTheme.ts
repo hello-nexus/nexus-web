@@ -12,21 +12,21 @@ import {
   DEFAULT_PANEL_BACKGROUND_EFFECT,
   DEFAULT_PANEL_BACKGROUND_TEMPLATE,
   defaultBackgroundOpacityForMode,
-  defaultPanelWidgetBlur,
   defaultPanelWidgetLabels,
   defaultPanelWidgetOpacity,
   defaultPanelWidgetPadding,
   normalizePanelBackgroundEffect,
   normalizePanelBackgroundEnabled,
+  normalizePanelBackgroundFrost,
   normalizePanelBackgroundMode,
   normalizePanelBackgroundOpacity,
   normalizePanelBackgroundTemplate,
-  normalizePanelWidgetBlur,
   normalizePanelWidgetLabels,
   normalizePanelWidgetOpacity,
   normalizePanelWidgetPadding,
   panelBackgroundPair,
   panelBackgroundState,
+  type PanelBackgroundFrost,
   type PanelBackgroundMode,
 } from '../background/panelBackground';
 import { useAnimateTemplates } from '../../hooks/useAnimateTemplates';
@@ -136,7 +136,7 @@ export function buildPanelThemeVars(theme: PanelThemeState, resolvedThemeMode: R
 // surface-level default instead.
 export function resolveEffectivePanelTheme(baseTheme: PanelThemeState, surface: PanelSurface): PanelThemeState {
   if (isSingleWidgetSurface(surface)) {
-    return { ...baseTheme, widgetLabels: false, widgetBlur: false, widgetOpacity: 0, widgetPadding: 0 };
+    return { ...baseTheme, widgetLabels: false, widgetOpacity: 0, widgetPadding: 0 };
   }
   if (surface === 'desktop') {
     return { ...baseTheme, widgetPadding: 100 };
@@ -195,9 +195,9 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
     backgroundEffectState: panelBackgroundState(DEFAULT_PANEL_BACKGROUND_EFFECT, DEFAULT_PANEL_BACKGROUND_TEMPLATE),
     backgroundMediaId: null,
     backgroundMediaType: null,
+    backgroundFrost: 'none',
     widgetOpacity: defaultPanelWidgetOpacity(),
     widgetLabels: defaultPanelWidgetLabels(),
-    widgetBlur: defaultPanelWidgetBlur(),
     widgetPadding: defaultPanelWidgetPadding(),
   });
   const resolvedMode = useResolvedPanelThemeMode(
@@ -277,9 +277,9 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
         backgroundEffectState: panelBackgroundState(effect, normalizePanelBackgroundTemplate(templates[effect])),
         backgroundMediaId: r?.backgroundMediaId ?? null,
         backgroundMediaType: r?.backgroundMediaType ?? null,
+        backgroundFrost: normalizePanelBackgroundFrost(r?.backgroundFrost),
         widgetOpacity: r?.widgetOpacity == null && single ? 0 : normalizePanelWidgetOpacity(r?.widgetOpacity),
         widgetLabels: normalizePanelWidgetLabels(r?.widgetLabels),
-        widgetBlur: normalizePanelWidgetBlur(r?.widgetBlur),
         widgetPadding: r?.widgetPadding == null && single ? 0 : normalizePanelWidgetPadding(r?.widgetPadding),
       });
     }).catch(() => { /* keep local theme */ });
@@ -412,6 +412,14 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
     persistPatch({ backgroundMediaId: mediaId ?? '', backgroundMediaType: type ?? '' });
   }, [persistPatch]);
 
+  const commitBackgroundFrost = useCallback((level: PanelBackgroundFrost) => {
+    const next = normalizePanelBackgroundFrost(level);
+    setTheme(prev => ({ ...prev, backgroundFrost: next }));
+    // 'none' is the record default: clear the field (NullIfEmpty) instead of
+    // storing the literal.
+    persistPatch({ backgroundFrost: next === 'none' ? '' : next });
+  }, [persistPatch]);
+
   const commitWidgetOpacity = useCallback((opacity: number) => {
     const nextOpacity = normalizePanelWidgetOpacity(opacity);
     setTheme(prev => ({ ...prev, widgetOpacity: nextOpacity }));
@@ -422,12 +430,6 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
     const next = normalizePanelWidgetLabels(enabled);
     setTheme(prev => ({ ...prev, widgetLabels: next }));
     persistPatch({ widgetLabels: next });
-  }, [persistPatch]);
-
-  const commitWidgetBlur = useCallback((enabled: boolean) => {
-    const next = normalizePanelWidgetBlur(enabled);
-    setTheme(prev => ({ ...prev, widgetBlur: next }));
-    persistPatch({ widgetBlur: next });
   }, [persistPatch]);
 
   const commitWidgetPadding = useCallback((percent: number) => {
@@ -465,12 +467,12 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
     )),
     commitBackgroundOpacity,
     commitBackgroundMedia,
+    commitBackgroundFrost,
     previewWidgetOpacity: (opacity: number) => setTheme(prev => (
       { ...prev, widgetOpacity: normalizePanelWidgetOpacity(opacity) }
     )),
     commitWidgetOpacity,
     commitWidgetLabels,
-    commitWidgetBlur,
     previewWidgetPadding: (percent: number) => setTheme(prev => (
       { ...prev, widgetPadding: normalizePanelWidgetPadding(percent) }
     )),

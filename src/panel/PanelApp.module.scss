@@ -103,6 +103,31 @@
   object-fit: cover;
 }
 
+// Frosted glass over the background layer (backgroundFrost, sibling rendered
+// after the shader / media / wallpaper layers so its backdrop is exactly
+// those). Hard radius, never animated - tweening backdrop-filter re-runs an
+// uncacheable gaussian every frame and janks on the panel SoCs.
+//
+// Write ONLY the unprefixed property: lightningcss autoprefixes it to emit
+// both `backdrop-filter` AND `-webkit-backdrop-filter`. Hand-writing the
+// `-webkit-` form makes lightningcss drop the unprefixed one as "redundant",
+// which renders nothing on Blink (WebView2 / Android WebView) - Blink does
+// NOT recognise `-webkit-backdrop-filter`. The prefix is iOS WKWebView only.
+.backgroundFrost {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.backgroundFrost[data-level='light'] {
+  backdrop-filter: blur(var(--blur-chip));
+}
+
+.backgroundFrost[data-level='heavy'] {
+  backdrop-filter: blur(var(--blur-backdrop));
+}
+
 @keyframes connectionIntroBackdrop {
   0%, 18% { opacity: 1; }
   72% { opacity: 0.22; }
@@ -738,25 +763,6 @@
     border-color var(--ease-fast) ease-out,
     opacity 140ms ease-out,
     filter 140ms ease-out;
-}
-
-// Frosted-glass widget blur (data-widget-blur). Applied over shader and media
-// backgrounds; only solid mode skips the pass, since a blurred solid colour is
-// identical to the colour. Hard radius, never animated - tweening
-// backdrop-filter re-runs an uncacheable gaussian every frame and janks on the
-// panel SoCs.
-//
-// Write ONLY the unprefixed property: lightningcss autoprefixes it to emit
-// both `backdrop-filter` AND `-webkit-backdrop-filter`. Hand-writing the
-// `-webkit-` form makes lightningcss drop the unprefixed one as "redundant",
-// which renders nothing on Blink (WebView2 / Android WebView) - Blink does
-// NOT recognise `-webkit-backdrop-filter`. The prefix is iOS WKWebView only.
-//
-// `:not([data-widget-opaque='true'])` skips the pass at 100% widget opacity:
-// the blurred backdrop is fully hidden behind the card, so there's nothing
-// to render. Render-time skip only; the toggle setting is unchanged.
-.panelRoot[data-widget-blur='true']:not([data-background-mode='solid']):not([data-widget-opaque='true']) .cell {
-  backdrop-filter: blur(var(--blur-backdrop));
 }
 
 .panelRoot[data-surface='phone'] .cell {
