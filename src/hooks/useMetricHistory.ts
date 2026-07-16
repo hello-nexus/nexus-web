@@ -84,10 +84,13 @@ function mergeTail(prev: readonly MetricHistorySeries[], tail: readonly MetricHi
  * for an outdated request is dropped.
  */
 export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetricHistoryResult {
-  // Bootstrapped from the client clock once, purely to shape the very first
-  // request window; every value used for chart time after that is derived
-  // from the newest `t` a response actually returned (monotonic guard below).
-  const nowRef = useRef(Date.now());
+  // Bootstrapped from the client clock once (the lazy useState initializer
+  // runs exactly once, unlike useRef's eager argument), purely to shape the
+  // very first request window; every value used for chart time after that is
+  // derived from the newest `t` a response actually returned (monotonic
+  // guard below).
+  const [bootstrapNow] = useState(() => Date.now());
+  const nowRef = useRef(bootstrapNow);
   const [viewport, setViewport] = useState<ViewportState>(() => initViewport(nowRef.current));
   const viewportRef = useRef(viewport);
   useEffect(() => { viewportRef.current = viewport; }, [viewport]);
@@ -178,7 +181,6 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
     return () => window.clearTimeout(timer);
     // fetchEpoch is the trigger for user/timer-driven refetches; viewport's
     // from/to are read from the ref so a live tick alone never retriggers this.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, seriesQuery, fetchEpoch, loadViewport]);
 
   // Full re-decimation every 60s, independent of following/dragging.
