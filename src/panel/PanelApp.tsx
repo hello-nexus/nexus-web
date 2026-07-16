@@ -47,7 +47,7 @@ import { ErrorBoundary } from '../components/common/ErrorBoundary/ErrorBoundary'
 import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
 import { useMultiplex, useTopic, useTopicCallback } from '../hooks/useMultiplexSocket';
 import { useServiceStatus, HOST_DISPLAY_OFFLINE_GRACE_MS } from '../hooks/useServiceStatus';
-import { wiredPanelClass } from './device/wiredPanel';
+import { supportsDesktopSeeThrough, wiredPanelClass } from './device/wiredPanel';
 import { useUiSettings } from '../hooks/useUiSettings';
 import {
   isPinnableAppKey,
@@ -143,7 +143,7 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
   // stamped on it drive widget filtering. If the record is missing on the
   // server (cleared profile etc.), fall back to a viewport-inferred surface
   // so the panel still mounts instead of showing a blank page.
-  const [resolved, setResolved] = useState<{ surface: PanelSurface; touch?: boolean; dpi?: number } | null>(null);
+  const [resolved, setResolved] = useState<{ surface: PanelSurface; touch?: boolean; dpi?: number; displayBound?: boolean } | null>(null);
   useEffect(() => {
     let cancelled = false;
     fetchPanelDevice(deviceId).then(record => {
@@ -153,6 +153,7 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
         surface: surfaceFromRecord ?? inferSurfaceFromViewport(false),
         touch: record?.capabilities?.touch,
         dpi: record?.capabilities?.dpi,
+        displayBound: !!record?.displayId,
       });
     }).catch(() => {
       if (!cancelled) setResolved({ surface: inferSurfaceFromViewport(false) });
@@ -180,7 +181,7 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
   if (!resolved) {
     return null;
   }
-  return <PanelKioskContent deviceId={deviceId} surface={resolved.surface} deviceTouch={resolved.touch} deviceDpi={resolved.dpi} />;
+  return <PanelKioskContent deviceId={deviceId} surface={resolved.surface} deviceTouch={resolved.touch} deviceDpi={resolved.dpi} displayBound={resolved.displayBound} />;
 }
 export function PanelEmbeddedContent({ openCatalogSignal = 0, appAccentColor, onSectionNavigate }: {
   openCatalogSignal?: number;
@@ -206,14 +207,14 @@ export function PanelEmbeddedContent({ openCatalogSignal = 0, appAccentColor, on
   );
 }
 
-function PanelKioskContent({ deviceId, surface, deviceTouch, deviceDpi }: { deviceId: string; surface: PanelSurface; deviceTouch?: boolean; deviceDpi?: number }) {
+function PanelKioskContent({ deviceId, surface, deviceTouch, deviceDpi, displayBound }: { deviceId: string; surface: PanelSurface; deviceTouch?: boolean; deviceDpi?: number; displayBound?: boolean }) {
   const layoutState = usePanelLayout(deviceId, surface, deviceTouch);
   return (
     <ErrorBoundary
       // eslint-disable-next-line i18next/no-literal-string -- crash-boundary diagnostic id
       label="Panel"
     >
-      <PanelContent surface={surface} deviceId={deviceId} deviceTouch={deviceTouch} deviceDpi={deviceDpi} layoutState={layoutState} />
+      <PanelContent surface={surface} deviceId={deviceId} deviceTouch={deviceTouch} deviceDpi={deviceDpi} displayBound={displayBound} layoutState={layoutState} />
     </ErrorBoundary>
   );
 }
@@ -223,6 +224,7 @@ export function PanelContent({
   deviceId,
   deviceTouch,
   deviceDpi,
+  displayBound = false,
   layoutState,
   embedded = false,
   simulator = false,
@@ -244,6 +246,10 @@ export function PanelContent({
   // Per-device physical density (capabilities.dpi, curated known displays).
   // Undefined falls back to the per-surface estimate in the grid math.
   deviceDpi?: number;
+  // True when the record is display-bound (promoted OS monitor, displayId
+  // set). Distinguishes kiosk-hosted 'monitor' panels from streamed ones for
+  // the desktop see-through gate.
+  displayBound?: boolean;
   layoutState: PanelLayoutState;
   embedded?: boolean;
   simulator?: boolean;
@@ -422,14 +428,14 @@ export function PanelContent({
   // overlay. The embedded desktop deck paints no panel background so the
   // dashboard theme shows through.
   const showPanelBackground = !embedded || simulator;
-  // Background toggled off on a kiosk-hosted surface: the page renders fully
+  // Background toggled off on a kiosk-hosted panel: the page renders fully
   // transparent and the kiosk WebView2 (alpha-0 default background, no host
-  // class brush) composites the Windows desktop behind the widgets. Gated to
-  // host-display surfaces - a streamed/phone panel has no desktop behind it,
-  // so 'off' there would show the WebView default fill instead.
+  // class brush) composites the Windows desktop behind the widgets. See
+  // supportsDesktopSeeThrough for why surface alone is not the gate.
+  const seeThroughAvailable = supportsDesktopSeeThrough(surface, displayBound);
   const backgroundOff = showPanelBackground
     && effectiveTheme.backgroundEnabled === false
-    && wiredPanelClass(surface) === 'host-display';
+    && seeThroughAvailable;
   const showBackgroundLayers = showPanelBackground && !backgroundOff;
   const panelSolidColor = useMemo(
     () => showPanelBackground
@@ -1654,7 +1660,7 @@ export function PanelContent({
           onThemeBackgroundCommit={panelTheme.commitBackground}
           onThemeBackgroundModeCommit={panelTheme.commitBackgroundMode}
           onThemeBackgroundEnabledCommit={panelTheme.commitBackgroundEnabled}
-          showBackgroundToggle={wiredPanelClass(surface) === 'host-display'}
+          showBackgroundToggle={seeThroughAvailable}
           onThemeBackgroundEffectCommit={panelTheme.commitBackgroundEffect}
           onThemeBackgroundTemplateCommit={panelTheme.commitBackgroundTemplate}
           onThemeBackgroundEffectStatePreview={panelTheme.previewBackgroundEffectState}
