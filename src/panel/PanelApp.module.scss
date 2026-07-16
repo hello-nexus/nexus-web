@@ -1056,14 +1056,17 @@
   --panel-content-scale: min(var(--panel-cell-size), var(--panel-row-size));
 }
 
-// A promoted monitor's add-widget / edit sheet is fixed-size chrome, not scaled
-// panel content, so neutralise the live panel's --panel-scale (a content zoom,
-// e.g. ~1.57x on a 1920px monitor) the way the desktop drawer does; otherwise
-// the sheet transform scale(var(--panel-scale)) blows it up. The catalog grid
-// sets its own --panel-scale for its preview cells (a closer ancestor), so
-// those still scale correctly. Whether this surface shows a bottom sheet or a
-// side drawer is decided by orientation below (portrait monitor -> bottom).
-.editorBackdrop[data-surface='monitor'] {
+// A promoted DESK monitor's add-widget / edit sheet is fixed-size chrome, not
+// scaled panel content, so neutralise the live panel's --panel-scale (a
+// content zoom, e.g. ~1.57x on a 1920px monitor) the way the desktop drawer
+// does; otherwise the sheet transform scale(var(--panel-scale)) blows it up.
+// The catalog grid sets its own --panel-scale for its preview cells (a closer
+// ancestor), so those still scale correctly. Whether this surface shows a
+// bottom sheet or a side drawer is decided by orientation below (portrait
+// monitor -> bottom). Touch monitors (Xeneon Edge, or any display Windows
+// reports as touch; data-touch-chrome) are excluded: they take the Y70
+// treatment, sheets scaled as panel content.
+.editorBackdrop[data-surface='monitor']:not([data-touch-chrome='true']) {
   --panel-scale: 1;
 }
 
@@ -1403,18 +1406,21 @@
 
 .editorBackdrop[data-surface='phone'],
 .editorBackdrop[data-surface='y70'],
-.editorBackdrop[data-surface='q60'] {
+.editorBackdrop[data-surface='q60'],
+.editorBackdrop[data-touch-chrome='true'] {
   @include editorBottomSheet;
 }
 
 .editorBackdrop[data-surface='y70'],
-.editorBackdrop[data-surface='q60'] {
+.editorBackdrop[data-surface='q60'],
+.editorBackdrop[data-touch-chrome='true'] {
   @include editorBottomSheetScaled;
 }
 
-// Promoted monitor: bottom sheet only when portrait; a wide/landscape monitor
-// keeps the side drawer. Aspect-ratio, not px width - a monitor's CSS width is
-// a real screen size.
+// Promoted desk monitor: bottom sheet only when portrait; a wide/landscape
+// monitor keeps the side drawer. Aspect-ratio, not px width - a monitor's CSS
+// width is a real screen size. Touch monitors already took the scaled
+// bottom sheet above, in both orientations.
 @media (orientation: portrait) {
   .editorBackdrop[data-surface='monitor'] {
     @include editorBottomSheet;
