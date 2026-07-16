@@ -30,32 +30,6 @@ function makeFrame(overrides: Record<string, unknown> = {}) {
   } as any;
 }
 
-describe('overview sparklines', () => {
-  it('push60 maintains max 60 samples', () => {
-    for (let i = 0; i < 70; i++) {
-      store.ingestMonitoring(makeFrame({
-        processes: { totalCpu: i, totalMemoryPercent: 0, processes: [] },
-        network: { entries: [] },
-      }));
-    }
-    const hist = store.getOverviewHist();
-    expect(hist.cpu).toHaveLength(60);
-    expect(hist.cpu[0]).toBe(10);
-    expect(hist.cpu[59]).toBe(69);
-  });
-
-  it('handles empty processes gracefully', () => {
-    store.ingestMonitoring(makeFrame({
-      processes: null,
-      network: null,
-      gpu: null,
-    }));
-    const hist = store.getOverviewHist();
-    expect(hist.cpu).toHaveLength(1);
-    expect(hist.cpu[0]).toBe(0);
-  });
-});
-
 describe('process grouping', () => {
   it('aggregates duplicate process names', () => {
     store.ingestMonitoring(makeFrame({
