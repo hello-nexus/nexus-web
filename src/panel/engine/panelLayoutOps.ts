@@ -62,6 +62,22 @@ export function appendWidget(
 }
 
 /**
+ * True when `appendWidget` would place a widget of `size` under the same
+ * options. Runs the real placement rather than re-deriving them, so the
+ * predicate cannot drift from what the add actually does. Only `singlePage`
+ * (the dashboard) can refuse - other surfaces absorb the widget on a new page.
+ */
+export function canAppendWidget(
+  layout: PanelLayout,
+  size: PanelWidgetSize,
+  capacity: PaginateCapacity,
+  options?: { singlePage?: boolean; preferredPageId?: string },
+): boolean {
+  const probe: PanelWidget = { id: 'fit-probe', type: 'fit-probe', size, col: 0, row: 0 };
+  return appendWidget(layout, probe, capacity, options) !== layout;
+}
+
+/**
  * Single-widget surface helper (Q-series): replaces every page-widget
  * with one fresh widget at (0, 0). The page list collapses to one page.
  */

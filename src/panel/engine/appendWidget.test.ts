@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { appendWidget } from './panelLayoutOps';
+import { appendWidget, canAppendWidget } from './panelLayoutOps';
 import type { PanelLayout, PanelWidget, PanelWidgetSize } from '../types';
 
 const CAPACITY = { gridCols: 4, pageRows: 4 };
@@ -81,5 +81,44 @@ describe('appendWidget', () => {
   it('no-ops when full and singlePage is set', () => {
     const l = layout([[widget('a', '4x4', 0, 0)]]);
     expect(appendWidget(l, widget('n', '2x2', 0, 0), CAPACITY, { singlePage: true })).toBe(l);
+  });
+});
+
+describe('canAppendWidget', () => {
+  it('is false only for the size that no longer fits', () => {
+    // Leaves a 2x2 hole at (2, 2): a 2x2 lands, a 4x2 cannot.
+    const l = layout([[
+      widget('a', '4x2', 0, 0),
+      widget('b', '2x2', 0, 2),
+    ]]);
+    const opts = { singlePage: true };
+    expect(canAppendWidget(l, '2x2', CAPACITY, opts)).toBe(true);
+    expect(canAppendWidget(l, '1x1', CAPACITY, opts)).toBe(true);
+    expect(canAppendWidget(l, '4x2', CAPACITY, opts)).toBe(false);
+    expect(canAppendWidget(l, '4x4', CAPACITY, opts)).toBe(false);
+  });
+
+  it('is false for every size once the page is full', () => {
+    const l = layout([[widget('a', '4x4', 0, 0)]]);
+    const sizes: PanelWidgetSize[] = ['1x1', '2x2', '4x2', '4x4'];
+    for (const size of sizes) {
+      expect(canAppendWidget(l, size, CAPACITY, { singlePage: true })).toBe(false);
+    }
+  });
+
+  it('is true on a full multi-page layout: the widget spills to a new page', () => {
+    const l = layout([[widget('a', '4x4', 0, 0)]]);
+    expect(canAppendWidget(l, '4x4', CAPACITY)).toBe(true);
+  });
+
+  it('agrees with appendWidget and does not mutate the layout', () => {
+    const l = layout([[widget('a', '4x2', 0, 0)]]);
+    const before = JSON.stringify(l);
+    for (const size of ['1x1', '2x2', '4x2', '4x4'] as PanelWidgetSize[]) {
+      const predicted = canAppendWidget(l, size, CAPACITY, { singlePage: true });
+      const actual = appendWidget(l, widget('n', size, 0, 0), CAPACITY, { singlePage: true }) !== l;
+      expect(predicted).toBe(actual);
+    }
+    expect(JSON.stringify(l)).toBe(before);
   });
 });

@@ -28,6 +28,7 @@ import { repaginatePanelLayout, type PaginateCapacity } from './engine/paginate'
 import {
   allCellsForPage,
   appendWidget,
+  canAppendWidget,
   patchWidgetById,
   previewDrag,
   pruneEmptyPages,
@@ -903,15 +904,31 @@ export function PanelContent({
     // Dashboard is single-page: appendWidget no-ops if page 0 is full
     // instead of spawning a new page. Other surfaces keep multi-page.
     const dashboardSinglePage = embedded && surface === 'desktop';
-    setLayout(appendWidget(paginatedLayout, next, capacity, {
+    const appended = appendWidget(paginatedLayout, next, capacity, {
       singlePage: dashboardSinglePage,
       // Land on the page the user is looking at when it has room, not the
       // first page with a slot.
       preferredPageId: paginatedLayout.pages[activePageIndex]?.id,
-    }));
+    });
+    // Identity means no slot was found. The catalog dims what cannot fit, so
+    // this is reachable only if the layout filled under an open sheet; leave
+    // the sheet open rather than closing it on a widget that was never added.
+    if (appended === paginatedLayout) return;
+    setLayout(appended);
     setPendingScrollId(next.id);
     closeSheet();
   }, [activePageIndex, closeSheet, embedded, paginatedLayout, capacity, setLayout, surface]);
+
+  // The dashboard cannot spill onto a new page, so a full grid has no room and
+  // the catalog dims what will not fit. Multi-page surfaces always accept a
+  // widget, so they get no predicate and nothing is dimmed.
+  const canAddSize = useMemo(() => {
+    if (!(embedded && surface === 'desktop')) return undefined;
+    return (size: PanelWidgetSize) => canAppendWidget(paginatedLayout, size, capacity, {
+      singlePage: true,
+      preferredPageId: paginatedLayout.pages[activePageIndex]?.id,
+    });
+  }, [activePageIndex, embedded, paginatedLayout, capacity, surface]);
 
   const updateWidgetConfig = useCallback((widgetId: string, config: Record<string, PanelConfigValue>) => {
     setLayout(patchWidgetById(
@@ -1615,6 +1632,7 @@ export function PanelContent({
           panelTheme={panelTheme.theme}
           gridColumns={runtimeGrid.columns}
           gridRows={runtimeGrid.rows}
+          canAddSize={canAddSize}
           resolvedThemeMode={resolvedThemeMode}
           panelThemeStyle={panelThemeVars}
           closing={sheetClosing}

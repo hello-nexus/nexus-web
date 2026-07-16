@@ -52,6 +52,11 @@ type CatalogEntry = ReturnType<typeof getCatalogEntries>[number];
 export interface PanelWidgetCatalogProps {
   surface: PanelSurface;
   onAdd: (type: string, size: PanelWidgetSize) => void;
+  // Whether the target grid still has a free slot for a widget of a given
+  // size. Cards that would not fit are dimmed and unclickable, with a notice
+  // naming the reason. Omitted on surfaces that can spill onto a new page:
+  // they are never full, so nothing is dimmed.
+  canAddSize?: (size: PanelWidgetSize) => boolean;
   searchable?: boolean;
   variant?: 'panel-sheet' | 'desktop-modal';
   // The target panel connects over the network (paired phone/browser/app), so
@@ -75,6 +80,7 @@ export interface PanelWidgetCatalogProps {
 export function PanelWidgetCatalog({
   surface,
   onAdd,
+  canAddSize,
   searchable = true,
   variant = 'panel-sheet',
   remote = false,
@@ -218,9 +224,21 @@ export function PanelWidgetCatalog({
   };
 
   const defByType = new Map(entries);
+  // Each probe is a full placement scan, and only a handful of distinct sizes
+  // ever reach it; cache per render so a search keystroke does not rescan.
+  const fitCache = new Map<PanelWidgetSize, boolean>();
+  const fits = (size: PanelWidgetSize) => {
+    if (!canAddSize) return true;
+    const cached = fitCache.get(size);
+    if (cached !== undefined) return cached;
+    const value = canAddSize(size);
+    fitCache.set(size, value);
+    return value;
+  };
   const renderPacked = (items: CatalogEntry[]) =>
     packEntries(items).map(w => {
       const def = defByType.get(w.type);
+      const addable = fits(w.size);
       return (
         <PanelCatalogCell
           key={w.id}
@@ -228,10 +246,25 @@ export function PanelWidgetCatalog({
           surface={surface}
           label={def ? t(def.meta.i18nKey) || w.type : w.type}
           selected={selectedWidgetType === w.type}
+          disabled={!addable}
           onClick={() => onAdd(w.type, w.size)}
         />
       );
     });
+
+  // Cards are dimmed at the size they would actually insert at (pickSize), so
+  // the notice counts the same sizes the grid renders.
+  const unaddableCount = canAddSize
+    ? visible.filter(([, def]) => !fits(pickSize(def.meta))).length
+    : 0;
+  // Fullness is a property of the grid, not of what is on screen: search and
+  // the size chips both narrow `visible` to sets that can all miss while the
+  // grid still has a hole. Probe the smallest size instead - nothing fitting
+  // 1x1 is the only state the user cannot resolve from inside the catalog.
+  const gridFull = canAddSize ? !fits('1x1') : false;
+  const noticeKey = unaddableCount === 0
+    ? null
+    : gridFull ? 'panel.add.full' : 'panel.add.someTooLarge';
 
   // The widget browser always renders cards opaque; the device's widget-opacity
   // setting applies only on-device and in the device preview, not while browsing.
@@ -274,6 +307,13 @@ export function PanelWidgetCatalog({
           )}
         </div>
       )}
+      {/* Mounted empty and filled on change: a live region inserted with its
+          text already in place is not reliably announced, and the transition
+          that matters (a size chip making the notice appear) is exactly that
+          case. */}
+      <div className={styles.noticeRegion} role="status">
+        {noticeKey && <div className={styles.notice}>{t(noticeKey)}</div>}
+      </div>
       <div className={styles.scroller}>
         <div ref={measureRef} className={styles.propWrap}>
           <div className={panelStyles.grid}>{renderPacked(visible)}</div>

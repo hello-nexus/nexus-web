@@ -6,7 +6,10 @@ import { getPanelGridSizingSettings, PANEL_SIMULATION_CHANGED_EVENT } from '../.
 // Reference cell size (pre-scale) used for the phone surface and as a
 // canonical desktop cell baseline. The runtime grid is scaled around this.
 export const PHONE_WIDGET_REFERENCE_CELL = 90;
-export const DESKTOP_GRID_COLUMNS = 8;
+// The desktop cell is a fixed size (readRuntimePanelGrid), so this count sets
+// the grid's rendered width rather than how finely a fixed width is divided;
+// past the container the grid clips instead of rescaling.
+export const DESKTOP_GRID_COLUMNS = 12;
 export const DESKTOP_GRID_ROWS = 8;
 // Hard cap on pages. Dragging a widget to the right edge creates a new page;
 // this caps growth at 10 so the pager / persistence stay bounded.

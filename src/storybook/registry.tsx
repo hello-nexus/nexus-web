@@ -2171,7 +2171,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'PanelCatalogCell', category: 'panel-kit',
     filePath: 'src/panel/dnd/PanelDragCells.tsx',
-    description: 'Tile shown in the add-widget catalog. Reuses the live panel cell (card + content scaler + label strip) so the catalog renders a widget identically to the panel grid. Used by the panel add-widget search.',
+    description: 'Tile shown in the add-widget catalog. Reuses the live panel cell (card + content scaler + label strip) so the catalog renders a widget identically to the panel grid. Used by the panel add-widget search. `selected` rings the card (single-widget surfaces); `disabled` dims it and drops it from the tab order when the target grid has no room for its size.',
     notes: 'No live preview - the cell instantiates a real panel widget at panel scale.',
   },
   {
