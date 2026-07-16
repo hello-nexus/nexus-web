@@ -10,6 +10,7 @@ import { resolveDeckTitleStyle, titleFontSizeCss } from './deckTitleStyle';
 import { DeckMonitoringCell } from './DeckMonitoringCell';
 import { DeckWeatherCell } from './DeckWeatherCell';
 import { DECK_MONITORING_TILE_BG } from './deckMonitoring';
+import { slotPathAt } from './deckTarget';
 import type { DeckSlot } from './types';
 import styles from './DeckGrid.module.scss';
 
@@ -25,8 +26,14 @@ const LABEL_ALIGN_CLASS = {
   bottom: 'labelAlignBottom',
 } as const;
 
-/** Visual content (icon + optional label) + the accent for a slot. */
-function useCellVisual(slot: DeckSlot): { accent: string; content: ReactNode; empty: boolean } {
+/**
+ * Visual content (icon + optional label) + the accent for a slot. `liveSrc`
+ * is a data URI from the service's own key renderer (DeckGrid's liveTiles) -
+ * when set, a monitoring/weather cell shows that frame instead of drawing
+ * its own CSS tile, so the physical editor preview matches the hardware key
+ * by construction.
+ */
+function useCellVisual(slot: DeckSlot, liveSrc?: string): { accent: string; content: ReactNode; empty: boolean } {
   const action = slot.action;
   const isFolder = !!slot.folder;
   const icon = slot.icon;
@@ -43,17 +50,25 @@ function useCellVisual(slot: DeckSlot): { accent: string; content: ReactNode; em
   // live or placeholder reading) and uses a near-black default accent instead
   // of the auto category color, since it has no icon to color-code.
   if (action?.type === 'monitoring') {
+    // The CSS tile's own text content names the button for screen readers;
+    // the live-frame img has none, so it borrows the same user-set label.
+    const liveAlt = slot.label || action.labelText || '';
     return {
       accent: slot.color ?? DECK_MONITORING_TILE_BG,
-      content: <DeckMonitoringCell action={action} title={slot.title} />,
+      content: liveSrc
+        ? <img src={liveSrc} draggable={false} alt={liveAlt} className={styles.customImage} />
+        : <DeckMonitoringCell action={action} title={slot.title} />,
       empty: false,
     };
   }
 
   if (action?.type === 'weather') {
+    const liveAlt = slot.label || action.city || '';
     return {
       accent: slot.color ?? DECK_MONITORING_TILE_BG,
-      content: <DeckWeatherCell action={action} title={slot.title} />,
+      content: liveSrc
+        ? <img src={liveSrc} draggable={false} alt={liveAlt} className={styles.customImage} />
+        : <DeckWeatherCell action={action} title={slot.title} />,
       empty: false,
     };
   }
@@ -108,11 +123,13 @@ interface CellProps {
   onClick: () => void;
   /** Right-click on a non-empty cell; omitted when the grid offers no delete action. */
   onCellContextMenu?: (e: ReactMouseEvent<HTMLButtonElement>, index: number, empty: boolean) => void;
+  /** See useCellVisual's liveSrc param. */
+  liveSrc?: string;
 }
 
 /** Run/select cell (no drag). */
-function StaticCell({ slot, index, selectable, selected, onClick, onCellContextMenu }: CellProps) {
-  const { accent, content, empty } = useCellVisual(slot);
+function StaticCell({ slot, index, selectable, selected, onClick, onCellContextMenu, liveSrc }: CellProps) {
+  const { accent, content, empty } = useCellVisual(slot, liveSrc);
   if (empty && !selectable) {
     return <div className={`${styles.cell} ${styles.empty}`} data-deck-slot-index={index} />;
   }
@@ -133,8 +150,8 @@ function StaticCell({ slot, index, selectable, selected, onClick, onCellContextM
 }
 
 /** Edit-mode cell: draggable (if it has content) + droppable, plus selectable. */
-function DraggableCell({ slot, index, selected, onClick, onCellContextMenu }: CellProps) {
-  const { accent, content, empty } = useCellVisual(slot);
+function DraggableCell({ slot, index, selected, onClick, onCellContextMenu, liveSrc }: CellProps) {
+  const { accent, content, empty } = useCellVisual(slot, liveSrc);
   const id = String(index);
   const drag = useDraggable({ id, disabled: empty });
   const drop = useDroppable({ id });
@@ -209,14 +226,28 @@ export interface DeckGridProps {
    * editor.
    */
   onDeleteSlot?: (index: number) => void;
+  /**
+   * Live-rendered key frames pushed by the service's own tile renderer (the
+   * 'streamdeckTiles' multiplex topic), keyed `${page}:${slotPath}` (slotPath
+   * per slotPathAt) to a data:image/jpeg;base64 URI - set only by the
+   * physical Stream Deck editor's preview grid, so a monitoring/weather cell
+   * renders byte-identical to the hardware key instead of the CSS tile. Requires
+   * `page`/`folderPath` alongside it so each cell can compute its own key;
+   * absent (or no matching frame yet) falls back to the CSS tile.
+   */
+  liveTiles?: ReadonlyMap<string, string>;
+  page?: number;
+  folderPath?: readonly number[];
 }
 
 /** Pure icon grid for one folder level. The back affordance is overlaid by DeckWidget. */
-export function DeckGrid({ slots, cols, rows, selectable, dragEnabled, selectedIndex, onCell, backCell, square, onDeleteSlot }: DeckGridProps) {
+export function DeckGrid({ slots, cols, rows, selectable, dragEnabled, selectedIndex, onCell, backCell, square, onDeleteSlot, liveTiles, page, folderPath }: DeckGridProps) {
   const { t } = useTranslation();
   const [ctxMenu, setCtxMenu] = useState<{ index: number; x: number; y: number } | null>(null);
   const Cell = dragEnabled ? DraggableCell : StaticCell;
   const trackSize = square ? 'var(--deck-cell)' : '1fr';
+  const liveSrcFor = (index: number): string | undefined =>
+    liveTiles && page != null && folderPath ? liveTiles.get(`${page}:${slotPathAt(folderPath, index)}`) : undefined;
 
   const handleCellContextMenu = onDeleteSlot
     ? (e: ReactMouseEvent<HTMLButtonElement>, index: number, empty: boolean) => {
@@ -259,6 +290,7 @@ export function DeckGrid({ slots, cols, rows, selectable, dragEnabled, selectedI
           selected={selectable && i === selectedIndex}
           onClick={() => onCell(i)}
           onCellContextMenu={handleCellContextMenu}
+          liveSrc={liveSrcFor(i)}
         />
       ))}
       {ctxMenu && onDeleteSlot && (

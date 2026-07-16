@@ -117,9 +117,19 @@ export interface DeckUploadJob {
 }
 
 /**
+ * Slot path for one index within a folder view: the dot-joined index-chain
+ * grammar DeckConfigNavigation.ParseSlotPath/BuildSlotPath define ("3",
+ * "2.1.5"). The single source of truth for that grammar client-side - both
+ * the key-image upload path (deckImageSlotPath) and the live-tile frame map
+ * (DeckGrid's liveTiles) key off it.
+ */
+export function slotPathAt(folderPath: readonly number[], index: number): string {
+  return [...folderPath, index].join('.');
+}
+
+/**
  * Page-qualified slotPath for the images route: the page index leads the
- * same dot-joined index-chain grammar DeckConfigNavigation.ParseSlotPath /
- * BuildSlotPath already define ("0.3", "2.1.5"). The reserved back key stays
+ * same grammar as slotPathAt ("0.3", "2.1.5"). The reserved back key stays
  * page-independent (the literal "back", built where it's uploaded) and never
  * goes through this.
  */
@@ -143,7 +153,7 @@ function viewUploadJobs(slots: readonly DeckSlot[], page: number, folderPath: re
   const jobs: DeckUploadJob[] = [];
   slots.forEach((slot, i) => {
     if (slot.action?.type === 'monitoring' || slot.action?.type === 'weather') return;
-    const slotPath = [...folderPath, i].join('.');
+    const slotPath = slotPathAt(folderPath, i);
     const action = slot.action;
     if (action?.type === 'toggle') {
       jobs.push({ page, slotPath, state: 0, slot: toggleBranchSlot(slot, action, false) });
