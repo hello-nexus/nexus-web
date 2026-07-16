@@ -5,7 +5,6 @@ import { useEffect, useRef, useState, type CSSProperties, type FC } from 'react'
 import { Monitor, Palette, Sparkles, X, Plus, Settings, Download, AlertTriangle, HardDrive } from 'lucide-react';
 import { ViewHeader } from '../components/common/ViewHeader/ViewHeader';
 import { Sparkline } from '../components/common/Sparkline/Sparkline';
-import { RankedList } from '../components/common/RankedList/RankedList';
 import { SensorCard } from '../components/common/SensorCard/SensorCard';
 import { Card } from '../components/common/Card/Card';
 import { InfoList, InfoRow } from '../components/common/InfoList/InfoList';
@@ -37,7 +36,6 @@ import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
 import { PromptModal } from '../components/common/PromptModal/PromptModal';
 import { UsageBar } from '../components/common/UsageBar/UsageBar';
 import { CapacityBar } from '../components/common/CapacityBar/CapacityBar';
-import { StackedChart } from '../components/common/StackedChart/StackedChart';
 import { SupportedDevicesModal } from '../components/common/SupportedDevicesModal/SupportedDevicesModal';
 import { SupportedDevicesList, type SupportedDeviceRow } from '../components/common/SupportedDevicesList/SupportedDevicesList';
 import { Overlay } from '../components/common/Overlay/Overlay';
@@ -58,7 +56,6 @@ import { defaultTemplatesFor } from '../types/lightingTemplates';
 import { cachedAnimateDefaults, fetchAnimateDefaults } from '../api/lighting';
 import type { BatteryState } from '../hooks/usePeripherals';
 import type { HardwareSensor } from '../hooks/useSensors';
-import type { SeriesEntry } from '../hooks/useProcessMonitor';
 import { PanelMixerSliderPreview } from './PanelMixerSliderPreview';
 import { TextStyles } from './TextStyles';
 import { SurfaceStyles } from './SurfaceStyles';
@@ -342,19 +339,6 @@ function PreviewSparkline() {
   return <Sparkline values={values} width={140} height={32} />;
 }
 
-function PreviewRankedList() {
-  return <RankedList
-    title="Sample"
-    subtitle="last minute"
-    items={[
-      { name: 'one.exe', color: '#22c55e', value: 42 },
-      { name: 'two.exe', color: '#3b82f6', value: 28 },
-      { name: 'three.exe', color: '#a855f7', value: 12 },
-    ]}
-    formatValue={v => `${v}%`}
-  />;
-}
-
 function PreviewSensorCard() {
   const stub = (id: string, name: string, value: number): HardwareSensor => ({
     id, name, type: 'Temperature', value, units: '°C', formatted: `${value}°C`,
@@ -529,29 +513,6 @@ function PreviewPromptModal() {
 }
 
 const sampleNoise = (index: number, seed: number) => ((index * 37 + seed * 17) % 11) / 2;
-
-function PreviewStackedChart() {
-  // Fabricate a 60-sample window so the chart has something to render without
-  // hooking the live monitoring store. Two series (CPU + background) stacked.
-  const cpuVals = Array.from({ length: 60 }, (_, i) => 20 + 15 * Math.sin(i / 6) + sampleNoise(i, 3));
-  const otherVals = Array.from({ length: 60 }, (_, i) => 10 + 8 * Math.cos(i / 8) + sampleNoise(i, 7) * 0.6);
-  const avg = (xs: number[]) => xs.reduce((s, x) => s + x, 0) / Math.max(1, xs.length);
-  const series: SeriesEntry[] = [
-    { name: 'Chrome', color: '#6366f1', values: cpuVals, current: cpuVals[cpuVals.length - 1], avg: avg(cpuVals) },
-    { name: 'Other', color: '#22d3ee', values: otherVals, current: otherVals[otherVals.length - 1], avg: avg(otherVals) },
-  ];
-  return (
-    <StackedChart
-      title="CPU %"
-      series={series}
-      sampleCount={60}
-      yMax={80}
-      yUnit="%"
-      xSeconds={60}
-      height={180}
-    />
-  );
-}
 
 function PreviewTimeSeriesChart() {
   const DAY = 86_400_000;
@@ -1991,21 +1952,9 @@ export const REGISTRY: StorybookEntry[] = [
     description: 'Tiny SVG sparkline. Auto-scales or accepts a fixed domain. Flat alpha fill (color, fillOpacity) plus optional separate strokeColor / strokeWidth. Pass sampleCount to lock a window length and left-pad shorter buffers. Used by Monitoring CPU/GPU/Network and panel widgets (SparklineGauge, LineGauge, CoolingWidget).', Preview: PreviewSparkline,
   },
   {
-    name: 'RankedList', category: 'charts',
-    filePath: 'src/components/common/RankedList/RankedList.tsx',
-    description: 'Ranked items with colored bars. Used in Monitoring for process and per-app network ranking.', Preview: PreviewRankedList,
-  },
-  {
-    name: 'StackedChart', category: 'charts',
-    filePath: 'src/components/common/StackedChart/StackedChart.tsx',
-    description: 'Reusable stacked-area time chart. Tracks container width via ResizeObserver; fixed pixel height. Used for CPU% + Memory MB panels in Monitoring. Accepts any number of SeriesEntry[] (name + colour + values).', Preview: PreviewStackedChart,
-    notes: 'yMax=0 auto-scales. xSeconds sets the visible window (default 60s). Hover shows a crosshair + per-series values.',
-  },
-
-  {
     name: 'TimeSeriesChart', category: 'charts',
     filePath: 'src/components/common/TimeSeriesChart/TimeSeriesChart.tsx',
-    description: 'Multi-series line chart over a real date/time domain (not a fixed live-seconds window). Tracks container width via ResizeObserver; borrows StackedChart\'s axis/tooltip frame. A gap wider than 1.5x the actual median point spacing (derived from the data, not a nominal bucket size) breaks the line instead of interpolating across it, and an isolated point renders as a dot. Used by the Diagnostics Cooling tab\'s temperature history.', Preview: PreviewTimeSeriesChart,
+    description: 'Multi-series line chart over a real date/time domain (not a fixed live-seconds window). Tracks container width via ResizeObserver. A gap wider than 1.5x the actual median point spacing (derived from the data, not a nominal bucket size) breaks the line instead of interpolating across it, and an isolated point renders as a dot. Used by the Diagnostics Cooling tab\'s temperature history and the Monitoring page\'s persistent history chart.', Preview: PreviewTimeSeriesChart,
     notes: 'Points carry {t, avg, max}; only avg is plotted, both are shown in the hover tooltip. xTickFormat/valueFormat let the caller pick range-appropriate label granularity and unit formatting. Optional bands prop draws translucent spans (e.g. sustained-high episodes). Optional tooltipExtra(t) appends caller content after the series rows (e.g. the Cooling tab\'s per-bucket app breakdown) - renders nothing when it returns null.',
   },
   {

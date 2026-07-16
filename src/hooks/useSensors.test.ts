@@ -60,8 +60,7 @@ describe('useSensors - storageSensors', () => {
     const { result } = renderHook(() => useSensors(true));
     expect(result.current.storageSensors.map(s => s.id)).toEqual(['storage/C/used']);
     // storageComponents is untouched - the smart/* component is still there
-    // for consumers that key off it directly (sensorCategories.smartStorageSensors,
-    // OverviewTab's SMART card).
+    // for consumers that key off it directly (sensorCategories.smartStorageSensors).
     expect(Object.keys(result.current.storageComponents)).toEqual(['C', 'smart/nvme/0']);
   });
 });

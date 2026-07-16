@@ -15,7 +15,7 @@ Object.defineProperty(window, 'matchMedia', {
   }),
 });
 
-// Stub ResizeObserver for jsdom (StackedChart and other width-tracking components)
+// Stub ResizeObserver for jsdom (TimeSeriesChart and other width-tracking components)
 class ResizeObserverStub {
   observe() {}
   unobserve() {}

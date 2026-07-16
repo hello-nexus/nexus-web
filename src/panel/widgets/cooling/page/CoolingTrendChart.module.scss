@@ -1,6 +1,5 @@
-// Frame mirrors StackedChart so the cooling page reads as the same surface
-// language as the monitoring tabs (border + bg-card + radius + 0.75rem inset
-// title row + chart).
+// Shared chart-card surface language (border + bg-card + radius + 0.75rem
+// inset title row + chart).
 .chartWrap {
   position: relative;
   border: var(--border-width) solid transparent;
