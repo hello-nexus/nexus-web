@@ -633,6 +633,13 @@
   "devices.usb.vidPid": "VID:PID",
   "devices.warning.displayDisconnected": "디스플레이 케이블 연결 안 됨 - 패널에 표시할 화면이 없습니다",
   "devices.warning.usbDisconnected": "USB 연결 안 됨 - 일부 컨트롤을 사용할 수 없습니다",
+  "devices.xeneonEdge.autoOrient": "자동 회전",
+  "devices.xeneonEdge.autoOrientHint": "패널이 물리적으로 놓인 방향에 맞춰 화면을 자동으로 회전합니다. 수동으로 설정하려면 꺼세요.",
+  "devices.xeneonEdge.backlight": "백라이트",
+  "devices.xeneonEdge.blue": "파랑",
+  "devices.xeneonEdge.contrast": "대비",
+  "devices.xeneonEdge.green": "초록",
+  "devices.xeneonEdge.red": "빨강",
   "devices.y70.brightness": "밝기",
   "devices.y70.display": "디스플레이",
   "devices.y70.editor.addWidget": "위젯 추가",
@@ -2934,5 +2941,7 @@
   "devices.streamdeck.import.reason.media": "이 미디어 제어는 지원되지 않습니다",
   "devices.streamdeck.import.reason.multiStep": "이 다중 작업 단계는 지원되지 않습니다",
   "devices.streamdeck.import.reason.encoder": "다이얼 작업은 지원되지 않습니다",
-  "devices.streamdeck.import.reason.pageLimit": "건너뜀: 최대 페이지 수를 초과합니다"
+  "devices.streamdeck.import.reason.pageLimit": "건너뜀: 최대 페이지 수를 초과합니다",
+  "devices.xeneonEdge.restoreDefaults": "기본값으로 재설정",
+  "devices.xeneonEdge.restoreDefaultsHint": "밝기, 백라이트, 대비 및 빨강, 초록, 파랑을 패널의 공장 초기값으로 재설정합니다."
 }

@@ -633,6 +633,13 @@
   "devices.usb.vidPid": "VID:PID",
   "devices.warning.displayDisconnected": "ディスプレイケーブル未接続 - パネルに表示先の画面がありません",
   "devices.warning.usbDisconnected": "USB未接続 - 一部の操作が利用できません",
+  "devices.xeneonEdge.autoOrient": "自動回転",
+  "devices.xeneonEdge.autoOrientHint": "パネルの物理的な向きに合わせて画面を自動的に回転します。手動で設定するにはオフにしてください。",
+  "devices.xeneonEdge.backlight": "バックライト",
+  "devices.xeneonEdge.blue": "ブルー",
+  "devices.xeneonEdge.contrast": "コントラスト",
+  "devices.xeneonEdge.green": "グリーン",
+  "devices.xeneonEdge.red": "レッド",
   "devices.y70.brightness": "明るさ",
   "devices.y70.display": "ディスプレイ",
   "devices.y70.editor.addWidget": "ウィジェットを追加",
@@ -2934,5 +2941,7 @@
   "devices.streamdeck.import.reason.media": "このメディアコントロールには対応していません",
   "devices.streamdeck.import.reason.multiStep": "このマルチアクションのステップには対応していません",
   "devices.streamdeck.import.reason.encoder": "ダイヤル操作には対応していません",
-  "devices.streamdeck.import.reason.pageLimit": "スキップされました。ページ数の上限を超えています"
+  "devices.streamdeck.import.reason.pageLimit": "スキップされました。ページ数の上限を超えています",
+  "devices.xeneonEdge.restoreDefaults": "デフォルトに戻す",
+  "devices.xeneonEdge.restoreDefaultsHint": "明るさ、バックライト、コントラスト、および赤・緑・青をパネルの工場出荷時の値にリセットします。"
 }

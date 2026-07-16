@@ -642,6 +642,13 @@
   "devices.usb.vidPid": "VID:PID",
   "devices.warning.displayDisconnected": "Cjâf dal display no tacât - il panel nol à nissun schermi par mostrâ la imagjin",
   "devices.warning.usbDisconnected": "USB disconetût - cualchi control nol è disponibil",
+  "devices.xeneonEdge.autoOrient": "Orientament automatic",
+  "devices.xeneonEdge.autoOrientHint": "Al zire il schermi in automatic par corispuindi a cemût che il panel al è girât fisicamentri. Disativilu par impostâ la orientazion a man.",
+  "devices.xeneonEdge.backlight": "Retroiluminazion",
+  "devices.xeneonEdge.blue": "Blu",
+  "devices.xeneonEdge.contrast": "Contrast",
+  "devices.xeneonEdge.green": "Vert",
+  "devices.xeneonEdge.red": "Ros",
   "devices.y70.brightness": "Luminositât",
   "devices.y70.display": "Display",
   "devices.y70.editor.addWidget": "Zonte widget",
@@ -2934,5 +2941,7 @@
   "devices.streamdeck.import.reason.media": "Chest control multimedial nol è supuartât",
   "devices.streamdeck.import.reason.multiStep": "Chest passaç di azion multiple nol è supuartât",
   "devices.streamdeck.import.reason.encoder": "Lis azions di rotele no son supuartadis",
-  "devices.streamdeck.import.reason.pageLimit": "Salte: al supere il numar massim di pagjinis"
+  "devices.streamdeck.import.reason.pageLimit": "Salte: al supere il numar massim di pagjinis",
+  "devices.xeneonEdge.restoreDefaults": "Ripristine i valôrs predefinîts",
+  "devices.xeneonEdge.restoreDefaultsHint": "Al torne a meti luminositât, retroiluminazion, contrast e ros, vert e blu sui valôrs di fabriche dal panel."
 }

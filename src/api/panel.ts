@@ -61,6 +61,10 @@ export interface PanelDeviceRecord {
   displayId?: string;
   // Per-panel "keep panel clear of other windows" (display-bound records).
   reserveMonitor?: boolean;
+  // Display-bound panels with a physical orientation sensor (e.g. the Xeneon
+  // Edge): true = the sensor drives display rotation, false = the user's
+  // orientation picker applies instead. Absent/null = on.
+  autoOrient?: boolean;
   // Display-bound panels: false = turned off (record + config kept; no
   // kiosk). Absent/null = on.
   enabled?: boolean | null;
@@ -93,6 +97,9 @@ export interface PanelDevicePatch {
   accentSyncWithDesktop?: boolean;
   // Display-bound records only; ignored for other panels.
   reserveMonitor?: boolean;
+  // Display-bound records with a physical orientation sensor only; ignored
+  // for other panels.
+  autoOrient?: boolean;
   capabilities?: PanelDeviceCapabilitiesDto;
 }
 

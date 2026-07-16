@@ -633,6 +633,13 @@
   "devices.usb.vidPid": "VID:PID",
   "devices.warning.displayDisconnected": "Cabo do ecrã não ligado - o painel não tem ecrã onde mostrar conteúdo",
   "devices.warning.usbDisconnected": "USB desligado - alguns controlos não estão disponíveis",
+  "devices.xeneonEdge.autoOrient": "Orientação automática",
+  "devices.xeneonEdge.autoOrientHint": "Roda o ecrã automaticamente para corresponder à posição física do painel. Desative para definir a orientação manualmente.",
+  "devices.xeneonEdge.backlight": "Retroiluminação",
+  "devices.xeneonEdge.blue": "Azul",
+  "devices.xeneonEdge.contrast": "Contraste",
+  "devices.xeneonEdge.green": "Verde",
+  "devices.xeneonEdge.red": "Vermelho",
   "devices.y70.brightness": "Brilho",
   "devices.y70.display": "Ecra",
   "devices.y70.editor.addWidget": "Adicionar widget",
@@ -2934,5 +2941,7 @@
   "devices.streamdeck.import.reason.media": "Este controlo de multimédia não é suportado",
   "devices.streamdeck.import.reason.multiStep": "Este passo de ação múltipla não é suportado",
   "devices.streamdeck.import.reason.encoder": "As ações do botão giratório não são suportadas",
-  "devices.streamdeck.import.reason.pageLimit": "Ignorada: excede o número máximo de páginas"
+  "devices.streamdeck.import.reason.pageLimit": "Ignorada: excede o número máximo de páginas",
+  "devices.xeneonEdge.restoreDefaults": "Restaurar predefinições",
+  "devices.xeneonEdge.restoreDefaultsHint": "Repõe o brilho, a retroiluminação, o contraste e os valores de vermelho, verde e azul para as definições de fábrica do painel."
 }

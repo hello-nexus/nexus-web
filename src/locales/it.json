@@ -633,6 +633,13 @@
   "devices.usb.vidPid": "VID:PID",
   "devices.warning.displayDisconnected": "Cavo del display non collegato - il pannello non ha uno schermo su cui mostrare i contenuti",
   "devices.warning.usbDisconnected": "USB disconnesso - alcuni controlli non sono disponibili",
+  "devices.xeneonEdge.autoOrient": "Orientamento automatico",
+  "devices.xeneonEdge.autoOrientHint": "Ruota lo schermo automaticamente in base a come è girato fisicamente il pannello. Disattivalo per impostare l'orientamento manualmente.",
+  "devices.xeneonEdge.backlight": "Retroilluminazione",
+  "devices.xeneonEdge.blue": "Blu",
+  "devices.xeneonEdge.contrast": "Contrasto",
+  "devices.xeneonEdge.green": "Verde",
+  "devices.xeneonEdge.red": "Rosso",
   "devices.y70.brightness": "Luminosità",
   "devices.y70.display": "Display",
   "devices.y70.editor.addWidget": "Aggiungi widget",
@@ -2934,5 +2941,7 @@
   "devices.streamdeck.import.reason.media": "Questo controllo multimediale non è supportato",
   "devices.streamdeck.import.reason.multiStep": "Questo passaggio multi-azione non è supportato",
   "devices.streamdeck.import.reason.encoder": "Le azioni della manopola non sono supportate",
-  "devices.streamdeck.import.reason.pageLimit": "Saltata: supera il numero massimo di pagine"
+  "devices.streamdeck.import.reason.pageLimit": "Saltata: supera il numero massimo di pagine",
+  "devices.xeneonEdge.restoreDefaults": "Ripristina valori predefiniti",
+  "devices.xeneonEdge.restoreDefaultsHint": "Reimposta luminosità, retroilluminazione, contrasto e i valori di rosso, verde e blu sulle impostazioni di fabbrica del pannello."
 }

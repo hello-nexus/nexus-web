@@ -633,6 +633,13 @@
   "devices.usb.vidPid": "VID:PID",
   "devices.warning.displayDisconnected": "Cable de pantalla no conectado - el panel no tiene pantalla en la que mostrar contenido",
   "devices.warning.usbDisconnected": "USB desconectado - algunos controles no están disponibles",
+  "devices.xeneonEdge.autoOrient": "Orientación automática",
+  "devices.xeneonEdge.autoOrientHint": "Gira la pantalla automáticamente según cómo esté girado físicamente el panel. Desactívalo para ajustar la orientación manualmente.",
+  "devices.xeneonEdge.backlight": "Retroiluminación",
+  "devices.xeneonEdge.blue": "Azul",
+  "devices.xeneonEdge.contrast": "Contraste",
+  "devices.xeneonEdge.green": "Verde",
+  "devices.xeneonEdge.red": "Rojo",
   "devices.y70.brightness": "Brillo",
   "devices.y70.display": "Pantalla",
   "devices.y70.editor.addWidget": "Añadir widget",
@@ -2934,5 +2941,7 @@
   "devices.streamdeck.import.reason.media": "Este control multimedia no es compatible",
   "devices.streamdeck.import.reason.multiStep": "Este paso de acción múltiple no es compatible",
   "devices.streamdeck.import.reason.encoder": "Las acciones de dial no son compatibles",
-  "devices.streamdeck.import.reason.pageLimit": "Omitida: supera el número máximo de páginas"
+  "devices.streamdeck.import.reason.pageLimit": "Omitida: supera el número máximo de páginas",
+  "devices.xeneonEdge.restoreDefaults": "Restaurar valores predeterminados",
+  "devices.xeneonEdge.restoreDefaultsHint": "Restablece el brillo, la retroiluminación, el contraste y los valores de rojo, verde y azul a los ajustes de fábrica del panel."
 }

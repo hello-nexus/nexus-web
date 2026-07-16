@@ -633,6 +633,13 @@
   "devices.usb.vidPid": "VID:PID",
   "devices.warning.displayDisconnected": "Câble d'affichage non connecté - le panneau n'a aucun écran sur lequel afficher l'image",
   "devices.warning.usbDisconnected": "USB déconnecté - certaines commandes sont indisponibles",
+  "devices.xeneonEdge.autoOrient": "Orientation automatique",
+  "devices.xeneonEdge.autoOrientHint": "Fait pivoter l'écran automatiquement selon l'orientation physique du panneau. Désactivez cette option pour définir l'orientation manuellement.",
+  "devices.xeneonEdge.backlight": "Rétroéclairage",
+  "devices.xeneonEdge.blue": "Bleu",
+  "devices.xeneonEdge.contrast": "Contraste",
+  "devices.xeneonEdge.green": "Vert",
+  "devices.xeneonEdge.red": "Rouge",
   "devices.y70.brightness": "Luminosité",
   "devices.y70.display": "Affichage",
   "devices.y70.editor.addWidget": "Ajouter un widget",
@@ -2934,5 +2941,7 @@
   "devices.streamdeck.import.reason.media": "Cette commande multimédia n'est pas prise en charge",
   "devices.streamdeck.import.reason.multiStep": "Cette étape d'action multiple n'est pas prise en charge",
   "devices.streamdeck.import.reason.encoder": "Les actions de molette ne sont pas prises en charge",
-  "devices.streamdeck.import.reason.pageLimit": "Ignorée : dépasse le nombre maximal de pages"
+  "devices.streamdeck.import.reason.pageLimit": "Ignorée : dépasse le nombre maximal de pages",
+  "devices.xeneonEdge.restoreDefaults": "Restaurer les valeurs par défaut",
+  "devices.xeneonEdge.restoreDefaultsHint": "Réinitialise la luminosité, le rétroéclairage, le contraste ainsi que le rouge, le vert et le bleu aux valeurs d'usine du panneau."
 }

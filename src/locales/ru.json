@@ -633,6 +633,13 @@
   "devices.usb.vidPid": "VID:PID",
   "devices.warning.displayDisconnected": "Кабель дисплея не подключён - у панели нет экрана для вывода изображения",
   "devices.warning.usbDisconnected": "USB отключён - некоторые элементы управления недоступны",
+  "devices.xeneonEdge.autoOrient": "Автоориентация",
+  "devices.xeneonEdge.autoOrientHint": "Автоматически поворачивает экран в соответствии с физическим положением панели. Отключите, чтобы задать ориентацию вручную.",
+  "devices.xeneonEdge.backlight": "Подсветка",
+  "devices.xeneonEdge.blue": "Синий",
+  "devices.xeneonEdge.contrast": "Контраст",
+  "devices.xeneonEdge.green": "Зелёный",
+  "devices.xeneonEdge.red": "Красный",
   "devices.y70.brightness": "Яркость",
   "devices.y70.display": "Дисплей",
   "devices.y70.editor.addWidget": "Добавить виджет",
@@ -2934,5 +2941,7 @@
   "devices.streamdeck.import.reason.media": "Это медиа-действие не поддерживается",
   "devices.streamdeck.import.reason.multiStep": "Этот шаг многошагового действия не поддерживается",
   "devices.streamdeck.import.reason.encoder": "Действия поворотного регулятора не поддерживаются",
-  "devices.streamdeck.import.reason.pageLimit": "Пропущено: превышено максимальное количество страниц"
+  "devices.streamdeck.import.reason.pageLimit": "Пропущено: превышено максимальное количество страниц",
+  "devices.xeneonEdge.restoreDefaults": "Восстановить значения по умолчанию",
+  "devices.xeneonEdge.restoreDefaultsHint": "Сбрасывает яркость, подсветку, контрастность, а также красный, зелёный и синий до заводских значений панели."
 }

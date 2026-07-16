@@ -110,3 +110,20 @@ describe('SidebarDevicesSection Nexus Link off indicator', () => {
     expect(screen.getByRole('img', { name: 'devices.nexusControlOff.sidebarTooltip' })).toBeInTheDocument();
   });
 });
+
+describe('SidebarDevicesSection simulated badge', () => {
+  // Device-agnostic: the badge also marks a simulated Tryx cooler and a
+  // simulated Stream Deck, neither of which is a panel.
+  it('labels the badge with the generic simulated string', () => {
+    mockUnified = [monitorDevice({
+      key: 'curated-tryx-sim',
+      kind: 'curated',
+      curatedId: 'tryx',
+      panelDevice: undefined,
+      simulated: true,
+    })];
+    renderSidebar();
+    expect(screen.getByRole('img', { name: 'devices.simulated' })).toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: 'devices.panels.simulated' })).not.toBeInTheDocument();
+  });
+});

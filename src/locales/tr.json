@@ -633,6 +633,13 @@
   "devices.usb.vidPid": "VID:PID",
   "devices.warning.displayDisconnected": "Ekran kablosu bağlı değil - panelin görüntü göstereceği bir ekranı yok",
   "devices.warning.usbDisconnected": "USB bağlantısı kesildi - bazı kontroller kullanılamıyor",
+  "devices.xeneonEdge.autoOrient": "Otomatik yönlendirme",
+  "devices.xeneonEdge.autoOrientHint": "Ekranı, panelin fiziksel olarak nasıl döndürüldüğüne göre otomatik olarak döndürür. Yönü manuel ayarlamak için kapatın.",
+  "devices.xeneonEdge.backlight": "Arka ışık",
+  "devices.xeneonEdge.blue": "Mavi",
+  "devices.xeneonEdge.contrast": "Kontrast",
+  "devices.xeneonEdge.green": "Yeşil",
+  "devices.xeneonEdge.red": "Kırmızı",
   "devices.y70.brightness": "Parlaklik",
   "devices.y70.display": "Ekran",
   "devices.y70.editor.addWidget": "Widget Ekle",
@@ -2934,5 +2941,7 @@
   "devices.streamdeck.import.reason.media": "Bu medya kontrolü desteklenmiyor",
   "devices.streamdeck.import.reason.multiStep": "Bu çoklu eylem adımı desteklenmiyor",
   "devices.streamdeck.import.reason.encoder": "Döner düğme eylemleri desteklenmiyor",
-  "devices.streamdeck.import.reason.pageLimit": "Atlandı: en fazla sayfa sayısını aşıyor"
+  "devices.streamdeck.import.reason.pageLimit": "Atlandı: en fazla sayfa sayısını aşıyor",
+  "devices.xeneonEdge.restoreDefaults": "Varsayılanları geri yükle",
+  "devices.xeneonEdge.restoreDefaultsHint": "Parlaklığı, arka ışığı, kontrastı ve kırmızı, yeşil, mavi değerlerini panelin fabrika ayarlarına sıfırlar."
 }

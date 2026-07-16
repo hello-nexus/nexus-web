@@ -123,6 +123,38 @@ export async function setDisplayBrightness(id: string, brightness: number): Prom
   return postService<DisplayBrightnessResponse>(`/displays/${encodeURIComponent(id)}/brightness`, { brightness });
 }
 
+// Corsair Xeneon Edge native display settings (brightness/backlight/contrast/
+// RGB), read/written over its vendor HID channel. Replaces the generic DDC
+// brightness path above for this curated panel family - see
+// DisplayBrightnessController.IsXeneonEdge on the service. Every field is
+// nullable to mirror the wire DTO: a GET returns all six on a successful
+// read; a POST body carries only the fields being changed.
+export interface XeneonEdgeSettings {
+  brightness: number | null;
+  backlight: number | null;
+  contrast: number | null;
+  red: number | null;
+  green: number | null;
+  blue: number | null;
+}
+
+export async function fetchXeneonEdgeSettings(id: string): Promise<XeneonEdgeSettings | null> {
+  return fetchService<XeneonEdgeSettings>(`/displays/${encodeURIComponent(id)}/xeneon-settings`);
+}
+
+export async function setXeneonEdgeSettings(
+  id: string,
+  patch: Partial<XeneonEdgeSettings>,
+): Promise<XeneonEdgeSettings | null> {
+  return postService<XeneonEdgeSettings>(`/displays/${encodeURIComponent(id)}/xeneon-settings`, patch);
+}
+
+// Restores every control to its factory value. The panel's own restore command
+// only covers RGB, so the service writes all six individually.
+export async function restoreXeneonEdgeDefaults(id: string): Promise<XeneonEdgeSettings | null> {
+  return postService<XeneonEdgeSettings>(`/displays/${encodeURIComponent(id)}/xeneon-settings/restore-defaults`, {});
+}
+
 export interface TouchMappingRepairResponse {
   status: 'repaired' | 'alreadyCorrect' | 'noPanel' | 'noDigitizer' | 'noHelper' | 'failed';
   detail?: string;
