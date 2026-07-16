@@ -122,6 +122,9 @@ export function LeaderboardView() {
                       aria-expanded={isExpanded}
                       onClick={() => toggleRow(entry.id)}
                       onKeyDown={e => {
+                        // Key events from a focused child anchor/button must
+                        // activate the child, not the row.
+                        if (e.target !== e.currentTarget) return;
                         if (e.key === 'Enter' || e.key === ' ') {
                           e.preventDefault();
                           toggleRow(entry.id);
@@ -145,7 +148,6 @@ export function LeaderboardView() {
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={e => e.stopPropagation()}
-                                onKeyDown={e => e.stopPropagation()}
                               >
                                 {entry.displayName}
                                 <ExternalLink size={11} aria-hidden />
