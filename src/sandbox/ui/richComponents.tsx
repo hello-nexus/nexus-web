@@ -85,6 +85,7 @@ export function ClockFace(p: HostProps) {
         tz={str(p.tz)}
         showSeconds={!!p.showSeconds}
         showDate={p.showDate !== false}
+        showTimezone={!!p.showTimezone}
         size={str(p.size) ?? '4x2'}
         hour12={!!p.hour12}
         useAccentColor={!!p.useAccentColor}

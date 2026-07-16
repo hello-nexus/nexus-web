@@ -54,4 +54,13 @@ describe('ClockSettings', () => {
 
     expect(onUpdate).toHaveBeenCalledWith({ design: 'splitflap' });
   });
+
+  it('toggles the timezone label', () => {
+    const onUpdate = vi.fn();
+    render(<ClockSettings widget={clockWidget()} onUpdate={onUpdate} onResize={vi.fn()} />);
+
+    fireEvent.click(screen.getByLabelText('panel.widget.clock.settings.showTimezone'));
+
+    expect(onUpdate).toHaveBeenCalledWith({ showTimezone: true });
+  });
 });

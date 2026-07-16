@@ -385,6 +385,7 @@ export function PanelCatalogCell({
   surface,
   label,
   selected = false,
+  disabled = false,
   onClick,
   showLabel = true,
 }: {
@@ -392,6 +393,8 @@ export function PanelCatalogCell({
   surface?: PanelSurface;
   label: string;
   selected?: boolean;
+  /** No room on the target grid: dimmed, unactivatable, out of the tab order. */
+  disabled?: boolean;
   onClick?: () => void;
   /** Presentational mounts (marketing phone mock) drop the name strip. */
   showLabel?: boolean;
@@ -411,7 +414,12 @@ export function PanelCatalogCell({
   return (
     <div
       data-panel-widget-id={widget.id}
-      className={`${styles.cellWrap} ${styles.catalogCell} ${selected ? styles.catalogCellSelected : ''}`}
+      className={[
+        styles.cellWrap,
+        styles.catalogCell,
+        selected ? styles.catalogCellSelected : '',
+        disabled ? styles.catalogCellDisabled : '',
+      ].filter(Boolean).join(' ')}
       style={{
         gridColumn: `${widget.col + 1} / span ${span.cols}`,
         gridRow: `${widget.row + 1} / span ${span.rows}`,
@@ -419,13 +427,16 @@ export function PanelCatalogCell({
         '--panel-span-rows': span.rows,
       } as CSSProperties}
       // Presentational mounts (no onClick, e.g. the marketing phone mock)
-      // must not put a focusable no-op button in the tab order.
+      // must not put a focusable no-op button in the tab order. A disabled
+      // card keeps role=button so aria-disabled reads as a real disabled
+      // control, but leaves the tab order and drops its handlers.
       role={onClick ? 'button' : undefined}
-      tabIndex={onClick ? 0 : -1}
+      tabIndex={onClick && !disabled ? 0 : -1}
       aria-label={label}
       aria-pressed={selected || undefined}
-      onClick={onClick}
-      onKeyDown={onKeyDown}
+      aria-disabled={disabled || undefined}
+      onClick={disabled ? undefined : onClick}
+      onKeyDown={disabled ? undefined : onKeyDown}
     >
       <div className={`panel-card ${styles.cell}`} data-size={widget.size}>
         <div className={styles.cellScaler} style={{ pointerEvents: 'none' }}>

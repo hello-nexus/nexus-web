@@ -473,7 +473,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       );
       return { gridCols: capacity.columns, pageRows: capacity.rows };
     }
-    if (surface === 'desktop' || surface === 'monitor') return { gridCols: 8, pageRows: 6 };
+    if (surface === 'monitor') return { gridCols: 8, pageRows: 6 };
     if (surface === 'y70') return { gridCols: 4, pageRows: 16 };
     // Phone-surface rows here are simulated presets only (real phones are
     // self-managed and never open this editor), so the preset's native canvas

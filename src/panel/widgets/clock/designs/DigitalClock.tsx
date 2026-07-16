@@ -1,8 +1,9 @@
 import type { ClockDesignProps } from './types';
+import { formatMetaLine } from './timeFormat';
 import { useFitWidth } from '../useFitWidth';
 import styles from './DigitalClock.module.scss';
 
-function DigitalClock({ now, tz, showSeconds, showDate, size, hour12, useAccentColor }: ClockDesignProps) {
+function DigitalClock({ now, tz, showSeconds, showDate, showTimezone, size, hour12, useAccentColor }: ClockDesignProps) {
   const { boxRef, contentRef, scale } = useFitWidth();
   const time = new Intl.DateTimeFormat(undefined, {
     hour: '2-digit',
@@ -12,12 +13,7 @@ function DigitalClock({ now, tz, showSeconds, showDate, size, hour12, useAccentC
     timeZone: tz || undefined,
   }).format(now);
 
-  const dateStr = showDate ? new Intl.DateTimeFormat(undefined, {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    timeZone: tz || undefined,
-  }).format(now) : '';
+  const dateStr = formatMetaLine(now, tz, showDate, showTimezone);
 
   const sizeClass = styles[`size-${size}`] ?? styles['size-4x2'];
 

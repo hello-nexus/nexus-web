@@ -24,4 +24,36 @@ describe('ClockWidget', () => {
     );
     expect(container.textContent).toMatch(/\d{1,2}:\d{2}/);
   });
+
+  it('shows the short zone name joined to the date when showTimezone is on', () => {
+    const zone = new Intl.DateTimeFormat(undefined, { timeZone: 'Asia/Tokyo', timeZoneName: 'short' })
+      .formatToParts(new Date()).find(p => p.type === 'timeZoneName')?.value ?? '';
+    expect(zone).not.toBe('');
+
+    const { container } = render(
+      <ClockWidget widget={clockWidget({ design: 'digital', timezone: 'Asia/Tokyo', showTimezone: true })} />,
+    );
+    expect(container.textContent).toContain(` · ${zone}`);
+  });
+
+  it('shows the zone name alone when the date is off', () => {
+    const zone = new Intl.DateTimeFormat(undefined, { timeZone: 'Asia/Tokyo', timeZoneName: 'short' })
+      .formatToParts(new Date()).find(p => p.type === 'timeZoneName')?.value ?? '';
+
+    const { container } = render(
+      <ClockWidget widget={clockWidget({ design: 'digital', timezone: 'Asia/Tokyo', showDate: false, showTimezone: true })} />,
+    );
+    expect(container.textContent).toContain(zone);
+    expect(container.textContent).not.toContain('·');
+  });
+
+  it('omits the zone name by default', () => {
+    const zone = new Intl.DateTimeFormat(undefined, { timeZone: 'Asia/Tokyo', timeZoneName: 'short' })
+      .formatToParts(new Date()).find(p => p.type === 'timeZoneName')?.value ?? '';
+
+    const { container } = render(
+      <ClockWidget widget={clockWidget({ design: 'digital', timezone: 'Asia/Tokyo' })} />,
+    );
+    expect(container.textContent).not.toContain(zone);
+  });
 });

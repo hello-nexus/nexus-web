@@ -692,6 +692,7 @@ host draws the face.
 | `tz` | `string` (IANA tz, e.g. `'America/New_York'`) |
 | `showSeconds` | `boolean` |
 | `showDate` | `boolean` |
+| `showTimezone` | `boolean` (short zone name on the date line) |
 | `hour12` | `boolean` |
 | `useAccentColor` | `boolean` |
 | `size` | `string` (e.g. `'4x2'`) |

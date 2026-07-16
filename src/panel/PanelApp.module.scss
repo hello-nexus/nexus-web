@@ -514,7 +514,7 @@
 }
 
 .panelRoot[data-surface='desktop'] {
-  --panel-columns: 8;
+  --panel-columns: 12;
   --panel-rows: 8;
   // No page padding on the embedded desktop grid: it lives inside the shared
   // .content wrapper (which already insets every view), so the grid sits flush
@@ -652,12 +652,12 @@
     outline: 2px solid transparent;
   }
 
-  &:hover .cell,
-  &:focus-visible .cell {
+  &:not(.catalogCellDisabled):hover .cell,
+  &:not(.catalogCellDisabled):focus-visible .cell {
     border-color: var(--panel-accent);
   }
 
-  &:active {
+  &:not(.catalogCellDisabled):active {
     transform: scale(0.98);
   }
 }
@@ -665,6 +665,14 @@
 .catalogCellSelected .cell {
   border-color: var(--panel-accent);
   box-shadow: 0 0 0 1px var(--panel-accent);
+}
+
+// No room on the target grid. Dimmed rather than hidden so the widget stays
+// discoverable and the notice's "make room" instruction has a referent. The
+// hover/focus/active affordances are gated off in .catalogCell above.
+.catalogCellDisabled {
+  cursor: default;
+  opacity: 0.4;
 }
 
 .cell {
@@ -1054,7 +1062,7 @@
 }
 
 .editorBackdrop[data-surface='desktop'] {
-  --panel-columns: 8;
+  --panel-columns: 12;
   --panel-rows: 6;
   --panel-gap: 10px;
   --panel-page-padding: 16px;
