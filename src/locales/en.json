@@ -1658,6 +1658,7 @@
   "lighting.layoutPresets.defaultName": "Preset {n}",
   "lighting.layoutPresets.delete": "Delete",
   "lighting.layoutPresets.deleteConfirm": "Delete preset \"{name}\"?",
+  "lighting.layoutPresets.duplicateName": "A preset with this name already exists. Pick a different name.",
   "lighting.layoutPresets.namePrompt": "Name this preset",
   "lighting.layoutPresets.new": "New preset",
   "lighting.layoutPresets.newOption": "New preset...",

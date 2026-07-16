@@ -1499,6 +1499,7 @@
   "lighting.layoutPresets.defaultName": "Preset {n}",
   "lighting.layoutPresets.delete": "Elimine",
   "lighting.layoutPresets.deleteConfirm": "Eliminâ il preset \"{name}\"?",
+  "lighting.layoutPresets.duplicateName": "Un preset cun chest non al esist za. Sielç un non diferent.",
   "lighting.layoutPresets.namePrompt": "Dâ un non al preset",
   "lighting.layoutPresets.new": "Gnûf preset",
   "lighting.layoutPresets.newOption": "Gnûf preset...",

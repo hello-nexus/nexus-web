@@ -1490,6 +1490,7 @@
   "lighting.layoutPresets.defaultName": "Пресет {n}",
   "lighting.layoutPresets.delete": "Удалить",
   "lighting.layoutPresets.deleteConfirm": "Удалить пресет \"{name}\"?",
+  "lighting.layoutPresets.duplicateName": "Пресет с таким именем уже существует. Выберите другое имя.",
   "lighting.layoutPresets.namePrompt": "Назовите пресет",
   "lighting.layoutPresets.new": "Новый пресет",
   "lighting.layoutPresets.newOption": "Новый пресет...",
