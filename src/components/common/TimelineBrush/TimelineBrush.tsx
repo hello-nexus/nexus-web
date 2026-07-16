@@ -32,12 +32,19 @@ export interface TimelineBrushProps {
   minWindowMs?: number;
   ariaLabel: string;
   ariaValueText: (from: number, to: number) => string;
+  /** Renders the window's from/to timestamps just outside the highlighted
+   *  box (left of the start, right of the end), live-updating while the
+   *  window slides. Purely decorative (pointer-events: none) - never part of
+   *  the drag/click hit-testing. Omit to render no labels. */
+  formatEdgeLabel?: (t: number) => string;
   height?: number;
   className?: string;
 }
 
 const DEFAULT_MIN_WINDOW_MS = 5 * 60_000;
 const DEFAULT_HEIGHT = 40;
+// Gap between the highlighted window and its edge labels, px.
+const EDGE_LABEL_GAP_PX = 6;
 // Comfortable pointer target for grabbing an edge handle, independent of its
 // drawn width, px.
 const EDGE_HIT_PX = 8;
@@ -59,7 +66,7 @@ interface DragState {
 
 export function TimelineBrush({
   domainStart, domainEnd, from, to, onChange, silhouette, minWindowMs = DEFAULT_MIN_WINDOW_MS,
-  ariaLabel, ariaValueText, height = DEFAULT_HEIGHT, className,
+  ariaLabel, ariaValueText, formatEdgeLabel, height = DEFAULT_HEIGHT, className,
 }: TimelineBrushProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
@@ -231,6 +238,22 @@ export function TimelineBrush({
         <rect className={styles.edge} x={fromPx - 1} y={0} width={2} height={height} />
         <rect className={styles.edge} x={toPx - 1} y={0} width={2} height={height} />
       </svg>
+      {formatEdgeLabel && width > 0 && (
+        <>
+          <span
+            className={`${styles.edgeLabel} ${styles.edgeLabelStart}`}
+            style={{ left: fromPx - EDGE_LABEL_GAP_PX }}
+          >
+            {formatEdgeLabel(from)}
+          </span>
+          <span
+            className={`${styles.edgeLabel} ${styles.edgeLabelEnd}`}
+            style={{ left: toPx + EDGE_LABEL_GAP_PX }}
+          >
+            {formatEdgeLabel(to)}
+          </span>
+        </>
+      )}
     </div>
   );
 }

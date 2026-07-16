@@ -100,6 +100,7 @@ import { RangeBar } from '../components/common/RangeBar/RangeBar';
 import { Badge as StorybookBadge } from '../components/common/Badge/Badge';
 import { SeriesChart } from '../components/common/SeriesChart/SeriesChart';
 import { TimeSeriesChart } from '../components/common/TimeSeriesChart/TimeSeriesChart';
+import { TimelineBrush } from '../components/common/TimelineBrush/TimelineBrush';
 import { EventTimeline } from '../components/common/EventTimeline/EventTimeline';
 import { TextInput } from '../components/common/TextInput/TextInput';
 import { Ring as StorybookRing } from '../components/common/Ring/Ring';
@@ -570,6 +571,32 @@ function PreviewTimeSeriesChart() {
         </div>
       )}
     />
+  );
+}
+
+function PreviewTimelineBrush() {
+  const DAY = 86_400_000;
+  const [now] = useState(() => Date.now());
+  const domainStart = now - 7 * DAY;
+  const [range, setRange] = useState<[number, number]>([now - DAY, now]);
+  const silhouette = Array.from({ length: 200 }, (_, i) => ({
+    t: domainStart + (i / 199) * (now - domainStart),
+    v: 40 + 20 * Math.sin(i / 6) + sampleNoise(i, 1) * 2,
+  }));
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <TimelineBrush
+        domainStart={domainStart}
+        domainEnd={now}
+        from={range[0]}
+        to={range[1]}
+        onChange={(from, to) => setRange([from, to])}
+        silhouette={silhouette}
+        ariaLabel="Time range"
+        ariaValueText={(from, to) => `${new Date(from).toLocaleString()} to ${new Date(to).toLocaleString()}`}
+        formatEdgeLabel={t => new Date(t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
+      />
+    </div>
   );
 }
 
@@ -1971,6 +1998,12 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/TimeSeriesChart/TimeSeriesChart.tsx',
     description: 'Multi-series line chart over a real date/time domain (not a fixed live-seconds window). Tracks container width via ResizeObserver; borrows StackedChart\'s axis/tooltip frame. A gap wider than 1.5x the actual median point spacing (derived from the data, not a nominal bucket size) breaks the line instead of interpolating across it, and an isolated point renders as a dot. Used by the Diagnostics Cooling tab\'s temperature history.', Preview: PreviewTimeSeriesChart,
     notes: 'Points carry {t, avg, max}; only avg is plotted, both are shown in the hover tooltip. xTickFormat/valueFormat let the caller pick range-appropriate label granularity and unit formatting. Optional bands prop draws translucent spans (e.g. sustained-high episodes). Optional tooltipExtra(t) appends caller content after the series rows (e.g. the Cooling tab\'s per-bucket app breakdown) - renders nothing when it returns null.',
+  },
+  {
+    name: 'TimelineBrush', category: 'charts',
+    filePath: 'src/components/common/TimelineBrush/TimelineBrush.tsx',
+    description: 'Minimap scrub bar for panning/zooming a time window within a larger domain: drag the highlighted box to pan, drag either edge to resize (floored at a minimum window), click the track to recenter, drag the right edge within 6px of the domain end to snap onto it. Optional amplitude-only silhouette backdrop and live from/to edge labels. Backs the monitoring tabs\' history chart brush.', Preview: PreviewTimelineBrush,
+    notes: 'Pure geometry lives in timelineBrushUtils.ts. onChange(from, to, phase) fires phase "drag" for every intermediate move and "end" on commit (pointer up or a keyboard action) - callers debounce on drag and fetch immediately on end. Keyboard: role="slider", arrows pan 10% of the window, Shift+arrows resize it (right edge anchored), Home/End jump to the domain start/end (End re-touches the live edge).',
   },
   {
     name: 'EventTimeline', category: 'charts',

@@ -121,6 +121,32 @@ describe('TimelineBrush', () => {
     expect(onChange).toHaveBeenLastCalledWith(60_000, 80_000, 'end');
   });
 
+  describe('edge labels', () => {
+    it('renders no labels when formatEdgeLabel is omitted (backwards compatible)', () => {
+      const { container } = renderBrush(() => {});
+      expect(container.querySelector('[class*="edgeLabel"]')).toBeNull();
+    });
+
+    it('renders the formatted from/to labels outside the window', () => {
+      const { container, getByText } = render(
+        <TimelineBrush
+          domainStart={DOMAIN_START}
+          domainEnd={DOMAIN_END}
+          from={20_000}
+          to={40_000}
+          onChange={() => {}}
+          minWindowMs={1_000}
+          ariaLabel="Time range"
+          ariaValueText={ariaValueText}
+          formatEdgeLabel={t => `t${t}`}
+        />,
+      );
+      expect(getByText('t20000')).toBeInTheDocument();
+      expect(getByText('t40000')).toBeInTheDocument();
+      expect(container.querySelectorAll('[class*="edgeLabel"]').length).toBe(2);
+    });
+  });
+
   describe('keyboard', () => {
     it('ArrowRight pans forward by 10% of the window', () => {
       const onChange = vi.fn();

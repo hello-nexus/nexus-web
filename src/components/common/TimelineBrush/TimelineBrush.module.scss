@@ -40,3 +40,23 @@
   fill: var(--accent);
   pointer-events: none;
 }
+
+.edgeLabel {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+  font-family: var(--font-mono);
+  font-size: var(--type-mini);
+  color: var(--text-dim);
+}
+
+.edgeLabelStart {
+  transform: translate(-100%, -50%);
+}
+
+.edgeLabelEnd {
+  transform: translateY(-50%);
+}
