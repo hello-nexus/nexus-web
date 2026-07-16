@@ -12,20 +12,6 @@
   gap: 0.75rem;
 }
 
-// Two charts side by side (GPU usage left, VRAM right); stacks below the
-// 220px-per-chart minimum the StackedChart SVG enforces.
-.chartRow {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
-}
-
-@media (max-width: 560px) {
-  .chartRow {
-    grid-template-columns: 1fr;
-  }
-}
-
 // CPU/GPU tab header: the fully-qualified processor / GPU name. On the GPU tab
 // with more than one GPU a "Change" button beside it opens the GPU picker.
 .tabHeader {
@@ -87,61 +73,6 @@
 .vitalLabel {
   @include text-caption;
   color: var(--text-dim);
-}
-
-// ── Top Processes Table ──
-
-.procTable {
-  @include text-button;
-  width: 100%;
-  // `separate` (not `collapse`) so the header rule paints through the normal
-  // box model like the RankedList <div> divider; the collapsed-border path
-  // snaps a 1px rule to ~2 device px on the 150%-scaled Y70 and reads heavier.
-  // border-spacing: 0 keeps the no-gap layout collapse gave us.
-  border-collapse: separate;
-  border-spacing: 0;
-  table-layout: fixed;
-
-  th, td {
-    &:nth-child(1) { width: 52%; }
-    &:nth-child(2) { width: 14%; }
-    &:nth-child(3) { width: 14%; }
-    &:nth-child(4) { width: 20%; }
-  }
-
-  th {
-    @include text-label;
-    text-align: left;
-    color: var(--text-dim);
-    // Header label / rule / first row spacing mirrors the RankedList header
-    // divider so the rule reads as a light separator, not a heavy underline.
-    padding: 0.3rem 0.5rem 0.45rem;
-    border-bottom: 1px solid var(--separator);
-
-    &:not(:first-child) { text-align: right; }
-  }
-
-  td {
-    padding: 0.35rem 0.5rem;
-    color: var(--text-dim);
-    font-family: var(--font-mono);
-    font-variant-numeric: tabular-nums;
-
-    &:not(:first-child) { text-align: right; }
-  }
-
-  // 0.9rem == RankedList's 0.6rem header margin + 0.3rem first-row padding, so
-  // the rule sits the same distance above the first row as the CPU-tab list.
-  tbody tr:first-child td { padding-top: 0.9rem; }
-}
-
-.procName {
-  color: var(--text) !important;
-  font-family: inherit !important;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 200px;
 }
 
 // ── Detailed sensor report (hwinfo64-style) ──

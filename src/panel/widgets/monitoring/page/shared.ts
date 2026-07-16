@@ -7,44 +7,6 @@ export function formatRate(bytesPerSec: number, numberFormat: NumberFormat): str
   return localizeNumbers(`${Math.round(bytesPerSec)} B/s`, numberFormat);
 }
 
-// Mirrors formatRateParts: 4-char-wide string (1.2, 12.0, 120) so the value
-// block stays a stable width and the sparkline doesn't shift between frames.
-export function formatPercentParts(percent: number, numberFormat: NumberFormat): { value: string; unit: string } {
-  const v = Math.max(0, percent);
-  const roundedOneDecimal = Math.round(v * 10) / 10;
-  const formatted = roundedOneDecimal >= 100
-    ? String(Math.round(roundedOneDecimal))
-    : roundedOneDecimal.toFixed(1);
-  return { value: localizeNumbers(formatted, numberFormat), unit: '%' };
-}
-
-export function formatMemoryPercent(percent: number, numberFormat: NumberFormat): string {
-  return localizeNumbers(String(Math.round(Math.max(0, Math.min(100, percent)))), numberFormat);
-}
-
-// Step up units so the integer part stays at or below 3 digits. Decimals only below 100.
-export function formatRateParts(bytesPerSec: number, numberFormat: NumberFormat): { value: string; unit: string } {
-  const units = ['B/s', 'KB/s', 'MB/s', 'GB/s', 'TB/s'];
-  let value = Math.max(0, bytesPerSec);
-  let i = 0;
-  while (value >= 1000 && i < units.length - 1) {
-    value /= 1024;
-    i++;
-  }
-  let formatted: string;
-  if (i === 0) formatted = String(Math.round(value));
-  else if (value < 10) formatted = value.toFixed(2);
-  else if (value < 100) formatted = value.toFixed(1);
-  else formatted = String(Math.round(value));
-  return { value: localizeNumbers(formatted, numberFormat), unit: units[i] };
-}
-
-export function formatDataSize(kb: number, numberFormat: NumberFormat): string {
-  if (kb >= 1024 * 1024) return localizeNumbers(`${(kb / (1024 * 1024)).toFixed(1)} GB`, numberFormat);
-  if (kb >= 1024) return localizeNumbers(`${(kb / 1024).toFixed(1)} MB`, numberFormat);
-  return localizeNumbers(`${Math.round(kb)} KB`, numberFormat);
-}
-
 // hwinfo64-style ordering: temps and loads first, then clocks, power, voltage,
 // fans, capacities, then everything else. Sensors that don't match a bucket
 // drop to "other" so we never silently lose data.

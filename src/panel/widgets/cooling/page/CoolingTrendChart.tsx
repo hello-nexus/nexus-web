@@ -30,11 +30,11 @@ interface Props {
 }
 
 /**
- * Page-sized cooling trend chart. Mirrors the monitoring StackedChart frame
- * (border + bg-card + rounded corners + title row) and renders three series
- * in one chart area: CPU temperature as the bottom filled layer (0 -> cpu),
- * GPU temperature stacked on top (cpu -> cpu+gpu) so the two never overlap,
- * and a dashed fan-RPM line on its own auto-stepping right-side domain.
+ * Page-sized cooling trend chart. Uses the shared chart-card frame (border +
+ * bg-card + rounded corners + title row) and renders three series in one
+ * chart area: CPU temperature as the bottom filled layer (0 -> cpu), GPU
+ * temperature stacked on top (cpu -> cpu+gpu) so the two never overlap, and
+ * a dashed fan-RPM line on its own auto-stepping right-side domain.
  */
 export function CoolingTrendChart({ cpuTempValue, gpuTempValue, channels, height = 140, hideTitle }: Props) {
   const { t } = useTranslation();
