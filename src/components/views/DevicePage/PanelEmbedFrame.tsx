@@ -395,6 +395,13 @@ export function PanelEmbedFrame({
         canvasWidth: output.width,
         canvasHeight: output.height,
         pixelRatio: 1,
+        // html-to-image memoizes fetched resources for the page session with
+        // query params STRIPPED from the cache key, so without this every
+        // capture reuses the first wallpaper/media bytes it ever saw - the
+        // ?r= revision that refreshes the visible panel never reaches the
+        // rasterizer, and different panels' size-specific crops collide on
+        // one key. Full-URL keys make the revision param bust it.
+        includeQueryParams: true,
       });
       if (!blob) throw new Error('capture produced no image');
       return blob;
