@@ -19,7 +19,7 @@ import type { ThemeMode } from '../../lib/settings';
 import type { EffectState } from '../../types/lighting';
 import type { PanelConfigValue, PanelSurface, PanelWidget, PanelWidgetSize } from '../types';
 import { isSingleWidgetSurface } from '../types';
-import type { PanelBackgroundMode } from '../background/panelBackground';
+import type { PanelBackgroundFrost, PanelBackgroundMode } from '../background/panelBackground';
 import type { PanelThemeState } from '../theme/panelTheme';
 import styles from '../PanelApp.module.scss';
 
@@ -55,11 +55,11 @@ export function PanelEditorSheet({
   onThemeBackgroundOpacityPreview,
   onThemeBackgroundOpacityCommit,
   onThemeBackgroundMediaCommit,
+  onThemeBackgroundFrostCommit,
   showBackgroundToggle = false,
   onThemeWidgetOpacityPreview,
   onThemeWidgetOpacityCommit,
   onThemeWidgetLabelsCommit,
-  onThemeWidgetBlurCommit,
   onThemeWidgetPaddingPreview,
   onThemeWidgetPaddingCommit,
   showMediaTab = false,
@@ -111,12 +111,12 @@ export function PanelEditorSheet({
   onThemeBackgroundOpacityPreview: (opacity: number) => void;
   onThemeBackgroundOpacityCommit: (opacity: number) => void;
   onThemeBackgroundMediaCommit: (mediaId: string | null, type: 'static' | 'animated' | null) => void;
+  onThemeBackgroundFrostCommit: (level: PanelBackgroundFrost) => void;
   // Background on/off toggle (kiosk-hosted surfaces: off = desktop see-through).
   showBackgroundToggle?: boolean;
   onThemeWidgetOpacityPreview: (opacity: number) => void;
   onThemeWidgetOpacityCommit: (opacity: number) => void;
   onThemeWidgetLabelsCommit: (enabled: boolean) => void;
-  onThemeWidgetBlurCommit: (enabled: boolean) => void;
   onThemeWidgetPaddingPreview: (percent: number) => void;
   onThemeWidgetPaddingCommit: (percent: number) => void;
   showMediaTab?: boolean;
@@ -366,6 +366,7 @@ export function PanelEditorSheet({
               onBackgroundOpacityPreview={onThemeBackgroundOpacityPreview}
               onBackgroundOpacityCommit={onThemeBackgroundOpacityCommit}
               onBackgroundMediaCommit={onThemeBackgroundMediaCommit}
+              onBackgroundFrostCommit={onThemeBackgroundFrostCommit}
               showMediaTab={showMediaTab}
               deviceAspect={deviceAspect}
               deviceW={deviceW}
@@ -373,7 +374,6 @@ export function PanelEditorSheet({
               onWidgetOpacityPreview={onThemeWidgetOpacityPreview}
               onWidgetOpacityCommit={onThemeWidgetOpacityCommit}
               onWidgetLabelsCommit={onThemeWidgetLabelsCommit}
-              onWidgetBlurCommit={onThemeWidgetBlurCommit}
               onWidgetPaddingPreview={onThemeWidgetPaddingPreview}
               onWidgetPaddingCommit={onThemeWidgetPaddingCommit}
               hideWidgetChromeControls={isSingleWidgetSurface(surface)}

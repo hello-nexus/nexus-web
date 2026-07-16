@@ -21,7 +21,6 @@ export interface InstallDefaultsDocument {
     backgroundOpacity: number;
     widgetOpacity: number;
     widgetLabels: boolean;
-    widgetBlur: boolean;
     layouts: Record<'desktop' | 'y70' | 'phone' | 'q60', {
       layoutSchemaVersion: number;
       surface: string;

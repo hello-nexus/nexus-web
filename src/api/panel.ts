@@ -51,9 +51,11 @@ export interface PanelDeviceRecord {
   backgroundEnabled?: boolean | null;
   backgroundMediaId?: string | null;
   backgroundMediaType?: 'static' | 'animated' | null;
+  // Frosted-glass blur over the background layer: 'light' | 'heavy'.
+  // Absent/null = none.
+  backgroundFrost?: string | null;
   widgetOpacity?: number;
   widgetLabels?: boolean;
-  widgetBlur?: boolean;
   widgetPadding?: number;
   themeSyncWithDesktop?: boolean;
   accentSyncWithDesktop?: boolean;
@@ -94,9 +96,10 @@ export interface PanelDevicePatch {
   backgroundMediaId?: string | null;
   // '' clears the reference server-side (NullIfEmpty); a JSON null is ignored by the patch-merge.
   backgroundMediaType?: 'static' | 'animated' | '' | null;
+  // '' clears (= none), same NullIfEmpty semantics as backgroundMediaType.
+  backgroundFrost?: 'light' | 'heavy' | '';
   widgetOpacity?: number;
   widgetLabels?: boolean;
-  widgetBlur?: boolean;
   widgetPadding?: number;
   themeSyncWithDesktop?: boolean;
   accentSyncWithDesktop?: boolean;
