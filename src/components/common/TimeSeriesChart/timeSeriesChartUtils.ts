@@ -84,6 +84,22 @@ export function valueDomain(series: readonly TimeSeriesSeries[]): [number, numbe
 }
 
 /**
+ * Resolves the chart's y-axis bounds: each side of `forced` (when given)
+ * overrides that side of the data-derived valueDomain - null means "derive
+ * this side from the data" (e.g. [0, null] pins the floor at zero but still
+ * auto-scales the ceiling to the data, [0, 100] pins both for a percent
+ * chart). Omitting `forced` entirely keeps today's pure data-driven domain.
+ */
+export function resolveValueDomain(series: readonly TimeSeriesSeries[], forced?: readonly [number | null, number | null]): [number, number] {
+  const [dataMin, dataMax] = valueDomain(series);
+  if (!forced) return [dataMin, dataMax];
+  const min = forced[0] ?? dataMin;
+  const max = forced[1] ?? dataMax;
+  if (min === max) return [min - 1, max + 1];
+  return [min, max];
+}
+
+/**
  * "Nice" round tick values spanning [min, max] with roughly targetCount
  * ticks, d3-style (1/2/5 * 10^n steps).
  */

@@ -4,6 +4,7 @@ import {
   medianSpacingMs,
   nearestPoint,
   niceTicks,
+  resolveValueDomain,
   splitIntoSegments,
   timeDomain,
   valueDomain,
@@ -96,6 +97,32 @@ describe('valueDomain', () => {
 
   it('defaults to [0, 1] when there are no points at all', () => {
     expect(valueDomain([])).toEqual([0, 1]);
+  });
+});
+
+describe('resolveValueDomain', () => {
+  const series: TimeSeriesSeries[] = [
+    { id: 'a', name: 'A', color: '#fff', points: [pt(0, 40), pt(1, 60)] },
+  ];
+
+  it('matches the pure data domain when forced is omitted (backwards compatible)', () => {
+    expect(resolveValueDomain(series)).toEqual(valueDomain(series));
+  });
+
+  it('pins both bounds for a percent chart regardless of the data', () => {
+    expect(resolveValueDomain(series, [0, 100])).toEqual([0, 100]);
+  });
+
+  it('pins the floor while the ceiling still auto-scales to the data (network)', () => {
+    expect(resolveValueDomain(series, [0, null])).toEqual([0, 60]);
+  });
+
+  it('pins the ceiling while the floor still auto-scales to the data', () => {
+    expect(resolveValueDomain(series, [null, 100])).toEqual([40, 100]);
+  });
+
+  it('pads a degenerate forced domain so it is never zero-width', () => {
+    expect(resolveValueDomain(series, [50, 50])).toEqual([49, 51]);
   });
 });
 

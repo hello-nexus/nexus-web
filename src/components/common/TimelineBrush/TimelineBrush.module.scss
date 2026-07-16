@@ -1,0 +1,42 @@
+.root {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  cursor: pointer;
+  touch-action: none;
+  border-radius: var(--radius-sm);
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+.svg {
+  display: block;
+  width: 100%;
+}
+
+.track {
+  fill: var(--surface);
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.silhouette {
+  fill: var(--text-dim);
+  opacity: 0.25;
+  pointer-events: none;
+}
+
+.window {
+  fill: color-mix(in srgb, var(--accent) 22%, transparent);
+  stroke: var(--accent);
+  stroke-width: 1;
+  pointer-events: none;
+}
+
+.edge {
+  fill: var(--accent);
+  pointer-events: none;
+}

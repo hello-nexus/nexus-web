@@ -6,9 +6,9 @@ import {
   medianSpacingMs,
   nearestPoint,
   niceTicks,
+  resolveValueDomain,
   splitIntoSegments,
   timeDomain,
-  valueDomain,
   type TimeSeriesSeries,
 } from './timeSeriesChartUtils';
 import styles from './TimeSeriesChart.module.scss';
@@ -51,13 +51,19 @@ export interface TimeSeriesChartProps {
    *  a per-bucket breakdown the chart itself has no concept of. Called with
    *  the hovered timestamp; renders nothing when it returns null. */
   tooltipExtra?: (t: number) => ReactNode;
+  /** Forces one or both y-axis bounds instead of deriving them from the data
+   *  (e.g. [0, 100] for a percent chart, [0, null] to pin the floor at zero
+   *  while the ceiling still auto-scales). null on a side derives that side
+   *  from the data; omitting the prop entirely keeps the pure data-driven
+   *  domain. */
+  yDomain?: readonly [number | null, number | null];
 }
 
 const PAD = { left: 56, right: 16, top: 12, bottom: 28 };
 
 export function TimeSeriesChart({
   series, height = 260, valueFormat, xTickFormat, xTickCount = 5, yTickCount = 5,
-  avgLabel, maxLabel, bands, showLegend = true, domain, tooltipExtra,
+  avgLabel, maxLabel, bands, showLegend = true, domain, tooltipExtra, yDomain,
 }: TimeSeriesChartProps) {
   const { t, language } = useTranslation();
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -90,7 +96,7 @@ export function TimeSeriesChart({
   // span blank; otherwise fall back to the data's own extent.
   const dataDomain = useMemo(() => timeDomain(series), [series]);
   const domainT = domain ?? dataDomain;
-  const [minV, maxV] = useMemo(() => valueDomain(series), [series]);
+  const [minV, maxV] = useMemo(() => resolveValueDomain(series, yDomain), [series, yDomain]);
   const spacingMs = useMemo(() => medianSpacingMs(series), [series]);
   const maxGapMs = spacingMs !== null ? spacingMs * GAP_MULTIPLIER : Infinity;
 
