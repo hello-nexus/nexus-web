@@ -15,7 +15,24 @@ export interface PublicAccountAvatar {
 export interface PublicAccountDevice {
   hostname: string;
   specs: Record<string, string>;
+  /** Client-added entry (no telemetry backing it) vs an auto-reported install. */
+  manual: boolean;
   lastSeenAt: string;
+}
+
+export interface PublicBenchmarkEntry {
+  id: string;
+  composite: number;
+  scoringVersion: string;
+  createdAt: string;
+  cpuModel: string;
+  gpuModels: string[];
+}
+
+export interface PublicAccountBenchmarks {
+  /** Null when the account has no submissions yet. */
+  best: PublicBenchmarkEntry | null;
+  recent: PublicBenchmarkEntry[];
 }
 
 export type PublicAccount =
@@ -26,6 +43,7 @@ export type PublicAccount =
       isPrivate: false;
       createdAt: string;
       devices: PublicAccountDevice[];
+      benchmarks: PublicAccountBenchmarks;
     };
 
 export type PublicAccountResult =

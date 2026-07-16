@@ -46,6 +46,7 @@ export function PanelEditorSheet({
   onThemeBackgroundPreview,
   onThemeBackgroundCommit,
   onThemeBackgroundModeCommit,
+  onThemeBackgroundEnabledCommit,
   onThemeBackgroundEffectCommit,
   onThemeBackgroundTemplateCommit,
   onThemeBackgroundEffectStatePreview,
@@ -53,6 +54,7 @@ export function PanelEditorSheet({
   onThemeBackgroundOpacityPreview,
   onThemeBackgroundOpacityCommit,
   onThemeBackgroundMediaCommit,
+  showBackgroundToggle = false,
   onThemeWidgetOpacityPreview,
   onThemeWidgetOpacityCommit,
   onThemeWidgetLabelsCommit,
@@ -97,6 +99,7 @@ export function PanelEditorSheet({
   onThemeBackgroundPreview: (hex: string) => void;
   onThemeBackgroundCommit: (hex: string) => void;
   onThemeBackgroundModeCommit: (mode: PanelBackgroundMode) => void;
+  onThemeBackgroundEnabledCommit: (enabled: boolean) => void;
   onThemeBackgroundEffectCommit: (effect: string) => void;
   onThemeBackgroundTemplateCommit: (template: number) => void;
   onThemeBackgroundEffectStatePreview: (state: EffectState) => void;
@@ -104,6 +107,8 @@ export function PanelEditorSheet({
   onThemeBackgroundOpacityPreview: (opacity: number) => void;
   onThemeBackgroundOpacityCommit: (opacity: number) => void;
   onThemeBackgroundMediaCommit: (mediaId: string | null, type: 'static' | 'animated' | null) => void;
+  // Background on/off toggle (kiosk-hosted surfaces: off = desktop see-through).
+  showBackgroundToggle?: boolean;
   onThemeWidgetOpacityPreview: (opacity: number) => void;
   onThemeWidgetOpacityCommit: (opacity: number) => void;
   onThemeWidgetLabelsCommit: (enabled: boolean) => void;
@@ -347,6 +352,8 @@ export function PanelEditorSheet({
               onBackgroundPreview={onThemeBackgroundPreview}
               onBackgroundCommit={onThemeBackgroundCommit}
               onBackgroundModeCommit={onThemeBackgroundModeCommit}
+              onBackgroundEnabledCommit={onThemeBackgroundEnabledCommit}
+              showBackgroundToggle={showBackgroundToggle}
               onBackgroundEffectCommit={onThemeBackgroundEffectCommit}
               onBackgroundTemplateCommit={onThemeBackgroundTemplateCommit}
               onBackgroundEffectStatePreview={onThemeBackgroundEffectStatePreview}

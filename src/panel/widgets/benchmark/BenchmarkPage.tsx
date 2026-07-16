@@ -15,7 +15,9 @@ import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
 import { Button } from '../../../components/common/Button/Button';
 import { SectionHeader } from '../../../components/common/SectionHeader/SectionHeader';
 import { SystemSpecsPanel } from '../../../components/common/SystemSpecsPanel/SystemSpecsPanel';
-import { getDeviceId, getLastSubmissionId, setLastSubmissionId, submitBenchmark } from '../../../api/nexusApi';
+import { getDeviceId, getLastSubmissionId, setLastSubmissionId } from '../../../api/nexusApi';
+import { submitCloudBenchmark } from '../../../api/cloud';
+import { buildBenchmarkSubmission } from './benchmarkSubmission';
 import { BenchmarkProgress } from './BenchmarkProgress';
 import { BenchmarkResults } from './BenchmarkResults';
 import { LeaderboardView } from './LeaderboardView';
@@ -73,40 +75,12 @@ export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onT
     (async () => {
       setSubmitting(true);
       try {
-        const payload = {
-          deviceId: getDeviceId(),
-          cpuModel: result.hardware.cpuModel,
-          gpuModels: result.hardware.gpuModels,
-          cpuScore: result.cpu.score,
-          gpuScore: result.gpu.score,
-          ramScore: result.ram.score,
-          storageScore: result.storage.score,
-          composite: result.composite,
-          rawMetrics: {
-            cpu: { raw: result.cpu.rawValue, unit: result.cpu.rawUnit, detail: result.cpu.detail },
-            gpu: { raw: result.gpu.rawValue, unit: result.gpu.rawUnit, detail: result.gpu.detail },
-            ram: { raw: result.ram.rawValue, unit: result.ram.rawUnit, detail: result.ram.detail },
-            storage: { raw: result.storage.rawValue, unit: result.storage.rawUnit, detail: result.storage.detail },
-            os: result.hardware.os,
-            cores: result.hardware.logicalCores,
-          },
-          clientVersion: String(__APP_VERSION__ ?? '0'),
-          cpuRaw: result.cpu.rawValue,
-          cpuUnit: result.cpu.rawUnit,
-          gpuRaw: result.gpu.rawValue,
-          gpuUnit: result.gpu.rawUnit,
-          ramRaw: result.ram.rawValue,
-          ramUnit: result.ram.rawUnit,
-          storageRaw: result.storage.rawValue,
-          storageUnit: result.storage.rawUnit,
-          scoringVersion: result.scoringVersion,
-          ramModel: result.hardware.ramModel,
-          storageModel: result.hardware.storageModel,
-          os: result.hardware.os,
-          logicalCores: result.hardware.logicalCores,
-          benchTools: result.tools,
-        };
-        const res = await submitBenchmark(payload);
+        const payload = buildBenchmarkSubmission(result, getDeviceId());
+        // Routed through the local service (not api.hellonexus.com directly):
+        // the benchmark UI only ever runs in-app, so the service can forward
+        // the signed-in cloud account's bearer and link the submission - a
+        // bare browser fetch has no way to attach that token.
+        const res = await submitCloudBenchmark(payload);
         if (!cancelled && res) {
           setSubmission({ percentile: res.percentile, rank: res.rank, total: res.totalSubmissions });
           setLastSubmissionId(res.id);

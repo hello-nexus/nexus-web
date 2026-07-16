@@ -3,6 +3,8 @@
 // null) fall back to one generic message - the server's raw code/msg must
 // never reach JSX directly.
 
+import { DEVICE_MAX_PER_ACCOUNT } from './deviceUtils';
+
 const AUTH_ERROR_KEYS: Record<string, string> = {
   invalid_credentials: 'account.error.invalidCredentials',
   email_unverified: 'account.error.emailUnverified',
@@ -29,4 +31,13 @@ export function currentPasswordErrorMessage(
 ): string {
   if (!hasBody) return t('account.error.generic');
   return sentWithoutCurrentPassword ? t('account.error.recoverySessionExpired') : t('account.error.wrongPassword');
+}
+
+// upsertDevice also 400s on a spec-validation failure (e.g. a value over the
+// server's length cap), so the status alone can't distinguish that from the
+// device-cap rejection - only the envelope's `msg` code can. Anything else
+// (network failure, an unrecognized code) falls back to the generic message.
+export function deviceUpsertErrorMessage(t: (key: string, params?: Record<string, string | number>) => string, msg: string | null | undefined): string {
+  if (msg === 'device_limit_reached') return t('account.devices.error.cap', { max: String(DEVICE_MAX_PER_ACCOUNT) });
+  return t('account.error.generic');
 }

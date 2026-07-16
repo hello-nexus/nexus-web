@@ -1,12 +1,16 @@
 import { Fragment, useEffect, useState } from 'react';
-import { Trophy, ChevronDown, ChevronRight } from 'lucide-react';
+import { Trophy, ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
-import { getLeaderboard, getLastSubmissionId } from '../../../api/nexusApi';
-import type { LeaderboardEntry, LeaderboardResponse } from '../../../types/benchmark';
+import { getBenchmarkVersions, getLeaderboard, getLastSubmissionId } from '../../../api/nexusApi';
+import type { BenchmarkVersionInfo, LeaderboardEntry, LeaderboardResponse } from '../../../types/benchmark';
 import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
 import { Button } from '../../../components/common/Button/Button';
 import { Select } from '../../../components/common/Select/Select';
 import styles from './LeaderboardView.module.scss';
+
+// Absolute so the link works from every surface the leaderboard renders on
+// (desktop dashboard, panel widget) - none of which are hellonexus.com itself.
+const PUBLIC_PROFILE_ORIGIN = 'https://hellonexus.com';
 
 export function LeaderboardView() {
   const { t } = useTranslation();
@@ -14,10 +18,16 @@ export function LeaderboardView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [scoringVersion, setScoringVersion] = useState('');
-  const [allVersions, setAllVersions] = useState<string[]>([]);
+  // null = not loaded yet or the versions endpoint errored - either way the
+  // filter stays hidden rather than showing an empty/broken dropdown.
+  const [versions, setVersions] = useState<BenchmarkVersionInfo[] | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const myId = getLastSubmissionId();
+
+  useEffect(() => {
+    void getBenchmarkVersions().then(res => setVersions(res ?? null));
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -32,9 +42,6 @@ export function LeaderboardView() {
       } else {
         setData(res);
         setError(false);
-        if (!scoringVersion) {
-          setAllVersions(Array.from(new Set(res.entries.map(e => e.scoringVersion))).sort());
-        }
       }
       setLoading(false);
     });
@@ -45,24 +52,27 @@ export function LeaderboardView() {
     setExpandedId(prev => (prev === id ? null : id));
   };
 
+  const showVersionSelector = versions !== null && versions.length > 0;
   const versionOptions = [
     { value: '', label: t('benchmark.leaderboard.version') },
-    ...allVersions.map(v => ({ value: v, label: v })),
+    ...(versions ?? []).map(v => ({ value: v.scoringVersion, label: v.scoringVersion })),
   ];
 
   return (
     <section className={styles.leaderboard}>
-      <div className={styles.filters}>
-        <label className={styles.filterLabel}>
-          {t('benchmark.leaderboard.filterVersion')}
-        </label>
-        <Select
-          value={scoringVersion}
-          onChange={setScoringVersion}
-          options={versionOptions}
-          ariaLabel={t('benchmark.leaderboard.filterVersion')}
-        />
-      </div>
+      {showVersionSelector && (
+        <div className={styles.filters}>
+          <label className={styles.filterLabel}>
+            {t('benchmark.leaderboard.filterVersion')}
+          </label>
+          <Select
+            value={scoringVersion}
+            onChange={setScoringVersion}
+            options={versionOptions}
+            ariaLabel={t('benchmark.leaderboard.filterVersion')}
+          />
+        </div>
+      )}
 
       <div className={styles.body}>
         {loading && (
@@ -126,7 +136,23 @@ export function LeaderboardView() {
                       </td>
                       <td className={styles.tdScore}>{Math.round(entry.composite)}</td>
                       <td className={styles.tdHardware}>
-                        <div className={styles.hwName}>{entry.displayName ?? t('benchmark.leaderboard.anonymous')}</div>
+                        <div className={styles.hwName}>
+                          {entry.displayName
+                            ? (
+                              <a
+                                className={styles.hwNameLink}
+                                href={`${PUBLIC_PROFILE_ORIGIN}/u/${encodeURIComponent(entry.displayName)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={e => e.stopPropagation()}
+                                onKeyDown={e => e.stopPropagation()}
+                              >
+                                {entry.displayName}
+                                <ExternalLink size={11} aria-hidden />
+                              </a>
+                            )
+                            : t('benchmark.leaderboard.anonymous')}
+                        </div>
                         <div className={styles.hwPrimary}>{entry.hardware.cpuModel}</div>
                         {entry.hardware.gpuModels.length > 0 && (
                           <div className={styles.hwSecondary}>{entry.hardware.gpuModels[0]}</div>

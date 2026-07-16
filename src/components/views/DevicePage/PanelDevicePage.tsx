@@ -21,6 +21,7 @@ import { repaginatePanelLayout } from '../../../panel/engine/paginate';
 import { simulatedPanelEditorCapacity } from '../../../panel/embed/simulatedPanelViewport';
 import { getPanelGridSizingSettings } from '../../../lib/panelSimulation';
 import { isSingleWidgetSurface } from '../../../panel/types';
+import { supportsDesktopSeeThrough } from '../../../panel/device/wiredPanel';
 import { fetchService, postService } from '../../../api/service';
 import {
   fetchDisplays,
@@ -772,6 +773,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         onBackgroundPreview={panelTheme.previewBackground}
                         onBackgroundCommit={panelTheme.commitBackground}
                         onBackgroundModeCommit={panelTheme.commitBackgroundMode}
+                        onBackgroundEnabledCommit={panelTheme.commitBackgroundEnabled}
+                        showBackgroundToggle={supportsDesktopSeeThrough(surface, !!device?.displayId)}
                         onBackgroundEffectCommit={panelTheme.commitBackgroundEffect}
                         onBackgroundTemplateCommit={panelTheme.commitBackgroundTemplate}
                         onBackgroundEffectStatePreview={panelTheme.previewBackgroundEffectState}
@@ -1273,7 +1276,6 @@ function MonitorSettingsPanel({
       {sleepWithHost !== null && (
         <SettingToggle
           label={t('devices.qseries.sleepWithHost')}
-          description={t('devices.qseries.sleepWithHostHint')}
           checked={sleepWithHost}
           onChange={onSleepWithHostToggle}
         />

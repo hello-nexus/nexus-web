@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { isWiredPanel, wiredPanelClass } from './wiredPanel';
+import { isWiredPanel, supportsDesktopSeeThrough, wiredPanelClass } from './wiredPanel';
 
 describe('isWiredPanel', () => {
   beforeEach(() => {
@@ -60,5 +60,23 @@ describe('wiredPanelClass', () => {
 
   it('returns null for desktop', () => {
     expect(wiredPanelClass('desktop')).toBeNull();
+  });
+});
+
+describe('supportsDesktopSeeThrough', () => {
+  it('allows y70 regardless of display binding', () => {
+    expect(supportsDesktopSeeThrough('y70', false)).toBe(true);
+    expect(supportsDesktopSeeThrough('y70', true)).toBe(true);
+  });
+
+  it('allows monitor only when display-bound (excludes streamed monitor-surface panels)', () => {
+    expect(supportsDesktopSeeThrough('monitor', true)).toBe(true);
+    expect(supportsDesktopSeeThrough('monitor', false)).toBe(false);
+  });
+
+  it('never allows q60, phone, or desktop', () => {
+    expect(supportsDesktopSeeThrough('q60', true)).toBe(false);
+    expect(supportsDesktopSeeThrough('phone', true)).toBe(false);
+    expect(supportsDesktopSeeThrough('desktop', true)).toBe(false);
   });
 });

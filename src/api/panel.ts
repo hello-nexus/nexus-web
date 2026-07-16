@@ -45,6 +45,10 @@ export interface PanelDeviceRecord {
   // central. Absent shaders default to preset 0.
   backgroundTemplates?: Record<string, number>;
   backgroundOpacity?: number;
+  // False = background layer off; a kiosk-hosted panel (y70 / monitor)
+  // renders fully transparent so the Windows desktop shows through.
+  // Absent/null = on.
+  backgroundEnabled?: boolean | null;
   backgroundMediaId?: string | null;
   backgroundMediaType?: 'static' | 'animated' | null;
   widgetOpacity?: number;
@@ -86,6 +90,7 @@ export interface PanelDevicePatch {
   // Full per-shader preset map (client sends the whole map).
   backgroundTemplates?: Record<string, number>;
   backgroundOpacity?: number;
+  backgroundEnabled?: boolean;
   backgroundMediaId?: string | null;
   // '' clears the reference server-side (NullIfEmpty); a JSON null is ignored by the patch-merge.
   backgroundMediaType?: 'static' | 'animated' | '' | null;

@@ -54,20 +54,81 @@ describe('PublicProfilePage', () => {
         isPrivate: false,
         createdAt: '2026-01-01T00:00:00Z',
         devices: [
-          { hostname: 'DESKTOP-NOVA', specs: { pcName: 'NOVA-PC', processor: 'Ryzen 9 9800X3D' }, lastSeenAt: '2026-06-01T00:00:00Z' },
+          { hostname: 'DESKTOP-NOVA', specs: { pcName: 'NOVA-PC', processor: 'Ryzen 9 9800X3D' }, manual: false, lastSeenAt: '2026-06-01T00:00:00Z' },
         ],
+        benchmarks: { best: null, recent: [] },
       },
     });
     render(<PublicProfilePage username="nova" />);
 
     await waitFor(() => expect(screen.getByText('DESKTOP-NOVA')).toBeInTheDocument());
     expect(screen.getByText('Ryzen 9 9800X3D')).toBeInTheDocument();
+    expect(screen.getByText('publicProfile.device.lastSeen')).toBeInTheDocument();
+  });
+
+  it('renders a manual device without a "Last seen" row', async () => {
+    getPublicAccountMock.mockResolvedValue({
+      status: 'ok',
+      account: {
+        username: 'Nova',
+        avatar: null,
+        isPrivate: false,
+        createdAt: '2026-01-01T00:00:00Z',
+        devices: [
+          { hostname: 'Old Rig', specs: { processor: 'i7-9700K' }, manual: true, lastSeenAt: '2026-06-01T00:00:00Z' },
+        ],
+        benchmarks: { best: null, recent: [] },
+      },
+    });
+    render(<PublicProfilePage username="nova" />);
+
+    await waitFor(() => expect(screen.getByText('Old Rig')).toBeInTheDocument());
+    expect(screen.getByText('account.devices.manual.badge')).toBeInTheDocument();
+    expect(screen.queryByText('publicProfile.device.lastSeen')).not.toBeInTheDocument();
+  });
+
+  it('renders a benchmarks section with a linked best score and recent runs', async () => {
+    getPublicAccountMock.mockResolvedValue({
+      status: 'ok',
+      account: {
+        username: 'Nova',
+        avatar: null,
+        isPrivate: false,
+        createdAt: '2026-01-01T00:00:00Z',
+        devices: [],
+        benchmarks: {
+          best: { id: 'bench-1', composite: 1500, scoringVersion: 'v2.2-2026.07', createdAt: '2026-06-01T00:00:00Z', cpuModel: 'Ryzen 9 9800X3D', gpuModels: ['RTX 5090'] },
+          recent: [
+            { id: 'bench-2', composite: 1420, scoringVersion: 'v2.2-2026.07', createdAt: '2026-05-01T00:00:00Z', cpuModel: 'Ryzen 9 9800X3D', gpuModels: ['RTX 5090'] },
+          ],
+        },
+      },
+    });
+    render(<PublicProfilePage username="nova" />);
+
+    await waitFor(() => expect(screen.getByText('publicProfile.benchmarks.title')).toBeInTheDocument());
+    expect(screen.getByText('1500')).toBeInTheDocument();
+    expect(screen.getByText('1420')).toBeInTheDocument();
+    const links = screen.getAllByRole('link', { name: 'publicProfile.benchmarks.viewLabel' });
+    expect(links[0]).toHaveAttribute('href', 'https://build.hellonexus.com/bench/bench-1');
+    expect(links[1]).toHaveAttribute('href', 'https://build.hellonexus.com/bench/bench-2');
+  });
+
+  it('omits the benchmarks section when the account has no linked submissions', async () => {
+    getPublicAccountMock.mockResolvedValue({
+      status: 'ok',
+      account: { username: 'Nova', avatar: null, isPrivate: false, createdAt: '2026-01-01T00:00:00Z', devices: [], benchmarks: { best: null, recent: [] } },
+    });
+    render(<PublicProfilePage username="nova" />);
+
+    await waitFor(() => expect(screen.getByText('publicProfile.devices.empty')).toBeInTheDocument());
+    expect(screen.queryByText('publicProfile.benchmarks.title')).not.toBeInTheDocument();
   });
 
   it('renders the empty-devices state when the account has no machines', async () => {
     getPublicAccountMock.mockResolvedValue({
       status: 'ok',
-      account: { username: 'Nova', avatar: null, isPrivate: false, createdAt: '2026-01-01T00:00:00Z', devices: [] },
+      account: { username: 'Nova', avatar: null, isPrivate: false, createdAt: '2026-01-01T00:00:00Z', devices: [], benchmarks: { best: null, recent: [] } },
     });
     render(<PublicProfilePage username="nova" />);
 

@@ -163,6 +163,49 @@ export async function uploadCloudAvatar(blob: Blob): Promise<CloudAvatar | null>
   }
 }
 
+export interface CloudBenchmarkSubmitBody {
+  deviceId: string;
+  cpuModel?: string;
+  gpuModels?: string[];
+  cpuScore: number;
+  gpuScore: number;
+  ramScore: number;
+  storageScore: number;
+  composite: number;
+  rawMetrics: Record<string, unknown>;
+  clientVersion?: string;
+  cpuRaw?: number;
+  cpuUnit?: string;
+  gpuRaw?: number;
+  gpuUnit?: string;
+  ramRaw?: number;
+  ramUnit?: string;
+  storageRaw?: number;
+  storageUnit?: string;
+  scoringVersion?: string;
+  ramModel?: string;
+  storageModel?: string;
+  os?: string;
+  logicalCores?: number;
+  benchTools?: Record<string, string>;
+}
+
+export interface CloudBenchmarkSubmitResponse {
+  id: string;
+  composite: number;
+  percentile: number;
+  totalSubmissions: number;
+  rank: number;
+}
+
+// Forwards to api.hellonexus.com/benchmarks/submit with the active cloud
+// account's bearer attached server-side (or anonymously when signed out),
+// so a signed-in run links to the account without the browser ever holding
+// a cloud token. Returns the upstream response verbatim; a forwarding or
+// upstream failure collapses to null like every other postService call.
+export const submitCloudBenchmark = (payload: CloudBenchmarkSubmitBody) =>
+  postService<CloudBenchmarkSubmitResponse>('/cloud/benchmarks/submit', payload);
+
 export const fetchCloudSyncStatus = () =>
   fetchService<SyncStatus>('/cloud/sync/status');
 

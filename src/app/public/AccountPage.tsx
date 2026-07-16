@@ -3,14 +3,15 @@ import { Spinner } from '../../components/common/Spinner/Spinner';
 import { ToastProvider } from '../../components/common/Toast/Toast';
 import { AccountAuthenticationSection } from '../../components/views/SettingsView/Account/AccountAuthenticationSection';
 import { AccountDangerZoneSection } from '../../components/views/SettingsView/Account/AccountDangerZoneSection';
+import { AccountDevicesSection } from '../../components/views/SettingsView/Account/AccountDevicesSection';
 import { directApiBackend } from '../../api/directApiBackend';
 import { PublicPageFrame } from './PublicPageFrame';
 import { usePublicAccount } from './usePublicAccount';
 
 /**
- * /account - public signed-in account page: Authentication + Danger zone
- * only (no profile sync - that stays app-only). Redirects to /login when
- * signed out.
+ * /account - public signed-in account page: Authentication, Devices, and
+ * Danger zone (no profile sync - that stays app-only). Redirects to /login
+ * when signed out.
  */
 export function AccountPage() {
   const { account, refresh } = usePublicAccount();
@@ -41,6 +42,7 @@ export function AccountPage() {
           recoveryFresh={false}
           onRecoveryFreshConsumed={noop}
         />
+        <AccountDevicesSection backend={directApiBackend} />
         <AccountDangerZoneSection
           backend={directApiBackend}
           recoveryFresh={false}

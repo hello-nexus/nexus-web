@@ -93,6 +93,8 @@ function renderTouch() {
 describe('CoolingTouch', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Isolate the shared cooling cache + fan-group collapse persistence.
+    localStorage.clear();
   });
 
   it('renders preset mode buttons with the active preset hydrated from /cooling/profiles', async () => {
@@ -110,21 +112,51 @@ describe('CoolingTouch', () => {
     expect(screen.getByText('cooling.status.gpu')).toBeInTheDocument();
   });
 
-  it('shows the Curves | Fans tabs with curve cards on the default tab', async () => {
+  it('shows the pinned curve editor with the selector chips (page layout)', async () => {
     renderTouch();
-    const curvesTab = await screen.findByRole('tab', { name: 'cooling.sections.curves' });
-    expect(curvesTab).toHaveAttribute('aria-selected', 'true');
-    expect(screen.getByRole('tab', { name: 'cooling.label.fan' })).toBeInTheDocument();
-    expect(await screen.findByText('My Graph Curve')).toBeInTheDocument();
+    // The selected curve's chip carries aria-current; the dashed add chip and
+    // the curve-type radio chips come from the shared pinned CurveCard.
+    const chip = await screen.findByRole('button', { name: 'My Graph Curve' });
+    await waitFor(() => expect(chip).toHaveAttribute('aria-current', 'true'));
     expect(screen.getByRole('button', { name: /cooling.curves.add/ })).toBeInTheDocument();
+    expect(screen.getByRole('radiogroup', { name: 'cooling.curve.type.label' })).toBeInTheDocument();
   });
 
-  it('lists connected fans on the Fans tab and hides unresponsive hardware', async () => {
+  it('lists connected fans beside the curve editor and hides unresponsive hardware', async () => {
     renderTouch();
-    fireEvent.click(await screen.findByRole('tab', { name: 'cooling.label.fan' }));
     expect(await screen.findByText('CPU Fan')).toBeInTheDocument();
     expect(screen.getByText('Case Fan')).toBeInTheDocument();
     expect(screen.queryByText('Dead Header')).toBeNull();
+  });
+
+  it('groups external-hub fans under a collapsible device header', async () => {
+    const { fetchFanChannels } = await import('../../../api/cooling');
+    vi.mocked(fetchFanChannels).mockResolvedValueOnce({
+      channels: [
+        {
+          id: 'fan-cpu', name: 'CPU Fan', dutyPercent: 42, rpm: 1180, mode: 'Curve',
+          classification: 'Controllable', calibrated: true,
+        },
+        {
+          id: 'hub-1', name: 'Hub Fan 1', dutyPercent: 35, rpm: 900, mode: 'Auto',
+          classification: 'Controllable', calibrated: true,
+          deviceId: 'np50:AB12', deviceName: 'HYTE NP50',
+        },
+        {
+          id: 'hub-2', name: 'Hub Fan 2', dutyPercent: 35, rpm: 910, mode: 'Auto',
+          classification: 'Controllable', calibrated: true,
+          deviceId: 'np50:AB12', deviceName: 'HYTE NP50',
+        },
+      ],
+    } as Awaited<ReturnType<typeof fetchFanChannels>>);
+    renderTouch();
+    const groupToggle = await screen.findByRole('button', { name: 'HYTE NP50' });
+    expect(groupToggle).toBeInTheDocument();
+    expect(await screen.findByText('Hub Fan 1')).toBeInTheDocument();
+    // Collapsing the hub group hides its fans but not the motherboard fan.
+    fireEvent.click(groupToggle);
+    expect(screen.queryByText('Hub Fan 1')).toBeNull();
+    expect(screen.getByText('CPU Fan')).toBeInTheDocument();
   });
 
   it('applies a preset optimistically on tap', async () => {

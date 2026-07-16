@@ -3,45 +3,10 @@
 // the compiled-in default so a build missing VITE_API_URL still works; the
 // committed .env.development points `npm run dev` at a local API.
 
-import type { LeaderboardResponse } from '../types/benchmark';
+import type { BenchmarkVersionInfo, LeaderboardResponse } from '../types/benchmark';
 
 const DEFAULT_API = 'https://api.hellonexus.com';
 const BASE = import.meta.env.VITE_API_URL ?? DEFAULT_API;
-
-export interface SubmitBenchmarkBody {
-  deviceId: string;
-  cpuModel?: string;
-  gpuModels?: string[];
-  cpuScore: number;
-  gpuScore: number;
-  ramScore: number;
-  storageScore: number;
-  composite: number;
-  rawMetrics: Record<string, unknown>;
-  clientVersion?: string;
-  cpuRaw?: number;
-  cpuUnit?: string;
-  gpuRaw?: number;
-  gpuUnit?: string;
-  ramRaw?: number;
-  ramUnit?: string;
-  storageRaw?: number;
-  storageUnit?: string;
-  scoringVersion?: string;
-  ramModel?: string;
-  storageModel?: string;
-  os?: string;
-  logicalCores?: number;
-  benchTools?: Record<string, string>;
-}
-
-export interface SubmitBenchmarkResponse {
-  id: string;
-  composite: number;
-  percentile: number;
-  totalSubmissions: number;
-  rank: number;
-}
 
 const SUBMISSION_ID_KEY = 'nexus_benchmark_submission_id';
 
@@ -51,25 +16,6 @@ export function getLastSubmissionId(): string | null {
 
 export function setLastSubmissionId(id: string): void {
   localStorage.setItem(SUBMISSION_ID_KEY, id);
-}
-
-export async function submitBenchmark(
-  body: SubmitBenchmarkBody,
-  bearerToken?: string,
-): Promise<SubmitBenchmarkResponse | null> {
-  try {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (bearerToken) headers['Authorization'] = `Bearer ${bearerToken}`;
-    const res = await fetch(`${BASE}/benchmarks/submit`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(body),
-    });
-    if (!res.ok) return null;
-    return (await res.json()) as SubmitBenchmarkResponse;
-  } catch {
-    return null;
-  }
 }
 
 export interface LeaderboardParams {
@@ -104,6 +50,22 @@ export async function getLeaderboard(params: LeaderboardParams = {}): Promise<Le
     if (attempt < 2) await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)));
   }
   return null;
+}
+
+/**
+ * GET /benchmarks/versions - a bare array of the scoring versions with
+ * submission counts, newest first. Drives the leaderboard's version filter;
+ * a failure hides the filter entirely rather than retrying, since it's a
+ * non-critical enhancement over the (still-working) unfiltered leaderboard.
+ */
+export async function getBenchmarkVersions(): Promise<BenchmarkVersionInfo[] | null> {
+  try {
+    const res = await fetch(`${BASE}/benchmarks/versions`);
+    if (!res.ok) return null;
+    return (await res.json()) as BenchmarkVersionInfo[];
+  } catch {
+    return null;
+  }
 }
 
 /** Stable per-browser device id stored in localStorage. Generated lazily. */

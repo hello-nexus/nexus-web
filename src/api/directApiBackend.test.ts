@@ -338,6 +338,80 @@ describe('directApiBackend', () => {
     });
   });
 
+  describe('devices', () => {
+    async function loggedInBackend(): Promise<AuthBackend> {
+      const backend = await freshBackend();
+      fetchMock.mockResolvedValueOnce(jsonResponse(200, {
+        accessToken: 'access-1', refreshToken: 'refresh-1', account: mkApiAccount(),
+      }));
+      await backend.login('alpha', 'hunter22');
+      return backend;
+    }
+
+    it('listDevices maps the account-scoped device list', async () => {
+      const backend = await loggedInBackend();
+      const devices = [
+        { installId: 'manual-abc', hostname: 'Battlestation', specs: { pcName: 'Battlestation' }, manual: true, lastSeenAt: '2026-06-01T00:00:00Z' },
+      ];
+      fetchMock.mockResolvedValueOnce(jsonResponse(200, devices));
+
+      const result = await backend.listDevices?.();
+
+      expect(result).toEqual(devices);
+      expect(fetchMock).toHaveBeenLastCalledWith(`${BASE}/account/devices`, expect.objectContaining({ method: 'GET' }));
+    });
+
+    it('listDevices resolves null on a non-2xx response', async () => {
+      const backend = await loggedInBackend();
+      fetchMock.mockResolvedValueOnce(jsonResponse(500, {}));
+
+      expect(await backend.listDevices?.()).toBeNull();
+    });
+
+    it('upsertDevice PUTs to the installId route and returns the envelope result', async () => {
+      const backend = await loggedInBackend();
+      fetchMock.mockResolvedValueOnce(jsonResponse(200, {
+        installId: 'manual-abc', hostname: 'Battlestation', specs: {}, manual: true, lastSeenAt: '2026-06-01T00:00:00Z',
+      }));
+
+      const result = await backend.upsertDevice?.('manual-abc', { hostname: 'Battlestation', specs: {}, manual: true });
+
+      expect(result?.status).toBe(200);
+      expect(result?.body).toMatchObject({ installId: 'manual-abc', hostname: 'Battlestation' });
+      expect(fetchMock).toHaveBeenLastCalledWith(`${BASE}/account/devices/manual-abc`, expect.objectContaining({
+        method: 'PUT',
+        body: JSON.stringify({ hostname: 'Battlestation', specs: {}, manual: true }),
+      }));
+    });
+
+    it('upsertDevice surfaces a device-cap rejection through the envelope', async () => {
+      const backend = await loggedInBackend();
+      fetchMock.mockResolvedValueOnce(jsonResponse(400, { code: 'device_limit_reached', message: 'device limit reached' }));
+
+      const result = await backend.upsertDevice?.('manual-new', { hostname: 'Rig', specs: {} });
+
+      expect(result?.status).toBe(400);
+      expect(result?.body).toEqual({ error: true, msg: 'device_limit_reached' });
+    });
+
+    it('deleteDevice DELETEs the installId route and resolves true on success', async () => {
+      const backend = await loggedInBackend();
+      fetchMock.mockResolvedValueOnce(emptyResponse(204));
+
+      const result = await backend.deleteDevice?.('manual-abc');
+
+      expect(result).toBe(true);
+      expect(fetchMock).toHaveBeenLastCalledWith(`${BASE}/account/devices/manual-abc`, expect.objectContaining({ method: 'DELETE' }));
+    });
+
+    it('deleteDevice resolves false on a non-2xx response', async () => {
+      const backend = await loggedInBackend();
+      fetchMock.mockResolvedValueOnce(jsonResponse(404, {}));
+
+      expect(await backend.deleteDevice?.('manual-abc')).toBe(false);
+    });
+  });
+
   describe('isWebCookieMode', () => {
     it.each([
       ['hellonexus.com', ''],

@@ -28,8 +28,6 @@ function renderMultipointCard(onChange: (c: CurveDef) => void) {
       curve={curve}
       allCurves={[curve]}
       sources={[]}
-      inUse={false}
-      expanded
       onChange={onChange}
       onDelete={() => {}}
     />,
