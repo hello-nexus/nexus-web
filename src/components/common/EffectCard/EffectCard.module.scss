@@ -86,6 +86,21 @@
   box-shadow: 0 0 0 var(--effect-card-ring) var(--accent);
 }
 
+// Non-interactive display card (nonInteractive prop): no pointer cursor and
+// no hover ring/lift - the card shows state, it is not a selectable option.
+.cardStatic {
+  cursor: default;
+
+  &:hover {
+    border-color: transparent;
+    transform: none;
+  }
+
+  &.cardOverlay:hover {
+    box-shadow: 0 0 0 var(--effect-card-ring) transparent;
+  }
+}
+
 // Caption in the lower third: white fill, dark outline, drop shadow so it
 // stays legible over any screenshot.
 .labelOverlay {

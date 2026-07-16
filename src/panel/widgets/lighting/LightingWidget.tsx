@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Film, Lightbulb, Monitor, Sparkles } from 'lucide-react';
+import { Lightbulb, Monitor } from 'lucide-react';
 import { PanelArrowButton } from '../../chrome/PanelArrowButton';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -12,6 +12,7 @@ import {
   setMusicReactive,
   setScreenEffect,
   startAnimate,
+  startGameSync,
   startScreenMirror,
   stopLighting,
 } from '../../../api/lighting';
@@ -22,7 +23,9 @@ import {
   playCurrentOrFirstMedia,
   type MediaItem,
 } from '../../../api/mediaLibrary';
-import { fetchServiceBlob } from '../../../api/service';
+import { fetchServiceBlob, pingService } from '../../../api/service';
+import { EffectCard } from '../../../components/common/EffectCard/EffectCard';
+import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { publishControlSync } from '../../../lib/controlSync';
 import { LIGHTING_MODE_ICONS } from '../../../lib/lightingModeIcons';
@@ -44,14 +47,6 @@ import { LightingLivePreview } from './LightingLivePreview';
 import { LightingShaderPreview } from './LightingShaderPreview';
 import type { WidgetProps } from '../types';
 import styles from './LightingWidget.module.scss';
-
-type WidgetMode = 'animate' | 'gif' | 'screen';
-
-const WIDGET_BUTTONS: { key: WidgetMode; icon: LucideIcon; labelKey: string }[] = [
-  { key: 'animate', icon: Sparkles, labelKey: 'lighting.mode.animate' },
-  { key: 'gif',     icon: Film,     labelKey: 'lighting.mode.gif'     },
-  { key: 'screen',  icon: Monitor,  labelKey: 'lighting.mode.screen'  },
-];
 
 // Catalog preview pins screen mode (pass-through, reactive=false):
 // the icon view renders with zero fetch/socket/blob traffic. Keep in sync with
@@ -76,6 +71,22 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
   const [reactive, setReactive] = useState(false);
   const mediaThumbsRef = useRef<Record<string, string>>({});
   const compact = widget.size === '2x2';
+
+  // Game Sync only exists on Windows services; the mode button stays hidden
+  // until the ping resolves (empty platform), matching LightingPage.
+  const [platform, setPlatform] = useState('');
+  useEffect(() => {
+    if (preview) return;
+    let cancelled = false;
+    pingService().then(p => {
+      if (!cancelled && p?.platform) setPlatform(p.platform);
+    });
+    return () => { cancelled = true; };
+  }, [preview]);
+  const modeButtons = useMemo(
+    () => MODES.filter(m => m.key !== 'gamesync' || platform === 'windows'),
+    [platform],
+  );
 
   // Immersive only: tapping the live shader preview expands it to a full-bleed
   // shader view; tapping that closes it. Auto-closes whenever the mode leaves
@@ -322,18 +333,20 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
     publishLighting('none', 'none');
   }, [publishLighting]);
 
-  const handleButton = (k: WidgetMode) => {
-    if (k === 'animate') onAnimateButton();
-    else if (k === 'gif') onMediaButton();
-    else if (k === 'screen') onMirrorButton();
-  };
+  const onGameSyncButton = useCallback(async () => {
+    setMode('gamesync');
+    setMusicReactive(false).catch(() => { /* best-effort */ });
+    await startGameSync();
+    publishLighting('gamesync', 'gamesync');
+  }, [publishLighting]);
 
-  // Immersive mode-button dispatch - covers every mode incl. Off.
+  // Mode-button dispatch (widget row + immersive grid) - covers every mode.
   const handleMode = (k: LightingMode) => {
     if (k === 'none') onOffButton();
     else if (k === 'animate') onAnimateButton();
     else if (k === 'gif') onMediaButton();
     else if (k === 'screen') onMirrorButton();
+    else if (k === 'gamesync') onGameSyncButton();
   };
 
   const view = useMemo<SingleView>(() => {
@@ -390,12 +403,6 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
     return { kind: 'message', message: t('lighting.panel.selectMode'), label: t('lighting.mode.off'), onPrev: prev, onNext: next };
   }, [mode, activeEffect, thumbs, t, reactive, mediaItems, activeMediaId, mediaThumbs, cycleAnimate, toggleReactive, simpleMode, enterOrCycleAnimate]);
 
-  const widgetMode: WidgetMode | null =
-    mode === 'animate' ? 'animate'
-    : mode === 'gif' ? 'gif'
-    : mode === 'screen' ? 'screen'
-    : null;
-
   // Active Animate effect state for the immersive on-device preview: the shader
   // is rendered locally at full resolution, replacing the low-res streamed LED
   // canvas (LightingLivePreview) for shader effects only.
@@ -411,7 +418,7 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
     return (
       <div className={styles.lighting} data-size={widget.size} data-mode={mode} data-immersive="true">
         <div className={styles.immersiveModeGrid}>
-          {MODES.map(m => {
+          {modeButtons.map(m => {
             const Icon = LIGHTING_MODE_ICONS[m.key];
             return (
               <button
@@ -477,7 +484,7 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
   if (simpleMode) {
     return (
       <div className={styles.lighting} data-size={widget.size} data-mode={mode} data-simple="true">
-        <SingleItemView view={view} t={t} showArrows overlay={flash} />
+        <SingleItemView view={view} t={t} showArrows overlay={flash} framed />
       </div>
     );
   }
@@ -485,28 +492,32 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
   if (compact) {
     return (
       <div className={styles.lighting} data-size={widget.size} data-mode={mode}>
-        <SingleItemView view={view} t={t} showArrows={false} overlay={flash} />
+        <SingleItemView view={view} t={t} showArrows={false} overlay={flash} framed />
       </div>
     );
   }
 
   return (
     <div className={styles.lighting} data-size={widget.size} data-mode={mode}>
-      <SingleItemView view={view} t={t} showArrows overlay={flash} />
+      <SingleItemView view={view} t={t} showArrows overlay={flash} framed />
       <div className={styles.modeGrid}>
-        {WIDGET_BUTTONS.map(item => (
-          <button
-            key={item.key}
-            type="button"
-            className={styles.modeButton}
-            data-active={widgetMode === item.key ? 'true' : 'false'}
-            onClick={() => handleButton(item.key)}
-            aria-label={t(item.labelKey)}
-          >
-            <item.icon size={15} aria-hidden="true" />
-            <span className={styles.modeButtonLabel}>{t(item.labelKey)}</span>
-          </button>
-        ))}
+        {modeButtons.map(m => {
+          const Icon = LIGHTING_MODE_ICONS[m.key];
+          return (
+            <HoverTooltip key={m.key} body={t(m.labelKey)} side="top">
+              <button
+                type="button"
+                className={styles.modeButton}
+                data-active={mode === m.key ? 'true' : 'false'}
+                onClick={() => handleMode(m.key)}
+                aria-pressed={mode === m.key}
+                aria-label={t(m.labelKey)}
+              >
+                <Icon aria-hidden="true" />
+              </button>
+            </HoverTooltip>
+          );
+        })}
       </div>
     </div>
   );
@@ -517,7 +528,7 @@ type SingleView =
   | { kind: 'icon';  icon: LucideIcon;       label: string; onPrev?: () => void; onNext?: () => void }
   | { kind: 'message'; message: string;      label: string; onPrev?: () => void; onNext?: () => void };
 
-function SingleItemView({ view, t, showArrows, overlay }: { view: SingleView; t: (key: string) => string; showArrows: boolean; overlay?: ReactNode }) {
+function SingleItemView({ view, t, showArrows, overlay, framed }: { view: SingleView; t: (key: string) => string; showArrows: boolean; overlay?: ReactNode; framed?: boolean }) {
   const arrowsRendered = showArrows && !!view.onPrev && !!view.onNext;
   if (view.kind === 'message') {
     return (
@@ -553,26 +564,36 @@ function SingleItemView({ view, t, showArrows, overlay }: { view: SingleView; t:
   }
   return (
     <div className={styles.thumbBox}>
-      <span className={styles.thumb}>
-        {view.kind === 'icon' && (
-          <span className={styles.thumbIconWrap}>
-            {/* eslint-disable-next-line i18next/no-literal-string -- aria boolean */}
-            <view.icon className={styles.thumbIcon} aria-hidden="true" />
-            <span className={styles.thumbCaption}>{view.label}</span>
-          </span>
-        )}
-        {view.kind === 'thumb' && (
-          view.thumbUrl
-            ? (
-              <>
-                <img src={view.thumbUrl} alt="" draggable={false} />
-                <span className={styles.thumbVignette} aria-hidden="true" />
-                <span className={styles.thumbLabel}>{view.label}</span>
-              </>
-            )
-            : <span className={styles.thumbSkeleton} />
-        )}
-      </span>
+      {view.kind === 'thumb' && framed ? (
+        // Same card as the animation browser (EffectCard overlay), centered
+        // at the browser's 16/9 aspect instead of stretched edge-to-edge.
+        <div className={styles.thumbCardBox}>
+          <div className={styles.thumbCardFit}>
+            <EffectCard overlay nonInteractive label={view.label} thumbUrl={view.thumbUrl} active={false} />
+          </div>
+        </div>
+      ) : (
+        <span className={styles.thumb}>
+          {view.kind === 'icon' && (
+            <span className={styles.thumbIconWrap}>
+              {/* eslint-disable-next-line i18next/no-literal-string -- aria boolean */}
+              <view.icon className={styles.thumbIcon} aria-hidden="true" />
+              <span className={styles.thumbCaption}>{view.label}</span>
+            </span>
+          )}
+          {view.kind === 'thumb' && (
+            view.thumbUrl
+              ? (
+                <>
+                  <img src={view.thumbUrl} alt="" draggable={false} />
+                  <span className={styles.thumbVignette} aria-hidden="true" />
+                  <span className={styles.thumbLabel}>{view.label}</span>
+                </>
+              )
+              : <span className={styles.thumbSkeleton} />
+          )}
+        </span>
+      )}
       {overlay}
       {arrowsRendered && (
         <>

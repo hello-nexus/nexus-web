@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PanelWidget } from '../../types';
 import { fetchCurrentSync } from '../../../api/lighting';
+import { pingService } from '../../../api/service';
 import { LightingWidget } from './LightingWidget';
 
 vi.mock('../../../api/lighting', () => ({
@@ -15,7 +16,9 @@ vi.mock('../../../api/lighting', () => ({
   setMusicReactive: vi.fn(() => Promise.resolve()),
   setScreenEffect: vi.fn(() => Promise.resolve()),
   startAnimate: vi.fn(() => Promise.resolve()),
+  startGameSync: vi.fn(() => Promise.resolve()),
   startScreenMirror: vi.fn(() => Promise.resolve()),
+  stopLighting: vi.fn(() => Promise.resolve()),
 }));
 
 vi.mock('../../../api/mediaLibrary', () => ({
@@ -26,6 +29,7 @@ vi.mock('../../../api/mediaLibrary', () => ({
 
 vi.mock('../../../api/service', () => ({
   fetchServiceBlob: vi.fn(() => Promise.resolve(null)),
+  pingService: vi.fn(() => Promise.resolve({ service: 'nexus', platform: 'windows' })),
 }));
 
 vi.mock('../../../hooks/useMultiplexSocket', () => ({
@@ -88,19 +92,22 @@ describe('LightingWidget', () => {
     expect(screen.queryByRole('button', { name: 'Mirror' })).not.toBeInTheDocument();
   });
 
-  it('renders 4x2 with three labelled mode buttons (Animation / Media / Mirror) + L/R arrows', async () => {
+  it('renders 4x2 with all five icon mode buttons (Off / Animation / Media / Mirror / Game Sync) + L/R arrows', async () => {
     render(<LightingWidget widget={lightingWidget('4x2')} />);
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Animation' })).toBeInTheDocument());
 
+    expect(screen.getByRole('button', { name: 'Off' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Media' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Mirror' })).toBeInTheDocument();
+    // Game Sync appears once the ping resolves platform=windows.
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Game Sync' })).toBeInTheDocument());
 
     expect(screen.getByRole('button', { name: 'Previous' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Next' })).toBeInTheDocument();
 
-    // No 'Off' or 'Static' buttons - neither is a widget surface.
-    expect(screen.queryByRole('button', { name: 'Off' })).not.toBeInTheDocument();
+    // Icon-only buttons: the label lives in the aria-label, not as text.
+    expect(screen.queryByText('Animation')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Static' })).not.toBeInTheDocument();
   });
 
@@ -113,13 +120,23 @@ describe('LightingWidget', () => {
     expect(screen.getByRole('button', { name: 'Mirror' }).getAttribute('data-active')).toBe('false');
   });
 
-  it('shows the Game Sync label when the active sync is gamesync', async () => {
+  it('shows the Game Sync label and marks its button active when the active sync is gamesync', async () => {
     vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'gamesync' });
     render(<LightingWidget widget={lightingWidget('4x2')} />);
 
     await waitFor(() => expect(screen.getByText('Game Sync')).toBeInTheDocument());
-    // Game Sync is not one of the three widget mode buttons, so none is active.
     expect(screen.getByRole('button', { name: 'Animation' }).getAttribute('data-active')).toBe('false');
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Game Sync' }).getAttribute('data-active')).toBe('true');
+    });
+  });
+
+  it('hides the Game Sync button on a non-Windows service', async () => {
+    vi.mocked(pingService).mockResolvedValueOnce({ service: 'nexus', platform: 'macos' } as never);
+    render(<LightingWidget widget={lightingWidget('4x2')} />);
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Animation' })).toBeInTheDocument());
+    expect(screen.queryByRole('button', { name: 'Game Sync' })).not.toBeInTheDocument();
   });
 
   it('flashes on mode change but not on initial hydration', async () => {

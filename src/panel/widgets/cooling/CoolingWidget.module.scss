@@ -11,35 +11,34 @@
   box-sizing: border-box;
 }
 
+// Icon-only preset chips, centered under the chart. Labels live in the
+// aria-label + desktop hover tooltip.
 .chips {
   display: flex;
+  justify-content: center;
   gap: 6px;
   flex-shrink: 0;
 }
 
 .chip {
-  flex: 1;
-  min-width: 0;
+  width: 44px;
   min-height: 34px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-sm);
   background: var(--panel-card-bg);
   color: var(--text-dim);
-  padding: 0 8px;
-  font: 700 11px/1 var(--panel-font);
-  letter-spacing: 0.02em;
+  padding: 0;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 
   @include widget-button-hover;
 
   svg {
-    width: 15px;
-    height: 15px;
+    width: 16px;
+    height: 16px;
     flex-shrink: 0;
   }
 
@@ -50,19 +49,13 @@
   }
 }
 
-.chipLabel {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 // 4x4: roomier chips for the immersive view.
 .cooling[data-size='4x4'] {
   padding: 16px 18px;
   gap: 12px;
 
   .chip {
+    width: 54px;
     min-height: 44px;
 
     svg {

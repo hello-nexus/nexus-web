@@ -13,16 +13,44 @@
   color: var(--text);
 }
 
-// Thumbnail fills the widget flush: negative margins cancel the card padding
-// so the preview reaches the top and side edges (the mode-button row, when
-// present, keeps the bottom gap). No-button layouts (2x2 / simple) go fully
-// edge-to-edge - see the size/simple overrides below.
+// The preview area spans the widget flush: negative margins cancel the card
+// padding so arrows and the state flash reach the edges (the mode-button row,
+// when present, keeps the bottom gap). The widget thumbnail itself renders as
+// a centered browser-style card inside this box (.thumbCardBox); the icon and
+// immersive views still use the full box.
 .thumbBox {
   position: relative;
   flex: 1;
   min-height: 0;
   margin: -12px -12px 0;
   display: block;
+}
+
+// Framed thumb (non-immersive): the same EffectCard the animation browser
+// uses, centered at the browser's 16/9 card aspect and inset from the widget
+// edges. container-type gives the fit rule the box height in cq units.
+// The horizontal inset clears the arrow gutter (chevron offset + width) so
+// the prev/next arrows sit beside the card, never on it - except 2x2, whose
+// override below keeps the card wide and lets the arrows overlap it.
+.thumbCardBox {
+  position: absolute;
+  inset: 12px 54px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  container-type: size;
+}
+
+// Largest 16/9 card that fits the box: full width when the box is taller than
+// 16/9, height-derived width otherwise.
+.thumbCardFit {
+  width: min(100%, calc(100cqh * 16 / 9));
+  aspect-ratio: 16 / 9;
+
+  > * {
+    width: 100%;
+    height: 100%;
+  }
 }
 
 .thumb {
@@ -185,36 +213,35 @@
 // Base look lives in PanelArrowButton.module.scss; the blocks below only
 // carry the per-size overrides (win by container-scoped specificity).
 
+// Icon-only mode buttons, centered under the preview. Labels live in the
+// aria-label + desktop hover tooltip.
 .modeGrid {
   flex-shrink: 0;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: flex;
+  justify-content: center;
   gap: 6px;
 }
 
 .modeButton {
-  min-width: 0;
+  width: 44px;
   min-height: 34px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-sm);
   background: var(--panel-card-bg);
   color: var(--text-dim);
-  padding: 0 6px;
-  font: 700 11px/1 var(--panel-font);
+  padding: 0;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  letter-spacing: 0.02em;
 
   @include widget-button-hover;
 
   svg {
     flex-shrink: 0;
-    width: 15px;
-    height: 15px;
+    width: 16px;
+    height: 16px;
   }
 
   &[data-active='true'] {
@@ -222,13 +249,6 @@
     background: var(--panel-accent-soft);
     color: var(--panel-accent-glow);
   }
-}
-
-.modeButtonLabel {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 // Immersive variant: one row of icon-only pill mode buttons stretched across
@@ -278,7 +298,7 @@
   overflow: hidden;
 }
 
-// 4x4 immersive: roomier arrows.
+// 4x4: roomier arrows, wider card gutter, larger mode buttons.
 .lighting[data-size='4x4'] {
   .arrowBtn {
     width: 56px;
@@ -292,6 +312,22 @@
     &[data-side='prev'] { left: 10px; padding-left: 6px; }
     &[data-side='next'] { right: 10px; padding-right: 6px; }
   }
+
+  // Matches this size's larger arrow gutter (offset + width above).
+  .thumbCardBox {
+    inset: 12px 70px;
+  }
+
+  // Roomier mode buttons, matching the cooling widget's 4x4 chips.
+  .modeButton {
+    width: 54px;
+    min-height: 44px;
+
+    svg {
+      width: 18px;
+      height: 18px;
+    }
+  }
 }
 
 // No mode-button layouts (simple mode at any size) go fully edge-to-edge:
@@ -300,14 +336,18 @@
   margin: -12px;
 }
 
-// 2x2: thumbnail fills the whole widget, same chrome as 4x2 but without
-// the mode buttons - so it's full-bleed on all four sides.
+// 2x2: the preview area spans the whole widget, same chrome as 4x2 but
+// without the mode buttons.
 .lighting[data-size='2x2'] {
   padding: 10px;
   gap: 0;
 
   .thumbBox {
     margin: -10px;
+  }
+
+  .thumbCardBox {
+    inset: 10px;
   }
 }
 
