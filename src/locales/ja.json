@@ -2011,6 +2011,7 @@
   "panel.widget.clock.settings.formatAuto": "自動",
   "panel.widget.clock.settings.showDate": "日付を表示",
   "panel.widget.clock.settings.showSeconds": "秒を表示",
+  "panel.widget.clock.settings.showTimezone": "タイムゾーンを表示",
   "panel.widget.clock.settings.timeFormat": "時刻形式",
   "panel.widget.clock.settings.timezone": "タイムゾーン",
   "panel.widget.clock.settings.timezoneAuto": "自動（ローカル）",

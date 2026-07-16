@@ -2066,6 +2066,7 @@
   "panel.widget.clock.settings.formatAuto": "Otomatik",
   "panel.widget.clock.settings.showDate": "Tarihi göster",
   "panel.widget.clock.settings.showSeconds": "Saniyeleri göster",
+  "panel.widget.clock.settings.showTimezone": "Saat dilimini göster",
   "panel.widget.clock.settings.timeFormat": "Saat biçimi",
   "panel.widget.clock.settings.timezone": "Saat dilimi",
   "panel.widget.clock.settings.timezoneAuto": "Otomatik (yerel)",

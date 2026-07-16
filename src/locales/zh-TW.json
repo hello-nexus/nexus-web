@@ -2066,6 +2066,7 @@
   "panel.widget.clock.settings.formatAuto": "自動",
   "panel.widget.clock.settings.showDate": "顯示日期",
   "panel.widget.clock.settings.showSeconds": "顯示秒數",
+  "panel.widget.clock.settings.showTimezone": "顯示時區",
   "panel.widget.clock.settings.timeFormat": "時間格式",
   "panel.widget.clock.settings.timezone": "時區",
   "panel.widget.clock.settings.timezoneAuto": "自動（本地）",

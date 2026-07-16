@@ -2066,6 +2066,7 @@
   "panel.widget.clock.settings.formatAuto": "자동",
   "panel.widget.clock.settings.showDate": "날짜 표시",
   "panel.widget.clock.settings.showSeconds": "초 표시",
+  "panel.widget.clock.settings.showTimezone": "시간대 표시",
   "panel.widget.clock.settings.timeFormat": "시간 형식",
   "panel.widget.clock.settings.timezone": "시간대",
   "panel.widget.clock.settings.timezoneAuto": "자동 (현지)",

@@ -2066,6 +2066,7 @@
   "panel.widget.clock.settings.formatAuto": "Automatycznie",
   "panel.widget.clock.settings.showDate": "Pokaż datę",
   "panel.widget.clock.settings.showSeconds": "Pokaż sekundy",
+  "panel.widget.clock.settings.showTimezone": "Pokaż strefę czasową",
   "panel.widget.clock.settings.timeFormat": "Format czasu",
   "panel.widget.clock.settings.timezone": "Strefa czasowa",
   "panel.widget.clock.settings.timezoneAuto": "Auto (lokalna)",

@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import type { ClockDesignProps } from './types';
+import { formatMetaLine } from './timeFormat';
 import styles from './AnalogClock.module.scss';
 
 function getTimeParts(now: Date, tz?: string) {
@@ -14,7 +15,7 @@ function getTimeParts(now: Date, tz?: string) {
   return { hours: get('hour'), minutes: get('minute'), seconds: get('second') };
 }
 
-function AnalogClock({ now, tz, showSeconds, showDate, size, useAccentColor }: ClockDesignProps) {
+function AnalogClock({ now, tz, showSeconds, showDate, showTimezone, size, useAccentColor }: ClockDesignProps) {
   const { hours, minutes, seconds } = getTimeParts(now, tz);
 
   // Sub-degree minute/hour offsets give continuous hand rotation.
@@ -22,10 +23,7 @@ function AnalogClock({ now, tz, showSeconds, showDate, size, useAccentColor }: C
   const minuteDeg = minutes * 6 + seconds * 0.1;
   const hourDeg = (hours % 12) * 30 + minutes * 0.5;
 
-  const dateStr = showDate ? new Intl.DateTimeFormat(undefined, {
-    weekday: 'short', month: 'short', day: 'numeric',
-    timeZone: tz || undefined,
-  }).format(now) : '';
+  const dateStr = formatMetaLine(now, tz, showDate, showTimezone);
 
   const sizeClass = styles[`size-${size}`] ?? styles['size-4x2'];
 

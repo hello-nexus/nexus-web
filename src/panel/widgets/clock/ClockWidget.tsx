@@ -25,6 +25,7 @@ export function ClockWidget({ widget }: WidgetProps) {
 
   const showSeconds = ((widget.config?.showSeconds as boolean | undefined) ?? false);
   const showDate = ((widget.config?.showDate as boolean | undefined) ?? true);
+  const showTimezone = ((widget.config?.showTimezone as boolean | undefined) ?? false);
   // A stale or partial config value (e.g. a half-typed zone saved by an older
   // build) must never reach Intl.DateTimeFormat - it throws and crashes the
   // panel. safeTimeZone collapses anything invalid to local time.
@@ -41,6 +42,7 @@ export function ClockWidget({ widget }: WidgetProps) {
       tz={tz}
       showSeconds={showSeconds}
       showDate={showDate}
+      showTimezone={showTimezone}
       size={widget.size}
       hour12={hour12}
       useAccentColor={useAccentColor}

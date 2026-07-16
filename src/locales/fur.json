@@ -2075,6 +2075,7 @@
   "panel.widget.clock.settings.formatAuto": "Automatic",
   "panel.widget.clock.settings.showDate": "Mostre date",
   "panel.widget.clock.settings.showSeconds": "Mostre seconts",
+  "panel.widget.clock.settings.showTimezone": "Mostre fûs orari",
   "panel.widget.clock.settings.timeFormat": "Formât de ore",
   "panel.widget.clock.settings.timezone": "Fûs orari",
   "panel.widget.clock.settings.timezoneAuto": "Automatic (locâl)",
