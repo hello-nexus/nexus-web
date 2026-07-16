@@ -523,7 +523,6 @@
   "devices.qseries.fwGate.title": "Panel uygulaması gerekli",
   "devices.qseries.screen": "Ekran",
   "devices.qseries.sleepWithHost": "PC uykuda veya kapalıyken ekranı kapat",
-  "devices.qseries.sleepWithHostHint": "Açıkken, PC uykudayken veya kapalıyken panelin ekranı otomatik olarak kapanır ve PC uyandığında tekrar açılır.",
   "devices.saving": "Kaydediliyor…",
   "devices.smartHub.fanSection": "Bağımsız fan davranışı",
   "devices.smartHub.fanSectionDescription1": "Hub'ın flash belleğine kalıcı olarak yazılır. Son ana bilgisayar fan yazımından 5 saniye sonra hub bu görevi dört PWM bağlantı noktasının tümüne uygular - bilgisayar kapalı, uykuda veya servis durmuştur.",

@@ -543,7 +543,6 @@
   "devices.qseries.fwGate.title": "Panel app required",
   "devices.qseries.screen": "Screen",
   "devices.qseries.sleepWithHost": "Turn off display when PC is asleep or off",
-  "devices.qseries.sleepWithHostHint": "When on, the panel's display turns off automatically while the PC is asleep or powered off, and turns back on once it wakes.",
   "devices.saving": "Saving…",
   "devices.simulated": "Simulated",
   "devices.smartHub.fanSection": "Standalone fan behaviour",

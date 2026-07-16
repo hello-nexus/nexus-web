@@ -523,7 +523,6 @@
   "devices.qseries.fwGate.title": "Aplicação do painel necessária",
   "devices.qseries.screen": "Ecrã",
   "devices.qseries.sleepWithHost": "Desligar o ecrã quando o PC estiver em suspensão ou desligado",
-  "devices.qseries.sleepWithHostHint": "Quando ativado, o ecrã do painel desliga-se automaticamente enquanto o PC está em suspensão ou desligado, e volta a ligar-se assim que este acorda.",
   "devices.saving": "A guardar…",
   "devices.smartHub.fanSection": "Comportamento autónomo da ventoinha",
   "devices.smartHub.fanSectionDescription1": "Guardado na flash do hub. 5 segundos após a última escrita de ventoinha pelo anfitrião, o hub aplica este duty a todas as quatro portas PWM - o PC está desligado, em suspensão ou o serviço parou.",

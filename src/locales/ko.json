@@ -523,7 +523,6 @@
   "devices.qseries.fwGate.title": "패널 앱 필요",
   "devices.qseries.screen": "화면",
   "devices.qseries.sleepWithHost": "PC가 절전 모드이거나 꺼져 있을 때 디스플레이 끄기",
-  "devices.qseries.sleepWithHostHint": "켜면 PC가 절전 모드이거나 꺼져 있는 동안 패널의 디스플레이가 자동으로 꺼지고, 다시 켜지면 디스플레이도 다시 켜집니다.",
   "devices.saving": "저장 중…",
   "devices.smartHub.fanSection": "독립 실행 팬 동작",
   "devices.smartHub.fanSectionDescription1": "허브의 플래시에 저장됩니다. 마지막 호스트 팬 쓰기 5초 후 허브가 이 듀티를 네 개의 PWM 포트 모두에 적용합니다 - PC가 꺼져 있거나, 절전 상태이거나, 서비스가 중지된 경우입니다.",

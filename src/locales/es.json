@@ -523,7 +523,6 @@
   "devices.qseries.fwGate.title": "Se requiere la app del panel",
   "devices.qseries.screen": "Pantalla",
   "devices.qseries.sleepWithHost": "Apagar la pantalla cuando el PC esté en reposo o apagado",
-  "devices.qseries.sleepWithHostHint": "Cuando está activado, la pantalla del panel se apaga automáticamente mientras tu PC está en reposo o apagado, y se enciende de nuevo al reactivarse.",
   "devices.saving": "Guardando…",
   "devices.smartHub.fanSection": "Comportamiento autónomo del ventilador",
   "devices.smartHub.fanSectionDescription1": "Guardado en la memoria flash del hub. 5 segundos después de la última escritura de ventilador desde el host, el hub aplica este duty a los cuatro puertos PWM - el PC está apagado, en reposo o el servicio se detuvo.",
