@@ -91,7 +91,8 @@ export function viewportReducer(state: ViewportState, action: ViewportAction): V
     }
     case 'retentionClamp': {
       const minFrom = action.now - action.retentionMs;
-      return state.from >= minFrom ? state : { ...state, from: minFrom };
+      if (state.from >= minFrom) return state;
+      return { ...state, from: minFrom, rangeKey: rangeKeyForWindow(state.to - minFrom) };
     }
     default:
       return state;

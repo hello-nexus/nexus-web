@@ -91,7 +91,7 @@ describe('useMonitoringPrivacy', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('stops polling once a real fetch failure sets error', async () => {
+  it('backs off to a slower retry cadence after a failure, then resumes normal polling on success', async () => {
     fetchMock.mockResolvedValue({ data: null, mocked: false, unsupported: false });
     const { result } = renderHook(() => useMonitoringPrivacy(true));
     await advance(0);
@@ -99,8 +99,20 @@ describe('useMonitoringPrivacy', () => {
     expect(result.current.error).toBe(true);
     fetchMock.mockClear();
 
-    await advance(60_000);
+    // Nothing at the normal 5s cadence - backed off.
+    await advance(5_000);
     expect(fetchMock).not.toHaveBeenCalled();
+
+    // Retried once the backoff elapses (30s from the failed attempt).
+    fetchMock.mockResolvedValue({ data: emptyResp(), mocked: false, unsupported: false });
+    await advance(25_000);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(result.current.error).toBe(false);
+
+    // Normal cadence resumes after the successful retry.
+    fetchMock.mockClear();
+    await advance(5_000);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('stops all timers on unmount', async () => {
@@ -113,20 +125,62 @@ describe('useMonitoringPrivacy', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('drops a stale response that resolves after a newer poll already landed', async () => {
+  it('does not start a new fetch while the previous one is still pending', async () => {
     let resolveFirst!: (v: { data: PrivacyResponse | null; mocked: boolean; unsupported: boolean }) => void;
     const first = new Promise<{ data: PrivacyResponse | null; mocked: boolean; unsupported: boolean }>(res => { resolveFirst = res; });
     fetchMock.mockReturnValueOnce(first);
-    fetchMock.mockResolvedValue({ data: { supported: true, retentionDays: 7, sessions: [{ app: 'C:\\second.exe', capability: 'webcam' as const, start: 1, end: null }] }, mocked: false, unsupported: false });
 
-    const { result } = renderHook(() => useMonitoringPrivacy(true));
-    await advance(5_000);
+    renderHook(() => useMonitoringPrivacy(true));
+    await advance(0);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // The normal poll interval elapses while the first request is still
+    // pending - the next attempt only fires after it resolves, never overlapping it.
+    await advance(20_000);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
 
     await act(async () => {
-      resolveFirst({ data: { supported: true, retentionDays: 7, sessions: [{ app: 'C:\\first.exe', capability: 'webcam' as const, start: 1, end: null }] }, mocked: false, unsupported: false });
+      resolveFirst({ data: emptyResp(), mocked: false, unsupported: false });
+      await Promise.resolve();
+    });
+    await advance(0);
+
+    fetchMock.mockClear();
+    await advance(5_000);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('a stale response from a torn-down instance (enabled toggled off then on) does not overwrite a newer instance\'s state', async () => {
+    let resolveFirst!: (v: { data: PrivacyResponse | null; mocked: boolean; unsupported: boolean }) => void;
+    const first = new Promise<{ data: PrivacyResponse | null; mocked: boolean; unsupported: boolean }>(res => { resolveFirst = res; });
+    fetchMock.mockReturnValueOnce(first);
+    // Configured before the second instance's request fires, so whichever
+    // call actually reaches the mock (request B) resolves with this.
+    const secondSessions = [{ app: 'C:\\second.exe', capability: 'webcam' as const, start: NOW, end: null }];
+    fetchMock.mockResolvedValue({ data: { supported: true, retentionDays: 7, sessions: secondSessions }, mocked: false, unsupported: false });
+
+    const { result, rerender } = renderHook(
+      ({ enabled }: { enabled: boolean }) => useMonitoringPrivacy(enabled),
+      { initialProps: { enabled: true } },
+    );
+    await advance(0);
+    // Request A (from the first instance) is in flight.
+
+    // Toggled off then back on before A resolves - the second instance fires
+    // its own request B.
+    rerender({ enabled: false });
+    rerender({ enabled: true });
+    await advance(0);
+
+    expect(result.current.sessions).toEqual(secondSessions);
+
+    // Request A (older, from the torn-down first instance) finally resolves.
+    await act(async () => {
+      resolveFirst({ data: { supported: true, retentionDays: 7, sessions: [{ app: 'C:\\first.exe', capability: 'webcam' as const, start: NOW - 5_000, end: null }] }, mocked: false, unsupported: false });
       await Promise.resolve();
     });
 
-    expect(result.current.sessions[0]?.app).toBe('C:\\second.exe');
+    // Dropped - must not overwrite request B's already-committed state.
+    expect(result.current.sessions).toEqual(secondSessions);
   });
 });

@@ -198,7 +198,6 @@
   "builder.copied": "Скопировано!",
   "chart.minus60s": "-60s",
   "chart.now": "сейчас",
-  "chart.total": "Всего: {value}{unit}",
   "chart.waiting": "Ожидание данных...",
   "clock.app.addCity": "Добавить город",
   "clock.app.done": "Готово",

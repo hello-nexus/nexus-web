@@ -110,9 +110,19 @@ describe('viewportReducer', () => {
     const wide: ViewportState = { from: now - 10 * DAY, to: now, rangeKey: 'custom', following: false };
     const clamped = viewportReducer(wide, { type: 'retentionClamp', retentionMs: 7 * DAY, now });
     expect(clamped.from).toBe(now - 7 * DAY);
+    // The clamped window happens to land exactly on the 7d preset width.
+    expect(clamped.rangeKey).toBe('7d');
 
     const withinRetention: ViewportState = { from: now - 3 * DAY, to: now, rangeKey: '3d', following: false };
     expect(viewportReducer(withinRetention, { type: 'retentionClamp', retentionMs: 7 * DAY, now })).toBe(withinRetention);
+  });
+
+  it('retentionClamp demotes rangeKey away from a preset the clamped window no longer matches', () => {
+    // A 7d preset selected before the server's short retention was known.
+    const sevenDayPreset: ViewportState = { from: now - 7 * DAY, to: now, rangeKey: '7d', following: true };
+    const clamped = viewportReducer(sevenDayPreset, { type: 'retentionClamp', retentionMs: 2 * DAY, now });
+    expect(clamped.from).toBe(now - 2 * DAY);
+    expect(clamped.rangeKey).toBe('custom');
   });
 });
 

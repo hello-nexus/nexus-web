@@ -2,9 +2,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchMonitoringPrivacy, type PrivacySession } from '../api/monitoringPrivacy';
 
 const POLL_MS = 5_000;
+// Retry cadence after a transient failure - backs off from the normal poll
+// interval until a fetch succeeds, then POLL_MS resumes.
+const ERROR_RETRY_MS = 30_000;
 // ProcessListSection only ever surfaces a session that's active or ended
-// within the last hour (privacyHelpers.ts's RECENT_WINDOW_MS) - this window
-// gives that a margin without fetching a full day of history on every poll.
+// within the recent-activity window (privacyHelpers.ts's RECENT_WINDOW_MS) -
+// this window gives that a margin without fetching a full day of history on
+// every poll.
 const WINDOW_MS = 2 * 3_600_000;
 
 export interface UseMonitoringPrivacyResult {
@@ -19,13 +23,18 @@ export interface UseMonitoringPrivacyResult {
   supported: boolean;
 }
 
+type LoadOutcome = 'ok' | 'error' | 'unsupported';
+
 /**
  * Polls the local service's privacy-access sessions (webcam/microphone/
- * location/screen capture) every ~5s while `enabled`. Same discipline as
+ * location/screen capture) while `enabled`. Same unsupported discipline as
  * useMetricHistory: a service that predates the route reports
- * `supported: false` rather than an error, and polling stops once the route
- * is known unsupported or the last fetch failed, so a missing or broken
- * route isn't polled forever.
+ * `supported: false` rather than an error, and polling stops there for good
+ * (no user-facing retry surface exists for this passive indicator). A
+ * transient failure instead backs off to ERROR_RETRY_MS and keeps retrying,
+ * resuming POLL_MS on the next success - a privacy indicator must not go
+ * permanently silent (and risk rendering a frozen, possibly-active icon)
+ * over one dropped request.
  */
 export function useMonitoringPrivacy(enabled: boolean): UseMonitoringPrivacyResult {
   const [sessions, setSessions] = useState<PrivacySession[]>([]);
@@ -35,6 +44,11 @@ export function useMonitoringPrivacy(enabled: boolean): UseMonitoringPrivacyResu
   const [error, setError] = useState(false);
   const [mocked, setMocked] = useState(false);
   const mountedRef = useRef(true);
+  // Persists across an enabled-toggle's effect teardown/rebuild (unlike the
+  // scheduling loop's own local `cancelled`, which is per-instance) - a
+  // straggler from a torn-down instance must not overwrite state a newer
+  // instance's response already committed, even though enabled has no
+  // dynamic caller today.
   const seqRef = useRef(0);
 
   useEffect(() => {
@@ -42,34 +56,51 @@ export function useMonitoringPrivacy(enabled: boolean): UseMonitoringPrivacyResu
     return () => { mountedRef.current = false; };
   }, []);
 
-  const load = useCallback(() => {
+  const load = useCallback(async (): Promise<LoadOutcome> => {
     const seq = ++seqRef.current;
     setLoading(true);
     const to = Date.now();
-    void (async () => {
-      const result = await fetchMonitoringPrivacy({ from: to - WINDOW_MS, to });
-      if (!mountedRef.current || seq !== seqRef.current) return;
-      if (result.data) {
-        setSessions(result.data.sessions);
-        setAsOfMs(to);
-        setSupported(result.data.supported);
-        setMocked(result.mocked);
-        setError(false);
-      } else if (result.unsupported) {
-        setSupported(false);
-      } else {
-        setError(true);
-      }
-      setLoading(false);
-    })();
+    const result = await fetchMonitoringPrivacy({ from: to - WINDOW_MS, to });
+    // A newer load (from this or a later effect instance) already started -
+    // the caller's own `cancelled` flag independently stops a torn-down
+    // instance's scheduling loop, so only the state commit needs guarding.
+    if (!mountedRef.current || seq !== seqRef.current) return 'ok';
+    setLoading(false);
+    if (result.data) {
+      setSessions(result.data.sessions);
+      setAsOfMs(to);
+      setSupported(result.data.supported);
+      setMocked(result.mocked);
+      setError(false);
+      return result.data.supported ? 'ok' : 'unsupported';
+    }
+    if (result.unsupported) {
+      setSupported(false);
+      return 'unsupported';
+    }
+    setError(true);
+    return 'error';
   }, []);
 
   useEffect(() => {
-    if (!enabled || !supported || error) return;
-    load();
-    const timer = window.setInterval(load, POLL_MS);
-    return () => window.clearInterval(timer);
-  }, [enabled, load, supported, error]);
+    if (!enabled) return;
+    let cancelled = false;
+    let timer: ReturnType<typeof window.setTimeout> | null = null;
+    const run = () => {
+      void load().then(outcome => {
+        if (cancelled) return;
+        // A confirmed-unsupported route stays off until re-enabled or
+        // remounted - retrying it can never succeed.
+        if (outcome === 'unsupported') return;
+        timer = window.setTimeout(run, outcome === 'error' ? ERROR_RETRY_MS : POLL_MS);
+      });
+    };
+    run();
+    return () => {
+      cancelled = true;
+      if (timer !== null) window.clearTimeout(timer);
+    };
+  }, [enabled, load]);
 
   return { sessions, asOfMs, loading, error, mocked, supported };
 }

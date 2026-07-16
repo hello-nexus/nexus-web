@@ -157,4 +157,11 @@ describe('ProcessListSection', () => {
     render(<ProcessListSection items={items()} formatValue={v => `${v}%`} />);
     expect(screen.queryByRole('img', { name: 'monitoring.privacy.capability.webcam' })).toBeNull();
   });
+
+  it('hides privacy icons while the poll is in an error state instead of freezing stale data', () => {
+    const sessions: PrivacySession[] = [{ app: 'C:\\chrome.exe', capability: 'webcam', start: NOW - 1000, end: null }];
+    privacyMock.mockReturnValue(privacyResult({ sessions, error: true }));
+    render(<ProcessListSection items={items()} formatValue={v => `${v}%`} />);
+    expect(screen.queryByRole('img', { name: 'monitoring.privacy.capability.webcam' })).toBeNull();
+  });
 });

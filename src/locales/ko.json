@@ -198,7 +198,6 @@
   "builder.copied": "복사됨!",
   "chart.minus60s": "-60s",
   "chart.now": "현재",
-  "chart.total": "합계: {value}{unit}",
   "chart.waiting": "데이터를 기다리는 중...",
   "clock.app.addCity": "도시 추가",
   "clock.app.done": "완료",

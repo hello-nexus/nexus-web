@@ -171,8 +171,13 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
         setError(false);
         bumpNow(result.data.series);
         clampToRetention(result.data.retentionDays);
+        // Invalidates any tail request still in flight from before this
+        // viewport refresh landed - its response could resolve after and,
+        // absent this, regress lastLoadedTRef past the point this fetch just
+        // established (the seq guard below then drops it).
+        tailSeqRef.current++;
         const t = newestT(result.data.series);
-        if (t !== null) lastLoadedTRef.current = t;
+        if (t !== null && t > (lastLoadedTRef.current ?? -Infinity)) lastLoadedTRef.current = t;
       } else if (result.unsupported) {
         setSupported(false);
         setError(false);
@@ -183,10 +188,10 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
     })();
   }, [bumpNow, clampToRetention]);
 
-  // Silhouette: fetch on mount, on a metric switch, and every 60s. Stops
-  // polling once the route is known unsupported or the last fetch errored,
-  // so a service without the route (or one that's unreachable) isn't polled
-  // forever - retry() re-arms it explicitly.
+  // Silhouette: fetch on mount, on a metric switch, and on a refresh timer.
+  // Stops polling once the route is known unsupported or the last fetch
+  // errored, so a service without the route (or one that's unreachable)
+  // isn't polled forever - retry() re-arms it explicitly.
   useEffect(() => {
     if (!enabled || !supported || error) return;
     loadSilhouette(seriesQuery);
@@ -195,11 +200,15 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
   }, [enabled, seriesQuery, loadSilhouette, supported, error]);
 
   // Viewport: fetch on mount, on a metric switch, and whenever the user (or
-  // the 60s redecimate timer) requests a new window - NOT on every live tick
+  // the redecimate timer) requests a new window - NOT on every live tick
   // (that's the separate tail poll below). Debounces while the most recent
-  // request was a brush drag; fires immediately otherwise.
+  // request was a brush drag; fires immediately otherwise. Gated on
+  // `supported` (not `error`, unlike the other effects) - a metric switch
+  // must still be able to retry after a transient failure, but once the
+  // route is confirmed unsupported every series is equally unreachable, so a
+  // metric switch must not fire another single-shot 404.
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || !supported) return;
     const delay = lastPhaseRef.current === 'drag' ? VIEWPORT_DEBOUNCE_MS : 0;
     // from/to are read from the ref inside the callback (fired later), not
     // captured now - a live tick that lands during the debounce window still
@@ -212,9 +221,9 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
     return () => window.clearTimeout(timer);
     // fetchEpoch is the trigger for user/timer-driven refetches; a live tick
     // alone never retriggers this (see the ref read above).
-  }, [enabled, seriesQuery, fetchEpoch, loadViewport]);
+  }, [enabled, seriesQuery, fetchEpoch, loadViewport, supported]);
 
-  // Full re-decimation every 60s, independent of following/dragging. Same
+  // Full re-decimation on a timer, independent of following/dragging. Same
   // supported/error gate as the silhouette poll above.
   useEffect(() => {
     if (!enabled || !supported || error) return;
@@ -246,7 +255,7 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
         if (t === null) return;
         setSeries(prev => mergeTail(prev, tail));
         bumpNow(tail);
-        lastLoadedTRef.current = t;
+        if (t > (lastLoadedTRef.current ?? -Infinity)) lastLoadedTRef.current = t;
       })();
     }, LIVE_TAIL_POLL_MS);
     return () => window.clearInterval(timer);
