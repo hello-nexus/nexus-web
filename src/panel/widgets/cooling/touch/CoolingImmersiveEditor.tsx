@@ -1,122 +1,106 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Plus } from 'lucide-react';
-import { Button } from '../../../../components/common/Button/Button';
-import { Tabs } from '../../../../components/common/Tabs/Tabs';
+import { useMemo, type ReactNode } from 'react';
+import { Power } from 'lucide-react';
+import { CollapsibleSection } from '../../../../components/common/CollapsibleSection/CollapsibleSection';
+import { usePersistentState } from '../../../../hooks/usePersistentState';
 import { useTranslation } from '../../../../lib/i18n';
 import { type FanChannel, isFanDisconnected } from '../../../../api/cooling';
-import { CurveCard, computeCurveSpeed } from '../page/CurveEditor';
+import { CurveCard } from '../page/CurveEditor';
+import { CurveSelector } from '../page/CurveSelector';
+import { fanDeviceGroupName } from '../page/deviceGroupName';
 import { FanCard } from '../page/FanCard';
 import type { CoolingImmersiveController } from './useCoolingImmersive';
+import pageStyles from '../CoolingPage.module.scss';
 import styles from './CoolingImmersiveEditor.module.scss';
 
-type CoolingEditorTab = 'curves' | 'fans';
-
-const noopHover = () => {};
-
 /**
- * Immersive cell 2 (the fill cell): Curves | Fans tab shell. The same
- * CurveCard / FanCard leaves the desktop CoolingPage composes, minus the
- * wire layer and drag-reorder - binding goes through each fan's mode
- * dropdown instead.
+ * Immersive cell 2 (the fill cell): the redesigned cooling-page layout - the
+ * pinned hero CurveCard (graph + curve-selector chips + options) over the fan
+ * list with its collapsible hub groups - minus the desktop-only concerns
+ * (wire layer, drag reorder, calibration flow). Stacked in one scroller on
+ * portrait cells; two independent columns (curves | fans, the desktop shape)
+ * once the cell is wide enough, via container query.
  */
 export function CoolingImmersiveEditor({ cooling }: { cooling: CoolingImmersiveController }) {
   const { t } = useTranslation();
-  const [active, setActive] = useState<CoolingEditorTab>('curves');
+  const { curves, sources, fanStates, selectedCurveId } = cooling;
 
-  const tabs = [
-    { key: 'curves', label: t('cooling.sections.curves') },
-    { key: 'fans', label: t('cooling.label.fan') },
-  ];
+  // Panel surfaces only list physically-connected channels: hardware-
+  // unresponsive fans are hidden outright, not shown as a Disconnected group.
+  const liveChannels = useMemo(
+    () => cooling.channels.filter(c => !isFanDisconnected(c)),
+    [cooling.channels],
+  );
+
+  // Number of connected fans bound to each curve, shown under its selector chip.
+  const curveFanCounts = useMemo(() => {
+    const live = new Set(liveChannels.map(c => c.id));
+    const m = new Map<string, number>();
+    for (const [fanId, fs] of Object.entries(fanStates)) {
+      if (fs.curveId && live.has(fanId)) m.set(fs.curveId, (m.get(fs.curveId) ?? 0) + 1);
+    }
+    return m;
+  }, [fanStates, liveChannels]);
+
+  const selectedCurve = useMemo(
+    () => curves.find(c => c.id === selectedCurveId) ?? curves[0] ?? null,
+    [curves, selectedCurveId],
+  );
 
   return (
     <div className={styles.editor}>
-      <div className={styles.tabs}>
-        <Tabs
-          tabs={tabs}
-          activeKey={active}
-          onChange={k => setActive(k as CoolingEditorTab)}
-          fullWidth
-          ariaLabel={t('cooling.title')}
-        />
-      </div>
       <div className={styles.body} data-panel-scrollable="true">
-        {active === 'curves' ? <CurvesTab cooling={cooling} /> : <FansTab cooling={cooling} />}
-      </div>
-    </div>
-  );
-}
-
-function CurvesTab({ cooling }: { cooling: CoolingImmersiveController }) {
-  const { t } = useTranslation();
-  const { curves, sources, fanStates } = cooling;
-  const [expandedCurveId, setExpandedCurveId] = useState<string | null>(null);
-
-  // A deleted curve can't stay expanded (same invariant as CoolingPage).
-  useEffect(() => {
-    if (expandedCurveId && !curves.some(c => c.id === expandedCurveId)) {
-      setExpandedCurveId(null);
-    }
-  }, [curves, expandedCurveId]);
-
-  const curvesInUse = useMemo(() => {
-    const s = new Set<string>();
-    for (const fs of Object.values(fanStates)) if (fs.curveId) s.add(fs.curveId);
-    return s;
-  }, [fanStates]);
-
-  // Live output % per curve, computed once so the recursion-safe Mix path
-  // doesn't re-walk per card.
-  const curveOutputs = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const c of curves) m.set(c.id, computeCurveSpeed(c, sources, curves));
-    return m;
-  }, [curves, sources]);
-
-  const onAdd = () => {
-    const id = cooling.addCurve();
-    // New curves auto-expand so they can be configured without an extra tap.
-    if (id) setExpandedCurveId(id);
-  };
-
-  return (
-    <div className={styles.tabPane}>
-      <div className={styles.paneActions}>
-        <Button
-          type="button" size="sm" tone="neutral"
-          icon={<Plus size={14} aria-hidden />}
-          onClick={onAdd}
-          disabled={!cooling.canAddCurve}
-        >
-          {t('cooling.curves.add')}
-        </Button>
-      </div>
-      {curves.length === 0 ? (
-        <p className={styles.empty}>{t('cooling.curves.empty')}</p>
-      ) : (
-        <div className={styles.cardList}>
-          {curves.map(c => (
+        <div className={styles.curveCol}>
+          {selectedCurve ? (
             <CurveCard
-              key={c.id} curve={c} allCurves={curves} sources={sources}
-              inUse={curvesInUse.has(c.id)}
-              expanded={expandedCurveId === c.id}
-              outputPercent={curveOutputs.get(c.id) ?? 0}
-              onExpand={() => setExpandedCurveId(c.id)}
-              onCollapse={() => setExpandedCurveId(null)}
-              onHover={noopHover}
+              key={selectedCurve.id}
+              curve={selectedCurve}
+              allCurves={curves}
+              sources={sources}
               onChange={cooling.saveCurve}
-              onDelete={() => cooling.deleteCurve(c.id)}
-              onResetPreset={c.preset ? () => cooling.resetPresetCurve(c.preset!) : undefined}
-            />
-          ))}
+              onDelete={() => cooling.deleteCurve(selectedCurve.id)}
+              onResetPreset={selectedCurve.preset ? () => cooling.resetPresetCurve(selectedCurve.preset!) : undefined}
+            >
+              <CurveSelector
+                curves={curves}
+                selectedCurveId={selectedCurve.id}
+                curveFanCounts={curveFanCounts}
+                onSelect={cooling.selectCurve}
+                onAdd={cooling.addCurve}
+              />
+            </CurveCard>
+          ) : (
+            <p className={styles.empty}>{t('cooling.curves.empty')}</p>
+          )}
         </div>
-      )}
+        <FansSection cooling={cooling} liveChannels={liveChannels} />
+      </div>
     </div>
   );
 }
 
-function FansTab({ cooling }: { cooling: CoolingImmersiveController }) {
+function FansSection({ cooling, liveChannels }: {
+  cooling: CoolingImmersiveController;
+  liveChannels: FanChannel[];
+}) {
   const { t } = useTranslation();
-  const { channels, curves, fanStates, hubModes, calibrating } = cooling;
+  const { curves, fanStates, hubModes, calibrating, selectedCurveId } = cooling;
+
+  // Per-hub-group collapse state, same persistence key as the desktop page so
+  // the choice carries across surfaces on the same install.
+  const [collapsedFanGroups, setCollapsedFanGroups] = usePersistentState<string[]>('cooling.collapsedFanGroups', ['disconnected']);
+  const isFanGroupCollapsed = (key: string) => collapsedFanGroups.includes(key);
+  const toggleFanGroup = (key: string) =>
+    setCollapsedFanGroups(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
+
+  // Selecting a curve highlights every connected fan bound to it.
+  const highlightedFanIds = useMemo(() => {
+    const s = new Set<string>();
+    if (!selectedCurveId) return s;
+    for (const [fanId, st] of Object.entries(fanStates)) {
+      if (st.curveId === selectedCurveId) s.add(fanId);
+    }
+    return s;
+  }, [selectedCurveId, fanStates]);
 
   const renderFan = (ch: FanChannel) => (
     <FanCard
@@ -124,9 +108,10 @@ function FansTab({ cooling }: { cooling: CoolingImmersiveController }) {
       compact
       calibrating={calibrating}
       canCreateCurve={cooling.canAddCurve}
+      highlighted={highlightedFanIds.has(ch.id)}
       hubMode={ch.deviceId ? hubModes[ch.deviceId] : undefined}
-      hubSupportsFirmware={ch.deviceId?.startsWith('np50:')}
-      hubSupportsBios={!ch.deviceId?.startsWith('corsair:')}
+      hubSupportsFirmware={ch.deviceId?.startsWith('np50:') || ch.deviceId?.startsWith('qseries:')}
+      hubSupportsBios={!ch.deviceId?.startsWith('np50:') && !ch.deviceId?.startsWith('corsair:')}
       onSetMode={v => cooling.setFanMode(ch.id, v)}
       onCreateCurve={() => cooling.createCurveAndAssign(ch.id)}
       onRename={cooling.renameFan}
@@ -135,11 +120,8 @@ function FansTab({ cooling }: { cooling: CoolingImmersiveController }) {
     />
   );
 
-  // Panel surfaces only list physically-connected channels: hardware-
-  // unresponsive fans are hidden outright, not shown as a Disconnected group.
-  const live = channels.filter(c => !isFanDisconnected(c));
   const groups = new Map<string | null, FanChannel[]>();
-  for (const ch of live) {
+  for (const ch of liveChannels) {
     const key = ch.deviceId || null;
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key)!.push(ch);
@@ -149,20 +131,37 @@ function FansTab({ cooling }: { cooling: CoolingImmersiveController }) {
   // Motherboard / GPU fans first, flat (same shape as CoolingPage).
   const mobo = groups.get(null);
   if (mobo) for (const ch of mobo) blocks.push(renderFan(ch));
-  // Then one labelled group per external hub, in stable order.
+  // Then one collapsible group per external hub, in stable order.
   const deviceKeys = Array.from(groups.keys()).filter((k): k is string => !!k).sort();
   for (const key of deviceKeys) {
     const list = groups.get(key)!;
+    const deviceName = fanDeviceGroupName(key, list[0].deviceName);
     blocks.push(
-      <div key={`${key}-hdr`} className={styles.deviceGroupHeader}>
-        {list[0].deviceName ?? key}
-      </div>,
+      <CollapsibleSection
+        key={key}
+        compact
+        title={deviceName}
+        ariaLabel={deviceName}
+        open={!isFanGroupCollapsed(key)}
+        onToggle={() => toggleFanGroup(key)}
+        right={<span className={pageStyles.fanGroupCount}>{list.length}</span>}
+      >
+        <div className={pageStyles.fanGroupChildren}>{list.map(renderFan)}</div>
+      </CollapsibleSection>,
     );
-    for (const ch of list) blocks.push(renderFan(ch));
   }
 
   return (
-    <div className={styles.tabPane}>
+    <div className={styles.fanCol}>
+      <span className={pageStyles.curveFieldHeader}>{t('cooling.label.fan')}</span>
+      {cooling.activePreset === 'off' && (
+        <div className={pageStyles.offStatus}
+          role="status"
+          aria-label={t('cooling.preset.off.banner')}>
+          <Power size={13} aria-hidden />
+          <span className={pageStyles.offStatusLabel}>{t('cooling.preset.off.banner')}</span>
+        </div>
+      )}
       {calibrating && <p className={styles.calibratingHint}>{t('cooling.calibrate.locked')}</p>}
       {/* Same input lock the desktop page applies to its fan rail: a running
           calibration owns the duty cycle, so every control underneath goes
@@ -171,7 +170,7 @@ function FansTab({ cooling }: { cooling: CoolingImmersiveController }) {
       <div
         inert={calibrating || undefined}
         aria-hidden={calibrating || undefined}
-        className={styles.cardList}
+        className={styles.fanList}
       >
         {blocks}
       </div>
