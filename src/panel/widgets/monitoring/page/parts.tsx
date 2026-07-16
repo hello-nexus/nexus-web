@@ -2,32 +2,9 @@ import { useMemo } from 'react';
 import { CollapsibleSection } from '../../../../components/common/CollapsibleSection/CollapsibleSection';
 import type { HardwareSensor } from '../../../../hooks/useSensors';
 import { useUnitPrefs } from '../../../../hooks/useUiSettings';
-import { useTranslation } from '../../../../lib/i18n';
 import { formatSensorValue } from '../sensorValueFormat';
 import { groupByType } from './shared';
 import styles from '../MonitoringPage.module.scss';
-
-export function RankedToggle({ showAverage, onToggle }: { showAverage: boolean; onToggle: () => void }) {
-  const { t } = useTranslation();
-  return (
-    <div className="chip-group">
-      <button
-        type="button"
-        className={`chip-action${!showAverage ? ' chip-active' : ''}`}
-        onClick={() => { if (showAverage) onToggle(); }}
-      >
-        {t('monitoring.mode.live')}
-      </button>
-      <button
-        type="button"
-        className={`chip-action${showAverage ? ' chip-active' : ''}`}
-        onClick={() => { if (!showAverage) onToggle(); }}
-      >
-        {t('monitoring.mode.60s')}
-      </button>
-    </div>
-  );
-}
 
 // Plain in-flow section. Click anywhere on the header to toggle the body.
 // No sticky positioning, no scroll spying -- the headers scroll with content.

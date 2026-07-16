@@ -1,18 +1,32 @@
+import { useEffect } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MonitoringPage } from './MonitoringPage';
 
-vi.mock('../../../hooks/useMonitoringFrame', () => ({
-  useMonitoringFrame: () => null,
+// MetricHistorySection is the persistent hero mounted once above the
+// switched tab content - stub it with a mount/unmount + prop tracer so tests
+// can assert it stays mounted across a metric-tab switch (only the `metric`
+// prop should change) and unmounts on the unrelated 'detailed' page.
+let metricHistoryMounts = 0;
+let metricHistoryUnmounts = 0;
+vi.mock('./page/MetricHistorySection', () => ({
+  MetricHistorySection: ({ metric }: { metric: string }) => {
+    useEffect(() => {
+      metricHistoryMounts++;
+      return () => { metricHistoryUnmounts++; };
+    }, []);
+    return <div data-testid="metric-history-section">metric:{metric}</div>;
+  },
 }));
 
 vi.mock('../../../hooks/useNetworkMonitor', () => ({
   useNetworkMonitor: () => ({
+    series: [],
+    sampleCount: 0,
+    totalRate: 0,
+    totalRateIn: 0,
+    totalRateOut: 0,
     entries: [],
-    totalIn: 0,
-    totalOut: 0,
-    historyIn: [],
-    historyOut: [],
   }),
 }));
 
@@ -81,7 +95,7 @@ const updateMock = vi.fn();
 let collapsedState: string[] = [];
 vi.mock('../../../hooks/useUiSettings', () => ({
   useUiSettings: () => ({
-    settings: { monitoringShowAverage: false, monitoringDetailedCollapsed: collapsedState },
+    settings: { preferredGpuId: '', monitoringDetailedCollapsed: collapsedState },
     update: (patch: { monitoringDetailedCollapsed?: string[] }) => {
       if (patch.monitoringDetailedCollapsed) collapsedState = patch.monitoringDetailedCollapsed;
       updateMock(patch);
@@ -94,20 +108,8 @@ vi.mock('../../../../lib/i18n', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
 
-vi.mock('../../../../lib/monitoringStore', () => ({
-  getOverviewHist: () => ({
-    cpu: [],
-    gpu: [],
-    mem: [],
-    netDown: [],
-    netUp: [],
-  }),
-  getGpuHist: () => [],
-  colorFor: () => '#888',
-}));
-
 describe('MonitoringPage', () => {
-  it('defaults to overview without forcing a route tab write', () => {
+  it('defaults to cpu (the removed overview tab is gone) without forcing a route tab write', () => {
     const onTabChange = vi.fn();
     render(
       <MonitoringPage
@@ -118,23 +120,56 @@ describe('MonitoringPage', () => {
       />,
     );
 
-    expect(screen.getByRole('tab', { name: 'monitoring.tab.overview' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.queryByRole('tab', { name: 'monitoring.tab.overview' })).toBeNull();
+    expect(screen.getByRole('tab', { name: 'monitoring.tab.cpu' })).toHaveAttribute('aria-selected', 'true');
     expect(onTabChange).not.toHaveBeenCalled();
   });
 
-  it('keeps invalid url tabs render-only instead of normalizing history', () => {
+  it('keeps invalid url tabs (including the removed "overview") render-only instead of normalizing history', () => {
     const onTabChange = vi.fn();
     render(
       <MonitoringPage
         serviceOnline={false}
         connectionState="offline"
-        tab="not-a-real-tab"
+        tab="overview"
         onTabChange={onTabChange}
       />,
     );
 
-    expect(screen.getByRole('tab', { name: 'monitoring.tab.overview' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'monitoring.tab.cpu' })).toHaveAttribute('aria-selected', 'true');
     expect(onTabChange).not.toHaveBeenCalled();
+  });
+
+  it('mounts the hero MetricHistorySection once above the switched content and unmounts it only on the unrelated Detailed page', () => {
+    metricHistoryMounts = 0;
+    metricHistoryUnmounts = 0;
+
+    const { rerender } = render(
+      <MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />,
+    );
+    expect(metricHistoryMounts).toBe(1);
+    expect(screen.getByTestId('metric-history-section')).toHaveTextContent('metric:cpu');
+
+    // Switching between metric tabs swaps the `metric` prop without
+    // remounting the hero - the brush/viewport state it owns must survive.
+    rerender(<MonitoringPage serviceOnline={true} connectionState="online" tab="memory" onTabChange={vi.fn()} />);
+    expect(metricHistoryMounts).toBe(1);
+    expect(metricHistoryUnmounts).toBe(0);
+    expect(screen.getByTestId('metric-history-section')).toHaveTextContent('metric:memory');
+
+    rerender(<MonitoringPage serviceOnline={true} connectionState="online" tab="network" onTabChange={vi.fn()} />);
+    expect(metricHistoryMounts).toBe(1);
+    expect(metricHistoryUnmounts).toBe(0);
+    expect(screen.getByTestId('metric-history-section')).toHaveTextContent('metric:network');
+
+    // Detailed is a real page switch: the hero has no place there.
+    rerender(<MonitoringPage serviceOnline={true} connectionState="online" tab="detailed" onTabChange={vi.fn()} />);
+    expect(screen.queryByTestId('metric-history-section')).toBeNull();
+    expect(metricHistoryUnmounts).toBe(1);
+
+    rerender(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+    expect(metricHistoryMounts).toBe(2);
+    expect(screen.getByTestId('metric-history-section')).toHaveTextContent('metric:cpu');
   });
 
   it('renders Detailed tab sections, hides empty families, and toggles on header click', () => {

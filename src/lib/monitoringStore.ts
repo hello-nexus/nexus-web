@@ -1,7 +1,6 @@
 import type { MonitoringFrame } from '../hooks/useMonitoringFrame';
 import type { SeriesEntry } from '../hooks/useProcessMonitor';
 import type { NetworkEntry } from '../hooks/useNetworkMonitor';
-import { resolvePrimaryGpu } from './gpuResolver';
 
 const MAX_SAMPLES = 60;
 const TOP_PROCS = 20;
@@ -50,26 +49,6 @@ let totalMemUsedHist: number[] = [];
 // ── Network history ──────────────────────────────────────────────────────
 
 const netHist = new Map<string, HistEntry>();
-
-// ── Overview sparklines ──────────────────────────────────────────────────
-
-const overviewHist = {
-  cpu: [] as number[],
-  gpu: [] as number[],
-  mem: [] as number[],
-  netDown: [] as number[],
-  netUp: [] as number[],
-};
-
-// Per-GPU overview history, keyed by GPU model name. Every frame pushes every
-// GPU's load into its own buffer, so the overview can switch instantly to
-// whichever GPU the user picks - the chosen GPU's history already exists rather
-// than having to morph out of a single shared buffer. (overviewHist.gpu still
-// mirrors the discrete-first default for any consumer that isn't selection-aware.)
-const gpuHistByName = new Map<string, number[]>();
-export function getGpuHist(name: string): readonly number[] {
-  return gpuHistByName.get(name) ?? EMPTY_HIST;
-}
 
 // ── Per-sensor history (panel performance widget) ────────────────────────
 //
@@ -194,20 +173,8 @@ export function ingestMonitoring(frame: MonitoringFrame) {
   frameTick++;
   latestFrame = frame;
 
-  // Overview sparklines
   const procs = frame.processes;
   const net = frame.network;
-  // Accumulate every GPU's load into its own per-name buffer so the overview can
-  // switch to any GPU instantly. `includes('load')` matches OverviewTab's own
-  // current-value lookup, so the sparkline and the % stay consistent.
-  const gpus = frame.gpu ?? [];
-  for (const g of gpus) {
-    const load = g.sensors.find(s => s.id.includes('load'))?.value ?? 0;
-    let buf = gpuHistByName.get(g.name);
-    if (!buf) { buf = []; gpuHistByName.set(g.name, buf); }
-    push60(buf, load);
-  }
-  const gpuLoad = resolvePrimaryGpu(gpus, '')?.sensors.find(s => s.id.includes('load'));
   // totalUsedMb = total system memory used (kernel + cached + every process,
   // not just the streamed top-25). Source is the `Memory Used` sensor (GB)
   // from this frame. Fall back to summing the per-process snapshot only when
@@ -215,11 +182,6 @@ export function ingestMonitoring(frame: MonitoringFrame) {
   const memUsedSensor = frame.memory?.sensors.find(s => s.name === 'Memory Used');
   const procsMemSum = procs?.processes.reduce((s, p) => s + p.memoryMb, 0) ?? 0;
   const totalUsedMb = memUsedSensor ? memUsedSensor.value * 1024 : procsMemSum;
-  push60(overviewHist.cpu, procs?.totalCpu ?? 0);
-  push60(overviewHist.gpu, gpuLoad?.value ?? 0);
-  push60(overviewHist.mem, totalUsedMb);
-  push60(overviewHist.netDown, net?.entries.reduce((s, e) => s + e.rateIn, 0) ?? 0);
-  push60(overviewHist.netUp, net?.entries.reduce((s, e) => s + e.rateOut, 0) ?? 0);
   // Keep totalMemUsedHist un-rounded so the chart's Other gap computation
   // (totalUsedMb − sum(unrounded per-process values)) doesn't sporadically
   // clamp to 0 when the top sum slightly exceeds a rounded total.
@@ -289,7 +251,6 @@ export function ingestScreenTime(frame: { focus: FocusSession | null; history: A
 // ── Getters ──────────────────────────────────────────────────────────────
 
 export function getMonitoringFrame() { return latestFrame; }
-export function getOverviewHist() { return overviewHist; }
 
 // ── Per-process GPU (gpu-processes topic) ──────────────────────────────────
 // Reuses the same per-name history machinery as CPU/mem processes, so the GPU
@@ -453,11 +414,6 @@ export function getScreenTime() {
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────
-
-function push60(arr: number[], val: number) {
-  arr.push(val);
-  if (arr.length > MAX_SAMPLES) arr.splice(0, arr.length - MAX_SAMPLES);
-}
 
 function pushHist(
   map: Map<string, HistEntry>,
