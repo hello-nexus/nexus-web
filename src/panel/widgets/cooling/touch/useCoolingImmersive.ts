@@ -20,6 +20,13 @@ import {
   MINIHUB_LIVE_MODE_MOTHERBOARD,
   MINIHUB_LIVE_MODE_SOFTWARE,
 } from '../../../../api/minihub';
+import {
+  getQSeriesState,
+  setQSeriesControlMode,
+  QSERIES_MODE_SOFTWARE,
+  QSERIES_MODE_MOTHERBOARD,
+  QSERIES_MODE_FIRMWARE,
+} from '../../../../api/qseries';
 import { useCoolingRealtime } from '../../../../hooks/useCooling';
 import { useCoolingCurves } from '../../../../hooks/useCoolingCurves';
 import { useMultiplex, useTopicCallback } from '../../../../hooks/useMultiplexSocket';
@@ -45,14 +52,17 @@ export interface CoolingImmersiveController {
   activePreset: CoolingPresetKey | null;
   hubModes: Record<string, FanCardHubMode>;
   canAddCurve: boolean;
+  /** The curve shown in the hero card; selecting also highlights the fans
+   *  bound to it (same semantics as CoolingPage's selectedCurveId). */
+  selectedCurveId: string | null;
   /** Server calibration in progress - fan controls must lock (same interlock
    *  as the desktop page's dimmed rail). */
   calibrating: boolean;
+  selectCurve: (id: string) => void;
   applyPreset: (key: CoolingPresetKey) => void;
   setFanMode: (fanId: string, value: string) => void;
   createCurveAndAssign: (fanId: string) => void;
-  /** Returns the new curve's id, or '' when the cap is reached. */
-  addCurve: () => string;
+  addCurve: () => void;
   deleteCurve: (id: string) => void;
   saveCurve: (c: CurveDef) => void;
   resetPresetCurve: (presetKey: string) => void;
@@ -76,6 +86,9 @@ export function useCoolingImmersive(): CoolingImmersiveController {
   const [fanStates, setFanStates] = useState<Record<string, FanState>>(() => cachedSeed.fanStates);
   const [activePreset, setActivePreset] = useState<CoolingPresetKey | null>(() => cachedSeed.activePreset);
   const [hubModes, setHubModes] = useState<Record<string, FanCardHubMode>>(() => cachedSeed.hubModes);
+  // Seeded from the cached curves so a revisit paints the hero card
+  // immediately (same as CoolingPage).
+  const [selectedCurveId, setSelectedCurveId] = useState<string | null>(() => cachedSeed.curves[0]?.id ?? null);
   const presetLockUntilRef = useRef(0);
   const activeProfileRef = useRef('');
   const tempPrefs = useTempSensorPrefs();
@@ -99,6 +112,18 @@ export function useCoolingImmersive(): CoolingImmersiveController {
     setHubModes(prev => prev[state.deviceId] === kind ? prev : { ...prev, [state.deviceId]: kind });
   }, []);
 
+  // The Q-series pump reports its control mode (Software/Motherboard/
+  // Firmware); re-read it on every refresh, same lock-out as the NP50.
+  const refreshQSeriesHubMode = useCallback(async () => {
+    const s = await getQSeriesState();
+    if (!s?.connected || !s.deviceId) return;
+    if (Date.now() < hubModeLockUntilRef.current) return;
+    const kind: FanCardHubMode = s.controlMode === QSERIES_MODE_SOFTWARE ? 'software'
+      : s.controlMode === QSERIES_MODE_FIRMWARE ? 'firmware'
+      : 'motherboard';
+    setHubModes(prev => prev[s.deviceId] === kind ? prev : { ...prev, [s.deviceId]: kind });
+  }, []);
+
   const refresh = useCallback(async () => {
     const [fans, temps, saved, profiles] = await Promise.all([
       fetchFanChannels(),
@@ -109,6 +134,9 @@ export function useCoolingImmersive(): CoolingImmersiveController {
 
     if (fans?.channels?.some(c => c.deviceId?.startsWith('np50:'))) {
       void refreshNp50HubMode();
+    }
+    if (fans?.channels?.some(c => c.deviceId?.startsWith('qseries:'))) {
+      void refreshQSeriesHubMode();
     }
 
     if (profiles?.active && Date.now() >= presetLockUntilRef.current) {
@@ -133,7 +161,7 @@ export function useCoolingImmersive(): CoolingImmersiveController {
       setFanStates(restored);
     }
     if (temps?.sources) setSources(temps.sources);
-  }, [refreshNp50HubMode]);
+  }, [refreshNp50HubMode, refreshQSeriesHubMode]);
 
   useEffect(() => { void refresh(); }, [refresh]);
 
@@ -243,6 +271,10 @@ export function useCoolingImmersive(): CoolingImmersiveController {
   }, []);
 
   const applyPreset = useCallback((key: CoolingPresetKey) => {
+    // Pressing a preset also shows that preset's curve in the hero card
+    // (same as the desktop page's preset tabs).
+    const presetCurve = curves.find(c => c.preset === key);
+    if (presetCurve) setSelectedCurveId(presetCurve.id);
     if (key === activePreset) return;
     // Lock first so pushes triggered by this write can't revert the
     // optimistic update below.
@@ -254,7 +286,7 @@ export function useCoolingImmersive(): CoolingImmersiveController {
     // right preset on first frame.
     setCachedCoolingActivePreset(key);
     void applyProfile(key).then(() => refresh()).catch(() => { /* best-effort */ });
-  }, [activePreset, refresh]);
+  }, [activePreset, curves, refresh]);
 
   const toggleSoftwareControl = useCallback(async (fanId: string, enabled: boolean) => {
     if (enabled) {
@@ -287,6 +319,7 @@ export function useCoolingImmersive(): CoolingImmersiveController {
     const deviceId = channel?.deviceId ?? null;
     const isNp50 = !!deviceId && deviceId.startsWith('np50:');
     const isMiniHub = !!deviceId && deviceId.startsWith('minihub:');
+    const isQSeries = !!deviceId && deviceId.startsWith('qseries:');
 
     // NP50 has no motherboard BIOS hand-off of its own; both 'fw' and 'bios'
     // mean "hand the hub back to firmware control".
@@ -299,9 +332,25 @@ export function useCoolingImmersive(): CoolingImmersiveController {
       return;
     }
 
+    // Q-series pump: FW Control = the cooler's onboard firmware temperature
+    // curve (distinct from BIOS/motherboard, which the pump also offers).
+    if (value === 'fw' && isQSeries && deviceId) {
+      const wasSw = fanStates[fanId]?.softwareControl ?? false;
+      if (wasSw) await toggleSoftwareControl(fanId, false);
+      await setQSeriesControlMode(QSERIES_MODE_FIRMWARE);
+      hubModeLockUntilRef.current = Date.now() + PRESET_LOCK_MS;
+      setHubModes(prev => ({ ...prev, [deviceId]: 'firmware' }));
+      return;
+    }
+
     if (value === 'bios') {
       if (isMiniHub && deviceId) {
         await setMiniHubLiveCoolingMode(MINIHUB_LIVE_MODE_MOTHERBOARD);
+        hubModeLockUntilRef.current = Date.now() + PRESET_LOCK_MS;
+        setHubModes(prev => ({ ...prev, [deviceId]: 'motherboard' }));
+      }
+      if (isQSeries && deviceId) {
+        await setQSeriesControlMode(QSERIES_MODE_MOTHERBOARD);
         hubModeLockUntilRef.current = Date.now() + PRESET_LOCK_MS;
         setHubModes(prev => ({ ...prev, [deviceId]: 'motherboard' }));
       }
@@ -315,6 +364,7 @@ export function useCoolingImmersive(): CoolingImmersiveController {
     if (deviceId && hubModes[deviceId] && hubModes[deviceId] !== 'software') {
       if (isNp50) await setNp50LiveCoolingMode(NP50_LIVE_MODE_SOFTWARE);
       else if (isMiniHub) await setMiniHubLiveCoolingMode(MINIHUB_LIVE_MODE_SOFTWARE);
+      else if (isQSeries) await setQSeriesControlMode(QSERIES_MODE_SOFTWARE);
       hubModeLockUntilRef.current = Date.now() + PRESET_LOCK_MS;
       setHubModes(prev => ({ ...prev, [deviceId]: 'software' }));
     }
@@ -334,16 +384,17 @@ export function useCoolingImmersive(): CoolingImmersiveController {
     }
   }, [channels, fanStates, curves, hubModes, pushCurves, toggleSoftwareControl, assignCurve, exitOffToCustomIfNeeded]);
 
-  const addCurve = useCallback((): string => {
-    if (curves.length >= MAX_CURVES) return '';
+  const addCurve = useCallback(() => {
+    if (curves.length >= MAX_CURVES) return;
     const id = `curve-${Date.now()}`;
     const c = newCurve(id);
     c.sourceId = defaultCurveSourceId(sources, tempPrefs.cpuId);
-    // New curves go on top so a freshly-added curve is immediately visible.
-    const next = [c, ...curves];
+    // Append so new curves land at the end of the selector list (same order
+    // as the desktop page); show it in the hero card right away.
+    const next = [...curves, c];
     setCurves(next);
+    setSelectedCurveId(id);
     void pushCurves(next, fanStates);
-    return id;
   }, [curves, sources, fanStates, pushCurves, tempPrefs.cpuId]);
 
   // Create a curve and bind it to the fan in one shot so pushCurves sees both
@@ -354,11 +405,12 @@ export function useCoolingImmersive(): CoolingImmersiveController {
     const id = `curve-${Date.now()}`;
     const c = newCurve(id);
     c.sourceId = defaultCurveSourceId(sources, tempPrefs.cpuId);
-    const nextCurves = [c, ...curves];
+    const nextCurves = [...curves, c];
     const wasSw = fanStates[fanId]?.softwareControl ?? false;
     const nextStates = { ...fanStates, [fanId]: { softwareControl: true, curveId: id } };
     setCurves(nextCurves);
     setFanStates(nextStates);
+    setSelectedCurveId(id);
     if (!wasSw) await apiSetFanSpeed(fanId, 50);
     void pushCurves(nextCurves, nextStates);
     if (!wasSw) {
@@ -378,6 +430,9 @@ export function useCoolingImmersive(): CoolingImmersiveController {
     }
     setCurves(next);
     setFanStates(nextStates);
+    // Move the hero card off the deleted curve immediately; the maintenance
+    // effect below also catches this, but this avoids a one-frame gap.
+    setSelectedCurveId(prev => prev === id ? (next[0]?.id ?? null) : prev);
     await Promise.all(orphanedFanIds.map(fanId => releaseFanAuto(fanId)));
     await pushCurves(next, nextStates);
     if (orphanedFanIds.length > 0) {
@@ -416,10 +471,22 @@ export function useCoolingImmersive(): CoolingImmersiveController {
     if (fans?.channels) setChannels(fans.channels);
   }, [exitOffToCustomIfNeeded]);
 
+  // Keep the hero-card selection valid: default to the first curve and
+  // re-point if the selected curve disappears (deleted, profile switch).
+  useEffect(() => {
+    if (curves.length === 0) {
+      setSelectedCurveId(prev => prev === null ? prev : null);
+      return;
+    }
+    setSelectedCurveId(prev => prev && curves.some(c => c.id === prev) ? prev : curves[0].id);
+  }, [curves]);
+
   return {
     channels, sources, curves, fanStates, activePreset, hubModes,
     canAddCurve: curves.length < MAX_CURVES,
+    selectedCurveId,
     calibrating,
+    selectCurve: setSelectedCurveId,
     applyPreset,
     setFanMode: (fanId, value) => { void setFanMode(fanId, value); },
     createCurveAndAssign: (fanId) => { void createCurveAndAssign(fanId); },

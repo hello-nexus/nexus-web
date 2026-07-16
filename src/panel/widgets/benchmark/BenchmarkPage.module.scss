@@ -247,9 +247,19 @@
 }
 
 .subCardScore {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   font-family: var(--font-mono);
   font-size: var(--type-small);
   color: var(--text-dim);
+}
+
+.subSpread {
+  color: var(--text-dim);
+  opacity: 0.7;
+  font-size: var(--type-tiny);
+  cursor: default;
 }
 
 .metaSection {

@@ -48,7 +48,7 @@ import { ErrorBoundary } from '../components/common/ErrorBoundary/ErrorBoundary'
 import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
 import { useMultiplex, useTopic, useTopicCallback } from '../hooks/useMultiplexSocket';
 import { useServiceStatus, HOST_DISPLAY_OFFLINE_GRACE_MS } from '../hooks/useServiceStatus';
-import { wiredPanelClass } from './device/wiredPanel';
+import { supportsDesktopSeeThrough, wiredPanelClass } from './device/wiredPanel';
 import { useUiSettings } from '../hooks/useUiSettings';
 import {
   isPinnableAppKey,
@@ -144,7 +144,7 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
   // stamped on it drive widget filtering. If the record is missing on the
   // server (cleared profile etc.), fall back to a viewport-inferred surface
   // so the panel still mounts instead of showing a blank page.
-  const [resolved, setResolved] = useState<{ surface: PanelSurface; touch?: boolean; dpi?: number } | null>(null);
+  const [resolved, setResolved] = useState<{ surface: PanelSurface; touch?: boolean; dpi?: number; displayBound?: boolean } | null>(null);
   useEffect(() => {
     let cancelled = false;
     fetchPanelDevice(deviceId).then(record => {
@@ -154,6 +154,7 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
         surface: surfaceFromRecord ?? inferSurfaceFromViewport(false),
         touch: record?.capabilities?.touch,
         dpi: record?.capabilities?.dpi,
+        displayBound: !!record?.displayId,
       });
     }).catch(() => {
       if (!cancelled) setResolved({ surface: inferSurfaceFromViewport(false) });
@@ -181,7 +182,7 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
   if (!resolved) {
     return null;
   }
-  return <PanelKioskContent deviceId={deviceId} surface={resolved.surface} deviceTouch={resolved.touch} deviceDpi={resolved.dpi} />;
+  return <PanelKioskContent deviceId={deviceId} surface={resolved.surface} deviceTouch={resolved.touch} deviceDpi={resolved.dpi} displayBound={resolved.displayBound} />;
 }
 export function PanelEmbeddedContent({ openCatalogSignal = 0, appAccentColor, onSectionNavigate }: {
   openCatalogSignal?: number;
@@ -207,14 +208,14 @@ export function PanelEmbeddedContent({ openCatalogSignal = 0, appAccentColor, on
   );
 }
 
-function PanelKioskContent({ deviceId, surface, deviceTouch, deviceDpi }: { deviceId: string; surface: PanelSurface; deviceTouch?: boolean; deviceDpi?: number }) {
+function PanelKioskContent({ deviceId, surface, deviceTouch, deviceDpi, displayBound }: { deviceId: string; surface: PanelSurface; deviceTouch?: boolean; deviceDpi?: number; displayBound?: boolean }) {
   const layoutState = usePanelLayout(deviceId, surface, deviceTouch);
   return (
     <ErrorBoundary
       // eslint-disable-next-line i18next/no-literal-string -- crash-boundary diagnostic id
       label="Panel"
     >
-      <PanelContent surface={surface} deviceId={deviceId} deviceTouch={deviceTouch} deviceDpi={deviceDpi} layoutState={layoutState} />
+      <PanelContent surface={surface} deviceId={deviceId} deviceTouch={deviceTouch} deviceDpi={deviceDpi} displayBound={displayBound} layoutState={layoutState} />
     </ErrorBoundary>
   );
 }
@@ -224,6 +225,7 @@ export function PanelContent({
   deviceId,
   deviceTouch,
   deviceDpi,
+  displayBound = false,
   layoutState,
   embedded = false,
   simulator = false,
@@ -245,6 +247,10 @@ export function PanelContent({
   // Per-device physical density (capabilities.dpi, curated known displays).
   // Undefined falls back to the per-surface estimate in the grid math.
   deviceDpi?: number;
+  // True when the record is display-bound (promoted OS monitor, displayId
+  // set). Distinguishes kiosk-hosted 'monitor' panels from streamed ones for
+  // the desktop see-through gate.
+  displayBound?: boolean;
   layoutState: PanelLayoutState;
   embedded?: boolean;
   simulator?: boolean;
@@ -423,6 +429,15 @@ export function PanelContent({
   // overlay. The embedded desktop deck paints no panel background so the
   // dashboard theme shows through.
   const showPanelBackground = !embedded || simulator;
+  // Background toggled off on a kiosk-hosted panel: the page renders fully
+  // transparent and the kiosk WebView2 (alpha-0 default background, no host
+  // class brush) composites the Windows desktop behind the widgets. See
+  // supportsDesktopSeeThrough for why surface alone is not the gate.
+  const seeThroughAvailable = supportsDesktopSeeThrough(surface, displayBound);
+  const backgroundOff = showPanelBackground
+    && effectiveTheme.backgroundEnabled === false
+    && seeThroughAvailable;
+  const showBackgroundLayers = showPanelBackground && !backgroundOff;
   const panelSolidColor = useMemo(
     () => showPanelBackground
       ? resolvePanelBackground(
@@ -433,7 +448,23 @@ export function PanelContent({
       : 'transparent',
     [showPanelBackground, effectiveTheme.backgroundColor, effectiveTheme.backgroundColorLight, resolvedThemeMode],
   );
-  const themeBackdrop = showPanelBackground ? 'var(--backdrop-base)' : 'transparent';
+  const themeBackdrop = showBackgroundLayers ? 'var(--backdrop-base)' : 'transparent';
+
+  // The page canvas is opaque unless html/body are cleared too: global.scss
+  // paints both with var(--bg), which would sit behind the transparent root.
+  useEffect(() => {
+    if (!backgroundOff || typeof document === 'undefined') return undefined;
+    const html = document.documentElement;
+    const body = document.body;
+    const prevHtml = html.style.background;
+    const prevBody = body.style.background;
+    html.style.background = 'transparent';
+    body.style.background = 'transparent';
+    return () => {
+      html.style.background = prevHtml;
+      body.style.background = prevBody;
+    };
+  }, [backgroundOff]);
   const panelRootStyle = useMemo(
     () => ({
       ...panelThemeVars,
@@ -1336,6 +1367,7 @@ export function PanelContent({
           isSingleWidgetSurface(surface) ? undefined : effectiveTheme.widgetPadding <= 0 ? 'none' : undefined
         }
         data-widget-blur={effectiveTheme.widgetBlur ? 'true' : 'false'}
+        data-background-off={backgroundOff ? 'true' : undefined}
         data-widget-opaque={effectiveTheme.widgetOpacity >= 1 ? 'true' : undefined}
         data-context-menu-open={contextMenuWidgetId ? 'true' : undefined}
         data-editing={surface === 'phone' && sheetMode === 'settings' ? 'true' : undefined}
@@ -1354,7 +1386,7 @@ export function PanelContent({
         onPointerCancel={backgroundLongPress.onPointerCancel}
         onContextMenu={handleBackgroundContextMenu}
       >
-        {showPanelBackground && effectiveTheme.backgroundMode === 'shader' && (
+        {showBackgroundLayers && effectiveTheme.backgroundMode === 'shader' && (
           <PanelBackgroundShader
             effect={effectiveTheme.backgroundEffect}
             template={effectiveTheme.backgroundTemplate}
@@ -1364,7 +1396,7 @@ export function PanelContent({
             fullRes={simulator}
           />
         )}
-        {showPanelBackground && effectiveTheme.backgroundMode === 'media' && effectiveTheme.backgroundMediaId && effectiveTheme.backgroundMediaType && deviceId && (
+        {showBackgroundLayers && effectiveTheme.backgroundMode === 'media' && effectiveTheme.backgroundMediaId && effectiveTheme.backgroundMediaType && deviceId && (
           <PanelBackgroundMedia
             id={effectiveTheme.backgroundMediaId}
             deviceId={deviceId}
@@ -1372,7 +1404,7 @@ export function PanelContent({
             opacity={effectiveTheme.backgroundOpacity}
           />
         )}
-        {showPanelBackground && effectiveTheme.backgroundMode === 'solid' && (
+        {showBackgroundLayers && effectiveTheme.backgroundMode === 'solid' && (
           <div
             className={styles.backgroundSolid}
             style={{ '--panel-background-opacity': effectiveTheme.backgroundOpacity } as CSSProperties}
@@ -1645,6 +1677,8 @@ export function PanelContent({
           onThemeBackgroundPreview={panelTheme.previewBackground}
           onThemeBackgroundCommit={panelTheme.commitBackground}
           onThemeBackgroundModeCommit={panelTheme.commitBackgroundMode}
+          onThemeBackgroundEnabledCommit={panelTheme.commitBackgroundEnabled}
+          showBackgroundToggle={seeThroughAvailable}
           onThemeBackgroundEffectCommit={panelTheme.commitBackgroundEffect}
           onThemeBackgroundTemplateCommit={panelTheme.commitBackgroundTemplate}
           onThemeBackgroundEffectStatePreview={panelTheme.previewBackgroundEffectState}

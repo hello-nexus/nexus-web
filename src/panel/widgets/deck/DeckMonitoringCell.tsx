@@ -1,9 +1,13 @@
-// Live tile content for a 'monitoring' deck action - the touch widget's
-// on-screen key and the physical-deck grid preview (the hardware key itself
-// is rendered server-side, see deckTarget.computeDeckUploadJobs). The cell's
-// background is the standard --deck-accent the DeckGrid button already paints
-// (slot.color, else a near-black default set by useCellVisual) - this
-// component only draws the name/graph/value content on top of it.
+// Live tile content for a 'monitoring' deck action, drawn in CSS/SVG: the
+// touch widget's on-screen key, and the physical editor grid's fallback
+// before its first live frame arrives (a frame, once received, is retained
+// across a later disconnect - see DeckGrid's liveTiles). The physical key
+// itself, and the editor's live preview once connected, are rendered
+// service-side by MonitoringTileRenderer and pushed as JPEG frames, so this
+// component owes no pixel parity to that renderer. The cell's background is
+// the standard --deck-accent the DeckGrid button already paints (slot.color,
+// else a near-black default set by useCellVisual) - this component only
+// draws the name/graph/value content on top of it.
 import type { CSSProperties } from 'react';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useSensors } from '../../../hooks/useSensors';

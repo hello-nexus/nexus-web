@@ -120,6 +120,10 @@ export function resolvePanelBackground(
   return resolved === 'light' ? pair.light : pair.dark;
 }
 
+export function normalizePanelBackgroundEnabled(value: boolean | null | undefined): boolean {
+  return value !== false;
+}
+
 export function normalizePanelBackgroundMode(value: string | null | undefined): PanelBackgroundMode {
   if (value === 'shader') return 'shader';
   if (value === 'media') return 'media';

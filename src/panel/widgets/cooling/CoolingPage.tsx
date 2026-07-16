@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Fan, Gauge, Plus, Power } from 'lucide-react';
+import { Gauge, Power } from 'lucide-react';
 import { usePersistentState } from '../../../hooks/usePersistentState';
 import {
   getNp50ConnectionState,
@@ -39,14 +39,15 @@ import { useUiSettings } from '../../../hooks/useUiSettings';
 import { publishControlSync, subscribeControlSync } from '../../../lib/controlSync';
 import { emitRadialBloomFromElement } from '../../../lib/backgroundEffects';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
-import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { CollapsibleSection } from '../../../components/common/CollapsibleSection/CollapsibleSection';
 import { SortableList, type SortableRowArgs } from '../../../components/common/SortableList/SortableList';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { CoolingSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
 import { FanCard, type FanCardHubMode } from './page/FanCard';
-import { CurveCard, computeCurveSpeed } from './page/CurveEditor';
-import { COOLING_PRESETS, isCoolingPresetKey, presetIconFor, type CoolingPresetKey } from './page/coolingPresets';
+import { CurveCard } from './page/CurveEditor';
+import { CurveSelector } from './page/CurveSelector';
+import { fanDeviceGroupName } from './page/deviceGroupName';
+import { COOLING_PRESETS, isCoolingPresetKey, type CoolingPresetKey } from './page/coolingPresets';
 import { loadCoolingCache, saveCoolingCache } from './coolingCache';
 import { resolveCpuTempSensor, defaultCurveSourceId } from '../../../lib/tempSensorResolver';
 import { curveDefsFromApi, MAX_CURVES, newCurve, type CurveDef, type FanState } from '../../../types/cooling';
@@ -692,12 +693,6 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   }, [channels, fanOrder]);
 
 
-  const curvesInUse = useMemo(() => {
-    const s = new Set<string>();
-    for (const fs of Object.values(fanStates)) if (fs.curveId) s.add(fs.curveId);
-    return s;
-  }, [fanStates]);
-
   // Number of fans bound to each curve, shown under its selector button.
   // Excludes hardware-unresponsive (disconnected) fans - they sit in the
   // Disconnected group and can't be driven, so they don't count as "in use".
@@ -711,37 +706,6 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     }
     return m;
   }, [fanStates, channels]);
-
-  // Spin the curve's fan-count icon once whenever a fan is newly bound to it
-  // (count goes up). The class is cleared on animationEnd, not a timer.
-  const [spinningCurves, setSpinningCurves] = useState<Set<string>>(() => new Set());
-  const prevFanCounts = useRef<Map<string, number>>(new Map());
-  const didInitFanCounts = useRef(false);
-  useEffect(() => {
-    if (didInitFanCounts.current) {
-      const added: string[] = [];
-      curveFanCounts.forEach((count, id) => {
-        if (count > (prevFanCounts.current.get(id) ?? 0)) added.push(id);
-      });
-      if (added.length) {
-        setSpinningCurves(s => {
-          const n = new Set(s);
-          added.forEach(id => n.add(id));
-          return n;
-        });
-      }
-    }
-    prevFanCounts.current = new Map(curveFanCounts);
-    didInitFanCounts.current = true;
-  }, [curveFanCounts]);
-
-  // Live output % per curve, computed once so the recursion-safe Mix path
-  // doesn't re-walk per consumer (the hero card today; cheap to keep shared).
-  const curveOutputs = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const c of curves) m.set(c.id, computeCurveSpeed(c, sources, curves));
-    return m;
-  }, [curves, sources]);
 
   // Selecting a curve highlights every fan bound to it. A fan is bound when
   // its fanState.curveId matches.
@@ -787,77 +751,6 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     );
   }
 
-  // Curve-selector buttons (Curves section, under the graph) reuse the shared
-  // chip-action pill (same family as the Mode switcher), so a chip widens with
-  // its name. Below each chip sits a non-interactive caption with a fan icon +
-  // the count of fans bound to that curve, hidden when none are bound.
-  // Silent/Balanced/Turbo first, then custom curves, then the dashed add chip.
-  // The viewed curve uses the soft-active treatment; clicking only swaps the
-  // graph/options view (the preset tabs apply a curve to all fans).
-  const curveSelector = (() => {
-    const presetOrder = ['silent', 'balanced', 'turbo'] as const;
-    const ordered = [
-      ...presetOrder.map(p => curves.find(c => c.preset === p)).filter((c): c is CurveDef => !!c),
-      ...curves.filter(c => !c.preset),
-    ];
-    return (
-      <div className={styles.curveSelector}>
-        <span className={styles.curveFieldHeader}>{t('cooling.sections.curves')}</span>
-        <div className={styles.curveButtons} role="group" aria-label={t('cooling.sections.curves')}>
-          {ordered.map(c => {
-            const PresetIcon = presetIconFor(c.preset);
-            const viewing = c.id === selectedCurveId;
-            const fanCount = curveFanCounts.get(c.id) ?? 0;
-            return (
-              <div key={c.id} className={styles.curveBtnCell}>
-                <button
-                  type="button"
-                  aria-current={viewing || undefined}
-                  className={`chip-action${viewing ? ' ' + styles.chipSoftActive : ''}`}
-                  onClick={() => setSelectedCurveId(c.id)}
-                >
-                  {PresetIcon && <PresetIcon size={14} aria-hidden />}
-                  <span className={styles.curveBtnName}>{c.name}</span>
-                </button>
-                {fanCount > 0 && (
-                  <span
-                    className={styles.curveBtnCount}
-                    data-spinning={spinningCurves.has(c.id) || undefined}
-                    onAnimationEnd={() => setSpinningCurves(s => {
-                      if (!s.has(c.id)) return s;
-                      const n = new Set(s);
-                      n.delete(c.id);
-                      return n;
-                    })}
-                  >
-                    <Fan size={12} aria-hidden /> {fanCount}
-                  </span>
-                )}
-              </div>
-            );
-          })}
-          {curves.length >= MAX_CURVES ? (
-            <div className={styles.curveBtnCell}>
-              <HoverTooltip body={t('cooling.curves.maxReached')} side="top">
-                <button type="button" className={`chip-action ${styles.curveAddBtn}`} disabled>
-                  <Plus size={14} aria-hidden />
-                  <span className={styles.curveBtnName}>{t('cooling.curves.add')}</span>
-                </button>
-              </HoverTooltip>
-            </div>
-          ) : (
-            <div className={styles.curveBtnCell}>
-              <button type="button" className={`chip-action ${styles.curveAddBtn}`} onClick={() => { addCurve(); }}>
-                <Plus size={14} aria-hidden />
-                <span className={styles.curveBtnName}>{t('cooling.curves.add')}</span>
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  })();
-
   return (
     <div className={styles.cooling}>
       <ViewHeader
@@ -879,18 +772,20 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
         {selectedCurve ? (
           <CurveCard
             key={selectedCurve.id}
-            pinned
-            expanded
             curve={selectedCurve}
             allCurves={curves}
             sources={sources}
-            inUse={curvesInUse.has(selectedCurve.id)}
-            outputPercent={curveOutputs.get(selectedCurve.id) ?? 0}
             onChange={saveCurveAndPush}
             onDelete={() => deleteCurve(selectedCurve.id)}
             onResetPreset={selectedCurve.preset ? () => handleResetPresetCurve(selectedCurve.preset!) : undefined}
           >
-            {curveSelector}
+            <CurveSelector
+              curves={curves}
+              selectedCurveId={selectedCurveId}
+              curveFanCounts={curveFanCounts}
+              onSelect={setSelectedCurveId}
+              onAdd={() => { addCurve(); }}
+            />
           </CurveCard>
         ) : (
           <p className={styles.curvesEmpty}>{t('cooling.curves.empty')}</p>
@@ -1010,19 +905,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                       renderRow={(key, a) => {
                         const list = groups.get(key)!;
                         const memberIds = list.map(c => c.id);
-                        const deviceName =
-                          list[0]?.deviceName ||
-                          // eslint-disable-next-line i18next/no-literal-string -- hardware product name
-                          (key.startsWith('np50:') ? 'HYTE NP50'
-                          // eslint-disable-next-line i18next/no-literal-string -- hardware product name
-                          : key.startsWith('minihub:') ? 'iBUYPOWER MiniHub'
-                          // eslint-disable-next-line i18next/no-literal-string -- hardware product name
-                          : key.startsWith('smarthub:') ? 'HYTE SmartHub'
-                          // eslint-disable-next-line i18next/no-literal-string -- hardware product name
-                          : key.startsWith('lianli:') ? 'Lian Li Uni Hub SL-Infinity'
-                          // eslint-disable-next-line i18next/no-literal-string -- hardware product name
-                          : key.startsWith('corsair:') ? 'Corsair iCUE LINK'
-                          : key);
+                        const deviceName = fanDeviceGroupName(key, list[0]?.deviceName);
                         return (
                           <CollapsibleSection
                             key={key + '-hdr'}

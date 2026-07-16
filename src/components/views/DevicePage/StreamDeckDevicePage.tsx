@@ -181,6 +181,31 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
 
   const { target, error: configError, retry: retryConfig, applyConfig } = usePhysicalDeckTarget(deck, onDeckConfigCommit);
 
+  // Live per-key tile frames the service renders for this deck (the same
+  // pixels pushed to the hardware), keyed `${page}:${slotPath}` (slotPath
+  // per deckTarget.slotPathAt) to a data URI - handed to DeckGrid's
+  // liveTiles so the preview is pixel-identical to the physical key by
+  // construction rather than approximated in CSS. Frames for a different
+  // deck's serial are dropped. clearLiveTiles resets the map wherever the
+  // config's topology changes client-side (undo/redo/reset/preset load), so
+  // a reordered or deleted slot can never show a frame keyed at the old
+  // shape; the subscription itself is gated to the Customize tab, since the
+  // grid it feeds isn't mounted on Settings.
+  const [liveTiles, setLiveTiles] = useState<Map<string, string>>(new Map());
+  const clearLiveTiles = useCallback(() => setLiveTiles(new Map()), []);
+  useTopicCallback('streamdeckTiles', !isRemoteOrigin && !!serial && tab === 'customize', useCallback((data: unknown) => {
+    const f = data as { serial?: string; page?: number; slotPath?: string; mime?: string; data?: string };
+    if (f.serial !== serial || typeof f.page !== 'number' || typeof f.slotPath !== 'string' || typeof f.data !== 'string') return;
+    const key = `${f.page}:${f.slotPath}`;
+    const src = `data:${f.mime || 'image/jpeg'};base64,${f.data}`;
+    setLiveTiles(prev => {
+      if (prev.get(key) === src) return prev;
+      const next = new Map(prev);
+      next.set(key, src);
+      return next;
+    });
+  }, [serial]));
+
   // Pulse the held key once the grid has rendered it (target loaded), so a
   // hold-to-edit arrival draws the eye to the selected key.
   useEffect(() => {
@@ -202,13 +227,14 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   const onDeckPresetLoad = useCallback(async (id: string) => {
     closeCommitBurst();
     await deckPresets.handleLoad(id);
+    clearLiveTiles();
     // A loaded preset opens on page 1 at the top level, not wherever the editor
     // was left; the service resets the physical deck's nav to match.
     setPage(0);
     setFolderPath([]);
     setSelectedSlot(0);
     retryConfig();
-  }, [closeCommitBurst, deckPresets, retryConfig]);
+  }, [closeCommitBurst, deckPresets, retryConfig, clearLiveTiles]);
 
   // Deleting the active preset promotes the first remaining one server-side and
   // applies its layout; re-render it in the editor (from page 1) so the view
@@ -220,9 +246,10 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
       setPage(0);
       setFolderPath([]);
       setSelectedSlot(0);
+      clearLiveTiles();
       retryConfig();
     }
-  }, [deckPresets, retryConfig]);
+  }, [deckPresets, retryConfig, clearLiveTiles]);
 
   // Undo/redo apply the restored DeckConfig through applyConfig - the same
   // debounced PUT + key-image resync path a normal edit takes - and re-save
@@ -237,18 +264,20 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
     closeCommitBurst();
     const restored = undoRedoRef.current.undo(target.config);
     if (!restored) return;
+    clearLiveTiles();
     applyConfig(restored);
     scheduleAutoSave();
-  }, [target, applyConfig, scheduleAutoSave, closeCommitBurst]);
+  }, [target, applyConfig, scheduleAutoSave, closeCommitBurst, clearLiveTiles]);
 
   const handleRedoDeck = useCallback(() => {
     if (!target) return;
     closeCommitBurst();
     const restored = undoRedoRef.current.redo(target.config);
     if (!restored) return;
+    clearLiveTiles();
     applyConfig(restored);
     scheduleAutoSave();
-  }, [target, applyConfig, scheduleAutoSave, closeCommitBurst]);
+  }, [target, applyConfig, scheduleAutoSave, closeCommitBurst, clearLiveTiles]);
 
   const {
     push: pushDeckHistory,
@@ -272,9 +301,10 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
     if (!target) return;
     closeCommitBurst();
     pushDeckHistory(target.config);
+    clearLiveTiles();
     applyConfig(emptyDeck());
     scheduleAutoSave();
-  }, [target, applyConfig, pushDeckHistory, scheduleAutoSave, closeCommitBurst]);
+  }, [target, applyConfig, pushDeckHistory, scheduleAutoSave, closeCommitBurst, clearLiveTiles]);
 
   // DeckDefaultTitleSettings (Settings tab) commits through the same
   // onDeckConfigCommit choke point as the Customize tab's key editor, so a
@@ -459,6 +489,9 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
                       onCell={onCellClick}
                       backCell={inFolder ? { onBack, ariaLabel: t('panel.settings.deck.back') } : undefined}
                       onDeleteSlot={requestDelete}
+                      liveTiles={liveTiles}
+                      page={page}
+                      folderPath={folderPath}
                     />
                   )}
                 </div>

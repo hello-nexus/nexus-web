@@ -16,7 +16,7 @@
 // of a server process holding it.
 
 import type {
-  AuthAccount, AuthAvatar, AuthBackend, AuthDeleteResponse, AuthEnvelope,
+  AccountDeviceItem, AuthAccount, AuthAvatar, AuthBackend, AuthDeleteResponse, AuthDeviceUpsertResponse, AuthEnvelope,
   AuthLoginResponse, AuthPasswordResponse, AuthRegisterResponse, AuthUsernameResponse,
 } from './authBackend';
 
@@ -441,5 +441,21 @@ export const directApiBackend: AuthBackend = {
     const avatar = await tryParseJson<AuthAvatar>(res);
     if (avatar && cachedAccount) cachedAccount = { ...cachedAccount, avatar };
     return avatar;
+  },
+
+  listDevices: async () => {
+    const res = await authedRequest('/account/devices', 'GET');
+    if (!res?.ok) return null;
+    return await tryParseJson<AccountDeviceItem[]>(res);
+  },
+
+  upsertDevice: async (installId, patch) => {
+    const res = await authedRequest(`/account/devices/${encodeURIComponent(installId)}`, 'PUT', { json: patch });
+    return toEnvelopeResult<AuthDeviceUpsertResponse>(res);
+  },
+
+  deleteDevice: async (installId) => {
+    const res = await authedRequest(`/account/devices/${encodeURIComponent(installId)}`, 'DELETE');
+    return Boolean(res?.ok);
   },
 };

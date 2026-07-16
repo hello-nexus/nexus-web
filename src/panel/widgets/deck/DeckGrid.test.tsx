@@ -135,6 +135,102 @@ describe('DeckGrid monitoring cell', () => {
   });
 });
 
+describe('DeckGrid live tile frames (physical editor preview)', () => {
+  const monitoringSlots: DeckSlot[] = [{
+    action: { type: 'monitoring', category: 'cpu', sensor: 'x', style: 'number', showName: false },
+  }];
+  const weatherSlots: DeckSlot[] = [{ action: { type: 'weather' } }];
+  const liveSrc = 'data:image/jpeg;base64,abc123';
+
+  it('renders the service-pushed frame as an img for a monitoring slot with a matching key', () => {
+    const liveTiles = new Map([['0:0', liveSrc]]);
+    const { container } = render(
+      <DeckGrid slots={monitoringSlots} cols={1} rows={1} selectable={false} onCell={() => {}} liveTiles={liveTiles} page={0} folderPath={[]} />,
+    );
+    const cell = container.querySelector('[data-deck-slot-index="0"]')!;
+    const img = cell.querySelector('img');
+    expect(img).not.toBeNull();
+    expect(img?.getAttribute('src')).toBe(liveSrc);
+    expect(img?.getAttribute('draggable')).toBe('false');
+  });
+
+  it('renders the service-pushed frame as an img for a weather slot with a matching key', () => {
+    const liveTiles = new Map([['0:0', liveSrc]]);
+    const { container } = render(
+      <DeckGrid slots={weatherSlots} cols={1} rows={1} selectable={false} onCell={() => {}} liveTiles={liveTiles} page={0} folderPath={[]} />,
+    );
+    const cell = container.querySelector('[data-deck-slot-index="0"]')!;
+    const img = cell.querySelector('img');
+    expect(img).not.toBeNull();
+    expect(img?.getAttribute('src')).toBe(liveSrc);
+  });
+
+  it('falls back to the CSS tile when liveTiles is absent (touch widget path, unchanged)', () => {
+    const { container } = render(
+      <DeckGrid slots={monitoringSlots} cols={1} rows={1} selectable={false} onCell={() => {}} />,
+    );
+    const cell = container.querySelector('[data-deck-slot-index="0"]')!;
+    expect(cell.querySelector('img')).toBeNull();
+    expect(cell.textContent).toContain('--');
+  });
+
+  it('falls back to the CSS tile when no frame matches this cell key yet', () => {
+    const liveTiles = new Map([['0:5', liveSrc]]);
+    const { container } = render(
+      <DeckGrid slots={monitoringSlots} cols={1} rows={1} selectable={false} onCell={() => {}} liveTiles={liveTiles} page={0} folderPath={[]} />,
+    );
+    const cell = container.querySelector('[data-deck-slot-index="0"]')!;
+    expect(cell.querySelector('img')).toBeNull();
+    expect(cell.textContent).toContain('--');
+  });
+
+  it('keys the frame lookup on folderPath + index, matching the page-relative slotPathAt grammar (no page prefix)', () => {
+    const liveTiles = new Map([['0:2.0', liveSrc]]);
+    const { container } = render(
+      <DeckGrid slots={monitoringSlots} cols={1} rows={1} selectable={false} onCell={() => {}} liveTiles={liveTiles} page={0} folderPath={[2]} />,
+    );
+    const cell = container.querySelector('[data-deck-slot-index="0"]')!;
+    expect(cell.querySelector('img')?.getAttribute('src')).toBe(liveSrc);
+  });
+
+  it('names the live-frame img from the slot label, for screen readers', () => {
+    const labeledSlots: DeckSlot[] = [{
+      label: 'CPU Load',
+      action: { type: 'monitoring', category: 'cpu', sensor: 'x', style: 'number', showName: false, labelText: 'ignored when slot.label is set' },
+    }];
+    const liveTiles = new Map([['0:0', liveSrc]]);
+    const { container } = render(
+      <DeckGrid slots={labeledSlots} cols={1} rows={1} selectable={false} onCell={() => {}} liveTiles={liveTiles} page={0} folderPath={[]} />,
+    );
+    const cell = container.querySelector('[data-deck-slot-index="0"]')!;
+    expect(cell.querySelector('img')?.getAttribute('alt')).toBe('CPU Load');
+  });
+
+  it('falls back to the monitoring action\'s labelText when the slot has no label', () => {
+    const liveTiles = new Map([['0:0', liveSrc]]);
+    const { container } = render(
+      <DeckGrid
+        slots={[{ action: { type: 'monitoring', category: 'cpu', sensor: 'x', style: 'number', showName: false, labelText: 'Processor' } }]}
+        cols={1} rows={1} selectable={false} onCell={() => {}} liveTiles={liveTiles} page={0} folderPath={[]}
+      />,
+    );
+    const cell = container.querySelector('[data-deck-slot-index="0"]')!;
+    expect(cell.querySelector('img')?.getAttribute('alt')).toBe('Processor');
+  });
+
+  it('names the live-frame img from the weather action\'s city when the slot has no label', () => {
+    const liveTiles = new Map([['0:0', liveSrc]]);
+    const { container } = render(
+      <DeckGrid
+        slots={[{ action: { type: 'weather', city: 'San Francisco' } }]}
+        cols={1} rows={1} selectable={false} onCell={() => {}} liveTiles={liveTiles} page={0} folderPath={[]}
+      />,
+    );
+    const cell = container.querySelector('[data-deck-slot-index="0"]')!;
+    expect(cell.querySelector('img')?.getAttribute('alt')).toBe('San Francisco');
+  });
+});
+
 describe('DeckGrid selection ring - zero layout shift', () => {
   it('toggling selection changes only the class list, never an inline style (size/gap/scroll extent stay identical)', () => {
     const slots: DeckSlot[] = [{ label: 'a' }, { label: 'b' }];

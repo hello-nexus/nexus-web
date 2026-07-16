@@ -3,13 +3,13 @@ import { Lock, SearchX, TriangleAlert } from 'lucide-react';
 import { useTranslation } from '../../lib/i18n';
 import { getPublicAccount, type PublicAccount } from '../../api/account';
 import { Avatar } from '../../components/common/Avatar/Avatar';
-import { Card } from '../../components/common/Card/Card';
-import { InfoList, InfoRow } from '../../components/common/InfoList/InfoList';
+import { Badge } from '../../components/common/Badge/Badge';
 import { EmptyState } from '../../components/common/EmptyState/EmptyState';
 import { Spinner } from '../../components/common/Spinner/Spinner';
 import { Button } from '../../components/common/Button/Button';
 import { PublicPageFrame } from './PublicPageFrame';
-import { publicSpecRows } from './publicProfileUtils';
+import { DeviceSpecsCard } from './DeviceSpecsCard';
+import { PublicProfileBenchmarks } from './PublicProfileBenchmarks';
 import styles from './PublicProfilePage.module.scss';
 
 type LoadState =
@@ -102,22 +102,19 @@ export function PublicProfilePage({ username }: { username: string }) {
       ) : (
         <div className={styles.devices}>
           {account.devices.map((device, index) => (
-            <Card key={`${device.hostname}-${index}`} title={device.hostname} className={styles.deviceCard}>
-              <InfoList>
-                {publicSpecRows(device.specs).map((row) => (
-                  <InfoRow key={row.key} label={t(row.labelKey)} value={row.value} />
-                ))}
-                <InfoRow
-                  label={t('publicProfile.device.lastSeen')}
-                  value={new Date(device.lastSeenAt).toLocaleString(undefined, {
-                    year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
-                  })}
-                />
-              </InfoList>
-            </Card>
+            <DeviceSpecsCard
+              key={`${device.hostname}-${index}`}
+              hostname={device.hostname}
+              specs={device.specs}
+              manual={device.manual}
+              lastSeenAt={device.lastSeenAt}
+              badge={device.manual ? <Badge label={t('account.devices.manual.badge')} /> : undefined}
+              className={styles.deviceCard}
+            />
           ))}
         </div>
       )}
+      <PublicProfileBenchmarks benchmarks={account.benchmarks} />
     </PublicPageFrame>
   );
 }
