@@ -1,0 +1,25 @@
+.root {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.svg {
+  display: block;
+  width: 100%;
+}
+
+.current {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--font-mono);
+  font-size: var(--type-mini);
+  color: var(--text-dim);
+  pointer-events: none;
+  user-select: none;
+}
