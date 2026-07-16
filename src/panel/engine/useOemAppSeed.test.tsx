@@ -34,7 +34,6 @@ function uiSettings(over: Partial<UiSettingsValue>): UiSettingsValue {
     themeMode: 'dark',
     accentColor: '#7c5cff',
     showConflictAlerts: true,
-    monitoringShowAverage: false,
     monitoringDetailedCollapsed: [],
     showMacStatusBarIcon: true,
     showWindowsTrayIcon: true,

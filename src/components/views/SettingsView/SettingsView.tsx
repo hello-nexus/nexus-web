@@ -32,7 +32,6 @@ export function SettingsView({ serviceOnline, connectionState, platform }: Setti
       accentSource: ui.accentSource,
       startOnLogin: ui.startOnLogin,
       showConflictAlerts: ui.showConflictAlerts,
-      monitoringShowAverage: ui.monitoringShowAverage,
       monitoringDetailedCollapsed: ui.monitoringDetailedCollapsed,
       showMacStatusBarIcon: ui.showMacStatusBarIcon,
       showWindowsTrayIcon: ui.showWindowsTrayIcon,

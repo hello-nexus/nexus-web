@@ -119,7 +119,6 @@ export interface GeneralSettings {
   accentSource: AccentSource;
   startOnLogin: boolean;
   showConflictAlerts: boolean;
-  monitoringShowAverage: boolean;
   monitoringDetailedCollapsed: string[];
   showMacStatusBarIcon: boolean;
   showWindowsTrayIcon: boolean;
@@ -168,7 +167,6 @@ export function getDefaultSettings(): NexusSettings {
       accentSource: 'system',
       startOnLogin: false,
       showConflictAlerts: true,
-      monitoringShowAverage: true,
       monitoringDetailedCollapsed: [],
       showMacStatusBarIcon: true,
       showWindowsTrayIcon: true,
@@ -233,7 +231,7 @@ export function loadStoredLanguage(): Language | null {
 
 export function cachePreferencesLocally(prefs: {
   language?: string; themeMode?: string; accentColor?: string;
-  showConflictAlerts?: boolean; monitoringShowAverage?: boolean;
+  showConflictAlerts?: boolean;
   monitoringDetailedCollapsed?: string[];
   showMacStatusBarIcon?: boolean;
   showWindowsTrayIcon?: boolean;
@@ -245,7 +243,6 @@ export function cachePreferencesLocally(prefs: {
   if (prefs.themeMode) current.general.themeMode = prefs.themeMode as ThemeMode;
   if (prefs.accentColor) current.general.accentColor = prefs.accentColor;
   if (prefs.showConflictAlerts !== undefined) current.general.showConflictAlerts = prefs.showConflictAlerts;
-  if (prefs.monitoringShowAverage !== undefined) current.general.monitoringShowAverage = prefs.monitoringShowAverage;
   if (prefs.monitoringDetailedCollapsed !== undefined) current.general.monitoringDetailedCollapsed = prefs.monitoringDetailedCollapsed;
   if (prefs.showMacStatusBarIcon !== undefined) current.general.showMacStatusBarIcon = prefs.showMacStatusBarIcon;
   if (prefs.showWindowsTrayIcon !== undefined) current.general.showWindowsTrayIcon = prefs.showWindowsTrayIcon;

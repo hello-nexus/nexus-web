@@ -102,7 +102,7 @@ async function mockService(page: Page) {
           // we want the canvas in the screenshot, not the offline placeholder.
           panel: { autoLaunch: true, themeSyncWithDesktop: true, themeMode: 'dark', accentSyncWithDesktop: true, backgroundMode: 'solid', backgroundEffect: 'none', backgroundTemplate: 0, backgroundOpacity: 1, widgetOpacity: 1, widgetLabels: true },
           overlay: { enabled: false, alwaysOnTop: false, scale: 1, opacity: 1, monitor: 0, layout: [] },
-          monitoring: { showAverage: true, showMacStatusBarIcon: true, showWindowsTrayIcon: true, detailedCollapsed: [] },
+          monitoring: { showMacStatusBarIcon: true, showWindowsTrayIcon: true, detailedCollapsed: [] },
           cooling: {},
           ui: { showConflictAlerts: true, pinnedSidebarApps: ['monitoring', 'lighting', 'cooling'] },
         }),
@@ -118,7 +118,7 @@ async function mockService(page: Page) {
         contentType: 'application/json',
         body: JSON.stringify({
           theme: { language: 'en', themeMode: 'dark', accentColor: '#3b82f6' },
-          monitoring: { showAverage: true, showMacStatusBarIcon: true, showWindowsTrayIcon: true },
+          monitoring: { showMacStatusBarIcon: true, showWindowsTrayIcon: true },
           panel: {
             autoLaunch: false, themeSyncWithDesktop: true, themeMode: 'dark', accentSyncWithDesktop: true,
             backgroundMode: 'solid', backgroundEffect: 'none', backgroundTemplate: 0,

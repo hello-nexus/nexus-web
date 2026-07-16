@@ -9,7 +9,7 @@ import { fetchService } from './service';
 
 export interface InstallDefaultsDocument {
   theme: { language: string; themeMode: string; accentColor: string };
-  monitoring: { showAverage: boolean; showMacStatusBarIcon: boolean; showWindowsTrayIcon: boolean };
+  monitoring: { showMacStatusBarIcon: boolean; showWindowsTrayIcon: boolean };
   panel: {
     autoLaunch: boolean;
     themeSyncWithDesktop: boolean;

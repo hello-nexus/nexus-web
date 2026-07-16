@@ -15,7 +15,6 @@ vi.mock('../../../hooks/useUiSettings', () => ({
       accentColor: '#7c5cff',
       startOnLogin: false,
       showConflictAlerts: false,
-      monitoringShowAverage: false,
       showMacStatusBarIcon: false,
       showWindowsTrayIcon: false,
       fanChannelOrder: [],

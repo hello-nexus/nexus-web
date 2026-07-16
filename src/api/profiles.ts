@@ -34,7 +34,6 @@ export interface ThemeSettings {
 }
 
 export interface MonitoringSettings {
-  showAverage: boolean;
   showMacStatusBarIcon: boolean;
   showWindowsTrayIcon: boolean;
   detailedCollapsed: string[];
