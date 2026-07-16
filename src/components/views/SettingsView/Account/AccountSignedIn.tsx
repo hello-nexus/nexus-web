@@ -10,6 +10,7 @@ import type { UseCloudAccountsResult } from '../../../../hooks/useCloudAccounts'
 import type { UseSyncStatusResult } from '../../../../hooks/useSyncStatus';
 import { AccountAuthenticationSection } from './AccountAuthenticationSection';
 import { AccountDangerZoneSection } from './AccountDangerZoneSection';
+import { AccountDevicesSection } from './AccountDevicesSection';
 import { isSyncPassSettled } from './syncProfileRows';
 import { usePublishPageSyncConflictModalOpen } from '../../../../app/syncConflictModalCoordination';
 import styles from './Account.module.scss';
@@ -65,6 +66,8 @@ export function AccountSignedIn({ backend, account, accounts, sync, recoveryFres
         recoveryFresh={recoveryFresh}
         onRecoveryFreshConsumed={onRecoveryFreshConsumed}
       />
+
+      <AccountDevicesSection backend={backend} prefillFromLocalSpecs />
 
       <SettingsSection
         title={t('account.sync.title')}

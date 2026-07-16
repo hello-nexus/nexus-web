@@ -18,12 +18,14 @@ interface ManualDeviceModalProps {
   device: AccountDeviceItem | null;
   upsertDevice: NonNullable<AuthBackend['upsertDevice']>;
   onSaved: (item: AccountDeviceItem) => void;
+  /** Spec fields to seed a new device's form with (in-app surface only, from the local service's own specs). Ignored when editing an existing device. */
+  prefillSpecs?: Record<string, string> | null;
 }
 
 // DeviceModal unmounts its children on close, so the form resets to a blank
 // (or the next `device` prop's) state on every open - no stale field values
 // survive between an add and an edit.
-export function ManualDeviceModal({ open, onClose, device, upsertDevice, onSaved }: ManualDeviceModalProps) {
+export function ManualDeviceModal({ open, onClose, device, upsertDevice, onSaved, prefillSpecs }: ManualDeviceModalProps) {
   const { t } = useTranslation();
   const [hostname, setHostname] = useState('');
   const [specs, setSpecs] = useState<Record<string, string>>({});
@@ -34,11 +36,11 @@ export function ManualDeviceModal({ open, onClose, device, upsertDevice, onSaved
   useEffect(() => {
     if (!open) return;
     setHostname(device?.hostname ?? '');
-    setSpecs(device?.specs ?? {});
+    setSpecs(device?.specs ?? prefillSpecs ?? {});
     setSaving(false);
     setError(null);
     setTouched(false);
-  }, [open, device]);
+  }, [open, device, prefillSpecs]);
 
   if (!open) return null;
 

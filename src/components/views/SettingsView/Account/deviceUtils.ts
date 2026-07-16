@@ -1,6 +1,8 @@
 // Pure helpers for the account devices section: manual installId generation
 // and the client-side hostname/spec mirrors of the server's validation.
 
+import type { SystemSpecs } from '../../../../hooks/useSystemSpecs';
+
 const MANUAL_INSTALL_ID_PREFIX = 'manual-';
 
 /** A fresh client-generated id for a manually-added device: 'manual-' + 32 hex chars. */
@@ -34,4 +36,13 @@ export function trimDeviceSpecs(specs: Record<string, string>): Record<string, s
     if (v.length > 0) trimmed[key] = v;
   }
   return trimmed;
+}
+
+/** Maps the local service's SystemSpecs fields into the manual-device spec Record shape, dropping empty fields and capping the length the field input already enforces on typed input. */
+export function systemSpecsToDeviceSpecs(specs: SystemSpecs): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const [key, value] of Object.entries(specs)) {
+    if (value) result[key] = value.slice(0, DEVICE_SPEC_VALUE_MAX_LENGTH);
+  }
+  return result;
 }

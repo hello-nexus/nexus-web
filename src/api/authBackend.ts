@@ -77,11 +77,12 @@ export interface AuthBackend {
   setPrivate(isPrivate: boolean): Promise<boolean>;
   deleteAccount(currentPassword?: string): Promise<AuthFetchResult<AuthDeleteResponse>>;
   uploadAvatar(blob: Blob): Promise<AuthAvatar | null>;
-  // Device management (My devices) is a public-web-only affordance today:
-  // nexus-api's /account/devices routes have no local-service proxy, so only
-  // DirectApiBackend implements these. Optional so LocalServiceBackend (the
-  // in-app dashboard) simply omits them - AccountDevicesSection renders
-  // nothing when a backend leaves them undefined.
+  // Device management (My devices): DirectApiBackend talks to nexus-api's
+  // /account/devices routes directly; LocalServiceBackend proxies the same
+  // shapes through nexus-service's /cloud/account/devices* routes. Optional
+  // so a future backend without device support can omit them -
+  // AccountDevicesSection renders nothing when a backend leaves them
+  // undefined.
   listDevices?(): Promise<AccountDeviceItem[] | null>;
   upsertDevice?(installId: string, patch: { hostname: string; specs: Record<string, string>; manual?: boolean }): Promise<AuthFetchResult<AuthDeviceUpsertResponse>>;
   deleteDevice?(installId: string): Promise<boolean>;

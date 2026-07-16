@@ -107,4 +107,43 @@ describe('LeaderboardView', () => {
     await waitFor(() => expect(screen.getByText('benchmark.leaderboard.anonymous')).toBeInTheDocument());
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
+
+  describe('row keyboard activation', () => {
+    it('toggles the detail row on Enter when the row itself is focused', async () => {
+      getBenchmarkVersionsMock.mockResolvedValue(null);
+      getLeaderboardMock.mockResolvedValue({ total: 1, entries: [mkEntry()] });
+
+      render(<LeaderboardView />);
+      const row = (await screen.findByText('Ryzen 9')).closest('tr');
+      expect(row).not.toBeNull();
+
+      fireEvent.keyDown(row!, { key: 'Enter' });
+
+      expect(await screen.findByText('DDR5')).toBeInTheDocument();
+    });
+
+    it('toggles the detail row on Space when the row itself is focused', async () => {
+      getBenchmarkVersionsMock.mockResolvedValue(null);
+      getLeaderboardMock.mockResolvedValue({ total: 1, entries: [mkEntry()] });
+
+      render(<LeaderboardView />);
+      const row = (await screen.findByText('Ryzen 9')).closest('tr');
+
+      fireEvent.keyDown(row!, { key: ' ' });
+
+      expect(await screen.findByText('DDR5')).toBeInTheDocument();
+    });
+
+    it('leaves the row collapsed when Enter is pressed on a focused nested link, letting the link activate itself', async () => {
+      getBenchmarkVersionsMock.mockResolvedValue(null);
+      getLeaderboardMock.mockResolvedValue({ total: 1, entries: [mkEntry({ displayName: 'Nova' })] });
+
+      render(<LeaderboardView />);
+      const link = await screen.findByRole('link', { name: /Nova/ });
+
+      fireEvent.keyDown(link, { key: 'Enter' });
+
+      expect(screen.queryByText('DDR5')).not.toBeInTheDocument();
+    });
+  });
 });
