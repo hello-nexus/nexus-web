@@ -9,7 +9,7 @@
 // last-received-from-iframe layout and skipping any outbound 'set-layout'
 // whose payload reference matches.
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useImperativeHandle, useRef, useState, type Ref } from 'react';
 import {
   isSimulatorMessage,
   SIMULATOR_QUERY_FLAG,
@@ -21,8 +21,14 @@ import { simulatedPanelCssViewport } from '../../../panel/embed/simulatedPanelVi
 import { useTranslation } from '../../../lib/i18n';
 import styles from './PanelEmbedFrame.module.scss';
 
+export interface PanelEmbedFrameHandle {
+  /** Rasterize the live panel document to a PNG blob at the given output px. */
+  capture(output: { width: number; height: number }): Promise<Blob>;
+}
+
 interface PanelEmbedFrameProps {
   surface: PanelSurface;
+  captureRef?: Ref<PanelEmbedFrameHandle>;
   layout: PanelLayout;
   theme: SimulatorTheme;
   themeMode: 'dark' | 'light';
@@ -73,6 +79,67 @@ interface PanelEmbedFrameProps {
 const DEFAULT_CANVAS_W = 682;
 const DEFAULT_CANVAS_H = 2560;
 
+// WebGL canvases (the animated background shader) render without
+// preserveDrawingBuffer, so a toDataURL at clone time reads an already
+// cleared buffer and captures blank. Snapshot every canvas inside a rAF
+// callback - the shader's own rAF draw runs first (its loop re-registers a
+// frame ahead), and the buffer stays valid until the frame composites - and
+// pin the snapshot as an own-property toDataURL override for the clone pass.
+async function snapshotCanvases(doc: Document): Promise<() => void> {
+  const win = doc.defaultView;
+  if (!win) return () => {};
+  const undo: Array<() => void> = [];
+  await new Promise<void>((resolve, reject) => {
+    // A torn-down iframe (unmount, navigation) never fires the rAF and there
+    // is no event for it, so a watchdog bounds the wait; rejecting routes the
+    // click into the error toast instead of a stuck busy spinner.
+    const watchdog = win.setTimeout(() => reject(new Error('panel frame stopped rendering')), 2000);
+    win.requestAnimationFrame(() => {
+      win.clearTimeout(watchdog);
+      doc.querySelectorAll('canvas').forEach(canvas => {
+        try {
+          const data = canvas.toDataURL();
+          if (data === 'data:,') return;
+          Object.defineProperty(canvas, 'toDataURL', { value: () => data, configurable: true });
+          undo.push(() => {
+            delete (canvas as unknown as { toDataURL?: () => string }).toDataURL;
+          });
+        } catch {
+          // Tainted or zero-sized canvas: keep the default clone behavior.
+        }
+      });
+      resolve();
+    });
+  });
+  return () => undo.forEach(fn => fn());
+}
+
+// Writes each SVG descendant's computed style inline (a visual no-op) and
+// returns an undo that restores the original style attributes.
+function inlineSvgDescendantStyles(doc: Document): () => void {
+  const win = doc.defaultView;
+  if (!win) return () => {};
+  const undo: Array<() => void> = [];
+  doc.querySelectorAll('svg').forEach(svg => {
+    svg.querySelectorAll<SVGElement>('*').forEach(el => {
+      const prev = el.getAttribute('style');
+      const computed = win.getComputedStyle(el);
+      if (computed.cssText) {
+        el.style.cssText = computed.cssText;
+      } else {
+        for (const name of computed) {
+          el.style.setProperty(name, computed.getPropertyValue(name));
+        }
+      }
+      undo.push(() => {
+        if (prev === null) el.removeAttribute('style');
+        else el.setAttribute('style', prev);
+      });
+    });
+  });
+  return () => undo.forEach(fn => fn());
+}
+
 function findWidget(layout: PanelLayout, id: string): PanelWidget | undefined {
   for (const page of layout.pages) {
     const w = page.widgets.find(w => w.id === id);
@@ -83,6 +150,7 @@ function findWidget(layout: PanelLayout, id: string): PanelWidget | undefined {
 
 export function PanelEmbedFrame({
   surface,
+  captureRef,
   layout,
   theme,
   themeMode,
@@ -281,6 +349,52 @@ export function PanelEmbedFrame({
     if (!childReady) return;
     post({ type: 'simulator/set-display', brightness, screenOn, showPanel });
   }, [childReady, brightness, screenOn, showPanel, post]);
+
+  // Same-origin iframe, so its document rasterizes directly. The SVG
+  // foreignObject render is vector, so drawing at the native output size
+  // stays sharp even though the iframe lays out at CSS px. pixelRatio pins
+  // to 1: html-to-image multiplies canvasWidth by the HOST devicePixelRatio
+  // otherwise, doubling the output on Retina displays.
+  const capture = useCallback(async (output: { width: number; height: number }) => {
+    // Gate on the handshake: contentDocument.body exists from about:blank
+    // onward, so without this a click during iframe boot saves a blank PNG.
+    if (!childReady) throw new Error('panel frame not ready');
+    const doc = iframeRef.current?.contentDocument;
+    const body = doc?.body;
+    if (!doc || !body) throw new Error('panel frame not loaded');
+    // Import before touching the live document so the inline-styles window
+    // below stays as short as the rasterize itself.
+    const { toBlob } = await import('html-to-image');
+    let restoreCanvases: (() => void) | null = null;
+    let restoreSvg: (() => void) | null = null;
+    try {
+      restoreCanvases = await snapshotCanvases(doc);
+      // html-to-image deep-clones <svg> subtrees without copying computed
+      // styles onto their descendants, so class-styled paths (the monitoring
+      // gauges) rasterize with the SVG defaults - black fill, no stroke.
+      // Inline the computed styles for the capture, restore after. A widget
+      // re-render during the rasterize can slip an un-inlined SVG into the
+      // clone; the capture is a one-shot user action, so a retake covers it.
+      restoreSvg = inlineSvgDescendantStyles(doc);
+      const blob = await toBlob(body, {
+        width: canvasW,
+        height: canvasH,
+        canvasWidth: output.width,
+        canvasHeight: output.height,
+        pixelRatio: 1,
+      });
+      if (!blob) throw new Error('capture produced no image');
+      return blob;
+    } finally {
+      try {
+        restoreSvg?.();
+      } finally {
+        restoreCanvases?.();
+      }
+    }
+  }, [childReady, canvasW, canvasH]);
+
+  useImperativeHandle(captureRef, () => ({ capture }), [capture]);
 
   const src = `/panel?${SIMULATOR_QUERY_FLAG}=1`;
 

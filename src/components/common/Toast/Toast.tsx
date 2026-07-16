@@ -32,6 +32,14 @@ export function useToast(): ToastContextValue {
   return ctx;
 }
 
+const NOOP_TOAST: ToastContextValue = { push: () => {} };
+
+// Provider-optional variant: without a ToastProvider ancestor the push is a
+// no-op instead of a render crash (see context-provider-coverage rule).
+export function useToastSafe(): ToastContextValue {
+  return useContext(ToastContext) ?? NOOP_TOAST;
+}
+
 // Transient notifications stacked bottom-right. Auto-dismiss after
 // DEFAULT_DURATION_MS; click or Enter/Space on the toast dismisses it; the
 // optional action button runs its handler and dismisses.

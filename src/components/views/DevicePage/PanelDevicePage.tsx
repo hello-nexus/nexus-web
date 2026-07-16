@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
-import { ArrowLeft, Trash2, LayoutGrid, Palette, Settings, Download, AlertTriangle, Unplug } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { ArrowLeft, Trash2, LayoutGrid, Palette, Settings, Download, AlertTriangle, Unplug, Camera } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SIZE_ICONS } from '../../../panel/widgets/common/SizeIcons';
@@ -55,8 +55,11 @@ import { createUuid } from '../../../lib/uuid';
 import { IconLabelButton } from '../../common/IconLabelButton/IconLabelButton';
 import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
-import { useToast } from '../../common/Toast/Toast';
-import { PanelEmbedFrame } from './PanelEmbedFrame';
+import { useToast, useToastSafe } from '../../common/Toast/Toast';
+import { PanelEmbedFrame, type PanelEmbedFrameHandle } from './PanelEmbedFrame';
+import { resolvePanelNativeCanvas } from '../../../panel/embed/panelNativeCanvas';
+import { saveBlobToFile } from '../../../lib/saveFile';
+import { sanitizeFileName } from '../../../panel/widgets/lighting/page/mappingUtils';
 import { QSeriesCoolerSettings } from './QSeriesCoolerSettings';
 import { useFirmwareStatus } from '../../../hooks/useFirmwareStatus';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
@@ -198,6 +201,9 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // displays like the Xeneon Edge); null falls back to the surface default.
   const [liveDpi, setLiveDpi] = useState<number | null>(null);
   const [configuringWidget, setConfiguringWidget] = useState<PanelWidget | null>(null);
+  const embedFrameRef = useRef<PanelEmbedFrameHandle | null>(null);
+  const [screenshotBusy, setScreenshotBusy] = useState(false);
+  const { push: pushToast } = useToastSafe();
   // One-shot flash request forwarded to the preview iframe when an edit is
   // rejected (a resize that can't fit). nonce re-fires repeat rejections.
   const [flashSignal, setFlashSignal] = useState<{ widgetId: string; nonce: number } | null>(null);
@@ -647,6 +653,39 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     updateLayout({ ...layout, activePageId: pages[next].id });
   }, [layout, updateLayout]);
 
+  // Captures the preview iframe at the device's physical resolution, so the
+  // saved image matches the glass pixel-for-pixel in the current orientation.
+  const takeScreenshot = useCallback(async () => {
+    const frame = embedFrameRef.current;
+    if (!frame) {
+      pushToast({ title: t('devices.panels.screenshotError') });
+      return;
+    }
+    setScreenshotBusy(true);
+    try {
+      const native = resolvePanelNativeCanvas({
+        surface,
+        liveCanvas,
+        liveDpr,
+        previewSize: device?.previewSize,
+        previewDpr: device?.previewDpr,
+      });
+      const blob = await frame.capture({ width: native.nativeWidth, height: native.nativeHeight });
+      const now = new Date();
+      const pad = (v: number) => String(v).padStart(2, '0');
+      const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+      const name = `${sanitizeFileName(device?.name ?? t('devices.y70.title'))}-${stamp}.png`;
+      await saveBlobToFile(blob, name, [
+        { description: t('devices.panels.screenshotPngType'), accept: { 'image/png': ['.png'] } },
+      ]);
+    } catch (err) {
+      console.error('[panel-screenshot] capture failed', err);
+      pushToast({ title: t('devices.panels.screenshotError') });
+    } finally {
+      setScreenshotBusy(false);
+    }
+  }, [surface, liveCanvas, liveDpr, device?.previewSize, device?.previewDpr, device?.name, pushToast, t]);
+
   const tabs: { key: Tab; label: string; icon: ReactNode }[] = [
     { key: 'widgets', label: t('devices.y70.tab.widgets'), icon: <LayoutGrid size={14} /> },
     { key: 'theme', label: t('devices.y70.tab.theme'), icon: <Palette size={14} /> },
@@ -687,6 +726,17 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
         tabs={showFwGate || showDisconnected ? undefined : tabs}
         activeTab={activeTab}
         onTabChange={(k) => { setConfiguringWidget(null); setTab(k as Tab); }}
+        tabActions={
+          <Button
+            size="sm"
+            tone="ghost"
+            icon={<Camera size={14} />}
+            title={t('devices.panels.screenshot')}
+            aria-label={t('devices.panels.screenshot')}
+            loading={screenshotBusy}
+            onClick={() => { void takeScreenshot(); }}
+          />
+        }
       />
       <div className={`${styles.pageBody} pageBody`}>
       {!fwGateReady ? (
@@ -744,22 +794,19 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                     />
                   )}
                   {activeTab === 'theme' && (() => {
-                    // Aspect from live CSS viewport (DPR cancels); fall back to
-                    // the record/profile canvas (previewSize, same source as the
-                    // editorCapacity math above), then the Y70 portrait profile.
-                    const fallbackCanvas = device?.previewSize;
-                    const cw = liveCanvas?.width ?? fallbackCanvas?.width ?? (surface === 'q60' ? 720 : 682);
-                    const ch = liveCanvas?.height ?? fallbackCanvas?.height ?? (surface === 'q60' ? 1280 : 2560);
-                    const devAspect = cw / ch;
-                    // Bake target = the device's PHYSICAL resolution. The Q-series
-                    // is fixed hardware at 720x1280, and its Android WebView already
-                    // reports physical px in cssWidth (dpr is only render density),
-                    // so do NOT multiply. Other surfaces report CSS px: native =
-                    // css * dpr (liveCanvas pairs with liveDpr, previewSize with
-                    // previewDpr; simulated presets are native px at dpr 1).
-                    const nativeDpr = (liveCanvas ? liveDpr : device?.previewDpr) || 1;
-                    const nativeW = surface === 'q60' ? 720 : Math.round(cw * nativeDpr);
-                    const nativeH = surface === 'q60' ? 1280 : Math.round(ch * nativeDpr);
+                    // Aspect from live CSS viewport (DPR cancels); bake target =
+                    // the device's physical resolution. Shared with the
+                    // screenshot export above.
+                    const native = resolvePanelNativeCanvas({
+                      surface,
+                      liveCanvas,
+                      liveDpr,
+                      previewSize: device?.previewSize,
+                      previewDpr: device?.previewDpr,
+                    });
+                    const devAspect = native.cssWidth / native.cssHeight;
+                    const nativeW = native.nativeWidth;
+                    const nativeH = native.nativeHeight;
                     return (
                       <PanelThemeSettings
                         theme={theme}
@@ -951,6 +998,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
               )}
               <PanelEmbedFrame
                 surface={surface}
+                captureRef={embedFrameRef}
                 layout={layout}
                 theme={theme}
                 themeMode={resolvedPanelThemeMode}
