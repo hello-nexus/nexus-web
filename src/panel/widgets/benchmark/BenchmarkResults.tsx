@@ -3,6 +3,7 @@ import { useTranslation } from '../../../lib/i18n';
 import type { BenchmarkResult, BenchmarkSubScore } from '../../../types/benchmark';
 import { Card } from '../../../components/common/Card/Card';
 import { SystemSpecsPanel } from '../../../components/common/SystemSpecsPanel/SystemSpecsPanel';
+import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import styles from './BenchmarkPage.module.scss';
 
 interface Props {
@@ -21,6 +22,7 @@ const SUBSYSTEM_ICONS: Record<string, React.ReactNode> = {
 
 function SubsystemCard({ s, model }: { s: BenchmarkSubScore; model: string }) {
   const { t } = useTranslation();
+  const spreadPct = t('benchmark.result.spread', { pct: (Math.abs(s.spread ?? 0) * 100).toFixed(1) });
   return (
     <Card
       title={
@@ -30,7 +32,18 @@ function SubsystemCard({ s, model }: { s: BenchmarkSubScore; model: string }) {
         </span>
       }
       subtitle={
-        <span className={styles.subCardScore}>{t('benchmark.result.pts', { n: String(Math.round(s.score)) })}</span>
+        <span className={styles.subCardScore}>
+          {t('benchmark.result.pts', { n: String(Math.round(s.score)) })}
+          {s.spread != null && (
+            s.trials && s.trials.length > 0
+              ? (
+                <HoverTooltip title={t('benchmark.result.trials')} body={s.trials.map(v => v.toFixed(1)).join(', ') + ' ' + s.rawUnit}>
+                  <span className={styles.subSpread}>{spreadPct}</span>
+                </HoverTooltip>
+              )
+              : <span className={styles.subSpread}>{spreadPct}</span>
+          )}
+        </span>
       }
     >
       <div className={styles.subRawPrimary}>

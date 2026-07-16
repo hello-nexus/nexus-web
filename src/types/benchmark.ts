@@ -32,6 +32,12 @@ export interface LeaderboardResponse {
   entries: LeaderboardEntry[];
 }
 
+// GET /benchmarks/versions returns a bare array (no wrapper object).
+export interface BenchmarkVersionInfo {
+  scoringVersion: string;
+  count: number;
+}
+
 export interface HardwareIdentity {
   cpuModel: string;
   gpuModels: string[];
@@ -50,14 +56,16 @@ export interface BenchmarkSubScore {
   rawValue: number;
   rawUnit: string;
   detail: string;
+  /** Individual trial raw values, when the axis ran more than one pass. */
+  trials?: number[];
+  /** Relative spread across trials (e.g. 0.023 = ±2.3%). */
+  spread?: number;
 }
 
 export interface BenchmarkPhaseProgress {
   phase: string;
   percent: number;
   detail: string;
-  currentRaw: number;
-  currentUnit: string;
 }
 
 export interface BenchmarkProgressFrame {
