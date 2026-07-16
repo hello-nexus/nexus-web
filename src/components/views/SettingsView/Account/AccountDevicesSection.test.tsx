@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ToastProvider } from '../../../common/Toast/Toast';
 import { AccountDevicesSection } from './AccountDevicesSection';
 import type { AccountDeviceItem, AuthBackend } from '../../../../api/authBackend';
@@ -12,6 +12,11 @@ vi.mock('../../../../lib/i18n', () => ({
       return text;
     },
   }),
+}));
+
+const useSystemSpecsMock = vi.fn();
+vi.mock('../../../../hooks/useSystemSpecs', () => ({
+  useSystemSpecs: (...args: [boolean]) => useSystemSpecsMock(...args),
 }));
 
 function makeBackend(overrides: Partial<AuthBackend> = {}): AuthBackend {
@@ -42,11 +47,15 @@ function mkDevice(overrides: Partial<AccountDeviceItem> = {}): AccountDeviceItem
   };
 }
 
-function renderSection(backend: AuthBackend) {
-  return render(<ToastProvider><AccountDevicesSection backend={backend} /></ToastProvider>);
+function renderSection(backend: AuthBackend, prefillFromLocalSpecs = false) {
+  return render(<ToastProvider><AccountDevicesSection backend={backend} prefillFromLocalSpecs={prefillFromLocalSpecs} /></ToastProvider>);
 }
 
 describe('AccountDevicesSection', () => {
+  beforeEach(() => {
+    useSystemSpecsMock.mockReset().mockReturnValue({ specs: null });
+  });
+
   it('renders nothing for a backend without device support', () => {
     const { container } = renderSection(makeBackend());
     expect(container).toBeEmptyDOMElement();
@@ -123,5 +132,53 @@ describe('AccountDevicesSection', () => {
 
     await waitFor(() => expect(deleteDevice).toHaveBeenCalledWith('manual-abc123'));
     await waitFor(() => expect(screen.queryByText('Battlestation')).not.toBeInTheDocument());
+  });
+
+  it('prefills a new device\'s spec fields from the local service when prefillFromLocalSpecs is set', async () => {
+    useSystemSpecsMock.mockReturnValue({
+      specs: {
+        pcName: 'RIG-01', osBuild: '', processor: 'Ryzen 9 9800X3D', motherboard: '',
+        memory: '', storage: '', graphicsCard: '', monitor: '', soundCard: '', networkCard: '',
+      },
+    });
+    const listDevices = vi.fn().mockResolvedValue([]);
+    renderSection(makeBackend({ listDevices, upsertDevice: vi.fn() }), true);
+
+    await waitFor(() => expect(screen.getByText('account.devices.empty')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'account.devices.add' }));
+
+    expect(screen.getByLabelText('devices.specs.row.processor')).toHaveValue('Ryzen 9 9800X3D');
+    expect(useSystemSpecsMock).toHaveBeenCalledWith(true);
+  });
+
+  it('keeps in-progress add-device input across a parent re-render (e.g. a background poll)', async () => {
+    useSystemSpecsMock.mockReturnValue({
+      specs: {
+        pcName: 'RIG-01', osBuild: '', processor: 'Ryzen 9 9800X3D', motherboard: '',
+        memory: '', storage: '', graphicsCard: '', monitor: '', soundCard: '', networkCard: '',
+      },
+    });
+    const listDevices = vi.fn().mockResolvedValue([]);
+    const backend = makeBackend({ listDevices, upsertDevice: vi.fn() });
+    const { rerender } = renderSection(backend, true);
+
+    await waitFor(() => expect(screen.getByText('account.devices.empty')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'account.devices.add' }));
+    fireEvent.input(screen.getByLabelText('account.devices.modal.nameLabel'), { target: { value: 'Typed Name' } });
+
+    rerender(<ToastProvider><AccountDevicesSection backend={backend} prefillFromLocalSpecs /></ToastProvider>);
+
+    expect(screen.getByLabelText('account.devices.modal.nameLabel')).toHaveValue('Typed Name');
+  });
+
+  it('leaves spec fields blank on the public surface, where prefillFromLocalSpecs is never set', async () => {
+    const listDevices = vi.fn().mockResolvedValue([]);
+    renderSection(makeBackend({ listDevices, upsertDevice: vi.fn() }));
+
+    await waitFor(() => expect(screen.getByText('account.devices.empty')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'account.devices.add' }));
+
+    expect(screen.getByLabelText('devices.specs.row.processor')).toHaveValue('');
+    expect(useSystemSpecsMock).toHaveBeenCalledWith(false);
   });
 });

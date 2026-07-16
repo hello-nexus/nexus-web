@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Fan } from 'lucide-react';
+import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { PanelArrowButton } from '../../chrome/PanelArrowButton';
 import {
   applyProfile, fetchProfiles,
@@ -193,11 +194,6 @@ export function CoolingWidget({ widget }: WidgetProps) {
     applyProfile(key).catch(() => { /* best-effort */ });
   }, []);
 
-  const widgetPresets = useMemo(
-    () => COOLING_PRESETS.filter(p => WIDGET_PRESET_KEYS.includes(p.key)),
-    [],
-  );
-
   // Simple mode handlers: arrows cycle ONLY silent/balanced/turbo.
   // Center always shows the current `active` state - could be one of
   // those three, or 'custom' / 'off'. First press from a non-cycle
@@ -296,21 +292,21 @@ export function CoolingWidget({ widget }: WidgetProps) {
       />
 
       <div className={styles.chips}>
-        {widgetPresets.map(p => {
+        {COOLING_PRESETS.map(p => {
           const label = t(p.i18nKey);
           return (
-            <button
-              key={p.key}
-              type="button"
-              onClick={() => apply(p.key)}
-              className={styles.chip}
-              data-active={active === p.key ? 'true' : 'false'}
-              aria-pressed={active === p.key}
-              aria-label={`Apply ${label} cooling profile`}
-            >
-              <p.Icon aria-hidden="true" />
-              <span className={styles.chipLabel}>{label}</span>
-            </button>
+            <HoverTooltip key={p.key} body={label} side="top">
+              <button
+                type="button"
+                onClick={() => apply(p.key)}
+                className={styles.chip}
+                data-active={active === p.key ? 'true' : 'false'}
+                aria-pressed={active === p.key}
+                aria-label={label}
+              >
+                <p.Icon aria-hidden="true" />
+              </button>
+            </HoverTooltip>
           );
         })}
       </div>

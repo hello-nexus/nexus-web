@@ -104,9 +104,9 @@ describe('CoolingWidget', () => {
   it('renders 2x2 MicroBars with CPU/GPU temps and FAN duty %, no preset buttons', async () => {
     render(<CoolingWidget widget={coolingWidget('2x2')} />);
 
-    expect(screen.queryByRole('button', { name: 'Apply Silent cooling profile' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Apply Balanced cooling profile' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Apply Turbo cooling profile' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Silent' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Balanced' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Turbo' })).not.toBeInTheDocument();
 
     expect(screen.getByText('CPU')).toBeInTheDocument();
     expect(screen.getByText('GPU')).toBeInTheDocument();
@@ -120,16 +120,17 @@ describe('CoolingWidget', () => {
     });
   });
 
-  it('renders 4x2 with response chart fan readout + Silent/Balanced/Turbo buttons', async () => {
+  it('renders 4x2 with response chart fan readout + all five icon preset buttons', async () => {
     render(<CoolingWidget widget={coolingWidget('4x2')} />);
 
-    expect(screen.getByRole('button', { name: 'Apply Silent cooling profile' })).toHaveTextContent('Silent');
-    expect(screen.getByRole('button', { name: 'Apply Balanced cooling profile' })).toHaveTextContent('Balanced');
-    expect(screen.getByRole('button', { name: 'Apply Turbo cooling profile' })).toHaveTextContent('Turbo');
+    expect(screen.getByRole('button', { name: 'Off' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Silent' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Balanced' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Turbo' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Custom' })).toBeInTheDocument();
 
-    // Off + Custom dropped from the widget surface.
-    expect(screen.queryByRole('button', { name: 'Apply Off cooling profile' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Apply Custom cooling profile' })).not.toBeInTheDocument();
+    // Icon-only buttons: the label lives in the aria-label, not as text.
+    expect(screen.getByRole('button', { name: 'Silent' })).not.toHaveTextContent('Silent');
 
     // BIOS-driven (no curves bound, fans in Auto): chart falls back to a
     // synthetic curve and pins CPU/GPU notches onto it so the temps are
@@ -147,7 +148,7 @@ describe('CoolingWidget', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Apply Balanced cooling profile' }).getAttribute('data-active')).toBe('true');
+      expect(screen.getByRole('button', { name: 'Balanced' }).getAttribute('data-active')).toBe('true');
     });
   });
 
@@ -165,7 +166,7 @@ describe('CoolingWidget', () => {
       expect(screen.queryByText('CPU')).not.toBeInTheDocument();
       expect(screen.queryByText('GPU')).not.toBeInTheDocument();
       expect(screen.queryByText('FAN')).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: 'Apply Silent cooling profile' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Silent' })).not.toBeInTheDocument();
     });
 
     it('4x2 renders arrows + preset label', async () => {
@@ -173,7 +174,7 @@ describe('CoolingWidget', () => {
       await waitFor(() => expect(screen.getByText('Balanced')).toBeInTheDocument());
       expect(screen.getByLabelText('Previous fan profile')).toBeInTheDocument();
       expect(screen.getByLabelText('Next fan profile')).toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: 'Apply Silent cooling profile' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Silent' })).not.toBeInTheDocument();
     });
 
     it('spins the fan on preset change but not on initial hydration', async () => {

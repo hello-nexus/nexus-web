@@ -5,8 +5,8 @@
 
 import {
   changeCloudPassword, changeCloudUsername, cloudLogin, cloudLogout, cloudRegister,
-  deleteCloudAccount, fetchCloudAccounts, fetchCloudRecoveryStatus, setCloudAccountPrivate,
-  startCloudRecovery, uploadCloudAvatar,
+  deleteCloudAccount, deleteCloudDevice, fetchCloudAccounts, fetchCloudDevices, fetchCloudRecoveryStatus,
+  setCloudAccountPrivate, startCloudRecovery, upsertCloudDevice, uploadCloudAvatar,
 } from './cloud';
 import type { AuthAccount, AuthBackend } from './authBackend';
 
@@ -40,6 +40,15 @@ export const localServiceBackend: AuthBackend = {
   deleteAccount: (currentPassword) => deleteCloudAccount(currentPassword),
 
   uploadAvatar: (blob) => uploadCloudAvatar(blob),
+
+  listDevices: () => fetchCloudDevices(),
+
+  upsertDevice: (installId, patch) => upsertCloudDevice(installId, patch),
+
+  deleteDevice: async (installId) => {
+    const result = await deleteCloudDevice(installId);
+    return result.status >= 200 && result.status < 300;
+  },
 };
 
 function toAuthAccount(summary: {

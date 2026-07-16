@@ -3,12 +3,11 @@ import { useTranslation } from '../../../lib/i18n';
 import { CardDeleteButton } from '../CardDeleteButton/CardDeleteButton';
 import styles from './EffectCard.module.scss';
 
-interface EffectCardProps {
+interface EffectCardBaseProps {
   label: string;
   /** Resolved blob URL for the thumbnail image. Null renders the shimmer skeleton. */
   thumbUrl: string | null;
   active: boolean;
-  onClick: () => void;
   /** Shows a speaker badge on the thumbnail (used by audio-reactive animate effects). */
   audio?: boolean;
   /** Meta line below the label - media uses it for duration. Omit to reserve the row height. */
@@ -53,13 +52,22 @@ interface EffectCardProps {
   hideLabel?: boolean;
 }
 
+// Interactive cards require onClick; nonInteractive cards (plain div, no
+// button semantics / pointer cursor / hover ring - surfaces that display
+// state rather than offer a selection, e.g. the lighting widget tile) take
+// none.
+type EffectCardProps = EffectCardBaseProps & (
+  | { nonInteractive: true; onClick?: never }
+  | { nonInteractive?: false; onClick: () => void }
+);
+
 export function EffectCard({
   label, thumbUrl, active, onClick,
   audio, meta, onDelete, deleteAriaLabel,
-  asDiv, thumbOverlay, thumbStatic, cornerBadge, ariaLabel, dataEffectKey, overlay, thumbAspect, hideLabel,
+  asDiv, thumbOverlay, thumbStatic, cornerBadge, ariaLabel, dataEffectKey, overlay, thumbAspect, hideLabel, nonInteractive,
 }: EffectCardProps) {
   const { t } = useTranslation();
-  const className = `${styles.card} ${overlay ? styles.cardOverlay : ''} ${active ? styles.cardActive : ''}`;
+  const className = `${styles.card} ${overlay ? styles.cardOverlay : ''} ${active ? styles.cardActive : ''} ${nonInteractive ? styles.cardStatic : ''}`;
   const thumbBoxStyle = thumbAspect !== undefined
     ? { aspectRatio: String(thumbAspect), maxHeight: '360px' }
     : undefined;
@@ -97,6 +105,14 @@ export function EffectCard({
     </>
   );
 
+  if (nonInteractive) {
+    return (
+      <div className={className} data-effect-key={dataEffectKey}>
+        {inner}
+      </div>
+    );
+  }
+
   if (asDiv) {
     return (
       <div
@@ -104,7 +120,7 @@ export function EffectCard({
         tabIndex={0}
         className={className}
         onClick={onClick}
-        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}
+        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}
         aria-pressed={active}
         aria-label={ariaLabel ?? label}
         data-effect-key={dataEffectKey}
