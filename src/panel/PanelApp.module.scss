@@ -514,7 +514,7 @@
 }
 
 .panelRoot[data-surface='desktop'] {
-  --panel-columns: 8;
+  --panel-columns: 12;
   --panel-rows: 8;
   // No page padding on the embedded desktop grid: it lives inside the shared
   // .content wrapper (which already insets every view), so the grid sits flush
@@ -652,12 +652,12 @@
     outline: 2px solid transparent;
   }
 
-  &:hover .cell,
-  &:focus-visible .cell {
+  &:not(.catalogCellDisabled):hover .cell,
+  &:not(.catalogCellDisabled):focus-visible .cell {
     border-color: var(--panel-accent);
   }
 
-  &:active {
+  &:not(.catalogCellDisabled):active {
     transform: scale(0.98);
   }
 }
@@ -665,6 +665,14 @@
 .catalogCellSelected .cell {
   border-color: var(--panel-accent);
   box-shadow: 0 0 0 1px var(--panel-accent);
+}
+
+// No room on the target grid. Dimmed rather than hidden so the widget stays
+// discoverable and the notice's "make room" instruction has a referent. The
+// hover/focus/active affordances are gated off in .catalogCell above.
+.catalogCellDisabled {
+  cursor: default;
+  opacity: 0.4;
 }
 
 .cell {
@@ -747,10 +755,7 @@
 // `:not([data-widget-opaque='true'])` skips the pass at 100% widget opacity:
 // the blurred backdrop is fully hidden behind the card, so there's nothing
 // to render. Render-time skip only; the toggle setting is unchanged.
-// `:not([data-background-off='true'])` skips it in desktop see-through mode:
-// backdrop-filter samples only page content, and the page behind the cells is
-// fully transparent there - the pass would burn GPU blurring nothing.
-.panelRoot[data-widget-blur='true']:not([data-background-mode='solid']):not([data-widget-opaque='true']):not([data-background-off='true']) .cell {
+.panelRoot[data-widget-blur='true']:not([data-background-mode='solid']):not([data-widget-opaque='true']) .cell {
   backdrop-filter: blur(var(--blur-backdrop));
 }
 
@@ -1018,8 +1023,9 @@
   // No z-index on the backdrop: it must NOT form a stacking context, so the
   // child .editorSheet (z 230 below) can paint above the docked widget (z 200)
   // when the drawer is anchored higher than the widget's full height.
-  background: var(--panel-scrim-bg);
-  backdrop-filter: blur(var(--blur-backdrop));
+  // Plain darkening, no blur - the actions tray's scrim treatment - so the
+  // stage widgets and background stay readable while editing the theme.
+  background: color-mix(in srgb, black 32%, transparent);
   display: flex;
   justify-content: flex-end;
   align-items: stretch;
@@ -1056,7 +1062,7 @@
 }
 
 .editorBackdrop[data-surface='desktop'] {
-  --panel-columns: 8;
+  --panel-columns: 12;
   --panel-rows: 6;
   --panel-gap: 10px;
   --panel-page-padding: 16px;

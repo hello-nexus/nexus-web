@@ -86,12 +86,17 @@
   z-index: 1;
   flex: 1 1 auto;
   min-height: 0;
-  display: flex;
-  // Unit sits inline right after the value, on its baseline (small), not below.
-  flex-direction: row;
-  align-items: baseline;
+  // A row-flow grid, not flex: flex's align-items: baseline pins the row to
+  // the cross-start edge (top) once the container grows past its content
+  // height, instead of centering it. Grid's align-content: center centers
+  // the (auto-sized) row within the leftover height, while align-items:
+  // baseline still keeps the value and unit sharing one text baseline.
+  display: grid;
+  grid-auto-flow: column;
+  align-content: center;
   justify-content: center;
-  gap: 0.1em;
+  align-items: baseline;
+  column-gap: 0.1em;
   max-width: 100%;
 }
 

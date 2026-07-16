@@ -49,10 +49,13 @@ vi.mock('../../../api/streamdeck', () => ({
   setStreamDeckNav: (serial: string, page: number, folderPath: readonly number[]) => mockSetStreamDeckNav(serial, page, folderPath),
 }));
 
-let capturedNavCallback: ((data: unknown) => void) | null = null;
+// Keyed by topic: the page subscribes to both 'streamdeck' (nav frames) and
+// 'streamdeckTiles' (live key frames), so a single shared variable would have
+// the second registration overwrite the first on every render.
+let capturedCallbacks: Record<string, ((data: unknown) => void) | null> = {};
 vi.mock('../../../hooks/useMultiplexSocket', () => ({
-  useTopicCallback: (_topic: string, enabled: boolean, cb: (data: unknown) => void) => {
-    capturedNavCallback = enabled ? cb : null;
+  useTopicCallback: (topic: string, enabled: boolean, cb: (data: unknown) => void) => {
+    capturedCallbacks[topic] = enabled ? cb : null;
   },
 }));
 
@@ -160,7 +163,7 @@ function decksReturn(decks: StreamDeckSummary[], loaded = true) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  capturedNavCallback = null;
+  capturedCallbacks = {};
   h.conflicts = [];
   mockRename.mockResolvedValue(true);
   mockSetBrightness.mockResolvedValue(true);
@@ -859,7 +862,7 @@ describe('StreamDeckDevicePage', () => {
       await renderPage();
       expect(pageChip(1)).toHaveAttribute('aria-pressed', 'true');
 
-      act(() => { capturedNavCallback?.({ kind: 'nav', serial: 'SN1', page: 2, folderPath: [] }); });
+      act(() => { capturedCallbacks.streamdeck?.({ kind: 'nav', serial: 'SN1', page: 2, folderPath: [] }); });
 
       expect(pageChip(3)).toHaveAttribute('aria-pressed', 'true');
     });

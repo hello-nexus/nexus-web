@@ -137,7 +137,7 @@ export interface ChartProps {
 export interface WorldClockProps { highlightTz?: string }
 export interface ClockFaceProps {
   nowMs: number; design?: string; tz?: string;
-  showSeconds?: boolean; showDate?: boolean; hour12?: boolean;
+  showSeconds?: boolean; showDate?: boolean; showTimezone?: boolean; hour12?: boolean;
   useAccentColor?: boolean; size?: string;
 }
 export interface ViewHeaderTab { key: string; label: string; disabled?: boolean; icon?: string }

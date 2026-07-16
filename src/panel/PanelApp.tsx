@@ -28,6 +28,7 @@ import { repaginatePanelLayout, type PaginateCapacity } from './engine/paginate'
 import {
   allCellsForPage,
   appendWidget,
+  canAppendWidget,
   patchWidgetById,
   previewDrag,
   pruneEmptyPages,
@@ -47,7 +48,7 @@ import { ErrorBoundary } from '../components/common/ErrorBoundary/ErrorBoundary'
 import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
 import { useMultiplex, useTopic, useTopicCallback } from '../hooks/useMultiplexSocket';
 import { useServiceStatus, HOST_DISPLAY_OFFLINE_GRACE_MS } from '../hooks/useServiceStatus';
-import { supportsDesktopSeeThrough, wiredPanelClass } from './device/wiredPanel';
+import { supportsDesktopWallpaper, wiredPanelClass } from './device/wiredPanel';
 import { useUiSettings } from '../hooks/useUiSettings';
 import {
   isPinnableAppKey,
@@ -74,6 +75,7 @@ import { q60OfflineClockPages } from './engine/q60OfflineClock';
 import { inferSurfaceFromViewport } from './device/inferSurface';
 import { PanelBackgroundShader } from './background/PanelBackgroundShader';
 import { PanelBackgroundMedia } from './background/PanelBackgroundMedia';
+import { PanelBackgroundDesktop } from './background/PanelBackgroundDesktop';
 import { resolvePanelBackground } from './background/panelBackground';
 import type { SimulatorTheme } from './embed/simulatorProtocol';
 import './styles/tokens.scss';
@@ -428,14 +430,15 @@ export function PanelContent({
   // overlay. The embedded desktop deck paints no panel background so the
   // dashboard theme shows through.
   const showPanelBackground = !embedded || simulator;
-  // Background toggled off on a kiosk-hosted panel: the page renders fully
-  // transparent and the kiosk WebView2 (alpha-0 default background, no host
-  // class brush) composites the Windows desktop behind the widgets. See
-  // supportsDesktopSeeThrough for why surface alone is not the gate.
-  const seeThroughAvailable = supportsDesktopSeeThrough(surface, displayBound);
+  // Background toggled off on a kiosk-hosted panel: the theme layers are
+  // replaced by the monitor's own wallpaper (PanelBackgroundDesktop) - the
+  // desktop look with no icons, taskbar, or windows, which per-pixel window
+  // transparency could not exclude. See supportsDesktopWallpaper for why
+  // surface alone is not the gate.
+  const wallpaperBackgroundAvailable = supportsDesktopWallpaper(surface, displayBound);
   const backgroundOff = showPanelBackground
     && effectiveTheme.backgroundEnabled === false
-    && seeThroughAvailable;
+    && wallpaperBackgroundAvailable;
   const showBackgroundLayers = showPanelBackground && !backgroundOff;
   const panelSolidColor = useMemo(
     () => showPanelBackground
@@ -447,23 +450,7 @@ export function PanelContent({
       : 'transparent',
     [showPanelBackground, effectiveTheme.backgroundColor, effectiveTheme.backgroundColorLight, resolvedThemeMode],
   );
-  const themeBackdrop = showBackgroundLayers ? 'var(--backdrop-base)' : 'transparent';
-
-  // The page canvas is opaque unless html/body are cleared too: global.scss
-  // paints both with var(--bg), which would sit behind the transparent root.
-  useEffect(() => {
-    if (!backgroundOff || typeof document === 'undefined') return undefined;
-    const html = document.documentElement;
-    const body = document.body;
-    const prevHtml = html.style.background;
-    const prevBody = body.style.background;
-    html.style.background = 'transparent';
-    body.style.background = 'transparent';
-    return () => {
-      html.style.background = prevHtml;
-      body.style.background = prevBody;
-    };
-  }, [backgroundOff]);
+  const themeBackdrop = showPanelBackground ? 'var(--backdrop-base)' : 'transparent';
   const panelRootStyle = useMemo(
     () => ({
       ...panelThemeVars,
@@ -500,9 +487,9 @@ export function PanelContent({
   );
 
   // ---------- Pagination derived from layout ----------
-  // Touch surfaces hoist the focused widget above the editor's backdrop-blur
-  // scrim, else the edited widget disappears under the blur. q60 is
-  // display-only so editing never engages. See .cellEditorDocked rules.
+  // Touch surfaces hoist the focused widget above the editor's scrim, else
+  // the edited widget reads dimmed under it. q60 is display-only so editing
+  // never engages. See .cellEditorDocked rules.
   const editorDockSupported = surfaceSupportsTouch(surface, deviceTouch);
   const isLandscape = useIsLandscape(surface);
   const capacity = useMemo<PaginateCapacity>(
@@ -934,15 +921,31 @@ export function PanelContent({
     // Dashboard is single-page: appendWidget no-ops if page 0 is full
     // instead of spawning a new page. Other surfaces keep multi-page.
     const dashboardSinglePage = embedded && surface === 'desktop';
-    setLayout(appendWidget(paginatedLayout, next, capacity, {
+    const appended = appendWidget(paginatedLayout, next, capacity, {
       singlePage: dashboardSinglePage,
       // Land on the page the user is looking at when it has room, not the
       // first page with a slot.
       preferredPageId: paginatedLayout.pages[activePageIndex]?.id,
-    }));
+    });
+    // Identity means no slot was found. The catalog dims what cannot fit, so
+    // this is reachable only if the layout filled under an open sheet; leave
+    // the sheet open rather than closing it on a widget that was never added.
+    if (appended === paginatedLayout) return;
+    setLayout(appended);
     setPendingScrollId(next.id);
     closeSheet();
   }, [activePageIndex, closeSheet, embedded, paginatedLayout, capacity, setLayout, surface]);
+
+  // The dashboard cannot spill onto a new page, so a full grid has no room and
+  // the catalog dims what will not fit. Multi-page surfaces always accept a
+  // widget, so they get no predicate and nothing is dimmed.
+  const canAddSize = useMemo(() => {
+    if (!(embedded && surface === 'desktop')) return undefined;
+    return (size: PanelWidgetSize) => canAppendWidget(paginatedLayout, size, capacity, {
+      singlePage: true,
+      preferredPageId: paginatedLayout.pages[activePageIndex]?.id,
+    });
+  }, [activePageIndex, embedded, paginatedLayout, capacity, surface]);
 
   const updateWidgetConfig = useCallback((widgetId: string, config: Record<string, PanelConfigValue>) => {
     setLayout(patchWidgetById(
@@ -1350,7 +1353,6 @@ export function PanelContent({
           isSingleWidgetSurface(surface) ? undefined : effectiveTheme.widgetPadding <= 0 ? 'none' : undefined
         }
         data-widget-blur={effectiveTheme.widgetBlur ? 'true' : 'false'}
-        data-background-off={backgroundOff ? 'true' : undefined}
         data-widget-opaque={effectiveTheme.widgetOpacity >= 1 ? 'true' : undefined}
         data-context-menu-open={contextMenuWidgetId ? 'true' : undefined}
         data-editing={surface === 'phone' && sheetMode === 'settings' ? 'true' : undefined}
@@ -1369,6 +1371,7 @@ export function PanelContent({
         onPointerCancel={backgroundLongPress.onPointerCancel}
         onContextMenu={handleBackgroundContextMenu}
       >
+        {backgroundOff && <PanelBackgroundDesktop />}
         {showBackgroundLayers && effectiveTheme.backgroundMode === 'shader' && (
           <PanelBackgroundShader
             effect={effectiveTheme.backgroundEffect}
@@ -1647,6 +1650,7 @@ export function PanelContent({
           panelTheme={panelTheme.theme}
           gridColumns={runtimeGrid.columns}
           gridRows={runtimeGrid.rows}
+          canAddSize={canAddSize}
           resolvedThemeMode={resolvedThemeMode}
           panelThemeStyle={panelThemeVars}
           closing={sheetClosing}
@@ -1660,7 +1664,7 @@ export function PanelContent({
           onThemeBackgroundCommit={panelTheme.commitBackground}
           onThemeBackgroundModeCommit={panelTheme.commitBackgroundMode}
           onThemeBackgroundEnabledCommit={panelTheme.commitBackgroundEnabled}
-          showBackgroundToggle={seeThroughAvailable}
+          showBackgroundToggle={wallpaperBackgroundAvailable}
           onThemeBackgroundEffectCommit={panelTheme.commitBackgroundEffect}
           onThemeBackgroundTemplateCommit={panelTheme.commitBackgroundTemplate}
           onThemeBackgroundEffectStatePreview={panelTheme.previewBackgroundEffectState}

@@ -30,6 +30,29 @@
   }
 }
 
+// Always mounted (the live region), so it must not occupy space while empty.
+.noticeRegion {
+  flex: none;
+
+  &:empty {
+    display: none;
+  }
+}
+
+// Sits above the scroller, not inside it, so the reason the cards are dimmed
+// stays visible while browsing them.
+.notice {
+  margin-bottom: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text-dim);
+  font-family: var(--panel-font);
+  font-size: var(--type-small);
+  line-height: 1.4;
+}
+
 .scroller {
   flex: 1;
   min-height: 0;

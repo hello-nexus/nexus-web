@@ -34,6 +34,7 @@ export function PanelEditorSheet({
   panelTheme,
   gridColumns,
   gridRows,
+  canAddSize,
   resolvedThemeMode,
   panelThemeStyle,
   closing,
@@ -87,6 +88,9 @@ export function PanelEditorSheet({
   panelTheme: PanelThemeState;
   gridColumns: number;
   gridRows: number;
+  // Whether the target grid still has a free slot for a widget of a given
+  // size. Omitted on surfaces that can spill onto a new page (never full).
+  canAddSize?: (size: PanelWidgetSize) => boolean;
   resolvedThemeMode: ResolvedPanelThemeMode;
   panelThemeStyle: CSSProperties;
   closing: boolean;
@@ -260,6 +264,7 @@ export function PanelEditorSheet({
             surface={surface}
             deviceTouch={deviceTouch}
             onAdd={onAdd}
+            canAddSize={canAddSize}
             // The on-device phone panel is itself the remote session, so hide
             // local-only widgets there.
             remote={surface === 'phone'}

@@ -21,7 +21,7 @@ import { repaginatePanelLayout } from '../../../panel/engine/paginate';
 import { simulatedPanelEditorCapacity } from '../../../panel/embed/simulatedPanelViewport';
 import { getPanelGridSizingSettings } from '../../../lib/panelSimulation';
 import { isSingleWidgetSurface } from '../../../panel/types';
-import { supportsDesktopSeeThrough } from '../../../panel/device/wiredPanel';
+import { supportsDesktopWallpaper } from '../../../panel/device/wiredPanel';
 import { fetchService, postService } from '../../../api/service';
 import {
   fetchDisplays,
@@ -473,7 +473,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       );
       return { gridCols: capacity.columns, pageRows: capacity.rows };
     }
-    if (surface === 'desktop' || surface === 'monitor') return { gridCols: 8, pageRows: 6 };
+    if (surface === 'monitor') return { gridCols: 8, pageRows: 6 };
     if (surface === 'y70') return { gridCols: 4, pageRows: 16 };
     // Phone-surface rows here are simulated presets only (real phones are
     // self-managed and never open this editor), so the preset's native canvas
@@ -774,7 +774,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         onBackgroundCommit={panelTheme.commitBackground}
                         onBackgroundModeCommit={panelTheme.commitBackgroundMode}
                         onBackgroundEnabledCommit={panelTheme.commitBackgroundEnabled}
-                        showBackgroundToggle={supportsDesktopSeeThrough(surface, !!device?.displayId)}
+                        showBackgroundToggle={supportsDesktopWallpaper(surface, !!device?.displayId)}
                         onBackgroundEffectCommit={panelTheme.commitBackgroundEffect}
                         onBackgroundTemplateCommit={panelTheme.commitBackgroundTemplate}
                         onBackgroundEffectStatePreview={panelTheme.previewBackgroundEffectState}

@@ -24,6 +24,14 @@ describe('dedupePresetName', () => {
   it('trims surrounding whitespace off the base name', () => {
     expect(dedupePresetName('  Streaming  ', [], 'Preset')).toBe('Streaming');
   });
+
+  it('treats a case-only collision as taken and suffixes it, keeping the original casing', () => {
+    expect(dedupePresetName('gaming', ['Gaming'], 'Preset')).toBe('gaming (2)');
+  });
+
+  it('keeps incrementing past existing numbered conflicts that only differ by case', () => {
+    expect(dedupePresetName('Gaming', ['gaming', 'GAMING (2)'], 'Preset')).toBe('Gaming (3)');
+  });
 });
 
 describe('unmappedReasonKey', () => {

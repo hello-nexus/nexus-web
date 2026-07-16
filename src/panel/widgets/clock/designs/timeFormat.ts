@@ -1,5 +1,5 @@
-// Shared time-format helpers for clock designs: "HH:MM[:SS]" string
-// plus an "AM"/"PM" suffix in 12-hour mode.
+// Shared time-format helpers for clock designs: "HH:MM[:SS]" string,
+// an "AM"/"PM" suffix in 12-hour mode, and the dim date/timezone meta line.
 
 export function formatTime(
   now: Date,
@@ -24,4 +24,30 @@ export function getAmPm(now: Date, tz?: string, hour12?: boolean): string {
     timeZone: tz || undefined,
   }).format(now);
   return formatted.includes('AM') ? 'AM' : 'PM';
+}
+
+// The line under the time: date, date + short zone name, or zone alone.
+export function formatMetaLine(
+  now: Date,
+  tz: string | undefined,
+  showDate: boolean,
+  showTimezone: boolean,
+): string {
+  const parts: string[] = [];
+  if (showDate) {
+    parts.push(new Intl.DateTimeFormat(undefined, {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      timeZone: tz || undefined,
+    }).format(now));
+  }
+  if (showTimezone) {
+    const zone = new Intl.DateTimeFormat(undefined, {
+      timeZoneName: 'short',
+      timeZone: tz || undefined,
+    }).formatToParts(now).find(p => p.type === 'timeZoneName')?.value;
+    if (zone) parts.push(zone);
+  }
+  return parts.join(' · ');
 }

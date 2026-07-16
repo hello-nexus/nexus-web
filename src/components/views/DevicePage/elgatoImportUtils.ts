@@ -6,13 +6,16 @@ import type { ElgatoUnmappedReason } from '../../../api/streamdeck';
  * Dedupe an Elgato profile name against a physical deck's existing preset
  * names by appending " (2)", " (3)", ... A blank/whitespace-only profile
  * name falls back to `fallback` (already localized by the caller) instead
- * of surfacing an empty preset name.
+ * of surfacing an empty preset name. Matches trimmed and case-insensitively,
+ * mirroring the server's create-time collision check, so a name that only
+ * differs by case still gets suffixed instead of round-tripping into a 409.
  */
 export function dedupePresetName(base: string, existing: readonly string[], fallback: string): string {
   const trimmed = base.trim() || fallback;
-  if (!existing.includes(trimmed)) return trimmed;
+  const isTaken = (candidate: string) => existing.some(name => name.trim().toLowerCase() === candidate.toLowerCase());
+  if (!isTaken(trimmed)) return trimmed;
   let n = 2;
-  while (existing.includes(`${trimmed} (${n})`)) n++;
+  while (isTaken(`${trimmed} (${n})`)) n++;
   return `${trimmed} (${n})`;
 }
 

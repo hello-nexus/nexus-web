@@ -37,6 +37,7 @@ export function ClockSettings({ widget, onUpdate }: WidgetSettingsProps) {
   const format = ((widget.config?.format as string | undefined) ?? 'auto');
   const showSeconds = ((widget.config?.showSeconds as boolean | undefined) ?? false);
   const showDate = ((widget.config?.showDate as boolean | undefined) ?? true);
+  const showTimezone = ((widget.config?.showTimezone as boolean | undefined) ?? false);
   const useAccentColor = ((widget.config?.useAccentColor as boolean | undefined) ?? false);
   // safeTimeZone discards a stale invalid value (saved by an older build's
   // free-text field) so the trigger shows Auto instead of a broken string.
@@ -56,6 +57,10 @@ export function ClockSettings({ widget, onUpdate }: WidgetSettingsProps) {
 
   const setShowDate = (checked: boolean) => {
     onUpdate({ showDate: checked });
+  };
+
+  const setShowTimezone = (checked: boolean) => {
+    onUpdate({ showTimezone: checked });
   };
 
   const setUseAccentColor = (checked: boolean) => {
@@ -110,6 +115,11 @@ export function ClockSettings({ widget, onUpdate }: WidgetSettingsProps) {
           label={t('panel.widget.clock.settings.showDate')}
           checked={showDate}
           onChange={setShowDate}
+        />
+        <SettingsToggle
+          label={t('panel.widget.clock.settings.showTimezone')}
+          checked={showTimezone}
+          onChange={setShowTimezone}
         />
         <SettingsToggle
           label={t('panel.widget.clock.settings.useAccentColor')}

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ClockDesignProps } from './types';
-import { formatTime, getAmPm } from './timeFormat';
+import { formatMetaLine, formatTime, getAmPm } from './timeFormat';
 import styles from './SplitFlapClock.module.scss';
 
 const FLIP_DURATION_MS = 220;
@@ -70,16 +70,13 @@ function FlapCard({ char }: { char: string }) {
   );
 }
 
-function SplitFlapClock({ now, tz, showSeconds, showDate, size, hour12, useAccentColor }: ClockDesignProps) {
+function SplitFlapClock({ now, tz, showSeconds, showDate, showTimezone, size, hour12, useAccentColor }: ClockDesignProps) {
   const time = formatTime(now, tz, showSeconds, hour12);
   const ampm = getAmPm(now, tz, hour12);
   const chars = time.split('');
   const sizeClass = styles[`size-${size}`] ?? styles['size-4x2'];
 
-  const dateStr = showDate ? new Intl.DateTimeFormat(undefined, {
-    weekday: 'short', month: 'short', day: 'numeric',
-    timeZone: tz || undefined,
-  }).format(now) : '';
+  const dateStr = formatMetaLine(now, tz, showDate, showTimezone);
 
   return (
     <div className={`${styles.container} ${sizeClass} ${useAccentColor ? styles.accent : ''}`}>

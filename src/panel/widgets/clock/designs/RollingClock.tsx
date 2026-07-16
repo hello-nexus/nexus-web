@@ -1,5 +1,5 @@
 import type { ClockDesignProps } from './types';
-import { formatTime, getAmPm } from './timeFormat';
+import { formatMetaLine, formatTime, getAmPm } from './timeFormat';
 import { useFitWidth } from '../useFitWidth';
 import styles from './RollingClock.module.scss';
 
@@ -20,16 +20,13 @@ function RollingDigit({ digit }: { digit: number }) {
   );
 }
 
-function RollingClock({ now, tz, showSeconds, showDate, size, hour12, useAccentColor }: ClockDesignProps) {
+function RollingClock({ now, tz, showSeconds, showDate, showTimezone, size, hour12, useAccentColor }: ClockDesignProps) {
   const time = formatTime(now, tz, showSeconds, hour12);
   const ampm = getAmPm(now, tz, hour12);
   const sizeClass = styles[`size-${size}`] ?? styles['size-4x2'];
   const { boxRef, contentRef, scale } = useFitWidth();
 
-  const dateStr = showDate ? new Intl.DateTimeFormat(undefined, {
-    weekday: 'short', month: 'short', day: 'numeric',
-    timeZone: tz || undefined,
-  }).format(now) : '';
+  const dateStr = formatMetaLine(now, tz, showDate, showTimezone);
 
   // Parse into segments: digit groups separated by colons
   const segments: { type: 'digits' | 'colon'; chars: string[] }[] = [];
