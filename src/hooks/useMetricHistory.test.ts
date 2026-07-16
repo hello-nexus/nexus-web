@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useMetricHistory } from './useMetricHistory';
 import type { MetricHistoryQuery, MetricHistoryResponse } from '../api/monitoringHistory';
 
-const fetchMock = vi.fn<(query: MetricHistoryQuery) => Promise<{ data: MetricHistoryResponse | null; mocked: boolean }>>();
+const fetchMock = vi.fn<(query: MetricHistoryQuery) => Promise<{ data: MetricHistoryResponse | null; mocked: boolean; unsupported: boolean }>>();
 vi.mock('../api/monitoringHistory', () => ({
   fetchMonitoringHistory: (query: MetricHistoryQuery) => fetchMock(query),
 }));
@@ -40,7 +40,7 @@ beforeEach(() => {
   vi.useFakeTimers();
   vi.setSystemTime(NOW);
   fetchMock.mockReset();
-  fetchMock.mockResolvedValue({ data: emptyResp(), mocked: false });
+  fetchMock.mockResolvedValue({ data: emptyResp(), mocked: false, unsupported: false });
 });
 
 afterEach(() => {
@@ -85,9 +85,9 @@ describe('useMetricHistory', () => {
   });
 
   it('drops a stale viewport response that resolves after a newer request already landed', async () => {
-    const first = deferred<{ data: MetricHistoryResponse | null; mocked: boolean }>();
+    const first = deferred<{ data: MetricHistoryResponse | null; mocked: boolean; unsupported: boolean }>();
     fetchMock.mockReturnValueOnce(first.promise);
-    fetchMock.mockResolvedValue({ data: emptyResp(), mocked: false });
+    fetchMock.mockResolvedValue({ data: emptyResp(), mocked: false, unsupported: false });
 
     const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
 
@@ -95,7 +95,7 @@ describe('useMetricHistory', () => {
     act(() => { result.current.setRange('3h'); });
     await advance(0);
     await act(async () => {
-      first.resolve({ data: resp('cpu', [{ t: NOW, avg: 99, max: 99 }]), mocked: false });
+      first.resolve({ data: resp('cpu', [{ t: NOW, avg: 99, max: 99 }]), mocked: false, unsupported: false });
       await Promise.resolve();
     });
 
@@ -119,11 +119,11 @@ describe('useMetricHistory', () => {
   });
 
   it('polls the live tail every second while following and appends new points', async () => {
-    fetchMock.mockResolvedValue({ data: emptyResp(), mocked: false });
+    fetchMock.mockResolvedValue({ data: emptyResp(), mocked: false, unsupported: false });
     const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
     await advance(0);
 
-    fetchMock.mockResolvedValue({ data: resp('cpu', [{ t: NOW + 1000, avg: 10, max: 12 }]), mocked: false });
+    fetchMock.mockResolvedValue({ data: resp('cpu', [{ t: NOW + 1000, avg: 10, max: 12 }]), mocked: false, unsupported: false });
     await advance(1_000);
 
     const cpu = result.current.series.find(s => s.id === 'cpu');
@@ -132,25 +132,25 @@ describe('useMetricHistory', () => {
   });
 
   it('drops a stale live-tail response that resolves after a newer poll already landed', async () => {
-    fetchMock.mockResolvedValue({ data: emptyResp(), mocked: false });
+    fetchMock.mockResolvedValue({ data: emptyResp(), mocked: false, unsupported: false });
     const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
     await advance(0);
 
-    const first = deferred<{ data: MetricHistoryResponse | null; mocked: boolean }>();
+    const first = deferred<{ data: MetricHistoryResponse | null; mocked: boolean; unsupported: boolean }>();
     fetchMock.mockImplementationOnce(() => first.promise);
     await advance(1_000);
 
-    const second = deferred<{ data: MetricHistoryResponse | null; mocked: boolean }>();
+    const second = deferred<{ data: MetricHistoryResponse | null; mocked: boolean; unsupported: boolean }>();
     fetchMock.mockImplementationOnce(() => second.promise);
     await advance(1_000);
 
     // Newer poll (seq 2) resolves before the older one (seq 1).
     await act(async () => {
-      second.resolve({ data: resp('cpu', [{ t: NOW + 2000, avg: 20, max: 22 }]), mocked: false });
+      second.resolve({ data: resp('cpu', [{ t: NOW + 2000, avg: 20, max: 22 }]), mocked: false, unsupported: false });
       await Promise.resolve();
     });
     await act(async () => {
-      first.resolve({ data: resp('cpu', [{ t: NOW + 1000, avg: 10, max: 12 }]), mocked: false });
+      first.resolve({ data: resp('cpu', [{ t: NOW + 1000, avg: 10, max: 12 }]), mocked: false, unsupported: false });
       await Promise.resolve();
     });
 
@@ -159,7 +159,7 @@ describe('useMetricHistory', () => {
   });
 
   it('bounds the brush\'s pannable fullDomain to a narrower server retention window', async () => {
-    fetchMock.mockResolvedValue({ data: { ...emptyResp(), retentionDays: 2 }, mocked: false });
+    fetchMock.mockResolvedValue({ data: { ...emptyResp(), retentionDays: 2 }, mocked: false, unsupported: false });
     const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
     await advance(0);
 
@@ -167,7 +167,7 @@ describe('useMetricHistory', () => {
   });
 
   it('fullDomain defaults to the 7d silhouette window when retention is at least that wide', async () => {
-    fetchMock.mockResolvedValue({ data: emptyResp(), mocked: false });
+    fetchMock.mockResolvedValue({ data: emptyResp(), mocked: false, unsupported: false });
     const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
     await advance(0);
 
@@ -236,5 +236,59 @@ describe('useMetricHistory', () => {
     renderHook(() => useMetricHistory(false, 'cpu'));
     await advance(0);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('anchors the live-tail request to the server time base, not the client clock', async () => {
+    fetchMock.mockResolvedValue({ data: emptyResp(), mocked: false, unsupported: false });
+    renderHook(() => useMetricHistory(true, 'cpu'));
+    await advance(0);
+    fetchMock.mockClear();
+
+    await advance(1_000);
+
+    // The client clock has advanced 1s under fake timers, but `to` is the
+    // server time base (nowRef, only ever moved by a response's own
+    // timestamp - still the bootstrap NOW here) plus a fixed 2-poll-interval
+    // margin, not Date.now() read at request time.
+    expect(fetchMock).toHaveBeenCalledWith(expect.objectContaining({ to: NOW + 2_000, from: NOW - 5_000 + 1 }));
+  });
+
+  it('stops all polling once the route reports unsupported, and retry() re-arms it without a duplicate silhouette fetch', async () => {
+    fetchMock.mockResolvedValue({ data: null, mocked: false, unsupported: true });
+    const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
+    await advance(0);
+
+    expect(result.current.supported).toBe(false);
+    fetchMock.mockClear();
+
+    await advance(120_000);
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    act(() => { result.current.retry(); });
+    await advance(0);
+
+    // Exactly the silhouette + viewport pair - retry() resets the gate and
+    // lets the silhouette-poll effect fire its own fetch, rather than also
+    // calling loadSilhouette directly (which would double it).
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('stops all polling once a real fetch failure sets error, and retry() re-arms it', async () => {
+    fetchMock.mockResolvedValue({ data: null, mocked: false, unsupported: false });
+    const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
+    await advance(0);
+
+    expect(result.current.error).toBe(true);
+    fetchMock.mockClear();
+
+    await advance(120_000);
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    fetchMock.mockResolvedValue({ data: emptyResp(), mocked: false, unsupported: false });
+    act(() => { result.current.retry(); });
+    await advance(0);
+
+    expect(result.current.error).toBe(false);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

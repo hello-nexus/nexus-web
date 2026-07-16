@@ -1,6 +1,6 @@
 import type { HardwareSensor } from '../hooks/useSensors';
 
-// Default-picker rules shared by CoolingView, MonitoringView OverviewTab, and
+// Default-picker rules shared by MonitoringWidget, CoolingPage, and
 // CoolingWidget. Keep the "auto" branch in sync across them.
 
 export function defaultCpuTempSensor(cpuSensors: readonly HardwareSensor[]): HardwareSensor | undefined {

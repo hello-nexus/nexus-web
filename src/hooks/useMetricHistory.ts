@@ -100,6 +100,8 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
   const [series, setSeries] = useState<MetricHistorySeries[]>([]);
   const [supported, setSupported] = useState(true);
   const [retentionDays, setRetentionDays] = useState(7);
+  const retentionDaysRef = useRef(retentionDays);
+  useEffect(() => { retentionDaysRef.current = retentionDays; }, [retentionDays]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [mocked, setMocked] = useState(false);
@@ -125,6 +127,14 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
     }
   }, []);
 
+  // Clamps `from` to the just-learned retention window whenever a response
+  // reports retentionDays - a preset picked (or defaulted) before the real
+  // value was known can otherwise leave the viewport's start past what the
+  // server actually retains.
+  const clampToRetention = useCallback((days: number) => {
+    setViewport(prev => viewportReducer(prev, { type: 'retentionClamp', retentionMs: days * DAY_MS, now: nowRef.current }));
+  }, []);
+
   const loadSilhouette = useCallback((query: string) => {
     const seq = ++silhouetteSeqRef.current;
     const now = nowRef.current;
@@ -136,10 +146,16 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
         setSupported(result.data.supported);
         setRetentionDays(result.data.retentionDays);
         setMocked(result.mocked);
+        setError(false);
         bumpNow(result.data.series);
+        clampToRetention(result.data.retentionDays);
+      } else if (result.unsupported) {
+        setSupported(false);
+      } else {
+        setError(true);
       }
     })();
-  }, [bumpNow]);
+  }, [bumpNow, clampToRetention]);
 
   const loadViewport = useCallback((from: number, to: number, query: string) => {
     const seq = ++viewportSeqRef.current;
@@ -154,22 +170,29 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
         setMocked(result.mocked);
         setError(false);
         bumpNow(result.data.series);
+        clampToRetention(result.data.retentionDays);
         const t = newestT(result.data.series);
         if (t !== null) lastLoadedTRef.current = t;
+      } else if (result.unsupported) {
+        setSupported(false);
+        setError(false);
       } else {
         setError(true);
       }
       setLoading(false);
     })();
-  }, [bumpNow]);
+  }, [bumpNow, clampToRetention]);
 
-  // Silhouette: fetch on mount, on a metric switch, and every 60s.
+  // Silhouette: fetch on mount, on a metric switch, and every 60s. Stops
+  // polling once the route is known unsupported or the last fetch errored,
+  // so a service without the route (or one that's unreachable) isn't polled
+  // forever - retry() re-arms it explicitly.
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || !supported || error) return;
     loadSilhouette(seriesQuery);
     const timer = window.setInterval(() => loadSilhouette(seriesQuery), SILHOUETTE_REFRESH_MS);
     return () => window.clearInterval(timer);
-  }, [enabled, seriesQuery, loadSilhouette]);
+  }, [enabled, seriesQuery, loadSilhouette, supported, error]);
 
   // Viewport: fetch on mount, on a metric switch, and whenever the user (or
   // the 60s redecimate timer) requests a new window - NOT on every live tick
@@ -191,26 +214,32 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
     // alone never retriggers this (see the ref read above).
   }, [enabled, seriesQuery, fetchEpoch, loadViewport]);
 
-  // Full re-decimation every 60s, independent of following/dragging.
+  // Full re-decimation every 60s, independent of following/dragging. Same
+  // supported/error gate as the silhouette poll above.
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || !supported || error) return;
     const timer = window.setInterval(() => {
       lastPhaseRef.current = 'end';
       setFetchEpoch(e => e + 1);
     }, VIEWPORT_REDECIMATE_MS);
     return () => window.clearInterval(timer);
-  }, [enabled]);
+  }, [enabled, supported, error]);
 
   // Live tail: while following, poll just the new edge every second and
-  // append rather than re-decimating the whole window.
+  // append rather than re-decimating the whole window. `to` is anchored to
+  // the server time base (lastLoadedTRef, or nowRef before any response has
+  // landed) rather than the client clock - a client/relay clock skew against
+  // the client's Date.now() could otherwise request a window where
+  // from > to and freeze the tail while Live stays on.
   useEffect(() => {
-    if (!enabled || !viewport.following) return;
+    if (!enabled || !viewport.following || !supported || error) return;
     const timer = window.setInterval(() => {
-      const requestNow = Date.now();
-      const from = (lastLoadedTRef.current ?? requestNow - LIVE_TAIL_BOOTSTRAP_MS) + 1;
+      const base = lastLoadedTRef.current ?? nowRef.current;
+      const to = base + LIVE_TAIL_POLL_MS * 2;
+      const from = (lastLoadedTRef.current ?? base - LIVE_TAIL_BOOTSTRAP_MS) + 1;
       const seq = ++tailSeqRef.current;
       void (async () => {
-        const result = await fetchMonitoringHistory({ from, to: requestNow, maxPoints: LIVE_TAIL_MAX_POINTS, series: seriesQuery });
+        const result = await fetchMonitoringHistory({ from, to, maxPoints: LIVE_TAIL_MAX_POINTS, series: seriesQuery });
         if (!mountedRef.current || seq !== tailSeqRef.current || !result.data) return;
         const tail = result.data.series;
         const t = newestT(tail);
@@ -221,11 +250,16 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
       })();
     }, LIVE_TAIL_POLL_MS);
     return () => window.clearInterval(timer);
-  }, [enabled, viewport.following, seriesQuery, bumpNow]);
+  }, [enabled, viewport.following, seriesQuery, bumpNow, supported, error]);
 
   const setRange = useCallback((key: RangeKey) => {
     lastPhaseRef.current = 'end';
-    setViewport(prev => viewportReducer(prev, { type: 'setRange', key, now: nowRef.current }));
+    setViewport(prev => {
+      const next = viewportReducer(prev, { type: 'setRange', key, now: nowRef.current });
+      // A wide preset (e.g. 7d) picked on a shorter-retention install must
+      // not leave `from` past what the server actually keeps.
+      return viewportReducer(next, { type: 'retentionClamp', retentionMs: retentionDaysRef.current * DAY_MS, now: nowRef.current });
+    });
     setFetchEpoch(e => e + 1);
   }, []);
 
@@ -235,11 +269,15 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
     setFetchEpoch(e => e + 1);
   }, []);
 
+  // Resetting error/supported (rather than calling loadSilhouette directly)
+  // re-arms the gated silhouette-poll effect above, which fires its own
+  // fetch on this re-run - calling loadSilhouette here too would double it.
   const retry = useCallback(() => {
     lastPhaseRef.current = 'end';
-    loadSilhouette(seriesQuery);
+    setSupported(true);
+    setError(false);
     setFetchEpoch(e => e + 1);
-  }, [loadSilhouette, seriesQuery]);
+  }, []);
 
   // Never lets the brush pan past what the server actually retains, even
   // when that's narrower than the 7d silhouette window (a fresh install).
