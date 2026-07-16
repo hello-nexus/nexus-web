@@ -17,6 +17,7 @@ import {
   defaultPanelWidgetOpacity,
   defaultPanelWidgetPadding,
   normalizePanelBackgroundEffect,
+  normalizePanelBackgroundEnabled,
   normalizePanelBackgroundMode,
   normalizePanelBackgroundOpacity,
   normalizePanelBackgroundTemplate,
@@ -190,6 +191,7 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
     backgroundTemplate: DEFAULT_PANEL_BACKGROUND_TEMPLATE,
     backgroundTemplates: {},
     backgroundOpacity: defaultBackgroundOpacityForMode('solid'),
+    backgroundEnabled: true,
     backgroundEffectState: panelBackgroundState(DEFAULT_PANEL_BACKGROUND_EFFECT, DEFAULT_PANEL_BACKGROUND_TEMPLATE),
     backgroundMediaId: null,
     backgroundMediaType: null,
@@ -269,6 +271,7 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
         backgroundOpacity: r?.backgroundOpacity == null
           ? defaultBackgroundOpacityForMode(bgMode)
           : normalizePanelBackgroundOpacity(r.backgroundOpacity),
+        backgroundEnabled: normalizePanelBackgroundEnabled(r?.backgroundEnabled),
         // Static fallback; the returned value below is derived from the global
         // presets + the live draft.
         backgroundEffectState: panelBackgroundState(effect, normalizePanelBackgroundTemplate(templates[effect])),
@@ -349,6 +352,11 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
   const commitBackgroundMode = useCallback((mode: PanelBackgroundMode) => {
     setTheme(prev => ({ ...prev, backgroundMode: mode }));
     persistPatch({ backgroundMode: mode });
+  }, [persistPatch]);
+
+  const commitBackgroundEnabled = useCallback((enabled: boolean) => {
+    setTheme(prev => ({ ...prev, backgroundEnabled: enabled }));
+    persistPatch({ backgroundEnabled: enabled });
   }, [persistPatch]);
 
   // Effect / template are the per-panel SELECTION (which universal preset this
@@ -447,6 +455,7 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
     )),
     commitBackground,
     commitBackgroundMode,
+    commitBackgroundEnabled,
     commitBackgroundEffect,
     commitBackgroundTemplate,
     previewBackgroundEffectState: (state: EffectState) => setDraftBackgroundState(state),
