@@ -30,6 +30,7 @@ export function PanelEditorSheet({
   surface,
   deviceId,
   deviceTouch,
+  touchPanelChrome = false,
   editingWidget,
   panelTheme,
   gridColumns,
@@ -84,6 +85,9 @@ export function PanelEditorSheet({
   deviceId?: string;
   // Per-device touch capability (promoted monitors) for catalog/size gating.
   deviceTouch?: boolean;
+  // Touch-driven host display (usesTouchPanelChrome): the sheet scales with
+  // the panel content like the Y70 instead of desktop-size chrome.
+  touchPanelChrome?: boolean;
   editingWidget: PanelWidget | null;
   panelTheme: PanelThemeState;
   gridColumns: number;
@@ -228,6 +232,7 @@ export function PanelEditorSheet({
       data-mode={mode}
       data-state={closing ? 'closing' : 'open'}
       data-surface={surface}
+      data-touch-chrome={touchPanelChrome ? 'true' : undefined}
       data-theme={resolvedThemeMode}
       style={editorStyle}
       onClick={onClose}

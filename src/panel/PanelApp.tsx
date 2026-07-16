@@ -48,7 +48,7 @@ import { ErrorBoundary } from '../components/common/ErrorBoundary/ErrorBoundary'
 import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
 import { useMultiplex, useTopic, useTopicCallback } from '../hooks/useMultiplexSocket';
 import { useServiceStatus, HOST_DISPLAY_OFFLINE_GRACE_MS } from '../hooks/useServiceStatus';
-import { supportsDesktopWallpaper, wiredPanelClass } from './device/wiredPanel';
+import { usesTouchPanelChrome, supportsDesktopWallpaper, wiredPanelClass } from './device/wiredPanel';
 import { useUiSettings } from '../hooks/useUiSettings';
 import {
   isPinnableAppKey,
@@ -436,6 +436,19 @@ export function PanelContent({
   // transparency could not exclude. See supportsDesktopWallpaper for why
   // surface alone is not the gate.
   const wallpaperBackgroundAvailable = supportsDesktopWallpaper(surface, displayBound);
+  // Y70-class chrome: editor/add-widget sheets scale with the panel content.
+  const touchPanelChrome = usesTouchPanelChrome(surface, displayBound, deviceTouch);
+  // The sheet backdrop is scaled panel content on touch-chrome panels; give
+  // it the same WebKit-safe inline --panel-scale as the panel root (the
+  // tokens.scss trig formula miscomputes on WebKit, see webkitSafePanelScale).
+  // Other surfaces keep their CSS-pinned value (the desktop / desk-monitor
+  // neutralization must win there, and inline would beat it).
+  const editorSheetThemeStyle = useMemo(
+    () => touchPanelChrome && webkitSafePanelScale != null
+      ? { ...panelThemeVars, '--panel-scale': webkitSafePanelScale } as CSSProperties
+      : panelThemeVars,
+    [touchPanelChrome, webkitSafePanelScale, panelThemeVars],
+  );
   const backgroundOff = showPanelBackground
     && effectiveTheme.backgroundEnabled === false
     && wallpaperBackgroundAvailable;
@@ -1651,13 +1664,14 @@ export function PanelContent({
           surface={surface}
           deviceId={deviceId}
           deviceTouch={deviceTouch}
+          touchPanelChrome={touchPanelChrome}
           editingWidget={sheetMode === 'settings' ? editingWidget : null}
           panelTheme={panelTheme.theme}
           gridColumns={runtimeGrid.columns}
           gridRows={runtimeGrid.rows}
           canAddSize={canAddSize}
           resolvedThemeMode={resolvedThemeMode}
-          panelThemeStyle={panelThemeVars}
+          panelThemeStyle={editorSheetThemeStyle}
           closing={sheetClosing}
           onClose={closeSheet}
           onThemeSyncCommit={panelTheme.commitThemeSync}
