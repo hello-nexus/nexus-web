@@ -1,0 +1,78 @@
+.root {
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 0.85rem 1rem;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.6rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid var(--separator);
+}
+
+.controls > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.empty {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  padding: 0.6rem 0;
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.35rem 0;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.name {
+  font-size: var(--type-small);
+  color: var(--text);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sparkline {
+  flex-shrink: 0;
+}
+
+.value {
+  font-family: var(--font-mono);
+  font-size: var(--type-small);
+  font-weight: var(--weight-body);
+  color: var(--text);
+  min-width: 60px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.secondary {
+  font-family: var(--font-mono);
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  min-width: 60px;
+  text-align: right;
+  flex-shrink: 0;
+}
