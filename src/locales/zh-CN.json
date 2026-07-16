@@ -198,7 +198,6 @@
   "builder.copied": "已复制！",
   "chart.minus60s": "-60s",
   "chart.now": "现在",
-  "chart.total": "总计：{value}{unit}",
   "chart.waiting": "等待数据中...",
   "clock.app.addCity": "添加城市",
   "clock.app.done": "完成",

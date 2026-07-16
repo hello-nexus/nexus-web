@@ -1,7 +1,7 @@
 // Shared plumbing for the "dev-mock fallback on 404" idiom used by
 // api/monitoringHistory.ts and api/monitoringPrivacy.ts: a plain GET-and-
 // parse-JSON helper plus classification of the result that distinguishes a
-// route that's genuinely missing (404, no mock available - a production
+// route that's missing entirely (404, no mock available - a production
 // build talking to a service that predates the route) from a real request
 // failure, so callers can surface `unsupported` instead of masking it as an
 // error. See api/diagnostics.ts for the sibling withMockFallback pattern

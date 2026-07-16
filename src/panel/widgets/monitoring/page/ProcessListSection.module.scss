@@ -79,7 +79,8 @@
   color: var(--warn);
 }
 
-// Ended within the last hour - dimmed, secondary to an active indicator.
+// Recently ended (privacyHelpers.ts's RECENT_WINDOW_MS) - dimmed, secondary
+// to an active indicator.
 .privacyIconRecent {
   color: var(--text-dim);
   opacity: 0.55;

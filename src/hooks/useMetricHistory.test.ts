@@ -291,4 +291,48 @@ describe('useMetricHistory', () => {
     expect(result.current.error).toBe(false);
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
+
+  it('does not refetch the viewport on a metric switch once the route is known unsupported', async () => {
+    fetchMock.mockResolvedValue({ data: null, mocked: false, unsupported: true });
+    const { result, rerender } = renderHook(
+      ({ series }: { series: string }) => useMetricHistory(true, series),
+      { initialProps: { series: 'cpu' } },
+    );
+    await advance(0);
+    expect(result.current.supported).toBe(false);
+
+    fetchMock.mockClear();
+    rerender({ series: 'gpu,gpu-temp' });
+    await advance(0);
+
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('a late tail response that resolves after a fresher viewport refresh does not regress the series', async () => {
+    const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
+    await advance(0);
+
+    // Tail tick fires; hold its response pending.
+    const tailDeferred = deferred<{ data: MetricHistoryResponse | null; mocked: boolean; unsupported: boolean }>();
+    fetchMock.mockImplementationOnce(() => tailDeferred.promise);
+    await advance(1_000);
+
+    // A viewport refresh (setRange) lands first, with a newer point than the
+    // still-pending tail request will eventually resolve with.
+    fetchMock.mockResolvedValue({ data: resp('cpu', [{ t: NOW + 5_000, avg: 90, max: 92 }]), mocked: false, unsupported: false });
+    act(() => { result.current.setRange('3h'); });
+    await advance(0);
+
+    expect(result.current.series.find(s => s.id === 'cpu')?.points).toEqual([{ t: NOW + 5_000, avg: 90, max: 92 }]);
+
+    // The stale tail request (an older point) finally resolves.
+    await act(async () => {
+      tailDeferred.resolve({ data: resp('cpu', [{ t: NOW + 500, avg: 10, max: 12 }]), mocked: false, unsupported: false });
+      await Promise.resolve();
+    });
+
+    // Dropped - the fresher viewport refresh invalidated it, so it never
+    // appends the older point after the newer one.
+    expect(result.current.series.find(s => s.id === 'cpu')?.points).toEqual([{ t: NOW + 5_000, avg: 90, max: 92 }]);
+  });
 });

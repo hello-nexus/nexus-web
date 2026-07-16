@@ -63,9 +63,9 @@ const ICON_ORDER: readonly PrivacyIconKind[] = ['webcam', 'microphone', 'locatio
 /**
  * The privacy indicators to show on one process row: groups `sessions`
  * matching `processName` by icon kind, keeping only sessions that are
- * active or ended within the last hour (older sessions don't surface on the
- * row at all). Returned in a stable kind order, sessions within each group
- * newest-first.
+ * active or ended within RECENT_WINDOW_MS (older sessions don't surface on
+ * the row at all). Returned in a stable kind order, sessions within each
+ * group newest-first.
  */
 export function privacyIndicatorsForProcess(
   sessions: readonly PrivacySession[],

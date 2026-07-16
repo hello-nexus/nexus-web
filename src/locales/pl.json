@@ -198,7 +198,6 @@
   "builder.copied": "Skopiowano!",
   "chart.minus60s": "-60s",
   "chart.now": "teraz",
-  "chart.total": "Razem: {value}{unit}",
   "chart.waiting": "Oczekiwanie na dane...",
   "clock.app.addCity": "Dodaj miasto",
   "clock.app.done": "Gotowe",

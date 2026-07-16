@@ -136,7 +136,7 @@ export function ProcessListSection({ items, formatValue }: ProcessListSectionPro
               <span className={styles.dot} style={{ background: item.color }} />
               <span className={styles.name}>{item.name}</span>
               <PrivacyIndicators
-                indicators={privacy.supported ? privacyIndicatorsForProcess(privacy.sessions, item.name, privacy.asOfMs) : []}
+                indicators={privacy.supported && !privacy.error ? privacyIndicatorsForProcess(privacy.sessions, item.name, privacy.asOfMs) : []}
                 t={t}
               />
               <Sparkline
