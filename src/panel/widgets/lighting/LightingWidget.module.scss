@@ -29,7 +29,7 @@
 // Framed thumb (non-immersive): the same EffectCard the animation browser
 // uses, centered at the browser's 16/9 card aspect and inset from the widget
 // edges. container-type gives the fit rule the box height in cq units.
-// The horizontal inset clears the arrow gutter (chevron offset + width) so
+// The horizontal inset clears the arrow gutter (chevron offset + width + gap) so
 // the prev/next arrows sit beside the card, never on it - except 2x2, whose
 // override below keeps the card wide and lets the arrows overlap it.
 .thumbCardBox {
@@ -298,7 +298,8 @@
   overflow: hidden;
 }
 
-// 4x4: roomier arrows, wider card gutter, larger mode buttons.
+// 4x4: roomier arrows (same geometry as the cooling widget's 4x4 arrows -
+// base offsets, larger hit area), wider card gutter, larger mode buttons.
 .lighting[data-size='4x4'] {
   .arrowBtn {
     width: 56px;
@@ -308,14 +309,11 @@
       width: 32px;
       height: 32px;
     }
-
-    &[data-side='prev'] { left: 10px; padding-left: 6px; }
-    &[data-side='next'] { right: 10px; padding-right: 6px; }
   }
 
-  // Matches this size's larger arrow gutter (offset + width above).
+  // Matches this size's larger arrow gutter (offset + width + gap).
   .thumbCardBox {
-    inset: 12px 70px;
+    inset: 12px 66px;
   }
 
   // Roomier mode buttons, matching the cooling widget's 4x4 chips.

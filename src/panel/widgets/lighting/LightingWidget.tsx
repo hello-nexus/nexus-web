@@ -546,14 +546,12 @@ function SingleItemView({ view, t, showArrows, overlay, framed }: { view: Single
             <PanelArrowButton
               side="prev"
               className={styles.arrowBtn}
-              onColor
               onClick={view.onPrev!}
               ariaLabel={t('lighting.panel.prev')}
             />
             <PanelArrowButton
               side="next"
               className={styles.arrowBtn}
-              onColor
               onClick={view.onNext!}
               ariaLabel={t('lighting.panel.next')}
             />
@@ -600,14 +598,12 @@ function SingleItemView({ view, t, showArrows, overlay, framed }: { view: Single
           <PanelArrowButton
             side="prev"
             className={styles.arrowBtn}
-            onColor
             onClick={view.onPrev!}
             ariaLabel={t('lighting.panel.prev')}
           />
           <PanelArrowButton
             side="next"
             className={styles.arrowBtn}
-            onColor
             onClick={view.onNext!}
             ariaLabel={t('lighting.panel.next')}
           />
