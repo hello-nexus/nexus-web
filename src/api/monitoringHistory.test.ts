@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { classifyHistoryFetch, fetchMonitoringHistory } from './monitoringHistory';
+import { fetchMonitoringHistory } from './monitoringHistory';
 import { setActiveTransport } from './service';
 
 function jsonResponse(status: number, body: unknown): Response {
@@ -84,26 +84,5 @@ describe('fetchMonitoringHistory', () => {
     vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('network down'); }));
 
     expect(await fetchMonitoringHistory({ from: 0, to: 1000 })).toEqual({ data: null, mocked: false, unsupported: false });
-  });
-});
-
-describe('classifyHistoryFetch', () => {
-  it('is ok whenever data resolved, regardless of status', () => {
-    expect(classifyHistoryFetch({}, 200, true)).toBe('ok');
-    expect(classifyHistoryFetch({}, 200, false)).toBe('ok');
-  });
-
-  it('falls back to the mock on a 404 when a mock is available (dev build)', () => {
-    expect(classifyHistoryFetch(null, 404, true)).toBe('mockFallback');
-  });
-
-  it('reports unsupported on a 404 with no mock available (production build) - not an error', () => {
-    expect(classifyHistoryFetch(null, 404, false)).toBe('unsupported');
-  });
-
-  it('is a real error on any other failing status, mock or not', () => {
-    expect(classifyHistoryFetch(null, 500, true)).toBe('error');
-    expect(classifyHistoryFetch(null, 500, false)).toBe('error');
-    expect(classifyHistoryFetch(null, 0, false)).toBe('error');
   });
 });

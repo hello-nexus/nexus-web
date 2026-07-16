@@ -1,8 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ComponentType } from 'react';
+import { MapPin, Mic, ScreenShare, Webcam } from 'lucide-react';
 import { SearchInput } from '../../../../components/common/SearchInput/SearchInput';
 import { Select } from '../../../../components/common/Select/Select';
 import { Sparkline } from '../../../../components/common/Sparkline/Sparkline';
+import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { useTranslation } from '../../../../lib/i18n';
+import { useMonitoringPrivacy } from '../../../../hooks/useMonitoringPrivacy';
+import { privacyIndicatorsForProcess, type PrivacyIconKind, type PrivacyIndicator } from './privacyHelpers';
 import styles from './ProcessListSection.module.scss';
 
 export interface ProcessListItem {
@@ -23,17 +27,79 @@ export interface ProcessListSectionProps {
 
 const SPARKLINE_SAMPLES = 30;
 
+const PRIVACY_ICONS: Record<PrivacyIconKind, ComponentType<{ size?: number; 'aria-hidden'?: boolean }>> = {
+  webcam: Webcam,
+  microphone: Mic,
+  location: MapPin,
+  screen: ScreenShare,
+};
+
+function formatPrivacyTime(ms: number): string {
+  return new Date(ms).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
+
+/** A process row's privacy-access icons: one per PrivacyIndicator, each a
+ *  non-actionable informational glyph (role="img" + tabIndex so hover AND
+ *  keyboard focus both open the HoverTooltip, matching DiagnosticsWidget's
+ *  status-dot pattern) rather than a <button>, since nothing happens on
+ *  activation. Active sessions render accented, sessions that only ended
+ *  within the last hour render dimmed. */
+function PrivacyIndicators({ indicators, t }: {
+  indicators: readonly PrivacyIndicator[];
+  t: (key: string, params?: Record<string, string | number>) => string;
+}) {
+  if (indicators.length === 0) return null;
+  return (
+    <span className={styles.privacyIcons}>
+      {indicators.map(indicator => {
+        const Icon = PRIVACY_ICONS[indicator.kind];
+        const title = indicator.kind === 'screen'
+          ? t('monitoring.privacy.icon.screen')
+          : t(`monitoring.privacy.capability.${indicator.kind}`);
+        // The 'screen' kind collapses two distinct capabilities, so each of
+        // its lines names which one; the other kinds are already unambiguous
+        // from the title above.
+        const showCapabilityPerLine = indicator.kind === 'screen';
+        const body = (
+          <>
+            {indicator.sessions.map((s, i) => (
+              <span key={i}>
+                {showCapabilityPerLine && `${t(`monitoring.privacy.capability.${s.capability}`)} `}
+                {s.end === null
+                  ? t('monitoring.privacy.since', { time: formatPrivacyTime(s.start) })
+                  : t('monitoring.privacy.until', { time: formatPrivacyTime(s.end) })}
+                {i < indicator.sessions.length - 1 && <br />}
+              </span>
+            ))}
+          </>
+        );
+        const stateClass = indicator.state === 'active' ? styles.privacyIconActive : styles.privacyIconRecent;
+        return (
+          <HoverTooltip key={indicator.kind} title={title} body={body} side="top">
+            <span className={`${styles.privacyIcon} ${stateClass}`} role="img" aria-label={title} tabIndex={0}>
+              <Icon size={12} aria-hidden />
+            </span>
+          </HoverTooltip>
+        );
+      })}
+    </span>
+  );
+}
+
 /**
  * The live per-process list shown below the history hero chart on each
- * metric tab: search + sort over a flat row list, each row a name, a mini
- * live sparkline, and the current value (plus an optional secondary value).
- * Shared by the cpu/memory/gpu/network tabs - data source and formatting are
- * the caller's concern, this component only searches, sorts, and renders.
+ * metric tab: search + sort over a flat row list, each row a name, privacy-
+ * access icons (webcam/microphone/location/screen capture, when the service
+ * reports one for that process), a mini live sparkline, and the current
+ * value (plus an optional secondary value). Shared by the cpu/memory/gpu/
+ * network tabs - data source and formatting are the caller's concern, this
+ * component only searches, sorts, and renders.
  */
 export function ProcessListSection({ items, formatValue }: ProcessListSectionProps) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<SortMode>('usage');
+  const privacy = useMonitoringPrivacy(true);
 
   const visible = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -69,6 +135,10 @@ export function ProcessListSection({ items, formatValue }: ProcessListSectionPro
             <div key={item.name} className={styles.row}>
               <span className={styles.dot} style={{ background: item.color }} />
               <span className={styles.name}>{item.name}</span>
+              <PrivacyIndicators
+                indicators={privacy.supported ? privacyIndicatorsForProcess(privacy.sessions, item.name, privacy.asOfMs) : []}
+                t={t}
+              />
               <Sparkline
                 className={styles.sparkline}
                 values={item.values}

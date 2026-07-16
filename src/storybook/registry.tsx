@@ -277,6 +277,15 @@ function PreviewHoverTooltip() {
           <Settings size={14} aria-hidden />
         </button>
       </HoverTooltip>
+      <HoverTooltip
+        title="Multi-line variant"
+        body={<>Line one<br />Line two<br />Line three</>}
+        side="right"
+      >
+        <button type="button" className="chip-action" aria-label="Multi-line body">
+          <AlertTriangle size={14} aria-hidden />
+        </button>
+      </HoverTooltip>
     </div>
   );
 }
@@ -1778,7 +1787,7 @@ export const REGISTRY: StorybookEntry[] = [
     name: 'HoverTooltip', category: 'status',
     filePath: 'src/components/common/HoverTooltip/HoverTooltip.tsx',
     description: 'Instant hover tooltip that wraps any trigger element. Optional bold title line above a muted body line, portal\'d to document.body so curve-card overflow / scroll containers can\'t clip it. Companion to InfoTooltip - use this when the trigger is the surrounding content (chip button, icon-only control) rather than an (i) icon. Used by the cooling curve-type chips so each chip surfaces its description on hover with zero open delay.', Preview: PreviewHoverTooltip,
-    notes: 'Opens on pointerenter and keyboard focus, closes on leave / blur. Tooltip itself is pointer-events: none so the trigger keeps ownership of the cursor. Pass `title` for the bold first line plus `body` for the description, or just `body` for a single-line variant.',
+    notes: 'Opens on pointerenter and keyboard focus, closes on leave / blur. Tooltip itself is pointer-events: none so the trigger keeps ownership of the cursor. Pass `title` for the bold first line plus `body` for the description, or just `body` for a single-line variant. `body` accepts any ReactNode, so a multi-line list (e.g. session lines separated by <br />) works too - used by the monitoring privacy-access indicators.',
   },
   {
     name: 'DeviceWarningIcon', category: 'status',

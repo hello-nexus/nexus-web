@@ -1,6 +1,27 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { ProcessListSection, type ProcessListItem } from './ProcessListSection';
+import type { UseMonitoringPrivacyResult } from '../../../../hooks/useMonitoringPrivacy';
+import type { PrivacySession } from '../../../../api/monitoringPrivacy';
+
+const NOW = 10_000_000;
+
+const privacyMock = vi.fn<() => UseMonitoringPrivacyResult>();
+vi.mock('../../../../hooks/useMonitoringPrivacy', () => ({
+  useMonitoringPrivacy: () => privacyMock(),
+}));
+
+function privacyResult(over: Partial<UseMonitoringPrivacyResult> = {}): UseMonitoringPrivacyResult {
+  return {
+    sessions: [],
+    asOfMs: NOW,
+    loading: false,
+    error: false,
+    mocked: false,
+    supported: true,
+    ...over,
+  };
+}
 
 function items(): ProcessListItem[] {
   return [
@@ -11,6 +32,10 @@ function items(): ProcessListItem[] {
 }
 
 describe('ProcessListSection', () => {
+  beforeEach(() => {
+    privacyMock.mockReturnValue(privacyResult());
+  });
+
   it('renders rows sorted by usage (current value) descending by default', () => {
     render(<ProcessListSection items={items()} formatValue={v => `${v}%`} />);
     const names = screen.getAllByText(/Chrome|AppControl|Nexus/).map(el => el.textContent);
@@ -63,5 +88,73 @@ describe('ProcessListSection', () => {
   it('shows the empty message for an empty item list', () => {
     render(<ProcessListSection items={[]} formatValue={v => `${v}%`} />);
     expect(screen.getByText('monitoring.ranked.empty')).toBeInTheDocument();
+  });
+
+  it('shows no privacy icon for a row with no matching session', () => {
+    const sessions: PrivacySession[] = [{ app: 'C:\\firefox.exe', capability: 'webcam', start: NOW - 1000, end: null }];
+    privacyMock.mockReturnValue(privacyResult({ sessions }));
+    render(<ProcessListSection items={items()} formatValue={v => `${v}%`} />);
+    expect(screen.queryByRole('img', { name: 'monitoring.privacy.capability.webcam' })).toBeNull();
+  });
+
+  it('shows an accented privacy icon for an active session', () => {
+    const sessions: PrivacySession[] = [{ app: 'C:\\chrome.exe', capability: 'webcam', start: NOW - 1000, end: null }];
+    privacyMock.mockReturnValue(privacyResult({ sessions }));
+    render(<ProcessListSection items={items()} formatValue={v => `${v}%`} />);
+    const icon = screen.getByRole('img', { name: 'monitoring.privacy.capability.webcam' });
+    expect(icon.className).toContain('privacyIconActive');
+  });
+
+  it('shows a dimmed privacy icon for a session that ended within the last hour', () => {
+    const sessions: PrivacySession[] = [{ app: 'C:\\chrome.exe', capability: 'microphone', start: NOW - 20 * 60_000, end: NOW - 10 * 60_000 }];
+    privacyMock.mockReturnValue(privacyResult({ sessions }));
+    render(<ProcessListSection items={items()} formatValue={v => `${v}%`} />);
+    const icon = screen.getByRole('img', { name: 'monitoring.privacy.capability.microphone' });
+    expect(icon.className).toContain('privacyIconRecent');
+  });
+
+  it('does not show a privacy icon for a session that ended over an hour ago', () => {
+    const sessions: PrivacySession[] = [{ app: 'C:\\chrome.exe', capability: 'webcam', start: NOW - 3 * 3_600_000, end: NOW - 2 * 3_600_000 }];
+    privacyMock.mockReturnValue(privacyResult({ sessions }));
+    render(<ProcessListSection items={items()} formatValue={v => `${v}%`} />);
+    expect(screen.queryByRole('img', { name: 'monitoring.privacy.capability.webcam' })).toBeNull();
+  });
+
+  it('the tooltip shows "since" for an active session', () => {
+    const sessions: PrivacySession[] = [{ app: 'C:\\chrome.exe', capability: 'webcam', start: NOW - 1000, end: null }];
+    privacyMock.mockReturnValue(privacyResult({ sessions }));
+    render(<ProcessListSection items={items()} formatValue={v => `${v}%`} />);
+    fireEvent.focus(screen.getByRole('img', { name: 'monitoring.privacy.capability.webcam' }));
+    expect(screen.getByRole('tooltip')).toHaveTextContent('monitoring.privacy.since');
+  });
+
+  it('the tooltip shows "until" for a session that already ended', () => {
+    const sessions: PrivacySession[] = [{ app: 'C:\\chrome.exe', capability: 'webcam', start: NOW - 20 * 60_000, end: NOW - 10 * 60_000 }];
+    privacyMock.mockReturnValue(privacyResult({ sessions }));
+    render(<ProcessListSection items={items()} formatValue={v => `${v}%`} />);
+    fireEvent.focus(screen.getByRole('img', { name: 'monitoring.privacy.capability.webcam' }));
+    expect(screen.getByRole('tooltip')).toHaveTextContent('monitoring.privacy.until');
+  });
+
+  it('merges both screen-capture capabilities into one indicator whose tooltip names each session', () => {
+    const sessions: PrivacySession[] = [
+      { app: 'C:\\chrome.exe', capability: 'graphicsCaptureProgrammatic', start: NOW - 1000, end: null },
+      { app: 'C:\\chrome.exe', capability: 'graphicsCaptureWithoutBorder', start: NOW - 2000, end: NOW - 1500 },
+    ];
+    privacyMock.mockReturnValue(privacyResult({ sessions }));
+    render(<ProcessListSection items={items()} formatValue={v => `${v}%`} />);
+    expect(screen.getAllByRole('img', { name: 'monitoring.privacy.icon.screen' })).toHaveLength(1);
+
+    fireEvent.focus(screen.getByRole('img', { name: 'monitoring.privacy.icon.screen' }));
+    const tooltip = screen.getByRole('tooltip');
+    expect(tooltip).toHaveTextContent('monitoring.privacy.capability.graphicsCaptureProgrammatic');
+    expect(tooltip).toHaveTextContent('monitoring.privacy.capability.graphicsCaptureWithoutBorder');
+  });
+
+  it('does not render a privacy icon when the route is unsupported', () => {
+    const sessions: PrivacySession[] = [{ app: 'C:\\chrome.exe', capability: 'webcam', start: NOW - 1000, end: null }];
+    privacyMock.mockReturnValue(privacyResult({ sessions, supported: false }));
+    render(<ProcessListSection items={items()} formatValue={v => `${v}%`} />);
+    expect(screen.queryByRole('img', { name: 'monitoring.privacy.capability.webcam' })).toBeNull();
   });
 });

@@ -10,7 +10,7 @@
 // so it never enters a production bundle - see api/diagnostics.ts for the
 // same pattern.
 
-import { authFetchWithStatus } from './service';
+import { classifyFetchOutcome, requestJson } from './fetchOutcome';
 
 export type MetricHistoryKind =
   | 'cpu' | 'memory' | 'net' | 'gpu' | 'cpu-temp' | 'gpu-temp' | 'fan' | 'fan-duty';
@@ -54,17 +54,6 @@ export interface MetricHistoryFetchResult {
   unsupported: boolean;
 }
 
-export type HistoryFetchOutcome = 'ok' | 'mockFallback' | 'unsupported' | 'error';
-
-/** Pure classification of a raw fetch result, split out from
- *  fetchMonitoringHistory so the 404-without-mock (production) branch is
- *  unit-testable without depending on the module's build-time DEV gate. */
-export function classifyHistoryFetch(data: unknown, status: number, mockAvailable: boolean): HistoryFetchOutcome {
-  if (data !== null) return 'ok';
-  if (status === 404) return mockAvailable ? 'mockFallback' : 'unsupported';
-  return 'error';
-}
-
 function buildQuery(query: MetricHistoryQuery): string {
   const params = new URLSearchParams();
   params.set('from', String(Math.round(query.from)));
@@ -72,16 +61,6 @@ function buildQuery(query: MetricHistoryQuery): string {
   if (query.maxPoints != null) params.set('maxPoints', String(query.maxPoints));
   if (query.series) params.set('series', query.series);
   return params.toString();
-}
-
-async function requestJson<T>(path: string): Promise<{ data: T | null; status: number }> {
-  const { response, status } = await authFetchWithStatus(path);
-  if (!response || !response.ok) return { data: null, status };
-  try {
-    return { data: (await response.json()) as T, status };
-  } catch {
-    return { data: null, status };
-  }
 }
 
 type MonitoringHistoryMockModule = typeof import('./monitoringHistoryMock');
@@ -96,7 +75,7 @@ const loadMonitoringHistoryMock = (import.meta.env.DEV || __DEV_TOOLS__)
 
 export async function fetchMonitoringHistory(query: MetricHistoryQuery): Promise<MetricHistoryFetchResult> {
   const { data, status } = await requestJson<MetricHistoryResponse>(`/monitoring/history?${buildQuery(query)}`);
-  const outcome = classifyHistoryFetch(data, status, loadMonitoringHistoryMock !== null);
+  const outcome = classifyFetchOutcome(data, status, loadMonitoringHistoryMock !== null);
   switch (outcome) {
     case 'ok': return { data, mocked: false, unsupported: false };
     case 'mockFallback': {

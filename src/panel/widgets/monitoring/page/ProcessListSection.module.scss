@@ -54,6 +54,37 @@
   white-space: nowrap;
 }
 
+.privacyIcons {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.privacyIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  line-height: 0;
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+}
+
+// Still in use - accented so it reads as the prominent state.
+.privacyIconActive {
+  color: var(--warn);
+}
+
+// Ended within the last hour - dimmed, secondary to an active indicator.
+.privacyIconRecent {
+  color: var(--text-dim);
+  opacity: 0.55;
+}
+
 .sparkline {
   flex-shrink: 0;
 }
