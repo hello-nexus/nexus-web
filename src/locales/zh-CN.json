@@ -1490,6 +1490,7 @@
   "lighting.layoutPresets.defaultName": "预设 {n}",
   "lighting.layoutPresets.delete": "删除",
   "lighting.layoutPresets.deleteConfirm": "删除预设\"{name}\"？",
+  "lighting.layoutPresets.duplicateName": "已存在同名的预设。请使用其他名称。",
   "lighting.layoutPresets.namePrompt": "为此预设命名",
   "lighting.layoutPresets.new": "新建预设",
   "lighting.layoutPresets.newOption": "新建预设...",

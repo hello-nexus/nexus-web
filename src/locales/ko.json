@@ -1490,6 +1490,7 @@
   "lighting.layoutPresets.defaultName": "프리셋 {n}",
   "lighting.layoutPresets.delete": "삭제",
   "lighting.layoutPresets.deleteConfirm": "프리셋 \"{name}\"을(를) 삭제할까요?",
+  "lighting.layoutPresets.duplicateName": "이 이름의 프리셋이 이미 있습니다. 다른 이름을 선택하세요.",
   "lighting.layoutPresets.namePrompt": "프리셋 이름 지정",
   "lighting.layoutPresets.new": "새 프리셋",
   "lighting.layoutPresets.newOption": "새 프리셋...",

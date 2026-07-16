@@ -1490,6 +1490,7 @@
   "lighting.layoutPresets.defaultName": "Önayar {n}",
   "lighting.layoutPresets.delete": "Sil",
   "lighting.layoutPresets.deleteConfirm": "\"{name}\" önayarı silinsin mi?",
+  "lighting.layoutPresets.duplicateName": "Bu ada sahip bir önayar zaten var. Farklı bir ad seçin.",
   "lighting.layoutPresets.namePrompt": "Bu önayarı adlandırın",
   "lighting.layoutPresets.new": "Yeni önayar",
   "lighting.layoutPresets.newOption": "Yeni önayar...",

@@ -1435,6 +1435,7 @@
   "lighting.layoutPresets.defaultName": "プリセット {n}",
   "lighting.layoutPresets.delete": "削除",
   "lighting.layoutPresets.deleteConfirm": "プリセット「{name}」を削除しますか?",
+  "lighting.layoutPresets.duplicateName": "この名前のプリセットは既に存在します。別の名前を選択してください。",
   "lighting.layoutPresets.namePrompt": "プリセット名を入力",
   "lighting.layoutPresets.new": "新規プリセット",
   "lighting.layoutPresets.newOption": "新規プリセット...",

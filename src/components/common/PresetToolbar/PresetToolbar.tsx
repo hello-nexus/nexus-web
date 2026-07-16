@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { RotateCcw, Undo2, Redo2, Pencil, Trash2, Plus, Import } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { isApplePlatform } from '../../../lib/platform';
+import { isNameTaken } from '../../../lib/nameCollision';
 import { Button } from '../Button/Button';
 import { Select } from '../Select/Select';
 import { ConfirmModal } from '../ConfirmModal/ConfirmModal';
@@ -112,6 +113,12 @@ export function PresetToolbar({
     return createError;
   };
 
+  const validate = (v: string): string | null => {
+    const excludeId = promptMode === 'rename' ? (activeId ?? undefined) : undefined;
+    if (isNameTaken(presets, v, excludeId)) return t(key('duplicateName'));
+    return promptMode === 'create' ? createValidate(v) : null;
+  };
+
   const handlePromptConfirm = async (name: string) => {
     if (promptMode === 'create') {
       setLastAttemptedValue(name);
@@ -177,7 +184,7 @@ export function PresetToolbar({
         initialValue={promptMode === 'rename' ? (activePreset?.name ?? '') : t(key('defaultName'), { n: presetCount + 1 })}
         maxLength={20}
         confirmLabel={promptMode === 'rename' ? t(key('rename')) : t(key('new'))}
-        validate={promptMode === 'create' ? createValidate : undefined}
+        validate={validate}
         onConfirm={handlePromptConfirm}
         onCancel={() => { setPromptOpen(false); setCreateError(null); }}
       />

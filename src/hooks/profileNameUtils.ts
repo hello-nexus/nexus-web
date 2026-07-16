@@ -3,6 +3,7 @@
 // server call remains the authoritative check (profile_name_taken on 409).
 
 import type { ProfileEntry } from '../api/profiles';
+import { isNameTaken } from '../lib/nameCollision';
 
 /**
  * True when the trimmed, case-folded `name` collides with an existing
@@ -10,7 +11,5 @@ import type { ProfileEntry } from '../api/profiles';
  * own current name as a no-op, matching the server's collision rule.
  */
 export function isProfileNameTaken(profiles: ProfileEntry[], name: string, excludeId?: string): boolean {
-  const trimmed = name.trim().toLowerCase();
-  if (!trimmed) return false;
-  return profiles.some(p => p.id !== excludeId && p.name.trim().toLowerCase() === trimmed);
+  return isNameTaken(profiles, name, excludeId);
 }

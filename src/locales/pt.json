@@ -1490,6 +1490,7 @@
   "lighting.layoutPresets.defaultName": "Predefinição {n}",
   "lighting.layoutPresets.delete": "Eliminar",
   "lighting.layoutPresets.deleteConfirm": "Eliminar predefinição \"{name}\"?",
+  "lighting.layoutPresets.duplicateName": "Já existe uma predefinição com este nome. Escolha um nome diferente.",
   "lighting.layoutPresets.namePrompt": "Nomear esta predefinição",
   "lighting.layoutPresets.new": "Nova predefinição",
   "lighting.layoutPresets.newOption": "Nova predefinição...",
