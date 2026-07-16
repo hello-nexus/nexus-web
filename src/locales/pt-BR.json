@@ -1824,7 +1824,7 @@
   "panel.settings.backgroundMode.solid": "Sólido",
   "panel.settings.backgroundOpacity": "Opacidade do fundo",
   "panel.settings.backgroundShow": "Mostrar fundo",
-  "panel.settings.backgroundShow.desc": "Desativado mostra a área de trabalho atrás dos widgets",
+  "panel.settings.backgroundShow.desc": "Desativado mostra o papel de parede da área de trabalho atrás dos widgets",
   "panel.settings.channel": "Canal",
   "panel.settings.connectForApps": "Conectar ao desktop para ver aplicativos",
   "panel.settings.deck.action.audioInput": "Entrada de áudio",

@@ -747,10 +747,7 @@
 // `:not([data-widget-opaque='true'])` skips the pass at 100% widget opacity:
 // the blurred backdrop is fully hidden behind the card, so there's nothing
 // to render. Render-time skip only; the toggle setting is unchanged.
-// `:not([data-background-off='true'])` skips it in desktop see-through mode:
-// backdrop-filter samples only page content, and the page behind the cells is
-// fully transparent there - the pass would burn GPU blurring nothing.
-.panelRoot[data-widget-blur='true']:not([data-background-mode='solid']):not([data-widget-opaque='true']):not([data-background-off='true']) .cell {
+.panelRoot[data-widget-blur='true']:not([data-background-mode='solid']):not([data-widget-opaque='true']) .cell {
   backdrop-filter: blur(var(--blur-backdrop));
 }
 

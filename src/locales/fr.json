@@ -1824,7 +1824,7 @@
   "panel.settings.backgroundMode.solid": "Solide",
   "panel.settings.backgroundOpacity": "Opacité de l'arrière-plan",
   "panel.settings.backgroundShow": "Afficher l'arrière-plan",
-  "panel.settings.backgroundShow.desc": "Désactivé affiche le bureau derrière les widgets",
+  "panel.settings.backgroundShow.desc": "Désactivé affiche le fond d'écran du bureau derrière les widgets",
   "panel.settings.channel": "Chaîne",
   "panel.settings.connectForApps": "Connecter au bureau pour parcourir les apps",
   "panel.settings.deck.action.audioInput": "Entrée audio",

@@ -1824,7 +1824,7 @@
   "panel.settings.backgroundMode.solid": "纯色",
   "panel.settings.backgroundOpacity": "背景不透明度",
   "panel.settings.backgroundShow": "显示背景",
-  "panel.settings.backgroundShow.desc": "关闭后小组件后方将显示桌面",
+  "panel.settings.backgroundShow.desc": "关闭后小组件后方将显示桌面壁纸",
   "panel.settings.channel": "频道",
   "panel.settings.connectForApps": "连接到桌面以浏览应用",
   "panel.settings.deck.action.audioInput": "音频输入",

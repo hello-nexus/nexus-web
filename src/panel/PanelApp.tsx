@@ -74,6 +74,7 @@ import { q60OfflineClockPages } from './engine/q60OfflineClock';
 import { inferSurfaceFromViewport } from './device/inferSurface';
 import { PanelBackgroundShader } from './background/PanelBackgroundShader';
 import { PanelBackgroundMedia } from './background/PanelBackgroundMedia';
+import { PanelBackgroundDesktop } from './background/PanelBackgroundDesktop';
 import { resolvePanelBackground } from './background/panelBackground';
 import type { SimulatorTheme } from './embed/simulatorProtocol';
 import './styles/tokens.scss';
@@ -428,10 +429,11 @@ export function PanelContent({
   // overlay. The embedded desktop deck paints no panel background so the
   // dashboard theme shows through.
   const showPanelBackground = !embedded || simulator;
-  // Background toggled off on a kiosk-hosted panel: the page renders fully
-  // transparent and the kiosk WebView2 (alpha-0 default background, no host
-  // class brush) composites the Windows desktop behind the widgets. See
-  // supportsDesktopSeeThrough for why surface alone is not the gate.
+  // Background toggled off on a kiosk-hosted panel: the theme layers are
+  // replaced by the monitor's own wallpaper (PanelBackgroundDesktop) - the
+  // desktop look with no icons, taskbar, or windows, which per-pixel window
+  // transparency could not exclude. See supportsDesktopSeeThrough for why
+  // surface alone is not the gate.
   const seeThroughAvailable = supportsDesktopSeeThrough(surface, displayBound);
   const backgroundOff = showPanelBackground
     && effectiveTheme.backgroundEnabled === false
@@ -447,23 +449,7 @@ export function PanelContent({
       : 'transparent',
     [showPanelBackground, effectiveTheme.backgroundColor, effectiveTheme.backgroundColorLight, resolvedThemeMode],
   );
-  const themeBackdrop = showBackgroundLayers ? 'var(--backdrop-base)' : 'transparent';
-
-  // The page canvas is opaque unless html/body are cleared too: global.scss
-  // paints both with var(--bg), which would sit behind the transparent root.
-  useEffect(() => {
-    if (!backgroundOff || typeof document === 'undefined') return undefined;
-    const html = document.documentElement;
-    const body = document.body;
-    const prevHtml = html.style.background;
-    const prevBody = body.style.background;
-    html.style.background = 'transparent';
-    body.style.background = 'transparent';
-    return () => {
-      html.style.background = prevHtml;
-      body.style.background = prevBody;
-    };
-  }, [backgroundOff]);
+  const themeBackdrop = showPanelBackground ? 'var(--backdrop-base)' : 'transparent';
   const panelRootStyle = useMemo(
     () => ({
       ...panelThemeVars,
@@ -1350,7 +1336,6 @@ export function PanelContent({
           isSingleWidgetSurface(surface) ? undefined : effectiveTheme.widgetPadding <= 0 ? 'none' : undefined
         }
         data-widget-blur={effectiveTheme.widgetBlur ? 'true' : 'false'}
-        data-background-off={backgroundOff ? 'true' : undefined}
         data-widget-opaque={effectiveTheme.widgetOpacity >= 1 ? 'true' : undefined}
         data-context-menu-open={contextMenuWidgetId ? 'true' : undefined}
         data-editing={surface === 'phone' && sheetMode === 'settings' ? 'true' : undefined}
@@ -1369,6 +1354,7 @@ export function PanelContent({
         onPointerCancel={backgroundLongPress.onPointerCancel}
         onContextMenu={handleBackgroundContextMenu}
       >
+        {backgroundOff && <PanelBackgroundDesktop />}
         {showBackgroundLayers && effectiveTheme.backgroundMode === 'shader' && (
           <PanelBackgroundShader
             effect={effectiveTheme.backgroundEffect}

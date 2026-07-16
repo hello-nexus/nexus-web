@@ -15,12 +15,13 @@ export function wiredPanelClass(surface: PanelSurface): 'cabled' | 'host-display
 }
 
 /**
- * True when turning the panel background off shows the Windows desktop: the
- * page is hosted by the local kiosk WebView2, which composites transparent
- * pixels over the desktop. Surface alone is not enough - full-size streamed
- * panels (D213) also carry the 'monitor' surface but render via H.264 capture
- * with no desktop behind the glass; only display-bound records (promoted OS
- * monitors, displayId set) and the Y70 qualify.
+ * True when turning the panel background off renders the Windows desktop
+ * wallpaper: the panel is a monitor of THIS host, so its wallpaper crop
+ * exists and is the natural stand-in for the desktop (without icons,
+ * taskbar, or windows). Surface alone is not enough - full-size streamed
+ * panels (D213) also carry the 'monitor' surface but are not host monitors;
+ * only display-bound records (promoted OS monitors, displayId set) and the
+ * Y70 qualify.
  */
 export function supportsDesktopSeeThrough(surface: PanelSurface, displayBound: boolean): boolean {
   return surface === 'y70' || (surface === 'monitor' && displayBound);

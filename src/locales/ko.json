@@ -1824,7 +1824,7 @@
   "panel.settings.backgroundMode.solid": "단색",
   "panel.settings.backgroundOpacity": "배경 불투명도",
   "panel.settings.backgroundShow": "배경 표시",
-  "panel.settings.backgroundShow.desc": "끄면 위젯 뒤로 데스크톱이 표시됩니다",
+  "panel.settings.backgroundShow.desc": "끄면 위젯 뒤로 바탕 화면 배경이 표시됩니다",
   "panel.settings.channel": "채널",
   "panel.settings.connectForApps": "데스크톱에 연결해 앱 검색",
   "panel.settings.deck.action.audioInput": "오디오 입력",
