@@ -16,3 +16,29 @@ export const DOWNLOAD_URLS: Record<DownloadableOS, string> = {
 };
 
 export const ALL_DOWNLOADABLE_OS: readonly DownloadableOS[] = ['windows', 'macos', 'linux'];
+
+export interface DownloadManifest {
+  version: string | null;
+  assets: Record<DownloadableOS, { size: number | null }>;
+}
+
+// Version + per-OS installer byte size for the current release, served by the
+// site server from its cached GitHub release poll - no client-side GitHub hit,
+// and it always agrees with what the /download/<os> redirect delivers. Returns
+// null on any failure so callers render the button without a caption.
+export async function fetchDownloadManifest(signal?: AbortSignal): Promise<DownloadManifest | null> {
+  try {
+    const res = await fetch('/download/manifest', { signal });
+    if (!res.ok) return null;
+    return (await res.json()) as DownloadManifest;
+  } catch {
+    return null;
+  }
+}
+
+// Installer size as a whole-number MB string, or null when the size is absent
+// or non-positive (the caption is then omitted rather than showing "0 MB").
+export function formatDownloadSizeMb(bytes: number | null | undefined): string | null {
+  if (typeof bytes !== 'number' || !Number.isFinite(bytes) || bytes <= 0) return null;
+  return String(Math.round(bytes / (1024 * 1024)));
+}

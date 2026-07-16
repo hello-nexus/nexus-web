@@ -53,15 +53,19 @@ const DOWNLOAD_ASSETS = {
   linux: 'Nexus-Linux-x64.tar.gz',
 };
 const RELEASE_CACHE_MS = 10 * 60_000;
-// A failed refresh keeps serving the last-good map and retries sooner - the
+// A failed refresh keeps serving the last-good data and retries sooner - the
 // static-alias fallback 404s while no stable release exists, so nulling the
 // cache on a blip would re-break every download for the full TTL.
 const RELEASE_RETRY_MS = 60_000;
 const RELEASE_API_TIMEOUT_MS = 3000;
-let releaseCache = { byName: null, expiresAt: 0 };
+let releaseCache = { data: null, expiresAt: 0 };
 let releaseRefresh = null;
 
-async function fetchReleaseAssets() {
+// { byName, sizeByName, version } for the newest downloadable release, or null.
+// byName maps asset name -> download URL, sizeByName maps asset name -> byte
+// size, version is the release tag. One API poll feeds both the /download
+// redirect and /download/manifest, so the two never disagree.
+async function fetchReleaseData() {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), RELEASE_API_TIMEOUT_MS);
   try {
@@ -77,7 +81,11 @@ async function fetchReleaseAssets() {
       && wanted.every((name) => r.assets?.some((a) => a.name === name)));
     const pick = usable.find((r) => !r.prerelease) ?? usable[0];
     if (!pick) return null;
-    return Object.fromEntries(pick.assets.map((a) => [a.name, a.browser_download_url]));
+    return {
+      byName: Object.fromEntries(pick.assets.map((a) => [a.name, a.browser_download_url])),
+      sizeByName: Object.fromEntries(pick.assets.map((a) => [a.name, a.size])),
+      version: typeof pick.tag_name === 'string' ? pick.tag_name : null,
+    };
   } catch {
     return null;
   } finally {
@@ -85,27 +93,26 @@ async function fetchReleaseAssets() {
   }
 }
 
-// name -> browser_download_url for the newest downloadable release, or null
-// when the API has never answered (callers fall back to the static alias).
-// Concurrent expiries share one in-flight refresh (unauthenticated GitHub
-// API allows 60 req/h/IP).
-async function resolveReleaseAssets() {
-  if (releaseCache.expiresAt > Date.now()) return releaseCache.byName;
-  releaseRefresh ??= fetchReleaseAssets().then((byName) => {
-    releaseCache = byName
-      ? { byName, expiresAt: Date.now() + RELEASE_CACHE_MS }
-      : { byName: releaseCache.byName, expiresAt: Date.now() + RELEASE_RETRY_MS };
+// Release data for the newest downloadable release, or null when the API has
+// never answered (callers fall back to the static alias). Concurrent expiries
+// share one in-flight refresh (unauthenticated GitHub API allows 60 req/h/IP).
+async function resolveReleaseData() {
+  if (releaseCache.expiresAt > Date.now()) return releaseCache.data;
+  releaseRefresh ??= fetchReleaseData().then((data) => {
+    releaseCache = data
+      ? { data, expiresAt: Date.now() + RELEASE_CACHE_MS }
+      : { data: releaseCache.data, expiresAt: Date.now() + RELEASE_RETRY_MS };
     releaseRefresh = null;
-    return releaseCache.byName;
+    return releaseCache.data;
   });
   return releaseRefresh;
 }
 
 async function redirectToAsset(res, os) {
   const assetName = DOWNLOAD_ASSETS[os];
-  const byName = await resolveReleaseAssets();
+  const data = await resolveReleaseData();
   res.set('Cache-Control', 'no-store');
-  return res.redirect(byName?.[assetName] ?? `${RELEASES_BASE}/${assetName}`);
+  return res.redirect(data?.byName?.[assetName] ?? `${RELEASES_BASE}/${assetName}`);
 }
 
 // Bare /download serves the marketing downloads page (all platforms +
@@ -121,6 +128,25 @@ app.get(['/download/mac', '/download/macos', '/downloads/mac', '/downloads/macos
   (_req, res) => redirectToAsset(res, 'macos'));
 app.get(['/download/linux', '/downloads/linux'],
   (_req, res) => redirectToAsset(res, 'linux'));
+
+// Version + per-OS installer byte size for the release the /download/<os>
+// redirects resolve to, from the same cache (no extra GitHub call). The
+// download cards render it under each button. no-store keeps Cloudflare from
+// pinning it, matching the redirects. version/size are null until the API
+// first answers, so the cards degrade to no caption.
+app.get('/download/manifest', async (_req, res) => {
+  const data = await resolveReleaseData();
+  const sizeFor = (os) => data?.sizeByName?.[DOWNLOAD_ASSETS[os]] ?? null;
+  res.set('Cache-Control', 'no-store');
+  res.json({
+    version: data?.version ?? null,
+    assets: {
+      windows: { size: sizeFor('windows') },
+      macos: { size: sizeFor('macos') },
+      linux: { size: sizeFor('linux') },
+    },
+  });
+});
 
 // OG meta injection for /u/:username link previews (Discord, Slack, iMessage,
 // etc. - they render og:* tags from the raw HTML response, never execute the

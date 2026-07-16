@@ -6,7 +6,8 @@ import { SiteApp } from './SiteApp';
 // jsdom has no WebGL2 (shader canvases fall back to the gradient panel) and
 // no IntersectionObserver (useInViewport reports visible); the reduced-motion
 // stub in setup.ts keeps every ticker frozen. The page must still mount all
-// sections without any network I/O.
+// sections when its one network call, the graceful download-manifest fetch,
+// is rejected.
 describe('SiteApp', () => {
   let fetchSpy: ReturnType<typeof vi.fn>;
 
@@ -29,7 +30,11 @@ describe('SiteApp', () => {
     expect(screen.getByText('Get Nexus')).toBeInTheDocument();
     expect(screen.getByText('Why we built Nexus')).toBeInTheDocument();
 
-    expect(fetchSpy).not.toHaveBeenCalled();
+    // The download cards fetch the version/size manifest; nothing else on the
+    // page makes a request.
+    for (const call of fetchSpy.mock.calls) {
+      expect(String(call[0])).toContain('/download/manifest');
+    }
   });
 
   it('links My System and the per-OS downloads', async () => {
