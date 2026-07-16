@@ -35,11 +35,15 @@ export function PanelBackgroundDesktop() {
     const img = new Image();
     img.onload = () => { if (!cancelled) setGoodSrc(url); };
     img.onerror = () => {
-      if (cancelled || retriesRef.current >= FETCH_RETRY_LIMIT) return;
+      if (cancelled) return;
       retriesRef.current += 1;
       // The shell exposes no completion signal for its wallpaper rewrite; a
-      // delayed retry covers a fetch that raced the tail of the write burst.
-      retryTimer = setTimeout(() => { if (!cancelled) setCandidate(c => c + 1); }, 3000);
+      // short retry covers a fetch that raced the tail of the write burst.
+      // Past the fast retries, fall to a slow probe so a panel that booted
+      // mid-rewrite (or before logon) eventually shows the wallpaper instead
+      // of giving up until the next change frame.
+      const delay = retriesRef.current <= FETCH_RETRY_LIMIT ? 3000 : 60000;
+      retryTimer = setTimeout(() => { if (!cancelled) setCandidate(c => c + 1); }, delay);
     };
     img.src = url;
     return () => {
