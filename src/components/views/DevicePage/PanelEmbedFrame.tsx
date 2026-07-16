@@ -45,6 +45,10 @@ interface PanelEmbedFrameProps {
   // drag sensor gates on it (surfaceSupportsTouch); a touch monitor must pass
   // true or the editor can't drag-rearrange its widgets.
   deviceTouch?: boolean;
+  // Display-bound record (displayId set), forwarded in 'simulator/init'. The
+  // desktop see-through gate needs it or a 'monitor' preview renders the theme
+  // background where the device shows the wallpaper.
+  displayBound?: boolean;
   canvasSize?: { width: number; height: number };
   // Device DPI. Converts native canvas dimensions into the CSS-pixel
   // viewport the device exposes to its WebView, so the iframe reproduces
@@ -168,6 +172,7 @@ export function PanelEmbedFrame({
   showPanel,
   deviceId,
   deviceTouch,
+  displayBound,
 }: PanelEmbedFrameProps) {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -282,6 +287,7 @@ export function PanelEmbedFrame({
       type: 'simulator/init',
       surface,
       deviceTouch,
+      displayBound,
       dpi: effectiveGridDpi,
       layout,
       theme,
@@ -330,6 +336,13 @@ export function PanelEmbedFrame({
     if (!childReady) return;
     post({ type: 'simulator/set-touch', deviceTouch });
   }, [childReady, deviceTouch, post]);
+
+  // displayBound resolves from the same record fetch; the desktop see-through
+  // gate in the iframe needs it.
+  useEffect(() => {
+    if (!childReady) return;
+    post({ type: 'simulator/set-display-bound', displayBound });
+  }, [childReady, displayBound, post]);
 
   useEffect(() => {
     if (!childReady) return;

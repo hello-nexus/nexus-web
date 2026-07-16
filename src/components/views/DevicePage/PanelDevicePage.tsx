@@ -1023,6 +1023,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                 showPanel={supportsAutoLaunch ? autoLaunch : true}
                 deviceId={editingDeviceId ?? undefined}
                 deviceTouch={deviceTouch}
+                displayBound={!!device?.displayId}
               />
             </div>
           </div>
