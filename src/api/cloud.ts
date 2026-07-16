@@ -47,6 +47,16 @@ export interface RecoveryStatusResponse {
   status: RecoveryStatusValue;
 }
 
+export interface CloudDeviceItem {
+  installId: string;
+  hostname: string;
+  specs: Record<string, string>;
+  manual: boolean;
+  lastSeenAt: string;
+}
+
+export type CloudDeviceUpsertResponse = CloudEnvelope & Partial<CloudDeviceItem>;
+
 export type SyncState = 'idle' | 'syncing' | 'dirty' | 'offline' | 'error';
 
 export interface SyncConflict {
@@ -146,6 +156,17 @@ export const setCloudAccountPrivate = (isPrivate: boolean) =>
 
 export const deleteCloudAccount = (currentPassword?: string) =>
   cloudFetch<CloudDeleteResponse>('/cloud/account', 'DELETE', { currentPassword });
+
+export const fetchCloudDevices = () =>
+  fetchService<CloudDeviceItem[]>('/cloud/account/devices');
+
+export const upsertCloudDevice = (installId: string, patch: { hostname: string; specs: Record<string, string>; manual?: boolean }) =>
+  cloudFetch<CloudDeviceUpsertResponse>(`/cloud/account/devices/${encodeURIComponent(installId)}`, 'PUT', patch);
+
+// The upstream DELETE responds 204 with no body; cloudFetch's json parse
+// already swallows that (body -> null), so the caller only needs the status.
+export const deleteCloudDevice = (installId: string) =>
+  cloudFetch<CloudEnvelope>(`/cloud/account/devices/${encodeURIComponent(installId)}`, 'DELETE');
 
 // Raw cropped image bytes as the body, mirroring profiles.ts's exportProfile/
 // importProfileFile hand-rolled fetch (no relay tunneling - desktop-only).

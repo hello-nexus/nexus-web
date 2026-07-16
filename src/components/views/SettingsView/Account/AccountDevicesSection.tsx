@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { Button } from '../../../common/Button/Button';
 import { Badge } from '../../../common/Badge/Badge';
@@ -6,25 +6,35 @@ import { SettingsSection } from '../../../common/SettingsSection/SettingsSection
 import { ConfirmModal } from '../../../common/ConfirmModal/ConfirmModal';
 import { useToast } from '../../../common/Toast/Toast';
 import { useTranslation } from '../../../../lib/i18n';
+import { useSystemSpecs } from '../../../../hooks/useSystemSpecs';
 import type { AccountDeviceItem, AuthBackend } from '../../../../api/authBackend';
 import { DeviceSpecsCard } from '../../../../app/public/DeviceSpecsCard';
 import { ManualDeviceModal } from './ManualDeviceModal';
+import { systemSpecsToDeviceSpecs } from './deviceUtils';
 import styles from './Account.module.scss';
 
 interface AccountDevicesSectionProps {
   backend: AuthBackend;
+  /** In-app surface only: seeds a new manual device's spec fields from the local service's own /system/specs. Never set on the public web account page (localhost is never reachable there). */
+  prefillFromLocalSpecs?: boolean;
 }
 
 /**
  * "My devices" section: lists the account's linked machines (auto-reported,
  * read-only) alongside manually-added rigs (editable). Renders nothing when
- * the backend doesn't implement device management (see AuthBackend) - today
- * that's every backend except DirectApiBackend, since nexus-api's
- * /account/devices routes have no local-service proxy.
+ * the backend doesn't implement device management (see AuthBackend).
  */
-export function AccountDevicesSection({ backend }: AccountDevicesSectionProps) {
+export function AccountDevicesSection({ backend, prefillFromLocalSpecs }: AccountDevicesSectionProps) {
   const { t } = useTranslation();
   const { push } = useToast();
+  const { specs: localSpecs } = useSystemSpecs(Boolean(prefillFromLocalSpecs));
+  // Stable identity: ManualDeviceModal's form-reset effect depends on this
+  // value, so a fresh object on every parent re-render (e.g. AccountSignedIn's
+  // 25s sync-status poll) would wipe an in-progress add/edit.
+  const prefillSpecs = useMemo(
+    () => (prefillFromLocalSpecs && localSpecs ? systemSpecsToDeviceSpecs(localSpecs) : null),
+    [prefillFromLocalSpecs, localSpecs],
+  );
   const [devices, setDevices] = useState<AccountDeviceItem[] | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<AccountDeviceItem | null>(null);
@@ -114,6 +124,7 @@ export function AccountDevicesSection({ backend }: AccountDevicesSectionProps) {
         device={editing}
         upsertDevice={upsertDevice}
         onSaved={handleSaved}
+        prefillSpecs={prefillSpecs}
       />
 
       <ConfirmModal
