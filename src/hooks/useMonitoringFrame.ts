@@ -1,5 +1,3 @@
-import { useEffect, useState } from 'react';
-import * as store from '../lib/monitoringStore';
 import type { HardwareSensor, StorageComponent } from './useSensors';
 
 export interface HardwareComponent {
@@ -43,14 +41,4 @@ export interface MonitoringFrame {
   motherboardModel: string;
   processes: MonitoringProcesses | null;
   network: MonitoringNetwork | null;
-}
-
-export function useMonitoringFrame(): MonitoringFrame | null {
-  const [, bump] = useState(0);
-  useEffect(() => {
-    const fn = () => bump(v => v + 1);
-    store.subscribe(fn);
-    return () => store.unsubscribe(fn);
-  }, []);
-  return store.getMonitoringFrame();
 }

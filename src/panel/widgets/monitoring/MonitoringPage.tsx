@@ -1,28 +1,26 @@
 import { useCallback, useState } from 'react';
-import { ChartColumn, Cpu, Gpu, MemoryStick, Network, List } from 'lucide-react';
+import { Cpu, Gpu, MemoryStick, Network, List } from 'lucide-react';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
-import { useMonitoringFrame } from '../../../hooks/useMonitoringFrame';
 import { useNetworkMonitor } from '../../../hooks/useNetworkMonitor';
 import { useProcessMonitor, useGpuProcessFeed } from '../../../hooks/useProcessMonitor';
 import { useSensors } from '../../../hooks/useSensors';
 import { useTranslation } from '../../../lib/i18n';
 import { useUiSettings } from '../../../hooks/useUiSettings';
-import * as monitoringStore from '../../../lib/monitoringStore';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { MonitoringSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
-import { OverviewTab } from './page/OverviewTab';
 import { CpuTab } from './page/CpuTab';
 import { GpuTab } from './page/GpuTab';
 import { MemoryTab } from './page/MemoryTab';
 import { NetworkTab } from './page/NetworkTab';
 import { DetailedTab } from './page/DetailedTab';
+import { MetricHistorySection, type HistoryMetric } from './page/MetricHistorySection';
 import { MonitoringSettingsModal } from './page/MonitoringSettingsModal';
 import { usePageSettingsAction } from '../../../app/PageChrome';
 import { useSensorHistoryFeed } from '../common/useSharedSensorHistory';
 import styles from './MonitoringPage.module.scss';
 
-type MonitoringTab = 'overview' | 'cpu' | 'gpu' | 'memory' | 'network' | 'detailed';
+type MonitoringTab = HistoryMetric | 'detailed';
 
 interface MonitoringViewProps {
   serviceOnline: boolean;
@@ -33,15 +31,13 @@ interface MonitoringViewProps {
 
 export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, onTabChange }: MonitoringViewProps) {
   const { t } = useTranslation();
-  const monitoringFrame = useMonitoringFrame();
   const { cpuSeries, memSeries } = useProcessMonitor();
   const network = useNetworkMonitor();
   const sensors = useSensors(serviceOnline);
-  const overviewHist = monitoringStore.getOverviewHist();
 
   // GPU surfaces appear only where the platform reports live GPU utilization
   // (Windows via LHM, NVIDIA-Linux via nvidia-smi). macOS and AMD/Intel-Linux
-  // expose no GPU load, so the tab and overview card would be dead.
+  // expose no GPU load, so the tab would be dead.
   const gpuSupported = sensors.gpu.some(
     s => s.type === 'Load' && (s.name === 'GPU Core' || s.name.startsWith('D3D')),
   );
@@ -59,12 +55,7 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
   useSensorHistoryFeed('memory::Memory Used MB', memUsed ? memUsed.value * 1024 : 0);
   useSensorHistoryFeed('network::Network Total KBs', network.totalRate / 1024);
 
-  const { settings, update } = useUiSettings();
-  const showAverage = settings.monitoringShowAverage;
-
-  const toggleMode = useCallback(() => {
-    update({ monitoringShowAverage: !showAverage });
-  }, [showAverage, update]);
+  const { settings } = useUiSettings();
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const openSettings = useCallback(() => setSettingsOpen(true), []);
@@ -76,7 +67,6 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
   );
 
   const tabs = ([
-    { key: 'overview', label: t('monitoring.tab.overview'), icon: <ChartColumn size={14} /> },
     { key: 'cpu', label: t('monitoring.tab.cpu'), icon: <Cpu size={14} /> },
     { key: 'gpu', label: t('monitoring.tab.gpu'), icon: <Gpu size={14} /> },
     { key: 'memory', label: t('monitoring.tab.memory'), icon: <MemoryStick size={14} /> },
@@ -84,8 +74,11 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
     { key: 'detailed', label: t('monitoring.tab.detailed'), icon: <List size={14} /> },
   ] as const).filter(tb => tb.key !== 'gpu' || gpuSupported);
 
+  // An unrecognized or legacy tab (e.g. the removed 'overview') renders the
+  // default without rewriting the URL - render-only, matching the existing
+  // "keep invalid url tabs render-only" contract.
   const tab: MonitoringTab = urlTab && tabs.some(tb => tb.key === urlTab)
-    ? urlTab as MonitoringTab : 'overview';
+    ? urlTab as MonitoringTab : 'cpu';
 
   if (!serviceOnline) {
     return (
@@ -96,23 +89,12 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
     );
   }
 
-  const renderTab = () => {
+  const renderTabContent = () => {
     switch (tab) {
-      case 'overview': return (
-        <OverviewTab frame={monitoringFrame} hist={overviewHist} gpuSupported={gpuSupported} onNavigate={onTabChange} />
-      );
-      case 'cpu': return <CpuTab cpuSeries={cpuSeries} sensors={sensors} showAverage={showAverage} onToggle={toggleMode} />;
-      case 'gpu': return (
-        <GpuTab
-          sensors={sensors}
-          preferredGpuId={settings.preferredGpuId}
-          onOpenSettings={openSettings}
-          showAverage={showAverage}
-          onToggle={toggleMode}
-        />
-      );
-      case 'memory': return <MemoryTab memSeries={memSeries} sensors={sensors} showAverage={showAverage} onToggle={toggleMode} />;
-      case 'network': return <NetworkTab network={network} showAverage={showAverage} onToggle={toggleMode} />;
+      case 'cpu': return <CpuTab cpuSeries={cpuSeries} sensors={sensors} />;
+      case 'gpu': return <GpuTab sensors={sensors} preferredGpuId={settings.preferredGpuId} onOpenSettings={openSettings} />;
+      case 'memory': return <MemoryTab memSeries={memSeries} />;
+      case 'network': return <NetworkTab network={network} />;
       case 'detailed': return <DetailedTab sensors={sensors} />;
     }
   };
@@ -131,7 +113,14 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
         onTabChange={onTabChange}
       />
       <div className={`${styles.tabContent} pageBody`}>
-        {renderTab()}
+        {tab !== 'detailed' && (
+          <MetricHistorySection
+            metric={tab}
+            gpuComponents={sensors.gpuComponents}
+            preferredGpuId={settings.preferredGpuId}
+          />
+        )}
+        {renderTabContent()}
       </div>
     </div>
   );
