@@ -519,7 +519,6 @@
   "devices.qseries.fwGate.title": "Panel-App erforderlich",
   "devices.qseries.screen": "Bildschirm",
   "devices.qseries.sleepWithHost": "Display ausschalten, wenn der PC im Ruhezustand oder aus ist",
-  "devices.qseries.sleepWithHostHint": "Wenn aktiviert, schaltet sich das Display des Panels automatisch aus, während der PC im Ruhezustand oder aus ist, und wieder ein, sobald er aufwacht.",
   "devices.saving": "Wird gespeichert…",
   "devices.smartHub.fanSection": "Eigenständiges Lüfterverhalten",
   "devices.smartHub.fanSectionDescription1": "Im Flash des Hubs gespeichert. 5 Sekunden nach dem letzten Host-Lüfterbefehl wendet der Hub diese Leistung auf alle vier PWM-Ports an - der PC ist aus, im Ruhezustand oder der Dienst gestoppt.",

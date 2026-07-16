@@ -1273,7 +1273,6 @@ function MonitorSettingsPanel({
       {sleepWithHost !== null && (
         <SettingToggle
           label={t('devices.qseries.sleepWithHost')}
-          description={t('devices.qseries.sleepWithHostHint')}
           checked={sleepWithHost}
           onChange={onSleepWithHostToggle}
         />

@@ -528,7 +528,6 @@
   "devices.qseries.fwGate.title": "Aplicazion panel necessarie",
   "devices.qseries.screen": "Schermi",
   "devices.qseries.sleepWithHost": "Distude il schermi cuant che il PC al è indurmidît o distudât",
-  "devices.qseries.sleepWithHostHint": "Cuant che al è ativât, il schermi dal panel si distude in automatic biel che il PC al è indurmidît o distudât, e si torne a impiâ apene che si sveade.",
   "devices.saving": "Daûr a salvâ…",
   "devices.smartHub.fanSection": "Compuartament autonom dal ventilatôr",
   "devices.smartHub.fanSectionDescription1": "Salvât te memorie flash dal hub. 5 seconts dopo l'ultime scriture dal ventilatôr dal host, il hub al apliche cheste velocitât a ducj i cuatri puarts PWM - il PC al è distudât, indurmidît, o il servizi al è fermât.",

@@ -519,7 +519,6 @@
   "devices.qseries.fwGate.title": "パネルアプリが必要です",
   "devices.qseries.screen": "スクリーン",
   "devices.qseries.sleepWithHost": "PC がスリープまたはオフのときにディスプレイをオフにする",
-  "devices.qseries.sleepWithHostHint": "オンにすると、PC がスリープまたはオフになっている間、パネルのディスプレイが自動的にオフになり、復帰すると再びオンになります。",
   "devices.saving": "保存中...",
   "devices.smartHub.fanSection": "スタンドアロンファンの動作",
   "devices.smartHub.fanSectionDescription1": "ハブのフラッシュに保存されます。ホストからの最後のファン書き込みの5秒後に、ハブはこのデューティを4つの PWM ポートすべてに適用します - PC がオフ、スリープ、またはサービスが停止しているときです。",

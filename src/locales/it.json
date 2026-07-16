@@ -519,7 +519,6 @@
   "devices.qseries.fwGate.title": "App del pannello richiesta",
   "devices.qseries.screen": "Schermo",
   "devices.qseries.sleepWithHost": "Spegni lo schermo quando il PC è in sospensione o spento",
-  "devices.qseries.sleepWithHostHint": "Quando è attivo, lo schermo del pannello si spegne automaticamente mentre il PC è in sospensione o spento, e si riaccende al risveglio.",
   "devices.saving": "Salvataggio…",
   "devices.smartHub.fanSection": "Comportamento ventola autonomo",
   "devices.smartHub.fanSectionDescription1": "Memorizzato nella flash dell'hub. 5 secondi dopo l'ultima scrittura ventola dall'host, l'hub applica questo duty a tutte e quattro le porte PWM - il PC è spento, in sospensione o il servizio è fermo.",

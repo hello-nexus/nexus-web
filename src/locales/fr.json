@@ -519,7 +519,6 @@
   "devices.qseries.fwGate.title": "Application de panneau requise",
   "devices.qseries.screen": "Écran",
   "devices.qseries.sleepWithHost": "Éteindre l'écran lorsque le PC est en veille ou éteint",
-  "devices.qseries.sleepWithHostHint": "Lorsque activé, l'écran du panneau s'éteint automatiquement pendant que votre PC est en veille ou éteint, et se rallume à son réveil.",
   "devices.saving": "Enregistrement...",
   "devices.smartHub.fanSection": "Comportement autonome des ventilateurs",
   "devices.smartHub.fanSectionDescription1": "Conservé dans la mémoire flash du hub. 5 secondes après la dernière commande de ventilateur de l'hôte, le hub applique ce duty aux quatre ports PWM - le PC est éteint, en veille ou le service est arrêté.",
