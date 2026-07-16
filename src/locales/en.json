@@ -1987,6 +1987,8 @@
   "panel.settings.backgroundMode.media": "Media",
   "panel.settings.backgroundMode.solid": "Solid",
   "panel.settings.backgroundOpacity": "Background Opacity",
+  "panel.settings.backgroundShow": "Show background",
+  "panel.settings.backgroundShow.desc": "Off shows the desktop behind the widgets",
   "panel.settings.channel": "Channel",
   "panel.settings.connectForApps": "Connect to desktop to browse apps",
   "panel.settings.deck.action.audioInput": "Audio input",

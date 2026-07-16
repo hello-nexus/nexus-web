@@ -1752,6 +1752,8 @@
   "panel.settings.backgroundMode.media": "メディア",
   "panel.settings.backgroundMode.solid": "単色",
   "panel.settings.backgroundOpacity": "背景の不透明度",
+  "panel.settings.backgroundShow": "背景を表示",
+  "panel.settings.backgroundShow.desc": "オフにするとウィジェットの背後にデスクトップが表示されます",
   "panel.settings.channel": "チャンネル",
   "panel.settings.connectForApps": "デスクトップに接続してアプリを閲覧",
   "panel.settings.deck.action.audioInput": "音声入力",

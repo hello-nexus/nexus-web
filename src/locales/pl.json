@@ -1807,6 +1807,8 @@
   "panel.settings.backgroundMode.media": "Multimedia",
   "panel.settings.backgroundMode.solid": "Jednolity",
   "panel.settings.backgroundOpacity": "Nieprzezroczystość tła",
+  "panel.settings.backgroundShow": "Pokaż tło",
+  "panel.settings.backgroundShow.desc": "Wyłączone pokazuje pulpit za widgetami",
   "panel.settings.channel": "Kanał",
   "panel.settings.connectForApps": "Polacz z desktopem aby przegladac aplikacje",
   "panel.settings.deck.action.audioInput": "Wejście audio",

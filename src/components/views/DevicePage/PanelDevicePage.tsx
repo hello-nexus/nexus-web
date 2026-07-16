@@ -21,6 +21,7 @@ import { repaginatePanelLayout } from '../../../panel/engine/paginate';
 import { simulatedPanelEditorCapacity } from '../../../panel/embed/simulatedPanelViewport';
 import { getPanelGridSizingSettings } from '../../../lib/panelSimulation';
 import { isSingleWidgetSurface } from '../../../panel/types';
+import { wiredPanelClass } from '../../../panel/device/wiredPanel';
 import { fetchService, postService } from '../../../api/service';
 import {
   fetchDisplays,
@@ -772,6 +773,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         onBackgroundPreview={panelTheme.previewBackground}
                         onBackgroundCommit={panelTheme.commitBackground}
                         onBackgroundModeCommit={panelTheme.commitBackgroundMode}
+                        onBackgroundEnabledCommit={panelTheme.commitBackgroundEnabled}
+                        showBackgroundToggle={wiredPanelClass(surface) === 'host-display'}
                         onBackgroundEffectCommit={panelTheme.commitBackgroundEffect}
                         onBackgroundTemplateCommit={panelTheme.commitBackgroundTemplate}
                         onBackgroundEffectStatePreview={panelTheme.previewBackgroundEffectState}

@@ -45,6 +45,9 @@ export interface PanelThemeSettingsState {
   // backgroundTemplate is the active shader's entry; this holds every shader's.
   backgroundTemplates: Record<string, number>;
   backgroundOpacity: number;
+  // False = no background at all: kiosk-hosted panels (y70 / monitor) render
+  // fully transparent and the Windows desktop shows through the widgets.
+  backgroundEnabled: boolean;
   backgroundEffectState: EffectState;
   backgroundMediaId: string | null;
   backgroundMediaType: 'static' | 'animated' | null;
@@ -66,6 +69,7 @@ export interface PanelThemeSettingsProps {
   onBackgroundPreview: (hex: string) => void;
   onBackgroundCommit: (hex: string) => void;
   onBackgroundModeCommit: (mode: PanelBackgroundMode) => void;
+  onBackgroundEnabledCommit: (enabled: boolean) => void;
   onBackgroundEffectCommit: (effect: string) => void;
   onBackgroundTemplateCommit: (template: number) => void;
   onBackgroundEffectStatePreview: (state: EffectState) => void;
@@ -99,6 +103,9 @@ export interface PanelThemeSettingsProps {
   /** This panel's device id, excluded from the "used by a panel" badge so its
    * own background never badges itself. */
   deviceId?: string | null;
+  /** Show the background on/off toggle. Kiosk-hosted surfaces (y70 / monitor)
+   * only: off renders the page transparent so the desktop shows through. */
+  showBackgroundToggle?: boolean;
 }
 
 export function PanelThemeSettings({
@@ -113,6 +120,7 @@ export function PanelThemeSettings({
   onBackgroundPreview,
   onBackgroundCommit,
   onBackgroundModeCommit,
+  onBackgroundEnabledCommit,
   onBackgroundEffectCommit,
   onBackgroundTemplateCommit,
   onBackgroundEffectStatePreview,
@@ -132,6 +140,7 @@ export function PanelThemeSettings({
   deviceH,
   hideWidgetLabelsToggle = false,
   hideWidgetChromeControls = false,
+  showBackgroundToggle = false,
 }: PanelThemeSettingsProps) {
   const { t } = useTranslation();
   const label = (key: string, fallback: string) => {
@@ -308,6 +317,16 @@ export function PanelThemeSettings({
         {/* Single aside child so the box adds no row dividers between the
             opacity slider, mode tabs, and the mode content. */}
         <div className={styles.backgroundContent} data-settings-aside>
+          {showBackgroundToggle && (
+            <SettingToggle
+              label={label('panel.settings.backgroundShow', 'Show background')}
+              description={label('panel.settings.backgroundShow.desc', 'Off shows the desktop behind the widgets')}
+              checked={theme.backgroundEnabled}
+              onChange={onBackgroundEnabledCommit}
+            />
+          )}
+          {showBackgroundToggle && !theme.backgroundEnabled ? null : (
+          <>
           {backgroundOpacitySlider}
           {theme.backgroundMode === 'solid' ? (
             <>
@@ -379,6 +398,8 @@ export function PanelThemeSettings({
                 />
               )}
             </>
+          )}
+          </>
           )}
         </div>
       </SettingsSection>

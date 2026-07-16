@@ -1807,6 +1807,8 @@
   "panel.settings.backgroundMode.media": "Медиа",
   "panel.settings.backgroundMode.solid": "Сплошной",
   "panel.settings.backgroundOpacity": "Непрозрачность фона",
+  "panel.settings.backgroundShow": "Показывать фон",
+  "panel.settings.backgroundShow.desc": "Если выключено, за виджетами виден рабочий стол",
   "panel.settings.channel": "Канал",
   "panel.settings.connectForApps": "Подключитесь к рабочему столу для просмотра приложений",
   "panel.settings.deck.action.audioInput": "Аудиовход",
