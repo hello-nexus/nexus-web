@@ -56,7 +56,6 @@ export interface UiSettingsValue {
   themeMode: ThemeMode;
   accentColor: string;
   showConflictAlerts: boolean;
-  monitoringShowAverage: boolean;
   monitoringDetailedCollapsed: string[];
   showMacStatusBarIcon: boolean;
   showWindowsTrayIcon: boolean;
@@ -179,7 +178,6 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     themeMode: src.general.themeMode,
     accentColor: src.general.accentColor,
     showConflictAlerts: src.general.showConflictAlerts,
-    monitoringShowAverage: src.general.monitoringShowAverage,
     monitoringDetailedCollapsed: src.general.monitoringDetailedCollapsed,
     showMacStatusBarIcon: src.general.showMacStatusBarIcon,
     showWindowsTrayIcon: src.general.showWindowsTrayIcon,
@@ -229,7 +227,6 @@ function toNexusSettings(src: UiSettingsValue): NexusSettings {
       accentSource: src.accentSource,
       startOnLogin: src.startOnLogin,
       showConflictAlerts: src.showConflictAlerts,
-      monitoringShowAverage: src.monitoringShowAverage,
       monitoringDetailedCollapsed: src.monitoringDetailedCollapsed,
       showMacStatusBarIcon: src.showMacStatusBarIcon,
       showWindowsTrayIcon: src.showWindowsTrayIcon,
@@ -255,8 +252,7 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.accentSource !== undefined) theme.accentSource = patch.accentSource;
   if (Object.keys(theme).length > 0) out.theme = theme;
   // monitoring block
-  const monitoring: Partial<{ showAverage: boolean; showMacStatusBarIcon: boolean; showWindowsTrayIcon: boolean; detailedCollapsed: string[] }> = {};
-  if (patch.monitoringShowAverage !== undefined) monitoring.showAverage = patch.monitoringShowAverage;
+  const monitoring: Partial<{ showMacStatusBarIcon: boolean; showWindowsTrayIcon: boolean; detailedCollapsed: string[] }> = {};
   if (patch.monitoringDetailedCollapsed !== undefined) monitoring.detailedCollapsed = patch.monitoringDetailedCollapsed;
   if (patch.showMacStatusBarIcon !== undefined) monitoring.showMacStatusBarIcon = patch.showMacStatusBarIcon;
   if (patch.showWindowsTrayIcon !== undefined) monitoring.showWindowsTrayIcon = patch.showWindowsTrayIcon;
@@ -351,7 +347,6 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
     backgroundMode: (server.theme?.backgroundMode as BackgroundMode) || base.backgroundMode,
     accentSource: (server.theme?.accentSource as AccentSource) || base.accentSource,
     showConflictAlerts: server.ui?.showConflictAlerts ?? base.showConflictAlerts,
-    monitoringShowAverage: server.monitoring?.showAverage ?? base.monitoringShowAverage,
     monitoringDetailedCollapsed: server.monitoring?.detailedCollapsed ?? base.monitoringDetailedCollapsed,
     showMacStatusBarIcon: server.monitoring?.showMacStatusBarIcon ?? base.showMacStatusBarIcon,
     showWindowsTrayIcon: server.monitoring?.showWindowsTrayIcon ?? base.showWindowsTrayIcon,
@@ -543,7 +538,6 @@ export function UiSettingsProvider({
         themeMode: prefs.theme?.themeMode,
         accentColor: prefs.theme?.accentColor,
         showConflictAlerts: prefs.ui?.showConflictAlerts,
-        monitoringShowAverage: prefs.monitoring?.showAverage,
         monitoringDetailedCollapsed: prefs.monitoring?.detailedCollapsed,
         showMacStatusBarIcon: prefs.monitoring?.showMacStatusBarIcon,
         showWindowsTrayIcon: prefs.monitoring?.showWindowsTrayIcon,

@@ -274,7 +274,6 @@ export function Dashboard() {
       themeMode: prefs.theme.themeMode,
       accentColor: prefs.theme.accentColor,
       showConflictAlerts: prefs.ui?.showConflictAlerts,
-      monitoringShowAverage: prefs.monitoring?.showAverage,
       monitoringDetailedCollapsed: prefs.monitoring?.detailedCollapsed,
       showMacStatusBarIcon: prefs.monitoring?.showMacStatusBarIcon,
       showWindowsTrayIcon: prefs.monitoring?.showWindowsTrayIcon,

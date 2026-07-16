@@ -10,7 +10,6 @@ async function mockService(page: Page, savedPreferencePatches: unknown[]) {
     themeMode: 'system',
     accentColor: '#22c55e',
     showConflictAlerts: true,
-    monitoringShowAverage: true,
     monitoringDetailedCollapsed: [],
     showMacStatusBarIcon: true,
     showWindowsTrayIcon: true,
