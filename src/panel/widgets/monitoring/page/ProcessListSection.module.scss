@@ -36,6 +36,39 @@
   padding-bottom: 0.45rem;
 }
 
+// Dismissible pill shown while a point-in-time snapshot (a hero-chart click)
+// is pinned - the % VALUE column reflects that exact timestamp instead of
+// live/window-average values until cleared.
+.snapshotBadge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: fit-content;
+  font-size: var(--type-mini);
+  color: var(--text-dim);
+  background: var(--bg-card-hover);
+  border-radius: var(--radius-sm);
+  padding: 0.2rem 0.3rem 0.2rem 0.55rem;
+  margin-bottom: 0.45rem;
+}
+
+.snapshotClear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  padding: 0.15rem;
+
+  &:hover {
+    background: var(--bg-card-hover);
+    color: var(--text);
+  }
+}
+
 .rows {
   display: flex;
   flex-direction: column;
@@ -51,7 +84,7 @@
   color: var(--text-dim);
 
   &:not(:first-child) {
-    margin-top: 0.35rem;
+    margin-top: var(--space-lg);
   }
 }
 
@@ -124,10 +157,21 @@
   flex-shrink: 0;
 }
 
+// Wraps .name (+ .publisher, + the Unsigned badge) so they sit packed
+// together right after the icon - carries the row's own flexible slot
+// (flex: 1) so the trailing elements (privacy icons, sparkline, value) stay
+// pinned to the row's right edge, same as before this group existed.
+.nameGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex: 1;
+  min-width: 0;
+}
+
 .name {
   font-size: var(--type-small);
   color: var(--text);
-  flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -135,8 +179,8 @@
 }
 
 // Company/signer name (round 5 item 6), dimmed, right after the process
-// name - shrinks/truncates instead of taking .name's flexible slot, so the
-// name keeps priority for the remaining row width. Hidden below the same
+// name - shrinks/truncates instead of taking .nameGroup's flexible slot, so
+// the name keeps priority for the remaining row width. Hidden below the same
 // narrow-surface breakpoint SettingRow/DiagnosticsView use elsewhere in the
 // app: this list also renders in the phone-portrait immersive view (see
 // monitoring/index.ts's supportsImmersive), where a full-width publisher

@@ -373,6 +373,20 @@ describe('ProcessListSection', () => {
       expect(publisher).toHaveTextContent('Google LLC');
     });
 
+    it('groups the name and publisher together (not pushed apart by the row\'s own flexible slot)', () => {
+      const withPublisher: ProcessListItem[] = [{ name: 'Chrome', current: 12, values: [1], publisher: 'Google LLC', signed: 'unsigned' }];
+      const { container } = render(<ProcessListSection items={withPublisher} formatValue={v => `${v}%`} />);
+      const nameGroup = container.querySelector('[class*="nameGroup"]')!;
+      expect(nameGroup).not.toBeNull();
+      // Name, publisher, and the Unsigned badge all sit inside the same
+      // packed group - only that group (not .name itself) carries the row's
+      // flexible slot, so the publisher hugs the name instead of landing at
+      // wherever a flex:1 .name box happens to end.
+      expect(nameGroup.querySelector('[class*="name"]')).not.toBeNull();
+      expect(nameGroup.querySelector('[class*="publisher"]')).not.toBeNull();
+      expect(nameGroup).toHaveTextContent('monitoring.processDetail.info.unsigned');
+    });
+
     it('renders no publisher text when publisher is null or absent', () => {
       const noPublisher: ProcessListItem[] = [{ name: 'Chrome', current: 12, values: [1], publisher: null }];
       const { container } = render(<ProcessListSection items={noPublisher} formatValue={v => `${v}%`} />);
@@ -411,6 +425,29 @@ describe('ProcessListSection', () => {
       expect(container.querySelector('[class*="rowsFrozen"]')).toBeInTheDocument();
       // The rows themselves still render normally - only dimmed via CSS.
       expect(screen.getByText('Chrome')).toBeInTheDocument();
+    });
+  });
+
+  describe('point-in-time snapshot affordance', () => {
+    it('shows no snapshot badge by default', () => {
+      render(<ProcessListSection items={items()} formatValue={v => `${v}%`} />);
+      expect(screen.queryByText('monitoring.history.process.snapshotAt')).toBeNull();
+    });
+
+    it('shows the snapshot badge when snapshotAtMs is set, and clears it on the X button', () => {
+      const onClearSnapshot = vi.fn();
+      render(
+        <ProcessListSection items={items()} formatValue={v => `${v}%`} snapshotAtMs={1_700_000_000_000} onClearSnapshot={onClearSnapshot} />,
+      );
+      expect(screen.getByText('monitoring.history.process.snapshotAt')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByLabelText('monitoring.history.process.clearSnapshot'));
+      expect(onClearSnapshot).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows no badge when snapshotAtMs is null', () => {
+      render(<ProcessListSection items={items()} formatValue={v => `${v}%`} snapshotAtMs={null} />);
+      expect(screen.queryByText('monitoring.history.process.snapshotAt')).toBeNull();
     });
   });
 
@@ -560,8 +597,11 @@ describe('ProcessListSection', () => {
         expect(slot!.className).toContain('iconSlot');
       });
 
-      const loadedSlot = screen.getByText('Chrome').previousElementSibling;
-      const pendingSlot = screen.getByText('Nexus').previousElementSibling;
+      // The name now sits inside .nameGroup (alongside publisher/Unsigned
+      // badge) - the icon slot is that group's own previous sibling, not
+      // the name span's directly.
+      const loadedSlot = screen.getByText('Chrome').closest('[class*="nameGroup"]')!.previousElementSibling;
+      const pendingSlot = screen.getByText('Nexus').closest('[class*="nameGroup"]')!.previousElementSibling;
       expect(loadedSlot!.className).toBe(pendingSlot!.className);
       expect(loadedSlot!.querySelector('img')).not.toBeNull();
       expect(pendingSlot!.querySelector('img')).toBeNull();

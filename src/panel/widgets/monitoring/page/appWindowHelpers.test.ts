@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  appsToProcessListItems, fillAppGaps, nearestAppValueAt, nearestPointIndex,
+  appsToProcessListItems, currentAppValueMap, fillAppGaps, nearestAppValueAt, nearestPointIndex,
   reconcileLiveWithWindow, topAppsAtHover, zeroedGpuFallback,
 } from './appWindowHelpers';
 import type { AppWindowPoint, AppWindowSeries } from '../../../../api/monitoringHistoryApps';
@@ -70,6 +70,33 @@ describe('topAppsAtHover', () => {
   it('omits an app with no points at all', () => {
     const apps = [app('empty', []), app('present', [{ t: 0, avg: 5 }])];
     expect(topAppsAtHover(apps, 0, 8).map(e => e.name)).toEqual(['present']);
+  });
+});
+
+describe('currentAppValueMap (point-in-time snapshot)', () => {
+  function app(name: string, points: Array<{ t: number; avg: number }>): AppWindowSeries {
+    return { name, avg: 0, max: 0, points };
+  }
+
+  it('maps each app to its value at the nearest point to t', () => {
+    const apps = [
+      app('chrome.exe', [{ t: 0, avg: 80 }, { t: 1000, avg: 5 }]),
+      app('Nexus', [{ t: 0, avg: 10 }, { t: 1000, avg: 60 }]),
+    ];
+    const map = currentAppValueMap(apps, 900);
+    expect(map.get('chrome.exe')).toBe(5);
+    expect(map.get('Nexus')).toBe(60);
+  });
+
+  it('omits an app with no points at all', () => {
+    const apps = [app('empty', []), app('present', [{ t: 0, avg: 5 }])];
+    const map = currentAppValueMap(apps, 0);
+    expect(map.has('empty')).toBe(false);
+    expect(map.get('present')).toBe(5);
+  });
+
+  it('returns an empty map for no apps', () => {
+    expect(currentAppValueMap([], 0).size).toBe(0);
   });
 });
 

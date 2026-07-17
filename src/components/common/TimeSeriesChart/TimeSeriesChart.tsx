@@ -106,6 +106,20 @@ export interface TimeSeriesChartProps {
    *  pixel-aligned with the line without a separate alignment computation.
    *  The line/area's own vertical range shrinks to make room for them. */
   ribbons?: readonly ChartRibbonSpec[];
+  /** A persistent vertical marker at timestamp `t` - distinct from the
+   *  transient dashed hover cursor, this one stays put regardless of the
+   *  pointer. Omit/null renders none. */
+  selectedT?: number | null;
+  /** Fires with the clicked timestamp on a plain click (pointer movement
+   *  under the drag-select threshold) - a real drag still only fires
+   *  onRangeSelect, never this. Independent of onRangeSelect; either or both
+   *  may be supplied. */
+  onPointClick?: (t: number) => void;
+  /** A "current value" readout for the plotted line/area itself, at the
+   *  axis label's x position and the y corresponding to `value` - the
+   *  line's own analogue to a ribbon's valueLabel (e.g. the selected
+   *  frame's plotted value). Omit to render none. */
+  currentValue?: { value: number; label: string };
 }
 
 // A pointer must move at least this many px before a drag counts as a
@@ -133,7 +147,7 @@ export function TimeSeriesChart({
   series, height = 260, valueFormat, xTickFormat, xTickCount = 5, yTickCount = 5,
   avgLabel, maxLabel, bands, showLegend = true, domain, tooltipExtra, yDomain,
   fillGradient = false, hideSeriesRows = false, onRangeSelect, stepSeconds, tooltipHeaderExtra,
-  yAxisSide = 'left', ribbons,
+  yAxisSide = 'left', ribbons, selectedT, onPointClick, currentValue,
 }: TimeSeriesChartProps) {
   const { t, language } = useTranslation();
   const pad = yAxisSide === 'right' ? CHART_PAD_RIGHT_AXIS : CHART_PAD;
@@ -264,7 +278,8 @@ export function TimeSeriesChart({
 
   // Drag-select: pointer-captured horizontal rubber-band, opt-in via
   // onRangeSelect. dragStartT/dragCurT drive the overlay rect; a move under
-  // DRAG_SELECT_THRESHOLD_PX reports nothing on release (a stray click).
+  // DRAG_SELECT_THRESHOLD_PX is a stray click instead - reported via
+  // onPointClick (a real drag never fires that, only onRangeSelect).
   const dragPointerIdRef = useRef<number | null>(null);
   const dragStartPxRef = useRef(0);
   const [dragStartT, setDragStartT] = useState<number | null>(null);
@@ -272,7 +287,7 @@ export function TimeSeriesChart({
   const isDragging = dragStartT !== null;
 
   const onPointerDown = useCallback((e: ReactPointerEvent<SVGSVGElement>) => {
-    if (!onRangeSelect || !domainT) return;
+    if ((!onRangeSelect && !onPointClick) || !domainT) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const px = tToPx(e.clientX, rect);
     const t = pxToT(px);
@@ -282,7 +297,7 @@ export function TimeSeriesChart({
     e.currentTarget.setPointerCapture(e.pointerId);
     setDragStartT(t);
     setDragCurT(t);
-  }, [onRangeSelect, domainT, tToPx, pxToT]);
+  }, [onRangeSelect, onPointClick, domainT, tToPx, pxToT]);
 
   const onPointerMove = useCallback((e: ReactPointerEvent<SVGSVGElement>) => {
     if (dragPointerIdRef.current !== e.pointerId) return;
@@ -304,10 +319,12 @@ export function TimeSeriesChart({
         const [from, to] = dragStartT <= endT ? [dragStartT, endT] : [endT, dragStartT];
         onRangeSelect?.(from, to);
       }
+    } else if (dragStartT !== null) {
+      onPointClick?.(dragStartT);
     }
     setDragStartT(null);
     setDragCurT(null);
-  }, [dragStartT, tToPx, pxToT, onRangeSelect]);
+  }, [dragStartT, tToPx, pxToT, onRangeSelect, onPointClick]);
 
   // Esc cancels an in-progress drag-select without reporting a range.
   useEffect(() => {
@@ -338,7 +355,7 @@ export function TimeSeriesChart({
   return (
     <div ref={wrapRef} className={styles.chartWrap}>
       <svg
-        className={onRangeSelect ? `${styles.chart} ${styles.chartSelectable}` : styles.chart}
+        className={(onRangeSelect || onPointClick) ? `${styles.chart} ${styles.chartSelectable}` : styles.chart}
         width={width}
         height={height}
         viewBox={`0 0 ${width} ${height}`}
@@ -487,6 +504,21 @@ export function TimeSeriesChart({
             {xTickFormat(tick)}
           </text>
         ))}
+
+        {selectedT !== null && selectedT !== undefined && (
+          // Persistent - pinned by a click (or defaulting to the domain's
+          // own right edge), unlike the transient dashed hover cursor below.
+          <line
+            x1={xFor(selectedT)} y1={pad.top} x2={xFor(selectedT)} y2={pad.top + chartH}
+            stroke="var(--accent)" strokeWidth="1.5" opacity="0.9"
+          />
+        )}
+
+        {currentValue && (
+          <text x={axisLabelX} y={yFor(currentValue.value) + 3} fill="var(--text-dim)" fontSize="11" fontFamily="var(--font-mono)" textAnchor={axisLabelAnchor}>
+            {currentValue.label}
+          </text>
+        )}
 
         {hoverX !== null && (
           <line x1={hoverX} y1={pad.top} x2={hoverX} y2={pad.top + chartH} stroke="var(--text)" strokeWidth="1" strokeDasharray="3,3" opacity="0.5" />

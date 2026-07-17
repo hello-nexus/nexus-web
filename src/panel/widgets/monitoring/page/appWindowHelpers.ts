@@ -31,6 +31,20 @@ export function nearestAppValueAt(points: readonly AppWindowPoint[], t: number):
   return i >= 0 ? points[i].avg : null;
 }
 
+/** Each app's value at timestamp `t` (nearest point in its own already-
+ *  fetched window series, client-side, no new fetch), by name - the
+ *  point-in-time snapshot's process-list column override. An app with no
+ *  points is omitted rather than mapped to null, so a caller can distinguish
+ *  "no snapshot value" from a legitimate 0. */
+export function currentAppValueMap(apps: readonly AppWindowSeries[], t: number): Map<string, number> {
+  const map = new Map<string, number>();
+  for (const app of apps) {
+    const value = nearestAppValueAt(app.points, t);
+    if (value !== null) map.set(app.name, value);
+  }
+  return map;
+}
+
 export interface HoverAppEntry {
   name: string;
   value: number;

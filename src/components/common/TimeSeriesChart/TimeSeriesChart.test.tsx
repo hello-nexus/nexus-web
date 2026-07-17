@@ -369,6 +369,96 @@ describe('TimeSeriesChart', () => {
     });
   });
 
+  describe('onPointClick (point-in-time snapshot)', () => {
+    function stubGeometry(svg: SVGSVGElement) {
+      Element.prototype.setPointerCapture = vi.fn();
+      Element.prototype.releasePointerCapture = vi.fn();
+      Element.prototype.hasPointerCapture = vi.fn(() => true);
+      vi.spyOn(svg, 'getBoundingClientRect').mockReturnValue({
+        left: 0, top: 0, width: 440, height: 260, right: 440, bottom: 260, x: 0, y: 0, toJSON: () => ({}),
+      });
+    }
+
+    it('fires onPointClick with the clicked timestamp for a stray click (no drag)', () => {
+      const onPointClick = vi.fn();
+      const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} onPointClick={onPointClick} />);
+      const svg = container.querySelector('svg')!;
+      stubGeometry(svg);
+
+      fireEvent.pointerDown(svg, { clientX: 200, pointerId: 1 });
+      fireEvent.pointerUp(svg, { clientX: 201, pointerId: 1 });
+
+      expect(onPointClick).toHaveBeenCalledTimes(1);
+      expect(typeof onPointClick.mock.calls[0][0]).toBe('number');
+    });
+
+    it('does not fire onPointClick for a real drag - only onRangeSelect does', () => {
+      const onPointClick = vi.fn();
+      const onRangeSelect = vi.fn();
+      const { container } = render(
+        <TimeSeriesChart series={makeSeries()} {...baseProps} onPointClick={onPointClick} onRangeSelect={onRangeSelect} />,
+      );
+      const svg = container.querySelector('svg')!;
+      stubGeometry(svg);
+
+      fireEvent.pointerDown(svg, { clientX: 100, pointerId: 1 });
+      fireEvent.pointerMove(svg, { clientX: 300, pointerId: 1 });
+      fireEvent.pointerUp(svg, { clientX: 300, pointerId: 1 });
+
+      expect(onPointClick).not.toHaveBeenCalled();
+      expect(onRangeSelect).toHaveBeenCalledTimes(1);
+    });
+
+    it('works without onRangeSelect - a click-only chart still reports the clicked frame', () => {
+      const onPointClick = vi.fn();
+      const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} onPointClick={onPointClick} />);
+      const svg = container.querySelector('svg')!;
+      stubGeometry(svg);
+
+      fireEvent.pointerDown(svg, { clientX: 200, pointerId: 1 });
+      fireEvent.pointerUp(svg, { clientX: 200, pointerId: 1 });
+
+      expect(onPointClick).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('selectedT', () => {
+    it('renders no persistent selection line when omitted (backwards compatible)', () => {
+      const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} />);
+      expect(container.querySelector('line[stroke="var(--accent)"]')).toBeNull();
+    });
+
+    it('renders a persistent solid line at the given timestamp, distinct from the dashed hover cursor', () => {
+      const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} selectedT={HOUR} />);
+      const line = container.querySelector('line[stroke="var(--accent)"]');
+      expect(line).toBeInTheDocument();
+      expect(line).not.toHaveAttribute('stroke-dasharray');
+      // At t=HOUR (the midpoint of the 0..2*HOUR domain), the line sits at
+      // the plot's horizontal midpoint.
+      const x = Number(line!.getAttribute('x1'));
+      expect(x).toBeGreaterThan(200);
+      expect(x).toBeLessThanOrEqual(240);
+    });
+
+    it('renders no line when selectedT is null', () => {
+      const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} selectedT={null} />);
+      expect(container.querySelector('line[stroke="var(--accent)"]')).toBeNull();
+    });
+  });
+
+  describe('currentValue', () => {
+    it('renders no readout when omitted (backwards compatible)', () => {
+      render(<TimeSeriesChart series={makeSeries()} {...baseProps} />);
+      expect(screen.queryByText('99C')).toBeNull();
+    });
+
+    it('renders the readout at the axis label position, at the value\'s own y', () => {
+      render(<TimeSeriesChart series={makeSeries()} {...baseProps} yAxisSide="right" currentValue={{ value: 53, label: '53C' }} />);
+      const label = screen.getByText('53C');
+      expect(label).toHaveAttribute('text-anchor', 'start');
+    });
+  });
+
   describe('yAxisSide', () => {
     it('renders y-tick labels on the left by default', () => {
       render(<TimeSeriesChart series={makeSeries()} {...baseProps} yDomain={[0, 100]} />);

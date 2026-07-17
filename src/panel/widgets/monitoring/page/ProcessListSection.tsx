@@ -1,5 +1,5 @@
 import { memo, useCallback, useMemo, useState } from 'react';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, X } from 'lucide-react';
 import { SearchInput } from '../../../../components/common/SearchInput/SearchInput';
 import { Select } from '../../../../components/common/Select/Select';
 import { Sparkline } from '../../../../components/common/Sparkline/Sparkline';
@@ -55,6 +55,13 @@ export interface ProcessListSectionProps {
   /** The active tab's already-fetched window-scoped apps response, reused
    *  (no new fetch) for the process-detail slideout's mini chart. */
   appsWindow?: UseMetricHistoryAppsResult;
+  /** Non-null while a point-in-time snapshot (a click on the hero chart) is
+   *  pinned - the % VALUE column then reflects each app's value at this
+   *  exact timestamp rather than the live/window-average value. Shows a
+   *  dismissible "snapshot @ time" affordance; null/omitted renders none. */
+  snapshotAtMs?: number | null;
+  /** Clears the pinned snapshot - required whenever snapshotAtMs is set. */
+  onClearSnapshot?: () => void;
 }
 
 // Exported so appWindowHelpers.ts's flat-history fallback can size itself to
@@ -171,11 +178,13 @@ const ProcessRow = memo(function ProcessRow({
       }}
     >
       <ProcessIcon name={item.name} />
-      <span className={styles.name}>{item.name}</span>
-      {item.publisher && <span className={styles.publisher}>{item.publisher}</span>}
-      {/* Shares ProcessDetailSlideout's "Unsigned" badge/key (same displayed
-          word) - update both call sites together if either copy changes. */}
-      {item.signed === 'unsigned' && <Badge label={t('monitoring.processDetail.info.unsigned')} color="var(--warn)" />}
+      <span className={styles.nameGroup}>
+        <span className={styles.name}>{item.name}</span>
+        {item.publisher && <span className={styles.publisher}>{item.publisher}</span>}
+        {/* Shares ProcessDetailSlideout's "Unsigned" badge/key (same displayed
+            word) - update both call sites together if either copy changes. */}
+        {item.signed === 'unsigned' && <Badge label={t('monitoring.processDetail.info.unsigned')} color="var(--warn)" />}
+      </span>
       <PrivacyIndicators
         indicators={showPrivacy ? privacyIndicatorsForProcess(privacySessions, item.name, privacyAsOfMs) : []}
         t={t}
@@ -218,8 +227,12 @@ const ProcessRow = memo(function ProcessRow({
  * frozen-order guarantee holds independently within each group. An empty
  * group renders no header.
  */
+function formatSnapshotTime(ms: number): string {
+  return new Date(ms).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', second: '2-digit' });
+}
+
 export function ProcessListSection({
-  items, formatValue, rankResetKey = '', frozen = false, liveUsage, appsWindow,
+  items, formatValue, rankResetKey = '', frozen = false, liveUsage, appsWindow, snapshotAtMs, onClearSnapshot,
 }: ProcessListSectionProps) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
@@ -262,6 +275,19 @@ export function ProcessListSection({
           ariaLabel={t('monitoring.history.process.sortAriaLabel')}
         />
       </div>
+      {snapshotAtMs != null && (
+        <div className={styles.snapshotBadge}>
+          <span>{t('monitoring.history.process.snapshotAt', { time: formatSnapshotTime(snapshotAtMs) })}</span>
+          <button
+            type="button"
+            className={styles.snapshotClear}
+            onClick={onClearSnapshot}
+            aria-label={t('monitoring.history.process.clearSnapshot')}
+          >
+            <X size={12} aria-hidden />
+          </button>
+        </div>
+      )}
       {frozen && <div className={styles.frozenNotice}>{t('monitoring.history.process.frozenNotice')}</div>}
       {visible.length === 0 ? (
         <div className={styles.empty}>{t('monitoring.ranked.empty')}</div>

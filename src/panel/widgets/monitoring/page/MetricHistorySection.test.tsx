@@ -69,14 +69,19 @@ function renderSection(over: {
   preferredGpuId?: string;
   history?: Partial<UseMetricHistoryResult>;
   appsWindow?: Partial<UseMetricHistoryAppsResult>;
+  selectedFrameMs?: number;
+  onGraphClick?: (t: number) => void;
 } = {}) {
+  const history = baseHistory(over.history);
   return render(
     <MetricHistorySection
       metric={over.metric ?? 'cpu'}
       gpuComponents={over.gpuComponents ?? []}
       preferredGpuId={over.preferredGpuId ?? ''}
-      history={baseHistory(over.history)}
+      history={history}
       appsWindow={baseAppsWindow(over.appsWindow)}
+      selectedFrameMs={over.selectedFrameMs ?? history.domain[1]}
+      onGraphClick={over.onGraphClick ?? vi.fn()}
     />,
   );
 }
@@ -128,6 +133,8 @@ describe('MetricHistorySection', () => {
         preferredGpuId=""
         history={baseHistory({ series: lowSeries, dragging: true })}
         appsWindow={baseAppsWindow()}
+        selectedFrameMs={NOW}
+        onGraphClick={vi.fn()}
       />,
     );
     // Still frozen at the 100% bucket even though this tick's own (coarser,
@@ -142,6 +149,8 @@ describe('MetricHistorySection', () => {
         preferredGpuId=""
         history={baseHistory({ series: lowSeries, dragging: false })}
         appsWindow={baseAppsWindow()}
+        selectedFrameMs={NOW}
+        onGraphClick={vi.fn()}
       />,
     );
     // Settles cleanly to the lower ceiling in a single transition once the
@@ -288,5 +297,39 @@ describe('MetricHistorySection', () => {
     expect(onChartDragSelect).toHaveBeenCalledTimes(1);
     const [from, to] = onChartDragSelect.mock.calls[0];
     expect(from).toBeLessThan(to);
+  });
+
+  describe('point-in-time snapshot', () => {
+    it('a plain chart click (no drag) calls onGraphClick with the clicked timestamp', () => {
+      stubGeometry();
+      const onGraphClick = vi.fn();
+      const onChartDragSelect = vi.fn();
+      const series: UseMetricHistoryResult['series'] = [
+        { id: 'cpu', kind: 'cpu', name: 'CPU', points: [{ t: NOW - HOUR, avg: 40, max: 41 }, { t: NOW, avg: 50, max: 51 }] },
+      ];
+      const { container } = renderSection({ metric: 'cpu', history: { series, onChartDragSelect }, onGraphClick });
+      const svg = container.querySelector('svg')!;
+
+      fireEvent.pointerDown(svg, { clientX: 200, pointerId: 1 });
+      fireEvent.pointerUp(svg, { clientX: 201, pointerId: 1 });
+
+      expect(onGraphClick).toHaveBeenCalledTimes(1);
+      expect(onChartDragSelect).not.toHaveBeenCalled();
+    });
+
+    it('the ribbon and main-series value readouts reflect the selected frame, not necessarily the newest point', () => {
+      stubGeometry();
+      const series: UseMetricHistoryResult['series'] = [
+        { id: 'cpu', kind: 'cpu', name: 'CPU', points: [{ t: NOW - HOUR, avg: 40, max: 41 }, { t: NOW, avg: 90, max: 91 }] },
+        { id: 'cpu-temp', kind: 'cpu-temp', name: 'CPU', points: [{ t: NOW - HOUR, avg: 50, max: 51 }, { t: NOW, avg: 80, max: 81 }] },
+      ];
+      renderSection({ metric: 'cpu', history: { series }, selectedFrameMs: NOW - HOUR });
+      // Selected frame is the OLDER point - the readouts must reflect it
+      // (40%, 50°C), not the newer one (90%, 80°C).
+      expect(screen.getByText('40%')).toBeInTheDocument();
+      expect(screen.getByText('50°C')).toBeInTheDocument();
+      expect(screen.queryByText('90%')).toBeNull();
+      expect(screen.queryByText('80°C')).toBeNull();
+    });
   });
 });

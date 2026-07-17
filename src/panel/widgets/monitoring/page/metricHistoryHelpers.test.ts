@@ -10,6 +10,7 @@ import {
   nearestTempAt,
   pickGpuHistorySeries,
   rangeKeyForWindow,
+  resolveSelectedFrame,
   seriesQueryFor,
   sumSilhouette,
   toHistoryChartSeries,
@@ -475,5 +476,39 @@ describe('formatBrushEdgeLabels', () => {
     const [a, b] = formatBrushEdgeLabels(start, end, 'en-US');
     expect(a).toMatch(/Jul/);
     expect(b).toMatch(/Jul/);
+  });
+});
+
+describe('resolveSelectedFrame (point-in-time snapshot)', () => {
+  const domain: [number, number] = [1_000, 2_000];
+
+  it('defaults to the window\'s own right edge when nothing is clicked', () => {
+    const result = resolveSelectedFrame(null, domain);
+    expect(result).toEqual({ selectedFrameMs: 2_000, isPinned: false });
+  });
+
+  it('pins to the clicked frame when it falls within the window', () => {
+    const result = resolveSelectedFrame(1_500, domain);
+    expect(result).toEqual({ selectedFrameMs: 1_500, isPinned: true });
+  });
+
+  it('treats the exact edges as within range', () => {
+    expect(resolveSelectedFrame(1_000, domain)).toEqual({ selectedFrameMs: 1_000, isPinned: true });
+    expect(resolveSelectedFrame(2_000, domain)).toEqual({ selectedFrameMs: 2_000, isPinned: true });
+  });
+
+  it('falls back to the right edge once a subsequent scrub moves the pinned point out of range', () => {
+    // The user clicked at 1_500 in an earlier window, then scrubbed to a
+    // window that no longer contains it.
+    const result = resolveSelectedFrame(1_500, [3_000, 4_000]);
+    expect(result).toEqual({ selectedFrameMs: 4_000, isPinned: false });
+  });
+
+  it('live is the case where nothing is pinned - the same right-edge default as following', () => {
+    // domain[1] tracks real "now" while following (useMetricHistory's own
+    // contract) - resolveSelectedFrame reads whatever domain[1] currently
+    // is, with no separate following-aware branch.
+    const liveDomain: [number, number] = [Date.now() - 60_000, Date.now()];
+    expect(resolveSelectedFrame(null, liveDomain).selectedFrameMs).toBe(liveDomain[1]);
   });
 });

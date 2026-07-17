@@ -44,12 +44,21 @@ export interface MetricHistorySectionProps {
   preferredGpuId: string;
   history: UseMetricHistoryResult;
   appsWindow: UseMetricHistoryAppsResult;
+  /** The point-in-time snapshot's selected frame - defaults to the window's
+   *  own right edge (real "now" while following) until the user clicks the
+   *  chart. Drives the persistent selection line and the ribbon/main-series
+   *  right-side value readouts. */
+  selectedFrameMs: number;
+  /** Fires with the clicked timestamp on a plain chart click (not a drag). */
+  onGraphClick: (t: number) => void;
 }
 
 const CHART_HEIGHT = 220;
 const TOOLTIP_APPS_LIMIT = 8;
 
-export function MetricHistorySection({ metric, gpuComponents, preferredGpuId, history, appsWindow }: MetricHistorySectionProps) {
+export function MetricHistorySection({
+  metric, gpuComponents, preferredGpuId, history, appsWindow, selectedFrameMs, onGraphClick,
+}: MetricHistorySectionProps) {
   const { t, language } = useTranslation();
   const { monitoringTempUnit, numberFormat } = useUnitPrefs();
 
@@ -123,14 +132,27 @@ export function MetricHistorySection({ metric, gpuComponents, preferredGpuId, hi
   const windowMs = history.domain[1] - history.domain[0];
   const xTickFormat = useMemo(() => xTickFormatForWindow(windowMs), [windowMs]);
 
-  // The temp ribbon's own right-side readout - the newest point in the
-  // currently-plotted window (mirrors the hover tooltip's live value when
-  // not hovering).
+  // The temp ribbon's own right-side readout - the value at the selected
+  // frame (the window's own right edge / real "now" while following, or a
+  // clicked point-in-time snapshot).
   const currentTempLabel = useMemo(() => {
-    if (!resolved.temp || resolved.temp.points.length === 0) return undefined;
-    const last = resolved.temp.points[resolved.temp.points.length - 1];
-    return localizeNumbers(`${Math.round(convertTemperature(last.avg, monitoringTempUnit))}${tempUnitSymbol(monitoringTempUnit)}`, numberFormat);
-  }, [resolved.temp, monitoringTempUnit, numberFormat]);
+    if (!resolved.temp) return undefined;
+    const nearest = nearestTempAt(resolved.temp.points, selectedFrameMs, windowMs);
+    if (!nearest) return undefined;
+    return localizeNumbers(`${Math.round(convertTemperature(nearest.avg, monitoringTempUnit))}${tempUnitSymbol(monitoringTempUnit)}`, numberFormat);
+  }, [resolved.temp, selectedFrameMs, windowMs, monitoringTempUnit, numberFormat]);
+
+  // The main line's own right-side readout, same selected-frame semantics
+  // as the temp ribbon above. Network plots two series (download/upload)
+  // sharing one unbounded axis - a single "current value" would have to
+  // pick one, so it renders none there (network already has its own
+  // dedicated hover-tooltip row for both directions).
+  const currentValue = useMemo(() => {
+    if (metric === 'network' || resolved.main.length !== 1) return undefined;
+    const nearest = nearestPoint(resolved.main[0].points, selectedFrameMs, windowMs);
+    if (!nearest) return undefined;
+    return { value: nearest.avg, label: valueFormat(nearest.avg) };
+  }, [metric, resolved.main, selectedFrameMs, windowMs, valueFormat]);
 
   // Rendered inside the chart's own plot, directly under the line - see
   // TimeSeriesChart's ribbons prop. cpu/gpu only; memory/network have no
@@ -251,6 +273,9 @@ export function MetricHistorySection({ metric, gpuComponents, preferredGpuId, hi
             stepSeconds={history.stepSeconds}
             yAxisSide="right"
             ribbons={ribbons}
+            selectedT={selectedFrameMs}
+            onPointClick={onGraphClick}
+            currentValue={currentValue}
           />
           <div className={styles.controls}>
             {history.rangeKey === 'custom' ? (

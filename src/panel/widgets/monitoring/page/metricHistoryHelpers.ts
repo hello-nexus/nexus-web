@@ -380,3 +380,26 @@ export function formatBrushEdgeLabels(startMs: number, endMs: number, locale?: s
   const opts = sameDay ? BRUSH_LABEL_TIME_OPTS : BRUSH_LABEL_DAY_OPTS;
   return [start.toLocaleString(locale, opts), end.toLocaleString(locale, opts)];
 }
+
+export interface SelectedFrame {
+  selectedFrameMs: number;
+  /** True only while a click-pinned frame is both set and still within the
+   *  current window - false whenever falling back to the window's own right
+   *  edge, whether because nothing is pinned or a subsequent scrub moved
+   *  the window past the pinned point. */
+  isPinned: boolean;
+}
+
+/**
+ * The point-in-time snapshot's effective selected frame (item R7): a clicked
+ * timestamp when it falls within [domain[0], domain[1]], otherwise the
+ * window's own right edge - real "now" while following, since the box's own
+ * `to` tracks the live edge. This is what unifies live and scrubbed browsing
+ * into one "selected frame" concept: live is the case where nothing is
+ * pinned (or the pin fell out of range, e.g. after backToLive moves the
+ * window far past it).
+ */
+export function resolveSelectedFrame(clickedFrameMs: number | null, domain: readonly [number, number]): SelectedFrame {
+  const isPinned = clickedFrameMs !== null && clickedFrameMs >= domain[0] && clickedFrameMs <= domain[1];
+  return { selectedFrameMs: isPinned ? (clickedFrameMs as number) : domain[1], isPinned };
+}

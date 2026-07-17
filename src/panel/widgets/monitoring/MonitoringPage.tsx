@@ -20,8 +20,8 @@ import { DetailedTab } from './page/DetailedTab';
 import { MetricHistorySection } from './page/MetricHistorySection';
 import { ProcessListSection, type ProcessListItem } from './page/ProcessListSection';
 import { MonitoringSettingsModal } from './page/MonitoringSettingsModal';
-import { seriesQueryFor, appsSeriesParamFor, type HistoryMetric } from './page/metricHistoryHelpers';
-import { appsToProcessListItems, reconcileLiveWithWindow, zeroedGpuFallback } from './page/appWindowHelpers';
+import { seriesQueryFor, appsSeriesParamFor, resolveSelectedFrame, type HistoryMetric } from './page/metricHistoryHelpers';
+import { appsToProcessListItems, currentAppValueMap, reconcileLiveWithWindow, zeroedGpuFallback } from './page/appWindowHelpers';
 import { buildLiveUsageByName } from './page/processDetailHelpers';
 import { formatRate } from './page/shared';
 import { usePageSettingsAction } from '../../../app/PageChrome';
@@ -102,6 +102,17 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
 
   const appsSeriesParam = isMetricTab ? appsSeriesParamFor(tab) : '';
   const appsWindow = useMetricHistoryApps(isMetricTab && appsSeriesParam !== '', appsSeriesParam, history.domain[0], history.domain[1], history.following);
+
+  // Point-in-time snapshot (a click on the hero chart) - see
+  // resolveSelectedFrame for the unified live/scrubbed/pinned semantics.
+  const [clickedFrameMs, setClickedFrameMs] = useState<number | null>(null);
+  const { selectedFrameMs, isPinned: isSnapshotPinned } = resolveSelectedFrame(clickedFrameMs, history.domain);
+  const clearSnapshot = useCallback(() => setClickedFrameMs(null), []);
+  const { backToLive } = history;
+  const backToLiveAndClearSnapshot = useCallback(() => {
+    setClickedFrameMs(null);
+    backToLive();
+  }, [backToLive]);
 
   const gpuVramByName = useMemo(() => new Map(gpuProcMemSeries.map(s => [s.name, s.current])), [gpuProcMemSeries]);
 
@@ -190,12 +201,22 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
       // just the ones the window happened to record. Detached/scrubbed: the
       // window response IS the recorded historical breakdown for that past
       // window - shown as-is (necessarily just the recorded set).
-      if (history.following) return reconcileLiveWithWindow(liveItems, appsWindow.apps);
-      return appsToProcessListItems(appsWindow.apps, liveItems);
+      const base = history.following
+        ? reconcileLiveWithWindow(liveItems, appsWindow.apps)
+        : appsToProcessListItems(appsWindow.apps, liveItems);
+      // Point-in-time snapshot: the % VALUE column shows each app's value AT
+      // the selected frame (client-side, from the already-fetched window
+      // series) instead of the window average base built above - the mini
+      // sparklines (values) are untouched, still the full window.
+      const snapshotValues = currentAppValueMap(appsWindow.apps, selectedFrameMs);
+      return base.map(item => {
+        const v = snapshotValues.get(item.name);
+        return v === undefined ? item : { ...item, current: v };
+      });
     }
     if (shouldFreezeFallback && frozenFallback && frozenFallback.tab === tab) return frozenFallback.items;
     return liveItems;
-  }, [usingAppsWindow, history.following, liveItems, appsWindow.apps, shouldFreezeFallback, frozenFallback, tab]);
+  }, [usingAppsWindow, history.following, liveItems, appsWindow.apps, shouldFreezeFallback, frozenFallback, tab, selectedFrameMs]);
 
   // Full re-rank trigger for ProcessListSection's stable ordering: the
   // active metric, whether the list is currently apps-window- or
@@ -269,7 +290,7 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
                   <button
                     type="button"
                     className={`${styles.backToLive} ${styles.liveControlSlot} ${history.following ? styles.liveControlHidden : ''}`}
-                    onClick={history.backToLive}
+                    onClick={backToLiveAndClearSnapshot}
                     tabIndex={history.following ? -1 : 0}
                     aria-hidden={history.following}
                   >
@@ -285,6 +306,8 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
               preferredGpuId={settings.preferredGpuId}
               history={history}
               appsWindow={appsWindow}
+              selectedFrameMs={selectedFrameMs}
+              onGraphClick={setClickedFrameMs}
             />
             <div className={styles.listScroll}>
               <ProcessListSection
@@ -294,6 +317,8 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
                 frozen={shouldFreezeFallback}
                 liveUsage={liveUsageByName}
                 appsWindow={appsWindow}
+                snapshotAtMs={isSnapshotPinned ? selectedFrameMs : null}
+                onClearSnapshot={clearSnapshot}
               />
             </div>
           </>

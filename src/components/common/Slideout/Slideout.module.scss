@@ -1,12 +1,18 @@
 @use '../../../styles/text' as *;
 @use '../../../styles/scrollbar' as *;
 
-// Overlay's own .backdropSheet paints transparent by default (sheets are
-// expected to paint their own scrim) - !important guards this override
+// Overlay's own .backdropSheet paints transparent AND opts out of pointer
+// events by default (sheets are expected to paint their own scrim and
+// re-enable events themselves) - !important guards both overrides
 // regardless of cross-file CSS Modules source order, since Overlay.module.scss
-// and this file otherwise tie on specificity.
+// and this file otherwise tie on specificity. Without the pointer-events
+// override, a click/hover over the scrim falls through to whatever sits
+// beneath it (e.g. the process list), and Overlay's own backdrop onClose
+// handler never fires there since the browser never dispatches the event
+// to this element.
 .backdrop {
   background: color-mix(in srgb, var(--bg) 58%, transparent) !important;
+  pointer-events: auto !important;
 }
 
 .sheet {
