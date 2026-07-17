@@ -19,6 +19,7 @@ export interface TextInputProps {
   invalid?: boolean;
   onInput?: (value: string) => void;
   onSubmit?: (value: string) => void;
+  onFocus?: () => void;
   onBlur?: (value: string) => void;
 }
 
@@ -39,6 +40,7 @@ export function TextInput({
   invalid = false,
   onInput,
   onSubmit,
+  onFocus,
   onBlur,
 }: TextInputProps) {
   const ref = useRef<HTMLInputElement>(null);
@@ -74,6 +76,7 @@ export function TextInput({
       aria-invalid={invalid || undefined}
       onInput={(e) => onInput?.(e.currentTarget.value)}
       onKeyDown={(e) => { if (e.key === 'Enter') onSubmit?.((e.currentTarget as HTMLInputElement).value); }}
+      onFocus={() => onFocus?.()}
       onBlur={(e) => onBlur?.(e.currentTarget.value)}
     />
   );

@@ -1,19 +1,31 @@
 import { useEffect, useRef, useState } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Send } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingRow, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { InfoList, InfoRow } from '../../common/InfoList/InfoList';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
+import { Badge } from '../../common/Badge/Badge';
+import { UsageBar } from '../../common/UsageBar/UsageBar';
+import { TextInput } from '../../common/TextInput/TextInput';
 import {
   fetchAiStatus, postAiConfig, rotateAiToken,
+  fetchAssistantStatus, installRuntime, removeRuntime,
+  pullModel, removeModel, selectModel, runAssistantQuery,
   type AiCapabilities, type AiStatusResponse,
+  type AiAssistantStatus, type AiAssistantProgressFrame, type AiAssistantQueryResponse,
 } from '../../../api/aiIntegration';
+import { useTopic } from '../../../hooks/useMultiplexSocket';
 import { useTranslation } from '../../../lib/i18n';
+import { formatBytes } from '../DiagnosticsView/diagnosticsHelpers';
+import { DEFAULT_NUMBER_FORMAT, type NumberFormat } from '../../../lib/units';
+import { isAssistantTransient, progressPercent } from './assistantProgress';
 import styles from './SettingsView.module.scss';
 
 export interface AiIntegrationSectionProps {
   serviceOnline: boolean;
+  /** Governs the digit/decimal display of assistant download sizes. Defaults to the system locale. */
+  numberFormat?: NumberFormat;
 }
 
 const CAPABILITY_KEYS = ['telemetry', 'cooling', 'lighting', 'profiles', 'history'] as const;
@@ -40,7 +52,7 @@ const TOKEN_MASK = '•'.repeat(24);
  * checked before a response is applied, so a request can never write state
  * for a mutation attempt other than the one that issued it.
  */
-export function AiIntegrationSection({ serviceOnline }: AiIntegrationSectionProps) {
+export function AiIntegrationSection({ serviceOnline, numberFormat = DEFAULT_NUMBER_FORMAT }: AiIntegrationSectionProps) {
   const { t } = useTranslation();
   const [status, setStatus] = useState<AiStatusResponse | null>(null);
   const [mutating, setMutating] = useState(false);
@@ -51,6 +63,43 @@ export function AiIntegrationSection({ serviceOnline }: AiIntegrationSectionProp
   const [revealed, setRevealed] = useState(false);
   const [copied, setCopied] = useState(false);
   const copyResetTimer = useRef<number | null>(null);
+
+  // ── Local AI assistant ──
+  const assistantEnabled = serviceOnline && status?.enabled === true;
+  const [assistant, setAssistant] = useState<AiAssistantStatus | null>(null);
+  const [assistantMutating, setAssistantMutating] = useState(false);
+  const [removeRuntimeConfirmOpen, setRemoveRuntimeConfirmOpen] = useState(false);
+  const [removeModelConfirmId, setRemoveModelConfirmId] = useState<string | null>(null);
+  const [queryText, setQueryText] = useState('');
+  const [queryFocused, setQueryFocused] = useState(false);
+  const [querySubmitting, setQuerySubmitting] = useState(false);
+  const [queryResult, setQueryResult] = useState<AiAssistantQueryResponse | null>(null);
+  const [queryError, setQueryError] = useState(false);
+  const [assistantActionError, setAssistantActionError] = useState(false);
+  const wasTransientRef = useRef(false);
+
+  const assistantProgress = useTopic<AiAssistantProgressFrame>('aiAssistant', assistantEnabled);
+
+  useEffect(() => {
+    if (!assistantEnabled) { setAssistant(null); return; }
+    let cancelled = false;
+    fetchAssistantStatus().then(data => { if (!cancelled) setAssistant(data); });
+    return () => { cancelled = true; };
+  }, [assistantEnabled]);
+
+  // Mirrors useBenchmark's "refetch the canonical resource once the push
+  // signals terminal" idiom: the WS frame carries only runtimeState/
+  // downloadProgress/pull, not the installedModels/activeModel/busy fields a
+  // just-finished install or pull actually changed - pull those over REST the
+  // moment the live frame stops being transient.
+  useEffect(() => {
+    if (!assistantProgress) return;
+    const transient = isAssistantTransient(assistantProgress.runtimeState, assistantProgress.pull);
+    if (wasTransientRef.current && !transient) {
+      fetchAssistantStatus().then(data => { if (data) setAssistant(data); });
+    }
+    wasTransientRef.current = transient;
+  }, [assistantProgress]);
 
   useEffect(() => {
     if (!serviceOnline) return;
@@ -144,6 +193,141 @@ export function AiIntegrationSection({ serviceOnline }: AiIntegrationSectionProp
     }
   };
 
+  // A single in-flight guard for every assistant mutation: the service enforces
+  // single-flight runtime/model operations itself, so the client only needs to
+  // stop a second click from firing while one request is outstanding. Each
+  // mutation route's response shape is not pinned by the contract, so apply it
+  // when present and otherwise fall back to a fresh GET to reconcile state.
+  const runAssistantMutation = async (request: () => Promise<AiAssistantStatus | null>) => {
+    if (assistantMutating) return;
+    setAssistantMutating(true);
+    setAssistantActionError(false);
+    try {
+      const resp = await request();
+      setAssistant(resp ?? await fetchAssistantStatus());
+      // A null response means the request itself failed - the section
+      // still reconciles to the server's actual state above, but a silent
+      // failure would leave the user unsure whether their click did
+      // anything at all.
+      if (resp === null) setAssistantActionError(true);
+    } finally {
+      setAssistantMutating(false);
+    }
+  };
+
+  const doInstallRuntime = () => void runAssistantMutation(installRuntime);
+
+  const doRemoveRuntime = async () => {
+    await runAssistantMutation(removeRuntime);
+    setRemoveRuntimeConfirmOpen(false);
+  };
+
+  const doPullModel = (modelId: string) => void runAssistantMutation(() => pullModel(modelId));
+
+  const doRemoveModel = async (modelId: string) => {
+    await runAssistantMutation(() => removeModel(modelId));
+    setRemoveModelConfirmId(null);
+  };
+
+  const doSelectModel = (modelId: string) => void runAssistantMutation(() => selectModel(modelId));
+
+  const submitQuery = async () => {
+    const prompt = queryText.trim();
+    if (!prompt || querySubmitting) return;
+    setQuerySubmitting(true);
+    setQueryError(false);
+    setQueryResult(null);
+    const resp = await runAssistantQuery(prompt);
+    setQuerySubmitting(false);
+    // Only a successful submit clears the prompt - a failure leaves it in
+    // place so the user is not forced to retype it to retry.
+    if (resp) {
+      setQueryText('');
+      setQueryResult(resp);
+    } else {
+      setQueryError(true);
+    }
+  };
+
+  // The WS frame only wins the display while it reports something genuinely
+  // in flight (a download/start/pull) - once it settles, the last REST
+  // snapshot is authoritative. Otherwise a stale cached frame (useTopic
+  // seeds from a module-level last-frame cache that outlives this section
+  // remounting) would keep overriding a REST-only mutation's result: install
+  // the runtime (WS ends on 'installed'), later remove it (REST confirms
+  // 'notInstalled') - without this guard the row would keep reading the
+  // stale 'installed' frame forever, since no new WS push follows a plain
+  // removal.
+  const wsTransient = assistantProgress !== null
+    && isAssistantTransient(assistantProgress.runtimeState, assistantProgress.pull);
+  const runtimeState = wsTransient && assistantProgress
+    ? assistantProgress.runtimeState
+    : assistant?.runtimeState ?? assistantProgress?.runtimeState ?? 'notInstalled';
+  const downloadProgress = wsTransient && assistantProgress
+    ? assistantProgress.downloadProgress
+    : assistant?.downloadProgress ?? null;
+  // Same wsTransient guard as runtimeState/downloadProgress above: the
+  // service clears the pull field to null/absent on both success and
+  // failure, so a genuinely terminal frame already stops wsTransient (and
+  // therefore this) from holding it. The assistant.busy check is what lets a
+  // MISSED terminal frame converge instead of wedging forever - it is kept
+  // fresh by the fallback poll below, so once the REST snapshot no longer
+  // reports a pulling-model op the row un-wedges even if the cached WS frame
+  // itself never updated. Kind string must match the service BusyKind constant.
+  const activePull = wsTransient && assistantProgress?.pull && assistantProgress.pull.status !== 'success'
+    && assistant?.busy?.kind === 'pullingModel'
+    ? assistantProgress.pull
+    : null;
+  const assistantBusy = assistantMutating || assistant?.busy != null;
+  const modelReady = !!assistant?.activeModel
+    && assistant.installedModels.some(m => m.id === assistant.activeModel);
+  const showQueryBar = runtimeState === 'running' && modelReady;
+
+  // Fallback poll: a missed WS reconnect (the multiplex socket resubscribes
+  // on every reconnect, but a frame can still be lost in the gap) must not
+  // leave the section stuck showing "Downloading..." forever. Mirrors
+  // useBenchmark's interval fallback alongside its WS subscription.
+  // A REST-reported busy op (e.g. a model pull with no WS frame yet) is
+  // transient too, so the poll converges even when the socket delivers
+  // nothing - otherwise a pull leaves the row disabled until remount.
+  const transientNow = isAssistantTransient(runtimeState, activePull) || assistant?.busy != null;
+  useEffect(() => {
+    if (!assistantEnabled || !transientNow) return;
+    const id = setInterval(() => {
+      fetchAssistantStatus().then(data => { if (data) setAssistant(data); });
+    }, 4000);
+    return () => clearInterval(id);
+  }, [assistantEnabled, transientNow]);
+
+  const runtimeStatusText = (): string => {
+    // A system Ollama that has since errored out must still surface as an
+    // error, not linger on "using the system installation".
+    if (assistant?.systemOllamaDetected && runtimeState !== 'error') {
+      return t('settings.ai.assistant.runtime.status.systemDetected');
+    }
+    if (runtimeState === 'downloading') {
+      if (downloadProgress && downloadProgress.total > 0) {
+        return t('settings.ai.assistant.progress.downloading', {
+          percent: String(progressPercent(downloadProgress.received, downloadProgress.total)),
+          size: formatBytes(downloadProgress.total, numberFormat),
+        });
+      }
+      return t('settings.ai.assistant.runtime.status.downloading');
+    }
+    return t(`settings.ai.assistant.runtime.status.${runtimeState}`);
+  };
+
+  const modelPullText = (modelId: string): string | null => {
+    if (!activePull || activePull.model !== modelId) return null;
+    if (activePull.total > 0) {
+      return t('settings.ai.assistant.progress.downloading', {
+        percent: String(progressPercent(activePull.received, activePull.total)),
+        size: formatBytes(activePull.total, numberFormat),
+      });
+    }
+    return activePull.status;
+  };
+
   return (
     <>
       {status !== null && (
@@ -222,6 +406,175 @@ export function AiIntegrationSection({ serviceOnline }: AiIntegrationSectionProp
                 )}
               </InfoList>
               <p className={styles.note}>{t('settings.ai.hint')}</p>
+
+              {assistant !== null && (
+                <>
+                  <SettingRow
+                    label={t('settings.ai.assistant.runtime.label')}
+                    description={t('settings.ai.assistant.runtime.description')}
+                  >
+                    <div className={styles.runtimeControl}>
+                      <span className={styles.runtimeStatus}>{runtimeStatusText()}</span>
+                      {runtimeState === 'downloading' && downloadProgress && downloadProgress.total > 0 && (
+                        <div className={styles.progressTrack}>
+                          <UsageBar value={downloadProgress.received / downloadProgress.total} />
+                        </div>
+                      )}
+                      {/* 'error' offers both: retry the install, or clear
+                          whatever is on disk and start over. */}
+                      {!assistant.systemOllamaDetected && (runtimeState === 'notInstalled' || runtimeState === 'error') && (
+                        <Button
+                          type="button"
+                          tone="accent"
+                          size="sm"
+                          onClick={doInstallRuntime}
+                          disabled={!serviceOnline || assistantBusy}
+                        >
+                          {t('settings.ai.assistant.runtime.download')}
+                        </Button>
+                      )}
+                      {!assistant.systemOllamaDetected
+                        && (runtimeState === 'installed' || runtimeState === 'running' || runtimeState === 'error') && (
+                        <Button
+                          type="button"
+                          tone="danger"
+                          size="sm"
+                          onClick={() => setRemoveRuntimeConfirmOpen(true)}
+                          disabled={!serviceOnline || assistantBusy}
+                        >
+                          {t('settings.ai.assistant.runtime.remove')}
+                        </Button>
+                      )}
+                    </div>
+                  </SettingRow>
+                  {assistantActionError && <p className={styles.note}>{t('settings.ai.assistant.actionError')}</p>}
+
+                  <SettingRow
+                    label={t('settings.ai.assistant.model.label')}
+                    description={t('settings.ai.assistant.model.description')}
+                    align="start"
+                  >
+                    <div className={styles.modelList}>
+                      {assistant.catalog.map(model => {
+                        const installedModel = assistant.installedModels.find(m => m.id === model.id);
+                        const isInstalled = installedModel !== undefined;
+                        const isActive = assistant.activeModel === model.id;
+                        const pullText = modelPullText(model.id);
+                        const isPulling = pullText !== null;
+                        return (
+                          <div key={model.id} className={styles.modelRow}>
+                            <div className={styles.modelInfo}>
+                              <span className={styles.modelLabel}>
+                                {model.label}
+                                {model.recommended && (
+                                  <Badge label={t('settings.ai.assistant.model.recommended')} color="var(--accent)" />
+                                )}
+                                {isActive && (
+                                  <Badge label={t('settings.ai.assistant.model.active')} color="var(--good)" />
+                                )}
+                              </span>
+                              <span className={styles.modelMeta}>
+                                {formatBytes(model.downloadBytes, numberFormat)} · {model.ramHint}
+                              </span>
+                              {isPulling && (
+                                <div className={styles.modelProgress}>
+                                  <div className={styles.progressTrack}>
+                                    <UsageBar value={activePull ? progressPercent(activePull.received, activePull.total) / 100 : 0} />
+                                  </div>
+                                  <span className={styles.modelProgressLabel}>{pullText}</span>
+                                </div>
+                              )}
+                            </div>
+                            {!isPulling && (
+                              <div className={styles.modelActions}>
+                                {!isInstalled && (
+                                  <Button
+                                    type="button"
+                                    tone="accent"
+                                    size="sm"
+                                    onClick={() => doPullModel(model.id)}
+                                    disabled={!serviceOnline || assistantBusy}
+                                    aria-label={t('settings.ai.assistant.model.downloadAria', { model: model.label })}
+                                  >
+                                    {t('settings.ai.assistant.model.download')}
+                                  </Button>
+                                )}
+                                {isInstalled && !isActive && (
+                                  <Button
+                                    type="button"
+                                    tone="neutral"
+                                    size="sm"
+                                    onClick={() => doSelectModel(model.id)}
+                                    disabled={!serviceOnline || assistantBusy}
+                                    aria-label={t('settings.ai.assistant.model.useAria', { model: model.label })}
+                                  >
+                                    {t('settings.ai.assistant.model.use')}
+                                  </Button>
+                                )}
+                                {isInstalled && (
+                                  <Button
+                                    type="button"
+                                    tone="danger"
+                                    size="sm"
+                                    onClick={() => setRemoveModelConfirmId(model.id)}
+                                    disabled={!serviceOnline || assistantBusy}
+                                    aria-label={t('settings.ai.assistant.model.removeAria', { model: model.label })}
+                                  >
+                                    {t('settings.ai.assistant.model.remove')}
+                                  </Button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </SettingRow>
+
+                  {showQueryBar && (
+                    <div className={styles.queryBlock}>
+                      <div className={styles.queryRow}>
+                        <div className={styles.queryFrame} data-focused={queryFocused ? 'true' : undefined}>
+                          <TextInput
+                            value={queryText}
+                            placeholder={t('settings.ai.assistant.query.placeholder')}
+                            ariaLabel={t('settings.ai.assistant.query.placeholder')}
+                            onInput={setQueryText}
+                            onSubmit={() => void submitQuery()}
+                            onFocus={() => setQueryFocused(true)}
+                            onBlur={() => setQueryFocused(false)}
+                            disabled={!serviceOnline || querySubmitting}
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          tone="accent"
+                          size="md"
+                          icon={<Send size={14} />}
+                          loading={querySubmitting}
+                          onClick={() => void submitQuery()}
+                          disabled={!serviceOnline || querySubmitting || !queryText.trim()}
+                          title={t('settings.ai.assistant.query.send')}
+                          aria-label={t('settings.ai.assistant.query.send')}
+                        />
+                      </div>
+                      {queryError && <p className={styles.note}>{t('settings.ai.assistant.query.error')}</p>}
+                      {queryResult && (
+                        <div className={styles.queryResult}>
+                          <p className={styles.queryAnswer}>{queryResult.answer}</p>
+                          {queryResult.toolsRun.length > 0 && (
+                            <p className={styles.queryTools}>
+                              {t('settings.ai.assistant.query.toolsRun', {
+                                tools: queryResult.toolsRun.map(r => r.name).join(', '),
+                              })}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
             </>
           )}
         </SettingsSection>
@@ -232,12 +585,35 @@ export function AiIntegrationSection({ serviceOnline }: AiIntegrationSectionProp
         title={t('settings.ai.rotate.confirmTitle')}
         message={t('settings.ai.rotate.confirmMessage')}
         note={rotateError ? t('settings.ai.rotate.failed') : undefined}
+        // eslint-disable-next-line i18next/no-literal-string -- enum tone value, not user-facing text
         noteTone={rotateError ? 'danger' : 'default'}
         confirmLabel={t('settings.ai.rotate.confirmButton')}
         confirmDisabled={mutating}
         destructive
         onConfirm={doRotateToken}
         onCancel={() => { setRotateError(false); setRotateConfirmOpen(false); }}
+      />
+
+      <ConfirmModal
+        open={removeRuntimeConfirmOpen}
+        title={t('settings.ai.assistant.runtime.removeConfirmTitle')}
+        message={t('settings.ai.assistant.runtime.removeConfirmMessage')}
+        confirmLabel={t('settings.ai.assistant.runtime.removeConfirmButton')}
+        confirmDisabled={assistantMutating}
+        destructive
+        onConfirm={doRemoveRuntime}
+        onCancel={() => setRemoveRuntimeConfirmOpen(false)}
+      />
+
+      <ConfirmModal
+        open={removeModelConfirmId !== null}
+        title={t('settings.ai.assistant.model.removeConfirmTitle')}
+        message={t('settings.ai.assistant.model.removeConfirmMessage')}
+        confirmLabel={t('settings.ai.assistant.model.removeConfirmButton')}
+        confirmDisabled={assistantMutating}
+        destructive
+        onConfirm={() => { if (removeModelConfirmId) void doRemoveModel(removeModelConfirmId); }}
+        onCancel={() => setRemoveModelConfirmId(null)}
       />
     </>
   );

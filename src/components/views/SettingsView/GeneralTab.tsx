@@ -210,7 +210,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
 
       <LightingCoolingSection serviceOnline={serviceOnline} platform={platform} />
 
-      <AiIntegrationSection serviceOnline={serviceOnline} />
+      <AiIntegrationSection serviceOnline={serviceOnline} numberFormat={settings.general.numberFormat} />
 
       {(platform === 'windows' || platform === 'macos') && (
         <SettingsSection title={t('settings.startupTray.title')}>
