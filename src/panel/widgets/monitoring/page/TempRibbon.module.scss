@@ -1,4 +1,12 @@
 .root {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.plot {
   position: relative;
   width: 100%;
   min-width: 0;
@@ -12,14 +20,15 @@
   width: 100%;
 }
 
+// Sits below the strip, never over its drawn segments, right-aligned to
+// echo where the value used to float.
 .current {
-  position: absolute;
-  right: 4px;
-  top: 50%;
-  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  align-self: flex-end;
   font-family: var(--font-mono);
   font-size: var(--type-mini);
   color: var(--text-dim);
-  pointer-events: none;
   user-select: none;
 }
