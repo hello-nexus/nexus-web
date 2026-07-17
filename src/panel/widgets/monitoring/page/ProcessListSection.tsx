@@ -4,6 +4,7 @@ import { SearchInput } from '../../../../components/common/SearchInput/SearchInp
 import { Select } from '../../../../components/common/Select/Select';
 import { Sparkline } from '../../../../components/common/Sparkline/Sparkline';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
+import { Badge } from '../../../../components/common/Badge/Badge';
 import { useTranslation } from '../../../../lib/i18n';
 import { useMonitoringPrivacy } from '../../../../hooks/useMonitoringPrivacy';
 import type { UseMetricHistoryAppsResult } from '../../../../hooks/useMetricHistoryApps';
@@ -20,6 +21,15 @@ export interface ProcessListItem extends RankableItem {
   values: number[];
   /** Optional inline secondary text after the value (e.g. GPU VRAM). */
   secondary?: string;
+  /** Foreground/windowed app vs background process (round 5 item 5) - drives
+   *  the Apps/Background processes grouping. Undefined (a service that
+   *  doesn't report it yet) renders under Background processes. */
+  isApp?: boolean;
+  /** Company/signer name, rendered dimmed after the process name (round 5
+   *  item 6). null once resolution completes with no signer found;
+   *  undefined while unresolved or unreported - both render nothing. */
+  publisher?: string | null;
+  signed?: 'signed' | 'unsigned' | 'unknown';
 }
 
 export type { SortMode };
@@ -128,6 +138,8 @@ function rowPropsEqual(prev: ProcessRowProps, next: ProcessRowProps): boolean {
     && prev.item.current === next.item.current
     && prev.item.secondary === next.item.secondary
     && prev.item.startedAtMs === next.item.startedAtMs
+    && prev.item.publisher === next.item.publisher
+    && prev.item.signed === next.item.signed
     && sameValues(prev.item.values, next.item.values)
     && prev.formatValue === next.formatValue
     && prev.onSelect === next.onSelect
@@ -160,6 +172,10 @@ const ProcessRow = memo(function ProcessRow({
     >
       <ProcessIcon name={item.name} />
       <span className={styles.name}>{item.name}</span>
+      {item.publisher && <span className={styles.publisher}>{item.publisher}</span>}
+      {/* Shares ProcessDetailSlideout's "Unsigned" badge/key (same displayed
+          word) - update both call sites together if either copy changes. */}
+      {item.signed === 'unsigned' && <Badge label={t('monitoring.processDetail.info.unsigned')} color="var(--warn)" />}
       <PrivacyIndicators
         indicators={showPrivacy ? privacyIndicatorsForProcess(privacySessions, item.name, privacyAsOfMs) : []}
         t={t}
@@ -194,6 +210,13 @@ const ProcessRow = memo(function ProcessRow({
  * Row order is rank-stable (see useStableRanking/processRanking): a value
  * update alone never reorders or drops a row, so the list doesn't visibly
  * jump around while the user is watching it.
+ *
+ * Task-Manager-style Apps/Background processes grouping (round 5 item 5):
+ * `visible` is partitioned by `isApp` AFTER search and stable ranking, via a
+ * plain `.filter()` that preserves each side's relative order from the
+ * single already-ranked/frozen array - never a second ranking pass, so the
+ * frozen-order guarantee holds independently within each group. An empty
+ * group renders no header.
  */
 export function ProcessListSection({
   items, formatValue, rankResetKey = '', frozen = false, liveUsage, appsWindow,
@@ -212,6 +235,11 @@ export function ProcessListSection({
     const needle = query.trim().toLowerCase();
     return needle ? ranked.filter(i => i.name.toLowerCase().includes(needle)) : ranked;
   }, [ranked, query]);
+
+  // Missing isApp (a service that doesn't report it yet) renders as
+  // background - graceful until the field ships everywhere.
+  const appRows = useMemo(() => visible.filter(i => i.isApp === true), [visible]);
+  const backgroundRows = useMemo(() => visible.filter(i => i.isApp !== true), [visible]);
 
   const sortOptions = [
     { value: 'recent', label: t('monitoring.history.process.sortRecent') },
@@ -239,7 +267,25 @@ export function ProcessListSection({
         <div className={styles.empty}>{t('monitoring.ranked.empty')}</div>
       ) : (
         <div className={frozen ? `${styles.rows} ${styles.rowsFrozen}` : styles.rows}>
-          {visible.map(item => (
+          {appRows.length > 0 && (
+            <div className={styles.groupHeader}>{t('monitoring.history.process.group.apps')}</div>
+          )}
+          {appRows.map(item => (
+            <ProcessRow
+              key={item.name}
+              item={item}
+              formatValue={formatValue}
+              onSelect={handleSelectRow}
+              t={t}
+              privacySessions={privacy.sessions}
+              privacyAsOfMs={privacy.asOfMs}
+              showPrivacy={showPrivacy}
+            />
+          ))}
+          {backgroundRows.length > 0 && (
+            <div className={styles.groupHeader}>{t('monitoring.history.process.group.background')}</div>
+          )}
+          {backgroundRows.map(item => (
             <ProcessRow
               key={item.name}
               item={item}

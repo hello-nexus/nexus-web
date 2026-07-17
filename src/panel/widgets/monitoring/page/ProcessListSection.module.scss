@@ -1,3 +1,5 @@
+@use '../../../../styles/text' as *;
+
 .root {
   border: var(--border-width) solid transparent;
   border-radius: var(--radius);
@@ -37,6 +39,20 @@
 .rows {
   display: flex;
   flex-direction: column;
+}
+
+// Task-Manager-style Apps/Background processes section label (round 5 item
+// 5): a plain non-interactive divider (Task Manager's own groups aren't
+// collapsible either) - the canonical small-uppercase-eyebrow style
+// (text-label), not a hand-copied duplicate of another component's numbers.
+.groupHeader {
+  @include text-label;
+  padding: 0.3rem 0.4rem 0.15rem;
+  color: var(--text-dim);
+
+  &:not(:first-child) {
+    margin-top: 0.35rem;
+  }
 }
 
 .rowsFrozen {
@@ -116,6 +132,27 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+// Company/signer name (round 5 item 6), dimmed, right after the process
+// name - shrinks/truncates instead of taking .name's flexible slot, so the
+// name keeps priority for the remaining row width. Hidden below the same
+// narrow-surface breakpoint SettingRow/DiagnosticsView use elsewhere in the
+// app: this list also renders in the phone-portrait immersive view (see
+// monitoring/index.ts's supportsImmersive), where a full-width publisher
+// label would otherwise crowd the process name toward nothing.
+.publisher {
+  font-size: var(--type-mini);
+  color: var(--text-dim);
+  flex-shrink: 0;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  @media (max-width: 480px) {
+    display: none;
+  }
 }
 
 .privacyIcons {

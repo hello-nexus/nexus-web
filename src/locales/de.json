@@ -1704,6 +1704,8 @@
   "monitoring.history.max": "Max",
   "monitoring.history.mocked": "Testdaten",
   "monitoring.history.process.frozenNotice": "Zeigt nur Live-Werte - der Verlauf für diesen Zeitraum ist noch nicht verfügbar.",
+  "monitoring.history.process.group.apps": "Apps",
+  "monitoring.history.process.group.background": "Hintergrundprozesse",
   "monitoring.history.process.openDetails": "Details für {name} öffnen",
   "monitoring.history.process.searchPlaceholder": "Suchen…",
   "monitoring.history.process.sortAriaLabel": "Sortieren nach",

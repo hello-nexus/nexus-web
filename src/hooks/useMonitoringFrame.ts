@@ -15,6 +15,13 @@ export interface MonitoringProcessEntry {
   memoryMb: number;
   /** Process creation time, UTC epoch ms; undefined when unavailable. */
   startedAtMs?: number;
+  /** True for a foreground/windowed app, false for a background process;
+   *  undefined on a service that doesn't report it yet. */
+  isApp?: boolean;
+  /** Resolved lazily server-side - null once resolution completes with no
+   *  signer found, undefined while still unresolved (or unreported). */
+  publisher?: string | null;
+  signed?: 'signed' | 'unsigned' | 'unknown';
 }
 
 export interface MonitoringProcesses {

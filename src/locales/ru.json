@@ -1704,6 +1704,8 @@
   "monitoring.history.max": "Макс.",
   "monitoring.history.mocked": "Тестовые данные",
   "monitoring.history.process.frozenNotice": "Отображаются только текущие значения - история за этот период пока недоступна.",
+  "monitoring.history.process.group.apps": "Приложения",
+  "monitoring.history.process.group.background": "Фоновые процессы",
   "monitoring.history.process.openDetails": "Открыть подробности о {name}",
   "monitoring.history.process.searchPlaceholder": "Поиск…",
   "monitoring.history.process.sortAriaLabel": "Сортировать по",

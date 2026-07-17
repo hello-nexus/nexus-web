@@ -1714,6 +1714,8 @@
   "monitoring.history.max": "Max",
   "monitoring.history.mocked": "Dâts di prove",
   "monitoring.history.process.frozenNotice": "Al mostre nome valôrs in direte - la cronologjie par chest periodi no je ancjemò disponibile.",
+  "monitoring.history.process.group.apps": "Aplicazions",
+  "monitoring.history.process.group.background": "Procès sul sfont",
   "monitoring.history.process.openDetails": "Vierç i detais par {name}",
   "monitoring.history.process.searchPlaceholder": "Cîr…",
   "monitoring.history.process.sortAriaLabel": "Ordene par",

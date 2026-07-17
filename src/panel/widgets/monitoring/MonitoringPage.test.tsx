@@ -30,7 +30,7 @@ vi.mock('./page/ProcessListSection', async importOriginal => {
   return {
     ...actual,
     ProcessListSection: ({ items, frozen, liveUsage, appsWindow }: {
-      items: Array<{ name: string }>;
+      items: Array<{ name: string; isApp?: boolean; publisher?: string | null; signed?: string }>;
       frozen?: boolean;
       liveUsage?: ReadonlyMap<string, unknown>;
       appsWindow?: { supported: boolean };
@@ -45,6 +45,7 @@ vi.mock('./page/ProcessListSection', async importOriginal => {
           data-frozen={frozen ? 'true' : 'false'}
           data-live-usage-names={liveUsage ? [...liveUsage.keys()].join(',') : ''}
           data-apps-window-supported={appsWindow ? String(appsWindow.supported) : ''}
+          data-items-meta={items.map(i => `${i.name}:${i.isApp}:${i.publisher}:${i.signed}`).join(';')}
         >
           items:{items.length}:{items.map(i => i.name).join(',')}
         </div>
@@ -92,10 +93,19 @@ vi.mock('../../../hooks/useNetworkMonitor', () => ({
   useAllNetworkSeries: () => allNetSeriesOverride,
 }));
 
+interface SeriesOverrideEntry {
+  name: string;
+  current: number;
+  values: number[];
+  isApp?: boolean;
+  publisher?: string | null;
+  signed?: 'signed' | 'unsigned' | 'unknown';
+}
+
 // cpuSeriesOverride/memSeriesOverride feed useAllProcesses - MonitoringPage's
 // own complete-list source (item 48). useProcessMonitor's capped shape stays
 // hardcoded empty since the page no longer reads it directly.
-let cpuSeriesOverride: Array<{ name: string; current: number; values: number[] }> = [];
+let cpuSeriesOverride: SeriesOverrideEntry[] = [];
 const memSeriesOverride: Array<{ name: string; current: number; values: number[] }> = [];
 let gpuProcSeriesOverride: Array<{ name: string; current: number; values: number[] }> = [];
 vi.mock('../../../hooks/useProcessMonitor', () => ({
@@ -659,6 +669,25 @@ describe('MonitoringPage', () => {
       const section = screen.getByTestId('process-list-section');
       expect(section).toHaveTextContent('items:1:chrome.exe');
       expect(section).not.toHaveTextContent('explorer.exe');
+    });
+  });
+
+  describe('isApp/publisher/signed passthrough (round 5 items 5/6)', () => {
+    afterEach(() => {
+      cpuSeriesOverride = [];
+      historyOverride = {};
+    });
+
+    it('forwards isApp/publisher/signed from the live series onto ProcessListSection\'s items', () => {
+      cpuSeriesOverride = [
+        { name: 'chrome.exe', current: 40, values: [1, 2, 3], isApp: true, publisher: 'Google LLC', signed: 'signed' },
+        { name: 'svchost.exe', current: 1, values: [0], isApp: false, publisher: null, signed: 'unknown' },
+      ];
+      appsWindowOverride = { supported: false };
+      historyOverride = { following: true };
+      render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+      const section = screen.getByTestId('process-list-section');
+      expect(section).toHaveAttribute('data-items-meta', 'chrome.exe:true:Google LLC:signed;svchost.exe:false:null:unknown');
     });
   });
 

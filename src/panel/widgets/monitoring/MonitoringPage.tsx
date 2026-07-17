@@ -119,8 +119,15 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
   // window isn't available/ready yet, and reconciled against the apps
   // window's own values below when both are.
   const liveItems: ProcessListItem[] = useMemo(() => {
-    const toItem = (s: { name: string; current: number; values: number[]; startedAtMs?: number }, secondary?: string): ProcessListItem => ({
+    const toItem = (
+      s: {
+        name: string; current: number; values: number[]; startedAtMs?: number;
+        isApp?: boolean; publisher?: string | null; signed?: 'signed' | 'unsigned' | 'unknown';
+      },
+      secondary?: string,
+    ): ProcessListItem => ({
       name: s.name, current: s.current, values: s.values, secondary, startedAtMs: s.startedAtMs,
+      isApp: s.isApp, publisher: s.publisher, signed: s.signed,
     });
     switch (tab) {
       case 'cpu': return allCpuSeries.map(s => toItem(s));

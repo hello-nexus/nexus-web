@@ -1,6 +1,8 @@
 import type { MonitoringFrame } from '../hooks/useMonitoringFrame';
 import type { SeriesEntry } from '../hooks/useProcessMonitor';
 import type { NetworkEntry } from '../hooks/useNetworkMonitor';
+import { DEV_TOOLS } from './devTools';
+import { mockProcessMeta } from '../panel/widgets/monitoring/page/processMetaMock';
 
 const MAX_SAMPLES = 60;
 const TOP_PROCS = 20;
@@ -43,13 +45,25 @@ const memHist = new Map<string, HistEntry>();
 let otherCpuHist: number[] = [];
 let totalMemUsedHist: number[] = [];
 
+interface GroupedProc {
+  cpu: number;
+  mem: number;
+  startedAtMs?: number;
+  /** isApp/publisher/signed: real data once the service ships them on the
+   *  live wire entry, or a DEV_TOOLS-only mock stand-in (processMetaMock.ts)
+   *  while that parallel branch hasn't landed - see ingestMonitoring. */
+  isApp?: boolean;
+  publisher?: string | null;
+  signed?: 'signed' | 'unsigned' | 'unknown';
+}
+
 // The current frame's own process membership (deduped/summed by name) - the
 // source of truth for getAllCpuMemSeries's complete list (item 48), so a
 // process appears there for exactly as long as the frame itself reports it
 // (including at 0% usage), rather than lingering or dropping on
 // buildSeries's own avg-based cutoff (built for the small capped dashboard
 // tile, where an exited app hiding early is the point).
-let latestGroupedProcs: ReadonlyMap<string, { cpu: number; mem: number; startedAtMs?: number }> = new Map();
+let latestGroupedProcs: ReadonlyMap<string, GroupedProc> = new Map();
 
 // ── Network history ──────────────────────────────────────────────────────
 
@@ -202,7 +216,7 @@ export function ingestMonitoring(frame: MonitoringFrame) {
   // service's own ProcessAggregation.NewestOf for the apps-window endpoint -
   // the two independent aggregations then agree once reconcileLiveWithWindow
   // hands off from one to the other.
-  const grouped = new Map<string, { cpu: number; mem: number; startedAtMs?: number }>();
+  const grouped = new Map<string, GroupedProc>();
   if (procs && procs.processes.length > 0) {
     for (const p of procs.processes) {
       const existing = grouped.get(p.name);
@@ -213,7 +227,22 @@ export function ingestMonitoring(frame: MonitoringFrame) {
           existing.startedAtMs = p.startedAtMs;
         }
       } else {
-        grouped.set(p.name, { cpu: p.cpuPercent, mem: p.memoryMb, startedAtMs: p.startedAtMs });
+        // Trust real isApp/publisher/signed the instant the service reports
+        // them; DEV_TOOLS fills a curated stand-in only while they're still
+        // entirely absent (see processMetaMock.ts). Gated on isApp alone -
+        // publisher/signed resolve lazily server-side, so if the real
+        // rollout ever reports isApp before those finish resolving, this
+        // drops the mock's publisher/signed a tick early rather than
+        // blending real-isApp with mocked-publisher. Revisit if the actual
+        // rollout sequencing needs finer per-field gating.
+        const real = p.isApp !== undefined;
+        const mock = !real && DEV_TOOLS ? mockProcessMeta(p.name) : undefined;
+        grouped.set(p.name, {
+          cpu: p.cpuPercent, mem: p.memoryMb, startedAtMs: p.startedAtMs,
+          isApp: real ? p.isApp : mock?.isApp,
+          publisher: real ? p.publisher : mock?.publisher,
+          signed: real ? p.signed : mock?.signed,
+        });
       }
     }
 
@@ -367,6 +396,9 @@ function buildCompleteSeries(map: Map<string, HistEntry>, field: 'cpu' | 'mem'):
       current: g[field],
       avg: Math.round(avg * 10) / 10,
       startedAtMs: g.startedAtMs,
+      isApp: g.isApp,
+      publisher: g.publisher,
+      signed: g.signed,
     });
   }
   return result;

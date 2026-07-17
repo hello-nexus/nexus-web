@@ -298,6 +298,106 @@ describe('ProcessListSection', () => {
     });
   });
 
+  describe('Apps/Background processes grouping (round 5 item 5)', () => {
+    function groupedItems(): ProcessListItem[] {
+      return [
+        { name: 'AcmeApp', current: 40, values: [1], isApp: true },
+        { name: 'Chrome', current: 12, values: [1], isApp: true },
+        { name: 'svchost.exe', current: 3, values: [1], isApp: false },
+        { name: 'Nexus', current: 3, values: [1] }, // no isApp - treated as background
+      ];
+    }
+
+    it('shows both group headers, apps above background, each with its own rows', () => {
+      const { container } = render(<ProcessListSection items={groupedItems()} formatValue={v => `${v}%`} />);
+      const headers = [...container.querySelectorAll('[class*="groupHeader"]')].map(h => h.textContent);
+      expect(headers).toEqual(['monitoring.history.process.group.apps', 'monitoring.history.process.group.background']);
+
+      const rows = container.querySelectorAll('[class*="row"]:not([class*="rows"])');
+      expect(rows.length).toBe(4);
+    });
+
+    it('treats a missing isApp as background - graceful until the field ships everywhere', () => {
+      render(<ProcessListSection items={groupedItems()} formatValue={v => `${v}%`} />);
+      const background = screen.getByText('monitoring.history.process.group.background');
+      // Nexus (no isApp) and svchost.exe (isApp:false) both land after the
+      // background header, not the apps one.
+      expect(background.compareDocumentPosition(screen.getByText('Nexus')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(background.compareDocumentPosition(screen.getByText('svchost.exe')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    it('hides the Apps header entirely when nothing is currently classified as an app', () => {
+      const allBackground: ProcessListItem[] = [{ name: 'svchost.exe', current: 3, values: [1], isApp: false }];
+      render(<ProcessListSection items={allBackground} formatValue={v => `${v}%`} />);
+      expect(screen.queryByText('monitoring.history.process.group.apps')).toBeNull();
+      expect(screen.getByText('monitoring.history.process.group.background')).toBeInTheDocument();
+    });
+
+    it('hides the Background header entirely when every row is an app', () => {
+      const allApps: ProcessListItem[] = [{ name: 'Chrome', current: 12, values: [1], isApp: true }];
+      render(<ProcessListSection items={allApps} formatValue={v => `${v}%`} />);
+      expect(screen.getByText('monitoring.history.process.group.apps')).toBeInTheDocument();
+      expect(screen.queryByText('monitoring.history.process.group.background')).toBeNull();
+    });
+
+    it('search filters across both groups', () => {
+      render(<ProcessListSection items={groupedItems()} formatValue={v => `${v}%`} />);
+      fireEvent.change(screen.getByPlaceholderText('monitoring.history.process.searchPlaceholder'), { target: { value: 'chrome' } });
+      expect(screen.getByText('Chrome')).toBeInTheDocument();
+      expect(screen.queryByText('AcmeApp')).toBeNull();
+      expect(screen.queryByText('svchost.exe')).toBeNull();
+      expect(screen.queryByText('Nexus')).toBeNull();
+    });
+
+    it('preserves the frozen stable order within each group across many ticks of pure value churn (round 5 acceptance test)', () => {
+      const { rerender } = render(
+        <ProcessListSection items={groupedItems()} formatValue={v => `${v}%`} rankResetKey="cpu" />,
+      );
+      const appNames = screen.getAllByText(/AcmeApp|Chrome/).map(el => el.textContent);
+      const backgroundNames = screen.getAllByText(/svchost\.exe|Nexus/).map(el => el.textContent);
+
+      for (let tick = 0; tick < 15; tick++) {
+        const churned = groupedItems().map(i => ({ ...i, current: Math.random() * 100 }));
+        rerender(<ProcessListSection items={churned} formatValue={v => `${v}%`} rankResetKey="cpu" />);
+        expect(screen.getAllByText(/AcmeApp|Chrome/).map(el => el.textContent)).toEqual(appNames);
+        expect(screen.getAllByText(/svchost\.exe|Nexus/).map(el => el.textContent)).toEqual(backgroundNames);
+      }
+    });
+  });
+
+  describe('publisher + Unsigned badge (round 5 item 6)', () => {
+    it('renders the publisher dimmed after the process name', () => {
+      const withPublisher: ProcessListItem[] = [{ name: 'Chrome', current: 12, values: [1], publisher: 'Google LLC' }];
+      const { container } = render(<ProcessListSection items={withPublisher} formatValue={v => `${v}%`} />);
+      const publisher = container.querySelector('[class*="publisher"]');
+      expect(publisher).toHaveTextContent('Google LLC');
+    });
+
+    it('renders no publisher text when publisher is null or absent', () => {
+      const noPublisher: ProcessListItem[] = [{ name: 'Chrome', current: 12, values: [1], publisher: null }];
+      const { container } = render(<ProcessListSection items={noPublisher} formatValue={v => `${v}%`} />);
+      expect(container.querySelector('[class*="publisher"]')).toBeNull();
+    });
+
+    it('shows the Unsigned badge when signed is "unsigned"', () => {
+      const unsigned: ProcessListItem[] = [{ name: 'sketchy-tool.exe', current: 3, values: [1], signed: 'unsigned' }];
+      render(<ProcessListSection items={unsigned} formatValue={v => `${v}%`} />);
+      expect(screen.getByText('monitoring.processDetail.info.unsigned')).toBeInTheDocument();
+    });
+
+    it('shows no badge when signed is "unknown" or absent', () => {
+      const items2: ProcessListItem[] = [{ name: 'Chrome', current: 12, values: [1], signed: 'unknown' }];
+      render(<ProcessListSection items={items2} formatValue={v => `${v}%`} />);
+      expect(screen.queryByText('monitoring.processDetail.info.unsigned')).toBeNull();
+    });
+
+    it('shows no badge when signed is "signed"', () => {
+      const items2: ProcessListItem[] = [{ name: 'Chrome', current: 12, values: [1], signed: 'signed' }];
+      render(<ProcessListSection items={items2} formatValue={v => `${v}%`} />);
+      expect(screen.queryByText('monitoring.processDetail.info.unsigned')).toBeNull();
+    });
+  });
+
   describe('frozen fallback snapshot (item 33)', () => {
     it('shows no frozen notice or dimming by default', () => {
       const { container } = render(<ProcessListSection items={items()} formatValue={v => `${v}%`} />);

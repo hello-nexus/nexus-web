@@ -11,6 +11,12 @@ export interface SeriesEntry {
   /** Process creation time, UTC epoch ms; undefined when unavailable or the
    *  source (network/GPU feeds) carries no launch-time attribution. */
   startedAtMs?: number;
+  /** Foreground/windowed app vs background process; undefined when the
+   *  source carries no such attribution (network/GPU feeds, or a service
+   *  that doesn't report it yet). */
+  isApp?: boolean;
+  publisher?: string | null;
+  signed?: 'signed' | 'unsigned' | 'unknown';
 }
 
 export interface GpuProcess { name: string; gpuPercent: number; dedicatedMb: number; adapterLuid: string; }

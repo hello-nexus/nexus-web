@@ -1704,6 +1704,8 @@
   "monitoring.history.max": "最大",
   "monitoring.history.mocked": "模擬資料",
   "monitoring.history.process.frozenNotice": "僅顯示即時數值 - 此時間範圍的歷史資料尚無法使用。",
+  "monitoring.history.process.group.apps": "應用程式",
+  "monitoring.history.process.group.background": "背景處理程序",
   "monitoring.history.process.openDetails": "開啟 {name} 的詳細資料",
   "monitoring.history.process.searchPlaceholder": "搜尋…",
   "monitoring.history.process.sortAriaLabel": "排序方式",

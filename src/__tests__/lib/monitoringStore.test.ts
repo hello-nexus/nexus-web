@@ -213,6 +213,87 @@ describe('getAllCpuMemSeries (item 48: uncapped, no Other row)', () => {
   });
 });
 
+describe('isApp/publisher/signed (round 5 items 5/6)', () => {
+  it('trusts real isApp/publisher/signed the instant the service reports them', () => {
+    store.ingestMonitoring(makeFrame({
+      processes: {
+        totalCpu: 20,
+        totalMemoryPercent: 40,
+        processes: [{
+          name: 'RealApp', cpuPercent: 20, memoryMb: 500,
+          isApp: true, publisher: 'Real Publisher Inc.', signed: 'signed',
+        }],
+      },
+    }));
+    const proc = store.getAllCpuMemSeries().cpuSeries.find(s => s.name === 'RealApp');
+    expect(proc!.isApp).toBe(true);
+    expect(proc!.publisher).toBe('Real Publisher Inc.');
+    expect(proc!.signed).toBe('signed');
+  });
+
+  it('trusts a real isApp:false with signed:unsigned and no publisher, without falling back to the dev mock', () => {
+    store.ingestMonitoring(makeFrame({
+      processes: {
+        totalCpu: 20,
+        totalMemoryPercent: 40,
+        // 'chrome.exe' is in the dev mock table (isApp:true, signed) - a real
+        // wire report for the SAME name must win outright, proving `real` is
+        // gated on isApp being reported at all, not on matching the mock.
+        processes: [{ name: 'chrome.exe', cpuPercent: 5, memoryMb: 20, isApp: false, publisher: null, signed: 'unsigned' }],
+      },
+    }));
+    const proc = store.getAllCpuMemSeries().cpuSeries.find(s => s.name === 'chrome.exe');
+    expect(proc!.isApp).toBe(false);
+    expect(proc!.publisher).toBeNull();
+    expect(proc!.signed).toBe('unsigned');
+  });
+
+  it('fills in the dev mock for a recognized name while the real fields are entirely absent (DEV_TOOLS is on under vitest)', () => {
+    store.ingestMonitoring(makeFrame({
+      processes: {
+        totalCpu: 20,
+        totalMemoryPercent: 40,
+        processes: [{ name: 'chrome.exe', cpuPercent: 20, memoryMb: 500 }],
+      },
+    }));
+    const proc = store.getAllCpuMemSeries().cpuSeries.find(s => s.name === 'chrome.exe');
+    expect(proc!.isApp).toBe(true);
+    expect(proc!.publisher).toBe('Google LLC');
+    expect(proc!.signed).toBe('signed');
+  });
+
+  it('leaves isApp/publisher/signed undefined for an unrecognized name with no real data - graceful background default', () => {
+    store.ingestMonitoring(makeFrame({
+      processes: {
+        totalCpu: 20,
+        totalMemoryPercent: 40,
+        processes: [{ name: 'totally-unknown-proc.exe', cpuPercent: 5, memoryMb: 20 }],
+      },
+    }));
+    const proc = store.getAllCpuMemSeries().cpuSeries.find(s => s.name === 'totally-unknown-proc.exe');
+    expect(proc!.isApp).toBeUndefined();
+    expect(proc!.publisher).toBeUndefined();
+    expect(proc!.signed).toBeUndefined();
+  });
+
+  it('does not apply the dev mock when DEV_TOOLS is off (production behavior)', async () => {
+    vi.resetModules();
+    vi.doMock('../../lib/devTools', () => ({ DEV_TOOLS: false }));
+    const prodStore: StoreModule = await import('../../lib/monitoringStore');
+    prodStore.ingestMonitoring(makeFrame({
+      processes: {
+        totalCpu: 20,
+        totalMemoryPercent: 40,
+        processes: [{ name: 'chrome.exe', cpuPercent: 20, memoryMb: 500 }],
+      },
+    }));
+    const proc = prodStore.getAllCpuMemSeries().cpuSeries.find(s => s.name === 'chrome.exe');
+    expect(proc!.isApp).toBeUndefined();
+    expect(proc!.publisher).toBeUndefined();
+    vi.doUnmock('../../lib/devTools');
+  });
+});
+
 describe('getAllNetSeries (item 48: uncapped network series)', () => {
   it('includes every process with network history, beyond the top-15 getNetworkData keeps', () => {
     const entries = Array.from({ length: 20 }, (_, i) => ({ name: `net-${i}.exe`, rateIn: 100, rateOut: 100 }));

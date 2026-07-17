@@ -1704,6 +1704,8 @@
   "monitoring.history.max": "Máx",
   "monitoring.history.mocked": "Datos de prueba",
   "monitoring.history.process.frozenNotice": "Mostrando solo valores en vivo - el historial de esta ventana aún no está disponible.",
+  "monitoring.history.process.group.apps": "Aplicaciones",
+  "monitoring.history.process.group.background": "Procesos en segundo plano",
   "monitoring.history.process.openDetails": "Abrir detalles de {name}",
   "monitoring.history.process.searchPlaceholder": "Buscar…",
   "monitoring.history.process.sortAriaLabel": "Ordenar por",
