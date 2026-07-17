@@ -144,6 +144,38 @@ function inlineSvgDescendantStyles(doc: Document): () => void {
   return () => undo.forEach(fn => fn());
 }
 
+// backdrop-filter does not rasterize inside the SVG foreignObject html-to-image
+// draws through, so the frosted-glass overlay (data-panel-frost) contributes
+// nothing to a capture. The frost sits directly above the full-bleed
+// background layers (data-panel-bg-layer), so applying its blur as a plain
+// `filter` on those layers - which DOES rasterize - composes the same look.
+// The layers are grown slightly so the filter's transparent edge fringe stays
+// outside the viewport (the live backdrop-filter clamps at edges instead).
+// Returns an undo that restores the layers' inline styles.
+function composeFrostForCapture(doc: Document): () => void {
+  const win = doc.defaultView;
+  const frost = doc.querySelector<HTMLElement>('[data-panel-frost]');
+  if (!win || !frost) return () => {};
+  const backdrop = win.getComputedStyle(frost).backdropFilter;
+  if (!backdrop || backdrop === 'none') return () => {};
+  const radius = parseFloat(/blur\((\d+(?:\.\d+)?)px\)/.exec(backdrop)?.[1] ?? '');
+  const undo: Array<() => void> = [];
+  doc.querySelectorAll<HTMLElement>('[data-panel-bg-layer]').forEach(layer => {
+    const prevFilter = layer.style.filter;
+    const prevTransform = layer.style.transform;
+    layer.style.filter = backdrop;
+    if (Number.isFinite(radius) && radius > 0) {
+      const grow = 1 + (2 * radius) / Math.max(1, Math.min(layer.clientWidth, layer.clientHeight));
+      layer.style.transform = `scale(${grow})`;
+    }
+    undo.push(() => {
+      layer.style.filter = prevFilter;
+      layer.style.transform = prevTransform;
+    });
+  });
+  return () => undo.forEach(fn => fn());
+}
+
 function findWidget(layout: PanelLayout, id: string): PanelWidget | undefined {
   for (const page of layout.pages) {
     const w = page.widgets.find(w => w.id === id);
@@ -380,6 +412,7 @@ export function PanelEmbedFrame({
     const { toBlob } = await import('html-to-image');
     let restoreCanvases: (() => void) | null = null;
     let restoreSvg: (() => void) | null = null;
+    let restoreFrost: (() => void) | null = null;
     try {
       restoreCanvases = await snapshotCanvases(doc);
       // html-to-image deep-clones <svg> subtrees without copying computed
@@ -389,6 +422,7 @@ export function PanelEmbedFrame({
       // re-render during the rasterize can slip an un-inlined SVG into the
       // clone; the capture is a one-shot user action, so a retake covers it.
       restoreSvg = inlineSvgDescendantStyles(doc);
+      restoreFrost = composeFrostForCapture(doc);
       const blob = await toBlob(body, {
         width: canvasW,
         height: canvasH,
@@ -407,9 +441,13 @@ export function PanelEmbedFrame({
       return blob;
     } finally {
       try {
-        restoreSvg?.();
+        restoreFrost?.();
       } finally {
-        restoreCanvases?.();
+        try {
+          restoreSvg?.();
+        } finally {
+          restoreCanvases?.();
+        }
       }
     }
   }, [childReady, canvasW, canvasH]);
