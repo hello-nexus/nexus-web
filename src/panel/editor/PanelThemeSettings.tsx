@@ -202,8 +202,9 @@ export function PanelThemeSettings({
     />
   );
 
-  // Opacity of the solid colour / shader / media over the theme background.
-  // First control under the Background header, applying to every mode.
+  // Opacity of the solid colour / shader / media / wallpaper layer over the
+  // theme's dark/light backdrop; applies to every mode including wallpaper
+  // see-through, so it renders outside the wallpaper-mode gate below.
   const backgroundOpacitySlider = (
     <SettingSlider
       editable
@@ -328,8 +329,8 @@ export function PanelThemeSettings({
               onChange={useWallpaper => onBackgroundEnabledCommit(!useWallpaper)}
             />
           )}
-          {/* Stays visible (and active) in wallpaper mode, which hides the
-              controls below. */}
+          {/* Frost and opacity stay visible (and active) in wallpaper mode,
+              which hides the mode controls below. */}
           <SettingRow label={label('panel.settings.backgroundFrost', 'Frosted glass')} disabled={!frostApplies}>
             <ChipGroup
               options={[
@@ -345,9 +346,9 @@ export function PanelThemeSettings({
               ariaLabel={label('panel.settings.backgroundFrost', 'Frosted glass')}
             />
           </SettingRow>
+          {backgroundOpacitySlider}
           {showBackgroundToggle && !theme.backgroundEnabled ? null : (
           <>
-          {backgroundOpacitySlider}
           {theme.backgroundMode === 'solid' ? (
             <>
               {backgroundModeTabs}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
 import { useTopicCallback } from '../../hooks/useMultiplexSocket';
 import { desktopWallpaperUrl } from '../../api/panelBackgroundMedia';
 import styles from '../PanelApp.module.scss';
@@ -10,9 +10,11 @@ const FETCH_RETRY_LIMIT = 2;
  * kiosk-hosted panel): the monitor's own wallpaper crop, with no icons,
  * taskbar, or windows. Candidates are preloaded off-DOM and swapped in on
  * success, so a refetch never flashes and a failed fetch keeps the last
- * good image (or the theme backdrop when none loaded yet).
+ * good image (or the theme backdrop when none loaded yet). `opacity` fades
+ * the wallpaper toward the theme's dark/light backdrop, same as the
+ * shader/media layers.
  */
-export function PanelBackgroundDesktop() {
+export function PanelBackgroundDesktop({ opacity = 1 }: { opacity?: number }) {
   const [candidate, setCandidate] = useState(0);
   const [goodSrc, setGoodSrc] = useState<string | null>(null);
   const retriesRef = useRef(0);
@@ -54,7 +56,13 @@ export function PanelBackgroundDesktop() {
 
   if (!goodSrc) return null;
   return (
-    <div className={styles.backgroundMedia} data-ready="true" aria-hidden>
+    <div
+      className={styles.backgroundMedia}
+      data-ready="true"
+      data-panel-bg-layer
+      style={{ '--panel-background-opacity': opacity } as CSSProperties}
+      aria-hidden
+    >
       <img
         className={styles.backgroundMediaContent}
         src={goodSrc}
