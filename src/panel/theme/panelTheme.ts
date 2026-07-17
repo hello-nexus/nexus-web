@@ -268,8 +268,10 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
         backgroundTemplate: normalizePanelBackgroundTemplate(templates[effect]),
         backgroundTemplates: templates,
         // No stored opacity -> mode-aware default (solid opaque, overlay 50%).
+        // Wallpaper mode defaults opaque regardless of the latent mode, so
+        // enabling see-through never inherits a hidden shader/media dim.
         backgroundOpacity: r?.backgroundOpacity == null
-          ? defaultBackgroundOpacityForMode(bgMode)
+          ? (r?.backgroundEnabled === false ? 1 : defaultBackgroundOpacityForMode(bgMode))
           : normalizePanelBackgroundOpacity(r.backgroundOpacity),
         backgroundEnabled: normalizePanelBackgroundEnabled(r?.backgroundEnabled),
         // Static fallback; the returned value below is derived from the global
