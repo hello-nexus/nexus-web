@@ -117,6 +117,100 @@ describe('getAllCpuMemSeries (item 48: uncapped, no Other row)', () => {
     const chromeAll = all.cpuSeries.find(s => s.name === 'Chrome')!;
     expect(chromeAll.current).toBe(chromeCapped.current);
   });
+
+  it('keeps a process at 0% CPU in the complete list instead of dropping it (round 5: task-manager parity)', () => {
+    store.ingestMonitoring(makeFrame({
+      processes: {
+        totalCpu: 20,
+        totalMemoryPercent: 40,
+        processes: [
+          { name: 'Chrome', cpuPercent: 20, memoryMb: 500 },
+          { name: 'IdleApp', cpuPercent: 0, memoryMb: 50 },
+        ],
+      },
+    }));
+    const { cpuSeries } = store.getAllCpuMemSeries();
+    const idle = cpuSeries.find(s => s.name === 'IdleApp');
+    expect(idle).toBeDefined();
+    expect(idle!.current).toBe(0);
+  });
+
+  it('keeps reporting a process at 0% across several ticks, not just the tick it went idle', () => {
+    for (let i = 0; i < 5; i++) {
+      store.ingestMonitoring(makeFrame({
+        processes: {
+          totalCpu: 0,
+          totalMemoryPercent: 10,
+          processes: [{ name: 'IdleApp', cpuPercent: 0, memoryMb: 50 }],
+        },
+      }));
+    }
+    const { cpuSeries } = store.getAllCpuMemSeries();
+    expect(cpuSeries.find(s => s.name === 'IdleApp')).toBeDefined();
+  });
+
+  it('drops a process from the complete list the moment it is absent from the frame (real exit)', () => {
+    store.ingestMonitoring(makeFrame({
+      processes: {
+        totalCpu: 20,
+        totalMemoryPercent: 40,
+        processes: [
+          { name: 'Chrome', cpuPercent: 20, memoryMb: 500 },
+          { name: 'ShortLived', cpuPercent: 5, memoryMb: 20 },
+        ],
+      },
+    }));
+    expect(store.getAllCpuMemSeries().cpuSeries.some(s => s.name === 'ShortLived')).toBe(true);
+
+    store.ingestMonitoring(makeFrame({
+      processes: {
+        totalCpu: 20,
+        totalMemoryPercent: 40,
+        processes: [{ name: 'Chrome', cpuPercent: 20, memoryMb: 500 }],
+      },
+    }));
+    expect(store.getAllCpuMemSeries().cpuSeries.some(s => s.name === 'ShortLived')).toBe(false);
+  });
+
+  it('carries startedAtMs through to the complete list (round 5: recency-sort wiring)', () => {
+    store.ingestMonitoring(makeFrame({
+      processes: {
+        totalCpu: 20,
+        totalMemoryPercent: 40,
+        processes: [{ name: 'Chrome', cpuPercent: 20, memoryMb: 500, startedAtMs: 12_345 }],
+      },
+    }));
+    const chrome = store.getAllCpuMemSeries().cpuSeries.find(s => s.name === 'Chrome');
+    expect(chrome!.startedAtMs).toBe(12_345);
+  });
+
+  it('aggregates a multi-instance name to its newest instance\'s startedAtMs, matching the service\'s own ProcessAggregation.NewestOf', () => {
+    store.ingestMonitoring(makeFrame({
+      processes: {
+        totalCpu: 20,
+        totalMemoryPercent: 40,
+        processes: [
+          { name: 'Chrome', cpuPercent: 10, memoryMb: 200, startedAtMs: 5_000 },
+          { name: 'Chrome', cpuPercent: 5, memoryMb: 100, startedAtMs: 9_000 },
+          { name: 'Chrome', cpuPercent: 5, memoryMb: 100, startedAtMs: 1_000 },
+        ],
+      },
+    }));
+    const chrome = store.getAllCpuMemSeries().cpuSeries.find(s => s.name === 'Chrome');
+    expect(chrome!.startedAtMs).toBe(9_000);
+  });
+
+  it('leaves startedAtMs undefined when no instance reports it', () => {
+    store.ingestMonitoring(makeFrame({
+      processes: {
+        totalCpu: 20,
+        totalMemoryPercent: 40,
+        processes: [{ name: 'NoLaunchTime', cpuPercent: 5, memoryMb: 20 }],
+      },
+    }));
+    const proc = store.getAllCpuMemSeries().cpuSeries.find(s => s.name === 'NoLaunchTime');
+    expect(proc!.startedAtMs).toBeUndefined();
+  });
 });
 
 describe('getAllNetSeries (item 48: uncapped network series)', () => {

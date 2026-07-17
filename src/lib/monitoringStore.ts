@@ -43,6 +43,14 @@ const memHist = new Map<string, HistEntry>();
 let otherCpuHist: number[] = [];
 let totalMemUsedHist: number[] = [];
 
+// The current frame's own process membership (deduped/summed by name) - the
+// source of truth for getAllCpuMemSeries's complete list (item 48), so a
+// process appears there for exactly as long as the frame itself reports it
+// (including at 0% usage), rather than lingering or dropping on
+// buildSeries's own avg-based cutoff (built for the small capped dashboard
+// tile, where an exited app hiding early is the point).
+let latestGroupedProcs: ReadonlyMap<string, { cpu: number; mem: number; startedAtMs?: number }> = new Map();
+
 // ── Network history ──────────────────────────────────────────────────────
 
 const netHist = new Map<string, HistEntry>();
@@ -190,15 +198,22 @@ export function ingestMonitoring(frame: MonitoringFrame) {
   // `grouped` stays empty on a null/empty-procs frame so fillUnseen still
   // bumps idleStreak for every existing entry (a missing-procs frame counts
   // toward the eviction threshold the same as an exited-process frame).
-  const grouped = new Map<string, { cpu: number; mem: number }>();
+  // startedAtMs takes the NEWEST instance's launch time, mirroring the
+  // service's own ProcessAggregation.NewestOf for the apps-window endpoint -
+  // the two independent aggregations then agree once reconcileLiveWithWindow
+  // hands off from one to the other.
+  const grouped = new Map<string, { cpu: number; mem: number; startedAtMs?: number }>();
   if (procs && procs.processes.length > 0) {
     for (const p of procs.processes) {
       const existing = grouped.get(p.name);
       if (existing) {
         existing.cpu += p.cpuPercent;
         existing.mem += p.memoryMb;
+        if (p.startedAtMs !== undefined && (existing.startedAtMs === undefined || p.startedAtMs > existing.startedAtMs)) {
+          existing.startedAtMs = p.startedAtMs;
+        }
       } else {
-        grouped.set(p.name, { cpu: p.cpuPercent, mem: p.memoryMb });
+        grouped.set(p.name, { cpu: p.cpuPercent, mem: p.memoryMb, startedAtMs: p.startedAtMs });
       }
     }
 
@@ -217,6 +232,7 @@ export function ingestMonitoring(frame: MonitoringFrame) {
   // every entry is treated as absent.
   fillUnseen(cpuHist, grouped);
   fillUnseen(memHist, grouped);
+  latestGroupedProcs = grouped;
 
   // Network history - per-process
   const netSeen = new Set<string>();
@@ -326,13 +342,34 @@ function buildGpuSeries(
 // Uncapped counterpart to getProcessData's cpuSeries/memSeries (item 48): no
 // TOP_PROCS slice and no "Other" aggregate row, since every running process
 // is already included. getProcessData's own top-N + Other shape stays
-// unchanged for its other consumers (small dashboard/panel tiles).
+// unchanged for its other consumers (small dashboard/panel tiles). Sourced
+// from latestGroupedProcs (the current frame's own membership) rather than
+// buildSeries's avg-based filter, so an idle 0%-usage process stays listed
+// and an exited one drops the moment it's actually absent from the frame.
 export function getAllCpuMemSeries(): { cpuSeries: SeriesEntry[]; memSeries: SeriesEntry[] } {
-  const procs = latestFrame?.processes;
   return {
-    cpuSeries: buildSeries(cpuHist, procs?.processes ?? [], 'cpuPercent', Infinity),
-    memSeries: buildSeries(memHist, procs?.processes ?? [], 'memoryMb', Infinity),
+    cpuSeries: buildCompleteSeries(cpuHist, 'cpu'),
+    memSeries: buildCompleteSeries(memHist, 'mem'),
   };
+}
+
+function buildCompleteSeries(map: Map<string, HistEntry>, field: 'cpu' | 'mem'): SeriesEntry[] {
+  const result: SeriesEntry[] = [];
+  for (const [name, g] of latestGroupedProcs) {
+    // pushHist ran for every name in latestGroupedProcs during this same
+    // ingest, so its history entry always exists here.
+    const entry = map.get(name)!;
+    const vals = entry.values;
+    const avg = vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+    result.push({
+      name, color: entry.color,
+      values: padLeft(vals),
+      current: g[field],
+      avg: Math.round(avg * 10) / 10,
+      startedAtMs: g.startedAtMs,
+    });
+  }
+  return result;
 }
 
 export function getProcessData() {

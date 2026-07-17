@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Cpu, Gpu, MemoryStick, Network, List } from 'lucide-react';
+import { Cpu, Gpu, MemoryStick, Network, List, Radio } from 'lucide-react';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useNetworkMonitor, useAllNetworkSeries } from '../../../hooks/useNetworkMonitor';
 import { useAllProcesses, useGpuProcessFeed, useGpuProcessData } from '../../../hooks/useProcessMonitor';
@@ -119,8 +119,8 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
   // window isn't available/ready yet, and reconciled against the apps
   // window's own values below when both are.
   const liveItems: ProcessListItem[] = useMemo(() => {
-    const toItem = (s: { name: string; current: number; values: number[] }, secondary?: string): ProcessListItem => ({
-      name: s.name, current: s.current, values: s.values, secondary,
+    const toItem = (s: { name: string; current: number; values: number[]; startedAtMs?: number }, secondary?: string): ProcessListItem => ({
+      name: s.name, current: s.current, values: s.values, secondary, startedAtMs: s.startedAtMs,
     });
     switch (tab) {
       case 'cpu': return allCpuSeries.map(s => toItem(s));
@@ -252,6 +252,24 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
                   </button>
                 )}
                 {history.mocked && <Badge label={t('monitoring.history.mocked')} color="var(--warn)" />}
+                <div className={styles.liveControl}>
+                  <span
+                    className={`${styles.liveControlSlot} ${history.following ? '' : styles.liveControlHidden}`}
+                    aria-hidden={!history.following}
+                  >
+                    <Badge label={t('monitoring.history.live')} color="var(--good)" />
+                  </span>
+                  <button
+                    type="button"
+                    className={`${styles.backToLive} ${styles.liveControlSlot} ${history.following ? styles.liveControlHidden : ''}`}
+                    onClick={history.backToLive}
+                    tabIndex={history.following ? -1 : 0}
+                    aria-hidden={history.following}
+                  >
+                    <Radio size={12} aria-hidden />
+                    {t('monitoring.history.backToLive')}
+                  </button>
+                </div>
               </div>
             )}
             <MetricHistorySection

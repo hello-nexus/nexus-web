@@ -53,7 +53,7 @@ vi.mock('./page/ProcessListSection', async importOriginal => {
   };
 });
 
-let historyOverride: Partial<{ following: boolean; mocked: boolean }> = {};
+let historyOverride: Partial<{ following: boolean; mocked: boolean; backToLive: () => void }> = {};
 vi.mock('../../../hooks/useMetricHistory', () => ({
   useMetricHistory: () => ({
     silhouette: [], series: [],
@@ -296,6 +296,48 @@ describe('MonitoringPage', () => {
   it('shows no mocked badge when the data is real', () => {
     render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
     expect(screen.queryByText('monitoring.history.mocked')).toBeNull();
+  });
+
+  describe('live/back-to-live control in the title row (round 5 item 4: moved out of MetricHistorySection)', () => {
+    afterEach(() => {
+      historyOverride = {};
+    });
+
+    it('shows the Live badge inside the title row while following', () => {
+      historyOverride = { following: true };
+      render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+      const tabHeader = document.querySelector('[class*="tabHeader"]')!;
+      expect(tabHeader).toContainElement(screen.getByText('monitoring.history.live'));
+    });
+
+    it('shows a clickable back-to-live control inside the title row while detached, and it re-attaches on click', () => {
+      const backToLive = vi.fn();
+      historyOverride = { following: false, backToLive };
+      render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+      const tabHeader = document.querySelector('[class*="tabHeader"]')!;
+      const button = screen.getByText('monitoring.history.backToLive').closest('button')!;
+      expect(tabHeader).toContainElement(button);
+      fireEvent.click(button);
+      expect(backToLive).toHaveBeenCalled();
+    });
+
+    it('keeps both variants mounted with only the inactive one hidden (fixed footprint - no layout shift toggling)', () => {
+      historyOverride = { following: true };
+      const { rerender } = render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+
+      // Both texts exist in the DOM at all times - only visibility toggles.
+      expect(screen.getByText('monitoring.history.live')).toBeInTheDocument();
+      const backToLiveButton = screen.getByText('monitoring.history.backToLive').closest('button')!;
+      expect(backToLiveButton).toHaveAttribute('aria-hidden', 'true');
+      expect(backToLiveButton).toHaveAttribute('tabindex', '-1');
+
+      historyOverride = { following: false };
+      rerender(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+      expect(backToLiveButton).toHaveAttribute('aria-hidden', 'false');
+      expect(backToLiveButton).toHaveAttribute('tabindex', '0');
+      const liveBadgeSlot = screen.getByText('monitoring.history.live').closest('span[aria-hidden]');
+      expect(liveBadgeSlot).toHaveAttribute('aria-hidden', 'true');
+    });
   });
 
   it('shows the live fallback rows (not an empty list) while the window-scoped apps endpoint has not yet responded', () => {

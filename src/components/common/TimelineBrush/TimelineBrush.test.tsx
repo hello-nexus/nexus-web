@@ -235,6 +235,26 @@ describe('TimelineBrush', () => {
     });
   });
 
+  describe('window box shape (item R5-3: no vertical edge bars)', () => {
+    it('renders the window as the single rounded rect, with no separate edge-bar elements', () => {
+      const { container } = renderBrush(() => {});
+      expect(container.querySelectorAll('[class*="window"]').length).toBe(1);
+      // Only the track and the window box rects - no extra vertical bars at
+      // the window's left/right edges.
+      expect(container.querySelectorAll('svg rect').length).toBe(2);
+    });
+
+    it('still resizes via the left/right edge zones with no drawn edge element to grab', () => {
+      const onChange = vi.fn();
+      const { getByRole } = renderBrush(onChange);
+      const el = getByRole('slider');
+
+      fireEvent.pointerDown(el, { pointerId: 1, clientX: LANE + 400 });
+      fireEvent.pointerMove(el, { pointerId: 1, clientX: LANE + 500 });
+      expect(onChange).toHaveBeenLastCalledWith(20_000, 50_000, 'drag');
+    });
+  });
+
   describe('keyboard', () => {
     it('ArrowRight pans forward by 10% of the window', () => {
       const onChange = vi.fn();

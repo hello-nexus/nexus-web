@@ -1,10 +1,9 @@
 import { useMemo } from 'react';
-import { Radio, Thermometer, ZoomOut } from 'lucide-react';
+import { Thermometer, ZoomOut } from 'lucide-react';
 import { TimeSeriesChart } from '../../../../components/common/TimeSeriesChart/TimeSeriesChart';
 import { nearestPoint } from '../../../../components/common/TimeSeriesChart/timeSeriesChartUtils';
 import { TimelineBrush, TIMELINE_BRUSH_DEFAULT_HEIGHT } from '../../../../components/common/TimelineBrush/TimelineBrush';
 import { Select } from '../../../../components/common/Select/Select';
-import { Badge } from '../../../../components/common/Badge/Badge';
 import { Button } from '../../../../components/common/Button/Button';
 import { EmptyState } from '../../../../components/common/EmptyState/EmptyState';
 import type { GpuComponent } from '../../../../lib/gpuResolver';
@@ -22,7 +21,9 @@ import {
   GPU_TEMP_RIBBON_CAP_C,
   RANGE_OPTIONS,
   TEMP_RIBBON_FLOOR_C,
+  adaptivePercentYMax,
   formatBrushEdgeLabels,
+  maxAvgValue,
   nearestTempAt,
   pickGpuHistorySeries,
   sumSilhouette,
@@ -93,7 +94,17 @@ export function MetricHistorySection({ metric, gpuComponents, preferredGpuId, hi
     return nameOverride ? mapped.map(s => ({ ...s, name: nameOverride(s.id) })) : mapped;
   }, [resolved.main, colorFor, nameOverride]);
 
-  const yDomain: [number | null, number | null] = metric === 'network' ? [0, null] : [0, 100];
+  // Network auto-scales its own ceiling to the data ([0, null], unbounded
+  // rate); the percent metrics (cpu/gpu/memory) instead adapt to the
+  // currently-rendered window's own observed peak (item R5-2) rather than
+  // pinning the full 0-100 range, so a mostly-idle window isn't dwarfed by
+  // unused headroom - recomputed whenever the plotted series itself changes
+  // (scrubbing, live ticks), and quantized to a small step ladder so a tiny
+  // peak fluctuation doesn't wobble the axis.
+  const yDomain: [number | null, number | null] = useMemo(
+    () => (metric === 'network' ? [0, null] : [0, adaptivePercentYMax(maxAvgValue(chartSeries))]),
+    [metric, chartSeries],
+  );
   const valueFormat = useMemo(() => {
     if (metric === 'network') return (v: number) => formatRate(v, numberFormat);
     return (v: number) => localizeNumbers(`${Math.round(v)}%`, numberFormat);
@@ -189,16 +200,6 @@ export function MetricHistorySection({ metric, gpuComponents, preferredGpuId, hi
         <div className={styles.skeleton} style={{ height: CHART_HEIGHT }} />
       ) : (
         <>
-          <div className={styles.liveRow}>
-            {history.following ? (
-              <Badge label={t('monitoring.history.live')} color="var(--good)" />
-            ) : (
-              <button type="button" className={styles.backToLive} onClick={history.backToLive}>
-                <Radio size={12} aria-hidden />
-                {t('monitoring.history.backToLive')}
-              </button>
-            )}
-          </div>
           <TimeSeriesChart
             series={chartSeries}
             height={CHART_HEIGHT}

@@ -13,6 +13,8 @@ export interface MonitoringProcessEntry {
   name: string;
   cpuPercent: number;
   memoryMb: number;
+  /** Process creation time, UTC epoch ms; undefined when unavailable. */
+  startedAtMs?: number;
 }
 
 export interface MonitoringProcesses {

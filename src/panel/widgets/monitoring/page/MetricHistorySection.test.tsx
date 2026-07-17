@@ -87,39 +87,11 @@ describe('MetricHistorySection', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('shows the Live badge while following', () => {
-    stubGeometry();
-    renderSection({ history: { following: true } });
-    expect(screen.getByText('monitoring.history.live')).toBeInTheDocument();
-  });
-
-  it('renders the live control in its own row above the chart, not overlaid on the plot (item 40)', () => {
-    stubGeometry();
-    const { container } = renderSection({ history: { following: true } });
-    expect(container.querySelector('[class*="liveOverlay"]')).toBeNull();
-    expect(container.querySelector('[class*="chartOverlayWrap"]')).toBeNull();
-    const liveRow = container.querySelector('[class*="liveRow"]');
-    expect(liveRow).toBeInTheDocument();
-    expect(liveRow).toContainElement(screen.getByText('monitoring.history.live'));
-    // Precedes the chart's own svg in document order (above it, not inside it).
-    const svg = container.querySelector('svg')!;
-    expect(liveRow!.compareDocumentPosition(svg) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  });
-
   it('sizes the range Select to match the seek-bar block\'s height exactly (item 38)', () => {
     stubGeometry();
     renderSection({ history: { rangeKey: '3h' } });
     const trigger = screen.getByRole('button', { name: 'monitoring.history.rangeAriaLabel' });
     expect(trigger).toHaveStyle({ height: '40px' });
-  });
-
-  it('shows a clickable "back to live" control instead of the badge while detached, and it re-attaches on click', () => {
-    stubGeometry();
-    const backToLive = vi.fn();
-    renderSection({ history: { following: false, backToLive } });
-    expect(screen.queryByText('monitoring.history.live')).toBeNull();
-    fireEvent.click(screen.getByText('monitoring.history.backToLive'));
-    expect(backToLive).toHaveBeenCalled();
   });
 
   it('shows an error state with a retry action that calls retry()', () => {

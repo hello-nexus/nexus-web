@@ -40,6 +40,17 @@ describe('compareItems', () => {
     expect(compareItems(item('a', 90), item('b', 1, 500), 'recent')).toBeGreaterThan(0);
     expect(compareItems(item('a', 90), item('b', 1), 'recent')).toBeLessThan(0);
   });
+
+  it('recent sort breaks a tied startedAtMs by name, never leaving it undefined-ordered', () => {
+    expect(compareItems(item('b', 0, 1000), item('a', 0, 1000), 'recent')).toBeGreaterThan(0);
+    expect(compareItems(item('a', 0, 1000), item('b', 0, 1000), 'recent')).toBeLessThan(0);
+  });
+
+  it('usage sort breaks a tied current value by name (round 5: idle rows must not swap tick to tick)', () => {
+    expect(compareItems(item('b', 0), item('a', 0), 'usage')).toBeGreaterThan(0);
+    expect(compareItems(item('a', 0), item('b', 0), 'usage')).toBeLessThan(0);
+    expect(compareItems(item('a', 0), item('a', 0), 'usage')).toBe(0);
+  });
 });
 
 describe('updateRanking - order stability', () => {
@@ -124,6 +135,42 @@ describe('updateRanking - order stability', () => {
   it('renderedItems maps the order back onto the tracked items', () => {
     const state = updateRanking(initRankState<Item>(), [item('a', 90), item('b', 40)], 0, 'usage', RESET);
     expect(renderedItems(state).map(i => i.name)).toEqual(['a', 'b']);
+  });
+
+  describe('recent sort is frozen when nothing launches (round 5 acceptance test)', () => {
+    // startedAtMs is immutable per process - the recent-sort order must not
+    // move a single row across any number of ticks unless a process actually
+    // starts or exits. current is randomized every tick (usage jitter must
+    // never leak into a recency-sorted position).
+    function launched(name: string, startedAtMs: number): Item {
+      return { name, current: 0, values: [0], startedAtMs };
+    }
+
+    it('holds byte-identical order across many ticks of pure value churn', () => {
+      const initial = [
+        launched('a', 5000), launched('b', 4000), launched('c', 3000),
+        launched('d', 2000), launched('e', 1000),
+      ];
+      let state = updateRanking(initRankState<Item>(), initial, 0, 'recent', RESET);
+      const expected = names(state);
+      expect(expected).toEqual(['a', 'b', 'c', 'd', 'e']);
+
+      for (let tick = 1; tick <= 30; tick++) {
+        const churned = initial.map(i => ({ ...i, current: Math.random() * 100 }));
+        state = updateRanking(state, churned, tick, 'recent', OPTS);
+        expect(names(state)).toEqual(expected);
+      }
+    });
+
+    it('a newly-launched process inserts at its recency position without moving any existing row', () => {
+      const initial = [launched('old1', 5000), launched('old2', 3000)];
+      let state = updateRanking(initRankState<Item>(), initial, 0, 'recent', RESET);
+      expect(names(state)).toEqual(['old1', 'old2']);
+
+      // Newest launch (highest startedAtMs) - must land first, existing rows untouched.
+      state = updateRanking(state, [...initial, launched('newest', 9000)], 1, 'recent', OPTS);
+      expect(names(state)).toEqual(['newest', 'old1', 'old2']);
+    });
   });
 
   describe('performance at scale (item 37: full process list, no top-N wire cap)', () => {

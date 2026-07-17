@@ -57,31 +57,6 @@
   min-width: 0;
 }
 
-// Sits above the chart's own drawing area, right-aligned - the live/
-// back-to-live control never overlays the plot.
-.liveRow {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.backToLive {
-  @include text-caption;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  color: var(--good);
-  background: color-mix(in srgb, var(--good) 14%, transparent);
-  border: var(--border-width) solid transparent;
-  border-radius: var(--radius-pill);
-  padding: 0.15rem 0.55rem;
-  cursor: pointer;
-  transition: border-color var(--ease-fast) ease;
-
-  &:hover {
-    border-color: var(--good);
-  }
-}
-
 .tooltipCustom {
   display: flex;
   flex-direction: column;

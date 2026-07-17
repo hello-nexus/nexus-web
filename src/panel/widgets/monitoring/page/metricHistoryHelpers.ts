@@ -269,6 +269,47 @@ export function toHistoryChartSeries(series: readonly MetricHistorySeries[], col
   }));
 }
 
+/** The largest plotted (avg) value across every series/point - matches what
+ *  TimeSeriesChart's own line actually draws (its y-scale is avg-only, see
+ *  timeSeriesChartUtils.valueDomain), so the adaptive axis below sizes
+ *  itself around what's visibly on screen, not the tooltip-only max stat. */
+export function maxAvgValue(series: readonly TimeSeriesSeries[]): number {
+  let max = 0;
+  for (const s of series) {
+    for (const p of s.points) {
+      if (p.avg > max) max = p.avg;
+    }
+  }
+  return max;
+}
+
+// Round, human-legible ceilings for a 0-100 percent axis (cpu/gpu/memory) -
+// deliberately coarser than niceTicks' generic 1/2/5 ladder so the axis
+// reads as one of these five familiar marks instead of an arbitrary number.
+const PERCENT_Y_MAX_STEPS = [10, 20, 25, 50, 100];
+
+// Headroom above the window's own observed peak (item R5-2), so the plotted
+// line never touches the very top of the chart.
+const PERCENT_Y_HEADROOM = 1.15;
+
+/**
+ * Adaptive y-axis ceiling for a 0-100 percent metric (item R5-2): the
+ * window's own observed peak (see maxAvgValue) with headroom, snapped UP to
+ * the nearest PERCENT_Y_MAX_STEPS mark - never below that ladder's own
+ * floor (10), so a flat idle line doesn't fill the whole chart height as
+ * noise, and never above 100, since a percent metric can't exceed it. The
+ * ceiling selection (not nearest, not rounded down) guarantees the axis
+ * always clears the padded peak, so quantizing to a round mark never clips
+ * the line it was sized around.
+ */
+export function adaptivePercentYMax(windowMaxPercent: number): number {
+  const target = Math.max(0, windowMaxPercent) * PERCENT_Y_HEADROOM;
+  for (const step of PERCENT_Y_MAX_STEPS) {
+    if (target <= step) return step;
+  }
+  return 100;
+}
+
 // TempRibbon's absolute thickness scale (item 31): near-zero thickness at
 // the floor, full thickness at the per-kind cap - a fixed real-world range
 // instead of the window's own min/max, so the ribbon reads the same way

@@ -8,6 +8,9 @@ export interface SeriesEntry {
   values: number[];
   current: number;
   avg: number;
+  /** Process creation time, UTC epoch ms; undefined when unavailable or the
+   *  source (network/GPU feeds) carries no launch-time attribution. */
+  startedAtMs?: number;
 }
 
 export interface GpuProcess { name: string; gpuPercent: number; dedicatedMb: number; adapterLuid: string; }

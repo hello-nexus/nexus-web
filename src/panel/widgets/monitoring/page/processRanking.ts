@@ -18,18 +18,24 @@ export interface RankableItem {
 export type SortMode = 'recent' | 'usage' | 'name';
 
 /** Total order for the process list's sort modes. 'recent' ranks by
- *  startedAtMs (most recently launched first); a pair where either side
- *  lacks it falls back to the usage comparison, so a source that doesn't
- *  report launch times (or a fallback-sourced row) falls back to the usage
- *  order instead of a broken partial sort. */
+ *  startedAtMs (most recently launched first, tied launch times broken by
+ *  name); a pair where either side lacks it falls back to the usage
+ *  comparison, so a source that doesn't report launch times (or a
+ *  fallback-sourced row) falls back to the usage order instead of a broken
+ *  partial sort. Both fallbacks break their own ties by name, so identical
+ *  values never swap order from one call to the next based on incoming
+ *  array order alone - the only way an item's position can change under
+ *  'recent' is a real startedAtMs change, i.e. a process actually starting. */
 export function compareItems(a: RankableItem, b: RankableItem, sort: SortMode): number {
   if (sort === 'name') return a.name.localeCompare(b.name);
   if (sort === 'recent') {
-    if (a.startedAtMs !== undefined && b.startedAtMs !== undefined) return b.startedAtMs - a.startedAtMs;
+    if (a.startedAtMs !== undefined && b.startedAtMs !== undefined) {
+      return (b.startedAtMs - a.startedAtMs) || a.name.localeCompare(b.name);
+    }
     if (a.startedAtMs !== undefined) return -1;
     if (b.startedAtMs !== undefined) return 1;
   }
-  return b.current - a.current;
+  return b.current - a.current || a.name.localeCompare(b.name);
 }
 
 interface TrackedEntry<T> {

@@ -294,8 +294,6 @@ export function TimelineBrush({
           rx={WINDOW_CORNER_RADIUS_PX}
           ry={WINDOW_CORNER_RADIUS_PX}
         />
-        <rect className={styles.edge} x={fromPx - 1} y={0} width={2} height={height} />
-        <rect className={styles.edge} x={toPx - 1} y={0} width={2} height={height} />
       </svg>
       {formatEdgeLabels && width > 0 && (
         <>

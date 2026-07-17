@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
   RANGE_OPTIONS,
+  adaptivePercentYMax,
   appsSeriesParamFor,
   defaultBoxWidthMs,
   formatBrushEdgeLabels,
   initViewport,
+  maxAvgValue,
   nearestTempAt,
   pickGpuHistorySeries,
   rangeKeyForWindow,
@@ -323,6 +325,57 @@ describe('xTickFormatForWindow', () => {
   it('uses month+day format for a window at or over a week', () => {
     const t = new Date('2026-07-08T14:32:00Z').getTime();
     expect(xTickFormatForWindow(7 * DAY)(t)).toContain('Jul');
+  });
+});
+
+describe('maxAvgValue', () => {
+  it('returns the largest avg across every series and point', () => {
+    const s = [
+      series('a', [{ t: 0, avg: 10, max: 15 }, { t: 1000, avg: 30, max: 99 }]),
+      series('b', [{ t: 0, avg: 5, max: 5 }]),
+    ];
+    expect(maxAvgValue(s)).toBe(30);
+  });
+
+  it('ignores max/only looks at avg (matches what the chart line actually draws)', () => {
+    const s = [series('a', [{ t: 0, avg: 1, max: 500 }])];
+    expect(maxAvgValue(s)).toBe(1);
+  });
+
+  it('returns 0 for no series or all-empty series', () => {
+    expect(maxAvgValue([])).toBe(0);
+    expect(maxAvgValue([series('a', [])])).toBe(0);
+  });
+});
+
+describe('adaptivePercentYMax (item R5-2: adaptive y axis)', () => {
+  it('never scales below the ladder floor (10) for an idle/flat window', () => {
+    expect(adaptivePercentYMax(0)).toBe(10);
+    expect(adaptivePercentYMax(3)).toBe(10);
+  });
+
+  it('snaps up to a round step comfortably above a moderate peak, never clipping it', () => {
+    const yMax = adaptivePercentYMax(18);
+    expect(yMax).toBeGreaterThan(18);
+    expect([10, 20, 25, 50, 100]).toContain(yMax);
+  });
+
+  it('never exceeds 100 (a percent metric can\'t peak above it)', () => {
+    expect(adaptivePercentYMax(90)).toBe(100);
+    expect(adaptivePercentYMax(100)).toBe(100);
+  });
+
+  it('the result never sits below the raw peak (100 is the one boundary where there is no more headroom to give)', () => {
+    for (const peak of [0, 1, 9, 10, 11, 19, 20, 21, 24, 25, 26, 49, 50, 51, 80, 99]) {
+      expect(adaptivePercentYMax(peak)).toBeGreaterThan(peak);
+    }
+    expect(adaptivePercentYMax(100)).toBeGreaterThanOrEqual(100);
+  });
+
+  it('only moves between the fixed ladder marks - never an arbitrary value', () => {
+    for (const peak of [0, 5, 12, 18, 22, 30, 44, 60, 85]) {
+      expect([10, 20, 25, 50, 100]).toContain(adaptivePercentYMax(peak));
+    }
   });
 });
 

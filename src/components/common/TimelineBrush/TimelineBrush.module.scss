@@ -39,11 +39,6 @@
   pointer-events: none;
 }
 
-.edge {
-  fill: var(--accent);
-  pointer-events: none;
-}
-
 // Docked inside the block's own label lanes (LABEL_LANE_PX in the
 // component), clear of the track's drawn silhouette/window - never
 // overlapping the visuals.
