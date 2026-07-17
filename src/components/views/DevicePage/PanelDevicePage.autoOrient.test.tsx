@@ -20,7 +20,6 @@ vi.mock('../../../api/displays', () => ({
   fetchDisplays: vi.fn().mockResolvedValue({ displays: [] }),
   fetchDisplayTopology: (...a: unknown[]) => fetchDisplayTopologyMock(...a),
   fetchXeneonEdgeSettings: vi.fn().mockResolvedValue(null),
-  restoreXeneonEdgeDefaults: vi.fn().mockResolvedValue(null),
   rotateDisplay: vi.fn().mockResolvedValue(null),
   setDisplayBrightness: vi.fn().mockResolvedValue(null),
   setXeneonEdgeSettings: vi.fn().mockResolvedValue(null),

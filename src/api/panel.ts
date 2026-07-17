@@ -162,10 +162,16 @@ export const fetchPanelDevices = () =>
 export const patchPanelDevice = (id: string, patch: PanelDevicePatch) =>
   postService<PanelDeviceRecord>(`/panel/devices/${encodeURIComponent(id)}`, patch);
 
-// Per-device factory reset: clears the record's layout/theme/widget state
+// Personalization reset: clears the record's layout/theme/widget state
 // (defaults reseed on the next read) and deletes its uploaded media.
 export const resetPanelDevice = (id: string) =>
   postService<PanelDeviceRecord>(`/panel/devices/${encodeURIComponent(id)}/reset`, {});
+
+// Hardware-settings reset: restores the Settings-tab defaults and applies
+// them to the hardware (brightness/orientation/screen, Xeneon DDC picture
+// values, monitor behavior). Personalization is untouched.
+export const resetPanelDeviceHardware = (id: string) =>
+  postService<PanelDeviceRecord>(`/panel/devices/${encodeURIComponent(id)}/reset-hardware`, {});
 
 export type PanelDeviceFetchResult =
   | { found: true; record: PanelDeviceRecord }
