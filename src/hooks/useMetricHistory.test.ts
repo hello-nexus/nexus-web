@@ -61,7 +61,7 @@ describe('useMetricHistory', () => {
     expect(calls.length).toBeGreaterThanOrEqual(2);
   });
 
-  it('debounces the viewport (box) fetch while dragging, firing once after 200ms with the latest window', async () => {
+  it('debounces the viewport (box) fetch while dragging, firing once after the trailing debounce with the latest window', async () => {
     const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
     await advance(0);
     fetchMock.mockClear();
@@ -428,5 +428,60 @@ describe('useMetricHistory', () => {
     // Dropped - the fresher viewport refresh invalidated it, so it never
     // appends the older point after the newer one.
     expect(result.current.series.find(s => s.id === 'cpu')?.points).toEqual([{ t: NOW + 5_000, avg: 90, max: 92 }]);
+  });
+
+  it('exposes the viewport response\'s stepSeconds', async () => {
+    fetchMock.mockResolvedValue({ data: { ...emptyResp(), stepSeconds: 30 }, mocked: false, unsupported: false });
+    const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
+    await advance(0);
+    expect(result.current.stepSeconds).toBe(30);
+  });
+
+  it('viewportGeneration bumps on a real navigation action but not on a live-follow tick', async () => {
+    const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
+    await advance(0);
+    const gen0 = result.current.viewportGeneration;
+
+    await advance(1_000);
+    expect(result.current.viewportGeneration).toBe(gen0);
+
+    act(() => { result.current.setRange('3h'); });
+    await advance(0);
+    expect(result.current.viewportGeneration).toBeGreaterThan(gen0);
+  });
+
+  it('renders instantly from cache on an exact-key revisit while the revalidating fetch is in flight', async () => {
+    fetchMock.mockResolvedValue({ data: resp('cpu', [{ t: NOW - 4 * HOUR, avg: 42, max: 42 }]), mocked: false, unsupported: false });
+    const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
+    await advance(0);
+    act(() => { result.current.onBrushChange(NOW - 5 * HOUR, NOW - 4 * HOUR, 'end'); });
+    await advance(0);
+    expect(result.current.series.find(s => s.id === 'cpu')?.points).toEqual([{ t: NOW - 4 * HOUR, avg: 42, max: 42 }]);
+
+    // Scrub away, then back to the exact same window - a slow/never-resolving
+    // fetch for the revisit must not blank the chart: the cached response
+    // from the first visit renders immediately.
+    const pending = deferred<{ data: MetricHistoryResponse | null; mocked: boolean; unsupported: boolean }>();
+    act(() => { result.current.onBrushChange(NOW - 8 * HOUR, NOW - 7 * HOUR, 'end'); });
+    await advance(0);
+    fetchMock.mockImplementationOnce(() => pending.promise);
+    act(() => { result.current.onBrushChange(NOW - 5 * HOUR, NOW - 4 * HOUR, 'end'); });
+    // The debounced viewport effect's own (0-delay) timer runs the interim
+    // cache-render synchronously before it awaits the now-pending fetch.
+    await advance(0);
+
+    expect(result.current.series.find(s => s.id === 'cpu')?.points).toEqual([{ t: NOW - 4 * HOUR, avg: 42, max: 42 }]);
+  });
+
+  it('idle-prefetches the same-width left-neighbor window after the viewport settles', async () => {
+    const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
+    await advance(0);
+    act(() => { result.current.onBrushChange(NOW - 5 * HOUR, NOW - 4 * HOUR, 'end'); });
+    await advance(0);
+    fetchMock.mockClear();
+
+    await advance(3_500);
+
+    expect(fetchMock).toHaveBeenCalledWith(expect.objectContaining({ from: NOW - 6 * HOUR, to: NOW - 5 * HOUR }));
   });
 });

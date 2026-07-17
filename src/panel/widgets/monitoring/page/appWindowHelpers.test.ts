@@ -75,7 +75,7 @@ describe('appsToProcessListItems', () => {
       { name: 'chrome.exe', startedAtMs: 500, avg: 12.3, max: 20, points: [{ t: 0, avg: 10 }, { t: 1000, avg: 14 }] },
     ];
     expect(appsToProcessListItems(apps)).toEqual([
-      { name: 'chrome.exe', color: 'var(--accent)', current: 12.3, values: [10, 14], startedAtMs: 500 },
+      { name: 'chrome.exe', current: 12.3, values: [10, 14], startedAtMs: 500 },
     ]);
   });
 

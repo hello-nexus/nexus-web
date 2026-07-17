@@ -181,4 +181,38 @@ describe('formatTooltipTimestamp', () => {
     const en = formatTooltipTimestamp(t, nowMs, 'en-US');
     expect(de).not.toBe(en);
   });
+
+  // Local-time constructors (not UTC ISO strings) so the same-day/
+  // different-day boundary is independent of the test runner's timezone,
+  // matching the getFullYear/getMonth/getDate (local) getters the
+  // implementation itself uses - same approach as formatBrushEdgeLabels'
+  // own tests in metricHistoryHelpers.test.ts.
+  const sameDayNowMs = new Date(2026, 6, 8, 12, 0, 0).getTime();
+
+  it('omits the date entirely when the timestamp falls on the same calendar day as now', () => {
+    const t = new Date(2026, 6, 8, 9, 15, 0).getTime();
+    const formatted = formatTooltipTimestamp(t, sameDayNowMs, 'en-US');
+    expect(formatted).not.toMatch(/Jul/);
+    expect(formatted).toMatch(/\d{1,2}:\d{2}/);
+  });
+
+  it('shows the date when the timestamp falls on a different calendar day than now, even within the same week', () => {
+    const t = new Date(2026, 6, 7, 9, 15, 0).getTime();
+    expect(formatTooltipTimestamp(t, sameDayNowMs, 'en-US')).toMatch(/Jul/);
+  });
+
+  it('omits seconds by default (no stepSeconds supplied)', () => {
+    const t = new Date(2026, 6, 8, 14, 32, 15).getTime();
+    expect(formatTooltipTimestamp(t, sameDayNowMs, 'en-US')).not.toMatch(/:\d{2}:\d{2}/);
+  });
+
+  it('omits seconds when stepSeconds is 60 or coarser', () => {
+    const t = new Date(2026, 6, 8, 14, 32, 15).getTime();
+    expect(formatTooltipTimestamp(t, sameDayNowMs, 'en-US', 60)).not.toMatch(/:\d{2}:\d{2}/);
+  });
+
+  it('includes seconds when stepSeconds is sub-minute', () => {
+    const t = new Date(2026, 6, 8, 14, 32, 15).getTime();
+    expect(formatTooltipTimestamp(t, sameDayNowMs, 'en-US', 1)).toMatch(/:\d{2}:\d{2}/);
+  });
 });

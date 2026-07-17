@@ -47,12 +47,11 @@ export function topAppsAtHover(apps: readonly AppWindowSeries[], hoverT: number,
 
 /** Maps a window-scoped apps response onto ProcessListSection's row shape -
  *  current = the window average, values = the window's own point series (so
- *  the sparkline's x-range is the chart window), color uniform (accent-only,
- *  per the monitoring redesign - rows disambiguate by name, not color). */
+ *  the sparkline's x-range is the chart window). Rows disambiguate by name
+ *  and icon only - no per-app color, per the monitoring redesign. */
 export function appsToProcessListItems(apps: readonly AppWindowSeries[]): ProcessListItem[] {
   return apps.map(app => ({
     name: app.name,
-    color: 'var(--accent)',
     current: app.avg,
     values: app.points.map(p => p.avg),
     startedAtMs: app.startedAtMs,

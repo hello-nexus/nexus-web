@@ -69,6 +69,11 @@ export interface TimeSeriesChartProps {
    *  reports its [from, to] on release (ascending order), Escape cancels
    *  mid-drag. Omit to leave the chart click/drag-inert (its default). */
   onRangeSelect?: (from: number, to: number) => void;
+  /** The data's actual effective point spacing in seconds (e.g. the
+   *  service's reported stepSeconds), when known - drives whether the hover
+   *  tooltip's time label includes seconds precision. Omit when unknown;
+   *  the tooltip then stays minute-precision regardless of zoom. */
+  stepSeconds?: number | null;
 }
 
 // A pointer must move at least this many px before a drag counts as a
@@ -83,7 +88,7 @@ export const CHART_PAD = { left: 56, right: 16, top: 12, bottom: 28 };
 export function TimeSeriesChart({
   series, height = 260, valueFormat, xTickFormat, xTickCount = 5, yTickCount = 5,
   avgLabel, maxLabel, bands, showLegend = true, domain, tooltipExtra, yDomain,
-  fillGradient = false, hideSeriesRows = false, onRangeSelect,
+  fillGradient = false, hideSeriesRows = false, onRangeSelect, stepSeconds,
 }: TimeSeriesChartProps) {
   const { t, language } = useTranslation();
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -375,7 +380,7 @@ export function TimeSeriesChart({
 
       {tooltip && !isDragging && (
         <div ref={tooltipRef} className={styles.tooltip}>
-          <div className={styles.tooltipHeader}>{formatTooltipTimestamp(tooltip.t, nowMs, language)}</div>
+          <div className={styles.tooltipHeader}>{formatTooltipTimestamp(tooltip.t, nowMs, language, stepSeconds)}</div>
           {!hideSeriesRows && tooltip.rows.map(row => (
             <div key={row.id} className={styles.tooltipRow}>
               <span className={styles.tooltipDot} style={{ background: row.color }} />

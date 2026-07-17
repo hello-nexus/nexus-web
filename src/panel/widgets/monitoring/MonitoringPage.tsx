@@ -113,9 +113,8 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
   // working, just without window-scoping (see useMetricHistoryApps's own
   // contract note).
   const fallbackItems: ProcessListItem[] = useMemo(() => {
-    const toItem = (s: { name: string; color: string; current: number; values: number[] }, secondary?: string): ProcessListItem => ({
+    const toItem = (s: { name: string; current: number; values: number[] }, secondary?: string): ProcessListItem => ({
       name: s.name === 'Other' ? t('monitoring.other') : s.name,
-      color: s.color,
       current: s.current,
       values: s.values,
       secondary,
@@ -140,10 +139,19 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
   // the current metric is still in flight (appsWindow.ready), so a metric
   // switch shows the new metric's live rows immediately instead of an empty
   // list for the debounce/fetch round trip.
+  const usingAppsWindow = appsWindow.supported && appsWindow.ready;
   const processItems = useMemo(
-    () => (appsWindow.supported && appsWindow.ready ? appsToProcessListItems(appsWindow.apps) : fallbackItems),
-    [appsWindow.supported, appsWindow.ready, appsWindow.apps, fallbackItems],
+    () => (usingAppsWindow ? appsToProcessListItems(appsWindow.apps) : fallbackItems),
+    [usingAppsWindow, appsWindow.apps, fallbackItems],
   );
+
+  // Full re-rank trigger for ProcessListSection's stable ordering: the
+  // active metric, whether the list is currently apps-window- or
+  // fallback-sourced, and a real (non-tick) viewport change - NOT a live
+  // tick slide or a routine periodic refresh of the same window, both of
+  // which the ranking's own grace/stability handling already absorbs
+  // without visibly reordering rows.
+  const rankResetKey = `${tab}:${usingAppsWindow ? 'apps' : 'fallback'}:${history.viewportGeneration}`;
 
   const formatValue = useMemo(() => {
     switch (tab) {
@@ -205,7 +213,7 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
               history={history}
               appsWindow={appsWindow}
             />
-            <ProcessListSection items={processItems} formatValue={formatValue} />
+            <ProcessListSection items={processItems} formatValue={formatValue} rankResetKey={rankResetKey} />
           </>
         )}
       </div>
