@@ -151,6 +151,23 @@ export function viewportReducer(state: ViewportState, action: ViewportAction): V
       };
     }
     case 'brushChange': {
+      // A detached strip only slides on a live 'tick' (following===true), so
+      // it's frozen at whatever stripTo was when the user detached - as real
+      // time keeps advancing, `action.now` grows past that frozen edge and
+      // `to >= action.now` can never trigger again, even after the user
+      // drags/resizes/keys the box back to what TimelineBrush's own
+      // SNAP_PX visually presents as "the live edge" (stripTo). Treat that
+      // as reattach intent instead: re-anchor the whole viewport to now.
+      if (action.to >= state.stripTo) {
+        const boxWidth = action.to - action.from;
+        const stripWidth = state.stripTo - state.stripFrom;
+        return {
+          ...state,
+          from: action.now - boxWidth, to: action.now,
+          stripFrom: action.now - stripWidth, stripTo: action.now,
+          following: true,
+        };
+      }
       const following = action.to >= action.now;
       const to = following ? action.now : action.to;
       return { ...state, from: action.from, to, following };
@@ -193,11 +210,20 @@ export function viewportReducer(state: ViewportState, action: ViewportAction): V
     case 'retentionClamp': {
       const floor = action.now - action.retentionMs;
       if (state.stripFrom >= floor) return state;
+      // A detached box can sit entirely below floor (its `to` as well as its
+      // `from`) - clamping `from` alone while leaving `to` untouched would
+      // then invert the domain. clampSpanShift moves the whole box up to
+      // the floor, preserving its width. `ceiling` guards the (pathological)
+      // case where the strip's own `stripTo` already sits below floor, which
+      // would otherwise hand clampSpanShift a ceiling under its floor.
+      const ceiling = Math.max(state.stripTo, floor);
+      const [boxFrom, boxTo] = clampSpanShift(state.from, state.to, floor, ceiling);
       return {
         ...state,
         stripFrom: floor,
-        from: Math.max(state.from, floor),
-        rangeKey: rangeKeyForWindow(action.now - floor),
+        from: boxFrom,
+        to: boxTo,
+        rangeKey: rangeKeyForWindow(ceiling - floor),
       };
     }
     case 'backToLive': {

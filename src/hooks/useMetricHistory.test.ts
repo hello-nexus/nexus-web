@@ -450,6 +450,25 @@ describe('useMetricHistory', () => {
     expect(result.current.viewportGeneration).toBeGreaterThan(gen0);
   });
 
+  it('viewportGeneration is not bumped by the 60s redecimate timer while idly watching live', async () => {
+    const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
+    await advance(0);
+    const gen0 = result.current.viewportGeneration;
+
+    // The redecimate timer bumps the internal fetch-retry counter every 60s
+    // regardless of navigation - viewportGeneration must stay untouched by
+    // it, or a caller keyed on it (e.g. the process list's rank-stability
+    // reset trigger) would force a full re-rank every 60s while the user is
+    // just watching, not navigating.
+    await advance(60_000);
+    await advance(0);
+    expect(result.current.viewportGeneration).toBe(gen0);
+
+    act(() => { result.current.retry(); });
+    await advance(0);
+    expect(result.current.viewportGeneration).toBeGreaterThan(gen0);
+  });
+
   it('renders instantly from cache on an exact-key revisit while the revalidating fetch is in flight', async () => {
     fetchMock.mockResolvedValue({ data: resp('cpu', [{ t: NOW - 4 * HOUR, avg: 42, max: 42 }]), mocked: false, unsupported: false });
     const { result } = renderHook(() => useMetricHistory(true, 'cpu'));

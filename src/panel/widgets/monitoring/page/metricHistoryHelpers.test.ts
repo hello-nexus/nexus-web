@@ -143,6 +143,33 @@ describe('viewportReducer', () => {
     expect(next.rangeKey).toBe('3h');
   });
 
+  it('brushChange reattaches when dragged to the strip\'s own (frozen, stale) right edge, not just the live now', () => {
+    // A detached strip only slides on a live tick, so it freezes at
+    // whatever stripTo was at the moment of detach. Real time (`now`) keeps
+    // advancing past it - TimelineBrush's own edge-snap makes a right-edge
+    // drag land exactly on that frozen stripTo, not on the (by then later)
+    // live edge, so `to >= now` alone would never reattach again.
+    const staleStripTo = now - 5_000;
+    const detached: ViewportState = {
+      from: now - 3 * HOUR - 5_000, to: now - HOUR - 5_000,
+      stripFrom: now - 6 * HOUR - 5_000, stripTo: staleStripTo,
+      rangeKey: '3h', lastPresetKey: '3h', following: false,
+    };
+    const next = viewportReducer(detached, { type: 'brushChange', from: staleStripTo - HOUR, to: staleStripTo, now });
+    expect(next.following).toBe(true);
+    expect(next.to).toBe(now);
+    expect(next.to - next.from).toBe(HOUR);
+    expect(next.stripTo).toBe(now);
+    expect(next.stripTo - next.stripFrom).toBe(6 * HOUR);
+  });
+
+  it('brushChange does not reattach for a box short of the strip edge', () => {
+    const detached: ViewportState = { ...base, from: now - 3 * HOUR, to: now - HOUR, following: false };
+    const next = viewportReducer(detached, { type: 'brushChange', from: now - 2 * HOUR, to: now - MINUTE, now });
+    expect(next.following).toBe(false);
+    expect(next.to).toBe(now - MINUTE);
+  });
+
   it('chartDragSelect sets the box to the exact selection, goes custom, and re-derives a 3x centered strip', () => {
     const selFrom = now - 90 * MINUTE;
     const selTo = now - 60 * MINUTE;
@@ -222,7 +249,10 @@ describe('viewportReducer', () => {
     expect(viewportReducer(withinRetention, { type: 'retentionClamp', retentionMs: 7 * DAY, now })).toBe(withinRetention);
   });
 
-  it('retentionClamp also pulls a box that would otherwise fall outside the clamped strip', () => {
+  it('retentionClamp shifts a box entirely below the floor up to it, preserving width instead of inverting the domain', () => {
+    // Both from AND to sit below the retention floor here (floor = now -
+    // 7d) - clamping `from` alone while leaving `to` at now - 7.5d would
+    // produce from > to.
     const wide: ViewportState = {
       from: now - 8 * DAY, to: now - 7.5 * DAY,
       stripFrom: now - 10 * DAY, stripTo: now,
@@ -230,6 +260,26 @@ describe('viewportReducer', () => {
     };
     const clamped = viewportReducer(wide, { type: 'retentionClamp', retentionMs: 7 * DAY, now });
     expect(clamped.from).toBe(now - 7 * DAY);
+    expect(clamped.to).toBe(now - 6.5 * DAY);
+    expect(clamped.from).toBeLessThan(clamped.to);
+    expect(clamped.to - clamped.from).toBe(wide.to - wide.from);
+    expect(clamped.rangeKey).toBe('7d');
+  });
+
+  it('retentionClamp derives rangeKey from the clamped strip width, not the raw retention width', () => {
+    // A detached strip frozen 1 day in the past (stripTo = now - 1d) clamped
+    // against a 7d retention: the clamped strip only spans 6d (now-1d minus
+    // the floor at now-7d), not the full 7d retention window - rangeKey
+    // must reflect that narrower span (no matching preset -> 'custom'), not
+    // rangeKeyForWindow(retentionMs) which would wrongly report '7d'.
+    const detachedOld: ViewportState = {
+      from: now - 8 * DAY - HOUR, to: now - 8 * DAY,
+      stripFrom: now - 11 * DAY, stripTo: now - DAY,
+      rangeKey: 'custom', lastPresetKey: '7d', following: false,
+    };
+    const clamped = viewportReducer(detachedOld, { type: 'retentionClamp', retentionMs: 7 * DAY, now });
+    expect(clamped.stripFrom).toBe(now - 7 * DAY);
+    expect(clamped.rangeKey).toBe('custom');
   });
 
   it('backToLive re-anchors both box and strip to now, preserving their current widths and rangeKey', () => {

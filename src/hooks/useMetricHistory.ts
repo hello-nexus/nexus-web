@@ -59,13 +59,15 @@ export interface UseMetricHistoryResult {
    *  lands. Drives the hover tooltip's time-label granularity (seconds
    *  appear once the effective step is sub-minute). */
   stepSeconds: number | null;
-  /** Bumped on every real (non-tick) viewport change - a preset pick, a
-   *  brush drag/resize, a chart drag-select, or backToLive - but NOT on a
-   *  live-follow tick sliding the same window, nor on a routine periodic
-   *  refresh of the same window. A caller that needs to know "the window
-   *  the user is looking at meaningfully changed" (e.g. the process list's
-   *  rank-stability reset trigger) reads this instead of `domain`, whose
-   *  reference changes every following tick. */
+  /** Bumped only by an explicit navigation action - setRange, onBrushChange,
+   *  onChartDragSelect, backToLive, or retry. NOT bumped by a live-follow
+   *  tick sliding the same window, nor by the periodic silhouette/viewport
+   *  redecimation timers refreshing the same window in place. A caller that
+   *  needs to know "the window the user is looking at meaningfully changed"
+   *  (e.g. the process list's rank-stability reset trigger) reads this
+   *  instead of `domain`, whose reference changes every following tick, or
+   *  the internal fetch-retry counter, which also changes on a routine
+   *  refresh. */
   viewportGeneration: number;
   setRange: (key: PresetKey) => void;
   /** Dragging/resizing the TimelineBrush box within the strip - moves the
@@ -148,6 +150,7 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
 
   const [fetchEpoch, setFetchEpoch] = useState(0);
   const [stripEpoch, setStripEpoch] = useState(0);
+  const [viewportGeneration, setViewportGeneration] = useState(0);
   const lastPhaseRef = useRef<'drag' | 'end'>('end');
   const mountedRef = useRef(true);
   const silhouetteSeqRef = useRef(0);
@@ -278,8 +281,9 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
 
   // Keeps the silhouette fresh while following, independent of stripEpoch
   // (the strip itself slides every tick, but re-fetching that often would be
-  // wasteful - this refreshes on the same cadence the old fixed-window
-  // design used).
+  // wasteful) - SILHOUETTE_REFRESH_MS balances minimap staleness against
+  // request volume for a background element that doesn't need per-tick
+  // precision.
   useEffect(() => {
     if (!enabled || !supported || error || !viewport.following) return;
     const timer = window.setInterval(() => {
@@ -389,12 +393,14 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
     });
     setFetchEpoch(e => e + 1);
     setStripEpoch(e => e + 1);
+    setViewportGeneration(g => g + 1);
   }, []);
 
   const onBrushChange = useCallback((from: number, to: number, phase: 'drag' | 'end') => {
     lastPhaseRef.current = phase;
     setViewport(prev => viewportReducer(prev, { type: 'brushChange', from, to, now: nowRef.current }));
     setFetchEpoch(e => e + 1);
+    setViewportGeneration(g => g + 1);
   }, []);
 
   const onChartDragSelect = useCallback((from: number, to: number) => {
@@ -404,6 +410,7 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
     }));
     setFetchEpoch(e => e + 1);
     setStripEpoch(e => e + 1);
+    setViewportGeneration(g => g + 1);
   }, []);
 
   const backToLive = useCallback(() => {
@@ -411,6 +418,7 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
     setViewport(prev => viewportReducer(prev, { type: 'backToLive', now: nowRef.current }));
     setFetchEpoch(e => e + 1);
     setStripEpoch(e => e + 1);
+    setViewportGeneration(g => g + 1);
   }, []);
 
   // Resetting error/supported (rather than calling loadSilhouette directly)
@@ -422,6 +430,7 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
     setSupported(true);
     setError(false);
     setFetchEpoch(e => e + 1);
+    setViewportGeneration(g => g + 1);
   }, []);
 
   return {
@@ -438,7 +447,7 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
     supported,
     retentionDays,
     stepSeconds,
-    viewportGeneration: fetchEpoch,
+    viewportGeneration,
     setRange,
     onBrushChange,
     onChartDragSelect,

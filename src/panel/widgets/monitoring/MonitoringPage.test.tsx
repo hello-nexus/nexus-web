@@ -45,6 +45,7 @@ vi.mock('../../../hooks/useMetricHistory', () => ({
     domain: [0, 1], stripDomain: [0, 1],
     rangeKey: '5m', lastPresetKey: '5m', following: true,
     loading: false, error: false, mocked: false, supported: true, retentionDays: 7,
+    stepSeconds: 1, viewportGeneration: 1,
     setRange: () => {}, onBrushChange: () => {}, onChartDragSelect: () => {}, backToLive: () => {}, retry: () => {},
   }),
 }));

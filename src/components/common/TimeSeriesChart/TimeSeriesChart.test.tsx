@@ -248,6 +248,18 @@ describe('TimeSeriesChart', () => {
     expect(container.querySelectorAll('linearGradient').length).toBe(0);
   });
 
+  it('sanitizes a colon-bearing series id (e.g. a GPU adapter series) in the gradient url reference', () => {
+    const series: TimeSeriesSeries[] = [
+      { id: 'gpu:0', name: 'GPU', color: '#22d3ee', points: [{ t: 0, avg: 10, max: 12 }, { t: HOUR, avg: 20, max: 22 }] },
+    ];
+    const { container } = render(<TimeSeriesChart series={series} {...baseProps} fillGradient />);
+    const gradient = container.querySelector('linearGradient')!;
+    const gradientId = gradient.getAttribute('id')!;
+    expect(gradientId).not.toContain(':');
+    const fillPath = container.querySelector(`path[fill="url(#${gradientId})"]`);
+    expect(fillPath).toBeInTheDocument();
+  });
+
   describe('drag-select (onRangeSelect)', () => {
     function stubGeometry(svg: SVGSVGElement) {
       Element.prototype.setPointerCapture = vi.fn();
