@@ -997,7 +997,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                       promoted monitors) get the per-device factory reset
                       below the surface-specific settings. */}
                   {activeTab === 'settings' && editingDeviceId && (
-                    <div className={styles.settingsContent}>
+                    <div className={`${styles.settingsContent} ${styles.settingsContentDanger}`}>
                       {/* eslint-disable-next-line i18next/no-literal-string -- CSS variable token */}
                       <SettingsSection title={t('settings.dangerZone')} titleStyle={{ color: 'var(--bad)' }}>
                         <SettingRow
