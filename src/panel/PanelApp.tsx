@@ -1386,7 +1386,7 @@ export function PanelContent({
         onPointerCancel={backgroundLongPress.onPointerCancel}
         onContextMenu={handleBackgroundContextMenu}
       >
-        {backgroundOff && <PanelBackgroundDesktop />}
+        {backgroundOff && <PanelBackgroundDesktop opacity={effectiveTheme.backgroundOpacity} />}
         {showBackgroundLayers && effectiveTheme.backgroundMode === 'shader' && (
           <PanelBackgroundShader
             effect={effectiveTheme.backgroundEffect}
@@ -1408,12 +1408,13 @@ export function PanelContent({
         {showBackgroundLayers && effectiveTheme.backgroundMode === 'solid' && (
           <div
             className={styles.backgroundSolid}
+            data-panel-bg-layer
             style={{ '--panel-background-opacity': effectiveTheme.backgroundOpacity } as CSSProperties}
             aria-hidden
           />
         )}
         {backgroundFrost !== 'none' && (
-          <div className={styles.backgroundFrost} data-level={backgroundFrost} aria-hidden />
+          <div className={styles.backgroundFrost} data-panel-frost data-level={backgroundFrost} aria-hidden />
         )}
         {!loaded ? (
           <div className={styles.loading}><Spinner size={28} /></div>
