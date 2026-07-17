@@ -20,6 +20,8 @@ interface ConfirmModalProps {
   cancelLabel?: string;
   /** Style the confirm button as destructive (red). Default true since this is used for deletes. */
   destructive?: boolean;
+  /** Disables the confirm button, e.g. while a caller-tracked async onConfirm is still in flight. */
+  confirmDisabled?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -43,6 +45,7 @@ export function ConfirmModal({
   confirmLabel,
   cancelLabel,
   destructive = true,
+  confirmDisabled = false,
   onConfirm,
   onCancel,
 }: ConfirmModalProps) {
@@ -58,7 +61,7 @@ export function ConfirmModal({
   const paragraphs = message.split(/\n+/).filter(p => p.length > 0);
 
   return (
-    <Overlay open={open} onClose={onCancel} variant="alert" onEnter={onConfirm}
+    <Overlay open={open} onClose={onCancel} variant="alert" onEnter={confirmDisabled ? undefined : onConfirm}
       className={styles.modal} ariaLabel={title}>
       <h2 className={styles.title}>{title}</h2>
       <div className={styles.body}>
@@ -77,7 +80,8 @@ export function ConfirmModal({
         </button>
         <button type="button"
           className={destructive ? styles.destructiveBtn : styles.confirmBtn}
-          onClick={onConfirm}>
+          onClick={onConfirm}
+          disabled={confirmDisabled}>
           {confirmLabel ?? t('confirm.ok')}
         </button>
       </div>

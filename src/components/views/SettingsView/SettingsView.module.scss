@@ -137,6 +137,17 @@
 }
 
 
+// ── AI Integration section ──────────────────────────────────────────────────
+
+// Token readout in the control slot - fixed width so toggling the reveal
+// button doesn't reflow the row.
+.tokenValue {
+  @include text-numeric;
+  color: var(--text);
+  min-width: 14ch;
+  word-break: break-all;
+}
+
 // ── Sharing section ──
 
 // Extra breathing room between the preset-count badge and the Per-profile /
