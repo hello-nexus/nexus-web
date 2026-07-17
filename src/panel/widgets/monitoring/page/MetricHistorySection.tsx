@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Thermometer, ZoomOut } from 'lucide-react';
 import { TimeSeriesChart } from '../../../../components/common/TimeSeriesChart/TimeSeriesChart';
 import { nearestPoint } from '../../../../components/common/TimeSeriesChart/timeSeriesChartUtils';
@@ -101,9 +101,19 @@ export function MetricHistorySection({ metric, gpuComponents, preferredGpuId, hi
   // unused headroom - recomputed whenever the plotted series itself changes
   // (scrubbing, live ticks), and quantized to a small step ladder so a tiny
   // peak fluctuation doesn't wobble the axis.
+  const liveYMax = metric === 'network' ? null : adaptivePercentYMax(maxAvgValue(chartSeries));
+  // The ceiling freezes for the whole of an active TimelineBrush drag: the
+  // series driving liveYMax is the during-drag silhouette slice, coarser
+  // than the settled window and prone to a different observed peak on every
+  // tick (recomputing per tick wobbles the axis even though the underlying
+  // data isn't flickering anymore). Only recomputed once the drag settles.
+  const stableYMaxRef = useRef(liveYMax);
+  useEffect(() => {
+    if (!history.dragging) stableYMaxRef.current = liveYMax;
+  }, [history.dragging, liveYMax]);
   const yDomain: [number | null, number | null] = useMemo(
-    () => (metric === 'network' ? [0, null] : [0, adaptivePercentYMax(maxAvgValue(chartSeries))]),
-    [metric, chartSeries],
+    () => [0, history.dragging ? stableYMaxRef.current : liveYMax],
+    [history.dragging, liveYMax],
   );
   const valueFormat = useMemo(() => {
     if (metric === 'network') return (v: number) => formatRate(v, numberFormat);

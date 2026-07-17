@@ -33,6 +33,7 @@ function baseHistory(over: Partial<UseMetricHistoryResult> = {}): UseMetricHisto
     rangeKey: '3h',
     lastPresetKey: '3h',
     following: true,
+    dragging: false,
     loading: false,
     error: false,
     mocked: false,
@@ -106,6 +107,47 @@ describe('MetricHistorySection', () => {
     stubGeometry();
     const { container } = renderSection({ metric: 'gpu' });
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it('freezes the adaptive Y ceiling for the whole of an active drag, only recomputing once it settles', () => {
+    stubGeometry();
+    const highSeries: UseMetricHistoryResult['series'] = [
+      { id: 'cpu', kind: 'cpu', name: 'CPU', points: [{ t: NOW - HOUR, avg: 40, max: 40 }, { t: NOW, avg: 90, max: 90 }] },
+    ];
+    const { rerender } = renderSection({ metric: 'cpu', history: { series: highSeries, dragging: false } });
+    // A 90% peak (with headroom) lands in the 100% bucket.
+    expect(screen.getByText('100%')).toBeInTheDocument();
+
+    const lowSeries: UseMetricHistoryResult['series'] = [
+      { id: 'cpu', kind: 'cpu', name: 'CPU', points: [{ t: NOW - HOUR, avg: 2, max: 2 }, { t: NOW, avg: 3, max: 3 }] },
+    ];
+    rerender(
+      <MetricHistorySection
+        metric="cpu"
+        gpuComponents={[]}
+        preferredGpuId=""
+        history={baseHistory({ series: lowSeries, dragging: true })}
+        appsWindow={baseAppsWindow()}
+      />,
+    );
+    // Still frozen at the 100% bucket even though this tick's own (coarser,
+    // during-drag) data would only need the 10% one - the axis must not
+    // wobble mid-drag.
+    expect(screen.getByText('100%')).toBeInTheDocument();
+
+    rerender(
+      <MetricHistorySection
+        metric="cpu"
+        gpuComponents={[]}
+        preferredGpuId=""
+        history={baseHistory({ series: lowSeries, dragging: false })}
+        appsWindow={baseAppsWindow()}
+      />,
+    );
+    // Settles cleanly to the lower ceiling in a single transition once the
+    // drag ends.
+    expect(screen.getByText('10%')).toBeInTheDocument();
+    expect(screen.queryByText('100%')).toBeNull();
   });
 
   it('renders the matched GPU series by adapterLuid, hiding other GPUs\' data', () => {
