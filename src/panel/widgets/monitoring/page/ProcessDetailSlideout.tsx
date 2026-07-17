@@ -154,7 +154,12 @@ export function ProcessDetailSlideout({
     }
   }
 
-  const chartSupported = !!appsWindow?.supported && !!appsWindow?.ready;
+  const chartUnsupported = !(appsWindow?.supported ?? false);
+  // False right after mount or a metric switch, before the window's first
+  // fetch resolves (see useMetricHistoryApps's own `ready` contract) - kept
+  // apart from chartUnsupported so that in-flight gap reads as "no data yet"
+  // rather than flashing the unsupported/update-the-service copy.
+  const chartReady = appsWindow?.ready ?? false;
   const chartSeries = appsWindow?.apps.find(a => a.name === name) ?? null;
 
   const sessions = sessionsForProcess(privacySessions, name);
@@ -167,6 +172,7 @@ export function ProcessDetailSlideout({
       <Slideout
         open
         onClose={onClose}
+        noEscDismiss={killConfirmOpen}
         ariaLabel={t('monitoring.processDetail.ariaLabel', { name })}
         icon={<ProcessIcon name={name} />}
         title={(
@@ -210,9 +216,9 @@ export function ProcessDetailSlideout({
         )}
 
         <div className={styles.chartSection}>
-          {!chartSupported ? (
+          {chartUnsupported ? (
             <p className={styles.sectionNote}>{t('monitoring.processDetail.chart.unsupported')}</p>
-          ) : !chartSeries || chartSeries.points.length < 2 ? (
+          ) : !chartReady || !chartSeries || chartSeries.points.length < 2 ? (
             <p className={styles.sectionNote}>{t('monitoring.processDetail.chart.noData')}</p>
           ) : (
             <>

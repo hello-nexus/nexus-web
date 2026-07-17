@@ -97,6 +97,22 @@ describe('ProcessDetailSlideout actions', () => {
     expect(killMock).not.toHaveBeenCalled();
   });
 
+  it('one Esc with the kill confirm open closes only the confirm, not the slideout; a second Esc then closes the slideout', () => {
+    const onClose = vi.fn();
+    render(<ProcessDetailSlideout {...baseProps({ onClose })} />);
+
+    fireEvent.click(screen.getByText('monitoring.processDetail.actions.kill'));
+    expect(screen.getByText('monitoring.processDetail.kill.confirmTitle')).toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByText('monitoring.processDetail.kill.confirmTitle')).toBeNull();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByText('monitoring.processDetail.actions.kill')).toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   it('kills the process, shows a toast, and closes on confirm success', async () => {
     killMock.mockResolvedValue({ error: false, msg: 'ok' });
     const onClose = vi.fn();
@@ -163,6 +179,12 @@ describe('ProcessDetailSlideout usage chart', () => {
   it('shows a no-data note when supported but this app has no series in the window', () => {
     render(<ProcessDetailSlideout {...baseProps({ appsWindow: { apps: [], loading: false, supported: true, mocked: false, ready: true } })} />);
     expect(screen.getByText('monitoring.processDetail.chart.noData')).toBeInTheDocument();
+  });
+
+  it('shows the no-data note, not the unsupported note, while the first window fetch is still in flight', () => {
+    render(<ProcessDetailSlideout {...baseProps({ appsWindow: { apps: [], loading: true, supported: true, mocked: false, ready: false } })} />);
+    expect(screen.getByText('monitoring.processDetail.chart.noData')).toBeInTheDocument();
+    expect(screen.queryByText('monitoring.processDetail.chart.unsupported')).toBeNull();
   });
 
   it('renders the mini chart and avg/max when this app has window data', () => {

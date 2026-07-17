@@ -12,6 +12,11 @@ export interface SlideoutProps {
   headerRight?: ReactNode;
   /** Falls back to the app-wide close label when the title isn't plain text. */
   ariaLabel?: string;
+  /** Suppresses this slideout's own Esc handling - set while a modal stacked
+   *  on top of it (e.g. a ConfirmModal) is open, so Overlay's independent
+   *  per-instance Esc listeners don't both fire on one keypress and close
+   *  the slideout out from under the modal in front of it. */
+  noEscDismiss?: boolean;
   children: ReactNode;
 }
 
@@ -26,9 +31,10 @@ export interface SlideoutProps {
  * is a widget-grid editor first, not a general-purpose drawer, so this is a
  * standalone sibling that matches its look rather than reusing it directly.
  *
- * Esc and a backdrop click both close (Overlay's default dismiss behavior).
+ * Esc and a backdrop click both close (Overlay's default dismiss behavior)
+ * unless `noEscDismiss` is set.
  */
-export function Slideout({ open, onClose, title, icon, headerRight, ariaLabel, children }: SlideoutProps) {
+export function Slideout({ open, onClose, title, icon, headerRight, ariaLabel, noEscDismiss, children }: SlideoutProps) {
   const { t } = useTranslation();
   return (
     <Overlay
@@ -38,6 +44,7 @@ export function Slideout({ open, onClose, title, icon, headerRight, ariaLabel, c
       className={styles.sheet}
       backdropClassName={styles.backdrop}
       ariaLabel={ariaLabel ?? (typeof title === 'string' ? title : undefined)}
+      noEscDismiss={noEscDismiss}
     >
       <div className={styles.header}>
         <div className={styles.titleRow}>

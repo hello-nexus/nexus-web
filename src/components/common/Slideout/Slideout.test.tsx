@@ -46,4 +46,11 @@ describe('Slideout', () => {
     fireEvent.click(screen.getByRole('dialog'));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
+
+  it('does not call onClose on Escape while noEscDismiss is set', () => {
+    const onClose = vi.fn();
+    render(<Slideout open onClose={onClose} title="Details" noEscDismiss>Body</Slideout>);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).not.toHaveBeenCalled();
+  });
 });
