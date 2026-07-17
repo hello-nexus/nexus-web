@@ -1,7 +1,11 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AiIntegrationSection } from './AiIntegrationSection';
-import { fetchAiStatus, postAiConfig, rotateAiToken, type AiStatusResponse } from '../../../api/aiIntegration';
+import {
+  fetchAiStatus, postAiConfig, rotateAiToken, type AiStatusResponse,
+  fetchAssistantStatus, installRuntime, removeRuntime, pullModel, removeModel, selectModel, runAssistantQuery,
+  type AiAssistantStatus, type AiAssistantProgressFrame, type AssistantCatalogModel,
+} from '../../../api/aiIntegration';
 
 vi.mock('../../../lib/i18n', () => ({
   useTranslation: () => ({
@@ -17,6 +21,22 @@ vi.mock('../../../api/aiIntegration', () => ({
   fetchAiStatus: vi.fn(),
   postAiConfig: vi.fn(),
   rotateAiToken: vi.fn(),
+  fetchAssistantStatus: vi.fn(),
+  installRuntime: vi.fn(),
+  removeRuntime: vi.fn(),
+  pullModel: vi.fn(),
+  removeModel: vi.fn(),
+  selectModel: vi.fn(),
+  runAssistantQuery: vi.fn(),
+}));
+
+// Holds the live `aiAssistant` WS frame a test wants useTopic to return.
+// vi.hoisted so the factory below (hoisted above this file's imports by
+// vitest) can close over it safely - mirrors useSensors.test.ts.
+const assistantWs = vi.hoisted(() => ({ frame: null as AiAssistantProgressFrame | null }));
+
+vi.mock('../../../hooks/useMultiplexSocket', () => ({
+  useTopic: (topic: string) => (topic === 'aiAssistant' ? assistantWs.frame : null),
 }));
 
 function makeStatus(overrides: Partial<AiStatusResponse> = {}): AiStatusResponse {
@@ -32,9 +52,34 @@ function makeStatus(overrides: Partial<AiStatusResponse> = {}): AiStatusResponse
   };
 }
 
+// 1 GiB: exact enough that formatBytes renders a clean, assertable "1 GB".
+const ONE_GIB = 1024 * 1024 * 1024;
+
+const QWEN_4B: AssistantCatalogModel = {
+  id: 'qwen3.5:4b', label: 'Qwen3.5 4B', downloadBytes: ONE_GIB, ramHint: '~4-5 GB RAM', recommended: true,
+};
+const QWEN_08B: AssistantCatalogModel = {
+  id: 'qwen3.5:0.8b', label: 'Qwen3.5 0.8B', downloadBytes: ONE_GIB, ramHint: '~1-2 GB RAM', recommended: false,
+};
+
+function makeAssistantStatus(overrides: Partial<AiAssistantStatus> = {}): AiAssistantStatus {
+  return {
+    runtimeState: 'notInstalled',
+    systemOllamaDetected: false,
+    downloadProgress: null,
+    installedModels: [],
+    activeModel: '',
+    catalog: [],
+    busy: null,
+    ...overrides,
+  };
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   Object.assign(navigator, { clipboard: { writeText: vi.fn().mockResolvedValue(undefined) } });
+  assistantWs.frame = null;
+  vi.mocked(fetchAssistantStatus).mockResolvedValue(makeAssistantStatus());
 });
 
 describe('AiIntegrationSection', () => {
@@ -302,5 +347,314 @@ describe('AiIntegrationSection', () => {
 
     expect(screen.getByRole('switch', { name: 'settings.ai.master.label' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'settings.ai.token.copy' })).toBeDisabled();
+  });
+});
+
+describe('AiIntegrationSection - assistant', () => {
+  it('shows the not-installed runtime state with a download button, and installing starts the runtime', async () => {
+    vi.mocked(fetchAiStatus).mockResolvedValue(makeStatus({ enabled: true }));
+    vi.mocked(fetchAssistantStatus).mockResolvedValue(makeAssistantStatus());
+    vi.mocked(installRuntime).mockResolvedValue(
+      makeAssistantStatus({ runtimeState: 'downloading', downloadProgress: { received: 0, total: ONE_GIB } }),
+    );
+    render(<AiIntegrationSection serviceOnline />);
+
+    expect(await screen.findByText('settings.ai.assistant.runtime.status.notInstalled')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'settings.ai.assistant.runtime.download' }));
+    expect(installRuntime).toHaveBeenCalled();
+    await waitFor(() => expect(screen.getByText(/percent=0 size=1 GB/)).toBeInTheDocument());
+  });
+
+  it('renders live download progress driven by the aiAssistant WS topic', async () => {
+    vi.mocked(fetchAiStatus).mockResolvedValue(makeStatus({ enabled: true }));
+    vi.mocked(fetchAssistantStatus).mockResolvedValue(
+      makeAssistantStatus({ runtimeState: 'downloading', downloadProgress: { received: 0, total: ONE_GIB } }),
+    );
+    const { rerender } = render(<AiIntegrationSection serviceOnline />);
+    await waitFor(() => expect(screen.getByText(/percent=0 size=1 GB/)).toBeInTheDocument());
+
+    assistantWs.frame = {
+      runtimeState: 'downloading',
+      downloadProgress: { received: ONE_GIB / 2, total: ONE_GIB },
+      pull: null,
+    };
+    // useTopic is a plain mocked function (not React state); rerendering the
+    // same tree is what makes it re-evaluate and return the new frame,
+    // mirroring how a real WS push re-renders the subscribing component.
+    rerender(<AiIntegrationSection serviceOnline />);
+    expect(await screen.findByText(/percent=50 size=1 GB/)).toBeInTheDocument();
+  });
+
+  it('shows the installed runtime state with a remove button behind a confirm modal', async () => {
+    vi.mocked(fetchAiStatus).mockResolvedValue(makeStatus({ enabled: true }));
+    vi.mocked(fetchAssistantStatus).mockResolvedValue(makeAssistantStatus({ runtimeState: 'installed' }));
+    vi.mocked(removeRuntime).mockResolvedValue(makeAssistantStatus({ runtimeState: 'notInstalled' }));
+    render(<AiIntegrationSection serviceOnline />);
+
+    expect(await screen.findByText('settings.ai.assistant.runtime.status.installed')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'settings.ai.assistant.runtime.remove' }));
+    expect(screen.getByText('settings.ai.assistant.runtime.removeConfirmTitle')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'settings.ai.assistant.runtime.removeConfirmButton' }));
+    await waitFor(() => expect(removeRuntime).toHaveBeenCalled());
+    await waitFor(() => expect(screen.queryByText('settings.ai.assistant.runtime.removeConfirmTitle')).not.toBeInTheDocument());
+  });
+
+  it('lets a REST-only mutation override a stale, already-settled WS frame', async () => {
+    vi.mocked(fetchAiStatus).mockResolvedValue(makeStatus({ enabled: true }));
+    vi.mocked(fetchAssistantStatus).mockResolvedValue(makeAssistantStatus({ runtimeState: 'installed' }));
+    vi.mocked(removeRuntime).mockResolvedValue(makeAssistantStatus({ runtimeState: 'notInstalled' }));
+    // A settled (non-transient) frame left over from an earlier install -
+    // useTopic seeds from a module-level last-frame cache, so this can be
+    // stale relative to the section's current REST snapshot.
+    assistantWs.frame = { runtimeState: 'installed', downloadProgress: null, pull: null };
+    render(<AiIntegrationSection serviceOnline />);
+
+    expect(await screen.findByText('settings.ai.assistant.runtime.status.installed')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'settings.ai.assistant.runtime.remove' }));
+    fireEvent.click(screen.getByRole('button', { name: 'settings.ai.assistant.runtime.removeConfirmButton' }));
+
+    // No new WS push follows a plain removal, so this only passes if the
+    // fresh REST response - not the still-cached 'installed' frame - drives
+    // the displayed state.
+    await waitFor(() => expect(screen.getByText('settings.ai.assistant.runtime.status.notInstalled')).toBeInTheDocument());
+  });
+
+  it('offers both retry-download and remove when the runtime is in an error state', async () => {
+    vi.mocked(fetchAiStatus).mockResolvedValue(makeStatus({ enabled: true }));
+    vi.mocked(fetchAssistantStatus).mockResolvedValue(makeAssistantStatus({ runtimeState: 'error' }));
+    render(<AiIntegrationSection serviceOnline />);
+
+    expect(await screen.findByText('settings.ai.assistant.runtime.status.error')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'settings.ai.assistant.runtime.download' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'settings.ai.assistant.runtime.remove' })).toBeInTheDocument();
+  });
+
+  it('shows an action-error note when a mutation returns no response', async () => {
+    vi.mocked(fetchAiStatus).mockResolvedValue(makeStatus({ enabled: true }));
+    vi.mocked(fetchAssistantStatus).mockResolvedValue(makeAssistantStatus());
+    vi.mocked(installRuntime).mockResolvedValue(null);
+    render(<AiIntegrationSection serviceOnline />);
+
+    expect(await screen.findByText('settings.ai.assistant.runtime.status.notInstalled')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'settings.ai.assistant.runtime.download' }));
+    expect(await screen.findByText('settings.ai.assistant.actionError')).toBeInTheDocument();
+  });
+
+  it('shows the system-detected state without install/remove controls when a system Ollama is found', async () => {
+    vi.mocked(fetchAiStatus).mockResolvedValue(makeStatus({ enabled: true }));
+    vi.mocked(fetchAssistantStatus).mockResolvedValue(
+      makeAssistantStatus({ runtimeState: 'running', systemOllamaDetected: true }),
+    );
+    render(<AiIntegrationSection serviceOnline />);
+
+    expect(await screen.findByText('settings.ai.assistant.runtime.status.systemDetected')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'settings.ai.assistant.runtime.download' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'settings.ai.assistant.runtime.remove' })).not.toBeInTheDocument();
+  });
+
+  it('shows the model catalog with a recommended badge, and downloading a model calls pullModel', async () => {
+    vi.mocked(fetchAiStatus).mockResolvedValue(makeStatus({ enabled: true }));
+    vi.mocked(fetchAssistantStatus).mockResolvedValue(makeAssistantStatus({ runtimeState: 'running', catalog: [QWEN_4B] }));
+    vi.mocked(pullModel).mockResolvedValue(
+      makeAssistantStatus({ runtimeState: 'running', catalog: [QWEN_4B], busy: { kind: 'pullingModel', model: QWEN_4B.id } }),
+    );
+    render(<AiIntegrationSection serviceOnline />);
+
+    expect(await screen.findByText('Qwen3.5 4B')).toBeInTheDocument();
+    expect(screen.getByText('settings.ai.assistant.model.recommended')).toBeInTheDocument();
+
+    // The button's accessible name is the per-model aria-label (Download +
+    // the model name), not the bare "Download" text, so multiple catalog
+    // rows stay distinguishable to assistive tech.
+    fireEvent.click(screen.getByRole('button', { name: `settings.ai.assistant.model.downloadAria model=${QWEN_4B.label}` }));
+    await waitFor(() => expect(pullModel).toHaveBeenCalledWith(QWEN_4B.id));
+  });
+
+  it('does not wedge the model row on a stale non-success pull frame once REST confirms nothing is pulling', async () => {
+    vi.mocked(fetchAiStatus).mockResolvedValue(makeStatus({ enabled: true }));
+    vi.mocked(fetchAssistantStatus).mockResolvedValue(makeAssistantStatus({ runtimeState: 'running', catalog: [QWEN_4B] }));
+    // A pull that failed or aborted before terminating in {status:'success'}
+    // can leave the aiAssistant WS topic frozen on a non-success phase
+    // (useTopic seeds from a module-level last-frame cache that outlives a
+    // remount). REST reporting no pullModel busy op must still show the
+    // download button rather than a permanently stuck progress bar.
+    assistantWs.frame = {
+      runtimeState: 'running', downloadProgress: null,
+      pull: { model: QWEN_4B.id, status: 'error pulling image', received: 10, total: 100 },
+    };
+    render(<AiIntegrationSection serviceOnline />);
+
+    expect(await screen.findByText('Qwen3.5 4B')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: `settings.ai.assistant.model.downloadAria model=${QWEN_4B.label}` })).toBeInTheDocument();
+    expect(screen.queryByText('error pulling image')).not.toBeInTheDocument();
+  });
+
+  it('converges via the fallback poll when a pull is busy but no WS frame ever arrives', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      vi.mocked(fetchAiStatus).mockResolvedValue(makeStatus({ enabled: true }));
+      // First snapshot: a pull is busy (buttons disabled), and the WS topic
+      // never delivers a frame. The poll must still un-wedge the row off the
+      // REST busy signal alone.
+      vi.mocked(fetchAssistantStatus)
+        .mockResolvedValueOnce(makeAssistantStatus({ runtimeState: 'running', catalog: [QWEN_4B], busy: { kind: 'pullingModel', model: QWEN_4B.id } }))
+        .mockResolvedValue(makeAssistantStatus({ runtimeState: 'running', catalog: [QWEN_4B] }));
+      render(<AiIntegrationSection serviceOnline />);
+
+      const downloadName = `settings.ai.assistant.model.downloadAria model=${QWEN_4B.label}`;
+      await vi.waitFor(() => expect(screen.getByRole('button', { name: downloadName })).toBeDisabled());
+
+      await vi.advanceTimersByTimeAsync(4000);
+      await vi.waitFor(() => expect(screen.getByRole('button', { name: downloadName })).not.toBeDisabled());
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('marks the active model, offers Use for a ready non-active model, and selecting it calls selectModel', async () => {
+    const installed = makeAssistantStatus({
+      runtimeState: 'running',
+      catalog: [QWEN_4B, QWEN_08B],
+      installedModels: [
+        { id: QWEN_4B.id, sizeBytes: QWEN_4B.downloadBytes },
+        { id: QWEN_08B.id, sizeBytes: QWEN_08B.downloadBytes },
+      ],
+      activeModel: QWEN_4B.id,
+    });
+    vi.mocked(fetchAiStatus).mockResolvedValue(makeStatus({ enabled: true }));
+    vi.mocked(fetchAssistantStatus).mockResolvedValue(installed);
+    vi.mocked(selectModel).mockResolvedValue({ ...installed, activeModel: QWEN_08B.id });
+    render(<AiIntegrationSection serviceOnline />);
+
+    await waitFor(() => expect(screen.getByText('settings.ai.assistant.model.active')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: `settings.ai.assistant.model.useAria model=${QWEN_08B.label}` }));
+    await waitFor(() => expect(selectModel).toHaveBeenCalledWith(QWEN_08B.id));
+  });
+
+  it('removes an installed, inactive model behind a confirm modal', async () => {
+    const installed = makeAssistantStatus({
+      runtimeState: 'running',
+      catalog: [QWEN_4B, QWEN_08B],
+      installedModels: [
+        { id: QWEN_4B.id, sizeBytes: QWEN_4B.downloadBytes },
+        { id: QWEN_08B.id, sizeBytes: QWEN_08B.downloadBytes },
+      ],
+      activeModel: QWEN_4B.id,
+    });
+    vi.mocked(fetchAiStatus).mockResolvedValue(makeStatus({ enabled: true }));
+    vi.mocked(fetchAssistantStatus).mockResolvedValue(installed);
+    vi.mocked(removeModel).mockResolvedValue({
+      ...installed, catalog: [QWEN_4B], installedModels: [{ id: QWEN_4B.id, sizeBytes: QWEN_4B.downloadBytes }],
+    });
+    render(<AiIntegrationSection serviceOnline />);
+
+    await waitFor(() => expect(screen.getByText('settings.ai.assistant.model.active')).toBeInTheDocument());
+    // Both catalog rows are installed, so both show a Remove button; the
+    // per-model aria-label is what keeps them distinguishable to a query by
+    // role/name (and to assistive tech) instead of colliding on plain "Remove".
+    expect(screen.getByRole('button', { name: `settings.ai.assistant.model.removeAria model=${QWEN_4B.label}` })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: `settings.ai.assistant.model.removeAria model=${QWEN_08B.label}` }));
+    expect(screen.getByText('settings.ai.assistant.model.removeConfirmTitle')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'settings.ai.assistant.model.removeConfirmButton' }));
+    await waitFor(() => expect(removeModel).toHaveBeenCalledWith(QWEN_08B.id));
+  });
+
+  it('hides the query bar until a model is ready and active, then shows it once a pull settles', async () => {
+    vi.mocked(fetchAiStatus).mockResolvedValue(makeStatus({ enabled: true }));
+    vi.mocked(fetchAssistantStatus)
+      .mockResolvedValueOnce(makeAssistantStatus({ runtimeState: 'running', catalog: [QWEN_4B] }))
+      .mockResolvedValueOnce(makeAssistantStatus({
+        runtimeState: 'running',
+        catalog: [QWEN_4B],
+        installedModels: [{ id: QWEN_4B.id, sizeBytes: QWEN_4B.downloadBytes }],
+        activeModel: QWEN_4B.id,
+      }));
+    const { rerender } = render(<AiIntegrationSection serviceOnline />);
+
+    await waitFor(() => expect(screen.getByText('Qwen3.5 4B')).toBeInTheDocument());
+    expect(screen.queryByPlaceholderText('settings.ai.assistant.query.placeholder')).not.toBeInTheDocument();
+
+    // A pull frame that settles from in-flight to "success" triggers the
+    // section's terminal-refetch (mirrors useBenchmark's push-then-refetch
+    // idiom), which is what actually picks up the newly active model.
+    assistantWs.frame = {
+      runtimeState: 'running', downloadProgress: null,
+      pull: { model: QWEN_4B.id, status: 'downloading', received: 1, total: 2 },
+    };
+    rerender(<AiIntegrationSection serviceOnline />);
+    assistantWs.frame = {
+      runtimeState: 'running', downloadProgress: null,
+      pull: { model: QWEN_4B.id, status: 'success', received: 2, total: 2 },
+    };
+    rerender(<AiIntegrationSection serviceOnline />);
+
+    expect(await screen.findByPlaceholderText('settings.ai.assistant.query.placeholder')).toBeInTheDocument();
+  });
+
+  it('submits a query and renders the answer with a ran: tools line', async () => {
+    vi.mocked(fetchAiStatus).mockResolvedValue(makeStatus({ enabled: true }));
+    vi.mocked(fetchAssistantStatus).mockResolvedValue(makeAssistantStatus({
+      runtimeState: 'running',
+      catalog: [QWEN_4B],
+      installedModels: [{ id: QWEN_4B.id, sizeBytes: QWEN_4B.downloadBytes }],
+      activeModel: QWEN_4B.id,
+    }));
+    vi.mocked(runAssistantQuery).mockResolvedValue({
+      answer: 'Brightness set to 50%.',
+      toolsRun: [{ name: 'set_brightness', ok: true }],
+    });
+    render(<AiIntegrationSection serviceOnline />);
+
+    const input = await screen.findByPlaceholderText('settings.ai.assistant.query.placeholder');
+    fireEvent.input(input, { target: { value: 'set brightness to 50%' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    await waitFor(() => expect(runAssistantQuery).toHaveBeenCalledWith('set brightness to 50%'));
+    expect(await screen.findByText('Brightness set to 50%.')).toBeInTheDocument();
+    expect(screen.getByText(/settings\.ai\.assistant\.query\.toolsRun/)).toHaveTextContent('set_brightness');
+    // A successful submit is the only path that clears the prompt.
+    expect(input).toHaveValue('');
+  });
+
+  it('shows an error message when the query fails, and keeps the typed prompt so the user does not have to retype it', async () => {
+    vi.mocked(fetchAiStatus).mockResolvedValue(makeStatus({ enabled: true }));
+    vi.mocked(fetchAssistantStatus).mockResolvedValue(makeAssistantStatus({
+      runtimeState: 'running',
+      catalog: [QWEN_4B],
+      installedModels: [{ id: QWEN_4B.id, sizeBytes: QWEN_4B.downloadBytes }],
+      activeModel: QWEN_4B.id,
+    }));
+    vi.mocked(runAssistantQuery).mockResolvedValue(null);
+    render(<AiIntegrationSection serviceOnline />);
+
+    const input = await screen.findByPlaceholderText('settings.ai.assistant.query.placeholder');
+    fireEvent.input(input, { target: { value: 'do something' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(await screen.findByText('settings.ai.assistant.query.error')).toBeInTheDocument();
+    expect(input).toHaveValue('do something');
+  });
+
+  it('marks the query frame focused on focus and clears it on blur, without touching it before then', async () => {
+    vi.mocked(fetchAiStatus).mockResolvedValue(makeStatus({ enabled: true }));
+    vi.mocked(fetchAssistantStatus).mockResolvedValue(makeAssistantStatus({
+      runtimeState: 'running',
+      catalog: [QWEN_4B],
+      installedModels: [{ id: QWEN_4B.id, sizeBytes: QWEN_4B.downloadBytes }],
+      activeModel: QWEN_4B.id,
+    }));
+    render(<AiIntegrationSection serviceOnline />);
+
+    const input = await screen.findByPlaceholderText('settings.ai.assistant.query.placeholder');
+    const frame = input.parentElement as HTMLElement;
+    expect(frame).not.toHaveAttribute('data-focused');
+
+    fireEvent.focus(input);
+    expect(frame).toHaveAttribute('data-focused', 'true');
+
+    fireEvent.blur(input);
+    expect(frame).not.toHaveAttribute('data-focused');
   });
 });
