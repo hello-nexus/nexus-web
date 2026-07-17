@@ -2,11 +2,15 @@ import { useEffect } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MonitoringPage } from './MonitoringPage';
+import type { GpuComponent } from '../../../lib/gpuResolver';
+import type { AppWindowSeries } from '../../../api/monitoringHistoryApps';
 
-// MetricHistorySection is the persistent hero mounted once above the
-// switched tab content - stub it with a mount/unmount + prop tracer so tests
-// can assert it stays mounted across a metric-tab switch (only the `metric`
-// prop should change) and unmounts on the unrelated 'detailed' page.
+// MetricHistorySection and ProcessListSection are the persistent hero + list
+// mounted once above the switched tab content - stub both with a
+// mount/unmount + prop tracer so tests can assert they stay mounted across a
+// metric-tab switch (only their metric-scoped props should change) and
+// unmount only on the unrelated 'detailed' page (item 19's zero-flicker
+// contract).
 let metricHistoryMounts = 0;
 let metricHistoryUnmounts = 0;
 vi.mock('./page/MetricHistorySection', () => ({
@@ -17,6 +21,41 @@ vi.mock('./page/MetricHistorySection', () => ({
     }, []);
     return <div data-testid="metric-history-section">metric:{metric}</div>;
   },
+}));
+
+let processListMounts = 0;
+let processListUnmounts = 0;
+vi.mock('./page/ProcessListSection', async importOriginal => {
+  const actual = await importOriginal<typeof import('./page/ProcessListSection')>();
+  return {
+    ...actual,
+    ProcessListSection: ({ items }: { items: Array<{ name: string }> }) => {
+      useEffect(() => {
+        processListMounts++;
+        return () => { processListUnmounts++; };
+      }, []);
+      return <div data-testid="process-list-section">items:{items.length}:{items.map(i => i.name).join(',')}</div>;
+    },
+  };
+});
+
+vi.mock('../../../hooks/useMetricHistory', () => ({
+  useMetricHistory: () => ({
+    silhouette: [], series: [],
+    domain: [0, 1], stripDomain: [0, 1],
+    rangeKey: '5m', lastPresetKey: '5m', following: true,
+    loading: false, error: false, mocked: false, supported: true, retentionDays: 7,
+    setRange: () => {}, onBrushChange: () => {}, onChartDragSelect: () => {}, backToLive: () => {}, retry: () => {},
+  }),
+}));
+
+let appsWindowOverride: Partial<{ apps: AppWindowSeries[]; supported: boolean; ready: boolean }> = {};
+vi.mock('../../../hooks/useMetricHistoryApps', () => ({
+  useMetricHistoryApps: () => ({ apps: [], loading: false, supported: true, mocked: false, ready: true, ...appsWindowOverride }),
+}));
+
+vi.mock('../../../hooks/useSystemSpecs', () => ({
+  useSystemSpecs: () => ({ specs: { memory: 'Test Memory 32GB' } }),
 }));
 
 vi.mock('../../../hooks/useNetworkMonitor', () => ({
@@ -39,6 +78,7 @@ vi.mock('../../../hooks/useProcessMonitor', () => ({
     totalMemMb: 0,
   }),
   useGpuProcessFeed: () => {},
+  useGpuProcessData: () => ({ procSeries: [], procMemSeries: [] }),
 }));
 
 const sensorState = {
@@ -47,7 +87,7 @@ const sensorState = {
     { id: 'cpu/load', name: 'CPU Total', type: 'Load', value: 42, units: '%', formatted: '42%', parent: { id: 'cpu', name: 'cpu' } },
   ],
   gpu: [] as Array<{ id: string; name: string; type: string; value: number; units: string; formatted: string; parent: { id: string; name: string } }>,
-  gpuComponents: [],
+  gpuComponents: [] as GpuComponent[],
   memory: [],
   storage: [],
   storageComponents: {},
@@ -139,36 +179,93 @@ describe('MonitoringPage', () => {
     expect(onTabChange).not.toHaveBeenCalled();
   });
 
-  it('mounts the hero MetricHistorySection once above the switched content and unmounts it only on the unrelated Detailed page', () => {
+  it('mounts the hero + process list once above the switched content and unmounts them only on the unrelated Detailed page (zero-flicker tab switch)', () => {
     metricHistoryMounts = 0;
     metricHistoryUnmounts = 0;
+    processListMounts = 0;
+    processListUnmounts = 0;
 
     const { rerender } = render(
       <MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />,
     );
     expect(metricHistoryMounts).toBe(1);
+    expect(processListMounts).toBe(1);
     expect(screen.getByTestId('metric-history-section')).toHaveTextContent('metric:cpu');
 
-    // Switching between metric tabs swaps the `metric` prop without
-    // remounting the hero - the brush/viewport state it owns must survive.
+    // Switching between metric tabs swaps the metric-scoped props without
+    // remounting the hero or the list - the brush/viewport state and the
+    // list's search/sort state must survive.
     rerender(<MonitoringPage serviceOnline={true} connectionState="online" tab="memory" onTabChange={vi.fn()} />);
     expect(metricHistoryMounts).toBe(1);
     expect(metricHistoryUnmounts).toBe(0);
+    expect(processListMounts).toBe(1);
+    expect(processListUnmounts).toBe(0);
     expect(screen.getByTestId('metric-history-section')).toHaveTextContent('metric:memory');
 
     rerender(<MonitoringPage serviceOnline={true} connectionState="online" tab="network" onTabChange={vi.fn()} />);
     expect(metricHistoryMounts).toBe(1);
     expect(metricHistoryUnmounts).toBe(0);
+    expect(processListMounts).toBe(1);
+    expect(processListUnmounts).toBe(0);
     expect(screen.getByTestId('metric-history-section')).toHaveTextContent('metric:network');
 
-    // Detailed is a real page switch: the hero has no place there.
+    // Detailed is a real page switch: neither has a place there.
     rerender(<MonitoringPage serviceOnline={true} connectionState="online" tab="detailed" onTabChange={vi.fn()} />);
     expect(screen.queryByTestId('metric-history-section')).toBeNull();
+    expect(screen.queryByTestId('process-list-section')).toBeNull();
     expect(metricHistoryUnmounts).toBe(1);
+    expect(processListUnmounts).toBe(1);
 
     rerender(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
     expect(metricHistoryMounts).toBe(2);
+    expect(processListMounts).toBe(2);
     expect(screen.getByTestId('metric-history-section')).toHaveTextContent('metric:cpu');
+  });
+
+  it('shows the CPU model as the tab title, with no sensor-strip block', () => {
+    render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+    expect(screen.getByText('test cpu')).toBeInTheDocument();
+  });
+
+  it('shows the resolved GPU name as the tab title, with a Change link when more than one GPU is present', () => {
+    sensorState.gpu = [
+      { id: 'gpu/0/load', name: 'GPU Core', type: 'Load', value: 30, units: '%', formatted: '30%', parent: { id: 'gpu/0', name: 'gpu' } },
+    ];
+    sensorState.gpuComponents = [
+      { id: 'gpu/0', name: 'RTX 3070', adapterLuid: '0:1', sensors: [] },
+      { id: 'gpu/1', name: 'RTX 4090', adapterLuid: '0:2', sensors: [] },
+    ];
+    render(<MonitoringPage serviceOnline={true} connectionState="online" tab="gpu" onTabChange={vi.fn()} />);
+    expect(screen.getByText('RTX 3070')).toBeInTheDocument();
+    expect(screen.getByText('monitoring.gpu.change')).toBeInTheDocument();
+
+    sensorState.gpu = [];
+    sensorState.gpuComponents = [];
+  });
+
+  it('shows the memory hardware identity (from system specs) as the Memory tab title', () => {
+    render(<MonitoringPage serviceOnline={true} connectionState="online" tab="memory" onTabChange={vi.fn()} />);
+    expect(screen.getByText('Test Memory 32GB')).toBeInTheDocument();
+  });
+
+  it('renders no tab title row for Network (plain title, no hardware identity)', () => {
+    render(<MonitoringPage serviceOnline={true} connectionState="online" tab="network" onTabChange={vi.fn()} />);
+    expect(screen.queryByTestId('metric-history-section')).toHaveTextContent('metric:network');
+    expect(document.querySelector('[class*="tabHeaderName"]')).toBeNull();
+  });
+
+  it('shows the live fallback rows (not an empty list) while the window-scoped apps endpoint has not yet responded', () => {
+    appsWindowOverride = { ready: false, apps: [{ name: 'ShouldNotShowUntilReady', avg: 1, max: 1, points: [] }] };
+    render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+    expect(screen.getByTestId('process-list-section')).not.toHaveTextContent('ShouldNotShowUntilReady');
+    appsWindowOverride = {};
+  });
+
+  it('shows the window-scoped apps once ready', () => {
+    appsWindowOverride = { ready: true, apps: [{ name: 'chrome.exe', avg: 12, max: 15, points: [] }] };
+    render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+    expect(screen.getByTestId('process-list-section')).toHaveTextContent('chrome.exe');
+    appsWindowOverride = {};
   });
 
   it('renders Detailed tab sections, hides empty families, and toggles on header click', () => {

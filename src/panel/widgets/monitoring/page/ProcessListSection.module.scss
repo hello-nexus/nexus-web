@@ -44,6 +44,14 @@
   flex-shrink: 0;
 }
 
+.appIcon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
 .name {
   font-size: var(--type-small);
   color: var(--text);

@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react';
+import { Thermometer } from 'lucide-react';
 import type { TimeSeriesPoint } from '../../../../components/common/TimeSeriesChart/timeSeriesChartUtils';
 import { CHART_PAD } from '../../../../components/common/TimeSeriesChart/TimeSeriesChart';
 import styles from './TempRibbon.module.scss';
@@ -13,28 +14,33 @@ export interface TempRibbonProps {
   /** Color scale floor/ceiling in Celsius. */
   minC: number;
   maxC: number;
-  /** Formatted current-temperature text shown at the right edge. */
+  /** Formatted current-temperature text shown below the ribbon (never over
+   *  its drawn segments), with a thermometer icon. */
   currentLabel?: string;
   height?: number;
 }
 
 const DEFAULT_HEIGHT = 12;
-const MIN_OPACITY = 0.08;
-const MAX_OPACITY = 0.85;
+// Thickness floor/ceiling, px - the band never fully disappears at the cold
+// end and never exceeds the ribbon's own height at the hot end.
+const MIN_THICKNESS = 1.5;
 
-function opacityFor(avg: number, minC: number, maxC: number): number {
+function thicknessFor(avg: number, minC: number, maxC: number, maxThickness: number): number {
   const span = maxC - minC || 1;
   const frac = Math.max(0, Math.min(1, (avg - minC) / span));
-  return MIN_OPACITY + frac * (MAX_OPACITY - MIN_OPACITY);
+  return MIN_THICKNESS + frac * (maxThickness - MIN_THICKNESS);
 }
 
 /**
  * A thin heat strip under the main history plot: one segment per
- * temperature point, opacity-modulated by value, so a glance at the ribbon
- * shows where the run got hot without reading the line chart. Deliberately
- * not part of TimeSeriesChart - it shares only the x-domain math and the
- * CHART_PAD inset (so its segments land under the chart's plot rect, not the
- * legend/axis margins), not any other chart internals.
+ * temperature point, THICKNESS-modulated by value (thicker where hotter,
+ * thinner where cooler - a waveform, not an opacity/color gradient), so a
+ * glance at the ribbon shows where the run got hot without reading the line
+ * chart. Deliberately not part of TimeSeriesChart - it shares only the
+ * x-domain math and the CHART_PAD inset (so its segments land under the
+ * chart's plot rect, not the legend/axis margins), not any other chart
+ * internals. The current-value label renders below the strip, never over
+ * its drawn segments.
  */
 export function TempRibbon({ points, domain, minC, maxC, currentLabel, height = DEFAULT_HEIGHT }: TempRibbonProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -59,29 +65,37 @@ export function TempRibbon({ points, domain, minC, maxC, currentLabel, height = 
   const span = domainEnd - domainStart || 1;
   const plotWidth = Math.max(1, width - CHART_PAD.left - CHART_PAD.right);
   const xFor = (t: number) => CHART_PAD.left + ((t - domainStart) / span) * plotWidth;
+  const midY = height / 2;
 
   return (
-    <div ref={wrapRef} className={styles.root} style={{ height }}>
-      {width > 0 && points.length > 0 && (
-        <svg className={styles.svg} width={width} height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
-          {points.map((p, i) => {
-            const x0 = xFor(p.t);
-            const x1 = i + 1 < points.length ? xFor(points[i + 1].t) : CHART_PAD.left + plotWidth;
-            return (
-              <rect
-                key={p.t}
-                x={x0}
-                y={0}
-                width={Math.max(0, x1 - x0)}
-                height={height}
-                fill="var(--bad)"
-                fillOpacity={opacityFor(p.avg, minC, maxC)}
-              />
-            );
-          })}
-        </svg>
+    <div className={styles.root}>
+      <div ref={wrapRef} className={styles.plot} style={{ height }}>
+        {width > 0 && points.length > 0 && (
+          <svg className={styles.svg} width={width} height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
+            {points.map((p, i) => {
+              const x0 = xFor(p.t);
+              const x1 = i + 1 < points.length ? xFor(points[i + 1].t) : CHART_PAD.left + plotWidth;
+              const thickness = thicknessFor(p.avg, minC, maxC, height);
+              return (
+                <rect
+                  key={p.t}
+                  x={x0}
+                  y={midY - thickness / 2}
+                  width={Math.max(0, x1 - x0)}
+                  height={thickness}
+                  fill="var(--bad)"
+                />
+              );
+            })}
+          </svg>
+        )}
+      </div>
+      {currentLabel && (
+        <span className={styles.current}>
+          <Thermometer size={11} aria-hidden />
+          {currentLabel}
+        </span>
       )}
-      {currentLabel && <span className={styles.current}>{currentLabel}</span>}
     </div>
   );
 }

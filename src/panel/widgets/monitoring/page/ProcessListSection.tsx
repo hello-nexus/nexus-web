@@ -6,6 +6,7 @@ import { Sparkline } from '../../../../components/common/Sparkline/Sparkline';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { useTranslation } from '../../../../lib/i18n';
 import { useMonitoringPrivacy } from '../../../../hooks/useMonitoringPrivacy';
+import { useAppIcon } from '../../common/AppPicker';
 import { privacyIndicatorsForProcess, type PrivacyIconKind, type PrivacyIndicator } from './privacyHelpers';
 import styles from './ProcessListSection.module.scss';
 
@@ -16,9 +17,26 @@ export interface ProcessListItem {
   values: number[];
   /** Optional inline secondary text after the value (e.g. GPU VRAM). */
   secondary?: string;
+  /** UTC milliseconds the app was first observed running, when the data
+   *  source reports it (the window-scoped apps endpoint) - drives the
+   *  "recently launched" sort. Absent for the live per-metric fallback
+   *  source, which has no notion of launch time. */
+  startedAtMs?: number;
 }
 
-type SortMode = 'usage' | 'name';
+type SortMode = 'recent' | 'usage' | 'name';
+
+/** Row icon: the same app-icon fetch/cache pipeline the deck's app-launch
+ *  widget uses (useAppIcon - a Start-Menu/installed-app lookup keyed by
+ *  name), falling back to the plain color dot when nothing resolves (most
+ *  running processes were never added as a deck shortcut). Exported so the
+ *  hero chart's hover tooltip (MetricHistorySection) can render the same
+ *  icon treatment for its top-apps rows. */
+export function ProcessIcon({ name, color }: { name: string; color: string }) {
+  const iconUrl = useAppIcon(name);
+  if (iconUrl) return <img src={iconUrl} className={styles.appIcon} alt="" />;
+  return <span className={styles.dot} style={{ background: color }} />;
+}
 
 export interface ProcessListSectionProps {
   items: readonly ProcessListItem[];
@@ -86,28 +104,46 @@ function PrivacyIndicators({ indicators, t }: {
   );
 }
 
+/** 'recent' ranks by startedAtMs (most recently launched first). A pair
+ *  where either side lacks it falls back to the usage comparison, so a
+ *  service that doesn't report launch times yet (or a fallback-sourced row)
+ *  never renders a broken partial sort - the whole list degrades cleanly to
+ *  the usage order. */
+function compareItems(a: ProcessListItem, b: ProcessListItem, sort: SortMode): number {
+  if (sort === 'name') return a.name.localeCompare(b.name);
+  if (sort === 'recent') {
+    if (a.startedAtMs !== undefined && b.startedAtMs !== undefined) return b.startedAtMs - a.startedAtMs;
+    if (a.startedAtMs !== undefined) return -1;
+    if (b.startedAtMs !== undefined) return 1;
+  }
+  return b.current - a.current;
+}
+
 /**
- * The live per-process list shown below the history hero chart on each
- * metric tab: search + sort over a flat row list, each row a name, privacy-
- * access icons (webcam/microphone/location/screen capture, when the service
- * reports one for that process), a mini live sparkline, and the current
- * value (plus an optional secondary value). Shared by the cpu/memory/gpu/
- * network tabs - data source and formatting are the caller's concern, this
- * component only searches, sorts, and renders.
+ * The live per-process list shown below the history hero chart, unified
+ * across the cpu/memory/gpu/network tabs - one persistent instance whose
+ * search/sort state survives a metric switch (data source and formatting
+ * are the caller's concern via `items`/`formatValue`, scoped to whichever
+ * metric is currently active). Search + sort over a flat row list, each row
+ * an app icon (or the plain color dot when none resolves), privacy-access
+ * icons (webcam/microphone/location/screen capture, when the service
+ * reports one for that process), a mini sparkline, and the current value
+ * (plus an optional secondary value).
  */
 export function ProcessListSection({ items, formatValue }: ProcessListSectionProps) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
-  const [sort, setSort] = useState<SortMode>('usage');
+  const [sort, setSort] = useState<SortMode>('recent');
   const privacy = useMonitoringPrivacy(true);
 
   const visible = useMemo(() => {
     const needle = query.trim().toLowerCase();
     const filtered = needle ? items.filter(i => i.name.toLowerCase().includes(needle)) : items;
-    return [...filtered].sort((a, b) => (sort === 'name' ? a.name.localeCompare(b.name) : b.current - a.current));
+    return [...filtered].sort((a, b) => compareItems(a, b, sort));
   }, [items, query, sort]);
 
   const sortOptions = [
+    { value: 'recent', label: t('monitoring.history.process.sortRecent') },
     { value: 'usage', label: t('monitoring.history.process.sortUsage') },
     { value: 'name', label: t('monitoring.history.process.sortName') },
   ];
@@ -133,7 +169,7 @@ export function ProcessListSection({ items, formatValue }: ProcessListSectionPro
         <div className={styles.rows}>
           {visible.map(item => (
             <div key={item.name} className={styles.row}>
-              <span className={styles.dot} style={{ background: item.color }} />
+              <ProcessIcon name={item.name} color={item.color} />
               <span className={styles.name}>{item.name}</span>
               <PrivacyIndicators
                 indicators={privacy.supported && !privacy.error ? privacyIndicatorsForProcess(privacy.sessions, item.name, privacy.asOfMs) : []}

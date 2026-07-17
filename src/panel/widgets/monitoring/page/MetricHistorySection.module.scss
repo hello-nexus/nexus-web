@@ -1,3 +1,5 @@
+@use '../../../../styles/text' as *;
+
 .root {
   display: flex;
   flex-direction: column;
@@ -37,15 +39,127 @@
   flex-shrink: 0;
 }
 
+.resetRange {
+  @include text-button;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  color: var(--text-dim);
+  background: var(--surface);
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 0.3rem 0.6rem;
+  cursor: pointer;
+  transition: color var(--ease-fast) ease, border-color var(--ease-fast) ease;
+
+  &:hover {
+    color: var(--text);
+    border-color: var(--accent);
+  }
+}
+
 .brush {
   flex: 1;
   min-width: 0;
 }
 
-.tooltipTemp {
-  margin-top: 0.35rem;
-  padding-top: 0.35rem;
+// Wraps the hero chart so the live/back-to-live control and the temp
+// indicator can dock over it (replacing the removed bottom-left legend)
+// without TimeSeriesChart itself needing to know about either.
+.chartOverlayWrap {
+  position: relative;
+}
+
+.liveOverlay {
+  position: absolute;
+  top: 0.6rem;
+  right: 1rem;
+  z-index: 1;
+}
+
+.backToLive {
+  @include text-caption;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--good);
+  background: color-mix(in srgb, var(--good) 14%, transparent);
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-pill);
+  padding: 0.15rem 0.55rem;
+  cursor: pointer;
+  transition: border-color var(--ease-fast) ease;
+
+  &:hover {
+    border-color: var(--good);
+  }
+}
+
+// Docked at the plot's bottom-left, above the x-axis tick label row (never
+// over the drawn silhouette or the axis text) - the spot the removed
+// series legend used to occupy.
+.tempOverlay {
+  position: absolute;
+  bottom: 1.85rem;
+  left: 3.75rem;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-family: var(--font-mono);
+  font-size: var(--type-mini);
+  color: var(--text-dim);
+  background: color-mix(in srgb, var(--bg-elevated) 75%, transparent);
+  border-radius: var(--radius-sm);
+  padding: 0.1rem 0.4rem;
+  pointer-events: none;
+}
+
+.tooltipCustom {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.tooltipTopRow {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--font-mono);
+  font-size: var(--type-small);
+  font-weight: var(--weight-small);
+  color: var(--text);
+}
+
+.tooltipApps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-top: 0.3rem;
+  padding-top: 0.3rem;
   border-top: 1px solid var(--separator);
+}
+
+.tooltipAppRow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.tooltipAppName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: var(--type-small);
   color: var(--text-dim);
+}
+
+.tooltipAppValue {
+  font-family: var(--font-mono);
+  font-size: var(--type-mini);
+  color: var(--text);
+  white-space: nowrap;
 }

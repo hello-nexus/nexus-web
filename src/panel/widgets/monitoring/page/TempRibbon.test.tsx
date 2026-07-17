@@ -29,16 +29,31 @@ describe('TempRibbon', () => {
     expect(getByText('60C')).toBeInTheDocument();
   });
 
-  it('renders a higher opacity for a hotter point', () => {
+  it('renders a thicker band for a hotter point (waveform, not opacity)', () => {
     stubWidth(400);
     const points = [{ t: 0, avg: 40, max: 41 }, { t: 500, avg: 90, max: 92 }];
     const { container } = render(
       <TempRibbon points={points} domain={[0, 1000]} minC={40} maxC={90} />,
     );
     const rects = container.querySelectorAll('rect');
-    const coolOpacity = Number(rects[0].getAttribute('fill-opacity'));
-    const hotOpacity = Number(rects[1].getAttribute('fill-opacity'));
-    expect(hotOpacity).toBeGreaterThan(coolOpacity);
+    expect(rects[0]).not.toHaveAttribute('fill-opacity');
+    const coolHeight = Number(rects[0].getAttribute('height'));
+    const hotHeight = Number(rects[1].getAttribute('height'));
+    expect(hotHeight).toBeGreaterThan(coolHeight);
+  });
+
+  it('centers each band vertically as its thickness changes', () => {
+    stubWidth(400);
+    const points = [{ t: 0, avg: 40, max: 41 }, { t: 500, avg: 90, max: 92 }];
+    const { container } = render(
+      <TempRibbon points={points} domain={[0, 1000]} minC={40} maxC={90} height={12} />,
+    );
+    const rects = container.querySelectorAll('rect');
+    for (const rect of rects) {
+      const y = Number(rect.getAttribute('y'));
+      const h = Number(rect.getAttribute('height'));
+      expect(y + h / 2).toBeCloseTo(6, 5);
+    }
   });
 
   it('insets segments by CHART_PAD so they line up under the chart plot rect above', () => {

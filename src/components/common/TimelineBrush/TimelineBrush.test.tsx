@@ -2,15 +2,20 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render } from '@testing-library/react';
 import { TimelineBrush } from './TimelineBrush';
 
-// jsdom has no layout/pointer-capture engine. Fixed 1000px box over a
-// [0, 100_000]ms domain gives a clean 100ms/px scale for deterministic drag
-// math, matching the cooling CurveEditor's stubSvgGeometry approach.
+// jsdom has no layout/pointer-capture engine. A 1200px box with the
+// component's own 100px label lane on each side gives an exactly 1000px
+// track over a [0, 100_000]ms domain - a clean 100ms/px scale for
+// deterministic drag math (every clientX below is the pre-shift 0-1000
+// track position plus the 100px left lane), matching the cooling
+// CurveEditor's stubSvgGeometry approach.
+const LANE = 100;
+
 function stubGeometry() {
   Element.prototype.setPointerCapture = vi.fn();
   Element.prototype.releasePointerCapture = vi.fn();
   Element.prototype.hasPointerCapture = vi.fn(() => true);
   vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
-    x: 0, y: 0, left: 0, top: 0, right: 1000, bottom: 40, width: 1000, height: 40,
+    x: 0, y: 0, left: 0, top: 0, right: 1200, bottom: 40, width: 1200, height: 40,
     toJSON: () => ({}),
   } as DOMRect);
 }
@@ -54,12 +59,12 @@ describe('TimelineBrush', () => {
     const { getByRole } = renderBrush(onChange);
     const el = getByRole('slider');
 
-    // window spans [20_000, 40_000]ms -> [200, 400]px at 100ms/px.
-    fireEvent.pointerDown(el, { pointerId: 1, clientX: 300 });
-    fireEvent.pointerMove(el, { pointerId: 1, clientX: 350 });
+    // window spans [20_000, 40_000]ms -> [200, 400]px at 100ms/px, offset by the LANE.
+    fireEvent.pointerDown(el, { pointerId: 1, clientX: LANE + 300 });
+    fireEvent.pointerMove(el, { pointerId: 1, clientX: LANE + 350 });
     expect(onChange).toHaveBeenLastCalledWith(25_000, 45_000, 'drag');
 
-    fireEvent.pointerUp(el, { pointerId: 1, clientX: 350 });
+    fireEvent.pointerUp(el, { pointerId: 1, clientX: LANE + 350 });
     expect(onChange).toHaveBeenLastCalledWith(25_000, 45_000, 'end');
   });
 
@@ -68,11 +73,11 @@ describe('TimelineBrush', () => {
     const { getByRole } = renderBrush(onChange);
     const el = getByRole('slider');
 
-    fireEvent.pointerDown(el, { pointerId: 1, clientX: 200 });
-    fireEvent.pointerMove(el, { pointerId: 1, clientX: 150 });
+    fireEvent.pointerDown(el, { pointerId: 1, clientX: LANE + 200 });
+    fireEvent.pointerMove(el, { pointerId: 1, clientX: LANE + 150 });
     expect(onChange).toHaveBeenLastCalledWith(15_000, 40_000, 'drag');
 
-    fireEvent.pointerMove(el, { pointerId: 1, clientX: -500 });
+    fireEvent.pointerMove(el, { pointerId: 1, clientX: LANE - 500 });
     expect(onChange).toHaveBeenLastCalledWith(0, 40_000, 'drag');
   });
 
@@ -81,9 +86,9 @@ describe('TimelineBrush', () => {
     const { getByRole } = renderBrush(onChange);
     const el = getByRole('slider');
 
-    // toPx=400; domainEndPx=1000; moving to 995px is within the 6px snap zone.
-    fireEvent.pointerDown(el, { pointerId: 1, clientX: 400 });
-    fireEvent.pointerMove(el, { pointerId: 1, clientX: 995 });
+    // toPx=400 (track-local); domainEndPx=1000; moving to 995px is within the 6px snap zone.
+    fireEvent.pointerDown(el, { pointerId: 1, clientX: LANE + 400 });
+    fireEvent.pointerMove(el, { pointerId: 1, clientX: LANE + 995 });
     expect(onChange).toHaveBeenLastCalledWith(20_000, DOMAIN_END, 'drag');
   });
 
@@ -92,8 +97,8 @@ describe('TimelineBrush', () => {
     const { getByRole } = renderBrush(onChange);
     const el = getByRole('slider');
 
-    fireEvent.pointerDown(el, { pointerId: 1, clientX: 400 });
-    fireEvent.pointerMove(el, { pointerId: 1, clientX: 900 });
+    fireEvent.pointerDown(el, { pointerId: 1, clientX: LANE + 400 });
+    fireEvent.pointerMove(el, { pointerId: 1, clientX: LANE + 900 });
     expect(onChange).toHaveBeenLastCalledWith(20_000, 90_000, 'drag');
   });
 
@@ -103,8 +108,8 @@ describe('TimelineBrush', () => {
     const { getByRole } = renderBrush(onChange, { from: 20_000, to: 21_000, minWindowMs: 1_000 });
     const el = getByRole('slider');
 
-    fireEvent.pointerDown(el, { pointerId: 1, clientX: 200 });
-    fireEvent.pointerMove(el, { pointerId: 1, clientX: 205 });
+    fireEvent.pointerDown(el, { pointerId: 1, clientX: LANE + 200 });
+    fireEvent.pointerMove(el, { pointerId: 1, clientX: LANE + 205 });
     expect(onChange).toHaveBeenLastCalledWith(20_000, 21_000, 'drag');
   });
 
@@ -113,21 +118,21 @@ describe('TimelineBrush', () => {
     const { getByRole } = renderBrush(onChange);
     const el = getByRole('slider');
 
-    // window width 20_000ms; clicking at 700px (70_000ms) recenters to [60_000, 80_000].
-    fireEvent.pointerDown(el, { pointerId: 1, clientX: 700 });
+    // window width 20_000ms; clicking at track-local 700px (70_000ms) recenters to [60_000, 80_000].
+    fireEvent.pointerDown(el, { pointerId: 1, clientX: LANE + 700 });
     expect(onChange).toHaveBeenLastCalledWith(60_000, 80_000, 'drag');
 
-    fireEvent.pointerUp(el, { pointerId: 1, clientX: 700 });
+    fireEvent.pointerUp(el, { pointerId: 1, clientX: LANE + 700 });
     expect(onChange).toHaveBeenLastCalledWith(60_000, 80_000, 'end');
   });
 
   describe('edge labels', () => {
-    it('renders no labels when formatEdgeLabel is omitted (backwards compatible)', () => {
+    it('renders no labels when formatEdgeLabels is omitted (backwards compatible)', () => {
       const { container } = renderBrush(() => {});
       expect(container.querySelector('[class*="edgeLabel"]')).toBeNull();
     });
 
-    it('renders the formatted from/to labels outside the window', () => {
+    it('renders the block\'s own domainStart/domainEnd, not the selected window', () => {
       const { container, getByText } = render(
         <TimelineBrush
           domainStart={DOMAIN_START}
@@ -138,11 +143,11 @@ describe('TimelineBrush', () => {
           minWindowMs={1_000}
           ariaLabel="Time range"
           ariaValueText={ariaValueText}
-          formatEdgeLabel={t => `t${t}`}
+          formatEdgeLabels={(start, end) => [`s${start}`, `e${end}`]}
         />,
       );
-      expect(getByText('t20000')).toBeInTheDocument();
-      expect(getByText('t40000')).toBeInTheDocument();
+      expect(getByText(`s${DOMAIN_START}`)).toBeInTheDocument();
+      expect(getByText(`e${DOMAIN_END}`)).toBeInTheDocument();
       expect(container.querySelectorAll('[class*="edgeLabel"]').length).toBe(2);
     });
   });

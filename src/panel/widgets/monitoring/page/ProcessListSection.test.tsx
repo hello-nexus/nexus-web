@@ -11,6 +11,11 @@ vi.mock('../../../../hooks/useMonitoringPrivacy', () => ({
   useMonitoringPrivacy: () => privacyMock(),
 }));
 
+const appIconMock = vi.fn<(name: string) => string | null>();
+vi.mock('../../common/AppPicker', () => ({
+  useAppIcon: (name: string) => appIconMock(name),
+}));
+
 function privacyResult(over: Partial<UseMonitoringPrivacyResult> = {}): UseMonitoringPrivacyResult {
   return {
     sessions: [],
@@ -34,12 +39,55 @@ function items(): ProcessListItem[] {
 describe('ProcessListSection', () => {
   beforeEach(() => {
     privacyMock.mockReturnValue(privacyResult());
+    appIconMock.mockReturnValue(null);
   });
 
-  it('renders rows sorted by usage (current value) descending by default', () => {
+  it('defaults to the recency sort, falling back to usage order when no item reports startedAtMs', () => {
     render(<ProcessListSection items={items()} formatValue={v => `${v}%`} />);
     const names = screen.getAllByText(/Chrome|PixelForge|Nexus/).map(el => el.textContent);
     expect(names).toEqual(['PixelForge', 'Chrome', 'Nexus']);
+  });
+
+  it('recency sort ranks by startedAtMs (most recent first) when items report it', () => {
+    const withRecency: ProcessListItem[] = [
+      { name: 'Chrome', color: '#f00', current: 12, values: [], startedAtMs: 1000 },
+      { name: 'PixelForge', color: '#0f0', current: 40, values: [], startedAtMs: 3000 },
+      { name: 'Nexus', color: '#00f', current: 3, values: [], startedAtMs: 2000 },
+    ];
+    render(<ProcessListSection items={withRecency} formatValue={v => `${v}%`} />);
+    const names = screen.getAllByText(/Chrome|PixelForge|Nexus/).map(el => el.textContent);
+    expect(names).toEqual(['PixelForge', 'Nexus', 'Chrome']);
+  });
+
+  it('sorts an app with a known launch time above one without, under the recency sort', () => {
+    const mixed: ProcessListItem[] = [
+      { name: 'Chrome', color: '#f00', current: 90, values: [] },
+      { name: 'PixelForge', color: '#0f0', current: 1, values: [], startedAtMs: 1000 },
+    ];
+    render(<ProcessListSection items={mixed} formatValue={v => `${v}%`} />);
+    const names = screen.getAllByText(/Chrome|PixelForge/).map(el => el.textContent);
+    expect(names).toEqual(['PixelForge', 'Chrome']);
+  });
+
+  it('switches to usage sort via the sort dropdown', () => {
+    render(<ProcessListSection items={items()} formatValue={v => `${v}%`} />);
+    fireEvent.click(screen.getByRole('button', { name: 'monitoring.history.process.sortAriaLabel' }));
+    fireEvent.click(screen.getByRole('option', { name: 'monitoring.history.process.sortUsage' }));
+    const names = screen.getAllByText(/Chrome|PixelForge|Nexus/).map(el => el.textContent);
+    expect(names).toEqual(['PixelForge', 'Chrome', 'Nexus']);
+  });
+
+  it('renders the app icon in place of the dot when one resolves', () => {
+    appIconMock.mockImplementation(name => (name === 'Chrome' ? 'blob:chrome-icon' : null));
+    const { container } = render(<ProcessListSection items={items()} formatValue={v => `${v}%`} />);
+    const img = container.querySelector('img[src="blob:chrome-icon"]');
+    expect(img).toBeInTheDocument();
+  });
+
+  it('falls back to the color dot when no icon resolves', () => {
+    const { container } = render(<ProcessListSection items={[items()[0]]} formatValue={v => `${v}%`} />);
+    expect(container.querySelector('img')).toBeNull();
+    expect(container.querySelector('[class*="dot"]')).toBeInTheDocument();
   });
 
   it('filters rows live by name via the search input', () => {
