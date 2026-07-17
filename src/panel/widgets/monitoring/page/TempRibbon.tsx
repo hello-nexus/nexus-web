@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { Thermometer } from 'lucide-react';
 import type { TimeSeriesPoint } from '../../../../components/common/TimeSeriesChart/timeSeriesChartUtils';
-import { CHART_PAD } from '../../../../components/common/TimeSeriesChart/TimeSeriesChart';
+import { CHART_CARD_INSET_PX, CHART_PAD } from '../../../../components/common/TimeSeriesChart/TimeSeriesChart';
 import styles from './TempRibbon.module.scss';
 
 export interface TempRibbonProps {
@@ -47,12 +47,15 @@ function thicknessFor(avg: number, floorC: number, capC: number, maxThickness: n
  * itself lives only in the hero chart's hover tooltip, on the same row as
  * the timestamp). The icon sits inside the CHART_PAD.left lane (the same
  * lane the chart's own y-axis tick labels occupy), positioned absolutely so
- * it never consumes flow width - the band's drawn x-range is therefore
- * exactly [CHART_PAD.left, width - CHART_PAD.right], pixel-identical to the
- * chart's own plot rect for the same container width, with no reserved
- * lane to desync it.
+ * it never consumes flow width - the band's own capsule (.track) stays full
+ * width, matching the chart card's own outer footprint, while the DRAWN
+ * band is inset by CHART_PAD plus CHART_CARD_INSET_PX (the chart card's own
+ * padding+border, which sits between the page edge and its plot but has no
+ * counterpart on this component's own padding-less wrapper) so it lands
+ * pixel-identical to the chart's own plot rect for the same container width.
  * Deliberately not part of TimeSeriesChart - it shares only the x-domain
- * math and the CHART_PAD inset, not any other chart internals.
+ * math and the CHART_PAD/CHART_CARD_INSET_PX insets, not any other chart
+ * internals.
  */
 export function TempRibbon({ points, domain, height = DEFAULT_HEIGHT, floorC, capC }: TempRibbonProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -75,8 +78,10 @@ export function TempRibbon({ points, domain, height = DEFAULT_HEIGHT, floorC, ca
 
   const [domainStart, domainEnd] = domain;
   const span = domainEnd - domainStart || 1;
-  const plotWidth = Math.max(1, width - CHART_PAD.left - CHART_PAD.right);
-  const xFor = (t: number) => CHART_PAD.left + ((t - domainStart) / span) * plotWidth;
+  const leftInset = CHART_PAD.left + CHART_CARD_INSET_PX;
+  const rightInset = CHART_PAD.right + CHART_CARD_INSET_PX;
+  const plotWidth = Math.max(1, width - leftInset - rightInset);
+  const xFor = (t: number) => leftInset + ((t - domainStart) / span) * plotWidth;
   const midY = height / 2;
 
   return (
@@ -89,7 +94,7 @@ export function TempRibbon({ points, domain, height = DEFAULT_HEIGHT, floorC, ca
           <svg className={styles.svg} width={width} height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
             {points.map((p, i) => {
               const x0 = xFor(p.t);
-              const x1 = i + 1 < points.length ? xFor(points[i + 1].t) : CHART_PAD.left + plotWidth;
+              const x1 = i + 1 < points.length ? xFor(points[i + 1].t) : leftInset + plotWidth;
               const thickness = thicknessFor(p.avg, floorC, capC, height);
               return (
                 <rect

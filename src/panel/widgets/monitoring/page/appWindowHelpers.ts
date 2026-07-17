@@ -70,37 +70,49 @@ function flatHistory(value: number): number[] {
  * window-scoped apps response for the same metric: a name present in both
  * keeps the window's own avg + point series (so it lines up with the hero
  * chart's own data and the hover tooltip); a name live-only - the window
- * response is a top-N-by-usage subset - keeps its live value with a flat
- * sparkline, since no windowed history exists for it at a comparable
- * timescale. A name that only appears in the window response (e.g. it
- * exited between the live frame and the window fetch) is still included,
- * sourced from the window data alone, so nothing the window legitimately
- * reports is dropped.
+ * response is a top-N-by-usage subset, or the endpoint returned nothing at
+ * all for this series - keeps its own live sparkline when it has one
+ * (real per-process history beats a fabricated flat line), falling back to a
+ * flat line only when the live row itself carries no history. A name that
+ * only appears in the window response (e.g. it exited between the live
+ * frame and the window fetch) is still included, sourced from the window
+ * data alone, so nothing the window legitimately reports is dropped.
+ * Window names collide case-sensitively; a duplicate keeps the first entry
+ * and drops the rest, since ProcessListSection keys rows by name.
  */
 export function reconcileLiveWithWindow(
   liveItems: readonly ProcessListItem[],
   windowApps: readonly AppWindowSeries[],
 ): ProcessListItem[] {
-  const windowByName = new Map(windowApps.map(a => [a.name, a] as const));
+  const windowByName = new Map<string, AppWindowSeries>();
+  for (const app of windowApps) {
+    if (!windowByName.has(app.name)) windowByName.set(app.name, app);
+  }
   const seen = new Set<string>();
   const result: ProcessListItem[] = [];
 
   for (const live of liveItems) {
+    if (seen.has(live.name)) continue;
     seen.add(live.name);
     const windowed = windowByName.get(live.name);
-    result.push(windowed
-      ? {
-          name: live.name,
-          current: windowed.avg,
-          values: windowed.points.map(p => p.avg),
-          startedAtMs: windowed.startedAtMs,
-          secondary: live.secondary,
-        }
-      : { ...live, values: flatHistory(live.current) });
+    if (windowed) {
+      result.push({
+        name: live.name,
+        current: windowed.avg,
+        values: windowed.points.map(p => p.avg),
+        startedAtMs: windowed.startedAtMs,
+        secondary: live.secondary,
+      });
+    } else if (live.values.length > 0) {
+      result.push(live);
+    } else {
+      result.push({ ...live, values: flatHistory(live.current) });
+    }
   }
 
-  for (const windowed of windowApps) {
+  for (const windowed of windowByName.values()) {
     if (seen.has(windowed.name)) continue;
+    seen.add(windowed.name);
     result.push({
       name: windowed.name,
       current: windowed.avg,

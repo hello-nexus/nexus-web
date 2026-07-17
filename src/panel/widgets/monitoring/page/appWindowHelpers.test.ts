@@ -104,11 +104,25 @@ describe('reconcileLiveWithWindow (item 48: complete live list + window reconcil
     ]);
   });
 
-  it('shows a live-only app (absent from the top-N window response) at its live value with a flat sparkline', () => {
-    const live = [liveItem({ name: 'explorer.exe', current: 0.4, values: [0, 1, 0] })];
+  it('keeps a live-only app\'s own sparkline (absent from the top-N window response) rather than flattening it', () => {
+    const live = [liveItem({ name: 'explorer.exe', current: 0.4, values: [0, 1, 0.8] })];
     expect(reconcileLiveWithWindow(live, [])).toEqual([
-      { name: 'explorer.exe', current: 0.4, values: expect.any(Array) },
+      { name: 'explorer.exe', current: 0.4, values: [0, 1, 0.8] },
     ]);
+  });
+
+  it('preserves every live row\'s own sparkline when the window response is supported but empty for the whole series', () => {
+    const live = [
+      liveItem({ name: 'chrome.exe', current: 40, values: [10, 20, 40] }),
+      liveItem({ name: 'explorer.exe', current: 0.4, values: [0, 1, 0.8] }),
+    ];
+    const result = reconcileLiveWithWindow(live, []);
+    expect(result.find(i => i.name === 'chrome.exe')?.values).toEqual([10, 20, 40]);
+    expect(result.find(i => i.name === 'explorer.exe')?.values).toEqual([0, 1, 0.8]);
+  });
+
+  it('falls back to a flat sparkline only when the live row itself carries no history at all', () => {
+    const live = [liveItem({ name: 'explorer.exe', current: 0.4, values: [] })];
     const result = reconcileLiveWithWindow(live, [])[0];
     expect(result.values.every(v => v === 0.4)).toBe(true);
     expect(result.values.length).toBeGreaterThanOrEqual(30);
@@ -140,6 +154,45 @@ describe('reconcileLiveWithWindow (item 48: complete live list + window reconcil
     expect(reconcileLiveWithWindow([], windowApps)).toEqual([
       { name: 'JustExited.exe', current: 3, values: [3], startedAtMs: 100 },
     ]);
+  });
+
+  it('dedups a duplicate name within the window response, keeping the first entry', () => {
+    const windowApps: AppWindowSeries[] = [
+      { name: 'svchost.exe', avg: 1, max: 1, points: [{ t: 0, avg: 1 }] },
+      { name: 'svchost.exe', avg: 99, max: 99, points: [{ t: 0, avg: 99 }] },
+    ];
+    const live = [liveItem({ name: 'svchost.exe', current: 5, values: [5] })];
+    const result = reconcileLiveWithWindow(live, windowApps);
+    expect(result).toHaveLength(1);
+    expect(result[0].current).toBe(1);
+  });
+
+  it('dedups a duplicate name within the live list, keeping the first entry, so the output never has two rows sharing a name', () => {
+    const live = [
+      liveItem({ name: 'svchost.exe', current: 5, values: [5] }),
+      liveItem({ name: 'svchost.exe', current: 9, values: [9] }),
+    ];
+    const result = reconcileLiveWithWindow(live, []);
+    expect(result).toHaveLength(1);
+    expect(result.map(i => i.name)).toEqual(['svchost.exe']);
+  });
+
+  it('every output name is unique across mixed live and window duplicates', () => {
+    const live = [
+      liveItem({ name: 'a.exe', current: 1, values: [1] }),
+      liveItem({ name: 'b.exe', current: 2, values: [2] }),
+    ];
+    const windowApps: AppWindowSeries[] = [
+      { name: 'a.exe', avg: 10, max: 10, points: [{ t: 0, avg: 10 }] },
+      { name: 'b.exe', avg: 20, max: 20, points: [{ t: 0, avg: 20 }] },
+      { name: 'b.exe', avg: 21, max: 21, points: [{ t: 0, avg: 21 }] },
+      { name: 'c.exe', avg: 30, max: 30, points: [{ t: 0, avg: 30 }] },
+      { name: 'c.exe', avg: 31, max: 31, points: [{ t: 0, avg: 31 }] },
+    ];
+    const result = reconcileLiveWithWindow(live, windowApps);
+    const names = result.map(i => i.name);
+    expect(new Set(names).size).toBe(names.length);
+    expect(names.sort()).toEqual(['a.exe', 'b.exe', 'c.exe']);
   });
 });
 

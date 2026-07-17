@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render } from '@testing-library/react';
 import { TempRibbon } from './TempRibbon';
-import { CHART_PAD } from '../../../../components/common/TimeSeriesChart/TimeSeriesChart';
+import { CHART_CARD_INSET_PX, CHART_PAD, TimeSeriesChart } from '../../../../components/common/TimeSeriesChart/TimeSeriesChart';
 
 function stubWidth(width: number) {
   vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
@@ -118,24 +118,28 @@ describe('TempRibbon', () => {
     }
   });
 
-  describe('pixel alignment with the chart plot rect (item 41)', () => {
-    it('insets segments by CHART_PAD so they line up under the chart plot rect above', () => {
+  describe('pixel alignment with the chart plot rect (item 41, corrected in item 55 for the chart card\'s own CSS inset)', () => {
+    it('insets segments by CHART_PAD plus the chart card\'s own CSS inset (CHART_CARD_INSET_PX) so they line up under the chart plot rect above', () => {
       stubWidth(400);
       const points = [{ t: 0, avg: 40, max: 41 }, { t: 500, avg: 50, max: 52 }, { t: 1000, avg: 60, max: 62 }];
       const { container } = render(
         <TempRibbon points={points} domain={[0, 1000]} {...CPU_SCALE} />,
       );
       const rects = segmentRects(container);
-      // The first segment starts exactly at the chart's left inset, and the
-      // last segment ends exactly at the chart's right inset - not the raw
-      // container edges - matching where TimeSeriesChart draws its plot rect
-      // for the same container width. Pinned directly to CHART_PAD (the
-      // same constant TimeSeriesChart itself uses), not a locally
-      // duplicated value.
-      expect(Number(rects[0].getAttribute('x'))).toBe(CHART_PAD.left);
+      // TimeSeriesChart's plot rect sits inside TWO stacked insets for the
+      // SAME measured container width: CHART_PAD (the axis-label lane,
+      // inside its own SVG) and its .chartWrap's own CSS padding+border
+      // (CHART_CARD_INSET_PX, between the page edge and that SVG) - this
+      // component's wrapper carries no padding of its own, so it must add
+      // both to land at the same page position as the plot rect. A test
+      // pinned only to CHART_PAD (as a prior round shipped) passes while
+      // the two are visibly misaligned by CHART_CARD_INSET_PX in a real
+      // browser, since jsdom applies no real CSS layout to catch it - see
+      // TempRibbon.tsx's own doc comment.
+      expect(Number(rects[0].getAttribute('x'))).toBe(CHART_PAD.left + CHART_CARD_INSET_PX);
       const last = rects[rects.length - 1];
       const lastRight = Number(last.getAttribute('x')) + Number(last.getAttribute('width'));
-      expect(lastRight).toBe(400 - CHART_PAD.right);
+      expect(lastRight).toBe(400 - CHART_PAD.right - CHART_CARD_INSET_PX);
     });
 
     it('the band\'s x-offset never changes regardless of the icon - there is no reserved lane to desync it', () => {
@@ -146,7 +150,7 @@ describe('TempRibbon', () => {
       const xsA = segmentRects(a.container).map(r => r.getAttribute('x'));
       const xsB = segmentRects(b.container).map(r => r.getAttribute('x'));
       expect(xsA).toEqual(xsB);
-      expect(Number(xsA[0])).toBe(CHART_PAD.left);
+      expect(Number(xsA[0])).toBe(CHART_PAD.left + CHART_CARD_INSET_PX);
     });
 
     it('renders no clipPath at all - the full band is always visible, nothing hidden behind a label', () => {
@@ -156,6 +160,46 @@ describe('TempRibbon', () => {
         <TempRibbon points={points} domain={[0, 1000]} {...CPU_SCALE} />,
       );
       expect(container.querySelector('clipPath')).toBeNull();
+    });
+  });
+
+  describe('cross-component alignment against a real TimeSeriesChart (item 55)', () => {
+    // jsdom applies no real CSS layout - TimeSeriesChart.tsx and TempRibbon.tsx
+    // each measure their own wrapper's getBoundingClientRect() independently,
+    // and this suite's global ResizeObserver stub (src/__tests__/setup.ts)
+    // never fires a corrective callback, so BOTH land on the same raw
+    // border-box number from stubWidth() below - reproducing the actual
+    // pre-fix bug's condition (both components agreeing on the SAME
+    // measured container width, per TimeSeriesChart.module.scss's
+    // .chartWrap padding+border pushing its plot inward with no counterpart
+    // on TempRibbon's own padding-less wrapper). A real browser was used to
+    // confirm the fix closes an ACTUAL page-pixel gap (see the task notes);
+    // this test pins the invariant that produces that result: TempRibbon's
+    // drawn band starts CHART_CARD_INSET_PX further in than TimeSeriesChart's
+    // own plot rect, for the same measured width - equal only once
+    // TempRibbon adds that inset on top of the shared CHART_PAD.
+    it('TempRibbon\'s drawn band starts CHART_CARD_INSET_PX past TimeSeriesChart\'s own plot rect, for the same measured container width', () => {
+      stubWidth(400);
+      const { container: chartContainer } = render(
+        <TimeSeriesChart
+          series={[{ id: 'cpu', name: 'CPU', color: '#8b5cf6', points: [{ t: 0, avg: 50, max: 55 }, { t: 1000, avg: 60, max: 65 }] }]}
+          valueFormat={v => `${v}`}
+          xTickFormat={() => ''}
+          avgLabel="Avg"
+          maxLabel="Max"
+          domain={[0, 1000]}
+        />,
+      );
+      const clipRect = chartContainer.querySelector('clipPath rect')!;
+      const chartPlotX = Number(clipRect.getAttribute('x'));
+
+      const { container: ribbonContainer } = render(
+        <TempRibbon points={[{ t: 0, avg: 40, max: 41 }, { t: 1000, avg: 60, max: 62 }]} domain={[0, 1000]} {...CPU_SCALE} />,
+      );
+      const ribbonX = Number(segmentRects(ribbonContainer)[0].getAttribute('x'));
+
+      expect(chartPlotX).toBe(CHART_PAD.left);
+      expect(ribbonX).toBe(chartPlotX + CHART_CARD_INSET_PX);
     });
   });
 

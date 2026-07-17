@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { SearchInput } from '../../../../components/common/SearchInput/SearchInput';
 import { Select } from '../../../../components/common/Select/Select';
@@ -7,6 +7,7 @@ import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTo
 import { useTranslation } from '../../../../lib/i18n';
 import { useMonitoringPrivacy } from '../../../../hooks/useMonitoringPrivacy';
 import type { UseMetricHistoryAppsResult } from '../../../../hooks/useMetricHistoryApps';
+import type { PrivacySession } from '../../../../api/monitoringPrivacy';
 import { PRIVACY_ICONS, formatPrivacyTime, privacyIndicatorsForProcess, type PrivacyIndicator } from './privacyHelpers';
 import { useStableRanking } from './useStableRanking';
 import { ProcessDetailSlideout } from './ProcessDetailSlideout';
@@ -99,6 +100,84 @@ function PrivacyIndicators({ indicators, t }: {
   );
 }
 
+function sameValues(a: readonly number[], b: readonly number[]): boolean {
+  if (a === b) return true;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+}
+
+interface ProcessRowProps {
+  item: ProcessListItem;
+  formatValue: (value: number) => string;
+  onSelect: (name: string) => void;
+  t: (key: string, params?: Record<string, string | number>) => string;
+  privacySessions: readonly PrivacySession[];
+  privacyAsOfMs: number;
+  showPrivacy: boolean;
+}
+
+// A live 1Hz tick reconstructs every row's data fresh (see MonitoringPage's
+// reconcileLiveWithWindow), so most props are new objects every render even
+// when their content is unchanged - a custom comparator (rather than plain
+// React.memo's reference check) is what actually skips a row whose CPU/mem/
+// GPU value hasn't moved between ticks, which is the common case for the
+// majority of near-idle processes in a several-hundred-row list.
+function rowPropsEqual(prev: ProcessRowProps, next: ProcessRowProps): boolean {
+  return prev.item.name === next.item.name
+    && prev.item.current === next.item.current
+    && prev.item.secondary === next.item.secondary
+    && prev.item.startedAtMs === next.item.startedAtMs
+    && sameValues(prev.item.values, next.item.values)
+    && prev.formatValue === next.formatValue
+    && prev.onSelect === next.onSelect
+    && prev.t === next.t
+    && prev.privacySessions === next.privacySessions
+    && prev.privacyAsOfMs === next.privacyAsOfMs
+    && prev.showPrivacy === next.showPrivacy;
+}
+
+const ProcessRow = memo(function ProcessRow({
+  item, formatValue, onSelect, t, privacySessions, privacyAsOfMs, showPrivacy,
+}: ProcessRowProps) {
+  return (
+    <div
+      className={styles.row}
+      role="button"
+      tabIndex={0}
+      aria-label={t('monitoring.history.process.openDetails', { name: item.name })}
+      onClick={() => onSelect(item.name)}
+      onKeyDown={e => {
+        // Only react to a keypress on the row itself - a nested focusable
+        // descendant (a privacy indicator icon) handles its own Enter/Space
+        // and must not also open the slideout via bubbling. Same guard as
+        // Card.tsx's own onKeyDown.
+        if (e.target !== e.currentTarget) return;
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        onSelect(item.name);
+      }}
+    >
+      <ProcessIcon name={item.name} />
+      <span className={styles.name}>{item.name}</span>
+      <PrivacyIndicators
+        indicators={showPrivacy ? privacyIndicatorsForProcess(privacySessions, item.name, privacyAsOfMs) : []}
+        t={t}
+      />
+      <Sparkline
+        className={styles.sparkline}
+        values={item.values}
+        width={64}
+        height={20}
+        sampleCount={SPARKLINE_SAMPLES}
+      />
+      <span className={styles.value}>{formatValue(item.current)}</span>
+      {item.secondary && <span className={styles.secondary}>{item.secondary}</span>}
+      <ChevronRight className={styles.openChevron} size={14} aria-hidden />
+    </div>
+  );
+}, rowPropsEqual);
+
 /**
  * The live per-process list shown below the history hero chart, unified
  * across the cpu/memory/gpu/network tabs - one persistent instance whose
@@ -124,6 +203,8 @@ export function ProcessListSection({
   const [sort, setSort] = useState<SortMode>('recent');
   const [selectedProcess, setSelectedProcess] = useState<string | null>(null);
   const privacy = useMonitoringPrivacy(true);
+  const showPrivacy = privacy.supported && !privacy.error;
+  const handleSelectRow = useCallback((name: string) => setSelectedProcess(name), []);
 
   const ranked = useStableRanking(items, sort, rankResetKey);
 
@@ -159,41 +240,16 @@ export function ProcessListSection({
       ) : (
         <div className={frozen ? `${styles.rows} ${styles.rowsFrozen}` : styles.rows}>
           {visible.map(item => (
-            <div
+            <ProcessRow
               key={item.name}
-              className={styles.row}
-              role="button"
-              tabIndex={0}
-              aria-label={t('monitoring.history.process.openDetails', { name: item.name })}
-              onClick={() => setSelectedProcess(item.name)}
-              onKeyDown={e => {
-                // Only react to a keypress on the row itself - a nested
-                // focusable descendant (a privacy indicator icon) handles its
-                // own Enter/Space and must not also open the slideout via
-                // bubbling. Same guard as Card.tsx's own onKeyDown.
-                if (e.target !== e.currentTarget) return;
-                if (e.key !== 'Enter' && e.key !== ' ') return;
-                e.preventDefault();
-                setSelectedProcess(item.name);
-              }}
-            >
-              <ProcessIcon name={item.name} />
-              <span className={styles.name}>{item.name}</span>
-              <PrivacyIndicators
-                indicators={privacy.supported && !privacy.error ? privacyIndicatorsForProcess(privacy.sessions, item.name, privacy.asOfMs) : []}
-                t={t}
-              />
-              <Sparkline
-                className={styles.sparkline}
-                values={item.values}
-                width={64}
-                height={20}
-                sampleCount={SPARKLINE_SAMPLES}
-              />
-              <span className={styles.value}>{formatValue(item.current)}</span>
-              {item.secondary && <span className={styles.secondary}>{item.secondary}</span>}
-              <ChevronRight className={styles.openChevron} size={14} aria-hidden />
-            </div>
+              item={item}
+              formatValue={formatValue}
+              onSelect={handleSelectRow}
+              t={t}
+              privacySessions={privacy.sessions}
+              privacyAsOfMs={privacy.asOfMs}
+              showPrivacy={showPrivacy}
+            />
           ))}
         </div>
       )}

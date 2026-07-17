@@ -1,3 +1,6 @@
+// padding + border here must match CHART_CARD_INSET_PX in TimeSeriesChart.tsx -
+// TempRibbon adds that constant on top of CHART_PAD to stay pixel-aligned
+// with the plot rect despite its own wrapper carrying no such padding.
 .chartWrap {
   position: relative;
   border: var(--border-width) solid transparent;

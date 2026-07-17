@@ -33,11 +33,13 @@
 
 // Scroll container for the process list only (item 48): the hero chart, temp
 // ribbon, and seek bar (MetricHistorySection, flex-shrink:0 on its own root)
-// stay pinned above this and are never pushed into a scrolling region, even
-// when the viewport is too short to show the whole list.
+// stay pinned above this and are never pushed into a scrolling region. A
+// height floor keeps a few rows visible instead of the list shrinking toward
+// nothing on a short viewport - past that floor the flex column overflows
+// its own bounds and the page scrolls as a whole (App.module.scss's .content).
 .listScroll {
   flex: 1 1 auto;
-  min-height: 0;
+  min-height: 200px;
   overflow-y: auto;
   @include scrollbar-visible($gutter: false);
 }

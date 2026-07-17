@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { ProcessListSection, type ProcessListItem } from './ProcessListSection';
+import { reconcileLiveWithWindow } from './appWindowHelpers';
+import type { AppWindowSeries } from '../../../../api/monitoringHistoryApps';
 import type { UseMonitoringPrivacyResult } from '../../../../hooks/useMonitoringPrivacy';
 import type { PrivacySession } from '../../../../api/monitoringPrivacy';
 
@@ -28,6 +30,22 @@ vi.mock('./ProcessDetailSlideout', () => ({
     </div>
   ),
 }));
+
+// Counts real Sparkline renders (a direct signal of ProcessRow's own memo
+// bypassing unchanged rows) while still rendering its real output, so every
+// other test in this file that asserts on the sparkline's actual SVG output
+// is unaffected.
+let sparklineRenderCount = 0;
+vi.mock('../../../../components/common/Sparkline/Sparkline', async importOriginal => {
+  const actual = await importOriginal<typeof import('../../../../components/common/Sparkline/Sparkline')>();
+  return {
+    ...actual,
+    Sparkline: (props: Parameters<typeof actual.Sparkline>[0]) => {
+      sparklineRenderCount++;
+      return <actual.Sparkline {...props} />;
+    },
+  };
+});
 
 function privacyResult(over: Partial<UseMonitoringPrivacyResult> = {}): UseMonitoringPrivacyResult {
   return {
@@ -332,6 +350,99 @@ describe('ProcessListSection', () => {
       const start = performance.now();
       rerender(<ProcessListSection items={churned} formatValue={v => `${v}%`} />);
       expect(performance.now() - start).toBeLessThan(BUDGET_MS);
+    });
+  });
+
+  describe('repeated 1Hz-tick re-render through the real reconciliation pipeline (item R4-53)', () => {
+    // The live process list is rebuilt through reconcileLiveWithWindow on
+    // every monitoring frame (see MonitoringPage's liveItems/processItems),
+    // not a plain prop swap - this exercises that same shape (a top-15
+    // window-scoped subset unioned onto a 300-row live list) across several
+    // simulated ticks, not a single rerender.
+    function baselineItems(n: number): ProcessListItem[] {
+      return Array.from({ length: n }, (_, i) => ({
+        name: `proc-${i}.exe`,
+        current: Math.random() * 100,
+        values: Array.from({ length: 60 }, () => Math.random() * 100),
+      }));
+    }
+
+    function windowAppsFor(names: string[]): AppWindowSeries[] {
+      return names.map(name => ({
+        name,
+        avg: Math.random() * 100,
+        max: 100,
+        points: Array.from({ length: 30 }, (_, i) => ({ t: i * 1000, avg: Math.random() * 100 })),
+      }));
+    }
+
+    const TICKS = 15;
+    // Measured locally under jsdom: ~30ms/tick even when every one of 300
+    // rows changes every tick (the worst case - no real machine has every
+    // process's usage move every second). Generous for the same contention
+    // reasons as BUDGET_MS above.
+    const PER_TICK_BUDGET_MS = 400;
+
+    // MonitoringPage.tsx's own formatValue is useMemo-stabilized (keyed on
+    // [tab, numberFormat]) - a fresh arrow function here would defeat
+    // ProcessRow's memo comparator on that prop alone regardless of whether
+    // a row's own data changed, silently making every test below measure
+    // "no memoization" instead of the real app's behavior.
+    const formatValue = (v: number) => `${v}%`;
+
+    it('stays within budget across repeated ticks where every row changes (worst case)', () => {
+      const baseline = baselineItems(300);
+      const windowApps = windowAppsFor(baseline.slice(0, 15).map(i => i.name));
+      const first = reconcileLiveWithWindow(baseline, windowApps);
+      const { rerender } = render(<ProcessListSection items={first} formatValue={formatValue} rankResetKey="cpu" />);
+
+      const start = performance.now();
+      for (let tick = 0; tick < TICKS; tick++) {
+        const live = baselineItems(300).map((item, i) => ({ ...item, name: baseline[i].name }));
+        rerender(<ProcessListSection items={reconcileLiveWithWindow(live, windowApps)} formatValue={formatValue} rankResetKey="cpu" />);
+      }
+      const perTick = (performance.now() - start) / TICKS;
+      expect(perTick).toBeLessThan(PER_TICK_BUDGET_MS);
+    });
+
+    it('stays within budget across repeated ticks where most rows are near-idle (realistic case)', () => {
+      const baseline = baselineItems(300);
+      const windowApps = windowAppsFor(baseline.slice(0, 15).map(i => i.name));
+      const first = reconcileLiveWithWindow(baseline, windowApps);
+      const { rerender } = render(<ProcessListSection items={first} formatValue={formatValue} rankResetKey="cpu" />);
+
+      const ACTIVE_COUNT = 20;
+      const start = performance.now();
+      for (let tick = 0; tick < TICKS; tick++) {
+        const live = baseline.map((item, i) => (i < ACTIVE_COUNT
+          ? { ...item, current: Math.random() * 100, values: Array.from({ length: 60 }, () => Math.random() * 100) }
+          : item));
+        rerender(<ProcessListSection items={reconcileLiveWithWindow(live, windowApps)} formatValue={formatValue} rankResetKey="cpu" />);
+      }
+      const perTick = (performance.now() - start) / TICKS;
+      expect(perTick).toBeLessThan(PER_TICK_BUDGET_MS);
+    });
+
+    it('re-renders only the rows whose own data actually changed (direct memo verification, not a timing inference)', () => {
+      const baseline = baselineItems(300);
+      const windowApps = windowAppsFor(baseline.slice(0, 15).map(i => i.name));
+      const first = reconcileLiveWithWindow(baseline, windowApps);
+      const { rerender } = render(<ProcessListSection items={first} formatValue={formatValue} rankResetKey="cpu" />);
+
+      const ACTIVE_COUNT = 20;
+      const live = baseline.map((item, i) => (i < ACTIVE_COUNT
+        ? { ...item, current: Math.random() * 100, values: Array.from({ length: 60 }, () => Math.random() * 100) }
+        : item));
+
+      sparklineRenderCount = 0;
+      rerender(<ProcessListSection items={reconcileLiveWithWindow(live, windowApps)} formatValue={formatValue} rankResetKey="cpu" />);
+
+      // Only the changed rows (up to ACTIVE_COUNT, plus whichever of the 15
+      // window-matched names happen to have moved) re-render their
+      // Sparkline - not all 300, proving ProcessRow's memo actually skips
+      // untouched rows rather than merely being present but inert.
+      expect(sparklineRenderCount).toBeGreaterThan(0);
+      expect(sparklineRenderCount).toBeLessThan(300);
     });
   });
 

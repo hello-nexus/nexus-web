@@ -84,6 +84,15 @@ const DRAG_SELECT_THRESHOLD_PX = 4;
 // and stay pixel-aligned with it, given the same container width.
 export const CHART_PAD = { left: 56, right: 16, top: 12, bottom: 28 };
 
+// .chartWrap's own CSS inset below (padding + border, both sides) - the
+// wrapper that owns the width measurement this component's plot math is
+// based on. A companion element with no such padding on its own wrapper
+// (TempRibbon) must add this on top of CHART_PAD to land its drawn content
+// at the same page position as the plot rect, for the same measured
+// container width - CHART_PAD alone only accounts for the axis-label lane
+// inside the SVG, not the card's own outer padding outside it.
+export const CHART_CARD_INSET_PX = 13;
+
 export function TimeSeriesChart({
   series, height = 260, valueFormat, xTickFormat, xTickCount = 5, yTickCount = 5,
   avgLabel, maxLabel, bands, showLegend = true, domain, tooltipExtra, yDomain,
