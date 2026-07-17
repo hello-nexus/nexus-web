@@ -319,9 +319,10 @@ export function PanelThemeSettings({
             opacity slider, mode tabs, and the mode content. */}
         <div className={styles.backgroundContent} data-settings-aside>
           {showBackgroundToggle && (
-            // Inverted view of backgroundEnabled: the wire field stays
-            // "background on" (null = on); only this control reads as
-            // "wallpaper on".
+            // Inverted view of backgroundEnabled: the wire field is
+            // "background on"; only this control reads as "wallpaper on".
+            // A null wire value resolves per capability (wallpaper-capable
+            // panels default to wallpaper) - see resolvePanelBackgroundEnabled.
             <SettingToggle
               label={label('panel.settings.backgroundWallpaper', 'Use wallpaper for background')}
               description={label('panel.settings.backgroundWallpaper.desc', 'Shows the desktop wallpaper behind the widgets')}

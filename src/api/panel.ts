@@ -46,8 +46,9 @@ export interface PanelDeviceRecord {
   backgroundTemplates?: Record<string, number>;
   backgroundOpacity?: number;
   // False = background layer off; a kiosk-hosted panel (y70 / monitor)
-  // renders fully transparent so the Windows desktop shows through.
-  // Absent/null = on.
+  // renders the desktop wallpaper behind the widgets. Absent/null resolves
+  // per capability: wallpaper-capable panels default to wallpaper, everything
+  // else to the theme backdrop (resolvePanelBackgroundEnabled).
   backgroundEnabled?: boolean | null;
   backgroundMediaId?: string | null;
   backgroundMediaType?: 'static' | 'animated' | null;
