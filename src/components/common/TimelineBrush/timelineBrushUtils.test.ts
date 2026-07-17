@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildSilhouettePathD,
   clampWindow,
   hitZoneAt,
   msToPx,
@@ -129,5 +130,59 @@ describe('snapToEnd', () => {
 
   it('leaves position untouched outside tolerance', () => {
     expect(snapToEnd(380, 400, 6)).toBe(380);
+  });
+});
+
+describe('buildSilhouettePathD', () => {
+  // Identity-ish mapping so path coordinates are easy to reason about.
+  const tPx = (t: number) => t;
+  const vY = (v: number) => 100 - v;
+  const baselineY = 100;
+
+  it('returns null for no points', () => {
+    expect(buildSilhouettePathD([], tPx, vY, baselineY)).toBeNull();
+  });
+
+  it('draws one closed subpath for a contiguous run (evenly spaced, no gap)', () => {
+    const points = [{ t: 0, v: 10 }, { t: 100, v: 20 }, { t: 200, v: 15 }];
+    const d = buildSilhouettePathD(points, tPx, vY, baselineY)!;
+    expect(d.match(/M/g)?.length).toBe(1);
+    expect(d.match(/Z/g)?.length).toBe(1);
+    // Starts and ends on the baseline (zero fill at the run's own edges).
+    expect(d.startsWith('M0.0,100.0')).toBe(true);
+    expect(d).toContain('200.0,100.0 Z');
+  });
+
+  it('a gap wider than the median-spacing threshold splits into two independent subpaths, never lerping across it', () => {
+    // Two evenly-spaced runs (0/100/200 and 1000/1100) separated by an 800ms
+    // gap - far wider than the ~100ms median spacing within each run.
+    const points = [{ t: 0, v: 10 }, { t: 100, v: 20 }, { t: 200, v: 15 }, { t: 1000, v: 90 }, { t: 1100, v: 95 }];
+    const d = buildSilhouettePathD(points, tPx, vY, baselineY)!;
+    expect(d.match(/M/g)?.length).toBe(2);
+    // The first subpath drops to baseline at its own last point (200), not a
+    // diagonal ramp toward the far run at 1000.
+    expect(d).toContain('200.0,100.0 Z');
+    // The second subpath starts fresh (from baseline) at its own first
+    // point, not connected to the first run at all.
+    expect(d).toContain('M1000.0,100.0');
+  });
+
+  it('renders a point isolated by gaps on both sides as a thin filled sliver, not a vanishing moveto-only path', () => {
+    // Two tightly-spaced runs (median spacing ~10) bracket one lone point at
+    // t=500, far outside that spacing on both sides.
+    const points = [
+      { t: 0, v: 10 }, { t: 10, v: 12 }, { t: 20, v: 11 },
+      { t: 500, v: 90 },
+      { t: 1000, v: 10 }, { t: 1010, v: 12 }, { t: 1020, v: 11 },
+    ];
+    const d = buildSilhouettePathD(points, tPx, vY, baselineY)!;
+    expect(d.match(/M/g)?.length).toBe(3);
+    expect(d.match(/Z/g)?.length).toBe(3);
+    // The isolated point's own subpath (between the two normal runs' Z's)
+    // draws a non-degenerate sliver - both of its side edges present, not
+    // collapsed to a single coordinate.
+    const middle = d.split('Z')[1];
+    expect(middle).toContain('499');
+    expect(middle).toContain('500');
   });
 });

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useSta
 import { useChartHoverTooltip } from '../../../hooks/useChartHoverTooltip';
 import { useTranslation } from '../../../lib/i18n';
 import {
+  GAP_MULTIPLIER,
   formatTooltipTimestamp,
   medianSpacingMs,
   nearestPoint,
@@ -20,14 +21,6 @@ export interface TimeSeriesBand {
   endT: number;
   color?: string;
 }
-
-// A gap wider than this multiple of the actual median point spacing renders
-// as a line break (and the hover tooltip stops attaching a series' value).
-// Derived from the data itself, not a nominal bucket size: server-side
-// decimation widens real point spacing well past the source bucket at wide
-// ranges, so a caller-supplied nominal size would flag every decimated point
-// as a gap and render the whole chart blank.
-const GAP_MULTIPLIER = 1.5;
 
 export interface TimeSeriesChartProps {
   series: TimeSeriesSeries[];
@@ -74,6 +67,12 @@ export interface TimeSeriesChartProps {
    *  tooltip's time label includes seconds precision. Omit when unknown;
    *  the tooltip then stays minute-precision regardless of zoom. */
   stepSeconds?: number | null;
+  /** Extra content rendered in the SAME row as the tooltip's timestamp
+   *  (time on the left, this on the right) - for a single value that
+   *  belongs beside the header rather than the tooltipExtra body below
+   *  (e.g. the current temperature). Called with the hovered timestamp;
+   *  renders nothing when it returns null. */
+  tooltipHeaderExtra?: (t: number) => ReactNode;
 }
 
 // A pointer must move at least this many px before a drag counts as a
@@ -88,7 +87,7 @@ export const CHART_PAD = { left: 56, right: 16, top: 12, bottom: 28 };
 export function TimeSeriesChart({
   series, height = 260, valueFormat, xTickFormat, xTickCount = 5, yTickCount = 5,
   avgLabel, maxLabel, bands, showLegend = true, domain, tooltipExtra, yDomain,
-  fillGradient = false, hideSeriesRows = false, onRangeSelect, stepSeconds,
+  fillGradient = false, hideSeriesRows = false, onRangeSelect, stepSeconds, tooltipHeaderExtra,
 }: TimeSeriesChartProps) {
   const { t, language } = useTranslation();
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -384,7 +383,10 @@ export function TimeSeriesChart({
 
       {tooltip && !isDragging && (
         <div ref={tooltipRef} className={styles.tooltip}>
-          <div className={styles.tooltipHeader}>{formatTooltipTimestamp(tooltip.t, nowMs, language, stepSeconds)}</div>
+          <div className={styles.tooltipHeader}>
+            <span>{formatTooltipTimestamp(tooltip.t, nowMs, language, stepSeconds)}</span>
+            {tooltipHeaderExtra?.(tooltip.t)}
+          </div>
           {!hideSeriesRows && tooltip.rows.map(row => (
             <div key={row.id} className={styles.tooltipRow}>
               <span className={styles.tooltipDot} style={{ background: row.color }} />

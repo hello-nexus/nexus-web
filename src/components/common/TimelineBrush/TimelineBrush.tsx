@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react';
 import {
   MIN_BOX_WINDOW_MS,
+  buildSilhouettePathD,
   clampWindow,
   hitZoneAt,
   msToPx,
@@ -9,6 +10,7 @@ import {
   resizeLeftEdge,
   resizeRightEdge,
   snapToEnd,
+  type BrushHitZone,
 } from './timelineBrushUtils';
 import styles from './TimelineBrush.module.scss';
 
@@ -47,7 +49,10 @@ export interface TimelineBrushProps {
   className?: string;
 }
 
-const DEFAULT_HEIGHT = 40;
+// Exported so a sibling control (e.g. the monitoring history range picker)
+// can pin its own height to match this block exactly instead of guessing at
+// a duplicated pixel value.
+export const TIMELINE_BRUSH_DEFAULT_HEIGHT = 40;
 // Reserved lane on each side of the track for the docked edge labels -
 // labels live inside the rounded block but must never overlap the drawn
 // silhouette/window - wide enough for a day-qualified timestamp (short
@@ -55,12 +60,16 @@ const DEFAULT_HEIGHT = 40;
 const LABEL_LANE_PX = 100;
 // Comfortable pointer target for grabbing an edge handle, independent of its
 // drawn width, px.
-const EDGE_HIT_PX = 8;
+const EDGE_HIT_PX = 10;
 // A right-edge drag within this many px of the live edge snaps to it exactly,
 // so the caller sees to === domainEnd and can reattach live-follow.
 const SNAP_PX = 6;
 const PAN_STEP_FRACTION = 0.1;
 const RESIZE_STEP_FRACTION = 0.1;
+// Rounds the draggable window box's corners - mirrors --radius-sm (the
+// small-control radius token) since SVG rect geometry attributes can't
+// reference a CSS custom property directly.
+const WINDOW_CORNER_RADIUS_PX = 6;
 
 type DragMode = 'pan' | 'resize-left' | 'resize-right';
 
@@ -74,7 +83,7 @@ interface DragState {
 
 export function TimelineBrush({
   domainStart, domainEnd, from, to, onChange, silhouette, minWindowMs = MIN_BOX_WINDOW_MS,
-  ariaLabel, ariaValueText, formatEdgeLabels, height = DEFAULT_HEIGHT, className,
+  ariaLabel, ariaValueText, formatEdgeLabels, height = TIMELINE_BRUSH_DEFAULT_HEIGHT, className,
 }: TimelineBrushProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
@@ -83,6 +92,12 @@ export function TimelineBrush({
   // handler reports this back with phase 'end' instead of recomputing from a
   // possibly-stale event.
   const latestRef = useRef<[number, number]>([from, to]);
+  // Drives the ew-resize cursor affordance BEFORE a click: which zone the
+  // pointer is hovering (tracked only while not dragging) or actively
+  // dragging (the mode pins the cursor for the whole gesture, independent of
+  // exactly where the pointer sits mid-drag).
+  const [hoverZone, setHoverZone] = useState<BrushHitZone | null>(null);
+  const [activeMode, setActiveMode] = useState<DragMode | null>(null);
 
   useLayoutEffect(() => { latestRef.current = [from, to]; }, [from, to]);
 
@@ -131,17 +146,27 @@ export function TimelineBrush({
       const centerT = pxT(x);
       const [f, t] = clampWindow(centerT - windowMs / 2, centerT + windowMs / 2, domainStart, domainEnd, minWindowMs);
       dragRef.current = { mode: 'pan', pointerId: e.pointerId, startXMs: pxT(x), startFrom: f, startTo: t };
+      setActiveMode('pan');
       report(f, t, 'drag');
       return;
     }
 
     const mode: DragMode = zone === 'left-edge' ? 'resize-left' : zone === 'right-edge' ? 'resize-right' : 'pan';
     dragRef.current = { mode, pointerId: e.pointerId, startXMs: pxT(x), startFrom: from, startTo: to };
+    setActiveMode(mode);
   };
 
   const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
     const d = dragRef.current;
-    if (!d || d.pointerId !== e.pointerId || width <= 0) return;
+    if (!d || d.pointerId !== e.pointerId || width <= 0) {
+      // Not the active drag (or no drag at all) - just track which zone the
+      // pointer is over so the ew-resize affordance applies before a click.
+      if (!d && width > 0) {
+        const x = localX(e);
+        setHoverZone(hitZoneAt(x, tPx(from), tPx(to), EDGE_HIT_PX));
+      }
+      return;
+    }
     const x = localX(e);
     const nowMs = pxT(x);
     const deltaMs = nowMs - d.startXMs;
@@ -160,11 +185,14 @@ export function TimelineBrush({
     }
   };
 
+  const onPointerLeave = () => setHoverZone(null);
+
   const endDrag = (e: ReactPointerEvent<HTMLDivElement>) => {
     const d = dragRef.current;
     if (!d || d.pointerId !== e.pointerId) return;
     if (e.currentTarget.hasPointerCapture(d.pointerId)) e.currentTarget.releasePointerCapture(d.pointerId);
     dragRef.current = null;
+    setActiveMode(null);
     report(latestRef.current[0], latestRef.current[1], 'end');
   };
 
@@ -222,11 +250,14 @@ export function TimelineBrush({
     const top = 4;
     const bottom = height - 4;
     const toY = (v: number) => bottom - ((v - min) / span) * (bottom - top);
-    const pts = silhouette.map(p => `${tPx(p.t).toFixed(1)},${toY(p.v).toFixed(1)}`);
-    const left = LABEL_LANE_PX;
-    const right = LABEL_LANE_PX + trackW;
-    return `M${left},${bottom} L${pts.join(' L')} L${right},${bottom} Z`;
+    return buildSilhouettePathD(silhouette, tPx, toY, bottom);
   })();
+
+  // Edge zones (hover or active drag) win over the box/track for the cursor,
+  // matching hitZoneAt's own precedence.
+  const isEdgeCursor = activeMode
+    ? activeMode !== 'pan'
+    : hoverZone === 'left-edge' || hoverZone === 'right-edge';
 
   const [startLabel, endLabel] = formatEdgeLabels ? formatEdgeLabels(domainStart, domainEnd) : [null, null];
 
@@ -234,7 +265,7 @@ export function TimelineBrush({
     <div
       ref={wrapRef}
       className={`${styles.root} ${className ?? ''}`}
-      style={{ height }}
+      style={{ height, cursor: isEdgeCursor ? 'ew-resize' : undefined }}
       role="slider"
       tabIndex={0}
       aria-label={ariaLabel}
@@ -248,11 +279,20 @@ export function TimelineBrush({
       onPointerMove={onPointerMove}
       onPointerUp={endDrag}
       onPointerCancel={endDrag}
+      onPointerLeave={onPointerLeave}
     >
       <svg className={styles.svg} width={width} height={height} viewBox={`0 0 ${Math.max(1, width)} ${height}`} preserveAspectRatio="none">
         <rect className={styles.track} x={0} y={0} width={Math.max(1, width)} height={height} />
         {silhouettePath && <path className={styles.silhouette} d={silhouettePath} />}
-        <rect className={styles.window} x={fromPx} y={0} width={Math.max(1, toPx - fromPx)} height={height} />
+        <rect
+          className={styles.window}
+          x={fromPx}
+          y={0}
+          width={Math.max(1, toPx - fromPx)}
+          height={height}
+          rx={WINDOW_CORNER_RADIUS_PX}
+          ry={WINDOW_CORNER_RADIUS_PX}
+        />
         <rect className={styles.edge} x={fromPx - 1} y={0} width={2} height={height} />
         <rect className={styles.edge} x={toPx - 1} y={0} width={2} height={height} />
       </svg>

@@ -210,6 +210,38 @@ describe('TimeSeriesChart', () => {
     expect(screen.getByText('Avg 40C')).toBeInTheDocument();
   });
 
+  it('renders tooltipHeaderExtra on the same row as the timestamp, called with the hovered timestamp', () => {
+    const tooltipHeaderExtra = vi.fn((t: number) => <span>temp-{t}</span>);
+    const { container } = render(
+      <TimeSeriesChart series={makeSeries()} {...baseProps} tooltipHeaderExtra={tooltipHeaderExtra} />,
+    );
+    const svg = container.querySelector('svg')!;
+    vi.spyOn(svg, 'getBoundingClientRect').mockReturnValue({
+      left: 0, top: 0, width: 440, height: 260, right: 440, bottom: 260, x: 0, y: 0, toJSON: () => ({}),
+    });
+
+    fireEvent.mouseMove(svg, { clientX: 0 });
+
+    expect(tooltipHeaderExtra).toHaveBeenCalledWith(0);
+    const header = container.querySelector('[class*="tooltipHeader"]')!;
+    expect(header.textContent).toContain('temp-0');
+    // Same element as the timestamp - one row, not a separate line.
+    const spans = header.querySelectorAll('span');
+    expect(spans[spans.length - 1].textContent).toBe('temp-0');
+  });
+
+  it('omitting tooltipHeaderExtra does not break the tooltip (backwards compatible)', () => {
+    const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} />);
+    const svg = container.querySelector('svg')!;
+    vi.spyOn(svg, 'getBoundingClientRect').mockReturnValue({
+      left: 0, top: 0, width: 440, height: 260, right: 440, bottom: 260, x: 0, y: 0, toJSON: () => ({}),
+    });
+
+    fireEvent.mouseMove(svg, { clientX: 0 });
+
+    expect(screen.getByText('Avg 40C')).toBeInTheDocument();
+  });
+
   it('omitting tooltipExtra does not break the tooltip (backwards compatible)', () => {
     const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} />);
     const svg = container.querySelector('svg')!;

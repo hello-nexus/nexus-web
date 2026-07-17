@@ -54,6 +54,10 @@
 }
 
 .tooltipHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
   font-family: var(--font-mono);
   font-size: var(--type-small);
   font-weight: var(--weight-body);

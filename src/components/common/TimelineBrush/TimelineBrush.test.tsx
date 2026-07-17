@@ -152,6 +152,89 @@ describe('TimelineBrush', () => {
     });
   });
 
+  describe('silhouette gap rendering', () => {
+    it('splits the silhouette fill into independent subpaths across a data gap instead of lerping across it', () => {
+      const { container } = render(
+        <TimelineBrush
+          domainStart={DOMAIN_START}
+          domainEnd={DOMAIN_END}
+          from={20_000}
+          to={40_000}
+          onChange={() => {}}
+          minWindowMs={1_000}
+          ariaLabel="Time range"
+          ariaValueText={ariaValueText}
+          silhouette={[
+            { t: 0, v: 10 }, { t: 1_000, v: 20 }, { t: 2_000, v: 15 },
+            { t: 90_000, v: 80 }, { t: 91_000, v: 70 },
+          ]}
+        />,
+      );
+      const path = container.querySelector('[class*="silhouette"]')!;
+      const d = path.getAttribute('d')!;
+      expect(d.match(/M/g)?.length).toBe(2);
+    });
+  });
+
+  describe('resize cursor affordance', () => {
+    it('shows ew-resize on the root when the pointer hovers an edge, before any click', () => {
+      const { getByRole } = renderBrush(() => {});
+      const el = getByRole('slider');
+
+      // window [20_000, 40_000]ms -> [200, 400]px at 100ms/px, offset by the LANE.
+      fireEvent.pointerMove(el, { pointerId: 1, clientX: LANE + 200 });
+      expect(el).toHaveStyle({ cursor: 'ew-resize' });
+    });
+
+    it('does not show ew-resize when hovering the box interior or the track', () => {
+      const { getByRole } = renderBrush(() => {});
+      const el = getByRole('slider');
+
+      fireEvent.pointerMove(el, { pointerId: 1, clientX: LANE + 300 });
+      expect(el.style.cursor).not.toBe('ew-resize');
+
+      fireEvent.pointerMove(el, { pointerId: 1, clientX: LANE + 700 });
+      expect(el.style.cursor).not.toBe('ew-resize');
+    });
+
+    it('clears the hover cursor on pointer leave', () => {
+      const { getByRole } = renderBrush(() => {});
+      const el = getByRole('slider');
+
+      fireEvent.pointerMove(el, { pointerId: 1, clientX: LANE + 200 });
+      expect(el).toHaveStyle({ cursor: 'ew-resize' });
+      fireEvent.pointerLeave(el);
+      expect(el.style.cursor).not.toBe('ew-resize');
+    });
+
+    it('keeps ew-resize for the whole gesture while actively resizing an edge, even once the pointer drifts off the exact edge pixel', () => {
+      const { getByRole } = renderBrush(() => {});
+      const el = getByRole('slider');
+
+      fireEvent.pointerDown(el, { pointerId: 1, clientX: LANE + 200 });
+      expect(el).toHaveStyle({ cursor: 'ew-resize' });
+      fireEvent.pointerMove(el, { pointerId: 1, clientX: LANE + 260 });
+      expect(el).toHaveStyle({ cursor: 'ew-resize' });
+    });
+
+    it('does not show ew-resize while panning (dragging the box interior)', () => {
+      const { getByRole } = renderBrush(() => {});
+      const el = getByRole('slider');
+
+      fireEvent.pointerDown(el, { pointerId: 1, clientX: LANE + 300 });
+      expect(el.style.cursor).not.toBe('ew-resize');
+    });
+  });
+
+  describe('rounding', () => {
+    it('rounds the draggable window box corners', () => {
+      const { container } = renderBrush(() => {});
+      const windowRect = container.querySelector('[class*="window"]')!;
+      expect(Number(windowRect.getAttribute('rx'))).toBeGreaterThan(0);
+      expect(Number(windowRect.getAttribute('ry'))).toBeGreaterThan(0);
+    });
+  });
+
   describe('keyboard', () => {
     it('ArrowRight pans forward by 10% of the window', () => {
       const onChange = vi.fn();

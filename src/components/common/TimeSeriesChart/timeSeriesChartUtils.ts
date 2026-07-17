@@ -15,6 +15,29 @@ export interface TimeSeriesSeries {
   points: TimeSeriesPoint[];
 }
 
+// A gap wider than this multiple of the actual median point spacing renders
+// as a line break (and the hover tooltip stops attaching a series' value).
+// Derived from the data itself, not a nominal bucket size: server-side
+// decimation widens real point spacing well past the source bucket at wide
+// ranges, so a caller-supplied nominal size would flag every decimated point
+// as a gap and render the whole chart blank. Exported so companion visuals
+// sharing the same underlying data (e.g. TimelineBrush's seek-bar
+// silhouette) apply the identical gap-vs-interpolation rule.
+export const GAP_MULTIPLIER = 1.5;
+
+function pooledMedianDelta(pointArrays: readonly (readonly { t: number }[])[]): number | null {
+  const deltas: number[] = [];
+  for (const points of pointArrays) {
+    for (let i = 1; i < points.length; i++) {
+      deltas.push(points[i].t - points[i - 1].t);
+    }
+  }
+  if (deltas.length === 0) return null;
+  deltas.sort((a, b) => a - b);
+  const mid = Math.floor(deltas.length / 2);
+  return deltas.length % 2 === 0 ? (deltas[mid - 1] + deltas[mid]) / 2 : deltas[mid];
+}
+
 /**
  * Median gap between consecutive points, pooled across every series, or
  * null when there are fewer than two points anywhere to measure a gap from.
@@ -25,16 +48,15 @@ export interface TimeSeriesSeries {
  * blank.
  */
 export function medianSpacingMs(series: readonly TimeSeriesSeries[]): number | null {
-  const deltas: number[] = [];
-  for (const s of series) {
-    for (let i = 1; i < s.points.length; i++) {
-      deltas.push(s.points[i].t - s.points[i - 1].t);
-    }
-  }
-  if (deltas.length === 0) return null;
-  deltas.sort((a, b) => a - b);
-  const mid = Math.floor(deltas.length / 2);
-  return deltas.length % 2 === 0 ? (deltas[mid - 1] + deltas[mid]) / 2 : deltas[mid];
+  return pooledMedianDelta(series.map(s => s.points));
+}
+
+/** Same median-gap algorithm as medianSpacingMs, generalized to a single
+ *  ascending point list (any shape carrying `t`) - lets a companion visual
+ *  fed a different point shape (TimelineBrush's { t, v } silhouette) share
+ *  the exact gap-detection math instead of reimplementing it. */
+export function medianSpacingOfPoints(points: readonly { t: number }[]): number | null {
+  return pooledMedianDelta([points]);
 }
 
 /**

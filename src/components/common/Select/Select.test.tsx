@@ -20,6 +20,14 @@ describe('Select', () => {
     expect(screen.queryByRole('listbox')).toBeNull();
   });
 
+  it('pins the trigger to an explicit height when provided, leaving it unset by default', () => {
+    const { rerender } = render(<Select value="b" onChange={vi.fn()} options={OPTIONS} ariaLabel="fruit" />);
+    expect(screen.getByRole('button', { name: 'fruit' })).not.toHaveStyle({ height: '40px' });
+
+    rerender(<Select value="b" onChange={vi.fn()} options={OPTIONS} ariaLabel="fruit" height={40} />);
+    expect(screen.getByRole('button', { name: 'fruit' })).toHaveStyle({ height: '40px' });
+  });
+
   it('opens a listbox of options on click and selects one', () => {
     const onChange = vi.fn();
     render(<Select value="a" onChange={onChange} options={OPTIONS} ariaLabel="fruit" />);

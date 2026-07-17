@@ -68,6 +68,12 @@ export interface SelectProps {
   accentValue?: boolean;
   /** Shown dimmed when no option matches `value`. */
   placeholder?: string;
+  /** Pins the trigger to an exact height (px), overriding its default
+   *  content-driven padding - for aligning the control against a sibling of
+   *  a fixed height (e.g. the monitoring history range picker matching the
+   *  seek-bar block). Content stays vertically centered (.trigger is
+   *  already a flex row). Omit to keep the default intrinsic height. */
+  height?: number;
 }
 
 // Trigger-to-menu gap and viewport-edge inset, px.
@@ -150,7 +156,7 @@ interface MenuCoords { top: number; left: number; width: number; maxHeight: numb
 
 export function Select({
   value, onChange, options, children, disabled,
-  ariaLabel, className, variant = 'standard', accentValue, placeholder,
+  ariaLabel, className, variant = 'standard', accentValue, placeholder, height,
 }: SelectProps) {
   const { t } = useTranslation();
   const resolved = options ? options : optionsFromChildren(children);
@@ -409,6 +415,7 @@ export function Select({
         ref={triggerRef}
         type="button"
         className={styles.trigger}
+        style={height != null ? { height } : undefined}
         disabled={disabled}
         aria-haspopup="listbox"
         aria-expanded={open}
