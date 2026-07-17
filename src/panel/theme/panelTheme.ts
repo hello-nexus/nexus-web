@@ -16,7 +16,7 @@ import {
   defaultPanelWidgetOpacity,
   defaultPanelWidgetPadding,
   normalizePanelBackgroundEffect,
-  normalizePanelBackgroundEnabled,
+  resolvePanelBackgroundEnabled,
   normalizePanelBackgroundFrost,
   normalizePanelBackgroundMode,
   normalizePanelBackgroundOpacity,
@@ -34,6 +34,7 @@ import { saveAnimateTemplates } from '../../api/lighting';
 import type { EffectState } from '../../types/lighting';
 import type { PanelThemeSettingsState, ResolvedPanelThemeMode } from '../editor/PanelThemeSettings';
 import { isSingleWidgetSurface, type PanelSurface } from '../types';
+import { supportsDesktopWallpaper } from '../device/wiredPanel';
 
 export type PanelThemeState = PanelThemeSettingsState;
 
@@ -252,6 +253,12 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
       const bgMode: PanelBackgroundMode = r?.backgroundMode == null && single
         ? 'shader'
         : normalizePanelBackgroundMode(r?.backgroundMode);
+      // Wallpaper-capable panels default to desktop see-through when the
+      // record carries no explicit choice; see resolvePanelBackgroundEnabled.
+      const bgEnabled = resolvePanelBackgroundEnabled(
+        r?.backgroundEnabled,
+        supportsDesktopWallpaper((r?.capabilities?.surface ?? '') as PanelSurface, !!r?.displayId),
+      );
       setTheme({
         appThemeMode: normalizePanelThemeMode(t?.themeMode),
         appResolvedThemeMode: t?.resolvedThemeMode === 'dark' || t?.resolvedThemeMode === 'light'
@@ -268,10 +275,12 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
         backgroundTemplate: normalizePanelBackgroundTemplate(templates[effect]),
         backgroundTemplates: templates,
         // No stored opacity -> mode-aware default (solid opaque, overlay 50%).
+        // Wallpaper mode (stored OR defaulted) defaults opaque regardless of
+        // the latent mode, so see-through never inherits a shader/media dim.
         backgroundOpacity: r?.backgroundOpacity == null
-          ? defaultBackgroundOpacityForMode(bgMode)
+          ? (!bgEnabled ? 1 : defaultBackgroundOpacityForMode(bgMode))
           : normalizePanelBackgroundOpacity(r.backgroundOpacity),
-        backgroundEnabled: normalizePanelBackgroundEnabled(r?.backgroundEnabled),
+        backgroundEnabled: bgEnabled,
         // Static fallback; the returned value below is derived from the global
         // presets + the live draft.
         backgroundEffectState: panelBackgroundState(effect, normalizePanelBackgroundTemplate(templates[effect])),

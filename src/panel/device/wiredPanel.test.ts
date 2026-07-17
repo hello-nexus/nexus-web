@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { isWiredPanel, supportsDesktopWallpaper, wiredPanelClass } from './wiredPanel';
+import { usesTouchPanelChrome, isWiredPanel, supportsDesktopWallpaper, wiredPanelClass } from './wiredPanel';
 
 describe('isWiredPanel', () => {
   beforeEach(() => {
@@ -78,5 +78,30 @@ describe('supportsDesktopWallpaper', () => {
     expect(supportsDesktopWallpaper('q60', true)).toBe(false);
     expect(supportsDesktopWallpaper('phone', true)).toBe(false);
     expect(supportsDesktopWallpaper('desktop', true)).toBe(false);
+  });
+});
+
+describe('usesTouchPanelChrome', () => {
+  it('allows y70 regardless of binding or touch', () => {
+    expect(usesTouchPanelChrome('y70', false, undefined)).toBe(true);
+  });
+
+  it('allows a display-bound touch monitor (Xeneon Edge)', () => {
+    expect(usesTouchPanelChrome('monitor', true, true)).toBe(true);
+  });
+
+  it('excludes a promoted desk monitor without touch', () => {
+    expect(usesTouchPanelChrome('monitor', true, false)).toBe(false);
+    expect(usesTouchPanelChrome('monitor', true, undefined)).toBe(false);
+  });
+
+  it('excludes streamed monitor-surface panels (not display-bound)', () => {
+    expect(usesTouchPanelChrome('monitor', false, true)).toBe(false);
+  });
+
+  it('never matches q60, phone, or desktop', () => {
+    expect(usesTouchPanelChrome('q60', true, true)).toBe(false);
+    expect(usesTouchPanelChrome('phone', true, true)).toBe(false);
+    expect(usesTouchPanelChrome('desktop', true, true)).toBe(false);
   });
 });

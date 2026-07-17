@@ -118,8 +118,16 @@ export function resolvePanelBackground(
   return resolved === 'light' ? pair.light : pair.dark;
 }
 
-export function normalizePanelBackgroundEnabled(value: boolean | null | undefined): boolean {
-  return value !== false;
+// Wallpaper-capable panels (the Y70 and display-bound monitors) default to
+// desktop see-through - background layer OFF, so the wallpaper shows behind
+// the widgets; everything else (phone, q-series, streamed panels) defaults
+// to the theme backdrop. A stored value always wins.
+export function resolvePanelBackgroundEnabled(
+  stored: boolean | null | undefined,
+  wallpaperCapable: boolean,
+): boolean {
+  if (typeof stored === 'boolean') return stored;
+  return !wallpaperCapable;
 }
 
 export function normalizePanelBackgroundMode(value: string | null | undefined): PanelBackgroundMode {

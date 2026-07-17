@@ -20,6 +20,7 @@ export function PanelBackgroundMedia({ id, deviceId, type, opacity }: {
     <div
       className={styles.backgroundMedia}
       data-ready="true"
+      data-panel-bg-layer
       style={style}
       aria-hidden="true"
     >

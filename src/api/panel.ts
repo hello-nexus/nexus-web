@@ -46,8 +46,9 @@ export interface PanelDeviceRecord {
   backgroundTemplates?: Record<string, number>;
   backgroundOpacity?: number;
   // False = background layer off; a kiosk-hosted panel (y70 / monitor)
-  // renders fully transparent so the Windows desktop shows through.
-  // Absent/null = on.
+  // renders the desktop wallpaper behind the widgets. Absent/null resolves
+  // per capability: wallpaper-capable panels default to wallpaper, everything
+  // else to the theme backdrop (resolvePanelBackgroundEnabled).
   backgroundEnabled?: boolean | null;
   backgroundMediaId?: string | null;
   backgroundMediaType?: 'static' | 'animated' | null;
@@ -160,6 +161,17 @@ export const fetchPanelDevices = () =>
 
 export const patchPanelDevice = (id: string, patch: PanelDevicePatch) =>
   postService<PanelDeviceRecord>(`/panel/devices/${encodeURIComponent(id)}`, patch);
+
+// Personalization reset: clears the record's layout/theme/widget state
+// (defaults reseed on the next read) and deletes its uploaded media.
+export const resetPanelDevice = (id: string) =>
+  postService<PanelDeviceRecord>(`/panel/devices/${encodeURIComponent(id)}/reset`, {});
+
+// Hardware-settings reset: restores the Settings-tab defaults and applies
+// them to the hardware (brightness/orientation/screen, Xeneon DDC picture
+// values, monitor behavior). Personalization is untouched.
+export const resetPanelDeviceHardware = (id: string) =>
+  postService<PanelDeviceRecord>(`/panel/devices/${encodeURIComponent(id)}/reset-hardware`, {});
 
 export type PanelDeviceFetchResult =
   | { found: true; record: PanelDeviceRecord }

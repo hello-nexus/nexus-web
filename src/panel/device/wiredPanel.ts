@@ -26,3 +26,16 @@ export function wiredPanelClass(surface: PanelSurface): 'cabled' | 'host-display
 export function supportsDesktopWallpaper(surface: PanelSurface, displayBound: boolean): boolean {
   return surface === 'y70' || (surface === 'monitor' && displayBound);
 }
+
+/**
+ * True when the panel is a touch-driven host display: the Y70, or any
+ * display-bound monitor with touch capability (the Xeneon Edge's curated
+ * profile, or a monitor Windows itself reports as touch - every touch
+ * monitor is included by design, not just strips). These get the Y70 chrome
+ * treatment: editor/add-widget sheets scale with the panel content
+ * (--panel-scale) so chrome matches the widgets and stays finger-sized. A
+ * mouse-driven promoted desk monitor keeps the fixed-size desktop drawer.
+ */
+export function usesTouchPanelChrome(surface: PanelSurface, displayBound: boolean, touch: boolean | undefined): boolean {
+  return surface === 'y70' || (surface === 'monitor' && displayBound && touch === true);
+}
