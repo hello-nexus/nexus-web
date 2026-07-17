@@ -1882,7 +1882,7 @@ export const REGISTRY: StorybookEntry[] = [
     name: 'ConfirmModal', category: 'modals',
     filePath: 'src/components/common/ConfirmModal/ConfirmModal.tsx',
     description: 'Native-in-app confirmation modal with title + body + optional note + confirm/cancel actions. Esc cancels, Enter confirms, click-outside cancels. Cancel autofocused so destructive intent must be explicit. Used instead of window.confirm so the dialog matches app chrome.', Preview: PreviewConfirmModal,
-    notes: 'destructive defaults to true (red confirm button). Pass destructive={false} for non-destructive confirmations like "save changes?". Optional children render after the note, before the actions row - e.g. a current-password field for delete-account.',
+    notes: 'destructive defaults to true (red confirm button). Pass destructive={false} for non-destructive confirmations like "save changes?". Optional children render after the note, before the actions row - e.g. a current-password field for delete-account. confirmDisabled disables the confirm button and suppresses Enter-to-confirm while an async action is in flight.',
   },
   {
     name: 'PromptModal', category: 'modals',

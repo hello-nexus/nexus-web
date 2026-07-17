@@ -19,6 +19,7 @@ const uiAnchorIds = () => {
     '../components/views/SettingsView/GeneralTab.tsx',
     '../components/views/SettingsView/ThemeTab.tsx',
     '../components/views/SettingsView/LightingCoolingSection.tsx',
+    '../components/views/SettingsView/AiIntegrationSection.tsx',
   ];
   const found = new Set<string>();
   for (const f of files) {

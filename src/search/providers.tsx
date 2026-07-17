@@ -166,6 +166,7 @@ const SETTINGS_ITEMS: { tab: string; tabLabelKey: string; labelKey: string; anch
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'lighting.renderGpu.label',     anchor: 'set-render-gpu', keywords: ['render', 'gpu', 'shader', 'graphics card'], platforms: ['windows', 'linux'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'cooling.settings.cpuLabel',    anchor: 'set-cpu-sensor', keywords: ['cpu', 'temp', 'temperature', 'sensor', 'source'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'cooling.settings.gpuLabel',    anchor: 'set-gpu-sensor', keywords: ['gpu', 'temp', 'temperature', 'sensor', 'source'] },
+  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.ai.master.label',     anchor: 'set-ai-integration', keywords: ['ai', 'mcp', 'model context protocol', 'assistant', 'agent', 'integration', 'token'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.updates.mode.label',    anchor: 'set-update-mode',    keywords: ['update', 'updates', 'automatic', 'install', 'mode'], platforms: ['windows'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.updates.channel.label', anchor: 'set-update-channel', keywords: ['update', 'updates', 'channel', 'beta', 'production'], platforms: ['windows'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.telemetry.label',     anchor: 'set-telemetry',  keywords: ['telemetry', 'privacy', 'anonymous', 'data', 'consent'] },

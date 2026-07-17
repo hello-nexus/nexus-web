@@ -7,6 +7,7 @@ import { ThemeTab } from './ThemeTab';
 import { LightingCoolingSection } from './LightingCoolingSection';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { ScreenTimeDataControl } from '../ScreenTimeBrowse/ScreenTimeDataControl';
+import { AiIntegrationSection } from './AiIntegrationSection';
 import { fetchService, postService } from '../../../api/service';
 import { fetchAutoStart, setAutoStart as postAutoStart } from '../../../api/autoStart';
 import { useFlashStatus } from '../../../hooks/useFlashStatus';
@@ -208,6 +209,8 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
       </SettingsSection>
 
       <LightingCoolingSection serviceOnline={serviceOnline} platform={platform} />
+
+      <AiIntegrationSection serviceOnline={serviceOnline} />
 
       {(platform === 'windows' || platform === 'macos') && (
         <SettingsSection title={t('settings.startupTray.title')}>
