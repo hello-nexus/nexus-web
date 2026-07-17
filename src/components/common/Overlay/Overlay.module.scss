@@ -24,6 +24,9 @@
      animate the surface independently. */
   background: transparent;
   pointer-events: none;
+  // Anchors the sheet surface to the right edge of the viewport - the flex
+  // default (flex-start) would otherwise dock it flush left.
+  justify-content: flex-end;
 }
 
 .backdropSheet > .surface {

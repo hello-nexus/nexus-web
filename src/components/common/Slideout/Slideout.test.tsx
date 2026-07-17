@@ -53,4 +53,11 @@ describe('Slideout', () => {
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(onClose).not.toHaveBeenCalled();
   });
+
+  it('anchors to the right edge via the sheet variant (Overlay.module.scss backdropSheet), not the dialog/alert variant', () => {
+    render(<Slideout open onClose={vi.fn()} title="Details">Body</Slideout>);
+    const backdrop = screen.getByRole('dialog');
+    expect(backdrop.className).toMatch(/backdropSheet/);
+    expect(backdrop.className).not.toMatch(/backdropDialog/);
+  });
 });
