@@ -173,7 +173,7 @@ export function MetricHistorySection({ metric, gpuComponents, preferredGpuId, hi
           <div className={styles.tooltipApps}>
             {apps.map(app => (
               <div key={app.name} className={styles.tooltipAppRow}>
-                <ProcessIcon name={app.name} color="var(--text-dim)" />
+                <ProcessIcon name={app.name} />
                 <span className={styles.tooltipAppName}>{app.name}</span>
                 <span className={styles.tooltipAppValue}>{valueFormat(app.value)}</span>
               </div>
@@ -227,6 +227,7 @@ export function MetricHistorySection({ metric, gpuComponents, preferredGpuId, hi
               hideSeriesRows
               tooltipExtra={tooltipExtra}
               onRangeSelect={history.onChartDragSelect}
+              stepSeconds={history.stepSeconds}
             />
             <div className={styles.liveOverlay}>
               {history.following ? (
@@ -249,8 +250,6 @@ export function MetricHistorySection({ metric, gpuComponents, preferredGpuId, hi
             <TempRibbon
               points={resolved.temp.points}
               domain={history.domain}
-              minC={resolved.tempThresholdC - 30}
-              maxC={resolved.tempThresholdC}
               currentLabel={currentTempLabel}
             />
           )}

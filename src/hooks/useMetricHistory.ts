@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchMonitoringHistory, type MetricHistorySeries } from '../api/monitoringHistory';
+import { MonitoringHistoryCache, sliceToWindow } from '../lib/monitoringHistoryCache';
 import {
   initViewport,
   viewportReducer,
@@ -13,7 +14,11 @@ const SILHOUETTE_MAX_POINTS = 400;
 const SILHOUETTE_REFRESH_MS = 60_000;
 
 const VIEWPORT_MAX_POINTS = 800;
-const VIEWPORT_DEBOUNCE_MS = 200;
+// Trailing debounce while actively dragging - short enough that a brief
+// drag pause already shows fresh data (the interim cache/overlap render
+// below covers the gap until then), long enough that a fast continuous drag
+// doesn't fire a request per pointermove.
+const VIEWPORT_DEBOUNCE_MS = 120;
 const VIEWPORT_REDECIMATE_MS = 60_000;
 
 const LIVE_TAIL_POLL_MS = 1_000;
@@ -21,6 +26,13 @@ const LIVE_TAIL_MAX_POINTS = 50;
 // Fallback lookback for the very first tail poll (before any viewport
 // response has reported a newest point).
 const LIVE_TAIL_BOOTSTRAP_MS = 5_000;
+
+// A viewport left unchanged for this long warms the cache for the
+// immediately adjacent (same-width) windows, so a subsequent pan in either
+// direction can render instantly from cache instead of paying a full
+// round trip. Comfortably longer than LIVE_TAIL_POLL_MS so it never fires
+// mid-tick while the user is still actively watching a fresh window settle.
+const PREFETCH_IDLE_MS = 3_000;
 
 export interface UseMetricHistoryResult {
   /** Decimated series over the current seek-bar STRIP - backs the
@@ -42,6 +54,19 @@ export interface UseMetricHistoryResult {
   mocked: boolean;
   supported: boolean;
   retentionDays: number;
+  /** The current chart window's actual point spacing in seconds, as reported
+   *  by the most recent viewport response - null before the first response
+   *  lands. Drives the hover tooltip's time-label granularity (seconds
+   *  appear once the effective step is sub-minute). */
+  stepSeconds: number | null;
+  /** Bumped on every real (non-tick) viewport change - a preset pick, a
+   *  brush drag/resize, a chart drag-select, or backToLive - but NOT on a
+   *  live-follow tick sliding the same window, nor on a routine periodic
+   *  refresh of the same window. A caller that needs to know "the window
+   *  the user is looking at meaningfully changed" (e.g. the process list's
+   *  rank-stability reset trigger) reads this instead of `domain`, whose
+   *  reference changes every following tick. */
+  viewportGeneration: number;
   setRange: (key: PresetKey) => void;
   /** Dragging/resizing the TimelineBrush box within the strip - moves the
    *  chart window only; the strip (and rangeKey) is untouched. */
@@ -119,6 +144,7 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [mocked, setMocked] = useState(false);
+  const [stepSeconds, setStepSeconds] = useState<number | null>(null);
 
   const [fetchEpoch, setFetchEpoch] = useState(0);
   const [stripEpoch, setStripEpoch] = useState(0);
@@ -128,6 +154,7 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
   const viewportSeqRef = useRef(0);
   const tailSeqRef = useRef(0);
   const lastLoadedTRef = useRef<number | null>(null);
+  const cacheRef = useRef(new MonitoringHistoryCache());
 
   useEffect(() => {
     mountedRef.current = true;
@@ -174,6 +201,24 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
   const loadViewport = useCallback((from: number, to: number, query: string) => {
     const seq = ++viewportSeqRef.current;
     setLoading(true);
+
+    // Never blank while the fetch is in flight: an exact cache hit renders
+    // immediately (the fetch below still runs, to keep the data fresh); a
+    // miss falls back to whatever cached window overlaps this one, sliced
+    // to the requested range, so a scrub at least shows real (if coarser or
+    // slightly stale) points instead of a frozen unrelated window.
+    const exact = cacheRef.current.get(from, to, VIEWPORT_MAX_POINTS, query);
+    if (exact) {
+      setSeries(exact.data.series);
+      setStepSeconds(exact.data.stepSeconds);
+    } else {
+      const overlap = cacheRef.current.findOverlapping(from, to, query);
+      if (overlap) {
+        setSeries(sliceToWindow(overlap.data, from, to).series);
+        setStepSeconds(overlap.data.stepSeconds);
+      }
+    }
+
     void (async () => {
       const result = await fetchMonitoringHistory({ from, to, maxPoints: VIEWPORT_MAX_POINTS, series: query });
       if (!mountedRef.current || seq !== viewportSeqRef.current) return;
@@ -181,10 +226,12 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
         setSeries(result.data.series);
         setSupported(result.data.supported);
         setRetentionDays(result.data.retentionDays);
+        setStepSeconds(result.data.stepSeconds);
         setMocked(result.mocked);
         setError(false);
         bumpNow(result.data.series);
         clampToRetention(result.data.retentionDays);
+        if (!result.mocked) cacheRef.current.set(from, to, VIEWPORT_MAX_POINTS, query, result.data);
         // Invalidates any tail request still in flight from before this
         // viewport refresh landed - its response could resolve after and,
         // absent this, regress lastLoadedTRef past the point this fetch just
@@ -201,6 +248,19 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
       setLoading(false);
     })();
   }, [bumpNow, clampToRetention]);
+
+  // Silently warms the cache for a same-shaped window - no loading/series
+  // state touched, so a prefetch that's still in flight (or that fails) is
+  // invisible; a later loadViewport for this exact window just finds it
+  // already cached.
+  const prefetchWindow = useCallback((from: number, to: number, query: string) => {
+    if (cacheRef.current.get(from, to, VIEWPORT_MAX_POINTS, query)) return;
+    void (async () => {
+      const result = await fetchMonitoringHistory({ from, to, maxPoints: VIEWPORT_MAX_POINTS, series: query });
+      if (!mountedRef.current || !result.data || result.mocked) return;
+      cacheRef.current.set(from, to, VIEWPORT_MAX_POINTS, query, result.data);
+    })();
+  }, []);
 
   // Silhouette: fetch over the strip's current bounds on mount, on a metric
   // switch, and whenever the strip itself changes (setRange/chartDragSelect/
@@ -252,6 +312,23 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
     // fetchEpoch is the trigger for user/timer-driven refetches; a live tick
     // alone never retriggers this (see the ref read above).
   }, [enabled, seriesQuery, fetchEpoch, loadViewport, supported]);
+
+  // Idle prefetch: once the viewport goes PREFETCH_IDLE_MS without a real
+  // change, warms the cache for the same-width window immediately to the
+  // left, so panning further back lands on an instant exact cache hit
+  // instead of a fresh round trip. The right neighbor is only prefetched
+  // while detached - following's right neighbor is beyond "now" and the
+  // live tail already keeps that edge warm.
+  useEffect(() => {
+    if (!enabled || !supported || error) return;
+    const timer = window.setTimeout(() => {
+      const { from, to, following } = viewportRef.current;
+      const width = to - from;
+      prefetchWindow(from - width, from, seriesQuery);
+      if (!following) prefetchWindow(to, to + width, seriesQuery);
+    }, PREFETCH_IDLE_MS);
+    return () => window.clearTimeout(timer);
+  }, [enabled, seriesQuery, fetchEpoch, supported, error, prefetchWindow]);
 
   // Full re-decimation on a timer, independent of following/dragging. Same
   // supported/error gate as the silhouette poll above.
@@ -360,6 +437,8 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
     mocked,
     supported,
     retentionDays,
+    stepSeconds,
+    viewportGeneration: fetchEpoch,
     setRange,
     onBrushChange,
     onChartDragSelect,

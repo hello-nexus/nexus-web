@@ -38,6 +38,8 @@ function baseHistory(over: Partial<UseMetricHistoryResult> = {}): UseMetricHisto
     mocked: false,
     supported: true,
     retentionDays: 7,
+    stepSeconds: 1,
+    viewportGeneration: 0,
     setRange: vi.fn(),
     onBrushChange: vi.fn(),
     onChartDragSelect: vi.fn(),

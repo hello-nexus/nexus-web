@@ -141,18 +141,28 @@ export function nearestPoint(points: readonly TimeSeriesPoint[], targetT: number
 }
 
 /**
- * The full precise timestamp for the hover tooltip header: date + exact
- * time, independent of the caller's xTickFormat axis-tick granularity
- * (which drops the time component entirely past a 7-day range). Omits the
- * year when t falls in the same year as nowMs.
+ * The full precise timestamp for the hover tooltip header, independent of
+ * the caller's xTickFormat axis-tick granularity (which drops the time
+ * component entirely past a 7-day range). Day-aware the same way the
+ * seek-bar's edge labels are (formatBrushEdgeLabels in
+ * metricHistoryHelpers.ts): the date is dropped entirely when t falls on
+ * the same calendar day as nowMs, and the year is dropped when it falls in
+ * the same year. Seconds appear only when `stepSeconds` (the chart's
+ * current effective point spacing) is sub-minute - at a coarse zoom level a
+ * seconds digit is meaningless precision the data doesn't actually have.
  */
-export function formatTooltipTimestamp(t: number, nowMs: number, locale?: string): string {
-  const sameYear = new Date(t).getFullYear() === new Date(nowMs).getFullYear();
-  return new Date(t).toLocaleString(locale, {
+export function formatTooltipTimestamp(t: number, nowMs: number, locale?: string, stepSeconds?: number | null): string {
+  const at = new Date(t);
+  const now = new Date(nowMs);
+  const sameDay = at.getFullYear() === now.getFullYear() && at.getMonth() === now.getMonth() && at.getDate() === now.getDate();
+  const sameYear = at.getFullYear() === now.getFullYear();
+  const showSeconds = stepSeconds != null && stepSeconds < 60;
+  return at.toLocaleString(locale, {
     year: sameYear ? undefined : 'numeric',
-    month: 'short',
-    day: 'numeric',
+    month: sameDay ? undefined : 'short',
+    day: sameDay ? undefined : 'numeric',
     hour: 'numeric',
     minute: '2-digit',
+    second: showSeconds ? '2-digit' : undefined,
   });
 }

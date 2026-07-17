@@ -8,39 +8,40 @@ import { useTranslation } from '../../../../lib/i18n';
 import { useMonitoringPrivacy } from '../../../../hooks/useMonitoringPrivacy';
 import { useAppIcon } from '../../common/AppPicker';
 import { privacyIndicatorsForProcess, type PrivacyIconKind, type PrivacyIndicator } from './privacyHelpers';
+import { useStableRanking } from './useStableRanking';
+import type { RankableItem, SortMode } from './processRanking';
 import styles from './ProcessListSection.module.scss';
 
-export interface ProcessListItem {
-  name: string;
-  color: string;
-  current: number;
+export interface ProcessListItem extends RankableItem {
   values: number[];
   /** Optional inline secondary text after the value (e.g. GPU VRAM). */
   secondary?: string;
-  /** UTC milliseconds the app was first observed running, when the data
-   *  source reports it (the window-scoped apps endpoint) - drives the
-   *  "recently launched" sort. Absent for the live per-metric fallback
-   *  source, which has no notion of launch time. */
-  startedAtMs?: number;
 }
 
-type SortMode = 'recent' | 'usage' | 'name';
+export type { SortMode };
 
 /** Row icon: the same app-icon fetch/cache pipeline the deck's app-launch
  *  widget uses (useAppIcon - a Start-Menu/installed-app lookup keyed by
- *  name), falling back to the plain color dot when nothing resolves (most
- *  running processes were never added as a deck shortcut). Exported so the
- *  hero chart's hover tooltip (MetricHistorySection) can render the same
- *  icon treatment for its top-apps rows. */
-export function ProcessIcon({ name, color }: { name: string; color: string }) {
+ *  name), falling back to a plain neutral dot when nothing resolves (most
+ *  running processes were never added as a deck shortcut) - the dot carries
+ *  no per-app color, matching the sparkline's accent-only treatment.
+ *  Exported so the hero chart's hover tooltip (MetricHistorySection) can
+ *  render the same icon treatment for its top-apps rows. */
+export function ProcessIcon({ name }: { name: string }) {
   const iconUrl = useAppIcon(name);
   if (iconUrl) return <img src={iconUrl} className={styles.appIcon} alt="" />;
-  return <span className={styles.dot} style={{ background: color }} />;
+  return <span className={styles.dot} />;
 }
 
 export interface ProcessListSectionProps {
   items: readonly ProcessListItem[];
   formatValue: (value: number) => string;
+  /** Changes exactly when the item list's source meaningfully changes (a
+   *  metric switch, a real window/viewport change, or a data-source swap
+   *  between the live fallback and the window-scoped apps endpoint) - the
+   *  trigger for a full re-rank. Omit for a list that never changes source
+   *  (e.g. a fixture in a standalone story or test). */
+  rankResetKey?: string;
 }
 
 const SPARKLINE_SAMPLES = 30;
@@ -104,43 +105,33 @@ function PrivacyIndicators({ indicators, t }: {
   );
 }
 
-/** 'recent' ranks by startedAtMs (most recently launched first). A pair
- *  where either side lacks it falls back to the usage comparison, so a
- *  service that doesn't report launch times yet (or a fallback-sourced row)
- *  never renders a broken partial sort - the whole list degrades cleanly to
- *  the usage order. */
-function compareItems(a: ProcessListItem, b: ProcessListItem, sort: SortMode): number {
-  if (sort === 'name') return a.name.localeCompare(b.name);
-  if (sort === 'recent') {
-    if (a.startedAtMs !== undefined && b.startedAtMs !== undefined) return b.startedAtMs - a.startedAtMs;
-    if (a.startedAtMs !== undefined) return -1;
-    if (b.startedAtMs !== undefined) return 1;
-  }
-  return b.current - a.current;
-}
-
 /**
  * The live per-process list shown below the history hero chart, unified
  * across the cpu/memory/gpu/network tabs - one persistent instance whose
  * search/sort state survives a metric switch (data source and formatting
  * are the caller's concern via `items`/`formatValue`, scoped to whichever
  * metric is currently active). Search + sort over a flat row list, each row
- * an app icon (or the plain color dot when none resolves), privacy-access
+ * an app icon (or a plain neutral dot when none resolves), privacy-access
  * icons (webcam/microphone/location/screen capture, when the service
  * reports one for that process), a mini sparkline, and the current value
  * (plus an optional secondary value).
+ *
+ * Row order is rank-stable (see useStableRanking/processRanking): a value
+ * update alone never reorders or drops a row, so the list doesn't visibly
+ * jump around while the user is watching it.
  */
-export function ProcessListSection({ items, formatValue }: ProcessListSectionProps) {
+export function ProcessListSection({ items, formatValue, rankResetKey = '' }: ProcessListSectionProps) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<SortMode>('recent');
   const privacy = useMonitoringPrivacy(true);
 
+  const ranked = useStableRanking(items, sort, rankResetKey);
+
   const visible = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    const filtered = needle ? items.filter(i => i.name.toLowerCase().includes(needle)) : items;
-    return [...filtered].sort((a, b) => compareItems(a, b, sort));
-  }, [items, query, sort]);
+    return needle ? ranked.filter(i => i.name.toLowerCase().includes(needle)) : ranked;
+  }, [ranked, query]);
 
   const sortOptions = [
     { value: 'recent', label: t('monitoring.history.process.sortRecent') },
@@ -169,7 +160,7 @@ export function ProcessListSection({ items, formatValue }: ProcessListSectionPro
         <div className={styles.rows}>
           {visible.map(item => (
             <div key={item.name} className={styles.row}>
-              <ProcessIcon name={item.name} color={item.color} />
+              <ProcessIcon name={item.name} />
               <span className={styles.name}>{item.name}</span>
               <PrivacyIndicators
                 indicators={privacy.supported && !privacy.error ? privacyIndicatorsForProcess(privacy.sessions, item.name, privacy.asOfMs) : []}
@@ -180,7 +171,6 @@ export function ProcessListSection({ items, formatValue }: ProcessListSectionPro
                 values={item.values}
                 width={64}
                 height={20}
-                color={item.color}
                 sampleCount={SPARKLINE_SAMPLES}
               />
               <span className={styles.value}>{formatValue(item.current)}</span>
