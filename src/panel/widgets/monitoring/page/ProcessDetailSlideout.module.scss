@@ -56,45 +56,21 @@
   color: var(--text-dim);
 }
 
-.infoBody {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  padding-top: 0.3rem;
-}
-
-.infoRow {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 1rem;
-  padding: 0.25rem 0.4rem;
-  border-radius: var(--radius-sm);
-
-  &:nth-child(odd) {
-    background: color-mix(in srgb, var(--text) 4%, transparent);
-  }
-}
-
-.rowLabel {
-  @include text-button;
-  color: var(--text-dim);
-  flex-shrink: 0;
-}
-
-.rowValue {
-  font-size: var(--type-small);
-  color: var(--text);
-  text-align: right;
-  overflow-wrap: anywhere;
+.publisherValue {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 .mono {
   font-family: var(--font-mono);
 }
 
-.copyableRow {
-  display: flex;
+// Value slot for a path/hash InfoRow: the text + copy button together
+// stand in for InfoList's plain text value. A span (not a div) so it stays
+// valid nested inside InfoRow's own <span class="value">.
+.copyableValue {
+  display: inline-flex;
   align-items: center;
   gap: 0.4rem;
   min-width: 0;
@@ -117,25 +93,15 @@
   &:hover { background: var(--bg-card-hover); }
 }
 
-.privacyBody {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  padding-top: 0.3rem;
-}
-
-.privacyRow {
-  display: flex;
+// Privacy row's label slot: capability icon + name, reusing InfoRow's own
+// label/value layout rather than a bespoke three-column row.
+.privacyLabel {
+  display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.25rem 0.4rem;
-  color: var(--text-dim);
-}
-
-.privacyTime {
-  @include text-caption;
-  color: var(--text-dim);
-  margin-left: auto;
+  gap: 0.4rem;
+  text-transform: none;
+  letter-spacing: normal;
+  font-family: inherit;
 }
 
 .killError {

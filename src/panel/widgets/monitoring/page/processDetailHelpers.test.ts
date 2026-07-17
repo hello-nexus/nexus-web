@@ -14,8 +14,12 @@ describe('truncateMiddle', () => {
 
   it('drops the middle, keeping the head and tail', () => {
     const long = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
-    const result = truncateMiddle(long, 20);
-    expect(result.length).toBeLessThanOrEqual(20);
+    // 21 = head(10) + ellipsis(1) + tail(10), just enough for both checks
+    // below to hold at once ("C:\Program" and "chrome.exe" are each 10
+    // chars) - a tighter budget forces a real tradeoff processDetailHelpers
+    // doesn't need to be exercised here.
+    const result = truncateMiddle(long, 21);
+    expect(result.length).toBeLessThanOrEqual(21);
     expect(result.startsWith('C:\\Program')).toBe(true);
     expect(result.endsWith('chrome.exe')).toBe(true);
     expect(result).toContain('…');

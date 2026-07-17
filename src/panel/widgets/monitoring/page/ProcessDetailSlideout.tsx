@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import {
   Check, Copy, Cpu, FolderOpen, Gpu, Layers, MemoryStick, XCircle,
 } from 'lucide-react';
@@ -7,6 +7,7 @@ import { CollapsibleSection } from '../../../../components/common/CollapsibleSec
 import { ConfirmModal } from '../../../../components/common/ConfirmModal/ConfirmModal';
 import { Button } from '../../../../components/common/Button/Button';
 import { Badge } from '../../../../components/common/Badge/Badge';
+import { InfoList, InfoRow } from '../../../../components/common/InfoList/InfoList';
 import { SystemSpecsPanel, type SystemSpecRow } from '../../../../components/common/SystemSpecsPanel/SystemSpecsPanel';
 import { useToastSafe } from '../../../../components/common/Toast/Toast';
 import { useTranslation } from '../../../../lib/i18n';
@@ -63,8 +64,8 @@ function CopyableValue({ value, mono, truncate }: { value: string; mono?: boolea
 
   const display = truncate ? truncateMiddle(value, PATH_TRUNCATE_CHARS) : value;
   return (
-    <div className={styles.copyableRow}>
-      <span className={`${styles.rowValue} ${mono ? styles.mono : ''}`} title={value}>{display}</span>
+    <span className={styles.copyableValue}>
+      <span className={mono ? styles.mono : undefined} title={value}>{display}</span>
       <button
         type="button"
         className={styles.copyBtn}
@@ -73,16 +74,7 @@ function CopyableValue({ value, mono, truncate }: { value: string; mono?: boolea
       >
         {copied ? <Check size={13} aria-hidden /> : <Copy size={13} aria-hidden />}
       </button>
-    </div>
-  );
-}
-
-function InfoRow({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className={styles.infoRow}>
-      <span className={styles.rowLabel}>{label}</span>
-      {children}
-    </div>
+    </span>
   );
 }
 
@@ -108,6 +100,10 @@ export function ProcessDetailSlideout({
   const [openingLocation, setOpeningLocation] = useState(false);
   const [infoOpen, setInfoOpen] = useState(true);
   const [privacyOpen, setPrivacyOpen] = useState(true);
+  // Snapshot at mount rather than reading Date.now() during render (matches
+  // TimeSeriesChart's own nowMs snapshot) - the relative-time labels below
+  // only need a stable "now", not a live clock.
+  const [nowMs] = useState(() => Date.now());
 
   const handleKillConfirm = async () => {
     if (killing) return;
@@ -160,8 +156,7 @@ export function ProcessDetailSlideout({
   const sessions = sessionsForProcess(privacySessions, name);
   const showPrivacy = privacySupported && sessions.length > 0;
 
-  const now = Date.now();
-  const relativeAndAbsolute = (ms: number) => `${relativeTimeLabel(new Date(ms).toISOString(), now, t)} · ${formatAbsolute(ms)}`;
+  const relativeAndAbsolute = (ms: number) => `${relativeTimeLabel(new Date(ms).toISOString(), nowMs, t)} · ${formatAbsolute(ms)}`;
 
   return (
     <>
@@ -233,74 +228,64 @@ export function ProcessDetailSlideout({
           ) : !data ? (
             <p className={styles.sectionNote}>{t('monitoring.processDetail.info.loading')}</p>
           ) : (
-            <div className={styles.infoBody}>
-              {data.version && (
-                <InfoRow label={t('monitoring.processDetail.info.version')}>
-                  <span className={styles.rowValue}>{data.version}</span>
-                </InfoRow>
-              )}
-              {data.description && (
-                <InfoRow label={t('monitoring.processDetail.info.description')}>
-                  <span className={styles.rowValue}>{data.description}</span>
-                </InfoRow>
-              )}
+            <InfoList>
+              {data.version && <InfoRow label={t('monitoring.processDetail.info.version')} value={data.version} />}
+              {data.description && <InfoRow label={t('monitoring.processDetail.info.description')} value={data.description} />}
               {data.publisher && (
-                <InfoRow label={t('monitoring.processDetail.info.publisher')}>
-                  <span className={styles.rowValue}>{data.publisher}</span>
-                  {data.signed === false && <Badge label={t('monitoring.processDetail.info.unsigned')} color="var(--warn)" />}
-                </InfoRow>
+                <InfoRow
+                  label={t('monitoring.processDetail.info.publisher')}
+                  value={(
+                    <span className={styles.publisherValue}>
+                      {data.publisher}
+                      {data.signed === false && <Badge label={t('monitoring.processDetail.info.unsigned')} color="var(--warn)" />}
+                    </span>
+                  )}
+                />
               )}
               {data.path && (
-                <InfoRow label={t('monitoring.processDetail.info.path')}>
-                  <CopyableValue value={data.path} truncate />
-                </InfoRow>
+                <InfoRow label={t('monitoring.processDetail.info.path')} value={<CopyableValue value={data.path} truncate />} />
               )}
               {data.sha256 && (
-                <InfoRow label={t('monitoring.processDetail.info.sha256')}>
-                  <CopyableValue value={data.sha256} mono />
-                </InfoRow>
+                <InfoRow label={t('monitoring.processDetail.info.sha256')} value={<CopyableValue value={data.sha256} mono />} />
               )}
               {data.createdAtMs !== undefined && (
-                <InfoRow label={t('monitoring.processDetail.info.created')}>
-                  <span className={styles.rowValue}>{formatAbsolute(data.createdAtMs)}</span>
-                </InfoRow>
+                <InfoRow label={t('monitoring.processDetail.info.created')} value={formatAbsolute(data.createdAtMs)} />
               )}
               {data.modifiedAtMs !== undefined && (
-                <InfoRow label={t('monitoring.processDetail.info.modified')}>
-                  <span className={styles.rowValue}>{formatAbsolute(data.modifiedAtMs)}</span>
-                </InfoRow>
+                <InfoRow label={t('monitoring.processDetail.info.modified')} value={formatAbsolute(data.modifiedAtMs)} />
               )}
               {data.startedAtMs !== undefined && (
-                <InfoRow label={t('monitoring.processDetail.info.started')}>
-                  <span className={styles.rowValue}>{relativeAndAbsolute(data.startedAtMs)}</span>
-                </InfoRow>
+                <InfoRow label={t('monitoring.processDetail.info.started')} value={relativeAndAbsolute(data.startedAtMs)} />
               )}
               {data.firstSeenMs !== undefined && (
-                <InfoRow label={t('monitoring.processDetail.info.firstSeen')}>
-                  <span className={styles.rowValue}>{relativeAndAbsolute(data.firstSeenMs)}</span>
-                </InfoRow>
+                <InfoRow label={t('monitoring.processDetail.info.firstSeen')} value={relativeAndAbsolute(data.firstSeenMs)} />
               )}
-            </div>
+            </InfoList>
           )}
         </CollapsibleSection>
 
         {showPrivacy && (
           <CollapsibleSection title={t('monitoring.processDetail.privacy.title')} open={privacyOpen} onToggle={() => setPrivacyOpen(v => !v)}>
-            <div className={styles.privacyBody}>
+            <InfoList>
               {sessions.map((s, i) => {
                 const Icon = PRIVACY_ICONS[iconKindForCapability(s.capability)];
                 const timeText = s.end === null
                   ? t('monitoring.privacy.since', { time: formatPrivacyTime(s.start) })
                   : t('monitoring.privacy.until', { time: formatPrivacyTime(s.end) });
                 return (
-                  <div key={i} className={styles.privacyRow}>
-                    <Icon size={14} aria-hidden />
-                    <span className={styles.rowLabel}>{t(`monitoring.privacy.capability.${s.capability}`)}</span>
-                    <span className={styles.privacyTime}>{timeText}</span>
-                  </div>
+                  <InfoRow
+                    key={i}
+                    label={(
+                      <span className={styles.privacyLabel}>
+                        <Icon size={14} aria-hidden />
+                        {t(`monitoring.privacy.capability.${s.capability}`)}
+                      </span>
+                    )}
+                    value={timeText}
+                  />
                 );
               })}
-            </div>
+            </InfoList>
           </CollapsibleSection>
         )}
       </Slideout>

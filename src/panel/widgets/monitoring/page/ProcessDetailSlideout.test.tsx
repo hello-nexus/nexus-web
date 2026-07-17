@@ -80,8 +80,12 @@ describe('ProcessDetailSlideout header', () => {
   it('shows the friendly description, instance count, and publisher once loaded', () => {
     infoMock.mockReturnValue(infoResult({ loading: false, data: fullData() }));
     render(<ProcessDetailSlideout {...baseProps()} />);
-    expect(screen.getByText('Google Chrome')).toBeInTheDocument();
-    expect(screen.getByText(/Google LLC/)).toBeInTheDocument();
+    // "Google Chrome" (the description) and "Google LLC" (the publisher)
+    // each legitimately render twice: once in the header meta line, once
+    // again in the info block's own rows - both are correct, so assert on
+    // both occurrences, not exactly one.
+    expect(screen.getAllByText('Google Chrome').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText(/Google LLC/).length).toBeGreaterThanOrEqual(2);
   });
 });
 
