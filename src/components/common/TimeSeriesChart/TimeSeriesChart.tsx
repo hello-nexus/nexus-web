@@ -98,6 +98,10 @@ export function TimeSeriesChart({
   // domain (clock/timezone skew) cannot draw over the axis labels. Colons from
   // useId are stripped so the url(#id) reference stays well-formed.
   const clipId = `tsc-plot-${useId().replace(/:/g, '')}`;
+  // A series id can itself contain a colon (e.g. a GPU series id like
+  // "gpu:0") - stripped for the same url(#id) well-formedness reason as
+  // clipId above.
+  const gradientId = (seriesId: string) => `${clipId}-${seriesId.replace(/:/g, '')}`;
   // Snapshot at mount rather than reading Date.now() during render (the
   // year-omission check only needs a stable "now", not a live clock).
   const [nowMs] = useState(() => Date.now());
@@ -279,7 +283,7 @@ export function TimeSeriesChart({
             <rect x={CHART_PAD.left} y={CHART_PAD.top} width={chartW} height={chartH} />
           </clipPath>
           {fillGradient && series.map(s => (
-            <linearGradient key={s.id} id={`${clipId}-${s.id}`} x1="0" y1="0" x2="0" y2="1">
+            <linearGradient key={s.id} id={gradientId(s.id)} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor={s.color} stopOpacity="0.35" />
               <stop offset="100%" stopColor={s.color} stopOpacity="0.02" />
             </linearGradient>
@@ -331,7 +335,7 @@ export function TimeSeriesChart({
               {fillGradient && (
                 <path
                   d={`${d} L${xFor(segment[segment.length - 1].t).toFixed(1)},${baselineY.toFixed(1)} L${xFor(segment[0].t).toFixed(1)},${baselineY.toFixed(1)} Z`}
-                  fill={`url(#${clipId}-${s.id})`}
+                  fill={`url(#${gradientId(s.id)})`}
                   stroke="none"
                 />
               )}

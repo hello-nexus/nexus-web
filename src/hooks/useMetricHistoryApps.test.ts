@@ -178,4 +178,45 @@ describe('useMetricHistoryApps', () => {
     await advance(200);
     expect(fetchMock).not.toHaveBeenCalled();
   });
+
+  it('clears apps and drops ready when disabled after having loaded data, instead of leaving the previous metric rendering', async () => {
+    const { result, rerender } = renderHook(
+      ({ enabled }: { enabled: boolean }) => useMetricHistoryApps(enabled, 'cpu', NOW - MINUTE, NOW, true),
+      { initialProps: { enabled: true } },
+    );
+    await advance(200);
+    expect(result.current.apps.length).toBeGreaterThan(0);
+    expect(result.current.ready).toBe(true);
+
+    // Mirrors the GPU tab with no resolved adapterLuid: MonitoringPage
+    // disables the hook (and its seriesParam empties) rather than switching
+    // to a different non-empty series.
+    rerender({ enabled: false });
+    await advance(0);
+    expect(result.current.apps).toEqual([]);
+    expect(result.current.ready).toBe(false);
+  });
+
+  it('clears apps and drops ready when seriesParam drops to empty even if enabled stays true, and stays clear past the debounce and live-refresh windows', async () => {
+    const { result, rerender } = renderHook(
+      ({ series }: { series: string }) => useMetricHistoryApps(true, series, NOW - MINUTE, NOW, true),
+      { initialProps: { series: 'cpu' } },
+    );
+    await advance(200);
+    expect(result.current.apps.length).toBeGreaterThan(0);
+    fetchMock.mockClear();
+
+    rerender({ series: '' });
+    await advance(0);
+    expect(result.current.apps).toEqual([]);
+    expect(result.current.ready).toBe(false);
+
+    // The debounced-fetch and live-refresh effects must not silently
+    // repopulate stale data once the empty series clears past their own
+    // gates - neither fires a fetch at all for an empty series.
+    await advance(6_000);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(result.current.apps).toEqual([]);
+    expect(result.current.ready).toBe(false);
+  });
 });

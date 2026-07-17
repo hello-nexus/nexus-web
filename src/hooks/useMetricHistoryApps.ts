@@ -48,6 +48,16 @@ export function useMetricHistoryApps(enabled: boolean, seriesParam: string, from
     return () => { mountedRef.current = false; };
   }, []);
 
+  // Disabling (e.g. a GPU tab with no resolved adapterLuid yet) or an empty
+  // seriesParam must not leave the previous metric's apps rendering - the
+  // debounced-fetch effect below only runs while enabled with a real
+  // series, so nothing else would clear this.
+  useEffect(() => {
+    if (enabled && seriesParam !== '') return;
+    setApps([]);
+    setReady(false);
+  }, [enabled, seriesParam]);
+
   const load = useCallback((loadFrom: number, loadTo: number) => {
     const seq = ++seqRef.current;
     setLoading(true);
@@ -76,7 +86,7 @@ export function useMetricHistoryApps(enabled: boolean, seriesParam: string, from
   // shared box, so width alone would misclassify it as a tick slide and
   // leave the previous metric's apps showing.
   useEffect(() => {
-    if (!enabled || !supported) return;
+    if (!enabled || !supported || seriesParam === '') return;
     const width = to - from;
     const seriesChanged = prevSeriesParamRef.current !== null && prevSeriesParamRef.current !== seriesParam;
     const isTickSlide = following && !seriesChanged && prevWidthRef.current !== null && Math.abs(width - prevWidthRef.current) < 1;
@@ -92,10 +102,10 @@ export function useMetricHistoryApps(enabled: boolean, seriesParam: string, from
   // slide above - reads from/to via refs so it always uses the latest
   // window without retriggering the interval itself.
   useEffect(() => {
-    if (!enabled || !supported || !following) return;
+    if (!enabled || !supported || !following || seriesParam === '') return;
     const timer = window.setInterval(() => load(fromRef.current, toRef.current), LIVE_REFRESH_MS);
     return () => window.clearInterval(timer);
-  }, [enabled, supported, following, load]);
+  }, [enabled, supported, following, load, seriesParam]);
 
   return { apps, loading, supported, mocked, ready };
 }
