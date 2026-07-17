@@ -285,8 +285,10 @@ export function getGpuProcessData(luid = '') {
   const scoped = luid ? latestGpuProcs.filter(p => p.adapterLuid === luid) : latestGpuProcs;
   const mapped = scoped.map(p => ({ name: p.name, cpuPercent: p.gpuPercent, memoryMb: p.dedicatedMb }));
   return {
-    // procMemSeries is uncapped so vramByName covers every process the GPU%-ranked rows can show.
-    procSeries: buildGpuSeries(gpuProcHist, mapped, 'cpuPercent', luid, TOP_PROCS),
+    // Both uncapped (item 48: the monitoring page's GPU tab shows every
+    // process with per-process GPU data, not just a top-N slice) - this is
+    // the only consumer, unlike getProcessData's own top-N + Other shape.
+    procSeries: buildGpuSeries(gpuProcHist, mapped, 'cpuPercent', luid, Infinity),
     procMemSeries: buildGpuSeries(gpuMemHist, mapped, 'memoryMb', luid, Infinity),
   };
 }
@@ -319,6 +321,18 @@ function buildGpuSeries(
   }
   result.sort((a, b) => b.avg - a.avg);
   return result.slice(0, topN);
+}
+
+// Uncapped counterpart to getProcessData's cpuSeries/memSeries (item 48): no
+// TOP_PROCS slice and no "Other" aggregate row, since every running process
+// is already included. getProcessData's own top-N + Other shape stays
+// unchanged for its other consumers (small dashboard/panel tiles).
+export function getAllCpuMemSeries(): { cpuSeries: SeriesEntry[]; memSeries: SeriesEntry[] } {
+  const procs = latestFrame?.processes;
+  return {
+    cpuSeries: buildSeries(cpuHist, procs?.processes ?? [], 'cpuPercent', Infinity),
+    memSeries: buildSeries(memHist, procs?.processes ?? [], 'memoryMb', Infinity),
+  };
 }
 
 export function getProcessData() {
@@ -364,11 +378,11 @@ export function getProcessData() {
   };
 }
 
-export function getNetworkData() {
+const TOP_NET = 15;
+
+function buildAllNetSeries(): SeriesEntry[] {
   const net = latestFrame?.network;
   const entries = net?.entries ?? [];
-  const TOP_NET = 15;
-
   const allSeries: SeriesEntry[] = [];
   for (const [name, entry] of netHist) {
     const vals = entry.values;
@@ -384,7 +398,19 @@ export function getNetworkData() {
     });
   }
   allSeries.sort((a, b) => b.avg - a.avg);
-  const series = allSeries.slice(0, TOP_NET);
+  return allSeries;
+}
+
+// Uncapped counterpart to getNetworkData's own TOP_NET-sliced series (item
+// 48) - every process with network history, not just the top 15.
+export function getAllNetSeries(): SeriesEntry[] {
+  return buildAllNetSeries();
+}
+
+export function getNetworkData() {
+  const net = latestFrame?.network;
+  const entries = net?.entries ?? [];
+  const series = buildAllNetSeries().slice(0, TOP_NET);
 
   let totalRate = 0, totalRateIn = 0, totalRateOut = 0;
   const netEntries: NetworkEntry[] = [];

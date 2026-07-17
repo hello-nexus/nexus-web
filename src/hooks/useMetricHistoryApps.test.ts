@@ -179,6 +179,31 @@ describe('useMetricHistoryApps', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it('gap-fills each app\'s points once per response (item 52), not leaving the raw sparse points', async () => {
+    // A regular 1000ms cadence with one sample missing at t=3000 - the raw
+    // response has a 4000ms hole between t=2000 and t=6000.
+    fetchMock.mockResolvedValue({
+      data: {
+        supported: true,
+        apps: [{
+          name: 'explorer.exe',
+          avg: 1,
+          max: 1,
+          points: [{ t: 0, avg: 1 }, { t: 1000, avg: 2 }, { t: 2000, avg: 3 }, { t: 6000, avg: 4 }],
+        }],
+      },
+      mocked: false,
+      unsupported: false,
+    });
+    const { result } = renderHook(() => useMetricHistoryApps(true, 'cpu', NOW - MINUTE, NOW, true));
+    await advance(200);
+    const points = result.current.apps[0].points;
+    // More points than the raw response - the gap was filled, not left sparse.
+    expect(points.length).toBeGreaterThan(4);
+    const filledZero = points.find(p => p.t > 2000 && p.t < 6000);
+    expect(filledZero?.avg).toBe(0);
+  });
+
   it('clears apps and drops ready when disabled after having loaded data, instead of leaving the previous metric rendering', async () => {
     const { result, rerender } = renderHook(
       ({ enabled }: { enabled: boolean }) => useMetricHistoryApps(enabled, 'cpu', NOW - MINUTE, NOW, true),

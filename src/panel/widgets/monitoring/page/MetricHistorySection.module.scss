@@ -1,9 +1,14 @@
 @use '../../../../styles/text' as *;
 
+// flex-shrink:0: as a child of MonitoringPage's flex-column .tabContent, this
+// must never be compressed by the process list's own scroll container
+// (item 48) - the hero chart/temp ribbon/seek bar stay pinned at their full
+// size regardless of viewport height.
 .root {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
+  flex-shrink: 0;
 }
 
 .skeleton {

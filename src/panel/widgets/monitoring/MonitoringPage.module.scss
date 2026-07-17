@@ -1,9 +1,16 @@
 @use '../../../styles/text' as *;
+@use '../../../styles/scrollbar' as *;
 
+// height:100% + min-height:0 lets .tabContent (pageBodyFill) resolve a real
+// flex-column height to split into a pinned region + its own internal
+// scroll, instead of relying on the app shell's outer .content scrolling the
+// whole page (App.module.scss) - same shape as ClockPage/DashboardTab.
 .monitoring {
   display: flex;
   flex-direction: column;
   gap: 0;
+  height: 100%;
+  min-height: 0;
 }
 
 .tabContent {
@@ -14,11 +21,25 @@
 
 // CPU/GPU tab header: the fully-qualified processor / GPU name. On the GPU tab
 // with more than one GPU a "Change" button beside it opens the GPU picker.
+// flex-shrink:0 keeps it pinned above the scrolling process list at small
+// heights instead of being compressed along with everything else.
 .tabHeader {
   display: flex;
   align-items: center;
   gap: 0.6rem;
   min-width: 0;
+  flex-shrink: 0;
+}
+
+// Scroll container for the process list only (item 48): the hero chart, temp
+// ribbon, and seek bar (MetricHistorySection, flex-shrink:0 on its own root)
+// stay pinned above this and are never pushed into a scrolling region, even
+// when the viewport is too short to show the whole list.
+.listScroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  @include scrollbar-visible($gutter: false);
 }
 
 .tabHeaderName {

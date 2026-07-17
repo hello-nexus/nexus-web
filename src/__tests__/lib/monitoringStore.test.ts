@@ -96,6 +96,50 @@ describe('Other calculation', () => {
   });
 });
 
+describe('getAllCpuMemSeries (item 48: uncapped, no Other row)', () => {
+  it('includes every process with no top-N cap and no Other aggregate', () => {
+    const processes = Array.from({ length: 25 }, (_, i) => ({ name: `proc-${i}.exe`, cpuPercent: 1, memoryMb: 10 }));
+    store.ingestMonitoring(makeFrame({
+      processes: { totalCpu: 25, totalMemoryPercent: 25, processes },
+    }));
+    const { cpuSeries, memSeries } = store.getAllCpuMemSeries();
+    expect(cpuSeries.length).toBe(25);
+    expect(memSeries.length).toBe(25);
+    expect(cpuSeries.some(s => s.name === 'Other')).toBe(false);
+    expect(memSeries.some(s => s.name === 'Other')).toBe(false);
+  });
+
+  it('matches getProcessData\'s own per-process values (same source, just uncapped)', () => {
+    store.ingestMonitoring(makeFrame());
+    const capped = store.getProcessData();
+    const all = store.getAllCpuMemSeries();
+    const chromeCapped = capped.cpuSeries.find(s => s.name === 'Chrome')!;
+    const chromeAll = all.cpuSeries.find(s => s.name === 'Chrome')!;
+    expect(chromeAll.current).toBe(chromeCapped.current);
+  });
+});
+
+describe('getAllNetSeries (item 48: uncapped network series)', () => {
+  it('includes every process with network history, beyond the top-15 getNetworkData keeps', () => {
+    const entries = Array.from({ length: 20 }, (_, i) => ({ name: `net-${i}.exe`, rateIn: 100, rateOut: 100 }));
+    store.ingestMonitoring(makeFrame({ network: { entries } }));
+    const capped = store.getNetworkData();
+    const all = store.getAllNetSeries();
+    expect(capped.series.length).toBe(15);
+    expect(all.length).toBe(20);
+  });
+});
+
+describe('getGpuProcessData (item 51: uncapped procSeries, matching procMemSeries)', () => {
+  it('includes every GPU process with no top-N cap', () => {
+    const procs = Array.from({ length: 25 }, (_, i) => ({ name: `gpu-${i}.exe`, gpuPercent: 1, dedicatedMb: 10, adapterLuid: '' }));
+    store.ingestGpuProcesses(procs);
+    const { procSeries, procMemSeries } = store.getGpuProcessData('');
+    expect(procSeries.length).toBe(25);
+    expect(procMemSeries.length).toBe(25);
+  });
+});
+
 describe('padLeft', () => {
   it('pads series to 60 samples with leading zeros', () => {
     store.ingestMonitoring(makeFrame());

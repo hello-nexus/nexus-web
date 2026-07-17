@@ -36,6 +36,22 @@ export function useProcessMonitor(): MonitorData {
 }
 
 /**
+ * Uncapped counterpart to useProcessMonitor's own top-N + Other shape: every
+ * currently-running process, sourced from the same live monitoring frame -
+ * feeds the monitoring page's complete process list (item 48) rather than a
+ * small top-N tile.
+ */
+export function useAllProcesses(): { cpuSeries: SeriesEntry[]; memSeries: SeriesEntry[] } {
+  const [, bump] = useState(0);
+  useEffect(() => {
+    const fn = () => bump(v => v + 1);
+    store.subscribe(fn);
+    return () => store.unsubscribe(fn);
+  }, []);
+  return store.getAllCpuMemSeries();
+}
+
+/**
  * Subscribes to the gpu-processes topic and ingests each frame into the store.
  * Mounted at monitoring-page level (not per-tab) so the PDH backend collector
  * stays warm and per-process history accrues across tab switches. Exactly one

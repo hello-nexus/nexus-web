@@ -46,7 +46,10 @@ export interface ProcessListSectionProps {
   appsWindow?: UseMetricHistoryAppsResult;
 }
 
-const SPARKLINE_SAMPLES = 30;
+// Exported so appWindowHelpers.ts's flat-history fallback can size itself to
+// match - a shorter flat array would let this component's own left-zero-pad
+// (values.length < sampleCount) draw a fake ramp instead of a flat line.
+export const SPARKLINE_SAMPLES = 30;
 
 /** A process row's privacy-access icons: one per PrivacyIndicator, each a
  *  non-actionable informational glyph (role="img" + tabIndex so hover AND

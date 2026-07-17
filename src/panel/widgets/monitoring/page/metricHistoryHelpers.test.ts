@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   RANGE_OPTIONS,
+  appsSeriesParamFor,
   defaultBoxWidthMs,
   formatBrushEdgeLabels,
   initViewport,
@@ -83,6 +84,18 @@ describe('seriesQueryFor', () => {
     expect(seriesQueryFor('memory')).toBe('memory');
     expect(seriesQueryFor('network')).toBe('net-in,net-out');
     expect(seriesQueryFor('gpu')).toBe('gpu,gpu-temp');
+  });
+});
+
+describe('appsSeriesParamFor', () => {
+  it('maps each metric to its apps-window series param', () => {
+    expect(appsSeriesParamFor('cpu')).toBe('cpu');
+    expect(appsSeriesParamFor('memory')).toBe('memory');
+    expect(appsSeriesParamFor('network')).toBe('net');
+  });
+
+  it('requests the bare gpu kind, not an adapter-scoped gpu:<id> (item 51)', () => {
+    expect(appsSeriesParamFor('gpu')).toBe('gpu');
   });
 });
 

@@ -18,6 +18,22 @@ export function seriesQueryFor(metric: HistoryMetric): string {
   }
 }
 
+/**
+ * The `series` param for the window-scoped per-app apps endpoint (GET
+ * /monitoring/history/apps). The GPU case requests the bare `gpu` kind
+ * rather than a specific `gpu:<adapterLuid>` id (item 51) - the web has no
+ * reliable adapter-scoped id to construct here, and the service aggregates
+ * per-process GPU usage across every adapter under the bare kind.
+ */
+export function appsSeriesParamFor(metric: HistoryMetric): string {
+  switch (metric) {
+    case 'cpu': return 'cpu';
+    case 'memory': return 'memory';
+    case 'network': return 'net';
+    case 'gpu': return 'gpu';
+  }
+}
+
 export type RangeKey = '30m' | '3h' | '24h' | '3d' | '7d' | 'custom';
 export type PresetKey = Exclude<RangeKey, 'custom'>;
 

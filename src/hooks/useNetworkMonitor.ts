@@ -29,3 +29,19 @@ export function useNetworkMonitor(enabled = true): NetworkData {
   }, [enabled]);
   return store.getNetworkData();
 }
+
+/**
+ * Uncapped counterpart to useNetworkMonitor's own top-15 series - every
+ * process with network history, feeding the monitoring page's complete
+ * process list (item 48) rather than a small top-N tile.
+ */
+export function useAllNetworkSeries(enabled = true): SeriesEntry[] {
+  const [, bump] = useState(0);
+  useEffect(() => {
+    if (!enabled) return;
+    const fn = () => bump(v => v + 1);
+    store.subscribe(fn);
+    return () => store.unsubscribe(fn);
+  }, [enabled]);
+  return store.getAllNetSeries();
+}

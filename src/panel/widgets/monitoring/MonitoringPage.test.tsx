@@ -67,14 +67,19 @@ vi.mock('../../../hooks/useMetricHistory', () => ({
 }));
 
 let appsWindowOverride: Partial<{ apps: AppWindowSeries[]; supported: boolean; ready: boolean }> = {};
+let lastAppsWindowSeriesParam = '';
 vi.mock('../../../hooks/useMetricHistoryApps', () => ({
-  useMetricHistoryApps: () => ({ apps: [], loading: false, supported: true, mocked: false, ready: true, ...appsWindowOverride }),
+  useMetricHistoryApps: (_enabled: boolean, seriesParam: string) => {
+    lastAppsWindowSeriesParam = seriesParam;
+    return { apps: [], loading: false, supported: true, mocked: false, ready: true, ...appsWindowOverride };
+  },
 }));
 
 vi.mock('../../../hooks/useSystemSpecs', () => ({
   useSystemSpecs: () => ({ specs: { memory: 'Test Memory 32GB' } }),
 }));
 
+const allNetSeriesOverride: Array<{ name: string; current: number; values: number[] }> = [];
 vi.mock('../../../hooks/useNetworkMonitor', () => ({
   useNetworkMonitor: () => ({
     series: [],
@@ -84,19 +89,26 @@ vi.mock('../../../hooks/useNetworkMonitor', () => ({
     totalRateOut: 0,
     entries: [],
   }),
+  useAllNetworkSeries: () => allNetSeriesOverride,
 }));
 
+// cpuSeriesOverride/memSeriesOverride feed useAllProcesses - MonitoringPage's
+// own complete-list source (item 48). useProcessMonitor's capped shape stays
+// hardcoded empty since the page no longer reads it directly.
 let cpuSeriesOverride: Array<{ name: string; current: number; values: number[] }> = [];
+const memSeriesOverride: Array<{ name: string; current: number; values: number[] }> = [];
+let gpuProcSeriesOverride: Array<{ name: string; current: number; values: number[] }> = [];
 vi.mock('../../../hooks/useProcessMonitor', () => ({
   useProcessMonitor: () => ({
-    cpuSeries: cpuSeriesOverride,
+    cpuSeries: [],
     memSeries: [],
     sampleCount: 0,
     totalCpu: 0,
     totalMemMb: 0,
   }),
+  useAllProcesses: () => ({ cpuSeries: cpuSeriesOverride, memSeries: memSeriesOverride }),
   useGpuProcessFeed: () => {},
-  useGpuProcessData: () => ({ procSeries: [], procMemSeries: [] }),
+  useGpuProcessData: () => ({ procSeries: gpuProcSeriesOverride, procMemSeries: [] }),
 }));
 
 const sensorState = {
@@ -565,6 +577,128 @@ describe('MonitoringPage', () => {
       render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
       const section = screen.getByTestId('process-list-section');
       expect(section).toHaveAttribute('data-apps-window-supported', 'true');
+    });
+  });
+
+  describe('complete process list (item 48: full live frame, reconciled with the apps window)', () => {
+    afterEach(() => {
+      cpuSeriesOverride = [];
+      appsWindowOverride = {};
+      historyOverride = {};
+    });
+
+    it('shows every running process while following live, not just the ones the top-N window response covers', () => {
+      cpuSeriesOverride = [
+        { name: 'chrome.exe', current: 40, values: [1, 2, 3] },
+        { name: 'explorer.exe', current: 0.2, values: [0, 0, 0] },
+        { name: 'svchost.exe', current: 0.1, values: [0, 0, 0] },
+      ];
+      appsWindowOverride = {
+        ready: true, supported: true,
+        apps: [{ name: 'chrome.exe', avg: 38, max: 50, points: [{ t: 0, avg: 38 }] }],
+      };
+      historyOverride = { following: true };
+      render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+      const section = screen.getByTestId('process-list-section');
+      expect(section).toHaveTextContent('items:3:chrome.exe,explorer.exe,svchost.exe');
+    });
+
+    it('shows only the recorded window set once detached/scrubbed, not the full live set', () => {
+      cpuSeriesOverride = [
+        { name: 'chrome.exe', current: 40, values: [1] },
+        { name: 'explorer.exe', current: 0.2, values: [0] },
+      ];
+      appsWindowOverride = {
+        ready: true, supported: true,
+        apps: [{ name: 'chrome.exe', avg: 38, max: 50, points: [{ t: 0, avg: 38 }] }],
+      };
+      historyOverride = { following: false };
+      render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+      const section = screen.getByTestId('process-list-section');
+      expect(section).toHaveTextContent('items:1:chrome.exe');
+      expect(section).not.toHaveTextContent('explorer.exe');
+    });
+  });
+
+  describe('GPU tab (item 51: bare series param + fallback to the general list)', () => {
+    afterEach(() => {
+      sensorState.gpu = [];
+      sensorState.gpuComponents = [];
+      cpuSeriesOverride = [];
+      gpuProcSeriesOverride = [];
+      appsWindowOverride = {};
+      historyOverride = {};
+    });
+
+    it('requests the bare gpu series for its apps window, not an adapter-scoped gpu:<id>', () => {
+      sensorState.gpu = [
+        { id: 'gpu/0/load', name: 'GPU Core', type: 'Load', value: 30, units: '%', formatted: '30%', parent: { id: 'gpu/0', name: 'gpu' } },
+      ];
+      render(<MonitoringPage serviceOnline={true} connectionState="online" tab="gpu" onTabChange={vi.fn()} />);
+      expect(lastAppsWindowSeriesParam).toBe('gpu');
+    });
+
+    it('shows the general running-process list with GPU usage at 0% when the adapter has no per-process GPU data', () => {
+      sensorState.gpu = [
+        { id: 'gpu/0/load', name: 'GPU Core', type: 'Load', value: 30, units: '%', formatted: '30%', parent: { id: 'gpu/0', name: 'gpu' } },
+      ];
+      cpuSeriesOverride = [{ name: 'chrome.exe', current: 40, values: [1, 2, 3] }];
+      gpuProcSeriesOverride = [];
+      historyOverride = { following: true };
+      render(<MonitoringPage serviceOnline={true} connectionState="online" tab="gpu" onTabChange={vi.fn()} />);
+      const section = screen.getByTestId('process-list-section');
+      expect(section).toHaveTextContent('items:1:chrome.exe');
+    });
+
+    it('does not flash the general-list fallback while the apps window has not yet confirmed there is no per-process GPU data', () => {
+      sensorState.gpu = [
+        { id: 'gpu/0/load', name: 'GPU Core', type: 'Load', value: 30, units: '%', formatted: '30%', parent: { id: 'gpu/0', name: 'gpu' } },
+      ];
+      cpuSeriesOverride = [{ name: 'chrome.exe', current: 40, values: [1, 2, 3] }];
+      gpuProcSeriesOverride = [];
+      // The live gpu-processes topic has nothing yet AND the apps window's
+      // own first fetch for this metric hasn't landed either (ready: false) -
+      // not enough evidence to conclude the adapter has no GPU telemetry, so
+      // the general CPU-based list must not appear.
+      appsWindowOverride = { ready: false, supported: true, apps: [] };
+      historyOverride = { following: true };
+      render(<MonitoringPage serviceOnline={true} connectionState="online" tab="gpu" onTabChange={vi.fn()} />);
+      const section = screen.getByTestId('process-list-section');
+      expect(section).not.toHaveTextContent('chrome.exe');
+    });
+
+    it('shows the general-list fallback once the apps window itself confirms no per-process GPU data (ready with zero apps)', () => {
+      sensorState.gpu = [
+        { id: 'gpu/0/load', name: 'GPU Core', type: 'Load', value: 30, units: '%', formatted: '30%', parent: { id: 'gpu/0', name: 'gpu' } },
+      ];
+      cpuSeriesOverride = [{ name: 'chrome.exe', current: 40, values: [1, 2, 3] }];
+      gpuProcSeriesOverride = [];
+      appsWindowOverride = { ready: true, supported: true, apps: [] };
+      historyOverride = { following: true };
+      render(<MonitoringPage serviceOnline={true} connectionState="online" tab="gpu" onTabChange={vi.fn()} />);
+      const section = screen.getByTestId('process-list-section');
+      expect(section).toHaveTextContent('chrome.exe');
+    });
+  });
+
+  describe('scroll containment (item 47: only the process list scrolls)', () => {
+    it('wraps the process list in its own scroll container, with the hero chart outside it', () => {
+      const { container } = render(
+        <MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />,
+      );
+      const listScroll = container.querySelector('[class*="listScroll"]');
+      expect(listScroll).toBeInTheDocument();
+      expect(listScroll!.querySelector('[data-testid="process-list-section"]')).toBeInTheDocument();
+
+      const hero = screen.getByTestId('metric-history-section');
+      expect(listScroll!.contains(hero)).toBe(false);
+    });
+
+    it('does not wrap DetailedTab in the process-list scroll container', () => {
+      const { container } = render(
+        <MonitoringPage serviceOnline={true} connectionState="online" tab="detailed" onTabChange={vi.fn()} />,
+      );
+      expect(container.querySelector('[class*="listScroll"]')).toBeNull();
     });
   });
 });

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchMonitoringHistoryApps, type AppWindowSeries } from '../api/monitoringHistoryApps';
+import { fillAppGaps } from '../panel/widgets/monitoring/page/appWindowHelpers';
 
 const VIEWPORT_DEBOUNCE_MS = 200;
 const LIVE_REFRESH_MS = 5_000;
@@ -70,7 +71,11 @@ export function useMetricHistoryApps(enabled: boolean, seriesParam: string, from
       });
       if (!mountedRef.current || seq !== seqRef.current) return;
       if (result.data) {
-        setApps(result.data.apps);
+        // Gap-fill once per response (item 52), not per render/frame - every
+        // consumer of `apps` (the row sparklines, the hover tooltip, and the
+        // process-detail slideout's mini chart) then reads already-filled
+        // points.
+        setApps(result.data.apps.map(app => ({ ...app, points: fillAppGaps(app.points) })));
         setSupported(result.data.supported);
         setMocked(result.mocked);
         setReady(true);
