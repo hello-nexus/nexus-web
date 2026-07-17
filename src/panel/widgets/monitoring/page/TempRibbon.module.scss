@@ -20,18 +20,18 @@
   width: 100%;
 }
 
-// Docked beside the ribbon on the same line, in the reserved right-side
-// lane (LABEL_RESERVE_PX) that the drawn segments never extend into.
-.current {
+// Positioned absolutely (out of flow) so .track never shrinks to make room
+// for it - the band's own width always equals the ribbon's full width,
+// pixel-identical to the chart's plot rect above. Sits inside the chart's
+// left pad lane (CHART_PAD.left, the same lane its y-axis tick labels
+// occupy), left of where the drawn band itself begins.
+.icon {
   position: absolute;
-  right: 4px;
+  left: 4px;
   top: 50%;
   transform: translateY(-50%);
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  font-family: var(--font-mono);
-  font-size: var(--type-mini);
   color: var(--text-dim);
   user-select: none;
   pointer-events: none;

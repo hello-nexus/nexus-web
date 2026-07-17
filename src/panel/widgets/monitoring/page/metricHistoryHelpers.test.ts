@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  CPU_TEMP_THRESHOLD_C,
-  GPU_TEMP_THRESHOLD_C,
   RANGE_OPTIONS,
   defaultBoxWidthMs,
   formatBrushEdgeLabels,
@@ -9,10 +7,8 @@ import {
   nearestTempAt,
   pickGpuHistorySeries,
   rangeKeyForWindow,
-  rangeLabelKey,
   seriesQueryFor,
   sumSilhouette,
-  tempBands,
   toHistoryChartSeries,
   viewportReducer,
   windowMsForRangeKey,
@@ -31,8 +27,8 @@ function series(id: string, points: MetricHistorySeries['points'], over: Partial
 }
 
 describe('RANGE_OPTIONS', () => {
-  it('covers the eight presets in ascending window order', () => {
-    expect(RANGE_OPTIONS.map(o => o.key)).toEqual(['5m', '30m', '1h', '3h', '12h', '24h', '3d', '7d']);
+  it('covers the five presets in ascending window order', () => {
+    expect(RANGE_OPTIONS.map(o => o.key)).toEqual(['30m', '3h', '24h', '3d', '7d']);
     for (let i = 1; i < RANGE_OPTIONS.length; i++) {
       expect(RANGE_OPTIONS[i].windowMs).toBeGreaterThan(RANGE_OPTIONS[i - 1].windowMs);
     }
@@ -52,29 +48,31 @@ describe('windowMsForRangeKey / rangeKeyForWindow', () => {
   });
 
   it('matches within a small tolerance (retention-clamp rounding)', () => {
-    expect(rangeKeyForWindow(HOUR + 500)).toBe('1h');
+    expect(rangeKeyForWindow(3 * HOUR + 500)).toBe('3h');
   });
 
   it('falls back to custom for a window matching no preset', () => {
     expect(rangeKeyForWindow(90 * MINUTE)).toBe('custom');
   });
-});
 
-describe('rangeLabelKey', () => {
-  it('resolves a preset key to its i18n label key', () => {
-    expect(rangeLabelKey('5m')).toBe('monitoring.history.range.5m');
-    expect(rangeLabelKey('7d')).toBe('monitoring.history.range.7d');
+  it('falls back to custom for a window matching a still-removed preset (1h/12h - 5m/30m stayed/came back)', () => {
+    expect(rangeKeyForWindow(HOUR)).toBe('custom');
+    expect(rangeKeyForWindow(12 * HOUR)).toBe('custom');
   });
 });
 
 describe('defaultBoxWidthMs', () => {
-  it('is a third of the strip for a wide-enough strip', () => {
-    expect(defaultBoxWidthMs(3 * HOUR)).toBe(HOUR);
+  it('is a sixth of the strip for a wide-enough strip', () => {
+    expect(defaultBoxWidthMs(3 * HOUR)).toBe(30 * MINUTE);
+  });
+
+  it('highlights the last 5 minutes of the 30m preset strip (item 42\'s canonical example)', () => {
+    expect(defaultBoxWidthMs(30 * MINUTE)).toBe(5 * MINUTE);
   });
 
   it('floors at MIN_BOX_WINDOW_MS, capped at the strip width itself', () => {
-    // The 5m preset: a third would be under the 5-minute floor, so the box
-    // fills the whole strip - matches the reference recording at this preset.
+    // A strip narrower than 30m: a sixth would be under the 5-minute floor,
+    // so the box fills the whole strip.
     expect(defaultBoxWidthMs(5 * MINUTE)).toBe(5 * MINUTE);
   });
 });
@@ -89,12 +87,12 @@ describe('seriesQueryFor', () => {
 });
 
 describe('initViewport', () => {
-  it('follows at the 5m default: a 5m strip whose box fills it', () => {
+  it('follows at the 30m default: a 30m strip whose box highlights the last 5 minutes (a sixth)', () => {
     const now = 10_000_000;
     expect(initViewport(now)).toEqual({
       from: now - 5 * MINUTE, to: now,
-      stripFrom: now - 5 * MINUTE, stripTo: now,
-      rangeKey: '5m', lastPresetKey: '5m', following: true,
+      stripFrom: now - 30 * MINUTE, stripTo: now,
+      rangeKey: '30m', lastPresetKey: '30m', following: true,
     });
   });
 });
@@ -107,19 +105,19 @@ describe('viewportReducer', () => {
     rangeKey: '3h', lastPresetKey: '3h', following: true,
   };
 
-  it('init produces the default 5m following viewport', () => {
+  it('init produces the default 30m following viewport', () => {
     expect(viewportReducer(base, { type: 'init', now })).toEqual(initViewport(now));
   });
 
-  it('setRange sizes the strip to the preset and the box to a third of it, right-edge anchored', () => {
+  it('setRange sizes the strip to the preset and the box to a sixth of it, right-edge anchored', () => {
     const detached: ViewportState = {
       from: now - 5 * HOUR, to: now - HOUR,
       stripFrom: now - 12 * HOUR, stripTo: now - HOUR,
-      rangeKey: 'custom', lastPresetKey: '12h', following: false,
+      rangeKey: 'custom', lastPresetKey: '24h', following: false,
     };
     const next = viewportReducer(detached, { type: 'setRange', key: '3h', now });
     expect(next).toEqual({
-      from: now - HOUR, to: now,
+      from: now - 30 * MINUTE, to: now,
       stripFrom: now - 3 * HOUR, stripTo: now,
       rangeKey: '3h', lastPresetKey: '3h', following: true,
     });
@@ -170,7 +168,7 @@ describe('viewportReducer', () => {
     expect(next.to).toBe(now - MINUTE);
   });
 
-  it('chartDragSelect sets the box to the exact selection, goes custom, and re-derives a 3x centered strip', () => {
+  it('chartDragSelect sets the box to the exact selection, goes custom, and re-derives a 6x centered strip', () => {
     const selFrom = now - 90 * MINUTE;
     const selTo = now - 60 * MINUTE;
     const next = viewportReducer(base, { type: 'chartDragSelect', from: selFrom, to: selTo, now, retentionMs: 7 * DAY });
@@ -179,8 +177,8 @@ describe('viewportReducer', () => {
     expect(next.rangeKey).toBe('custom');
     expect(next.lastPresetKey).toBe('3h');
     expect(next.following).toBe(false);
-    // Strip is 3x the 30-minute selection (90 minutes), centered on it.
-    expect(next.stripTo - next.stripFrom).toBe(90 * MINUTE);
+    // Strip is 6x the 30-minute selection (3 hours), centered on it.
+    expect(next.stripTo - next.stripFrom).toBe(3 * HOUR);
     expect(next.stripFrom).toBeLessThanOrEqual(selFrom);
     expect(next.stripTo).toBeGreaterThanOrEqual(selTo);
   });
@@ -275,7 +273,7 @@ describe('viewportReducer', () => {
     const detachedOld: ViewportState = {
       from: now - 8 * DAY - HOUR, to: now - 8 * DAY,
       stripFrom: now - 11 * DAY, stripTo: now - DAY,
-      rangeKey: 'custom', lastPresetKey: '7d', following: false,
+      rangeKey: 'custom', lastPresetKey: '3h', following: false,
     };
     const clamped = viewportReducer(detachedOld, { type: 'retentionClamp', retentionMs: 7 * DAY, now });
     expect(clamped.stripFrom).toBe(now - 7 * DAY);
@@ -286,7 +284,7 @@ describe('viewportReducer', () => {
     const detached: ViewportState = {
       from: now - 20 * MINUTE - 5 * HOUR, to: now - 5 * HOUR,
       stripFrom: now - 60 * MINUTE - 5 * HOUR, stripTo: now - 5 * HOUR,
-      rangeKey: 'custom', lastPresetKey: '1h', following: false,
+      rangeKey: 'custom', lastPresetKey: '3h', following: false,
     };
     const next = viewportReducer(detached, { type: 'backToLive', now });
     expect(next.to).toBe(now);
@@ -320,45 +318,6 @@ describe('toHistoryChartSeries', () => {
     const raw = [series('cpu', [{ t: 0, avg: 10, max: 12 }])];
     const out = toHistoryChartSeries(raw, id => `#${id}`);
     expect(out).toEqual([{ id: 'cpu', name: 'cpu', color: '#cpu', points: [{ t: 0, avg: 10, max: 12 }] }]);
-  });
-});
-
-describe('tempBands', () => {
-  it('returns no bands when nothing is over threshold', () => {
-    const points = [{ t: 0, avg: 40, max: 41 }, { t: 1000, avg: 42, max: 43 }];
-    expect(tempBands(points, CPU_TEMP_THRESHOLD_C)).toEqual([]);
-  });
-
-  it('bands a single run of consecutive over-threshold points, extending the end by the point spacing', () => {
-    const points = [
-      { t: 0, avg: 40, max: 41 },
-      { t: 1000, avg: 90, max: 91 },
-      { t: 2000, avg: 92, max: 93 },
-      { t: 3000, avg: 40, max: 41 },
-    ];
-    expect(tempBands(points, CPU_TEMP_THRESHOLD_C)).toEqual([{ startT: 1000, endT: 3000 }]);
-  });
-
-  it('bands a run that extends to the last point', () => {
-    const points = [
-      { t: 0, avg: 40, max: 41 },
-      { t: 1000, avg: 95, max: 96 },
-    ];
-    expect(tempBands(points, GPU_TEMP_THRESHOLD_C)).toEqual([{ startT: 1000, endT: 2000 }]);
-  });
-
-  it('produces separate bands for two non-adjacent runs', () => {
-    const points = [
-      { t: 0, avg: 90, max: 91 },
-      { t: 1000, avg: 40, max: 41 },
-      { t: 2000, avg: 40, max: 41 },
-      { t: 3000, avg: 91, max: 92 },
-    ];
-    expect(tempBands(points, CPU_TEMP_THRESHOLD_C)).toEqual([{ startT: 0, endT: 1000 }, { startT: 3000, endT: 4000 }]);
-  });
-
-  it('returns no bands for an empty series', () => {
-    expect(tempBands([], CPU_TEMP_THRESHOLD_C)).toEqual([]);
   });
 });
 

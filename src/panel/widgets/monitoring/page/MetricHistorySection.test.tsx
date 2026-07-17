@@ -93,6 +93,26 @@ describe('MetricHistorySection', () => {
     expect(screen.getByText('monitoring.history.live')).toBeInTheDocument();
   });
 
+  it('renders the live control in its own row above the chart, not overlaid on the plot (item 40)', () => {
+    stubGeometry();
+    const { container } = renderSection({ history: { following: true } });
+    expect(container.querySelector('[class*="liveOverlay"]')).toBeNull();
+    expect(container.querySelector('[class*="chartOverlayWrap"]')).toBeNull();
+    const liveRow = container.querySelector('[class*="liveRow"]');
+    expect(liveRow).toBeInTheDocument();
+    expect(liveRow).toContainElement(screen.getByText('monitoring.history.live'));
+    // Precedes the chart's own svg in document order (above it, not inside it).
+    const svg = container.querySelector('svg')!;
+    expect(liveRow!.compareDocumentPosition(svg) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('sizes the range Select to match the seek-bar block\'s height exactly (item 38)', () => {
+    stubGeometry();
+    renderSection({ history: { rangeKey: '3h' } });
+    const trigger = screen.getByRole('button', { name: 'monitoring.history.rangeAriaLabel' });
+    expect(trigger).toHaveStyle({ height: '40px' });
+  });
+
   it('shows a clickable "back to live" control instead of the badge while detached, and it re-attaches on click', () => {
     stubGeometry();
     const backToLive = vi.fn();
@@ -100,12 +120,6 @@ describe('MetricHistorySection', () => {
     expect(screen.queryByText('monitoring.history.live')).toBeNull();
     fireEvent.click(screen.getByText('monitoring.history.backToLive'));
     expect(backToLive).toHaveBeenCalled();
-  });
-
-  it('shows the mocked badge when the data is dev-mocked', () => {
-    stubGeometry();
-    renderSection({ history: { mocked: true } });
-    expect(screen.getByText('monitoring.history.mocked')).toBeInTheDocument();
   });
 
   it('shows an error state with a retry action that calls retry()', () => {
@@ -147,21 +161,39 @@ describe('MetricHistorySection', () => {
     expect(paths.length).toBe(2);
   });
 
-  it('renders a temperature threshold band for the cpu metric, with no default avg/max tooltip rows', () => {
+  it('renders no temperature threshold band, no temp series, and no default avg/max tooltip rows on the main chart (item 30: pure consumption)', () => {
     stubGeometry();
     const series: UseMetricHistoryResult['series'] = [
       { id: 'cpu', kind: 'cpu', name: 'CPU', points: [{ t: NOW - HOUR, avg: 40, max: 41 }, { t: NOW, avg: 50, max: 51 }] },
       { id: 'cpu-temp', kind: 'cpu-temp', name: 'CPU', points: [{ t: NOW - HOUR, avg: 90, max: 91 }, { t: NOW, avg: 91, max: 92 }] },
     ];
     const { container } = renderSection({ metric: 'cpu', history: { series } });
-    expect(container.querySelector('rect[fill="var(--bad)"]')).toBeInTheDocument();
+    // The old threshold-band rect (translucent fill at 12% opacity) is gone;
+    // TempRibbon still legitimately draws var(--bad) rects below the chart,
+    // so the band's own distinguishing attribute is what must be absent.
+    expect(container.querySelector('rect[fill-opacity="0.12"]')).toBeNull();
+    // Only one line drawn (cpu) - no second line for cpu-temp.
+    expect(container.querySelectorAll('path[stroke="var(--accent)"]').length).toBe(1);
 
     const svg = container.querySelector('svg')!;
     fireEvent.mouseMove(svg, { clientX: 0 });
     expect(screen.queryByText(/monitoring\.history\.avg/)).toBeNull();
   });
 
-  it('shows the temperature and top apps in the hover tooltip for cpu', () => {
+  it('no bottom-left temp badge floats over the chart, and the ribbon itself shows no numeric value (item 41: icon only, value lives in the hover tooltip)', () => {
+    stubGeometry();
+    const series: UseMetricHistoryResult['series'] = [
+      { id: 'cpu', kind: 'cpu', name: 'CPU', points: [{ t: NOW, avg: 50, max: 51 }] },
+      { id: 'cpu-temp', kind: 'cpu-temp', name: 'CPU', points: [{ t: NOW, avg: 70, max: 72 }] },
+    ];
+    const { container } = renderSection({ metric: 'cpu', history: { series } });
+    // Not hovering - previously a docked chartOverlayWrap badge showed the
+    // temp unconditionally; now nothing outside the tooltip shows it.
+    expect(container.querySelector('[class*="tempOverlay"]')).toBeNull();
+    expect(screen.queryByText('70°C')).toBeNull();
+  });
+
+  it('shows the temperature on the SAME row as the timestamp in the hover tooltip, apps listed below', () => {
     stubGeometry();
     const series: UseMetricHistoryResult['series'] = [
       { id: 'cpu', kind: 'cpu', name: 'CPU', points: [{ t: NOW, avg: 50, max: 51 }] },
@@ -173,10 +205,14 @@ describe('MetricHistorySection', () => {
     const svg = container.querySelector('svg')!;
     fireEvent.mouseMove(svg, { clientX: 0 });
 
+    const header = container.querySelector('[class*="tooltipHeader"]')!;
+    expect(header.textContent).toContain('70°C');
     expect(screen.getByText('chrome.exe')).toBeInTheDocument();
+    // The apps row sits in a separate block below the header, not inside it.
+    expect(header.textContent).not.toContain('chrome.exe');
   });
 
-  it('hides the apps section but keeps the temp row when the apps endpoint is unsupported', () => {
+  it('shows time+temp in the header and nothing else (no empty apps shell) when the apps endpoint is unsupported', () => {
     stubGeometry();
     const series: UseMetricHistoryResult['series'] = [
       { id: 'cpu', kind: 'cpu', name: 'CPU', points: [{ t: NOW, avg: 50, max: 51 }] },
@@ -191,7 +227,11 @@ describe('MetricHistorySection', () => {
     const svg = container.querySelector('svg')!;
     fireEvent.mouseMove(svg, { clientX: 0 });
 
+    const header = container.querySelector('[class*="tooltipHeader"]')!;
+    expect(header.textContent).toContain('70°C');
     expect(screen.queryByText('chrome.exe')).toBeNull();
+    expect(container.querySelector('[class*="tooltipApps"]')).toBeNull();
+    expect(container.querySelector('[class*="tooltipCustom"]')).toBeNull();
   });
 
   it('the range control is a Select when rangeKey is a named preset, and calls setRange on pick', () => {
@@ -199,17 +239,20 @@ describe('MetricHistorySection', () => {
     const setRange = vi.fn();
     renderSection({ history: { rangeKey: '3h', setRange } });
     fireEvent.click(screen.getByRole('button', { name: 'monitoring.history.rangeAriaLabel' }));
-    fireEvent.click(screen.getByRole('option', { name: 'monitoring.history.range.1h' }));
-    expect(setRange).toHaveBeenCalledWith('1h');
+    fireEvent.click(screen.getByRole('option', { name: 'monitoring.history.range.24h' }));
+    expect(setRange).toHaveBeenCalledWith('24h');
   });
 
-  it('the range control becomes a reset button naming the last preset when rangeKey is custom', () => {
+  it('the range control becomes a zoom-out reset button (not the remembered preset label) when rangeKey is custom, restoring the last preset on click', () => {
     stubGeometry();
     const setRange = vi.fn();
-    renderSection({ history: { rangeKey: 'custom', lastPresetKey: '5m', setRange } });
+    renderSection({ history: { rangeKey: 'custom', lastPresetKey: '30m', setRange } });
     expect(screen.queryByRole('button', { name: 'monitoring.history.rangeAriaLabel' })).toBeNull();
-    fireEvent.click(screen.getByText('monitoring.history.range.5m'));
-    expect(setRange).toHaveBeenCalledWith('5m');
+    // The button never names the remembered preset (e.g. "30m") - only the
+    // fixed zoom-out label, regardless of which preset it will restore.
+    expect(screen.queryByText('monitoring.history.range.30m')).toBeNull();
+    fireEvent.click(screen.getByText('monitoring.history.zoomOut'));
+    expect(setRange).toHaveBeenCalledWith('30m');
   });
 
   it('a chart drag-select calls onChartDragSelect with the selected range', () => {

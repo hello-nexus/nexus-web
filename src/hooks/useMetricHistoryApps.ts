@@ -3,7 +3,6 @@ import { fetchMonitoringHistoryApps, type AppWindowSeries } from '../api/monitor
 
 const VIEWPORT_DEBOUNCE_MS = 200;
 const LIVE_REFRESH_MS = 5_000;
-const MAX_APPS = 15;
 const MAX_POINTS = 100;
 
 export interface UseMetricHistoryAppsResult {
@@ -62,8 +61,12 @@ export function useMetricHistoryApps(enabled: boolean, seriesParam: string, from
     const seq = ++seqRef.current;
     setLoading(true);
     void (async () => {
+      // No maxApps: the full process list (search filters it client-side,
+      // see ProcessListSection) - a client-requested cap on a top-N-by-usage
+      // feed is exactly what causes borderline apps to churn in and out of
+      // membership between ticks.
       const result = await fetchMonitoringHistoryApps({
-        from: loadFrom, to: loadTo, series: seriesParam, maxApps: MAX_APPS, maxPoints: MAX_POINTS,
+        from: loadFrom, to: loadTo, series: seriesParam, maxPoints: MAX_POINTS,
       });
       if (!mountedRef.current || seq !== seqRef.current) return;
       if (result.data) {

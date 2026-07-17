@@ -25,9 +25,22 @@
   padding: 0.6rem 0;
 }
 
+// Disclosure shown while the fallback rows are frozen (detached from live
+// with no windowed-apps endpoint to serve a real historical breakdown) -
+// honest about what the numbers below actually reflect.
+.frozenNotice {
+  font-size: var(--type-mini);
+  color: var(--text-dim);
+  padding-bottom: 0.45rem;
+}
+
 .rows {
   display: flex;
   flex-direction: column;
+}
+
+.rowsFrozen {
+  opacity: 0.55;
 }
 
 .row {

@@ -21,6 +21,14 @@ const VIEWPORT_MAX_POINTS = 800;
 const VIEWPORT_DEBOUNCE_MS = 120;
 const VIEWPORT_REDECIMATE_MS = 60_000;
 
+// Drag-time live rendering (item 29): a low-resolution fetch fired while the
+// seek-bar is actively dragging, throttled to at most one in flight at a
+// time (never one request per pointermove). maxPoints is far below the
+// box's own VIEWPORT_MAX_POINTS - coarse is fine for a window that's still
+// moving; the full-resolution fetch still lands via the existing debounced
+// effect once the drag pauses or ends.
+const DRAG_COARSE_MAX_POINTS = 100;
+
 const LIVE_TAIL_POLL_MS = 1_000;
 const LIVE_TAIL_MAX_POINTS = 50;
 // Fallback lookback for the very first tail poll (before any viewport
@@ -158,6 +166,21 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
   const tailSeqRef = useRef(0);
   const lastLoadedTRef = useRef<number | null>(null);
   const cacheRef = useRef(new MonitoringHistoryCache());
+  const silhouetteRef = useRef(silhouette);
+  useEffect(() => { silhouetteRef.current = silhouette; }, [silhouette]);
+  // Drag-time coarse-fetch pipeline (item 29) - one in flight at a time,
+  // coalescing to the LATEST dragged-to window rather than queuing one
+  // request per pointermove. See runCoarseDragFetch below for the full
+  // throttle strategy. dragCurrentTargetRef always holds the window the user
+  // most recently dragged to (set on every 'drag' event, unlike
+  // dragCoarsePendingRef which is cleared the moment a fetch for it starts)
+  // - a resolved coarse response is only applied when it still matches this,
+  // so a fetch for an earlier window that resolves after a newer drag has
+  // already moved on (even if that newer drag's own fetch hasn't landed
+  // yet) is dropped instead of briefly flashing stale data.
+  const dragCoarseInFlightRef = useRef(false);
+  const dragCoarsePendingRef = useRef<{ from: number; to: number; query: string } | null>(null);
+  const dragCurrentTargetRef = useRef<{ from: number; to: number; query: string } | null>(null);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -201,26 +224,83 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
     })();
   }, [bumpNow, clampToRetention]);
 
-  const loadViewport = useCallback((from: number, to: number, query: string) => {
-    const seq = ++viewportSeqRef.current;
-    setLoading(true);
-
-    // Never blank while the fetch is in flight: an exact cache hit renders
-    // immediately (the fetch below still runs, to keep the data fresh); a
-    // miss falls back to whatever cached window overlaps this one, sliced
-    // to the requested range, so a scrub at least shows real (if coarser or
-    // slightly stale) points instead of a frozen unrelated window.
+  // Synchronous (no network) interim render for a requested [from, to]
+  // window: an exact cache hit renders immediately; a miss falls back to
+  // whatever cached window overlaps this one, sliced to the requested
+  // range; a further miss falls back to the already-loaded silhouette (the
+  // strip's own coarse decimation) similarly sliced, so even a window
+  // nothing has fetched at this exact shape before still shows real (if
+  // coarser or slightly stale) points instead of a frozen unrelated window.
+  // Called both by loadViewport (before its own fetch) and directly by
+  // onBrushChange on every 'drag' event, so the chart visibly tracks the
+  // seek bar as it moves, not only once a fetch resolves.
+  const renderFromCacheOrSilhouette = useCallback((from: number, to: number, query: string) => {
     const exact = cacheRef.current.get(from, to, VIEWPORT_MAX_POINTS, query);
     if (exact) {
       setSeries(exact.data.series);
       setStepSeconds(exact.data.stepSeconds);
-    } else {
-      const overlap = cacheRef.current.findOverlapping(from, to, query);
-      if (overlap) {
-        setSeries(sliceToWindow(overlap.data, from, to).series);
-        setStepSeconds(overlap.data.stepSeconds);
-      }
+      return;
     }
+    const overlap = cacheRef.current.findOverlapping(from, to, query);
+    if (overlap) {
+      setSeries(sliceToWindow(overlap.data, from, to).series);
+      setStepSeconds(overlap.data.stepSeconds);
+      return;
+    }
+    if (silhouetteRef.current.length > 0) {
+      const sliced = sliceToWindow(
+        { supported: true, retentionDays: retentionDaysRef.current, stepSeconds: 0, series: silhouetteRef.current },
+        from, to,
+      );
+      setSeries(sliced.series);
+    }
+  }, []);
+
+  // Runs (or continues) the drag-time coarse-fetch chase: fetches the
+  // LATEST pending dragged-to window at DRAG_COARSE_MAX_POINTS, applies the
+  // result only if it still matches dragCurrentTargetRef (a response for an
+  // earlier window that resolves after the user has already dragged further
+  // - even if that later drag's own fetch hasn't landed yet - must not
+  // flash stale data; checking only the drag/end phase isn't enough, since
+  // a release-then-immediate-redrag flips the phase back to 'drag' while an
+  // older fetch is still in flight), then immediately re-runs for whatever
+  // window is pending by the time this one resolves. Because
+  // dragCoarseInFlightRef gates entry, at most one request is ever in
+  // flight - a fast continuous drag collapses to a steady stream of
+  // at-most-one-round-trip-latency updates instead of one request per
+  // pointermove (no fetch storm) and touches no state per call beyond the
+  // refs (no allocation churn until a response actually lands).
+  const runCoarseDragFetch = useCallback(() => {
+    if (dragCoarseInFlightRef.current) return;
+    const pending = dragCoarsePendingRef.current;
+    if (!pending) return;
+    dragCoarsePendingRef.current = null;
+    dragCoarseInFlightRef.current = true;
+    void (async () => {
+      const result = await fetchMonitoringHistory({
+        from: pending.from, to: pending.to, maxPoints: DRAG_COARSE_MAX_POINTS, series: pending.query,
+      });
+      dragCoarseInFlightRef.current = false;
+      if (mountedRef.current) {
+        if (result.data) {
+          if (!result.mocked) cacheRef.current.set(pending.from, pending.to, DRAG_COARSE_MAX_POINTS, pending.query, result.data);
+          const current = dragCurrentTargetRef.current;
+          const isCurrent = current !== null && current.from === pending.from && current.to === pending.to && current.query === pending.query;
+          if (lastPhaseRef.current === 'drag' && isCurrent) {
+            setSeries(result.data.series);
+            setStepSeconds(result.data.stepSeconds);
+          }
+        }
+        runCoarseDragFetch();
+      }
+    })();
+  }, []);
+
+  const loadViewport = useCallback((from: number, to: number, query: string) => {
+    const seq = ++viewportSeqRef.current;
+    setLoading(true);
+    // Never blank while the fetch is in flight - see renderFromCacheOrSilhouette.
+    renderFromCacheOrSilhouette(from, to, query);
 
     void (async () => {
       const result = await fetchMonitoringHistory({ from, to, maxPoints: VIEWPORT_MAX_POINTS, series: query });
@@ -250,7 +330,7 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
       }
       setLoading(false);
     })();
-  }, [bumpNow, clampToRetention]);
+  }, [bumpNow, clampToRetention, renderFromCacheOrSilhouette]);
 
   // Silently warms the cache for a same-shaped window - no loading/series
   // state touched, so a prefetch that's still in flight (or that fails) is
@@ -399,9 +479,21 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
   const onBrushChange = useCallback((from: number, to: number, phase: 'drag' | 'end') => {
     lastPhaseRef.current = phase;
     setViewport(prev => viewportReducer(prev, { type: 'brushChange', from, to, now: nowRef.current }));
+    if (phase === 'drag') {
+      // Live rendering while dragging (item 29): render synchronously from
+      // whatever's already in memory, then queue/continue the throttled
+      // coarse fetch for progressive refinement - both independent of the
+      // fetchEpoch bump below, which still drives the existing debounced
+      // full-resolution fetch (fires on a drag pause or on release).
+      renderFromCacheOrSilhouette(from, to, seriesQuery);
+      const target = { from, to, query: seriesQuery };
+      dragCurrentTargetRef.current = target;
+      dragCoarsePendingRef.current = target;
+      runCoarseDragFetch();
+    }
     setFetchEpoch(e => e + 1);
     setViewportGeneration(g => g + 1);
-  }, []);
+  }, [renderFromCacheOrSilhouette, runCoarseDragFetch, seriesQuery]);
 
   const onChartDragSelect = useCallback((from: number, to: number) => {
     lastPhaseRef.current = 'end';

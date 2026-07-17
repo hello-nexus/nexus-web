@@ -3,7 +3,7 @@
 // directly by metricHistoryHelpers.test.ts instead of through component
 // rendering. Mirrors the Cooling tab's temperatureHelpers.ts.
 import { nearestPoint, type TimeSeriesPoint } from '../../../../components/common/TimeSeriesChart/timeSeriesChartUtils';
-import type { TimeSeriesBand, TimeSeriesSeries } from '../../../../components/common/TimeSeriesChart/TimeSeriesChart';
+import type { TimeSeriesSeries } from '../../../../components/common/TimeSeriesChart/TimeSeriesChart';
 import { MIN_BOX_WINDOW_MS } from '../../../../components/common/TimelineBrush/timelineBrushUtils';
 import type { MetricHistorySeries } from '../../../../api/monitoringHistory';
 
@@ -18,7 +18,7 @@ export function seriesQueryFor(metric: HistoryMetric): string {
   }
 }
 
-export type RangeKey = '5m' | '30m' | '1h' | '3h' | '12h' | '24h' | '3d' | '7d' | 'custom';
+export type RangeKey = '30m' | '3h' | '24h' | '3d' | '7d' | 'custom';
 export type PresetKey = Exclude<RangeKey, 'custom'>;
 
 const MINUTE_MS = 60_000;
@@ -32,27 +32,26 @@ export interface RangeOption {
 }
 
 export const RANGE_OPTIONS: readonly RangeOption[] = [
-  { key: '5m', windowMs: 5 * MINUTE_MS, labelKey: 'monitoring.history.range.5m' },
   { key: '30m', windowMs: 30 * MINUTE_MS, labelKey: 'monitoring.history.range.30m' },
-  { key: '1h', windowMs: HOUR_MS, labelKey: 'monitoring.history.range.1h' },
   { key: '3h', windowMs: 3 * HOUR_MS, labelKey: 'monitoring.history.range.3h' },
-  { key: '12h', windowMs: 12 * HOUR_MS, labelKey: 'monitoring.history.range.12h' },
   { key: '24h', windowMs: DAY_MS, labelKey: 'monitoring.history.range.24h' },
   { key: '3d', windowMs: 3 * DAY_MS, labelKey: 'monitoring.history.range.3d' },
   { key: '7d', windowMs: 7 * DAY_MS, labelKey: 'monitoring.history.range.7d' },
 ];
 
-const DEFAULT_RANGE_KEY: PresetKey = '5m';
+const DEFAULT_RANGE_KEY: PresetKey = '30m';
 
 // A strip width within this tolerance of a preset's width is still reported
 // as that preset (retention-clamp rounding), not 'custom'.
 const RANGE_MATCH_TOLERANCE_MS = 1_000;
 
 // The seek-bar strip is this many times wider than the chart-window (box) it
-// contains by default, so the box reads as a clearly-bounded sub-selection
-// rather than filling the whole strip - floored by MIN_BOX_WINDOW_MS so a
-// narrow strip (the smallest preset) can still legitimately fill the whole strip.
-const STRIP_TO_BOX_RATIO = 3;
+// contains by default, so the box highlights only the most recent sixth of
+// the strip - floored by MIN_BOX_WINDOW_MS so a narrow strip (the smallest
+// preset) can still legitimately fill the whole strip. At the smallest
+// preset (30m) this lands exactly on the floor: a 5-minute box in a
+// 30-minute strip.
+const STRIP_TO_BOX_RATIO = 6;
 
 export function windowMsForRangeKey(key: RangeKey): number | null {
   return RANGE_OPTIONS.find(o => o.key === key)?.windowMs ?? null;
@@ -66,12 +65,8 @@ export function rangeKeyForWindow(windowMs: number): RangeKey {
   return 'custom';
 }
 
-export function rangeLabelKey(key: PresetKey): string {
-  return RANGE_OPTIONS.find(o => o.key === key)?.labelKey ?? '';
-}
-
 /** The default chart-window (box) width for a strip of `stripWidthMs`: a
- *  third of the strip, floored at MIN_BOX_WINDOW_MS (and re-capped at the
+ *  sixth of the strip, floored at MIN_BOX_WINDOW_MS (and re-capped at the
  *  strip width itself, since the floor can exceed a narrow strip - the box
  *  then simply fills it, matching the smallest preset). */
 export function defaultBoxWidthMs(stripWidthMs: number): number {
@@ -105,7 +100,7 @@ export type ViewportAction =
   | { type: 'backToLive'; now: number };
 
 export function initViewport(now: number): ViewportState {
-  const stripWidth = windowMsForRangeKey(DEFAULT_RANGE_KEY) ?? 5 * MINUTE_MS;
+  const stripWidth = windowMsForRangeKey(DEFAULT_RANGE_KEY) ?? 30 * MINUTE_MS;
   const boxWidth = defaultBoxWidthMs(stripWidth);
   return {
     from: now - boxWidth, to: now,
@@ -129,7 +124,7 @@ function clampSpanShift(start: number, end: number, floor: number, ceiling: numb
  * what TimeSeriesChart plots) nested inside a seek-bar STRIP (stripFrom/
  * stripTo - what TimelineBrush's track spans). A named preset sets the
  * strip's span exactly and right-edge-anchors it; the box defaults to a
- * third of that (defaultBoxWidthMs), also right-anchored. Dragging/resizing
+ * sixth of that (defaultBoxWidthMs), also right-anchored. Dragging/resizing
  * the box within the strip (brushChange) only ever touches the box - the
  * strip, and therefore rangeKey, is untouched, since the preset still
  * truthfully describes the strip. Only a chart drag-select breaks the
@@ -176,10 +171,10 @@ export function viewportReducer(state: ViewportState, action: ViewportAction): V
       const rawFrom = Math.min(action.from, action.to);
       const rawTo = Math.max(action.from, action.to);
       // Floored the same as a TimelineBrush drag (MIN_BOX_WINDOW_MS), so a
-      // few-pixel drag - the whole plot width at the narrowest (5m) preset -
-      // can't produce a near-empty, practically un-scrubbable box; grown
-      // forward from the selection's start and then pulled back under the
-      // live edge if that overshoots.
+      // few-pixel drag on even the narrowest default box (the 30m preset's
+      // own 5-minute box) can't produce a near-empty, practically
+      // un-scrubbable selection; grown forward from the selection's start
+      // and then pulled back under the live edge if that overshoots.
       const boxWidth = Math.max(MIN_BOX_WINDOW_MS, rawTo - rawFrom);
       let boxFrom = rawFrom;
       let boxTo = boxFrom + boxWidth;
@@ -258,28 +253,13 @@ export function toHistoryChartSeries(series: readonly MetricHistorySeries[], col
   }));
 }
 
-export const CPU_TEMP_THRESHOLD_C = 85;
-export const GPU_TEMP_THRESHOLD_C = 90;
-
-/** Translucent bands over runs of adjacent points at/above thresholdC. */
-export function tempBands(points: readonly TimeSeriesPoint[], thresholdC: number): TimeSeriesBand[] {
-  if (points.length === 0) return [];
-  const spacing = points.length > 1 ? points[1].t - points[0].t : 0;
-  const bands: TimeSeriesBand[] = [];
-  let start: number | null = null;
-  let lastT = points[0].t;
-  for (const p of points) {
-    const over = p.avg >= thresholdC;
-    if (over && start === null) start = p.t;
-    if (!over && start !== null) {
-      bands.push({ startT: start, endT: lastT + spacing });
-      start = null;
-    }
-    lastT = p.t;
-  }
-  if (start !== null) bands.push({ startT: start, endT: lastT + spacing });
-  return bands;
-}
+// TempRibbon's absolute thickness scale (item 31): near-zero thickness at
+// the floor, full thickness at the per-kind cap - a fixed real-world range
+// instead of the window's own min/max, so the ribbon reads the same way
+// across different scrub windows. Clamped in TempRibbon itself.
+export const TEMP_RIBBON_FLOOR_C = 30;
+export const CPU_TEMP_RIBBON_CAP_C = 100;
+export const GPU_TEMP_RIBBON_CAP_C = 95;
 
 /** The temperature point nearest hovered timestamp `t`, for the chart's tooltipExtra row. */
 export function nearestTempAt(points: readonly TimeSeriesPoint[], t: number, maxDeltaMs: number): TimeSeriesPoint | null {

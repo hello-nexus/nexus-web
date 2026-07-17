@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MonitoringPage } from './MonitoringPage';
 import type { GpuComponent } from '../../../lib/gpuResolver';
@@ -29,24 +29,30 @@ vi.mock('./page/ProcessListSection', async importOriginal => {
   const actual = await importOriginal<typeof import('./page/ProcessListSection')>();
   return {
     ...actual,
-    ProcessListSection: ({ items }: { items: Array<{ name: string }> }) => {
+    ProcessListSection: ({ items, frozen }: { items: Array<{ name: string }>; frozen?: boolean }) => {
       useEffect(() => {
         processListMounts++;
         return () => { processListUnmounts++; };
       }, []);
-      return <div data-testid="process-list-section">items:{items.length}:{items.map(i => i.name).join(',')}</div>;
+      return (
+        <div data-testid="process-list-section" data-frozen={frozen ? 'true' : 'false'}>
+          items:{items.length}:{items.map(i => i.name).join(',')}
+        </div>
+      );
     },
   };
 });
 
+let historyOverride: Partial<{ following: boolean; mocked: boolean }> = {};
 vi.mock('../../../hooks/useMetricHistory', () => ({
   useMetricHistory: () => ({
     silhouette: [], series: [],
     domain: [0, 1], stripDomain: [0, 1],
-    rangeKey: '5m', lastPresetKey: '5m', following: true,
+    rangeKey: '30m', lastPresetKey: '30m', following: true,
     loading: false, error: false, mocked: false, supported: true, retentionDays: 7,
     stepSeconds: 1, viewportGeneration: 1,
     setRange: () => {}, onBrushChange: () => {}, onChartDragSelect: () => {}, backToLive: () => {}, retry: () => {},
+    ...historyOverride,
   }),
 }));
 
@@ -70,9 +76,10 @@ vi.mock('../../../hooks/useNetworkMonitor', () => ({
   }),
 }));
 
+let cpuSeriesOverride: Array<{ name: string; current: number; values: number[] }> = [];
 vi.mock('../../../hooks/useProcessMonitor', () => ({
   useProcessMonitor: () => ({
-    cpuSeries: [],
+    cpuSeries: cpuSeriesOverride,
     memSeries: [],
     sampleCount: 0,
     totalCpu: 0,
@@ -249,10 +256,24 @@ describe('MonitoringPage', () => {
     expect(screen.getByText('Test Memory 32GB')).toBeInTheDocument();
   });
 
-  it('renders no tab title row for Network (plain title, no hardware identity)', () => {
+  it('shows the Network tab name in the same title row/style as the hardware-model titles (item 32)', () => {
     render(<MonitoringPage serviceOnline={true} connectionState="online" tab="network" onTabChange={vi.fn()} />);
     expect(screen.queryByTestId('metric-history-section')).toHaveTextContent('metric:network');
-    expect(document.querySelector('[class*="tabHeaderName"]')).toBeNull();
+    const title = document.querySelector('[class*="tabHeaderName"]');
+    expect(title).toBeInTheDocument();
+    expect(title).toHaveTextContent('monitoring.tab.network');
+  });
+
+  it('shows the mocked badge next to the tab title when the history data is dev-mocked (item 32: badge moved out of MetricHistorySection)', () => {
+    historyOverride = { mocked: true };
+    render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+    expect(screen.getByText('monitoring.history.mocked')).toBeInTheDocument();
+    historyOverride = {};
+  });
+
+  it('shows no mocked badge when the data is real', () => {
+    render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+    expect(screen.queryByText('monitoring.history.mocked')).toBeNull();
   });
 
   it('shows the live fallback rows (not an empty list) while the window-scoped apps endpoint has not yet responded', () => {
@@ -437,5 +458,82 @@ describe('MonitoringPage', () => {
     );
     expect(screen.getByRole('tab', { name: 'monitoring.tab.gpu' })).toBeInTheDocument();
     sensorState.gpu = [];
+  });
+
+  describe('frozen fallback snapshot on detach (item 33)', () => {
+    afterEach(() => {
+      historyOverride = {};
+      cpuSeriesOverride = [];
+      appsWindowOverride = {};
+    });
+
+    it('does not freeze (or dim) the fallback rows while following live', () => {
+      // Force the fallback path (no windowed apps endpoint) - the scenario
+      // the freeze logic exists for.
+      appsWindowOverride = { supported: false };
+      cpuSeriesOverride = [{ name: 'LiveApp', current: 10, values: [1, 2, 3] }];
+      historyOverride = { following: true };
+      render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+      const section = screen.getByTestId('process-list-section');
+      expect(section).toHaveAttribute('data-frozen', 'false');
+      expect(section).toHaveTextContent('LiveApp');
+    });
+
+    it('freezes the fallback rows as a snapshot on detach, ignoring further live updates, and unfreezes on re-attach', () => {
+      appsWindowOverride = { supported: false };
+      cpuSeriesOverride = [{ name: 'LiveApp', current: 10, values: [1, 2, 3] }];
+      historyOverride = { following: true };
+      const { rerender } = render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+      expect(screen.getByTestId('process-list-section')).toHaveTextContent('LiveApp');
+
+      // Detach: the fallback source has no windowed data, so it must freeze
+      // at whatever it was showing, not keep ticking with the live feed.
+      historyOverride = { following: false };
+      rerender(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+      let section = screen.getByTestId('process-list-section');
+      expect(section).toHaveAttribute('data-frozen', 'true');
+      expect(section).toHaveTextContent('LiveApp');
+
+      // The live feed keeps pushing a NEW process while still detached - the
+      // frozen snapshot must not pick it up.
+      cpuSeriesOverride = [{ name: 'NewLiveApp', current: 50, values: [9, 9, 9] }];
+      rerender(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+      section = screen.getByTestId('process-list-section');
+      expect(section).toHaveTextContent('LiveApp');
+      expect(section).not.toHaveTextContent('NewLiveApp');
+
+      // Re-attaching unfreezes: the rows resume tracking the live feed.
+      historyOverride = { following: true };
+      rerender(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+      section = screen.getByTestId('process-list-section');
+      expect(section).toHaveAttribute('data-frozen', 'false');
+      expect(section).toHaveTextContent('NewLiveApp');
+    });
+
+    it('re-snapshots per metric when the tab changes while still detached, instead of showing a stale other-metric snapshot', () => {
+      appsWindowOverride = { supported: false };
+      cpuSeriesOverride = [{ name: 'CpuApp', current: 10, values: [1] }];
+      historyOverride = { following: false };
+      const { rerender } = render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+      expect(screen.getByTestId('process-list-section')).toHaveTextContent('CpuApp');
+
+      cpuSeriesOverride = [{ name: 'CpuAppLater', current: 20, values: [2] }];
+      rerender(<MonitoringPage serviceOnline={true} connectionState="online" tab="memory" onTabChange={vi.fn()} />);
+      const section = screen.getByTestId('process-list-section');
+      // memSeries is empty in this suite's mock, so the memory tab's fresh
+      // snapshot is empty - not the stale CPU snapshot from before the switch.
+      expect(section).not.toHaveTextContent('CpuApp');
+      expect(section).toHaveAttribute('data-frozen', 'true');
+    });
+
+    it('does not freeze the window-scoped apps source when detached (already gated on following at the hook level)', () => {
+      appsWindowOverride = { ready: true, supported: true, apps: [{ name: 'WindowedApp', avg: 5, max: 5, points: [] }] };
+      historyOverride = { following: false };
+      render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+      const section = screen.getByTestId('process-list-section');
+      expect(section).toHaveAttribute('data-frozen', 'false');
+      expect(section).toHaveTextContent('WindowedApp');
+      appsWindowOverride = {};
+    });
   });
 });

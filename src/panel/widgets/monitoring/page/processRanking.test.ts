@@ -125,4 +125,39 @@ describe('updateRanking - order stability', () => {
     const state = updateRanking(initRankState<Item>(), [item('a', 90), item('b', 40)], 0, 'usage', RESET);
     expect(renderedItems(state).map(i => i.name)).toEqual(['a', 'b']);
   });
+
+  describe('performance at scale (item 37: full process list, no top-N wire cap)', () => {
+    // Generous enough to never flake under contention (this workspace runs
+    // several concurrent agent sessions sharing one machine - see
+    // .agents/rules/failure-log.md's entries on multi-session slowdown),
+    // tight enough to catch an accidental O(n^2)/O(n^3) regression (either
+    // would blow well past this at n=300, even given how cheap each
+    // comparison is).
+    const BUDGET_MS = 400;
+
+    function manyItems(n: number): Item[] {
+      return Array.from({ length: n }, (_, i) => item(`proc-${i}.exe`, Math.random() * 100));
+    }
+
+    it('a full re-rank (forceReset) at 300 entries stays fast', () => {
+      const items = manyItems(300);
+      const start = performance.now();
+      const state = updateRanking(initRankState<Item>(), items, 0, 'usage', RESET);
+      const elapsed = performance.now() - start;
+      expect(state.order.length).toBe(300);
+      expect(elapsed).toBeLessThan(BUDGET_MS);
+    });
+
+    it('a steady-state value-only update at 300 entries (the common per-tick case) stays fast', () => {
+      const items = manyItems(300);
+      let state = updateRanking(initRankState<Item>(), items, 0, 'usage', RESET);
+      const churned = items.map(i => ({ ...i, current: Math.random() * 100 }));
+
+      const start = performance.now();
+      state = updateRanking(state, churned, 1, 'usage', OPTS);
+      const elapsed = performance.now() - start;
+      expect(state.order.length).toBe(300);
+      expect(elapsed).toBeLessThan(BUDGET_MS);
+    });
+  });
 });

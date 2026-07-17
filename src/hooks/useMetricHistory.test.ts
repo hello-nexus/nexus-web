@@ -50,18 +50,17 @@ afterEach(() => {
 });
 
 describe('useMetricHistory', () => {
-  it('fetches the 5m strip silhouette and the initial 5m box on mount (default preset)', async () => {
+  it('fetches the 30m strip silhouette and the 5m box (a sixth) on mount (default preset)', async () => {
     renderHook(() => useMetricHistory(true, 'cpu'));
     await advance(0);
 
-    expect(fetchMock).toHaveBeenCalledWith(expect.objectContaining({ from: NOW - 5 * MINUTE, to: NOW, series: 'cpu' }));
-    // Box defaults to the strip's own width at the 5m preset (floored at
-    // MIN_BOX_WINDOW_MS, itself 5m) - box and strip fetches are identical.
-    const calls = fetchMock.mock.calls.filter(([q]) => q.from === NOW - 5 * MINUTE && q.to === NOW);
-    expect(calls.length).toBeGreaterThanOrEqual(2);
+    // Silhouette (maxPoints=400) covers the full 30m strip.
+    expect(fetchMock).toHaveBeenCalledWith(expect.objectContaining({ from: NOW - 30 * MINUTE, to: NOW, series: 'cpu', maxPoints: 400 }));
+    // Viewport (maxPoints=800) covers only the box: the last 5m (a sixth).
+    expect(fetchMock).toHaveBeenCalledWith(expect.objectContaining({ from: NOW - 5 * MINUTE, to: NOW, series: 'cpu', maxPoints: 800 }));
   });
 
-  it('debounces the viewport (box) fetch while dragging, firing once after the trailing debounce with the latest window', async () => {
+  it('debounces the full-resolution (800pt) viewport fetch while dragging, firing once after the trailing debounce with the latest window', async () => {
     const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
     await advance(0);
     fetchMock.mockClear();
@@ -70,11 +69,133 @@ describe('useMetricHistory', () => {
     act(() => { result.current.onBrushChange(NOW - 5 * HOUR, NOW - 3 * HOUR, 'drag'); });
 
     await advance(100);
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(fetchMock.mock.calls.some(([q]) => q.maxPoints === 800)).toBe(false);
 
     await advance(150);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenCalledWith({ from: NOW - 5 * HOUR, to: NOW - 3 * HOUR, maxPoints: 800, series: 'cpu' });
+    const fineCalls = fetchMock.mock.calls.filter(([q]) => q.maxPoints === 800);
+    expect(fineCalls.length).toBe(1);
+    expect(fineCalls[0][0]).toEqual({ from: NOW - 5 * HOUR, to: NOW - 3 * HOUR, maxPoints: 800, series: 'cpu' });
+  });
+
+  describe('drag-time live rendering (item 29)', () => {
+    it('renders synchronously from cache/silhouette on every drag event, with no fetch required', async () => {
+      // Seed the cache with a real box fetch for a window overlapping the
+      // upcoming drag target, so the synchronous render has something to
+      // slice from.
+      fetchMock.mockResolvedValue({
+        data: resp('cpu', [{ t: NOW - 5 * HOUR, avg: 11, max: 11 }, { t: NOW - 3 * HOUR, avg: 22, max: 22 }]),
+        mocked: false, unsupported: false,
+      });
+      const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
+      await advance(0);
+      act(() => { result.current.onBrushChange(NOW - 5 * HOUR, NOW - 3 * HOUR, 'end'); });
+      await advance(0);
+
+      fetchMock.mockImplementation(() => new Promise(() => {})); // never resolves - proves the render is NOT fetch-driven
+      act(() => { result.current.onBrushChange(NOW - 5 * HOUR, NOW - 4 * HOUR, 'drag'); });
+
+      // Sliced synchronously from the cached window landed above - no await.
+      expect(result.current.series.find(s => s.id === 'cpu')?.points).toEqual([{ t: NOW - 5 * HOUR, avg: 11, max: 11 }]);
+    });
+
+    it('fires a throttled coarse (100pt) fetch during the drag, refining the synchronous render', async () => {
+      const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
+      await advance(0);
+      fetchMock.mockClear();
+      fetchMock.mockResolvedValue({
+        data: resp('cpu', [{ t: NOW - 4 * HOUR, avg: 33, max: 33 }]), mocked: false, unsupported: false,
+      });
+
+      act(() => { result.current.onBrushChange(NOW - 5 * HOUR, NOW - 4 * HOUR, 'drag'); });
+      await advance(0);
+
+      const coarseCalls = fetchMock.mock.calls.filter(([q]) => q.maxPoints === 100);
+      expect(coarseCalls.length).toBe(1);
+      expect(coarseCalls[0][0]).toEqual({ from: NOW - 5 * HOUR, to: NOW - 4 * HOUR, maxPoints: 100, series: 'cpu' });
+      expect(result.current.series.find(s => s.id === 'cpu')?.points).toEqual([{ t: NOW - 4 * HOUR, avg: 33, max: 33 }]);
+    });
+
+    it('throttles the coarse fetch to one in flight, chasing directly to the LATEST window once it resolves (not replaying every intermediate one)', async () => {
+      const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
+      await advance(0);
+      fetchMock.mockClear();
+
+      const first = deferred<{ data: MetricHistoryResponse | null; mocked: boolean; unsupported: boolean }>();
+      fetchMock.mockReturnValueOnce(first.promise);
+      fetchMock.mockResolvedValue({ data: emptyResp(), mocked: false, unsupported: false });
+
+      act(() => { result.current.onBrushChange(NOW - 5 * HOUR, NOW - 4 * HOUR, 'drag'); });
+      // Two more drag events land while the first coarse fetch is still pending.
+      act(() => { result.current.onBrushChange(NOW - 5 * HOUR, NOW - 3 * HOUR, 'drag'); });
+      act(() => { result.current.onBrushChange(NOW - 5 * HOUR, NOW - 2 * HOUR, 'drag'); });
+
+      expect(fetchMock.mock.calls.filter(([q]) => q.maxPoints === 100).length).toBe(1);
+
+      await act(async () => {
+        first.resolve({ data: emptyResp(), mocked: false, unsupported: false });
+        await Promise.resolve();
+      });
+
+      const coarseCalls = fetchMock.mock.calls.filter(([q]) => q.maxPoints === 100);
+      expect(coarseCalls.length).toBe(2);
+      expect(coarseCalls[1][0]).toEqual({ from: NOW - 5 * HOUR, to: NOW - 2 * HOUR, maxPoints: 100, series: 'cpu' });
+    });
+
+    it('discards a coarse response that resolves after the drag already ended, so it cannot clobber the settled fine render', async () => {
+      const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
+      await advance(0);
+      fetchMock.mockClear();
+
+      const coarse = deferred<{ data: MetricHistoryResponse | null; mocked: boolean; unsupported: boolean }>();
+      fetchMock.mockReturnValueOnce(coarse.promise);
+      act(() => { result.current.onBrushChange(NOW - 5 * HOUR, NOW - 4 * HOUR, 'drag'); });
+
+      fetchMock.mockResolvedValue({
+        data: resp('cpu', [{ t: NOW - 4 * HOUR, avg: 99, max: 99 }]), mocked: false, unsupported: false,
+      });
+      act(() => { result.current.onBrushChange(NOW - 5 * HOUR, NOW - 4 * HOUR, 'end'); });
+      await advance(0);
+      const settledPoints = result.current.series.find(s => s.id === 'cpu')?.points;
+
+      // The stale coarse fetch (from before the release) finally resolves.
+      await act(async () => {
+        coarse.resolve({ data: resp('cpu', [{ t: NOW - 4 * HOUR, avg: 1, max: 1 }]), mocked: false, unsupported: false });
+        await Promise.resolve();
+      });
+
+      expect(result.current.series.find(s => s.id === 'cpu')?.points).toEqual(settledPoints);
+    });
+
+    it('never applies a coarse response for an EARLIER drag target once the user has dragged further, even though the phase is still \'drag\' throughout', async () => {
+      // Checking only lastPhaseRef==='drag' is not enough to prove
+      // freshness: the phase stays 'drag' across multiple drag events, so a
+      // fetch for an abandoned window resolving after the user has already
+      // moved on must be rejected by comparing against the actual current
+      // target, not just the phase.
+      const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
+      await advance(0);
+      fetchMock.mockClear();
+
+      const forA = deferred<{ data: MetricHistoryResponse | null; mocked: boolean; unsupported: boolean }>();
+      fetchMock.mockReturnValueOnce(forA.promise);
+      act(() => { result.current.onBrushChange(NOW - 5 * HOUR, NOW - 4 * HOUR, 'drag'); });
+
+      // A second drag lands before A's coarse fetch resolves - throttled to
+      // one in flight, so C's own fetch is only queued, never started yet.
+      const forC = deferred<{ data: MetricHistoryResponse | null; mocked: boolean; unsupported: boolean }>();
+      fetchMock.mockReturnValueOnce(forC.promise);
+      act(() => { result.current.onBrushChange(NOW - 5 * HOUR, NOW - 2 * HOUR, 'drag'); });
+
+      // A's stale response resolves - C's own fetch (queued next) is left
+      // pending throughout, isolating this assertion to A's effect alone.
+      await act(async () => {
+        forA.resolve({ data: resp('cpu', [{ t: NOW - 4 * HOUR, avg: 1, max: 1 }]), mocked: false, unsupported: false });
+        await Promise.resolve();
+      });
+
+      const avgs = (result.current.series.find(s => s.id === 'cpu')?.points ?? []).map(p => p.avg);
+      expect(avgs).not.toContain(1);
+    });
   });
 
   it('fetches immediately (no debounce) when the brush change phase is end', async () => {
@@ -96,7 +217,7 @@ describe('useMetricHistory', () => {
     act(() => { result.current.onBrushChange(NOW - 4 * MINUTE, NOW - MINUTE, 'end'); });
     await advance(0);
 
-    expect(result.current.stripDomain).toEqual([NOW - 5 * MINUTE, NOW]);
+    expect(result.current.stripDomain).toEqual([NOW - 30 * MINUTE, NOW]);
     expect(result.current.domain).toEqual([NOW - 4 * MINUTE, NOW - MINUTE]);
     // Only the box's own maxPoints=800 fetch fired - no maxPoints=400 (silhouette) call.
     expect(fetchMock.mock.calls.every(([q]) => q.maxPoints !== 400)).toBe(true);
@@ -120,7 +241,7 @@ describe('useMetricHistory', () => {
     expect(result.current.series).toEqual([]);
   });
 
-  it('setRange sizes the strip to the preset and the box to a third of it, right-edge anchored', async () => {
+  it('setRange sizes the strip to the preset and the box to a sixth of it, right-edge anchored', async () => {
     const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
     await advance(0);
 
@@ -134,7 +255,7 @@ describe('useMetricHistory', () => {
     await advance(0);
     expect(result.current.following).toBe(true);
     expect(result.current.stripDomain).toEqual([NOW - 3 * HOUR, NOW]);
-    expect(result.current.domain).toEqual([NOW - HOUR, NOW]);
+    expect(result.current.domain).toEqual([NOW - 30 * MINUTE, NOW]);
     expect(result.current.rangeKey).toBe('3h');
     expect(result.current.lastPresetKey).toBe('3h');
   });
@@ -155,7 +276,7 @@ describe('useMetricHistory', () => {
     expect(result.current.lastPresetKey).toBe('3h');
     expect(result.current.following).toBe(false);
     const [stripFrom, stripTo] = result.current.stripDomain;
-    expect(stripTo - stripFrom).toBe(90 * MINUTE);
+    expect(stripTo - stripFrom).toBe(3 * HOUR);
   });
 
   it('backToLive re-anchors box and strip to now, keeping their widths and rangeKey', async () => {

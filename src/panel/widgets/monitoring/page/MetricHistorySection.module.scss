@@ -6,18 +6,6 @@
   gap: 0.6rem;
 }
 
-.header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.title {
-  font-size: var(--type-body);
-  font-weight: var(--weight-body);
-  color: var(--text);
-}
-
 .skeleton {
   border-radius: var(--radius);
   background: var(--surface);
@@ -64,18 +52,11 @@
   min-width: 0;
 }
 
-// Wraps the hero chart so the live/back-to-live control and the temp
-// indicator can dock over it (replacing the removed bottom-left legend)
-// without TimeSeriesChart itself needing to know about either.
-.chartOverlayWrap {
-  position: relative;
-}
-
-.liveOverlay {
-  position: absolute;
-  top: 0.6rem;
-  right: 1rem;
-  z-index: 1;
+// Sits above the chart's own drawing area, right-aligned - the live/
+// back-to-live control never overlays the plot.
+.liveRow {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .backToLive {
@@ -96,26 +77,6 @@
   }
 }
 
-// Docked at the plot's bottom-left, above the x-axis tick label row (never
-// over the drawn silhouette or the axis text) - the spot the removed
-// series legend used to occupy.
-.tempOverlay {
-  position: absolute;
-  bottom: 1.85rem;
-  left: 3.75rem;
-  z-index: 1;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-family: var(--font-mono);
-  font-size: var(--type-mini);
-  color: var(--text-dim);
-  background: color-mix(in srgb, var(--bg-elevated) 75%, transparent);
-  border-radius: var(--radius-sm);
-  padding: 0.1rem 0.4rem;
-  pointer-events: none;
-}
-
 .tooltipCustom {
   display: flex;
   flex-direction: column;
@@ -130,6 +91,17 @@
   font-size: var(--type-small);
   font-weight: var(--weight-small);
   color: var(--text);
+}
+
+// Docked on the same row as TimeSeriesChart's own tooltip timestamp (via
+// tooltipHeaderExtra), not a separate row like tooltipTopRow above.
+.tooltipHeaderTemp {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-family: var(--font-mono);
+  font-size: var(--type-mini);
+  color: var(--text-dim);
 }
 
 .tooltipApps {

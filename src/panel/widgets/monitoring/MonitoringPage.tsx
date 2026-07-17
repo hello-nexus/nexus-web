@@ -13,6 +13,7 @@ import { resolvePrimaryGpu } from '../../../lib/gpuResolver';
 import { formatMemoryMb } from '../../../lib/formatMemory';
 import { localizeNumbers } from '../../../lib/units';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
+import { Badge } from '../../../components/common/Badge/Badge';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { MonitoringSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
 import { DetailedTab } from './page/DetailedTab';
@@ -140,10 +141,28 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
   // switch shows the new metric's live rows immediately instead of an empty
   // list for the debounce/fetch round trip.
   const usingAppsWindow = appsWindow.supported && appsWindow.ready;
-  const processItems = useMemo(
-    () => (usingAppsWindow ? appsToProcessListItems(appsWindow.apps) : fallbackItems),
-    [usingAppsWindow, appsWindow.apps, fallbackItems],
-  );
+
+  // The fallback source (live per-process data, no windowing) has no concept
+  // of "the scrubbed window's own values" - it always reports right-now. So
+  // detaching from live must FREEZE it as a snapshot instead of letting the
+  // rows keep ticking as if they tracked the (unrelated) scrubbed window.
+  // Follows the "adjust state during render" pattern (react.dev/reference/
+  // react/useState#storing-information-from-previous-renders), same as
+  // useStableRanking, so the freeze/unfreeze takes effect in THIS render -
+  // no one-tick lag showing live values after detaching.
+  const shouldFreezeFallback = !usingAppsWindow && !history.following;
+  const [frozenFallback, setFrozenFallback] = useState<{ tab: MonitoringTab; items: ProcessListItem[] } | null>(null);
+  if (!shouldFreezeFallback) {
+    if (frozenFallback !== null) setFrozenFallback(null);
+  } else if (!frozenFallback || frozenFallback.tab !== tab) {
+    setFrozenFallback({ tab, items: fallbackItems });
+  }
+
+  const processItems = useMemo(() => {
+    if (usingAppsWindow) return appsToProcessListItems(appsWindow.apps);
+    if (shouldFreezeFallback && frozenFallback && frozenFallback.tab === tab) return frozenFallback.items;
+    return fallbackItems;
+  }, [usingAppsWindow, appsWindow.apps, fallbackItems, shouldFreezeFallback, frozenFallback, tab]);
 
   // Full re-rank trigger for ProcessListSection's stable ordering: the
   // active metric, whether the list is currently apps-window- or
@@ -163,10 +182,12 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
 
   // The hardware name moves here from the removed per-tab sensor blocks:
   // CPU/GPU/Memory show their resolved identity string; Network has no
-  // comparable hardware identity and keeps its plain tab title.
+  // comparable hardware identity and shows its plain tab name instead, at
+  // the same size/style, so all four tabs' first element lines up.
   const titleText = tab === 'cpu' ? sensors.cpuModel
     : tab === 'gpu' ? (primaryGpu?.name ?? '')
     : tab === 'memory' ? (specs?.memory ?? '')
+    : tab === 'network' ? t('monitoring.tab.network')
     : '';
 
   if (!serviceOnline) {
@@ -204,6 +225,7 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
                     {t('monitoring.gpu.change')}
                   </button>
                 )}
+                {history.mocked && <Badge label={t('monitoring.history.mocked')} color="var(--warn)" />}
               </div>
             )}
             <MetricHistorySection
@@ -213,7 +235,12 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
               history={history}
               appsWindow={appsWindow}
             />
-            <ProcessListSection items={processItems} formatValue={formatValue} rankResetKey={rankResetKey} />
+            <ProcessListSection
+              items={processItems}
+              formatValue={formatValue}
+              rankResetKey={rankResetKey}
+              frozen={shouldFreezeFallback}
+            />
           </>
         )}
       </div>

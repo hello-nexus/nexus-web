@@ -6,7 +6,7 @@ import { Sparkline } from '../../../../components/common/Sparkline/Sparkline';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { useTranslation } from '../../../../lib/i18n';
 import { useMonitoringPrivacy } from '../../../../hooks/useMonitoringPrivacy';
-import { useAppIcon } from '../../common/AppPicker';
+import { useProcessIcon } from '../../../../hooks/useProcessIcon';
 import { privacyIndicatorsForProcess, type PrivacyIconKind, type PrivacyIndicator } from './privacyHelpers';
 import { useStableRanking } from './useStableRanking';
 import type { RankableItem, SortMode } from './processRanking';
@@ -20,15 +20,14 @@ export interface ProcessListItem extends RankableItem {
 
 export type { SortMode };
 
-/** Row icon: the same app-icon fetch/cache pipeline the deck's app-launch
- *  widget uses (useAppIcon - a Start-Menu/installed-app lookup keyed by
- *  name), falling back to a plain neutral dot when nothing resolves (most
- *  running processes were never added as a deck shortcut) - the dot carries
- *  no per-app color, matching the sparkline's accent-only treatment.
+/** Row icon: GET /monitoring/process-icon keyed by the raw process name (see
+ *  useProcessIcon - a session-cached lookup, primary source), falling back
+ *  to a plain neutral dot when nothing resolves - the dot carries no
+ *  per-app color, matching the sparkline's accent-only treatment.
  *  Exported so the hero chart's hover tooltip (MetricHistorySection) can
  *  render the same icon treatment for its top-apps rows. */
 export function ProcessIcon({ name }: { name: string }) {
-  const iconUrl = useAppIcon(name);
+  const iconUrl = useProcessIcon(name);
   if (iconUrl) return <img src={iconUrl} className={styles.appIcon} alt="" />;
   return <span className={styles.dot} />;
 }
@@ -42,6 +41,11 @@ export interface ProcessListSectionProps {
    *  trigger for a full re-rank. Omit for a list that never changes source
    *  (e.g. a fixture in a standalone story or test). */
   rankResetKey?: string;
+  /** True when `items` is a frozen snapshot rather than live data - dims the
+   *  list and shows a disclosure that the breakdown reflects live values
+   *  only, not the scrubbed window (see MonitoringPage's freeze-on-detach
+   *  handling for the fallback data source). */
+  frozen?: boolean;
 }
 
 const SPARKLINE_SAMPLES = 30;
@@ -120,7 +124,7 @@ function PrivacyIndicators({ indicators, t }: {
  * update alone never reorders or drops a row, so the list doesn't visibly
  * jump around while the user is watching it.
  */
-export function ProcessListSection({ items, formatValue, rankResetKey = '' }: ProcessListSectionProps) {
+export function ProcessListSection({ items, formatValue, rankResetKey = '', frozen = false }: ProcessListSectionProps) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<SortMode>('recent');
@@ -154,10 +158,11 @@ export function ProcessListSection({ items, formatValue, rankResetKey = '' }: Pr
           ariaLabel={t('monitoring.history.process.sortAriaLabel')}
         />
       </div>
+      {frozen && <div className={styles.frozenNotice}>{t('monitoring.history.process.frozenNotice')}</div>}
       {visible.length === 0 ? (
         <div className={styles.empty}>{t('monitoring.ranked.empty')}</div>
       ) : (
-        <div className={styles.rows}>
+        <div className={frozen ? `${styles.rows} ${styles.rowsFrozen}` : styles.rows}>
           {visible.map(item => (
             <div key={item.name} className={styles.row}>
               <ProcessIcon name={item.name} />
