@@ -15,6 +15,17 @@
   cursor: crosshair;
 }
 
+.chartSelectable {
+  touch-action: none;
+}
+
+.dragSelection {
+  fill: color-mix(in srgb, var(--accent) 22%, transparent);
+  stroke: var(--accent);
+  stroke-width: 1;
+  pointer-events: none;
+}
+
 .empty {
   display: flex;
   align-items: center;

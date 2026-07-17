@@ -1,5 +1,13 @@
 .root {
   position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+}
+
+.track {
+  position: relative;
   width: 100%;
   min-width: 0;
   border-radius: var(--radius-sm);
@@ -12,14 +20,19 @@
   width: 100%;
 }
 
+// Docked beside the ribbon on the same line, in the reserved right-side
+// lane (LABEL_RESERVE_PX) that the drawn segments never extend into.
 .current {
   position: absolute;
   right: 4px;
   top: 50%;
   transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
   font-family: var(--font-mono);
   font-size: var(--type-mini);
   color: var(--text-dim);
-  pointer-events: none;
   user-select: none;
+  pointer-events: none;
 }

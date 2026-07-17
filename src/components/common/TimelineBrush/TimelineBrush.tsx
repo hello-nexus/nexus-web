@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react';
 import {
+  MIN_BOX_WINDOW_MS,
   clampWindow,
   hitZoneAt,
   msToPx,
@@ -17,7 +18,7 @@ export interface TimelineBrushSilhouettePoint {
 }
 
 export interface TimelineBrushProps {
-  /** The full pannable/zoomable domain (e.g. the retained history window). */
+  /** The full pannable/zoomable domain (e.g. the seek-bar strip's own span). */
   domainStart: number;
   domainEnd: number;
   /** The currently selected window within the domain. */
@@ -27,24 +28,31 @@ export interface TimelineBrushProps {
    *  keyboard/pointer commit is 'end' - callers debounce on 'drag' and
    *  fetch immediately on 'end'. */
   onChange: (from: number, to: number, phase: 'drag' | 'end') => void;
-  /** Background minimap data (e.g. a decimated 7-day series), amplitude-only. */
+  /** Background minimap data (e.g. a decimated series over the strip),
+   *  amplitude-only, rendered as a plain fill silhouette (no stroke, no
+   *  gradient - distinct from the hero chart's own gradient-fill treatment). */
   silhouette?: readonly TimelineBrushSilhouettePoint[];
   minWindowMs?: number;
   ariaLabel: string;
   ariaValueText: (from: number, to: number) => string;
-  /** Renders the window's from/to timestamps just outside the highlighted
-   *  box (left of the start, right of the end), live-updating while the
-   *  window slides. Purely decorative (pointer-events: none) - never part of
-   *  the drag/click hit-testing. Omit to render no labels. */
-  formatEdgeLabel?: (t: number) => string;
+  /** Renders the block's own domainStart/domainEnd, docked INSIDE the block
+   *  (left-aligned at the left edge, right-aligned at the right edge) rather
+   *  than tracking the selected window - purely decorative (pointer-events:
+   *  none), never part of the drag/click hit-testing. Returns both labels
+   *  together so the caller can decide together whether to include the day
+   *  (the two edges may fall on different calendar days). Omit to render no
+   *  labels. */
+  formatEdgeLabels?: (start: number, end: number) => readonly [string, string];
   height?: number;
   className?: string;
 }
 
-const DEFAULT_MIN_WINDOW_MS = 5 * 60_000;
 const DEFAULT_HEIGHT = 40;
-// Gap between the highlighted window and its edge labels, px.
-const EDGE_LABEL_GAP_PX = 6;
+// Reserved lane on each side of the track for the docked edge labels -
+// labels live inside the rounded block but must never overlap the drawn
+// silhouette/window - wide enough for a day-qualified timestamp (short
+// month + day + hour:minute:second).
+const LABEL_LANE_PX = 100;
 // Comfortable pointer target for grabbing an edge handle, independent of its
 // drawn width, px.
 const EDGE_HIT_PX = 8;
@@ -65,8 +73,8 @@ interface DragState {
 }
 
 export function TimelineBrush({
-  domainStart, domainEnd, from, to, onChange, silhouette, minWindowMs = DEFAULT_MIN_WINDOW_MS,
-  ariaLabel, ariaValueText, formatEdgeLabel, height = DEFAULT_HEIGHT, className,
+  domainStart, domainEnd, from, to, onChange, silhouette, minWindowMs = MIN_BOX_WINDOW_MS,
+  ariaLabel, ariaValueText, formatEdgeLabels, height = DEFAULT_HEIGHT, className,
 }: TimelineBrushProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
@@ -93,6 +101,12 @@ export function TimelineBrush({
     return () => ro.disconnect();
   }, []);
 
+  // The drawable track is inset by the label lanes on each side; the block
+  // itself (background, rounded corners) still spans the full width.
+  const trackW = Math.max(1, width - LABEL_LANE_PX * 2);
+  const tPx = (t: number) => LABEL_LANE_PX + msToPx(t, domainStart, domainEnd, trackW);
+  const pxT = (x: number) => pxToMs(x - LABEL_LANE_PX, domainStart, domainEnd, trackW);
+
   const report = (f: number, t: number, phase: 'drag' | 'end') => {
     latestRef.current = [f, t];
     onChange(f, t, phase);
@@ -106,30 +120,30 @@ export function TimelineBrush({
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (width <= 0) return;
     const x = localX(e);
-    const fromPx = msToPx(from, domainStart, domainEnd, width);
-    const toPx = msToPx(to, domainStart, domainEnd, width);
+    const fromPx = tPx(from);
+    const toPx = tPx(to);
     const zone = hitZoneAt(x, fromPx, toPx, EDGE_HIT_PX);
     e.currentTarget.setPointerCapture(e.pointerId);
     e.preventDefault();
 
     if (zone === 'track') {
       const windowMs = to - from;
-      const centerT = pxToMs(x, domainStart, domainEnd, width);
+      const centerT = pxT(x);
       const [f, t] = clampWindow(centerT - windowMs / 2, centerT + windowMs / 2, domainStart, domainEnd, minWindowMs);
-      dragRef.current = { mode: 'pan', pointerId: e.pointerId, startXMs: pxToMs(x, domainStart, domainEnd, width), startFrom: f, startTo: t };
+      dragRef.current = { mode: 'pan', pointerId: e.pointerId, startXMs: pxT(x), startFrom: f, startTo: t };
       report(f, t, 'drag');
       return;
     }
 
     const mode: DragMode = zone === 'left-edge' ? 'resize-left' : zone === 'right-edge' ? 'resize-right' : 'pan';
-    dragRef.current = { mode, pointerId: e.pointerId, startXMs: pxToMs(x, domainStart, domainEnd, width), startFrom: from, startTo: to };
+    dragRef.current = { mode, pointerId: e.pointerId, startXMs: pxT(x), startFrom: from, startTo: to };
   };
 
   const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
     const d = dragRef.current;
     if (!d || d.pointerId !== e.pointerId || width <= 0) return;
     const x = localX(e);
-    const nowMs = pxToMs(x, domainStart, domainEnd, width);
+    const nowMs = pxT(x);
     const deltaMs = nowMs - d.startXMs;
 
     if (d.mode === 'pan') {
@@ -139,9 +153,9 @@ export function TimelineBrush({
       const f = resizeLeftEdge(d.startTo, d.startFrom + deltaMs, domainStart, minWindowMs);
       report(f, d.startTo, 'drag');
     } else {
-      const domainEndPx = msToPx(domainEnd, domainStart, domainEnd, width);
-      const candidatePx = snapToEnd(msToPx(d.startTo, domainStart, domainEnd, width) + (x - msToPx(d.startXMs, domainStart, domainEnd, width)), domainEndPx, SNAP_PX);
-      const t = resizeRightEdge(d.startFrom, pxToMs(candidatePx, domainStart, domainEnd, width), domainEnd, minWindowMs);
+      const domainEndPx = tPx(domainEnd);
+      const candidatePx = snapToEnd(tPx(d.startTo) + (x - tPx(d.startXMs)), domainEndPx, SNAP_PX);
+      const t = resizeRightEdge(d.startFrom, pxT(candidatePx), domainEnd, minWindowMs);
       report(d.startFrom, t, 'drag');
     }
   };
@@ -192,8 +206,8 @@ export function TimelineBrush({
     }
   };
 
-  const fromPx = width > 0 ? msToPx(from, domainStart, domainEnd, width) : 0;
-  const toPx = width > 0 ? msToPx(to, domainStart, domainEnd, width) : 0;
+  const fromPx = width > 0 ? tPx(from) : 0;
+  const toPx = width > 0 ? tPx(to) : 0;
 
   const silhouettePath = (() => {
     if (!silhouette || silhouette.length === 0 || width <= 0) return null;
@@ -208,9 +222,13 @@ export function TimelineBrush({
     const top = 4;
     const bottom = height - 4;
     const toY = (v: number) => bottom - ((v - min) / span) * (bottom - top);
-    const pts = silhouette.map(p => `${msToPx(p.t, domainStart, domainEnd, width).toFixed(1)},${toY(p.v).toFixed(1)}`);
-    return `M0,${bottom} L${pts.join(' L')} L${width},${bottom} Z`;
+    const pts = silhouette.map(p => `${tPx(p.t).toFixed(1)},${toY(p.v).toFixed(1)}`);
+    const left = LABEL_LANE_PX;
+    const right = LABEL_LANE_PX + trackW;
+    return `M${left},${bottom} L${pts.join(' L')} L${right},${bottom} Z`;
   })();
+
+  const [startLabel, endLabel] = formatEdgeLabels ? formatEdgeLabels(domainStart, domainEnd) : [null, null];
 
   return (
     <div
@@ -238,20 +256,10 @@ export function TimelineBrush({
         <rect className={styles.edge} x={fromPx - 1} y={0} width={2} height={height} />
         <rect className={styles.edge} x={toPx - 1} y={0} width={2} height={height} />
       </svg>
-      {formatEdgeLabel && width > 0 && (
+      {formatEdgeLabels && width > 0 && (
         <>
-          <span
-            className={`${styles.edgeLabel} ${styles.edgeLabelStart}`}
-            style={{ left: fromPx - EDGE_LABEL_GAP_PX }}
-          >
-            {formatEdgeLabel(from)}
-          </span>
-          <span
-            className={`${styles.edgeLabel} ${styles.edgeLabelEnd}`}
-            style={{ left: toPx + EDGE_LABEL_GAP_PX }}
-          >
-            {formatEdgeLabel(to)}
-          </span>
+          <span className={`${styles.edgeLabel} ${styles.edgeLabelStart}`}>{startLabel}</span>
+          <span className={`${styles.edgeLabel} ${styles.edgeLabelEnd}`}>{endLabel}</span>
         </>
       )}
     </div>

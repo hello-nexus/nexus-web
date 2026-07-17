@@ -41,6 +41,15 @@
   width: 8px;
   height: 8px;
   border-radius: var(--radius-sm);
+  background: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.appIcon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
   flex-shrink: 0;
 }
 

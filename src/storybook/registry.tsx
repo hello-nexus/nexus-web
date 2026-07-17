@@ -564,7 +564,10 @@ function PreviewTimelineBrush() {
         silhouette={silhouette}
         ariaLabel="Time range"
         ariaValueText={(from, to) => `${new Date(from).toLocaleString()} to ${new Date(to).toLocaleString()}`}
-        formatEdgeLabel={t => new Date(t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
+        formatEdgeLabels={(start, end) => [
+          new Date(start).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }),
+          new Date(end).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }),
+        ]}
       />
     </div>
   );

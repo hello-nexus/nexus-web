@@ -11,6 +11,11 @@ vi.mock('../../../../hooks/useMonitoringPrivacy', () => ({
   useMonitoringPrivacy: () => privacyMock(),
 }));
 
+const appIconMock = vi.fn<(name: string) => string | null>();
+vi.mock('../../common/AppPicker', () => ({
+  useAppIcon: (name: string) => appIconMock(name),
+}));
+
 function privacyResult(over: Partial<UseMonitoringPrivacyResult> = {}): UseMonitoringPrivacyResult {
   return {
     sessions: [],
@@ -25,21 +30,72 @@ function privacyResult(over: Partial<UseMonitoringPrivacyResult> = {}): UseMonit
 
 function items(): ProcessListItem[] {
   return [
-    { name: 'Chrome', color: '#f00', current: 12, values: [1, 2, 3] },
-    { name: 'AppControl', color: '#0f0', current: 40, values: [4, 5, 6] },
-    { name: 'Nexus', color: '#00f', current: 3, values: [1, 1, 1] },
+    { name: 'Chrome', current: 12, values: [1, 2, 3] },
+    { name: 'AppControl', current: 40, values: [4, 5, 6] },
+    { name: 'Nexus', current: 3, values: [1, 1, 1] },
   ];
 }
 
 describe('ProcessListSection', () => {
   beforeEach(() => {
     privacyMock.mockReturnValue(privacyResult());
+    appIconMock.mockReturnValue(null);
   });
 
-  it('renders rows sorted by usage (current value) descending by default', () => {
+  it('defaults to the recency sort, falling back to usage order when no item reports startedAtMs', () => {
     render(<ProcessListSection items={items()} formatValue={v => `${v}%`} />);
     const names = screen.getAllByText(/Chrome|AppControl|Nexus/).map(el => el.textContent);
     expect(names).toEqual(['AppControl', 'Chrome', 'Nexus']);
+  });
+
+  it('recency sort ranks by startedAtMs (most recent first) when items report it', () => {
+    const withRecency: ProcessListItem[] = [
+      { name: 'Chrome', current: 12, values: [], startedAtMs: 1000 },
+      { name: 'AppControl', current: 40, values: [], startedAtMs: 3000 },
+      { name: 'Nexus', current: 3, values: [], startedAtMs: 2000 },
+    ];
+    render(<ProcessListSection items={withRecency} formatValue={v => `${v}%`} />);
+    const names = screen.getAllByText(/Chrome|AppControl|Nexus/).map(el => el.textContent);
+    expect(names).toEqual(['AppControl', 'Nexus', 'Chrome']);
+  });
+
+  it('sorts an app with a known launch time above one without, under the recency sort', () => {
+    const mixed: ProcessListItem[] = [
+      { name: 'Chrome', current: 90, values: [] },
+      { name: 'AppControl', current: 1, values: [], startedAtMs: 1000 },
+    ];
+    render(<ProcessListSection items={mixed} formatValue={v => `${v}%`} />);
+    const names = screen.getAllByText(/Chrome|AppControl/).map(el => el.textContent);
+    expect(names).toEqual(['AppControl', 'Chrome']);
+  });
+
+  it('switches to usage sort via the sort dropdown', () => {
+    render(<ProcessListSection items={items()} formatValue={v => `${v}%`} />);
+    fireEvent.click(screen.getByRole('button', { name: 'monitoring.history.process.sortAriaLabel' }));
+    fireEvent.click(screen.getByRole('option', { name: 'monitoring.history.process.sortUsage' }));
+    const names = screen.getAllByText(/Chrome|AppControl|Nexus/).map(el => el.textContent);
+    expect(names).toEqual(['AppControl', 'Chrome', 'Nexus']);
+  });
+
+  it('renders the app icon in place of the dot when one resolves', () => {
+    appIconMock.mockImplementation(name => (name === 'Chrome' ? 'blob:chrome-icon' : null));
+    const { container } = render(<ProcessListSection items={items()} formatValue={v => `${v}%`} />);
+    const img = container.querySelector('img[src="blob:chrome-icon"]');
+    expect(img).toBeInTheDocument();
+  });
+
+  it('falls back to a plain neutral dot (no per-item color) when no icon resolves', () => {
+    const { container } = render(<ProcessListSection items={[items()[0]]} formatValue={v => `${v}%`} />);
+    expect(container.querySelector('img')).toBeNull();
+    const dot = container.querySelector('[class*="dot"]');
+    expect(dot).toBeInTheDocument();
+    expect(dot).not.toHaveAttribute('style');
+  });
+
+  it('renders the row sparkline in the accent color only (no per-item color prop)', () => {
+    const { container } = render(<ProcessListSection items={[items()[0]]} formatValue={v => `${v}%`} />);
+    const fillPath = container.querySelector('[class*="sparkline"] path[fill]');
+    expect(fillPath).toHaveAttribute('fill', 'var(--accent)');
   });
 
   it('filters rows live by name via the search input', () => {
@@ -163,5 +219,51 @@ describe('ProcessListSection', () => {
     privacyMock.mockReturnValue(privacyResult({ sessions, error: true }));
     render(<ProcessListSection items={items()} formatValue={v => `${v}%`} />);
     expect(screen.queryByRole('img', { name: 'monitoring.privacy.capability.webcam' })).toBeNull();
+  });
+
+  describe('row order stability', () => {
+    it('does not reorder rows across a rerender that only changes values', () => {
+      const { rerender } = render(
+        <ProcessListSection items={items()} formatValue={v => `${v}%`} rankResetKey="cpu" />,
+      );
+      let names = screen.getAllByText(/Chrome|AppControl|Nexus/).map(el => el.textContent);
+      expect(names).toEqual(['AppControl', 'Chrome', 'Nexus']);
+
+      // A totally different usage ranking underneath, but no metric/window
+      // change - the visible order must stay exactly as it was.
+      const churned: ProcessListItem[] = [
+        { name: 'Chrome', current: 99, values: [1] },
+        { name: 'AppControl', current: 1, values: [1] },
+        { name: 'Nexus', current: 50, values: [1] },
+      ];
+      rerender(<ProcessListSection items={churned} formatValue={v => `${v}%`} rankResetKey="cpu" />);
+      names = screen.getAllByText(/Chrome|AppControl|Nexus/).map(el => el.textContent);
+      expect(names).toEqual(['AppControl', 'Chrome', 'Nexus']);
+    });
+
+    it('retains a row missing from a single update instead of dropping it immediately (membership churn)', () => {
+      const { rerender } = render(
+        <ProcessListSection items={items()} formatValue={v => `${v}%`} rankResetKey="cpu" />,
+      );
+      // Nexus drops out of this tick's list entirely (e.g. it fell off a
+      // top-N-by-usage feed for one sample) - it must still render.
+      const withoutNexus: ProcessListItem[] = [
+        { name: 'Chrome', current: 12, values: [1] },
+        { name: 'AppControl', current: 40, values: [1] },
+      ];
+      rerender(<ProcessListSection items={withoutNexus} formatValue={v => `${v}%`} rankResetKey="cpu" />);
+      expect(screen.getByText('Nexus')).toBeInTheDocument();
+    });
+
+    it('re-ranks from scratch when rankResetKey changes (a metric/window switch)', () => {
+      const { rerender } = render(
+        <ProcessListSection items={items()} formatValue={v => `${v}%`} rankResetKey="cpu" />,
+      );
+      const gpuOnly: ProcessListItem[] = [{ name: 'Nexus', current: 5, values: [1] }];
+      rerender(<ProcessListSection items={gpuOnly} formatValue={v => `${v}%`} rankResetKey="gpu" />);
+      expect(screen.queryByText('Chrome')).toBeNull();
+      expect(screen.queryByText('AppControl')).toBeNull();
+      expect(screen.getByText('Nexus')).toBeInTheDocument();
+    });
   });
 });
