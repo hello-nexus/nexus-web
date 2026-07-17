@@ -3,35 +3,8 @@ import { AppWindow } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { fetchService, fetchServiceBlob } from '../../../api/service';
 import { SearchInput } from '../../../components/common/SearchInput/SearchInput';
+import { withMediaFetchSlot as withIconSlot } from '../../../lib/mediaFetchSlot';
 import styles from './AppPicker.module.scss';
-
-// Cap concurrent icon fetches. A screenful of picker rows - or a deck full of
-// launch buttons (each useAppIcon below) - would otherwise fire one fetch per
-// item at once and occupy all 6 of the browser's per-origin connections. The
-// panel's /ping health check shares that pool, so it queues behind the backlog
-// and blows its 3s abort, reading "offline" and tearing down the editor. A
-// first browse is the worst case: icon-less apps re-extract server-side every
-// time, so the backlog drains slowly. The cap stays below the per-origin pool
-// so /ping and live traffic always have a free connection; icons are lazy, so
-// the slightly slower fill is unseen.
-const ICON_FETCH_CONCURRENCY = 3;
-let iconPermits = ICON_FETCH_CONCURRENCY;
-const iconWaiters: Array<() => void> = [];
-
-function withIconSlot<T>(run: () => Promise<T>): Promise<T> {
-  const acquire = iconPermits > 0
-    ? (iconPermits--, Promise.resolve())
-    : new Promise<void>(resolve => iconWaiters.push(resolve));
-  return acquire.then(async () => {
-    try {
-      return await run();
-    } finally {
-      const next = iconWaiters.shift();
-      if (next) next();
-      else iconPermits++;
-    }
-  });
-}
 
 interface Shortcut {
   id: string;

@@ -1,28 +1,6 @@
 import { useEffect, useState } from 'react';
 import { fetchDeckImage } from '../../../api/deckImages';
-
-// Cap concurrent image fetches for the same reason as AppPicker's icon gate
-// (useAppIcon in ../common/AppPicker.tsx): a deck full of custom-image keys
-// would otherwise burst one request each against the browser's per-origin
-// connection pool and starve /ping + live traffic.
-const DECK_IMAGE_FETCH_CONCURRENCY = 3;
-let imagePermits = DECK_IMAGE_FETCH_CONCURRENCY;
-const imageWaiters: Array<() => void> = [];
-
-function withImageSlot<T>(run: () => Promise<T>): Promise<T> {
-  const acquire = imagePermits > 0
-    ? (imagePermits--, Promise.resolve())
-    : new Promise<void>(resolve => imageWaiters.push(resolve));
-  return acquire.then(async () => {
-    try {
-      return await run();
-    } finally {
-      const next = imageWaiters.shift();
-      if (next) next();
-      else imagePermits++;
-    }
-  });
-}
+import { withMediaFetchSlot as withImageSlot } from '../../../lib/mediaFetchSlot';
 
 /**
  * A deck key's uploaded custom-image icon as an object URL, or null while
