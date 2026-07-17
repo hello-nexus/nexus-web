@@ -41,6 +41,7 @@ import {
   fetchPanelDevice,
   fetchPanelDevices,
   patchPanelDevice,
+  resetPanelDevice,
 } from '../../../api/panel';
 import {
   getQSeriesRotation,
@@ -203,6 +204,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const [configuringWidget, setConfiguringWidget] = useState<PanelWidget | null>(null);
   const embedFrameRef = useRef<PanelEmbedFrameHandle | null>(null);
   const [screenshotBusy, setScreenshotBusy] = useState(false);
+  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const { push: pushToast } = useToastSafe();
   // One-shot flash request forwarded to the preview iframe when an edit is
   // rejected (a resize that can't fit). nonce re-fires repeat rejections.
@@ -686,6 +689,25 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     }
   }, [surface, liveCanvas, liveDpr, device?.previewSize, device?.previewDpr, device?.name, pushToast, t]);
 
+  // Per-device factory reset: the service clears the record's layout /
+  // theme / widget state and deletes its uploaded media; the panel/device
+  // broadcast refetches the layout and theme everywhere (the media library
+  // list refetches on its next mount).
+  const resetToDefaults = useCallback(async () => {
+    if (!editingDeviceId) return;
+    setResetConfirmOpen(false);
+    setResetting(true);
+    try {
+      await resetPanelDevice(editingDeviceId);
+      broadcastLayoutChanged();
+      pushToast({ title: t('devices.panels.reset.done') });
+    } catch {
+      pushToast({ title: t('devices.panels.reset.error') });
+    } finally {
+      setResetting(false);
+    }
+  }, [editingDeviceId, pushToast, t]);
+
   const tabs: { key: Tab; label: string; icon: ReactNode }[] = [
     { key: 'widgets', label: t('devices.y70.tab.widgets'), icon: <LayoutGrid size={14} /> },
     { key: 'theme', label: t('devices.y70.tab.theme'), icon: <Palette size={14} /> },
@@ -971,6 +993,30 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                       <QSeriesCoolerSettings />
                     </div>
                   )}
+                  {/* Panel devices with a settings tab (Y70 / Q-series /
+                      promoted monitors) get the per-device factory reset
+                      below the surface-specific settings. */}
+                  {activeTab === 'settings' && editingDeviceId && (
+                    <div className={styles.settingsContent}>
+                      {/* eslint-disable-next-line i18next/no-literal-string -- CSS variable token */}
+                      <SettingsSection title={t('settings.dangerZone')} titleStyle={{ color: 'var(--bad)' }}>
+                        <SettingRow
+                          label={t('settings.factoryReset.label')}
+                          description={t('devices.panels.reset.description')}
+                        >
+                          <Button
+                            type="button"
+                            tone="danger"
+                            size="sm"
+                            onClick={() => setResetConfirmOpen(true)}
+                            disabled={resetting}
+                          >
+                            {t('devices.panels.reset.button')}
+                          </Button>
+                        </SettingRow>
+                      </SettingsSection>
+                    </div>
+                  )}
                 </div>
               </>
             )}
@@ -1030,6 +1076,19 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
         </div>
       )}
       </div>
+      <ConfirmModal
+        open={resetConfirmOpen}
+        title={t('devices.panels.reset.confirmTitle')}
+        message={t('devices.panels.reset.confirmMessage')}
+        bullets={t('devices.panels.reset.wipeList').split('\n')}
+        note={t('settings.factoryReset.confirmNote')}
+        // eslint-disable-next-line i18next/no-literal-string -- note tone enum value
+        noteTone="danger"
+        confirmLabel={t('devices.panels.reset.confirmButton')}
+        destructive
+        onConfirm={() => void resetToDefaults()}
+        onCancel={() => setResetConfirmOpen(false)}
+      />
     </section>
   );
 }

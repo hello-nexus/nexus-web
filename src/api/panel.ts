@@ -161,6 +161,11 @@ export const fetchPanelDevices = () =>
 export const patchPanelDevice = (id: string, patch: PanelDevicePatch) =>
   postService<PanelDeviceRecord>(`/panel/devices/${encodeURIComponent(id)}`, patch);
 
+// Per-device factory reset: clears the record's layout/theme/widget state
+// (defaults reseed on the next read) and deletes its uploaded media.
+export const resetPanelDevice = (id: string) =>
+  postService<PanelDeviceRecord>(`/panel/devices/${encodeURIComponent(id)}/reset`, {});
+
 export type PanelDeviceFetchResult =
   | { found: true; record: PanelDeviceRecord }
   | { found: false; status: number };
