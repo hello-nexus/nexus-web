@@ -85,6 +85,54 @@
   background: color-mix(in srgb, black 30%, transparent);
 }
 
+// Corner X close. Same scaling rules as the pill: CSS px x --panel-scale,
+// never DPR. Scrim circle so it reads over any content (the avatar's 3D
+// scene has no reserved chrome area).
+.exitClose {
+  position: absolute;
+  top: max(env(safe-area-inset-top), calc(10px * var(--panel-scale, 1)));
+  right: max(env(safe-area-inset-right), calc(10px * var(--panel-scale, 1)));
+  width: calc(44px * var(--panel-scale, 1));
+  height: calc(44px * var(--panel-scale, 1));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, black 32%, transparent);
+  color: color-mix(in srgb, white 82%, transparent);
+  padding: 0;
+  cursor: pointer;
+  // Parent .panelRoot's touch-action: none can suppress synthetic click on
+  // tap in WebView2/Edge; re-enable click synthesis here (same as .exitHint).
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  z-index: 210;
+  transition: background var(--ease-fast) ease, color var(--ease-fast) ease;
+
+  svg {
+    width: calc(22px * var(--panel-scale, 1));
+    height: calc(22px * var(--panel-scale, 1));
+  }
+
+  &:hover,
+  &:active {
+    background: color-mix(in srgb, black 48%, transparent);
+    color: white;
+  }
+}
+
+.overlay[data-theme='light'] .exitClose {
+  background: color-mix(in srgb, white 60%, transparent);
+  color: color-mix(in srgb, black 75%, transparent);
+
+  &:hover,
+  &:active {
+    background: color-mix(in srgb, white 80%, transparent);
+    color: black;
+  }
+}
+
 .body {
   position: relative;
   // Render area is sized at 1/zoom then scaled back up by --panel-scale, so

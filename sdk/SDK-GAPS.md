@@ -50,13 +50,17 @@ Closes several D/E/F/G/I gaps below (the original lines are left intact for the 
   clicking the tile. Standard page chrome: title in the top bar, the standard `ViewHeader`
   with **tabs**, full-height scroll. (Touch-immersive page = follow-up.)
 - **Blessed composites** - `ui-clockface` (the 8 clock designs), `ui-worldclock` (the full
-  day/night world map + city list), `ui-viewheader` (title + tabs). The host renders the
-  **same pure native component** (no reimplementation), so a first-party SDK widget is
-  **pixel-identical to native with zero duplication**. This is the escape hatch for bespoke
-  visuals (SVG world map, analog face) that the closed primitive set can't express - without
-  a raw canvas/SVG hole that would break the consistency guarantee. Cost: each composite is a
-  curated entry in the shared element contract (a deliberate coupling), and only **first-party**
-  pure components can be blessed - arbitrary third-party custom visuals still can't.
+  day/night world map + city list), `ui-viewheader` (title + tabs), `ui-avatar` (a first-party
+  3D avatar, three.js, driven by `dance`/`listening`/`energy`/`reaction`/`intro`/`interactive`).
+  The host renders the **same pure native component** (no reimplementation), so a first-party
+  SDK widget is **pixel-identical to native with zero duplication**. This is the escape hatch for
+  bespoke visuals (SVG world map, analog face, a WebGL scene) that the closed primitive set
+  can't express - without a raw canvas/SVG hole that would break the consistency guarantee.
+  `ui-avatar` is the one composite with real I/O (it fetches + decrypts the pack); the renderer
+  is behind a dynamic import so the ~three.js cost only lands on an app that actually uses it.
+  Cost: each composite is a curated entry in the shared element contract (a deliberate coupling),
+  and only **first-party** pure components can be blessed - arbitrary third-party custom visuals
+  still can't.
 
 ## A. Data the SDK can't reach (major)
 - Only **two** read host-actions exist: `screentime.today`, `displays.list`. Everything else is

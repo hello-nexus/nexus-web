@@ -12,6 +12,7 @@ import { Spinner } from '../components/common/Spinner/Spinner';
 import { usePanelLayout } from './engine/usePanelLayout';
 import { useDashboardLayout } from './engine/useDashboardLayout';
 import { useOemAppSeed } from './engine/useOemAppSeed';
+import { useMarketplaceAppsSync } from './engine/useMarketplaceAppsSync';
 import { useFlashWidgets } from './engine/useFlashWidgets';
 import { useAddedWidgetEntrance } from './engine/useAddedWidgetEntrance';
 import { useMachineName } from './engine/useMachineName';
@@ -277,6 +278,7 @@ export function PanelContent({
   useTopic('panel/phone/presence', kioskBehavior && surface === 'phone');
   usePhonePanelManifest(kioskBehavior && surface === 'phone');
   const { layout, loaded, setLayout } = layoutState;
+  useMarketplaceAppsSync(layout);
   const panelTheme = usePanelTheme(deviceId ?? null, kioskBehavior);
   // Simulator gets its theme from the parent via postMessage (local fetch
   // stays disabled), so effectiveTheme uses the parent-supplied state

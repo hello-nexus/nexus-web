@@ -15,7 +15,7 @@ import styles from './MarketplaceWidget.module.scss';
  * an SDK (sandboxed remote-component) widget; this bridges the panel layout's
  * `WidgetProps` to the SDK host.
  */
-export function MarketplaceWidget({ widget }: WidgetProps) {
+export function MarketplaceWidget({ widget, sandboxSurface }: WidgetProps & { sandboxSurface?: 'cell' | 'immersive' }) {
   const { t } = useTranslation();
   const id = marketplaceIdFromType(widget.type) ?? '';
   const [listing, setListing] = useState(() => (id ? getMarketplaceListing(id) : undefined));
@@ -38,5 +38,13 @@ export function MarketplaceWidget({ widget }: WidgetProps) {
     return <div className={styles.empty}>{id ? t('marketplace.loading', { name: id }) : t('marketplace.missingId')}</div>;
   }
 
-  return <SdkMarketplaceWidget listing={listing} size={widget.size} instanceId={widget.id} />;
+  return <SdkMarketplaceWidget listing={listing} size={widget.size} instanceId={widget.id} sandboxSurface={sandboxSurface} />;
+}
+
+/** Touch facet for immersive-allowlisted SDK apps: the same widget rendered
+ *  fullscreen by PanelImmersiveOverlay, on its own 'immersive' worker so the
+ *  overlay's unmount disposes only that worker, never the tile's. */
+export function MarketplaceTouch(props: WidgetProps) {
+  // eslint-disable-next-line i18next/no-literal-string -- render surface id
+  return <MarketplaceWidget {...props} sandboxSurface="immersive" />;
 }

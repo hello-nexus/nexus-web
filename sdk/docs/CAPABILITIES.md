@@ -704,6 +704,25 @@ The full day/night world map + scrollable city cards. Self-ticking.
 |---|---|
 | `highlightTz` | `string` (IANA tz to highlight on the map) |
 
+#### `Avatar`
+A first-party 3D avatar (three.js), rendered host-side - the sandboxed worker
+has no WebGL. The host lazy-loads the renderer and the pack the first time an
+`Avatar` mounts, so apps that never use it cost nothing.
+
+| Prop | Type | Notes |
+|---|---|---|
+| `pack` | `string` | required. URL to a pack directory or an encrypted `.nxpack` container |
+| `dance` | `boolean` | maps to the pack's `media:playing` signal |
+| `listening` | `boolean` | maps to `discord:talking` / `discord:silent` |
+| `energy` | `number` (0..1) | maps to `system:energy` |
+| `reaction` | `string` | one-shot `"TriggerName#seq"`; increment `seq` so a repeat re-fires |
+| `intro` | `boolean` | plays the walk-in + camera push-in once on mount. Default `false` |
+| `interactive` | `boolean` | pointer orbit/zoom. Default `true` |
+
+```tsx
+<Avatar pack="/apps/my-app/assets/character.nxpack" dance={isPlaying} energy={level} />
+```
+
 ### `MediaImport`
 
 Host-mediated file pick + crop + upload. The app must list the `uploadPath` in

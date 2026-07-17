@@ -321,6 +321,19 @@ describe('marketplace listing derives from the preinstalled + page signal', () =
     const byType = new Map(getCatalogEntries());
     expect(byType.get(typeForMarketplace('com.ibuypower.control'))?.meta.listed).toBe(true);
   });
+
+  it('grants Touch + supportsImmersive only to immersive-allowlisted SDK apps', () => {
+    _seedMarketplaceRegistryForTests([
+      listing({ id: 'com.hellonexus.avatar', name: 'Avatar' }),
+      listing({ id: 'a.random.app', name: 'Random' }),
+    ]);
+    const avatar = lookupApp(typeForMarketplace('com.hellonexus.avatar'));
+    expect(avatar?.Touch).toBeDefined();
+    expect(avatar?.meta.supportsImmersive).toEqual({ portrait: true, landscape: true });
+    const random = lookupApp(typeForMarketplace('a.random.app'));
+    expect(random?.Touch).toBeUndefined();
+    expect(random?.meta.supportsImmersive).toEqual({ portrait: false, landscape: false });
+  });
 });
 
 describe('widget i18n keys', () => {

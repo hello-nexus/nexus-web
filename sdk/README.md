@@ -60,9 +60,9 @@ The same widget as declarative JSON was ~120 lines plus a binding mini-language
   `orientation` below), `Button`, `Stepper`, `Input`, `Toggle`, `Segmented`, `Color` (native HSV
   picker), `Curve` (draggable curve editor), `Spinner`; blessed composites - `ClockFace`,
   `WorldClock`, `ViewHeader` (real native tab bar), `MediaImport` (host-mediated file pick +
-  crop + upload). Props are semantic (`tone`/`size`/`weight`/`variant`) and theme through panel
-  tokens. No `style`/`className` - that is deliberate (consistency). `Button`/`Card` also take
-  `onLongPress`.
+  crop + upload), `Avatar` (a first-party 3D avatar, three.js, host-rendered). Props are semantic
+  (`tone`/`size`/`weight`/`variant`) and theme through panel tokens. No `style`/`className` - that
+  is deliberate (consistency). `Button`/`Card` also take `onLongPress`.
 - **Hooks** (`@hellonexus/sdk`): `useLocalState`, `useSettings`, `useSize`, `useTick`,
   `useSensor`, `useFetch`, `useDispatch`, `useHostAction`, `useSurface`, `usePreview`,
   `useLatest`, `request`. Plus `formatDuration`/`clamp`/`pct`.
@@ -79,6 +79,13 @@ The same widget as declarative JSON was ~120 lines plus a binding mini-language
   LAN/desktop only (fails closed over the relay tunnel). Props: `uploadPath`, `accept`,
   `aspectRatio`, `minWidth`/`minHeight`/`maxWidth`/`maxHeight`, `targetWidth`/`targetHeight`,
   `label`, `onProgress`, `onComplete`, `onError`.
+- **`Avatar`**: a blessed composite rendering a first-party 3D avatar (three.js) host-side - the
+  sandboxed worker has no WebGL. `pack` is a URL to a pack directory or an encrypted `.nxpack`
+  container; `dance`/`listening`/`energy` drive the pack's signal bridge, `reaction`
+  (`"TriggerName#seq"`) plays a one-shot animator trigger, `intro` plays the walk-in once on
+  mount, and `interactive` toggles pointer orbit/zoom. See `sdk/docs/CAPABILITIES.md` for the
+  full prop table. The renderer is lazy-loaded, so an app that never renders `<Avatar>` doesn't
+  pay for it.
 - **`category:"device"`** manifest field: marks the app as a device app. It appears under
   DEVICES in the sidebar nav and its page renders inside device-page chrome (the same chrome
   as Cooling, Lighting, etc.) rather than the standard widget section route.

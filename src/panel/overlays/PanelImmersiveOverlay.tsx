@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { X } from 'lucide-react';
 import { usePanelSheetSwipe } from '../engine/usePanelSheetSwipe';
 import { useTranslation } from '../../lib/i18n';
+import { PanelImmersiveProvider } from '../widgets/common/PanelImmersiveContext';
 import styles from './PanelImmersiveOverlay.module.scss';
 
 interface PanelImmersiveOverlayProps {
@@ -36,16 +38,20 @@ export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, them
     }, EXIT_MS);
   }, [mountState, onExit]);
 
+  // Tracks the previous `open` so the cancel-pending-exit branch runs only
+  // when `open` CROSSES into true. Keying on the current value re-mounts on
+  // every render while the host holds `open` true (PanelApp always does),
+  // which cancelled every user-initiated exit - pill tap, swipe-dismiss, and
+  // ESC all flipped to 'exiting' and were immediately pulled back.
+  const prevOpenRef = useRef(open);
   useEffect(() => {
-    if (open && mountState !== 'mounted') {
+    const wasOpen = prevOpenRef.current;
+    prevOpenRef.current = open;
+    if (open && !wasOpen && mountState !== 'mounted') {
       if (exitTimer.current) {
         clearTimeout(exitTimer.current);
         exitTimer.current = null;
       }
-      // Mount transition is driven by `open` crossing into true; render can't
-      // derive 'mounted' from 'unmounted' / 'exiting' without losing the
-      // cancel-pending-exit step.
-       
       setMountState('mounted');
     } else if (!open && mountState === 'mounted') {
       beginExit();
@@ -117,7 +123,9 @@ export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, them
       role="dialog"
       aria-modal="true"
     >
-      <div className={styles.body}>{children}</div>
+      <div className={styles.body}>
+        <PanelImmersiveProvider value={true}>{children}</PanelImmersiveProvider>
+      </div>
       <button
         type="button"
         className={styles.exitHint}
@@ -129,6 +137,18 @@ export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, them
         data-panel-no-sheet-swipe="true"
         aria-label={t('panel.immersive.close')}
       />
+      {/* Corner X: the explicit exit for content that owns its own gestures
+          (the avatar claims drags away from swipe-dismiss), and the
+          discoverable one everywhere else. */}
+      <button
+        type="button"
+        className={styles.exitClose}
+        onClick={beginExit}
+        data-panel-no-sheet-swipe="true"
+        aria-label={t('panel.immersive.close')}
+      >
+        <X aria-hidden />
+      </button>
     </div>
   );
 }

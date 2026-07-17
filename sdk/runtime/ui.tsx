@@ -140,6 +140,27 @@ export interface ClockFaceProps {
   showSeconds?: boolean; showDate?: boolean; showTimezone?: boolean; hour12?: boolean;
   useAccentColor?: boolean; size?: string;
 }
+/** First-party 3D avatar (three.js), rendered host-side. */
+export interface AvatarProps {
+  /** URL to a pack directory or an encrypted .nxpack container. */
+  pack: string;
+  dance?: boolean;
+  listening?: boolean;
+  /** 0..1. */
+  energy?: number;
+  /** One-shot "TriggerName#seq"; increment seq so a repeat re-fires. */
+  reaction?: string;
+  /** Plays the walk-in + camera push-in once on mount. Default false. */
+  intro?: boolean;
+  /**
+   * Pointer orbit/zoom (the wheel rides full body to head closeup). Default
+   * true. Applies only in the panel's fullscreen immersive view; a widget
+   * tile is always inert (tapping it opens fullscreen).
+   */
+  interactive?: boolean;
+  /** Loops the authored reaction showcase (wave/cheer/dance/...). Default false. */
+  demo?: boolean;
+}
 export interface ViewHeaderTab { key: string; label: string; disabled?: boolean; icon?: string }
 export interface ViewHeaderProps {
   title: string;
@@ -284,6 +305,7 @@ export const Input = eventComponent<InputProps>('ui-input', ELEMENT_CTORS['ui-in
 export const Chart = createRemoteComponent('ui-chart' as any, ELEMENT_CTORS['ui-chart']) as unknown as React.FC<ChartProps>;
 export const WorldClock = createRemoteComponent('ui-worldclock' as any, ELEMENT_CTORS['ui-worldclock']) as unknown as React.FC<WorldClockProps>;
 export const ClockFace = createRemoteComponent('ui-clockface' as any, ELEMENT_CTORS['ui-clockface']) as unknown as React.FC<ClockFaceProps>;
+export const Avatar = createRemoteComponent('ui-avatar' as any, ELEMENT_CTORS['ui-avatar']) as unknown as React.FC<AvatarProps>;
 export const ViewHeader = eventComponent<ViewHeaderProps>('ui-viewheader', ELEMENT_CTORS['ui-viewheader'], [['onChange', 'change']]);
 export const Toggle = eventComponent<ToggleProps>('ui-toggle', ELEMENT_CTORS['ui-toggle'], [['onChange', 'change']]);
 export const Segmented = eventComponent<SegmentedProps>('ui-segmented', ELEMENT_CTORS['ui-segmented'], [['onChange', 'change']]);

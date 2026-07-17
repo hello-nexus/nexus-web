@@ -1,5 +1,5 @@
 import { Boxes } from 'lucide-react';
-import { MarketplaceWidget } from './marketplace/MarketplaceWidget';
+import { MarketplaceTouch, MarketplaceWidget } from './marketplace/MarketplaceWidget';
 import { MarketplaceWidgetSettings } from './marketplace/MarketplaceWidgetSettings';
 import { SdkMarketplacePage } from './marketplace/SdkMarketplacePage';
 import {
@@ -10,7 +10,7 @@ import {
   marketplaceIdFromType,
   typeForMarketplace,
 } from '../../widgets/marketplaceRegistry';
-import type { AppManifest } from './types';
+import type { AppManifest, AppMetadata } from './types';
 import {
   SINGLE_WIDGET_SIZES,
   singleWidgetSurfaceSize,
@@ -142,13 +142,22 @@ export function getCatalogEntries(): Array<[string, AppManifest]> {
 // Panel-engine sizes the marketplace synthetic AppManifest accepts.
 // The manifest may declare any string here; anything outside this set
 // falls through the filter so a typo can't crash the picker.
-const VALID_MARKETPLACE_SIZES: ReadonlyArray<PanelWidgetSize> = ['1x1', '2x2', '4x2', '4x4'];
+const VALID_MARKETPLACE_SIZES: ReadonlyArray<PanelWidgetSize> = ['1x1', '2x2', '2x4', '4x2', '4x4'];
 
 // Native-style catalog faces for specific SDK apps. The picker renders this in
 // place of the live sandbox load (MarketplaceWidget) so the tile shows a real
 // preview instead of a blank sandbox load. Empty until an SDK app without a
 // native built-in equivalent needs one; the mechanism stays wired for that case.
 const MARKETPLACE_PREVIEWS: Record<string, AppManifest['Preview']> = {};
+
+// SDK apps allowed into the panel's fullscreen immersive overlay (tap on the
+// tile / context-menu Fullscreen). The Touch facet is the same sandboxed
+// widget rendered inside PanelImmersiveOverlay; composites that behave
+// differently fullscreen read PanelImmersiveContext (ui-avatar enables its
+// pointer gestures only there).
+const MARKETPLACE_IMMERSIVE: Record<string, AppMetadata['supportsImmersive']> = {
+  'com.hellonexus.avatar': { portrait: true, landscape: true },
+};
 
 // Synthesise an AppManifest for a marketplace app. Sizes come from
 // the listing's manifest so a 1x1 app stays 1x1 and a 4x2-only
@@ -168,6 +177,7 @@ function makeMarketplaceAppManifest(
     (manifestDefault && (safeSizes as readonly string[]).includes(manifestDefault))
       ? (manifestDefault as PanelWidgetSize)
       : safeSizes[0];
+  const immersive = MARKETPLACE_IMMERSIVE[id];
   return {
     meta: {
       type: typeForMarketplace(id),
@@ -175,7 +185,7 @@ function makeMarketplaceAppManifest(
       icon: Boxes,
       sizes: safeSizes,
       defaultSize,
-      supportsImmersive: { portrait: false, landscape: false },
+      supportsImmersive: immersive ?? { portrait: false, landscape: false },
       hasConfig: true,
       touch: false,
       // Marketplace curation runs through the same flag as built-ins: only
@@ -185,6 +195,10 @@ function makeMarketplaceAppManifest(
     },
     Widget: MarketplaceWidget,
     Preview: MARKETPLACE_PREVIEWS[id],
+    // Same sandboxed widget rendered fullscreen by PanelImmersiveOverlay, on
+    // its own 'immersive' worker; the overlay's PanelImmersiveContext is what
+    // changes composite behavior.
+    Touch: immersive ? MarketplaceTouch : undefined,
     // A page-capable SDK widget becomes click-through into a desktop section
     // view (Dashboard.renderSystemView). The wrapper reads the marketplace type
     // from its props and spawns the bundle's page surface.
