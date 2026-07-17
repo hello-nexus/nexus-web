@@ -295,8 +295,8 @@ const PERCENT_Y_HEADROOM = 1.15;
 /**
  * Adaptive y-axis ceiling for a 0-100 percent metric (item R5-2): the
  * window's own observed peak (see maxAvgValue) with headroom, snapped UP to
- * the nearest PERCENT_Y_MAX_STEPS mark - never below that ladder's own
- * floor (10), so a flat idle line doesn't fill the whole chart height as
+ * the nearest PERCENT_Y_MAX_STEPS mark - never below the ladder's own
+ * floor, so a flat idle line doesn't fill the whole chart height as
  * noise, and never above 100, since a percent metric can't exceed it. The
  * ceiling selection (not nearest, not rounded down) guarantees the axis
  * always clears the padded peak, so quantizing to a round mark never clips

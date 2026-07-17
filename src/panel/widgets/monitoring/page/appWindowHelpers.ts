@@ -51,14 +51,25 @@ export function topAppsAtHover(apps: readonly AppWindowSeries[], hoverT: number,
 /** Maps a window-scoped apps response onto ProcessListSection's row shape -
  *  current = the window average, values = the window's own point series (so
  *  the sparkline's x-range is the chart window). Rows disambiguate by name
- *  and icon only - no per-app color, per the monitoring redesign. */
-export function appsToProcessListItems(apps: readonly AppWindowSeries[]): ProcessListItem[] {
-  return apps.map(app => ({
-    name: app.name,
-    current: app.avg,
-    values: app.points.map(p => p.avg),
-    startedAtMs: app.startedAtMs,
-  }));
+ *  and icon only - no per-app color, per the monitoring redesign.
+ *  isApp/publisher/signed have no equivalent on the window endpoint, so a
+ *  detached/scrubbed view looks them up by name from the live list instead -
+ *  a still-running process keeps its live classification even while the
+ *  metric values themselves show a past window. */
+export function appsToProcessListItems(apps: readonly AppWindowSeries[], liveItems: readonly ProcessListItem[]): ProcessListItem[] {
+  const liveByName = new Map(liveItems.map(i => [i.name, i] as const));
+  return apps.map(app => {
+    const live = liveByName.get(app.name);
+    return {
+      name: app.name,
+      current: app.avg,
+      values: app.points.map(p => p.avg),
+      startedAtMs: app.startedAtMs,
+      isApp: live?.isApp,
+      publisher: live?.publisher,
+      signed: live?.signed,
+    };
+  });
 }
 
 function flatHistory(value: number): number[] {
@@ -102,6 +113,9 @@ export function reconcileLiveWithWindow(
         values: windowed.points.map(p => p.avg),
         startedAtMs: windowed.startedAtMs,
         secondary: live.secondary,
+        isApp: live.isApp,
+        publisher: live.publisher,
+        signed: live.signed,
       });
     } else if (live.values.length > 0) {
       result.push(live);
@@ -135,6 +149,9 @@ export function zeroedGpuFallback(liveItems: readonly ProcessListItem[]): Proces
     current: 0,
     values: item.values.map(() => 0),
     startedAtMs: item.startedAtMs,
+    isApp: item.isApp,
+    publisher: item.publisher,
+    signed: item.signed,
   }));
 }
 

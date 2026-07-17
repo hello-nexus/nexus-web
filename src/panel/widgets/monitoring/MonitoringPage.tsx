@@ -191,7 +191,7 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
       // window response IS the recorded historical breakdown for that past
       // window - shown as-is (necessarily just the recorded set).
       if (history.following) return reconcileLiveWithWindow(liveItems, appsWindow.apps);
-      return appsToProcessListItems(appsWindow.apps);
+      return appsToProcessListItems(appsWindow.apps, liveItems);
     }
     if (shouldFreezeFallback && frozenFallback && frozenFallback.tab === tab) return frozenFallback.items;
     return liveItems;

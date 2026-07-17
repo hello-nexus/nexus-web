@@ -675,10 +675,11 @@ describe('MonitoringPage', () => {
   describe('isApp/publisher/signed passthrough (round 5 items 5/6)', () => {
     afterEach(() => {
       cpuSeriesOverride = [];
+      appsWindowOverride = {};
       historyOverride = {};
     });
 
-    it('forwards isApp/publisher/signed from the live series onto ProcessListSection\'s items', () => {
+    it('forwards isApp/publisher/signed on the fallback path (no windowed apps endpoint)', () => {
       cpuSeriesOverride = [
         { name: 'chrome.exe', current: 40, values: [1, 2, 3], isApp: true, publisher: 'Google LLC', signed: 'signed' },
         { name: 'svchost.exe', current: 1, values: [0], isApp: false, publisher: null, signed: 'unknown' },
@@ -688,6 +689,34 @@ describe('MonitoringPage', () => {
       render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
       const section = screen.getByTestId('process-list-section');
       expect(section).toHaveAttribute('data-items-meta', 'chrome.exe:true:Google LLC:signed;svchost.exe:false:null:unknown');
+    });
+
+    it('forwards isApp/publisher/signed on the PRIMARY reconcile-with-window path (following live, windowed apps endpoint available)', () => {
+      cpuSeriesOverride = [
+        { name: 'chrome.exe', current: 40, values: [1, 2, 3], isApp: true, publisher: 'Google LLC', signed: 'signed' },
+      ];
+      appsWindowOverride = {
+        ready: true, supported: true,
+        apps: [{ name: 'chrome.exe', avg: 38, max: 50, points: [{ t: 0, avg: 38 }] }],
+      };
+      historyOverride = { following: true };
+      render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+      const section = screen.getByTestId('process-list-section');
+      expect(section).toHaveAttribute('data-items-meta', 'chrome.exe:true:Google LLC:signed');
+    });
+
+    it('forwards isApp/publisher/signed on the detached/scrubbed window-only path', () => {
+      cpuSeriesOverride = [
+        { name: 'chrome.exe', current: 40, values: [1, 2, 3], isApp: true, publisher: 'Google LLC', signed: 'signed' },
+      ];
+      appsWindowOverride = {
+        ready: true, supported: true,
+        apps: [{ name: 'chrome.exe', avg: 38, max: 50, points: [{ t: 0, avg: 38 }] }],
+      };
+      historyOverride = { following: false };
+      render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+      const section = screen.getByTestId('process-list-section');
+      expect(section).toHaveAttribute('data-items-meta', 'chrome.exe:true:Google LLC:signed');
     });
   });
 

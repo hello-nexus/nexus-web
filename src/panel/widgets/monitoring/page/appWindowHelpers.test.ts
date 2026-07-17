@@ -78,14 +78,33 @@ describe('appsToProcessListItems', () => {
     const apps: AppWindowSeries[] = [
       { name: 'chrome.exe', startedAtMs: 500, avg: 12.3, max: 20, points: [{ t: 0, avg: 10 }, { t: 1000, avg: 14 }] },
     ];
-    expect(appsToProcessListItems(apps)).toEqual([
+    expect(appsToProcessListItems(apps, [])).toEqual([
       { name: 'chrome.exe', current: 12.3, values: [10, 14], startedAtMs: 500 },
     ]);
   });
 
   it('leaves startedAtMs undefined when the response omits it', () => {
     const apps: AppWindowSeries[] = [{ name: 'Nexus', avg: 1, max: 1, points: [] }];
-    expect(appsToProcessListItems(apps)[0].startedAtMs).toBeUndefined();
+    expect(appsToProcessListItems(apps, [])[0].startedAtMs).toBeUndefined();
+  });
+
+  it('looks up isApp/publisher/signed from the live list by name (round 5 items 5/6, the detached path)', () => {
+    const apps: AppWindowSeries[] = [{ name: 'chrome.exe', avg: 12, max: 20, points: [{ t: 0, avg: 12 }] }];
+    const liveItems: ProcessListItem[] = [
+      { name: 'chrome.exe', current: 40, values: [1], isApp: true, publisher: 'Google LLC', signed: 'signed' },
+    ];
+    const result = appsToProcessListItems(apps, liveItems)[0];
+    expect(result.isApp).toBe(true);
+    expect(result.publisher).toBe('Google LLC');
+    expect(result.signed).toBe('signed');
+  });
+
+  it('leaves isApp/publisher/signed undefined for a window app with no matching live row', () => {
+    const apps: AppWindowSeries[] = [{ name: 'JustExited.exe', avg: 3, max: 5, points: [{ t: 0, avg: 3 }] }];
+    const result = appsToProcessListItems(apps, [])[0];
+    expect(result.isApp).toBeUndefined();
+    expect(result.publisher).toBeUndefined();
+    expect(result.signed).toBeUndefined();
   });
 });
 
@@ -145,6 +164,27 @@ describe('reconcileLiveWithWindow (item 48: complete live list + window reconcil
     const live = [liveItem({ name: 'Nexus', current: 10, secondary: '512 MB' })];
     const windowApps: AppWindowSeries[] = [{ name: 'Nexus', avg: 8, max: 15, points: [{ t: 0, avg: 8 }] }];
     expect(reconcileLiveWithWindow(live, windowApps)[0].secondary).toBe('512 MB');
+  });
+
+  it('preserves isApp/publisher/signed from the live row for a window-matched entry (round 5 items 5/6, the primary following-live path)', () => {
+    const live = [liveItem({
+      name: 'chrome.exe', current: 40, isApp: true, publisher: 'Google LLC', signed: 'signed',
+    })];
+    const windowApps: AppWindowSeries[] = [{ name: 'chrome.exe', avg: 38, max: 50, points: [{ t: 0, avg: 38 }] }];
+    const result = reconcileLiveWithWindow(live, windowApps)[0];
+    expect(result.isApp).toBe(true);
+    expect(result.publisher).toBe('Google LLC');
+    expect(result.signed).toBe('signed');
+  });
+
+  it('preserves isApp/publisher/signed for a live-only row (no window match)', () => {
+    const live = [liveItem({
+      name: 'svchost.exe', current: 1, isApp: false, publisher: 'Microsoft Corporation', signed: 'signed',
+    })];
+    const result = reconcileLiveWithWindow(live, [])[0];
+    expect(result.isApp).toBe(false);
+    expect(result.publisher).toBe('Microsoft Corporation');
+    expect(result.signed).toBe('signed');
   });
 
   it('includes a window-only app not present in the live list, sourced from the window data alone', () => {
@@ -208,6 +248,16 @@ describe('zeroedGpuFallback (item 51: GPU tab with no per-process telemetry)', (
 
   it('handles an empty live list', () => {
     expect(zeroedGpuFallback([])).toEqual([]);
+  });
+
+  it('preserves isApp/publisher/signed from the live row (round 5 items 5/6)', () => {
+    const live: ProcessListItem[] = [
+      { name: 'chrome.exe', current: 40, values: [10, 20, 30], isApp: true, publisher: 'Google LLC', signed: 'signed' },
+    ];
+    const result = zeroedGpuFallback(live)[0];
+    expect(result.isApp).toBe(true);
+    expect(result.publisher).toBe('Google LLC');
+    expect(result.signed).toBe('signed');
   });
 });
 
