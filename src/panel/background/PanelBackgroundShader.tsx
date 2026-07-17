@@ -57,6 +57,7 @@ export function PanelBackgroundShader({ effect, template, opacity, effectState, 
     <div
       className={styles.backgroundShader}
       data-ready={ready && !error ? 'true' : 'false'}
+      data-panel-bg-layer
       style={style}
       aria-hidden="true"
     >

@@ -29,7 +29,6 @@ import {
   fetchXeneonEdgeSettings,
   launchTouchSetupWizard,
   repairTouchMapping,
-  restoreXeneonEdgeDefaults,
   rotateDisplay,
   setDisplayBrightness,
   setXeneonEdgeSettings,
@@ -41,6 +40,8 @@ import {
   fetchPanelDevice,
   fetchPanelDevices,
   patchPanelDevice,
+  resetPanelDevice,
+  resetPanelDeviceHardware,
 } from '../../../api/panel';
 import {
   getQSeriesRotation,
@@ -203,6 +204,14 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const [configuringWidget, setConfiguringWidget] = useState<PanelWidget | null>(null);
   const embedFrameRef = useRef<PanelEmbedFrameHandle | null>(null);
   const [screenshotBusy, setScreenshotBusy] = useState(false);
+  const [resetPersonalizationConfirmOpen, setResetPersonalizationConfirmOpen] = useState(false);
+  const [resettingPersonalization, setResettingPersonalization] = useState(false);
+  const [resetHardwareConfirmOpen, setResetHardwareConfirmOpen] = useState(false);
+  const [resettingHardware, setResettingHardware] = useState(false);
+  // Bumped after a hardware reset so the settings-load effect AND the Xeneon
+  // DDC fetch effect re-read the now-defaulted state from the service; their
+  // completion is also what clears resettingHardware.
+  const [settingsRefreshNonce, setSettingsRefreshNonce] = useState(0);
   const { push: pushToast } = useToastSafe();
   // One-shot flash request forwarded to the preview iframe when an edit is
   // rejected (a resize that can't fit). nonce re-fires repeat rejections.
@@ -271,7 +280,6 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // The Xeneon Edge's native settings block (msgid 0x0e read, ~1s on the
   // bench) - null hides the whole block until the read completes.
   const [xeneonSettings, setXeneonSettings] = useState<XeneonEdgeSettingsValues | null>(null);
-  const [restoringXeneonColors, setRestoringXeneonColors] = useState(false);
   useEffect(() => {
     if (!isXeneonEdgePanel || !device?.displayId) return;
     let cancelled = false;
@@ -285,9 +293,14 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
         green: settings.green ?? XENEON_EDGE_DEFAULTS.green,
         blue: settings.blue ?? XENEON_EDGE_DEFAULTS.blue,
       });
-    }).catch(() => {});
+    }).catch(() => {}).finally(() => {
+      // A hardware reset holds its busy flag until this ~1s DDC re-read
+      // lands, so the sliders can't take a drag on pre-reset values that
+      // the refetch is about to stomp.
+      setResettingHardware(false);
+    });
     return () => { cancelled = true; };
-  }, [isXeneonEdgePanel, device?.displayId]);
+  }, [isXeneonEdgePanel, device?.displayId, settingsRefreshNonce]);
   // Strip panels turned landscape (Y70 682x2560 = 3.75, Xeneon Edge
   // 2560x720 = 3.56) leave the canvas a sliver inside the tall side-by-side
   // preview column, so they stack instead: options above, canvas docked
@@ -395,9 +408,12 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
         setReserveMonitor(prefs.panel?.reserveMonitor ?? true);
       }
       setLoaded(true);
-    }).catch(() => { if (!cancelled) setLoaded(true); });
+      // Non-Xeneon panels re-enable the hardware-reset button once these
+      // reads land; Xeneon waits for its slower DDC re-read above.
+      if (!isXeneonEdgePanel) setResettingHardware(false);
+    }).catch(() => { if (!cancelled) { setLoaded(true); setResettingHardware(false); } });
     return () => { cancelled = true; };
-  }, [surface, supportsDisplayControls, isQSeries, device?.panelRecordId, device?.capabilities.touch]);
+  }, [surface, supportsDisplayControls, isQSeries, isXeneonEdgePanel, device?.panelRecordId, device?.capabilities.touch, settingsRefreshNonce]);
 
   const pushBrightness = (value: number) => {
     setBrightness(value);
@@ -424,26 +440,6 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
         setXeneonSettings(prev => (prev ? { ...prev, [key]: echoed } : prev));
       })
       .catch(() => {});
-  };
-
-  const restoreXeneonDefaults = async () => {
-    if (!device?.displayId) return;
-    setRestoringXeneonColors(true);
-    try {
-      const result = await restoreXeneonEdgeDefaults(device.displayId).catch(() => null);
-      if (!result) return;
-      // The restore covers all six, so every field comes back set.
-      setXeneonSettings(prev => (prev ? {
-        brightness: result.brightness ?? prev.brightness,
-        backlight: result.backlight ?? prev.backlight,
-        contrast: result.contrast ?? prev.contrast,
-        red: result.red ?? prev.red,
-        green: result.green ?? prev.green,
-        blue: result.blue ?? prev.blue,
-      } : prev));
-    } finally {
-      setRestoringXeneonColors(false);
-    }
   };
 
   // Editor capacity must match the runtime grid, or placements the editor
@@ -686,6 +682,46 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     }
   }, [surface, liveCanvas, liveDpr, device?.previewSize, device?.previewDpr, device?.name, pushToast, t]);
 
+  // Personalization reset: the service clears the record's layout / theme /
+  // widget state and deletes its uploaded media; the panel/device broadcast
+  // refetches the layout and theme everywhere (the media library list
+  // refetches on its next mount).
+  const resetPersonalization = useCallback(async () => {
+    if (!editingDeviceId) return;
+    setResetPersonalizationConfirmOpen(false);
+    setResettingPersonalization(true);
+    try {
+      await resetPanelDevice(editingDeviceId);
+      broadcastLayoutChanged();
+      pushToast({ title: t('devices.panels.resetPersonalization.done') });
+    } catch {
+      pushToast({ title: t('devices.panels.resetPersonalization.error') });
+    } finally {
+      setResettingPersonalization(false);
+    }
+  }, [editingDeviceId, pushToast, t]);
+
+  // Hardware-settings reset: the service restores the Settings-tab defaults
+  // and applies them to the hardware (brightness/orientation/screen, Xeneon
+  // DDC picture values, monitor behavior). The broadcast lets the kiosk pick
+  // up the change; THIS page re-reads via the nonce, and the busy flag stays
+  // up until those re-reads land (the settings effects clear it) so no
+  // control takes input on pre-reset values.
+  const resetHardware = useCallback(async () => {
+    if (!editingDeviceId) return;
+    setResetHardwareConfirmOpen(false);
+    setResettingHardware(true);
+    try {
+      await resetPanelDeviceHardware(editingDeviceId);
+      broadcastLayoutChanged();
+      setSettingsRefreshNonce(n => n + 1);
+      pushToast({ title: t('devices.panels.resetHardware.done') });
+    } catch {
+      pushToast({ title: t('devices.panels.resetHardware.error') });
+      setResettingHardware(false);
+    }
+  }, [editingDeviceId, pushToast, t]);
+
   const tabs: { key: Tab; label: string; icon: ReactNode }[] = [
     { key: 'widgets', label: t('devices.y70.tab.widgets'), icon: <LayoutGrid size={14} /> },
     { key: 'theme', label: t('devices.y70.tab.theme'), icon: <Palette size={14} /> },
@@ -876,8 +912,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                       xeneonSettings={isXeneonEdgePanel ? xeneonSettings : null}
                       onXeneonChange={previewXeneonControl}
                       onXeneonCommit={commitXeneonControl}
-                      onRestoreXeneonColors={() => void restoreXeneonDefaults()}
-                      restoringXeneonColors={restoringXeneonColors}
+                      hardwareResetBusy={resettingHardware}
                     />
                   )}
                   {activeTab === 'settings' && (supportsDisplayControls || supportsAutoLaunch) && (
@@ -965,10 +1000,48 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         xeneonSettings={null}
                         onXeneonChange={() => {}}
                         onXeneonCommit={() => {}}
-                        onRestoreXeneonColors={() => {}}
-                        restoringXeneonColors={false}
+                        hardwareResetBusy={resettingHardware}
                       />
                       <QSeriesCoolerSettings />
+                    </div>
+                  )}
+                  {/* Panel devices with a settings tab (Y70 / Q-series /
+                      promoted monitors) get the two per-device resets below
+                      the surface-specific settings: personalization (the
+                      Widgets + Theme tabs) and hardware settings (this tab). */}
+                  {activeTab === 'settings' && editingDeviceId && (
+                    <div className={`${styles.settingsContent} ${styles.settingsContentDanger}`}>
+                      {/* eslint-disable-next-line i18next/no-literal-string -- CSS variable token */}
+                      <SettingsSection title={t('settings.dangerZone')} titleStyle={{ color: 'var(--bad)' }}>
+                        <SettingRow
+                          label={t('devices.panels.resetPersonalization.label')}
+                          description={t('devices.panels.resetPersonalization.description')}
+                        >
+                          <Button
+                            type="button"
+                            tone="danger"
+                            size="sm"
+                            onClick={() => setResetPersonalizationConfirmOpen(true)}
+                            disabled={resettingPersonalization}
+                          >
+                            {t('devices.panels.resetPersonalization.button')}
+                          </Button>
+                        </SettingRow>
+                        <SettingRow
+                          label={t('devices.panels.resetHardware.label')}
+                          description={t('devices.panels.resetHardware.description')}
+                        >
+                          <Button
+                            type="button"
+                            tone="danger"
+                            size="sm"
+                            onClick={() => setResetHardwareConfirmOpen(true)}
+                            disabled={resettingHardware}
+                          >
+                            {t('devices.panels.resetHardware.button')}
+                          </Button>
+                        </SettingRow>
+                      </SettingsSection>
                     </div>
                   )}
                 </div>
@@ -1030,6 +1103,30 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
         </div>
       )}
       </div>
+      <ConfirmModal
+        open={resetPersonalizationConfirmOpen}
+        title={t('devices.panels.resetPersonalization.confirmTitle')}
+        message={t('devices.panels.resetPersonalization.confirmMessage')}
+        bullets={t('devices.panels.resetPersonalization.wipeList').split('\n')}
+        note={t('settings.factoryReset.confirmNote')}
+        // eslint-disable-next-line i18next/no-literal-string -- note tone enum value
+        noteTone="danger"
+        confirmLabel={t('devices.panels.resetPersonalization.confirmButton')}
+        destructive
+        onConfirm={() => void resetPersonalization()}
+        onCancel={() => setResetPersonalizationConfirmOpen(false)}
+      />
+      <ConfirmModal
+        open={resetHardwareConfirmOpen}
+        title={t('devices.panels.resetHardware.confirmTitle')}
+        message={t('devices.panels.resetHardware.confirmMessage')}
+        bullets={t('devices.panels.resetHardware.wipeList').split('\n')}
+        note={t('devices.panels.resetHardware.confirmNote')}
+        confirmLabel={t('devices.panels.resetHardware.confirmButton')}
+        destructive
+        onConfirm={() => void resetHardware()}
+        onCancel={() => setResetHardwareConfirmOpen(false)}
+      />
     </section>
   );
 }
@@ -1251,8 +1348,8 @@ interface MonitorSettingsPanelProps {
   onXeneonChange: (key: XeneonEdgeControlKey, value: number) => void;
   // Fires the HID write; called once per drag gesture or typed edit.
   onXeneonCommit: (key: XeneonEdgeControlKey, value: number) => void;
-  onRestoreXeneonColors: () => void;
-  restoringXeneonColors: boolean;
+  // True while the danger-zone hardware reset is rewriting the controls.
+  hardwareResetBusy: boolean;
 }
 
 function MonitorSettingsPanel({
@@ -1263,7 +1360,7 @@ function MonitorSettingsPanel({
   autoOrient, onAutoOrientToggle,
   reserveMonitor, onReserveMonitorToggle,
   xeneonSettings, onXeneonChange, onXeneonCommit,
-  onRestoreXeneonColors, restoringXeneonColors,
+  hardwareResetBusy,
 }: MonitorSettingsPanelProps) {
   const { t } = useTranslation();
   return (
@@ -1290,10 +1387,10 @@ function MonitorSettingsPanel({
           value={xeneonSettings[key]}
           min={min}
           max={max}
-          // A restore is a serialized HID round-trip per control (no
+          // A hardware reset is a serialized HID round-trip per control (no
           // server-side coalescing) and rewrites all six, so block a
           // concurrent drag on any field it is about to overwrite.
-          disabled={restoringXeneonColors}
+          disabled={hardwareResetBusy}
           onChange={(value, commit) => {
             onXeneonChange(key, value);
             if (commit) onXeneonCommit(key, value);
@@ -1336,22 +1433,6 @@ function MonitorSettingsPanel({
           checked={reserveMonitor}
           onChange={onReserveMonitorToggle}
         />
-      )}
-      {xeneonSettings !== null && (
-        <SettingRow
-          label={t('devices.xeneonEdge.restoreDefaults')}
-          description={t('devices.xeneonEdge.restoreDefaultsHint')}
-        >
-          <Button
-            type="button"
-            tone="neutral"
-            size="sm"
-            loading={restoringXeneonColors}
-            onClick={onRestoreXeneonColors}
-          >
-            {t('devices.xeneonEdge.restoreDefaults')}
-          </Button>
-        </SettingRow>
       )}
       </SettingsSection>
     </div>

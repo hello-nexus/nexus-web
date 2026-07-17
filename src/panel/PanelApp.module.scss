@@ -1056,14 +1056,17 @@
   --panel-content-scale: min(var(--panel-cell-size), var(--panel-row-size));
 }
 
-// A promoted monitor's add-widget / edit sheet is fixed-size chrome, not scaled
-// panel content, so neutralise the live panel's --panel-scale (a content zoom,
-// e.g. ~1.57x on a 1920px monitor) the way the desktop drawer does; otherwise
-// the sheet transform scale(var(--panel-scale)) blows it up. The catalog grid
-// sets its own --panel-scale for its preview cells (a closer ancestor), so
-// those still scale correctly. Whether this surface shows a bottom sheet or a
-// side drawer is decided by orientation below (portrait monitor -> bottom).
-.editorBackdrop[data-surface='monitor'] {
+// A promoted DESK monitor's add-widget / edit sheet is fixed-size chrome, not
+// scaled panel content, so neutralise the live panel's --panel-scale (a
+// content zoom, e.g. ~1.57x on a 1920px monitor) the way the desktop drawer
+// does; otherwise the sheet transform scale(var(--panel-scale)) blows it up.
+// The catalog grid sets its own --panel-scale for its preview cells (a closer
+// ancestor), so those still scale correctly. Whether this surface shows a
+// bottom sheet or a side drawer is decided by orientation below (portrait
+// monitor -> bottom). Touch monitors (Xeneon Edge, or any display Windows
+// reports as touch; data-touch-chrome) are excluded: they take the Y70
+// treatment, sheets scaled as panel content.
+.editorBackdrop[data-surface='monitor']:not([data-touch-chrome='true']) {
   --panel-scale: 1;
 }
 
@@ -1413,13 +1416,55 @@
 }
 
 // Promoted monitor: bottom sheet only when portrait; a wide/landscape monitor
-// keeps the side drawer. Aspect-ratio, not px width - a monitor's CSS width is
-// a real screen size.
+// keeps the side drawer. Aspect-ratio, not px width - a monitor's CSS width
+// is a real screen size. A touch-chrome monitor's --panel-scale is live (the
+// desk-monitor pin above excludes it), so its portrait bottom sheet scales;
+// a desk monitor's stays 1x.
 @media (orientation: portrait) {
   .editorBackdrop[data-surface='monitor'] {
     @include editorBottomSheet;
     @include editorBottomSheetScaled;
   }
+}
+
+// Touch-chrome landscape monitor (Xeneon Edge): the sheet keeps the desktop
+// dashboard's side-drawer shape but scales with the panel content. Shrink the
+// box by 1/s and re-grow from the right edge so the post-scale drawer hugs
+// the side and fills the height exactly (align-items centers the pre-scale
+// box so the center-origin growth stays on screen).
+@media (orientation: landscape) {
+  .editorBackdrop[data-touch-chrome='true'][data-surface='monitor'] {
+    align-items: center;
+
+    .editorSheet {
+      width: min(380px, calc(88vw / var(--panel-scale, 1)));
+      height: calc(100% / var(--panel-scale, 1));
+      transform-origin: right center;
+      animation: sheetInSide 170ms ease-out both;
+    }
+
+    // Restated here: this rule outranks the global data-entered suppression
+    // (same specificity, later in source), which must keep winning post-entry.
+    &:not([data-state='closing']) .editorSheet[data-entered='true'] {
+      animation: none;
+    }
+
+    &[data-state='closing'] .editorSheet {
+      animation: sheetOutSide var(--ease) ease-out both;
+    }
+  }
+}
+
+// Compose --panel-scale into the side-drawer slide, same trick as sheetUp
+// for the bottom sheet; unscaled surfaces never use these keyframes.
+@keyframes sheetInSide {
+  from { transform: translateX(28px) scale(var(--panel-scale, 1)); opacity: 0; }
+  to { transform: translateX(0) scale(var(--panel-scale, 1)); opacity: 1; }
+}
+
+@keyframes sheetOutSide {
+  from { transform: translateX(0) scale(var(--panel-scale, 1)); opacity: 1; }
+  to { transform: translateX(28px) scale(var(--panel-scale, 1)); opacity: 0; }
 }
 
 .editorBackdrop[data-surface='phone'][data-mode='settings'] .editorSheet {
