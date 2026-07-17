@@ -183,8 +183,9 @@ describe('MetricHistorySection', () => {
     ];
     const { container } = renderSection({ metric: 'cpu', history: { series } });
     // The old threshold-band rect (translucent fill at 12% opacity) is gone;
-    // TempRibbon still legitimately draws var(--bad) rects below the chart,
-    // so the band's own distinguishing attribute is what must be absent.
+    // the temp ribbon still legitimately draws opaque var(--bad) rects
+    // inside the plot, so the band's own distinguishing attribute (opacity)
+    // is what must be absent.
     expect(container.querySelector('rect[fill-opacity="0.12"]')).toBeNull();
     // Only one line drawn (cpu) - no second line for cpu-temp.
     expect(container.querySelectorAll('path[stroke="var(--accent)"]').length).toBe(1);
@@ -194,7 +195,7 @@ describe('MetricHistorySection', () => {
     expect(screen.queryByText(/monitoring\.history\.avg/)).toBeNull();
   });
 
-  it('no bottom-left temp badge floats over the chart, and the ribbon itself shows no numeric value (item 41: icon only, value lives in the hover tooltip)', () => {
+  it('shows no floating overlay badge over the chart; the ribbon\'s own right-side readout shows the current temp instead (item R6)', () => {
     stubGeometry();
     const series: UseMetricHistoryResult['series'] = [
       { id: 'cpu', kind: 'cpu', name: 'CPU', points: [{ t: NOW, avg: 50, max: 51 }] },
@@ -202,9 +203,11 @@ describe('MetricHistorySection', () => {
     ];
     const { container } = renderSection({ metric: 'cpu', history: { series } });
     // Not hovering - previously a docked chartOverlayWrap badge showed the
-    // temp unconditionally; now nothing outside the tooltip shows it.
+    // temp unconditionally; that floating overlay is gone.
     expect(container.querySelector('[class*="tempOverlay"]')).toBeNull();
-    expect(screen.queryByText('70°C')).toBeNull();
+    // The ribbon renders its own right-side value label (same lane as the
+    // y-axis ticks), not a floating badge.
+    expect(screen.getByText('70°C')).toBeInTheDocument();
   });
 
   it('shows the temperature on the SAME row as the timestamp in the hover tooltip, apps listed below', () => {

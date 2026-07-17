@@ -31,7 +31,7 @@ import {
   xTickFormatForWindow,
   type HistoryMetric,
 } from './metricHistoryHelpers';
-import { TempRibbon } from './TempRibbon';
+import type { ChartRibbonSpec } from '../../../../components/common/TimeSeriesChart/TimeSeriesChart';
 import type { MetricHistorySeries } from '../../../../api/monitoringHistory';
 import styles from './MetricHistorySection.module.scss';
 
@@ -122,6 +122,29 @@ export function MetricHistorySection({ metric, gpuComponents, preferredGpuId, hi
 
   const windowMs = history.domain[1] - history.domain[0];
   const xTickFormat = useMemo(() => xTickFormatForWindow(windowMs), [windowMs]);
+
+  // The temp ribbon's own right-side readout - the newest point in the
+  // currently-plotted window (mirrors the hover tooltip's live value when
+  // not hovering).
+  const currentTempLabel = useMemo(() => {
+    if (!resolved.temp || resolved.temp.points.length === 0) return undefined;
+    const last = resolved.temp.points[resolved.temp.points.length - 1];
+    return localizeNumbers(`${Math.round(convertTemperature(last.avg, monitoringTempUnit))}${tempUnitSymbol(monitoringTempUnit)}`, numberFormat);
+  }, [resolved.temp, monitoringTempUnit, numberFormat]);
+
+  // Rendered inside the chart's own plot, directly under the line - see
+  // TimeSeriesChart's ribbons prop. cpu/gpu only; memory/network have no
+  // temp series so this stays undefined and the chart renders no band.
+  const ribbons: ChartRibbonSpec[] | undefined = useMemo(() => {
+    if (!resolved.temp) return undefined;
+    return [{
+      points: resolved.temp.points,
+      floor: TEMP_RIBBON_FLOOR_C,
+      cap: metric === 'gpu' ? GPU_TEMP_RIBBON_CAP_C : CPU_TEMP_RIBBON_CAP_C,
+      fill: 'var(--bad)',
+      valueLabel: currentTempLabel,
+    }];
+  }, [resolved.temp, metric, currentTempLabel]);
 
   const rangeOptions = RANGE_OPTIONS.map(o => ({ value: o.key, label: t(o.labelKey) }));
 
@@ -226,15 +249,9 @@ export function MetricHistorySection({ metric, gpuComponents, preferredGpuId, hi
             tooltipHeaderExtra={tooltipHeaderTemp ?? undefined}
             onRangeSelect={history.onChartDragSelect}
             stepSeconds={history.stepSeconds}
+            yAxisSide="right"
+            ribbons={ribbons}
           />
-          {resolved.temp && (
-            <TempRibbon
-              points={resolved.temp.points}
-              domain={history.domain}
-              floorC={TEMP_RIBBON_FLOOR_C}
-              capC={metric === 'gpu' ? GPU_TEMP_RIBBON_CAP_C : CPU_TEMP_RIBBON_CAP_C}
-            />
-          )}
           <div className={styles.controls}>
             {history.rangeKey === 'custom' ? (
               <button

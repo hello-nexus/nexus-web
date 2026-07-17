@@ -7,7 +7,7 @@ import { GAP_MULTIPLIER, medianSpacingOfPoints, splitIntoSegments } from '../Tim
 // The smallest a dragged window (or a preset-derived default box) may be -
 // shared between TimelineBrush's own drag clamping and the viewport
 // reducer's default-box derivation so both agree on the same floor.
-export const MIN_BOX_WINDOW_MS = 5 * 60_000;
+export const MIN_BOX_WINDOW_MS = 60_000;
 
 export function msToPx(t: number, domainStart: number, domainEnd: number, width: number): number {
   const span = domainEnd - domainStart || 1;

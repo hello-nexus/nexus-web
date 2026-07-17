@@ -63,10 +63,9 @@ const RANGE_MATCH_TOLERANCE_MS = 1_000;
 
 // The seek-bar strip is this many times wider than the chart-window (box) it
 // contains by default, so the box highlights only the most recent sixth of
-// the strip - floored by MIN_BOX_WINDOW_MS so a narrow strip (the smallest
-// preset) can still legitimately fill the whole strip. At the smallest
-// preset (30m) this lands exactly on the floor: a 5-minute box in a
-// 30-minute strip.
+// the strip - floored by MIN_BOX_WINDOW_MS so a strip narrower than six
+// times the floor can still legitimately fill the whole strip instead of
+// deriving a sub-floor sixth.
 const STRIP_TO_BOX_RATIO = 6;
 
 export function windowMsForRangeKey(key: RangeKey): number | null {
@@ -84,7 +83,7 @@ export function rangeKeyForWindow(windowMs: number): RangeKey {
 /** The default chart-window (box) width for a strip of `stripWidthMs`: a
  *  sixth of the strip, floored at MIN_BOX_WINDOW_MS (and re-capped at the
  *  strip width itself, since the floor can exceed a narrow strip - the box
- *  then simply fills it, matching the smallest preset). */
+ *  then simply fills it). */
 export function defaultBoxWidthMs(stripWidthMs: number): number {
   return Math.min(stripWidthMs, Math.max(MIN_BOX_WINDOW_MS, stripWidthMs / STRIP_TO_BOX_RATIO));
 }
@@ -310,10 +309,11 @@ export function adaptivePercentYMax(windowMaxPercent: number): number {
   return 100;
 }
 
-// TempRibbon's absolute thickness scale (item 31): near-zero thickness at
-// the floor, full thickness at the per-kind cap - a fixed real-world range
-// instead of the window's own min/max, so the ribbon reads the same way
-// across different scrub windows. Clamped in TempRibbon itself.
+// The temp ribbon's absolute thickness scale (item 31): near-zero thickness
+// at the floor, full thickness at the per-kind cap - a fixed real-world
+// range instead of the window's own min/max, so the ribbon reads the same
+// way across different scrub windows. Clamped in TimeSeriesChart's own
+// ribbon rendering (the `ribbons` prop's floor/cap).
 export const TEMP_RIBBON_FLOOR_C = 30;
 export const CPU_TEMP_RIBBON_CAP_C = 100;
 export const GPU_TEMP_RIBBON_CAP_C = 95;

@@ -74,9 +74,11 @@ describe('defaultBoxWidthMs', () => {
   });
 
   it('floors at MIN_BOX_WINDOW_MS, capped at the strip width itself', () => {
-    // A strip narrower than 30m: a sixth would be under the 5-minute floor,
-    // so the box fills the whole strip.
-    expect(defaultBoxWidthMs(5 * MINUTE)).toBe(5 * MINUTE);
+    // A strip narrow enough that a sixth would be under the floor: the box
+    // floors at MIN_BOX_WINDOW_MS itself.
+    expect(defaultBoxWidthMs(3 * MINUTE)).toBe(MIN_BOX_WINDOW_MS);
+    // A strip narrower than the floor itself: the box fills the whole strip.
+    expect(defaultBoxWidthMs(30_000)).toBe(30_000);
   });
 });
 

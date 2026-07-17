@@ -368,4 +368,157 @@ describe('TimeSeriesChart', () => {
       expect(container.querySelector('[class*="dragSelection"]')).not.toBeInTheDocument();
     });
   });
+
+  describe('yAxisSide', () => {
+    it('renders y-tick labels on the left by default', () => {
+      render(<TimeSeriesChart series={makeSeries()} {...baseProps} yDomain={[0, 100]} />);
+      const label = screen.getByText('100C');
+      expect(label).toHaveAttribute('text-anchor', 'end');
+      expect(Number(label.getAttribute('x'))).toBeLessThan(220);
+    });
+
+    it('moves y-tick labels to the right edge when yAxisSide is right', () => {
+      render(<TimeSeriesChart series={makeSeries()} {...baseProps} yDomain={[0, 100]} yAxisSide="right" />);
+      const label = screen.getByText('100C');
+      expect(label).toHaveAttribute('text-anchor', 'start');
+      expect(Number(label.getAttribute('x'))).toBeGreaterThan(220);
+    });
+  });
+
+  describe('ribbons', () => {
+    const ribbonSeries = makeSeries();
+
+    function ribbonRects(container: HTMLElement, fill = 'var(--bad)') {
+      return [...container.querySelectorAll(`rect[fill="${fill}"]`)];
+    }
+
+    it('renders no ribbon rects when ribbons is omitted (backwards compatible)', () => {
+      const { container } = render(<TimeSeriesChart series={ribbonSeries} {...baseProps} />);
+      expect(ribbonRects(container).length).toBe(0);
+    });
+
+    it('renders one rect per ribbon point', () => {
+      const points = [{ t: 0, avg: 40, max: 41 }, { t: HOUR, avg: 90, max: 92 }, { t: 2 * HOUR, avg: 60, max: 62 }];
+      const { container } = render(
+        <TimeSeriesChart series={ribbonSeries} {...baseProps} ribbons={[{ points, floor: 30, cap: 100, fill: 'var(--bad)' }]} />,
+      );
+      expect(ribbonRects(container).length).toBe(3);
+    });
+
+    it('renders a thicker band for a value nearer the cap (waveform, not opacity)', () => {
+      const points = [{ t: 0, avg: 40, max: 41 }, { t: HOUR, avg: 90, max: 92 }];
+      const { container } = render(
+        <TimeSeriesChart series={ribbonSeries} {...baseProps} ribbons={[{ points, floor: 30, cap: 100, fill: 'var(--bad)' }]} />,
+      );
+      const rects = ribbonRects(container);
+      expect(rects[0]).not.toHaveAttribute('fill-opacity');
+      expect(Number(rects[1].getAttribute('height'))).toBeGreaterThan(Number(rects[0].getAttribute('height')));
+    });
+
+    it('clamps thickness to the band height once at/over the cap', () => {
+      const points = [{ t: 0, avg: 100, max: 100 }, { t: HOUR, avg: 150, max: 150 }];
+      const { container } = render(
+        <TimeSeriesChart series={ribbonSeries} {...baseProps} ribbons={[{ points, floor: 30, cap: 100, fill: 'var(--bad)', height: 12 }]} />,
+      );
+      const heights = ribbonRects(container).map(r => Number(r.getAttribute('height')));
+      expect(heights[0]).toBeCloseTo(heights[1], 5);
+      expect(heights[0]).toBeCloseTo(12, 5);
+    });
+
+    it('shares the exact x pixel mapping with the line above it - no separate alignment computation', () => {
+      const points = [{ t: 0, avg: 40, max: 41 }, { t: HOUR, avg: 50, max: 52 }, { t: 2 * HOUR, avg: 60, max: 62 }];
+      const { container } = render(
+        <TimeSeriesChart
+          series={ribbonSeries} {...baseProps} domain={[0, 2 * HOUR]}
+          ribbons={[{ points, floor: 30, cap: 100, fill: 'var(--bad)' }]}
+        />,
+      );
+      const clipRect = container.querySelector('clipPath rect')!;
+      const plotX = Number(clipRect.getAttribute('x'));
+      const plotW = Number(clipRect.getAttribute('width'));
+      const rects = ribbonRects(container);
+      expect(Number(rects[0].getAttribute('x'))).toBe(plotX);
+      const last = rects[rects.length - 1];
+      expect(Number(last.getAttribute('x')) + Number(last.getAttribute('width'))).toBe(plotX + plotW);
+    });
+
+    it('reserves its own height from the line/area\'s own plot range, stacking multiple ribbons in order', () => {
+      const points = [{ t: 0, avg: 60, max: 60 }];
+      const { container } = render(
+        <TimeSeriesChart
+          series={ribbonSeries} {...baseProps}
+          ribbons={[
+            { points, floor: 0, cap: 100, fill: 'var(--bad)', height: 12 },
+            { points, floor: 0, cap: 100, fill: 'var(--accent)', height: 12 },
+          ]}
+        />,
+      );
+      const first = ribbonRects(container, 'var(--bad)')[0];
+      const second = ribbonRects(container, 'var(--accent)')[0];
+      const firstMidY = Number(first.getAttribute('y')) + Number(first.getAttribute('height')) / 2;
+      const secondMidY = Number(second.getAttribute('y')) + Number(second.getAttribute('height')) / 2;
+      expect(secondMidY).toBeGreaterThan(firstMidY);
+    });
+
+    it('renders a valueLabel at the axis label position, on the yAxisSide edge', () => {
+      const points = [{ t: 0, avg: 60, max: 60 }];
+      render(
+        <TimeSeriesChart
+          series={ribbonSeries} {...baseProps} yAxisSide="right"
+          ribbons={[{ points, floor: 0, cap: 100, fill: 'var(--bad)', valueLabel: '61C' }]}
+        />,
+      );
+      // A value distinct from any y-axis tick, so this can only be the
+      // ribbon's own valueLabel.
+      const label = screen.getByText('61C');
+      expect(label).toHaveAttribute('text-anchor', 'start');
+    });
+
+    it('renders no valueLabel text when omitted', () => {
+      const points = [{ t: 0, avg: 77, max: 77 }];
+      render(
+        <TimeSeriesChart series={ribbonSeries} {...baseProps} ribbons={[{ points, floor: 0, cap: 100, fill: 'var(--bad)' }]} />,
+      );
+      expect(screen.queryByText('77C')).toBeNull();
+    });
+
+    it('renders the icon in the pad lane opposite the axis labels', () => {
+      const points = [{ t: 0, avg: 60, max: 60 }];
+      const { container } = render(
+        <TimeSeriesChart
+          series={ribbonSeries} {...baseProps}
+          ribbons={[{ points, floor: 0, cap: 100, fill: 'var(--bad)', icon: <circle data-testid="ribbon-icon" r={6} /> }]}
+        />,
+      );
+      const icon = container.querySelector('[data-testid="ribbon-icon"]')!;
+      expect(icon).toBeInTheDocument();
+      const g = icon.closest('g[transform]')!;
+      // Default yAxisSide is 'left', so the icon lane sits on the right
+      // (opposite the axis) - a translate x past the plot's midpoint.
+      const translateX = Number(g.getAttribute('transform')!.match(/translate\(([-\d.]+),/)![1]);
+      expect(translateX).toBeGreaterThan(220);
+    });
+
+    it('moves the icon lane to the left when yAxisSide is right (opposite the axis)', () => {
+      const points = [{ t: 0, avg: 60, max: 60 }];
+      const { container } = render(
+        <TimeSeriesChart
+          series={ribbonSeries} {...baseProps} yAxisSide="right"
+          ribbons={[{ points, floor: 0, cap: 100, fill: 'var(--bad)', icon: <circle data-testid="ribbon-icon" r={6} /> }]}
+        />,
+      );
+      const icon = container.querySelector('[data-testid="ribbon-icon"]')!;
+      const g = icon.closest('g[transform]')!;
+      const translateX = Number(g.getAttribute('transform')!.match(/translate\(([-\d.]+),/)![1]);
+      expect(translateX).toBeLessThan(220);
+    });
+
+    it('renders no icon group when omitted', () => {
+      const points = [{ t: 0, avg: 60, max: 60 }];
+      const { container } = render(
+        <TimeSeriesChart series={ribbonSeries} {...baseProps} ribbons={[{ points, floor: 0, cap: 100, fill: 'var(--bad)' }]} />,
+      );
+      expect(container.querySelector('[data-testid="ribbon-icon"]')).toBeNull();
+    });
+  });
 });

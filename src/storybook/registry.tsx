@@ -523,6 +523,11 @@ function PreviewTimeSeriesChart() {
     const avg = base + amp * Math.sin(i / 4 + seedOffset) + sampleNoise(i, seedOffset);
     return { t, avg, max: avg + 4 };
   });
+  const tempPoints = Array.from({ length: 48 }, (_, i) => {
+    const t = now - (48 - i) * (DAY / 8);
+    const avg = 55 + 30 * Math.sin(i / 3) + sampleNoise(i, 4) * 2;
+    return { t, avg, max: avg + 5 };
+  });
   return (
     <TimeSeriesChart
       series={[
@@ -534,6 +539,8 @@ function PreviewTimeSeriesChart() {
       xTickFormat={t => new Date(t).toLocaleDateString(undefined, { weekday: 'short' })}
       avgLabel="Avg"
       maxLabel="Max"
+      yAxisSide="right"
+      ribbons={[{ points: tempPoints, floor: 30, cap: 100, fill: 'var(--bad)', valueLabel: `${Math.round(tempPoints[tempPoints.length - 1].avg)}°C` }]}
       tooltipExtra={() => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, paddingTop: 6, borderTop: '1px solid var(--separator)' }}>
           <span style={{ width: 8, height: 8, borderRadius: 2, background: '#8b5cf6', flexShrink: 0 }} />
@@ -1981,7 +1988,7 @@ export const REGISTRY: StorybookEntry[] = [
     name: 'TimeSeriesChart', category: 'charts',
     filePath: 'src/components/common/TimeSeriesChart/TimeSeriesChart.tsx',
     description: 'Multi-series line chart over a real date/time domain (not a fixed live-seconds window). Tracks container width via ResizeObserver. A gap wider than 1.5x the actual median point spacing (derived from the data, not a nominal bucket size) breaks the line instead of interpolating across it, and an isolated point renders as a dot. Used by the Diagnostics Cooling tab\'s temperature history and the Monitoring page\'s persistent history chart.', Preview: PreviewTimeSeriesChart,
-    notes: 'Points carry {t, avg, max}; only avg is plotted, both are shown in the hover tooltip. xTickFormat/valueFormat let the caller pick range-appropriate label granularity and unit formatting. Optional bands prop draws translucent spans (e.g. sustained-high episodes). Optional tooltipExtra(t) appends caller content after the series rows (e.g. the Cooling tab\'s per-bucket app breakdown) - renders nothing when it returns null.',
+    notes: 'Points carry {t, avg, max}; only avg is plotted, both are shown in the hover tooltip. xTickFormat/valueFormat let the caller pick range-appropriate label granularity and unit formatting. Optional bands prop draws translucent spans (e.g. sustained-high episodes). Optional tooltipExtra(t) appends caller content after the series rows (e.g. the Cooling tab\'s per-bucket app breakdown) - renders nothing when it returns null. yAxisSide flips the tick-label lane to the right edge (the Monitoring history chart\'s convention). ribbons renders thickness-modulated bands (e.g. temperature) INSIDE the plot, stacked under the line and sharing its own x-domain/pixel mapping - each carries its own floor/cap, fill, optional icon, and optional right-edge valueLabel.',
   },
   {
     name: 'TimelineBrush', category: 'charts',
