@@ -1,14 +1,21 @@
 import { describe, it, expect } from 'vitest';
-import { normalizePanelBackgroundEnabled } from './panelBackground';
+import { resolvePanelBackgroundEnabled } from './panelBackground';
 
-describe('normalizePanelBackgroundEnabled', () => {
-  it('defaults absent record values to enabled', () => {
-    expect(normalizePanelBackgroundEnabled(undefined)).toBe(true);
-    expect(normalizePanelBackgroundEnabled(null)).toBe(true);
+describe('resolvePanelBackgroundEnabled', () => {
+  it('defaults wallpaper-capable panels to see-through (background off)', () => {
+    expect(resolvePanelBackgroundEnabled(undefined, true)).toBe(false);
+    expect(resolvePanelBackgroundEnabled(null, true)).toBe(false);
   });
 
-  it('passes explicit values through', () => {
-    expect(normalizePanelBackgroundEnabled(true)).toBe(true);
-    expect(normalizePanelBackgroundEnabled(false)).toBe(false);
+  it('defaults non-wallpaper panels to the theme backdrop (background on)', () => {
+    expect(resolvePanelBackgroundEnabled(undefined, false)).toBe(true);
+    expect(resolvePanelBackgroundEnabled(null, false)).toBe(true);
+  });
+
+  it('passes explicit values through regardless of capability', () => {
+    expect(resolvePanelBackgroundEnabled(true, true)).toBe(true);
+    expect(resolvePanelBackgroundEnabled(false, true)).toBe(false);
+    expect(resolvePanelBackgroundEnabled(true, false)).toBe(true);
+    expect(resolvePanelBackgroundEnabled(false, false)).toBe(false);
   });
 });
