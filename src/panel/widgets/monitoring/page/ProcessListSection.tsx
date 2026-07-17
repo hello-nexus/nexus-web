@@ -1,14 +1,17 @@
-import { useMemo, useState, type ComponentType } from 'react';
-import { MapPin, Mic, ScreenShare, Webcam } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { ChevronRight } from 'lucide-react';
 import { SearchInput } from '../../../../components/common/SearchInput/SearchInput';
 import { Select } from '../../../../components/common/Select/Select';
 import { Sparkline } from '../../../../components/common/Sparkline/Sparkline';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { useTranslation } from '../../../../lib/i18n';
 import { useMonitoringPrivacy } from '../../../../hooks/useMonitoringPrivacy';
-import { useProcessIcon } from '../../../../hooks/useProcessIcon';
-import { privacyIndicatorsForProcess, type PrivacyIconKind, type PrivacyIndicator } from './privacyHelpers';
+import type { UseMetricHistoryAppsResult } from '../../../../hooks/useMetricHistoryApps';
+import { PRIVACY_ICONS, formatPrivacyTime, privacyIndicatorsForProcess, type PrivacyIndicator } from './privacyHelpers';
 import { useStableRanking } from './useStableRanking';
+import { ProcessDetailSlideout } from './ProcessDetailSlideout';
+import { ProcessIcon } from './ProcessIcon';
+import type { ProcessLiveUsage } from './processDetailHelpers';
 import type { RankableItem, SortMode } from './processRanking';
 import styles from './ProcessListSection.module.scss';
 
@@ -19,18 +22,6 @@ export interface ProcessListItem extends RankableItem {
 }
 
 export type { SortMode };
-
-/** Row icon: GET /monitoring/process-icon keyed by the raw process name (see
- *  useProcessIcon - a session-cached lookup, primary source), falling back
- *  to a plain neutral dot when nothing resolves - the dot carries no
- *  per-app color, matching the sparkline's accent-only treatment.
- *  Exported so the hero chart's hover tooltip (MetricHistorySection) can
- *  render the same icon treatment for its top-apps rows. */
-export function ProcessIcon({ name }: { name: string }) {
-  const iconUrl = useProcessIcon(name);
-  if (iconUrl) return <img src={iconUrl} className={styles.appIcon} alt="" />;
-  return <span className={styles.dot} />;
-}
 
 export interface ProcessListSectionProps {
   items: readonly ProcessListItem[];
@@ -46,20 +37,16 @@ export interface ProcessListSectionProps {
    *  only, not the scrubbed window (see MonitoringPage's freeze-on-detach
    *  handling for the fallback data source). */
   frozen?: boolean;
+  /** Per-process CPU/memory/GPU/VRAM current values, independent of which
+   *  metric tab is active - feeds the process-detail slideout's live usage
+   *  tiles. Omitted -> the slideout shows its "live data unavailable" state. */
+  liveUsage?: ReadonlyMap<string, ProcessLiveUsage>;
+  /** The active tab's already-fetched window-scoped apps response, reused
+   *  (no new fetch) for the process-detail slideout's mini chart. */
+  appsWindow?: UseMetricHistoryAppsResult;
 }
 
 const SPARKLINE_SAMPLES = 30;
-
-const PRIVACY_ICONS: Record<PrivacyIconKind, ComponentType<{ size?: number; 'aria-hidden'?: boolean }>> = {
-  webcam: Webcam,
-  microphone: Mic,
-  location: MapPin,
-  screen: ScreenShare,
-};
-
-function formatPrivacyTime(ms: number): string {
-  return new Date(ms).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-}
 
 /** A process row's privacy-access icons: one per PrivacyIndicator, each a
  *  non-actionable informational glyph (role="img" + tabIndex so hover AND
@@ -118,16 +105,21 @@ function PrivacyIndicators({ indicators, t }: {
  * an app icon (or a plain neutral dot when none resolves), privacy-access
  * icons (webcam/microphone/location/screen capture, when the service
  * reports one for that process), a mini sparkline, and the current value
- * (plus an optional secondary value).
+ * (plus an optional secondary value). Clicking a row opens
+ * ProcessDetailSlideout for that process; the chevron affordance appears on
+ * hover/focus so the resting list stays visually quiet.
  *
  * Row order is rank-stable (see useStableRanking/processRanking): a value
  * update alone never reorders or drops a row, so the list doesn't visibly
  * jump around while the user is watching it.
  */
-export function ProcessListSection({ items, formatValue, rankResetKey = '', frozen = false }: ProcessListSectionProps) {
+export function ProcessListSection({
+  items, formatValue, rankResetKey = '', frozen = false, liveUsage, appsWindow,
+}: ProcessListSectionProps) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<SortMode>('recent');
+  const [selectedProcess, setSelectedProcess] = useState<string | null>(null);
   const privacy = useMonitoringPrivacy(true);
 
   const ranked = useStableRanking(items, sort, rankResetKey);
@@ -164,7 +156,19 @@ export function ProcessListSection({ items, formatValue, rankResetKey = '', froz
       ) : (
         <div className={frozen ? `${styles.rows} ${styles.rowsFrozen}` : styles.rows}>
           {visible.map(item => (
-            <div key={item.name} className={styles.row}>
+            <div
+              key={item.name}
+              className={styles.row}
+              role="button"
+              tabIndex={0}
+              aria-label={t('monitoring.history.process.openDetails', { name: item.name })}
+              onClick={() => setSelectedProcess(item.name)}
+              onKeyDown={e => {
+                if (e.key !== 'Enter' && e.key !== ' ') return;
+                e.preventDefault();
+                setSelectedProcess(item.name);
+              }}
+            >
               <ProcessIcon name={item.name} />
               <span className={styles.name}>{item.name}</span>
               <PrivacyIndicators
@@ -180,9 +184,21 @@ export function ProcessListSection({ items, formatValue, rankResetKey = '', froz
               />
               <span className={styles.value}>{formatValue(item.current)}</span>
               {item.secondary && <span className={styles.secondary}>{item.secondary}</span>}
+              <ChevronRight className={styles.openChevron} size={14} aria-hidden />
             </div>
           ))}
         </div>
+      )}
+      {selectedProcess && (
+        <ProcessDetailSlideout
+          name={selectedProcess}
+          onClose={() => setSelectedProcess(null)}
+          live={liveUsage?.get(selectedProcess)}
+          appsWindow={appsWindow}
+          valueFormat={formatValue}
+          privacySessions={privacy.sessions}
+          privacySupported={privacy.supported && !privacy.error}
+        />
       )}
     </div>
   );

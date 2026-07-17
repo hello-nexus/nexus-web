@@ -1,8 +1,11 @@
-// Pure helpers for the privacy-access indicators shown on ProcessListSection
-// rows (webcam/microphone/location/screen capture). Kept side-effect-free (no
-// i18n context, no fetch) so they're covered directly by
-// privacyHelpers.test.ts instead of through component rendering. Mirrors
-// metricHistoryHelpers.ts's approach.
+// Pure-ish helpers for the privacy-access indicators shown on
+// ProcessListSection rows AND ProcessDetailSlideout's privacy section
+// (webcam/microphone/location/screen capture). Home for the icon map and
+// time formatter both consumers share, so neither imports the other (they'd
+// otherwise form a circular dependency: the slideout is rendered by the list
+// section). Mirrors metricHistoryHelpers.ts's approach.
+import type { ComponentType } from 'react';
+import { MapPin, Mic, ScreenShare, Webcam } from 'lucide-react';
 import type { PrivacyCapability, PrivacySession } from '../../../../api/monitoringPrivacy';
 
 /** Both graphicsCapture* capabilities collapse onto one 'screen' icon - the
@@ -20,6 +23,17 @@ const ICON_KIND_BY_CAPABILITY: Record<PrivacyCapability, PrivacyIconKind> = {
 
 export function iconKindForCapability(capability: PrivacyCapability): PrivacyIconKind {
   return ICON_KIND_BY_CAPABILITY[capability];
+}
+
+export const PRIVACY_ICONS: Record<PrivacyIconKind, ComponentType<{ size?: number; 'aria-hidden'?: boolean }>> = {
+  webcam: Webcam,
+  microphone: Mic,
+  location: MapPin,
+  screen: ScreenShare,
+};
+
+export function formatPrivacyTime(ms: number): string {
+  return new Date(ms).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 }
 
 /** A session ended within this long ago still shows on the row, dimmed. */

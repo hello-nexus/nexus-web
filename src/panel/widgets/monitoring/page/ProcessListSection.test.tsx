@@ -16,6 +16,19 @@ vi.mock('../../../../hooks/useProcessIcon', () => ({
   useProcessIcon: (name: string) => processIconMock(name),
 }));
 
+// ProcessDetailSlideout has its own dedicated test file (fetches process
+// info, drives Kill/Open-location, etc.) - stubbed here to a name-tracing
+// marker so this file only asserts that a row click opens IT for the right
+// process, not its internals.
+vi.mock('./ProcessDetailSlideout', () => ({
+  ProcessDetailSlideout: ({ name, onClose }: { name: string; onClose: () => void }) => (
+    <div data-testid="process-detail-slideout">
+      <span>detail:{name}</span>
+      <button type="button" onClick={onClose}>close</button>
+    </div>
+  ),
+}));
+
 function privacyResult(over: Partial<UseMonitoringPrivacyResult> = {}): UseMonitoringPrivacyResult {
   return {
     sessions: [],
@@ -319,6 +332,79 @@ describe('ProcessListSection', () => {
       const start = performance.now();
       rerender(<ProcessListSection items={churned} formatValue={v => `${v}%`} />);
       expect(performance.now() - start).toBeLessThan(BUDGET_MS);
+    });
+  });
+
+  describe('icon slot indentation (item 44)', () => {
+    it('wraps a loaded icon in the same reserved slot structure as the dot fallback', () => {
+      processIconMock.mockImplementation(name => (name === 'Chrome' ? 'blob:chrome-icon' : null));
+      const { container } = render(<ProcessListSection items={items()} formatValue={v => `${v}%`} />);
+
+      const rows = container.querySelectorAll('[class*="row"]:not([class*="rows"])');
+      // Every row's first child is the icon slot, whether it resolved (img)
+      // or not (dot) - same wrapper class, same position ahead of the name.
+      rows.forEach(row => {
+        const slot = row.firstElementChild;
+        expect(slot).not.toBeNull();
+        expect(slot!.className).toContain('iconSlot');
+      });
+
+      const loadedSlot = screen.getByText('Chrome').previousElementSibling;
+      const pendingSlot = screen.getByText('Nexus').previousElementSibling;
+      expect(loadedSlot!.className).toBe(pendingSlot!.className);
+      expect(loadedSlot!.querySelector('img')).not.toBeNull();
+      expect(pendingSlot!.querySelector('img')).toBeNull();
+      expect(pendingSlot!.querySelector('[class*="dot"]')).not.toBeNull();
+    });
+  });
+
+  describe('click-to-open process detail (item 45)', () => {
+    it('opens the detail slideout for the clicked row', () => {
+      render(<ProcessListSection items={items()} formatValue={v => `${v}%`} />);
+      expect(screen.queryByTestId('process-detail-slideout')).toBeNull();
+
+      fireEvent.click(screen.getByText('Chrome'));
+      expect(screen.getByTestId('process-detail-slideout')).toBeInTheDocument();
+      expect(screen.getByText('detail:Chrome')).toBeInTheDocument();
+    });
+
+    it('opens via Enter on a focused row (keyboard activation)', () => {
+      render(<ProcessListSection items={items()} formatValue={v => `${v}%`} />);
+      // Every row shares the same aria-label text in this provider-less test
+      // environment (t() here returns the bare key, unfilled - see the
+      // sibling tests above asserting on raw keys like
+      // 'monitoring.privacy.capability.webcam'), so pick one row rather than
+      // asserting on a specific name.
+      const [firstRow] = screen.getAllByRole('button', { name: 'monitoring.history.process.openDetails' });
+      fireEvent.keyDown(firstRow, { key: 'Enter' });
+      expect(screen.getByTestId('process-detail-slideout')).toBeInTheDocument();
+    });
+
+    it('switches to a different process when a different row is clicked', () => {
+      render(<ProcessListSection items={items()} formatValue={v => `${v}%`} />);
+      fireEvent.click(screen.getByText('Chrome'));
+      expect(screen.getByText('detail:Chrome')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByText('Nexus'));
+      expect(screen.getByText('detail:Nexus')).toBeInTheDocument();
+      expect(screen.queryByText('detail:Chrome')).toBeNull();
+    });
+
+    it('closes when the slideout calls onClose', () => {
+      render(<ProcessListSection items={items()} formatValue={v => `${v}%`} />);
+      fireEvent.click(screen.getByText('Chrome'));
+      fireEvent.click(screen.getByText('close'));
+      expect(screen.queryByTestId('process-detail-slideout')).toBeNull();
+    });
+
+    it('does not fight the privacy icon\'s own hover tooltip - clicking the row still renders the tooltip content on focus', () => {
+      const sessions: PrivacySession[] = [{ app: 'C:\\chrome.exe', capability: 'webcam', start: NOW - 1000, end: null }];
+      privacyMock.mockReturnValue(privacyResult({ sessions }));
+      render(<ProcessListSection items={items()} formatValue={v => `${v}%`} />);
+
+      const icon = screen.getByRole('img', { name: 'monitoring.privacy.capability.webcam' });
+      fireEvent.focus(icon);
+      expect(screen.getByRole('tooltip')).toBeInTheDocument();
     });
   });
 });

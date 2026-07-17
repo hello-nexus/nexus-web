@@ -22,6 +22,7 @@ import { ProcessListSection, type ProcessListItem } from './page/ProcessListSect
 import { MonitoringSettingsModal } from './page/MonitoringSettingsModal';
 import { seriesQueryFor, type HistoryMetric } from './page/metricHistoryHelpers';
 import { appsToProcessListItems } from './page/appWindowHelpers';
+import { buildLiveUsageByName } from './page/processDetailHelpers';
 import { formatRate } from './page/shared';
 import { usePageSettingsAction } from '../../../app/PageChrome';
 import { useSensorHistoryFeed } from '../common/useSharedSensorHistory';
@@ -108,6 +109,14 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
   const appsWindow = useMetricHistoryApps(isMetricTab && appsSeriesParam !== '', appsSeriesParam, history.domain[0], history.domain[1], history.following);
 
   const gpuVramByName = useMemo(() => new Map(gpuProcMemSeries.map(s => [s.name, s.current])), [gpuProcMemSeries]);
+
+  // Independent of the active tab - the process-detail slideout's live usage
+  // tiles show CPU/memory/GPU/VRAM together regardless of which metric the
+  // list itself is currently ranked by.
+  const liveUsageByName = useMemo(
+    () => buildLiveUsageByName(cpuSeries, memSeries, gpuProcSeries, gpuProcMemSeries),
+    [cpuSeries, memSeries, gpuProcSeries, gpuProcMemSeries],
+  );
 
   // Live fallback rows (per current metric) for when the window-scoped apps
   // endpoint is unsupported (an older/pre-endpoint service) - keeps the list
@@ -240,6 +249,8 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
               formatValue={formatValue}
               rankResetKey={rankResetKey}
               frozen={shouldFreezeFallback}
+              liveUsage={liveUsageByName}
+              appsWindow={appsWindow}
             />
           </>
         )}

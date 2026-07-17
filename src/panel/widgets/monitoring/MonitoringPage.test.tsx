@@ -29,13 +29,23 @@ vi.mock('./page/ProcessListSection', async importOriginal => {
   const actual = await importOriginal<typeof import('./page/ProcessListSection')>();
   return {
     ...actual,
-    ProcessListSection: ({ items, frozen }: { items: Array<{ name: string }>; frozen?: boolean }) => {
+    ProcessListSection: ({ items, frozen, liveUsage, appsWindow }: {
+      items: Array<{ name: string }>;
+      frozen?: boolean;
+      liveUsage?: ReadonlyMap<string, unknown>;
+      appsWindow?: { supported: boolean };
+    }) => {
       useEffect(() => {
         processListMounts++;
         return () => { processListUnmounts++; };
       }, []);
       return (
-        <div data-testid="process-list-section" data-frozen={frozen ? 'true' : 'false'}>
+        <div
+          data-testid="process-list-section"
+          data-frozen={frozen ? 'true' : 'false'}
+          data-live-usage-names={liveUsage ? [...liveUsage.keys()].join(',') : ''}
+          data-apps-window-supported={appsWindow ? String(appsWindow.supported) : ''}
+        >
           items:{items.length}:{items.map(i => i.name).join(',')}
         </div>
       );
@@ -534,6 +544,27 @@ describe('MonitoringPage', () => {
       expect(section).toHaveAttribute('data-frozen', 'false');
       expect(section).toHaveTextContent('WindowedApp');
       appsWindowOverride = {};
+    });
+  });
+
+  describe('process-detail slideout wiring (item 45)', () => {
+    afterEach(() => {
+      cpuSeriesOverride = [];
+      appsWindowOverride = {};
+    });
+
+    it('passes a per-process live usage map built from the live series to ProcessListSection', () => {
+      cpuSeriesOverride = [{ name: 'LiveApp', current: 10, values: [1, 2, 3] }];
+      render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+      const section = screen.getByTestId('process-list-section');
+      expect(section).toHaveAttribute('data-live-usage-names', 'LiveApp');
+    });
+
+    it('passes the active tab\'s already-fetched apps-window response through unchanged (no new fetch)', () => {
+      appsWindowOverride = { ready: true, supported: true, apps: [{ name: 'WindowedApp', avg: 5, max: 5, points: [] }] };
+      render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+      const section = screen.getByTestId('process-list-section');
+      expect(section).toHaveAttribute('data-apps-window-supported', 'true');
     });
   });
 });

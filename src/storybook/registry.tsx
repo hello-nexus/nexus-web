@@ -19,6 +19,7 @@ import { HsvPicker } from '../components/common/HsvPicker/HsvPicker';
 import { PaletteRing } from '../components/common/PaletteRing/PaletteRing';
 import { EffectTemplateSelector } from '../components/common/EffectTemplateSelector/EffectTemplateSelector';
 import { DeviceModal } from '../components/common/DeviceModal/DeviceModal';
+import { Slideout } from '../components/common/Slideout/Slideout';
 import { CardDeleteButton } from '../components/common/CardDeleteButton/CardDeleteButton';
 import { InfoTooltip } from '../components/common/InfoTooltip/InfoTooltip';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
@@ -823,6 +824,22 @@ function PreviewDeviceModal() {
           DeviceModal wraps the standard escape-to-close + click-outside dismiss + X-button pattern.
         </p>
       </DeviceModal>
+    </>
+  );
+}
+
+function PreviewSlideout() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button type="button" className={styles.previewBtn} onClick={() => setOpen(true)}>
+        Open sample slideout
+      </button>
+      <Slideout open={open} onClose={() => setOpen(false)} title="Sample slideout">
+        <p className={styles.previewModalBody}>
+          Right-anchored slide-in panel matching the panel editor's desktop add-widget drawer look.
+        </p>
+      </Slideout>
     </>
   );
 }
@@ -1880,6 +1897,12 @@ export const REGISTRY: StorybookEntry[] = [
     name: 'DeviceModal', category: 'modals',
     filePath: 'src/components/common/DeviceModal/DeviceModal.tsx',
     description: 'Reusable modal shell built on Overlay. Title + close button + standard escape/click-outside dismiss. medium / wide / fullscreen variants.', Preview: PreviewDeviceModal,
+  },
+  {
+    name: 'Slideout', category: 'modals',
+    filePath: 'src/components/common/Slideout/Slideout.tsx',
+    description: 'Right-anchored slide-in panel built on Overlay\'s sheet variant, matching the panel editor\'s desktop add-widget drawer look (translucent scrim, backdrop-base surface, left border, slide-in animation). Title + optional icon + optional headerRight + close button. Esc and a backdrop click both dismiss.', Preview: PreviewSlideout,
+    notes: 'Use for a dashboard detail/inspector drawer outside the panel editor (e.g. the monitoring process-detail slideout) - PanelEditorSheet stays the widget-grid editor\'s own component.',
   },
   {
     name: 'ConfirmModal', category: 'modals',

@@ -15,7 +15,7 @@ import type { UseMetricHistoryAppsResult } from '../../../../hooks/useMetricHist
 import { useUnitPrefs } from '../../../../hooks/useUiSettings';
 import { useTranslation } from '../../../../lib/i18n';
 import { formatRate } from './shared';
-import { ProcessIcon } from './ProcessListSection';
+import { ProcessIcon } from './ProcessIcon';
 import { topAppsAtHover } from './appWindowHelpers';
 import {
   CPU_TEMP_RIBBON_CAP_C,

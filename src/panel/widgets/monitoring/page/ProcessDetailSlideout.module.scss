@@ -1,0 +1,145 @@
+@use '../../../../styles/text' as *;
+
+.headerTitle {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.headerName {
+  @include text-heading;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.headerMeta {
+  @include text-caption;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.actionsRow {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.liveGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.sectionNote {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  margin: 0;
+}
+
+.chartSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.miniChart {
+  width: 100%;
+  display: block;
+}
+
+.chartMeta {
+  @include text-caption;
+  color: var(--text-dim);
+}
+
+.infoBody {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding-top: 0.3rem;
+}
+
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.25rem 0.4rem;
+  border-radius: var(--radius-sm);
+
+  &:nth-child(odd) {
+    background: color-mix(in srgb, var(--text) 4%, transparent);
+  }
+}
+
+.rowLabel {
+  @include text-button;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.rowValue {
+  font-size: var(--type-small);
+  color: var(--text);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+.copyableRow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.copyBtn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background var(--ease-fast);
+
+  &:hover { background: var(--bg-card-hover); }
+}
+
+.privacyBody {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding-top: 0.3rem;
+}
+
+.privacyRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.4rem;
+  color: var(--text-dim);
+}
+
+.privacyTime {
+  @include text-caption;
+  color: var(--text-dim);
+  margin-left: auto;
+}
+
+.killError {
+  font-size: var(--type-small);
+  color: var(--bad);
+  margin: 0;
+}
