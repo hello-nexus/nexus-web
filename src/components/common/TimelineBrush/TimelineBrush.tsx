@@ -66,10 +66,11 @@ const EDGE_HIT_PX = 10;
 const SNAP_PX = 6;
 const PAN_STEP_FRACTION = 0.1;
 const RESIZE_STEP_FRACTION = 0.1;
-// Rounds the draggable window box's corners - mirrors --radius-sm (the
-// small-control radius token) since SVG rect geometry attributes can't
-// reference a CSS custom property directly.
-const WINDOW_CORNER_RADIUS_PX = 6;
+// Rounds the draggable window box's corners to match the block's own outer
+// radius (.root's border-radius: var(--radius) in TimelineBrush.module.scss)
+// since SVG rect geometry attributes can't reference a CSS custom property
+// directly.
+const WINDOW_CORNER_RADIUS_PX = 10;
 
 type DragMode = 'pan' | 'resize-left' | 'resize-right';
 

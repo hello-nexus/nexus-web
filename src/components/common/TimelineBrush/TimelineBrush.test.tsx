@@ -227,11 +227,11 @@ describe('TimelineBrush', () => {
   });
 
   describe('rounding', () => {
-    it('rounds the draggable window box corners', () => {
+    it('rounds the draggable window box corners to match the track block\'s own outer radius (10px, --radius)', () => {
       const { container } = renderBrush(() => {});
       const windowRect = container.querySelector('[class*="window"]')!;
-      expect(Number(windowRect.getAttribute('rx'))).toBeGreaterThan(0);
-      expect(Number(windowRect.getAttribute('ry'))).toBeGreaterThan(0);
+      expect(Number(windowRect.getAttribute('rx'))).toBe(10);
+      expect(Number(windowRect.getAttribute('ry'))).toBe(10);
     });
   });
 
