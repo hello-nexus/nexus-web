@@ -213,10 +213,22 @@ describe('ProcessDetailSlideout info section', () => {
     infoMock.mockReturnValue(infoResult({ loading: false, data: fullData() }));
     render(<ProcessDetailSlideout {...baseProps()} />);
 
-    const buttons = screen.getAllByRole('button', { name: 'monitoring.processDetail.copy' });
-    fireEvent.click(buttons[0]);
+    // The path and sha256 copy buttons carry distinct aria-labels (the
+    // field's own label appended) so they're each individually addressable.
+    const pathCopyButton = screen.getByRole('button', {
+      name: 'monitoring.processDetail.copy monitoring.processDetail.info.path',
+    });
+    fireEvent.click(pathCopyButton);
 
     await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalledWith(fullData().path));
+  });
+
+  it('gives the path and sha256 copy buttons distinct labels', () => {
+    infoMock.mockReturnValue(infoResult({ loading: false, data: fullData() }));
+    render(<ProcessDetailSlideout {...baseProps()} />);
+
+    expect(screen.getByRole('button', { name: 'monitoring.processDetail.copy monitoring.processDetail.info.path' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'monitoring.processDetail.copy monitoring.processDetail.info.sha256' })).toBeInTheDocument();
   });
 });
 

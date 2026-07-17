@@ -164,6 +164,11 @@ export function ProcessListSection({
               aria-label={t('monitoring.history.process.openDetails', { name: item.name })}
               onClick={() => setSelectedProcess(item.name)}
               onKeyDown={e => {
+                // Only react to a keypress on the row itself - a nested
+                // focusable descendant (a privacy indicator icon) handles its
+                // own Enter/Space and must not also open the slideout via
+                // bubbling. Same guard as Card.tsx's own onKeyDown.
+                if (e.target !== e.currentTarget) return;
                 if (e.key !== 'Enter' && e.key !== ' ') return;
                 e.preventDefault();
                 setSelectedProcess(item.name);

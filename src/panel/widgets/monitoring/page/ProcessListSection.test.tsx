@@ -380,6 +380,16 @@ describe('ProcessListSection', () => {
       expect(screen.getByTestId('process-detail-slideout')).toBeInTheDocument();
     });
 
+    it('does not open the slideout when Enter bubbles up from a nested focusable privacy icon', () => {
+      const sessions: PrivacySession[] = [{ app: 'C:\\chrome.exe', capability: 'webcam', start: NOW - 1000, end: null }];
+      privacyMock.mockReturnValue(privacyResult({ sessions }));
+      render(<ProcessListSection items={items()} formatValue={v => `${v}%`} />);
+
+      const icon = screen.getByRole('img', { name: 'monitoring.privacy.capability.webcam' });
+      fireEvent.keyDown(icon, { key: 'Enter', bubbles: true });
+      expect(screen.queryByTestId('process-detail-slideout')).toBeNull();
+    });
+
     it('switches to a different process when a different row is clicked', () => {
       render(<ProcessListSection items={items()} formatValue={v => `${v}%`} />);
       fireEvent.click(screen.getByText('Chrome'));

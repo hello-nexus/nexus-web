@@ -47,7 +47,7 @@ function formatAbsolute(ms: number): string {
   });
 }
 
-function CopyableValue({ value, mono, truncate }: { value: string; mono?: boolean; truncate?: boolean }) {
+function CopyableValue({ value, fieldLabel, mono, truncate }: { value: string; fieldLabel: string; mono?: boolean; truncate?: boolean }) {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
 
@@ -62,6 +62,10 @@ function CopyableValue({ value, mono, truncate }: { value: string; mono?: boolea
     }
   };
 
+  // fieldLabel (the row's own already-translated label, e.g. "Path" /
+  // "SHA-256") disambiguates the button when more than one copy affordance
+  // is visible at once - a bare "Copy" on every button reads identically to
+  // a screen reader or voice-control user.
   const display = truncate ? truncateMiddle(value, PATH_TRUNCATE_CHARS) : value;
   return (
     <span className={styles.copyableValue}>
@@ -70,7 +74,7 @@ function CopyableValue({ value, mono, truncate }: { value: string; mono?: boolea
         type="button"
         className={styles.copyBtn}
         onClick={() => void onCopy()}
-        aria-label={copied ? t('monitoring.processDetail.copied') : t('monitoring.processDetail.copy')}
+        aria-label={`${copied ? t('monitoring.processDetail.copied') : t('monitoring.processDetail.copy')} ${fieldLabel}`}
       >
         {copied ? <Check size={13} aria-hidden /> : <Copy size={13} aria-hidden />}
       </button>
@@ -243,10 +247,16 @@ export function ProcessDetailSlideout({
                 />
               )}
               {data.path && (
-                <InfoRow label={t('monitoring.processDetail.info.path')} value={<CopyableValue value={data.path} truncate />} />
+                <InfoRow
+                  label={t('monitoring.processDetail.info.path')}
+                  value={<CopyableValue value={data.path} fieldLabel={t('monitoring.processDetail.info.path')} truncate />}
+                />
               )}
               {data.sha256 && (
-                <InfoRow label={t('monitoring.processDetail.info.sha256')} value={<CopyableValue value={data.sha256} mono />} />
+                <InfoRow
+                  label={t('monitoring.processDetail.info.sha256')}
+                  value={<CopyableValue value={data.sha256} fieldLabel={t('monitoring.processDetail.info.sha256')} mono />}
+                />
               )}
               {data.createdAtMs !== undefined && (
                 <InfoRow label={t('monitoring.processDetail.info.created')} value={formatAbsolute(data.createdAtMs)} />
