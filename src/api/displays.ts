@@ -149,12 +149,6 @@ export async function setXeneonEdgeSettings(
   return postService<XeneonEdgeSettings>(`/displays/${encodeURIComponent(id)}/xeneon-settings`, patch);
 }
 
-// Restores every control to its factory value. The panel's own restore command
-// only covers RGB, so the service writes all six individually.
-export async function restoreXeneonEdgeDefaults(id: string): Promise<XeneonEdgeSettings | null> {
-  return postService<XeneonEdgeSettings>(`/displays/${encodeURIComponent(id)}/xeneon-settings/restore-defaults`, {});
-}
-
 export interface TouchMappingRepairResponse {
   status: 'repaired' | 'alreadyCorrect' | 'noPanel' | 'noDigitizer' | 'noHelper' | 'failed';
   detail?: string;

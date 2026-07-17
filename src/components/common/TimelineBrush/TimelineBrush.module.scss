@@ -4,7 +4,10 @@
   min-width: 0;
   cursor: pointer;
   touch-action: none;
-  border-radius: var(--radius-sm);
+  // Matches the hero chart's own frame radius (TimeSeriesChart's
+  // .chartWrap) so the seek-bar block reads as one visual family with it.
+  border-radius: var(--radius);
+  overflow: hidden;
 
   &:focus-visible {
     outline: 2px solid var(--accent);
@@ -41,6 +44,9 @@
   pointer-events: none;
 }
 
+// Docked inside the block's own label lanes (LABEL_LANE_PX in the
+// component), clear of the track's drawn silhouette/window - never
+// overlapping the visuals.
 .edgeLabel {
   position: absolute;
   top: 50%;
@@ -54,9 +60,11 @@
 }
 
 .edgeLabelStart {
-  transform: translate(-100%, -50%);
+  left: 10px;
+  text-align: left;
 }
 
 .edgeLabelEnd {
-  transform: translateY(-50%);
+  right: 10px;
+  text-align: right;
 }

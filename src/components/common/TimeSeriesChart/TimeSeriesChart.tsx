@@ -1,4 +1,4 @@
-import { useCallback, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { useChartHoverTooltip } from '../../../hooks/useChartHoverTooltip';
 import { useTranslation } from '../../../lib/i18n';
 import {
@@ -57,7 +57,28 @@ export interface TimeSeriesChartProps {
    *  from the data; omitting the prop entirely keeps the pure data-driven
    *  domain. */
   yDomain?: readonly [number | null, number | null];
+  /** Renders each series as a filled area (vertical gradient, opaque near
+   *  the line fading to transparent at the baseline) instead of a bare
+   *  stroke. Opt-in - other callers (Diagnostics) keep the stroke-only look. */
+  fillGradient?: boolean;
+  /** Suppresses the default per-series avg/max tooltip rows, leaving only
+   *  the timestamp header and tooltipExtra - for a caller building an
+   *  entirely custom tooltip body. */
+  hideSeriesRows?: boolean;
+  /** Enables drag-to-select on the plot: a horizontal rubber-band drag
+   *  reports its [from, to] on release (ascending order), Escape cancels
+   *  mid-drag. Omit to leave the chart click/drag-inert (its default). */
+  onRangeSelect?: (from: number, to: number) => void;
+  /** The data's actual effective point spacing in seconds (e.g. the
+   *  service's reported stepSeconds), when known - drives whether the hover
+   *  tooltip's time label includes seconds precision. Omit when unknown;
+   *  the tooltip then stays minute-precision regardless of zoom. */
+  stepSeconds?: number | null;
 }
+
+// A pointer must move at least this many px before a drag counts as a
+// range-select rather than a stray click.
+const DRAG_SELECT_THRESHOLD_PX = 4;
 
 // Exported so companion elements drawn outside the chart itself (e.g.
 // TempRibbon, sitting directly under the plot) can inset by the same amount
@@ -67,6 +88,7 @@ export const CHART_PAD = { left: 56, right: 16, top: 12, bottom: 28 };
 export function TimeSeriesChart({
   series, height = 260, valueFormat, xTickFormat, xTickCount = 5, yTickCount = 5,
   avgLabel, maxLabel, bands, showLegend = true, domain, tooltipExtra, yDomain,
+  fillGradient = false, hideSeriesRows = false, onRangeSelect, stepSeconds,
 }: TimeSeriesChartProps) {
   const { t, language } = useTranslation();
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -76,6 +98,10 @@ export function TimeSeriesChart({
   // domain (clock/timezone skew) cannot draw over the axis labels. Colons from
   // useId are stripped so the url(#id) reference stays well-formed.
   const clipId = `tsc-plot-${useId().replace(/:/g, '')}`;
+  // A series id can itself contain a colon (e.g. a GPU series id like
+  // "gpu:0") - stripped for the same url(#id) well-formedness reason as
+  // clipId above.
+  const gradientId = (seriesId: string) => `${clipId}-${seriesId.replace(/:/g, '')}`;
   // Snapshot at mount rather than reading Date.now() during render (the
   // year-omission check only needs a stable "now", not a live clock).
   const [nowMs] = useState(() => Date.now());
@@ -147,15 +173,82 @@ export function TimeSeriesChart({
 
   const { tooltipRef, trackCursor } = useChartHoverTooltip(wrapRef, tooltip !== null);
 
+  const tToPx = useCallback((clientX: number, rect: DOMRect) => ((clientX - rect.left) / rect.width) * width, [width]);
+
+  const pxToT = useCallback((svgX: number) => {
+    if (!domainT) return null;
+    const [minT, maxT] = domainT;
+    const frac = Math.max(0, Math.min(1, (svgX - CHART_PAD.left) / chartW));
+    return Math.round(minT + frac * (maxT - minT));
+  }, [domainT, chartW]);
+
   const onMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
     if (!domainT) return;
     trackCursor(e);
     const rect = e.currentTarget.getBoundingClientRect();
-    const svgX = ((e.clientX - rect.left) / rect.width) * width;
-    const [minT, maxT] = domainT;
-    const frac = Math.max(0, Math.min(1, (svgX - CHART_PAD.left) / chartW));
-    setHoverT(Math.round(minT + frac * (maxT - minT)));
-  }, [domainT, chartW, width, trackCursor]);
+    const t = pxToT(tToPx(e.clientX, rect));
+    if (t !== null) setHoverT(t);
+  }, [domainT, tToPx, pxToT, trackCursor]);
+
+  // Drag-select: pointer-captured horizontal rubber-band, opt-in via
+  // onRangeSelect. dragStartT/dragCurT drive the overlay rect; a move under
+  // DRAG_SELECT_THRESHOLD_PX reports nothing on release (a stray click).
+  const dragPointerIdRef = useRef<number | null>(null);
+  const dragStartPxRef = useRef(0);
+  const [dragStartT, setDragStartT] = useState<number | null>(null);
+  const [dragCurT, setDragCurT] = useState<number | null>(null);
+  const isDragging = dragStartT !== null;
+
+  const onPointerDown = useCallback((e: ReactPointerEvent<SVGSVGElement>) => {
+    if (!onRangeSelect || !domainT) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const px = tToPx(e.clientX, rect);
+    const t = pxToT(px);
+    if (t === null) return;
+    dragPointerIdRef.current = e.pointerId;
+    dragStartPxRef.current = px;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setDragStartT(t);
+    setDragCurT(t);
+  }, [onRangeSelect, domainT, tToPx, pxToT]);
+
+  const onPointerMove = useCallback((e: ReactPointerEvent<SVGSVGElement>) => {
+    if (dragPointerIdRef.current !== e.pointerId) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const t = pxToT(tToPx(e.clientX, rect));
+    if (t !== null) setDragCurT(t);
+  }, [pxToT, tToPx]);
+
+  const endDrag = useCallback((e: ReactPointerEvent<SVGSVGElement>) => {
+    if (dragPointerIdRef.current !== e.pointerId) return;
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
+    const rect = e.currentTarget.getBoundingClientRect();
+    const endPx = tToPx(e.clientX, rect);
+    const movedPx = Math.abs(endPx - dragStartPxRef.current);
+    dragPointerIdRef.current = null;
+    if (movedPx >= DRAG_SELECT_THRESHOLD_PX && dragStartT !== null) {
+      const endT = pxToT(endPx);
+      if (endT !== null) {
+        const [from, to] = dragStartT <= endT ? [dragStartT, endT] : [endT, dragStartT];
+        onRangeSelect?.(from, to);
+      }
+    }
+    setDragStartT(null);
+    setDragCurT(null);
+  }, [dragStartT, tToPx, pxToT, onRangeSelect]);
+
+  // Esc cancels an in-progress drag-select without reporting a range.
+  useEffect(() => {
+    if (!isDragging) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      dragPointerIdRef.current = null;
+      setDragStartT(null);
+      setDragCurT(null);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isDragging]);
 
   if (!domainT) {
     return (
@@ -165,23 +258,36 @@ export function TimeSeriesChart({
     );
   }
 
-  const hoverX = tooltip ? xFor(tooltip.t) : null;
+  const hoverX = tooltip && !isDragging ? xFor(tooltip.t) : null;
+  const baselineY = yFor(minV);
+  const selectionX0 = dragStartT !== null && dragCurT !== null ? Math.min(xFor(dragStartT), xFor(dragCurT)) : null;
+  const selectionX1 = dragStartT !== null && dragCurT !== null ? Math.max(xFor(dragStartT), xFor(dragCurT)) : null;
 
   return (
     <div ref={wrapRef} className={styles.chartWrap}>
       <svg
-        className={styles.chart}
+        className={onRangeSelect ? `${styles.chart} ${styles.chartSelectable}` : styles.chart}
         width={width}
         height={height}
         viewBox={`0 0 ${width} ${height}`}
         preserveAspectRatio="none"
         onMouseMove={onMouseMove}
         onMouseLeave={() => setHoverT(null)}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
       >
         <defs>
           <clipPath id={clipId}>
             <rect x={CHART_PAD.left} y={CHART_PAD.top} width={chartW} height={chartH} />
           </clipPath>
+          {fillGradient && series.map(s => (
+            <linearGradient key={s.id} id={gradientId(s.id)} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={s.color} stopOpacity="0.35" />
+              <stop offset="100%" stopColor={s.color} stopOpacity="0.02" />
+            </linearGradient>
+          ))}
         </defs>
         {yTicks.map((tick, i) => {
           const y = yFor(tick);
@@ -225,18 +331,36 @@ export function TimeSeriesChart({
           }
           const d = segment.map((p, i) => `${i === 0 ? 'M' : 'L'}${xFor(p.t).toFixed(1)},${yFor(p.avg).toFixed(1)}`).join(' ');
           return (
-            <path
-              key={`${s.id}-${si}`}
-              d={d}
-              fill="none"
-              stroke={s.color}
-              strokeWidth="1.6"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              vectorEffect="non-scaling-stroke"
-            />
+            <g key={`${s.id}-${si}`}>
+              {fillGradient && (
+                <path
+                  d={`${d} L${xFor(segment[segment.length - 1].t).toFixed(1)},${baselineY.toFixed(1)} L${xFor(segment[0].t).toFixed(1)},${baselineY.toFixed(1)} Z`}
+                  fill={`url(#${gradientId(s.id)})`}
+                  stroke="none"
+                />
+              )}
+              <path
+                d={d}
+                fill="none"
+                stroke={s.color}
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                vectorEffect="non-scaling-stroke"
+              />
+            </g>
           );
         }))}
+
+        {selectionX0 !== null && selectionX1 !== null && (
+          <rect
+            className={styles.dragSelection}
+            x={selectionX0}
+            y={CHART_PAD.top}
+            width={Math.max(1, selectionX1 - selectionX0)}
+            height={chartH}
+          />
+        )}
         </g>
 
         {xTicks.map((tick, i) => (
@@ -258,10 +382,10 @@ export function TimeSeriesChart({
         )}
       </svg>
 
-      {tooltip && (
+      {tooltip && !isDragging && (
         <div ref={tooltipRef} className={styles.tooltip}>
-          <div className={styles.tooltipHeader}>{formatTooltipTimestamp(tooltip.t, nowMs, language)}</div>
-          {tooltip.rows.map(row => (
+          <div className={styles.tooltipHeader}>{formatTooltipTimestamp(tooltip.t, nowMs, language, stepSeconds)}</div>
+          {!hideSeriesRows && tooltip.rows.map(row => (
             <div key={row.id} className={styles.tooltipRow}>
               <span className={styles.tooltipDot} style={{ background: row.color }} />
               <span className={styles.tooltipName}>{row.name}</span>

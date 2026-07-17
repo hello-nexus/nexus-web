@@ -3,10 +3,14 @@ import {
   CPU_TEMP_THRESHOLD_C,
   GPU_TEMP_THRESHOLD_C,
   RANGE_OPTIONS,
+  defaultBoxWidthMs,
+  formatBrushEdgeLabels,
   initViewport,
   nearestTempAt,
   pickGpuHistorySeries,
   rangeKeyForWindow,
+  rangeLabelKey,
+  seriesQueryFor,
   sumSilhouette,
   tempBands,
   toHistoryChartSeries,
@@ -16,7 +20,9 @@ import {
   type ViewportState,
 } from './metricHistoryHelpers';
 import type { MetricHistorySeries } from '../../../../api/monitoringHistory';
+import { MIN_BOX_WINDOW_MS } from '../../../../components/common/TimelineBrush/timelineBrushUtils';
 
+const MINUTE = 60_000;
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
 
@@ -25,8 +31,8 @@ function series(id: string, points: MetricHistorySeries['points'], over: Partial
 }
 
 describe('RANGE_OPTIONS', () => {
-  it('covers the six presets in ascending window order', () => {
-    expect(RANGE_OPTIONS.map(o => o.key)).toEqual(['1h', '3h', '12h', '24h', '3d', '7d']);
+  it('covers the eight presets in ascending window order', () => {
+    expect(RANGE_OPTIONS.map(o => o.key)).toEqual(['5m', '30m', '1h', '3h', '12h', '24h', '3d', '7d']);
     for (let i = 1; i < RANGE_OPTIONS.length; i++) {
       expect(RANGE_OPTIONS[i].windowMs).toBeGreaterThan(RANGE_OPTIONS[i - 1].windowMs);
     }
@@ -45,84 +51,250 @@ describe('windowMsForRangeKey / rangeKeyForWindow', () => {
     expect(windowMsForRangeKey('custom')).toBeNull();
   });
 
-  it('matches within a small tolerance (drag pixel rounding)', () => {
+  it('matches within a small tolerance (retention-clamp rounding)', () => {
     expect(rangeKeyForWindow(HOUR + 500)).toBe('1h');
   });
 
   it('falls back to custom for a window matching no preset', () => {
-    expect(rangeKeyForWindow(90 * 60_000)).toBe('custom');
+    expect(rangeKeyForWindow(90 * MINUTE)).toBe('custom');
+  });
+});
+
+describe('rangeLabelKey', () => {
+  it('resolves a preset key to its i18n label key', () => {
+    expect(rangeLabelKey('5m')).toBe('monitoring.history.range.5m');
+    expect(rangeLabelKey('7d')).toBe('monitoring.history.range.7d');
+  });
+});
+
+describe('defaultBoxWidthMs', () => {
+  it('is a third of the strip for a wide-enough strip', () => {
+    expect(defaultBoxWidthMs(3 * HOUR)).toBe(HOUR);
+  });
+
+  it('floors at MIN_BOX_WINDOW_MS, capped at the strip width itself', () => {
+    // The 5m preset: a third would be under the 5-minute floor, so the box
+    // fills the whole strip - matches the reference recording at this preset.
+    expect(defaultBoxWidthMs(5 * MINUTE)).toBe(5 * MINUTE);
+  });
+});
+
+describe('seriesQueryFor', () => {
+  it('maps each metric to its series csv', () => {
+    expect(seriesQueryFor('cpu')).toBe('cpu,cpu-temp');
+    expect(seriesQueryFor('memory')).toBe('memory');
+    expect(seriesQueryFor('network')).toBe('net-in,net-out');
+    expect(seriesQueryFor('gpu')).toBe('gpu,gpu-temp');
   });
 });
 
 describe('initViewport', () => {
-  it('follows at a 1h window ending at now', () => {
+  it('follows at the 5m default: a 5m strip whose box fills it', () => {
     const now = 10_000_000;
-    expect(initViewport(now)).toEqual({ from: now - HOUR, to: now, rangeKey: '1h', following: true });
+    expect(initViewport(now)).toEqual({
+      from: now - 5 * MINUTE, to: now,
+      stripFrom: now - 5 * MINUTE, stripTo: now,
+      rangeKey: '5m', lastPresetKey: '5m', following: true,
+    });
   });
 });
 
 describe('viewportReducer', () => {
   const now = 10_000_000;
-  const base: ViewportState = { from: now - HOUR, to: now, rangeKey: '1h', following: true };
+  const base: ViewportState = {
+    from: now - HOUR, to: now,
+    stripFrom: now - 3 * HOUR, stripTo: now,
+    rangeKey: '3h', lastPresetKey: '3h', following: true,
+  };
 
-  it('init produces the default 1h following viewport', () => {
+  it('init produces the default 5m following viewport', () => {
     expect(viewportReducer(base, { type: 'init', now })).toEqual(initViewport(now));
   });
 
-  it('setRange is right-edge anchored and reattaches following', () => {
-    const detached: ViewportState = { from: now - 5 * HOUR, to: now - HOUR, rangeKey: 'custom', following: false };
+  it('setRange sizes the strip to the preset and the box to a third of it, right-edge anchored', () => {
+    const detached: ViewportState = {
+      from: now - 5 * HOUR, to: now - HOUR,
+      stripFrom: now - 12 * HOUR, stripTo: now - HOUR,
+      rangeKey: 'custom', lastPresetKey: '12h', following: false,
+    };
     const next = viewportReducer(detached, { type: 'setRange', key: '3h', now });
-    expect(next).toEqual({ from: now - 3 * HOUR, to: now, rangeKey: '3h', following: true });
+    expect(next).toEqual({
+      from: now - HOUR, to: now,
+      stripFrom: now - 3 * HOUR, stripTo: now,
+      rangeKey: '3h', lastPresetKey: '3h', following: true,
+    });
   });
 
-  it('brushChange detaches following when the new edge is short of now', () => {
-    const next = viewportReducer(base, { type: 'brushChange', from: now - 5 * HOUR, to: now - 2 * HOUR, now });
-    expect(next.following).toBe(false);
+  it('brushChange moves only the box within the strip, leaving rangeKey and the strip untouched', () => {
+    const next = viewportReducer(base, { type: 'brushChange', from: now - 3 * HOUR, to: now - 2 * HOUR, now });
+    expect(next.from).toBe(now - 3 * HOUR);
     expect(next.to).toBe(now - 2 * HOUR);
+    expect(next.stripFrom).toBe(base.stripFrom);
+    expect(next.stripTo).toBe(base.stripTo);
+    expect(next.rangeKey).toBe('3h');
+    expect(next.following).toBe(false);
+  });
+
+  it('brushChange reattaches following when the box edge touches (or passes) now', () => {
+    const detached: ViewportState = { ...base, from: now - 3 * HOUR, to: now - HOUR, following: false };
+    const next = viewportReducer(detached, { type: 'brushChange', from: now - 2 * HOUR, to: now, now });
+    expect(next.following).toBe(true);
+    expect(next.to).toBe(now);
     expect(next.rangeKey).toBe('3h');
   });
 
-  it('brushChange reattaches following when the edge touches (or passes) now', () => {
-    const detached: ViewportState = { from: now - 5 * HOUR, to: now - HOUR, rangeKey: 'custom', following: false };
-    const next = viewportReducer(detached, { type: 'brushChange', from: now - 3 * HOUR, to: now, now });
+  it('brushChange reattaches when dragged to the strip\'s own (frozen, stale) right edge, not just the live now', () => {
+    // A detached strip only slides on a live tick, so it freezes at
+    // whatever stripTo was at the moment of detach. Real time (`now`) keeps
+    // advancing past it - TimelineBrush's own edge-snap makes a right-edge
+    // drag land exactly on that frozen stripTo, not on the (by then later)
+    // live edge, so `to >= now` alone would never reattach again.
+    const staleStripTo = now - 5_000;
+    const detached: ViewportState = {
+      from: now - 3 * HOUR - 5_000, to: now - HOUR - 5_000,
+      stripFrom: now - 6 * HOUR - 5_000, stripTo: staleStripTo,
+      rangeKey: '3h', lastPresetKey: '3h', following: false,
+    };
+    const next = viewportReducer(detached, { type: 'brushChange', from: staleStripTo - HOUR, to: staleStripTo, now });
     expect(next.following).toBe(true);
     expect(next.to).toBe(now);
+    expect(next.to - next.from).toBe(HOUR);
+    expect(next.stripTo).toBe(now);
+    expect(next.stripTo - next.stripFrom).toBe(6 * HOUR);
   });
 
-  it('brushChange with a non-preset width reports custom', () => {
-    const next = viewportReducer(base, { type: 'brushChange', from: now - 90 * 60_000, to: now, now });
+  it('brushChange does not reattach for a box short of the strip edge', () => {
+    const detached: ViewportState = { ...base, from: now - 3 * HOUR, to: now - HOUR, following: false };
+    const next = viewportReducer(detached, { type: 'brushChange', from: now - 2 * HOUR, to: now - MINUTE, now });
+    expect(next.following).toBe(false);
+    expect(next.to).toBe(now - MINUTE);
+  });
+
+  it('chartDragSelect sets the box to the exact selection, goes custom, and re-derives a 3x centered strip', () => {
+    const selFrom = now - 90 * MINUTE;
+    const selTo = now - 60 * MINUTE;
+    const next = viewportReducer(base, { type: 'chartDragSelect', from: selFrom, to: selTo, now, retentionMs: 7 * DAY });
+    expect(next.from).toBe(selFrom);
+    expect(next.to).toBe(selTo);
     expect(next.rangeKey).toBe('custom');
+    expect(next.lastPresetKey).toBe('3h');
+    expect(next.following).toBe(false);
+    // Strip is 3x the 30-minute selection (90 minutes), centered on it.
+    expect(next.stripTo - next.stripFrom).toBe(90 * MINUTE);
+    expect(next.stripFrom).toBeLessThanOrEqual(selFrom);
+    expect(next.stripTo).toBeGreaterThanOrEqual(selTo);
+  });
+
+  it('chartDragSelect clamps the re-derived strip to the live edge and retention floor', () => {
+    // Selecting near "now" would otherwise want a strip extending past now.
+    const selFrom = now - 10 * MINUTE;
+    const selTo = now - MINUTE;
+    const next = viewportReducer(base, { type: 'chartDragSelect', from: selFrom, to: selTo, now, retentionMs: 7 * DAY });
+    expect(next.stripTo).toBeLessThanOrEqual(now);
+  });
+
+  it('chartDragSelect floors a near-zero-width selection at MIN_BOX_WINDOW_MS, matching a TimelineBrush drag\'s own floor', () => {
+    const selFrom = now - 5 * HOUR;
+    const next = viewportReducer(base, { type: 'chartDragSelect', from: selFrom, to: selFrom + 3_000, now, retentionMs: 7 * DAY });
+    expect(next.to - next.from).toBe(MIN_BOX_WINDOW_MS);
+    expect(next.from).toBe(selFrom);
+  });
+
+  it('chartDragSelect pulls a floored selection back under the live edge rather than overshooting it', () => {
+    const selFrom = now - 3_000;
+    const next = viewportReducer(base, { type: 'chartDragSelect', from: selFrom, to: now, now, retentionMs: 7 * DAY });
+    expect(next.to).toBe(now);
+    expect(next.to - next.from).toBe(MIN_BOX_WINDOW_MS);
+  });
+
+  it('chartDragSelect sorts a reversed [to, from] selection before applying the floor', () => {
+    const selFrom = now - 5 * HOUR;
+    const next = viewportReducer(base, { type: 'chartDragSelect', from: selFrom + 3_000, to: selFrom, now, retentionMs: 7 * DAY });
+    expect(next.from).toBe(selFrom);
+    expect(next.to - next.from).toBe(MIN_BOX_WINDOW_MS);
+  });
+
+  it('chartDragSelect reattaches following when the selection touches now', () => {
+    const next = viewportReducer(base, { type: 'chartDragSelect', from: now - 10 * MINUTE, to: now, now, retentionMs: 7 * DAY });
     expect(next.following).toBe(true);
   });
 
-  it('tick slides the window forward only while following, keeping width', () => {
+  it('tick slides both the box and the strip forward only while following, keeping both widths', () => {
     const later = now + 30_000;
     const next = viewportReducer(base, { type: 'tick', now: later });
-    expect(next).toEqual({ from: later - HOUR, to: later, rangeKey: '1h', following: true });
+    expect(next).toEqual({
+      from: later - HOUR, to: later,
+      stripFrom: later - 3 * HOUR, stripTo: later,
+      rangeKey: '3h', lastPresetKey: '3h', following: true,
+    });
   });
 
   it('tick is a no-op while detached', () => {
-    const detached: ViewportState = { from: now - 5 * HOUR, to: now - HOUR, rangeKey: 'custom', following: false };
+    const detached: ViewportState = { ...base, following: false };
     expect(viewportReducer(detached, { type: 'tick', now: now + 60_000 })).toBe(detached);
   });
 
-  it('retentionClamp pulls `from` forward when it exceeds the retention window, and is a no-op otherwise', () => {
-    const wide: ViewportState = { from: now - 10 * DAY, to: now, rangeKey: 'custom', following: false };
+  it('retentionClamp pulls the strip (and box) forward when the strip exceeds retention, and is a no-op otherwise', () => {
+    const wide: ViewportState = {
+      from: now - 5 * DAY, to: now,
+      stripFrom: now - 10 * DAY, stripTo: now,
+      rangeKey: 'custom', lastPresetKey: '7d', following: false,
+    };
     const clamped = viewportReducer(wide, { type: 'retentionClamp', retentionMs: 7 * DAY, now });
-    expect(clamped.from).toBe(now - 7 * DAY);
-    // The clamped window happens to land exactly on the 7d preset width.
+    expect(clamped.stripFrom).toBe(now - 7 * DAY);
+    expect(clamped.from).toBe(now - 5 * DAY);
     expect(clamped.rangeKey).toBe('7d');
 
-    const withinRetention: ViewportState = { from: now - 3 * DAY, to: now, rangeKey: '3d', following: false };
+    const withinRetention: ViewportState = { ...base, stripFrom: now - 3 * DAY, stripTo: now };
     expect(viewportReducer(withinRetention, { type: 'retentionClamp', retentionMs: 7 * DAY, now })).toBe(withinRetention);
   });
 
-  it('retentionClamp demotes rangeKey away from a preset the clamped window no longer matches', () => {
-    // A 7d preset selected before the server's short retention was known.
-    const sevenDayPreset: ViewportState = { from: now - 7 * DAY, to: now, rangeKey: '7d', following: true };
-    const clamped = viewportReducer(sevenDayPreset, { type: 'retentionClamp', retentionMs: 2 * DAY, now });
-    expect(clamped.from).toBe(now - 2 * DAY);
+  it('retentionClamp shifts a box entirely below the floor up to it, preserving width instead of inverting the domain', () => {
+    // Both from AND to sit below the retention floor here (floor = now -
+    // 7d) - clamping `from` alone while leaving `to` at now - 7.5d would
+    // produce from > to.
+    const wide: ViewportState = {
+      from: now - 8 * DAY, to: now - 7.5 * DAY,
+      stripFrom: now - 10 * DAY, stripTo: now,
+      rangeKey: 'custom', lastPresetKey: '7d', following: false,
+    };
+    const clamped = viewportReducer(wide, { type: 'retentionClamp', retentionMs: 7 * DAY, now });
+    expect(clamped.from).toBe(now - 7 * DAY);
+    expect(clamped.to).toBe(now - 6.5 * DAY);
+    expect(clamped.from).toBeLessThan(clamped.to);
+    expect(clamped.to - clamped.from).toBe(wide.to - wide.from);
+    expect(clamped.rangeKey).toBe('7d');
+  });
+
+  it('retentionClamp derives rangeKey from the clamped strip width, not the raw retention width', () => {
+    // A detached strip frozen 1 day in the past (stripTo = now - 1d) clamped
+    // against a 7d retention: the clamped strip only spans 6d (now-1d minus
+    // the floor at now-7d), not the full 7d retention window - rangeKey
+    // must reflect that narrower span (no matching preset -> 'custom'), not
+    // rangeKeyForWindow(retentionMs) which would wrongly report '7d'.
+    const detachedOld: ViewportState = {
+      from: now - 8 * DAY - HOUR, to: now - 8 * DAY,
+      stripFrom: now - 11 * DAY, stripTo: now - DAY,
+      rangeKey: 'custom', lastPresetKey: '7d', following: false,
+    };
+    const clamped = viewportReducer(detachedOld, { type: 'retentionClamp', retentionMs: 7 * DAY, now });
+    expect(clamped.stripFrom).toBe(now - 7 * DAY);
     expect(clamped.rangeKey).toBe('custom');
+  });
+
+  it('backToLive re-anchors both box and strip to now, preserving their current widths and rangeKey', () => {
+    const detached: ViewportState = {
+      from: now - 20 * MINUTE - 5 * HOUR, to: now - 5 * HOUR,
+      stripFrom: now - 60 * MINUTE - 5 * HOUR, stripTo: now - 5 * HOUR,
+      rangeKey: 'custom', lastPresetKey: '1h', following: false,
+    };
+    const next = viewportReducer(detached, { type: 'backToLive', now });
+    expect(next.to).toBe(now);
+    expect(next.to - next.from).toBe(20 * MINUTE);
+    expect(next.stripTo).toBe(now);
+    expect(next.stripTo - next.stripFrom).toBe(60 * MINUTE);
+    expect(next.following).toBe(true);
+    expect(next.rangeKey).toBe('custom');
   });
 });
 
@@ -254,5 +426,27 @@ describe('pickGpuHistorySeries', () => {
 
   it('returns nulls for an empty series list', () => {
     expect(pickGpuHistorySeries([], 'a', 'RTX 3070')).toEqual({ load: null, temp: null });
+  });
+});
+
+describe('formatBrushEdgeLabels', () => {
+  it('shows time-only labels when both edges fall on the same day', () => {
+    // Local-time constructors (not UTC ISO strings) so the same-day/
+    // different-day boundary is independent of the test runner's timezone,
+    // matching the getFullYear/getMonth/getDate (local) getters the
+    // implementation itself uses.
+    const start = new Date(2026, 6, 16, 11, 31, 4).getTime();
+    const end = new Date(2026, 6, 16, 11, 36, 4).getTime();
+    const [a, b] = formatBrushEdgeLabels(start, end, 'en-US');
+    expect(a).not.toMatch(/Jul/);
+    expect(b).not.toMatch(/Jul/);
+  });
+
+  it('includes the short localized day on both labels when the edges span different days', () => {
+    const start = new Date(2026, 6, 15, 23, 58, 0).getTime();
+    const end = new Date(2026, 6, 16, 0, 3, 0).getTime();
+    const [a, b] = formatBrushEdgeLabels(start, end, 'en-US');
+    expect(a).toMatch(/Jul/);
+    expect(b).toMatch(/Jul/);
   });
 });

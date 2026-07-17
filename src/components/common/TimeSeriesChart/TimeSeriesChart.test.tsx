@@ -221,4 +221,119 @@ describe('TimeSeriesChart', () => {
 
     expect(screen.getByText('Avg 40C')).toBeInTheDocument();
   });
+
+  it('hides the series avg/max rows when hideSeriesRows is set, keeping the header and tooltipExtra', () => {
+    const { container } = render(
+      <TimeSeriesChart series={makeSeries()} {...baseProps} hideSeriesRows tooltipExtra={() => <div>custom body</div>} />,
+    );
+    const svg = container.querySelector('svg')!;
+    vi.spyOn(svg, 'getBoundingClientRect').mockReturnValue({
+      left: 0, top: 0, width: 440, height: 260, right: 440, bottom: 260, x: 0, y: 0, toJSON: () => ({}),
+    });
+
+    fireEvent.mouseMove(svg, { clientX: 0 });
+
+    expect(screen.queryByText('Avg 40C')).not.toBeInTheDocument();
+    expect(screen.getByText('custom body')).toBeInTheDocument();
+  });
+
+  it('renders a filled gradient area per series when fillGradient is set', () => {
+    const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} fillGradient />);
+    expect(container.querySelectorAll('linearGradient').length).toBe(2);
+    expect(container.querySelectorAll('path[fill^="url(#"]').length).toBe(2);
+  });
+
+  it('does not render gradients or fills when fillGradient is omitted (backwards compatible)', () => {
+    const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} />);
+    expect(container.querySelectorAll('linearGradient').length).toBe(0);
+  });
+
+  it('sanitizes a colon-bearing series id (e.g. a GPU adapter series) in the gradient url reference', () => {
+    const series: TimeSeriesSeries[] = [
+      { id: 'gpu:0', name: 'GPU', color: '#22d3ee', points: [{ t: 0, avg: 10, max: 12 }, { t: HOUR, avg: 20, max: 22 }] },
+    ];
+    const { container } = render(<TimeSeriesChart series={series} {...baseProps} fillGradient />);
+    const gradient = container.querySelector('linearGradient')!;
+    const gradientId = gradient.getAttribute('id')!;
+    expect(gradientId).not.toContain(':');
+    const fillPath = container.querySelector(`path[fill="url(#${gradientId})"]`);
+    expect(fillPath).toBeInTheDocument();
+  });
+
+  describe('drag-select (onRangeSelect)', () => {
+    function stubGeometry(svg: SVGSVGElement) {
+      Element.prototype.setPointerCapture = vi.fn();
+      Element.prototype.releasePointerCapture = vi.fn();
+      Element.prototype.hasPointerCapture = vi.fn(() => true);
+      vi.spyOn(svg, 'getBoundingClientRect').mockReturnValue({
+        left: 0, top: 0, width: 440, height: 260, right: 440, bottom: 260, x: 0, y: 0, toJSON: () => ({}),
+      });
+    }
+
+    it('reports an ascending [from, to] range on release after a real drag', () => {
+      const onRangeSelect = vi.fn();
+      const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} onRangeSelect={onRangeSelect} />);
+      const svg = container.querySelector('svg')!;
+      stubGeometry(svg);
+
+      fireEvent.pointerDown(svg, { clientX: 300, pointerId: 1 });
+      fireEvent.pointerMove(svg, { clientX: 100, pointerId: 1 });
+      fireEvent.pointerUp(svg, { clientX: 100, pointerId: 1 });
+
+      expect(onRangeSelect).toHaveBeenCalledTimes(1);
+      const [from, to] = onRangeSelect.mock.calls[0];
+      expect(from).toBeLessThan(to);
+    });
+
+    it('renders a rubber-band overlay while dragging', () => {
+      const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} onRangeSelect={vi.fn()} />);
+      const svg = container.querySelector('svg')!;
+      stubGeometry(svg);
+
+      fireEvent.pointerDown(svg, { clientX: 100, pointerId: 1 });
+      fireEvent.pointerMove(svg, { clientX: 300, pointerId: 1 });
+
+      expect(container.querySelector('[class*="dragSelection"]')).toBeInTheDocument();
+    });
+
+    it('does not report a range for a stray click under the drag threshold', () => {
+      const onRangeSelect = vi.fn();
+      const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} onRangeSelect={onRangeSelect} />);
+      const svg = container.querySelector('svg')!;
+      stubGeometry(svg);
+
+      fireEvent.pointerDown(svg, { clientX: 200, pointerId: 1 });
+      fireEvent.pointerUp(svg, { clientX: 201, pointerId: 1 });
+
+      expect(onRangeSelect).not.toHaveBeenCalled();
+    });
+
+    it('Escape cancels an in-progress drag without reporting a range', () => {
+      const onRangeSelect = vi.fn();
+      const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} onRangeSelect={onRangeSelect} />);
+      const svg = container.querySelector('svg')!;
+      stubGeometry(svg);
+
+      fireEvent.pointerDown(svg, { clientX: 100, pointerId: 1 });
+      fireEvent.pointerMove(svg, { clientX: 300, pointerId: 1 });
+      expect(container.querySelector('[class*="dragSelection"]')).toBeInTheDocument();
+
+      fireEvent.keyDown(window, { key: 'Escape' });
+      expect(container.querySelector('[class*="dragSelection"]')).not.toBeInTheDocument();
+
+      fireEvent.pointerUp(svg, { clientX: 300, pointerId: 1 });
+      expect(onRangeSelect).not.toHaveBeenCalled();
+    });
+
+    it('does not enable drag-select when onRangeSelect is omitted (backwards compatible)', () => {
+      const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} />);
+      const svg = container.querySelector('svg')!;
+      stubGeometry(svg);
+
+      fireEvent.pointerDown(svg, { clientX: 100, pointerId: 1 });
+      fireEvent.pointerMove(svg, { clientX: 300, pointerId: 1 });
+
+      expect(container.querySelector('[class*="dragSelection"]')).not.toBeInTheDocument();
+    });
+  });
 });

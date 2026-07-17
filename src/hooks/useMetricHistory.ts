@@ -1,19 +1,24 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchMonitoringHistory, type MetricHistorySeries } from '../api/monitoringHistory';
+import { MonitoringHistoryCache, sliceToWindow } from '../lib/monitoringHistoryCache';
 import {
   initViewport,
   viewportReducer,
+  type PresetKey,
   type RangeKey,
   type ViewportState,
 } from '../panel/widgets/monitoring/page/metricHistoryHelpers';
 
 const DAY_MS = 24 * 3_600_000;
-const SILHOUETTE_WINDOW_MS = 7 * DAY_MS;
-const SILHOUETTE_MAX_POINTS = 600;
+const SILHOUETTE_MAX_POINTS = 400;
 const SILHOUETTE_REFRESH_MS = 60_000;
 
 const VIEWPORT_MAX_POINTS = 800;
-const VIEWPORT_DEBOUNCE_MS = 200;
+// Trailing debounce while actively dragging - short enough that a brief
+// drag pause already shows fresh data (the interim cache/overlap render
+// below covers the gap until then), long enough that a fast continuous drag
+// doesn't fire a request per pointermove.
+const VIEWPORT_DEBOUNCE_MS = 120;
 const VIEWPORT_REDECIMATE_MS = 60_000;
 
 const LIVE_TAIL_POLL_MS = 1_000;
@@ -22,24 +27,58 @@ const LIVE_TAIL_MAX_POINTS = 50;
 // response has reported a newest point).
 const LIVE_TAIL_BOOTSTRAP_MS = 5_000;
 
+// A viewport left unchanged for this long warms the cache for the
+// immediately adjacent (same-width) windows, so a subsequent pan in either
+// direction can render instantly from cache instead of paying a full
+// round trip. Comfortably longer than LIVE_TAIL_POLL_MS so it never fires
+// mid-tick while the user is still actively watching a fresh window settle.
+const PREFETCH_IDLE_MS = 3_000;
+
 export interface UseMetricHistoryResult {
-  /** Wide (7d) decimated series backing the TimelineBrush minimap. */
+  /** Decimated series over the current seek-bar STRIP - backs the
+   *  TimelineBrush minimap. */
   silhouette: MetricHistorySeries[];
-  /** Decimated series for the current visible window. */
+  /** Decimated series for the current chart window (the "box"). */
   series: MetricHistorySeries[];
-  /** The visible window - forces TimeSeriesChart's x-domain. */
+  /** The chart window - forces TimeSeriesChart's x-domain. */
   domain: [number, number];
-  /** The TimelineBrush's full pannable domain. */
-  fullDomain: [number, number];
+  /** The seek-bar strip's own span - TimelineBrush's track bounds. */
+  stripDomain: [number, number];
   rangeKey: RangeKey;
+  /** The last non-custom preset - drives the range control's reset-to-preset
+   *  affordance once rangeKey goes 'custom'. */
+  lastPresetKey: PresetKey;
   following: boolean;
   loading: boolean;
   error: boolean;
   mocked: boolean;
   supported: boolean;
   retentionDays: number;
-  setRange: (key: RangeKey) => void;
+  /** The current chart window's actual point spacing in seconds, as reported
+   *  by the most recent viewport response - null before the first response
+   *  lands. Drives the hover tooltip's time-label granularity (seconds
+   *  appear once the effective step is sub-minute). */
+  stepSeconds: number | null;
+  /** Bumped only by an explicit navigation action - setRange, onBrushChange,
+   *  onChartDragSelect, backToLive, or retry. NOT bumped by a live-follow
+   *  tick sliding the same window, nor by the periodic silhouette/viewport
+   *  redecimation timers refreshing the same window in place. A caller that
+   *  needs to know "the window the user is looking at meaningfully changed"
+   *  (e.g. the process list's rank-stability reset trigger) reads this
+   *  instead of `domain`, whose reference changes every following tick, or
+   *  the internal fetch-retry counter, which also changes on a routine
+   *  refresh. */
+  viewportGeneration: number;
+  setRange: (key: PresetKey) => void;
+  /** Dragging/resizing the TimelineBrush box within the strip - moves the
+   *  chart window only; the strip (and rangeKey) is untouched. */
   onBrushChange: (from: number, to: number, phase: 'drag' | 'end') => void;
+  /** A drag-select directly on the hero chart - sets the chart window to the
+   *  exact selection and re-derives a strip around it, going 'custom'. */
+  onChartDragSelect: (from: number, to: number) => void;
+  /** Re-anchors both the box and the strip to now, keeping their current
+   *  widths and rangeKey. */
+  backToLive: () => void;
   retry: () => void;
 }
 
@@ -72,17 +111,19 @@ function mergeTail(prev: readonly MetricHistorySeries[], tail: readonly MetricHi
 }
 
 /**
- * Owns the monitoring history chart's data: a wide 7d silhouette (for the
- * TimelineBrush minimap, refreshed every 60s), a decimated fetch for the
- * current visible window (debounced while the brush is being dragged,
- * immediate on release, fully re-decimated every 60s), and a 1s live-tail
- * poll that appends new points while following instead of re-decimating the
- * whole window. `seriesQuery` is the `series=` csv sent to the service - the
- * caller changes it to switch metrics (cpu/gpu/memory/network); the viewport
- * (from/to/rangeKey/following) is NOT reset by a seriesQuery change, so a
- * single persistent instance can swap metrics without losing the user's scrub
- * position. Seq-guarded like useDiagnosticsTemperatures - a stale response
- * for an outdated request is dropped.
+ * Owns the monitoring history chart's data: a decimated silhouette over the
+ * current seek-bar STRIP (for the TimelineBrush minimap, refetched whenever
+ * the strip itself changes and refreshed periodically while following), a
+ * decimated fetch for the current chart-window BOX (debounced while the
+ * brush is being dragged, immediate on release, fully re-decimated on the
+ * same periodic timer), and a live-tail poll that appends new points to the
+ * box while following instead of re-decimating the whole window.
+ * `seriesQuery` is the `series=` csv sent to the service - the caller
+ * changes it to switch metrics (cpu/gpu/memory/network); the viewport
+ * (box/strip/rangeKey/following) is NOT reset by a seriesQuery change, so a
+ * single persistent instance can swap metrics without losing the user's
+ * scrub position. Seq-guarded like useDiagnosticsTemperatures - a stale
+ * response for an outdated request is dropped.
  */
 export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetricHistoryResult {
   // Bootstrapped from the client clock once (the lazy useState initializer
@@ -105,14 +146,18 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [mocked, setMocked] = useState(false);
+  const [stepSeconds, setStepSeconds] = useState<number | null>(null);
 
   const [fetchEpoch, setFetchEpoch] = useState(0);
+  const [stripEpoch, setStripEpoch] = useState(0);
+  const [viewportGeneration, setViewportGeneration] = useState(0);
   const lastPhaseRef = useRef<'drag' | 'end'>('end');
   const mountedRef = useRef(true);
   const silhouetteSeqRef = useRef(0);
   const viewportSeqRef = useRef(0);
   const tailSeqRef = useRef(0);
   const lastLoadedTRef = useRef<number | null>(null);
+  const cacheRef = useRef(new MonitoringHistoryCache());
 
   useEffect(() => {
     mountedRef.current = true;
@@ -127,19 +172,18 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
     }
   }, []);
 
-  // Clamps `from` to the just-learned retention window whenever a response
-  // reports retentionDays - a preset picked (or defaulted) before the real
-  // value was known can otherwise leave the viewport's start past what the
-  // server actually retains.
+  // Clamps the strip (and box) to the just-learned retention window whenever
+  // a response reports retentionDays - a preset picked (or defaulted) before
+  // the real value was known can otherwise leave the strip's start past what
+  // the server actually retains.
   const clampToRetention = useCallback((days: number) => {
     setViewport(prev => viewportReducer(prev, { type: 'retentionClamp', retentionMs: days * DAY_MS, now: nowRef.current }));
   }, []);
 
-  const loadSilhouette = useCallback((query: string) => {
+  const loadSilhouette = useCallback((from: number, to: number, query: string) => {
     const seq = ++silhouetteSeqRef.current;
-    const now = nowRef.current;
     void (async () => {
-      const result = await fetchMonitoringHistory({ from: now - SILHOUETTE_WINDOW_MS, to: now, maxPoints: SILHOUETTE_MAX_POINTS, series: query });
+      const result = await fetchMonitoringHistory({ from, to, maxPoints: SILHOUETTE_MAX_POINTS, series: query });
       if (!mountedRef.current || seq !== silhouetteSeqRef.current) return;
       if (result.data) {
         setSilhouette(result.data.series);
@@ -160,6 +204,24 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
   const loadViewport = useCallback((from: number, to: number, query: string) => {
     const seq = ++viewportSeqRef.current;
     setLoading(true);
+
+    // Never blank while the fetch is in flight: an exact cache hit renders
+    // immediately (the fetch below still runs, to keep the data fresh); a
+    // miss falls back to whatever cached window overlaps this one, sliced
+    // to the requested range, so a scrub at least shows real (if coarser or
+    // slightly stale) points instead of a frozen unrelated window.
+    const exact = cacheRef.current.get(from, to, VIEWPORT_MAX_POINTS, query);
+    if (exact) {
+      setSeries(exact.data.series);
+      setStepSeconds(exact.data.stepSeconds);
+    } else {
+      const overlap = cacheRef.current.findOverlapping(from, to, query);
+      if (overlap) {
+        setSeries(sliceToWindow(overlap.data, from, to).series);
+        setStepSeconds(overlap.data.stepSeconds);
+      }
+    }
+
     void (async () => {
       const result = await fetchMonitoringHistory({ from, to, maxPoints: VIEWPORT_MAX_POINTS, series: query });
       if (!mountedRef.current || seq !== viewportSeqRef.current) return;
@@ -167,10 +229,12 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
         setSeries(result.data.series);
         setSupported(result.data.supported);
         setRetentionDays(result.data.retentionDays);
+        setStepSeconds(result.data.stepSeconds);
         setMocked(result.mocked);
         setError(false);
         bumpNow(result.data.series);
         clampToRetention(result.data.retentionDays);
+        if (!result.mocked) cacheRef.current.set(from, to, VIEWPORT_MAX_POINTS, query, result.data);
         // Invalidates any tail request still in flight from before this
         // viewport refresh landed - its response could resolve after and,
         // absent this, regress lastLoadedTRef past the point this fetch just
@@ -188,21 +252,51 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
     })();
   }, [bumpNow, clampToRetention]);
 
-  // Silhouette: fetch on mount, on a metric switch, and on a refresh timer.
-  // Stops polling once the route is known unsupported or the last fetch
-  // errored, so a service without the route (or one that's unreachable)
-  // isn't polled forever - retry() re-arms it explicitly.
+  // Silently warms the cache for a same-shaped window - no loading/series
+  // state touched, so a prefetch that's still in flight (or that fails) is
+  // invisible; a later loadViewport for this exact window just finds it
+  // already cached.
+  const prefetchWindow = useCallback((from: number, to: number, query: string) => {
+    if (cacheRef.current.get(from, to, VIEWPORT_MAX_POINTS, query)) return;
+    void (async () => {
+      const result = await fetchMonitoringHistory({ from, to, maxPoints: VIEWPORT_MAX_POINTS, series: query });
+      if (!mountedRef.current || !result.data || result.mocked) return;
+      cacheRef.current.set(from, to, VIEWPORT_MAX_POINTS, query, result.data);
+    })();
+  }, []);
+
+  // Silhouette: fetch over the strip's current bounds on mount, on a metric
+  // switch, and whenever the strip itself changes (setRange/chartDragSelect/
+  // backToLive bump stripEpoch - a pure box pan/resize within an unchanged
+  // strip does not). Stops polling once the route is known unsupported or
+  // the last fetch errored, so a service without the route (or one that's
+  // unreachable) isn't polled forever - retry() re-arms it explicitly.
   useEffect(() => {
     if (!enabled || !supported || error) return;
-    loadSilhouette(seriesQuery);
-    const timer = window.setInterval(() => loadSilhouette(seriesQuery), SILHOUETTE_REFRESH_MS);
-    return () => window.clearInterval(timer);
-  }, [enabled, seriesQuery, loadSilhouette, supported, error]);
+    const { stripFrom, stripTo } = viewportRef.current;
+    loadSilhouette(stripFrom, stripTo, seriesQuery);
+    // stripEpoch is the trigger; stripFrom/stripTo above are read from the
+    // ref at fire time, same as the viewport (box) fetch effect below.
+  }, [enabled, seriesQuery, stripEpoch, loadSilhouette, supported, error]);
 
-  // Viewport: fetch on mount, on a metric switch, and whenever the user (or
-  // the redecimate timer) requests a new window - NOT on every live tick
-  // (that's the separate tail poll below). Debounces while the most recent
-  // request was a brush drag; fires immediately otherwise. Gated on
+  // Keeps the silhouette fresh while following, independent of stripEpoch
+  // (the strip itself slides every tick, but re-fetching that often would be
+  // wasteful) - SILHOUETTE_REFRESH_MS balances minimap staleness against
+  // request volume for a background element that doesn't need per-tick
+  // precision.
+  useEffect(() => {
+    if (!enabled || !supported || error || !viewport.following) return;
+    const timer = window.setInterval(() => {
+      const { stripFrom, stripTo } = viewportRef.current;
+      loadSilhouette(stripFrom, stripTo, seriesQuery);
+    }, SILHOUETTE_REFRESH_MS);
+    return () => window.clearInterval(timer);
+  }, [enabled, seriesQuery, loadSilhouette, supported, error, viewport.following]);
+
+  // Viewport (box): fetch on mount, on a metric switch, and whenever the
+  // user (or the redecimate timer) requests a new window - NOT on every live
+  // tick (that's the separate tail poll below). Debounces while the most
+  // recent request was a brush drag; fires immediately otherwise. Gated on
   // `supported` (not `error`, unlike the other effects) - a metric switch
   // must still be able to retry after a transient failure, but once the
   // route is confirmed unsupported every series is equally unreachable, so a
@@ -223,6 +317,23 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
     // alone never retriggers this (see the ref read above).
   }, [enabled, seriesQuery, fetchEpoch, loadViewport, supported]);
 
+  // Idle prefetch: once the viewport goes PREFETCH_IDLE_MS without a real
+  // change, warms the cache for the same-width window immediately to the
+  // left, so panning further back lands on an instant exact cache hit
+  // instead of a fresh round trip. The right neighbor is only prefetched
+  // while detached - following's right neighbor is beyond "now" and the
+  // live tail already keeps that edge warm.
+  useEffect(() => {
+    if (!enabled || !supported || error) return;
+    const timer = window.setTimeout(() => {
+      const { from, to, following } = viewportRef.current;
+      const width = to - from;
+      prefetchWindow(from - width, from, seriesQuery);
+      if (!following) prefetchWindow(to, to + width, seriesQuery);
+    }, PREFETCH_IDLE_MS);
+    return () => window.clearTimeout(timer);
+  }, [enabled, seriesQuery, fetchEpoch, supported, error, prefetchWindow]);
+
   // Full re-decimation on a timer, independent of following/dragging. Same
   // supported/error gate as the silhouette poll above.
   useEffect(() => {
@@ -234,14 +345,25 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
     return () => window.clearInterval(timer);
   }, [enabled, supported, error]);
 
-  // Live tail: while following, poll just the new edge every second and
-  // append rather than re-decimating the whole window. `to` is anchored to
-  // the server time base (lastLoadedTRef, or nowRef before any response has
-  // landed) rather than the client clock - a client/relay clock skew against
-  // the client's Date.now() could otherwise request a window where
-  // from > to and freeze the tail while Live stays on.
+  // Live tail: poll just the new edge every second REGARDLESS of following -
+  // this is what keeps nowRef (the server time base) advancing while the
+  // user browses a detached historical window, so backToLive() and a brush
+  // drag back to the live edge re-anchor to the actual current time rather
+  // than whatever moment the user happened to detach at (nowRef would
+  // otherwise freeze the instant following goes false, since the box's own
+  // fetches keep re-requesting the same static historical window and never
+  // observe a newer point). The DISPLAYED series only merges the tail while
+  // following (read from viewportRef, not the effect's own closed-over
+  // `viewport`, so this doesn't need following in its dependency array and
+  // therefore doesn't tear the interval down and rebuild it on every
+  // attach/detach) - a detached scrub must never have its history mutated
+  // out from under it. `to` is anchored to the server time base
+  // (lastLoadedTRef, or nowRef before any response has landed) rather than
+  // the client clock - a client/relay clock skew against the client's
+  // Date.now() could otherwise request a window where from > to and freeze
+  // the tail.
   useEffect(() => {
-    if (!enabled || !viewport.following || !supported || error) return;
+    if (!enabled || !supported || error) return;
     const timer = window.setInterval(() => {
       const base = lastLoadedTRef.current ?? nowRef.current;
       const to = base + LIVE_TAIL_POLL_MS * 2;
@@ -253,59 +375,83 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
         const tail = result.data.series;
         const t = newestT(tail);
         if (t === null) return;
-        setSeries(prev => mergeTail(prev, tail));
+        if (viewportRef.current.following) setSeries(prev => mergeTail(prev, tail));
         bumpNow(tail);
         if (t > (lastLoadedTRef.current ?? -Infinity)) lastLoadedTRef.current = t;
       })();
     }, LIVE_TAIL_POLL_MS);
     return () => window.clearInterval(timer);
-  }, [enabled, viewport.following, seriesQuery, bumpNow, supported, error]);
+  }, [enabled, seriesQuery, bumpNow, supported, error]);
 
-  const setRange = useCallback((key: RangeKey) => {
+  const setRange = useCallback((key: PresetKey) => {
     lastPhaseRef.current = 'end';
     setViewport(prev => {
       const next = viewportReducer(prev, { type: 'setRange', key, now: nowRef.current });
       // A wide preset (e.g. 7d) picked on a shorter-retention install must
-      // not leave `from` past what the server actually keeps.
+      // not leave the strip past what the server actually keeps.
       return viewportReducer(next, { type: 'retentionClamp', retentionMs: retentionDaysRef.current * DAY_MS, now: nowRef.current });
     });
     setFetchEpoch(e => e + 1);
+    setStripEpoch(e => e + 1);
+    setViewportGeneration(g => g + 1);
   }, []);
 
   const onBrushChange = useCallback((from: number, to: number, phase: 'drag' | 'end') => {
     lastPhaseRef.current = phase;
     setViewport(prev => viewportReducer(prev, { type: 'brushChange', from, to, now: nowRef.current }));
     setFetchEpoch(e => e + 1);
+    setViewportGeneration(g => g + 1);
+  }, []);
+
+  const onChartDragSelect = useCallback((from: number, to: number) => {
+    lastPhaseRef.current = 'end';
+    setViewport(prev => viewportReducer(prev, {
+      type: 'chartDragSelect', from, to, now: nowRef.current, retentionMs: retentionDaysRef.current * DAY_MS,
+    }));
+    setFetchEpoch(e => e + 1);
+    setStripEpoch(e => e + 1);
+    setViewportGeneration(g => g + 1);
+  }, []);
+
+  const backToLive = useCallback(() => {
+    lastPhaseRef.current = 'end';
+    setViewport(prev => viewportReducer(prev, { type: 'backToLive', now: nowRef.current }));
+    setFetchEpoch(e => e + 1);
+    setStripEpoch(e => e + 1);
+    setViewportGeneration(g => g + 1);
   }, []);
 
   // Resetting error/supported (rather than calling loadSilhouette directly)
   // re-arms the gated silhouette-poll effect above, which fires its own
-  // fetch on this re-run - calling loadSilhouette here too would double it.
+  // fetch on this re-run (supported/error are already in its deps) -
+  // calling loadSilhouette here too would double it.
   const retry = useCallback(() => {
     lastPhaseRef.current = 'end';
     setSupported(true);
     setError(false);
     setFetchEpoch(e => e + 1);
+    setViewportGeneration(g => g + 1);
   }, []);
-
-  // Never lets the brush pan past what the server actually retains, even
-  // when that's narrower than the 7d silhouette window (a fresh install).
-  const fullDomainStart = nowRef.current - Math.min(SILHOUETTE_WINDOW_MS, retentionDays * DAY_MS);
 
   return {
     silhouette,
     series,
     domain: [viewport.from, viewport.to],
-    fullDomain: [fullDomainStart, nowRef.current],
+    stripDomain: [viewport.stripFrom, viewport.stripTo],
     rangeKey: viewport.rangeKey,
+    lastPresetKey: viewport.lastPresetKey,
     following: viewport.following,
     loading,
     error,
     mocked,
     supported,
     retentionDays,
+    stepSeconds,
+    viewportGeneration,
     setRange,
     onBrushChange,
+    onChartDragSelect,
+    backToLive,
     retry,
   };
 }
