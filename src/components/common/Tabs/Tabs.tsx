@@ -1,4 +1,4 @@
-import type { KeyboardEvent, MouseEvent, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import classNames from 'classnames';
 import styles from './Tabs.module.scss';
 
@@ -43,15 +43,6 @@ export interface TabsProps {
  * neutral-dim and hover to plain text. Text-only and icon+text tabs both flow
  * through this one component.
  */
-// Swallows the click/key so a trailing control (e.g. a per-tab pause toggle)
-// never re-triggers the ancestor tab button's onChange.
-function stopTrailingClick(e: MouseEvent) {
-  e.stopPropagation();
-}
-function stopTrailingKeyDown(e: KeyboardEvent) {
-  e.stopPropagation();
-}
-
 export function Tabs({ tabs, activeKey, onChange, disabled, ariaLabel = 'Tabs', className, fullWidth = false }: TabsProps) {
   const navClass = classNames(styles.tabs, fullWidth && styles.fullWidth, className);
   return (
@@ -83,7 +74,7 @@ export function Tabs({ tabs, activeKey, onChange, disabled, ariaLabel = 'Tabs', 
         // parent/child, so the trailing control stays a separately reachable
         // focus target instead of a descendant of the tab's own button.
         return (
-          <span key={tab.key} className={classNames(styles.tabGroup, { [styles.active]: isActive })}>
+          <span key={tab.key} role="presentation" className={classNames(styles.tabGroup, { [styles.active]: isActive })}>
             <button
               type="button"
               role="tab"
@@ -97,7 +88,7 @@ export function Tabs({ tabs, activeKey, onChange, disabled, ariaLabel = 'Tabs', 
                 <span className={styles.tabLabel}>{tab.label}</span>
               </span>
             </button>
-            <span className={styles.tabTrailing} onClick={stopTrailingClick} onKeyDown={stopTrailingKeyDown}>
+            <span className={styles.tabTrailing}>
               {tab.trailing}
             </span>
           </span>
