@@ -126,7 +126,7 @@ describe('CoolingHistorySection', () => {
       { id: 'cpu-temp', kind: 'cpu-temp', name: 'CPU', points: [{ t: NOW, avg: 52, max: 58 }] },
     ];
     const { container } = renderSection({ history: { series, domain: [NOW - HOUR, NOW] } });
-    fireEvent.mouseMove(chartSvg(container), { clientX: 0 });
+    fireEvent.mouseMove(chartSvg(container), { clientX: 200 });
     // Scoped to the tooltip row itself - "52°C" alone can also match a
     // y-axis tick label at the same value.
     const row = container.querySelector('[class*="tooltipRow"]')!;
@@ -187,7 +187,7 @@ describe('CoolingHistorySection', () => {
       { id: 'fan:1', kind: 'fan', name: 'Fan 1', points: [{ t: NOW, avg: 1500, max: 1520 }] },
     ];
     const { container } = renderSection({ history: { series, domain: [NOW - HOUR, NOW] } });
-    fireEvent.mouseMove(chartSvg(container), { clientX: 0 });
+    fireEvent.mouseMove(chartSvg(container), { clientX: 200 });
     const header = container.querySelector('[class*="tooltipHeader"]')!;
     expect(header.textContent).toContain('1500 RPM');
   });

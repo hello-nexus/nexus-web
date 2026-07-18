@@ -300,9 +300,17 @@ export function TimeSeriesChart({
     if (!domainT) return;
     trackCursor(e);
     const rect = e.currentTarget.getBoundingClientRect();
-    const t = pxToT(tToPx(e.clientX, rect));
+    const svgX = tToPx(e.clientX, rect);
+    // Outside the plot rect (the axis-label gutter on either side) - clear
+    // rather than clamp, so the cursor/tooltip can't stick at the plot edge
+    // while the pointer sits over the tick labels.
+    if (svgX < pad.left || svgX > pad.left + chartW) {
+      setHoverT(null);
+      return;
+    }
+    const t = pxToT(svgX);
     if (t !== null) setHoverT(t);
-  }, [domainT, tToPx, pxToT, trackCursor]);
+  }, [domainT, tToPx, pxToT, trackCursor, pad.left, chartW]);
 
   // Drag-select: pointer-captured horizontal rubber-band, opt-in via
   // onRangeSelect. dragStartT/dragCurT drive the overlay rect; a move under

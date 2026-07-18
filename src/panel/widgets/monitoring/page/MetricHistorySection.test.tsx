@@ -222,7 +222,7 @@ describe('MetricHistorySection', () => {
     ];
     const { container } = renderSection({ metric: 'network', history: { series } });
     const svg = container.querySelector('svg')!;
-    fireEvent.mouseMove(svg, { clientX: 0 });
+    fireEvent.mouseMove(svg, { clientX: 200 });
 
     const topRow = container.querySelector('[class*="tooltipTopRow"]')!;
     // Two distinct child rows, not one blob of text combining both values.
@@ -251,7 +251,7 @@ describe('MetricHistorySection', () => {
       ];
       const { container } = renderSection({ metric: 'storage', history: { series } });
       const svg = container.querySelector('svg')!;
-      fireEvent.mouseMove(svg, { clientX: 0 });
+      fireEvent.mouseMove(svg, { clientX: 200 });
       expect(screen.getByText(/monitoring\.history\.read/)).toHaveTextContent('2.0 MB/s');
       expect(screen.getByText(/monitoring\.history\.write/)).toHaveTextContent('500 B/s');
     });
@@ -284,7 +284,7 @@ describe('MetricHistorySection', () => {
     expect(container.querySelectorAll('path[stroke="var(--accent)"]').length).toBe(1);
 
     const svg = container.querySelector('svg')!;
-    fireEvent.mouseMove(svg, { clientX: 0 });
+    fireEvent.mouseMove(svg, { clientX: 200 });
     expect(screen.queryByText(/monitoring\.history\.avg/)).toBeNull();
   });
 
@@ -313,7 +313,7 @@ describe('MetricHistorySection', () => {
     const { container } = renderSection({ metric: 'cpu', history: { series }, appsWindow: { apps } });
 
     const svg = container.querySelector('svg')!;
-    fireEvent.mouseMove(svg, { clientX: 0 });
+    fireEvent.mouseMove(svg, { clientX: 200 });
 
     const header = container.querySelector('[class*="tooltipHeader"]')!;
     expect(header.textContent).toContain('70°C');
@@ -335,7 +335,7 @@ describe('MetricHistorySection', () => {
     });
 
     const svg = container.querySelector('svg')!;
-    fireEvent.mouseMove(svg, { clientX: 0 });
+    fireEvent.mouseMove(svg, { clientX: 200 });
 
     const header = container.querySelector('[class*="tooltipHeader"]')!;
     expect(header.textContent).toContain('70°C');

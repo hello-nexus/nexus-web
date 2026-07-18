@@ -132,7 +132,7 @@ describe('TimeSeriesChart', () => {
       left: 0, top: 0, width: 440, height: 260, right: 440, bottom: 260, x: 0, y: 0, toJSON: () => ({}),
     });
 
-    fireEvent.mouseMove(svg, { clientX: 0 });
+    fireEvent.mouseMove(svg, { clientX: 60 });
 
     // The tooltip header renders its own precise timestamp (not the caller's
     // xTickFormat, which is "T0" here), so scope the check to the tooltip
@@ -157,7 +157,7 @@ describe('TimeSeriesChart', () => {
       left: 0, top: 0, width: 440, height: 260, right: 440, bottom: 260, x: 0, y: 0, toJSON: () => ({}),
     });
 
-    fireEvent.mouseMove(svg, { clientX: 0 });
+    fireEvent.mouseMove(svg, { clientX: 60 });
 
     const tooltipHeader = container.querySelector('[class*="tooltipHeader"]');
     expect(tooltipHeader?.textContent).toMatch(/\d{1,2}:\d{2}/);
@@ -170,11 +170,79 @@ describe('TimeSeriesChart', () => {
       left: 0, top: 0, width: 440, height: 260, right: 440, bottom: 260, x: 0, y: 0, toJSON: () => ({}),
     });
 
-    fireEvent.mouseMove(svg, { clientX: 0 });
+    fireEvent.mouseMove(svg, { clientX: 60 });
     expect(screen.getByText('Avg 40C')).toBeInTheDocument();
 
     fireEvent.mouseLeave(svg);
     expect(screen.queryByText('Avg 40C')).not.toBeInTheDocument();
+  });
+
+  describe('hover gutter clamp', () => {
+    it('clears the hover cursor/tooltip when the pointer moves into the left axis-label gutter', () => {
+      const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} />);
+      const svg = container.querySelector('svg')!;
+      vi.spyOn(svg, 'getBoundingClientRect').mockReturnValue({
+        left: 0, top: 0, width: 440, height: 260, right: 440, bottom: 260, x: 0, y: 0, toJSON: () => ({}),
+      });
+
+      fireEvent.mouseMove(svg, { clientX: 60 });
+      expect(screen.getByText('Avg 40C')).toBeInTheDocument();
+
+      // Default left padding is 56px - x=20 sits in the left gutter.
+      fireEvent.mouseMove(svg, { clientX: 20 });
+      expect(screen.queryByText('Avg 40C')).not.toBeInTheDocument();
+      expect(container.querySelector('line[stroke-dasharray]')).not.toBeInTheDocument();
+    });
+
+    it('clears the hover cursor/tooltip when the pointer moves into the right axis-label gutter', () => {
+      const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} />);
+      const svg = container.querySelector('svg')!;
+      vi.spyOn(svg, 'getBoundingClientRect').mockReturnValue({
+        left: 0, top: 0, width: 440, height: 260, right: 440, bottom: 260, x: 0, y: 0, toJSON: () => ({}),
+      });
+
+      fireEvent.mouseMove(svg, { clientX: 60 });
+      expect(screen.getByText('Avg 40C')).toBeInTheDocument();
+
+      // Default right padding is 16px on a 440px-wide chart - x=430 sits in
+      // the right gutter (past width - pad.right = 424).
+      fireEvent.mouseMove(svg, { clientX: 430 });
+      expect(screen.queryByText('Avg 40C')).not.toBeInTheDocument();
+    });
+
+    it('re-shows the tooltip once the pointer returns to the plot area from a gutter', () => {
+      const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} />);
+      const svg = container.querySelector('svg')!;
+      vi.spyOn(svg, 'getBoundingClientRect').mockReturnValue({
+        left: 0, top: 0, width: 440, height: 260, right: 440, bottom: 260, x: 0, y: 0, toJSON: () => ({}),
+      });
+
+      fireEvent.mouseMove(svg, { clientX: 20 });
+      expect(screen.queryByText('Avg 40C')).not.toBeInTheDocument();
+
+      fireEvent.mouseMove(svg, { clientX: 60 });
+      expect(screen.getByText('Avg 40C')).toBeInTheDocument();
+    });
+
+    it('uses the yAxisSide=right padding lanes for the gutter clamp (narrow left, wide right)', () => {
+      const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} yAxisSide="right" />);
+      const svg = container.querySelector('svg')!;
+      vi.spyOn(svg, 'getBoundingClientRect').mockReturnValue({
+        left: 0, top: 0, width: 440, height: 260, right: 440, bottom: 260, x: 0, y: 0, toJSON: () => ({}),
+      });
+
+      fireEvent.mouseMove(svg, { clientX: 20 });
+      expect(screen.getByText('Avg 40C')).toBeInTheDocument();
+
+      // Right-axis padding is { left: 16, right: 80 } - x=370 sits in the
+      // (wider) right gutter reserved for the axis labels.
+      fireEvent.mouseMove(svg, { clientX: 370 });
+      expect(screen.queryByText('Avg 40C')).not.toBeInTheDocument();
+
+      // x=5 sits in the (narrow) left gutter.
+      fireEvent.mouseMove(svg, { clientX: 5 });
+      expect(screen.queryByText('Avg 40C')).not.toBeInTheDocument();
+    });
   });
 
   it('renders a translucent band for a supplied episode span', () => {
@@ -192,7 +260,7 @@ describe('TimeSeriesChart', () => {
       left: 0, top: 0, width: 440, height: 260, right: 440, bottom: 260, x: 0, y: 0, toJSON: () => ({}),
     });
 
-    fireEvent.mouseMove(svg, { clientX: 0 });
+    fireEvent.mouseMove(svg, { clientX: 60 });
 
     expect(tooltipExtra).toHaveBeenCalledWith(0);
     expect(screen.getByText('extra for 0')).toBeInTheDocument();
@@ -205,7 +273,7 @@ describe('TimeSeriesChart', () => {
       left: 0, top: 0, width: 440, height: 260, right: 440, bottom: 260, x: 0, y: 0, toJSON: () => ({}),
     });
 
-    fireEvent.mouseMove(svg, { clientX: 0 });
+    fireEvent.mouseMove(svg, { clientX: 60 });
 
     expect(screen.getByText('Avg 40C')).toBeInTheDocument();
   });
@@ -220,7 +288,7 @@ describe('TimeSeriesChart', () => {
       left: 0, top: 0, width: 440, height: 260, right: 440, bottom: 260, x: 0, y: 0, toJSON: () => ({}),
     });
 
-    fireEvent.mouseMove(svg, { clientX: 0 });
+    fireEvent.mouseMove(svg, { clientX: 60 });
 
     expect(tooltipHeaderExtra).toHaveBeenCalledWith(0);
     const header = container.querySelector('[class*="tooltipHeader"]')!;
@@ -237,7 +305,7 @@ describe('TimeSeriesChart', () => {
       left: 0, top: 0, width: 440, height: 260, right: 440, bottom: 260, x: 0, y: 0, toJSON: () => ({}),
     });
 
-    fireEvent.mouseMove(svg, { clientX: 0 });
+    fireEvent.mouseMove(svg, { clientX: 60 });
 
     expect(screen.getByText('Avg 40C')).toBeInTheDocument();
   });
@@ -249,7 +317,7 @@ describe('TimeSeriesChart', () => {
       left: 0, top: 0, width: 440, height: 260, right: 440, bottom: 260, x: 0, y: 0, toJSON: () => ({}),
     });
 
-    fireEvent.mouseMove(svg, { clientX: 0 });
+    fireEvent.mouseMove(svg, { clientX: 60 });
 
     expect(screen.getByText('Avg 40C')).toBeInTheDocument();
   });
@@ -263,7 +331,7 @@ describe('TimeSeriesChart', () => {
       left: 0, top: 0, width: 440, height: 260, right: 440, bottom: 260, x: 0, y: 0, toJSON: () => ({}),
     });
 
-    fireEvent.mouseMove(svg, { clientX: 0 });
+    fireEvent.mouseMove(svg, { clientX: 60 });
 
     expect(screen.queryByText('Avg 40C')).not.toBeInTheDocument();
     expect(screen.getByText('custom body')).toBeInTheDocument();
@@ -457,7 +525,7 @@ describe('TimeSeriesChart', () => {
         left: 0, top: 0, width: 440, height: 260, right: 440, bottom: 260, x: 0, y: 0, toJSON: () => ({}),
       });
 
-      fireEvent.mouseMove(svg, { clientX: 0 });
+      fireEvent.mouseMove(svg, { clientX: 60 });
 
       // Scoped to the tooltip row itself - "40C" alone can also match a
       // y-axis tick label at the same value.
@@ -474,7 +542,7 @@ describe('TimeSeriesChart', () => {
         left: 0, top: 0, width: 440, height: 260, right: 440, bottom: 260, x: 0, y: 0, toJSON: () => ({}),
       });
 
-      fireEvent.mouseMove(svg, { clientX: 0 });
+      fireEvent.mouseMove(svg, { clientX: 60 });
 
       expect(screen.getByText('Avg 40C')).toBeInTheDocument();
       expect(screen.getByText('Max 45C')).toBeInTheDocument();
