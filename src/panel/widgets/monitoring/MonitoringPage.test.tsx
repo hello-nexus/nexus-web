@@ -81,11 +81,12 @@ vi.mock('../../../hooks/useSystemSpecs', () => ({
 }));
 
 const allNetSeriesOverride: Array<{ name: string; current: number; values: number[] }> = [];
+let networkTotalRateOverride = 0;
 vi.mock('../../../hooks/useNetworkMonitor', () => ({
   useNetworkMonitor: () => ({
     series: [],
     sampleCount: 0,
-    totalRate: 0,
+    totalRate: networkTotalRateOverride,
     totalRateIn: 0,
     totalRateOut: 0,
     entries: [],
@@ -799,6 +800,65 @@ describe('MonitoringPage', () => {
         <MonitoringPage serviceOnline={true} connectionState="online" tab="detailed" onTabChange={vi.fn()} />,
       );
       expect(container.querySelector('[class*="listScroll"]')).toBeNull();
+    });
+  });
+
+  describe('tab-bar live value chips (moved off the chart axis onto the tab itself)', () => {
+    const defaultCpuSensor = [
+      { id: 'cpu/load', name: 'CPU Total', type: 'Load', value: 42, units: '%', formatted: '42%', parent: { id: 'cpu', name: 'cpu' } },
+    ];
+
+    afterEach(() => {
+      sensorState.cpu = defaultCpuSensor;
+      sensorState.gpu = [];
+      sensorState.memory = [];
+      networkTotalRateOverride = 0;
+    });
+
+    it('shows each metric tab\'s live value: percent for cpu/gpu/memory, a formatted rate for network', () => {
+      sensorState.gpu = [
+        { id: 'gpu/0/load', name: 'GPU Core', type: 'Load', value: 30, units: '%', formatted: '30%', parent: { id: 'gpu/0', name: 'gpu' } },
+      ];
+      sensorState.memory = [
+        { id: 'mem/usage', name: 'Memory Usage', type: 'Load', value: 63, units: '%', formatted: '63%', parent: { id: 'mem', name: 'memory' } },
+      ];
+      networkTotalRateOverride = 2 * 1024 * 1024;
+
+      render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+
+      expect(screen.getByText('42%')).toBeInTheDocument();
+      expect(screen.getByText('30%')).toBeInTheDocument();
+      expect(screen.getByText('63%')).toBeInTheDocument();
+      expect(screen.getByText('2.0 MB/s')).toBeInTheDocument();
+    });
+
+    it('keeps the tab\'s own accessible name as the plain label text, independent of the ticking chip value', () => {
+      render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+      expect(screen.getByRole('tab', { name: 'monitoring.tab.cpu' })).toHaveAttribute('aria-selected', 'true');
+    });
+
+    it('reserves the same fixed chip width regardless of the value\'s digit count (no tab-bar shift as it changes)', () => {
+      const { rerender } = render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+      const fortyTwoChip = screen.getByText('42%');
+      const reservedWidth = fortyTwoChip.style.getPropertyValue('--badge-min-width');
+      expect(reservedWidth).not.toBe('');
+
+      sensorState.cpu = [
+        { id: 'cpu/load', name: 'CPU Total', type: 'Load', value: 100, units: '%', formatted: '100%', parent: { id: 'cpu', name: 'cpu' } },
+      ];
+      rerender(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+      expect(screen.getByText('100%').style.getPropertyValue('--badge-min-width')).toBe(reservedWidth);
+    });
+
+    it('reserves a wider fixed width for the network rate chip than the cpu/gpu/memory percent chips', () => {
+      render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+      const percentChip = screen.getByText('42%');
+      const rateChip = screen.getByText('0 B/s');
+      const percentWidth = percentChip.style.getPropertyValue('--badge-min-width');
+      const rateWidth = rateChip.style.getPropertyValue('--badge-min-width');
+      expect(percentWidth).not.toBe('');
+      expect(rateWidth).not.toBe('');
+      expect(rateWidth).not.toBe(percentWidth);
     });
   });
 });
