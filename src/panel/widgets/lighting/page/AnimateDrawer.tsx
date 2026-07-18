@@ -1,5 +1,6 @@
-import { useEffect } from 'react';
+import { useRef } from 'react';
 import { useTranslation } from '../../../../lib/i18n';
+import { useModalA11y } from '../../../../components/common/Overlay/useModalA11y';
 import { EFFECTS, type EffectState, type EffectTemplateBundle } from '../../../../types/lighting';
 import { EffectControls } from './EffectControls';
 import styles from '../LightingPage.module.scss';
@@ -9,10 +10,11 @@ import styles from '../LightingPage.module.scss';
  * effect controls on the fullscreen canvas. (The right-pane variant
  * renders EffectControls directly in a tab, no drawer shell.)
  *
- * Esc-to-close is wired inline rather than via Overlay: the parent
- * (FullscreenShader) owns the open/closing animation lifecycle and
- * drives unmount via onAnimationEnd, which doesn't compose through
- * Overlay's surface wrapper.
+ * Rendered inline rather than via Overlay: the parent (FullscreenShader)
+ * owns the open/closing animation lifecycle and drives unmount via
+ * onAnimationEnd, which doesn't compose through Overlay's surface wrapper.
+ * Still registers with the shared modal stack (useModalA11y) so Escape and
+ * Tab are arbitrated against whatever else is stacked on top of it.
  */
 export function AnimateDrawer({
   effect, state, bundle,
@@ -35,18 +37,20 @@ export function AnimateDrawer({
 }) {
   const { t } = useTranslation();
   const def = EFFECTS.find(e => e.key === effect);
+  const containerRef = useRef<HTMLElement>(null);
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.preventDefault(); onClose(); }
-    };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [onClose]);
+  useModalA11y({
+    open: true,
+    onClose,
+    containerRef,
+    lockBackground: false,
+    restoreFocus: false,
+  });
 
   if (!def) return null;
   return (
     <aside
+      ref={containerRef}
       className={`${styles.drawer} ${closing ? styles.drawerClosing : ''}`}
       role="dialog"
       aria-label={t(def.labelKey)}

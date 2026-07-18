@@ -1961,7 +1961,7 @@ export const REGISTRY: StorybookEntry[] = [
     name: 'Overlay', category: 'modals',
     filePath: 'src/components/common/Overlay/Overlay.tsx',
     description: 'Canonical modal/sheet base. Owns the backdrop, escape-to-close, and click-outside dismiss; the consumer brings the surface chrome via className. Variants: dialog (centred), alert (alertdialog role + Enter-to-confirm), sheet (transparent backdrop for slide drawers).', Preview: PreviewOverlay,
-    notes: 'DeviceModal, ConfirmModal, and SupportedDevicesModal compose Overlay - reach for those existing wrappers before using Overlay directly.',
+    notes: 'DeviceModal, ConfirmModal, and SupportedDevicesModal compose Overlay - reach for those existing wrappers before using Overlay directly. Internally registers with useModalA11y (src/components/common/Overlay/useModalA11y.ts): traps Tab within the surface, locks background scroll, restores focus to the trigger on close, and joins a shared open-stack so Escape/Enter only reach the topmost of several stacked modals.',
   },
   {
     name: 'DeviceModal', category: 'modals',
