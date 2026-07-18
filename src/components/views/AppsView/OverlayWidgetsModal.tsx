@@ -9,6 +9,7 @@ import { listOverlayWidgets, deleteOverlayWidget, type OverlayWidgetDto } from '
 import { APP_REGISTRY } from '../../../panel/widgets/registry';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { useTranslation } from '../../../lib/i18n';
+import { pluralKey } from '../../../lib/pluralKey';
 import styles from './DesktopWidgetsModal.module.scss';
 
 // Subset of the nested `Preferences` payload returned by GET /preferences
@@ -42,7 +43,7 @@ const OPACITY_DEFAULT = 100;
  * one at a time.
  */
 export function OverlayWidgetsModal({ open, onClose }: OverlayWidgetsModalProps) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const [enabled, setEnabled] = useState(false);
   const [scale, setScale] = useState(SCALE_DEFAULT);
   const [opacity, setOpacity] = useState(OPACITY_DEFAULT);
@@ -252,9 +253,7 @@ export function OverlayWidgetsModal({ open, onClose }: OverlayWidgetsModalProps)
           <section className={styles.section}>
             <div className={styles.listHeader}>
               <span>
-                {widgets.length === 1
-                  ? t('overlayWidgets.pinnedCount.one')
-                  : t('overlayWidgets.pinnedCount.other', { count: widgets.length })}
+                {t(pluralKey('overlayWidgets.pinnedCount', language, widgets.length), { count: widgets.length })}
               </span>
               {widgets.length > 0 && (
                 <button type="button" className={styles.linkBtn} onClick={handleUnpinAll}>

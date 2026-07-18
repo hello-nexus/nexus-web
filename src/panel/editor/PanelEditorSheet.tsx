@@ -15,6 +15,7 @@ import { PairRemoteContent } from '../../components/common/PairRemote/PairRemote
 import { PairedPcsContent } from '../../components/common/PairedPcs/PairedPcsContent';
 import { IconLabelButton } from '../../components/common/IconLabelButton/IconLabelButton';
 import { useTranslation } from '../../lib/i18n';
+import { pluralKey } from '../../lib/pluralKey';
 import type { ThemeMode } from '../../lib/settings';
 import type { EffectState } from '../../types/lighting';
 import type { PanelConfigValue, PanelSurface, PanelWidget, PanelWidgetSize } from '../types';
@@ -143,7 +144,7 @@ export function PanelEditorSheet({
   editView: DeckEditView;
   onEditViewChange: (view: DeckEditView) => void;
 }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const def = editingWidget ? lookupApp(editingWidget.type) : undefined;
   const title = mode === 'panelSettings'
     ? t('panel.actions.settings')
@@ -302,9 +303,7 @@ export function PanelEditorSheet({
                   {isMonitoringWidget && slotCountOptions.length > 0 && (
                     <WidgetControlGroup title={t('panel.editor.slots')}>
                       {slotCountOptions.map(n => {
-                        const slotLabel = n === 1
-                          ? t('panel.editor.slotCount.one', { count: n })
-                          : t('panel.editor.slotCount.other', { count: n });
+                        const slotLabel = t(pluralKey('panel.editor.slotCount', language, n), { count: n });
                         return (
                           <IconLabelButton
                             key={n}

@@ -23,11 +23,15 @@ describe('locale files', () => {
 
   it('all files have identical key sets', () => {
     const enKeys = Object.keys(loadLocale('en.json')).sort();
+    // Polish and Russian each add a CLDR "few" plural category English has no
+    // use for - pluralKey.ts falls back to `.other` everywhere else, so a
+    // `.few` sibling of an existing `.one`/`.other` pair is not drift.
+    const isPluralCategoryExtension = (key: string) => key.endsWith('.few') && enKeys.includes(`${key.slice(0, -'.few'.length)}.other`);
     for (const file of LOCALE_FILES) {
       if (file === 'en.json') continue;
       const keys = Object.keys(loadLocale(file)).sort();
       const missing = enKeys.filter(k => !keys.includes(k));
-      const extra = keys.filter(k => !enKeys.includes(k));
+      const extra = keys.filter(k => !enKeys.includes(k) && !isPluralCategoryExtension(k));
       expect(missing, `${file} missing keys: ${missing.join(', ')}`).toHaveLength(0);
       expect(extra, `${file} extra keys: ${extra.join(', ')}`).toHaveLength(0);
     }
