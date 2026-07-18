@@ -721,7 +721,7 @@ describe('MetricHistorySection', () => {
     });
   });
 
-  describe('selected-app line replaces the base metric line (monitoring-sidebar refine item 2)', () => {
+  describe('selected-app line overlays the base metric line (item 49)', () => {
     it('shows the base metric line, no app line, when nothing is selected', () => {
       stubGeometry();
       const series: UseMetricHistoryResult['series'] = [
@@ -730,35 +730,36 @@ describe('MetricHistorySection', () => {
       const apps = [{ name: 'chrome.exe', avg: 30, max: 40, points: [{ t: NOW - HOUR, avg: 20 }, { t: NOW, avg: 30 }] }];
       const { container } = renderSection({ metric: 'cpu', history: { series }, appsWindow: { apps }, selectedAppName: null });
       expect(container.querySelectorAll('path[stroke="var(--accent)"]').length).toBe(1);
-      expect(container.querySelector('path[stroke="var(--chart-line-alt)"]')).toBeNull();
+      expect(container.querySelector('path[stroke="var(--text)"]')).toBeNull();
     });
 
-    it('draws ONLY the selected app\'s line, filled, and removes the base metric line entirely', () => {
+    it('overlays the selected app\'s line on top of the base metric line, which stays visible', () => {
       stubGeometry();
       const series: UseMetricHistoryResult['series'] = [
         { id: 'cpu', kind: 'cpu', name: 'CPU', points: [{ t: NOW - HOUR, avg: 40, max: 41 }, { t: NOW, avg: 50, max: 51 }] },
       ];
       const apps = [{ name: 'chrome.exe', avg: 30, max: 40, points: [{ t: NOW - HOUR, avg: 20 }, { t: NOW, avg: 30 }] }];
       const { container } = renderSection({ metric: 'cpu', history: { series }, appsWindow: { apps }, selectedAppName: 'chrome.exe' });
-      const appLine = container.querySelector('path[stroke="var(--chart-line-alt)"]');
-      expect(appLine).toBeInTheDocument();
-      // The base metric's own accent-colored line is gone, not merely
-      // alongside the app line.
-      expect(container.querySelectorAll('path[stroke="var(--accent)"]').length).toBe(0);
-      // Filled the same way the base line normally is (fillGradient's own
-      // area path, referencing the app series' own gradient def).
-      expect(container.querySelector('path[fill^="url(#"]')).toBeInTheDocument();
+      // The base metric's own accent-colored line stays, unchanged.
+      expect(container.querySelectorAll('path[stroke="var(--accent)"]').length).toBe(1);
+      // The app's own line overlays it, in the same bright color as the
+      // persistent selection marker.
+      expect(container.querySelector('path[stroke="var(--text)"]')).toBeInTheDocument();
+      // Only the base line gets a gradient-fill area - the overlay is a bare
+      // stroke (buildSelectedAppSeries' own noFill: true) so a second
+      // translucent layer doesn't wash out the base graph underneath it.
+      expect(container.querySelectorAll('path[fill^="url(#"]').length).toBe(1);
     });
 
-    it('restores the base metric line, removing the app line, once the selection is cleared', () => {
+    it('removes the app overlay line once the selection is cleared, leaving the base metric line untouched throughout', () => {
       stubGeometry();
       const series: UseMetricHistoryResult['series'] = [
         { id: 'cpu', kind: 'cpu', name: 'CPU', points: [{ t: NOW - HOUR, avg: 40, max: 41 }, { t: NOW, avg: 50, max: 51 }] },
       ];
       const apps = [{ name: 'chrome.exe', avg: 30, max: 40, points: [{ t: NOW - HOUR, avg: 20 }, { t: NOW, avg: 30 }] }];
       const { container, rerender } = renderSection({ metric: 'cpu', history: { series }, appsWindow: { apps }, selectedAppName: 'chrome.exe' });
-      expect(container.querySelector('path[stroke="var(--chart-line-alt)"]')).toBeInTheDocument();
-      expect(container.querySelectorAll('path[stroke="var(--accent)"]').length).toBe(0);
+      expect(container.querySelector('path[stroke="var(--text)"]')).toBeInTheDocument();
+      expect(container.querySelectorAll('path[stroke="var(--accent)"]').length).toBe(1);
 
       rerender(
         <MetricHistorySection
@@ -774,11 +775,11 @@ describe('MetricHistorySection', () => {
           memoryTotalMb={null}
         />,
       );
-      expect(container.querySelector('path[stroke="var(--chart-line-alt)"]')).toBeNull();
+      expect(container.querySelector('path[stroke="var(--text)"]')).toBeNull();
       expect(container.querySelectorAll('path[stroke="var(--accent)"]').length).toBe(1);
     });
 
-    it('follows the active tab\'s metric - no line when the selected app has no series under the new metric', () => {
+    it('follows the active tab\'s metric - no overlay line when the selected app has no series under the new metric', () => {
       stubGeometry();
       const series: UseMetricHistoryResult['series'] = [
         { id: 'memory', kind: 'memory', name: 'Memory', points: [{ t: NOW, avg: 55, max: 56 }] },
@@ -786,7 +787,7 @@ describe('MetricHistorySection', () => {
       // No 'chrome.exe' entry in this window's apps - the memory tab's own
       // fetch hasn't matched it (or the app used none this window).
       const { container } = renderSection({ metric: 'memory', history: { series }, appsWindow: { apps: [] }, selectedAppName: 'chrome.exe', memoryTotalMb: 32768 });
-      expect(container.querySelector('path[stroke="var(--chart-line-alt)"]')).toBeNull();
+      expect(container.querySelector('path[stroke="var(--text)"]')).toBeNull();
     });
 
     it('rescales the selected app\'s memory MB onto the tab\'s own percent-of-RAM axis', () => {
@@ -800,14 +801,14 @@ describe('MetricHistorySection', () => {
       const { container } = renderSection({
         metric: 'memory', history: { series }, appsWindow: { apps }, selectedAppName: 'chrome.exe', memoryTotalMb: 32768,
       });
-      const appPath = container.querySelector('path[stroke="var(--chart-line-alt)"]');
+      const appPath = container.querySelector('path[stroke="var(--text)"]');
       expect(appPath).toBeInTheDocument();
       // The axis must not have blown out to accommodate a raw MB value (e.g.
       // "8192%") - it stays on the same small percent ladder as the main line.
       expect(screen.queryByText(/8192%|4096%/)).toBeNull();
     });
 
-    it('omits the memory app line entirely when the total can\'t be derived, rather than misrendering an unscaled MB value', () => {
+    it('omits the memory app overlay line entirely when the total can\'t be derived, rather than misrendering an unscaled MB value', () => {
       stubGeometry();
       const series: UseMetricHistoryResult['series'] = [
         { id: 'memory', kind: 'memory', name: 'Memory', points: [{ t: NOW, avg: 55, max: 56 }] },
@@ -816,10 +817,10 @@ describe('MetricHistorySection', () => {
       const { container } = renderSection({
         metric: 'memory', history: { series }, appsWindow: { apps }, selectedAppName: 'chrome.exe', memoryTotalMb: null,
       });
-      expect(container.querySelector('path[stroke="var(--chart-line-alt)"]')).toBeNull();
+      expect(container.querySelector('path[stroke="var(--text)"]')).toBeNull();
     });
 
-    it('passes byte-rate metrics (storage) through unscaled onto the auto-scaling axis', () => {
+    it('passes byte-rate metrics (storage) through unscaled onto the auto-scaling axis, overlaid on both base disk-read/disk-write lines', () => {
       stubGeometry();
       const series: UseMetricHistoryResult['series'] = [
         { id: 'disk-read', kind: 'disk', name: 'Disk Read', points: [{ t: NOW - HOUR, avg: 900_000, max: 1_000_000 }, { t: NOW, avg: 1_000_000, max: 1_000_000 }] },
@@ -827,7 +828,8 @@ describe('MetricHistorySection', () => {
       ];
       const apps = [{ name: 'chrome.exe', avg: 4_400_000, max: 4_400_000, points: [{ t: NOW - HOUR, avg: 4_000_000 }, { t: NOW, avg: 4_400_000 }] }];
       const { container } = renderSection({ metric: 'storage', history: { series }, appsWindow: { apps }, selectedAppName: 'chrome.exe' });
-      expect(container.querySelector('path[stroke="var(--chart-line-alt)"]')).toBeInTheDocument();
+      expect(container.querySelector('path[stroke="var(--text)"]')).toBeInTheDocument();
+      expect(container.querySelectorAll('path[stroke="var(--accent)"]').length).toBe(2);
     });
   });
 });

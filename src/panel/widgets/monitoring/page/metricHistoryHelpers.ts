@@ -312,13 +312,17 @@ export function deriveMemoryTotalMb(usedGb: number | undefined, usedPercent: num
 /**
  * The selected process's own usage series for the active metric tab, shaped
  * for TimeSeriesChart so it can be appended directly to the main chart's own
- * series list. Every metric except memory already shares its main line's
- * unit (percent for cpu/gpu, a byte rate for network/storage) and passes
- * through unscaled; memory's per-app values arrive in MB (see AppWindowSeries)
- * while the memory tab's own line is percent-of-RAM, so they're rescaled by
- * memoryTotalMb here to ride the same 0-100 axis. Returns null when memory
- * can't be scaled (memoryTotalMb unavailable) - an unscaled MB value on a
- * percent axis would render as visual nonsense.
+ * series list AS AN OVERLAY - the base metric line(s) stay on the chart
+ * underneath it (see MetricHistorySection's chartSeries), so this carries
+ * noFill: true, leaving only the base series' own gradient fill visible
+ * instead of stacking a second translucent layer over it. Every metric
+ * except memory already shares its main line's unit (percent for cpu/gpu, a
+ * byte rate for network/storage) and passes through unscaled; memory's
+ * per-app values arrive in MB (see AppWindowSeries) while the memory tab's
+ * own line is percent-of-RAM, so they're rescaled by memoryTotalMb here to
+ * ride the same 0-100 axis. Returns null when memory can't be scaled
+ * (memoryTotalMb unavailable) - an unscaled MB value on a percent axis would
+ * render as visual nonsense.
  */
 export function buildSelectedAppSeries(
   app: AppWindowSeries,
@@ -331,7 +335,7 @@ export function buildSelectedAppSeries(
     const avg = metric === 'memory' && memoryTotalMb ? (p.avg / memoryTotalMb) * 100 : p.avg;
     return { t: p.t, avg, max: avg };
   });
-  return { id: `app:${app.name}`, name: app.name, color, points };
+  return { id: `app:${app.name}`, name: app.name, color, points, noFill: true };
 }
 
 /** The largest plotted (avg) value across every series/point - matches what
@@ -398,10 +402,11 @@ export function sumSilhouette(seriesList: readonly MetricHistorySeries[]): TimeS
  * The Storage tab-chip's live value: disk-read + disk-write summed at the
  * newest timestamp either series has in `series`. Disk has no push-driven
  * live feed (unlike cpu/gpu/memory's sensor topics or network's per-process
- * feed - see monitoringStore.ts), so this reads the same history tail the
- * chart itself renders; it's only current while the Storage tab's own fetch
- * is the one populating `series` (MonitoringPage's single shared
- * useMetricHistory instance tracks one metric at a time).
+ * feed - see monitoringStore.ts). Called two ways in MonitoringPage: directly
+ * on `history.series` while the Storage tab itself is active (its own
+ * useMetricHistory instance already fetches disk-read/disk-write for the
+ * chart, so this is free), and indirectly via useDiskIoRate's own dedicated
+ * poll on every other tab (where `history.series` holds a different metric).
  */
 export function currentDiskRateBytesPerSec(series: readonly MetricHistorySeries[]): number {
   const read = series.find(s => s.id === 'disk-read');

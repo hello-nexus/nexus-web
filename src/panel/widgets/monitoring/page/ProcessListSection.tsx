@@ -234,7 +234,8 @@ const ProcessRow = memo(function ProcessRow({
  * across the cpu/memory/gpu/network tabs - one persistent instance whose
  * search/sort state survives a metric switch (data source and formatting
  * are the caller's concern via `items`/`formatValue`, scoped to whichever
- * metric is currently active). Search + sort over a flat row list, each row
+ * metric is currently active). Search (matching the process name or its
+ * publisher/company) + sort over a flat row list, each row
  * an app icon (or a plain neutral dot when none resolves), privacy-access
  * icons (webcam/microphone/location/screen capture, when the service
  * reports one for that process), a mini sparkline, and the current value
@@ -274,7 +275,9 @@ export function ProcessListSection({
 
   const visible = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    return needle ? ranked.filter(i => i.name.toLowerCase().includes(needle)) : ranked;
+    if (!needle) return ranked;
+    return ranked.filter(i => i.name.toLowerCase().includes(needle)
+      || (i.publisher ?? '').toLowerCase().includes(needle));
   }, [ranked, query]);
 
   // Missing isApp (a service that doesn't report it yet) renders as

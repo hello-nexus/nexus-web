@@ -518,7 +518,12 @@ describe('buildSelectedAppSeries', () => {
       name: 'chrome.exe',
       color: 'var(--chart-line-alt)',
       points: [{ t: 0, avg: 10, max: 10 }, { t: 1000, avg: 20, max: 20 }],
+      noFill: true,
     });
+  });
+
+  it('always carries noFill: true, since it overlays the base metric line rather than replacing it (item 49)', () => {
+    expect(buildSelectedAppSeries(app(), 'cpu', null, 'var(--text)')?.noFill).toBe(true);
   });
 
   it('passes network/storage byte-rate values through unscaled - the axis auto-scales to whatever is plotted', () => {

@@ -7,6 +7,7 @@ import { useSensors } from '../../../hooks/useSensors';
 import { useSystemSpecs } from '../../../hooks/useSystemSpecs';
 import { useMetricHistory } from '../../../hooks/useMetricHistory';
 import { useMetricHistoryApps } from '../../../hooks/useMetricHistoryApps';
+import { useDiskIoRate } from '../../../hooks/useDiskIoRate';
 import { useMonitoringPrivacy } from '../../../hooks/useMonitoringPrivacy';
 import { useTranslation } from '../../../lib/i18n';
 import { useUiSettings, useUnitPrefs } from '../../../hooks/useUiSettings';
@@ -88,10 +89,14 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
 
   // The selected process persists across a metric-tab switch (only the
   // sidebar's own content and the graph's overlay line reflect the newly
-  // active metric) - cleared only via the panel's own close button or by
-  // selecting a different row.
+  // active metric) - cleared via the panel's own close button, clicking its
+  // already-selected row again (a toggle - closes the sidebar and clears the
+  // chart overlay/row highlight exactly like the close button), or selecting
+  // a different row.
   const [selectedProcess, setSelectedProcess] = useState<string | null>(null);
-  const handleSelectProcess = useCallback((name: string) => setSelectedProcess(name), []);
+  const handleSelectProcess = useCallback((name: string) => {
+    setSelectedProcess(prev => (prev === name ? null : name));
+  }, []);
   const handleCloseProcessDetail = useCallback(() => setSelectedProcess(null), []);
 
   // GPU surfaces appear only where the platform reports live GPU utilization
@@ -180,10 +185,16 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
   const appsSeriesParam = isMetricTab ? appsSeriesParamFor(tab) : '';
   const appsWindow = useMetricHistoryApps(isMetricTab && appsSeriesParam !== '', appsSeriesParam, history.domain[0], history.domain[1], history.following);
 
-  // Storage has no push-driven live feed for its current rate (see
-  // currentDiskRateBytesPerSec) - its tab chip is only current while the
-  // Storage tab is the one actually populating history.series.
-  const storageBytesPerSec = useMemo(() => currentDiskRateBytesPerSec(history.series), [history.series]);
+  // Page-level, independent of which tab is active or selected - see
+  // useDiskIoRate (the service has no push-driven disk-throughput topic, so
+  // this polls the history endpoint's own trailing edge directly instead of
+  // depending on whichever tab's own history.series happens to include it).
+  // Paused while the Storage tab itself is active: its own useMetricHistory
+  // instance already fetches disk-read/disk-write for the chart, so reading
+  // that series instead avoids polling the same endpoint twice in parallel.
+  const isStorageTab = tab === 'storage';
+  const diskIoRate = useDiskIoRate(serviceOnline && !isStorageTab);
+  const storageBytesPerSec = isStorageTab ? currentDiskRateBytesPerSec(history.series) : diskIoRate;
 
   // Each metric tab's own live value, moved off the chart's right axis (the
   // sibling per-tab chart rework removes that readout) and into a
@@ -213,6 +224,14 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
   // resolveSelectedFrame for the unified live/scrubbed/pinned semantics.
   const [clickedFrameMs, setClickedFrameMs] = useState<number | null>(null);
   const { selectedFrameMs, isPinned: isSnapshotPinned } = resolveSelectedFrame(clickedFrameMs, history.domain);
+  // A pinned frame that drifts out of the viewed window falls back to the
+  // window's own right edge (see resolveSelectedFrame) but clickedFrameMs
+  // itself stays set - so a LATER scrub that happens to bring the window
+  // back over that same stale timestamp would silently re-pin it, jumping
+  // the persistent selection line onto it instead of continuing to track
+  // live. Forgetting it here (the same "adjust state during render" pattern
+  // as frozenFallback above) means once it's out of range it stays cleared.
+  if (clickedFrameMs !== null && !isSnapshotPinned) setClickedFrameMs(null);
   const clearSnapshot = useCallback(() => setClickedFrameMs(null), []);
   const { backToLive, detach } = history;
   const backToLiveAndClearSnapshot = useCallback(() => {
@@ -460,6 +479,7 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
               <div className={styles.metricDetail}>
                 <ProcessDetailPanel
                   name={selectedProcess}
+                  metric={tab}
                   onClose={handleCloseProcessDetail}
                   live={liveUsageByName.get(selectedProcess)}
                   appsWindow={appsWindow}

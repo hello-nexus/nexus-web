@@ -133,6 +133,25 @@ describe('ProcessListSection', () => {
     expect(screen.getByText('Nexus')).toBeInTheDocument();
   });
 
+  it('also matches the publisher/company name, not just the process name', () => {
+    const withPublishers: ProcessListItem[] = [
+      { name: 'chrome.exe', current: 12, values: [], publisher: 'Google LLC' },
+      { name: 'Code.exe', current: 4, values: [], publisher: 'Microsoft Corporation' },
+      { name: 'Nexus', current: 3, values: [], publisher: null },
+    ];
+    render(<ProcessListSection items={withPublishers} formatValue={v => `${v}%`} onSelectProcess={onSelectProcessMock} />);
+    fireEvent.change(screen.getByPlaceholderText('monitoring.history.process.searchPlaceholder'), { target: { value: 'google' } });
+    expect(screen.getByText('chrome.exe')).toBeInTheDocument();
+    expect(screen.queryByText('Code.exe')).toBeNull();
+    expect(screen.queryByText('Nexus')).toBeNull();
+  });
+
+  it('does not throw when searching with items that have no publisher at all', () => {
+    render(<ProcessListSection items={items()} formatValue={v => `${v}%`} onSelectProcess={onSelectProcessMock} />);
+    fireEvent.change(screen.getByPlaceholderText('monitoring.history.process.searchPlaceholder'), { target: { value: 'acme' } });
+    expect(screen.getByText('AcmeApp')).toBeInTheDocument();
+  });
+
   it('switches to alphabetical sort via the sort dropdown', () => {
     render(<ProcessListSection items={items()} formatValue={v => `${v}%`} onSelectProcess={onSelectProcessMock} />);
     fireEvent.click(screen.getByRole('button', { name: 'monitoring.history.process.sortAriaLabel' }));

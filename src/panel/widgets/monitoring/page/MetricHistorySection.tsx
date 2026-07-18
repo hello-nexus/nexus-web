@@ -73,10 +73,10 @@ export interface MetricHistorySectionProps {
 // both ribbons present (temperature + fan speed, cpu/gpu tabs).
 const CHART_HEIGHT = 238;
 const TOOLTIP_APPS_LIMIT = 8;
-// Distinct from --accent (the main metric line's color, user-customizable)
-// so the chart reads as per-app data, not the aggregate metric line it
-// replaces.
-const SELECTED_APP_LINE_COLOR = 'var(--chart-line-alt)';
+// Matches the persistent selection line's own color (TimeSeriesChart's
+// selectedT) so the overlaid app line reads as the same "highlighted on top"
+// treatment, distinct from --accent (the base metric line underneath it).
+const SELECTED_APP_LINE_COLOR = 'var(--text)';
 
 // Stable empty instances for the non-cpu/gpu tabs' fanRole branch, so the
 // dependent useMemos below don't see a new identity every render.
@@ -154,11 +154,11 @@ export function MetricHistorySection({
     return null;
   }, [metric, t]);
 
-  // The selected process's own usage for this tab's metric - replaces the
-  // base metric line(s) entirely below (see chartSeries) so the selected
-  // app is the sole emphasized line - null (and so no replacement happens)
-  // whenever nothing is selected, the app has no series in this window yet,
-  // or (memory only) the total isn't known to rescale it onto the percent axis.
+  // The selected process's own usage for this tab's metric - overlaid ON TOP
+  // of the base metric line(s) below (see chartSeries), not a replacement -
+  // null (and so no overlay renders) whenever nothing is selected, the app
+  // has no series in this window yet, or (memory only) the total isn't known
+  // to rescale it onto the percent axis.
   const selectedAppSeries = useMemo(() => {
     if (!selectedAppName) return null;
     const app = appsWindow.apps.find(a => a.name === selectedAppName);
@@ -166,15 +166,14 @@ export function MetricHistorySection({
     return buildSelectedAppSeries(app, metric, memoryTotalMb, SELECTED_APP_LINE_COLOR);
   }, [selectedAppName, appsWindow.apps, metric, memoryTotalMb]);
 
-  // Selecting an app swaps the chart to ONLY that app's own line (still
-  // rendered with the same fillGradient treatment as the base line below,
-  // via the chart-wide fillGradient prop) - the base metric line(s) are
-  // dropped entirely so the app is the sole emphasized series, rather than
-  // an overlay alongside a de-emphasized metric line.
+  // Selecting an app appends its own line on top of the base metric line(s),
+  // which stay visible underneath - the app series carries noFill (see
+  // buildSelectedAppSeries) so its own gradient fill doesn't stack a second
+  // translucent layer over the base line's own fill.
   const chartSeries = useMemo(() => {
-    if (selectedAppSeries) return [selectedAppSeries];
     const mapped = toHistoryChartSeries(resolved.main, colorFor);
-    return nameOverride ? mapped.map(s => ({ ...s, name: nameOverride(s.id) })) : mapped;
+    const base = nameOverride ? mapped.map(s => ({ ...s, name: nameOverride(s.id) })) : mapped;
+    return selectedAppSeries ? [...base, selectedAppSeries] : base;
   }, [resolved.main, colorFor, nameOverride, selectedAppSeries]);
 
   // Network and storage auto-scale their own ceiling to the data ([0, null],

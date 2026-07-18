@@ -29,6 +29,7 @@ function emptyAppsResult(): UseMetricHistoryAppsResult {
 function emptyUsage(): ProcessDetailUsage {
   return {
     cpu: emptyAppsResult(), memory: emptyAppsResult(), gpu: emptyAppsResult(), vram: emptyAppsResult(),
+    storageRead: emptyAppsResult(), storageWrite: emptyAppsResult(), netDown: emptyAppsResult(), netUp: emptyAppsResult(),
   };
 }
 
@@ -83,6 +84,7 @@ function baseProps(over: Partial<ProcessDetailPanelProps> = {}): ProcessDetailPa
   return {
     onClose: vi.fn(),
     name: 'chrome.exe',
+    metric: 'cpu',
     live: undefined,
     appsWindow: undefined,
     valueFormat: (v: number) => `${v}%`,
@@ -249,6 +251,50 @@ describe('ProcessDetailPanel usage tiles at the selected frame', () => {
     expect(screen.getByText('256 MB')).toBeInTheDocument();
     expect(screen.getByText('15%')).toBeInTheDocument();
     expect(screen.getByText('700 MB')).toBeInTheDocument();
+  });
+});
+
+describe('ProcessDetailPanel storage read/write and network down/up split tiles (item C)', () => {
+  it('breaks out read vs write on the storage tab', () => {
+    usageMock.mockReturnValue(usageWithPoints({
+      storageRead: [{ t: NOW, avg: 2 * 1024 * 1024 }],
+      storageWrite: [{ t: NOW, avg: 512 * 1024 }],
+    }));
+    render(<ProcessDetailPanel {...baseProps({ metric: 'storage', following: false, selectedFrameMs: NOW })} />);
+    expect(screen.getByText('monitoring.history.read')).toBeInTheDocument();
+    expect(screen.getByText('2.0 MB/s')).toBeInTheDocument();
+    expect(screen.getByText('monitoring.history.write')).toBeInTheDocument();
+    expect(screen.getByText('512.0 KB/s')).toBeInTheDocument();
+    expect(screen.queryByText('monitoring.history.download')).toBeNull();
+    expect(screen.queryByText('monitoring.history.upload')).toBeNull();
+  });
+
+  it('breaks out download vs upload on the network tab', () => {
+    usageMock.mockReturnValue(usageWithPoints({
+      netDown: [{ t: NOW, avg: 3 * 1024 * 1024 }],
+      netUp: [{ t: NOW, avg: 100 * 1024 }],
+    }));
+    render(<ProcessDetailPanel {...baseProps({ metric: 'network', following: false, selectedFrameMs: NOW })} />);
+    expect(screen.getByText('monitoring.history.download')).toBeInTheDocument();
+    expect(screen.getByText('3.0 MB/s')).toBeInTheDocument();
+    expect(screen.getByText('monitoring.history.upload')).toBeInTheDocument();
+    expect(screen.getByText('100.0 KB/s')).toBeInTheDocument();
+    expect(screen.queryByText('monitoring.history.read')).toBeNull();
+    expect(screen.queryByText('monitoring.history.write')).toBeNull();
+  });
+
+  it('never renders the split tiles on an unrelated tab, even if the (mocked) hook happened to return points for them', () => {
+    usageMock.mockReturnValue(usageWithPoints({
+      storageRead: [{ t: NOW, avg: 1_000_000 }],
+      storageWrite: [{ t: NOW, avg: 500_000 }],
+      netDown: [{ t: NOW, avg: 2_000_000 }],
+      netUp: [{ t: NOW, avg: 100_000 }],
+    }));
+    render(<ProcessDetailPanel {...baseProps({ metric: 'cpu', following: false, selectedFrameMs: NOW })} />);
+    expect(screen.queryByText('monitoring.history.read')).toBeNull();
+    expect(screen.queryByText('monitoring.history.write')).toBeNull();
+    expect(screen.queryByText('monitoring.history.download')).toBeNull();
+    expect(screen.queryByText('monitoring.history.upload')).toBeNull();
   });
 });
 

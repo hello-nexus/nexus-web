@@ -163,6 +163,15 @@ vi.mock('../../../hooks/useNetworkMonitor', () => ({
   useAllNetworkSeries: () => allNetSeriesOverride,
 }));
 
+let diskIoRateOverride = 0;
+let lastDiskIoRateEnabled: boolean | null = null;
+vi.mock('../../../hooks/useDiskIoRate', () => ({
+  useDiskIoRate: (enabled: boolean) => {
+    lastDiskIoRateEnabled = enabled;
+    return diskIoRateOverride;
+  },
+}));
+
 interface SeriesOverrideEntry {
   name: string;
   current: number;
@@ -463,6 +472,33 @@ describe('MonitoringPage', () => {
       expect(detach).toHaveBeenCalledTimes(1);
       const chipButton = screen.getByText(GRAPH_CLICK_LABEL).closest('button')!;
       expect(chipButton).toHaveAttribute('aria-hidden', 'false');
+    });
+
+    it('forgets a pinned frame once it drifts out of the viewed window, so it cannot resurface when a later scrub happens to bring the window back over it (bug #44)', () => {
+      const detach = vi.fn();
+      historyOverride = { following: false, detach, domain: CLICK_DOMAIN };
+      const { rerender } = render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+
+      fireEvent.click(screen.getByText('simulate-graph-click'));
+      expect(screen.getByText(GRAPH_CLICK_LABEL)).toBeInTheDocument();
+
+      // Scrub away to a window that no longer contains the pinned frame - it
+      // should fall back to this window's own right edge.
+      const AWAY_DOMAIN: [number, number] = [10 * HOUR_MS, 11 * HOUR_MS];
+      const AWAY_FALLBACK_LABEL = formatSelectedFrameTime(AWAY_DOMAIN[1], AWAY_DOMAIN[1] - AWAY_DOMAIN[0]);
+      historyOverride = { following: false, detach, domain: AWAY_DOMAIN };
+      rerender(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+      expect(screen.getByText(AWAY_FALLBACK_LABEL)).toBeInTheDocument();
+      expect(screen.queryByText(GRAPH_CLICK_LABEL)).toBeNull();
+
+      // Scrub back to the ORIGINAL window (which still contains the pinned
+      // timestamp) - the stale pin must stay forgotten, not silently
+      // reactivate and jump the persistent selection line back onto it.
+      const REENTRY_FALLBACK_LABEL = formatSelectedFrameTime(CLICK_DOMAIN[1], CLICK_DOMAIN[1] - CLICK_DOMAIN[0]);
+      historyOverride = { following: false, detach, domain: CLICK_DOMAIN };
+      rerender(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+      expect(screen.getByText(REENTRY_FALLBACK_LABEL)).toBeInTheDocument();
+      expect(screen.queryByText(GRAPH_CLICK_LABEL)).toBeNull();
     });
 
     it('keeps both variants mounted with only the inactive one hidden (fixed footprint - no layout shift toggling)', () => {
@@ -820,6 +856,37 @@ describe('MonitoringPage', () => {
       expect(container.querySelector('[class*="metricDetail"]')).toBeNull();
     });
 
+    it('clicking the already-selected row again toggles it off, exactly like the close button', () => {
+      cpuSeriesOverride = [
+        { name: 'LiveApp', current: 10, values: [1, 2, 3] },
+        { name: 'OtherApp', current: 5, values: [4, 5, 6] },
+      ];
+      const { container } = render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+
+      fireEvent.click(screen.getByText('select-LiveApp'));
+      expect(screen.getByTestId('process-detail-panel')).toBeInTheDocument();
+      expect(screen.getByTestId('process-list-section')).toHaveAttribute('data-selected-process-name', 'LiveApp');
+
+      fireEvent.click(screen.getByText('select-LiveApp'));
+      expect(screen.queryByTestId('process-detail-panel')).toBeNull();
+      expect(container.querySelector('[class*="metricDetail"]')).toBeNull();
+      expect(screen.getByTestId('process-list-section')).toHaveAttribute('data-selected-process-name', '');
+    });
+
+    it('clicking a different row while one is already selected switches the selection rather than toggling it off', () => {
+      cpuSeriesOverride = [
+        { name: 'LiveApp', current: 10, values: [1, 2, 3] },
+        { name: 'OtherApp', current: 5, values: [4, 5, 6] },
+      ];
+      render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+
+      fireEvent.click(screen.getByText('select-LiveApp'));
+      fireEvent.click(screen.getByText('select-OtherApp'));
+      expect(screen.getByTestId('process-detail-panel')).toBeInTheDocument();
+      expect(screen.getByText('detail:OtherApp')).toBeInTheDocument();
+      expect(screen.getByTestId('process-list-section')).toHaveAttribute('data-selected-process-name', 'OtherApp');
+    });
+
     it('keeps the selection across a metric-tab switch - only the reflected metric changes', () => {
       cpuSeriesOverride = [{ name: 'LiveApp', current: 10, values: [1, 2, 3] }];
       const { rerender } = render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
@@ -1077,6 +1144,8 @@ describe('MonitoringPage', () => {
       sensorState.gpu = [];
       sensorState.memory = [];
       networkTotalRateOverride = 0;
+      diskIoRateOverride = 0;
+      lastDiskIoRateEnabled = null;
       historyOverride = {};
     });
 
@@ -1127,7 +1196,7 @@ describe('MonitoringPage', () => {
       expect(rateWidth).not.toBe(percentWidth);
     });
 
-    it('shows the Storage tab\'s live value as a formatted rate, matching the current disk read+write from the history tail', () => {
+    it('shows the Storage tab\'s live value as a formatted rate, matching the current disk read+write from the history tail while Storage is the active tab (its own useMetricHistory instance already fetches it, so useDiskIoRate\'s own poll is paused)', () => {
       historyOverride = {
         series: [
           { id: 'disk-read', kind: 'disk', name: 'Disk Read', points: [{ t: 0, avg: 1_000_000, max: 1_000_000 }] },
@@ -1136,17 +1205,15 @@ describe('MonitoringPage', () => {
       };
       render(<MonitoringPage serviceOnline={true} connectionState="online" tab="storage" onTabChange={vi.fn()} />);
       expect(screen.getByText('1.4 MB/s')).toBeInTheDocument();
+      expect(lastDiskIoRateEnabled).toBe(false);
     });
 
-    it('shows the Storage chip as 0 B/s while a different tab is active, since disk has no push-driven live feed (unlike cpu/gpu/memory/network)', () => {
-      // history.series only ever holds the ACTIVE tab's own fetched series
-      // (the real useMetricHistory's seriesQuery follows the active tab -
-      // see seriesQueryFor), so viewing 'cpu' means it holds cpu/cpu-temp/fan
-      // data, never disk-read/disk-write - the default (empty) mock series
-      // already models that; this pins the Storage chip's resulting value.
+    it('shows the Storage chip\'s live total I/O sourced from the page-level useDiskIoRate poll while a different tab is active (bug #45) - it no longer depends on history.series, which only ever holds the active tab\'s own fetched series', () => {
+      diskIoRateOverride = 1_500_000;
       render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
       const storageTab = screen.getByRole('tab', { name: /monitoring\.tab\.storage/ });
-      expect(within(storageTab).getByText('0 B/s')).toBeInTheDocument();
+      expect(within(storageTab).getByText('1.4 MB/s')).toBeInTheDocument();
+      expect(lastDiskIoRateEnabled).toBe(true);
     });
   });
 });
