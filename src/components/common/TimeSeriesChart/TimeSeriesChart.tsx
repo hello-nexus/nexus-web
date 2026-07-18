@@ -40,6 +40,10 @@ export interface ChartRibbonSpec {
    *  on this ribbon's band - must already be sized to RIBBON_ICON_SIZE
    *  (e.g. `<Fan size={12} />`). Omit to render no icon for this ribbon. */
   icon?: ReactNode;
+  /** Accessible name for this band (e.g. "Average fan duty") - the ribbon is
+   *  otherwise a decorative SVG shape with no text content of its own.
+   *  Omit to render no label. */
+  ariaLabel?: string;
   /** Band thickness in px. Defaults to RIBBON_DEFAULT_HEIGHT. */
   height?: number;
 }
@@ -446,7 +450,7 @@ export function TimeSeriesChart({
           const midY = top + bandHeight / 2;
           const span = ribbon.cap - ribbon.floor || 1;
           return (
-            <g key={ri}>
+            <g key={ri} role={ribbon.ariaLabel ? 'img' : undefined} aria-label={ribbon.ariaLabel}>
               {ribbon.points.map((p, i) => {
                 const x0 = xFor(p.t);
                 const x1 = i + 1 < ribbon.points.length ? xFor(ribbon.points[i + 1].t) : pad.left + chartW;

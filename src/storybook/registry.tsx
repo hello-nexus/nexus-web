@@ -2,7 +2,7 @@
 // file per preview to satisfy the fast-refresh rule would be dozens of tiny
 // files. Storybook entries reload (not HMR) on edit.
 import { useEffect, useRef, useState, type CSSProperties, type FC } from 'react';
-import { Monitor, Palette, Sparkles, X, Plus, Settings, Download, AlertTriangle, HardDrive } from 'lucide-react';
+import { Monitor, Palette, Sparkles, X, Plus, Settings, Download, AlertTriangle, HardDrive, Fan } from 'lucide-react';
 import { ViewHeader } from '../components/common/ViewHeader/ViewHeader';
 import { Sparkline } from '../components/common/Sparkline/Sparkline';
 import { SensorCard } from '../components/common/SensorCard/SensorCard';
@@ -97,7 +97,7 @@ import { Stepper as StorybookStepper } from '../components/common/Stepper/Steppe
 import { RangeBar } from '../components/common/RangeBar/RangeBar';
 import { Badge as StorybookBadge } from '../components/common/Badge/Badge';
 import { SeriesChart } from '../components/common/SeriesChart/SeriesChart';
-import { TimeSeriesChart } from '../components/common/TimeSeriesChart/TimeSeriesChart';
+import { RIBBON_ICON_SIZE, TimeSeriesChart } from '../components/common/TimeSeriesChart/TimeSeriesChart';
 import { TimelineBrush } from '../components/common/TimelineBrush/TimelineBrush';
 import { EventTimeline } from '../components/common/EventTimeline/EventTimeline';
 import { TextInput } from '../components/common/TextInput/TextInput';
@@ -528,6 +528,11 @@ function PreviewTimeSeriesChart() {
     const avg = 55 + 30 * Math.sin(i / 3) + sampleNoise(i, 4) * 2;
     return { t, avg, max: avg + 5 };
   });
+  const dutyPoints = Array.from({ length: 48 }, (_, i) => {
+    const t = now - (48 - i) * (DAY / 8);
+    const avg = 45 + 25 * Math.sin(i / 3) + sampleNoise(i, 6) * 2;
+    return { t, avg, max: avg + 3 };
+  });
   return (
     <TimeSeriesChart
       series={[
@@ -540,7 +545,10 @@ function PreviewTimeSeriesChart() {
       avgLabel="Avg"
       maxLabel="Max"
       yAxisSide="right"
-      ribbons={[{ points: tempPoints, floor: 30, cap: 100, fill: 'var(--bad)', valueLabel: `${Math.round(tempPoints[tempPoints.length - 1].avg)}°C` }]}
+      ribbons={[
+        { points: tempPoints, floor: 30, cap: 100, fill: 'var(--bad)', valueLabel: `${Math.round(tempPoints[tempPoints.length - 1].avg)}°C` },
+        { points: dutyPoints, floor: 0, cap: 100, fill: 'var(--accent)', icon: <Fan size={RIBBON_ICON_SIZE} aria-hidden />, ariaLabel: 'Average fan duty' },
+      ]}
       tooltipExtra={() => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, paddingTop: 6, borderTop: '1px solid var(--separator)' }}>
           <span style={{ width: 8, height: 8, borderRadius: 2, background: '#8b5cf6', flexShrink: 0 }} />

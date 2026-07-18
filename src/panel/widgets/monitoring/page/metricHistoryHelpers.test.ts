@@ -3,6 +3,7 @@ import {
   RANGE_OPTIONS,
   adaptivePercentYMax,
   appsSeriesParamFor,
+  averageDutySeries,
   defaultBoxWidthMs,
   formatBrushEdgeLabels,
   initViewport,
@@ -85,10 +86,12 @@ describe('defaultBoxWidthMs', () => {
 
 describe('seriesQueryFor', () => {
   it('maps each metric to its series csv', () => {
-    expect(seriesQueryFor('cpu')).toBe('cpu,cpu-temp');
+    // cpu/gpu request fan-duty too (average-duty ribbon, under the temp
+    // band) - memory/network have no temp band, so no duty band either.
+    expect(seriesQueryFor('cpu')).toBe('cpu,cpu-temp,fan-duty');
     expect(seriesQueryFor('memory')).toBe('memory');
     expect(seriesQueryFor('network')).toBe('net-in,net-out');
-    expect(seriesQueryFor('gpu')).toBe('gpu,gpu-temp');
+    expect(seriesQueryFor('gpu')).toBe('gpu,gpu-temp,fan-duty');
   });
 });
 
@@ -420,6 +423,38 @@ describe('sumSilhouette', () => {
 
   it('returns an empty array for no series', () => {
     expect(sumSilhouette([])).toEqual([]);
+  });
+});
+
+describe('averageDutySeries', () => {
+  function duty(id: string, points: MetricHistorySeries['points']): MetricHistorySeries {
+    return series(id, points, { kind: 'fan-duty' });
+  }
+
+  it('averages two fans at a shared timestamp, taking the max of their max', () => {
+    const fan1 = duty('fan-duty:1', [{ t: 0, avg: 40, max: 45 }]);
+    const fan2 = duty('fan-duty:2', [{ t: 0, avg: 60, max: 50 }]);
+    expect(averageDutySeries([fan1, fan2])).toEqual([{ t: 0, avg: 50, max: 50 }]);
+  });
+
+  it('averages only the fans present at a timestamp one fan is missing', () => {
+    const fan1 = duty('fan-duty:1', [{ t: 0, avg: 40, max: 45 }, { t: 1000, avg: 44, max: 48 }]);
+    const fan2 = duty('fan-duty:2', [{ t: 0, avg: 60, max: 50 }]);
+    expect(averageDutySeries([fan1, fan2])).toEqual([
+      { t: 0, avg: 50, max: 50 },
+      { t: 1000, avg: 44, max: 48 },
+    ]);
+  });
+
+  it('ignores non-fan-duty series', () => {
+    const cpu = series('cpu', [{ t: 0, avg: 99, max: 99 }]);
+    const fan1 = duty('fan-duty:1', [{ t: 0, avg: 40, max: 45 }]);
+    expect(averageDutySeries([cpu, fan1])).toEqual([{ t: 0, avg: 40, max: 45 }]);
+  });
+
+  it('returns an empty array for no series, or series with no fan-duty kind', () => {
+    expect(averageDutySeries([])).toEqual([]);
+    expect(averageDutySeries([series('cpu', [{ t: 0, avg: 1, max: 1 }])])).toEqual([]);
   });
 });
 

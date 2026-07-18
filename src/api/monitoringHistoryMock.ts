@@ -91,6 +91,16 @@ const SERIES_DEFS: readonly SeriesDef[] = [
     avgAt: t => clamp(40 + sessionBump(t, 2_000_000, GPU_LOAD_BUMP_PHASE) * 35 + wobble(t, 6) * 4, 30, 92),
     spreadAt: t => 1 + Math.abs(wobble(t, 16)) * 2,
   },
+  {
+    id: 'fan-duty:1', kind: 'fan-duty', name: 'Fan 1',
+    avgAt: t => clamp(30 + sessionBump(t, 2_400_000, CPU_LOAD_BUMP_PHASE) * 40 + wobble(t, 21) * 5, 10, 100),
+    spreadAt: t => 2 + Math.abs(wobble(t, 31)) * 3,
+  },
+  {
+    id: 'fan-duty:2', kind: 'fan-duty', name: 'Fan 2',
+    avgAt: t => clamp(28 + sessionBump(t, 2_400_000, CPU_LOAD_BUMP_PHASE) * 38 + wobble(t, 22) * 5, 10, 100),
+    spreadAt: t => 2 + Math.abs(wobble(t, 32)) * 3,
+  },
 ];
 
 function matchesFilter(def: SeriesDef, tokens: readonly string[] | null): boolean {

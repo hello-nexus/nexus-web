@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { Thermometer, ZoomOut } from 'lucide-react';
+import { Fan, Thermometer, ZoomOut } from 'lucide-react';
 import { TimeSeriesChart } from '../../../../components/common/TimeSeriesChart/TimeSeriesChart';
 import { nearestPoint } from '../../../../components/common/TimeSeriesChart/timeSeriesChartUtils';
 import { TimelineBrush, TIMELINE_BRUSH_DEFAULT_HEIGHT } from '../../../../components/common/TimelineBrush/TimelineBrush';
@@ -18,10 +18,13 @@ import { ProcessIcon } from './ProcessIcon';
 import { topAppsAtHover } from './appWindowHelpers';
 import {
   CPU_TEMP_RIBBON_CAP_C,
+  DUTY_RIBBON_CAP_PCT,
+  DUTY_RIBBON_FLOOR_PCT,
   GPU_TEMP_RIBBON_CAP_C,
   RANGE_OPTIONS,
   TEMP_RIBBON_FLOOR_C,
   adaptivePercentYMax,
+  averageDutySeries,
   formatBrushEdgeLabels,
   maxAvgValue,
   nearestTempAt,
@@ -31,7 +34,7 @@ import {
   xTickFormatForWindow,
   type HistoryMetric,
 } from './metricHistoryHelpers';
-import type { ChartRibbonSpec } from '../../../../components/common/TimeSeriesChart/TimeSeriesChart';
+import { RIBBON_ICON_SIZE, type ChartRibbonSpec } from '../../../../components/common/TimeSeriesChart/TimeSeriesChart';
 import type { MetricHistorySeries } from '../../../../api/monitoringHistory';
 import styles from './MetricHistorySection.module.scss';
 
@@ -154,19 +157,48 @@ export function MetricHistorySection({
     return { value: nearest.avg, label: valueFormat(nearest.avg) };
   }, [metric, resolved.main, selectedFrameMs, windowMs, valueFormat]);
 
-  // Rendered inside the chart's own plot, directly under the line - see
-  // TimeSeriesChart's ribbons prop. cpu/gpu only; memory/network have no
-  // temp series so this stays undefined and the chart renders no band.
-  const ribbons: ChartRibbonSpec[] | undefined = useMemo(() => {
-    if (!resolved.temp) return undefined;
-    return [{
-      points: resolved.temp.points,
-      floor: TEMP_RIBBON_FLOOR_C,
-      cap: metric === 'gpu' ? GPU_TEMP_RIBBON_CAP_C : CPU_TEMP_RIBBON_CAP_C,
-      fill: 'var(--bad)',
-      valueLabel: currentTempLabel,
-    }];
-  }, [resolved.temp, metric, currentTempLabel]);
+  // Every fan-duty series in the current window, averaged into one line for
+  // the duty ribbon below. Gated the same way resolved.temp is - only cpu/gpu
+  // request the fan-duty kind (see seriesQueryFor), but history.series can
+  // transiently still carry the previous tab's series for one render right
+  // after a metric switch (the fetch for the new tab hasn't landed yet), so
+  // this must not just rely on the fetched data happening to be empty.
+  const dutyPoints = useMemo(
+    () => (metric === 'cpu' || metric === 'gpu' ? averageDutySeries(history.series) : []),
+    [metric, history.series],
+  );
+
+  // Rendered inside the chart's own plot, directly under the line (and,
+  // when both are present, the duty band sits directly under the temp
+  // band) - see TimeSeriesChart's ribbons prop. Temp is cpu/gpu only;
+  // memory/network request neither series, so both stay empty and the
+  // chart renders no bands for those tabs.
+  const ribbons: ChartRibbonSpec[] = useMemo(() => {
+    const list: ChartRibbonSpec[] = [];
+    if (resolved.temp) {
+      list.push({
+        points: resolved.temp.points,
+        floor: TEMP_RIBBON_FLOOR_C,
+        cap: metric === 'gpu' ? GPU_TEMP_RIBBON_CAP_C : CPU_TEMP_RIBBON_CAP_C,
+        fill: 'var(--bad)',
+        valueLabel: currentTempLabel,
+      });
+    }
+    if (dutyPoints.length > 0) {
+      list.push({
+        points: dutyPoints,
+        floor: DUTY_RIBBON_FLOOR_PCT,
+        cap: DUTY_RIBBON_CAP_PCT,
+        fill: 'var(--accent)',
+        icon: <Fan size={RIBBON_ICON_SIZE} aria-hidden />,
+        // Shares the Cooling tab's own "average fan duty" readout label
+        // (CoolingResponseChart.tsx) - same concept, same string, one
+        // translation to keep in sync instead of two independently drifting.
+        ariaLabel: t('cooling.response.avgFanDuty'),
+      });
+    }
+    return list;
+  }, [resolved.temp, metric, currentTempLabel, dutyPoints, t]);
 
   const rangeOptions = RANGE_OPTIONS.map(o => ({ value: o.key, label: t(o.labelKey) }));
 
