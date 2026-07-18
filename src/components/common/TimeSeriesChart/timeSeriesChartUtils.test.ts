@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
+  avgValueRange,
   formatTooltipTimestamp,
   medianSpacingMs,
   nearestPoint,
   niceTicks,
   resolveValueDomain,
-  ribbonThicknessFraction,
+  ribbonOpacityFraction,
   splitIntoSegments,
   timeDomain,
   valueDomain,
@@ -158,28 +159,47 @@ describe('nearestPoint', () => {
   });
 });
 
-describe('ribbonThicknessFraction', () => {
-  it('pins both ends of the domain', () => {
-    expect(ribbonThicknessFraction(0)).toBe(0);
-    expect(ribbonThicknessFraction(1)).toBe(1);
+describe('ribbonOpacityFraction', () => {
+  it('pins both ends of the range', () => {
+    expect(ribbonOpacityFraction(0, 0, 100)).toBe(0);
+    expect(ribbonOpacityFraction(100, 0, 100)).toBe(1);
   });
 
-  it('amplifies every fraction strictly between the two ends above its own linear value', () => {
-    for (const f of [0.1, 0.25, 0.5, 0.75, 0.9]) {
-      expect(ribbonThicknessFraction(f)).toBeGreaterThan(f);
-    }
+  it('maps linearly, with no amplification', () => {
+    expect(ribbonOpacityFraction(25, 0, 100)).toBeCloseTo(0.25, 10);
+    expect(ribbonOpacityFraction(50, 0, 100)).toBeCloseTo(0.5, 10);
+    expect(ribbonOpacityFraction(75, 0, 100)).toBeCloseTo(0.75, 10);
   });
 
   it('is monotonically increasing', () => {
-    const samples = [0, 0.1, 0.2, 0.4, 0.6, 0.8, 1].map(ribbonThicknessFraction);
+    const samples = [0, 10, 20, 40, 60, 80, 100].map(v => ribbonOpacityFraction(v, 0, 100));
     for (let i = 1; i < samples.length; i++) {
       expect(samples[i]).toBeGreaterThan(samples[i - 1]);
     }
   });
 
-  it('clamps a fraction outside [0, 1] instead of going imaginary or negative', () => {
-    expect(ribbonThicknessFraction(-0.5)).toBe(0);
-    expect(ribbonThicknessFraction(1.5)).toBe(1);
+  it('clamps a value outside [min, max] instead of going out of range', () => {
+    expect(ribbonOpacityFraction(-50, 0, 100)).toBe(0);
+    expect(ribbonOpacityFraction(150, 0, 100)).toBe(1);
+  });
+
+  it('maps a degenerate range (min === max) to a constant mid fraction instead of dividing by zero', () => {
+    expect(ribbonOpacityFraction(50, 50, 50)).toBe(0.5);
+    expect(Number.isNaN(ribbonOpacityFraction(50, 50, 50))).toBe(false);
+  });
+});
+
+describe('avgValueRange', () => {
+  it('returns [min, max] of avg across the points', () => {
+    expect(avgValueRange([pt(0, 40), pt(1, 90), pt(2, 60)])).toEqual([40, 90]);
+  });
+
+  it('returns [v, v] for a single point', () => {
+    expect(avgValueRange([pt(0, 55)])).toEqual([55, 55]);
+  });
+
+  it('returns null for an empty point list', () => {
+    expect(avgValueRange([])).toBeNull();
   });
 });
 

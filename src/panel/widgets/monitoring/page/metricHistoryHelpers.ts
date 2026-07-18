@@ -309,23 +309,6 @@ export function adaptivePercentYMax(windowMaxPercent: number): number {
   return 100;
 }
 
-// The temp ribbon's absolute thickness scale (item 31): near-zero thickness
-// at the floor, full thickness at the per-kind cap - a fixed real-world
-// range instead of the window's own min/max, so the ribbon reads the same
-// way across different scrub windows. Clamped in TimeSeriesChart's own
-// ribbon rendering (the `ribbons` prop's floor/cap).
-export const TEMP_RIBBON_FLOOR_C = 30;
-export const CPU_TEMP_RIBBON_CAP_C = 100;
-export const GPU_TEMP_RIBBON_CAP_C = 95;
-export const MEM_TEMP_RIBBON_CAP_C = 85;
-
-// The average fan-speed ribbon's own absolute scale - a fixed ceiling
-// comfortably above a typical fan's top speed, so the ribbon reads the same
-// way regardless of the window's own observed peak, mirroring the temp
-// ribbon's own fixed-range convention above.
-export const FAN_RPM_RIBBON_FLOOR = 0;
-export const FAN_RPM_RIBBON_CAP = 3000;
-
 /** The temperature point nearest hovered timestamp `t`, for the chart's tooltipExtra row. */
 export function nearestTempAt(points: readonly TimeSeriesPoint[], t: number, maxDeltaMs: number): TimeSeriesPoint | null {
   return nearestPoint(points, t, maxDeltaMs);

@@ -191,10 +191,10 @@ describe('MetricHistorySection', () => {
       { id: 'cpu-temp', kind: 'cpu-temp', name: 'CPU', points: [{ t: NOW - HOUR, avg: 90, max: 91 }, { t: NOW, avg: 91, max: 92 }] },
     ];
     const { container } = renderSection({ metric: 'cpu', history: { series } });
-    // The old threshold-band rect (translucent fill at 12% opacity) is gone;
-    // the temp ribbon still legitimately draws opaque var(--bad) rects
-    // inside the plot, so the band's own distinguishing attribute (opacity)
-    // is what must be absent.
+    // The old threshold-band rect (translucent fill at a fixed 12% opacity)
+    // is gone; the temp ribbon still legitimately draws var(--accent) rects
+    // with their own per-segment (non-fixed) fill-opacity inside the plot,
+    // so the old band's own fixed 12% value is what must be absent.
     expect(container.querySelector('rect[fill-opacity="0.12"]')).toBeNull();
     // Only one line drawn (cpu) - no second line for cpu-temp.
     expect(container.querySelectorAll('path[stroke="var(--accent)"]').length).toBe(1);
@@ -339,7 +339,7 @@ describe('MetricHistorySection', () => {
         { id: 'mem-temp', kind: 'mem-temp', name: 'Memory Temperature', points: [{ t: NOW, avg: 45, max: 46 }] },
       ];
       const { container } = renderSection({ metric: 'memory', history: { series } });
-      expect(container.querySelector('rect[fill="var(--bad)"]')).toBeInTheDocument();
+      expect(container.querySelector('rect[fill="var(--accent)"]')).toBeInTheDocument();
       expect(screen.getByText('45°C')).toBeInTheDocument();
     });
 
@@ -349,7 +349,7 @@ describe('MetricHistorySection', () => {
         { id: 'memory', kind: 'memory', name: 'Memory', points: [{ t: NOW, avg: 55, max: 56 }] },
       ];
       const { container } = renderSection({ metric: 'memory', history: { series } });
-      expect(container.querySelector('rect[fill="var(--bad)"]')).toBeNull();
+      expect(container.querySelector('rect[fill="var(--accent)"]')).toBeNull();
     });
   });
 
@@ -361,7 +361,10 @@ describe('MetricHistorySection', () => {
         { id: 'cpu-temp', kind: 'cpu-temp', name: 'CPU', points: [{ t: NOW, avg: 70, max: 72 }] },
       ];
       const { container } = renderSection({ metric: 'cpu', history: { series } });
-      expect(container.querySelector('rect[fill="var(--accent)"]')).toBeNull();
+      // Both bands render the same accent fill now, so a stray second band
+      // shows up as a stray second rect - only the temp band's own rect
+      // should be present.
+      expect(container.querySelectorAll('rect[fill="var(--accent)"]').length).toBe(1);
     });
 
     it('renders a fan-speed band averaged across every fan series (RPM), stacked under the temp band', () => {
@@ -373,10 +376,12 @@ describe('MetricHistorySection', () => {
         { id: 'fan:2', kind: 'fan', name: 'Fan 2', points: [{ t: NOW, avg: 1600, max: 1580 }] },
       ];
       const { container } = renderSection({ metric: 'cpu', history: { series } });
-      const tempRect = container.querySelector('rect[fill="var(--bad)"]')!;
-      const rpmRect = container.querySelector('rect[fill="var(--accent)"]')!;
-      expect(tempRect).toBeInTheDocument();
-      expect(rpmRect).toBeInTheDocument();
+      // Both bands share the same accent fill - the temp band is pushed
+      // first (see MetricHistorySection's ribbons list), so DOM order gives
+      // [tempRect, rpmRect].
+      const rects = [...container.querySelectorAll('rect[fill="var(--accent)"]')];
+      expect(rects.length).toBe(2);
+      const [tempRect, rpmRect] = rects;
       // Fan speed sits BELOW (higher y) the temp band, matching stacking order.
       expect(Number(rpmRect.getAttribute('y'))).toBeGreaterThan(Number(tempRect.getAttribute('y')));
       // The averaged value renders as text (1400 RPM), not an icon.

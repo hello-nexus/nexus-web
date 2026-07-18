@@ -14,8 +14,6 @@ import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { localizeNumbers } from '../../../lib/units';
 import {
-  FAN_RPM_RIBBON_CAP,
-  FAN_RPM_RIBBON_FLOOR,
   RANGE_OPTIONS,
   averageRpmSeries,
   formatBrushEdgeLabels,
@@ -83,8 +81,6 @@ export function CoolingHistorySection({ history, episodes }: CoolingHistorySecti
     if (rpmPoints.length === 0) return [];
     return [{
       points: rpmPoints,
-      floor: FAN_RPM_RIBBON_FLOOR,
-      cap: FAN_RPM_RIBBON_CAP,
       fill: 'var(--accent)',
       valueLabel: currentRpmLabel,
     }];
