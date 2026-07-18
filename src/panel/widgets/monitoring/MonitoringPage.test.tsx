@@ -408,6 +408,25 @@ describe('MonitoringPage', () => {
     expect(updateMock).toHaveBeenCalledWith({ monitoringDetailedCollapsed: ['cpu'] });
   });
 
+  it('boxes each family section (CollapsibleSection boxed) but not its nested sensor-type group', () => {
+    collapsedState = [];
+
+    const { container } = render(
+      <MonitoringPage
+        serviceOnline={true}
+        connectionState="online"
+        tab="detailed"
+        onTabChange={vi.fn()}
+      />,
+    );
+
+    const cpuSection = container.querySelector('[data-section-id="cpu"]');
+    expect(cpuSection).toHaveAttribute('data-boxed', 'true');
+
+    const cpuLoadGroup = container.querySelector('[data-section-id="cpu/Load"]');
+    expect(cpuLoadGroup).not.toHaveAttribute('data-boxed');
+  });
+
   it('nests a collapsible sensor-type group inside each family section', () => {
     collapsedState = [];
     updateMock.mockClear();

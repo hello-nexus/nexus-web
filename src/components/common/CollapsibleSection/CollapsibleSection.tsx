@@ -25,6 +25,7 @@ export function CollapsibleSection({
   right,
   rightInteractive,
   compact,
+  boxed,
   className,
   ariaLabel,
   sectionId,
@@ -48,6 +49,13 @@ export function CollapsibleSection({
   rightInteractive?: boolean;
   /** Smaller uppercase header (lighting / cooling device groups). */
   compact?: boolean;
+  /** Wraps the section in the standard app box (surface fill, transparent
+   *  border, radius) instead of the bare header + list. Header and body share
+   *  the box's own padding as their one inset, so their content lines up on
+   *  a single left edge. Use for a standalone full-width section (e.g.
+   *  monitoring Detailed); leave unset for a group nested in an already
+   *  boxed/carded parent. */
+  boxed?: boolean;
   className?: string;
   ariaLabel?: string;
   /** Sets `data-section-id` on the root (scroll/lookup targeting). */
@@ -72,6 +80,7 @@ export function CollapsibleSection({
       {...(drag?.attributes ?? {})}
       className={classNames}
       data-section-id={sectionId}
+      data-boxed={boxed ? 'true' : undefined}
     >
       <div
         className={styles.header}

@@ -1113,6 +1113,7 @@ function PreviewSectionHeader() {
 function PreviewCollapsibleSection() {
   const [open, setOpen] = useState(true);
   const [openCompact, setOpenCompact] = useState(false);
+  const [openBoxed, setOpenBoxed] = useState(true);
   return (
     <div style={{ width: 280, display: 'flex', flexDirection: 'column', gap: 10 }}>
       <CollapsibleSection
@@ -1131,6 +1132,15 @@ function PreviewCollapsibleSection() {
         right={<span style={{ fontVariantNumeric: 'tabular-nums' }}>12</span>}
       >
         <div style={{ color: 'var(--text-dim)', padding: '4px 8px' }}>Compact (smaller) variant</div>
+      </CollapsibleSection>
+      <CollapsibleSection
+        boxed
+        title="CPU"
+        open={openBoxed}
+        onToggle={() => setOpenBoxed(o => !o)}
+        right={<span style={{ fontVariantNumeric: 'tabular-nums' }}>Intel Core i9</span>}
+      >
+        <div style={{ color: 'var(--text-dim)' }}>Boxed variant (monitoring Detailed)</div>
       </CollapsibleSection>
     </div>
   );
@@ -2234,7 +2244,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'CollapsibleSection', category: 'panel-kit',
     filePath: 'src/components/common/CollapsibleSection/CollapsibleSection.tsx',
-    description: 'Canonical collapsible group header: chevron + title on the left, optional values/buttons on the right, a hover background bar, no borders. The one treatment for paired smart lights, monitoring detail, and lighting/cooling device groups. compact is the smaller uppercase variant the lighting/cooling groups use.',
+    description: 'Canonical collapsible group header: chevron + title on the left, optional values/buttons on the right, a hover background bar, no borders. The one treatment for paired smart lights, monitoring detail, and lighting/cooling device groups. compact is the smaller uppercase variant the lighting/cooling groups use. boxed wraps the whole section in the standard surface/border/radius card chrome for a standalone full-width section (monitoring Detailed).',
     Preview: PreviewCollapsibleSection,
   },
   {
