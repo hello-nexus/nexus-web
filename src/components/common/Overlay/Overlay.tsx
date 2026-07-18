@@ -1,13 +1,17 @@
-import { useCallback, useEffect, useRef, type ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { useModalA11y } from './useModalA11y';
 import styles from './Overlay.module.scss';
 
 /**
  * Canonical modal/sheet base.
  *
- * Renders a fixed backdrop with click-outside dismiss, an Esc-to-close key
- * handler, and an inner surface element that absorbs pointer events. Each
- * consumer brings their own header/body/footer chrome.
+ * Renders a fixed backdrop with click-outside dismiss and an inner surface
+ * element that absorbs pointer events. Each consumer brings their own
+ * header/body/footer chrome. useModalA11y registers the surface with the
+ * shared open-stack (Escape/Enter/Tab arbitrated against the topmost open
+ * modal only), traps Tab within the surface, locks background scroll, and
+ * restores focus to the trigger on close.
  *
  * Variants control surface placement + a11y role:
  *   - 'dialog' : centered modal (default; non-blocking - DeviceModal et al)
@@ -47,21 +51,8 @@ export function Overlay({
   backdropClassName,
   children,
 }: OverlayProps) {
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (!noEscDismiss && e.key === 'Escape') {
-      e.preventDefault();
-      onClose();
-    } else if (onEnter && e.key === 'Enter') {
-      e.preventDefault();
-      onEnter();
-    }
-  }, [noEscDismiss, onClose, onEnter]);
-
-  useEffect(() => {
-    if (!open) return;
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [open, handleKeyDown]);
+  const surfaceRef = useRef<HTMLDivElement>(null);
+  useModalA11y({ open, onClose, onEnter, noEscDismiss, containerRef: surfaceRef });
 
   // Track whether the pointer went down inside the surface. A drag that
   // starts inside and ends outside should not dismiss; only a clean
@@ -96,7 +87,9 @@ export function Overlay({
       }}
     >
       <div
+        ref={surfaceRef}
         className={`${styles.surface} ${className ?? ''}`}
+        tabIndex={-1}
         onPointerDown={e => { pointerDownInSurface.current = true; e.stopPropagation(); }}
         onClick={e => e.stopPropagation()}
       >
