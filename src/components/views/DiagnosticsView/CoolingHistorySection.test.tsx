@@ -61,10 +61,10 @@ function chartSvg(container: HTMLElement): SVGSVGElement {
 }
 
 describe('CoolingHistorySection', () => {
-  it('renders nothing when supported is false', () => {
+  it('shows an unsupported message in a fixed-height box instead of collapsing when supported is false', () => {
     stubGeometry();
-    const { container } = renderSection({ history: { supported: false } });
-    expect(container).toBeEmptyDOMElement();
+    renderSection({ history: { supported: false } });
+    expect(screen.getByText('monitoring.history.unsupported')).toBeInTheDocument();
   });
 
   it('shows an error state with a retry action that calls retry()', () => {
@@ -79,6 +79,55 @@ describe('CoolingHistorySection', () => {
     stubGeometry();
     renderSection({ history: { series: [], silhouette: [] } });
     expect(screen.getByText('diagnostics.temperature.empty')).toBeInTheDocument();
+  });
+
+  describe('fixed-height chart box (no first-frame flicker)', () => {
+    // Every non-chart state reserves the exact same box height as the chart
+    // itself (CHART_HEIGHT), so switching between them never resizes the
+    // section - only an inline style height is set on this reserved box.
+    function boxHeight(container: HTMLElement): string {
+      const box = container.querySelector('[style*="height"]') as HTMLElement | null;
+      return box?.style.height ?? '';
+    }
+
+    it('reserves the same box height across the error, unsupported, and no-data states', () => {
+      stubGeometry();
+      const { container: errorBox } = renderSection({ history: { error: true } });
+      const { container: unsupportedBox } = renderSection({ history: { supported: false } });
+      const { container: emptyBox } = renderSection({ history: { series: [], silhouette: [] } });
+      const { container: loadingBox } = renderSection({ history: { loading: true } });
+
+      expect(boxHeight(errorBox)).toBe('246px');
+      expect(boxHeight(unsupportedBox)).toBe('246px');
+      expect(boxHeight(emptyBox)).toBe('246px');
+      expect(boxHeight(loadingBox)).toBe('246px');
+    });
+  });
+
+  it('renders the temperature axis on the right, matching the monitoring hero chart', () => {
+    stubGeometry();
+    const { container } = renderSection({ history: { series: SAMPLE_SERIES } });
+    const svg = chartSvg(container);
+    // yAxisSide='right' swaps the padding lanes - the plot's left edge sits
+    // at the narrow lane instead of the (wider) axis-label lane.
+    const clipRect = svg.querySelector('clipPath rect')!;
+    expect(Number(clipRect.getAttribute('x'))).toBe(16);
+  });
+
+  it('shows a single temperature value per series in the hover tooltip, not an avg/max pair', () => {
+    stubGeometry();
+    const series: UseMetricHistoryResult['series'] = [
+      { id: 'cpu-temp', kind: 'cpu-temp', name: 'CPU', points: [{ t: NOW, avg: 52, max: 58 }] },
+    ];
+    const { container } = renderSection({ history: { series, domain: [NOW - HOUR, NOW] } });
+    fireEvent.mouseMove(chartSvg(container), { clientX: 0 });
+    // Scoped to the tooltip row itself - "52°C" alone can also match a
+    // y-axis tick label at the same value.
+    const row = container.querySelector('[class*="tooltipRow"]')!;
+    expect(row.textContent).toBe('CPU52°C');
+    expect(row.textContent).not.toContain('58');
+    expect(row.textContent).not.toContain('diagnostics.temperature.avg');
+    expect(row.textContent).not.toContain('diagnostics.temperature.max');
   });
 
   it('shows the mocked badge only when history.mocked', () => {

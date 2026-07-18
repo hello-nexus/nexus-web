@@ -18,6 +18,10 @@ export function useShaderRenderer(
   stateRef: React.RefObject<EffectState | null>,
   audioRef?: React.RefObject<AudioSnapshot | null>,
   options?: { maxDevicePixelRatio?: number },
+  // When true, u_time is held at the value it had the instant this flipped
+  // true, so the preview freezes on the same frame the server-side lighting
+  // engine freezes at instead of blanking or drifting.
+  paused = false,
 ): { ready: boolean; loading: boolean; error: string | null } {
   const glRef = useRef<WebGL2RenderingContext | null>(null);
   const programRef = useRef<WebGLProgram | null>(null);
@@ -39,6 +43,14 @@ export function useShaderRenderer(
   // 16-band × 16-frame history; index = frame*16 + band, frame 0 = newest.
   const histRingRef = useRef(new Float32Array(256));
   const lastSnapshotRef = useRef<AudioSnapshot | null>(null);
+  // Latest-ref pattern (mirrors the caller's shaderStateRef): updated every
+  // render rather than in an effect, so toggling pause never re-triggers
+  // shader fetch/compile in the effect below.
+  const pausedRef = useRef(paused);
+  pausedRef.current = paused;
+  // Non-null while paused: the u_time value frozen at the moment pause
+  // engaged. Cleared on resume so time picks back up from Date.now().
+  const frozenTimeRef = useRef<number | null>(null);
   const [ready, setReady] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -167,7 +179,14 @@ export function useShaderRenderer(
         const u = uniformsRef.current;
         const st = stateRef.current;
         if (!st) { rafRef.current = requestAnimationFrame(render); return; }
-        const t = (Date.now() % 86_400_000) / 1000;
+        let t: number;
+        if (pausedRef.current) {
+          frozenTimeRef.current ??= (Date.now() % 86_400_000) / 1000;
+          t = frozenTimeRef.current;
+        } else {
+          frozenTimeRef.current = null;
+          t = (Date.now() % 86_400_000) / 1000;
+        }
 
         if (u.u_resolution) g.uniform2f(u.u_resolution, w, h);
         if (u.u_time) g.uniform1f(u.u_time, t);

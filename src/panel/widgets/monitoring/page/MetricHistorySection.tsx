@@ -271,19 +271,28 @@ export function MetricHistorySection({
     );
   };
 
-  if (!history.supported) return null;
-  if ((metric === 'gpu') && !resolved.available && !history.loading) return null;
-
+  const showUnsupported = !history.supported;
+  const showGpuUnavailable = metric === 'gpu' && !resolved.available && !history.loading;
   const showLoadingSkeleton = history.loading && chartSeries.every(s => s.points.length === 0) && history.silhouette.length === 0;
 
   return (
     <div className={styles.root}>
-      {history.error ? (
-        <EmptyState
-          compact
-          title={t('monitoring.history.error')}
-          action={<Button size="sm" onClick={history.retry}>{t('monitoring.history.retry')}</Button>}
-        />
+      {showUnsupported ? (
+        <div className={styles.messageBox} style={{ height: CHART_HEIGHT }}>
+          <EmptyState compact title={t('monitoring.history.unsupported')} />
+        </div>
+      ) : history.error ? (
+        <div className={styles.messageBox} style={{ height: CHART_HEIGHT }}>
+          <EmptyState
+            compact
+            title={t('monitoring.history.error')}
+            action={<Button size="sm" onClick={history.retry}>{t('monitoring.history.retry')}</Button>}
+          />
+        </div>
+      ) : showGpuUnavailable ? (
+        <div className={styles.messageBox} style={{ height: CHART_HEIGHT }}>
+          <EmptyState compact title={t('monitoring.history.gpuUnavailable')} />
+        </div>
       ) : showLoadingSkeleton ? (
         <div className={styles.skeleton} style={{ height: CHART_HEIGHT }} />
       ) : (

@@ -2,7 +2,7 @@
 // file per preview to satisfy the fast-refresh rule would be dozens of tiny
 // files. Storybook entries reload (not HMR) on edit.
 import { useEffect, useRef, useState, type CSSProperties, type FC } from 'react';
-import { Monitor, Palette, Sparkles, X, Plus, Settings, Download, AlertTriangle, HardDrive } from 'lucide-react';
+import { Monitor, Palette, Sparkles, X, Plus, Settings, Download, AlertTriangle, HardDrive, Pause } from 'lucide-react';
 import { ViewHeader } from '../components/common/ViewHeader/ViewHeader';
 import { Sparkline } from '../components/common/Sparkline/Sparkline';
 import { SensorCard } from '../components/common/SensorCard/SensorCard';
@@ -420,11 +420,32 @@ function PreviewViewHeader() {
 
 function PreviewTabs() {
   const [active, setActive] = useState('day');
+  const [paused, setPaused] = useState(false);
   return <Tabs
     tabs={[
       { key: 'day', label: 'Day' },
       { key: 'week', label: 'Week' },
-      { key: 'month', label: 'Month' },
+      {
+        key: 'month', label: 'Month',
+        // Trailing control demo: only shown on the active tab, mirroring the
+        // Lighting page's per-tab pause toggle. Tabs renders this as a
+        // sibling of the tab's own button (not nested inside it), so its
+        // click never reaches the tab's onChange.
+        trailing: active === 'month' ? (
+          <span
+            role="button"
+            tabIndex={0}
+            aria-label={paused ? 'Resume' : 'Pause'}
+            onClick={e => { e.stopPropagation(); setPaused(p => !p); }}
+            onKeyDown={e => {
+              if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); setPaused(p => !p); }
+            }}
+            style={{ display: 'inline-flex', cursor: 'pointer', opacity: paused ? 1 : 0.6 }}
+          >
+            <Pause size={12} />
+          </span>
+        ) : undefined,
+      },
       { key: 'app', label: 'App' },
     ]}
     activeKey={active}
@@ -2094,7 +2115,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'Tabs', category: 'navigation',
     filePath: 'src/components/common/Tabs/Tabs.tsx',
-    description: 'Bordered segmented tab group - one shared border around the whole bar, solid accent fill on the active tab. Supports optional leading icons through TabDef.icon and per-tab disable via TabDef.disabled. Used inside ViewHeader for page-level tabs and standalone for in-page toggles (panel theme settings, icon picker).', Preview: PreviewTabs,
+    description: 'Bordered segmented tab group - one shared border around the whole bar, solid accent fill on the active tab. Supports optional leading icons through TabDef.icon, per-tab disable via TabDef.disabled, and an optional right-aligned trailing control via TabDef.trailing (shown here on Month) - rendered as a sibling of the tab\'s own button sharing one pill, never nested inside it, so its clicks are shielded from the tab\'s onChange without creating an invalid nested-interactive-control. Used inside ViewHeader for page-level tabs and standalone for in-page toggles (panel theme settings, icon picker).', Preview: PreviewTabs,
     notes: 'Pairs with ViewHeader - do not roll your own tab bars. Disabled tabs get opacity 0.4 + not-allowed cursor.',
   },
   {

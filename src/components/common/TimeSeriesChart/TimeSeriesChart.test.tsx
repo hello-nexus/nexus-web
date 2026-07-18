@@ -425,14 +425,17 @@ describe('TimeSeriesChart', () => {
   describe('selectedT', () => {
     it('renders no persistent selection line when omitted (backwards compatible)', () => {
       const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} />);
-      expect(container.querySelector('line[stroke="var(--accent)"]')).toBeNull();
+      expect(container.querySelector('line[stroke="var(--text)"][stroke-width="1.5"]')).toBeNull();
     });
 
     it('renders a persistent solid line at the given timestamp, distinct from the dashed hover cursor', () => {
       const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} selectedT={HOUR} />);
-      const line = container.querySelector('line[stroke="var(--accent)"]');
+      // The bright text color (not the accent) so the persistent selection
+      // stands out from the all-accent chart lines/ribbons.
+      const line = container.querySelector('line[stroke="var(--text)"][stroke-width="1.5"]');
       expect(line).toBeInTheDocument();
       expect(line).not.toHaveAttribute('stroke-dasharray');
+      expect(line).toHaveAttribute('opacity', '1');
       // At t=HOUR (the midpoint of the 0..2*HOUR domain), the line sits at
       // the plot's horizontal midpoint.
       const x = Number(line!.getAttribute('x1'));
@@ -442,7 +445,39 @@ describe('TimeSeriesChart', () => {
 
     it('renders no line when selectedT is null', () => {
       const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} selectedT={null} />);
-      expect(container.querySelector('line[stroke="var(--accent)"]')).toBeNull();
+      expect(container.querySelector('line[stroke="var(--text)"][stroke-width="1.5"]')).toBeNull();
+    });
+  });
+
+  describe('singleValueTooltip', () => {
+    it('renders one value per series row, with no avg/max labels, when set', () => {
+      const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} singleValueTooltip />);
+      const svg = container.querySelector('svg')!;
+      vi.spyOn(svg, 'getBoundingClientRect').mockReturnValue({
+        left: 0, top: 0, width: 440, height: 260, right: 440, bottom: 260, x: 0, y: 0, toJSON: () => ({}),
+      });
+
+      fireEvent.mouseMove(svg, { clientX: 0 });
+
+      // Scoped to the tooltip row itself - "40C" alone can also match a
+      // y-axis tick label at the same value.
+      const rows = container.querySelectorAll('[class*="tooltipRow"]');
+      expect(rows[0].textContent).toBe('CPU40C');
+      expect(rows[0].textContent).not.toContain('Avg');
+      expect(rows[0].textContent).not.toContain('Max');
+    });
+
+    it('keeps the default avg/max pair when singleValueTooltip is omitted (backwards compatible)', () => {
+      const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} />);
+      const svg = container.querySelector('svg')!;
+      vi.spyOn(svg, 'getBoundingClientRect').mockReturnValue({
+        left: 0, top: 0, width: 440, height: 260, right: 440, bottom: 260, x: 0, y: 0, toJSON: () => ({}),
+      });
+
+      fireEvent.mouseMove(svg, { clientX: 0 });
+
+      expect(screen.getByText('Avg 40C')).toBeInTheDocument();
+      expect(screen.getByText('Max 45C')).toBeInTheDocument();
     });
   });
 
@@ -480,6 +515,17 @@ describe('TimeSeriesChart', () => {
         <TimeSeriesChart series={ribbonSeries} {...baseProps} ribbons={[{ points, fill: 'var(--bad)' }]} />,
       );
       expect(ribbonRects(container).length).toBe(3);
+    });
+
+    it('uses a slim default band thickness when the ribbon omits its own height', () => {
+      const points = [{ t: 0, avg: 60, max: 60 }];
+      const { container } = render(
+        <TimeSeriesChart series={ribbonSeries} {...baseProps} ribbons={[{ points, fill: 'var(--bad)' }]} />,
+      );
+      // Pinned so a future edit can't silently widen the temp/RPM bands back
+      // out - every caller (MetricHistorySection, CoolingHistorySection)
+      // relies on this default rather than passing its own height.
+      expect(Number(ribbonRects(container)[0].getAttribute('height'))).toBe(14);
     });
 
     it('does not draw a bar spanning a gap between ribbon points, matching the line\'s own gap rule', () => {
@@ -658,6 +704,24 @@ describe('TimeSeriesChart', () => {
       expect(Number(rects[0].getAttribute('x'))).toBe(plotX);
       const last = rects[rects.length - 1];
       expect(Number(last.getAttribute('x')) + Number(last.getAttribute('width'))).toBe(plotX + plotW);
+    });
+
+    it('clips ribbon bars to the plot rect, so a bracketing point before the domain\'s left edge does not bleed into the axis gutter', () => {
+      // A bracketing point the fetch returns just before the plotted domain's
+      // own start, matching the line/area's own clipping (see the identical
+      // <g clipPath> group above it) rather than drawing past pad.left.
+      const points = [{ t: -HOUR, avg: 40, max: 41 }, { t: HOUR, avg: 50, max: 52 }];
+      const { container } = render(
+        <TimeSeriesChart
+          series={ribbonSeries} {...baseProps} domain={[0, 2 * HOUR]}
+          ribbons={[{ points, fill: 'var(--bad)' }]}
+        />,
+      );
+      const clipPathId = container.querySelector('clipPath')!.getAttribute('id');
+      const rect = ribbonRects(container)[0];
+      const clipGroup = rect.closest('g[clip-path]');
+      expect(clipGroup).not.toBeNull();
+      expect(clipGroup!.getAttribute('clip-path')).toBe(`url(#${clipPathId})`);
     });
 
     it('reserves its own height from the line/area\'s own plot range, stacking multiple ribbons in order', () => {

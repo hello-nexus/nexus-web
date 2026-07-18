@@ -18,6 +18,7 @@ export type LightingMode = 'animate' | 'screen' | 'gif' | 'gamesync' | 'none';
 export function useLightingSync(enabled: boolean, refreshKey?: string) {
   const [mode, setMode] = useState<LightingMode>('none');
   const [rawSync, setRawSync] = useState('none');
+  const [paused, setPaused] = useState(false);
   // False until the first real sync state arrives. Callers gate the active
   // tab indicator on this so the mode tabs stay unhighlighted during load
   // instead of flashing 'none' before /lighting/current returns.
@@ -41,6 +42,7 @@ export function useLightingSync(enabled: boolean, refreshKey?: string) {
       if (data?.sync) {
         applySync(data.sync);
       }
+      if (data) setPaused(!!data.paused);
     });
 
     refresh();
@@ -69,10 +71,11 @@ export function useLightingSync(enabled: boolean, refreshKey?: string) {
         setRawSync(data.sync);
         setSynced(true);
       }
+      if (data) setPaused(!!data.paused);
     });
   });
 
-  return { mode, setMode, rawSync, setRawSync, synced };
+  return { mode, setMode, rawSync, setRawSync, synced, paused };
 }
 
 function normalizeSync(sync: string): LightingMode {

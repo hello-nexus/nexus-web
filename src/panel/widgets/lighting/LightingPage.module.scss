@@ -164,6 +164,38 @@
   }
 }
 
+// Pause/resume glyph rendered as the active mode tab's trailing control.
+// Idle (playing) reads muted like the surrounding tab text; paused switches
+// to a solid accent fill and pulses gently so a frozen effect stays legible
+// as intentionally paused, not stalled.
+.pauseToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color var(--ease-fast) ease, background var(--ease-fast) ease;
+
+  &:hover {
+    color: var(--text);
+    background: var(--accent-soft);
+  }
+}
+
+.pauseTogglePaused {
+  color: var(--accent-text);
+  background: var(--accent);
+  animation: lightingPausePulse 1.6s ease-in-out infinite;
+}
+
+@keyframes lightingPausePulse {
+  0%, 100% { background: var(--accent); box-shadow: 0 0 0 0 transparent; }
+  50% { background: var(--accent-glow); box-shadow: 0 0 7px 1px var(--accent-soft); }
+}
+
 .controls {
   flex-shrink: 0;
   padding: 0.75rem 0 0.25rem;
