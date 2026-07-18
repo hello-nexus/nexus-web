@@ -150,10 +150,6 @@
 
 // ── AI assistant ──
 
-// Rainbow stops for the query bar's focus-ring gradient (.queryFrame below),
-// defined once so the palette has a single source.
-$assistant-rainbow-stops: #ff3b3b, #ff9f1c, #ffe14d, #4ade80, #38bdf8, #a78bfa;
-
 .runtimeControl {
   display: flex;
   align-items: center;
@@ -232,91 +228,6 @@ $assistant-rainbow-stops: #ff3b3b, #ff9f1c, #ffe14d, #4ade80, #38bdf8, #a78bfa;
   align-items: center;
   gap: var(--space-xs);
   flex-shrink: 0;
-}
-
-.queryBlock {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-  width: 100%;
-  margin-top: var(--space-sm);
-}
-
-.queryRow {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-}
-
-// Rainbow focus edge. The rotating gradient lives on ::before, inset OUTSIDE
-// the input's own box (negative inset) so it reads as a glow/ring around the
-// input regardless of the input's own background opacity, per the headline
-// query-bar spec. Gated on a JS-driven data-focused attribute (not a bare
-// :focus-within) so it stays deterministically testable and still activates
-// if focus lands on a future child control other than the input itself.
-.queryFrame {
-  position: relative;
-  flex: 1;
-  border-radius: var(--radius);
-  min-width: 0;
-
-  &::before {
-    content: '';
-    position: absolute;
-    inset: -2px;
-    z-index: 0;
-    border-radius: inherit;
-    // The list is repeated once at the end so the conic sweep closes without a seam.
-    background: conic-gradient(from 0deg, #{$assistant-rainbow-stops}, #{nth($assistant-rainbow-stops, 1)});
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity var(--ease) ease;
-  }
-
-  &[data-focused='true']::before {
-    opacity: 1;
-    animation: rainbowSpin 3s linear infinite;
-  }
-
-  // The bare <input> TextInput renders is the frame's only child; lifting it
-  // above the pseudo-element is what keeps the gradient confined to the
-  // inset ring instead of painting over the field.
-  > input {
-    position: relative;
-    z-index: 1;
-  }
-}
-
-@keyframes rainbowSpin {
-  to { transform: rotate(360deg); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .queryFrame[data-focused='true']::before {
-    animation: none;
-  }
-}
-
-.queryResult {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  padding: var(--space-sm) var(--space-md);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-}
-
-.queryAnswer {
-  @include text-body;
-  color: var(--text);
-  margin: 0;
-  white-space: pre-wrap;
-}
-
-.queryTools {
-  @include text-button;
-  color: var(--text-dim);
-  margin: 0;
 }
 
 // ── Sharing section ──

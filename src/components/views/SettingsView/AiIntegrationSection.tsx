@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Eye, EyeOff, Send } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingRow, SettingToggle } from '../../common/SettingRow/SettingRow';
@@ -7,13 +7,12 @@ import { InfoList, InfoRow } from '../../common/InfoList/InfoList';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { Badge } from '../../common/Badge/Badge';
 import { UsageBar } from '../../common/UsageBar/UsageBar';
-import { TextInput } from '../../common/TextInput/TextInput';
 import {
   fetchAiStatus, postAiConfig, rotateAiToken,
   fetchAssistantStatus, installRuntime, removeRuntime,
-  pullModel, removeModel, selectModel, runAssistantQuery,
+  pullModel, removeModel, selectModel,
   type AiCapabilities, type AiStatusResponse,
-  type AiAssistantStatus, type AiAssistantProgressFrame, type AiAssistantQueryResponse,
+  type AiAssistantStatus, type AiAssistantProgressFrame,
 } from '../../../api/aiIntegration';
 import { useTopic } from '../../../hooks/useMultiplexSocket';
 import { useTranslation } from '../../../lib/i18n';
@@ -70,11 +69,6 @@ export function AiIntegrationSection({ serviceOnline, numberFormat = DEFAULT_NUM
   const [assistantMutating, setAssistantMutating] = useState(false);
   const [removeRuntimeConfirmOpen, setRemoveRuntimeConfirmOpen] = useState(false);
   const [removeModelConfirmId, setRemoveModelConfirmId] = useState<string | null>(null);
-  const [queryText, setQueryText] = useState('');
-  const [queryFocused, setQueryFocused] = useState(false);
-  const [querySubmitting, setQuerySubmitting] = useState(false);
-  const [queryResult, setQueryResult] = useState<AiAssistantQueryResponse | null>(null);
-  const [queryError, setQueryError] = useState(false);
   const [assistantActionError, setAssistantActionError] = useState(false);
   const wasTransientRef = useRef(false);
 
@@ -231,24 +225,6 @@ export function AiIntegrationSection({ serviceOnline, numberFormat = DEFAULT_NUM
 
   const doSelectModel = (modelId: string) => void runAssistantMutation(() => selectModel(modelId));
 
-  const submitQuery = async () => {
-    const prompt = queryText.trim();
-    if (!prompt || querySubmitting) return;
-    setQuerySubmitting(true);
-    setQueryError(false);
-    setQueryResult(null);
-    const resp = await runAssistantQuery(prompt);
-    setQuerySubmitting(false);
-    // Only a successful submit clears the prompt - a failure leaves it in
-    // place so the user is not forced to retype it to retry.
-    if (resp) {
-      setQueryText('');
-      setQueryResult(resp);
-    } else {
-      setQueryError(true);
-    }
-  };
-
   // The WS frame only wins the display while it reports something genuinely
   // in flight (a download/start/pull) - once it settles, the last REST
   // snapshot is authoritative. Otherwise a stale cached frame (useTopic
@@ -279,9 +255,6 @@ export function AiIntegrationSection({ serviceOnline, numberFormat = DEFAULT_NUM
     ? assistantProgress.pull
     : null;
   const assistantBusy = assistantMutating || assistant?.busy != null;
-  const modelReady = !!assistant?.activeModel
-    && assistant.installedModels.some(m => m.id === assistant.activeModel);
-  const showQueryBar = runtimeState === 'running' && modelReady;
 
   // Fallback poll: a missed WS reconnect (the multiplex socket resubscribes
   // on every reconnect, but a frame can still be lost in the gap) must not
@@ -530,49 +503,6 @@ export function AiIntegrationSection({ serviceOnline, numberFormat = DEFAULT_NUM
                       })}
                     </div>
                   </SettingRow>
-
-                  {showQueryBar && (
-                    <div className={styles.queryBlock}>
-                      <div className={styles.queryRow}>
-                        <div className={styles.queryFrame} data-focused={queryFocused ? 'true' : undefined}>
-                          <TextInput
-                            value={queryText}
-                            placeholder={t('settings.ai.assistant.query.placeholder')}
-                            ariaLabel={t('settings.ai.assistant.query.placeholder')}
-                            onInput={setQueryText}
-                            onSubmit={() => void submitQuery()}
-                            onFocus={() => setQueryFocused(true)}
-                            onBlur={() => setQueryFocused(false)}
-                            disabled={!serviceOnline || querySubmitting}
-                          />
-                        </div>
-                        <Button
-                          type="button"
-                          tone="accent"
-                          size="md"
-                          icon={<Send size={14} />}
-                          loading={querySubmitting}
-                          onClick={() => void submitQuery()}
-                          disabled={!serviceOnline || querySubmitting || !queryText.trim()}
-                          title={t('settings.ai.assistant.query.send')}
-                          aria-label={t('settings.ai.assistant.query.send')}
-                        />
-                      </div>
-                      {queryError && <p className={styles.note}>{t('settings.ai.assistant.query.error')}</p>}
-                      {queryResult && (
-                        <div className={styles.queryResult}>
-                          <p className={styles.queryAnswer}>{queryResult.answer}</p>
-                          {queryResult.toolsRun.length > 0 && (
-                            <p className={styles.queryTools}>
-                              {t('settings.ai.assistant.query.toolsRun', {
-                                tools: queryResult.toolsRun.map(r => r.name).join(', '),
-                              })}
-                            </p>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </>
               )}
             </>

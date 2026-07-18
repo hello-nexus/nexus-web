@@ -130,5 +130,5 @@ export const removeModel = (model: string) =>
 export const selectModel = (model: string) =>
   postService<AiAssistantStatus>('/ai/assistant/model/select', { model });
 
-export const runAssistantQuery = (prompt: string) =>
-  postService<AiAssistantQueryResponse>('/ai/assistant/query', { prompt });
+export const runAssistantQuery = (prompt: string, signal?: AbortSignal) =>
+  postService<AiAssistantQueryResponse>('/ai/assistant/query', { prompt }, signal);

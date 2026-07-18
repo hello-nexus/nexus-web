@@ -47,6 +47,33 @@
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
+// Subtle glowing rim: a soft halo hugging the pill's rounded edge, layered
+// after the existing inset ring rather than replacing it. Applied whenever
+// the local AI assistant is usable, but only visually active while the
+// palette is open - same gating as the ring it extends - so a resting,
+// unopened bar looks identical to a build with no assistant set up.
+.pillAi.pillActive {
+  animation: pill-ai-glow 3.6s ease-in-out infinite;
+}
+
+// Faint halo at rest, brighter at the pulse peak - both low-alpha so it reads
+// as a breathing hint, never a hard ring.
+@keyframes pill-ai-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 3px var(--accent-soft), 0 0 10px 1px color-mix(in srgb, var(--accent-glow-shadow) 55%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 3px var(--accent-soft), 0 0 18px 3px color-mix(in srgb, var(--accent-glow-shadow) 85%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pillAi.pillActive {
+    animation: none;
+    box-shadow: 0 0 0 3px var(--accent-soft), 0 0 14px 2px color-mix(in srgb, var(--accent-glow-shadow) 70%, transparent);
+  }
+}
+
 .glyph { flex-shrink: 0; color: var(--text-dim); }
 
 .title {
@@ -287,4 +314,41 @@
 
 @media (prefers-reduced-motion: reduce) {
   .dropdown { animation: none; }
+}
+
+// ── Assistant panel ──────────────────────────────────────────────────────────
+// Replaces the result list while a submitted query is loading/answered/errored.
+
+.assistantPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.6rem 0.65rem;
+}
+
+.assistantLoading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-dim);
+  font-size: var(--type-small);
+}
+
+.assistantAnswer {
+  @include text-body;
+  color: var(--text);
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.assistantTools {
+  @include text-button;
+  color: var(--text-dim);
+  margin: 0;
+}
+
+.assistantError {
+  @include text-button;
+  color: var(--bad);
+  margin: 0;
 }
