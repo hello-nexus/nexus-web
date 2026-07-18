@@ -481,8 +481,7 @@ export function TimeSeriesChart({
                   // series stopped reporting well before "now") would
                   // falsely persist all the way to the live edge, the same
                   // failure mode as a mid-sequence gap.
-                  const staleTail = isLastInSegment && isFinalSegment
-                    && domainT !== null && domainT[1] - p.t > ribbonMaxGapMs;
+                  const staleTail = isLastInSegment && isFinalSegment && domainT[1] - p.t > ribbonMaxGapMs;
                   const extendsForward = hasNextInSegment || (isLastInSegment && isFinalSegment && !staleTail);
                   if (!extendsForward) {
                     if (segment.length > 1) return null;
