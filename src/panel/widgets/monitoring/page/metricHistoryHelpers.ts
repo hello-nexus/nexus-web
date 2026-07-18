@@ -268,6 +268,19 @@ export function xTickFormatForWindow(windowMs: number): (t: number) => string {
   return (t: number) => new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
+/** Clock time for the paused (detached) selection chip. The selected frame is a
+ *  specific instant, so it always carries seconds - finer than the x-axis ticks.
+ *  A window wider than a day prepends the date so the viewed moment stays
+ *  unambiguous across days. */
+export function formatSelectedFrameTime(t: number, windowMs: number): string {
+  const d = new Date(t);
+  const time = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', second: '2-digit' });
+  if (windowMs > DAY_MS) {
+    return `${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} ${time}`;
+  }
+  return time;
+}
+
 /** Maps the API's history series onto TimeSeriesChart's generic shape. */
 export function toHistoryChartSeries(series: readonly MetricHistorySeries[], colorFor: (id: string) => string): TimeSeriesSeries[] {
   return series.map(s => ({

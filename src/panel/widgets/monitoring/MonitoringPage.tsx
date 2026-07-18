@@ -22,7 +22,7 @@ import { DetailedTab } from './page/DetailedTab';
 import { MetricHistorySection } from './page/MetricHistorySection';
 import { ProcessListSection, type ProcessListItem } from './page/ProcessListSection';
 import { MonitoringSettingsModal } from './page/MonitoringSettingsModal';
-import { seriesQueryFor, appsSeriesParamFor, currentDiskRateBytesPerSec, resolveSelectedFrame, xTickFormatForWindow, type FanRoleMap, type HistoryMetric } from './page/metricHistoryHelpers';
+import { seriesQueryFor, appsSeriesParamFor, currentDiskRateBytesPerSec, resolveSelectedFrame, formatSelectedFrameTime, type FanRoleMap, type HistoryMetric } from './page/metricHistoryHelpers';
 import { appsToProcessListItems, currentAppValueMap, reconcileLiveWithWindow, zeroedGpuFallback } from './page/appWindowHelpers';
 import { buildLiveUsageByName } from './page/processDetailHelpers';
 import { formatRate } from './page/shared';
@@ -202,12 +202,11 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
     detach();
   }, [detach]);
 
-  // Same granularity the hero chart's own x-axis uses (see MetricHistorySection),
-  // so the detached chip's timestamp reads at the same precision as the axis
-  // tick the viewed frame sits under.
+  // The detached chip shows the exact viewed instant, seconds included - finer
+  // than the x-axis ticks the frame sits under.
   const windowMs = history.domain[1] - history.domain[0];
   const detachedLabel = useMemo(
-    () => xTickFormatForWindow(windowMs)(selectedFrameMs),
+    () => formatSelectedFrameTime(selectedFrameMs, windowMs),
     [windowMs, selectedFrameMs],
   );
 

@@ -22,6 +22,7 @@ import {
   viewportReducer,
   windowMsForRangeKey,
   xTickFormatForWindow,
+  formatSelectedFrameTime,
   type FanRoleMap,
   type ViewportState,
 } from './metricHistoryHelpers';
@@ -385,6 +386,25 @@ describe('xTickFormatForWindow', () => {
   it('uses month+day format for a window at or over a week', () => {
     const t = new Date('2026-07-08T14:32:00Z').getTime();
     expect(xTickFormatForWindow(7 * DAY)(t)).toContain('Jul');
+  });
+});
+
+describe('formatSelectedFrameTime', () => {
+  const T = new Date('2026-07-08T14:32:23Z').getTime();
+
+  it('always carries seconds for a window within a day', () => {
+    expect(formatSelectedFrameTime(T, HOUR)).toMatch(/\d{1,2}:\d{2}:\d{2}/);
+  });
+
+  it('stays time-only (no date) at exactly one day, matching the axis time-only branch', () => {
+    expect(formatSelectedFrameTime(T, DAY)).not.toContain('Jul');
+    expect(formatSelectedFrameTime(T, DAY)).toMatch(/\d{1,2}:\d{2}:\d{2}/);
+  });
+
+  it('prepends the date and keeps seconds for a window wider than a day', () => {
+    const label = formatSelectedFrameTime(T, 3 * DAY);
+    expect(label).toContain('Jul');
+    expect(label).toMatch(/\d{1,2}:\d{2}:\d{2}/);
   });
 });
 

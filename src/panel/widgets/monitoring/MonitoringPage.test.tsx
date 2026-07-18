@@ -5,12 +5,12 @@ import { MonitoringPage } from './MonitoringPage';
 import type { GpuComponent } from '../../../lib/gpuResolver';
 import type { AppWindowSeries } from '../../../api/monitoringHistoryApps';
 import type { MetricHistorySeries } from '../../../api/monitoringHistory';
-import { xTickFormatForWindow } from './page/metricHistoryHelpers';
+import { formatSelectedFrameTime } from './page/metricHistoryHelpers';
 
 // The mocked useMetricHistory below fixes domain at [0, 1] and no test here
 // pins a click, so resolveSelectedFrame always lands on domain[1] (1ms) -
 // this is the exact string MonitoringPage's own detached chip renders.
-const DETACHED_LABEL = xTickFormatForWindow(1)(1);
+const DETACHED_LABEL = formatSelectedFrameTime(1, 1);
 
 const HOUR_MS = 3_600_000;
 // Used only by the graph-click detach test below, which overrides
@@ -18,7 +18,7 @@ const HOUR_MS = 3_600_000;
 // formatted label visibly differs from the default domain[1] (live-edge) one.
 const CLICK_DOMAIN: [number, number] = [0, HOUR_MS];
 const GRAPH_CLICK_MS = HOUR_MS / 3;
-const GRAPH_CLICK_LABEL = xTickFormatForWindow(HOUR_MS)(GRAPH_CLICK_MS);
+const GRAPH_CLICK_LABEL = formatSelectedFrameTime(GRAPH_CLICK_MS, HOUR_MS);
 
 // MetricHistorySection and ProcessListSection are the persistent hero + list
 // mounted once above the switched tab content - stub both with a

@@ -1607,7 +1607,7 @@ function PreviewLiveFollowControl() {
   const [following, setFollowing] = useState(true);
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
-      <LiveFollowControl following={following} detachedLabel="3:45 PM" onBackToLive={() => setFollowing(true)} />
+      <LiveFollowControl following={following} detachedLabel="3:45:22 PM" onBackToLive={() => setFollowing(true)} />
       <button type="button" onClick={() => setFollowing(f => !f)}>Toggle</button>
     </div>
   );

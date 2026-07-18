@@ -3,15 +3,15 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { CoolingHistorySection } from './CoolingHistorySection';
 import type { UseMetricHistoryResult } from '../../../hooks/useMetricHistory';
 import type { DiagnosticsTemperatureEpisode } from '../../../api/diagnostics';
-import { xTickFormatForWindow } from '../../../panel/widgets/monitoring/page/metricHistoryHelpers';
+import { formatSelectedFrameTime } from '../../../panel/widgets/monitoring/page/metricHistoryHelpers';
 
 const HOUR = 3_600_000;
 const NOW = 10_000_000;
 
 // CoolingHistorySection has no per-frame click-to-pin, so its detached chip
-// always shows the viewed window's right edge (baseHistory's default domain)
-// formatted by the same x-axis tick formatter the chart itself uses.
-const DETACHED_LABEL = xTickFormatForWindow(HOUR)(NOW);
+// always shows the viewed window's right edge (baseHistory's default domain),
+// formatted with seconds (finer than the x-axis ticks).
+const DETACHED_LABEL = formatSelectedFrameTime(NOW, HOUR);
 
 const SAMPLE_SERIES: UseMetricHistoryResult['series'] = [
   { id: 'cpu-temp', kind: 'cpu-temp', name: 'CPU', points: [{ t: NOW - HOUR, avg: 40, max: 41 }, { t: NOW, avg: 50, max: 51 }] },

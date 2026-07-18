@@ -19,6 +19,7 @@ import {
   averageRpmSeries,
   formatBrushEdgeLabels,
   xTickFormatForWindow,
+  formatSelectedFrameTime,
 } from '../../../panel/widgets/monitoring/page/metricHistoryHelpers';
 import { episodeBand, formatTemperatureCelsius } from './temperatureHelpers';
 import { coolingSilhouettePoints, toCoolingTempChartSeries } from './coolingHistoryHelpers';
@@ -52,7 +53,7 @@ export function CoolingHistorySection({ history, episodes }: CoolingHistorySecti
   // No per-frame click-to-pin here (unlike the monitoring page) - detaching
   // via the seek bar leaves the viewed window's right edge as the frame of
   // record, so that is what the chip shows once following goes false.
-  const detachedLabel = useMemo(() => xTickFormat(windowEnd), [xTickFormat, windowEnd]);
+  const detachedLabel = useMemo(() => formatSelectedFrameTime(windowEnd, windowMs), [windowEnd, windowMs]);
   const valueFormat = useMemo(
     () => (v: number) => formatTemperatureCelsius(v, monitoringTempUnit, numberFormat),
     [monitoringTempUnit, numberFormat],
