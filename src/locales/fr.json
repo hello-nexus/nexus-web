@@ -308,6 +308,8 @@
   "cooling.fan.disconnected": "Deconnecte",
   "cooling.fan.fixed": "Vitesse fixe",
   "cooling.fan.fixedHint": "Vitesse fixe - non réglable",
+  "cooling.fanRole.generic": "Ventilateur générique",
+  "cooling.fanRole.picker": "Définir l'appareil du ventilateur",
   "cooling.label.cpu": "CPU",
   "cooling.label.fan": "Vent.",
   "cooling.label.gpu": "GPU",

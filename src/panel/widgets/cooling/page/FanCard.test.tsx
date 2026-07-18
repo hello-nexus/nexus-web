@@ -1,8 +1,23 @@
-import { act, fireEvent, render } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { FanCard } from './FanCard';
 import type { FanChannel } from '../../../../api/cooling';
 import type { FanState } from '../../../../types/cooling';
+
+// Drive the mode dropdown as a native <select> (same convention as
+// ClockSettings.test.tsx / StocksSettings.test.tsx) so asserting on its
+// option list doesn't depend on the real Select's portaled listbox.
+vi.mock('../../../../components/common/Select/Select', () => ({
+  Select: ({ value, onChange, options, ariaLabel, disabled }: {
+    value: string; onChange: (v: string) => void;
+    options?: { value: string; label: string; disabled?: boolean; divider?: boolean }[];
+    ariaLabel?: string; disabled?: boolean;
+  }) => (
+    <select aria-label={ariaLabel} value={value} disabled={disabled} onChange={e => onChange(e.target.value)}>
+      {options?.map(o => <option key={o.value} value={o.value} disabled={o.disabled}>{o.label}</option>)}
+    </select>
+  ),
+}));
 
 // Regression guard for manual-level persistence (2026-07-13): the manual knob
 // tracks the live server duty unless the user has un-acknowledged drag input.
@@ -34,7 +49,7 @@ function renderCard(ch: FanChannel, state: FanState | undefined, onSpeedChange =
   const fixed = {
     curves: [],
     onSetMode: () => {}, onCreateCurve: () => {},
-    onRename: () => {}, onSpeedChange, onToggleLock: () => {},
+    onRename: () => {}, onSpeedChange, onToggleLock: () => {}, onSetRole: () => {},
   };
   const utils = render(<FanCard channel={ch} state={state} {...fixed} />);
   const rerenderCard = (nextCh: FanChannel, nextState: FanState | undefined) =>
@@ -139,5 +154,119 @@ describe('FanCard manual level display', () => {
       rerenderCard(makeChannel({ dutyPercent: 33 }), manualState);
     });
     expect(knobLeft(container)).toBe('33%');
+  });
+});
+
+// Fan icon repurposed as a device-role picker (2026-07-17): clicking it opens
+// a Generic / CPU / GPU picker instead of toggling lock, and Lock moved into
+// the mode dropdown below.
+describe('FanCard device-role picker', () => {
+  beforeEach(() => {
+    stubBarGeometry();
+  });
+
+  function renderRolePicker(ch: FanChannel, onSetRole = vi.fn(), onToggleLock = vi.fn()) {
+    const utils = render(
+      <FanCard
+        channel={ch}
+        state={manualState}
+        curves={[]}
+        onSetMode={() => {}}
+        onCreateCurve={() => {}}
+        onRename={() => {}}
+        onSpeedChange={() => {}}
+        onToggleLock={onToggleLock}
+        onSetRole={onSetRole}
+      />,
+    );
+    const trigger = utils.container.querySelector('button[aria-haspopup="menu"]') as HTMLElement;
+    return { ...utils, trigger, onSetRole, onToggleLock };
+  }
+
+  it('renders the plain Fan icon for an unmarked channel and the Cpu/Gpu icon once marked', () => {
+    const { trigger, rerender } = renderRolePicker(makeChannel());
+    expect(trigger.querySelector('svg.lucide-fan')).not.toBeNull();
+
+    rerender(
+      <FanCard channel={makeChannel({ role: 'cpu' })} state={manualState} curves={[]}
+        onSetMode={() => {}} onCreateCurve={() => {}} onRename={() => {}} onSpeedChange={() => {}}
+        onToggleLock={() => {}} onSetRole={() => {}} />,
+    );
+    expect(trigger.querySelector('svg.lucide-cpu')).not.toBeNull();
+  });
+
+  it('opens a 3-choice picker on click and calls onSetRole for the chosen device', () => {
+    const { trigger, onSetRole } = renderRolePicker(makeChannel());
+    fireEvent.click(trigger);
+
+    const choices = screen.getAllByRole('menuitemradio');
+    expect(choices).toHaveLength(3);
+
+    fireEvent.click(choices[1]);
+    expect(onSetRole).toHaveBeenCalledWith('fan1', 'cpu');
+  });
+
+  it('no longer toggles lock from the fan icon', () => {
+    const { trigger, onToggleLock } = renderRolePicker(makeChannel({ locked: true }));
+    fireEvent.click(trigger);
+    expect(onToggleLock).not.toHaveBeenCalled();
+  });
+});
+
+describe('FanCard mode dropdown Lock toggle', () => {
+  beforeEach(() => {
+    stubBarGeometry();
+  });
+
+  function optionValues(select: HTMLSelectElement) {
+    return Array.from(select.querySelectorAll('option')).map(o => o.value);
+  }
+
+  it('lists Lock after the create-curve divider and toggles it', () => {
+    const onToggleLock = vi.fn();
+    render(
+      <FanCard channel={makeChannel()} state={manualState} curves={[]}
+        onSetMode={() => {}} onCreateCurve={() => {}} onRename={() => {}} onSpeedChange={() => {}}
+        onToggleLock={onToggleLock} onSetRole={() => {}} />,
+    );
+    const select = screen.getByLabelText('cooling.card.mode') as HTMLSelectElement;
+    const values = optionValues(select);
+    const createIdx = values.indexOf('__create__');
+    const lockIdx = values.indexOf('__lock__');
+    expect(createIdx).toBeGreaterThanOrEqual(0);
+    expect(lockIdx).toBeGreaterThan(createIdx);
+    // Unlocked: the option carries the "click to lock" label key.
+    const lockOption = select.querySelector('option[value="__lock__"]')!;
+    expect(lockOption.textContent).toBe('cooling.lock.unlocked');
+
+    fireEvent.change(select, { target: { value: '__lock__' } });
+    expect(onToggleLock).toHaveBeenCalledWith('fan1', true);
+  });
+
+  it('reflects the locked state in the Lock option label and toggles it off', () => {
+    const onToggleLock = vi.fn();
+    render(
+      <FanCard channel={makeChannel({ locked: true })} state={manualState} curves={[]}
+        onSetMode={() => {}} onCreateCurve={() => {}} onRename={() => {}} onSpeedChange={() => {}}
+        onToggleLock={onToggleLock} onSetRole={() => {}} />,
+    );
+    const select = screen.getByLabelText('cooling.card.mode') as HTMLSelectElement;
+    const lockOption = select.querySelector('option[value="__lock__"]')!;
+    expect(lockOption.textContent).toBe('cooling.lock.locked');
+
+    fireEvent.change(select, { target: { value: '__lock__' } });
+    expect(onToggleLock).toHaveBeenCalledWith('fan1', false);
+  });
+
+  it('still lists Lock when the curve cap is reached (no create-curve entry)', () => {
+    const onToggleLock = vi.fn();
+    render(
+      <FanCard channel={makeChannel()} state={manualState} curves={[]} canCreateCurve={false}
+        onSetMode={() => {}} onCreateCurve={() => {}} onRename={() => {}} onSpeedChange={() => {}}
+        onToggleLock={onToggleLock} onSetRole={() => {}} />,
+    );
+    const select = screen.getByLabelText('cooling.card.mode') as HTMLSelectElement;
+    expect(optionValues(select)).not.toContain('__create__');
+    expect(optionValues(select)).toContain('__lock__');
   });
 });

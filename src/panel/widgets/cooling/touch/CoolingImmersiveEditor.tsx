@@ -117,6 +117,7 @@ function FansSection({ cooling, liveChannels }: {
       onRename={cooling.renameFan}
       onSpeedChange={cooling.setFanSpeed}
       onToggleLock={cooling.setFanLock}
+      onSetRole={cooling.setFanRole}
     />
   );
 

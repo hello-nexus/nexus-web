@@ -4,6 +4,10 @@ import { fetchService, postService } from './service';
 
 // ── Types ──
 
+/** Device the fan is marked as cooling. Drives the fan card's header icon
+ *  (Fan / Cpu / Gpu). "none" is a plain, unmarked fan. */
+export type FanRole = 'none' | 'cpu' | 'gpu';
+
 export interface FanChannel {
   id: string;
   name: string;
@@ -19,6 +23,8 @@ export interface FanChannel {
   minDuty?: number | null;
   classification?: string | null; // "Controllable" | "Fixed" | "Stalling" | "Unresponsive"
   calibrated?: boolean;
+  role?: FanRole;
+  seriesId?: string; // sanitized id; "fan:" + seriesId is the monitoring series id
   // ── External-device metadata.
   // All null for motherboard/GPU fans; populated by the service only when the
   // channel lives on a USB hub like NP50. Drives device-grouped rendering on
@@ -170,6 +176,9 @@ export const renameFan = (id: string, name: string) =>
 
 export const setFanLock = (id: string, locked: boolean) =>
   postService(`/cooling/fan/${encodeURIComponent(id)}/lock`, { locked });
+
+export const setFanRole = (id: string, role: FanRole) =>
+  postService(`/cooling/fan/${encodeURIComponent(id)}/role`, { role });
 
 export const saveCurves = (body: {
   globalSpeedModifier: number;

@@ -308,6 +308,8 @@
   "cooling.fan.disconnected": "未连接",
   "cooling.fan.fixed": "固定转速",
   "cooling.fan.fixedHint": "固定转速 - 无法控制",
+  "cooling.fanRole.generic": "通用风扇",
+  "cooling.fanRole.picker": "标记风扇设备",
   "cooling.label.cpu": "CPU",
   "cooling.label.fan": "风扇",
   "cooling.label.gpu": "GPU",

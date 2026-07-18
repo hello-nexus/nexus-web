@@ -360,6 +360,45 @@
 }
 // Locked fans dim the fan glyph so the lock badge is the dominant mark.
 .fanKindIconDim { opacity: 0.3; }
+
+// Positioned ancestor for the role picker Popover (see Popover.tsx: it
+// positions absolute against the nearest positioned ancestor, not its anchor
+// prop, which is only used for click-outside detection).
+.fanRoleAnchor {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+// Role choice row, matching the app's other small menu rows (TopBar overflow
+// menu, ProfileDropdown actions).
+.fanRoleOption {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border: none;
+  border-radius: calc(var(--radius-sm) - 2px);
+  background: transparent;
+  color: var(--text-dim);
+  font-size: var(--type-small);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--ease-fast), color var(--ease-fast);
+
+  &:hover {
+    background: var(--bg-card-hover);
+    color: var(--text);
+  }
+
+  svg { flex-shrink: 0; }
+}
+
+.fanRoleOptionActive {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
 .fanCardCalibrating { opacity: 0.5; pointer-events: none; }
 // Hardware-unresponsive: the fan block reads as "off". Border desaturates,
 // background sits flat, no hover transition - matches the Disconnected

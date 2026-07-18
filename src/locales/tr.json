@@ -308,6 +308,8 @@
   "cooling.fan.disconnected": "Baglanti yok",
   "cooling.fan.fixed": "Sabit hız",
   "cooling.fan.fixedHint": "Sabit hız - kontrol edilemez",
+  "cooling.fanRole.generic": "Genel fan",
+  "cooling.fanRole.picker": "Fan cihazını belirle",
   "cooling.label.cpu": "CPU",
   "cooling.label.fan": "Fan",
   "cooling.label.gpu": "GPU",
