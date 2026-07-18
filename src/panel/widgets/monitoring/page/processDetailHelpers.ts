@@ -1,4 +1,4 @@
-// Pure helpers for ProcessDetailSlideout, kept side-effect-free (no React,
+// Pure helpers for ProcessDetailPanel, kept side-effect-free (no React,
 // no i18n) so they're covered directly by processDetailHelpers.test.ts
 // instead of through component rendering. Mirrors appWindowHelpers.ts and
 // privacyHelpers.ts's approach for the rest of this domain.
@@ -77,11 +77,10 @@ export interface MiniChartResult {
   hasData: boolean;
 }
 
-// Linear scan, not appWindowHelpers' binary search - importing that module
-// here would cycle back through ProcessListSection -> ProcessDetailSlideout,
-// and these window series (one process, one metric) are small enough that
-// the scan cost is negligible. Not timeSeriesChartUtils' nearestPoint either
-// - that one requires a maxDeltaMs cap (no established value for a single
+// Linear scan, not appWindowHelpers' binary search - these window series
+// (one process, one metric) are small enough that the scan cost is
+// negligible. Not timeSeriesChartUtils' nearestPoint either - that one
+// requires a maxDeltaMs cap (no established value for a single
 // process/metric tile) and a TimeSeriesPoint `max` field AppWindowPoint
 // doesn't carry, matching appWindowHelpers' own uncapped nearestAppValueAt
 // instead (the same "just find nearest, no cap" contract this mirrors).

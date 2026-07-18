@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { ChevronRight, X } from 'lucide-react';
 import { SearchInput } from '../../../../components/common/SearchInput/SearchInput';
 import { Select } from '../../../../components/common/Select/Select';
@@ -6,14 +6,10 @@ import { Sparkline } from '../../../../components/common/Sparkline/Sparkline';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { Badge } from '../../../../components/common/Badge/Badge';
 import { useTranslation } from '../../../../lib/i18n';
-import { useMonitoringPrivacy } from '../../../../hooks/useMonitoringPrivacy';
-import type { UseMetricHistoryAppsResult } from '../../../../hooks/useMetricHistoryApps';
 import type { PrivacySession } from '../../../../api/monitoringPrivacy';
 import { PRIVACY_ICONS, formatPrivacyTime, privacyIndicatorsForProcess, type PrivacyIndicator } from './privacyHelpers';
 import { useStableRanking } from './useStableRanking';
-import { ProcessDetailSlideout } from './ProcessDetailSlideout';
 import { ProcessIcon } from './ProcessIcon';
-import type { ProcessLiveUsage } from './processDetailHelpers';
 import type { RankableItem, SortMode } from './processRanking';
 import styles from './ProcessListSection.module.scss';
 
@@ -48,13 +44,17 @@ export interface ProcessListSectionProps {
    *  only, not the scrubbed window (see MonitoringPage's freeze-on-detach
    *  handling for the fallback data source). */
   frozen?: boolean;
-  /** Per-process CPU/memory/GPU/VRAM current values, independent of which
-   *  metric tab is active - feeds the process-detail slideout's live usage
-   *  tiles. Omitted -> the slideout shows its "live data unavailable" state. */
-  liveUsage?: ReadonlyMap<string, ProcessLiveUsage>;
-  /** The active tab's already-fetched window-scoped apps response, reused
-   *  (no new fetch) for the process-detail slideout's mini chart. */
-  appsWindow?: UseMetricHistoryAppsResult;
+  /** Called with the clicked/activated row's process name. MonitoringPage
+   *  owns the selection state and renders the process-detail panel as an
+   *  inline sibling column - this component only reports the interaction,
+   *  it no longer mounts the panel itself. */
+  onSelectProcess: (name: string) => void;
+  /** Privacy-access sessions for the row icons (webcam/microphone/location/
+   *  screen capture) - sourced once at the page level (MonitoringPage) and
+   *  shared with the process-detail panel rather than polled again here. */
+  privacySessions?: readonly PrivacySession[];
+  privacyAsOfMs?: number;
+  showPrivacy?: boolean;
   /** Non-null while a point-in-time snapshot (a click on the hero chart) is
    *  pinned - the % VALUE column then reflects each app's value at this
    *  exact timestamp rather than the live/window-average value. Shows a
@@ -62,14 +62,6 @@ export interface ProcessListSectionProps {
   snapshotAtMs?: number | null;
   /** Clears the pinned snapshot - required whenever snapshotAtMs is set. */
   onClearSnapshot?: () => void;
-  /** The hero chart's own selected frame + follow state and window bounds -
-   *  threaded straight through to the process-detail slideout for its
-   *  timeframe label and usage tiles. Defaults describe "live, right now"
-   *  for a caller that doesn't track a history viewport at all. */
-  selectedFrameMs?: number;
-  following?: boolean;
-  historyFrom?: number;
-  historyTo?: number;
 }
 
 // Exported so appWindowHelpers.ts's flat-history fallback can size itself to
@@ -77,10 +69,11 @@ export interface ProcessListSectionProps {
 // (values.length < sampleCount) draw a fake ramp instead of a flat line.
 export const SPARKLINE_SAMPLES = 30;
 
-// Fallback usage-fetch window for a caller that doesn't track a history
-// viewport (selectedFrameMs/following/historyFrom/historyTo all omitted) -
-// mirrors metricHistoryHelpers' own 30m default range.
-const DEFAULT_HISTORY_WINDOW_MS = 30 * 60_000;
+// Stable identity for a caller that omits privacySessions - a fresh `[]`
+// literal as the destructuring default would recreate itself every render,
+// defeating ProcessRow's own memo comparator (prev.privacySessions ===
+// next.privacySessions) for every row, not just the ones that changed.
+const EMPTY_PRIVACY_SESSIONS: readonly PrivacySession[] = [];
 
 /** A process row's privacy-access icons: one per PrivacyIndicator, each a
  *  non-actionable informational glyph (role="img" + tabIndex so hover AND
@@ -182,7 +175,7 @@ const ProcessRow = memo(function ProcessRow({
       onKeyDown={e => {
         // Only react to a keypress on the row itself - a nested focusable
         // descendant (a privacy indicator icon) handles its own Enter/Space
-        // and must not also open the slideout via bubbling. Same guard as
+        // and must not also select the process via bubbling. Same guard as
         // Card.tsx's own onKeyDown.
         if (e.target !== e.currentTarget) return;
         if (e.key !== 'Enter' && e.key !== ' ') return;
@@ -194,7 +187,7 @@ const ProcessRow = memo(function ProcessRow({
       <span className={styles.nameGroup}>
         <span className={styles.name}>{item.name}</span>
         {item.publisher && <span className={styles.publisher}>{item.publisher}</span>}
-        {/* Shares ProcessDetailSlideout's "Unsigned" badge/key (same displayed
+        {/* Shares ProcessDetailPanel's "Unsigned" badge/key (same displayed
             word) - update both call sites together if either copy changes. */}
         {item.signed === 'unsigned' && <Badge label={t('monitoring.processDetail.info.unsigned')} color="var(--warn)" />}
       </span>
@@ -226,13 +219,17 @@ const ProcessRow = memo(function ProcessRow({
  * an app icon (or a plain neutral dot when none resolves), privacy-access
  * icons (webcam/microphone/location/screen capture, when the service
  * reports one for that process), a mini sparkline, and the current value
- * (plus an optional secondary value). Clicking a row opens
- * ProcessDetailSlideout for that process; the chevron affordance appears on
+ * (plus an optional secondary value). The chevron affordance appears on
  * hover/focus so the resting list stays visually quiet.
  *
  * Row order is rank-stable (see useStableRanking/processRanking): a value
  * update alone never reorders or drops a row, so the list doesn't visibly
  * jump around while the user is watching it.
+ *
+ * Clicking (or activating via keyboard) a row reports its name upward via
+ * onSelectProcess - MonitoringPage owns the selection and renders
+ * ProcessDetailPanel as an inline sibling column beside this list, so this
+ * component itself never mounts the detail panel.
  *
  * Task-Manager-style Apps/Background processes grouping (round 5 item 5):
  * `visible` is partitioned by `isApp` AFTER search and stable ranking, via a
@@ -246,23 +243,12 @@ function formatSnapshotTime(ms: number): string {
 }
 
 export function ProcessListSection({
-  items, formatValue, rankResetKey = '', frozen = false, liveUsage, appsWindow, snapshotAtMs, onClearSnapshot,
-  selectedFrameMs, following = true, historyFrom, historyTo,
+  items, formatValue, rankResetKey = '', frozen = false, onSelectProcess,
+  privacySessions = EMPTY_PRIVACY_SESSIONS, privacyAsOfMs = 0, showPrivacy = false, snapshotAtMs, onClearSnapshot,
 }: ProcessListSectionProps) {
   const { t } = useTranslation();
-  // Lazy-initialized once (matches ProcessDetailSlideout's own nowMs
-  // snapshot) - only ever read as a fallback for a caller that omits the
-  // history-viewport props entirely, so it doesn't need to track real time.
-  const [fallbackNowMs] = useState(() => Date.now());
-  const resolvedSelectedFrameMs = selectedFrameMs ?? fallbackNowMs;
-  const resolvedHistoryFrom = historyFrom ?? fallbackNowMs - DEFAULT_HISTORY_WINDOW_MS;
-  const resolvedHistoryTo = historyTo ?? fallbackNowMs;
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<SortMode>('recent');
-  const [selectedProcess, setSelectedProcess] = useState<string | null>(null);
-  const privacy = useMonitoringPrivacy(true);
-  const showPrivacy = privacy.supported && !privacy.error;
-  const handleSelectRow = useCallback((name: string) => setSelectedProcess(name), []);
 
   const ranked = useStableRanking(items, sort, rankResetKey);
 
@@ -323,10 +309,10 @@ export function ProcessListSection({
               key={item.name}
               item={item}
               formatValue={formatValue}
-              onSelect={handleSelectRow}
+              onSelect={onSelectProcess}
               t={t}
-              privacySessions={privacy.sessions}
-              privacyAsOfMs={privacy.asOfMs}
+              privacySessions={privacySessions}
+              privacyAsOfMs={privacyAsOfMs}
               showPrivacy={showPrivacy}
             />
           ))}
@@ -338,29 +324,14 @@ export function ProcessListSection({
               key={item.name}
               item={item}
               formatValue={formatValue}
-              onSelect={handleSelectRow}
+              onSelect={onSelectProcess}
               t={t}
-              privacySessions={privacy.sessions}
-              privacyAsOfMs={privacy.asOfMs}
+              privacySessions={privacySessions}
+              privacyAsOfMs={privacyAsOfMs}
               showPrivacy={showPrivacy}
             />
           ))}
         </div>
-      )}
-      {selectedProcess && (
-        <ProcessDetailSlideout
-          name={selectedProcess}
-          onClose={() => setSelectedProcess(null)}
-          live={liveUsage?.get(selectedProcess)}
-          appsWindow={appsWindow}
-          valueFormat={formatValue}
-          privacySessions={privacy.sessions}
-          privacySupported={privacy.supported && !privacy.error}
-          selectedFrameMs={resolvedSelectedFrameMs}
-          following={following}
-          historyFrom={resolvedHistoryFrom}
-          historyTo={resolvedHistoryTo}
-        />
       )}
     </div>
   );

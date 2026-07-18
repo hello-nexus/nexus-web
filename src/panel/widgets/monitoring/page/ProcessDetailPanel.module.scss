@@ -1,18 +1,24 @@
 @use '../../../../styles/text' as *;
 
-.headerTitle {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-  min-width: 0;
-}
+// The card chrome (background, border, radius, icon/title/subtitle header,
+// scrollable fillHeight body) comes from Card (fillHeight) - only this
+// panel's own content styling lives here.
 
-.headerName {
-  @include text-heading;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--text);
+.closeBtn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--ease-fast);
+  flex-shrink: 0;
+
+  &:hover { background: var(--bg-card-hover); }
 }
 
 .headerMeta {

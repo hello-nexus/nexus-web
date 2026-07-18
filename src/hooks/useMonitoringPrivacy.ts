@@ -47,8 +47,7 @@ export function useMonitoringPrivacy(enabled: boolean): UseMonitoringPrivacyResu
   // Persists across an enabled-toggle's effect teardown/rebuild (unlike the
   // scheduling loop's own local `cancelled`, which is per-instance) - a
   // straggler from a torn-down instance must not overwrite state a newer
-  // instance's response already committed, even though enabled has no
-  // dynamic caller today.
+  // instance's response already committed.
   const seqRef = useRef(0);
 
   useEffect(() => {

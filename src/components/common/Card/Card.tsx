@@ -36,10 +36,20 @@ export interface CardProps {
   // recipe (monitoring overview cards) instead of the default card hover.
   // Only meaningful together with `interactive` or `onClick`.
   dashHover?: boolean;
+  // Fills the parent's own height (instead of the default content-sized
+  // height) and lets the body scroll on its own while the header stays
+  // pinned - for a card occupying a fixed-height region (e.g. an inline
+  // detail sidebar) rather than flowing in a page's own scroll.
+  fillHeight?: boolean;
+  // ARIA role/name for the root - e.g. 'region' + a label for a card that is
+  // itself a landmark, distinct from `interactive`'s role='button'.
+  role?: string;
+  ariaLabel?: string;
 }
 
 export function Card({
   title, subtitle, actions, icon, children, interactive, compact, className, onClick, truncateSubtitle, disableInteractiveRole, dashHover,
+  fillHeight, role, ariaLabel,
 }: CardProps) {
   const hasHeader = title !== undefined || subtitle !== undefined || actions !== undefined || icon !== undefined;
   const interactiveRole = onClick && !disableInteractiveRole;
@@ -47,9 +57,10 @@ export function Card({
   const interactiveClass = isInteractive ? (dashHover ? styles.dashHover : styles.interactive) : '';
   return (
     <div
-      className={`${styles.root} ${interactiveClass} ${compact ? styles.compact : ''} ${className ?? ''}`}
+      className={`${styles.root} ${interactiveClass} ${compact ? styles.compact : ''} ${fillHeight ? styles.fillHeight : ''} ${className ?? ''}`}
       onClick={onClick}
-      role={interactiveRole ? 'button' : undefined}
+      role={interactiveRole ? 'button' : role}
+      aria-label={ariaLabel}
       tabIndex={interactiveRole ? 0 : undefined}
       onKeyDown={interactiveRole ? (e) => {
         // Only react to a keypress on the card itself - a nested interactive

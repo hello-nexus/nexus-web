@@ -1,6 +1,6 @@
 import { buildMiniChart } from './processDetailHelpers';
 import type { AppWindowPoint } from '../../../../api/monitoringHistoryApps';
-import styles from './ProcessDetailSlideout.module.scss';
+import styles from './ProcessDetailPanel.module.scss';
 
 // Fixed internal drawing width for the path math - the SVG itself renders
 // fluid (width 100%, preserveAspectRatio="none") the same way Sparkline's

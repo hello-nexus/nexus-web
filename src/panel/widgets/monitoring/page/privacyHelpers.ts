@@ -1,9 +1,8 @@
 // Pure-ish helpers for the privacy-access indicators shown on
-// ProcessListSection rows AND ProcessDetailSlideout's privacy section
+// ProcessListSection rows AND ProcessDetailPanel's privacy section
 // (webcam/microphone/location/screen capture). Home for the icon map and
-// time formatter both consumers share, so neither imports the other (they'd
-// otherwise form a circular dependency: the slideout is rendered by the list
-// section). Mirrors metricHistoryHelpers.ts's approach.
+// time formatter both consumers share, so neither imports the other.
+// Mirrors metricHistoryHelpers.ts's approach.
 import type { ComponentType } from 'react';
 import { MapPin, Mic, ScreenShare, Webcam } from 'lucide-react';
 import type { PrivacyCapability, PrivacySession } from '../../../../api/monitoringPrivacy';

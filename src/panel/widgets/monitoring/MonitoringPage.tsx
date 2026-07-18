@@ -7,6 +7,7 @@ import { useSensors } from '../../../hooks/useSensors';
 import { useSystemSpecs } from '../../../hooks/useSystemSpecs';
 import { useMetricHistory } from '../../../hooks/useMetricHistory';
 import { useMetricHistoryApps } from '../../../hooks/useMetricHistoryApps';
+import { useMonitoringPrivacy } from '../../../hooks/useMonitoringPrivacy';
 import { useTranslation } from '../../../lib/i18n';
 import { useUiSettings, useUnitPrefs } from '../../../hooks/useUiSettings';
 import { resolvePrimaryGpu } from '../../../lib/gpuResolver';
@@ -21,6 +22,7 @@ import { MonitoringSkeleton } from '../../../components/views/PageSkeleton/PageS
 import { DetailedTab } from './page/DetailedTab';
 import { MetricHistorySection } from './page/MetricHistorySection';
 import { ProcessListSection, type ProcessListItem } from './page/ProcessListSection';
+import { ProcessDetailPanel } from './page/ProcessDetailPanel';
 import { MonitoringSettingsModal } from './page/MonitoringSettingsModal';
 import { seriesQueryFor, appsSeriesParamFor, currentDiskRateBytesPerSec, resolveSelectedFrame, formatSelectedFrameTime, type FanRoleMap, type HistoryMetric } from './page/metricHistoryHelpers';
 import { appsToProcessListItems, currentAppValueMap, reconcileLiveWithWindow, zeroedGpuFallback } from './page/appWindowHelpers';
@@ -74,6 +76,20 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
   const { specs } = useSystemSpecs(serviceOnline);
   const { settings } = useUiSettings();
   const { numberFormat } = useUnitPrefs();
+
+  // Sourced once here (not inside ProcessListSection) since the selected
+  // process's own detail panel needs the same sessions/support - a second
+  // independent poll would double the request cadence for no benefit.
+  const privacy = useMonitoringPrivacy(serviceOnline);
+  const showPrivacy = privacy.supported && !privacy.error;
+
+  // The selected process persists across a metric-tab switch (only the
+  // sidebar's own content and the graph's overlay line reflect the newly
+  // active metric) - cleared only via the panel's own close button or by
+  // selecting a different row.
+  const [selectedProcess, setSelectedProcess] = useState<string | null>(null);
+  const handleSelectProcess = useCallback((name: string) => setSelectedProcess(name), []);
+  const handleCloseProcessDetail = useCallback(() => setSelectedProcess(null), []);
 
   // GPU surfaces appear only where the platform reports live GPU utilization
   // (Windows via LHM, NVIDIA-Linux via nvidia-smi). macOS and AMD/Intel-Linux
@@ -212,7 +228,7 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
 
   const gpuVramByName = useMemo(() => new Map(gpuProcMemSeries.map(s => [s.name, s.current])), [gpuProcMemSeries]);
 
-  // Independent of the active tab - the process-detail slideout's live usage
+  // Independent of the active tab - the process-detail panel's live usage
   // tiles show CPU/memory/GPU/VRAM together regardless of which metric the
   // list itself is currently ranked by.
   const liveUsageByName = useMemo(
@@ -369,50 +385,67 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
         {tab === 'detailed' ? (
           <DetailedTab sensors={sensors} />
         ) : (
-          <>
-            {titleText && (
-              <div className={styles.tabHeader}>
-                <span className={styles.tabHeaderName}>{titleText}</span>
-                {tab === 'gpu' && sensors.gpuComponents.length > 1 && (
-                  <button type="button" className={styles.tabHeaderChange} onClick={openSettings}>
-                    {t('monitoring.gpu.change')}
-                  </button>
-                )}
-                {history.mocked && <Badge label={t('monitoring.history.mocked')} color="var(--warn)" />}
-                <LiveFollowControl
+          <div className={styles.metricLayout}>
+            <div className={styles.metricMain}>
+              {titleText && (
+                <div className={styles.tabHeader}>
+                  <span className={styles.tabHeaderName}>{titleText}</span>
+                  {tab === 'gpu' && sensors.gpuComponents.length > 1 && (
+                    <button type="button" className={styles.tabHeaderChange} onClick={openSettings}>
+                      {t('monitoring.gpu.change')}
+                    </button>
+                  )}
+                  {history.mocked && <Badge label={t('monitoring.history.mocked')} color="var(--warn)" />}
+                  <LiveFollowControl
+                    following={history.following}
+                    detachedLabel={detachedLabel}
+                    onBackToLive={backToLiveAndClearSnapshot}
+                  />
+                </div>
+              )}
+              <MetricHistorySection
+                metric={tab}
+                gpuComponents={sensors.gpuComponents}
+                preferredGpuId={settings.preferredGpuId}
+                history={history}
+                appsWindow={appsWindow}
+                fanRoles={fanRoles}
+                selectedFrameMs={selectedFrameMs}
+                onGraphClick={onGraphClick}
+              />
+              <div className={styles.listScroll}>
+                <ProcessListSection
+                  items={processItems}
+                  formatValue={formatValue}
+                  rankResetKey={rankResetKey}
+                  frozen={shouldFreezeFallback}
+                  onSelectProcess={handleSelectProcess}
+                  privacySessions={privacy.sessions}
+                  privacyAsOfMs={privacy.asOfMs}
+                  showPrivacy={showPrivacy}
+                  snapshotAtMs={isSnapshotPinned ? selectedFrameMs : null}
+                  onClearSnapshot={clearSnapshot}
+                />
+              </div>
+            </div>
+            {selectedProcess && (
+              <div className={styles.metricDetail}>
+                <ProcessDetailPanel
+                  name={selectedProcess}
+                  onClose={handleCloseProcessDetail}
+                  live={liveUsageByName.get(selectedProcess)}
+                  appsWindow={appsWindow}
+                  valueFormat={formatValue}
+                  privacySessions={privacy.sessions}
+                  privacySupported={showPrivacy}
+                  selectedFrameMs={selectedFrameMs}
                   following={history.following}
-                  detachedLabel={detachedLabel}
-                  onBackToLive={backToLiveAndClearSnapshot}
+                  historyFrom={history.domain[0]}
+                  historyTo={history.domain[1]}
                 />
               </div>
             )}
-            <MetricHistorySection
-              metric={tab}
-              gpuComponents={sensors.gpuComponents}
-              preferredGpuId={settings.preferredGpuId}
-              history={history}
-              appsWindow={appsWindow}
-              fanRoles={fanRoles}
-              selectedFrameMs={selectedFrameMs}
-              onGraphClick={onGraphClick}
-            />
-            <div className={styles.listScroll}>
-              <ProcessListSection
-                items={processItems}
-                formatValue={formatValue}
-                rankResetKey={rankResetKey}
-                frozen={shouldFreezeFallback}
-                liveUsage={liveUsageByName}
-                appsWindow={appsWindow}
-                snapshotAtMs={isSnapshotPinned ? selectedFrameMs : null}
-                onClearSnapshot={clearSnapshot}
-                selectedFrameMs={selectedFrameMs}
-                following={history.following}
-                historyFrom={history.domain[0]}
-                historyTo={history.domain[1]}
-              />
-            </div>
-          </>
+          </div>
         )}
       </div>
     </div>

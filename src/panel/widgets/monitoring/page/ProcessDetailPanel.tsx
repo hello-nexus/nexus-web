@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import {
-  Check, Copy, Cpu, FolderOpen, Gpu, Layers, MemoryStick, XCircle,
+  Check, Copy, Cpu, FolderOpen, Gpu, Layers, MemoryStick, X, XCircle,
 } from 'lucide-react';
-import { Slideout } from '../../../../components/common/Slideout/Slideout';
+import { Card } from '../../../../components/common/Card/Card';
 import { CollapsibleSection } from '../../../../components/common/CollapsibleSection/CollapsibleSection';
 import { ConfirmModal } from '../../../../components/common/ConfirmModal/ConfirmModal';
 import { Button } from '../../../../components/common/Button/Button';
@@ -24,9 +24,9 @@ import { PRIVACY_ICONS, formatPrivacyTime, iconKindForCapability } from './priva
 import { ProcessIcon } from './ProcessIcon';
 import { ProcessMiniChart } from './ProcessMiniChart';
 import { resolveTileValue, sessionsForProcess, truncateMiddle, type ProcessLiveUsage } from './processDetailHelpers';
-import styles from './ProcessDetailSlideout.module.scss';
+import styles from './ProcessDetailPanel.module.scss';
 
-export interface ProcessDetailSlideoutProps {
+export interface ProcessDetailPanelProps {
   onClose: () => void;
   name: string;
   live: ProcessLiveUsage | undefined;
@@ -95,17 +95,19 @@ function CopyableValue({ value, fieldLabel, mono, truncate }: { value: string; f
 }
 
 /**
- * Process-detail slideout - the same visual pattern as the panel editor's
- * desktop add-widget drawer (see Slideout.tsx), opened when a
- * ProcessListSection row is clicked. Every section below the header/actions
- * handles its own unsupported/empty/error state independently, so a partial
- * (or pre-parallel-branch) service still shows a useful drawer instead of a
- * blank one.
+ * Process-detail panel - an inline column rendered beside the process list
+ * (see MonitoringPage) when a ProcessListSection row is selected, not a
+ * modal: composes Card (fillHeight) for the chrome instead of a scrim/fixed-
+ * position drawer, with no Escape-to-close of its own (the stacked kill
+ * ConfirmModal keeps its own independent Escape handling). Every section
+ * below the header/actions handles its own unsupported/empty/error state
+ * independently, so a partial (or pre-parallel-branch) service still shows a
+ * useful panel instead of a blank one.
  */
-export function ProcessDetailSlideout({
+export function ProcessDetailPanel({
   onClose, name, live, appsWindow, valueFormat, privacySessions, privacySupported,
   selectedFrameMs, following, historyFrom, historyTo,
-}: ProcessDetailSlideoutProps) {
+}: ProcessDetailPanelProps) {
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
   const toast = useToastSafe();
@@ -204,30 +206,32 @@ export function ProcessDetailSlideout({
 
   const relativeAndAbsolute = (ms: number) => `${relativeTimeLabel(new Date(ms).toISOString(), nowMs, t)} · ${formatAbsolute(ms)}`;
 
+  const headerMeta = (instanceCount !== undefined || data?.publisher) ? (
+    <span className={styles.headerMeta}>
+      {instanceCount !== undefined && (
+        instanceCount === 1
+          ? t('monitoring.processDetail.instances.one', { count: instanceCount })
+          : t('monitoring.processDetail.instances.other', { count: instanceCount })
+      )}
+      {instanceCount !== undefined && data?.publisher && ' · '}
+      {data?.publisher}
+    </span>
+  ) : undefined;
+
   return (
     <>
-      <Slideout
-        open
-        onClose={onClose}
-        noEscDismiss={killConfirmOpen}
-        ariaLabel={t('monitoring.processDetail.ariaLabel', { name })}
+      <Card
         icon={<ProcessIcon name={name} />}
-        title={(
-          <div className={styles.headerTitle}>
-            <span className={styles.headerName}>{displayName}</span>
-            {(instanceCount !== undefined || data?.publisher) && (
-              <span className={styles.headerMeta}>
-                {instanceCount !== undefined && (
-                  instanceCount === 1
-                    ? t('monitoring.processDetail.instances.one', { count: instanceCount })
-                    : t('monitoring.processDetail.instances.other', { count: instanceCount })
-                )}
-                {instanceCount !== undefined && data?.publisher && ' · '}
-                {data?.publisher}
-              </span>
-            )}
-          </div>
+        title={displayName}
+        subtitle={headerMeta}
+        actions={(
+          <button type="button" className={styles.closeBtn} onClick={onClose} aria-label={t('app.window.close')}>
+            <X size={18} />
+          </button>
         )}
+        fillHeight
+        role="region"
+        ariaLabel={t('monitoring.processDetail.ariaLabel', { name })}
       >
         <div className={styles.actionsRow}>
           <Button tone="danger" size="sm" icon={<XCircle size={14} aria-hidden />} onClick={() => setKillConfirmOpen(true)}>
@@ -347,7 +351,7 @@ export function ProcessDetailSlideout({
             </InfoList>
           </CollapsibleSection>
         )}
-      </Slideout>
+      </Card>
 
       <ConfirmModal
         open={killConfirmOpen}

@@ -7,9 +7,8 @@ import styles from './ProcessListSection.module.scss';
  *  per-app color, matching the sparkline's accent-only treatment.
  *
  *  Shared by ProcessListSection's rows, MetricHistorySection's hover-tooltip
- *  top-apps rows, and ProcessDetailSlideout's header - kept in its own file
- *  (rather than living in ProcessListSection.tsx, which also renders
- *  ProcessDetailSlideout) so none of those three form a circular import. */
+ *  top-apps rows, and ProcessDetailPanel's header - kept in its own file so
+ *  none of those three form a circular import. */
 export function ProcessIcon({ name }: { name: string }) {
   const iconUrl = useProcessIcon(name);
   // The slot itself is the fixed-size box (item 44): whichever of the two

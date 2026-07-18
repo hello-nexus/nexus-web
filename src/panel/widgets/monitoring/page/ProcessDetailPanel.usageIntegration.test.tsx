@@ -2,13 +2,13 @@
 // each other (see the failure-log entry class: a plain hero-chart click, no
 // drag, pins selectedFrameMs without ever flipping `following` - MonitoringPage
 // wires onGraphClick straight to setClickedFrameMs, independent of the
-// viewport reducer). ProcessDetailSlideout.test.tsx mocks useProcessDetailUsage
+// viewport reducer). ProcessDetailPanel.test.tsx mocks useProcessDetailUsage
 // wholesale, which is right for unit-testing the label/tile composition, but
 // cannot catch a bug in how the REAL hook is wired (its `enabled` argument) -
 // this file uses the real hook, mocking only the underlying fetch client.
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ProcessDetailSlideout, type ProcessDetailSlideoutProps } from './ProcessDetailSlideout';
+import { ProcessDetailPanel, type ProcessDetailPanelProps } from './ProcessDetailPanel';
 import type { UseMonitoringProcessInfoResult } from '../../../../hooks/useMonitoringProcessInfo';
 import type { MetricHistoryAppsQuery, MetricHistoryAppsResponse } from '../../../../api/monitoringHistoryApps';
 
@@ -38,7 +38,7 @@ vi.mock('../../../../api/monitoringHistoryApps', () => ({
 const NOW = 10_000_000;
 const MINUTE = 60_000;
 
-function baseProps(over: Partial<ProcessDetailSlideoutProps> = {}): ProcessDetailSlideoutProps {
+function baseProps(over: Partial<ProcessDetailPanelProps> = {}): ProcessDetailPanelProps {
   return {
     onClose: vi.fn(),
     name: 'chrome.exe',
@@ -64,7 +64,7 @@ beforeEach(() => {
   fetchMock.mockReset();
 });
 
-describe('ProcessDetailSlideout usage tiles vs timeframe label (real useProcessDetailUsage)', () => {
+describe('ProcessDetailPanel usage tiles vs timeframe label (real useProcessDetailUsage)', () => {
   it('agrees with the label: pinned-while-following shows the fetched historical value, not the live prop', async () => {
     const pinnedFrameMs = NOW - 5 * MINUTE;
     // A distinct value per metric so each tile's own fetched value is
@@ -83,7 +83,7 @@ describe('ProcessDetailSlideout usage tiles vs timeframe label (real useProcessD
       unsupported: false,
     }));
 
-    render(<ProcessDetailSlideout {...baseProps({
+    render(<ProcessDetailPanel {...baseProps({
       live: { cpuPercent: 1 },
       following: true,
       selectedFrameMs: pinnedFrameMs,
@@ -105,7 +105,7 @@ describe('ProcessDetailSlideout usage tiles vs timeframe label (real useProcessD
   });
 
   it('does not fetch, and shows the live value, when genuinely live (no pin, following)', async () => {
-    render(<ProcessDetailSlideout {...baseProps({
+    render(<ProcessDetailPanel {...baseProps({
       live: { cpuPercent: 7 },
       following: true,
       selectedFrameMs: NOW,

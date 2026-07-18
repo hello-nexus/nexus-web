@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { ProcessDetailSlideout, type ProcessDetailSlideoutProps } from './ProcessDetailSlideout';
+import { ProcessDetailPanel, type ProcessDetailPanelProps } from './ProcessDetailPanel';
 import type { UseMonitoringProcessInfoResult } from '../../../../hooks/useMonitoringProcessInfo';
 import type { ProcessDetailUsage } from '../../../../hooks/useProcessDetailUsage';
 import type { UseMetricHistoryAppsResult } from '../../../../hooks/useMetricHistoryApps';
@@ -79,7 +79,7 @@ function fullData(over: Partial<ProcessInfoResponse> = {}): ProcessInfoResponse 
 
 const NOW = Date.now();
 
-function baseProps(over: Partial<ProcessDetailSlideoutProps> = {}): ProcessDetailSlideoutProps {
+function baseProps(over: Partial<ProcessDetailPanelProps> = {}): ProcessDetailPanelProps {
   return {
     onClose: vi.fn(),
     name: 'chrome.exe',
@@ -105,15 +105,15 @@ beforeEach(() => {
   Object.assign(navigator, { clipboard: { writeText: vi.fn(async () => {}) } });
 });
 
-describe('ProcessDetailSlideout header', () => {
+describe('ProcessDetailPanel header', () => {
   it('shows the raw process name before process info resolves', () => {
-    render(<ProcessDetailSlideout {...baseProps()} />);
+    render(<ProcessDetailPanel {...baseProps()} />);
     expect(screen.getByText('chrome.exe')).toBeInTheDocument();
   });
 
   it('shows the friendly description, instance count, and publisher once loaded', () => {
     infoMock.mockReturnValue(infoResult({ loading: false, data: fullData() }));
-    render(<ProcessDetailSlideout {...baseProps()} />);
+    render(<ProcessDetailPanel {...baseProps()} />);
     // "Google Chrome" (the description) and "Google LLC" (the publisher)
     // each legitimately render twice: once in the header meta line, once
     // again in the info block's own rows - both are correct, so assert on
@@ -123,17 +123,17 @@ describe('ProcessDetailSlideout header', () => {
   });
 });
 
-describe('ProcessDetailSlideout actions', () => {
+describe('ProcessDetailPanel actions', () => {
   it('opens a confirm dialog before killing the process', () => {
-    render(<ProcessDetailSlideout {...baseProps()} />);
+    render(<ProcessDetailPanel {...baseProps()} />);
     fireEvent.click(screen.getByText('monitoring.processDetail.actions.kill'));
     expect(screen.getByText('monitoring.processDetail.kill.confirmTitle')).toBeInTheDocument();
     expect(killMock).not.toHaveBeenCalled();
   });
 
-  it('one Esc with the kill confirm open closes only the confirm, not the slideout; a second Esc then closes the slideout', () => {
+  it('Esc with the kill confirm open closes only the confirm dialog - the panel has no Escape handling of its own', () => {
     const onClose = vi.fn();
-    render(<ProcessDetailSlideout {...baseProps({ onClose })} />);
+    render(<ProcessDetailPanel {...baseProps({ onClose })} />);
 
     fireEvent.click(screen.getByText('monitoring.processDetail.actions.kill'));
     expect(screen.getByText('monitoring.processDetail.kill.confirmTitle')).toBeInTheDocument();
@@ -143,14 +143,29 @@ describe('ProcessDetailSlideout actions', () => {
     expect(onClose).not.toHaveBeenCalled();
     expect(screen.getByText('monitoring.processDetail.actions.kill')).toBeInTheDocument();
 
+    // A second Esc has nothing left to close (the panel is an inline column,
+    // not a dismissible modal) - onClose still never fires.
     fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('has no dialog/scrim role - it renders as a plain in-flow panel, not a modal', () => {
+    const { container } = render(<ProcessDetailPanel {...baseProps()} />);
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    expect(container.querySelector('[aria-modal="true"]')).toBeNull();
+  });
+
+  it('closes via the close button', () => {
+    const onClose = vi.fn();
+    render(<ProcessDetailPanel {...baseProps({ onClose })} />);
+    fireEvent.click(screen.getByRole('button', { name: 'app.window.close' }));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it('kills the process, shows a toast, and closes on confirm success', async () => {
     killMock.mockResolvedValue({ error: false, msg: 'ok' });
     const onClose = vi.fn();
-    render(<ProcessDetailSlideout {...baseProps({ onClose })} />);
+    render(<ProcessDetailPanel {...baseProps({ onClose })} />);
 
     fireEvent.click(screen.getByText('monitoring.processDetail.actions.kill'));
     fireEvent.click(screen.getByText('monitoring.processDetail.kill.confirmButton'));
@@ -163,7 +178,7 @@ describe('ProcessDetailSlideout actions', () => {
   it('shows an inline error and keeps the dialog open on kill failure', async () => {
     killMock.mockResolvedValue({ error: true, msg: 'Access denied' });
     const onClose = vi.fn();
-    render(<ProcessDetailSlideout {...baseProps({ onClose })} />);
+    render(<ProcessDetailPanel {...baseProps({ onClose })} />);
 
     fireEvent.click(screen.getByText('monitoring.processDetail.actions.kill'));
     fireEvent.click(screen.getByText('monitoring.processDetail.kill.confirmButton'));
@@ -174,7 +189,7 @@ describe('ProcessDetailSlideout actions', () => {
 
   it('opens the file location and toasts on failure', async () => {
     openLocationMock.mockResolvedValue(null);
-    render(<ProcessDetailSlideout {...baseProps()} />);
+    render(<ProcessDetailPanel {...baseProps()} />);
     fireEvent.click(screen.getByText('monitoring.processDetail.actions.openLocation'));
 
     await waitFor(() => expect(openLocationMock).toHaveBeenCalledWith('chrome.exe'));
@@ -182,14 +197,14 @@ describe('ProcessDetailSlideout actions', () => {
   });
 });
 
-describe('ProcessDetailSlideout live usage tiles', () => {
+describe('ProcessDetailPanel live usage tiles', () => {
   it('shows the unavailable note when there is no live data', () => {
-    render(<ProcessDetailSlideout {...baseProps({ live: undefined })} />);
+    render(<ProcessDetailPanel {...baseProps({ live: undefined })} />);
     expect(screen.getByText('monitoring.processDetail.live.unavailable')).toBeInTheDocument();
   });
 
   it('renders a tile per known live metric, omitting gpu/vram when absent', () => {
-    render(<ProcessDetailSlideout {...baseProps({ live: { cpuPercent: 12, memoryMb: 512 } })} />);
+    render(<ProcessDetailPanel {...baseProps({ live: { cpuPercent: 12, memoryMb: 512 } })} />);
     expect(screen.getByText('12%')).toBeInTheDocument();
     expect(screen.getByText('512 MB')).toBeInTheDocument();
     expect(screen.queryByText('monitoring.processDetail.live.gpu')).toBeNull();
@@ -197,17 +212,17 @@ describe('ProcessDetailSlideout live usage tiles', () => {
   });
 
   it('renders gpu and vram tiles when present', () => {
-    render(<ProcessDetailSlideout {...baseProps({ live: { cpuPercent: 1, memoryMb: 2, gpuPercent: 34, vramMb: 900 } })} />);
+    render(<ProcessDetailPanel {...baseProps({ live: { cpuPercent: 1, memoryMb: 2, gpuPercent: 34, vramMb: 900 } })} />);
     expect(screen.getByText('monitoring.processDetail.live.gpu')).toBeInTheDocument();
     expect(screen.getByText('34%')).toBeInTheDocument();
     expect(screen.getByText('900 MB')).toBeInTheDocument();
   });
 });
 
-describe('ProcessDetailSlideout usage tiles at the selected frame', () => {
+describe('ProcessDetailPanel usage tiles at the selected frame', () => {
   it('shows the value at the selected frame from the per-process window fetch, not the live value', () => {
     usageMock.mockReturnValue(usageWithPoints({ cpu: [{ t: NOW - 1000, avg: 10 }, { t: NOW, avg: 77 }] }));
-    render(<ProcessDetailSlideout {...baseProps({
+    render(<ProcessDetailPanel {...baseProps({
       live: { cpuPercent: 1 }, following: false, selectedFrameMs: NOW,
     })} />);
     expect(screen.getByText('77%')).toBeInTheDocument();
@@ -216,7 +231,7 @@ describe('ProcessDetailSlideout usage tiles at the selected frame', () => {
 
   it('falls back to the live value when the window series has no points yet', () => {
     usageMock.mockReturnValue(emptyUsage());
-    render(<ProcessDetailSlideout {...baseProps({
+    render(<ProcessDetailPanel {...baseProps({
       live: { cpuPercent: 9 }, following: false, selectedFrameMs: NOW,
     })} />);
     expect(screen.getByText('9%')).toBeInTheDocument();
@@ -229,7 +244,7 @@ describe('ProcessDetailSlideout usage tiles at the selected frame', () => {
       gpu: [{ t: NOW, avg: 15 }],
       vram: [{ t: NOW, avg: 700 }],
     }));
-    render(<ProcessDetailSlideout {...baseProps({ following: false, selectedFrameMs: NOW })} />);
+    render(<ProcessDetailPanel {...baseProps({ following: false, selectedFrameMs: NOW })} />);
     expect(screen.getByText('5%')).toBeInTheDocument();
     expect(screen.getByText('256 MB')).toBeInTheDocument();
     expect(screen.getByText('15%')).toBeInTheDocument();
@@ -237,15 +252,15 @@ describe('ProcessDetailSlideout usage tiles at the selected frame', () => {
   });
 });
 
-describe('ProcessDetailSlideout timeframe label', () => {
+describe('ProcessDetailPanel timeframe label', () => {
   it('shows the Live badge while following', () => {
-    render(<ProcessDetailSlideout {...baseProps({ following: true })} />);
+    render(<ProcessDetailPanel {...baseProps({ following: true })} />);
     expect(screen.getByText('monitoring.history.live')).toBeInTheDocument();
     expect(screen.queryByText('monitoring.processDetail.timeframe.asOf')).toBeNull();
   });
 
   it('shows the as-of label with the selected frame instead of Live while scrubbed', () => {
-    render(<ProcessDetailSlideout {...baseProps({ following: false, selectedFrameMs: NOW - 60_000 })} />);
+    render(<ProcessDetailPanel {...baseProps({ following: false, selectedFrameMs: NOW - 60_000 })} />);
     expect(screen.getByText('monitoring.processDetail.timeframe.asOf')).toBeInTheDocument();
     expect(screen.queryByText('monitoring.history.live')).toBeNull();
   });
@@ -255,25 +270,25 @@ describe('ProcessDetailSlideout timeframe label', () => {
     // `following` (see TimeSeriesChart's onPointClick vs onRangeSelect) -
     // historyTo (the domain's own right edge) stays at its baseProps default
     // (NOW) while selectedFrameMs moves to the clicked past instant.
-    render(<ProcessDetailSlideout {...baseProps({ following: true, selectedFrameMs: NOW - 60_000 })} />);
+    render(<ProcessDetailPanel {...baseProps({ following: true, selectedFrameMs: NOW - 60_000 })} />);
     expect(screen.getByText('monitoring.processDetail.timeframe.asOf')).toBeInTheDocument();
     expect(screen.queryByText('monitoring.history.live')).toBeNull();
   });
 });
 
-describe('ProcessDetailSlideout usage chart', () => {
+describe('ProcessDetailPanel usage chart', () => {
   it('shows an unsupported note when the apps-window route is unsupported', () => {
-    render(<ProcessDetailSlideout {...baseProps({ appsWindow: { apps: [], loading: false, supported: false, mocked: false, ready: true } })} />);
+    render(<ProcessDetailPanel {...baseProps({ appsWindow: { apps: [], loading: false, supported: false, mocked: false, ready: true } })} />);
     expect(screen.getByText('monitoring.processDetail.chart.unsupported')).toBeInTheDocument();
   });
 
   it('shows a no-data note when supported but this app has no series in the window', () => {
-    render(<ProcessDetailSlideout {...baseProps({ appsWindow: { apps: [], loading: false, supported: true, mocked: false, ready: true } })} />);
+    render(<ProcessDetailPanel {...baseProps({ appsWindow: { apps: [], loading: false, supported: true, mocked: false, ready: true } })} />);
     expect(screen.getByText('monitoring.processDetail.chart.noData')).toBeInTheDocument();
   });
 
   it('shows the no-data note, not the unsupported note, while the first window fetch is still in flight', () => {
-    render(<ProcessDetailSlideout {...baseProps({ appsWindow: { apps: [], loading: true, supported: true, mocked: false, ready: false } })} />);
+    render(<ProcessDetailPanel {...baseProps({ appsWindow: { apps: [], loading: true, supported: true, mocked: false, ready: false } })} />);
     expect(screen.getByText('monitoring.processDetail.chart.noData')).toBeInTheDocument();
     expect(screen.queryByText('monitoring.processDetail.chart.unsupported')).toBeNull();
   });
@@ -283,48 +298,48 @@ describe('ProcessDetailSlideout usage chart', () => {
       apps: [{ name: 'chrome.exe', avg: 20, max: 40, points: [{ t: 0, avg: 10 }, { t: 1000, avg: 20 }, { t: 2000, avg: 30 }] }],
       loading: false, supported: true, mocked: false, ready: true,
     };
-    render(<ProcessDetailSlideout {...baseProps({ appsWindow, valueFormat: v => `${v}%` })} />);
+    render(<ProcessDetailPanel {...baseProps({ appsWindow, valueFormat: v => `${v}%` })} />);
     expect(screen.queryByText('monitoring.processDetail.chart.noData')).toBeNull();
     expect(screen.getByText(/20%/)).toBeInTheDocument();
     expect(screen.getByText(/40%/)).toBeInTheDocument();
   });
 });
 
-describe('ProcessDetailSlideout info section', () => {
+describe('ProcessDetailPanel info section', () => {
   it('shows an unsupported note when the route predates process-info', () => {
     infoMock.mockReturnValue(infoResult({ loading: false, supported: false }));
-    render(<ProcessDetailSlideout {...baseProps()} />);
+    render(<ProcessDetailPanel {...baseProps()} />);
     expect(screen.getByText('monitoring.processDetail.info.unsupported')).toBeInTheDocument();
   });
 
   it('shows an error note on a real fetch failure', () => {
     infoMock.mockReturnValue(infoResult({ loading: false, error: true, data: null }));
-    render(<ProcessDetailSlideout {...baseProps()} />);
+    render(<ProcessDetailPanel {...baseProps()} />);
     expect(screen.getByText('monitoring.processDetail.info.error')).toBeInTheDocument();
   });
 
   it('renders version/description/path/sha256/dates once loaded', () => {
     infoMock.mockReturnValue(infoResult({ loading: false, data: fullData() }));
-    render(<ProcessDetailSlideout {...baseProps()} />);
+    render(<ProcessDetailPanel {...baseProps()} />);
     expect(screen.getByText('124.0.1')).toBeInTheDocument();
     expect(screen.getByText('abc123')).toBeInTheDocument();
   });
 
   it('shows an Unsigned badge only when the binary is unsigned', () => {
     infoMock.mockReturnValue(infoResult({ loading: false, data: fullData({ signed: false }) }));
-    render(<ProcessDetailSlideout {...baseProps()} />);
+    render(<ProcessDetailPanel {...baseProps()} />);
     expect(screen.getByText('monitoring.processDetail.info.unsigned')).toBeInTheDocument();
   });
 
   it('shows no Unsigned badge for a signed binary', () => {
     infoMock.mockReturnValue(infoResult({ loading: false, data: fullData({ signed: true }) }));
-    render(<ProcessDetailSlideout {...baseProps()} />);
+    render(<ProcessDetailPanel {...baseProps()} />);
     expect(screen.queryByText('monitoring.processDetail.info.unsigned')).toBeNull();
   });
 
   it('copies the path to the clipboard when the copy button is pressed', async () => {
     infoMock.mockReturnValue(infoResult({ loading: false, data: fullData() }));
-    render(<ProcessDetailSlideout {...baseProps()} />);
+    render(<ProcessDetailPanel {...baseProps()} />);
 
     // The path and sha256 copy buttons carry distinct aria-labels (the
     // field's own label appended) so they're each individually addressable.
@@ -338,22 +353,22 @@ describe('ProcessDetailSlideout info section', () => {
 
   it('gives the path and sha256 copy buttons distinct labels', () => {
     infoMock.mockReturnValue(infoResult({ loading: false, data: fullData() }));
-    render(<ProcessDetailSlideout {...baseProps()} />);
+    render(<ProcessDetailPanel {...baseProps()} />);
 
     expect(screen.getByRole('button', { name: 'monitoring.processDetail.copy monitoring.processDetail.info.path' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'monitoring.processDetail.copy monitoring.processDetail.info.sha256' })).toBeInTheDocument();
   });
 });
 
-describe('ProcessDetailSlideout privacy section', () => {
+describe('ProcessDetailPanel privacy section', () => {
   it('hides the section entirely when there are no matching sessions', () => {
-    render(<ProcessDetailSlideout {...baseProps({ privacySessions: [] })} />);
+    render(<ProcessDetailPanel {...baseProps({ privacySessions: [] })} />);
     expect(screen.queryByText('monitoring.processDetail.privacy.title')).toBeNull();
   });
 
   it('hides the section when privacy is unsupported, even with sessions passed in', () => {
     const sessions: PrivacySession[] = [{ app: 'C:\\chrome.exe', capability: 'webcam', start: Date.now() - 1000, end: null }];
-    render(<ProcessDetailSlideout {...baseProps({ privacySessions: sessions, privacySupported: false })} />);
+    render(<ProcessDetailPanel {...baseProps({ privacySessions: sessions, privacySupported: false })} />);
     expect(screen.queryByText('monitoring.processDetail.privacy.title')).toBeNull();
   });
 
@@ -362,7 +377,7 @@ describe('ProcessDetailSlideout privacy section', () => {
       { app: 'C:\\chrome.exe', capability: 'webcam', start: Date.now() - 1000, end: null },
       { app: 'C:\\other.exe', capability: 'microphone', start: Date.now() - 2000, end: Date.now() - 500 },
     ];
-    render(<ProcessDetailSlideout {...baseProps({ privacySessions: sessions })} />);
+    render(<ProcessDetailPanel {...baseProps({ privacySessions: sessions })} />);
     expect(screen.getByText('monitoring.processDetail.privacy.title')).toBeInTheDocument();
     expect(screen.getByText('monitoring.privacy.capability.webcam')).toBeInTheDocument();
     expect(screen.queryByText('monitoring.privacy.capability.microphone')).toBeNull();

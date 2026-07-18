@@ -64,7 +64,7 @@ describe('useProcessDetailUsage', () => {
   });
 
   it('fetches even while following, as long as enabled is true - a frame pinned by a chart click without leaving live', async () => {
-    // The caller (ProcessDetailSlideout) derives `enabled` from its own
+    // The caller (ProcessDetailPanel) derives `enabled` from its own
     // isLive (following AND nothing pinned), not from `following` alone -
     // enabled=true with following=true is exactly the "pinned while still
     // following" state a plain hero-chart click produces.

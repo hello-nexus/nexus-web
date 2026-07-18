@@ -19,6 +19,65 @@
   gap: 0.75rem;
 }
 
+// A selected process turns the tab body into two columns: .metricMain (tab
+// header + hero chart + process list, unchanged) flexes narrower to make
+// room for .metricDetail as an inline sibling - no scrim, no overlay, just a
+// regular flex row. With nothing selected, .metricMain is the only child and
+// fills the full width exactly as before this existed.
+.metricLayout {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  gap: 1rem;
+}
+
+.metricMain {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+.metricDetail {
+  flex: 0 1 380px;
+  min-width: 280px;
+  min-height: 0;
+}
+
+// Below this width the detail column's own min-width would otherwise squeeze
+// .metricMain's chart/list past usefulness - stack the columns instead, with
+// the detail panel becoming a fixed-height (rather than row-height) scrolling
+// panel of its own beneath the list. .metricLayout's own scroll is the
+// fallback once the two stacked minimums no longer both fit a short viewport
+// - without it, .listScroll's own 200px floor (MonitoringPage.module.scss's
+// existing "past that floor the flex column overflows its own bounds"
+// contract) would spill past .metricMain's flex-shrunk box and paint over
+// .metricDetail beneath it, since flex-direction:column turns that same
+// vertical overflow into a same-axis collision instead of a harmless
+// alongside-a-row spill.
+@media (max-width: 768px) {
+  .metricLayout {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  // Floor covers the tab header + hero chart + the process list's own
+  // MonitoringPage.module.scss listScroll floor, so the flex column never
+  // shrinks main enough to trigger that spill.
+  .metricMain {
+    flex: 1 1 auto;
+    min-height: 580px;
+  }
+
+  .metricDetail {
+    flex: 0 0 320px;
+    width: 100%;
+    min-width: 0;
+  }
+}
+
 // Tab-bar live value chip: the metric name plus its fixed-width Badge
 // (see TAB_CHIP_*_MIN_WIDTH), laid out inline so the chip sits beside the
 // label without affecting Tabs' own icon/label spacing.

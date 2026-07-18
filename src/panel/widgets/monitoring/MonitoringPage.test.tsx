@@ -63,11 +63,10 @@ vi.mock('./page/ProcessListSection', async importOriginal => {
   const actual = await importOriginal<typeof import('./page/ProcessListSection')>();
   return {
     ...actual,
-    ProcessListSection: ({ items, frozen, liveUsage, appsWindow }: {
+    ProcessListSection: ({ items, frozen, onSelectProcess }: {
       items: Array<{ name: string; isApp?: boolean; publisher?: string | null; signed?: string }>;
       frozen?: boolean;
-      liveUsage?: ReadonlyMap<string, unknown>;
-      appsWindow?: { supported: boolean };
+      onSelectProcess: (name: string) => void;
     }) => {
       useEffect(() => {
         processListMounts++;
@@ -77,16 +76,47 @@ vi.mock('./page/ProcessListSection', async importOriginal => {
         <div
           data-testid="process-list-section"
           data-frozen={frozen ? 'true' : 'false'}
-          data-live-usage-names={liveUsage ? [...liveUsage.keys()].join(',') : ''}
-          data-apps-window-supported={appsWindow ? String(appsWindow.supported) : ''}
           data-items-meta={items.map(i => `${i.name}:${i.isApp}:${i.publisher}:${i.signed}`).join(';')}
         >
           items:{items.length}:{items.map(i => i.name).join(',')}
+          {items.map(i => (
+            <button key={i.name} type="button" onClick={() => onSelectProcess(i.name)}>select-{i.name}</button>
+          ))}
         </div>
       );
     },
   };
 });
+
+// ProcessDetailPanel has its own dedicated test file (kill/open-location,
+// info/privacy sections, etc.) - stubbed here to a name-tracing marker plus
+// the wiring-relevant props, so this file only asserts MonitoringPage passes
+// the right data through and renders/closes it at the right time.
+vi.mock('./page/ProcessDetailPanel', () => ({
+  ProcessDetailPanel: ({ name, onClose, live, appsWindow }: {
+    name: string;
+    onClose: () => void;
+    live?: { cpuPercent?: number };
+    appsWindow?: { supported: boolean };
+  }) => (
+    <div
+      data-testid="process-detail-panel"
+      data-live-cpu={live?.cpuPercent ?? ''}
+      data-apps-window-supported={appsWindow ? String(appsWindow.supported) : ''}
+    >
+      detail:{name}
+      <button type="button" onClick={onClose}>close-detail</button>
+    </div>
+  ),
+}));
+
+// MonitoringPage now owns this poll (lifted from ProcessListSection) so it
+// can share one subscription with the process-detail panel; its own
+// row/tile rendering behavior is covered by ProcessListSection.test.tsx and
+// ProcessDetailPanel.test.tsx, so a fixed happy-path stub is enough here.
+vi.mock('../../../hooks/useMonitoringPrivacy', () => ({
+  useMonitoringPrivacy: () => ({ sessions: [], asOfMs: 0, loading: false, error: false, mocked: false, supported: true }),
+}));
 
 let historyOverride: Partial<{
   following: boolean; mocked: boolean; backToLive: () => void; detach: () => void;
@@ -732,24 +762,70 @@ describe('MonitoringPage', () => {
     });
   });
 
-  describe('process-detail slideout wiring (item 45)', () => {
+  describe('process-detail panel: inline selection, not a modal (item 45)', () => {
     afterEach(() => {
       cpuSeriesOverride = [];
       appsWindowOverride = {};
     });
 
-    it('passes a per-process live usage map built from the live series to ProcessListSection', () => {
+    it('renders no detail panel and no two-column layout until a row is selected', () => {
+      const { container } = render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+      expect(screen.queryByTestId('process-detail-panel')).toBeNull();
+      expect(container.querySelector('[class*="metricMain"]')).toBeInTheDocument();
+      expect(container.querySelector('[class*="metricDetail"]')).toBeNull();
+    });
+
+    it('selecting a row renders the panel as an inline sibling of the (still-mounted) process list, narrowing the main column', () => {
+      cpuSeriesOverride = [{ name: 'LiveApp', current: 10, values: [1, 2, 3] }];
+      const { container } = render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+
+      fireEvent.click(screen.getByText('select-LiveApp'));
+
+      const detail = container.querySelector('[class*="metricDetail"]');
+      expect(detail).toBeInTheDocument();
+      expect(detail!.querySelector('[data-testid="process-detail-panel"]')).toBeInTheDocument();
+      expect(screen.getByText('detail:LiveApp')).toBeInTheDocument();
+      // The list stays mounted beside it, inside the narrowed main column -
+      // never replaced or covered.
+      const main = container.querySelector('[class*="metricMain"]')!;
+      expect(main.querySelector('[data-testid="process-list-section"]')).toBeInTheDocument();
+      expect(main.contains(detail)).toBe(false);
+    });
+
+    it('passes the selected process\'s live usage from the live series to the panel', () => {
       cpuSeriesOverride = [{ name: 'LiveApp', current: 10, values: [1, 2, 3] }];
       render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
-      const section = screen.getByTestId('process-list-section');
-      expect(section).toHaveAttribute('data-live-usage-names', 'LiveApp');
+      fireEvent.click(screen.getByText('select-LiveApp'));
+      expect(screen.getByTestId('process-detail-panel')).toHaveAttribute('data-live-cpu', '10');
     });
 
     it('passes the active tab\'s already-fetched apps-window response through unchanged (no new fetch)', () => {
+      cpuSeriesOverride = [{ name: 'WindowedApp', current: 5, values: [1] }];
       appsWindowOverride = { ready: true, supported: true, apps: [{ name: 'WindowedApp', avg: 5, max: 5, points: [] }] };
       render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
-      const section = screen.getByTestId('process-list-section');
-      expect(section).toHaveAttribute('data-apps-window-supported', 'true');
+      fireEvent.click(screen.getByText('select-WindowedApp'));
+      expect(screen.getByTestId('process-detail-panel')).toHaveAttribute('data-apps-window-supported', 'true');
+    });
+
+    it('closes via the panel\'s own onClose, removing the detail column entirely', () => {
+      cpuSeriesOverride = [{ name: 'LiveApp', current: 10, values: [1, 2, 3] }];
+      const { container } = render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+      fireEvent.click(screen.getByText('select-LiveApp'));
+      expect(screen.getByTestId('process-detail-panel')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByText('close-detail'));
+      expect(screen.queryByTestId('process-detail-panel')).toBeNull();
+      expect(container.querySelector('[class*="metricDetail"]')).toBeNull();
+    });
+
+    it('keeps the selection across a metric-tab switch - only the reflected metric changes', () => {
+      cpuSeriesOverride = [{ name: 'LiveApp', current: 10, values: [1, 2, 3] }];
+      const { rerender } = render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+      fireEvent.click(screen.getByText('select-LiveApp'));
+      expect(screen.getByTestId('process-detail-panel')).toBeInTheDocument();
+
+      rerender(<MonitoringPage serviceOnline={true} connectionState="online" tab="memory" onTabChange={vi.fn()} />);
+      expect(screen.getByTestId('process-detail-panel')).toHaveTextContent('detail:LiveApp');
     });
   });
 
