@@ -79,6 +79,9 @@ export function MetricHistorySection({
         available: true,
       };
     }
+    if (metric === 'storage') {
+      return { main: history.series.filter(s => s.id === 'disk-read' || s.id === 'disk-write'), temp: null, available: true };
+    }
     if (metric === 'network') {
       return { main: history.series.filter(s => s.id === 'net-in' || s.id === 'net-out'), temp: null, available: true };
     }
@@ -98,8 +101,9 @@ export function MetricHistorySection({
   const colorFor = useMemo(() => () => 'var(--accent)', []);
 
   const nameOverride = useMemo(() => {
-    if (metric !== 'network') return null;
-    return (id: string) => (id === 'net-in' ? t('monitoring.history.download') : t('monitoring.history.upload'));
+    if (metric === 'network') return (id: string) => (id === 'net-in' ? t('monitoring.history.download') : t('monitoring.history.upload'));
+    if (metric === 'storage') return (id: string) => (id === 'disk-read' ? t('monitoring.history.read') : t('monitoring.history.write'));
+    return null;
   }, [metric, t]);
 
   const chartSeries = useMemo(() => {
@@ -107,15 +111,15 @@ export function MetricHistorySection({
     return nameOverride ? mapped.map(s => ({ ...s, name: nameOverride(s.id) })) : mapped;
   }, [resolved.main, colorFor, nameOverride]);
 
-  // Network auto-scales its own ceiling to the data ([0, null], unbounded
-  // rate); the percent metrics (cpu/gpu/memory) instead adapt to the
-  // currently-rendered window's own observed peak (item R5-2) rather than
-  // pinning the full 0-100 range, so a mostly-idle window isn't dwarfed by
-  // unused headroom - recomputed whenever the plotted series itself changes
-  // (scrubbing, live ticks), and quantized to a small step ladder so a tiny
-  // peak fluctuation doesn't wobble the axis.
+  // Network and storage auto-scale their own ceiling to the data ([0, null],
+  // unbounded rate); the percent metrics (cpu/gpu/memory) instead adapt to
+  // the currently-rendered window's own observed peak (item R5-2) rather
+  // than pinning the full 0-100 range, so a mostly-idle window isn't
+  // dwarfed by unused headroom - recomputed whenever the plotted series
+  // itself changes (scrubbing, live ticks), and quantized to a small step
+  // ladder so a tiny peak fluctuation doesn't wobble the axis.
   const liveYMax = useMemo(
-    () => (metric === 'network' ? null : adaptivePercentYMax(maxAvgValue(chartSeries))),
+    () => (metric === 'network' || metric === 'storage' ? null : adaptivePercentYMax(maxAvgValue(chartSeries))),
     [metric, chartSeries],
   );
   // The ceiling freezes for the whole of an active TimelineBrush drag: the
@@ -132,7 +136,7 @@ export function MetricHistorySection({
     [history.dragging, liveYMax],
   );
   const valueFormat = useMemo(() => {
-    if (metric === 'network') return (v: number) => formatRate(v, numberFormat);
+    if (metric === 'network' || metric === 'storage') return (v: number) => formatRate(v, numberFormat);
     return (v: number) => localizeNumbers(`${Math.round(v)}%`, numberFormat);
   }, [metric, numberFormat]);
 
@@ -199,7 +203,7 @@ export function MetricHistorySection({
   const ariaValueText = (from: number, to: number) => `${edgeLabelFormat(from)} - ${edgeLabelFormat(to)}`;
 
   const silhouettePoints = useMemo(() => {
-    if (metric === 'network') return sumSilhouette(history.silhouette);
+    if (metric === 'network' || metric === 'storage') return sumSilhouette(history.silhouette);
     const s = history.silhouette.find(x => resolved.main.some(m => m.id === x.id)) ?? history.silhouette[0];
     return s?.points ?? [];
   }, [metric, history.silhouette, resolved.main]);
@@ -222,27 +226,31 @@ export function MetricHistorySection({
   }, [resolved.temp, windowMs, monitoringTempUnit, numberFormat]);
 
   // The tooltip's docked secondary row, below the header: download/upload
-  // for network (disambiguating the two curves on hover), nothing otherwise
-  // (temperature moved to the header row above, see tooltipHeaderTemp).
-  const tooltipNetworkRow = useMemo(() => {
-    if (metric !== 'network') return null;
+  // for network, read/write for storage (disambiguating each tab's two
+  // curves on hover), nothing otherwise (temperature moved to the header row
+  // above, see tooltipHeaderTemp).
+  const tooltipRateRow = useMemo(() => {
+    if (metric !== 'network' && metric !== 'storage') return null;
+    const [idA, idB] = metric === 'network' ? ['net-in', 'net-out'] : ['disk-read', 'disk-write'];
+    const labelA = t(metric === 'network' ? 'monitoring.history.download' : 'monitoring.history.read');
+    const labelB = t(metric === 'network' ? 'monitoring.history.upload' : 'monitoring.history.write');
     return (hoverT: number) => {
-      const inSeries = resolved.main.find(s => s.id === 'net-in');
-      const outSeries = resolved.main.find(s => s.id === 'net-out');
-      const inPoint = inSeries ? nearestPoint(inSeries.points, hoverT, windowMs) : null;
-      const outPoint = outSeries ? nearestPoint(outSeries.points, hoverT, windowMs) : null;
-      if (!inPoint && !outPoint) return null;
+      const aSeries = resolved.main.find(s => s.id === idA);
+      const bSeries = resolved.main.find(s => s.id === idB);
+      const aPoint = aSeries ? nearestPoint(aSeries.points, hoverT, windowMs) : null;
+      const bPoint = bSeries ? nearestPoint(bSeries.points, hoverT, windowMs) : null;
+      if (!aPoint && !bPoint) return null;
       return (
         <div className={styles.tooltipTopRow}>
-          <span>{t('monitoring.history.download')} {formatRate(inPoint?.avg ?? 0, numberFormat)}</span>
-          <span>{t('monitoring.history.upload')} {formatRate(outPoint?.avg ?? 0, numberFormat)}</span>
+          <span>{labelA} {formatRate(aPoint?.avg ?? 0, numberFormat)}</span>
+          <span>{labelB} {formatRate(bPoint?.avg ?? 0, numberFormat)}</span>
         </div>
       );
     };
   }, [metric, resolved.main, windowMs, numberFormat, t]);
 
   const tooltipExtra = (hoverT: number) => {
-    const topRow = tooltipNetworkRow?.(hoverT) ?? null;
+    const topRow = tooltipRateRow?.(hoverT) ?? null;
     const apps = appsWindow.supported && appsWindow.ready ? topAppsAtHover(appsWindow.apps, hoverT, TOOLTIP_APPS_LIMIT) : [];
     if (!topRow && apps.length === 0) return null;
     return (
@@ -263,19 +271,28 @@ export function MetricHistorySection({
     );
   };
 
-  if (!history.supported) return null;
-  if ((metric === 'gpu') && !resolved.available && !history.loading) return null;
-
+  const showUnsupported = !history.supported;
+  const showGpuUnavailable = metric === 'gpu' && !resolved.available && !history.loading;
   const showLoadingSkeleton = history.loading && chartSeries.every(s => s.points.length === 0) && history.silhouette.length === 0;
 
   return (
     <div className={styles.root}>
-      {history.error ? (
-        <EmptyState
-          compact
-          title={t('monitoring.history.error')}
-          action={<Button size="sm" onClick={history.retry}>{t('monitoring.history.retry')}</Button>}
-        />
+      {showUnsupported ? (
+        <div className={styles.messageBox} style={{ height: CHART_HEIGHT }}>
+          <EmptyState compact title={t('monitoring.history.unsupported')} />
+        </div>
+      ) : history.error ? (
+        <div className={styles.messageBox} style={{ height: CHART_HEIGHT }}>
+          <EmptyState
+            compact
+            title={t('monitoring.history.error')}
+            action={<Button size="sm" onClick={history.retry}>{t('monitoring.history.retry')}</Button>}
+          />
+        </div>
+      ) : showGpuUnavailable ? (
+        <div className={styles.messageBox} style={{ height: CHART_HEIGHT }}>
+          <EmptyState compact title={t('monitoring.history.gpuUnavailable')} />
+        </div>
       ) : showLoadingSkeleton ? (
         <div className={styles.skeleton} style={{ height: CHART_HEIGHT }} />
       ) : (

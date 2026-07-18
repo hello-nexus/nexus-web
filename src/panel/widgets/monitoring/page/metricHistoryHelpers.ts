@@ -7,12 +7,13 @@ import type { TimeSeriesSeries } from '../../../../components/common/TimeSeriesC
 import { MIN_BOX_WINDOW_MS } from '../../../../components/common/TimelineBrush/timelineBrushUtils';
 import type { MetricHistorySeries } from '../../../../api/monitoringHistory';
 
-export type HistoryMetric = 'cpu' | 'memory' | 'network' | 'gpu';
+export type HistoryMetric = 'cpu' | 'memory' | 'storage' | 'network' | 'gpu';
 
 export function seriesQueryFor(metric: HistoryMetric): string {
   switch (metric) {
     case 'cpu': return 'cpu,cpu-temp,fan';
     case 'memory': return 'memory,mem-temp';
+    case 'storage': return 'disk-read,disk-write';
     case 'network': return 'net-in,net-out';
     case 'gpu': return 'gpu,gpu-temp,fan';
   }
@@ -23,12 +24,16 @@ export function seriesQueryFor(metric: HistoryMetric): string {
  * /monitoring/history/apps). The GPU case requests the bare `gpu` kind
  * rather than a specific `gpu:<adapterLuid>` id (item 51) - the web has no
  * reliable adapter-scoped id to construct here, and the service aggregates
- * per-process GPU usage across every adapter under the bare kind.
+ * per-process GPU usage across every adapter under the bare kind. Storage
+ * has no per-app breakdown on the service (only cpu/memory/net/gpu are
+ * sampled per-process), so it returns '' - MonitoringPage gates the apps
+ * window fetch off entirely on an empty param, the same as an unresolved GPU.
  */
 export function appsSeriesParamFor(metric: HistoryMetric): string {
   switch (metric) {
     case 'cpu': return 'cpu';
     case 'memory': return 'memory';
+    case 'storage': return '';
     case 'network': return 'net';
     case 'gpu': return 'gpu';
   }
@@ -326,6 +331,23 @@ export function sumSilhouette(seriesList: readonly MetricHistorySeries[]): TimeS
     }
   }
   return [...byT.entries()].sort((a, b) => a[0] - b[0]).map(([t, v]) => ({ t, avg: v.avg, max: v.max }));
+}
+
+/**
+ * The Storage tab-chip's live value: disk-read + disk-write summed at the
+ * newest timestamp either series has in `series`. Disk has no push-driven
+ * live feed (unlike cpu/gpu/memory's sensor topics or network's per-process
+ * feed - see monitoringStore.ts), so this reads the same history tail the
+ * chart itself renders; it's only current while the Storage tab's own fetch
+ * is the one populating `series` (MonitoringPage's single shared
+ * useMetricHistory instance tracks one metric at a time).
+ */
+export function currentDiskRateBytesPerSec(series: readonly MetricHistorySeries[]): number {
+  const read = series.find(s => s.id === 'disk-read');
+  const write = series.find(s => s.id === 'disk-write');
+  const readVal = read?.points[read.points.length - 1]?.avg ?? 0;
+  const writeVal = write?.points[write.points.length - 1]?.avg ?? 0;
+  return readVal + writeVal;
 }
 
 /**

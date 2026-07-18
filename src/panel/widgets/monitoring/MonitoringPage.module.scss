@@ -119,21 +119,17 @@
 
 // ── Detailed sensor report (hwinfo64-style) ──
 //
-// Plain in-flow sections. Click anywhere on the header to expand or collapse
-// its body. No sticky positioning -- headers scroll with content along with
-// the rest of the page. Fills the parent .pageBody, so the report shares the
-// app-wide page width and left edge instead of a narrower centered column.
+// Each family (CPU, GPU, memory, per-drive, ...) renders as its own full-width
+// boxed CollapsibleSection (see parts.tsx / DetailSection). Click anywhere on
+// the header to expand or collapse its body; no sticky positioning -- headers
+// scroll with content along with the rest of the page. Fills the parent
+// .pageBody, so the boxes span the app-wide page width.
 
 .detailedRoot {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  // Pinned to half the page's content cap, left-aligned (the sensor lists don't
-  // need the full span). `width` rather than `max-width` so the sections fill
-  // the full half instead of shrinking to content; clamps on narrow viewports.
-  width: calc(var(--page-max) / 2);
-  max-width: 100%;
-  margin-right: auto;
+  width: 100%;
 }
 
 .detailSection {
@@ -151,11 +147,14 @@
   min-width: 0;
 }
 
+// Horizontal padding stays at zero: the parent box (CollapsibleSection's
+// `boxed` variant) supplies the single left/right inset shared with the
+// header, so a row's label lines up with the family title above it.
 .detailBody {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  padding: 0.5rem 0.75rem 0.85rem;
+  padding: 0.5rem 0 0.85rem;
 }
 
 // Nested CollapsibleSection (compact) for a sensor-type group; the shared

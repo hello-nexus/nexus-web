@@ -205,11 +205,11 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
   }, []);
 
   // TimelineBrush can unmount without ever emitting its own 'end' event:
-  // MetricHistorySection swaps to its <EmptyState> branch on `error`, and
-  // renders nothing at all once `supported` goes false (no retry
-  // affordance exists for that case). This hook instance persists across
-  // both (and across a metric switch, since seriesQuery alone doesn't reset
-  // the viewport) - left alone, lastPhaseRef and `dragging` would stay
+  // MetricHistorySection swaps to its <EmptyState> message box on `error`
+  // and once `supported` goes false (no retry affordance exists for the
+  // latter case). This hook instance persists across both (and across a
+  // metric switch, since seriesQuery alone doesn't reset the viewport) -
+  // left alone, lastPhaseRef and `dragging` would stay
   // stuck on 'drag' indefinitely: permanently gating off the fine viewport
   // fetch and the redecimate timer below, and freezing
   // MetricHistorySection's drag-stable Y-axis ref, even once a later fetch

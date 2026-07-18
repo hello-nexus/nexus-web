@@ -109,6 +109,7 @@ const SUBTABS: { view: string; sub: string; viewLabelKey: string; labelKey: stri
   { view: 'monitoring', sub: 'cpu',      viewLabelKey: 'nav.monitoring', labelKey: 'monitoring.tab.cpu',      keywords: ['cpu', 'processor', 'cores', 'usage'] },
   { view: 'monitoring', sub: 'gpu',      viewLabelKey: 'nav.monitoring', labelKey: 'monitoring.tab.gpu',      keywords: ['gpu', 'graphics', 'vram', 'usage'] },
   { view: 'monitoring', sub: 'memory',   viewLabelKey: 'nav.monitoring', labelKey: 'monitoring.tab.memory',   keywords: ['ram', 'memory', 'usage'] },
+  { view: 'monitoring', sub: 'storage',  viewLabelKey: 'nav.monitoring', labelKey: 'monitoring.tab.storage',  keywords: ['storage', 'disk', 'drive', 'read', 'write', 'i/o'] },
   { view: 'monitoring', sub: 'network',  viewLabelKey: 'nav.monitoring', labelKey: 'monitoring.tab.network',  keywords: ['network', 'ethernet', 'wifi', 'bandwidth', 'speed'] },
   { view: 'monitoring', sub: 'detailed', viewLabelKey: 'nav.monitoring', labelKey: 'monitoring.tab.detailed', keywords: ['sensors', 'detailed', 'all sensors', 'list'] },
   { view: 'screentime', sub: 'day',      viewLabelKey: 'screentime.title', labelKey: 'screentime.tab.day',    keywords: ['today', 'daily', 'screen time'] },

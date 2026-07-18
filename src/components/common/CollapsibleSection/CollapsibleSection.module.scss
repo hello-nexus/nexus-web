@@ -4,6 +4,24 @@
   gap: 0.5rem;
 }
 
+// Boxed variant: the standard app card chrome (surface fill, transparent
+// border, radius) around the whole section. The header's own horizontal
+// padding is zeroed so its title lines up with the body content on the one
+// inset the box padding provides, instead of stacking two paddings. `> .header`
+// (direct child, not a bare descendant) so a nested CollapsibleSection in the
+// body - e.g. a compact sensor-type group - keeps its own header padding.
+.section[data-boxed='true'] {
+  background: var(--surface);
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius);
+  padding: var(--space-md) var(--space-lg);
+
+  > .header {
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+
 // Hover bar over the whole row; no borders. Title (with chevron) on the left,
 // values/buttons on the right.
 .header {

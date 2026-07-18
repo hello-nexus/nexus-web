@@ -26,9 +26,14 @@ interface SparklineProps {
   showFill?: boolean;
   /** Alpha for the flat area fill. */
   fillOpacity?: number;
+  /** Silhouette mode: fill only, no stroke line. Bumps fillOpacity to the
+   *  seek-bar silhouette weight unless the caller overrides it explicitly. */
+  fillOnly?: boolean;
   className?: string;
   style?: CSSProperties;
 }
+
+const FILL_ONLY_OPACITY = 0.25;
 
 /**
  * Tiny SVG sparkline. No external charting lib - pure path math, ~1KB.
@@ -46,10 +51,12 @@ export function Sparkline({
   domain,
   padding = 0,
   showFill = true,
-  fillOpacity = 0.4,
+  fillOpacity,
+  fillOnly = false,
   className,
   style,
 }: SparklineProps) {
+  const resolvedFillOpacity = fillOpacity ?? (fillOnly ? FILL_ONLY_OPACITY : 0.4);
   const samples = useMemo(() => {
     if (!sampleCount || sampleCount <= 0) return values;
     const tail = values.slice(-sampleCount);
@@ -107,16 +114,18 @@ export function Sparkline({
       style={style}
       aria-hidden="true"
     >
-      {showFill && <path d={fillPath} fill={color} fillOpacity={fillOpacity} />}
-      <path
-        d={linePath}
-        fill="none"
-        stroke={strokeColor ?? color}
-        strokeWidth={strokeWidth}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        vectorEffect="non-scaling-stroke"
-      />
+      {showFill && <path d={fillPath} fill={color} fillOpacity={resolvedFillOpacity} />}
+      {!fillOnly && (
+        <path
+          d={linePath}
+          fill="none"
+          stroke={strokeColor ?? color}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
+      )}
     </svg>
   );
 }

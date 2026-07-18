@@ -40,7 +40,7 @@ function dayPhase(t: number): number {
 }
 
 function roundForKind(kind: MetricHistoryKind, v: number): number {
-  return kind === 'net' || kind === 'fan' ? Math.round(v) : Math.round(v * 10) / 10;
+  return kind === 'net' || kind === 'disk' || kind === 'fan' ? Math.round(v) : Math.round(v * 10) / 10;
 }
 
 interface SeriesDef {
@@ -75,6 +75,16 @@ const SERIES_DEFS: readonly SeriesDef[] = [
     id: 'net-out', kind: 'net', name: 'Upload',
     avgAt: t => Math.max(0, 40_000 + sessionBump(t, 2_100_000, 2.2) * 800_000 + wobble(t, 4) * 80_000),
     spreadAt: t => 5_000 + Math.abs(wobble(t, 14)) * 60_000,
+  },
+  {
+    id: 'disk-read', kind: 'disk', name: 'Disk Read',
+    avgAt: t => Math.max(0, 500_000 + sessionBump(t, 2_700_000, 1.6) * 40_000_000 + wobble(t, 23) * 2_000_000),
+    spreadAt: t => 100_000 + Math.abs(wobble(t, 33)) * 3_000_000,
+  },
+  {
+    id: 'disk-write', kind: 'disk', name: 'Disk Write',
+    avgAt: t => Math.max(0, 200_000 + sessionBump(t, 3_200_000, 0.3) * 15_000_000 + wobble(t, 24) * 800_000),
+    spreadAt: t => 50_000 + Math.abs(wobble(t, 34)) * 1_500_000,
   },
   {
     id: 'gpu:0', kind: 'gpu', name: 'NVIDIA GeForce RTX 3070', adapterLuid: '0:12345',

@@ -6,12 +6,14 @@ import { formatSensorValue } from '../sensorValueFormat';
 import { groupByType } from './shared';
 import styles from '../MonitoringPage.module.scss';
 
-// Plain in-flow section. Click anywhere on the header to toggle the body.
-// No sticky positioning, no scroll spying -- the headers scroll with content.
-// Two nesting levels of the same collapsible primitive: the family header
-// (this section) and, per sensor-type group inside it, a compact nested one.
-// Both read/write the same flat `isCollapsed`/`onToggle` id set - a group's
-// id is the family id plus its sensor type (`${id}/${group.type}`).
+// Full-width boxed section (see CollapsibleSection's `boxed` prop). Click
+// anywhere on the header to toggle the body; no sticky positioning, no scroll
+// spying -- the headers scroll with content. Two nesting levels of the same
+// collapsible primitive: the family header (this section, boxed) and, per
+// sensor-type group inside it, a compact nested one (unboxed, indented within
+// the family's own box). Both read/write the same flat `isCollapsed`/
+// `onToggle` id set - a group's id is the family id plus its sensor type
+// (`${id}/${group.type}`).
 export function DetailSection({
   id, title, subtitle, sensors, isCollapsed, onToggle, groupTypeLabel,
 }: {
@@ -27,6 +29,7 @@ export function DetailSection({
   const groups = useMemo(() => groupByType(sensors), [sensors]);
   return (
     <CollapsibleSection
+      boxed
       className={styles.detailSection}
       sectionId={id}
       title={title}

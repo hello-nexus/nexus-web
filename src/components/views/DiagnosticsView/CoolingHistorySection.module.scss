@@ -66,6 +66,15 @@
   animation: pulse 1.6s ease-in-out infinite;
 }
 
+// Fixed-height slot for a centered EmptyState (error/unsupported/no-data)
+// so swapping between these states and the chart never changes the
+// section's own total height.
+.messageBox {
+  display: flex;
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
 @keyframes pulse {
   0%, 100% { opacity: 0.6; }
   50% { opacity: 0.35; }
