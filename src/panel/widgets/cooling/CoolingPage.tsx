@@ -22,10 +22,10 @@ import {
 } from '../../../api/qseries';
 import {
   fetchFanChannels, fetchTemperatureSources, fetchCurves,
-  setFanSpeed, releaseFanAuto, saveCurves, renameFan, setFanLock,
+  setFanSpeed, releaseFanAuto, saveCurves, renameFan, setFanLock, setFanRole,
   startCalibration, fetchCalibrationResults, fetchProfiles, applyProfile,
   resetPresetCurve, isFanDisconnected,
-  type FanChannel, type TemperatureSource,
+  type FanChannel, type FanRole, type TemperatureSource,
   type FanCalibration,
 } from '../../../api/cooling';
 import { useCoolingRealtime } from '../../../hooks/useCooling';
@@ -442,6 +442,13 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   const handleToggleLock = useCallback(async (id: string, locked: boolean) => {
     setChannels(prev => prev.map(ch => ch.id === id ? { ...ch, locked } : ch));
     await setFanLock(id, locked);
+    const fans = await fetchFanChannels();
+    if (fans?.channels) setChannels(fans.channels);
+  }, []);
+
+  const handleSetRole = useCallback(async (id: string, role: FanRole) => {
+    setChannels(prev => prev.map(ch => ch.id === id ? { ...ch, role } : ch));
+    await setFanRole(id, role);
     const fans = await fetchFanChannels();
     if (fans?.channels) setChannels(fans.channels);
   }, []);
@@ -865,6 +872,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                   onRename={handleRename}
                   onSpeedChange={handleSpeedChange}
                   onToggleLock={handleToggleLock}
+                  onSetRole={handleSetRole}
                   drag={drag}
                 />
               );
@@ -962,6 +970,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                           onRename={handleRename}
                           onSpeedChange={handleSpeedChange}
                           onToggleLock={handleToggleLock}
+                          onSetRole={handleSetRole}
                         />
                       ))}</div>
                     </CollapsibleSection>

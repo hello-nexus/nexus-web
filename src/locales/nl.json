@@ -303,6 +303,8 @@
   "cooling.fan.disconnected": "Verbinding verbroken",
   "cooling.fan.fixed": "Vaste snelheid",
   "cooling.fan.fixedHint": "Vaste snelheid - niet regelbaar",
+  "cooling.fanRole.generic": "Algemene ventilator",
+  "cooling.fanRole.picker": "Apparaat van ventilator instellen",
   "cooling.label.cpu": "CPU",
   "cooling.label.fan": "Ventilatoren",
   "cooling.label.gpu": "GPU",

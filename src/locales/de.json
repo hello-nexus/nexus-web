@@ -308,6 +308,8 @@
   "cooling.fan.disconnected": "Getrennt",
   "cooling.fan.fixed": "Feste Drehzahl",
   "cooling.fan.fixedHint": "Feste Drehzahl - nicht regelbar",
+  "cooling.fanRole.generic": "Normaler Lüfter",
+  "cooling.fanRole.picker": "Lüftergerät markieren",
   "cooling.label.cpu": "CPU",
   "cooling.label.fan": "Lüfter",
   "cooling.label.gpu": "GPU",

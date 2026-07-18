@@ -308,6 +308,8 @@
   "cooling.fan.disconnected": "Отключено",
   "cooling.fan.fixed": "Фиксированная скорость",
   "cooling.fan.fixedHint": "Фиксированная скорость - не регулируется",
+  "cooling.fanRole.generic": "Обычный вентилятор",
+  "cooling.fanRole.picker": "Указать устройство вентилятора",
   "cooling.label.cpu": "ЦП",
   "cooling.label.fan": "Вент.",
   "cooling.label.gpu": "ГП",

@@ -1,12 +1,13 @@
 import { memo, useEffect, useRef, useState } from 'react';
-import { CircleSlash, Fan, Lock, Plus } from 'lucide-react';
-import { type FanChannel, isFanDisconnected } from '../../../../api/cooling';
+import { CircleSlash, Cpu, Fan, Gpu, Lock, Plus } from 'lucide-react';
+import { type FanChannel, type FanRole, isFanDisconnected } from '../../../../api/cooling';
 import { useUnitPrefs } from '../../../../hooks/useUiSettings';
 import { useTranslation } from '../../../../lib/i18n';
 import { formatNumber } from '../../../../lib/units';
 import type { CurveDef, FanState } from '../../../../types/cooling';
 import { EditableText } from '../../../../components/common/Editable/EditableText';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
+import { Popover } from '../../../../components/common/Popover/Popover';
 import { Select, type SelectOption } from '../../../../components/common/Select/Select';
 import { type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
 import styles from '../CoolingPage.module.scss';
@@ -40,7 +41,7 @@ export const FanCard = memo(function FanCard({
   hubMode, hubSupportsFirmware,
   hubSupportsBios = true,
   nubRef, cardRef: cardRefProp, onWirePointerDown, onWireHover,
-  onSetMode, onCreateCurve, onRename, onSpeedChange, onToggleLock, drag,
+  onSetMode, onCreateCurve, onRename, onSpeedChange, onToggleLock, onSetRole, drag,
 }: {
   channel: FanChannel;
   state: FanState | undefined;
@@ -77,6 +78,7 @@ export const FanCard = memo(function FanCard({
   onRename: (id: string, name: string) => void;
   onSpeedChange: (id: string, speed: number) => void;
   onToggleLock: (id: string, locked: boolean) => void;
+  onSetRole: (id: string, role: FanRole) => void;
   drag?: SortableRowArgs;
 }) {
   const { t } = useTranslation();
@@ -116,6 +118,8 @@ export const FanCard = memo(function FanCard({
   // bar or mode dropdown - nothing here drives it.
   const isReadOnly = channel.readOnly ?? false;
   const locked = channel.locked ?? false;
+  const role: FanRole = channel.role ?? 'none';
+  const RoleIcon = role === 'cpu' ? Cpu : role === 'gpu' ? Gpu : Fan;
 
   // Local drag intent. null = no unconfirmed user input; the knob follows the
   // live server duty, so a manual level restored server-side (leaving a
@@ -126,6 +130,16 @@ export const FanCard = memo(function FanCard({
   const draggingRef = useRef(false);
   const speedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSpeedRef = useRef<number | null>(null);
+
+  // Device-role picker anchored on the fan icon. Popover positions itself
+  // absolute against this wrapper (see Popover.tsx).
+  const [roleMenuOpen, setRoleMenuOpen] = useState(false);
+  const roleAnchorRef = useRef<HTMLDivElement | null>(null);
+  const roleChoices: Array<{ value: FanRole; label: string; Icon: typeof Fan }> = [
+    { value: 'none', label: t('cooling.fanRole.generic'), Icon: Fan },
+    { value: 'cpu', label: t('cooling.label.cpu'), Icon: Cpu },
+    { value: 'gpu', label: t('cooling.label.gpu'), Icon: Gpu },
+  ];
 
   // Another regime took the fan over (curve / BIOS / firmware): drop the
   // local intent so the next Manual phase starts from the server's duty.
@@ -205,11 +219,16 @@ export const FanCard = memo(function FanCard({
     drag?.ref(el);
   };
 
-  const lockTooltip = locked ? t('cooling.lock.locked') : t('cooling.lock.unlocked');
+  // Current-state label for the dropdown's Lock toggle - Select closes on
+  // click with no persistent checkbox, so the label/icon (not a checked
+  // state) is what conveys whether the fan is locked.
+  const lockOptionLabel = locked ? t('cooling.lock.locked') : t('cooling.lock.unlocked');
+  const rolePickerLabel = t('cooling.fanRole.picker');
 
   // NP50 lists only FW Control (no BIOS hand-off); a Q-series pump lists both;
-  // everything else lists only BIOS. The create-curve action sits below a thin
-  // rule separator, matching the lighting preset and Profile dropdowns.
+  // everything else lists only BIOS. The create-curve action and the Lock
+  // toggle each sit below a thin rule separator, matching the lighting preset
+  // and Profile dropdowns.
   const modeOptions: SelectOption[] = [
     ...(hubSupportsFirmware ? [{ value: 'fw', label: t('cooling.card.firmware') }] : []),
     ...(hubSupportsBios ? [{ value: 'bios', label: t('cooling.card.bios') }] : []),
@@ -219,10 +238,13 @@ export const FanCard = memo(function FanCard({
       { value: '__sep__', label: '', divider: true },
       { value: '__create__', label: t('cooling.card.createCurve'), className: styles.fanModeOptionCreate, icon: <Plus size={14} /> },
     ] : []),
+    { value: '__lockSep__', label: '', divider: true },
+    { value: '__lock__', label: lockOptionLabel, icon: <Lock size={14} /> },
   ];
 
   const handleModeChange = (v: string) => {
     if (v === '__create__') { onCreateCurve(); return; }
+    if (v === '__lock__') { onToggleLock(channel.id, !locked); return; }
     onSetMode(v);
   };
 
@@ -237,31 +259,61 @@ export const FanCard = memo(function FanCard({
       onMouseLeave={onWireHover ? () => onWireHover(null) : undefined}
     >
       <div className={styles.fanCardHeader}>
-        {/* Fan icon doubles as the lock toggle: click to exclude this fan
-            from the global preset buttons (still settable from the mode
-            dropdown below). When this fan is bound to the curve currently
-            shown in the graph, the highlight lives on the dropdown value
-            (accentValue) instead of the icon. */}
-        <HoverTooltip body={lockTooltip} side="top">
-          {isReadOnly ? (
-            <span className={styles.fanKindToggle} role="img" aria-label={lockTooltip}>
-              <Fan size={18} className={locked ? `${styles.fanKindIcon} ${styles.fanKindIconDim}` : styles.fanKindIcon} aria-hidden="true" />
-              {locked && <Lock size={14} className={styles.fanLockBadge} aria-hidden="true" />}
-            </span>
-          ) : (
-            <button
-              type="button"
-              data-no-dnd
-              className={`${styles.fanKindToggle} ${styles.fanLockToggle}`}
-              aria-pressed={locked}
-              aria-label={lockTooltip}
-              onClick={() => onToggleLock(channel.id, !locked)}
+        {/* Fan icon opens the device-role picker (Generic fan / CPU / GPU);
+            the icon itself reflects the current role. Locking now lives in
+            the mode dropdown below, but the lock badge/dim visual stays here.
+            When this fan is bound to the curve currently shown in the graph,
+            the highlight lives on the dropdown value (accentValue) instead of
+            the icon. */}
+        <div ref={roleAnchorRef} className={styles.fanRoleAnchor} data-no-dnd={isReadOnly ? undefined : true}>
+          <HoverTooltip body={rolePickerLabel} side="top">
+            {isReadOnly ? (
+              <span className={styles.fanKindToggle} role="img" aria-label={rolePickerLabel}>
+                <RoleIcon size={18} className={locked ? `${styles.fanKindIcon} ${styles.fanKindIconDim}` : styles.fanKindIcon} aria-hidden="true" />
+                {locked && <Lock size={14} className={styles.fanLockBadge} aria-hidden="true" />}
+              </span>
+            ) : (
+              <button
+                type="button"
+                className={`${styles.fanKindToggle} ${styles.fanLockToggle}`}
+                aria-haspopup="menu"
+                aria-expanded={roleMenuOpen}
+                aria-label={rolePickerLabel}
+                onClick={() => setRoleMenuOpen(o => !o)}
+              >
+                <RoleIcon size={18} className={locked ? `${styles.fanKindIcon} ${styles.fanKindIconDim}` : styles.fanKindIcon} aria-hidden="true" />
+                {locked && <Lock size={14} className={styles.fanLockBadge} aria-hidden="true" />}
+              </button>
+            )}
+          </HoverTooltip>
+          {!isReadOnly && (
+            <Popover
+              open={roleMenuOpen}
+              onClose={() => setRoleMenuOpen(false)}
+              anchorRef={roleAnchorRef}
+              placement="bottom-start"
+              role="menu"
+              ariaLabel={rolePickerLabel}
             >
-              <Fan size={18} className={locked ? `${styles.fanKindIcon} ${styles.fanKindIconDim}` : styles.fanKindIcon} aria-hidden="true" />
-              {locked && <Lock size={14} className={styles.fanLockBadge} aria-hidden="true" />}
-            </button>
+              {roleChoices.map(choice => (
+                <button
+                  key={choice.value}
+                  type="button"
+                  role="menuitemradio"
+                  aria-checked={choice.value === role}
+                  className={`${styles.fanRoleOption}${choice.value === role ? ` ${styles.fanRoleOptionActive}` : ''}`}
+                  onClick={() => {
+                    if (choice.value !== role) onSetRole(channel.id, choice.value);
+                    setRoleMenuOpen(false);
+                  }}
+                >
+                  <choice.Icon size={14} aria-hidden="true" />
+                  {choice.label}
+                </button>
+              ))}
+            </Popover>
           )}
-        </HoverTooltip>
+        </div>
         {/* display:contents span carries data-no-dnd onto a real DOM node
             (EditableText doesn't forward unknown props) so a press on the name
             edits it instead of starting a card drag; no layout change. */}

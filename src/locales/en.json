@@ -303,6 +303,8 @@
   "cooling.fan.disconnected": "Disconnected",
   "cooling.fan.fixed": "Fixed speed",
   "cooling.fan.fixedHint": "Fixed speed - not controllable",
+  "cooling.fanRole.generic": "Generic fan",
+  "cooling.fanRole.picker": "Mark fan device",
   "cooling.label.cpu": "CPU",
   "cooling.label.fan": "Fans",
   "cooling.label.gpu": "GPU",

@@ -308,6 +308,8 @@
   "cooling.fan.disconnected": "연결 안됨",
   "cooling.fan.fixed": "고정 속도",
   "cooling.fan.fixedHint": "고정 속도 - 제어할 수 없음",
+  "cooling.fanRole.generic": "일반 팬",
+  "cooling.fanRole.picker": "팬 장치 지정",
   "cooling.label.cpu": "CPU",
   "cooling.label.fan": "팬",
   "cooling.label.gpu": "GPU",

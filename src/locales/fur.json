@@ -303,6 +303,8 @@
   "cooling.fan.disconnected": "Disconetût",
   "cooling.fan.fixed": "Velocitât fisse",
   "cooling.fan.fixedHint": "Velocitât fisse - no controlabile",
+  "cooling.fanRole.generic": "Ventiladôr gjeneric",
+  "cooling.fanRole.picker": "Segne il dispositîf dal ventiladôr",
   "cooling.label.cpu": "CPU",
   "cooling.label.fan": "Ventilatôrs",
   "cooling.label.gpu": "GPU",
