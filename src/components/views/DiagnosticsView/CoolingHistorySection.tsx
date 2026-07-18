@@ -90,8 +90,7 @@ export function CoolingHistorySection({ history, episodes }: CoolingHistorySecti
   const edgeLabelFormat = (edgeT: number) => new Date(edgeT).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', second: '2-digit' });
   const ariaValueText = (from: number, to: number) => `${edgeLabelFormat(from)} - ${edgeLabelFormat(to)}`;
 
-  if (!history.supported) return null;
-
+  const showUnsupported = !history.supported;
   const showLoadingSkeleton = history.loading && chartSeries.every(s => s.points.length === 0) && history.silhouette.length === 0;
   const showEmpty = !history.loading && !history.error && chartSeries.length === 0 && rpmPoints.length === 0;
 
@@ -122,16 +121,24 @@ export function CoolingHistorySection({ history, episodes }: CoolingHistorySecti
         </div>
       </div>
 
-      {history.error ? (
-        <EmptyState
-          compact
-          title={t('monitoring.history.error')}
-          action={<Button size="sm" onClick={history.retry}>{t('monitoring.history.retry')}</Button>}
-        />
+      {showUnsupported ? (
+        <div className={styles.messageBox} style={{ height: CHART_HEIGHT }}>
+          <EmptyState compact title={t('monitoring.history.unsupported')} />
+        </div>
+      ) : history.error ? (
+        <div className={styles.messageBox} style={{ height: CHART_HEIGHT }}>
+          <EmptyState
+            compact
+            title={t('monitoring.history.error')}
+            action={<Button size="sm" onClick={history.retry}>{t('monitoring.history.retry')}</Button>}
+          />
+        </div>
       ) : showLoadingSkeleton ? (
         <div className={styles.skeleton} style={{ height: CHART_HEIGHT }} />
       ) : showEmpty ? (
-        <EmptyState compact icon={<Thermometer size={22} />} title={t('diagnostics.temperature.empty')} />
+        <div className={styles.messageBox} style={{ height: CHART_HEIGHT }}>
+          <EmptyState compact icon={<Thermometer size={22} />} title={t('diagnostics.temperature.empty')} />
+        </div>
       ) : (
         <>
           <TimeSeriesChart
@@ -146,6 +153,8 @@ export function CoolingHistorySection({ history, episodes }: CoolingHistorySecti
             tooltipHeaderExtra={tooltipHeaderRpm ?? undefined}
             onRangeSelect={history.onChartDragSelect}
             stepSeconds={history.stepSeconds}
+            yAxisSide="right"
+            singleValueTooltip
             ribbons={ribbons}
           />
           <div className={styles.controls}>

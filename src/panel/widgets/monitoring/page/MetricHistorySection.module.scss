@@ -17,6 +17,15 @@
   animation: pulse 1.6s ease-in-out infinite;
 }
 
+// Fixed-height slot for a centered EmptyState (error/unsupported/gpu
+// unavailable) so swapping between these states and the chart never
+// changes the section's own total height.
+.messageBox {
+  display: flex;
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
 @keyframes pulse {
   0%, 100% { opacity: 0.6; }
   50% { opacity: 0.35; }
@@ -63,10 +72,13 @@
   gap: 0.3rem;
 }
 
+// Download/upload (or read/write) each get their own line - stacked, not
+// side by side, so the two values read unambiguously on hover.
 .tooltipTopRow {
   display: flex;
-  align-items: center;
-  gap: 0.6rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
   font-family: var(--font-mono);
   font-size: var(--type-small);
   font-weight: var(--weight-small);

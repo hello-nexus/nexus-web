@@ -86,6 +86,12 @@ export interface TimeSeriesChartProps {
    *  the timestamp header and tooltipExtra - for a caller building an
    *  entirely custom tooltip body. */
   hideSeriesRows?: boolean;
+  /** Renders a single value per series tooltip row (the point's own avg,
+   *  with no avg/max labels) instead of the default avg+max pair - for a
+   *  caller whose series already represent one instantaneous reading
+   *  (e.g. a temperature sample) rather than a bucket with a distinct
+   *  average and peak. */
+  singleValueTooltip?: boolean;
   /** Enables drag-to-select on the plot: a horizontal rubber-band drag
    *  reports its [from, to] on release (ascending order), Escape cancels
    *  mid-drag. Omit to leave the chart click/drag-inert (its default). */
@@ -135,7 +141,7 @@ const CHART_PAD_RIGHT_AXIS = { left: 16, right: 56, top: 12, bottom: 28 };
 
 // Ribbon band thickness (px) when a ChartRibbonSpec omits its own height,
 // and the icon size a ribbon's `icon` node must already be sized to.
-const RIBBON_DEFAULT_HEIGHT = 18;
+const RIBBON_DEFAULT_HEIGHT = 14;
 export const RIBBON_ICON_SIZE = 12;
 // Ribbon opacity floor - a segment at the window's own observed min still
 // reads as a faint but visible fill rather than fully disappearing; a
@@ -157,7 +163,7 @@ export function TimeSeriesChart({
   series, height = 260, valueFormat, xTickFormat, xTickCount = 5, yTickCount = 5,
   avgLabel, maxLabel, bands, showLegend = true, domain, tooltipExtra, yDomain,
   fillGradient = false, hideSeriesRows = false, onRangeSelect, stepSeconds, tooltipHeaderExtra,
-  yAxisSide = 'left', ribbons, selectedT, onPointClick,
+  yAxisSide = 'left', ribbons, selectedT, onPointClick, singleValueTooltip = false,
 }: TimeSeriesChartProps) {
   const { t, language } = useTranslation();
   const pad = yAxisSide === 'right' ? CHART_PAD_RIGHT_AXIS : CHART_PAD;
@@ -473,6 +479,7 @@ export function TimeSeriesChart({
           };
           return (
             <g key={ri} role={ribbon.ariaLabel ? 'img' : undefined} aria-label={ribbon.ariaLabel}>
+              <g clipPath={`url(#${clipId})`}>
               {segments.map((segment, si) => {
                 const isFinalSegment = si === segments.length - 1;
                 return segment.map((p, i) => {
@@ -520,6 +527,7 @@ export function TimeSeriesChart({
                   );
                 });
               })}
+              </g>
               {ribbon.icon && (
                 <g transform={`translate(${iconLaneX - RIBBON_ICON_SIZE / 2}, ${midY - RIBBON_ICON_SIZE / 2})`}>
                   {ribbon.icon}
@@ -567,7 +575,7 @@ export function TimeSeriesChart({
           // own right edge), unlike the transient dashed hover cursor below.
           <line
             x1={xFor(selectedT)} y1={pad.top} x2={xFor(selectedT)} y2={pad.top + chartH}
-            stroke="var(--accent)" strokeWidth="1.5" opacity="0.9"
+            stroke="var(--text)" strokeWidth="1.5" opacity="1"
           />
         )}
 
@@ -586,8 +594,14 @@ export function TimeSeriesChart({
             <div key={row.id} className={styles.tooltipRow}>
               <span className={styles.tooltipDot} style={{ background: row.color }} />
               <span className={styles.tooltipName}>{row.name}</span>
-              <span className={styles.tooltipVal}>{avgLabel} {valueFormat(row.point.avg)}</span>
-              <span className={styles.tooltipVal}>{maxLabel} {valueFormat(row.point.max)}</span>
+              {singleValueTooltip ? (
+                <span className={styles.tooltipVal}>{valueFormat(row.point.avg)}</span>
+              ) : (
+                <>
+                  <span className={styles.tooltipVal}>{avgLabel} {valueFormat(row.point.avg)}</span>
+                  <span className={styles.tooltipVal}>{maxLabel} {valueFormat(row.point.max)}</span>
+                </>
+              )}
             </div>
           ))}
           {tooltipExtra?.(tooltip.t)}
