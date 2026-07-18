@@ -51,28 +51,22 @@
   text-transform: uppercase;
 }
 
-// Section header (APPS → dashboard, DEVICES → all-devices landing). Reuses the
-// .item row chrome (icon + label, font, alignment, hover/active highlight) so it
-// reads like every other sidebar entry; only layers a divider so it still parses
-// as a section heading. The divider rides currentColor, so line + label + icon
-// are one colour and track hover/active together.
-.sectionHeader {
-  // .item supplies layout / font / colour / hover / active. A small dot in the
-  // left gutter (before the icon) marks this row as a section header - no
-  // underline, no layout shift; rides currentColor like the rest of the row.
-  &::before {
-    content: '';
-    position: absolute;
-    left: 9px;
-    top: 50%;
-    width: 5px;
-    height: 5px;
-    margin-top: -2.5px;
-    border-radius: 50%;
-    background: currentColor;
-    opacity: 0.55;
-    pointer-events: none;
-  }
+// Section landings (APPS → dashboard, DEVICES → all-devices) keep the normal
+// full-width .item button with its hover/active highlight; a small faint pill
+// around the icon + label (like the monitoring tab value chips) marks them as
+// headings without replacing that highlight.
+.headerChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  // The negative margin must always cancel the horizontal padding so the icon
+  // holds the rail icon line (and the icon-only pill stays rail-centered when
+  // collapsed); one variable keeps the two locked together.
+  --header-chip-pad: 11px;
+  padding: 5px var(--header-chip-pad);
+  margin-left: calc(-1 * var(--header-chip-pad));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 5%, transparent);
 }
 
 .item {

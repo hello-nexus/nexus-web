@@ -7,29 +7,24 @@
   flex-direction: column;
   gap: 2px;
   // Visual separation from the APPS list above.
-  margin-top: 1.25rem;
+  margin-top: 1.85rem;
 }
 
-// Section header (DEVICES → all-devices landing). Reuses the device-row .item
-// chrome (icon + label, font, alignment, hover/active) and only layers a divider
-// so it still reads as a heading - matching the APPS header. Divider rides
-// currentColor so line + label + icon are one colour.
-.headerBtn {
-  // Small dot in the left gutter (before the icon) marks this as a section
-  // header - matching the APPS header; no underline, no layout shift.
-  &::before {
-    content: '';
-    position: absolute;
-    left: 9px;
-    top: 50%;
-    width: 5px;
-    height: 5px;
-    margin-top: -2.5px;
-    border-radius: 50%;
-    background: currentColor;
-    opacity: 0.55;
-    pointer-events: none;
-  }
+// Section header (DEVICES → all-devices landing). Keeps the full-width .item
+// button with its hover/active highlight; a small faint pill around the icon +
+// label matches the APPS header. In the collapsed rail the pill wraps the icon.
+.headerChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  // The negative margin must always cancel the horizontal padding so the icon
+  // holds the rail icon line (and the icon-only pill stays rail-centered when
+  // collapsed); one variable keeps the two locked together.
+  --header-chip-pad: 11px;
+  padding: 5px var(--header-chip-pad);
+  margin-left: calc(-1 * var(--header-chip-pad));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 5%, transparent);
 }
 
 // Lucide glyph slot for the header (usb). The device rows use the mask-based

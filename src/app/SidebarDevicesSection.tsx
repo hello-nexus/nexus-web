@@ -64,13 +64,14 @@ export function SidebarDevicesSection({
   }, [unified]);
 
   const label = t('sidebar.section.devices');
-  // Header reuses the device-row .item chrome (font, alignment, hover/active)
-  // and layers .headerBtn's divider - matching the APPS header. Compact shows
-  // the usb glyph only, with a tooltip, like the rows below it.
+  // Header reuses the device-row .item chrome (font, alignment, hover/active) at
+  // full width, with a small faint .headerChip around the icon + label matching
+  // the APPS header. Compact shows the usb glyph only, with a tooltip, like the
+  // rows below it.
   const headerBtn = (
     <button
       type="button"
-      className={classNames(styles.item, styles.headerBtn, {
+      className={classNames(styles.item, {
         [styles.active]: headerActive,
         [styles.itemCompact]: compact,
       })}
@@ -78,8 +79,10 @@ export function SidebarDevicesSection({
       aria-label={label}
       aria-pressed={headerActive}
     >
-      <span className={styles.headerIcon}><Usb size={ICON_SIZE} /></span>
-      {!compact && <span className={styles.label}>{label}</span>}
+      <span className={styles.headerChip}>
+        <span className={styles.headerIcon}><Usb size={ICON_SIZE} /></span>
+        {!compact && <span className={styles.label}>{label}</span>}
+      </span>
     </button>
   );
   return (

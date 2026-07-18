@@ -337,9 +337,10 @@ export function Sidebar({
   };
 
   // The section header (APPS / DEVICES landing) reuses the nav row chrome -
-  // icon + label, hover/active highlight - and only layers a divider via
-  // .sectionHeader so it still reads as a heading. Compact collapses to the
-  // icon with a tooltip, exactly like the nav rows.
+  // full-width button with the same hover/active highlight as every other row.
+  // A small faint .headerChip around the icon + label marks it as a heading
+  // without replacing that highlight. Compact collapses to the icon with a
+  // tooltip, exactly like the nav rows.
   const renderSectionHeader = () => {
     if (!sectionLabel) return null;
     if (!onSectionLabelClick) {
@@ -348,7 +349,7 @@ export function Sidebar({
     const btn = (
       <button
         type="button"
-        className={classNames(styles.item, styles.sectionHeader, {
+        className={classNames(styles.item, {
           [styles.active]: sectionLabelActive,
           [styles.itemCompact]: compact,
         })}
@@ -356,8 +357,10 @@ export function Sidebar({
         aria-label={sectionLabel}
         aria-pressed={sectionLabelActive}
       >
-        <span className={styles.icon}>{sectionIcon}</span>
-        {!compact && <span className={styles.label}>{sectionLabel}</span>}
+        <span className={styles.headerChip}>
+          <span className={styles.icon}>{sectionIcon}</span>
+          {!compact && <span className={styles.label}>{sectionLabel}</span>}
+        </span>
       </button>
     );
     return compact ? <HoverTooltip body={sectionLabel} side="right">{btn}</HoverTooltip> : btn;

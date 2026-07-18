@@ -26,11 +26,13 @@
   // profile). Consumed by .topBar in TopBar.module.scss.
   --topbar-height: 52px;
   // Collapsed sidebar rail width. The expanded sidebar is 240px (.sidebarColumn).
-  --rail-width: 86px;
-  // Horizontal padding on each nav item. Sized so the icon's center lands on the
-  // collapsed rail's centerline: nav side-pad (8px) + this + icon-half (10px) =
-  // --rail-width / 2. Identical expanded so icons never shift between states.
-  --rail-item-pad: 25px;
+  --rail-width: 70px;
+  // Horizontal padding on each nav item, derived so the icon's center lands on
+  // the rail centerline: nav side-pad (8px) + this + icon-half (10px) =
+  // --rail-width / 2. Identical expanded + compact so icons never shift between
+  // states; shrinking --rail-width slides the icon/label inset left in lockstep
+  // (and the brand mark below, which shares the same --rail-width / 2 anchor).
+  --rail-item-pad: calc(var(--rail-width) / 2 - 18px);
   // macOS shell only: horizontal inset that pushes the top bar's collapse toggle
   // clear of the native traffic lights (centered in the rail) with extra gap.
   --mac-traffic-light-inset: 96px;
