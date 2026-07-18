@@ -229,13 +229,18 @@ export function viewportReducer(state: ViewportState, action: ViewportAction): V
       // `from`) - clamping `from` alone while leaving `to` untouched would
       // then invert the domain. clampSpanShift moves the whole box up to
       // the floor, preserving its width. `ceiling` guards the (pathological)
-      // case where the strip's own `stripTo` already sits below floor, which
-      // would otherwise hand clampSpanShift a ceiling under its floor.
-      const ceiling = Math.max(state.stripTo, floor);
+      // case where the strip's own `stripTo` already sits at or below floor:
+      // floored at MIN_BOX_WINDOW_MS above `floor` (not just `floor` itself)
+      // so clampSpanShift's own final Math.min/max never collapses the box
+      // to a zero-width point - and `stripTo` is carried forward to match, or
+      // the strip itself would end up inverted (stripFrom > stripTo) even
+      // though the box came out fine.
+      const ceiling = Math.max(state.stripTo, floor + MIN_BOX_WINDOW_MS);
       const [boxFrom, boxTo] = clampSpanShift(state.from, state.to, floor, ceiling);
       return {
         ...state,
         stripFrom: floor,
+        stripTo: ceiling,
         from: boxFrom,
         to: boxTo,
         rangeKey: rangeKeyForWindow(ceiling - floor),

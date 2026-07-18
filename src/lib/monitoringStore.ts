@@ -1,4 +1,4 @@
-import type { MonitoringFrame } from '../hooks/useMonitoringFrame';
+import type { MonitoringFrame } from '../types/monitoringFrame';
 import type { SeriesEntry } from '../hooks/useProcessMonitor';
 import type { NetworkEntry } from '../hooks/useNetworkMonitor';
 import { DEV_TOOLS } from './devTools';

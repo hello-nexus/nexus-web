@@ -9,6 +9,7 @@ import {
   resizeLeftEdge,
   resizeRightEdge,
   snapToEnd,
+  zoomWindow,
 } from './timelineBrushUtils';
 
 describe('msToPx / pxToMs', () => {
@@ -140,6 +141,55 @@ describe('snapToEnd', () => {
 
   it('leaves position untouched outside tolerance', () => {
     expect(snapToEnd(380, 400, 6)).toBe(380);
+  });
+});
+
+describe('zoomWindow', () => {
+  const WIDE_DOMAIN: [number, number] = [-1_000_000, 1_000_000];
+
+  it('zooming out (positive deltaY) grows the window width', () => {
+    const [f, t] = zoomWindow(1000, 2000, 1500, 100, ...WIDE_DOMAIN, 100);
+    expect(t - f).toBeGreaterThan(1000);
+  });
+
+  it('zooming in (negative deltaY) shrinks the window width', () => {
+    const [f, t] = zoomWindow(1000, 2000, 1500, -100, ...WIDE_DOMAIN, 100);
+    expect(t - f).toBeLessThan(1000);
+  });
+
+  it('a zero delta is a no-op', () => {
+    expect(zoomWindow(1000, 2000, 1500, 0, ...WIDE_DOMAIN, 100)).toEqual([1000, 2000]);
+  });
+
+  it('keeps the cursor\'s fractional position within the window fixed - zoom-to-point, not zoom-to-center', () => {
+    const from = 1000, to = 2000, anchorT = 1250; // anchor at the 25% mark
+    const oldRatio = (anchorT - from) / (to - from);
+    const [f, t] = zoomWindow(from, to, anchorT, 300, ...WIDE_DOMAIN, 100);
+    const newRatio = (anchorT - f) / (t - f);
+    expect(newRatio).toBeCloseTo(oldRatio, 9);
+  });
+
+  it('floors the width at minWindowMs no matter how aggressive the zoom-in is', () => {
+    const [f, t] = zoomWindow(0, 1000, 500, -1_000_000, ...WIDE_DOMAIN, 500);
+    expect(t - f).toBe(500);
+    expect(f).toBe(250);
+    expect(t).toBe(750);
+  });
+
+  it('caps the width at the domain span no matter how aggressive the zoom-out is', () => {
+    const [f, t] = zoomWindow(40_000, 60_000, 50_000, 1_000_000, 0, 100_000, 100);
+    expect(f).toBe(0);
+    expect(t).toBe(100_000);
+  });
+
+  it('shifts the window back inside the domain when an edge-anchored zoom-out would overflow it, preserving the width the same zoom produces unclamped', () => {
+    const from = 98_000, to = 99_900, anchorT = 99_800, deltaY = 2000, minWindowMs = 100;
+    const [unclampedFrom, unclampedTo] = zoomWindow(from, to, anchorT, deltaY, ...WIDE_DOMAIN, minWindowMs);
+    const naturalWidth = unclampedTo - unclampedFrom;
+
+    const [f, t] = zoomWindow(from, to, anchorT, deltaY, 0, 100_000, minWindowMs);
+    expect(t).toBe(100_000);
+    expect(t - f).toBeCloseTo(naturalWidth, 6);
   });
 });
 
