@@ -666,4 +666,22 @@ describe('MetricHistorySection', () => {
       expect(container.querySelectorAll('title').length).toBe(1);
     });
   });
+
+  describe('storage per-app hover breakdown', () => {
+    it('formats the per-app hover values as a byte rate (MB/s), not percent or plain bytes', () => {
+      stubGeometry();
+      const series: UseMetricHistoryResult['series'] = [
+        { id: 'disk-read', kind: 'disk', name: 'Disk Read', points: [{ t: NOW, avg: 1_000_000, max: 1_000_000 }] },
+        { id: 'disk-write', kind: 'disk', name: 'Disk Write', points: [{ t: NOW, avg: 500_000, max: 500_000 }] },
+      ];
+      const apps = [{ name: 'chrome.exe', avg: 4_400_000, max: 5_000_000, points: [{ t: NOW, avg: 4_400_000 }] }];
+      const { container } = renderSection({ metric: 'storage', history: { series }, appsWindow: { apps } });
+      const svg = container.querySelector('svg')!;
+      fireEvent.mouseMove(svg, { clientX: 200 });
+
+      expect(screen.getByText('chrome.exe')).toBeInTheDocument();
+      expect(screen.getByText('4.2 MB/s')).toBeInTheDocument();
+      expect(screen.queryByText('4400000%')).toBeNull();
+    });
+  });
 });

@@ -113,8 +113,8 @@ describe('appsSeriesParamFor', () => {
     expect(appsSeriesParamFor('gpu')).toBe('gpu');
   });
 
-  it('returns an empty param for storage - no per-app disk breakdown on the service', () => {
-    expect(appsSeriesParamFor('storage')).toBe('');
+  it('requests the storage series - per-app disk I/O is now recorded service-side', () => {
+    expect(appsSeriesParamFor('storage')).toBe('storage');
   });
 });
 

@@ -71,9 +71,17 @@ const NETWORK_APPS: readonly AppDef[] = [
   { name: 'Nexus', seed: 33, launchedMinutesAgo: 480, baseAt: (t, s) => Math.max(0, 1_000 + wobble(t, s) * 900) },
 ];
 
+// Bytes/sec, same scale family as NETWORK_APPS - per-app disk read+write.
+const STORAGE_APPS: readonly AppDef[] = [
+  { name: 'chrome.exe', seed: 41, launchedMinutesAgo: 240, baseAt: (t, s) => Math.max(0, 2_000_000 + wobble(t, s) * 1_500_000) },
+  { name: 'Nexus', seed: 42, launchedMinutesAgo: 480, baseAt: (t, s) => Math.max(0, 200_000 + wobble(t, s) * 150_000) },
+  { name: 'Code.exe', seed: 43, launchedMinutesAgo: 15, baseAt: (t, s) => Math.max(0, 500_000 + wobble(t, s) * 400_000) },
+];
+
 function defsFor(series: string): readonly AppDef[] {
   if (series === 'memory') return MEMORY_APPS;
   if (series === 'net') return NETWORK_APPS;
+  if (series === 'storage') return STORAGE_APPS;
   if (series.startsWith('gpu')) return GPU_APPS;
   return CPU_APPS;
 }

@@ -352,9 +352,9 @@ describe('MonitoringPage', () => {
       expect(title).toHaveTextContent('monitoring.tab.storage');
     });
 
-    it('requests no per-app apps window for storage (no per-process disk breakdown on the service)', () => {
+    it('requests the storage apps window - per-app disk I/O is recorded service-side', () => {
       render(<MonitoringPage serviceOnline={true} connectionState="online" tab="storage" onTabChange={vi.fn()} />);
-      expect(lastAppsWindowSeriesParam).toBe('');
+      expect(lastAppsWindowSeriesParam).toBe('storage');
     });
 
     it('mounts the hero + process list once, swapping into storage without remounting (zero-flicker tab switch)', () => {

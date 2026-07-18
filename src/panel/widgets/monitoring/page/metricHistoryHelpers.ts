@@ -25,16 +25,13 @@ export function seriesQueryFor(metric: HistoryMetric): string {
  * /monitoring/history/apps). The GPU case requests the bare `gpu` kind
  * rather than a specific `gpu:<adapterLuid>` id (item 51) - the web has no
  * reliable adapter-scoped id to construct here, and the service aggregates
- * per-process GPU usage across every adapter under the bare kind. Storage
- * has no per-app breakdown on the service (only cpu/memory/net/gpu are
- * sampled per-process), so it returns '' - MonitoringPage gates the apps
- * window fetch off entirely on an empty param, the same as an unresolved GPU.
+ * per-process GPU usage across every adapter under the bare kind.
  */
 export function appsSeriesParamFor(metric: HistoryMetric): string {
   switch (metric) {
     case 'cpu': return 'cpu';
     case 'memory': return 'memory';
-    case 'storage': return '';
+    case 'storage': return 'storage';
     case 'network': return 'net';
     case 'gpu': return 'gpu';
   }
