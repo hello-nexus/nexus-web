@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useState } from 'react';
-import { Cpu, Gpu, MemoryStick, Network, List, Radio } from 'lucide-react';
+import { useCallback, useMemo, useState, type ReactNode } from 'react';
+import { Cpu, Gpu, MemoryStick, HardDrive, Network, List, Radio } from 'lucide-react';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useNetworkMonitor, useAllNetworkSeries } from '../../../hooks/useNetworkMonitor';
 import { useAllProcesses, useGpuProcessFeed, useGpuProcessData } from '../../../hooks/useProcessMonitor';
@@ -20,7 +20,7 @@ import { DetailedTab } from './page/DetailedTab';
 import { MetricHistorySection } from './page/MetricHistorySection';
 import { ProcessListSection, type ProcessListItem } from './page/ProcessListSection';
 import { MonitoringSettingsModal } from './page/MonitoringSettingsModal';
-import { seriesQueryFor, appsSeriesParamFor, resolveSelectedFrame, type HistoryMetric } from './page/metricHistoryHelpers';
+import { seriesQueryFor, appsSeriesParamFor, currentDiskRateBytesPerSec, resolveSelectedFrame, type HistoryMetric } from './page/metricHistoryHelpers';
 import { appsToProcessListItems, currentAppValueMap, reconcileLiveWithWindow, zeroedGpuFallback } from './page/appWindowHelpers';
 import { buildLiveUsageByName } from './page/processDetailHelpers';
 import { formatRate } from './page/shared';
@@ -30,6 +30,28 @@ import { useSensorHistoryFeed } from '../common/useSharedSensorHistory';
 import styles from './MonitoringPage.module.scss';
 
 type MonitoringTab = HistoryMetric | 'detailed';
+
+interface MonitoringTabDef {
+  key: MonitoringTab;
+  icon: ReactNode;
+  labelKey: string;
+  /** Omitted for 'detailed', which has no live chip - metric and minWidth
+   *  are one field so a tab can't define one without the other. */
+  chip?: { metric: HistoryMetric; minWidth: string };
+}
+
+// The single source of truth for every monitoring tab - key, icon, label,
+// and chip config all live here in display order, so tab validity (isValidTab
+// below) and the rendered tab bar (tabs, built once history/storageBytesPerSec
+// are available) can never disagree about which tabs exist.
+const TAB_DEFS: readonly MonitoringTabDef[] = [
+  { key: 'cpu', icon: <Cpu size={14} />, labelKey: 'monitoring.tab.cpu', chip: { metric: 'cpu', minWidth: TAB_CHIP_PERCENT_MIN_WIDTH } },
+  { key: 'gpu', icon: <Gpu size={14} />, labelKey: 'monitoring.tab.gpu', chip: { metric: 'gpu', minWidth: TAB_CHIP_PERCENT_MIN_WIDTH } },
+  { key: 'memory', icon: <MemoryStick size={14} />, labelKey: 'monitoring.tab.memory', chip: { metric: 'memory', minWidth: TAB_CHIP_PERCENT_MIN_WIDTH } },
+  { key: 'storage', icon: <HardDrive size={14} />, labelKey: 'monitoring.tab.storage', chip: { metric: 'storage', minWidth: TAB_CHIP_RATE_MIN_WIDTH } },
+  { key: 'network', icon: <Network size={14} />, labelKey: 'monitoring.tab.network', chip: { metric: 'network', minWidth: TAB_CHIP_RATE_MIN_WIDTH } },
+  { key: 'detailed', icon: <List size={14} />, labelKey: 'monitoring.tab.detailed' },
+];
 
 interface MonitoringViewProps {
   serviceOnline: boolean;
@@ -83,6 +105,29 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
     serviceOnline && sensors.gpuComponents.length > 1,
   );
 
+  // An unrecognized or legacy tab (e.g. the removed 'overview') renders the
+  // default without rewriting the URL - render-only, matching the existing
+  // "keep invalid url tabs render-only" contract. Checked against TAB_DEFS -
+  // the same source the labeled `tabs` array below draws from - resolved
+  // here (rather than against that array) so `tab` and the `history` it
+  // drives are available before `tabs` itself, which needs `history`'s own
+  // storage chip value.
+  const isValidTab = (key: string): key is MonitoringTab =>
+    TAB_DEFS.some(d => d.key === key) && (key !== 'gpu' || gpuSupported);
+  const tab: MonitoringTab = urlTab && isValidTab(urlTab) ? urlTab : 'cpu';
+
+  const isMetricTab = tab !== 'detailed';
+  const seriesQuery = isMetricTab ? seriesQueryFor(tab) : '';
+  const history = useMetricHistory(isMetricTab, seriesQuery);
+
+  const appsSeriesParam = isMetricTab ? appsSeriesParamFor(tab) : '';
+  const appsWindow = useMetricHistoryApps(isMetricTab && appsSeriesParam !== '', appsSeriesParam, history.domain[0], history.domain[1], history.following);
+
+  // Storage has no push-driven live feed for its current rate (see
+  // currentDiskRateBytesPerSec) - its tab chip is only current while the
+  // Storage tab is the one actually populating history.series.
+  const storageBytesPerSec = useMemo(() => currentDiskRateBytesPerSec(history.series), [history.series]);
+
   // Each metric tab's own live value, moved off the chart's right axis (the
   // sibling per-tab chart rework removes that readout) and into a
   // fixed-width chip on the tab button itself, so the number ticking doesn't
@@ -94,31 +139,18 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
     <span className={styles.tabLabelWithChip}>
       {text}
       <span aria-hidden="true">
-        <Badge label={formatTabChipValue(metric, sensors.cpu, sensors.gpu, sensors.memory, network.totalRate, numberFormat)} minWidth={minWidth} />
+        <Badge label={formatTabChipValue(metric, sensors.cpu, sensors.gpu, sensors.memory, network.totalRate, storageBytesPerSec, numberFormat)} minWidth={minWidth} compact />
       </span>
     </span>
   );
 
-  const tabs = ([
-    { key: 'cpu', label: tabLabelWithChip(t('monitoring.tab.cpu'), 'cpu', TAB_CHIP_PERCENT_MIN_WIDTH), icon: <Cpu size={14} /> },
-    { key: 'gpu', label: tabLabelWithChip(t('monitoring.tab.gpu'), 'gpu', TAB_CHIP_PERCENT_MIN_WIDTH), icon: <Gpu size={14} /> },
-    { key: 'memory', label: tabLabelWithChip(t('monitoring.tab.memory'), 'memory', TAB_CHIP_PERCENT_MIN_WIDTH), icon: <MemoryStick size={14} /> },
-    { key: 'network', label: tabLabelWithChip(t('monitoring.tab.network'), 'network', TAB_CHIP_RATE_MIN_WIDTH), icon: <Network size={14} /> },
-    { key: 'detailed', label: t('monitoring.tab.detailed'), icon: <List size={14} /> },
-  ] as const).filter(tb => tb.key !== 'gpu' || gpuSupported);
-
-  // An unrecognized or legacy tab (e.g. the removed 'overview') renders the
-  // default without rewriting the URL - render-only, matching the existing
-  // "keep invalid url tabs render-only" contract.
-  const tab: MonitoringTab = urlTab && tabs.some(tb => tb.key === urlTab)
-    ? urlTab as MonitoringTab : 'cpu';
-
-  const isMetricTab = tab !== 'detailed';
-  const seriesQuery = isMetricTab ? seriesQueryFor(tab) : '';
-  const history = useMetricHistory(isMetricTab, seriesQuery);
-
-  const appsSeriesParam = isMetricTab ? appsSeriesParamFor(tab) : '';
-  const appsWindow = useMetricHistoryApps(isMetricTab && appsSeriesParam !== '', appsSeriesParam, history.domain[0], history.domain[1], history.following);
+  const tabs = TAB_DEFS
+    .filter(d => d.key !== 'gpu' || gpuSupported)
+    .map(d => ({
+      key: d.key,
+      icon: d.icon,
+      label: d.chip ? tabLabelWithChip(t(d.labelKey), d.chip.metric, d.chip.minWidth) : t(d.labelKey),
+    }));
 
   // Point-in-time snapshot (a click on the hero chart) - see
   // resolveSelectedFrame for the unified live/scrubbed/pinned semantics.
@@ -246,18 +278,21 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
   const formatValue = useMemo(() => {
     switch (tab) {
       case 'memory': return (v: number) => formatMemoryMb(v, numberFormat);
+      case 'storage':
       case 'network': return (v: number) => formatRate(v, numberFormat);
       default: return (v: number) => localizeNumbers(`${Math.round(v)}%`, numberFormat);
     }
   }, [tab, numberFormat]);
 
   // The hardware name moves here from the removed per-tab sensor blocks:
-  // CPU/GPU/Memory show their resolved identity string; Network has no
-  // comparable hardware identity and shows its plain tab name instead, at
-  // the same size/style, so all four tabs' first element lines up.
+  // CPU/GPU/Memory show their resolved identity string; Storage/Network have
+  // no comparable single hardware identity (storage aggregates every drive)
+  // and show their plain tab name instead, at the same size/style, so every
+  // tab's first element lines up.
   const titleText = tab === 'cpu' ? sensors.cpuModel
     : tab === 'gpu' ? (primaryGpu?.name ?? '')
     : tab === 'memory' ? (specs?.memory ?? '')
+    : tab === 'storage' ? t('monitoring.tab.storage')
     : tab === 'network' ? t('monitoring.tab.network')
     : '';
 

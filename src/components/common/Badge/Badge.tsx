@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
+import classNames from 'classnames';
 import styles from './Badge.module.scss';
 
 export interface BadgeProps {
@@ -9,12 +10,16 @@ export interface BadgeProps {
    *  it, so a badge whose label length changes (a live numeric readout)
    *  doesn't resize its container. Unset by default (shrinks to content). */
   minWidth?: string;
+  /** Trims the horizontal padding, for a badge sized tightly around its own
+   *  reserved minWidth (the monitoring tab chips) rather than the default
+   *  roomier pill other badges use. */
+  compact?: boolean;
 }
 
-export function Badge({ label, color = 'var(--text)', icon, minWidth }: BadgeProps) {
+export function Badge({ label, color = 'var(--text)', icon, minWidth, compact }: BadgeProps) {
   return (
     <span
-      className={styles.badge}
+      className={classNames(styles.badge, compact && styles.compact)}
       style={{ '--badge-color': color, ...(minWidth ? { '--badge-min-width': minWidth } : {}) } as CSSProperties}
     >
       {icon}

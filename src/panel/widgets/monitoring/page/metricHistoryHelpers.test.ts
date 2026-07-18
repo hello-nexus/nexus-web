@@ -4,6 +4,7 @@ import {
   adaptivePercentYMax,
   appsSeriesParamFor,
   averageRpmSeries,
+  currentDiskRateBytesPerSec,
   defaultBoxWidthMs,
   formatBrushEdgeLabels,
   initViewport,
@@ -88,9 +89,10 @@ describe('seriesQueryFor', () => {
   it('maps each metric to its series csv', () => {
     // cpu/gpu request fan too (average fan-speed ribbon, under the temp
     // band); memory requests its own averaged mem-temp series but no fan
-    // (no fan-speed band there) - network has no temp band at all.
+    // (no fan-speed band there) - network/storage have no temp band at all.
     expect(seriesQueryFor('cpu')).toBe('cpu,cpu-temp,fan');
     expect(seriesQueryFor('memory')).toBe('memory,mem-temp');
+    expect(seriesQueryFor('storage')).toBe('disk-read,disk-write');
     expect(seriesQueryFor('network')).toBe('net-in,net-out');
     expect(seriesQueryFor('gpu')).toBe('gpu,gpu-temp,fan');
   });
@@ -105,6 +107,29 @@ describe('appsSeriesParamFor', () => {
 
   it('requests the bare gpu kind, not an adapter-scoped gpu:<id> (item 51)', () => {
     expect(appsSeriesParamFor('gpu')).toBe('gpu');
+  });
+
+  it('returns an empty param for storage - no per-app disk breakdown on the service', () => {
+    expect(appsSeriesParamFor('storage')).toBe('');
+  });
+});
+
+describe('currentDiskRateBytesPerSec', () => {
+  it('sums the newest disk-read and disk-write points', () => {
+    const list = [
+      series('disk-read', [{ t: 0, avg: 100, max: 100 }, { t: 1, avg: 300, max: 300 }], { kind: 'disk' }),
+      series('disk-write', [{ t: 0, avg: 50, max: 50 }, { t: 1, avg: 120, max: 120 }], { kind: 'disk' }),
+    ];
+    expect(currentDiskRateBytesPerSec(list)).toBe(420);
+  });
+
+  it('treats a missing series as 0 (e.g. only one of the two has landed yet)', () => {
+    const list = [series('disk-read', [{ t: 0, avg: 100, max: 100 }], { kind: 'disk' })];
+    expect(currentDiskRateBytesPerSec(list)).toBe(100);
+  });
+
+  it('returns 0 for empty input', () => {
+    expect(currentDiskRateBytesPerSec([])).toBe(0);
   });
 });
 

@@ -1,9 +1,10 @@
 import { useEffect } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, within, fireEvent } from '@testing-library/react';
 import { MonitoringPage } from './MonitoringPage';
 import type { GpuComponent } from '../../../lib/gpuResolver';
 import type { AppWindowSeries } from '../../../api/monitoringHistoryApps';
+import type { MetricHistorySeries } from '../../../api/monitoringHistory';
 
 // MetricHistorySection and ProcessListSection are the persistent hero + list
 // mounted once above the switched tab content - stub both with a
@@ -54,7 +55,7 @@ vi.mock('./page/ProcessListSection', async importOriginal => {
   };
 });
 
-let historyOverride: Partial<{ following: boolean; mocked: boolean; backToLive: () => void }> = {};
+let historyOverride: Partial<{ following: boolean; mocked: boolean; backToLive: () => void; series: MetricHistorySeries[] }> = {};
 vi.mock('../../../hooks/useMetricHistory', () => ({
   useMetricHistory: () => ({
     silhouette: [], series: [],
@@ -295,6 +296,43 @@ describe('MonitoringPage', () => {
     const title = document.querySelector('[class*="tabHeaderName"]');
     expect(title).toBeInTheDocument();
     expect(title).toHaveTextContent('monitoring.tab.network');
+  });
+
+  describe('Storage tab (disk read/write, positioned before Network)', () => {
+    it('renders the Storage tab immediately before the Network tab', () => {
+      render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+      const tabs = screen.getAllByRole('tab').map(el => el.textContent);
+      const storageIndex = tabs.findIndex(t => t?.includes('monitoring.tab.storage'));
+      const networkIndex = tabs.findIndex(t => t?.includes('monitoring.tab.network'));
+      expect(storageIndex).toBeGreaterThanOrEqual(0);
+      expect(networkIndex).toBe(storageIndex + 1);
+    });
+
+    it('shows the Storage tab name in the same title row/style as the other tabs', () => {
+      render(<MonitoringPage serviceOnline={true} connectionState="online" tab="storage" onTabChange={vi.fn()} />);
+      expect(screen.queryByTestId('metric-history-section')).toHaveTextContent('metric:storage');
+      const title = document.querySelector('[class*="tabHeaderName"]');
+      expect(title).toBeInTheDocument();
+      expect(title).toHaveTextContent('monitoring.tab.storage');
+    });
+
+    it('requests no per-app apps window for storage (no per-process disk breakdown on the service)', () => {
+      render(<MonitoringPage serviceOnline={true} connectionState="online" tab="storage" onTabChange={vi.fn()} />);
+      expect(lastAppsWindowSeriesParam).toBe('');
+    });
+
+    it('mounts the hero + process list once, swapping into storage without remounting (zero-flicker tab switch)', () => {
+      metricHistoryMounts = 0;
+      metricHistoryUnmounts = 0;
+      const { rerender } = render(
+        <MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />,
+      );
+      expect(metricHistoryMounts).toBe(1);
+      rerender(<MonitoringPage serviceOnline={true} connectionState="online" tab="storage" onTabChange={vi.fn()} />);
+      expect(metricHistoryMounts).toBe(1);
+      expect(metricHistoryUnmounts).toBe(0);
+      expect(screen.getByTestId('metric-history-section')).toHaveTextContent('metric:storage');
+    });
   });
 
   it('shows the mocked badge next to the tab title when the history data is dev-mocked (item 32: badge moved out of MetricHistorySection)', () => {
@@ -813,6 +851,7 @@ describe('MonitoringPage', () => {
       sensorState.gpu = [];
       sensorState.memory = [];
       networkTotalRateOverride = 0;
+      historyOverride = {};
     });
 
     it('shows each metric tab\'s live value: percent for cpu/gpu/memory, a formatted rate for network', () => {
@@ -850,15 +889,38 @@ describe('MonitoringPage', () => {
       expect(screen.getByText('100%').style.getPropertyValue('--badge-min-width')).toBe(reservedWidth);
     });
 
-    it('reserves a wider fixed width for the network rate chip than the cpu/gpu/memory percent chips', () => {
+    it('reserves a wider fixed width for the network/storage rate chips than the cpu/gpu/memory percent chips', () => {
       render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
       const percentChip = screen.getByText('42%');
-      const rateChip = screen.getByText('0 B/s');
+      const networkTab = screen.getByRole('tab', { name: /monitoring\.tab\.network/ });
+      const rateChip = within(networkTab).getByText('0 B/s');
       const percentWidth = percentChip.style.getPropertyValue('--badge-min-width');
       const rateWidth = rateChip.style.getPropertyValue('--badge-min-width');
       expect(percentWidth).not.toBe('');
       expect(rateWidth).not.toBe('');
       expect(rateWidth).not.toBe(percentWidth);
+    });
+
+    it('shows the Storage tab\'s live value as a formatted rate, matching the current disk read+write from the history tail', () => {
+      historyOverride = {
+        series: [
+          { id: 'disk-read', kind: 'disk', name: 'Disk Read', points: [{ t: 0, avg: 1_000_000, max: 1_000_000 }] },
+          { id: 'disk-write', kind: 'disk', name: 'Disk Write', points: [{ t: 0, avg: 500_000, max: 500_000 }] },
+        ],
+      };
+      render(<MonitoringPage serviceOnline={true} connectionState="online" tab="storage" onTabChange={vi.fn()} />);
+      expect(screen.getByText('1.4 MB/s')).toBeInTheDocument();
+    });
+
+    it('shows the Storage chip as 0 B/s while a different tab is active, since disk has no push-driven live feed (unlike cpu/gpu/memory/network)', () => {
+      // history.series only ever holds the ACTIVE tab's own fetched series
+      // (the real useMetricHistory's seriesQuery follows the active tab -
+      // see seriesQueryFor), so viewing 'cpu' means it holds cpu/cpu-temp/fan
+      // data, never disk-read/disk-write - the default (empty) mock series
+      // already models that; this pins the Storage chip's resulting value.
+      render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+      const storageTab = screen.getByRole('tab', { name: /monitoring\.tab\.storage/ });
+      expect(within(storageTab).getByText('0 B/s')).toBeInTheDocument();
     });
   });
 });

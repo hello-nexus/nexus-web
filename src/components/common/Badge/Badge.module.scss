@@ -12,4 +12,8 @@
   color: var(--badge-color, var(--text));
   background: color-mix(in srgb, var(--badge-color, var(--text)) 14%, transparent);
   min-width: var(--badge-min-width, auto);
+
+  &.compact {
+    padding: 2px 5px;
+  }
 }
