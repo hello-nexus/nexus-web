@@ -9,6 +9,7 @@ import { EmptyState } from '../../../../components/common/EmptyState/EmptyState'
 import type { GpuComponent } from '../../../../lib/gpuResolver';
 import { resolvePrimaryGpu } from '../../../../lib/gpuResolver';
 import { convertTemperature, localizeNumbers, tempUnitSymbol } from '../../../../lib/units';
+import { formatMemoryMb } from '../../../../lib/formatMemory';
 import type { UseMetricHistoryResult } from '../../../../hooks/useMetricHistory';
 import type { UseMetricHistoryAppsResult } from '../../../../hooks/useMetricHistoryApps';
 import { useUnitPrefs } from '../../../../hooks/useUiSettings';
@@ -140,6 +141,16 @@ export function MetricHistorySection({
     return (v: number) => localizeNumbers(`${Math.round(v)}%`, numberFormat);
   }, [metric, numberFormat]);
 
+  // The per-app hover breakdown's own value column: memory is a byte
+  // quantity per app (MB/GB), unlike the main chart's percent-of-total-RAM
+  // series (see valueFormat above) - every other metric's per-app value
+  // shares the main chart's own unit (percent for cpu/gpu, a rate for
+  // network/storage), so this only diverges for memory.
+  const appValueFormat = useMemo(
+    () => (metric === 'memory' ? (v: number) => formatMemoryMb(v, numberFormat) : valueFormat),
+    [metric, numberFormat, valueFormat],
+  );
+
   const windowMs = history.domain[1] - history.domain[0];
   const xTickFormat = useMemo(() => xTickFormatForWindow(windowMs), [windowMs]);
 
@@ -262,7 +273,7 @@ export function MetricHistorySection({
               <div key={app.name} className={styles.tooltipAppRow}>
                 <ProcessIcon name={app.name} />
                 <span className={styles.tooltipAppName}>{app.name}</span>
-                <span className={styles.tooltipAppValue}>{valueFormat(app.value)}</span>
+                <span className={styles.tooltipAppValue}>{appValueFormat(app.value)}</span>
               </div>
             ))}
           </div>

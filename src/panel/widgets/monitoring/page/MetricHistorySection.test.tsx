@@ -415,6 +415,36 @@ describe('MetricHistorySection', () => {
     });
   });
 
+  describe('memory per-app hover breakdown', () => {
+    it('formats the per-app hover values as memory (MB/GB), not percent', () => {
+      stubGeometry();
+      const series: UseMetricHistoryResult['series'] = [
+        { id: 'memory', kind: 'memory', name: 'Memory', points: [{ t: NOW, avg: 55, max: 56 }] },
+      ];
+      const apps = [{ name: 'chrome.exe', avg: 1200, max: 1500, points: [{ t: NOW, avg: 1200 }] }];
+      const { container } = renderSection({ metric: 'memory', history: { series }, appsWindow: { apps } });
+      const svg = container.querySelector('svg')!;
+      fireEvent.mouseMove(svg, { clientX: 200 });
+
+      expect(screen.getByText('chrome.exe')).toBeInTheDocument();
+      expect(screen.getByText('1.2 GB')).toBeInTheDocument();
+      expect(screen.queryByText('1200%')).toBeNull();
+    });
+
+    it('renders a sub-1GB per-app value in MB', () => {
+      stubGeometry();
+      const series: UseMetricHistoryResult['series'] = [
+        { id: 'memory', kind: 'memory', name: 'Memory', points: [{ t: NOW, avg: 55, max: 56 }] },
+      ];
+      const apps = [{ name: 'Nexus', avg: 210, max: 260, points: [{ t: NOW, avg: 210 }] }];
+      const { container } = renderSection({ metric: 'memory', history: { series }, appsWindow: { apps } });
+      const svg = container.querySelector('svg')!;
+      fireEvent.mouseMove(svg, { clientX: 200 });
+
+      expect(screen.getByText('210 MB')).toBeInTheDocument();
+    });
+  });
+
   describe('memory temperature ribbon', () => {
     it('renders a temp band on the memory tab when a mem-temp series is present', () => {
       stubGeometry();
