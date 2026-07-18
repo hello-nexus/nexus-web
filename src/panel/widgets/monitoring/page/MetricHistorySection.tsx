@@ -21,6 +21,7 @@ import {
   RANGE_OPTIONS,
   adaptivePercentYMax,
   averageRpmSeries,
+  buildSelectedAppSeries,
   fanNamesForRole,
   fanSeriesIdsForRole,
   formatBrushEdgeLabels,
@@ -57,12 +58,24 @@ export interface MetricHistorySectionProps {
   selectedFrameMs: number;
   /** Fires with the clicked timestamp on a plain chart click (not a drag). */
   onGraphClick: (t: number) => void;
+  /** The process list's currently-selected app (MonitoringPage's own
+   *  selection state), if any - its usage for the active metric is overlaid
+   *  on this chart as an extra line (see buildSelectedAppSeries). Null
+   *  renders none. */
+  selectedAppName: string | null;
+  /** Total system RAM in MB (see deriveMemoryTotalMb) - only consulted for
+   *  metric === 'memory', to rescale the selected app's MB usage onto this
+   *  chart's own percent-of-RAM axis. */
+  memoryTotalMb: number | null;
 }
 
 // Tall enough to keep the line/area's own plot area comfortable even with
 // both ribbons present (temperature + fan speed, cpu/gpu tabs).
 const CHART_HEIGHT = 238;
 const TOOLTIP_APPS_LIMIT = 8;
+// Distinct from --accent (the main metric line's color, user-customizable)
+// so the selected app's overlay line never blends into it.
+const SELECTED_APP_LINE_COLOR = 'var(--chart-line-alt)';
 
 // Stable empty instances for the non-cpu/gpu tabs' fanRole branch, so the
 // dependent useMemos below don't see a new identity every render.
@@ -71,6 +84,7 @@ const EMPTY_FAN_NAMES: readonly string[] = [];
 
 export function MetricHistorySection({
   metric, gpuComponents, preferredGpuId, history, appsWindow, fanRoles, selectedFrameMs, onGraphClick,
+  selectedAppName, memoryTotalMb,
 }: MetricHistorySectionProps) {
   const { t, language } = useTranslation();
   const { monitoringTempUnit, numberFormat } = useUnitPrefs();
@@ -119,10 +133,22 @@ export function MetricHistorySection({
     return null;
   }, [metric, t]);
 
+  // The selected process's own usage for this tab's metric, overlaid as an
+  // extra line - null (and so omitted below) whenever nothing is selected,
+  // the app has no series in this window yet, or (memory only) the total
+  // isn't known to rescale it onto the percent axis.
+  const selectedAppSeries = useMemo(() => {
+    if (!selectedAppName) return null;
+    const app = appsWindow.apps.find(a => a.name === selectedAppName);
+    if (!app) return null;
+    return buildSelectedAppSeries(app, metric, memoryTotalMb, SELECTED_APP_LINE_COLOR);
+  }, [selectedAppName, appsWindow.apps, metric, memoryTotalMb]);
+
   const chartSeries = useMemo(() => {
     const mapped = toHistoryChartSeries(resolved.main, colorFor);
-    return nameOverride ? mapped.map(s => ({ ...s, name: nameOverride(s.id) })) : mapped;
-  }, [resolved.main, colorFor, nameOverride]);
+    const named = nameOverride ? mapped.map(s => ({ ...s, name: nameOverride(s.id) })) : mapped;
+    return selectedAppSeries ? [...named, selectedAppSeries] : named;
+  }, [resolved.main, colorFor, nameOverride, selectedAppSeries]);
 
   // Network and storage auto-scale their own ceiling to the data ([0, null],
   // unbounded rate); the percent metrics (cpu/gpu/memory) instead adapt to

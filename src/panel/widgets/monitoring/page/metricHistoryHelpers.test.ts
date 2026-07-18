@@ -4,8 +4,10 @@ import {
   adaptivePercentYMax,
   appsSeriesParamFor,
   averageRpmSeries,
+  buildSelectedAppSeries,
   currentDiskRateBytesPerSec,
   defaultBoxWidthMs,
+  deriveMemoryTotalMb,
   fanNamesForRole,
   fanSeriesIdsForRole,
   formatBrushEdgeLabels,
@@ -27,6 +29,7 @@ import {
   type ViewportState,
 } from './metricHistoryHelpers';
 import type { MetricHistorySeries } from '../../../../api/monitoringHistory';
+import type { AppWindowSeries } from '../../../../api/monitoringHistoryApps';
 import { MIN_BOX_WINDOW_MS } from '../../../../components/common/TimelineBrush/timelineBrushUtils';
 
 const MINUTE = 60_000;
@@ -464,6 +467,57 @@ describe('toHistoryChartSeries', () => {
     const raw = [series('cpu', [{ t: 0, avg: 10, max: 12 }])];
     const out = toHistoryChartSeries(raw, id => `#${id}`);
     expect(out).toEqual([{ id: 'cpu', name: 'cpu', color: '#cpu', points: [{ t: 0, avg: 10, max: 12 }] }]);
+  });
+});
+
+describe('deriveMemoryTotalMb', () => {
+  it('backs out the total from used GB and used percent', () => {
+    // 8GB used at 25% -> 32GB total -> 32768 MB.
+    expect(deriveMemoryTotalMb(8, 25)).toBeCloseTo(32768, 5);
+  });
+
+  it('returns null when usedGb is undefined (no sensor reported it)', () => {
+    expect(deriveMemoryTotalMb(undefined, 25)).toBeNull();
+  });
+
+  it('returns null when the percent is zero or negative (division would be meaningless)', () => {
+    expect(deriveMemoryTotalMb(8, 0)).toBeNull();
+    expect(deriveMemoryTotalMb(8, -5)).toBeNull();
+  });
+});
+
+describe('buildSelectedAppSeries', () => {
+  function app(over: Partial<AppWindowSeries> = {}): AppWindowSeries {
+    return { name: 'chrome.exe', avg: 10, max: 20, points: [{ t: 0, avg: 10 }, { t: 1000, avg: 20 }], ...over };
+  }
+
+  it('passes cpu/gpu percent values through unscaled', () => {
+    const out = buildSelectedAppSeries(app(), 'cpu', null, 'var(--chart-line-alt)');
+    expect(out).toEqual({
+      id: 'app:chrome.exe',
+      name: 'chrome.exe',
+      color: 'var(--chart-line-alt)',
+      points: [{ t: 0, avg: 10, max: 10 }, { t: 1000, avg: 20, max: 20 }],
+    });
+  });
+
+  it('passes network/storage byte-rate values through unscaled - the axis auto-scales to whatever is plotted', () => {
+    const out = buildSelectedAppSeries(app({ points: [{ t: 0, avg: 4_400_000 }] }), 'storage', null, 'var(--chart-line-alt)');
+    expect(out?.points).toEqual([{ t: 0, avg: 4_400_000, max: 4_400_000 }]);
+  });
+
+  it('rescales memory MB values to percent-of-RAM using memoryTotalMb', () => {
+    const out = buildSelectedAppSeries(app({ points: [{ t: 0, avg: 8192 }] }), 'memory', 32768, 'var(--chart-line-alt)');
+    expect(out?.points).toEqual([{ t: 0, avg: 25, max: 25 }]);
+  });
+
+  it('returns null for memory when memoryTotalMb is unavailable - an unscaled MB value would misrender on a percent axis', () => {
+    expect(buildSelectedAppSeries(app(), 'memory', null, 'var(--chart-line-alt)')).toBeNull();
+  });
+
+  it('ids the series distinctly from any real metric id (app: prefix)', () => {
+    const out = buildSelectedAppSeries(app({ name: 'gpu' }), 'cpu', null, 'var(--chart-line-alt)');
+    expect(out?.id).toBe('app:gpu');
   });
 });
 

@@ -24,11 +24,11 @@ import { MetricHistorySection } from './page/MetricHistorySection';
 import { ProcessListSection, type ProcessListItem } from './page/ProcessListSection';
 import { ProcessDetailPanel } from './page/ProcessDetailPanel';
 import { MonitoringSettingsModal } from './page/MonitoringSettingsModal';
-import { seriesQueryFor, appsSeriesParamFor, currentDiskRateBytesPerSec, resolveSelectedFrame, formatSelectedFrameTime, type FanRoleMap, type HistoryMetric } from './page/metricHistoryHelpers';
+import { seriesQueryFor, appsSeriesParamFor, currentDiskRateBytesPerSec, deriveMemoryTotalMb, resolveSelectedFrame, formatSelectedFrameTime, type FanRoleMap, type HistoryMetric } from './page/metricHistoryHelpers';
 import { appsToProcessListItems, currentAppValueMap, reconcileLiveWithWindow, zeroedGpuFallback } from './page/appWindowHelpers';
 import { buildLiveUsageByName } from './page/processDetailHelpers';
 import { formatRate } from './page/shared';
-import { formatTabChipValue, TAB_CHIP_PERCENT_MIN_WIDTH, TAB_CHIP_RATE_MIN_WIDTH } from './page/tabChipValue';
+import { formatTabChipValue, tabChipLoadPercent, TAB_CHIP_PERCENT_MIN_WIDTH, TAB_CHIP_RATE_MIN_WIDTH } from './page/tabChipValue';
 import { usePageSettingsAction } from '../../../app/PageChrome';
 import { useSensorHistoryFeed } from '../common/useSharedSensorHistory';
 import styles from './MonitoringPage.module.scss';
@@ -112,6 +112,12 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
   useSensorHistoryFeed('cpu::CPU Total', cpuTotal);
   useSensorHistoryFeed('memory::Memory Used MB', memUsed ? memUsed.value * 1024 : 0);
   useSensorHistoryFeed('network::Network Total KBs', network.totalRate / 1024);
+
+  // Total system RAM in MB - no sensor reports it directly (see
+  // deriveMemoryTotalMb) - feeds MetricHistorySection's memory-tab app-line
+  // scaling (a selected app's per-process memory arrives in MB, the memory
+  // tab's own line is percent-of-RAM).
+  const memoryTotalMb = deriveMemoryTotalMb(memUsed?.value, tabChipLoadPercent('memory', sensors.cpu, sensors.gpu, sensors.memory));
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const openSettings = useCallback(() => setSettingsOpen(true), []);
@@ -412,6 +418,8 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
                 fanRoles={fanRoles}
                 selectedFrameMs={selectedFrameMs}
                 onGraphClick={onGraphClick}
+                selectedAppName={selectedProcess}
+                memoryTotalMb={memoryTotalMb}
               />
               <div className={styles.listScroll}>
                 <ProcessListSection

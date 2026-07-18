@@ -98,6 +98,10 @@
   --warn: #f59e0b;
   --bad: #ef4444;
   --status-away: #d8a14a;  // presence "away" tier (Steam, future presence dots) - amber-adjacent, distinct from --warn
+  // A second chart-series hue, independent of the user-customizable --accent
+  // and the semantic status colors above - the monitoring hero chart's own
+  // selected-app overlay line uses this so it never collides with either.
+  --chart-line-alt: #ec4899;
 
   // ── Surface scales ──
   // Single source of truth. Each scale is intentionally short (3-5 rungs).
@@ -258,4 +262,5 @@
   --warn: #d97706;
   --bad: #dc2626;
   --status-away: #b8812f;
+  --chart-line-alt: #db2777;
 }

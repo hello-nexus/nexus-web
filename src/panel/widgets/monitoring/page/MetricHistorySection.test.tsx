@@ -81,6 +81,8 @@ function renderSection(over: {
   fanRoles?: FanRoleMap;
   selectedFrameMs?: number;
   onGraphClick?: (t: number) => void;
+  selectedAppName?: string | null;
+  memoryTotalMb?: number | null;
 } = {}) {
   const history = baseHistory(over.history);
   return render(
@@ -93,6 +95,8 @@ function renderSection(over: {
       fanRoles={over.fanRoles ?? new Map()}
       selectedFrameMs={over.selectedFrameMs ?? history.domain[1]}
       onGraphClick={over.onGraphClick ?? vi.fn()}
+      selectedAppName={over.selectedAppName ?? null}
+      memoryTotalMb={over.memoryTotalMb ?? null}
     />,
   );
 }
@@ -177,6 +181,8 @@ describe('MetricHistorySection', () => {
         fanRoles={new Map()}
         selectedFrameMs={NOW}
         onGraphClick={vi.fn()}
+        selectedAppName={null}
+        memoryTotalMb={null}
       />,
     );
     // Still frozen at the 100% bucket even though this tick's own (panned,
@@ -194,6 +200,8 @@ describe('MetricHistorySection', () => {
         fanRoles={new Map()}
         selectedFrameMs={NOW}
         onGraphClick={vi.fn()}
+        selectedAppName={null}
+        memoryTotalMb={null}
       />,
     );
     // Settles cleanly to the lower ceiling in a single transition once the
@@ -682,6 +690,108 @@ describe('MetricHistorySection', () => {
       expect(screen.getByText('chrome.exe')).toBeInTheDocument();
       expect(screen.getByText('4.2 MB/s')).toBeInTheDocument();
       expect(screen.queryByText('4400000%')).toBeNull();
+    });
+  });
+
+  describe('selected-app overlay line (monitoring-sidebar Part 2)', () => {
+    it('draws no extra line when nothing is selected', () => {
+      stubGeometry();
+      const series: UseMetricHistoryResult['series'] = [
+        { id: 'cpu', kind: 'cpu', name: 'CPU', points: [{ t: NOW - HOUR, avg: 40, max: 41 }, { t: NOW, avg: 50, max: 51 }] },
+      ];
+      const apps = [{ name: 'chrome.exe', avg: 30, max: 40, points: [{ t: NOW - HOUR, avg: 20 }, { t: NOW, avg: 30 }] }];
+      const { container } = renderSection({ metric: 'cpu', history: { series }, appsWindow: { apps }, selectedAppName: null });
+      expect(container.querySelectorAll('path[stroke="var(--accent)"]').length).toBe(1);
+      expect(container.querySelector('path[stroke="var(--chart-line-alt)"]')).toBeNull();
+    });
+
+    it('draws the selected app\'s cpu% as a distinct-colored line riding the same percent axis', () => {
+      stubGeometry();
+      const series: UseMetricHistoryResult['series'] = [
+        { id: 'cpu', kind: 'cpu', name: 'CPU', points: [{ t: NOW - HOUR, avg: 40, max: 41 }, { t: NOW, avg: 50, max: 51 }] },
+      ];
+      const apps = [{ name: 'chrome.exe', avg: 30, max: 40, points: [{ t: NOW - HOUR, avg: 20 }, { t: NOW, avg: 30 }] }];
+      const { container } = renderSection({ metric: 'cpu', history: { series }, appsWindow: { apps }, selectedAppName: 'chrome.exe' });
+      expect(container.querySelector('path[stroke="var(--chart-line-alt)"]')).toBeInTheDocument();
+      expect(container.querySelectorAll('path[stroke="var(--accent)"]').length).toBe(1);
+    });
+
+    it('removes the line once the selection is cleared', () => {
+      stubGeometry();
+      const series: UseMetricHistoryResult['series'] = [
+        { id: 'cpu', kind: 'cpu', name: 'CPU', points: [{ t: NOW - HOUR, avg: 40, max: 41 }, { t: NOW, avg: 50, max: 51 }] },
+      ];
+      const apps = [{ name: 'chrome.exe', avg: 30, max: 40, points: [{ t: NOW - HOUR, avg: 20 }, { t: NOW, avg: 30 }] }];
+      const { container, rerender } = renderSection({ metric: 'cpu', history: { series }, appsWindow: { apps }, selectedAppName: 'chrome.exe' });
+      expect(container.querySelector('path[stroke="var(--chart-line-alt)"]')).toBeInTheDocument();
+
+      rerender(
+        <MetricHistorySection
+          metric="cpu"
+          gpuComponents={[]}
+          preferredGpuId=""
+          history={baseHistory({ series })}
+          appsWindow={baseAppsWindow({ apps })}
+          fanRoles={new Map()}
+          selectedFrameMs={NOW}
+          onGraphClick={vi.fn()}
+          selectedAppName={null}
+          memoryTotalMb={null}
+        />,
+      );
+      expect(container.querySelector('path[stroke="var(--chart-line-alt)"]')).toBeNull();
+    });
+
+    it('follows the active tab\'s metric - no line when the selected app has no series under the new metric', () => {
+      stubGeometry();
+      const series: UseMetricHistoryResult['series'] = [
+        { id: 'memory', kind: 'memory', name: 'Memory', points: [{ t: NOW, avg: 55, max: 56 }] },
+      ];
+      // No 'chrome.exe' entry in this window's apps - the memory tab's own
+      // fetch hasn't matched it (or the app used none this window).
+      const { container } = renderSection({ metric: 'memory', history: { series }, appsWindow: { apps: [] }, selectedAppName: 'chrome.exe', memoryTotalMb: 32768 });
+      expect(container.querySelector('path[stroke="var(--chart-line-alt)"]')).toBeNull();
+    });
+
+    it('rescales the selected app\'s memory MB onto the tab\'s own percent-of-RAM axis', () => {
+      stubGeometry();
+      const series: UseMetricHistoryResult['series'] = [
+        { id: 'memory', kind: 'memory', name: 'Memory', points: [{ t: NOW - HOUR, avg: 20, max: 21 }, { t: NOW, avg: 25, max: 26 }] },
+      ];
+      // 8192 MB of 32768 MB total = 25% - lands well inside the same
+      // adaptive percent ceiling the main memory line itself uses.
+      const apps = [{ name: 'chrome.exe', avg: 8192, max: 8192, points: [{ t: NOW - HOUR, avg: 4096 }, { t: NOW, avg: 8192 }] }];
+      const { container } = renderSection({
+        metric: 'memory', history: { series }, appsWindow: { apps }, selectedAppName: 'chrome.exe', memoryTotalMb: 32768,
+      });
+      const appPath = container.querySelector('path[stroke="var(--chart-line-alt)"]');
+      expect(appPath).toBeInTheDocument();
+      // The axis must not have blown out to accommodate a raw MB value (e.g.
+      // "8192%") - it stays on the same small percent ladder as the main line.
+      expect(screen.queryByText(/8192%|4096%/)).toBeNull();
+    });
+
+    it('omits the memory app line entirely when the total can\'t be derived, rather than misrendering an unscaled MB value', () => {
+      stubGeometry();
+      const series: UseMetricHistoryResult['series'] = [
+        { id: 'memory', kind: 'memory', name: 'Memory', points: [{ t: NOW, avg: 55, max: 56 }] },
+      ];
+      const apps = [{ name: 'chrome.exe', avg: 8192, max: 8192, points: [{ t: NOW, avg: 8192 }] }];
+      const { container } = renderSection({
+        metric: 'memory', history: { series }, appsWindow: { apps }, selectedAppName: 'chrome.exe', memoryTotalMb: null,
+      });
+      expect(container.querySelector('path[stroke="var(--chart-line-alt)"]')).toBeNull();
+    });
+
+    it('passes byte-rate metrics (storage) through unscaled onto the auto-scaling axis', () => {
+      stubGeometry();
+      const series: UseMetricHistoryResult['series'] = [
+        { id: 'disk-read', kind: 'disk', name: 'Disk Read', points: [{ t: NOW - HOUR, avg: 900_000, max: 1_000_000 }, { t: NOW, avg: 1_000_000, max: 1_000_000 }] },
+        { id: 'disk-write', kind: 'disk', name: 'Disk Write', points: [{ t: NOW - HOUR, avg: 400_000, max: 500_000 }, { t: NOW, avg: 500_000, max: 500_000 }] },
+      ];
+      const apps = [{ name: 'chrome.exe', avg: 4_400_000, max: 4_400_000, points: [{ t: NOW - HOUR, avg: 4_000_000 }, { t: NOW, avg: 4_400_000 }] }];
+      const { container } = renderSection({ metric: 'storage', history: { series }, appsWindow: { apps }, selectedAppName: 'chrome.exe' });
+      expect(container.querySelector('path[stroke="var(--chart-line-alt)"]')).toBeInTheDocument();
     });
   });
 });

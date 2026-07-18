@@ -6,6 +6,7 @@ import { nearestPoint, type TimeSeriesPoint } from '../../../../components/commo
 import type { TimeSeriesSeries } from '../../../../components/common/TimeSeriesChart/TimeSeriesChart';
 import { MIN_BOX_WINDOW_MS } from '../../../../components/common/TimelineBrush/timelineBrushUtils';
 import type { MetricHistorySeries } from '../../../../api/monitoringHistory';
+import type { AppWindowSeries } from '../../../../api/monitoringHistoryApps';
 import type { FanRole } from '../../../../api/cooling';
 
 export type HistoryMetric = 'cpu' | 'memory' | 'storage' | 'network' | 'gpu';
@@ -289,6 +290,43 @@ export function toHistoryChartSeries(series: readonly MetricHistorySeries[], col
     color: colorFor(s.id),
     points: s.points.map(p => ({ t: p.t, avg: p.avg, max: p.max })),
   }));
+}
+
+/**
+ * Total system RAM in MB. No sensor reports this directly, so it's backed
+ * out from the Used-GB sensor and the memory tab's own Load percent (both
+ * already read by the caller for other purposes) - `usedMb / (percent/100)`.
+ * Null when either input is missing or the percent is non-positive, since
+ * the division would be meaningless.
+ */
+export function deriveMemoryTotalMb(usedGb: number | undefined, usedPercent: number): number | null {
+  if (usedGb === undefined || usedPercent <= 0) return null;
+  return (usedGb * 1024 * 100) / usedPercent;
+}
+
+/**
+ * The selected process's own usage series for the active metric tab, shaped
+ * for TimeSeriesChart so it can be appended directly to the main chart's own
+ * series list. Every metric except memory already shares its main line's
+ * unit (percent for cpu/gpu, a byte rate for network/storage) and passes
+ * through unscaled; memory's per-app values arrive in MB (see AppWindowSeries)
+ * while the memory tab's own line is percent-of-RAM, so they're rescaled by
+ * memoryTotalMb here to ride the same 0-100 axis. Returns null when memory
+ * can't be scaled (memoryTotalMb unavailable) - an unscaled MB value on a
+ * percent axis would render as visual nonsense.
+ */
+export function buildSelectedAppSeries(
+  app: AppWindowSeries,
+  metric: HistoryMetric,
+  memoryTotalMb: number | null,
+  color: string,
+): TimeSeriesSeries | null {
+  if (metric === 'memory' && !memoryTotalMb) return null;
+  const points: TimeSeriesPoint[] = app.points.map(p => {
+    const avg = metric === 'memory' && memoryTotalMb ? (p.avg / memoryTotalMb) * 100 : p.avg;
+    return { t: p.t, avg, max: avg };
+  });
+  return { id: `app:${app.name}`, name: app.name, color, points };
 }
 
 /** The largest plotted (avg) value across every series/point - matches what
