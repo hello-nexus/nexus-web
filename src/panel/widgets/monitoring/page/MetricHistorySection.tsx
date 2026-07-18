@@ -21,6 +21,7 @@ import {
   DUTY_RIBBON_CAP_PCT,
   DUTY_RIBBON_FLOOR_PCT,
   GPU_TEMP_RIBBON_CAP_C,
+  MEM_TEMP_RIBBON_CAP_C,
   RANGE_OPTIONS,
   TEMP_RIBBON_FLOOR_C,
   adaptivePercentYMax,
@@ -76,7 +77,11 @@ export function MetricHistorySection({
       };
     }
     if (metric === 'memory') {
-      return { main: history.series.filter(s => s.id === 'memory'), temp: null, available: true };
+      return {
+        main: history.series.filter(s => s.id === 'memory'),
+        temp: history.series.find(s => s.id === 'mem-temp') ?? null,
+        available: true,
+      };
     }
     if (metric === 'network') {
       return { main: history.series.filter(s => s.id === 'net-in' || s.id === 'net-out'), temp: null, available: true };
@@ -173,16 +178,16 @@ export function MetricHistorySection({
 
   // Rendered inside the chart's own plot, directly under the line (and,
   // when both are present, the duty band sits directly under the temp
-  // band) - see TimeSeriesChart's ribbons prop. Temp is cpu/gpu only;
-  // memory/network request neither series, so both stay empty and the
-  // chart renders no bands for those tabs.
+  // band) - see TimeSeriesChart's ribbons prop. Temp covers cpu/gpu/memory;
+  // duty covers cpu/gpu only - network requests neither series, so the
+  // chart renders no bands there.
   const ribbons: ChartRibbonSpec[] = useMemo(() => {
     const list: ChartRibbonSpec[] = [];
     if (resolved.temp) {
       list.push({
         points: resolved.temp.points,
         floor: TEMP_RIBBON_FLOOR_C,
-        cap: metric === 'gpu' ? GPU_TEMP_RIBBON_CAP_C : CPU_TEMP_RIBBON_CAP_C,
+        cap: metric === 'gpu' ? GPU_TEMP_RIBBON_CAP_C : metric === 'memory' ? MEM_TEMP_RIBBON_CAP_C : CPU_TEMP_RIBBON_CAP_C,
         fill: 'var(--bad)',
         valueLabel: currentTempLabel,
       });
@@ -215,7 +220,7 @@ export function MetricHistorySection({
   }, [metric, history.silhouette, resolved.main]);
 
   // The temperature docked on the SAME line as the tooltip's timestamp
-  // header (item 30/34) - cpu/gpu only, memory/network have no temp series.
+  // header (item 30/34) - cpu/gpu/memory only, network has no temp series.
   const tooltipHeaderTemp = useMemo(() => {
     if (!resolved.temp) return null;
     return (hoverT: number) => {

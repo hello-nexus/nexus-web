@@ -12,7 +12,7 @@ export type HistoryMetric = 'cpu' | 'memory' | 'network' | 'gpu';
 export function seriesQueryFor(metric: HistoryMetric): string {
   switch (metric) {
     case 'cpu': return 'cpu,cpu-temp,fan-duty';
-    case 'memory': return 'memory';
+    case 'memory': return 'memory,mem-temp';
     case 'network': return 'net-in,net-out';
     case 'gpu': return 'gpu,gpu-temp,fan-duty';
   }
@@ -317,6 +317,7 @@ export function adaptivePercentYMax(windowMaxPercent: number): number {
 export const TEMP_RIBBON_FLOOR_C = 30;
 export const CPU_TEMP_RIBBON_CAP_C = 100;
 export const GPU_TEMP_RIBBON_CAP_C = 95;
+export const MEM_TEMP_RIBBON_CAP_C = 85;
 
 // The average-duty ribbon's own absolute scale - a plain percent range, so
 // it needs no per-kind cap the way temperature does.
