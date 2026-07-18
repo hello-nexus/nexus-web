@@ -17,13 +17,7 @@ import { formatRate } from './shared';
 import { ProcessIcon } from './ProcessIcon';
 import { topAppsAtHover } from './appWindowHelpers';
 import {
-  CPU_TEMP_RIBBON_CAP_C,
-  FAN_RPM_RIBBON_CAP,
-  FAN_RPM_RIBBON_FLOOR,
-  GPU_TEMP_RIBBON_CAP_C,
-  MEM_TEMP_RIBBON_CAP_C,
   RANGE_OPTIONS,
-  TEMP_RIBBON_FLOOR_C,
   adaptivePercentYMax,
   averageRpmSeries,
   formatBrushEdgeLabels,
@@ -189,23 +183,19 @@ export function MetricHistorySection({
     if (resolved.temp) {
       list.push({
         points: resolved.temp.points,
-        floor: TEMP_RIBBON_FLOOR_C,
-        cap: metric === 'gpu' ? GPU_TEMP_RIBBON_CAP_C : metric === 'memory' ? MEM_TEMP_RIBBON_CAP_C : CPU_TEMP_RIBBON_CAP_C,
-        fill: 'var(--bad)',
+        fill: 'var(--accent)',
         valueLabel: currentTempLabel,
       });
     }
     if (rpmPoints.length > 0) {
       list.push({
         points: rpmPoints,
-        floor: FAN_RPM_RIBBON_FLOOR,
-        cap: FAN_RPM_RIBBON_CAP,
         fill: 'var(--accent)',
         valueLabel: currentRpmLabel,
       });
     }
     return list;
-  }, [resolved.temp, metric, currentTempLabel, rpmPoints, currentRpmLabel]);
+  }, [resolved.temp, currentTempLabel, rpmPoints, currentRpmLabel]);
 
   const rangeOptions = RANGE_OPTIONS.map(o => ({ value: o.key, label: t(o.labelKey) }));
 

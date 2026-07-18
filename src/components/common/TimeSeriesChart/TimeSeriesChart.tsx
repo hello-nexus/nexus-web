@@ -3,13 +3,14 @@ import { useChartHoverTooltip } from '../../../hooks/useChartHoverTooltip';
 import { useTranslation } from '../../../lib/i18n';
 import {
   GAP_MULTIPLIER,
+  avgValueRange,
   formatTooltipTimestamp,
   medianSpacingMs,
   medianSpacingOfPoints,
   nearestPoint,
   niceTicks,
   resolveValueDomain,
-  ribbonThicknessFraction,
+  ribbonOpacityFraction,
   splitIntoSegments,
   timeDomain,
   type TimeSeriesPoint,
@@ -26,13 +27,12 @@ export interface TimeSeriesBand {
 }
 
 export interface ChartRibbonSpec {
-  /** Points over the same window/domain as the chart's own series. */
+  /** Points over the same window/domain as the chart's own series - also the
+   *  source of this ribbon's own adaptive opacity range: the window's own
+   *  observed min/max among these points' avg values (see avgValueRange),
+   *  recomputed whenever the points change, the same adaptive spirit as the
+   *  main chart's own y-axis. */
   points: readonly TimeSeriesPoint[];
-  /** Absolute thickness-scale floor/ceiling - the ribbon reads the same way
-   *  regardless of the window's own observed min/max (e.g.
-   *  metricHistoryHelpers.ts's TEMP_RIBBON_FLOOR_C / CPU_TEMP_RIBBON_CAP_C). */
-  floor: number;
-  cap: number;
   fill: string;
   /** Rendered at the y-axis label's own x position (see yAxisSide),
    *  vertically centered on this ribbon's band - e.g. the current
@@ -106,11 +106,12 @@ export interface TimeSeriesChartProps {
    *  the monitoring hero chart uses 'right' to match the cooling trend
    *  chart's own right-side-label convention. */
   yAxisSide?: 'left' | 'right';
-  /** Thin thickness-modulated bands rendered INSIDE the plot, stacked in
-   *  order directly under the line/area and above the x-axis labels - they
-   *  share this chart's own x-domain and pixel mapping (xFor), so they stay
-   *  pixel-aligned with the line without a separate alignment computation.
-   *  The line/area's own vertical range shrinks to make room for them. */
+  /** Fixed-height, opacity-modulated bands rendered INSIDE the plot, stacked
+   *  in order directly under the line/area and above the x-axis labels -
+   *  they share this chart's own x-domain and pixel mapping (xFor), so they
+   *  stay pixel-aligned with the line without a separate alignment
+   *  computation. The line/area's own vertical range shrinks to make room
+   *  for them. */
   ribbons?: readonly ChartRibbonSpec[];
   /** A persistent vertical marker at timestamp `t` - distinct from the
    *  transient dashed hover cursor, this one stays put regardless of the
@@ -136,9 +137,10 @@ const CHART_PAD_RIGHT_AXIS = { left: 16, right: 56, top: 12, bottom: 28 };
 // and the icon size a ribbon's `icon` node must already be sized to.
 const RIBBON_DEFAULT_HEIGHT = 18;
 export const RIBBON_ICON_SIZE = 12;
-// Ribbon thickness floor, px - the band never fully disappears at the
-// spec's floor value and never exceeds its own band height at the cap.
-const RIBBON_MIN_THICKNESS_PX = 1.5;
+// Ribbon opacity floor - a segment at the window's own observed min still
+// reads as a faint but visible fill rather than fully disappearing; a
+// segment at the window's own observed max reaches full opacity.
+const RIBBON_OPACITY_FLOOR = 0.1;
 // Vertical breathing room between the line's own bottom gridline/tick label
 // and the first ribbon band - without it the line's minimum-value tick (e.g.
 // "0%") and a ribbon's valueLabel sit close enough to visually overlap.
@@ -243,7 +245,10 @@ export function TimeSeriesChart({
       // at a different cadence than the plotted line it sits under.
       const maxGapMs = (medianSpacingOfPoints(ribbon.points) ?? Infinity) * GAP_MULTIPLIER;
       const segments = splitIntoSegments(ribbon.points, maxGapMs);
-      return { ribbon, top, bandHeight, segments, maxGapMs };
+      // This ribbon's own adaptive opacity range - the window's own observed
+      // min/max among its own points, recomputed whenever they change.
+      const range = avgValueRange(ribbon.points);
+      return { ribbon, top, bandHeight, segments, maxGapMs, range };
     });
   }, [ribbons, pad.top, lineChartH]);
 
@@ -459,12 +464,12 @@ export function TimeSeriesChart({
         }))}
         </g>
 
-        {ribbonBands.map(({ ribbon, top, bandHeight, segments, maxGapMs: ribbonMaxGapMs }, ri) => {
+        {ribbonBands.map(({ ribbon, top, bandHeight, segments, maxGapMs: ribbonMaxGapMs, range }, ri) => {
           const midY = top + bandHeight / 2;
-          const span = ribbon.cap - ribbon.floor || 1;
-          const thicknessFor = (avg: number) => {
-            const frac = ribbonThicknessFraction((avg - ribbon.floor) / span);
-            return RIBBON_MIN_THICKNESS_PX + frac * (bandHeight - RIBBON_MIN_THICKNESS_PX);
+          const opacityFor = (avg: number) => {
+            if (!range) return 1;
+            const frac = ribbonOpacityFraction(avg, range[0], range[1]);
+            return RIBBON_OPACITY_FLOOR + frac * (1 - RIBBON_OPACITY_FLOOR);
           };
           return (
             <g key={ri} role={ribbon.ariaLabel ? 'img' : undefined} aria-label={ribbon.ariaLabel}>
@@ -472,7 +477,7 @@ export function TimeSeriesChart({
                 const isFinalSegment = si === segments.length - 1;
                 return segment.map((p, i) => {
                   const isLastInSegment = i === segment.length - 1;
-                  const thickness = thicknessFor(p.avg);
+                  const opacity = opacityFor(p.avg);
                   const x0 = xFor(p.t);
                   const hasNextInSegment = !isLastInSegment;
                   // The very last point overall only extends to the plot's
@@ -493,10 +498,11 @@ export function TimeSeriesChart({
                       <rect
                         key={p.t}
                         x={x0 - RIBBON_ISOLATED_POINT_HALF_WIDTH_PX}
-                        y={midY - thickness / 2}
+                        y={top}
                         width={RIBBON_ISOLATED_POINT_HALF_WIDTH_PX * 2}
-                        height={thickness}
+                        height={bandHeight}
                         fill={ribbon.fill}
+                        fillOpacity={opacity}
                       />
                     );
                   }
@@ -505,10 +511,11 @@ export function TimeSeriesChart({
                     <rect
                       key={p.t}
                       x={x0}
-                      y={midY - thickness / 2}
+                      y={top}
                       width={Math.max(0, x1 - x0)}
-                      height={thickness}
+                      height={bandHeight}
                       fill={ribbon.fill}
+                      fillOpacity={opacity}
                     />
                   );
                 });

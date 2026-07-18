@@ -477,7 +477,7 @@ describe('TimeSeriesChart', () => {
     it('renders one rect per ribbon point', () => {
       const points = [{ t: 0, avg: 40, max: 41 }, { t: HOUR, avg: 90, max: 92 }, { t: 2 * HOUR, avg: 60, max: 62 }];
       const { container } = render(
-        <TimeSeriesChart series={ribbonSeries} {...baseProps} ribbons={[{ points, floor: 30, cap: 100, fill: 'var(--bad)' }]} />,
+        <TimeSeriesChart series={ribbonSeries} {...baseProps} ribbons={[{ points, fill: 'var(--bad)' }]} />,
       );
       expect(ribbonRects(container).length).toBe(3);
     });
@@ -495,7 +495,7 @@ describe('TimeSeriesChart', () => {
       const { container } = render(
         <TimeSeriesChart
           series={ribbonSeries} {...baseProps} domain={[0, 11 * HOUR]}
-          ribbons={[{ points, floor: 30, cap: 100, fill: 'var(--bad)' }]}
+          ribbons={[{ points, fill: 'var(--bad)' }]}
         />,
       );
       // p1 (t=HOUR) is the last point before the gap - no bar spans from it
@@ -515,7 +515,7 @@ describe('TimeSeriesChart', () => {
       const { container } = render(
         <TimeSeriesChart
           series={ribbonSeries} {...baseProps} domain={[0, 41 * HOUR]}
-          ribbons={[{ points, floor: 30, cap: 100, fill: 'var(--bad)' }]}
+          ribbons={[{ points, fill: 'var(--bad)' }]}
         />,
       );
       // p0-p1, the isolated marker at p2, p3-p4, and p4-to-edge.
@@ -534,7 +534,7 @@ describe('TimeSeriesChart', () => {
       const { container } = render(
         <TimeSeriesChart
           series={ribbonSeries} {...baseProps} domain={[0, 10 * HOUR]}
-          ribbons={[{ points, floor: 30, cap: 100, fill: 'var(--bad)' }]}
+          ribbons={[{ points, fill: 'var(--bad)' }]}
         />,
       );
       // p0-p1 and p1-p2 only - the last point (p2) does not extend forward
@@ -561,7 +561,7 @@ describe('TimeSeriesChart', () => {
       const { container } = render(
         <TimeSeriesChart
           series={ribbonSeries} {...baseProps} domain={[0, 20 * HOUR]}
-          ribbons={[{ points, floor: 30, cap: 100, fill: 'var(--bad)' }]}
+          ribbons={[{ points, fill: 'var(--bad)' }]}
         />,
       );
       // The p0-p1 bar, plus a marker for p2 - no bar reaches the right edge.
@@ -574,39 +574,73 @@ describe('TimeSeriesChart', () => {
       }
     });
 
-    it('amplifies thickness so a mid-range value is not barely distinguishable from the floor (item: amplified scale)', () => {
-      const points = [{ t: 0, avg: 30, max: 30 }, { t: HOUR, avg: 65, max: 65 }];
+    it('maps opacity linearly (no amplification) across the ribbon\'s own window-observed range', () => {
+      const points = [{ t: 0, avg: 20, max: 20 }, { t: HOUR, avg: 60, max: 60 }, { t: 2 * HOUR, avg: 100, max: 100 }];
       const { container } = render(
-        <TimeSeriesChart series={ribbonSeries} {...baseProps} ribbons={[{ points, floor: 30, cap: 100, fill: 'var(--bad)', height: 20 }]} />,
+        <TimeSeriesChart series={ribbonSeries} {...baseProps} ribbons={[{ points, fill: 'var(--bad)' }]} />,
       );
-      const rects = ribbonRects(container);
-      // A pure linear mapping would give the midpoint value (65, exactly
-      // half of [30,100]) half the band's own headroom above the floor
-      // thickness; the amplified (sqrt) mapping must give it more than that.
-      const floorThickness = Number(rects[0].getAttribute('height'));
-      const midThickness = Number(rects[1].getAttribute('height'));
-      const linearMid = floorThickness + 0.5 * (20 - floorThickness);
-      expect(midThickness).toBeGreaterThan(linearMid);
+      const opacities = ribbonRects(container).map(r => Number(r.getAttribute('fill-opacity')));
+      // 20 is this window's own observed min, 100 its own observed max - 60
+      // sits exactly halfway between them, so a linear (non-amplified)
+      // mapping puts its opacity exactly halfway between the other two.
+      expect(opacities[2]).toBeCloseTo(1, 5);
+      expect(opacities[1]).toBeCloseTo((opacities[0] + opacities[2]) / 2, 5);
+      expect(opacities[1]).toBeGreaterThan(opacities[0]);
     });
 
-    it('renders a thicker band for a value nearer the cap (waveform, not opacity)', () => {
-      const points = [{ t: 0, avg: 40, max: 41 }, { t: HOUR, avg: 90, max: 92 }];
-      const { container } = render(
-        <TimeSeriesChart series={ribbonSeries} {...baseProps} ribbons={[{ points, floor: 30, cap: 100, fill: 'var(--bad)' }]} />,
+    it('recomputes its opacity range from the ribbon\'s own points, not a fixed shared scale', () => {
+      // The middle point (avg 44) sits at the exact midpoint of the narrow
+      // fixture's own range [40, 48] but well below the midpoint of the wide
+      // fixture's own range [0, 100] - the same absolute value must map to a
+      // different opacity in each, since the range adapts to each ribbon's
+      // own points rather than a shared fixed scale.
+      const narrowPoints = [{ t: 0, avg: 40, max: 40 }, { t: HOUR, avg: 44, max: 44 }, { t: 2 * HOUR, avg: 48, max: 48 }];
+      const widePoints = [{ t: 0, avg: 0, max: 0 }, { t: HOUR, avg: 44, max: 44 }, { t: 2 * HOUR, avg: 100, max: 100 }];
+      const narrow = render(
+        <TimeSeriesChart series={ribbonSeries} {...baseProps} ribbons={[{ points: narrowPoints, fill: 'var(--bad)' }]} />,
       );
-      const rects = ribbonRects(container);
-      expect(rects[0]).not.toHaveAttribute('fill-opacity');
-      expect(Number(rects[1].getAttribute('height'))).toBeGreaterThan(Number(rects[0].getAttribute('height')));
+      const wide = render(
+        <TimeSeriesChart series={ribbonSeries} {...baseProps} ribbons={[{ points: widePoints, fill: 'var(--bad)' }]} />,
+      );
+      const narrowOpacity = Number(ribbonRects(narrow.container)[1].getAttribute('fill-opacity'));
+      const wideOpacity = Number(ribbonRects(wide.container)[1].getAttribute('fill-opacity'));
+      expect(narrowOpacity).toBeGreaterThan(wideOpacity);
     });
 
-    it('clamps thickness to the band height once at/over the cap', () => {
-      const points = [{ t: 0, avg: 100, max: 100 }, { t: HOUR, avg: 150, max: 150 }];
+    it('maps a flat window (every point sharing one value) to a constant opacity instead of NaN', () => {
+      const points = [{ t: 0, avg: 55, max: 55 }, { t: HOUR, avg: 55, max: 55 }];
       const { container } = render(
-        <TimeSeriesChart series={ribbonSeries} {...baseProps} ribbons={[{ points, floor: 30, cap: 100, fill: 'var(--bad)', height: 12 }]} />,
+        <TimeSeriesChart series={ribbonSeries} {...baseProps} ribbons={[{ points, fill: 'var(--bad)' }]} />,
+      );
+      const opacities = ribbonRects(container).map(r => Number(r.getAttribute('fill-opacity')));
+      expect(opacities.length).toBe(2);
+      for (const o of opacities) {
+        expect(Number.isNaN(o)).toBe(false);
+        expect(o).toBeGreaterThan(0);
+        expect(o).toBeLessThan(1);
+      }
+      expect(opacities[0]).toBeCloseTo(opacities[1], 10);
+    });
+
+    it('maps a single-point window to a constant opacity instead of NaN', () => {
+      const points = [{ t: 0, avg: 55, max: 55 }];
+      const { container } = render(
+        <TimeSeriesChart series={ribbonSeries} {...baseProps} ribbons={[{ points, fill: 'var(--bad)' }]} />,
+      );
+      const opacity = Number(ribbonRects(container)[0].getAttribute('fill-opacity'));
+      expect(Number.isNaN(opacity)).toBe(false);
+      expect(opacity).toBeGreaterThan(0);
+      expect(opacity).toBeLessThan(1);
+    });
+
+    it('renders every ribbon rect at the full band height regardless of value (opacity-only modulation, not thickness)', () => {
+      const points = [{ t: 0, avg: 0, max: 0 }, { t: HOUR, avg: 100, max: 100 }];
+      const { container } = render(
+        <TimeSeriesChart series={ribbonSeries} {...baseProps} ribbons={[{ points, fill: 'var(--bad)', height: 20 }]} />,
       );
       const heights = ribbonRects(container).map(r => Number(r.getAttribute('height')));
-      expect(heights[0]).toBeCloseTo(heights[1], 5);
-      expect(heights[0]).toBeCloseTo(12, 5);
+      expect(heights[0]).toBeCloseTo(20, 5);
+      expect(heights[1]).toBeCloseTo(20, 5);
     });
 
     it('shares the exact x pixel mapping with the line above it - no separate alignment computation', () => {
@@ -614,7 +648,7 @@ describe('TimeSeriesChart', () => {
       const { container } = render(
         <TimeSeriesChart
           series={ribbonSeries} {...baseProps} domain={[0, 2 * HOUR]}
-          ribbons={[{ points, floor: 30, cap: 100, fill: 'var(--bad)' }]}
+          ribbons={[{ points, fill: 'var(--bad)' }]}
         />,
       );
       const clipRect = container.querySelector('clipPath rect')!;
@@ -632,8 +666,8 @@ describe('TimeSeriesChart', () => {
         <TimeSeriesChart
           series={ribbonSeries} {...baseProps}
           ribbons={[
-            { points, floor: 0, cap: 100, fill: 'var(--bad)', height: 12 },
-            { points, floor: 0, cap: 100, fill: 'var(--accent)', height: 12 },
+            { points, fill: 'var(--bad)', height: 12 },
+            { points, fill: 'var(--accent)', height: 12 },
           ]}
         />,
       );
@@ -645,17 +679,17 @@ describe('TimeSeriesChart', () => {
     });
 
     it('leaves a visible gap between two stacked bands rather than letting them touch', () => {
-      // avg pinned at the ribbon's own cap so the rendered thickness equals
-      // the full reserved band height - the rect's own edges then exactly
-      // trace each band's reserved slot, making the gap between them directly
+      // Every ribbon rect is rendered at its own full reserved band height
+      // (opacity-only modulation) - the rect's own edges trace each band's
+      // reserved slot exactly, making the gap between them directly
       // observable from the DOM.
       const points = [{ t: 0, avg: 100, max: 100 }];
       const { container } = render(
         <TimeSeriesChart
           series={ribbonSeries} {...baseProps}
           ribbons={[
-            { points, floor: 0, cap: 100, fill: 'var(--bad)', height: 12 },
-            { points, floor: 0, cap: 100, fill: 'var(--accent)', height: 12 },
+            { points, fill: 'var(--bad)', height: 12 },
+            { points, fill: 'var(--accent)', height: 12 },
           ]}
         />,
       );
@@ -671,7 +705,7 @@ describe('TimeSeriesChart', () => {
       render(
         <TimeSeriesChart
           series={ribbonSeries} {...baseProps} yAxisSide="right"
-          ribbons={[{ points, floor: 0, cap: 100, fill: 'var(--bad)', valueLabel: '61C' }]}
+          ribbons={[{ points, fill: 'var(--bad)', valueLabel: '61C' }]}
         />,
       );
       // A value distinct from any y-axis tick, so this can only be the
@@ -683,7 +717,7 @@ describe('TimeSeriesChart', () => {
     it('renders no valueLabel text when omitted', () => {
       const points = [{ t: 0, avg: 77, max: 77 }];
       render(
-        <TimeSeriesChart series={ribbonSeries} {...baseProps} ribbons={[{ points, floor: 0, cap: 100, fill: 'var(--bad)' }]} />,
+        <TimeSeriesChart series={ribbonSeries} {...baseProps} ribbons={[{ points, fill: 'var(--bad)' }]} />,
       );
       expect(screen.queryByText('77C')).toBeNull();
     });
@@ -693,7 +727,7 @@ describe('TimeSeriesChart', () => {
       const { container } = render(
         <TimeSeriesChart
           series={ribbonSeries} {...baseProps}
-          ribbons={[{ points, floor: 0, cap: 100, fill: 'var(--bad)', icon: <circle data-testid="ribbon-icon" r={6} /> }]}
+          ribbons={[{ points, fill: 'var(--bad)', icon: <circle data-testid="ribbon-icon" r={6} /> }]}
         />,
       );
       const icon = container.querySelector('[data-testid="ribbon-icon"]')!;
@@ -710,7 +744,7 @@ describe('TimeSeriesChart', () => {
       const { container } = render(
         <TimeSeriesChart
           series={ribbonSeries} {...baseProps} yAxisSide="right"
-          ribbons={[{ points, floor: 0, cap: 100, fill: 'var(--bad)', icon: <circle data-testid="ribbon-icon" r={6} /> }]}
+          ribbons={[{ points, fill: 'var(--bad)', icon: <circle data-testid="ribbon-icon" r={6} /> }]}
         />,
       );
       const icon = container.querySelector('[data-testid="ribbon-icon"]')!;
@@ -722,7 +756,7 @@ describe('TimeSeriesChart', () => {
     it('renders no icon group when omitted', () => {
       const points = [{ t: 0, avg: 60, max: 60 }];
       const { container } = render(
-        <TimeSeriesChart series={ribbonSeries} {...baseProps} ribbons={[{ points, floor: 0, cap: 100, fill: 'var(--bad)' }]} />,
+        <TimeSeriesChart series={ribbonSeries} {...baseProps} ribbons={[{ points, fill: 'var(--bad)' }]} />,
       );
       expect(container.querySelector('[data-testid="ribbon-icon"]')).toBeNull();
     });
