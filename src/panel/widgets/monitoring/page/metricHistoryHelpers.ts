@@ -11,10 +11,10 @@ export type HistoryMetric = 'cpu' | 'memory' | 'network' | 'gpu';
 
 export function seriesQueryFor(metric: HistoryMetric): string {
   switch (metric) {
-    case 'cpu': return 'cpu,cpu-temp,fan-duty';
+    case 'cpu': return 'cpu,cpu-temp,fan';
     case 'memory': return 'memory,mem-temp';
     case 'network': return 'net-in,net-out';
-    case 'gpu': return 'gpu,gpu-temp,fan-duty';
+    case 'gpu': return 'gpu,gpu-temp,fan';
   }
 }
 
@@ -309,21 +309,6 @@ export function adaptivePercentYMax(windowMaxPercent: number): number {
   return 100;
 }
 
-// The temp ribbon's absolute thickness scale (item 31): near-zero thickness
-// at the floor, full thickness at the per-kind cap - a fixed real-world
-// range instead of the window's own min/max, so the ribbon reads the same
-// way across different scrub windows. Clamped in TimeSeriesChart's own
-// ribbon rendering (the `ribbons` prop's floor/cap).
-export const TEMP_RIBBON_FLOOR_C = 30;
-export const CPU_TEMP_RIBBON_CAP_C = 100;
-export const GPU_TEMP_RIBBON_CAP_C = 95;
-export const MEM_TEMP_RIBBON_CAP_C = 85;
-
-// The average-duty ribbon's own absolute scale - a plain percent range, so
-// it needs no per-kind cap the way temperature does.
-export const DUTY_RIBBON_FLOOR_PCT = 0;
-export const DUTY_RIBBON_CAP_PCT = 100;
-
 /** The temperature point nearest hovered timestamp `t`, for the chart's tooltipExtra row. */
 export function nearestTempAt(points: readonly TimeSeriesPoint[], t: number, maxDeltaMs: number): TimeSeriesPoint | null {
   return nearestPoint(points, t, maxDeltaMs);
@@ -344,20 +329,22 @@ export function sumSilhouette(seriesList: readonly MetricHistorySeries[]): TimeS
 }
 
 /**
- * Averages every fan-duty series (kind === 'fan-duty') into one line: at
- * each timestamp any fan reported a point for, the mean of their avg values
+ * Averages every fan series (kind === 'fan', RPM) into one line: at each
+ * timestamp any fan reported a point for, the mean of their avg values
  * (only the fans present at that instant - a fan missing a tick is skipped,
  * not treated as 0) and the max of their max values. Fans share the
  * sampler tick so timestamps normally align exactly, but this aligns by
  * timestamp rather than by array index/fan count, so a momentary mismatch
  * (a fan's point arriving a tick late, a fan added/removed) still produces
- * a correct average instead of pairing the wrong points. Empty input (no
- * fan-duty series, or none with points) returns [].
+ * a correct average instead of pairing the wrong points - and a fan missing
+ * from a given tick is simply omitted from that timestamp rather than
+ * synthesized, so a gap in one fan's own reporting never drags the average
+ * toward zero. Empty input (no fan series, or none with points) returns [].
  */
-export function averageDutySeries(series: readonly MetricHistorySeries[]): TimeSeriesPoint[] {
+export function averageRpmSeries(series: readonly MetricHistorySeries[]): TimeSeriesPoint[] {
   const byT = new Map<number, { sum: number; count: number; max: number }>();
   for (const s of series) {
-    if (s.kind !== 'fan-duty') continue;
+    if (s.kind !== 'fan') continue;
     for (const p of s.points) {
       const cur = byT.get(p.t) ?? { sum: 0, count: 0, max: -Infinity };
       byT.set(p.t, { sum: cur.sum + p.avg, count: cur.count + 1, max: Math.max(cur.max, p.max) });

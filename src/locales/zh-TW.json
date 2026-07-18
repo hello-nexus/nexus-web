@@ -930,7 +930,6 @@
   "diagnostics.temperature.emptyDay": "{date}沒有記錄的溫度資料。",
   "diagnostics.temperature.episode": "{name} 在 {date} 達到 {peak}，持續 {duration}",
   "diagnostics.temperature.episodesTitle": "持續高溫",
-  "diagnostics.temperature.fanDuty": "平均風扇工作週期",
   "diagnostics.temperature.max": "最大",
   "diagnostics.temperature.range.14d": "14 天",
   "diagnostics.temperature.range.24h": "24 小時",

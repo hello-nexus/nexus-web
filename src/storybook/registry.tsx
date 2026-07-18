@@ -2,7 +2,7 @@
 // file per preview to satisfy the fast-refresh rule would be dozens of tiny
 // files. Storybook entries reload (not HMR) on edit.
 import { useEffect, useRef, useState, type CSSProperties, type FC } from 'react';
-import { Monitor, Palette, Sparkles, X, Plus, Settings, Download, AlertTriangle, HardDrive, Fan, Pause } from 'lucide-react';
+import { Monitor, Palette, Sparkles, X, Plus, Settings, Download, AlertTriangle, HardDrive, Pause } from 'lucide-react';
 import { ViewHeader } from '../components/common/ViewHeader/ViewHeader';
 import { Sparkline } from '../components/common/Sparkline/Sparkline';
 import { SensorCard } from '../components/common/SensorCard/SensorCard';
@@ -97,7 +97,7 @@ import { Stepper as StorybookStepper } from '../components/common/Stepper/Steppe
 import { RangeBar } from '../components/common/RangeBar/RangeBar';
 import { Badge as StorybookBadge } from '../components/common/Badge/Badge';
 import { SeriesChart } from '../components/common/SeriesChart/SeriesChart';
-import { RIBBON_ICON_SIZE, TimeSeriesChart } from '../components/common/TimeSeriesChart/TimeSeriesChart';
+import { TimeSeriesChart } from '../components/common/TimeSeriesChart/TimeSeriesChart';
 import { TimelineBrush } from '../components/common/TimelineBrush/TimelineBrush';
 import { EventTimeline } from '../components/common/EventTimeline/EventTimeline';
 import { TextInput } from '../components/common/TextInput/TextInput';
@@ -549,10 +549,10 @@ function PreviewTimeSeriesChart() {
     const avg = 55 + 30 * Math.sin(i / 3) + sampleNoise(i, 4) * 2;
     return { t, avg, max: avg + 5 };
   });
-  const dutyPoints = Array.from({ length: 48 }, (_, i) => {
+  const rpmPoints = Array.from({ length: 48 }, (_, i) => {
     const t = now - (48 - i) * (DAY / 8);
-    const avg = 45 + 25 * Math.sin(i / 3) + sampleNoise(i, 6) * 2;
-    return { t, avg, max: avg + 3 };
+    const avg = 1200 + 600 * Math.sin(i / 3) + sampleNoise(i, 6) * 30;
+    return { t, avg, max: avg + 40 };
   });
   return (
     <TimeSeriesChart
@@ -567,8 +567,8 @@ function PreviewTimeSeriesChart() {
       maxLabel="Max"
       yAxisSide="right"
       ribbons={[
-        { points: tempPoints, floor: 30, cap: 100, fill: 'var(--bad)', valueLabel: `${Math.round(tempPoints[tempPoints.length - 1].avg)}°C` },
-        { points: dutyPoints, floor: 0, cap: 100, fill: 'var(--accent)', icon: <Fan size={RIBBON_ICON_SIZE} aria-hidden />, ariaLabel: 'Average fan duty' },
+        { points: tempPoints, fill: 'var(--accent)', valueLabel: `${Math.round(tempPoints[tempPoints.length - 1].avg)}°C` },
+        { points: rpmPoints, fill: 'var(--accent)', valueLabel: `${Math.round(rpmPoints[rpmPoints.length - 1].avg)} RPM` },
       ]}
       tooltipExtra={() => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, paddingTop: 6, borderTop: '1px solid var(--separator)' }}>
@@ -2021,7 +2021,7 @@ export const REGISTRY: StorybookEntry[] = [
     name: 'TimeSeriesChart', category: 'charts',
     filePath: 'src/components/common/TimeSeriesChart/TimeSeriesChart.tsx',
     description: 'Multi-series line chart over a real date/time domain (not a fixed live-seconds window). Tracks container width via ResizeObserver. A gap wider than 1.5x the actual median point spacing (derived from the data, not a nominal bucket size) breaks the line instead of interpolating across it, and an isolated point renders as a dot. Used by the Diagnostics Cooling tab\'s temperature history and the Monitoring page\'s persistent history chart.', Preview: PreviewTimeSeriesChart,
-    notes: 'Points carry {t, avg, max}; only avg is plotted, both are shown in the hover tooltip. xTickFormat/valueFormat let the caller pick range-appropriate label granularity and unit formatting. Optional bands prop draws translucent spans (e.g. sustained-high episodes). Optional tooltipExtra(t) appends caller content after the series rows (e.g. the Cooling tab\'s per-bucket app breakdown) - renders nothing when it returns null. yAxisSide flips the tick-label lane to the right edge (the Monitoring history chart\'s convention). ribbons renders thickness-modulated bands (e.g. temperature) INSIDE the plot, stacked under the line and sharing its own x-domain/pixel mapping - each carries its own floor/cap, fill, optional icon, and optional right-edge valueLabel.',
+    notes: 'Points carry {t, avg, max}; only avg is plotted, both are shown in the hover tooltip. xTickFormat/valueFormat let the caller pick range-appropriate label granularity and unit formatting. Optional bands prop draws translucent spans (e.g. sustained-high episodes). Optional tooltipExtra(t) appends caller content after the series rows (e.g. the Cooling tab\'s per-bucket app breakdown) - renders nothing when it returns null. yAxisSide flips the tick-label lane to the right edge (the Monitoring history chart\'s convention). ribbons renders fixed-height, opacity-modulated bands (e.g. temperature) INSIDE the plot, stacked under the line and sharing its own x-domain/pixel mapping - each segment\'s opacity maps linearly from that ribbon\'s own window-observed min/max, and each ribbon carries its own points, fill, optional icon, and optional right-edge valueLabel.',
   },
   {
     name: 'TimelineBrush', category: 'charts',

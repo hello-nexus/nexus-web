@@ -161,205 +161,193 @@ describe('useMetricHistory', () => {
     expect(result.current.dragging).toBe(false);
   });
 
-  describe('drag-time live rendering (item 29)', () => {
-    it('never renders an empty series across a simulated drag sequence, even with cache noise from earlier ticks', async () => {
+  describe('drag-time live rendering (item 29): pan/clip the frozen fine snapshot', () => {
+    it('never renders an empty series across a simulated drag sequence within the frozen snapshot\'s own coverage, with zero fetches', async () => {
       fetchMock.mockResolvedValue({
         data: resp('cpu', [
-          { t: NOW - 29 * MINUTE, avg: 12, max: 12 },
-          { t: NOW - 24 * MINUTE, avg: 14, max: 14 },
-          { t: NOW - 18 * MINUTE, avg: 9, max: 9 },
-          { t: NOW - 12 * MINUTE, avg: 16, max: 16 },
-          { t: NOW - 6 * MINUTE, avg: 11, max: 11 },
-          { t: NOW - MINUTE, avg: 13, max: 13 },
+          { t: NOW - 5 * MINUTE, avg: 10, max: 10 },
+          { t: NOW - 4 * MINUTE, avg: 12, max: 12 },
+          { t: NOW - 3 * MINUTE, avg: 14, max: 14 },
+          { t: NOW - 2 * MINUTE, avg: 16, max: 16 },
+          { t: NOW - MINUTE, avg: 18, max: 18 },
+          { t: NOW, avg: 20, max: 20 },
         ]),
         mocked: false, unsupported: false,
       });
       const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
       await advance(0);
+      fetchMock.mockClear();
+      fetchMock.mockImplementation(() => new Promise(() => {})); // never resolves - proves the render is not fetch-driven
 
       const dragSteps: Array<[number, number]> = [
-        [NOW - 28 * MINUTE, NOW - 23 * MINUTE],
-        [NOW - 24 * MINUTE, NOW - 19 * MINUTE],
-        [NOW - 20 * MINUTE, NOW - 15 * MINUTE],
-        [NOW - 16 * MINUTE, NOW - 11 * MINUTE],
-        [NOW - 12 * MINUTE, NOW - 7 * MINUTE],
+        [NOW - 5 * MINUTE, NOW - 4 * MINUTE],
+        [NOW - 4 * MINUTE, NOW - 3 * MINUTE],
+        [NOW - 3 * MINUTE, NOW - 2 * MINUTE],
       ];
       for (const [from, to] of dragSteps) {
         act(() => { result.current.onBrushChange(from, to, 'drag'); });
-        // A short pause between ticks lets that tick's own coarse fetch
-        // resolve and cache itself for this narrow window - exactly the
-        // noise that used to feed the NEXT tick's overlap-fallback tier a
-        // near-empty sliver.
-        await advance(40);
         expect(result.current.series.find(s => s.id === 'cpu')?.points.length ?? 0).toBeGreaterThan(0);
       }
-
-      const [lastFrom, lastTo] = dragSteps[dragSteps.length - 1];
-      act(() => { result.current.onBrushChange(lastFrom, lastTo, 'end'); });
-      await advance(0);
-      expect(result.current.series.find(s => s.id === 'cpu')?.points.length ?? 0).toBeGreaterThan(0);
+      expect(fetchMock).not.toHaveBeenCalled();
     });
 
-    it('renders synchronously from the silhouette on every drag event, with no fetch required', async () => {
-      // Seed the strip silhouette (fetched on mount) with real points across
-      // the upcoming drag target, so the synchronous render has something to
-      // slice from.
-      fetchMock.mockResolvedValue({
-        data: resp('cpu', [
-          { t: NOW - 25 * MINUTE, avg: 11, max: 11 },
-          { t: NOW - 20 * MINUTE, avg: 22, max: 22 },
-          { t: NOW - 10 * MINUTE, avg: 33, max: 33 },
-        ]),
-        mocked: false, unsupported: false,
+    it('pans/clips the frozen FINE viewport fetch, not the coarser silhouette, with no fetch required', async () => {
+      // Distinguishes the two sources: the silhouette (maxPoints=400) carries
+      // a sentinel value the fine box fetch (maxPoints=800) never does.
+      fetchMock.mockImplementation(async q => {
+        if (q.maxPoints === 400) {
+          return { data: resp('cpu', [{ t: NOW - 25 * MINUTE, avg: 999, max: 999 }]), mocked: false, unsupported: false };
+        }
+        return {
+          data: resp('cpu', [
+            { t: NOW - 4 * MINUTE, avg: 50, max: 50 },
+            { t: NOW - 2 * MINUTE, avg: 60, max: 60 },
+          ]),
+          mocked: false, unsupported: false,
+        };
       });
       const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
       await advance(0);
 
-      fetchMock.mockImplementation(() => new Promise(() => {})); // never resolves - proves the render is NOT fetch-driven
-      act(() => { result.current.onBrushChange(NOW - 25 * MINUTE, NOW - 20 * MINUTE, 'drag'); });
+      fetchMock.mockImplementation(() => new Promise(() => {})); // never resolves - proves the render is not fetch-driven
+      act(() => { result.current.onBrushChange(NOW - 4 * MINUTE, NOW - 2 * MINUTE, 'drag'); });
 
-      // Sliced synchronously from the already-loaded silhouette - no await,
-      // and never empty even though the fetch above never resolves.
-      expect(result.current.series.find(s => s.id === 'cpu')?.points).toEqual([
-        { t: NOW - 25 * MINUTE, avg: 11, max: 11 },
-        { t: NOW - 20 * MINUTE, avg: 22, max: 22 },
+      const points = result.current.series.find(s => s.id === 'cpu')?.points;
+      expect(points).toEqual([
+        { t: NOW - 4 * MINUTE, avg: 50, max: 50 },
+        { t: NOW - 2 * MINUTE, avg: 60, max: 60 },
       ]);
+      expect(points?.some(p => p.avg === 999)).toBe(false);
     });
 
-    it('never applies a stale, barely-overlapping cache entry mid-drag (the near-empty-spike regression)', async () => {
-      // Seed the silhouette with a flat, always-available baseline over the
-      // whole strip.
-      fetchMock.mockResolvedValue({
-        data: resp('cpu', [
-          { t: NOW - 29 * MINUTE, avg: 40, max: 40 },
-          { t: NOW - 20 * MINUTE, avg: 42, max: 42 },
-          { t: NOW - 10 * MINUTE, avg: 41, max: 41 },
-          { t: NOW - MINUTE, avg: 43, max: 43 },
-        ]),
-        mocked: false, unsupported: false,
+    it('falls back to the silhouette slice when the frozen fine snapshot has no coverage for the dragged-to window', async () => {
+      fetchMock.mockImplementation(async q => {
+        if (q.maxPoints === 400) {
+          return {
+            data: resp('cpu', [
+              { t: NOW - 25 * MINUTE, avg: 20, max: 20 },
+              { t: NOW - 15 * MINUTE, avg: 30, max: 30 },
+            ]),
+            mocked: false, unsupported: false,
+          };
+        }
+        return { data: resp('cpu', [{ t: NOW - 4 * MINUTE, avg: 50, max: 50 }]), mocked: false, unsupported: false };
       });
       const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
-      await advance(0);
-
-      // A narrow coarse-fetch response lands for an EARLIER drag position,
-      // caching a window that only barely overlaps (a sliver at its very
-      // edge) the next drag target - the exact shape that used to produce a
-      // near-empty render with a single spike.
-      fetchMock.mockResolvedValueOnce({
-        data: resp('cpu', [{ t: NOW - 20 * MINUTE, avg: 5, max: 5 }]),
-        mocked: false, unsupported: false,
-      });
-      act(() => { result.current.onBrushChange(NOW - 21 * MINUTE, NOW - 20 * MINUTE, 'drag'); });
       await advance(0);
 
       fetchMock.mockImplementation(() => new Promise(() => {}));
-      act(() => { result.current.onBrushChange(NOW - 20 * MINUTE, NOW - 10 * MINUTE, 'drag'); });
+      // Dragged far outside the fine snapshot's own [NOW-5m, NOW] extent,
+      // into a region only the silhouette (spanning the whole 30m strip)
+      // has any data for.
+      act(() => { result.current.onBrushChange(NOW - 26 * MINUTE, NOW - 24 * MINUTE, 'drag'); });
 
-      const points = result.current.series.find(s => s.id === 'cpu')?.points ?? [];
-      expect(points.length).toBeGreaterThan(1);
-      expect(points).toEqual([
-        { t: NOW - 20 * MINUTE, avg: 42, max: 42 },
-        { t: NOW - 10 * MINUTE, avg: 41, max: 41 },
+      expect(result.current.series.find(s => s.id === 'cpu')?.points).toEqual([
+        { t: NOW - 25 * MINUTE, avg: 20, max: 20 },
       ]);
     });
 
-    it('fires a throttled coarse (100pt) fetch during the drag, refining the synchronous render', async () => {
+    it('falls back to the silhouette slice when the pan covers only a thin sliver of the frozen snapshot\'s own edge (the near-empty-spike regression)', async () => {
+      fetchMock.mockImplementation(async q => {
+        if (q.maxPoints === 400) {
+          return { data: resp('cpu', [{ t: NOW + 2 * MINUTE, avg: 999, max: 999 }]), mocked: false, unsupported: false };
+        }
+        // Fine snapshot: 1-minute-spaced points across [NOW-5m, NOW].
+        return {
+          data: resp('cpu', [
+            { t: NOW - 5 * MINUTE, avg: 10, max: 10 },
+            { t: NOW - 4 * MINUTE, avg: 20, max: 20 },
+            { t: NOW - 3 * MINUTE, avg: 30, max: 30 },
+            { t: NOW - 2 * MINUTE, avg: 40, max: 40 },
+            { t: NOW - MINUTE, avg: 50, max: 50 },
+            { t: NOW, avg: 60, max: 60 },
+          ]),
+          mocked: false, unsupported: false,
+        };
+      });
+      const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
+      await advance(0);
+
+      fetchMock.mockImplementation(() => new Promise(() => {}));
+      // A 5-minute-wide pan that only overlaps the snapshot's own last 30s
+      // (a single point, t=NOW) - a real render here would be a lone spike,
+      // not a readable pan.
+      act(() => { result.current.onBrushChange(NOW - 0.5 * MINUTE, NOW + 4.5 * MINUTE, 'drag'); });
+
+      expect(result.current.series.find(s => s.id === 'cpu')?.points).toEqual([
+        { t: NOW + 2 * MINUTE, avg: 999, max: 999 },
+      ]);
+    });
+
+    it('still uses the real fine data for a pan covering a healthy majority of the window, even short of full coverage', async () => {
+      fetchMock.mockImplementation(async q => {
+        if (q.maxPoints === 400) {
+          return { data: resp('cpu', [{ t: NOW - 3 * MINUTE, avg: 999, max: 999 }]), mocked: false, unsupported: false };
+        }
+        return {
+          data: resp('cpu', [
+            { t: NOW - 5 * MINUTE, avg: 10, max: 10 },
+            { t: NOW - 4 * MINUTE, avg: 20, max: 20 },
+            { t: NOW - 3 * MINUTE, avg: 30, max: 30 },
+            { t: NOW - 2 * MINUTE, avg: 40, max: 40 },
+            { t: NOW - MINUTE, avg: 50, max: 50 },
+            { t: NOW, avg: 60, max: 60 },
+          ]),
+          mocked: false, unsupported: false,
+        };
+      });
+      const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
+      await advance(0);
+
+      fetchMock.mockImplementation(() => new Promise(() => {}));
+      // A 5-minute-wide pan overlapping the snapshot's last 4.5 minutes -
+      // short of full coverage, but well past the fallback threshold.
+      act(() => { result.current.onBrushChange(NOW - 4.5 * MINUTE, NOW + 0.5 * MINUTE, 'drag'); });
+
+      const points = result.current.series.find(s => s.id === 'cpu')?.points;
+      expect(points?.some(p => p.avg === 999)).toBe(false);
+      expect(points).toEqual([
+        { t: NOW - 4 * MINUTE, avg: 20, max: 20 },
+        { t: NOW - 3 * MINUTE, avg: 30, max: 30 },
+        { t: NOW - 2 * MINUTE, avg: 40, max: 40 },
+        { t: NOW - MINUTE, avg: 50, max: 50 },
+        { t: NOW, avg: 60, max: 60 },
+      ]);
+    });
+
+    it('issues no network request at all during a rapid multi-tick drag (no per-tick coarse fetch)', async () => {
       const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
       await advance(0);
       fetchMock.mockClear();
+
+      act(() => { result.current.onBrushChange(NOW - 20 * MINUTE, NOW - 15 * MINUTE, 'drag'); });
+      act(() => { result.current.onBrushChange(NOW - 18 * MINUTE, NOW - 13 * MINUTE, 'drag'); });
+      act(() => { result.current.onBrushChange(NOW - 16 * MINUTE, NOW - 11 * MINUTE, 'drag'); });
+      await advance(0);
+
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('a live-tail merge while following updates the frozen snapshot but does not disturb the visible drag-pan mid-gesture', async () => {
       fetchMock.mockResolvedValue({
-        data: resp('cpu', [{ t: NOW - 4 * HOUR, avg: 33, max: 33 }]), mocked: false, unsupported: false,
+        data: resp('cpu', [
+          { t: NOW - 5 * MINUTE, avg: 10, max: 10 },
+          { t: NOW, avg: 20, max: 20 },
+        ]),
+        mocked: false, unsupported: false,
       });
-
-      act(() => { result.current.onBrushChange(NOW - 5 * HOUR, NOW - 4 * HOUR, 'drag'); });
-      await advance(0);
-
-      const coarseCalls = fetchMock.mock.calls.filter(([q]) => q.maxPoints === 100);
-      expect(coarseCalls.length).toBe(1);
-      expect(coarseCalls[0][0]).toEqual({ from: NOW - 5 * HOUR, to: NOW - 4 * HOUR, maxPoints: 100, series: 'cpu' });
-      expect(result.current.series.find(s => s.id === 'cpu')?.points).toEqual([{ t: NOW - 4 * HOUR, avg: 33, max: 33 }]);
-    });
-
-    it('throttles the coarse fetch to one in flight, chasing directly to the LATEST window once it resolves (not replaying every intermediate one)', async () => {
       const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
       await advance(0);
-      fetchMock.mockClear();
 
-      const first = deferred<{ data: MetricHistoryResponse | null; mocked: boolean; unsupported: boolean }>();
-      fetchMock.mockReturnValueOnce(first.promise);
-      fetchMock.mockResolvedValue({ data: emptyResp(), mocked: false, unsupported: false });
-
-      act(() => { result.current.onBrushChange(NOW - 5 * HOUR, NOW - 4 * HOUR, 'drag'); });
-      // Two more drag events land while the first coarse fetch is still pending.
-      act(() => { result.current.onBrushChange(NOW - 5 * HOUR, NOW - 3 * HOUR, 'drag'); });
-      act(() => { result.current.onBrushChange(NOW - 5 * HOUR, NOW - 2 * HOUR, 'drag'); });
-
-      expect(fetchMock.mock.calls.filter(([q]) => q.maxPoints === 100).length).toBe(1);
-
-      await act(async () => {
-        first.resolve({ data: emptyResp(), mocked: false, unsupported: false });
-        await Promise.resolve();
-      });
-
-      const coarseCalls = fetchMock.mock.calls.filter(([q]) => q.maxPoints === 100);
-      expect(coarseCalls.length).toBe(2);
-      expect(coarseCalls[1][0]).toEqual({ from: NOW - 5 * HOUR, to: NOW - 2 * HOUR, maxPoints: 100, series: 'cpu' });
-    });
-
-    it('discards a coarse response that resolves after the drag already ended, so it cannot clobber the settled fine render', async () => {
-      const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
-      await advance(0);
-      fetchMock.mockClear();
-
-      const coarse = deferred<{ data: MetricHistoryResponse | null; mocked: boolean; unsupported: boolean }>();
-      fetchMock.mockReturnValueOnce(coarse.promise);
-      act(() => { result.current.onBrushChange(NOW - 5 * HOUR, NOW - 4 * HOUR, 'drag'); });
+      act(() => { result.current.onBrushChange(NOW - 5 * MINUTE, NOW, 'drag'); });
+      const beforeTail = result.current.series.find(s => s.id === 'cpu')?.points;
 
       fetchMock.mockResolvedValue({
-        data: resp('cpu', [{ t: NOW - 4 * HOUR, avg: 99, max: 99 }]), mocked: false, unsupported: false,
+        data: resp('cpu', [{ t: NOW + 1000, avg: 99, max: 99 }]), mocked: false, unsupported: false,
       });
-      act(() => { result.current.onBrushChange(NOW - 5 * HOUR, NOW - 4 * HOUR, 'end'); });
-      await advance(0);
-      const settledPoints = result.current.series.find(s => s.id === 'cpu')?.points;
+      await advance(1000); // exactly one live-tail poll tick
 
-      // The stale coarse fetch (from before the release) finally resolves.
-      await act(async () => {
-        coarse.resolve({ data: resp('cpu', [{ t: NOW - 4 * HOUR, avg: 1, max: 1 }]), mocked: false, unsupported: false });
-        await Promise.resolve();
-      });
-
-      expect(result.current.series.find(s => s.id === 'cpu')?.points).toEqual(settledPoints);
-    });
-
-    it('never applies a coarse response for an EARLIER drag target once the user has dragged further, even though the phase is still \'drag\' throughout', async () => {
-      // Checking only lastPhaseRef==='drag' is not enough to prove
-      // freshness: the phase stays 'drag' across multiple drag events, so a
-      // fetch for an abandoned window resolving after the user has already
-      // moved on must be rejected by comparing against the actual current
-      // target, not just the phase.
-      const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
-      await advance(0);
-      fetchMock.mockClear();
-
-      const forA = deferred<{ data: MetricHistoryResponse | null; mocked: boolean; unsupported: boolean }>();
-      fetchMock.mockReturnValueOnce(forA.promise);
-      act(() => { result.current.onBrushChange(NOW - 5 * HOUR, NOW - 4 * HOUR, 'drag'); });
-
-      // A second drag lands before A's coarse fetch resolves - throttled to
-      // one in flight, so C's own fetch is only queued, never started yet.
-      const forC = deferred<{ data: MetricHistoryResponse | null; mocked: boolean; unsupported: boolean }>();
-      fetchMock.mockReturnValueOnce(forC.promise);
-      act(() => { result.current.onBrushChange(NOW - 5 * HOUR, NOW - 2 * HOUR, 'drag'); });
-
-      // A's stale response resolves - C's own fetch (queued next) is left
-      // pending throughout, isolating this assertion to A's effect alone.
-      await act(async () => {
-        forA.resolve({ data: resp('cpu', [{ t: NOW - 4 * HOUR, avg: 1, max: 1 }]), mocked: false, unsupported: false });
-        await Promise.resolve();
-      });
-
-      const avgs = (result.current.series.find(s => s.id === 'cpu')?.points ?? []).map(p => p.avg);
-      expect(avgs).not.toContain(1);
+      expect(result.current.series.find(s => s.id === 'cpu')?.points).toEqual(beforeTail);
     });
   });
 

@@ -86,7 +86,7 @@ describe('useUnifiedDevices - Stream Deck per-deck entries', () => {
     mockUseStreamDecks.mockReturnValue({
       decks: [
         makeDeck({ serial: 'SN1', model: 'Mini' }),
-        makeDeck({ serial: 'SN2', model: 'XL', connected: false }),
+        makeDeck({ serial: 'SN2', model: 'XL' }),
       ],
     });
 
@@ -160,7 +160,7 @@ describe('useUnifiedDevices - Stream Deck per-deck entries', () => {
     expect(result.current.unified.find(d => d.streamdeckSerial === 'SN1')?.connected).toBe(true);
   });
 
-  it('still reports a deck as disconnected when control is off and the hardware is gone', () => {
+  it('omits a released deck once the hardware is gone (control off, not enumerated)', () => {
     mockUseDevices.mockReturnValue({
       devices: [makeHandlerRow({ connected: false, nexusControlEnabled: false, supportsNexusControl: true })],
       controlDevice: vi.fn(),
@@ -169,10 +169,10 @@ describe('useUnifiedDevices - Stream Deck per-deck entries', () => {
 
     const { result } = renderHook(() => useUnifiedDevices(true));
 
-    expect(result.current.unified.find(d => d.streamdeckSerial === 'SN1')?.connected).toBe(false);
+    expect(result.current.unified.find(d => d.streamdeckSerial === 'SN1')).toBeUndefined();
   });
 
-  it('leaves per-deck connected authoritative while control is on', () => {
+  it('keeps a present deck (own connected authoritative) and omits a non-present one while control is on', () => {
     mockUseDevices.mockReturnValue({
       devices: [makeHandlerRow({ connected: true, nexusControlEnabled: true, supportsNexusControl: true })],
       controlDevice: vi.fn(),
@@ -184,8 +184,11 @@ describe('useUnifiedDevices - Stream Deck per-deck entries', () => {
     const { result } = renderHook(() => useUnifiedDevices(true));
     const bySerial = (s: string) => result.current.unified.find(d => d.streamdeckSerial === s);
 
+    // Control on never forces connected (deckPresentWhileReleased is off), so a
+    // present deck reports its own flag and a non-present one is dropped, not
+    // shown as a phantom disconnected row.
     expect(bySerial('SN1')?.connected).toBe(true);
-    expect(bySerial('SN2')?.connected).toBe(false);
+    expect(bySerial('SN2')).toBeUndefined();
   });
 
   it('falls back to the handler-agnostic defaults when the /devices/all handler row has not loaded yet', () => {
@@ -231,15 +234,16 @@ describe('useUnifiedDevices - Stream Deck per-deck entries', () => {
     expect(bySerial('SN2')?.warning).toBeUndefined();
   });
 
-  it('lists a persisted-but-unplugged deck as a disconnected entry, not omitted', () => {
+  it('omits a persisted-but-unplugged deck (control on, hardware not on the bus)', () => {
     mockUseDevices.mockReturnValue({ devices: [makeHandlerRow({ connected: false })], controlDevice: vi.fn() });
     mockUseStreamDecks.mockReturnValue({ decks: [makeDeck({ serial: 'SN1', connected: false })] });
 
     const { result } = renderHook(() => useUnifiedDevices(true));
     const entry = result.current.unified.find(d => d.streamdeckSerial === 'SN1');
 
-    expect(entry).toBeDefined();
-    expect(entry?.connected).toBe(false);
+    // The service keeps the deck's persisted record forever; it must not surface
+    // as a phantom device once the hardware leaves the USB bus.
+    expect(entry).toBeUndefined();
   });
 
   it('emits no entries when there are no decks at all', () => {

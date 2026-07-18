@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { Fan, Thermometer, ZoomOut } from 'lucide-react';
+import { Thermometer, ZoomOut } from 'lucide-react';
 import { TimeSeriesChart } from '../../../../components/common/TimeSeriesChart/TimeSeriesChart';
 import { nearestPoint } from '../../../../components/common/TimeSeriesChart/timeSeriesChartUtils';
 import { TimelineBrush, TIMELINE_BRUSH_DEFAULT_HEIGHT } from '../../../../components/common/TimelineBrush/TimelineBrush';
@@ -17,15 +17,9 @@ import { formatRate } from './shared';
 import { ProcessIcon } from './ProcessIcon';
 import { topAppsAtHover } from './appWindowHelpers';
 import {
-  CPU_TEMP_RIBBON_CAP_C,
-  DUTY_RIBBON_CAP_PCT,
-  DUTY_RIBBON_FLOOR_PCT,
-  GPU_TEMP_RIBBON_CAP_C,
-  MEM_TEMP_RIBBON_CAP_C,
   RANGE_OPTIONS,
-  TEMP_RIBBON_FLOOR_C,
   adaptivePercentYMax,
-  averageDutySeries,
+  averageRpmSeries,
   formatBrushEdgeLabels,
   maxAvgValue,
   nearestTempAt,
@@ -35,7 +29,7 @@ import {
   xTickFormatForWindow,
   type HistoryMetric,
 } from './metricHistoryHelpers';
-import { RIBBON_ICON_SIZE, type ChartRibbonSpec } from '../../../../components/common/TimeSeriesChart/TimeSeriesChart';
+import type { ChartRibbonSpec } from '../../../../components/common/TimeSeriesChart/TimeSeriesChart';
 import type { MetricHistorySeries } from '../../../../api/monitoringHistory';
 import styles from './MetricHistorySection.module.scss';
 
@@ -57,7 +51,9 @@ export interface MetricHistorySectionProps {
   onGraphClick: (t: number) => void;
 }
 
-const CHART_HEIGHT = 220;
+// Tall enough to keep the line/area's own plot area comfortable even with
+// both ribbons present (temperature + fan speed, cpu/gpu tabs).
+const CHART_HEIGHT = 238;
 const TOOLTIP_APPS_LIMIT = 8;
 
 export function MetricHistorySection({
@@ -123,10 +119,10 @@ export function MetricHistorySection({
     [metric, chartSeries],
   );
   // The ceiling freezes for the whole of an active TimelineBrush drag: the
-  // series driving liveYMax is the during-drag silhouette slice, coarser
-  // than the settled window and prone to a different observed peak on every
-  // tick (recomputing per tick wobbles the axis even though the underlying
-  // data isn't flickering anymore). Only recomputed once the drag settles.
+  // series driving liveYMax is a pan/clip of the frozen fine snapshot, whose
+  // own observed peak still shifts tick to tick as the visible window moves
+  // across real data (recomputing per tick wobbles the axis even though the
+  // underlying data isn't flickering). Only recomputed once the drag settles.
   const stableYMaxRef = useRef(liveYMax);
   useEffect(() => {
     if (!history.dragging) stableYMaxRef.current = liveYMax;
@@ -153,60 +149,49 @@ export function MetricHistorySection({
     return localizeNumbers(`${Math.round(convertTemperature(nearest.avg, monitoringTempUnit))}${tempUnitSymbol(monitoringTempUnit)}`, numberFormat);
   }, [resolved.temp, selectedFrameMs, windowMs, monitoringTempUnit, numberFormat]);
 
-  // The main line's own right-side readout, same selected-frame semantics
-  // as the temp ribbon above. Network plots two series (download/upload)
-  // sharing one unbounded axis - a single "current value" would have to
-  // pick one, so it renders none there (network already has its own
-  // dedicated hover-tooltip row for both directions).
-  const currentValue = useMemo(() => {
-    if (metric === 'network' || resolved.main.length !== 1) return undefined;
-    const nearest = nearestPoint(resolved.main[0].points, selectedFrameMs, windowMs);
-    if (!nearest) return undefined;
-    return { value: nearest.avg, label: valueFormat(nearest.avg) };
-  }, [metric, resolved.main, selectedFrameMs, windowMs, valueFormat]);
-
-  // Every fan-duty series in the current window, averaged into one line for
-  // the duty ribbon below. Gated the same way resolved.temp is - only cpu/gpu
-  // request the fan-duty kind (see seriesQueryFor), but history.series can
+  // Every fan series (RPM) in the current window, averaged into one line for
+  // the fan-speed ribbon below. Gated the same way resolved.temp is - only
+  // cpu/gpu request the fan kind (see seriesQueryFor), but history.series can
   // transiently still carry the previous tab's series for one render right
   // after a metric switch (the fetch for the new tab hasn't landed yet), so
   // this must not just rely on the fetched data happening to be empty.
-  const dutyPoints = useMemo(
-    () => (metric === 'cpu' || metric === 'gpu' ? averageDutySeries(history.series) : []),
+  const rpmPoints = useMemo(
+    () => (metric === 'cpu' || metric === 'gpu' ? averageRpmSeries(history.series) : []),
     [metric, history.series],
   );
 
+  // The fan-speed ribbon's own right-side readout, same selected-frame
+  // semantics as the temp ribbon above.
+  const currentRpmLabel = useMemo(() => {
+    if (rpmPoints.length === 0) return undefined;
+    const nearest = nearestPoint(rpmPoints, selectedFrameMs, windowMs);
+    if (!nearest) return undefined;
+    return localizeNumbers(`${Math.round(nearest.avg)} RPM`, numberFormat);
+  }, [rpmPoints, selectedFrameMs, windowMs, numberFormat]);
+
   // Rendered inside the chart's own plot, directly under the line (and,
-  // when both are present, the duty band sits directly under the temp
+  // when both are present, the fan-speed band sits directly under the temp
   // band) - see TimeSeriesChart's ribbons prop. Temp covers cpu/gpu/memory;
-  // duty covers cpu/gpu only - network requests neither series, so the
+  // fan speed covers cpu/gpu only - network requests neither series, so the
   // chart renders no bands there.
   const ribbons: ChartRibbonSpec[] = useMemo(() => {
     const list: ChartRibbonSpec[] = [];
     if (resolved.temp) {
       list.push({
         points: resolved.temp.points,
-        floor: TEMP_RIBBON_FLOOR_C,
-        cap: metric === 'gpu' ? GPU_TEMP_RIBBON_CAP_C : metric === 'memory' ? MEM_TEMP_RIBBON_CAP_C : CPU_TEMP_RIBBON_CAP_C,
-        fill: 'var(--bad)',
+        fill: 'var(--accent)',
         valueLabel: currentTempLabel,
       });
     }
-    if (dutyPoints.length > 0) {
+    if (rpmPoints.length > 0) {
       list.push({
-        points: dutyPoints,
-        floor: DUTY_RIBBON_FLOOR_PCT,
-        cap: DUTY_RIBBON_CAP_PCT,
+        points: rpmPoints,
         fill: 'var(--accent)',
-        icon: <Fan size={RIBBON_ICON_SIZE} aria-hidden />,
-        // Shares the Cooling tab's own "average fan duty" readout label
-        // (CoolingResponseChart.tsx) - same concept, same string, one
-        // translation to keep in sync instead of two independently drifting.
-        ariaLabel: t('cooling.response.avgFanDuty'),
+        valueLabel: currentRpmLabel,
       });
     }
     return list;
-  }, [resolved.temp, metric, currentTempLabel, dutyPoints, t]);
+  }, [resolved.temp, currentTempLabel, rpmPoints, currentRpmLabel]);
 
   const rangeOptions = RANGE_OPTIONS.map(o => ({ value: o.key, label: t(o.labelKey) }));
 
@@ -315,7 +300,6 @@ export function MetricHistorySection({
             ribbons={ribbons}
             selectedT={selectedFrameMs}
             onPointClick={onGraphClick}
-            currentValue={currentValue}
           />
           <div className={styles.controls}>
             {history.rangeKey === 'custom' ? (

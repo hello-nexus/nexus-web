@@ -939,7 +939,6 @@
   "diagnostics.temperature.emptyDay": "Nissun dât di temperadure regjistrât par {date}.",
   "diagnostics.temperature.episode": "{name} al à rivât a {peak} par {duration} ai {date}",
   "diagnostics.temperature.episodesTitle": "Temperaduris altis sostignudis",
-  "diagnostics.temperature.fanDuty": "Duty medi dai ventilatôrs",
   "diagnostics.temperature.max": "Max",
   "diagnostics.temperature.range.14d": "14d",
   "diagnostics.temperature.range.24h": "24h",

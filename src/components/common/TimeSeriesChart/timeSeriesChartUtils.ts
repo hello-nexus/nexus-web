@@ -90,6 +90,21 @@ export function timeDomain(series: readonly TimeSeriesSeries[]): [number, number
   return [min, max];
 }
 
+/** [min, max] avg value across a raw point list, or null when there are no
+ *  points - the single-list counterpart to valueDomain (below), for a ribbon
+ *  that derives its own adaptive intensity range from its own points,
+ *  independent of the plotted line series it renders under. */
+export function avgValueRange(points: readonly TimeSeriesPoint[]): [number, number] | null {
+  let min = Infinity;
+  let max = -Infinity;
+  for (const p of points) {
+    if (p.avg < min) min = p.avg;
+    if (p.avg > max) max = p.avg;
+  }
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return null;
+  return [min, max];
+}
+
 /** [min, max] avg value across every series, padded to a non-zero span. Defaults to [0, 1] when empty. */
 export function valueDomain(series: readonly TimeSeriesSeries[]): [number, number] {
   let min = Infinity;
@@ -160,6 +175,23 @@ export function nearestPoint(points: readonly TimeSeriesPoint[], targetT: number
     }
   }
   return best && bestDelta <= maxDeltaMs ? best : null;
+}
+
+/**
+ * Linear [0, 1] intensity fraction for `value` within [min, max] - 0 at
+ * min, 1 at max - the fraction a ribbon maps onto its own opacity range.
+ * The range is the window's own observed min/max (see avgValueRange above),
+ * adaptive like the main chart's own y-axis, so there is no fixed scale left
+ * to perceptually compensate for. Clamped, so a value outside [min, max]
+ * still maps into [0, 1] rather than going out of range. A degenerate range
+ * (min === max - a single point, or every point sharing one value) carries
+ * no relative signal to encode, so it maps to a constant mid fraction
+ * instead of dividing by zero.
+ */
+export function ribbonOpacityFraction(value: number, min: number, max: number): number {
+  const span = max - min;
+  if (span <= 0) return 0.5;
+  return Math.max(0, Math.min(1, (value - min) / span));
 }
 
 /**

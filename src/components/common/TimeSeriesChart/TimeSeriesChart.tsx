@@ -3,11 +3,14 @@ import { useChartHoverTooltip } from '../../../hooks/useChartHoverTooltip';
 import { useTranslation } from '../../../lib/i18n';
 import {
   GAP_MULTIPLIER,
+  avgValueRange,
   formatTooltipTimestamp,
   medianSpacingMs,
+  medianSpacingOfPoints,
   nearestPoint,
   niceTicks,
   resolveValueDomain,
+  ribbonOpacityFraction,
   splitIntoSegments,
   timeDomain,
   type TimeSeriesPoint,
@@ -24,13 +27,12 @@ export interface TimeSeriesBand {
 }
 
 export interface ChartRibbonSpec {
-  /** Points over the same window/domain as the chart's own series. */
+  /** Points over the same window/domain as the chart's own series - also the
+   *  source of this ribbon's own adaptive opacity range: the window's own
+   *  observed min/max among these points' avg values (see avgValueRange),
+   *  recomputed whenever the points change, the same adaptive spirit as the
+   *  main chart's own y-axis. */
   points: readonly TimeSeriesPoint[];
-  /** Absolute thickness-scale floor/ceiling - the ribbon reads the same way
-   *  regardless of the window's own observed min/max (e.g.
-   *  metricHistoryHelpers.ts's TEMP_RIBBON_FLOOR_C / CPU_TEMP_RIBBON_CAP_C). */
-  floor: number;
-  cap: number;
   fill: string;
   /** Rendered at the y-axis label's own x position (see yAxisSide),
    *  vertically centered on this ribbon's band - e.g. the current
@@ -104,11 +106,12 @@ export interface TimeSeriesChartProps {
    *  the monitoring hero chart uses 'right' to match the cooling trend
    *  chart's own right-side-label convention. */
   yAxisSide?: 'left' | 'right';
-  /** Thin thickness-modulated bands rendered INSIDE the plot, stacked in
-   *  order directly under the line/area and above the x-axis labels - they
-   *  share this chart's own x-domain and pixel mapping (xFor), so they stay
-   *  pixel-aligned with the line without a separate alignment computation.
-   *  The line/area's own vertical range shrinks to make room for them. */
+  /** Fixed-height, opacity-modulated bands rendered INSIDE the plot, stacked
+   *  in order directly under the line/area and above the x-axis labels -
+   *  they share this chart's own x-domain and pixel mapping (xFor), so they
+   *  stay pixel-aligned with the line without a separate alignment
+   *  computation. The line/area's own vertical range shrinks to make room
+   *  for them. */
   ribbons?: readonly ChartRibbonSpec[];
   /** A persistent vertical marker at timestamp `t` - distinct from the
    *  transient dashed hover cursor, this one stays put regardless of the
@@ -119,11 +122,6 @@ export interface TimeSeriesChartProps {
    *  onRangeSelect, never this. Independent of onRangeSelect; either or both
    *  may be supplied. */
   onPointClick?: (t: number) => void;
-  /** A "current value" readout for the plotted line/area itself, at the
-   *  axis label's x position and the y corresponding to `value` - the
-   *  line's own analogue to a ribbon's valueLabel (e.g. the selected
-   *  frame's plotted value). Omit to render none. */
-  currentValue?: { value: number; label: string };
 }
 
 // A pointer must move at least this many px before a drag counts as a
@@ -137,21 +135,29 @@ const CHART_PAD_RIGHT_AXIS = { left: 16, right: 56, top: 12, bottom: 28 };
 
 // Ribbon band thickness (px) when a ChartRibbonSpec omits its own height,
 // and the icon size a ribbon's `icon` node must already be sized to.
-const RIBBON_DEFAULT_HEIGHT = 12;
+const RIBBON_DEFAULT_HEIGHT = 18;
 export const RIBBON_ICON_SIZE = 12;
-// Ribbon thickness floor, px - the band never fully disappears at the
-// spec's floor value and never exceeds its own band height at the cap.
-const RIBBON_MIN_THICKNESS_PX = 1.5;
+// Ribbon opacity floor - a segment at the window's own observed min still
+// reads as a faint but visible fill rather than fully disappearing; a
+// segment at the window's own observed max reaches full opacity.
+const RIBBON_OPACITY_FLOOR = 0.1;
 // Vertical breathing room between the line's own bottom gridline/tick label
 // and the first ribbon band - without it the line's minimum-value tick (e.g.
 // "0%") and a ribbon's valueLabel sit close enough to visually overlap.
 const RIBBON_GAP_PX = 8;
+// Vertical breathing room between two stacked ribbon bands (e.g. temperature
+// above fan speed) - without it adjacent bands touch and read as one shape.
+const RIBBON_BAND_SPACING_PX = 6;
+// Half-width, px, of the marker drawn for a ribbon point isolated between two
+// gaps on both sides - it would otherwise have no bar to extend from or into
+// and vanish entirely, matching the line's own isolated-point dot treatment.
+const RIBBON_ISOLATED_POINT_HALF_WIDTH_PX = 1.5;
 
 export function TimeSeriesChart({
   series, height = 260, valueFormat, xTickFormat, xTickCount = 5, yTickCount = 5,
   avgLabel, maxLabel, bands, showLegend = true, domain, tooltipExtra, yDomain,
   fillGradient = false, hideSeriesRows = false, onRangeSelect, stepSeconds, tooltipHeaderExtra,
-  yAxisSide = 'left', ribbons, selectedT, onPointClick, currentValue,
+  yAxisSide = 'left', ribbons, selectedT, onPointClick,
 }: TimeSeriesChartProps) {
   const { t, language } = useTranslation();
   const pad = yAxisSide === 'right' ? CHART_PAD_RIGHT_AXIS : CHART_PAD;
@@ -198,13 +204,15 @@ export function TimeSeriesChart({
 
   // Ribbons stack at the bottom of the plot, under the line/area - its own
   // vertical range shrinks to lineChartH to make room (including RIBBON_GAP_PX
-  // ahead of the first band), leaving the ribbons' slots at
-  // [pad.top + lineChartH + RIBBON_GAP_PX, pad.top + chartH]. xTicks below
-  // stay anchored to chartH's own bottom edge (unchanged), so they land below
-  // every ribbon automatically.
+  // ahead of the first band and RIBBON_BAND_SPACING_PX between each pair),
+  // leaving the ribbons' slots at [pad.top + lineChartH + RIBBON_GAP_PX,
+  // pad.top + chartH]. xTicks below stay anchored to chartH's own bottom edge
+  // (unchanged), so they land below every ribbon automatically.
   const ribbonsTotalHeight = useMemo(() => {
-    const bandsHeight = (ribbons ?? []).reduce((sum, r) => sum + (r.height ?? RIBBON_DEFAULT_HEIGHT), 0);
-    return bandsHeight > 0 ? bandsHeight + RIBBON_GAP_PX : 0;
+    const list = ribbons ?? [];
+    if (list.length === 0) return 0;
+    const bandsHeight = list.reduce((sum, r) => sum + (r.height ?? RIBBON_DEFAULT_HEIGHT), 0);
+    return bandsHeight + RIBBON_BAND_SPACING_PX * (list.length - 1) + RIBBON_GAP_PX;
   }, [ribbons]);
   const lineChartH = Math.max(1, chartH - ribbonsTotalHeight);
 
@@ -225,12 +233,22 @@ export function TimeSeriesChart({
   const iconLaneX = yAxisSide === 'right' ? pad.left / 2 : width - pad.right / 2;
 
   const ribbonBands = useMemo(() => {
-    let bandTop = pad.top + lineChartH + ((ribbons?.length ?? 0) > 0 ? RIBBON_GAP_PX : 0);
-    return (ribbons ?? []).map(ribbon => {
+    const list = ribbons ?? [];
+    let bandTop = pad.top + lineChartH + (list.length > 0 ? RIBBON_GAP_PX : 0);
+    return list.map((ribbon, i) => {
       const bandHeight = ribbon.height ?? RIBBON_DEFAULT_HEIGHT;
+      if (i > 0) bandTop += RIBBON_BAND_SPACING_PX;
       const top = bandTop;
       bandTop += bandHeight;
-      return { ribbon, top, bandHeight };
+      // Gap-aware, derived from this ribbon's own points rather than the
+      // main series' pooled spacing - a ribbon (e.g. fan speed) can sample
+      // at a different cadence than the plotted line it sits under.
+      const maxGapMs = (medianSpacingOfPoints(ribbon.points) ?? Infinity) * GAP_MULTIPLIER;
+      const segments = splitIntoSegments(ribbon.points, maxGapMs);
+      // This ribbon's own adaptive opacity range - the window's own observed
+      // min/max among its own points, recomputed whenever they change.
+      const range = avgValueRange(ribbon.points);
+      return { ribbon, top, bandHeight, segments, maxGapMs, range };
     });
   }, [ribbons, pad.top, lineChartH]);
 
@@ -446,26 +464,61 @@ export function TimeSeriesChart({
         }))}
         </g>
 
-        {ribbonBands.map(({ ribbon, top, bandHeight }, ri) => {
+        {ribbonBands.map(({ ribbon, top, bandHeight, segments, maxGapMs: ribbonMaxGapMs, range }, ri) => {
           const midY = top + bandHeight / 2;
-          const span = ribbon.cap - ribbon.floor || 1;
+          const opacityFor = (avg: number) => {
+            if (!range) return 1;
+            const frac = ribbonOpacityFraction(avg, range[0], range[1]);
+            return RIBBON_OPACITY_FLOOR + frac * (1 - RIBBON_OPACITY_FLOOR);
+          };
           return (
             <g key={ri} role={ribbon.ariaLabel ? 'img' : undefined} aria-label={ribbon.ariaLabel}>
-              {ribbon.points.map((p, i) => {
-                const x0 = xFor(p.t);
-                const x1 = i + 1 < ribbon.points.length ? xFor(ribbon.points[i + 1].t) : pad.left + chartW;
-                const frac = Math.max(0, Math.min(1, (p.avg - ribbon.floor) / span));
-                const thickness = RIBBON_MIN_THICKNESS_PX + frac * (bandHeight - RIBBON_MIN_THICKNESS_PX);
-                return (
-                  <rect
-                    key={p.t}
-                    x={x0}
-                    y={midY - thickness / 2}
-                    width={Math.max(0, x1 - x0)}
-                    height={thickness}
-                    fill={ribbon.fill}
-                  />
-                );
+              {segments.map((segment, si) => {
+                const isFinalSegment = si === segments.length - 1;
+                return segment.map((p, i) => {
+                  const isLastInSegment = i === segment.length - 1;
+                  const opacity = opacityFor(p.avg);
+                  const x0 = xFor(p.t);
+                  const hasNextInSegment = !isLastInSegment;
+                  // The very last point overall only extends to the plot's
+                  // right edge when that trailing stretch is itself within
+                  // the gap threshold - otherwise a stale last reading (the
+                  // series stopped reporting well before "now") would
+                  // falsely persist all the way to the live edge, the same
+                  // failure mode as a mid-sequence gap.
+                  const staleTail = isLastInSegment && isFinalSegment && domainT[1] - p.t > ribbonMaxGapMs;
+                  const extendsForward = hasNextInSegment || (isLastInSegment && isFinalSegment && !staleTail);
+                  if (!extendsForward) {
+                    if (segment.length > 1) return null;
+                    // A point isolated between two gaps (or a stale trailing
+                    // point with no forward neighbor at all) has no adjacent
+                    // point to extend a bar from or into - a thin marker
+                    // instead of vanishing entirely.
+                    return (
+                      <rect
+                        key={p.t}
+                        x={x0 - RIBBON_ISOLATED_POINT_HALF_WIDTH_PX}
+                        y={top}
+                        width={RIBBON_ISOLATED_POINT_HALF_WIDTH_PX * 2}
+                        height={bandHeight}
+                        fill={ribbon.fill}
+                        fillOpacity={opacity}
+                      />
+                    );
+                  }
+                  const x1 = hasNextInSegment ? xFor(segment[i + 1].t) : pad.left + chartW;
+                  return (
+                    <rect
+                      key={p.t}
+                      x={x0}
+                      y={top}
+                      width={Math.max(0, x1 - x0)}
+                      height={bandHeight}
+                      fill={ribbon.fill}
+                      fillOpacity={opacity}
+                    />
+                  );
+                });
               })}
               {ribbon.icon && (
                 <g transform={`translate(${iconLaneX - RIBBON_ICON_SIZE / 2}, ${midY - RIBBON_ICON_SIZE / 2})`}>
@@ -516,12 +569,6 @@ export function TimeSeriesChart({
             x1={xFor(selectedT)} y1={pad.top} x2={xFor(selectedT)} y2={pad.top + chartH}
             stroke="var(--accent)" strokeWidth="1.5" opacity="0.9"
           />
-        )}
-
-        {currentValue && (
-          <text x={axisLabelX} y={yFor(currentValue.value) + 3} fill="var(--text-dim)" fontSize="11" fontFamily="var(--font-mono)" textAnchor={axisLabelAnchor}>
-            {currentValue.label}
-          </text>
         )}
 
         {hoverX !== null && (

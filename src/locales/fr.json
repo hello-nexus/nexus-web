@@ -930,7 +930,6 @@
   "diagnostics.temperature.emptyDay": "Aucune donnée de température enregistrée pour le {date}.",
   "diagnostics.temperature.episode": "{name} a atteint {peak} pendant {duration} le {date}",
   "diagnostics.temperature.episodesTitle": "Températures élevées prolongées",
-  "diagnostics.temperature.fanDuty": "Duty moyen des ventilateurs",
   "diagnostics.temperature.max": "Max",
   "diagnostics.temperature.range.14d": "14 j",
   "diagnostics.temperature.range.24h": "24 h",

@@ -930,7 +930,6 @@
   "diagnostics.temperature.emptyDay": "Данные о температуре за {date} не записаны.",
   "diagnostics.temperature.episode": "Температура {name} достигла {peak} на {duration}, {date}",
   "diagnostics.temperature.episodesTitle": "Длительно высокая температура",
-  "diagnostics.temperature.fanDuty": "Средний duty вентилятора",
   "diagnostics.temperature.max": "Макс.",
   "diagnostics.temperature.range.14d": "14 дн.",
   "diagnostics.temperature.range.24h": "24 ч",

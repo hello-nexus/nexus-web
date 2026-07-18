@@ -107,9 +107,9 @@
 }
 
 // Docked on the same row as TimeSeriesChart's own tooltip timestamp (via
-// tooltipHeaderExtra) - the duty band's hovered value, since it has no
+// tooltipHeaderExtra) - the fan-speed band's hovered value, since it has no
 // per-series avg/max tooltip row of its own.
-.tooltipHeaderDuty {
+.tooltipHeaderRpm {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;

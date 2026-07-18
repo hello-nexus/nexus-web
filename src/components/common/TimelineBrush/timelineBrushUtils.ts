@@ -22,10 +22,19 @@ export function pxToMs(x: number, domainStart: number, domainEnd: number, width:
 export type BrushHitZone = 'left-edge' | 'right-edge' | 'box' | 'track';
 
 /** Which part of the brush a pointer at `x` (track-local px) landed on. Edge
- *  zones win over the box so a narrow window's edges stay grabbable. */
+ *  zones win over the box so a narrow window's edges stay grabbable. At the
+ *  MIN_BOX_WINDOW_MS floor the window can be as narrow as 2x edgeTolerancePx
+ *  on screen, so both edge zones can overlap the same pointer position - the
+ *  nearer edge wins (ties favor the left edge), rather than always resolving
+ *  to the left edge regardless of which one the pointer actually sits over
+ *  (which would silently resize the wrong edge, reading as the box randomly
+ *  shifting instead of the resize gesture being the no-op it should be). */
 export function hitZoneAt(x: number, fromPx: number, toPx: number, edgeTolerancePx: number): BrushHitZone {
-  if (Math.abs(x - fromPx) <= edgeTolerancePx) return 'left-edge';
-  if (Math.abs(x - toPx) <= edgeTolerancePx) return 'right-edge';
+  const nearLeft = Math.abs(x - fromPx) <= edgeTolerancePx;
+  const nearRight = Math.abs(x - toPx) <= edgeTolerancePx;
+  if (nearLeft && nearRight) return x <= (fromPx + toPx) / 2 ? 'left-edge' : 'right-edge';
+  if (nearLeft) return 'left-edge';
+  if (nearRight) return 'right-edge';
   if (x > fromPx && x < toPx) return 'box';
   return 'track';
 }

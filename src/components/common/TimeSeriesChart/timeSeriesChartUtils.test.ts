@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
+  avgValueRange,
   formatTooltipTimestamp,
   medianSpacingMs,
   nearestPoint,
   niceTicks,
   resolveValueDomain,
+  ribbonOpacityFraction,
   splitIntoSegments,
   timeDomain,
   valueDomain,
@@ -154,6 +156,50 @@ describe('nearestPoint', () => {
 
   it('returns null for an empty point list', () => {
     expect(nearestPoint([], 0, 1000)).toBeNull();
+  });
+});
+
+describe('ribbonOpacityFraction', () => {
+  it('pins both ends of the range', () => {
+    expect(ribbonOpacityFraction(0, 0, 100)).toBe(0);
+    expect(ribbonOpacityFraction(100, 0, 100)).toBe(1);
+  });
+
+  it('maps linearly, with no amplification', () => {
+    expect(ribbonOpacityFraction(25, 0, 100)).toBeCloseTo(0.25, 10);
+    expect(ribbonOpacityFraction(50, 0, 100)).toBeCloseTo(0.5, 10);
+    expect(ribbonOpacityFraction(75, 0, 100)).toBeCloseTo(0.75, 10);
+  });
+
+  it('is monotonically increasing', () => {
+    const samples = [0, 10, 20, 40, 60, 80, 100].map(v => ribbonOpacityFraction(v, 0, 100));
+    for (let i = 1; i < samples.length; i++) {
+      expect(samples[i]).toBeGreaterThan(samples[i - 1]);
+    }
+  });
+
+  it('clamps a value outside [min, max] instead of going out of range', () => {
+    expect(ribbonOpacityFraction(-50, 0, 100)).toBe(0);
+    expect(ribbonOpacityFraction(150, 0, 100)).toBe(1);
+  });
+
+  it('maps a degenerate range (min === max) to a constant mid fraction instead of dividing by zero', () => {
+    expect(ribbonOpacityFraction(50, 50, 50)).toBe(0.5);
+    expect(Number.isNaN(ribbonOpacityFraction(50, 50, 50))).toBe(false);
+  });
+});
+
+describe('avgValueRange', () => {
+  it('returns [min, max] of avg across the points', () => {
+    expect(avgValueRange([pt(0, 40), pt(1, 90), pt(2, 60)])).toEqual([40, 90]);
+  });
+
+  it('returns [v, v] for a single point', () => {
+    expect(avgValueRange([pt(0, 55)])).toEqual([55, 55]);
+  });
+
+  it('returns null for an empty point list', () => {
+    expect(avgValueRange([])).toBeNull();
   });
 });
 
