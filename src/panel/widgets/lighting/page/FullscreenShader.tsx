@@ -23,11 +23,14 @@ interface FullscreenShaderProps {
   /** Preset slots used as a background by ≥1 panel (panel badge). */
   panelSlots?: Set<number> | null;
   gpuAvailable?: boolean;
+  /** Freezes the shader clock so fullscreen holds the same frame the paused
+   *  lighting engine and the main canvas preview are holding. */
+  paused?: boolean;
 }
 
 export function FullscreenShader({
   effect, state, bundle, canReset, audioRef,
-  onTemplateSelect, onChange, onCommit, onReset, onClose, onPrev, onNext, panelSlots, gpuAvailable,
+  onTemplateSelect, onChange, onCommit, onReset, onClose, onPrev, onNext, panelSlots, gpuAvailable, paused,
 }: FullscreenShaderProps) {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -42,7 +45,7 @@ export function FullscreenShader({
     onCloseRef.current = onClose;
   });
 
-  const { loading, error } = useShaderRenderer(canvasRef, effect, stateRef, audioRef);
+  const { loading, error } = useShaderRenderer(canvasRef, effect, stateRef, audioRef, undefined, paused);
 
   const [closeVisible, setCloseVisible] = useState(false);
   const hideTimerRef = useRef(0);

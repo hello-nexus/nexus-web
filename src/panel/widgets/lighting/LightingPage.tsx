@@ -1307,6 +1307,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           onPrev={handlePrevEffect}
           onNext={handleNextEffect}
           gpuAvailable={serviceState.lighting?.gpuAvailable ?? true}
+          paused={paused}
         />
       )}
       {editorTarget && (
