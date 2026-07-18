@@ -23,6 +23,11 @@ export interface AppWindowSeries {
   startedAtMs?: number;
   avg: number;
   max: number;
+  /** Window-average VRAM in MiB - populated only when `series` is `gpu` or
+   *  `gpu:<adapterLuid>` and the app carried at least one VRAM sample in the
+   *  window; null/omitted otherwise (every non-GPU series, or a GPU app with
+   *  no VRAM reading). */
+  vramAvgMb?: number | null;
   points: AppWindowPoint[];
 }
 

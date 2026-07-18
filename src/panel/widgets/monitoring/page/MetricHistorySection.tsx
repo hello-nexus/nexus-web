@@ -274,6 +274,9 @@ export function MetricHistorySection({
                 <ProcessIcon name={app.name} />
                 <span className={styles.tooltipAppName}>{app.name}</span>
                 <span className={styles.tooltipAppValue}>{appValueFormat(app.value)}</span>
+                {app.vramAvgMb != null && (
+                  <span className={styles.tooltipAppVram}>{formatMemoryMb(app.vramAvgMb, numberFormat)}</span>
+                )}
               </div>
             ))}
           </div>

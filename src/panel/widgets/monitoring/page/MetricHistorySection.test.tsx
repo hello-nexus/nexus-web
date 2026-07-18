@@ -203,6 +203,39 @@ describe('MetricHistorySection', () => {
     expect(container.querySelector('path[stroke="var(--accent)"]')).toBeInTheDocument();
   });
 
+  describe('gpu per-app hover breakdown', () => {
+    it('shows each app\'s GPU load AND VRAM (MB/GB), mirroring the CPU tab\'s hover', () => {
+      stubGeometry();
+      const series: UseMetricHistoryResult['series'] = [
+        { id: 'gpu:0', kind: 'gpu', name: 'RTX 3070', adapterLuid: 'a', points: [{ t: NOW, avg: 50, max: 55 }] },
+      ];
+      const gpuComponents: GpuComponent[] = [{ id: 'gpu/0', name: 'RTX 3070', adapterLuid: 'a', sensors: [] }];
+      const apps = [{ name: 'chrome.exe', avg: 30, max: 40, points: [{ t: NOW, avg: 30 }], vramAvgMb: 512 }];
+      const { container } = renderSection({ metric: 'gpu', gpuComponents, history: { series }, appsWindow: { apps } });
+      const svg = container.querySelector('svg')!;
+      fireEvent.mouseMove(svg, { clientX: 200 });
+
+      expect(screen.getByText('chrome.exe')).toBeInTheDocument();
+      expect(screen.getByText('30%')).toBeInTheDocument();
+      expect(screen.getByText('512 MB')).toBeInTheDocument();
+    });
+
+    it('renders no VRAM figure for an app with no vramAvgMb (backwards compatible)', () => {
+      stubGeometry();
+      const series: UseMetricHistoryResult['series'] = [
+        { id: 'gpu:0', kind: 'gpu', name: 'RTX 3070', adapterLuid: 'a', points: [{ t: NOW, avg: 50, max: 55 }] },
+      ];
+      const gpuComponents: GpuComponent[] = [{ id: 'gpu/0', name: 'RTX 3070', adapterLuid: 'a', sensors: [] }];
+      const apps = [{ name: 'chrome.exe', avg: 30, max: 40, points: [{ t: NOW, avg: 30 }] }];
+      const { container } = renderSection({ metric: 'gpu', gpuComponents, history: { series }, appsWindow: { apps } });
+      const svg = container.querySelector('svg')!;
+      fireEvent.mouseMove(svg, { clientX: 200 });
+
+      expect(screen.getByText('30%')).toBeInTheDocument();
+      expect(container.querySelector('[class*="tooltipAppVram"]')).toBeNull();
+    });
+  });
+
   it('names the network series Download/Upload, sharing the same accent color (no distinct per-series colors)', () => {
     stubGeometry();
     const series: UseMetricHistoryResult['series'] = [

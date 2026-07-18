@@ -48,6 +48,11 @@ export function currentAppValueMap(apps: readonly AppWindowSeries[], t: number):
 export interface HoverAppEntry {
   name: string;
   value: number;
+  /** This app's window-average VRAM (MiB), carried straight from
+   *  AppWindowSeries.vramAvgMb - a single window-wide figure, not a
+   *  per-timestamp series, so it isn't re-looked-up at hoverT the way
+   *  `value` is. Undefined for every non-GPU series. */
+  vramAvgMb?: number | null;
 }
 
 /** The top `limit` apps AT the hovered instant, re-ranked by their value at
@@ -57,7 +62,7 @@ export function topAppsAtHover(apps: readonly AppWindowSeries[], hoverT: number,
   const entries: HoverAppEntry[] = [];
   for (const app of apps) {
     const value = nearestAppValueAt(app.points, hoverT);
-    if (value !== null) entries.push({ name: app.name, value });
+    if (value !== null) entries.push({ name: app.name, value, vramAvgMb: app.vramAvgMb });
   }
   return entries.sort((a, b) => b.value - a.value).slice(0, limit);
 }

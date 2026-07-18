@@ -127,3 +127,12 @@
   color: var(--text);
   white-space: nowrap;
 }
+
+// The GPU tab's second per-app figure (VRAM) - dimmer than the primary load
+// value so the two don't compete for attention on the same row.
+.tooltipAppVram {
+  font-family: var(--font-mono);
+  font-size: var(--type-mini);
+  color: var(--text-dim);
+  white-space: nowrap;
+}

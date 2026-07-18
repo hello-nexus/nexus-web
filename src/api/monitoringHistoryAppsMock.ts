@@ -18,6 +18,9 @@ interface AppDef {
    *  started well before the window. */
   launchedMinutesAgo: number;
   baseAt: (t: number, seed: number) => number;
+  /** VRAM-in-MiB generator - only defined for GPU_APPS entries, mirroring the
+   *  service's own vramAvgMb (populated only for a gpu-kind series). */
+  vramAt?: (t: number, seed: number) => number;
 }
 
 function wobble(t: number, seed: number): number {
@@ -38,9 +41,21 @@ const CPU_APPS: readonly AppDef[] = [
 ];
 
 const GPU_APPS: readonly AppDef[] = [
-  { name: 'chrome.exe', seed: 11, launchedMinutesAgo: 240, baseAt: (t, s) => clamp(2 + Math.abs(wobble(t, s)) * 6, 0, 100) },
-  { name: 'Nexus', seed: 12, launchedMinutesAgo: 480, baseAt: (t, s) => clamp(1 + Math.abs(wobble(t, s)) * 3, 0, 100) },
-  { name: 'Code.exe', seed: 13, launchedMinutesAgo: 15, baseAt: (t, s) => clamp(0.5 + Math.abs(wobble(t, s)) * 2, 0, 100) },
+  {
+    name: 'chrome.exe', seed: 11, launchedMinutesAgo: 240,
+    baseAt: (t, s) => clamp(2 + Math.abs(wobble(t, s)) * 6, 0, 100),
+    vramAt: (t, s) => clamp(300 + Math.abs(wobble(t, s)) * 200, 0, 24_000),
+  },
+  {
+    name: 'Nexus', seed: 12, launchedMinutesAgo: 480,
+    baseAt: (t, s) => clamp(1 + Math.abs(wobble(t, s)) * 3, 0, 100),
+    vramAt: (t, s) => clamp(80 + Math.abs(wobble(t, s)) * 40, 0, 24_000),
+  },
+  {
+    name: 'Code.exe', seed: 13, launchedMinutesAgo: 15,
+    baseAt: (t, s) => clamp(0.5 + Math.abs(wobble(t, s)) * 2, 0, 100),
+    vramAt: (t, s) => clamp(150 + Math.abs(wobble(t, s)) * 100, 0, 24_000),
+  },
 ];
 
 const MEMORY_APPS: readonly AppDef[] = [
@@ -72,6 +87,18 @@ function pointsFor(def: AppDef, from: number, to: number, stepMs: number): AppWi
   return points;
 }
 
+/** Window-average VRAM (MiB) for a GPU_APPS entry, mirroring the service's
+ *  own vramAvgMb average-across-the-window - undefined for a def with no
+ *  vramAt (every non-GPU app def). */
+function vramAvgFor(def: AppDef, from: number, to: number, stepMs: number): number | undefined {
+  if (!def.vramAt) return undefined;
+  const values: number[] = [];
+  const firstSlot = Math.ceil(from / stepMs) * stepMs;
+  for (let t = firstSlot; t <= to; t += stepMs) values.push(def.vramAt(t, def.seed));
+  if (values.length === 0) return undefined;
+  return Math.round((values.reduce((a, b) => a + b, 0) / values.length) * 10) / 10;
+}
+
 export function mockMonitoringHistoryApps(query: MetricHistoryAppsQuery): MetricHistoryAppsResponse {
   const from = Math.min(query.from, query.to);
   const to = Math.max(query.from, query.to);
@@ -91,6 +118,7 @@ export function mockMonitoringHistoryApps(query: MetricHistoryAppsQuery): Metric
       startedAtMs: to - def.launchedMinutesAgo * MINUTE_MS,
       avg: Math.round(avg * 10) / 10,
       max: Math.round(max * 10) / 10,
+      vramAvgMb: vramAvgFor(def, from, to, stepMs),
       points,
     };
   }).sort((a, b) => b.avg - a.avg);
