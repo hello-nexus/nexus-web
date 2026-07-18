@@ -113,7 +113,10 @@ export function MetricHistorySection({
   // unused headroom - recomputed whenever the plotted series itself changes
   // (scrubbing, live ticks), and quantized to a small step ladder so a tiny
   // peak fluctuation doesn't wobble the axis.
-  const liveYMax = metric === 'network' ? null : adaptivePercentYMax(maxAvgValue(chartSeries));
+  const liveYMax = useMemo(
+    () => (metric === 'network' ? null : adaptivePercentYMax(maxAvgValue(chartSeries))),
+    [metric, chartSeries],
+  );
   // The ceiling freezes for the whole of an active TimelineBrush drag: the
   // series driving liveYMax is the during-drag silhouette slice, coarser
   // than the settled window and prone to a different observed peak on every

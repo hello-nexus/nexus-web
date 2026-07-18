@@ -190,8 +190,33 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
 
   useEffect(() => {
     mountedRef.current = true;
-    return () => { mountedRef.current = false; };
+    return () => {
+      mountedRef.current = false;
+      // Guards a hook instance whose own unmount lands mid-drag (rather
+      // than the render-branch-swap case below, which the hook itself
+      // survives) against leaving the ref stuck for any in-flight closure
+      // still holding it.
+      lastPhaseRef.current = 'end';
+    };
   }, []);
+
+  // TimelineBrush can unmount without ever emitting its own 'end' event:
+  // MetricHistorySection swaps to its <EmptyState> branch on `error`, and
+  // renders nothing at all once `supported` goes false (no retry
+  // affordance exists for that case). This hook instance persists across
+  // both (and across a metric switch, since seriesQuery alone doesn't reset
+  // the viewport) - left alone, lastPhaseRef and `dragging` would stay
+  // stuck on 'drag' indefinitely: permanently gating off the fine viewport
+  // fetch and the redecimate timer below, and freezing
+  // MetricHistorySection's drag-stable Y-axis ref, even once a later fetch
+  // recovers on its own. Reset both here so recovery doesn't depend on the
+  // brush itself reaching a matching 'end'.
+  useEffect(() => {
+    if (error || !supported) {
+      lastPhaseRef.current = 'end';
+      setDragging(false);
+    }
+  }, [error, supported]);
 
   const bumpNow = useCallback((seriesList: readonly MetricHistorySeries[]) => {
     const t = newestT(seriesList);

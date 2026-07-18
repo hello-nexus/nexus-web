@@ -95,6 +95,72 @@ describe('useMetricHistory', () => {
     expect(result.current.dragging).toBe(false);
   });
 
+  it('clears the drag gate when a background fetch flips supported mid-drag, since TimelineBrush unmounts (a bare null render, with no retry affordance) without ever emitting its own matching \'end\' event', async () => {
+    const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
+    await advance(0);
+
+    // Drag to the live edge so `following` stays true - the strip
+    // silhouette keeps refreshing on its own 60s timer regardless of the
+    // drag phase (unlike the fine viewport fetch, which is drag-gated).
+    act(() => { result.current.onBrushChange(NOW - 5 * MINUTE, NOW, 'drag'); });
+    expect(result.current.dragging).toBe(true);
+
+    // That refresh comes back unsupported - MetricHistorySection renders
+    // nothing at all for this case, tearing TimelineBrush down mid-drag
+    // with no 'end' event ever fired.
+    fetchMock.mockImplementation(async (q: MetricHistoryQuery) => (
+      q.maxPoints === 400
+        ? { data: null, mocked: false, unsupported: true }
+        : { data: emptyResp(), mocked: false, unsupported: false }
+    ));
+    await advance(60_000);
+    expect(result.current.supported).toBe(false);
+
+    // The drag gate must not be left stranded - dragging clears even though
+    // no matching 'end' event, and no retry(), has happened yet.
+    expect(result.current.dragging).toBe(false);
+
+    // Recovery (retry(), the only path back once supported is false) then
+    // proves the gate isn't ALSO still independently stuck on 'drag'
+    // underneath - the redecimate timer's own fetch for the still-current
+    // window fires, matched exactly (not just by maxPoints) since the
+    // unrelated idle-prefetch timer also produces its own 800pt call for a
+    // neighboring window in this same span.
+    fetchMock.mockResolvedValue({ data: emptyResp(), mocked: false, unsupported: false });
+    act(() => { result.current.retry(); });
+    await advance(0);
+    fetchMock.mockClear();
+
+    // The redecimate interval bumps fetchEpoch, whose effect schedules its
+    // own zero-delay timer for the actual fetch - give it one more tick.
+    await advance(60_000);
+    await advance(0);
+    expect(fetchMock).toHaveBeenCalledWith({ from: NOW - 5 * MINUTE, to: NOW, maxPoints: 800, series: 'cpu' });
+  });
+
+  it('clears the drag gate when a background fetch flips error mid-drag, since TimelineBrush unmounts (its EmptyState branch) without ever emitting its own matching \'end\' event', async () => {
+    const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
+    await advance(0);
+
+    act(() => { result.current.onBrushChange(NOW - 5 * MINUTE, NOW, 'drag'); });
+    expect(result.current.dragging).toBe(true);
+
+    // That refresh fails outright (not merely unsupported) - MetricHistorySection
+    // swaps to its <EmptyState> branch, tearing TimelineBrush down mid-drag
+    // with no 'end' event ever fired.
+    fetchMock.mockImplementation(async (q: MetricHistoryQuery) => (
+      q.maxPoints === 400
+        ? { data: null, mocked: false, unsupported: false }
+        : { data: emptyResp(), mocked: false, unsupported: false }
+    ));
+    await advance(60_000);
+    expect(result.current.error).toBe(true);
+
+    // The drag gate must not be left stranded - dragging clears even though
+    // no matching 'end' event, and no retry(), has happened yet.
+    expect(result.current.dragging).toBe(false);
+  });
+
   describe('drag-time live rendering (item 29)', () => {
     it('never renders an empty series across a simulated drag sequence, even with cache noise from earlier ticks', async () => {
       fetchMock.mockResolvedValue({
