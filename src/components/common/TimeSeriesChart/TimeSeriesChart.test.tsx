@@ -913,4 +913,27 @@ describe('TimeSeriesChart', () => {
       expect(container.querySelector('[data-testid="ribbon-icon"]')).toBeNull();
     });
   });
+
+  describe('yTicks below the data minimum', () => {
+    // Regression: with no forced yDomain (e.g. the cooling temperature
+    // chart), niceTicks can round its floor below the actual series
+    // minimum. That tick's gridline/label would land below the line's own
+    // plot area - inside a ribbon's gap or band - so it must be dropped
+    // rather than rendered.
+    const series: TimeSeriesSeries[] = [
+      { id: 'drive', name: 'Drive', color: '#69db7c', points: [{ t: 0, avg: 29.4, max: 30 }, { t: HOUR, avg: 78.8, max: 79 }] },
+    ];
+
+    it('omits a tick below the series minimum', () => {
+      render(<TimeSeriesChart series={series} {...baseProps} />);
+      // This fixture's minimum rounds down to a "nice" tick below itself,
+      // which must be dropped rather than rendered.
+      expect(screen.queryByText('20C')).toBeNull();
+    });
+
+    it('keeps ticks at or above the series minimum', () => {
+      render(<TimeSeriesChart series={series} {...baseProps} />);
+      expect(screen.getByText('30C')).toBeInTheDocument();
+    });
+  });
 });

@@ -270,7 +270,14 @@ export function TimeSeriesChart({
     [series, maxGapMs],
   );
 
-  const yTicks = useMemo(() => niceTicks(minV, maxV, yTickCount), [minV, maxV, yTickCount]);
+  // niceTicks can round its floor below the actual value minimum. Harmless
+  // when the floor is already forced to a round number (monitoring's
+  // yDomain=[0, ...] never rounds below 0), but on a purely data-driven
+  // floor (cooling, no yDomain) that below-minimum tick's y falls below the
+  // line's own plot area, into the ribbon gap/band, colliding with the
+  // ribbon's fill and value label. Dropping ticks under minV removes only
+  // ones with no line data to reference in the first place.
+  const yTicks = useMemo(() => niceTicks(minV, maxV, yTickCount).filter(tick => tick >= minV), [minV, maxV, yTickCount]);
 
   const xTicks = useMemo(() => {
     if (!domainT) return [];
