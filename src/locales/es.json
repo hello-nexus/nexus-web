@@ -2781,7 +2781,7 @@
   "steam.settings.steamIdHint.afterCopy": ", o pega tu URL personalizada en",
   "steam.settings.steamIdHint.before": "Tu ID de 17 dígitos. Encuéntralo en",
   "steam.settings.steamIdHint.copyUrl": "Copiar URL de la página",
-  "steam.settings.steamIdHint.middle": "→ profile menu →",
+  "steam.settings.steamIdHint.middle": "→ menú de perfil →",
   "steam.settings.steamIdHint.profileLink": "tu página de perfil",
   "steam.settings.steamIdLabel": "SteamID64",
   "steam.settings.useDetected": "Usar el detectado",
