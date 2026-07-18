@@ -16,7 +16,7 @@ const NON_UI_JSX_ATTRIBUTES = [
   'autoComplete', 'inputMode', 'enterKeyHint', 'width', 'height', 'viewBox',
   'fill', 'stroke', 'd', 'points', 'transform', 'xmlns', 'preserveAspectRatio',
   'tone', 'size', 'variant', 'position', 'align', 'justify', 'direction',
-  'gap', 'as', 'icon', 'color', 'accent', 'mode', 'kind', 'side', 'placement',
+  'gap', 'as', 'icon', 'iconPosition', 'color', 'accent', 'mode', 'kind', 'side', 'placement',
   'layout', 'yAxisSide',
   // Search deep-link target id stamped on a control; technical, never displayed.
   'anchorId',

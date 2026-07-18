@@ -20,4 +20,16 @@ describe('Badge', () => {
     rerender(<Badge label="100%" minWidth="4ch" />);
     expect(screen.getByText('100%').style.getPropertyValue('--badge-min-width')).toBe('4ch');
   });
+
+  it('renders the icon before the label by default', () => {
+    render(<Badge label="Live" icon={<span data-testid="icon" />} />);
+    const icon = screen.getByTestId('icon');
+    expect(icon.nextSibling?.textContent).toBe('Live');
+  });
+
+  it('renders the icon after the label when iconPosition is "end"', () => {
+    render(<Badge label="Live" icon={<span data-testid="icon" />} iconPosition="end" />);
+    const icon = screen.getByTestId('icon');
+    expect(icon.previousSibling?.textContent).toBe('Live');
+  });
 });

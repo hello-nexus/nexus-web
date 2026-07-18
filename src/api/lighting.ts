@@ -60,10 +60,20 @@ export const fetchLightingStatus = () =>
 
 export interface CurrentSyncResponse {
   sync: string;
+  paused: boolean;
 }
 
 export const fetchCurrentSync = () =>
   fetchService<CurrentSyncResponse>('/lighting/current');
+
+// --- Pause / freeze the active lighting source ---
+
+export interface LightingPauseResponse {
+  paused: boolean;
+}
+
+export const setLightingPaused = (paused: boolean) =>
+  postService<LightingPauseResponse>('/lighting/pause', { paused });
 
 // --- Effect activation ---
 

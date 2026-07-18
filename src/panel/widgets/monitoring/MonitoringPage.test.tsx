@@ -5,6 +5,12 @@ import { MonitoringPage } from './MonitoringPage';
 import type { GpuComponent } from '../../../lib/gpuResolver';
 import type { AppWindowSeries } from '../../../api/monitoringHistoryApps';
 import type { MetricHistorySeries } from '../../../api/monitoringHistory';
+import { xTickFormatForWindow } from './page/metricHistoryHelpers';
+
+// The mocked useMetricHistory below fixes domain at [0, 1] and no test here
+// pins a click, so resolveSelectedFrame always lands on domain[1] (1ms) -
+// this is the exact string MonitoringPage's own detached chip renders.
+const DETACHED_LABEL = xTickFormatForWindow(1)(1);
 
 // MetricHistorySection and ProcessListSection are the persistent hero + list
 // mounted once above the switched tab content - stub both with a
@@ -359,13 +365,14 @@ describe('MonitoringPage', () => {
       expect(tabHeader).toContainElement(screen.getByText('monitoring.history.live'));
     });
 
-    it('shows a clickable back-to-live control inside the title row while detached, and it re-attaches on click', () => {
+    it('shows the viewed frame\'s time with a return arrow inside the title row while detached, and it re-attaches on click', () => {
       const backToLive = vi.fn();
       historyOverride = { following: false, backToLive };
       render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
       const tabHeader = document.querySelector('[class*="tabHeader"]')!;
-      const button = screen.getByText('monitoring.history.backToLive').closest('button')!;
+      const button = screen.getByText(DETACHED_LABEL).closest('button')!;
       expect(tabHeader).toContainElement(button);
+      expect(button.querySelector('svg')).not.toBeNull();
       fireEvent.click(button);
       expect(backToLive).toHaveBeenCalled();
     });
@@ -376,7 +383,7 @@ describe('MonitoringPage', () => {
 
       // Both texts exist in the DOM at all times - only visibility toggles.
       expect(screen.getByText('monitoring.history.live')).toBeInTheDocument();
-      const backToLiveButton = screen.getByText('monitoring.history.backToLive').closest('button')!;
+      const backToLiveButton = screen.getByText(DETACHED_LABEL).closest('button')!;
       expect(backToLiveButton).toHaveAttribute('aria-hidden', 'true');
       expect(backToLiveButton).toHaveAttribute('tabindex', '-1');
 

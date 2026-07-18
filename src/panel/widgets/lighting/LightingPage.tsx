@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Gamepad2, Music } from 'lucide-react';
+import { Gamepad2, Music, Pause, Play } from 'lucide-react';
 import {
   startAnimate, startScreenMirror, stopLighting, startGameSync,
   fetchLightingDevices, fetchAnimateSettings, saveAnimateTemplates,
@@ -7,7 +7,7 @@ import {
   fetchMusicReactive, setMusicReactive, setLightingDevicePower, setLightingDeviceControlled,
   fetchScreenEffect, setScreenEffect, fetchMediaEffect, setMediaEffect, fetchLedMap,
   fetchCurrentSync, fetchAvailableMappings, fetchGameSyncState, fetchGameSyncGames,
-  steamArtworkUrl, resolveActiveGame,
+  steamArtworkUrl, resolveActiveGame, setLightingPaused,
   resetDeviceLayouts, applyDeviceLayouts, setActiveLayoutPreset, updateLayoutPreset,
   type LightingDevice, type LedMapEntry, type PostProcessSettings, type GameSyncDevice,
   type GameSyncGame, type DeviceLayoutDto,
@@ -111,7 +111,7 @@ function loadDeviceOrder(): string[] {
 
 export function LightingPage({ serviceOnline, serviceState, connectionState, activeProfileId, platform = '', onSectionNavigate }: LightingViewProps) {
   const { t } = useTranslation();
-  const { mode, setMode, rawSync, setRawSync, synced } = useLightingSync(serviceOnline, activeProfileId);
+  const { mode, setMode, rawSync, setRawSync, synced, paused: syncedPaused } = useLightingSync(serviceOnline, activeProfileId);
   // Game Sync requires the Windows Chroma capture shim; hide it on non-Windows
   // (empty platform = ping not yet resolved, keep hidden to avoid a flash).
   const isWindows = platform === 'windows';
@@ -289,6 +289,23 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
 
   const [musicReactive, setMusicReactiveState] = useState(false);
   const audioRef = useAudioState(musicReactive && mode === 'animate');
+
+  // Optimistic local mirror of useLightingSync().paused, reconciled whenever
+  // the server value changes (multiplex refetch, mode switch resetting it).
+  const [paused, setPausedState] = useState(!!syncedPaused);
+  useEffect(() => {
+    setPausedState(!!syncedPaused);
+  }, [syncedPaused]);
+
+  const handlePauseToggle = useCallback(async () => {
+    const next = !paused;
+    setPausedState(next);
+    try {
+      await setLightingPaused(next);
+    } catch {
+      setPausedState(!next);
+    }
+  }, [paused]);
 
   const [effectPulseKey, setEffectPulseKey] = useState(0);
 
@@ -1040,6 +1057,10 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
 
   const handleModeChange = useCallback(async (m: LightingMode) => {
     setMode(m);
+    // Starting any mode is never paused - reset optimistically so a stale
+    // "paused" trailing glyph can't flash on the newly active tab while the
+    // server confirms (paused doesn't carry across a mode switch).
+    setPausedState(false);
     // Set rawSync optimistically so content renders the new mode immediately
     // without waiting for the publishControlSync round-trip.
     if (m !== 'animate') setRawSync(m);
@@ -1075,13 +1096,44 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
         publishControlSync({ domain: 'lighting', mode: m, rawSync: m });
       }
     } catch { /* best-effort; backend state becomes source of truth */ }
-  }, [activeEffect, rawSync, setMode, setRawSync, screenPP, stateFor]);
+  }, [activeEffect, rawSync, setMode, setRawSync, screenPP, stateFor, setPausedState]);
 
+  // Pause/freeze applies to the three modes that drive a continuous output
+  // (animate shader, media playback, screen mirror) - Off has nothing to
+  // freeze and Game Sync is driven by the foreground game, not us.
   const modeTabs = MODES
     .filter(m => m.key !== 'gamesync' || isWindows)
     .map(m => {
       const Icon = LIGHTING_MODE_ICONS[m.key];
-      return { key: m.key, label: t(m.labelKey), icon: <Icon size={14} /> };
+      const showPauseToggle = synced && m.key === effectiveMode
+        && (m.key === 'animate' || m.key === 'gif' || m.key === 'screen');
+      return {
+        key: m.key,
+        label: t(m.labelKey),
+        icon: <Icon size={14} />,
+        trailing: showPauseToggle ? (
+          <HoverTooltip body={t(paused ? 'lighting.resume' : 'lighting.pause')} side="top">
+            <span
+              role="button"
+              tabIndex={0}
+              className={`${styles.pauseToggle} ${paused ? styles.pauseTogglePaused : ''}`}
+              aria-label={t(paused ? 'lighting.resume' : 'lighting.pause')}
+              onClick={e => { e.stopPropagation(); void handlePauseToggle(); }}
+              onKeyDown={e => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  void handlePauseToggle();
+                }
+              }}
+            >
+              {paused
+                ? <Play size={12} strokeWidth={2} fill="currentColor" />
+                : <Pause size={12} strokeWidth={2} fill="currentColor" />}
+            </span>
+          </HoverTooltip>
+        ) : undefined,
+      };
     });
 
   // Effect tab applies to animate / media / screen only; in Off and Game Sync
@@ -1132,7 +1184,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           ) : (
             <>
               <div className={styles.canvasArea}>
-                <DeviceCanvas devices={visibleDevices} canvasPixels={frames.canvasPixels} canvasW={frames.canvasW} canvasH={frames.canvasH} selectedIds={selectedDeviceIds} primaryDeviceId={primaryDeviceId} onSelectDevice={handleSelectDevice} onSetSelection={handleSetSelection} shaderEffect={effectiveMode === 'animate' ? activeEffect : null} shaderState={effectiveMode === 'animate' ? currentState : null} audioRef={audioRef} hiddenFrameIds={hiddenFrameIds} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={handleOpenSettings} onDragActiveChange={handleDragActiveChange} onBeforeLayoutSave={handleBeforeLayoutSave} onLayoutCommit={handleLayoutCommit} onSetDevicesPower={handleSetDevicesPower} gpuAvailable={serviceState.lighting?.gpuAvailable ?? true} />
+                <DeviceCanvas devices={visibleDevices} canvasPixels={frames.canvasPixels} canvasW={frames.canvasW} canvasH={frames.canvasH} selectedIds={selectedDeviceIds} primaryDeviceId={primaryDeviceId} onSelectDevice={handleSelectDevice} onSetSelection={handleSetSelection} shaderEffect={effectiveMode === 'animate' ? activeEffect : null} shaderState={effectiveMode === 'animate' ? currentState : null} shaderPaused={paused} audioRef={audioRef} hiddenFrameIds={hiddenFrameIds} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={handleOpenSettings} onDragActiveChange={handleDragActiveChange} onBeforeLayoutSave={handleBeforeLayoutSave} onLayoutCommit={handleLayoutCommit} onSetDevicesPower={handleSetDevicesPower} gpuAvailable={serviceState.lighting?.gpuAvailable ?? true} />
                 {effectiveMode === 'animate' && activeEffect && currentState && activeRightTab === 'effect' && (
                   <>
                     {EFFECTS.find(e => e.key === activeEffect)?.audio && (
@@ -1255,6 +1307,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           onPrev={handlePrevEffect}
           onNext={handleNextEffect}
           gpuAvailable={serviceState.lighting?.gpuAvailable ?? true}
+          paused={paused}
         />
       )}
       {editorTarget && (

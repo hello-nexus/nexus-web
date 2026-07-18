@@ -2,7 +2,7 @@
 // file per preview to satisfy the fast-refresh rule would be dozens of tiny
 // files. Storybook entries reload (not HMR) on edit.
 import { useEffect, useRef, useState, type CSSProperties, type FC } from 'react';
-import { Monitor, Palette, Sparkles, X, Plus, Settings, Download, AlertTriangle, HardDrive } from 'lucide-react';
+import { Monitor, Palette, Sparkles, X, Plus, Settings, Download, AlertTriangle, HardDrive, Pause } from 'lucide-react';
 import { ViewHeader } from '../components/common/ViewHeader/ViewHeader';
 import { Sparkline } from '../components/common/Sparkline/Sparkline';
 import { SensorCard } from '../components/common/SensorCard/SensorCard';
@@ -96,6 +96,7 @@ import { Spinner as StorybookSpinner } from '../components/common/Spinner/Spinne
 import { Stepper as StorybookStepper } from '../components/common/Stepper/Stepper';
 import { RangeBar } from '../components/common/RangeBar/RangeBar';
 import { Badge as StorybookBadge } from '../components/common/Badge/Badge';
+import { LiveFollowControl } from '../components/common/LiveFollowControl/LiveFollowControl';
 import { SeriesChart } from '../components/common/SeriesChart/SeriesChart';
 import { TimeSeriesChart } from '../components/common/TimeSeriesChart/TimeSeriesChart';
 import { TimelineBrush } from '../components/common/TimelineBrush/TimelineBrush';
@@ -420,11 +421,32 @@ function PreviewViewHeader() {
 
 function PreviewTabs() {
   const [active, setActive] = useState('day');
+  const [paused, setPaused] = useState(false);
   return <Tabs
     tabs={[
       { key: 'day', label: 'Day' },
       { key: 'week', label: 'Week' },
-      { key: 'month', label: 'Month' },
+      {
+        key: 'month', label: 'Month',
+        // Trailing control demo: only shown on the active tab, mirroring the
+        // Lighting page's per-tab pause toggle. Tabs renders this as a
+        // sibling of the tab's own button (not nested inside it), so its
+        // click never reaches the tab's onChange.
+        trailing: active === 'month' ? (
+          <span
+            role="button"
+            tabIndex={0}
+            aria-label={paused ? 'Resume' : 'Pause'}
+            onClick={e => { e.stopPropagation(); setPaused(p => !p); }}
+            onKeyDown={e => {
+              if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); setPaused(p => !p); }
+            }}
+            style={{ display: 'inline-flex', cursor: 'pointer', opacity: paused ? 1 : 0.6 }}
+          >
+            <Pause size={12} />
+          </span>
+        ) : undefined,
+      },
       { key: 'app', label: 'App' },
     ]}
     activeKey={active}
@@ -1581,6 +1603,16 @@ function PreviewBadge() {
   );
 }
 
+function PreviewLiveFollowControl() {
+  const [following, setFollowing] = useState(true);
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
+      <LiveFollowControl following={following} detachedLabel="3:45 PM" onBackToLive={() => setFollowing(true)} />
+      <button type="button" onClick={() => setFollowing(f => !f)}>Toggle</button>
+    </div>
+  );
+}
+
 function PreviewSeriesChart() {
   const s1 = { values: [10, 40, 30, 70, 55, 90, 60], color: 'var(--accent)', area: true };
   const s2 = { values: [50, 20, 60, 40, 80, 30, 75], color: 'var(--warn, #f59e0b)' };
@@ -2094,7 +2126,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'Tabs', category: 'navigation',
     filePath: 'src/components/common/Tabs/Tabs.tsx',
-    description: 'Bordered segmented tab group - one shared border around the whole bar, solid accent fill on the active tab. Supports optional leading icons through TabDef.icon and per-tab disable via TabDef.disabled. Used inside ViewHeader for page-level tabs and standalone for in-page toggles (panel theme settings, icon picker).', Preview: PreviewTabs,
+    description: 'Bordered segmented tab group - one shared border around the whole bar, solid accent fill on the active tab. Supports optional leading icons through TabDef.icon, per-tab disable via TabDef.disabled, and an optional right-aligned trailing control via TabDef.trailing (shown here on Month) - rendered as a sibling of the tab\'s own button sharing one pill, never nested inside it, so its clicks are shielded from the tab\'s onChange without creating an invalid nested-interactive-control. Used inside ViewHeader for page-level tabs and standalone for in-page toggles (panel theme settings, icon picker).', Preview: PreviewTabs,
     notes: 'Pairs with ViewHeader - do not roll your own tab bars. Disabled tabs get opacity 0.4 + not-allowed cursor.',
   },
   {
@@ -2133,6 +2165,12 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/Badge/Badge.tsx',
     description: 'Status pill with tone-tinted color and color-mixed background. Accepts an optional icon ReactNode. Host-renderer bridge for the SDK Badge element.',
     Preview: PreviewBadge,
+  },
+  {
+    name: 'LiveFollowControl', category: 'status',
+    filePath: 'src/components/common/LiveFollowControl/LiveFollowControl.tsx',
+    description: 'Live / back-to-live toggle for a metric history header: a Live badge (dot to the right of the label) while following, or the caller-formatted viewed-frame time (arrow to its right) once detached - clicking it calls onBackToLive. Both stay mounted in the same reserved slot so toggling never shifts the row. Shared by the monitoring page and Diagnostics > Cooling.',
+    Preview: PreviewLiveFollowControl,
   },
   {
     name: 'EmptyState', category: 'status',

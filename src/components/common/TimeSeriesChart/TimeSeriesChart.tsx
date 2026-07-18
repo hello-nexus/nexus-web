@@ -150,7 +150,7 @@ const RIBBON_OPACITY_FLOOR = 0.1;
 // Vertical breathing room between the line's own bottom gridline/tick label
 // and the first ribbon band - without it the line's minimum-value tick (e.g.
 // "0%") and a ribbon's valueLabel sit close enough to visually overlap.
-const RIBBON_GAP_PX = 8;
+const RIBBON_GAP_PX = 12;
 // Vertical breathing room between two stacked ribbon bands (e.g. temperature
 // above fan speed) - without it adjacent bands touch and read as one shape.
 const RIBBON_BAND_SPACING_PX = 6;

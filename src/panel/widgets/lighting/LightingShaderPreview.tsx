@@ -14,14 +14,14 @@ import styles from './LightingWidget.module.scss';
  * are left at 0 (no live audio wired here), so audio-reactive effects animate
  * but do not pulse to sound in this preview.
  */
-export function LightingShaderPreview({ effect, state, gpuAvailable }: { effect: string; state: EffectState; gpuAvailable?: boolean }) {
+export function LightingShaderPreview({ effect, state, gpuAvailable, paused }: { effect: string; state: EffectState; gpuAvailable?: boolean; paused?: boolean }) {
   const { t } = useTranslation();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef(state);
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
-  const { ready, error } = useShaderRenderer(canvasRef, effect, stateRef);
+  const { ready, error } = useShaderRenderer(canvasRef, effect, stateRef, undefined, undefined, paused);
 
   return (
     <div style={{ position: 'absolute', inset: 0 }}>

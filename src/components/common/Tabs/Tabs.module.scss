@@ -70,6 +70,49 @@
   min-width: 0;
 }
 
+// A tab with a trailing control renders as button + trailing sibling inside
+// this shared pill (see Tabs.tsx) instead of nesting the control inside the
+// button - the active fill/color rules below reuse the plain .active
+// selector, which already targets any element carrying both classes.
+.tabGroup {
+  display: inline-flex;
+  align-items: stretch;
+  border-radius: var(--radius-sm);
+  border: var(--border-width) solid transparent;
+  transition: background var(--ease-fast) ease, border-color var(--ease-fast) ease;
+
+  .tab {
+    // The group carries the pill; free the padding the trailing control's
+    // own inset now owns.
+    padding-right: 0.5rem;
+  }
+
+  &.active .tab {
+    color: var(--text);
+  }
+
+  &.active .tabIcon {
+    color: var(--accent-glow);
+  }
+}
+
+.fullWidth .tabGroup {
+  flex: 1 1 0;
+}
+
+.fullWidth .tabGroup .tab {
+  flex: 1;
+  text-align: center;
+}
+
+.tabTrailing {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding-right: 0.7rem;
+}
+
 // ── Full-width ───────────────────────────────────────────────────────────
 // Stretch the bar across its container; every tab shares the width equally and
 // centers its label.

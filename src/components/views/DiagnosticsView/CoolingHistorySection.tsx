@@ -1,10 +1,11 @@
 import { useMemo } from 'react';
-import { Fan, Radio, Thermometer, ZoomOut } from 'lucide-react';
+import { Fan, Thermometer, ZoomOut } from 'lucide-react';
 import { TimeSeriesChart, type ChartRibbonSpec } from '../../common/TimeSeriesChart/TimeSeriesChart';
 import { nearestPoint } from '../../common/TimeSeriesChart/timeSeriesChartUtils';
 import { TimelineBrush, TIMELINE_BRUSH_DEFAULT_HEIGHT } from '../../common/TimelineBrush/TimelineBrush';
 import { Select } from '../../common/Select/Select';
 import { Badge } from '../../common/Badge/Badge';
+import { LiveFollowControl } from '../../common/LiveFollowControl/LiveFollowControl';
 import { Button } from '../../common/Button/Button';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { SectionHeader } from '../../common/SectionHeader/SectionHeader';
@@ -45,8 +46,13 @@ export function CoolingHistorySection({ history, episodes }: CoolingHistorySecti
   const silhouettePoints = useMemo(() => coolingSilhouettePoints(history.silhouette), [history.silhouette]);
   const rpmPoints = useMemo(() => averageRpmSeries(history.series), [history.series]);
 
-  const windowMs = history.domain[1] - history.domain[0];
+  const windowEnd = history.domain[1];
+  const windowMs = windowEnd - history.domain[0];
   const xTickFormat = useMemo(() => xTickFormatForWindow(windowMs), [windowMs]);
+  // No per-frame click-to-pin here (unlike the monitoring page) - detaching
+  // via the seek bar leaves the viewed window's right edge as the frame of
+  // record, so that is what the chip shows once following goes false.
+  const detachedLabel = useMemo(() => xTickFormat(windowEnd), [xTickFormat, windowEnd]);
   const valueFormat = useMemo(
     () => (v: number) => formatTemperatureCelsius(v, monitoringTempUnit, numberFormat),
     [monitoringTempUnit, numberFormat],
@@ -101,24 +107,7 @@ export function CoolingHistorySection({ history, episodes }: CoolingHistorySecti
           <SectionHeader>{t('diagnostics.temperature.title')}</SectionHeader>
           {history.mocked && <Badge label={t('diagnostics.mockDataBadge')} color="var(--warn)" />}
         </div>
-        <div className={styles.liveControl}>
-          <span
-            className={`${styles.liveControlSlot} ${history.following ? '' : styles.liveControlHidden}`}
-            aria-hidden={!history.following}
-          >
-            <Badge label={t('monitoring.history.live')} color="var(--good)" />
-          </span>
-          <button
-            type="button"
-            className={`${styles.backToLive} ${styles.liveControlSlot} ${history.following ? styles.liveControlHidden : ''}`}
-            onClick={history.backToLive}
-            tabIndex={history.following ? -1 : 0}
-            aria-hidden={history.following}
-          >
-            <Radio size={12} aria-hidden />
-            {t('monitoring.history.backToLive')}
-          </button>
-        </div>
+        <LiveFollowControl following={history.following} detachedLabel={detachedLabel} onBackToLive={history.backToLive} />
       </div>
 
       {showUnsupported ? (

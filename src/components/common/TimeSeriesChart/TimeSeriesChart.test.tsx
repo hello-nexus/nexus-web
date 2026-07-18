@@ -764,6 +764,26 @@ describe('TimeSeriesChart', () => {
       expect(secondTop).toBeGreaterThan(firstBottom);
     });
 
+    it('reserves clear vertical separation between the line chart baseline and the first ribbon band', () => {
+      // A forced yDomain of [0, 100] lands a gridline exactly on the domain
+      // floor (niceTicks(0, 100) includes 0 itself), so that gridline's own
+      // y is the line chart's true rendered bottom - the first ribbon band's
+      // own gap above it is then directly observable, unlike the band's
+      // absolute y (which shrinks the line's own plot area by the same gap
+      // it adds below it, cancelling out - not a valid regression guard).
+      const points = [{ t: 0, avg: 60, max: 60 }];
+      const { container } = render(
+        <TimeSeriesChart
+          series={ribbonSeries} {...baseProps} yDomain={[0, 100]}
+          ribbons={[{ points, fill: 'var(--bad)', height: 12 }]}
+        />,
+      );
+      const gridlines = container.querySelectorAll('line[stroke="var(--border)"]');
+      const baselineY = Math.max(...Array.from(gridlines).map(l => Number(l.getAttribute('y1'))));
+      const rect = ribbonRects(container)[0];
+      expect(Number(rect.getAttribute('y')) - baselineY).toBe(12);
+    });
+
     it('renders a valueLabel at the axis label position, on the yAxisSide edge', () => {
       const points = [{ t: 0, avg: 60, max: 60 }];
       render(
