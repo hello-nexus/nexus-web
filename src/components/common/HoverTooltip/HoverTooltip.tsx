@@ -26,7 +26,7 @@ const VIEWPORT_MARGIN = 8;
 // across a cluster of tooltips opens each one instantly. See tooltipOpenDelay.
 
 type TriggerProps = {
-  ref?: (el: HTMLElement | null) => void;
+  ref?: (el: Element | null) => void;
   onPointerEnter?: (e: React.PointerEvent) => void;
   onPointerLeave?: (e: React.PointerEvent) => void;
   onFocus?: (e: React.FocusEvent) => void;
@@ -42,7 +42,9 @@ type TriggerProps = {
  * IMPORTANT: HoverTooltip does NOT wrap the trigger in an extra DOM element.
  * Handlers, ref, and aria-describedby are cloned directly onto the single
  * child element so flex / grid layouts and direct-child CSS selectors keep
- * working. Pass exactly one React element as `children`.
+ * working. Pass exactly one React element as `children` - an HTML element or
+ * an SVG element (e.g. a chart's own `<text>` label) both work, since the
+ * trigger ref only ever needs Element's own getBoundingClientRect.
  *
  * Companion to `InfoTooltip` (which carries its own (i) icon trigger and is
  * suited to section headings). Use `HoverTooltip` when the trigger is the
@@ -51,7 +53,7 @@ type TriggerProps = {
 export function HoverTooltip({ title, body, side = 'bottom', children }: HoverTooltipProps) {
   const [open, setOpen] = useState(false);
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
-  const triggerRef = useRef<HTMLElement | null>(null);
+  const triggerRef = useRef<Element | null>(null);
   const tooltipRef = useRef<HTMLSpanElement | null>(null);
   const openTimerRef = useRef<number | null>(null);
   // Whether THIS tooltip actually became visible. The shared scan-mode
@@ -160,10 +162,10 @@ export function HoverTooltip({ title, body, side = 'bottom', children }: HoverTo
   // caller used.
   const callerRef = (childProps as { ref?: unknown }).ref
     ?? (child as unknown as { ref?: unknown }).ref;
-  const setRef = (el: HTMLElement | null) => {
+  const setRef = (el: Element | null) => {
     triggerRef.current = el;
-    if (typeof callerRef === 'function') (callerRef as (el: HTMLElement | null) => void)(el);
-    else if (callerRef && typeof callerRef === 'object') (callerRef as { current: HTMLElement | null }).current = el;
+    if (typeof callerRef === 'function') (callerRef as (el: Element | null) => void)(el);
+    else if (callerRef && typeof callerRef === 'object') (callerRef as { current: Element | null }).current = el;
   };
 
   const trigger = cloneElement(child, {

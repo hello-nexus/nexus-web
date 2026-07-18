@@ -625,12 +625,18 @@ describe('MetricHistorySection', () => {
     });
   });
 
-  describe('RPM label hover tooltip', () => {
+  describe('RPM label hover tooltip (rendered via the shared HoverTooltip component, not a native <title>)', () => {
     const series: UseMetricHistoryResult['series'] = [
       { id: 'cpu', kind: 'cpu', name: 'CPU', points: [{ t: NOW, avg: 50, max: 51 }] },
       { id: 'fan:1', kind: 'fan', name: 'Front Fan', points: [{ t: NOW, avg: 1200, max: 1250 }] },
       { id: 'fan:2', kind: 'fan', name: 'Rear Fan', points: [{ t: NOW, avg: 1600, max: 1580 }] },
     ];
+
+    it('renders no native <title> element on the RPM label - HoverTooltip owns it', () => {
+      stubGeometry();
+      const { container } = renderSection({ metric: 'cpu', history: { series }, fanRoles: new Map() });
+      expect(container.querySelector('title')).toBeNull();
+    });
 
     it('lists the marked fan names when at least one fan is marked for the tab\'s role', () => {
       stubGeometry();
@@ -638,16 +644,18 @@ describe('MetricHistorySection', () => {
         ['fan:1', { role: 'cpu', name: 'Front Fan' }],
         ['fan:2', { role: 'cpu', name: 'Rear Fan' }],
       ]);
-      const { container } = renderSection({ metric: 'cpu', history: { series }, fanRoles });
-      const titles = [...container.querySelectorAll('title')].map(el => el.textContent);
-      expect(titles).toContain('monitoring.history.rpm.markedFans:Front Fan, Rear Fan');
+      renderSection({ metric: 'cpu', history: { series }, fanRoles });
+      // Both fans marked cpu -> summed (2800 RPM), not averaged - see the
+      // role-aware fan speed sum tests above.
+      fireEvent.focus(screen.getByText('2800 RPM'));
+      expect(screen.getByRole('tooltip')).toHaveTextContent('monitoring.history.rpm.markedFans:Front Fan, Rear Fan');
     });
 
     it('shows the mark-in-Cooling hint (CPU-specific key) when no fan is marked on the cpu tab', () => {
       stubGeometry();
-      const { container } = renderSection({ metric: 'cpu', history: { series }, fanRoles: new Map() });
-      const titles = [...container.querySelectorAll('title')].map(el => el.textContent);
-      expect(titles).toContain('monitoring.history.rpm.hintCpu');
+      renderSection({ metric: 'cpu', history: { series }, fanRoles: new Map() });
+      fireEvent.focus(screen.getByText('1400 RPM'));
+      expect(screen.getByRole('tooltip')).toHaveTextContent('monitoring.history.rpm.hintCpu');
     });
 
     it('shows the mark-in-Cooling hint (GPU-specific key) when no fan is marked on the gpu tab', () => {
@@ -657,21 +665,21 @@ describe('MetricHistorySection', () => {
         { id: 'fan:1', kind: 'fan', name: 'Front Fan', points: [{ t: NOW, avg: 1200, max: 1250 }] },
       ];
       const gpuComponents: GpuComponent[] = [{ id: 'gpu/0', name: 'RTX 3070', adapterLuid: 'a', sensors: [] }];
-      const { container } = renderSection({
+      renderSection({
         metric: 'gpu', gpuComponents, preferredGpuId: 'gpu/0', history: { series: gpuSeries }, fanRoles: new Map(),
       });
-      const titles = [...container.querySelectorAll('title')].map(el => el.textContent);
-      expect(titles).toContain('monitoring.history.rpm.hintGpu');
+      fireEvent.focus(screen.getByText('1200 RPM'));
+      expect(screen.getByRole('tooltip')).toHaveTextContent('monitoring.history.rpm.hintGpu');
     });
 
-    it('renders no tooltip title on the temp band, only on the RPM band', () => {
+    it('makes only the RPM band\'s value label keyboard-focusable, not the temp band\'s', () => {
       stubGeometry();
       const seriesWithTemp: UseMetricHistoryResult['series'] = [
         ...series,
         { id: 'cpu-temp', kind: 'cpu-temp', name: 'CPU', points: [{ t: NOW, avg: 70, max: 72 }] },
       ];
       const { container } = renderSection({ metric: 'cpu', history: { series: seriesWithTemp }, fanRoles: new Map() });
-      expect(container.querySelectorAll('title').length).toBe(1);
+      expect(container.querySelectorAll('text[tabindex="0"]').length).toBe(1);
     });
   });
 

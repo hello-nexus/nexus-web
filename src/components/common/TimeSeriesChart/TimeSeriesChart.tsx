@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { useChartHoverTooltip } from '../../../hooks/useChartHoverTooltip';
 import { useTranslation } from '../../../lib/i18n';
+import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
 import {
   GAP_MULTIPLIER,
   avgValueRange,
@@ -38,8 +39,9 @@ export interface ChartRibbonSpec {
    *  vertically centered on this ribbon's band - e.g. the current
    *  temperature. Omit to render no label for this ribbon. */
   valueLabel?: string;
-  /** Native hover tooltip (SVG `<title>`) for the valueLabel text - e.g. which
-   *  fans a summed RPM reading covers. Omit for no tooltip. */
+  /** Hover tooltip (the shared HoverTooltip component) for the valueLabel
+   *  text - e.g. which fans a summed RPM reading covers. Omit for no
+   *  tooltip. */
   valueLabelTooltip?: string;
   /** Rendered in the pad lane opposite the axis labels, vertically centered
    *  on this ribbon's band - must already be sized to RIBBON_ICON_SIZE
@@ -547,10 +549,17 @@ export function TimeSeriesChart({
                 </g>
               )}
               {ribbon.valueLabel !== undefined && (
-                <text x={axisLabelX} y={midY + 3} fill="var(--text-dim)" fontSize="11" fontFamily="var(--font-mono)" textAnchor={axisLabelAnchor}>
-                  {ribbon.valueLabelTooltip !== undefined && <title>{ribbon.valueLabelTooltip}</title>}
-                  {ribbon.valueLabel}
-                </text>
+                ribbon.valueLabelTooltip !== undefined ? (
+                  <HoverTooltip body={ribbon.valueLabelTooltip} side="top">
+                    <text x={axisLabelX} y={midY + 3} fill="var(--text-dim)" fontSize="11" fontFamily="var(--font-mono)" textAnchor={axisLabelAnchor} tabIndex={0}>
+                      {ribbon.valueLabel}
+                    </text>
+                  </HoverTooltip>
+                ) : (
+                  <text x={axisLabelX} y={midY + 3} fill="var(--text-dim)" fontSize="11" fontFamily="var(--font-mono)" textAnchor={axisLabelAnchor}>
+                    {ribbon.valueLabel}
+                  </text>
+                )
               )}
             </g>
           );
