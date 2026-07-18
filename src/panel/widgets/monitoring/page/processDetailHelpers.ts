@@ -77,6 +77,41 @@ export interface MiniChartResult {
   hasData: boolean;
 }
 
+// Linear scan, not appWindowHelpers' binary search - importing that module
+// here would cycle back through ProcessListSection -> ProcessDetailSlideout,
+// and these window series (one process, one metric) are small enough that
+// the scan cost is negligible. Not timeSeriesChartUtils' nearestPoint either
+// - that one requires a maxDeltaMs cap (no established value for a single
+// process/metric tile) and a TimeSeriesPoint `max` field AppWindowPoint
+// doesn't carry, matching appWindowHelpers' own uncapped nearestAppValueAt
+// instead (the same "just find nearest, no cap" contract this mirrors).
+function nearestPointIndex(points: readonly AppWindowPoint[], target: number): number {
+  if (points.length === 0) return -1;
+  let best = 0;
+  let bestDelta = Math.abs(points[0].t - target);
+  for (let i = 1; i < points.length; i++) {
+    const delta = Math.abs(points[i].t - target);
+    if (delta < bestDelta) { best = i; bestDelta = delta; }
+  }
+  return best;
+}
+
+/**
+ * A usage tile's value at the selected frame: the nearest point in this
+ * metric's own fetched window series, falling back to `liveValue` when the
+ * series has no points at all (e.g. a process that just launched, before its
+ * first historical sample lands). `??` (not `||`) so a legitimate 0 window
+ * value is kept rather than overridden by the live fallback.
+ */
+export function resolveTileValue(
+  points: readonly AppWindowPoint[] | undefined,
+  selectedFrameMs: number,
+  liveValue: number | undefined,
+): number | undefined {
+  const i = points ? nearestPointIndex(points, selectedFrameMs) : -1;
+  return i >= 0 ? points![i].avg : liveValue;
+}
+
 /**
  * Builds gap-aware SVG path segments for the process-detail mini chart from
  * a window-scoped apps series (AppWindowPoint[]). X maps linearly across the

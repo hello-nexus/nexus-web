@@ -1767,6 +1767,7 @@
   "monitoring.processDetail.live.vram": "VRAM",
   "monitoring.processDetail.openLocation.failed": "Nie udało się otworzyć lokalizacji pliku.",
   "monitoring.processDetail.privacy.title": "Prywatność",
+  "monitoring.processDetail.timeframe.asOf": "Stan na {time}",
   "monitoring.ranked.empty": "Oczekiwanie na dane procesow...",
   "monitoring.settings.category.battery": "Bateria",
   "monitoring.settings.category.cooler": "Chłodzenie",

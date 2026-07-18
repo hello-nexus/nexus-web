@@ -319,6 +319,10 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
                 appsWindow={appsWindow}
                 snapshotAtMs={isSnapshotPinned ? selectedFrameMs : null}
                 onClearSnapshot={clearSnapshot}
+                selectedFrameMs={selectedFrameMs}
+                following={history.following}
+                historyFrom={history.domain[0]}
+                historyTo={history.domain[1]}
               />
             </div>
           </>

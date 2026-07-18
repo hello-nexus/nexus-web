@@ -28,6 +28,13 @@
   gap: 0.5rem;
 }
 
+.timeframeRow {
+  @include text-caption;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+}
+
 .liveGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

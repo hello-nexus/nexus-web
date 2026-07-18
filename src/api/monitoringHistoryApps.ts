@@ -1,12 +1,14 @@
 // Per-app window-scoped monitoring history - typed wrapper over the local
 // service's GET /monitoring/history/apps?from=<utcMs>&to=<utcMs>&series=<cpu|
-// gpu:gid|memory|net>&maxApps=<n>&maxPoints=<n>, returning
+// gpu:gid|memory|net|vram>&process=<name>&maxApps=<n>&maxPoints=<n>, returning
 // { supported, apps: [{ name, startedAtMs?, avg, max, points }] }. Feeds the
 // process list's window-scoped values/sparklines AND the hero chart's hover
-// tooltip (nearest-point lookup client-side - no per-hover fetching). The
-// service route doesn't exist yet, so a 404 here falls back to contract-
-// shaped mock data in a dev build; in a production build a 404 is reported as
-// `unsupported` rather than an error, same contract as api/monitoringHistory.ts.
+// tooltip (nearest-point lookup client-side - no per-hover fetching). `process`
+// scopes the response to one named app (bypassing the top-N ranking) - used by
+// the process-detail slideout's own per-metric usage tiles. The service route
+// doesn't exist yet, so a 404 here falls back to contract-shaped mock data in
+// a dev build; in a production build a 404 is reported as `unsupported`
+// rather than an error, same contract as api/monitoringHistory.ts.
 
 import { classifyFetchOutcome, requestJson } from './fetchOutcome';
 
@@ -34,8 +36,11 @@ export interface MetricHistoryAppsQuery {
   from: number;
   /** UTC milliseconds. */
   to: number;
-  /** 'cpu' | 'memory' | 'net' | `gpu:${adapterLuid}`. */
+  /** 'cpu' | 'memory' | 'net' | 'vram' | `gpu:${adapterLuid}`. */
   series: string;
+  /** Scopes the response to this one app by name (case-insensitive),
+   *  bypassing the top-N-by-usage ranking - omit for the ranked list. */
+  process?: string;
   maxApps?: number;
   maxPoints?: number;
 }
@@ -53,6 +58,7 @@ function buildQuery(query: MetricHistoryAppsQuery): string {
   params.set('from', String(Math.round(query.from)));
   params.set('to', String(Math.round(query.to)));
   params.set('series', query.series);
+  if (query.process) params.set('process', query.process);
   if (query.maxApps != null) params.set('maxApps', String(query.maxApps));
   if (query.maxPoints != null) params.set('maxPoints', String(query.maxPoints));
   return params.toString();

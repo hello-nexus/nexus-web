@@ -222,6 +222,23 @@ describe('useMetricHistoryApps', () => {
     expect(result.current.ready).toBe(false);
   });
 
+  it('forwards the process param to the fetch, and treats a process change like a metric switch (bypasses the tick-slide skip)', async () => {
+    const { rerender } = renderHook(
+      ({ process }: { process: string }) => useMetricHistoryApps(true, 'cpu', NOW - MINUTE, NOW, true, process),
+      { initialProps: { process: 'chrome.exe' } },
+    );
+    await advance(200);
+    expect(fetchMock).toHaveBeenCalledWith(expect.objectContaining({ process: 'chrome.exe' }));
+    fetchMock.mockClear();
+
+    // Same from/to/series (the width and metric are unchanged) - only the
+    // requested process changes, exactly like the slideout opening a
+    // different process while the box stays put.
+    rerender({ process: 'Nexus' });
+    await advance(200);
+    expect(fetchMock).toHaveBeenCalledWith(expect.objectContaining({ process: 'Nexus' }));
+  });
+
   it('clears apps and drops ready when seriesParam drops to empty even if enabled stays true, and stays clear past the debounce and live-refresh windows', async () => {
     const { result, rerender } = renderHook(
       ({ series }: { series: string }) => useMetricHistoryApps(true, series, NOW - MINUTE, NOW, true),

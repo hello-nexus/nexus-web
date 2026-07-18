@@ -27,8 +27,13 @@ export interface UseMetricHistoryAppsResult {
  * merely sliding the window does NOT retrigger this on every tick - a
  * slower periodic poll keeps the data fresh instead, since per-app windows
  * don't need the box's own tail-poll precision.
+ *
+ * `process` scopes every fetch to one named app (the process-detail
+ * slideout's own per-metric usage tiles, see useProcessDetailUsage) - a
+ * change in `process` is treated the same as a metric switch (bypasses the
+ * tick-slide skip, drops `ready` until the new response lands).
  */
-export function useMetricHistoryApps(enabled: boolean, seriesParam: string, from: number, to: number, following: boolean): UseMetricHistoryAppsResult {
+export function useMetricHistoryApps(enabled: boolean, seriesParam: string, from: number, to: number, following: boolean, process?: string): UseMetricHistoryAppsResult {
   const [apps, setApps] = useState<AppWindowSeries[]>([]);
   const [loading, setLoading] = useState(true);
   const [supported, setSupported] = useState(true);
@@ -41,6 +46,7 @@ export function useMetricHistoryApps(enabled: boolean, seriesParam: string, from
   const toRef = useRef(to);
   const prevWidthRef = useRef<number | null>(null);
   const prevSeriesParamRef = useRef<string | null>(null);
+  const prevProcessRef = useRef<string | undefined>(undefined);
 
   useEffect(() => { fromRef.current = from; toRef.current = to; }, [from, to]);
   useEffect(() => {
@@ -67,7 +73,7 @@ export function useMetricHistoryApps(enabled: boolean, seriesParam: string, from
       // feed is exactly what causes borderline apps to churn in and out of
       // membership between ticks.
       const result = await fetchMonitoringHistoryApps({
-        from: loadFrom, to: loadTo, series: seriesParam, maxPoints: MAX_POINTS,
+        from: loadFrom, to: loadTo, series: seriesParam, process, maxPoints: MAX_POINTS,
       });
       if (!mountedRef.current || seq !== seqRef.current) return;
       if (result.data) {
@@ -84,7 +90,7 @@ export function useMetricHistoryApps(enabled: boolean, seriesParam: string, from
       }
       setLoading(false);
     })();
-  }, [seriesParam]);
+  }, [seriesParam, process]);
 
   // Debounced fetch on a real viewport change (width changed, the window
   // moved while detached, or the metric itself switched). A live tick alone
@@ -96,15 +102,17 @@ export function useMetricHistoryApps(enabled: boolean, seriesParam: string, from
   useEffect(() => {
     if (!enabled || !supported || seriesParam === '') return;
     const width = to - from;
-    const seriesChanged = prevSeriesParamRef.current !== null && prevSeriesParamRef.current !== seriesParam;
+    const seriesChanged = (prevSeriesParamRef.current !== null && prevSeriesParamRef.current !== seriesParam)
+      || prevProcessRef.current !== process;
     const isTickSlide = following && !seriesChanged && prevWidthRef.current !== null && Math.abs(width - prevWidthRef.current) < 1;
     prevWidthRef.current = width;
     prevSeriesParamRef.current = seriesParam;
+    prevProcessRef.current = process;
     if (seriesChanged) setReady(false);
     if (isTickSlide) return;
     const timer = window.setTimeout(() => load(from, to), VIEWPORT_DEBOUNCE_MS);
     return () => window.clearTimeout(timer);
-  }, [enabled, supported, from, to, following, load, seriesParam]);
+  }, [enabled, supported, from, to, following, load, seriesParam, process]);
 
   // Slow live-refresh while following, independent of the per-tick from/to
   // slide above - reads from/to via refs so it always uses the latest

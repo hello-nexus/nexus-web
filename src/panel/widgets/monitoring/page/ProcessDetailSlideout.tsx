@@ -16,13 +16,14 @@ import { formatMemoryMb } from '../../../../lib/formatMemory';
 import { localizeNumbers } from '../../../../lib/units';
 import { relativeTimeLabel } from '../../../../components/views/DiagnosticsView/diagnosticsHelpers';
 import { useMonitoringProcessInfo } from '../../../../hooks/useMonitoringProcessInfo';
+import { useProcessDetailUsage } from '../../../../hooks/useProcessDetailUsage';
 import { killMonitoringProcess, openMonitoringProcessLocation } from '../../../../api/monitoringProcessActions';
 import type { UseMetricHistoryAppsResult } from '../../../../hooks/useMetricHistoryApps';
 import type { PrivacySession } from '../../../../api/monitoringPrivacy';
 import { PRIVACY_ICONS, formatPrivacyTime, iconKindForCapability } from './privacyHelpers';
 import { ProcessIcon } from './ProcessIcon';
 import { ProcessMiniChart } from './ProcessMiniChart';
-import { sessionsForProcess, truncateMiddle, type ProcessLiveUsage } from './processDetailHelpers';
+import { resolveTileValue, sessionsForProcess, truncateMiddle, type ProcessLiveUsage } from './processDetailHelpers';
 import styles from './ProcessDetailSlideout.module.scss';
 
 export interface ProcessDetailSlideoutProps {
@@ -37,6 +38,17 @@ export interface ProcessDetailSlideoutProps {
   valueFormat: (value: number) => string;
   privacySessions: readonly PrivacySession[];
   privacySupported: boolean;
+  /** The hero chart's own selected frame (see resolveSelectedFrame) and
+   *  whether the viewport is following live - drives the timeframe label and
+   *  the CPU/memory/GPU/VRAM tiles below it (their value at this frame,
+   *  falling back to `live` when the per-process window has no point yet). */
+  selectedFrameMs: number;
+  following: boolean;
+  /** The hero chart's own window bounds - the per-process CPU/memory/GPU/
+   *  VRAM fetch below (useProcessDetailUsage) reuses this same span so its
+   *  window always contains `selectedFrameMs`. */
+  historyFrom: number;
+  historyTo: number;
 }
 
 const PATH_TRUNCATE_CHARS = 46;
@@ -92,11 +104,22 @@ function CopyableValue({ value, fieldLabel, mono, truncate }: { value: string; f
  */
 export function ProcessDetailSlideout({
   onClose, name, live, appsWindow, valueFormat, privacySessions, privacySupported,
+  selectedFrameMs, following, historyFrom, historyTo,
 }: ProcessDetailSlideoutProps) {
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
   const toast = useToastSafe();
   const info = useMonitoringProcessInfo(true, name);
+
+  // "Live" only when the viewport tracks the live edge AND nothing is
+  // pinned - a plain click on the hero chart (no drag) pins selectedFrameMs
+  // to a past instant without ever touching `following` (see
+  // TimeSeriesChart's onPointClick vs onRangeSelect), so `following` alone
+  // would disagree with what the tiles below actually show. historyTo is the
+  // same domain right edge resolveSelectedFrame falls back to when nothing
+  // is pinned, so comparing against it detects a pin without a separate prop.
+  const isLive = following && selectedFrameMs === historyTo;
+  const usage = useProcessDetailUsage(name, historyFrom, historyTo, !isLive, following);
 
   const [killConfirmOpen, setKillConfirmOpen] = useState(false);
   const [killing, setKilling] = useState(false);
@@ -138,20 +161,34 @@ export function ProcessDetailSlideout({
   const instanceCount = data?.instanceCount;
   const displayName = (data?.description?.trim()) || name;
 
-  const liveTiles: SystemSpecRow[] = [];
-  if (live) {
-    if (live.cpuPercent !== undefined) {
-      liveTiles.push({ icon: <Cpu size={16} />, label: t('monitoring.processDetail.live.cpu'), value: localizeNumbers(`${Math.round(live.cpuPercent)}%`, numberFormat) });
-    }
-    if (live.memoryMb !== undefined) {
-      liveTiles.push({ icon: <MemoryStick size={16} />, label: t('monitoring.processDetail.live.memory'), value: formatMemoryMb(live.memoryMb, numberFormat) });
-    }
-    if (live.gpuPercent !== undefined) {
-      liveTiles.push({ icon: <Gpu size={16} />, label: t('monitoring.processDetail.live.gpu'), value: localizeNumbers(`${Math.round(live.gpuPercent)}%`, numberFormat) });
-    }
-    if (live.vramMb !== undefined) {
-      liveTiles.push({ icon: <Layers size={16} />, label: t('monitoring.processDetail.live.vram'), value: formatMemoryMb(live.vramMb, numberFormat) });
-    }
+  // Each tile shows its metric's value AT the selected frame (the nearest
+  // point in that metric's own per-process window fetch), falling back to
+  // the live value when the window has no point yet. useProcessDetailUsage
+  // fetches nothing while isLive is true, so in that state every tile is
+  // exactly the live value - unchanged from before this per-frame lookup
+  // existed.
+  const cpuPoints = usage.cpu.apps.find(a => a.name === name)?.points;
+  const memPoints = usage.memory.apps.find(a => a.name === name)?.points;
+  const gpuPoints = usage.gpu.apps.find(a => a.name === name)?.points;
+  const vramPoints = usage.vram.apps.find(a => a.name === name)?.points;
+
+  const cpuValue = resolveTileValue(cpuPoints, selectedFrameMs, live?.cpuPercent);
+  const memValue = resolveTileValue(memPoints, selectedFrameMs, live?.memoryMb);
+  const gpuValue = resolveTileValue(gpuPoints, selectedFrameMs, live?.gpuPercent);
+  const vramValue = resolveTileValue(vramPoints, selectedFrameMs, live?.vramMb);
+
+  const usageTiles: SystemSpecRow[] = [];
+  if (cpuValue !== undefined) {
+    usageTiles.push({ icon: <Cpu size={16} />, label: t('monitoring.processDetail.live.cpu'), value: localizeNumbers(`${Math.round(cpuValue)}%`, numberFormat) });
+  }
+  if (memValue !== undefined) {
+    usageTiles.push({ icon: <MemoryStick size={16} />, label: t('monitoring.processDetail.live.memory'), value: formatMemoryMb(memValue, numberFormat) });
+  }
+  if (gpuValue !== undefined) {
+    usageTiles.push({ icon: <Gpu size={16} />, label: t('monitoring.processDetail.live.gpu'), value: localizeNumbers(`${Math.round(gpuValue)}%`, numberFormat) });
+  }
+  if (vramValue !== undefined) {
+    usageTiles.push({ icon: <Layers size={16} />, label: t('monitoring.processDetail.live.vram'), value: formatMemoryMb(vramValue, numberFormat) });
   }
 
   const chartUnsupported = !(appsWindow?.supported ?? false);
@@ -207,9 +244,15 @@ export function ProcessDetailSlideout({
           </Button>
         </div>
 
-        {liveTiles.length > 0 ? (
+        <div className={styles.timeframeRow}>
+          {isLive
+            ? <Badge label={t('monitoring.history.live')} color="var(--good)" />
+            : <span>{t('monitoring.processDetail.timeframe.asOf', { time: formatAbsolute(selectedFrameMs) })}</span>}
+        </div>
+
+        {usageTiles.length > 0 ? (
           <div className={styles.liveGrid}>
-            <SystemSpecsPanel variant="tiles" rows={liveTiles} />
+            <SystemSpecsPanel variant="tiles" rows={usageTiles} />
           </div>
         ) : (
           <p className={styles.sectionNote}>{t('monitoring.processDetail.live.unavailable')}</p>

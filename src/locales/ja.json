@@ -1712,6 +1712,7 @@
   "monitoring.processDetail.live.vram": "VRAM",
   "monitoring.processDetail.openLocation.failed": "ファイルの場所を開けませんでした。",
   "monitoring.processDetail.privacy.title": "プライバシー",
+  "monitoring.processDetail.timeframe.asOf": "{time}時点",
   "monitoring.ranked.empty": "プロセスデータを待機中...",
   "monitoring.settings.category.battery": "バッテリー",
   "monitoring.settings.category.cooler": "クーラー",

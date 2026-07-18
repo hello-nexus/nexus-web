@@ -62,12 +62,25 @@ export interface ProcessListSectionProps {
   snapshotAtMs?: number | null;
   /** Clears the pinned snapshot - required whenever snapshotAtMs is set. */
   onClearSnapshot?: () => void;
+  /** The hero chart's own selected frame + follow state and window bounds -
+   *  threaded straight through to the process-detail slideout for its
+   *  timeframe label and usage tiles. Defaults describe "live, right now"
+   *  for a caller that doesn't track a history viewport at all. */
+  selectedFrameMs?: number;
+  following?: boolean;
+  historyFrom?: number;
+  historyTo?: number;
 }
 
 // Exported so appWindowHelpers.ts's flat-history fallback can size itself to
 // match - a shorter flat array would let this component's own left-zero-pad
 // (values.length < sampleCount) draw a fake ramp instead of a flat line.
 export const SPARKLINE_SAMPLES = 30;
+
+// Fallback usage-fetch window for a caller that doesn't track a history
+// viewport (selectedFrameMs/following/historyFrom/historyTo all omitted) -
+// mirrors metricHistoryHelpers' own 30m default range.
+const DEFAULT_HISTORY_WINDOW_MS = 30 * 60_000;
 
 /** A process row's privacy-access icons: one per PrivacyIndicator, each a
  *  non-actionable informational glyph (role="img" + tabIndex so hover AND
@@ -233,8 +246,16 @@ function formatSnapshotTime(ms: number): string {
 
 export function ProcessListSection({
   items, formatValue, rankResetKey = '', frozen = false, liveUsage, appsWindow, snapshotAtMs, onClearSnapshot,
+  selectedFrameMs, following = true, historyFrom, historyTo,
 }: ProcessListSectionProps) {
   const { t } = useTranslation();
+  // Lazy-initialized once (matches ProcessDetailSlideout's own nowMs
+  // snapshot) - only ever read as a fallback for a caller that omits the
+  // history-viewport props entirely, so it doesn't need to track real time.
+  const [fallbackNowMs] = useState(() => Date.now());
+  const resolvedSelectedFrameMs = selectedFrameMs ?? fallbackNowMs;
+  const resolvedHistoryFrom = historyFrom ?? fallbackNowMs - DEFAULT_HISTORY_WINDOW_MS;
+  const resolvedHistoryTo = historyTo ?? fallbackNowMs;
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<SortMode>('recent');
   const [selectedProcess, setSelectedProcess] = useState<string | null>(null);
@@ -334,6 +355,10 @@ export function ProcessListSection({
           valueFormat={formatValue}
           privacySessions={privacy.sessions}
           privacySupported={privacy.supported && !privacy.error}
+          selectedFrameMs={resolvedSelectedFrameMs}
+          following={following}
+          historyFrom={resolvedHistoryFrom}
+          historyTo={resolvedHistoryTo}
         />
       )}
     </div>

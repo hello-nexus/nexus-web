@@ -1767,6 +1767,7 @@
   "monitoring.processDetail.live.vram": "VRAM",
   "monitoring.processDetail.openLocation.failed": "Der Dateipfad konnte nicht geöffnet werden.",
   "monitoring.processDetail.privacy.title": "Datenschutz",
+  "monitoring.processDetail.timeframe.asOf": "Stand: {time}",
   "monitoring.ranked.empty": "Warte auf Prozessdaten...",
   "monitoring.settings.category.battery": "Akku",
   "monitoring.settings.category.cooler": "Kühler",

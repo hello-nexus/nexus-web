@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildLiveUsageByName, buildMiniChart, sessionsForProcess, truncateMiddle } from './processDetailHelpers';
+import { buildLiveUsageByName, buildMiniChart, resolveTileValue, sessionsForProcess, truncateMiddle } from './processDetailHelpers';
 import type { PrivacySession } from '../../../../api/monitoringPrivacy';
 import type { SeriesEntry } from '../../../../hooks/useProcessMonitor';
 
@@ -122,5 +122,28 @@ describe('buildMiniChart', () => {
     const secondCoordMatch = result.segments[0].linePath.match(/M0\.00,([\d.]+)/);
     expect(secondCoordMatch).not.toBeNull();
     expect(Number(secondCoordMatch![1])).toBeCloseTo(20, 0);
+  });
+});
+
+describe('resolveTileValue', () => {
+  it('returns the nearest point\'s value when the window series has one', () => {
+    const points = [{ t: 0, avg: 10 }, { t: 1000, avg: 20 }, { t: 2000, avg: 30 }];
+    expect(resolveTileValue(points, 1900, 999)).toBe(30);
+    expect(resolveTileValue(points, 100, 999)).toBe(10);
+  });
+
+  it('falls back to the live value when the series has no points', () => {
+    expect(resolveTileValue([], 1000, 42)).toBe(42);
+    expect(resolveTileValue(undefined, 1000, 42)).toBe(42);
+  });
+
+  it('returns undefined when neither a window value nor a live value exists', () => {
+    expect(resolveTileValue(undefined, 1000, undefined)).toBeUndefined();
+    expect(resolveTileValue([], 1000, undefined)).toBeUndefined();
+  });
+
+  it('keeps a legitimate 0 window value instead of falling back to a truthy live value', () => {
+    const points = [{ t: 1000, avg: 0 }];
+    expect(resolveTileValue(points, 1000, 99)).toBe(0);
   });
 });

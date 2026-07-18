@@ -1767,6 +1767,7 @@
   "monitoring.processDetail.live.vram": "VRAM",
   "monitoring.processDetail.openLocation.failed": "파일 위치를 열 수 없습니다.",
   "monitoring.processDetail.privacy.title": "개인정보",
+  "monitoring.processDetail.timeframe.asOf": "{time} 기준",
   "monitoring.ranked.empty": "프로세스 데이터를 기다리는 중...",
   "monitoring.settings.category.battery": "배터리",
   "monitoring.settings.category.cooler": "쿨러",

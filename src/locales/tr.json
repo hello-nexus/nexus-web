@@ -1767,6 +1767,7 @@
   "monitoring.processDetail.live.vram": "VRAM",
   "monitoring.processDetail.openLocation.failed": "Dosya konumu açılamadı.",
   "monitoring.processDetail.privacy.title": "Gizlilik",
+  "monitoring.processDetail.timeframe.asOf": "{time} itibarıyla",
   "monitoring.ranked.empty": "Islem verisi bekleniyor...",
   "monitoring.settings.category.battery": "Pil",
   "monitoring.settings.category.cooler": "Soğutucu",

@@ -2,6 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ProcessDetailSlideout, type ProcessDetailSlideoutProps } from './ProcessDetailSlideout';
 import type { UseMonitoringProcessInfoResult } from '../../../../hooks/useMonitoringProcessInfo';
+import type { ProcessDetailUsage } from '../../../../hooks/useProcessDetailUsage';
+import type { UseMetricHistoryAppsResult } from '../../../../hooks/useMetricHistoryApps';
+import type { AppWindowPoint } from '../../../../api/monitoringHistoryApps';
 import type { ProcessInfoResponse } from '../../../../api/monitoringProcessInfo';
 import type { PrivacySession } from '../../../../api/monitoringPrivacy';
 
@@ -13,6 +16,30 @@ const infoMock = vi.fn<() => UseMonitoringProcessInfoResult>();
 vi.mock('../../../../hooks/useMonitoringProcessInfo', () => ({
   useMonitoringProcessInfo: () => infoMock(),
 }));
+
+const usageMock = vi.fn<() => ProcessDetailUsage>();
+vi.mock('../../../../hooks/useProcessDetailUsage', () => ({
+  useProcessDetailUsage: () => usageMock(),
+}));
+
+function emptyAppsResult(): UseMetricHistoryAppsResult {
+  return { apps: [], loading: false, supported: true, mocked: false, ready: true };
+}
+
+function emptyUsage(): ProcessDetailUsage {
+  return {
+    cpu: emptyAppsResult(), memory: emptyAppsResult(), gpu: emptyAppsResult(), vram: emptyAppsResult(),
+  };
+}
+
+function usageWithPoints(over: Partial<Record<keyof ProcessDetailUsage, readonly AppWindowPoint[]>>, name = 'chrome.exe'): ProcessDetailUsage {
+  const base = emptyUsage();
+  const result: ProcessDetailUsage = { ...base };
+  for (const key of Object.keys(over) as (keyof ProcessDetailUsage)[]) {
+    result[key] = { ...emptyAppsResult(), apps: [{ name, avg: 0, max: 0, points: [...over[key]!] }] };
+  }
+  return result;
+}
 
 const killMock = vi.fn();
 const openLocationMock = vi.fn();
@@ -50,6 +77,8 @@ function fullData(over: Partial<ProcessInfoResponse> = {}): ProcessInfoResponse 
   };
 }
 
+const NOW = Date.now();
+
 function baseProps(over: Partial<ProcessDetailSlideoutProps> = {}): ProcessDetailSlideoutProps {
   return {
     onClose: vi.fn(),
@@ -59,6 +88,10 @@ function baseProps(over: Partial<ProcessDetailSlideoutProps> = {}): ProcessDetai
     valueFormat: (v: number) => `${v}%`,
     privacySessions: [],
     privacySupported: true,
+    selectedFrameMs: NOW,
+    following: true,
+    historyFrom: NOW - 1_800_000,
+    historyTo: NOW,
     ...over,
   };
 }
@@ -68,6 +101,7 @@ beforeEach(() => {
   openLocationMock.mockReset();
   pushMock.mockReset();
   infoMock.mockReturnValue(infoResult());
+  usageMock.mockReturnValue(emptyUsage());
   Object.assign(navigator, { clipboard: { writeText: vi.fn(async () => {}) } });
 });
 
@@ -167,6 +201,63 @@ describe('ProcessDetailSlideout live usage tiles', () => {
     expect(screen.getByText('monitoring.processDetail.live.gpu')).toBeInTheDocument();
     expect(screen.getByText('34%')).toBeInTheDocument();
     expect(screen.getByText('900 MB')).toBeInTheDocument();
+  });
+});
+
+describe('ProcessDetailSlideout usage tiles at the selected frame', () => {
+  it('shows the value at the selected frame from the per-process window fetch, not the live value', () => {
+    usageMock.mockReturnValue(usageWithPoints({ cpu: [{ t: NOW - 1000, avg: 10 }, { t: NOW, avg: 77 }] }));
+    render(<ProcessDetailSlideout {...baseProps({
+      live: { cpuPercent: 1 }, following: false, selectedFrameMs: NOW,
+    })} />);
+    expect(screen.getByText('77%')).toBeInTheDocument();
+    expect(screen.queryByText('1%')).toBeNull();
+  });
+
+  it('falls back to the live value when the window series has no points yet', () => {
+    usageMock.mockReturnValue(emptyUsage());
+    render(<ProcessDetailSlideout {...baseProps({
+      live: { cpuPercent: 9 }, following: false, selectedFrameMs: NOW,
+    })} />);
+    expect(screen.getByText('9%')).toBeInTheDocument();
+  });
+
+  it('reads each metric from its own fetched series independently', () => {
+    usageMock.mockReturnValue(usageWithPoints({
+      cpu: [{ t: NOW, avg: 5 }],
+      memory: [{ t: NOW, avg: 256 }],
+      gpu: [{ t: NOW, avg: 15 }],
+      vram: [{ t: NOW, avg: 700 }],
+    }));
+    render(<ProcessDetailSlideout {...baseProps({ following: false, selectedFrameMs: NOW })} />);
+    expect(screen.getByText('5%')).toBeInTheDocument();
+    expect(screen.getByText('256 MB')).toBeInTheDocument();
+    expect(screen.getByText('15%')).toBeInTheDocument();
+    expect(screen.getByText('700 MB')).toBeInTheDocument();
+  });
+});
+
+describe('ProcessDetailSlideout timeframe label', () => {
+  it('shows the Live badge while following', () => {
+    render(<ProcessDetailSlideout {...baseProps({ following: true })} />);
+    expect(screen.getByText('monitoring.history.live')).toBeInTheDocument();
+    expect(screen.queryByText('monitoring.processDetail.timeframe.asOf')).toBeNull();
+  });
+
+  it('shows the as-of label with the selected frame instead of Live while scrubbed', () => {
+    render(<ProcessDetailSlideout {...baseProps({ following: false, selectedFrameMs: NOW - 60_000 })} />);
+    expect(screen.getByText('monitoring.processDetail.timeframe.asOf')).toBeInTheDocument();
+    expect(screen.queryByText('monitoring.history.live')).toBeNull();
+  });
+
+  it('shows as-of, not Live, when a frame is pinned even though the viewport is still following (a plain chart click, no drag)', () => {
+    // A click on the hero chart pins selectedFrameMs without ever flipping
+    // `following` (see TimeSeriesChart's onPointClick vs onRangeSelect) -
+    // historyTo (the domain's own right edge) stays at its baseProps default
+    // (NOW) while selectedFrameMs moves to the clicked past instant.
+    render(<ProcessDetailSlideout {...baseProps({ following: true, selectedFrameMs: NOW - 60_000 })} />);
+    expect(screen.getByText('monitoring.processDetail.timeframe.asOf')).toBeInTheDocument();
+    expect(screen.queryByText('monitoring.history.live')).toBeNull();
   });
 });
 

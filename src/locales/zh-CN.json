@@ -1767,6 +1767,7 @@
   "monitoring.processDetail.live.vram": "VRAM",
   "monitoring.processDetail.openLocation.failed": "无法打开文件所在位置。",
   "monitoring.processDetail.privacy.title": "隐私",
+  "monitoring.processDetail.timeframe.asOf": "截至{time}",
   "monitoring.ranked.empty": "正在等待进程数据...",
   "monitoring.settings.category.battery": "电池",
   "monitoring.settings.category.cooler": "散热器",

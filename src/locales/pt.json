@@ -1767,6 +1767,7 @@
   "monitoring.processDetail.live.vram": "VRAM",
   "monitoring.processDetail.openLocation.failed": "Não foi possível abrir a localização do ficheiro.",
   "monitoring.processDetail.privacy.title": "Privacidade",
+  "monitoring.processDetail.timeframe.asOf": "Às {time}",
   "monitoring.ranked.empty": "A aguardar dados de processos...",
   "monitoring.settings.category.battery": "Bateria",
   "monitoring.settings.category.cooler": "Sistema de arrefecimento",

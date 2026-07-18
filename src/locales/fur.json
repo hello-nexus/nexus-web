@@ -1777,6 +1777,7 @@
   "monitoring.processDetail.live.vram": "VRAM",
   "monitoring.processDetail.openLocation.failed": "Impussibil vierzi il percors dal file.",
   "monitoring.processDetail.privacy.title": "Privacy",
+  "monitoring.processDetail.timeframe.asOf": "A lis {time}",
   "monitoring.ranked.empty": "In spiete dai dâts dai procès...",
   "monitoring.settings.category.battery": "Batarie",
   "monitoring.settings.category.cooler": "Rinfrescjadôr",
