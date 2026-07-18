@@ -2484,7 +2484,7 @@
   "settings.ai.assistant.runtime.status.systemDetected": "Sistem Ollama kurulumu kullanılıyor",
   "settings.ai.capability.cooling.description": "Yapay zeka ajanlarının fan eğrilerini ve soğutma hazır ayarlarını görüntülemesine ve değişiklik uygulamasına izin verin.",
   "settings.ai.capability.cooling.label": "Soğutma",
-  "settings.ai.capability.history.description": "Yapay zeka ajanlarının sensör geçmişini ve kaydedilen olayları sorgulamasına izin verin.",
+  "settings.ai.capability.history.description": "Yapay zeka ajanlarının sensör geçmişini, uygulama bazında kullanımı ve kaydedilen olayları sorgulamasına izin verin.",
   "settings.ai.capability.history.label": "Geçmiş",
   "settings.ai.capability.lighting.description": "Yapay zeka ajanlarının aydınlatma efektlerini ve renkleri görüntülemesine ve değiştirmesine izin verin.",
   "settings.ai.capability.lighting.label": "Aydınlatma",

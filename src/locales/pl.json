@@ -2487,7 +2487,7 @@
   "settings.ai.assistant.runtime.status.systemDetected": "Używanie systemowej instalacji Ollama",
   "settings.ai.capability.cooling.description": "Pozwól agentom AI przeglądać krzywe wentylatorów i presety chłodzenia oraz wprowadzać zmiany.",
   "settings.ai.capability.cooling.label": "Chłodzenie",
-  "settings.ai.capability.history.description": "Pozwól agentom AI odpytywać historię czujników i zapisane zdarzenia.",
+  "settings.ai.capability.history.description": "Pozwól agentom AI odpytywać historię czujników, użycie poszczególnych aplikacji i zapisane zdarzenia.",
   "settings.ai.capability.history.label": "Historia",
   "settings.ai.capability.lighting.description": "Pozwól agentom AI przeglądać efekty podświetlenia i kolory oraz je zmieniać.",
   "settings.ai.capability.lighting.label": "Podświetlenie",

@@ -2493,7 +2493,7 @@
   "settings.ai.assistant.runtime.status.systemDetected": "Al dopre la instalazion di sisteme di Ollama",
   "settings.ai.capability.cooling.description": "Permet ai agjents IA di viodi lis curvis dai ventilatôrs e i presets di rafredament, e di aplicâ modifichis.",
   "settings.ai.capability.cooling.label": "Rafredament",
-  "settings.ai.capability.history.description": "Permet ai agjents IA di consultâ la cronologjie dai sensôrs e i events regjistrâts.",
+  "settings.ai.capability.history.description": "Permet ai agjents IA di consultâ la cronologjie dai sensôrs, l'ûs par aplicazion e i events regjistrâts.",
   "settings.ai.capability.history.label": "Cronologjie",
   "settings.ai.capability.lighting.description": "Permet ai agjents IA di viodi i efiets di iluminazion e i colôrs, e di modificâju.",
   "settings.ai.capability.lighting.label": "Iluminazion",

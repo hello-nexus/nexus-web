@@ -2662,7 +2662,7 @@
   "settings.ai.assistant.runtime.status.systemDetected": "Using the system Ollama installation",
   "settings.ai.capability.cooling.description": "Let AI agents view fan curves and cooling presets, and apply changes.",
   "settings.ai.capability.cooling.label": "Cooling",
-  "settings.ai.capability.history.description": "Let AI agents query sensor history and recorded events.",
+  "settings.ai.capability.history.description": "Let AI agents query sensor history, per-app usage, and recorded events.",
   "settings.ai.capability.history.label": "History",
   "settings.ai.capability.lighting.description": "Let AI agents view lighting effects and colors, and change them.",
   "settings.ai.capability.lighting.label": "Lighting",

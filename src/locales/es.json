@@ -2484,7 +2484,7 @@
   "settings.ai.assistant.runtime.status.systemDetected": "Usando la instalación de Ollama del sistema",
   "settings.ai.capability.cooling.description": "Permite a los agentes de IA ver las curvas de ventilador y los preajustes de refrigeración, y aplicar cambios.",
   "settings.ai.capability.cooling.label": "Refrigeración",
-  "settings.ai.capability.history.description": "Permite a los agentes de IA consultar el historial de sensores y los eventos registrados.",
+  "settings.ai.capability.history.description": "Permite a los agentes de IA consultar el historial de sensores, el uso por aplicación y los eventos registrados.",
   "settings.ai.capability.history.label": "Historial",
   "settings.ai.capability.lighting.description": "Permite a los agentes de IA ver los efectos de iluminación y los colores, y cambiarlos.",
   "settings.ai.capability.lighting.label": "Iluminación",

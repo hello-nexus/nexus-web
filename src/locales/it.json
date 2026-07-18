@@ -2484,7 +2484,7 @@
   "settings.ai.assistant.runtime.status.systemDetected": "Utilizzo dell'installazione Ollama di sistema",
   "settings.ai.capability.cooling.description": "Consenti agli agenti IA di visualizzare le curve delle ventole e i preset di raffreddamento, e di applicare modifiche.",
   "settings.ai.capability.cooling.label": "Raffreddamento",
-  "settings.ai.capability.history.description": "Consenti agli agenti IA di consultare la cronologia dei sensori e gli eventi registrati.",
+  "settings.ai.capability.history.description": "Consenti agli agenti IA di consultare la cronologia dei sensori, l'uso per applicazione e gli eventi registrati.",
   "settings.ai.capability.history.label": "Cronologia",
   "settings.ai.capability.lighting.description": "Consenti agli agenti IA di visualizzare gli effetti di illuminazione e i colori, e di modificarli.",
   "settings.ai.capability.lighting.label": "Illuminazione",

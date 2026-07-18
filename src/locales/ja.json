@@ -2429,7 +2429,7 @@
   "settings.ai.assistant.runtime.status.systemDetected": "システムの Ollama インストールを使用中",
   "settings.ai.capability.cooling.description": "AIエージェントによるファンカーブと冷却プリセットの表示、変更の適用を許可します。",
   "settings.ai.capability.cooling.label": "冷却",
-  "settings.ai.capability.history.description": "AIエージェントによるセンサー履歴と記録済みイベントの照会を許可します。",
+  "settings.ai.capability.history.description": "AIエージェントによるセンサー履歴、アプリごとの使用状況、記録済みイベントの照会を許可します。",
   "settings.ai.capability.history.label": "履歴",
   "settings.ai.capability.lighting.description": "AIエージェントによるライティングエフェクトと色の表示、変更を許可します。",
   "settings.ai.capability.lighting.label": "ライティング",
