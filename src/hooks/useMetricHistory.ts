@@ -16,6 +16,12 @@ const SILHOUETTE_REFRESH_MS = 60_000;
 const VIEWPORT_MAX_POINTS = 800;
 const VIEWPORT_REDECIMATE_MS = 60_000;
 
+// Trailing debounce for a during-drag fine refetch (see fetchDragFine) -
+// resets on every 'drag' event, so a continuous scrub never fetches; only a
+// pause at least this long lets it through, upgrading the panned view to
+// freshly fetched fine data in place.
+const DRAG_FINE_REFRESH_MS = 180;
+
 const LIVE_TAIL_POLL_MS = 1_000;
 const LIVE_TAIL_MAX_POINTS = 50;
 // Fallback lookback for the very first tail poll (before any viewport
@@ -45,12 +51,12 @@ export interface UseMetricHistoryResult {
   lastPresetKey: PresetKey;
   following: boolean;
   /** True while a TimelineBrush box drag is in progress (between a 'drag'
-   *  event and its matching 'end') - `series` is a pan/clip of the frozen
-   *  fine snapshot for the whole gesture (see renderFinePanSlice), so its
-   *  own visible min/max still shifts tick to tick as the window moves
-   *  across real data; a consumer that needs to avoid recomputing a derived
-   *  value off that per-tick shift (e.g. the adaptive Y axis) can freeze on
-   *  this instead. */
+   *  event and its matching 'end') - `series` is a pan/clip of the fine
+   *  snapshot for the whole gesture (see renderFinePanSlice), so its own
+   *  visible min/max still shifts tick to tick as the window moves across
+   *  real data; a consumer that needs to avoid recomputing a derived value
+   *  off that per-tick shift (e.g. the adaptive Y axis) can freeze on this
+   *  instead. */
   dragging: boolean;
   loading: boolean;
   error: boolean;
@@ -134,11 +140,12 @@ function mergeTail(prev: readonly MetricHistorySeries[], tail: readonly MetricHi
  * Owns the monitoring history chart's data: a decimated silhouette over the
  * current seek-bar STRIP (for the TimelineBrush minimap, refetched whenever
  * the strip itself changes and refreshed periodically while following), a
- * decimated fetch for the current chart-window BOX (withheld entirely while
- * the brush is being dragged, firing immediately on release, fully
- * re-decimated on the same periodic timer), and a live-tail poll that
- * appends new points to the box while following instead of re-decimating
- * the whole window.
+ * decimated fetch for the current chart-window BOX (its own periodic/
+ * on-navigation fetch is withheld entirely while the brush is being dragged,
+ * firing immediately on release, fully re-decimated on the same periodic
+ * timer - a SEPARATE debounced fetch upgrades the box mid-drag instead, see
+ * fetchDragFine), and a live-tail poll that appends new points to the box
+ * while following instead of re-decimating the whole window.
  * `seriesQuery` is the `series=` csv sent to the service - the caller
  * changes it to switch metrics (cpu/gpu/memory/network); the viewport
  * (box/strip/rangeKey/following) is NOT reset by a seriesQuery change, so a
@@ -157,6 +164,8 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
   const [viewport, setViewport] = useState<ViewportState>(() => initViewport(nowRef.current));
   const viewportRef = useRef(viewport);
   useEffect(() => { viewportRef.current = viewport; }, [viewport]);
+  const seriesQueryRef = useRef(seriesQuery);
+  useEffect(() => { seriesQueryRef.current = seriesQuery; }, [seriesQuery]);
 
   const [silhouette, setSilhouette] = useState<MetricHistorySeries[]>([]);
   const [series, setSeries] = useState<MetricHistorySeries[]>([]);
@@ -185,12 +194,29 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
   const cacheRef = useRef(new MonitoringHistoryCache());
   const silhouetteRef = useRef(silhouette);
   useEffect(() => { silhouetteRef.current = silhouette; }, [silhouette]);
-  // The most recent SETTLED (non-drag) fine viewport fetch's own series - a
-  // drag pans/clips this frozen snapshot instead of fetching anything new
-  // (see renderFinePanSlice below), so it stays untouched by a drag's own
-  // renders and only ever advances from a real network response or a live-
-  // tail merge.
+  // The most recent fine viewport fetch's own series - a drag pans/clips
+  // this snapshot instead of fetching anything new per pointer move (see
+  // renderFinePanSlice below), so it stays untouched by a drag's own
+  // per-tick renders. It advances from a real network response (the
+  // settled on-release fetch, a live-tail merge, or fetchDragFine's
+  // debounced during-drag refresh) - never from the drag's own renders.
   const fineSnapshotRef = useRef<MetricHistorySeries[]>([]);
+  // Pending fetchDragFine debounce timer - reset on every 'drag' event,
+  // cleared wherever the drag phase is force-ended (see clearDragFineTimer
+  // below) and on unmount.
+  const dragFineTimerRef = useRef<number | null>(null);
+
+  // Cancels the pending debounce timer - called by every path that
+  // force-ends the drag phase (onBrushChange's own 'end', setRange,
+  // onChartDragSelect, backToLive, retry, the error/unsupported reset
+  // effect below) and on unmount, so a pause-triggered fetch never fires
+  // for a drag the user (or a background failure) has already left.
+  const clearDragFineTimer = useCallback(() => {
+    if (dragFineTimerRef.current !== null) {
+      window.clearTimeout(dragFineTimerRef.current);
+      dragFineTimerRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -201,8 +227,9 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
       // survives) against leaving the ref stuck for any in-flight closure
       // still holding it.
       lastPhaseRef.current = 'end';
+      clearDragFineTimer();
     };
-  }, []);
+  }, [clearDragFineTimer]);
 
   // TimelineBrush can unmount without ever emitting its own 'end' event:
   // MetricHistorySection swaps to its <EmptyState> message box on `error`
@@ -214,13 +241,15 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
   // fetch and the redecimate timer below, and freezing
   // MetricHistorySection's drag-stable Y-axis ref, even once a later fetch
   // recovers on its own. Reset both here so recovery doesn't depend on the
-  // brush itself reaching a matching 'end'.
+  // brush itself reaching a matching 'end'; also cancels any pending
+  // debounce timer so a paused drag's fetch doesn't fire after the fact.
   useEffect(() => {
     if (error || !supported) {
       lastPhaseRef.current = 'end';
       setDragging(false);
+      clearDragFineTimer();
     }
-  }, [error, supported]);
+  }, [error, supported, clearDragFineTimer]);
 
   const bumpNow = useCallback((seriesList: readonly MetricHistorySeries[]) => {
     const t = newestT(seriesList);
@@ -264,8 +293,8 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
   // once the strip's silhouette has loaded, and always spans the entire
   // requested window (never a partial sliver), so this is the one interim
   // source that can never collapse to a near-empty render. Also the
-  // fallback source for renderFinePanSlice below, when the frozen fine
-  // snapshot has no coverage at all for the requested window.
+  // fallback source for renderFinePanSlice below, when the fine snapshot
+  // has no coverage at all for the requested window.
   const renderSilhouetteSlice = useCallback((from: number, to: number) => {
     if (silhouetteRef.current.length === 0) return;
     const sliced = sliceToWindow(
@@ -299,17 +328,18 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
   }, [renderSilhouetteSlice]);
 
   // The sole synchronous render used while an active TimelineBrush drag is
-  // in progress (see onBrushChange): pans/clips the last SETTLED fine fetch
-  // (fineSnapshotRef, frozen for the whole gesture - the fine fetch itself
-  // is gated off until release, see the viewport-fetch effect below) to the
+  // in progress (see onBrushChange): pans/clips the last fine fetch
+  // (fineSnapshotRef - untouched by the drag's own per-tick renders, but
+  // refreshed in place by fetchDragFine's debounced during-drag refetch
+  // below, the settled on-release fetch, or a live-tail merge) to the
   // moving window, so the chart reads as real data shifting rather than a
-  // coarse approximation. No network request is made during the drag at
-  // all. Falls back to the silhouette slice once the frozen snapshot's own
-  // overlap with the requested window drops below FINE_PAN_MIN_COVERAGE -
-  // not just when it's entirely empty - so a drag that pans mostly (but not
-  // fully) off the snapshot's edge doesn't render an almost-empty sliver of
-  // real data (the same "near-empty spike" failure mode this rework
-  // replaces, just sourced from a stale edge instead of a stale fetch).
+  // coarse approximation. Falls back to the silhouette slice once the
+  // snapshot's own overlap with the requested window drops below
+  // FINE_PAN_MIN_COVERAGE - not just when it's entirely empty - so a drag
+  // that pans mostly (but not fully) off the snapshot's edge doesn't render
+  // an almost-empty sliver of real data (the same "near-empty spike"
+  // failure mode this rework replaces, just sourced from a stale edge
+  // instead of a stale fetch).
   const renderFinePanSlice = useCallback((from: number, to: number) => {
     const sliced = sliceToWindow(
       { supported: true, retentionDays: retentionDaysRef.current, stepSeconds: 0, series: fineSnapshotRef.current },
@@ -322,6 +352,40 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
       renderSilhouetteSlice(from, to);
     }
   }, [renderSilhouetteSlice]);
+
+  // Debounced (DRAG_FINE_REFRESH_MS) full-resolution fetch for the CURRENT
+  // window while a drag is paused but not yet released - see
+  // scheduleDragFineRefresh in onBrushChange, which resets this on every
+  // 'drag' event so a continuous scrub never fetches. Reads from/to and the
+  // series query from refs (fired later than scheduled, same convention as
+  // the viewport-fetch effect below), and shares viewportSeqRef with
+  // loadViewport so a response superseded by a newer fetch of either kind is
+  // dropped. On success this is the only place besides loadViewport and the
+  // live-tail merge that advances fineSnapshotRef, so a subsequent
+  // renderFinePanSlice pans real fine data for the paused region instead of
+  // falling back to the coarse silhouette. Silent on failure/unsupported -
+  // the drag pan simply keeps rendering off whatever snapshot it already
+  // has, never flipping the whole chart to the error state mid-scrub.
+  const fetchDragFine = useCallback(() => {
+    const { from, to } = viewportRef.current;
+    const query = seriesQueryRef.current;
+    const seq = ++viewportSeqRef.current;
+    void (async () => {
+      const result = await fetchMonitoringHistory({ from, to, maxPoints: VIEWPORT_MAX_POINTS, series: query });
+      if (!mountedRef.current || seq !== viewportSeqRef.current || !result.data) return;
+      fineSnapshotRef.current = result.data.series;
+      if (!result.mocked) cacheRef.current.set(from, to, VIEWPORT_MAX_POINTS, query, result.data);
+      renderFinePanSlice(viewportRef.current.from, viewportRef.current.to);
+    })();
+  }, [renderFinePanSlice]);
+
+  const scheduleDragFineRefresh = useCallback(() => {
+    if (dragFineTimerRef.current !== null) window.clearTimeout(dragFineTimerRef.current);
+    dragFineTimerRef.current = window.setTimeout(() => {
+      dragFineTimerRef.current = null;
+      fetchDragFine();
+    }, DRAG_FINE_REFRESH_MS);
+  }, [fetchDragFine]);
 
   const loadViewport = useCallback((from: number, to: number, query: string) => {
     const seq = ++viewportSeqRef.current;
@@ -404,14 +468,16 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
   // Viewport (box): fetch on mount, on a metric switch, and whenever the
   // user (or the redecimate timer) requests a new window - NOT on every live
   // tick (that's the separate tail poll below). Never fires while the most
-  // recent brush event is still 'drag' - the fine (800pt) fetch only ever
-  // runs once the drag settles to 'end', so the chart never swaps to fine
-  // data and back while the user is still scrubbing (onBrushChange's own
-  // 'end' event bumps fetchEpoch again, re-running this effect once it
-  // does). Gated on `supported` (not `error`, unlike the other effects) - a
-  // metric switch must still be able to retry after a transient failure, but
-  // once the route is confirmed unsupported every series is equally
-  // unreachable, so a metric switch must not fire another single-shot 404.
+  // recent brush event is still 'drag' - this fetch only ever runs once the
+  // drag settles to 'end' (the paused-drag fine refresh is the separate,
+  // debounced fetchDragFine instead), so the chart never swaps between two
+  // DIFFERENT fetches' results while the user is still scrubbing
+  // (onBrushChange's own 'end' event bumps fetchEpoch again, re-running this
+  // effect once it does). Gated on `supported` (not `error`, unlike the
+  // other effects) - a metric switch must still be able to retry after a
+  // transient failure, but once the route is confirmed unsupported every
+  // series is equally unreachable, so a metric switch must not fire another
+  // single-shot 404.
   useEffect(() => {
     if (!enabled || !supported || lastPhaseRef.current === 'drag') return;
     // from/to are read from the ref inside the callback (fired later), not
@@ -508,6 +574,7 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
   const setRange = useCallback((key: PresetKey) => {
     lastPhaseRef.current = 'end';
     setDragging(false);
+    clearDragFineTimer();
     setViewport(prev => {
       const next = viewportReducer(prev, { type: 'setRange', key, now: nowRef.current });
       // A wide preset (e.g. 7d) picked on a shorter-retention install must
@@ -517,43 +584,50 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
     setFetchEpoch(e => e + 1);
     setStripEpoch(e => e + 1);
     setViewportGeneration(g => g + 1);
-  }, []);
+  }, [clearDragFineTimer]);
 
   const onBrushChange = useCallback((from: number, to: number, phase: 'drag' | 'end') => {
     lastPhaseRef.current = phase;
     setDragging(phase === 'drag');
     setViewport(prev => viewportReducer(prev, { type: 'brushChange', from, to, now: nowRef.current }));
     if (phase === 'drag') {
-      // Live rendering while dragging (item 29): pan/clip the frozen fine
-      // snapshot (see renderFinePanSlice) - independent of the fetchEpoch
-      // bump below, which drives the fine (800pt) fetch, gated to never
-      // fire while still dragging (see that effect), so the fine fetch
-      // only ever runs once on release.
+      // Live rendering while dragging (item 29): pan/clip the fine snapshot
+      // (see renderFinePanSlice) - independent of the fetchEpoch bump below,
+      // which drives the box's own periodic/on-navigation fine fetch, gated
+      // to never fire while still dragging (see that effect). A separate
+      // debounced refetch (fetchDragFine, via scheduleDragFineRefresh) is
+      // the only fine fetch that runs during the drag itself, upgrading the
+      // pan to real data once the user pauses rather than only on release.
       renderFinePanSlice(from, to);
+      scheduleDragFineRefresh();
+    } else {
+      clearDragFineTimer();
     }
     setFetchEpoch(e => e + 1);
     setViewportGeneration(g => g + 1);
-  }, [renderFinePanSlice]);
+  }, [renderFinePanSlice, scheduleDragFineRefresh, clearDragFineTimer]);
 
   const onChartDragSelect = useCallback((from: number, to: number) => {
     lastPhaseRef.current = 'end';
     setDragging(false);
+    clearDragFineTimer();
     setViewport(prev => viewportReducer(prev, {
       type: 'chartDragSelect', from, to, now: nowRef.current, retentionMs: retentionDaysRef.current * DAY_MS,
     }));
     setFetchEpoch(e => e + 1);
     setStripEpoch(e => e + 1);
     setViewportGeneration(g => g + 1);
-  }, []);
+  }, [clearDragFineTimer]);
 
   const backToLive = useCallback(() => {
     lastPhaseRef.current = 'end';
     setDragging(false);
+    clearDragFineTimer();
     setViewport(prev => viewportReducer(prev, { type: 'backToLive', now: nowRef.current }));
     setFetchEpoch(e => e + 1);
     setStripEpoch(e => e + 1);
     setViewportGeneration(g => g + 1);
-  }, []);
+  }, [clearDragFineTimer]);
 
   // Resetting error/supported (rather than calling loadSilhouette directly)
   // re-arms the gated silhouette-poll effect above, which fires its own
@@ -562,11 +636,12 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
   const retry = useCallback(() => {
     lastPhaseRef.current = 'end';
     setDragging(false);
+    clearDragFineTimer();
     setSupported(true);
     setError(false);
     setFetchEpoch(e => e + 1);
     setViewportGeneration(g => g + 1);
-  }, []);
+  }, [clearDragFineTimer]);
 
   return {
     silhouette,
