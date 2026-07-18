@@ -28,7 +28,7 @@ import { seriesQueryFor, appsSeriesParamFor, currentDiskRateBytesPerSec, deriveM
 import { appsToProcessListItems, currentAppValueMap, reconcileLiveWithWindow, zeroedGpuFallback } from './page/appWindowHelpers';
 import { buildLiveUsageByName } from './page/processDetailHelpers';
 import { formatRate } from './page/shared';
-import { formatTabChipValue, tabChipLoadPercent, TAB_CHIP_PERCENT_MIN_WIDTH, TAB_CHIP_RATE_MIN_WIDTH } from './page/tabChipValue';
+import { formatTabChipValue, tabChipLoadPercent, TAB_CHIP_PERCENT_MIN_WIDTH, TAB_CHIP_RATE_MIN_WIDTH, ROW_VALUE_RATE_MIN_WIDTH } from './page/tabChipValue';
 import { usePageSettingsAction } from '../../../app/PageChrome';
 import { useSensorHistoryFeed } from '../common/useSharedSensorHistory';
 import styles from './MonitoringPage.module.scss';
@@ -353,6 +353,12 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
     }
   }, [tab, numberFormat]);
 
+  // Reserves the process list's own VALUE column wide enough for a
+  // network/storage byte rate's worst realistic digit count (see
+  // ROW_VALUE_RATE_MIN_WIDTH) so a rate change never shifts the sparkline
+  // after it; cpu/gpu/memory fit the column's own default width already.
+  const rowValueMinWidth = tab === 'storage' || tab === 'network' ? ROW_VALUE_RATE_MIN_WIDTH : undefined;
+
   // The hardware name moves here from the removed per-tab sensor blocks:
   // CPU/GPU/Memory show their resolved identity string; Storage/Network have
   // no comparable single hardware identity (storage aggregates every drive)
@@ -428,11 +434,13 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
                   rankResetKey={rankResetKey}
                   frozen={shouldFreezeFallback}
                   onSelectProcess={handleSelectProcess}
+                  selectedProcessName={selectedProcess}
                   privacySessions={privacy.sessions}
                   privacyAsOfMs={privacy.asOfMs}
                   showPrivacy={showPrivacy}
                   snapshotAtMs={isSnapshotPinned ? selectedFrameMs : null}
                   onClearSnapshot={clearSnapshot}
+                  valueMinWidth={rowValueMinWidth}
                 />
               </div>
             </div>

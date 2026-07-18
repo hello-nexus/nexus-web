@@ -21,6 +21,11 @@ export interface SystemSpecsPanelProps {
   /** List variant: omit both to hide the copy-to-clipboard toolbar. */
   copyLabel?: string;
   copiedLabel?: string;
+  /** Tiles variant only. Pairs the icon and label on one row, with the value
+   *  on the line beneath - the process-detail usage tiles' own layout
+   *  (ProcessDetailPanel). Default false keeps icon/label/value each on
+   *  their own line (Benchmark's pre-run summary). */
+  iconInline?: boolean;
 }
 
 /**
@@ -35,7 +40,7 @@ export interface SystemSpecsPanelProps {
  * (Benchmark's results page mixes one spec tile into its subsystem-score
  * grid) as well as render a whole grid of them (Benchmark's pre-run summary).
  */
-export function SystemSpecsPanel({ rows, variant = 'list', loading, copyLabel, copiedLabel }: SystemSpecsPanelProps) {
+export function SystemSpecsPanel({ rows, variant = 'list', loading, copyLabel, copiedLabel, iconInline = false }: SystemSpecsPanelProps) {
   const [copied, setCopied] = useState(false);
 
   if (variant === 'tiles') {
@@ -44,8 +49,17 @@ export function SystemSpecsPanel({ rows, variant = 'list', loading, copyLabel, c
         {rows.map((row, i) => (
           <Card key={i} className={styles.tile}>
             <div className={styles.tileInner}>
-              {row.icon && <span className={styles.tileIcon}>{row.icon}</span>}
-              <span className={styles.tileLabel}>{row.label}</span>
+              {iconInline ? (
+                <span className={styles.tileHeader}>
+                  {row.icon && <span className={styles.tileIcon}>{row.icon}</span>}
+                  <span className={styles.tileLabel}>{row.label}</span>
+                </span>
+              ) : (
+                <>
+                  {row.icon && <span className={styles.tileIcon}>{row.icon}</span>}
+                  <span className={styles.tileLabel}>{row.label}</span>
+                </>
+              )}
               <span className={styles.tileValue} title={row.value}>{row.value || '-'}</span>
             </div>
           </Card>

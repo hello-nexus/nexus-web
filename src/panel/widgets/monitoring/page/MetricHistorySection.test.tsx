@@ -159,55 +159,75 @@ describe('MetricHistorySection', () => {
     });
   });
 
-  it('freezes the adaptive Y ceiling for the whole of an active drag, only recomputing once it settles', () => {
-    stubGeometry();
+  describe('adaptive Y ceiling: frozen through a drag AND the release-to-settle window (no flash)', () => {
     const highSeries: UseMetricHistoryResult['series'] = [
       { id: 'cpu', kind: 'cpu', name: 'CPU', points: [{ t: NOW - HOUR, avg: 40, max: 40 }, { t: NOW, avg: 90, max: 90 }] },
     ];
-    const { rerender } = renderSection({ metric: 'cpu', history: { series: highSeries, dragging: false } });
-    // A 90% peak (with headroom) lands in the 100% bucket.
-    expect(screen.getByText('100%')).toBeInTheDocument();
-
     const lowSeries: UseMetricHistoryResult['series'] = [
       { id: 'cpu', kind: 'cpu', name: 'CPU', points: [{ t: NOW - HOUR, avg: 2, max: 2 }, { t: NOW, avg: 3, max: 3 }] },
     ];
-    rerender(
-      <MetricHistorySection
-        metric="cpu"
-        gpuComponents={[]}
-        preferredGpuId=""
-        history={baseHistory({ series: lowSeries, dragging: true })}
-        appsWindow={baseAppsWindow()}
-        fanRoles={new Map()}
-        selectedFrameMs={NOW}
-        onGraphClick={vi.fn()}
-        selectedAppName={null}
-        memoryTotalMb={null}
-      />,
-    );
-    // Still frozen at the 100% bucket even though this tick's own (panned,
-    // during-drag) data would only need the 10% one - the axis must not
-    // wobble mid-drag.
-    expect(screen.getByText('100%')).toBeInTheDocument();
 
-    rerender(
-      <MetricHistorySection
-        metric="cpu"
-        gpuComponents={[]}
-        preferredGpuId=""
-        history={baseHistory({ series: lowSeries, dragging: false })}
-        appsWindow={baseAppsWindow()}
-        fanRoles={new Map()}
-        selectedFrameMs={NOW}
-        onGraphClick={vi.fn()}
-        selectedAppName={null}
-        memoryTotalMb={null}
-      />,
-    );
-    // Settles cleanly to the lower ceiling in a single transition once the
-    // drag ends.
-    expect(screen.getByText('10%')).toBeInTheDocument();
-    expect(screen.queryByText('100%')).toBeNull();
+    function rerenderWith(rerender: ReturnType<typeof render>['rerender'], over: Partial<UseMetricHistoryResult>) {
+      rerender(
+        <MetricHistorySection
+          metric="cpu"
+          gpuComponents={[]}
+          preferredGpuId=""
+          history={baseHistory(over)}
+          appsWindow={baseAppsWindow()}
+          fanRoles={new Map()}
+          selectedFrameMs={NOW}
+          onGraphClick={vi.fn()}
+          selectedAppName={null}
+          memoryTotalMb={null}
+        />,
+      );
+    }
+
+    it('freezes for the whole drag, stays frozen through release until the settled fetch lands, then recomputes once', () => {
+      stubGeometry();
+      const { rerender } = renderSection({ metric: 'cpu', history: { series: highSeries, dragging: false, loading: false } });
+      // A 90% peak (with headroom) lands in the 100% bucket.
+      expect(screen.getByText('100%')).toBeInTheDocument();
+
+      // Mid-drag: this tick's own (panned) data would only need the 10%
+      // bucket - the axis must not wobble mid-drag.
+      rerenderWith(rerender, { series: lowSeries, dragging: true, loading: false });
+      expect(screen.getByText('100%')).toBeInTheDocument();
+
+      // Released. `series` is still the drag's last panned/clipped slice and
+      // `loading` hasn't flipped true yet (the settle fetch's effect hasn't
+      // run) - the exact transient frame that used to flash a smaller
+      // ceiling. Must still read 100%.
+      rerenderWith(rerender, { series: lowSeries, dragging: false, loading: false });
+      expect(screen.getByText('100%')).toBeInTheDocument();
+      expect(screen.queryByText('10%')).toBeNull();
+
+      // The settle fetch is now in flight.
+      rerenderWith(rerender, { series: lowSeries, dragging: false, loading: true });
+      expect(screen.getByText('100%')).toBeInTheDocument();
+
+      // Settled: the fetch for the released window landed and confirms the
+      // lower peak - recomputes cleanly to 10%, in a single transition.
+      rerenderWith(rerender, { series: lowSeries, dragging: false, loading: false });
+      expect(screen.getByText('10%')).toBeInTheDocument();
+      expect(screen.queryByText('100%')).toBeNull();
+    });
+
+    it('does not recompute (and so does not flash) when the settled window has the same peak as the frozen one', () => {
+      stubGeometry();
+      const { rerender } = renderSection({ metric: 'cpu', history: { series: highSeries, dragging: false, loading: false } });
+      expect(screen.getByText('100%')).toBeInTheDocument();
+
+      rerenderWith(rerender, { series: highSeries, dragging: true, loading: false });
+      rerenderWith(rerender, { series: highSeries, dragging: false, loading: false });
+      expect(screen.getByText('100%')).toBeInTheDocument();
+      rerenderWith(rerender, { series: highSeries, dragging: false, loading: true });
+      expect(screen.getByText('100%')).toBeInTheDocument();
+      rerenderWith(rerender, { series: highSeries, dragging: false, loading: false });
+      // Still 100% throughout - never dipped to a different bucket.
+      expect(screen.getByText('100%')).toBeInTheDocument();
+    });
   });
 
   it('renders the matched GPU series by adapterLuid, hiding other GPUs\' data', () => {
@@ -701,8 +721,8 @@ describe('MetricHistorySection', () => {
     });
   });
 
-  describe('selected-app overlay line (monitoring-sidebar Part 2)', () => {
-    it('draws no extra line when nothing is selected', () => {
+  describe('selected-app line replaces the base metric line (monitoring-sidebar refine item 2)', () => {
+    it('shows the base metric line, no app line, when nothing is selected', () => {
       stubGeometry();
       const series: UseMetricHistoryResult['series'] = [
         { id: 'cpu', kind: 'cpu', name: 'CPU', points: [{ t: NOW - HOUR, avg: 40, max: 41 }, { t: NOW, avg: 50, max: 51 }] },
@@ -713,18 +733,24 @@ describe('MetricHistorySection', () => {
       expect(container.querySelector('path[stroke="var(--chart-line-alt)"]')).toBeNull();
     });
 
-    it('draws the selected app\'s cpu% as a distinct-colored line riding the same percent axis', () => {
+    it('draws ONLY the selected app\'s line, filled, and removes the base metric line entirely', () => {
       stubGeometry();
       const series: UseMetricHistoryResult['series'] = [
         { id: 'cpu', kind: 'cpu', name: 'CPU', points: [{ t: NOW - HOUR, avg: 40, max: 41 }, { t: NOW, avg: 50, max: 51 }] },
       ];
       const apps = [{ name: 'chrome.exe', avg: 30, max: 40, points: [{ t: NOW - HOUR, avg: 20 }, { t: NOW, avg: 30 }] }];
       const { container } = renderSection({ metric: 'cpu', history: { series }, appsWindow: { apps }, selectedAppName: 'chrome.exe' });
-      expect(container.querySelector('path[stroke="var(--chart-line-alt)"]')).toBeInTheDocument();
-      expect(container.querySelectorAll('path[stroke="var(--accent)"]').length).toBe(1);
+      const appLine = container.querySelector('path[stroke="var(--chart-line-alt)"]');
+      expect(appLine).toBeInTheDocument();
+      // The base metric's own accent-colored line is gone, not merely
+      // alongside the app line.
+      expect(container.querySelectorAll('path[stroke="var(--accent)"]').length).toBe(0);
+      // Filled the same way the base line normally is (fillGradient's own
+      // area path, referencing the app series' own gradient def).
+      expect(container.querySelector('path[fill^="url(#"]')).toBeInTheDocument();
     });
 
-    it('removes the line once the selection is cleared', () => {
+    it('restores the base metric line, removing the app line, once the selection is cleared', () => {
       stubGeometry();
       const series: UseMetricHistoryResult['series'] = [
         { id: 'cpu', kind: 'cpu', name: 'CPU', points: [{ t: NOW - HOUR, avg: 40, max: 41 }, { t: NOW, avg: 50, max: 51 }] },
@@ -732,6 +758,7 @@ describe('MetricHistorySection', () => {
       const apps = [{ name: 'chrome.exe', avg: 30, max: 40, points: [{ t: NOW - HOUR, avg: 20 }, { t: NOW, avg: 30 }] }];
       const { container, rerender } = renderSection({ metric: 'cpu', history: { series }, appsWindow: { apps }, selectedAppName: 'chrome.exe' });
       expect(container.querySelector('path[stroke="var(--chart-line-alt)"]')).toBeInTheDocument();
+      expect(container.querySelectorAll('path[stroke="var(--accent)"]').length).toBe(0);
 
       rerender(
         <MetricHistorySection
@@ -748,6 +775,7 @@ describe('MetricHistorySection', () => {
         />,
       );
       expect(container.querySelector('path[stroke="var(--chart-line-alt)"]')).toBeNull();
+      expect(container.querySelectorAll('path[stroke="var(--accent)"]').length).toBe(1);
     });
 
     it('follows the active tab\'s metric - no line when the selected app has no series under the new metric', () => {

@@ -74,6 +74,14 @@
   color: var(--accent-glow);
 }
 
+// Icon+label paired on one row (iconInline) - the value still follows as
+// .tileInner's own next stacked child.
+.tileHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
 .tileLabel {
   font-size: var(--type-mini);
   text-transform: uppercase;

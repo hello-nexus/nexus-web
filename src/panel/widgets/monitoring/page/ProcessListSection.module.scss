@@ -117,6 +117,24 @@
   }
 }
 
+// Shared so the border width and its own padding compensation below can
+// never drift apart.
+$row-selected-border-width: 2px;
+
+// The row matching MonitoringPage's own selectedProcess - an accent left
+// border plus a soft accent fill so it stays visually distinct from the
+// plain hover/focus background above, including while hovered/focused.
+.rowSelected {
+  background: var(--accent-soft);
+  border-left: $row-selected-border-width solid var(--accent);
+  padding-left: calc(0.4rem - #{$row-selected-border-width});
+
+  &:hover,
+  &:focus-visible {
+    background: var(--accent-soft);
+  }
+}
+
 // Row-clickable affordance (item 45): hidden until the row is hovered or
 // focused, so the resting list stays as quiet as before this feature.
 // Named to avoid the substring "row" (a sibling test counts rows via
@@ -240,7 +258,12 @@
   font-size: var(--type-small);
   font-weight: var(--weight-body);
   color: var(--text);
-  min-width: 60px;
+  // Caller (MonitoringPage) sets --row-value-min-width to the active tab's
+  // own reserved width (see ROW_VALUE_RATE_MIN_WIDTH, tabChipValue.ts) so a
+  // digit-count change in the formatted value never grows the column and
+  // shifts the sparkline after it; a caller that omits it keeps this rule's
+  // own default width.
+  min-width: var(--row-value-min-width, 60px);
   text-align: right;
   flex-shrink: 0;
 }

@@ -13,6 +13,16 @@ import type { HistoryMetric } from './metricHistoryHelpers';
 export const TAB_CHIP_PERCENT_MIN_WIDTH = '2.5rem';
 export const TAB_CHIP_RATE_MIN_WIDTH = '4.75rem';
 
+// ProcessListSection's own row VALUE column, for the network/storage tabs'
+// byte-rate value ("818 B/s" -> "617.9 KB/s") - realistic-worst-case sizing
+// like the tab chips above, but in `ch` (the row's value renders in the mono
+// font, where 1ch tracks a digit exactly) since this column sits in a plain
+// row rather than a Badge pill. Reserved so a rate's digit-count change
+// never grows the column and shifts the sparkline after it. cpu/gpu's
+// percent and memory's MB/GB value already fit within the row's own default
+// column width, so they need no override.
+export const ROW_VALUE_RATE_MIN_WIDTH = '11ch';
+
 /**
  * Live load percent backing the CPU/GPU/Memory tab chips. CPU Total is
  * already a 0-100 Load sensor reported by the service; GPU matches the same

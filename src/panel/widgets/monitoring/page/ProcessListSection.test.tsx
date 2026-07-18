@@ -156,6 +156,25 @@ describe('ProcessListSection', () => {
     expect(container.textContent).not.toContain('undefined');
   });
 
+  describe('value column fixed width (no sparkline shift as the value\'s digit count changes)', () => {
+    it('reserves no explicit width by default - the column falls back to its own CSS default', () => {
+      render(<ProcessListSection items={[items()[0]]} formatValue={v => `${v}%`} onSelectProcess={onSelectProcessMock} />);
+      expect(screen.getByText('12%').style.getPropertyValue('--row-value-min-width')).toBe('');
+    });
+
+    it('sets --row-value-min-width from valueMinWidth (the caller\'s active-tab width, e.g. the network/storage byte-rate column)', () => {
+      render(
+        <ProcessListSection
+          items={[items()[0]]}
+          formatValue={v => `${v} B/s`}
+          onSelectProcess={onSelectProcessMock}
+          valueMinWidth="11ch"
+        />,
+      );
+      expect(screen.getByText('12 B/s').style.getPropertyValue('--row-value-min-width')).toBe('11ch');
+    });
+  });
+
   it('shows the empty message when no items match', () => {
     render(<ProcessListSection items={items()} formatValue={v => `${v}%`} onSelectProcess={onSelectProcessMock} />);
     fireEvent.change(screen.getByPlaceholderText('monitoring.history.process.searchPlaceholder'), { target: { value: 'zzz' } });
@@ -632,6 +651,33 @@ describe('ProcessListSection', () => {
       const icon = screen.getByRole('img', { name: 'monitoring.privacy.capability.webcam' });
       fireEvent.focus(icon);
       expect(screen.getByRole('tooltip')).toBeInTheDocument();
+    });
+  });
+
+  describe('selected row highlight (MonitoringPage owns selectedProcess)', () => {
+    it('marks only the row matching selectedProcessName as active, and no row when nothing is selected', () => {
+      render(<ProcessListSection items={items()} formatValue={v => `${v}%`} onSelectProcess={onSelectProcessMock} selectedProcessName="Chrome" />);
+      const chromeRow = screen.getByText('Chrome').closest('[role="button"]')!;
+      const acmeRow = screen.getByText('AcmeApp').closest('[role="button"]')!;
+      expect(chromeRow.className).toContain('rowSelected');
+      expect(chromeRow).toHaveAttribute('aria-current', 'true');
+      expect(acmeRow.className).not.toContain('rowSelected');
+      expect(acmeRow).not.toHaveAttribute('aria-current');
+    });
+
+    it('highlights no row when selectedProcessName is omitted', () => {
+      const { container } = render(<ProcessListSection items={items()} formatValue={v => `${v}%`} onSelectProcess={onSelectProcessMock} />);
+      expect(container.querySelector('[class*="rowSelected"]')).toBeNull();
+    });
+
+    it('clears the highlight once selectedProcessName is cleared', () => {
+      const { rerender } = render(
+        <ProcessListSection items={items()} formatValue={v => `${v}%`} onSelectProcess={onSelectProcessMock} selectedProcessName="Chrome" />,
+      );
+      expect(screen.getByText('Chrome').closest('[role="button"]')!.className).toContain('rowSelected');
+
+      rerender(<ProcessListSection items={items()} formatValue={v => `${v}%`} onSelectProcess={onSelectProcessMock} selectedProcessName={null} />);
+      expect(screen.getByText('Chrome').closest('[role="button"]')!.className).not.toContain('rowSelected');
     });
   });
 });

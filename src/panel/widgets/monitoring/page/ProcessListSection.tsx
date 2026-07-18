@@ -1,4 +1,4 @@
-import { memo, useMemo, useState } from 'react';
+import { memo, useMemo, useState, type CSSProperties } from 'react';
 import { ChevronRight, X } from 'lucide-react';
 import { SearchInput } from '../../../../components/common/SearchInput/SearchInput';
 import { Select } from '../../../../components/common/Select/Select';
@@ -49,6 +49,9 @@ export interface ProcessListSectionProps {
    *  inline sibling column - this component only reports the interaction,
    *  it no longer mounts the panel itself. */
   onSelectProcess: (name: string) => void;
+  /** MonitoringPage's own selectedProcess - the matching row (by name) below
+   *  renders in an active state. Null/omitted highlights nothing. */
+  selectedProcessName?: string | null;
   /** Privacy-access sessions for the row icons (webcam/microphone/location/
    *  screen capture) - sourced once at the page level (MonitoringPage) and
    *  shared with the process-detail panel rather than polled again here. */
@@ -62,6 +65,12 @@ export interface ProcessListSectionProps {
   snapshotAtMs?: number | null;
   /** Clears the pinned snapshot - required whenever snapshotAtMs is set. */
   onClearSnapshot?: () => void;
+  /** Reserves the row's own VALUE column at this width (ROW_VALUE_RATE_MIN_WIDTH
+   *  in tabChipValue.ts, chosen by the caller's active tab) so a digit-count
+   *  change in the formatted value (a network/storage byte rate especially)
+   *  never grows the column and shifts the sparkline after it. Omit to keep
+   *  the column's own default width. */
+  valueMinWidth?: string;
 }
 
 // Exported so appWindowHelpers.ts's flat-history fallback can size itself to
@@ -138,6 +147,8 @@ interface ProcessRowProps {
   privacySessions: readonly PrivacySession[];
   privacyAsOfMs: number;
   showPrivacy: boolean;
+  selected: boolean;
+  valueMinWidth?: string;
 }
 
 // A live 1Hz tick reconstructs every row's data fresh (see MonitoringPage's
@@ -159,17 +170,20 @@ function rowPropsEqual(prev: ProcessRowProps, next: ProcessRowProps): boolean {
     && prev.t === next.t
     && prev.privacySessions === next.privacySessions
     && prev.privacyAsOfMs === next.privacyAsOfMs
-    && prev.showPrivacy === next.showPrivacy;
+    && prev.showPrivacy === next.showPrivacy
+    && prev.selected === next.selected
+    && prev.valueMinWidth === next.valueMinWidth;
 }
 
 const ProcessRow = memo(function ProcessRow({
-  item, formatValue, onSelect, t, privacySessions, privacyAsOfMs, showPrivacy,
+  item, formatValue, onSelect, t, privacySessions, privacyAsOfMs, showPrivacy, selected, valueMinWidth,
 }: ProcessRowProps) {
   return (
     <div
-      className={styles.row}
+      className={selected ? `${styles.row} ${styles.rowSelected}` : styles.row}
       role="button"
       tabIndex={0}
+      aria-current={selected || undefined}
       aria-label={t('monitoring.history.process.openDetails', { name: item.name })}
       onClick={() => onSelect(item.name)}
       onKeyDown={e => {
@@ -203,7 +217,12 @@ const ProcessRow = memo(function ProcessRow({
         sampleCount={SPARKLINE_SAMPLES}
         fillOnly
       />
-      <span className={styles.value}>{formatValue(item.current)}</span>
+      <span
+        className={styles.value}
+        style={valueMinWidth ? ({ '--row-value-min-width': valueMinWidth } as CSSProperties) : undefined}
+      >
+        {formatValue(item.current)}
+      </span>
       {item.secondary && <span className={styles.secondary}>{item.secondary}</span>}
       <ChevronRight className={styles.openChevron} size={14} aria-hidden />
     </div>
@@ -245,6 +264,7 @@ function formatSnapshotTime(ms: number): string {
 export function ProcessListSection({
   items, formatValue, rankResetKey = '', frozen = false, onSelectProcess,
   privacySessions = EMPTY_PRIVACY_SESSIONS, privacyAsOfMs = 0, showPrivacy = false, snapshotAtMs, onClearSnapshot,
+  selectedProcessName = null, valueMinWidth,
 }: ProcessListSectionProps) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
@@ -314,6 +334,8 @@ export function ProcessListSection({
               privacySessions={privacySessions}
               privacyAsOfMs={privacyAsOfMs}
               showPrivacy={showPrivacy}
+              selected={item.name === selectedProcessName}
+              valueMinWidth={valueMinWidth}
             />
           ))}
           {backgroundRows.length > 0 && (
@@ -329,6 +351,8 @@ export function ProcessListSection({
               privacySessions={privacySessions}
               privacyAsOfMs={privacyAsOfMs}
               showPrivacy={showPrivacy}
+              selected={item.name === selectedProcessName}
+              valueMinWidth={valueMinWidth}
             />
           ))}
         </div>

@@ -387,6 +387,16 @@ function PreviewSystemSpecsPanel() {
           ]}
         />
       </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '0.75rem' }}>
+        <SystemSpecsPanel
+          variant="tiles"
+          iconInline
+          rows={[
+            { icon: <Monitor size={16} />, label: 'GPU', value: '42%' },
+            { icon: <Monitor size={16} />, label: 'VRAM', value: '3.1 GB' },
+          ]}
+        />
+      </div>
     </div>
   );
 }
@@ -1927,7 +1937,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'SystemSpecsPanel', category: 'cards',
     filePath: 'src/components/common/SystemSpecsPanel/SystemSpecsPanel.tsx',
-    description: 'The one component every system-specs surface renders through: Devices > System Specs, Benchmark\'s pre-run summary and per-run results tile, and the Diagnostics Summary tab. `variant="list"` is a copyable label:value sheet; `variant="tiles"` renders bare icon+value Card tiles with no owning grid, so a caller can drop a single tile into its own grid or lay out a whole grid of them.',
+    description: 'The one component every system-specs surface renders through: Devices > System Specs, Benchmark\'s pre-run summary and per-run results tile, the Diagnostics Summary tab, and the monitoring process-detail usage tiles. `variant="list"` is a copyable label:value sheet; `variant="tiles"` renders bare icon+value Card tiles with no owning grid, so a caller can drop a single tile into its own grid or lay out a whole grid of them. `iconInline` (tiles only) pairs the icon and label on one row instead of stacking icon/label/value each on their own line.',
     Preview: PreviewSystemSpecsPanel,
     notes: 'Rows are pre-translated by the caller - the component owns no i18n keys. loading blanks every list-variant value instead of showing a "-" placeholder, for a stable row count while the first fetch is in flight. copyLabel/copiedLabel are omitted together to hide the copy toolbar (Benchmark\'s tiles never show one).',
   },

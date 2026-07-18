@@ -256,7 +256,7 @@ export function ProcessDetailPanel({
 
         {usageTiles.length > 0 ? (
           <div className={styles.liveGrid}>
-            <SystemSpecsPanel variant="tiles" rows={usageTiles} />
+            <SystemSpecsPanel variant="tiles" rows={usageTiles} iconInline />
           </div>
         ) : (
           <p className={styles.sectionNote}>{t('monitoring.processDetail.live.unavailable')}</p>

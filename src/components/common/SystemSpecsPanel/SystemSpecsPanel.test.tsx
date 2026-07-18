@@ -74,4 +74,32 @@ describe('SystemSpecsPanel tiles variant', () => {
     render(<SystemSpecsPanel variant="tiles" rows={rows} copyLabel="Copy" copiedLabel="Copied!" />);
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
+
+  it('stacks icon, label, and value each on their own line by default', () => {
+    const { container } = render(
+      <SystemSpecsPanel
+        variant="tiles"
+        rows={[{ label: 'CPU', value: '42%', icon: <span data-testid="cpu-icon" /> }]}
+      />,
+    );
+    // No paired icon+label wrapper - each of the three renders as a direct
+    // sibling of .tileInner.
+    expect(container.querySelector('[class*="tileHeader"]')).toBeNull();
+  });
+
+  it('pairs the icon and label on one row, with the value beneath, when iconInline is set', () => {
+    const { container } = render(
+      <SystemSpecsPanel
+        variant="tiles"
+        iconInline
+        rows={[{ label: 'CPU', value: '42%', icon: <span data-testid="cpu-icon" /> }]}
+      />,
+    );
+    const header = container.querySelector('[class*="tileHeader"]');
+    expect(header).not.toBeNull();
+    expect(header!.querySelector('[data-testid="cpu-icon"]')).not.toBeNull();
+    expect(header).toHaveTextContent('CPU');
+    expect(header).not.toHaveTextContent('42%');
+    expect(screen.getByText('42%')).toBeInTheDocument();
+  });
 });

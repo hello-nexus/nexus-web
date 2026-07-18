@@ -63,10 +63,11 @@ vi.mock('./page/ProcessListSection', async importOriginal => {
   const actual = await importOriginal<typeof import('./page/ProcessListSection')>();
   return {
     ...actual,
-    ProcessListSection: ({ items, frozen, onSelectProcess }: {
+    ProcessListSection: ({ items, frozen, onSelectProcess, selectedProcessName }: {
       items: Array<{ name: string; isApp?: boolean; publisher?: string | null; signed?: string }>;
       frozen?: boolean;
       onSelectProcess: (name: string) => void;
+      selectedProcessName?: string | null;
     }) => {
       useEffect(() => {
         processListMounts++;
@@ -76,6 +77,7 @@ vi.mock('./page/ProcessListSection', async importOriginal => {
         <div
           data-testid="process-list-section"
           data-frozen={frozen ? 'true' : 'false'}
+          data-selected-process-name={selectedProcessName ?? ''}
           data-items-meta={items.map(i => `${i.name}:${i.isApp}:${i.publisher}:${i.signed}`).join(';')}
         >
           items:{items.length}:{items.map(i => i.name).join(',')}
@@ -826,6 +828,18 @@ describe('MonitoringPage', () => {
 
       rerender(<MonitoringPage serviceOnline={true} connectionState="online" tab="memory" onTabChange={vi.fn()} />);
       expect(screen.getByTestId('process-detail-panel')).toHaveTextContent('detail:LiveApp');
+    });
+
+    it('passes the selected name down to the process list so it can highlight the matching row, clearing it on close', () => {
+      cpuSeriesOverride = [{ name: 'LiveApp', current: 10, values: [1, 2, 3] }];
+      render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+      expect(screen.getByTestId('process-list-section')).toHaveAttribute('data-selected-process-name', '');
+
+      fireEvent.click(screen.getByText('select-LiveApp'));
+      expect(screen.getByTestId('process-list-section')).toHaveAttribute('data-selected-process-name', 'LiveApp');
+
+      fireEvent.click(screen.getByText('close-detail'));
+      expect(screen.getByTestId('process-list-section')).toHaveAttribute('data-selected-process-name', '');
     });
   });
 

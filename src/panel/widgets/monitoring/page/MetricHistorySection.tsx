@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useMemo, useState } from 'react';
 import { Thermometer, ZoomOut } from 'lucide-react';
 import { TimeSeriesChart } from '../../../../components/common/TimeSeriesChart/TimeSeriesChart';
 import { nearestPoint } from '../../../../components/common/TimeSeriesChart/timeSeriesChartUtils';
@@ -74,13 +74,34 @@ export interface MetricHistorySectionProps {
 const CHART_HEIGHT = 238;
 const TOOLTIP_APPS_LIMIT = 8;
 // Distinct from --accent (the main metric line's color, user-customizable)
-// so the selected app's overlay line never blends into it.
+// so the chart reads as per-app data, not the aggregate metric line it
+// replaces.
 const SELECTED_APP_LINE_COLOR = 'var(--chart-line-alt)';
 
 // Stable empty instances for the non-cpu/gpu tabs' fanRole branch, so the
 // dependent useMemos below don't see a new identity every render.
 const EMPTY_FAN_ID_SET: ReadonlySet<string> = new Set();
 const EMPTY_FAN_NAMES: readonly string[] = [];
+
+/** Tracks the adaptive Y ceiling's freeze/settle state across a TimelineBrush
+ *  drag AND the release-to-settle window right after it (see
+ *  MetricHistorySection's own render body below). */
+interface YCeilingFreezeState {
+  dragging: boolean;
+  /** True from the instant `dragging` goes false until the settled fetch for
+   *  the released window has actually landed - see sawLoadingSinceRelease. */
+  pendingSettle: boolean;
+  /** True once `history.loading` has been observed while pendingSettle - so
+   *  a later `loading: false` reads as "the fetch finished," not "no fetch
+   *  has started yet." */
+  sawLoadingSinceRelease: boolean;
+  /** The ceiling shown while frozen (dragging or pendingSettle). */
+  frozenYMax: number | null;
+}
+
+function initYCeilingFreeze(dragging: boolean, liveYMax: number | null): YCeilingFreezeState {
+  return { dragging, pendingSettle: false, sawLoadingSinceRelease: false, frozenYMax: liveYMax };
+}
 
 export function MetricHistorySection({
   metric, gpuComponents, preferredGpuId, history, appsWindow, fanRoles, selectedFrameMs, onGraphClick,
@@ -133,10 +154,11 @@ export function MetricHistorySection({
     return null;
   }, [metric, t]);
 
-  // The selected process's own usage for this tab's metric, overlaid as an
-  // extra line - null (and so omitted below) whenever nothing is selected,
-  // the app has no series in this window yet, or (memory only) the total
-  // isn't known to rescale it onto the percent axis.
+  // The selected process's own usage for this tab's metric - replaces the
+  // base metric line(s) entirely below (see chartSeries) so the selected
+  // app is the sole emphasized line - null (and so no replacement happens)
+  // whenever nothing is selected, the app has no series in this window yet,
+  // or (memory only) the total isn't known to rescale it onto the percent axis.
   const selectedAppSeries = useMemo(() => {
     if (!selectedAppName) return null;
     const app = appsWindow.apps.find(a => a.name === selectedAppName);
@@ -144,10 +166,15 @@ export function MetricHistorySection({
     return buildSelectedAppSeries(app, metric, memoryTotalMb, SELECTED_APP_LINE_COLOR);
   }, [selectedAppName, appsWindow.apps, metric, memoryTotalMb]);
 
+  // Selecting an app swaps the chart to ONLY that app's own line (still
+  // rendered with the same fillGradient treatment as the base line below,
+  // via the chart-wide fillGradient prop) - the base metric line(s) are
+  // dropped entirely so the app is the sole emphasized series, rather than
+  // an overlay alongside a de-emphasized metric line.
   const chartSeries = useMemo(() => {
+    if (selectedAppSeries) return [selectedAppSeries];
     const mapped = toHistoryChartSeries(resolved.main, colorFor);
-    const named = nameOverride ? mapped.map(s => ({ ...s, name: nameOverride(s.id) })) : mapped;
-    return selectedAppSeries ? [...named, selectedAppSeries] : named;
+    return nameOverride ? mapped.map(s => ({ ...s, name: nameOverride(s.id) })) : mapped;
   }, [resolved.main, colorFor, nameOverride, selectedAppSeries]);
 
   // Network and storage auto-scale their own ceiling to the data ([0, null],
@@ -165,14 +192,43 @@ export function MetricHistorySection({
   // series driving liveYMax is a pan/clip of the frozen fine snapshot, whose
   // own observed peak still shifts tick to tick as the visible window moves
   // across real data (recomputing per tick wobbles the axis even though the
-  // underlying data isn't flickering). Only recomputed once the drag settles.
-  const stableYMaxRef = useRef(liveYMax);
-  useEffect(() => {
-    if (!history.dragging) stableYMaxRef.current = liveYMax;
-  }, [history.dragging, liveYMax]);
+  // underlying data isn't flickering). It also stays frozen through the
+  // release itself, until the settled fetch for the released window actually
+  // lands: `series` on the very first post-release render is still the
+  // drag's last panned/clipped slice, so unfreezing immediately would show
+  // liveYMax off that transient (often smaller) slice for one frame, then
+  // snap again once the real data replaces it. history.loading is this
+  // hook's own settle signal (see useMetricHistory's fetchEpoch-triggered
+  // loadViewport) - a true-then-false cycle after release confirms the
+  // fetch landed. Computed during render via the "adjust state during
+  // render" pattern (same as useStableRanking/MonitoringPage's
+  // shouldFreezeFallback - setState called mid-render, not in an effect) so
+  // the first post-release paint already uses the frozen value; an effect
+  // would still be one render too late to catch it, and only applies on a
+  // render React actually commits, unlike a plain ref mutation.
+  const [freeze, setFreeze] = useState<YCeilingFreezeState>(() => initYCeilingFreeze(history.dragging, liveYMax));
+  let nextFreeze = freeze;
+  if (nextFreeze.dragging !== history.dragging) {
+    nextFreeze = { ...nextFreeze, dragging: history.dragging };
+    if (!history.dragging) {
+      nextFreeze = { ...nextFreeze, pendingSettle: true, sawLoadingSinceRelease: false };
+    }
+  }
+  if (nextFreeze.pendingSettle) {
+    if (history.loading) {
+      if (!nextFreeze.sawLoadingSinceRelease) nextFreeze = { ...nextFreeze, sawLoadingSinceRelease: true };
+    } else if (nextFreeze.sawLoadingSinceRelease) {
+      nextFreeze = { ...nextFreeze, pendingSettle: false };
+    }
+  }
+  const yCeilingFrozen = history.dragging || nextFreeze.pendingSettle;
+  if (!yCeilingFrozen && nextFreeze.frozenYMax !== liveYMax) {
+    nextFreeze = { ...nextFreeze, frozenYMax: liveYMax };
+  }
+  if (nextFreeze !== freeze) setFreeze(nextFreeze);
   const yDomain: [number | null, number | null] = useMemo(
-    () => [0, history.dragging ? stableYMaxRef.current : liveYMax],
-    [history.dragging, liveYMax],
+    () => [0, yCeilingFrozen ? nextFreeze.frozenYMax : liveYMax],
+    [yCeilingFrozen, liveYMax, nextFreeze.frozenYMax],
   );
   const valueFormat = useMemo(() => {
     if (metric === 'network' || metric === 'storage') return (v: number) => formatRate(v, numberFormat);
