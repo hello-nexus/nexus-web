@@ -337,7 +337,12 @@ function PreviewCardDeleteButton() {
 
 function PreviewSparkline() {
   const values = Array.from({ length: 30 }, (_, i) => 30 + Math.sin(i / 3) * 20 + sampleNoise(i, 1));
-  return <Sparkline values={values} width={140} height={32} />;
+  return (
+    <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+      <Sparkline values={values} width={140} height={32} />
+      <Sparkline values={values} width={140} height={32} fillOnly />
+    </div>
+  );
 }
 
 function PreviewSensorCard() {
@@ -1568,6 +1573,10 @@ function PreviewBadge() {
           (e.g. the monitoring tab chips) doesn't resize as its digits change. */}
       <StorybookBadge label="9%" minWidth="2.75rem" />
       <StorybookBadge label="100%" minWidth="2.75rem" />
+      {/* compact trims the horizontal padding for a badge sized tightly
+          around its own reserved minWidth - the monitoring tab chips. */}
+      <StorybookBadge label="99%" minWidth="2.5rem" compact />
+      <StorybookBadge label="999.9 MB/s" minWidth="4.75rem" compact />
     </div>
   );
 }
@@ -2004,7 +2013,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'Sparkline', category: 'charts',
     filePath: 'src/components/common/Sparkline/Sparkline.tsx',
-    description: 'Tiny SVG sparkline. Auto-scales or accepts a fixed domain. Flat alpha fill (color, fillOpacity) plus optional separate strokeColor / strokeWidth. Pass sampleCount to lock a window length and left-pad shorter buffers. Used by Monitoring CPU/GPU/Network and panel widgets (SparklineGauge, LineGauge, CoolingWidget).', Preview: PreviewSparkline,
+    description: 'Tiny SVG sparkline. Auto-scales or accepts a fixed domain. Flat alpha fill (color, fillOpacity) plus optional separate strokeColor / strokeWidth. Pass sampleCount to lock a window length and left-pad shorter buffers. fillOnly drops the stroke line for a seek-bar-style silhouette (right example above), bumping the default fillOpacity to match its weight. Used by Monitoring CPU/GPU/Network and panel widgets (SparklineGauge, LineGauge, CoolingWidget); fillOnly is used by the Monitoring process-list row minigraphs.', Preview: PreviewSparkline,
   },
   {
     name: 'TimeSeriesChart', category: 'charts',
