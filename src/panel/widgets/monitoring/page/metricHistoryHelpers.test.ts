@@ -6,6 +6,7 @@ import {
   averageRpmSeries,
   currentDiskRateBytesPerSec,
   defaultBoxWidthMs,
+  fanSeriesIdsForRole,
   formatBrushEdgeLabels,
   initViewport,
   maxAvgValue,
@@ -14,11 +15,13 @@ import {
   rangeKeyForWindow,
   resolveSelectedFrame,
   seriesQueryFor,
+  sumRpmSeriesForRole,
   sumSilhouette,
   toHistoryChartSeries,
   viewportReducer,
   windowMsForRangeKey,
   xTickFormatForWindow,
+  type FanRoleMap,
   type ViewportState,
 } from './metricHistoryHelpers';
 import type { MetricHistorySeries } from '../../../../api/monitoringHistory';
@@ -505,6 +508,70 @@ describe('averageRpmSeries', () => {
   it('returns an empty array for no series, or series with no fan kind', () => {
     expect(averageRpmSeries([])).toEqual([]);
     expect(averageRpmSeries([series('cpu', [{ t: 0, avg: 1, max: 1 }])])).toEqual([]);
+  });
+});
+
+describe('fanSeriesIdsForRole', () => {
+  function roleMap(entries: Array<[string, { role: 'none' | 'cpu' | 'gpu'; name: string }]>): FanRoleMap {
+    return new Map(entries);
+  }
+
+  it('collects only the ids marked with the given role', () => {
+    const map = roleMap([
+      ['fan:1', { role: 'cpu', name: 'Front Fan' }],
+      ['fan:2', { role: 'gpu', name: 'Top Fan' }],
+      ['fan:3', { role: 'cpu', name: 'Rear Fan' }],
+      ['fan:4', { role: 'none', name: 'Side Fan' }],
+    ]);
+    expect(fanSeriesIdsForRole(map, 'cpu')).toEqual(new Set(['fan:1', 'fan:3']));
+    expect(fanSeriesIdsForRole(map, 'gpu')).toEqual(new Set(['fan:2']));
+  });
+
+  it('returns an empty set for a role nothing is marked with', () => {
+    const map = roleMap([['fan:1', { role: 'none', name: 'Front Fan' }]]);
+    expect(fanSeriesIdsForRole(map, 'cpu')).toEqual(new Set());
+  });
+
+  it('returns an empty set for an empty map', () => {
+    expect(fanSeriesIdsForRole(new Map(), 'cpu')).toEqual(new Set());
+  });
+});
+
+describe('sumRpmSeriesForRole', () => {
+  function fan(id: string, points: MetricHistorySeries['points']): MetricHistorySeries {
+    return series(id, points, { kind: 'fan' });
+  }
+
+  it('sums only the fans whose id is in seriesIds, ignoring the rest', () => {
+    const fan1 = fan('fan:1', [{ t: 0, avg: 1200, max: 1250 }]);
+    const fan2 = fan('fan:2', [{ t: 0, avg: 1600, max: 1500 }]);
+    const fan3 = fan('fan:3', [{ t: 0, avg: 900, max: 950 }]);
+    expect(sumRpmSeriesForRole([fan1, fan2, fan3], new Set(['fan:1', 'fan:2']))).toEqual([
+      { t: 0, avg: 2800, max: 1500 },
+    ]);
+  });
+
+  it('sums only the fans present at a timestamp - a marked fan missing a tick is not treated as 0 (gap-aware)', () => {
+    const fan1 = fan('fan:1', [{ t: 0, avg: 1200, max: 1250 }, { t: 1000, avg: 1240, max: 1280 }]);
+    const fan2 = fan('fan:2', [{ t: 0, avg: 1600, max: 1500 }]);
+    expect(sumRpmSeriesForRole([fan1, fan2], new Set(['fan:1', 'fan:2']))).toEqual([
+      { t: 0, avg: 2800, max: 1500 },
+      { t: 1000, avg: 1240, max: 1280 },
+    ]);
+  });
+
+  it('ignores non-fan series and unmarked fan series', () => {
+    const cpu = series('cpu', [{ t: 0, avg: 99, max: 99 }]);
+    const fan1 = fan('fan:1', [{ t: 0, avg: 1200, max: 1250 }]);
+    const fan2 = fan('fan:2', [{ t: 0, avg: 1600, max: 1500 }]);
+    expect(sumRpmSeriesForRole([cpu, fan1, fan2], new Set(['fan:1']))).toEqual([
+      { t: 0, avg: 1200, max: 1250 },
+    ]);
+  });
+
+  it('returns an empty array for no series, or an empty seriesIds set', () => {
+    expect(sumRpmSeriesForRole([], new Set(['fan:1']))).toEqual([]);
+    expect(sumRpmSeriesForRole([fan('fan:1', [{ t: 0, avg: 1, max: 1 }])], new Set())).toEqual([]);
   });
 });
 

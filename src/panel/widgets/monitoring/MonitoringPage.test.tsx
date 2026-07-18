@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, within, fireEvent } from '@testing-library/react';
+import { render, screen, within, fireEvent, waitFor } from '@testing-library/react';
 import { MonitoringPage } from './MonitoringPage';
 import type { GpuComponent } from '../../../lib/gpuResolver';
 import type { AppWindowSeries } from '../../../api/monitoringHistoryApps';
@@ -29,18 +29,32 @@ const GRAPH_CLICK_LABEL = xTickFormatForWindow(HOUR_MS)(GRAPH_CLICK_MS);
 let metricHistoryMounts = 0;
 let metricHistoryUnmounts = 0;
 vi.mock('./page/MetricHistorySection', () => ({
-  MetricHistorySection: ({ metric, onGraphClick }: { metric: string; onGraphClick: (t: number) => void }) => {
+  MetricHistorySection: ({ metric, onGraphClick, fanRoles }: {
+    metric: string;
+    onGraphClick: (t: number) => void;
+    fanRoles: ReadonlyMap<string, { role: string; name: string }>;
+  }) => {
     useEffect(() => {
       metricHistoryMounts++;
       return () => { metricHistoryUnmounts++; };
     }, []);
     return (
-      <div data-testid="metric-history-section">
+      <div
+        data-testid="metric-history-section"
+        data-fan-roles={[...fanRoles.entries()].map(([id, info]) => `${id}:${info.role}:${info.name}`).join(';')}
+      >
         metric:{metric}
         <button type="button" onClick={() => onGraphClick(GRAPH_CLICK_MS)}>simulate-graph-click</button>
       </div>
     );
   },
+}));
+
+let fanChannelsOverride: Array<{ id: string; name: string; seriesId?: string; role?: string }> | null = null;
+vi.mock('../../../api/cooling', () => ({
+  fetchFanChannels: vi.fn(() => Promise.resolve(
+    fanChannelsOverride === null ? null : { channels: fanChannelsOverride },
+  )),
 }));
 
 let processListMounts = 0;
@@ -873,6 +887,60 @@ describe('MonitoringPage', () => {
       render(<MonitoringPage serviceOnline={true} connectionState="online" tab="gpu" onTabChange={vi.fn()} />);
       const section = screen.getByTestId('process-list-section');
       expect(section).toHaveTextContent('chrome.exe');
+    });
+  });
+
+  describe('fan role config (GET /cooling/fans -> MetricHistorySection.fanRoles)', () => {
+    afterEach(() => {
+      fanChannelsOverride = null;
+    });
+
+    it('builds a seriesId -> {role, name} map keyed by the monitoring history series id', async () => {
+      fanChannelsOverride = [
+        { id: 'fan-1', name: 'Front Fan', seriesId: 'fan-1', role: 'cpu' },
+        { id: 'fan-2', name: 'Top Fan', seriesId: 'fan-2', role: 'none' },
+      ];
+      render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+      await waitFor(() => {
+        expect(screen.getByTestId('metric-history-section')).toHaveAttribute(
+          'data-fan-roles',
+          'fan:fan-1:cpu:Front Fan;fan:fan-2:none:Top Fan',
+        );
+      });
+    });
+
+    it('tolerates a failed fetch by leaving the fan role map empty instead of crashing', async () => {
+      fanChannelsOverride = null;
+      render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+      await waitFor(() => {
+        expect(screen.getByTestId('metric-history-section')).toHaveAttribute('data-fan-roles', '');
+      });
+    });
+
+    it('refetches when switching onto the gpu tab', async () => {
+      fanChannelsOverride = [{ id: 'fan-1', name: 'Front Fan', seriesId: 'fan-1', role: 'gpu' }];
+      const { rerender } = render(
+        <MonitoringPage serviceOnline={true} connectionState="online" tab="memory" onTabChange={vi.fn()} />,
+      );
+      await waitFor(() => {
+        expect(screen.getByTestId('metric-history-section')).toHaveAttribute(
+          'data-fan-roles',
+          'fan:fan-1:gpu:Front Fan',
+        );
+      });
+
+      sensorState.gpu = [
+        { id: 'gpu/0/load', name: 'GPU Core', type: 'Load', value: 30, units: '%', formatted: '30%', parent: { id: 'gpu/0', name: 'gpu' } },
+      ];
+      fanChannelsOverride = [{ id: 'fan-1', name: 'Front Fan', seriesId: 'fan-1', role: 'cpu' }];
+      rerender(<MonitoringPage serviceOnline={true} connectionState="online" tab="gpu" onTabChange={vi.fn()} />);
+      await waitFor(() => {
+        expect(screen.getByTestId('metric-history-section')).toHaveAttribute(
+          'data-fan-roles',
+          'fan:fan-1:cpu:Front Fan',
+        );
+      });
+      sensorState.gpu = [];
     });
   });
 

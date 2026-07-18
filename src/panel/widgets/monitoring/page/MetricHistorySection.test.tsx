@@ -4,6 +4,7 @@ import { MetricHistorySection } from './MetricHistorySection';
 import type { UseMetricHistoryResult } from '../../../../hooks/useMetricHistory';
 import type { UseMetricHistoryAppsResult } from '../../../../hooks/useMetricHistoryApps';
 import type { GpuComponent } from '../../../../lib/gpuResolver';
+import type { FanRoleMap } from './metricHistoryHelpers';
 
 vi.mock('../../../../hooks/useUiSettings', () => ({
   useUnitPrefs: () => ({ monitoringTempUnit: 'c', timeFormat: 'system', numberFormat: 'system' }),
@@ -70,6 +71,7 @@ function renderSection(over: {
   preferredGpuId?: string;
   history?: Partial<UseMetricHistoryResult>;
   appsWindow?: Partial<UseMetricHistoryAppsResult>;
+  fanRoles?: FanRoleMap;
   selectedFrameMs?: number;
   onGraphClick?: (t: number) => void;
 } = {}) {
@@ -81,6 +83,7 @@ function renderSection(over: {
       preferredGpuId={over.preferredGpuId ?? ''}
       history={history}
       appsWindow={baseAppsWindow(over.appsWindow)}
+      fanRoles={over.fanRoles ?? new Map()}
       selectedFrameMs={over.selectedFrameMs ?? history.domain[1]}
       onGraphClick={over.onGraphClick ?? vi.fn()}
     />,
@@ -164,6 +167,7 @@ describe('MetricHistorySection', () => {
         preferredGpuId=""
         history={baseHistory({ series: lowSeries, dragging: true })}
         appsWindow={baseAppsWindow()}
+        fanRoles={new Map()}
         selectedFrameMs={NOW}
         onGraphClick={vi.fn()}
       />,
@@ -180,6 +184,7 @@ describe('MetricHistorySection', () => {
         preferredGpuId=""
         history={baseHistory({ series: lowSeries, dragging: false })}
         appsWindow={baseAppsWindow()}
+        fanRoles={new Map()}
         selectedFrameMs={NOW}
         onGraphClick={vi.fn()}
       />,
@@ -548,6 +553,60 @@ describe('MetricHistorySection', () => {
       ];
       const { container } = renderSection({ metric: 'memory', history: { series } });
       expect(container.querySelector('rect[fill="var(--accent)"]')).toBeNull();
+    });
+  });
+
+  describe('role-aware fan speed sum (cpu/gpu tabs marked in Cooling)', () => {
+    const series: UseMetricHistoryResult['series'] = [
+      { id: 'cpu', kind: 'cpu', name: 'CPU', points: [{ t: NOW, avg: 50, max: 51 }] },
+      { id: 'fan:1', kind: 'fan', name: 'Front Fan', points: [{ t: NOW, avg: 1200, max: 1250 }] },
+      { id: 'fan:2', kind: 'fan', name: 'Rear Fan', points: [{ t: NOW, avg: 1600, max: 1580 }] },
+    ];
+
+    it('sums only the fan(s) marked for the tab\'s role instead of averaging every fan', () => {
+      stubGeometry();
+      const fanRoles: FanRoleMap = new Map([
+        ['fan:1', { role: 'cpu', name: 'Front Fan' }],
+        ['fan:2', { role: 'none', name: 'Rear Fan' }],
+      ]);
+      renderSection({ metric: 'cpu', history: { series }, fanRoles });
+      // Sum of just fan:1 (1200), not the two-fan average (1400).
+      expect(screen.getByText('1200 RPM')).toBeInTheDocument();
+      expect(screen.queryByText('1400 RPM')).toBeNull();
+    });
+
+    it('sums every fan marked for the role, not just the first', () => {
+      stubGeometry();
+      const fanRoles: FanRoleMap = new Map([
+        ['fan:1', { role: 'cpu', name: 'Front Fan' }],
+        ['fan:2', { role: 'cpu', name: 'Rear Fan' }],
+      ]);
+      renderSection({ metric: 'cpu', history: { series }, fanRoles });
+      expect(screen.getByText('2800 RPM')).toBeInTheDocument();
+    });
+
+    it('falls back to the all-fans average when no fan is marked for the tab\'s role', () => {
+      stubGeometry();
+      const fanRoles: FanRoleMap = new Map([['fan:1', { role: 'gpu', name: 'Front Fan' }]]);
+      renderSection({ metric: 'cpu', history: { series }, fanRoles });
+      expect(screen.getByText('1400 RPM')).toBeInTheDocument();
+    });
+
+    it('falls back to the all-fans average when fanRoles is empty (no config fetched yet)', () => {
+      stubGeometry();
+      renderSection({ metric: 'cpu', history: { series }, fanRoles: new Map() });
+      expect(screen.getByText('1400 RPM')).toBeInTheDocument();
+    });
+
+    it('only sums/matches fans marked for the OTHER role\'s tab, not this one - gpu marks do not leak into the cpu sum', () => {
+      stubGeometry();
+      const fanRoles: FanRoleMap = new Map([
+        ['fan:1', { role: 'gpu', name: 'Front Fan' }],
+        ['fan:2', { role: 'gpu', name: 'Rear Fan' }],
+      ]);
+      renderSection({ metric: 'cpu', history: { series }, fanRoles });
+      // No cpu-marked fan -> all-fans average, not a gpu-role sum.
+      expect(screen.getByText('1400 RPM')).toBeInTheDocument();
     });
   });
 });

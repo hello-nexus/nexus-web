@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Cpu, Gpu, MemoryStick, HardDrive, Network, List } from 'lucide-react';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useNetworkMonitor, useAllNetworkSeries } from '../../../hooks/useNetworkMonitor';
@@ -12,6 +12,7 @@ import { useUiSettings, useUnitPrefs } from '../../../hooks/useUiSettings';
 import { resolvePrimaryGpu } from '../../../lib/gpuResolver';
 import { formatMemoryMb } from '../../../lib/formatMemory';
 import { localizeNumbers } from '../../../lib/units';
+import { fetchFanChannels, type FanRole } from '../../../api/cooling';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { Badge } from '../../../components/common/Badge/Badge';
 import { LiveFollowControl } from '../../../components/common/LiveFollowControl/LiveFollowControl';
@@ -21,7 +22,7 @@ import { DetailedTab } from './page/DetailedTab';
 import { MetricHistorySection } from './page/MetricHistorySection';
 import { ProcessListSection, type ProcessListItem } from './page/ProcessListSection';
 import { MonitoringSettingsModal } from './page/MonitoringSettingsModal';
-import { seriesQueryFor, appsSeriesParamFor, currentDiskRateBytesPerSec, resolveSelectedFrame, xTickFormatForWindow, type HistoryMetric } from './page/metricHistoryHelpers';
+import { seriesQueryFor, appsSeriesParamFor, currentDiskRateBytesPerSec, resolveSelectedFrame, xTickFormatForWindow, type FanRoleMap, type HistoryMetric } from './page/metricHistoryHelpers';
 import { appsToProcessListItems, currentAppValueMap, reconcileLiveWithWindow, zeroedGpuFallback } from './page/appWindowHelpers';
 import { buildLiveUsageByName } from './page/processDetailHelpers';
 import { formatRate } from './page/shared';
@@ -116,6 +117,36 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
   const isValidTab = (key: string): key is MonitoringTab =>
     TAB_DEFS.some(d => d.key === key) && (key !== 'gpu' || gpuSupported);
   const tab: MonitoringTab = urlTab && isValidTab(urlTab) ? urlTab : 'cpu';
+
+  // Fan role config (see FanRoleMap) drives the CPU/GPU tabs' role-aware RPM
+  // sum in MetricHistorySection. Roles are slow-changing config, not a live
+  // feed, so this is a plain fetch rather than a poll: once on mount (whatever
+  // tab loads first), and again each time the active tab becomes cpu/gpu -
+  // catches a role marked on the Cooling page since the last fetch. A failed
+  // fetch just leaves the previous (possibly empty) map in place, which reads
+  // as "nothing marked" and falls back to the all-fans average.
+  const [fanRoles, setFanRoles] = useState<FanRoleMap>(() => new Map());
+  const fanRolesMountedRef = useRef(true);
+  const fanRolesSeqRef = useRef(0);
+  const fanRolesFetchedRef = useRef(false);
+  useEffect(() => {
+    fanRolesMountedRef.current = true;
+    return () => { fanRolesMountedRef.current = false; };
+  }, []);
+  useEffect(() => {
+    if (tab !== 'cpu' && tab !== 'gpu' && fanRolesFetchedRef.current) return;
+    fanRolesFetchedRef.current = true;
+    const seq = ++fanRolesSeqRef.current;
+    void (async () => {
+      const result = await fetchFanChannels();
+      if (!fanRolesMountedRef.current || seq !== fanRolesSeqRef.current || !result) return;
+      const map = new Map<string, { role: FanRole; name: string }>();
+      for (const ch of result.channels) {
+        if (ch.seriesId) map.set(`fan:${ch.seriesId}`, { role: ch.role ?? 'none', name: ch.name });
+      }
+      setFanRoles(map);
+    })();
+  }, [tab]);
 
   const isMetricTab = tab !== 'detailed';
   const seriesQuery = isMetricTab ? seriesQueryFor(tab) : '';
@@ -362,6 +393,7 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
               preferredGpuId={settings.preferredGpuId}
               history={history}
               appsWindow={appsWindow}
+              fanRoles={fanRoles}
               selectedFrameMs={selectedFrameMs}
               onGraphClick={onGraphClick}
             />

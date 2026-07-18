@@ -21,13 +21,16 @@ import {
   RANGE_OPTIONS,
   adaptivePercentYMax,
   averageRpmSeries,
+  fanSeriesIdsForRole,
   formatBrushEdgeLabels,
   maxAvgValue,
   nearestTempAt,
   pickGpuHistorySeries,
+  sumRpmSeriesForRole,
   sumSilhouette,
   toHistoryChartSeries,
   xTickFormatForWindow,
+  type FanRoleMap,
   type HistoryMetric,
 } from './metricHistoryHelpers';
 import type { ChartRibbonSpec } from '../../../../components/common/TimeSeriesChart/TimeSeriesChart';
@@ -43,6 +46,9 @@ export interface MetricHistorySectionProps {
   preferredGpuId: string;
   history: UseMetricHistoryResult;
   appsWindow: UseMetricHistoryAppsResult;
+  /** seriesId -> {role, name} from GET /cooling/fans (see metricHistoryHelpers'
+   *  FanRoleMap) - drives the CPU/GPU tabs' role-aware RPM sum below. */
+  fanRoles: FanRoleMap;
   /** The point-in-time snapshot's selected frame - defaults to the window's
    *  own right edge (real "now" while following) until the user clicks the
    *  chart. Drives the persistent selection line and the ribbon/main-series
@@ -57,8 +63,12 @@ export interface MetricHistorySectionProps {
 const CHART_HEIGHT = 238;
 const TOOLTIP_APPS_LIMIT = 8;
 
+// Stable empty instance for the non-cpu/gpu tabs' fanRole branch, so the
+// dependent useMemo below doesn't see a new identity every render.
+const EMPTY_FAN_ID_SET: ReadonlySet<string> = new Set();
+
 export function MetricHistorySection({
-  metric, gpuComponents, preferredGpuId, history, appsWindow, selectedFrameMs, onGraphClick,
+  metric, gpuComponents, preferredGpuId, history, appsWindow, fanRoles, selectedFrameMs, onGraphClick,
 }: MetricHistorySectionProps) {
   const { t, language } = useTranslation();
   const { monitoringTempUnit, numberFormat } = useUnitPrefs();
@@ -164,16 +174,28 @@ export function MetricHistorySection({
     return localizeNumbers(`${Math.round(convertTemperature(nearest.avg, monitoringTempUnit))}${tempUnitSymbol(monitoringTempUnit)}`, numberFormat);
   }, [resolved.temp, selectedFrameMs, windowMs, monitoringTempUnit, numberFormat]);
 
-  // Every fan series (RPM) in the current window, averaged into one line for
-  // the fan-speed ribbon below. Gated the same way resolved.temp is - only
-  // cpu/gpu request the fan kind (see seriesQueryFor), but history.series can
-  // transiently still carry the previous tab's series for one render right
-  // after a metric switch (the fetch for the new tab hasn't landed yet), so
-  // this must not just rely on the fetched data happening to be empty.
-  const rpmPoints = useMemo(
-    () => (metric === 'cpu' || metric === 'gpu' ? averageRpmSeries(history.series) : []),
-    [metric, history.series],
+  // cpu/gpu only - the tab's own fan role ('none' on every other tab, so
+  // markedFanIds/markedFanNames below are always empty there).
+  const fanRole = metric === 'cpu' ? 'cpu' : metric === 'gpu' ? 'gpu' : null;
+
+  const markedFanIds = useMemo(
+    () => (fanRole ? fanSeriesIdsForRole(fanRoles, fanRole) : EMPTY_FAN_ID_SET),
+    [fanRole, fanRoles],
   );
+
+  // Every fan series (RPM) in the current window, for the fan-speed ribbon
+  // below - the SUM of just the fans marked cpu/gpu in Cooling once at least
+  // one is marked, else the all-fans average (averageRpmSeries). Gated the
+  // same way resolved.temp is - only cpu/gpu request the fan kind (see
+  // seriesQueryFor), but history.series can transiently still carry the
+  // previous tab's series for one render right after a metric switch (the
+  // fetch for the new tab hasn't landed yet), so this must not just rely on
+  // the fetched data happening to be empty.
+  const rpmPoints = useMemo(() => {
+    if (!fanRole) return [];
+    if (markedFanIds.size > 0) return sumRpmSeriesForRole(history.series, markedFanIds);
+    return averageRpmSeries(history.series);
+  }, [fanRole, markedFanIds, history.series]);
 
   // The fan-speed ribbon's own right-side readout, same selected-frame
   // semantics as the temp ribbon above.

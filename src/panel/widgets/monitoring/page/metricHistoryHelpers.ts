@@ -6,6 +6,7 @@ import { nearestPoint, type TimeSeriesPoint } from '../../../../components/commo
 import type { TimeSeriesSeries } from '../../../../components/common/TimeSeriesChart/TimeSeriesChart';
 import { MIN_BOX_WINDOW_MS } from '../../../../components/common/TimelineBrush/timelineBrushUtils';
 import type { MetricHistorySeries } from '../../../../api/monitoringHistory';
+import type { FanRole } from '../../../../api/cooling';
 
 export type HistoryMetric = 'cpu' | 'memory' | 'storage' | 'network' | 'gpu';
 
@@ -382,6 +383,43 @@ export function averageRpmSeries(series: readonly MetricHistorySeries[]): TimeSe
   return [...byT.entries()]
     .sort((a, b) => a[0] - b[0])
     .map(([t, v]) => ({ t, avg: v.sum / v.count, max: v.max }));
+}
+
+/** A fan channel's role config, keyed by its monitoring history series id
+ *  (`"fan:" + seriesId`, see GET /cooling/fans) - built once on MonitoringPage
+ *  and passed down so the CPU/GPU tabs can match a `kind:'fan'` history
+ *  series back to the role the user marked it with in Cooling. */
+export type FanRoleMap = ReadonlyMap<string, { role: FanRole; name: string }>;
+
+/** The history series ids of every fan marked `role` in `fanRoles`. */
+export function fanSeriesIdsForRole(fanRoles: FanRoleMap, role: FanRole): Set<string> {
+  const ids = new Set<string>();
+  for (const [id, info] of fanRoles) {
+    if (info.role === role) ids.add(id);
+  }
+  return ids;
+}
+
+/**
+ * Sums the fan (RPM) series whose id is in `seriesIds` into one line - the
+ * CPU/GPU tabs' role-aware ribbon once at least one fan is marked for that
+ * role (see MetricHistorySection), in place of averageRpmSeries' all-fans
+ * average. Aligns by timestamp like averageRpmSeries: a marked fan missing
+ * from a given tick is omitted from that timestamp's sum rather than
+ * treated as 0.
+ */
+export function sumRpmSeriesForRole(series: readonly MetricHistorySeries[], seriesIds: ReadonlySet<string>): TimeSeriesPoint[] {
+  const byT = new Map<number, { sum: number; max: number }>();
+  for (const s of series) {
+    if (s.kind !== 'fan' || !seriesIds.has(s.id)) continue;
+    for (const p of s.points) {
+      const cur = byT.get(p.t) ?? { sum: 0, max: -Infinity };
+      byT.set(p.t, { sum: cur.sum + p.avg, max: Math.max(cur.max, p.max) });
+    }
+  }
+  return [...byT.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([t, v]) => ({ t, avg: v.sum, max: v.max }));
 }
 
 /**
