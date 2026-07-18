@@ -1668,7 +1668,7 @@
   "monitoring.detailed.battery": "Batteria",
   "monitoring.detailed.cooler": "Sistema di raffreddamento",
   "monitoring.detailed.cpu": "CPU",
-  "monitoring.detailed.ec": "Embedded Controller",
+  "monitoring.detailed.ec": "Controller integrato",
   "monitoring.detailed.gpu": "GPU",
   "monitoring.detailed.group.clock": "Clock",
   "monitoring.detailed.group.control": "Controllo",

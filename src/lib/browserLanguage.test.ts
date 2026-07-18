@@ -7,6 +7,7 @@ describe('matchBrowserLanguage', () => {
     expect(matchBrowserLanguage(['pt-br'])).toBe('pt-BR');
     expect(matchBrowserLanguage(['zh-CN'])).toBe('zh-CN');
     expect(matchBrowserLanguage(['fur'])).toBe('fur');
+    expect(matchBrowserLanguage(['nl'])).toBe('nl');
   });
 
   it('falls back from regional tags to the base language', () => {
@@ -14,6 +15,8 @@ describe('matchBrowserLanguage', () => {
     expect(matchBrowserLanguage(['de-AT'])).toBe('de');
     expect(matchBrowserLanguage(['pt-PT'])).toBe('pt');
     expect(matchBrowserLanguage(['es-419'])).toBe('es');
+    expect(matchBrowserLanguage(['nl-NL'])).toBe('nl');
+    expect(matchBrowserLanguage(['nl-BE'])).toBe('nl');
   });
 
   it('maps Traditional Chinese script and region tags to zh-TW', () => {
