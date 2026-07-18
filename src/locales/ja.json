@@ -930,6 +930,7 @@
   "diagnostics.temperature.emptyDay": "{date}の温度データは記録されていません。",
   "diagnostics.temperature.episode": "{name}は{date}に{duration}にわたって{peak}に達しました",
   "diagnostics.temperature.episodesTitle": "持続的な高温",
+  "diagnostics.temperature.fanDuty": "平均ファンデューティ",
   "diagnostics.temperature.max": "最大",
   "diagnostics.temperature.range.14d": "14日",
   "diagnostics.temperature.range.24h": "24時間",

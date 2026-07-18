@@ -11,8 +11,9 @@ import { StorageSection } from './StorageSection';
 import { SystemSection } from './SystemSection';
 import { ToastProvider } from '../../common/Toast/Toast';
 import { setActiveTransport } from '../../../api/service';
-import { useDiagnosticsTemperatureApps } from '../../../hooks/useDiagnosticsTemperatureApps';
 import { useDiagnosticsTemperatures } from '../../../hooks/useDiagnosticsTemperatures';
+import { useMetricHistory } from '../../../hooks/useMetricHistory';
+import { COOLING_HISTORY_SERIES_QUERY } from './coolingHistoryHelpers';
 import type {
   DiagnosticsComponent,
   DiagnosticsCoolingResponse,
@@ -43,8 +44,13 @@ vi.mock('../../../hooks/useDiagnosticsTemperatures', () => ({
   useDiagnosticsTemperatures: vi.fn(() => ({ data: null, loading: false, error: false, mocked: false, refresh: vi.fn() })),
 }));
 
-vi.mock('../../../hooks/useDiagnosticsTemperatureApps', () => ({
-  useDiagnosticsTemperatureApps: vi.fn(() => ({ data: null, loading: false, error: false, mocked: false, refresh: vi.fn() })),
+vi.mock('../../../hooks/useMetricHistory', () => ({
+  useMetricHistory: vi.fn(() => ({
+    silhouette: [], series: [], domain: [0, 1], stripDomain: [0, 1], rangeKey: '3h', lastPresetKey: '3h',
+    following: true, dragging: false, loading: false, error: false, mocked: false, supported: true,
+    retentionDays: 7, stepSeconds: null, viewportGeneration: 0,
+    setRange: vi.fn(), onBrushChange: vi.fn(), onChartDragSelect: vi.fn(), backToLive: vi.fn(), retry: vi.fn(),
+  })),
 }));
 
 function jsonResponse(status: number, body: unknown): Response {
@@ -602,32 +608,27 @@ describe('DiagnosticsView tabs', () => {
     expect(onTabChange).toHaveBeenCalledWith('cooling');
   });
 
-  it('picking a day switches useDiagnosticsTemperatures to a date query, and clicking a range chip clears it back to hours', () => {
+  it('fetches the Cooling chart\'s sustained-high-temperature episodes with a fixed 7-day window, regardless of tab', () => {
     const temperaturesSpy = vi.mocked(useDiagnosticsTemperatures);
     temperaturesSpy.mockClear();
-    renderDiagnosticsView({ tab: 'cooling', onTabChange: vi.fn() });
+    renderDiagnosticsView({ tab: 'memory', onTabChange: vi.fn() });
 
     expect(temperaturesSpy.mock.calls.at(-1)?.[1]).toEqual({ hours: 168 });
-
-    fireEvent.click(screen.getByLabelText('diagnostics.temperature.dayPickerAriaLabel'));
-    fireEvent.click(screen.getByText('datepicker.today'));
-
-    expect(temperaturesSpy.mock.calls.at(-1)?.[1]).toHaveProperty('date');
-
-    fireEvent.click(screen.getByRole('button', { name: 'diagnostics.temperature.range.24h' }));
-
-    expect(temperaturesSpy.mock.calls.at(-1)?.[1]).toEqual({ hours: 24 });
   });
 
-  it('fetches the hover-tooltip app breakdown whenever the service is online, sharing the temperature chart\'s query', () => {
-    const appsSpy = vi.mocked(useDiagnosticsTemperatureApps);
-    appsSpy.mockClear();
+  it('enables useMetricHistory with the cooling series query only while the Cooling tab is active', () => {
+    const historySpy = vi.mocked(useMetricHistory);
+    historySpy.mockClear();
     renderDiagnosticsView({ tab: 'cooling', onTabChange: vi.fn() });
 
-    expect(appsSpy.mock.calls.at(-1)).toEqual([true, { hours: 168 }]);
+    expect(historySpy.mock.calls.at(-1)).toEqual([true, COOLING_HISTORY_SERIES_QUERY]);
+  });
 
-    fireEvent.click(screen.getByRole('button', { name: 'diagnostics.temperature.range.24h' }));
+  it('disables useMetricHistory (empty series query) when the Cooling tab is not active', () => {
+    const historySpy = vi.mocked(useMetricHistory);
+    historySpy.mockClear();
+    renderDiagnosticsView({ tab: 'memory', onTabChange: vi.fn() });
 
-    expect(appsSpy.mock.calls.at(-1)).toEqual([true, { hours: 24 }]);
+    expect(historySpy.mock.calls.at(-1)).toEqual([false, '']);
   });
 });

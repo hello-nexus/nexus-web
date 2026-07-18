@@ -242,26 +242,6 @@ export interface DiagnosticsTemperaturesResponse {
  *  calendar day (YYYY-MM-DD, 5-minute buckets) - never both. */
 export type DiagnosticsTemperatureQuery = { hours: number } | { date: string };
 
-/** appId is a stable coloring/grouping key, distinct from the display-only appName. */
-export interface DiagnosticsTemperatureAppSlice {
-  appName: string;
-  appId: string;
-  ms: number;
-}
-
-/** One tier-width bucket's app usage, apps sorted by ms descending (dominant first). */
-export interface DiagnosticsTemperatureAppBucket {
-  startUtcMs: number;
-  apps: DiagnosticsTemperatureAppSlice[];
-}
-
-export interface DiagnosticsTemperatureAppsResponse {
-  supported: boolean;
-  bucketMinutes: number;
-  // Only buckets with recorded activity; idle buckets are omitted.
-  buckets: DiagnosticsTemperatureAppBucket[];
-}
-
 export interface PnpProblem {
   name: string;
   deviceId: string;
@@ -375,15 +355,6 @@ export function fetchDiagnosticsSystem(opts?: DiagnosticsFetchOptions): Promise<
 export function fetchDiagnosticsTemperatures(query: DiagnosticsTemperatureQuery): Promise<DiagnosticsFetchResult<DiagnosticsTemperaturesResponse>> {
   const qs = 'date' in query ? `date=${query.date}` : `hours=${query.hours}`;
   return withMockFallback(`/diagnostics/temperatures?${qs}`, mock => mock.mockDiagnosticsTemperatures(query));
-}
-
-/** Backs the temperature chart's hover-tooltip app breakdown. Same query
- *  shape and mock-fallback behavior as fetchDiagnosticsTemperatures above;
- *  supported:false (screen-time data unavailable) is a normal response, not
- *  a fetch failure - the caller shows no app breakdown rather than an error. */
-export function fetchDiagnosticsTemperatureApps(query: DiagnosticsTemperatureQuery): Promise<DiagnosticsFetchResult<DiagnosticsTemperatureAppsResponse>> {
-  const qs = 'date' in query ? `date=${query.date}` : `hours=${query.hours}`;
-  return withMockFallback(`/diagnostics/temperatures/apps?${qs}`, mock => mock.mockDiagnosticsTemperatureApps(query));
 }
 
 export function scheduleMemoryTest(): Promise<DiagnosticsFetchResult<ScheduleMemoryTestResponse>> {

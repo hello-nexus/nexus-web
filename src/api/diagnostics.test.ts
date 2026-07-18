@@ -7,7 +7,6 @@ import {
   fetchDiagnosticsGpu,
   fetchDiagnosticsHealth,
   fetchDiagnosticsIncidents,
-  fetchDiagnosticsTemperatureApps,
   fetchDiagnosticsTemperatures,
   openDiagnosticsEventViewer,
   scheduleMemoryTest,
@@ -187,74 +186,6 @@ describe('fetchDiagnosticsTemperatures', () => {
     expect(result.data?.series).toEqual([]);
     expect(result.data?.episodes).toEqual([]);
     expect(result.data?.retentionDays).toBe(90);
-  });
-});
-
-describe('fetchDiagnosticsTemperatureApps', () => {
-  it('requests the given hours window', async () => {
-    const fetchMock = vi.fn(async () => jsonResponse(200, { supported: true, bucketMinutes: 30, buckets: [] }));
-    vi.stubGlobal('fetch', fetchMock);
-
-    await fetchDiagnosticsTemperatureApps({ hours: 72 });
-    const [url] = fetchMock.mock.calls[0] as [string];
-    expect(url).toContain('/diagnostics/temperatures/apps?hours=72');
-    expect(url).not.toContain('date=');
-  });
-
-  it('requests a date query instead of hours', async () => {
-    const fetchMock = vi.fn(async () => jsonResponse(200, { supported: true, bucketMinutes: 30, buckets: [] }));
-    vi.stubGlobal('fetch', fetchMock);
-
-    await fetchDiagnosticsTemperatureApps({ date: '2026-07-05' });
-    const [url] = fetchMock.mock.calls[0] as [string];
-    expect(url).toContain('/diagnostics/temperatures/apps?date=2026-07-05');
-    expect(url).not.toContain('hours=');
-  });
-
-  it('falls back to contract-shaped mock buckets when the route 404s', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(404, {})));
-
-    const result = await fetchDiagnosticsTemperatureApps({ hours: 168 });
-    expect(result.mocked).toBe(true);
-    expect(result.data?.supported).toBe(true);
-    expect(result.data?.bucketMinutes).toBeGreaterThan(0);
-    expect(result.data?.buckets.length).toBeGreaterThan(0);
-    for (const bucket of result.data?.buckets ?? []) {
-      expect(bucket.apps.length).toBeGreaterThan(0);
-      for (let i = 1; i < bucket.apps.length; i++) {
-        expect(bucket.apps[i - 1].ms).toBeGreaterThanOrEqual(bucket.apps[i].ms);
-      }
-    }
-  });
-
-  it('mock buckets stay within a narrow 24h window', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(404, {})));
-
-    const result = await fetchDiagnosticsTemperatureApps({ hours: 24 });
-    const now = new Date('2026-07-08T02:00:00Z').getTime();
-    for (const bucket of result.data?.buckets ?? []) {
-      expect(bucket.startUtcMs).toBeGreaterThanOrEqual(now - 24 * 60 * 60 * 1000);
-      expect(bucket.startUtcMs).toBeLessThan(now);
-    }
-  });
-
-  it('mock date query clamps buckets to that calendar day', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(404, {})));
-
-    const result = await fetchDiagnosticsTemperatureApps({ date: '2026-07-05' });
-    expect(result.mocked).toBe(true);
-    const dayStart = new Date('2026-07-05T00:00:00.000Z').getTime();
-    const dayEnd = dayStart + 24 * 60 * 60 * 1000;
-    expect((result.data?.buckets.length ?? 0)).toBeGreaterThan(0);
-    for (const bucket of result.data?.buckets ?? []) {
-      expect(bucket.startUtcMs).toBeGreaterThanOrEqual(dayStart);
-      expect(bucket.startUtcMs).toBeLessThan(dayEnd);
-    }
-  });
-
-  it('does not fall back to mock data on a 500', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(500, {})));
-    expect(await fetchDiagnosticsTemperatureApps({ hours: 168 })).toEqual({ data: null, mocked: false });
   });
 });
 

@@ -1,0 +1,119 @@
+@use '../../../styles/text' as *;
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.headerStatus {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+// Live/back-to-live control, right-aligned in the header row. Both variants
+// (see .liveControlSlot below) stack in the same grid cell, so this
+// wrapper's own footprint is always the larger of the two - switching
+// between them never resizes the row.
+.liveControl {
+  display: grid;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.liveControlSlot {
+  grid-area: 1 / 1;
+  align-self: center;
+  justify-self: end;
+}
+
+.liveControlHidden {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.backToLive {
+  @include text-caption;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--good);
+  background: color-mix(in srgb, var(--good) 14%, transparent);
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-pill);
+  padding: 0.15rem 0.55rem;
+  cursor: pointer;
+  transition: border-color var(--ease-fast) ease;
+
+  &:hover {
+    border-color: var(--good);
+  }
+}
+
+.skeleton {
+  border-radius: var(--radius);
+  background: var(--surface);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 0.35; }
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.rangeSelect {
+  flex-shrink: 0;
+}
+
+.resetRange {
+  @include text-button;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  color: var(--text-dim);
+  background: var(--surface);
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 0.3rem 0.6rem;
+  cursor: pointer;
+  transition: color var(--ease-fast) ease, border-color var(--ease-fast) ease;
+
+  &:hover {
+    color: var(--text);
+    border-color: var(--accent);
+  }
+}
+
+.brush {
+  flex: 1;
+  min-width: 0;
+}
+
+// Docked on the same row as TimeSeriesChart's own tooltip timestamp (via
+// tooltipHeaderExtra) - the duty band's hovered value, since it has no
+// per-series avg/max tooltip row of its own.
+.tooltipHeaderDuty {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-family: var(--font-mono);
+  font-size: var(--type-mini);
+  color: var(--text-dim);
+}

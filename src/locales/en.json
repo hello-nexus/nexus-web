@@ -984,6 +984,7 @@
   "diagnostics.temperature.emptyDay": "No temperature data recorded for {date}.",
   "diagnostics.temperature.episode": "{name} reached {peak} for {duration} on {date}",
   "diagnostics.temperature.episodesTitle": "Sustained high temperatures",
+  "diagnostics.temperature.fanDuty": "Average fan duty",
   "diagnostics.temperature.max": "Max",
   "diagnostics.temperature.range.14d": "14d",
   "diagnostics.temperature.range.24h": "24h",
