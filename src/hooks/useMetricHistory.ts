@@ -213,9 +213,9 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
 
   // Cancels the pending debounce timer - called by every path that
   // force-ends the drag phase (onBrushChange's own 'end', setRange,
-  // onChartDragSelect, backToLive, retry, the error/unsupported reset
-  // effect below) and on unmount, so a pause-triggered fetch never fires
-  // for a drag the user (or a background failure) has already left.
+  // onChartDragSelect, detach, backToLive, retry, the error/unsupported
+  // reset effect below) and on unmount, so a pause-triggered fetch never
+  // fires for a drag the user (or a background failure) has already left.
   const clearDragFineTimer = useCallback(() => {
     if (dragFineTimerRef.current !== null) {
       window.clearTimeout(dragFineTimerRef.current);

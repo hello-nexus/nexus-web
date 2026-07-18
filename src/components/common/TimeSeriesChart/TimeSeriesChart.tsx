@@ -137,8 +137,8 @@ const DRAG_SELECT_THRESHOLD_PX = 4;
 const CHART_PAD = { left: 56, right: 16, top: 12, bottom: 28 };
 // Mirrors CHART_PAD with the axis-label lane moved to the right edge
 // (yAxisSide='right') - left/right swapped, and right widened past CHART_PAD's
-// own left lane so a 5-digit ribbon value (e.g. "12345 RPM") fits the 11px
-// mono font without clipping into the plot.
+// own left lane so a 5-digit ribbon value (e.g. "12345 RPM") fits the
+// axis-label text without clipping into the plot.
 const CHART_PAD_RIGHT_AXIS = { left: 16, right: 80, top: 12, bottom: 28 };
 
 // Ribbon band thickness (px) when a ChartRibbonSpec omits its own height,
