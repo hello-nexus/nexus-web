@@ -12,9 +12,14 @@ describe('tabChipLoadPercent', () => {
     expect(tabChipLoadPercent('cpu', cpu, [], [])).toBe(42);
   });
 
-  it('reads Memory Usage for the memory tab', () => {
+  it('reads Memory Usage for the memory tab (Mac/Linux providers)', () => {
     const memory = [sensor({ name: 'Memory Usage', type: 'Load', value: 63 })];
     expect(tabChipLoadPercent('memory', [], [], memory)).toBe(63);
+  });
+
+  it('matches any Load-typed memory sensor regardless of name (Windows LHM names its RAM sensor "Memory", not "Memory Usage")', () => {
+    const memory = [sensor({ name: 'Memory', type: 'Load', value: 71 })];
+    expect(tabChipLoadPercent('memory', [], [], memory)).toBe(71);
   });
 
   it('reads the GPU Core Load sensor for the gpu tab', () => {
@@ -40,13 +45,18 @@ describe('formatTabChipValue', () => {
   const memory = [sensor({ name: 'Memory Usage', type: 'Load', value: 63.2 })];
 
   it('rounds and appends a percent sign for cpu/gpu/memory', () => {
-    expect(formatTabChipValue('cpu', cpu, gpu, memory, 0, 'system')).toBe('43%');
-    expect(formatTabChipValue('gpu', cpu, gpu, memory, 0, 'system')).toBe('30%');
-    expect(formatTabChipValue('memory', cpu, gpu, memory, 0, 'system')).toBe('63%');
+    expect(formatTabChipValue('cpu', cpu, gpu, memory, 0, 0, 'system')).toBe('43%');
+    expect(formatTabChipValue('gpu', cpu, gpu, memory, 0, 0, 'system')).toBe('30%');
+    expect(formatTabChipValue('memory', cpu, gpu, memory, 0, 0, 'system')).toBe('63%');
   });
 
   it('formats network as a rate, independent of the load sensors', () => {
-    expect(formatTabChipValue('network', cpu, gpu, memory, 500, 'system')).toBe('500 B/s');
-    expect(formatTabChipValue('network', cpu, gpu, memory, 2 * 1024 * 1024, 'system')).toBe('2.0 MB/s');
+    expect(formatTabChipValue('network', cpu, gpu, memory, 500, 0, 'system')).toBe('500 B/s');
+    expect(formatTabChipValue('network', cpu, gpu, memory, 2 * 1024 * 1024, 0, 'system')).toBe('2.0 MB/s');
+  });
+
+  it('formats storage as a rate, independent of the load sensors and the network rate', () => {
+    expect(formatTabChipValue('storage', cpu, gpu, memory, 2 * 1024 * 1024, 500, 'system')).toBe('500 B/s');
+    expect(formatTabChipValue('storage', cpu, gpu, memory, 0, 2 * 1024 * 1024, 'system')).toBe('2.0 MB/s');
   });
 });

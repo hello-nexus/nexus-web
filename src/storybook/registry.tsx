@@ -1558,6 +1558,10 @@ function PreviewBadge() {
           (e.g. the monitoring tab chips) doesn't resize as its digits change. */}
       <StorybookBadge label="9%" minWidth="2.75rem" />
       <StorybookBadge label="100%" minWidth="2.75rem" />
+      {/* compact trims the horizontal padding for a badge sized tightly
+          around its own reserved minWidth - the monitoring tab chips. */}
+      <StorybookBadge label="99%" minWidth="2.5rem" compact />
+      <StorybookBadge label="999.9 MB/s" minWidth="4.75rem" compact />
     </div>
   );
 }

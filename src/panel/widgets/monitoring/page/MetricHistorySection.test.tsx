@@ -64,7 +64,7 @@ function stubGeometry() {
 }
 
 function renderSection(over: {
-  metric?: 'cpu' | 'memory' | 'network' | 'gpu';
+  metric?: 'cpu' | 'memory' | 'storage' | 'network' | 'gpu';
   gpuComponents?: readonly GpuComponent[];
   preferredGpuId?: string;
   history?: Partial<UseMetricHistoryResult>;
@@ -182,6 +182,43 @@ describe('MetricHistorySection', () => {
     const { container } = renderSection({ metric: 'network', history: { series } });
     const paths = container.querySelectorAll('path[stroke="var(--accent)"]');
     expect(paths.length).toBe(2);
+  });
+
+  describe('storage tab (disk read/write, mirroring network)', () => {
+    it('names the disk series Read/Write, sharing the same accent color (two lines, no distinct per-series colors)', () => {
+      stubGeometry();
+      const series: UseMetricHistoryResult['series'] = [
+        { id: 'disk-read', kind: 'disk', name: 'disk-read', points: [{ t: NOW - HOUR, avg: 900_000, max: 1_100_000 }, { t: NOW, avg: 1_000_000, max: 1_200_000 }] },
+        { id: 'disk-write', kind: 'disk', name: 'disk-write', points: [{ t: NOW - HOUR, avg: 80_000, max: 100_000 }, { t: NOW, avg: 100_000, max: 120_000 }] },
+      ];
+      const { container } = renderSection({ metric: 'storage', history: { series } });
+      const paths = container.querySelectorAll('path[stroke="var(--accent)"]');
+      expect(paths.length).toBe(2);
+    });
+
+    it('shows the read/write hover values, formatted as a rate, disambiguating the two curves', () => {
+      stubGeometry();
+      const series: UseMetricHistoryResult['series'] = [
+        { id: 'disk-read', kind: 'disk', name: 'disk-read', points: [{ t: NOW, avg: 2 * 1024 * 1024, max: 2 * 1024 * 1024 }] },
+        { id: 'disk-write', kind: 'disk', name: 'disk-write', points: [{ t: NOW, avg: 500, max: 500 }] },
+      ];
+      const { container } = renderSection({ metric: 'storage', history: { series } });
+      const svg = container.querySelector('svg')!;
+      fireEvent.mouseMove(svg, { clientX: 0 });
+      expect(screen.getByText(/monitoring\.history\.read/)).toHaveTextContent('2.0 MB/s');
+      expect(screen.getByText(/monitoring\.history\.write/)).toHaveTextContent('500 B/s');
+    });
+
+    it('renders no temperature or fan-speed ribbon (disk has neither)', () => {
+      stubGeometry();
+      const series: UseMetricHistoryResult['series'] = [
+        { id: 'disk-read', kind: 'disk', name: 'disk-read', points: [{ t: NOW, avg: 1_000_000, max: 1_000_000 }] },
+        { id: 'disk-write', kind: 'disk', name: 'disk-write', points: [{ t: NOW, avg: 500_000, max: 500_000 }] },
+      ];
+      const { container } = renderSection({ metric: 'storage', history: { series } });
+      expect(container.querySelector('rect[fill="var(--bad)"]')).toBeNull();
+      expect(container.querySelector('rect[fill="var(--accent)"]')).toBeNull();
+    });
   });
 
   it('renders no temperature threshold band, no temp series, and no default avg/max tooltip rows on the main chart (item 30: pure consumption)', () => {
