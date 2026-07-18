@@ -2781,7 +2781,7 @@
   "steam.settings.steamIdHint.afterCopy": ", либо вставьте свой vanity URL в",
   "steam.settings.steamIdHint.before": "Ваш 17-значный ID. Найдите его через",
   "steam.settings.steamIdHint.copyUrl": "Copy page URL",
-  "steam.settings.steamIdHint.middle": "→ profile menu →",
+  "steam.settings.steamIdHint.middle": "→ меню профиля →",
   "steam.settings.steamIdHint.profileLink": "вашу страницу профиля",
   "steam.settings.steamIdLabel": "SteamID64",
   "steam.settings.useDetected": "Использовать найденный",

@@ -194,7 +194,7 @@ const ACCENT_NAMES: Record<string, string> = {
 // English endonyms keyed by code, so "spanish" finds Español.
 const LANG_EN: Record<string, string> = {
   en: 'English', 'zh-TW': 'Chinese Traditional', 'zh-CN': 'Chinese Simplified', ja: 'Japanese', ko: 'Korean',
-  de: 'German', fr: 'French', es: 'Spanish', it: 'Italian', pt: 'Portuguese', 'pt-BR': 'Portuguese Brazil',
+  de: 'German', nl: 'Dutch', fr: 'French', es: 'Spanish', it: 'Italian', pt: 'Portuguese', 'pt-BR': 'Portuguese Brazil',
   ru: 'Russian', tr: 'Turkish', pl: 'Polish', fur: 'Friulian',
 };
 

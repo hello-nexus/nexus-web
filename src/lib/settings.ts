@@ -8,7 +8,7 @@ import {
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-export const LANGUAGES = ['en', 'zh-TW', 'zh-CN', 'ja', 'ko', 'de', 'fr', 'es', 'it', 'pt', 'pt-BR', 'ru', 'tr', 'pl', 'fur'] as const;
+export const LANGUAGES = ['en', 'zh-TW', 'zh-CN', 'ja', 'ko', 'de', 'nl', 'fr', 'es', 'it', 'pt', 'pt-BR', 'ru', 'tr', 'pl', 'fur'] as const;
 export type Language = (typeof LANGUAGES)[number];
 
 export const LANGUAGE_LABELS: Record<Language, string> = {
@@ -18,6 +18,7 @@ export const LANGUAGE_LABELS: Record<Language, string> = {
   ja: '日本語',
   ko: '한국어',
   de: 'Deutsch',
+  nl: 'Nederlands',
   fr: 'Français',
   es: 'Español',
   it: 'Italiano',
@@ -36,6 +37,7 @@ export const LANGUAGE_FLAGS: Record<Language, string> = {
   ja: '\u{1F1EF}\u{1F1F5}',
   ko: '\u{1F1F0}\u{1F1F7}',
   de: '\u{1F1E9}\u{1F1EA}',
+  nl: '\u{1F1F3}\u{1F1F1}',
   fr: '\u{1F1EB}\u{1F1F7}',
   es: '\u{1F1EA}\u{1F1F8}',
   it: '\u{1F1EE}\u{1F1F9}',
