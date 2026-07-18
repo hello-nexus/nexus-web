@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Gamepad2, Music, Pause } from 'lucide-react';
+import { Gamepad2, Music, Pause, Play } from 'lucide-react';
 import {
   startAnimate, startScreenMirror, stopLighting, startGameSync,
   fetchLightingDevices, fetchAnimateSettings, saveAnimateTemplates,
@@ -1127,7 +1127,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                 }
               }}
             >
-              <Pause size={12} strokeWidth={2} />
+              {paused
+                ? <Play size={12} strokeWidth={2} fill="currentColor" />
+                : <Pause size={12} strokeWidth={2} fill="currentColor" />}
             </span>
           </HoverTooltip>
         ) : undefined,
