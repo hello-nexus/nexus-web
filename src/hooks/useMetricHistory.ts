@@ -85,6 +85,11 @@ export interface UseMetricHistoryResult {
   /** A drag-select directly on the hero chart - sets the chart window to the
    *  exact selection and re-derives a strip around it, going 'custom'. */
   onChartDragSelect: (from: number, to: number) => void;
+  /** Stops the live edge from advancing (following goes false) without
+   *  otherwise touching the box/strip - a plain chart click's own detach,
+   *  the same live/scrubbed transition a TimelineBrush drag off the live
+   *  edge already makes via onBrushChange. */
+  detach: () => void;
   /** Re-anchors both the box and the strip to now, keeping their current
    *  widths and rangeKey. */
   backToLive: () => void;
@@ -619,6 +624,16 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
     setViewportGeneration(g => g + 1);
   }, [clearDragFineTimer]);
 
+  // No fetchEpoch/stripEpoch/viewportGeneration bump - the box/strip domain
+  // is untouched (unlike setRange/onChartDragSelect/backToLive), so there is
+  // no new window to fetch or rank around; only `following` changes.
+  const detach = useCallback(() => {
+    lastPhaseRef.current = 'end';
+    setDragging(false);
+    clearDragFineTimer();
+    setViewport(prev => viewportReducer(prev, { type: 'detach' }));
+  }, [clearDragFineTimer]);
+
   const backToLive = useCallback(() => {
     lastPhaseRef.current = 'end';
     setDragging(false);
@@ -662,6 +677,7 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
     setRange,
     onBrushChange,
     onChartDragSelect,
+    detach,
     backToLive,
     retry,
   };

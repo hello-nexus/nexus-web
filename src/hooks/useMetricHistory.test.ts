@@ -591,6 +591,37 @@ describe('useMetricHistory', () => {
     expect(stripTo - stripFrom).toBe(3 * HOUR);
   });
 
+  it('detach sets following to false without touching the box or strip, unlike onChartDragSelect', async () => {
+    const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
+    await advance(0);
+    act(() => { result.current.setRange('3h'); });
+    await advance(0);
+
+    const domainBefore = result.current.domain;
+    const stripBefore = result.current.stripDomain;
+    expect(result.current.following).toBe(true);
+
+    act(() => { result.current.detach(); });
+    await advance(0);
+
+    expect(result.current.following).toBe(false);
+    expect(result.current.domain).toEqual(domainBefore);
+    expect(result.current.stripDomain).toEqual(stripBefore);
+    expect(result.current.rangeKey).toBe('3h');
+  });
+
+  it('detach clears the pending during-drag fine-fetch debounce, matching every other force-end path', async () => {
+    const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
+    await advance(0);
+    fetchMock.mockClear();
+
+    act(() => { result.current.onBrushChange(NOW - 5 * HOUR, NOW - 4 * HOUR, 'drag'); });
+    act(() => { result.current.detach(); });
+
+    await advance(180);
+    expect(fetchMock.mock.calls.some(([q]) => q.maxPoints === 800)).toBe(false);
+  });
+
   it('backToLive re-anchors box and strip to now, keeping their widths and rangeKey', async () => {
     const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
     await advance(0);

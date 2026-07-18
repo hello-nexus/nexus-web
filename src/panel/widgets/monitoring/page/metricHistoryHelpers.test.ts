@@ -341,6 +341,30 @@ describe('viewportReducer', () => {
     expect(next.following).toBe(true);
     expect(next.rangeKey).toBe('custom');
   });
+
+  it('detach stops following without touching the box or strip (a plain chart click, unlike chartDragSelect)', () => {
+    const following: ViewportState = {
+      from: now - 20 * MINUTE, to: now,
+      stripFrom: now - 3 * HOUR, stripTo: now,
+      rangeKey: '3h', lastPresetKey: '3h', following: true,
+    };
+    const next = viewportReducer(following, { type: 'detach' });
+    expect(next.following).toBe(false);
+    expect(next.from).toBe(following.from);
+    expect(next.to).toBe(following.to);
+    expect(next.stripFrom).toBe(following.stripFrom);
+    expect(next.stripTo).toBe(following.stripTo);
+    expect(next.rangeKey).toBe('3h');
+  });
+
+  it('detach is a no-op (same reference) when already not following', () => {
+    const detached: ViewportState = {
+      from: now - 20 * MINUTE - 5 * HOUR, to: now - 5 * HOUR,
+      stripFrom: now - 3 * HOUR - 5 * HOUR, stripTo: now - 5 * HOUR,
+      rangeKey: 'custom', lastPresetKey: '3h', following: false,
+    };
+    expect(viewportReducer(detached, { type: 'detach' })).toBe(detached);
+  });
 });
 
 describe('xTickFormatForWindow', () => {

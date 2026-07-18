@@ -158,11 +158,18 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
   const [clickedFrameMs, setClickedFrameMs] = useState<number | null>(null);
   const { selectedFrameMs, isPinned: isSnapshotPinned } = resolveSelectedFrame(clickedFrameMs, history.domain);
   const clearSnapshot = useCallback(() => setClickedFrameMs(null), []);
-  const { backToLive } = history;
+  const { backToLive, detach } = history;
   const backToLiveAndClearSnapshot = useCallback(() => {
     setClickedFrameMs(null);
     backToLive();
   }, [backToLive]);
+  // A graph click both pins the clicked frame AND stops the live edge from
+  // advancing, the same detach a TimelineBrush drag off live already makes -
+  // so the chart stays put at the clicked instant instead of ticking past it.
+  const onGraphClick = useCallback((t: number) => {
+    setClickedFrameMs(t);
+    detach();
+  }, [detach]);
 
   // Same granularity the hero chart's own x-axis uses (see MetricHistorySection),
   // so the detached chip's timestamp reads at the same precision as the axis
@@ -356,7 +363,7 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
               history={history}
               appsWindow={appsWindow}
               selectedFrameMs={selectedFrameMs}
-              onGraphClick={setClickedFrameMs}
+              onGraphClick={onGraphClick}
             />
             <div className={styles.listScroll}>
               <ProcessListSection

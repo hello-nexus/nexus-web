@@ -117,7 +117,8 @@ export type ViewportAction =
   | { type: 'chartDragSelect'; from: number; to: number; now: number; retentionMs: number }
   | { type: 'tick'; now: number }
   | { type: 'retentionClamp'; retentionMs: number; now: number }
-  | { type: 'backToLive'; now: number };
+  | { type: 'backToLive'; now: number }
+  | { type: 'detach' };
 
 export function initViewport(now: number): ViewportState {
   const stripWidth = windowMsForRangeKey(DEFAULT_RANGE_KEY) ?? 30 * MINUTE_MS;
@@ -251,6 +252,12 @@ export function viewportReducer(state: ViewportState, action: ViewportAction): V
         following: true,
       };
     }
+    // Stops the live edge from advancing without otherwise touching the
+    // viewport - a plain chart click's own detach (unlike chartDragSelect,
+    // which also redefines the box/strip to the clicked selection). A no-op
+    // when already detached.
+    case 'detach':
+      return state.following ? { ...state, following: false } : state;
     default:
       return state;
   }

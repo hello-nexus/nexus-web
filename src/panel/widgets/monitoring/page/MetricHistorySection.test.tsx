@@ -44,6 +44,7 @@ function baseHistory(over: Partial<UseMetricHistoryResult> = {}): UseMetricHisto
     setRange: vi.fn(),
     onBrushChange: vi.fn(),
     onChartDragSelect: vi.fn(),
+    detach: vi.fn(),
     backToLive: vi.fn(),
     retry: vi.fn(),
     ...over,

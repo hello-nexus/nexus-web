@@ -12,6 +12,14 @@ import { xTickFormatForWindow } from './page/metricHistoryHelpers';
 // this is the exact string MonitoringPage's own detached chip renders.
 const DETACHED_LABEL = xTickFormatForWindow(1)(1);
 
+const HOUR_MS = 3_600_000;
+// Used only by the graph-click detach test below, which overrides
+// historyOverride.domain to this wider window so the clicked frame's own
+// formatted label visibly differs from the default domain[1] (live-edge) one.
+const CLICK_DOMAIN: [number, number] = [0, HOUR_MS];
+const GRAPH_CLICK_MS = HOUR_MS / 3;
+const GRAPH_CLICK_LABEL = xTickFormatForWindow(HOUR_MS)(GRAPH_CLICK_MS);
+
 // MetricHistorySection and ProcessListSection are the persistent hero + list
 // mounted once above the switched tab content - stub both with a
 // mount/unmount + prop tracer so tests can assert they stay mounted across a
@@ -21,12 +29,17 @@ const DETACHED_LABEL = xTickFormatForWindow(1)(1);
 let metricHistoryMounts = 0;
 let metricHistoryUnmounts = 0;
 vi.mock('./page/MetricHistorySection', () => ({
-  MetricHistorySection: ({ metric }: { metric: string }) => {
+  MetricHistorySection: ({ metric, onGraphClick }: { metric: string; onGraphClick: (t: number) => void }) => {
     useEffect(() => {
       metricHistoryMounts++;
       return () => { metricHistoryUnmounts++; };
     }, []);
-    return <div data-testid="metric-history-section">metric:{metric}</div>;
+    return (
+      <div data-testid="metric-history-section">
+        metric:{metric}
+        <button type="button" onClick={() => onGraphClick(GRAPH_CLICK_MS)}>simulate-graph-click</button>
+      </div>
+    );
   },
 }));
 
@@ -61,7 +74,10 @@ vi.mock('./page/ProcessListSection', async importOriginal => {
   };
 });
 
-let historyOverride: Partial<{ following: boolean; mocked: boolean; backToLive: () => void; series: MetricHistorySeries[] }> = {};
+let historyOverride: Partial<{
+  following: boolean; mocked: boolean; backToLive: () => void; detach: () => void;
+  series: MetricHistorySeries[]; domain: [number, number];
+}> = {};
 vi.mock('../../../hooks/useMetricHistory', () => ({
   useMetricHistory: () => ({
     silhouette: [], series: [],
@@ -69,7 +85,7 @@ vi.mock('../../../hooks/useMetricHistory', () => ({
     rangeKey: '30m', lastPresetKey: '30m', following: true,
     loading: false, error: false, mocked: false, supported: true, retentionDays: 7,
     stepSeconds: 1, viewportGeneration: 1,
-    setRange: () => {}, onBrushChange: () => {}, onChartDragSelect: () => {}, backToLive: () => {}, retry: () => {},
+    setRange: () => {}, onBrushChange: () => {}, onChartDragSelect: () => {}, detach: () => {}, backToLive: () => {}, retry: () => {},
     ...historyOverride,
   }),
 }));
@@ -375,6 +391,20 @@ describe('MonitoringPage', () => {
       expect(button.querySelector('svg')).not.toBeNull();
       fireEvent.click(button);
       expect(backToLive).toHaveBeenCalled();
+    });
+
+    it('a graph click detaches (calls history.detach()) and pins the clicked frame - the chip then shows its time', () => {
+      const detach = vi.fn();
+      // following: false stands in for what a real detach() would flip to -
+      // the mocked hook doesn't itself react to the detach() call below.
+      historyOverride = { following: false, detach, domain: CLICK_DOMAIN };
+      render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+
+      fireEvent.click(screen.getByText('simulate-graph-click'));
+
+      expect(detach).toHaveBeenCalledTimes(1);
+      const chipButton = screen.getByText(GRAPH_CLICK_LABEL).closest('button')!;
+      expect(chipButton).toHaveAttribute('aria-hidden', 'false');
     });
 
     it('keeps both variants mounted with only the inactive one hidden (fixed footprint - no layout shift toggling)', () => {
