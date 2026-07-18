@@ -42,7 +42,10 @@ export interface CardProps {
   // detail sidebar) rather than flowing in a page's own scroll.
   fillHeight?: boolean;
   // ARIA role/name for the root - e.g. 'region' + a label for a card that is
-  // itself a landmark, distinct from `interactive`'s role='button'.
+  // itself a landmark, distinct from `interactive`'s role='button'. A
+  // caller combining this with `onClick`/`interactive` loses this `role`
+  // (the button role wins) - the two are for different, non-overlapping
+  // uses, not meant to be passed together.
   role?: string;
   ariaLabel?: string;
 }
