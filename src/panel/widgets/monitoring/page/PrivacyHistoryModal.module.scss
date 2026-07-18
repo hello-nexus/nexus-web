@@ -1,0 +1,99 @@
+@use '../../../../styles/scrollbar' as *;
+
+.content {
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.searchRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--separator);
+}
+
+.search {
+  flex: 1;
+}
+
+.rowsWrap {
+  flex: 1;
+  overflow-y: auto;
+  padding-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  @include scrollbar-visible($gutter: false);
+}
+
+.empty {
+  padding: 3rem 1rem;
+  text-align: center;
+  color: var(--text-dim);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.retentionNote {
+  font-size: var(--type-mini);
+  color: var(--text-dim);
+  margin: 0 0 0.35rem;
+}
+
+// A plain informational row - no click handler, so no hover affordance (that
+// would wrongly suggest the row is actionable).
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem;
+  border-radius: var(--radius-sm);
+}
+
+.rowMain {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex: 1;
+  min-width: 0;
+}
+
+.appName {
+  font-size: var(--type-small);
+  color: var(--text);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.capability {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: var(--type-mini);
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.rowTime {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-shrink: 0;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}
+
+.duration {
+  font-family: var(--font-mono);
+  font-size: var(--type-mini);
+  min-width: 44px;
+  text-align: right;
+}

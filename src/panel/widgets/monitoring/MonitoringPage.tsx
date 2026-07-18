@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Cpu, Gpu, MemoryStick, HardDrive, Network, List } from 'lucide-react';
+import { Cpu, Gpu, MemoryStick, HardDrive, Network, History, List } from 'lucide-react';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useNetworkMonitor, useAllNetworkSeries } from '../../../hooks/useNetworkMonitor';
 import { useAllProcesses, useGpuProcessFeed, useGpuProcessData } from '../../../hooks/useProcessMonitor';
@@ -16,6 +16,7 @@ import { localizeNumbers } from '../../../lib/units';
 import { fetchFanChannels, type FanRole } from '../../../api/cooling';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { Badge } from '../../../components/common/Badge/Badge';
+import { Button } from '../../../components/common/Button/Button';
 import { LiveFollowControl } from '../../../components/common/LiveFollowControl/LiveFollowControl';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { MonitoringSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
@@ -24,6 +25,7 @@ import { MetricHistorySection } from './page/MetricHistorySection';
 import { ProcessListSection, type ProcessListItem } from './page/ProcessListSection';
 import { ProcessDetailPanel } from './page/ProcessDetailPanel';
 import { MonitoringSettingsModal } from './page/MonitoringSettingsModal';
+import { PrivacyHistoryModal } from './page/PrivacyHistoryModal';
 import { seriesQueryFor, appsSeriesParamFor, currentDiskRateBytesPerSec, deriveMemoryTotalMb, resolveSelectedFrame, formatSelectedFrameTime, type FanRoleMap, type HistoryMetric } from './page/metricHistoryHelpers';
 import { appsToProcessListItems, currentAppValueMap, reconcileLiveWithWindow, zeroedGpuFallback } from './page/appWindowHelpers';
 import { buildLiveUsageByName } from './page/processDetailHelpers';
@@ -82,6 +84,7 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
   // independent poll would double the request cadence for no benefit.
   const privacy = useMonitoringPrivacy(serviceOnline);
   const showPrivacy = privacy.supported && !privacy.error;
+  const [privacyHistoryOpen, setPrivacyHistoryOpen] = useState(false);
 
   // The selected process persists across a metric-tab switch (only the
   // sidebar's own content and the graph's overlay line reflect the newly
@@ -381,11 +384,20 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
         onClose={() => setSettingsOpen(false)}
         gpus={sensors.gpuComponents}
       />
+      <PrivacyHistoryModal
+        open={privacyHistoryOpen}
+        onClose={() => setPrivacyHistoryOpen(false)}
+      />
       <ViewHeader
         title={t('nav.monitoring')}
         tabs={tabs}
         activeTab={tab}
         onTabChange={onTabChange}
+        tabActions={showPrivacy ? (
+          <Button size="sm" tone="neutral" icon={<History size={14} aria-hidden />} onClick={() => setPrivacyHistoryOpen(true)}>
+            {t('monitoring.privacy.history.title')}
+          </Button>
+        ) : undefined}
       />
       <div className={`${styles.tabContent} pageBodyFill`}>
         {tab === 'detailed' ? (
