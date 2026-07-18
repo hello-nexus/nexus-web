@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
-import { ArrowUpRight, Calculator, Search, Zap } from 'lucide-react';
+import { ArrowUpRight, Calculator, Search, Sparkles, Zap } from 'lucide-react';
 import classNames from 'classnames';
 import { useTranslation } from '../lib/i18n';
 import { useUiSettings } from '../hooks/useUiSettings';
@@ -16,9 +16,11 @@ import { buildParamEntries } from './paramActions';
 import { scoreEntry } from './match';
 import { frecencyBoost, recordUse, snapshotFrecency, type FrecencyMap } from './frecency';
 import { tryCalc } from './calc';
+import { useAssistantQuery } from './useAssistantQuery';
 import { emitRadialBloomFromElement } from '../lib/backgroundEffects';
 import { HelloGreeting } from './HelloGreeting';
 import { dismissHelloGreeting, useHelloGreetingPending } from './helloGreetingStore';
+import { Spinner } from '../components/common/Spinner/Spinner';
 import styles from './TopSearch.module.scss';
 
 const MAX_RESULTS = 40;
@@ -26,6 +28,10 @@ const MAX_RESULTS = 40;
 const CLOSE_DELAY = 280;
 const MAX_SUGGESTIONS = 8;
 const MAX_RECENTS = 5;
+// Below this length a query reads as noise rather than a real question -
+// matches the floor buildParamEntries uses for its own trigger words.
+const MIN_ASK_QUERY_LENGTH = 3;
+const ASK_ENTRY_ID = 'ai:ask';
 
 /**
  * The top-bar search pill. Resting, it shows the page name and opens on click
@@ -41,6 +47,7 @@ export function TopSearch({ pageTitle, online, platform }: { pageTitle: string; 
   const { profiles, activeId, switchProfile } = useProfiles(isOpen);
   const panel = usePanelToggles(isOpen);
   const live = useSearchLiveState(isOpen && online);
+  const assistantQuery = useAssistantQuery(isOpen && online);
 
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
@@ -136,7 +143,8 @@ export function TopSearch({ pageTitle, online, platform }: { pageTitle: string; 
     }
     // Query-synthesized entries: the calculator result and value-setting
     // actions ("brightness 60") lead the list when the query parses as one.
-    const synthesized: SearchEntry[] = [...buildParamEntries(query, ctx)];
+    const paramEntries = buildParamEntries(query, ctx);
+    const synthesized: SearchEntry[] = [...paramEntries];
     if (calc) {
       synthesized.unshift({
         id: 'compute', title: calc.value, subtitle: `${calc.expr} =`, kind: 'action',
@@ -144,11 +152,31 @@ export function TopSearch({ pageTitle, online, platform }: { pageTitle: string; 
         run: () => { try { void navigator.clipboard?.writeText(calc.value); } catch { /* clipboard blocked */ } },
       });
     }
+    // The AI entry only offers itself when the query isn't already a more
+    // confident synthesized interpretation (a calculation or a value-setting
+    // command) - those two win over asking the assistant the same text.
+    if (assistantQuery.usable && q.length >= MIN_ASK_QUERY_LENGTH && !calc && paramEntries.length === 0) {
+      synthesized.unshift({
+        id: ASK_ENTRY_ID, kind: 'action',
+        title: t('search.ai.ask.title'), subtitle: t('search.ai.ask.subtitle', { query: q }),
+        icon: <Sparkles size={18} />,
+        // Submitting is handled by runEntry special-casing ASK_ENTRY_ID - it
+        // keeps the palette open and streams the answer, unlike a plain run().
+        run: () => {},
+      });
+    }
     return synthesized.length > 0 ? [...synthesized, ...list] : list;
-  }, [query, entries, snap, calc, t, ctx]);
+  }, [query, entries, snap, calc, t, ctx, assistantQuery.usable]);
 
-  useEffect(() => { setActive((i) => (i >= results.length ? 0 : i)); }, [results.length]);
-  useEffect(() => { setActive(0); }, [query]);
+  // Row Enter acts on with nothing manually chosen yet. A synthesized ASK
+  // entry (when present) always sits at index 0, but any real match takes
+  // the default so Enter keeps navigating/acting exactly as it did before
+  // the assistant entry existed; ASK becomes the default only when it is the
+  // sole result, so Enter then asks it.
+  const defaultActive = results.length > 1 && results[0]?.id === ASK_ENTRY_ID ? 1 : 0;
+
+  useEffect(() => { setActive((i) => (i >= results.length ? defaultActive : i)); }, [results.length, defaultActive]);
+  useEffect(() => { setActive(defaultActive); }, [query, defaultActive]);
   useEffect(() => {
     const el = listRef.current?.querySelector<HTMLElement>(`[data-idx="${active}"]`);
     el?.scrollIntoView({ block: 'nearest' });
@@ -169,6 +197,12 @@ export function TopSearch({ pageTitle, online, platform }: { pageTitle: string; 
   // Select a result (row click outside the switch, or Enter). Actions flash the
   // row briefly so the change registers, then close; navigations close at once.
   const runEntry = useCallback((entry: SearchEntry) => {
+    // The ask entry submits a query and streams the answer in place - it must
+    // not flash/close like a normal action.
+    if (entry.id === ASK_ENTRY_ID) {
+      assistantQuery.submit(query.trim());
+      return;
+    }
     recordUse(entry.id);
     if (pillRef.current) emitRadialBloomFromElement(pillRef.current);
     if (entry.kind === 'action') {
@@ -180,7 +214,7 @@ export function TopSearch({ pageTitle, online, platform }: { pageTitle: string; 
       entry.run();
       close();
     }
-  }, [close, applyToggle]);
+  }, [close, applyToggle, assistantQuery, query]);
 
   // Mouse directly on the switch: flip in place, no flash, search stays open.
   const switchToggle = useCallback((entry: SearchEntry) => {
@@ -189,6 +223,14 @@ export function TopSearch({ pageTitle, online, platform }: { pageTitle: string; 
   }, [applyToggle]);
 
   const onKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      close();
+      return;
+    }
+    // The dropdown shows the assistant panel instead of the result list while
+    // a query is loading/answered/errored - list navigation has nothing to act on.
+    if (assistantQuery.state !== 'idle') return;
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       setActive((i) => (results.length ? (i + 1) % results.length : 0));
@@ -199,15 +241,12 @@ export function TopSearch({ pageTitle, online, platform }: { pageTitle: string; 
       e.preventDefault();
       const entry = results[active];
       if (entry) runEntry(entry);
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      close();
     } else if (e.key === 'Home') {
       setActive(0);
     } else if (e.key === 'End') {
       setActive(Math.max(0, results.length - 1));
     }
-  }, [results, active, runEntry, close]);
+  }, [results, active, runEntry, close, assistantQuery.state]);
 
   const isSuggestions = query.trim() === '' && !calc;
   const sectionLabel = isSuggestions
@@ -217,13 +256,18 @@ export function TopSearch({ pageTitle, online, platform }: { pageTitle: string; 
   return (
     <div className={styles.dock} ref={dockRef} data-no-window-drag>
       {isOpen ? (
-        <div className={classNames(styles.pill, styles.pillActive)} ref={pillRef}>
+        <div className={classNames(styles.pill, styles.pillActive, assistantQuery.usable && styles.pillAi)} ref={pillRef}>
           <Search size={15} className={styles.glyph} aria-hidden />
           <input
             ref={inputRef}
             className={styles.input}
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              // Editing the query invalidates whatever was just asked - drop a
+              // shown loading/answer/error state so normal search reappears.
+              assistantQuery.reset();
+            }}
             onKeyDown={onKeyDown}
             placeholder={t('search.placeholder')}
             aria-label={t('search.placeholder')}
@@ -239,7 +283,7 @@ export function TopSearch({ pageTitle, online, platform }: { pageTitle: string; 
       ) : (
         <button
           type="button"
-          className={classNames(styles.pill, styles.pillButton)}
+          className={classNames(styles.pill, styles.pillButton, assistantQuery.usable && styles.pillAi)}
           onClick={open}
           aria-label={t('search.placeholder')}
           aria-keyshortcuts="/ Meta+K Control+K"
@@ -259,70 +303,96 @@ export function TopSearch({ pageTitle, online, platform }: { pageTitle: string; 
 
       {isOpen && (
         <div className={styles.dropdown} role="listbox" id="top-search-list" ref={listRef}>
-          {sectionLabel && <div className={styles.sectionLabel}>{sectionLabel}</div>}
-          {results.length === 0 ? (
-            <div className={styles.empty}>{t('search.noresults', { query })}</div>
+          {assistantQuery.state !== 'idle' ? (
+            <div className={styles.assistantPanel}>
+              {assistantQuery.state === 'loading' && (
+                <div className={styles.assistantLoading}>
+                  <Spinner size={16} />
+                  <span>{t('search.ai.thinking')}</span>
+                </div>
+              )}
+              {assistantQuery.state === 'error' && (
+                <p className={styles.assistantError}>{t('search.ai.error')}</p>
+              )}
+              {assistantQuery.state === 'success' && assistantQuery.result && (
+                <>
+                  <p className={styles.assistantAnswer}>{assistantQuery.result.answer}</p>
+                  {assistantQuery.result.tools.length > 0 && (
+                    <p className={styles.assistantTools}>
+                      {t('search.ai.toolsRun', { tools: assistantQuery.result.tools.join(', ') })}
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
           ) : (
-            results.map((entry, idx) => (
-              <button
-                key={entry.id}
-                type="button"
-                data-idx={idx}
-                role="option"
-                aria-selected={idx === active}
-                className={classNames(styles.row, {
-                  [styles.rowActive]: idx === active,
-                  [styles.rowFlash]: triggered === entry.id,
-                })}
-                onMouseMove={() => setActive(idx)}
-                onClick={(e) => {
-                  // Clicking the switch itself flips it and keeps search open (no
-                  // flash); anywhere else on the row selects (flash + close).
-                  if (entry.toggle !== undefined && (e.target as HTMLElement).closest('[data-switch]')) {
-                    switchToggle(entry);
-                  } else {
-                    runEntry(entry);
-                  }
-                }}
-              >
-                <span className={styles.rowIcon}>{entry.icon}</span>
-                <span className={styles.rowText}>
-                  <span className={styles.rowTitle}>{entry.title}</span>
-                  {entry.subtitle && <span className={styles.rowSubtitle}>{entry.subtitle}</span>}
-                </span>
-                {entry.toggle !== undefined ? (
-                  // The on/off control itself: a switch in the current state.
-                  // Clicking it flips in place (search stays open).
-                  <span
-                    data-switch
-                    role="switch"
-                    aria-checked={toggleState(entry)}
-                    className={classNames(styles.switch, { [styles.switchOn]: toggleState(entry) })}
+            <>
+              {sectionLabel && <div className={styles.sectionLabel}>{sectionLabel}</div>}
+              {results.length === 0 ? (
+                <div className={styles.empty}>{t('search.noresults', { query })}</div>
+              ) : (
+                results.map((entry, idx) => (
+                  <button
+                    key={entry.id}
+                    type="button"
+                    data-idx={idx}
+                    role="option"
+                    aria-selected={idx === active}
+                    className={classNames(styles.row, {
+                      [styles.rowActive]: idx === active,
+                      [styles.rowFlash]: triggered === entry.id,
+                    })}
+                    onMouseMove={() => setActive(idx)}
+                    onClick={(e) => {
+                      // Clicking the switch itself flips it and keeps search open (no
+                      // flash); anywhere else on the row selects (flash + close).
+                      if (entry.toggle !== undefined && (e.target as HTMLElement).closest('[data-switch]')) {
+                        switchToggle(entry);
+                      } else {
+                        runEntry(entry);
+                      }
+                    }}
                   >
-                    <span className={styles.switchKnob} />
-                  </span>
-                ) : (
-                  <>
-                    {entry.hint && <span className={styles.rowHint}>{entry.hint}</span>}
-                    {/* Action vs navigation cue: ⚡ applies now, ↗ opens a page.
-                        The focused row spells it out with a verb. */}
-                    <span className={classNames(styles.rowKind, {
-                      [styles.rowKindAction]: entry.kind === 'action',
-                      [styles.rowKindShown]: idx === active,
-                    })}>
-                      {idx === active && (
-                        <span className={styles.rowVerb}>
-                          {entry.kind === 'action' ? t('search.kind.apply') : t('search.kind.open')}
-                        </span>
-                      )}
-                      {entry.kind === 'action'
-                        ? <Zap size={14} aria-hidden />
-                        : <ArrowUpRight size={14} aria-hidden />}
+                    <span className={styles.rowIcon}>{entry.icon}</span>
+                    <span className={styles.rowText}>
+                      <span className={styles.rowTitle}>{entry.title}</span>
+                      {entry.subtitle && <span className={styles.rowSubtitle}>{entry.subtitle}</span>}
                     </span>
-                  </>
-                )}
-              </button>
-            ))
+                    {entry.toggle !== undefined ? (
+                      // The on/off control itself: a switch in the current state.
+                      // Clicking it flips in place (search stays open).
+                      <span
+                        data-switch
+                        role="switch"
+                        aria-checked={toggleState(entry)}
+                        className={classNames(styles.switch, { [styles.switchOn]: toggleState(entry) })}
+                      >
+                        <span className={styles.switchKnob} />
+                      </span>
+                    ) : (
+                      <>
+                        {entry.hint && <span className={styles.rowHint}>{entry.hint}</span>}
+                        {/* Action vs navigation cue: ⚡ applies now, ↗ opens a page.
+                            The focused row spells it out with a verb. */}
+                        <span className={classNames(styles.rowKind, {
+                          [styles.rowKindAction]: entry.kind === 'action',
+                          [styles.rowKindShown]: idx === active,
+                        })}>
+                          {idx === active && (
+                            <span className={styles.rowVerb}>
+                              {entry.kind === 'action' ? t('search.kind.apply') : t('search.kind.open')}
+                            </span>
+                          )}
+                          {entry.kind === 'action'
+                            ? <Zap size={14} aria-hidden />
+                            : <ArrowUpRight size={14} aria-hidden />}
+                        </span>
+                      </>
+                    )}
+                  </button>
+                ))
+              )}
+            </>
           )}
         </div>
       )}

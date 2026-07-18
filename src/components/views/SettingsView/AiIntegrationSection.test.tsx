@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AiIntegrationSection } from './AiIntegrationSection';
 import {
   fetchAiStatus, postAiConfig, rotateAiToken, type AiStatusResponse,
-  fetchAssistantStatus, installRuntime, removeRuntime, pullModel, removeModel, selectModel, runAssistantQuery,
+  fetchAssistantStatus, installRuntime, removeRuntime, pullModel, removeModel, selectModel,
   type AiAssistantStatus, type AiAssistantProgressFrame, type AssistantCatalogModel,
 } from '../../../api/aiIntegration';
 
@@ -27,7 +27,6 @@ vi.mock('../../../api/aiIntegration', () => ({
   pullModel: vi.fn(),
   removeModel: vi.fn(),
   selectModel: vi.fn(),
-  runAssistantQuery: vi.fn(),
 }));
 
 // Holds the live `aiAssistant` WS frame a test wants useTopic to return.
@@ -559,102 +558,5 @@ describe('AiIntegrationSection - assistant', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'settings.ai.assistant.model.removeConfirmButton' }));
     await waitFor(() => expect(removeModel).toHaveBeenCalledWith(QWEN_08B.id));
-  });
-
-  it('hides the query bar until a model is ready and active, then shows it once a pull settles', async () => {
-    vi.mocked(fetchAiStatus).mockResolvedValue(makeStatus({ enabled: true }));
-    vi.mocked(fetchAssistantStatus)
-      .mockResolvedValueOnce(makeAssistantStatus({ runtimeState: 'running', catalog: [QWEN_4B] }))
-      .mockResolvedValueOnce(makeAssistantStatus({
-        runtimeState: 'running',
-        catalog: [QWEN_4B],
-        installedModels: [{ id: QWEN_4B.id, sizeBytes: QWEN_4B.downloadBytes }],
-        activeModel: QWEN_4B.id,
-      }));
-    const { rerender } = render(<AiIntegrationSection serviceOnline />);
-
-    await waitFor(() => expect(screen.getByText('Qwen3.5 4B')).toBeInTheDocument());
-    expect(screen.queryByPlaceholderText('settings.ai.assistant.query.placeholder')).not.toBeInTheDocument();
-
-    // A pull frame that settles from in-flight to "success" triggers the
-    // section's terminal-refetch (mirrors useBenchmark's push-then-refetch
-    // idiom), which is what actually picks up the newly active model.
-    assistantWs.frame = {
-      runtimeState: 'running', downloadProgress: null,
-      pull: { model: QWEN_4B.id, status: 'downloading', received: 1, total: 2 },
-    };
-    rerender(<AiIntegrationSection serviceOnline />);
-    assistantWs.frame = {
-      runtimeState: 'running', downloadProgress: null,
-      pull: { model: QWEN_4B.id, status: 'success', received: 2, total: 2 },
-    };
-    rerender(<AiIntegrationSection serviceOnline />);
-
-    expect(await screen.findByPlaceholderText('settings.ai.assistant.query.placeholder')).toBeInTheDocument();
-  });
-
-  it('submits a query and renders the answer with a ran: tools line', async () => {
-    vi.mocked(fetchAiStatus).mockResolvedValue(makeStatus({ enabled: true }));
-    vi.mocked(fetchAssistantStatus).mockResolvedValue(makeAssistantStatus({
-      runtimeState: 'running',
-      catalog: [QWEN_4B],
-      installedModels: [{ id: QWEN_4B.id, sizeBytes: QWEN_4B.downloadBytes }],
-      activeModel: QWEN_4B.id,
-    }));
-    vi.mocked(runAssistantQuery).mockResolvedValue({
-      answer: 'Brightness set to 50%.',
-      toolsRun: [{ name: 'set_brightness', ok: true }],
-    });
-    render(<AiIntegrationSection serviceOnline />);
-
-    const input = await screen.findByPlaceholderText('settings.ai.assistant.query.placeholder');
-    fireEvent.input(input, { target: { value: 'set brightness to 50%' } });
-    fireEvent.keyDown(input, { key: 'Enter' });
-
-    await waitFor(() => expect(runAssistantQuery).toHaveBeenCalledWith('set brightness to 50%'));
-    expect(await screen.findByText('Brightness set to 50%.')).toBeInTheDocument();
-    expect(screen.getByText(/settings\.ai\.assistant\.query\.toolsRun/)).toHaveTextContent('set_brightness');
-    // A successful submit is the only path that clears the prompt.
-    expect(input).toHaveValue('');
-  });
-
-  it('shows an error message when the query fails, and keeps the typed prompt so the user does not have to retype it', async () => {
-    vi.mocked(fetchAiStatus).mockResolvedValue(makeStatus({ enabled: true }));
-    vi.mocked(fetchAssistantStatus).mockResolvedValue(makeAssistantStatus({
-      runtimeState: 'running',
-      catalog: [QWEN_4B],
-      installedModels: [{ id: QWEN_4B.id, sizeBytes: QWEN_4B.downloadBytes }],
-      activeModel: QWEN_4B.id,
-    }));
-    vi.mocked(runAssistantQuery).mockResolvedValue(null);
-    render(<AiIntegrationSection serviceOnline />);
-
-    const input = await screen.findByPlaceholderText('settings.ai.assistant.query.placeholder');
-    fireEvent.input(input, { target: { value: 'do something' } });
-    fireEvent.keyDown(input, { key: 'Enter' });
-
-    expect(await screen.findByText('settings.ai.assistant.query.error')).toBeInTheDocument();
-    expect(input).toHaveValue('do something');
-  });
-
-  it('marks the query frame focused on focus and clears it on blur, without touching it before then', async () => {
-    vi.mocked(fetchAiStatus).mockResolvedValue(makeStatus({ enabled: true }));
-    vi.mocked(fetchAssistantStatus).mockResolvedValue(makeAssistantStatus({
-      runtimeState: 'running',
-      catalog: [QWEN_4B],
-      installedModels: [{ id: QWEN_4B.id, sizeBytes: QWEN_4B.downloadBytes }],
-      activeModel: QWEN_4B.id,
-    }));
-    render(<AiIntegrationSection serviceOnline />);
-
-    const input = await screen.findByPlaceholderText('settings.ai.assistant.query.placeholder');
-    const frame = input.parentElement as HTMLElement;
-    expect(frame).not.toHaveAttribute('data-focused');
-
-    fireEvent.focus(input);
-    expect(frame).toHaveAttribute('data-focused', 'true');
-
-    fireEvent.blur(input);
-    expect(frame).not.toHaveAttribute('data-focused');
   });
 });
