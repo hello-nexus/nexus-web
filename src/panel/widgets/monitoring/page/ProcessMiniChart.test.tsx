@@ -13,22 +13,24 @@ describe('ProcessMiniChart', () => {
     expect(container.querySelector('svg')).toBeNull();
   });
 
-  it('renders an accent-colored line for a continuous series', () => {
+  it('renders an accent-colored fill silhouette for a continuous series, with no stroke line', () => {
     const points = [{ t: 0, avg: 10 }, { t: 1000, avg: 20 }, { t: 2000, avg: 15 }];
     const { container } = render(<ProcessMiniChart points={points} />);
     const svg = container.querySelector('svg');
     expect(svg).toBeInTheDocument();
-    const strokePath = container.querySelector('path[stroke="var(--accent)"]');
-    expect(strokePath).toBeInTheDocument();
+    const fillPath = container.querySelector('path[fill="var(--accent)"]');
+    expect(fillPath).toBeInTheDocument();
+    expect(container.querySelector('path[stroke]')).toBeNull();
   });
 
-  it('renders a break (two segments) across a large gap', () => {
+  it('renders a break (two segments) across a large gap, each as a fill silhouette', () => {
     const points = [
       { t: 0, avg: 10 }, { t: 1000, avg: 20 },
       { t: 60_000, avg: 15 }, { t: 61_000, avg: 12 },
     ];
     const { container } = render(<ProcessMiniChart points={points} />);
-    const strokePaths = container.querySelectorAll('path[stroke="var(--accent)"]');
-    expect(strokePaths).toHaveLength(2);
+    const fillPaths = container.querySelectorAll('path[fill="var(--accent)"]');
+    expect(fillPaths).toHaveLength(2);
+    expect(container.querySelectorAll('path[stroke]')).toHaveLength(0);
   });
 });
