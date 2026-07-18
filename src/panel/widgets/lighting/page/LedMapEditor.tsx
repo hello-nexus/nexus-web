@@ -32,6 +32,7 @@ import {
   zoneEnabledCounts, zoneLedCount, zoneTouchesResizable,
   type BaselineEntry, type EditorHistory, type EditorLed, type EditorSnapshot, type StagedPartition,
 } from './zoneUtils';
+import { shouldConsumeEditorEscape } from './ledMapEscape';
 import styles from './LedMapEditor.module.scss';
 
 const isMac = isApplePlatform();
@@ -394,9 +395,9 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     undo: () => void;
     redo: () => void;
   }>({ selectAll: () => { }, deleteSelected: () => { }, nudge: () => { }, undo: () => { }, redo: () => { } });
-  // Tracks the current selection size so the Escape branch can decide
-  // whether to clear-selection-only (stop propagation) vs bubble to
-  // DeviceModal to trigger close. Sync'd in render below.
+  // Tracks the current selection size so the capture-phase Escape handler
+  // (below, near handleClose) can decide whether to clear-selection-only or
+  // let Escape reach DeviceModal. Sync'd in render below.
   const selectedSizeRef = useRef(0);
 
   useEffect(() => {
@@ -420,18 +421,6 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
       if (mod && e.code === 'KeyZ' && !e.shiftKey) { e.preventDefault(); h.undo(); return; }
       if (mod && e.code === 'KeyZ' && e.shiftKey) { e.preventDefault(); h.redo(); return; }
       if (mod) return;
-      if (e.key === 'Escape') {
-        // Escape clears the selection when something is selected; only if
-        // nothing is selected do we bubble to DeviceModal to close. Stop
-        // propagation in the clear case so the modal doesn't also try to
-        // close (which would re-trigger the unsaved-changes confirm).
-        if (selectedSizeRef.current > 0) {
-          e.preventDefault();
-          e.stopPropagation();
-          setSelected(new Set());
-        }
-        return;
-      }
       if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); h.deleteSelected(); return; }
       const step = e.shiftKey ? NUDGE_STEP_UV_COARSE : NUDGE_STEP_UV;
       if (e.key === 'ArrowLeft') { e.preventDefault(); h.nudge(-step, 0); }
@@ -629,6 +618,32 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     if (!isStagedZoneId(selectedZoneIdRef.current)) clearLedEditor(selectedZoneIdRef.current);
     onClose();
   }, [onClose]);
+
+  // DeviceModal's Escape-close is arbitrated by the shared modal stack
+  // (modalStack.ts) through a bubble-phase document listener. A bubble-phase
+  // listener registered here would fire after it, since document bubble
+  // listeners run before window ones - too late to stop the close. A
+  // capture-phase document listener runs before that bubble listener and can
+  // stop propagation in time. Skipped whenever a dialog stacked above the
+  // editor is open (same set handleClose checks above) - Escape belongs to
+  // that surface, which arbitrates it through the same modal stack.
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      const target = e.target as HTMLElement | null;
+      const consume = shouldConsumeEditorEscape({
+        isEditableTarget: !!target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable),
+        dialogAboveEditorOpen: showUnsavedConfirmRef.current || childDialogOpenRef.current || communityModalOpenRef.current,
+        hasSelection: selectedSizeRef.current > 0,
+      });
+      if (!consume) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setSelected(new Set());
+    };
+    document.addEventListener('keydown', handler, true);
+    return () => document.removeEventListener('keydown', handler, true);
+  }, []);
 
   const handleDiscardAndClose = useCallback(() => {
     setShowUnsavedConfirm(false);

@@ -106,6 +106,30 @@ describe('modalStack', () => {
 
     expect(entry.onEscape).not.toHaveBeenCalled();
   });
+
+  it('is suppressed by a capture-phase document listener registered ABOVE it, since capture runs before bubble', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+
+    const entry = makeEntry('a', container);
+    pushModalStackEntry(entry);
+
+    // A bubble-phase listener on window (or document) cannot stop this
+    // arbitration: document's own bubble listener fires first. A
+    // capture-phase document listener fires before ANY bubble listener,
+    // including this one's, and can suppress it - the mechanism LedMapEditor
+    // relies on to clear a selection without closing the enclosing modal.
+    const captureHandler = vi.fn((e: KeyboardEvent) => e.stopPropagation());
+    document.addEventListener('keydown', captureHandler, true);
+    try {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    } finally {
+      document.removeEventListener('keydown', captureHandler, true);
+    }
+
+    expect(captureHandler).toHaveBeenCalledTimes(1);
+    expect(entry.onEscape).not.toHaveBeenCalled();
+  });
 });
 
 describe('getFocusableElements', () => {
