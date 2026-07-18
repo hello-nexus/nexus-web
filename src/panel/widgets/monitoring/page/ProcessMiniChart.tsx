@@ -24,18 +24,7 @@ export function ProcessMiniChart({ points }: { points: readonly AppWindowPoint[]
       aria-hidden="true"
     >
       {segments.map((segment, i) => (
-        <g key={i}>
-          <path d={segment.fillPath} fill="var(--accent)" fillOpacity={0.18} />
-          <path
-            d={segment.linePath}
-            fill="none"
-            stroke="var(--accent)"
-            strokeWidth={1.5}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            vectorEffect="non-scaling-stroke"
-          />
-        </g>
+        <path key={i} d={segment.fillPath} fill="var(--accent)" fillOpacity={0.25} />
       ))}
     </svg>
   );

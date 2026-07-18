@@ -129,6 +129,13 @@ describe('ProcessListSection', () => {
     expect(fillPath).toHaveAttribute('fill', 'var(--accent)');
   });
 
+  it('renders the row sparkline as a fill-only silhouette (no stroke line)', () => {
+    const { container } = render(<ProcessListSection items={[items()[0]]} formatValue={v => `${v}%`} />);
+    const sparkline = container.querySelector('[class*="sparkline"]');
+    expect(sparkline?.querySelector('path[fill]')).not.toBeNull();
+    expect(sparkline?.querySelector('path[stroke]')).toBeNull();
+  });
+
   it('filters rows live by name via the search input', () => {
     render(<ProcessListSection items={items()} formatValue={v => `${v}%`} />);
     fireEvent.change(screen.getByPlaceholderText('monitoring.history.process.searchPlaceholder'), { target: { value: 'chr' } });

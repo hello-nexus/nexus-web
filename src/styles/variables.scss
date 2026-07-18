@@ -199,8 +199,8 @@
   --weight-display: 800;    // hero numerals, pairing codes
   --weight-small: 400;
 
-  // Page width contract. Constrained surfaces (Monitoring Detailed) cap at
-  // this value so dense label/value lists stay readable.
+  // Page width contract. Constrained surfaces (the Tools page) cap at this
+  // value so dense label/value lists stay readable.
   --page-content-max: 720px;
 
   // Universal page body cap. Every page's content below the header (title +

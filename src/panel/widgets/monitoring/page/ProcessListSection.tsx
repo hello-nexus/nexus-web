@@ -208,6 +208,7 @@ const ProcessRow = memo(function ProcessRow({
         width={64}
         height={20}
         sampleCount={SPARKLINE_SAMPLES}
+        fillOnly
       />
       <span className={styles.value}>{formatValue(item.current)}</span>
       {item.secondary && <span className={styles.secondary}>{item.secondary}</span>}

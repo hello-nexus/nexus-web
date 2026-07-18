@@ -337,7 +337,12 @@ function PreviewCardDeleteButton() {
 
 function PreviewSparkline() {
   const values = Array.from({ length: 30 }, (_, i) => 30 + Math.sin(i / 3) * 20 + sampleNoise(i, 1));
-  return <Sparkline values={values} width={140} height={32} />;
+  return (
+    <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+      <Sparkline values={values} width={140} height={32} />
+      <Sparkline values={values} width={140} height={32} fillOnly />
+    </div>
+  );
 }
 
 function PreviewSensorCard() {
@@ -1113,6 +1118,7 @@ function PreviewSectionHeader() {
 function PreviewCollapsibleSection() {
   const [open, setOpen] = useState(true);
   const [openCompact, setOpenCompact] = useState(false);
+  const [openBoxed, setOpenBoxed] = useState(true);
   return (
     <div style={{ width: 280, display: 'flex', flexDirection: 'column', gap: 10 }}>
       <CollapsibleSection
@@ -1131,6 +1137,15 @@ function PreviewCollapsibleSection() {
         right={<span style={{ fontVariantNumeric: 'tabular-nums' }}>12</span>}
       >
         <div style={{ color: 'var(--text-dim)', padding: '4px 8px' }}>Compact (smaller) variant</div>
+      </CollapsibleSection>
+      <CollapsibleSection
+        boxed
+        title="CPU"
+        open={openBoxed}
+        onToggle={() => setOpenBoxed(o => !o)}
+        right={<span style={{ fontVariantNumeric: 'tabular-nums' }}>Intel Core i9</span>}
+      >
+        <div style={{ color: 'var(--text-dim)' }}>Boxed variant (monitoring Detailed)</div>
       </CollapsibleSection>
     </div>
   );
@@ -1998,7 +2013,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'Sparkline', category: 'charts',
     filePath: 'src/components/common/Sparkline/Sparkline.tsx',
-    description: 'Tiny SVG sparkline. Auto-scales or accepts a fixed domain. Flat alpha fill (color, fillOpacity) plus optional separate strokeColor / strokeWidth. Pass sampleCount to lock a window length and left-pad shorter buffers. Used by Monitoring CPU/GPU/Network and panel widgets (SparklineGauge, LineGauge, CoolingWidget).', Preview: PreviewSparkline,
+    description: 'Tiny SVG sparkline. Auto-scales or accepts a fixed domain. Flat alpha fill (color, fillOpacity) plus optional separate strokeColor / strokeWidth. Pass sampleCount to lock a window length and left-pad shorter buffers. fillOnly drops the stroke line for a seek-bar-style silhouette (right example above), bumping the default fillOpacity to match its weight. Used by Monitoring CPU/GPU/Network and panel widgets (SparklineGauge, LineGauge, CoolingWidget); fillOnly is used by the Monitoring process-list row minigraphs.', Preview: PreviewSparkline,
   },
   {
     name: 'TimeSeriesChart', category: 'charts',
@@ -2238,7 +2253,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'CollapsibleSection', category: 'panel-kit',
     filePath: 'src/components/common/CollapsibleSection/CollapsibleSection.tsx',
-    description: 'Canonical collapsible group header: chevron + title on the left, optional values/buttons on the right, a hover background bar, no borders. The one treatment for paired smart lights, monitoring detail, and lighting/cooling device groups. compact is the smaller uppercase variant the lighting/cooling groups use.',
+    description: 'Canonical collapsible group header: chevron + title on the left, optional values/buttons on the right, a hover background bar, no borders. The one treatment for paired smart lights, monitoring detail, and lighting/cooling device groups. compact is the smaller uppercase variant the lighting/cooling groups use. boxed wraps the whole section in the standard surface/border/radius card chrome for a standalone full-width section (monitoring Detailed).',
     Preview: PreviewCollapsibleSection,
   },
   {

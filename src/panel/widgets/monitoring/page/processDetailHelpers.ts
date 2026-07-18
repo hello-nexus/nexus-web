@@ -66,7 +66,7 @@ export function buildLiveUsageByName(
 }
 
 export interface MiniChartSegment {
-  /** Stroke-only line path for this gap-free run of points. */
+  /** Open line path for this gap-free run of points; the basis fillPath closes into an area. */
   linePath: string;
   /** Same run, closed down to the baseline, for the area fill. */
   fillPath: string;
