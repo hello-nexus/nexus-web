@@ -87,9 +87,10 @@ describe('defaultBoxWidthMs', () => {
 describe('seriesQueryFor', () => {
   it('maps each metric to its series csv', () => {
     // cpu/gpu request fan-duty too (average-duty ribbon, under the temp
-    // band) - memory/network have no temp band, so no duty band either.
+    // band); memory requests its own averaged mem-temp series but no
+    // fan-duty (no duty band there) - network has no temp band at all.
     expect(seriesQueryFor('cpu')).toBe('cpu,cpu-temp,fan-duty');
-    expect(seriesQueryFor('memory')).toBe('memory');
+    expect(seriesQueryFor('memory')).toBe('memory,mem-temp');
     expect(seriesQueryFor('network')).toBe('net-in,net-out');
     expect(seriesQueryFor('gpu')).toBe('gpu,gpu-temp,fan-duty');
   });

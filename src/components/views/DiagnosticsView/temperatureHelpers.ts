@@ -1,17 +1,14 @@
-// Pure helpers for the Cooling tab's temperature history chart. Kept
-// side-effect-free (no i18n context, no fetch) so they're covered directly
-// by temperatureHelpers.test.ts instead of through component rendering.
+// Pure helpers shared by the System tab's incident timeline and the Cooling
+// tab's history chart (CoolingHistorySection / coolingHistoryHelpers.ts).
+// Kept side-effect-free (no i18n context, no fetch) so they're covered
+// directly by temperatureHelpers.test.ts instead of through component
+// rendering.
 import { convertTemperature, localizeNumbers, tempUnitSymbol, type NumberFormat, type TempUnit } from '../../../lib/units';
-import type { DiagnosticsTemperatureAppsResponse, DiagnosticsTemperatureEpisode, DiagnosticsTemperatureKind, DiagnosticsTemperatureSeries } from '../../../api/diagnostics';
-import type { TimeSeriesSeries } from '../../../components/common/TimeSeriesChart/TimeSeriesChart';
+import type { DiagnosticsTemperatureEpisode, DiagnosticsTemperatureKind } from '../../../api/diagnostics';
 
 export type TemperatureRangeHours = 24 | 72 | 168 | 336;
 
 export const TEMPERATURE_RANGE_OPTIONS: readonly TemperatureRangeHours[] = [24, 72, 168, 336];
-
-export const DEFAULT_TEMPERATURE_RANGE_HOURS: TemperatureRangeHours = 168;
-
-export const DEFAULT_TEMPERATURE_RETENTION_DAYS = 90;
 
 export function temperatureRangeLabelKey(hours: TemperatureRangeHours): string {
   switch (hours) {
@@ -22,15 +19,10 @@ export function temperatureRangeLabelKey(hours: TemperatureRangeHours): string {
   }
 }
 
-// Fixed order both the legend and the per-kind color ranking sort by, so
-// neither reshuffles when the server returns kinds in a different order or
-// a refetch changes array order.
-const KIND_ORDER: readonly DiagnosticsTemperatureKind[] = ['cpu', 'gpu', 'ram', 'storage'];
-
 // One well-separated hue per hardware kind (validated with the dataviz
 // skill's validate_palette.js against both app chart surfaces: lightness
 // band, chroma floor, adjacent CVD contrast all pass). Kept clear of
-// --good/--warn/--bad's hue range since this chart's own episode band
+// --good/--warn/--bad's hue range since the history chart's own episode band
 // already renders --warn for "sustained high temperature".
 const KIND_BASE_COLOR: Record<DiagnosticsTemperatureKind, string> = {
   cpu: '#3a89e8',
@@ -59,48 +51,15 @@ function mixHex(baseHex: string, target: 'white' | 'black', basePercent: number)
   return `#${channels.map(c => c.toString(16).padStart(2, '0')).join('')}`;
 }
 
-/** `rank` is this id's 0-based position among same-kind series, sorted by
- *  id (see sortTemperatureSeries) - never raw array order, so the same
- *  drive/GPU keeps the same shade across refetches and app restarts. */
+/** `rank` is this id's 0-based position among same-kind series, sorted by id
+ *  (see coolingHistoryHelpers.ts's toCoolingTempChartSeries) - never raw
+ *  array order, so the same drive/GPU keeps the same shade across refetches
+ *  and app restarts. */
 export function temperatureSeriesColor(kind: DiagnosticsTemperatureKind, rank: number): string {
   const base = KIND_BASE_COLOR[kind];
   if (rank <= 0) return base;
   const i = (rank - 1) % SHADE_MIX_TARGETS.length;
   return mixHex(base, SHADE_MIX_TARGETS[i], SHADE_MIX_PERCENTS[i]);
-}
-
-/** Stable display/legend order: kind (KIND_ORDER), then id - independent of
- *  whatever order the server or mock returned the series in. */
-export function sortTemperatureSeries(series: readonly DiagnosticsTemperatureSeries[]): DiagnosticsTemperatureSeries[] {
-  return [...series].sort((a, b) => {
-    const byKind = KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind);
-    return byKind !== 0 ? byKind : a.id.localeCompare(b.id);
-  });
-}
-
-/**
- * Maps the API's temperature series onto TimeSeriesChart's generic shape,
- * sorted and colored by sortTemperatureSeries/temperatureSeriesColor above -
- * a fixed kind-keyed palette instead of lib/monitoringStore's colorFor,
- * whose shared id -> color map assigns by session-wide first-call order and
- * is meant for the many dynamically-named process/app series elsewhere in
- * the app, not a small fixed set of hardware kinds. Values stay in raw
- * Celsius; the chart's own valueFormat converts to the user's preferred
- * unit at render time.
- */
-export function toChartSeries(series: readonly DiagnosticsTemperatureSeries[]): TimeSeriesSeries[] {
-  const sorted = sortTemperatureSeries(series);
-  const kindRank = new Map<DiagnosticsTemperatureKind, number>();
-  return sorted.map(s => {
-    const rank = kindRank.get(s.kind) ?? 0;
-    kindRank.set(s.kind, rank + 1);
-    return {
-      id: s.id,
-      name: s.name,
-      color: temperatureSeriesColor(s.kind, rank),
-      points: s.points.map(p => ({ t: p.t, avg: p.avg, max: p.max })),
-    };
-  });
 }
 
 /** X-axis tick label granularity appropriate to the selected range. */
@@ -110,37 +69,9 @@ export function xTickFormatForRange(hours: TemperatureRangeHours): (t: number) =
   return (t: number) => new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
-/** The [start, end] epoch-ms window the chart x-axis should span for the
- *  selected range, so a range wider than the available data leaves the empty
- *  span blank instead of stretching the data. A date resolves to that
- *  browser-local calendar day; hours is a window ending at nowMs. */
-export function temperatureRangeDomain(hours: TemperatureRangeHours, date: string | null, nowMs: number): [number, number] {
-  if (date !== null) {
-    const [y, m, d] = date.split('-').map(Number);
-    const start = new Date(y, m - 1, d, 0, 0, 0, 0).getTime();
-    return [start, start + 24 * 3_600_000];
-  }
-  return [nowMs - hours * 3_600_000, nowMs];
-}
-
 /** Converts a raw Celsius value to the user's preferred unit and formats it with its symbol. */
 export function formatTemperatureCelsius(celsius: number, tempUnit: TempUnit, numberFormat: NumberFormat): string {
   return localizeNumbers(`${Math.round(convertTemperature(celsius, tempUnit))}${tempUnitSymbol(tempUnit)}`, numberFormat);
-}
-
-export interface EpisodeDurationToken {
-  key: string;
-  params: Record<string, string>;
-}
-
-/** Buckets an episode's startUtc/endUtc span into a diagnostics.duration.* token, mirroring diagnosticsHelpers' durationToken but from ISO timestamps instead of a microsecond counter. */
-export function episodeDurationToken(startUtc: string, endUtc: string): EpisodeDurationToken {
-  const ms = Math.max(0, new Date(endUtc).getTime() - new Date(startUtc).getTime());
-  const totalMinutes = Math.max(1, Math.round(ms / 60_000));
-  if (totalMinutes < 60) return { key: 'diagnostics.duration.minutes', params: { m: String(totalMinutes) } };
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  return { key: 'diagnostics.duration.hoursMinutes', params: { h: String(hours), m: String(minutes) } };
 }
 
 /** A translucent chart band spanning an episode - the chart draws it behind the lines. */
@@ -148,68 +79,12 @@ export function episodeBand(episode: DiagnosticsTemperatureEpisode): { startT: n
   return { startT: new Date(episode.startUtc).getTime(), endT: new Date(episode.endUtc).getTime(), color: 'var(--warn)' };
 }
 
-/** Episodes whose span covers timestamp `t` (inclusive) - the chart bands the
- *  cursor is currently over, surfaced in the hover tooltip as a warning. */
-export function episodesAtTime(episodes: readonly DiagnosticsTemperatureEpisode[], t: number): DiagnosticsTemperatureEpisode[] {
-  return episodes.filter(ep => {
-    const start = new Date(ep.startUtc).getTime();
-    const end = new Date(ep.endUtc).getTime();
-    return t >= start && t <= end;
-  });
-}
-
-export interface AppHoverEntry {
-  appId: string;
-  appName: string;
-  ms: number;
-}
-
-const MAX_HOVER_APPS = 4;
-
-/**
- * Apps active during the tier-width bucket containing hovered timestamp `t`,
- * dominant (highest ms) first, capped to MAX_HOVER_APPS. Re-sorts by ms
- * rather than trusting the server's order, matching sortTemperatureSeries's
- * stance elsewhere in this file. Returns [] when data hasn't arrived, is
- * unsupported, or no bucket covers `t`.
- */
-export function appsForHoverBucket(data: DiagnosticsTemperatureAppsResponse | null, t: number): AppHoverEntry[] {
-  if (!data?.supported) return [];
-  const bucketMs = data.bucketMinutes * 60_000;
-  const bucket = data.buckets.find(b => t >= b.startUtcMs && t < b.startUtcMs + bucketMs);
-  if (!bucket) return [];
-  return [...bucket.apps]
-    .sort((a, b) => b.ms - a.ms)
-    .slice(0, MAX_HOVER_APPS)
-    .map(a => ({ appId: a.appId, appName: a.appName, ms: a.ms }));
-}
-
-/**
- * The full "<name> reached <peak> for <duration> on <date>" callout line for
- * one episode. `translate` is the caller's t() - passed in rather than
- * imported so this stays pure/testable.
- */
-export function episodeSentence(
-  episode: DiagnosticsTemperatureEpisode,
-  tempUnit: TempUnit,
-  numberFormat: NumberFormat,
-  translate: (key: string, params?: Record<string, string>) => string,
-): string {
-  const token = episodeDurationToken(episode.startUtc, episode.endUtc);
-  return translate('diagnostics.temperature.episode', {
-    name: episode.name,
-    peak: formatTemperatureCelsius(episode.peakC, tempUnit, numberFormat),
-    duration: translate(token.key, token.params),
-    date: new Date(episode.endUtc).toLocaleDateString(),
-  });
-}
-
 function pad2(n: number): string {
   return n < 10 ? `0${n}` : `${n}`;
 }
 
-/** Today as an ISO YYYY-MM-DD in the browser's local zone (the day picker's
- *  upper bound and the default selection). */
+/** Today as an ISO YYYY-MM-DD in the browser's local zone (the incident
+ *  timeline's day picker upper bound and default selection). */
 export function todayIso(): string {
   const d = new Date();
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
@@ -223,10 +98,4 @@ export function minSelectableTemperatureDate(today: string, retentionDays: numbe
   const dt = new Date(y, m - 1, d);
   dt.setDate(dt.getDate() - (retentionDays - 1));
   return `${dt.getFullYear()}-${pad2(dt.getMonth() + 1)}-${pad2(dt.getDate())}`;
-}
-
-/** Formats an ISO YYYY-MM-DD day for display (empty-day message, etc.). */
-export function formatTemperatureDayLabel(iso: string): string {
-  const [y, m, d] = iso.split('-').map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 }

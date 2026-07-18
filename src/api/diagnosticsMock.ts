@@ -12,9 +12,6 @@ import type {
   DiagnosticsMemoryResponse,
   DiagnosticsSmartResponse,
   DiagnosticsSystemResponse,
-  DiagnosticsTemperatureAppBucket,
-  DiagnosticsTemperatureAppsResponse,
-  DiagnosticsTemperatureAppSlice,
   DiagnosticsTemperatureEpisode,
   DiagnosticsTemperaturePoint,
   DiagnosticsTemperatureQuery,
@@ -464,54 +461,6 @@ export function mockDiagnosticsTemperatures(query: DiagnosticsTemperatureQuery):
   ];
   const episodes = findSustainedHighEpisodes(windowSeries(gpuFullSeries, hours), 'gpu:0', 'NVIDIA GeForce RTX 3070', GPU_SUSTAINED_THRESHOLD_C);
   return { supported: true, bucketMinutes: TEMP_BUCKET_MINUTES, retentionDays: TEMP_RETENTION_DAYS, series, episodes };
-}
-
-// ── Temperature history: hover app breakdown ────────────────────────────
-//
-// Synthesizes the same TEMP_HISTORY_DAYS window as the temperature series
-// above (ending at GENERATED_AT), in fixed APP_BUCKET_MINUTES buckets keyed
-// by slot start. Every third bucket is idle (omitted) so the empty-hover
-// case is exercised; the rest cycle deterministically through APP_NAMES.
-
-const APP_NAMES = ['Google Chrome', 'Visual Studio Code', 'Steam', 'Slack'] as const;
-const APP_BUCKET_MINUTES = 30;
-const APP_BUCKET_MS = APP_BUCKET_MINUTES * 60_000;
-
-function buildAppBuckets(): DiagnosticsTemperatureAppBucket[] {
-  const endMs = new Date(GENERATED_AT).getTime();
-  const startMs = endMs - TEMP_HISTORY_DAYS * 24 * 60 * 60 * 1000;
-  const buckets: DiagnosticsTemperatureAppBucket[] = [];
-  let i = 0;
-  for (let t = startMs; t < endMs; t += APP_BUCKET_MS, i++) {
-    if (i % 3 === 2) continue;
-    const primary: DiagnosticsTemperatureAppSlice = {
-      appName: APP_NAMES[i % APP_NAMES.length], appId: APP_NAMES[i % APP_NAMES.length],
-      ms: (12 + (i % 5) * 3) * 60_000,
-    };
-    const apps = [primary];
-    if (i % 4 === 0) {
-      const secondaryName = APP_NAMES[(i + 1) % APP_NAMES.length];
-      apps.push({ appName: secondaryName, appId: secondaryName, ms: 5 * 60_000 });
-    }
-    buckets.push({ startUtcMs: t, apps: apps.sort((a, b) => b.ms - a.ms) });
-  }
-  return buckets;
-}
-
-const appBucketsFullHistory = buildAppBuckets();
-
-function appBucketsInWindow(startMs: number, endMs: number): DiagnosticsTemperatureAppBucket[] {
-  return appBucketsFullHistory.filter(b => b.startUtcMs >= startMs && b.startUtcMs < endMs);
-}
-
-export function mockDiagnosticsTemperatureApps(query: DiagnosticsTemperatureQuery): DiagnosticsTemperatureAppsResponse {
-  const endMs = new Date(GENERATED_AT).getTime();
-  if ('date' in query) {
-    const startMs = new Date(`${query.date}T00:00:00.000Z`).getTime();
-    return { supported: true, bucketMinutes: APP_BUCKET_MINUTES, buckets: appBucketsInWindow(startMs, startMs + 24 * 60 * 60 * 1000) };
-  }
-  const cappedHours = Math.min(query.hours, TEMP_HISTORY_DAYS * 24);
-  return { supported: true, bucketMinutes: APP_BUCKET_MINUTES, buckets: appBucketsInWindow(endMs - cappedHours * 60 * 60 * 1000, endMs) };
 }
 
 export function mockDiagnosticsSystem(): DiagnosticsSystemResponse {

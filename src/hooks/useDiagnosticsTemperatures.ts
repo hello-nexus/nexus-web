@@ -12,11 +12,11 @@ export interface UseDiagnosticsTemperatures {
 /**
  * Fetch-on-mount + refetch-on-query-change for GET /diagnostics/temperatures.
  * Separate from useDiagnosticsResource because the fetcher takes a `query`
- * (hours or a single day) that changes at runtime (the Cooling tab's range
- * chips and day picker) and must retrigger the request, which the generic
- * hook's mount-only effect doesn't do. Callers must pass a `query` that only
- * changes identity when hours/date actually change (e.g. built with
- * useMemo), since it drives the effect's dependency directly.
+ * (hours or a single day) that can change at runtime and must retrigger the
+ * request, which the generic hook's mount-only effect doesn't do. Callers
+ * must pass a `query` that only changes identity when hours/date actually
+ * change (e.g. a module-level constant, or built with useMemo), since it
+ * drives the effect's dependency directly.
  */
 export function useDiagnosticsTemperatures(enabled: boolean, query: DiagnosticsTemperatureQuery): UseDiagnosticsTemperatures {
   const [data, setData] = useState<DiagnosticsTemperaturesResponse | null>(null);

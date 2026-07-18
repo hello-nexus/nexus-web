@@ -930,6 +930,7 @@
   "diagnostics.temperature.emptyDay": "{date}에 기록된 온도 데이터가 없습니다.",
   "diagnostics.temperature.episode": "{name}이(가) {date}에 {duration} 동안 {peak}에 도달했습니다",
   "diagnostics.temperature.episodesTitle": "지속적인 고온",
+  "diagnostics.temperature.fanDuty": "평균 팬 듀티",
   "diagnostics.temperature.max": "최대",
   "diagnostics.temperature.range.14d": "14일",
   "diagnostics.temperature.range.24h": "24시간",

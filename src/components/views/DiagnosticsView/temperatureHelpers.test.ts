@@ -1,17 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import type { DiagnosticsTemperatureAppsResponse, DiagnosticsTemperatureEpisode, DiagnosticsTemperatureSeries } from '../../../api/diagnostics';
+import type { DiagnosticsTemperatureEpisode } from '../../../api/diagnostics';
 import {
-  appsForHoverBucket,
   episodeBand,
-  episodeDurationToken,
-  episodeSentence,
-  episodesAtTime,
   formatTemperatureCelsius,
-  formatTemperatureDayLabel,
   minSelectableTemperatureDate,
   temperatureRangeLabelKey,
   temperatureSeriesColor,
-  toChartSeries,
   xTickFormatForRange,
 } from './temperatureHelpers';
 
@@ -49,57 +43,6 @@ describe('temperatureSeriesColor', () => {
   });
 });
 
-describe('toChartSeries', () => {
-  it('maps id/name/points and assigns each kind its fixed color', () => {
-    const series: DiagnosticsTemperatureSeries[] = [
-      { id: 'cpu', kind: 'cpu', name: 'CPU', points: [{ t: 0, avg: 50, max: 55 }] },
-      { id: 'gpu:0', kind: 'gpu', name: 'GPU', points: [{ t: 0, avg: 40, max: 45 }] },
-    ];
-    const chartSeries = toChartSeries(series);
-    expect(chartSeries).toEqual([
-      { id: 'cpu', name: 'CPU', color: '#3a89e8', points: [{ t: 0, avg: 50, max: 55 }] },
-      { id: 'gpu:0', name: 'GPU', color: '#00a1ab', points: [{ t: 0, avg: 40, max: 45 }] },
-    ]);
-    expect(chartSeries[0].color).not.toBe(chartSeries[1].color);
-  });
-
-  it('assigns the same color per id regardless of the input array order', () => {
-    const cpu: DiagnosticsTemperatureSeries = { id: 'cpu', kind: 'cpu', name: 'CPU', points: [] };
-    const gpu: DiagnosticsTemperatureSeries = { id: 'gpu:0', kind: 'gpu', name: 'GPU', points: [] };
-    const storage: DiagnosticsTemperatureSeries = { id: 'storage:a', kind: 'storage', name: 'Drive A', points: [] };
-
-    const forward = toChartSeries([cpu, gpu, storage]);
-    const reversed = toChartSeries([storage, gpu, cpu]);
-    const forwardById = new Map(forward.map(s => [s.id, s.color]));
-    const reversedById = new Map(reversed.map(s => [s.id, s.color]));
-
-    expect(reversedById.get('cpu')).toBe(forwardById.get('cpu'));
-    expect(reversedById.get('gpu:0')).toBe(forwardById.get('gpu:0'));
-    expect(reversedById.get('storage:a')).toBe(forwardById.get('storage:a'));
-  });
-
-  it('gives two drives of the same kind distinct colors, ranked by sorted id (not array order)', () => {
-    const driveA: DiagnosticsTemperatureSeries = { id: 'storage:a', kind: 'storage', name: 'Drive A', points: [] };
-    const driveB: DiagnosticsTemperatureSeries = { id: 'storage:b', kind: 'storage', name: 'Drive B', points: [] };
-
-    const forward = toChartSeries([driveA, driveB]);
-    const reversed = toChartSeries([driveB, driveA]);
-    expect(forward.find(s => s.id === 'storage:a')?.color).not.toBe(forward.find(s => s.id === 'storage:b')?.color);
-    expect(reversed.find(s => s.id === 'storage:a')?.color).toBe(forward.find(s => s.id === 'storage:a')?.color);
-    expect(reversed.find(s => s.id === 'storage:b')?.color).toBe(forward.find(s => s.id === 'storage:b')?.color);
-  });
-
-  it('sorts the legend by kind order (cpu, gpu, ram, storage) then id, regardless of input order', () => {
-    const storage: DiagnosticsTemperatureSeries = { id: 'storage:a', kind: 'storage', name: 'Drive A', points: [] };
-    const ram: DiagnosticsTemperatureSeries = { id: 'ram:0', kind: 'ram', name: 'RAM', points: [] };
-    const gpu: DiagnosticsTemperatureSeries = { id: 'gpu:0', kind: 'gpu', name: 'GPU', points: [] };
-    const cpu: DiagnosticsTemperatureSeries = { id: 'cpu', kind: 'cpu', name: 'CPU', points: [] };
-
-    const chartSeries = toChartSeries([storage, ram, gpu, cpu]);
-    expect(chartSeries.map(s => s.id)).toEqual(['cpu', 'gpu:0', 'ram:0', 'storage:a']);
-  });
-});
-
 describe('xTickFormatForRange', () => {
   it('returns a working formatter for every range bucket', () => {
     const t = new Date('2026-07-08T14:30:00Z').getTime();
@@ -118,31 +61,10 @@ describe('minSelectableTemperatureDate', () => {
   });
 });
 
-describe('formatTemperatureDayLabel', () => {
-  it('formats an ISO day into a readable date', () => {
-    expect(formatTemperatureDayLabel('2026-07-08')).toEqual(expect.any(String));
-    expect(formatTemperatureDayLabel('2026-07-08')).not.toBe('2026-07-08');
-  });
-});
-
 describe('formatTemperatureCelsius', () => {
   it('converts and appends the unit symbol', () => {
     expect(formatTemperatureCelsius(20, 'c', 'dot')).toBe('20°C');
     expect(formatTemperatureCelsius(0, 'f', 'dot')).toBe('32°F');
-  });
-});
-
-describe('episodeDurationToken', () => {
-  it('buckets under an hour as minutes', () => {
-    expect(episodeDurationToken('2026-07-05T12:00:00Z', '2026-07-05T12:20:00Z')).toEqual({
-      key: 'diagnostics.duration.minutes', params: { m: '20' },
-    });
-  });
-
-  it('buckets an hour or more as hours+minutes', () => {
-    expect(episodeDurationToken('2026-07-05T12:00:00Z', '2026-07-05T13:30:00Z')).toEqual({
-      key: 'diagnostics.duration.hoursMinutes', params: { h: '1', m: '30' },
-    });
   });
 });
 
@@ -157,113 +79,5 @@ describe('episodeBand', () => {
       endT: new Date('2026-07-05T12:20:00Z').getTime(),
       color: 'var(--warn)',
     });
-  });
-});
-
-describe('episodesAtTime', () => {
-  const episode = (startUtc: string, endUtc: string, name = 'GPU'): DiagnosticsTemperatureEpisode => ({
-    componentId: 'gpu:0', name, startUtc, endUtc, peakC: 93, thresholdC: 85,
-  });
-  const at = (iso: string) => new Date(iso).getTime();
-
-  it('returns episodes whose span covers the timestamp, inclusive of both ends', () => {
-    const episodes = [episode('2026-07-05T12:00:00Z', '2026-07-05T12:20:00Z')];
-    expect(episodesAtTime(episodes, at('2026-07-05T12:10:00Z'))).toHaveLength(1);
-    expect(episodesAtTime(episodes, at('2026-07-05T12:00:00Z'))).toHaveLength(1);
-    expect(episodesAtTime(episodes, at('2026-07-05T12:20:00Z'))).toHaveLength(1);
-  });
-
-  it('excludes episodes the timestamp falls outside of', () => {
-    const episodes = [episode('2026-07-05T12:00:00Z', '2026-07-05T12:20:00Z')];
-    expect(episodesAtTime(episodes, at('2026-07-05T11:59:00Z'))).toHaveLength(0);
-    expect(episodesAtTime(episodes, at('2026-07-05T12:21:00Z'))).toHaveLength(0);
-  });
-
-  it('returns every overlapping episode when spans cover the same instant', () => {
-    const episodes = [
-      episode('2026-07-05T12:00:00Z', '2026-07-05T12:30:00Z', 'GPU'),
-      episode('2026-07-05T12:10:00Z', '2026-07-05T12:40:00Z', 'CPU'),
-    ];
-    const hit = episodesAtTime(episodes, at('2026-07-05T12:20:00Z'));
-    expect(hit.map(e => e.name)).toEqual(['GPU', 'CPU']);
-  });
-});
-
-describe('appsForHoverBucket', () => {
-  function appsData(overrides: Partial<DiagnosticsTemperatureAppsResponse> = {}): DiagnosticsTemperatureAppsResponse {
-    return {
-      supported: true,
-      bucketMinutes: 30,
-      buckets: [
-        {
-          startUtcMs: 0,
-          apps: [
-            { appName: 'Google Chrome', appId: 'Google Chrome', ms: 1_200_000 },
-            { appName: 'Slack', appId: 'Slack', ms: 300_000 },
-          ],
-        },
-      ],
-      ...overrides,
-    };
-  }
-  const BUCKET_MS = 30 * 60_000;
-
-  it('finds the bucket containing t and returns its apps dominant-first', () => {
-    expect(appsForHoverBucket(appsData(), 0)).toEqual([
-      { appId: 'Google Chrome', appName: 'Google Chrome', ms: 1_200_000 },
-      { appId: 'Slack', appName: 'Slack', ms: 300_000 },
-    ]);
-    expect(appsForHoverBucket(appsData(), BUCKET_MS - 1)).toHaveLength(2);
-  });
-
-  it('re-sorts by ms descending regardless of input order', () => {
-    const data = appsData({
-      buckets: [{
-        startUtcMs: 0,
-        apps: [
-          { appName: 'Slack', appId: 'Slack', ms: 300_000 },
-          { appName: 'Google Chrome', appId: 'Google Chrome', ms: 1_200_000 },
-        ],
-      }],
-    });
-    expect(appsForHoverBucket(data, 0).map(a => a.appId)).toEqual(['Google Chrome', 'Slack']);
-  });
-
-  it('caps to the top 4 apps', () => {
-    const data = appsData({
-      buckets: [{
-        startUtcMs: 0,
-        apps: Array.from({ length: 6 }, (_, i) => ({ appName: `App ${i}`, appId: `App ${i}`, ms: (6 - i) * 60_000 })),
-      }],
-    });
-    expect(appsForHoverBucket(data, 0)).toHaveLength(4);
-  });
-
-  it('returns [] when t falls outside every bucket', () => {
-    expect(appsForHoverBucket(appsData(), BUCKET_MS)).toEqual([]);
-    expect(appsForHoverBucket(appsData(), -1)).toEqual([]);
-  });
-
-  it('returns [] when data is null or unsupported', () => {
-    expect(appsForHoverBucket(null, 0)).toEqual([]);
-    expect(appsForHoverBucket(appsData({ supported: false }), 0)).toEqual([]);
-  });
-});
-
-describe('episodeSentence', () => {
-  it('composes the name/peak/duration/date sentence via the translate function', () => {
-    const episode: DiagnosticsTemperatureEpisode = {
-      componentId: 'gpu:0', name: 'RTX 5080', startUtc: '2026-07-05T12:00:00Z', endUtc: '2026-07-05T12:20:00Z',
-      peakC: 93, thresholdC: 85,
-    };
-    const translate = (key: string, params?: Record<string, string>) => {
-      if (key === 'diagnostics.temperature.episode') {
-        return `${params?.name} reached ${params?.peak} for ${params?.duration} on ${params?.date}`;
-      }
-      if (key === 'diagnostics.duration.minutes') return `${params?.m}m`;
-      return key;
-    };
-    const sentence = episodeSentence(episode, 'c', 'dot', translate);
-    expect(sentence).toBe(`RTX 5080 reached 93°C for 20m on ${new Date('2026-07-05T12:20:00Z').toLocaleDateString()}`);
   });
 });

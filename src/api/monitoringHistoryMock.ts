@@ -92,6 +92,21 @@ const SERIES_DEFS: readonly SeriesDef[] = [
     spreadAt: t => 1 + Math.abs(wobble(t, 16)) * 2,
   },
   {
+    id: 'mem-temp', kind: 'mem-temp', name: 'Memory',
+    avgAt: t => clamp(38 + sessionBump(t, 2_400_000, CPU_LOAD_BUMP_PHASE) * 8 + wobble(t, 8) * 3, 30, 60),
+    spreadAt: t => 1 + Math.abs(wobble(t, 18)) * 1.5,
+  },
+  {
+    id: 'drive-temp:0', kind: 'drive-temp', name: 'Samsung SSD 990 PRO 2TB',
+    avgAt: t => clamp(34 + sessionBump(t, 2_400_000, CPU_LOAD_BUMP_PHASE) * 10 + wobble(t, 9) * 3, 25, 65),
+    spreadAt: t => 1 + Math.abs(wobble(t, 19)) * 2,
+  },
+  {
+    id: 'drive-temp:1', kind: 'drive-temp', name: 'WD Black SN850X 1TB',
+    avgAt: t => clamp(32 + sessionBump(t, 2_400_000, CPU_LOAD_BUMP_PHASE) * 8 + wobble(t, 10) * 3, 25, 60),
+    spreadAt: t => 1 + Math.abs(wobble(t, 20)) * 2,
+  },
+  {
     id: 'fan-duty:1', kind: 'fan-duty', name: 'Fan 1',
     avgAt: t => clamp(30 + sessionBump(t, 2_400_000, CPU_LOAD_BUMP_PHASE) * 40 + wobble(t, 21) * 5, 10, 100),
     spreadAt: t => 2 + Math.abs(wobble(t, 31)) * 3,

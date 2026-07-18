@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Fan, HardDrive, LayoutDashboard, MemoryStick, Settings as SettingsIcon, ShieldCheck } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useDiagnosticsHealth } from '../../../hooks/useDiagnosticsHealth';
 import { useDiagnosticsResource } from '../../../hooks/useDiagnosticsResource';
-import { useDiagnosticsTemperatureApps } from '../../../hooks/useDiagnosticsTemperatureApps';
 import { useDiagnosticsTemperatures } from '../../../hooks/useDiagnosticsTemperatures';
+import { useMetricHistory } from '../../../hooks/useMetricHistory';
 import {
   downloadDiagnosticsBundle,
   downloadDiagnosticsReport,
@@ -28,7 +28,7 @@ import { CoolingTab } from './CoolingTab';
 import { SystemTab } from './SystemTab';
 import { SummaryTab } from './SummaryTab';
 import { SettingsTab } from './SettingsTab';
-import { DEFAULT_TEMPERATURE_RANGE_HOURS, type TemperatureRangeHours } from './temperatureHelpers';
+import { COOLING_HISTORY_SERIES_QUERY } from './coolingHistoryHelpers';
 import { DEFAULT_INCIDENT_RANGE_HOURS, type IncidentRangeHours } from './incidentTimelineHelpers';
 import styles from './DiagnosticsView.module.scss';
 
@@ -43,9 +43,32 @@ interface DiagnosticsViewProps {
 
 const INCIDENT_WINDOW_DAYS = 30;
 
+// The Cooling tab's chart bands solely need the sustained-high-temperature
+// episodes - a fixed 7-day window matches the scrub range's own longest
+// preset (RANGE_OPTIONS' '7d'). A module-level constant keeps the query's
+// identity stable across renders, which useDiagnosticsTemperatures's refetch
+// effect requires.
+const COOLING_EPISODES_QUERY: DiagnosticsTemperatureQuery = { hours: 168 };
+
 export function DiagnosticsView({ serviceOnline, connectionState, tab: urlTab, onTabChange }: DiagnosticsViewProps) {
   const { t } = useTranslation();
   const { push } = useToast();
+
+  const tabs = [
+    { key: 'summary', label: t('diagnostics.tab.summary'), icon: <LayoutDashboard size={14} /> },
+    { key: 'storage', label: t('diagnostics.kind.storage'), icon: <HardDrive size={14} /> },
+    { key: 'memory', label: t('diagnostics.kind.memory'), icon: <MemoryStick size={14} /> },
+    { key: 'cooling', label: t('diagnostics.kind.cooling'), icon: <Fan size={14} /> },
+    { key: 'system', label: t('diagnostics.kind.system'), icon: <ShieldCheck size={14} /> },
+    { key: 'settings', label: t('diagnostics.tab.settings'), icon: <SettingsIcon size={14} /> },
+  ] as const;
+
+  // GPU is no longer its own tab (folded into Cooling); an old ?tab=gpu deep
+  // link lands on Cooling, where GPU health now lives.
+  const requestedTab = urlTab === 'gpu' ? 'cooling' : urlTab;
+  const tab: DiagnosticsTab = requestedTab && tabs.some(tb => tb.key === requestedTab)
+    ? requestedTab as DiagnosticsTab : 'summary';
+
   const { health, loading: healthLoading, error: healthError, mocked: healthMocked, refresh: refreshHealth } = useDiagnosticsHealth(serviceOnline);
   // Re-snapshot "now" whenever a fresh poll lands, so the header's relative
   // time stays current without calling Date.now() during render (impure).
@@ -59,26 +82,23 @@ export function DiagnosticsView({ serviceOnline, connectionState, tab: urlTab, o
   const system = useDiagnosticsResource(serviceOnline, fetchDiagnosticsSystem);
   const incidents = useDiagnosticsResource(serviceOnline, useCallback(() => fetchDiagnosticsIncidents(INCIDENT_WINDOW_DAYS), []));
 
-  // Lives here (not in CoolingTab) so the selected range/day and fetched data
-  // survive switching away from and back to the Cooling tab, matching every
-  // other resource on this page. A relative range and a specific day are
-  // mutually exclusive: picking a day switches to date mode, and clicking any
-  // range chip switches back to that relative range.
-  const [temperatureHours, setTemperatureHours] = useState<TemperatureRangeHours>(DEFAULT_TEMPERATURE_RANGE_HOURS);
-  const [temperatureDate, setTemperatureDate] = useState<string | null>(null);
-  const temperatureQuery = useMemo<DiagnosticsTemperatureQuery>(
-    () => (temperatureDate ? { date: temperatureDate } : { hours: temperatureHours }),
-    [temperatureDate, temperatureHours],
-  );
-  const temperatures = useDiagnosticsTemperatures(serviceOnline, temperatureQuery);
-  const handleTemperatureHoursChange = useCallback((next: TemperatureRangeHours) => {
-    setTemperatureHours(next);
-    setTemperatureDate(null);
-  }, []);
+  // Solely feeds the Cooling chart's sustained-high-temperature bands (see
+  // COOLING_EPISODES_QUERY above) - fetched regardless of the active tab,
+  // like every other resource on this page, so anyMocked/anyLoading and a
+  // "refresh all" both stay accurate from the Summary tab too.
+  const temperatures = useDiagnosticsTemperatures(serviceOnline, COOLING_EPISODES_QUERY);
 
-  // The System tab's incident timeline reuses the same relative-range /
-  // specific-day model as the temperature chart, kept here so it persists
-  // across tab switches. Range filtering is client-side over the 30-day fetch.
+  // The chart itself scrubs via its own viewport, independent of any
+  // range/day state here - only active while the Cooling tab is showing (its
+  // live-tail poll runs every second, wasteful to keep running on every other
+  // tab), but the hook instance lives here (not in CoolingTab) so its
+  // viewport/cache survive switching away from and back to the tab.
+  const isCoolingTab = tab === 'cooling';
+  const coolingHistory = useMetricHistory(serviceOnline && isCoolingTab, isCoolingTab ? COOLING_HISTORY_SERIES_QUERY : '');
+
+  // The System tab's incident timeline uses a relative-range / specific-day
+  // model, kept here so it persists across tab switches. Range filtering is
+  // client-side over the 30-day fetch.
   const [incidentHours, setIncidentHours] = useState<IncidentRangeHours>(DEFAULT_INCIDENT_RANGE_HOURS);
   const [incidentDate, setIncidentDate] = useState<string | null>(null);
   const handleIncidentHoursChange = useCallback((next: IncidentRangeHours) => {
@@ -86,12 +106,8 @@ export function DiagnosticsView({ serviceOnline, connectionState, tab: urlTab, o
     setIncidentDate(null);
   }, []);
 
-  // Backs the temperature chart's hover tooltip app breakdown; reuses the
-  // same memoized temperatureQuery so it always covers the chart's window.
-  const temperatureApps = useDiagnosticsTemperatureApps(serviceOnline, temperatureQuery);
-
   const anyMocked = healthMocked || smart.mocked || memory.mocked || gpu.mocked
-    || cooling.mocked || system.mocked || incidents.mocked;
+    || cooling.mocked || system.mocked || incidents.mocked || temperatures.mocked;
   const anyLoading = healthLoading || smart.loading || memory.loading || gpu.loading
     || cooling.loading || system.loading || incidents.loading;
 
@@ -106,6 +122,7 @@ export function DiagnosticsView({ serviceOnline, connectionState, tab: urlTab, o
   const { refresh: refreshSystem } = system;
   const { refresh: refreshIncidents } = incidents;
   const { refresh: refreshTemperatures } = temperatures;
+  const { retry: retryCoolingHistory } = coolingHistory;
 
   const handleRefreshAll = useCallback(() => {
     refreshHealth({ force: true });
@@ -116,7 +133,8 @@ export function DiagnosticsView({ serviceOnline, connectionState, tab: urlTab, o
     refreshSystem({ force: true });
     refreshIncidents();
     refreshTemperatures();
-  }, [refreshHealth, refreshSmart, refreshMemory, refreshGpu, refreshCooling, refreshSystem, refreshIncidents, refreshTemperatures]);
+    retryCoolingHistory();
+  }, [refreshHealth, refreshSmart, refreshMemory, refreshGpu, refreshCooling, refreshSystem, refreshIncidents, refreshTemperatures, retryCoolingHistory]);
 
   // Clearing the Windows event logs invalidates the health overview and the
   // System section's 30-day counts in addition to Incidents itself (which
@@ -141,21 +159,6 @@ export function DiagnosticsView({ serviceOnline, connectionState, tab: urlTab, o
     setDownloadingReport(false);
     if (!ok) push({ title: t('diagnostics.header.downloadReportFailed') });
   }, [push, t]);
-
-  const tabs = [
-    { key: 'summary', label: t('diagnostics.tab.summary'), icon: <LayoutDashboard size={14} /> },
-    { key: 'storage', label: t('diagnostics.kind.storage'), icon: <HardDrive size={14} /> },
-    { key: 'memory', label: t('diagnostics.kind.memory'), icon: <MemoryStick size={14} /> },
-    { key: 'cooling', label: t('diagnostics.kind.cooling'), icon: <Fan size={14} /> },
-    { key: 'system', label: t('diagnostics.kind.system'), icon: <ShieldCheck size={14} /> },
-    { key: 'settings', label: t('diagnostics.tab.settings'), icon: <SettingsIcon size={14} /> },
-  ] as const;
-
-  // GPU is no longer its own tab (folded into Cooling); an old ?tab=gpu deep
-  // link lands on Cooling, where GPU health now lives.
-  const requestedTab = urlTab === 'gpu' ? 'cooling' : urlTab;
-  const tab: DiagnosticsTab = requestedTab && tabs.some(tb => tb.key === requestedTab)
-    ? requestedTab as DiagnosticsTab : 'summary';
 
   if (!serviceOnline) {
     return (
@@ -183,12 +186,8 @@ export function DiagnosticsView({ serviceOnline, connectionState, tab: urlTab, o
         <CoolingTab
           cooling={cooling}
           gpu={gpu}
-          temperatures={temperatures}
-          hours={temperatureHours}
-          date={temperatureDate}
-          onHoursChange={handleTemperatureHoursChange}
-          onDateChange={setTemperatureDate}
-          appUsageData={temperatureApps.data}
+          coolingHistory={coolingHistory}
+          episodes={temperatures.data?.episodes ?? []}
         />
       );
       case 'system': return (
