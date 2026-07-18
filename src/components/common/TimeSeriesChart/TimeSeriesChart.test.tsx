@@ -343,6 +343,18 @@ describe('TimeSeriesChart', () => {
     expect(container.querySelectorAll('path[fill^="url(#"]').length).toBe(2);
   });
 
+  it('skips the gradient fill for a series marked noFill, while its stroked line still renders (item 49 overlay)', () => {
+    const series = makeSeries();
+    series[1] = { ...series[1], noFill: true };
+    const { container } = render(<TimeSeriesChart series={series} {...baseProps} fillGradient />);
+    // Only the non-noFill series gets a gradient def and a fill path.
+    expect(container.querySelectorAll('linearGradient').length).toBe(1);
+    expect(container.querySelectorAll('path[fill^="url(#"]').length).toBe(1);
+    // Both series still draw their own stroked line.
+    expect(container.querySelectorAll('path[stroke="#8b5cf6"]').length).toBe(1);
+    expect(container.querySelectorAll('path[stroke="#22d3ee"]').length).toBe(1);
+  });
+
   it('does not render gradients or fills when fillGradient is omitted (backwards compatible)', () => {
     const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} />);
     expect(container.querySelectorAll('linearGradient').length).toBe(0);

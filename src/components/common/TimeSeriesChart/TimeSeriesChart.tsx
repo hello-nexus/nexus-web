@@ -421,7 +421,7 @@ export function TimeSeriesChart({
           <clipPath id={clipId}>
             <rect x={pad.left} y={pad.top} width={chartW} height={chartH} />
           </clipPath>
-          {fillGradient && series.map(s => (
+          {fillGradient && series.filter(s => !s.noFill).map(s => (
             <linearGradient key={s.id} id={gradientId(s.id)} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor={s.color} stopOpacity="0.35" />
               <stop offset="100%" stopColor={s.color} stopOpacity="0.02" />
@@ -471,7 +471,7 @@ export function TimeSeriesChart({
           const d = segment.map((p, i) => `${i === 0 ? 'M' : 'L'}${xFor(p.t).toFixed(1)},${yFor(p.avg).toFixed(1)}`).join(' ');
           return (
             <g key={`${s.id}-${si}`}>
-              {fillGradient && (
+              {fillGradient && !s.noFill && (
                 <path
                   d={`${d} L${xFor(segment[segment.length - 1].t).toFixed(1)},${baselineY.toFixed(1)} L${xFor(segment[0].t).toFixed(1)},${baselineY.toFixed(1)} Z`}
                   fill={`url(#${gradientId(s.id)})`}

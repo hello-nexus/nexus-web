@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  Check, Copy, Cpu, FolderOpen, Gpu, Layers, MemoryStick, X, XCircle,
+  Check, Copy, Cpu, FolderOpen, Gpu, HardDrive, Layers, MemoryStick, Network, X, XCircle,
 } from 'lucide-react';
 import { Card } from '../../../../components/common/Card/Card';
 import { CollapsibleSection } from '../../../../components/common/CollapsibleSection/CollapsibleSection';
@@ -25,11 +25,16 @@ import { PRIVACY_ICONS, formatPrivacyTime, iconKindForCapability } from './priva
 import { ProcessIcon } from './ProcessIcon';
 import { ProcessMiniChart } from './ProcessMiniChart';
 import { resolveTileValue, sessionsForProcess, truncateMiddle, type ProcessLiveUsage } from './processDetailHelpers';
+import { formatRate } from './shared';
+import type { HistoryMetric } from './metricHistoryHelpers';
 import styles from './ProcessDetailPanel.module.scss';
 
 export interface ProcessDetailPanelProps {
   onClose: () => void;
   name: string;
+  /** The active tab's own metric - drives which extra split tiles render
+   *  (storage read/write, network down/up; see useProcessDetailUsage). */
+  metric: HistoryMetric;
   live: ProcessLiveUsage | undefined;
   /** The active tab's already-fetched window-scoped apps response - reused
    *  (no new fetch) for the mini chart. */
@@ -106,7 +111,7 @@ function CopyableValue({ value, fieldLabel, mono, truncate }: { value: string; f
  * useful panel instead of a blank one.
  */
 export function ProcessDetailPanel({
-  onClose, name, live, appsWindow, valueFormat, privacySessions, privacySupported,
+  onClose, name, metric, live, appsWindow, valueFormat, privacySessions, privacySupported,
   selectedFrameMs, following, historyFrom, historyTo,
 }: ProcessDetailPanelProps) {
   const { t, language } = useTranslation();
@@ -122,7 +127,7 @@ export function ProcessDetailPanel({
   // same domain right edge resolveSelectedFrame falls back to when nothing
   // is pinned, so comparing against it detects a pin without a separate prop.
   const isLive = following && selectedFrameMs === historyTo;
-  const usage = useProcessDetailUsage(name, historyFrom, historyTo, !isLive, following);
+  const usage = useProcessDetailUsage(name, historyFrom, historyTo, !isLive, following, metric);
 
   const [killConfirmOpen, setKillConfirmOpen] = useState(false);
   const [killing, setKilling] = useState(false);
@@ -174,11 +179,23 @@ export function ProcessDetailPanel({
   const memPoints = usage.memory.apps.find(a => a.name === name)?.points;
   const gpuPoints = usage.gpu.apps.find(a => a.name === name)?.points;
   const vramPoints = usage.vram.apps.find(a => a.name === name)?.points;
+  const storageReadPoints = usage.storageRead.apps.find(a => a.name === name)?.points;
+  const storageWritePoints = usage.storageWrite.apps.find(a => a.name === name)?.points;
+  const netDownPoints = usage.netDown.apps.find(a => a.name === name)?.points;
+  const netUpPoints = usage.netUp.apps.find(a => a.name === name)?.points;
 
   const cpuValue = resolveTileValue(cpuPoints, selectedFrameMs, live?.cpuPercent);
   const memValue = resolveTileValue(memPoints, selectedFrameMs, live?.memoryMb);
   const gpuValue = resolveTileValue(gpuPoints, selectedFrameMs, live?.gpuPercent);
   const vramValue = resolveTileValue(vramPoints, selectedFrameMs, live?.vramMb);
+  // No push-driven live counterpart exists for either split (unlike cpu/
+  // memory/gpu/vram, which fall back to `live`) - the fetch itself runs
+  // through the live state too (see useProcessDetailUsage), so the nearest
+  // point is already fresh.
+  const storageReadValue = resolveTileValue(storageReadPoints, selectedFrameMs, undefined);
+  const storageWriteValue = resolveTileValue(storageWritePoints, selectedFrameMs, undefined);
+  const netDownValue = resolveTileValue(netDownPoints, selectedFrameMs, undefined);
+  const netUpValue = resolveTileValue(netUpPoints, selectedFrameMs, undefined);
 
   const usageTiles: SystemSpecRow[] = [];
   if (cpuValue !== undefined) {
@@ -192,6 +209,18 @@ export function ProcessDetailPanel({
   }
   if (vramValue !== undefined) {
     usageTiles.push({ icon: <Layers size={16} />, label: t('monitoring.processDetail.live.vram'), value: formatMemoryMb(vramValue, numberFormat) });
+  }
+  if (metric === 'storage' && storageReadValue !== undefined) {
+    usageTiles.push({ icon: <HardDrive size={16} />, label: t('monitoring.history.read'), value: formatRate(storageReadValue, numberFormat) });
+  }
+  if (metric === 'storage' && storageWriteValue !== undefined) {
+    usageTiles.push({ icon: <HardDrive size={16} />, label: t('monitoring.history.write'), value: formatRate(storageWriteValue, numberFormat) });
+  }
+  if (metric === 'network' && netDownValue !== undefined) {
+    usageTiles.push({ icon: <Network size={16} />, label: t('monitoring.history.download'), value: formatRate(netDownValue, numberFormat) });
+  }
+  if (metric === 'network' && netUpValue !== undefined) {
+    usageTiles.push({ icon: <Network size={16} />, label: t('monitoring.history.upload'), value: formatRate(netUpValue, numberFormat) });
   }
 
   const chartUnsupported = !(appsWindow?.supported ?? false);

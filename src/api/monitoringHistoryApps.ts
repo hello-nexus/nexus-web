@@ -1,6 +1,7 @@
 // Per-app window-scoped monitoring history - typed wrapper over the local
 // service's GET /monitoring/history/apps?from=<utcMs>&to=<utcMs>&series=<cpu|
-// gpu:gid|memory|net|storage|vram>&process=<name>&maxApps=<n>&maxPoints=<n>, returning
+// gpu:gid|memory|net|net-down|net-up|storage|storage-read|storage-write|vram>
+// &process=<name>&maxApps=<n>&maxPoints=<n>, returning
 // { supported, apps: [{ name, startedAtMs?, avg, max, points }] }. Feeds the
 // process list's window-scoped values/sparklines AND the hero chart's hover
 // tooltip (nearest-point lookup client-side - no per-hover fetching). `process`
@@ -41,7 +42,8 @@ export interface MetricHistoryAppsQuery {
   from: number;
   /** UTC milliseconds. */
   to: number;
-  /** 'cpu' | 'memory' | 'net' | 'storage' | 'vram' | `gpu:${adapterLuid}`. */
+  /** 'cpu' | 'memory' | 'net' | 'net-down' | 'net-up' | 'storage' |
+   *  'storage-read' | 'storage-write' | 'vram' | `gpu:${adapterLuid}`. */
   series: string;
   /** Scopes the response to this one app by name (case-insensitive),
    *  bypassing the top-N-by-usage ranking - omit for the ranked list. */

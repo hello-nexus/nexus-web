@@ -47,6 +47,12 @@ export function useMetricHistoryApps(enabled: boolean, seriesParam: string, from
   const prevWidthRef = useRef<number | null>(null);
   const prevSeriesParamRef = useRef<string | null>(null);
   const prevProcessRef = useRef<string | undefined>(undefined);
+  // Tracks whether the debounced-fetch effect below ran while enabled last
+  // time - the disabling effect above clears `apps` to [] while disabled, so
+  // re-enabling with an otherwise-unchanged width/series/process must still
+  // fetch rather than read as a tick slide (prevWidthRef etc. are frozen,
+  // not reset, while disabled - see the effect below).
+  const prevEnabledRef = useRef(false);
 
   useEffect(() => { fromRef.current = from; toRef.current = to; }, [from, to]);
   useEffect(() => {
@@ -98,13 +104,24 @@ export function useMetricHistoryApps(enabled: boolean, seriesParam: string, from
   // instead of firing on every tick. The series check matters because a
   // metric switch while following (e.g. cpu -> gpu) does NOT reset the
   // shared box, so width alone would misclassify it as a tick slide and
-  // leave the previous metric's apps showing.
+  // leave the previous metric's apps showing. Re-enabling after a disabled
+  // stretch also bypasses the tick-slide check even when width/series/
+  // process all come back unchanged (e.g. switching tabs away and back with
+  // the same process selected) - disabling cleared `apps` to [] above, so a
+  // skipped fetch here would leave it empty until the slow poll's own
+  // interval next fires.
   useEffect(() => {
-    if (!enabled || !supported || seriesParam === '') return;
+    if (!enabled || !supported || seriesParam === '') {
+      prevEnabledRef.current = false;
+      return;
+    }
     const width = to - from;
+    const justEnabled = !prevEnabledRef.current;
     const seriesChanged = (prevSeriesParamRef.current !== null && prevSeriesParamRef.current !== seriesParam)
       || prevProcessRef.current !== process;
-    const isTickSlide = following && !seriesChanged && prevWidthRef.current !== null && Math.abs(width - prevWidthRef.current) < 1;
+    const isTickSlide = !justEnabled && following && !seriesChanged
+      && prevWidthRef.current !== null && Math.abs(width - prevWidthRef.current) < 1;
+    prevEnabledRef.current = true;
     prevWidthRef.current = width;
     prevSeriesParamRef.current = seriesParam;
     prevProcessRef.current = process;

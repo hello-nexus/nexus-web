@@ -63,6 +63,28 @@ describe('useMetricHistoryApps', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it('refetches immediately on re-enable even when width/series/process all come back unchanged (bug: a disabled stretch must not read as a tick slide)', async () => {
+    const { rerender } = renderHook(
+      ({ enabled }: { enabled: boolean }) => useMetricHistoryApps(enabled, 'storage-read', NOW - MINUTE, NOW, true, 'chrome.exe'),
+      { initialProps: { enabled: true } },
+    );
+    await advance(200);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // Disable (e.g. the caller's tab switches away) - apps clears.
+    rerender({ enabled: false });
+    await advance(200);
+    fetchMock.mockClear();
+
+    // Re-enable with the exact same from/to/series/process (e.g. switching
+    // right back to the same tab with the same process still selected) -
+    // width/series/process are all unchanged from the last enabled run, so
+    // this must NOT be misread as a following tick slide and skipped.
+    rerender({ enabled: true });
+    await advance(200);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it('refetches immediately when the window width changes even while following', async () => {
     const { rerender } = renderHook(
       ({ from, to }) => useMetricHistoryApps(true, 'cpu', from, to, true),

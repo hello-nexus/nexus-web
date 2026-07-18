@@ -13,6 +13,11 @@ export interface TimeSeriesSeries {
   name: string;
   color: string;
   points: TimeSeriesPoint[];
+  /** Skips this series' own gradient-fill area when the chart-wide
+   *  fillGradient prop is on (the stroked line still renders) - for a series
+   *  overlaid on top of others (e.g. a highlighted selection), where a second
+   *  translucent fill layer would wash out what's underneath it. */
+  noFill?: boolean;
 }
 
 // A gap wider than this multiple of the actual median point spacing renders

@@ -42,6 +42,7 @@ function baseProps(over: Partial<ProcessDetailPanelProps> = {}): ProcessDetailPa
   return {
     onClose: vi.fn(),
     name: 'chrome.exe',
+    metric: 'cpu',
     live: { cpuPercent: 1 },
     appsWindow: undefined,
     valueFormat: (v: number) => `${v}%`,

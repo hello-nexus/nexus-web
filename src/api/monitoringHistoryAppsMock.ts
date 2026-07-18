@@ -78,9 +78,28 @@ const STORAGE_APPS: readonly AppDef[] = [
   { name: 'Code.exe', seed: 43, launchedMinutesAgo: 15, baseAt: (t, s) => Math.max(0, 500_000 + wobble(t, s) * 400_000) },
 ];
 
+// Read/write and down/up splits of the combined STORAGE_APPS/NETWORK_APPS
+// curves above, at a fixed proportion per direction - reads and downloads
+// dominate writes and uploads, the realistic common case.
+const STORAGE_READ_RATIO = 0.65;
+const NETWORK_DOWN_RATIO = 0.8;
+
+function scaled(defs: readonly AppDef[], ratio: number): readonly AppDef[] {
+  return defs.map(def => ({ ...def, baseAt: (t: number, s: number) => def.baseAt(t, s) * ratio }));
+}
+
+const STORAGE_READ_APPS = scaled(STORAGE_APPS, STORAGE_READ_RATIO);
+const STORAGE_WRITE_APPS = scaled(STORAGE_APPS, 1 - STORAGE_READ_RATIO);
+const NETWORK_DOWN_APPS = scaled(NETWORK_APPS, NETWORK_DOWN_RATIO);
+const NETWORK_UP_APPS = scaled(NETWORK_APPS, 1 - NETWORK_DOWN_RATIO);
+
 function defsFor(series: string): readonly AppDef[] {
   if (series === 'memory') return MEMORY_APPS;
+  if (series === 'net-down') return NETWORK_DOWN_APPS;
+  if (series === 'net-up') return NETWORK_UP_APPS;
   if (series === 'net') return NETWORK_APPS;
+  if (series === 'storage-read') return STORAGE_READ_APPS;
+  if (series === 'storage-write') return STORAGE_WRITE_APPS;
   if (series === 'storage') return STORAGE_APPS;
   if (series.startsWith('gpu')) return GPU_APPS;
   return CPU_APPS;

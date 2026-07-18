@@ -37,7 +37,7 @@ afterEach(() => {
 
 describe('useProcessDetailUsage', () => {
   it('fetches cpu, memory, gpu, and vram for the named process, each scoped by the process filter, while enabled', async () => {
-    renderHook(() => useProcessDetailUsage('chrome.exe', NOW - MINUTE, NOW, true, false));
+    renderHook(() => useProcessDetailUsage('chrome.exe', NOW - MINUTE, NOW, true, false, 'cpu'));
     await advance(200);
 
     const seriesRequested = fetchMock.mock.calls.map(([q]) => q.series).sort();
@@ -48,7 +48,7 @@ describe('useProcessDetailUsage', () => {
   });
 
   it('maps each metric onto its own named result', async () => {
-    const { result } = renderHook(() => useProcessDetailUsage('chrome.exe', NOW - MINUTE, NOW, true, false));
+    const { result } = renderHook(() => useProcessDetailUsage('chrome.exe', NOW - MINUTE, NOW, true, false, 'cpu'));
     await advance(200);
 
     expect(result.current.cpu.apps[0]?.name).toBe('chrome.exe');
@@ -58,7 +58,7 @@ describe('useProcessDetailUsage', () => {
   });
 
   it('does not fetch while disabled (the isLive === true case)', async () => {
-    renderHook(() => useProcessDetailUsage('chrome.exe', NOW - MINUTE, NOW, false, false));
+    renderHook(() => useProcessDetailUsage('chrome.exe', NOW - MINUTE, NOW, false, false, 'cpu'));
     await advance(200);
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -68,14 +68,14 @@ describe('useProcessDetailUsage', () => {
     // isLive (following AND nothing pinned), not from `following` alone -
     // enabled=true with following=true is exactly the "pinned while still
     // following" state a plain hero-chart click produces.
-    renderHook(() => useProcessDetailUsage('chrome.exe', NOW - MINUTE, NOW, true, true));
+    renderHook(() => useProcessDetailUsage('chrome.exe', NOW - MINUTE, NOW, true, true, 'cpu'));
     await advance(200);
     expect(fetchMock).toHaveBeenCalledTimes(4);
   });
 
   it('starts fetching the moment enabled flips true (the viewport detaches from live, or a frame gets pinned)', async () => {
     const { rerender } = renderHook(
-      ({ enabled }: { enabled: boolean }) => useProcessDetailUsage('chrome.exe', NOW - MINUTE, NOW, enabled, false),
+      ({ enabled }: { enabled: boolean }) => useProcessDetailUsage('chrome.exe', NOW - MINUTE, NOW, enabled, false, 'cpu'),
       { initialProps: { enabled: false } },
     );
     await advance(200);
@@ -88,7 +88,7 @@ describe('useProcessDetailUsage', () => {
 
   it('refetches all four metrics when the process name changes while enabled', async () => {
     const { rerender } = renderHook(
-      ({ name }: { name: string }) => useProcessDetailUsage(name, NOW - MINUTE, NOW, true, false),
+      ({ name }: { name: string }) => useProcessDetailUsage(name, NOW - MINUTE, NOW, true, false, 'cpu'),
       { initialProps: { name: 'chrome.exe' } },
     );
     await advance(200);
@@ -100,5 +100,36 @@ describe('useProcessDetailUsage', () => {
     for (const [query] of fetchMock.mock.calls) {
       expect(query.process).toBe('Nexus');
     }
+  });
+
+  it('also fetches the storage-read/storage-write split while metric is storage, even when disabled (no live counterpart to fall back to)', async () => {
+    const { result } = renderHook(() => useProcessDetailUsage('chrome.exe', NOW - MINUTE, NOW, false, true, 'storage'));
+    await advance(200);
+
+    const seriesRequested = fetchMock.mock.calls.map(([q]) => q.series).sort();
+    expect(seriesRequested).toEqual(['storage-read', 'storage-write']);
+    expect(result.current.storageRead.apps[0]?.name).toBe('chrome.exe');
+    expect(result.current.storageWrite.apps[0]?.name).toBe('chrome.exe');
+    // The four always-on tiles stay gated on `enabled` as before.
+    expect(result.current.cpu.apps).toEqual([]);
+  });
+
+  it('also fetches the net-down/net-up split while metric is network, even when disabled', async () => {
+    renderHook(() => useProcessDetailUsage('chrome.exe', NOW - MINUTE, NOW, false, true, 'network'));
+    await advance(200);
+
+    const seriesRequested = fetchMock.mock.calls.map(([q]) => q.series).sort();
+    expect(seriesRequested).toEqual(['net-down', 'net-up']);
+  });
+
+  it('does not fetch the storage or network split on any other tab', async () => {
+    renderHook(() => useProcessDetailUsage('chrome.exe', NOW - MINUTE, NOW, true, false, 'cpu'));
+    await advance(200);
+
+    const seriesRequested = fetchMock.mock.calls.map(([q]) => q.series).sort();
+    expect(seriesRequested).not.toContain('storage-read');
+    expect(seriesRequested).not.toContain('storage-write');
+    expect(seriesRequested).not.toContain('net-down');
+    expect(seriesRequested).not.toContain('net-up');
   });
 });
