@@ -3,9 +3,15 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { CoolingHistorySection } from './CoolingHistorySection';
 import type { UseMetricHistoryResult } from '../../../hooks/useMetricHistory';
 import type { DiagnosticsTemperatureEpisode } from '../../../api/diagnostics';
+import { xTickFormatForWindow } from '../../../panel/widgets/monitoring/page/metricHistoryHelpers';
 
 const HOUR = 3_600_000;
 const NOW = 10_000_000;
+
+// CoolingHistorySection has no per-frame click-to-pin, so its detached chip
+// always shows the viewed window's right edge (baseHistory's default domain)
+// formatted by the same x-axis tick formatter the chart itself uses.
+const DETACHED_LABEL = xTickFormatForWindow(HOUR)(NOW);
 
 const SAMPLE_SERIES: UseMetricHistoryResult['series'] = [
   { id: 'cpu-temp', kind: 'cpu-temp', name: 'CPU', points: [{ t: NOW - HOUR, avg: 40, max: 41 }, { t: NOW, avg: 50, max: 51 }] },
@@ -235,18 +241,19 @@ describe('CoolingHistorySection', () => {
     expect(from).toBeLessThan(to);
   });
 
-  it('shows the Live badge while following, and the back-to-live control once detached', () => {
+  it('shows the Live badge while following, and the viewed time with a return arrow once detached', () => {
     stubGeometry();
     const backToLive = vi.fn();
     const { rerender } = render(<CoolingHistorySection history={baseHistory({ following: true, backToLive })} />);
     const liveBadgeSlot = screen.getByText('monitoring.history.live').closest('span[aria-hidden]');
     expect(liveBadgeSlot).toHaveAttribute('aria-hidden', 'false');
-    const backToLiveButton = screen.getByText('monitoring.history.backToLive').closest('button')!;
-    expect(backToLiveButton).toHaveAttribute('aria-hidden', 'true');
+    const detachedButton = screen.getByText(DETACHED_LABEL).closest('button')!;
+    expect(detachedButton).toHaveAttribute('aria-hidden', 'true');
 
     rerender(<CoolingHistorySection history={baseHistory({ following: false, backToLive })} />);
-    expect(backToLiveButton).toHaveAttribute('aria-hidden', 'false');
-    fireEvent.click(backToLiveButton);
+    expect(detachedButton).toHaveAttribute('aria-hidden', 'false');
+    expect(detachedButton.querySelector('svg')).not.toBeNull();
+    fireEvent.click(detachedButton);
     expect(backToLive).toHaveBeenCalled();
   });
 });

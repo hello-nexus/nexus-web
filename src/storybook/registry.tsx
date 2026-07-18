@@ -96,6 +96,7 @@ import { Spinner as StorybookSpinner } from '../components/common/Spinner/Spinne
 import { Stepper as StorybookStepper } from '../components/common/Stepper/Stepper';
 import { RangeBar } from '../components/common/RangeBar/RangeBar';
 import { Badge as StorybookBadge } from '../components/common/Badge/Badge';
+import { LiveFollowControl } from '../components/common/LiveFollowControl/LiveFollowControl';
 import { SeriesChart } from '../components/common/SeriesChart/SeriesChart';
 import { TimeSeriesChart } from '../components/common/TimeSeriesChart/TimeSeriesChart';
 import { TimelineBrush } from '../components/common/TimelineBrush/TimelineBrush';
@@ -1581,6 +1582,16 @@ function PreviewBadge() {
   );
 }
 
+function PreviewLiveFollowControl() {
+  const [following, setFollowing] = useState(true);
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
+      <LiveFollowControl following={following} detachedLabel="3:45 PM" onBackToLive={() => setFollowing(true)} />
+      <button type="button" onClick={() => setFollowing(f => !f)}>Toggle</button>
+    </div>
+  );
+}
+
 function PreviewSeriesChart() {
   const s1 = { values: [10, 40, 30, 70, 55, 90, 60], color: 'var(--accent)', area: true };
   const s2 = { values: [50, 20, 60, 40, 80, 30, 75], color: 'var(--warn, #f59e0b)' };
@@ -2133,6 +2144,12 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/Badge/Badge.tsx',
     description: 'Status pill with tone-tinted color and color-mixed background. Accepts an optional icon ReactNode. Host-renderer bridge for the SDK Badge element.',
     Preview: PreviewBadge,
+  },
+  {
+    name: 'LiveFollowControl', category: 'status',
+    filePath: 'src/components/common/LiveFollowControl/LiveFollowControl.tsx',
+    description: 'Live / back-to-live toggle for a metric history header: a Live badge (dot to the right of the label) while following, or the caller-formatted viewed-frame time (arrow to its right) once detached - clicking it calls onBackToLive. Both stay mounted in the same reserved slot so toggling never shifts the row. Shared by the monitoring page and Diagnostics > Cooling.',
+    Preview: PreviewLiveFollowControl,
   },
   {
     name: 'EmptyState', category: 'status',

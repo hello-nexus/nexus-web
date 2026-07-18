@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
-import { Cpu, Gpu, MemoryStick, HardDrive, Network, List, Radio } from 'lucide-react';
+import { Cpu, Gpu, MemoryStick, HardDrive, Network, List } from 'lucide-react';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useNetworkMonitor, useAllNetworkSeries } from '../../../hooks/useNetworkMonitor';
 import { useAllProcesses, useGpuProcessFeed, useGpuProcessData } from '../../../hooks/useProcessMonitor';
@@ -14,13 +14,14 @@ import { formatMemoryMb } from '../../../lib/formatMemory';
 import { localizeNumbers } from '../../../lib/units';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { Badge } from '../../../components/common/Badge/Badge';
+import { LiveFollowControl } from '../../../components/common/LiveFollowControl/LiveFollowControl';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { MonitoringSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
 import { DetailedTab } from './page/DetailedTab';
 import { MetricHistorySection } from './page/MetricHistorySection';
 import { ProcessListSection, type ProcessListItem } from './page/ProcessListSection';
 import { MonitoringSettingsModal } from './page/MonitoringSettingsModal';
-import { seriesQueryFor, appsSeriesParamFor, currentDiskRateBytesPerSec, resolveSelectedFrame, type HistoryMetric } from './page/metricHistoryHelpers';
+import { seriesQueryFor, appsSeriesParamFor, currentDiskRateBytesPerSec, resolveSelectedFrame, xTickFormatForWindow, type HistoryMetric } from './page/metricHistoryHelpers';
 import { appsToProcessListItems, currentAppValueMap, reconcileLiveWithWindow, zeroedGpuFallback } from './page/appWindowHelpers';
 import { buildLiveUsageByName } from './page/processDetailHelpers';
 import { formatRate } from './page/shared';
@@ -162,6 +163,15 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
     setClickedFrameMs(null);
     backToLive();
   }, [backToLive]);
+
+  // Same granularity the hero chart's own x-axis uses (see MetricHistorySection),
+  // so the detached chip's timestamp reads at the same precision as the axis
+  // tick the viewed frame sits under.
+  const windowMs = history.domain[1] - history.domain[0];
+  const detachedLabel = useMemo(
+    () => xTickFormatForWindow(windowMs)(selectedFrameMs),
+    [windowMs, selectedFrameMs],
+  );
 
   const gpuVramByName = useMemo(() => new Map(gpuProcMemSeries.map(s => [s.name, s.current])), [gpuProcMemSeries]);
 
@@ -332,24 +342,11 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
                   </button>
                 )}
                 {history.mocked && <Badge label={t('monitoring.history.mocked')} color="var(--warn)" />}
-                <div className={styles.liveControl}>
-                  <span
-                    className={`${styles.liveControlSlot} ${history.following ? '' : styles.liveControlHidden}`}
-                    aria-hidden={!history.following}
-                  >
-                    <Badge label={t('monitoring.history.live')} color="var(--good)" />
-                  </span>
-                  <button
-                    type="button"
-                    className={`${styles.backToLive} ${styles.liveControlSlot} ${history.following ? styles.liveControlHidden : ''}`}
-                    onClick={backToLiveAndClearSnapshot}
-                    tabIndex={history.following ? -1 : 0}
-                    aria-hidden={history.following}
-                  >
-                    <Radio size={12} aria-hidden />
-                    {t('monitoring.history.backToLive')}
-                  </button>
-                </div>
+                <LiveFollowControl
+                  following={history.following}
+                  detachedLabel={detachedLabel}
+                  onBackToLive={backToLiveAndClearSnapshot}
+                />
               </div>
             )}
             <MetricHistorySection
