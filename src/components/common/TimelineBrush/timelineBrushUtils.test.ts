@@ -46,6 +46,16 @@ describe('hitZoneAt', () => {
     expect(hitZoneAt(50, 48, 52, 6)).toBe('left-edge');
   });
 
+  it('resolves an overlapping edge zone (window at/near the min-width floor) to whichever edge is nearer, not always the left', () => {
+    // An 8px-wide window with a 6px tolerance on each side - both edges'
+    // zones cover the whole window, so a pointer nearer `to` must still
+    // resolve to the right edge (previously always fell through to left).
+    expect(hitZoneAt(106, 100, 108, 6)).toBe('right-edge');
+    expect(hitZoneAt(102, 100, 108, 6)).toBe('left-edge');
+    // Exactly at the midpoint, ties favor the left edge.
+    expect(hitZoneAt(104, 100, 108, 6)).toBe('left-edge');
+  });
+
   it('detects the box between the edges', () => {
     expect(hitZoneAt(200, 100, 300, 6)).toBe('box');
   });

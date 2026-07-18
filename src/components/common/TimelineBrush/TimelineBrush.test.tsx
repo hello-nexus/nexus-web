@@ -113,6 +113,40 @@ describe('TimelineBrush', () => {
     expect(onChange).toHaveBeenLastCalledWith(20_000, 21_000, 'drag');
   });
 
+  it('a resize gesture at min width is a clean no-op when it would shrink further, in both directions', () => {
+    const onChange = vi.fn();
+    const { getByRole } = renderBrush(onChange, { from: 20_000, to: 21_000, minWindowMs: 1_000 });
+    const el = getByRole('slider');
+
+    // Grab the left edge and drag it right (shrinking) - clamps to a no-op.
+    fireEvent.pointerDown(el, { pointerId: 1, clientX: LANE + 200 });
+    fireEvent.pointerMove(el, { pointerId: 1, clientX: LANE + 209 });
+    expect(onChange).toHaveBeenLastCalledWith(20_000, 21_000, 'drag');
+    fireEvent.pointerUp(el, { pointerId: 1, clientX: LANE + 209 });
+
+    // Grab the right edge (a 10px-wide window at 100ms/px is exactly the
+    // combined edge tolerance, so both zones overlap here) and drag it left
+    // (shrinking) - also clamps to a no-op, not a silent left-edge resize.
+    fireEvent.pointerDown(el, { pointerId: 2, clientX: LANE + 210 });
+    fireEvent.pointerMove(el, { pointerId: 2, clientX: LANE + 201 });
+    expect(onChange).toHaveBeenLastCalledWith(20_000, 21_000, 'drag');
+  });
+
+  it('the right edge is independently grabbable and resizable at min width, not swallowed by the left edge\'s own tie-break', () => {
+    const onChange = vi.fn();
+    const { getByRole } = renderBrush(onChange, { from: 20_000, to: 21_000, minWindowMs: 1_000 });
+    const el = getByRole('slider');
+
+    // clientX exactly at the `to` edge - within tolerance of BOTH edges at
+    // this width, but nearer `to`, so it must grab the right edge.
+    fireEvent.pointerDown(el, { pointerId: 1, clientX: LANE + 210 });
+    fireEvent.pointerMove(el, { pointerId: 1, clientX: LANE + 230 });
+    // `from` stays put and `to` widens - if the left edge had been grabbed
+    // instead, `from` would have moved (or clamped to a no-op) and `to`
+    // would never change.
+    expect(onChange).toHaveBeenLastCalledWith(20_000, 23_000, 'drag');
+  });
+
   it('clicking the track outside the window recenters on the clicked point immediately', () => {
     const onChange = vi.fn();
     const { getByRole } = renderBrush(onChange);

@@ -125,10 +125,10 @@ export function MetricHistorySection({
     [metric, chartSeries],
   );
   // The ceiling freezes for the whole of an active TimelineBrush drag: the
-  // series driving liveYMax is the during-drag silhouette slice, coarser
-  // than the settled window and prone to a different observed peak on every
-  // tick (recomputing per tick wobbles the axis even though the underlying
-  // data isn't flickering anymore). Only recomputed once the drag settles.
+  // series driving liveYMax is a pan/clip of the frozen fine snapshot, whose
+  // own observed peak still shifts tick to tick as the visible window moves
+  // across real data (recomputing per tick wobbles the axis even though the
+  // underlying data isn't flickering). Only recomputed once the drag settles.
   const stableYMaxRef = useRef(liveYMax);
   useEffect(() => {
     if (!history.dragging) stableYMaxRef.current = liveYMax;

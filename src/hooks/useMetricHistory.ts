@@ -16,14 +16,6 @@ const SILHOUETTE_REFRESH_MS = 60_000;
 const VIEWPORT_MAX_POINTS = 800;
 const VIEWPORT_REDECIMATE_MS = 60_000;
 
-// Drag-time live rendering (item 29): a low-resolution fetch fired while the
-// seek-bar is actively dragging, throttled to at most one in flight at a
-// time (never one request per pointermove). maxPoints is far below the
-// box's own VIEWPORT_MAX_POINTS - coarse is fine for a window that's still
-// moving; the full-resolution fetch only ever lands once the drag actually
-// ends (see the viewport-fetch effect below), never mid-drag.
-const DRAG_COARSE_MAX_POINTS = 100;
-
 const LIVE_TAIL_POLL_MS = 1_000;
 const LIVE_TAIL_MAX_POINTS = 50;
 // Fallback lookback for the very first tail poll (before any viewport
@@ -53,10 +45,12 @@ export interface UseMetricHistoryResult {
   lastPresetKey: PresetKey;
   following: boolean;
   /** True while a TimelineBrush box drag is in progress (between a 'drag'
-   *  event and its matching 'end') - `series` is the stable silhouette slice
-   *  for the whole gesture, so a consumer that needs to avoid recomputing a
-   *  derived value off the coarser during-drag series (e.g. the adaptive Y
-   *  axis) can freeze on this instead. */
+   *  event and its matching 'end') - `series` is a pan/clip of the frozen
+   *  fine snapshot for the whole gesture (see renderFinePanSlice), so its
+   *  own visible min/max still shifts tick to tick as the window moves
+   *  across real data; a consumer that needs to avoid recomputing a derived
+   *  value off that per-tick shift (e.g. the adaptive Y axis) can freeze on
+   *  this instead. */
   dragging: boolean;
   loading: boolean;
   error: boolean;
@@ -99,6 +93,23 @@ function newestT(seriesList: readonly MetricHistorySeries[]): number | null {
     }
   }
   return t;
+}
+
+// The time span (max t - min t, pooled across every series) a drag-panned
+// slice must cover, as a fraction of the requested window's own width,
+// before renderFinePanSlice trusts it over the coarser silhouette fallback.
+const FINE_PAN_MIN_COVERAGE = 0.5;
+
+function coveredSpanMs(seriesList: readonly MetricHistorySeries[]): number {
+  let min = Infinity;
+  let max = -Infinity;
+  for (const s of seriesList) {
+    for (const p of s.points) {
+      if (p.t < min) min = p.t;
+      if (p.t > max) max = p.t;
+    }
+  }
+  return Number.isFinite(min) && Number.isFinite(max) ? max - min : 0;
 }
 
 /** Appends newly polled tail points onto the matching existing series (by
@@ -159,7 +170,7 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
   const [stepSeconds, setStepSeconds] = useState<number | null>(null);
   // True only between a TimelineBrush 'drag' event and its matching 'end' -
   // consumers (the adaptive Y axis) freeze on this to avoid recomputing from
-  // the coarser during-drag series.
+  // the visible window's own per-tick shift during the pan.
   const [dragging, setDragging] = useState(false);
 
   const [fetchEpoch, setFetchEpoch] = useState(0);
@@ -174,19 +185,12 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
   const cacheRef = useRef(new MonitoringHistoryCache());
   const silhouetteRef = useRef(silhouette);
   useEffect(() => { silhouetteRef.current = silhouette; }, [silhouette]);
-  // Drag-time coarse-fetch pipeline (item 29) - one in flight at a time,
-  // coalescing to the LATEST dragged-to window rather than queuing one
-  // request per pointermove. See runCoarseDragFetch below for the full
-  // throttle strategy. dragCurrentTargetRef always holds the window the user
-  // most recently dragged to (set on every 'drag' event, unlike
-  // dragCoarsePendingRef which is cleared the moment a fetch for it starts)
-  // - a resolved coarse response is only applied when it still matches this,
-  // so a fetch for an earlier window that resolves after a newer drag has
-  // already moved on (even if that newer drag's own fetch hasn't landed
-  // yet) is dropped instead of briefly flashing stale data.
-  const dragCoarseInFlightRef = useRef(false);
-  const dragCoarsePendingRef = useRef<{ from: number; to: number; query: string } | null>(null);
-  const dragCurrentTargetRef = useRef<{ from: number; to: number; query: string } | null>(null);
+  // The most recent SETTLED (non-drag) fine viewport fetch's own series - a
+  // drag pans/clips this frozen snapshot instead of fetching anything new
+  // (see renderFinePanSlice below), so it stays untouched by a drag's own
+  // renders and only ever advances from a real network response or a live-
+  // tail merge.
+  const fineSnapshotRef = useRef<MetricHistorySeries[]>([]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -259,10 +263,9 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
   // decimation over its FULL span) sliced to [from, to] - always available
   // once the strip's silhouette has loaded, and always spans the entire
   // requested window (never a partial sliver), so this is the one interim
-  // source that can never collapse to a near-empty render. This is the sole
-  // synchronous render used while an active TimelineBrush drag is in
-  // progress (see onBrushChange) - a single stable source for the whole
-  // gesture, refined only by the throttled coarse fetch below.
+  // source that can never collapse to a near-empty render. Also the
+  // fallback source for renderFinePanSlice below, when the frozen fine
+  // snapshot has no coverage at all for the requested window.
   const renderSilhouetteSlice = useCallback((from: number, to: number) => {
     if (silhouetteRef.current.length === 0) return;
     const sliced = sliceToWindow(
@@ -277,10 +280,8 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
   // fetch resolves): an exact cache hit renders immediately; a miss falls
   // back to whatever cached window overlaps this one, sliced to the
   // requested range; a further miss falls back to the silhouette slice
-  // above. NOT used while actively dragging - a fast drag revisits many
-  // narrow, barely-overlapping cache entries (each drag tick's own coarse
-  // fetch gets cached too), and slicing one of those to the requested
-  // window can yield a near-empty render with just a sliver of real data.
+  // above. NOT used while actively dragging - see renderFinePanSlice below,
+  // the dedicated drag-time renderer.
   const renderFromCacheOrSilhouette = useCallback((from: number, to: number, query: string) => {
     const exact = cacheRef.current.get(from, to, VIEWPORT_MAX_POINTS, query);
     if (exact) {
@@ -297,45 +298,30 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
     renderSilhouetteSlice(from, to);
   }, [renderSilhouetteSlice]);
 
-  // Runs (or continues) the drag-time coarse-fetch chase: fetches the
-  // LATEST pending dragged-to window at DRAG_COARSE_MAX_POINTS, applies the
-  // result only if it still matches dragCurrentTargetRef (a response for an
-  // earlier window that resolves after the user has already dragged further
-  // - even if that later drag's own fetch hasn't landed yet - must not
-  // flash stale data; checking only the drag/end phase isn't enough, since
-  // a release-then-immediate-redrag flips the phase back to 'drag' while an
-  // older fetch is still in flight), then immediately re-runs for whatever
-  // window is pending by the time this one resolves. Because
-  // dragCoarseInFlightRef gates entry, at most one request is ever in
-  // flight - a fast continuous drag collapses to a steady stream of
-  // at-most-one-round-trip-latency updates instead of one request per
-  // pointermove (no fetch storm) and touches no state per call beyond the
-  // refs (no allocation churn until a response actually lands).
-  const runCoarseDragFetch = useCallback(() => {
-    if (dragCoarseInFlightRef.current) return;
-    const pending = dragCoarsePendingRef.current;
-    if (!pending) return;
-    dragCoarsePendingRef.current = null;
-    dragCoarseInFlightRef.current = true;
-    void (async () => {
-      const result = await fetchMonitoringHistory({
-        from: pending.from, to: pending.to, maxPoints: DRAG_COARSE_MAX_POINTS, series: pending.query,
-      });
-      dragCoarseInFlightRef.current = false;
-      if (mountedRef.current) {
-        if (result.data) {
-          if (!result.mocked) cacheRef.current.set(pending.from, pending.to, DRAG_COARSE_MAX_POINTS, pending.query, result.data);
-          const current = dragCurrentTargetRef.current;
-          const isCurrent = current !== null && current.from === pending.from && current.to === pending.to && current.query === pending.query;
-          if (lastPhaseRef.current === 'drag' && isCurrent) {
-            setSeries(result.data.series);
-            setStepSeconds(result.data.stepSeconds);
-          }
-        }
-        runCoarseDragFetch();
-      }
-    })();
-  }, []);
+  // The sole synchronous render used while an active TimelineBrush drag is
+  // in progress (see onBrushChange): pans/clips the last SETTLED fine fetch
+  // (fineSnapshotRef, frozen for the whole gesture - the fine fetch itself
+  // is gated off until release, see the viewport-fetch effect below) to the
+  // moving window, so the chart reads as real data shifting rather than a
+  // coarse approximation. No network request is made during the drag at
+  // all. Falls back to the silhouette slice once the frozen snapshot's own
+  // overlap with the requested window drops below FINE_PAN_MIN_COVERAGE -
+  // not just when it's entirely empty - so a drag that pans mostly (but not
+  // fully) off the snapshot's edge doesn't render an almost-empty sliver of
+  // real data (the same "near-empty spike" failure mode this rework
+  // replaces, just sourced from a stale edge instead of a stale fetch).
+  const renderFinePanSlice = useCallback((from: number, to: number) => {
+    const sliced = sliceToWindow(
+      { supported: true, retentionDays: retentionDaysRef.current, stepSeconds: 0, series: fineSnapshotRef.current },
+      from, to,
+    );
+    const requestedSpan = to - from || 1;
+    if (coveredSpanMs(sliced.series) >= requestedSpan * FINE_PAN_MIN_COVERAGE) {
+      setSeries(sliced.series);
+    } else {
+      renderSilhouetteSlice(from, to);
+    }
+  }, [renderSilhouetteSlice]);
 
   const loadViewport = useCallback((from: number, to: number, query: string) => {
     const seq = ++viewportSeqRef.current;
@@ -348,6 +334,7 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
       if (!mountedRef.current || seq !== viewportSeqRef.current) return;
       if (result.data) {
         setSeries(result.data.series);
+        fineSnapshotRef.current = result.data.series;
         setSupported(result.data.supported);
         setRetentionDays(result.data.retentionDays);
         setStepSeconds(result.data.stepSeconds);
@@ -481,15 +468,19 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
   // otherwise freeze the instant following goes false, since the box's own
   // fetches keep re-requesting the same static historical window and never
   // observe a newer point). The DISPLAYED series only merges the tail while
-  // following (read from viewportRef, not the effect's own closed-over
-  // `viewport`, so this doesn't need following in its dependency array and
-  // therefore doesn't tear the interval down and rebuild it on every
-  // attach/detach) - a detached scrub must never have its history mutated
-  // out from under it. `to` is anchored to the server time base
-  // (lastLoadedTRef, or nowRef before any response has landed) rather than
-  // the client clock - a client/relay clock skew against the client's
-  // Date.now() could otherwise request a window where from > to and freeze
-  // the tail.
+  // following AND not mid-drag (read from viewportRef/lastPhaseRef, not the
+  // effect's own closed-over `viewport`, so this doesn't need following in
+  // its dependency array and therefore doesn't tear the interval down and
+  // rebuild it on every attach/detach) - a detached scrub must never have
+  // its history mutated out from under it, and a drag that keeps following
+  // true throughout (the box's right edge pinned at "now") must not have
+  // its own frozen-snapshot pan (renderFinePanSlice) stomped by a
+  // concurrent tail merge. The frozen snapshot itself still absorbs the
+  // tail regardless of drag phase, so it is current again the moment the
+  // drag ends. `to` is anchored to the server time base (lastLoadedTRef, or
+  // nowRef before any response has landed) rather than the client clock - a
+  // client/relay clock skew against the client's Date.now() could
+  // otherwise request a window where from > to and freeze the tail.
   useEffect(() => {
     if (!enabled || !supported || error) return;
     const timer = window.setInterval(() => {
@@ -503,7 +494,10 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
         const tail = result.data.series;
         const t = newestT(tail);
         if (t === null) return;
-        if (viewportRef.current.following) setSeries(prev => mergeTail(prev, tail));
+        if (viewportRef.current.following) {
+          fineSnapshotRef.current = mergeTail(fineSnapshotRef.current, tail);
+          if (lastPhaseRef.current !== 'drag') setSeries(prev => mergeTail(prev, tail));
+        }
         bumpNow(tail);
         if (t > (lastLoadedTRef.current ?? -Infinity)) lastLoadedTRef.current = t;
       })();
@@ -530,22 +524,16 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
     setDragging(phase === 'drag');
     setViewport(prev => viewportReducer(prev, { type: 'brushChange', from, to, now: nowRef.current }));
     if (phase === 'drag') {
-      // Live rendering while dragging (item 29): render synchronously from
-      // the silhouette slice - the one interim source that always spans the
-      // full requested window and is never empty - then queue/continue the
-      // throttled coarse fetch for progressive refinement. Both are
-      // independent of the fetchEpoch bump below, which drives the fine
-      // (800pt) fetch - gated to never fire while still dragging (see that
-      // effect), so the fine fetch only ever runs once on release.
-      renderSilhouetteSlice(from, to);
-      const target = { from, to, query: seriesQuery };
-      dragCurrentTargetRef.current = target;
-      dragCoarsePendingRef.current = target;
-      runCoarseDragFetch();
+      // Live rendering while dragging (item 29): pan/clip the frozen fine
+      // snapshot (see renderFinePanSlice) - independent of the fetchEpoch
+      // bump below, which drives the fine (800pt) fetch, gated to never
+      // fire while still dragging (see that effect), so the fine fetch
+      // only ever runs once on release.
+      renderFinePanSlice(from, to);
     }
     setFetchEpoch(e => e + 1);
     setViewportGeneration(g => g + 1);
-  }, [renderSilhouetteSlice, runCoarseDragFetch, seriesQuery]);
+  }, [renderFinePanSlice]);
 
   const onChartDragSelect = useCallback((from: number, to: number) => {
     lastPhaseRef.current = 'end';

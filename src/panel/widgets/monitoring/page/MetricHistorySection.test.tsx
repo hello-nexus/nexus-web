@@ -137,7 +137,7 @@ describe('MetricHistorySection', () => {
         onGraphClick={vi.fn()}
       />,
     );
-    // Still frozen at the 100% bucket even though this tick's own (coarser,
+    // Still frozen at the 100% bucket even though this tick's own (panned,
     // during-drag) data would only need the 10% one - the axis must not
     // wobble mid-drag.
     expect(screen.getByText('100%')).toBeInTheDocument();
