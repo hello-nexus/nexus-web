@@ -446,19 +446,6 @@ describe('TimeSeriesChart', () => {
     });
   });
 
-  describe('currentValue', () => {
-    it('renders no readout when omitted (backwards compatible)', () => {
-      render(<TimeSeriesChart series={makeSeries()} {...baseProps} />);
-      expect(screen.queryByText('99C')).toBeNull();
-    });
-
-    it('renders the readout at the axis label position, at the value\'s own y', () => {
-      render(<TimeSeriesChart series={makeSeries()} {...baseProps} yAxisSide="right" currentValue={{ value: 53, label: '53C' }} />);
-      const label = screen.getByText('53C');
-      expect(label).toHaveAttribute('text-anchor', 'start');
-    });
-  });
-
   describe('yAxisSide', () => {
     it('renders y-tick labels on the left by default', () => {
       render(<TimeSeriesChart series={makeSeries()} {...baseProps} yDomain={[0, 100]} />);
@@ -493,6 +480,113 @@ describe('TimeSeriesChart', () => {
         <TimeSeriesChart series={ribbonSeries} {...baseProps} ribbons={[{ points, floor: 30, cap: 100, fill: 'var(--bad)' }]} />,
       );
       expect(ribbonRects(container).length).toBe(3);
+    });
+
+    it('does not draw a bar spanning a gap between ribbon points, matching the line\'s own gap rule', () => {
+      // Same gap fixture as the line's own "breaks a series into multiple
+      // path segments across a gap" test: an 8-hour gap between p1 and p2,
+      // far past the ~1.5x-median-spacing threshold.
+      const points = [
+        { t: 0, avg: 40, max: 41 },
+        { t: HOUR, avg: 50, max: 52 },
+        { t: 10 * HOUR, avg: 60, max: 62 },
+        { t: 11 * HOUR, avg: 65, max: 67 },
+      ];
+      const { container } = render(
+        <TimeSeriesChart
+          series={ribbonSeries} {...baseProps} domain={[0, 11 * HOUR]}
+          ribbons={[{ points, floor: 30, cap: 100, fill: 'var(--bad)' }]}
+        />,
+      );
+      // p1 (t=HOUR) is the last point before the gap - no bar spans from it
+      // to p2 (t=10*HOUR); only p0-p1, p2-p3, and p3-to-edge remain (not 4).
+      expect(ribbonRects(container).length).toBe(3);
+    });
+
+    it('renders a thin marker for a ribbon point isolated between two gaps, instead of vanishing', () => {
+      // Same fixture as the line's own isolated-point test.
+      const points = [
+        { t: 0, avg: 40, max: 45 },
+        { t: HOUR, avg: 42, max: 46 },
+        { t: 20 * HOUR, avg: 90, max: 95 },
+        { t: 40 * HOUR, avg: 41, max: 44 },
+        { t: 41 * HOUR, avg: 43, max: 47 },
+      ];
+      const { container } = render(
+        <TimeSeriesChart
+          series={ribbonSeries} {...baseProps} domain={[0, 41 * HOUR]}
+          ribbons={[{ points, floor: 30, cap: 100, fill: 'var(--bad)' }]}
+        />,
+      );
+      // p0-p1, the isolated marker at p2, p3-p4, and p4-to-edge.
+      expect(ribbonRects(container).length).toBe(4);
+    });
+
+    it('does not extend the last point\'s bar to the right edge across a trailing stale gap (the series stopped reporting well before "now")', () => {
+      // Evenly spaced (median spacing = 1h, gap threshold = 1.5h) so the
+      // fixture's own gap math is unambiguous; the chart's domain extends 8h
+      // past the last real point - far past the threshold.
+      const points = [
+        { t: 0, avg: 40, max: 41 },
+        { t: HOUR, avg: 50, max: 52 },
+        { t: 2 * HOUR, avg: 60, max: 62 },
+      ];
+      const { container } = render(
+        <TimeSeriesChart
+          series={ribbonSeries} {...baseProps} domain={[0, 10 * HOUR]}
+          ribbons={[{ points, floor: 30, cap: 100, fill: 'var(--bad)' }]}
+        />,
+      );
+      // p0-p1 and p1-p2 only - the last point (p2) does not extend forward
+      // into the unreported 8h stretch up to the plot's own right edge.
+      const rects = ribbonRects(container);
+      expect(rects.length).toBe(2);
+      const plotRightEdge = Number(container.querySelector('clipPath rect')!.getAttribute('width'))
+        + Number(container.querySelector('clipPath rect')!.getAttribute('x'));
+      for (const r of rects) {
+        expect(Number(r.getAttribute('x')) + Number(r.getAttribute('width'))).toBeLessThan(plotRightEdge);
+      }
+    });
+
+    it('renders a marker (not an edge-spanning bar) for a stale trailing point isolated by its own leading gap', () => {
+      // p1->p2 is a real gap (4h, past the ~3.75h threshold this fixture's
+      // own spacing derives); p2 is then also stale relative to a domain end
+      // 15h further still - it gets the isolated-point marker treatment, not
+      // a bar spanning all the way to the plot's right edge.
+      const points = [
+        { t: 0, avg: 40, max: 41 },
+        { t: HOUR, avg: 42, max: 44 },
+        { t: 5 * HOUR, avg: 90, max: 95 },
+      ];
+      const { container } = render(
+        <TimeSeriesChart
+          series={ribbonSeries} {...baseProps} domain={[0, 20 * HOUR]}
+          ribbons={[{ points, floor: 30, cap: 100, fill: 'var(--bad)' }]}
+        />,
+      );
+      // The p0-p1 bar, plus a marker for p2 - no bar reaches the right edge.
+      const rects = ribbonRects(container);
+      expect(rects.length).toBe(2);
+      const plotRightEdge = Number(container.querySelector('clipPath rect')!.getAttribute('width'))
+        + Number(container.querySelector('clipPath rect')!.getAttribute('x'));
+      for (const r of rects) {
+        expect(Number(r.getAttribute('x')) + Number(r.getAttribute('width'))).toBeLessThan(plotRightEdge);
+      }
+    });
+
+    it('amplifies thickness so a mid-range value is not barely distinguishable from the floor (item: amplified scale)', () => {
+      const points = [{ t: 0, avg: 30, max: 30 }, { t: HOUR, avg: 65, max: 65 }];
+      const { container } = render(
+        <TimeSeriesChart series={ribbonSeries} {...baseProps} ribbons={[{ points, floor: 30, cap: 100, fill: 'var(--bad)', height: 20 }]} />,
+      );
+      const rects = ribbonRects(container);
+      // A pure linear mapping would give the midpoint value (65, exactly
+      // half of [30,100]) half the band's own headroom above the floor
+      // thickness; the amplified (sqrt) mapping must give it more than that.
+      const floorThickness = Number(rects[0].getAttribute('height'));
+      const midThickness = Number(rects[1].getAttribute('height'));
+      const linearMid = floorThickness + 0.5 * (20 - floorThickness);
+      expect(midThickness).toBeGreaterThan(linearMid);
     });
 
     it('renders a thicker band for a value nearer the cap (waveform, not opacity)', () => {
@@ -548,6 +642,28 @@ describe('TimeSeriesChart', () => {
       const firstMidY = Number(first.getAttribute('y')) + Number(first.getAttribute('height')) / 2;
       const secondMidY = Number(second.getAttribute('y')) + Number(second.getAttribute('height')) / 2;
       expect(secondMidY).toBeGreaterThan(firstMidY);
+    });
+
+    it('leaves a visible gap between two stacked bands rather than letting them touch', () => {
+      // avg pinned at the ribbon's own cap so the rendered thickness equals
+      // the full reserved band height - the rect's own edges then exactly
+      // trace each band's reserved slot, making the gap between them directly
+      // observable from the DOM.
+      const points = [{ t: 0, avg: 100, max: 100 }];
+      const { container } = render(
+        <TimeSeriesChart
+          series={ribbonSeries} {...baseProps}
+          ribbons={[
+            { points, floor: 0, cap: 100, fill: 'var(--bad)', height: 12 },
+            { points, floor: 0, cap: 100, fill: 'var(--accent)', height: 12 },
+          ]}
+        />,
+      );
+      const first = ribbonRects(container, 'var(--bad)')[0];
+      const second = ribbonRects(container, 'var(--accent)')[0];
+      const firstBottom = Number(first.getAttribute('y')) + Number(first.getAttribute('height'));
+      const secondTop = Number(second.getAttribute('y'));
+      expect(secondTop).toBeGreaterThan(firstBottom);
     });
 
     it('renders a valueLabel at the axis label position, on the yAxisSide edge', () => {

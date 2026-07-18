@@ -89,17 +89,17 @@ describe('CoolingHistorySection', () => {
     expect(screen.getByText('diagnostics.mockDataBadge')).toBeInTheDocument();
   });
 
-  it('renders one colored line per temperature kind (cpu/gpu/mem/drive), skipping fan-duty', () => {
+  it('renders one colored line per temperature kind (cpu/gpu/mem/drive), skipping the fan kind', () => {
     stubGeometry();
     const series: UseMetricHistoryResult['series'] = [
       { id: 'cpu-temp', kind: 'cpu-temp', name: 'CPU', points: [{ t: NOW - HOUR, avg: 40, max: 41 }, { t: NOW, avg: 50, max: 51 }] },
       { id: 'gpu-temp:0', kind: 'gpu-temp', name: 'GPU', points: [{ t: NOW - HOUR, avg: 45, max: 46 }, { t: NOW, avg: 55, max: 56 }] },
       { id: 'mem-temp', kind: 'mem-temp', name: 'Memory', points: [{ t: NOW - HOUR, avg: 38, max: 39 }, { t: NOW, avg: 39, max: 40 }] },
       { id: 'drive-temp:0', kind: 'drive-temp', name: 'SSD 0', points: [{ t: NOW - HOUR, avg: 33, max: 34 }, { t: NOW, avg: 34, max: 35 }] },
-      { id: 'fan-duty:1', kind: 'fan-duty', name: 'Fan 1', points: [{ t: NOW - HOUR, avg: 40, max: 42 }, { t: NOW, avg: 60, max: 62 }] },
+      { id: 'fan:1', kind: 'fan', name: 'Fan 1', points: [{ t: NOW - HOUR, avg: 1200, max: 1250 }, { t: NOW, avg: 1600, max: 1650 }] },
     ];
     const { container } = renderSection({ history: { series } });
-    // Four lines (one per temp kind) - fan-duty renders as a ribbon, not a line.
+    // Four lines (one per temp kind) - fan renders as a ribbon, not a line.
     expect(container.querySelectorAll('path[stroke-width="1.6"]').length).toBe(4);
     expect(screen.getByText('CPU')).toBeInTheDocument();
     expect(screen.getByText('GPU')).toBeInTheDocument();
@@ -107,34 +107,34 @@ describe('CoolingHistorySection', () => {
     expect(screen.getByText('SSD 0')).toBeInTheDocument();
   });
 
-  it('renders no duty band when there is no fan-duty series', () => {
+  it('renders no fan-speed band when there is no fan series', () => {
     stubGeometry();
     const { container } = renderSection({ history: { series: SAMPLE_SERIES } });
     expect(container.querySelector('rect[fill="var(--accent)"]')).toBeNull();
   });
 
-  it('renders a duty band averaged across every fan-duty series', () => {
+  it('renders a fan-speed band averaged across every fan series (RPM), with a text readout instead of an icon', () => {
     stubGeometry();
     const series: UseMetricHistoryResult['series'] = [
       ...SAMPLE_SERIES,
-      { id: 'fan-duty:1', kind: 'fan-duty', name: 'Fan 1', points: [{ t: NOW, avg: 40, max: 42 }] },
-      { id: 'fan-duty:2', kind: 'fan-duty', name: 'Fan 2', points: [{ t: NOW, avg: 60, max: 58 }] },
+      { id: 'fan:1', kind: 'fan', name: 'Fan 1', points: [{ t: NOW, avg: 1200, max: 1250 }] },
+      { id: 'fan:2', kind: 'fan', name: 'Fan 2', points: [{ t: NOW, avg: 1600, max: 1580 }] },
     ];
     const { container } = renderSection({ history: { series } });
     expect(container.querySelector('rect[fill="var(--accent)"]')).toBeInTheDocument();
-    expect(screen.getByLabelText('diagnostics.temperature.fanDuty')).toBeInTheDocument();
+    expect(screen.getByText('1400 RPM')).toBeInTheDocument();
   });
 
-  it('shows the average fan duty on the same row as the timestamp in the hover tooltip', () => {
+  it('shows the average fan speed (RPM) on the same row as the timestamp in the hover tooltip', () => {
     stubGeometry();
     const series: UseMetricHistoryResult['series'] = [
       { id: 'cpu-temp', kind: 'cpu-temp', name: 'CPU', points: [{ t: NOW, avg: 50, max: 51 }] },
-      { id: 'fan-duty:1', kind: 'fan-duty', name: 'Fan 1', points: [{ t: NOW, avg: 60, max: 62 }] },
+      { id: 'fan:1', kind: 'fan', name: 'Fan 1', points: [{ t: NOW, avg: 1500, max: 1520 }] },
     ];
     const { container } = renderSection({ history: { series, domain: [NOW - HOUR, NOW] } });
     fireEvent.mouseMove(chartSvg(container), { clientX: 0 });
     const header = container.querySelector('[class*="tooltipHeader"]')!;
-    expect(header.textContent).toContain('60%');
+    expect(header.textContent).toContain('1500 RPM');
   });
 
   it('renders a translucent band for a passed episode', () => {

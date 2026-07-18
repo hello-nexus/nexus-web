@@ -8,9 +8,9 @@ import type { TimeSeriesPoint, TimeSeriesSeries } from '../../common/TimeSeriesC
 import { temperatureSeriesColor } from './temperatureHelpers';
 
 /** The `series=` csv requested from GET /monitoring/history for this chart:
- *  every temperature kind it plots as a line, plus fan duty for the band
- *  rendered underneath. */
-export const COOLING_HISTORY_SERIES_QUERY = 'cpu-temp,gpu-temp,mem-temp,drive-temp,fan-duty';
+ *  every temperature kind it plots as a line, plus fan speed (RPM) for the
+ *  band rendered underneath. */
+export const COOLING_HISTORY_SERIES_QUERY = 'cpu-temp,gpu-temp,mem-temp,drive-temp,fan';
 
 type CoolingTempKind = 'cpu-temp' | 'gpu-temp' | 'mem-temp' | 'drive-temp';
 
@@ -33,7 +33,7 @@ function isCoolingTempKind(kind: MetricHistoryKind): kind is CoolingTempKind {
 /**
  * Maps the history API's temperature-kind series onto TimeSeriesChart's
  * generic shape: filters to the temperature kinds (cpu/gpu/mem/drive),
- * dropping fan-duty (which renders as its own ribbon instead of a line),
+ * dropping the fan kind (which renders as its own ribbon instead of a line),
  * sorted by kind then id so the legend/color rank is stable regardless of the
  * server's array order, and colored via temperatureHelpers.ts's fixed kind
  * palette (shade families for a second/third series of the same kind, e.g.

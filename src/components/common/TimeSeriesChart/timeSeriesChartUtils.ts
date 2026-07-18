@@ -163,6 +163,22 @@ export function nearestPoint(points: readonly TimeSeriesPoint[], targetT: number
 }
 
 /**
+ * Perceptual amplification for a ribbon's linear [0, 1] floor/cap fraction.
+ * A fixed real-world floor/cap range (so the ribbon reads the same way
+ * across different scrub windows) compresses an ordinary swing into a
+ * narrow slice of the band - ordinary CPU temperatures moving 40-60C out of
+ * a 30-100C ribbon range only cover a third of the band's own height. A
+ * square-root curve stretches the low-to-mid range so a modest change still
+ * reads as a visible thickness change, while both ends of the domain stay
+ * pinned (0 stays 0, 1 stays 1) so the band never reads thicker than its own
+ * cap value implies. Clamps its input, so a value outside the ribbon's own
+ * floor/cap still maps into [0, 1] rather than going imaginary or negative.
+ */
+export function ribbonThicknessFraction(rawFraction: number): number {
+  return Math.sqrt(Math.max(0, Math.min(1, rawFraction)));
+}
+
+/**
  * The full precise timestamp for the hover tooltip header, independent of
  * the caller's xTickFormat axis-tick granularity (which drops the time
  * component entirely past a 7-day range). Day-aware the same way the

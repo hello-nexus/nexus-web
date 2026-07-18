@@ -40,7 +40,7 @@ function dayPhase(t: number): number {
 }
 
 function roundForKind(kind: MetricHistoryKind, v: number): number {
-  return kind === 'net' ? Math.round(v) : Math.round(v * 10) / 10;
+  return kind === 'net' || kind === 'fan' ? Math.round(v) : Math.round(v * 10) / 10;
 }
 
 interface SeriesDef {
@@ -107,14 +107,14 @@ const SERIES_DEFS: readonly SeriesDef[] = [
     spreadAt: t => 1 + Math.abs(wobble(t, 20)) * 2,
   },
   {
-    id: 'fan-duty:1', kind: 'fan-duty', name: 'Fan 1',
-    avgAt: t => clamp(30 + sessionBump(t, 2_400_000, CPU_LOAD_BUMP_PHASE) * 40 + wobble(t, 21) * 5, 10, 100),
-    spreadAt: t => 2 + Math.abs(wobble(t, 31)) * 3,
+    id: 'fan:1', kind: 'fan', name: 'Fan 1',
+    avgAt: t => clamp(400 + sessionBump(t, 2_400_000, CPU_LOAD_BUMP_PHASE) * 1400 + wobble(t, 21) * 60, 200, 2200),
+    spreadAt: t => 20 + Math.abs(wobble(t, 31)) * 40,
   },
   {
-    id: 'fan-duty:2', kind: 'fan-duty', name: 'Fan 2',
-    avgAt: t => clamp(28 + sessionBump(t, 2_400_000, CPU_LOAD_BUMP_PHASE) * 38 + wobble(t, 22) * 5, 10, 100),
-    spreadAt: t => 2 + Math.abs(wobble(t, 32)) * 3,
+    id: 'fan:2', kind: 'fan', name: 'Fan 2',
+    avgAt: t => clamp(380 + sessionBump(t, 2_400_000, CPU_LOAD_BUMP_PHASE) * 1350 + wobble(t, 22) * 60, 200, 2200),
+    spreadAt: t => 20 + Math.abs(wobble(t, 32)) * 40,
   },
 ];
 

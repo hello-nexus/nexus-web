@@ -11,16 +11,16 @@ function series(id: string, kind: MetricHistorySeries['kind'], points: MetricHis
 }
 
 describe('COOLING_HISTORY_SERIES_QUERY', () => {
-  it('requests every temperature kind plus fan duty', () => {
-    expect(COOLING_HISTORY_SERIES_QUERY).toBe('cpu-temp,gpu-temp,mem-temp,drive-temp,fan-duty');
+  it('requests every temperature kind plus fan speed', () => {
+    expect(COOLING_HISTORY_SERIES_QUERY).toBe('cpu-temp,gpu-temp,mem-temp,drive-temp,fan');
   });
 });
 
 describe('toCoolingTempChartSeries', () => {
-  it('drops fan-duty, keeping only the four temperature kinds', () => {
+  it('drops the fan kind, keeping only the four temperature kinds', () => {
     const input = [
       series('cpu-temp', 'cpu-temp', [{ t: 0, avg: 50, max: 55 }], 'CPU'),
-      series('fan-duty:1', 'fan-duty', [{ t: 0, avg: 40, max: 45 }], 'Fan 1'),
+      series('fan:1', 'fan', [{ t: 0, avg: 1200, max: 1250 }], 'Fan 1'),
     ];
     const result = toCoolingTempChartSeries(input);
     expect(result.map(s => s.id)).toEqual(['cpu-temp']);
@@ -70,10 +70,10 @@ describe('coolingSilhouettePoints', () => {
     ]);
   });
 
-  it('ignores fan-duty series', () => {
+  it('ignores fan series', () => {
     const cpu = series('cpu-temp', 'cpu-temp', [{ t: 0, avg: 40, max: 45 }]);
-    const duty = series('fan-duty:1', 'fan-duty', [{ t: 0, avg: 90, max: 95 }]);
-    expect(coolingSilhouettePoints([cpu, duty])).toEqual([{ t: 0, avg: 40, max: 45 }]);
+    const fan = series('fan:1', 'fan', [{ t: 0, avg: 1800, max: 1850 }]);
+    expect(coolingSilhouettePoints([cpu, fan])).toEqual([{ t: 0, avg: 40, max: 45 }]);
   });
 
   it('keeps a timestamp present in only one series (no fan missing a tick treated as 0)', () => {

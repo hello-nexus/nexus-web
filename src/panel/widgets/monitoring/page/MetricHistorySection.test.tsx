@@ -317,18 +317,16 @@ describe('MetricHistorySection', () => {
       expect(onChartDragSelect).not.toHaveBeenCalled();
     });
 
-    it('the ribbon and main-series value readouts reflect the selected frame, not necessarily the newest point', () => {
+    it('the temp ribbon readout reflects the selected frame, not necessarily the newest point', () => {
       stubGeometry();
       const series: UseMetricHistoryResult['series'] = [
         { id: 'cpu', kind: 'cpu', name: 'CPU', points: [{ t: NOW - HOUR, avg: 40, max: 41 }, { t: NOW, avg: 90, max: 91 }] },
         { id: 'cpu-temp', kind: 'cpu-temp', name: 'CPU', points: [{ t: NOW - HOUR, avg: 50, max: 51 }, { t: NOW, avg: 80, max: 81 }] },
       ];
       renderSection({ metric: 'cpu', history: { series }, selectedFrameMs: NOW - HOUR });
-      // Selected frame is the OLDER point - the readouts must reflect it
-      // (40%, 50°C), not the newer one (90%, 80°C).
-      expect(screen.getByText('40%')).toBeInTheDocument();
+      // Selected frame is the OLDER point - the readout must reflect it
+      // (50°C), not the newer one (80°C).
       expect(screen.getByText('50°C')).toBeInTheDocument();
-      expect(screen.queryByText('90%')).toBeNull();
       expect(screen.queryByText('80°C')).toBeNull();
     });
   });
@@ -355,8 +353,8 @@ describe('MetricHistorySection', () => {
     });
   });
 
-  describe('average fan duty ribbon', () => {
-    it('renders no duty band when there is no fan-duty series', () => {
+  describe('average fan speed ribbon', () => {
+    it('renders no fan-speed band when there is no fan series', () => {
       stubGeometry();
       const series: UseMetricHistoryResult['series'] = [
         { id: 'cpu', kind: 'cpu', name: 'CPU', points: [{ t: NOW, avg: 50, max: 51 }] },
@@ -366,34 +364,34 @@ describe('MetricHistorySection', () => {
       expect(container.querySelector('rect[fill="var(--accent)"]')).toBeNull();
     });
 
-    it('renders a duty band averaged across every fan-duty series, stacked under the temp band', () => {
+    it('renders a fan-speed band averaged across every fan series (RPM), stacked under the temp band', () => {
       stubGeometry();
       const series: UseMetricHistoryResult['series'] = [
         { id: 'cpu', kind: 'cpu', name: 'CPU', points: [{ t: NOW, avg: 50, max: 51 }] },
         { id: 'cpu-temp', kind: 'cpu-temp', name: 'CPU', points: [{ t: NOW, avg: 70, max: 72 }] },
-        { id: 'fan-duty:1', kind: 'fan-duty', name: 'Fan 1', points: [{ t: NOW, avg: 40, max: 42 }] },
-        { id: 'fan-duty:2', kind: 'fan-duty', name: 'Fan 2', points: [{ t: NOW, avg: 60, max: 58 }] },
+        { id: 'fan:1', kind: 'fan', name: 'Fan 1', points: [{ t: NOW, avg: 1200, max: 1250 }] },
+        { id: 'fan:2', kind: 'fan', name: 'Fan 2', points: [{ t: NOW, avg: 1600, max: 1580 }] },
       ];
       const { container } = renderSection({ metric: 'cpu', history: { series } });
       const tempRect = container.querySelector('rect[fill="var(--bad)"]')!;
-      const dutyRect = container.querySelector('rect[fill="var(--accent)"]')!;
+      const rpmRect = container.querySelector('rect[fill="var(--accent)"]')!;
       expect(tempRect).toBeInTheDocument();
-      expect(dutyRect).toBeInTheDocument();
-      // Duty sits BELOW (higher y) the temp band, matching stacking order.
-      expect(Number(dutyRect.getAttribute('y'))).toBeGreaterThan(Number(tempRect.getAttribute('y')));
-      // The Fan icon carries an accessible name for the band.
-      expect(screen.getByLabelText('cooling.response.avgFanDuty')).toBeInTheDocument();
+      expect(rpmRect).toBeInTheDocument();
+      // Fan speed sits BELOW (higher y) the temp band, matching stacking order.
+      expect(Number(rpmRect.getAttribute('y'))).toBeGreaterThan(Number(tempRect.getAttribute('y')));
+      // The averaged value renders as text (1400 RPM), not an icon.
+      expect(screen.getByText('1400 RPM')).toBeInTheDocument();
     });
 
-    it('never renders the duty band on memory/network, even with a stray fan-duty series left over from a tab switch', () => {
+    it('never renders the fan-speed band on memory/network, even with a stray fan series left over from a tab switch', () => {
       // history.series can transiently still carry the previous tab's series
       // for one render right after switching metrics (the new tab's fetch
-      // hasn't landed yet) - the duty band must not leak onto a tab that
-      // never requested fan-duty.
+      // hasn't landed yet) - the fan-speed band must not leak onto a tab that
+      // never requested the fan kind.
       stubGeometry();
       const series: UseMetricHistoryResult['series'] = [
         { id: 'memory', kind: 'memory', name: 'Memory', points: [{ t: NOW, avg: 50, max: 51 }] },
-        { id: 'fan-duty:1', kind: 'fan-duty', name: 'Fan 1', points: [{ t: NOW, avg: 40, max: 42 }] },
+        { id: 'fan:1', kind: 'fan', name: 'Fan 1', points: [{ t: NOW, avg: 1200, max: 1250 }] },
       ];
       const { container } = renderSection({ metric: 'memory', history: { series } });
       expect(container.querySelector('rect[fill="var(--accent)"]')).toBeNull();

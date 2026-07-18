@@ -5,6 +5,7 @@ import {
   nearestPoint,
   niceTicks,
   resolveValueDomain,
+  ribbonThicknessFraction,
   splitIntoSegments,
   timeDomain,
   valueDomain,
@@ -154,6 +155,31 @@ describe('nearestPoint', () => {
 
   it('returns null for an empty point list', () => {
     expect(nearestPoint([], 0, 1000)).toBeNull();
+  });
+});
+
+describe('ribbonThicknessFraction', () => {
+  it('pins both ends of the domain', () => {
+    expect(ribbonThicknessFraction(0)).toBe(0);
+    expect(ribbonThicknessFraction(1)).toBe(1);
+  });
+
+  it('amplifies every fraction strictly between the two ends above its own linear value', () => {
+    for (const f of [0.1, 0.25, 0.5, 0.75, 0.9]) {
+      expect(ribbonThicknessFraction(f)).toBeGreaterThan(f);
+    }
+  });
+
+  it('is monotonically increasing', () => {
+    const samples = [0, 0.1, 0.2, 0.4, 0.6, 0.8, 1].map(ribbonThicknessFraction);
+    for (let i = 1; i < samples.length; i++) {
+      expect(samples[i]).toBeGreaterThan(samples[i - 1]);
+    }
+  });
+
+  it('clamps a fraction outside [0, 1] instead of going imaginary or negative', () => {
+    expect(ribbonThicknessFraction(-0.5)).toBe(0);
+    expect(ribbonThicknessFraction(1.5)).toBe(1);
   });
 });
 

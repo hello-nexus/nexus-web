@@ -3,7 +3,7 @@ import {
   RANGE_OPTIONS,
   adaptivePercentYMax,
   appsSeriesParamFor,
-  averageDutySeries,
+  averageRpmSeries,
   defaultBoxWidthMs,
   formatBrushEdgeLabels,
   initViewport,
@@ -86,13 +86,13 @@ describe('defaultBoxWidthMs', () => {
 
 describe('seriesQueryFor', () => {
   it('maps each metric to its series csv', () => {
-    // cpu/gpu request fan-duty too (average-duty ribbon, under the temp
-    // band); memory requests its own averaged mem-temp series but no
-    // fan-duty (no duty band there) - network has no temp band at all.
-    expect(seriesQueryFor('cpu')).toBe('cpu,cpu-temp,fan-duty');
+    // cpu/gpu request fan too (average fan-speed ribbon, under the temp
+    // band); memory requests its own averaged mem-temp series but no fan
+    // (no fan-speed band there) - network has no temp band at all.
+    expect(seriesQueryFor('cpu')).toBe('cpu,cpu-temp,fan');
     expect(seriesQueryFor('memory')).toBe('memory,mem-temp');
     expect(seriesQueryFor('network')).toBe('net-in,net-out');
-    expect(seriesQueryFor('gpu')).toBe('gpu,gpu-temp,fan-duty');
+    expect(seriesQueryFor('gpu')).toBe('gpu,gpu-temp,fan');
   });
 });
 
@@ -427,35 +427,35 @@ describe('sumSilhouette', () => {
   });
 });
 
-describe('averageDutySeries', () => {
-  function duty(id: string, points: MetricHistorySeries['points']): MetricHistorySeries {
-    return series(id, points, { kind: 'fan-duty' });
+describe('averageRpmSeries', () => {
+  function fan(id: string, points: MetricHistorySeries['points']): MetricHistorySeries {
+    return series(id, points, { kind: 'fan' });
   }
 
   it('averages two fans at a shared timestamp, taking the max of their max', () => {
-    const fan1 = duty('fan-duty:1', [{ t: 0, avg: 40, max: 45 }]);
-    const fan2 = duty('fan-duty:2', [{ t: 0, avg: 60, max: 50 }]);
-    expect(averageDutySeries([fan1, fan2])).toEqual([{ t: 0, avg: 50, max: 50 }]);
+    const fan1 = fan('fan:1', [{ t: 0, avg: 1200, max: 1250 }]);
+    const fan2 = fan('fan:2', [{ t: 0, avg: 1600, max: 1500 }]);
+    expect(averageRpmSeries([fan1, fan2])).toEqual([{ t: 0, avg: 1400, max: 1500 }]);
   });
 
-  it('averages only the fans present at a timestamp one fan is missing', () => {
-    const fan1 = duty('fan-duty:1', [{ t: 0, avg: 40, max: 45 }, { t: 1000, avg: 44, max: 48 }]);
-    const fan2 = duty('fan-duty:2', [{ t: 0, avg: 60, max: 50 }]);
-    expect(averageDutySeries([fan1, fan2])).toEqual([
-      { t: 0, avg: 50, max: 50 },
-      { t: 1000, avg: 44, max: 48 },
+  it('averages only the fans present at a timestamp - one fan is missing, not treated as 0 (gap-aware)', () => {
+    const fan1 = fan('fan:1', [{ t: 0, avg: 1200, max: 1250 }, { t: 1000, avg: 1240, max: 1280 }]);
+    const fan2 = fan('fan:2', [{ t: 0, avg: 1600, max: 1500 }]);
+    expect(averageRpmSeries([fan1, fan2])).toEqual([
+      { t: 0, avg: 1400, max: 1500 },
+      { t: 1000, avg: 1240, max: 1280 },
     ]);
   });
 
-  it('ignores non-fan-duty series', () => {
+  it('ignores non-fan series', () => {
     const cpu = series('cpu', [{ t: 0, avg: 99, max: 99 }]);
-    const fan1 = duty('fan-duty:1', [{ t: 0, avg: 40, max: 45 }]);
-    expect(averageDutySeries([cpu, fan1])).toEqual([{ t: 0, avg: 40, max: 45 }]);
+    const fan1 = fan('fan:1', [{ t: 0, avg: 1200, max: 1250 }]);
+    expect(averageRpmSeries([cpu, fan1])).toEqual([{ t: 0, avg: 1200, max: 1250 }]);
   });
 
-  it('returns an empty array for no series, or series with no fan-duty kind', () => {
-    expect(averageDutySeries([])).toEqual([]);
-    expect(averageDutySeries([series('cpu', [{ t: 0, avg: 1, max: 1 }])])).toEqual([]);
+  it('returns an empty array for no series, or series with no fan kind', () => {
+    expect(averageRpmSeries([])).toEqual([]);
+    expect(averageRpmSeries([series('cpu', [{ t: 0, avg: 1, max: 1 }])])).toEqual([]);
   });
 });
 

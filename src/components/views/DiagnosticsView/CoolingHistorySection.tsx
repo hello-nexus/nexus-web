@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Fan, Radio, Thermometer, ZoomOut } from 'lucide-react';
-import { TimeSeriesChart, RIBBON_ICON_SIZE, type ChartRibbonSpec } from '../../common/TimeSeriesChart/TimeSeriesChart';
+import { TimeSeriesChart, type ChartRibbonSpec } from '../../common/TimeSeriesChart/TimeSeriesChart';
 import { nearestPoint } from '../../common/TimeSeriesChart/timeSeriesChartUtils';
 import { TimelineBrush, TIMELINE_BRUSH_DEFAULT_HEIGHT } from '../../common/TimelineBrush/TimelineBrush';
 import { Select } from '../../common/Select/Select';
@@ -14,10 +14,10 @@ import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { localizeNumbers } from '../../../lib/units';
 import {
-  DUTY_RIBBON_CAP_PCT,
-  DUTY_RIBBON_FLOOR_PCT,
+  FAN_RPM_RIBBON_CAP,
+  FAN_RPM_RIBBON_FLOOR,
   RANGE_OPTIONS,
-  averageDutySeries,
+  averageRpmSeries,
   formatBrushEdgeLabels,
   xTickFormatForWindow,
 } from '../../../panel/widgets/monitoring/page/metricHistoryHelpers';
@@ -30,13 +30,14 @@ export interface CoolingHistorySectionProps {
   episodes?: readonly DiagnosticsTemperatureEpisode[];
 }
 
-const CHART_HEIGHT = 240;
+const CHART_HEIGHT = 246;
 
 /**
  * The Cooling tab's temperature history block: a scrubbable multi-line chart
  * (one line per cpu/gpu/memory/drive temperature sensor) with sustained-high-
- * temperature episodes as bands and average fan duty as a band underneath,
- * a range picker, and a seek-bar. Sits above the GPU/fan-pump split.
+ * temperature episodes as bands and average fan speed (RPM) as a band
+ * underneath, a range picker, and a seek-bar. Sits above the GPU/fan-pump
+ * split.
  */
 export function CoolingHistorySection({ history, episodes }: CoolingHistorySectionProps) {
   const { t, language } = useTranslation();
@@ -44,7 +45,7 @@ export function CoolingHistorySection({ history, episodes }: CoolingHistorySecti
 
   const chartSeries = useMemo(() => toCoolingTempChartSeries(history.series), [history.series]);
   const silhouettePoints = useMemo(() => coolingSilhouettePoints(history.silhouette), [history.silhouette]);
-  const dutyPoints = useMemo(() => averageDutySeries(history.series), [history.series]);
+  const rpmPoints = useMemo(() => averageRpmSeries(history.series), [history.series]);
 
   const windowMs = history.domain[1] - history.domain[0];
   const xTickFormat = useMemo(() => xTickFormatForWindow(windowMs), [windowMs]);
@@ -56,33 +57,38 @@ export function CoolingHistorySection({ history, episodes }: CoolingHistorySecti
   const bands = useMemo(() => (episodes ?? []).map(episodeBand), [episodes]);
 
   // Docked on the same row as the tooltip's own timestamp header - the
-  // duty band has no per-series avg/max tooltip row of its own (it isn't a
-  // line), so its hovered value shows here instead.
-  const tooltipHeaderDuty = useMemo(() => {
-    if (dutyPoints.length === 0) return null;
+  // fan-speed band has no per-series avg/max tooltip row of its own (it
+  // isn't a line), so its hovered value shows here instead.
+  const tooltipHeaderRpm = useMemo(() => {
+    if (rpmPoints.length === 0) return null;
     return (hoverT: number) => {
-      const nearest = nearestPoint(dutyPoints, hoverT, windowMs);
+      const nearest = nearestPoint(rpmPoints, hoverT, windowMs);
       if (!nearest) return null;
       return (
-        <span className={styles.tooltipHeaderDuty}>
+        <span className={styles.tooltipHeaderRpm}>
           <Fan size={12} aria-hidden />
-          {localizeNumbers(`${Math.round(nearest.avg)}%`, numberFormat)}
+          {localizeNumbers(`${Math.round(nearest.avg)} RPM`, numberFormat)}
         </span>
       );
     };
-  }, [dutyPoints, windowMs, numberFormat]);
+  }, [rpmPoints, windowMs, numberFormat]);
+
+  const currentRpmLabel = useMemo(() => {
+    if (rpmPoints.length === 0) return undefined;
+    const nearest = rpmPoints[rpmPoints.length - 1];
+    return localizeNumbers(`${Math.round(nearest.avg)} RPM`, numberFormat);
+  }, [rpmPoints, numberFormat]);
 
   const ribbons: ChartRibbonSpec[] = useMemo(() => {
-    if (dutyPoints.length === 0) return [];
+    if (rpmPoints.length === 0) return [];
     return [{
-      points: dutyPoints,
-      floor: DUTY_RIBBON_FLOOR_PCT,
-      cap: DUTY_RIBBON_CAP_PCT,
+      points: rpmPoints,
+      floor: FAN_RPM_RIBBON_FLOOR,
+      cap: FAN_RPM_RIBBON_CAP,
       fill: 'var(--accent)',
-      icon: <Fan size={RIBBON_ICON_SIZE} aria-hidden />,
-      ariaLabel: t('diagnostics.temperature.fanDuty'),
+      valueLabel: currentRpmLabel,
     }];
-  }, [dutyPoints, t]);
+  }, [rpmPoints, currentRpmLabel]);
 
   const rangeOptions = RANGE_OPTIONS.map(o => ({ value: o.key, label: t(o.labelKey) }));
   const edgeLabelFormat = (edgeT: number) => new Date(edgeT).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', second: '2-digit' });
@@ -91,7 +97,7 @@ export function CoolingHistorySection({ history, episodes }: CoolingHistorySecti
   if (!history.supported) return null;
 
   const showLoadingSkeleton = history.loading && chartSeries.every(s => s.points.length === 0) && history.silhouette.length === 0;
-  const showEmpty = !history.loading && !history.error && chartSeries.length === 0 && dutyPoints.length === 0;
+  const showEmpty = !history.loading && !history.error && chartSeries.length === 0 && rpmPoints.length === 0;
 
   return (
     <section className={styles.root}>
@@ -141,7 +147,7 @@ export function CoolingHistorySection({ history, episodes }: CoolingHistorySecti
             avgLabel={t('diagnostics.temperature.avg')}
             maxLabel={t('diagnostics.temperature.max')}
             bands={bands}
-            tooltipHeaderExtra={tooltipHeaderDuty ?? undefined}
+            tooltipHeaderExtra={tooltipHeaderRpm ?? undefined}
             onRangeSelect={history.onChartDragSelect}
             stepSeconds={history.stepSeconds}
             ribbons={ribbons}
