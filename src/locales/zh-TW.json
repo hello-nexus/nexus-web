@@ -2484,7 +2484,7 @@
   "settings.ai.assistant.runtime.status.systemDetected": "正在使用系統 Ollama 安裝",
   "settings.ai.capability.cooling.description": "允許 AI 代理程式檢視風扇曲線和散熱預設集並套用變更。",
   "settings.ai.capability.cooling.label": "散熱",
-  "settings.ai.capability.history.description": "允許 AI 代理程式查詢感測器歷史記錄和已記錄的事件。",
+  "settings.ai.capability.history.description": "允許 AI 代理程式查詢感測器歷史記錄、各應用程式使用情況和已記錄的事件。",
   "settings.ai.capability.history.label": "歷史記錄",
   "settings.ai.capability.lighting.description": "允許 AI 代理程式檢視燈光效果和顏色並加以變更。",
   "settings.ai.capability.lighting.label": "燈光",

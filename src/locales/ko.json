@@ -2484,7 +2484,7 @@
   "settings.ai.assistant.runtime.status.systemDetected": "시스템 Ollama 설치를 사용 중",
   "settings.ai.capability.cooling.description": "AI 에이전트가 팬 커브와 냉각 프리셋을 확인하고 변경할 수 있도록 허용합니다.",
   "settings.ai.capability.cooling.label": "냉각",
-  "settings.ai.capability.history.description": "AI 에이전트가 센서 기록과 저장된 이벤트를 조회할 수 있도록 허용합니다.",
+  "settings.ai.capability.history.description": "AI 에이전트가 센서 기록, 앱별 사용량, 저장된 이벤트를 조회할 수 있도록 허용합니다.",
   "settings.ai.capability.history.label": "기록",
   "settings.ai.capability.lighting.description": "AI 에이전트가 조명 효과와 색상을 확인하고 변경할 수 있도록 허용합니다.",
   "settings.ai.capability.lighting.label": "조명",

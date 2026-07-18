@@ -2487,7 +2487,7 @@
   "settings.ai.assistant.runtime.status.systemDetected": "Используется системная установка Ollama",
   "settings.ai.capability.cooling.description": "Разрешить ИИ-агентам просматривать кривые вентиляторов и пресеты охлаждения и применять изменения.",
   "settings.ai.capability.cooling.label": "Охлаждение",
-  "settings.ai.capability.history.description": "Разрешить ИИ-агентам запрашивать историю датчиков и записанные события.",
+  "settings.ai.capability.history.description": "Разрешить ИИ-агентам запрашивать историю датчиков, использование по приложениям и записанные события.",
   "settings.ai.capability.history.label": "История",
   "settings.ai.capability.lighting.description": "Разрешить ИИ-агентам просматривать эффекты подсветки и цвета и изменять их.",
   "settings.ai.capability.lighting.label": "Подсветка",

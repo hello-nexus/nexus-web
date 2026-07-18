@@ -2662,7 +2662,7 @@
   "settings.ai.assistant.runtime.status.systemDetected": "De systeeminstallatie van Ollama wordt gebruikt",
   "settings.ai.capability.cooling.description": "Laat AI-agents ventilatorcurves en koelingspresets bekijken en wijzigingen toepassen.",
   "settings.ai.capability.cooling.label": "Koeling",
-  "settings.ai.capability.history.description": "Laat AI-agents sensorgeschiedenis en geregistreerde gebeurtenissen opvragen.",
+  "settings.ai.capability.history.description": "Laat AI-agents sensorgeschiedenis, gebruik per app en geregistreerde gebeurtenissen opvragen.",
   "settings.ai.capability.history.label": "Geschiedenis",
   "settings.ai.capability.lighting.description": "Laat AI-agents verlichtingseffecten en kleuren bekijken en wijzigen.",
   "settings.ai.capability.lighting.label": "Verlichting",

@@ -2484,7 +2484,7 @@
   "settings.ai.assistant.runtime.status.systemDetected": "Verwendet die System-Ollama-Installation",
   "settings.ai.capability.cooling.description": "Lassen Sie KI-Agenten Lüfterkurven und Kühl-Presets einsehen und Änderungen anwenden.",
   "settings.ai.capability.cooling.label": "Kühlung",
-  "settings.ai.capability.history.description": "Lassen Sie KI-Agenten den Sensorverlauf und aufgezeichnete Ereignisse abfragen.",
+  "settings.ai.capability.history.description": "Lassen Sie KI-Agenten den Sensorverlauf, die App-Nutzung und aufgezeichnete Ereignisse abfragen.",
   "settings.ai.capability.history.label": "Verlauf",
   "settings.ai.capability.lighting.description": "Lassen Sie KI-Agenten Beleuchtungseffekte und Farben einsehen und ändern.",
   "settings.ai.capability.lighting.label": "Beleuchtung",

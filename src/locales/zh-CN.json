@@ -2484,7 +2484,7 @@
   "settings.ai.assistant.runtime.status.systemDetected": "正在使用系统 Ollama 安装",
   "settings.ai.capability.cooling.description": "允许 AI 代理查看风扇曲线和散热预设并应用更改。",
   "settings.ai.capability.cooling.label": "散热",
-  "settings.ai.capability.history.description": "允许 AI 代理查询传感器历史记录和已记录的事件。",
+  "settings.ai.capability.history.description": "允许 AI 代理查询传感器历史记录、各应用使用情况和已记录的事件。",
   "settings.ai.capability.history.label": "历史记录",
   "settings.ai.capability.lighting.description": "允许 AI 代理查看灯光效果和颜色并进行更改。",
   "settings.ai.capability.lighting.label": "灯光",

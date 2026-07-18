@@ -2484,7 +2484,7 @@
   "settings.ai.assistant.runtime.status.systemDetected": "Utilise l'installation Ollama du système",
   "settings.ai.capability.cooling.description": "Autorisez les agents IA à consulter les courbes de ventilation et les préréglages de refroidissement, et à appliquer des modifications.",
   "settings.ai.capability.cooling.label": "Refroidissement",
-  "settings.ai.capability.history.description": "Autorisez les agents IA à consulter l'historique des capteurs et les événements enregistrés.",
+  "settings.ai.capability.history.description": "Autorisez les agents IA à consulter l'historique des capteurs, l'utilisation par application et les événements enregistrés.",
   "settings.ai.capability.history.label": "Historique",
   "settings.ai.capability.lighting.description": "Autorisez les agents IA à consulter les effets d'éclairage et les couleurs, et à les modifier.",
   "settings.ai.capability.lighting.label": "Éclairage",
