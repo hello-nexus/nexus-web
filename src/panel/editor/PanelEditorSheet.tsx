@@ -14,7 +14,9 @@ import { PanelThemeSettings, type ResolvedPanelThemeMode } from './PanelThemeSet
 import { PairRemoteContent } from '../../components/common/PairRemote/PairRemoteContent';
 import { PairedPcsContent } from '../../components/common/PairedPcs/PairedPcsContent';
 import { IconLabelButton } from '../../components/common/IconLabelButton/IconLabelButton';
+import { useModalA11y } from '../../components/common/Overlay/useModalA11y';
 import { useTranslation } from '../../lib/i18n';
+import { pluralKey } from '../../lib/pluralKey';
 import type { ThemeMode } from '../../lib/settings';
 import type { EffectState } from '../../types/lighting';
 import type { PanelConfigValue, PanelSurface, PanelWidget, PanelWidgetSize } from '../types';
@@ -143,7 +145,7 @@ export function PanelEditorSheet({
   editView: DeckEditView;
   onEditViewChange: (view: DeckEditView) => void;
 }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const def = editingWidget ? lookupApp(editingWidget.type) : undefined;
   const title = mode === 'panelSettings'
     ? t('panel.actions.settings')
@@ -176,18 +178,20 @@ export function PanelEditorSheet({
     sheetRef,
     onDismiss: onClose,
   });
-  // Esc closes the sheet. Desktop modals get this via Overlay; the editor
-  // sheet keeps its own swipe + dock-motion lifecycle, so wire the handler
-  // inline instead of wrapping in Overlay (which would fight the entry/closing
-  // animation states).
-  useEffect(() => {
-    if (closing) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.preventDefault(); onClose(); }
-    };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [closing, onClose]);
+  // Desktop modals get Escape/Tab/scroll-lock via Overlay; the editor sheet
+  // keeps its own swipe + dock-motion lifecycle, so it registers with the
+  // shared modal stack directly instead of wrapping in Overlay (which would
+  // fight the entry/closing animation states). Registering matters beyond
+  // just Escape: PairRemoteContent (mode 'pairRemote') can open a
+  // ConfirmModal on top of this sheet, and without a shared stack entry
+  // that nested modal's Escape would race this sheet's own handler.
+  useModalA11y({
+    open: !closing,
+    onClose,
+    containerRef: sheetRef,
+    lockBackground: false,
+    restoreFocus: false,
+  });
   // scale(var(--panel-scale, 1)) keeps the monitor-panel chrome scale during
   // a swipe-dismiss drag; no-op on phone/desktop (var unset → 1).
   const sheetTransform = swipe.state === 'idle' && swipe.offset === 0
@@ -234,6 +238,9 @@ export function PanelEditorSheet({
       data-surface={surface}
       data-touch-chrome={touchPanelChrome ? 'true' : undefined}
       data-theme={resolvedThemeMode}
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
       style={editorStyle}
       onClick={onClose}
     >
@@ -302,9 +309,7 @@ export function PanelEditorSheet({
                   {isMonitoringWidget && slotCountOptions.length > 0 && (
                     <WidgetControlGroup title={t('panel.editor.slots')}>
                       {slotCountOptions.map(n => {
-                        const slotLabel = n === 1
-                          ? t('panel.editor.slotCount.one', { count: n })
-                          : t('panel.editor.slotCount.other', { count: n });
+                        const slotLabel = t(pluralKey('panel.editor.slotCount', language, n), { count: n });
                         return (
                           <IconLabelButton
                             key={n}

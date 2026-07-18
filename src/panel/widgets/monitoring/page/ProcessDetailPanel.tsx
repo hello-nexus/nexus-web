@@ -11,6 +11,7 @@ import { InfoList, InfoRow } from '../../../../components/common/InfoList/InfoLi
 import { SystemSpecsPanel, type SystemSpecRow } from '../../../../components/common/SystemSpecsPanel/SystemSpecsPanel';
 import { useToastSafe } from '../../../../components/common/Toast/Toast';
 import { useTranslation } from '../../../../lib/i18n';
+import { pluralKey } from '../../../../lib/pluralKey';
 import { useUnitPrefs } from '../../../../hooks/useUiSettings';
 import { formatMemoryMb } from '../../../../lib/formatMemory';
 import { localizeNumbers } from '../../../../lib/units';
@@ -108,7 +109,7 @@ export function ProcessDetailPanel({
   onClose, name, live, appsWindow, valueFormat, privacySessions, privacySupported,
   selectedFrameMs, following, historyFrom, historyTo,
 }: ProcessDetailPanelProps) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { numberFormat } = useUnitPrefs();
   const toast = useToastSafe();
   const info = useMonitoringProcessInfo(true, name);
@@ -208,11 +209,7 @@ export function ProcessDetailPanel({
 
   const headerMeta = (instanceCount !== undefined || data?.publisher) ? (
     <span className={styles.headerMeta}>
-      {instanceCount !== undefined && (
-        instanceCount === 1
-          ? t('monitoring.processDetail.instances.one', { count: instanceCount })
-          : t('monitoring.processDetail.instances.other', { count: instanceCount })
-      )}
+      {instanceCount !== undefined && t(pluralKey('monitoring.processDetail.instances', language, instanceCount), { count: instanceCount })}
       {instanceCount !== undefined && data?.publisher && ' · '}
       {data?.publisher}
     </span>

@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import type { useMultiplexConnection } from '../hooks/useMultiplexSocket';
 import * as monitoringStore from '../lib/monitoringStore';
-import type { MonitoringFrame } from '../hooks/useMonitoringFrame';
+import type { MonitoringFrame } from '../types/monitoringFrame';
 import type { ScreenTimeData } from '../hooks/useScreenTime';
 
 export function useMonitoringStoreBridge(multiplex: ReturnType<typeof useMultiplexConnection>) {

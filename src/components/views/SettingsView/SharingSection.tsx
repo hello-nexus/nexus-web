@@ -7,6 +7,7 @@ import { SettingRow } from '../../common/SettingRow/SettingRow';
 import { PROFILE_CATEGORIES, type ProfileCategory } from '../../../api/profiles';
 import { useProfileSharing, type UseProfilesResult } from '../../../hooks/useProfiles';
 import { useTranslation } from '../../../lib/i18n';
+import { pluralKey } from '../../../lib/pluralKey';
 import styles from './SettingsView.module.scss';
 
 export interface SharingSectionProps {
@@ -23,7 +24,7 @@ export interface SharingSectionProps {
 }
 
 export function SharingSection({ profiles, sharing, primaryId, sharedCats, counts, onlyOneProfile, onResetCategory, onShareCategory }: SharingSectionProps) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const primaryName = profiles.profiles.find(p => p.id === primaryId)?.name ?? '';
 
   // The custom i18n t() only does single-brace substitution, no <Trans>-style
@@ -58,10 +59,7 @@ export function SharingSection({ profiles, sharing, primaryId, sharedCats, count
           >
             {count > 0 && (
               <span className={styles.presetCountBadge}>
-                <Badge label={t(
-                  count === 1 ? 'settings.profiles.sharing.presetCount.one' : 'settings.profiles.sharing.presetCount.other',
-                  { count },
-                )} />
+                <Badge label={t(pluralKey('settings.profiles.sharing.presetCount', language, count), { count })} />
               </span>
             )}
             <Tabs

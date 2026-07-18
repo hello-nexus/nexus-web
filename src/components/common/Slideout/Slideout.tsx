@@ -12,10 +12,10 @@ export interface SlideoutProps {
   headerRight?: ReactNode;
   /** Falls back to the app-wide close label when the title isn't plain text. */
   ariaLabel?: string;
-  /** Suppresses this slideout's own Esc handling - set while a modal stacked
-   *  on top of it (e.g. a ConfirmModal) is open, so Overlay's independent
-   *  per-instance Esc listeners don't both fire on one keypress and close
-   *  the slideout out from under the modal in front of it. */
+  /** Suppresses this slideout's own Esc handling for a genuinely
+   *  non-dismissable state. A modal stacked on top of it (e.g. a
+   *  ConfirmModal) does not need this: the shared modal stack already
+   *  arbitrates Escape to the topmost entry only. */
   noEscDismiss?: boolean;
   children: ReactNode;
 }

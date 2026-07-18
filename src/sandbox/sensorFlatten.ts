@@ -1,7 +1,7 @@
 // Flatten a monitoring frame into the flat `family.host.sensor` readings that
 // SDK widget workers subscribe to via nexus.sensors.
 
-import type { MonitoringFrame } from '../hooks/useMonitoringFrame';
+import type { MonitoringFrame } from '../types/monitoringFrame';
 
 export interface FlatReading {
   id: string;

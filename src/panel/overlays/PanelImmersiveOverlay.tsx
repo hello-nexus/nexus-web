@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { usePanelSheetSwipe } from '../engine/usePanelSheetSwipe';
+import { useModalA11y } from '../../components/common/Overlay/useModalA11y';
 import { useTranslation } from '../../lib/i18n';
 import styles from './PanelImmersiveOverlay.module.scss';
 
@@ -64,19 +65,18 @@ export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, them
     onDismiss: beginExit,
   });
 
-  useEffect(() => {
-    if (mountState !== 'mounted') return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        beginExit();
-      }
-    };
-    // Capture phase to win over other ESC handlers (e.g. the editor sheet's);
-    // without it, order depends on registration timing.
-    document.addEventListener('keydown', handler, true);
-    return () => document.removeEventListener('keydown', handler, true);
-  }, [mountState, beginExit]);
+  // Registers with the shared modal stack so Escape and Tab are arbitrated
+  // against whatever is topmost (e.g. the widget editor sheet) instead of
+  // each surface racing its own listener. Background scroll-lock and focus
+  // restore are left off: this overlay's own exit animation and swipe
+  // gesture own that transition.
+  useModalA11y({
+    open: mountState === 'mounted',
+    onClose: beginExit,
+    containerRef: overlayRef,
+    lockBackground: false,
+    restoreFocus: false,
+  });
 
   // [data-entered] pattern: once the entry plays (or a swipe starts), suppress
   // the keyframe so removing [data-drag] on snap-back doesn't replay the enter

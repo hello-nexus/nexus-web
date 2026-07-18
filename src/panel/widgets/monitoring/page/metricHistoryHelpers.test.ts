@@ -335,6 +335,26 @@ describe('viewportReducer', () => {
     expect(clamped.rangeKey).toBe('custom');
   });
 
+  it('retentionClamp keeps the box non-zero-width and the strip valid when the whole detached viewport - box AND strip - has already aged past the new floor', () => {
+    // Both stripFrom AND stripTo sit below the retention floor (now - 7d)
+    // here, unlike the two tests above where only the box was that old - the
+    // ceiling this action derives from stripTo would equal floor exactly
+    // without the MIN_BOX_WINDOW_MS margin, collapsing the box to zero width
+    // and leaving stripTo untouched (and therefore behind the new stripFrom).
+    const deepPast: ViewportState = {
+      from: now - 8.5 * DAY, to: now - 8 * DAY,
+      stripFrom: now - 11 * DAY, stripTo: now - 8 * DAY,
+      rangeKey: 'custom', lastPresetKey: '7d', following: false,
+    };
+    const clamped = viewportReducer(deepPast, { type: 'retentionClamp', retentionMs: 7 * DAY, now });
+    expect(clamped.from).toBe(now - 7 * DAY);
+    expect(clamped.to).toBe(now - 7 * DAY + MIN_BOX_WINDOW_MS);
+    expect(clamped.to).toBeGreaterThan(clamped.from);
+    expect(clamped.to - clamped.from).toBeGreaterThanOrEqual(MIN_BOX_WINDOW_MS);
+    expect(clamped.stripFrom).toBeLessThan(clamped.stripTo);
+    expect(clamped.rangeKey).toBe('custom');
+  });
+
   it('backToLive re-anchors both box and strip to now, preserving their current widths and rangeKey', () => {
     const detached: ViewportState = {
       from: now - 20 * MINUTE - 5 * HOUR, to: now - 5 * HOUR,

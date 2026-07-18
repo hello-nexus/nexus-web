@@ -13,6 +13,7 @@ import { lookupApp, sizesForSurface } from '../registry';
 import { SIZE_ICONS } from './SizeIcons';
 import { WidgetControlGroup } from './WidgetControlGroup';
 import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
+import { useModalA11y } from '../../../components/common/Overlay/useModalA11y';
 import {
   slotCountOptionsForSize,
   resolvedSlotCountForSize,
@@ -199,7 +200,7 @@ export function WidgetEditSheet({
   const keepOpenOnTargetRef = useRef(keepOpenOnTarget);
   useEffect(() => { keepOpenOnTargetRef.current = keepOpenOnTarget; }, [keepOpenOnTarget]);
 
-  // Outside-click and Escape dismiss; close only when the click lands outside.
+  // Outside-click dismiss; close only when the click lands outside.
   useEffect(() => {
     const onPointerDown = (e: PointerEvent) => {
       const el = sheetRef.current;
@@ -211,19 +212,23 @@ export function WidgetEditSheet({
       if (keepOpenOnTargetRef.current?.(e.target)) return;
       onCloseRef.current();
     };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        onCloseRef.current();
-      }
-    };
     window.addEventListener('pointerdown', onPointerDown, true);
-    window.addEventListener('keydown', onKey);
-    return () => {
-      window.removeEventListener('pointerdown', onPointerDown, true);
-      window.removeEventListener('keydown', onKey);
-    };
+    return () => window.removeEventListener('pointerdown', onPointerDown, true);
   }, []);
+
+  // Registers with the shared modal stack so Escape is arbitrated against
+  // whatever is topmost (e.g. PanelImmersiveOverlay) instead of both firing
+  // independently. aria-modal="false" above means this sheet deliberately
+  // doesn't trap Tab or lock the background - it coexists with the live
+  // widget tile being edited.
+  useModalA11y({
+    open: true,
+    onClose,
+    containerRef: sheetRef,
+    trapFocus: false,
+    lockBackground: false,
+    restoreFocus: false,
+  });
 
   const title = titleOverride ?? widget.type;
 
