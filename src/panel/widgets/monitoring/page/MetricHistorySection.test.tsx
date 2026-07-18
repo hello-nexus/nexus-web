@@ -11,7 +11,14 @@ vi.mock('../../../../hooks/useUiSettings', () => ({
 }));
 
 vi.mock('../../../../lib/i18n', () => ({
-  useTranslation: () => ({ t: (key: string) => key, language: 'en' }),
+  useTranslation: () => ({
+    // Params-aware so a test can assert both which key fired (e.g. the
+    // marked-fans tooltip vs the mark-in-Cooling hint) and, for the one
+    // interpolated key (rpm.markedFans), the actual joined names.
+    t: (key: string, params?: Record<string, string | number>) =>
+      (params ? `${key}:${Object.values(params).join(',')}` : key),
+    language: 'en',
+  }),
 }));
 
 vi.mock('../../common/AppPicker', () => ({
@@ -607,6 +614,56 @@ describe('MetricHistorySection', () => {
       renderSection({ metric: 'cpu', history: { series }, fanRoles });
       // No cpu-marked fan -> all-fans average, not a gpu-role sum.
       expect(screen.getByText('1400 RPM')).toBeInTheDocument();
+    });
+  });
+
+  describe('RPM label hover tooltip', () => {
+    const series: UseMetricHistoryResult['series'] = [
+      { id: 'cpu', kind: 'cpu', name: 'CPU', points: [{ t: NOW, avg: 50, max: 51 }] },
+      { id: 'fan:1', kind: 'fan', name: 'Front Fan', points: [{ t: NOW, avg: 1200, max: 1250 }] },
+      { id: 'fan:2', kind: 'fan', name: 'Rear Fan', points: [{ t: NOW, avg: 1600, max: 1580 }] },
+    ];
+
+    it('lists the marked fan names when at least one fan is marked for the tab\'s role', () => {
+      stubGeometry();
+      const fanRoles: FanRoleMap = new Map([
+        ['fan:1', { role: 'cpu', name: 'Front Fan' }],
+        ['fan:2', { role: 'cpu', name: 'Rear Fan' }],
+      ]);
+      const { container } = renderSection({ metric: 'cpu', history: { series }, fanRoles });
+      const titles = [...container.querySelectorAll('title')].map(el => el.textContent);
+      expect(titles).toContain('monitoring.history.rpm.markedFans:Front Fan, Rear Fan');
+    });
+
+    it('shows the mark-in-Cooling hint (CPU-specific key) when no fan is marked on the cpu tab', () => {
+      stubGeometry();
+      const { container } = renderSection({ metric: 'cpu', history: { series }, fanRoles: new Map() });
+      const titles = [...container.querySelectorAll('title')].map(el => el.textContent);
+      expect(titles).toContain('monitoring.history.rpm.hintCpu');
+    });
+
+    it('shows the mark-in-Cooling hint (GPU-specific key) when no fan is marked on the gpu tab', () => {
+      stubGeometry();
+      const gpuSeries: UseMetricHistoryResult['series'] = [
+        { id: 'gpu:0', kind: 'gpu', name: 'RTX 3070', adapterLuid: 'a', points: [{ t: NOW, avg: 50, max: 51 }] },
+        { id: 'fan:1', kind: 'fan', name: 'Front Fan', points: [{ t: NOW, avg: 1200, max: 1250 }] },
+      ];
+      const gpuComponents: GpuComponent[] = [{ id: 'gpu/0', name: 'RTX 3070', adapterLuid: 'a', sensors: [] }];
+      const { container } = renderSection({
+        metric: 'gpu', gpuComponents, preferredGpuId: 'gpu/0', history: { series: gpuSeries }, fanRoles: new Map(),
+      });
+      const titles = [...container.querySelectorAll('title')].map(el => el.textContent);
+      expect(titles).toContain('monitoring.history.rpm.hintGpu');
+    });
+
+    it('renders no tooltip title on the temp band, only on the RPM band', () => {
+      stubGeometry();
+      const seriesWithTemp: UseMetricHistoryResult['series'] = [
+        ...series,
+        { id: 'cpu-temp', kind: 'cpu-temp', name: 'CPU', points: [{ t: NOW, avg: 70, max: 72 }] },
+      ];
+      const { container } = renderSection({ metric: 'cpu', history: { series: seriesWithTemp }, fanRoles: new Map() });
+      expect(container.querySelectorAll('title').length).toBe(1);
     });
   });
 });

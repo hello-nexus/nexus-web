@@ -6,6 +6,7 @@ import {
   averageRpmSeries,
   currentDiskRateBytesPerSec,
   defaultBoxWidthMs,
+  fanNamesForRole,
   fanSeriesIdsForRole,
   formatBrushEdgeLabels,
   initViewport,
@@ -511,12 +512,12 @@ describe('averageRpmSeries', () => {
   });
 });
 
-describe('fanSeriesIdsForRole', () => {
+describe('fanSeriesIdsForRole / fanNamesForRole', () => {
   function roleMap(entries: Array<[string, { role: 'none' | 'cpu' | 'gpu'; name: string }]>): FanRoleMap {
     return new Map(entries);
   }
 
-  it('collects only the ids marked with the given role', () => {
+  it('collects only the ids/names marked with the given role', () => {
     const map = roleMap([
       ['fan:1', { role: 'cpu', name: 'Front Fan' }],
       ['fan:2', { role: 'gpu', name: 'Top Fan' }],
@@ -524,16 +525,20 @@ describe('fanSeriesIdsForRole', () => {
       ['fan:4', { role: 'none', name: 'Side Fan' }],
     ]);
     expect(fanSeriesIdsForRole(map, 'cpu')).toEqual(new Set(['fan:1', 'fan:3']));
+    expect(fanNamesForRole(map, 'cpu')).toEqual(['Front Fan', 'Rear Fan']);
     expect(fanSeriesIdsForRole(map, 'gpu')).toEqual(new Set(['fan:2']));
+    expect(fanNamesForRole(map, 'gpu')).toEqual(['Top Fan']);
   });
 
-  it('returns an empty set for a role nothing is marked with', () => {
+  it('returns empty results for a role nothing is marked with', () => {
     const map = roleMap([['fan:1', { role: 'none', name: 'Front Fan' }]]);
     expect(fanSeriesIdsForRole(map, 'cpu')).toEqual(new Set());
+    expect(fanNamesForRole(map, 'cpu')).toEqual([]);
   });
 
-  it('returns an empty set for an empty map', () => {
+  it('returns empty results for an empty map', () => {
     expect(fanSeriesIdsForRole(new Map(), 'cpu')).toEqual(new Set());
+    expect(fanNamesForRole(new Map(), 'cpu')).toEqual([]);
   });
 });
 

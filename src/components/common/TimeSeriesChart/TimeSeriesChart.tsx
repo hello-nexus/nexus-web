@@ -38,6 +38,9 @@ export interface ChartRibbonSpec {
    *  vertically centered on this ribbon's band - e.g. the current
    *  temperature. Omit to render no label for this ribbon. */
   valueLabel?: string;
+  /** Native hover tooltip (SVG `<title>`) for the valueLabel text - e.g. which
+   *  fans a summed RPM reading covers. Omit for no tooltip. */
+  valueLabelTooltip?: string;
   /** Rendered in the pad lane opposite the axis labels, vertically centered
    *  on this ribbon's band - must already be sized to RIBBON_ICON_SIZE
    *  (e.g. `<Fan size={12} />`). Omit to render no icon for this ribbon. */
@@ -545,6 +548,7 @@ export function TimeSeriesChart({
               )}
               {ribbon.valueLabel !== undefined && (
                 <text x={axisLabelX} y={midY + 3} fill="var(--text-dim)" fontSize="11" fontFamily="var(--font-mono)" textAnchor={axisLabelAnchor}>
+                  {ribbon.valueLabelTooltip !== undefined && <title>{ribbon.valueLabelTooltip}</title>}
                   {ribbon.valueLabel}
                 </text>
               )}

@@ -400,6 +400,16 @@ export function fanSeriesIdsForRole(fanRoles: FanRoleMap, role: FanRole): Set<st
   return ids;
 }
 
+/** The channel names of every fan marked `role` in `fanRoles`, in the same
+ *  order the service reported them. */
+export function fanNamesForRole(fanRoles: FanRoleMap, role: FanRole): string[] {
+  const names: string[] = [];
+  for (const info of fanRoles.values()) {
+    if (info.role === role) names.push(info.name);
+  }
+  return names;
+}
+
 /**
  * Sums the fan (RPM) series whose id is in `seriesIds` into one line - the
  * CPU/GPU tabs' role-aware ribbon once at least one fan is marked for that

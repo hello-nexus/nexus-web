@@ -21,6 +21,7 @@ import {
   RANGE_OPTIONS,
   adaptivePercentYMax,
   averageRpmSeries,
+  fanNamesForRole,
   fanSeriesIdsForRole,
   formatBrushEdgeLabels,
   maxAvgValue,
@@ -63,9 +64,10 @@ export interface MetricHistorySectionProps {
 const CHART_HEIGHT = 238;
 const TOOLTIP_APPS_LIMIT = 8;
 
-// Stable empty instance for the non-cpu/gpu tabs' fanRole branch, so the
-// dependent useMemo below doesn't see a new identity every render.
+// Stable empty instances for the non-cpu/gpu tabs' fanRole branch, so the
+// dependent useMemos below don't see a new identity every render.
 const EMPTY_FAN_ID_SET: ReadonlySet<string> = new Set();
+const EMPTY_FAN_NAMES: readonly string[] = [];
 
 export function MetricHistorySection({
   metric, gpuComponents, preferredGpuId, history, appsWindow, fanRoles, selectedFrameMs, onGraphClick,
@@ -182,6 +184,10 @@ export function MetricHistorySection({
     () => (fanRole ? fanSeriesIdsForRole(fanRoles, fanRole) : EMPTY_FAN_ID_SET),
     [fanRole, fanRoles],
   );
+  const markedFanNames = useMemo(
+    () => (fanRole ? fanNamesForRole(fanRoles, fanRole) : EMPTY_FAN_NAMES),
+    [fanRole, fanRoles],
+  );
 
   // Every fan series (RPM) in the current window, for the fan-speed ribbon
   // below - the SUM of just the fans marked cpu/gpu in Cooling once at least
@@ -206,6 +212,15 @@ export function MetricHistorySection({
     return localizeNumbers(`${Math.round(nearest.avg)} RPM`, numberFormat);
   }, [rpmPoints, selectedFrameMs, windowMs, numberFormat]);
 
+  // Hover tooltip on the RPM label itself: which fans are being summed, or -
+  // when none are marked - a hint to mark them in Cooling for a precise
+  // per-role reading instead of the all-fans average.
+  const rpmTooltip = useMemo(() => {
+    if (!fanRole || rpmPoints.length === 0) return undefined;
+    if (markedFanNames.length > 0) return t('monitoring.history.rpm.markedFans', { names: markedFanNames.join(', ') });
+    return t(fanRole === 'cpu' ? 'monitoring.history.rpm.hintCpu' : 'monitoring.history.rpm.hintGpu');
+  }, [fanRole, rpmPoints.length, markedFanNames, t]);
+
   // Rendered inside the chart's own plot, directly under the line (and,
   // when both are present, the fan-speed band sits directly under the temp
   // band) - see TimeSeriesChart's ribbons prop. Temp covers cpu/gpu/memory;
@@ -225,10 +240,11 @@ export function MetricHistorySection({
         points: rpmPoints,
         fill: 'var(--accent)',
         valueLabel: currentRpmLabel,
+        valueLabelTooltip: rpmTooltip,
       });
     }
     return list;
-  }, [resolved.temp, currentTempLabel, rpmPoints, currentRpmLabel]);
+  }, [resolved.temp, currentTempLabel, rpmPoints, currentRpmLabel, rpmTooltip]);
 
   const rangeOptions = RANGE_OPTIONS.map(o => ({ value: o.key, label: t(o.labelKey) }));
 
