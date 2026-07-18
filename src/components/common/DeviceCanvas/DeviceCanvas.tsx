@@ -34,6 +34,9 @@ interface DeviceCanvasProps {
   onSetSelection: (ids: Set<string>, primary: string | null) => void;
   shaderEffect?: string | null;
   shaderState?: EffectState | null;
+  /** Freezes the shader preview's clock on its current frame (server-side
+   *  lighting is frozen in lockstep). Only meaningful while shaderEffect is set. */
+  shaderPaused?: boolean;
   audioRef?: React.RefObject<AudioSnapshot | null>;
   /** Device ids whose rectangle outline should be hidden on the canvas. View-only flag -
    *  the device still samples its rect for lighting; only the visual overlay is skipped. */
@@ -822,7 +825,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
   );
 });
 
-export function DeviceCanvas({ devices, canvasPixels, canvasW, canvasH, selectedIds, primaryDeviceId, onSelectDevice, onSetSelection, shaderEffect, shaderState, audioRef, hiddenFrameIds, selectedDeviceLeds, onOpenSettings, onDragActiveChange, onBeforeLayoutSave, onLayoutCommit, onSetDevicesPower, gpuAvailable }: DeviceCanvasProps) {
+export function DeviceCanvas({ devices, canvasPixels, canvasW, canvasH, selectedIds, primaryDeviceId, onSelectDevice, onSetSelection, shaderEffect, shaderState, shaderPaused, audioRef, hiddenFrameIds, selectedDeviceLeds, onOpenSettings, onDragActiveChange, onBeforeLayoutSave, onLayoutCommit, onSetDevicesPower, gpuAvailable }: DeviceCanvasProps) {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const glCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -830,9 +833,9 @@ export function DeviceCanvas({ devices, canvasPixels, canvasW, canvasH, selected
   // Latest-ref pattern: the shader renderer reads the ref every animation
   // frame; updating in an effect would lag by one paint and cause visible
   // tearing on parameter changes (palette/speed/etc).
-   
+
   shaderStateRef.current = shaderState ?? null;
-  const { ready } = useShaderRenderer(glCanvasRef, shaderEffect ?? null, shaderStateRef, audioRef);
+  const { ready } = useShaderRenderer(glCanvasRef, shaderEffect ?? null, shaderStateRef, audioRef, undefined, shaderPaused);
   const visibleDevices = hiddenFrameIds && hiddenFrameIds.size > 0
     ? devices.filter(d => !hiddenFrameIds.has(d.id))
     : devices;

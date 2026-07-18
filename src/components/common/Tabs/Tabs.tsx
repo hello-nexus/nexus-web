@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { KeyboardEvent, MouseEvent, ReactNode } from 'react';
 import classNames from 'classnames';
 import styles from './Tabs.module.scss';
 
@@ -12,6 +12,15 @@ export interface TabDef {
   readonly icon?: ReactNode;
   /** Per-tab disable. Takes precedence over the `disabled` root flag. */
   readonly disabled?: boolean;
+  /** Optional trailing control, right-aligned after the label (e.g. a per-tab
+   *  pause toggle). Rendered as a DOM sibling of the tab's own `<button>`,
+   *  inside a shared visual pill - never a descendant of it. A focusable
+   *  control nested inside a `<button>` is invalid ARIA (buttons are leaf
+   *  controls; assistive tech won't expose a descendant as separately
+   *  reachable) on top of forbidding literal `<button>`-in-`<button>` HTML -
+   *  see Card's `disableInteractiveRole` for the same constraint elsewhere.
+   *  A click/keydown on it is stopped from bubbling into the tab's onChange. */
+  readonly trailing?: ReactNode;
 }
 
 export interface TabsProps {
@@ -34,26 +43,66 @@ export interface TabsProps {
  * neutral-dim and hover to plain text. Text-only and icon+text tabs both flow
  * through this one component.
  */
+// Swallows the click/key so a trailing control (e.g. a per-tab pause toggle)
+// never re-triggers the ancestor tab button's onChange.
+function stopTrailingClick(e: MouseEvent) {
+  e.stopPropagation();
+}
+function stopTrailingKeyDown(e: KeyboardEvent) {
+  e.stopPropagation();
+}
+
 export function Tabs({ tabs, activeKey, onChange, disabled, ariaLabel = 'Tabs', className, fullWidth = false }: TabsProps) {
   const navClass = classNames(styles.tabs, fullWidth && styles.fullWidth, className);
   return (
     <nav className={navClass} role="tablist" aria-label={ariaLabel}>
-      {tabs.map(tab => (
-        <button
-          key={tab.key}
-          type="button"
-          role="tab"
-          aria-selected={tab.key === activeKey}
-          className={classNames(styles.tab, { [styles.active]: tab.key === activeKey })}
-          disabled={disabled || tab.disabled}
-          onClick={e => onChange(tab.key, e.currentTarget)}
-        >
-          <span className={styles.tabInner}>
-            {tab.icon && <span className={styles.tabIcon} aria-hidden="true">{tab.icon}</span>}
-            <span className={styles.tabLabel}>{tab.label}</span>
+      {tabs.map(tab => {
+        const isActive = tab.key === activeKey;
+        // No trailing control: the button alone is the flex item, byte-for-byte
+        // the same markup every existing caller already renders.
+        if (!tab.trailing) {
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              className={classNames(styles.tab, { [styles.active]: isActive })}
+              disabled={disabled || tab.disabled}
+              onClick={e => onChange(tab.key, e.currentTarget)}
+            >
+              <span className={styles.tabInner}>
+                {tab.icon && <span className={styles.tabIcon} aria-hidden="true">{tab.icon}</span>}
+                <span className={styles.tabLabel}>{tab.label}</span>
+              </span>
+            </button>
+          );
+        }
+        // With a trailing control, the tab becomes a flex-item group: the
+        // button and the trailing control are siblings sharing one pill, not
+        // parent/child, so the trailing control stays a separately reachable
+        // focus target instead of a descendant of the tab's own button.
+        return (
+          <span key={tab.key} className={classNames(styles.tabGroup, { [styles.active]: isActive })}>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              className={styles.tab}
+              disabled={disabled || tab.disabled}
+              onClick={e => onChange(tab.key, e.currentTarget)}
+            >
+              <span className={styles.tabInner}>
+                {tab.icon && <span className={styles.tabIcon} aria-hidden="true">{tab.icon}</span>}
+                <span className={styles.tabLabel}>{tab.label}</span>
+              </span>
+            </button>
+            <span className={styles.tabTrailing} onClick={stopTrailingClick} onKeyDown={stopTrailingKeyDown}>
+              {tab.trailing}
+            </span>
           </span>
-        </button>
-      ))}
+        );
+      })}
     </nav>
   );
 }
