@@ -188,20 +188,12 @@
 .pauseTogglePaused {
   color: var(--accent-text);
   background: var(--accent);
-
-  &:hover {
-    color: var(--accent-text);
-    background: var(--accent-glow);
-  }
-
-  svg {
-    animation: lightingPausePulse 1.6s ease-in-out infinite;
-  }
+  animation: lightingPausePulse 1.6s ease-in-out infinite;
 }
 
 @keyframes lightingPausePulse {
-  0%, 100% { opacity: 0.6; transform: scale(0.9); }
-  50% { opacity: 1; transform: scale(1.1); }
+  0%, 100% { background: var(--accent); box-shadow: 0 0 0 0 transparent; }
+  50% { background: var(--accent-glow); box-shadow: 0 0 7px 1px var(--accent-soft); }
 }
 
 .controls {
