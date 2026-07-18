@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render } from '@testing-library/react';
 import { TimelineBrush } from './TimelineBrush';
 
@@ -330,6 +330,79 @@ describe('TimelineBrush', () => {
       const { getByRole } = renderBrush(onChange);
       fireEvent.keyDown(getByRole('slider'), { key: 'End' });
       expect(onChange).toHaveBeenCalledWith(80_000, DOMAIN_END, 'end');
+    });
+  });
+
+  describe('wheel zoom', () => {
+    beforeEach(() => { vi.useFakeTimers(); });
+    afterEach(() => { vi.useRealTimers(); });
+
+    it('zooms out around the cursor, reporting drag immediately then end once the gesture settles', () => {
+      const onChange = vi.fn();
+      const { getByRole } = renderBrush(onChange);
+      const el = getByRole('slider');
+
+      // window [20_000, 40_000]ms -> [200, 400]px at 100ms/px, offset by LANE;
+      // wheel at track-local 300px (30_000ms - the window's own center).
+      fireEvent.wheel(el, { clientX: LANE + 300, deltaY: 100 });
+      expect(onChange).toHaveBeenLastCalledWith(expect.any(Number), expect.any(Number), 'drag');
+      const [dragFrom, dragTo] = onChange.mock.calls[onChange.mock.calls.length - 1];
+      expect(dragTo - dragFrom).toBeGreaterThan(20_000);
+
+      expect(onChange).not.toHaveBeenLastCalledWith(expect.anything(), expect.anything(), 'end');
+      vi.advanceTimersByTime(300);
+      expect(onChange).toHaveBeenLastCalledWith(dragFrom, dragTo, 'end');
+    });
+
+    it('zooms in when scrolling the other way', () => {
+      const onChange = vi.fn();
+      const { getByRole } = renderBrush(onChange);
+      const el = getByRole('slider');
+
+      fireEvent.wheel(el, { clientX: LANE + 300, deltaY: -100 });
+      const [f, t] = onChange.mock.calls[onChange.mock.calls.length - 1];
+      expect(t - f).toBeLessThan(20_000);
+    });
+
+    it('clamps to the minimum window width - a window already at the floor does not shrink further', () => {
+      const onChange = vi.fn();
+      const { getByRole } = renderBrush(onChange, { from: 20_000, to: 21_000, minWindowMs: 1_000 });
+      const el = getByRole('slider');
+
+      // window [20_000, 21_000]ms -> [200, 210]px, centered at 205px.
+      fireEvent.wheel(el, { clientX: LANE + 205, deltaY: -100_000 });
+      const [f, t] = onChange.mock.calls[onChange.mock.calls.length - 1];
+      expect(t - f).toBe(1_000);
+      expect(f).toBe(20_000);
+      expect(t).toBe(21_000);
+    });
+
+    it('clamps to the domain bounds - an aggressive zoom-out cannot exceed the strip\'s own span', () => {
+      const onChange = vi.fn();
+      const { getByRole } = renderBrush(onChange, { from: 10_000, to: 90_000 });
+      const el = getByRole('slider');
+
+      fireEvent.wheel(el, { clientX: LANE + 500, deltaY: 100_000 });
+      const [f, t] = onChange.mock.calls[onChange.mock.calls.length - 1];
+      expect(f).toBe(DOMAIN_START);
+      expect(t).toBe(DOMAIN_END);
+    });
+
+    it('coalesces a burst of wheel events into a single settled end report', () => {
+      const onChange = vi.fn();
+      const { getByRole } = renderBrush(onChange);
+      const el = getByRole('slider');
+
+      fireEvent.wheel(el, { clientX: LANE + 300, deltaY: 100 });
+      vi.advanceTimersByTime(100);
+      fireEvent.wheel(el, { clientX: LANE + 300, deltaY: 100 });
+      vi.advanceTimersByTime(100);
+      const endCallsSoFar = onChange.mock.calls.filter(c => c[2] === 'end').length;
+      expect(endCallsSoFar).toBe(0);
+
+      vi.advanceTimersByTime(300);
+      const endCalls = onChange.mock.calls.filter(c => c[2] === 'end');
+      expect(endCalls.length).toBe(1);
     });
   });
 });

@@ -1,8 +1,8 @@
 // Pure-ish helpers for the privacy-access indicators shown on
-// ProcessListSection rows AND ProcessDetailPanel's privacy section
-// (webcam/microphone/location/screen capture). Home for the icon map and
-// time formatter both consumers share, so neither imports the other.
-// Mirrors metricHistoryHelpers.ts's approach.
+// ProcessListSection rows, ProcessDetailPanel's privacy section, and
+// PrivacyHistoryModal (webcam/microphone/location/screen capture). Home for
+// the icon map and time formatter every consumer shares, so none of them
+// import each other. Mirrors metricHistoryHelpers.ts's approach.
 import type { ComponentType } from 'react';
 import { MapPin, Mic, ScreenShare, Webcam } from 'lucide-react';
 import type { PrivacyCapability, PrivacySession } from '../../../../api/monitoringPrivacy';
@@ -33,6 +33,15 @@ export const PRIVACY_ICONS: Record<PrivacyIconKind, ComponentType<{ size?: numbe
 
 export function formatPrivacyTime(ms: number): string {
   return new Date(ms).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
+
+/** Same as formatPrivacyTime but with the calendar date too - PrivacyHistoryModal
+ *  spans many days, where a bare time (as the live indicators show) would be
+ *  ambiguous about which day it refers to. */
+export function formatPrivacyDateTime(ms: number): string {
+  return new Date(ms).toLocaleString(undefined, {
+    month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+  });
 }
 
 /** A session ended within this long ago still shows on the row, dimmed. */
@@ -73,6 +82,50 @@ export interface PrivacyIndicator {
 
 const ICON_ORDER: readonly PrivacyIconKind[] = ['webcam', 'microphone', 'location', 'screen'];
 
+/** Newest first: an in-use session (end null) always sorts above every ended
+ *  one (Infinity beats any real end timestamp), then by end descending, then
+ *  by start descending. Shared by privacyIndicatorsForProcess's per-kind
+ *  grouping and sortSessionsNewestFirst's whole-history ordering. */
+function byRecency(a: PrivacySession, b: PrivacySession): number {
+  return (b.end ?? Infinity) - (a.end ?? Infinity) || b.start - a.start;
+}
+
+/** Every session across every app, most recent first - PrivacyHistoryModal's
+ *  ordering (unlike privacyIndicatorsForProcess, not scoped to one process
+ *  or a recent-activity window). */
+export function sortSessionsNewestFirst(sessions: readonly PrivacySession[]): PrivacySession[] {
+  return [...sessions].sort(byRecency);
+}
+
+/** Human-readable app identity derived from a session's `app` (a full win32
+ *  exe path, or a Store package family name) - the row label and the name fed
+ *  to ProcessIcon for PrivacyHistoryModal. A win32 path yields the same
+ *  extension-stripped basename a live process row would show, so a
+ *  still-running app resolves the identical icon/name; an exited app's path
+ *  no longer resolves an icon (ProcessIcon requires a live process to look
+ *  one up) and falls back to its neutral-dot state on its own. A package
+ *  family name (e.g. "Microsoft.WindowsMaps_8wekyb3d8bbwe") has no live-
+ *  process relationship at all (see matchSessionApp) - the publisher-id
+ *  suffix after the last underscore is dropped since it carries no readable
+ *  identity. */
+export function appDisplayName(app: string): string {
+  if (app.includes('\\') || app.includes('/')) {
+    const file = app.split(/[\\/]/).pop() ?? app;
+    return file.replace(/\.[^.]+$/, '');
+  }
+  const underscoreIndex = app.lastIndexOf('_');
+  return underscoreIndex > 0 ? app.slice(0, underscoreIndex) : app;
+}
+
+/** Case-insensitive substring match against each session's derived display
+ *  name - PrivacyHistoryModal's search box. An empty/whitespace-only query
+ *  returns every session, in their given order. */
+export function filterSessionsByAppName(sessions: readonly PrivacySession[], query: string): PrivacySession[] {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return [...sessions];
+  return sessions.filter(s => appDisplayName(s.app).toLowerCase().includes(needle));
+}
+
 /**
  * The privacy indicators to show on one process row: groups `sessions`
  * matching `processName` by icon kind, keeping only sessions that are
@@ -100,7 +153,7 @@ export function privacyIndicatorsForProcess(
     const group = groups.get(kind);
     if (!group || group.length === 0) continue;
     const state: 'active' | 'recent' = group.some(s => s.end === null) ? 'active' : 'recent';
-    const sorted = [...group].sort((a, b) => (b.end ?? Infinity) - (a.end ?? Infinity) || b.start - a.start);
+    const sorted = [...group].sort(byRecency);
     indicators.push({ kind, state, sessions: sorted });
   }
   return indicators;

@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { PrivacySession } from '../../../../api/monitoringPrivacy';
 import {
+  appDisplayName,
+  filterSessionsByAppName,
   iconKindForCapability,
   matchSessionApp,
   privacyIndicatorsForProcess,
   RECENT_WINDOW_MS,
+  sortSessionsNewestFirst,
 } from './privacyHelpers';
 
 const NOW = 10_000_000;
@@ -119,5 +122,60 @@ describe('privacyIndicatorsForProcess', () => {
     ];
     const indicators = privacyIndicatorsForProcess(sessions, 'chrome', NOW);
     expect(indicators.map(i => i.kind)).toEqual(['webcam', 'microphone', 'location', 'screen']);
+  });
+});
+
+describe('appDisplayName', () => {
+  it('strips a win32 path down to its extension-less basename', () => {
+    expect(appDisplayName('C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe')).toBe('chrome');
+    expect(appDisplayName('C:\\Program Files\\Microsoft\\Teams\\current\\Teams.exe')).toBe('Teams');
+  });
+
+  it('supports a forward-slash path', () => {
+    expect(appDisplayName('/usr/bin/chrome')).toBe('chrome');
+  });
+
+  it('drops the publisher-id suffix from a package family name', () => {
+    expect(appDisplayName('Microsoft.WindowsMaps_8wekyb3d8bbwe')).toBe('Microsoft.WindowsMaps');
+  });
+
+  it('returns a package family name as-is when it carries no underscore', () => {
+    expect(appDisplayName('SomeApp')).toBe('SomeApp');
+  });
+});
+
+describe('sortSessionsNewestFirst', () => {
+  it('sorts an in-use session above every ended one', () => {
+    const older = session({ app: 'C:\\older.exe', end: NOW - 40 * 60_000 });
+    const active = session({ app: 'C:\\active.exe', end: null });
+    const newer = session({ app: 'C:\\newer.exe', end: NOW - 5 * 60_000 });
+    expect(sortSessionsNewestFirst([older, active, newer])).toEqual([active, newer, older]);
+  });
+
+  it('does not mutate the input array', () => {
+    const a = session({ app: 'C:\\a.exe', end: NOW - 1000 });
+    const b = session({ app: 'C:\\b.exe', end: NOW - 2000 });
+    const input = [b, a];
+    sortSessionsNewestFirst(input);
+    expect(input).toEqual([b, a]);
+  });
+});
+
+describe('filterSessionsByAppName', () => {
+  const chrome = session({ app: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' });
+  const teams = session({ app: 'C:\\Program Files\\Microsoft\\Teams\\current\\Teams.exe' });
+
+  it('returns every session for an empty or whitespace-only query', () => {
+    expect(filterSessionsByAppName([chrome, teams], '')).toEqual([chrome, teams]);
+    expect(filterSessionsByAppName([chrome, teams], '   ')).toEqual([chrome, teams]);
+  });
+
+  it('matches case-insensitively against the derived display name', () => {
+    expect(filterSessionsByAppName([chrome, teams], 'CHROME')).toEqual([chrome]);
+    expect(filterSessionsByAppName([chrome, teams], 'team')).toEqual([teams]);
+  });
+
+  it('returns an empty array when nothing matches', () => {
+    expect(filterSessionsByAppName([chrome, teams], 'firefox')).toEqual([]);
   });
 });

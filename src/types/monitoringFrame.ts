@@ -1,4 +1,4 @@
-import type { HardwareSensor, StorageComponent } from './useSensors';
+import type { HardwareSensor, StorageComponent } from '../hooks/useSensors';
 
 export interface HardwareComponent {
   id: string;

@@ -90,6 +90,32 @@ export function snapToEnd(px: number, domainEndPx: number, tolerancePx: number):
   return Math.abs(px - domainEndPx) <= tolerancePx ? domainEndPx : px;
 }
 
+// Converts a wheel event's raw deltaY into a multiplicative zoom factor -
+// sized so a standard wheel notch changes the window width by roughly the
+// same step as the keyboard zoom's own RESIZE_STEP_FRACTION, so both feel
+// alike.
+const WHEEL_ZOOM_SENSITIVITY = 0.001;
+
+/** New [from, to] after a wheel-zoom gesture: `deltaY` (positive zooms out,
+ *  negative zooms in) scales the window width exponentially, anchored so
+ *  `anchorT` (the cursor's timestamp) keeps the same fractional position
+ *  within the window - it stays under the cursor rather than the window
+ *  zooming around its own center. The result is clamped to
+ *  [minWindowMs, domainEnd - domainStart] and shifted back inside the domain
+ *  the same way clampWindow does. */
+export function zoomWindow(
+  from: number, to: number, anchorT: number, deltaY: number,
+  domainStart: number, domainEnd: number, minWindowMs: number,
+): [number, number] {
+  const width = to - from;
+  const factor = Math.exp(deltaY * WHEEL_ZOOM_SENSITIVITY);
+  const maxWidth = Math.max(minWindowMs, domainEnd - domainStart);
+  const newWidth = Math.min(maxWidth, Math.max(minWindowMs, width * factor));
+  const ratio = width > 0 ? (anchorT - from) / width : 0.5;
+  const newFrom = anchorT - ratio * newWidth;
+  return clampWindow(newFrom, newFrom + newWidth, domainStart, domainEnd, minWindowMs);
+}
+
 export interface SilhouetteValuePoint {
   t: number;
   v: number;

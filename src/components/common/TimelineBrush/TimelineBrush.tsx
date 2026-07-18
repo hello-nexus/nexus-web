@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react';
 import {
   MIN_BOX_WINDOW_MS,
   buildSilhouettePathD,
@@ -10,6 +10,7 @@ import {
   resizeLeftEdge,
   resizeRightEdge,
   snapToEnd,
+  zoomWindow,
   type BrushHitZone,
 } from './timelineBrushUtils';
 import styles from './TimelineBrush.module.scss';
@@ -66,6 +67,10 @@ const EDGE_HIT_PX = 10;
 const SNAP_PX = 6;
 const PAN_STEP_FRACTION = 0.1;
 const RESIZE_STEP_FRACTION = 0.1;
+// A wheel-zoom gesture has no pointerup to mark its end - this debounce
+// after the last wheel event stands in for it, committing the final 'end'
+// report the same way releasing a drag does.
+const WHEEL_SETTLE_MS = 200;
 // Rounds the draggable window box's corners to match the block's own outer
 // radius (.root's border-radius: var(--radius) in TimelineBrush.module.scss)
 // since SVG rect geometry attributes can't reference a CSS custom property
@@ -89,10 +94,11 @@ export function TimelineBrush({
   const wrapRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   const dragRef = useRef<DragState | null>(null);
-  // The last reported [from, to] during an active drag - the pointer-up
-  // handler reports this back with phase 'end' instead of recomputing from a
-  // possibly-stale event.
+  // The last reported [from, to] during an active drag or wheel-zoom - the
+  // pointer-up handler and the wheel-settle timeout both report this back
+  // with phase 'end' instead of recomputing from a possibly-stale event.
   const latestRef = useRef<[number, number]>([from, to]);
+  const wheelSettleTimerRef = useRef<number | null>(null);
   // Drives the ew-resize cursor affordance BEFORE a click: which zone the
   // pointer is hovering (tracked only while not dragging) or actively
   // dragging (the mode pins the cursor for the whole gesture, independent of
@@ -234,6 +240,39 @@ export function TimelineBrush({
       }
     }
   };
+
+  // React registers a JSX onWheel listener as passive, so preventDefault()
+  // inside it is silently ignored (and warns) - a plain DOM addEventListener
+  // with passive:false is the only way to actually stop the page/panel
+  // scrolling under the cursor while zooming the brush. wheelHandlerRef holds
+  // the current render's closure so the listener (attached once) never runs
+  // a stale one.
+  const wheelHandlerRef = useRef<(e: WheelEvent) => void>(() => {});
+  useLayoutEffect(() => {
+    wheelHandlerRef.current = (e: WheelEvent) => {
+      if (width <= 0) return;
+      e.preventDefault();
+      const anchorT = pxT(localX(e));
+      const [f, t] = zoomWindow(latestRef.current[0], latestRef.current[1], anchorT, e.deltaY, domainStart, domainEnd, minWindowMs);
+      report(f, t, 'drag');
+      if (wheelSettleTimerRef.current !== null) window.clearTimeout(wheelSettleTimerRef.current);
+      wheelSettleTimerRef.current = window.setTimeout(() => {
+        wheelSettleTimerRef.current = null;
+        report(latestRef.current[0], latestRef.current[1], 'end');
+      }, WHEEL_SETTLE_MS);
+    };
+  });
+
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const listener = (e: WheelEvent) => wheelHandlerRef.current(e);
+    el.addEventListener('wheel', listener, { passive: false });
+    return () => {
+      el.removeEventListener('wheel', listener);
+      if (wheelSettleTimerRef.current !== null) window.clearTimeout(wheelSettleTimerRef.current);
+    };
+  }, []);
 
   const fromPx = width > 0 ? tPx(from) : 0;
   const toPx = width > 0 ? tPx(to) : 0;
