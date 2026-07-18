@@ -1554,6 +1554,10 @@ function PreviewBadge() {
       <StorybookBadge label="Accent" color="var(--accent)" />
       <StorybookBadge label="Good" color="var(--good, #22c55e)" />
       <StorybookBadge label="Bad" color="var(--bad, #ef4444)" />
+      {/* minWidth reserves a fixed pill width so a live numeric readout
+          (e.g. the monitoring tab chips) doesn't resize as its digits change. */}
+      <StorybookBadge label="9%" minWidth="2.75rem" />
+      <StorybookBadge label="100%" minWidth="2.75rem" />
     </div>
   );
 }

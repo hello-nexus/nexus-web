@@ -24,6 +24,7 @@ import { seriesQueryFor, appsSeriesParamFor, resolveSelectedFrame, type HistoryM
 import { appsToProcessListItems, currentAppValueMap, reconcileLiveWithWindow, zeroedGpuFallback } from './page/appWindowHelpers';
 import { buildLiveUsageByName } from './page/processDetailHelpers';
 import { formatRate } from './page/shared';
+import { formatTabChipValue, TAB_CHIP_PERCENT_MIN_WIDTH, TAB_CHIP_RATE_MIN_WIDTH } from './page/tabChipValue';
 import { usePageSettingsAction } from '../../../app/PageChrome';
 import { useSensorHistoryFeed } from '../common/useSharedSensorHistory';
 import styles from './MonitoringPage.module.scss';
@@ -82,11 +83,27 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
     serviceOnline && sensors.gpuComponents.length > 1,
   );
 
+  // Each metric tab's own live value, moved off the chart's right axis (the
+  // sibling per-tab chart rework removes that readout) and into a
+  // fixed-width chip on the tab button itself, so the number ticking doesn't
+  // shift the tab bar. aria-hidden on the chip keeps the tab's accessible
+  // name the plain label text - a value re-announcing every tick would be
+  // noisy for screen-reader users, same reasoning as the tab icon's own
+  // aria-hidden.
+  const tabLabelWithChip = (text: string, metric: HistoryMetric, minWidth: string) => (
+    <span className={styles.tabLabelWithChip}>
+      {text}
+      <span aria-hidden="true">
+        <Badge label={formatTabChipValue(metric, sensors.cpu, sensors.gpu, sensors.memory, network.totalRate, numberFormat)} minWidth={minWidth} />
+      </span>
+    </span>
+  );
+
   const tabs = ([
-    { key: 'cpu', label: t('monitoring.tab.cpu'), icon: <Cpu size={14} /> },
-    { key: 'gpu', label: t('monitoring.tab.gpu'), icon: <Gpu size={14} /> },
-    { key: 'memory', label: t('monitoring.tab.memory'), icon: <MemoryStick size={14} /> },
-    { key: 'network', label: t('monitoring.tab.network'), icon: <Network size={14} /> },
+    { key: 'cpu', label: tabLabelWithChip(t('monitoring.tab.cpu'), 'cpu', TAB_CHIP_PERCENT_MIN_WIDTH), icon: <Cpu size={14} /> },
+    { key: 'gpu', label: tabLabelWithChip(t('monitoring.tab.gpu'), 'gpu', TAB_CHIP_PERCENT_MIN_WIDTH), icon: <Gpu size={14} /> },
+    { key: 'memory', label: tabLabelWithChip(t('monitoring.tab.memory'), 'memory', TAB_CHIP_PERCENT_MIN_WIDTH), icon: <MemoryStick size={14} /> },
+    { key: 'network', label: tabLabelWithChip(t('monitoring.tab.network'), 'network', TAB_CHIP_RATE_MIN_WIDTH), icon: <Network size={14} /> },
     { key: 'detailed', label: t('monitoring.tab.detailed'), icon: <List size={14} /> },
   ] as const).filter(tb => tb.key !== 'gpu' || gpuSupported);
 
