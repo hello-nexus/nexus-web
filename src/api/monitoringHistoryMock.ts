@@ -92,6 +92,16 @@ const SERIES_DEFS: readonly SeriesDef[] = [
     spreadAt: t => 1 + Math.abs(wobble(t, 16)) * 2,
   },
   {
+    id: 'mem-temp', kind: 'mem-temp', name: 'Memory Temperature',
+    avgAt: t => clamp(38 + 8 * Math.sin(dayPhase(t) * 0.5) + wobble(t, 8) * 6 + sessionBump(t, 2_400_000, CPU_LOAD_BUMP_PHASE) * 12, 25, 75),
+    spreadAt: t => 1 + Math.abs(wobble(t, 18)) * 2,
+  },
+  {
+    id: 'drive-temp:0', kind: 'drive-temp', name: 'Samsung 990 Pro',
+    avgAt: t => clamp(34 + sessionBump(t, 2_400_000, CPU_LOAD_BUMP_PHASE) * 14 + wobble(t, 9) * 4, 22, 70),
+    spreadAt: t => 1 + Math.abs(wobble(t, 19)) * 2,
+  },
+  {
     id: 'fan-duty:1', kind: 'fan-duty', name: 'Fan 1',
     avgAt: t => clamp(30 + sessionBump(t, 2_400_000, CPU_LOAD_BUMP_PHASE) * 40 + wobble(t, 21) * 5, 10, 100),
     spreadAt: t => 2 + Math.abs(wobble(t, 31)) * 3,

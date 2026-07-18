@@ -333,6 +333,28 @@ describe('MetricHistorySection', () => {
     });
   });
 
+  describe('memory temperature ribbon', () => {
+    it('renders a temp band on the memory tab when a mem-temp series is present', () => {
+      stubGeometry();
+      const series: UseMetricHistoryResult['series'] = [
+        { id: 'memory', kind: 'memory', name: 'Memory', points: [{ t: NOW, avg: 55, max: 56 }] },
+        { id: 'mem-temp', kind: 'mem-temp', name: 'Memory Temperature', points: [{ t: NOW, avg: 45, max: 46 }] },
+      ];
+      const { container } = renderSection({ metric: 'memory', history: { series } });
+      expect(container.querySelector('rect[fill="var(--bad)"]')).toBeInTheDocument();
+      expect(screen.getByText('45°C')).toBeInTheDocument();
+    });
+
+    it('renders no temp band on the memory tab when there is no mem-temp series', () => {
+      stubGeometry();
+      const series: UseMetricHistoryResult['series'] = [
+        { id: 'memory', kind: 'memory', name: 'Memory', points: [{ t: NOW, avg: 55, max: 56 }] },
+      ];
+      const { container } = renderSection({ metric: 'memory', history: { series } });
+      expect(container.querySelector('rect[fill="var(--bad)"]')).toBeNull();
+    });
+  });
+
   describe('average fan duty ribbon', () => {
     it('renders no duty band when there is no fan-duty series', () => {
       stubGeometry();

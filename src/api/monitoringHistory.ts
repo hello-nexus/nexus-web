@@ -13,7 +13,7 @@
 import { classifyFetchOutcome, requestJson } from './fetchOutcome';
 
 export type MetricHistoryKind =
-  | 'cpu' | 'memory' | 'net' | 'gpu' | 'cpu-temp' | 'gpu-temp' | 'fan' | 'fan-duty';
+  | 'cpu' | 'memory' | 'net' | 'gpu' | 'cpu-temp' | 'gpu-temp' | 'mem-temp' | 'drive-temp' | 'fan' | 'fan-duty';
 
 export interface MetricHistoryPoint {
   t: number;
