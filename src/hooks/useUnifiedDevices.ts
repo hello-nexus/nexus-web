@@ -219,6 +219,12 @@ export function useUnifiedDevices(enabled: boolean) {
       // simulator is active; a disconnected one is a leftover persisted record,
       // not a device the user owns, so it must not show as a phantom entry.
       if (deck.serial.startsWith('sim-') && !deck.connected) continue;
+      // A real deck lists only while its hardware is on the bus: the worker
+      // holds it (deck.connected) or the control gate released it while still
+      // present (deckPresentWhileReleased). The service returns persisted deck
+      // records regardless of USB presence, so without this gate an unplugged
+      // deck lingers as a phantom entry.
+      if (!deck.connected && !deckPresentWhileReleased) continue;
       list.push({
         key: `streamdeck:${deck.serial}`,
         shortName: t('devices.streamdeck.modelName', { model: deck.model }),
