@@ -357,6 +357,18 @@ describe('MonitoringPage', () => {
       expect(lastAppsWindowSeriesParam).toBe('storage');
     });
 
+    it('shows the window-scoped per-app rows while following live - storage has no live per-process topic (unlike cpu/memory/gpu), so every row comes from the window response alone via reconcileLiveWithWindow\'s window-only branch', () => {
+      // historyOverride/appsWindowOverride default to following: true - the
+      // common case (a user just opening the tab, not yet detached).
+      appsWindowOverride = {
+        ready: true, supported: true,
+        apps: [{ name: 'chrome.exe', avg: 4_400_000, max: 5_000_000, points: [{ t: 0, avg: 4_400_000 }] }],
+      };
+      render(<MonitoringPage serviceOnline={true} connectionState="online" tab="storage" onTabChange={vi.fn()} />);
+      expect(screen.getByTestId('process-list-section')).toHaveTextContent('chrome.exe');
+      appsWindowOverride = {};
+    });
+
     it('mounts the hero + process list once, swapping into storage without remounting (zero-flicker tab switch)', () => {
       metricHistoryMounts = 0;
       metricHistoryUnmounts = 0;
