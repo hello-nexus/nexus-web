@@ -2889,6 +2889,8 @@
   "tools.widgetSdk.label": "Каждый примитив интерфейса, хук SDK, действие dispatch, возможность - с живым предпросмотром. Служит справочником по SDK приложения для сторонних авторов приложений.",
   "tools.widgetSdk.title": "Справочник Widget SDK",
   "tools.yes": "Да",
+  "topbar.focus": "Режим фокусировки",
+  "topbar.focus.exit": "Выйти из режима фокусировки",
   "topbar.menu": "Меню",
   "transfer.cancel": "Отмена",
   "transfer.clipboard": "Буфер обмена",

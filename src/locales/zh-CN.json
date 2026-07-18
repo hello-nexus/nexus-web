@@ -2885,6 +2885,8 @@
   "tools.widgetSdk.label": "每个 UI 基元、SDK 钩子、dispatch 操作、功能，均带实时预览。作为应用 SDK 及第三方应用开发者的参考。",
   "tools.widgetSdk.title": "Widget SDK 参考",
   "tools.yes": "是",
+  "topbar.focus": "专注模式",
+  "topbar.focus.exit": "退出专注模式",
   "topbar.menu": "菜单",
   "transfer.cancel": "取消",
   "transfer.clipboard": "剪贴板",

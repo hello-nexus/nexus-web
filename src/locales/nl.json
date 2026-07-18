@@ -3075,6 +3075,8 @@
   "tools.widgetSdk.label": "Elk UI-primitief, SDK-hook, dispatch-actie en mogelijkheid - met live voorbeelden. Fungeert als de referentie voor de app-SDK en externe app-auteurs.",
   "tools.widgetSdk.title": "Widget SDK-referentie",
   "tools.yes": "Ja",
+  "topbar.focus": "Focusmodus",
+  "topbar.focus.exit": "Focusmodus verlaten",
   "topbar.menu": "Menu",
   "transfer.cancel": "Annuleren",
   "transfer.clipboard": "Klembord",

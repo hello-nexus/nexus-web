@@ -2885,6 +2885,8 @@
   "tools.widgetSdk.label": "Cada primitiva de la interfaz, hook del SDK, acción de despacho y función - con vistas previas en vivo. Sirve como referencia para el SDK de la app y para autores de apps de terceros.",
   "tools.widgetSdk.title": "Referencia del SDK de widgets",
   "tools.yes": "Si",
+  "topbar.focus": "Modo enfoque",
+  "topbar.focus.exit": "Salir del modo enfoque",
   "topbar.menu": "Menú",
   "transfer.cancel": "Cancelar",
   "transfer.clipboard": "Portapapeles",

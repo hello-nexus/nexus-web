@@ -2885,6 +2885,8 @@
   "tools.widgetSdk.label": "모든 UI 프리미티브, SDK 훅, 디스패치 동작, 기능을 실시간 미리보기와 함께 제공합니다. 앱 SDK와 서드파티 앱 개발자를 위한 참조 자료입니다.",
   "tools.widgetSdk.title": "위젯 SDK 참조",
   "tools.yes": "예",
+  "topbar.focus": "포커스 모드",
+  "topbar.focus.exit": "포커스 모드 종료",
   "topbar.menu": "메뉴",
   "transfer.cancel": "취소",
   "transfer.clipboard": "클립보드",

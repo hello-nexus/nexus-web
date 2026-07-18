@@ -2830,6 +2830,8 @@
   "tools.widgetSdk.label": "すべての UI プリミティブ、SDK フック、ディスパッチアクション、機能をライブプレビュー付きで掲載。アプリ SDK とサードパーティアプリ作者向けのリファレンスです。",
   "tools.widgetSdk.title": "ウィジェット SDK リファレンス",
   "tools.yes": "はい",
+  "topbar.focus": "フォーカスモード",
+  "topbar.focus.exit": "フォーカスモードを終了",
   "topbar.menu": "メニュー",
   "transfer.cancel": "キャンセル",
   "transfer.clipboard": "クリップボード",

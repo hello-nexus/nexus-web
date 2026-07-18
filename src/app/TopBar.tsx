@@ -3,7 +3,7 @@ import classNames from 'classnames';
 import {
   ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen,
   MoreHorizontal, Settings, FlaskConical, Info, Unplug,
-  SlidersHorizontal, RefreshCw,
+  SlidersHorizontal, RefreshCw, Maximize2, Minimize2,
 } from 'lucide-react';
 import { DiscordGlyph } from '../components/icons/NexusBrand';
 import { ProfileDropdown } from '../components/common/ProfileDropdown/ProfileDropdown';
@@ -69,6 +69,13 @@ interface TopBarProps {
   // True only inside the Nexus macOS shell. The native traffic lights overlay
   // the top-left, so the left cluster is inset past them.
   isMacApp: boolean;
+  // True when the active page opted into Focus mode (see FOCUS_CAPABLE_VIEWS
+  // in sidebarNav.tsx). The Focus toggle only renders for these pages.
+  focusCapable: boolean;
+  // Current Focus mode state, owned by Dashboard - also drives the sidebar
+  // visibility and the page-width layout.
+  focusMode: boolean;
+  onToggleFocusMode: () => void;
 }
 
 // The "..." overflow menu: Settings / Check for updates / Dev tools / Discord / About.
@@ -154,6 +161,9 @@ export function TopBar({
   onNavigateAccount,
   isWindowsApp,
   isMacApp,
+  focusCapable,
+  focusMode,
+  onToggleFocusMode,
 }: TopBarProps) {
   const { t } = useTranslation();
   const [aboutOpen, setAboutOpen] = useState(false);
@@ -181,7 +191,7 @@ export function TopBar({
       })}
     >
       <div className={styles.leftCluster}>
-        {hasSidebar && (
+        {hasSidebar && !focusMode && (
           <HoverTooltip body={compact ? t('sidebar.expand') : t('sidebar.collapse')} side="bottom">
             <button
               type="button"
@@ -193,11 +203,27 @@ export function TopBar({
             </button>
           </HoverTooltip>
         )}
+        {/* Focus toggle: immediately right of the collapse button. Only
+            renders on pages that opted in (FOCUS_CAPABLE_VIEWS); stays visible
+            in Focus mode itself since it's the only way back. */}
+        {focusCapable && (
+          <HoverTooltip body={focusMode ? t('topbar.focus.exit') : t('topbar.focus')} side="bottom">
+            <button
+              type="button"
+              className={styles.iconButton}
+              onClick={onToggleFocusMode}
+              aria-label={focusMode ? t('topbar.focus.exit') : t('topbar.focus')}
+            >
+              {focusMode ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+            </button>
+          </HoverTooltip>
+        )}
       </div>
 
       {/* History arrows: pinned immediately to the left of the centered search
-          pill. Desktop-app build only. */}
-      {__SERVICE_BUILD__ && (
+          pill. Desktop-app build only; hidden in Focus mode along with the
+          rest of the bar's navigation chrome. */}
+      {__SERVICE_BUILD__ && !focusMode && (
         <div className={styles.navArrows}>
           <HoverTooltip body={t('nav.back')} side="bottom">
             <button type="button" className={styles.iconButton}
@@ -217,19 +243,21 @@ export function TopBar({
       {/* Center search pill. With a palette provider it's the interactive
           docked search (TopSearch); otherwise a display-only title (panel
           kiosk / iOS). The page name is the document's primary heading - the
-          in-page <h1>s were removed when titles moved into the top bar. */}
-      {palette ? (
+          in-page <h1>s were removed when titles moved into the top bar.
+          Hidden entirely in Focus mode. */}
+      {!focusMode && (palette ? (
         <TopSearch pageTitle={pageTitle} online={online} platform={platform} />
       ) : (
         <div className={styles.searchBar}>
           <h1 className={styles.searchTitle}>{pageTitle}</h1>
         </div>
-      )}
+      ))}
 
       {/* Page settings, pinned just right of the centered search pill (mirrors
           the history arrows on its left). Round to echo the pill; shown only
-          when the active page registers a settings action. */}
-      {pageSettings && (
+          when the active page registers a settings action, hidden in Focus
+          mode. */}
+      {!focusMode && pageSettings && (
         <div className={styles.pageSettings}>
           <HoverTooltip body={pageSettings.label} side="bottom">
             <button
@@ -246,39 +274,45 @@ export function TopBar({
 
       <div className={styles.rightCluster}>
         {/* Status alerts sit just left of the "..." menu: app-conflict (amber)
-            and update-available (green). Each hides itself when inactive. */}
-        <ConflictStatusSlot serviceOnline={online} />
-        <UpdateStatusSlot serviceOnline={online} onOpen={onOpenUpdate} onInstall={onInstall} />
-        <TopBarMenu onNavigateSettings={onNavigateSettings} onNavigateTools={onNavigateTools} onOpenAbout={() => setAboutOpen(true)} onOpenUpdate={onOpenUpdate} />
-        <div className={styles.profileSlot}>
-          {online ? (
-            <ConnectedProfileSlot connectEpoch={connectEpoch}>
-              <ProfileDropdown
-                profiles={profiles}
-                onPreferencesChanged={onPreferencesChanged}
-                onNavigateSettings={onManageProfiles}
-                onNavigateAccount={onNavigateAccount}
-                accountAvatarUrl={cloudAccounts.activeAccount?.avatar?.small}
-                accountInitial={cloudAccounts.activeAccount?.username?.charAt(0).toUpperCase()}
-                accountUsername={cloudAccounts.activeAccount?.username}
-                signedIn={cloudAccounts.activeAccount != null}
-                variant="avatar"
-              />
-            </ConnectedProfileSlot>
-          ) : (
-            <HoverTooltip body={offlineLabel} side="bottom">
-              <span className={styles.offlineAvatar} role="status" aria-live="polite" aria-label={offlineLabel}>
-                <Unplug
-                  size={15}
-                  className={classNames(styles.offlineIcon, {
-                    [styles.offlineIconChecking]: connectionState === 'checking',
-                  })}
-                  aria-hidden
+            and update-available (green). Each hides itself when inactive.
+            All hidden in Focus mode along with the rest of this cluster - only
+            the window controls (below) survive it. */}
+        {!focusMode && <ConflictStatusSlot serviceOnline={online} />}
+        {!focusMode && <UpdateStatusSlot serviceOnline={online} onOpen={onOpenUpdate} onInstall={onInstall} />}
+        {!focusMode && (
+          <TopBarMenu onNavigateSettings={onNavigateSettings} onNavigateTools={onNavigateTools} onOpenAbout={() => setAboutOpen(true)} onOpenUpdate={onOpenUpdate} />
+        )}
+        {!focusMode && (
+          <div className={styles.profileSlot}>
+            {online ? (
+              <ConnectedProfileSlot connectEpoch={connectEpoch}>
+                <ProfileDropdown
+                  profiles={profiles}
+                  onPreferencesChanged={onPreferencesChanged}
+                  onNavigateSettings={onManageProfiles}
+                  onNavigateAccount={onNavigateAccount}
+                  accountAvatarUrl={cloudAccounts.activeAccount?.avatar?.small}
+                  accountInitial={cloudAccounts.activeAccount?.username?.charAt(0).toUpperCase()}
+                  accountUsername={cloudAccounts.activeAccount?.username}
+                  signedIn={cloudAccounts.activeAccount != null}
+                  variant="avatar"
                 />
-              </span>
-            </HoverTooltip>
-          )}
-        </div>
+              </ConnectedProfileSlot>
+            ) : (
+              <HoverTooltip body={offlineLabel} side="bottom">
+                <span className={styles.offlineAvatar} role="status" aria-live="polite" aria-label={offlineLabel}>
+                  <Unplug
+                    size={15}
+                    className={classNames(styles.offlineIcon, {
+                      [styles.offlineIconChecking]: connectionState === 'checking',
+                    })}
+                    aria-hidden
+                  />
+                </span>
+              </HoverTooltip>
+            )}
+          </div>
+        )}
         {isWindowsApp && <CaptionButtons />}
       </div>
 

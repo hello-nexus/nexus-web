@@ -46,7 +46,7 @@ import { useTranslation } from '../lib/i18n';
 import { applyThemeMode, applyAccentColor, cachePreferencesLocally } from '../lib/settings';
 import type { Preferences } from '../api/profiles';
 import type { Language, ThemeMode } from '../lib/settings';
-import { NAV_ICONS, PORTAL_NAV_KEYS } from './sidebarNav';
+import { FOCUS_CAPABLE_VIEWS, NAV_ICONS, PORTAL_NAV_KEYS } from './sidebarNav';
 import { PageVersionLabel } from './sidebar';
 import { TopBar } from './TopBar';
 import { PageChromeProvider } from './PageChrome';
@@ -348,6 +348,24 @@ export function Dashboard() {
   const serviceNavActive = section === 'system' ? activeView : '';
   const portalNavActive = section !== 'system' ? section : '';
 
+  // Focus mode: full-width, chrome-stripped view of a single focus-capable
+  // page (see FOCUS_CAPABLE_VIEWS). focusCapable re-derives every render from
+  // the active route; focusActive (not the raw focusMode state) is what every
+  // layout consumer below reads, so a route change that leaves a capable page
+  // drops the full-width layout in the SAME commit instead of one render
+  // later - a navigate() that bypasses the (now-hidden) TopBar entirely, e.g.
+  // the command palette shortcut, would otherwise paint one frame of the new
+  // page under the old page's full-width chrome. The effect then clears the
+  // underlying focusMode state so Focus doesn't silently resume if the user
+  // later returns to a capable page.
+  const focusCapable = section === 'system' && FOCUS_CAPABLE_VIEWS.has(activeView);
+  const [focusMode, setFocusMode] = useState(false);
+  const focusActive = focusMode && focusCapable;
+  useEffect(() => {
+    if (!focusCapable && focusMode) setFocusMode(false);
+  }, [focusCapable, focusMode]);
+  const toggleFocusMode = useCallback(() => setFocusMode(f => !f), []);
+
   // Page name shown in the top-bar search pill. Portal sections use their
   // nav.section label; inside /system the active view resolves through the
   // sidebar app meta (Dashboard, Lighting, Cooling, ...), with the device and
@@ -624,6 +642,7 @@ export function Dashboard() {
       <div className={classNames(styles.layout, {
         [styles.layoutCompact]: compact,
         [styles.layoutWindowsApp]: isWindowsAppShell(),
+        [styles.layoutFocusMode]: focusActive,
       })}>
         <AppBackdrop />
         <BackgroundEffects />
@@ -681,11 +700,14 @@ export function Dashboard() {
               onNavigateAccount={handleNavigateAccount}
               isWindowsApp={isWindowsAppShell()}
               isMacApp={isMacAppShell()}
+              focusCapable={focusCapable}
+              focusMode={focusActive}
+              onToggleFocusMode={toggleFocusMode}
             />
             <PageVersionLabel />
-            {/* Body row: sidebar (/system only) + content */}
+            {/* Body row: sidebar (/system only, and never in Focus mode) + content */}
             <div className={styles.bodyRow}>
-              {hasSidebar && (
+              {hasSidebar && !focusActive && (
                 <SidebarColumn
                   compact={compact}
                   online={online}

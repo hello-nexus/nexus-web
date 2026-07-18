@@ -2885,6 +2885,8 @@
   "tools.widgetSdk.label": "Her UI ilkeli, SDK kancası, dispatch eylemi, yetenek - canlı önizlemelerle. Uygulama SDK'sı ve 3. taraf uygulama geliştiricileri için referans işlevi görür.",
   "tools.widgetSdk.title": "Widget SDK referansı",
   "tools.yes": "Evet",
+  "topbar.focus": "Odak modu",
+  "topbar.focus.exit": "Odak modundan çık",
   "topbar.menu": "Menü",
   "transfer.cancel": "İptal",
   "transfer.clipboard": "Pano",

@@ -1,0 +1,120 @@
+import type { ReactNode } from 'react';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import type { UseProfilesResult } from '../hooks/useProfiles';
+import type { UseCloudAccountsResult } from '../hooks/useCloudAccounts';
+
+// Focus mode's top-bar changes touch a lot of sibling chrome (alerts, update
+// status, the profile slot) that each carry their own provider/network
+// dependencies unrelated to this change. Stub them so this test isolates the
+// conditional rendering TopBar itself owns.
+vi.mock('../lib/i18n', () => ({
+  useTranslation: () => ({ t: (key: string) => key }),
+}));
+
+vi.mock('./sidebar', () => ({
+  ConnectedProfileSlot: ({ children }: { children: ReactNode }) => <>{children}</>,
+  ConflictStatusSlot: () => <div data-testid="conflict-status-slot" />,
+  UpdateStatusSlot: () => <div data-testid="update-status-slot" />,
+}));
+
+import { TopBar } from './TopBar';
+
+const profiles: UseProfilesResult = {
+  profiles: [],
+  activeId: '',
+  switchProfile: async () => null,
+  createProfile: async () => ({ status: 200, body: null }),
+  renameProfile: async () => ({ status: 200, body: null }),
+  deleteProfile: async () => {},
+  exportProfile: async () => {},
+  importProfile: async () => ({ status: 200, body: null }),
+  reorderProfiles: () => {},
+  refresh: async () => {},
+  loading: false,
+};
+
+const cloudAccounts: UseCloudAccountsResult = {
+  activeAccountId: null,
+  activeAccount: null,
+  refresh: async () => {},
+};
+
+function renderTopBar(overrides: Partial<Parameters<typeof TopBar>[0]> = {}) {
+  return render(
+    <TopBar
+      hasSidebar
+      compact={false}
+      onToggleCompact={() => {}}
+      pageTitle="Monitoring"
+      canGoBack={false}
+      canGoForward={false}
+      goBack={() => {}}
+      goForward={() => {}}
+      online={false}
+      platform=""
+      connectionState="online"
+      connectEpoch={0}
+      profiles={profiles}
+      cloudAccounts={cloudAccounts}
+      onPreferencesChanged={() => {}}
+      onNavigateSettings={() => {}}
+      onNavigateTools={() => {}}
+      onOpenUpdate={() => {}}
+      onInstall={() => {}}
+      onManageProfiles={() => {}}
+      onNavigateAccount={() => {}}
+      isWindowsApp
+      isMacApp={false}
+      focusCapable={false}
+      focusMode={false}
+      onToggleFocusMode={() => {}}
+      {...overrides}
+    />,
+  );
+}
+
+describe('TopBar focus mode', () => {
+  it('does not render the Focus toggle on a non-capable page', () => {
+    renderTopBar({ focusCapable: false });
+    expect(screen.queryByLabelText('topbar.focus')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('topbar.focus.exit')).not.toBeInTheDocument();
+  });
+
+  it('renders the Focus toggle immediately after the collapse button on a capable page', () => {
+    renderTopBar({ focusCapable: true, focusMode: false });
+    const collapse = screen.getByLabelText('sidebar.collapse');
+    const focus = screen.getByLabelText('topbar.focus');
+    // Both live in the same left cluster, collapse first.
+    expect(collapse.compareDocumentPosition(focus) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('calls onToggleFocusMode when the Focus button is clicked', () => {
+    const onToggleFocusMode = vi.fn();
+    renderTopBar({ focusCapable: true, focusMode: false, onToggleFocusMode });
+    fireEvent.click(screen.getByLabelText('topbar.focus'));
+    expect(onToggleFocusMode).toHaveBeenCalledTimes(1);
+  });
+
+  it('strips the bar to the Focus toggle + window controls while active', () => {
+    renderTopBar({ focusCapable: true, focusMode: true, hasSidebar: true, isWindowsApp: true });
+
+    // Hidden: collapse toggle, page title/search pill, alerts, update status,
+    // overflow menu, profile slot.
+    expect(screen.queryByLabelText('sidebar.collapse')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('sidebar.expand')).not.toBeInTheDocument();
+    expect(screen.queryByText('Monitoring')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('conflict-status-slot')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('update-status-slot')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('topbar.menu')).not.toBeInTheDocument();
+
+    // Kept: the Focus (exit) toggle and the window controls.
+    expect(screen.getByLabelText('topbar.focus.exit')).toBeInTheDocument();
+    expect(screen.getByLabelText('app.window.close')).toBeInTheDocument();
+  });
+
+  it('shows the page title again once Focus mode is off', () => {
+    renderTopBar({ focusCapable: true, focusMode: false });
+    expect(screen.getByText('Monitoring')).toBeInTheDocument();
+  });
+});

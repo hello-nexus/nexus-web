@@ -2889,6 +2889,8 @@
   "tools.widgetSdk.label": "Każdy element interfejsu, hook SDK, akcja dispatch, funkcja - z podglądem na żywo. Pełni rolę dokumentacji SDK aplikacji oraz dla autorów aplikacji innych firm.",
   "tools.widgetSdk.title": "Dokumentacja Widget SDK",
   "tools.yes": "Tak",
+  "topbar.focus": "Tryb skupienia",
+  "topbar.focus.exit": "Wyjdź z trybu skupienia",
   "topbar.menu": "Menu",
   "transfer.cancel": "Anuluj",
   "transfer.clipboard": "Schowek",

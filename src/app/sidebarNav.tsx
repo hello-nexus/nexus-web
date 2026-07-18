@@ -12,6 +12,11 @@ export const ICON_SIZE = 18;
 // `never`.
 export const PORTAL_NAV_KEYS: readonly 'benchmark'[] = [];
 
+// Views (within the 'system' section) that can enter Focus mode - full
+// window width, top-bar chrome stripped to the window controls + the Focus
+// toggle. Extend this set as more pages opt in.
+export const FOCUS_CAPABLE_VIEWS: ReadonlySet<string> = new Set(['monitoring']);
+
 export const NAV_ICONS: Record<string, ReactNode> = {
   dashboard:  <LayoutDashboard size={ICON_SIZE} />,
   monitoring: <Activity size={ICON_SIZE} />,

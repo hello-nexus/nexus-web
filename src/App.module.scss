@@ -58,6 +58,16 @@
   min-width: 846px;
 }
 
+// Focus mode: the sidebar is gone and the top bar is stripped to the window
+// controls + the Focus toggle (see Dashboard.tsx / TopBar.tsx). Uncap the
+// page-width variables every routed page's body/header already reads
+// (.pageBody, .pageBodyFill, ViewHeader) so the active page fills the window
+// instead of centering under the normal max-width.
+.layoutFocusMode {
+  --page-max: none;
+  --page-content-max: none;
+}
+
 // Resize strips - one along each edge of the window. They catch
 // mousedown and IPC the host (nexus-overlay's DashboardWindow.cs), which
 // posts WM_NCLBUTTONDOWN(hit, lParam) to its own HWND so the OS takes

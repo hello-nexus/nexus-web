@@ -2885,6 +2885,8 @@
   "tools.widgetSdk.label": "Jedes UI-Primitiv, SDK-Hook, jede Dispatch-Aktion, jede Capability - mit Live-Vorschauen. Dient als Referenz für das App-SDK und Drittanbieter-App-Entwickler.",
   "tools.widgetSdk.title": "Widget-SDK-Referenz",
   "tools.yes": "Ja",
+  "topbar.focus": "Fokusmodus",
+  "topbar.focus.exit": "Fokusmodus verlassen",
   "topbar.menu": "Menü",
   "transfer.cancel": "Abbrechen",
   "transfer.clipboard": "Zwischenablage",
