@@ -1,5 +1,6 @@
 import { fetchService, postService, postServiceForm, deleteService, resolveHttp } from './service';
 import { getTokenSync } from './auth';
+import { serializeCrop, type NormalizedCrop } from '../components/common/MediaCropper/mediaCrop';
 
 export interface LianLiWirelessFan {
   mac: string;
@@ -158,13 +159,6 @@ export async function getLianLiWirelessMedia(): Promise<LianLiWirelessMediaItem[
 export const LIANLI_WIRELESS_MEDIA_WIDTH = 400;
 export const LIANLI_WIRELESS_MEDIA_HEIGHT = 400;
 
-export interface LianLiWirelessMediaCrop {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-}
-
 interface MediaImportResponse extends OkResponse {
   mediaId?: string;
   name?: string;
@@ -173,11 +167,11 @@ interface MediaImportResponse extends OkResponse {
 
 export async function importLianLiWirelessMedia(
   file: File,
-  crop: LianLiWirelessMediaCrop,
+  crop: NormalizedCrop,
 ): Promise<LianLiWirelessMediaItem | null> {
   const form = new FormData();
   form.append('file', file, file.name);
-  form.append('crop', `${crop.x.toFixed(6)},${crop.y.toFixed(6)},${crop.w.toFixed(6)},${crop.h.toFixed(6)}`);
+  form.append('crop', serializeCrop(crop));
   form.append('targetWidth', String(LIANLI_WIRELESS_MEDIA_WIDTH));
   form.append('targetHeight', String(LIANLI_WIRELESS_MEDIA_HEIGHT));
   const r = await postServiceForm<MediaImportResponse>('/devices/lianli-wireless/media/import', form);

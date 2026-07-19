@@ -5,6 +5,7 @@ import { EffectCard } from '../../components/common/EffectCard/EffectCard';
 import { ConfirmModal } from '../../components/common/ConfirmModal/ConfirmModal';
 import { MediaGrid } from '../widgets/lighting/effecteditor/MediaGrid';
 import { MediaCropper, type NormalizedCrop } from '../../components/common/MediaCropper/MediaCropper';
+import { serializeCrop } from '../../components/common/MediaCropper/mediaCrop';
 import { useBackgroundMedia } from './useBackgroundMedia';
 import {
   backgroundMediaStagePreviewUrl,
@@ -72,7 +73,7 @@ export function BackgroundMediaPicker({
   const handleCropConfirm = async (crop: NormalizedCrop) => {
     if (!cropState) return;
     const { stageId } = cropState;
-    const cropStr = `${crop.x.toFixed(6)},${crop.y.toFixed(6)},${crop.w.toFixed(6)},${crop.h.toFixed(6)}`;
+    const cropStr = serializeCrop(crop);
     setConverting(true);
     setImportError(null);
     const result = await commitBackgroundMedia(deviceId, stageId, cropStr, deviceW, deviceH);

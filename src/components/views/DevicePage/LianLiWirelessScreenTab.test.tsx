@@ -369,7 +369,7 @@ describe('LianLiWirelessScreenTab', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'cropper.confirm' }));
 
     await waitFor(() => expect(mockImportMedia).toHaveBeenCalledTimes(1));
-    expect(mockImportMedia).toHaveBeenCalledWith(file, { x: 0, y: 0, w: 1, h: 1 });
+    expect(mockImportMedia).toHaveBeenCalledWith(file, { x: 0, y: 0, w: 1, h: 1, rotate: 0, mirror: false });
     await waitFor(() => expect(mockGetMedia).toHaveBeenCalledTimes(2));
   });
 });

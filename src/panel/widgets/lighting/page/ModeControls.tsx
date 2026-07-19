@@ -20,6 +20,7 @@ import { ConfirmModal } from '../../../../components/common/ConfirmModal/Confirm
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { IconLabelButton } from '../../../../components/common/IconLabelButton/IconLabelButton';
 import { MediaCropper, type NormalizedCrop } from '../../../../components/common/MediaCropper/MediaCropper';
+import { serializeCrop } from '../../../../components/common/MediaCropper/mediaCrop';
 import { useMediaLibrary } from '../effecteditor/useMediaLibrary';
 import { MediaGrid } from '../effecteditor/MediaGrid';
 import styles from '../LightingPage.module.scss';
@@ -180,7 +181,7 @@ function MediaControls() {
   const handleCropConfirm = useCallback(async (crop: NormalizedCrop) => {
     if (!cropState) return;
     const { stageId, name } = cropState;
-    const cropStr = `${crop.x.toFixed(6)},${crop.y.toFixed(6)},${crop.w.toFixed(6)},${crop.h.toFixed(6)}`;
+    const cropStr = serializeCrop(crop);
     setConverting(true);
     setImportError(null);
     const result = await commitMedia(stageId, cropStr, name);

@@ -5,6 +5,7 @@
 import { fetchService, postService, postServiceForm, resolveHttp } from './service';
 import { getTokenSync } from './auth';
 import { isTryxSimulated } from '../lib/tryxSimulation';
+import { serializeCrop, type NormalizedCrop } from '../components/common/MediaCropper/mediaCrop';
 
 // <video>/<img> element loads can't send a Bearer header, so the authenticated
 // media-file URL carries the session token as a query param (the server's
@@ -171,27 +172,20 @@ export async function setTryxOverlay(overlay: {
   return isOk(await postService<OkResponse>('/tryx/overlay', overlay));
 }
 
-export interface TryxMediaCrop {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-}
-
 // Panorama screen media resolution (2:1).
 export const TRYX_MEDIA_WIDTH = 858;
 export const TRYX_MEDIA_HEIGHT = 428;
 
 export async function uploadTryxMedia(
   file: File,
-  crop: TryxMediaCrop,
+  crop: NormalizedCrop,
   targetWidth = TRYX_MEDIA_WIDTH,
   targetHeight = TRYX_MEDIA_HEIGHT,
 ): Promise<boolean> {
   if (isTryxSimulated()) return true;
   const form = new FormData();
   form.append('file', file, file.name);
-  form.append('crop', `${crop.x.toFixed(6)},${crop.y.toFixed(6)},${crop.w.toFixed(6)},${crop.h.toFixed(6)}`);
+  form.append('crop', serializeCrop(crop));
   form.append('targetWidth', String(targetWidth));
   form.append('targetHeight', String(targetHeight));
   return isOk(await postServiceForm<OkResponse>('/tryx/media', form));

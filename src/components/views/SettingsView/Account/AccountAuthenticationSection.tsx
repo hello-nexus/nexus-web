@@ -4,6 +4,7 @@ import { Badge } from '../../../common/Badge/Badge';
 import { Button } from '../../../common/Button/Button';
 import { TextInput } from '../../../common/TextInput/TextInput';
 import { MediaCropper, type NormalizedCrop } from '../../../common/MediaCropper/MediaCropper';
+import { normalizeRotate } from '../../../common/MediaCropper/mediaCrop';
 import { SettingsSection } from '../../../common/SettingsSection/SettingsSection';
 import { SettingRow, SettingToggle } from '../../../common/SettingRow/SettingRow';
 import { useToast } from '../../../common/Toast/Toast';
@@ -45,14 +46,36 @@ async function cropToAvatarBlob(objectUrl: string, crop: NormalizedCrop): Promis
   } catch {
     return null;
   }
-  if (!image.naturalWidth) return null;
-  const { sx, sy, sw, sh } = cropToSourceRect(crop, image.naturalWidth, image.naturalHeight);
+  const nw = image.naturalWidth;
+  const nh = image.naturalHeight;
+  if (!nw || !nh) return null;
+
+  const rotate = normalizeRotate(crop.rotate);
+  const mirror = !!crop.mirror;
+  const swap = rotate === 90 || rotate === 270;
+  const ow = swap ? nh : nw;
+  const oh = swap ? nw : nh;
+
+  // Render the oriented image (mirror in source space, then rotate CW) to a
+  // temp canvas, then crop the normalized rect from it - matching the service's
+  // orientation-then-crop ffmpeg chain and the cropper preview.
+  const oriented = document.createElement('canvas');
+  oriented.width = ow;
+  oriented.height = oh;
+  const octx = oriented.getContext('2d');
+  if (!octx) return null;
+  octx.translate(ow / 2, oh / 2);
+  octx.rotate((rotate * Math.PI) / 180);
+  octx.scale(mirror ? -1 : 1, 1);
+  octx.drawImage(image, -nw / 2, -nh / 2, nw, nh);
+
+  const { sx, sy, sw, sh } = cropToSourceRect(crop, ow, oh);
   const canvas = document.createElement('canvas');
   canvas.width = AVATAR_OUTPUT_SIZE;
   canvas.height = AVATAR_OUTPUT_SIZE;
   const ctx = canvas.getContext('2d');
   if (!ctx) return null;
-  ctx.drawImage(image, sx, sy, sw, sh, 0, 0, AVATAR_OUTPUT_SIZE, AVATAR_OUTPUT_SIZE);
+  ctx.drawImage(oriented, sx, sy, sw, sh, 0, 0, AVATAR_OUTPUT_SIZE, AVATAR_OUTPUT_SIZE);
   return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
 }
 

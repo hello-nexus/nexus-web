@@ -27,6 +27,7 @@ import { ClockWorldView } from '../../panel/widgets/clock/ClockWorldView';
 import { CLOCK_DESIGNS } from '../../panel/widgets/clock/designs';
 import { MediaCropper } from '../../components/common/MediaCropper/MediaCropper';
 import type { NormalizedCrop } from '../../components/common/MediaCropper/MediaCropper';
+import { serializeCrop } from '../../components/common/MediaCropper/mediaCrop';
 import { MediaGrid } from '../../panel/widgets/lighting/effecteditor/MediaGrid';
 import type { MediaItem } from '../../api/mediaLibrary';
 import { ConfirmModal } from '../../components/common/ConfirmModal/ConfirmModal';
@@ -270,7 +271,7 @@ export function MediaImportHost(p: HostProps) {
 
     const form = new FormData();
     form.append('file', file, file.name);
-    form.append('crop', `${crop.x.toFixed(6)},${crop.y.toFixed(6)},${crop.w.toFixed(6)},${crop.h.toFixed(6)}`);
+    form.append('crop', serializeCrop(crop));
     const tw = num(p.targetWidth);
     const th = num(p.targetHeight);
     if (tw) form.append('targetWidth', String(tw));
