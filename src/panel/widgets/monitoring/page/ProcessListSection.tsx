@@ -320,46 +320,48 @@ export function ProcessListSection({
         </div>
       )}
       {frozen && <div className={styles.frozenNotice}>{t('monitoring.history.process.frozenNotice')}</div>}
-      {visible.length === 0 ? (
-        <div className={styles.empty}>{t('monitoring.ranked.empty')}</div>
-      ) : (
-        <div className={frozen ? `${styles.rows} ${styles.rowsFrozen}` : styles.rows}>
-          {appRows.length > 0 && (
-            <div className={styles.groupHeader}>{t('monitoring.history.process.group.apps')}</div>
-          )}
-          {appRows.map(item => (
-            <ProcessRow
-              key={item.name}
-              item={item}
-              formatValue={formatValue}
-              onSelect={onSelectProcess}
-              t={t}
-              privacySessions={privacySessions}
-              privacyAsOfMs={privacyAsOfMs}
-              showPrivacy={showPrivacy}
-              selected={item.name === selectedProcessName}
-              valueMinWidth={valueMinWidth}
-            />
-          ))}
-          {backgroundRows.length > 0 && (
-            <div className={styles.groupHeader}>{t('monitoring.history.process.group.background')}</div>
-          )}
-          {backgroundRows.map(item => (
-            <ProcessRow
-              key={item.name}
-              item={item}
-              formatValue={formatValue}
-              onSelect={onSelectProcess}
-              t={t}
-              privacySessions={privacySessions}
-              privacyAsOfMs={privacyAsOfMs}
-              showPrivacy={showPrivacy}
-              selected={item.name === selectedProcessName}
-              valueMinWidth={valueMinWidth}
-            />
-          ))}
-        </div>
-      )}
+      <div className={styles.rowsViewport}>
+        {visible.length === 0 ? (
+          <div className={styles.empty}>{t('monitoring.ranked.empty')}</div>
+        ) : (
+          <div className={frozen ? `${styles.rows} ${styles.rowsFrozen}` : styles.rows}>
+            {appRows.length > 0 && (
+              <div className={styles.groupHeader}>{t('monitoring.history.process.group.apps')}</div>
+            )}
+            {appRows.map(item => (
+              <ProcessRow
+                key={item.name}
+                item={item}
+                formatValue={formatValue}
+                onSelect={onSelectProcess}
+                t={t}
+                privacySessions={privacySessions}
+                privacyAsOfMs={privacyAsOfMs}
+                showPrivacy={showPrivacy}
+                selected={item.name === selectedProcessName}
+                valueMinWidth={valueMinWidth}
+              />
+            ))}
+            {backgroundRows.length > 0 && (
+              <div className={styles.groupHeader}>{t('monitoring.history.process.group.background')}</div>
+            )}
+            {backgroundRows.map(item => (
+              <ProcessRow
+                key={item.name}
+                item={item}
+                formatValue={formatValue}
+                onSelect={onSelectProcess}
+                t={t}
+                privacySessions={privacySessions}
+                privacyAsOfMs={privacyAsOfMs}
+                showPrivacy={showPrivacy}
+                selected={item.name === selectedProcessName}
+                valueMinWidth={valueMinWidth}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

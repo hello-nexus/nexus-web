@@ -1,38 +1,38 @@
 @use '../../../../styles/text' as *;
+@use '../../../../styles/scrollbar' as *;
 
 .root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
   border: var(--border-width) solid transparent;
   border-radius: var(--radius);
   background: var(--surface);
   padding: 0.85rem 1rem;
 }
 
-// Sticky at the scroll container's own top edge (MonitoringPage's
-// .listScroll wraps this whole component) so the search bar and sort
-// dropdown stay visible while only the rows below scroll underneath them.
-// The negative margin bleeds this bar out to .root's own edges (padding:
-// 0.85rem 1rem) so its background covers the full row width once stuck,
-// with matching padding restoring the original visual gap. Background is
-// --bg (the page backdrop), not --root's own --surface: --surface is
-// deliberately translucent for the card look, which would let scrolled rows
-// show through a stuck header - --bg is what SupportedDevicesList's own
-// sticky table header uses for the same reason.
 .controls {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: var(--bg);
-  margin: -0.85rem -1rem 0.6rem;
-  padding: 0.85rem 1rem 0.45rem;
+  margin-bottom: 0.6rem;
+  padding-bottom: 0.45rem;
   border-bottom: 1px solid var(--separator);
 }
 
 .controls > :first-child {
   flex: 1;
   min-width: 0;
+}
+
+// Scroll container for the process rows only - the controls, snapshot badge,
+// and frozen notice above stay in normal flow and are never scrolled under.
+.rowsViewport {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  @include scrollbar-visible($gutter: false);
 }
 
 .empty {

@@ -1,5 +1,4 @@
 @use '../../../styles/text' as *;
-@use '../../../styles/scrollbar' as *;
 
 // height:100% + min-height:0 lets .tabContent (pageBodyFill) resolve a real
 // flex-column height to split into a pinned region + its own internal
@@ -99,17 +98,18 @@
   flex-shrink: 0;
 }
 
-// Scroll container for the process list only (item 48): the hero chart, temp
-// ribbon, and seek bar (MetricHistorySection, flex-shrink:0 on its own root)
-// stay pinned above this and are never pushed into a scrolling region. A
-// height floor keeps a few rows visible instead of the list shrinking toward
-// nothing on a short viewport - past that floor the flex column overflows
-// its own bounds and the page scrolls as a whole (App.module.scss's .content).
+// Sizes ProcessListSection's own root to fill the space below the hero chart
+// (the hero chart, temp ribbon, and seek bar stay pinned above this and are
+// never pushed into a scrolling region); the scroll boundary itself lives
+// inside ProcessListSection's own rows viewport, not here. A height floor
+// keeps a few rows visible instead of the list shrinking toward nothing on a
+// short viewport - past that floor the flex column overflows its own bounds
+// and the page scrolls as a whole (App.module.scss's .content).
 .listScroll {
+  display: flex;
+  flex-direction: column;
   flex: 1 1 auto;
   min-height: 200px;
-  overflow-y: auto;
-  @include scrollbar-visible($gutter: false);
 }
 
 .tabHeaderName {
