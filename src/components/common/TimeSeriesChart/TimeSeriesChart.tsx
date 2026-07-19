@@ -456,8 +456,10 @@ export function TimeSeriesChart({
         {segmentsBySeries.map(({ s, segments }) => segments.map((segment, si) => {
           if (segment.length === 0) return null;
           // A single-point segment (isolated between two gaps) has no line
-          // to draw - a moveto-only path is invisible - so render it as a dot.
+          // to draw - a moveto-only path is invisible - so render it as a dot,
+          // unless the series opts out via noDots.
           if (segment.length === 1) {
+            if (s.noDots) return null;
             return (
               <circle
                 key={`${s.id}-${si}`}

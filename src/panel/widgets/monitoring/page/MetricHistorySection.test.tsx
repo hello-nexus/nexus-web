@@ -746,8 +746,9 @@ describe('MetricHistorySection', () => {
       // persistent selection marker.
       expect(container.querySelector('path[stroke="var(--text)"]')).toBeInTheDocument();
       // Only the base line gets a gradient-fill area - the overlay is a bare
-      // stroke (buildSelectedAppSeries' own noFill: true) so a second
-      // translucent layer doesn't wash out the base graph underneath it.
+      // stroke (buildSelectedAppSeries' own noFill: true and noDots: true) so
+      // a second translucent layer doesn't wash out the base graph underneath
+      // it and its sparser sampling never renders as isolated dot markers.
       expect(container.querySelectorAll('path[fill^="url(#"]').length).toBe(1);
     });
 

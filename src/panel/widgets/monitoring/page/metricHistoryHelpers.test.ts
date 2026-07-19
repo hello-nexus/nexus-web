@@ -519,11 +519,14 @@ describe('buildSelectedAppSeries', () => {
       color: 'var(--chart-line-alt)',
       points: [{ t: 0, avg: 10, max: 10 }, { t: 1000, avg: 20, max: 20 }],
       noFill: true,
+      noDots: true,
     });
   });
 
-  it('always carries noFill: true, since it overlays the base metric line rather than replacing it (item 49)', () => {
-    expect(buildSelectedAppSeries(app(), 'cpu', null, 'var(--text)')?.noFill).toBe(true);
+  it('always carries noFill: true and noDots: true, since it overlays the base metric line rather than replacing it (item 49) and must never draw isolated markers (item 58)', () => {
+    const out = buildSelectedAppSeries(app(), 'cpu', null, 'var(--text)');
+    expect(out?.noFill).toBe(true);
+    expect(out?.noDots).toBe(true);
   });
 
   it('passes network/storage byte-rate values through unscaled - the axis auto-scales to whatever is plotted', () => {

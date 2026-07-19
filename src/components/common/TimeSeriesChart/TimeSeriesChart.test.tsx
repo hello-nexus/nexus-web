@@ -105,6 +105,23 @@ describe('TimeSeriesChart', () => {
     expect(container.querySelector('circle[fill="#8b5cf6"]')).toBeInTheDocument();
   });
 
+  it('suppresses the isolated single-point dot for a series marked noDots, while a sibling series in the same isolated-point situation still renders its own (item 58 overlay)', () => {
+    const points = [
+      { t: 0, avg: 40, max: 45 },
+      { t: HOUR, avg: 42, max: 46 },
+      { t: 20 * HOUR, avg: 90, max: 95 },
+      { t: 40 * HOUR, avg: 41, max: 44 },
+      { t: 41 * HOUR, avg: 43, max: 47 },
+    ];
+    const series: TimeSeriesSeries[] = [
+      { id: 'cpu', name: 'CPU', color: '#8b5cf6', points },
+      { id: 'app', name: 'chrome.exe', color: '#f97316', points, noDots: true },
+    ];
+    const { container } = render(<TimeSeriesChart series={series} {...baseProps} />);
+    expect(container.querySelector('circle[fill="#8b5cf6"]')).toBeInTheDocument();
+    expect(container.querySelector('circle[fill="#f97316"]')).toBeNull();
+  });
+
   it('renders a legend entry per series', () => {
     render(<TimeSeriesChart series={makeSeries()} {...baseProps} />);
     expect(screen.getByText('CPU')).toBeInTheDocument();

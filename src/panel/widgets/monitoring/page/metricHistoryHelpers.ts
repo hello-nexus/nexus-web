@@ -314,15 +314,18 @@ export function deriveMemoryTotalMb(usedGb: number | undefined, usedPercent: num
  * for TimeSeriesChart so it can be appended directly to the main chart's own
  * series list AS AN OVERLAY - the base metric line(s) stay on the chart
  * underneath it (see MetricHistorySection's chartSeries), so this carries
- * noFill: true, leaving only the base series' own gradient fill visible
- * instead of stacking a second translucent layer over it. Every metric
- * except memory already shares its main line's unit (percent for cpu/gpu, a
- * byte rate for network/storage) and passes through unscaled; memory's
- * per-app values arrive in MB (see AppWindowSeries) while the memory tab's
- * own line is percent-of-RAM, so they're rescaled by memoryTotalMb here to
- * ride the same 0-100 axis. Returns null when memory can't be scaled
- * (memoryTotalMb unavailable) - an unscaled MB value on a percent axis would
- * render as visual nonsense.
+ * noFill: true (leaving only the base series' own gradient fill visible
+ * instead of stacking a second translucent layer over it) and noDots: true
+ * (this overlay samples far sparser than the base series, so most of its
+ * points would otherwise render as isolated circle markers rather than a
+ * line - see TimeSeriesChart's segment rendering). Every metric except
+ * memory already shares its main line's unit (percent for cpu/gpu, a byte
+ * rate for network/storage) and passes through unscaled; memory's per-app
+ * values arrive in MB (see AppWindowSeries) while the memory tab's own line
+ * is percent-of-RAM, so they're rescaled by memoryTotalMb here to ride the
+ * same 0-100 axis. Returns null when memory can't be scaled (memoryTotalMb
+ * unavailable) - an unscaled MB value on a percent axis would render as
+ * visual nonsense.
  */
 export function buildSelectedAppSeries(
   app: AppWindowSeries,
@@ -335,7 +338,7 @@ export function buildSelectedAppSeries(
     const avg = metric === 'memory' && memoryTotalMb ? (p.avg / memoryTotalMb) * 100 : p.avg;
     return { t: p.t, avg, max: avg };
   });
-  return { id: `app:${app.name}`, name: app.name, color, points, noFill: true };
+  return { id: `app:${app.name}`, name: app.name, color, points, noFill: true, noDots: true };
 }
 
 /** The largest plotted (avg) value across every series/point - matches what
