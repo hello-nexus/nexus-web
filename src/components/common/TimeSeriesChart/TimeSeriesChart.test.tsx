@@ -122,6 +122,28 @@ describe('TimeSeriesChart', () => {
     expect(container.querySelector('circle[fill="#f97316"]')).toBeNull();
   });
 
+  it('draws a continuous line for a noDots overlay far sparser than the base series it sits on top of (item 58 regression: was invisible)', () => {
+    // Reproduces the real selected-app-overlay bug: a dense base series pulls
+    // the chart-wide gap threshold down to its own tight cadence, which used
+    // to isolate almost every point of a much sparser sibling series into its
+    // own single-point segment - and with noDots suppressing that segment's
+    // dot too, the sparser series rendered nothing at all.
+    const MIN = 60_000;
+    const base: TimeSeriesSeries = {
+      id: 'cpu', name: 'CPU', color: '#8b5cf6',
+      points: Array.from({ length: 30 }, (_, i) => ({ t: i * 30_000, avg: 40 + i, max: 45 + i })),
+    };
+    const overlay: TimeSeriesSeries = {
+      id: 'app', name: 'chrome.exe', color: '#f97316',
+      points: Array.from({ length: 6 }, (_, i) => ({ t: i * 5 * MIN, avg: 10 + i, max: 10 + i })),
+      noFill: true,
+      noDots: true,
+    };
+    const { container } = render(<TimeSeriesChart series={[base, overlay]} {...baseProps} />);
+    expect(container.querySelectorAll('path[stroke="#f97316"]').length).toBe(1);
+    expect(container.querySelector('circle[fill="#f97316"]')).toBeNull();
+  });
+
   it('renders a legend entry per series', () => {
     render(<TimeSeriesChart series={makeSeries()} {...baseProps} />);
     expect(screen.getByText('CPU')).toBeInTheDocument();

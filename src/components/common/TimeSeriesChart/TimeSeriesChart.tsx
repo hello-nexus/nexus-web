@@ -265,9 +265,16 @@ export function TimeSeriesChart({
     });
   }, [ribbons, pad.top, lineChartH]);
 
+  // Gap-aware per series, not per chart - an overlay (e.g. the selected-app
+  // line) can sample at a much sparser cadence than the base metric series
+  // that spacingMs above is derived from, which would otherwise isolate
+  // nearly every one of its points into its own single-point segment.
   const segmentsBySeries = useMemo(
-    () => series.map(s => ({ s, segments: splitIntoSegments(s.points, maxGapMs) })),
-    [series, maxGapMs],
+    () => series.map(s => {
+      const gapMs = (medianSpacingOfPoints(s.points) ?? Infinity) * GAP_MULTIPLIER;
+      return { s, segments: splitIntoSegments(s.points, gapMs) };
+    }),
+    [series],
   );
 
   // niceTicks can round its floor below the actual value minimum. Harmless

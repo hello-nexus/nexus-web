@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   avgValueRange,
   formatTooltipTimestamp,
+  GAP_MULTIPLIER,
   medianSpacingMs,
+  medianSpacingOfPoints,
   nearestPoint,
   niceTicks,
   resolveValueDomain,
@@ -65,6 +67,36 @@ describe('splitIntoSegments', () => {
   it('returns a single one-point segment for a single point', () => {
     const points = [pt(0, 1)];
     expect(splitIntoSegments(points, 1000)).toEqual([points]);
+  });
+});
+
+describe('per-series gap threshold (TimeSeriesChart segmentsBySeries)', () => {
+  const MIN = 60_000;
+
+  it('a chart-wide pooled threshold isolates every point of a series sparser than its sibling', () => {
+    const dense: TimeSeriesSeries = {
+      id: 'cpu', name: 'CPU', color: '#fff',
+      points: Array.from({ length: 30 }, (_, i) => pt(i * 30_000, i)),
+    };
+    const sparse: TimeSeriesSeries = {
+      id: 'app', name: 'chrome.exe', color: '#f97316',
+      points: Array.from({ length: 6 }, (_, i) => pt(i * 5 * MIN, i)),
+    };
+    const pooledGapMs = medianSpacingMs([dense, sparse])! * GAP_MULTIPLIER;
+    const segments = splitIntoSegments(sparse.points, pooledGapMs);
+    expect(segments).toHaveLength(sparse.points.length);
+    expect(segments.every(seg => seg.length === 1)).toBe(true);
+  });
+
+  it('a threshold derived from the series\' own spacing keeps that same sparse series connected', () => {
+    const sparse: TimeSeriesSeries = {
+      id: 'app', name: 'chrome.exe', color: '#f97316',
+      points: Array.from({ length: 6 }, (_, i) => pt(i * 5 * MIN, i)),
+    };
+    const ownGapMs = medianSpacingOfPoints(sparse.points)! * GAP_MULTIPLIER;
+    const segments = splitIntoSegments(sparse.points, ownGapMs);
+    expect(segments).toHaveLength(1);
+    expect(segments[0]).toHaveLength(sparse.points.length);
   });
 });
 
