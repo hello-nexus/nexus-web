@@ -31,7 +31,9 @@
 .rowsViewport {
   flex: 1 1 auto;
   min-height: 0;
+  min-width: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   @include scrollbar-visible($gutter: false);
 }
 
@@ -193,12 +195,16 @@ $row-selected-border-width: 2px;
 // together right after the icon - carries the row's own flexible slot
 // (flex: 1) so the trailing elements (privacy icons, sparkline, value) stay
 // pinned to the row's right edge, same as before this group existed.
+// overflow: hidden clips its children at this box's own edge instead of
+// letting a child that can't fully shrink spill into the sparkline/value
+// columns after it.
 .nameGroup {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
   flex: 1;
   min-width: 0;
+  overflow: hidden;
 }
 
 .name {
@@ -211,16 +217,17 @@ $row-selected-border-width: 2px;
 }
 
 // Company/signer name (round 5 item 6), dimmed, right after the process
-// name - shrinks/truncates instead of taking .nameGroup's flexible slot, so
-// the name keeps priority for the remaining row width. Hidden below the same
-// narrow-surface breakpoint SettingRow/DiagnosticsView use elsewhere in the
-// app: this list also renders in the phone-portrait immersive view (see
-// monitoring/index.ts's supportsImmersive), where a full-width publisher
+// name - capped at max-width so it never grows past a reasonable share of
+// .nameGroup even with room to spare, but still shrinks (and ellipsizes)
+// below that cap once the row runs out of width, same as .name. Hidden below
+// the same narrow-surface breakpoint SettingRow/DiagnosticsView use elsewhere
+// in the app: this list also renders in the phone-portrait immersive view
+// (see monitoring/index.ts's supportsImmersive), where a full-width publisher
 // label would otherwise crowd the process name toward nothing.
 .publisher {
   font-size: var(--type-mini);
   color: var(--text-dim);
-  flex-shrink: 0;
+  min-width: 0;
   max-width: 140px;
   overflow: hidden;
   text-overflow: ellipsis;

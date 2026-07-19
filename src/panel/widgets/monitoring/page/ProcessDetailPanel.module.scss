@@ -24,9 +24,7 @@
 .headerMeta {
   @include text-caption;
   color: var(--text-dim);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .actionsRow {
