@@ -90,7 +90,7 @@ function HeartGlyph({ style, onDone }: { style: CSSProperties; onDone: () => voi
 /**
  * Derives a HeartBurst `burstKey` from `active`'s transitions: increments
  * only on a false-to-true edge, never on the hook's own mount. `active` may
- * start `null` while its real value is still loading (e.g. GeneralTab hydrates
+ * start `null` while its real value is still loading (e.g. PrivacyTab hydrates
  * the toggle from the server) - the first non-null value is always taken as
  * the baseline, never as a transition, so a toggle that loads already-on
  * never fires a burst on page load. Multiple mount points (welcome screen,

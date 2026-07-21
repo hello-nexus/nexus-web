@@ -1,25 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
-import { SettingRow, SettingToggle, SettingSelect, SettingSlider } from '../../common/SettingRow/SettingRow';
-import { ChipGroup } from '../../common/ChipGroup/ChipGroup';
-import { ThemeTab } from './ThemeTab';
-import { LightingCoolingSection } from './LightingCoolingSection';
-import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
-import { ScreenTimeDataControl } from '../ScreenTimeBrowse/ScreenTimeDataControl';
-import { AiIntegrationSection } from './AiIntegrationSection';
-import { fetchService, postService } from '../../../api/service';
+import { SettingToggle, SettingSelect, SettingSlider } from '../../common/SettingRow/SettingRow';
 import { fetchAutoStart, setAutoStart as postAutoStart } from '../../../api/autoStart';
-import { useFlashStatus } from '../../../hooks/useFlashStatus';
 import { useTranslation } from '../../../lib/i18n';
-import { buildTelemetryConsentDescription } from '../../../lib/telemetryConsent';
-import { HeartBurst, useHeartBurstTrigger } from '../../common/HeartBurst/HeartBurst';
 import {
   LANGUAGE_FLAGS, LANGUAGE_LABELS, LANGUAGES,
   type Language, type NexusSettings,
 } from '../../../lib/settings';
 import type { UpdateChannel, UpdateMode } from '../../../api/update';
-import type { TempUnit, TimeFormat, NumberFormat } from '../../../lib/units';
 import friuliFlag from '../../../assets/flags/friuli.png';
 import styles from './SettingsView.module.scss';
 
@@ -37,21 +25,6 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
   // Local drag preview - only committed to useUiSettings (and so posted to the
   // server) once the user releases the slider or types a precise value.
   const [startupDelayPreview, setStartupDelayPreview] = useState<number | null>(null);
-  const [stopConfirmOpen, setStopConfirmOpen] = useState(false);
-  const [stopping, setStopping] = useState(false);
-  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
-  const [resetting, setResetting] = useState(false);
-  const [screenTimeOpen, setScreenTimeOpen] = useState(false);
-  // Telemetry consent is server-authoritative (the service gates sending), so
-  // it's fetched/written directly like auto-start, not via the local UI store.
-  const [telemetryOn, setTelemetryOn] = useState<boolean | null>(null);
-  const [telemetryLoading, setTelemetryLoading] = useState(false);
-  // Block shutdown while a firmware flash is running - stopping the service
-  // mid-flash would strand the device in the DFU bootloader. (The service
-  // also refuses /service/stop during a flash; this mirrors it in the UI.)
-  const { status: flashStatus } = useFlashStatus(serviceOnline);
-  const flashing = !!flashStatus?.active;
-  const telemetryBurstKey = useHeartBurstTrigger(telemetryOn);
 
   // Hydrate "Start Nexus at system startup" from the SCM-backed endpoint on
   // mount. The state is independent of the per-user "Show in tray" flag.
@@ -59,7 +32,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
     if (!serviceOnline || platform !== 'windows') return;
     let cancelled = false;
     // Runs on mount/online-flip; can't be folded into useMemo.
-     
+
     setAutoStartLoading(true);
     fetchAutoStart().then(data => {
       if (data && !cancelled) setAutoStart(data.autoStart);
@@ -82,60 +55,9 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
     setAutoStartLoading(false);
   };
 
-  // Hydrate the telemetry opt-in from the loopback-only consent endpoint. Stays
-  // null (toggle hidden) on surfaces that can't reach it, e.g. a paired phone.
-  useEffect(() => {
-    if (!serviceOnline) return;
-    let cancelled = false;
-    fetchService<{ enabled: boolean }>('/telemetry/consent').then(data => {
-      if (data && !cancelled) setTelemetryOn(data.enabled);
-    });
-    return () => { cancelled = true; };
-  }, [serviceOnline]);
-
-  // Same optimistic pattern as toggleAutoStart - see its comment.
-  const toggleTelemetry = async () => {
-    if (telemetryOn === null || telemetryLoading) return;
-    const previous = telemetryOn;
-    setTelemetryOn(!previous);
-    setTelemetryLoading(true);
-    const resp = await postService<{ enabled: boolean }>('/telemetry/consent', {
-      enabled: !previous,
-    });
-    setTelemetryOn(resp ? resp.enabled : previous);
-    setTelemetryLoading(false);
-  };
-
-  const shutDown = async () => {
-    setStopping(true);
-    await postService('/service/stop', {});
-    setStopConfirmOpen(false);
-    setStopping(false);
-    window.close();
-  };
-
-  // Wipe every Nexus data dir and restart the service from a clean slate. The
-  // service spawns a detached finalizer, stops, gets wiped, then restarts - so
-  // this window's connection drops; close it and let the user reopen on the
-  // fresh install. Loopback-only endpoint.
-  const factoryReset = async () => {
-    setResetting(true);
-    await postService('/service/factory-reset', {});
-    setResetConfirmOpen(false);
-    setResetting(false);
-    window.close();
-  };
-
-  // Reveal the logs folder (nexus-service.log, plus desktop-host.log on Windows) in
-  // the OS file manager so testers can grab them for a bug report. Loopback-only
-  // endpoint - acts on the local machine.
-  const openLogs = async () => {
-    await postService('/diagnostics/open-logs', {});
-  };
-
   return (
     <div className={styles.tabPanel}>
-      <SettingsSection title={t('settings.general')}>
+      <SettingsSection>
         <SettingSelect
           label={t('settings.language')}
           anchorId="set-language"
@@ -156,64 +78,6 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
           onChange={() => updateGeneral({ showConflictAlerts: !settings.general.showConflictAlerts })}
         />
       </SettingsSection>
-
-      <SettingsSection title={t('settings.units.title')}>
-        <SettingRow
-          label={t('settings.units.temperature.label')}
-          anchorId="set-temp-unit"
-          description={t('settings.units.temperature.description')}
-        >
-          <ChipGroup
-            ariaLabel={t('settings.units.temperature.label')}
-            activeKey={settings.general.monitoringTempUnit}
-            onChange={k => updateGeneral({ monitoringTempUnit: k as TempUnit })}
-            options={[
-              // eslint-disable-next-line i18next/no-literal-string -- temperature unit enum value
-              { key: 'c', label: t('settings.units.temperature.celsius') },
-              // eslint-disable-next-line i18next/no-literal-string -- temperature unit enum value
-              { key: 'f', label: t('settings.units.temperature.fahrenheit') },
-            ]}
-          />
-        </SettingRow>
-        <SettingRow label={t('settings.units.time.label')} anchorId="set-time-format">
-          <ChipGroup
-            ariaLabel={t('settings.units.time.label')}
-            activeKey={settings.general.timeFormat}
-            onChange={k => updateGeneral({ timeFormat: k as TimeFormat })}
-            options={[
-              // eslint-disable-next-line i18next/no-literal-string -- time format enum value
-              { key: 'system', label: t('settings.units.system') },
-              // eslint-disable-next-line i18next/no-literal-string -- time format enum value
-              { key: '12h', label: t('settings.units.time.h12') },
-              // eslint-disable-next-line i18next/no-literal-string -- time format enum value
-              { key: '24h', label: t('settings.units.time.h24') },
-            ]}
-          />
-        </SettingRow>
-        <SettingRow label={t('settings.units.number.label')} anchorId="set-number-format">
-          <ChipGroup
-            ariaLabel={t('settings.units.number.label')}
-            activeKey={settings.general.numberFormat}
-            onChange={k => updateGeneral({ numberFormat: k as NumberFormat })}
-            options={[
-              // eslint-disable-next-line i18next/no-literal-string -- number format enum value
-              { key: 'system', label: t('settings.units.system') },
-              // eslint-disable-next-line i18next/no-literal-string -- number format specimen
-              { key: 'dot', label: '1,234.56' },
-              // eslint-disable-next-line i18next/no-literal-string -- number format specimen
-              { key: 'comma', label: '1.234,56' },
-            ]}
-          />
-        </SettingRow>
-      </SettingsSection>
-
-      <SettingsSection title={t('settings.theme')}>
-        <ThemeTab settings={settings} updateGeneral={updateGeneral} />
-      </SettingsSection>
-
-      <LightingCoolingSection serviceOnline={serviceOnline} platform={platform} />
-
-      <AiIntegrationSection serviceOnline={serviceOnline} numberFormat={settings.general.numberFormat} />
 
       {(platform === 'windows' || platform === 'macos') && (
         <SettingsSection title={t('settings.startupTray.title')}>
@@ -306,134 +170,6 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
           />
         </SettingsSection>
       )}
-
-      <SettingsSection title={t('settings.privacy.title')}>
-        {telemetryOn !== null && (
-          <div className={styles.telemetryRow}>
-            <SettingToggle
-              label={t('settings.telemetry.label')}
-              anchorId="set-telemetry"
-              description={buildTelemetryConsentDescription(t)}
-              checked={telemetryOn}
-              onChange={toggleTelemetry}
-              disabled={!serviceOnline}
-            />
-            <HeartBurst burstKey={telemetryBurstKey} />
-          </div>
-        )}
-        <SettingRow
-          label={t('settings.screentime.title')}
-          anchorId="set-screentime"
-          description={t('settings.screentime.trackingDesc')}
-        >
-          <Button
-            type="button"
-            tone="neutral"
-            size="sm"
-            onClick={() => setScreenTimeOpen(true)}
-            disabled={!serviceOnline}
-          >
-            {t('settings.screentime.openButton')}
-          </Button>
-        </SettingRow>
-      </SettingsSection>
-
-      <SettingsSection title={t('settings.diagnostics.title')}>
-        <SettingRow
-          label={t('settings.diagnostics.logsLabel')}
-          description={t('settings.diagnostics.logsDescription')}
-        >
-          <Button
-            type="button"
-            tone="neutral"
-            size="sm"
-            onClick={openLogs}
-            disabled={!serviceOnline}
-          >
-            {t('settings.diagnostics.openLogsButton')}
-          </Button>
-        </SettingRow>
-
-        <SettingRow label={t('settings.feedback')}>
-          <Button
-            tone="neutral"
-            size="sm"
-            href="https://github.com/hello-nexus/nexus-service/issues"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            {t('settings.feedback.report')}
-          </Button>
-        </SettingRow>
-      </SettingsSection>
-
-      {/* eslint-disable-next-line i18next/no-literal-string -- CSS variable token */}
-      <SettingsSection title={t('settings.dangerZone')} titleStyle={{ color: 'var(--bad)' }}>
-        {(platform === 'windows' || platform === 'macos') && (
-          <SettingRow
-            label={t('settings.shutDown.label')}
-            anchorId="set-shutdown"
-            description={flashing ? t('settings.shutDown.flashBlocked') : t('settings.shutDown.description')}
-          >
-            <Button
-              type="button"
-              tone="danger"
-              size="sm"
-              onClick={() => setStopConfirmOpen(true)}
-              disabled={!serviceOnline || stopping || flashing}
-            >
-              {t('settings.shutDown.button')}
-            </Button>
-          </SettingRow>
-        )}
-
-        <SettingRow
-          label={t('settings.factoryReset.label')}
-          anchorId="set-factory-reset"
-          description={flashing ? t('settings.factoryReset.flashBlocked') : t('settings.factoryReset.description')}
-        >
-          <Button
-            type="button"
-            tone="danger"
-            size="sm"
-            onClick={() => setResetConfirmOpen(true)}
-            disabled={!serviceOnline || resetting || flashing}
-          >
-            {t('settings.factoryReset.button')}
-          </Button>
-        </SettingRow>
-      </SettingsSection>
-
-      <ConfirmModal
-        open={stopConfirmOpen}
-        title={t('settings.shutDown.confirmTitle')}
-        message={t('settings.shutDown.confirmMessage')}
-        confirmLabel={t('settings.shutDown.button')}
-        destructive
-        onConfirm={shutDown}
-        onCancel={() => setStopConfirmOpen(false)}
-      />
-
-      <ConfirmModal
-        open={resetConfirmOpen}
-        title={t('settings.factoryReset.confirmTitle')}
-        message={t('settings.factoryReset.confirmMessage')}
-        bullets={t('settings.factoryReset.wipeList').split('\n')}
-        note={t('settings.factoryReset.confirmNote')}
-        // eslint-disable-next-line i18next/no-literal-string -- note tone enum value
-        noteTone="danger"
-        confirmLabel={t('settings.factoryReset.confirmButton')}
-        destructive
-        onConfirm={factoryReset}
-        onCancel={() => setResetConfirmOpen(false)}
-      />
-
-      <ScreenTimeDataControl
-        open={screenTimeOpen}
-        onClose={() => setScreenTimeOpen(false)}
-        onChanged={() => { /* settings page doesn't need to refetch */ }}
-      />
     </div>
   );
 }
-

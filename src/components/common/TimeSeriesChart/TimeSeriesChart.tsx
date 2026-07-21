@@ -1,10 +1,13 @@
-import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
+import { Fragment, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
+import { AppWindow, Camera, MapPin, Mic, Monitor, Pencil, Plus, ShieldAlert, Unplug, Usb, type LucideIcon } from 'lucide-react';
+import type { MonitoringEventKind, TimelineEvent } from '../../../api/monitoringEvents';
 import { useChartHoverTooltip } from '../../../hooks/useChartHoverTooltip';
 import { useTranslation } from '../../../lib/i18n';
 import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
 import {
   GAP_MULTIPLIER,
   avgValueRange,
+  clusterChartEvents,
   formatTooltipTimestamp,
   medianSpacingMs,
   medianSpacingOfPoints,
@@ -20,6 +23,28 @@ import {
 import styles from './TimeSeriesChart.module.scss';
 
 export type { TimeSeriesPoint, TimeSeriesSeries } from './timeSeriesChartUtils';
+
+/** kind -> icon, shared so the events modal and settings screens render the
+ *  same glyph per kind instead of each duplicating this map. usb-detach uses
+ *  Unplug (not Usb) so it reads as visually distinct from usb-attach. */
+export const CHART_EVENT_ICONS: Record<MonitoringEventKind, LucideIcon> = {
+  'app-open': AppWindow,
+  'uac-escalation': ShieldAlert,
+  'usb-attach': Usb,
+  'usb-detach': Unplug,
+  'privacy-webcam': Camera,
+  'privacy-microphone': Mic,
+  'privacy-location': MapPin,
+  'privacy-screen': Monitor,
+  custom: Pencil,
+};
+
+/** A privacy session (endT non-null, or still-open with endT null) draws a
+ *  duration bar in the event lane instead of just a point marker. Stored
+ *  events never carry a duration - their endT is always null. */
+function hasDuration(event: TimelineEvent): boolean {
+  return event.endT !== null || event.kind.startsWith('privacy-');
+}
 
 export interface TimeSeriesBand {
   startT: number;
@@ -133,6 +158,23 @@ export interface TimeSeriesChartProps {
    *  onRangeSelect, never this. Independent of onRangeSelect; either or both
    *  may be supplied. */
   onPointClick?: (t: number) => void;
+  /** Renders a thin event lane along the top of the chart, one marker per
+   *  event. Omit (the default, `undefined`) to render no lane at all and
+   *  keep the plot at its original layout, byte-identical to before this
+   *  prop existed - passing an empty array still reserves the lane's space
+   *  so the layout doesn't jump as events come and go while panning/zooming. */
+  events?: readonly TimelineEvent[];
+  /** Fires with a marker's own event on click, or a cluster's earliest event
+   *  when several markers collapsed together. */
+  onEventClick?: (event: TimelineEvent) => void;
+  /** Renders a "+" marker at the top of the selectedT line when both this and
+   *  selectedT are set; clicking it calls this with the selected timestamp.
+   *  Has no effect without selectedT (there is nowhere to anchor it). */
+  onAddEventAt?: (t: number) => void;
+  /** Tooltip body for a hovered event marker (or, for a collapsed cluster,
+   *  called once per member). The caller owns any i18n; falls back to the
+   *  raw event label when omitted. */
+  renderEventTooltip?: (event: TimelineEvent) => ReactNode;
 }
 
 // A pointer must move at least this many px before a drag counts as a
@@ -166,14 +208,35 @@ const RIBBON_BAND_SPACING_PX = 6;
 // and vanish entirely, matching the line's own isolated-point dot treatment.
 const RIBBON_ISOLATED_POINT_HALF_WIDTH_PX = 1.5;
 
+// Event lane geometry, px. The lane occupies the top pad.top growth (see
+// hasEventsLane below) - its own top edge stays at the chart's ordinary top
+// margin, and the plot's top edge (pad.top) moves down by this amount.
+const EVENT_LANE_HEIGHT = 30;
+const EVENT_MARKER_SIZE = 14;
+const EVENT_ICON_SIZE = 9;
+const EVENT_DURATION_BAR_HEIGHT = 3;
+// Markers closer than their own width collapse into one cluster marker.
+const EVENT_CLUSTER_THRESHOLD_PX = EVENT_MARKER_SIZE;
+
 export function TimeSeriesChart({
   series, height = 260, valueFormat, xTickFormat, xTickCount = 5, yTickCount = 5,
   avgLabel, maxLabel, bands, showLegend = true, domain, tooltipExtra, yDomain,
   fillGradient = false, hideSeriesRows = false, onRangeSelect, stepSeconds, tooltipHeaderExtra,
+  events, onEventClick, onAddEventAt, renderEventTooltip,
   yAxisSide = 'left', ribbons, selectedT, onPointClick, singleValueTooltip = false,
 }: TimeSeriesChartProps) {
   const { t, language } = useTranslation();
-  const pad = yAxisSide === 'right' ? CHART_PAD_RIGHT_AXIS : CHART_PAD;
+  const basePad = yAxisSide === 'right' ? CHART_PAD_RIGHT_AXIS : CHART_PAD;
+  // `events` passed at all (even []) reserves the lane's space, so the
+  // layout doesn't jump as events come and go while panning/zooming - only
+  // omitting both `events` and `onAddEventAt` keeps the plot at its
+  // pre-events layout.
+  const hasEventsLane = events !== undefined || onAddEventAt !== undefined;
+  const pad = hasEventsLane ? { ...basePad, top: basePad.top + EVENT_LANE_HEIGHT } : basePad;
+  // The plot itself must not shrink to make room for the lane: growing
+  // pad.top alone would shrink chartH below, so the total rendered height
+  // grows by the same amount pad.top did, cancelling out.
+  const effectiveHeight = height + (hasEventsLane ? EVENT_LANE_HEIGHT : 0);
   const wrapRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(440);
   const [hoverT, setHoverT] = useState<number | null>(null);
@@ -213,7 +276,7 @@ export function TimeSeriesChart({
   const maxGapMs = spacingMs !== null ? spacingMs * GAP_MULTIPLIER : Infinity;
 
   const chartW = Math.max(1, width - pad.left - pad.right);
-  const chartH = Math.max(1, height - pad.top - pad.bottom);
+  const chartH = Math.max(1, effectiveHeight - pad.top - pad.bottom);
 
   // Ribbons stack at the bottom of the plot, under the line/area - its own
   // vertical range shrinks to lineChartH to make room (including RIBBON_GAP_PX
@@ -307,6 +370,36 @@ export function TimeSeriesChart({
   }, [hoverT, series, maxGapMs]);
 
   const { tooltipRef, trackCursor } = useChartHoverTooltip(wrapRef, tooltip !== null);
+
+  // xFor already falls back to pad.left with no domain, so this is safe to
+  // compute unconditionally ahead of the `!domainT` early return below.
+  // Markers are culled to the domain first: xFor extrapolates linearly, so an
+  // event outside the window maps to a coordinate off the plot and would
+  // otherwise paint over neighbouring page chrome (SVG does not clip by
+  // default) and stay keyboard-focusable while invisible to the user.
+  const inDomainEvents = useMemo(
+    () => (events ?? []).filter(e => domainT !== null && e.t >= domainT[0] && e.t <= domainT[1]),
+    [events, domainT],
+  );
+
+  // Empty when `events` is omitted, regardless of hasEventsLane.
+  const eventClusters = useMemo(
+    () => clusterChartEvents(inDomainEvents, xFor, EVENT_CLUSTER_THRESHOLD_PX),
+    [inDomainEvents, xFor],
+  );
+  // Duration bars render per raw event (not per cluster) - two privacy
+  // sessions sharing one collapsed marker still each get their own bar.
+  // Overlap, not containment: a capture that began before the left edge is
+  // still in use during this window, so its bar is kept and clamped below.
+  const durationEvents = useMemo(
+    () => (events ?? []).filter(e => (
+      hasDuration(e)
+      && domainT !== null
+      && e.t <= domainT[1]
+      && (e.endT === null || e.endT >= domainT[0])
+    )),
+    [events, domainT],
+  );
 
   const tToPx = useCallback((clientX: number, rect: DOMRect) => ((clientX - rect.left) / rect.width) * width, [width]);
 
@@ -409,13 +502,36 @@ export function TimeSeriesChart({
   const selectionX0 = dragStartT !== null && dragCurT !== null ? Math.min(xFor(dragStartT), xFor(dragCurT)) : null;
   const selectionX1 = dragStartT !== null && dragCurT !== null ? Math.max(xFor(dragStartT), xFor(dragCurT)) : null;
 
+  // Event lane row geometry - laneTop is the chart's ordinary top margin
+  // (unchanged), and pad.top (grown above) is the plot's own top edge, so
+  // the marker row sits between them and the duration bars hug pad.top.
+  const laneTop = basePad.top;
+  const eventMarkerCenterY = laneTop + EVENT_MARKER_SIZE / 2 + 3;
+  const eventDurationBarTop = pad.top - EVENT_DURATION_BAR_HEIGHT - 4;
+  const addEventLabel = t('chart.addEvent');
+  const addEventWithinDomain = selectedT != null && selectedT >= domainT[0] && selectedT <= domainT[1];
+  const addEventX = onAddEventAt && addEventWithinDomain ? xFor(selectedT!) : null;
+
+  // One line per clustered event, using the caller's renderEventTooltip when
+  // given, else the raw label - keeps i18n entirely out of this component.
+  const eventTooltipBody = (clusterEvents: readonly TimelineEvent[]): ReactNode => {
+    const lines = clusterEvents.map(e => renderEventTooltip ? renderEventTooltip(e) : e.label);
+    if (lines.length === 1) return lines[0];
+    return lines.map((line, i) => (
+      <Fragment key={clusterEvents[i].key}>
+        {i > 0 && <br />}
+        {line}
+      </Fragment>
+    ));
+  };
+
   return (
     <div ref={wrapRef} className={styles.chartWrap}>
       <svg
         className={(onRangeSelect || onPointClick) ? `${styles.chart} ${styles.chartSelectable}` : styles.chart}
         width={width}
-        height={height}
-        viewBox={`0 0 ${width} ${height}`}
+        height={effectiveHeight}
+        viewBox={`0 0 ${width} ${effectiveHeight}`}
         preserveAspectRatio="none"
         onMouseMove={onMouseMove}
         onMouseLeave={() => setHoverT(null)}
@@ -426,7 +542,7 @@ export function TimeSeriesChart({
       >
         <defs>
           <clipPath id={clipId}>
-            <rect x={pad.left} y={pad.top} width={chartW} height={chartH} />
+            <rect x={pad.left} y={laneTop} width={chartW} height={chartH + (pad.top - laneTop)} />
           </clipPath>
           {fillGradient && series.filter(s => !s.noFill).map(s => (
             <linearGradient key={s.id} id={gradientId(s.id)} x1="0" y1="0" x2="0" y2="1">
@@ -448,6 +564,108 @@ export function TimeSeriesChart({
         })}
 
         <g clipPath={`url(#${clipId})`}>
+        {durationEvents.map(ev => {
+          const x0 = xFor(ev.t);
+          const x1 = ev.endT !== null ? xFor(ev.endT) : pad.left + chartW;
+          const clamp = (x: number) => Math.max(pad.left, Math.min(pad.left + chartW, x));
+          return (
+            <rect
+              key={ev.key}
+              x={clamp(Math.min(x0, x1))}
+              y={eventDurationBarTop}
+              width={Math.max(1, clamp(Math.max(x0, x1)) - clamp(Math.min(x0, x1)))}
+              height={EVENT_DURATION_BAR_HEIGHT}
+              rx={1.5}
+              fill="var(--accent)"
+              fillOpacity={0.3}
+            />
+          );
+        })}
+        {eventClusters.map(cluster => {
+          const anchor = cluster.events[0];
+          const count = cluster.events.length;
+          const Icon = CHART_EVENT_ICONS[anchor.kind];
+          const activate = () => onEventClick?.(anchor);
+          return (
+            <g key={anchor.key}>
+              {/* Dimmer than both the persistent selection line and the hover
+                  crosshair, so it reads as a background annotation rather than a
+                  competing marker. */}
+              <line
+                x1={cluster.x} y1={pad.top} x2={cluster.x} y2={pad.top + chartH}
+                stroke="var(--text)" strokeWidth="1" opacity="0.18"
+              />
+              <HoverTooltip body={eventTooltipBody(cluster.events)} side="bottom">
+                <g
+                  role="button"
+                  tabIndex={0}
+                  aria-label={anchor.label}
+                  className={styles.eventMarker}
+                  onPointerDown={e => e.stopPropagation()}
+                  onClick={e => { e.stopPropagation(); activate(); }}
+                  onKeyDown={(e: ReactKeyboardEvent) => {
+                    if (e.key !== 'Enter' && e.key !== ' ') return;
+                    e.preventDefault();
+                    activate();
+                  }}
+                >
+                  <rect
+                    x={cluster.x - EVENT_MARKER_SIZE / 2}
+                    y={eventMarkerCenterY - EVENT_MARKER_SIZE / 2}
+                    width={EVENT_MARKER_SIZE}
+                    height={EVENT_MARKER_SIZE}
+                    rx={3}
+                    fill="var(--surface-2)"
+                    stroke="var(--border-strong)"
+                    strokeWidth="1"
+                  />
+                  {count === 1 ? (
+                    <g transform={`translate(${cluster.x - EVENT_ICON_SIZE / 2}, ${eventMarkerCenterY - EVENT_ICON_SIZE / 2})`}>
+                      <Icon size={EVENT_ICON_SIZE} color="var(--text-dim)" />
+                    </g>
+                  ) : (
+                    <text
+                      x={cluster.x} y={eventMarkerCenterY + 3}
+                      textAnchor="middle" fontSize="9" fontFamily="var(--font-mono)" fill="var(--text-dim)"
+                    >
+                      {count > 9 ? '9+' : count}
+                    </text>
+                  )}
+                </g>
+              </HoverTooltip>
+            </g>
+          );
+        })}
+        {addEventX !== null && selectedT != null && (
+          <g
+            role="button"
+            tabIndex={0}
+            aria-label={addEventLabel}
+            className={styles.addEventMarker}
+            onPointerDown={e => e.stopPropagation()}
+            onClick={e => { e.stopPropagation(); onAddEventAt?.(selectedT); }}
+            onKeyDown={(e: ReactKeyboardEvent) => {
+              if (e.key !== 'Enter' && e.key !== ' ') return;
+              e.preventDefault();
+              onAddEventAt?.(selectedT);
+            }}
+          >
+            <rect
+              x={addEventX - EVENT_MARKER_SIZE / 2}
+              y={eventMarkerCenterY - EVENT_MARKER_SIZE / 2}
+              width={EVENT_MARKER_SIZE}
+              height={EVENT_MARKER_SIZE}
+              rx={3}
+              fill="var(--accent)"
+              fillOpacity={0.15}
+              stroke="var(--accent)"
+              strokeWidth="1"
+            />
+            <g transform={`translate(${addEventX - EVENT_ICON_SIZE / 2}, ${eventMarkerCenterY - EVENT_ICON_SIZE / 2})`}>
+              <Plus size={EVENT_ICON_SIZE} color="var(--accent)" />
+            </g>
+          </g>
+        )}
         {bands?.map((band, i) => (
           <rect
             key={i}

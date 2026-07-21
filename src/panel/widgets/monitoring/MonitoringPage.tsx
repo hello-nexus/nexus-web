@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Cpu, Gpu, MemoryStick, HardDrive, Network, History, List } from 'lucide-react';
+import { Cpu, Gpu, MemoryStick, HardDrive, Network, History, List, CalendarClock } from 'lucide-react';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useNetworkMonitor, useAllNetworkSeries } from '../../../hooks/useNetworkMonitor';
 import { useAllProcesses, useGpuProcessFeed, useGpuProcessData } from '../../../hooks/useProcessMonitor';
@@ -27,6 +27,13 @@ import { ProcessListSection, type ProcessListItem } from './page/ProcessListSect
 import { ProcessDetailPanel } from './page/ProcessDetailPanel';
 import { MonitoringSettingsModal } from './page/MonitoringSettingsModal';
 import { PrivacyHistoryModal } from './page/PrivacyHistoryModal';
+import { MonitoringEventsModal } from './page/MonitoringEventsModal';
+import { useEventKindVisibility } from './page/useEventKindVisibility';
+import { eventTooltipText } from './page/monitoringEventLabels';
+import { useMonitoringEvents } from '../../../hooks/useMonitoringEvents';
+import { createCustomEvent, deleteCustomEvent, type TimelineEvent } from '../../../api/monitoringEvents';
+import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
+import { PromptModal } from '../../../components/common/PromptModal/PromptModal';
 import { seriesQueryFor, appsSeriesParamFor, currentDiskRateBytesPerSec, deriveMemoryTotalMb, resolveSelectedFrame, formatSelectedFrameTime, type FanRoleMap, type HistoryMetric } from './page/metricHistoryHelpers';
 import { appsToProcessListItems, currentAppValueMap, reconcileLiveWithWindow, zeroedGpuFallback } from './page/appWindowHelpers';
 import { buildLiveUsageByName } from './page/processDetailHelpers';
@@ -77,7 +84,7 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
   const allNetSeries = useAllNetworkSeries();
   const sensors = useSensors(serviceOnline);
   const { specs } = useSystemSpecs(serviceOnline);
-  const { settings } = useUiSettings();
+  const { settings, update } = useUiSettings();
   const { numberFormat } = useUnitPrefs();
 
   // Sourced once here (not inside ProcessListSection) since the selected
@@ -132,9 +139,11 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
   // Top-bar settings gear opens the GPU picker modal; register only when there
   // is more than one GPU to choose from (same modal the "Change" title-row
   // link opens).
+  // Always registered: the dialog carries the timeline event toggles, which
+  // are worth opening for on any machine, not just a multi-GPU one.
   usePageSettingsAction(
     { onOpen: openSettings, label: t('monitoring.settings.open') },
-    serviceOnline && sensors.gpuComponents.length > 1,
+    serviceOnline,
   );
 
   // An unrecognized or legacy tab (e.g. the removed 'overview') renders the
@@ -245,6 +254,48 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
     setClickedFrameMs(t);
     detach();
   }, [detach]);
+
+  // Timeline events overlay. The global toggle gates fetching too, so an
+  // uninterested user pays nothing for the feature.
+  const eventsEnabled = settings.monitoringEventsEnabled;
+  const { events: allEvents, refetch: refetchEvents } = useMonitoringEvents(history.domain, eventsEnabled);
+  const { visibleEvents } = useEventKindVisibility();
+  const events = useMemo(() => visibleEvents(allEvents), [visibleEvents, allEvents]);
+  const [eventsModalKey, setEventsModalKey] = useState<string | null>(null);
+  const [eventsModalOpen, setEventsModalOpen] = useState(false);
+  const [addEventAtMs, setAddEventAtMs] = useState<number | null>(null);
+
+  const onEventClick = useCallback((event: TimelineEvent) => {
+    setEventsModalKey(event.key);
+    setEventsModalOpen(true);
+  }, []);
+
+  // Refetch either way: a delete that failed because the id was already gone
+  // still needs the lane resynced, and swallowing the rejection keeps a
+  // stale-id click from surfacing as an unhandled promise.
+  const onRemoveCustomEvent = useCallback((id: number) => {
+    void deleteCustomEvent(id).catch(() => undefined).finally(refetchEvents);
+  }, [refetchEvents]);
+
+  // Returning a string keeps PromptModal open and shows it as the field
+  // error, which is the only feedback path for a rejected label (the client
+  // deliberately leaves validation to the service).
+  const onCreateCustomEvent = useCallback(async (label: string) => {
+    if (addEventAtMs === null) return undefined;
+    try {
+      await createCustomEvent(addEventAtMs, label);
+    } catch {
+      return t('monitoring.events.addFailed');
+    }
+    setAddEventAtMs(null);
+    refetchEvents();
+    return undefined;
+  }, [addEventAtMs, refetchEvents, t]);
+
+  const renderEventTooltip = useCallback(
+    (event: TimelineEvent) => eventTooltipText(t, event),
+    [t],
+  );
 
   // The detached chip shows the exact viewed instant, seconds included - finer
   // than the x-axis ticks the frame sits under.
@@ -413,6 +464,22 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
         open={privacyHistoryOpen}
         onClose={() => setPrivacyHistoryOpen(false)}
       />
+      <MonitoringEventsModal
+        open={eventsModalOpen}
+        onClose={() => setEventsModalOpen(false)}
+        events={events}
+        highlightedKey={eventsModalKey}
+        onRemoveCustom={onRemoveCustomEvent}
+      />
+      <PromptModal
+        open={addEventAtMs !== null}
+        title={t('monitoring.events.addTitle')}
+        message={t('monitoring.events.addMessage')}
+        placeholder={t('monitoring.events.addPlaceholder')}
+        maxLength={120}
+        onConfirm={onCreateCustomEvent}
+        onCancel={() => setAddEventAtMs(null)}
+      />
       <ViewHeader
         title={t('nav.monitoring')}
         tabs={tabs}
@@ -439,11 +506,27 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
                     </button>
                   )}
                   {history.mocked && <Badge label={t('monitoring.history.mocked')} color="var(--warn)" />}
-                  <LiveFollowControl
-                    following={history.following}
-                    detachedLabel={detachedLabel}
-                    onBackToLive={backToLiveAndClearSnapshot}
-                  />
+                  <div className={styles.headerControls}>
+                    <HoverTooltip
+                      body={eventsEnabled ? t('monitoring.events.hideAll') : t('monitoring.events.showAll')}
+                      side="bottom"
+                    >
+                      <button
+                        type="button"
+                        className={eventsEnabled ? `${styles.eventsToggle} ${styles.eventsToggleOn}` : styles.eventsToggle}
+                        aria-pressed={eventsEnabled}
+                        aria-label={eventsEnabled ? t('monitoring.events.hideAll') : t('monitoring.events.showAll')}
+                        onClick={() => update({ monitoringEventsEnabled: !eventsEnabled })}
+                      >
+                        <CalendarClock size={14} aria-hidden />
+                      </button>
+                    </HoverTooltip>
+                    <LiveFollowControl
+                      following={history.following}
+                      detachedLabel={detachedLabel}
+                      onBackToLive={backToLiveAndClearSnapshot}
+                    />
+                  </div>
                 </div>
               )}
               <MetricHistorySection
@@ -455,6 +538,10 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
                 fanRoles={fanRoles}
                 selectedFrameMs={selectedFrameMs}
                 onGraphClick={onGraphClick}
+                events={eventsEnabled ? events : undefined}
+                onEventClick={onEventClick}
+                onAddEventAt={eventsEnabled && isSnapshotPinned ? setAddEventAtMs : undefined}
+                renderEventTooltip={renderEventTooltip}
                 selectedAppName={selectedProcess}
                 memoryTotalMb={memoryTotalMb}
               />

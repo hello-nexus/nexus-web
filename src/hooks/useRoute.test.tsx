@@ -47,4 +47,24 @@ describe('useRoute', () => {
     expect(result.current.subtab).toBe('cpu');
     expect(window.location.pathname).toBe('/system/monitoring/cpu');
   });
+
+  it('defaults settings to the general subtab', () => {
+    window.history.replaceState(null, '', '/system/settings');
+
+    const { result } = renderHook(() => useRoute());
+
+    expect(result.current.view).toBe('settings');
+    expect(result.current.subtab).toBe('general');
+    expect(window.location.pathname).toBe('/system/settings/general');
+  });
+
+  it('preserves explicit settings subtabs', () => {
+    window.history.replaceState(null, '', '/system/settings/advanced');
+
+    const { result } = renderHook(() => useRoute());
+
+    expect(result.current.view).toBe('settings');
+    expect(result.current.subtab).toBe('advanced');
+    expect(window.location.pathname).toBe('/system/settings/advanced');
+  });
 });

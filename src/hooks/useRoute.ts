@@ -22,6 +22,7 @@ interface Route {
 const DEFAULT_SECTION: Section = 'system';
 const DEFAULT_VIEW = 'dashboard';
 const DEFAULT_MONITORING_SUBTAB = 'overview';
+const DEFAULT_SETTINGS_SUBTAB = 'general';
 
 const VALID_SECTIONS: readonly string[] = ['system'];
 
@@ -98,6 +99,13 @@ function applyRouteDefaults(route: Route): Route {
     return {
       ...route,
       subtab: DEFAULT_MONITORING_SUBTAB,
+    };
+  }
+
+  if (route.view === 'settings' && !route.subtab) {
+    return {
+      ...route,
+      subtab: DEFAULT_SETTINGS_SUBTAB,
     };
   }
 

@@ -122,6 +122,8 @@ export interface GeneralSettings {
   startOnLogin: boolean;
   showConflictAlerts: boolean;
   monitoringDetailedCollapsed: string[];
+  monitoringEventsEnabled: boolean;
+  monitoringEventKindsHidden: string[];
   showMacStatusBarIcon: boolean;
   showWindowsTrayIcon: boolean;
   // Order of pinnable sidebar apps after the locked Dashboard row. Each
@@ -173,6 +175,8 @@ export function getDefaultSettings(): NexusSettings {
       startOnLogin: false,
       showConflictAlerts: true,
       monitoringDetailedCollapsed: [],
+      monitoringEventsEnabled: true,
+      monitoringEventKindsHidden: [],
       showMacStatusBarIcon: true,
       showWindowsTrayIcon: true,
       pinnedSidebarApps: ['monitoring', 'lighting', 'cooling'],

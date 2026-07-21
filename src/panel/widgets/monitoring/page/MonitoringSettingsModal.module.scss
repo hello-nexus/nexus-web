@@ -42,6 +42,19 @@
   color: var(--text);
 }
 
+.sectionTitle {
+  margin: 0.25rem 0 0;
+  font-size: var(--type-body);
+  font-weight: var(--weight-strong);
+  color: var(--text);
+}
+
+.kindList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
 .select {
   flex: 1 1 auto;
   min-width: 0;

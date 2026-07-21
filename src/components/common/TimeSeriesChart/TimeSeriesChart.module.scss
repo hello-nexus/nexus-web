@@ -26,6 +26,16 @@
   pointer-events: none;
 }
 
+.eventMarker,
+.addEventMarker {
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 1.5px solid var(--accent);
+    outline-offset: 1px;
+  }
+}
+
 .empty {
   display: flex;
   align-items: center;
