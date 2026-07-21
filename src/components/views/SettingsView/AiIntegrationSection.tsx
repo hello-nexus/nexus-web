@@ -39,7 +39,7 @@ const TOKEN_MASK = '•'.repeat(24);
  * enabled, per-capability consent toggles, the bearer token (masked/reveal/
  * copy/rotate), and the endpoint the user points an MCP client at.
  *
- * Server-authoritative like the telemetry consent block in GeneralTab: status
+ * Server-authoritative like the telemetry consent block in PrivacyTab: status
  * is fetched on mount and every mutation applies the POST response straight
  * back onto state (each route already returns the fresh AiStatusResponse, so
  * no follow-up GET is needed). Toggles flip optimistically and reconcile to
