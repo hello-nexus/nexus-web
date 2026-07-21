@@ -2,8 +2,19 @@ import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { TimeSeriesChart } from './TimeSeriesChart';
 import type { TimeSeriesSeries } from './timeSeriesChartUtils';
+import type { TimelineEvent } from '../../../api/monitoringEvents';
 
 const HOUR = 3_600_000;
+
+function tlEvent(key: string, t: number, opts: Partial<Omit<TimelineEvent, 'key' | 't'>> = {}): TimelineEvent {
+  return { key, t, id: null, kind: 'app-open', label: key, detail: null, custom: false, endT: null, ...opts };
+}
+
+function tickY(container: HTMLElement, text: string): number {
+  const el = [...container.querySelectorAll('text')].find(node => node.textContent === text);
+  if (!el) throw new Error(`tick "${text}" not found`);
+  return Number(el.getAttribute('y'));
+}
 
 function makeSeries(): TimeSeriesSeries[] {
   return [
@@ -985,6 +996,164 @@ describe('TimeSeriesChart', () => {
     it('keeps ticks at or above the series minimum', () => {
       render(<TimeSeriesChart series={series} {...baseProps} />);
       expect(screen.getByText('30C')).toBeInTheDocument();
+    });
+  });
+
+  describe('events lane', () => {
+    it('leaves the svg height unchanged when events is omitted (backwards compatible)', () => {
+      const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} height={260} />);
+      expect(container.querySelector('svg')).toHaveAttribute('height', '260');
+    });
+
+    it('grows the svg height to make room for the lane when events is passed, even an empty array', () => {
+      const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} height={260} events={[]} />);
+      expect(Number(container.querySelector('svg')!.getAttribute('height'))).toBeGreaterThan(260);
+    });
+
+    it('does not shrink the plot itself - the y-tick spacing is identical with or without the lane', () => {
+      const { container: without } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} yDomain={[0, 100]} />);
+      const { container: withLane } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} yDomain={[0, 100]} events={[]} />);
+      const deltaWithout = tickY(without, '0C') - tickY(without, '100C');
+      const deltaWithLane = tickY(withLane, '0C') - tickY(withLane, '100C');
+      expect(deltaWithLane).toBeCloseTo(deltaWithout, 5);
+    });
+
+    // Regression: xFor extrapolates linearly, so an event outside the window
+    // used to paint at an off-plot coordinate (negative x lands over the page
+    // chrome next to the chart, since SVG does not clip by default) and stayed
+    // keyboard-focusable while invisible. Caught in a real browser, not here.
+    it('does not render the add-event affordance when the selection is outside the domain', () => {
+      // It is the one lane element the domain cull would otherwise miss, so
+      // it could stay focusable while clipped out of sight.
+      render(
+        <TimeSeriesChart series={makeSeries()} {...baseProps} domain={[0, 2 * HOUR]}
+          selectedT={5 * HOUR} onAddEventAt={() => {}} />,
+      );
+      expect(screen.queryAllByRole('button')).toHaveLength(0);
+    });
+
+    it('gives the add-event affordance an accessible name', () => {
+      render(
+        <TimeSeriesChart series={makeSeries()} {...baseProps} domain={[0, 2 * HOUR]}
+          selectedT={HOUR} onAddEventAt={() => {}} />,
+      );
+      const button = screen.getByRole('button');
+      expect(button.getAttribute('aria-label')).toBeTruthy();
+    });
+
+    it('culls markers for events outside the domain', () => {
+      const events = [
+        tlEvent('before', -3 * HOUR),
+        tlEvent('inside', HOUR),
+        tlEvent('after', 5 * HOUR, { kind: 'usb-attach' }),
+      ];
+      render(<TimeSeriesChart series={makeSeries()} {...baseProps} domain={[0, 2 * HOUR]} events={events} />);
+      expect(screen.getAllByRole('button')).toHaveLength(1);
+    });
+
+    it('keeps a duration bar for a session that began before the window but is still in use', () => {
+      const events = [tlEvent('ongoing', -3 * HOUR, { kind: 'privacy-webcam', endT: null })];
+      const { container } = render(
+        <TimeSeriesChart series={makeSeries()} {...baseProps} domain={[0, 2 * HOUR]} events={events} />,
+      );
+      // The marker itself is off-window and culled, but the capture is live
+      // across this whole window, so its bar must survive (clamped).
+      expect(screen.queryAllByRole('button')).toHaveLength(0);
+      const bars = [...container.querySelectorAll('rect')].filter(
+        r => r.getAttribute('fill') === 'var(--accent)' && r.getAttribute('fill-opacity') === '0.3',
+      );
+      expect(bars).toHaveLength(1);
+      expect(Number(bars[0].getAttribute('x'))).toBeGreaterThanOrEqual(0);
+    });
+
+    it('renders one marker per event when they are far apart on the timeline', () => {
+      const events = [tlEvent('a', 0), tlEvent('b', 2 * HOUR, { kind: 'usb-attach' })];
+      render(<TimeSeriesChart series={makeSeries()} {...baseProps} events={events} />);
+      expect(screen.getAllByRole('button')).toHaveLength(2);
+    });
+
+    it('collapses events closer than a marker width into one cluster marker showing a count', () => {
+      // makeSeries spans 0..2*HOUR over a 440px-wide chart (~368px plot) - a
+      // few ms apart lands well inside the marker-width collision threshold.
+      const events = [tlEvent('a', HOUR), tlEvent('b', HOUR + 1), tlEvent('c', HOUR + 2)];
+      render(<TimeSeriesChart series={makeSeries()} {...baseProps} events={events} />);
+      const buttons = screen.getAllByRole('button');
+      expect(buttons).toHaveLength(1);
+      expect(buttons[0].textContent).toBe('3');
+    });
+
+    it('fires onEventClick with the marker\'s own event on click', () => {
+      const onEventClick = vi.fn();
+      const events = [tlEvent('a', 0), tlEvent('b', 2 * HOUR, { kind: 'usb-attach' })];
+      render(<TimeSeriesChart series={makeSeries()} {...baseProps} events={events} onEventClick={onEventClick} />);
+      fireEvent.click(screen.getAllByRole('button')[1]);
+      expect(onEventClick).toHaveBeenCalledWith(events[1]);
+    });
+
+    it('fires onEventClick with the earliest member when clicking a collapsed cluster', () => {
+      const onEventClick = vi.fn();
+      const events = [tlEvent('a', HOUR + 2), tlEvent('b', HOUR)];
+      render(<TimeSeriesChart series={makeSeries()} {...baseProps} events={events} onEventClick={onEventClick} />);
+      fireEvent.click(screen.getByRole('button'));
+      expect(onEventClick).toHaveBeenCalledWith(events[1]);
+    });
+
+    it('fires onEventClick on Enter for keyboard activation', () => {
+      const onEventClick = vi.fn();
+      const events = [tlEvent('a', 0)];
+      render(<TimeSeriesChart series={makeSeries()} {...baseProps} events={events} onEventClick={onEventClick} />);
+      fireEvent.keyDown(screen.getByRole('button'), { key: 'Enter' });
+      expect(onEventClick).toHaveBeenCalledWith(events[0]);
+    });
+
+    it('draws a duration bar for a privacy event with a known end', () => {
+      const events = [tlEvent('a', 0, { kind: 'privacy-webcam', endT: HOUR })];
+      const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} events={events} />);
+      expect(container.querySelectorAll('rect[fill-opacity="0.3"]')).toHaveLength(1);
+    });
+
+    it('draws no duration bar for a stored event with no endT', () => {
+      const events = [tlEvent('a', 0, { kind: 'usb-attach' })];
+      const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} events={events} />);
+      expect(container.querySelectorAll('rect[fill-opacity="0.3"]')).toHaveLength(0);
+    });
+
+    it('renders no add-event marker without onAddEventAt, even with selectedT set', () => {
+      const events: TimelineEvent[] = [];
+      render(<TimeSeriesChart series={makeSeries()} {...baseProps} events={events} selectedT={HOUR} />);
+      expect(screen.queryAllByRole('button')).toHaveLength(0);
+    });
+
+    it('renders no add-event marker without selectedT, even with onAddEventAt set', () => {
+      render(<TimeSeriesChart series={makeSeries()} {...baseProps} onAddEventAt={vi.fn()} />);
+      expect(screen.queryAllByRole('button')).toHaveLength(0);
+    });
+
+    it('renders an add-event marker at selectedT when both are set, and fires with the selected timestamp on click', () => {
+      const onAddEventAt = vi.fn();
+      render(<TimeSeriesChart series={makeSeries()} {...baseProps} selectedT={HOUR} onAddEventAt={onAddEventAt} />);
+      const button = screen.getByRole('button');
+      fireEvent.click(button);
+      expect(onAddEventAt).toHaveBeenCalledWith(HOUR);
+    });
+
+    it('renders a fallback tooltip body from the raw label when renderEventTooltip is omitted', () => {
+      const events = [tlEvent('a', 0, { label: 'chrome.exe opened' })];
+      render(<TimeSeriesChart series={makeSeries()} {...baseProps} events={events} />);
+      fireEvent.focus(screen.getByRole('button'));
+      expect(screen.getByText('chrome.exe opened')).toBeInTheDocument();
+    });
+
+    it('uses renderEventTooltip for the tooltip body when supplied', () => {
+      const events = [tlEvent('a', 0, { label: 'chrome.exe opened' })];
+      render(
+        <TimeSeriesChart
+          series={makeSeries()} {...baseProps} events={events}
+          renderEventTooltip={e => `custom: ${e.label}`}
+        />,
+      );
+      fireEvent.focus(screen.getByRole('button'));
+      expect(screen.getByText('custom: chrome.exe opened')).toBeInTheDocument();
     });
   });
 });

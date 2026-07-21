@@ -57,6 +57,8 @@ export interface UiSettingsValue {
   accentColor: string;
   showConflictAlerts: boolean;
   monitoringDetailedCollapsed: string[];
+  monitoringEventsEnabled: boolean;
+  monitoringEventKindsHidden: string[];
   showMacStatusBarIcon: boolean;
   showWindowsTrayIcon: boolean;
   fanChannelOrder: string[];
@@ -179,6 +181,8 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     accentColor: src.general.accentColor,
     showConflictAlerts: src.general.showConflictAlerts,
     monitoringDetailedCollapsed: src.general.monitoringDetailedCollapsed,
+    monitoringEventsEnabled: src.general.monitoringEventsEnabled,
+    monitoringEventKindsHidden: src.general.monitoringEventKindsHidden,
     showMacStatusBarIcon: src.general.showMacStatusBarIcon,
     showWindowsTrayIcon: src.general.showWindowsTrayIcon,
     fanChannelOrder: [],
@@ -228,6 +232,8 @@ function toNexusSettings(src: UiSettingsValue): NexusSettings {
       startOnLogin: src.startOnLogin,
       showConflictAlerts: src.showConflictAlerts,
       monitoringDetailedCollapsed: src.monitoringDetailedCollapsed,
+      monitoringEventsEnabled: src.monitoringEventsEnabled,
+      monitoringEventKindsHidden: src.monitoringEventKindsHidden,
       showMacStatusBarIcon: src.showMacStatusBarIcon,
       showWindowsTrayIcon: src.showWindowsTrayIcon,
       pinnedSidebarApps: src.pinnedSidebarApps,
@@ -252,8 +258,10 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.accentSource !== undefined) theme.accentSource = patch.accentSource;
   if (Object.keys(theme).length > 0) out.theme = theme;
   // monitoring block
-  const monitoring: Partial<{ showMacStatusBarIcon: boolean; showWindowsTrayIcon: boolean; detailedCollapsed: string[] }> = {};
+  const monitoring: Partial<{ showMacStatusBarIcon: boolean; showWindowsTrayIcon: boolean; detailedCollapsed: string[]; eventsEnabled: boolean; eventKindsHidden: string[] }> = {};
   if (patch.monitoringDetailedCollapsed !== undefined) monitoring.detailedCollapsed = patch.monitoringDetailedCollapsed;
+  if (patch.monitoringEventsEnabled !== undefined) monitoring.eventsEnabled = patch.monitoringEventsEnabled;
+  if (patch.monitoringEventKindsHidden !== undefined) monitoring.eventKindsHidden = patch.monitoringEventKindsHidden;
   if (patch.showMacStatusBarIcon !== undefined) monitoring.showMacStatusBarIcon = patch.showMacStatusBarIcon;
   if (patch.showWindowsTrayIcon !== undefined) monitoring.showWindowsTrayIcon = patch.showWindowsTrayIcon;
   if (Object.keys(monitoring).length > 0) out.monitoring = monitoring;
@@ -348,6 +356,8 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
     accentSource: (server.theme?.accentSource as AccentSource) || base.accentSource,
     showConflictAlerts: server.ui?.showConflictAlerts ?? base.showConflictAlerts,
     monitoringDetailedCollapsed: server.monitoring?.detailedCollapsed ?? base.monitoringDetailedCollapsed,
+    monitoringEventsEnabled: server.monitoring?.eventsEnabled ?? base.monitoringEventsEnabled,
+    monitoringEventKindsHidden: server.monitoring?.eventKindsHidden ?? base.monitoringEventKindsHidden,
     showMacStatusBarIcon: server.monitoring?.showMacStatusBarIcon ?? base.showMacStatusBarIcon,
     showWindowsTrayIcon: server.monitoring?.showWindowsTrayIcon ?? base.showWindowsTrayIcon,
     fanChannelOrder: server.cooling?.fanChannelOrder ?? base.fanChannelOrder,

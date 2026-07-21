@@ -112,6 +112,36 @@
   min-height: 200px;
 }
 
+// Right-aligns the events toggle and the live control as one group.
+// LiveFollowControl carries its own margin-left:auto, which is inert inside
+// this wrapper and still correct wherever it is mounted alone.
+.headerControls {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.eventsToggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+  border-radius: var(--radius-sm);
+  border: var(--border-width) solid transparent;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all var(--ease-fast) ease;
+
+  &:hover { color: var(--text); }
+}
+
+.eventsToggleOn {
+  color: var(--accent);
+}
+
 .tabHeaderName {
   @include text-heading;
   color: var(--text);
