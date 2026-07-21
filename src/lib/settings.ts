@@ -147,6 +147,9 @@ export interface GeneralSettings {
   updateMode?: UpdateMode;
   updateChannel?: UpdateChannel;
   lastDismissedUpdateVersion?: string;
+  // Windows-only: seconds to wait before starting Nexus at system startup.
+  // Server-mirrored under the preferences top-level startupDelaySeconds field.
+  startupDelaySeconds: number;
 }
 
 export interface NexusSettings {
@@ -178,6 +181,7 @@ export function getDefaultSettings(): NexusSettings {
       monitoringTempUnit: DEFAULT_TEMP_UNIT,
       timeFormat: DEFAULT_TIME_FORMAT,
       numberFormat: DEFAULT_NUMBER_FORMAT,
+      startupDelaySeconds: 0,
     },
   };
 }

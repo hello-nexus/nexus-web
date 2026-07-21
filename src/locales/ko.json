@@ -2605,6 +2605,8 @@
   "settings.shutDown.description": "백그라운드 서비스를 중지하고 이 창을 닫습니다. 하드웨어 제어가 BIOS 기본값으로 돌아갑니다.",
   "settings.shutDown.flashBlocked": "펌웨어 업데이트 중에는 종료할 수 없습니다.",
   "settings.shutDown.label": "Nexus 종료",
+  "settings.startupDelay.description": "장치 또는 센서 감지, 냉각 또는 조명 제어가 일관되지 않은 문제가 있다면 Nexus 시작을 지연시킬 수 있습니다. 원하는 동작에 도달할 때까지 값을 점차 늘리세요.",
+  "settings.startupDelay.label": "자동 시작 지연",
   "settings.startupTray.title": "시작 및 트레이",
   "settings.systemStartup.description": "Windows가 부팅될 때 Nexus가 자동으로 실행됩니다. 직접 시작할 때까지 Nexus를 꺼두려면 비활성화하세요.",
   "settings.systemStartup.label": "시스템 시작 시 Nexus 실행",

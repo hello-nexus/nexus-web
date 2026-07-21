@@ -176,6 +176,10 @@ export interface Preferences {
   update?: UpdatePrefs;
   units?: UnitsPrefs;
   diagnostics?: DiagnosticsPrefs;
+  // Windows-only: seconds the service holds hardware enumeration for on a
+  // boot-time start, clamped server-side to 0..60. Optional - an older service
+  // omits it, and the client then keeps its last known value.
+  startupDelaySeconds?: number;
 }
 
 export interface PreferencesPatch {
@@ -188,6 +192,7 @@ export interface PreferencesPatch {
   update?: Partial<UpdatePrefs>;
   units?: Partial<UnitsPrefs>;
   diagnostics?: DiagnosticsPrefsPatch;
+  startupDelaySeconds?: number;
 }
 
 interface GetProfilesResponse {

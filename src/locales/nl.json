@@ -2783,6 +2783,8 @@
   "settings.shutDown.description": "Stopt de achtergrondservice en sluit dit venster. Hardwarebediening keert terug naar de BIOS-standaardwaarden.",
   "settings.shutDown.flashBlocked": "Kan niet afsluiten terwijl er een firmware-update bezig is.",
   "settings.shutDown.label": "Nexus afsluiten",
+  "settings.startupDelay.description": "Als je problemen ondervindt met inconsistente apparaat- of sensordetectie, koeling of verlichtingsbediening, kun je het starten van Nexus vertragen. Verhoog de waarde geleidelijk totdat de gewenste werking is bereikt.",
+  "settings.startupDelay.label": "Vertraging bij automatisch starten",
   "settings.startupTray.title": "Opstarten en systeemvak",
   "settings.systemStartup.description": "Nexus start automatisch wanneer Windows opstart. Schakel dit uit om Nexus uit te houden totdat je het handmatig start.",
   "settings.systemStartup.label": "Nexus starten bij systeemstart",

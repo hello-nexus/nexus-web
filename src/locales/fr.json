@@ -2605,6 +2605,8 @@
   "settings.shutDown.description": "Arrête le service en arrière-plan et ferme cette fenêtre. Le contrôle matériel revient aux valeurs par défaut du BIOS.",
   "settings.shutDown.flashBlocked": "Impossible d'éteindre pendant une mise à jour du firmware.",
   "settings.shutDown.label": "Arrêter Nexus",
+  "settings.startupDelay.description": "Si vous rencontrez des problèmes de détection incohérente des périphériques ou des capteurs, ou de contrôle du refroidissement ou de l'éclairage, vous pouvez retarder le démarrage de Nexus. Augmentez progressivement la valeur jusqu'à obtenir le fonctionnement souhaité.",
+  "settings.startupDelay.label": "Délai de démarrage automatique",
   "settings.startupTray.title": "Démarrage et zone de notification",
   "settings.systemStartup.description": "Nexus se lance automatiquement au démarrage de Windows. Désactivez cette option pour garder Nexus inactif jusqu'à ce que vous le lanciez manuellement.",
   "settings.systemStartup.label": "Lancer Nexus au démarrage du système",

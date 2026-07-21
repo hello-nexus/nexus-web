@@ -2550,6 +2550,8 @@
   "settings.shutDown.description": "バックグラウンドサービスを停止し、このウィンドウを閉じます。ハードウェア制御は BIOS のデフォルトに戻ります。",
   "settings.shutDown.flashBlocked": "ファームウェア更新中はシャットダウンできません。",
   "settings.shutDown.label": "Nexus をシャットダウン",
+  "settings.startupDelay.description": "デバイスやセンサーの検出、冷却やライティング制御が不安定な場合は、Nexus の起動を遅らせることができます。目的の動作になるまで値を徐々に増やしてください。",
+  "settings.startupDelay.label": "自動起動の遅延",
   "settings.startupTray.title": "起動とトレイ",
   "settings.systemStartup.description": "Windows の起動時に Nexus が自動的に起動します。無効にすると、手動で起動するまで Nexus はオフのままになります。",
   "settings.systemStartup.label": "システム起動時に Nexus を起動",

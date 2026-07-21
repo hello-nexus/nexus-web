@@ -41,6 +41,7 @@ export function SettingsView({ serviceOnline, connectionState, platform }: Setti
       monitoringTempUnit: ui.monitoringTempUnit,
       timeFormat: ui.timeFormat,
       numberFormat: ui.numberFormat,
+      startupDelaySeconds: ui.startupDelaySeconds,
       updateMode: ui.updateMode,
       updateChannel: ui.updateChannel,
       lastDismissedUpdateVersion: ui.lastDismissedUpdateVersion,

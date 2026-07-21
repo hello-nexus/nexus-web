@@ -21,6 +21,7 @@ vi.mock('../../../hooks/useUiSettings', () => ({
       monitoringTempUnit: 'c',
       timeFormat: 'system',
       numberFormat: 'system',
+      startupDelaySeconds: 0,
     },
     update: vi.fn(),
     reload: vi.fn(),

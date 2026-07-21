@@ -2605,6 +2605,8 @@
   "settings.shutDown.description": "Para o serviço em segundo plano e fecha esta janela. O controlo do hardware regressa às predefinições da BIOS.",
   "settings.shutDown.flashBlocked": "Não é possível desligar durante uma atualização de firmware.",
   "settings.shutDown.label": "Encerrar o Nexus",
+  "settings.startupDelay.description": "Se tiver problemas de deteção inconsistente de dispositivos ou sensores, de controlo da refrigeração ou da iluminação, pode atrasar o arranque do Nexus. Aumente gradualmente o valor até atingir o funcionamento pretendido.",
+  "settings.startupDelay.label": "Atraso do arranque automático",
   "settings.startupTray.title": "Arranque e área de notificação",
   "settings.systemStartup.description": "O Nexus é iniciado automaticamente quando o Windows arranca. Desative para manter o Nexus desligado até o iniciar manualmente.",
   "settings.systemStartup.label": "Iniciar o Nexus no arranque do sistema",

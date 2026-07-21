@@ -2605,6 +2605,8 @@
   "settings.shutDown.description": "停止背景服務並關閉此視窗。硬體控制將恢復為 BIOS 預設值。",
   "settings.shutDown.flashBlocked": "韌體更新期間無法關閉。",
   "settings.shutDown.label": "關閉 Nexus",
+  "settings.startupDelay.description": "如果你遇到裝置或感測器偵測不穩定、散熱或燈光控制方面的問題，可以延遲啟動 Nexus。逐漸增加數值，直到達到你想要的效果。",
+  "settings.startupDelay.label": "自動啟動延遲",
   "settings.startupTray.title": "開機與系統匣",
   "settings.systemStartup.description": "Nexus 會在 Windows 開機時自動啟動。停用後，Nexus 將保持關閉，直到你手動啟動為止。",
   "settings.systemStartup.label": "在系統啟動時啟動 Nexus",

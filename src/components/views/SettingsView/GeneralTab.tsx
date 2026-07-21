@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
-import { SettingRow, SettingToggle, SettingSelect } from '../../common/SettingRow/SettingRow';
+import { SettingRow, SettingToggle, SettingSelect, SettingSlider } from '../../common/SettingRow/SettingRow';
 import { ChipGroup } from '../../common/ChipGroup/ChipGroup';
 import { ThemeTab } from './ThemeTab';
 import { LightingCoolingSection } from './LightingCoolingSection';
@@ -34,6 +34,9 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
   const { t } = useTranslation();
   const [autoStart, setAutoStart] = useState<boolean | null>(null);
   const [autoStartLoading, setAutoStartLoading] = useState(false);
+  // Local drag preview - only committed to useUiSettings (and so posted to the
+  // server) once the user releases the slider or types a precise value.
+  const [startupDelayPreview, setStartupDelayPreview] = useState<number | null>(null);
   const [stopConfirmOpen, setStopConfirmOpen] = useState(false);
   const [stopping, setStopping] = useState(false);
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
@@ -222,6 +225,32 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
               checked={autoStart}
               onChange={toggleAutoStart}
               disabled={!serviceOnline}
+            />
+          )}
+          {platform === 'windows' && (
+            <SettingSlider
+              label={t('settings.startupDelay.label')}
+              anchorId="set-startup-delay"
+              description={t('settings.startupDelay.description')}
+              value={startupDelayPreview ?? settings.general.startupDelaySeconds}
+              min={0}
+              max={60}
+              step={1}
+              editable
+              trackFill
+              formatValue={v => t('diagnostics.duration.seconds', { s: v })}
+              disabled={!serviceOnline || !autoStart}
+              onChange={(v, commit) => {
+                setStartupDelayPreview(v);
+                if (commit) {
+                  updateGeneral({ startupDelaySeconds: v });
+                  setStartupDelayPreview(null);
+                }
+              }}
+              onCommit={v => {
+                updateGeneral({ startupDelaySeconds: v });
+                setStartupDelayPreview(null);
+              }}
             />
           )}
           {platform === 'windows' && (

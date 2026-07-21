@@ -94,6 +94,9 @@ export interface UiSettingsValue {
   monitoringTempUnit: TempUnit;
   timeFormat: TimeFormat;
   numberFormat: NumberFormat;
+  // Windows-only: seconds to wait before starting Nexus at system startup.
+  // Server-mirrored under the preferences top-level startupDelaySeconds field.
+  startupDelaySeconds: number;
   // Server-only update prefs (not saved to localStorage).
   updateMode: UpdateMode;
   updateChannel: UpdateChannel;
@@ -192,6 +195,7 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     monitoringTempUnit: src.general.monitoringTempUnit,
     timeFormat: src.general.timeFormat,
     numberFormat: src.general.numberFormat,
+    startupDelaySeconds: src.general.startupDelaySeconds,
     updateMode: 'always' as UpdateMode,
     updateChannel: 'production' as UpdateChannel,
     lastDismissedUpdateVersion: '',
@@ -236,6 +240,7 @@ function toNexusSettings(src: UiSettingsValue): NexusSettings {
       monitoringTempUnit: src.monitoringTempUnit,
       timeFormat: src.timeFormat,
       numberFormat: src.numberFormat,
+      startupDelaySeconds: src.startupDelaySeconds,
     },
   };
 }
@@ -283,6 +288,8 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.timeFormat !== undefined) units.timeFormat = patch.timeFormat;
   if (patch.numberFormat !== undefined) units.numberFormat = patch.numberFormat;
   if (Object.keys(units).length > 0) out.units = units;
+  // Top-level field (not nested under a domain block), per the wire contract.
+  if (patch.startupDelaySeconds !== undefined) out.startupDelaySeconds = patch.startupDelaySeconds;
   // diagnostics block
   const thresholds: Partial<DiagnosticsThresholds> = {};
   if (patch.diagnosticsCpuTempC !== undefined) thresholds.cpuC = patch.diagnosticsCpuTempC;
@@ -374,6 +381,7 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
     monitoringTempUnit: (server.units?.monitoringTempUnit as TempUnit) ?? base.monitoringTempUnit,
     timeFormat: (server.units?.timeFormat as TimeFormat) ?? base.timeFormat,
     numberFormat: (server.units?.numberFormat as NumberFormat) ?? base.numberFormat,
+    startupDelaySeconds: server.startupDelaySeconds ?? base.startupDelaySeconds,
     diagnosticsCpuTempC: server.diagnostics?.thresholds?.cpuC ?? base.diagnosticsCpuTempC,
     diagnosticsGpuTempC: server.diagnostics?.thresholds?.gpuC ?? base.diagnosticsGpuTempC,
     diagnosticsStorageTempC: server.diagnostics?.thresholds?.storageC ?? base.diagnosticsStorageTempC,
@@ -447,9 +455,12 @@ export function UiSettingsProvider({
     const serverPatch = toServerPatch(patch);
     // toServerPatch produces an empty object when the patch only touches
     // client-scoped fields - short-circuit to skip a pointless POST.
+    // startupDelaySeconds is a top-level number (0 is a valid value), so it is
+    // checked for definedness rather than truthiness like the domain blocks.
     const anyBlock = serverPatch.theme || serverPatch.panel || serverPatch.overlay
       || serverPatch.monitoring || serverPatch.cooling || serverPatch.ui || serverPatch.update
-      || serverPatch.units || serverPatch.diagnostics;
+      || serverPatch.units || serverPatch.diagnostics
+      || serverPatch.startupDelaySeconds !== undefined;
     if (!anyBlock) return;
     if (writeTimer.current) clearTimeout(writeTimer.current);
     // Merge into (not replace) the still-pending patch so fields from separate
