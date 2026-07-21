@@ -570,12 +570,22 @@ function PreviewTimeSeriesChart() {
     const avg = 1200 + 600 * Math.sin(i / 3) + sampleNoise(i, 6) * 30;
     return { t, avg, max: avg + 40 };
   });
+  // Covers the event lane: a clustered pair, a plain marker, and a privacy
+  // session still in use (endT null), which draws its bar to the right edge.
+  const laneEvents = [
+    { key: 'e1', id: 1, t: now - DAY * 4, kind: 'app-open' as const, label: 'Chrome', detail: null, custom: false, endT: null },
+    { key: 'e2', id: 2, t: now - DAY * 4 + 60_000, kind: 'usb-attach' as const, label: 'Keyboard', detail: '1234:ABCD', custom: false, endT: null },
+    { key: 'e3', id: 3, t: now - DAY * 2, kind: 'custom' as const, label: 'Started the render', detail: null, custom: true, endT: null },
+    { key: 'e4', id: null, t: now - DAY, kind: 'privacy-webcam' as const, label: 'Zoom', detail: null, custom: false, endT: null },
+  ];
   return (
     <TimeSeriesChart
       series={[
         { id: 'cpu', name: 'CPU', color: '#8b5cf6', points: points(55, 12, 0) },
         { id: 'gpu', name: 'GPU', color: '#22d3ee', points: points(48, 18, 2) },
       ]}
+      events={laneEvents}
+      renderEventTooltip={e => e.label}
       height={220}
       valueFormat={v => `${Math.round(v)}°C`}
       xTickFormat={t => new Date(t).toLocaleDateString(undefined, { weekday: 'short' })}

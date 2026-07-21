@@ -37,6 +37,11 @@ export interface MonitoringSettings {
   showMacStatusBarIcon: boolean;
   showWindowsTrayIcon: boolean;
   detailedCollapsed: string[];
+  /** Global on/off for the graph's timeline event overlay. */
+  eventsEnabled?: boolean;
+  /** Event kinds the user hid. A kind absent from this list is visible, so
+   *  kinds added later default to shown rather than silently invisible. */
+  eventKindsHidden?: string[];
 }
 
 export interface PanelSettings {

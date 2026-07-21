@@ -33,6 +33,8 @@ export function SettingsView({ serviceOnline, connectionState, platform }: Setti
       startOnLogin: ui.startOnLogin,
       showConflictAlerts: ui.showConflictAlerts,
       monitoringDetailedCollapsed: ui.monitoringDetailedCollapsed,
+      monitoringEventsEnabled: ui.monitoringEventsEnabled,
+      monitoringEventKindsHidden: ui.monitoringEventKindsHidden,
       showMacStatusBarIcon: ui.showMacStatusBarIcon,
       showWindowsTrayIcon: ui.showWindowsTrayIcon,
       pinnedSidebarApps: ui.pinnedSidebarApps,

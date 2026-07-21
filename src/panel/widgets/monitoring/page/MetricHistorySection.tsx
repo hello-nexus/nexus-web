@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Thermometer, ZoomOut } from 'lucide-react';
 import { TimeSeriesChart } from '../../../../components/common/TimeSeriesChart/TimeSeriesChart';
+import type { TimelineEvent } from '../../../../api/monitoringEvents';
 import { nearestPoint } from '../../../../components/common/TimeSeriesChart/timeSeriesChartUtils';
 import { TimelineBrush, TIMELINE_BRUSH_DEFAULT_HEIGHT } from '../../../../components/common/TimelineBrush/TimelineBrush';
 import { Select } from '../../../../components/common/Select/Select';
@@ -67,6 +68,16 @@ export interface MetricHistorySectionProps {
    *  metric === 'memory', to rescale the selected app's MB usage onto this
    *  chart's own percent-of-RAM axis. */
   memoryTotalMb: number | null;
+  /** Timeline events for the lane above the plot, already filtered to the
+   *  kinds the user has left visible. Undefined (the global events toggle
+   *  off) renders no lane at all; an empty array still reserves its height,
+   *  so the layout does not jump as events come and go. */
+  events?: readonly TimelineEvent[];
+  onEventClick: (event: TimelineEvent) => void;
+  /** Passed only while a frame is pinned, which is when the "+" affordance at
+   *  the top of the selection line is offered. */
+  onAddEventAt?: (t: number) => void;
+  renderEventTooltip: (event: TimelineEvent) => ReactNode;
 }
 
 // Tall enough to keep the line/area's own plot area comfortable even with
@@ -105,7 +116,7 @@ function initYCeilingFreeze(dragging: boolean, liveYMax: number | null): YCeilin
 
 export function MetricHistorySection({
   metric, gpuComponents, preferredGpuId, history, appsWindow, fanRoles, selectedFrameMs, onGraphClick,
-  selectedAppName, memoryTotalMb,
+  selectedAppName, memoryTotalMb, events, onEventClick, onAddEventAt, renderEventTooltip,
 }: MetricHistorySectionProps) {
   const { t, language } = useTranslation();
   const { monitoringTempUnit, numberFormat } = useUnitPrefs();
@@ -449,6 +460,10 @@ export function MetricHistorySection({
             yAxisSide="right"
             ribbons={ribbons}
             selectedT={selectedFrameMs}
+            events={events}
+            onEventClick={onEventClick}
+            onAddEventAt={onAddEventAt}
+            renderEventTooltip={renderEventTooltip}
             onPointClick={onGraphClick}
           />
           <div className={styles.controls}>

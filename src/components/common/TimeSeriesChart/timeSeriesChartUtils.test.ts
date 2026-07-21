@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   avgValueRange,
+  clusterChartEvents,
   formatTooltipTimestamp,
   GAP_MULTIPLIER,
   medianSpacingMs,
@@ -19,6 +20,13 @@ import {
 function pt(t: number, avg: number, max = avg): TimeSeriesPoint {
   return { t, avg, max };
 }
+
+function ev(id: number | string, t: number, kind = 'app-open') {
+  return { id, t, kind, label: `event-${id}`, detail: null as string | null, custom: false, endT: null as number | null };
+}
+
+// 1px per ms, for simple/predictable pixel-collision math.
+const identityXFor = (t: number) => t;
 
 describe('medianSpacingMs', () => {
   it('returns the median delta across every series pooled together', () => {
@@ -292,5 +300,71 @@ describe('formatTooltipTimestamp', () => {
   it('includes seconds when stepSeconds is sub-minute', () => {
     const t = new Date(2026, 6, 8, 14, 32, 15).getTime();
     expect(formatTooltipTimestamp(t, sameDayNowMs, 'en-US', 1)).toMatch(/:\d{2}:\d{2}/);
+  });
+});
+
+describe('clusterChartEvents', () => {
+  it('returns one cluster per event when they are all far apart', () => {
+    const events = [ev(1, 0), ev(2, 1000), ev(3, 2000)];
+    const clusters = clusterChartEvents(events, identityXFor, 10);
+    expect(clusters).toHaveLength(3);
+    expect(clusters.map(c => c.events.length)).toEqual([1, 1, 1]);
+  });
+
+  it('merges events within the threshold into one cluster', () => {
+    const events = [ev(1, 0), ev(2, 5), ev(3, 9)];
+    const clusters = clusterChartEvents(events, identityXFor, 10);
+    expect(clusters).toHaveLength(1);
+    expect(clusters[0].events.map(e => e.id)).toEqual([1, 2, 3]);
+  });
+
+  it('keeps a cluster anchored at its earliest member instead of transitively chaining', () => {
+    // Each event is tested against the CLUSTER'S OWN anchor (its first
+    // member), not the previous event - so 16 does not merge with 8 (16-0=16
+    // > threshold) even though 16-8=8 is within it, and starts a new cluster.
+    const events = [ev(1, 0), ev(2, 8), ev(3, 16), ev(4, 24)];
+    const clusters = clusterChartEvents(events, identityXFor, 10);
+    expect(clusters).toHaveLength(2);
+    expect(clusters[0].x).toBe(0);
+    expect(clusters[0].events.map(e => e.id)).toEqual([1, 2]);
+    expect(clusters[1].x).toBe(16);
+    expect(clusters[1].events.map(e => e.id)).toEqual([3, 4]);
+  });
+
+  it('does not merge two events exactly one pixel past the threshold', () => {
+    const events = [ev(1, 0), ev(2, 11)];
+    const clusters = clusterChartEvents(events, identityXFor, 10);
+    expect(clusters).toHaveLength(2);
+  });
+
+  it('merges two events exactly at the threshold (inclusive)', () => {
+    const events = [ev(1, 0), ev(2, 10)];
+    const clusters = clusterChartEvents(events, identityXFor, 10);
+    expect(clusters).toHaveLength(1);
+  });
+
+  it('merges same-pixel collisions even at a zero threshold', () => {
+    const events = [ev(1, 5), ev(2, 5)];
+    const clusters = clusterChartEvents(events, identityXFor, 0);
+    expect(clusters).toHaveLength(1);
+    expect(clusters[0].events).toHaveLength(2);
+  });
+
+  it('clusters out-of-order input by sorting on t first', () => {
+    const events = [ev(3, 2000), ev(1, 0), ev(2, 5)];
+    const clusters = clusterChartEvents(events, identityXFor, 10);
+    expect(clusters).toHaveLength(2);
+    expect(clusters[0].events.map(e => e.id)).toEqual([1, 2]);
+    expect(clusters[1].events.map(e => e.id)).toEqual([3]);
+  });
+
+  it('returns an empty array for no events', () => {
+    expect(clusterChartEvents([], identityXFor, 10)).toEqual([]);
+  });
+
+  it('supports string ids (derived events have no numeric id)', () => {
+    const events = [ev('privacy:webcam:100', 0)];
+    const clusters = clusterChartEvents(events, identityXFor, 10);
+    expect(clusters[0].events[0].id).toBe('privacy:webcam:100');
   });
 });

@@ -84,6 +84,45 @@ export function splitIntoSegments(points: readonly TimeSeriesPoint[], maxGapMs: 
   return segments;
 }
 
+/** A cluster of near-coincident events collapsed into one marker. `x` is the
+ *  pixel position shared by every member (the earliest member's own
+ *  xFor(t)), not each member's individual x, since that's the point of
+ *  merging them; `t` is that same earliest member's own timestamp, for
+ *  keying/sorting alongside x. */
+export interface EventCluster<T extends { t: number }> {
+  x: number;
+  t: number;
+  events: T[];
+}
+
+/**
+ * Greedily merges events whose xFor(t) pixel positions collide into a single
+ * cluster, so a dense run of markers renders as one "+N" marker instead of
+ * an unreadable stack. Processes events in ascending t order so every
+ * cluster covers a contiguous time range; a cluster's anchor is fixed at its
+ * first (earliest) member's position rather than drifting as later nearby
+ * events keep merging in. Generic over any event shape carrying `t`, so a
+ * caller (e.g. TimeSeriesChart, with TimelineEvent) needs no adapter type.
+ */
+export function clusterChartEvents<T extends { t: number }>(
+  events: readonly T[],
+  xFor: (t: number) => number,
+  thresholdPx: number,
+): EventCluster<T>[] {
+  const sorted = [...events].sort((a, b) => a.t - b.t);
+  const clusters: EventCluster<T>[] = [];
+  for (const event of sorted) {
+    const x = xFor(event.t);
+    const current = clusters[clusters.length - 1];
+    if (current && x - current.x <= thresholdPx) {
+      current.events.push(event);
+    } else {
+      clusters.push({ x, t: event.t, events: [event] });
+    }
+  }
+  return clusters;
+}
+
 /** [min, max] timestamp across every series, or null when there are no points at all. */
 export function timeDomain(series: readonly TimeSeriesSeries[]): [number, number] | null {
   let min = Infinity;
