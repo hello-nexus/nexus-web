@@ -1702,6 +1702,7 @@
   "monitoring.detailed.storage": "Dyski",
   "monitoring.detailed.system": "System",
   "monitoring.events.addFailed": "Nie udało się dodać zdarzenia.",
+  "monitoring.events.enableLabel": "Pokazuj zdarzenia na wykresie",
   "monitoring.events.modalTitle": "Ostatnie zdarzenia",
   "monitoring.events.modalDescription": "Zdarzenia na tym komputerze, pokazane na osi czasu wykresu.",
   "monitoring.events.none": "Brak zdarzeń w tym zakresie.",

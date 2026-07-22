@@ -1702,6 +1702,7 @@
   "monitoring.detailed.storage": "Almacenamiento",
   "monitoring.detailed.system": "Sistema",
   "monitoring.events.addFailed": "No se ha podido añadir el evento.",
+  "monitoring.events.enableLabel": "Mostrar eventos en el gráfico",
   "monitoring.events.modalTitle": "Eventos recientes",
   "monitoring.events.modalDescription": "Sucesos de este equipo, mostrados en la línea de tiempo del gráfico.",
   "monitoring.events.none": "No hay eventos en este intervalo.",

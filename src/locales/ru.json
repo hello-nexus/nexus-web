@@ -1702,6 +1702,7 @@
   "monitoring.detailed.storage": "Накопители",
   "monitoring.detailed.system": "Система",
   "monitoring.events.addFailed": "Не удалось добавить событие.",
+  "monitoring.events.enableLabel": "Показывать события на графике",
   "monitoring.events.modalTitle": "Последние события",
   "monitoring.events.modalDescription": "Что происходило на этом компьютере, показано на шкале времени графика.",
   "monitoring.events.none": "Нет событий за этот период.",

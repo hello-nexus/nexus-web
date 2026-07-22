@@ -1702,6 +1702,7 @@
   "monitoring.detailed.storage": "Speicher",
   "monitoring.detailed.system": "System",
   "monitoring.events.addFailed": "Ereignis konnte nicht hinzugefügt werden.",
+  "monitoring.events.enableLabel": "Ereignisse im Diagramm anzeigen",
   "monitoring.events.modalTitle": "Letzte Ereignisse",
   "monitoring.events.modalDescription": "Vorgänge auf diesem PC, angezeigt auf der Zeitachse des Diagramms.",
   "monitoring.events.none": "Keine Ereignisse in diesem Zeitraum.",

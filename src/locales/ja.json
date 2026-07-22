@@ -1647,6 +1647,7 @@
   "monitoring.detailed.storage": "ストレージ",
   "monitoring.detailed.system": "システム",
   "monitoring.events.addFailed": "イベントを追加できませんでした。",
+  "monitoring.events.enableLabel": "グラフにイベントを表示",
   "monitoring.events.modalTitle": "最近のイベント",
   "monitoring.events.modalDescription": "このPCで起きたことをグラフのタイムラインに表示します。",
   "monitoring.events.none": "この期間のイベントはありません。",

@@ -525,6 +525,7 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
                       following={history.following}
                       detachedLabel={detachedLabel}
                       onBackToLive={backToLiveAndClearSnapshot}
+                      reserveWidth={false}
                     />
                   </div>
                 </div>

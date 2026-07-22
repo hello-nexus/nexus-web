@@ -1702,6 +1702,7 @@
   "monitoring.detailed.storage": "儲存空間",
   "monitoring.detailed.system": "系統",
   "monitoring.events.addFailed": "無法新增事件。",
+  "monitoring.events.enableLabel": "在圖表上顯示事件",
   "monitoring.events.modalTitle": "最近事件",
   "monitoring.events.modalDescription": "此電腦上發生的事情，顯示在圖表時間軸上。",
   "monitoring.events.none": "此時間範圍內沒有事件。",

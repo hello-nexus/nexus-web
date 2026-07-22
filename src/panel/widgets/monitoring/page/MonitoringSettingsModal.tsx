@@ -2,11 +2,8 @@ import { useUiSettings } from '../../../../hooks/useUiSettings';
 import { useTranslation } from '../../../../lib/i18n';
 import { Overlay } from '../../../../components/common/Overlay/Overlay';
 import { Select, type SelectOption } from '../../../../components/common/Select/Select';
-import { Toggle } from '../../../../components/common/Toggle/Toggle';
 import { resolvePrimaryGpu, type GpuComponent } from '../../../../lib/gpuResolver';
-import { MONITORING_EVENT_KINDS } from '../../../../api/monitoringEvents';
-import { useEventKindVisibility } from './useEventKindVisibility';
-import { eventKindLabel } from './monitoringEventLabels';
+import { MonitoringEventsSettings } from './MonitoringEventsSettings';
 import styles from './MonitoringSettingsModal.module.scss';
 
 interface MonitoringSettingsModalProps {
@@ -26,7 +23,6 @@ interface MonitoringSettingsModalProps {
 export function MonitoringSettingsModal({ open, onClose, gpus }: MonitoringSettingsModalProps) {
   const { t } = useTranslation();
   const { settings, update } = useUiSettings();
-  const { isHidden, setKindHidden } = useEventKindVisibility();
 
   // What "Auto" lands on right now, so the user can see the default's effect.
   const autoName = resolvePrimaryGpu(gpus, '')?.name ?? '';
@@ -60,20 +56,7 @@ export function MonitoringSettingsModal({ open, onClose, gpus }: MonitoringSetti
         </label>
       )}
 
-      <h3 className={styles.sectionTitle}>{t('monitoring.events.settingsTitle')}</h3>
-      <p className={styles.description}>{t('monitoring.events.settingsDescription')}</p>
-      <div className={styles.kindList}>
-        {MONITORING_EVENT_KINDS.map(kind => (
-          <div key={kind} className={styles.row}>
-            <span className={styles.rowLabel}>{eventKindLabel(t, kind)}</span>
-            <Toggle
-              checked={!isHidden(kind)}
-              onChange={next => setKindHidden(kind, !next)}
-              ariaLabel={eventKindLabel(t, kind)}
-            />
-          </div>
-        ))}
-      </div>
+      <MonitoringEventsSettings />
 
       <div className={styles.actions}>
         <button type="button" className={styles.confirmBtn} onClick={onClose}>

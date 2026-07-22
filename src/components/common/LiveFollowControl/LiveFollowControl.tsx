@@ -10,20 +10,28 @@ export interface LiveFollowControlProps {
    *  once detached. Not translated: a clock time, not display copy. */
   detachedLabel: string;
   onBackToLive: () => void;
+  /** Default true: both variants stay mounted in one reserved grid cell so
+   *  the control keeps the width of the wider (detached) state and switching
+   *  never shifts the row. Pass false where an adjacent right-aligned element
+   *  should track the control's live/detached width instead (the monitoring
+   *  events toggle sits immediately left of it and moves with it). */
+  reserveWidth?: boolean;
 }
 
 /**
  * Live / back-to-live toggle for a metric history header (monitoring page,
- * Diagnostics > Cooling). Both variants stay mounted in the same reserved
- * grid cell - only the inactive one is hidden - so switching never shifts
- * the row it sits in.
+ * Diagnostics > Cooling).
  */
-export function LiveFollowControl({ following, detachedLabel, onBackToLive }: LiveFollowControlProps) {
+export function LiveFollowControl({ following, detachedLabel, onBackToLive, reserveWidth = true }: LiveFollowControlProps) {
   const { t } = useTranslation();
+  // Reserved: the inactive variant stays laid out (visibility hidden) so the
+  // cell keeps its width. Natural: the inactive variant is removed from
+  // layout so the control is only as wide as the active state.
+  const hiddenClass = reserveWidth ? styles.liveControlHidden : styles.liveControlGone;
   return (
     <div className={styles.liveControl}>
       <span
-        className={`${styles.liveControlSlot} ${following ? '' : styles.liveControlHidden}`}
+        className={`${styles.liveControlSlot} ${following ? '' : hiddenClass}`}
         aria-hidden={!following}
       >
         <Badge
@@ -35,7 +43,7 @@ export function LiveFollowControl({ following, detachedLabel, onBackToLive }: Li
       </span>
       <button
         type="button"
-        className={`${styles.backToLive} ${styles.liveControlSlot} ${following ? styles.liveControlHidden : ''}`}
+        className={`${styles.backToLive} ${styles.liveControlSlot} ${following ? hiddenClass : ''}`}
         onClick={onBackToLive}
         tabIndex={following ? -1 : 0}
         aria-hidden={following}

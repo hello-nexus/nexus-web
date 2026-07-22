@@ -1702,6 +1702,7 @@
   "monitoring.detailed.storage": "Depolama",
   "monitoring.detailed.system": "Sistem",
   "monitoring.events.addFailed": "Olay eklenemedi.",
+  "monitoring.events.enableLabel": "Olayları grafikte göster",
   "monitoring.events.modalTitle": "Son olaylar",
   "monitoring.events.modalDescription": "Bu bilgisayarda olanlar, grafiğin zaman çizelgesinde gösterilir.",
   "monitoring.events.none": "Bu aralıkta olay yok.",

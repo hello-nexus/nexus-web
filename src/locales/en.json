@@ -1872,6 +1872,7 @@
   "monitoring.events.addPlaceholder": "What happened?",
   "monitoring.events.addTitle": "Add an event",
   "monitoring.events.close": "Close",
+  "monitoring.events.enableLabel": "Show events on the graph",
   "monitoring.events.hideAll": "Hide timeline events",
   "monitoring.events.ignoreKind": "Ignore this type",
   "monitoring.events.inUseFor": "in use for {duration}",

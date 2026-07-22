@@ -20,6 +20,15 @@
   pointer-events: none;
 }
 
+// The inactive variant taken out of layout entirely, so the control collapses
+// to the active state's own width (reserveWidth={false}). Compounded with
+// .liveControlSlot to outrank .backToLive's own `display`, which is a
+// single-class rule declared later in this file and would otherwise keep the
+// hidden back-to-live pill laid out.
+.liveControlSlot.liveControlGone {
+  display: none;
+}
+
 // Inherits the Badge's own text color, so it always matches whatever tone
 // the Live badge is given.
 .liveDot {

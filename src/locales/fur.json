@@ -1711,6 +1711,7 @@
   "monitoring.detailed.storage": "Archiviazion",
   "monitoring.detailed.system": "Sisteme",
   "monitoring.events.addFailed": "No si è rivâts a zontâ l'event.",
+  "monitoring.events.enableLabel": "Mostre i events sul grafic",
   "monitoring.events.modalTitle": "Events resints",
   "monitoring.events.modalDescription": "Robis sucedudis su chest computer, mostradis su la linie dal timp dal grafic.",
   "monitoring.events.none": "Nissun event in chest periodi.",

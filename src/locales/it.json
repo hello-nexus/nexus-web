@@ -1702,6 +1702,7 @@
   "monitoring.detailed.storage": "Archiviazione",
   "monitoring.detailed.system": "Sistema",
   "monitoring.events.addFailed": "Impossibile aggiungere l'evento.",
+  "monitoring.events.enableLabel": "Mostra eventi sul grafico",
   "monitoring.events.modalTitle": "Eventi recenti",
   "monitoring.events.modalDescription": "Cose accadute su questo computer, mostrate sulla linea temporale del grafico.",
   "monitoring.events.none": "Nessun evento in questo intervallo.",

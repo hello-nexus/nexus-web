@@ -1702,6 +1702,7 @@
   "monitoring.detailed.storage": "저장소",
   "monitoring.detailed.system": "시스템",
   "monitoring.events.addFailed": "이벤트를 추가하지 못했습니다.",
+  "monitoring.events.enableLabel": "그래프에 이벤트 표시",
   "monitoring.events.modalTitle": "최근 이벤트",
   "monitoring.events.modalDescription": "이 PC에서 일어난 일을 그래프 타임라인에 표시합니다.",
   "monitoring.events.none": "이 기간에 이벤트가 없습니다.",

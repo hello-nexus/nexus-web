@@ -1868,6 +1868,7 @@
   "monitoring.detailed.storage": "Opslag",
   "monitoring.detailed.system": "Systeem",
   "monitoring.events.addFailed": "Kan de gebeurtenis niet toevoegen.",
+  "monitoring.events.enableLabel": "Gebeurtenissen op de grafiek tonen",
   "monitoring.events.modalTitle": "Recente gebeurtenissen",
   "monitoring.events.modalDescription": "Wat er op deze pc is gebeurd, getoond op de tijdlijn van de grafiek.",
   "monitoring.events.none": "Geen gebeurtenissen in dit tijdvak.",

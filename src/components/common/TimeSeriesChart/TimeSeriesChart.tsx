@@ -615,18 +615,18 @@ export function TimeSeriesChart({
                     width={EVENT_MARKER_SIZE}
                     height={EVENT_MARKER_SIZE}
                     rx={3}
-                    fill="var(--surface-2)"
+                    fill="var(--surface)"
                     stroke="var(--border-strong)"
                     strokeWidth="1"
                   />
                   {count === 1 ? (
                     <g transform={`translate(${cluster.x - EVENT_ICON_SIZE / 2}, ${eventMarkerCenterY - EVENT_ICON_SIZE / 2})`}>
-                      <Icon size={EVENT_ICON_SIZE} color="var(--text-dim)" />
+                      <Icon size={EVENT_ICON_SIZE} color="var(--text)" />
                     </g>
                   ) : (
                     <text
                       x={cluster.x} y={eventMarkerCenterY + 3}
-                      textAnchor="middle" fontSize="9" fontFamily="var(--font-mono)" fill="var(--text-dim)"
+                      textAnchor="middle" fontSize="9" fontFamily="var(--font-mono)" fill="var(--text)"
                     >
                       {count > 9 ? '9+' : count}
                     </text>

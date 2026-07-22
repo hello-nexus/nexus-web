@@ -1702,6 +1702,7 @@
   "monitoring.detailed.storage": "存储",
   "monitoring.detailed.system": "系统",
   "monitoring.events.addFailed": "无法添加事件。",
+  "monitoring.events.enableLabel": "在图表上显示事件",
   "monitoring.events.modalTitle": "最近事件",
   "monitoring.events.modalDescription": "此电脑上发生的事情，显示在图表时间轴上。",
   "monitoring.events.none": "此时间范围内没有事件。",
