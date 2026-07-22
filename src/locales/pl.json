@@ -2635,7 +2635,7 @@
   "settings.shutDown.description": "Zatrzymuje usługę w tle i zamyka to okno. Kontrola nad sprzętem wraca do domyślnych ustawień BIOS.",
   "settings.shutDown.flashBlocked": "Nie można wyłączyć podczas aktualizacji firmware.",
   "settings.shutDown.label": "Zamknij Nexus",
-  "settings.startupDelay.description": "Jeśli występują niespójne problemy z wykrywaniem urządzeń lub czujników, chłodzeniem albo sterowaniem podświetleniem, możesz opóźnić uruchamianie Nexus. Stopniowo zwiększaj wartość, aż uzyskasz oczekiwane działanie.",
+  "settings.startupDelay.description": "Jeśli inne oprogramowanie RGB lub monitorujące powoduje niespójne wykrywanie urządzeń lub czujników albo niestabilne sterowanie chłodzeniem lub podświetleniem, Nexus może poczekać przed wykryciem sprzętu podczas uruchamiania. Stopniowo zwiększaj wartość, aż wykrywanie będzie działać niezawodnie.",
   "settings.startupDelay.label": "Opóźnienie autostartu",
   "settings.startupTray.title": "Uruchamianie i zasobnik",
   "settings.systemStartup.description": "Nexus uruchamia się automatycznie podczas startu systemu Windows. Wyłącz, aby Nexus pozostawał nieaktywny do momentu ręcznego uruchomienia.",

@@ -2640,7 +2640,7 @@
   "settings.shutDown.description": "Al ferme il servizi in sotfont e al siere chest barcon. Il control dal hardware al torne ai valôrs predefinîts dal BIOS.",
   "settings.shutDown.flashBlocked": "No si pues distudâ intant che un inzornament dal firmware al è in cors.",
   "settings.shutDown.label": "Distude Nexus",
-  "settings.startupDelay.description": "Se tu âs problemis di rilevament incoerent di dispositîfs o sensôrs, di control dal rafredament o de iluminazion, tu puedis ritardâ l'inviament di Nexus. Aumente il valôr a pôc a pôc fintremai che no tu rivis ae funzionalitât desiderade.",
+  "settings.startupDelay.description": "Se un altri software RGB o di monitoraç al puarte a rilevaments incoerents di dispositîfs o sensôrs, o a un control pôc afidabil dal rafredament o de iluminazion, Nexus al pues spietâ prime di rilevâ il to hardware al inviament. Aumente il valôr a pôc a pôc fintremai che il rilevament nol è afidabil.",
   "settings.startupDelay.label": "Ritart dal inviament automatic",
   "settings.startupTray.title": "Inviament e tray",
   "settings.systemStartup.description": "Nexus al partìs in automatic cuant che Windows si impie. Disabilite par tignî Nexus distudât fintremai che no tu lu invieis a man.",

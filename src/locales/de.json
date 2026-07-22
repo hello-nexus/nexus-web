@@ -2631,7 +2631,7 @@
   "settings.shutDown.description": "Stoppt den Hintergrunddienst und schließt dieses Fenster. Die Hardwaresteuerung kehrt zu den BIOS-Standardwerten zurück.",
   "settings.shutDown.flashBlocked": "Während eines Firmware-Updates kann nicht heruntergefahren werden.",
   "settings.shutDown.label": "Nexus herunterfahren",
-  "settings.startupDelay.description": "Wenn bei Ihnen Probleme mit inkonsistenter Geräte- oder Sensorerkennung, der Kühlung oder der Beleuchtungssteuerung auftreten, können Sie den Start von Nexus verzögern. Erhöhen Sie den Wert schrittweise, bis die gewünschte Funktion erreicht ist.",
+  "settings.startupDelay.description": "Wenn andere RGB- oder Überwachungssoftware eine inkonsistente Geräte- oder Sensorerkennung oder eine unzuverlässige Kühlungs- oder Beleuchtungssteuerung verursacht, kann Nexus beim Start warten, bevor es Ihre Hardware erkennt. Erhöhen Sie den Wert schrittweise, bis die Erkennung zuverlässig funktioniert.",
   "settings.startupDelay.label": "Autostart-Verzögerung",
   "settings.startupTray.title": "Start & Infobereich",
   "settings.systemStartup.description": "Nexus wird automatisch beim Hochfahren von Windows gestartet. Deaktiviere dies, um Nexus erst beim manuellen Start auszuführen.",
