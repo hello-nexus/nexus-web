@@ -2809,7 +2809,7 @@
   "settings.shutDown.description": "Stops the background service and closes this window. Hardware control returns to BIOS defaults.",
   "settings.shutDown.flashBlocked": "Can't shut down while a firmware update is in progress.",
   "settings.shutDown.label": "Shut down Nexus",
-  "settings.startupDelay.description": "If you experience issues with inconsistent device or sensor detection, cooling or lighting control, you can delay starting Nexus. Gradually increase the value until reaching the desired functionality.",
+  "settings.startupDelay.description": "If other RGB or monitoring software is causing inconsistent device or sensor detection, or unreliable cooling or lighting control, Nexus can wait before detecting your hardware at startup. Gradually increase the value until detection is reliable.",
   "settings.startupDelay.label": "Autostart delay",
   "settings.startupTray.title": "Startup & tray",
   "settings.systemStartup.description": "Nexus launches automatically when Windows boots. Disable to keep Nexus off until you start it manually.",

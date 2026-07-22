@@ -2631,7 +2631,7 @@
   "settings.shutDown.description": "停止后台服务并关闭此窗口。硬件控制将恢复为 BIOS 默认设置。",
   "settings.shutDown.flashBlocked": "固件更新期间无法关闭。",
   "settings.shutDown.label": "关闭 Nexus",
-  "settings.startupDelay.description": "如果您遇到设备或传感器检测不一致、散热或灯光控制方面的问题，可以延迟启动 Nexus。逐渐增加数值，直到达到所需的效果。",
+  "settings.startupDelay.description": "如果其他 RGB 或监控软件导致设备或传感器检测不一致，或散热、灯光控制不稳定，Nexus 可以在启动时先等待，然后再检测您的硬件。请逐渐增加数值，直到检测稳定可靠。",
   "settings.startupDelay.label": "自动启动延迟",
   "settings.startupTray.title": "启动与托盘",
   "settings.systemStartup.description": "Windows 启动时自动运行 Nexus。禁用后，Nexus 将保持关闭，直到您手动启动。",
