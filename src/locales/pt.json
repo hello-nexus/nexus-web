@@ -2636,7 +2636,6 @@
   "settings.startupTray.title": "Arranque e área de notificação",
   "settings.systemStartup.description": "O Nexus é iniciado automaticamente quando o Windows arranca. Desative para manter o Nexus desligado até o iniciar manualmente.",
   "settings.systemStartup.label": "Iniciar o Nexus no arranque do sistema",
-  "settings.tab.advanced": "Avançado",
   "settings.tab.appearance": "Aparência",
   "settings.tab.monitoring": "Monitorização",
   "settings.tab.privacyData": "Privacidade e dados",

@@ -2636,7 +2636,6 @@
   "settings.startupTray.title": "Avvio e area di notifica",
   "settings.systemStartup.description": "Nexus si avvia automaticamente all'avvio di Windows. Disattiva per mantenere Nexus spento finché non lo avvii manualmente.",
   "settings.systemStartup.label": "Avvia Nexus all'avvio del sistema",
-  "settings.tab.advanced": "Avanzate",
   "settings.tab.appearance": "Aspetto",
   "settings.tab.monitoring": "Monitoraggio",
   "settings.tab.privacyData": "Privacy e dati",

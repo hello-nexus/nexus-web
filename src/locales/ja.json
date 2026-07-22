@@ -2581,7 +2581,6 @@
   "settings.startupTray.title": "起動とトレイ",
   "settings.systemStartup.description": "Windows の起動時に Nexus が自動的に起動します。無効にすると、手動で起動するまで Nexus はオフのままになります。",
   "settings.systemStartup.label": "システム起動時に Nexus を起動",
-  "settings.tab.advanced": "詳細設定",
   "settings.tab.appearance": "外観",
   "settings.tab.monitoring": "モニタリング",
   "settings.tab.privacyData": "プライバシーとデータ",

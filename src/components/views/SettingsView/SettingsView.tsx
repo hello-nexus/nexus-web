@@ -10,7 +10,6 @@ import { GeneralTab } from './GeneralTab';
 import { AppearanceTab } from './AppearanceTab';
 import { MonitoringTab } from './MonitoringTab';
 import { PrivacyTab } from './PrivacyTab';
-import { AdvancedTab } from './AdvancedTab';
 import styles from './SettingsView.module.scss';
 
 interface SettingsViewProps {
@@ -21,7 +20,7 @@ interface SettingsViewProps {
   onTabChange: (tab: string) => void;
 }
 
-type SettingsTabKey = 'general' | 'appearance' | 'monitoring' | 'privacy' | 'advanced';
+type SettingsTabKey = 'general' | 'appearance' | 'monitoring' | 'privacy';
 
 // Single source of truth for the settings tab strip - key, translated label,
 // and tab validity (isValidTab below) all derive from this list so they can
@@ -31,7 +30,6 @@ const TAB_DEFS: readonly { key: SettingsTabKey; labelKey: string }[] = [
   { key: 'appearance', labelKey: 'settings.tab.appearance' },
   { key: 'monitoring', labelKey: 'settings.tab.monitoring' },
   { key: 'privacy', labelKey: 'settings.tab.privacyData' },
-  { key: 'advanced', labelKey: 'settings.tab.advanced' },
 ];
 
 function isValidTab(key: string): key is SettingsTabKey {
@@ -101,9 +99,7 @@ export function SettingsView({ serviceOnline, connectionState, platform, tab: ur
       case 'monitoring':
         return <MonitoringTab settings={settings} updateGeneral={updateGeneral} serviceOnline={serviceOnline} platform={platform} />;
       case 'privacy':
-        return <PrivacyTab serviceOnline={serviceOnline} />;
-      case 'advanced':
-        return <AdvancedTab settings={settings} serviceOnline={serviceOnline} platform={platform} />;
+        return <PrivacyTab settings={settings} serviceOnline={serviceOnline} />;
       case 'general':
       default:
         return <GeneralTab settings={settings} updateGeneral={updateGeneral} serviceOnline={serviceOnline} platform={platform} />;

@@ -2636,7 +2636,6 @@
   "settings.startupTray.title": "启动与托盘",
   "settings.systemStartup.description": "Windows 启动时自动运行 Nexus。禁用后，Nexus 将保持关闭，直到您手动启动。",
   "settings.systemStartup.label": "开机时启动 Nexus",
-  "settings.tab.advanced": "高级",
   "settings.tab.appearance": "外观",
   "settings.tab.monitoring": "监控",
   "settings.tab.privacyData": "隐私与数据",

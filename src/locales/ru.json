@@ -2640,7 +2640,6 @@
   "settings.startupTray.title": "Автозапуск и трей",
   "settings.systemStartup.description": "Nexus запускается автоматически при загрузке Windows. Отключите, чтобы Nexus не запускался, пока вы не сделаете это вручную.",
   "settings.systemStartup.label": "Запускать Nexus при старте системы",
-  "settings.tab.advanced": "Дополнительно",
   "settings.tab.appearance": "Внешний вид",
   "settings.tab.monitoring": "Мониторинг",
   "settings.tab.privacyData": "Конфиденциальность и данные",

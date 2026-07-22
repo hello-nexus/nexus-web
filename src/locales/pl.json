@@ -2640,7 +2640,6 @@
   "settings.startupTray.title": "Uruchamianie i zasobnik",
   "settings.systemStartup.description": "Nexus uruchamia się automatycznie podczas startu systemu Windows. Wyłącz, aby Nexus pozostawał nieaktywny do momentu ręcznego uruchomienia.",
   "settings.systemStartup.label": "Uruchamiaj Nexus przy starcie systemu",
-  "settings.tab.advanced": "Zaawansowane",
   "settings.tab.appearance": "Wygląd",
   "settings.tab.monitoring": "Monitorowanie",
   "settings.tab.privacyData": "Prywatność i dane",

@@ -2636,7 +2636,6 @@
   "settings.startupTray.title": "Inicio y bandeja",
   "settings.systemStartup.description": "Nexus se inicia automáticamente cuando arranca Windows. Desactívalo para mantener Nexus apagado hasta que lo inicies manualmente.",
   "settings.systemStartup.label": "Iniciar Nexus al arrancar el sistema",
-  "settings.tab.advanced": "Avanzado",
   "settings.tab.appearance": "Apariencia",
   "settings.tab.monitoring": "Monitorización",
   "settings.tab.privacyData": "Privacidad y datos",

@@ -2814,7 +2814,6 @@
   "settings.startupTray.title": "Opstarten en systeemvak",
   "settings.systemStartup.description": "Nexus start automatisch wanneer Windows opstart. Schakel dit uit om Nexus uit te houden totdat je het handmatig start.",
   "settings.systemStartup.label": "Nexus starten bij systeemstart",
-  "settings.tab.advanced": "Geavanceerd",
   "settings.tab.appearance": "Uiterlijk",
   "settings.tab.monitoring": "Monitoring",
   "settings.tab.privacyData": "Privacy en gegevens",

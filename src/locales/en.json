@@ -2814,7 +2814,6 @@
   "settings.startupTray.title": "Startup & tray",
   "settings.systemStartup.description": "Nexus launches automatically when Windows boots. Disable to keep Nexus off until you start it manually.",
   "settings.systemStartup.label": "Start Nexus at system startup",
-  "settings.tab.advanced": "Advanced",
   "settings.tab.appearance": "Appearance",
   "settings.tab.monitoring": "Monitoring",
   "settings.tab.privacyData": "Privacy & Data",

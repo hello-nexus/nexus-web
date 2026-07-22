@@ -58,13 +58,18 @@ function parsePath(): Route {
 // Displays used to be its own view; it now lives as the Devices page's
 // second tab. Old bookmarks (/displays, /system/displays) land on it.
 // Screen Time moved the other way - from a Monitoring tab to its own view -
-// so /system/monitoring/screentime lands on /system/screentime.
+// so /system/monitoring/screentime lands on /system/screentime. The Settings
+// Advanced tab was dissolved into General and Privacy & Data, so old
+// bookmarks to it land on the General tab (the settings default) instead.
 function normalizeSystemRoute(route: Route): Route {
   if (route.section === 'system' && route.view === 'displays') {
     return { ...route, view: 'devices', subtab: 'displays' };
   }
   if (route.section === 'system' && route.view === 'monitoring' && route.subtab === 'screentime') {
     return { ...route, view: 'screentime', subtab: null };
+  }
+  if (route.section === 'system' && route.view === 'settings' && route.subtab === 'advanced') {
+    return { ...route, subtab: DEFAULT_SETTINGS_SUBTAB };
   }
   return route;
 }

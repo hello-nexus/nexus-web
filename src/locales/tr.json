@@ -2636,7 +2636,6 @@
   "settings.startupTray.title": "Başlangıç ve tepsi",
   "settings.systemStartup.description": "Nexus, Windows başlatıldığında otomatik olarak çalışır. Nexus'u siz manuel olarak başlatana kadar kapalı tutmak için devre dışı bırakın.",
   "settings.systemStartup.label": "Sistem başlangıcında Nexus'u başlat",
-  "settings.tab.advanced": "Gelişmiş",
   "settings.tab.appearance": "Görünüm",
   "settings.tab.monitoring": "İzleme",
   "settings.tab.privacyData": "Gizlilik ve veri",
