@@ -2,6 +2,7 @@ import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingRow } from '../../common/SettingRow/SettingRow';
 import { ChipGroup } from '../../common/ChipGroup/ChipGroup';
 import { MonitoringEventsSettings } from '../../../panel/widgets/monitoring/page/MonitoringEventsSettings';
+import { LightingCoolingSection } from './LightingCoolingSection';
 import { useTranslation } from '../../../lib/i18n';
 import type { NexusSettings } from '../../../lib/settings';
 import type { TempUnit } from '../../../lib/units';
@@ -10,9 +11,11 @@ import styles from './SettingsView.module.scss';
 export interface MonitoringTabProps {
   settings: NexusSettings;
   updateGeneral: (patch: Partial<NexusSettings['general']>) => void;
+  serviceOnline: boolean;
+  platform: string;
 }
 
-export function MonitoringTab({ settings, updateGeneral }: MonitoringTabProps) {
+export function MonitoringTab({ settings, updateGeneral, serviceOnline, platform }: MonitoringTabProps) {
   const { t } = useTranslation();
 
   return (
@@ -38,6 +41,8 @@ export function MonitoringTab({ settings, updateGeneral }: MonitoringTabProps) {
       </SettingsSection>
 
       <MonitoringEventsSettings />
+
+      <LightingCoolingSection serviceOnline={serviceOnline} platform={platform} />
     </div>
   );
 }

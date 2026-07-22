@@ -137,15 +137,14 @@ const navSubtabs: SearchSource = (ctx) =>
     to: () => ctx.host.goView(s.view, s.sub),
   }));
 
-// Settings is 5 top tabs; these all deep-link to the Settings page and select
+// Settings is 4 top tabs; these all deep-link to the Settings page and select
 // the owning tab (the `to:` handler below passes `tab` as the subtab).
 // Profiles and Dev tools moved to their own pages - see `standalonePages`.
 const SETTINGS_TABS: { tab: string; labelKey: string; keywords: string[] }[] = [
-  { tab: 'general',    labelKey: 'settings.general',           keywords: ['startup', 'tray', 'login', 'language', 'updates'] },
+  { tab: 'general',    labelKey: 'settings.general',           keywords: ['startup', 'tray', 'login', 'language', 'updates', 'diagnostics', 'danger', 'reset'] },
   { tab: 'appearance', labelKey: 'settings.tab.appearance',     keywords: ['theme', 'dark', 'light', 'accent', 'color', 'time', 'number', 'format'] },
-  { tab: 'monitoring', labelKey: 'settings.tab.monitoring',     keywords: ['temperature', 'celsius', 'fahrenheit', 'sensors'] },
-  { tab: 'privacy',    labelKey: 'settings.tab.privacyData',    keywords: ['telemetry', 'screen time', 'data'] },
-  { tab: 'advanced',   labelKey: 'settings.tab.advanced',       keywords: ['lighting', 'cooling', 'ai', 'diagnostics', 'danger', 'reset'] },
+  { tab: 'monitoring', labelKey: 'settings.tab.monitoring',     keywords: ['temperature', 'celsius', 'fahrenheit', 'sensors', 'lighting', 'cooling'] },
+  { tab: 'privacy',    labelKey: 'settings.tab.privacyData',    keywords: ['telemetry', 'screen time', 'data', 'ai'] },
 ];
 
 // Individual settings, indexed by their real label so "tray" finds the actual
@@ -163,20 +162,20 @@ const SETTINGS_ITEMS: { tab: string; tabLabelKey: string; labelKey: string; anch
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.language',            anchor: 'set-language',   keywords: ['language', 'locale', 'translation'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.updates.mode.label',    anchor: 'set-update-mode',    keywords: ['update', 'updates', 'automatic', 'install', 'mode'], platforms: ['windows'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.updates.channel.label', anchor: 'set-update-channel', keywords: ['update', 'updates', 'channel', 'beta', 'production'], platforms: ['windows'] },
+  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.shutDown.label',      anchor: 'set-shutdown',   keywords: ['shut down', 'shutdown', 'stop', 'quit', 'exit', 'close'], platforms: ['windows', 'macos'] },
+  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.factoryReset.label',  anchor: 'set-factory-reset', keywords: ['factory reset', 'reset', 'wipe', 'erase', 'defaults', 'clean'] },
   { tab: 'appearance', tabLabelKey: 'settings.tab.appearance', labelKey: 'settings.accent',              anchor: 'set-accent',     keywords: ['accent', 'color', 'colour', 'highlight'] },
   { tab: 'appearance', tabLabelKey: 'settings.tab.appearance', labelKey: 'settings.theme',               anchor: 'set-theme-mode', keywords: ['theme', 'dark', 'light', 'appearance', 'mode'] },
   { tab: 'appearance', tabLabelKey: 'settings.tab.appearance', labelKey: 'settings.background',          anchor: 'set-background', keywords: ['background', 'glass', 'flat', 'gradient', 'transparency', 'blur'] },
   { tab: 'appearance', tabLabelKey: 'settings.tab.appearance', labelKey: 'settings.units.time.label',        anchor: 'set-time-format',  keywords: ['time', 'clock', '12 hour', '24 hour', 'am pm', 'format', 'units'] },
   { tab: 'appearance', tabLabelKey: 'settings.tab.appearance', labelKey: 'settings.units.number.label',      anchor: 'set-number-format', keywords: ['number', 'decimal', 'separator', 'comma', 'period', 'thousands', 'units', 'format'] },
   { tab: 'monitoring', tabLabelKey: 'settings.tab.monitoring', labelKey: 'settings.units.temperature.label', anchor: 'set-temp-unit',    keywords: ['temperature', 'celsius', 'fahrenheit', 'degrees', 'units', 'temp'] },
+  { tab: 'monitoring', tabLabelKey: 'settings.tab.monitoring', labelKey: 'lighting.renderGpu.label',     anchor: 'set-render-gpu', keywords: ['render', 'gpu', 'shader', 'graphics card'], platforms: ['windows', 'linux'] },
+  { tab: 'monitoring', tabLabelKey: 'settings.tab.monitoring', labelKey: 'cooling.settings.cpuLabel',    anchor: 'set-cpu-sensor', keywords: ['cpu', 'temp', 'temperature', 'sensor', 'source'] },
+  { tab: 'monitoring', tabLabelKey: 'settings.tab.monitoring', labelKey: 'cooling.settings.gpuLabel',    anchor: 'set-gpu-sensor', keywords: ['gpu', 'temp', 'temperature', 'sensor', 'source'] },
   { tab: 'privacy', tabLabelKey: 'settings.tab.privacyData', labelKey: 'settings.screentime.title', anchor: 'set-screentime', keywords: ['screen time', 'tracking', 'usage', 'data'] },
   { tab: 'privacy', tabLabelKey: 'settings.tab.privacyData', labelKey: 'settings.telemetry.label',  anchor: 'set-telemetry',  keywords: ['telemetry', 'privacy', 'anonymous', 'data', 'consent'] },
-  { tab: 'advanced', tabLabelKey: 'settings.tab.advanced', labelKey: 'lighting.renderGpu.label',     anchor: 'set-render-gpu', keywords: ['render', 'gpu', 'shader', 'graphics card'], platforms: ['windows', 'linux'] },
-  { tab: 'advanced', tabLabelKey: 'settings.tab.advanced', labelKey: 'cooling.settings.cpuLabel',    anchor: 'set-cpu-sensor', keywords: ['cpu', 'temp', 'temperature', 'sensor', 'source'] },
-  { tab: 'advanced', tabLabelKey: 'settings.tab.advanced', labelKey: 'cooling.settings.gpuLabel',    anchor: 'set-gpu-sensor', keywords: ['gpu', 'temp', 'temperature', 'sensor', 'source'] },
-  { tab: 'advanced', tabLabelKey: 'settings.tab.advanced', labelKey: 'settings.ai.master.label',     anchor: 'set-ai-integration', keywords: ['ai', 'mcp', 'model context protocol', 'assistant', 'agent', 'integration', 'token'] },
-  { tab: 'advanced', tabLabelKey: 'settings.tab.advanced', labelKey: 'settings.shutDown.label',      anchor: 'set-shutdown',   keywords: ['shut down', 'shutdown', 'stop', 'quit', 'exit', 'close'], platforms: ['windows', 'macos'] },
-  { tab: 'advanced', tabLabelKey: 'settings.tab.advanced', labelKey: 'settings.factoryReset.label',  anchor: 'set-factory-reset', keywords: ['factory reset', 'reset', 'wipe', 'erase', 'defaults', 'clean'] },
+  { tab: 'privacy', tabLabelKey: 'settings.tab.privacyData', labelKey: 'settings.ai.master.label',     anchor: 'set-ai-integration', keywords: ['ai', 'mcp', 'model context protocol', 'assistant', 'agent', 'integration', 'token'] },
 ];
 
 const THEMES: { mode: ThemeMode; labelKey: string; icon: ReactNode; words: string[] }[] = [

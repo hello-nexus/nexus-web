@@ -20,7 +20,6 @@ const uiAnchorIds = () => {
     '../components/views/SettingsView/AppearanceTab.tsx',
     '../components/views/SettingsView/MonitoringTab.tsx',
     '../components/views/SettingsView/PrivacyTab.tsx',
-    '../components/views/SettingsView/AdvancedTab.tsx',
     '../components/views/SettingsView/ThemeTab.tsx',
     '../components/views/SettingsView/LightingCoolingSection.tsx',
     '../components/views/SettingsView/AiIntegrationSection.tsx',

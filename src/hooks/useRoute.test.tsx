@@ -59,12 +59,22 @@ describe('useRoute', () => {
   });
 
   it('preserves explicit settings subtabs', () => {
+    window.history.replaceState(null, '', '/system/settings/privacy');
+
+    const { result } = renderHook(() => useRoute());
+
+    expect(result.current.view).toBe('settings');
+    expect(result.current.subtab).toBe('privacy');
+    expect(window.location.pathname).toBe('/system/settings/privacy');
+  });
+
+  it('redirects a legacy settings/advanced deep link to general (the dissolved Advanced tab)', () => {
     window.history.replaceState(null, '', '/system/settings/advanced');
 
     const { result } = renderHook(() => useRoute());
 
     expect(result.current.view).toBe('settings');
-    expect(result.current.subtab).toBe('advanced');
-    expect(window.location.pathname).toBe('/system/settings/advanced');
+    expect(result.current.subtab).toBe('general');
+    expect(window.location.pathname).toBe('/system/settings/general');
   });
 });

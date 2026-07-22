@@ -3,17 +3,20 @@ import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingRow, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { ScreenTimeDataControl } from '../ScreenTimeBrowse/ScreenTimeDataControl';
+import { AiIntegrationSection } from './AiIntegrationSection';
 import { fetchService, postService } from '../../../api/service';
 import { useTranslation } from '../../../lib/i18n';
 import { buildTelemetryConsentDescription } from '../../../lib/telemetryConsent';
 import { HeartBurst, useHeartBurstTrigger } from '../../common/HeartBurst/HeartBurst';
+import type { NexusSettings } from '../../../lib/settings';
 import styles from './SettingsView.module.scss';
 
 export interface PrivacyTabProps {
+  settings: NexusSettings;
   serviceOnline: boolean;
 }
 
-export function PrivacyTab({ serviceOnline }: PrivacyTabProps) {
+export function PrivacyTab({ settings, serviceOnline }: PrivacyTabProps) {
   const { t } = useTranslation();
   const [screenTimeOpen, setScreenTimeOpen] = useState(false);
   // Telemetry consent is server-authoritative (the service gates sending), so
@@ -86,6 +89,8 @@ export function PrivacyTab({ serviceOnline }: PrivacyTabProps) {
         onClose={() => setScreenTimeOpen(false)}
         onChanged={() => { /* settings page doesn't need to refetch */ }}
       />
+
+      <AiIntegrationSection serviceOnline={serviceOnline} numberFormat={settings.general.numberFormat} />
     </div>
   );
 }

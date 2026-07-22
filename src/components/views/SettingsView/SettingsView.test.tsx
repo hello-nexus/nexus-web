@@ -62,7 +62,16 @@ describe('SettingsView', () => {
       <SettingsView serviceOnline={false} connectionState="offline-installed" platform="" tab="general" onTabChange={() => {}} />,
     );
 
-    expect(screen.getByRole('tab', { name: 'settings.tab.advanced' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'settings.tab.privacyData' })).toBeInTheDocument();
+  });
+
+  it('renders exactly 4 tabs, with no Advanced tab', () => {
+    render(
+      <SettingsView serviceOnline connectionState="online" platform="windows" tab="general" onTabChange={() => {}} />,
+    );
+
+    expect(screen.getAllByRole('tab')).toHaveLength(4);
+    expect(screen.queryByRole('tab', { name: 'settings.tab.advanced' })).not.toBeInTheDocument();
   });
 
   it('defaults to the general tab when no subtab is given', () => {
@@ -85,9 +94,12 @@ describe('SettingsView', () => {
     const { rerender } = render(
       <SettingsView serviceOnline connectionState="online" platform="windows" tab="general" onTabChange={() => {}} />,
     );
-    // Updates folded into General; Theme/Units no longer live here.
+    // Updates folded into General; Theme/Units no longer live here. Diagnostics
+    // & support and the Danger Zone moved here from the dissolved Advanced tab.
     expect(screen.getByText('settings.language')).toBeInTheDocument();
     expect(screen.getByText('settings.updates.title')).toBeInTheDocument();
+    expect(screen.getByText('settings.diagnostics.title')).toBeInTheDocument();
+    expect(screen.getByText('settings.dangerZone')).toBeInTheDocument();
     expect(screen.queryByText('settings.theme')).not.toBeInTheDocument();
 
     rerender(
@@ -98,22 +110,24 @@ describe('SettingsView', () => {
     expect(screen.getByText('settings.background')).toBeInTheDocument();
     expect(screen.getByText('settings.units.time.label')).toBeInTheDocument();
     expect(screen.getByText('settings.units.number.label')).toBeInTheDocument();
+    expect(screen.queryByText('settings.dangerZone')).not.toBeInTheDocument();
 
     rerender(
       <SettingsView serviceOnline connectionState="online" platform="windows" tab="monitoring" onTabChange={() => {}} />,
     );
     expect(screen.getByText('settings.units.temperature.label')).toBeInTheDocument();
+    expect(screen.getByText('settings.lightingCooling.title')).toBeInTheDocument();
+    expect(screen.queryByText('settings.dangerZone')).not.toBeInTheDocument();
 
     rerender(
       <SettingsView serviceOnline connectionState="online" platform="windows" tab="privacy" onTabChange={() => {}} />,
     );
+    // AI Integration moved here from the dissolved Advanced tab (its own
+    // section only mounts once the server status resolves; see
+    // AiIntegrationSection.test.tsx for that behavior).
     expect(screen.getByText('settings.screentime.title')).toBeInTheDocument();
-
-    rerender(
-      <SettingsView serviceOnline connectionState="online" platform="windows" tab="advanced" onTabChange={() => {}} />,
-    );
-    expect(screen.getByText('settings.diagnostics.title')).toBeInTheDocument();
-    expect(screen.getByText('settings.dangerZone')).toBeInTheDocument();
+    expect(screen.queryByText('settings.lightingCooling.title')).not.toBeInTheDocument();
+    expect(screen.queryByText('settings.dangerZone')).not.toBeInTheDocument();
   });
 
   it('calls onTabChange when a different tab is clicked', () => {
