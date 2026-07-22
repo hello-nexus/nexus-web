@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingRow } from '../../common/SettingRow/SettingRow';
-import { LightingCoolingSection } from './LightingCoolingSection';
 import { AiIntegrationSection } from './AiIntegrationSection';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { postService } from '../../../api/service';
@@ -58,8 +57,6 @@ export function AdvancedTab({ settings, serviceOnline, platform }: AdvancedTabPr
 
   return (
     <div className={styles.tabPanel}>
-      <LightingCoolingSection serviceOnline={serviceOnline} platform={platform} />
-
       <AiIntegrationSection serviceOnline={serviceOnline} numberFormat={settings.general.numberFormat} />
 
       <SettingsSection title={t('settings.diagnostics.title')}>
