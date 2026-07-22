@@ -99,7 +99,7 @@ export function SettingsView({ serviceOnline, connectionState, platform, tab: ur
       case 'appearance':
         return <AppearanceTab settings={settings} updateGeneral={updateGeneral} />;
       case 'monitoring':
-        return <MonitoringTab settings={settings} updateGeneral={updateGeneral} />;
+        return <MonitoringTab settings={settings} updateGeneral={updateGeneral} serviceOnline={serviceOnline} platform={platform} />;
       case 'privacy':
         return <PrivacyTab serviceOnline={serviceOnline} />;
       case 'advanced':

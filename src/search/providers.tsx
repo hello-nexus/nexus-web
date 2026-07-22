@@ -143,9 +143,9 @@ const navSubtabs: SearchSource = (ctx) =>
 const SETTINGS_TABS: { tab: string; labelKey: string; keywords: string[] }[] = [
   { tab: 'general',    labelKey: 'settings.general',           keywords: ['startup', 'tray', 'login', 'language', 'updates'] },
   { tab: 'appearance', labelKey: 'settings.tab.appearance',     keywords: ['theme', 'dark', 'light', 'accent', 'color', 'time', 'number', 'format'] },
-  { tab: 'monitoring', labelKey: 'settings.tab.monitoring',     keywords: ['temperature', 'celsius', 'fahrenheit', 'sensors'] },
+  { tab: 'monitoring', labelKey: 'settings.tab.monitoring',     keywords: ['temperature', 'celsius', 'fahrenheit', 'sensors', 'lighting', 'cooling'] },
   { tab: 'privacy',    labelKey: 'settings.tab.privacyData',    keywords: ['telemetry', 'screen time', 'data'] },
-  { tab: 'advanced',   labelKey: 'settings.tab.advanced',       keywords: ['lighting', 'cooling', 'ai', 'diagnostics', 'danger', 'reset'] },
+  { tab: 'advanced',   labelKey: 'settings.tab.advanced',       keywords: ['ai', 'diagnostics', 'danger', 'reset'] },
 ];
 
 // Individual settings, indexed by their real label so "tray" finds the actual
@@ -169,11 +169,11 @@ const SETTINGS_ITEMS: { tab: string; tabLabelKey: string; labelKey: string; anch
   { tab: 'appearance', tabLabelKey: 'settings.tab.appearance', labelKey: 'settings.units.time.label',        anchor: 'set-time-format',  keywords: ['time', 'clock', '12 hour', '24 hour', 'am pm', 'format', 'units'] },
   { tab: 'appearance', tabLabelKey: 'settings.tab.appearance', labelKey: 'settings.units.number.label',      anchor: 'set-number-format', keywords: ['number', 'decimal', 'separator', 'comma', 'period', 'thousands', 'units', 'format'] },
   { tab: 'monitoring', tabLabelKey: 'settings.tab.monitoring', labelKey: 'settings.units.temperature.label', anchor: 'set-temp-unit',    keywords: ['temperature', 'celsius', 'fahrenheit', 'degrees', 'units', 'temp'] },
+  { tab: 'monitoring', tabLabelKey: 'settings.tab.monitoring', labelKey: 'lighting.renderGpu.label',     anchor: 'set-render-gpu', keywords: ['render', 'gpu', 'shader', 'graphics card'], platforms: ['windows', 'linux'] },
+  { tab: 'monitoring', tabLabelKey: 'settings.tab.monitoring', labelKey: 'cooling.settings.cpuLabel',    anchor: 'set-cpu-sensor', keywords: ['cpu', 'temp', 'temperature', 'sensor', 'source'] },
+  { tab: 'monitoring', tabLabelKey: 'settings.tab.monitoring', labelKey: 'cooling.settings.gpuLabel',    anchor: 'set-gpu-sensor', keywords: ['gpu', 'temp', 'temperature', 'sensor', 'source'] },
   { tab: 'privacy', tabLabelKey: 'settings.tab.privacyData', labelKey: 'settings.screentime.title', anchor: 'set-screentime', keywords: ['screen time', 'tracking', 'usage', 'data'] },
   { tab: 'privacy', tabLabelKey: 'settings.tab.privacyData', labelKey: 'settings.telemetry.label',  anchor: 'set-telemetry',  keywords: ['telemetry', 'privacy', 'anonymous', 'data', 'consent'] },
-  { tab: 'advanced', tabLabelKey: 'settings.tab.advanced', labelKey: 'lighting.renderGpu.label',     anchor: 'set-render-gpu', keywords: ['render', 'gpu', 'shader', 'graphics card'], platforms: ['windows', 'linux'] },
-  { tab: 'advanced', tabLabelKey: 'settings.tab.advanced', labelKey: 'cooling.settings.cpuLabel',    anchor: 'set-cpu-sensor', keywords: ['cpu', 'temp', 'temperature', 'sensor', 'source'] },
-  { tab: 'advanced', tabLabelKey: 'settings.tab.advanced', labelKey: 'cooling.settings.gpuLabel',    anchor: 'set-gpu-sensor', keywords: ['gpu', 'temp', 'temperature', 'sensor', 'source'] },
   { tab: 'advanced', tabLabelKey: 'settings.tab.advanced', labelKey: 'settings.ai.master.label',     anchor: 'set-ai-integration', keywords: ['ai', 'mcp', 'model context protocol', 'assistant', 'agent', 'integration', 'token'] },
   { tab: 'advanced', tabLabelKey: 'settings.tab.advanced', labelKey: 'settings.shutDown.label',      anchor: 'set-shutdown',   keywords: ['shut down', 'shutdown', 'stop', 'quit', 'exit', 'close'], platforms: ['windows', 'macos'] },
   { tab: 'advanced', tabLabelKey: 'settings.tab.advanced', labelKey: 'settings.factoryReset.label',  anchor: 'set-factory-reset', keywords: ['factory reset', 'reset', 'wipe', 'erase', 'defaults', 'clean'] },

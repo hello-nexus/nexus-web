@@ -103,6 +103,7 @@ describe('SettingsView', () => {
       <SettingsView serviceOnline connectionState="online" platform="windows" tab="monitoring" onTabChange={() => {}} />,
     );
     expect(screen.getByText('settings.units.temperature.label')).toBeInTheDocument();
+    expect(screen.getByText('settings.lightingCooling.title')).toBeInTheDocument();
 
     rerender(
       <SettingsView serviceOnline connectionState="online" platform="windows" tab="privacy" onTabChange={() => {}} />,
@@ -114,6 +115,7 @@ describe('SettingsView', () => {
     );
     expect(screen.getByText('settings.diagnostics.title')).toBeInTheDocument();
     expect(screen.getByText('settings.dangerZone')).toBeInTheDocument();
+    expect(screen.queryByText('settings.lightingCooling.title')).not.toBeInTheDocument();
   });
 
   it('calls onTabChange when a different tab is clicked', () => {
