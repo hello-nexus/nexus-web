@@ -30,8 +30,8 @@ interface DevicesViewProps {
   // Click handler for a device card. Dashboard wires this to
   // `navigate('system', 'device', deviceKey)` so the card flow
   // matches the sidebar - clicking a device routes into its dedicated
-  // page (PanelDevicePage / PeripheralDevicePage) rather than opening
-  // a modal in place.
+  // page (PanelDevicePage and the curated device pages) rather than
+  // opening a modal in place.
   onDeviceSelect: (deviceKey: string) => void;
   // Controlled tab = the route subtab (so /devices/displays deep-links).
   // Falls back to local state when not routed (dashboard widget reuse).
@@ -60,7 +60,7 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
   useSearchSignal('devices-supported', useCallback(() => setSupportedModalOpen(true), []));
 
   const availableActive = tab === 'available';
-  const { unified, merged, webhidAvailable, controlDevice } = useUnifiedDevices(serviceOnline && availableActive);
+  const { unified, controlDevice } = useUnifiedDevices(serviceOnline && availableActive);
   // A promoted-monitor panel row (Xeneon Edge, etc) has no first-party
   // handler to gate through controlDevice - its on/off toggle is the same
   // display promote/demote the Displays tab uses (see DisplaysView.tsx).
@@ -80,18 +80,13 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
     for (const d of allUsb.devices) {
       set.add(`${d.vendorId.toLowerCase()}:${d.productId.toLowerCase()}`);
     }
-    for (const p of merged) {
-      set.add(`${p.vendorId.toLowerCase()}:${p.productId.toLowerCase()}`);
-    }
     return set;
-  }, [allUsb.devices, merged]);
+  }, [allUsb.devices]);
 
-  const availableAvailable = serviceOnline || webhidAvailable;
-
-  // Non-navigable devices (no settings page - MiniHub, capability-less
-  // peripherals) sort to the bottom so the list leads with the cards you can
-  // open. sort() is stable, so each group keeps the order useUnifiedDevices
-  // emitted.
+  // Devices whose controls live on shared pages (MiniHub fans on Cooling,
+  // its ARGB on Lighting) have no settings page of their own, so they sort
+  // to the bottom and the list leads with the cards you can open. sort() is
+  // stable, so each group keeps the order useUnifiedDevices emitted.
   const orderedDevices = useMemo(
     () => [...unified].sort((a, b) => Number(b.navigable) - Number(a.navigable)),
     [unified],
@@ -111,12 +106,12 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
         tabs={tabs}
         activeTab={tab}
         onTabChange={(k) => setTab(k as TabKey)}
-        tabsDisabled={!serviceOnline && !webhidAvailable}
+        tabsDisabled={!serviceOnline}
       />
 
       <div className="pageBody">
         {availableActive ? (
-          !availableAvailable ? (
+          !serviceOnline ? (
             <ServiceRequired state={connectionState} skeleton={<DevicesSkeleton />} />
           ) : (
             <>

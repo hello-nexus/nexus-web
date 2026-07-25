@@ -30,7 +30,6 @@ async function setupMock(page: Page) {
     }
     if (path === '/devices/all') return r.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
     if (path === '/panel/devices') return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ devices: [] }) });
-    if (path === '/peripherals') return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ peripherals: [] }) });
     if (path === '/panel/status') return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ msg: 'running', kioskRunning: true, phoneConnected: false, phoneSubscribers: 0 }) });
     if (path === '/cooling/status') return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ calibrating: false, calibrationState: 'idle', activeCurves: 0, fanCount: 0, manualFans: 0, activeCurveFanCount: 0 }) });
     if (path === '/lighting/status') return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ effect: '', running: false, scanning: false }) });

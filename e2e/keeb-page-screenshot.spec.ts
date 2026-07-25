@@ -140,10 +140,6 @@ async function mockService(page: Page) {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ devices: [] }) });
       return;
     }
-    if (path === '/peripherals') {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ peripherals: [] }) });
-      return;
-    }
     if (path === '/cooling/status') {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ calibrating: false, calibrationState: 'idle', activeCurves: 0, fanCount: 0, manualFans: 0, activeCurveFanCount: 0 }) });
       return;

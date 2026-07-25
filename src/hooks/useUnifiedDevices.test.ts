@@ -14,16 +14,6 @@ vi.mock('./usePanelDevices', () => ({
   usePanelDevices: () => mockUsePanelDevices(),
 }));
 
-const mockUsePeripherals = vi.fn();
-vi.mock('./usePeripherals', () => ({
-  usePeripherals: () => mockUsePeripherals(),
-}));
-
-const mockUseWebHidPeripherals = vi.fn();
-vi.mock('./useWebHidPeripherals', () => ({
-  useWebHidPeripherals: () => mockUseWebHidPeripherals(),
-}));
-
 const mockUseStreamDecks = vi.fn();
 vi.mock('./useStreamDecks', () => ({
   useStreamDecks: () => mockUseStreamDecks(),
@@ -74,8 +64,6 @@ function makeDeck(over: Partial<StreamDeckSummary> = {}): StreamDeckSummary {
 beforeEach(() => {
   vi.clearAllMocks();
   mockUsePanelDevices.mockReturnValue({ devices: [], loading: false });
-  mockUsePeripherals.mockReturnValue({ peripherals: [], loading: false, refresh: vi.fn() });
-  mockUseWebHidPeripherals.mockReturnValue({ available: false, peripherals: [], refresh: vi.fn() });
   mockUseDevices.mockReturnValue({ devices: [], controlDevice: vi.fn() });
   mockUseStreamDecks.mockReturnValue({ decks: [] });
 });

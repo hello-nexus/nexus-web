@@ -155,10 +155,6 @@ async function mockService(page: Page) {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ devices: [] }) });
       return;
     }
-    if (path === '/peripherals') {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ peripherals: [] }) });
-      return;
-    }
     if (path === '/panel/status' || path === '/panel/y70/status') {
       await route.fulfill({
         status: 200,

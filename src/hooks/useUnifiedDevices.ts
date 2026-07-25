@@ -5,8 +5,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useDevices } from './useDevices';
 import { usePanelDevices } from './usePanelDevices';
-import { usePeripherals, type Peripheral } from './usePeripherals';
-import { useWebHidPeripherals } from './useWebHidPeripherals';
 import { useStreamDecks } from './useStreamDecks';
 import {
   getConnectedSimulatedPanels,
@@ -21,7 +19,7 @@ import {
 } from '../widgets/marketplaceRegistry';
 import type { AppInstalledListing } from '../widgets/types';
 
-export type UnifiedDeviceKind = 'panel' | 'curated' | 'peripheral' | 'app-device';
+export type UnifiedDeviceKind = 'panel' | 'curated' | 'app-device';
 
 export interface UnifiedDevice {
   key: string;
@@ -33,7 +31,6 @@ export interface UnifiedDevice {
   connected: boolean;
   kind: UnifiedDeviceKind;
   curatedId?: string;
-  peripheral?: Peripheral;
   panelDevice?: PanelDevice;
   /** Dev-tools simulated device: the page runs on mock data, no hardware. */
   simulated?: boolean;
@@ -46,14 +43,14 @@ export interface UnifiedDevice {
   // Whether the device is actively managed. For a first-party curated
   // handler this mirrors the handler's on/off gate; for a promoted-monitor
   // panel entry (panelDevice.displayId set) it mirrors panelDevice.linkEnabled.
-  // Always true for every other kind (peripheral/app-device, non-monitor
-  // panels), which have no toggle.
+  // Always true for every other kind (app-device, non-monitor panels),
+  // which have no toggle.
   nexusControlEnabled: boolean;
   // Gates whether the on/off toggle renders on the Devices-page row. True for
   // first-party curated handlers, and for a promoted-monitor panel entry
   // (panelDevice.displayId set) - its toggle calls the display promote/demote
   // API instead of the handler control API. False for every other
-  // panel/peripheral/app-device kind and plugin devices.
+  // panel/app-device kind and plugin devices.
   supportsNexusControl: boolean;
   // True for a Nexus Control device driving non-HYTE/iBUYPOWER hardware
   // (experimental support); drives the "Experimental" badge. Always false for
@@ -167,22 +164,11 @@ export function useUnifiedDevices(enabled: boolean) {
   }, []);
 
   const { devices, controlDevice } = useDevices(enabled);
-  const peripherals = usePeripherals(enabled);
-  const webhid = useWebHidPeripherals(enabled);
   const { decks: streamDecks } = useStreamDecks(enabled);
   // Y70 follows the same rules as every other panel: in the list only if
   // (a) physically connected to this host, or (b) its simulator is active
   // (then it's in `simulatedPanels`). No always-on phantom.
   const panels = usePanelDevices(enabled, { simulatedPanels });
-
-  const merged: Peripheral[] = useMemo(() => {
-    const servicePeripherals = peripherals.peripherals.map(p => ({ ...p, source: 'service' as const }));
-    const servicePids = new Set(servicePeripherals.map(p => p.productId.toLowerCase()));
-    const webhidPeripherals = webhid.peripherals
-      .filter(p => !servicePids.has(p.productId.toLowerCase()))
-      .map(p => ({ ...p, source: 'webhid' as const }));
-    return [...servicePeripherals, ...webhidPeripherals];
-  }, [peripherals.peripherals, webhid.peripherals]);
 
   const unified = useMemo(() => {
     // Paired phones (remote panel sessions) are remote controls, not hardware
@@ -190,7 +176,7 @@ export function useUnifiedDevices(enabled: boolean) {
     // surface (Devices page, sidebar, search, detail route). Managed from the
     // Pair Phone modal via /panel/phone/sessions instead.
     const filteredPanels = panels.devices.filter(p => !isRemotePanel(p.connectionKind));
-    const list = buildUnifiedList(filteredPanels, devices, merged, deviceApps);
+    const list = buildUnifiedList(filteredPanels, devices, deviceApps);
 
     // Stream Deck: one sidebar/Devices-page entry PER physical deck (real or
     // simulated), keyed by serial - not the single 'streamdeck' handler row
@@ -267,12 +253,10 @@ export function useUnifiedDevices(enabled: boolean) {
       });
     }
     return list;
-  }, [panels.devices, devices, merged, deviceApps, streamDecks, tryxSimulated, t]);
+  }, [panels.devices, devices, deviceApps, streamDecks, tryxSimulated, t]);
 
   return {
     unified,
-    merged,
-    webhidAvailable: webhid.available,
     controlDevice,
   };
 }
@@ -280,7 +264,6 @@ export function useUnifiedDevices(enabled: boolean) {
 function buildUnifiedList(
   panelDevices: PanelDevice[],
   curated: { id: string; name: string; category: string; connected: boolean; firmwareVersion: string; nexusControlEnabled?: boolean; supportsNexusControl?: boolean; experimental?: boolean; warning?: string | null; conflictAppId?: string }[],
-  peripherals: Peripheral[],
   deviceApps: AppInstalledListing[] = [],
 ): UnifiedDevice[] {
   const list: UnifiedDevice[] = [];
@@ -351,28 +334,6 @@ function buildUnifiedList(
       experimental: d.experimental ?? false,
       warning: d.warning ?? undefined,
       conflictAppId: d.conflictAppId,
-    });
-  }
-
-  for (const p of peripherals) {
-    list.push({
-      key: `peripheral-${p.id}`,
-      shortName: p.name,
-      name: p.name,
-      subtitle: p.vendor,
-      category: p.category,
-      iconSrc: CATEGORY_ICONS[p.category] || FALLBACK_ICON,
-      connected: true,
-      kind: 'peripheral',
-      peripheral: p,
-      // Detection-only peripherals (no capabilities - nothing to configure)
-      // have no settings page, so they're non-navigable: kept off the sidebar
-      // and shown as a static card on the Devices page rather than deep-linking
-      // to an empty "No Capabilities" page.
-      navigable: p.capabilities.length > 0,
-      nexusControlEnabled: true,
-      supportsNexusControl: false,
-      experimental: false,
     });
   }
 

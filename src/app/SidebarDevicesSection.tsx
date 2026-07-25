@@ -11,7 +11,7 @@ import styles from './SidebarDevicesSection.module.scss';
 
 /**
  * The DEVICES section of the sidebar. Lists every detected + supported
- * device (panels, peripherals, curated hardware) the system knows
+ * device (panels, curated hardware) the system knows
  * about, with a click navigating into that device's dedicated page.
  *
  * Wraps `useUnifiedDevices` - the same hook DevicesPage and the dashboard

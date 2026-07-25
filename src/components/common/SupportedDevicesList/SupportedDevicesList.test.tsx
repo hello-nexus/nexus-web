@@ -4,24 +4,24 @@ import { render, screen } from '@testing-library/react';
 import { SupportedDevicesList, type SupportedDeviceRow } from './SupportedDevicesList';
 
 const DEVICES: SupportedDeviceRow[] = [
-  { vendor: 'Razer', model: 'BlackWidow V4 Pro', category: 'keyboard', vendorId: '0x1532', productId: '0x0290', capabilities: ['RGB', 'Macro'], source: 'nexus' },
+  { vendor: 'HYTE', model: 'Keeb TKL', category: 'keyboard', vendorId: '0x3402', productId: '0x0300', capabilities: ['rgb'], source: 'nexus' },
   { vendor: 'Corsair', model: 'iCUE LINK Hub', category: 'lighting', vendorId: '0x1B1C', productId: '0x0C3F', capabilities: ['RGB'], source: 'openrgb' },
-  { vendor: 'Logitech', model: 'G Pro X Superlight 2', category: 'mouse', vendorId: '0x046D', productId: '0xC094', capabilities: ['RGB', 'Battery'], source: 'nexus' },
+  { vendor: 'Elgato', model: 'Stream Deck MK.2', category: 'controller', vendorId: '0x0FD9', productId: '0x0080', capabilities: ['keys', 'brightness', 'screen'], source: 'nexus' },
 ];
 
 describe('SupportedDevicesList', () => {
   it('renders one row per device with brand, model, type, and VID:PID', () => {
     render(<SupportedDevicesList devices={DEVICES} />);
 
-    expect(screen.getByText('Razer')).toBeInTheDocument();
-    expect(screen.getByText('BlackWidow V4 Pro')).toBeInTheDocument();
+    expect(screen.getByText('HYTE')).toBeInTheDocument();
+    expect(screen.getByText('Keeb TKL')).toBeInTheDocument();
     expect(screen.getByText('keyboard')).toBeInTheDocument();
-    expect(screen.getByText('0x1532:0290')).toBeInTheDocument();
+    expect(screen.getByText('0x3402:0300')).toBeInTheDocument();
     expect(screen.getAllByRole('row')).toHaveLength(DEVICES.length + 1); // + header row
   });
 
   it('marks a row detected only when its VID:PID is in detectedVidPids', () => {
-    render(<SupportedDevicesList devices={DEVICES} detectedVidPids={new Set(['0x1532:0x0290'])} />);
+    render(<SupportedDevicesList devices={DEVICES} detectedVidPids={new Set(['0x3402:0x0300'])} />);
 
     const rows = screen.getAllByRole('row').slice(1); // drop header
     expect(rows[0].className).toMatch(/detected/);
@@ -32,12 +32,12 @@ describe('SupportedDevicesList', () => {
   it('renders with react-dom/server without throwing, producing every row', () => {
     const html = renderToString(<SupportedDevicesList devices={DEVICES} />);
 
-    expect(html).toContain('Razer');
-    expect(html).toContain('BlackWidow V4 Pro');
+    expect(html).toContain('HYTE');
+    expect(html).toContain('Keeb TKL');
     expect(html).toContain('Corsair');
     expect(html).toContain('iCUE LINK Hub');
-    expect(html).toContain('Logitech');
-    expect(html).toContain('G Pro X Superlight 2');
+    expect(html).toContain('Elgato');
+    expect(html).toContain('Stream Deck MK.2');
     expect((html.match(/<tr/g) ?? []).length).toBe(DEVICES.length + 1); // + header row
   });
 

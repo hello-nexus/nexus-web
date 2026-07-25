@@ -6,7 +6,6 @@ import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { ServiceRequired } from '../ServiceRequired';
 import { Placeholder } from '../Placeholder';
 import { PanelDevicePage } from './PanelDevicePage';
-import { PeripheralDevicePage } from './PeripheralDevicePage';
 import { KeebDevicePage } from './KeebDevicePage';
 import { LianLiDevicePage } from './LianLiDevicePage';
 import { CorsairDevicePage } from './CorsairDevicePage';
@@ -38,7 +37,6 @@ import styles from './DevicePage.module.scss';
  * kind-specific page body:
  *
  *   panel       → PanelDevicePage     (Y70 / Q60 / Q80 / simulator)
- *   peripheral  → PeripheralDevicePage (mice, keyboards, …)
  *   curated     → its bespoke page (keeb / np50 / smarthub / cnvs); any without one
  *                  falls through to a name + "no page yet" placeholder.
  *
@@ -150,10 +148,6 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFi
     // scale until the tree is torn down. Remounting rebuilds the iframe
     // against the new device's canvas/DPR.
     return <PanelDevicePage key={device.key} device={device.panelDevice} onOpenFirmware={onOpenFirmware} onSectionNavigate={onSectionNavigate} />;
-  }
-
-  if (device.kind === 'peripheral' && device.peripheral) {
-    return <PeripheralDevicePage key={device.key} peripheral={device.peripheral} />;
   }
 
   if (device.curatedId === 'keeb') {

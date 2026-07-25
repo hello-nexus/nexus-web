@@ -10,7 +10,6 @@ import { Card } from '../components/common/Card/Card';
 import { InfoList, InfoRow } from '../components/common/InfoList/InfoList';
 import { SystemSpecsPanel } from '../components/common/SystemSpecsPanel/SystemSpecsPanel';
 import { Avatar } from '../components/common/Avatar/Avatar';
-import { BatteryBar } from '../components/peripherals/BatteryBar';
 import { Slider } from '../components/common/Slider/Slider';
 import { RangeSlider } from '../components/common/Slider/RangeSlider';
 import { EditableText } from '../components/common/Editable/EditableText';
@@ -55,7 +54,6 @@ import { DEFAULT_ACCENT, PRESET_ACCENTS } from '../lib/settings';
 import { defaultStateFor, type EffectState, type EffectTemplateBundle } from '../types/lighting';
 import { defaultTemplatesFor } from '../types/lightingTemplates';
 import { cachedAnimateDefaults, fetchAnimateDefaults } from '../api/lighting';
-import type { BatteryState } from '../hooks/usePeripherals';
 import type { HardwareSensor } from '../hooks/useSensors';
 import { PanelMixerSliderPreview } from './PanelMixerSliderPreview';
 import { TextStyles } from './TextStyles';
@@ -245,7 +243,7 @@ function PreviewInfoTooltip() {
       </div>
       <div className={styles.previewHoverCard}>
         <span>Devices</span>
-        <InfoTooltip message="Every USB peripheral Nexus can see. Connect new devices through your browser or inspect the raw USB table." side="top" />
+        <InfoTooltip message="Every USB device Nexus can see. Browse the supported-hardware catalogue or inspect the raw USB table." side="top" />
       </div>
     </div>
   );
@@ -407,19 +405,9 @@ function PreviewInfoList() {
       <InfoRow label="Vendor" value="Sample Co." />
       <InfoRow label="Category" value="Mouse" capitalize />
       <InfoRow label="Wireless" value="Yes" tone="accent" />
-      <InfoRow label="Source" value="WebHID" tone="dim" />
+      <InfoRow label="Firmware" value="1.4.2" tone="dim" />
     </InfoList>
   );
-}
-
-function PreviewBatteryBar() {
-  const state: BatteryState = { percent: 72, charging: true } as BatteryState;
-  return <BatteryBar state={state} />;
-}
-
-function PreviewBatteryBarLow() {
-  const state: BatteryState = { percent: 14, charging: false } as BatteryState;
-  return <BatteryBar state={state} />;
 }
 
 function PreviewViewHeader() {
@@ -683,9 +671,9 @@ function PreviewSupportedDevicesModal() {
 }
 
 const SUPPORTED_DEVICES_LIST_STUB: SupportedDeviceRow[] = [
-  { vendor: 'Razer', model: 'BlackWidow V4 Pro', category: 'keyboard', vendorId: '0x1532', productId: '0x0290', capabilities: ['RGB', 'Macro', 'Media Keys'], source: 'nexus' },
+  { vendor: 'HYTE', model: 'Keeb TKL', category: 'keyboard', vendorId: '0x3402', productId: '0x0300', capabilities: ['rgb'], source: 'nexus' },
   { vendor: 'Corsair', model: 'iCUE LINK Hub', category: 'lighting', vendorId: '0x1B1C', productId: '0x0C3F', capabilities: ['RGB', 'Fan Control'], source: 'openrgb' },
-  { vendor: 'Logitech', model: 'G Pro X Superlight 2', category: 'mouse', vendorId: '0x046D', productId: '0xC094', capabilities: ['RGB', 'Battery'], source: 'nexus' },
+  { vendor: 'Elgato', model: 'Stream Deck MK.2', category: 'controller', vendorId: '0x0FD9', productId: '0x0080', capabilities: ['keys', 'brightness', 'screen'], source: 'nexus' },
   { vendor: 'NZXT', model: 'Kraken Elite RGB', category: 'cooling', vendorId: '0x1E71', productId: '0x2007', capabilities: ['RGB', 'LCD', 'Pump Speed'], source: 'openrgb' },
 ];
 
@@ -1747,7 +1735,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'Slider (showRange)', category: 'inputs',
     filePath: 'src/components/common/Slider/Slider.tsx',
-    description: 'Stacked slider with min and max printed under the track. Used by DpiControl and any range-bound control where the user needs to see the bounds.', Preview: PreviewSliderRange,
+    description: 'Stacked slider with min and max printed under the track. Used by any range-bound control where the user needs to see the bounds.', Preview: PreviewSliderRange,
   },
   {
     name: 'RangeSlider (temperature)', category: 'inputs',
@@ -2214,16 +2202,6 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/Toast/Toast.tsx',
     description: 'Transient notifications stacked bottom-right (ToastProvider + useToast().push). Auto-dismiss after 6s, click dismisses, optional accent action button. Used for incoming phone→PC transfer notices at the dashboard root.', Preview: PreviewToast,
     notes: 'The pushed toast portals to the viewport corner, not inside this card.',
-  },
-  {
-    name: 'BatteryBar', category: 'status',
-    filePath: 'src/components/peripherals/BatteryBar.tsx',
-    description: 'Battery percent bar with good / warn / bad tone and a charging indicator.', Preview: PreviewBatteryBar,
-  },
-  {
-    name: 'BatteryBar (low)', category: 'status',
-    filePath: 'src/components/peripherals/BatteryBar.tsx',
-    description: 'Low-battery (<20%) tone variant.', Preview: PreviewBatteryBarLow,
   },
   {
     name: 'ServiceLaunchButton', category: 'status',

@@ -40,7 +40,6 @@ async function mockService(page: Page) {
     if (path === '/preferences') return json({ theme: { language: 'en', themeMode: 'dark', accentColor: '#2563eb' } });
     if (path === '/devices/all') return json([]);
     if (path === '/panel/devices') return json({ devices: [] });
-    if (path === '/peripherals') return json({ peripherals: [] });
     if (path === '/panel/status' || path === '/panel/y70/status') return json({ msg: 'running', kioskRunning: true, phoneConnected: false, phoneSubscribers: 0 });
     return json({}); // catch-all so nothing hangs
   });

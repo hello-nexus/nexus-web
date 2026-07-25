@@ -18,7 +18,7 @@ import styles from './Slider.module.scss';
  * Optional features:
  *   - editable    : value display becomes click-to-edit (uses EditableNumber)
  *   - zeroMarker  : if range straddles zero, draws a tick at 0 on the track
- *   - showRange   : prints min / max under the track (DPI-style)
+ *   - showRange   : prints min / max under the track
  *   - formatValue : controls how the value is rendered (e.g. '1.5s', '800 DPI')
  *   - trackFill   : the accent fill end. Auto-computes from value/min/max
  *                   (centre-out when the range straddles zero, e.g. -100..100).

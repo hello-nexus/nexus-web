@@ -35,8 +35,6 @@ vi.mock('../../../hooks/useUnifiedDevices', async importOriginal => ({
   ...(await importOriginal<typeof import('../../../hooks/useUnifiedDevices')>()),
   useUnifiedDevices: () => ({
     unified: mockUnified,
-    merged: [],
-    webhidAvailable: false,
     controlDevice: controlDeviceMock,
   }),
 }));
