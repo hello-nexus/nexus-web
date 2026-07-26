@@ -2635,7 +2635,7 @@
   "settings.tab.privacyData": "Privacy e dâts",
   "settings.tab.profiles": "Profîi",
   "settings.tab.tools": "Struments di svilup",
-  "settings.telemetry.description": "Al condivît statistichis di ûs anonimis e une sintesi gjenerâl dal hardware - mai nuie di personâl - par judânus a continuâ a miorâlu. Cuant che Nexus al ven instalât, al mande simpri, une sole volte, un segnâl anonim. Disabilitant chest, al ven mandât un ultin segnâl anonim, e daspò Nexus nol mande plui nissune telemetrie. {privacy}",
+  "settings.telemetry.description": "Al condivît lis informazions di ûs anonimis par judânus a miorâ Nexus a ogni inzornament. {privacy}",
   "settings.telemetry.label": "Judinus a miorâ Nexus",
   "settings.theme": "Teme",
   "settings.theme.dark": "Scûr",

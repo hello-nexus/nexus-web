@@ -2804,7 +2804,7 @@
   "settings.tab.privacyData": "Privacy en gegevens",
   "settings.tab.profiles": "Profielen",
   "settings.tab.tools": "Dev-tools",
-  "settings.telemetry.description": "Nexus deelt anonieme gebruiksstatistieken en een algemene hardwaresamenvatting - nooit iets persoonlijks - om het steeds beter te maken. Bij installatie van Nexus wordt altijd één keer een anoniem signaal verstuurd. Als je dit uitzet, wordt er nog één laatste anoniem signaal verstuurd, en daarna verstuurt Nexus helemaal geen telemetrie meer. {privacy}",
+  "settings.telemetry.description": "Deel anonieme gebruiksinzichten zodat we Nexus bij elke update kunnen verbeteren. {privacy}",
   "settings.telemetry.label": "Help Nexus verbeteren",
   "settings.telemetry.privacyLink": "Privacybeleid",
   "settings.theme": "Thema",
