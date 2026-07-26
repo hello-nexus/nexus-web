@@ -1,7 +1,9 @@
+import { MonitorSmartphone } from 'lucide-react';
 import { NexusWordmark } from '../components/icons/NexusBrand';
 import { useTranslation } from '../lib/i18n';
 import type { ConnectionState } from '../hooks/useServiceStatus';
 import { ServiceRequired } from '../components/views/ServiceRequired';
+import { isHandheldDevice } from '../lib/platform';
 import styles from './ServiceGatePage.module.scss';
 
 // The marketing site lives on the bare domain this app host is the my.
@@ -12,14 +14,43 @@ function marketingUrl(): string {
   return h.startsWith('my.') ? `${protocol}//${h.slice(3)}` : '/';
 }
 
+function marketingHref(path: string): string {
+  const base = marketingUrl();
+  return base === '/' ? path : `${base}${path}`;
+}
+
+// The pairing how-to on the marketing site; the handheld gate's primary CTA.
+const PAIR_HOWTO_PATH = '/how-to/pair-your-phone';
+
 /**
  * my.hellonexus.com with no reachable local service: the launch / download
  * gate (the dashboard renders once a local Nexus answers). The update hint
  * matters here - services older than the my. rollout don't allow this origin
  * via CORS, which is indistinguishable from "not running".
+ *
+ * A phone or tablet can never reach a local service, so instead of the
+ * launch/download card it gets the platform note and the pairing how-to.
  */
 export function ServiceGatePage({ state }: { state: ConnectionState }) {
   const { t } = useTranslation();
+  if (isHandheldDevice()) {
+    return (
+      <div className={styles.page}>
+        <div className={styles.wordmark}>
+          <NexusWordmark height={22} />
+        </div>
+        <div className={styles.handheldCard}>
+          <MonitorSmartphone size={32} className={styles.handheldIcon} aria-hidden />
+          <p className={styles.handheldMessage}>{t('site.gate.handheldMessage')}</p>
+          <p className={styles.handheldPair}>{t('site.gate.handheldPair')}</p>
+          <a className={styles.howToLink} href={marketingHref(PAIR_HOWTO_PATH)}>
+            {t('site.gate.handheldHowTo')}
+          </a>
+        </div>
+        <a className={styles.backLink} href={marketingUrl()}>{t('site.gate.backToSite')}</a>
+      </div>
+    );
+  }
   return (
     <div className={styles.page}>
       <div className={styles.wordmark}>

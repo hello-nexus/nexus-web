@@ -8,6 +8,63 @@ import {
 } from '../api/panel';
 import styles from './IncomingPairModal.module.scss';
 
+export interface PairPromptBodyProps {
+  sas: string;
+  deviceLabel: string;
+  remoteAddress?: string;
+  busy?: boolean;
+  error?: string | null;
+  onDecide: (approved: boolean) => void;
+}
+
+function PairPromptBody({ sas, deviceLabel, remoteAddress, busy = false, error = null, onDecide }: PairPromptBodyProps) {
+  const { t } = useTranslation();
+  return (
+    <>
+      <p className={styles.eyebrow}>{t('phonePair.code.requestSubtitle')}</p>
+      <div className={styles.sas}>{sas}</div>
+      <p className={styles.meta}>
+        {t('phonePair.code.requestTitle', { device: deviceLabel })}
+        {remoteAddress
+          ? ` · ${t('phonePair.code.requestFrom', { ip: remoteAddress })}`
+          : ''}
+      </p>
+      {error && <p className={styles.error}>{error}</p>}
+      <div className={styles.actions}>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => onDecide(false)}
+          className={styles.denyBtn}
+        >
+          {t('phonePair.code.deny')}
+        </button>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => onDecide(true)}
+          className={styles.allowBtn}
+        >
+          {t('phonePair.code.allow')}
+        </button>
+      </div>
+    </>
+  );
+}
+
+/**
+ * The numeric-comparison prompt as a plain card, no backdrop and no service
+ * wiring: for demo/marketing embeds that mount it with static props. The live
+ * dashboard prompt is IncomingPairModal below.
+ */
+export function IncomingPairCard(props: PairPromptBodyProps) {
+  return (
+    <div className={styles.modal}>
+      <PairPromptBody {...props} />
+    </div>
+  );
+}
+
 /**
  * Global numeric-comparison prompt. Subscribes to the
  * `panel/phone/pair-code/request` WS topic at the dashboard root and pops
@@ -91,33 +148,14 @@ export function IncomingPairModal() {
       ariaLabel={t('phonePair.code.requestTitle', { device: deviceLabel })}
       className={styles.modal}
     >
-      <p className={styles.eyebrow}>{t('phonePair.code.requestSubtitle')}</p>
-      <div className={styles.sas}>{active.sas}</div>
-      <p className={styles.meta}>
-        {t('phonePair.code.requestTitle', { device: deviceLabel })}
-        {active.remoteAddress
-          ? ` · ${t('phonePair.code.requestFrom', { ip: active.remoteAddress })}`
-          : ''}
-      </p>
-      {error && <p className={styles.error}>{error}</p>}
-      <div className={styles.actions}>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => decide(false)}
-          className={styles.denyBtn}
-        >
-          {t('phonePair.code.deny')}
-        </button>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => decide(true)}
-          className={styles.allowBtn}
-        >
-          {t('phonePair.code.allow')}
-        </button>
-      </div>
+      <PairPromptBody
+        sas={active.sas}
+        deviceLabel={deviceLabel}
+        remoteAddress={active.remoteAddress}
+        busy={busy}
+        error={error}
+        onDecide={approved => void decide(approved)}
+      />
     </Overlay>
   );
 }

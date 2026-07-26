@@ -57,6 +57,23 @@ export function isSafari(): boolean {
   return true;
 }
 
+// iPadOS 13+ Safari sends a desktop "Macintosh" UA; maxTouchPoints (>1 on an
+// iPad, 0 on a real Mac) is the only separating signal.
+function isIpadUnderMacUa(ua: string): boolean {
+  return /Macintosh/i.test(ua) && navigator.maxTouchPoints > 1;
+}
+
+/**
+ * True on a phone or tablet, where the Nexus desktop app cannot run.
+ * Unrecognized UAs count as desktop so unknown clients keep the full UI.
+ */
+export function isHandheldDevice(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent;
+  if (/iPhone|iPad|iPod|Android/i.test(ua)) return true;
+  return isIpadUnderMacUa(ua);
+}
+
 // Short device-class label for the pairing session list. The signals that
 // disambiguate the two cases the service can't get right from the User-Agent
 // alone live only client-side: iPadOS 13+ Safari sends a desktop "Macintosh"
@@ -67,8 +84,7 @@ export function deriveDeviceLabel(): string {
   if (typeof navigator === 'undefined' || typeof window === 'undefined') return '';
   const ua = navigator.userAgent;
   if (/iPhone/i.test(ua)) return 'iPhone';
-  // maxTouchPoints separates an iPad (>1) from a real Mac (0) under the Mac UA.
-  if (/iPad/i.test(ua) || (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1)) return 'iPad';
+  if (/iPad/i.test(ua) || isIpadUnderMacUa(ua)) return 'iPad';
   if (/Android/i.test(ua)) {
     // Phones include "Mobile"; tablets historically omit it, but Samsung
     // tablets break that rule - fall back to the 600px tablet breakpoint.

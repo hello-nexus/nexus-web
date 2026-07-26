@@ -39,3 +39,33 @@ describe('isMultiSelectModifier', () => {
     expect(isMultiSelectModifier({ metaKey: true, ctrlKey: false })).toBe(true);
   });
 });
+
+describe('isHandheldDevice', () => {
+  function stubDevice(userAgent: string, maxTouchPoints = 0) {
+    vi.stubGlobal('navigator', { userAgent, maxTouchPoints } as Navigator);
+  }
+
+  it('detects phones and Android devices by UA', async () => {
+    const { isHandheldDevice } = await import('./platform');
+    stubDevice('Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) Safari/604');
+    expect(isHandheldDevice()).toBe(true);
+    stubDevice('Mozilla/5.0 (Linux; Android 14; Pixel 8) Mobile Safari/537.36');
+    expect(isHandheldDevice()).toBe(true);
+  });
+
+  it('detects an iPad behind the desktop Mac UA via maxTouchPoints', async () => {
+    const { isHandheldDevice } = await import('./platform');
+    stubDevice('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605', 5);
+    expect(isHandheldDevice()).toBe(true);
+  });
+
+  it('treats desktops (and unknown UAs) as non-handheld', async () => {
+    const { isHandheldDevice } = await import('./platform');
+    stubDevice('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605');
+    expect(isHandheldDevice()).toBe(false);
+    stubDevice('Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/126');
+    expect(isHandheldDevice()).toBe(false);
+    stubDevice('SomeFutureClient/1.0');
+    expect(isHandheldDevice()).toBe(false);
+  });
+});

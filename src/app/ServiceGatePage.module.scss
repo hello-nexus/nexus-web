@@ -24,6 +24,51 @@
   flex-direction: column;
 }
 
+.handheldCard {
+  width: min(420px, 100%);
+  margin: clamp(16px, 12vh, 96px) 0 20px;
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.handheldIcon {
+  color: var(--accent);
+}
+
+.handheldMessage {
+  @include text-body;
+  color: var(--text);
+  margin: 0;
+}
+
+.handheldPair {
+  @include text-caption;
+  color: var(--text-dim);
+  margin: 0;
+}
+
+.howToLink {
+  @include text-button;
+  display: inline-flex;
+  align-items: center;
+  margin-top: 8px;
+  padding: 10px 18px;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--accent-text);
+  text-decoration: none;
+  transition: background var(--ease-fast);
+
+  &:hover { background: var(--accent-glow); }
+}
+
 .updateHint {
   @include text-caption;
   color: var(--text-dim);
