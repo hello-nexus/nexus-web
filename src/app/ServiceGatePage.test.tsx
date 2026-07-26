@@ -20,7 +20,7 @@ describe('ServiceGatePage', () => {
     render(<I18nProvider><ServiceGatePage state="offline" /></I18nProvider>);
     const link = await screen.findByRole('link', { name: 'How to: pair this device with your PC' });
     // jsdom's host is localhost, so marketingHref falls back to the bare path.
-    expect(link).toHaveAttribute('href', '/how-to/pair-your-phone');
+    expect(link).toHaveAttribute('href', '/docs/guides/remote-devices/pair-your-phone');
     expect(screen.getByText(/available for Windows, macOS, and Linux/)).toBeInTheDocument();
     expect(screen.getByText(/remote control panel/)).toBeInTheDocument();
     expect(screen.queryByText(/Already installed but not connecting/)).toBeNull();
@@ -37,7 +37,7 @@ describe('ServiceGatePage', () => {
     try {
       render(<I18nProvider><ServiceGatePage state="offline" /></I18nProvider>);
       const link = await screen.findByRole('link', { name: 'How to: pair this device with your PC' });
-      expect(link).toHaveAttribute('href', 'https://hellonexus.com/how-to/pair-your-phone');
+      expect(link).toHaveAttribute('href', 'https://hellonexus.com/docs/guides/remote-devices/pair-your-phone');
     } finally {
       Object.defineProperty(window, 'location', { value: realLocation, configurable: true });
     }

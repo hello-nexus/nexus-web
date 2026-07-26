@@ -19,8 +19,9 @@ function marketingHref(path: string): string {
   return base === '/' ? path : `${base}${path}`;
 }
 
-// The pairing how-to on the marketing site; the handheld gate's primary CTA.
-const PAIR_HOWTO_PATH = '/how-to/pair-your-phone';
+// The pairing guide on the marketing site's docs; the handheld gate's
+// primary CTA. (/how-to/pair-your-phone 301s here for older builds.)
+const PAIR_HOWTO_PATH = '/docs/guides/remote-devices/pair-your-phone';
 
 /**
  * my.hellonexus.com with no reachable local service: the launch / download
