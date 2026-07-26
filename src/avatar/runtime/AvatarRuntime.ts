@@ -242,7 +242,15 @@ export class AvatarRuntime {
           opacity: std.opacity,
           depthWrite: !std.transparent,
         });
-        if (std.map && !this.ownedTextures.includes(std.map)) this.ownedTextures.push(std.map);
+        if (std.map) {
+          // The stage atlas packs islands with zero margin (export_stage.py),
+          // so GPU mip levels average neighboring islands into pixel noise on
+          // small props (bench: monitor screens at widget-tile minification).
+          std.map.generateMipmaps = false;
+          std.map.minFilter = THREE.LinearFilter;
+          std.map.needsUpdate = true;
+          if (!this.ownedTextures.includes(std.map)) this.ownedTextures.push(std.map);
+        }
         this.ownedMaterials.push(mat);
         orig.dispose();
         return mat;
