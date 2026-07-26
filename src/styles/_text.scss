@@ -37,7 +37,9 @@
 @mixin text-body {
   font-family: var(--font-sans);
   font-size: var(--type-body);
-  font-weight: 500;
+  // Tokenized so an embedding surface (the marketing site) can thin its long
+  // prose; the app default is unchanged.
+  font-weight: var(--weight-body, 500);
   line-height: 1.5;
   letter-spacing: 0;
 }
@@ -62,7 +64,7 @@
 @mixin text-caption {
   font-family: var(--font-sans);
   font-size: var(--type-tiny);
-  font-weight: 600;
+  font-weight: var(--weight-caption, 600);
   line-height: 1.3;
   letter-spacing: 0.02em;
 }
