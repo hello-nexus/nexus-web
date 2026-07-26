@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
+import { createPortal } from 'react-dom';
 import styles from './HeartBurst.module.scss';
 
 interface Heart {
@@ -37,22 +38,35 @@ function randomHeartStyle(): CSSProperties {
  * Pure CSS transform/opacity keyframes; each heart self-removes on its own
  * animationend, mirroring BackgroundEffects' particle lifecycle.
  *
- * `originTop` positions the burst's anchor within the `position: relative`
- * wrapper the consumer places it in; each mount point tunes it to its own
- * row's icon size, so it isn't shared CSS across mount points.
+ * The hearts render in a `document.body` portal on the `--z-particles` layer:
+ * they rise well above their toggle row, so an in-place render gets clipped by
+ * any scrolling ancestor (the settings `.tabContent`) and covered by sibling
+ * stacking contexts. The in-place element is a zero-size anchor whose viewport
+ * position is captured per burst; hearts hold that origin for their ~1.4s life
+ * rather than tracking scroll, same tradeoff as the portaled tooltips.
+ *
+ * `originTop` positions the anchor within the `position: relative` wrapper the
+ * consumer places it in; each mount point tunes it to its own row's icon size,
+ * so it isn't shared CSS across mount points.
  */
 export function HeartBurst({ burstKey, originTop = 0 }: { burstKey: number; originTop?: number }) {
   const [hearts, setHearts] = useState<readonly Heart[]>([]);
   const idRef = useRef(0);
   const prevKeyRef = useRef(burstKey);
+  const anchorRef = useRef<HTMLSpanElement | null>(null);
 
   useEffect(() => {
     const rose = burstKey > 0 && burstKey !== prevKeyRef.current;
     prevKeyRef.current = burstKey;
     if (!rose || prefersReducedMotion()) return;
+    const origin = anchorRef.current?.getBoundingClientRect();
+    if (!origin) return;
     const next: Heart[] = Array.from({ length: HEART_COUNT }, () => {
       idRef.current += 1;
-      return { id: idRef.current, style: randomHeartStyle() };
+      return {
+        id: idRef.current,
+        style: { ...randomHeartStyle(), left: origin.left, top: origin.top },
+      };
     });
     setHearts(prev => [...prev, ...next]);
   }, [burstKey]);
@@ -61,14 +75,18 @@ export function HeartBurst({ burstKey, originTop = 0 }: { burstKey: number; orig
     setHearts(prev => prev.filter(h => h.id !== id));
   }, []);
 
-  if (hearts.length === 0) return null;
-
   return (
-    <div className={styles.root} aria-hidden="true" style={{ top: originTop }}>
-      {hearts.map(h => (
-        <HeartGlyph key={h.id} style={h.style} onDone={() => remove(h.id)} />
-      ))}
-    </div>
+    <>
+      <span ref={anchorRef} className={styles.anchor} style={{ top: originTop }} aria-hidden="true" />
+      {hearts.length > 0 && createPortal(
+        <div className={styles.overlay} aria-hidden="true">
+          {hearts.map(h => (
+            <HeartGlyph key={h.id} style={h.style} onDone={() => remove(h.id)} />
+          ))}
+        </div>,
+        document.body,
+      )}
+    </>
   );
 }
 

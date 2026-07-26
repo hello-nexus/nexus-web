@@ -1871,7 +1871,7 @@ export const REGISTRY: StorybookEntry[] = [
     name: 'HeartBurst', category: 'status',
     filePath: 'src/components/common/HeartBurst/HeartBurst.tsx',
     description: 'Burst of small red hearts rising and drifting apart, then unmounting - fired from the telemetry consent toggle on an off-to-on flip. Pure CSS transform/opacity keyframes, each heart self-removes on its own animationend. useHeartBurstTrigger derives the required burstKey from a boolean so the burst never fires on mount.', Preview: PreviewHeartBurst,
-    notes: 'Respects prefers-reduced-motion (renders nothing). Caller wraps the anchor in a position:relative container - HeartBurst anchors to its top-right corner.',
+    notes: 'Respects prefers-reduced-motion (renders nothing). Caller wraps the anchor in a position:relative container - HeartBurst anchors to its top-right corner. Hearts render in a document.body portal on the --z-particles layer, so they are never clipped by a scrolling ancestor or covered by other stacking contexts.',
   },
   {
     name: 'Popover', category: 'modals',

@@ -1,21 +1,35 @@
-// Overlay anchor: consumers place this inside a `position: relative` wrapper
-// near the toggle that fired the burst. Zero footprint so it never affects
-// sibling layout. `top` is set inline via the `originTop` prop.
-.root {
+// In-place measurement anchor: consumers place this inside a
+// `position: relative` wrapper near the toggle that fired the burst. Zero
+// footprint so it never affects sibling layout. `top` is set inline via the
+// `originTop` prop; its viewport position is read per burst.
+.anchor {
   position: absolute;
   right: 0.5rem;
   width: 0;
   height: 0;
   pointer-events: none;
-  z-index: 1;
 }
 
+// Body-portaled burst layer. Fixed + --z-particles so hearts rising out of a
+// scrolling container (e.g. the settings tab scroller) are neither clipped by
+// its overflow nor covered by sibling stacking contexts.
+.overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: var(--z-particles);
+}
+
+$heart-size: 0.85rem;
+
+// `left`/`top` are set inline: the anchor's viewport position at burst time.
+// The negative margin right-aligns the glyph on that point; the keyframes own
+// `transform`, so a translate can't do it.
 .heart {
   position: absolute;
-  top: 0;
-  right: 0;
-  width: 0.85rem;
-  height: 0.85rem;
+  width: $heart-size;
+  height: $heart-size;
+  margin-left: -$heart-size;
   color: var(--bad);
   opacity: 0;
   transform-origin: center;

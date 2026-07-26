@@ -168,6 +168,7 @@
   --z-modal:     1000;     // modal backdrop + chrome
   --z-tooltip:   1050;     // hover / info tooltips (above modal so in-modal tooltips read)
   --z-popover:   1100;     // anchored pickers (DatePicker) above tooltips
+  --z-particles: 1200;     // transient decorative particles (HeartBurst) - pointer-events: none, so sitting above all interactive chrome blocks nothing
 
   // Control size scale (heights). Buttons, chips, inputs, status badges,
   // icon-only buttons all pick from this scale. Icon glyphs and avatars
