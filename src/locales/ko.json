@@ -2626,7 +2626,7 @@
   "settings.tab.privacyData": "개인정보 및 데이터",
   "settings.tab.profiles": "프로필",
   "settings.tab.tools": "개발자 도구",
-  "settings.telemetry.description": "익명 사용 데이터를 공유하여 업데이트마다 Nexus를 더 나아지게 합니다. {privacy}",
+  "settings.telemetry.description": "Nexus는 익명 사용 통계와 대략적인 하드웨어 요약 정보를 공유하여 Nexus를 꾸준히 개선하는 데 활용합니다. 개인 정보는 포함되지 않습니다. 설치 시 항상 한 번 익명 신호를 보냅니다. 이 설정을 끄면 마지막으로 한 번 더 익명 신호를 보낸 뒤, Nexus는 더 이상 어떠한 텔레메트리도 보내지 않습니다. {privacy}",
   "settings.telemetry.label": "Nexus 개선에 도움을 주세요",
   "settings.theme": "테마",
   "settings.theme.dark": "다크",

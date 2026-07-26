@@ -2626,7 +2626,7 @@
   "settings.tab.privacyData": "Privacy e dati",
   "settings.tab.profiles": "Profili",
   "settings.tab.tools": "Strumenti dev",
-  "settings.telemetry.description": "Condivide informazioni di utilizzo anonime per aiutarci a migliorare Nexus a ogni aggiornamento. {privacy}",
+  "settings.telemetry.description": "Nexus condivide statistiche di utilizzo anonime e un riepilogo generale dell'hardware - mai dati personali - per aiutarci a migliorarlo sempre di più. Quando viene installato, Nexus invia sempre un segnale anonimo univoco. Se disattivi questa opzione, viene inviato un ultimo segnale anonimo, dopodiché Nexus non invia più alcuna telemetria. {privacy}",
   "settings.telemetry.label": "Aiuta a migliorare Nexus",
   "settings.theme": "Tema",
   "settings.theme.dark": "Scuro",

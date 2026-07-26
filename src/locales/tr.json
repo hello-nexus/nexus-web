@@ -2626,7 +2626,7 @@
   "settings.tab.privacyData": "Gizlilik ve veri",
   "settings.tab.profiles": "Profiller",
   "settings.tab.tools": "Geliştirici araçları",
-  "settings.telemetry.description": "Her güncellemede Nexus'u daha iyi hale getirebilmemiz için anonim kullanım bilgilerini paylaşır. {privacy}",
+  "settings.telemetry.description": "Nexus, onu sürekli geliştirmemize yardımcı olmak için anonim kullanım istatistiklerini ve genel bir donanım özetini paylaşır - bunlarda asla kişisel hiçbir bilgi yer almaz. Nexus kurulduğunda her zaman tek seferlik anonim bir sinyal gönderilir. Bunu kapatırsanız son bir anonim sinyal gönderilir ve bundan sonra Nexus hiçbir telemetri göndermez. {privacy}",
   "settings.telemetry.label": "Nexus'u geliştirmemize yardımcı olun",
   "settings.theme": "Tema",
   "settings.theme.dark": "Koyu",

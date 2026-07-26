@@ -124,4 +124,51 @@ export const TELEMETRY_EVENTS: TelemetryEventDoc[] = [
       { name: 'transport', type: 'string', required: true, description: 'lan | relay - how the pairing claim reached the PC.' },
     ],
   },
+  {
+    name: 'install',
+    title: 'Install',
+    status: 'planned',
+    source: 'service',
+    description: 'Fires once on first boot while opted in - reaches virtually every fresh install under the default-on consent, plus a one-time backfill for existing opted-in installs on upgrade. Dual-sink (PostHog + nexus-api fleet_events table). Deduped once per install id via a persisted delivered flag plus server-side idempotency.',
+    params: [
+      { name: 'version', type: 'string', required: true, description: 'Nexus build version (BuildInfo.Version).' },
+      { name: 'osVersion', type: 'string', required: true, description: 'Full OS version string, e.g. "10.0.22631" or "14.5".' },
+      { name: 'arch', type: 'string', required: true, description: 'CPU architecture, e.g. x64 or arm64.' },
+      { name: 'deviceType', type: 'string', required: true, description: 'Host device class, e.g. desktop or laptop.' },
+    ],
+  },
+  {
+    name: 'specs',
+    title: 'Hardware specs',
+    status: 'planned',
+    source: 'service',
+    description: 'Fires once while opted in, then again only when the hardware summary hash changes (e.g. a component swap). Upserts the latest snapshot per install id rather than appending.',
+    params: [
+      { name: 'cpu', type: 'string', required: true, description: 'CPU model name.' },
+      { name: 'gpu', type: 'string', required: false, description: 'GPU model name(s), comma-separated on a multi-GPU system.' },
+      { name: 'ramBytes', type: 'number', required: true, description: 'Total installed RAM, in bytes.' },
+      { name: 'motherboard', type: 'string', required: true, description: 'Motherboard model name.' },
+      { name: 'osVersion', type: 'string', required: true, description: 'Full OS version string.' },
+    ],
+  },
+  {
+    name: 'opt_out',
+    title: 'Opted out',
+    status: 'planned',
+    source: 'service',
+    description: 'Fires on a true-to-false consent transition, from either the welcome screen or Settings. The one event still delivered after opting out - a bounded retry until it lands once per sink, then telemetry goes fully silent. Appended (not deduped); the latest status wins.',
+    params: [
+      { name: 'version', type: 'string', required: true, description: 'Nexus build version at the time of the transition.' },
+    ],
+  },
+  {
+    name: 'opt_in',
+    title: 'Opted in',
+    status: 'planned',
+    source: 'service',
+    description: 'Fires on a false-to-true consent transition from Settings - not the initial welcome-screen confirmation, which is covered by install. Appended (not deduped); the latest status wins.',
+    params: [
+      { name: 'version', type: 'string', required: true, description: 'Nexus build version at the time of the transition.' },
+    ],
+  },
 ];

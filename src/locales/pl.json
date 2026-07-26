@@ -2630,7 +2630,7 @@
   "settings.tab.privacyData": "Prywatność i dane",
   "settings.tab.profiles": "Profile",
   "settings.tab.tools": "Narzędzia deweloperskie",
-  "settings.telemetry.description": "Udostępnia anonimowe dane o użytkowaniu, dzięki czemu możemy ulepszać Nexus z każdą aktualizacją. {privacy}",
+  "settings.telemetry.description": "Nexus udostępnia anonimowe statystyki użytkowania oraz ogólne podsumowanie sprzętu - nigdy nic osobistego - aby pomóc nam go stale ulepszać. Podczas instalacji Nexus zawsze wysyła jednorazowy anonimowy sygnał. Po wyłączeniu tej opcji zostanie wysłany ostatni anonimowy sygnał, a potem Nexus nie będzie już wysyłać żadnej telemetrii. {privacy}",
   "settings.telemetry.label": "Pomóż ulepszać Nexus",
   "settings.theme": "Motyw",
   "settings.theme.dark": "Ciemny",

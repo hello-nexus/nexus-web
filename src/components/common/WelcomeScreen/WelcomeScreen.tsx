@@ -11,6 +11,7 @@ import { PlatformIcon } from '../../icons/PlatformIcons';
 import { NexusWordmark } from '../../icons/NexusBrand';
 import { buildTelemetryConsentDescription } from '../../../lib/telemetryConsent';
 import { postService } from '../../../api/service';
+import { fetchTelemetryConsent } from '../../../api/telemetry';
 import { completeOnboarding } from '../../../api/onboarding';
 import { setAutoStart } from '../../../api/autoStart';
 import { getUpdateStatus } from '../../../api/update';
@@ -48,7 +49,10 @@ const CAPABILITIES: readonly { Icon: LucideIcon; key: string }[] = [
 export function WelcomeScreen({ open, platform, onComplete }: WelcomeScreenProps) {
   const { t } = useTranslation();
   const [startWithOs, setStartWithOsValue] = useState(true);
-  const [telemetryOn, setTelemetryOn] = useState(false);
+  // null while the seed from GET /telemetry/consent is in flight - matches
+  // PrivacyTab's hydration pattern so useHeartBurstTrigger treats the loaded
+  // value as the baseline, never as a false-to-true transition to animate.
+  const [telemetryOn, setTelemetryOn] = useState<boolean | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(false);
   const [currentVersion, setCurrentVersion] = useState('');
@@ -60,6 +64,18 @@ export function WelcomeScreen({ open, platform, onComplete }: WelcomeScreenProps
     let cancelled = false;
     getUpdateStatus().then(s => {
       if (s && !cancelled) setCurrentVersion(s.currentVersion);
+    });
+    return () => { cancelled = true; };
+  }, [open]);
+
+  // Seeds the toggle from service truth: on for a fresh install under the
+  // default-on model, off for an upgrader who previously declined. Falls
+  // back to off on any fetch failure.
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    fetchTelemetryConsent().then(res => {
+      if (!cancelled) setTelemetryOn(res?.enabled ?? false);
     });
     return () => { cancelled = true; };
   }, [open]);
@@ -80,7 +96,7 @@ export function WelcomeScreen({ open, platform, onComplete }: WelcomeScreenProps
     setError(false);
     try {
       await Promise.all([
-        postService('/telemetry/consent', { enabled: telemetryOn }),
+        postService('/telemetry/consent', { enabled: telemetryOn ?? false }),
         showStartWithOs ? setAutoStart(startWithOs) : null,
       ]);
       const result = await completeOnboarding();
@@ -139,18 +155,20 @@ export function WelcomeScreen({ open, platform, onComplete }: WelcomeScreenProps
             disabled={submitting}
           />
         )}
-        <div className={styles.telemetryRow}>
-          <SettingToggle
-            label={t('settings.telemetry.label')}
-            icon={<Heart size={28} />}
-            iconLeading
-            description={buildTelemetryConsentDescription(t)}
-            checked={telemetryOn}
-            onChange={setTelemetryOn}
-            disabled={submitting}
-          />
-          <HeartBurst burstKey={burstKey} originTop={24} />
-        </div>
+        {telemetryOn !== null && (
+          <div className={styles.telemetryRow}>
+            <SettingToggle
+              label={t('settings.telemetry.label')}
+              icon={<Heart size={28} />}
+              iconLeading
+              description={buildTelemetryConsentDescription(t)}
+              checked={telemetryOn}
+              onChange={setTelemetryOn}
+              disabled={submitting}
+            />
+            <HeartBurst burstKey={burstKey} originTop={24} />
+          </div>
+        )}
       </SettingsSection>
       <p className={styles.hint}>{t('welcome.preferences.hint')}</p>
 

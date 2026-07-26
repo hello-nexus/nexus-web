@@ -2626,7 +2626,7 @@
   "settings.tab.privacyData": "隱私與資料",
   "settings.tab.profiles": "設定檔",
   "settings.tab.tools": "開發者工具",
-  "settings.telemetry.description": "共享匿名使用資料，協助我們在每次更新中改善 Nexus。{privacy}",
+  "settings.telemetry.description": "Nexus 會共享匿名使用資料和大致的硬體摘要 - 絕不包含任何個人資料 - 藉此協助我們持續改善。安裝 Nexus 時，一律會傳送一次匿名信號。關閉此設定後，會傳送最後一次匿名信號，之後 Nexus 就不會再傳送任何遙測資料。{privacy}",
   "settings.telemetry.label": "幫助改善 Nexus",
   "settings.theme": "佈景主題",
   "settings.theme.dark": "深色",
