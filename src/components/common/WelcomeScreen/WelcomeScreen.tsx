@@ -49,9 +49,7 @@ const CAPABILITIES: readonly { Icon: LucideIcon; key: string }[] = [
 export function WelcomeScreen({ open, platform, onComplete }: WelcomeScreenProps) {
   const { t } = useTranslation();
   const [startWithOs, setStartWithOsValue] = useState(true);
-  // null while the seed from GET /telemetry/consent is in flight - matches
-  // PrivacyTab's hydration pattern so useHeartBurstTrigger treats the loaded
-  // value as the baseline, never as a false-to-true transition to animate.
+  // null until seeded, so useHeartBurstTrigger treats the load as baseline, not a transition to animate.
   const [telemetryOn, setTelemetryOn] = useState<boolean | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(false);
@@ -68,9 +66,7 @@ export function WelcomeScreen({ open, platform, onComplete }: WelcomeScreenProps
     return () => { cancelled = true; };
   }, [open]);
 
-  // Seeds the toggle from service truth: on for a fresh install under the
-  // default-on model, off for an upgrader who previously declined. Falls
-  // back to off on any fetch failure.
+  // Seeds from service truth: on for a fresh default-on install, off for an upgrader who declined; false on any fetch failure.
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
