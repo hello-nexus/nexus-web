@@ -1218,6 +1218,9 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeMode = 'dark'
                 <ErrorBoundary label={widget.type}>
                   <Comp
                     widget={widget}
+                    // The preview mirrors the target surface's interactivity.
+                    surface={surface}
+                    deviceTouch={deviceTouch}
                     selectedSlot={usesSlotSelection ? selectedMonitoringSlot : undefined}
                     onSelectSlot={usesSlotSelection ? setSelectedMonitoringSlot : undefined}
                     editView={usesSlotSelection ? deckEditView : undefined}

@@ -81,7 +81,7 @@
   }
 }
 
-.panelRoot[data-theme='light'] .exitHint::before {
+:global(.panel-root)[data-theme='light'] .exitHint::before {
   background: color-mix(in srgb, black 30%, transparent);
 }
 
