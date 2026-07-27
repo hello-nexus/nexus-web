@@ -28,12 +28,13 @@ export function TimerWidget({ widget }: WidgetProps) {
   const [seconds, setSeconds] = useState(0);
 
   const isWide = widget.size === '4x2' || widget.size === '4x4';
+  const canStart = hours > 0 || minutes > 0 || seconds > 0;
 
   const handleStart = useCallback(() => {
-    if (hours === 0 && minutes === 0 && seconds === 0) return;
+    if (!canStart) return;
     start(hours, minutes, seconds);
     setPhase('running');
-  }, [hours, minutes, seconds, start]);
+  }, [canStart, hours, minutes, seconds, start]);
 
   const handleStop = useCallback(() => {
     stop();
@@ -67,7 +68,8 @@ export function TimerWidget({ widget }: WidgetProps) {
           type="button"
           className={`panel-chip ${styles.startBtn}`}
           onClick={handleStart}
-          disabled={hours === 0 && minutes === 0 && seconds === 0}
+          disabled={!canStart}
+          data-active={canStart ? 'true' : undefined}
         >
           <Play size={16} />
           {isWide && <span>{t('panel.stopwatch.start')}</span>}
@@ -113,6 +115,7 @@ export function TimerWidget({ widget }: WidgetProps) {
             type="button"
             className={`panel-chip ${styles.resetBtn}`}
             onClick={handleReset}
+            data-active="true"
           >
             <RotateCcw size={16} />
             {isWide && <span>{t('panel.stopwatch.reset')}</span>}
@@ -140,12 +143,12 @@ function Stepper({ label, value, min, max, onChange, t }: StepperProps) {
   return (
     <div className={styles.stepper}>
       {/* eslint-disable-next-line i18next/no-literal-string -- decorative arrow glyph */}
-      <button type="button" className={styles.stepBtn} onClick={inc} aria-label={t('panel.widget.timer.increase', { unit: label })}>
+      <button type="button" className={`panel-chip ${styles.stepBtn}`} onClick={inc} aria-label={t('panel.widget.timer.increase', { unit: label })}>
         &#x25B2;
       </button>
       <span className={styles.stepValue}>{pad(value)}</span>
       {/* eslint-disable-next-line i18next/no-literal-string -- decorative arrow glyph */}
-      <button type="button" className={styles.stepBtn} onClick={dec} aria-label={t('panel.widget.timer.decrease', { unit: label })}>
+      <button type="button" className={`panel-chip ${styles.stepBtn}`} onClick={dec} aria-label={t('panel.widget.timer.decrease', { unit: label })}>
         &#x25BC;
       </button>
     </div>
