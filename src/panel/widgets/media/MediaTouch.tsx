@@ -38,10 +38,12 @@ export function MediaTouch({ immersiveGrid }: WidgetProps) {
   const { t } = useTranslation();
   const { sessions } = useMedia(true);
   const [artAsset, setArtAsset] = useState<MediaArtAsset>({ key: '', signature: '', url: '' });
+  const [hdArtAsset, setHdArtAsset] = useState<MediaArtAsset>({ key: '', signature: '', url: '' });
   const active = pickActive(sessions);
   const activeKey = active?.key ?? '';
   const artSig = mediaArtSignature(active?.session);
   const artUrl = artAsset.key === activeKey && artAsset.signature === artSig ? artAsset.url : '';
+  const hdArtUrl = hdArtAsset.key === activeKey && hdArtAsset.signature === artSig ? hdArtAsset.url : '';
 
   useEffect(() => {
     if (!activeKey) return;
@@ -64,12 +66,30 @@ export function MediaTouch({ immersiveGrid }: WidgetProps) {
     };
   }, [activeKey, artSig]);
 
+  // Optional high-res upgrade for the immersive view: swaps in only when the
+  // service resolves catalog art; any miss leaves the standard art in place.
+  useEffect(() => {
+    if (!activeKey) return;
+    let cancelled = false;
+    let blobUrl: string | null = null;
+    fetchServiceBlob(`/api/media/${encodeURIComponent(activeKey)}/album-art-hd`).then(blob => {
+      if (cancelled || !blob) return;
+      const url = URL.createObjectURL(blob);
+      blobUrl = url;
+      setHdArtAsset({ key: activeKey, signature: artSig, url });
+    }).catch(() => {});
+    return () => {
+      cancelled = true;
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+    };
+  }, [activeKey, artSig]);
+
   const cell = !active ? (
     <div className={styles.empty}>
       <EmptyState icon={<Music strokeWidth={1.5} />} title={t('panel.media.empty')} />
     </div>
   ) : (
-    <MediaPlayer session={active.session} sourceKey={active.key} artUrl={artUrl} t={t} />
+    <MediaPlayer session={active.session} sourceKey={active.key} artUrl={hdArtUrl || artUrl} t={t} />
   );
 
   return (
