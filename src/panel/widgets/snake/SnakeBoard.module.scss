@@ -1,0 +1,45 @@
+.box {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  // Owns its own swipe gesture end-to-end; a browser pan/scroll must never
+  // intercept the drag.
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+
+.board {
+  position: relative;
+  background: var(--surface);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius);
+}
+
+.segment,
+.head,
+.food {
+  position: absolute;
+  box-sizing: border-box;
+  border-radius: var(--radius-sm);
+}
+
+.segment,
+.head {
+  background: var(--accent-glow);
+  padding: 1px;
+}
+
+.head {
+  background: var(--accent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-glow) 60%, transparent);
+}
+
+.food {
+  background: var(--chart-line-alt);
+  border-radius: var(--radius-pill);
+}

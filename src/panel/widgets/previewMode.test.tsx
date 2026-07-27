@@ -96,6 +96,10 @@ const PREVIEW_CONTENT: Record<string, string[]> = {
   // The mocked t() returns keys, so the fixture's machineName surfaces as the
   // idle 'transfer.sendTo' status line rather than 'Nexus-PC' itself.
   transfer: ['transfer.photo', 'transfer.clipboard', 'transfer.sendTo'],
+  // The mocked t() drops interpolation params, so the best-score fixture
+  // value never renders - assert on the keys the tile always shows instead.
+  snake: ['panel.widget.snake.best', 'panel.widget.snake.play'],
+  blocks: ['panel.widget.blocks.best', 'panel.widget.blocks.play'],
 };
 
 function panelWidget(type: string, size: PanelWidgetSize): PanelWidget {

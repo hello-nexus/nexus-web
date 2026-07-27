@@ -1,0 +1,138 @@
+.root {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-lg);
+  padding: var(--space-xl) var(--space-lg);
+  overflow-y: auto;
+  color: var(--text);
+}
+
+.summary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  text-align: center;
+}
+
+.title {
+  font-size: var(--type-heading);
+  font-weight: var(--weight-heading);
+  color: var(--text-dim);
+}
+
+.score {
+  font-size: var(--type-hero);
+  font-weight: var(--weight-display);
+  font-family: var(--font-mono);
+  color: var(--accent-glow);
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  color: var(--text-dim);
+  font-size: var(--type-small);
+}
+
+.metaSep {
+  opacity: 0.6;
+}
+
+.board {
+  width: 100%;
+  max-width: 26rem;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  background: var(--surface);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  overflow-y: auto;
+}
+
+.boardTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  color: var(--text-dim);
+  font-size: var(--type-mini);
+  text-transform: uppercase;
+  font-weight: var(--weight-strong);
+}
+
+.status {
+  padding: var(--space-md) 0;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: var(--type-small);
+}
+
+.errorLine {
+  padding: var(--space-sm) 0;
+  text-align: center;
+  color: var(--warn);
+  font-size: var(--type-small);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 2rem 1fr auto;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-size: var(--type-small);
+}
+
+.row[data-own='true'] {
+  background: var(--accent-soft);
+  color: var(--accent-glow);
+}
+
+.rank {
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+}
+
+.row[data-own='true'] .rank {
+  color: inherit;
+}
+
+.name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowScore {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.ownBadge {
+  flex: 0 0 auto;
+  font-size: var(--type-tiny);
+  text-transform: uppercase;
+  color: var(--accent-glow);
+  opacity: 0.8;
+}

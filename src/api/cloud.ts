@@ -1,5 +1,6 @@
 import { getToken, handleUnauthorized } from './auth';
 import { fetchService, loopbackFetchInit, patchService, postService, resolveHttp } from './service';
+import type { GameLeaderboardEntry, GameType } from '../types/games';
 
 export interface CloudAvatar {
   large: string;
@@ -226,6 +227,29 @@ export interface CloudBenchmarkSubmitResponse {
 // upstream failure collapses to null like every other postService call.
 export const submitCloudBenchmark = (payload: CloudBenchmarkSubmitBody) =>
   postService<CloudBenchmarkSubmitResponse>('/cloud/benchmarks/submit', payload);
+
+export interface CloudGameScoreSubmitBody {
+  gameType: GameType;
+  score: number;
+  durationMs: number;
+  // The nexus-api game_score entity's anonymous subject key (getDeviceId()'s
+  // browser-local id) - named to match that column, NOT the same value as
+  // CloudDeviceItem.installId above (the account's registered device id).
+  installId: string;
+}
+
+export interface CloudGameScoreSubmitResponse {
+  best: number;
+  rank: number;
+  entries: GameLeaderboardEntry[];
+}
+
+// Forwards to api.hellonexus.com/games/scores with the active cloud account's
+// bearer attached server-side (or anonymously when signed out), mirroring
+// submitCloudBenchmark. The top board comes back in the same response so a
+// game-over screen needs one call.
+export const submitGameScore = (payload: CloudGameScoreSubmitBody) =>
+  postService<CloudGameScoreSubmitResponse>('/cloud/games/scores', payload);
 
 export const fetchCloudSyncStatus = () =>
   fetchService<SyncStatus>('/cloud/sync/status');

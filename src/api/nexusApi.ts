@@ -4,6 +4,7 @@
 // committed .env.development points `npm run dev` at a local API.
 
 import type { BenchmarkVersionInfo, LeaderboardResponse } from '../types/benchmark';
+import type { GameScoresResponse, GameType } from '../types/games';
 
 const DEFAULT_API = 'https://api.hellonexus.com';
 const BASE = import.meta.env.VITE_API_URL ?? DEFAULT_API;
@@ -78,4 +79,25 @@ export function getDeviceId(): string {
   id = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
   localStorage.setItem(key, id);
   return id;
+}
+
+/**
+ * GET /games/scores - public top-scores board for a panel game type. Same
+ * cold-start retry shape as getLeaderboard: transient network/5xx/429
+ * failures retry with backoff, a non-transient 4xx returns null immediately.
+ */
+export async function getGameScores(gameType: GameType, limit = 20): Promise<GameScoresResponse | null> {
+  const qs = new URLSearchParams({ gameType, limit: String(limit) });
+  const url = `${BASE}/games/scores?${qs.toString()}`;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch(url);
+      if (res.ok) return (await res.json()) as GameScoresResponse;
+      if (res.status < 500 && res.status !== 429) return null;
+    } catch {
+      // network error: fall through to retry
+    }
+    if (attempt < 2) await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)));
+  }
+  return null;
 }

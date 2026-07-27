@@ -1,0 +1,68 @@
+.box {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  // Owns tap/drag/swipe end-to-end; a browser pan/scroll must never
+  // intercept the gesture.
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+  border-radius: var(--radius);
+}
+
+.board {
+  position: relative;
+  background: var(--surface);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.cell {
+  position: absolute;
+  box-sizing: border-box;
+  border-radius: var(--radius-sm);
+  padding: 1px;
+  background-clip: content-box;
+}
+
+.cell[data-color='cyan']   { background: #4dd0e1; }
+.cell[data-color='yellow'] { background: #ffca28; }
+.cell[data-color='purple'] { background: #ab47bc; }
+.cell[data-color='green']  { background: #66bb6a; }
+.cell[data-color='red']    { background: #ef5350; }
+.cell[data-color='blue']   { background: #42a5f5; }
+.cell[data-color='orange'] { background: #ffa726; }
+
+.box[data-combo-tier='1'] {
+  animation: comboGlow 900ms ease-in-out infinite;
+}
+
+.box[data-combo-tier='2'] {
+  animation: comboGlow 700ms ease-in-out infinite, comboShake 400ms ease-in-out infinite;
+}
+
+.box[data-combo-tier='3'] {
+  animation: comboGlow 500ms ease-in-out infinite, comboShake 250ms ease-in-out infinite;
+}
+
+@keyframes comboGlow {
+  0%, 100% { box-shadow: 0 0 0 2px var(--accent-glow-shadow); }
+  50%      { box-shadow: 0 0 0 6px var(--accent-glow-shadow); }
+}
+
+@keyframes comboShake {
+  0%, 100% { transform: translateX(0); }
+  25%      { transform: translateX(-3px); }
+  75%      { transform: translateX(3px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .box[data-combo-tier] {
+    animation: none;
+  }
+}
