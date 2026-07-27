@@ -244,6 +244,7 @@ export function PanelWidgetCatalog({
           key={w.id}
           widget={w}
           surface={surface}
+          deviceTouch={deviceTouch}
           label={def ? t(def.meta.i18nKey) || w.type : w.type}
           selected={selectedWidgetType === w.type}
           disabled={!addable}

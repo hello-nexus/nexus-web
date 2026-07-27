@@ -4,7 +4,7 @@ import {
   Volume, Volume1, Volume2, VolumeX,
 } from 'lucide-react';
 import { ImmersiveLayout } from '../common/ImmersiveLayout';
-import { useMedia, controlMedia, type MediaSession } from '../../../hooks/useMedia';
+import { useMedia, controlMedia, seekMedia, type MediaSession } from '../../../hooks/useMedia';
 import { useSystemVolume } from '../../../hooks/useSystemVolume';
 import { fetchServiceBlob } from '../../../api/service';
 import { useTranslation } from '../../../lib/i18n';
@@ -34,6 +34,13 @@ function VolumeIcon({ volume, muted }: { volume: number; muted: boolean }) {
   return <Volume2 strokeWidth={1.8} />;
 }
 
+// Unknown paths fall through to the SPA, so a 200 can carry index.html instead
+// of image bytes - a service predating /album-art-hd answers that way, and
+// createObjectURL on the HTML renders a broken <img>. Require image bytes.
+function isImageBlob(blob: Blob | null): blob is Blob {
+  return !!blob && blob.size > 0 && blob.type.startsWith('image/');
+}
+
 export function MediaTouch({ immersiveGrid }: WidgetProps) {
   const { t } = useTranslation();
   const { sessions } = useMedia(true);
@@ -50,7 +57,7 @@ export function MediaTouch({ immersiveGrid }: WidgetProps) {
     let cancelled = false;
     let blobUrl: string | null = null;
     fetchServiceBlob(`/api/media/${encodeURIComponent(activeKey)}/album-art`).then(blob => {
-      if (cancelled || !blob) {
+      if (cancelled || !isImageBlob(blob)) {
         if (!cancelled) setArtAsset({ key: activeKey, signature: artSig, url: '' });
         return;
       }
@@ -73,7 +80,7 @@ export function MediaTouch({ immersiveGrid }: WidgetProps) {
     let cancelled = false;
     let blobUrl: string | null = null;
     fetchServiceBlob(`/api/media/${encodeURIComponent(activeKey)}/album-art-hd`).then(blob => {
-      if (cancelled || !blob) return;
+      if (cancelled || !isImageBlob(blob)) return;
       const url = URL.createObjectURL(blob);
       blobUrl = url;
       setHdArtAsset({ key: activeKey, signature: artSig, url });
@@ -84,33 +91,86 @@ export function MediaTouch({ immersiveGrid }: WidgetProps) {
     };
   }, [activeKey, artSig]);
 
-  const cell = !active ? (
-    <div className={styles.empty}>
-      <EmptyState icon={<Music strokeWidth={1.5} />} title={t('panel.media.empty')} />
-    </div>
-  ) : (
-    <MediaPlayer session={active.session} sourceKey={active.key} artUrl={hdArtUrl || artUrl} t={t} />
-  );
+  const gridColumns = immersiveGrid?.columns ?? 4;
+  const gridRows = immersiveGrid?.rows ?? 8;
 
+  if (!active) {
+    return (
+      <ImmersiveLayout
+        cells={[
+          <div className={styles.empty}>
+            <EmptyState icon={<Music strokeWidth={1.5} />} title={t('panel.media.empty')} />
+          </div>,
+        ]}
+        gridColumns={gridColumns}
+        gridRows={gridRows}
+      />
+    );
+  }
+
+  // Art and player are two 4x4 cells, so the shared layout places them side by
+  // side in landscape and stacked in portrait off one code path. fillLast=false
+  // keeps both at a true 4x4 and centres the pair instead of letting the player
+  // absorb the rest of a wide panel (the Xeneon Edge is 14 columns); an explicit
+  // cellsPerPage keeps them on ONE page on short grids, where the derived fit
+  // (floor(rows/4) = 1 on a 4x6 phone) would otherwise split them across a swipe.
+  const art = hdArtUrl || artUrl;
   return (
-    <ImmersiveLayout
-      cells={[cell]}
-      gridColumns={immersiveGrid?.columns ?? 4}
-      gridRows={immersiveGrid?.rows ?? 8}
-    />
+    <div className={styles.immersiveRoot}>
+      {/* Backdrop uses the standard art, not the HD upgrade: it is blurred past
+          the point the extra resolution can show, so the bigger decode buys
+          nothing. */}
+      {artUrl && (
+        <div className={styles.backdrop} aria-hidden="true">
+          <img className={styles.backdropArt} src={artUrl} alt="" />
+          <div className={styles.backdropTint} />
+        </div>
+      )}
+      <div className={styles.immersiveContent}>
+        <ImmersiveLayout
+          cells={[
+            <MediaArtCell artUrl={art} />,
+            <MediaPlayerCell session={active.session} sourceKey={active.key} t={t} />,
+          ]}
+          gridColumns={gridColumns}
+          gridRows={gridRows}
+          fillLast={false}
+          cellsPerPage={2}
+        />
+      </div>
+    </div>
   );
 }
 
-function MediaPlayer({
+function MediaArtCell({ artUrl }: { artUrl: string }) {
+  // Bytes that pass the image content-type check can still fail to decode;
+  // fall back to the placeholder rather than leaving a broken <img>.
+  const [failedUrl, setFailedUrl] = useState('');
+  const showArt = !!artUrl && failedUrl !== artUrl;
+  return (
+    <div className={styles.artCell}>
+      {showArt ? (
+        <img
+          className={styles.artwork}
+          src={artUrl}
+          alt=""
+          onError={() => setFailedUrl(artUrl)}
+        />
+      ) : (
+        <div className={styles.artworkPlaceholder}><Music size={64} strokeWidth={1.4} /></div>
+      )}
+    </div>
+  );
+}
+
+function MediaPlayerCell({
   session,
   sourceKey,
-  artUrl,
   t,
 }: {
   session: MediaSession;
   sourceKey: string;
-  artUrl: string;
-  t: (k: string) => string;
+  t: (k: string, params?: Record<string, string | number>) => string;
 }) {
   const control = (action: string) => { void controlMedia(sourceKey, action); };
   const playing = session.playback.playing && !session.playback.stopped;
@@ -118,31 +178,27 @@ function MediaPlayer({
   const repeatActive = repeatMode === 'List' || repeatMode === 'Track';
   const RepeatIcon = repeatMode === 'Track' ? Repeat1 : Repeat;
 
-  const progress = session.playback.durationMs > 0
-    ? Math.min(100, (session.playback.positionMs / session.playback.durationMs) * 100)
-    : 0;
-
   const volumeBridge = useSystemVolume(true);
   const { state: volume, previewVolume, commitVolume, setMuted } = volumeBridge;
 
   return (
     <div className={styles.player}>
-      <div className={styles.artworkWrap}>
-        {artUrl ? (
-          <img className={styles.artwork} src={artUrl} alt="" />
-        ) : (
-          <div className={styles.artworkPlaceholder}><Music size={64} strokeWidth={1.4} /></div>
-        )}
-      </div>
+      {session.sourceAppName && (
+        <div className={styles.source}>{t('panel.media.playingOn', { source: session.sourceAppName })}</div>
+      )}
       <div className={styles.meta}>
         <div className={styles.title}>{session.song.title || t('panel.media.unknownTitle')}</div>
         <div className={styles.artist}>{session.song.artist || ''}</div>
         {session.song.album && <div className={styles.album}>{session.song.album}</div>}
       </div>
       {session.playback.durationMs > 0 && (
-        <div className={styles.seekBar} role="progressbar" aria-valuenow={Math.round(progress)} aria-valuemin={0} aria-valuemax={100}>
-          <div className={styles.seekFill} style={{ width: `${progress}%` }} />
-        </div>
+        <SeekBar
+          durationMs={session.playback.durationMs}
+          positionMs={session.playback.positionMs}
+          seekable={!!session.controls.isSeekEnabled}
+          onSeek={ms => seekMedia(sourceKey, ms)}
+          t={t}
+        />
       )}
       <div className={styles.controls}>
         <button
@@ -181,6 +237,134 @@ function MediaPlayer({
           t={t}
         />
       )}
+    </div>
+  );
+}
+
+// /api/media polls on a 2s cadence and the seek endpoint is fire-and-forget,
+// so there is no completion signal to await. After a release the bar therefore
+// HOLDS the requested position until a poll reports a position near it -
+// dropping straight back to the last polled value is what made a seek snap
+// back to where it started for up to a poll interval.
+const SEEK_CONFIRM_WINDOW_MS = 3_000;
+// A player that silently refuses the seek would otherwise pin the bar to a
+// position it never reaches; release to server truth after this.
+const SEEK_CONFIRM_TIMEOUT_MS = 6_000;
+
+/**
+ * Track position with scrub-to-seek. The fill follows the pointer while
+ * dragging and the requested position after release, so it never rubber-bands
+ * between the release and the next poll. Players that do not advertise
+ * isSeekEnabled render the same bar with no interaction, since the service
+ * would silently no-op the request.
+ */
+function SeekBar({
+  durationMs,
+  positionMs,
+  seekable,
+  onSeek,
+  t,
+}: {
+  durationMs: number;
+  positionMs: number;
+  seekable: boolean;
+  onSeek: (positionMs: number) => Promise<void>;
+  t: (k: string) => string;
+}) {
+  const barRef = useRef<HTMLDivElement | null>(null);
+  const [dragPct, setDragPct] = useState<number | null>(null);
+  // Identity changes per seek, so the timeout effect below re-arms only on a
+  // new request rather than on every poll.
+  const [pending, setPending] = useState<{ pct: number; fromPositionMs: number; durationMs: number } | null>(null);
+
+  const serverPct = durationMs > 0 ? Math.min(100, (positionMs / durationMs) * 100) : 0;
+  const shown = dragPct ?? pending?.pct ?? serverPct;
+
+  // Release the optimistic hold once a LATER poll lands near the requested
+  // position. Comparing against the position captured at request time matters:
+  // the first render after the request still carries the pre-seek value, so a
+  // scrub to somewhere near the current position would clear the hold at once
+  // and rubber-band anyway.
+  useEffect(() => {
+    if (!pending) return;
+    // A track change resets position and duration; the old target is moot.
+    if (durationMs !== pending.durationMs) { setPending(null); return; }
+    if (positionMs === pending.fromPositionMs) return;
+    const targetMs = (pending.pct / 100) * durationMs;
+    if (Math.abs(positionMs - targetMs) <= SEEK_CONFIRM_WINDOW_MS) setPending(null);
+  }, [pending, positionMs, durationMs]);
+
+  useEffect(() => {
+    if (!pending) return;
+    const id = setTimeout(() => setPending(null), SEEK_CONFIRM_TIMEOUT_MS);
+    return () => clearTimeout(id);
+  }, [pending]);
+
+  const pctFromEvent = (clientX: number): number => {
+    const el = barRef.current;
+    if (!el) return 0;
+    const r = el.getBoundingClientRect();
+    if (r.width <= 0) return 0;
+    return Math.max(0, Math.min(100, ((clientX - r.left) / r.width) * 100));
+  };
+
+  const commit = (pct: number) => {
+    setDragPct(null);
+    setPending({ pct, fromPositionMs: positionMs, durationMs });
+    // A rejected request must not leave the bar parked on a position the
+    // player never took.
+    // Promise.resolve so a caller returning void cannot throw here.
+    Promise.resolve(onSeek((pct / 100) * durationMs)).catch(() => setPending(null));
+  };
+
+  if (!seekable) {
+    return (
+      <div className={styles.seekBar} role="progressbar" aria-valuenow={Math.round(serverPct)} aria-valuemin={0} aria-valuemax={100}>
+        <div className={styles.seekFill} style={{ width: `${serverPct}%` }} />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      ref={barRef}
+      className={`${styles.seekBar} ${styles.seekable}`}
+      role="slider"
+      tabIndex={0}
+      aria-label={t('panel.media.seek')}
+      aria-valuenow={Math.round(shown)}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      onPointerDown={e => {
+        // Capture is an enhancement (keeps a drag alive past the bar edge);
+        // it is absent under jsdom and can throw on older WebViews, and the
+        // drag must still start when it does.
+        try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* not supported */ }
+        setDragPct(pctFromEvent(e.clientX));
+      }}
+      onPointerMove={e => {
+        if (dragPct === null) return;
+        setDragPct(pctFromEvent(e.clientX));
+      }}
+      onPointerUp={e => {
+        // Only a drag that STARTED on the bar may seek; a stray release from a
+        // gesture begun elsewhere would otherwise jump playback.
+        if (dragPct === null) return;
+        commit(dragPct);
+        void e;
+      }}
+      onPointerCancel={() => setDragPct(null)}
+      onKeyDown={e => {
+        const step = e.key === 'ArrowLeft' ? -5 : e.key === 'ArrowRight' ? 5 : 0;
+        if (!step) return;
+        e.preventDefault();
+        commit(Math.max(0, Math.min(100, shown + step)));
+      }}
+    >
+      <div
+        className={styles.seekFill}
+        style={{ width: `${shown}%`, transition: dragPct === null ? undefined : 'none' }}
+      />
     </div>
   );
 }

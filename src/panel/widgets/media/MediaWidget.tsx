@@ -38,12 +38,12 @@ function VolumeIcon({ volume, muted }: { volume: number; muted: boolean }) {
   return <Volume2 strokeWidth={1.8} />;
 }
 
-export function MediaWidget({ widget, surface }: WidgetProps) {
+export function MediaWidget({ widget, surface, deviceTouch }: WidgetProps) {
   const { t } = useTranslation();
   const preview = usePanelPreview();
   const { sessions } = useMedia(!preview);
   const [artAsset, setArtAsset] = useState<MediaArtAsset>({ key: '', signature: '', url: '' });
-  const showControls = surface ? surfaceSupportsTouch(surface) : true;
+  const showControls = surface ? surfaceSupportsTouch(surface, deviceTouch) : true;
   const compact = widget.size === '2x2';
   const tall = widget.size === '2x4';
   // Tall (2x4) is a portrait card (art over centered metadata +

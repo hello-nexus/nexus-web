@@ -63,6 +63,18 @@ export async function controlMedia(source: string, action: string): Promise<void
 }
 
 /**
+ * Jump to an absolute position. Only meaningful when the session reports
+ * controls.isSeekEnabled - the service no-ops for players that cannot seek,
+ * so callers must gate the affordance on that flag rather than relying on an
+ * error coming back.
+ */
+export async function seekMedia(source: string, positionMs: number): Promise<void> {
+  await postService(`/api/media/${encodeURIComponent(source)}/seek`, {
+    positionMs: Math.max(0, Math.round(positionMs)),
+  });
+}
+
+/**
  * Control the active session: the playing one, falling back to the first.
  * No-op when nothing is playing anywhere.
  */

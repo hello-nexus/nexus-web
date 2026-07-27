@@ -38,17 +38,22 @@
 
 .compactArtWrap {
   // Square thumbnail sized off the group height (title + controls take the
-  // rest), capped by the tile width.
-  flex: 1 1 auto;
+  // rest), capped by the tile width. Both terms are definite lengths so the
+  // box cannot resolve its width from content and collapse.
+  flex: 0 1 auto;
   min-height: 0;
   aspect-ratio: 1;
+  // Definite height drives the width through the ratio; the caps keep the
+  // square inside the cell on both axes. Deriving the width from content
+  // instead lets it collapse to a narrow sliver.
+  height: 100%;
   width: auto;
-  height: auto;
   max-width: 100%;
+  max-height: 100%;
   border-radius: var(--radius);
   overflow: hidden;
   background: var(--panel-element-bg);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-sm);
 }
 
 .compactTitle {
@@ -122,12 +127,14 @@
 }
 
 // Q-series statusOnly + tall: full-width square album art since there are no
-// controls. Reset max-height - the .statusOnly.full rule below otherwise caps
-// it and clamps the aspect-ratio:1 square into a wide rectangle.
+// controls. Reset the height cap too - the .statusOnly.full rule below
+// otherwise pins a definite height alongside the tall width, which makes both
+// axes definite, drops aspect-ratio, and renders a wide banner.
 .statusOnly.tall.full {
   .artWrap {
     max-width: 100%;
     max-height: none;
+    height: auto;
   }
 }
 
@@ -154,8 +161,8 @@
 .statusOnly {
   &.full {
     .artWrap {
-      max-width: 116px;
-      max-height: 116px;
+      // Roomier cap; the row height still wins on a short tile.
+      height: min(100%, 116px);
     }
 
     .title {
@@ -182,19 +189,19 @@
 .artWrap {
   position: relative;
   flex-shrink: 0;
-  // Size the square art off the row height (capped by max-width/height) so
-  // on a short tile it shrinks with the row instead of keeping a fixed
-  // height and overflowing down onto the controls.
-  align-self: stretch;
+  // Square sized off the row height, capped, so a short tile shrinks it
+  // rather than overflowing onto the controls. align-self must NOT be
+  // stretch: stretch applies the cross size after main-axis sizing, so the
+  // width resolves from content first and aspect-ratio can never square it -
+  // which collapsed the art to a sliver on short tiles.
+  align-self: center;
+  height: min(100%, 92px);
   width: auto;
-  height: auto;
-  max-width: 92px;
-  max-height: 92px;
   aspect-ratio: 1;
   border-radius: var(--radius);
   overflow: hidden;
   background: var(--panel-element-bg);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-sm);
 }
 
 .art {

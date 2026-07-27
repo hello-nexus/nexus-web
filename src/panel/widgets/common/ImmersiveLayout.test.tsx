@@ -46,3 +46,48 @@ describe('ImmersiveLayout pagination', () => {
     expect(pageDots()).toBe(4);
   });
 });
+
+// The media immersive view (art cell + player cell) uses fillLast=false so both
+// stay a true 4x4 and the pair centres, plus cellsPerPage=2 so short grids keep
+// them on one page instead of flooring to one cell per page.
+describe('ImmersiveLayout in the media two-cell configuration', () => {
+  const mediaCells = [<div key="art">art</div>, <div key="player">player</div>];
+
+  function renderMedia(cols: number, rows: number) {
+    const { container } = render(
+      <ImmersiveLayout cells={mediaCells} gridColumns={cols} gridRows={rows} fillLast={false} cellsPerPage={2} />,
+    );
+    const layout = container.querySelector('[data-orientation]') as HTMLElement;
+    const cells = Array.from(layout.children) as HTMLElement[];
+    return { layout, cells };
+  }
+
+  it('places both cells side by side on one page for the Xeneon Edge landscape grid', () => {
+    const { layout, cells } = renderMedia(14, 4);
+    expect(pageDots()).toBe(1);
+    expect(layout.dataset.orientation).toBe('landscape');
+    // data-fixed centres the pair rather than letting the player absorb the
+    // remaining 10 columns of the panel.
+    expect(layout.dataset.fixed).toBe('true');
+    expect(cells).toHaveLength(2);
+    // Each cell is 4 of the 14 columns.
+    for (const cell of cells) expect(cell.style.flexBasis).toBe('28.5714%');
+    // No cell grows.
+    expect(cells.some(c => c.dataset.fill === 'true')).toBe(false);
+  });
+
+  it('stacks the same two cells on one page in the Xeneon Edge portrait grid', () => {
+    const { layout, cells } = renderMedia(4, 14);
+    expect(pageDots()).toBe(1);
+    expect(layout.dataset.orientation).toBe('portrait');
+    expect(cells).toHaveLength(2);
+    for (const cell of cells) expect(cell.style.flexBasis).toBe('28.5714%');
+  });
+
+  it('keeps both cells on one page on a short phone portrait grid', () => {
+    // floor(6/4) = 1 would split art and player across a swipe; the explicit
+    // cellsPerPage keeps them together and the fixed cells shrink to fit.
+    expect(renderMedia(4, 6).cells).toHaveLength(2);
+    expect(pageDots()).toBe(1);
+  });
+});

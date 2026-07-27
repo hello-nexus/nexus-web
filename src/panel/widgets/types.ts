@@ -23,6 +23,11 @@ import type { PanelConfigValue, PanelSurface, PanelWidget, PanelWidgetSize } fro
 export interface WidgetProps {
   widget: PanelWidget;
   surface?: PanelSurface;
+  // Companion to `surface` for surfaceSupportsTouch: 'monitor' is interactive
+  // per-DEVICE (a promoted Xeneon Edge has a digitizer, a plain monitor does
+  // not), so a widget gating on touch needs both or it reads every monitor as
+  // non-interactive.
+  deviceTouch?: boolean;
   selectedSlot?: number;
   onSelectSlot?: (slot: number) => void;
   // Provided by the touch overlay so widgets can lay out their

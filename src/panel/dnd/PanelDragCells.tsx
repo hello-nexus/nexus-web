@@ -112,6 +112,7 @@ export function EmptyCellDroppable({ pageId, col, row }: { pageId: string; col: 
 export function PanelTouchCell({
   widget,
   surface,
+  deviceTouch,
   rearranging,
   pressHint = false,
   dimmed = false,
@@ -136,6 +137,7 @@ export function PanelTouchCell({
 }: {
   widget: PanelWidget;
   surface?: PanelSurface;
+  deviceTouch?: boolean;
   rearranging: boolean;
   pressHint?: boolean;
   dimmed?: boolean;
@@ -272,7 +274,7 @@ export function PanelTouchCell({
       >
         <div className={`panel-card ${styles.cell}`} data-size={widget.size}>
           <div className={styles.cellScaler} style={{ pointerEvents: 'none' }}>
-            <Comp widget={widget} surface={surface} />
+            <Comp widget={widget} surface={surface} deviceTouch={deviceTouch} />
           </div>
         </div>
         <div className={styles.cellLabelStrip}>
@@ -339,6 +341,7 @@ export function PanelTouchCell({
           <Comp
             widget={widget}
             surface={surface}
+            deviceTouch={deviceTouch}
             selectedSlot={selectedSlot}
             onSelectSlot={onSelectSlot}
             editView={editView}
@@ -383,6 +386,7 @@ export function PanelTouchCell({
 export function PanelCatalogCell({
   widget,
   surface,
+  deviceTouch,
   label,
   selected = false,
   disabled = false,
@@ -391,6 +395,7 @@ export function PanelCatalogCell({
 }: {
   widget: PanelWidget;
   surface?: PanelSurface;
+  deviceTouch?: boolean;
   label: string;
   selected?: boolean;
   /** No room on the target grid: dimmed, unactivatable, out of the tab order. */
@@ -442,7 +447,7 @@ export function PanelCatalogCell({
         <div className={styles.cellScaler} style={{ pointerEvents: 'none' }}>
           <ErrorBoundary label={widget.type}>
             <PanelPreviewProvider value={true}>
-              <Comp widget={widget} surface={surface} />
+              <Comp widget={widget} surface={surface} deviceTouch={deviceTouch} />
             </PanelPreviewProvider>
           </ErrorBoundary>
         </div>
@@ -461,6 +466,7 @@ export function PanelCatalogCell({
 export function PanelDragOverlayCell({
   widget,
   surface,
+  deviceTouch,
   themeStyle,
   themeMode,
   fixedWidth,
@@ -469,6 +475,7 @@ export function PanelDragOverlayCell({
 }: {
   widget: PanelWidget;
   surface?: PanelSurface;
+  deviceTouch?: boolean;
   themeStyle: CSSProperties;
   themeMode: ResolvedPanelThemeMode;
   fixedWidth?: number;
@@ -502,7 +509,7 @@ export function PanelDragOverlayCell({
       >
         <div className={`panel-card ${styles.cell}`} data-size={widget.size}>
           <div className={styles.cellScaler} style={{ pointerEvents: 'none' }}>
-            <Comp widget={widget} surface={surface} />
+            <Comp widget={widget} surface={surface} deviceTouch={deviceTouch} />
           </div>
         </div>
         <div className={styles.cellLabelStrip}>

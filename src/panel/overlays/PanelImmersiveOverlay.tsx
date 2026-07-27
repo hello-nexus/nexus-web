@@ -1,3 +1,4 @@
+import { X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { usePanelSheetSwipe } from '../engine/usePanelSheetSwipe';
 import { useModalA11y } from '../../components/common/Overlay/useModalA11y';
@@ -14,11 +15,16 @@ interface PanelImmersiveOverlayProps {
   themeStyle?: CSSProperties;
   themeMode?: 'dark' | 'light';
   surface?: string;
+  // The simulator drives the panel with a mouse on a scaled iframe canvas,
+  // where the swipe-down dismiss is not reachable; render an explicit close
+  // affordance there. On device the swipe (and its top-centre hint) is the
+  // exit, so this stays off.
+  showCloseButton?: boolean;
 }
 
 const EXIT_MS = 200;
 
-export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, themeMode, surface }: PanelImmersiveOverlayProps) {
+export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, themeMode, surface, showCloseButton = false }: PanelImmersiveOverlayProps) {
   const { t } = useTranslation();
   const [mountState, setMountState] = useState<'mounted' | 'exiting' | 'unmounted'>(
     open ? 'mounted' : 'unmounted',
@@ -37,8 +43,16 @@ export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, them
     }, EXIT_MS);
   }, [mountState, onExit]);
 
+  // The host renders this with a literal `open`, so `open` is true for the
+  // overlay's whole life and only the CROSSING into true may cancel a pending
+  // exit. Reacting to the level instead reverts 'exiting' to 'mounted' on the
+  // very next commit and clears the timer, so beginExit (hint tap, swipe,
+  // Escape, close button) could never reach onExit.
+  const prevOpen = useRef(open);
   useEffect(() => {
-    if (open && mountState !== 'mounted') {
+    const openedNow = open && !prevOpen.current;
+    prevOpen.current = open;
+    if (open && mountState !== 'mounted' && openedNow) {
       if (exitTimer.current) {
         clearTimeout(exitTimer.current);
         exitTimer.current = null;
@@ -46,7 +60,7 @@ export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, them
       // Mount transition is driven by `open` crossing into true; render can't
       // derive 'mounted' from 'unmounted' / 'exiting' without losing the
       // cancel-pending-exit step.
-       
+
       setMountState('mounted');
     } else if (!open && mountState === 'mounted') {
       beginExit();
@@ -129,6 +143,17 @@ export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, them
         data-panel-no-sheet-swipe="true"
         aria-label={t('panel.immersive.close')}
       />
+      {showCloseButton && (
+        <button
+          type="button"
+          className={styles.closeButton}
+          onClick={beginExit}
+          data-panel-no-sheet-swipe="true"
+          aria-label={t('panel.immersive.close')}
+        >
+          <X aria-hidden />
+        </button>
+      )}
     </div>
   );
 }

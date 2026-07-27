@@ -1439,6 +1439,7 @@ export function PanelContent({
                             <PanelTouchCell
                               widget={w}
                               surface={surface}
+                              deviceTouch={deviceTouch}
                               rearranging={touch.rearranging}
                               pressHint={surface === 'phone' && !sheetMode && (touch.pressedWidgetId === w.id || contextMenuWidgetId === w.id)}
                               dimmed={Boolean(contextMenuWidgetId) && contextMenuWidgetId !== w.id}
@@ -1632,7 +1633,7 @@ export function PanelContent({
         );
       })()}
 
-      {kioskBehavior && (() => {
+      {(kioskBehavior || simulator) && (() => {
         if (!immersiveWidgetId) return null;
         const w = widgetById(immersiveWidgetId);
         if (!w) return null;
@@ -1649,10 +1650,12 @@ export function PanelContent({
             themeStyle={panelRootStyle}
             themeMode={resolvedThemeMode}
             surface={surface}
+            showCloseButton={simulator}
           >
             <Comp
               widget={w}
               surface={surface}
+              deviceTouch={deviceTouch}
               immersiveGrid={{ columns: runtimeGrid.columns, rows: runtimeGrid.rows }}
             />
           </PanelImmersiveOverlay>
@@ -1770,6 +1773,7 @@ export function PanelContent({
             <PanelDragOverlayCell
               widget={w}
               surface={surface}
+              deviceTouch={deviceTouch}
               themeStyle={overlayStyle}
               themeMode={resolvedThemeMode}
               fixedWidth={dragSnapshot.width}
