@@ -240,7 +240,10 @@ export interface CloudGameScoreSubmitBody {
 
 export interface CloudGameScoreSubmitResponse {
   best: number;
-  rank: number;
+  // null when the caller's row is per-source capped or beyond the rank scan
+  // window server-side; the wire really sends null, not an omitted field.
+  rank: number | null;
+  total: number;
   entries: GameLeaderboardEntry[];
 }
 
