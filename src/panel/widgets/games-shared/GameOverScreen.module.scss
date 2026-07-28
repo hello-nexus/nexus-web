@@ -3,11 +3,30 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: var(--space-lg);
-  padding: var(--space-xl) var(--space-lg);
+  padding: var(--space-xl) var(--space-lg) calc(var(--space-lg) + env(safe-area-inset-bottom));
   overflow-y: auto;
   color: var(--text);
+  animation: stageIn var(--ease-slow) ease-out both;
+}
+
+// ── Results stage ──
+
+// The score card and the action buttons read as one composed group, centered
+// as a unit in the available height - not a hero floating far above buttons
+// pinned to the bottom edge, which reads as bare on a very tall panel.
+// The plain `center` first is a fallback: an engine that doesn't parse the
+// `safe` keyword discards the whole second declaration and keeps this one.
+.root[data-stage='results'] {
+  justify-content: center;
+  justify-content: safe center;
+}
+
+.resultsGroup {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
 }
 
 .summary {
@@ -16,49 +35,89 @@
   align-items: center;
   gap: var(--space-xs);
   text-align: center;
+  background: var(--surface);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl) var(--space-lg);
+}
+
+.newBestBadge {
+  margin-bottom: var(--space-xs);
 }
 
 .title {
+  color: var(--text-dim);
   font-size: var(--type-heading);
   font-weight: var(--weight-heading);
-  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .score {
   font-size: var(--type-hero);
   font-weight: var(--weight-display);
   font-family: var(--font-mono);
-  color: var(--accent-glow);
+  line-height: 1;
+  margin: var(--space-xs) 0;
+  background: linear-gradient(135deg, var(--accent-glow), var(--accent));
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
 }
 
-.meta {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
+.scoreLabel {
   color: var(--text-dim);
   font-size: var(--type-small);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
-.metaSep {
-  opacity: 0.6;
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
 }
 
-.board {
-  width: 100%;
-  max-width: 26rem;
-  flex: 1 1 auto;
-  min-height: 0;
+.chip {
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  border: var(--border-width) solid var(--border);
+  color: var(--text-dim);
+  font-size: var(--type-small);
+  font-family: var(--font-mono);
+}
+
+.actions {
+  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
-  background: var(--surface);
-  border: var(--border-width) solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-md);
-  overflow-y: auto;
 }
 
-.boardTitle {
+.actionButton {
+  width: 100%;
+}
+
+// ── Leaderboard stage ──
+
+.leaderboardHeader {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+// Button's own ghost tone supplies color/hover/focus; this only flushes the
+// button back to the header's left edge against its own padding.
+.backButton {
+  margin-left: calc(-1 * var(--space-sm));
+}
+
+.leaderboardHeaderTitle {
   display: flex;
   align-items: center;
   gap: var(--space-xs);
@@ -68,18 +127,19 @@
   font-weight: var(--weight-strong);
 }
 
-.status {
-  padding: var(--space-md) 0;
-  text-align: center;
-  color: var(--text-dim);
-  font-size: var(--type-small);
-}
-
-.errorLine {
-  padding: var(--space-sm) 0;
-  text-align: center;
-  color: var(--warn);
-  font-size: var(--type-small);
+// Owns the available height below the header. A short board (few entries,
+// the empty state, the error line) centers within it via `safe center` -
+// `safe` falls back to top-aligned once content is tall enough to need the
+// scroll, so a full board never starts pre-scrolled away from rank 1. The
+// plain `center` first is a fallback for an engine that doesn't parse `safe`.
+.leaderboardBody {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  justify-content: safe center;
+  overflow-y: auto;
 }
 
 .list {
@@ -93,26 +153,55 @@
 
 .row {
   display: grid;
-  grid-template-columns: 2rem 1fr auto;
+  grid-template-columns: 2.25rem 1fr auto;
   align-items: center;
   gap: var(--space-sm);
-  padding: var(--space-xs) var(--space-sm);
-  border-radius: var(--radius-sm);
+  padding: var(--space-sm);
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: var(--border-width) solid transparent;
   font-size: var(--type-small);
 }
 
 .row[data-own='true'] {
   background: var(--accent-soft);
+  border-color: var(--control-border-accent);
   color: var(--accent-glow);
 }
 
 .rank {
+  display: flex;
+  align-items: center;
+  gap: 3px;
   color: var(--text-dim);
   font-family: var(--font-mono);
+  font-weight: var(--weight-strong);
 }
 
 .row[data-own='true'] .rank {
   color: inherit;
+}
+
+.medalIcon {
+  flex-shrink: 0;
+}
+
+// Medal tiers stay within the theme palette: rank 1 rides the semantic
+// "warn" amber, rank 3 is that same hue blended toward body text, rank 2
+// is plain full-strength text - no gold/silver/bronze literals.
+.row[data-rank='1'] .rank,
+.row[data-rank='1'] .medalIcon {
+  color: var(--warn);
+}
+
+.row[data-rank='2'] .rank,
+.row[data-rank='2'] .medalIcon {
+  color: var(--text);
+}
+
+.row[data-rank='3'] .rank,
+.row[data-rank='3'] .medalIcon {
+  color: color-mix(in srgb, var(--warn) 55%, var(--text));
 }
 
 .name {
@@ -124,15 +213,59 @@
   white-space: nowrap;
 }
 
+.nameAnonymous {
+  color: var(--text-dim);
+  font-style: italic;
+}
+
 .rowScore {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
+  font-weight: var(--weight-strong);
 }
 
-.ownBadge {
-  flex: 0 0 auto;
-  font-size: var(--type-tiny);
-  text-transform: uppercase;
-  color: var(--accent-glow);
-  opacity: 0.8;
+.errorLine {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  padding: var(--space-lg) 0;
+  text-align: center;
+  color: var(--warn);
+  font-size: var(--type-small);
+}
+
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.skeletonRow {
+  height: 2.75rem;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: var(--border-width) solid var(--border);
+  animation: skeletonPulse 1.4s ease-in-out infinite;
+}
+
+// Reuses --ease-fast as a stagger-interval unit, not a transition duration -
+// no dedicated stagger token exists.
+.skeletonRow:nth-child(2) { animation-delay: calc(var(--ease-fast) * 2); }
+.skeletonRow:nth-child(3) { animation-delay: calc(var(--ease-fast) * 4); }
+.skeletonRow:nth-child(4) { animation-delay: calc(var(--ease-fast) * 6); }
+
+@keyframes skeletonPulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 0.3; }
+}
+
+@keyframes stageIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .root { animation: none; }
+  .skeletonRow { animation: none; }
 }

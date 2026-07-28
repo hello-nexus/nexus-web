@@ -6,6 +6,7 @@ import {
   clearFullRows,
   computeDropSpeedMs,
   computeHardDropDistance,
+  computeLevel,
   comboJuiceTier,
   createEmptyBoard,
   createInitialBlocksState,
@@ -241,6 +242,32 @@ describe('blocksLogic', () => {
         const speed = computeDropSpeedMs(score);
         expect(speed).toBeLessThanOrEqual(prev);
         prev = speed;
+      }
+    });
+  });
+
+  describe('computeLevel (mirrors computeDropSpeedMs tier boundaries)', () => {
+    it('starts at level 1', () => {
+      expect(computeLevel(0)).toBe(1);
+      expect(computeLevel(499)).toBe(1);
+    });
+
+    it('steps up at each threshold', () => {
+      expect(computeLevel(500)).toBe(2);
+      expect(computeLevel(3500)).toBe(8);
+    });
+
+    it('reaches the final tier at the top score', () => {
+      expect(computeLevel(10000)).toBe(14);
+      expect(computeLevel(999_999)).toBe(14);
+    });
+
+    it('is monotonically non-decreasing as score rises', () => {
+      let prev = computeLevel(0);
+      for (let score = 0; score <= 12000; score += 250) {
+        const level = computeLevel(score);
+        expect(level).toBeGreaterThanOrEqual(prev);
+        prev = level;
       }
     });
   });

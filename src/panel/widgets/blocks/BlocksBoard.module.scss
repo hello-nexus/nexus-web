@@ -12,6 +12,15 @@
   -webkit-tap-highlight-color: transparent;
   outline: none;
   border-radius: var(--radius);
+  // Faint grid matching the live cell size (--cell, set inline) plus a soft
+  // vignette, filling the whole scaling box - not just the board rect - so
+  // letterboxing around a narrower-than-tall board still reads as a designed
+  // surface instead of dead space around a floating tile.
+  background-image:
+    radial-gradient(ellipse at center, transparent 60%, color-mix(in srgb, black 14%, transparent) 100%),
+    linear-gradient(color-mix(in srgb, var(--text) 6%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--text) 6%, transparent) 1px, transparent 1px);
+  background-size: 100% 100%, var(--cell, 100%) var(--cell, 100%), var(--cell, 100%) var(--cell, 100%);
 }
 
 .board {

@@ -1,18 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from '../../../lib/i18n';
+import { GameHud } from '../games-shared/GameHud';
 import { GameOverScreen } from '../games-shared/GameOverScreen';
 import { RotatePrompt } from '../games-shared/RotatePrompt';
 import { useGameOrientation } from '../games-shared/useGameOrientation';
 import { useGameScoreSubmission } from '../games-shared/useGameScoreSubmission';
 import { useGameBoardScale } from '../games-shared/useGameBoardScale';
-import { recordBestScore } from '../games-shared/gameBestScore';
-import { formatGameDuration } from '../games-shared/formatGameDuration';
+import { getBestScore, recordBestScore } from '../games-shared/gameBestScore';
 import { BlocksBoard } from './BlocksBoard';
 import {
   BOARD_HEIGHT,
   BOARD_WIDTH,
   comboJuiceTier,
   computeDropSpeedMs,
+  computeLevel,
   createInitialBlocksState,
   hardDrop,
   stepBlocks,
@@ -36,6 +37,7 @@ export function BlocksTouch({ immersiveGrid }: WidgetProps) {
   const { boardBoxRef, cellSize } = useGameBoardScale(BOARD_WIDTH, BOARD_HEIGHT);
   const [runState, setRunState] = useState<BlocksRunState>(() => createInitialBlocksState());
   const [elapsed, setElapsed] = useState(0);
+  const [isNewBest, setIsNewBest] = useState(false);
 
   const [startTime, setStartTime] = useState(() => Date.now());
   const submittedRef = useRef(false);
@@ -75,7 +77,9 @@ export function BlocksTouch({ immersiveGrid }: WidgetProps) {
     if (!runState.gameOver) { submittedRef.current = false; return; }
     if (submittedRef.current) return;
     submittedRef.current = true;
+    const previousBest = getBestScore(gameType);
     recordBestScore(gameType, runState.score);
+    setIsNewBest(runState.score > 0 && runState.score > previousBest);
     void submit(runState.score, Date.now() - startTime);
   }, [runState.gameOver, runState.score, submit, startTime]);
 
@@ -163,6 +167,7 @@ export function BlocksTouch({ immersiveGrid }: WidgetProps) {
     setRunState(createInitialBlocksState());
     setStartTime(Date.now());
     setElapsed(0);
+    setIsNewBest(false);
   }, []);
 
   if (runState.gameOver) {
@@ -173,7 +178,9 @@ export function BlocksTouch({ immersiveGrid }: WidgetProps) {
             title: t('panel.widget.blocks.gameOver.title'),
             scoreLabel: t('panel.widget.blocks.gameOver.score'),
             timeLabel: t('panel.widget.blocks.gameOver.time'),
+            newBest: t('panel.widget.blocks.gameOver.newBest'),
             leaderboardTitle: t('panel.widget.blocks.gameOver.leaderboard'),
+            back: t('panel.widget.blocks.gameOver.back'),
             anonymous: t('panel.widget.blocks.gameOver.anonymous'),
             loading: t('panel.widget.blocks.gameOver.loading'),
             error: t('panel.widget.blocks.gameOver.error'),
@@ -183,6 +190,7 @@ export function BlocksTouch({ immersiveGrid }: WidgetProps) {
           }}
           score={runState.score}
           elapsedMs={elapsed}
+          isNewBest={isNewBest}
           status={submission.status}
           entries={submission.entries}
           selfRank={submission.selfRank}
@@ -200,13 +208,20 @@ export function BlocksTouch({ immersiveGrid }: WidgetProps) {
 
   return (
     <div className={styles.root} data-panel-no-sheet-swipe="true">
-      <div className={styles.hud}>
-        <span className={styles.hudScore}>{t('panel.widget.blocks.scoreValue', { score: runState.score })}</span>
-        {runState.combo > 1 && (
-          <span className={styles.hudCombo}>{t('panel.widget.blocks.combo', { combo: runState.combo })}</span>
-        )}
-        <span className={styles.hudTime}>{formatGameDuration(elapsed)}</span>
-      </div>
+      <GameHud
+        scoreText={t('panel.widget.blocks.scoreValue', { score: runState.score })}
+        elapsedMs={elapsed}
+        middle={
+          <span className={styles.hudMiddle}>
+            <span className={styles.hudChip}>{t('panel.widget.blocks.level', { level: computeLevel(runState.score) })}</span>
+            {runState.combo > 1 && (
+              <span className={`${styles.hudChip} ${styles.hudChipCombo}`}>
+                {t('panel.widget.blocks.combo', { combo: runState.combo })}
+              </span>
+            )}
+          </span>
+        }
+      />
       <BlocksBoard
         board={runState.board}
         fallingBlocks={fallingBlocks}

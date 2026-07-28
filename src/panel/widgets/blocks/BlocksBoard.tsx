@@ -32,6 +32,7 @@ export function BlocksBoard({
       aria-label={boardLabel}
       tabIndex={0}
       data-combo-tier={comboTier > 0 ? comboTier : undefined}
+      style={cellSize > 0 ? ({ '--cell': `${cellSize}px` } as CSSProperties) : undefined}
       onPointerDown={onPointerDown}
       onKeyDown={onKeyDown}
     >

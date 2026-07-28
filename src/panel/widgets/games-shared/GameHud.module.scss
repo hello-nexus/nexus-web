@@ -1,0 +1,27 @@
+.hud {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin: var(--space-sm) var(--space-lg) 0;
+  padding: var(--space-xs) var(--space-md);
+  background: var(--surface);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-pill);
+}
+
+.stat {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--type-small);
+  font-weight: var(--weight-strong);
+
+  svg {
+    color: var(--accent-glow);
+    flex-shrink: 0;
+  }
+}

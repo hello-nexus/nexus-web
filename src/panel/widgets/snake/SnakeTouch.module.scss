@@ -9,16 +9,38 @@
 
 .selectPanel {
   margin: auto;
+  width: 100%;
+  max-width: 22rem;
+  padding: var(--space-lg);
+  animation: panelIn var(--ease-slow) ease-out both;
+}
+
+.menuCard {
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: var(--space-lg);
-  padding: var(--space-xl);
+  padding: var(--space-xl) var(--space-lg);
+  background: var(--surface);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.titleIcon {
+  color: var(--accent-glow);
 }
 
 .title {
   font-size: var(--type-display);
   font-weight: var(--weight-display);
+  letter-spacing: 0.01em;
 }
 
 .subtitle {
@@ -30,22 +52,21 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
-  width: 12rem;
+  width: 100%;
 }
 
-.hud {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-sm) var(--space-lg);
-  font-family: var(--font-mono);
-  font-size: var(--type-small);
+.difficultyCardWrap {
+  animation: cardIn var(--ease-slow) ease-out both;
+}
+
+.difficultyCard {
+  width: 100%;
+}
+
+.difficultyBest {
   color: var(--text-dim);
-}
-
-.hudScore {
-  color: var(--text);
-  font-weight: var(--weight-strong);
+  font-size: var(--type-small);
+  font-family: var(--font-mono);
 }
 
 .dpad {
@@ -53,19 +74,29 @@
   display: grid;
   grid-template-columns: repeat(3, auto);
   grid-template-rows: repeat(2, auto);
-  gap: var(--space-sm);
+  gap: var(--space-md);
   justify-content: center;
-  padding: var(--space-md) 0 calc(var(--space-md) + env(safe-area-inset-bottom));
+  padding: var(--space-lg) 0 calc(var(--space-lg) + env(safe-area-inset-bottom));
 }
 
-.dpadUp button, .dpadUp {
+// Sized well past the shared Button size tokens for a comfortable thumb
+// target; --icon-size is inherited by the Button's own icon span, which
+// otherwise falls back to a fixed default regardless of the icon's own size
+// prop. The `.dpad button.dpadBtn` prefix outweighs Button's own
+// `.iconOnly.size-md` width rule (two classes + a type each beats two
+// classes alone), since a same-specificity class here would lose that tie to
+// source order.
+.dpad button.dpadBtn {
+  width: 64px;
+  height: 64px;
   touch-action: manipulation;
+  --icon-size: 30px;
 }
 
 .dpadUp { grid-column: 2; grid-row: 1; }
-.dpadLeft { grid-column: 1; grid-row: 2; touch-action: manipulation; }
-.dpadRight { grid-column: 3; grid-row: 2; touch-action: manipulation; }
-.dpadDown { grid-column: 2; grid-row: 2; touch-action: manipulation; }
+.dpadLeft { grid-column: 1; grid-row: 2; }
+.dpadRight { grid-column: 3; grid-row: 2; }
+.dpadDown { grid-column: 2; grid-row: 2; }
 
 .pauseOverlay {
   position: absolute;
@@ -73,4 +104,20 @@
   display: flex;
   background: color-mix(in srgb, var(--bg-elevated) 88%, transparent);
   backdrop-filter: blur(var(--blur-backdrop));
+}
+
+@keyframes panelIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .selectPanel, .difficultyCardWrap {
+    animation: none;
+  }
 }
