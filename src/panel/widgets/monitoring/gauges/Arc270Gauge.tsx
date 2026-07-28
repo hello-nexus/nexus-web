@@ -1,4 +1,4 @@
-import { splitFormatted } from './format';
+import { GaugeValue } from './GaugeValue';
 import type { GaugeProps } from './types';
 import styles from './Arc270Gauge.module.scss';
 
@@ -22,7 +22,6 @@ export function Arc270Gauge({ value, formatted, label }: GaugeProps) {
   const clamped = Math.max(0, Math.min(100, value));
   const fillLength = (clamped / 100) * ARC_LENGTH;
   const gapLength = ARC_LENGTH - fillLength;
-  const parts = splitFormatted(formatted);
 
   return (
     <div className={styles.arc270}>
@@ -35,10 +34,7 @@ export function Arc270Gauge({ value, formatted, label }: GaugeProps) {
         />
       </svg>
       <div className={styles.center}>
-        <span className={styles.value}>
-          {parts.value}
-          {parts.unit && <span className="panel-gauge-unit">{parts.unit}</span>}
-        </span>
+        <GaugeValue formatted={formatted} className={styles.value} />
         {label && <span className={styles.label}>{label}</span>}
       </div>
     </div>

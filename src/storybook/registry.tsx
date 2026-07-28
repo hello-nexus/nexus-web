@@ -60,6 +60,7 @@ import { TextStyles } from './TextStyles';
 import { SurfaceStyles } from './SurfaceStyles';
 import { MicroBar } from '../panel/widgets/monitoring/MicroBar';
 import { GaugeTrack } from '../panel/widgets/monitoring/gauges/GaugeTrack';
+import { GaugeValue } from '../panel/widgets/monitoring/gauges/GaugeValue';
 import { pairingPreviewQr } from '../components/common/PairingQr/pairingPreviewData';
 import { PanelThemeSettings, type PanelThemeSettingsState } from '../panel/editor/PanelThemeSettings';
 import { SectionHeader } from '../components/common/SectionHeader/SectionHeader';
@@ -1427,6 +1428,22 @@ function PreviewGaugeTrack() {
   );
 }
 
+function PreviewGaugeValue() {
+  return (
+    <div className={styles.previewStack}>
+      <div style={{ fontSize: '1.8em', fontWeight: 800 }}>
+        <GaugeValue formatted="2312 RPM" />
+      </div>
+      <div style={{ fontSize: '1.8em', fontWeight: 800 }}>
+        <GaugeValue formatted="2300 RPM" />
+      </div>
+      <div style={{ width: 90, fontSize: '1.8em', fontWeight: 800, outline: '1px dashed var(--panel-card-border)' }}>
+        <GaugeValue formatted="10240.5 MB/s" />
+      </div>
+    </div>
+  );
+}
+
 function PreviewIconPicker() {
   const [icon, setIcon] = useState<DeckIcon | undefined>({ kind: 'lucide', value: 'Rocket' });
   return (
@@ -2333,6 +2350,13 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/panel/widgets/monitoring/gauges/GaugeTrack.tsx',
     description: 'Shared accent fill track composed by MicroBar rows and the BarGauge tile. Clamps to 0-100; sized via --gauge-track-width/height/glow custom props on the caller\'s wrapper.',
     Preview: PreviewGaugeTrack,
+  },
+  {
+    name: 'GaugeValue', category: 'panel-kit',
+    filePath: 'src/panel/widgets/monitoring/gauges/GaugeValue.tsx',
+    description: 'Sensor value + unit line shared by every gauge design and MicroBar. Fixed-width digit cells keep a ticking reading from reflowing, the unit can never wrap to its own line, and an over-wide reading scales down to fit.',
+    Preview: PreviewGaugeValue,
+    notes: 'Pass the design\'s own value class - this component IS the value element, so the width clamp lands on the box the design positions. Its container must clamp to the gauge width (max-width: 100%; min-width: 0) or the fit can never see an overflow.',
   },
   {
     name: 'PanelArrowButton', category: 'panel-kit',

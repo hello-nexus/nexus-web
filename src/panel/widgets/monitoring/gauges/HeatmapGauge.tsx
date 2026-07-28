@@ -1,4 +1,4 @@
-import { splitFormatted } from './format';
+import { GaugeValue } from './GaugeValue';
 import type { GaugeProps } from './types';
 import styles from './HeatmapGauge.module.scss';
 
@@ -7,8 +7,6 @@ const MIN_MIX = 28;
 const MAX_MIX = 100;
 
 export function HeatmapGauge({ formatted, label, history, historyDomain }: GaugeProps) {
-  const parts = splitFormatted(formatted);
-
   const tail = history.slice(-CELLS);
   const cells = tail.length >= CELLS ? tail : [...new Array(CELLS - tail.length).fill(0), ...tail];
 
@@ -33,10 +31,7 @@ export function HeatmapGauge({ formatted, label, history, historyDomain }: Gauge
         </div>
       </div>
       <div className={styles.info}>
-        <span className={styles.value}>
-          {parts.value}
-          {parts.unit && <span className="panel-gauge-unit">{parts.unit}</span>}
-        </span>
+        <GaugeValue formatted={formatted} className={styles.value} />
         {label && <span className={styles.label}>{label}</span>}
       </div>
     </div>

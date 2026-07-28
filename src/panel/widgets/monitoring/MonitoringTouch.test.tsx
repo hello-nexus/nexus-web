@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { gaugeReadings } from '../../../__tests__/panel/visibleText';
 import type { PanelWidget } from '../../types';
 import { MonitoringTouch } from './MonitoringTouch';
 
@@ -63,7 +64,7 @@ describe('MonitoringTouch - extras-backed devices', () => {
   it('resolves an extras-topic sensor (battery) to a live value in immersive view', () => {
     render(<MonitoringTouch widget={touchWidget()} />);
 
-    expect(screen.getByText('80')).toBeInTheDocument();
+    expect(gaugeReadings()).toContain('80%');
     expect(screen.queryByText('-')).not.toBeInTheDocument();
   });
 });

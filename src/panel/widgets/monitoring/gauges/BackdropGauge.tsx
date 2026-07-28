@@ -1,12 +1,11 @@
 import { Sparkline } from '../../../../components/common/Sparkline/Sparkline';
 import { PERF_HISTORY_SAMPLES } from '../../common/panelHistoryConfig';
-import { splitFormatted } from './format';
 import { GAUGE_LINE_THICKNESS } from './types';
+import { GaugeValue } from './GaugeValue';
 import type { GaugeProps } from './types';
 import styles from './BackdropGauge.module.scss';
 
 export function BackdropGauge({ formatted, label, history, historyDomain }: GaugeProps) {
-  const parts = splitFormatted(formatted);
   return (
     <div className={styles.backdrop}>
       <div className={styles.chart}>
@@ -25,10 +24,7 @@ export function BackdropGauge({ formatted, label, history, historyDomain }: Gaug
         />
       </div>
       <div className={styles.overlay}>
-        <span className={styles.value}>
-          {parts.value}
-          {parts.unit && <span className="panel-gauge-unit">{parts.unit}</span>}
-        </span>
+        <GaugeValue formatted={formatted} className={styles.value} />
         {label && <span className={styles.label}>{label}</span>}
       </div>
     </div>

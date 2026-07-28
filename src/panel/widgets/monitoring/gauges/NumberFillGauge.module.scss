@@ -11,19 +11,31 @@
 
 .textWrap {
   display: inline-grid;
+  // An implicit auto track is max-content sized and would not shrink for the
+  // clamp below, whatever minimum the stacked layers carry.
+  grid-template-columns: minmax(0, max-content);
   align-items: center;
-  justify-items: center;
+  // The layers stretch rather than centering: a centered grid item is sized
+  // to max-content and overflows the track, which would defeat the clamp.
+  // text-align keeps the value visually centered.
+  justify-items: stretch;
+  text-align: center;
   line-height: 1;
+  // Shrink-to-fit box: clamp it, or GaugeValue's fit never sees an overflow.
+  max-width: 100%;
+  min-width: 0;
 }
 
 .textDim,
 .textBright {
   grid-area: 1 / 1;
+  // Grid items default to a max-content minimum, which would keep the
+  // clamp above from reaching the value.
+  min-width: 0;
   font-size: 2.4em;
   font-weight: var(--weight-display);
   letter-spacing: -0.02em;
   line-height: 1;
-  font-variant-numeric: tabular-nums;
 }
 
 .textDim {

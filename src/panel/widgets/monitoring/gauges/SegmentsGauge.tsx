@@ -1,4 +1,4 @@
-import { splitFormatted } from './format';
+import { GaugeValue } from './GaugeValue';
 import type { GaugeProps } from './types';
 import styles from './SegmentsGauge.module.scss';
 
@@ -6,7 +6,6 @@ const SEGMENTS = 16;
 
 export function SegmentsGauge({ value, formatted, label }: GaugeProps) {
   const filledCount = Math.round(Math.max(0, Math.min(100, value)) / (100 / SEGMENTS));
-  const parts = splitFormatted(formatted);
 
   return (
     <div className={styles.segments}>
@@ -18,10 +17,7 @@ export function SegmentsGauge({ value, formatted, label }: GaugeProps) {
         </div>
       </div>
       <div className={styles.info}>
-        <span className={styles.value}>
-          {parts.value}
-          {parts.unit && <span className="panel-gauge-unit">{parts.unit}</span>}
-        </span>
+        <GaugeValue formatted={formatted} className={styles.value} />
         {label && <span className={styles.label}>{label}</span>}
       </div>
     </div>

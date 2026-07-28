@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { gaugeReadings } from '../../../__tests__/panel/visibleText';
 import type { PanelWidget } from '../../types';
 import { CoolingWidget } from './CoolingWidget';
 
@@ -111,12 +112,12 @@ describe('CoolingWidget', () => {
     expect(screen.getByText('CPU')).toBeInTheDocument();
     expect(screen.getByText('GPU')).toBeInTheDocument();
     expect(screen.getByText('FAN')).toBeInTheDocument();
-    expect(screen.getByText('58')).toBeInTheDocument();
-    expect(screen.getByText('46')).toBeInTheDocument();
+    expect(gaugeReadings()).toContain('58°C');
+    expect(gaugeReadings()).toContain('46°C');
 
     // FAN reads duty % once fan channels load (mock: avg of 40 + 60 = 50).
     await waitFor(() => {
-      expect(screen.getByText('50')).toBeInTheDocument();
+      expect(gaugeReadings()).toContain('50%');
     });
   });
 

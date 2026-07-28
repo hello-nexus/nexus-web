@@ -31,6 +31,9 @@
   align-items: center;
   gap: 2px;
   pointer-events: none;
+  // Shrink-to-fit box: clamp it, or GaugeValue's fit never sees an overflow.
+  max-width: 100%;
+  min-width: 0;
 }
 
 .value {
@@ -39,7 +42,6 @@
   letter-spacing: -0.02em;
   line-height: 1;
   color: var(--text);
-  font-variant-numeric: tabular-nums;
 }
 
 .label {
