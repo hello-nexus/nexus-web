@@ -7,6 +7,7 @@ import {
   computeDropSpeedMs,
   computeFastFallStepMs,
   computeHardDropDistance,
+  computeLandingPreview,
   computeLevel,
   comboJuiceTier,
   createEmptyBoard,
@@ -176,6 +177,85 @@ describe('blocksLogic', () => {
       // step down would collide with row BOARD_HEIGHT - 1.
       const distance = computeHardDropDistance(board, SHAPES.yellow, { x: 0, y: BOARD_HEIGHT - 3 });
       expect(distance).toBe(0);
+    });
+  });
+
+  describe('computeLandingPreview', () => {
+    it('ghost sits at the landing footprint on an empty board', () => {
+      const board = createEmptyBoard();
+      const position = { x: 0, y: 0 };
+      const distance = computeHardDropDistance(board, SHAPES.yellow, position);
+      const preview = computeLandingPreview(board, SHAPES.yellow, position);
+      expect(preview.ghostCells).toEqual([
+        { x: 0, y: 0 + distance, color: 'yellow' },
+        { x: 1, y: 0 + distance, color: 'yellow' },
+        { x: 0, y: 1 + distance, color: 'yellow' },
+        { x: 1, y: 1 + distance, color: 'yellow' },
+      ]);
+    });
+
+    it('trail fills the columns between the piece and the ghost, excluding both', () => {
+      const board = createEmptyBoard();
+      const position = { x: 0, y: 0 };
+      const distance = computeHardDropDistance(board, SHAPES.yellow, position);
+      const preview = computeLandingPreview(board, SHAPES.yellow, position);
+      const pieceBottomY = Math.max(...SHAPES.yellow.map(c => c.y)) + position.y;
+      const occupiedColumns = new Set(SHAPES.yellow.map(c => c.x + position.x));
+      const expectedPerColumn = distance - 1;
+      for (const x of occupiedColumns) {
+        expect(preview.trailCells.filter(c => c.x === x)).toHaveLength(expectedPerColumn);
+      }
+      for (const cell of preview.trailCells) {
+        expect(cell.y).toBeGreaterThan(pieceBottomY);
+        expect(cell.y).toBeLessThan(pieceBottomY + distance);
+      }
+    });
+
+    it('stops the ghost on top of a stack, not the floor', () => {
+      const board = createEmptyBoard();
+      board[10][0] = 'red';
+      board[10][1] = 'red';
+      const position = { x: 0, y: 0 };
+      const preview = computeLandingPreview(board, SHAPES.yellow, position);
+      // The O piece's bottom row rests directly above the stack at row 9.
+      expect(preview.ghostCells.map(c => c.y)).toEqual([8, 8, 9, 9]);
+    });
+
+    it('is empty (no trail) and ghost equals the piece when already resting', () => {
+      const board = createEmptyBoard();
+      board[BOARD_HEIGHT - 1][0] = 'red';
+      board[BOARD_HEIGHT - 1][1] = 'red';
+      const position = { x: 0, y: BOARD_HEIGHT - 3 };
+      expect(computeHardDropDistance(board, SHAPES.yellow, position)).toBe(0);
+      const preview = computeLandingPreview(board, SHAPES.yellow, position);
+      expect(preview.trailCells).toEqual([]);
+      expect(preview.ghostCells).toEqual([
+        { x: 0, y: BOARD_HEIGHT - 3, color: 'yellow' },
+        { x: 1, y: BOARD_HEIGHT - 3, color: 'yellow' },
+        { x: 0, y: BOARD_HEIGHT - 2, color: 'yellow' },
+        { x: 1, y: BOARD_HEIGHT - 2, color: 'yellow' },
+      ]);
+    });
+
+    it('tracks a rotated shape, one trail column per occupied column', () => {
+      const board = createEmptyBoard();
+      const rotated = rotateShape(SHAPES.cyan);
+      const position = { x: 2, y: 0 };
+      const distance = computeHardDropDistance(board, rotated, position);
+      const preview = computeLandingPreview(board, rotated, position);
+      const occupiedColumns = new Set(rotated.map(c => c.x + position.x));
+      expect(occupiedColumns.size).toBe(1);
+      const columns = new Set(preview.trailCells.map(c => c.x));
+      expect(columns).toEqual(occupiedColumns);
+      expect(preview.trailCells).toHaveLength(distance - 1);
+      expect(preview.ghostCells.every(c => occupiedColumns.has(c.x))).toBe(true);
+    });
+
+    it('offsets a horizontal drag before computing the landing spot', () => {
+      const board = createEmptyBoard();
+      const position = { x: 3, y: 0 };
+      const preview = computeLandingPreview(board, SHAPES.yellow, position);
+      expect(preview.ghostCells.every(c => c.x === 3 || c.x === 4)).toBe(true);
     });
   });
 

@@ -150,6 +150,43 @@ export function computeHardDropDistance(board: Board, blocks: BlockCell[], posit
   return dy;
 }
 
+export interface LandingPreview {
+  // The piece's exact footprint at its landing row, in the same absolute
+  // board coordinates as BlocksBoard's fallingBlocks prop.
+  ghostCells: BlockCell[];
+  // One run per occupied column, strictly between the piece's current
+  // bottom cell and its landing cell in that column - the path down to the
+  // ghost, excluding the piece and ghost cells themselves.
+  trailCells: Point[];
+}
+
+/** Where `blocks` would land from `position` (via computeHardDropDistance) plus the path down to it. */
+export function computeLandingPreview(board: Board, blocks: BlockCell[], position: Point): LandingPreview {
+  const distance = computeHardDropDistance(board, blocks, position);
+  const ghostCells: BlockCell[] = blocks.map(block => ({
+    x: block.x + position.x,
+    y: block.y + position.y + distance,
+    color: block.color,
+  }));
+  if (distance <= 0) return { ghostCells, trailCells: [] };
+
+  const bottomYByColumn = new Map<number, number>();
+  for (const block of blocks) {
+    const x = block.x + position.x;
+    const y = block.y + position.y;
+    const bottom = bottomYByColumn.get(x);
+    if (bottom === undefined || y > bottom) bottomYByColumn.set(x, y);
+  }
+
+  const trailCells: Point[] = [];
+  for (const [x, bottomY] of bottomYByColumn) {
+    for (let y = bottomY + 1; y < bottomY + distance; y++) {
+      trailCells.push({ x, y });
+    }
+  }
+  return { ghostCells, trailCells };
+}
+
 // Hard-drop fast-fall animation: total travel time scales with distance
 // between a floor (so a one-row drop still reads as motion, not a snap) and
 // a cap (so a near-full-board drop does not feel sluggish).

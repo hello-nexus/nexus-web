@@ -13,6 +13,7 @@ import {
   BOARD_WIDTH,
   comboJuiceTier,
   computeDropSpeedMs,
+  computeLandingPreview,
   computeLevel,
   createInitialBlocksState,
   stepBlocks,
@@ -206,6 +207,11 @@ export function BlocksTouch({ immersiveGrid }: WidgetProps) {
     y: block.y + runState.position.y,
     color: block.color,
   }));
+  // Suppressed while the piece is already animating down: it is its own
+  // feedback, and a trail racing the fast-fall would read as noise.
+  const landingPreview = dropping
+    ? null
+    : computeLandingPreview(runState.board, runState.blocks, runState.position);
 
   return (
     <div className={styles.root} data-panel-no-sheet-swipe="true">
@@ -226,6 +232,7 @@ export function BlocksTouch({ immersiveGrid }: WidgetProps) {
       <BlocksBoard
         board={runState.board}
         fallingBlocks={fallingBlocks}
+        landingPreview={landingPreview}
         comboTier={comboJuiceTier(runState.combo)}
         boardLabel={t('panel.widget.blocks.boardLabel')}
         cellSize={cellSize}
