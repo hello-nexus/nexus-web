@@ -1,0 +1,15 @@
+// max-width binds the box to the container the design clamps to the gauge
+// width; min-width waives the flex/grid auto minimum that would otherwise
+// hold it at the line's natural width. Centering keeps a scaled line in place.
+.fitBox {
+  display: inline-flex;
+  justify-content: center;
+  min-width: 0;
+  max-width: 100%;
+}
+
+// Inline flow inside keeps letter-spacing between digit cells; nowrap makes
+// the value+unit line unbreakable whatever the cell width.
+.line {
+  white-space: nowrap;
+}

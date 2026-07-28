@@ -1,4 +1,4 @@
-import { splitFormatted } from './format';
+import { GaugeValue } from './GaugeValue';
 import type { GaugeProps } from './types';
 import styles from './DialGauge.module.scss';
 
@@ -13,7 +13,6 @@ function polar(r: number, deg: number): [number, number] {
 
 export function DialGauge({ value, formatted, label }: GaugeProps) {
   const clamped = Math.max(0, Math.min(100, value));
-  const parts = splitFormatted(formatted);
   const [nx, ny] = polar(33, START + (clamped / 100) * SWEEP);
   const ticks = Array.from({ length: TICKS }, (_, i) => {
     const deg = START + (i / (TICKS - 1)) * SWEEP;
@@ -41,10 +40,7 @@ export function DialGauge({ value, formatted, label }: GaugeProps) {
         </svg>
       </div>
       <div className={styles.info}>
-        <span className={styles.value}>
-          {parts.value}
-          {parts.unit && <span className="panel-gauge-unit">{parts.unit}</span>}
-        </span>
+        <GaugeValue formatted={formatted} className={styles.value} />
         {label && <span className={styles.label}>{label}</span>}
       </div>
     </div>

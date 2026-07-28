@@ -1,10 +1,9 @@
-import { splitFormatted } from './format';
+import { GaugeValue } from './GaugeValue';
 import type { GaugeProps } from './types';
 import styles from './WaterLevelGauge.module.scss';
 
 export function WaterLevelGauge({ value, formatted, label }: GaugeProps) {
   const fillPercent = Math.max(0, Math.min(100, value));
-  const parts = splitFormatted(formatted);
 
   return (
     <div className={styles.water}>
@@ -15,10 +14,7 @@ export function WaterLevelGauge({ value, formatted, label }: GaugeProps) {
         />
       </div>
       <div className={styles.overlay}>
-        <span className={styles.value}>
-          {parts.value}
-          {parts.unit && <span className="panel-gauge-unit">{parts.unit}</span>}
-        </span>
+        <GaugeValue formatted={formatted} className={styles.value} />
         {label && <span className={styles.label}>{label}</span>}
       </div>
     </div>

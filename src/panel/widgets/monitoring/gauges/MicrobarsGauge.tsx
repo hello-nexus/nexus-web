@@ -1,11 +1,10 @@
-import { splitFormatted } from './format';
+import { GaugeValue } from './GaugeValue';
 import type { GaugeProps } from './types';
 import styles from './MicrobarsGauge.module.scss';
 
 export function MicrobarsGauge({ formatted, label, history }: GaugeProps) {
   const bars = history.slice(-10);
   while (bars.length < 10) bars.unshift(0);
-  const parts = splitFormatted(formatted);
 
   return (
     <div className={styles.microbars}>
@@ -19,10 +18,7 @@ export function MicrobarsGauge({ formatted, label, history }: GaugeProps) {
         ))}
       </div>
       <div className={styles.info}>
-        <span className={styles.value}>
-          {parts.value}
-          {parts.unit && <span className="panel-gauge-unit">{parts.unit}</span>}
-        </span>
+        <GaugeValue formatted={formatted} className={styles.value} />
         {label && <span className={styles.label}>{label}</span>}
       </div>
     </div>
