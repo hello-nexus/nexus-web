@@ -1,5 +1,4 @@
-import { X } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from 'react';
 import { usePanelSheetSwipe } from '../engine/usePanelSheetSwipe';
 import { useModalA11y } from '../../components/common/Overlay/useModalA11y';
 import { useTranslation } from '../../lib/i18n';
@@ -15,18 +14,13 @@ interface PanelImmersiveOverlayProps {
   themeStyle?: CSSProperties;
   themeMode?: 'dark' | 'light';
   surface?: string;
-  // The simulator drives the panel with a mouse on a scaled iframe canvas,
-  // where the swipe-down dismiss is not reachable; render an explicit close
-  // affordance there. On device the swipe (and its top-centre hint) is the
-  // exit, so this stays off.
-  showCloseButton?: boolean;
 }
 
 const EXIT_MS = 200;
 // Idle delay before the drawer's close notch fades away.
 export const NOTCH_FADE_DELAY_MS = 1500;
 
-export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, themeMode, surface, showCloseButton = false }: PanelImmersiveOverlayProps) {
+export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, themeMode, surface }: PanelImmersiveOverlayProps) {
   const { t } = useTranslation();
   const [mountState, setMountState] = useState<'mounted' | 'exiting' | 'unmounted'>(
     open ? 'mounted' : 'unmounted',
@@ -49,7 +43,7 @@ export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, them
   // overlay's whole life and only the CROSSING into true may cancel a pending
   // exit. Reacting to the level instead reverts 'exiting' to 'mounted' on the
   // very next commit and clears the timer, so beginExit (hint tap, swipe,
-  // Escape, close button) could never reach onExit.
+  // Escape) could never reach onExit.
   const prevOpen = useRef(open);
   useEffect(() => {
     const openedNow = open && !prevOpen.current;
@@ -127,6 +121,15 @@ export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, them
     scheduleNotchFade();
   }, [notchVisible, beginExit, scheduleNotchFade]);
 
+  // Touch reveals the hint by dragging, which a mouse cannot do - without this
+  // a pointer-driven surface (the simulator) is left with no visible exit once
+  // the hint fades.
+  const handlePointerMove = useCallback((e: PointerEvent) => {
+    if (e.pointerType !== 'mouse') return;
+    setNotchVisible(true);
+    scheduleNotchFade();
+  }, [scheduleNotchFade]);
+
   // Registers with the shared modal stack so Escape and Tab are arbitrated
   // against whatever is topmost (e.g. the widget editor sheet) instead of
   // each surface racing its own listener. Background scroll-lock and focus
@@ -178,6 +181,7 @@ export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, them
       style={composedStyle}
       role="dialog"
       aria-modal="true"
+      onPointerMove={handlePointerMove}
     >
       <div className={styles.body}>{children}</div>
       <button
@@ -194,17 +198,6 @@ export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, them
         data-revealed={notchVisible ? 'true' : 'false'}
         aria-label={t('panel.immersive.close')}
       />
-      {showCloseButton && (
-        <button
-          type="button"
-          className={styles.closeButton}
-          onClick={beginExit}
-          data-panel-no-sheet-swipe="true"
-          aria-label={t('panel.immersive.close')}
-        >
-          <X aria-hidden />
-        </button>
-      )}
     </div>
   );
 }

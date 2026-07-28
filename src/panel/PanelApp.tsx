@@ -1650,7 +1650,6 @@ export function PanelContent({
             themeStyle={panelRootStyle}
             themeMode={resolvedThemeMode}
             surface={surface}
-            showCloseButton={simulator}
           >
             <Comp
               widget={w}

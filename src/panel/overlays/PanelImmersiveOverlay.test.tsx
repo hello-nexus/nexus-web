@@ -3,8 +3,8 @@ import { render, screen, fireEvent, act } from '@testing-library/react';
 import { NOTCH_FADE_DELAY_MS, PanelImmersiveOverlay } from './PanelImmersiveOverlay';
 import { pushModalStackEntry, removeModalStackEntry } from '../../components/common/Overlay/modalStack';
 
-// Both the top-centre swipe hint and the simulator X close the overlay, so they
-// share the close label; the count is what distinguishes the two states.
+// The top-centre swipe hint is the only close control; asserting the count
+// keeps a second one from reappearing.
 const CLOSE = 'panel.immersive.close';
 
 function dispatchTouch(target: Element, type: string, clientX: number, clientY: number, timeStamp: number) {
@@ -19,7 +19,7 @@ function dispatchTouch(target: Element, type: string, clientX: number, clientY: 
 }
 
 describe('PanelImmersiveOverlay', () => {
-  it('renders only the swipe hint by default (device)', () => {
+  it('renders the swipe hint as the only close control', () => {
     render(
       <PanelImmersiveOverlay open onExit={() => {}}>
         <div>content</div>
@@ -28,13 +28,30 @@ describe('PanelImmersiveOverlay', () => {
     expect(screen.getAllByLabelText(CLOSE)).toHaveLength(1);
   });
 
-  it('adds an explicit close button when showCloseButton is set (simulator)', () => {
-    render(
-      <PanelImmersiveOverlay open onExit={() => {}} showCloseButton>
-        <div>content</div>
-      </PanelImmersiveOverlay>,
-    );
-    expect(screen.getAllByLabelText(CLOSE)).toHaveLength(2);
+  // A mouse cannot drag the hint back into view the way touch does, so without
+  // the pointer reveal a faded hint leaves a mouse-driven surface no visible exit.
+  it('re-reveals the faded hint on mouse movement', () => {
+    vi.useFakeTimers();
+    try {
+      render(
+        <PanelImmersiveOverlay open onExit={() => {}}>
+          <div>content</div>
+        </PanelImmersiveOverlay>,
+      );
+      const hint = screen.getByLabelText(CLOSE);
+      act(() => { vi.advanceTimersByTime(NOTCH_FADE_DELAY_MS + 100); });
+      expect(hint.getAttribute('data-revealed')).toBe('false');
+
+      fireEvent.pointerMove(hint.closest('[role="dialog"]')!, { pointerType: 'mouse' });
+      expect(hint.getAttribute('data-revealed')).toBe('true');
+
+      // A touch pointer must not: touch owns visibility through the drag.
+      act(() => { vi.advanceTimersByTime(NOTCH_FADE_DELAY_MS + 100); });
+      fireEvent.pointerMove(hint.closest('[role="dialog"]')!, { pointerType: 'touch' });
+      expect(hint.getAttribute('data-revealed')).toBe('false');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   // The host keeps `open` true for the overlay's whole life, so an exit must
@@ -56,18 +73,16 @@ describe('PanelImmersiveOverlay', () => {
     }
   });
 
-  it('close button runs the exit transition and then calls onExit', () => {
+  it('runs the exit transition before calling onExit', () => {
     vi.useFakeTimers();
     try {
       const onExit = vi.fn();
       render(
-        <PanelImmersiveOverlay open onExit={onExit} showCloseButton>
+        <PanelImmersiveOverlay open onExit={onExit}>
           <div>content</div>
         </PanelImmersiveOverlay>,
       );
-      // The X is the last close-labelled control; the swipe hint precedes it.
-      const buttons = screen.getAllByLabelText(CLOSE);
-      fireEvent.click(buttons[buttons.length - 1]);
+      fireEvent.click(screen.getByLabelText(CLOSE));
       expect(onExit).not.toHaveBeenCalled();
       act(() => { vi.runAllTimers(); });
       expect(onExit).toHaveBeenCalledTimes(1);

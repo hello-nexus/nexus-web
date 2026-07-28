@@ -99,51 +99,6 @@
   background: color-mix(in srgb, black 30%, transparent);
 }
 
-// Simulator-only explicit exit: the swipe-down dismiss needs a real drag, which
-// the scaled iframe canvas does not give a mouse.
-.closeButton {
-  position: absolute;
-  top: max(env(safe-area-inset-top), calc(8px * var(--panel-scale, 1)));
-  right: calc(8px * var(--panel-scale, 1));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: calc(30px * var(--panel-scale, 1));
-  height: calc(30px * var(--panel-scale, 1));
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius-pill);
-  background: color-mix(in srgb, black 34%, transparent);
-  color: color-mix(in srgb, white 82%, transparent);
-  cursor: pointer;
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
-  transition: background var(--ease-fast) ease, color var(--ease-fast) ease;
-  z-index: 211;
-
-  svg {
-    width: calc(17px * var(--panel-scale, 1));
-    height: calc(17px * var(--panel-scale, 1));
-  }
-
-  &:hover,
-  &:active {
-    background: color-mix(in srgb, black 52%, transparent);
-    color: white;
-  }
-}
-
-:global(.panel-root)[data-theme='light'] .closeButton {
-  background: color-mix(in srgb, white 60%, transparent);
-  color: color-mix(in srgb, black 74%, transparent);
-
-  &:hover,
-  &:active {
-    background: color-mix(in srgb, white 82%, transparent);
-    color: black;
-  }
-}
-
 .body {
   position: relative;
   // Render area is sized at 1/zoom then scaled back up by --panel-scale, so
