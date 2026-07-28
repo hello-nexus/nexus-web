@@ -2217,6 +2217,8 @@
   "panel.widget.timer": "タイマー",
   "panel.widget.timer.decrease": "{unit}を減らす",
   "panel.widget.timer.increase": "{unit}を増やす",
+  "panel.widget.timer.resume": "再開",
+  "panel.widget.timer.stop": "停止",
   "panel.widget.transfer": "PCに送信",
   "panel.widget.twitch": "Twitch チャット",
   "panel.widget.weather": "天気",

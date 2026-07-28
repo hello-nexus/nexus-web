@@ -1,7 +1,8 @@
 import { Play, Pause, RotateCcw } from 'lucide-react';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { useTranslation } from '../../../lib/i18n';
-import { useFitWidth } from '../clock/useFitWidth';
+import { useFitWidth } from '../common/useFitWidth';
+import { StableDigits } from '../common/StableDigits';
 import { useStopwatch } from '../common/useStopwatch';
 import type { WidgetProps } from '../types';
 import { formatStopwatchElapsed } from './formatStopwatchElapsed';
@@ -34,10 +35,11 @@ export function StopwatchWidget({ widget }: WidgetProps) {
           style={{ transform: `scale(${scale})` }}
         >
           <span className={styles.digits}>
-            {hasHours && `${display.h}:`}
-            {display.m}:{display.s}
+            <StableDigits text={`${hasHours ? `${display.h}:` : ''}${display.m}:${display.s}`} />
           </span>
-          <span className={styles.fraction}>.{display.hundredths}</span>
+          <span className={styles.fraction}>
+            <StableDigits text={`.${display.hundredths}`} />
+          </span>
         </div>
       </div>
       <div className={styles.controls}>

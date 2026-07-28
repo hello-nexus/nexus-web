@@ -2272,6 +2272,8 @@
   "panel.widget.timer": "Temporizador",
   "panel.widget.timer.decrease": "Diminuir {unit}",
   "panel.widget.timer.increase": "Aumentar {unit}",
+  "panel.widget.timer.resume": "Retomar",
+  "panel.widget.timer.stop": "Parar",
   "panel.widget.transfer": "Enviar para o PC",
   "panel.widget.twitch": "Twitch Chat",
   "panel.widget.weather": "Meteorologia",

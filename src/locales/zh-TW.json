@@ -2272,6 +2272,8 @@
   "panel.widget.timer": "計時器",
   "panel.widget.timer.decrease": "減少{unit}",
   "panel.widget.timer.increase": "增加{unit}",
+  "panel.widget.timer.resume": "繼續",
+  "panel.widget.timer.stop": "停止",
   "panel.widget.transfer": "傳送到電腦",
   "panel.widget.twitch": "Twitch 聊天室",
   "panel.widget.weather": "天氣",

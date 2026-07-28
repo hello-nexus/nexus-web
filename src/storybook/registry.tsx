@@ -81,6 +81,7 @@ import { NexusMark, NexusWordmark } from '../components/icons/NexusBrand';
 import { PanelArrowButton } from '../panel/chrome/PanelArrowButton';
 import { PanelPageIndicator } from '../panel/chrome/PanelPageIndicator';
 import { WidgetCellLabel } from '../panel/widgets/common/WidgetCellLabel';
+import { StableDigits } from '../panel/widgets/common/StableDigits';
 import { SIZE_ICONS } from '../panel/widgets/common/SizeIcons';
 import { IconPicker } from '../panel/widgets/common/IconPicker';
 import { EmojiPicker } from '../panel/widgets/common/EmojiPicker';
@@ -1126,6 +1127,16 @@ function PreviewMicroBars() {
       <MicroBar label="CPU TOTAL" formatted="42 %" fillPercent={42} />
       <MicroBar label="TEMP" formatted="68 C" fillPercent={68} />
       <MicroBar label="POWER" formatted="92 W" fillPercent={61} />
+    </div>
+  );
+}
+
+function PreviewStableDigits() {
+  return (
+    <div className={styles.previewStack} style={{ gap: 6, fontSize: 28, fontWeight: 800 }}>
+      <div><StableDigits text="04:59.17" /></div>
+      <div><StableDigits text="11:11.11" /></div>
+      <div><StableDigits text="10:08 AM" /></div>
     </div>
   );
 }
@@ -2348,6 +2359,12 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/panel/widgets/common/WidgetCellLabel.tsx',
     description: 'iOS-style centered label rendered below a widget cell or catalog tile. Strip height is owned by the panel root via --panel-widget-label-strip so cells and labels stay aligned on both surfaces.',
     Preview: PreviewWidgetCellLabel,
+  },
+  {
+    name: 'StableDigits', category: 'panel-kit',
+    filePath: 'src/panel/widgets/common/StableDigits.tsx',
+    description: 'Renders a numeric string with every digit in a fixed-width cell so ticking values (clock, timer, stopwatch) keep a constant width. Lexend has no tabular-figures feature, so font-variant-numeric: tabular-nums silently does nothing - use this for any centered readout whose digits change over time.',
+    Preview: PreviewStableDigits,
   },
   {
     name: 'SizeIcons', category: 'panel-kit',

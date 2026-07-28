@@ -1,0 +1,7 @@
+// Cell width tracks the font's "0" advance so an all-zeros string keeps its
+// natural width and wider glyphs still fit.
+.digit {
+  display: inline-block;
+  width: 1ch;
+  text-align: center;
+}

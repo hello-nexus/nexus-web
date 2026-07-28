@@ -2272,6 +2272,8 @@
   "panel.widget.timer": "Timer",
   "panel.widget.timer.decrease": "Diminuisci {unit}",
   "panel.widget.timer.increase": "Aumenta {unit}",
+  "panel.widget.timer.resume": "Riprendi",
+  "panel.widget.timer.stop": "Interrompi",
   "panel.widget.transfer": "Invia al PC",
   "panel.widget.twitch": "Chat Twitch",
   "panel.widget.weather": "Meteo",

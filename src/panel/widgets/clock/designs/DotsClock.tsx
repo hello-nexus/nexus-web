@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react';
 import type { ClockDesignProps } from './types';
 import { formatMetaLine, formatTime, getAmPm } from './timeFormat';
-import { useFitWidth } from '../useFitWidth';
+import { useFitWidth } from '../../common/useFitWidth';
 import styles from './DotsClock.module.scss';
 
 // 3x5 dot matrix patterns for digits 0-9; 5 rows of 3 bits each.

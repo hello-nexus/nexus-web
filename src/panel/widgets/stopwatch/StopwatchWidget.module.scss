@@ -20,8 +20,8 @@
   gap: 10px;
 }
 
-// Full-width track the elapsed readout scales within; clips the unscaled
-// overflow before useFitWidth applies the transform on first paint.
+// Full-width track the elapsed readout scales within; the overflow clip
+// covers async refits (font swap, container resize) between observer frames.
 .fitBox {
   display: flex;
   align-items: center;
@@ -37,7 +37,6 @@
   width: max-content;
   white-space: nowrap;
   line-height: 1;
-  font-variant-numeric: tabular-nums;
   transform-origin: center;
 }
 

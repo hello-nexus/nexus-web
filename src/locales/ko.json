@@ -2272,6 +2272,8 @@
   "panel.widget.timer": "타이머",
   "panel.widget.timer.decrease": "{unit} 줄이기",
   "panel.widget.timer.increase": "{unit} 늘리기",
+  "panel.widget.timer.resume": "재개",
+  "panel.widget.timer.stop": "중지",
   "panel.widget.transfer": "PC로 보내기",
   "panel.widget.twitch": "Twitch 채팅",
   "panel.widget.weather": "날씨",

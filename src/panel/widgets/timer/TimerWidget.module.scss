@@ -65,13 +65,25 @@
   gap: 8px;
 }
 
-// Running / complete phase - countdown display
+// Running / complete phase - countdown display. Full-width track the readout
+// scales within; the overflow clip covers async refits (font swap, container
+// resize) between observer frames.
+.fitBox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  overflow: hidden;
+}
+
 .countdown {
   font-size: 3em;
   font-weight: var(--weight-display);
   letter-spacing: -0.02em;
   line-height: 1;
-  font-variant-numeric: tabular-nums;
+  width: max-content;
+  white-space: nowrap;
+  transform-origin: center;
 }
 
 .wide .countdown {

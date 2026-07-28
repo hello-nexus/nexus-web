@@ -2275,6 +2275,8 @@
   "panel.widget.timer": "Таймер",
   "panel.widget.timer.decrease": "Уменьшить {unit}",
   "panel.widget.timer.increase": "Увеличить {unit}",
+  "panel.widget.timer.resume": "Продолжить",
+  "panel.widget.timer.stop": "Остановить",
   "panel.widget.transfer": "Отправить на ПК",
   "panel.widget.twitch": "Чат Twitch",
   "panel.widget.weather": "Погода",

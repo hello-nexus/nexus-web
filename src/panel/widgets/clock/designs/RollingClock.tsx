@@ -1,6 +1,6 @@
 import type { ClockDesignProps } from './types';
 import { formatMetaLine, formatTime, getAmPm } from './timeFormat';
-import { useFitWidth } from '../useFitWidth';
+import { useFitWidth } from '../../common/useFitWidth';
 import styles from './RollingClock.module.scss';
 
 const DIGITS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];

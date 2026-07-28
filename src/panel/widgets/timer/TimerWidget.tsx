@@ -1,6 +1,8 @@
 import { useState, useCallback } from 'react';
 import { Play, Pause, Square, RotateCcw } from 'lucide-react';
 import { useCountdown } from '../common/useCountdown';
+import { useFitWidth } from '../common/useFitWidth';
+import { StableDigits } from '../common/StableDigits';
 import { useTranslation } from '../../../lib/i18n';
 import type { WidgetProps } from '../types';
 import styles from './TimerWidget.module.scss';
@@ -22,6 +24,7 @@ type Phase = 'setup' | 'running';
 export function TimerWidget({ widget }: WidgetProps) {
   const { t } = useTranslation();
   const { ms, isRunning, isComplete, start, pause, resume, stop, reset } = useCountdown();
+  const { boxRef, contentRef, scale } = useFitWidth();
   const [phase, setPhase] = useState<Phase>('setup');
   const [hours, setHours] = useState(0);
   const [minutes, setMinutes] = useState(5);
@@ -70,6 +73,7 @@ export function TimerWidget({ widget }: WidgetProps) {
           onClick={handleStart}
           disabled={!canStart}
           data-active={canStart ? 'true' : undefined}
+          aria-label={t('panel.stopwatch.start')}
         >
           <Play size={16} />
           {isWide && <span>{t('panel.stopwatch.start')}</span>}
@@ -87,9 +91,10 @@ export function TimerWidget({ widget }: WidgetProps) {
       className={`${styles.container} ${isWide ? styles.wide : styles.compact}`}
       data-complete={isComplete ? 'true' : undefined}
     >
-      <div className={styles.countdown}>
-        {showHours && <>{display.h}:</>}
-        {display.m}:{display.s}
+      <div ref={boxRef} className={styles.fitBox}>
+        <div ref={contentRef} className={styles.countdown} style={{ transform: `scale(${scale})` }}>
+          <StableDigits text={`${showHours ? `${display.h}:` : ''}${display.m}:${display.s}`} />
+        </div>
       </div>
       <div className={styles.controls}>
         {!isComplete && (
@@ -97,6 +102,7 @@ export function TimerWidget({ widget }: WidgetProps) {
             type="button"
             className={`panel-chip ${styles.controlBtn}`}
             onClick={handlePauseResume}
+            aria-label={isRunning ? t('panel.stopwatch.pause') : t('panel.widget.timer.resume')}
           >
             {isRunning ? <Pause size={16} /> : <Play size={16} />}
           </button>
@@ -106,6 +112,7 @@ export function TimerWidget({ widget }: WidgetProps) {
             type="button"
             className={`panel-chip ${styles.controlBtn}`}
             onClick={handleStop}
+            aria-label={t('panel.widget.timer.stop')}
           >
             <Square size={14} />
           </button>
@@ -116,6 +123,7 @@ export function TimerWidget({ widget }: WidgetProps) {
             className={`panel-chip ${styles.resetBtn}`}
             onClick={handleReset}
             data-active="true"
+            aria-label={t('panel.stopwatch.reset')}
           >
             <RotateCcw size={16} />
             {isWide && <span>{t('panel.stopwatch.reset')}</span>}
