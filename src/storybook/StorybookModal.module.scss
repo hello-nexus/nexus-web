@@ -244,6 +244,8 @@
   --panel-border: var(--border);
   --panel-accent: var(--accent);
   --panel-accent-glow: var(--accent-glow);
+  // Mirrors the .panel-root token; this preview mounts outside panel-root.
+  --panel-control-translucent: color-mix(in srgb, var(--text) 12%, transparent);
 
   display: flex;
   align-items: stretch;

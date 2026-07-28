@@ -1,7 +1,16 @@
-// Cell width tracks the font's "0" advance so an all-zeros string keeps its
-// natural width and wider glyphs still fit.
+// The hidden sizer digit and the visible digit stack in one grid cell, so the
+// cell width comes from a glyph rendered in the exact inherited font (family,
+// size, weight) rather than a font-metric unit.
 .digit {
-  display: inline-block;
-  width: 1ch;
-  text-align: center;
+  display: inline-grid;
+  justify-items: center;
+}
+
+.sizer,
+.glyph {
+  grid-area: 1 / 1;
+}
+
+.sizer {
+  visibility: hidden;
 }

@@ -79,16 +79,30 @@
   gap: 8px;
 }
 
-.controlBtn {
+// Hover is neutralized (fill pinned across :hover) because touch surfaces
+// latch the emulated hover after a tap; press feedback stays via the chip's
+// :active scale. Doubled class beats the tokens.scss .panel-chip hover rule
+// by specificity, not stylesheet order.
+.controlBtn.controlBtn {
   padding: 10px 16px;
   min-width: 44px;
   min-height: 44px;
+  background: var(--panel-control-translucent);
+
+  &:hover:not(:disabled) {
+    background: var(--panel-control-translucent);
+  }
 }
 
-.playBtn {
+.playBtn.playBtn {
   padding: 10px 20px;
   min-width: 44px;
   min-height: 44px;
   gap: 8px;
   font-size: 14px;
+
+  &,
+  &:hover:not(:disabled) {
+    background: var(--panel-accent-soft);
+  }
 }

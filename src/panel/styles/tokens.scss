@@ -107,6 +107,9 @@
   --panel-element-bg-hover: var(--panel-control-bg-hover);
   --panel-element-bg-active: var(--panel-control-bg-active);
   --panel-element-radius: var(--radius);
+  // Translucent control fill (mixer pill track, timing-widget chips) - a
+  // text-tint alpha so it reads over any card fill in both themes.
+  --panel-control-translucent: color-mix(in srgb, var(--text) 12%, transparent);
 
 
   --panel-accent:        var(--accent);

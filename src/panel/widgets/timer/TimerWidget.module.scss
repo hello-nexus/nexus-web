@@ -41,13 +41,20 @@
   gap: 2px;
 }
 
-// Size-only overrides on top of .panel-chip; the arrow glyph reads at chip
-// icon scale.
-.stepBtn {
+// Hover is neutralized on every button (fill pinned across :hover) because
+// touch surfaces latch the emulated hover after a tap; press feedback stays
+// via the chip's :active scale. Doubled classes beat the tokens.scss
+// .panel-chip hover rule by specificity, not stylesheet order.
+.stepBtn.stepBtn {
   width: 36px;
   height: 28px;
   padding: 0;
   font-size: 10px;
+
+  &,
+  &:hover:not(:disabled) {
+    background: var(--panel-control-translucent);
+  }
 }
 
 .stepValue {
@@ -59,10 +66,20 @@
   text-align: center;
 }
 
-.startBtn {
+.startBtn.startBtn {
   padding: 10px 20px;
   font-size: 14px;
   gap: 8px;
+
+  &,
+  &:hover:not(:disabled) {
+    background: var(--panel-control-translucent);
+  }
+
+  &[data-active='true'],
+  &[data-active='true']:hover:not(:disabled) {
+    background: var(--panel-accent-soft);
+  }
 }
 
 // Running / complete phase - countdown display. Full-width track the readout
@@ -95,16 +112,26 @@
   gap: 8px;
 }
 
-.controlBtn {
+.controlBtn.controlBtn {
   padding: 10px 16px;
   min-width: 44px;
   min-height: 44px;
+
+  &,
+  &:hover:not(:disabled) {
+    background: var(--panel-control-translucent);
+  }
 }
 
-.resetBtn {
+.resetBtn.resetBtn {
   padding: 10px 20px;
   gap: 8px;
   font-size: 14px;
+
+  &,
+  &:hover:not(:disabled) {
+    background: var(--panel-accent-soft);
+  }
 }
 
 // Complete state - glow pulse
