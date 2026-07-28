@@ -74,19 +74,29 @@
   display: grid;
   grid-template-columns: repeat(3, auto);
   grid-template-rows: repeat(2, auto);
-  gap: var(--space-sm);
+  gap: var(--space-md);
   justify-content: center;
-  padding: var(--space-md) 0 calc(var(--space-md) + env(safe-area-inset-bottom));
+  padding: var(--space-lg) 0 calc(var(--space-lg) + env(safe-area-inset-bottom));
 }
 
-.dpadUp button, .dpadUp {
+// Sized well past the shared Button size tokens for a comfortable thumb
+// target; --icon-size is inherited by the Button's own icon span, which
+// otherwise falls back to a fixed default regardless of the icon's own size
+// prop. The `.dpad button.dpadBtn` prefix outweighs Button's own
+// `.iconOnly.size-md` width rule (two classes + a type each beats two
+// classes alone), since a same-specificity class here would lose that tie to
+// source order.
+.dpad button.dpadBtn {
+  width: 64px;
+  height: 64px;
   touch-action: manipulation;
+  --icon-size: 30px;
 }
 
 .dpadUp { grid-column: 2; grid-row: 1; }
-.dpadLeft { grid-column: 1; grid-row: 2; touch-action: manipulation; }
-.dpadRight { grid-column: 3; grid-row: 2; touch-action: manipulation; }
-.dpadDown { grid-column: 2; grid-row: 2; touch-action: manipulation; }
+.dpadLeft { grid-column: 1; grid-row: 2; }
+.dpadRight { grid-column: 3; grid-row: 2; }
+.dpadDown { grid-column: 2; grid-row: 2; }
 
 .pauseOverlay {
   position: absolute;

@@ -14,7 +14,7 @@ export interface SnakeState {
 }
 
 export const GRID_COLS = 14;
-export const GRID_ROWS = 21;
+export const GRID_ROWS = 33;
 
 export function createInitialState(randomFn: () => number = Math.random): SnakeState {
   const startX = Math.floor(GRID_COLS / 2);

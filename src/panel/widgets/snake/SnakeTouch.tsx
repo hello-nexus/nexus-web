@@ -256,30 +256,30 @@ export function SnakeTouch({ immersiveGrid }: WidgetProps) {
       />
       <div className={styles.dpad}>
         <Button
-          className={styles.dpadUp}
+          className={`${styles.dpadBtn} ${styles.dpadUp}`}
           tone="neutral"
-          icon={<ChevronUp size={22} />}
+          icon={<ChevronUp />}
           aria-label={t('panel.widget.snake.dpad.up')}
           onClick={() => handleDirection('UP')}
         />
         <Button
-          className={styles.dpadLeft}
+          className={`${styles.dpadBtn} ${styles.dpadLeft}`}
           tone="neutral"
-          icon={<ChevronLeft size={22} />}
+          icon={<ChevronLeft />}
           aria-label={t('panel.widget.snake.dpad.left')}
           onClick={() => handleDirection('LEFT')}
         />
         <Button
-          className={styles.dpadRight}
+          className={`${styles.dpadBtn} ${styles.dpadRight}`}
           tone="neutral"
-          icon={<ChevronRight size={22} />}
+          icon={<ChevronRight />}
           aria-label={t('panel.widget.snake.dpad.right')}
           onClick={() => handleDirection('RIGHT')}
         />
         <Button
-          className={styles.dpadDown}
+          className={`${styles.dpadBtn} ${styles.dpadDown}`}
           tone="neutral"
-          icon={<ChevronDown size={22} />}
+          icon={<ChevronDown />}
           aria-label={t('panel.widget.snake.dpad.down')}
           onClick={() => handleDirection('DOWN')}
         />
