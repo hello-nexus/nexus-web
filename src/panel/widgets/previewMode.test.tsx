@@ -87,7 +87,7 @@ const PREVIEW_CONTENT: Record<string, string[]> = {
   displays: ['DISPLAY 1', 'DISPLAY 2'],
   cooling: ['cooling.preset.balanced'],
   'smart-lights': ['smartLights.onlineOfTotal'],
-  deck: ['Stream', 'Lights', 'CPU Total', '58 %'],
+  deck: ['CPU Total', '58 %'],
   twitch: ['nova_streams', 'LIVE'],
   // The mocked t() returns keys, so the overall status pill surfaces as the
   // raw 'diagnostics.status.watch' key; the reason line falls back to the
