@@ -5,6 +5,7 @@ import {
   BOARD_WIDTH,
   clearFullRows,
   computeDropSpeedMs,
+  computeFastFallStepMs,
   computeHardDropDistance,
   computeLevel,
   comboJuiceTier,
@@ -382,6 +383,50 @@ describe('blocksLogic', () => {
       const next = hardDrop(state, fixedRandom);
       expect(next.position).toEqual(SPAWN_POSITION);
       expect(next.blocks).not.toBe(state.blocks);
+    });
+  });
+
+  describe('computeFastFallStepMs (hard-drop animation timing)', () => {
+    it('is zero for a non-positive distance', () => {
+      expect(computeFastFallStepMs(0)).toBe(0);
+      expect(computeFastFallStepMs(-1)).toBe(0);
+    });
+
+    it('is positive for any positive distance', () => {
+      for (let distance = 1; distance <= BOARD_HEIGHT; distance++) {
+        expect(computeFastFallStepMs(distance)).toBeGreaterThan(0);
+      }
+    });
+
+    it('per-row time is non-increasing as distance grows, so a tall drop never animates slower than a short one', () => {
+      let prevStep = computeFastFallStepMs(1);
+      for (let distance = 2; distance <= BOARD_HEIGHT; distance++) {
+        const step = computeFastFallStepMs(distance);
+        expect(step).toBeLessThanOrEqual(prevStep);
+        prevStep = step;
+      }
+    });
+
+    it('total travel time (step * distance) is non-decreasing as distance grows', () => {
+      let prevTotal = 0;
+      for (let distance = 1; distance <= BOARD_HEIGHT; distance++) {
+        const total = computeFastFallStepMs(distance) * distance;
+        expect(total).toBeGreaterThanOrEqual(prevTotal);
+        prevTotal = total;
+      }
+    });
+
+    it('caps total travel time: a much taller drop takes no longer than a merely tall one', () => {
+      const tallTotal = computeFastFallStepMs(BOARD_HEIGHT) * BOARD_HEIGHT;
+      const tallerTotal = computeFastFallStepMs(BOARD_HEIGHT * 3) * (BOARD_HEIGHT * 3);
+      expect(tallerTotal).toBeCloseTo(tallTotal, 6);
+    });
+
+    it('floors total travel time: a one-row drop is not effectively instant', () => {
+      // If there were no floor, a single row would take the same per-row
+      // time as every other row in the unclamped middle of the range.
+      const midRangeStep = computeFastFallStepMs(Math.floor(BOARD_HEIGHT / 2));
+      expect(computeFastFallStepMs(1)).toBeGreaterThan(midRangeStep);
     });
   });
 });

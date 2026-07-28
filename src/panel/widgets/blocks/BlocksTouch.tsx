@@ -15,13 +15,13 @@ import {
   computeDropSpeedMs,
   computeLevel,
   createInitialBlocksState,
-  hardDrop,
   stepBlocks,
   tryMove,
   tryRotate,
   type BlockCell,
   type BlocksRunState,
 } from './blocksLogic';
+import { useBlocksHardDrop } from './useBlocksHardDrop';
 import type { WidgetProps } from '../types';
 import styles from './BlocksTouch.module.scss';
 
@@ -46,15 +46,16 @@ export function BlocksTouch({ immersiveGrid }: WidgetProps) {
   const gameType = 'block' as const;
   const submission = useGameScoreSubmission(gameType);
   const { submit } = submission;
+  const { dropping, triggerHardDrop } = useBlocksHardDrop(runState, setRunState, paused);
 
   useEffect(() => {
-    if (runState.gameOver || paused) return;
+    if (runState.gameOver || paused || dropping) return;
     const tickMs = computeDropSpeedMs(runState.score);
     const interval = setInterval(() => {
       setRunState(prev => stepBlocks(prev));
     }, tickMs);
     return () => clearInterval(interval);
-  }, [runState.gameOver, paused, runState.score]);
+  }, [runState.gameOver, paused, dropping, runState.score]);
 
   // Wall-clock elapsed time since the run started. Not pause-aware, same
   // simplification as SnakeTouch: a mid-run orientation flip freezes the drop
@@ -84,19 +85,19 @@ export function BlocksTouch({ immersiveGrid }: WidgetProps) {
   }, [runState.gameOver, runState.score, submit, startTime]);
 
   const handleRotate = useCallback(() => {
-    if (runState.gameOver || paused) return;
+    if (runState.gameOver || paused || dropping) return;
     setRunState(prev => ({ ...prev, blocks: tryRotate(prev.board, prev.blocks, prev.position) }));
-  }, [runState.gameOver, paused]);
+  }, [runState.gameOver, paused, dropping]);
 
   const handleMove = useCallback((dx: number) => {
-    if (runState.gameOver || paused) return;
+    if (runState.gameOver || paused || dropping) return;
     setRunState(prev => ({ ...prev, position: tryMove(prev.board, prev.blocks, prev.position, dx) }));
-  }, [runState.gameOver, paused]);
+  }, [runState.gameOver, paused, dropping]);
 
   const handleHardDrop = useCallback(() => {
-    if (runState.gameOver || paused) return;
-    setRunState(prev => hardDrop(prev));
-  }, [runState.gameOver, paused]);
+    if (runState.gameOver || paused || dropping) return;
+    triggerHardDrop();
+  }, [runState.gameOver, paused, dropping, triggerHardDrop]);
 
   const applyKey = useCallback((key: string) => {
     if (key === 'ArrowLeft') handleMove(-1);
@@ -133,7 +134,7 @@ export function BlocksTouch({ immersiveGrid }: WidgetProps) {
   // tap-to-rotate branch a second time. One pointerdown per physical gesture
   // avoids that outright, matching PaletteRing.tsx's drag pattern.
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
-    if (runState.gameOver || paused) return;
+    if (runState.gameOver || paused || dropping) return;
     const startY = e.clientY;
     let lastX = e.clientX;
     let moved = false;
@@ -161,7 +162,7 @@ export function BlocksTouch({ immersiveGrid }: WidgetProps) {
     };
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
-  }, [runState.gameOver, paused, cellSize, handleMove, handleHardDrop, handleRotate]);
+  }, [runState.gameOver, paused, dropping, cellSize, handleMove, handleHardDrop, handleRotate]);
 
   const handleRestart = useCallback(() => {
     setRunState(createInitialBlocksState());

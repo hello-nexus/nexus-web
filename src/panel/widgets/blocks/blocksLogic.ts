@@ -150,6 +150,20 @@ export function computeHardDropDistance(board: Board, blocks: BlockCell[], posit
   return dy;
 }
 
+// Hard-drop fast-fall animation: total travel time scales with distance
+// between a floor (so a one-row drop still reads as motion, not a snap) and
+// a cap (so a near-full-board drop does not feel sluggish).
+const FAST_FALL_ROW_MS = 16;
+const FAST_FALL_MIN_TOTAL_MS = 70;
+const FAST_FALL_MAX_TOTAL_MS = 220;
+
+/** Per-row interval (ms) for animating a hard drop that travels `distance` rows. Zero for a non-positive distance. */
+export function computeFastFallStepMs(distance: number): number {
+  if (distance <= 0) return 0;
+  const totalMs = Math.min(FAST_FALL_MAX_TOTAL_MS, Math.max(FAST_FALL_MIN_TOTAL_MS, distance * FAST_FALL_ROW_MS));
+  return totalMs / distance;
+}
+
 export interface ComboResult {
   scoreDelta: number;
   nextCombo: number;

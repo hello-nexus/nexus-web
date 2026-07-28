@@ -1,0 +1,194 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { useState } from 'react';
+import { act, renderHook } from '@testing-library/react';
+import { useBlocksHardDrop } from './useBlocksHardDrop';
+import {
+  BOARD_HEIGHT,
+  BOARD_WIDTH,
+  computeFastFallStepMs,
+  computeHardDropDistance,
+  createEmptyBoard,
+  SHAPES,
+  SPAWN_POSITION,
+  type BlocksRunState,
+} from './blocksLogic';
+
+const fixedRandom = () => 0;
+
+function stateAtSpawn(): BlocksRunState {
+  return {
+    board: createEmptyBoard(),
+    blocks: SHAPES.yellow,
+    position: { ...SPAWN_POSITION },
+    score: 0,
+    combo: 0,
+    gameOver: false,
+  };
+}
+
+function useHarness(initial: BlocksRunState, paused: boolean) {
+  const [runState, setRunState] = useState(initial);
+  const controls = useBlocksHardDrop(runState, setRunState, paused, fixedRandom);
+  return { runState, ...controls };
+}
+
+describe('useBlocksHardDrop', () => {
+  // The suite-wide matchMedia stub (setup.ts) answers `matches: true` for any
+  // non-"light" query, so prefers-reduced-motion would suppress the
+  // fast-fall animation in every test unless overridden here.
+  const stubbedMatchMedia = window.matchMedia;
+  beforeEach(() => {
+    vi.useFakeTimers();
+    window.matchMedia = (query: string) =>
+      ({ ...stubbedMatchMedia(query), matches: false }) as MediaQueryList;
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    window.matchMedia = stubbedMatchMedia;
+  });
+
+  it('steps the falling piece down one row at a time toward the landing row', () => {
+    const initial = stateAtSpawn();
+    const distance = computeHardDropDistance(initial.board, initial.blocks, initial.position);
+    const { result } = renderHook(() => useHarness(initial, false));
+
+    act(() => result.current.triggerHardDrop());
+    expect(result.current.dropping).toBe(true);
+    expect(result.current.runState.position.y).toBe(initial.position.y);
+
+    // Round up to guarantee the tick fires without letting a second one slip
+    // in - computeFastFallStepMs can return a fractional per-row interval.
+    const stepMs = Math.ceil(computeFastFallStepMs(distance));
+    act(() => { vi.advanceTimersByTime(stepMs); });
+    expect(result.current.runState.position.y).toBe(initial.position.y + 1);
+    expect(result.current.dropping).toBe(true);
+
+    act(() => { vi.advanceTimersByTime(stepMs); });
+    expect(result.current.runState.position.y).toBe(initial.position.y + 2);
+  });
+
+  it('locks exactly once, one tick after reaching the landing row', () => {
+    const initial = stateAtSpawn();
+    const distance = computeHardDropDistance(initial.board, initial.blocks, initial.position);
+    const { result } = renderHook(() => useHarness(initial, false));
+
+    act(() => result.current.triggerHardDrop());
+    // distance row-steps plus one settle tick before the lock, generously overshot.
+    const overshootMs = computeFastFallStepMs(distance) * (distance + 1) + 1000;
+    act(() => { vi.advanceTimersByTime(overshootMs); });
+
+    expect(result.current.dropping).toBe(false);
+    // The yellow O piece locks and respawns at SPAWN_POSITION; the board now
+    // holds its placed cells instead of an empty board.
+    expect(result.current.runState.position).toEqual(SPAWN_POSITION);
+    expect(result.current.runState.board).not.toBe(initial.board);
+    expect(result.current.runState.blocks).not.toBe(initial.blocks);
+
+    // Advancing well past completion fires no further lock (no interval left running).
+    const boardAfterLock = result.current.runState.board;
+    act(() => { vi.advanceTimersByTime(10_000); });
+    expect(result.current.runState.board).toBe(boardAfterLock);
+  });
+
+  it('a one-row drop still visibly moves before it locks, not a stall-then-teleport', () => {
+    const board = createEmptyBoard();
+    for (let x = 0; x < BOARD_WIDTH; x++) board[BOARD_HEIGHT - 1][x] = 'red';
+    const oneRowAway: BlocksRunState = {
+      board,
+      blocks: SHAPES.yellow,
+      position: { x: 0, y: BOARD_HEIGHT - 4 },
+      score: 0,
+      combo: 0,
+      gameOver: false,
+    };
+    const distance = computeHardDropDistance(oneRowAway.board, oneRowAway.blocks, oneRowAway.position);
+    expect(distance).toBe(1);
+    const { result } = renderHook(() => useHarness(oneRowAway, false));
+
+    act(() => result.current.triggerHardDrop());
+    const stepMs = Math.ceil(computeFastFallStepMs(distance));
+
+    act(() => { vi.advanceTimersByTime(stepMs); });
+    // First tick renders the piece one row down, still unlocked.
+    expect(result.current.runState.position.y).toBe(oneRowAway.position.y + 1);
+    expect(result.current.runState.board).toBe(oneRowAway.board);
+    expect(result.current.dropping).toBe(true);
+
+    act(() => { vi.advanceTimersByTime(stepMs); });
+    // Second tick locks it.
+    expect(result.current.dropping).toBe(false);
+    expect(result.current.runState.board).not.toBe(oneRowAway.board);
+  });
+
+  it('ignores a re-entrant trigger while a drop is already animating', () => {
+    const initial = stateAtSpawn();
+    const distance = computeHardDropDistance(initial.board, initial.blocks, initial.position);
+    const { result } = renderHook(() => useHarness(initial, false));
+
+    act(() => result.current.triggerHardDrop());
+    const stepMs = Math.ceil(computeFastFallStepMs(distance));
+    act(() => { vi.advanceTimersByTime(stepMs); });
+    const midDropPosition = result.current.runState.position;
+
+    // A second trigger mid-animation must not restart or double the drop.
+    act(() => result.current.triggerHardDrop());
+    expect(result.current.runState.position).toEqual(midDropPosition);
+  });
+
+  it('freezes ticks while paused and resumes without skipping ahead once unpaused', () => {
+    const initial = stateAtSpawn();
+    const distance = computeHardDropDistance(initial.board, initial.blocks, initial.position);
+    const { result, rerender } = renderHook(
+      ({ paused }) => useHarness(initial, paused),
+      { initialProps: { paused: false } },
+    );
+
+    act(() => result.current.triggerHardDrop());
+    const stepMs = Math.ceil(computeFastFallStepMs(distance));
+    act(() => { vi.advanceTimersByTime(stepMs); });
+    const positionBeforePause = result.current.runState.position;
+    expect(positionBeforePause.y).toBe(initial.position.y + 1);
+
+    rerender({ paused: true });
+    // Several ticks' worth of wall time passes while paused; none should land.
+    act(() => { vi.advanceTimersByTime(stepMs * 5); });
+    expect(result.current.runState.position).toEqual(positionBeforePause);
+    expect(result.current.dropping).toBe(true);
+
+    rerender({ paused: false });
+    act(() => { vi.advanceTimersByTime(stepMs); });
+    expect(result.current.runState.position.y).toBe(initial.position.y + 2);
+  });
+
+  it('locks instantly with no interval when the piece is already resting', () => {
+    const board = createEmptyBoard();
+    for (let x = 0; x < BOARD_WIDTH; x++) board[BOARD_HEIGHT - 1][x] = 'red';
+    const resting: BlocksRunState = {
+      board,
+      blocks: SHAPES.yellow,
+      position: { x: 0, y: BOARD_HEIGHT - 3 },
+      score: 0,
+      combo: 0,
+      gameOver: false,
+    };
+    expect(computeHardDropDistance(resting.board, resting.blocks, resting.position)).toBe(0);
+    const { result } = renderHook(() => useHarness(resting, false));
+
+    act(() => result.current.triggerHardDrop());
+    expect(result.current.dropping).toBe(false);
+    expect(result.current.runState.board).not.toBe(resting.board);
+  });
+
+  it('respects reduced motion by dropping instantly with no intermediate steps', () => {
+    window.matchMedia = (query: string) =>
+      ({ ...stubbedMatchMedia(query), matches: true }) as MediaQueryList;
+
+    const initial = stateAtSpawn();
+    const { result } = renderHook(() => useHarness(initial, false));
+
+    act(() => result.current.triggerHardDrop());
+    expect(result.current.dropping).toBe(false);
+    expect(result.current.runState.position).toEqual(SPAWN_POSITION);
+    expect(result.current.runState.board).not.toBe(initial.board);
+  });
+});
