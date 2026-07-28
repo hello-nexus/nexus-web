@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { PanelImmersiveOverlay } from './PanelImmersiveOverlay';
+import { pushModalStackEntry, removeModalStackEntry } from '../../components/common/Overlay/modalStack';
 
 // Both the top-centre swipe hint and the simulator X close the overlay, so they
 // share the close label; the count is what distinguishes the two states.
@@ -59,6 +60,56 @@ describe('PanelImmersiveOverlay', () => {
       expect(onExit).not.toHaveBeenCalled();
       act(() => { vi.runAllTimers(); });
       expect(onExit).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('Escape exits the overlay', () => {
+    vi.useFakeTimers();
+    try {
+      const onExit = vi.fn();
+      render(
+        <PanelImmersiveOverlay open onExit={onExit}>
+          <div>content</div>
+        </PanelImmersiveOverlay>,
+      );
+      fireEvent.keyDown(document, { key: 'Escape' });
+      act(() => { vi.runAllTimers(); });
+      expect(onExit).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  // The overlay registers with the shared modal stack (useModalA11y), which
+  // dispatches Escape to only the topmost entry - so a modal raised above it
+  // (e.g. the widget editor sheet) must consume the key instead.
+  it('Escape does not exit the overlay while a modal above it is open', () => {
+    vi.useFakeTimers();
+    try {
+      const onExit = vi.fn();
+      render(
+        <PanelImmersiveOverlay open onExit={onExit}>
+          <div>content</div>
+        </PanelImmersiveOverlay>,
+      );
+      const aboveOnEscape = vi.fn(() => true);
+      pushModalStackEntry({
+        id: 'immersive-escape-test-above',
+        containerRef: { current: document.body },
+        trapFocus: false,
+        onEscape: aboveOnEscape,
+        onEnter: () => false,
+      });
+      try {
+        fireEvent.keyDown(document, { key: 'Escape' });
+        act(() => { vi.runAllTimers(); });
+        expect(aboveOnEscape).toHaveBeenCalledTimes(1);
+        expect(onExit).not.toHaveBeenCalled();
+      } finally {
+        removeModalStackEntry('immersive-escape-test-above');
+      }
     } finally {
       vi.useRealTimers();
     }
