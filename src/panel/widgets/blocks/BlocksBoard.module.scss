@@ -47,31 +47,22 @@
 .cell[data-color='blue']   { background: #42a5f5; }
 .cell[data-color='orange'] { background: #ffa726; }
 
-// Landing preview: the ghost keeps the piece's own color at low opacity plus
-// an outline so its footprint reads over a stacked cell beneath it; the
-// trail is a thin center line, fainter still, so both stay clearly
-// secondary to the real falling piece.
+// Landing preview: the ghost keeps the piece's own color plus an outline so
+// its footprint reads over a stacked cell beneath it; the swept trail is a
+// neutral fill covering each cell the piece passes through, far fainter, so
+// both stay clearly secondary to the real falling piece.
 .cell[data-ghost='true'] {
-  opacity: 0.22;
-  outline: 1px solid color-mix(in srgb, var(--text) 55%, transparent);
+  opacity: 0.18;
+  outline: 1px solid color-mix(in srgb, var(--text) 40%, transparent);
   outline-offset: -1px;
 }
 
 .trailCell {
   position: absolute;
   box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--text) 5%, transparent);
   pointer-events: none;
-
-  &::before {
-    content: '';
-    width: 25%;
-    height: 100%;
-    border-radius: var(--radius-sm);
-    background: color-mix(in srgb, var(--text) 16%, transparent);
-  }
 }
 
 .box[data-combo-tier='1'] {
