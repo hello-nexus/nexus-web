@@ -74,6 +74,12 @@ export interface SelectProps {
    *  seek-bar block). Content stays vertically centered (.trigger is
    *  already a flex row). Omit to keep the default intrinsic height. */
   height?: number;
+  /** Trigger shows only the selected option's icon - no label text, no
+   *  chevron - for compact icon controls (e.g. a header language flag). The
+   *  label still renders when the selected option has no icon, and the open
+   *  menu is unchanged (icon + label rows). The selected label moves to the
+   *  trigger's title since the text is no longer visible. */
+  triggerIconOnly?: boolean;
 }
 
 // Trigger-to-menu gap and viewport-edge inset, px.
@@ -157,6 +163,7 @@ interface MenuCoords { top: number; left: number; width: number; maxHeight: numb
 export function Select({
   value, onChange, options, children, disabled,
   ariaLabel, className, variant = 'standard', accentValue, placeholder, height,
+  triggerIconOnly,
 }: SelectProps) {
   const { t } = useTranslation();
   const resolved = options ? options : optionsFromChildren(children);
@@ -410,7 +417,7 @@ export function Select({
   };
 
   return (
-    <span ref={wrapperRef} className={classNames(styles.wrapper, variant === 'ghost' && styles.ghost, className)}>
+    <span ref={wrapperRef} className={classNames(styles.wrapper, variant === 'ghost' && styles.ghost, triggerIconOnly && styles.iconOnly, className)}>
       <button
         ref={triggerRef}
         type="button"
@@ -421,21 +428,24 @@ export function Select({
         aria-expanded={open}
         aria-controls={open ? listboxId : undefined}
         aria-label={ariaLabel}
+        title={triggerIconOnly && selectedIcon && selectedLabel ? selectedLabel : undefined}
         onClick={() => { if (disabled) return; if (open) close(); else openMenu(); }}
         onKeyDown={onTriggerKeyDown}
       >
         <span className={classNames(styles.value, accentValue && styles.accentValue, showPlaceholder && styles.placeholder)}>
           {!showPlaceholder && selectedIcon && <span className={styles.optionIcon} aria-hidden="true">{selectedIcon}</span>}
-          {showPlaceholder ? placeholder : selectedLabel}
+          {showPlaceholder ? placeholder : (triggerIconOnly && selectedIcon ? null : selectedLabel)}
         </span>
       </button>
-      <ChevronDown
-        className={styles.chevron}
-        size={14}
-        strokeWidth={2}
-        // eslint-disable-next-line i18next/no-literal-string -- decorative-icon aria flag
-        aria-hidden="true"
-      />
+      {!triggerIconOnly && (
+        <ChevronDown
+          className={styles.chevron}
+          size={14}
+          strokeWidth={2}
+          // eslint-disable-next-line i18next/no-literal-string -- decorative-icon aria flag
+          aria-hidden="true"
+        />
+      )}
       {open && createPortal(
         <div
           ref={menuRef}
