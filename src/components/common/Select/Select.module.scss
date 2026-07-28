@@ -110,6 +110,16 @@
   }
 }
 
+/* Icon-only trigger (triggerIconOnly): the glyph is the whole control, so the
+   chevron gutter and the icon-to-label gap go. Declared after .ghost so the
+   ghost + iconOnly combination keeps this padding. */
+.iconOnly .trigger {
+  padding: 0.3rem 0.45rem;
+}
+.iconOnly .optionIcon {
+  margin-right: 0;
+}
+
 /* Menu box: portaled to <body>; top/left/width/max-height set inline. Holds the
    optional search field pinned above the scrolling list. The box itself doesn't
    scroll (the list does), so the field stays put while options scroll under it. */

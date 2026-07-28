@@ -20,6 +20,27 @@ describe('Select', () => {
     expect(screen.queryByRole('listbox')).toBeNull();
   });
 
+  it('renders only the icon on the trigger with triggerIconOnly, keeping full rows in the menu', () => {
+    const iconOptions = [
+      { value: 'en', label: 'English', icon: '🇺🇸' },
+      { value: 'it', label: 'Italiano', icon: '🇮🇹' },
+    ];
+    render(<Select value="it" onChange={vi.fn()} options={iconOptions} ariaLabel="Language" triggerIconOnly />);
+    const trigger = screen.getByRole('button', { name: 'Language' });
+    expect(trigger).not.toHaveTextContent('Italiano');
+    expect(trigger).toHaveTextContent('🇮🇹');
+    expect(trigger).toHaveAttribute('title', 'Italiano');
+    open('Language');
+    expect(screen.getByRole('option', { name: 'Italiano' })).toBeInTheDocument();
+  });
+
+  it('falls back to the label on the trigger when the selected option has no icon', () => {
+    render(<Select value="b" onChange={vi.fn()} options={OPTIONS} ariaLabel="fruit" triggerIconOnly />);
+    const trigger = screen.getByRole('button', { name: 'fruit' });
+    expect(trigger).toHaveTextContent('Banana');
+    expect(trigger).not.toHaveAttribute('title');
+  });
+
   it('pins the trigger to an explicit height when provided, leaving it unset by default', () => {
     const { rerender } = render(<Select value="b" onChange={vi.fn()} options={OPTIONS} ariaLabel="fruit" />);
     expect(screen.getByRole('button', { name: 'fruit' })).not.toHaveStyle({ height: '40px' });
