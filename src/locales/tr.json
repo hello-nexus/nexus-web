@@ -2313,6 +2313,8 @@
   "panel.widget.timer": "Zamanlayici",
   "panel.widget.timer.decrease": "{unit} azalt",
   "panel.widget.timer.increase": "{unit} artır",
+  "panel.widget.timer.resume": "Devam Et",
+  "panel.widget.timer.stop": "Durdur",
   "panel.widget.transfer": "PC'ye gönder",
   "panel.widget.twitch": "Twitch Sohbeti",
   "panel.widget.weather": "Hava Durumu",

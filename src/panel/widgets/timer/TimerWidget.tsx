@@ -1,6 +1,8 @@
 import { useState, useCallback } from 'react';
 import { Play, Pause, Square, RotateCcw } from 'lucide-react';
 import { useCountdown } from '../common/useCountdown';
+import { useFitWidth } from '../common/useFitWidth';
+import { StableDigits } from '../common/StableDigits';
 import { useTranslation } from '../../../lib/i18n';
 import type { WidgetProps } from '../types';
 import styles from './TimerWidget.module.scss';
@@ -22,18 +24,20 @@ type Phase = 'setup' | 'running';
 export function TimerWidget({ widget }: WidgetProps) {
   const { t } = useTranslation();
   const { ms, isRunning, isComplete, start, pause, resume, stop, reset } = useCountdown();
+  const { boxRef, contentRef, scale } = useFitWidth();
   const [phase, setPhase] = useState<Phase>('setup');
   const [hours, setHours] = useState(0);
   const [minutes, setMinutes] = useState(5);
   const [seconds, setSeconds] = useState(0);
 
   const isWide = widget.size === '4x2' || widget.size === '4x4';
+  const canStart = hours > 0 || minutes > 0 || seconds > 0;
 
   const handleStart = useCallback(() => {
-    if (hours === 0 && minutes === 0 && seconds === 0) return;
+    if (!canStart) return;
     start(hours, minutes, seconds);
     setPhase('running');
-  }, [hours, minutes, seconds, start]);
+  }, [canStart, hours, minutes, seconds, start]);
 
   const handleStop = useCallback(() => {
     stop();
@@ -67,7 +71,9 @@ export function TimerWidget({ widget }: WidgetProps) {
           type="button"
           className={`panel-chip ${styles.startBtn}`}
           onClick={handleStart}
-          disabled={hours === 0 && minutes === 0 && seconds === 0}
+          disabled={!canStart}
+          data-active={canStart ? 'true' : undefined}
+          aria-label={t('panel.stopwatch.start')}
         >
           <Play size={16} />
           {isWide && <span>{t('panel.stopwatch.start')}</span>}
@@ -85,9 +91,10 @@ export function TimerWidget({ widget }: WidgetProps) {
       className={`${styles.container} ${isWide ? styles.wide : styles.compact}`}
       data-complete={isComplete ? 'true' : undefined}
     >
-      <div className={styles.countdown}>
-        {showHours && <>{display.h}:</>}
-        {display.m}:{display.s}
+      <div ref={boxRef} className={styles.fitBox}>
+        <div ref={contentRef} className={styles.countdown} style={{ transform: `scale(${scale})` }}>
+          <StableDigits text={`${showHours ? `${display.h}:` : ''}${display.m}:${display.s}`} />
+        </div>
       </div>
       <div className={styles.controls}>
         {!isComplete && (
@@ -95,6 +102,7 @@ export function TimerWidget({ widget }: WidgetProps) {
             type="button"
             className={`panel-chip ${styles.controlBtn}`}
             onClick={handlePauseResume}
+            aria-label={isRunning ? t('panel.stopwatch.pause') : t('panel.widget.timer.resume')}
           >
             {isRunning ? <Pause size={16} /> : <Play size={16} />}
           </button>
@@ -104,6 +112,7 @@ export function TimerWidget({ widget }: WidgetProps) {
             type="button"
             className={`panel-chip ${styles.controlBtn}`}
             onClick={handleStop}
+            aria-label={t('panel.widget.timer.stop')}
           >
             <Square size={14} />
           </button>
@@ -113,6 +122,8 @@ export function TimerWidget({ widget }: WidgetProps) {
             type="button"
             className={`panel-chip ${styles.resetBtn}`}
             onClick={handleReset}
+            data-active="true"
+            aria-label={t('panel.stopwatch.reset')}
           >
             <RotateCcw size={16} />
             {isWide && <span>{t('panel.stopwatch.reset')}</span>}
@@ -140,12 +151,12 @@ function Stepper({ label, value, min, max, onChange, t }: StepperProps) {
   return (
     <div className={styles.stepper}>
       {/* eslint-disable-next-line i18next/no-literal-string -- decorative arrow glyph */}
-      <button type="button" className={styles.stepBtn} onClick={inc} aria-label={t('panel.widget.timer.increase', { unit: label })}>
+      <button type="button" className={`panel-chip ${styles.stepBtn}`} onClick={inc} aria-label={t('panel.widget.timer.increase', { unit: label })}>
         &#x25B2;
       </button>
       <span className={styles.stepValue}>{pad(value)}</span>
       {/* eslint-disable-next-line i18next/no-literal-string -- decorative arrow glyph */}
-      <button type="button" className={styles.stepBtn} onClick={dec} aria-label={t('panel.widget.timer.decrease', { unit: label })}>
+      <button type="button" className={`panel-chip ${styles.stepBtn}`} onClick={dec} aria-label={t('panel.widget.timer.decrease', { unit: label })}>
         &#x25BC;
       </button>
     </div>

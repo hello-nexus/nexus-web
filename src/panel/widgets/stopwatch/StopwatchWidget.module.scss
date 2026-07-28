@@ -20,16 +20,24 @@
   gap: 10px;
 }
 
+// Full-width track the elapsed readout scales within; the overflow clip
+// covers async refits (font swap, container resize) between observer frames.
+.fitBox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  overflow: hidden;
+}
+
 .display {
   display: flex;
   align-items: baseline;
   justify-content: center;
-  max-width: 100%;
-  min-width: 0;
-  overflow: hidden;
+  width: max-content;
   white-space: nowrap;
   line-height: 1;
-  font-variant-numeric: tabular-nums;
+  transform-origin: center;
 }
 
 .digits {
@@ -43,11 +51,11 @@
 }
 
 .compact .display {
-  font-size: 2.6em;
+  font-size: 2.3em;
 }
 
 .compact .display[data-hours='true'] {
-  font-size: 2.2em;
+  font-size: 1.9em;
 }
 
 .compact .fraction {
@@ -83,9 +91,4 @@
   min-height: 44px;
   gap: 8px;
   font-size: 14px;
-
-  &:not(:disabled) {
-    background: var(--panel-accent);
-    border-color: var(--panel-accent);
-  }
 }

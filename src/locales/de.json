@@ -2313,6 +2313,8 @@
   "panel.widget.timer": "Timer",
   "panel.widget.timer.decrease": "{unit} verringern",
   "panel.widget.timer.increase": "{unit} erhöhen",
+  "panel.widget.timer.resume": "Fortsetzen",
+  "panel.widget.timer.stop": "Stopp",
   "panel.widget.transfer": "An PC senden",
   "panel.widget.twitch": "Twitch-Chat",
   "panel.widget.weather": "Wetter",

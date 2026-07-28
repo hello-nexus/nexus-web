@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react';
 import type { ClockDesignProps } from './types';
 import { formatMetaLine, formatTime, getAmPm } from './timeFormat';
-import { useFitWidth } from '../useFitWidth';
+import { useFitWidth } from '../../common/useFitWidth';
 import styles from './LedClock.module.scss';
 
 // Seven-segment display: segments labeled a-g

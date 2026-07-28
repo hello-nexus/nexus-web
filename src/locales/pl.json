@@ -2316,6 +2316,8 @@
   "panel.widget.timer": "Minutnik",
   "panel.widget.timer.decrease": "Zmniejsz {unit}",
   "panel.widget.timer.increase": "Zwiększ {unit}",
+  "panel.widget.timer.resume": "Wznów",
+  "panel.widget.timer.stop": "Zatrzymaj",
   "panel.widget.transfer": "Wyślij na PC",
   "panel.widget.twitch": "Czat Twitch",
   "panel.widget.weather": "Pogoda",

@@ -29,6 +29,9 @@ type TriggerProps = {
   ref?: (el: Element | null) => void;
   onPointerEnter?: (e: React.PointerEvent) => void;
   onPointerLeave?: (e: React.PointerEvent) => void;
+  onPointerDown?: (e: React.PointerEvent) => void;
+  onPointerCancel?: (e: React.PointerEvent) => void;
+  onClick?: (e: React.MouseEvent) => void;
   onFocus?: (e: React.FocusEvent) => void;
   onBlur?: (e: React.FocusEvent) => void;
   'aria-describedby'?: string;
@@ -61,6 +64,14 @@ export function HoverTooltip({ title, body, side = 'bottom', children }: HoverTo
   // an incidental pass-through that's cancelled before the delay elapses
   // must not re-arm the scan window, or it would never lapse back.
   const openedRef = useRef(false);
+  // Focus produced by a pointer press (mousedown / tap focuses the trigger)
+  // must not open the tooltip: hover covers mouse, and on a touch surface
+  // nothing ever closes it. The press arms this; the focus it causes consumes
+  // it. click / pointercancel / blur clear it so a press that never focuses
+  // (scroll-away tap, macOS click) cannot suppress a later keyboard focus.
+  // On touch, focus arrives via the compat mouse events after pointerup, so
+  // pointerup must NOT clear the flag.
+  const pointerFocusRef = useRef(false);
   const tooltipId = useId();
 
   const cancelPendingOpen = () => {
@@ -138,6 +149,22 @@ export function HoverTooltip({ title, body, side = 'bottom', children }: HoverTo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
+  // Chromium fires no blur for an element that becomes disabled, so a
+  // focus-opened tooltip whose trigger disabled itself on click would latch
+  // open - any press outside the trigger dismisses it.
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (e: PointerEvent) => {
+      const el = triggerRef.current;
+      if (el && e.target instanceof Node && el.contains(e.target)) return;
+      close();
+    };
+    window.addEventListener('pointerdown', onPointerDown, true);
+    return () => window.removeEventListener('pointerdown', onPointerDown, true);
+    // close reads refs / stable setters only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
   if (!isValidElement(children)) {
     // Not a single element (fragment/string): render as-is, no tooltip.
     return <>{children}</>;
@@ -176,10 +203,16 @@ export function HoverTooltip({ title, body, side = 'bottom', children }: HoverTo
     onPointerLeave: chain(childProps.onPointerLeave, (e: React.PointerEvent) => {
       if (e.pointerType !== 'touch') close();
     }),
+    onPointerDown: chain(childProps.onPointerDown, () => { pointerFocusRef.current = true; }),
+    onPointerCancel: chain(childProps.onPointerCancel, () => { pointerFocusRef.current = false; }),
+    onClick: chain(childProps.onClick, () => { pointerFocusRef.current = false; }),
     // Keyboard focus opens immediately (no delay) - tabbing to the element is
-    // a deliberate commit.
-    onFocus: chain(childProps.onFocus, () => { cancelPendingOpen(); setOpen(true); openedRef.current = true; notifyTooltipOpen(); }),
-    onBlur: chain(childProps.onBlur, () => close()),
+    // a deliberate commit. Pointer-press focus is swallowed via pointerFocusRef.
+    onFocus: chain(childProps.onFocus, () => {
+      if (pointerFocusRef.current) { pointerFocusRef.current = false; return; }
+      cancelPendingOpen(); setOpen(true); openedRef.current = true; notifyTooltipOpen();
+    }),
+    onBlur: chain(childProps.onBlur, () => { pointerFocusRef.current = false; close(); }),
     'aria-describedby': open ? tooltipId : childProps['aria-describedby'],
   });
 

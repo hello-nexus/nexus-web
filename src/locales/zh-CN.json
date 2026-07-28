@@ -2313,6 +2313,8 @@
   "panel.widget.timer": "计时器",
   "panel.widget.timer.decrease": "减少{unit}",
   "panel.widget.timer.increase": "增加{unit}",
+  "panel.widget.timer.resume": "继续",
+  "panel.widget.timer.stop": "停止",
   "panel.widget.transfer": "发送到电脑",
   "panel.widget.twitch": "Twitch 聊天",
   "panel.widget.weather": "天气",

@@ -6,10 +6,10 @@
 // icon-only slots render as populated, onCell no-ops, no app-icon fetches.
 import type { DeckConfig, DeckSlot } from './types';
 
-// Titles default to hidden, so a labelled preview slot enables its title
-// explicitly to demonstrate the label on the key.
-const slot = (value: string, color: string, label?: string): DeckSlot =>
-  ({ icon: { kind: 'lucide', value }, color, ...(label ? { label, title: { show: true } } : {}) });
+// Icon-only by design: no slot carries a label, so the preview reads as a
+// clean key grid rather than demo text.
+const slot = (value: string, color: string): DeckSlot =>
+  ({ icon: { kind: 'lucide', value }, color });
 
 // Demonstrates the monitoring tile alongside the icon-based keys. DeckMonitoringCell
 // never resolves this action's category/sensor in preview mode (it renders its
@@ -22,9 +22,9 @@ const monitoringSlot: DeckSlot = {
 export const DECK_PREVIEW_CONFIG: DeckConfig = {
   pages: [{
     slots: [
-      slot('Play', '#22c55e', 'Stream'),
+      slot('Play', '#22c55e'),
       slot('Volume2', '#06b6d4'),
-      slot('Lightbulb', '#f97316', 'Lights'),
+      slot('Lightbulb', '#f97316'),
       slot('Fan', '#14b8a6'),
       slot('Sun', '#f59e0b'),
       slot('Terminal', '#8b5cf6'),

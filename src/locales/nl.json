@@ -2491,6 +2491,8 @@
   "panel.widget.timer": "Timer",
   "panel.widget.timer.decrease": "{unit} verlagen",
   "panel.widget.timer.increase": "{unit} verhogen",
+  "panel.widget.timer.resume": "Hervatten",
+  "panel.widget.timer.stop": "Stoppen",
   "panel.widget.transfer": "Naar pc sturen",
   "panel.widget.twitch": "Twitch-chat",
   "panel.widget.weather": "Weer",

@@ -1,6 +1,7 @@
 import type { ClockDesignProps } from './types';
 import { formatMetaLine } from './timeFormat';
-import { useFitWidth } from '../useFitWidth';
+import { useFitWidth } from '../../common/useFitWidth';
+import { StableDigits } from '../../common/StableDigits';
 import styles from './DigitalClock.module.scss';
 
 function DigitalClock({ now, tz, showSeconds, showDate, showTimezone, size, hour12, useAccentColor }: ClockDesignProps) {
@@ -20,7 +21,9 @@ function DigitalClock({ now, tz, showSeconds, showDate, showTimezone, size, hour
   return (
     <div className={`${styles.container} ${sizeClass} ${useAccentColor ? styles.accent : ''}`}>
       <div ref={boxRef} className={styles.fitBox}>
-        <div ref={contentRef} className={styles.time} style={{ transform: `scale(${scale})` }}>{time}</div>
+        <div ref={contentRef} className={styles.time} style={{ transform: `scale(${scale})` }}>
+          <StableDigits text={time} />
+        </div>
       </div>
       {dateStr && <div className={styles.date}>{dateStr}</div>}
     </div>
