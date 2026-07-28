@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi, afterEach } from 'vitest';
+import { gaugeReadings } from '../../../__tests__/panel/visibleText';
 import type { PanelConfigValue, PanelSurface, PanelWidget, PanelWidgetSize } from '../../types';
 import { MonitoringWidget } from '../monitoring/MonitoringWidget';
 import { GAUGE_DESIGN_KEYS, GAUGE_DESIGN_LABELS } from '../monitoring/gauges';
@@ -197,7 +198,7 @@ describe('MonitoringSettings', () => {
       slot0_max: null,
     });
     expect(screen.getByRole('button', { name: /select network total/i })).toBeInTheDocument();
-    expect(screen.getByText('1.5')).toBeInTheDocument();
+    expect(gaugeReadings()).toContain('1.5 MB/s');
     expect(screen.getByText('MB/s')).toBeInTheDocument();
 
     fireEvent.change(screen.getByRole('combobox', { name: 'monitoring.settings.sensor' }), { target: { value: 'Network In' } });
@@ -221,7 +222,7 @@ describe('MonitoringSettings', () => {
       slot0_max: null,
     });
     expect(screen.getByRole('button', { name: /select charge level/i })).toBeInTheDocument();
-    expect(screen.getByText('80')).toBeInTheDocument();
+    expect(gaugeReadings()).toContain('80%');
   });
 
   it('lists SSD SMART sensors (from a smart/*-keyed storage component) in the picker', () => {

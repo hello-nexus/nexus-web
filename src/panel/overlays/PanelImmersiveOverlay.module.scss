@@ -64,6 +64,10 @@
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   z-index: 210;
+  // Auto-fade after idle: opacity only, so the hit area never shrinks and a
+  // tap can always reveal it again.
+  opacity: 1;
+  transition: opacity var(--ease-slow) ease;
 
   &::before {
     content: '';
@@ -79,6 +83,16 @@
   &:active::before {
     opacity: 1;
   }
+}
+
+.exitHint[data-revealed='false'] {
+  opacity: 0;
+}
+
+// A keyboard user tabbing onto the faded notch still needs a visible focus
+// ring; this wins over the data-revealed rule above via source order.
+.exitHint:focus-visible {
+  opacity: 1;
 }
 
 :global(.panel-root)[data-theme='light'] .exitHint::before {
@@ -166,4 +180,6 @@
 @media (prefers-reduced-motion: reduce) {
   .overlay { animation: none; }
   .overlay[data-state='exiting'] { animation: none; opacity: 0; }
+  // Idle fade still applies, but as an instant swap rather than an animated one.
+  .exitHint { transition: none; }
 }

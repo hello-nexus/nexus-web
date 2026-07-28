@@ -1,5 +1,5 @@
 import { PERF_HISTORY_SAMPLES } from '../../common/panelHistoryConfig';
-import { splitFormatted } from './format';
+import { GaugeValue } from './GaugeValue';
 import type { GaugeProps } from './types';
 import styles from './MirrorWaveGauge.module.scss';
 
@@ -11,8 +11,6 @@ const EDGE_PAD = 3;
 // Symmetric level-meter trace: each sample's normalized amplitude is drawn both
 // above and below the center line, filled as one mirrored shape.
 export function MirrorWaveGauge({ formatted, label, history, historyDomain }: GaugeProps) {
-  const parts = splitFormatted(formatted);
-
   const tail = history.slice(-PERF_HISTORY_SAMPLES);
   const samples =
     tail.length >= PERF_HISTORY_SAMPLES
@@ -43,10 +41,7 @@ export function MirrorWaveGauge({ formatted, label, history, historyDomain }: Ga
         </svg>
       </div>
       <div className={styles.info}>
-        <span className={styles.value}>
-          {parts.value}
-          {parts.unit && <span className="panel-gauge-unit">{parts.unit}</span>}
-        </span>
+        <GaugeValue formatted={formatted} className={styles.value} />
         {label && <span className={styles.label}>{label}</span>}
       </div>
     </div>

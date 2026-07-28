@@ -23,6 +23,8 @@ interface PanelImmersiveOverlayProps {
 }
 
 const EXIT_MS = 200;
+// Idle delay before the drawer's close notch fades away.
+export const NOTCH_FADE_DELAY_MS = 1500;
 
 export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, themeMode, surface, showCloseButton = false }: PanelImmersiveOverlayProps) {
   const { t } = useTranslation();
@@ -78,6 +80,52 @@ export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, them
     sheetRef: overlayRef,
     onDismiss: beginExit,
   });
+
+  // The close notch starts visible, then fades out after an idle delay so it
+  // stops competing with the content; a tap while faded reveals it again
+  // instead of closing, and only a tap while it is already visible closes.
+  const [notchVisible, setNotchVisible] = useState(true);
+  const notchFadeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const scheduleNotchFade = useCallback(() => {
+    if (notchFadeTimer.current) clearTimeout(notchFadeTimer.current);
+    notchFadeTimer.current = setTimeout(() => {
+      notchFadeTimer.current = null;
+      setNotchVisible(false);
+    }, NOTCH_FADE_DELAY_MS);
+  }, []);
+
+  // Reveals on open and re-arms the fade timer whenever a drag settles back
+  // to idle (a dismissing drag unmounts before the timer would matter). A
+  // drag in progress owns visibility instead - the timer must not fight it.
+  useEffect(() => {
+    if (mountState !== 'mounted') return;
+    if (swipe.state === 'dragging') {
+      if (notchFadeTimer.current) {
+        clearTimeout(notchFadeTimer.current);
+        notchFadeTimer.current = null;
+      }
+      setNotchVisible(true);
+      return;
+    }
+    setNotchVisible(true);
+    scheduleNotchFade();
+    return () => {
+      if (notchFadeTimer.current) {
+        clearTimeout(notchFadeTimer.current);
+        notchFadeTimer.current = null;
+      }
+    };
+  }, [mountState, swipe.state, scheduleNotchFade]);
+
+  const handleNotchTap = useCallback(() => {
+    if (notchVisible) {
+      beginExit();
+      return;
+    }
+    setNotchVisible(true);
+    scheduleNotchFade();
+  }, [notchVisible, beginExit, scheduleNotchFade]);
 
   // Registers with the shared modal stack so Escape and Tab are arbitrated
   // against whatever is topmost (e.g. the widget editor sheet) instead of
@@ -135,12 +183,15 @@ export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, them
       <button
         type="button"
         className={styles.exitHint}
-        onClick={beginExit}
+        onClick={handleNotchTap}
         // Marks this so usePanelSheetSwipe.isSheetSwipeControlTarget skips
         // arming the drag on a touch here. Else the swipe engages on tap,
         // onClick races the snap-back, and the overlay sticks partway down
         // on Y70 WebView2.
         data-panel-no-sheet-swipe="true"
+        // Opacity-only: the hit area, role, and label stay constant while
+        // faded so a tap always lands and assistive tech never loses it.
+        data-revealed={notchVisible ? 'true' : 'false'}
         aria-label={t('panel.immersive.close')}
       />
       {showCloseButton && (

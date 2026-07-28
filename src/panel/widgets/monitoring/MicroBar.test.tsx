@@ -1,5 +1,6 @@
 import { render, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
+import { hasGaugeReading } from '../../../__tests__/panel/visibleText';
 import { MicroBar } from './MicroBar';
 
 describe('MicroBar designs', () => {
@@ -20,11 +21,11 @@ describe('MicroBar designs', () => {
   it('renders the caption label and value, hiding the label span when empty', () => {
     const labeled = render(<MicroBar label="CPU" formatted="72" fillPercent={60} design="bar" />);
     expect(within(labeled.container).getByText('CPU')).toBeInTheDocument();
-    expect(within(labeled.container).getByText('72')).toBeInTheDocument();
+    expect(hasGaugeReading(labeled.container, '72')).toBe(true);
 
     const unlabeled = render(<MicroBar label="" formatted="72" fillPercent={60} design="bar" />);
     expect(within(unlabeled.container).queryByText('CPU')).toBeNull();
-    expect(within(unlabeled.container).getByText('72')).toBeInTheDocument();
+    expect(hasGaugeReading(unlabeled.container, '72')).toBe(true);
   });
 
   it('defaults to the bar design when none is given', () => {

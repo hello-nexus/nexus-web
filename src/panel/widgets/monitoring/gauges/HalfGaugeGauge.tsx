@@ -1,10 +1,9 @@
-import { splitFormatted } from './format';
+import { GaugeValue } from './GaugeValue';
 import type { GaugeProps } from './types';
 import styles from './HalfGaugeGauge.module.scss';
 
 export function HalfGaugeGauge({ value, formatted, label }: GaugeProps) {
   const clamped = Math.max(0, Math.min(100, value));
-  const parts = splitFormatted(formatted);
 
   const radius = 40;
   const cx = 50;
@@ -29,10 +28,7 @@ export function HalfGaugeGauge({ value, formatted, label }: GaugeProps) {
         </svg>
       </div>
       <div className={styles.info}>
-        <span className={styles.value}>
-          {parts.value}
-          {parts.unit && <span className="panel-gauge-unit">{parts.unit}</span>}
-        </span>
+        <GaugeValue formatted={formatted} className={styles.value} />
         {label && <span className={styles.label}>{label}</span>}
       </div>
     </div>

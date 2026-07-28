@@ -1,6 +1,6 @@
 import { Sparkline } from '../../../components/common/Sparkline/Sparkline';
 import { PERF_HISTORY_SAMPLES } from '../common/panelHistoryConfig';
-import { splitFormatted } from './gauges/format';
+import { GaugeValue } from './gauges/GaugeValue';
 import { GaugeTrack } from './gauges/GaugeTrack';
 import { GAUGE_LINE_THICKNESS } from './gauges/types';
 import type { GaugeDesignKey } from './gauges/types';
@@ -19,14 +19,10 @@ interface MicroBarProps {
 }
 
 export function MicroBar({ label, formatted, fillPercent, design = 'bar', history, historyDomain }: MicroBarProps) {
-  const parts = splitFormatted(formatted);
   const head = (
     <div className={styles.head}>
       {label && <span className={styles.label}>{label}</span>}
-      <span className={styles.value}>
-        {parts.value}
-        {parts.unit && <span className="panel-gauge-unit">{parts.unit}</span>}
-      </span>
+      <GaugeValue formatted={formatted} className={styles.value} />
     </div>
   );
 

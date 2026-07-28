@@ -1,11 +1,14 @@
 import type { CSSProperties } from 'react';
-import { type Board, type BlockCell, type ComboJuiceTier } from './blocksLogic';
+import { type Board, type BlockCell, type ComboJuiceTier, type LandingPreview } from './blocksLogic';
 import styles from './BlocksBoard.module.scss';
 
 export interface BlocksBoardProps {
   board: Board;
   // Falling piece cells, already offset to absolute board coordinates.
   fallingBlocks: BlockCell[];
+  // Ghost footprint + trajectory trail beneath the falling piece. Null
+  // suppresses both (mid hard-drop animation, or no piece to preview).
+  landingPreview: LandingPreview | null;
   comboTier: ComboJuiceTier;
   boardLabel: string;
   // Measured by the caller (BlocksTouch also needs cellSize for its drag
@@ -21,7 +24,7 @@ export interface BlocksBoardProps {
 }
 
 export function BlocksBoard({
-  board, fallingBlocks, comboTier, boardLabel, cellSize, boardBoxRef, boardWidthCells, boardHeightCells,
+  board, fallingBlocks, landingPreview, comboTier, boardLabel, cellSize, boardBoxRef, boardWidthCells, boardHeightCells,
   onPointerDown, onKeyDown,
 }: BlocksBoardProps) {
   return (
@@ -46,6 +49,14 @@ export function BlocksBoard({
             const style: CSSProperties = { left: x * cellSize, top: y * cellSize, width: cellSize, height: cellSize };
             return <div key={`${x}-${y}`} className={styles.cell} data-color={color} style={style} />;
           }))}
+          {landingPreview?.trailCells.map((cell, i) => {
+            const style: CSSProperties = { left: cell.x * cellSize, top: cell.y * cellSize, width: cellSize, height: cellSize };
+            return <div key={`trail-${i}`} className={styles.trailCell} style={style} />;
+          })}
+          {landingPreview?.ghostCells.map((block, i) => {
+            const style: CSSProperties = { left: block.x * cellSize, top: block.y * cellSize, width: cellSize, height: cellSize };
+            return <div key={`ghost-${i}`} className={styles.cell} data-color={block.color} data-ghost="true" style={style} />;
+          })}
           {fallingBlocks.map((block, i) => {
             const style: CSSProperties = { left: block.x * cellSize, top: block.y * cellSize, width: cellSize, height: cellSize };
             return <div key={i} className={styles.cell} data-color={block.color} style={style} />;

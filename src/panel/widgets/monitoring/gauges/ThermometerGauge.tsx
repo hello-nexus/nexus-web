@@ -1,10 +1,9 @@
-import { splitFormatted } from './format';
+import { GaugeValue } from './GaugeValue';
 import type { GaugeProps } from './types';
 import styles from './ThermometerGauge.module.scss';
 
 export function ThermometerGauge({ value, formatted, label }: GaugeProps) {
   const fillPercent = Math.max(0, Math.min(100, value));
-  const parts = splitFormatted(formatted);
 
   return (
     <div className={styles.thermo}>
@@ -14,10 +13,7 @@ export function ThermometerGauge({ value, formatted, label }: GaugeProps) {
         </div>
       </div>
       <div className={styles.info}>
-        <span className={styles.value}>
-          {parts.value}
-          {parts.unit && <span className="panel-gauge-unit">{parts.unit}</span>}
-        </span>
+        <GaugeValue formatted={formatted} className={styles.value} />
         {label && <span className={styles.label}>{label}</span>}
       </div>
     </div>

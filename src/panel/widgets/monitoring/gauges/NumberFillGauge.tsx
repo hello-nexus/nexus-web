@@ -1,4 +1,4 @@
-import { splitFormatted } from './format';
+import { GaugeValue } from './GaugeValue';
 import type { GaugeProps } from './types';
 import styles from './NumberFillGauge.module.scss';
 
@@ -8,23 +8,14 @@ import styles from './NumberFillGauge.module.scss';
 export function NumberFillGauge({ value, formatted, label }: GaugeProps) {
   const clamped = Math.max(0, Math.min(100, value));
   const clipTop = 100 - clamped;
-  const parts = splitFormatted(formatted);
-  const renderText = () => (
-    <>
-      {parts.value}
-      {parts.unit && <span className="panel-gauge-unit">{parts.unit}</span>}
-    </>
-  );
-
   return (
     <div className={styles.numberFill}>
       <div className={styles.textWrap}>
-        <span className={styles.textDim} aria-hidden="true">{renderText()}</span>
-        <span
-          className={styles.textBright}
-          style={{ clipPath: `inset(${clipTop}% 0 0 0)` }}
-        >
-          {renderText()}
+        <span className={styles.textDim} aria-hidden="true">
+          <GaugeValue formatted={formatted} />
+        </span>
+        <span className={styles.textBright}>
+          <GaugeValue formatted={formatted} clipTopPercent={clipTop} />
         </span>
       </div>
       {label && <span className={styles.label}>{label}</span>}

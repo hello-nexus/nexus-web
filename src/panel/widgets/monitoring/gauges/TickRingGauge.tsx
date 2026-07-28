@@ -1,4 +1,4 @@
-import { splitFormatted } from './format';
+import { GaugeValue } from './GaugeValue';
 import type { GaugeProps } from './types';
 import styles from './TickRingGauge.module.scss';
 
@@ -11,7 +11,6 @@ function polar(r: number, deg: number): [number, number] {
 
 export function TickRingGauge({ value, formatted, label }: GaugeProps) {
   const clamped = Math.max(0, Math.min(100, value));
-  const parts = splitFormatted(formatted);
   const onCount = (clamped / 100) * TICKS;
 
   return (
@@ -34,10 +33,7 @@ export function TickRingGauge({ value, formatted, label }: GaugeProps) {
         })}
       </svg>
       <div className={styles.center}>
-        <span className={styles.value}>
-          {parts.value}
-          {parts.unit && <span className="panel-gauge-unit">{parts.unit}</span>}
-        </span>
+        <GaugeValue formatted={formatted} className={styles.value} />
         {label && <span className={styles.label}>{label}</span>}
       </div>
     </div>
