@@ -4,6 +4,7 @@ import {
   Volume, Volume1, Volume2, VolumeX,
 } from 'lucide-react';
 import { ImmersiveLayout } from '../common/ImmersiveLayout';
+import { StableDigits } from '../common/StableDigits';
 import { useMedia, controlMedia, seekMedia, type MediaSession } from '../../../hooks/useMedia';
 import { useSystemVolume } from '../../../hooks/useSystemVolume';
 import { fetchServiceBlob } from '../../../api/service';
@@ -11,6 +12,7 @@ import { useTranslation } from '../../../lib/i18n';
 import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
 import type { WidgetProps } from '../types';
 import { mediaArtSignature } from './mediaArt';
+import { formatTrackTime, useLivePositionMs } from './mediaTime';
 import styles from './MediaTouch.module.scss';
 
 interface MediaArtAsset {
@@ -195,6 +197,7 @@ function MediaPlayerCell({
         <SeekBar
           durationMs={session.playback.durationMs}
           positionMs={session.playback.positionMs}
+          playing={playing}
           seekable={!!session.controls.isSeekEnabled}
           onSeek={ms => seekMedia(sourceKey, ms)}
           t={t}
@@ -252,21 +255,25 @@ const SEEK_CONFIRM_WINDOW_MS = 3_000;
 const SEEK_CONFIRM_TIMEOUT_MS = 6_000;
 
 /**
- * Track position with scrub-to-seek. The fill follows the pointer while
- * dragging and the requested position after release, so it never rubber-bands
- * between the release and the next poll. Players that do not advertise
- * isSeekEnabled render the same bar with no interaction, since the service
- * would silently no-op the request.
+ * Track position with scrub-to-seek, flanked by elapsed and total times. The
+ * fill follows the pointer while dragging and the requested position after
+ * release, so it never rubber-bands between the release and the next poll;
+ * the elapsed readout derives from the same shown position, so it agrees with
+ * the fill in every state. Players that do not advertise isSeekEnabled render
+ * the same bar with no interaction, since the service would silently no-op
+ * the request.
  */
 function SeekBar({
   durationMs,
   positionMs,
+  playing,
   seekable,
   onSeek,
   t,
 }: {
   durationMs: number;
   positionMs: number;
+  playing: boolean;
   seekable: boolean;
   onSeek: (positionMs: number) => Promise<void>;
   t: (k: string) => string;
@@ -277,7 +284,10 @@ function SeekBar({
   // new request rather than on every poll.
   const [pending, setPending] = useState<{ pct: number; fromPositionMs: number; durationMs: number } | null>(null);
 
-  const serverPct = durationMs > 0 ? Math.min(100, (positionMs / durationMs) * 100) : 0;
+  // Ticks between polls. The hold below still resolves against the polled
+  // position, so a tick can never stand in for the confirmation a seek needs.
+  const livePositionMs = useLivePositionMs(positionMs, durationMs, playing);
+  const serverPct = durationMs > 0 ? Math.min(100, (livePositionMs / durationMs) * 100) : 0;
   const shown = dragPct ?? pending?.pct ?? serverPct;
 
   // Release the optimistic hold once a LATER poll lands near the requested
@@ -317,54 +327,73 @@ function SeekBar({
     Promise.resolve(onSeek((pct / 100) * durationMs)).catch(() => setPending(null));
   };
 
+  // Off the percent only while the fill is detached from playback (drag or
+  // hold), since that round-trip loses the exact second. Digits are cell-sized
+  // against the inherited font so ticking cannot make the bar breathe; the
+  // static total needs no such treatment.
+  const detached = dragPct ?? pending?.pct;
+  const elapsedMs = detached === undefined ? livePositionMs : (detached / 100) * durationMs;
+  const elapsed = (
+    <span className={styles.seekTime}><StableDigits text={formatTrackTime(elapsedMs)} /></span>
+  );
+  const total = <span className={styles.seekTime}>{formatTrackTime(durationMs)}</span>;
+
   if (!seekable) {
     return (
-      <div className={styles.seekBar} role="progressbar" aria-valuenow={Math.round(serverPct)} aria-valuemin={0} aria-valuemax={100}>
-        <div className={styles.seekFill} style={{ width: `${serverPct}%` }} />
+      <div className={styles.seekRow}>
+        {elapsed}
+        <div className={styles.seekBar} role="progressbar" aria-valuenow={Math.round(serverPct)} aria-valuemin={0} aria-valuemax={100}>
+          <div className={styles.seekFill} style={{ width: `${serverPct}%` }} />
+        </div>
+        {total}
       </div>
     );
   }
 
   return (
-    <div
-      ref={barRef}
-      className={`${styles.seekBar} ${styles.seekable}`}
-      role="slider"
-      tabIndex={0}
-      aria-label={t('panel.media.seek')}
-      aria-valuenow={Math.round(shown)}
-      aria-valuemin={0}
-      aria-valuemax={100}
-      onPointerDown={e => {
-        // Capture is an enhancement (keeps a drag alive past the bar edge);
-        // it is absent under jsdom and can throw on older WebViews, and the
-        // drag must still start when it does.
-        try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* not supported */ }
-        setDragPct(pctFromEvent(e.clientX));
-      }}
-      onPointerMove={e => {
-        if (dragPct === null) return;
-        setDragPct(pctFromEvent(e.clientX));
-      }}
-      onPointerUp={e => {
-        // Only a drag that STARTED on the bar may seek; a stray release from a
-        // gesture begun elsewhere would otherwise jump playback.
-        if (dragPct === null) return;
-        commit(dragPct);
-        void e;
-      }}
-      onPointerCancel={() => setDragPct(null)}
-      onKeyDown={e => {
-        const step = e.key === 'ArrowLeft' ? -5 : e.key === 'ArrowRight' ? 5 : 0;
-        if (!step) return;
-        e.preventDefault();
-        commit(Math.max(0, Math.min(100, shown + step)));
-      }}
-    >
+    <div className={styles.seekRow}>
+      {elapsed}
       <div
-        className={styles.seekFill}
-        style={{ width: `${shown}%`, transition: dragPct === null ? undefined : 'none' }}
-      />
+        ref={barRef}
+        className={`${styles.seekBar} ${styles.seekable}`}
+        role="slider"
+        tabIndex={0}
+        aria-label={t('panel.media.seek')}
+        aria-valuenow={Math.round(shown)}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        onPointerDown={e => {
+          // Capture is an enhancement (keeps a drag alive past the bar edge);
+          // it is absent under jsdom and can throw on older WebViews, and the
+          // drag must still start when it does.
+          try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* not supported */ }
+          setDragPct(pctFromEvent(e.clientX));
+        }}
+        onPointerMove={e => {
+          if (dragPct === null) return;
+          setDragPct(pctFromEvent(e.clientX));
+        }}
+        onPointerUp={e => {
+          // Only a drag that STARTED on the bar may seek; a stray release from a
+          // gesture begun elsewhere would otherwise jump playback.
+          if (dragPct === null) return;
+          commit(dragPct);
+          void e;
+        }}
+        onPointerCancel={() => setDragPct(null)}
+        onKeyDown={e => {
+          const step = e.key === 'ArrowLeft' ? -5 : e.key === 'ArrowRight' ? 5 : 0;
+          if (!step) return;
+          e.preventDefault();
+          commit(Math.max(0, Math.min(100, shown + step)));
+        }}
+      >
+        <div
+          className={styles.seekFill}
+          style={{ width: `${shown}%`, transition: dragPct === null ? undefined : 'none' }}
+        />
+      </div>
+      {total}
     </div>
   );
 }

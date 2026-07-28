@@ -185,16 +185,34 @@
   white-space: nowrap;
 }
 
-.seekBar {
+// Elapsed and total flank the bar, so the row carries the track's width cap.
+.seekRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   width: 100%;
   max-width: 360px;
+  flex-shrink: 0;
+}
+
+.seekTime {
+  @include text-caption;
+
+  // Same opacity step as .artist so the readout sits at metadata weight.
+  opacity: 0.6;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.seekBar {
+  flex: 1 1 auto;
+  min-width: 0;
   // Thicker than the tile's hairline: the immersive view is read at arm's
   // length on a panel, where a thin rule disappears.
   height: 10px;
   background: var(--panel-border);
   border-radius: var(--radius-pill);
   overflow: hidden;
-  flex-shrink: 0;
 }
 
 // Scrub affordance. touch-action keeps the panel's sheet-swipe from stealing a
