@@ -197,6 +197,16 @@ export function computeDropSpeedMs(score: number): number {
   return tickMs;
 }
 
+/** 1-based index into SPEED_TIERS for the current score - a cheap "level" readout for the HUD. */
+export function computeLevel(score: number): number {
+  let level = 1;
+  for (let i = 0; i < SPEED_TIERS.length; i++) {
+    if (score < SPEED_TIERS[i].minScore) break;
+    level = i + 1;
+  }
+  return level;
+}
+
 // Combo "juice" intensity tier driving the board's border pulse + shake.
 export type ComboJuiceTier = 0 | 1 | 2 | 3;
 

@@ -29,6 +29,7 @@ export function SnakeBoard({ state, boardLabel, onTouchStart, onTouchEnd, onMous
       role="application"
       aria-label={boardLabel}
       tabIndex={0}
+      style={cellSize > 0 ? ({ '--cell': `${cellSize}px` } as CSSProperties) : undefined}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
       onMouseDown={onMouseDown}

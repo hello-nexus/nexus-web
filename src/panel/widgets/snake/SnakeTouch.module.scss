@@ -9,16 +9,38 @@
 
 .selectPanel {
   margin: auto;
+  width: 100%;
+  max-width: 22rem;
+  padding: var(--space-lg);
+  animation: panelIn var(--ease-slow) ease-out both;
+}
+
+.menuCard {
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: var(--space-lg);
-  padding: var(--space-xl);
+  padding: var(--space-xl) var(--space-lg);
+  background: var(--surface);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.titleIcon {
+  color: var(--accent-glow);
 }
 
 .title {
   font-size: var(--type-display);
   font-weight: var(--weight-display);
+  letter-spacing: 0.01em;
 }
 
 .subtitle {
@@ -30,22 +52,21 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
-  width: 12rem;
+  width: 100%;
 }
 
-.hud {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-sm) var(--space-lg);
-  font-family: var(--font-mono);
-  font-size: var(--type-small);
+.difficultyCardWrap {
+  animation: cardIn var(--ease-slow) ease-out both;
+}
+
+.difficultyCard {
+  width: 100%;
+}
+
+.difficultyBest {
   color: var(--text-dim);
-}
-
-.hudScore {
-  color: var(--text);
-  font-weight: var(--weight-strong);
+  font-size: var(--type-small);
+  font-family: var(--font-mono);
 }
 
 .dpad {
@@ -73,4 +94,20 @@
   display: flex;
   background: color-mix(in srgb, var(--bg-elevated) 88%, transparent);
   backdrop-filter: blur(var(--blur-backdrop));
+}
+
+@keyframes panelIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .selectPanel, .difficultyCardWrap {
+    animation: none;
+  }
 }

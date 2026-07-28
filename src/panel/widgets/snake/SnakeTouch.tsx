@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Flame, Gamepad2, Rabbit, Turtle } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { Button } from '../../../components/common/Button/Button';
+import { Card } from '../../../components/common/Card/Card';
+import { GameHud } from '../games-shared/GameHud';
 import { GameOverScreen } from '../games-shared/GameOverScreen';
 import { RotatePrompt } from '../games-shared/RotatePrompt';
 import { useGameOrientation } from '../games-shared/useGameOrientation';
 import { useGameScoreSubmission } from '../games-shared/useGameScoreSubmission';
-import { recordBestScore } from '../games-shared/gameBestScore';
-import { formatGameDuration } from '../games-shared/formatGameDuration';
+import { getBestScore, recordBestScore } from '../games-shared/gameBestScore';
 import { SnakeBoard } from './SnakeBoard';
 import {
   changeDirection,
@@ -31,6 +33,7 @@ const DIFFICULTY_GAME_TYPE: Record<Difficulty, GameType> = {
   medium: 'snake-medium',
   hard: 'snake-hard',
 };
+const DIFFICULTY_ICON: Record<Difficulty, LucideIcon> = { easy: Turtle, medium: Rabbit, hard: Flame };
 const SWIPE_THRESHOLD = 20;
 const ARROW_KEY_DIRECTION: Record<string, Direction> = {
   ArrowUp: 'UP',
@@ -46,6 +49,7 @@ export function SnakeTouch({ immersiveGrid }: WidgetProps) {
   const [difficulty, setDifficulty] = useState<Difficulty>('medium');
   const [state, setState] = useState<SnakeState>(() => createInitialState());
   const [elapsed, setElapsed] = useState(0);
+  const [isNewBest, setIsNewBest] = useState(false);
 
   const inputRef = useRef<SnakeInputState>(createSnakeInputState('RIGHT'));
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
@@ -117,7 +121,9 @@ export function SnakeTouch({ immersiveGrid }: WidgetProps) {
     if (phase !== 'gameover') { submittedRef.current = false; return; }
     if (submittedRef.current) return;
     submittedRef.current = true;
+    const previousBest = getBestScore(gameType);
     recordBestScore(gameType, state.score);
+    setIsNewBest(state.score > 0 && state.score > previousBest);
     void submit(state.score, Date.now() - startTime);
   }, [phase, gameType, state.score, submit, startTime]);
 
@@ -156,6 +162,7 @@ export function SnakeTouch({ immersiveGrid }: WidgetProps) {
     setElapsed(0);
     setDifficulty(d);
     setState(newState);
+    setIsNewBest(false);
     setPhase('playing');
   }, []);
 
@@ -165,14 +172,38 @@ export function SnakeTouch({ immersiveGrid }: WidgetProps) {
     return (
       <div className={styles.root}>
         <div className={styles.selectPanel}>
-          <div className={styles.title}>{t('panel.widget.snake')}</div>
-          <div className={styles.subtitle}>{t('panel.widget.snake.selectDifficulty')}</div>
-          <div className={styles.difficulties}>
-            {DIFFICULTIES.map(d => (
-              <Button key={d} tone="accent" size="lg" onClick={() => handleDifficultyPick(d)}>
-                {t(`panel.widget.snake.difficulty.${d}`)}
-              </Button>
-            ))}
+          <div className={styles.menuCard}>
+            <div className={styles.titleRow}>
+              <Gamepad2 size={26} className={styles.titleIcon} aria-hidden />
+              <div className={styles.title}>{t('panel.widget.snake')}</div>
+            </div>
+            <div className={styles.subtitle}>{t('panel.widget.snake.selectDifficulty')}</div>
+            <div className={styles.difficulties}>
+              {DIFFICULTIES.map((d, i) => {
+                const Icon = DIFFICULTY_ICON[d];
+                const best = getBestScore(DIFFICULTY_GAME_TYPE[d]);
+                return (
+                  <div
+                    key={d}
+                    className={styles.difficultyCardWrap}
+                    style={{ animationDelay: `${i * 70}ms` }}
+                  >
+                    <Card
+                      className={styles.difficultyCard}
+                      interactive
+                      onClick={() => handleDifficultyPick(d)}
+                      icon={<Icon size={22} aria-hidden />}
+                      title={t(`panel.widget.snake.difficulty.${d}`)}
+                      subtitle={t(`panel.widget.snake.difficulty.${d}.speedHint`)}
+                    >
+                      {best > 0
+                        ? <span className={styles.difficultyBest}>{t('panel.widget.snake.best', { score: best })}</span>
+                        : undefined}
+                    </Card>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
@@ -187,7 +218,9 @@ export function SnakeTouch({ immersiveGrid }: WidgetProps) {
             title: t('panel.widget.snake.gameOver.title'),
             scoreLabel: t('panel.widget.snake.gameOver.score'),
             timeLabel: t('panel.widget.snake.gameOver.time'),
+            newBest: t('panel.widget.snake.gameOver.newBest'),
             leaderboardTitle: t('panel.widget.snake.gameOver.leaderboard'),
+            back: t('panel.widget.snake.gameOver.back'),
             anonymous: t('panel.widget.snake.gameOver.anonymous'),
             loading: t('panel.widget.snake.gameOver.loading'),
             error: t('panel.widget.snake.gameOver.error'),
@@ -197,6 +230,8 @@ export function SnakeTouch({ immersiveGrid }: WidgetProps) {
           }}
           score={state.score}
           elapsedMs={elapsed}
+          isNewBest={isNewBest}
+          difficultyLabel={t(`panel.widget.snake.difficulty.${difficulty}`)}
           status={submission.status}
           entries={submission.entries}
           selfRank={submission.selfRank}
@@ -208,10 +243,7 @@ export function SnakeTouch({ immersiveGrid }: WidgetProps) {
 
   return (
     <div className={styles.root} data-panel-no-sheet-swipe="true">
-      <div className={styles.hud}>
-        <span className={styles.hudScore}>{t('panel.widget.snake.scoreValue', { score: state.score })}</span>
-        <span className={styles.hudTime}>{formatGameDuration(elapsed)}</span>
-      </div>
+      <GameHud scoreText={t('panel.widget.snake.scoreValue', { score: state.score })} elapsedMs={elapsed} />
       <SnakeBoard
         state={state}
         boardLabel={t('panel.widget.snake.boardLabel')}
