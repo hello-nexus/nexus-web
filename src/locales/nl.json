@@ -2352,6 +2352,7 @@
   "panel.widget.blocks.gameOver.title": "Spel afgelopen",
   "panel.widget.blocks.gameOver.yourEntry": "Jouw inzending",
   "panel.widget.blocks.level": "Niveau {level}",
+  "panel.widget.blocks.next": "Volgende",
   "panel.widget.blocks.play": "Spelen",
   "panel.widget.blocks.rotatePrompt": "Draai je paneel naar staand om te spelen.",
   "panel.widget.blocks.scoreValue": "Score: {score}",

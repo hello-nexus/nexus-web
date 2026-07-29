@@ -19,10 +19,12 @@ function stateAtSpawn(): BlocksRunState {
   return {
     board: createEmptyBoard(),
     blocks: SHAPES.yellow,
+    nextBlocks: SHAPES.cyan,
     position: { ...SPAWN_POSITION },
     score: 0,
     combo: 0,
     gameOver: false,
+    lastClearedRowIndices: [],
   };
 }
 
@@ -96,10 +98,12 @@ describe('useBlocksHardDrop', () => {
     const oneRowAway: BlocksRunState = {
       board,
       blocks: SHAPES.yellow,
+      nextBlocks: SHAPES.cyan,
       position: { x: 0, y: BOARD_HEIGHT - 4 },
       score: 0,
       combo: 0,
       gameOver: false,
+      lastClearedRowIndices: [],
     };
     const distance = computeHardDropDistance(oneRowAway.board, oneRowAway.blocks, oneRowAway.position);
     expect(distance).toBe(1);
@@ -166,10 +170,12 @@ describe('useBlocksHardDrop', () => {
     const resting: BlocksRunState = {
       board,
       blocks: SHAPES.yellow,
+      nextBlocks: SHAPES.cyan,
       position: { x: 0, y: BOARD_HEIGHT - 3 },
       score: 0,
       combo: 0,
       gameOver: false,
+      lastClearedRowIndices: [],
     };
     expect(computeHardDropDistance(resting.board, resting.blocks, resting.position)).toBe(0);
     const { result } = renderHook(() => useHarness(resting, false));

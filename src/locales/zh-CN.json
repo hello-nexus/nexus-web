@@ -2174,6 +2174,7 @@
   "panel.widget.blocks.gameOver.title": "游戏结束",
   "panel.widget.blocks.gameOver.yourEntry": "你的条目",
   "panel.widget.blocks.level": "等级 {level}",
+  "panel.widget.blocks.next": "下一个",
   "panel.widget.blocks.play": "开始游戏",
   "panel.widget.blocks.rotatePrompt": "将面板旋转为竖屏以开始游戏。",
   "panel.widget.blocks.scoreValue": "分数: {score}",

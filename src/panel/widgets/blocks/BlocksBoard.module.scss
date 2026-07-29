@@ -88,8 +88,43 @@
   75%      { transform: translateX(3px); }
 }
 
+// Row-clear burst particles: sized off the live --cell (set inline on .box),
+// centered on their left/top point via the negative margin, self-removing on
+// their own animationend. Same shape as SnakeBoard's eat-burst particles.
+.particle {
+  position: absolute;
+  width: calc(var(--cell, 8px) * 0.35);
+  height: calc(var(--cell, 8px) * 0.35);
+  margin-left: calc(var(--cell, 8px) * -0.175);
+  margin-top: calc(var(--cell, 8px) * -0.175);
+  background: var(--particle-tone, var(--accent));
+  border-radius: 50%;
+  box-shadow: 0 0 calc(var(--cell, 8px) * 0.25) var(--particle-tone, var(--accent));
+  pointer-events: none;
+  opacity: 0;
+  animation-name: particlePop;
+  animation-timing-function: ease-out;
+  animation-fill-mode: forwards;
+}
+
+@keyframes particlePop {
+  from {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate(var(--particle-dx, 0), var(--particle-dy, 0)) scale(0.3);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .box[data-combo-tier] {
     animation: none;
+  }
+
+  .particle {
+    animation: none;
+    opacity: 0;
   }
 }

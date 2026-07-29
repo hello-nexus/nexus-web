@@ -10,12 +10,15 @@ export interface GameHudProps {
   elapsedMs: number;
   // Extra chip(s) between score and time - blocks' level/combo readouts.
   middle?: ReactNode;
+  // Merged onto the root - lets a caller embed the bar in its own row
+  // (e.g. beside a next-piece preview) without forking this component.
+  className?: string;
 }
 
 /** Shared panel-themed score/time bar for the panel games' in-game HUD. */
-export function GameHud({ scoreText, elapsedMs, middle }: GameHudProps) {
+export function GameHud({ scoreText, elapsedMs, middle, className }: GameHudProps) {
   return (
-    <div className={styles.hud}>
+    <div className={className ? `${styles.hud} ${className}` : styles.hud}>
       <span className={styles.stat}>
         <Trophy size={13} aria-hidden />
         {scoreText}

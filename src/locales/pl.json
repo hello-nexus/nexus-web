@@ -2177,6 +2177,7 @@
   "panel.widget.blocks.gameOver.title": "Koniec gry",
   "panel.widget.blocks.gameOver.yourEntry": "Twój wpis",
   "panel.widget.blocks.level": "Poziom {level}",
+  "panel.widget.blocks.next": "Następny",
   "panel.widget.blocks.play": "Graj",
   "panel.widget.blocks.rotatePrompt": "Obróć panel do orientacji pionowej, aby grać.",
   "panel.widget.blocks.scoreValue": "Wynik: {score}",

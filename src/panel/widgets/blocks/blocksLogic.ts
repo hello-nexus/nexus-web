@@ -75,6 +75,26 @@ export function randomShapeBlocks(randomFn: () => number = Math.random): BlockCe
   return SHAPES[color].map(cell => ({ ...cell }));
 }
 
+export interface NormalizedShape {
+  // Cells re-based so the shape's own bounding box starts at (0, 0).
+  cells: BlockCell[];
+  width: number;
+  height: number;
+}
+
+/** Re-bases `blocks` to a zero-origin bounding box, for rendering a compact preview swatch. */
+export function normalizeShapeForPreview(blocks: BlockCell[]): NormalizedShape {
+  const xs = blocks.map(block => block.x);
+  const ys = blocks.map(block => block.y);
+  const minX = Math.min(...xs);
+  const minY = Math.min(...ys);
+  return {
+    cells: blocks.map(block => ({ ...block, x: block.x - minX, y: block.y - minY })),
+    width: Math.max(...xs) - minX + 1,
+    height: Math.max(...ys) - minY + 1,
+  };
+}
+
 /** True if `blocks` at `position` (offset by dx/dy) would overlap the board bounds or a placed cell. */
 export function hasCollision(board: Board, blocks: BlockCell[], position: Point, dx = 0, dy = 0): boolean {
   for (const block of blocks) {
@@ -103,14 +123,22 @@ export function placeOnBoard(board: Board, blocks: BlockCell[], position: Point)
 export interface ClearResult {
   board: Board;
   clearedRows: number;
+  // Row indices (in `board`, pre-clear) that were full - lets a caller render
+  // a row-clear effect at the exact rows that just vanished.
+  clearedRowIndices: number[];
 }
 
 /** Removes every full row and refills the top with empty rows. */
 export function clearFullRows(board: Board): ClearResult {
-  const remaining = board.filter(row => row.some(cell => cell === null));
-  const clearedRows = board.length - remaining.length;
+  const remaining: Board = [];
+  const clearedRowIndices: number[] = [];
+  board.forEach((row, index) => {
+    if (row.some(cell => cell === null)) remaining.push(row);
+    else clearedRowIndices.push(index);
+  });
+  const clearedRows = clearedRowIndices.length;
   const refill: Board = Array.from({ length: clearedRows }, () => Array<BlockColor | null>(BOARD_WIDTH).fill(null));
-  return { board: [...refill, ...remaining], clearedRows };
+  return { board: [...refill, ...remaining], clearedRows, clearedRowIndices };
 }
 
 // Pivot cell per shape (index into the 4-cell array). O has none - it never
@@ -282,27 +310,35 @@ export function tryMove(board: Board, blocks: BlockCell[], position: Point, dx: 
 export interface BlocksRunState {
   board: Board;
   blocks: BlockCell[];
+  // The piece that will spawn after the current one locks - drives the next-piece preview.
+  nextBlocks: BlockCell[];
   position: Point;
   score: number;
   combo: number;
   gameOver: boolean;
+  // Rows cleared by the most recent lock; empty when that lock cleared none.
+  // Transient (not reset between ticks) - a consumer gates on a rising `score`
+  // edge, which only happens on the same tick this is populated.
+  lastClearedRowIndices: number[];
 }
 
 export function createInitialBlocksState(randomFn: () => number = Math.random): BlocksRunState {
   return {
     board: createEmptyBoard(),
     blocks: randomShapeBlocks(randomFn),
+    nextBlocks: randomShapeBlocks(randomFn),
     position: { ...SPAWN_POSITION },
     score: 0,
     combo: 0,
     gameOver: false,
+    lastClearedRowIndices: [],
   };
 }
 
 /**
  * One gravity tick: falls a row when clear, or locks the piece, clears full
- * rows, scores the placement, and spawns the next piece - ending the game if
- * that spawn itself collides.
+ * rows, scores the placement, and spawns the queued next piece - refilling
+ * the queue and ending the game if the spawned piece itself collides.
  */
 export function stepBlocks(state: BlocksRunState, randomFn: () => number = Math.random): BlocksRunState {
   if (state.gameOver) return state;
@@ -312,16 +348,26 @@ export function stepBlocks(state: BlocksRunState, randomFn: () => number = Math.
   }
 
   const placed = placeOnBoard(state.board, state.blocks, state.position);
-  const { board, clearedRows } = clearFullRows(placed);
+  const { board, clearedRows, clearedRowIndices } = clearFullRows(placed);
   const { scoreDelta, nextCombo } = applyLineClear(clearedRows, state.combo);
   const score = state.score + scoreDelta;
-  const nextBlocks = randomShapeBlocks(randomFn);
+  const spawned = state.nextBlocks;
+  const upcoming = randomShapeBlocks(randomFn);
 
-  if (hasCollision(board, nextBlocks, SPAWN_POSITION)) {
-    return { ...state, board, score, combo: nextCombo, gameOver: true };
+  if (hasCollision(board, spawned, SPAWN_POSITION)) {
+    return { ...state, board, score, combo: nextCombo, gameOver: true, lastClearedRowIndices: clearedRowIndices };
   }
 
-  return { board, blocks: nextBlocks, position: { ...SPAWN_POSITION }, score, combo: nextCombo, gameOver: false };
+  return {
+    board,
+    blocks: spawned,
+    nextBlocks: upcoming,
+    position: { ...SPAWN_POSITION },
+    score,
+    combo: nextCombo,
+    gameOver: false,
+    lastClearedRowIndices: clearedRowIndices,
+  };
 }
 
 /** Drops the falling piece straight to its computed landing spot and locks it in the same step. */

@@ -2183,6 +2183,7 @@
   "panel.widget.blocks.gameOver.title": "Partide finide",
   "panel.widget.blocks.gameOver.yourEntry": "La tô vôs",
   "panel.widget.blocks.level": "Nivel {level}",
+  "panel.widget.blocks.next": "Sucessîf",
   "panel.widget.blocks.play": "Zuie",
   "panel.widget.blocks.rotatePrompt": "Zire il to panel in verticâl par zuiâ.",
   "panel.widget.blocks.scoreValue": "Pontaç: {score}",

@@ -2174,6 +2174,7 @@
   "panel.widget.blocks.gameOver.title": "게임 오버",
   "panel.widget.blocks.gameOver.yourEntry": "내 항목",
   "panel.widget.blocks.level": "레벨 {level}",
+  "panel.widget.blocks.next": "다음",
   "panel.widget.blocks.play": "플레이",
   "panel.widget.blocks.rotatePrompt": "플레이하려면 패널을 세로 방향으로 돌려주세요.",
   "panel.widget.blocks.scoreValue": "점수: {score}",

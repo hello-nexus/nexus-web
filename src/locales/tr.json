@@ -2174,6 +2174,7 @@
   "panel.widget.blocks.gameOver.title": "Oyun Bitti",
   "panel.widget.blocks.gameOver.yourEntry": "Sizin girdiniz",
   "panel.widget.blocks.level": "Seviye {level}",
+  "panel.widget.blocks.next": "Sonraki",
   "panel.widget.blocks.play": "Oyna",
   "panel.widget.blocks.rotatePrompt": "Oynamak için panelinizi dikey konuma çevirin.",
   "panel.widget.blocks.scoreValue": "Skor: {score}",

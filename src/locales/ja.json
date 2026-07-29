@@ -2119,6 +2119,7 @@
   "panel.widget.blocks.gameOver.title": "ゲームオーバー",
   "panel.widget.blocks.gameOver.yourEntry": "あなたのエントリー",
   "panel.widget.blocks.level": "レベル{level}",
+  "panel.widget.blocks.next": "次",
   "panel.widget.blocks.play": "プレイ",
   "panel.widget.blocks.rotatePrompt": "プレイするにはパネルを縦向きにしてください。",
   "panel.widget.blocks.scoreValue": "スコア: {score}",

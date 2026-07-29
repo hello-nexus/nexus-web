@@ -7,6 +7,22 @@
   color: var(--text);
 }
 
+.topRow {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-sm);
+  margin: var(--space-sm) var(--space-lg) 0;
+}
+
+// The shared GameHud owns its own margin normally; here the .topRow wrapper
+// owns it instead, and the bar shrinks to make room for the preview beside it.
+.hud {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+}
+
 .hudMiddle {
   display: flex;
   align-items: center;

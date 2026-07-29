@@ -1,0 +1,46 @@
+.wrap {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--surface);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-pill);
+}
+
+.label {
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: var(--type-tiny);
+  font-weight: var(--weight-strong);
+  text-transform: uppercase;
+}
+
+.grid {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+// Mirrors BlocksBoard.module.scss's .cell + data-color palette (cross-file
+// `composes` can't target it - that module's `//` comments are invalid once
+// read as plain CSS, which is how composes resolves its source file) so the
+// queued shape reads identically to the board. The radius scales with the
+// live --cell (set inline per swatch) instead of the fixed --radius-sm the
+// board uses at its own, much larger, cell size - at a mini swatch's size
+// that fixed radius reads as a circle rather than a rounded square.
+.cell {
+  position: absolute;
+  box-sizing: border-box;
+  border-radius: calc(var(--cell, 12px) * 0.15);
+  padding: 1px;
+  background-clip: content-box;
+}
+
+.cell[data-color='cyan']   { background: #4dd0e1; }
+.cell[data-color='yellow'] { background: #ffca28; }
+.cell[data-color='purple'] { background: #ab47bc; }
+.cell[data-color='green']  { background: #66bb6a; }
+.cell[data-color='red']    { background: #ef5350; }
+.cell[data-color='blue']   { background: #42a5f5; }
+.cell[data-color='orange'] { background: #ffa726; }

@@ -14,6 +14,7 @@ import {
   createInitialBlocksState,
   hardDrop,
   hasCollision,
+  normalizeShapeForPreview,
   placeOnBoard,
   randomShapeBlocks,
   rotateShape,
@@ -22,6 +23,8 @@ import {
   stepBlocks,
   tryMove,
   tryRotate,
+  type BlockCell,
+  type Board,
   type BlocksRunState,
 } from './blocksLogic';
 
@@ -129,28 +132,68 @@ describe('blocksLogic', () => {
     it('clears one full row and refills the top', () => {
       const board = createEmptyBoard();
       for (let x = 0; x < BOARD_WIDTH; x++) board[BOARD_HEIGHT - 1][x] = 'blue';
-      const { board: next, clearedRows } = clearFullRows(board);
+      const { board: next, clearedRows, clearedRowIndices } = clearFullRows(board);
       expect(clearedRows).toBe(1);
+      expect(clearedRowIndices).toEqual([BOARD_HEIGHT - 1]);
       expect(next).toHaveLength(BOARD_HEIGHT);
       expect(next[0].every(cell => cell === null)).toBe(true);
       expect(next[BOARD_HEIGHT - 1].every(cell => cell === null)).toBe(true);
     });
 
-    it('clears multiple full rows at once', () => {
+    it('clears multiple full rows at once, reporting every cleared index', () => {
       const board = createEmptyBoard();
       for (const y of [BOARD_HEIGHT - 1, BOARD_HEIGHT - 2]) {
         for (let x = 0; x < BOARD_WIDTH; x++) board[y][x] = 'green';
       }
-      const { clearedRows } = clearFullRows(board);
+      const { clearedRows, clearedRowIndices } = clearFullRows(board);
       expect(clearedRows).toBe(2);
+      expect(clearedRowIndices).toEqual([BOARD_HEIGHT - 2, BOARD_HEIGHT - 1]);
     });
 
-    it('reports zero when nothing is full', () => {
+    it('reports indices for non-adjacent cleared rows in board order', () => {
+      const board = createEmptyBoard();
+      for (const y of [3, 10]) {
+        for (let x = 0; x < BOARD_WIDTH; x++) board[y][x] = 'red';
+      }
+      const { clearedRowIndices } = clearFullRows(board);
+      expect(clearedRowIndices).toEqual([3, 10]);
+    });
+
+    it('reports zero and no indices when nothing is full', () => {
       const board = createEmptyBoard();
       board[BOARD_HEIGHT - 1][0] = 'orange';
-      const { clearedRows, board: next } = clearFullRows(board);
+      const { clearedRows, clearedRowIndices, board: next } = clearFullRows(board);
       expect(clearedRows).toBe(0);
+      expect(clearedRowIndices).toEqual([]);
       expect(next[BOARD_HEIGHT - 1][0]).toBe('orange');
+    });
+  });
+
+  describe('normalizeShapeForPreview', () => {
+    it('leaves an already zero-origin shape untouched', () => {
+      const shape = normalizeShapeForPreview(SHAPES.yellow);
+      expect(shape).toEqual({ cells: SHAPES.yellow, width: 2, height: 2 });
+    });
+
+    it('re-bases the cyan I piece (which sits at y=1) to y=0, reporting a 4x1 box', () => {
+      const shape = normalizeShapeForPreview(SHAPES.cyan);
+      expect(shape.width).toBe(4);
+      expect(shape.height).toBe(1);
+      expect(shape.cells.every(cell => cell.y === 0)).toBe(true);
+      expect(shape.cells.map(cell => cell.x)).toEqual([0, 1, 2, 3]);
+    });
+
+    it('reports a 3x2 box for the T/S/Z/J/L shapes', () => {
+      for (const color of ['purple', 'green', 'red', 'blue', 'orange'] as const) {
+        const shape = normalizeShapeForPreview(SHAPES[color]);
+        expect(shape.width, color).toBe(3);
+        expect(shape.height, color).toBe(2);
+      }
+    });
+
+    it('keeps each cell\'s own color through the re-base', () => {
+      const shape = normalizeShapeForPreview(SHAPES.orange);
+      expect(shape.cells.every(cell => cell.color === 'orange')).toBe(true);
     });
   });
 
@@ -402,10 +445,12 @@ describe('blocksLogic', () => {
       const state: BlocksRunState = {
         board,
         blocks: SHAPES.yellow,
+        nextBlocks: SHAPES.cyan,
         position: { x: 0, y: 0 },
         score: 0,
         combo: 0,
         gameOver: false,
+        lastClearedRowIndices: [],
       };
       expect(hasCollision(board, state.blocks, state.position, 0, 1)).toBe(true);
       const next = stepBlocks(state, fixedRandom);
@@ -448,10 +493,12 @@ describe('blocksLogic', () => {
       const state: BlocksRunState = {
         board,
         blocks: SHAPES.yellow,
+        nextBlocks: SHAPES.cyan,
         position: { x: 0, y: BOARD_HEIGHT - 2 },
         score: 0,
         combo: 0,
         gameOver: false,
+        lastClearedRowIndices: [],
       };
       const next = stepBlocks(state, fixedRandom);
       expect(next.gameOver).toBe(false);
@@ -459,12 +506,113 @@ describe('blocksLogic', () => {
       expect(next.score).toBe(200);
       expect(next.combo).toBe(2);
       expect(next.position).toEqual(SPAWN_POSITION);
+      expect(next.lastClearedRowIndices).toEqual([BOARD_HEIGHT - 2, BOARD_HEIGHT - 1]);
     });
 
     it('does nothing once the game is already over', () => {
       const state = createInitialBlocksState(fixedRandom);
       const over = { ...state, gameOver: true };
       expect(stepBlocks(over, fixedRandom)).toBe(over);
+    });
+
+    it('falling one row leaves the queued next piece untouched', () => {
+      const state = createInitialBlocksState(fixedRandom);
+      const next = stepBlocks(state, fixedRandom);
+      expect(next.nextBlocks).toBe(state.nextBlocks);
+    });
+  });
+
+  describe('next-piece queue', () => {
+    // SHAPE_COLORS is Object.keys(SHAPES) in declaration order: cyan, yellow,
+    // purple, green, red, blue, orange.
+    function sequenceRandom(...fractions: number[]): () => number {
+      let i = 0;
+      return () => fractions[i++];
+    }
+
+    it('createInitialBlocksState seeds a distinct queued piece from its own randomFn call', () => {
+      const state = createInitialBlocksState(sequenceRandom(0, 2 / 7));
+      expect(state.blocks[0].color).toBe('cyan');
+      expect(state.nextBlocks[0].color).toBe('purple');
+    });
+
+    it('locking spawns exactly the piece that was queued, and refills the queue from randomFn', () => {
+      const board = createEmptyBoard();
+      for (let x = 2; x < BOARD_WIDTH; x++) {
+        board[BOARD_HEIGHT - 1][x] = 'red';
+        board[BOARD_HEIGHT - 2][x] = 'red';
+      }
+      const state: BlocksRunState = {
+        board,
+        blocks: SHAPES.yellow,
+        nextBlocks: SHAPES.green,
+        position: { x: 0, y: BOARD_HEIGHT - 2 },
+        score: 0,
+        combo: 0,
+        gameOver: false,
+        lastClearedRowIndices: [],
+      };
+      const next = stepBlocks(state, sequenceRandom(5 / 7));
+      // The falling piece is the queue's own shape, not a fresh random draw.
+      expect(next.blocks).toBe(state.nextBlocks);
+      // The queue refills using the tick's randomFn (5/7 -> index 5 -> blue).
+      expect(next.nextBlocks[0].color).toBe('blue');
+    });
+
+    it('is deterministic across several locks with a seeded randomFn', () => {
+      function lockingBoard(): Board {
+        const board = createEmptyBoard();
+        for (let x = 2; x < BOARD_WIDTH; x++) {
+          board[BOARD_HEIGHT - 1][x] = 'red';
+          board[BOARD_HEIGHT - 2][x] = 'red';
+        }
+        return board;
+      }
+      function spawnOrderOver(lockCount: number, randomFn: () => number): string[] {
+        let state = createInitialBlocksState(randomFn);
+        const order = [state.blocks[0].color];
+        for (let lock = 0; lock < lockCount; lock++) {
+          state = { ...state, board: lockingBoard(), position: { x: 0, y: BOARD_HEIGHT - 2 } };
+          state = stepBlocks(state, randomFn);
+          order.push(state.blocks[0].color);
+        }
+        return order;
+      }
+
+      const fractions = [0, 1 / 7, 2 / 7, 3 / 7, 4 / 7, 5 / 7, 6 / 7];
+      const seed = () => sequenceRandom(...fractions);
+      // Two independent seeded runs from scratch reproduce the exact same
+      // spawn order - the queue mechanism adds no hidden randomness.
+      expect(spawnOrderOver(3, seed())).toEqual(spawnOrderOver(3, seed()));
+      expect(spawnOrderOver(3, seed())).toEqual(['cyan', 'yellow', 'purple', 'green']);
+    });
+
+    it('game-over tracks the queued piece\'s actual shape, not a hardcoded outcome', () => {
+      // A single trap cell at (4, 0): green's spawn footprint includes it, so
+      // it collides; purple's spawn footprint doesn't, so it fits. The locking
+      // piece rests at the very floor, away from row 0, so it never disturbs
+      // the trap cell or clears a row.
+      function trapBoard(): Board {
+        const board = createEmptyBoard();
+        board[0][4] = 'red';
+        return board;
+      }
+      const lockingState = (nextBlocks: BlockCell[]): BlocksRunState => ({
+        board: trapBoard(),
+        blocks: SHAPES.yellow,
+        nextBlocks,
+        position: { x: 0, y: BOARD_HEIGHT - 2 },
+        score: 0,
+        combo: 0,
+        gameOver: false,
+        lastClearedRowIndices: [],
+      });
+
+      const collides = stepBlocks(lockingState(SHAPES.green), fixedRandom);
+      expect(collides.gameOver).toBe(true);
+
+      const fits = stepBlocks(lockingState(SHAPES.purple), fixedRandom);
+      expect(fits.gameOver).toBe(false);
     });
   });
 

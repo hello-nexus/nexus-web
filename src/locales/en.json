@@ -2352,6 +2352,7 @@
   "panel.widget.blocks.gameOver.title": "Game Over",
   "panel.widget.blocks.gameOver.yourEntry": "Your entry",
   "panel.widget.blocks.level": "Level {level}",
+  "panel.widget.blocks.next": "Next",
   "panel.widget.blocks.play": "Play",
   "panel.widget.blocks.rotatePrompt": "Rotate your panel to portrait to play",
   "panel.widget.blocks.scoreValue": "Score: {score}",

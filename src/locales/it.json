@@ -2174,6 +2174,7 @@
   "panel.widget.blocks.gameOver.title": "Partita terminata",
   "panel.widget.blocks.gameOver.yourEntry": "La tua voce",
   "panel.widget.blocks.level": "Livello {level}",
+  "panel.widget.blocks.next": "Successivo",
   "panel.widget.blocks.play": "Gioca",
   "panel.widget.blocks.rotatePrompt": "Ruota il tuo pannello in verticale per giocare.",
   "panel.widget.blocks.scoreValue": "Punteggio: {score}",

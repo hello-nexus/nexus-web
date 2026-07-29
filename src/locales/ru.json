@@ -2177,6 +2177,7 @@
   "panel.widget.blocks.gameOver.title": "Игра окончена",
   "panel.widget.blocks.gameOver.yourEntry": "Ваша запись",
   "panel.widget.blocks.level": "Уровень {level}",
+  "panel.widget.blocks.next": "Далее",
   "panel.widget.blocks.play": "Играть",
   "panel.widget.blocks.rotatePrompt": "Поверните вашу панель в портретный режим, чтобы играть.",
   "panel.widget.blocks.scoreValue": "Счёт: {score}",

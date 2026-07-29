@@ -1,26 +1,44 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, fireEvent } from '@testing-library/react';
 import { BlocksBoard } from './BlocksBoard';
 import { computeLandingPreview, createEmptyBoard, SHAPES, type BlockCell } from './blocksLogic';
+import styles from './BlocksBoard.module.scss';
 
 const CELL_SIZE = 20;
 
-function renderBoard(landingPreview: ReturnType<typeof computeLandingPreview> | null, fallingBlocks: BlockCell[]) {
-  return render(
+function boardElement(
+  fallingBlocks: BlockCell[],
+  opts: {
+    landingPreview?: ReturnType<typeof computeLandingPreview> | null;
+    score?: number;
+    clearedRowIndices?: number[];
+  } = {},
+) {
+  return (
     <BlocksBoard
       board={createEmptyBoard()}
       fallingBlocks={fallingBlocks}
-      landingPreview={landingPreview}
+      landingPreview={opts.landingPreview ?? null}
       comboTier={0}
       boardLabel="board"
       cellSize={CELL_SIZE}
       boardBoxRef={() => {}}
       boardWidthCells={7}
       boardHeightCells={25}
+      score={opts.score ?? 0}
+      clearedRowIndices={opts.clearedRowIndices ?? []}
       onPointerDown={vi.fn()}
       onKeyDown={vi.fn()}
-    />,
+    />
   );
+}
+
+function renderBoard(
+  landingPreview: ReturnType<typeof computeLandingPreview> | null,
+  fallingBlocks: BlockCell[],
+  extra?: Partial<{ score: number; clearedRowIndices: number[] }>,
+) {
+  return render(boardElement(fallingBlocks, { landingPreview, ...extra }));
 }
 
 describe('BlocksBoard landing preview rendering', () => {
@@ -61,5 +79,67 @@ describe('BlocksBoard landing preview rendering', () => {
     const ghostCells = Array.from(container.querySelectorAll<HTMLElement>('[data-ghost="true"]'));
     const expectedTopPx = `${Math.min(...preview.ghostCells.map(c => c.y)) * CELL_SIZE}px`;
     expect(ghostCells.some(cell => cell.style.top === expectedTopPx)).toBe(true);
+  });
+});
+
+describe('BlocksBoard row-clear particle burst', () => {
+  const fallingBlocks: BlockCell[] = SHAPES.yellow;
+
+  // The suite-wide matchMedia stub (setup.ts) answers `matches: true` for any
+  // non-"light" query, so prefers-reduced-motion would suppress the burst in
+  // every test unless overridden here (mirrors useBlocksHardDrop.test.ts).
+  const stubbedMatchMedia = window.matchMedia;
+  beforeEach(() => {
+    window.matchMedia = (query: string) =>
+      ({ ...stubbedMatchMedia(query), matches: false }) as MediaQueryList;
+  });
+  afterEach(() => {
+    window.matchMedia = stubbedMatchMedia;
+  });
+
+  it('fires no burst on mount, even when mounted directly with a positive score', () => {
+    const { container } = render(boardElement(fallingBlocks, { score: 200, clearedRowIndices: [5] }));
+    expect(container.querySelectorAll(`.${styles.particle}`)).toHaveLength(0);
+  });
+
+  it('fires a burst on a rising score edge when rows were cleared', () => {
+    const { container, rerender } = render(boardElement(fallingBlocks));
+    rerender(boardElement(fallingBlocks, { score: 200, clearedRowIndices: [5] }));
+    expect(container.querySelectorAll(`.${styles.particle}`).length).toBeGreaterThan(0);
+  });
+
+  it('caps the particle count for a multi-row clear instead of spraying one burst per row', () => {
+    const { container, rerender } = render(boardElement(fallingBlocks));
+    // Even uncapped, this many cleared rows would fall well short of
+    // "hundreds" of particles - the cap keeps it bounded regardless.
+    rerender(boardElement(fallingBlocks, { score: 800, clearedRowIndices: [1, 2, 3, 4, 5, 6, 7, 8] }));
+    const count = container.querySelectorAll(`.${styles.particle}`).length;
+    expect(count).toBeGreaterThan(0);
+    expect(count).toBeLessThanOrEqual(16);
+  });
+
+  it('fires no burst on a score rise with no cleared rows (guards the plumbing, though this never happens in play)', () => {
+    const { container, rerender } = render(boardElement(fallingBlocks));
+    rerender(boardElement(fallingBlocks, { score: 100, clearedRowIndices: [] }));
+    expect(container.querySelectorAll(`.${styles.particle}`)).toHaveLength(0);
+  });
+
+  it('self-removes a particle on its own animation-end event', () => {
+    const { container, rerender } = render(boardElement(fallingBlocks));
+    rerender(boardElement(fallingBlocks, { score: 200, clearedRowIndices: [5] }));
+    const before = container.querySelectorAll(`.${styles.particle}`).length;
+    expect(before).toBeGreaterThan(0);
+    // jsdom has no global AnimationEvent, so React's feature detection falls
+    // back to listening for the vendor-prefixed native event instead of the
+    // standard "animationend" - firing that standard name here is a no-op.
+    container.querySelectorAll(`.${styles.particle}`).forEach(el => fireEvent(el, new Event('webkitAnimationEnd', { bubbles: true })));
+    expect(container.querySelectorAll(`.${styles.particle}`)).toHaveLength(0);
+  });
+
+  it('suppresses the burst under prefers-reduced-motion', () => {
+    window.matchMedia = stubbedMatchMedia; // restore the suite-wide "reduced motion on" stub
+    const { container, rerender } = render(boardElement(fallingBlocks));
+    rerender(boardElement(fallingBlocks, { score: 200, clearedRowIndices: [5] }));
+    expect(container.querySelectorAll(`.${styles.particle}`)).toHaveLength(0);
   });
 });

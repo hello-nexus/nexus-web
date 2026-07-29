@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { GRID_COLS, GRID_ROWS, type SnakeState } from './snakeLogic';
 import { useGameBoardScale } from '../games-shared/useGameBoardScale';
+import { appendCappedBurst, prefersReducedMotion, randomBurstStyle, BURST_TONES, type BurstParticle } from '../games-shared/particleBurst';
 import styles from './SnakeBoard.module.scss';
 
 // Tail segments fade toward this floor so a long snake stays legible instead
@@ -13,28 +14,6 @@ const TAIL_FADE_FLOOR = 0.5;
 // a rapid double-eat can't accumulate an unbounded particle count.
 const PARTICLE_COUNT = 10;
 const PARTICLE_CAP = PARTICLE_COUNT * 2;
-const PARTICLE_TONES = ['var(--accent)', 'var(--accent-glow)'];
-
-interface Particle {
-  readonly id: number;
-  readonly style: CSSProperties;
-}
-
-function prefersReducedMotion(): boolean {
-  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-}
-
-function randomParticleStyle(cellSize: number, tone: string): CSSProperties {
-  const angle = Math.random() * Math.PI * 2;
-  const distance = cellSize * (1.3 + Math.random() * 0.9);
-  const duration = 320 + Math.random() * 180;
-  return {
-    '--particle-dx': `${Math.cos(angle) * distance}px`,
-    '--particle-dy': `${Math.sin(angle) * distance}px`,
-    '--particle-tone': tone,
-    animationDuration: `${duration}ms`,
-  } as CSSProperties;
-}
 
 export interface SnakeBoardProps {
   state: SnakeState;
@@ -49,7 +28,7 @@ export interface SnakeBoardProps {
 
 export function SnakeBoard({ state, boardLabel, onTouchStart, onTouchEnd, onMouseDown, onMouseUp, onMouseLeave, onKeyDown }: SnakeBoardProps) {
   const { boardBoxRef, cellSize } = useGameBoardScale(GRID_COLS, GRID_ROWS);
-  const [particles, setParticles] = useState<readonly Particle[]>([]);
+  const [particles, setParticles] = useState<readonly BurstParticle[]>([]);
   const particleIdRef = useRef(0);
   const prevScoreRef = useRef(state.score);
 
@@ -62,18 +41,18 @@ export function SnakeBoard({ state, boardLabel, onTouchStart, onTouchEnd, onMous
     const head = state.snake[0];
     const cx = head.x * cellSize + cellSize / 2;
     const cy = head.y * cellSize + cellSize / 2;
-    const burst: Particle[] = Array.from({ length: PARTICLE_COUNT }, (_, i) => {
+    const burst: BurstParticle[] = Array.from({ length: PARTICLE_COUNT }, (_, i) => {
       particleIdRef.current += 1;
       return {
         id: particleIdRef.current,
         style: {
-          ...randomParticleStyle(cellSize, PARTICLE_TONES[i % PARTICLE_TONES.length]),
+          ...randomBurstStyle(cellSize, BURST_TONES[i % BURST_TONES.length]),
           left: cx,
           top: cy,
         },
       };
     });
-    setParticles(prev => [...prev, ...burst].slice(-PARTICLE_CAP));
+    setParticles(prev => appendCappedBurst(prev, burst, PARTICLE_CAP));
   }, [state.score, state.snake, cellSize]);
 
   return (

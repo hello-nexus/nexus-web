@@ -8,6 +8,7 @@ import { useGameScoreSubmission } from '../games-shared/useGameScoreSubmission';
 import { useGameBoardScale } from '../games-shared/useGameBoardScale';
 import { getBestScore, recordBestScore } from '../games-shared/gameBestScore';
 import { BlocksBoard } from './BlocksBoard';
+import { BlocksNextPreview } from './BlocksNextPreview';
 import {
   BOARD_HEIGHT,
   BOARD_WIDTH,
@@ -212,23 +213,31 @@ export function BlocksTouch({ immersiveGrid }: WidgetProps) {
   const landingPreview = dropping
     ? null
     : computeLandingPreview(runState.board, runState.blocks, runState.position);
+  // Scales with the board's own cell size so the swatch tracks the board
+  // across viewports instead of a fixed size; floored so it never vanishes
+  // before cellSize is measured.
+  const previewCellPx = Math.max(8, Math.round(cellSize * 0.4));
 
   return (
     <div className={styles.root} data-panel-no-sheet-swipe="true">
-      <GameHud
-        scoreText={t('panel.widget.blocks.scoreValue', { score: runState.score })}
-        elapsedMs={elapsed}
-        middle={
-          <span className={styles.hudMiddle}>
-            <span className={styles.hudChip}>{t('panel.widget.blocks.level', { level: computeLevel(runState.score) })}</span>
-            {runState.combo > 1 && (
-              <span className={`${styles.hudChip} ${styles.hudChipCombo}`}>
-                {t('panel.widget.blocks.combo', { combo: runState.combo })}
-              </span>
-            )}
-          </span>
-        }
-      />
+      <div className={styles.topRow}>
+        <GameHud
+          className={styles.hud}
+          scoreText={t('panel.widget.blocks.scoreValue', { score: runState.score })}
+          elapsedMs={elapsed}
+          middle={
+            <span className={styles.hudMiddle}>
+              <span className={styles.hudChip}>{t('panel.widget.blocks.level', { level: computeLevel(runState.score) })}</span>
+              {runState.combo > 1 && (
+                <span className={`${styles.hudChip} ${styles.hudChipCombo}`}>
+                  {t('panel.widget.blocks.combo', { combo: runState.combo })}
+                </span>
+              )}
+            </span>
+          }
+        />
+        <BlocksNextPreview blocks={runState.nextBlocks} label={t('panel.widget.blocks.next')} cellPx={previewCellPx} />
+      </div>
       <BlocksBoard
         board={runState.board}
         fallingBlocks={fallingBlocks}
@@ -239,6 +248,8 @@ export function BlocksTouch({ immersiveGrid }: WidgetProps) {
         boardBoxRef={boardBoxRef}
         boardWidthCells={BOARD_WIDTH}
         boardHeightCells={BOARD_HEIGHT}
+        score={runState.score}
+        clearedRowIndices={runState.lastClearedRowIndices}
         onPointerDown={handlePointerDown}
         onKeyDown={handleBoardKeyDown}
       />
