@@ -178,9 +178,14 @@ export function computeLandingPreview(board: Board, blocks: BlockCell[], positio
     if (bottom === undefined || y > bottom) bottomYByColumn.set(x, y);
   }
 
+  // A column holding more than one piece cell puts ghost cells above the
+  // column's landing row; painting a trail under them would double up and
+  // read as a brighter cell, so the ghost footprint is excluded.
+  const ghostKeys = new Set(ghostCells.map(cell => `${cell.x},${cell.y}`));
   const trailCells: Point[] = [];
   for (const [x, bottomY] of bottomYByColumn) {
     for (let y = bottomY + 1; y < bottomY + distance; y++) {
+      if (ghostKeys.has(`${x},${y}`)) continue;
       trailCells.push({ x, y });
     }
   }

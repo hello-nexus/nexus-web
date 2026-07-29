@@ -201,13 +201,24 @@ describe('blocksLogic', () => {
       const preview = computeLandingPreview(board, SHAPES.yellow, position);
       const pieceBottomY = Math.max(...SHAPES.yellow.map(c => c.y)) + position.y;
       const occupiedColumns = new Set(SHAPES.yellow.map(c => c.x + position.x));
-      const expectedPerColumn = distance - 1;
       for (const x of occupiedColumns) {
-        expect(preview.trailCells.filter(c => c.x === x)).toHaveLength(expectedPerColumn);
+        const cellsInColumn = SHAPES.yellow.filter(c => c.x + position.x === x).length;
+        expect(preview.trailCells.filter(c => c.x === x)).toHaveLength(distance - cellsInColumn);
       }
       for (const cell of preview.trailCells) {
         expect(cell.y).toBeGreaterThan(pieceBottomY);
         expect(cell.y).toBeLessThan(pieceBottomY + distance);
+      }
+    });
+
+    it('never paints a trail cell under the ghost footprint', () => {
+      const board = createEmptyBoard();
+      const position = { x: 0, y: 0 };
+      for (const [name, blocks] of Object.entries(SHAPES)) {
+        const preview = computeLandingPreview(board, blocks, position);
+        const ghostKeys = new Set(preview.ghostCells.map(c => `${c.x},${c.y}`));
+        const overlap = preview.trailCells.filter(c => ghostKeys.has(`${c.x},${c.y}`));
+        expect(overlap, `${name} trail overlaps its ghost`).toEqual([]);
       }
     });
 
@@ -247,7 +258,7 @@ describe('blocksLogic', () => {
       expect(occupiedColumns.size).toBe(1);
       const columns = new Set(preview.trailCells.map(c => c.x));
       expect(columns).toEqual(occupiedColumns);
-      expect(preview.trailCells).toHaveLength(distance - 1);
+      expect(preview.trailCells).toHaveLength(distance - rotated.length);
       expect(preview.ghostCells.every(c => occupiedColumns.has(c.x))).toBe(true);
     });
 
