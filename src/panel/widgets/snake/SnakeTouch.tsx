@@ -242,7 +242,7 @@ export function SnakeTouch({ immersiveGrid }: WidgetProps) {
   }
 
   return (
-    <div className={styles.root} data-panel-no-sheet-swipe="true">
+    <div className={styles.root}>
       <GameHud scoreText={t('panel.widget.snake.scoreValue', { score: state.score })} elapsedMs={elapsed} />
       <SnakeBoard
         state={state}
@@ -254,7 +254,7 @@ export function SnakeTouch({ immersiveGrid }: WidgetProps) {
         onMouseLeave={onMouseLeave}
         onKeyDown={handleBoardKeyDown}
       />
-      <div className={styles.dpad}>
+      <div className={styles.dpad} data-panel-no-sheet-swipe="true">
         <Button
           className={`${styles.dpadBtn} ${styles.dpadUp}`}
           tone="neutral"

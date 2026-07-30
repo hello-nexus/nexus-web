@@ -62,6 +62,11 @@ export function SnakeBoard({ state, boardLabel, onTouchStart, onTouchEnd, onMous
       role="application"
       aria-label={boardLabel}
       tabIndex={0}
+      // Swipe steering owns vertical drags here, so the overlay's
+      // swipe-to-dismiss must not arm on the playfield. Scoped to the board
+      // (not the whole immersive view) so a swipe on the HUD strip still
+      // closes the game, like every other widget.
+      data-panel-no-sheet-swipe="true"
       style={cellSize > 0 ? ({ '--cell': `${cellSize}px` } as CSSProperties) : undefined}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}

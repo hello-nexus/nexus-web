@@ -18,7 +18,7 @@ export interface GameHudProps {
 /** Shared panel-themed score/time bar for the panel games' in-game HUD. */
 export function GameHud({ scoreText, elapsedMs, middle, className }: GameHudProps) {
   return (
-    <div className={className ? `${styles.hud} ${className}` : styles.hud}>
+    <div className={className ? `${styles.hud} ${className}` : styles.hud} data-panel-game-hud="true">
       <span className={styles.stat}>
         <Trophy size={13} aria-hidden />
         {scoreText}

@@ -219,7 +219,7 @@ export function BlocksTouch({ immersiveGrid }: WidgetProps) {
   const previewCellPx = Math.max(8, Math.round(cellSize * 0.4));
 
   return (
-    <div className={styles.root} data-panel-no-sheet-swipe="true">
+    <div className={styles.root}>
       <div className={styles.topRow}>
         <GameHud
           className={styles.hud}

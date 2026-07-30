@@ -72,6 +72,11 @@ export function BlocksBoard({
       role="application"
       aria-label={boardLabel}
       tabIndex={0}
+      // The hard-drop gesture owns vertical drags here, so the overlay's
+      // swipe-to-dismiss must not arm on the playfield. Scoped to the board
+      // (not the whole immersive view) so a swipe on the HUD strip still
+      // closes the game, like every other widget.
+      data-panel-no-sheet-swipe="true"
       data-combo-tier={comboTier > 0 ? comboTier : undefined}
       style={cellSize > 0 ? ({ '--cell': `${cellSize}px` } as CSSProperties) : undefined}
       onPointerDown={onPointerDown}
