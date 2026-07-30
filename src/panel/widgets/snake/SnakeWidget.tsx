@@ -1,4 +1,4 @@
-import { Gamepad2, Play } from 'lucide-react';
+import { Worm, Play } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { PanelWidgetShell } from '../common/PanelWidgetChrome';
 import { usePanelPreview } from '../common/PanelPreviewContext';
@@ -28,13 +28,13 @@ export function SnakeWidget({ widget, surface }: WidgetProps) {
   return (
     <PanelWidgetShell size={widget.size} className={styles.widget}>
       <div className={styles.main}>
-        <Gamepad2 size={20} className={styles.icon} aria-hidden />
+        <Worm className={styles.icon} aria-hidden />
         <div className={styles.title}>{t('panel.widget.snake')}</div>
         {best > 0 && (
           <div className={styles.best}>{t('panel.widget.snake.best', { score: best })}</div>
         )}
         <div className={styles.play}>
-          <Play size={12} aria-hidden />
+          <Play aria-hidden />
           {t('panel.widget.snake.play')}
         </div>
       </div>

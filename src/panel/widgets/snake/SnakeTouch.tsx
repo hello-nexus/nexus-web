@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Flame, Gamepad2, Rabbit, Turtle } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Flame, Rabbit, Turtle, Worm } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { Button } from '../../../components/common/Button/Button';
@@ -174,7 +174,7 @@ export function SnakeTouch({ immersiveGrid }: WidgetProps) {
         <div className={styles.selectPanel}>
           <div className={styles.menuCard}>
             <div className={styles.titleRow}>
-              <Gamepad2 size={26} className={styles.titleIcon} aria-hidden />
+              <Worm size={26} className={styles.titleIcon} aria-hidden />
               <div className={styles.title}>{t('panel.widget.snake')}</div>
             </div>
             <div className={styles.subtitle}>{t('panel.widget.snake.selectDifficulty')}</div>

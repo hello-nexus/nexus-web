@@ -26,13 +26,13 @@ export function BlocksWidget({ widget, surface }: WidgetProps) {
   return (
     <PanelWidgetShell size={widget.size} className={styles.widget}>
       <div className={styles.main}>
-        <BlocksIcon size={20} className={styles.icon} aria-hidden />
+        <BlocksIcon className={styles.icon} aria-hidden />
         <div className={styles.title}>{t('panel.widget.blocks')}</div>
         {best > 0 && (
           <div className={styles.best}>{t('panel.widget.blocks.best', { score: best })}</div>
         )}
         <div className={styles.play}>
-          <Play size={12} aria-hidden />
+          <Play aria-hidden />
           {t('panel.widget.blocks.play')}
         </div>
       </div>

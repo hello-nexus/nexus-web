@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { getBestScore, getBestScoreAcross, recordBestScore } from './gameBestScore';
 
 describe('gameBestScore', () => {
@@ -37,5 +37,24 @@ describe('gameBestScore', () => {
 
   it('reports 0 across untouched game types', () => {
     expect(getBestScoreAcross(['snake-easy', 'snake-medium', 'snake-hard'])).toBe(0);
+  });
+
+  it('reads 0 instead of throwing when storage access is blocked', () => {
+    const getItemSpy = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new DOMException('Access is denied for this document.', 'SecurityError');
+    });
+    expect(getBestScore('snake-easy')).toBe(0);
+    expect(getBestScoreAcross(['snake-easy', 'snake-medium', 'snake-hard'])).toBe(0);
+    getItemSpy.mockRestore();
+  });
+
+  it('returns the prior best instead of throwing when a write is blocked', () => {
+    recordBestScore('block', 500);
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('Access is denied for this document.', 'SecurityError');
+    });
+    expect(recordBestScore('block', 900)).toBe(500);
+    expect(getBestScore('block')).toBe(500);
+    setItemSpy.mockRestore();
   });
 });

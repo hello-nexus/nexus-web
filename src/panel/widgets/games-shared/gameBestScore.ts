@@ -2,18 +2,30 @@ import type { GameType } from '../../../types/games';
 
 const STORAGE_PREFIX = 'nexus_panel_game_best_';
 
-/** Best local score ever recorded for one wire game type. 0 when unset. */
+/**
+ * Best local score ever recorded for one wire game type. 0 when unset or when
+ * storage access throws (blocked storage, private-mode quirks) - a tile face
+ * must never crash its panel cell over a best-score lookup.
+ */
 export function getBestScore(gameType: GameType): number {
-  const raw = localStorage.getItem(STORAGE_PREFIX + gameType);
-  const n = raw ? Number(raw) : 0;
-  return Number.isFinite(n) && n > 0 ? n : 0;
+  try {
+    const raw = localStorage.getItem(STORAGE_PREFIX + gameType);
+    const n = raw ? Number(raw) : 0;
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  } catch {
+    return 0;
+  }
 }
 
 /** Persists `score` as the new best if it beats the stored one. Returns the resulting best. */
 export function recordBestScore(gameType: GameType, score: number): number {
   const current = getBestScore(gameType);
   if (score > current) {
-    localStorage.setItem(STORAGE_PREFIX + gameType, String(score));
+    try {
+      localStorage.setItem(STORAGE_PREFIX + gameType, String(score));
+    } catch {
+      return current;
+    }
     return score;
   }
   return current;
