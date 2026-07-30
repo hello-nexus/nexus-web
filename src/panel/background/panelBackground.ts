@@ -12,6 +12,9 @@ import { getInstallDefaults } from '../../api/installDefaultsCache';
 
 export type PanelBackgroundMode = 'solid' | 'shader' | 'media';
 export type PanelBackgroundFrost = 'none' | 'light' | 'heavy';
+
+// An untouched panel defaults to frosted; an explicit 'none' still stays off.
+export const DEFAULT_PANEL_BACKGROUND_FROST: PanelBackgroundFrost = 'light';
 export type PanelResolvedTheme = 'dark' | 'light';
 
 export const DEFAULT_PANEL_BACKGROUND_EFFECT = 'aurora';
@@ -163,7 +166,8 @@ export function normalizePanelWidgetLabels(value: boolean | null | undefined): b
 }
 
 export function normalizePanelBackgroundFrost(value: string | null | undefined): PanelBackgroundFrost {
-  return value === 'light' || value === 'heavy' ? value : 'none';
+  if (value === 'light' || value === 'heavy' || value === 'none') return value;
+  return DEFAULT_PANEL_BACKGROUND_FROST;
 }
 
 export function normalizePanelWidgetPadding(value: number | null | undefined): number {

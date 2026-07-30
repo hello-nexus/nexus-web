@@ -120,12 +120,13 @@
   pointer-events: none;
 }
 
+// Each level is still a single, unstacked backdrop-filter pass - only the radius grows.
 .backgroundFrost[data-level='light'] {
-  backdrop-filter: blur(var(--blur-chip));
+  backdrop-filter: blur(var(--blur-backdrop));
 }
 
 .backgroundFrost[data-level='heavy'] {
-  backdrop-filter: blur(var(--blur-backdrop));
+  backdrop-filter: blur(calc(var(--blur-backdrop) * 2));
 }
 
 @keyframes connectionIntroBackdrop {

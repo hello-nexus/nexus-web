@@ -52,8 +52,8 @@ export interface PanelDeviceRecord {
   backgroundEnabled?: boolean | null;
   backgroundMediaId?: string | null;
   backgroundMediaType?: 'static' | 'animated' | null;
-  // Frosted-glass blur over the background layer: 'light' | 'heavy'.
-  // Absent/null = none.
+  // Frosted-glass blur over the background layer: 'light' | 'heavy' | 'none'.
+  // Absent/null defaults to 'light' (normalizePanelBackgroundFrost).
   backgroundFrost?: string | null;
   widgetOpacity?: number;
   widgetLabels?: boolean;
@@ -97,8 +97,9 @@ export interface PanelDevicePatch {
   backgroundMediaId?: string | null;
   // '' clears the reference server-side (NullIfEmpty); a JSON null is ignored by the patch-merge.
   backgroundMediaType?: 'static' | 'animated' | '' | null;
-  // '' clears (= none), same NullIfEmpty semantics as backgroundMediaType.
-  backgroundFrost?: 'light' | 'heavy' | '';
+  // 'none' is a normal literal now (the record default is 'light'); '' still
+  // clears the field back to absent (NullIfEmpty), same as backgroundMediaType.
+  backgroundFrost?: 'light' | 'heavy' | 'none' | '';
   widgetOpacity?: number;
   widgetLabels?: boolean;
   widgetPadding?: number;

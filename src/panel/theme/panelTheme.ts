@@ -10,6 +10,7 @@ import { fetchPanelDevice, patchPanelDevice, type PanelDevicePatch } from '../..
 import { broadcastLayoutChanged, onLayoutChanged } from '../engine/panelSync';
 import {
   DEFAULT_PANEL_BACKGROUND_EFFECT,
+  DEFAULT_PANEL_BACKGROUND_FROST,
   DEFAULT_PANEL_BACKGROUND_TEMPLATE,
   defaultBackgroundOpacityForMode,
   defaultPanelWidgetLabels,
@@ -196,7 +197,7 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
     backgroundEffectState: panelBackgroundState(DEFAULT_PANEL_BACKGROUND_EFFECT, DEFAULT_PANEL_BACKGROUND_TEMPLATE),
     backgroundMediaId: null,
     backgroundMediaType: null,
-    backgroundFrost: 'none',
+    backgroundFrost: DEFAULT_PANEL_BACKGROUND_FROST,
     widgetOpacity: defaultPanelWidgetOpacity(),
     widgetLabels: defaultPanelWidgetLabels(),
     widgetPadding: defaultPanelWidgetPadding(),
@@ -424,9 +425,8 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
   const commitBackgroundFrost = useCallback((level: PanelBackgroundFrost) => {
     const next = normalizePanelBackgroundFrost(level);
     setTheme(prev => ({ ...prev, backgroundFrost: next }));
-    // 'none' is the record default: clear the field (NullIfEmpty) instead of
-    // storing the literal.
-    persistPatch({ backgroundFrost: next === 'none' ? '' : next });
+    // Written as the literal string so 'none' survives NullIfEmpty, which only clears an empty string.
+    persistPatch({ backgroundFrost: next });
   }, [persistPatch]);
 
   const commitWidgetOpacity = useCallback((opacity: number) => {
