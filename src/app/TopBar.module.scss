@@ -3,6 +3,13 @@
 // "..." overflow menu, the profile avatar, and - on the Windows shell only -
 // the custom caption buttons. Replaces the old absolutely-positioned drag
 // strip + top-right action cluster.
+//
+// macOS shell lockstep: the native window overlays this bar with a drag
+// strip whose click-through columns are FIXED ranges mirroring this layout
+// (nexus-service MacAppWindow.IsTopBarButtonColumn + its TopBar* constants).
+// Adding a control to the bar, or changing a width/pad/gap here, needs the
+// matching carve-out updated there, or the control is click-dead in the mac
+// app (its clicks start a window drag). MacAppWindowTests pins the geometry.
 
 .topBar {
   position: relative;
