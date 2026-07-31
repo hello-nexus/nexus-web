@@ -84,7 +84,7 @@ const PREVIEW_CONTENT: Record<string, string[]> = {
   weather: ['Mostly sunny', 'San Francisco', 'panel.widget.weather.hiLo'],
   stocks: ['Dow Jones', 'NASDAQ', 'AAPL', '52,637'],
   screentime: ['Figma', 'Chrome'],
-  displays: ['DISPLAY 1', 'DISPLAY 2'],
+  displays: ['Built-in Display', 'Studio Monitor', '#1', '#2'],
   cooling: ['cooling.preset.balanced'],
   'smart-lights': ['smartLights.onlineOfTotal'],
   deck: ['CPU Total', '58 %'],
