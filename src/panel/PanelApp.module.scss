@@ -1027,11 +1027,17 @@
   --panel-editor-dock-height: calc(var(--panel-editor-dock-rows) * var(--panel-cell-size) + (var(--panel-editor-dock-rows) - 1) * var(--panel-gap));
   position: fixed;
   inset: 0;
-  // No z-index on the backdrop: it must NOT form a stacking context, so the
-  // child .editorSheet (z 230 below) can paint above the docked widget (z 200)
-  // when the drawer is anchored higher than the widget's full height.
+  // No z-index here, but the backdrop is a stacking context anyway: the
+  // scrimIn/scrimOut fill holds an active zero-radius backdrop-filter on
+  // this element permanently, so the docked widget (z 200) paints above the
+  // whole backdrop+sheet group. Sheet/dock overlap is instead avoided by
+  // geometry: the phone settings sheet top-anchors below the dock, and the
+  // bottom-sheet max-height keeps its top clear of the tallest dock on
+  // Y70-class surfaces.
   // Plain darkening, no blur - the actions tray's scrim treatment - so the
-  // stage widgets and background stay readable while editing the theme.
+  // stage widgets and background stay readable while adding a widget or
+  // editing the theme. Widget-edit mode ([data-mode='settings']) adds a
+  // backdrop blur below.
   background: color-mix(in srgb, black 32%, transparent);
   display: flex;
   justify-content: flex-end;
@@ -1099,9 +1105,26 @@
   border-left: 1px solid var(--border);
 }
 
+// Widget-edit mode blurs the whole stage behind the sheet so ambient widget
+// motion (a ticking stopwatch, charts) doesn't compete with the editor; the
+// docked edited widget (z 200) paints above the backdrop and stays sharp.
+// Catalog and panel-settings modes keep the plain scrim - adding a widget or
+// tuning the theme needs the live panel readable. The blur must live on the
+// backdrop element itself: a child/::before layer cannot sample the page,
+// because the scrimIn/scrimOut fill keeps an active backdrop-filter on this
+// element, making it the child's backdrop root. Those same keyframes ease
+// this radius in and out. Radius rides --panel-editor-blur-scale (the stage
+// content scale, set inline by PanelApp on every surface) so the perceived
+// blur relative to the panel content matches the phone reference on zoomed
+// stages (Y70, touch monitors, embedded desktop); NOT --panel-scale, whose
+// pin-to-1 on desktop / desk monitor serves sheet sizing while their stages
+// are still content-zoomed.
+.editorBackdrop[data-mode='settings'] {
+  backdrop-filter: blur(calc(var(--blur-backdrop) * var(--panel-editor-blur-scale, 1)));
+}
+
 .editorBackdrop[data-surface='phone'][data-mode='settings'] {
   background: rgb(0 0 0 / var(--alpha-medium));
-  backdrop-filter: blur(var(--blur-backdrop));
 }
 
 @media (orientation: landscape) {
@@ -1119,8 +1142,10 @@
 
 .editorSheet {
   position: relative;
-  // Above the docked widget (z 200) so on small screens the 4x2-detent drawer
-  // overlays the bottom of taller widgets. Below offline overlay (z 250).
+  // Below the offline overlay (z 250). The docked widget (z 200) still paints
+  // above this sheet - the backdrop's held backdrop-filter makes the
+  // backdrop+sheet an atomic group under it (see the backdrop rule); overlap
+  // is avoided by geometry, not by this z-index.
   z-index: 230;
   width: min(380px, 88vw);
   max-width: 100vw;

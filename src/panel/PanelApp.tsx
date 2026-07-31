@@ -443,10 +443,18 @@ export function PanelContent({
   // tokens.scss trig formula miscomputes on WebKit, see webkitSafePanelScale).
   // Other surfaces keep their CSS-pinned value (the desktop / desk-monitor
   // neutralization must win there, and inline would beat it).
+  // --panel-editor-blur-scale carries the stage content scale for the
+  // widget-edit backdrop blur radius; it must stay independent of
+  // --panel-scale, whose pin-to-1 on desktop / desk monitor exists for sheet
+  // sizing, not for how zoomed the stage content is. Phone resolves to 1 by
+  // design (the blur reference). q60 also resolves to 1 despite its
+  // hardcoded stage scale - acceptable because no edit sheet can open there
+  // (no touch on glass, and the simulator forwards widget clicks to the
+  // parent page).
   const editorSheetThemeStyle = useMemo(
-    () => touchPanelChrome && webkitSafePanelScale != null
-      ? { ...panelThemeVars, '--panel-scale': webkitSafePanelScale } as CSSProperties
-      : panelThemeVars,
+    () => (touchPanelChrome && webkitSafePanelScale != null
+      ? { ...panelThemeVars, '--panel-scale': webkitSafePanelScale, '--panel-editor-blur-scale': webkitSafePanelScale } as CSSProperties
+      : { ...panelThemeVars, '--panel-editor-blur-scale': webkitSafePanelScale ?? 1 } as CSSProperties),
     [touchPanelChrome, webkitSafePanelScale, panelThemeVars],
   );
   const backgroundOff = showPanelBackground
