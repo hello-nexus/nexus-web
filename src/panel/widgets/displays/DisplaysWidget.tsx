@@ -212,6 +212,7 @@ function DisplayBrightnessSlider({
   onCommit: (value: number) => void;
   onToggle: () => void;
 }) {
+  const { t } = useTranslation();
   const supports = supportsBrightness(display);
   const off = brightness <= 0;
   const tooltipBody = error || display.brightnessControl?.unsupportedReason || display.name;
@@ -234,7 +235,9 @@ function DisplayBrightnessSlider({
         valueLabel={supports ? `${Math.round(brightness)}` : '--'}
         icon={<Sun strokeWidth={1.7} />}
         iconButton={{
-          ariaLabel: off ? `Restore brightness ${accessibleName}` : `Turn off ${accessibleName}`,
+          ariaLabel: off
+            ? t('displays.aria.restore', { name: accessibleName })
+            : t('displays.aria.turnOff', { name: accessibleName }),
           ariaPressed: off,
           active: off,
           onClick: onToggle,
@@ -242,7 +245,7 @@ function DisplayBrightnessSlider({
         onInteractionStart={onPointerDown}
         onChange={onChange}
         onCommit={onCommit}
-        ariaLabel={`Brightness ${accessibleName}`}
+        ariaLabel={t('displays.aria.brightness', { name: accessibleName })}
         className={styles.displaySlider}
       />
     </div>
