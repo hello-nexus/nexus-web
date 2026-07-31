@@ -19,7 +19,7 @@
   grid-template-columns: repeat(2, 1fr);
   gap: 2px;
   align-content: start;
-  @include scrollbar-visible($gutter: false);
+  @include scrollbar-visible;
 }
 
 .empty {

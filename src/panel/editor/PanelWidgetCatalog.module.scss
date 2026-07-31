@@ -58,7 +58,7 @@
   min-height: 0;
   overflow-y: auto;
   padding-right: 2px;
-  @include scrollbar-visible($gutter: false);
+  @include scrollbar-visible;
 }
 
 // Wrapper for the panel grids (built-ins + marketplace). Holds the measured

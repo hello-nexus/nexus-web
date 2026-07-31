@@ -33,7 +33,7 @@
   padding: 0 0.25rem;
   // Shared with panel/touch (DevicesPage, LightingPage); no gutter so those
   // kiosk surfaces keep their bare layout.
-  @include scrollbar-visible($gutter: false);
+  @include scrollbar-visible;
 }
 
 .empty {

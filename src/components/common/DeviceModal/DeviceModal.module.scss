@@ -127,7 +127,7 @@
   // Shared with panel/touch (DevicesPage, LightingPage, LedMapEditor); no
   // gutter so those kiosk surfaces keep their bare layout. Fixed-width dialog
   // body gains little from a reserved gutter anyway.
-  @include scrollbar-visible($gutter: false);
+  @include scrollbar-visible;
 }
 
 // Section headers use the shared <SectionHeader> component

@@ -1223,7 +1223,7 @@
 .settingsBody {
   min-height: 0;
   overflow-y: auto;
-  @include scrollbar-visible($gutter: false);
+  @include scrollbar-visible;
 }
 
 .panelSettingsStack {

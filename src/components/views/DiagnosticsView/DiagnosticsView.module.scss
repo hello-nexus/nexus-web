@@ -188,7 +188,7 @@
 
 .attrTableWrap {
   overflow-x: auto;
-  @include scrollbar-visible($gutter: false);
+  @include scrollbar-visible;
 }
 
 .attrTable {

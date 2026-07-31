@@ -34,7 +34,7 @@
   min-width: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  @include scrollbar-visible($gutter: false);
+  @include scrollbar-visible;
 }
 
 .empty {
