@@ -12,7 +12,10 @@ import { useTranslation } from '../../../lib/i18n';
 import {
   defaultCpuTempSensor, defaultGpuTempSensor, listTempSensors,
 } from '../../../lib/tempSensorResolver';
-import { localizeNumbers, type NumberFormat } from '../../../lib/units';
+import {
+  convertTemperature, isCelsiusUnit, localizeNumbers, tempUnitSymbol,
+  type NumberFormat, type TempUnit,
+} from '../../../lib/units';
 
 interface LightingCoolingSectionProps {
   serviceOnline: boolean;
@@ -113,6 +116,7 @@ export function LightingCoolingSection({ serviceOnline, platform }: LightingCool
           defaultSuffix={t('cooling.settings.defaultSuffix')}
           emptyLabel={t('cooling.settings.empty')}
           value={settings.preferredCpuTempSensorId}
+          tempUnit={settings.monitoringTempUnit}
           numberFormat={settings.numberFormat}
           onChange={id => update({ preferredCpuTempSensorId: id })}
         />
@@ -124,6 +128,7 @@ export function LightingCoolingSection({ serviceOnline, platform }: LightingCool
           defaultSuffix={t('cooling.settings.defaultSuffix')}
           emptyLabel={t('cooling.settings.empty')}
           value={settings.preferredGpuTempSensorId}
+          tempUnit={settings.monitoringTempUnit}
           numberFormat={settings.numberFormat}
           onChange={id => update({ preferredGpuTempSensorId: id })}
         />
@@ -161,11 +166,12 @@ interface SensorRowProps {
   emptyLabel: string;
   /** Stored preference: "" = auto, shown as the default sensor's id. */
   value: string;
+  tempUnit: TempUnit;
   numberFormat: NumberFormat;
   onChange: (id: string) => void;
 }
 
-function SensorRow({ label, anchorId, options, defaultSensor, defaultSuffix, emptyLabel, value, numberFormat, onChange }: SensorRowProps) {
+function SensorRow({ label, anchorId, options, defaultSensor, defaultSuffix, emptyLabel, value, tempUnit, numberFormat, onChange }: SensorRowProps) {
   // The visible option list must include both the stored pick and the default
   // sensor, or the controlled <select> would carry a value with no matching
   // <option> and snap to the first one (then persist it on the next change).
@@ -212,7 +218,7 @@ function SensorRow({ label, anchorId, options, defaultSensor, defaultSuffix, emp
           const suffix = isDefault ? defaultSuffix : '';
           const optLabel = isMissing
             ? `${s.name} (unavailable)`
-            : `${s.name} (${localizeNumbers(s.value.toFixed(1), numberFormat)}°C)${suffix}`;
+            : `${s.name} (${formatReading(s, tempUnit, numberFormat)})${suffix}`;
           return (
             <option key={s.id} value={s.id} disabled={isMissing}>
               {optLabel}
@@ -222,4 +228,15 @@ function SensorRow({ label, anchorId, options, defaultSensor, defaultSuffix, emp
       </Select>
     </SettingRow>
   );
+}
+
+/**
+ * A picker row's live reading, in the user's chosen temperature unit. The
+ * default-sensor fallback matches on id substring, so a listed sensor is not
+ * guaranteed to be a Celsius reading - those keep the service's own string.
+ */
+function formatReading(s: HardwareSensor, tempUnit: TempUnit, numberFormat: NumberFormat): string {
+  if (!isCelsiusUnit(s.units)) return localizeNumbers(s.formatted, numberFormat);
+  const value = convertTemperature(s.value, tempUnit).toFixed(1);
+  return `${localizeNumbers(value, numberFormat)}${tempUnitSymbol(tempUnit)}`;
 }
