@@ -725,16 +725,20 @@ describe('formatBrushEdgeLabels', () => {
     const start = new Date(2026, 6, 16, 11, 31, 4).getTime();
     const end = new Date(2026, 6, 16, 11, 36, 4).getTime();
     const [a, b] = formatBrushEdgeLabels(start, end, 'en-US');
-    expect(a).not.toMatch(/Jul/);
-    expect(b).not.toMatch(/Jul/);
+    expect(a.day).toBeUndefined();
+    expect(b.day).toBeUndefined();
+    expect(a.time).toMatch(/11:31:04/);
+    expect(b.time).toMatch(/11:36:04/);
   });
 
-  it('includes the short localized day on both labels when the edges span different days', () => {
+  it('sets the short localized day on both labels when the edges span different days', () => {
     const start = new Date(2026, 6, 15, 23, 58, 0).getTime();
     const end = new Date(2026, 6, 16, 0, 3, 0).getTime();
     const [a, b] = formatBrushEdgeLabels(start, end, 'en-US');
-    expect(a).toMatch(/Jul/);
-    expect(b).toMatch(/Jul/);
+    expect(a.day).toBe('Jul 15');
+    expect(b.day).toBe('Jul 16');
+    expect(a.time).not.toMatch(/Jul/);
+    expect(b.time).not.toMatch(/Jul/);
   });
 });
 

@@ -618,8 +618,14 @@ function PreviewTimelineBrush() {
         ariaLabel="Time range"
         ariaValueText={(from, to) => `${new Date(from).toLocaleString()} to ${new Date(to).toLocaleString()}`}
         formatEdgeLabels={(start, end) => [
-          new Date(start).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }),
-          new Date(end).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }),
+          {
+            day: new Date(start).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+            time: new Date(start).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }),
+          },
+          {
+            day: new Date(end).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+            time: new Date(end).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }),
+          },
         ]}
       />
     </div>

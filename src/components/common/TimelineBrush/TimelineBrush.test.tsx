@@ -177,12 +177,32 @@ describe('TimelineBrush', () => {
           minWindowMs={1_000}
           ariaLabel="Time range"
           ariaValueText={ariaValueText}
-          formatEdgeLabels={(start, end) => [`s${start}`, `e${end}`]}
+          formatEdgeLabels={(start, end) => [{ time: `s${start}` }, { time: `e${end}` }]}
         />,
       );
       expect(getByText(`s${DOMAIN_START}`)).toBeInTheDocument();
       expect(getByText(`e${DOMAIN_END}`)).toBeInTheDocument();
       expect(container.querySelectorAll('[class*="edgeLabel"]').length).toBe(2);
+    });
+
+    it('stacks a day badge above the time when a label carries one, and renders none when it does not', () => {
+      const { container, getByText } = render(
+        <TimelineBrush
+          domainStart={DOMAIN_START}
+          domainEnd={DOMAIN_END}
+          from={20_000}
+          to={40_000}
+          onChange={() => {}}
+          minWindowMs={1_000}
+          ariaLabel="Time range"
+          ariaValueText={ariaValueText}
+          formatEdgeLabels={() => [{ day: 'Jul 30', time: '23:58:00' }, { time: '00:03:00' }]}
+        />,
+      );
+      const day = getByText('Jul 30');
+      expect(day.className).toMatch(/edgeDay/);
+      expect(getByText('23:58:00').className).toMatch(/edgeTime/);
+      expect(container.querySelectorAll('[class*="edgeDay"]').length).toBe(1);
     });
   });
 

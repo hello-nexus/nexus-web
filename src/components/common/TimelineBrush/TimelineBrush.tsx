@@ -20,6 +20,13 @@ export interface TimelineBrushSilhouettePoint {
   v: number;
 }
 
+export interface TimelineBrushEdgeLabel {
+  /** Short localized day qualifier, rendered as a small badge above the
+   *  time; omit when the whole domain falls on one calendar day. */
+  day?: string;
+  time: string;
+}
+
 export interface TimelineBrushProps {
   /** The full pannable/zoomable domain (e.g. the seek-bar strip's own span). */
   domainStart: number;
@@ -43,9 +50,10 @@ export interface TimelineBrushProps {
    *  than tracking the selected window - purely decorative (pointer-events:
    *  none), never part of the drag/click hit-testing. Returns both labels
    *  together so the caller can decide together whether to include the day
-   *  (the two edges may fall on different calendar days). Omit to render no
-   *  labels. */
-  formatEdgeLabels?: (start: number, end: number) => readonly [string, string];
+   *  (the two edges may fall on different calendar days); a label's `day`
+   *  renders as a badge stacked above its time so neither line outgrows the
+   *  label lane. Omit to render no labels. */
+  formatEdgeLabels?: (start: number, end: number) => readonly [TimelineBrushEdgeLabel, TimelineBrushEdgeLabel];
   height?: number;
   className?: string;
 }
@@ -76,6 +84,11 @@ const WHEEL_SETTLE_MS = 200;
 // since SVG rect geometry attributes can't reference a CSS custom property
 // directly.
 const WINDOW_CORNER_RADIUS_PX = 10;
+// Insets the drawn window box from the SVG viewport on every side. At the
+// geometry edge the centered stroke's outer half falls outside the viewport
+// (and the corners under the block's overflow:hidden rounding), so a
+// full-bleed box reads as cropped along its top edge.
+const WINDOW_INSET_PX = 1.5;
 
 type DragMode = 'pan' | 'resize-left' | 'resize-right';
 
@@ -277,6 +290,12 @@ export function TimelineBrush({
   const fromPx = width > 0 ? tPx(from) : 0;
   const toPx = width > 0 ? tPx(to) : 0;
 
+  // Window box geometry, inset from the viewport on every side. The min-width
+  // floor is applied before the x clamp so a hairline window can never push
+  // its floored right edge past the inset, whatever the container width.
+  const windowW = Math.max(1, Math.min(toPx, width - WINDOW_INSET_PX) - Math.max(fromPx, WINDOW_INSET_PX));
+  const windowX = Math.min(Math.max(fromPx, WINDOW_INSET_PX), Math.max(WINDOW_INSET_PX, width - WINDOW_INSET_PX - windowW));
+
   const silhouettePath = (() => {
     if (!silhouette || silhouette.length === 0 || width <= 0) return null;
     let min = Infinity;
@@ -326,18 +345,24 @@ export function TimelineBrush({
         {silhouettePath && <path className={styles.silhouette} d={silhouettePath} />}
         <rect
           className={styles.window}
-          x={fromPx}
-          y={0}
-          width={Math.max(1, toPx - fromPx)}
-          height={height}
+          x={windowX}
+          y={WINDOW_INSET_PX}
+          width={windowW}
+          height={Math.max(1, height - WINDOW_INSET_PX * 2)}
           rx={WINDOW_CORNER_RADIUS_PX}
           ry={WINDOW_CORNER_RADIUS_PX}
         />
       </svg>
       {formatEdgeLabels && width > 0 && (
         <>
-          <span className={`${styles.edgeLabel} ${styles.edgeLabelStart}`}>{startLabel}</span>
-          <span className={`${styles.edgeLabel} ${styles.edgeLabelEnd}`}>{endLabel}</span>
+          <span className={`${styles.edgeLabel} ${styles.edgeLabelStart}`}>
+            {startLabel?.day && <span className={styles.edgeDay}>{startLabel.day}</span>}
+            <span className={styles.edgeTime}>{startLabel?.time}</span>
+          </span>
+          <span className={`${styles.edgeLabel} ${styles.edgeLabelEnd}`}>
+            {endLabel?.day && <span className={styles.edgeDay}>{endLabel.day}</span>}
+            <span className={styles.edgeTime}>{endLabel?.time}</span>
+          </span>
         </>
       )}
     </div>

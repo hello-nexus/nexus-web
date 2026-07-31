@@ -5,6 +5,7 @@
 import { nearestPoint, type TimeSeriesPoint } from '../../../../components/common/TimeSeriesChart/timeSeriesChartUtils';
 import type { TimeSeriesSeries } from '../../../../components/common/TimeSeriesChart/TimeSeriesChart';
 import { MIN_BOX_WINDOW_MS } from '../../../../components/common/TimelineBrush/timelineBrushUtils';
+import type { TimelineBrushEdgeLabel } from '../../../../components/common/TimelineBrush/TimelineBrush';
 import type { MetricHistorySeries } from '../../../../api/monitoringHistory';
 import type { AppWindowSeries } from '../../../../api/monitoringHistoryApps';
 import type { FanRole } from '../../../../api/cooling';
@@ -519,22 +520,26 @@ export function pickGpuHistorySeries(
 }
 
 const BRUSH_LABEL_TIME_OPTS: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: '2-digit', second: '2-digit' };
-const BRUSH_LABEL_DAY_OPTS: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', ...BRUSH_LABEL_TIME_OPTS };
+const BRUSH_LABEL_DAY_OPTS: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
 
 /**
  * The seek-bar block's two docked edge labels (start/end). Time-only when
- * both edges fall on the same calendar day; a short localized day is
- * prefixed on both when they don't (a strip spanning midnight would
- * otherwise show two same-looking times with no way to tell them apart).
+ * both edges fall on the same calendar day; a short localized day is set on
+ * both when they don't (a strip spanning midnight would otherwise show two
+ * same-looking times with no way to tell them apart) - TimelineBrush renders
+ * it as a badge stacked above the time.
  */
-export function formatBrushEdgeLabels(startMs: number, endMs: number, locale?: string): [string, string] {
+export function formatBrushEdgeLabels(startMs: number, endMs: number, locale?: string): [TimelineBrushEdgeLabel, TimelineBrushEdgeLabel] {
   const start = new Date(startMs);
   const end = new Date(endMs);
   const sameDay = start.getFullYear() === end.getFullYear()
     && start.getMonth() === end.getMonth()
     && start.getDate() === end.getDate();
-  const opts = sameDay ? BRUSH_LABEL_TIME_OPTS : BRUSH_LABEL_DAY_OPTS;
-  return [start.toLocaleString(locale, opts), end.toLocaleString(locale, opts)];
+  const label = (d: Date): TimelineBrushEdgeLabel => ({
+    time: d.toLocaleString(locale, BRUSH_LABEL_TIME_OPTS),
+    ...(sameDay ? {} : { day: d.toLocaleString(locale, BRUSH_LABEL_DAY_OPTS) }),
+  });
+  return [label(start), label(end)];
 }
 
 export interface SelectedFrame {
