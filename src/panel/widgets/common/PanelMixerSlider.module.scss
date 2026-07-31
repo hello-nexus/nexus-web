@@ -113,6 +113,22 @@
   pointer-events: none;
 }
 
+// Ordinal badge anchored inside the top of the track, mirroring the bottom
+// icon. Plain --text dimmed via opacity so it stays legible when the accent
+// fill rises behind it (--text-dim washes out against the gradient).
+.indexBadge {
+  @include text-caption;
+
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--text);
+  opacity: 0.55;
+  pointer-events: none;
+  z-index: 1;
+}
+
 .iconButton {
   cursor: pointer;
   transition: background-color var(--ease-fast) ease, color var(--ease-fast) ease, transform var(--ease-fast) ease;

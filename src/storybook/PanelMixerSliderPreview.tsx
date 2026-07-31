@@ -22,7 +22,8 @@ export function PanelMixerSliderPreview() {
   return (
     <div className={styles.previewPanelMixer}>
       <PanelMixerSlider
-        topLabel="DISPLAY 1"
+        topLabel="AOC 3402"
+        indexBadge="#1"
         value={brightness}
         min={0}
         max={100}

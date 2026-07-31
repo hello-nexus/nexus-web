@@ -179,7 +179,7 @@ export function DisplaysWidget({ widget }: WidgetProps) {
               display={d}
               brightness={brightness}
               error={errors[d.id] || ''}
-              index={i}
+              indexBadge={visibleDisplays.length > 1 ? `#${i + 1}` : undefined}
               onPointerDown={() => startDrag(d.id)}
               onChange={v => pushBrightness(d.id, v)}
               onCommit={v => endDrag(d.id, v)}
@@ -197,7 +197,7 @@ function DisplayBrightnessSlider({
   display,
   brightness,
   error,
-  index,
+  indexBadge,
   onPointerDown,
   onChange,
   onCommit,
@@ -206,7 +206,7 @@ function DisplayBrightnessSlider({
   display: Display;
   brightness: number;
   error: string;
-  index: number;
+  indexBadge?: string;
   onPointerDown: () => void;
   onChange: (value: number) => void;
   onCommit: (value: number) => void;
@@ -215,6 +215,9 @@ function DisplayBrightnessSlider({
   const supports = supportsBrightness(display);
   const off = brightness <= 0;
   const tooltipBody = error || display.brightnessControl?.unsupportedReason || display.name;
+  // The badge joins the accessible name so duplicate monitor models stay
+  // distinguishable to screen readers.
+  const accessibleName = indexBadge ? `${display.name} ${indexBadge}` : display.name;
   return (
     <HoverTooltip body={tooltipBody} side="top">
     <div
@@ -226,11 +229,12 @@ function DisplayBrightnessSlider({
         max={100}
         value={brightness}
         disabled={!supports}
-        topLabel={`DISPLAY ${index + 1}`}
+        topLabel={display.name}
+        indexBadge={indexBadge}
         valueLabel={supports ? `${Math.round(brightness)}` : '--'}
         icon={<Sun strokeWidth={1.7} />}
         iconButton={{
-          ariaLabel: off ? `Restore brightness ${display.name}` : `Turn off ${display.name}`,
+          ariaLabel: off ? `Restore brightness ${accessibleName}` : `Turn off ${accessibleName}`,
           ariaPressed: off,
           active: off,
           onClick: onToggle,
@@ -238,7 +242,7 @@ function DisplayBrightnessSlider({
         onInteractionStart={onPointerDown}
         onChange={onChange}
         onCommit={onCommit}
-        ariaLabel={`Brightness ${display.name}`}
+        ariaLabel={`Brightness ${accessibleName}`}
         className={styles.displaySlider}
       />
     </div>

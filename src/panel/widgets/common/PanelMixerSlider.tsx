@@ -10,6 +10,8 @@ export interface PanelMixerSliderProps {
   topLabel?: string;
   label?: string;
   valueLabel?: string;
+  /** Ordinal badge rendered inside the top of the track, mirroring the bottom icon. */
+  indexBadge?: string;
   icon?: ReactNode;
   ariaLabel: string;
   disabled?: boolean;
@@ -33,6 +35,7 @@ export function PanelMixerSlider({
   topLabel,
   label,
   valueLabel,
+  indexBadge,
   icon,
   ariaLabel,
   disabled = false,
@@ -185,6 +188,9 @@ export function PanelMixerSlider({
           onKeyDown={handleKeyDown}
         >
           <div className={styles.fill} style={{ height: `${pct * 100}%` }} aria-hidden="true" />
+          {indexBadge && (
+            <div className={styles.indexBadge} aria-hidden="true">{indexBadge}</div>
+          )}
           {iconNode}
         </div>
       </div>

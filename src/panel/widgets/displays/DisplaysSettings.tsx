@@ -17,7 +17,11 @@ import { SettingsSection, SettingsHint } from '../common/SettingsRow/SettingsRow
 import type { WidgetSettingsProps } from '../types';
 import styles from './DisplaysSettings.module.scss';
 
-function SortableDisplayRow({ display }: { display: Display }) {
+function SortableDisplayRow({ display, position, showBadge }: {
+  display: Display;
+  position: number;
+  showBadge: boolean;
+}) {
   const { t } = useTranslation();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: display.id });
@@ -27,16 +31,20 @@ function SortableDisplayRow({ display }: { display: Display }) {
     zIndex: isDragging ? 1 : undefined,
     opacity: isDragging ? 0.85 : undefined,
   };
+  // Matches the #N badge on the widget sliders so the row-to-slider mapping
+  // is visible; the badge also disambiguates duplicate monitor models.
+  const badge = `#${position}`;
   return (
     <div ref={setNodeRef} style={style} className={styles.row} role="listitem">
       <span
         className={styles.handle}
-        aria-label={t('displays.settings.reorder', { name: display.name })}
+        aria-label={t('displays.settings.reorder', { name: showBadge ? `${display.name} ${badge}` : display.name })}
         {...attributes}
         {...listeners}
       >
         <GripVertical size={16} />
       </span>
+      {showBadge && <span className={styles.index} aria-hidden="true">{badge}</span>}
       <span className={styles.name}>{display.name}</span>
     </div>
   );
@@ -113,7 +121,7 @@ export function DisplaysSettings({ widget, onUpdate }: WidgetSettingsProps) {
               <div className={styles.list} role="list">
                 {orderedDisplays.map((d, i) => (
                   <Fragment key={d.id}>
-                    <SortableDisplayRow display={d} />
+                    <SortableDisplayRow display={d} position={i + 1} showBadge={orderedDisplays.length > 1} />
                     {i === 1 && orderedIds.length > 2 && (
                       <div className={styles.divider} aria-hidden="true">
                         <span className={styles.dividerLabel}>2×2</span>

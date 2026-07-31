@@ -37,6 +37,14 @@
   cursor: grabbing;
 }
 
+.index {
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+  min-width: 20px;
+}
+
 .name {
   font-size: 0.875rem;
   color: var(--text);
