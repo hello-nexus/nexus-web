@@ -25,6 +25,8 @@ export interface QSeriesCoolerState {
   hasPump2: boolean;
   controlMode: number;
   turboOn: boolean;
+  fwAnimationSupported: boolean;
+  fwAnimationBrightnessSupported: boolean;
 }
 
 export const getQSeriesState = (): Promise<QSeriesCoolerState | null> =>
@@ -35,6 +37,35 @@ export const setQSeriesControlMode = (mode: QSeriesControlMode): Promise<unknown
 
 export const setQSeriesTurbo = (on: boolean): Promise<unknown | null> =>
   putService('/devices/qseries/turbo', { on });
+
+// ── Firmware-mode LED animation (effect + static color + brightness) ──
+
+export const QSERIES_FW_ANIMATION_COLOR = 1;
+export const QSERIES_FW_ANIMATION_RAINBOW = 2;
+export const QSERIES_FW_ANIMATION_BREATHE = 3;
+export const QSERIES_FW_ANIMATION_RAINBOW_GRADIENT = 4;
+
+export type QSeriesFwAnimationKind =
+  | typeof QSERIES_FW_ANIMATION_COLOR
+  | typeof QSERIES_FW_ANIMATION_RAINBOW
+  | typeof QSERIES_FW_ANIMATION_BREATHE
+  | typeof QSERIES_FW_ANIMATION_RAINBOW_GRADIENT;
+
+export interface QSeriesFirmwareAnimation {
+  animation: QSeriesFwAnimationKind;
+  r: number;
+  g: number;
+  b: number;
+  brightness: number; // percent
+}
+
+export const getQSeriesFirmwareAnimation = (): Promise<QSeriesFirmwareAnimation | null> =>
+  fetchService<QSeriesFirmwareAnimation>('/devices/qseries/firmware-animation');
+
+export const setQSeriesFirmwareAnimation = (body: QSeriesFirmwareAnimation): Promise<unknown | null> =>
+  putService('/devices/qseries/firmware-animation', body);
+
+export { np50RgbToHex as qSeriesRgbToHex, np50HexToRgb as qSeriesHexToRgb } from './np50';
 
 // ── Firmware temperature curve (pump + fan) ──
 

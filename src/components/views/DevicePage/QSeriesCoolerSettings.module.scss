@@ -22,14 +22,21 @@
   gap: 0.35rem;
 }
 
-.curveTitle {
+.blockTitle {
   font-size: 0.8rem;
   color: var(--text);
+}
+
+.colorBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 0.25rem;
 }
 
 .saveRow {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 0.75rem;
 }
