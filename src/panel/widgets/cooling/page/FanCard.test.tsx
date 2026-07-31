@@ -211,6 +211,21 @@ describe('FanCard device-role picker', () => {
     fireEvent.click(trigger);
     expect(onToggleLock).not.toHaveBeenCalled();
   });
+
+  it('explains the lock in the icon tooltip only while locked', () => {
+    const { trigger, rerender } = renderRolePicker(makeChannel({ locked: true }));
+    fireEvent.focus(trigger);
+    expect(screen.getByRole('tooltip')).toHaveTextContent('cooling.lock.lockedHint');
+    fireEvent.blur(trigger);
+
+    rerender(
+      <FanCard channel={makeChannel()} state={manualState} curves={[]}
+        onSetMode={() => {}} onCreateCurve={() => {}} onRename={() => {}} onSpeedChange={() => {}}
+        onToggleLock={() => {}} onSetRole={() => {}} />,
+    );
+    fireEvent.focus(trigger);
+    expect(screen.getByRole('tooltip')).toHaveTextContent('cooling.fanRole.picker');
+  });
 });
 
 describe('FanCard mode dropdown Lock toggle', () => {
@@ -235,15 +250,15 @@ describe('FanCard mode dropdown Lock toggle', () => {
     const lockIdx = values.indexOf('__lock__');
     expect(createIdx).toBeGreaterThanOrEqual(0);
     expect(lockIdx).toBeGreaterThan(createIdx);
-    // Unlocked: the option carries the "click to lock" label key.
+    // The row names the action, not the state.
     const lockOption = select.querySelector('option[value="__lock__"]')!;
-    expect(lockOption.textContent).toBe('cooling.lock.unlocked');
+    expect(lockOption.textContent).toBe('cooling.lock.lock');
 
     fireEvent.change(select, { target: { value: '__lock__' } });
     expect(onToggleLock).toHaveBeenCalledWith('fan1', true);
   });
 
-  it('reflects the locked state in the Lock option label and toggles it off', () => {
+  it('offers Unlock when the fan is locked and toggles it off', () => {
     const onToggleLock = vi.fn();
     render(
       <FanCard channel={makeChannel({ locked: true })} state={manualState} curves={[]}
@@ -252,7 +267,7 @@ describe('FanCard mode dropdown Lock toggle', () => {
     );
     const select = screen.getByLabelText('cooling.card.mode') as HTMLSelectElement;
     const lockOption = select.querySelector('option[value="__lock__"]')!;
-    expect(lockOption.textContent).toBe('cooling.lock.locked');
+    expect(lockOption.textContent).toBe('cooling.lock.unlock');
 
     fireEvent.change(select, { target: { value: '__lock__' } });
     expect(onToggleLock).toHaveBeenCalledWith('fan1', false);

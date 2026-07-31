@@ -219,11 +219,11 @@ export const FanCard = memo(function FanCard({
     drag?.ref(el);
   };
 
-  // Current-state label for the dropdown's Lock toggle - Select closes on
-  // click with no persistent checkbox, so the label/icon (not a checked
-  // state) is what conveys whether the fan is locked.
-  const lockOptionLabel = locked ? t('cooling.lock.locked') : t('cooling.lock.unlocked');
+  // Select has no persistent checkbox, so the row names the action it performs.
+  const lockOptionLabel = locked ? t('cooling.lock.unlock') : t('cooling.lock.lock');
   const rolePickerLabel = t('cooling.fanRole.picker');
+  // Locked state shows only as the badge, so the icon tooltip carries its meaning.
+  const fanIconTooltip = locked ? t('cooling.lock.lockedHint') : rolePickerLabel;
 
   // NP50 lists only FW Control (no BIOS hand-off); a Q-series pump lists both;
   // everything else lists only BIOS. The create-curve action and the Lock
@@ -259,14 +259,13 @@ export const FanCard = memo(function FanCard({
       onMouseLeave={onWireHover ? () => onWireHover(null) : undefined}
     >
       <div className={styles.fanCardHeader}>
-        {/* Fan icon opens the device-role picker (Generic fan / CPU / GPU);
-            the icon itself reflects the current role. Locking now lives in
-            the mode dropdown below, but the lock badge/dim visual stays here.
-            When this fan is bound to the curve currently shown in the graph,
-            the highlight lives on the dropdown value (accentValue) instead of
-            the icon. */}
+        {/* Fan icon opens the device-role picker (Generic fan / CPU / GPU) and
+            reflects the current role; the lock badge/dim visual rides on it
+            while the lock toggle itself lives in the mode dropdown. When this
+            fan is bound to the curve shown in the graph, the highlight lives on
+            the dropdown value (accentValue) instead of the icon. */}
         <div ref={roleAnchorRef} className={styles.fanRoleAnchor} data-no-dnd={isReadOnly ? undefined : true}>
-          <HoverTooltip body={rolePickerLabel} side="top">
+          <HoverTooltip body={fanIconTooltip} side="top">
             {isReadOnly ? (
               <span className={styles.fanKindToggle} role="img" aria-label={rolePickerLabel}>
                 <RoleIcon size={18} className={locked ? `${styles.fanKindIcon} ${styles.fanKindIconDim}` : styles.fanKindIcon} aria-hidden="true" />
