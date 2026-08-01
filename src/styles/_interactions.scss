@@ -94,7 +94,11 @@
 // top bar's "..." trigger (TopBar .iconButton / .iconButtonActive) so every
 // icon control in the app reads the same. Never an accent fill.
 @mixin bare-icon-lit {
-  background: var(--panel-element-bg-hover, var(--bg-card-hover));
+  // --bg-card-hover, not the panel's --panel-element-bg-hover: the latter rides
+  // --border, a step brighter than the top bar's square. The panel token system
+  // already consumes this one (--panel-control-bg), so it resolves on both the
+  // desktop and panel surfaces.
+  background: var(--bg-card-hover);
   color: var(--text);
 }
 
@@ -129,8 +133,9 @@
     }
   }
 
+  // One step up from the hover square so a press still registers on top of it.
   &:active:not(:disabled) {
-    background: var(--panel-element-bg-active, var(--bg-card-hover));
+    background: var(--border);
   }
 
   &:disabled {
@@ -151,6 +156,14 @@
 
   &[data-active='true'] {
     @include bare-icon-lit;
+  }
+
+  // An already-lit button has to step brighter on hover, or hovering the
+  // selected one paints the fill it is already wearing and reads as dead.
+  @media (hover: hover) {
+    &[data-active='true']:hover:not(:disabled) {
+      background: var(--border);
+    }
   }
 }
 
