@@ -1369,20 +1369,30 @@
   gap: 0.4rem;
 }
 
+// Selection reads the same as the preset row above it, so the two controls in
+// one pane share a visual language.
 .staticSwatch {
   flex: 1;
   height: 1.75rem;
   border-radius: var(--radius-sm);
-  border: 2px solid transparent;
-  box-shadow: inset 0 0 0 1px var(--separator);
+  border: var(--border-width) solid var(--separator);
   cursor: pointer;
+  transition: border-color var(--ease-fast), box-shadow var(--ease-fast), transform var(--ease-fast);
+
+  &:hover {
+    transform: translateY(-1px);
+    border-color: var(--effect-template-hover-border);
+  }
 
   &:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 1px;
+    outline: none;
+    border-color: var(--effect-template-active-border);
+    box-shadow: 0 0 0 2px var(--panel-accent-soft, var(--accent-soft));
   }
 }
 
-.staticSwatchActive {
-  border-color: var(--accent);
+.staticSwatchActive,
+.staticSwatchActive:hover {
+  border-color: var(--effect-template-active-border);
+  box-shadow: var(--effect-template-active-shadow);
 }

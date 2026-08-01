@@ -202,7 +202,9 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
     if (loadedVersionRef.current[activeEffect] === want) return;
     let cancelled = false;
     (async () => {
-      const blob = await fetchServiceBlob(effectThumbnailPath(activeEffect, activeSlot, activeVersion));
+      // frozen: static renders at speed 0, a different image than the animate
+      // tile, and useEffectThumbnail keys its cache on the same flag.
+      const blob = await fetchServiceBlob(effectThumbnailPath(activeEffect, activeSlot, activeVersion, mode === 'static'));
       if (cancelled || !blob) return;
       const url = URL.createObjectURL(blob);
       const prev = thumbsRef.current[activeEffect];
@@ -212,7 +214,7 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
       if (prev) URL.revokeObjectURL(prev);
     })();
     return () => { cancelled = true; };
-  }, [preview, activeEffect, activeSlot, activeVersion]);
+  }, [preview, activeEffect, activeSlot, activeVersion, mode]);
 
   useEffect(() => () => {
     for (const url of Object.values(thumbsRef.current)) URL.revokeObjectURL(url);
