@@ -6,7 +6,6 @@ import { Select } from '../../../../components/common/Select/Select';
 import { PaletteRing } from '../../../../components/common/PaletteRing/PaletteRing';
 import { EffectTemplateSelector } from '../../../../components/common/EffectTemplateSelector/EffectTemplateSelector';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
-import { StaticColorField } from './StaticColorField';
 import { StaticColorSlots } from './StaticColorSlots';
 import styles from '../LightingPage.module.scss';
 
@@ -81,9 +80,6 @@ export const EffectControls = memo(function EffectControls({
               onCommit={onCommit}
             />
           </div>
-        )}
-        {staticMode && !isSimple && !ownsColors && (
-          <StaticColorField state={state} onChange={onChange} />
         )}
         {!def.hideSpeed && !staticMode && (
           <Slider orientation="stacked" editable trackFill label={t('lighting.controls.speed')} value={state.speed} min={-100} max={100} zeroMarker
