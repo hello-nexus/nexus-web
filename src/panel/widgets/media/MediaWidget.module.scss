@@ -307,14 +307,14 @@
   svg { width: 18px; height: 18px; }
 }
 
-// Shuffle / repeat carry an on-off state, so they follow the same
-// contrast-only selection rule as the lighting and cooling rows.
+// Shuffle / repeat carry an on-off state, so they take the same lit square
+// as every other ON control.
 .toggle {
   color: var(--text-dim);
 }
 
 .toggleOn {
-  color: var(--text);
+  @include bare-icon-lit;
 }
 
 .emptySlot {

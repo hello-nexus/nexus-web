@@ -114,7 +114,7 @@ export function TimerWidget({ widget }: WidgetProps) {
             onClick={handleStop}
             aria-label={t('panel.widget.timer.stop')}
           >
-            <Square size={14} />
+            <Square size={14} fill="currentColor" stroke="none" />
           </button>
         )}
         {isComplete && (

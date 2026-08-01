@@ -263,7 +263,7 @@
 }
 
 .toggle { color: var(--text-dim); }
-.toggleOn { color: var(--text); }
+.toggleOn { @include bare-icon-lit; }
 
 // Horizontal volume row at the bottom: small mute icon button on the
 // left, long horizontal track that takes the rest of the row.
@@ -290,8 +290,8 @@
 
   svg { width: 16px; height: 16px; }
 
-  // Muted is the "on" state of a toggle, so it reads at full contrast.
-  &[aria-pressed='true'] { color: var(--text); }
+  // Muted is the "on" state of a toggle, so it takes the lit square.
+  &[aria-pressed='true'] { @include bare-icon-lit; }
 }
 
 .volumeTrack {

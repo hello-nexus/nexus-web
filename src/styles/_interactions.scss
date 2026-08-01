@@ -89,47 +89,48 @@
               color var(--ease-fast) ease;
 }
 
-// Bare icon control: the glyph is the whole button - no border, background,
-// radius or fill in any state. Colour and geometry (hit area, svg size) stay
-// with the caller; pair with bare-icon-selectable for a row that carries a
-// selected state. Hover and press ride transform, so a caller that positions
-// itself with one must not use this mixin.
+// The lit state shared by a bare icon's hover and its ON/selected state: a
+// subtle neutral square behind the glyph, glyph at full contrast. Matches the
+// top bar's "..." trigger (TopBar .iconButton / .iconButtonActive) so every
+// icon control in the app reads the same. Never an accent fill.
+@mixin bare-icon-lit {
+  background: var(--panel-element-bg-hover, var(--bg-card-hover));
+  color: var(--text);
+}
+
+// Bare icon control: no border and no resting fill - the glyph is the button.
+// Hover and the ON state are the only chrome, and both are the neutral square
+// above. Colour and geometry (hit area, svg size) stay with the caller; pair
+// with bare-icon-selectable, included AFTER this one, for a row that carries a
+// selected state.
 @mixin bare-icon-button {
   border: none;
-  border-radius: 0;
-  background: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
   padding: 0;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: color var(--ease-fast) ease, opacity var(--ease-fast) ease,
-              transform var(--ease-fast) ease;
+  transition: background var(--ease-fast) ease, color var(--ease-fast) ease;
 
-  // Re-asserts chrome-off on every state the global .panel-chip repaints. Each
-  // arm has to out-specify the chip's matching rule rather than tie it, or
-  // stylesheet order decides and the fill comes back - hence the :not(:disabled)
-  // on the hover/press arms, mirroring the chip's own selectors.
-  &[data-active='true'],
-  &:hover:not(:disabled),
-  &:active:not(:disabled) {
+  // Neutralizes the accent fill the global .panel-chip paints on this state;
+  // a selectable caller re-lights it as the neutral square below.
+  &[data-active='true'] {
     border: none;
-    background: none;
+    background: transparent;
   }
 
-  // Hover highlights the glyph itself, never a fill behind it. The colour lift
-  // does nothing for a button already resting at --text, so the scale is what
-  // carries the feedback there - same idea as PanelArrowButton's naked chevron.
   // Gated on a real pointer because touch surfaces latch emulated hover after a
-  // tap, which would leave an unselected icon reading as selected.
+  // tap, which would leave an unselected icon reading as selected. The
+  // :not(:disabled) also out-specifies .panel-chip's own hover rule rather than
+  // tying it, which would hand the decision to stylesheet order.
   @media (hover: hover) {
     &:hover:not(:disabled) {
-      color: var(--text);
-      transform: scale(1.14);
+      @include bare-icon-lit;
     }
   }
 
   &:active:not(:disabled) {
-    opacity: 0.55;
-    transform: scale(0.94);
+    background: var(--panel-element-bg-active, var(--bg-card-hover));
   }
 
   &:disabled {
@@ -137,21 +138,19 @@
     cursor: default;
   }
 
-  // The only chrome a bare icon carries: keyboard focus has no border or fill
-  // left to lean on, so the ring is the sole indicator.
+  // Inset so the ring hugs the same square the hover fill draws.
   &:focus-visible {
-    @include focus-ring;
+    @include focus-ring-inset;
   }
 }
 
-// Selection for a row of bare icons: the chosen one sits at --text, its
-// siblings at --text-dim. Contrast is the whole signal - layer it over
-// bare-icon-button, which supplies the hover highlight.
+// Selection for a row of bare icons: the chosen one gets the lit square, its
+// siblings stay transparent at --text-dim.
 @mixin bare-icon-selectable {
   color: var(--text-dim);
 
   &[data-active='true'] {
-    color: var(--text);
+    @include bare-icon-lit;
   }
 }
 
