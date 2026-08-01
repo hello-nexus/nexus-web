@@ -103,12 +103,13 @@
   -webkit-tap-highlight-color: transparent;
   transition: color var(--ease-fast) ease, opacity var(--ease-fast) ease;
 
-  // Re-asserts chrome-off on every state the global .panel-chip repaints. Its
-  // rules match at the same specificity as a doubled class, so each state
-  // needs an arm of its own here to lose the tie.
+  // Re-asserts chrome-off on every state the global .panel-chip repaints. Each
+  // arm has to out-specify the chip's matching rule rather than tie it, or
+  // stylesheet order decides and the fill comes back - hence the :not(:disabled)
+  // on the hover/press arms, mirroring the chip's own selectors.
   &[data-active='true'],
-  &:hover,
-  &:active {
+  &:hover:not(:disabled),
+  &:active:not(:disabled) {
     border: none;
     background: none;
   }
