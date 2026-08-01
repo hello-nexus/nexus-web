@@ -17,29 +17,28 @@ import {
   saveAnimateTemplates,
   setMediaEffect,
   setScreenEffect,
+  fetchStaticSettings,
   startAnimate,
+  startStatic,
 } from '../../../api/lighting';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { subscribeControlSync } from '../../../lib/controlSync';
 import { usePanelBackgroundUsage, type PanelBackgroundUsage } from '../../../hooks/usePanelBackgroundUsage';
 import {
+  ANIMATE_EFFECTS,
   EFFECTS,
+  STATIC_EFFECTS,
   defaultStateFor,
+  isStaticEffect,
   type EffectState,
   type EffectTemplateBundle,
   type LightingMode,
 } from '../../../types/lighting';
 import { mergeTemplates, slotThumbSignature } from '../../../types/lightingTemplates';
+import { normalizeSync as resolveImmersiveMode } from '../../../hooks/useLightingSync';
 import type { WidgetProps } from '../types';
 
 const DEFAULT_PP: PostProcessState = { hue: 0, colorize: 0, saturation: 1, contrast: 1 };
-
-function resolveImmersiveMode(sync: string): LightingMode {
-  if (!sync || sync === 'none') return 'none';
-  if (sync === 'screen' || sync.includes('mirror')) return 'screen';
-  if (sync === 'gif' || sync.includes('media')) return 'gif';
-  return 'animate';
-}
 
 /**
  * Fullscreen lighting controller. Two stacked cells:
@@ -80,14 +79,17 @@ function renderImmersiveEditor(
   post: ImmersivePostProcess,
   panelUsage: PanelBackgroundUsage,
 ): ReactNode | null {
-  if (mode === 'animate') {
+  if (mode === 'animate' || mode === 'static') {
     if (!animate) return null;
+    const isStatic = mode === 'static';
     return (
       <EffectEditor
         options={(
           <AnimateGrid
             effect={animate.effect}
             onSelect={animate.onSelectEffect}
+            effects={isStatic ? STATIC_EFFECTS : ANIMATE_EFFECTS}
+            frozen={isStatic}
             slotFor={animate.slotFor}
             versionFor={animate.versionFor}
             rgbActiveEffect={animate.effect}
@@ -106,6 +108,7 @@ function renderImmersiveEditor(
             onReset={animate.onReset}
             rgbActiveSlot={animate.bundle.selected}
             panelSlots={panelUsage.slotsByEffect.get(animate.effect)}
+            staticMode={isStatic}
           />
         )}
       />
@@ -156,9 +159,10 @@ function useImmersiveAnimateState(): { mode: LightingMode; animate: ImmersiveAni
   const [, force] = useState(0);
 
   const hydrate = useCallback(async () => {
-    const [sync, settings, defaults] = await Promise.all([
+    const [sync, settings, staticSettings, defaults] = await Promise.all([
       fetchCurrentSync(),
       fetchAnimateSettings(),
+      fetchStaticSettings(),
       fetchAnimateDefaults(),
     ]);
     const next: Record<string, EffectTemplateBundle> = {};
@@ -167,9 +171,15 @@ function useImmersiveAnimateState(): { mode: LightingMode; animate: ImmersiveAni
     }
     setTemplates(next);
     const rawSync = sync?.sync || 'none';
-    setMode(resolveImmersiveMode(rawSync));
-    if (EFFECTS.some(e => e.key === rawSync)) setActive(rawSync);
-    else if (settings?.effect) setActive(settings.effect);
+    const nextMode = resolveImmersiveMode(rawSync);
+    setMode(nextMode);
+    if (nextMode === 'static') {
+      setActive(isStaticEffect(staticSettings?.effect ?? '') ? staticSettings!.effect : STATIC_EFFECTS[0].key);
+    } else if (EFFECTS.some(e => e.key === rawSync)) {
+      setActive(rawSync);
+    } else if (settings?.effect) {
+      setActive(settings.effect);
+    }
   }, []);
 
   useEffect(() => { hydrate(); }, [hydrate]);
@@ -190,6 +200,15 @@ function useImmersiveAnimateState(): { mode: LightingMode; animate: ImmersiveAni
 
   const bundle = templates[active];
   const baseState = bundle?.slots[bundle.selected] ?? defaultStateFor(active);
+
+  // Static and animate share this editor; only the start endpoint differs.
+  const applyLook = useCallback((key: string, s: EffectState) => {
+    if (mode === 'static') {
+      void startStatic(key, s.intensity, s.hue, s.colorize, s.saturation, s.contrast, s.params, true);
+      return;
+    }
+    void startAnimate(key, s.speed, s.intensity, s.hue, s.colorize, s.saturation, s.contrast, s.params, true);
+  }, [mode]);
   // Ref-backed staged state bypasses the render cycle on slider drag; `force`
   // a render after mutation.
   const liveState = stagedRef.current ?? baseState;
@@ -199,14 +218,14 @@ function useImmersiveAnimateState(): { mode: LightingMode; animate: ImmersiveAni
     stagedRef.current = next;
     force(n => n + 1);
     if (commit) {
-      void startAnimate(active, next.speed, next.intensity, next.hue, next.colorize, next.saturation, next.contrast, next.params, true);
+      applyLook(active, next);
     }
-  }, [active, baseState]);
+  }, [active, applyLook, baseState]);
 
   const onCommit = useCallback(() => {
     const s = stagedRef.current;
     if (!s) return;
-    void startAnimate(active, s.speed, s.intensity, s.hue, s.colorize, s.saturation, s.contrast, s.params, true);
+    applyLook(active, s);
     if (bundle) {
       const slots = bundle.slots.slice();
       slots[bundle.selected] = s;
@@ -215,7 +234,7 @@ function useImmersiveAnimateState(): { mode: LightingMode; animate: ImmersiveAni
       setTemplates(nextTemplates);
       saveAnimateTemplates(nextTemplates).catch(() => { /* best-effort */ });
     }
-  }, [active, bundle, templates]);
+  }, [active, applyLook, bundle, templates]);
 
   const onTemplateSelect = useCallback((idx: number) => {
     if (!bundle) return;
@@ -227,18 +246,18 @@ function useImmersiveAnimateState(): { mode: LightingMode; animate: ImmersiveAni
     const next = nextBundle.slots[clamped];
     saveAnimateTemplates(nextTemplates).catch(() => { /* best-effort */ });
     if (next) {
-      void startAnimate(active, next.speed, next.intensity, next.hue, next.colorize, next.saturation, next.contrast, next.params, true);
+      applyLook(active, next);
     }
-  }, [active, bundle, templates]);
+  }, [active, applyLook, bundle, templates]);
 
   const onReset = useCallback(() => {
     stagedRef.current = null;
     force(n => n + 1);
     if (bundle) {
       const slot = bundle.slots[bundle.selected] ?? defaultStateFor(active);
-      void startAnimate(active, slot.speed, slot.intensity, slot.hue, slot.colorize, slot.saturation, slot.contrast, slot.params, true);
+      applyLook(active, slot);
     }
-  }, [active, bundle]);
+  }, [active, applyLook, bundle]);
 
   const onSelectEffect = useCallback((key: string) => {
     setActive(key);
@@ -246,10 +265,10 @@ function useImmersiveAnimateState(): { mode: LightingMode; animate: ImmersiveAni
     force(n => n + 1);
     const b = templates[key];
     const s = b?.slots[b.selected] ?? defaultStateFor(key);
-    void startAnimate(key, s.speed, s.intensity, s.hue, s.colorize, s.saturation, s.contrast, s.params, true);
-  }, [templates]);
+    applyLook(key, s);
+  }, [applyLook, templates]);
 
-  const animate: ImmersiveAnimateController | null = (mode === 'animate' && bundle)
+  const animate: ImmersiveAnimateController | null = ((mode === 'animate' || mode === 'static') && bundle)
     ? {
       effect: active,
       state: liveState,

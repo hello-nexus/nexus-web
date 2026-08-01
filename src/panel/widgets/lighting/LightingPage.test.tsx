@@ -7,7 +7,10 @@ const setModeMock = vi.hoisted(() => vi.fn());
 const setRawSyncMock = vi.hoisted(() => vi.fn());
 const profileRef = vi.hoisted(() => ({ current: 'old' }));
 
-vi.mock('../../../hooks/useLightingSync', () => ({
+vi.mock('../../../hooks/useLightingSync', async (importOriginal) => ({
+  // normalizeSync is the shared sync-string classifier; keep the real one so
+  // the page maps modes the way production does.
+  ...(await importOriginal<typeof import('../../../hooks/useLightingSync')>()),
   useLightingSync: () => ({
     mode: 'animate',
     setMode: setModeMock,

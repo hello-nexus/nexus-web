@@ -6,6 +6,8 @@ import { Select } from '../../../../components/common/Select/Select';
 import { PaletteRing } from '../../../../components/common/PaletteRing/PaletteRing';
 import { EffectTemplateSelector } from '../../../../components/common/EffectTemplateSelector/EffectTemplateSelector';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
+import { StaticColorField } from './StaticColorField';
+import { StaticColorSlots } from './StaticColorSlots';
 import styles from '../LightingPage.module.scss';
 
 /**
@@ -19,7 +21,7 @@ export const EffectControls = memo(function EffectControls({
   effect, state, bundle,
   onTemplateSelect, canReset,
   onChange, onCommit, onReset,
-  rgbActiveSlot, panelSlots,
+  rgbActiveSlot, panelSlots, staticMode,
 }: {
   effect: string;
   state: EffectState;
@@ -33,6 +35,8 @@ export const EffectControls = memo(function EffectControls({
   rgbActiveSlot?: number | null;
   /** Preset slots used as a background by ≥1 panel (panel badge). Panels only. */
   panelSlots?: Set<number> | null;
+  /** Static mode: no speed control, and patterns gain a hex colour entry. */
+  staticMode?: boolean;
 }) {
   const { t } = useTranslation();
   const def = EFFECTS.find(e => e.key === effect);
@@ -44,6 +48,10 @@ export const EffectControls = memo(function EffectControls({
   // clamps S at 1, so slider travel above that changed nothing. White itself
   // hides the slider (its warmth comes from presets).
   const isSimple = categoryOf(effect) === 'simple';
+  // Static patterns write fragColor directly from their own colour params, so
+  // the tint post-process (palette ring, saturation, contrast, the global hex)
+  // has no effect on them - showing those controls would be a dead UI.
+  const ownsColors = !!def.colors?.length;
   const isSimpleWhite = effect === 'simplewhite';
   const satMin = isSimple ? 40 : 0;
   const satMax = isSimple ? 100 : 400;
@@ -61,7 +69,10 @@ export const EffectControls = memo(function EffectControls({
         panelSlots={panelSlots}
       />
       <div className={styles.drawerSliders}>
-        {!isSimple && (
+        {ownsColors && (
+          <StaticColorSlots slots={def.colors!} state={state} onChange={onChange} onCommit={onCommit} />
+        )}
+        {!isSimple && !ownsColors && (
           <div className={styles.paletteRingWrap}>
             <PaletteRing
               hue={state.hue}
@@ -71,15 +82,18 @@ export const EffectControls = memo(function EffectControls({
             />
           </div>
         )}
-        {!def.hideSpeed && (
+        {staticMode && !isSimple && !ownsColors && (
+          <StaticColorField state={state} onChange={onChange} />
+        )}
+        {!def.hideSpeed && !staticMode && (
           <Slider orientation="stacked" editable trackFill label={t('lighting.controls.speed')} value={state.speed} min={-100} max={100} zeroMarker
             onChange={(v, commit) => onChange({ speed: v }, commit)} onCommit={onCommit} />
         )}
-        {!isSimpleWhite && (
+        {!isSimpleWhite && !ownsColors && (
           <Slider orientation="stacked" editable trackFill label={t('lighting.controls.saturation')} value={satValue} min={satMin} max={satMax}
             onChange={(v, commit) => onChange({ saturation: v / 100 }, commit)} onCommit={onCommit} />
         )}
-        {!isSimple && (
+        {!isSimple && !ownsColors && (
           <Slider orientation="stacked" editable trackFill label={t('lighting.controls.contrast')} value={Math.round(state.contrast * 100)} min={0} max={400}
             onChange={(v, commit) => onChange({ contrast: v / 100 }, commit)} onCommit={onCommit} />
         )}

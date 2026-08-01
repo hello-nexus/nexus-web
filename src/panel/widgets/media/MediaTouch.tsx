@@ -213,13 +213,13 @@ function MediaPlayerCell({
           aria-pressed={!!session.playback.shuffled}
         ><Shuffle strokeWidth={1.8} /></button>
         <button type="button" onClick={() => control('previous')} disabled={!session.controls.isPrevEnabled} className={styles.btn} aria-label={t('panel.media.previous')}>
-          <SkipBack strokeWidth={1.8} />
+          <SkipBack strokeWidth={1.8} fill="currentColor" />
         </button>
         <button type="button" onClick={() => control(playing ? 'pause' : 'play')} className={`${styles.btn} ${styles.primary}`} aria-label={playing ? t('panel.media.pause') : t('panel.media.play')}>
-          {playing ? <Pause strokeWidth={2} /> : <Play strokeWidth={2} />}
+          {playing ? <Pause fill="currentColor" stroke="none" /> : <Play fill="currentColor" stroke="none" />}
         </button>
         <button type="button" onClick={() => control('next')} disabled={!session.controls.isNextEnabled} className={styles.btn} aria-label={t('panel.media.next')}>
-          <SkipForward strokeWidth={1.8} />
+          <SkipForward strokeWidth={1.8} fill="currentColor" />
         </button>
         <button
           type="button"

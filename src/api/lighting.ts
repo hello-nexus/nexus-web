@@ -20,8 +20,9 @@ export const EFFECT_THUMB_VERSION = 4;
  * the slot's saved look (see slotThumbSignature) - the URL changes, and the
  * browser refetches, only when that slot's look changes.
  */
-export const effectThumbnailPath = (key: string, slot: number, version: string) =>
-  `/lighting/effects/${encodeURIComponent(key)}/thumbnail.bmp?slot=${slot}&v=${EFFECT_THUMB_VERSION}.${version}`;
+export const effectThumbnailPath = (key: string, slot: number, version: string, frozen = false) =>
+  `/lighting/effects/${encodeURIComponent(key)}/thumbnail.bmp?slot=${slot}&v=${EFFECT_THUMB_VERSION}.${version}`
+  + (frozen ? '&frozen' : '');
 
 // --- Shader source (for client-side WebGL rendering) ---
 
@@ -101,6 +102,15 @@ export interface AnimateSettings {
 export const fetchAnimateSettings = () =>
   fetchService<AnimateSettings>('/lighting/animate/settings');
 
+/** Static-mode selection plus its per-key looks; slots stay in AnimateSettings. */
+export interface StaticSettings {
+  effect: string;
+  states: Record<string, AnimateEffectState>;
+}
+
+export const fetchStaticSettings = () =>
+  fetchService<StaticSettings>('/lighting/static/settings');
+
 export const saveAnimateTemplates = (templates: Record<string, AnimateEffectTemplateBundle>) => {
   // Whole-dict replace: without the canonical defaults, untouched slots in the
   // dict are baseline back-fills, and persisting those would permanently
@@ -158,6 +168,23 @@ export const startAnimate = (
   postService('/lighting/animate/headless-start', {
     effect, speed, noise: 0, filter: 'none', intensity, scheme: [], hue, sat: 0,
     colorize, saturation, contrast,
+    params: params ? Object.entries(params).map(([name, value]) => ({ name, value })) : [],
+    persist,
+  });
+
+/** Runs a static fill or frozen pattern. No speed: the service pins it to 0. */
+export const startStatic = (
+  effect: string,
+  intensity = 1,
+  hue = 0,
+  colorize = 0,
+  saturation = 1,
+  contrast = 1,
+  params?: Record<string, number>,
+  persist = true,
+) =>
+  postService('/lighting/static/headless-start', {
+    effect, intensity, hue, colorize, saturation, contrast,
     params: params ? Object.entries(params).map(([name, value]) => ({ name, value })) : [],
     persist,
   });

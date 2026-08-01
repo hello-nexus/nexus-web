@@ -11,7 +11,7 @@ import { EffectCard } from '../../../../components/common/EffectCard/EffectCard'
 import { useEffectThumbnail } from '../../../../hooks/useEffectThumbnail';
 import styles from '../LightingPage.module.scss';
 
-function AnimateGridCell({ fx, slot, version, active, live, panel, label, hideLabel, gpuAvailable, onSelect }: {
+function AnimateGridCell({ fx, slot, version, active, live, panel, label, hideLabel, gpuAvailable, frozen, onSelect }: {
   fx: EffectDef;
   slot: number;
   version: string;
@@ -22,11 +22,13 @@ function AnimateGridCell({ fx, slot, version, active, live, panel, label, hideLa
   /** Simple colour swatches drop the on-thumbnail caption. */
   hideLabel?: boolean;
   gpuAvailable?: boolean;
+  /** Render the tile at speed 0, matching what Static mode puts on the LEDs. */
+  frozen?: boolean;
   onSelect: () => void;
 }) {
   const { t } = useTranslation();
   const noGpu = gpuAvailable === false;
-  const url = useEffectThumbnail(fx.key, slot, version, noGpu);
+  const url = useEffectThumbnail(fx.key, slot, version, noGpu, frozen);
   const hints = [live && t('lighting.badge.liveOnLeds'), panel && t('lighting.badge.usedByPanel')].filter(Boolean) as string[];
   return (
     <EffectCard
@@ -58,7 +60,7 @@ function AnimateGridCell({ fx, slot, version, active, live, panel, label, hideLa
  * hardware gets a bulb. Effects are listed in pre-expanded category groups
  * (EFFECT_CATEGORIES order), each under a header in the cooling-panel style.
  */
-export function AnimateGrid({ effect, onSelect, effects = EFFECTS, slotFor, versionFor, rgbActiveEffect, panelEffects, gpuAvailable }: {
+export function AnimateGrid({ effect, onSelect, effects = EFFECTS, slotFor, versionFor, rgbActiveEffect, panelEffects, gpuAvailable, frozen }: {
   effect: string;
   onSelect: (key: string) => void;
   /** Effect pool to show. Defaults to the full RGB set; panel backgrounds pass
@@ -74,6 +76,8 @@ export function AnimateGrid({ effect, onSelect, effects = EFFECTS, slotFor, vers
   panelEffects?: Set<string> | null;
   /** When false, thumbnail fetches are skipped and a static placeholder is shown. */
   gpuAvailable?: boolean;
+  /** Static mode: tiles render frozen so the grid matches the LED output. */
+  frozen?: boolean;
 }) {
   const { t } = useTranslation();
   const gridRef = useRef<HTMLDivElement>(null);
@@ -137,6 +141,7 @@ export function AnimateGrid({ effect, onSelect, effects = EFFECTS, slotFor, vers
                   label={t(fx.labelKey)}
                   hideLabel={g.cat === 'simple'}
                   gpuAvailable={gpuAvailable}
+                  frozen={frozen}
                   onSelect={() => onSelect(fx.key)}
                 />
               ))}

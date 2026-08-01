@@ -32,6 +32,9 @@ export interface EffectParamDef {
 
 export type EffectCategory =
   | 'simple'
+  | 'gradient'
+  | 'twotone'
+  | 'spectrum'
   | 'audio'
   | 'cosmic'
   | 'organic'
@@ -41,7 +44,8 @@ export type EffectCategory =
 // Section order for the effect listing: simple fills first, then organic, then
 // the rest, with the audio-reactive set last.
 export const EFFECT_CATEGORIES: EffectCategory[] = [
-  'simple', 'organic', 'cosmic', 'geometric', 'pattern', 'audio',
+  'simple', 'gradient', 'twotone', 'spectrum',
+  'organic', 'cosmic', 'geometric', 'pattern', 'audio',
 ];
 
 // The "simple" family: one cheap solid-fill shader (simple.frag) reused for
@@ -54,9 +58,21 @@ export const SIMPLE_EFFECT_KEYS = [
   'simpleyellow', 'simpleorange', 'simplered',
 ] as const;
 
+/** A per-effect colour the user picks with the wheel. Each maps to an HSV
+ *  triple carried in `params` as u_<id>Hue / u_<id>Sat / u_<id>Val. */
+export interface EffectColorSlot {
+  id: 'a' | 'b' | 'c' | 'd';
+  labelKey: string;
+  defaultHue: number;
+  defaultSat: number;
+  defaultVal: number;
+}
+
 export interface EffectDef {
   key: string;
   labelKey: string;
+  /** Static patterns own their colours instead of using the global tint. */
+  colors?: EffectColorSlot[];
   /** Computed via {@link categoryOf} - the EFFECT_CATEGORY map below is the source of truth. */
   category?: EffectCategory;
   params: EffectParamDef[];
@@ -82,6 +98,11 @@ export const EFFECT_CATEGORY: Record<string, EffectCategory> = {
   simplered: 'simple', simpleorange: 'simple', simpleyellow: 'simple',
   simplegreen: 'simple', simplecyan: 'simple', simpleblue: 'simple',
   simpleviolet: 'simple', simplepink: 'simple',
+  gradientlinear: 'gradient', gradientradial: 'gradient', gradienttri: 'gradient',
+  gradientconic: 'gradient', mirror: 'gradient', corners: 'gradient',
+  splitsharp: 'twotone', stripes: 'twotone', checker: 'twotone', border: 'twotone',
+  rings: 'twotone', dots: 'twotone', wedges: 'twotone',
+  spectrumramp: 'spectrum', spectrumbands: 'spectrum', huewheel: 'spectrum',
   // Audio-reactive set (9).
   spectrumbars: 'audio', spectrumradial: 'audio', scope: 'audio',
   basspulse: 'audio', beatstrobe: 'audio', harmonicstar: 'audio',
@@ -118,6 +139,7 @@ export const BASE_DEFAULTS: Omit<EffectState, 'params'> = {
 
 export const MODES: { key: LightingMode; labelKey: string }[] = [
   { key: 'none', labelKey: 'lighting.mode.off' },
+  { key: 'static', labelKey: 'lighting.mode.static' },
   { key: 'animate', labelKey: 'lighting.mode.animate' },
   { key: 'gif', labelKey: 'lighting.mode.gif' },
   { key: 'screen', labelKey: 'lighting.mode.screen' },
@@ -149,6 +171,87 @@ export const EFFECTS: EffectDef[] = [
   { key: 'simpleyellow', labelKey: 'lighting.controls.simpleyellow', hideSpeed: true, params: SIMPLE_COLOR_PARAMS },
   { key: 'simpleorange', labelKey: 'lighting.controls.simpleorange', hideSpeed: true, params: SIMPLE_COLOR_PARAMS },
   { key: 'simplered',    labelKey: 'lighting.controls.simplered',    hideSpeed: true, params: SIMPLE_COLOR_PARAMS },
+
+// ── Static patterns ────────────────────────────────────────────────────────
+// Purpose-built for Static mode: a pure function of position, no clock at all,
+// and their own colours rather than the global tint. Param defaults mirror
+// DefaultParamsFor in nexus-service/src/Lighting/LightingProvider.cs.
+  { key: 'gradientlinear', labelKey: 'lighting.controls.gradientlinear', hideSpeed: true,
+     colors: [{ id: 'a', labelKey: 'lighting.controls.color1', defaultHue: 0.58, defaultSat: 1, defaultVal: 1 }, { id: 'b', labelKey: 'lighting.controls.color2', defaultHue: 0.88, defaultSat: 1, defaultVal: 1 }], params: [
+    { name: 'u_angle', label: 'Angle', labelKey: 'lighting.controls.param.angle', min: 0, max: 360, step: 5, defaultValue: 0 },
+    { name: 'u_midpoint', label: 'Midpoint', labelKey: 'lighting.controls.param.midpoint', min: 0, max: 1, step: 0.01, defaultValue: 0.5 },
+    { name: 'u_softness', label: 'Softness', labelKey: 'lighting.controls.param.softness', min: 0, max: 1, step: 0.01, defaultValue: 1 },
+  ]},
+  { key: 'gradientradial', labelKey: 'lighting.controls.gradientradial', hideSpeed: true,
+     colors: [{ id: 'a', labelKey: 'lighting.controls.color1', defaultHue: 0.12, defaultSat: 1, defaultVal: 1 }, { id: 'b', labelKey: 'lighting.controls.color2', defaultHue: 0.75, defaultSat: 1, defaultVal: 1 }], params: [
+    { name: 'u_radius', label: 'Size', labelKey: 'lighting.controls.param.size', min: 0, max: 1, step: 0.01, defaultValue: 0.45 },
+    { name: 'u_softness', label: 'Softness', labelKey: 'lighting.controls.param.softness', min: 0, max: 1, step: 0.01, defaultValue: 0.8 },
+  ]},
+  { key: 'gradienttri', labelKey: 'lighting.controls.gradienttri', hideSpeed: true,
+     colors: [{ id: 'a', labelKey: 'lighting.controls.color1', defaultHue: 0, defaultSat: 1, defaultVal: 1 }, { id: 'b', labelKey: 'lighting.controls.color2', defaultHue: 0.33, defaultSat: 1, defaultVal: 1 }, { id: 'c', labelKey: 'lighting.controls.color3', defaultHue: 0.62, defaultSat: 1, defaultVal: 1 }], params: [
+    { name: 'u_angle', label: 'Angle', labelKey: 'lighting.controls.param.angle', min: 0, max: 360, step: 5, defaultValue: 0 },
+    { name: 'u_midpoint', label: 'Midpoint', labelKey: 'lighting.controls.param.midpoint', min: 0, max: 1, step: 0.01, defaultValue: 0.5 },
+  ]},
+  { key: 'gradientconic', labelKey: 'lighting.controls.gradientconic', hideSpeed: true,
+     colors: [{ id: 'a', labelKey: 'lighting.controls.color1', defaultHue: 0.55, defaultSat: 1, defaultVal: 1 }, { id: 'b', labelKey: 'lighting.controls.color2', defaultHue: 0.92, defaultSat: 1, defaultVal: 1 }], params: [
+    { name: 'u_offset', label: 'Rotation', labelKey: 'lighting.controls.param.rotation', min: 0, max: 1, step: 0.01, defaultValue: 0 },
+  ]},
+  { key: 'mirror', labelKey: 'lighting.controls.mirror', hideSpeed: true,
+     colors: [{ id: 'a', labelKey: 'lighting.controls.color1', defaultHue: 0.02, defaultSat: 1, defaultVal: 1 }, { id: 'b', labelKey: 'lighting.controls.color2', defaultHue: 0.6, defaultSat: 1, defaultVal: 1 }], params: [
+    { name: 'u_angle', label: 'Angle', labelKey: 'lighting.controls.param.angle', min: 0, max: 360, step: 5, defaultValue: 0 },
+    { name: 'u_softness', label: 'Softness', labelKey: 'lighting.controls.param.softness', min: 0, max: 1, step: 0.01, defaultValue: 0.6 },
+  ]},
+  { key: 'corners', labelKey: 'lighting.controls.corners', hideSpeed: true,
+     colors: [{ id: 'a', labelKey: 'lighting.controls.color1', defaultHue: 0, defaultSat: 1, defaultVal: 1 }, { id: 'b', labelKey: 'lighting.controls.color2', defaultHue: 0.15, defaultSat: 1, defaultVal: 1 }, { id: 'c', labelKey: 'lighting.controls.color3', defaultHue: 0.55, defaultSat: 1, defaultVal: 1 }, { id: 'd', labelKey: 'lighting.controls.color4', defaultHue: 0.8, defaultSat: 1, defaultVal: 1 }], params: [] },
+  { key: 'splitsharp', labelKey: 'lighting.controls.splitsharp', hideSpeed: true,
+     colors: [{ id: 'a', labelKey: 'lighting.controls.color1', defaultHue: 0, defaultSat: 1, defaultVal: 1 }, { id: 'b', labelKey: 'lighting.controls.color2', defaultHue: 0.62, defaultSat: 1, defaultVal: 1 }], params: [
+    { name: 'u_angle', label: 'Angle', labelKey: 'lighting.controls.param.angle', min: 0, max: 360, step: 5, defaultValue: 0 },
+    { name: 'u_position', label: 'Position', labelKey: 'lighting.controls.param.position', min: 0, max: 1, step: 0.01, defaultValue: 0.5 },
+  ]},
+  { key: 'stripes', labelKey: 'lighting.controls.stripes', hideSpeed: true,
+     colors: [{ id: 'a', labelKey: 'lighting.controls.color1', defaultHue: 0, defaultSat: 1, defaultVal: 1 }, { id: 'b', labelKey: 'lighting.controls.color2', defaultHue: 0.58, defaultSat: 1, defaultVal: 1 }], params: [
+    { name: 'u_count', label: 'Count', labelKey: 'lighting.controls.param.count', min: 1, max: 10, step: 1, defaultValue: 3 },
+    { name: 'u_angle', label: 'Angle', labelKey: 'lighting.controls.param.angle', min: 0, max: 360, step: 5, defaultValue: 0 },
+    { name: 'u_softness', label: 'Softness', labelKey: 'lighting.controls.param.softness', min: 0, max: 1, step: 0.01, defaultValue: 0.02 },
+    { name: 'u_balance', label: 'Balance', labelKey: 'lighting.controls.param.balance', min: 0.05, max: 0.95, step: 0.01, defaultValue: 0.5 },
+  ]},
+  { key: 'checker', labelKey: 'lighting.controls.checker', hideSpeed: true,
+     colors: [{ id: 'a', labelKey: 'lighting.controls.color1', defaultHue: 0, defaultSat: 0, defaultVal: 1 }, { id: 'b', labelKey: 'lighting.controls.color2', defaultHue: 0, defaultSat: 1, defaultVal: 1 }], params: [
+    { name: 'u_size', label: 'Size', labelKey: 'lighting.controls.param.size', min: 2, max: 10, step: 1, defaultValue: 4 },
+  ]},
+  { key: 'border', labelKey: 'lighting.controls.border', hideSpeed: true,
+     colors: [{ id: 'a', labelKey: 'lighting.controls.color1', defaultHue: 0, defaultSat: 0, defaultVal: 1 }, { id: 'b', labelKey: 'lighting.controls.color2', defaultHue: 0.55, defaultSat: 1, defaultVal: 1 }], params: [
+    { name: 'u_thickness', label: 'Thickness', labelKey: 'lighting.controls.param.thickness', min: 0.02, max: 0.5, step: 0.01, defaultValue: 0.18 },
+    { name: 'u_softness', label: 'Softness', labelKey: 'lighting.controls.param.softness', min: 0, max: 1, step: 0.01, defaultValue: 0.05 },
+  ]},
+  { key: 'rings', labelKey: 'lighting.controls.rings', hideSpeed: true,
+     colors: [{ id: 'a', labelKey: 'lighting.controls.color1', defaultHue: 0.55, defaultSat: 1, defaultVal: 1 }, { id: 'b', labelKey: 'lighting.controls.color2', defaultHue: 0.88, defaultSat: 1, defaultVal: 1 }], params: [
+    { name: 'u_count', label: 'Count', labelKey: 'lighting.controls.param.count', min: 1, max: 8, step: 1, defaultValue: 3 },
+    { name: 'u_softness', label: 'Softness', labelKey: 'lighting.controls.param.softness', min: 0, max: 1, step: 0.01, defaultValue: 0.05 },
+  ]},
+  { key: 'dots', labelKey: 'lighting.controls.dots', hideSpeed: true,
+     colors: [{ id: 'a', labelKey: 'lighting.controls.color1', defaultHue: 0.12, defaultSat: 1, defaultVal: 1 }, { id: 'b', labelKey: 'lighting.controls.color2', defaultHue: 0.62, defaultSat: 1, defaultVal: 1 }], params: [
+    { name: 'u_spacing', label: 'Gap', labelKey: 'lighting.controls.param.gap', min: 2, max: 10, step: 1, defaultValue: 4 },
+    { name: 'u_size', label: 'Size', labelKey: 'lighting.controls.param.size', min: 0.1, max: 0.5, step: 0.01, defaultValue: 0.36 },
+    { name: 'u_softness', label: 'Softness', labelKey: 'lighting.controls.param.softness', min: 0, max: 1, step: 0.01, defaultValue: 0.1 },
+  ]},
+  { key: 'wedges', labelKey: 'lighting.controls.wedges', hideSpeed: true,
+     colors: [{ id: 'a', labelKey: 'lighting.controls.color1', defaultHue: 0, defaultSat: 1, defaultVal: 1 }, { id: 'b', labelKey: 'lighting.controls.color2', defaultHue: 0.5, defaultSat: 1, defaultVal: 1 }], params: [
+    { name: 'u_count', label: 'Count', labelKey: 'lighting.controls.param.count', min: 1, max: 10, step: 1, defaultValue: 4 },
+    { name: 'u_offset', label: 'Rotation', labelKey: 'lighting.controls.param.rotation', min: 0, max: 1, step: 0.01, defaultValue: 0 },
+  ]},
+  { key: 'spectrumramp', labelKey: 'lighting.controls.spectrumramp', hideSpeed: true,
+     colors: [{ id: 'a', labelKey: 'lighting.controls.color1', defaultHue: 0, defaultSat: 1, defaultVal: 1 }], params: [
+    { name: 'u_angle', label: 'Angle', labelKey: 'lighting.controls.param.angle', min: 0, max: 360, step: 5, defaultValue: 0 },
+    { name: 'u_density', label: 'Density', labelKey: 'lighting.controls.param.density', min: 0.2, max: 4, step: 0.05, defaultValue: 1 },
+  ]},
+  { key: 'spectrumbands', labelKey: 'lighting.controls.spectrumbands', hideSpeed: true,
+     colors: [{ id: 'a', labelKey: 'lighting.controls.color1', defaultHue: 0, defaultSat: 1, defaultVal: 1 }], params: [
+    { name: 'u_count', label: 'Count', labelKey: 'lighting.controls.param.count', min: 2, max: 10, step: 1, defaultValue: 5 },
+    { name: 'u_angle', label: 'Angle', labelKey: 'lighting.controls.param.angle', min: 0, max: 360, step: 5, defaultValue: 0 },
+  ]},
+  { key: 'huewheel', labelKey: 'lighting.controls.huewheel', hideSpeed: true,
+     colors: [{ id: 'a', labelKey: 'lighting.controls.color1', defaultHue: 0, defaultSat: 1, defaultVal: 1 }], params: [] },
   { key: 'plasma',       labelKey: 'lighting.controls.plasma',       params: [
       { name: 'u_warp', label: 'Warp', labelKey: 'lighting.controls.param.warp',  min: 0,   max: 2,   step: 0.05, defaultValue: 1 },
       { name: 'u_zoom', label: 'Zoom', labelKey: 'lighting.controls.param.zoom',  min: 0.5, max: 3,   step: 0.05, defaultValue: 1 },
@@ -542,11 +645,53 @@ export const EFFECTS: EffectDef[] = [
   ]},
 ];
 
+/**
+ * Patterns Static mode offers alongside the fills. Each one's shader reads
+ * u_time only through a u_speed product, so speed 0 holds a still frame -
+ * StaticEffectCatalogTests pins that against the GLSL, and the list mirrors
+ * StaticEffectCatalog.Patterns in nexus-service.
+ */
+export const STATIC_PATTERN_KEYS: readonly string[] = [
+  'gradientlinear', 'gradientradial', 'gradienttri', 'gradientconic',
+  'mirror', 'corners',
+  'splitsharp', 'stripes', 'checker', 'border', 'rings', 'dots', 'wedges',
+  'spectrumramp', 'spectrumbands', 'huewheel',
+];
+const STATIC_FILL_SET: ReadonlySet<string> = new Set(SIMPLE_EFFECT_KEYS);
+const STATIC_KEY_SET: ReadonlySet<string> = new Set<string>([...SIMPLE_EFFECT_KEYS, ...STATIC_PATTERN_KEYS]);
+
+/** True for the solid fills, which Static mode owns outright. */
+export function isStaticFill(key: string): boolean {
+  return STATIC_FILL_SET.has(key);
+}
+
+export function isStaticEffect(key: string): boolean {
+  return STATIC_KEY_SET.has(key);
+}
+
+/** Static-mode pool: fills first (category order), then the frozen patterns. */
+export const STATIC_EFFECTS: EffectDef[] = EFFECTS.filter(e => STATIC_KEY_SET.has(e.key));
+
+/**
+ * Animate-mode pool: everything Static does not own. The static set is
+ * purpose-built for a held frame - the patterns have no clock to run - so they
+ * must not appear here or Animation can select one and sit motionless.
+ */
+export const ANIMATE_EFFECTS: EffectDef[] = EFFECTS.filter(e => !STATIC_KEY_SET.has(e.key));
+
 export function defaultParamsFor(key: string): Record<string, number> {
   const def = EFFECTS.find(e => e.key === key);
   if (!def) return {};
   const p: Record<string, number> = {};
   for (const pd of def.params) { p[pd.name] = pd.defaultValue; }
+  // Colour slots are params too: they must be in the canonical set or the
+  // saved template slot carries no colour, the engine renders unset uniforms,
+  // and Reset has nothing to restore.
+  for (const c of def.colors ?? []) {
+    p[`u_${c.id}Hue`] = c.defaultHue;
+    p[`u_${c.id}Sat`] = c.defaultSat;
+    p[`u_${c.id}Val`] = c.defaultVal;
+  }
   return p;
 }
 

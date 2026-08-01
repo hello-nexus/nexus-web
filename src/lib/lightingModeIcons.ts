@@ -1,8 +1,9 @@
-import { Film, Gamepad2, Monitor, Power, Sparkles, type LucideIcon } from 'lucide-react';
+import { Film, Gamepad2, Monitor, Palette, Power, Sparkles, type LucideIcon } from 'lucide-react';
 import type { LightingMode } from '../types/lighting';
 
 export const LIGHTING_MODE_ICONS: Record<LightingMode, LucideIcon> = {
   animate: Sparkles,
+  static: Palette,
   gif: Film,
   screen: Monitor,
   none: Power,

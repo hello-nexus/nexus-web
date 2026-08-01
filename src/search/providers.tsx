@@ -208,6 +208,7 @@ const MODE_POLICY: Record<LightingMode, { icon: ReactNode; keywords: string[]; a
   none:     { icon: <Power size={18} />,     keywords: ['off', 'stop', 'disable'],                   apply: () => { void stopLighting().catch(() => {}); } },
   screen:   { icon: <MonitorUp size={18} />, keywords: ['mirror', 'screen', 'ambient', 'ambilight'], apply: () => { void startScreenMirror().catch(() => {}); } },
   gif:      { icon: <Film size={18} />,      keywords: ['media', 'gif', 'video', 'image'] },
+  static:   { icon: <Palette size={18} />,   keywords: ['static', 'solid', 'color', 'colour', 'fill', 'still', 'frozen'] },
   animate:  { icon: <Sparkles size={18} />,  keywords: ['animation', 'animate', 'effects'] },
   gamesync: { icon: <Gamepad2 size={18} />,  keywords: ['game', 'sync', 'chroma', 'razer', 'rgb'],   apply: () => { void startGameSync().catch(() => {}); } },
 };

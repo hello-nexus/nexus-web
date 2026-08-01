@@ -9,9 +9,9 @@ export type { PostProcessState };
 
 /**
  * Right-pane Effect tab content. Routes to the right controls per mode:
- * animate reuses EffectControls; media + screen render PostProcessControls
- * (palette ring + saturation / contrast); static and off show the empty-state
- * hint since neither mode has anything to tweak in the effect tab.
+ * animate and static reuse EffectControls (static drops the speed slider and
+ * adds a hex colour entry for patterns); media + screen render
+ * PostProcessControls; off and game sync show the empty-state hint.
  */
 export function EffectTab({
   mode,
@@ -40,7 +40,7 @@ export function EffectTab({
 }) {
   const { t } = useTranslation();
 
-  if (mode === 'animate') {
+  if (mode === 'animate' || mode === 'static') {
     if (!state || !bundle) {
       return <p className={styles.effectTabEmpty}>{t('lighting.rightPane.effectAnimateHint')}</p>;
     }
@@ -58,6 +58,7 @@ export function EffectTab({
           onCommit={onAnimateCommit}
           onReset={onAnimateReset}
           panelSlots={panelSlots}
+          staticMode={mode === 'static'}
         />
       </>
     );

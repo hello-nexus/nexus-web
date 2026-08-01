@@ -34,7 +34,7 @@ export function SnakeWidget({ widget, surface }: WidgetProps) {
           <div className={styles.best}>{t('panel.widget.snake.best', { score: best })}</div>
         )}
         <div className={styles.play}>
-          <Play aria-hidden />
+          <Play aria-hidden fill="currentColor" />
           {t('panel.widget.snake.play')}
         </div>
       </div>

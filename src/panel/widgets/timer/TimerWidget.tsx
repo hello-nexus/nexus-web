@@ -75,7 +75,7 @@ export function TimerWidget({ widget }: WidgetProps) {
           data-active={canStart ? 'true' : undefined}
           aria-label={t('panel.stopwatch.start')}
         >
-          <Play size={16} />
+          <Play size={16} fill="currentColor" stroke="none" />
           {isWide && <span>{t('panel.stopwatch.start')}</span>}
         </button>
       </div>
@@ -104,7 +104,7 @@ export function TimerWidget({ widget }: WidgetProps) {
             onClick={handlePauseResume}
             aria-label={isRunning ? t('panel.stopwatch.pause') : t('panel.widget.timer.resume')}
           >
-            {isRunning ? <Pause size={16} /> : <Play size={16} />}
+            {isRunning ? <Pause size={16} fill="currentColor" stroke="none" /> : <Play size={16} fill="currentColor" stroke="none" />}
           </button>
         )}
         {!isComplete && (

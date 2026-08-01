@@ -20,6 +20,9 @@ export interface PaletteRingProps {
   colorize: number;
   onChange: (hue: number, colorize: number, commit: boolean) => void;
   onCommit: () => void;
+  /** Pick a single hue: the arc stays collapsed and the split tabs are hidden,
+   *  for callers whose colour model has no palette width. */
+  hueOnly?: boolean;
 }
 
 const SIZE = 200;
@@ -165,12 +168,13 @@ export function PaletteRing({
   colorize,
   onChange,
   onCommit,
+  hueOnly,
 }: PaletteRingProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [snapHint, setSnapHint] = useState(false);
 
   const centerDeg = hueToAngle(hue);
-  const spanDeg = colorizeToSpan(colorize);
+  const spanDeg = hueOnly ? 0 : colorizeToSpan(colorize);
   const startDeg = centerDeg - spanDeg / 2;
   const endDeg = centerDeg + spanDeg / 2;
 
@@ -396,6 +400,7 @@ export function PaletteRing({
               aria-valuemin={0}
               aria-valuemax={360}
             />
+            {!hueOnly && (<>
             {/* Tabs force-separate only from snapped-closed. From
                 snapped-full they use the startedSnappedFull drag path
                 that shrinks the arc via a natural gap. */}
@@ -415,7 +420,8 @@ export function PaletteRing({
               onPointerDown={(e) => beginDrag("end", e, snappedClosed)}
               aria-label="Pull palette end"
             />
-          </g>
+          </>)}
+            </g>
         ) : (
           <>
             <circle

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Gamepad2, Music, Pause, Play } from 'lucide-react';
 import {
-  startAnimate, startScreenMirror, stopLighting, startGameSync,
+  startAnimate, startStatic, startScreenMirror, stopLighting, startGameSync,
+  fetchStaticSettings,
   fetchLightingDevices, fetchAnimateSettings, saveAnimateTemplates,
   fetchAnimateDefaults, cachedAnimateDefaults,
   fetchMusicReactive, setMusicReactive, setLightingDevicePower, setLightingDeviceControlled,
@@ -18,7 +19,7 @@ import { mediaIdle, playCurrentOrFirstMedia } from '../../../api/mediaLibrary';
 import { getSmartHubFirmwareControl, setSmartHubFirmwareControl } from '../../../api/smarthub';
 import { getLianLiLighting } from '../../../api/lianli';
 import { useLightingFrames } from '../../../hooks/useLightingFrames';
-import { useLightingSync } from '../../../hooks/useLightingSync';
+import { useLightingSync, normalizeSync } from '../../../hooks/useLightingSync';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import type { ServiceState } from '../../../hooks/useServiceState';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
@@ -34,7 +35,7 @@ import { LightingSkeleton } from '../../../components/views/PageSkeleton/PageSke
 import { DeviceCanvas } from '../../../components/common/DeviceCanvas/DeviceCanvas';
 import { usePanelBackgroundUsage } from '../../../hooks/usePanelBackgroundUsage';
 import {
-  EFFECTS, MODES, defaultStateFor,
+  EFFECTS, ANIMATE_EFFECTS, STATIC_EFFECTS, MODES, defaultStateFor, isStaticEffect,
   type EffectState, type EffectTemplateBundle, type LightingMode,
 } from '../../../types/lighting';
 import { defaultTemplatesFor, mergeTemplates, slotMatchesDefault, slotThumbSignature } from '../../../types/lightingTemplates';
@@ -167,6 +168,17 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   }, []);
 
   const [activeEffect, setActiveEffect] = useState<string>('');
+  // Read inside applyAnimate, which several handlers share: static and animate
+  // drive the same template state through different start endpoints.
+  const modeRef = useRef(mode);
+  modeRef.current = mode;
+  // Static keeps its own last-selected key, so switching modes returns to what
+  // each one was showing rather than carrying the other's effect across.
+  const staticEffectRef = useRef<string>(STATIC_EFFECTS[0]?.key ?? '');
+  // The mirror of staticEffectRef: the catalogs are disjoint, so entering
+  // Animation while a static key is selected must fall back to what Animation
+  // last had rather than carrying a pattern across.
+  const animateEffectRef = useRef<string>('rainbow');
   const [effectTemplates, setEffectTemplates] = useState<Record<string, EffectTemplateBundle>>({});
   // Canonical default bundles from the service (fetched once, session-cached).
   // Kept in state so default-dependent memos recompute when they arrive.
@@ -326,6 +338,12 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     () => activeEffect ? stateFor(activeEffect) : null,
     [activeEffect, stateFor],
   );
+  // Static renders at speed 0; the canvas preview has to match or it animates
+  // a look the LEDs are holding still.
+  const previewState: EffectState | null = useMemo(
+    () => currentState && mode === 'static' ? { ...currentState, speed: 0 } : currentState,
+    [currentState, mode],
+  );
   const currentSelected: number = useMemo(
     () => activeEffect ? (effectTemplates[activeEffect]?.selected ?? 0) : 0,
     [activeEffect, effectTemplates],
@@ -346,7 +364,13 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const effectTemplatesRef = useRef(effectTemplates);
   effectTemplatesRef.current = effectTemplates;
 
-  const hydrateAnimateSettings = useCallback(async (data: Awaited<ReturnType<typeof fetchAnimateSettings>>) => {
+  // keepSelection: static owns its selection (Lighting.Static.Effect); this
+  // payload carries the animate one, so applying it here would drag the static
+  // grid onto the last animated effect on every lighting broadcast.
+  const hydrateAnimateSettings = useCallback(async (
+    data: Awaited<ReturnType<typeof fetchAnimateSettings>>,
+    keepSelection = false,
+  ) => {
     if (!data) return;
     const defaults = await fetchAnimateDefaults();
     setAnimateDefaults(defaults);
@@ -379,7 +403,10 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     }
     setEffectTemplates(merged);
     setCommittedTemplates(merged);
-    if (EFFECTS.some(e => e.key === data.effect)) {
+    if (ANIMATE_EFFECTS.some(e => e.key === data.effect)) {
+      animateEffectRef.current = data.effect;
+    }
+    if (!keepSelection && ANIMATE_EFFECTS.some(e => e.key === data.effect)) {
       setActiveEffect(data.effect);
     }
   }, []);
@@ -441,13 +468,13 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       if (cancelled) return;
       const sync = currentSync?.sync ?? 'none';
       setRawSync(sync);
-      setMode(modeForSync(sync));
+      setMode(normalizeSync(sync));
 
       if (animateSettings) {
         // Await: the profile-restore effect keyed off loadedProfileLighting
         // reads effectTemplates, which must hold the merged bundles (not the
         // pre-hydrate {}) or the restored effect starts with the base look.
-        await hydrateAnimateSettings(animateSettings);
+        await hydrateAnimateSettings(animateSettings, normalizeSync(sync) === 'static');
         if (cancelled) return;
       }
       if (musicSettings) {
@@ -465,11 +492,31 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     return () => { cancelled = true; };
   }, [serviceOnline, activeProfileKey, setMode, setRawSync, hydrateAnimateSettings]);
 
+  // Seeded on mount, not just when static is active: entering the mode from
+  // another one has to land on the key the service remembers.
+  useEffect(() => {
+    if (!serviceOnline) return;
+    let cancelled = false;
+    fetchStaticSettings().then(data => {
+      if (cancelled || !data) return;
+      if (isStaticEffect(data.effect)) staticEffectRef.current = data.effect;
+    });
+    return () => { cancelled = true; };
+  }, [serviceOnline]);
+
   useEffect(() => {
     if (!serviceOnline || !rawSync) return;
     let cancelled = false;
 
-    if (EFFECTS.some(e => e.key === rawSync)) {
+    if (rawSync === 'static') {
+      fetchStaticSettings().then(data => {
+        if (cancelled || !data) return;
+        if (isStaticEffect(data.effect)) {
+          staticEffectRef.current = data.effect;
+          setActiveEffect(data.effect);
+        }
+      });
+    } else if (EFFECTS.some(e => e.key === rawSync)) {
       setActiveEffect(rawSync);
       fetchAnimateSettings().then(data => {
         if (cancelled || !data) return;
@@ -495,11 +542,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // for the rest. Local edits still ignore pushes for the
   // localAnimateEditUntilRef debounce window so the user's drag isn't fought.
   useEffect(() => {
-    if (!serviceOnline || mode !== 'animate') return;
+    if (!serviceOnline || (mode !== 'animate' && mode !== 'static')) return;
     let cancelled = false;
     fetchAnimateSettings().then(data => {
       if (cancelled || !data) return;
-      hydrateAnimateSettings(data);
+      hydrateAnimateSettings(data, mode === 'static');
     });
     return () => { cancelled = true; };
   }, [serviceOnline, mode, hydrateAnimateSettings]);
@@ -512,11 +559,12 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     // static check is safe to disable.
      
     void refreshDevices();
-    if (mode === 'animate') {
+    // Static edits the same template slots, so both modes follow a remote edit.
+    if (mode === 'animate' || mode === 'static') {
       if (Date.now() < localAnimateEditUntilRef.current) return;
       fetchAnimateSettings().then(data => {
         if (!data) return;
-        hydrateAnimateSettings(data);
+        hydrateAnimateSettings(data, mode === 'static');
       });
     }
   });
@@ -607,6 +655,13 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     const expectedProfileKey = activeProfileKeyRef.current;
     throttleAnimate(() => {
       if (activeProfileKeyRef.current !== expectedProfileKey) return;
+      if (modeRef.current === 'static') {
+        startStatic(
+          effect, state.intensity, state.hue, state.colorize,
+          state.saturation, state.contrast, state.params, persist,
+        ).catch(() => {});
+        return;
+      }
       startAnimate(
         effect, state.speed, state.intensity, state.hue, state.colorize,
         state.saturation, state.contrast, state.params, persist,
@@ -645,23 +700,35 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       setActiveEffect(key);
       applyAnimate(key, stateFor(key), true);
     }
-    publishControlSync({ domain: 'lighting', mode: 'animate', rawSync: key, effect: key });
+    const selectMode = modeRef.current === 'static' ? 'static' : 'animate';
+    // Remember the pick per mode: rawSync stays 'static' across selections, so
+    // the hydrate effect never re-runs and would otherwise leave this stale.
+    if (selectMode === 'static') staticEffectRef.current = key;
+    else animateEffectRef.current = key;
+    publishControlSync({
+      domain: 'lighting',
+      mode: selectMode,
+      rawSync: selectMode === 'static' ? 'static' : key,
+      effect: key,
+    });
     if (activeRightTab !== 'effect') pulseEffectTab();
   }, [activeEffect, activeRightTab, applyAnimate, pulseEffectTab, stateFor]);
 
+  const effectPool = mode === 'static' ? STATIC_EFFECTS : ANIMATE_EFFECTS;
+
   const handlePrevEffect = useCallback(() => {
-    if (!EFFECTS.length) return;
-    const raw = EFFECTS.findIndex(e => e.key === activeEffect);
+    if (!effectPool.length) return;
+    const raw = effectPool.findIndex(e => e.key === activeEffect);
     const idx = raw < 0 ? 0 : raw;
-    handleEffectSelect(EFFECTS[(idx - 1 + EFFECTS.length) % EFFECTS.length].key);
-  }, [activeEffect, handleEffectSelect]);
+    handleEffectSelect(effectPool[(idx - 1 + effectPool.length) % effectPool.length].key);
+  }, [activeEffect, effectPool, handleEffectSelect]);
 
   const handleNextEffect = useCallback(() => {
-    if (!EFFECTS.length) return;
-    const raw = EFFECTS.findIndex(e => e.key === activeEffect);
+    if (!effectPool.length) return;
+    const raw = effectPool.findIndex(e => e.key === activeEffect);
     const idx = raw < 0 ? 0 : raw;
-    handleEffectSelect(EFFECTS[(idx + 1) % EFFECTS.length].key);
-  }, [activeEffect, handleEffectSelect]);
+    handleEffectSelect(effectPool[(idx + 1) % effectPool.length].key);
+  }, [activeEffect, effectPool, handleEffectSelect]);
 
   const handleTemplateSelect = useCallback((idx: number) => {
     if (!activeEffect) return;
@@ -678,8 +745,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     setCommittedTemplates(nextTemplates);
     publishControlSync({
       domain: 'lighting',
-      mode: 'animate',
-      rawSync: activeEffect,
+      // Static edits must not announce themselves as animate: subscribers
+      // classify on rawSync, so a pattern key here flips every surface into
+      // Animation mid-interaction.
+      mode: modeRef.current === 'static' ? 'static' : 'animate',
+      rawSync: modeRef.current === 'static' ? 'static' : activeEffect,
       effect: activeEffect,
       templateIndex: clamped,
       effectState: nextBundle.slots[clamped],
@@ -703,8 +773,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     );
     publishControlSync({
       domain: 'lighting',
-      mode: 'animate',
-      rawSync: activeEffect,
+      // Static edits must not announce themselves as animate: subscribers
+      // classify on rawSync, so a pattern key here flips every surface into
+      // Animation mid-interaction.
+      mode: modeRef.current === 'static' ? 'static' : 'animate',
+      rawSync: modeRef.current === 'static' ? 'static' : activeEffect,
       effect: activeEffect,
       templateIndex: idx,
       effectState: nextSlot,
@@ -1067,12 +1140,22 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     try {
       switch (m) {
         case 'animate': {
-          const key = activeEffect || (EFFECTS.some(e => e.key === rawSync) ? rawSync : 'rainbow');
+          const key = ANIMATE_EFFECTS.some(e => e.key === activeEffect)
+            ? activeEffect
+            : (ANIMATE_EFFECTS.some(e => e.key === rawSync) ? rawSync : animateEffectRef.current);
           setActiveEffect(key);
           setRawSync(key);
           const state = stateFor(key);
           await startAnimate(key, state.speed, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params);
           publishControlSync({ domain: 'lighting', mode: m, rawSync: key, effect: key });
+          break;
+        }
+        case 'static': {
+          const key = isStaticEffect(activeEffect) ? activeEffect : staticEffectRef.current;
+          setActiveEffect(key);
+          const state = stateFor(key);
+          await startStatic(key, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params);
+          publishControlSync({ domain: 'lighting', mode: m, rawSync: 'static', effect: key });
           break;
         }
         case 'screen':
@@ -1127,9 +1210,12 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                 }
               }}
             >
+              {/* stroke="none": the glyph inherits a translucent currentColor, so a
+                  same-colour stroke composites over the fill and paints a brighter
+                  rim - a solid shape reads as an outline. Fill alone is uniform. */}
               {paused
-                ? <Play size={12} strokeWidth={2} fill="currentColor" />
-                : <Pause size={12} strokeWidth={2} fill="currentColor" />}
+                ? <Play size={13} fill="currentColor" stroke="none" />
+                : <Pause size={13} fill="currentColor" stroke="none" />}
             </span>
           </HoverTooltip>
         ) : undefined,
@@ -1139,6 +1225,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // Effect tab applies to animate / media / screen only; in Off and Game Sync
   // modes it renders an empty state and the tab header is disabled.
   const effectTabDisabled = effectiveMode === 'none' || effectiveMode === 'gamesync';
+  const shaderMode = effectiveMode === 'animate' || effectiveMode === 'static';
 
   if (!serviceOnline) {
     return (
@@ -1184,8 +1271,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           ) : (
             <>
               <div className={styles.canvasArea}>
-                <DeviceCanvas devices={visibleDevices} canvasPixels={frames.canvasPixels} canvasW={frames.canvasW} canvasH={frames.canvasH} selectedIds={selectedDeviceIds} primaryDeviceId={primaryDeviceId} onSelectDevice={handleSelectDevice} onSetSelection={handleSetSelection} shaderEffect={effectiveMode === 'animate' ? activeEffect : null} shaderState={effectiveMode === 'animate' ? currentState : null} shaderPaused={paused} audioRef={audioRef} hiddenFrameIds={hiddenFrameIds} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={handleOpenSettings} onDragActiveChange={handleDragActiveChange} onBeforeLayoutSave={handleBeforeLayoutSave} onLayoutCommit={handleLayoutCommit} onSetDevicesPower={handleSetDevicesPower} gpuAvailable={serviceState.lighting?.gpuAvailable ?? true} />
-                {effectiveMode === 'animate' && activeEffect && currentState && activeRightTab === 'effect' && (
+                <DeviceCanvas devices={visibleDevices} canvasPixels={frames.canvasPixels} canvasW={frames.canvasW} canvasH={frames.canvasH} selectedIds={selectedDeviceIds} primaryDeviceId={primaryDeviceId} onSelectDevice={handleSelectDevice} onSetSelection={handleSetSelection} shaderEffect={shaderMode ? activeEffect : null} shaderState={shaderMode ? previewState : null} shaderPaused={paused} audioRef={audioRef} hiddenFrameIds={hiddenFrameIds} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={handleOpenSettings} onDragActiveChange={handleDragActiveChange} onBeforeLayoutSave={handleBeforeLayoutSave} onLayoutCommit={handleLayoutCommit} onSetDevicesPower={handleSetDevicesPower} gpuAvailable={serviceState.lighting?.gpuAvailable ?? true} />
+                {shaderMode && activeEffect && currentState && activeRightTab === 'effect' && (
                   <>
                     {EFFECTS.find(e => e.key === activeEffect)?.audio && (
                       <HoverTooltip body={t('lighting.musicReactive')} side="left">
@@ -1210,8 +1297,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                   </>
                 )}
               </div>
-              {effectiveMode === 'animate' ? (
-                <AnimateGrid effect={activeEffect} onSelect={handleEffectSelect} slotFor={slotForEffect} versionFor={versionForEffect} panelEffects={panelUsage.effects} gpuAvailable={serviceState.lighting?.gpuAvailable ?? true} />
+              {effectiveMode === 'animate' || effectiveMode === 'static' ? (
+                <AnimateGrid effect={activeEffect} onSelect={handleEffectSelect} effects={effectiveMode === 'static' ? STATIC_EFFECTS : ANIMATE_EFFECTS} frozen={effectiveMode === 'static'} slotFor={slotForEffect} versionFor={versionForEffect} panelEffects={panelUsage.effects} gpuAvailable={serviceState.lighting?.gpuAvailable ?? true} />
               ) : (
                 <div className={styles.controls}>
                   <ModeControls
@@ -1395,10 +1482,3 @@ function normalizePP(s: PostProcessSettings | null | undefined): PostProcessStat
   };
 }
 
-function modeForSync(sync: string): LightingMode {
-  if (sync === 'none' || !sync) return 'none';
-  if (sync === 'screen' || sync.includes('mirror')) return 'screen';
-  if (sync === 'gif' || sync.includes('media')) return 'gif';
-  if (sync === 'gamesync') return 'gamesync';
-  return 'animate';
-}

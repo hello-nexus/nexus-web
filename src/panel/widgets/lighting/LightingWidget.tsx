@@ -9,9 +9,11 @@ import {
   fetchCurrentSync,
   fetchLightingStatus,
   fetchScreenEffect,
+  fetchStaticSettings,
   setMusicReactive,
   setScreenEffect,
   startAnimate,
+  startStatic,
   startGameSync,
   startScreenMirror,
   stopLighting,
@@ -31,13 +33,17 @@ import { publishControlSync } from '../../../lib/controlSync';
 import { LIGHTING_MODE_ICONS } from '../../../lib/lightingModeIcons';
 import { useTranslation } from '../../../lib/i18n';
 import {
+  ANIMATE_EFFECTS,
   EFFECTS,
   MODES,
+  STATIC_EFFECTS,
   defaultStateFor,
+  isStaticEffect,
   type EffectState,
   type EffectTemplateBundle,
   type LightingMode,
 } from '../../../types/lighting';
+import { normalizeSync as resolveMode } from '../../../hooks/useLightingSync';
 import { mergeTemplates, slotThumbSignature } from '../../../types/lightingTemplates';
 import { useUiSettings } from '../../../hooks/useUiSettings';
 import { resolveAdvancedMode } from '../common/AdvancedModeSettings';
@@ -66,6 +72,9 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
   // the shader preview freezes when lighting is paused from any surface.
   const [paused, setPaused] = useState(false);
   const [activeEffect, setActiveEffect] = useState('rainbow');
+  // The service's remembered static key, so entering the mode from animate
+  // returns to the last static pick instead of the catalog's first entry.
+  const staticEffectRef = useRef(STATIC_EFFECTS[0].key);
   const [templates, setTemplates] = useState<Record<string, EffectTemplateBundle>>({});
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
@@ -103,6 +112,7 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
   // loads must never trigger the flash.
   const flashPulse = useStateChangePulse(
     mode === 'animate' ? `animate:${activeEffect}`
+      : mode === 'static' ? `static:${activeEffect}`
       : mode === 'screen' ? `screen:${reactive}`
       : mode,
     !hydrated,
@@ -123,9 +133,10 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
     : null;
 
   const hydrate = useCallback(async () => {
-    const [sync, animate, screen, lightStatus, defaults] = await Promise.all([
+    const [sync, animate, staticSettings, screen, lightStatus, defaults] = await Promise.all([
       fetchCurrentSync(),
       fetchAnimateSettings(),
+      fetchStaticSettings(),
       fetchScreenEffect(),
       fetchLightingStatus(),
       fetchAnimateDefaults(),
@@ -139,12 +150,16 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
     setTemplates(nextTemplates);
 
     const rawSync = sync?.sync || 'none';
-    const nextEffect = EFFECTS.some(e => e.key === rawSync)
-      ? rawSync
-      : animate?.effect || 'rainbow';
+    const nextMode = resolveMode(rawSync);
+    if (isStaticEffect(staticSettings?.effect ?? '')) staticEffectRef.current = staticSettings!.effect;
+    const nextEffect = nextMode === 'static'
+      ? staticEffectRef.current
+      : EFFECTS.some(e => e.key === rawSync)
+        ? rawSync
+        : animate?.effect || 'rainbow';
     setActiveEffect(nextEffect);
 
-    setMode(resolveMode(rawSync));
+    setMode(nextMode);
     setPaused(!!sync?.paused);
     setReactive(screen?.reactive ?? false);
     setHydrated(true);
@@ -162,7 +177,7 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
   // Leaving animate (a mode change from this surface or an external broadcast)
   // dismisses the immersive fullscreen shader.
   useEffect(() => {
-    if (mode !== 'animate') setShaderFullscreen(false);
+    if (mode !== 'animate' && mode !== 'static') setShaderFullscreen(false);
   }, [mode]);
 
   // The tile shows the active effect's selected universal slot. Its content hash
@@ -272,6 +287,24 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
     publishLighting('animate', effectKey, { effect: effectKey, templateIndex, effectState: next });
   }, [publishLighting, templates]);
 
+  const applyStatic = useCallback(async (effectKey: string, state?: EffectState) => {
+    const next = state ?? resolveEffectState(effectKey, templates);
+    setActiveEffect(effectKey);
+    setMode('static');
+    setMusicReactive(false).catch(() => { /* best-effort */ });
+    await startStatic(
+      effectKey,
+      next.intensity,
+      next.hue,
+      next.colorize,
+      next.saturation,
+      next.contrast,
+      next.params,
+      true,
+    );
+    publishLighting('static', 'static', { effect: effectKey, effectState: next });
+  }, [publishLighting, templates]);
+
   const applyMirror = useCallback(async (nextReactive: boolean) => {
     setReactive(nextReactive);
     setMode('screen');
@@ -284,11 +317,17 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
   }, [publishLighting]);
 
   const cycleAnimate = useCallback((delta: number) => {
-    const idx = EFFECTS.findIndex(e => e.key === activeEffect);
-    const nextIdx = (idx < 0 ? 0 : (idx + delta + EFFECTS.length) % EFFECTS.length);
-    const next = EFFECTS[nextIdx];
-    applyEffect(next.key, resolveEffectState(next.key, templates));
-  }, [activeEffect, applyEffect, templates]);
+    const pool = mode === 'static' ? STATIC_EFFECTS : ANIMATE_EFFECTS;
+    const idx = pool.findIndex(e => e.key === activeEffect);
+    const nextIdx = (idx < 0 ? 0 : (idx + delta + pool.length) % pool.length);
+    const next = pool[nextIdx];
+    const nextState = resolveEffectState(next.key, templates);
+    if (mode === 'static') {
+      void applyStatic(next.key, nextState);
+      return;
+    }
+    applyEffect(next.key, nextState);
+  }, [activeEffect, applyEffect, applyStatic, mode, templates]);
 
   // Simple-mode arrow handler. From inside an animation, behaves like
   // cycleAnimate. From any non-animate state (screen mirror / gif / off),
@@ -310,9 +349,14 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
   }, [applyMirror, reactive]);
 
   const onAnimateButton = useCallback(() => {
-    const effect = EFFECTS.some(e => e.key === activeEffect) ? activeEffect : 'rainbow';
+    const effect = ANIMATE_EFFECTS.some(e => e.key === activeEffect) ? activeEffect : 'rainbow';
     applyEffect(effect);
   }, [activeEffect, applyEffect]);
+
+  const onStaticButton = useCallback(() => {
+    const effect = isStaticEffect(activeEffect) ? activeEffect : staticEffectRef.current;
+    void applyStatic(effect);
+  }, [activeEffect, applyStatic]);
 
   const onMirrorButton = useCallback(() => {
     applyMirror(reactive);
@@ -348,6 +392,7 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
   const handleMode = (k: LightingMode) => {
     if (k === 'none') onOffButton();
     else if (k === 'animate') onAnimateButton();
+    else if (k === 'static') onStaticButton();
     else if (k === 'gif') onMediaButton();
     else if (k === 'screen') onMirrorButton();
     else if (k === 'gamesync') onGameSyncButton();
@@ -359,8 +404,9 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
     const prev = simpleMode ? () => enterOrCycleAnimate(-1) : undefined;
     const next = simpleMode ? () => enterOrCycleAnimate(1)  : undefined;
 
-    if (mode === 'animate') {
-      const effect = EFFECTS.find(e => e.key === activeEffect) ?? EFFECTS[0];
+    if (mode === 'animate' || mode === 'static') {
+      const pool = mode === 'static' ? STATIC_EFFECTS : ANIMATE_EFFECTS;
+      const effect = pool.find(e => e.key === activeEffect) ?? pool[0];
       return {
         kind: 'thumb',
         thumbUrl: thumbs[effect.key] ?? null,
@@ -411,8 +457,11 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
   // is rendered locally at full resolution, replacing the low-res streamed LED
   // canvas (LightingLivePreview) for shader effects only.
   const animateState = useMemo(
-    () => resolveEffectState(activeEffect, templates),
-    [activeEffect, templates],
+    () => {
+      const state = resolveEffectState(activeEffect, templates);
+      return mode === 'static' ? { ...state, speed: 0 } : state;
+    },
+    [activeEffect, mode, templates],
   );
 
   // Immersive (fullscreen panel) variant: a row of icon-only mode buttons
@@ -444,7 +493,7 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
           showArrows={false}
           overlay={
             <>
-              {mode === 'animate'
+              {mode === 'animate' || mode === 'static'
                 ? (
                   <button
                     type="button"
@@ -467,7 +516,7 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
             </>
           }
         />
-        {mode === 'animate' && shaderFullscreen && (
+        {(mode === 'animate' || mode === 'static') && shaderFullscreen && (
           <button
             type="button"
             className={styles.shaderFullscreen}
@@ -632,14 +681,6 @@ function resolveEffectState(
   }
   const bundle = templates[effectKey];
   return bundle?.slots[bundle.selected] ?? base;
-}
-
-function resolveMode(sync: string): LightingMode {
-  if (!sync || sync === 'none') return 'none';
-  if (sync === 'gamesync') return 'gamesync';
-  if (sync === 'screen' || sync.includes('mirror')) return 'screen';
-  if (sync === 'gif' || sync.includes('media')) return 'gif';
-  return 'animate';
 }
 
 export default LightingWidget;
