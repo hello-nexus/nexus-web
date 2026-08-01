@@ -92,8 +92,8 @@
 // Bare icon control: the glyph is the whole button - no border, background,
 // radius or fill in any state. Colour and geometry (hit area, svg size) stay
 // with the caller; pair with bare-icon-selectable for a row that carries a
-// selected state. Press feedback is opacity rather than transform so it
-// composes with a caller that already positions itself with one.
+// selected state. Hover and press ride transform, so a caller that positions
+// itself with one must not use this mixin.
 @mixin bare-icon-button {
   border: none;
   border-radius: 0;
@@ -101,7 +101,8 @@
   padding: 0;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: color var(--ease-fast) ease, opacity var(--ease-fast) ease;
+  transition: color var(--ease-fast) ease, opacity var(--ease-fast) ease,
+              transform var(--ease-fast) ease;
 
   // Re-asserts chrome-off on every state the global .panel-chip repaints. Each
   // arm has to out-specify the chip's matching rule rather than tie it, or
@@ -114,17 +115,21 @@
     background: none;
   }
 
-  // Hover highlights the glyph itself, never a fill behind it. Gated on a real
-  // pointer because touch surfaces latch emulated hover after a tap, which
-  // would leave an unselected icon reading as selected.
+  // Hover highlights the glyph itself, never a fill behind it. The colour lift
+  // does nothing for a button already resting at --text, so the scale is what
+  // carries the feedback there - same idea as PanelArrowButton's naked chevron.
+  // Gated on a real pointer because touch surfaces latch emulated hover after a
+  // tap, which would leave an unselected icon reading as selected.
   @media (hover: hover) {
     &:hover:not(:disabled) {
       color: var(--text);
+      transform: scale(1.14);
     }
   }
 
   &:active:not(:disabled) {
     opacity: 0.55;
+    transform: scale(0.94);
   }
 
   &:disabled {
