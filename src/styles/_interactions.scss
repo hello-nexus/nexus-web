@@ -89,6 +89,66 @@
               color var(--ease-fast) ease;
 }
 
+// Bare icon control: the glyph is the whole button - no border, background,
+// radius or fill in any state. Colour and geometry (hit area, svg size) stay
+// with the caller; pair with bare-icon-selectable for a row that carries a
+// selected state. Press feedback is opacity rather than transform so it
+// composes with a caller that already positions itself with one.
+@mixin bare-icon-button {
+  border: none;
+  border-radius: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color var(--ease-fast) ease, opacity var(--ease-fast) ease;
+
+  // Re-asserts chrome-off on every state the global .panel-chip repaints. Its
+  // rules match at the same specificity as a doubled class, so each state
+  // needs an arm of its own here to lose the tie.
+  &[data-active='true'],
+  &:hover,
+  &:active {
+    border: none;
+    background: none;
+  }
+
+  // Hover highlights the glyph itself, never a fill behind it. Gated on a real
+  // pointer because touch surfaces latch emulated hover after a tap, which
+  // would leave an unselected icon reading as selected.
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      color: var(--text);
+    }
+  }
+
+  &:active:not(:disabled) {
+    opacity: 0.55;
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+
+  // The only chrome a bare icon carries: keyboard focus has no border or fill
+  // left to lean on, so the ring is the sole indicator.
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+// Selection for a row of bare icons: the chosen one sits at --text, its
+// siblings at --text-dim. Contrast is the whole signal - layer it over
+// bare-icon-button, which supplies the hover highlight.
+@mixin bare-icon-selectable {
+  color: var(--text-dim);
+
+  &[data-active='true'] {
+    color: var(--text);
+  }
+}
+
 // Canonical rollover for in-widget operable buttons (lighting/cooling
 // presets, steam game rows, device tiles, etc.). Neutral lift on hover
 // so it never collides with the accent-coloured `[data-active='true']`

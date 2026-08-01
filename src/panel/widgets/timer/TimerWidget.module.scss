@@ -1,3 +1,5 @@
+@use '../../../styles/interactions' as *;
+
 .container {
   display: flex;
   flex-direction: column;
@@ -41,20 +43,15 @@
   gap: 2px;
 }
 
-// Hover is neutralized on every button (fill pinned across :hover) because
-// touch surfaces latch the emulated hover after a tap; press feedback stays
-// via the chip's :active scale. Doubled classes beat the tokens.scss
-// .panel-chip hover rule by specificity, not stylesheet order.
+// Doubled classes beat the tokens.scss .panel-chip rules by specificity, not
+// stylesheet order - these strip the chip's chrome down to the bare glyph.
 .stepBtn.stepBtn {
   width: 36px;
   height: 28px;
-  padding: 0;
   font-size: 10px;
+  color: var(--text-dim);
 
-  &,
-  &:hover:not(:disabled) {
-    background: var(--panel-control-translucent);
-  }
+  @include bare-icon-button;
 }
 
 .stepValue {
@@ -66,20 +63,14 @@
   text-align: center;
 }
 
+// data-active is set only once a non-zero duration is picked, so the two-tone
+// rule doubles as the "ready to start" affordance.
 .startBtn.startBtn {
-  padding: 10px 20px;
   font-size: 14px;
   gap: 8px;
 
-  &,
-  &:hover:not(:disabled) {
-    background: var(--panel-control-translucent);
-  }
-
-  &[data-active='true'],
-  &[data-active='true']:hover:not(:disabled) {
-    background: var(--panel-accent-soft);
-  }
+  @include bare-icon-button;
+  @include bare-icon-selectable;
 }
 
 // Running / complete phase - countdown display. Full-width track the readout
@@ -113,24 +104,25 @@
 }
 
 .controlBtn.controlBtn {
-  padding: 10px 16px;
   min-width: 44px;
   min-height: 44px;
+  color: var(--text);
 
-  &,
-  &:hover:not(:disabled) {
-    background: var(--panel-control-translucent);
-  }
+  @include bare-icon-button;
 }
 
+// Reset is the only action left in the complete state, so it holds full
+// contrast; the colour rides the data-active arm to beat .panel-chip's accent
+// rule, which the button always carries.
 .resetBtn.resetBtn {
-  padding: 10px 20px;
   gap: 8px;
   font-size: 14px;
 
+  @include bare-icon-button;
+
   &,
-  &:hover:not(:disabled) {
-    background: var(--panel-accent-soft);
+  &[data-active='true'] {
+    color: var(--text);
   }
 }
 

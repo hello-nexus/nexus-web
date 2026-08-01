@@ -228,26 +228,14 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--panel-border);
-  border-radius: var(--radius-sm);
-  background: var(--panel-card-bg);
-  color: var(--text-dim);
-  padding: 0;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
 
-  @include widget-button-hover;
+  @include bare-icon-button;
+  @include bare-icon-selectable;
 
   svg {
     flex-shrink: 0;
     width: 16px;
     height: 16px;
-  }
-
-  &[data-active='true'] {
-    border-color: var(--panel-accent);
-    background: var(--panel-accent-soft);
-    color: var(--panel-accent-glow);
   }
 }
 
@@ -267,25 +255,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--panel-border);
-  border-radius: var(--radius);
-  background: var(--panel-element-bg);
-  color: var(--text-dim);
-  padding: 8px;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
 
-  @include widget-button-hover;
+  @include bare-icon-button;
+  @include bare-icon-selectable;
 
   svg {
     width: 20px;
     height: 20px;
-  }
-
-  &[data-active='true'] {
-    border-color: var(--panel-accent);
-    background: var(--panel-accent-soft);
-    color: var(--panel-accent-glow);
   }
 }
 
