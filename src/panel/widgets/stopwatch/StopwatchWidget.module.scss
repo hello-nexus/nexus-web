@@ -1,5 +1,3 @@
-@use '../../../styles/interactions' as *;
-
 .container {
   display: flex;
   flex-direction: column;
@@ -78,32 +76,11 @@
 
 .controls {
   display: flex;
-  gap: 8px;
-}
-
-// Doubled classes beat the tokens.scss .panel-chip rules by specificity, not
-// stylesheet order - these strip the chip's chrome down to the bare glyph.
-.controlBtn.controlBtn {
-  min-width: 44px;
-  min-height: 44px;
-  color: var(--text-dim);
-
-  @include bare-icon-button;
+  gap: 14px;
 }
 
 // Start/pause is the widget's primary action, so it holds full contrast while
-// reset sits dim beside it. The button is always data-active, so the colour
-// has to be declared on that arm to beat .panel-chip's accent rule.
-.playBtn.playBtn {
-  min-width: 44px;
-  min-height: 44px;
-  gap: 8px;
-  font-size: 14px;
-
-  @include bare-icon-button;
-
-  &,
-  &[data-active='true'] {
-    color: var(--text);
-  }
+// reset sits dim beside it at the shared component's default.
+.playBtn {
+  --icon-label-button-text: var(--text);
 }

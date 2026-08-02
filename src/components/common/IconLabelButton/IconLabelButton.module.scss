@@ -57,6 +57,30 @@
     background: var(--icon-label-button-active-bg);
     color: var(--icon-label-button-active-text);
   }
+
+  // An already-lit button needs a step up, or hovering it repaints the fill it
+  // is already wearing. Defaults to the active fill, so callers that don't set
+  // the token are unaffected.
+  &[data-active='true']:hover:not(:disabled) {
+    background: var(--icon-label-button-active-bg-hover, var(--icon-label-button-active-bg));
+  }
+}
+
+// Bare variant: no resting fill or border - the glyph is the button. Hover and
+// the ON state are the neutral square the top bar's "..." trigger wears, never
+// an accent. Square by default; callers size it with the same tokens.
+.bare {
+  --icon-label-button-height: 44px;
+  --icon-label-button-min-width: 44px;
+  --icon-label-button-padding-x: 0;
+  --icon-label-button-padding-y: 0;
+  --icon-label-button-bg: transparent;
+  --icon-label-button-bg-hover: var(--bg-card-hover);
+  --icon-label-button-active-bg: var(--bg-card-hover);
+  --icon-label-button-active-bg-hover: var(--border);
+  --icon-label-button-active-text: var(--text);
+  --icon-label-button-active-border: transparent;
+  --icon-label-icon-size: 16px;
 }
 
 .icon {

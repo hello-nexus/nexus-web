@@ -12,6 +12,8 @@ export interface IconLabelButtonProps {
   ariaLabel?: string;
   onPress?: () => void;
   type?: 'button' | 'submit' | 'reset';
+  /** 'bare' drops the resting fill and border - glyph only, neutral square on hover/ON. */
+  variant?: 'default' | 'bare';
 }
 
 export function IconLabelButton({
@@ -24,6 +26,7 @@ export function IconLabelButton({
   ariaLabel,
   onPress,
   type = 'button',
+  variant = 'default',
 }: IconLabelButtonProps) {
   const pointerHandledRef = useRef(false);
   const pointerResetRef = useRef<number | null>(null);
@@ -51,7 +54,7 @@ export function IconLabelButton({
   const btn = (
     <button
       type={type}
-      className={`${styles.button} ${className ?? ''}`}
+      className={`${styles.button} ${variant === 'bare' ? styles.bare : ''} ${className ?? ''}`}
       data-active={active ? 'true' : undefined}
       aria-pressed={active}
       aria-label={ariaLabel}
