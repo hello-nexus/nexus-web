@@ -471,44 +471,6 @@
   letter-spacing: 0.02em;
 }
 
-.staticColorRow {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.staticColorLabel {
-  font-size: var(--type-small);
-  color: var(--text-dim);
-  letter-spacing: 0.02em;
-  flex: 1;
-}
-
-.staticColorSwatch {
-  width: 1.25rem;
-  height: 1.25rem;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--separator);
-  flex-shrink: 0;
-}
-
-.staticColorInput {
-  width: 8ch;
-  padding: 0.25rem 0.4rem;
-  font-family: var(--font-mono);
-  font-size: var(--type-small);
-  color: var(--text);
-  background: var(--surface);
-  border: 1px solid var(--separator);
-  border-radius: var(--radius-sm);
-  text-transform: uppercase;
-
-  &:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 1px;
-  }
-}
-
 // Pinned-to-bottom footer holding the scoped Reset button; stays
 // visible while the slider list scrolls.
 .drawerFooter {
