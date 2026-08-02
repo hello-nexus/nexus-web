@@ -14,7 +14,9 @@ export type PanelBackgroundMode = 'solid' | 'shader' | 'media';
 
 // Frost strength, percent 0-100; 0 renders no frost pass at all.
 export const DEFAULT_PANEL_BACKGROUND_FROST = 50;
-export const PANEL_BACKGROUND_FROST_STEP = 5;
+// Granularity of the whole control, not just the drag: EditableNumber snaps a
+// typed value to it too.
+export const PANEL_BACKGROUND_FROST_STEP = 10;
 export type PanelResolvedTheme = 'dark' | 'light';
 
 export const DEFAULT_PANEL_BACKGROUND_EFFECT = 'aurora';
@@ -173,9 +175,13 @@ export function panelBackgroundFrostScale(percent: number): number {
   return percent / PANEL_BACKGROUND_FROST_UNIT_PERCENT;
 }
 
+// Snapped to the step: a range input silently sanitizes an off-step value to
+// the nearest valid one, so an unsnapped read would show a thumb and a readout
+// that disagree.
 export function normalizePanelBackgroundFrost(value: number | null | undefined): number {
   if (typeof value !== 'number' || !Number.isFinite(value)) return DEFAULT_PANEL_BACKGROUND_FROST;
-  return Math.min(Math.max(Math.round(value), 0), 100);
+  const snapped = Math.round(value / PANEL_BACKGROUND_FROST_STEP) * PANEL_BACKGROUND_FROST_STEP;
+  return Math.min(Math.max(snapped, 0), 100);
 }
 
 export function normalizePanelWidgetPadding(value: number | null | undefined): number {
