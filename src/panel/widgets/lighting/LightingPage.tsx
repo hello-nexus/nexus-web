@@ -49,6 +49,7 @@ import { visibleCards } from './page/zoneUtils';
 import { OpenRgbButton } from './page/OpenRgbButton';
 import { GlobalBrightnessSlider } from './page/GlobalBrightnessSlider';
 import { RightPaneTabs, type RightPaneTab } from './page/RightPaneTabs';
+import { PresetToolbar } from '../../../components/common/PresetToolbar/PresetToolbar';
 import { EffectTab, type PostProcessState } from './page/EffectTab';
 import { useThrottle } from '../../../hooks/cadence';
 import { useAudioState } from '../../../hooks/useAudioState';
@@ -1078,7 +1079,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     // Off while the LED map editor is open: it has its own undo/redo on the same
     // Cmd/Ctrl+Z, and both listen on window, so an enabled layout history would
     // also fire and undo the canvas underneath the modal.
-    enabled: activeRightTab === 'devices' && editorTarget === null,
+    enabled: editorTarget === null,
     onUndo: handleUndoLayout,
     onRedo: handleRedoLayout,
     store: layoutHistoryStore,
@@ -1312,6 +1313,22 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           )}
         </div>
         <div className={styles.rightPane}>
+          <div className={styles.presetHeader}>
+            <PresetToolbar
+              presets={presets}
+              activeId={layoutActiveId}
+              presetCount={presetCount}
+              canUndo={canUndoLayout}
+              canRedo={canRedoLayout}
+              onLoad={handlePresetLoadWithHistory}
+              onCreate={handlePresetCreate}
+              onRename={handlePresetRename}
+              onDelete={handlePresetDelete}
+              onReset={handleResetWithHistory}
+              onUndo={handleUndoLayout}
+              onRedo={handleRedoLayout}
+            />
+          </div>
           <div className={styles.rightPaneTabsHeader}>
             <RightPaneTabs
               active={activeRightTab}
@@ -1341,18 +1358,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                 onSetSmartHubFirmwareControl={handleSetSmartHubFirmwareControl}
                 lianLiFirmwareActive={lianLiFirmwareActive}
                 onOpenSmartLights={() => onSectionNavigate?.('smart-lights')}
-                presets={presets}
-                layoutActiveId={layoutActiveId}
-                presetCount={presetCount}
-                canUndo={canUndoLayout}
-                canRedo={canRedoLayout}
-                onPresetLoad={handlePresetLoadWithHistory}
-                onPresetCreate={handlePresetCreate}
-                onPresetRename={handlePresetRename}
-                onPresetDelete={handlePresetDelete}
-                onLayoutReset={handleResetWithHistory}
-                onLayoutUndo={handleUndoLayout}
-                onLayoutRedo={handleRedoLayout}
               />
               <OpenRgbButton rgbRunning={rgb.running} scanning={rgb.scanning} />
             </>
