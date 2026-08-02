@@ -1801,7 +1801,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'ChipGroup', category: 'inputs',
     filePath: 'src/components/common/ChipGroup/ChipGroup.tsx',
-    description: 'Single-select chip row reusing the cooling curve/mode .chip-action buttons (solid-accent .chip-active on the selected one). For settings and listings that pick one of a few options - replaces Tabs for the theme/background/accent selectors.', Preview: PreviewChipGroup,
+    description: 'Single-select chip row reusing the cooling curve/mode .chip-action buttons (.chip-active fills the selected one with the accent, labelled in the contrast-paired --accent-text). fullWidth stretches the row so it reads as a segmented control. For settings and listings that pick one of a few options - replaces Tabs for the theme/background/accent selectors.', Preview: PreviewChipGroup,
   },
   {
     name: 'ChipGroup (multi-select)', category: 'inputs',

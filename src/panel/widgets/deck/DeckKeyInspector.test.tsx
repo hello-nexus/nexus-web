@@ -262,7 +262,7 @@ describe('DeckKeyInspector title style section', () => {
     expect(screen.getByRole('switch', { name: 'panel.settings.deck.titleStyle.show' })).not.toBeChecked();
     expect(screen.queryByPlaceholderText('panel.settings.deck.labelPlaceholder')).toBeNull();
     expect(screen.queryByRole('button', { name: 'panel.settings.deck.titleStyle.bold' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'panel.settings.deck.titleStyle.alignTop' })).toBeNull();
+    expect(screen.queryByRole('radio', { name: 'panel.settings.deck.titleStyle.alignTop' })).toBeNull();
   });
 
   it('turning Show title on reveals the text field and the title style controls', () => {
@@ -272,7 +272,7 @@ describe('DeckKeyInspector title style section', () => {
     expect(screen.getByRole('switch', { name: 'panel.settings.deck.titleStyle.show' })).toBeChecked();
     expect(screen.getByPlaceholderText('panel.settings.deck.labelPlaceholder')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'panel.settings.deck.titleStyle.bold' })).not.toBeDisabled();
-    expect(screen.getByRole('button', { name: 'panel.settings.deck.titleStyle.alignTop' })).not.toBeDisabled();
+    expect(screen.getByRole('radio', { name: 'panel.settings.deck.titleStyle.alignTop' })).not.toBeDisabled();
   });
 
   it('picking Bold toggles it active', () => {
@@ -286,10 +286,10 @@ describe('DeckKeyInspector title style section', () => {
   it('picking an alignment marks it active', () => {
     renderInspector([{ action: { type: 'hotkey', keys: '' }, label: 'Hi', title: { show: true } }]);
     // Middle is the default.
-    expect(screen.getByRole('button', { name: 'panel.settings.deck.titleStyle.alignMiddle' })).toHaveAttribute('aria-pressed', 'true');
-    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.titleStyle.alignTop' }));
-    expect(screen.getByRole('button', { name: 'panel.settings.deck.titleStyle.alignTop' })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('button', { name: 'panel.settings.deck.titleStyle.alignMiddle' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('radio', { name: 'panel.settings.deck.titleStyle.alignMiddle' })).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(screen.getByRole('radio', { name: 'panel.settings.deck.titleStyle.alignTop' }));
+    expect(screen.getByRole('radio', { name: 'panel.settings.deck.titleStyle.alignTop' })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByRole('radio', { name: 'panel.settings.deck.titleStyle.alignMiddle' })).toHaveAttribute('aria-checked', 'false');
   });
 
   it('renders an Auto swatch for both the key color and the title text color', () => {
@@ -350,7 +350,7 @@ describe('DeckKeyInspector - monitoring action', () => {
     renderInspector([{ action: MONITORING_ACTION }]);
     expect(screen.queryByText('panel.settings.icon')).toBeNull();
     expect(screen.queryByRole('switch', { name: 'panel.settings.deck.titleStyle.show' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'panel.settings.deck.titleStyle.alignTop' })).toBeNull();
+    expect(screen.queryByRole('radio', { name: 'panel.settings.deck.titleStyle.alignTop' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'panel.settings.deck.titleStyle.underline' })).toBeNull();
     expect(screen.getByText('panel.settings.deck.monitoringBackground')).toBeInTheDocument();
   });
@@ -455,7 +455,7 @@ describe('DeckKeyInspector - monitoring action', () => {
   });
 
   describe('Sensor Label chips (Auto / Hide / Custom)', () => {
-    const chip = (name: string) => screen.getByRole('button', { name });
+    const chip = (name: string) => screen.getByRole('radio', { name });
     const AUTO = 'monitoring.settings.labelAuto';
     const HIDE = 'monitoring.settings.labelHide';
     const CUSTOM = 'monitoring.settings.labelCustom';
@@ -464,17 +464,17 @@ describe('DeckKeyInspector - monitoring action', () => {
 
     it('defaults to Auto for a legacy action carrying none of the v3 fields', () => {
       renderInspector([{ action: MONITORING_ACTION }]);
-      expect(chip(AUTO)).toHaveAttribute('aria-pressed', 'true');
-      expect(chip(HIDE)).toHaveAttribute('aria-pressed', 'false');
+      expect(chip(AUTO)).toHaveAttribute('aria-checked', 'true');
+      expect(chip(HIDE)).toHaveAttribute('aria-checked', 'false');
       expect(screen.queryByRole('textbox', { name: FIELD })).toBeNull();
     });
 
     it('Hide writes showName false and leaves labelText untouched', () => {
       renderInspector([{ action: { ...MONITORING_ACTION, showName: true, labelText: 'Kept' } }]);
-      expect(chip(CUSTOM)).toHaveAttribute('aria-pressed', 'true');
+      expect(chip(CUSTOM)).toHaveAttribute('aria-checked', 'true');
 
       fireEvent.click(chip(HIDE));
-      expect(chip(HIDE)).toHaveAttribute('aria-pressed', 'true');
+      expect(chip(HIDE)).toHaveAttribute('aria-checked', 'true');
       expect(screen.queryByRole('textbox', { name: FIELD })).toBeNull();
 
       // Custom right after Hide restores the preserved text - Hide never
@@ -503,7 +503,7 @@ describe('DeckKeyInspector - monitoring action', () => {
       fireEvent.input(screen.getByRole('textbox', { name: FIELD }), { target: { value: 'Hot' } });
 
       fireEvent.click(chip(AUTO));
-      expect(chip(AUTO)).toHaveAttribute('aria-pressed', 'true');
+      expect(chip(AUTO)).toHaveAttribute('aria-checked', 'true');
       expect(screen.queryByRole('textbox', { name: FIELD })).toBeNull();
 
       // Re-entering Custom re-seeds from the derived name - Auto cleared the
@@ -519,7 +519,7 @@ describe('DeckKeyInspector - monitoring action', () => {
       fireEvent.input(screen.getByRole('textbox', { name: FIELD }), { target: { value: 'Hot' } });
 
       fireEvent.click(screen.getByRole('button', { name: RESET }));
-      expect(chip(CUSTOM)).toHaveAttribute('aria-pressed', 'true');
+      expect(chip(CUSTOM)).toHaveAttribute('aria-checked', 'true');
       expect(screen.getByRole('textbox', { name: FIELD })).toHaveValue('CPU Total');
     });
 
@@ -558,7 +558,7 @@ describe('DeckKeyInspector - weather action', () => {
   it('hides Show-title/align/underline title controls, matching the monitoring tile treatment', () => {
     renderInspector([{ action: { type: 'weather', units: 'auto' } }]);
     expect(screen.queryByRole('switch', { name: 'panel.settings.deck.titleStyle.show' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'panel.settings.deck.titleStyle.alignTop' })).toBeNull();
+    expect(screen.queryByRole('radio', { name: 'panel.settings.deck.titleStyle.alignTop' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'panel.settings.deck.titleStyle.underline' })).toBeNull();
     // Bold/size/font/color stay - the tile applies them to the city text.
     expect(screen.getByRole('button', { name: 'panel.settings.deck.titleStyle.bold' })).not.toBeDisabled();

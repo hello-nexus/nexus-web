@@ -284,7 +284,10 @@ input[type="range"][data-range-knob] {
   font-weight: var(--weight-body);
   line-height: 1;
   padding: 0.4rem 0.75rem;
-  border-radius: var(--radius-sm);
+  // Pill, where Button uses --radius-sm. A selected chip carries the same
+  // accent fill as a primary button, so shape is what separates "this option is
+  // chosen" from "press this to act".
+  border-radius: var(--radius-pill);
   border: 1px solid transparent;
   white-space: nowrap;
   user-select: none;
@@ -311,6 +314,9 @@ input[type="range"][data-range-knob] {
     opacity: 0.5;
   }
 
+  // Solid accent fill. --accent-text is the contrast-paired foreground, picked
+  // per accent (white or black, whichever scores higher), so the label stays
+  // readable on light accents like amber.
   &.chip-active {
     background: var(--accent);
     border-color: var(--control-border-accent);
@@ -339,6 +345,17 @@ input[type="range"][data-range-knob] {
 .chip-group {
   display: inline-flex;
   gap: 0.25rem;
+}
+
+// Stretch variant (ChipGroup fullWidth): the row fills its container and the
+// chips share it equally, so a settings row reads as a segmented control.
+.chip-group-full {
+  display: flex;
+  width: 100%;
+
+  > .chip-action {
+    flex: 1 1 0;
+  }
 }
 
 // Page-width contract. Every view's content root picks one. Constrained caps

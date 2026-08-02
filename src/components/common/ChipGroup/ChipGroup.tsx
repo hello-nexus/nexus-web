@@ -1,5 +1,5 @@
 import classNames from 'classnames';
-import type { ReactNode } from 'react';
+import { useRef, type KeyboardEvent, type ReactNode } from 'react';
 import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
 
 export interface ChipOption {
@@ -30,17 +30,58 @@ export type ChipGroupProps = {
   options: readonly ChipOption[];
   ariaLabel?: string;
   className?: string;
+  /** Stretch the row to 100% width with each chip sharing it equally, for
+   *  settings rows that read as a segmented control. Mirrors Tabs' fullWidth. */
+  fullWidth?: boolean;
 } & (ChipGroupSingleProps | ChipGroupMultiProps);
 
 /**
  * Chip row for selecting from a small set of options.
- * Single-select (default): `activeKey` + `onChange` - one chip active at a time.
- * Multi-select (`multiSelect: true`): `activeKeys` + `onToggleKey` - chips toggle independently.
+ * Single-select (default): `activeKey` + `onChange` - one chip active at a
+ * time, exposed as a radiogroup so assistive tech announces the options as
+ * alternatives and arrow keys move between them.
+ * Multi-select (`multiSelect: true`): `activeKeys` + `onToggleKey` - chips
+ * toggle independently, so they stay `aria-pressed` toggle buttons in a group.
  */
 export function ChipGroup(props: ChipGroupProps) {
-  const { options, ariaLabel, className } = props;
+  const { options, ariaLabel, className, fullWidth } = props;
+  const groupRef = useRef<HTMLDivElement>(null);
+
+  // Radio semantics put the whole group on one tab stop; arrows move within it
+  // and select as they go, which is what a radiogroup is expected to do.
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (props.multiSelect) return;
+    const step = event.key === 'ArrowRight' || event.key === 'ArrowDown' ? 1
+      : event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1
+        : 0;
+    if (step === 0) return;
+    const selectable = options.filter(o => !o.disabled);
+    if (selectable.length === 0) return;
+    const at = selectable.findIndex(o => o.key === props.activeKey);
+    const next = selectable[(((at < 0 ? 0 : at) + step) + selectable.length) % selectable.length];
+    event.preventDefault();
+    props.onChange(next.key);
+    groupRef.current
+      ?.querySelector<HTMLButtonElement>(`[data-chip-key="${CSS.escape(next.key)}"]`)
+      ?.focus();
+  };
+
+  const singleSelect = !props.multiSelect;
+  // Focus lands on the checked chip; with none checked the first selectable one
+  // holds the tab stop so the group is never unreachable.
+  const tabStopKey = singleSelect
+    ? (options.find(o => o.key === props.activeKey && !o.disabled)
+      ?? options.find(o => !o.disabled))?.key
+    : undefined;
+
   return (
-    <div className={classNames('chip-group', className)} role="group" aria-label={ariaLabel}>
+    <div
+      ref={groupRef}
+      className={classNames('chip-group', fullWidth && 'chip-group-full', className)}
+      role={singleSelect ? 'radiogroup' : 'group'}
+      aria-label={ariaLabel}
+      onKeyDown={handleKeyDown}
+    >
       {options.map(opt => {
         const active = props.multiSelect
           ? props.activeKeys.has(opt.key)
@@ -52,7 +93,11 @@ export function ChipGroup(props: ChipGroupProps) {
           <button
             key={opt.key}
             type="button"
-            aria-pressed={active}
+            data-chip-key={opt.key}
+            role={singleSelect ? 'radio' : undefined}
+            aria-checked={singleSelect ? active : undefined}
+            aria-pressed={singleSelect ? undefined : active}
+            tabIndex={singleSelect ? (opt.key === tabStopKey ? 0 : -1) : undefined}
             aria-label={opt.ariaLabel}
             disabled={opt.disabled}
             className={`chip-action${active ? ' chip-active' : ''}`}

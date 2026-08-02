@@ -73,16 +73,16 @@ describe('KeebRotaryView', () => {
 
     // The key-echo mock makes t() return the key itself, so the label falls
     // back to the camelCase split of the function name.
-    const volume = screen.getByRole('button', { name: 'Volume Adjustment' });
-    expect(volume).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('button', { name: 'Scroll Y' })).toHaveAttribute('aria-pressed', 'false');
+    const volume = screen.getByRole('radio', { name: 'Volume Adjustment' });
+    expect(volume).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByRole('radio', { name: 'Scroll Y' })).toHaveAttribute('aria-checked', 'false');
   });
 
   it('clicking a function tile while editing the left wheel sends { left: picked, right: unchanged }', async () => {
     renderView('left');
     await tick();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Alt Tab' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Alt Tab' }));
     expect(onSetRotary).toHaveBeenCalledWith({ left: 'AltTab', right: 'ScrollY' });
   });
 
@@ -90,7 +90,7 @@ describe('KeebRotaryView', () => {
     renderView('right');
     await tick();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Brightness Adjustment' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Brightness Adjustment' }));
     expect(onSetRotary).toHaveBeenCalledWith({ left: 'VolumeAdjustment', right: 'BrightnessAdjustment' });
   });
 });

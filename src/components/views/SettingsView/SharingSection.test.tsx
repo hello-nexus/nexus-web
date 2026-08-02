@@ -37,7 +37,7 @@ const chipsOf = (container: HTMLElement) =>
 
 const rowChips = (container: HTMLElement, category: string) => {
   const group = container.querySelector<HTMLElement>(
-    `[role="group"][aria-label="settings.profiles.sharing.cat.${category}.label"]`,
+    `[role="radiogroup"][aria-label="settings.profiles.sharing.cat.${category}.label"]`,
   );
   const buttons = [...(group?.querySelectorAll<HTMLButtonElement>('button.chip-action') ?? [])];
   return {
@@ -54,19 +54,20 @@ describe('SharingSection', () => {
     expect(screen.queryAllByRole('tab')).toHaveLength(0);
     // One pair per category.
     expect(chipsOf(container)).toHaveLength(PROFILE_CATEGORIES.length * 2);
-    expect(chipsOf(container).every(el => el.hasAttribute('aria-pressed'))).toBe(true);
+    expect(chipsOf(container).every(el => el.getAttribute('role') === 'radio')).toBe(true);
+    expect(chipsOf(container).every(el => el.hasAttribute('aria-checked'))).toBe(true);
   });
 
-  it('presses the shared chip only on the shared category', () => {
+  it('checks the shared chip only on the shared category', () => {
     const { container } = render(<SharingSection {...makeProps({ sharedCats: ['lighting'] })} />);
 
     const lighting = rowChips(container, 'lighting');
-    expect(lighting.shared.getAttribute('aria-pressed')).toBe('true');
-    expect(lighting.perProfile.getAttribute('aria-pressed')).toBe('false');
+    expect(lighting.shared.getAttribute('aria-checked')).toBe('true');
+    expect(lighting.perProfile.getAttribute('aria-checked')).toBe('false');
 
     const cooling = rowChips(container, 'cooling');
-    expect(cooling.shared.getAttribute('aria-pressed')).toBe('false');
-    expect(cooling.perProfile.getAttribute('aria-pressed')).toBe('true');
+    expect(cooling.shared.getAttribute('aria-checked')).toBe('false');
+    expect(cooling.perProfile.getAttribute('aria-checked')).toBe('true');
   });
 
   it('shares a category when its shared chip is clicked', () => {

@@ -110,7 +110,7 @@ describe('SettingsTab', () => {
     update.mockClear();
     render(<SettingsTab />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'diagnostics.settings.linger.immediate' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'diagnostics.settings.linger.immediate' }));
 
     expect(update).toHaveBeenCalledWith({ diagnosticsWarningLingerMinutes: 0 });
   });

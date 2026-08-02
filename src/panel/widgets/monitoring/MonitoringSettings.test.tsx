@@ -164,8 +164,11 @@ describe('MonitoringSettings', () => {
 
     expect(screen.getAllByRole('combobox')).toHaveLength(2);
     // 2 slot-select buttons + design buttons + 2 range buttons (sparkline
-    // supports scale) + 3 Label chips (Auto/Hide/Custom; reset hidden in Auto)
-    expect(screen.getAllByRole('button').filter(button => button.hasAttribute('aria-pressed'))).toHaveLength(2 + GAUGE_DESIGN_KEYS.length + 2 + 3);
+    // supports scale) + 3 Label chips (Auto/Hide/Custom; reset hidden in Auto).
+    // Single-select chips are radios; the rest are pressed-state buttons.
+    const pressed = screen.getAllByRole('button').filter(button => button.hasAttribute('aria-pressed'));
+    const radios = screen.getAllByRole('radio');
+    expect(pressed.length + radios.length).toBe(2 + GAUGE_DESIGN_KEYS.length + 2 + 3);
   });
 
   it('updates the selected rendered sensor slot', () => {
@@ -685,7 +688,7 @@ describe('MonitoringWidget - per-slot label modes', () => {
 });
 
 describe('MonitoringSettings - per-slot Label chip', () => {
-  const chip = (name: string) => screen.getByRole('button', { name });
+  const chip = (name: string) => screen.getByRole('radio', { name });
   const AUTO = 'monitoring.settings.labelAuto';
   const HIDE = 'monitoring.settings.labelHide';
   const CUSTOM = 'monitoring.settings.labelCustom';
@@ -694,8 +697,8 @@ describe('MonitoringSettings - per-slot Label chip', () => {
 
   it('defaults to Auto with no reset and no text field', () => {
     render(<MonitoringEditorHarness onUpdate={vi.fn()} desktopEditor />);
-    expect(chip(AUTO)).toHaveAttribute('aria-pressed', 'true');
-    expect(chip(HIDE)).toHaveAttribute('aria-pressed', 'false');
+    expect(chip(AUTO)).toHaveAttribute('aria-checked', 'true');
+    expect(chip(HIDE)).toHaveAttribute('aria-checked', 'false');
     expect(screen.queryByRole('button', { name: RESET })).not.toBeInTheDocument();
     expect(screen.queryByRole('textbox', { name: FIELD })).not.toBeInTheDocument();
   });
@@ -748,7 +751,7 @@ describe('MonitoringSettings - per-slot Label chip', () => {
 
     fireEvent.click(screen.getByRole('button', { name: RESET }));
     expect(onUpdate).toHaveBeenLastCalledWith({ slot0_label: 'CPU Total' });
-    expect(chip(CUSTOM)).toHaveAttribute('aria-pressed', 'true');
+    expect(chip(CUSTOM)).toHaveAttribute('aria-checked', 'true');
     expect(screen.getByRole('textbox', { name: FIELD })).toHaveValue('CPU Total');
   });
 
@@ -816,7 +819,7 @@ describe('MicroMonitoringWidget - column layout by size', () => {
 describe('Label block has no section divider', () => {
   it('the Label block carries data-settings-aside and is a non-first child of the Sensor box', () => {
     render(<MonitoringEditorHarness onUpdate={vi.fn()} desktopEditor />);
-    const block = screen.getByRole('button', { name: 'monitoring.settings.labelAuto' })
+    const block = screen.getByRole('radio', { name: 'monitoring.settings.labelAuto' })
       .closest('[data-settings-aside="true"]') as HTMLElement;
     expect(block).not.toBeNull();
     const box = block.parentElement as HTMLElement;

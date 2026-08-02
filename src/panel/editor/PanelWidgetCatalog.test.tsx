@@ -143,7 +143,7 @@ describe('PanelWidgetCatalog', () => {
   it('renders the size chips as icon buttons with a hover tooltip', () => {
     render(<PanelWidgetCatalog surface="desktop" onAdd={vi.fn()} />);
 
-    const chip = screen.getByRole('button', { name: '4x2' });
+    const chip = screen.getByRole('radio', { name: '4x2' });
     expect(chip.querySelector('svg')).not.toBeNull();
     // Focus opens the shared HoverTooltip immediately (no rest delay).
     fireEvent.focus(chip);
@@ -154,7 +154,7 @@ describe('PanelWidgetCatalog', () => {
     const onAdd = vi.fn();
     render(<PanelWidgetCatalog surface="desktop" onAdd={onAdd} />);
 
-    fireEvent.click(screen.getByRole('button', { name: '4x2' }));
+    fireEvent.click(screen.getByRole('radio', { name: '4x2' }));
 
     // Widgets without a 4x2 variant keep their own shape.
     expect(screen.getByRole('button', { name: 'panel.widget.media' })).toHaveAttribute('data-size', '4x2');
@@ -215,7 +215,7 @@ describe('PanelWidgetCatalog', () => {
       // media browses at 2x2 by default, so it fits...
       expect(screen.getByRole('button', { name: 'panel.widget.media' })).toBeEnabled();
       // ...and stops fitting when the chips switch it to 4x2.
-      fireEvent.click(screen.getByRole('button', { name: '4x2' }));
+      fireEvent.click(screen.getByRole('radio', { name: '4x2' }));
       expect(screen.getByRole('button', { name: 'panel.widget.media' })).toBeDisabled();
     });
 

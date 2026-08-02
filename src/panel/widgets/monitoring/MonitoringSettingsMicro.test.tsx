@@ -301,9 +301,9 @@ describe('MonitoringSettings - Micro Label chips (category + per-sensor)', () =>
   it('renders a Label chip set for the category and each sensor', () => {
     render(<MicroHarness initial={microWidget(4)} />);
     // category + 4 sensors = 5 chip sets
-    expect(screen.getAllByRole('button', { name: AUTO })).toHaveLength(5);
-    expect(screen.getAllByRole('button', { name: HIDE })).toHaveLength(5);
-    expect(screen.getAllByRole('button', { name: CUSTOM })).toHaveLength(5);
+    expect(screen.getAllByRole('radio', { name: AUTO })).toHaveLength(5);
+    expect(screen.getAllByRole('radio', { name: HIDE })).toHaveLength(5);
+    expect(screen.getAllByRole('radio', { name: CUSTOM })).toHaveLength(5);
   });
 
   it('category Hide / Custom write micro_categoryMode + seed micro_category, then live-edit', () => {
@@ -311,10 +311,10 @@ describe('MonitoringSettings - Micro Label chips (category + per-sensor)', () =>
     render(<MicroHarness initial={microWidget(3)} onUpdate={cfg => updates.push(cfg)} />);
 
     // Category is the first LabelControls in DOM order.
-    act(() => { fireEvent.click(screen.getAllByRole('button', { name: HIDE })[0]); });
+    act(() => { fireEvent.click(screen.getAllByRole('radio', { name: HIDE })[0]); });
     expect(updates[updates.length - 1]).toEqual({ micro_categoryMode: 'hide' });
 
-    act(() => { fireEvent.click(screen.getAllByRole('button', { name: CUSTOM })[0]); });
+    act(() => { fireEvent.click(screen.getAllByRole('radio', { name: CUSTOM })[0]); });
     expect(updates[updates.length - 1]).toEqual({ micro_categoryMode: 'custom', micro_category: 'AMD Ryzen 7 9800X3D' });
 
     // Only the category is in Custom now -> a single custom-label field.
@@ -327,13 +327,13 @@ describe('MonitoringSettings - Micro Label chips (category + per-sensor)', () =>
     render(<MicroHarness initial={microWidget(4)} onUpdate={cfg => updates.push(cfg)} />);
 
     // Custom chips in DOM order: [category, sensor0, sensor1, sensor2, sensor3].
-    act(() => { fireEvent.click(screen.getAllByRole('button', { name: CUSTOM })[1]); });
+    act(() => { fireEvent.click(screen.getAllByRole('radio', { name: CUSTOM })[1]); });
     expect(updates[updates.length - 1]).toEqual({ micro_sensor0_labelMode: 'custom', micro_sensor0_label: 'Total' });
 
     act(() => { fireEvent.input(screen.getByRole('textbox', { name: FIELD }), { target: { value: 'Load' } }); });
     expect(updates[updates.length - 1]).toEqual({ micro_sensor0_label: 'Load' });
 
-    act(() => { fireEvent.click(screen.getAllByRole('button', { name: HIDE })[2]); }); // sensor1
+    act(() => { fireEvent.click(screen.getAllByRole('radio', { name: HIDE })[2]); }); // sensor1
     expect(updates[updates.length - 1]).toEqual({ micro_sensor1_labelMode: 'hide' });
   });
 });

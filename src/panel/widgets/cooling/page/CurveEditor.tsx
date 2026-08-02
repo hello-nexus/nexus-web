@@ -448,7 +448,7 @@ export const CurveCard = memo(function CurveCard({
         return (
           <HoverTooltip key={ct.key} title={label} body={t(ct.hintKey)} side="bottom">
             <button type="button" role="radio"
-              className={`chip-action${selected ? ' ' + styles.chipSoftActive : ''}`}
+              className={`chip-action${selected ? ' chip-active' : ''}`}
               onClick={() => set({ type: ct.key })}
               aria-label={label} aria-checked={selected}>
               {ct.icon}

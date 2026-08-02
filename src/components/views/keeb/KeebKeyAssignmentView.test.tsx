@@ -59,7 +59,7 @@ describe('KeebKeyAssignmentView - gating on selection', () => {
   it('with no selection, function tiles are disabled (the Mouse "Left Click" tile)', () => {
     render(<KeebKeyAssignmentView selected={null} state={defaultState()} setKey={setKey} resetLayer={resetLayer} />);
     fireEvent.click(categoryTab('keeb.category.mouse'));
-    const tile = screen.getByRole('button', { name: 'keeb.fn.MouseLButton' });
+    const tile = screen.getByRole('radio', { name: 'keeb.fn.MouseLButton' });
     expect(tile).toBeDisabled();
   });
 });
@@ -76,14 +76,14 @@ describe('KeebKeyAssignmentView - function-tile writes', () => {
   it('clicking a Mouse tile calls setKey with the selected (x,y), function, mode', () => {
     render(<KeebKeyAssignmentView selected={{ x: 5, y: 1 }} state={defaultState()} setKey={setKey} resetLayer={resetLayer} />);
     fireEvent.click(categoryTab('keeb.category.mouse'));
-    fireEvent.click(screen.getByRole('button', { name: 'keeb.fn.MouseLButton' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'keeb.fn.MouseLButton' }));
     expect(setKey).toHaveBeenCalledWith({ x: 5, y: 1, func: 'MouseLButton', mode: 'MouseKey', input: null });
   });
 
   it('clicking a Lighting tile forwards the layer-key input (e.g. RGBEffectValue with input 1)', () => {
     render(<KeebKeyAssignmentView selected={{ x: 3, y: 4 }} state={defaultState()} setKey={setKey} resetLayer={resetLayer} />);
     fireEvent.click(categoryTab('keeb.category.lightingProfiles'));
-    fireEvent.click(screen.getByRole('button', { name: 'keeb.fn.RGBEffectValue' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'keeb.fn.RGBEffectValue' }));
     expect(setKey).toHaveBeenCalledWith({ x: 3, y: 4, func: 'RGBEffectValue', mode: 'RGBKey', input: 1 });
   });
 
@@ -91,7 +91,7 @@ describe('KeebKeyAssignmentView - function-tile writes', () => {
     render(<KeebKeyAssignmentView selected={{ x: 6, y: 2 }} state={defaultState()} setKey={setKey} resetLayer={resetLayer} />);
     fireEvent.click(categoryTab('keeb.category.macros'));
     // Macro tiles label through t(labelKey, { n }) - params echo as " n=1".
-    fireEvent.click(screen.getByRole('button', { name: 'keeb.fn.macroN n=1' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'keeb.fn.macroN n=1' }));
     expect(setKey).toHaveBeenCalledWith({ x: 6, y: 2, func: 'Macro1', mode: 'MacroKey', input: 1 });
   });
 });

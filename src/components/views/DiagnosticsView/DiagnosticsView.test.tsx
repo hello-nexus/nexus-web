@@ -206,8 +206,8 @@ describe('IncidentsSection timeline', () => {
 
   it('offers the 24h/3d/7d/14d range chips', () => {
     renderIncidents({ data: response });
-    expect(screen.getByRole('button', { name: 'diagnostics.temperature.range.24h' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'diagnostics.temperature.range.14d' })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'diagnostics.temperature.range.24h' })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'diagnostics.temperature.range.14d' })).toBeInTheDocument();
   });
 
   it('still renders the full-range timeline (all lanes) when no incident falls in the range', () => {

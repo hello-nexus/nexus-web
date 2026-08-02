@@ -87,18 +87,9 @@
   color: var(--text-dim);
   font-weight: var(--weight-body);
 }
-// Selected chip (curve type, or the viewed curve): monitoring "enabled"
-// treatment - accent border + accent text/icon + a faint accent fill, instead
-// of the full bright chip-active fill. Compound selector so it wins over the
-// global .chip-action.
-:global(.chip-action).chipSoftActive {
-  background: var(--accent-soft);
-  border-color: var(--control-border-accent);
-  color: var(--accent-glow);
-}
 // The curve selector reuses the shared .chip-action pill (same family as the
-// Mode switcher), with .chipSoftActive for the viewed curve. Only the name
-// label and the dashed add chip are local.
+// Mode switcher), with the global .chip-active for the viewed curve. Only the
+// name label and the dashed add chip are local.
 .curveBtnName { white-space: nowrap; }
 .curveBtnCount {
   display: inline-flex;
@@ -118,8 +109,8 @@
   to { transform: rotate(360deg); }
 }
 // Add chip: the dashed "add" affordance used across the app, over .chip-action.
-// Compound selector (like .chipSoftActive) so it beats .chip-action's own solid
-// border + fill instead of tying on specificity.
+// Compound selector so it beats .chip-action's own border + fill instead of
+// tying on specificity.
 :global(.chip-action).curveAddBtn {
   border-style: dashed;
   border-color: var(--border-strong);

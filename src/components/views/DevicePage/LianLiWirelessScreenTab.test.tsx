@@ -97,7 +97,7 @@ describe('LianLiWirelessScreenTab', () => {
 
   it('toggles a fan in and out of the selection in multiple mode', async () => {
     await renderTab();
-    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.selectionModeMultiple' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'devices.lianli-wireless.selectionModeMultiple' }));
 
     expect(fanTile(2)).toHaveAttribute('aria-pressed', 'false');
     fireEvent.click(fanTile(2));
@@ -157,8 +157,8 @@ describe('LianLiWirelessScreenTab', () => {
 
       expect(screen.getByRole('button', { name: 'devices.lianli-wireless.sensorSourceLabel' }))
         .toHaveTextContent('devices.lianli-wireless.sensorSourceCpuTemp');
-      expect(screen.getByRole('button', { name: 'devices.lianli-wireless.sensorStyleRing' }))
-        .toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByRole('radio', { name: 'devices.lianli-wireless.sensorStyleRing' }))
+        .toHaveAttribute('aria-checked', 'true');
 
       fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.sensorSourceLabel' }));
       fireEvent.click(screen.getByRole('option', { name: 'devices.lianli-wireless.sensorSourceGpuTemp' }));
@@ -187,7 +187,7 @@ describe('LianLiWirelessScreenTab', () => {
     it('posts a change to the gauge style', async () => {
       await renderOnSensorScreen();
 
-      fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.sensorStyleBar' }));
+      fireEvent.click(screen.getByRole('radio', { name: 'devices.lianli-wireless.sensorStyleBar' }));
 
       expect(mockSetContent).toHaveBeenCalledWith('S3', 'sensor', undefined, { sensorStyle: 'bar' });
     });
@@ -195,7 +195,7 @@ describe('LianLiWirelessScreenTab', () => {
     it('shows the temperature unit toggle for a temperature source and posts a change', async () => {
       await renderOnSensorScreen();
 
-      fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.tempUnitFahrenheit' }));
+      fireEvent.click(screen.getByRole('radio', { name: 'devices.lianli-wireless.tempUnitFahrenheit' }));
 
       expect(mockSetContent).toHaveBeenCalledWith('S3', 'sensor', undefined, { tempUnit: 'f' });
     });
@@ -230,10 +230,10 @@ describe('LianLiWirelessScreenTab', () => {
     it('shows the default clock face and posts a change', async () => {
       await renderOnClockScreen();
 
-      expect(screen.getByRole('button', { name: 'devices.lianli-wireless.clockFaceDigital' }))
-        .toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByRole('radio', { name: 'devices.lianli-wireless.clockFaceDigital' }))
+        .toHaveAttribute('aria-checked', 'true');
 
-      fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.clockFaceAnalogClassic' }));
+      fireEvent.click(screen.getByRole('radio', { name: 'devices.lianli-wireless.clockFaceAnalogClassic' }));
 
       expect(mockSetContent).toHaveBeenCalledWith('S3', 'clock', undefined, { clockFace: 'analogClassic' });
     });
@@ -259,10 +259,10 @@ describe('LianLiWirelessScreenTab', () => {
     it('shows the default animation and posts a change', async () => {
       await renderOnAnimationScreen();
 
-      expect(screen.getByRole('button', { name: 'devices.lianli-wireless.animationPulse' }))
-        .toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByRole('radio', { name: 'devices.lianli-wireless.animationPulse' }))
+        .toHaveAttribute('aria-checked', 'true');
 
-      fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.animationSpin' }));
+      fireEvent.click(screen.getByRole('radio', { name: 'devices.lianli-wireless.animationSpin' }));
 
       expect(mockSetContent).toHaveBeenCalledWith('S3', 'animation', undefined, { animationId: 'spin' });
     });
@@ -279,7 +279,7 @@ describe('LianLiWirelessScreenTab', () => {
       await renderOnAnimationScreen();
 
       expect(screen.getAllByLabelText('common.hexColor').length).toBe(2);
-      fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.animationSpectrum' }));
+      fireEvent.click(screen.getByRole('radio', { name: 'devices.lianli-wireless.animationSpectrum' }));
       expect(screen.queryByLabelText('common.hexColor')).not.toBeInTheDocument();
     });
   });
@@ -288,7 +288,7 @@ describe('LianLiWirelessScreenTab', () => {
     await renderTab();
 
     // Switch to multiple mode, then add Fan 2 and Fan 3 to Fan 1's selection.
-    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.selectionModeMultiple' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'devices.lianli-wireless.selectionModeMultiple' }));
     fireEvent.click(fanTile(2));
     fireEvent.click(fanTile(3));
 
@@ -305,7 +305,7 @@ describe('LianLiWirelessScreenTab', () => {
   it('shows a mixed state and hides content panels when selected fans differ', async () => {
     await renderTab();
     // Fan 1 is image, Fan 2 is off; select both in multiple mode.
-    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.selectionModeMultiple' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'devices.lianli-wireless.selectionModeMultiple' }));
     fireEvent.click(fanTile(2));
 
     expect(screen.getByText('devices.lianli-wireless.contentMixedHint')).toBeInTheDocument();
@@ -322,7 +322,7 @@ describe('LianLiWirelessScreenTab', () => {
   it('changing the rotation chip commits the new rotation for the selected screen', async () => {
     await renderTab();
 
-    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.rotationDegrees:{"n":180}' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'devices.lianli-wireless.rotationDegrees:{"n":180}' }));
 
     expect(mockSetSettings).toHaveBeenCalledWith('S1', { rotation: 2 });
   });

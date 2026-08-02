@@ -1,4 +1,5 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, type ReactNode } from 'react';
+import { Activity, Palette, ShieldCheck, SlidersHorizontal } from 'lucide-react';
 import { ServiceRequired } from '../ServiceRequired';
 import { GenericSkeleton } from '../PageSkeleton/PageSkeleton';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
@@ -23,13 +24,14 @@ interface SettingsViewProps {
 type SettingsTabKey = 'general' | 'appearance' | 'monitoring' | 'privacy';
 
 // Single source of truth for the settings tab strip - key, translated label,
-// and tab validity (isValidTab below) all derive from this list so they can
-// never disagree about which tabs exist.
-const TAB_DEFS: readonly { key: SettingsTabKey; labelKey: string }[] = [
-  { key: 'general', labelKey: 'settings.general' },
-  { key: 'appearance', labelKey: 'settings.tab.appearance' },
-  { key: 'monitoring', labelKey: 'settings.tab.monitoring' },
-  { key: 'privacy', labelKey: 'settings.tab.privacyData' },
+// icon, and tab validity (isValidTab below) all derive from this list so they
+// can never disagree about which tabs exist. Icon size matches the other tab
+// bars in the app (RightPaneTabs).
+const TAB_DEFS: readonly { key: SettingsTabKey; labelKey: string; icon: ReactNode }[] = [
+  { key: 'general', labelKey: 'settings.general', icon: <SlidersHorizontal size={14} /> },
+  { key: 'appearance', labelKey: 'settings.tab.appearance', icon: <Palette size={14} /> },
+  { key: 'monitoring', labelKey: 'settings.tab.monitoring', icon: <Activity size={14} /> },
+  { key: 'privacy', labelKey: 'settings.tab.privacyData', icon: <ShieldCheck size={14} /> },
 ];
 
 function isValidTab(key: string): key is SettingsTabKey {
@@ -78,7 +80,7 @@ export function SettingsView({ serviceOnline, connectionState, platform, tab: ur
   }, [updateUi]);
 
   const tab: SettingsTabKey = urlTab && isValidTab(urlTab) ? urlTab : 'general';
-  const tabs = useMemo(() => TAB_DEFS.map(d => ({ key: d.key, label: t(d.labelKey) })), [t]);
+  const tabs = useMemo(() => TAB_DEFS.map(d => ({ key: d.key, label: t(d.labelKey), icon: d.icon })), [t]);
 
   // When the local service isn't detected, show the ServiceRequired overlay
   // instead of controls that can't persist. The tab strip still renders

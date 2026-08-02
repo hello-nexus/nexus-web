@@ -127,10 +127,10 @@ function mockCanvasRect(drag: HTMLElement) {
 describe('TryxDevicePage - overlay editor', () => {
   it('renders the align chips and a docked toggle', async () => {
     await renderPage();
-    expect(screen.getByRole('group', { name: 'devices.tryx.align' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'devices.tryx.alignLeft' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'devices.tryx.alignCenter' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'devices.tryx.alignRight' })).toBeInTheDocument();
+    expect(screen.getByRole('radiogroup', { name: 'devices.tryx.align' })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'devices.tryx.alignLeft' })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'devices.tryx.alignCenter' })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'devices.tryx.alignRight' })).toBeInTheDocument();
     expect(screen.getByRole('switch', { name: 'devices.tryx.docked' })).toBeInTheDocument();
   });
 
@@ -238,7 +238,7 @@ describe('TryxDevicePage - overlay editor', () => {
 
   it('changing align while docked re-anchors the enabled item, keeping docked on', async () => {
     await renderPage();
-    const rightChip = screen.getByRole('button', { name: 'devices.tryx.alignRight' });
+    const rightChip = screen.getByRole('radio', { name: 'devices.tryx.alignRight' });
     fireEvent.click(rightChip);
     await act(async () => { vi.advanceTimersByTime(150); });
 

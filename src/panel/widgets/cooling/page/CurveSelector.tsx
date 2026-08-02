@@ -66,7 +66,7 @@ export const CurveSelector = memo(function CurveSelector({
               <button
                 type="button"
                 aria-current={viewing || undefined}
-                className={`chip-action${viewing ? ' ' + styles.chipSoftActive : ''}`}
+                className={`chip-action${viewing ? ' chip-active' : ''}`}
                 onClick={() => onSelect(c.id)}
               >
                 {PresetIcon && <PresetIcon size={14} aria-hidden />}

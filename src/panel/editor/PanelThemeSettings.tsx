@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ColorPickerWithPresets } from '../../components/common/ColorPickerWithPresets/ColorPickerWithPresets';
-import { Tabs } from '../../components/common/Tabs/Tabs';
+import { ChipGroup } from '../../components/common/ChipGroup/ChipGroup';
 import { SettingsSection } from '../../components/common/SettingsSection/SettingsSection';
 import { SettingSlider, SettingToggle } from '../../components/common/SettingRow/SettingRow';
 import { useTranslation } from '../../lib/i18n';
@@ -187,10 +187,10 @@ export function PanelThemeSettings({
 
   // Rendered in normal flow for solid mode, inside the sticky dock for shader
   // mode (one instance keeps the pill state/animation continuous).
-  const backgroundModeTabs = (
-    <Tabs
+  const backgroundModeChips = (
+    <ChipGroup
       fullWidth
-      tabs={[
+      options={[
         // eslint-disable-next-line i18next/no-literal-string -- background-mode enum id
         { key: 'solid', label: label('panel.settings.backgroundMode.solid', 'Solid') },
         // eslint-disable-next-line i18next/no-literal-string -- background-mode enum id
@@ -283,15 +283,15 @@ export function PanelThemeSettings({
             onChange={onThemeSyncCommit}
           />
           {!theme.themeSyncWithDesktop && (
-            <Tabs
-              tabs={THEME_MODES.map(mode => ({
+            <ChipGroup
+              options={THEME_MODES.map(mode => ({
                 key: mode,
                 label: t(`settings.theme.${mode}`) || (mode === 'system' ? 'System' : mode === 'dark' ? 'Dark' : 'Light'),
               }))}
               activeKey={theme.themeMode}
               onChange={key => onThemeModeCommit(key as ThemeMode)}
               ariaLabel={label('settings.theme', 'Theme')}
-              className={styles.themeModeTabs}
+              fullWidth
             />
           )}
         </div>
@@ -358,7 +358,7 @@ export function PanelThemeSettings({
           <>
           {theme.backgroundMode === 'solid' ? (
             <>
-              {backgroundModeTabs}
+              {backgroundModeChips}
               <ColorPickerWithPresets
                 value={resolvePanelBackground(theme.backgroundColor, theme.backgroundColorLight, resolvedThemeMode)}
                 presets={panelBackgroundPresets(resolvedThemeMode)}
@@ -369,7 +369,7 @@ export function PanelThemeSettings({
             </>
           ) : theme.backgroundMode === 'media' ? (
             <>
-              {backgroundModeTabs}
+              {backgroundModeChips}
               <BackgroundMediaPicker
                 deviceId={deviceId ?? ''}
                 activeId={theme.backgroundMediaId}
@@ -382,15 +382,15 @@ export function PanelThemeSettings({
           ) : (
             <>
               <div className={styles.backgroundDock}>
-                {backgroundModeTabs}
+                {backgroundModeChips}
                 <BackgroundEffectPreview
                   effect={backgroundEffect}
                   template={backgroundTemplate}
                   effectState={theme.backgroundEffectState}
                 />
-                <Tabs
+                <ChipGroup
                   fullWidth
-                  tabs={[
+                  options={[
                     // eslint-disable-next-line i18next/no-literal-string -- editor tab id
                     { key: 'options', label: t('lighting.editor.options') },
                     // eslint-disable-next-line i18next/no-literal-string -- editor tab id

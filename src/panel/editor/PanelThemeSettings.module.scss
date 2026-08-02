@@ -32,16 +32,6 @@
   gap: 10px;
 }
 
-.themeModeTabs {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
-  padding: 3px;
-  border: 1px solid var(--panel-border);
-  border-radius: var(--radius);
-  background: var(--panel-control-bg);
-}
-
 // Shader mode: mode tabs + live preview + Options|Effect tabs pin to the top of
 // the settings scroller while the animate grid / effect controls scroll under.
 // The pinned dock must be OPAQUE (to mask the grid) and read as the enclosing
