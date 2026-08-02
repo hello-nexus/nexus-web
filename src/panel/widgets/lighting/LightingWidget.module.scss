@@ -333,7 +333,9 @@
   inset: 0;
   z-index: 2;
   background: #fff;
-  border-radius: inherit;
+  // Matches EffectCard's corner: the flash sits inside .thumbCardFit, which
+  // carries no radius, so `inherit` squared it off over a rounded thumbnail.
+  border-radius: var(--radius);
   pointer-events: none;
   animation: stateFlash 0.45s ease-out both;
 }
