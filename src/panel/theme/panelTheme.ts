@@ -100,6 +100,7 @@ export function buildEmbeddedPanelThemeVars(appAccentColor: string | undefined, 
     '--panel-accent-glow': accentVars['--accent-glow'],
     '--panel-accent-soft': accentVars['--accent-soft'],
     '--panel-accent-shadow': accentVars['--accent-glow-shadow'],
+    '--panel-accent-text': accentVars['--accent-text'],
   } as CSSProperties;
 }
 
@@ -122,6 +123,7 @@ export function buildPanelThemeVars(theme: PanelThemeState, resolvedThemeMode: R
     '--panel-accent-glow': accentVars['--accent-glow'],
     '--panel-accent-soft': accentVars['--accent-soft'],
     '--panel-accent-shadow': accentVars['--accent-glow-shadow'],
+    '--panel-accent-text': accentVars['--accent-text'],
   };
   return vars as CSSProperties;
 }

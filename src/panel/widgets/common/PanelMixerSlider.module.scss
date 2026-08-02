@@ -82,10 +82,14 @@
   background: linear-gradient(180deg, var(--panel-accent-glow), var(--panel-accent));
   transition: height 90ms ease;
   pointer-events: none;
+  // Clips the on-accent icon copy to the filled height.
+  overflow: hidden;
 }
 
+
 .icon,
-.iconButton {
+.iconButton,
+.iconOnFill {
   position: absolute;
   left: 50%;
   bottom: 6px;
@@ -111,6 +115,22 @@
 
 .icon {
   pointer-events: none;
+}
+
+// Copy of the icon revealed by the fill, drawn in the on-accent foreground.
+// Shares the geometry block above so the two can never drift; z-index beats
+// the real icon's 1 (.fill opens no stacking context, so both live in the
+// track's and the copy would otherwise paint underneath).
+.iconOnFill {
+  z-index: 2;
+  color: var(--panel-accent-text, var(--accent-text));
+  pointer-events: none;
+
+  // Mirrors .iconButton[data-active] so a muted control does not stay lit
+  // through the fill's collapse animation.
+  &[data-active='true'] {
+    color: var(--text-dim);
+  }
 }
 
 // Ordinal badge anchored inside the top of the track, mirroring the bottom

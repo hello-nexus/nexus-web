@@ -116,6 +116,9 @@
   --panel-accent-glow:   var(--accent-glow);
   --panel-accent-soft:   var(--accent-soft);
   --panel-accent-shadow: var(--accent-glow-shadow);
+  // Foreground for content sitting ON the accent fill; panelTheme overrides it
+  // per panel so a panel-specific accent gets its own contrast partner.
+  --panel-accent-text:   var(--accent-text);
   --panel-good:          var(--good);
   --panel-warn:          var(--warn);
   --panel-bad:           var(--bad);
