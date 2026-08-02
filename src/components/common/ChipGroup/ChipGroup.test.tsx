@@ -35,31 +35,61 @@ describe('ChipGroup single-select', () => {
     expect(screen.getAllByRole('radio').map(r => r.getAttribute('tabindex'))).toEqual(['0', '-1', '-1']);
   });
 
-  it('selects the next chip on arrow key and wraps', () => {
+  // Arrows move focus only. Callers commit real work on change (firmware
+  // writes, device POSTs), so selection must not follow focus.
+  it('moves focus on arrow key and wraps, without selecting', () => {
     const onChange = vi.fn();
     render(<ChipGroup ariaLabel="Letters" options={OPTIONS} activeKey="c" onChange={onChange} />);
+    const group = screen.getByRole('radiogroup');
 
-    fireEvent.keyDown(screen.getByRole('radiogroup'), { key: 'ArrowRight' });
-    expect(onChange).toHaveBeenCalledWith('a');
+    fireEvent.keyDown(group, { key: 'ArrowRight' });
+    expect(document.activeElement).toBe(screen.getByRole('radio', { name: 'Alpha' }));
 
-    onChange.mockClear();
-    fireEvent.keyDown(screen.getByRole('radiogroup'), { key: 'ArrowLeft' });
+    fireEvent.keyDown(group, { key: 'ArrowLeft' });
+    expect(document.activeElement).toBe(screen.getByRole('radio', { name: 'Charlie' }));
+
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('steps from the focused chip, not from the selected one', () => {
+    // A device-derived activeKey lags its own commit; stepping from it would
+    // re-issue the same write and freeze the walk.
+    render(<ChipGroup ariaLabel="Letters" options={OPTIONS} activeKey="a" onChange={vi.fn()} />);
+    const group = screen.getByRole('radiogroup');
+
+    screen.getByRole('radio', { name: 'Bravo' }).focus();
+    fireEvent.keyDown(group, { key: 'ArrowRight' });
+
+    expect(document.activeElement).toBe(screen.getByRole('radio', { name: 'Charlie' }));
+  });
+
+  it('commits the focused chip on Enter', () => {
+    const onChange = vi.fn();
+    render(<ChipGroup ariaLabel="Letters" options={OPTIONS} activeKey="a" onChange={onChange} />);
+
+    const bravo = screen.getByRole('radio', { name: 'Bravo' });
+    bravo.focus();
+    // A native button fires click for Enter/Space; jsdom does not synthesise
+    // that from keyDown, so assert the same path the browser reaches.
+    fireEvent.click(bravo);
     expect(onChange).toHaveBeenCalledWith('b');
   });
 
   it('skips disabled chips when arrowing', () => {
-    const onChange = vi.fn();
     render(
       <ChipGroup
         ariaLabel="Letters"
         options={[OPTIONS[0], { ...OPTIONS[1], disabled: true }, OPTIONS[2]]}
         activeKey="a"
-        onChange={onChange}
+        onChange={vi.fn()}
       />,
     );
+    const group = screen.getByRole('radiogroup');
 
-    fireEvent.keyDown(screen.getByRole('radiogroup'), { key: 'ArrowRight' });
-    expect(onChange).toHaveBeenCalledWith('c');
+    screen.getByRole('radio', { name: 'Alpha' }).focus();
+    fireEvent.keyDown(group, { key: 'ArrowRight' });
+
+    expect(document.activeElement).toBe(screen.getByRole('radio', { name: 'Charlie' }));
   });
 
   it('still selects on click', () => {

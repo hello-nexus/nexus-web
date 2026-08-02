@@ -165,10 +165,11 @@ describe('MonitoringSettings', () => {
     expect(screen.getAllByRole('combobox')).toHaveLength(2);
     // 2 slot-select buttons + design buttons + 2 range buttons (sparkline
     // supports scale) + 3 Label chips (Auto/Hide/Custom; reset hidden in Auto).
-    // Single-select chips are radios; the rest are pressed-state buttons.
+    // Split by role so a control changing category can't hide in the total:
+    // the 3 Label chips are radios, everything else stays a pressed button.
     const pressed = screen.getAllByRole('button').filter(button => button.hasAttribute('aria-pressed'));
-    const radios = screen.getAllByRole('radio');
-    expect(pressed.length + radios.length).toBe(2 + GAUGE_DESIGN_KEYS.length + 2 + 3);
+    expect(pressed).toHaveLength(2 + GAUGE_DESIGN_KEYS.length + 2);
+    expect(screen.getAllByRole('radio')).toHaveLength(3);
   });
 
   it('updates the selected rendered sensor slot', () => {

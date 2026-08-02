@@ -438,8 +438,8 @@ export const CurveCard = memo(function CurveCard({
   const isPreset = !!curve.preset;
   const [renaming, setRenaming] = useState(false);
 
-  // The selected chip uses the soft-active treatment (accent border/text +
-  // faint accent bg), not a fill.
+  // Hand-rolled rather than ChipGroup: each chip carries its own hover tooltip
+  // describing the mode. Styling comes from the shared .chip-action classes.
   const typeChips = (
     <div className={`chip-group ${styles.curveTypeChipGroup}`} role="radiogroup" aria-label={t('cooling.curve.type.label')}>
       {CURVE_TYPES.map(ct => {

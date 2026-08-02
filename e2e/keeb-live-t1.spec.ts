@@ -53,7 +53,7 @@ test('keeb page works against the live service and hardware', async ({ page }) =
   // does not exist there yet, so assigning must toast and revert.
   await page.locator('button[title="F1"]').first().click();
   await page.getByRole('tab', { name: 'Mouse' }).click();
-  await page.getByRole('button', { name: 'Left Click' }).click();
+  await page.getByRole('radio', { name: 'Left Click' }).click();
   const failToast = page.getByText('Keyboard change failed');
   await expect(failToast).toBeVisible({ timeout: 10_000 });
   await page.screenshot({ path: join(SCREENSHOT_DIR, 'keeb-live-02-failure-toast.png') });

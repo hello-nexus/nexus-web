@@ -47,23 +47,30 @@ export function ChipGroup(props: ChipGroupProps) {
   const { options, ariaLabel, className, fullWidth } = props;
   const groupRef = useRef<HTMLDivElement>(null);
 
-  // Radio semantics put the whole group on one tab stop; arrows move within it
-  // and select as they go, which is what a radiogroup is expected to do.
+  // Radio semantics put the whole group on one tab stop and arrows move inside
+  // it. Movement does NOT select: callers commit real work on change - a keeb
+  // chip writes keyboard firmware, a Lian Li chip rotates the physical screen -
+  // and selection-follows-focus would fire one of those per keypress. ARIA APG
+  // allows this variant; Space/Enter commits, which the native button already
+  // does. Stepping is measured from the FOCUSED chip, not from activeKey, since
+  // a device-derived activeKey lags its own commit and would stall the walk.
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (props.multiSelect) return;
     const step = event.key === 'ArrowRight' || event.key === 'ArrowDown' ? 1
       : event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1
         : 0;
     if (step === 0) return;
-    const selectable = options.filter(o => !o.disabled);
-    if (selectable.length === 0) return;
-    const at = selectable.findIndex(o => o.key === props.activeKey);
-    const next = selectable[(((at < 0 ? 0 : at) + step) + selectable.length) % selectable.length];
+    const group = groupRef.current;
+    if (!group) return;
+    const chips = [...group.querySelectorAll<HTMLButtonElement>('[data-chip-key]')]
+      .filter(el => !el.disabled);
+    if (chips.length === 0) return;
+    const focused = chips.indexOf(document.activeElement as HTMLButtonElement);
+    const from = focused >= 0
+      ? focused
+      : Math.max(0, chips.findIndex(el => el.dataset.chipKey === props.activeKey));
     event.preventDefault();
-    props.onChange(next.key);
-    groupRef.current
-      ?.querySelector<HTMLButtonElement>(`[data-chip-key="${CSS.escape(next.key)}"]`)
-      ?.focus();
+    chips[((from + step) + chips.length) % chips.length].focus();
   };
 
   const singleSelect = !props.multiSelect;

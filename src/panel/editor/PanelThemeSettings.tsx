@@ -199,8 +199,10 @@ export function PanelThemeSettings({
   // excluding this panel so its own selection never badges itself.
   const panelUsage = usePanelBackgroundUsage(deviceId);
 
-  // Rendered in normal flow for solid mode, inside the sticky dock for shader
-  // mode (one instance keeps the pill state/animation continuous).
+  // Normal flow for solid and media, inside the sticky dock for shader mode so
+  // it pins while the effect grid scrolls. The two positions mean React
+  // remounts this on a switch into or out of shader, which drops keyboard
+  // focus - the same shape the Tabs version had.
   const backgroundModeChips = (
     <ChipGroup
       fullWidth

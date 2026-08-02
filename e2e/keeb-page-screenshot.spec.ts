@@ -184,7 +184,7 @@ test('walks every Keeb page tab', async ({ page }) => {
   await page.locator('button[title="F1"]').first().click();
   await page.getByRole('tab', { name: 'Mouse' }).click();
   await page.waitForTimeout(300);
-  await expect(page.getByRole('button', { name: 'Left Click' })).toBeEnabled();
+  await expect(page.getByRole('radio', { name: 'Left Click' })).toBeEnabled();
   await page.screenshot({ path: join(SCREENSHOT_DIR, 'keeb-02-assignment-mouse.png') });
 
   // Wheel selection swaps the body to the rotary editor.

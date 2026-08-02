@@ -112,10 +112,10 @@
   // truth for every rounded corner in the app. No raw px radii in component
   // styles: pick the nearest rung. Panel aliases (--panel-card-radius,
   // --panel-element-radius, --icon-label-button-radius, ...) all resolve here.
-  --radius-sm: 6px;        // bars, ticks, chips, dense controls, small buttons, swatches
+  --radius-sm: 6px;        // bars, ticks, dense controls, small buttons, swatches
   --radius: 10px;          // default - cards, modals, buttons, inputs, panel elements
   --radius-lg: 16px;       // hero cards, sheets, overlays, primary surfaces
-  --radius-pill: 999px;    // pills, toggles, status badges, fully-rounded
+  --radius-pill: 999px;    // chips, pills, toggles, status badges, fully-rounded
 
   // Spacing. T-shirt sizing matches `--size-*`. Anything beyond xl is rare
   // enough to be raw with a comment, or compose multiples
