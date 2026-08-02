@@ -113,20 +113,14 @@
 // `-webkit-` form makes lightningcss drop the unprefixed one as "redundant",
 // which renders nothing on Blink (WebView2 / Android WebView) - Blink does
 // NOT recognise `-webkit-backdrop-filter`. The prefix is iOS WKWebView only.
+// One unstacked pass at any strength - only the radius grows, scaled by the
+// panel's frost percent (panelBackgroundFrostScale); zero renders no element.
 .backgroundFrost {
   position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
-}
-
-// Each level is still a single, unstacked backdrop-filter pass - only the radius grows.
-.backgroundFrost[data-level='light'] {
-  backdrop-filter: blur(var(--blur-backdrop));
-}
-
-.backgroundFrost[data-level='heavy'] {
-  backdrop-filter: blur(calc(var(--blur-backdrop) * 2));
+  backdrop-filter: blur(calc(var(--blur-backdrop) * var(--panel-frost-scale, 1)));
 }
 
 @keyframes connectionIntroBackdrop {

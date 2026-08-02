@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { normalizePanelBackgroundFrost, resolvePanelBackgroundEnabled } from './panelBackground';
+import {
+  DEFAULT_PANEL_BACKGROUND_FROST,
+  normalizePanelBackgroundFrost,
+  panelBackgroundFrostScale,
+  resolvePanelBackgroundEnabled,
+} from './panelBackground';
 
 describe('resolvePanelBackgroundEnabled', () => {
   it('defaults wallpaper-capable panels to see-through (background off)', () => {
@@ -21,21 +26,27 @@ describe('resolvePanelBackgroundEnabled', () => {
 });
 
 describe('normalizePanelBackgroundFrost', () => {
-  it('defaults an untouched record to light', () => {
-    expect(normalizePanelBackgroundFrost(undefined)).toBe('light');
-    expect(normalizePanelBackgroundFrost(null)).toBe('light');
+  it('defaults an unset value to the mid-strength default', () => {
+    expect(normalizePanelBackgroundFrost(undefined)).toBe(DEFAULT_PANEL_BACKGROUND_FROST);
+    expect(normalizePanelBackgroundFrost(null)).toBe(DEFAULT_PANEL_BACKGROUND_FROST);
+    expect(normalizePanelBackgroundFrost(Number.NaN)).toBe(DEFAULT_PANEL_BACKGROUND_FROST);
   });
 
-  it('keeps an explicit none distinct from an untouched record', () => {
-    expect(normalizePanelBackgroundFrost('none')).toBe('none');
+  it('keeps an explicit zero (frost off) distinct from unset', () => {
+    expect(normalizePanelBackgroundFrost(0)).toBe(0);
   });
 
-  it('passes explicit light/heavy through unchanged', () => {
-    expect(normalizePanelBackgroundFrost('light')).toBe('light');
-    expect(normalizePanelBackgroundFrost('heavy')).toBe('heavy');
+  it('clamps to 0-100 and rounds to a whole percent', () => {
+    expect(normalizePanelBackgroundFrost(-20)).toBe(0);
+    expect(normalizePanelBackgroundFrost(140)).toBe(100);
+    expect(normalizePanelBackgroundFrost(37.4)).toBe(37);
   });
+});
 
-  it('falls back to the default for an unrecognised value', () => {
-    expect(normalizePanelBackgroundFrost('bogus')).toBe('light');
+describe('panelBackgroundFrostScale', () => {
+  it('maps the unit percent to one blur token and 100% to twice it', () => {
+    expect(panelBackgroundFrostScale(50)).toBe(1);
+    expect(panelBackgroundFrostScale(100)).toBe(2);
+    expect(panelBackgroundFrostScale(0)).toBe(0);
   });
 });

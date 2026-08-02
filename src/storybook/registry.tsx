@@ -1245,7 +1245,7 @@ function PreviewPanelThemeSettings() {
     backgroundOpacity: 0.4,
     backgroundEnabled: true,
     backgroundEffectState: { speed: 0, intensity: 1, hue: 0, colorize: 0, saturation: 1, contrast: 1, params: {} },
-    backgroundMediaId: null, backgroundMediaType: null, backgroundFrost: 'none',
+    backgroundMediaId: null, backgroundMediaType: null, backgroundFrost: 0,
     widgetOpacity: 1, widgetLabels: true, widgetPadding: 50,
   });
   const set = (patch: Partial<PanelThemeSettingsState>) => setTheme(t => ({ ...t, ...patch }));
@@ -1274,6 +1274,7 @@ function PreviewPanelThemeSettings() {
         onWidgetOpacityPreview={o => set({ widgetOpacity: o })}
         onWidgetOpacityCommit={o => set({ widgetOpacity: o })}
         onWidgetLabelsCommit={v => set({ widgetLabels: v })}
+        onBackgroundFrostPreview={v => set({ backgroundFrost: v })}
         onBackgroundFrostCommit={v => set({ backgroundFrost: v })}
         onWidgetPaddingPreview={v => set({ widgetPadding: v })}
         onWidgetPaddingCommit={v => set({ widgetPadding: v })}

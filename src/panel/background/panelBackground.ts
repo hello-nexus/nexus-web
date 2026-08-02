@@ -11,10 +11,10 @@ import { cachedAnimateDefaults } from '../../api/lighting';
 import { getInstallDefaults } from '../../api/installDefaultsCache';
 
 export type PanelBackgroundMode = 'solid' | 'shader' | 'media';
-export type PanelBackgroundFrost = 'none' | 'light' | 'heavy';
 
-// An untouched panel defaults to frosted; an explicit 'none' still stays off.
-export const DEFAULT_PANEL_BACKGROUND_FROST: PanelBackgroundFrost = 'light';
+// Frost strength, percent 0-100; 0 renders no frost pass at all.
+export const DEFAULT_PANEL_BACKGROUND_FROST = 50;
+export const PANEL_BACKGROUND_FROST_STEP = 5;
 export type PanelResolvedTheme = 'dark' | 'light';
 
 export const DEFAULT_PANEL_BACKGROUND_EFFECT = 'aurora';
@@ -165,9 +165,17 @@ export function normalizePanelWidgetLabels(value: boolean | null | undefined): b
   return value;
 }
 
-export function normalizePanelBackgroundFrost(value: string | null | undefined): PanelBackgroundFrost {
-  if (value === 'light' || value === 'heavy' || value === 'none') return value;
-  return DEFAULT_PANEL_BACKGROUND_FROST;
+// Percent that renders exactly one --blur-backdrop; the scale it yields
+// multiplies that token in PanelApp.module.scss.
+const PANEL_BACKGROUND_FROST_UNIT_PERCENT = 50;
+
+export function panelBackgroundFrostScale(percent: number): number {
+  return percent / PANEL_BACKGROUND_FROST_UNIT_PERCENT;
+}
+
+export function normalizePanelBackgroundFrost(value: number | null | undefined): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return DEFAULT_PANEL_BACKGROUND_FROST;
+  return Math.min(Math.max(Math.round(value), 0), 100);
 }
 
 export function normalizePanelWidgetPadding(value: number | null | undefined): number {

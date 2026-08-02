@@ -76,7 +76,7 @@ import { inferSurfaceFromViewport } from './device/inferSurface';
 import { PanelBackgroundShader } from './background/PanelBackgroundShader';
 import { PanelBackgroundMedia } from './background/PanelBackgroundMedia';
 import { PanelBackgroundDesktop } from './background/PanelBackgroundDesktop';
-import { resolvePanelBackground } from './background/panelBackground';
+import { panelBackgroundFrostScale, resolvePanelBackground } from './background/panelBackground';
 import type { SimulatorTheme } from './embed/simulatorProtocol';
 import './styles/tokens.scss';
 import styles from './PanelApp.module.scss';
@@ -465,7 +465,7 @@ export function PanelContent({
   // Solid mode renders no frost pass: a blurred solid colour is the colour.
   const backgroundFrost = (backgroundOff || (showBackgroundLayers && effectiveTheme.backgroundMode !== 'solid'))
     ? effectiveTheme.backgroundFrost
-    : 'none';
+    : 0;
   const panelSolidColor = useMemo(
     () => showPanelBackground
       ? resolvePanelBackground(
@@ -1421,8 +1421,13 @@ export function PanelContent({
             aria-hidden
           />
         )}
-        {backgroundFrost !== 'none' && (
-          <div className={styles.backgroundFrost} data-panel-frost data-level={backgroundFrost} aria-hidden />
+        {backgroundFrost > 0 && (
+          <div
+            className={styles.backgroundFrost}
+            data-panel-frost
+            style={{ '--panel-frost-scale': panelBackgroundFrostScale(backgroundFrost) } as CSSProperties}
+            aria-hidden
+          />
         )}
         {!loaded ? (
           <div className={styles.loading}><Spinner size={28} /></div>
@@ -1709,6 +1714,7 @@ export function PanelContent({
           onThemeWidgetOpacityPreview={panelTheme.previewWidgetOpacity}
           onThemeWidgetOpacityCommit={panelTheme.commitWidgetOpacity}
           onThemeWidgetLabelsCommit={panelTheme.commitWidgetLabels}
+          onThemeBackgroundFrostPreview={panelTheme.previewBackgroundFrost}
           onThemeBackgroundFrostCommit={panelTheme.commitBackgroundFrost}
           onThemeWidgetPaddingPreview={panelTheme.previewWidgetPadding}
           onThemeWidgetPaddingCommit={panelTheme.commitWidgetPadding}

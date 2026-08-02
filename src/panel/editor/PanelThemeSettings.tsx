@@ -1,20 +1,19 @@
 import { useState } from 'react';
-import { ChipGroup } from '../../components/common/ChipGroup/ChipGroup';
 import { ColorPickerWithPresets } from '../../components/common/ColorPickerWithPresets/ColorPickerWithPresets';
 import { Tabs } from '../../components/common/Tabs/Tabs';
 import { SettingsSection } from '../../components/common/SettingsSection/SettingsSection';
-import { SettingRow, SettingSlider, SettingToggle } from '../../components/common/SettingRow/SettingRow';
+import { SettingSlider, SettingToggle } from '../../components/common/SettingRow/SettingRow';
 import { useTranslation } from '../../lib/i18n';
 import { DEFAULT_ACCENT, PRESET_ACCENTS, THEME_MODES, type ThemeMode } from '../../lib/settings';
 import type { EffectState } from '../../types/lighting';
 import {
   PANEL_BACKGROUND_EFFECTS,
+  PANEL_BACKGROUND_FROST_STEP,
   normalizePanelBackgroundEffect,
   normalizePanelBackgroundTemplate,
   panelBackgroundDefault,
   panelBackgroundPresets,
   resolvePanelBackground,
-  type PanelBackgroundFrost,
   type PanelBackgroundMode,
 } from '../background/panelBackground';
 import { BackgroundEffectPreview } from '../widgets/lighting/effecteditor/BackgroundEffectPreview';
@@ -53,8 +52,9 @@ export interface PanelThemeSettingsState {
   backgroundEffectState: EffectState;
   backgroundMediaId: string | null;
   backgroundMediaType: 'static' | 'animated' | null;
-  // Frosted-glass blur over the background layer (shader / media / wallpaper).
-  backgroundFrost: PanelBackgroundFrost;
+  // Frosted-glass blur over the background layer (shader / media / wallpaper),
+  // percent 0-100 (see DEFAULT_PANEL_BACKGROUND_FROST).
+  backgroundFrost: number;
   widgetOpacity: number;
   widgetLabels: boolean;
   // Percent 0-100 (see defaultPanelWidgetPadding, PANEL_WIDGET_PADDING_MAX_RATIO).
@@ -80,7 +80,8 @@ export interface PanelThemeSettingsProps {
   onBackgroundOpacityPreview: (opacity: number) => void;
   onBackgroundOpacityCommit: (opacity: number) => void;
   onBackgroundMediaCommit: (mediaId: string | null, type: 'static' | 'animated' | null) => void;
-  onBackgroundFrostCommit: (level: PanelBackgroundFrost) => void;
+  onBackgroundFrostPreview: (percent: number) => void;
+  onBackgroundFrostCommit: (percent: number) => void;
   onWidgetOpacityPreview: (opacity: number) => void;
   onWidgetOpacityCommit: (opacity: number) => void;
   onWidgetLabelsCommit: (enabled: boolean) => void;
@@ -131,6 +132,7 @@ export function PanelThemeSettings({
   onBackgroundOpacityPreview,
   onBackgroundOpacityCommit,
   onBackgroundMediaCommit,
+  onBackgroundFrostPreview,
   onBackgroundFrostCommit,
   onWidgetOpacityPreview,
   onWidgetOpacityCommit,
@@ -332,21 +334,25 @@ export function PanelThemeSettings({
           )}
           {/* Frost and opacity stay visible (and active) in wallpaper mode,
               which hides the mode controls below. */}
-          <SettingRow label={label('panel.settings.backgroundFrost', 'Frosted glass')} disabled={!frostApplies}>
-            <ChipGroup
-              options={[
-                // eslint-disable-next-line i18next/no-literal-string -- frost-level enum id
-                { key: 'none', label: label('panel.settings.backgroundFrost.none', 'None'), disabled: !frostApplies },
-                // eslint-disable-next-line i18next/no-literal-string -- frost-level enum id
-                { key: 'light', label: label('panel.settings.backgroundFrost.light', 'Light'), disabled: !frostApplies },
-                // eslint-disable-next-line i18next/no-literal-string -- frost-level enum id
-                { key: 'heavy', label: label('panel.settings.backgroundFrost.heavy', 'Heavy'), disabled: !frostApplies },
-              ]}
-              activeKey={theme.backgroundFrost}
-              onChange={key => onBackgroundFrostCommit(key as PanelBackgroundFrost)}
-              ariaLabel={label('panel.settings.backgroundFrost', 'Frosted glass')}
-            />
-          </SettingRow>
+          <SettingSlider
+            // Slider does not forward `disabled` to the editable value, whose
+            // display span is focusable - gate it here or a keyboard user can
+            // still commit through a disabled control.
+            editable={frostApplies}
+            trackFill
+            disabled={!frostApplies}
+            label={label('panel.settings.backgroundFrost', 'Frosted glass')}
+            value={theme.backgroundFrost}
+            min={0}
+            max={100}
+            step={PANEL_BACKGROUND_FROST_STEP}
+            formatValue={v => `${v}%`}
+            onChange={(v, commit) => {
+              if (commit) onBackgroundFrostCommit(v);
+              else onBackgroundFrostPreview(v);
+            }}
+            onCommit={onBackgroundFrostCommit}
+          />
           {backgroundOpacitySlider}
           {showBackgroundToggle && !theme.backgroundEnabled ? null : (
           <>
