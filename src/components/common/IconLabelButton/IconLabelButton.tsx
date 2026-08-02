@@ -19,7 +19,7 @@ export interface IconLabelButtonProps {
 export function IconLabelButton({
   label,
   icon,
-  active = false,
+  active,
   disabled = false,
   className,
   title,

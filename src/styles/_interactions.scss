@@ -102,11 +102,10 @@
   color: var(--text);
 }
 
-// Bare icon control: no border and no resting fill - the glyph is the button.
-// Hover and the ON state are the only chrome, and both are the neutral square
-// above. Colour and geometry (hit area, svg size) stay with the caller; pair
-// with bare-icon-selectable, included AFTER this one, for a row that carries a
-// selected state.
+// Bare icon control for the one case IconLabelButton cannot serve: a glyph
+// that must not be a <button> because it sits inside another one (LightingPage's
+// pause/resume toggle, a span role=button in a mode tab). Every real button uses
+// the component's `bare` variant instead - keep the two in step.
 @mixin bare-icon-button {
   border: none;
   border-radius: var(--radius-sm);
@@ -115,13 +114,6 @@
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   transition: background var(--ease-fast) ease, color var(--ease-fast) ease;
-
-  // Neutralizes the accent fill the global .panel-chip paints on this state;
-  // a selectable caller re-lights it as the neutral square below.
-  &[data-active='true'] {
-    border: none;
-    background: transparent;
-  }
 
   // Gated on a real pointer because touch surfaces latch emulated hover after a
   // tap, which would leave an unselected icon reading as selected. The
@@ -146,24 +138,6 @@
   // Inset so the ring hugs the same square the hover fill draws.
   &:focus-visible {
     @include focus-ring-inset;
-  }
-}
-
-// Selection for a row of bare icons: the chosen one gets the lit square, its
-// siblings stay transparent at --text-dim.
-@mixin bare-icon-selectable {
-  color: var(--text-dim);
-
-  &[data-active='true'] {
-    @include bare-icon-lit;
-  }
-
-  // An already-lit button has to step brighter on hover, or hovering the
-  // selected one paints the fill it is already wearing and reads as dead.
-  @media (hover: hover) {
-    &[data-active='true']:hover:not(:disabled) {
-      background: var(--border);
-    }
   }
 }
 

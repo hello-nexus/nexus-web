@@ -182,8 +182,10 @@
 .pauseTogglePaused {
   @include bare-icon-lit;
 
+  // Matches bare-icon-button's own hover arm on specificity so this steps up
+  // rather than repainting the fill the paused state already wears.
   @media (hover: hover) {
-    &:hover {
+    &:hover:not(:disabled) {
       background: var(--border);
     }
   }
