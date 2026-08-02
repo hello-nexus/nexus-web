@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
 import {
   Music, Pause, Play, SkipBack, SkipForward, Shuffle, Repeat, Repeat1,
   Volume, Volume1, Volume2, VolumeX,
@@ -204,31 +205,47 @@ function MediaPlayerCell({
         />
       )}
       <div className={styles.controls}>
-        <button
-          type="button"
-          onClick={() => control('shuffle')}
+        <IconLabelButton
+          variant="bare"
+          className={styles.btn}
+          icon={<Shuffle strokeWidth={1.8} />}
+          active={!!session.playback.shuffled}
+          ariaLabel={t('panel.media.shuffle')}
           disabled={!session.controls.isShuffleEnabled}
-          className={`${styles.btn} ${styles.toggle} ${session.playback.shuffled ? styles.toggleOn : ''}`}
-          aria-label={t('panel.media.shuffle')}
-          aria-pressed={!!session.playback.shuffled}
-        ><Shuffle strokeWidth={1.8} /></button>
-        <button type="button" onClick={() => control('previous')} disabled={!session.controls.isPrevEnabled} className={styles.btn} aria-label={t('panel.media.previous')}>
-          <SkipBack strokeWidth={1.8} fill="currentColor" />
-        </button>
-        <button type="button" onClick={() => control(playing ? 'pause' : 'play')} className={`${styles.btn} ${styles.primary}`} aria-label={playing ? t('panel.media.pause') : t('panel.media.play')}>
-          {playing ? <Pause fill="currentColor" stroke="none" /> : <Play fill="currentColor" stroke="none" />}
-        </button>
-        <button type="button" onClick={() => control('next')} disabled={!session.controls.isNextEnabled} className={styles.btn} aria-label={t('panel.media.next')}>
-          <SkipForward strokeWidth={1.8} fill="currentColor" />
-        </button>
-        <button
-          type="button"
-          onClick={() => control('repeatmode')}
+          onPress={() => control('shuffle')}
+        />
+        <IconLabelButton
+          variant="bare"
+          className={styles.btn}
+          icon={<SkipBack strokeWidth={1.8} fill="currentColor" />}
+          ariaLabel={t('panel.media.previous')}
+          disabled={!session.controls.isPrevEnabled}
+          onPress={() => control('previous')}
+        />
+        <IconLabelButton
+          variant="bare"
+          className={styles.primary}
+          icon={playing ? <Pause fill="currentColor" stroke="none" /> : <Play fill="currentColor" stroke="none" />}
+          ariaLabel={playing ? t('panel.media.pause') : t('panel.media.play')}
+          onPress={() => control(playing ? 'pause' : 'play')}
+        />
+        <IconLabelButton
+          variant="bare"
+          className={styles.btn}
+          icon={<SkipForward strokeWidth={1.8} fill="currentColor" />}
+          ariaLabel={t('panel.media.next')}
+          disabled={!session.controls.isNextEnabled}
+          onPress={() => control('next')}
+        />
+        <IconLabelButton
+          variant="bare"
+          className={styles.btn}
+          icon={<RepeatIcon strokeWidth={1.8} />}
+          active={repeatActive}
+          ariaLabel={t('panel.media.repeat')}
           disabled={!session.controls.isRepeatModeEnabled}
-          className={`${styles.btn} ${styles.toggle} ${repeatActive ? styles.toggleOn : ''}`}
-          aria-label={t('panel.media.repeat')}
-          aria-pressed={repeatActive}
-        ><RepeatIcon strokeWidth={1.8} /></button>
+          onPress={() => control('repeatmode')}
+        />
       </div>
       {volume.supported && (
         <HorizontalVolume
@@ -471,15 +488,14 @@ function HorizontalVolume({
 
   return (
     <div ref={containerRef} className={styles.volumeRow}>
-      <button
-        type="button"
+      <IconLabelButton
+        variant="bare"
         className={styles.volumeMuteBtn}
-        onClick={onToggleMute}
-        aria-label={muted ? t('panel.media.unmute') : t('panel.media.mute')}
-        aria-pressed={muted}
-      >
-        <VolumeIcon volume={volume} muted={muted} />
-      </button>
+        icon={<VolumeIcon volume={volume} muted={muted} />}
+        active={muted}
+        ariaLabel={muted ? t('panel.media.unmute') : t('panel.media.mute')}
+        onPress={onToggleMute}
+      />
       <div
         ref={trackRef}
         className={styles.volumeTrack}

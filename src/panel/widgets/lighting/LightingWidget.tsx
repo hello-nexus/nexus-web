@@ -27,7 +27,7 @@ import {
 } from '../../../api/mediaLibrary';
 import { fetchServiceBlob, pingService } from '../../../api/service';
 import { EffectCard } from '../../../components/common/EffectCard/EffectCard';
-import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
+import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { publishControlSync } from '../../../lib/controlSync';
 import { LIGHTING_MODE_ICONS } from '../../../lib/lightingModeIcons';
@@ -476,16 +476,15 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
           {modeButtons.map(m => {
             const Icon = LIGHTING_MODE_ICONS[m.key];
             return (
-              <button
+              <IconLabelButton
                 key={m.key}
-                type="button"
+                variant="bare"
                 className={styles.immersiveModeButton}
-                data-active={mode === m.key ? 'true' : 'false'}
-                onClick={() => handleMode(m.key)}
-                aria-label={t(m.labelKey)}
-              >
-                <Icon aria-hidden="true" />
-              </button>
+                icon={<Icon aria-hidden="true" />}
+                active={mode === m.key}
+                ariaLabel={t(m.labelKey)}
+                onPress={() => handleMode(m.key)}
+              />
             );
           })}
         </div>
@@ -559,18 +558,16 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
         {modeButtons.map(m => {
           const Icon = LIGHTING_MODE_ICONS[m.key];
           return (
-            <HoverTooltip key={m.key} body={t(m.labelKey)} side="top">
-              <button
-                type="button"
-                className={styles.modeButton}
-                data-active={mode === m.key ? 'true' : 'false'}
-                onClick={() => handleMode(m.key)}
-                aria-pressed={mode === m.key}
-                aria-label={t(m.labelKey)}
-              >
-                <Icon aria-hidden="true" />
-              </button>
-            </HoverTooltip>
+            <IconLabelButton
+              key={m.key}
+              variant="bare"
+              className={styles.modeButton}
+              icon={<Icon aria-hidden="true" />}
+              active={mode === m.key}
+              title={t(m.labelKey)}
+              ariaLabel={t(m.labelKey)}
+              onPress={() => handleMode(m.key)}
+            />
           );
         })}
       </div>

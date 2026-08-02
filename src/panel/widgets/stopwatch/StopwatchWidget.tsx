@@ -1,5 +1,5 @@
 import { Play, Pause, RotateCcw } from 'lucide-react';
-import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
+import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
 import { useTranslation } from '../../../lib/i18n';
 import { useFitWidth } from '../common/useFitWidth';
 import { StableDigits } from '../common/StableDigits';
@@ -43,29 +43,24 @@ export function StopwatchWidget({ widget }: WidgetProps) {
         </div>
       </div>
       <div className={styles.controls}>
-        <HoverTooltip body={t('panel.stopwatch.reset')} side="top">
-          <button
-            type="button"
-            className={`panel-chip ${styles.controlBtn}`}
-            onClick={() => reset()}
-            disabled={elapsed === 0 && !isRunning}
-            aria-label={t('panel.stopwatch.reset')}
-          >
-            <RotateCcw size={16} />
-          </button>
-        </HoverTooltip>
-        <HoverTooltip body={isRunning ? t('panel.stopwatch.pause') : t('panel.stopwatch.start')} side="top">
-          <button
-            type="button"
-            className={`panel-chip ${styles.playBtn}`}
-            onClick={handleToggle}
-            data-active="true"
-            aria-label={isRunning ? t('panel.stopwatch.pause') : t('panel.stopwatch.start')}
-          >
-            {isRunning ? <Pause size={16} fill="currentColor" stroke="none" /> : <Play size={16} fill="currentColor" stroke="none" />}
-            {isWide && <span>{isRunning ? t('panel.stopwatch.pause') : t('panel.stopwatch.start')}</span>}
-          </button>
-        </HoverTooltip>
+        <IconLabelButton
+          variant="bare"
+          icon={<RotateCcw size={16} />}
+          title={t('panel.stopwatch.reset')}
+          ariaLabel={t('panel.stopwatch.reset')}
+          disabled={elapsed === 0 && !isRunning}
+          onPress={() => reset()}
+        />
+        <IconLabelButton
+          variant="bare"
+          className={styles.playBtn}
+          icon={isRunning
+            ? <Pause size={16} fill="currentColor" stroke="none" />
+            : <Play size={16} fill="currentColor" stroke="none" />}
+          title={isRunning ? t('panel.stopwatch.pause') : t('panel.stopwatch.start')}
+          ariaLabel={isRunning ? t('panel.stopwatch.pause') : t('panel.stopwatch.start')}
+          onPress={handleToggle}
+        />
       </div>
     </div>
   );

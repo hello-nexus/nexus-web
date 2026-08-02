@@ -113,13 +113,13 @@ describe('LightingWidget', () => {
     expect(screen.queryByRole('button', { name: 'Static' })).not.toBeInTheDocument();
   });
 
-  it('marks the active mode button using data-active', async () => {
+  it('marks the active mode button as pressed', async () => {
     render(<LightingWidget widget={lightingWidget('4x2')} />);
     await waitFor(() => {
       const animateBtn = screen.getByRole('button', { name: 'Animation' });
       expect(animateBtn.getAttribute('data-active')).toBe('true');
     });
-    expect(screen.getByRole('button', { name: 'Mirror' }).getAttribute('data-active')).toBe('false');
+    expect(screen.getByRole('button', { name: 'Mirror' })).toHaveAttribute('aria-pressed', 'false');
   });
 
   it('shows the Game Sync label and marks its button active when the active sync is gamesync', async () => {
@@ -127,7 +127,7 @@ describe('LightingWidget', () => {
     render(<LightingWidget widget={lightingWidget('4x2')} />);
 
     await waitFor(() => expect(screen.getByText('Game Sync')).toBeInTheDocument());
-    expect(screen.getByRole('button', { name: 'Animation' }).getAttribute('data-active')).toBe('false');
+    expect(screen.getByRole('button', { name: 'Animation' })).toHaveAttribute('aria-pressed', 'false');
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Game Sync' }).getAttribute('data-active')).toBe('true');
     });

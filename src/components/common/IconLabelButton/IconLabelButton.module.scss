@@ -35,13 +35,17 @@
   touch-action: manipulation;
   transition: background var(--ease-fast), border-color var(--ease-fast), color var(--ease-fast), box-shadow var(--ease-fast);
 
-  &:hover:not(:disabled) {
-    background: var(--icon-label-button-bg-hover);
-    color: var(--icon-label-button-text-hover);
+  // Gated on a real pointer: touch surfaces latch emulated hover after a tap,
+  // which would leave a tapped-but-unselected button wearing the ON fill.
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      background: var(--icon-label-button-bg-hover);
+      color: var(--icon-label-button-text-hover);
+    }
   }
 
   &:focus-visible {
-    outline: 2px solid var(--icon-label-button-active-border);
+    outline: 2px solid var(--icon-label-button-focus-ring, var(--icon-label-button-active-border));
     outline-offset: 2px;
   }
 
@@ -57,6 +61,40 @@
     background: var(--icon-label-button-active-bg);
     color: var(--icon-label-button-active-text);
   }
+
+  // An already-lit button needs a step up, or hovering it repaints the fill it
+  // is already wearing. Defaults to the active fill, so callers that don't set
+  // the token are unaffected.
+  &[data-active='true']:hover:not(:disabled) {
+    background: var(--icon-label-button-active-bg-hover, var(--icon-label-button-active-bg));
+  }
+}
+
+// Press feedback for the bare variant, which has no resting fill to darken and
+// - being touch-first - cannot rely on hover.
+.bare:active:not(:disabled) {
+  background: var(--border);
+}
+
+// Bare variant: no resting fill or border - the glyph is the button. Hover and
+// the ON state are the neutral square the top bar's "..." trigger wears, never
+// an accent. Square by default; callers size it with the same tokens.
+.bare {
+  --icon-label-button-height: 44px;
+  --icon-label-button-min-width: 44px;
+  --icon-label-button-padding-x: 0;
+  --icon-label-button-padding-y: 0;
+  --icon-label-button-bg: transparent;
+  --icon-label-button-bg-hover: var(--bg-card-hover);
+  --icon-label-button-active-bg: var(--bg-card-hover);
+  --icon-label-button-active-bg-hover: var(--border);
+  --icon-label-button-active-text: var(--text);
+  --icon-label-button-active-border: transparent;
+  // active-border is transparent here, so the focus ring needs its own colour
+  // or :focus-visible resolves to a transparent outline and suppresses the UA
+  // ring too - leaving keyboard users no indicator at all.
+  --icon-label-button-focus-ring: var(--accent);
+  --icon-label-icon-size: 16px;
 }
 
 .icon {

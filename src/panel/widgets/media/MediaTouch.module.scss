@@ -241,41 +241,20 @@
 }
 
 .btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border: none;
-  border-radius: var(--radius-pill);
-  background: var(--panel-element-bg);
-  color: var(--text);
-  cursor: pointer;
-  transition: background-color var(--ease-fast) ease, transform var(--ease-fast) ease, color var(--ease-fast) ease;
+  --icon-label-button-min-width: 40px;
+  --icon-label-button-height: 40px;
+  --icon-label-icon-size: 20px;
+
   flex-shrink: 0;
-
-  svg { width: 20px; height: 20px; }
-
-  &:hover:not(:disabled) { background: var(--panel-element-bg-hover); }
-  &:active:not(:disabled) { transform: scale(0.95); }
-  &:disabled { opacity: 0.3; cursor: default; }
 }
 
 .primary {
-  width: 56px;
-  height: 56px;
-  background: var(--panel-accent);
-  color: white;
+  --icon-label-button-min-width: 56px;
+  --icon-label-button-height: 56px;
+  --icon-label-icon-size: 24px;
+  --icon-label-button-text: var(--text);
 
-  svg { width: 24px; height: 24px; }
-
-  &:hover:not(:disabled) { background: var(--panel-accent-glow); }
-}
-
-.toggle { color: var(--text-dim); }
-.toggleOn {
-  color: var(--panel-accent-glow);
-  background: var(--panel-element-bg-hover);
+  flex-shrink: 0;
 }
 
 // Horizontal volume row at the bottom: small mute icon button on the
@@ -291,22 +270,10 @@
 }
 
 .volumeMuteBtn {
-  width: 44px;
-  height: 44px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  border-radius: var(--radius-pill);
-  background: transparent;
-  color: var(--text-dim);
-  cursor: pointer;
+  --icon-label-button-min-width: 44px;
+  --icon-label-button-height: 44px;
+
   flex-shrink: 0;
-
-  svg { width: 16px; height: 16px; }
-
-  &:hover { color: var(--text); background: color-mix(in srgb, white 8%, transparent); }
-  &[aria-pressed='true'] { color: var(--panel-accent-glow); }
 }
 
 .volumeTrack {

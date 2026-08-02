@@ -76,33 +76,11 @@
 
 .controls {
   display: flex;
-  gap: 8px;
+  gap: 14px;
 }
 
-// Hover is neutralized (fill pinned across :hover) because touch surfaces
-// latch the emulated hover after a tap; press feedback stays via the chip's
-// :active scale. Doubled class beats the tokens.scss .panel-chip hover rule
-// by specificity, not stylesheet order.
-.controlBtn.controlBtn {
-  padding: 10px 16px;
-  min-width: 44px;
-  min-height: 44px;
-  background: var(--panel-control-translucent);
-
-  &:hover:not(:disabled) {
-    background: var(--panel-control-translucent);
-  }
-}
-
-.playBtn.playBtn {
-  padding: 10px 20px;
-  min-width: 44px;
-  min-height: 44px;
-  gap: 8px;
-  font-size: 14px;
-
-  &,
-  &:hover:not(:disabled) {
-    background: var(--panel-accent-soft);
-  }
+// Start/pause is the widget's primary action, so it holds full contrast while
+// reset sits dim beside it at the shared component's default.
+.playBtn {
+  --icon-label-button-text: var(--text);
 }

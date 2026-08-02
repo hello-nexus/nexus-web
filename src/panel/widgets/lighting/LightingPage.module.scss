@@ -1,4 +1,5 @@
 @use '../../../styles/scrollbar' as *;
+@use '../../../styles/interactions' as *;
 
 .lighting {
   display: flex;
@@ -165,35 +166,29 @@
 }
 
 // Pause/resume glyph rendered as the active mode tab's trailing control.
-// Idle (playing) reads muted like the surrounding tab text; paused switches
-// to a solid accent fill and pulses gently so a frozen effect stays legible
-// as intentionally paused, not stalled.
+// Idle (playing) reads muted like the surrounding tab text; paused takes the
+// same neutral lit square every other ON control wears.
 .pauseToggle {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 18px;
   height: 18px;
-  border-radius: var(--radius-sm);
   color: var(--text-dim);
-  cursor: pointer;
-  transition: color var(--ease-fast) ease, background var(--ease-fast) ease;
 
-  &:hover {
-    color: var(--text);
-    background: var(--accent-soft);
-  }
+  @include bare-icon-button;
 }
 
 .pauseTogglePaused {
-  color: var(--accent-text);
-  background: var(--accent);
-  animation: lightingPausePulse 1.6s ease-in-out infinite;
-}
+  @include bare-icon-lit;
 
-@keyframes lightingPausePulse {
-  0%, 100% { background: var(--accent); box-shadow: 0 0 0 0 transparent; }
-  50% { background: var(--accent-glow); box-shadow: 0 0 7px 1px var(--accent-soft); }
+  // Matches bare-icon-button's own hover arm on specificity so this steps up
+  // rather than repainting the fill the paused state already wears.
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      background: var(--border);
+    }
+  }
 }
 
 .controls {

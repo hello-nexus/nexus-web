@@ -89,6 +89,58 @@
               color var(--ease-fast) ease;
 }
 
+// The lit state shared by a bare icon's hover and its ON/selected state: a
+// subtle neutral square behind the glyph, glyph at full contrast. Matches the
+// top bar's "..." trigger (TopBar .iconButton / .iconButtonActive) so every
+// icon control in the app reads the same. Never an accent fill.
+@mixin bare-icon-lit {
+  // --bg-card-hover, not the panel's --panel-element-bg-hover: the latter rides
+  // --border, a step brighter than the top bar's square. The panel token system
+  // already consumes this one (--panel-control-bg), so it resolves on both the
+  // desktop and panel surfaces.
+  background: var(--bg-card-hover);
+  color: var(--text);
+}
+
+// Bare icon control for the one case IconLabelButton cannot serve: a glyph
+// that must not be a <button> because it sits inside another one (LightingPage's
+// pause/resume toggle, a span role=button in a mode tab). Every real button uses
+// the component's `bare` variant instead - keep the two in step.
+@mixin bare-icon-button {
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background var(--ease-fast) ease, color var(--ease-fast) ease;
+
+  // Gated on a real pointer because touch surfaces latch emulated hover after a
+  // tap, which would leave an unselected icon reading as selected. The
+  // :not(:disabled) also out-specifies .panel-chip's own hover rule rather than
+  // tying it, which would hand the decision to stylesheet order.
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      @include bare-icon-lit;
+    }
+  }
+
+  // One step up from the hover square so a press still registers on top of it.
+  &:active:not(:disabled) {
+    background: var(--border);
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+
+  // Inset so the ring hugs the same square the hover fill draws.
+  &:focus-visible {
+    @include focus-ring-inset;
+  }
+}
+
 // Canonical rollover for in-widget operable buttons (lighting/cooling
 // presets, steam game rows, device tiles, etc.). Neutral lift on hover
 // so it never collides with the accent-coloured `[data-active='true']`
