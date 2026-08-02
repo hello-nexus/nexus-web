@@ -45,11 +45,13 @@ export interface PanelDeviceRecord {
   // central. Absent shaders default to preset 0.
   backgroundTemplates?: Record<string, number>;
   backgroundOpacity?: number;
-  // False = background layer off; a kiosk-hosted panel (y70 / monitor)
-  // renders the desktop wallpaper behind the widgets. Absent/null resolves
-  // per capability: wallpaper-capable panels default to wallpaper, everything
-  // else to the theme backdrop (resolvePanelBackgroundEnabled).
+  // Superseded by backdrop; still read once, to keep a panel that explicitly
+  // enabled the theme background off the wallpaper default (resolvePanelBackdrop).
   backgroundEnabled?: boolean | null;
+  // 'theme' | 'wallpaper' | 'desktop'. Absent/null resolves per capability:
+  // wallpaper-capable panels default to wallpaper, everything else to the
+  // theme backdrop (resolvePanelBackdrop).
+  backdrop?: string | null;
   backgroundMediaId?: string | null;
   backgroundMediaType?: 'static' | 'animated' | null;
   // Frost strength, percent 0-100. Absent/null defaults to
@@ -94,6 +96,7 @@ export interface PanelDevicePatch {
   backgroundTemplates?: Record<string, number>;
   backgroundOpacity?: number;
   backgroundEnabled?: boolean;
+  backdrop?: string;
   backgroundMediaId?: string | null;
   // '' clears the reference server-side (NullIfEmpty); a JSON null is ignored by the patch-merge.
   backgroundMediaType?: 'static' | 'animated' | '' | null;

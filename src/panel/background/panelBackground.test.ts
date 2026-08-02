@@ -1,27 +1,40 @@
 import { describe, it, expect } from 'vitest';
 import {
   DEFAULT_PANEL_BACKGROUND_FROST,
+  normalizePanelBackdrop,
   normalizePanelBackgroundFrost,
   panelBackgroundFrostScale,
-  resolvePanelBackgroundEnabled,
+  resolvePanelBackdrop,
 } from './panelBackground';
 
-describe('resolvePanelBackgroundEnabled', () => {
-  it('defaults wallpaper-capable panels to see-through (background off)', () => {
-    expect(resolvePanelBackgroundEnabled(undefined, true)).toBe(false);
-    expect(resolvePanelBackgroundEnabled(null, true)).toBe(false);
+describe('resolvePanelBackdrop', () => {
+  it('defaults wallpaper-capable panels to the redrawn wallpaper', () => {
+    expect(resolvePanelBackdrop(undefined, true)).toBe('wallpaper');
+    expect(resolvePanelBackdrop(null, true)).toBe('wallpaper');
   });
 
-  it('defaults non-wallpaper panels to the theme backdrop (background on)', () => {
-    expect(resolvePanelBackgroundEnabled(undefined, false)).toBe(true);
-    expect(resolvePanelBackgroundEnabled(null, false)).toBe(true);
+  it('defaults non-wallpaper panels to the theme backdrop', () => {
+    expect(resolvePanelBackdrop(undefined, false)).toBe('theme');
+    expect(resolvePanelBackdrop(null, false)).toBe('theme');
   });
 
-  it('passes explicit values through regardless of capability', () => {
-    expect(resolvePanelBackgroundEnabled(true, true)).toBe(true);
-    expect(resolvePanelBackgroundEnabled(false, true)).toBe(false);
-    expect(resolvePanelBackgroundEnabled(true, false)).toBe(true);
-    expect(resolvePanelBackgroundEnabled(false, false)).toBe(false);
+  it('passes a stored mode through for a wallpaper-capable panel', () => {
+    expect(resolvePanelBackdrop('theme', true)).toBe('theme');
+    expect(resolvePanelBackdrop('wallpaper', true)).toBe('wallpaper');
+    expect(resolvePanelBackdrop('desktop', true)).toBe('desktop');
+  });
+
+  // A surface with no desktop behind it cannot honour wallpaper or
+  // see-through: a stored value from another surface must not blank it.
+  it('clamps a stored desktop mode on a surface that cannot render it', () => {
+    expect(resolvePanelBackdrop('desktop', false)).toBe('theme');
+    expect(resolvePanelBackdrop('wallpaper', false)).toBe('theme');
+  });
+
+  it('falls back to the default for an unknown stored value', () => {
+    expect(resolvePanelBackdrop('nonsense', true)).toBe('wallpaper');
+    expect(normalizePanelBackdrop('nonsense')).toBeNull();
+    expect(normalizePanelBackdrop('desktop')).toBe('desktop');
   });
 });
 

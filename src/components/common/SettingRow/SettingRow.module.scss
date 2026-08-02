@@ -41,6 +41,20 @@
   }
 }
 
+// Opt-in (descriptionBelow prop): the description becomes a full-width line
+// under the label+control line, so a description that changes with the
+// control's value cannot move the control. Wrapping plus a 100% basis puts it
+// on its own line; the negative margin pulls back half the row gap, which
+// otherwise applies between the wrapped lines as well as beside the control.
+.row.descBelow {
+  flex-wrap: wrap;
+
+  .desc {
+    flex: 0 0 100%;
+    margin-top: -0.5rem;
+  }
+}
+
 // Opt-in (stackOnNarrow prop): below the breakpoint, drop the control under
 // the description instead of squeezing both into a fixed-width control's
 // leftover space - a long description otherwise wraps one or two words per

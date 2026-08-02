@@ -6,7 +6,7 @@ import styles from '../PanelApp.module.scss';
 const FETCH_RETRY_LIMIT = 2;
 
 /**
- * The desktop-wallpaper background layer (background toggled off on a
+ * The desktop-wallpaper background layer (backdrop 'wallpaper' on a
  * kiosk-hosted panel): the monitor's own wallpaper crop, with no icons,
  * taskbar, or windows. Candidates are preloaded off-DOM and swapped in on
  * success, so a refetch never flashes and a failed fetch keeps the last

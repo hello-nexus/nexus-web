@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { ColorPickerWithPresets } from '../../components/common/ColorPickerWithPresets/ColorPickerWithPresets';
+import { ChipGroup } from '../../components/common/ChipGroup/ChipGroup';
 import { Tabs } from '../../components/common/Tabs/Tabs';
 import { SettingsSection } from '../../components/common/SettingsSection/SettingsSection';
-import { SettingSlider, SettingToggle } from '../../components/common/SettingRow/SettingRow';
+import { SettingRow, SettingSlider, SettingToggle } from '../../components/common/SettingRow/SettingRow';
 import { useTranslation } from '../../lib/i18n';
 import { DEFAULT_ACCENT, PRESET_ACCENTS, THEME_MODES, type ThemeMode } from '../../lib/settings';
 import type { EffectState } from '../../types/lighting';
@@ -14,6 +15,7 @@ import {
   panelBackgroundDefault,
   panelBackgroundPresets,
   resolvePanelBackground,
+  type PanelBackdrop,
   type PanelBackgroundMode,
 } from '../background/panelBackground';
 import { BackgroundEffectPreview } from '../widgets/lighting/effecteditor/BackgroundEffectPreview';
@@ -46,9 +48,9 @@ export interface PanelThemeSettingsState {
   // backgroundTemplate is the active shader's entry; this holds every shader's.
   backgroundTemplates: Record<string, number>;
   backgroundOpacity: number;
-  // False = no background at all: kiosk-hosted panels (y70 / monitor) render
-  // fully transparent and the Windows desktop shows through the widgets.
-  backgroundEnabled: boolean;
+  // What renders behind the widgets. Only kiosk-hosted panels (y70 /
+  // monitor) offer anything but 'theme'.
+  backdrop: PanelBackdrop;
   backgroundEffectState: EffectState;
   backgroundMediaId: string | null;
   backgroundMediaType: 'static' | 'animated' | null;
@@ -72,7 +74,7 @@ export interface PanelThemeSettingsProps {
   onBackgroundPreview: (hex: string) => void;
   onBackgroundCommit: (hex: string) => void;
   onBackgroundModeCommit: (mode: PanelBackgroundMode) => void;
-  onBackgroundEnabledCommit: (enabled: boolean) => void;
+  onBackdropCommit: (backdrop: PanelBackdrop) => void;
   onBackgroundEffectCommit: (effect: string) => void;
   onBackgroundTemplateCommit: (template: number) => void;
   onBackgroundEffectStatePreview: (state: EffectState) => void;
@@ -107,9 +109,9 @@ export interface PanelThemeSettingsProps {
   /** This panel's device id, excluded from the "used by a panel" badge so its
    * own background never badges itself. */
   deviceId?: string | null;
-  /** Show the background on/off toggle. Kiosk-hosted surfaces (y70 / monitor)
-   * only: off renders the page transparent so the desktop shows through. */
-  showBackgroundToggle?: boolean;
+  /** Show the backdrop selector. Kiosk-hosted surfaces (y70 / monitor) only:
+   * the wallpaper and see-through modes need a desktop behind the panel. */
+  showBackdropSelector?: boolean;
 }
 
 export function PanelThemeSettings({
@@ -124,7 +126,7 @@ export function PanelThemeSettings({
   onBackgroundPreview,
   onBackgroundCommit,
   onBackgroundModeCommit,
-  onBackgroundEnabledCommit,
+  onBackdropCommit,
   onBackgroundEffectCommit,
   onBackgroundTemplateCommit,
   onBackgroundEffectStatePreview,
@@ -145,7 +147,7 @@ export function PanelThemeSettings({
   deviceH,
   hideWidgetLabelsToggle = false,
   hideWidgetChromeControls = false,
-  showBackgroundToggle = false,
+  showBackdropSelector = false,
 }: PanelThemeSettingsProps) {
   const { t } = useTranslation();
   const label = (key: string, fallback: string) => {
@@ -158,10 +160,23 @@ export function PanelThemeSettings({
   const backgroundOpacityPercent = Math.round(theme.backgroundOpacity * 100);
   const widgetOpacityPercent = Math.round(theme.widgetOpacity * 100);
   const widgetPaddingLabel = label('panel.settings.widgetPadding', 'Widget padding');
-  // Frost renders over the wallpaper and the shader / media layers; solid mode
-  // has no frost pass, so the control disables there.
-  const frostApplies = (showBackgroundToggle && !theme.backgroundEnabled)
-    || theme.backgroundMode !== 'solid';
+  // Frost blurs whatever the page itself paints, so it applies to the
+  // redrawn wallpaper and to a shader/media layer. In see-through mode the
+  // page paints nothing and backdrop-filter has nothing to sample.
+  const frostApplies = theme.backdrop === 'wallpaper'
+    || (theme.backdrop === 'theme' && theme.backgroundMode !== 'solid');
+  // Built outside the JSX so the option keys read as data, matching the other
+  // ChipGroup call sites (the i18n lint rule scans JSX only).
+  const backdropOptions = [
+    { key: 'theme', label: label('panel.settings.backdrop.theme', 'Theme') },
+    { key: 'wallpaper', label: label('panel.settings.backdrop.wallpaper', 'Wallpaper') },
+    { key: 'desktop', label: label('panel.settings.backdrop.desktop', 'Desktop') },
+  ];
+  const backdropDescription = theme.backdrop === 'desktop'
+    ? label('panel.settings.backdrop.desktop.desc', 'The live desktop shows through, animated wallpapers included.')
+    : theme.backdrop === 'wallpaper'
+      ? label('panel.settings.backdrop.wallpaper.desc', 'Redraws your desktop wallpaper behind the widgets')
+      : label('panel.settings.backdrop.theme.desc', "The panel's own background");
 
   // Options | Effect tab and chip-filter state, owned here (not by the
   // EffectEditor shell) so the preview + tab bars + chips can sit in one
@@ -204,9 +219,10 @@ export function PanelThemeSettings({
     />
   );
 
-  // Opacity of the solid colour / shader / media / wallpaper layer over the
-  // theme's dark/light backdrop; applies to every mode including wallpaper
-  // see-through, so it renders outside the wallpaper-mode gate below.
+  // Opacity of whatever sits behind the widgets over the theme's dark/light
+  // backdrop: the solid colour / shader / media layer, the redrawn wallpaper,
+  // or the desktop itself. Applies to every backdrop, so it renders outside
+  // the theme-only gate below.
   const backgroundOpacitySlider = (
     <SettingSlider
       editable
@@ -320,20 +336,22 @@ export function PanelThemeSettings({
         {/* Single aside child so the box adds no row dividers between the
             opacity slider, mode tabs, and the mode content. */}
         <div className={styles.backgroundContent} data-settings-aside>
-          {showBackgroundToggle && (
-            // Inverted view of backgroundEnabled: the wire field is
-            // "background on"; only this control reads as "wallpaper on".
-            // A null wire value resolves per capability (wallpaper-capable
-            // panels default to wallpaper) - see resolvePanelBackgroundEnabled.
-            <SettingToggle
-              label={label('panel.settings.backgroundWallpaper', 'Use wallpaper for background')}
-              description={label('panel.settings.backgroundWallpaper.desc', 'Shows the desktop wallpaper behind the widgets')}
-              checked={!theme.backgroundEnabled}
-              onChange={useWallpaper => onBackgroundEnabledCommit(!useWallpaper)}
-            />
+          {showBackdropSelector && (
+            <SettingRow
+              label={label('panel.settings.backdrop', 'Backdrop')}
+              description={backdropDescription}
+              descriptionBelow
+            >
+              <ChipGroup
+                ariaLabel={label('panel.settings.backdrop', 'Backdrop')}
+                activeKey={theme.backdrop}
+                onChange={key => onBackdropCommit(key as PanelBackdrop)}
+                options={backdropOptions}
+              />
+            </SettingRow>
           )}
-          {/* Frost and opacity stay visible (and active) in wallpaper mode,
-              which hides the mode controls below. */}
+          {/* Frost and opacity stay visible under every backdrop, which
+              hides the theme-only mode controls below. */}
           <SettingSlider
             // Slider does not forward `disabled` to the editable value, whose
             // display span is focusable - gate it here or a keyboard user can
@@ -354,7 +372,7 @@ export function PanelThemeSettings({
             onCommit={onBackgroundFrostCommit}
           />
           {backgroundOpacitySlider}
-          {showBackgroundToggle && !theme.backgroundEnabled ? null : (
+          {theme.backdrop !== 'theme' ? null : (
           <>
           {theme.backgroundMode === 'solid' ? (
             <>

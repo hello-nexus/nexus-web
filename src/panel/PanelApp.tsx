@@ -457,13 +457,27 @@ export function PanelContent({
       : { ...panelThemeVars, '--panel-editor-blur-scale': webkitSafePanelScale ?? 1 } as CSSProperties),
     [touchPanelChrome, webkitSafePanelScale, panelThemeVars],
   );
-  const backgroundOff = showPanelBackground
-    && effectiveTheme.backgroundEnabled === false
-    && wallpaperBackgroundAvailable;
-  const showBackgroundLayers = showPanelBackground && !backgroundOff;
-  // Frosted glass over the background layer (shader / media / wallpaper).
-  // Solid mode renders no frost pass: a blurred solid colour is the colour.
-  const backgroundFrost = (backgroundOff || (showBackgroundLayers && effectiveTheme.backgroundMode !== 'solid'))
+  const backdrop = wallpaperBackgroundAvailable && showPanelBackground
+    ? effectiveTheme.backdrop
+    : 'theme';
+  // Wallpaper redraws the desktop picture in-page; desktop paints nothing at
+  // all, leaving the transparent kiosk window to show the live desktop. The
+  // simulator has no desktop behind its iframe, so it stands in with the
+  // wallpaper rather than going transparent over the dashboard.
+  const seeThrough = backdrop === 'desktop' && !simulator;
+  const showWallpaperLayer = backdrop === 'wallpaper' || (backdrop === 'desktop' && simulator);
+  // html/body carry the app background from global.scss, so a transparent
+  // panel root alone still paints over the desktop the kiosk is showing.
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.toggle('panel-see-through', seeThrough);
+    return () => root.classList.remove('panel-see-through');
+  }, [seeThrough]);
+  const showBackgroundLayers = showPanelBackground && backdrop === 'theme';
+  // Frosted glass blurs what the page itself painted. Solid mode renders no
+  // frost pass (a blurred solid colour is the colour), and see-through has
+  // nothing in-page to sample.
+  const backgroundFrost = (showWallpaperLayer || (showBackgroundLayers && effectiveTheme.backgroundMode !== 'solid'))
     ? effectiveTheme.backgroundFrost
     : 0;
   const panelSolidColor = useMemo(
@@ -476,7 +490,11 @@ export function PanelContent({
       : 'transparent',
     [showPanelBackground, effectiveTheme.backgroundColor, effectiveTheme.backgroundColorLight, resolvedThemeMode],
   );
-  const themeBackdrop = showPanelBackground ? 'var(--backdrop-base)' : 'transparent';
+  // See-through paints nothing of its own: an opaque root would hide the very
+  // desktop the transparent kiosk exists to show.
+  const themeBackdrop = showPanelBackground && !seeThrough
+    ? 'var(--backdrop-base)'
+    : 'transparent';
   const panelRootStyle = useMemo(
     () => ({
       ...panelThemeVars,
@@ -1394,7 +1412,15 @@ export function PanelContent({
         onPointerCancel={backgroundLongPress.onPointerCancel}
         onContextMenu={handleBackgroundContextMenu}
       >
-        {backgroundOff && <PanelBackgroundDesktop opacity={effectiveTheme.backgroundOpacity} />}
+        {showWallpaperLayer && <PanelBackgroundDesktop opacity={effectiveTheme.backgroundOpacity} />}
+        {seeThrough && effectiveTheme.backgroundOpacity < 1 && (
+          <div
+            className={styles.backgroundScrim}
+            data-panel-bg-layer
+            style={{ '--panel-background-opacity': 1 - effectiveTheme.backgroundOpacity } as CSSProperties}
+            aria-hidden
+          />
+        )}
         {showBackgroundLayers && effectiveTheme.backgroundMode === 'shader' && (
           <PanelBackgroundShader
             effect={effectiveTheme.backgroundEffect}
@@ -1698,8 +1724,8 @@ export function PanelContent({
           onThemeBackgroundPreview={panelTheme.previewBackground}
           onThemeBackgroundCommit={panelTheme.commitBackground}
           onThemeBackgroundModeCommit={panelTheme.commitBackgroundMode}
-          onThemeBackgroundEnabledCommit={panelTheme.commitBackgroundEnabled}
-          showBackgroundToggle={wallpaperBackgroundAvailable}
+          onThemeBackdropCommit={panelTheme.commitBackdrop}
+          showBackdropSelector={wallpaperBackgroundAvailable}
           onThemeBackgroundEffectCommit={panelTheme.commitBackgroundEffect}
           onThemeBackgroundTemplateCommit={panelTheme.commitBackgroundTemplate}
           onThemeBackgroundEffectStatePreview={panelTheme.previewBackgroundEffectState}

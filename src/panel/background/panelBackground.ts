@@ -123,16 +123,33 @@ export function resolvePanelBackground(
   return resolved === 'light' ? pair.light : pair.dark;
 }
 
+// What renders behind the widgets. 'theme' is the panel's own background
+// layer (solid / shader / media); 'wallpaper' redraws the desktop wallpaper
+// in-page; 'desktop' makes the kiosk window itself transparent so the live
+// desktop shows through, animated wallpapers included.
+export type PanelBackdrop = 'theme' | 'wallpaper' | 'desktop';
+
+export function normalizePanelBackdrop(value: string | null | undefined): PanelBackdrop | null {
+  return value === 'theme' || value === 'wallpaper' || value === 'desktop' ? value : null;
+}
+
 // Wallpaper-capable panels (the Y70 and display-bound monitors) default to
-// desktop see-through - background layer OFF, so the wallpaper shows behind
-// the widgets; everything else (phone, q-series, streamed panels) defaults
-// to the theme backdrop. A stored value always wins.
-export function resolvePanelBackgroundEnabled(
-  stored: boolean | null | undefined,
+// redrawing the wallpaper; every other surface has no desktop behind it and
+// stays on the theme backdrop, which also clamps a stored mode that surface
+// cannot render. A stored value otherwise wins.
+//
+// legacyEnabled is the superseded backgroundEnabled field: a record that
+// explicitly turned the theme background ON predates the backdrop field and
+// must keep that background rather than being defaulted onto the wallpaper.
+export function resolvePanelBackdrop(
+  stored: string | null | undefined,
   wallpaperCapable: boolean,
-): boolean {
-  if (typeof stored === 'boolean') return stored;
-  return !wallpaperCapable;
+  legacyEnabled?: boolean | null,
+): PanelBackdrop {
+  if (!wallpaperCapable) return 'theme';
+  const explicit = normalizePanelBackdrop(stored);
+  if (explicit) return explicit;
+  return legacyEnabled === true ? 'theme' : 'wallpaper';
 }
 
 export function normalizePanelBackgroundMode(value: string | null | undefined): PanelBackgroundMode {

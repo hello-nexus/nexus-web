@@ -856,8 +856,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         onBackgroundPreview={panelTheme.previewBackground}
                         onBackgroundCommit={panelTheme.commitBackground}
                         onBackgroundModeCommit={panelTheme.commitBackgroundMode}
-                        onBackgroundEnabledCommit={panelTheme.commitBackgroundEnabled}
-                        showBackgroundToggle={supportsDesktopWallpaper(surface, !!device?.displayId)}
+                        onBackdropCommit={panelTheme.commitBackdrop}
+                        showBackdropSelector={supportsDesktopWallpaper(surface, !!device?.displayId)}
                         onBackgroundEffectCommit={panelTheme.commitBackgroundEffect}
                         onBackgroundTemplateCommit={panelTheme.commitBackgroundTemplate}
                         onBackgroundEffectStatePreview={panelTheme.previewBackgroundEffectState}
