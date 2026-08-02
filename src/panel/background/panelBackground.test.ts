@@ -36,10 +36,12 @@ describe('normalizePanelBackgroundFrost', () => {
     expect(normalizePanelBackgroundFrost(0)).toBe(0);
   });
 
-  it('clamps to 0-100 and rounds to a whole percent', () => {
+  it('clamps to 0-100 and snaps to the slider step', () => {
     expect(normalizePanelBackgroundFrost(-20)).toBe(0);
     expect(normalizePanelBackgroundFrost(140)).toBe(100);
-    expect(normalizePanelBackgroundFrost(37.4)).toBe(37);
+    expect(normalizePanelBackgroundFrost(37.4)).toBe(40);
+    // A record written on a finer step still reads as a value the slider can show.
+    expect(normalizePanelBackgroundFrost(45)).toBe(50);
   });
 });
 
