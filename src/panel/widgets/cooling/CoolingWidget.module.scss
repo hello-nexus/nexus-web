@@ -1,5 +1,3 @@
-@use '../../../styles/interactions' as *;
-
 .cooling {
   display: flex;
   flex-direction: column;
@@ -21,20 +19,8 @@
 }
 
 .chip {
-  width: 44px;
-  min-height: 34px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  @include bare-icon-button;
-  @include bare-icon-selectable;
-
-  svg {
-    width: 16px;
-    height: 16px;
-    flex-shrink: 0;
-  }
+  --icon-label-button-min-width: 44px;
+  --icon-label-button-height: 34px;
 }
 
 // 4x4: roomier chips for the immersive view.
@@ -43,13 +29,9 @@
   gap: 12px;
 
   .chip {
-    width: 54px;
-    min-height: 44px;
-
-    svg {
-      width: 18px;
-      height: 18px;
-    }
+    --icon-label-button-min-width: 54px;
+    --icon-label-button-height: 44px;
+    --icon-label-icon-size: 18px;
   }
 }
 

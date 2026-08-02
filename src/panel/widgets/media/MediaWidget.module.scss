@@ -1,5 +1,4 @@
 @use '../../../styles/text' as *;
-@use '../../../styles/interactions' as *;
 
 .media {
   position: relative;
@@ -286,35 +285,20 @@
 
 // Transport buttons are bare glyphs; the box only sets the touch target.
 .btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  color: var(--text);
+  --icon-label-button-min-width: 32px;
+  --icon-label-button-height: 32px;
+
   flex-shrink: 0;
-
-  @include bare-icon-button;
-
-  svg { width: 16px; height: 16px; }
 }
 
 // Play/pause leads the row on glyph size alone.
 .primary {
-  width: 40px;
-  height: 40px;
+  --icon-label-button-min-width: 40px;
+  --icon-label-button-height: 40px;
+  --icon-label-icon-size: 18px;
+  --icon-label-button-text: var(--text);
 
-  svg { width: 18px; height: 18px; }
-}
-
-// Shuffle / repeat carry an on-off state, so they take the same lit square
-// as every other ON control.
-.toggle {
-  color: var(--text-dim);
-}
-
-.toggleOn {
-  @include bare-icon-lit;
+  flex-shrink: 0;
 }
 
 .emptySlot {

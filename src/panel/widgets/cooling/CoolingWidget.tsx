@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
 import { Fan } from 'lucide-react';
-import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { PanelArrowButton } from '../../chrome/PanelArrowButton';
 import {
   applyProfile, fetchProfiles,
@@ -295,18 +295,16 @@ export function CoolingWidget({ widget }: WidgetProps) {
         {COOLING_PRESETS.map(p => {
           const label = t(p.i18nKey);
           return (
-            <HoverTooltip key={p.key} body={label} side="top">
-              <button
-                type="button"
-                onClick={() => apply(p.key)}
-                className={styles.chip}
-                data-active={active === p.key ? 'true' : 'false'}
-                aria-pressed={active === p.key}
-                aria-label={label}
-              >
-                <p.Icon aria-hidden="true" />
-              </button>
-            </HoverTooltip>
+            <IconLabelButton
+              key={p.key}
+              variant="bare"
+              className={styles.chip}
+              icon={<p.Icon aria-hidden="true" />}
+              active={active === p.key}
+              title={label}
+              ariaLabel={label}
+              onPress={() => apply(p.key)}
+            />
           );
         })}
       </div>

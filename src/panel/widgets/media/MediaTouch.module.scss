@@ -1,5 +1,4 @@
 @use '../../../styles/text' as *;
-@use '../../../styles/interactions' as *;
 
 .empty {
   width: 100%;
@@ -242,28 +241,21 @@
 }
 
 .btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  color: var(--text);
+  --icon-label-button-min-width: 40px;
+  --icon-label-button-height: 40px;
+  --icon-label-icon-size: 20px;
+
   flex-shrink: 0;
-
-  @include bare-icon-button;
-
-  svg { width: 20px; height: 20px; }
 }
 
 .primary {
-  width: 56px;
-  height: 56px;
+  --icon-label-button-min-width: 56px;
+  --icon-label-button-height: 56px;
+  --icon-label-icon-size: 24px;
+  --icon-label-button-text: var(--text);
 
-  svg { width: 24px; height: 24px; }
+  flex-shrink: 0;
 }
-
-.toggle { color: var(--text-dim); }
-.toggleOn { @include bare-icon-lit; }
 
 // Horizontal volume row at the bottom: small mute icon button on the
 // left, long horizontal track that takes the rest of the row.
@@ -278,20 +270,10 @@
 }
 
 .volumeMuteBtn {
-  width: 44px;
-  height: 44px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-dim);
+  --icon-label-button-min-width: 44px;
+  --icon-label-button-height: 44px;
+
   flex-shrink: 0;
-
-  @include bare-icon-button;
-
-  svg { width: 16px; height: 16px; }
-
-  // Muted is the "on" state of a toggle, so it takes the lit square.
-  &[aria-pressed='true'] { @include bare-icon-lit; }
 }
 
 .volumeTrack {

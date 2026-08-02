@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
 import {
   Play, Pause, SkipBack, SkipForward, Music,
   Shuffle, Repeat, Repeat1,
@@ -146,15 +147,29 @@ export function MediaWidget({ widget, surface, deviceTouch }: WidgetProps) {
           </div>
           {showControls && (
             <div className={styles.controls}>
-              <button type="button" onClick={() => control('previous')} disabled={!s.controls.isPrevEnabled} className={styles.btn} aria-label={t('panel.media.previous')}>
-                <SkipBack strokeWidth={1.8} fill="currentColor" />
-              </button>
-              <button type="button" onClick={() => control(playing ? 'pause' : 'play')} className={`${styles.btn} ${styles.primary}`} aria-label={playing ? t('panel.media.pause') : t('panel.media.play')}>
-                {playing ? <Pause fill="currentColor" stroke="none" /> : <Play fill="currentColor" stroke="none" />}
-              </button>
-              <button type="button" onClick={() => control('next')} disabled={!s.controls.isNextEnabled} className={styles.btn} aria-label={t('panel.media.next')}>
-                <SkipForward strokeWidth={1.8} fill="currentColor" />
-              </button>
+              <IconLabelButton
+                variant="bare"
+                className={styles.btn}
+                icon={<SkipBack strokeWidth={1.8} fill="currentColor" />}
+                ariaLabel={t('panel.media.previous')}
+                disabled={!s.controls.isPrevEnabled}
+                onPress={() => control('previous')}
+              />
+              <IconLabelButton
+                variant="bare"
+                className={styles.primary}
+                icon={playing ? <Pause fill="currentColor" stroke="none" /> : <Play fill="currentColor" stroke="none" />}
+                ariaLabel={playing ? t('panel.media.pause') : t('panel.media.play')}
+                onPress={() => control(playing ? 'pause' : 'play')}
+              />
+              <IconLabelButton
+                variant="bare"
+                className={styles.btn}
+                icon={<SkipForward strokeWidth={1.8} fill="currentColor" />}
+                ariaLabel={t('panel.media.next')}
+                disabled={!s.controls.isNextEnabled}
+                onPress={() => control('next')}
+              />
             </div>
           )}
         </>
@@ -184,35 +199,47 @@ export function MediaWidget({ widget, surface, deviceTouch }: WidgetProps) {
             </div>
             {showControls && (
               <div className={styles.controls}>
-                <button
-                  type="button"
-                  onClick={() => control('shuffle')}
+                <IconLabelButton
+                  variant="bare"
+                  className={styles.btn}
+                  icon={<Shuffle strokeWidth={1.8} />}
+                  active={!!s.playback.shuffled}
+                  ariaLabel={t('panel.media.shuffle')}
                   disabled={!s.controls.isShuffleEnabled}
-                  className={`${styles.btn} ${styles.toggle} ${s.playback.shuffled ? styles.toggleOn : ''}`}
-                  aria-label={t('panel.media.shuffle')}
-                  aria-pressed={!!s.playback.shuffled}
-                >
-                  <Shuffle strokeWidth={1.8} />
-                </button>
-                <button type="button" onClick={() => control('previous')} disabled={!s.controls.isPrevEnabled} className={styles.btn} aria-label={t('panel.media.previous')}>
-                  <SkipBack strokeWidth={1.8} fill="currentColor" />
-                </button>
-                <button type="button" onClick={() => control(playing ? 'pause' : 'play')} className={`${styles.btn} ${styles.primary}`} aria-label={playing ? t('panel.media.pause') : t('panel.media.play')}>
-                  {playing ? <Pause fill="currentColor" stroke="none" /> : <Play fill="currentColor" stroke="none" />}
-                </button>
-                <button type="button" onClick={() => control('next')} disabled={!s.controls.isNextEnabled} className={styles.btn} aria-label={t('panel.media.next')}>
-                  <SkipForward strokeWidth={1.8} fill="currentColor" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => control('repeatmode')}
+                  onPress={() => control('shuffle')}
+                />
+                <IconLabelButton
+                  variant="bare"
+                  className={styles.btn}
+                  icon={<SkipBack strokeWidth={1.8} fill="currentColor" />}
+                  ariaLabel={t('panel.media.previous')}
+                  disabled={!s.controls.isPrevEnabled}
+                  onPress={() => control('previous')}
+                />
+                <IconLabelButton
+                  variant="bare"
+                  className={styles.primary}
+                  icon={playing ? <Pause fill="currentColor" stroke="none" /> : <Play fill="currentColor" stroke="none" />}
+                  ariaLabel={playing ? t('panel.media.pause') : t('panel.media.play')}
+                  onPress={() => control(playing ? 'pause' : 'play')}
+                />
+                <IconLabelButton
+                  variant="bare"
+                  className={styles.btn}
+                  icon={<SkipForward strokeWidth={1.8} fill="currentColor" />}
+                  ariaLabel={t('panel.media.next')}
+                  disabled={!s.controls.isNextEnabled}
+                  onPress={() => control('next')}
+                />
+                <IconLabelButton
+                  variant="bare"
+                  className={styles.btn}
+                  icon={repeatMode === 'Track' ? <Repeat1 strokeWidth={1.8} /> : <Repeat strokeWidth={1.8} />}
+                  active={repeatActive}
+                  ariaLabel={t('panel.media.repeat')}
                   disabled={!s.controls.isRepeatModeEnabled}
-                  className={`${styles.btn} ${styles.toggle} ${repeatActive ? styles.toggleOn : ''}`}
-                  aria-label={t('panel.media.repeat')}
-                  aria-pressed={repeatActive}
-                >
-                  {repeatMode === 'Track' ? <Repeat1 strokeWidth={1.8} /> : <Repeat strokeWidth={1.8} />}
-                </button>
+                  onPress={() => control('repeatmode')}
+                />
               </div>
             )}
           </div>

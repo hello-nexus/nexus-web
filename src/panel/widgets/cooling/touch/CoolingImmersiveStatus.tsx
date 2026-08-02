@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react';
+import { IconLabelButton } from '../../../../components/common/IconLabelButton/IconLabelButton';
 import { useSensors } from '../../../../hooks/useSensors';
 import { useTempSensorPrefs } from '../../../../hooks/useUiSettings';
 import { resolveCpuTempSensor, resolveGpuTempSensor } from '../../../../lib/tempSensorResolver';
@@ -67,17 +68,15 @@ export function CoolingImmersiveStatus({ cooling }: { cooling: CoolingImmersiveC
         {COOLING_PRESETS.map(p => {
           const active = cooling.activePreset === p.key;
           return (
-            <button
+            <IconLabelButton
               key={p.key}
-              type="button"
+              variant="bare"
               className={styles.modeBtn}
-              data-active={active ? 'true' : 'false'}
-              aria-pressed={active}
-              aria-label={t(p.i18nKey)}
-              onClick={() => cooling.applyPreset(p.key)}
-            >
-              <p.Icon size={20} aria-hidden />
-            </button>
+              icon={<p.Icon size={20} aria-hidden />}
+              active={active}
+              ariaLabel={t(p.i18nKey)}
+              onPress={() => cooling.applyPreset(p.key)}
+            />
           );
         })}
       </div>
