@@ -187,7 +187,20 @@ export function PanelMixerSlider({
           aria-disabled={disabled || undefined}
           onKeyDown={handleKeyDown}
         >
-          <div className={styles.fill} style={{ height: `${pct * 100}%` }} aria-hidden="true" />
+          {/* The fill clips a second copy of the icon drawn in the on-accent
+              foreground. Both copies sit at the same offset from the track's
+              bottom edge, which the fill shares, so the copy lines up exactly
+              and is revealed as the fill rises past the glyph. */}
+          <div className={styles.fill} style={{ height: `${pct * 100}%` }} aria-hidden="true">
+            {icon && (
+              <div
+                className={styles.iconOnFill}
+                data-active={iconButton?.active ? 'true' : 'false'}
+              >
+                {icon}
+              </div>
+            )}
+          </div>
           {indexBadge && (
             <div className={styles.indexBadge} aria-hidden="true">{indexBadge}</div>
           )}
