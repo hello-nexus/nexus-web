@@ -403,10 +403,18 @@ function hslCss(h: number, s: number, l: number, a?: number): string {
 }
 
 /**
- * True when black text contrasts better than white on this HSL background,
- * compared by WCAG ratio rather than a luminance cutoff. A cutoff has to be
- * placed by hand and amber (luminance 0.44) sat on the wrong side of the old
- * 0.6 one: white scored 2.15:1 where black scores 9.78:1.
+ * True when the accent should carry a black label instead of white.
+ *
+ * Deliberately not a pure contrast comparison: by WCAG alone 18 of the 20
+ * preset accents would take black, which reads wrong on the blue/violet/pink
+ * family. Black is reserved for the warm-to-green band, where a light fill
+ * genuinely washes white out, and luminance alone cannot express that - orange
+ * (0.33) sits below teal (0.40) and cyan (0.38), so any cutoff catching orange
+ * catches those too. The hue window separates them; the floor keeps the muted
+ * siblings (soft amber, soft green) on white.
+ *
+ * The luminance escape above the window is a readability floor: a near-white
+ * custom accent of any hue takes black regardless.
  */
 function needsDarkTextOnHsl(h: number, s: number, l: number): boolean {
   const sN = s / 100;
@@ -427,10 +435,10 @@ function needsDarkTextOnHsl(h: number, s: number, l: number): boolean {
     return n <= 0.03928 ? n / 12.92 : Math.pow((n + 0.055) / 1.055, 2.4);
   };
   const L = 0.2126 * toLin(r) + 0.7152 * toLin(g) + 0.0722 * toLin(b);
-  // WCAG contrast against pure white (L=1) and pure black (L=0).
-  const againstWhite = 1.05 / (L + 0.05);
-  const againstBlack = (L + 0.05) / 0.05;
-  return againstBlack > againstWhite;
+  const hue = ((h % 360) + 360) % 360;
+  // Orange through bright green; excludes teal (~173) and cyan (~190).
+  const warmToGreen = hue >= 20 && hue <= 160;
+  return L > 0.6 || (warmToGreen && L > 0.32);
 }
 
 /**
