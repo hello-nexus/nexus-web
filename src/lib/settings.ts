@@ -403,10 +403,10 @@ function hslCss(h: number, s: number, l: number, a?: number): string {
 }
 
 /**
- * WCAG relative luminance (0–1) of an HSL color. Used to pick a contrasting
- * foreground - returns true if black text reads better than white on this
- * background. Threshold 0.6 keeps mid-tone violets/blues on white text and
- * flips bright yellow/cyan/lime to black.
+ * True when black text contrasts better than white on this HSL background,
+ * compared by WCAG ratio rather than a luminance cutoff. A cutoff has to be
+ * placed by hand and amber (luminance 0.44) sat on the wrong side of the old
+ * 0.6 one: white scored 2.15:1 where black scores 9.78:1.
  */
 function needsDarkTextOnHsl(h: number, s: number, l: number): boolean {
   const sN = s / 100;
@@ -427,7 +427,10 @@ function needsDarkTextOnHsl(h: number, s: number, l: number): boolean {
     return n <= 0.03928 ? n / 12.92 : Math.pow((n + 0.055) / 1.055, 2.4);
   };
   const L = 0.2126 * toLin(r) + 0.7152 * toLin(g) + 0.0722 * toLin(b);
-  return L > 0.6;
+  // WCAG contrast against pure white (L=1) and pure black (L=0).
+  const againstWhite = 1.05 / (L + 0.05);
+  const againstBlack = (L + 0.05) / 0.05;
+  return againstBlack > againstWhite;
 }
 
 /**

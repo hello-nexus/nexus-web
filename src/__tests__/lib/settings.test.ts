@@ -5,6 +5,28 @@ import {
   DEFAULT_ACCENT, PRESET_ACCENTS,
 } from '../../lib/settings';
 
+/** WCAG relative luminance of an HSL triple, for contrast assertions. */
+function hslLuminance(h: number, s: number, l: number): number {
+  const sN = s / 100;
+  const lN = l / 100;
+  const c = (1 - Math.abs(2 * lN - 1)) * sN;
+  const hh = (((h % 360) + 360) % 360) / 60;
+  const x = c * (1 - Math.abs((hh % 2) - 1));
+  let r = 0, g = 0, b = 0;
+  if (hh < 1) { r = c; g = x; }
+  else if (hh < 2) { r = x; g = c; }
+  else if (hh < 3) { g = c; b = x; }
+  else if (hh < 4) { g = x; b = c; }
+  else if (hh < 5) { r = x; b = c; }
+  else { r = c; b = x; }
+  const m = lN - c / 2;
+  const toLin = (v: number) => {
+    const n = v + m;
+    return n <= 0.03928 ? n / 12.92 : Math.pow((n + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * toLin(r) + 0.7152 * toLin(g) + 0.0722 * toLin(b);
+}
+
 describe('hexToHsv / hsvToHex round-trip', () => {
   const cases = [
     '#ff0000', '#00ff00', '#0000ff', '#ffffff', '#000000',
@@ -123,6 +145,31 @@ describe('deriveAccentVars', () => {
   it('WCAG: dark blue gets white text', () => {
     const vars = deriveAccentVars('#1e3a5f', 'dark');
     expect(vars['--accent-text']).toBe('#ffffff');
+  });
+
+  // Amber sits at luminance 0.44 - under the old 0.6 cutoff it took white at
+  // 2.15:1 while black scores 9.78:1.
+  it('WCAG: amber gets black text', () => {
+    expect(deriveAccentVars('#f59e0b', 'dark')['--accent-text']).toBe('#000000');
+    expect(deriveAccentVars('#f59e0b', 'light')['--accent-text']).toBe('#000000');
+  });
+
+  it('WCAG: cyan gets black text', () => {
+    expect(deriveAccentVars('#06b6d4', 'dark')['--accent-text']).toBe('#000000');
+  });
+
+  // Asserts the outcome (the label is readable) rather than re-deriving the
+  // production formula, which would pass even if both were wrong together.
+  it.each(PRESET_ACCENTS)('preset %s reaches AA on its accent-text', hex => {
+    for (const mode of ['dark', 'light'] as const) {
+      const vars = deriveAccentVars(hex, mode);
+      const [, h, s, l] = vars['--accent'].match(/hsl\(([\d.]+), ([\d.]+)%, ([\d.]+)%\)/)!;
+      const L = hslLuminance(Number(h), Number(s), Number(l));
+      const chosen = vars['--accent-text'] === '#000000'
+        ? (L + 0.05) / 0.05
+        : 1.05 / (L + 0.05);
+      expect(chosen).toBeGreaterThanOrEqual(4.5);
+    }
   });
 
   it('normalizes invalid hex to default', () => {
