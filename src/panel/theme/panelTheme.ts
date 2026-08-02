@@ -27,7 +27,6 @@ import {
   normalizePanelWidgetPadding,
   panelBackgroundPair,
   panelBackgroundState,
-  type PanelBackgroundFrost,
   type PanelBackgroundMode,
 } from '../background/panelBackground';
 import { useAnimateTemplates } from '../../hooks/useAnimateTemplates';
@@ -287,7 +286,7 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
         backgroundEffectState: panelBackgroundState(effect, normalizePanelBackgroundTemplate(templates[effect])),
         backgroundMediaId: r?.backgroundMediaId ?? null,
         backgroundMediaType: r?.backgroundMediaType ?? null,
-        backgroundFrost: normalizePanelBackgroundFrost(r?.backgroundFrost),
+        backgroundFrost: normalizePanelBackgroundFrost(r?.backgroundFrostLevel),
         widgetOpacity: r?.widgetOpacity == null && single ? 0 : normalizePanelWidgetOpacity(r?.widgetOpacity),
         widgetLabels: normalizePanelWidgetLabels(r?.widgetLabels),
         widgetPadding: r?.widgetPadding == null && single ? 0 : normalizePanelWidgetPadding(r?.widgetPadding),
@@ -422,11 +421,10 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
     persistPatch({ backgroundMediaId: mediaId ?? '', backgroundMediaType: type ?? '' });
   }, [persistPatch]);
 
-  const commitBackgroundFrost = useCallback((level: PanelBackgroundFrost) => {
-    const next = normalizePanelBackgroundFrost(level);
+  const commitBackgroundFrost = useCallback((percent: number) => {
+    const next = normalizePanelBackgroundFrost(percent);
     setTheme(prev => ({ ...prev, backgroundFrost: next }));
-    // Written as the literal string so 'none' survives NullIfEmpty, which only clears an empty string.
-    persistPatch({ backgroundFrost: next });
+    persistPatch({ backgroundFrostLevel: next });
   }, [persistPatch]);
 
   const commitWidgetOpacity = useCallback((opacity: number) => {
@@ -476,6 +474,9 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
     )),
     commitBackgroundOpacity,
     commitBackgroundMedia,
+    previewBackgroundFrost: (percent: number) => setTheme(prev => (
+      { ...prev, backgroundFrost: normalizePanelBackgroundFrost(percent) }
+    )),
     commitBackgroundFrost,
     previewWidgetOpacity: (opacity: number) => setTheme(prev => (
       { ...prev, widgetOpacity: normalizePanelWidgetOpacity(opacity) }

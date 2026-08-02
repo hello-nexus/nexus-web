@@ -20,7 +20,7 @@ const baseTheme: PanelThemeState = {
   backgroundEffectState: { speed: 0, intensity: 1, hue: 0, colorize: 0, saturation: 1, contrast: 1, params: {} },
   backgroundMediaId: null,
   backgroundMediaType: null,
-  backgroundFrost: 'heavy',
+  backgroundFrost: 100,
   widgetOpacity: 1,
   widgetLabels: true,
   widgetPadding: 50,

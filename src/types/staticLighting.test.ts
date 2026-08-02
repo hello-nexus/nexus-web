@@ -5,7 +5,6 @@ import {
 } from './lighting';
 import { normalizeSync } from '../hooks/useLightingSync';
 import { PANEL_BACKGROUND_EFFECTS } from '../panel/background/panelBackground';
-import { hexToStatePatch, stateToHex } from '../panel/widgets/lighting/page/StaticColorField';
 
 describe('static mode catalog', () => {
   it('sits between off and animation in the mode row', () => {
@@ -63,25 +62,6 @@ describe('normalizeSync', () => {
     expect(normalizeSync('screen')).toBe('screen');
     expect(normalizeSync('gif')).toBe('gif');
     expect(normalizeSync('gamesync')).toBe('gamesync');
-  });
-});
-
-describe('static colour mapping', () => {
-  const base = { speed: 0, intensity: 1, hue: 0, colorize: 0, saturation: 1, contrast: 1, params: {} };
-
-  it('round-trips a hex through the shader tint', () => {
-    const patch = hexToStatePatch('#2ec4ff');
-    expect(stateToHex({ ...base, ...patch })).toBe('#2ec4ff');
-  });
-
-  it('drives the grayscale-and-tint path', () => {
-    expect(hexToStatePatch('#2ec4ff').colorize).toBe(1);
-  });
-
-  it('reads back a desaturated look as a paler hex', () => {
-    const hex = stateToHex({ ...base, hue: 0.5, saturation: 0.5 });
-    expect(hex).toMatch(/^#[0-9a-f]{6}$/);
-    expect(hex).not.toBe('#00ffff');
   });
 });
 

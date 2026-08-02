@@ -21,7 +21,7 @@ import type { ThemeMode } from '../../lib/settings';
 import type { EffectState } from '../../types/lighting';
 import type { PanelConfigValue, PanelSurface, PanelWidget, PanelWidgetSize } from '../types';
 import { isSingleWidgetSurface } from '../types';
-import type { PanelBackgroundFrost, PanelBackgroundMode } from '../background/panelBackground';
+import type { PanelBackgroundMode } from '../background/panelBackground';
 import type { PanelThemeState } from '../theme/panelTheme';
 import styles from '../PanelApp.module.scss';
 
@@ -58,6 +58,7 @@ export function PanelEditorSheet({
   onThemeBackgroundOpacityPreview,
   onThemeBackgroundOpacityCommit,
   onThemeBackgroundMediaCommit,
+  onThemeBackgroundFrostPreview,
   onThemeBackgroundFrostCommit,
   showBackgroundToggle = false,
   onThemeWidgetOpacityPreview,
@@ -117,7 +118,8 @@ export function PanelEditorSheet({
   onThemeBackgroundOpacityPreview: (opacity: number) => void;
   onThemeBackgroundOpacityCommit: (opacity: number) => void;
   onThemeBackgroundMediaCommit: (mediaId: string | null, type: 'static' | 'animated' | null) => void;
-  onThemeBackgroundFrostCommit: (level: PanelBackgroundFrost) => void;
+  onThemeBackgroundFrostPreview: (percent: number) => void;
+  onThemeBackgroundFrostCommit: (percent: number) => void;
   // Background on/off toggle (kiosk-hosted surfaces: off = desktop see-through).
   showBackgroundToggle?: boolean;
   onThemeWidgetOpacityPreview: (opacity: number) => void;
@@ -376,6 +378,7 @@ export function PanelEditorSheet({
               onBackgroundOpacityPreview={onThemeBackgroundOpacityPreview}
               onBackgroundOpacityCommit={onThemeBackgroundOpacityCommit}
               onBackgroundMediaCommit={onThemeBackgroundMediaCommit}
+              onBackgroundFrostPreview={onThemeBackgroundFrostPreview}
               onBackgroundFrostCommit={onThemeBackgroundFrostCommit}
               showMediaTab={showMediaTab}
               deviceAspect={deviceAspect}
