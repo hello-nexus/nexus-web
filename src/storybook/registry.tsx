@@ -1243,7 +1243,7 @@ function PreviewPanelThemeSettings() {
     // Solid keeps the (thumbnail-fetching) animation picker out of the preview.
     backgroundMode: 'solid', backgroundEffect: 'aurora', backgroundTemplate: 0, backgroundTemplates: {},
     backgroundOpacity: 0.4,
-    backgroundEnabled: true,
+    backdrop: 'theme' as const,
     backgroundEffectState: { speed: 0, intensity: 1, hue: 0, colorize: 0, saturation: 1, contrast: 1, params: {} },
     backgroundMediaId: null, backgroundMediaType: null, backgroundFrost: 0,
     widgetOpacity: 1, widgetLabels: true, widgetPadding: 50,
@@ -1262,8 +1262,8 @@ function PreviewPanelThemeSettings() {
         onBackgroundPreview={hex => set({ backgroundColor: hex })}
         onBackgroundCommit={hex => set({ backgroundColor: hex })}
         onBackgroundModeCommit={mode => set({ backgroundMode: mode })}
-        onBackgroundEnabledCommit={v => set({ backgroundEnabled: v })}
-        showBackgroundToggle
+        onBackdropCommit={v => set({ backdrop: v })}
+        showBackdropSelector
         onBackgroundEffectCommit={fx => set({ backgroundEffect: fx })}
         onBackgroundTemplateCommit={n => set({ backgroundTemplate: n })}
         onBackgroundEffectStatePreview={s => set({ backgroundEffectState: s })}
@@ -1297,6 +1297,18 @@ function PreviewSettingRow() {
         options={[{ value: 'quiet', label: 'Quiet' }, { value: 'balanced', label: 'Balanced' }, { value: 'max', label: 'Max' }]} />
       <SettingSlider label="Brightness" value={level} min={0} max={100} step={1} editable trackFill
         formatValue={v => `${Math.round(v)}%`} onChange={v => setLevel(v)} />
+      <SettingRow
+        label="Backdrop"
+        description="Full-width description: the control keeps its place as this text changes length."
+        descriptionBelow
+      >
+        <ChipGroup
+          options={[{ key: 'a', label: 'Theme' }, { key: 'b', label: 'Wallpaper' }, { key: 'c', label: 'Desktop' }]}
+          activeKey="b"
+          onChange={() => {}}
+          ariaLabel="Backdrop"
+        />
+      </SettingRow>
       <SettingRow label="Icon color" wrapControl>
         <div className={styles.previewRow}>
           {['#ef4444', '#f97316', '#f59e0b', '#22c55e', '#14b8a6', '#06b6d4', '#3b82f6', '#8b5cf6']

@@ -17,7 +17,8 @@ import {
   defaultPanelWidgetOpacity,
   defaultPanelWidgetPadding,
   normalizePanelBackgroundEffect,
-  resolvePanelBackgroundEnabled,
+  resolvePanelBackdrop,
+  type PanelBackdrop,
   normalizePanelBackgroundFrost,
   normalizePanelBackgroundMode,
   normalizePanelBackgroundOpacity,
@@ -100,6 +101,7 @@ export function buildEmbeddedPanelThemeVars(appAccentColor: string | undefined, 
     '--panel-accent-glow': accentVars['--accent-glow'],
     '--panel-accent-soft': accentVars['--accent-soft'],
     '--panel-accent-shadow': accentVars['--accent-glow-shadow'],
+    '--panel-accent-text': accentVars['--accent-text'],
   } as CSSProperties;
 }
 
@@ -122,6 +124,7 @@ export function buildPanelThemeVars(theme: PanelThemeState, resolvedThemeMode: R
     '--panel-accent-glow': accentVars['--accent-glow'],
     '--panel-accent-soft': accentVars['--accent-soft'],
     '--panel-accent-shadow': accentVars['--accent-glow-shadow'],
+    '--panel-accent-text': accentVars['--accent-text'],
   };
   return vars as CSSProperties;
 }
@@ -192,7 +195,7 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
     backgroundTemplate: DEFAULT_PANEL_BACKGROUND_TEMPLATE,
     backgroundTemplates: {},
     backgroundOpacity: defaultBackgroundOpacityForMode('solid'),
-    backgroundEnabled: true,
+    backdrop: 'theme',
     backgroundEffectState: panelBackgroundState(DEFAULT_PANEL_BACKGROUND_EFFECT, DEFAULT_PANEL_BACKGROUND_TEMPLATE),
     backgroundMediaId: null,
     backgroundMediaType: null,
@@ -253,11 +256,12 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
       const bgMode: PanelBackgroundMode = r?.backgroundMode == null && single
         ? 'shader'
         : normalizePanelBackgroundMode(r?.backgroundMode);
-      // Wallpaper-capable panels default to desktop see-through when the
-      // record carries no explicit choice; see resolvePanelBackgroundEnabled.
-      const bgEnabled = resolvePanelBackgroundEnabled(
-        r?.backgroundEnabled,
+      // Wallpaper-capable panels default to redrawing the wallpaper when the
+      // record carries no explicit choice; see resolvePanelBackdrop.
+      const backdrop = resolvePanelBackdrop(
+        r?.backdrop,
         supportsDesktopWallpaper((r?.capabilities?.surface ?? '') as PanelSurface, !!r?.displayId),
+        r?.backgroundEnabled,
       );
       setTheme({
         appThemeMode: normalizePanelThemeMode(t?.themeMode),
@@ -278,9 +282,9 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
         // Wallpaper mode (stored OR defaulted) defaults opaque regardless of
         // the latent mode, so see-through never inherits a shader/media dim.
         backgroundOpacity: r?.backgroundOpacity == null
-          ? (!bgEnabled ? 1 : defaultBackgroundOpacityForMode(bgMode))
+          ? (backdrop !== 'theme' ? 1 : defaultBackgroundOpacityForMode(bgMode))
           : normalizePanelBackgroundOpacity(r.backgroundOpacity),
-        backgroundEnabled: bgEnabled,
+        backdrop,
         // Static fallback; the returned value below is derived from the global
         // presets + the live draft.
         backgroundEffectState: panelBackgroundState(effect, normalizePanelBackgroundTemplate(templates[effect])),
@@ -363,9 +367,9 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
     persistPatch({ backgroundMode: mode });
   }, [persistPatch]);
 
-  const commitBackgroundEnabled = useCallback((enabled: boolean) => {
-    setTheme(prev => ({ ...prev, backgroundEnabled: enabled }));
-    persistPatch({ backgroundEnabled: enabled });
+  const commitBackdrop = useCallback((backdrop: PanelBackdrop) => {
+    setTheme(prev => ({ ...prev, backdrop }));
+    persistPatch({ backdrop });
   }, [persistPatch]);
 
   // Effect / template are the per-panel SELECTION (which universal preset this
@@ -464,7 +468,7 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
     )),
     commitBackground,
     commitBackgroundMode,
-    commitBackgroundEnabled,
+    commitBackdrop,
     commitBackgroundEffect,
     commitBackgroundTemplate,
     previewBackgroundEffectState: (state: EffectState) => setDraftBackgroundState(state),

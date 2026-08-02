@@ -67,6 +67,18 @@
   opacity: var(--panel-background-opacity, 0.5);
 }
 
+// See-through has no in-page layer for Background Opacity to fade, so the
+// slider washes the desktop toward the theme backdrop instead. The caller
+// passes the inverse: full opacity means no scrim at all.
+.backgroundScrim {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: var(--backdrop-base);
+  opacity: var(--panel-background-opacity, 0);
+}
+
 .backgroundSolid {
   position: fixed;
   inset: 0;

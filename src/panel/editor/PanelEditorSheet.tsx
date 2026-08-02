@@ -10,6 +10,7 @@ import { SlotCountIcon } from '../widgets/monitoring/SlotCountIcons';
 import { slotCountOptionsForSize, resolvedSlotCountForSize } from '../widgets/monitoring/perfSlots';
 import { PanelWidgetCatalog } from './PanelWidgetCatalog';
 import { PanelHostNameSetting } from './PanelHostNameSetting';
+import type { PanelBackdrop } from '../background/panelBackground';
 import { PanelThemeSettings, type ResolvedPanelThemeMode } from './PanelThemeSettings';
 import { PairRemoteContent } from '../../components/common/PairRemote/PairRemoteContent';
 import { PairedPcsContent } from '../../components/common/PairedPcs/PairedPcsContent';
@@ -50,7 +51,7 @@ export function PanelEditorSheet({
   onThemeBackgroundPreview,
   onThemeBackgroundCommit,
   onThemeBackgroundModeCommit,
-  onThemeBackgroundEnabledCommit,
+  onThemeBackdropCommit,
   onThemeBackgroundEffectCommit,
   onThemeBackgroundTemplateCommit,
   onThemeBackgroundEffectStatePreview,
@@ -60,7 +61,7 @@ export function PanelEditorSheet({
   onThemeBackgroundMediaCommit,
   onThemeBackgroundFrostPreview,
   onThemeBackgroundFrostCommit,
-  showBackgroundToggle = false,
+  showBackdropSelector = false,
   onThemeWidgetOpacityPreview,
   onThemeWidgetOpacityCommit,
   onThemeWidgetLabelsCommit,
@@ -110,7 +111,7 @@ export function PanelEditorSheet({
   onThemeBackgroundPreview: (hex: string) => void;
   onThemeBackgroundCommit: (hex: string) => void;
   onThemeBackgroundModeCommit: (mode: PanelBackgroundMode) => void;
-  onThemeBackgroundEnabledCommit: (enabled: boolean) => void;
+  onThemeBackdropCommit: (backdrop: PanelBackdrop) => void;
   onThemeBackgroundEffectCommit: (effect: string) => void;
   onThemeBackgroundTemplateCommit: (template: number) => void;
   onThemeBackgroundEffectStatePreview: (state: EffectState) => void;
@@ -120,8 +121,8 @@ export function PanelEditorSheet({
   onThemeBackgroundMediaCommit: (mediaId: string | null, type: 'static' | 'animated' | null) => void;
   onThemeBackgroundFrostPreview: (percent: number) => void;
   onThemeBackgroundFrostCommit: (percent: number) => void;
-  // Background on/off toggle (kiosk-hosted surfaces: off = desktop see-through).
-  showBackgroundToggle?: boolean;
+  // Backdrop selector; kiosk-hosted surfaces only.
+  showBackdropSelector?: boolean;
   onThemeWidgetOpacityPreview: (opacity: number) => void;
   onThemeWidgetOpacityCommit: (opacity: number) => void;
   onThemeWidgetLabelsCommit: (enabled: boolean) => void;
@@ -369,8 +370,8 @@ export function PanelEditorSheet({
               onBackgroundPreview={onThemeBackgroundPreview}
               onBackgroundCommit={onThemeBackgroundCommit}
               onBackgroundModeCommit={onThemeBackgroundModeCommit}
-              onBackgroundEnabledCommit={onThemeBackgroundEnabledCommit}
-              showBackgroundToggle={showBackgroundToggle}
+              onBackdropCommit={onThemeBackdropCommit}
+              showBackdropSelector={showBackdropSelector}
               onBackgroundEffectCommit={onThemeBackgroundEffectCommit}
               onBackgroundTemplateCommit={onThemeBackgroundTemplateCommit}
               onBackgroundEffectStatePreview={onThemeBackgroundEffectStatePreview}

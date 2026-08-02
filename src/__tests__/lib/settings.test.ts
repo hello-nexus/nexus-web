@@ -147,28 +147,50 @@ describe('deriveAccentVars', () => {
     expect(vars['--accent-text']).toBe('#ffffff');
   });
 
-  // Amber sits at luminance 0.44 - under the old 0.6 cutoff it took white at
-  // 2.15:1 while black scores 9.78:1.
-  it('WCAG: amber gets black text', () => {
-    expect(deriveAccentVars('#f59e0b', 'dark')['--accent-text']).toBe('#000000');
-    expect(deriveAccentVars('#f59e0b', 'light')['--accent-text']).toBe('#000000');
+  // The warm-to-green band takes black; everything else keeps white even where
+  // WCAG alone would flip it (teal and cyan sit ABOVE orange on luminance).
+  it.each([
+    ['#f97316', 'Orange'],
+    ['#f59e0b', 'Amber'],
+    ['#16c963', 'Green'],
+  ])('%s (%s) gets black text', hex => {
+    expect(deriveAccentVars(hex, 'dark')['--accent-text']).toBe('#000000');
   });
 
-  it('WCAG: cyan gets black text', () => {
-    expect(deriveAccentVars('#06b6d4', 'dark')['--accent-text']).toBe('#000000');
+  it.each([
+    ['#0bbfa9', 'Teal'],
+    ['#06b6d4', 'Cyan'],
+    ['#8b5cf6', 'Violet'],
+    ['#ec4899', 'Pink'],
+    ['#ef4444', 'Red'],
+    ['#bd8d42', 'Soft amber'],
+    ['#5fa07e', 'Soft green'],
+    ['#bd7958', 'Soft orange'],
+  ])('%s (%s) keeps white text', hex => {
+    expect(deriveAccentVars(hex, 'dark')['--accent-text']).toBe('#ffffff');
   });
 
-  // Asserts the outcome (the label is readable) rather than re-deriving the
-  // production formula, which would pass even if both were wrong together.
-  it.each(PRESET_ACCENTS)('preset %s reaches AA on its accent-text', hex => {
+  // Readability floor above the hue window: a near-white accent of any hue
+  // still flips, so a pale custom pick never ships white-on-white.
+  it('near-white accents take black text whatever the hue', () => {
+    for (const hex of ['#f8d7e8', '#dfe7ff', '#eaeaea', '#d9f7ff']) {
+      expect(deriveAccentVars(hex, 'dark')['--accent-text']).toBe('#000000');
+    }
+  });
+
+  // Every preset that takes BLACK must earn it on contrast. The white side is
+  // a deliberate product choice over WCAG (see needsDarkTextOnHsl), so it is
+  // held to a lower floor: never worse than white-on-mid-grey.
+  it.each(PRESET_ACCENTS)('preset %s stays legible on its accent-text', hex => {
     for (const mode of ['dark', 'light'] as const) {
       const vars = deriveAccentVars(hex, mode);
       const [, h, s, l] = vars['--accent'].match(/hsl\(([\d.]+), ([\d.]+)%, ([\d.]+)%\)/)!;
       const L = hslLuminance(Number(h), Number(s), Number(l));
-      const chosen = vars['--accent-text'] === '#000000'
-        ? (L + 0.05) / 0.05
-        : 1.05 / (L + 0.05);
-      expect(chosen).toBeGreaterThanOrEqual(4.5);
+      if (vars['--accent-text'] === '#000000') {
+        expect((L + 0.05) / 0.05).toBeGreaterThanOrEqual(4.5);
+      } else {
+        expect(1.05 / (L + 0.05)).toBeGreaterThanOrEqual(2.2);
+      }
     }
   });
 

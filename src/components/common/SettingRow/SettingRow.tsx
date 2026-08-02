@@ -26,6 +26,7 @@ export function SettingRow({
   align,
   wrapControl,
   stackOnNarrow,
+  descriptionBelow,
 }: {
   label?: string;
   description?: ReactNode;
@@ -58,6 +59,11 @@ export function SettingRow({
   // description is long enough to wrap hard against a wide control (e.g. the
   // account username/password/privacy rows).
   stackOnNarrow?: boolean;
+  // Opt-in: render the description on its own full-width line under the
+  // label+control line instead of beside the control. For rows whose
+  // description changes with the control's value - inline, its height drives
+  // the row's, so the control jogs up and down as the text rewraps.
+  descriptionBelow?: boolean;
 }) {
   const cls = [
     styles.row,
@@ -65,11 +71,12 @@ export function SettingRow({
     align === 'start' && styles.alignStart,
     wrapControl && styles.wrapControl,
     stackOnNarrow && styles.stackNarrow,
+    descriptionBelow && styles.descBelow,
   ].filter(Boolean).join(' ');
   return (
     <div id={anchorId} data-search-anchor={anchorId} className={cls}>
       {icon && iconLeading && <span className={styles.leadingIcon} aria-hidden="true">{icon}</span>}
-      {(label || description) && (
+      {(label || (description && !descriptionBelow)) && (
         <div className={styles.info}>
           {label && (
             <span className={styles.label}>
@@ -77,10 +84,11 @@ export function SettingRow({
               {label}
             </span>
           )}
-          {description && <span className={styles.desc}>{description}</span>}
+          {description && !descriptionBelow && <span className={styles.desc}>{description}</span>}
         </div>
       )}
       <div className={styles.control}>{children}</div>
+      {description && descriptionBelow && <span className={styles.desc}>{description}</span>}
     </div>
   );
 }

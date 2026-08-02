@@ -111,6 +111,13 @@ select {
 }
 
 // Visible by default across the desktop app. The panel/kiosk surface
+// See-through panel (backdrop 'desktop'): the kiosk window is transparent, so
+// the document itself must paint nothing or it covers the desktop behind it.
+.panel-see-through,
+.panel-see-through body {
+  background: transparent;
+}
+
 // (.panel-root) hides bars instead. Per-component @include scrollbar-visible
 // inside the panel still wins because :where(...) keeps the panel-scope rule
 // at 0 specificity, so any class-level opt-in beats it.
