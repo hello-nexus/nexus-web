@@ -44,6 +44,9 @@
 .thumbCardFit {
   width: min(100%, calc(100cqh * 16 / 9));
   aspect-ratio: 16 / 9;
+  // Anchors the state flash to the thumbnail; without it the absolutely
+  // positioned overlay escapes to the card and washes the whole tile.
+  position: relative;
 
   > * {
     width: 100%;
@@ -330,6 +333,7 @@
   inset: 0;
   z-index: 2;
   background: #fff;
+  border-radius: inherit;
   pointer-events: none;
   animation: stateFlash 0.45s ease-out both;
 }

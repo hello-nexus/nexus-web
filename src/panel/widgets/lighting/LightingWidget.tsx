@@ -455,6 +455,11 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
     return { kind: 'message', message: t('lighting.panel.selectMode'), label: t('lighting.mode.off'), onPrev: prev, onNext: next };
   }, [mode, activeEffect, thumbs, t, reactive, mediaItems, activeMediaId, mediaThumbs, cycleAnimate, toggleReactive, simpleMode, enterOrCycleAnimate]);
 
+  // The flash stands in for a thumbnail that has not painted yet, so it only
+  // makes sense where a thumbnail renders: Off, Mirror and Game Sync show an
+  // icon or a message and stay still.
+  const thumbFlash = view.kind === 'thumb' ? flash : null;
+
   // Active Animate effect state for the immersive on-device preview: the shader
   // is rendered locally at full resolution, replacing the low-res streamed LED
   // canvas (LightingLivePreview) for shader effects only.
@@ -538,7 +543,7 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
   if (simpleMode) {
     return (
       <div className={styles.lighting} data-size={widget.size} data-mode={mode} data-simple="true">
-        <SingleItemView view={view} t={t} showArrows overlay={flash} framed />
+        <SingleItemView view={view} t={t} showArrows overlay={thumbFlash} framed />
       </div>
     );
   }
@@ -546,14 +551,14 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
   if (compact) {
     return (
       <div className={styles.lighting} data-size={widget.size} data-mode={mode}>
-        <SingleItemView view={view} t={t} showArrows={false} overlay={flash} framed />
+        <SingleItemView view={view} t={t} showArrows={false} overlay={thumbFlash} framed />
       </div>
     );
   }
 
   return (
     <div className={styles.lighting} data-size={widget.size} data-mode={mode}>
-      <SingleItemView view={view} t={t} showArrows overlay={flash} framed />
+      <SingleItemView view={view} t={t} showArrows overlay={thumbFlash} framed />
       <div className={styles.modeGrid}>
         {modeButtons.map(m => {
           const Icon = LIGHTING_MODE_ICONS[m.key];
@@ -620,6 +625,7 @@ function SingleItemView({ view, t, showArrows, overlay, framed }: { view: Single
         <div className={styles.thumbCardBox}>
           <div className={styles.thumbCardFit}>
             <EffectCard overlay nonInteractive label={view.label} thumbUrl={view.thumbUrl} active={false} />
+            {overlay}
           </div>
         </div>
       ) : (
@@ -642,9 +648,9 @@ function SingleItemView({ view, t, showArrows, overlay, framed }: { view: Single
               )
               : <span className={styles.thumbSkeleton} />
           )}
+          {view.kind === 'thumb' && overlay}
         </span>
       )}
-      {overlay}
       {arrowsRendered && (
         <>
           <PanelArrowButton

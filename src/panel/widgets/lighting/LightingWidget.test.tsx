@@ -141,15 +141,37 @@ describe('LightingWidget', () => {
     expect(screen.queryByRole('button', { name: 'Game Sync' })).not.toBeInTheDocument();
   });
 
-  it('flashes on mode change but not on initial hydration', async () => {
+  it('does not flash on initial hydration', async () => {
     render(<LightingWidget widget={lightingWidget('4x2')} />);
     // Hydration (none → animate:rainbow from fetchCurrentSync) must not flash.
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Animation' }).getAttribute('data-active')).toBe('true');
     });
     expect(document.querySelector('[data-state-flash]')).not.toBeInTheDocument();
+  });
+
+  it('does not flash switching to a mode with no thumbnail', async () => {
+    // The flash stands in for a thumbnail that has not painted; Mirror shows an
+    // icon, so there is nothing to stand in for.
+    render(<LightingWidget widget={lightingWidget('4x2')} />);
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Animation' }).getAttribute('data-active')).toBe('true');
+    });
 
     fireEvent.click(screen.getByRole('button', { name: 'Mirror' }));
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Mirror' }).getAttribute('data-active')).toBe('true');
+    });
+    expect(document.querySelector('[data-state-flash]')).not.toBeInTheDocument();
+  });
+
+  it('flashes inside the thumbnail when the effect changes', async () => {
+    render(<LightingWidget widget={lightingWidget('4x2')} />);
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Animation' }).getAttribute('data-active')).toBe('true');
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
     await waitFor(() => {
       expect(document.querySelector('[data-state-flash]')).toBeInTheDocument();
     });
