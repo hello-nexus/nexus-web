@@ -1,7 +1,7 @@
 import { RotateCcw, UsersRound } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { Badge } from '../../common/Badge/Badge';
-import { Tabs } from '../../common/Tabs/Tabs';
+import { ChipGroup } from '../../common/ChipGroup/ChipGroup';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingRow } from '../../common/SettingRow/SettingRow';
 import { PROFILE_CATEGORIES, type ProfileCategory } from '../../../api/profiles';
@@ -62,17 +62,16 @@ export function SharingSection({ profiles, sharing, primaryId, sharedCats, count
                 <Badge label={t(pluralKey('settings.profiles.sharing.presetCount', language, count), { count })} />
               </span>
             )}
-            <Tabs
+            <ChipGroup
               ariaLabel={t(`settings.profiles.sharing.cat.${category}.label`)}
-              disabled={onlyOneProfile}
               activeKey={isShared ? 'shared' : 'perProfile'}
               onChange={key => {
                 if (key === 'shared' && !isShared) onShareCategory(category);
                 else if (key === 'perProfile' && isShared) sharing.setCategoryShared(category, false);
               }}
-              tabs={[
-                { key: 'perProfile', label: t('settings.profiles.sharing.perProfile') },
-                { key: 'shared', label: t('settings.profiles.sharing.shared') },
+              options={[
+                { key: 'perProfile', label: t('settings.profiles.sharing.perProfile'), disabled: onlyOneProfile },
+                { key: 'shared', label: t('settings.profiles.sharing.shared'), disabled: onlyOneProfile },
               ]}
             />
             <Button
