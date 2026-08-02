@@ -31,9 +31,11 @@ export function SharingSection({ profiles, sharing, primaryId, sharedCats, count
   // node interpolation - split on the raw token to highlight the profile name
   // in a non-dim span. Falls back to a plain string if a locale ever drops
   // the token so the sentence still renders correctly.
+  // The one <p> is load-bearing: SettingsSection's description is a flex
+  // column, so a bare fragment would make each part its own stacked line.
   const explainParts = t('settings.profiles.sharing.explainV2').split('{primary}');
   const explainDescription = explainParts.length === 2
-    ? <>{explainParts[0]}<span className={styles.primaryName}>{primaryName}</span>{explainParts[1]}</>
+    ? <p>{explainParts[0]}<span className={styles.primaryName}>{primaryName}</span>{explainParts[1]}</p>
     : t('settings.profiles.sharing.explainV2', { primary: primaryName });
 
   return (

@@ -32,6 +32,9 @@
   font-weight: var(--weight-body);
   color: var(--text-dim);
   line-height: 1.4;
+  // Column so multi-paragraph descriptions get an even gap; the cost is that
+  // every direct child is its own line, including bare text runs beside an
+  // inline element - callers pass one wrapper element for a single sentence.
   display: flex;
   flex-direction: column;
   gap: 0.35rem;

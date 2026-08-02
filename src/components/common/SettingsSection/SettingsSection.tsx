@@ -24,7 +24,9 @@ export function SettingsSection({
 }: {
   // Omit for a titleless box (e.g. the welcome screen's preferences group).
   title?: ReactNode;
-  // Optional muted hint under the title (still outside the box).
+  // Optional muted hint under the title (still outside the box). Laid out as a
+  // column, so each child becomes its own stacked line - a sentence with inline
+  // markup must be wrapped in a single element or it breaks apart mid-sentence.
   description?: ReactNode;
   // Per-section title colour override (e.g. the danger zone red).
   titleStyle?: CSSProperties;

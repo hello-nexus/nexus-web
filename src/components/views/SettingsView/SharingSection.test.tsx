@@ -3,6 +3,17 @@ import { describe, expect, it, vi } from 'vitest';
 import { SharingSection, type SharingSectionProps } from './SharingSection';
 import { PROFILE_CATEGORIES } from '../../../api/profiles';
 
+// Keys echo as-is (what an unprovided t() already does), except the explain
+// sentence: its {primary} token is what selects the inline-name branch.
+const EXPLAIN = "When a category is Shared, every profile uses {primary}'s value.";
+vi.mock('../../../lib/i18n', async importOriginal => ({
+  ...(await importOriginal<typeof import('../../../lib/i18n')>()),
+  useTranslation: () => ({
+    t: (key: string) => (key === 'settings.profiles.sharing.explainV2' ? EXPLAIN : key),
+    language: 'en',
+  }),
+}));
+
 function makeProps(overrides: Partial<SharingSectionProps> = {}): SharingSectionProps {
   return {
     profiles: {
@@ -77,6 +88,20 @@ describe('SharingSection', () => {
     fireEvent.click(rowChips(container, 'lighting').perProfile);
 
     expect(setCategoryShared).toHaveBeenCalledWith('lighting', false);
+  });
+
+  // SettingsSection's description is a flex column, so every direct child lands
+  // on its own line. The sentence has to be one block or the profile name
+  // breaks onto a line of its own mid-sentence.
+  it('keeps the primary profile name inline in the explanation', () => {
+    const { container } = render(<SharingSection {...makeProps()} />);
+
+    const name = [...container.querySelectorAll<HTMLElement>('span')]
+      .find(el => el.textContent === 'Gaming');
+    expect(name).toBeDefined();
+    expect(name!.parentElement?.tagName).toBe('P');
+    // The text either side of the name shares that one block with it.
+    expect(name!.parentElement?.textContent).toBe(EXPLAIN.replace('{primary}', 'Gaming'));
   });
 
   it('disables both chips when only one profile exists', () => {
