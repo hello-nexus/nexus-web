@@ -192,3 +192,25 @@ describe('LightingPage profile switching', () => {
     expect(vi.mocked(lightingApi.startAnimate).mock.calls.some(call => call[0] === 'rainbow')).toBe(false);
   });
 });
+
+describe('LightingPage preset toolbar placement', () => {
+  beforeEach(() => {
+    profileRef.current = 'old';
+    vi.clearAllMocks();
+    // The page persists the active right-pane tab; without this the Effect-tab
+    // precondition depends on what an earlier test left behind.
+    localStorage.clear();
+  });
+
+  // The preset carries the mode + effect selection, so its control sits at the
+  // top of the right pane, above the Devices | Effect selector.
+  it('renders the preset toolbar while the Effect tab is active', async () => {
+    // t() is unmocked here and echoes keys, so queries name the key.
+    const { findByLabelText, getByRole } = render(
+      <LightingPage serviceOnline serviceState={{ cooling: null, lighting: null, panel: null }} activeProfileId="old" />,
+    );
+
+    expect(getByRole('tab', { name: 'lighting.rightPane.effect' }).getAttribute('aria-selected')).toBe('true');
+    expect(await findByLabelText('lighting.layoutPresets.placeholder')).toBeTruthy();
+  });
+});

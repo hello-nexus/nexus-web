@@ -40,6 +40,7 @@ export function RightPaneTabs({ active, onSelect, pulseKey, effectTabDisabled }:
         activeKey={active}
         onChange={k => onSelect(k as RightPaneTab)}
         ariaLabel={t('lighting.rightPane.label')}
+        fullWidth
       />
     </div>
   );

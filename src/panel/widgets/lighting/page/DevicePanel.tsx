@@ -1,8 +1,7 @@
 import { type ReactNode } from 'react';
 import { Cpu, Plus } from 'lucide-react';
-import { type LightingDevice, type LayoutPreset } from '../../../../api/lighting';
+import { type LightingDevice } from '../../../../api/lighting';
 import { useTranslation } from '../../../../lib/i18n';
-import { PresetToolbar } from '../../../../components/common/PresetToolbar/PresetToolbar';
 import { usePersistentState } from '../../../../hooks/usePersistentState';
 import { ZoneCard } from './ZoneCard';
 import { MotherboardGroup } from './MotherboardGroup';
@@ -45,7 +44,7 @@ type DeviceBlock =
  * using the same component/styling as a motherboard group: a chevron, the brand
  * name, a group power switch, and its lights as indented child cards.
  */
-export function DevicePanel({ devices, header, selectedIds, onSelectDevice, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onDeviceReorder, communityCounts, onOpenCommunity, smartHubFirmwareControl, onSetSmartHubFirmwareControl, lianLiFirmwareActive, onOpenSmartLights, presets, layoutActiveId, presetCount, canUndo, canRedo, onPresetLoad, onPresetCreate, onPresetRename, onPresetDelete, onLayoutReset, onLayoutUndo, onLayoutRedo }: {
+export function DevicePanel({ devices, header, selectedIds, onSelectDevice, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onDeviceReorder, communityCounts, onOpenCommunity, smartHubFirmwareControl, onSetSmartHubFirmwareControl, lianLiFirmwareActive, onOpenSmartLights }: {
   devices: LightingDevice[];
   /** Optional control rendered at the top of the scrolling list (master brightness). */
   header?: ReactNode;
@@ -80,18 +79,6 @@ export function DevicePanel({ devices, header, selectedIds, onSelectDevice, onSe
   lianLiFirmwareActive?: boolean;
   /** Renders a dashed "add smart lights" entry at the bottom of the list. */
   onOpenSmartLights?: () => void;
-  presets: LayoutPreset[];
-  layoutActiveId: string | null;
-  presetCount: number;
-  canUndo: boolean;
-  canRedo: boolean;
-  onPresetLoad: (id: string) => void;
-  onPresetCreate: (name: string) => Promise<{ error: boolean; msg?: string }>;
-  onPresetRename: (id: string, name: string) => void;
-  onPresetDelete: (id: string) => void;
-  onLayoutReset: () => void;
-  onLayoutUndo: () => void;
-  onLayoutRedo: () => void;
 }) {
   const { t } = useTranslation();
 
@@ -264,20 +251,6 @@ export function DevicePanel({ devices, header, selectedIds, onSelectDevice, onSe
     <aside className={styles.devicePanel}>
       <div className={styles.deviceList}>
         {header}
-        <PresetToolbar
-          presets={presets}
-          activeId={layoutActiveId}
-          presetCount={presetCount}
-          canUndo={canUndo}
-          canRedo={canRedo}
-          onLoad={onPresetLoad}
-          onCreate={onPresetCreate}
-          onRename={onPresetRename}
-          onDelete={onPresetDelete}
-          onReset={onLayoutReset}
-          onUndo={onLayoutUndo}
-          onRedo={onLayoutRedo}
-        />
         {devices.length === 0 && (
           <p className={styles.deviceEmpty}>{t(lightingOff ? 'lighting.devices.selectModeHint' : 'lighting.devices.empty')}</p>
         )}

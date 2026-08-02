@@ -1052,29 +1052,31 @@
   margin-left: 0.3rem;
 }
 
-// ── Right-pane selector: Devices | Effect ─────────────────────────────────
-// Pill-variant segmented control sitting at the top of the right pane,
-// above the device list / effect controls. Matches the camera/code pair
-// switcher in the phone-pairing modal.
+// ── Right-pane header: preset row, then the Devices | Effect selector ─────
 
-// Header row that hosts the pill switcher at the top of the right pane.
-// Matches the .devicePanel left inset (2.5rem) so the pill aligns with the
-// device cards below.
+// The preset owns the mode + effect selection, so its control sits above the
+// selector. Left inset matches .devicePanel so it aligns with the cards below.
+.presetHeader {
+  flex-shrink: 0;
+  padding: 0.25rem 1rem 0.4rem 2.5rem;
+}
+
+// Selector row, between the preset row and the device list / effect controls
+// it switches between.
 .rightPaneTabsHeader {
   flex-shrink: 0;
-  padding: 0.25rem 1rem 0.6rem 2.5rem;
+  padding: 0 1rem 0.5rem 2.5rem;
 }
 
 .rightPaneTabsWrap {
   display: flex;
 }
 
-.rightPaneTabsWrap :global(nav) {
-  width: 100%;
-}
-
+// Sized down from the page-header mode tabs: these switch a pane, the header
+// tabs switch the lighting mode. Width comes from the Tabs fullWidth prop.
 .rightPaneTabsWrap :global(button) {
-  flex: 1;
+  padding: 0.25rem 0.7rem;
+  font-size: var(--type-tiny);
 }
 
 
