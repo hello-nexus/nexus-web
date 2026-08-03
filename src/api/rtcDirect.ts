@@ -226,6 +226,8 @@ export class RtcRuntimeChannel {
 export class RtcHttpTunnel {
   private dead = false;
   private sendCounter = 0;
+  // Serializes outbound writes so request frames reach the wire in counter order.
+  private sendTail: Promise<void> = Promise.resolve();
   private lastRecvCounter = -1;
   private readonly tracker = new PendingRequestTracker();
   private readonly dc: RTCDataChannel;
@@ -276,22 +278,37 @@ export class RtcHttpTunnel {
     const id = this.tracker.nextId();
     const payload = JSON.stringify(buildRequestWire(id, method, path, body, contentType));
     const counter = this.sendCounter++;
-    const frame = await seal(this.aeadKey, DIR_CLIENT_TO_HOST, counter, payload);
-    if (frame.byteLength > MAX_FRAME_BYTES) throw new Error('rtc http: request too large');
-    if (this.dead || this.dc.readyState !== 'open') throw new Error('rtc http: channel closed before send');
 
     return new Promise<RelayResponse>((resolve, reject) => {
       const timer = setTimeout(() => {
         if (this.tracker.drop(id)) reject(new Error('rtc http: request timeout'));
       }, REQUEST_TIMEOUT_MS);
       this.tracker.register(id, resolve, reject, timer);
-      try {
-        this.dc.send(toArrayBuffer(frame));
-      } catch {
+      const fail = (message: string) => {
         this.tracker.drop(id);
         clearTimeout(timer);
-        reject(new Error('rtc http: send failed'));
-      }
+        reject(new Error(message));
+      };
+      // Counters are taken synchronously but sealing is async, so concurrent
+      // requests would otherwise reach the wire in whichever order their seals
+      // settled. The peer enforces a monotonic counter, so an inverted pair
+      // fatals the connection.
+      this.sendTail = this.sendTail.then(async () => {
+        let frame: Uint8Array;
+        try {
+          frame = await seal(this.aeadKey, DIR_CLIENT_TO_HOST, counter, payload);
+        } catch {
+          fail('rtc http: seal failed');
+          return;
+        }
+        if (frame.byteLength > MAX_FRAME_BYTES) { fail('rtc http: request too large'); return; }
+        if (this.dead || this.dc.readyState !== 'open') { fail('rtc http: channel closed before send'); return; }
+        try {
+          this.dc.send(toArrayBuffer(frame));
+        } catch {
+          fail('rtc http: send failed');
+        }
+      });
     });
   }
 
