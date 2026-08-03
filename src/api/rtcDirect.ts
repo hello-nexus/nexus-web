@@ -134,6 +134,8 @@ export class RtcRuntimeChannel {
   }
 
   private sendCounter = 0;
+  // Serializes outbound writes so frames reach the wire in counter order.
+  private sendTail: Promise<void> = Promise.resolve();
   private lastRecvCounter = -1;
   private readonly dc: RTCDataChannel;
   private readonly aeadKey: CryptoKey;
@@ -184,7 +186,12 @@ export class RtcRuntimeChannel {
   send(text: string): void {
     if (this.readyState !== RtcRuntimeChannel.OPEN) return;
     const counter = this.sendCounter++;
-    void seal(this.aeadKey, DIR_CLIENT_TO_HOST, counter, text)
+    // The counter is taken synchronously but sealing is async, so unchained
+    // sends can reach the wire in the order their decrypts happen to settle.
+    // The peer enforces a monotonic counter, so an inverted pair fatals a
+    // legitimate connection - same reason inbound delivery is serialized.
+    this.sendTail = this.sendTail
+      .then(() => seal(this.aeadKey, DIR_CLIENT_TO_HOST, counter, text))
       .then((frame) => {
         if (frame.byteLength > MAX_FRAME_BYTES || this.readyState !== RtcRuntimeChannel.OPEN) return;
         this.dc.send(toArrayBuffer(frame));
