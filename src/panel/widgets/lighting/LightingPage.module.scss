@@ -96,6 +96,14 @@
   position: relative;
 }
 
+// Sits over the preview without taking pointer input, so devices on the canvas
+// stay selectable and draggable underneath.
+.canvasNotice {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
 .fullscreenBtn {
   position: absolute;
   top: 0.4rem;
@@ -196,9 +204,9 @@
   padding: 0.75rem 0 0.25rem;
 }
 
-// Media mode claims the leftover pane height, so the grid scrolls in place
-// (what .mediaGrid's overflow already assumes) and the empty state centres in
-// the canvas. Every other mode stays sized to its content.
+// Media mode claims the leftover pane height, which is what .mediaGrid's own
+// overflow already assumes: without it the column sizes to content and a full
+// library is clipped instead of scrolling. Other modes stay content-sized.
 .controlsFill {
   flex: 1;
   min-height: 0;
@@ -549,8 +557,7 @@
 // Trails the row; Import Media leads it.
 .manageFolderBtn { margin-left: auto; }
 .hiddenInput { display: none; }
-// Takes the space the media grid would occupy, so the notice sits centred in
-// the canvas rather than tucked under the header.
+// Takes the space the media grid would occupy so the notice centres in it.
 .mediaEmpty { flex: 1; min-height: 0; }
 .mediaError { color: var(--bad); font-size: var(--type-small); margin: 0; }
 

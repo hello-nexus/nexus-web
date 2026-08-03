@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { FolderOpen, Image as ImageIcon, Monitor, MonitorPlay, Upload, Zap } from 'lucide-react';
+import { FolderOpen, Monitor, MonitorPlay, Upload, Zap } from 'lucide-react';
 import {
   fetchScreenMonitors, startScreenMirror, fetchScreenEffect, setScreenEffect, reselectScreen,
   type ScreenMonitor, type PostProcessSettings,
@@ -17,7 +17,6 @@ import { useTranslation } from '../../../../lib/i18n';
 import type { LightingMode } from '../../../../types/lighting';
 import { EffectCard } from '../../../../components/common/EffectCard/EffectCard';
 import { ConfirmModal } from '../../../../components/common/ConfirmModal/ConfirmModal';
-import { EmptyState } from '../../../../components/common/EmptyState/EmptyState';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { IconLabelButton } from '../../../../components/common/IconLabelButton/IconLabelButton';
 import { Button } from '../../../../components/common/Button/Button';
@@ -283,14 +282,6 @@ function MediaControls() {
       </div>
       {importError && (
         <p className={styles.mediaError}>{importError}</p>
-      )}
-      {items.length === 0 && !importing && !importError && (
-        <EmptyState
-          className={styles.mediaEmpty}
-          icon={<ImageIcon size={22} />}
-          title={t('lighting.controls.noMediaTitle')}
-          hint={t('lighting.controls.noMedia')}
-        />
       )}
       <ConfirmModal
         open={pendingDelete !== null}

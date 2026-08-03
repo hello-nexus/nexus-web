@@ -39,6 +39,7 @@ import { useUiSettings } from '../../../hooks/useUiSettings';
 import { publishControlSync, subscribeControlSync } from '../../../lib/controlSync';
 import { emitRadialBloomFromElement } from '../../../lib/backgroundEffects';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
+import { ConfirmModal } from '../../../components/common/ConfirmModal/ConfirmModal';
 import { CollapsibleSection } from '../../../components/common/CollapsibleSection/CollapsibleSection';
 import { SortableList, type SortableRowArgs } from '../../../components/common/SortableList/SortableList';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
@@ -112,6 +113,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // bridges that gap and hands off to the server flag (or expires after 10 s
   // if the start never confirms, so a failed start can't wedge the page).
   const [calStarting, setCalStarting] = useState(false);
+  const [calConfirmOpen, setCalConfirmOpen] = useState(false);
   const serverCalibrating = serviceState.cooling?.calibrating ?? false;
   const calibrating = serverCalibrating || calStarting;
   useEffect(() => {
@@ -629,6 +631,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   }, [curves, fanStates, pushCurves]);
 
   const runCalibration = useCallback(async () => {
+    setCalConfirmOpen(false);
     setCalibrationResults(null);
     setCalStarting(true); // lock the rail immediately; the server flag takes over
     const r = await startCalibration([]);
@@ -985,13 +988,23 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
               page's OpenRGB button. */}
           <div className={styles.fanSidebarFooter}>
             <button type="button" className="chip-action"
-              onClick={runCalibration} disabled={calibrating}>
+              onClick={() => setCalConfirmOpen(true)} disabled={calibrating}>
               <Gauge size={14} aria-hidden />
               {calibrating ? t('cooling.calibrate.running').split('-')[0].trim() : t('cooling.calibrate.button')}
             </button>
           </div>
         </aside>
       </div>
+      <ConfirmModal
+        open={calConfirmOpen && !calibrating}
+        destructive={false}
+        title={t('cooling.calibrate.confirmTitle')}
+        message={t('cooling.calibrate.confirmMessage')}
+        note={t('cooling.calibrate.locked')}
+        confirmLabel={t('cooling.calibrate.confirmStart')}
+        onCancel={() => setCalConfirmOpen(false)}
+        onConfirm={runCalibration}
+      />
     </div>
   );
 }
