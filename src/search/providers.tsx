@@ -273,7 +273,7 @@ const APP_KEYWORDS: Record<string, string[]> = {
   calendar: ['events', 'schedule', 'agenda', 'date'],
   gallery: ['photos', 'images', 'pictures', 'slideshow', 'wallpaper'],
   steam: ['games', 'game library', 'launch', 'valve', 'playtime'],
-  'smart-lights': ['hue', 'govee', 'nanoleaf', 'philips', 'bulb', 'smart', 'lamp'],
+  'smart-lights': ['hue', 'govee', 'philips', 'bulb', 'smart', 'lamp'],
   'home-assistant': ['hass', 'home automation', 'smart home', 'entities', 'iot'],
   benchmark: ['leaderboard', 'leaderboards', 'score', 'fps', 'stress test', 'performance test'],
   diagnostics: ['health', 'smart', 'memory test', 'troubleshoot', 'events', 'drivers'],

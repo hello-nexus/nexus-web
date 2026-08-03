@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { LampCeiling, Lightbulb, RefreshCw } from 'lucide-react';
+import { ExternalLink, LampCeiling, Lightbulb, RefreshCw } from 'lucide-react';
 import { Button } from '../../../components/common/Button/Button';
 import { Card } from '../../../components/common/Card/Card';
 import { CollapsibleSection } from '../../../components/common/CollapsibleSection/CollapsibleSection';
@@ -10,6 +10,7 @@ import { Select } from '../../../components/common/Select/Select';
 import { Toggle } from '../../../components/common/Toggle/Toggle';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { useTranslation } from '../../../lib/i18n';
+import { SMART_LIGHT_GUIDE_URLS } from '../../../lib/externalLinks';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import {
   fetchSmartLights,
@@ -34,16 +35,14 @@ interface SmartLightsPageProps {
 // Every other brand stays hidden until it's planned/shipped.
 const ACTIVE_BRANDS: ReadonlyArray<readonly [brand: string, labelKey: string]> = [
   ['hue', 'smartLights.brandHue'],
-  ['nanoleaf', 'smartLights.brandNanoleaf'],
   ['govee', 'smartLights.brandGovee'],
 ];
 
 // Pair errors that mean "the user must do something on the device/app, then
-// retry": Hue's bridge button, Nanoleaf's pairing window (hold the power
-// button), Govee's LAN Control app toggle. Anything else renders as a failure.
+// retry": Hue's bridge button, Govee's LAN Control app toggle. Anything else
+// renders as a failure.
 const ACTION_NEEDED_COPY: Record<string, string> = {
   'link-button': 'smartLights.pressBridgeButton',
-  'pairing-mode': 'smartLights.holdPowerButton',
   'lan-control': 'smartLights.enableLanControl',
 };
 
@@ -213,8 +212,8 @@ export function useSmartLights(): SmartLightsController {
 
 /**
  * Add-lights column: brand picker, per-brand discovery + pairing (Hue,
- * Nanoleaf, Govee), and the add-by-IP fallback. The lighting-page deep link
- * only shows on the desktop Page (onSectionNavigate is desktop-only).
+ * Govee), and the add-by-IP fallback. The lighting-page deep link only shows
+ * on the desktop Page (onSectionNavigate is desktop-only).
  *
  * `immersive` fills + scrolls inside an ImmersiveLayout cell; the desktop Page
  * docks it at a fixed width beside the paired list.
@@ -275,6 +274,20 @@ export function SmartLightsAddColumn({
                   />
                 </HoverTooltip>
               </div>
+
+              {on && SMART_LIGHT_GUIDE_URLS[brand] && (
+                <Button
+                  className={styles.guideLink}
+                  size="sm"
+                  tone="ghost"
+                  iconTrailing={<ExternalLink size={13} aria-hidden />}
+                  href={SMART_LIGHT_GUIDE_URLS[brand]}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {t('smartLights.howToConnect')}
+                </Button>
+              )}
 
               {hasResults && (
                 <div className={styles.brandResults}>
@@ -432,7 +445,7 @@ export function SmartLightsPairedColumn({
 
 /**
  * Smart-lights management page: brand picker, per-brand discovery + pairing
- * (Hue, Nanoleaf, Govee), and the paired-device list. Color / brightness /
+ * (Hue, Govee), and the paired-device list. Color / brightness /
  * power for paired lights live on the Lighting page (the existing
  * lighting-devices routes); this page only adds and removes them.
  */

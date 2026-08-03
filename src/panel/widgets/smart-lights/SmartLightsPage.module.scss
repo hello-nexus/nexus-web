@@ -105,6 +105,14 @@
   font-weight: var(--weight-heading);
 }
 
+// Zero leading pad so the label starts on the brand mark's left edge.
+.guideLink {
+  align-self: flex-start;
+  margin-top: 6px;
+  padding-left: 0;
+  font-size: var(--type-small);
+}
+
 // Color & brightness shortcut, full-width directly under the Add-by-IP box.
 .lightingLink {
   width: 100%;
