@@ -1813,7 +1813,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'ChipGroup', category: 'inputs',
     filePath: 'src/components/common/ChipGroup/ChipGroup.tsx',
-    description: 'Single-select chip row reusing the cooling curve/mode .chip-action buttons (.chip-active fills the selected one with the accent, labelled in the contrast-paired --accent-text; the pill radius is what separates a chosen option from an accent-filled Button). Single-select renders a radiogroup: one tab stop on the checked chip, arrows move focus without selecting, Space/Enter commits - callers write firmware and device settings on change, so selection must not follow focus. multiSelect keeps aria-pressed toggle buttons. fullWidth stretches the row so it reads as a segmented control.', Preview: PreviewChipGroup,
+    description: 'Single-select chip row reusing the cooling curve/mode .chip-action buttons (.chip-active fills the selected one with the accent, labelled in the contrast-paired --accent-text). Single-select renders a radiogroup: one tab stop on the checked chip, arrows move focus without selecting, Space/Enter commits - callers write firmware and device settings on change, so selection must not follow focus. multiSelect keeps aria-pressed toggle buttons. fullWidth stretches the row so it reads as a segmented control.', Preview: PreviewChipGroup,
   },
   {
     name: 'ChipGroup (multi-select)', category: 'inputs',

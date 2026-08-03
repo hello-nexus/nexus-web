@@ -291,10 +291,7 @@ input[type="range"][data-range-knob] {
   font-weight: var(--weight-body);
   line-height: 1;
   padding: 0.4rem 0.75rem;
-  // Pill, where Button uses --radius-sm. A selected chip carries the same
-  // accent fill as a primary button, so shape is what separates "this option is
-  // chosen" from "press this to act".
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-sm);
   border: 1px solid transparent;
   white-space: nowrap;
   user-select: none;
