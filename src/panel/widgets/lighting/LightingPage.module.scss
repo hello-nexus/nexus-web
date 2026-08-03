@@ -707,6 +707,8 @@
 .devicePanel {
   // Tight right inset (matches CoolingPage's .fanList padding-right) so cards
   // sit close to the scrollbar; 2.5rem left inset keeps them off the divider.
+  // The preset and tab rows above carry the same insets so the pane's blocks
+  // share one left and right edge.
   padding: 0.5rem 0.4rem 0.5rem 2.5rem;
   overflow-y: auto;
   flex: 1 1 auto;
@@ -1061,14 +1063,14 @@
 // selector. Left inset matches .devicePanel so it aligns with the cards below.
 .presetHeader {
   flex-shrink: 0;
-  padding: 0.25rem 1rem 0.4rem 2.5rem;
+  padding: 0.25rem 0.4rem 0.4rem 2.5rem;
 }
 
 // Selector row, between the preset row and the device list / effect controls
 // it switches between.
 .rightPaneTabsHeader {
   flex-shrink: 0;
-  padding: 0 1rem 0.5rem 2.5rem;
+  padding: 0 0.4rem 0.5rem 2.5rem;
 }
 
 .rightPaneTabsWrap {
