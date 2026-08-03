@@ -1434,6 +1434,7 @@
   "lighting.controls.neongrid": "Griglia neon",
   "lighting.controls.neonrain": "Pioggia al neon",
   "lighting.controls.noMedia": "Nessun media importato. Clicca Importa per aggiungere immagini, GIF o video.",
+  "lighting.controls.noMediaTitle": "Nessun file multimediale",
   "lighting.controls.noMonitors": "Nessun monitor rilevato",
   "lighting.controls.oilslick": "Macchia d'olio",
   "lighting.controls.param.balance": "Bilanciamento",

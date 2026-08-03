@@ -1493,6 +1493,7 @@
   "lighting.controls.neongrid": "Neon Grid",
   "lighting.controls.neonrain": "Neon Rain",
   "lighting.controls.noMedia": "No media imported. Click Import to add images, GIFs, or videos.",
+  "lighting.controls.noMediaTitle": "No media",
   "lighting.controls.noMonitors": "No monitors detected",
   "lighting.controls.oilslick": "Oil Slick",
   "lighting.controls.param.amplitude": "Amplitude",

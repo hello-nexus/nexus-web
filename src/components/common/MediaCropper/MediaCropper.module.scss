@@ -65,6 +65,11 @@
   padding: 12px 0 0;
 }
 
+// Splits the row: reset sits alone at the leading edge, cancel/confirm trail.
+.resetBtn {
+  margin-right: auto;
+}
+
 .toolbar {
   display: flex;
   align-items: center;
@@ -90,48 +95,3 @@
   &:disabled { opacity: 0.4; cursor: default; }
 }
 
-.cancelBtn {
-  background: none;
-  border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
-  border-radius: 6px;
-  color: var(--text);
-  padding: 7px 14px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  line-height: 1;
-
-  &:hover { background: var(--surface-hover, rgba(255, 255, 255, 0.06)); }
-  &:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-}
-
-.confirmBtn {
-  background: var(--accent);
-  border: none;
-  border-radius: 6px;
-  color: var(--accent-on, #fff);
-  padding: 7px 14px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  line-height: 1;
-
-  &:hover { opacity: 0.9; }
-  &:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-}
-
-.resetBtn {
-  background: none;
-  border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
-  border-radius: 6px;
-  color: var(--text-dim);
-  padding: 7px 14px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  line-height: 1;
-  margin-right: auto;
-
-  &:hover { color: var(--text); background: var(--surface-hover, rgba(255, 255, 255, 0.06)); }
-  &:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-}

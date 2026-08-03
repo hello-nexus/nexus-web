@@ -1,6 +1,7 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { useTranslation } from '../../../lib/i18n';
 import { Overlay } from '../Overlay/Overlay';
+import { Button } from '../Button/Button';
 import styles from './ConfirmModal.module.scss';
 
 interface ConfirmModalProps {
@@ -75,15 +76,16 @@ export function ConfirmModal({
         {children}
       </div>
       <div className={styles.actions}>
-        <button ref={cancelRef} type="button" className={styles.cancelBtn} onClick={onCancel}>
+        <Button ref={cancelRef} tone="neutral" size="md" onClick={onCancel}>
           {cancelLabel ?? t('confirm.cancel')}
-        </button>
-        <button type="button"
-          className={destructive ? styles.destructiveBtn : styles.confirmBtn}
+        </Button>
+        <Button
+          tone={destructive ? 'danger-solid' : 'accent'}
+          size="md"
           onClick={onConfirm}
           disabled={confirmDisabled}>
           {confirmLabel ?? t('confirm.ok')}
-        </button>
+        </Button>
       </div>
     </Overlay>
   );

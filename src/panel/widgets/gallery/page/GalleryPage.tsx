@@ -227,10 +227,10 @@ export function GalleryPage() {
         <div className={styles.sourcesColumn}>
           <SectionHeader className={styles.sourcesHeader}>{t('gallery.page.sources')}</SectionHeader>
           <div className={styles.sourceActions}>
-            <Button size="sm" icon={<ImagePlus size={14} />} disabled={pickingDisabled} onClick={() => pickAndAdd('file')}>
+            <Button icon={<ImagePlus size={16} />} disabled={pickingDisabled} onClick={() => pickAndAdd('file')}>
               {picking === 'file' ? t('gallery.page.picking') : t('gallery.page.addFile')}
             </Button>
-            <Button size="sm" icon={<FolderPlus size={14} />} disabled={pickingDisabled} onClick={() => pickAndAdd('folder')}>
+            <Button icon={<FolderPlus size={16} />} disabled={pickingDisabled} onClick={() => pickAndAdd('folder')}>
               {picking === 'folder' ? t('gallery.page.picking') : t('gallery.page.addFolder')}
             </Button>
           </div>

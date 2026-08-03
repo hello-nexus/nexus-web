@@ -93,25 +93,8 @@
 
 .actions {
   margin-top: 0.25rem;
+
+  // Floor width so the label's locale length does not resize the button.
+  > * { min-width: 96px; }
 }
 
-.okBtn {
-  min-width: 96px;
-  padding: 0.5rem 1.1rem;
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  background: var(--accent);
-  color: var(--accent-text);
-  font-size: var(--type-body);
-  font-weight: var(--weight-strong);
-  font-family: inherit;
-  cursor: pointer;
-  transition: background var(--ease-fast);
-
-  &:hover { background: var(--accent-glow); border-color: var(--accent-glow); }
-
-  &:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
-}

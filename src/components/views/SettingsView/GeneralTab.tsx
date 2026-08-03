@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { ExternalLink, FolderOpen } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingToggle, SettingSelect, SettingSlider, SettingRow } from '../../common/SettingRow/SettingRow';
@@ -220,6 +221,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
             type="button"
             tone="neutral"
             size="sm"
+            icon={<FolderOpen size={14} aria-hidden />}
             onClick={openLogs}
             disabled={!serviceOnline}
           >
@@ -231,6 +233,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
           <Button
             tone="neutral"
             size="sm"
+            iconTrailing={<ExternalLink size={14} aria-hidden />}
             href="https://github.com/hello-nexus/nexus-service/issues"
             target="_blank"
             rel="noopener noreferrer"

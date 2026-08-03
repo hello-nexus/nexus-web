@@ -210,7 +210,7 @@ describe('LightingPage preset toolbar placement', () => {
       <LightingPage serviceOnline serviceState={{ cooling: null, lighting: null, panel: null }} activeProfileId="old" />,
     );
 
-    expect(getByRole('tab', { name: 'lighting.rightPane.effect' }).getAttribute('aria-selected')).toBe('true');
+    expect(getByRole('radio', { name: 'lighting.rightPane.effect' }).getAttribute('aria-checked')).toBe('true');
     expect(await findByLabelText('lighting.layoutPresets.placeholder')).toBeTruthy();
   });
 });

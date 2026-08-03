@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from '../../../lib/i18n';
 import { Overlay } from '../Overlay/Overlay';
+import { Button } from '../Button/Button';
 import styles from './PromptModal.module.scss';
 
 interface PromptModalProps {
@@ -146,15 +147,12 @@ export function PromptModal({
         {isInvalid && <p id={errorId} className={styles.error} role="alert">{error}</p>}
       </div>
       <div className={styles.actions}>
-        <button type="button" className={styles.cancelBtn} onClick={onCancel}>
+        <Button tone="neutral" size="md" onClick={onCancel}>
           {cancelLabel ?? t('confirm.cancel')}
-        </button>
-        <button type="button"
-          className={styles.confirmBtn}
-          onClick={submit}
-          disabled={submitDisabled}>
+        </Button>
+        <Button tone="accent" size="md" onClick={submit} disabled={submitDisabled}>
           {confirmLabel ?? t('confirm.ok')}
-        </button>
+        </Button>
       </div>
     </Overlay>
   );

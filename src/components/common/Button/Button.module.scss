@@ -13,11 +13,14 @@
   white-space: nowrap;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+  // box-shadow rides transform so a raised tone's ledge collapses as the face
+  // drops, instead of snapping out from under it.
   transition:
     background-color var(--ease-fast) ease,
     border-color var(--ease-fast) ease,
     color var(--ease-fast) ease,
     transform var(--ease-fast) ease,
+    box-shadow var(--ease-fast) ease,
     filter var(--ease-fast) ease;
 
   &:focus-visible {
@@ -78,14 +81,33 @@
   }
 }
 
-// Accent: filled with the user's accent color.
+// Accent: filled with the user's accent color. The raised edge is what tells a
+// primary action apart from a selected chip, which carries the same fill flat.
+// The mixin's :active arm ties .button's shared pressed-subtle on specificity
+// and comes later in the file, so it wins.
 .tone-accent {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--accent-text);
 
+  @include raised-edge(var(--accent));
+
   &:hover:not(:disabled) {
     filter: brightness(1.12);
+  }
+}
+
+// Danger-solid: filled red for a destructive confirmation, where tone-danger's
+// outline reads too quietly. Same raised treatment as accent.
+.tone-danger-solid {
+  background: var(--bad);
+  border-color: var(--bad);
+  color: #fff;
+
+  @include raised-edge(var(--bad));
+
+  &:hover:not(:disabled) {
+    filter: brightness(1.1);
   }
 }
 

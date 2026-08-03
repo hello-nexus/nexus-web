@@ -1,3 +1,5 @@
+import { Image as ImageIcon } from 'lucide-react';
+import { EmptyState } from '../../../../components/common/EmptyState/EmptyState';
 import { useTranslation } from '../../../../lib/i18n';
 import { useMediaLibrary } from './useMediaLibrary';
 import { MediaGrid } from './MediaGrid';
@@ -14,7 +16,12 @@ export function MediaList() {
   return (
     <div className={styles.mediaSection}>
       {items.length === 0 && (
-        <p className={styles.mediaEmpty}>{t('lighting.controls.noMedia')}</p>
+        <EmptyState
+          className={styles.mediaEmpty}
+          icon={<ImageIcon size={22} />}
+          title={t('lighting.controls.noMediaTitle')}
+          hint={t('lighting.controls.noMedia')}
+        />
       )}
       <MediaGrid items={items} activeId={activeId} thumbs={thumbs} onPlay={play} />
     </div>

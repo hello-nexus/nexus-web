@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useTranslation } from '../../../../lib/i18n';
 import { Overlay } from '../../../../components/common/Overlay/Overlay';
+import { Button } from '../../../../components/common/Button/Button';
 import { CHART_EVENT_ICONS } from '../../../../components/common/TimeSeriesChart/TimeSeriesChart';
 import type { MonitoringEventKind, TimelineEvent } from '../../../../api/monitoringEvents';
 import { useEventKindVisibility } from './useEventKindVisibility';
@@ -98,9 +99,9 @@ export function MonitoringEventsModal({
       )}
 
       <div className={styles.actions}>
-        <button type="button" className={styles.confirmBtn} onClick={onClose}>
+        <Button tone="accent" onClick={onClose}>
           {t('monitoring.events.close')}
-        </button>
+        </Button>
       </div>
     </Overlay>
   );

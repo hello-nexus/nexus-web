@@ -1434,6 +1434,7 @@
   "lighting.controls.neongrid": "Grade neon",
   "lighting.controls.neonrain": "Chuva Neon",
   "lighting.controls.noMedia": "Nenhuma midia importada. Clique em Importar para adicionar imagens, GIFs ou videos.",
+  "lighting.controls.noMediaTitle": "Nenhuma mídia",
   "lighting.controls.noMonitors": "Nenhum monitor detectado",
   "lighting.controls.oilslick": "Mancha de oleo",
   "lighting.controls.param.balance": "Equilíbrio",

@@ -27,7 +27,7 @@ describe('PromptModal', () => {
     const { onConfirm } = renderModal();
 
     fireEvent.change(screen.getByLabelText('Enter a name'), { target: { value: 'Streaming' } });
-    fireEvent.click(screen.getByText('confirm.ok'));
+    fireEvent.click(screen.getByRole('button', { name: 'confirm.ok' }));
 
     expect(onConfirm).toHaveBeenCalledWith('Streaming');
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
@@ -38,7 +38,7 @@ describe('PromptModal', () => {
     renderModal({ onConfirm });
 
     fireEvent.change(screen.getByLabelText('Enter a name'), { target: { value: 'Streaming' } });
-    fireEvent.click(screen.getByText('confirm.ok'));
+    fireEvent.click(screen.getByRole('button', { name: 'confirm.ok' }));
 
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Name already taken'));
     expect(screen.getByLabelText('Enter a name')).toBeInTheDocument();
@@ -49,7 +49,7 @@ describe('PromptModal', () => {
     renderModal({ onConfirm });
 
     fireEvent.change(screen.getByLabelText('Enter a name'), { target: { value: 'Streaming' } });
-    fireEvent.click(screen.getByText('confirm.ok'));
+    fireEvent.click(screen.getByRole('button', { name: 'confirm.ok' }));
 
     await waitFor(() => expect(onConfirm).toHaveBeenCalledWith('Streaming'));
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
@@ -60,7 +60,7 @@ describe('PromptModal', () => {
     renderModal({ onConfirm });
 
     fireEvent.change(screen.getByLabelText('Enter a name'), { target: { value: 'Streaming' } });
-    fireEvent.click(screen.getByText('confirm.ok'));
+    fireEvent.click(screen.getByRole('button', { name: 'confirm.ok' }));
 
     expect(screen.getByRole('alert')).toHaveTextContent('Name already taken');
   });
@@ -71,7 +71,7 @@ describe('PromptModal', () => {
     renderModal({ onConfirm });
 
     fireEvent.change(screen.getByLabelText('Enter a name'), { target: { value: 'Streaming' } });
-    const confirmBtn = screen.getByText('confirm.ok');
+    const confirmBtn = screen.getByRole('button', { name: 'confirm.ok' });
     fireEvent.click(confirmBtn);
 
     expect(confirmBtn).toBeDisabled();
@@ -87,8 +87,8 @@ describe('PromptModal', () => {
     fireEvent.change(screen.getByLabelText('Enter a name'), { target: { value: 'taken' } });
 
     expect(screen.getByRole('alert')).toHaveTextContent('Already taken');
-    expect(screen.getByText('confirm.ok')).toBeDisabled();
-    fireEvent.click(screen.getByText('confirm.ok'));
+    expect(screen.getByRole('button', { name: 'confirm.ok' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'confirm.ok' }));
     expect(onConfirm).not.toHaveBeenCalled();
   });
 
@@ -100,7 +100,7 @@ describe('PromptModal', () => {
     const { rerender } = render(<PromptModal open {...props} />);
 
     fireEvent.change(screen.getByLabelText('Enter a name'), { target: { value: 'Streaming' } });
-    fireEvent.click(screen.getByText('confirm.ok'));
+    fireEvent.click(screen.getByRole('button', { name: 'confirm.ok' }));
     expect(onConfirm).toHaveBeenCalledTimes(1);
 
     // Cancel (parent closes) and reopen before the pending promise resolves.
@@ -116,6 +116,6 @@ describe('PromptModal', () => {
     // Reopened with a fresh (empty) value, so the button is disabled for that
     // reason alone - typing proves it isn't ALSO stuck by the stale `submitting`.
     fireEvent.change(screen.getByLabelText('Enter a name'), { target: { value: 'Work' } });
-    expect(screen.getByText('confirm.ok')).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: 'confirm.ok' })).not.toBeDisabled();
   });
 });

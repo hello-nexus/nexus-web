@@ -1434,6 +1434,7 @@
   "lighting.controls.neongrid": "Неоновая сетка",
   "lighting.controls.neonrain": "Неоновый дождь",
   "lighting.controls.noMedia": "Медиа не импортировано. Нажмите «Импорт» для добавления изображений, GIF или видео.",
+  "lighting.controls.noMediaTitle": "Нет медиафайлов",
   "lighting.controls.noMonitors": "Мониторы не обнаружены",
   "lighting.controls.oilslick": "Масляная плёнка",
   "lighting.controls.param.balance": "Баланс",

@@ -1434,6 +1434,7 @@
   "lighting.controls.neongrid": "Neon-Gitter",
   "lighting.controls.neonrain": "Neonregen",
   "lighting.controls.noMedia": "Keine Medien importiert. Klicken Sie auf Importieren, um Bilder, GIFs oder Videos hinzuzufügen.",
+  "lighting.controls.noMediaTitle": "Keine Medien",
   "lighting.controls.noMonitors": "Keine Monitore erkannt",
   "lighting.controls.oilslick": "Ölfilm",
   "lighting.controls.param.balance": "Balance",

@@ -1434,6 +1434,7 @@
   "lighting.controls.neongrid": "네온 그리드",
   "lighting.controls.neonrain": "네온 레인",
   "lighting.controls.noMedia": "가져온 미디어가 없습니다. 이미지, GIF 또는 동영상을 추가하려면 가져오기를 클릭하세요.",
+  "lighting.controls.noMediaTitle": "미디어 없음",
   "lighting.controls.noMonitors": "모니터가 감지되지 않음",
   "lighting.controls.oilslick": "오일 슬릭",
   "lighting.controls.param.balance": "균형",

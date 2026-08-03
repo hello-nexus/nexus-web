@@ -73,32 +73,3 @@
   margin-top: 0.35rem;
 }
 
-.cancelBtn, .confirmBtn, .destructiveBtn {
-  padding: 0.45rem 0.95rem;
-  border-radius: var(--radius-sm);
-  font-size: var(--type-small);
-  cursor: pointer;
-  transition: all var(--ease-fast);
-  font-weight: var(--weight-body);
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--text);
-}
-
-.cancelBtn:hover { background: var(--bg-card-hover); }
-
-.confirmBtn {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--accent-text);
-  font-weight: var(--weight-strong);
-  &:hover { background: var(--accent-glow); border-color: var(--accent-glow); }
-}
-
-.destructiveBtn {
-  border-color: var(--bad);
-  background: var(--bad);
-  color: #fff;
-  font-weight: var(--weight-strong);
-  &:hover { filter: brightness(1.1); }
-}

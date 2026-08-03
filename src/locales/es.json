@@ -1434,6 +1434,7 @@
   "lighting.controls.neongrid": "Cuadrícula neón",
   "lighting.controls.neonrain": "Lluvia de neón",
   "lighting.controls.noMedia": "Ningún medio importado. Haz clic en Importar para añadir imágenes, GIF o vídeos.",
+  "lighting.controls.noMediaTitle": "Sin archivos",
   "lighting.controls.noMonitors": "No se detectaron monitores",
   "lighting.controls.oilslick": "Mancha de aceite",
   "lighting.controls.param.balance": "Balance",

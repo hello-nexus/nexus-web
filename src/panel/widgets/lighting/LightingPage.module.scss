@@ -196,6 +196,16 @@
   padding: 0.75rem 0 0.25rem;
 }
 
+// Media mode claims the leftover pane height, so the grid scrolls in place
+// (what .mediaGrid's overflow already assumes) and the empty state centres in
+// the canvas. Every other mode stays sized to its content.
+.controlsFill {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 // ── Animate: effect grid + settings drawer ─────────────────────────────────
 
 .animateGridWrap {
@@ -533,29 +543,15 @@
 
 // ── Media Library ─────────────────────────────────────────────────────────
 .mediaSection { display: flex; flex-direction: column; gap: 0.75rem; min-height: 0; }
+// Only the gif mode gives this column a definite height to stretch into.
+.controlsFill .mediaSection { flex: 1; }
 .mediaHeader { display: flex; align-items: center; }
-.mediaHeader > .manageFolderBtn { margin-left: auto; }
-.importBtn {
-  padding: 0.45rem 0.95rem; border: 1px solid var(--accent); border-radius: var(--radius-sm);
-  background: var(--accent); color: var(--accent-text); font-size: var(--type-small);
-  font-weight: var(--weight-strong); cursor: pointer; transition: all var(--ease-fast);
-  box-shadow: 0 0 0 0 var(--accent-glow-shadow);
-  &:hover:not(:disabled) { background: var(--accent-glow); border-color: var(--accent-glow); box-shadow: 0 2px 10px var(--accent-glow-shadow); }
-  &:disabled { opacity: 0.55; cursor: not-allowed; }
-}
-.manageFolderBtn {
-  padding: 0.35rem 0.55rem; border: none; background: transparent;
-  color: var(--text-dim); font-size: var(--type-small);
-  cursor: pointer; transition: color var(--ease-fast);
-  display: inline-flex; align-items: center; gap: 0.4rem;
-  &:hover { color: var(--text); }
-}
-.manageFolderIcon {
-  flex-shrink: 0;
-  display: block;
-}
+// Trails the row; Import Media leads it.
+.manageFolderBtn { margin-left: auto; }
 .hiddenInput { display: none; }
-.mediaEmpty { color: var(--text-dim); font-size: var(--type-small); margin: 0; }
+// Takes the space the media grid would occupy, so the notice sits centred in
+// the canvas rather than tucked under the header.
+.mediaEmpty { flex: 1; min-height: 0; }
 .mediaError { color: var(--bad); font-size: var(--type-small); margin: 0; }
 
 .mediaGrid {
@@ -1072,19 +1068,16 @@
   display: flex;
 }
 
-// Sized down from the page-header mode tabs: these switch a pane, the header
-// tabs switch the lighting mode. Width comes from the Tabs fullWidth prop.
-.rightPaneTabsWrap :global(button) {
-  padding: 0.25rem 0.7rem;
-  font-size: var(--type-tiny);
-}
-
 
 // Short attention pulse on the Effect tab label when the user clicks a
 // shader while the Devices tab is active. The span re-mounts on each pulse
 // (key prop changes) so the animation runs from scratch.
 .rightPaneTabPulse {
-  display: inline-block;
+  // Icon + label live inside this one span so the pulse key remounts both;
+  // chip-base's own gap only reaches a chip's direct children.
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   animation: effectTabPulse 0.9s ease-out;
 }
 

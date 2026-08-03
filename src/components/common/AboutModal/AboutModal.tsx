@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ExternalLink, Globe } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { Overlay } from '../Overlay/Overlay';
+import { Button } from '../Button/Button';
 import { GithubGlyph, NexusWordmark } from '../../icons/NexusBrand';
 import { pingService } from '../../../api/service';
 import styles from './AboutModal.module.scss';
@@ -73,9 +74,9 @@ export function AboutModal({ open, onClose, onCheckUpdate }: AboutModalProps) {
       </div>
 
       <div className={styles.actions}>
-        <button type="button" className={styles.okBtn} onClick={onClose}>
+        <Button tone="accent" onClick={onClose}>
           {t('confirm.ok')}
-        </button>
+        </Button>
       </div>
     </Overlay>
   );

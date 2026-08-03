@@ -1,6 +1,7 @@
 import { useUiSettings } from '../../../../hooks/useUiSettings';
 import { useTranslation } from '../../../../lib/i18n';
 import { Overlay } from '../../../../components/common/Overlay/Overlay';
+import { Button } from '../../../../components/common/Button/Button';
 import { Select, type SelectOption } from '../../../../components/common/Select/Select';
 import { resolvePrimaryGpu, type GpuComponent } from '../../../../lib/gpuResolver';
 import { MonitoringEventsSettings } from './MonitoringEventsSettings';
@@ -59,9 +60,9 @@ export function MonitoringSettingsModal({ open, onClose, gpus }: MonitoringSetti
       <MonitoringEventsSettings />
 
       <div className={styles.actions}>
-        <button type="button" className={styles.confirmBtn} onClick={onClose}>
+        <Button tone="accent" onClick={onClose}>
           {t('monitoring.settings.close')}
-        </button>
+        </Button>
       </div>
     </Overlay>
   );

@@ -1434,6 +1434,7 @@
   "lighting.controls.neongrid": "Neon ızgara",
   "lighting.controls.neonrain": "Neon Yagmur",
   "lighting.controls.noMedia": "Aktarilmis medya yok. Resim, GIF veya video eklemek icin Aktar'a tiklayin.",
+  "lighting.controls.noMediaTitle": "Medya yok",
   "lighting.controls.noMonitors": "Monitor algilanmadi",
   "lighting.controls.oilslick": "Yağ lekesi",
   "lighting.controls.param.balance": "Denge",

@@ -3,6 +3,7 @@ import { FlipHorizontal2, FlipVertical2, RotateCcw, RotateCw } from 'lucide-reac
 import { useTranslation } from '../../../lib/i18n';
 import { clampNumber } from '../../../panel/engine/panelGrid';
 import { DeviceModal } from '../DeviceModal/DeviceModal';
+import { Button } from '../Button/Button';
 import {
   flipHorizontal,
   flipVertical,
@@ -295,9 +296,9 @@ export function MediaCropper({ src, kind = 'image', aspect, initialCrop, busy, o
         </button>
       </div>
       <div className={styles.footer}>
-        <button type="button" className={styles.resetBtn} onClick={handleReset} disabled={busy}>{t('cropper.reset')}</button>
-        <button type="button" className={styles.cancelBtn} onClick={onCancel} disabled={busy}>{t('cropper.cancel')}</button>
-        <button type="button" className={styles.confirmBtn} onClick={() => onConfirm(buildResult())} disabled={busy}>{t('cropper.confirm')}</button>
+        <Button tone="ghost" className={styles.resetBtn} onClick={handleReset} disabled={busy}>{t('cropper.reset')}</Button>
+        <Button tone="neutral" onClick={onCancel} disabled={busy}>{t('cropper.cancel')}</Button>
+        <Button tone="accent" onClick={() => onConfirm(buildResult())} disabled={busy}>{t('cropper.confirm')}</Button>
       </div>
     </DeviceModal>
   );

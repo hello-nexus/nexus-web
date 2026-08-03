@@ -1434,6 +1434,7 @@
   "lighting.controls.neongrid": "霓虹网格",
   "lighting.controls.neonrain": "霓虹雨",
   "lighting.controls.noMedia": "未导入媒体。点击导入以添加图像、GIF 或视频。",
+  "lighting.controls.noMediaTitle": "暂无媒体",
   "lighting.controls.noMonitors": "未检测到显示器",
   "lighting.controls.oilslick": "油膜",
   "lighting.controls.param.balance": "平衡",

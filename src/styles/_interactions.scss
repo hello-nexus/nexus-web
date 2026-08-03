@@ -74,6 +74,27 @@
   transform: scale(0.99);
 }
 
+// Filled primary action: a hard bottom edge in a darker shade of its own colour
+// so the control reads as raised, where a selected chip carries the same fill
+// but stays flat. Pass $fill, not a pre-derived token: the shade is mixed toward
+// black off the fill itself, so it stays darker than the face for any accent the
+// user picks. --accent-deep cannot serve here - its lightness floor makes it
+// lighter than a dark accent, inverting the ledge into a halo.
+@mixin raised-edge($fill, $depth: 3px) {
+  $shade: color-mix(in srgb, #{$fill} 62%, #000);
+  box-shadow: 0 $depth 0 $shade;
+
+  // Drops by exactly the ledge depth, so the top edge lands where it sat.
+  &:active:not(:disabled) {
+    transform: translateY($depth);
+    box-shadow: 0 0 0 $shade;
+  }
+
+  &:disabled {
+    box-shadow: none;
+  }
+}
+
 // Disabled state. Standard 0.45 opacity + non-interactive cursor.
 @mixin disabled {
   opacity: var(--alpha-medium);

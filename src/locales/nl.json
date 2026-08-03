@@ -1493,6 +1493,7 @@
   "lighting.controls.neongrid": "Neonraster",
   "lighting.controls.neonrain": "Neonregen",
   "lighting.controls.noMedia": "Geen media geïmporteerd. Klik op Importeren om afbeeldingen, GIF's of video's toe te voegen.",
+  "lighting.controls.noMediaTitle": "Geen media",
   "lighting.controls.noMonitors": "Geen monitors gedetecteerd",
   "lighting.controls.oilslick": "Olievlek",
   "lighting.controls.param.amplitude": "Amplitude",

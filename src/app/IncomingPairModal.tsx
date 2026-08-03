@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Overlay } from '../components/common/Overlay/Overlay';
+import { Button } from '../components/common/Button/Button';
 import { useTopicCallback } from '../hooks/useMultiplexSocket';
 import { useTranslation } from '../lib/i18n';
 import {
@@ -31,22 +32,12 @@ function PairPromptBody({ sas, deviceLabel, remoteAddress, busy = false, error =
       </p>
       {error && <p className={styles.error}>{error}</p>}
       <div className={styles.actions}>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => onDecide(false)}
-          className={styles.denyBtn}
-        >
+        <Button tone="neutral" disabled={busy} onClick={() => onDecide(false)}>
           {t('phonePair.code.deny')}
-        </button>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => onDecide(true)}
-          className={styles.allowBtn}
-        >
+        </Button>
+        <Button tone="accent" disabled={busy} onClick={() => onDecide(true)}>
           {t('phonePair.code.allow')}
-        </button>
+        </Button>
       </div>
     </>
   );

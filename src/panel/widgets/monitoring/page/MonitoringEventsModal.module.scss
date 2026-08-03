@@ -122,16 +122,3 @@
   margin-top: 0.25rem;
 }
 
-.confirmBtn {
-  padding: 0.5rem 1.05rem;
-  border-radius: var(--radius-sm);
-  font-size: var(--type-small);
-  cursor: pointer;
-  transition: all var(--ease-fast) ease;
-  font-weight: var(--weight-strong);
-  border: 1px solid var(--accent);
-  background: var(--accent);
-  color: var(--accent-text);
-
-  &:hover { background: var(--accent-glow); border-color: var(--accent-glow); }
-}

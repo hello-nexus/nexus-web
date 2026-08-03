@@ -1301,7 +1301,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
               {effectiveMode === 'animate' || effectiveMode === 'static' ? (
                 <AnimateGrid effect={activeEffect} onSelect={handleEffectSelect} effects={effectiveMode === 'static' ? STATIC_EFFECTS : ANIMATE_EFFECTS} frozen={effectiveMode === 'static'} slotFor={slotForEffect} versionFor={versionForEffect} panelEffects={panelUsage.effects} gpuAvailable={serviceState.lighting?.gpuAvailable ?? true} />
               ) : (
-                <div className={styles.controls}>
+                <div className={`${styles.controls} ${effectiveMode === 'gif' ? styles.controlsFill : ''}`}>
                   <ModeControls
                     mode={effectiveMode}
                     screenPP={screenPP}

@@ -1434,6 +1434,7 @@
   "lighting.controls.neongrid": "Siatka neon",
   "lighting.controls.neonrain": "Neonowy deszcz",
   "lighting.controls.noMedia": "Brak zaimportowanych mediow. Kliknij Importuj, aby dodac obrazy, GIF-y lub filmy.",
+  "lighting.controls.noMediaTitle": "Brak multimediów",
   "lighting.controls.noMonitors": "Nie wykryto monitorow",
   "lighting.controls.oilslick": "Plama oleju",
   "lighting.controls.param.balance": "Balans",

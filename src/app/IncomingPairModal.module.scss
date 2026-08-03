@@ -47,32 +47,8 @@
   display: flex;
   gap: 0.6rem;
   margin-top: 0.6rem;
+
+  // Deny and allow split the dialog width evenly.
+  > * { flex: 1; }
 }
 
-.denyBtn, .allowBtn {
-  flex: 1;
-  padding: 0.6rem 0.95rem;
-  border-radius: var(--radius-sm);
-  font-size: var(--type-body);
-  cursor: pointer;
-  transition: all var(--ease-fast);
-  font-weight: var(--weight-strong);
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--text);
-
-  &:disabled {
-    cursor: wait;
-    opacity: 0.6;
-  }
-}
-
-.denyBtn:hover { background: var(--bg-card-hover); }
-
-.allowBtn {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--accent-text);
-  font-weight: var(--weight-heading);
-  &:hover { background: var(--accent-glow); border-color: var(--accent-glow); }
-}

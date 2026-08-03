@@ -1,7 +1,10 @@
 import { useRef, useState } from 'react';
+import { FolderOpen, Image as ImageIcon, Upload } from 'lucide-react';
 import { useTranslation } from '../../lib/i18n';
 import { HoverTooltip } from '../../components/common/HoverTooltip/HoverTooltip';
+import { Button } from '../../components/common/Button/Button';
 import { EffectCard } from '../../components/common/EffectCard/EffectCard';
+import { EmptyState } from '../../components/common/EmptyState/EmptyState';
 import { ConfirmModal } from '../../components/common/ConfirmModal/ConfirmModal';
 import { MediaGrid } from '../widgets/lighting/effecteditor/MediaGrid';
 import { MediaCropper, type NormalizedCrop } from '../../components/common/MediaCropper/MediaCropper';
@@ -143,29 +146,22 @@ export function BackgroundMediaPicker({
       )}
       <div className={styles.mediaSection}>
         <div className={styles.mediaHeader}>
-          <button
+          <Button
             type="button"
-            className={styles.importBtn}
+            icon={<Upload size={16} aria-hidden />}
             onClick={() => fileRef.current?.click()}
             disabled={importing}
           >
             {importing ? t('lighting.controls.importing') : t('lighting.controls.import')}
-          </button>
+          </Button>
           <HoverTooltip body={t('lighting.controls.mediaManageFolder')} side="bottom">
-            <button
-              type="button"
+            <Button
               className={styles.manageFolderBtn}
+              icon={<FolderOpen size={16} aria-hidden />}
               onClick={() => { openBackgroundMediaFolder(deviceId).catch(() => {}); }}
-              aria-label={t('lighting.controls.mediaManageFolder')}
             >
-              <svg className={styles.manageFolderIcon} width="14" height="14" viewBox="0 0 24 24"
-                fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
-                aria-hidden="true">
-                <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v2" />
-                <path d="m3 10 2.5 9.2A2 2 0 0 0 7.4 21h10.2a2 2 0 0 0 1.93-1.47L22 11H6.4a2 2 0 0 0-1.93 1.47Z" />
-              </svg>
-              <span>{t('lighting.controls.mediaManageFolder')}</span>
-            </button>
+              {t('lighting.controls.mediaManageFolder')}
+            </Button>
           </HoverTooltip>
           <input
             ref={fileRef}
@@ -177,7 +173,12 @@ export function BackgroundMediaPicker({
         </div>
         {importError && <p className={styles.mediaError}>{importError}</p>}
         {items.length === 0 && !importing && !importError && (
-          <p className={styles.mediaEmpty}>{t('lighting.controls.noMedia')}</p>
+          <EmptyState
+            className={styles.mediaEmpty}
+            icon={<ImageIcon size={22} />}
+            title={t('lighting.controls.noMediaTitle')}
+            hint={t('lighting.controls.noMedia')}
+          />
         )}
         <ConfirmModal
           open={pendingDelete !== null}

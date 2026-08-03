@@ -1379,6 +1379,7 @@
   "lighting.controls.neongrid": "ネオングリッド",
   "lighting.controls.neonrain": "ネオンレイン",
   "lighting.controls.noMedia": "メディアがインポートされていません。画像、GIF、動画を追加するにはインポートをクリック。",
+  "lighting.controls.noMediaTitle": "メディアがありません",
   "lighting.controls.noMonitors": "モニターが検出されません",
   "lighting.controls.oilslick": "オイルスリック",
   "lighting.controls.param.balance": "バランス",

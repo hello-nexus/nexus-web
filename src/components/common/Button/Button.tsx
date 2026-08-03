@@ -1,10 +1,10 @@
-import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import type { ButtonHTMLAttributes, ReactNode, Ref } from 'react';
 import classNames from 'classnames';
 import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
 import styles from './Button.module.scss';
 
 export type ButtonSize = 'sm' | 'md' | 'lg';
-export type ButtonTone = 'neutral' | 'accent' | 'danger' | 'ghost';
+export type ButtonTone = 'neutral' | 'accent' | 'danger' | 'danger-solid' | 'ghost';
 export type ButtonStatus = 'online' | 'offline';
 
 export interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children' | 'size'> {
@@ -30,6 +30,10 @@ export interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement
   target?: string;
   rel?: string;
   children?: ReactNode;
+  /** Focus handle for callers that manage focus (modal autofocus). Reaches the
+   *  <button> only: the `href` branch renders an <a>, and `title` wraps the
+   *  element in HoverTooltip, which clones it with its own ref. */
+  ref?: Ref<HTMLButtonElement>;
 }
 
 /*
@@ -38,6 +42,7 @@ export interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement
  * order). Storybook: Foundation > Inputs > Button.
  */
 export function Button({
+  ref,
   size = 'md',
   tone = 'neutral',
   pill = false,
@@ -92,7 +97,7 @@ export function Button({
       {content}
     </a>
   ) : (
-    <button type={type} disabled={isDisabled} data-loading={loading || undefined} className={classes} {...rest}>
+    <button ref={ref} type={type} disabled={isDisabled} data-loading={loading || undefined} className={classes} {...rest}>
       {content}
     </button>
   );
