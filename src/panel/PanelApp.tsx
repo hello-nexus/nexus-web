@@ -1413,14 +1413,6 @@ export function PanelContent({
         onContextMenu={handleBackgroundContextMenu}
       >
         {showWallpaperLayer && <PanelBackgroundDesktop opacity={effectiveTheme.backgroundOpacity} />}
-        {seeThrough && effectiveTheme.backgroundOpacity < 1 && (
-          <div
-            className={styles.backgroundScrim}
-            data-panel-bg-layer
-            style={{ '--panel-background-opacity': 1 - effectiveTheme.backgroundOpacity } as CSSProperties}
-            aria-hidden
-          />
-        )}
         {showBackgroundLayers && effectiveTheme.backgroundMode === 'shader' && (
           <PanelBackgroundShader
             effect={effectiveTheme.backgroundEffect}

@@ -372,7 +372,7 @@ export function PanelThemeSettings({
             }}
             onCommit={onBackgroundFrostCommit}
           />
-          {backgroundOpacitySlider}
+          {theme.backdrop === 'desktop' ? null : backgroundOpacitySlider}
           {theme.backdrop !== 'theme' ? null : (
           <>
           {theme.backgroundMode === 'solid' ? (
