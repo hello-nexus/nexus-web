@@ -45,9 +45,6 @@ export interface PanelDeviceRecord {
   // central. Absent shaders default to preset 0.
   backgroundTemplates?: Record<string, number>;
   backgroundOpacity?: number;
-  // Superseded by backdrop; still read once, to keep a panel that explicitly
-  // enabled the theme background off the wallpaper default (resolvePanelBackdrop).
-  backgroundEnabled?: boolean | null;
   // 'theme' | 'wallpaper' | 'desktop'. Absent/null resolves per capability:
   // wallpaper-capable panels default to wallpaper, everything else to the
   // theme backdrop (resolvePanelBackdrop).
@@ -95,7 +92,6 @@ export interface PanelDevicePatch {
   // Full per-shader preset map (client sends the whole map).
   backgroundTemplates?: Record<string, number>;
   backgroundOpacity?: number;
-  backgroundEnabled?: boolean;
   backdrop?: string;
   backgroundMediaId?: string | null;
   // '' clears the reference server-side (NullIfEmpty); a JSON null is ignored by the patch-merge.

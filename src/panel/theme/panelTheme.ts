@@ -261,7 +261,6 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
       const backdrop = resolvePanelBackdrop(
         r?.backdrop,
         supportsDesktopWallpaper((r?.capabilities?.surface ?? '') as PanelSurface, !!r?.displayId),
-        r?.backgroundEnabled,
       );
       setTheme({
         appThemeMode: normalizePanelThemeMode(t?.themeMode),

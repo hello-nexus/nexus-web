@@ -137,19 +137,12 @@ export function normalizePanelBackdrop(value: string | null | undefined): PanelB
 // redrawing the wallpaper; every other surface has no desktop behind it and
 // stays on the theme backdrop, which also clamps a stored mode that surface
 // cannot render. A stored value otherwise wins.
-//
-// legacyEnabled is the superseded backgroundEnabled field: a record that
-// explicitly turned the theme background ON predates the backdrop field and
-// must keep that background rather than being defaulted onto the wallpaper.
 export function resolvePanelBackdrop(
   stored: string | null | undefined,
   wallpaperCapable: boolean,
-  legacyEnabled?: boolean | null,
 ): PanelBackdrop {
   if (!wallpaperCapable) return 'theme';
-  const explicit = normalizePanelBackdrop(stored);
-  if (explicit) return explicit;
-  return legacyEnabled === true ? 'theme' : 'wallpaper';
+  return normalizePanelBackdrop(stored) ?? 'wallpaper';
 }
 
 export function normalizePanelBackgroundMode(value: string | null | undefined): PanelBackgroundMode {
