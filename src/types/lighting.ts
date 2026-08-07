@@ -672,6 +672,9 @@ export function isStaticEffect(key: string): boolean {
 /** Static-mode pool: fills first (category order), then the frozen patterns. */
 export const STATIC_EFFECTS: EffectDef[] = EFFECTS.filter(e => STATIC_KEY_SET.has(e.key));
 
+/** Mirrors StaticEffectCatalog.DefaultEffect in nexus-service. */
+export const DEFAULT_STATIC_EFFECT = 'gradientlinear';
+
 /**
  * Animate-mode pool: everything Static does not own. The static set is
  * purpose-built for a held frame - the patterns have no clock to run - so they

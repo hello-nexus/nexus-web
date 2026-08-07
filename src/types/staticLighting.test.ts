@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  ANIMATE_EFFECTS, EFFECTS, MODES, SIMPLE_EFFECT_KEYS, STATIC_EFFECTS, STATIC_PATTERN_KEYS,
-  defaultParamsFor, isStaticEffect, isStaticFill,
+  ANIMATE_EFFECTS, DEFAULT_STATIC_EFFECT, EFFECTS, MODES, SIMPLE_EFFECT_KEYS, STATIC_EFFECTS,
+  STATIC_PATTERN_KEYS, defaultParamsFor, isStaticEffect, isStaticFill,
 } from './lighting';
 import { normalizeSync } from '../hooks/useLightingSync';
 import { PANEL_BACKGROUND_EFFECTS } from '../panel/background/panelBackground';
@@ -40,6 +40,12 @@ describe('static mode catalog', () => {
     for (const key of STATIC_PATTERN_KEYS) {
       expect(EFFECTS.some(e => e.key === key), key).toBe(true);
     }
+  });
+
+  it('defaults to the linear gradient', () => {
+    // Mirrors StaticEffectCatalog.DefaultEffect in nexus-service.
+    expect(DEFAULT_STATIC_EFFECT).toBe('gradientlinear');
+    expect(isStaticEffect(DEFAULT_STATIC_EFFECT)).toBe(true);
   });
 });
 

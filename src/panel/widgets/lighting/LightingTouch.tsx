@@ -26,6 +26,7 @@ import { subscribeControlSync } from '../../../lib/controlSync';
 import { usePanelBackgroundUsage, type PanelBackgroundUsage } from '../../../hooks/usePanelBackgroundUsage';
 import {
   ANIMATE_EFFECTS,
+  DEFAULT_STATIC_EFFECT,
   EFFECTS,
   STATIC_EFFECTS,
   defaultStateFor,
@@ -174,7 +175,7 @@ function useImmersiveAnimateState(): { mode: LightingMode; animate: ImmersiveAni
     const nextMode = resolveImmersiveMode(rawSync);
     setMode(nextMode);
     if (nextMode === 'static') {
-      setActive(isStaticEffect(staticSettings?.effect ?? '') ? staticSettings!.effect : STATIC_EFFECTS[0].key);
+      setActive(isStaticEffect(staticSettings?.effect ?? '') ? staticSettings!.effect : DEFAULT_STATIC_EFFECT);
     } else if (EFFECTS.some(e => e.key === rawSync)) {
       setActive(rawSync);
     } else if (settings?.effect) {

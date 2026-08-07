@@ -34,6 +34,7 @@ import { LIGHTING_MODE_ICONS } from '../../../lib/lightingModeIcons';
 import { useTranslation } from '../../../lib/i18n';
 import {
   ANIMATE_EFFECTS,
+  DEFAULT_STATIC_EFFECT,
   EFFECTS,
   MODES,
   STATIC_EFFECTS,
@@ -73,8 +74,8 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
   const [paused, setPaused] = useState(false);
   const [activeEffect, setActiveEffect] = useState('rainbow');
   // The service's remembered static key, so entering the mode from animate
-  // returns to the last static pick instead of the catalog's first entry.
-  const staticEffectRef = useRef(STATIC_EFFECTS[0].key);
+  // returns to the last static pick instead of the catalog default.
+  const staticEffectRef = useRef(DEFAULT_STATIC_EFFECT);
   const [templates, setTemplates] = useState<Record<string, EffectTemplateBundle>>({});
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
@@ -408,7 +409,10 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
 
     if (mode === 'animate' || mode === 'static') {
       const pool = mode === 'static' ? STATIC_EFFECTS : ANIMATE_EFFECTS;
-      const effect = pool.find(e => e.key === activeEffect) ?? pool[0];
+      const fallbackKey = mode === 'static' ? DEFAULT_STATIC_EFFECT : pool[0].key;
+      const effect = pool.find(e => e.key === activeEffect)
+        ?? pool.find(e => e.key === fallbackKey)
+        ?? pool[0];
       return {
         kind: 'thumb',
         thumbUrl: thumbs[effect.key] ?? null,
