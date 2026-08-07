@@ -35,7 +35,7 @@ import { LightingSkeleton } from '../../../components/views/PageSkeleton/PageSke
 import { DeviceCanvas } from '../../../components/common/DeviceCanvas/DeviceCanvas';
 import { usePanelBackgroundUsage } from '../../../hooks/usePanelBackgroundUsage';
 import {
-  EFFECTS, ANIMATE_EFFECTS, STATIC_EFFECTS, MODES, defaultStateFor, isStaticEffect,
+  EFFECTS, ANIMATE_EFFECTS, STATIC_EFFECTS, DEFAULT_STATIC_EFFECT, MODES, defaultStateFor, isStaticEffect,
   type EffectState, type EffectTemplateBundle, type LightingMode,
 } from '../../../types/lighting';
 import { defaultTemplatesFor, mergeTemplates, slotMatchesDefault, slotThumbSignature } from '../../../types/lightingTemplates';
@@ -176,7 +176,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   modeRef.current = mode;
   // Static keeps its own last-selected key, so switching modes returns to what
   // each one was showing rather than carrying the other's effect across.
-  const staticEffectRef = useRef<string>(STATIC_EFFECTS[0]?.key ?? '');
+  const staticEffectRef = useRef<string>(DEFAULT_STATIC_EFFECT);
   // The mirror of staticEffectRef: the catalogs are disjoint, so entering
   // Animation while a static key is selected must fall back to what Animation
   // last had rather than carrying a pattern across.
