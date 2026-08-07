@@ -28,10 +28,8 @@
   }
 }
 
-// Content column width, wider than WelcomeScreen's: this screen holds action
-// + import checkbox rows with per-row descriptions, which need more
-// horizontal room than WelcomeScreen's short tagline copy.
-$content-width: 600px;
+// Content column width - matches WelcomeScreen's.
+$content-width: 480px;
 
 .hero {
   display: flex;
@@ -95,88 +93,6 @@ $content-width: 600px;
 
 .actionError {
   color: var(--bad);
-}
-
-.error {
-  @include text-caption;
-  color: var(--bad);
-}
-
-.previewLoading {
-  display: flex;
-  justify-content: center;
-  padding: 0.5rem 0;
-}
-
-.profileName {
-  @include text-caption;
-  color: var(--text-dim);
-  margin: 0;
-  padding: 0.35rem 0;
-}
-
-.droppedHint {
-  @include text-caption;
-  color: var(--text-dim);
-  margin: 0;
-  padding: 0.35rem 0;
-}
-
-.resultList {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  margin: 0;
-  padding: 0.5rem 0;
-}
-
-.resultRow {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  font-size: var(--type-small);
-}
-
-.resultCategory {
-  color: var(--text);
-  font-weight: var(--weight-strong);
-}
-
-.resultStatus-applied {
-  color: var(--good);
-}
-
-.resultStatus-skipped {
-  color: var(--text-dim);
-}
-
-.resultStatus-failed {
-  color: var(--bad);
-}
-
-.resultStatus-needsConfirm {
-  color: var(--warn);
-}
-
-.resultDetail {
-  color: var(--text-dim);
-  flex-basis: 100%;
-}
-
-.importSuccess {
-  @include text-caption;
-  color: var(--good);
-  margin: 0;
-  padding: 0.35rem 0;
-}
-
-.importFooter {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding-top: 0.5rem;
 }
 
 .continueButton {

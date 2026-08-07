@@ -1,8 +1,8 @@
-// Pure helpers for Nexus2WelcomeScreen, split out for direct testing (see
-// elgatoImportUtils.ts for the pattern this follows).
+// Pure helpers for Nexus2WelcomeScreen and Nexus2ImportSection, split out for
+// direct testing (see elgatoImportUtils.ts for the pattern this follows).
 import type {
   Nexus2ApplyResult, Nexus2ApplyStatus, Nexus2CategoryId, Nexus2PreviewCategory,
-  Nexus2PreviewResponse, Nexus2StatusResponse, Nexus2Y70LayoutCategory,
+  Nexus2PreviewResponse, Nexus2StatusResponse,
 } from '../../../api/migration';
 
 export interface ActionChecks {
@@ -18,19 +18,18 @@ export function initialActionChecks(payload: Nexus2StatusResponse | null): Actio
   };
 }
 
-export const CATEGORY_LABEL_KEYS: Record<Nexus2CategoryId, string> = {
+const CATEGORY_LABEL_KEYS: Partial<Record<Nexus2CategoryId, string>> = {
   appearance: 'nexus2Welcome.import.category.appearance.label',
   y70Layout: 'nexus2Welcome.import.category.y70Layout.label',
   q60Face: 'nexus2Welcome.import.category.q60Face.label',
   wallpapers: 'nexus2Welcome.import.category.wallpapers.label',
   gallerySources: 'nexus2Welcome.import.category.gallerySources.label',
   rotation: 'nexus2Welcome.import.category.rotation.label',
-  language: 'nexus2Welcome.import.category.language.label',
 };
 
 /** Falls back to a generic label (raw id) for a category id this build doesn't recognize. */
 export function categoryLabelKey(id: string): string {
-  return (CATEGORY_LABEL_KEYS as Record<string, string>)[id] ?? 'nexus2Welcome.import.category.other.label';
+  return CATEGORY_LABEL_KEYS[id as Nexus2CategoryId] ?? 'nexus2Welcome.import.category.other.label';
 }
 
 export interface CategoryDetail {
@@ -38,45 +37,26 @@ export interface CategoryDetail {
   params: Record<string, string | number>;
 }
 
-/** The count/value line under each category checkbox. */
+/** The positive-framing count/value line for one available category. */
 export function categoryDetail(cat: Nexus2PreviewCategory): CategoryDetail {
   switch (cat.id) {
     case 'appearance':
       return { key: 'nexus2Welcome.import.category.appearance.detail', params: { accent: cat.accentColor ?? '-' } };
     case 'y70Layout':
-      return { key: 'nexus2Welcome.import.category.y70Layout.detail', params: { pages: cat.pages, widgets: cat.widgets } };
+      return { key: 'nexus2Welcome.import.category.y70Layout.detail', params: { pages: cat.pages, widgets: cat.mappedWidgets } };
     case 'q60Face':
       return { key: 'nexus2Welcome.import.category.q60Face.detail', params: { face: cat.face ?? '-', stashed: cat.stashedFaces } };
     case 'wallpapers':
       return { key: 'nexus2Welcome.import.category.wallpapers.detail', params: { count: cat.count } };
     case 'gallerySources':
-      return cat.missing > 0
-        ? { key: 'nexus2Welcome.import.category.gallerySources.detailWithMissing', params: { count: cat.count, missing: cat.missing } }
-        : { key: 'nexus2Welcome.import.category.gallerySources.detail', params: { count: cat.count } };
+      return { key: 'nexus2Welcome.import.category.gallerySources.detail', params: { count: cat.count } };
     case 'rotation':
       return { key: 'nexus2Welcome.import.category.rotation.detail', params: { value: cat.value ?? '-' } };
-    case 'language':
-      return { key: 'nexus2Welcome.import.category.language.detail', params: { value: cat.value ?? '-' } };
     default:
-      // Guards a category id this build's closed union doesn't model, so a
-      // service ahead of the web release degrades to a raw id instead of
-      // throwing on an unguarded property read.
-      return { key: 'nexus2Welcome.import.category.other.detail', params: { id: (cat as Nexus2PreviewCategory).id } };
+      // Only reachable for Nexus2LanguageCategory: the web never groups or
+      // sends it, so this just degrades a service-known id to its raw value.
+      return { key: 'nexus2Welcome.import.category.other.detail', params: { id: cat.id } };
   }
-}
-
-const DROPPED_TYPE_KEYS: Record<string, string> = {
-  aquarium: 'nexus2Welcome.import.droppedType.aquarium',
-  avatar: 'nexus2Welcome.import.droppedType.avatar',
-  whiteboard: 'nexus2Welcome.import.droppedType.whiteboard',
-  iframe: 'nexus2Welcome.import.droppedType.iframe',
-  macros: 'nexus2Welcome.import.droppedType.macros',
-  q60: 'nexus2Welcome.import.droppedType.q60',
-};
-
-/** i18n key for one Nexus 2 widget type dropped from the y70Layout import. */
-export function droppedTypeKey(type: string): string {
-  return DROPPED_TYPE_KEYS[type] ?? 'nexus2Welcome.import.droppedType.other';
 }
 
 const APPLY_STATUS_KEYS: Record<Nexus2ApplyStatus, string> = {
@@ -104,19 +84,91 @@ export function availableCategories(preview: Nexus2PreviewResponse | null): Nexu
   return preview?.categories.filter(c => c.available) ?? [];
 }
 
-/** The Nexus 2 widget types dropped from an available y70Layout category, or []. */
-export function droppedY70Types(preview: Nexus2PreviewResponse | null): string[] {
-  const y70 = availableCategories(preview).find((c): c is Nexus2Y70LayoutCategory => c.id === 'y70Layout');
-  return y70?.droppedTypes ?? [];
+// The three wire categories the welcome screen used to list one by one are
+// consolidated into two user-facing groups; a group's own checkbox toggles
+// every wire id it carries. `language` is deliberately not a member of any
+// group - the web never shows or sends it.
+export type ImportGroupId = 'y70Panel' | 'q60Panel';
+
+export interface ImportGroupDef {
+  id: ImportGroupId;
+  wireIds: Nexus2CategoryId[];
+  labelKey: string;
 }
 
-/** Every available category starts pre-checked. */
-export function defaultSelectedCategoryIds(preview: Nexus2PreviewResponse | null): Set<string> {
-  return new Set(availableCategories(preview).map(c => c.id));
+export const IMPORT_GROUPS: ImportGroupDef[] = [
+  {
+    id: 'y70Panel',
+    wireIds: ['y70Layout', 'appearance', 'gallerySources'],
+    labelKey: 'nexus2Welcome.import.group.y70Panel.label',
+  },
+  {
+    id: 'q60Panel',
+    wireIds: ['q60Face', 'wallpapers', 'rotation'],
+    labelKey: 'nexus2Welcome.import.group.q60Panel.label',
+  },
+];
+
+/** Groups with at least one available wire category, in display order. */
+export function visibleImportGroups(preview: Nexus2PreviewResponse | null): ImportGroupDef[] {
+  const available = new Set(availableCategories(preview).map(c => c.id));
+  return IMPORT_GROUPS.filter(g => g.wireIds.some(id => available.has(id)));
 }
 
-export function resultFor(results: Nexus2ApplyResult[] | null, id: string): Nexus2ApplyResult | undefined {
-  return results?.find(r => r.id === id);
+/** The positive detail line for a group, one part per available member category. */
+export function groupDetailParts(preview: Nexus2PreviewResponse | null, group: ImportGroupDef): CategoryDetail[] {
+  return availableCategories(preview)
+    .filter(c => group.wireIds.includes(c.id))
+    .map(categoryDetail);
+}
+
+/** Every visible group starts checked. */
+export function defaultSelectedGroupIds(preview: Nexus2PreviewResponse | null): Set<ImportGroupId> {
+  return new Set(visibleImportGroups(preview).map(g => g.id));
+}
+
+/** The available wire ids of every checked group - what an apply call actually sends. */
+export function selectedWireIds(preview: Nexus2PreviewResponse | null, selectedGroups: Set<ImportGroupId>): Nexus2CategoryId[] {
+  const available = new Set(availableCategories(preview).map(c => c.id));
+  return IMPORT_GROUPS
+    .filter(g => selectedGroups.has(g.id))
+    .flatMap(g => g.wireIds.filter(id => available.has(id)));
+}
+
+const STATUS_SEVERITY: Record<Nexus2ApplyStatus, number> = {
+  skipped: 0,
+  applied: 1,
+  needsConfirm: 2,
+  failed: 3,
+};
+
+export interface GroupResultSummary {
+  groupId: ImportGroupId;
+  labelKey: string;
+  status: Nexus2ApplyStatus;
+  /** The failed/needsConfirm members, for the detail line(s) under the group row. */
+  issues: Nexus2ApplyResult[];
+}
+
+/**
+ * Rolls apply results up per group: the group's status is its worst member
+ * (failed beats needsConfirm beats applied beats skipped), so a single stuck
+ * category never reads as an overall success.
+ */
+export function groupResultSummaries(results: Nexus2ApplyResult[] | null): GroupResultSummary[] {
+  if (!results) return [];
+  const summaries: GroupResultSummary[] = [];
+  for (const group of IMPORT_GROUPS) {
+    const members = results.filter(r => group.wireIds.some(id => id === r.id));
+    if (members.length === 0) continue;
+    const status = members.reduce<Nexus2ApplyStatus>(
+      (worst, r) => (STATUS_SEVERITY[r.status] > STATUS_SEVERITY[worst] ? r.status : worst),
+      members[0].status,
+    );
+    const issues = members.filter(r => r.status === 'failed' || r.status === 'needsConfirm');
+    summaries.push({ groupId: group.id, labelKey: group.labelKey, status, issues });
+  }
+  return summaries;
 }
 
 /** True once every result applied cleanly (skipped counts as clean; failed/needsConfirm do not). */

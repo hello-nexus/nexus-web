@@ -3,8 +3,10 @@ import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingRow, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { ScreenTimeDataControl } from '../ScreenTimeBrowse/ScreenTimeDataControl';
+import { Nexus2ImportDialog } from '../../common/Nexus2WelcomeScreen/Nexus2ImportDialog';
 import { AiIntegrationSection } from './AiIntegrationSection';
 import { fetchService, postService } from '../../../api/service';
+import { fetchNexus2Status } from '../../../api/migration';
 import { useTranslation } from '../../../lib/i18n';
 import { buildTelemetryConsentDescription } from '../../../lib/telemetryConsent';
 import { HeartBurst, useHeartBurstTrigger } from '../../common/HeartBurst/HeartBurst';
@@ -24,6 +26,11 @@ export function PrivacyTab({ settings, serviceOnline }: PrivacyTabProps) {
   const [telemetryOn, setTelemetryOn] = useState<boolean | null>(null);
   const [telemetryLoading, setTelemetryLoading] = useState(false);
   const telemetryBurstKey = useHeartBurstTrigger(telemetryOn);
+  // Lazy, this-surface-only check (not fetched on dashboard load): the row
+  // stays hidden until the service confirms Nexus 2.0 is actually installed
+  // and its config is readable.
+  const [nexus2Importable, setNexus2Importable] = useState(false);
+  const [nexus2ImportOpen, setNexus2ImportOpen] = useState(false);
 
   // Hydrate the telemetry opt-in from the loopback-only consent endpoint. Stays
   // null (toggle hidden) on surfaces that can't reach it, e.g. a paired phone.
@@ -32,6 +39,15 @@ export function PrivacyTab({ settings, serviceOnline }: PrivacyTabProps) {
     let cancelled = false;
     fetchService<{ enabled: boolean }>('/telemetry/consent').then(data => {
       if (data && !cancelled) setTelemetryOn(data.enabled);
+    });
+    return () => { cancelled = true; };
+  }, [serviceOnline]);
+
+  useEffect(() => {
+    if (!serviceOnline) return;
+    let cancelled = false;
+    fetchNexus2Status().then(data => {
+      if (data && !cancelled) setNexus2Importable(data.detected && data.importAvailable);
     });
     return () => { cancelled = true; };
   }, [serviceOnline]);
@@ -82,6 +98,24 @@ export function PrivacyTab({ settings, serviceOnline }: PrivacyTabProps) {
             {t('settings.screentime.openButton')}
           </Button>
         </SettingRow>
+
+        {nexus2Importable && (
+          <SettingRow
+            label={t('nexus2Welcome.settingsEntry.rowLabel')}
+            anchorId="set-nexus2-import"
+            description={t('nexus2Welcome.import.description')}
+          >
+            <Button
+              type="button"
+              tone="neutral"
+              size="sm"
+              onClick={() => setNexus2ImportOpen(true)}
+              disabled={!serviceOnline}
+            >
+              {t('nexus2Welcome.settingsEntry.openButton')}
+            </Button>
+          </SettingRow>
+        )}
       </SettingsSection>
 
       <ScreenTimeDataControl
@@ -89,6 +123,8 @@ export function PrivacyTab({ settings, serviceOnline }: PrivacyTabProps) {
         onClose={() => setScreenTimeOpen(false)}
         onChanged={() => { /* settings page doesn't need to refetch */ }}
       />
+
+      <Nexus2ImportDialog open={nexus2ImportOpen} onClose={() => setNexus2ImportOpen(false)} />
 
       <AiIntegrationSection serviceOnline={serviceOnline} numberFormat={settings.general.numberFormat} />
     </div>

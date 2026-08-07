@@ -1,0 +1,105 @@
+@use '../../../styles/text' as *;
+@use '../../../styles/scrollbar' as *;
+
+$content-width: 480px;
+
+.section {
+  width: min($content-width, 100%);
+}
+
+// Extra top/bottom breathing room over SettingsSection's default box padding
+// (paired with descriptionBelow on every row), plus an internal scroller so
+// the category count/results never grow the host modal's overall height.
+.box {
+  padding-top: 0.75rem;
+  padding-bottom: 1rem;
+  max-height: 24rem;
+  overflow-y: auto;
+  @include scrollbar-visible;
+}
+
+.checkbox {
+  width: 1.125rem;
+  height: 1.125rem;
+  accent-color: var(--accent);
+  cursor: pointer;
+
+  &:disabled {
+    cursor: default;
+  }
+}
+
+.error {
+  @include text-caption;
+  color: var(--bad);
+}
+
+.previewLoading {
+  display: flex;
+  justify-content: center;
+  padding: 0.5rem 0;
+}
+
+.profileName {
+  @include text-caption;
+  color: var(--text-dim);
+  margin: 0;
+  padding: 0.35rem 0;
+}
+
+.resultList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0.5rem 0;
+}
+
+.resultRow {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: var(--type-small);
+}
+
+.resultCategory {
+  color: var(--text);
+  font-weight: var(--weight-strong);
+}
+
+.resultStatus-applied {
+  color: var(--good);
+}
+
+.resultStatus-skipped {
+  color: var(--text-dim);
+}
+
+.resultStatus-failed {
+  color: var(--bad);
+}
+
+.resultStatus-needsConfirm {
+  color: var(--warn);
+}
+
+.resultDetail {
+  color: var(--text-dim);
+  flex-basis: 100%;
+}
+
+.importSuccess {
+  @include text-caption;
+  color: var(--good);
+  margin: 0;
+  padding: 0.35rem 0;
+}
+
+.importFooter {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+}

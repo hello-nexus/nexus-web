@@ -4,7 +4,7 @@ import { Nexus2WelcomeScreen } from './Nexus2WelcomeScreen';
 import {
   applyNexus2Import, closeNexus2App, disableNexus2Autostart, dismissNexus2Welcome, previewNexus2Import,
 } from '../../../api/migration';
-import type { Nexus2ApplyResponse, Nexus2PreviewResponse, Nexus2StatusResponse } from '../../../api/migration';
+import type { Nexus2PreviewResponse, Nexus2StatusResponse } from '../../../api/migration';
 
 vi.mock('../../../api/migration', () => ({
   dismissNexus2Welcome: vi.fn(),
@@ -28,7 +28,7 @@ const CONTINUE_ANYWAY_BUTTON_NAME = 'nexus2Welcome.continueAnyway';
 const CLOSE_CHECKBOX_NAME = 'nexus2Welcome.closeApp.rowLabel';
 const AUTOSTART_CHECKBOX_NAME = 'nexus2Welcome.autostart.rowLabel';
 const IMPORT_BUTTON_NAME = 'nexus2Welcome.import.action';
-const CONFIRM_CHECKBOX_NAME = 'nexus2Welcome.import.confirmReplaceLayout';
+const Y70_GROUP_CHECKBOX_NAME = 'nexus2Welcome.import.group.y70Panel.label';
 
 const BASE_PAYLOAD: Nexus2StatusResponse = {
   detected: true,
@@ -40,16 +40,12 @@ const BASE_PAYLOAD: Nexus2StatusResponse = {
   pending: true,
 };
 
-const APPEARANCE_CATEGORY = { id: 'appearance' as const, available: true, accentColor: '#ff0000', background: null };
-const Y70_CATEGORY = {
-  id: 'y70Layout' as const, available: true, pages: 2, widgets: 5, mappedWidgets: 4, droppedTypes: [] as string[],
-};
-const WALLPAPERS_UNAVAILABLE = { id: 'wallpapers' as const, available: false, count: 0 };
-
 const BASE_PREVIEW: Nexus2PreviewResponse = {
   available: true,
   profileName: 'Default',
-  categories: [APPEARANCE_CATEGORY, Y70_CATEGORY, WALLPAPERS_UNAVAILABLE],
+  categories: [
+    { id: 'appearance', available: true, accentColor: '#ff0000', background: null },
+  ],
 };
 
 function renderScreen(payload: Nexus2StatusResponse | null, onComplete = vi.fn()) {
@@ -107,6 +103,12 @@ describe('Nexus2WelcomeScreen - rendering', () => {
     renderScreen(BASE_PAYLOAD);
     expect(screen.queryByText(/nexus2Welcome.import.title/)).not.toBeInTheDocument();
     expect(previewNexus2Import).not.toHaveBeenCalled();
+  });
+
+  it('renders the import section, fetching the preview, when importAvailable is true', async () => {
+    renderScreen({ ...BASE_PAYLOAD, importAvailable: true });
+    await waitFor(() => expect(previewNexus2Import).toHaveBeenCalledTimes(1));
+    expect(await screen.findByRole('checkbox', { name: Y70_GROUP_CHECKBOX_NAME })).toBeInTheDocument();
   });
 });
 
@@ -186,18 +188,7 @@ describe('Nexus2WelcomeScreen - continue flow (actions)', () => {
   });
 });
 
-describe('Nexus2WelcomeScreen - import preview', () => {
-  it('fetches the preview on open and renders one pre-checked row per available category', async () => {
-    renderScreen({ ...BASE_PAYLOAD, importAvailable: true });
-
-    await waitFor(() => expect(previewNexus2Import).toHaveBeenCalledTimes(1));
-    const appearanceBox = await screen.findByRole('checkbox', { name: 'nexus2Welcome.import.category.appearance.label:appearance' });
-    const y70Box = screen.getByRole('checkbox', { name: 'nexus2Welcome.import.category.y70Layout.label:y70Layout' });
-    expect(appearanceBox).toBeChecked();
-    expect(y70Box).toBeChecked();
-    expect(screen.queryByRole('checkbox', { name: 'nexus2Welcome.import.category.wallpapers.label:wallpapers' })).not.toBeInTheDocument();
-  });
-
+describe('Nexus2WelcomeScreen - import section wiring', () => {
   it('is optional: Continue still works while the preview is loading', async () => {
     let resolvePreview: (v: Nexus2PreviewResponse) => void = () => {};
     vi.mocked(previewNexus2Import).mockReturnValue(new Promise(resolve => { resolvePreview = resolve; }));
@@ -210,54 +201,23 @@ describe('Nexus2WelcomeScreen - import preview', () => {
 
     resolvePreview(BASE_PREVIEW);
   });
-});
 
-describe('Nexus2WelcomeScreen - import apply', () => {
-  it('imports the checked categories and renders per-category results', async () => {
-    vi.mocked(applyNexus2Import).mockResolvedValue({
-      results: [{ id: 'appearance', status: 'applied', detail: null }, { id: 'y70Layout', status: 'applied', detail: null }],
-    });
-    renderScreen({ ...BASE_PAYLOAD, importAvailable: true });
-    await screen.findByRole('checkbox', { name: 'nexus2Welcome.import.category.appearance.label:appearance' });
+  it('blocks Continue while an import apply is in flight, so the screen never closes out from under a pending result', async () => {
+    let resolveApply: (v: { results: [] }) => void = () => {};
+    vi.mocked(applyNexus2Import).mockReturnValue(new Promise(resolve => { resolveApply = resolve; }));
+    const onComplete = vi.fn();
+    renderScreen({ ...BASE_PAYLOAD, importAvailable: true }, onComplete);
 
+    // The y70Panel group starts pre-checked, so the Import button is already enabled.
+    await screen.findByRole('checkbox', { name: Y70_GROUP_CHECKBOX_NAME });
     fireEvent.click(screen.getByRole('button', { name: IMPORT_BUTTON_NAME }));
 
-    await waitFor(() => expect(applyNexus2Import).toHaveBeenCalledWith(
-      expect.arrayContaining(['appearance', 'y70Layout']), false,
-    ));
-    expect(await screen.findAllByText('nexus2Welcome.import.result.status.applied')).toHaveLength(2);
-    expect(screen.getByText('nexus2Welcome.import.successSummary')).toBeInTheDocument();
-  });
+    const continueButton = screen.getByRole('button', { name: CONTINUE_BUTTON_NAME });
+    expect(continueButton).toBeDisabled();
+    fireEvent.click(continueButton);
+    expect(onComplete).not.toHaveBeenCalled();
 
-  it('surfaces the replace-layout confirm checkbox on needsConfirm and re-runs with the flag set', async () => {
-    const results: Nexus2ApplyResponse[] = [
-      { results: [{ id: 'appearance', status: 'applied', detail: null }, { id: 'y70Layout', status: 'needsConfirm', detail: null }] },
-      { results: [{ id: 'appearance', status: 'applied', detail: null }, { id: 'y70Layout', status: 'applied', detail: null }] },
-    ];
-    vi.mocked(applyNexus2Import).mockResolvedValueOnce(results[0]).mockResolvedValueOnce(results[1]);
-    renderScreen({ ...BASE_PAYLOAD, importAvailable: true });
-    await screen.findByRole('checkbox', { name: 'nexus2Welcome.import.category.appearance.label:appearance' });
-
-    fireEvent.click(screen.getByRole('button', { name: IMPORT_BUTTON_NAME }));
-    const confirmBox = await screen.findByRole('checkbox', { name: CONFIRM_CHECKBOX_NAME });
-    expect(confirmBox).not.toBeChecked();
-
-    fireEvent.click(confirmBox);
-    fireEvent.click(screen.getByRole('button', { name: IMPORT_BUTTON_NAME }));
-
-    await waitFor(() => expect(applyNexus2Import).toHaveBeenCalledTimes(2));
-    expect(applyNexus2Import).toHaveBeenLastCalledWith(expect.arrayContaining(['appearance', 'y70Layout']), true);
-  });
-
-  it('shows a machine-hint detail line localized via the known-hint map', async () => {
-    vi.mocked(applyNexus2Import).mockResolvedValue({
-      results: [{ id: 'q60Face', status: 'failed', detail: 'no-q60-record' }],
-    });
-    renderScreen({ ...BASE_PAYLOAD, importAvailable: true });
-    await screen.findByRole('checkbox', { name: 'nexus2Welcome.import.category.appearance.label:appearance' });
-
-    fireEvent.click(screen.getByRole('button', { name: IMPORT_BUTTON_NAME }));
-
-    expect(await screen.findByText('nexus2Welcome.import.result.detail.noQ60Record:no-q60-record')).toBeInTheDocument();
+    resolveApply({ results: [] });
+    await waitFor(() => expect(continueButton).not.toBeDisabled());
   });
 });
