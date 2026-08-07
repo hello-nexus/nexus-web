@@ -30,6 +30,7 @@ import { lookupApp } from '../panel/widgets/registry';
 import { useServiceStatus, DESKTOP_OFFLINE_GRACE_MS } from '../hooks/useServiceStatus';
 import { useServiceState } from '../hooks/useServiceState';
 import { useOnboardingStatus } from '../hooks/useOnboardingStatus';
+import { useNexus2WelcomeStatus } from '../hooks/useNexus2WelcomeStatus';
 import { useProfiles } from '../hooks/useProfiles';
 import { useCloudAccounts } from '../hooks/useCloudAccounts';
 import { useSyncStatus } from '../hooks/useSyncStatus';
@@ -63,6 +64,7 @@ import { useSearchSignal } from '../search/signals';
 import { checkHelloGreetingOnce } from '../search/helloGreetingStore';
 import { PairPhoneModal } from './PairPhoneModal';
 import { WelcomeScreen } from '../components/common/WelcomeScreen/WelcomeScreen';
+import { Nexus2WelcomeScreen } from '../components/common/Nexus2WelcomeScreen/Nexus2WelcomeScreen';
 import { UpdateModal } from '../components/common/UpdateModal/UpdateModal';
 import { getUpdateStatus, startUpdate, type UpdateStatus } from '../api/update';
 import { IncomingPairModal } from './IncomingPairModal';
@@ -239,10 +241,20 @@ export function Dashboard() {
   // reconnect (which re-derives onboardingStatus) can't reopen it mid-session.
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
   const welcomeOpen = onboardingStatus === 'pending' && !onboardingDismissed;
-  // 'unknown' renders neither the dashboard nor the welcome screen (only the
-  // app background) so a fresh install never flashes the dashboard chrome
-  // while the fast local /onboarding fetch is still in flight.
-  const showDashboard = onboardingStatus !== 'unknown' && !welcomeOpen;
+  // Fetched on mount alongside onboarding (not deferred) so the handoff from
+  // WelcomeScreen to this screen can land in the same render pass.
+  const nexus2 = useNexus2WelcomeStatus();
+  const [nexus2Dismissed, setNexus2Dismissed] = useState(false);
+  const nexus2Open = (onboardingStatus === 'completed' || onboardingDismissed)
+    && !welcomeOpen && nexus2.status === 'pending' && !nexus2Dismissed;
+  // 'unknown' renders neither the dashboard nor either welcome screen (only
+  // the app background). Gating on nexus2.status too (not just
+  // onboardingStatus) matters for a returning user whose onboarding already
+  // completed in a prior session: onboardingStatus resolves near-instantly
+  // from a local flag, but the service's Nexus 2 detection ladder is a
+  // heavier read - without this the dashboard would flash before
+  // Nexus2WelcomeScreen pops in on top of it.
+  const showDashboard = onboardingStatus !== 'unknown' && nexus2.status !== 'unknown' && !welcomeOpen && !nexus2Open;
   const multiplex = useMultiplexConnection(online);
   const serviceState = useServiceState(online, multiplex);
   const profilesHook = useProfiles(online);
@@ -752,6 +764,14 @@ export function Dashboard() {
           open={welcomeOpen}
           platform={status.ping?.platform ?? ''}
           onComplete={() => setOnboardingDismissed(true)}
+        />
+        {/* Returning-HYTE-Nexus-2-user gate: shows once, right after the
+            onboarding gate above hands off, only when the service reports it
+            pending (Nexus 2 detected AND a Y70/Q-series device is known). */}
+        <Nexus2WelcomeScreen
+          open={nexus2Open}
+          payload={nexus2.payload}
+          onComplete={() => setNexus2Dismissed(true)}
         />
         {/* Global incoming-pair prompt, at the layout root so it lands on top
             of any section. Pair Remote stays in its own modal below. */}

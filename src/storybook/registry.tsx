@@ -2067,6 +2067,12 @@ export const REGISTRY: StorybookEntry[] = [
     notes: 'No live preview - the Enter button posts real /telemetry/consent, /start, and /onboarding/complete requests to the connected service, so opening it here would mutate the running install\'s actual first-run state.',
   },
   {
+    name: 'Nexus2WelcomeScreen', category: 'modals',
+    filePath: 'src/components/common/Nexus2WelcomeScreen/Nexus2WelcomeScreen.tsx',
+    description: 'One-time returning-user gate for HYTE Nexus 2 owners, mounted on the desktop Dashboard right after WelcomeScreen hands off. Text-only HYTE Nexus 2 references, a coexistence warning, an optional autostart-disable action row (shown only when the service reports a scheduled task), and a Continue button.',
+    notes: 'No live preview - the autostart action posts a real /migration/nexus2/disable-autostart request and Continue posts /migration/nexus2/dismiss, so opening it here would mutate the running install\'s migration-offered state.',
+  },
+  {
     name: 'UpdateBadge', category: 'status',
     filePath: 'src/components/common/UpdateBadge/UpdateBadge.tsx',
     description: 'Top-bar green status button shown when a software update is available. Renders a TopBarStatusButton whose tooltip + action follow the update mode: notify opens the UpdateModal (release notes), staged installs immediately.',
