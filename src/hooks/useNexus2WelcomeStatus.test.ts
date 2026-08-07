@@ -16,6 +16,7 @@ const PENDING: Nexus2StatusResponse = {
   deviceEligible: true,
   version: '2.16.0',
   autostartTaskPresent: true,
+  running: true,
   pending: true,
 };
 
@@ -25,6 +26,7 @@ const COMPLETED: Nexus2StatusResponse = {
   deviceEligible: true,
   version: '2.16.0',
   autostartTaskPresent: true,
+  running: false,
   pending: false,
 };
 
@@ -64,6 +66,18 @@ describe('useNexus2WelcomeStatus', () => {
     await settle();
     expect(result.current.status).toBe('completed');
     expect(result.current.payload).toEqual(COMPLETED);
+  });
+
+  it('passes the running field through unchanged, in either state', async () => {
+    fetchMock.mockResolvedValue(PENDING);
+    const { result: runningResult } = renderHook(() => useNexus2WelcomeStatus());
+    await settle();
+    expect(runningResult.current.payload?.running).toBe(true);
+
+    fetchMock.mockResolvedValue(COMPLETED);
+    const { result: notRunningResult } = renderHook(() => useNexus2WelcomeStatus());
+    await settle();
+    expect(notRunningResult.current.payload?.running).toBe(false);
   });
 
   it('retries a null response and succeeds once the service answers', async () => {
