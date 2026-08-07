@@ -9,7 +9,7 @@ export interface Nexus2ImportDialogProps {
 
 /**
  * Settings re-entry point for the one-time welcome screen's Nexus 2.0 import:
- * hosts the same Nexus2ImportSection, so the grouped-checkbox preview/apply
+ * hosts the same Nexus2ImportSection, so the grouped preview/apply
  * flow only exists in one place.
  */
 export function Nexus2ImportDialog({ open, onClose }: Nexus2ImportDialogProps) {

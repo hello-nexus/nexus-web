@@ -1,4 +1,5 @@
 @use '../../../styles/text' as *;
+@use '../../../styles/onboarding' as *;
 
 // Same backdrop/surface treatment as WelcomeScreen: an opaque full-viewport
 // layer, not a scrim over the dashboard.
@@ -28,15 +29,12 @@
   }
 }
 
-// Content column width - matches WelcomeScreen's.
-$content-width: 480px;
-
 .hero {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
-  max-width: min($content-width, 100%);
+  max-width: min($onboarding-content-width, 100%);
   text-align: center;
   color: var(--text);
   animation: heroIn 0.5s ease-out both;
@@ -69,26 +67,13 @@ $content-width: 480px;
 }
 
 .section {
-  width: min($content-width, 100%);
+  width: min($onboarding-content-width, 100%);
 }
 
-// Extra top/bottom breathing room over SettingsSection's default box padding,
-// paired with descriptionBelow on every row so a row's description gets its
-// own full-width line instead of squeezing beside the checkbox.
+// Extra top/bottom breathing room over SettingsSection's default box padding.
 .actionsBox {
   padding-top: 0.75rem;
   padding-bottom: 1rem;
-}
-
-.checkbox {
-  width: 1.125rem;
-  height: 1.125rem;
-  accent-color: var(--accent);
-  cursor: pointer;
-
-  &:disabled {
-    cursor: default;
-  }
 }
 
 .actionError {

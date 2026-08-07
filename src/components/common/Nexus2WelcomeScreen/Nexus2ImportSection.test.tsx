@@ -22,7 +22,7 @@ vi.mock('../../../lib/i18n', () => ({
 const Y70_GROUP_NAME = 'nexus2Welcome.import.group.y70Panel.label';
 const Q60_GROUP_NAME = 'nexus2Welcome.import.group.q60Panel.label';
 const IMPORT_BUTTON_NAME = 'nexus2Welcome.import.action';
-const CONFIRM_CHECKBOX_NAME = 'nexus2Welcome.import.confirmReplaceLayout';
+const CONFIRM_SWITCH_NAME = 'nexus2Welcome.import.confirmReplaceLayout';
 
 const Y70_LAYOUT = { id: 'y70Layout' as const, available: true, pages: 2, widgets: 6, mappedWidgets: 4, droppedTypes: ['aquarium', 'macros'] };
 const APPEARANCE = { id: 'appearance' as const, available: true, accentColor: '#ff0000', background: null };
@@ -54,19 +54,19 @@ describe('Nexus2ImportSection - grouped preview', () => {
     expect(screen.queryByText(/nexus2Welcome.import.title/)).not.toBeInTheDocument();
   });
 
-  it('consolidates the six carried wire categories into two group checkboxes, both pre-checked', async () => {
+  it('consolidates the six carried wire categories into two group switches, both pre-checked', async () => {
     renderSection();
-    const y70 = await screen.findByRole('checkbox', { name: Y70_GROUP_NAME });
-    const q60 = screen.getByRole('checkbox', { name: Q60_GROUP_NAME });
+    const y70 = await screen.findByRole('switch', { name: Y70_GROUP_NAME });
+    const q60 = screen.getByRole('switch', { name: Q60_GROUP_NAME });
     expect(y70).toBeChecked();
     expect(q60).toBeChecked();
-    // Only the two group checkboxes exist - no per-category rows and no language row.
-    expect(screen.getAllByRole('checkbox')).toHaveLength(2);
+    // Only the two group switches exist - no per-category rows and no language row.
+    expect(screen.getAllByRole('switch')).toHaveLength(2);
   });
 
   it('never shows a language group, and never sends language on apply', async () => {
     renderSection();
-    await screen.findByRole('checkbox', { name: Y70_GROUP_NAME });
+    await screen.findByRole('switch', { name: Y70_GROUP_NAME });
     expect(screen.queryByText(/language/i)).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: IMPORT_BUTTON_NAME }));
@@ -82,13 +82,13 @@ describe('Nexus2ImportSection - grouped preview', () => {
       categories: [APPEARANCE, { id: 'q60Face', available: false, face: null, stashedFaces: 0 }],
     });
     renderSection();
-    await screen.findByRole('checkbox', { name: Y70_GROUP_NAME });
-    expect(screen.queryByRole('checkbox', { name: Q60_GROUP_NAME })).not.toBeInTheDocument();
+    await screen.findByRole('switch', { name: Y70_GROUP_NAME });
+    expect(screen.queryByRole('switch', { name: Q60_GROUP_NAME })).not.toBeInTheDocument();
   });
 
   it('composes the group detail line from positive per-category parts, joined together', async () => {
     renderSection();
-    await screen.findByRole('checkbox', { name: Y70_GROUP_NAME });
+    await screen.findByRole('switch', { name: Y70_GROUP_NAME });
     // y70Layout uses mappedWidgets (4), not the raw widgets count (6); appearance and
     // gallerySources contribute their own positive parts, joined with the app's separator.
     expect(screen.getByText([
@@ -100,7 +100,7 @@ describe('Nexus2ImportSection - grouped preview', () => {
 
   it('never renders droppedTypes or the gallery missing count anywhere', async () => {
     renderSection();
-    await screen.findByRole('checkbox', { name: Y70_GROUP_NAME });
+    await screen.findByRole('switch', { name: Y70_GROUP_NAME });
     expect(screen.queryByText(/aquarium/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/macros/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/droppedHint/)).not.toBeInTheDocument();
@@ -108,9 +108,9 @@ describe('Nexus2ImportSection - grouped preview', () => {
     expect(screen.queryByText(/missing/i)).not.toBeInTheDocument();
   });
 
-  it('has an internal scroll container around the checkbox/results list', async () => {
+  it('has an internal scroll container around the switch/results list', async () => {
     renderSection();
-    await screen.findByRole('checkbox', { name: Y70_GROUP_NAME });
+    await screen.findByRole('switch', { name: Y70_GROUP_NAME });
     const box = document.querySelector(`.${styles.box}`);
     expect(box).toBeInTheDocument();
   });
@@ -119,7 +119,7 @@ describe('Nexus2ImportSection - grouped preview', () => {
 describe('Nexus2ImportSection - apply, group->wire-id expansion', () => {
   it('unchecking a group drops every one of its wire ids from the apply call', async () => {
     renderSection();
-    fireEvent.click(await screen.findByRole('checkbox', { name: Q60_GROUP_NAME }));
+    fireEvent.click(await screen.findByRole('switch', { name: Q60_GROUP_NAME }));
     fireEvent.click(screen.getByRole('button', { name: IMPORT_BUTTON_NAME }));
 
     await waitFor(() => expect(applyNexus2Import).toHaveBeenCalledTimes(1));
@@ -129,7 +129,7 @@ describe('Nexus2ImportSection - apply, group->wire-id expansion', () => {
 
   it('sends every wire id of a checked group', async () => {
     renderSection();
-    await screen.findByRole('checkbox', { name: Y70_GROUP_NAME });
+    await screen.findByRole('switch', { name: Y70_GROUP_NAME });
     fireEvent.click(screen.getByRole('button', { name: IMPORT_BUTTON_NAME }));
 
     await waitFor(() => expect(applyNexus2Import).toHaveBeenCalledTimes(1));
@@ -140,8 +140,8 @@ describe('Nexus2ImportSection - apply, group->wire-id expansion', () => {
 
   it('disables the apply button once every group is unchecked', async () => {
     renderSection();
-    fireEvent.click(await screen.findByRole('checkbox', { name: Y70_GROUP_NAME }));
-    fireEvent.click(screen.getByRole('checkbox', { name: Q60_GROUP_NAME }));
+    fireEvent.click(await screen.findByRole('switch', { name: Y70_GROUP_NAME }));
+    fireEvent.click(screen.getByRole('switch', { name: Q60_GROUP_NAME }));
     expect(screen.getByRole('button', { name: IMPORT_BUTTON_NAME })).toBeDisabled();
   });
 });
@@ -156,8 +156,8 @@ describe('Nexus2ImportSection - per-group result rollup', () => {
       ],
     });
     renderSection();
-    await screen.findByRole('checkbox', { name: Y70_GROUP_NAME });
-    fireEvent.click(screen.getByRole('checkbox', { name: Q60_GROUP_NAME }));
+    await screen.findByRole('switch', { name: Y70_GROUP_NAME });
+    fireEvent.click(screen.getByRole('switch', { name: Q60_GROUP_NAME }));
     fireEvent.click(screen.getByRole('button', { name: IMPORT_BUTTON_NAME }));
 
     expect(await screen.findByText(Y70_GROUP_NAME)).toBeInTheDocument();
@@ -173,8 +173,8 @@ describe('Nexus2ImportSection - per-group result rollup', () => {
       ],
     });
     renderSection();
-    await screen.findByRole('checkbox', { name: Y70_GROUP_NAME });
-    fireEvent.click(screen.getByRole('checkbox', { name: Y70_GROUP_NAME }));
+    await screen.findByRole('switch', { name: Y70_GROUP_NAME });
+    fireEvent.click(screen.getByRole('switch', { name: Y70_GROUP_NAME }));
     fireEvent.click(screen.getByRole('button', { name: IMPORT_BUTTON_NAME }));
 
     expect(await screen.findByText('nexus2Welcome.import.result.status.failed')).toBeInTheDocument();
@@ -185,18 +185,18 @@ describe('Nexus2ImportSection - per-group result rollup', () => {
     ].join(''))).toBeInTheDocument();
   });
 
-  it('surfaces the replace-layout confirm checkbox on needsConfirm and re-runs with the flag set', async () => {
+  it('surfaces the replace-layout confirm switch on needsConfirm and re-runs with the flag set', async () => {
     const results: Nexus2ApplyResponse[] = [
       { results: [{ id: 'y70Layout', status: 'needsConfirm', detail: 'layout-customized' }] },
       { results: [{ id: 'y70Layout', status: 'applied', detail: null }] },
     ];
     vi.mocked(applyNexus2Import).mockResolvedValueOnce(results[0]).mockResolvedValueOnce(results[1]);
     renderSection();
-    await screen.findByRole('checkbox', { name: Y70_GROUP_NAME });
-    fireEvent.click(screen.getByRole('checkbox', { name: Q60_GROUP_NAME }));
+    await screen.findByRole('switch', { name: Y70_GROUP_NAME });
+    fireEvent.click(screen.getByRole('switch', { name: Q60_GROUP_NAME }));
 
     fireEvent.click(screen.getByRole('button', { name: IMPORT_BUTTON_NAME }));
-    const confirmBox = await screen.findByRole('checkbox', { name: CONFIRM_CHECKBOX_NAME });
+    const confirmBox = await screen.findByRole('switch', { name: CONFIRM_SWITCH_NAME });
     expect(confirmBox).not.toBeChecked();
 
     fireEvent.click(confirmBox);
@@ -213,7 +213,7 @@ describe('Nexus2ImportSection - host wiring', () => {
     vi.mocked(applyNexus2Import).mockReturnValue(new Promise(resolve => { resolveApply = resolve; }));
     const onBusyChange = vi.fn();
     renderSection({ onBusyChange });
-    await screen.findByRole('checkbox', { name: Y70_GROUP_NAME });
+    await screen.findByRole('switch', { name: Y70_GROUP_NAME });
 
     fireEvent.click(screen.getByRole('button', { name: IMPORT_BUTTON_NAME }));
     expect(onBusyChange).toHaveBeenLastCalledWith(true);
@@ -224,7 +224,7 @@ describe('Nexus2ImportSection - host wiring', () => {
 
   it('blocks every control while disabled is set by the host', async () => {
     renderSection({ disabled: true });
-    const y70 = await screen.findByRole('checkbox', { name: Y70_GROUP_NAME });
+    const y70 = await screen.findByRole('switch', { name: Y70_GROUP_NAME });
     expect(y70).toBeDisabled();
     expect(screen.getByRole('button', { name: IMPORT_BUTTON_NAME })).toBeDisabled();
   });

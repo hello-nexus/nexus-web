@@ -1,4 +1,5 @@
 @use '../../../styles/text' as *;
+@use '../../../styles/onboarding' as *;
 
 // Shared secondary text treatment for this screen: matches SettingRow's
 // .desc (the telemetry description's own style) so Version, the tagline, and
@@ -124,7 +125,7 @@ $group-gap: 0.75rem;
 }
 
 .section {
-  width: min(520px, 100%);
+  width: min($onboarding-content-width, 100%);
   margin-top: -1.25rem;
 }
 

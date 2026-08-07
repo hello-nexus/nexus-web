@@ -1,32 +1,20 @@
 @use '../../../styles/text' as *;
 @use '../../../styles/scrollbar' as *;
-
-$content-width: 480px;
+@use '../../../styles/onboarding' as *;
 
 .section {
-  width: min($content-width, 100%);
+  width: min($onboarding-content-width, 100%);
 }
 
-// Extra top/bottom breathing room over SettingsSection's default box padding
-// (paired with descriptionBelow on every row), plus an internal scroller so
-// the category count/results never grow the host modal's overall height.
+// Extra top/bottom breathing room over SettingsSection's default box
+// padding, plus an internal scroller so the category count/results never
+// grow the host modal's overall height.
 .box {
   padding-top: 0.75rem;
   padding-bottom: 1rem;
   max-height: 24rem;
   overflow-y: auto;
   @include scrollbar-visible;
-}
-
-.checkbox {
-  width: 1.125rem;
-  height: 1.125rem;
-  accent-color: var(--accent);
-  cursor: pointer;
-
-  &:disabled {
-    cursor: default;
-  }
 }
 
 .error {

@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useImperativeHandle, useState, type RefObject } from 'react';
+import { Fan, LayoutGrid } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { SettingsSection } from '../SettingsSection/SettingsSection';
-import { SettingRow } from '../SettingRow/SettingRow';
+import { SettingToggle } from '../SettingRow/SettingRow';
 import { Button } from '../Button/Button';
 import { Spinner } from '../Spinner/Spinner';
 import { applyNexus2Import, previewNexus2Import } from '../../../api/migration';
@@ -15,6 +16,20 @@ import styles from './Nexus2ImportSection.module.scss';
 type PreviewStatus = 'idle' | 'loading' | 'loaded' | 'error';
 type ImportPhase = 'idle' | 'busy' | 'results';
 
+const GROUP_ICON_SIZE = 28;
+
+/**
+ * Apply outcome for a host-driven import. 'needsConfirm' is the only
+ * retryable one - the user ticks the replace-layout confirm and presses
+ * again - so a host must not treat it and 'failed' alike.
+ */
+export type Nexus2ImportOutcome = 'clean' | 'needsConfirm' | 'failed';
+
+/** Lets a host drive the apply from its own button. */
+export interface Nexus2ImportHandle {
+  runImport: () => Promise<Nexus2ImportOutcome>;
+}
+
 export interface Nexus2ImportSectionProps {
   /** Fetches the preview on every falsy-to-truthy edge, mirroring ScreenTimeDataControl. */
   open: boolean;
@@ -22,16 +37,26 @@ export interface Nexus2ImportSectionProps {
   disabled?: boolean;
   /** Fires synchronously on every busy-state transition, so a host can gate its own actions. */
   onBusyChange?: (busy: boolean) => void;
+  /** False hides the built-in apply button for hosts that drive the import from their own (the welcome screen's Continue). */
+  showAction?: boolean;
+  /** False drops the section's explanatory line for hosts that own the framing copy (the welcome screen). */
+  showDescription?: boolean;
+  /** Reports whether any group is selected, so a host can label its own action. */
+  onSelectionChange?: (hasSelection: boolean) => void;
+  /** Receives the apply runner for hosts with showAction=false. */
+  handleRef?: RefObject<Nexus2ImportHandle | null>;
 }
 
 /**
- * Grouped Nexus 2.0 import flow: preview fetch, two grouped checkboxes (Y70
+ * Grouped Nexus 2.0 import flow: preview fetch, two grouped switches (Y70
  * panel personalization, Q-Series panel personalization), the replace-layout
  * confirm, apply, and per-group results. Shared by Nexus2WelcomeScreen and
  * the Settings re-entry dialog (Nexus2ImportDialog) - one place owns the
  * markup so both stay in sync.
  */
-export function Nexus2ImportSection({ open, disabled, onBusyChange }: Nexus2ImportSectionProps) {
+export function Nexus2ImportSection({
+  open, disabled, onBusyChange, showAction = true, showDescription = true, onSelectionChange, handleRef,
+}: Nexus2ImportSectionProps) {
   const { t } = useTranslation();
   const [previewStatus, setPreviewStatus] = useState<PreviewStatus>('idle');
   const [preview, setPreview] = useState<Nexus2PreviewResponse | null>(null);
@@ -61,6 +86,47 @@ export function Nexus2ImportSection({ open, disabled, onBusyChange }: Nexus2Impo
     return () => { cancelled = true; };
   }, [open]);
 
+  const locked = importPhase === 'busy' || !!disabled;
+
+  // Guards on its own in-flight phase only, never the host's `disabled`: a
+  // host driving this from its own button sets that flag in the same tick,
+  // and consulting it here would make the call a silent no-op.
+  const runImport = async (): Promise<Nexus2ImportOutcome> => {
+    const ids = selectedWireIds(preview, selectedGroups);
+    if (importPhase === 'busy' || ids.length === 0) return 'failed';
+    setImportPhase('busy');
+    onBusyChange?.(true);
+    setImportRequestError(false);
+    let res: Awaited<ReturnType<typeof applyNexus2Import>> = null;
+    try {
+      res = await applyNexus2Import(ids, replaceLayout);
+    } catch {
+      res = null;
+    }
+    if (!res) {
+      setImportRequestError(true);
+      setImportPhase('idle');
+      onBusyChange?.(false);
+      return 'failed';
+    }
+    setImportResults(res.results);
+    setImportPhase('results');
+    onBusyChange?.(false);
+    if (allApplyResultsClean(res.results)) return 'clean';
+    return res.results.some(r => r.status === 'failed') ? 'failed' : 'needsConfirm';
+  };
+
+  const selectionEmpty = selectedWireIds(preview, selectedGroups).length === 0;
+
+  // Both hooks sit above the closed-early-return so hook order stays stable
+  // across open toggles (the component stays mounted, per Dashboard gating).
+  useEffect(() => {
+    onSelectionChange?.(!selectionEmpty);
+  }, [selectionEmpty, onSelectionChange]);
+
+  // No dep list: the handle must always close over the latest selection state.
+  useImperativeHandle(handleRef, () => ({ runImport }));
+
   if (!open) return null;
 
   const toggleGroup = (id: ImportGroupId) => {
@@ -71,38 +137,17 @@ export function Nexus2ImportSection({ open, disabled, onBusyChange }: Nexus2Impo
     });
   };
 
-  const locked = importPhase === 'busy' || !!disabled;
-
-  const handleImportSelected = async () => {
-    const ids = selectedWireIds(preview, selectedGroups);
-    if (locked || ids.length === 0) return;
-    setImportPhase('busy');
-    onBusyChange?.(true);
-    setImportRequestError(false);
-    const res = await applyNexus2Import(ids, replaceLayout);
-    if (!res) {
-      setImportRequestError(true);
-      setImportPhase('idle');
-      onBusyChange?.(false);
-      return;
-    }
-    setImportResults(res.results);
-    setImportPhase('results');
-    onBusyChange?.(false);
-  };
-
   const groups = visibleImportGroups(preview);
   const summaries = groupResultSummaries(importResults);
   const needsReplaceConfirm = summaries.some(s => s.issues.some(i => i.status === 'needsConfirm'));
   const importSuccess = importPhase === 'results' && allApplyResultsClean(importResults);
-  const selectionEmpty = selectedWireIds(preview, selectedGroups).length === 0;
 
   return (
     <SettingsSection
       className={styles.section}
       boxClassName={styles.box}
       title={t('nexus2Welcome.import.title')}
-      description={<p>{t('nexus2Welcome.import.description')}</p>}
+      description={showDescription ? <p>{t('nexus2Welcome.import.description')}</p> : undefined}
     >
       {previewStatus === 'loading' && (
         <div className={styles.previewLoading} data-settings-aside>
@@ -125,31 +170,28 @@ export function Nexus2ImportSection({ open, disabled, onBusyChange }: Nexus2Impo
           {groups.map(group => {
             const label = t(group.labelKey);
             const detail = groupDetailParts(preview, group).map(d => t(d.key, d.params)).join(' · ');
+            const Icon = group.id === 'q60Panel' ? Fan : LayoutGrid;
             return (
-              <SettingRow key={group.id} label={label} description={detail} descriptionBelow>
-                <input
-                  type="checkbox"
-                  className={styles.checkbox}
-                  aria-label={label}
-                  checked={selectedGroups.has(group.id)}
-                  disabled={locked}
-                  onChange={() => toggleGroup(group.id)}
-                />
-              </SettingRow>
+              <SettingToggle
+                key={group.id}
+                label={label}
+                description={detail}
+                icon={<Icon size={GROUP_ICON_SIZE} />}
+                iconLeading
+                checked={selectedGroups.has(group.id)}
+                disabled={locked}
+                onChange={() => toggleGroup(group.id)}
+              />
             );
           })}
 
           {needsReplaceConfirm && (
-            <SettingRow label={t('nexus2Welcome.import.confirmReplaceLayout')} descriptionBelow>
-              <input
-                type="checkbox"
-                className={styles.checkbox}
-                aria-label={t('nexus2Welcome.import.confirmReplaceLayout')}
-                checked={replaceLayout}
-                disabled={locked}
-                onChange={e => setReplaceLayout(e.target.checked)}
-              />
-            </SettingRow>
+            <SettingToggle
+              label={t('nexus2Welcome.import.confirmReplaceLayout')}
+              checked={replaceLayout}
+              disabled={locked}
+              onChange={setReplaceLayout}
+            />
           )}
 
           {summaries.length > 0 && (
@@ -177,19 +219,23 @@ export function Nexus2ImportSection({ open, disabled, onBusyChange }: Nexus2Impo
             <p className={styles.importSuccess} data-settings-aside>{t('nexus2Welcome.import.successSummary')}</p>
           )}
 
-          <div className={styles.importFooter} data-settings-aside>
-            <Button
-              tone="neutral"
-              size="sm"
-              loading={importPhase === 'busy'}
-              loadingHidesLabel
-              disabled={selectionEmpty || locked}
-              onClick={handleImportSelected}
-            >
-              {t('nexus2Welcome.import.action')}
-            </Button>
-            {importRequestError && <span className={styles.error}>{t('nexus2Welcome.import.error')}</span>}
-          </div>
+          {(showAction || importRequestError) && (
+            <div className={styles.importFooter} data-settings-aside>
+              {showAction && (
+                <Button
+                  tone="neutral"
+                  size="sm"
+                  loading={importPhase === 'busy'}
+                  loadingHidesLabel
+                  disabled={selectionEmpty || locked}
+                  onClick={runImport}
+                >
+                  {t('nexus2Welcome.import.action')}
+                </Button>
+              )}
+              {importRequestError && <span className={styles.error}>{t('nexus2Welcome.import.error')}</span>}
+            </div>
+          )}
         </>
       )}
     </SettingsSection>
