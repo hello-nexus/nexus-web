@@ -39,7 +39,8 @@ const noop = () => {};
 const isToggleable = (d: LightingDevice): boolean => !zoneCardUnavailable(d);
 
 /**
- * Second onboarding gate, shown once the welcome screen completes: every
+ * Last onboarding gate, after the welcome screen (and the Nexus 2 gate on
+ * eligible installs) completes: every
  * detected RGB device as a whole-card controlled/ignored toggle, all
  * controlled by default. Non-dismissable like WelcomeScreen; Continue is the
  * only way through, and it only dismisses once the completion flag write
@@ -54,9 +55,10 @@ export function LightingOnboardingScreen({ open, onComplete, onBack }: LightingO
   const [error, setError] = useState(false);
   const { conflicts: allConflicts } = useConflictApps(open);
   // HYTE Nexus 2 is excluded here: its shutdown offer belongs to the
-  // Nexus2WelcomeScreen gate. That gate only opens on eligible installs, so
-  // an ineligible one leans on the post-onboarding sidebar conflict warning
-  // instead - this strip never duplicates the dedicated flow either way.
+  // Nexus2WelcomeScreen gate, which precedes this screen on eligible
+  // installs - by the time this strip shows, that offer already happened.
+  // An ineligible install leans on the post-onboarding sidebar conflict
+  // warning instead, so this strip never duplicates the dedicated flow.
   const conflicts = allConflicts.filter(c => c.id !== HYTE_NEXUS2_CONFLICT_ID);
   // Timestamp of the last local toggle (bumped again when its write settles);
   // a poll response whose fetch started before it would clobber the

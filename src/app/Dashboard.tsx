@@ -242,23 +242,27 @@ export function Dashboard() {
   // reconnect (which re-derives onboardingStatus) can't reopen it mid-session.
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
   const [lightingOnboardingDismissed, setLightingOnboardingDismissed] = useState(false);
-  // Set by the lighting gate's Back button. Reopens the welcome screen even
-  // when its server flag already completed (e.g. a reload mid-sequence
-  // resolved onboardingStatus to 'completed').
+  // Set by any later gate's Back path that targets the welcome screen.
+  // Reopens it even when its server flag already completed (e.g. a reload
+  // mid-sequence resolved onboardingStatus to 'completed').
   const [welcomeRevisit, setWelcomeRevisit] = useState(false);
-  // Same revisit shape for the lighting gate, set by the Nexus 2 gate's Back.
-  const [lightingRevisit, setLightingRevisit] = useState(false);
   const welcomeOpen = (onboardingStatus === 'pending' || welcomeRevisit) && !onboardingDismissed;
-  // Second gate, queued behind the welcome screen; 'unknown' opens neither.
-  const lightingOnboardingOpen = onboardingStatus !== 'unknown' && !welcomeOpen
-    && (lightingStatus === 'pending' || lightingRevisit) && !lightingOnboardingDismissed;
   // Fetched on mount alongside onboarding (not deferred) so the handoff from
   // WelcomeScreen to this screen can land in the same render pass.
   const nexus2 = useNexus2WelcomeStatus();
   const [nexus2Dismissed, setNexus2Dismissed] = useState(false);
-  // Third gate, queued behind the lighting device selection.
+  // Second gate: a returning Nexus 2 user closes/imports from the old app
+  // BEFORE device selection - Nexus 2 holds the very hardware the lighting
+  // gate enumerates, so it must be out of the way for that list to be
+  // complete.
   const nexus2Open = (onboardingStatus === 'completed' || onboardingDismissed)
-    && !welcomeOpen && !lightingOnboardingOpen && nexus2.status === 'pending' && !nexus2Dismissed;
+    && !welcomeOpen && nexus2.status === 'pending' && !nexus2Dismissed;
+  // Third gate: device selection runs last, against the fullest device list.
+  // Waits on nexus2.status resolving so it cannot flash open before the
+  // heavier Nexus 2 detection read decides whether that gate comes first.
+  const lightingOnboardingOpen = onboardingStatus !== 'unknown' && nexus2.status !== 'unknown'
+    && !welcomeOpen && !nexus2Open
+    && lightingStatus === 'pending' && !lightingOnboardingDismissed;
   // 'unknown' renders neither the dashboard nor any onboarding gate (only
   // the app background) so a fresh install never flashes the dashboard
   // chrome while the fast local /onboarding fetch is still in flight. All
@@ -782,22 +786,27 @@ export function Dashboard() {
           platform={status.ping?.platform ?? ''}
           onComplete={() => setOnboardingDismissed(true)}
         />
-        {/* Lighting device-selection gate, queued directly behind the welcome
-            screen and gated by its own server-side flag, so a factory reset
-            reopens the full sequence. */}
-        <LightingOnboardingScreen
-          open={lightingOnboardingOpen}
-          onComplete={() => setLightingOnboardingDismissed(true)}
-          onBack={() => { setWelcomeRevisit(true); setOnboardingDismissed(false); }}
-        />
-        {/* Returning-HYTE-Nexus-2-user gate: shows once, after the gates
-            above hand off, only when the service reports it pending (Nexus 2
-            detected AND a Y70/Q-series device is known). */}
+        {/* Returning-HYTE-Nexus-2-user gate: shows once, right after the
+            welcome screen, only when the service reports it pending (Nexus 2
+            detected AND a Y70/Q-series device is known). Runs before device
+            selection so the old app releases the hardware first. */}
         <Nexus2WelcomeScreen
           open={nexus2Open}
           payload={nexus2.payload}
           onComplete={() => setNexus2Dismissed(true)}
-          onBack={() => { setLightingRevisit(true); setLightingOnboardingDismissed(false); }}
+          onBack={() => { setWelcomeRevisit(true); setOnboardingDismissed(false); }}
+        />
+        {/* Lighting device-selection gate, last in the sequence, gated by its
+            own server-side flag so a factory reset reopens everything. Back
+            targets the Nexus 2 gate when this install has one, else the
+            welcome screen. */}
+        <LightingOnboardingScreen
+          open={lightingOnboardingOpen}
+          onComplete={() => setLightingOnboardingDismissed(true)}
+          onBack={() => {
+            if (nexus2.status === 'pending') setNexus2Dismissed(false);
+            else { setWelcomeRevisit(true); setOnboardingDismissed(false); }
+          }}
         />
         {/* Global incoming-pair prompt, at the layout root so it lands on top
             of any section. Pair Remote stays in its own modal below. */}
