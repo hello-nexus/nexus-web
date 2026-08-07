@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { ArrowLeft } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { Overlay } from '../Overlay/Overlay';
 import { SettingsSection } from '../SettingsSection/SettingsSection';
@@ -20,6 +21,8 @@ export interface Nexus2WelcomeScreenProps {
   open: boolean;
   payload: Nexus2StatusResponse | null;
   onComplete: () => void;
+  /** Steps back to the previous onboarding screen; the Back button only renders when provided. */
+  onBack?: () => void;
 }
 
 type ActionResult = 'idle' | 'success' | 'error';
@@ -34,7 +37,7 @@ type ImportPhase = 'idle' | 'busy' | 'results';
  * Self-contained: open/completion flow entirely through props, no shared
  * state with any sibling post-onboarding screen.
  */
-export function Nexus2WelcomeScreen({ open, payload, onComplete }: Nexus2WelcomeScreenProps) {
+export function Nexus2WelcomeScreen({ open, payload, onComplete, onBack }: Nexus2WelcomeScreenProps) {
   const { t } = useTranslation();
 
   const [actions, setActions] = useState<ActionChecks>({ closeApp: false, disableAutostart: false });
@@ -337,17 +340,30 @@ export function Nexus2WelcomeScreen({ open, payload, onComplete }: Nexus2Welcome
         </SettingsSection>
       )}
 
-      <Button
-        tone="accent"
-        size="lg"
-        onClick={handleContinue}
-        loading={applyPhase === 'applying' || dismissing}
-        loadingHidesLabel
-        disabled={importPhase === 'busy'}
-        className={styles.continueButton}
-      >
-        {applyPhase === 'failed' ? t('nexus2Welcome.continueAnyway') : t('nexus2Welcome.continue')}
-      </Button>
+      <div className={styles.footerRow}>
+        {onBack && (
+          <Button
+            tone="ghost"
+            size="lg"
+            icon={<ArrowLeft />}
+            disabled={applyPhase === 'applying' || dismissing || importPhase === 'busy'}
+            onClick={onBack}
+          >
+            {t('nav.back')}
+          </Button>
+        )}
+        <Button
+          tone="accent"
+          size="lg"
+          onClick={handleContinue}
+          loading={applyPhase === 'applying' || dismissing}
+          loadingHidesLabel
+          disabled={importPhase === 'busy'}
+          className={styles.continueButton}
+        >
+          {applyPhase === 'failed' ? t('nexus2Welcome.continueAnyway') : t('nexus2Welcome.continue')}
+        </Button>
+      </div>
     </Overlay>
   );
 }

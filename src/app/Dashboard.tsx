@@ -246,10 +246,12 @@ export function Dashboard() {
   // when its server flag already completed (e.g. a reload mid-sequence
   // resolved onboardingStatus to 'completed').
   const [welcomeRevisit, setWelcomeRevisit] = useState(false);
+  // Same revisit shape for the lighting gate, set by the Nexus 2 gate's Back.
+  const [lightingRevisit, setLightingRevisit] = useState(false);
   const welcomeOpen = (onboardingStatus === 'pending' || welcomeRevisit) && !onboardingDismissed;
   // Second gate, queued behind the welcome screen; 'unknown' opens neither.
   const lightingOnboardingOpen = onboardingStatus !== 'unknown' && !welcomeOpen
-    && lightingStatus === 'pending' && !lightingOnboardingDismissed;
+    && (lightingStatus === 'pending' || lightingRevisit) && !lightingOnboardingDismissed;
   // Fetched on mount alongside onboarding (not deferred) so the handoff from
   // WelcomeScreen to this screen can land in the same render pass.
   const nexus2 = useNexus2WelcomeStatus();
@@ -795,6 +797,7 @@ export function Dashboard() {
           open={nexus2Open}
           payload={nexus2.payload}
           onComplete={() => setNexus2Dismissed(true)}
+          onBack={() => { setLightingRevisit(true); setLightingOnboardingDismissed(false); }}
         />
         {/* Global incoming-pair prompt, at the layout root so it lands on top
             of any section. Pair Remote stays in its own modal below. */}

@@ -29,6 +29,9 @@ export interface LightingOnboardingScreenProps {
 // the screen is open.
 const POLL_MS = 2000;
 
+// Upper bound on the pending-write poll pause; see pendingWritesRef.
+const WRITE_PAUSE_CAP_MS = 10_000;
+
 const noop = () => {};
 
 // Cards ZoneCard renders non-interactive are excluded from bulk toggles.
@@ -53,6 +56,14 @@ export function LightingOnboardingScreen({ open, onComplete, onBack }: LightingO
   // a poll response whose fetch started before it would clobber the
   // optimistic flip with pre-write server state.
   const mutatedAtRef = useRef(0);
+  // Outstanding controlled-write count. A poll dispatched after a click but
+  // served before the POST commits still carries pre-write state - the
+  // timestamp guard alone cannot see that window, so device-list application
+  // also pauses while any write is in flight. The pause is capped from the
+  // last write start: postService has no timeout, and a never-settling write
+  // must degrade back to eventual consistency, not freeze the list.
+  const pendingWritesRef = useRef(0);
+  const lastWriteStartAtRef = useRef(0);
   // Serializes polls: a tick during an in-flight fetch is skipped, so a slow
   // response can never land after (and overwrite) a newer one.
   const pollInFlightRef = useRef(false);
@@ -66,7 +77,11 @@ export function LightingOnboardingScreen({ open, onComplete, onBack }: LightingO
         fetchLightingDevices().catch(() => null),
         fetchLightingStatus().catch(() => null),
       ]);
-      if (data && mutatedAtRef.current < startedAt) setDevices(data.devices ?? []);
+      const writesPending = pendingWritesRef.current > 0
+        && Date.now() - lastWriteStartAtRef.current < WRITE_PAUSE_CAP_MS;
+      if (data && mutatedAtRef.current < startedAt && !writesPending) {
+        setDevices(data.devices ?? []);
+      }
       // isInit=false with the RGB subprocess up means the bridge is still
       // coming online: treat it as scanning so a fresh boot shows progress,
       // not "no devices". With the subprocess down (lighting off entirely)
@@ -92,11 +107,14 @@ export function LightingOnboardingScreen({ open, onComplete, onBack }: LightingO
   const handleToggle = (card: LightingDevice) => {
     const nextControlled = card.controlled === false;
     mutatedAtRef.current = Date.now();
+    pendingWritesRef.current += 1;
+    lastWriteStartAtRef.current = Date.now();
     setLightingDeviceControlled(card.id, nextControlled)
       .catch(() => { /* poll reconciles */ })
-      // Re-bump so a poll served while the write was in flight (pre-write
-      // state, but started after the click) is also discarded.
-      .finally(() => { mutatedAtRef.current = Date.now(); });
+      .finally(() => {
+        pendingWritesRef.current -= 1;
+        mutatedAtRef.current = Date.now();
+      });
     setDevices(prev => prev?.map(d => (d.id === card.id ? { ...d, controlled: nextControlled } : d)) ?? prev);
   };
 
@@ -105,8 +123,13 @@ export function LightingOnboardingScreen({ open, onComplete, onBack }: LightingO
     if (targets.length === 0) return;
     const ids = new Set(targets.map(d => d.id));
     mutatedAtRef.current = Date.now();
+    pendingWritesRef.current += targets.length;
+    lastWriteStartAtRef.current = Date.now();
     void Promise.allSettled(targets.map(d => setLightingDeviceControlled(d.id, controlled)))
-      .then(() => { mutatedAtRef.current = Date.now(); });
+      .then(() => {
+        pendingWritesRef.current -= targets.length;
+        mutatedAtRef.current = Date.now();
+      });
     setDevices(prev => prev?.map(d => (ids.has(d.id) ? { ...d, controlled } : d)) ?? prev);
   };
 

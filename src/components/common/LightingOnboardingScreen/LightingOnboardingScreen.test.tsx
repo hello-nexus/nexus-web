@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LightingOnboardingScreen } from './LightingOnboardingScreen';
 import {
@@ -135,6 +135,35 @@ describe('LightingOnboardingScreen - device grid', () => {
     renderScreen();
     await screen.findByText('lighting.devices.empty');
     expect(screen.queryByRole('button', { name: 'lightingOnboarding.selectNone' })).toBeNull();
+  });
+
+  it('holds poll application while a controlled write is in flight, so stale state cannot revert the flip', async () => {
+    vi.useFakeTimers();
+    try {
+      seed([strip]);
+      let resolveWrite!: (v: null) => void;
+      vi.mocked(setLightingDeviceControlled).mockReturnValue(new Promise<null>(r => { resolveWrite = r; }) as never);
+      render(<LightingOnboardingScreen open onComplete={vi.fn()} />);
+      await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+
+      fireEvent.click(screen.getByRole('switch', { name: 'Test Strip' }));
+      expect(screen.getByRole('switch', { name: 'Test Strip' })).toHaveAttribute('aria-checked', 'false');
+
+      // A full poll tick serves the pre-write list while the POST is still
+      // in flight; the pending-write guard must discard it.
+      await act(async () => { await vi.advanceTimersByTimeAsync(2100); });
+      expect(screen.getByRole('switch', { name: 'Test Strip' })).toHaveAttribute('aria-checked', 'false');
+
+      // Once the write settles, polls apply again - proven by a payload
+      // field the optimistic flip could not have produced (the rename).
+      seed([{ ...strip, name: 'Test Strip Committed', controlled: false }]);
+      await act(async () => { resolveWrite(null); });
+      await act(async () => { await vi.advanceTimersByTimeAsync(2100); });
+      const resumed = screen.getByRole('switch', { name: 'Test Strip Committed' });
+      expect(resumed).toHaveAttribute('aria-checked', 'false');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('shows the scanning note while a scan is in flight with devices already listed', async () => {
