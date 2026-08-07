@@ -15,7 +15,7 @@ const NON_UI_JSX_ATTRIBUTES = [
   'target', 'role', 'htmlFor', 'value', 'testId', 'data-testid', 'style',
   'autoComplete', 'inputMode', 'enterKeyHint', 'width', 'height', 'viewBox',
   'fill', 'stroke', 'd', 'points', 'transform', 'xmlns', 'preserveAspectRatio',
-  'tone', 'size', 'variant', 'position', 'align', 'justify', 'direction',
+  'tone', 'size', 'variant', 'position', 'align', 'justify', 'direction', 'autoFocus',
   'gap', 'as', 'icon', 'iconPosition', 'color', 'accent', 'mode', 'kind', 'side', 'placement',
   'layout', 'yAxisSide',
   // Search deep-link target id stamped on a control; technical, never displayed.

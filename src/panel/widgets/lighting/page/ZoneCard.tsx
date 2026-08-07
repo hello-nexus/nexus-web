@@ -1,4 +1,4 @@
-import { Settings, Power, Ban, Eye, Lightbulb, Users, Cpu } from 'lucide-react';
+import { Settings, Power, Ban, Eye, Lightbulb, Users, Cpu, Check } from 'lucide-react';
 import {
   identifyLightingDevice,
   type LightingDevice,
@@ -10,6 +10,20 @@ import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTo
 import { DeviceNotice } from './DeviceNotice';
 import { type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
 import styles from '../LightingPage.module.scss';
+
+/**
+ * True when ZoneCard renders this card non-interactive. A zone with 0 LEDs is
+ * NOT "detection failed" - ARGB is one-way so the user must tell us how many
+ * LEDs are on that strip, and a resizable zone keeps its configure affordance.
+ * Only a card that is both unconfigurable AND reports zero LEDs is
+ * unavailable. Shared with LightingOnboardingScreen's bulk toggles so the
+ * whole-card switch and the bulk actions agree on which cards participate.
+ */
+export function zoneCardUnavailable(device: LightingDevice): boolean {
+  const isZone = device.parentDeviceId != null && device.zoneIndex != null;
+  const resizable = device.zoneResizable === true && isZone;
+  return device.ledCount <= 0 && !resizable;
+}
 
 /**
  * One card for either a whole OpenRGB device or a motherboard ARGB zone. The
@@ -32,6 +46,7 @@ export function ZoneCard({
   onOpenCommunity,
   firmwareControlled,
   notice,
+  toggleMode,
 }: {
   device: LightingDevice;
   /** Overrides the on-card name. Used to strip the parent prefix from child zones. */
@@ -55,16 +70,15 @@ export function ZoneCard({
   firmwareControlled?: boolean;
   /** Optional advisory shown via an (i) next to the device name. */
   notice?: string;
+  /** Onboarding selection mode: the whole card is a controlled/ignored
+   *  switch (click or Enter/Space fires onToggleControlled) and the per-card
+   *  action buttons and community badge are hidden. */
+  toggleMode?: boolean;
 }) {
   const { t } = useTranslation();
   const isZone = device.parentDeviceId != null && device.zoneIndex != null;
   const resizable = device.zoneResizable === true && isZone;
-  // A zone with 0 LEDs is NOT "detection failed" - ARGB is one-way so the user
-  // must tell us how many LEDs are on that strip. Keep the zone card interactive
-  // (show the LED-count editor + buttons) so they can configure it. Only flag as
-  // unavailable when the zone is both unconfigurable AND reports zero LEDs, or
-  // when a non-zone device failed to initialise.
-  const unavailable = device.ledCount <= 0 && !resizable;
+  const unavailable = zoneCardUnavailable(device);
 
   const handleIdentify = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -74,22 +88,44 @@ export function ZoneCard({
   // Firmware-controlled and unavailable cards stay sort participants (ref +
   // style so neighbours shift around them) but are not themselves draggable -
   // matches their pre-migration locked state.
-  const dragEnabled = !!drag && !unavailable && !firmwareControlled;
+  const dragEnabled = !!drag && !toggleMode && !unavailable && !firmwareControlled;
+  const controlled = device.controlled !== false;
+  const toggleable = toggleMode === true && !unavailable && !firmwareControlled;
+  // The drag spreads sit after the toggle props below: dnd-kit's
+  // role/tabIndex/onKeyDown must win in normal mode, where the toggle props
+  // are all undefined and would otherwise erase them.
   const card = (
     <div
       ref={drag?.ref ?? (() => {})}
       style={drag?.style ?? {}}
+      role={toggleable ? 'switch' : undefined}
+      aria-checked={toggleable ? controlled : undefined}
+      aria-label={toggleable ? displayName ?? device.name : undefined}
+      tabIndex={toggleable ? 0 : undefined}
+      onKeyDown={toggleable ? e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          // Keep Enter from bubbling to the modal stack's document listener,
+          // which would fire the hosting Overlay's onEnter (Continue).
+          e.stopPropagation();
+          onToggleControlled();
+        }
+      } : undefined}
       {...(dragEnabled ? drag!.attributes : {})}
       {...(dragEnabled ? drag!.listeners ?? {} : {})}
       className={[
         styles.deviceCard,
-        selected && !firmwareControlled ? styles.deviceCardSelected : '',
+        (toggleMode ? toggleable && controlled : selected && !firmwareControlled) ? styles.deviceCardSelected : '',
         unavailable ? styles.deviceCardUnavailable : '',
-        !unavailable && (!device.ledsOn || firmwareControlled || device.controlled === false) ? styles.deviceCardPoweredOff : '',
+        !unavailable && (!device.ledsOn || firmwareControlled || !controlled) ? styles.deviceCardPoweredOff : '',
         indent ? styles.deviceCardZone : '',
         drag?.isDragging ? drag.placeholderClassName : '',
       ].filter(Boolean).join(' ')}
-      onClick={e => { if (!unavailable && !firmwareControlled) onSelect(isMultiSelectModifier(e)); }}
+      onClick={e => {
+        if (unavailable || firmwareControlled) return;
+        if (toggleMode) onToggleControlled();
+        else onSelect(isMultiSelectModifier(e));
+      }}
     >
       <div className={styles.deviceNameRow}>
         <span className={styles.deviceName}>{displayName ?? device.name}</span>
@@ -122,7 +158,15 @@ export function ZoneCard({
             <span className={styles.deviceMetaCount}>{cardEnabledLedCount(device)}</span>
           </span>
         )}
-        {!unavailable && !firmwareControlled && communityCount != null && communityCount > 0 && (
+        {toggleable && (
+          <span
+            className={`${styles.deviceToggleIndicator} ${controlled ? styles.deviceToggleIndicatorOn : ''}`}
+            aria-hidden
+          >
+            {controlled ? <Check /> : <Ban />}
+          </span>
+        )}
+        {!toggleMode && !unavailable && !firmwareControlled && communityCount != null && communityCount > 0 && (
           <HoverTooltip body={t('lighting.mappings.badgeTooltip', { count: communityCount })} side="top">
             <button
               type="button"
@@ -136,7 +180,7 @@ export function ZoneCard({
             </button>
           </HoverTooltip>
         )}
-        {!firmwareControlled && (
+        {!toggleMode && !firmwareControlled && (
           <div className={styles.deviceCardActions} data-no-dnd>
             {device.ledCount > 0 && (
               <HoverTooltip body={t('lighting.devices.identify')} side="top">

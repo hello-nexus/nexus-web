@@ -15,6 +15,10 @@ export interface UseModalA11yOptions {
   lockBackground?: boolean;
   /** Moves focus into the container on open and restores it to the trigger on close. Default true. */
   restoreFocus?: boolean;
+  /** Initial focus target on open: the first focusable element (default), or
+   *  the container itself - for surfaces whose first focusable is a
+   *  tooltip-bearing decoration that would pop its tooltip and focus ring. */
+  autoFocus?: 'first' | 'container';
 }
 
 /**
@@ -32,6 +36,7 @@ export function useModalA11y({
   trapFocus = true,
   lockBackground: shouldLockBackground = true,
   restoreFocus = true,
+  autoFocus = 'first',
 }: UseModalA11yOptions): void {
   const id = useId();
   const latestRef = useRef({ onClose, onEnter, noEscDismiss });
@@ -69,7 +74,7 @@ export function useModalA11y({
       const container = containerRef.current;
       if (container && !container.contains(document.activeElement)) {
         const [first] = getFocusableElements(container);
-        (first ?? container).focus();
+        (autoFocus === 'container' ? container : first ?? container).focus();
       }
     }
 

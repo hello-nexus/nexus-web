@@ -31,6 +31,25 @@ describe('Overlay a11y mechanism', () => {
     expect(document.activeElement).toBe(screen.getByText('last'));
   });
 
+  it('focuses the first focusable element on open by default', () => {
+    render(
+      <Overlay open onClose={vi.fn()} ariaLabel="Test">
+        <button>first</button>
+      </Overlay>,
+    );
+    expect(document.activeElement).toBe(screen.getByText('first'));
+  });
+
+  it('focuses the surface itself with autoFocus="container", leaving controls unfocused', () => {
+    render(
+      <Overlay open onClose={vi.fn()} ariaLabel="Test" autoFocus="container">
+        <button>first</button>
+      </Overlay>,
+    );
+    expect(document.activeElement).not.toBe(screen.getByText('first'));
+    expect(document.activeElement?.contains(screen.getByText('first'))).toBe(true);
+  });
+
   it('locks background scroll on open and restores it on close, ref-counted across nested modals', () => {
     const outer = render(
       <Overlay open onClose={vi.fn()} ariaLabel="Outer">

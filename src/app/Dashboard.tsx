@@ -65,6 +65,7 @@ import { checkHelloGreetingOnce } from '../search/helloGreetingStore';
 import { PairPhoneModal } from './PairPhoneModal';
 import { WelcomeScreen } from '../components/common/WelcomeScreen/WelcomeScreen';
 import { Nexus2WelcomeScreen } from '../components/common/Nexus2WelcomeScreen/Nexus2WelcomeScreen';
+import { LightingOnboardingScreen } from '../components/common/LightingOnboardingScreen/LightingOnboardingScreen';
 import { UpdateModal } from '../components/common/UpdateModal/UpdateModal';
 import { getUpdateStatus, startUpdate, type UpdateStatus } from '../api/update';
 import { IncomingPairModal } from './IncomingPairModal';
@@ -236,25 +237,39 @@ export function Dashboard() {
   } = useRoute();
   const status = useServiceStatus(true, DESKTOP_OFFLINE_GRACE_MS);
   const online = status.state === 'online';
-  const onboardingStatus = useOnboardingStatus();
+  const { status: onboardingStatus, lightingStatus } = useOnboardingStatus();
   // Flips true once WelcomeScreen posts /onboarding/complete, so a later
   // reconnect (which re-derives onboardingStatus) can't reopen it mid-session.
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
-  const welcomeOpen = onboardingStatus === 'pending' && !onboardingDismissed;
+  const [lightingOnboardingDismissed, setLightingOnboardingDismissed] = useState(false);
+  // Set by the lighting gate's Back button. Reopens the welcome screen even
+  // when its server flag already completed (e.g. a reload mid-sequence
+  // resolved onboardingStatus to 'completed').
+  const [welcomeRevisit, setWelcomeRevisit] = useState(false);
+  const welcomeOpen = (onboardingStatus === 'pending' || welcomeRevisit) && !onboardingDismissed;
+  // Second gate, queued behind the welcome screen; 'unknown' opens neither.
+  const lightingOnboardingOpen = onboardingStatus !== 'unknown' && !welcomeOpen
+    && lightingStatus === 'pending' && !lightingOnboardingDismissed;
   // Fetched on mount alongside onboarding (not deferred) so the handoff from
   // WelcomeScreen to this screen can land in the same render pass.
   const nexus2 = useNexus2WelcomeStatus();
   const [nexus2Dismissed, setNexus2Dismissed] = useState(false);
+  // Third gate, queued behind the lighting device selection.
   const nexus2Open = (onboardingStatus === 'completed' || onboardingDismissed)
-    && !welcomeOpen && nexus2.status === 'pending' && !nexus2Dismissed;
-  // 'unknown' renders neither the dashboard nor either welcome screen (only
-  // the app background). Gating on nexus2.status too (not just
+    && !welcomeOpen && !lightingOnboardingOpen && nexus2.status === 'pending' && !nexus2Dismissed;
+  // 'unknown' renders neither the dashboard nor any onboarding gate (only
+  // the app background) so a fresh install never flashes the dashboard
+  // chrome while the fast local /onboarding fetch is still in flight. All
+  // gates hide the chrome entirely, not just cover it: their surfaces go
+  // transparent in the native-glass shell, so covered-but-mounted chrome
+  // would show through. Gating on nexus2.status too (not just
   // onboardingStatus) matters for a returning user whose onboarding already
   // completed in a prior session: onboardingStatus resolves near-instantly
   // from a local flag, but the service's Nexus 2 detection ladder is a
   // heavier read - without this the dashboard would flash before
   // Nexus2WelcomeScreen pops in on top of it.
-  const showDashboard = onboardingStatus !== 'unknown' && nexus2.status !== 'unknown' && !welcomeOpen && !nexus2Open;
+  const showDashboard = onboardingStatus !== 'unknown' && nexus2.status !== 'unknown'
+    && !welcomeOpen && !lightingOnboardingOpen && !nexus2Open;
   const multiplex = useMultiplexConnection(online);
   const serviceState = useServiceState(online, multiplex);
   const profilesHook = useProfiles(online);
@@ -683,9 +698,9 @@ export function Dashboard() {
           document.body,
         )}
         {/* Dashboard chrome renders only once onboarding status is resolved
-            (never on 'unknown') and only when the welcome gate isn't open -
-            hidden entirely, not just covered, so nothing behind WelcomeScreen
-            can ever show through its background in any theme/glass mode. */}
+            (never on 'unknown') and only when neither onboarding gate is open -
+            hidden entirely, not just covered, so nothing behind the gates
+            can ever show through their backgrounds in any theme/glass mode. */}
         {showDashboard && (
           <>
             <TopBar
@@ -765,9 +780,17 @@ export function Dashboard() {
           platform={status.ping?.platform ?? ''}
           onComplete={() => setOnboardingDismissed(true)}
         />
-        {/* Returning-HYTE-Nexus-2-user gate: shows once, right after the
-            onboarding gate above hands off, only when the service reports it
-            pending (Nexus 2 detected AND a Y70/Q-series device is known). */}
+        {/* Lighting device-selection gate, queued directly behind the welcome
+            screen and gated by its own server-side flag, so a factory reset
+            reopens the full sequence. */}
+        <LightingOnboardingScreen
+          open={lightingOnboardingOpen}
+          onComplete={() => setLightingOnboardingDismissed(true)}
+          onBack={() => { setWelcomeRevisit(true); setOnboardingDismissed(false); }}
+        />
+        {/* Returning-HYTE-Nexus-2-user gate: shows once, after the gates
+            above hand off, only when the service reports it pending (Nexus 2
+            detected AND a Y70/Q-series device is known). */}
         <Nexus2WelcomeScreen
           open={nexus2Open}
           payload={nexus2.payload}

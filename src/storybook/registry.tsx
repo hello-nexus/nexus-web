@@ -2073,6 +2073,12 @@ export const REGISTRY: StorybookEntry[] = [
     notes: 'No live preview - the autostart action posts a real /migration/nexus2/disable-autostart request and Continue posts /migration/nexus2/dismiss, so opening it here would mutate the running install\'s migration-offered state.',
   },
   {
+    name: 'LightingOnboardingScreen', category: 'modals',
+    filePath: 'src/components/common/LightingOnboardingScreen/LightingOnboardingScreen.tsx',
+    description: 'Non-dismissable second onboarding gate, queued behind WelcomeScreen: a grid of the lighting page\'s ZoneCards in whole-card toggle mode (controlled/ignored, all controlled by default), a conflicting-apps warning when any are detected, and a Continue button that writes /onboarding/lighting-complete before dismissing.',
+    notes: 'No live preview - device toggles post real /devices/lighting-devices/controlled writes and Continue posts /onboarding/lighting-complete, so opening it here would mutate the running install\'s lighting state.',
+  },
+  {
     name: 'UpdateBadge', category: 'status',
     filePath: 'src/components/common/UpdateBadge/UpdateBadge.tsx',
     description: 'Top-bar green status button shown when a software update is available. Renders a TopBarStatusButton whose tooltip + action follow the update mode: notify opens the UpdateModal (release notes), staged installs immediately.',

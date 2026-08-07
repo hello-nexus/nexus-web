@@ -115,6 +115,7 @@ export function WelcomeScreen({ open, platform, onComplete }: WelcomeScreenProps
       noEscDismiss
       noBackdropDismiss
       onEnter={handleEnter}
+      autoFocus="container"
       ariaLabel={t('welcome.title')}
       className={styles.surface}
       backdropClassName={styles.backdrop}

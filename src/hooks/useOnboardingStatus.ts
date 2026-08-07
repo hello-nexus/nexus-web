@@ -3,6 +3,13 @@ import { fetchOnboardingStatus } from '../api/onboarding';
 
 export type OnboardingStatus = 'unknown' | 'pending' | 'completed';
 
+export interface OnboardingGates {
+  /** First-run welcome screen state. */
+  status: OnboardingStatus;
+  /** Lighting device-selection screen state, shown after the welcome screen. */
+  lightingStatus: OnboardingStatus;
+}
+
 // GET /onboarding is a token-authed localhost call - getToken() pairs itself
 // if needed, so this doesn't wait on the multiplex socket's online state.
 // Retries on a null (unreachable/transient) response instead of the failure
@@ -11,14 +18,15 @@ const RETRY_DELAY_MS = 400;
 const MAX_ATTEMPTS = 5;
 
 /**
- * Fetches GET /onboarding on mount. Stays 'unknown' (caller must not render
- * the dashboard OR the welcome screen on that state - only the app
- * background) until the fetch resolves or the retry bound is exhausted, at
- * which point it falls back to 'completed' so the app is never stuck behind
- * a blank background.
+ * Fetches GET /onboarding on mount. Both gates stay 'unknown' (caller must
+ * not render the dashboard OR either onboarding screen on that state - only
+ * the app background) until the fetch resolves or the retry bound is
+ * exhausted, at which point both fall back to 'completed' so the app is
+ * never stuck behind a blank background. lightingCompleted is absent on
+ * older services; the absence resolves to 'completed' for the same reason.
  */
-export function useOnboardingStatus(): OnboardingStatus {
-  const [status, setStatus] = useState<OnboardingStatus>('unknown');
+export function useOnboardingStatus(): OnboardingGates {
+  const [gates, setGates] = useState<OnboardingGates>({ status: 'unknown', lightingStatus: 'unknown' });
 
   useEffect(() => {
     let cancelled = false;
@@ -28,11 +36,14 @@ export function useOnboardingStatus(): OnboardingStatus {
       const data = await fetchOnboardingStatus();
       if (cancelled) return;
       if (data) {
-        setStatus(data.completed ? 'completed' : 'pending');
+        setGates({
+          status: data.completed ? 'completed' : 'pending',
+          lightingStatus: data.lightingCompleted === false ? 'pending' : 'completed',
+        });
         return;
       }
       if (n >= MAX_ATTEMPTS) {
-        setStatus('completed');
+        setGates({ status: 'completed', lightingStatus: 'completed' });
         return;
       }
       timer = setTimeout(() => attempt(n + 1), RETRY_DELAY_MS);
@@ -45,5 +56,5 @@ export function useOnboardingStatus(): OnboardingStatus {
     };
   }, []);
 
-  return status;
+  return gates;
 }
