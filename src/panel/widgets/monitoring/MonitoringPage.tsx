@@ -107,8 +107,9 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
   const handleCloseProcessDetail = useCallback(() => setSelectedProcess(null), []);
 
   // GPU surfaces appear only where the platform reports live GPU utilization
-  // (Windows via LHM, NVIDIA-Linux via nvidia-smi). macOS and AMD/Intel-Linux
-  // expose no GPU load, so the tab would be dead.
+  // (Windows via LHM, macOS via IOAccelerator's "GPU Core" sensor,
+  // NVIDIA-Linux via nvidia-smi). AMD/Intel-Linux expose no GPU load, so the
+  // tab would be dead there.
   const gpuSupported = sensors.gpu.some(
     s => s.type === 'Load' && (s.name === 'GPU Core' || s.name.startsWith('D3D')),
   );
