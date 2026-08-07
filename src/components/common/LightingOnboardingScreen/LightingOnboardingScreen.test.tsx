@@ -211,6 +211,35 @@ describe('LightingOnboardingScreen - conflicts', () => {
     expect(screen.getByText('conflicts.modal.intro')).toBeInTheDocument();
   });
 
+  it('excludes HYTE Nexus 2 from the strip - its shutdown offer lives in the dedicated gate', async () => {
+    seed([strip]);
+    vi.mocked(useConflictApps).mockReturnValue({
+      conflicts: [
+        { id: 'hyte-nexus-2', displayName: 'HYTE Nexus 2', category: 'lighting', processName: 'HYTE Nexus.exe', pid: 111 },
+        { id: 'icue', displayName: 'Corsair iCUE', category: 'lighting', processName: 'iCUE.exe', pid: 4242 },
+      ],
+      ready: true,
+    });
+    renderScreen();
+
+    expect(await screen.findByText('Corsair iCUE')).toBeInTheDocument();
+    expect(screen.queryByText('HYTE Nexus 2')).not.toBeInTheDocument();
+  });
+
+  it('renders no conflict section when only HYTE Nexus 2 is detected', async () => {
+    seed([strip]);
+    vi.mocked(useConflictApps).mockReturnValue({
+      conflicts: [
+        { id: 'hyte-nexus-2', displayName: 'HYTE Nexus 2', category: 'lighting', processName: 'HYTE Nexus.exe', pid: 111 },
+      ],
+      ready: true,
+    });
+    renderScreen();
+
+    await screen.findByRole('switch', { name: 'Test Strip' });
+    expect(screen.queryByText('conflicts.modal.intro')).not.toBeInTheDocument();
+  });
+
   it('renders no conflict section when none are detected', async () => {
     seed([strip]);
     renderScreen();

@@ -6,6 +6,7 @@ import { Button } from '../Button/Button';
 import { EmptyState } from '../EmptyState/EmptyState';
 import { ConflictAppCard } from '../ConflictAppCard/ConflictAppCard';
 import { useConflictApps } from '../../../hooks/useConflictApps';
+import { HYTE_NEXUS2_CONFLICT_ID } from '../../../api/conflicts';
 import { completeLightingOnboarding } from '../../../api/onboarding';
 import {
   fetchLightingDevices,
@@ -51,7 +52,12 @@ export function LightingOnboardingScreen({ open, onComplete, onBack }: LightingO
   const [scanning, setScanning] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(false);
-  const { conflicts } = useConflictApps(open);
+  const { conflicts: allConflicts } = useConflictApps(open);
+  // HYTE Nexus 2 is excluded here: its shutdown offer belongs to the
+  // Nexus2WelcomeScreen gate. That gate only opens on eligible installs, so
+  // an ineligible one leans on the post-onboarding sidebar conflict warning
+  // instead - this strip never duplicates the dedicated flow either way.
+  const conflicts = allConflicts.filter(c => c.id !== HYTE_NEXUS2_CONFLICT_ID);
   // Timestamp of the last local toggle (bumped again when its write settles);
   // a poll response whose fetch started before it would clobber the
   // optimistic flip with pre-write server state.

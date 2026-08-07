@@ -15,6 +15,10 @@ export interface DetectedConflict {
   pid: number;
 }
 
+// Catalog id of the HYTE Nexus 2 conflict; must match the Id in
+// nexus-service's ConflictAppDefinitions.cs.
+export const HYTE_NEXUS2_CONFLICT_ID = 'hyte-nexus-2';
+
 export interface GetConflictsResponse {
   conflicts: DetectedConflict[];
 }
