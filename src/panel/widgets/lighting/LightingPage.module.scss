@@ -924,6 +924,25 @@
   opacity: 1;
 }
 
+// Controlled/ignored state marker in the card's toggleMode (lighting
+// onboarding): replaces the per-card action buttons, non-interactive - the
+// whole card is the switch.
+.deviceToggleIndicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: var(--text-dim);
+
+  svg { width: 15px; height: 15px; }
+
+  &.deviceToggleIndicatorOn {
+    color: var(--accent);
+  }
+}
+
 // Device name plus an optional (i) advisory, kept on one row so the icon
 // rides beside the name while a long name still wraps below it.
 .deviceNameRow {

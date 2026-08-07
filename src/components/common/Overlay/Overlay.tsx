@@ -36,6 +36,8 @@ export interface OverlayProps {
   ariaLabel?: string;
   className?: string;
   backdropClassName?: string;
+  /** Initial focus on open: the first focusable element (default) or the surface itself. */
+  autoFocus?: 'first' | 'container';
   children: ReactNode;
 }
 
@@ -49,10 +51,11 @@ export function Overlay({
   ariaLabel,
   className,
   backdropClassName,
+  autoFocus,
   children,
 }: OverlayProps) {
   const surfaceRef = useRef<HTMLDivElement>(null);
-  useModalA11y({ open, onClose, onEnter, noEscDismiss, containerRef: surfaceRef });
+  useModalA11y({ open, onClose, onEnter, noEscDismiss, autoFocus, containerRef: surfaceRef });
 
   // Track whether the pointer went down inside the surface. A drag that
   // starts inside and ends outside should not dismiss; only a clean

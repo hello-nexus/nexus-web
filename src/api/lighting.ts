@@ -52,6 +52,10 @@ export async function fetchShaderSource(name: string): Promise<ShaderSource | nu
 
 export interface LightingStatusResponse {
   gpuAvailable: boolean;
+  /** True while an RGB device detection pass or bridge reconnect is in flight. */
+  scanning: boolean;
+  /** True while the bundled OpenRGB subprocess is running. */
+  rgbRunning: boolean;
 }
 
 export const fetchLightingStatus = () =>
