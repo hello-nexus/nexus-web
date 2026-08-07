@@ -112,6 +112,23 @@ describe('Nexus2WelcomeScreen - rendering', () => {
   });
 });
 
+describe('Nexus2WelcomeScreen - back navigation', () => {
+  it('renders a Back button only when onBack is provided, and clicking it steps back without dismissing', () => {
+    const onBack = vi.fn();
+    const { unmount } = render(
+      <Nexus2WelcomeScreen open payload={BASE_PAYLOAD} onComplete={vi.fn()} onBack={onBack} />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'nav.back' }));
+    expect(onBack).toHaveBeenCalledTimes(1);
+    expect(dismissNexus2Welcome).not.toHaveBeenCalled();
+    unmount();
+
+    renderScreen(BASE_PAYLOAD);
+    expect(screen.queryByRole('button', { name: 'nav.back' })).toBeNull();
+  });
+});
+
 describe('Nexus2WelcomeScreen - continue flow (no actions)', () => {
   it('dismisses and calls onComplete without touching close/autostart when neither row shows', async () => {
     const onComplete = vi.fn();

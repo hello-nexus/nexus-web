@@ -95,6 +95,13 @@ $content-width: 480px;
   color: var(--bad);
 }
 
+.footerRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
 .continueButton {
   width: min(280px, 100%);
 }
