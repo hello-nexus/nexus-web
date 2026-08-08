@@ -27,7 +27,7 @@ export function PrivacyTab({ settings, serviceOnline }: PrivacyTabProps) {
   const [telemetryLoading, setTelemetryLoading] = useState(false);
   const telemetryBurstKey = useHeartBurstTrigger(telemetryOn);
   // Lazy, this-surface-only check (not fetched on dashboard load): the row
-  // stays hidden until the service confirms Nexus 2.0 is actually installed
+  // stays hidden until the service confirms Nexus 2 is actually installed
   // and its config is readable.
   const [nexus2Importable, setNexus2Importable] = useState(false);
   const [nexus2ImportOpen, setNexus2ImportOpen] = useState(false);

@@ -2069,19 +2069,19 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'Nexus2WelcomeScreen', category: 'modals',
     filePath: 'src/components/common/Nexus2WelcomeScreen/Nexus2WelcomeScreen.tsx',
-    description: 'One-time returning-user gate for Nexus 2.0 owners, mounted on the desktop Dashboard after WelcomeScreen hands off. Text-only Nexus 2.0 references, a highlighted block stating that Continue closes Nexus 2.0 and removes its autostart (not opt-in), the shared Nexus2ImportSection, and a Continue button that relabels to Import & Continue while any import group is selected.',
+    description: 'One-time returning-user gate for Nexus 2 owners, mounted on the desktop Dashboard after WelcomeScreen hands off. Text-only Nexus 2 references, a highlighted block stating that Continue closes Nexus 2 and removes its autostart (not opt-in), the shared Nexus2ImportSection, and a Continue button that relabels to Import & Continue while any import group is selected.',
     notes: 'No live preview - the autostart action posts a real /migration/nexus2/disable-autostart request and Continue posts /migration/nexus2/dismiss, so opening it here would mutate the running install\'s migration-offered state.',
   },
   {
     name: 'Nexus2ImportSection', category: 'modals',
     filePath: 'src/components/common/Nexus2WelcomeScreen/Nexus2ImportSection.tsx',
-    description: 'Grouped Nexus 2.0 import flow: previews on open, two consolidated checkboxes (Y70 panel personalization, Q-Series panel personalization) each expanding to their wire categories, the replace-layout confirm, apply, and per-group results in an internally scrolling box. Shared by Nexus2WelcomeScreen and the Settings entry (Nexus2ImportDialog).',
+    description: 'Grouped Nexus 2 import flow: previews on open, two consolidated checkboxes (Y70 panel personalization, Q-Series panel personalization) each expanding to their wire categories, apply (always replacing the current personalization), and per-group results in an internally scrolling box. Shared by Nexus2WelcomeScreen and the Settings entry (Nexus2ImportDialog).',
     notes: 'No live preview - it posts real /migration/nexus2/preview and /apply requests on open/submit, so opening it here would mutate the running install\'s panel layouts.',
   },
   {
     name: 'Nexus2ImportDialog', category: 'modals',
     filePath: 'src/components/common/Nexus2WelcomeScreen/Nexus2ImportDialog.tsx',
-    description: 'Settings re-entry point for the Nexus 2.0 import: a DeviceModal hosting Nexus2ImportSection, opened from the Privacy & Data tab\'s "Import from Nexus 2.0" row once the service reports the app detected and importable.',
+    description: 'Settings re-entry point for the Nexus 2 import: a DeviceModal hosting Nexus2ImportSection, opened from the Privacy & Data tab\'s "Import from Nexus 2" row once the service reports the app detected and importable.',
     notes: 'No live preview - hosts Nexus2ImportSection, which posts real preview/apply requests.',
   },
   {

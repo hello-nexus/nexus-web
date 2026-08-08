@@ -54,12 +54,6 @@
   margin: 0.5rem 0 0;
 }
 
-.versionDetected {
-  @include text-caption;
-  margin: 0;
-  color: var(--text-dim);
-}
-
 .body {
   @include text-body;
   margin: 0;
@@ -71,7 +65,7 @@
 }
 
 // Accent-tinted and non-interactive: this block states what Continue will do
-// (close Nexus 2.0, remove its autostart), it is not a choice.
+// (close Nexus 2, remove its autostart), it is not a choice.
 .noticeBox {
   border-color: var(--accent);
   background: var(--accent-soft);

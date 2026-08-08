@@ -61,7 +61,7 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-describe('PrivacyTab - Nexus 2.0 import entry visibility', () => {
+describe('PrivacyTab - Nexus 2 import entry visibility', () => {
   it('is hidden while the status fetch is pending', () => {
     vi.mocked(fetchNexus2Status).mockReturnValue(new Promise(() => {}));
     renderTab();
@@ -102,7 +102,7 @@ describe('PrivacyTab - Nexus 2.0 import entry visibility', () => {
   });
 });
 
-describe('PrivacyTab - Nexus 2.0 import dialog reuse', () => {
+describe('PrivacyTab - Nexus 2 import dialog reuse', () => {
   it('opens the shared Nexus2ImportDialog on click, closed by default', async () => {
     vi.mocked(fetchNexus2Status).mockResolvedValue(status());
     renderTab();

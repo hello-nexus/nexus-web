@@ -42,7 +42,7 @@ export interface Nexus2ImportSectionProps {
 }
 
 /**
- * Grouped Nexus 2.0 import flow: preview fetch, two grouped switches (Y70
+ * Grouped Nexus 2 import flow: preview fetch, two grouped switches (Y70
  * panel personalization, Q-Series panel personalization), apply, and per-group
  * results. Shared by Nexus2WelcomeScreen and
  * the Settings re-entry dialog (Nexus2ImportDialog) - one place owns the

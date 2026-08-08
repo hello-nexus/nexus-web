@@ -33,9 +33,9 @@ export interface Nexus2WelcomeScreenProps {
 type ApplyPhase = 'idle' | 'applying' | 'failed';
 
 /**
- * One-time returning-user screen for Nexus 2.0 owners, shown after the
+ * One-time returning-user screen for Nexus 2 owners, shown after the
  * onboarding WelcomeScreen completes. Non-dismissable: Continue is the only
- * way through. Text-only Nexus 2.0 references - no HYTE logo/branding.
+ * way through. Text-only Nexus 2 references - no HYTE logo/branding.
  * Self-contained: open/completion flow entirely through props, no shared
  * state with any sibling post-onboarding screen.
  */
@@ -62,7 +62,7 @@ export function Nexus2WelcomeScreen({ open, payload, onComplete, onBack }: Nexus
   if (!open) return null;
 
   // Continue owns the whole flow: run the selected import, then always close
-  // Nexus 2.0 and remove its autostart. Anything that fails leaves the screen
+  // Nexus 2 and remove its autostart. Anything that fails leaves the screen
   // open with the reason inline and relabels Continue to "continue anyway" -
   // a second click always dismisses, never re-attempting.
   const handleContinue = async () => {
@@ -79,7 +79,7 @@ export function Nexus2WelcomeScreen({ open, payload, onComplete, onBack }: Nexus
 
     // The import is independent of the coexistence actions, so a failed one
     // must not skip them: dismissing latches the gate closed service-side,
-    // and leaving Nexus 2.0 running and autostarting is the single thing this
+    // and leaving Nexus 2 running and autostarting is the single thing this
     // screen promises unconditionally.
     let importFailed = false;
     if (importHasSelection && importHandle.current) {
@@ -102,6 +102,12 @@ export function Nexus2WelcomeScreen({ open, payload, onComplete, onBack }: Nexus
     onComplete();
   };
 
+  // The detected version IS the heading; the version-less title is the
+  // fallback for a detection that could not read one.
+  const heading = payload?.version
+    ? t('nexus2Welcome.versionDetected', { version: payload.version })
+    : t('nexus2Welcome.title');
+
   // Detected state is informational only - the actions run either way.
   const statusParts = [
     payload?.running ? t('nexus2Welcome.actions.running') : null,
@@ -115,15 +121,12 @@ export function Nexus2WelcomeScreen({ open, payload, onComplete, onBack }: Nexus
       noEscDismiss
       noBackdropDismiss
       onEnter={handleContinue}
-      ariaLabel={t('nexus2Welcome.title')}
+      ariaLabel={heading}
       className={styles.surface}
       backdropClassName={styles.backdrop}
     >
       <div className={styles.hero}>
-        <h1 className={styles.title}>{t('nexus2Welcome.title')}</h1>
-        {payload?.version && (
-          <p className={styles.versionDetected}>{t('nexus2Welcome.versionDetected', { version: payload.version })}</p>
-        )}
+        <h1 className={styles.title}>{heading}</h1>
         <p className={styles.body}>{t('nexus2Welcome.body')}</p>
       </div>
 

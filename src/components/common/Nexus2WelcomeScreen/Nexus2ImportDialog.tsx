@@ -8,7 +8,7 @@ export interface Nexus2ImportDialogProps {
 }
 
 /**
- * Settings re-entry point for the one-time welcome screen's Nexus 2.0 import:
+ * Settings re-entry point for the one-time welcome screen's Nexus 2 import:
  * hosts the same Nexus2ImportSection, so the grouped preview/apply
  * flow only exists in one place.
  */

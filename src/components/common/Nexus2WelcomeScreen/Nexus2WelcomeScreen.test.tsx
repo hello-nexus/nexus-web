@@ -66,13 +66,14 @@ describe('Nexus2WelcomeScreen - rendering', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it('shows the detected version from the payload', () => {
+  it('leads with the detected version as the heading', () => {
     renderScreen(BASE_PAYLOAD);
-    expect(screen.getByText('nexus2Welcome.versionDetected:2.16.0')).toBeInTheDocument();
+    expect(screen.getByRole('heading')).toHaveTextContent('nexus2Welcome.versionDetected:2.16.0');
   });
 
-  it('omits the version line when the payload has no version', () => {
+  it('falls back to the version-less heading when detection read no version', () => {
     renderScreen({ ...BASE_PAYLOAD, version: null });
+    expect(screen.getByRole('heading')).toHaveTextContent('nexus2Welcome.title');
     expect(screen.queryByText(/nexus2Welcome.versionDetected/)).not.toBeInTheDocument();
   });
 
