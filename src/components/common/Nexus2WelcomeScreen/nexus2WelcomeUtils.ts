@@ -2,21 +2,8 @@
 // direct testing (see elgatoImportUtils.ts for the pattern this follows).
 import type {
   Nexus2ApplyResult, Nexus2ApplyStatus, Nexus2CategoryId, Nexus2PreviewCategory,
-  Nexus2PreviewResponse, Nexus2StatusResponse,
+  Nexus2PreviewResponse,
 } from '../../../api/migration';
-
-export interface ActionChecks {
-  closeApp: boolean;
-  disableAutostart: boolean;
-}
-
-/** Pre-check state for the action checkboxes: checked exactly when the row would render. */
-export function initialActionChecks(payload: Nexus2StatusResponse | null): ActionChecks {
-  return {
-    closeApp: !!payload?.running,
-    disableAutostart: !!payload?.autostartTaskPresent,
-  };
-}
 
 const CATEGORY_LABEL_KEYS: Partial<Record<Nexus2CategoryId, string>> = {
   appearance: 'nexus2Welcome.import.category.appearance.label',

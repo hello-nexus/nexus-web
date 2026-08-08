@@ -22,7 +22,6 @@ vi.mock('../../../lib/i18n', () => ({
 const Y70_GROUP_NAME = 'nexus2Welcome.import.group.y70Panel.label';
 const Q60_GROUP_NAME = 'nexus2Welcome.import.group.q60Panel.label';
 const IMPORT_BUTTON_NAME = 'nexus2Welcome.import.action';
-const CONFIRM_SWITCH_NAME = 'nexus2Welcome.import.confirmReplaceLayout';
 
 const Y70_LAYOUT = { id: 'y70Layout' as const, available: true, pages: 2, widgets: 6, mappedWidgets: 4, droppedTypes: ['aquarium', 'macros'] };
 const APPEARANCE = { id: 'appearance' as const, available: true, accentColor: '#ff0000', background: null };
@@ -135,7 +134,9 @@ describe('Nexus2ImportSection - apply, group->wire-id expansion', () => {
     await waitFor(() => expect(applyNexus2Import).toHaveBeenCalledTimes(1));
     const [sentIds, replaceFlag] = vi.mocked(applyNexus2Import).mock.calls[0];
     expect(sentIds.sort()).toEqual(['appearance', 'gallerySources', 'q60Face', 'rotation', 'wallpapers', 'y70Layout'].sort());
-    expect(replaceFlag).toBe(false);
+    // Always replaces - the section's description states that up front, so
+    // the service never has to come back asking for confirmation.
+    expect(replaceFlag).toBe(true);
   });
 
   it('disables the apply button once every group is unchecked', async () => {
@@ -183,27 +184,6 @@ describe('Nexus2ImportSection - per-group result rollup', () => {
       'nexus2Welcome.import.category.wallpapers.label:wallpapers,',
       'nexus2Welcome.import.result.detail.generic:patch-failed',
     ].join(''))).toBeInTheDocument();
-  });
-
-  it('surfaces the replace-layout confirm switch on needsConfirm and re-runs with the flag set', async () => {
-    const results: Nexus2ApplyResponse[] = [
-      { results: [{ id: 'y70Layout', status: 'needsConfirm', detail: 'layout-customized' }] },
-      { results: [{ id: 'y70Layout', status: 'applied', detail: null }] },
-    ];
-    vi.mocked(applyNexus2Import).mockResolvedValueOnce(results[0]).mockResolvedValueOnce(results[1]);
-    renderSection();
-    await screen.findByRole('switch', { name: Y70_GROUP_NAME });
-    fireEvent.click(screen.getByRole('switch', { name: Q60_GROUP_NAME }));
-
-    fireEvent.click(screen.getByRole('button', { name: IMPORT_BUTTON_NAME }));
-    const confirmBox = await screen.findByRole('switch', { name: CONFIRM_SWITCH_NAME });
-    expect(confirmBox).not.toBeChecked();
-
-    fireEvent.click(confirmBox);
-    fireEvent.click(screen.getByRole('button', { name: IMPORT_BUTTON_NAME }));
-
-    await waitFor(() => expect(applyNexus2Import).toHaveBeenCalledTimes(2));
-    expect(vi.mocked(applyNexus2Import).mock.calls[1][1]).toBe(true);
   });
 });
 

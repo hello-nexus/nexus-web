@@ -18,12 +18,8 @@ type ImportPhase = 'idle' | 'busy' | 'results';
 
 const GROUP_ICON_SIZE = 28;
 
-/**
- * Apply outcome for a host-driven import. 'needsConfirm' is the only
- * retryable one - the user ticks the replace-layout confirm and presses
- * again - so a host must not treat it and 'failed' alike.
- */
-export type Nexus2ImportOutcome = 'clean' | 'needsConfirm' | 'failed';
+/** Apply outcome for a host-driven import. */
+export type Nexus2ImportOutcome = 'clean' | 'failed';
 
 /** Lets a host drive the apply from its own button. */
 export interface Nexus2ImportHandle {
@@ -39,8 +35,6 @@ export interface Nexus2ImportSectionProps {
   onBusyChange?: (busy: boolean) => void;
   /** False hides the built-in apply button for hosts that drive the import from their own (the welcome screen's Continue). */
   showAction?: boolean;
-  /** False drops the section's explanatory line for hosts that own the framing copy (the welcome screen). */
-  showDescription?: boolean;
   /** Reports whether any group is selected, so a host can label its own action. */
   onSelectionChange?: (hasSelection: boolean) => void;
   /** Receives the apply runner for hosts with showAction=false. */
@@ -48,20 +42,19 @@ export interface Nexus2ImportSectionProps {
 }
 
 /**
- * Grouped Nexus 2.0 import flow: preview fetch, two grouped switches (Y70
- * panel personalization, Q-Series panel personalization), the replace-layout
- * confirm, apply, and per-group results. Shared by Nexus2WelcomeScreen and
+ * Grouped Nexus 2 import flow: preview fetch, two grouped switches (Y70
+ * panel personalization, Q-Series panel personalization), apply, and per-group
+ * results. Shared by Nexus2WelcomeScreen and
  * the Settings re-entry dialog (Nexus2ImportDialog) - one place owns the
  * markup so both stay in sync.
  */
 export function Nexus2ImportSection({
-  open, disabled, onBusyChange, showAction = true, showDescription = true, onSelectionChange, handleRef,
+  open, disabled, onBusyChange, showAction = true, onSelectionChange, handleRef,
 }: Nexus2ImportSectionProps) {
   const { t } = useTranslation();
   const [previewStatus, setPreviewStatus] = useState<PreviewStatus>('idle');
   const [preview, setPreview] = useState<Nexus2PreviewResponse | null>(null);
   const [selectedGroups, setSelectedGroups] = useState<Set<ImportGroupId>>(new Set());
-  const [replaceLayout, setReplaceLayout] = useState(false);
   const [importPhase, setImportPhase] = useState<ImportPhase>('idle');
   const [importResults, setImportResults] = useState<Nexus2ApplyResult[] | null>(null);
   const [importRequestError, setImportRequestError] = useState(false);
@@ -72,7 +65,6 @@ export function Nexus2ImportSection({
     setPreviewStatus('loading');
     setPreview(null);
     setSelectedGroups(new Set());
-    setReplaceLayout(false);
     setImportResults(null);
     setImportRequestError(false);
     setImportPhase('idle');
@@ -99,7 +91,9 @@ export function Nexus2ImportSection({
     setImportRequestError(false);
     let res: Awaited<ReturnType<typeof applyNexus2Import>> = null;
     try {
-      res = await applyNexus2Import(ids, replaceLayout);
+      // Always replaces: the section's description says so up front, which
+      // is what the service's confirm flag exists to establish.
+      res = await applyNexus2Import(ids, true);
     } catch {
       res = null;
     }
@@ -112,8 +106,7 @@ export function Nexus2ImportSection({
     setImportResults(res.results);
     setImportPhase('results');
     onBusyChange?.(false);
-    if (allApplyResultsClean(res.results)) return 'clean';
-    return res.results.some(r => r.status === 'failed') ? 'failed' : 'needsConfirm';
+    return allApplyResultsClean(res.results) ? 'clean' : 'failed';
   };
 
   const selectionEmpty = selectedWireIds(preview, selectedGroups).length === 0;
@@ -139,7 +132,6 @@ export function Nexus2ImportSection({
 
   const groups = visibleImportGroups(preview);
   const summaries = groupResultSummaries(importResults);
-  const needsReplaceConfirm = summaries.some(s => s.issues.some(i => i.status === 'needsConfirm'));
   const importSuccess = importPhase === 'results' && allApplyResultsClean(importResults);
 
   return (
@@ -147,7 +139,7 @@ export function Nexus2ImportSection({
       className={styles.section}
       boxClassName={styles.box}
       title={t('nexus2Welcome.import.title')}
-      description={showDescription ? <p>{t('nexus2Welcome.import.description')}</p> : undefined}
+      description={<p>{t('nexus2Welcome.import.description')}</p>}
     >
       {previewStatus === 'loading' && (
         <div className={styles.previewLoading} data-settings-aside>
@@ -184,15 +176,6 @@ export function Nexus2ImportSection({
               />
             );
           })}
-
-          {needsReplaceConfirm && (
-            <SettingToggle
-              label={t('nexus2Welcome.import.confirmReplaceLayout')}
-              checked={replaceLayout}
-              disabled={locked}
-              onChange={setReplaceLayout}
-            />
-          )}
 
           {summaries.length > 0 && (
             <ul className={styles.resultList} data-settings-aside>

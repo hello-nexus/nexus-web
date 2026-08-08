@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Nexus2ApplyResult, Nexus2PreviewCategory, Nexus2PreviewResponse, Nexus2StatusResponse } from '../../../api/migration';
+import type { Nexus2ApplyResult, Nexus2PreviewCategory, Nexus2PreviewResponse } from '../../../api/migration';
 import {
   IMPORT_GROUPS,
   allApplyResultsClean,
@@ -11,34 +11,9 @@ import {
   defaultSelectedGroupIds,
   groupDetailParts,
   groupResultSummaries,
-  initialActionChecks,
   selectedWireIds,
   visibleImportGroups,
 } from './nexus2WelcomeUtils';
-
-const BASE_STATUS: Nexus2StatusResponse = {
-  detected: true,
-  importAvailable: true,
-  deviceEligible: true,
-  version: '2.16.0',
-  autostartTaskPresent: false,
-  running: false,
-  pending: true,
-};
-
-describe('initialActionChecks', () => {
-  it('pre-checks closeApp only when running', () => {
-    expect(initialActionChecks({ ...BASE_STATUS, running: true })).toEqual({ closeApp: true, disableAutostart: false });
-  });
-
-  it('pre-checks disableAutostart only when autostartTaskPresent', () => {
-    expect(initialActionChecks({ ...BASE_STATUS, autostartTaskPresent: true })).toEqual({ closeApp: false, disableAutostart: true });
-  });
-
-  it('checks neither for a null payload', () => {
-    expect(initialActionChecks(null)).toEqual({ closeApp: false, disableAutostart: false });
-  });
-});
 
 describe('categoryLabelKey', () => {
   it('resolves a known category id', () => {
