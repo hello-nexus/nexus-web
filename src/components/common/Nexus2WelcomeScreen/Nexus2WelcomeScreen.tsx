@@ -1,17 +1,26 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, LogIn, PowerOff } from 'lucide-react';
+import { ArrowLeft, PowerOff } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { Overlay } from '../Overlay/Overlay';
 import { SettingsSection } from '../SettingsSection/SettingsSection';
-import { SettingToggle } from '../SettingRow/SettingRow';
 import { Button } from '../Button/Button';
 import { closeNexus2App, disableNexus2Autostart, dismissNexus2Welcome } from '../../../api/migration';
 import type { Nexus2StatusResponse } from '../../../api/migration';
-import { initialActionChecks, type ActionChecks } from './nexus2WelcomeUtils';
 import { Nexus2ImportSection, type Nexus2ImportHandle } from './Nexus2ImportSection';
 import styles from './Nexus2WelcomeScreen.module.scss';
 
 const ACTION_ICON_SIZE = 28;
+const STATUS_SEPARATOR = ' · ';
+
+/** True when the request came back without an error; a throw counts as failure. */
+async function runAction(call: () => Promise<{ error: boolean } | null>): Promise<boolean> {
+  try {
+    const res = await call();
+    return !!res && !res.error;
+  } catch {
+    return false;
+  }
+}
 
 export interface Nexus2WelcomeScreenProps {
   open: boolean;
@@ -21,7 +30,6 @@ export interface Nexus2WelcomeScreenProps {
   onBack?: () => void;
 }
 
-type ActionResult = 'idle' | 'success' | 'error';
 type ApplyPhase = 'idle' | 'applying' | 'failed';
 
 /**
@@ -34,41 +42,29 @@ type ApplyPhase = 'idle' | 'applying' | 'failed';
 export function Nexus2WelcomeScreen({ open, payload, onComplete, onBack }: Nexus2WelcomeScreenProps) {
   const { t } = useTranslation();
 
-  const [actions, setActions] = useState<ActionChecks>({ closeApp: false, disableAutostart: false });
-  const [closeResult, setCloseResult] = useState<ActionResult>('idle');
-  const [autostartResult, setAutostartResult] = useState<ActionResult>('idle');
   const [applyPhase, setApplyPhase] = useState<ApplyPhase>('idle');
   const [dismissing, setDismissing] = useState(false);
   const [importBusy, setImportBusy] = useState(false);
   const [importHasSelection, setImportHasSelection] = useState(false);
+  const [actionErrors, setActionErrors] = useState({ close: false, autostart: false });
   const importHandle = useRef<Nexus2ImportHandle | null>(null);
 
   // Resets on every open (the component stays mounted across open toggles, per
   // Dashboard's always-rendered gating).
   useEffect(() => {
     if (!open) return;
-    setActions(initialActionChecks(payload));
     setApplyPhase('idle');
-    setCloseResult('idle');
-    setAutostartResult('idle');
     setDismissing(false);
     setImportHasSelection(false);
+    setActionErrors({ close: false, autostart: false });
   }, [open, payload]);
 
   if (!open) return null;
 
-  const showCloseRow = !!payload?.running;
-  const showAutostartRow = !!payload?.autostartTaskPresent;
-  const hasActionsSection = showCloseRow || showAutostartRow;
-  const actionsLocked = applyPhase !== 'idle';
-
-  // Continue owns the whole flow: run the selected import first (its results
-  // render in place; anything unclean keeps the screen open so the user can
-  // tick the replace-layout confirm and press again), then apply the checked
-  // actions in a fixed order (close before autostart). On any action failure
-  // the screen stays open with inline error lines and Continue relabels to
-  // "continue anyway" - a second click always dismisses, never re-attempting
-  // the failed action or re-importing.
+  // Continue owns the whole flow: run the selected import, then always close
+  // Nexus 2.0 and remove its autostart. Anything that fails leaves the screen
+  // open with the reason inline and relabels Continue to "continue anyway" -
+  // a second click always dismisses, never re-attempting.
   const handleContinue = async () => {
     if (applyPhase === 'applying' || dismissing || importBusy) return;
 
@@ -81,39 +77,22 @@ export function Nexus2WelcomeScreen({ open, payload, onComplete, onBack }: Nexus
 
     setApplyPhase('applying');
 
+    // The import is independent of the coexistence actions, so a failed one
+    // must not skip them: dismissing latches the gate closed service-side,
+    // and leaving Nexus 2.0 running and autostarting is the single thing this
+    // screen promises unconditionally.
+    let importFailed = false;
     if (importHasSelection && importHandle.current) {
-      // needsConfirm is the retryable one: the replace-layout switch appears
-      // and the user presses again. A hard failure falls through to the
-      // 'failed' phase so Continue offers the "anyway" exit - the screen is
-      // non-dismissable, so a re-pressable import must never be the only way
-      // out of it.
-      const outcome = await importHandle.current.runImport();
-      if (outcome === 'needsConfirm') {
-        setApplyPhase('idle');
-        return;
-      }
-      if (outcome === 'failed') {
-        setApplyPhase('failed');
-        return;
-      }
+      importFailed = await importHandle.current.runImport() === 'failed';
     }
 
-    let hadFailure = false;
+    // Both ops are idempotent - success when there was nothing to close and
+    // no task to remove - so neither branches on what detection reported.
+    const closeOk = await runAction(closeNexus2App);
+    const autostartOk = await runAction(disableNexus2Autostart);
+    setActionErrors({ close: !closeOk, autostart: !autostartOk });
 
-    if (actions.closeApp) {
-      const res = await closeNexus2App();
-      const ok = !!res && !res.error;
-      setCloseResult(ok ? 'success' : 'error');
-      if (!ok) hadFailure = true;
-    }
-    if (actions.disableAutostart) {
-      const res = await disableNexus2Autostart();
-      const ok = !!res && !res.error;
-      setAutostartResult(ok ? 'success' : 'error');
-      if (!ok) hadFailure = true;
-    }
-
-    if (hadFailure) {
+    if (importFailed || !closeOk || !autostartOk) {
       setApplyPhase('failed');
       return;
     }
@@ -123,17 +102,11 @@ export function Nexus2WelcomeScreen({ open, payload, onComplete, onBack }: Nexus
     onComplete();
   };
 
-  const closeAppDescription = closeResult === 'success'
-    ? t('nexus2Welcome.closeApp.success')
-    : closeResult === 'error'
-      ? <span className={styles.actionError}>{t('nexus2Welcome.closeApp.error')}</span>
-      : t('nexus2Welcome.closeApp.description');
-
-  const autostartDescription = autostartResult === 'success'
-    ? t('nexus2Welcome.autostart.success')
-    : autostartResult === 'error'
-      ? <span className={styles.actionError}>{t('nexus2Welcome.autostart.error')}</span>
-      : t('nexus2Welcome.autostart.description');
+  // Detected state is informational only - the actions run either way.
+  const statusParts = [
+    payload?.running ? t('nexus2Welcome.actions.running') : null,
+    payload?.autostartTaskPresent ? t('nexus2Welcome.actions.autostart') : null,
+  ].filter(Boolean);
 
   return (
     <Overlay
@@ -152,35 +125,30 @@ export function Nexus2WelcomeScreen({ open, payload, onComplete, onBack }: Nexus
           <p className={styles.versionDetected}>{t('nexus2Welcome.versionDetected', { version: payload.version })}</p>
         )}
         <p className={styles.body}>{t('nexus2Welcome.body')}</p>
-        <p className={styles.body}>{t('nexus2Welcome.coexistence')}</p>
       </div>
 
-      {hasActionsSection && (
-        <SettingsSection className={styles.section} boxClassName={styles.actionsBox}>
-          {showCloseRow && (
-            <SettingToggle
-              label={t('nexus2Welcome.closeApp.rowLabel')}
-              description={closeAppDescription}
-              icon={<PowerOff size={ACTION_ICON_SIZE} />}
-              iconLeading
-              checked={actions.closeApp}
-              disabled={actionsLocked}
-              onChange={checked => setActions(a => ({ ...a, closeApp: checked }))}
-            />
-          )}
-          {showAutostartRow && (
-            <SettingToggle
-              label={t('nexus2Welcome.autostart.rowLabel')}
-              description={autostartDescription}
-              icon={<LogIn size={ACTION_ICON_SIZE} />}
-              iconLeading
-              checked={actions.disableAutostart}
-              disabled={actionsLocked}
-              onChange={checked => setActions(a => ({ ...a, disableAutostart: checked }))}
-            />
-          )}
-        </SettingsSection>
-      )}
+      <SettingsSection
+        className={styles.section}
+        boxClassName={styles.noticeBox}
+        ariaLabel={t('nexus2Welcome.actions.title')}
+      >
+        <div className={styles.notice}>
+          <span className={styles.noticeIcon} aria-hidden><PowerOff size={ACTION_ICON_SIZE} /></span>
+          <div className={styles.noticeText}>
+            <p className={styles.noticeTitle}>{t('nexus2Welcome.actions.title')}</p>
+            <p className={styles.noticeBody}>{t('nexus2Welcome.actions.body')}</p>
+            {statusParts.length > 0 && (
+              <p className={styles.noticeStatus}>{statusParts.join(STATUS_SEPARATOR)}</p>
+            )}
+            {actionErrors.close && (
+              <p className={styles.noticeError} role="alert">{t('nexus2Welcome.actions.errorClose')}</p>
+            )}
+            {actionErrors.autostart && (
+              <p className={styles.noticeError} role="alert">{t('nexus2Welcome.actions.errorAutostart')}</p>
+            )}
+          </div>
+        </div>
+      </SettingsSection>
 
       {payload?.importAvailable && (
         <Nexus2ImportSection
@@ -188,7 +156,6 @@ export function Nexus2WelcomeScreen({ open, payload, onComplete, onBack }: Nexus
           disabled={applyPhase !== 'idle'}
           onBusyChange={setImportBusy}
           showAction={false}
-          showDescription={false}
           onSelectionChange={setImportHasSelection}
           handleRef={importHandle}
         />

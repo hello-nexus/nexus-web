@@ -70,13 +70,51 @@
   width: min($onboarding-content-width, 100%);
 }
 
-// Extra top/bottom breathing room over SettingsSection's default box padding.
-.actionsBox {
-  padding-top: 0.75rem;
-  padding-bottom: 1rem;
+// Accent-tinted and non-interactive: this block states what Continue will do
+// (close Nexus 2.0, remove its autostart), it is not a choice.
+.noticeBox {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  padding-top: 0.85rem;
+  padding-bottom: 0.9rem;
 }
 
-.actionError {
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  text-align: left;
+}
+
+.noticeIcon {
+  display: flex;
+  flex-shrink: 0;
+  color: var(--accent);
+}
+
+.noticeText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.noticeTitle {
+  @include text-body;
+  margin: 0;
+  color: var(--text);
+}
+
+.noticeBody,
+.noticeStatus {
+  @include text-caption;
+  margin: 0;
+  color: var(--text-dim);
+}
+
+.noticeError {
+  @include text-caption;
+  margin: 0;
   color: var(--bad);
 }
 

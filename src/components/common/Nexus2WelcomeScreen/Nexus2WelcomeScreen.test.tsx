@@ -25,11 +25,8 @@ vi.mock('../../../lib/i18n', () => ({
 
 const CONTINUE_BUTTON_NAME = 'nexus2Welcome.continue';
 const CONTINUE_ANYWAY_BUTTON_NAME = 'nexus2Welcome.continueAnyway';
-const CLOSE_SWITCH_NAME = 'nexus2Welcome.closeApp.rowLabel';
-const AUTOSTART_SWITCH_NAME = 'nexus2Welcome.autostart.rowLabel';
 const IMPORT_BUTTON_NAME = 'nexus2Welcome.import.action';
 const IMPORT_AND_CONTINUE_BUTTON_NAME = 'nexus2Welcome.importAndContinue';
-const CONFIRM_SWITCH_NAME = 'nexus2Welcome.import.confirmReplaceLayout';
 const Y70_GROUP_SWITCH_NAME = 'nexus2Welcome.import.group.y70Panel.label';
 
 const BASE_PAYLOAD: Nexus2StatusResponse = {
@@ -79,26 +76,30 @@ describe('Nexus2WelcomeScreen - rendering', () => {
     expect(screen.queryByText(/nexus2Welcome.versionDetected/)).not.toBeInTheDocument();
   });
 
-  it('hides both action switches when neither running nor autostartTaskPresent is set', () => {
+  it('states the close/autostart outcome with no switch to opt out of it', () => {
     renderScreen(BASE_PAYLOAD);
-    expect(screen.queryByRole('switch', { name: CLOSE_SWITCH_NAME })).not.toBeInTheDocument();
-    expect(screen.queryByRole('switch', { name: AUTOSTART_SWITCH_NAME })).not.toBeInTheDocument();
+    expect(screen.getByText('nexus2Welcome.actions.title')).toBeInTheDocument();
+    expect(screen.getByText('nexus2Welcome.actions.body')).toBeInTheDocument();
+    // The import groups are the only switches on a payload with no import.
+    expect(screen.queryAllByRole('switch')).toHaveLength(0);
   });
 
-  it('shows the close switch, pre-checked, only when running is true', () => {
-    renderScreen({ ...BASE_PAYLOAD, running: true });
-    const box = screen.getByRole('switch', { name: CLOSE_SWITCH_NAME });
-    expect(box).toBeInTheDocument();
-    expect(box).toBeChecked();
-    expect(screen.queryByRole('switch', { name: AUTOSTART_SWITCH_NAME })).not.toBeInTheDocument();
-  });
+  it('mentions the detected state, and only what was actually detected', () => {
+    const { unmount } = render(
+      <Nexus2WelcomeScreen open payload={{ ...BASE_PAYLOAD, running: true }} onComplete={vi.fn()} />,
+    );
+    expect(screen.getByText('nexus2Welcome.actions.running')).toBeInTheDocument();
+    expect(screen.queryByText(/actions.autostart/)).not.toBeInTheDocument();
+    unmount();
 
-  it('shows the autostart switch, pre-checked, only when autostartTaskPresent is true', () => {
     renderScreen({ ...BASE_PAYLOAD, autostartTaskPresent: true });
-    const box = screen.getByRole('switch', { name: AUTOSTART_SWITCH_NAME });
-    expect(box).toBeInTheDocument();
-    expect(box).toBeChecked();
-    expect(screen.queryByRole('switch', { name: CLOSE_SWITCH_NAME })).not.toBeInTheDocument();
+    expect(screen.getByText('nexus2Welcome.actions.autostart')).toBeInTheDocument();
+    expect(screen.queryByText(/actions.running/)).not.toBeInTheDocument();
+  });
+
+  it('omits the detected-state line when nothing is running and no task exists', () => {
+    renderScreen(BASE_PAYLOAD);
+    expect(screen.queryByText(/actions.running|actions.autostart/)).not.toBeInTheDocument();
   });
 
   it('does not render the import section when importAvailable is false', () => {
@@ -132,18 +133,6 @@ describe('Nexus2WelcomeScreen - back navigation', () => {
 });
 
 describe('Nexus2WelcomeScreen - continue flow (no actions)', () => {
-  it('dismisses and calls onComplete without touching close/autostart when neither row shows', async () => {
-    const onComplete = vi.fn();
-    renderScreen(BASE_PAYLOAD, onComplete);
-
-    fireEvent.click(screen.getByRole('button', { name: CONTINUE_BUTTON_NAME }));
-
-    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
-    expect(dismissNexus2Welcome).toHaveBeenCalledTimes(1);
-    expect(closeNexus2App).not.toHaveBeenCalled();
-    expect(disableNexus2Autostart).not.toHaveBeenCalled();
-  });
-
   it('still calls onComplete when the dismiss request fails, so the user is never trapped', async () => {
     vi.mocked(dismissNexus2Welcome).mockResolvedValue(null);
     const onComplete = vi.fn();
@@ -170,16 +159,16 @@ describe('Nexus2WelcomeScreen - continue flow (actions)', () => {
     expect(dismissNexus2Welcome).toHaveBeenCalledTimes(1);
   });
 
-  it('skips an unchecked action silently', async () => {
+  it('runs both actions even when detection reported nothing to do', async () => {
     const onComplete = vi.fn();
-    renderScreen({ ...BASE_PAYLOAD, running: true, autostartTaskPresent: true }, onComplete);
+    renderScreen(BASE_PAYLOAD, onComplete);
 
-    fireEvent.click(screen.getByRole('switch', { name: AUTOSTART_SWITCH_NAME }));
     fireEvent.click(screen.getByRole('button', { name: CONTINUE_BUTTON_NAME }));
 
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+    // Both service ops are idempotent, so they run regardless of the payload.
     expect(closeNexus2App).toHaveBeenCalledTimes(1);
-    expect(disableNexus2Autostart).not.toHaveBeenCalled();
+    expect(disableNexus2Autostart).toHaveBeenCalledTimes(1);
   });
 
   it('keeps the screen open and relabels Continue on a failure, then dismisses regardless on a second click', async () => {
@@ -189,7 +178,7 @@ describe('Nexus2WelcomeScreen - continue flow (actions)', () => {
 
     fireEvent.click(screen.getByRole('button', { name: CONTINUE_BUTTON_NAME }));
 
-    await waitFor(() => expect(screen.getByText('nexus2Welcome.closeApp.error')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('nexus2Welcome.actions.errorClose')).toBeInTheDocument());
     expect(onComplete).not.toHaveBeenCalled();
     expect(screen.getByRole('button', { name: CONTINUE_ANYWAY_BUTTON_NAME })).toBeInTheDocument();
 
@@ -200,10 +189,27 @@ describe('Nexus2WelcomeScreen - continue flow (actions)', () => {
     expect(dismissNexus2Welcome).toHaveBeenCalledTimes(1);
   });
 
-  it('shows a success line for an applied action', async () => {
-    renderScreen({ ...BASE_PAYLOAD, running: true });
+  it('surfaces a thrown action request as a failure instead of hanging Continue', async () => {
+    vi.mocked(closeNexus2App).mockRejectedValue(new Error('network'));
+    const onComplete = vi.fn();
+    renderScreen({ ...BASE_PAYLOAD, running: true }, onComplete);
+
     fireEvent.click(screen.getByRole('button', { name: CONTINUE_BUTTON_NAME }));
-    await waitFor(() => expect(screen.getByText('nexus2Welcome.closeApp.success')).toBeInTheDocument());
+
+    expect(await screen.findByRole('button', { name: CONTINUE_ANYWAY_BUTTON_NAME })).toBeEnabled();
+    expect(onComplete).not.toHaveBeenCalled();
+  });
+});
+
+describe('Nexus2WelcomeScreen - action failures', () => {
+  it('names only the half that failed when autostart removal is the one that broke', async () => {
+    vi.mocked(disableNexus2Autostart).mockResolvedValue({ error: true, msg: 'nope' });
+    renderScreen({ ...BASE_PAYLOAD, running: true, autostartTaskPresent: true });
+
+    fireEvent.click(screen.getByRole('button', { name: CONTINUE_BUTTON_NAME }));
+
+    expect(await screen.findByText('nexus2Welcome.actions.errorAutostart')).toBeInTheDocument();
+    expect(screen.queryByText('nexus2Welcome.actions.errorClose')).not.toBeInTheDocument();
   });
 });
 
@@ -248,39 +254,28 @@ describe('Nexus2WelcomeScreen - import section wiring', () => {
     expect(dismissNexus2Welcome).toHaveBeenCalledTimes(1);
   });
 
-  it('offers the continue-anyway exit when the import hard-fails, so the gate is never a dead end', async () => {
+  it('offers the continue-anyway exit when the import hard-fails, and still runs the mandatory actions', async () => {
     vi.mocked(applyNexus2Import).mockResolvedValue({
       results: [{ id: 'appearance', status: 'failed' }],
     });
     const onComplete = vi.fn();
-    renderScreen({ ...BASE_PAYLOAD, importAvailable: true }, onComplete);
+    renderScreen({ ...BASE_PAYLOAD, importAvailable: true, running: true }, onComplete);
 
     await screen.findByRole('switch', { name: Y70_GROUP_SWITCH_NAME });
     fireEvent.click(await screen.findByRole('button', { name: IMPORT_AND_CONTINUE_BUTTON_NAME }));
 
     const anyway = await screen.findByRole('button', { name: CONTINUE_ANYWAY_BUTTON_NAME });
     expect(onComplete).not.toHaveBeenCalled();
+    // The gate latches shut on dismiss, so a failed import must never skip
+    // the close/autostart it promises unconditionally.
+    expect(closeNexus2App).toHaveBeenCalledTimes(1);
+    expect(disableNexus2Autostart).toHaveBeenCalledTimes(1);
+
     fireEvent.click(anyway);
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
-    // The failed import is never retried by the escape click.
+    // Nothing is retried by the escape click.
     expect(applyNexus2Import).toHaveBeenCalledTimes(1);
+    expect(closeNexus2App).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps the screen open when the import comes back unclean, so the user can confirm and retry', async () => {
-    vi.mocked(applyNexus2Import).mockResolvedValue({
-      results: [{ id: 'appearance', status: 'needsConfirm' }],
-    });
-    const onComplete = vi.fn();
-    renderScreen({ ...BASE_PAYLOAD, importAvailable: true }, onComplete);
-
-    await screen.findByRole('switch', { name: Y70_GROUP_SWITCH_NAME });
-    fireEvent.click(await screen.findByRole('button', { name: IMPORT_AND_CONTINUE_BUTTON_NAME }));
-
-    await waitFor(() => expect(applyNexus2Import).toHaveBeenCalledTimes(1));
-    expect(onComplete).not.toHaveBeenCalled();
-    expect(dismissNexus2Welcome).not.toHaveBeenCalled();
-    // Still actionable: the confirm switch appeared and Continue is live again.
-    expect(await screen.findByRole('switch', { name: CONFIRM_SWITCH_NAME })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: IMPORT_AND_CONTINUE_BUTTON_NAME })).toBeEnabled();
-  });
 });
