@@ -867,10 +867,9 @@
     &:hover { border-color: var(--border-strong); }
   }
 
-  // Dim the device name + meta when the toggle is off; the toggle
-  // itself stays full opacity.
+  // Dim the device name + meta when the toggle is off. The card itself keeps
+  // full opacity so the state chip naming the reason stays legible.
   &.deviceCardPoweredOff {
-    opacity: var(--alpha-strong);
     .deviceName { color: var(--text-dim); }
     .deviceMeta { opacity: 0.6; }
   }
@@ -914,7 +913,16 @@
     background: var(--accent-soft);
   }
 
+  // Keyboard users get no hover, so focus has to reveal the button it lands on.
+  &:focus-visible { opacity: 1; }
+
   svg { width: 13px; height: 13px; }
+}
+
+// The actions menu carries the only route to the ignore/power state, so it
+// stays visible on every card - hover and pointers are not preconditions.
+.deviceMenuBtn {
+  opacity: 1;
 }
 
 // Stays visible (overrides .deviceSettingsBtn's opacity:0) when the
@@ -922,6 +930,24 @@
 // the button keeps the default fade-in-on-hover behaviour.
 .devicePowerBtnPersistent {
   opacity: 1;
+}
+
+// Names why a card is off: ignored by Nexus, or lights powered down. Sits
+// beside the LED count and pushes the action icons to the right edge.
+.deviceStateChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+  margin-right: auto;
+  padding: 0.05rem 0.4rem;
+  border: var(--border-width) solid var(--border-strong);
+  border-radius: 999px;
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  white-space: nowrap;
+
+  svg { width: 11px; height: 11px; }
 }
 
 // Controlled/ignored state marker in the card's toggleMode (lighting

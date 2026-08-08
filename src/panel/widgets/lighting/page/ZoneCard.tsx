@@ -1,8 +1,10 @@
-import { Settings, Power, Ban, Eye, Lightbulb, Users, Cpu, Check } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { Settings, Power, Ban, Eye, Lightbulb, Users, Cpu, Check, Unlink, Link2, MoreVertical } from 'lucide-react';
 import {
   identifyLightingDevice,
   type LightingDevice,
 } from '../../../../api/lighting';
+import { DeviceContextMenu, type DeviceMenuItem } from '../../../../components/common/DeviceCanvas/DeviceContextMenu';
 import { cardEnabledLedCount } from './zoneUtils';
 import { useTranslation } from '../../../../lib/i18n';
 import { isMultiSelectModifier } from '../../../../lib/platform';
@@ -66,7 +68,7 @@ export function ZoneCard({
   communityCount?: number;
   /** Badge click; routes into the LED map editor's Community tab. */
   onOpenCommunity?: () => void;
-  /** When true, the card is dimmed and non-interactive; the meta row shows a firmware badge. */
+  /** When true, the card is non-interactive; the meta row shows a firmware badge. */
   firmwareControlled?: boolean;
   /** Optional advisory shown via an (i) next to the device name. */
   notice?: string;
@@ -79,10 +81,16 @@ export function ZoneCard({
   const isZone = device.parentDeviceId != null && device.zoneIndex != null;
   const resizable = device.zoneResizable === true && isZone;
   const unavailable = zoneCardUnavailable(device);
+  // seq remounts the menu on every open: it latches its own closing state, so
+  // a reused instance would fade the reopened menu straight back out.
+  const [menuAt, setMenuAt] = useState<{ x: number; y: number; seq: number } | null>(null);
+  const menuSeq = useRef(0);
+  const openMenu = (x: number, y: number) => setMenuAt({ x, y, seq: ++menuSeq.current });
 
+  const identify = () => { identifyLightingDevice(device.id, 2000).catch(() => { /* silent */ }); };
   const handleIdentify = (e: React.MouseEvent) => {
     e.stopPropagation();
-    identifyLightingDevice(device.id, 2000).catch(() => { /* silent */ });
+    identify();
   };
 
   // Firmware-controlled and unavailable cards stay sort participants (ref +
@@ -91,6 +99,42 @@ export function ZoneCard({
   const dragEnabled = !!drag && !toggleMode && !unavailable && !firmwareControlled;
   const controlled = device.controlled !== false;
   const toggleable = toggleMode === true && !unavailable && !firmwareControlled;
+  // Same gate as the action-icon row: the onboarding grid and firmware-owned
+  // cards expose no per-device controls.
+  const menuEnabled = !toggleMode && !firmwareControlled;
+
+  // Persistent marker for a card that is not in its default state, so the
+  // reason is readable without hovering. An ignored device is not driven at
+  // all, which makes its power state moot, so that chip stands alone.
+  const stateChip = !menuEnabled || unavailable
+    ? null
+    : !controlled
+      ? { icon: <Unlink aria-hidden />, label: t('lighting.devices.stateNotControlled') }
+      : !device.ledsOn
+        ? { icon: <Power aria-hidden />, label: t('lighting.devices.stateLightsOff') }
+        : null;
+
+  const menuItems = (): DeviceMenuItem[] => {
+    const items: DeviceMenuItem[] = [];
+    if (device.ledCount > 0) {
+      items.push({ key: 'identify', icon: <Eye size={14} />, label: t('lighting.devices.identify'), onSelect: identify });
+    }
+    items.push({
+      key: 'settings', icon: <Settings size={14} />, label: t('lighting.ledMap.settings'),
+      onSelect: onOpenSettings,
+    });
+    if (!unavailable) {
+      items.push({
+        key: 'controlled', icon: <Link2 size={14} />, label: t('lighting.devices.menuControlled'),
+        checked: controlled, onSelect: onToggleControlled,
+      });
+      items.push({
+        key: 'power', icon: <Power size={14} />, label: t('lighting.devices.menuLightsOn'),
+        checked: device.ledsOn, onSelect: onTogglePower,
+      });
+    }
+    return items;
+  };
   // The drag spreads sit after the toggle props below: dnd-kit's
   // role/tabIndex/onKeyDown must win in normal mode, where the toggle props
   // are all undefined and would otherwise erase them.
@@ -126,6 +170,11 @@ export function ZoneCard({
         if (toggleMode) onToggleControlled();
         else onSelect(isMultiSelectModifier(e));
       }}
+      onContextMenu={menuEnabled ? e => {
+        e.preventDefault();
+        e.stopPropagation();
+        openMenu(e.clientX, e.clientY);
+      } : undefined}
     >
       <div className={styles.deviceNameRow}>
         <span className={styles.deviceName}>{displayName ?? device.name}</span>
@@ -156,6 +205,12 @@ export function ZoneCard({
             <Lightbulb className={styles.deviceMetaIcon} aria-hidden="true" />
             {/* Active (enabled) LEDs, not the zone total. */}
             <span className={styles.deviceMetaCount}>{cardEnabledLedCount(device)}</span>
+          </span>
+        )}
+        {stateChip && (
+          <span className={styles.deviceStateChip}>
+            {stateChip.icon}
+            {stateChip.label}
           </span>
         )}
         {toggleable && (
@@ -204,34 +259,23 @@ export function ZoneCard({
                 <Settings />
               </button>
             </HoverTooltip>
-            {!unavailable && (
-              <>
-                <HoverTooltip body={t(device.controlled === false ? 'lighting.devices.notControlled' : 'lighting.devices.controlled')} side="top">
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={device.controlled !== false}
-                    className={`${styles.deviceSettingsBtn} ${device.controlled === false ? styles.devicePowerBtnPersistent : ''}`}
-                    aria-label={t(device.controlled === false ? 'lighting.devices.notControlled' : 'lighting.devices.controlled')}
-                    onClick={e => { e.stopPropagation(); onToggleControlled(); }}
-                  >
-                    <Ban />
-                  </button>
-                </HoverTooltip>
-                <HoverTooltip body={t(device.ledsOn ? 'lighting.devices.powerOn' : 'lighting.devices.powerOff')} side="top">
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={device.ledsOn}
-                    className={`${styles.deviceSettingsBtn} ${device.ledsOn ? '' : styles.devicePowerBtnPersistent}`}
-                    aria-label={t(device.ledsOn ? 'lighting.devices.powerOn' : 'lighting.devices.powerOff')}
-                    onClick={e => { e.stopPropagation(); onTogglePower(); }}
-                  >
-                    <Power />
-                  </button>
-                </HoverTooltip>
-              </>
-            )}
+            <HoverTooltip body={t('lighting.devices.moreActions')} side="top">
+              <button
+                type="button"
+                className={`${styles.deviceSettingsBtn} ${styles.deviceMenuBtn}`}
+                aria-label={t('lighting.devices.moreActions')}
+                onClick={e => {
+                  e.stopPropagation();
+                  // Explicit toggle: the button is its own close affordance,
+                  // and the menu's outside-pointerdown close has already run.
+                  if (menuAt) { setMenuAt(null); return; }
+                  const r = e.currentTarget.getBoundingClientRect();
+                  openMenu(r.right, r.bottom + 4);
+                }}
+              >
+                <MoreVertical />
+              </button>
+            </HoverTooltip>
           </div>
         )}
       </div>
@@ -239,7 +283,20 @@ export function ZoneCard({
   );
   // Only failed/zero-LED zones get an explanatory tooltip; configurable zones
   // are interactive and need no hover label.
-  return unavailable
-    ? <HoverTooltip body={t('lighting.devices.detectionFailedTooltip')} side="top">{card}</HoverTooltip>
-    : card;
+  return (
+    <>
+      {unavailable
+        ? <HoverTooltip body={t('lighting.devices.detectionFailedTooltip')} side="top">{card}</HoverTooltip>
+        : card}
+      {menuAt && (
+        <DeviceContextMenu
+          key={menuAt.seq}
+          x={menuAt.x}
+          y={menuAt.y}
+          items={menuItems()}
+          onClose={() => setMenuAt(null)}
+        />
+      )}
+    </>
+  );
 }
