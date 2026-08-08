@@ -75,4 +75,14 @@ describe('incidentEvents', () => {
   it('drops memDiag (memory test result) - not an incident-timeline category', () => {
     expect(incidentEvents([incident({ id: 'm', timeUtc: '2026-07-06T00:00:00Z', source: 'memDiag' })])).toEqual([]);
   });
+
+  it('groups the Linux incident sources (kernel into "crash", oomKill/segfault/unitFailed into "app")', () => {
+    const events = incidentEvents([
+      incident({ id: 'k', timeUtc: '2026-07-06T00:00:00Z', source: 'kernel' }),
+      incident({ id: 'o', timeUtc: '2026-07-06T00:00:00Z', source: 'oomKill' }),
+      incident({ id: 's', timeUtc: '2026-07-06T00:00:00Z', source: 'segfault' }),
+      incident({ id: 'u', timeUtc: '2026-07-06T00:00:00Z', source: 'unitFailed' }),
+    ]);
+    expect(events.map(e => e.laneId)).toEqual(['crash', 'app', 'app', 'app']);
+  });
 });

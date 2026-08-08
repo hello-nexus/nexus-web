@@ -21,9 +21,11 @@ const HOUR_MS = 3_600_000;
 
 // Raw incident sources collapse into a smaller set of display lanes so the
 // timeline stays readable: GPU timeout (tdr) + GPU driver faults share "GPU",
-// bugchecks + live-kernel events share "System crash". memDiag has no group -
-// the Windows Memory Diagnostic result is a test outcome (often a clean pass),
-// surfaced on the Memory tab, not the incident timeline - so it is dropped here.
+// bugchecks + live-kernel events (Windows) and kernel log errors (Linux)
+// share "System crash". memDiag has no group - the Windows Memory Diagnostic
+// result is a test outcome (often a clean pass), surfaced on the Memory tab,
+// not the incident timeline - so it is dropped here. oomKill/segfault/
+// unitFailed (Linux) join appCrash under "app".
 export type IncidentGroup = 'crash' | 'hardware' | 'gpu' | 'disk' | 'shutdown' | 'app';
 
 // Lane order: most reliability-critical first, app crashes last.
@@ -42,6 +44,10 @@ const SOURCE_TO_GROUP: Record<DiagnosticsIncidentSource, IncidentGroup | null> =
   dirtyShutdown: 'shutdown',
   appCrash: 'app',
   memDiag: null,
+  kernel: 'crash',
+  oomKill: 'app',
+  segfault: 'app',
+  unitFailed: 'app',
 };
 
 // Each group reuses an existing label key, so grouping adds no new locale keys.

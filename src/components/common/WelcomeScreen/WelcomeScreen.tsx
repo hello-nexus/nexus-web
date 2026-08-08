@@ -78,10 +78,11 @@ export function WelcomeScreen({ open, platform, onComplete }: WelcomeScreenProps
 
   if (!open) return null;
 
-  // setAutoStart is the Windows SCM-backed /service/startup-mode - the same
-  // control GeneralTab's Settings toggle drives on Windows. No macOS
-  // equivalent exists yet, so the toggle there is a known no-op.
-  const showStartWithOs = platform === 'windows' || platform === 'macos';
+  // setAutoStart is /service/startup-mode - the same control GeneralTab's
+  // Settings toggle drives (Windows SCM start type; Linux systemd unit
+  // enablement). No macOS equivalent exists yet, so the toggle there is a
+  // known no-op.
+  const showStartWithOs = platform === 'windows' || platform === 'macos' || platform === 'linux';
   const startLabel = platform === 'macos'
     ? t('welcome.startAtLogin.label')
     : t('welcome.startWithOs.label');

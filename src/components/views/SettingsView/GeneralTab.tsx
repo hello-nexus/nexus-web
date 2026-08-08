@@ -40,10 +40,11 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
   const { status: flashStatus } = useFlashStatus(serviceOnline);
   const flashing = !!flashStatus?.active;
 
-  // Hydrate "Start Nexus at system startup" from the SCM-backed endpoint on
-  // mount. The state is independent of the per-user "Show in tray" flag.
+  // Hydrate "Start Nexus at system startup" from /service/startup-mode
+  // (Windows SCM start type; Linux systemd unit enablement) on mount. The
+  // state is independent of the per-user "Show in tray" flag.
   useEffect(() => {
-    if (!serviceOnline || platform !== 'windows') return;
+    if (!serviceOnline || (platform !== 'windows' && platform !== 'linux')) return;
     let cancelled = false;
     // Runs on mount/online-flip; can't be folded into useMemo.
 
@@ -120,9 +121,9 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
         />
       </SettingsSection>
 
-      {(platform === 'windows' || platform === 'macos') && (
+      {(platform === 'windows' || platform === 'macos' || (platform === 'linux' && autoStart !== null)) && (
         <SettingsSection title={t('settings.startupTray.title')}>
-          {platform === 'windows' && autoStart !== null && (
+          {(platform === 'windows' || platform === 'linux') && autoStart !== null && (
             <SettingToggle
               label={t('settings.systemStartup.label')}
               anchorId="set-startup"
@@ -245,7 +246,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
 
       {/* eslint-disable-next-line i18next/no-literal-string -- CSS variable token */}
       <SettingsSection title={t('settings.dangerZone')} titleStyle={{ color: 'var(--bad)' }}>
-        {(platform === 'windows' || platform === 'macos') && (
+        {(platform === 'windows' || platform === 'macos' || platform === 'linux') && (
           <SettingRow
             label={t('settings.shutDown.label')}
             anchorId="set-shutdown"
