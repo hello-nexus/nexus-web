@@ -1508,7 +1508,7 @@
   "lighting.devices.lianliStreamRate": "이 컨트롤러는 부분적인 실시간 스트리밍만 지원합니다.",
   "lighting.devices.maximize": "전체 캔버스로 최대화",
   "lighting.devices.maximizeCount": "최대화 ({count}개 장치)",
-  "lighting.devices.menuControlled": "Nexus가 이 기기를 제어",
+  "lighting.devices.menuControlled": "Nexus 제어",
   "lighting.devices.menuLightsOn": "조명 켜기",
   "lighting.devices.minimize": "최소화",
   "lighting.devices.minimizeCount": "최소화 ({count}개 장치)",

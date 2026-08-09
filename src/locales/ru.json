@@ -1508,7 +1508,7 @@
   "lighting.devices.lianliStreamRate": "Этот контроллер поддерживает только частичную потоковую передачу в реальном времени.",
   "lighting.devices.maximize": "Развернуть на весь холст",
   "lighting.devices.maximizeCount": "Развернуть ({count} устройств)",
-  "lighting.devices.menuControlled": "Nexus управляет этим устройством",
+  "lighting.devices.menuControlled": "Управление Nexus",
   "lighting.devices.menuLightsOn": "Подсветка включена",
   "lighting.devices.minimize": "Свернуть",
   "lighting.devices.minimizeCount": "Свернуть ({count} устройств)",

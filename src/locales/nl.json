@@ -1679,7 +1679,7 @@
   "lighting.devices.lianliStreamRate": "Deze controller ondersteunt slechts gedeeltelijke realtime streaming.",
   "lighting.devices.maximize": "Maximaliseren naar volledig canvas",
   "lighting.devices.maximizeCount": "Maximaliseren ({count} apparaten)",
-  "lighting.devices.menuControlled": "Nexus bestuurt dit apparaat",
+  "lighting.devices.menuControlled": "Nexus Control",
   "lighting.devices.menuLightsOn": "Verlichting aan",
   "lighting.devices.minimize": "Minimaliseren",
   "lighting.devices.minimizeCount": "Minimaliseren ({count} apparaten)",

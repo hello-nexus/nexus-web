@@ -1508,7 +1508,7 @@
   "lighting.devices.lianliStreamRate": "Ce contrôleur ne prend en charge que le streaming en temps réel partiel.",
   "lighting.devices.maximize": "Agrandir à toute la zone",
   "lighting.devices.maximizeCount": "Agrandir ({count} appareils)",
-  "lighting.devices.menuControlled": "Nexus contrôle cet appareil",
+  "lighting.devices.menuControlled": "Contrôle Nexus",
   "lighting.devices.menuLightsOn": "Éclairage allumé",
   "lighting.devices.minimize": "Réduire",
   "lighting.devices.minimizeCount": "Réduire ({count} appareils)",

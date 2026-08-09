@@ -1508,7 +1508,7 @@
   "lighting.devices.lianliStreamRate": "Ten kontroler obsługuje tylko częściowe przesyłanie w czasie rzeczywistym.",
   "lighting.devices.maximize": "Maksymalizuj do pelnego plotna",
   "lighting.devices.maximizeCount": "Maksymalizuj ({count} urządzeń)",
-  "lighting.devices.menuControlled": "Nexus steruje tym urządzeniem",
+  "lighting.devices.menuControlled": "Sterowanie Nexus",
   "lighting.devices.menuLightsOn": "Podświetlenie włączone",
   "lighting.devices.minimize": "Minimalizuj",
   "lighting.devices.minimizeCount": "Minimalizuj ({count} urządzeń)",

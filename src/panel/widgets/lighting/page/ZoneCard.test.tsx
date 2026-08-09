@@ -43,11 +43,17 @@ describe('ZoneCard state chip', () => {
     expect(card?.className).not.toContain(styles.deviceCardPoweredOff);
   });
 
-  it('names the ignored state persistently, without hover', () => {
+  it('names the ignored state persistently, in place of the LED count', () => {
     renderCard({ ...baseDevice, controlled: false });
     expect(screen.getByText('lighting.devices.stateNotControlled')).toBeTruthy();
+    expect(document.querySelector(`.${styles.deviceMetaCount}`)).toBeNull();
     const card = document.querySelector(`.${styles.deviceCard}`);
     expect(card?.className).toContain(styles.deviceCardPoweredOff);
+  });
+
+  it('keeps the LED count on a card in its default state', () => {
+    renderCard(baseDevice);
+    expect(document.querySelector(`.${styles.deviceMetaCount}`)?.textContent).toBe('10');
   });
 
   it('names the lights-off state, which the ignored chip would otherwise mask', () => {
@@ -126,10 +132,18 @@ describe('ZoneCard actions menu', () => {
   it('drops the stateful rows for a detection-failed card', () => {
     renderCard({ ...baseDevice, ledCount: 0 });
     fireEvent.click(screen.getByRole('button', { name: 'lighting.devices.moreActions' }));
-    // The card's gear icon plus the menu's row: the menu did open.
-    expect(screen.getAllByRole('button', { name: /ledMap.settings/ })).toHaveLength(2);
+    expect(screen.getByRole('button', { name: /ledMap.settings/ })).toBeTruthy();
     expect(screen.queryByRole('button', { name: /menuControlled/ })).toBeNull();
     expect(screen.queryByRole('button', { name: /menuLightsOn/ })).toBeNull();
+  });
+
+  it('is the card\'s only action affordance: identify and settings live in it', () => {
+    renderCard(baseDevice);
+    expect(screen.queryByRole('button', { name: 'lighting.devices.identify' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'lighting.ledMap.settings' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.devices.moreActions' }));
+    expect(screen.getByRole('button', { name: /devices.identify/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /ledMap.settings/ })).toBeTruthy();
   });
 });
 
@@ -207,12 +221,13 @@ describe('ZoneCard toggleMode', () => {
     expect(onToggle).toHaveBeenCalledTimes(3);
   });
 
-  it('hides the per-card action buttons, the state chip, and the actions menu', () => {
+  it('hides the actions menu and the state chip', () => {
     renderToggleCard({ ...baseDevice, controlled: false });
-    expect(screen.queryByRole('button', { name: 'lighting.devices.identify' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'lighting.ledMap.settings' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'lighting.devices.moreActions' })).toBeNull();
     expect(document.querySelector(`.${styles.deviceStateChip}`)).toBeNull();
+    // The whole card is the switch here, so the ignored state reads from
+    // aria-checked rather than a chip.
+    expect(screen.getByRole('switch', { name: 'Test Strip' }).getAttribute('aria-checked')).toBe('false');
   });
 
   it('does not open the actions menu on right-click', () => {

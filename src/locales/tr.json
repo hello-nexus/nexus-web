@@ -1508,7 +1508,7 @@
   "lighting.devices.lianliStreamRate": "Bu denetleyici yalnızca kısmi gerçek zamanlı akışı destekler.",
   "lighting.devices.maximize": "Tam tuvale genis let",
   "lighting.devices.maximizeCount": "Genişlet ({count} cihaz)",
-  "lighting.devices.menuControlled": "Bu cihazı Nexus kontrol eder",
+  "lighting.devices.menuControlled": "Nexus Kontrolü",
   "lighting.devices.menuLightsOn": "Işıklar açık",
   "lighting.devices.minimize": "Simge Durumuna Küçült",
   "lighting.devices.minimizeCount": "Küçült ({count} cihaz)",

@@ -1679,7 +1679,7 @@
   "lighting.devices.lianliStreamRate": "This controller only supports partial real-time streaming.",
   "lighting.devices.maximize": "Maximize to full canvas",
   "lighting.devices.maximizeCount": "Maximize ({count} devices)",
-  "lighting.devices.menuControlled": "Nexus controls this device",
+  "lighting.devices.menuControlled": "Nexus Control",
   "lighting.devices.menuLightsOn": "Lights on",
   "lighting.devices.minimize": "Minimize",
   "lighting.devices.minimizeCount": "Minimize ({count} devices)",

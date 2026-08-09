@@ -849,13 +849,11 @@
 
   &:hover {
     border-color: var(--border-strong);
-    .deviceSettingsBtn { opacity: 1; }
   }
 
   &.deviceCardSelected {
     border-color: var(--accent);
     background: var(--accent-soft);
-    .deviceSettingsBtn { opacity: 1; }
   }
 
   // Detection-failed / 0-LED non-resizable zones: dimmed + dashed as a state
@@ -932,14 +930,14 @@
   opacity: 1;
 }
 
-// Names why a card is off: ignored by Nexus, or lights powered down. Sits
-// beside the LED count and pushes the action icons to the right edge.
+// Names why a card is off: ignored by Nexus, or lights powered down. Replaces
+// whatever the meta row would otherwise lead with (LED count, fixed-zone
+// label) - that detail is noise while the device is not being driven.
 .deviceStateChip {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
   flex-shrink: 0;
-  margin-right: auto;
   padding: 0.05rem 0.4rem;
   border: var(--border-width) solid var(--border-strong);
   border-radius: 999px;
@@ -1088,9 +1086,9 @@
   // page's grouped-device spacing.
   margin-bottom: 0.5rem;
 
-  // Reveal the group power button on hover, mirroring the per-card affordance.
-  // Persistent-when-off behaviour is handled by .devicePowerBtnPersistent on
-  // the button itself; this rule only governs the on-state hover-fade.
+  // Reveal the group header's buttons on hover. Persistent-when-off behaviour
+  // is handled by .devicePowerBtnPersistent on the button itself; this rule
+  // only governs the on-state hover-fade.
   &:hover .deviceSettingsBtn { opacity: 1; }
 }
 

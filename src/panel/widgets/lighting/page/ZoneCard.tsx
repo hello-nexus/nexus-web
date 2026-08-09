@@ -88,10 +88,6 @@ export function ZoneCard({
   const openMenu = (x: number, y: number) => setMenuAt({ x, y, seq: ++menuSeq.current });
 
   const identify = () => { identifyLightingDevice(device.id, 2000).catch(() => { /* silent */ }); };
-  const handleIdentify = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    identify();
-  };
 
   // Firmware-controlled and unavailable cards stay sort participants (ref +
   // style so neighbours shift around them) but are not themselves draggable -
@@ -193,6 +189,11 @@ export function ZoneCard({
           <span className={styles.deviceMetaUnavailable}>
             {t('lighting.devices.detectionFailed')}
           </span>
+        ) : stateChip ? (
+          <span className={styles.deviceStateChip}>
+            {stateChip.icon}
+            {stateChip.label}
+          </span>
         ) : isZone && device.zoneType === 'single' && !resizable ? (
           <HoverTooltip body={t('lighting.devices.zoneFixedTooltip')} side="top">
             <span className={styles.deviceMeta}>
@@ -205,12 +206,6 @@ export function ZoneCard({
             <Lightbulb className={styles.deviceMetaIcon} aria-hidden="true" />
             {/* Active (enabled) LEDs, not the zone total. */}
             <span className={styles.deviceMetaCount}>{cardEnabledLedCount(device)}</span>
-          </span>
-        )}
-        {stateChip && (
-          <span className={styles.deviceStateChip}>
-            {stateChip.icon}
-            {stateChip.label}
           </span>
         )}
         {toggleable && (
@@ -237,28 +232,6 @@ export function ZoneCard({
         )}
         {!toggleMode && !firmwareControlled && (
           <div className={styles.deviceCardActions} data-no-dnd>
-            {device.ledCount > 0 && (
-              <HoverTooltip body={t('lighting.devices.identify')} side="top">
-                <button
-                  type="button"
-                  className={styles.deviceSettingsBtn}
-                  aria-label={t('lighting.devices.identify')}
-                  onClick={handleIdentify}
-                >
-                  <Eye />
-                </button>
-              </HoverTooltip>
-            )}
-            <HoverTooltip body={t('lighting.ledMap.settings')} side="top">
-              <button
-                type="button"
-                className={styles.deviceSettingsBtn}
-                aria-label={t('lighting.ledMap.settings')}
-                onClick={e => { e.stopPropagation(); onOpenSettings(); }}
-              >
-                <Settings />
-              </button>
-            </HoverTooltip>
             <HoverTooltip body={t('lighting.devices.moreActions')} side="top">
               <button
                 type="button"

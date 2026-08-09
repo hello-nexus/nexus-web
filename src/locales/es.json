@@ -1508,7 +1508,7 @@
   "lighting.devices.lianliStreamRate": "Este controlador solo admite la transmisión en tiempo real parcial.",
   "lighting.devices.maximize": "Maximizar a todo el área",
   "lighting.devices.maximizeCount": "Maximizar ({count} dispositivos)",
-  "lighting.devices.menuControlled": "Nexus controla este dispositivo",
+  "lighting.devices.menuControlled": "Control de Nexus",
   "lighting.devices.menuLightsOn": "Luces encendidas",
   "lighting.devices.minimize": "Minimizar",
   "lighting.devices.minimizeCount": "Minimizar ({count} dispositivos)",

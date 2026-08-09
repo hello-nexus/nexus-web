@@ -1453,7 +1453,7 @@
   "lighting.devices.lianliStreamRate": "このコントローラーは部分的なリアルタイムストリーミングのみをサポートします。",
   "lighting.devices.maximize": "キャンバス全体に最大化",
   "lighting.devices.maximizeCount": "最大化 ({count} 台のデバイス)",
-  "lighting.devices.menuControlled": "この機器を Nexus が制御",
+  "lighting.devices.menuControlled": "Nexus コントロール",
   "lighting.devices.menuLightsOn": "ライトをオン",
   "lighting.devices.minimize": "最小化",
   "lighting.devices.minimizeCount": "最小化 ({count} 台のデバイス)",

@@ -1508,7 +1508,7 @@
   "lighting.devices.lianliStreamRate": "Dieser Controller unterstützt nur teilweises Echtzeit-Streaming.",
   "lighting.devices.maximize": "Auf gesamte Fläche vergrößern",
   "lighting.devices.maximizeCount": "Vergrößern ({count} Geräte)",
-  "lighting.devices.menuControlled": "Nexus steuert dieses Gerät",
+  "lighting.devices.menuControlled": "Nexus-Steuerung",
   "lighting.devices.menuLightsOn": "Licht an",
   "lighting.devices.minimize": "Minimieren",
   "lighting.devices.minimizeCount": "Minimieren ({count} Geräte)",
