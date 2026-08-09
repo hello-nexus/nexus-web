@@ -30,13 +30,13 @@ import { SummaryTab } from './SummaryTab';
 import { SettingsTab } from './SettingsTab';
 import { COOLING_HISTORY_SERIES_QUERY } from './coolingHistoryHelpers';
 import { DEFAULT_INCIDENT_RANGE_HOURS, type IncidentRangeHours } from './incidentTimelineHelpers';
+import { type DiagnosticsTab, visibleDiagnosticsTabs } from './diagnosticsHelpers';
 import styles from './DiagnosticsView.module.scss';
-
-type DiagnosticsTab = 'summary' | 'storage' | 'memory' | 'cooling' | 'system' | 'settings';
 
 interface DiagnosticsViewProps {
   serviceOnline: boolean;
   connectionState?: ConnectionState;
+  platform: string;
   tab: string | null;
   onTabChange: (tab: string) => void;
 }
@@ -50,11 +50,11 @@ const INCIDENT_WINDOW_DAYS = 30;
 // effect requires.
 const COOLING_EPISODES_QUERY: DiagnosticsTemperatureQuery = { hours: 168 };
 
-export function DiagnosticsView({ serviceOnline, connectionState, tab: urlTab, onTabChange }: DiagnosticsViewProps) {
+export function DiagnosticsView({ serviceOnline, connectionState, platform, tab: urlTab, onTabChange }: DiagnosticsViewProps) {
   const { t } = useTranslation();
   const { push } = useToast();
 
-  const tabs = [
+  const allTabs = [
     { key: 'summary', label: t('diagnostics.tab.summary'), icon: <LayoutDashboard size={14} /> },
     { key: 'storage', label: t('diagnostics.kind.storage'), icon: <HardDrive size={14} /> },
     { key: 'memory', label: t('diagnostics.kind.memory'), icon: <MemoryStick size={14} /> },
@@ -63,11 +63,22 @@ export function DiagnosticsView({ serviceOnline, connectionState, tab: urlTab, o
     { key: 'settings', label: t('diagnostics.tab.settings'), icon: <SettingsIcon size={14} /> },
   ] as const;
 
+  const visibleKeys = visibleDiagnosticsTabs(platform);
+  const tabs = allTabs.filter(tb => visibleKeys.includes(tb.key));
+
   // GPU is no longer its own tab (folded into Cooling); an old ?tab=gpu deep
   // link lands on Cooling, where GPU health now lives.
   const requestedTab = urlTab === 'gpu' ? 'cooling' : urlTab;
-  const tab: DiagnosticsTab = requestedTab && tabs.some(tb => tb.key === requestedTab)
-    ? requestedTab as DiagnosticsTab : 'summary';
+  // A tab key can be real but hidden on this platform (e.g. Memory on Linux):
+  // that case corrects the route to Summary, unlike a plain unrecognized key
+  // (typo'd url), which stays render-only and never writes history.
+  const isRecognizedTab = requestedTab !== null && allTabs.some(tb => tb.key === requestedTab);
+  const isVisibleTab = requestedTab !== null && tabs.some(tb => tb.key === requestedTab);
+  const tab: DiagnosticsTab = isVisibleTab ? requestedTab as DiagnosticsTab : 'summary';
+
+  useEffect(() => {
+    if (isRecognizedTab && !isVisibleTab) onTabChange('summary');
+  }, [isRecognizedTab, isVisibleTab, onTabChange]);
 
   const { health, loading: healthLoading, error: healthError, mocked: healthMocked, refresh: refreshHealth } = useDiagnosticsHealth(serviceOnline);
   // Re-snapshot "now" whenever a fresh poll lands, so the header's relative
@@ -192,6 +203,7 @@ export function DiagnosticsView({ serviceOnline, connectionState, tab: urlTab, o
       );
       case 'system': return (
         <SystemTab
+          platform={platform}
           system={system} incidents={incidents} onLogsCleared={handleLogsCleared}
           incidentHours={incidentHours} incidentDate={incidentDate}
           onIncidentHoursChange={handleIncidentHoursChange} onIncidentDateChange={setIncidentDate}

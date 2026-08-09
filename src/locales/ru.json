@@ -822,7 +822,7 @@
   "diagnostics.memory.testScheduled": "Запланирован на следующую перезагрузку",
   "diagnostics.memory.xmpActive": "XMP активен",
   "diagnostics.mockDataBadge": "Тестовые данные",
-  "diagnostics.notAvailable": "Недоступно на этой платформе",
+  "diagnostics.notAvailable": "Совместимое оборудование не обнаружено",
   "diagnostics.reason.cooling.fanStall": "Вентилятор остановлен",
   "diagnostics.reason.cooling.pumpStall": "Насос остановлен",
   "diagnostics.reason.cooling.sustainedHighTemp": "Длительно высокая температура",

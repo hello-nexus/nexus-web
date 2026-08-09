@@ -881,7 +881,7 @@
   "diagnostics.memory.testScheduled": "Scheduled for next restart",
   "diagnostics.memory.xmpActive": "XMP active",
   "diagnostics.mockDataBadge": "Mock data",
-  "diagnostics.notAvailable": "Not available on this platform",
+  "diagnostics.notAvailable": "No compatible hardware detected",
   "diagnostics.reason.cooling.fanStall": "Fan stalled",
   "diagnostics.reason.cooling.pumpStall": "Pump stalled",
   "diagnostics.reason.cooling.sustainedHighTemp": "Sustained high temperature",

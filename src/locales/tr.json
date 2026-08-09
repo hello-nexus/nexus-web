@@ -822,7 +822,7 @@
   "diagnostics.memory.testScheduled": "Bir sonraki yeniden başlatma için zamanlandı",
   "diagnostics.memory.xmpActive": "XMP etkin",
   "diagnostics.mockDataBadge": "Test verileri",
-  "diagnostics.notAvailable": "Bu platformda kullanılamıyor",
+  "diagnostics.notAvailable": "Uyumlu donanım algılanmadı",
   "diagnostics.reason.cooling.fanStall": "Fan durdu",
   "diagnostics.reason.cooling.pumpStall": "Pompa durdu",
   "diagnostics.reason.cooling.sustainedHighTemp": "Sürekli yüksek sıcaklık",

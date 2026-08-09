@@ -822,7 +822,7 @@
   "diagnostics.memory.testScheduled": "Pianificato per il prossimo riavvio",
   "diagnostics.memory.xmpActive": "XMP attivo",
   "diagnostics.mockDataBadge": "Dati di prova",
-  "diagnostics.notAvailable": "Non disponibile su questa piattaforma",
+  "diagnostics.notAvailable": "Nessun hardware compatibile rilevato",
   "diagnostics.reason.cooling.fanStall": "Ventola bloccata",
   "diagnostics.reason.cooling.pumpStall": "Pompa bloccata",
   "diagnostics.reason.cooling.sustainedHighTemp": "Temperatura elevata prolungata",

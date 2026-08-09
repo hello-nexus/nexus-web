@@ -881,7 +881,7 @@
   "diagnostics.memory.testScheduled": "Gepland voor volgende herstart",
   "diagnostics.memory.xmpActive": "XMP actief",
   "diagnostics.mockDataBadge": "Voorbeeldgegevens",
-  "diagnostics.notAvailable": "Niet beschikbaar op dit platform",
+  "diagnostics.notAvailable": "Geen compatibele hardware gevonden",
   "diagnostics.reason.cooling.fanStall": "Ventilator vastgelopen",
   "diagnostics.reason.cooling.pumpStall": "Pomp vastgelopen",
   "diagnostics.reason.cooling.sustainedHighTemp": "Aanhoudend hoge temperatuur",

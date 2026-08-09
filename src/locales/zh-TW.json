@@ -822,7 +822,7 @@
   "diagnostics.memory.testScheduled": "已排程在下次重新啟動時執行",
   "diagnostics.memory.xmpActive": "XMP 已啟用",
   "diagnostics.mockDataBadge": "模擬資料",
-  "diagnostics.notAvailable": "此平台不支援",
+  "diagnostics.notAvailable": "未偵測到相容硬體",
   "diagnostics.reason.cooling.fanStall": "風扇已停轉",
   "diagnostics.reason.cooling.pumpStall": "幫浦已停轉",
   "diagnostics.reason.cooling.sustainedHighTemp": "持續高溫",

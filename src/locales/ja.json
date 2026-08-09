@@ -822,7 +822,7 @@
   "diagnostics.memory.testScheduled": "次回の再起動時に実行予定",
   "diagnostics.memory.xmpActive": "XMP有効",
   "diagnostics.mockDataBadge": "モックデータ",
-  "diagnostics.notAvailable": "このプラットフォームでは利用できません",
+  "diagnostics.notAvailable": "対応ハードウェアが見つかりません",
   "diagnostics.reason.cooling.fanStall": "ファン停止",
   "diagnostics.reason.cooling.pumpStall": "ポンプ停止",
   "diagnostics.reason.cooling.sustainedHighTemp": "持続的な高温",

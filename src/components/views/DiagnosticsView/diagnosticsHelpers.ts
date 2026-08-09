@@ -181,6 +181,24 @@ export function resolveSectionState(opts: {
  *  so both surfaces agree on one ordering. */
 export const DIAGNOSTICS_KIND_ORDER: DiagnosticsKind[] = ['storage', 'memory', 'gpu', 'cooling', 'system'];
 
+export type DiagnosticsTab = 'summary' | 'storage' | 'memory' | 'cooling' | 'system' | 'settings';
+
+const ALL_DIAGNOSTICS_TABS: readonly DiagnosticsTab[] = ['summary', 'storage', 'memory', 'cooling', 'system', 'settings'];
+
+// Windows Memory Diagnostic has no Linux equivalent; macOS exposes none of
+// SMART, PnP problems, or the Windows event log, so only Summary/Cooling/
+// Settings have real content there.
+const PLATFORM_DIAGNOSTICS_TABS: Record<string, readonly DiagnosticsTab[]> = {
+  linux: ['summary', 'storage', 'cooling', 'system', 'settings'],
+  macos: ['summary', 'cooling', 'settings'],
+};
+
+/** Tab keys with real functionality on the given service platform; an unknown
+ *  or `windows` platform sees every tab. */
+export function visibleDiagnosticsTabs(platform: string): readonly DiagnosticsTab[] {
+  return PLATFORM_DIAGNOSTICS_TABS[platform] ?? ALL_DIAGNOSTICS_TABS;
+}
+
 /** One summary tile per hardware domain, aggregating the server's per-device
  *  health.components into a fixed 2x2: Storage / Memory / Cooling / System.
  *  GPU folds into Cooling (its temperature already lives in the Cooling tab's

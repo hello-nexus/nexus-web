@@ -822,7 +822,7 @@
   "diagnostics.memory.testScheduled": "Zaplanowano na następne ponowne uruchomienie",
   "diagnostics.memory.xmpActive": "XMP aktywne",
   "diagnostics.mockDataBadge": "Dane testowe",
-  "diagnostics.notAvailable": "Niedostępne na tej platformie",
+  "diagnostics.notAvailable": "Nie wykryto zgodnego sprzętu",
   "diagnostics.reason.cooling.fanStall": "Wentylator zatrzymany",
   "diagnostics.reason.cooling.pumpStall": "Pompa zatrzymana",
   "diagnostics.reason.cooling.sustainedHighTemp": "Utrzymująca się wysoka temperatura",

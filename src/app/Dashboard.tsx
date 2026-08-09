@@ -626,7 +626,7 @@ export function Dashboard() {
           onSectionNavigate={(target) => setView(target)}
         />
       );
-      case 'diagnostics': return <DiagnosticsPage serviceOnline={online} connectionState={status.state} tab={subtab} onTabChange={setSubtab} />;
+      case 'diagnostics': return <DiagnosticsPage serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} tab={subtab} onTabChange={setSubtab} />;
       case 'clock':      return <ClockPage />;
       case 'steam':      return <SteamPage />;
       case 'gallery':    return <GalleryPage />;
