@@ -27,6 +27,20 @@ export function zoneCardUnavailable(device: LightingDevice): boolean {
   return device.ledCount <= 0 && !resizable;
 }
 
+/** The selection a card's menu acts on when the card is part of one. Aggregate
+ *  flags follow the canvas convention: true when ANY member still is. */
+export interface BulkSelection {
+  count: number;
+  /** Members that can actually flash, so the identify row never promises to
+   *  light a device with no LEDs. */
+  identifyCount: number;
+  controlled: boolean;
+  ledsOn: boolean;
+  setControlled: (controlled: boolean) => void;
+  setPower: (on: boolean) => void;
+  identify: () => void;
+}
+
 /**
  * One card for either a whole OpenRGB device or a motherboard ARGB zone. The
  * service splits motherboards with more than one ARGB header into separate
@@ -49,6 +63,7 @@ export function ZoneCard({
   firmwareControlled,
   notice,
   toggleMode,
+  bulk,
 }: {
   device: LightingDevice;
   /** Overrides the on-card name. Used to strip the parent prefix from child zones. */
@@ -76,6 +91,9 @@ export function ZoneCard({
    *  switch (click or Enter/Space fires onToggleControlled) and the per-card
    *  action buttons and community badge are hidden. */
   toggleMode?: boolean;
+  /** Present only when this card is part of a multi-selection. The menu then
+   *  acts on the whole selection, matching the device canvas's right-click. */
+  bulk?: BulkSelection;
 }) {
   const { t } = useTranslation();
   const isZone = device.parentDeviceId != null && device.zoneIndex != null;
@@ -96,8 +114,11 @@ export function ZoneCard({
   const controlled = device.controlled !== false;
   const toggleable = toggleMode === true && !unavailable && !firmwareControlled;
   // Same gate as the action-icon row: the onboarding grid and firmware-owned
-  // cards expose no per-device controls.
-  const menuEnabled = !toggleMode && !firmwareControlled;
+  // cards expose no per-device controls. A bulk-selected card that can offer
+  // no row either (detection-failed, so no identify and no state rows, and
+  // the LED map is single-device) gets no button rather than an empty menu.
+  const menuEnabled = !toggleMode && !firmwareControlled
+    && !(bulk && unavailable && bulk.identifyCount === 0);
 
   // Persistent marker for a card that is not in its default state, so the
   // reason is readable without hovering. An ignored device is not driven at
@@ -112,22 +133,36 @@ export function ZoneCard({
 
   const menuItems = (): DeviceMenuItem[] => {
     const items: DeviceMenuItem[] = [];
-    if (device.ledCount > 0) {
+    if (bulk) {
+      if (bulk.identifyCount > 0) {
+        items.push({ key: 'identify', icon: <Eye size={14} />, label: t('lighting.devices.identifyCount', { count: bulk.identifyCount }), onSelect: bulk.identify });
+      }
+    } else if (device.ledCount > 0) {
       items.push({ key: 'identify', icon: <Eye size={14} />, label: t('lighting.devices.identify'), onSelect: identify });
     }
-    items.push({
-      key: 'settings', icon: <Settings size={14} />, label: t('lighting.ledMap.settings'),
-      onSelect: onOpenSettings,
-    });
+    // The LED map edits one device's zones, so a selection has nothing to
+    // open - same rule the canvas menu applies.
+    if (!bulk) {
+      items.push({
+        key: 'settings', icon: <Settings size={14} />, label: t('lighting.ledMap.settings'),
+        onSelect: onOpenSettings,
+      });
+    }
     if (!unavailable) {
       // Label and icon name the action, not the state - the widget menu's
       // pin/unpin idiom.
-      items.push(controlled
-        ? { key: 'controlled', icon: <Unlink size={14} />, label: t('lighting.devices.menuControlOff'), onSelect: onToggleControlled }
-        : { key: 'controlled', icon: <Link2 size={14} />, label: t('lighting.devices.menuControlOn'), onSelect: onToggleControlled });
-      items.push(device.ledsOn
-        ? { key: 'power', icon: <PowerOff size={14} />, label: t('lighting.devices.menuLightsOff'), onSelect: onTogglePower }
-        : { key: 'power', icon: <Power size={14} />, label: t('lighting.devices.menuLightsOn'), onSelect: onTogglePower });
+      const isControlled = bulk ? bulk.controlled : controlled;
+      const isOn = bulk ? bulk.ledsOn : device.ledsOn;
+      const setControlled = () => bulk ? bulk.setControlled(!isControlled) : onToggleControlled();
+      const setPower = () => bulk ? bulk.setPower(!isOn) : onTogglePower();
+      const label = (single: string, counted: string) =>
+        bulk ? t(counted, { count: bulk.count }) : t(single);
+      items.push(isControlled
+        ? { key: 'controlled', icon: <Unlink size={14} />, onSelect: setControlled, label: label('lighting.devices.menuControlOff', 'lighting.devices.menuControlOffCount') }
+        : { key: 'controlled', icon: <Link2 size={14} />, onSelect: setControlled, label: label('lighting.devices.menuControlOn', 'lighting.devices.menuControlOnCount') });
+      items.push(isOn
+        ? { key: 'power', icon: <PowerOff size={14} />, onSelect: setPower, label: label('lighting.devices.menuLightsOff', 'lighting.devices.menuLightsOffCount') }
+        : { key: 'power', icon: <Power size={14} />, onSelect: setPower, label: label('lighting.devices.menuLightsOn', 'lighting.devices.menuLightsOnCount') });
     }
     return items;
   };
@@ -230,7 +265,7 @@ export function ZoneCard({
             </button>
           </HoverTooltip>
         )}
-        {!toggleMode && !firmwareControlled && (
+        {menuEnabled && (
           <div className={styles.deviceCardActions} data-no-dnd>
             <HoverTooltip body={t('lighting.devices.moreActions')} side="top">
               <button

@@ -1,12 +1,17 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { ZoneCard } from './ZoneCard';
+import { ZoneCard, type BulkSelection } from './ZoneCard';
 import type { LightingDevice } from '../../../../api/lighting';
 import type { SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
 import styles from '../LightingPage.module.scss';
 
+// Params are appended so assertions can pin what actually reaches a label -
+// a bare `key` mock would pass even if the interpolation object were dropped.
 vi.mock('../../../../lib/i18n', () => ({
-  useTranslation: () => ({ t: (key: string) => key }),
+  useTranslation: () => ({
+    t: (key: string, params?: Record<string, unknown>) =>
+      params ? `${key}:${JSON.stringify(params)}` : key,
+  }),
 }));
 
 const baseDevice: LightingDevice = {
@@ -155,6 +160,98 @@ describe('ZoneCard actions menu', () => {
     fireEvent.click(screen.getByRole('button', { name: 'lighting.devices.moreActions' }));
     expect(screen.getByRole('button', { name: /devices.identify/ })).toBeTruthy();
     expect(screen.getByRole('button', { name: /ledMap.settings/ })).toBeTruthy();
+  });
+});
+
+describe('ZoneCard bulk selection', () => {
+  function bulkProps(over: Partial<BulkSelection> = {}): BulkSelection {
+    return {
+      count: 3,
+      identifyCount: 3,
+      controlled: true,
+      ledsOn: true,
+      setControlled: vi.fn(),
+      setPower: vi.fn(),
+      identify: vi.fn(),
+      ...over,
+    };
+  }
+
+  function renderBulk(bulk: BulkSelection, device: LightingDevice = baseDevice) {
+    render(
+      <ZoneCard
+        device={device}
+        selected
+        indent={false}
+        onSelect={() => {}}
+        onTogglePower={() => {}}
+        onToggleControlled={() => {}}
+        onOpenSettings={() => {}}
+        bulk={bulk}
+      />,
+    );
+  }
+
+  function renderBulkAndOpen(bulk: BulkSelection, device: LightingDevice = baseDevice) {
+    renderBulk(bulk, device);
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.devices.moreActions' }));
+  }
+
+  it('labels every row with the selection count', () => {
+    renderBulkAndOpen(bulkProps());
+    // The count must reach the label, not just the key.
+    expect(screen.getByRole('button', { name: /menuControlOffCount.*"count":3/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /menuLightsOffCount.*"count":3/ })).toBeTruthy();
+  });
+
+  it('hides the LED map row, which edits one device only', () => {
+    renderBulkAndOpen(bulkProps());
+    expect(screen.queryByRole('button', { name: /ledMap.settings/ })).toBeNull();
+  });
+
+  it('drives the whole selection to one state, not per-device toggles', () => {
+    const bulk = bulkProps({ controlled: true, ledsOn: false });
+    const onToggleControlled = vi.fn();
+    render(
+      <ZoneCard
+        device={baseDevice}
+        selected
+        indent={false}
+        onSelect={() => {}}
+        onTogglePower={() => {}}
+        onToggleControlled={onToggleControlled}
+        onOpenSettings={() => {}}
+        bulk={bulk}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.devices.moreActions' }));
+    fireEvent.click(screen.getByRole('button', { name: /menuControlOffCount/ }));
+    expect(bulk.setControlled).toHaveBeenCalledWith(false);
+    // The per-card handler must not also fire, or the card would flip back.
+    expect(onToggleControlled).not.toHaveBeenCalled();
+  });
+
+  it('offers no button at all when the selection leaves this card with no rows', () => {
+    // Detection-failed card: no identify, no state rows, and the LED map is
+    // single-device - the menu would otherwise open empty.
+    renderBulk(bulkProps({ identifyCount: 0 }), { ...baseDevice, ledCount: 0 });
+    expect(screen.queryByRole('button', { name: 'lighting.devices.moreActions' })).toBeNull();
+    const card = document.querySelector(`.${styles.deviceCard}`)!;
+    expect(fireEvent.contextMenu(card)).toBe(true); // no handler, so not prevented
+    expect(document.querySelector('[class*="_menu_"]')).toBeNull();
+  });
+
+  it('counts only the members that can actually flash', () => {
+    renderBulkAndOpen(bulkProps({ count: 5, identifyCount: 3 }));
+    expect(screen.getByRole('button', { name: /identifyCount.*"count":3/ })).toBeTruthy();
+  });
+
+  it('reads the aggregate state, not this card\'s own', () => {
+    // This card is lit, but nothing else in the selection is: the row offers
+    // to turn the selection on.
+    renderBulkAndOpen(bulkProps({ ledsOn: false }), { ...baseDevice, ledsOn: true });
+    expect(screen.getByRole('button', { name: /menuLightsOnCount/ })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /menuLightsOffCount/ })).toBeNull();
   });
 });
 

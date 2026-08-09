@@ -1,0 +1,76 @@
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import { MotherboardGroup } from './MotherboardGroup';
+
+// Params are appended so assertions can pin what actually reaches a label -
+// a bare `key` mock would pass even if the interpolation object were dropped.
+vi.mock('../../../../lib/i18n', () => ({
+  useTranslation: () => ({
+    t: (key: string, params?: Record<string, unknown>) =>
+      params ? `${key}:${JSON.stringify(params)}` : key,
+  }),
+}));
+
+function renderGroup(over: Partial<Parameters<typeof MotherboardGroup>[0]> = {}) {
+  const props = {
+    parentName: 'Test Board',
+    groupOn: true,
+    onTogglePower: vi.fn(),
+    groupControlled: true,
+    onToggleControlled: vi.fn(),
+    collapsed: false,
+    onToggleCollapsed: vi.fn(),
+    children: <div>zone</div>,
+    ...over,
+  };
+  render(<MotherboardGroup {...props} />);
+  return props;
+}
+
+const menuButton = () => screen.getByRole('button', { name: /groupActions/ });
+const openMenu = () => fireEvent.click(menuButton());
+
+describe('MotherboardGroup actions menu', () => {
+  it('replaces the icon switches with one overflow button', () => {
+    renderGroup();
+    expect(screen.queryByRole('switch')).toBeNull();
+    // The group name reaches the label, so multiple headers are distinguishable.
+    expect(menuButton().getAttribute('aria-label')).toContain('"name":"Test Board"');
+  });
+
+  it('names the action for a group that is on and controlled', () => {
+    renderGroup();
+    openMenu();
+    expect(screen.getByRole('button', { name: /menuControlOff/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /menuLightsOff/ })).toBeTruthy();
+  });
+
+  it('flips both rows for a group that is off and released', () => {
+    renderGroup({ groupOn: false, groupControlled: false });
+    openMenu();
+    expect(screen.getByRole('button', { name: /menuControlOn/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /menuLightsOn/ })).toBeTruthy();
+  });
+
+  it('fires the group handlers', () => {
+    const props = renderGroup();
+    openMenu();
+    fireEvent.click(screen.getByRole('button', { name: /menuLightsOff/ }));
+    expect(props.onTogglePower).toHaveBeenCalledTimes(1);
+  });
+
+  it('omits the lights row while firmware owns the group', () => {
+    renderGroup({ hideLights: true });
+    openMenu();
+    expect(screen.queryByRole('button', { name: /menuLights/ })).toBeNull();
+    expect(screen.getByRole('button', { name: /menuControlOff/ })).toBeTruthy();
+  });
+
+  it('leaves the group expanded and its rows reachable after opening the menu', () => {
+    const props = renderGroup();
+    openMenu();
+    expect(props.onToggleCollapsed).not.toHaveBeenCalled();
+    expect(screen.getByText('zone')).toBeTruthy();
+    expect(screen.getByRole('button', { name: /menuControlOff/ })).toBeTruthy();
+  });
+});

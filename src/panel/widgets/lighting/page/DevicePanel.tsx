@@ -1,9 +1,9 @@
 import { type ReactNode } from 'react';
 import { Cpu, Plus } from 'lucide-react';
-import { type LightingDevice } from '../../../../api/lighting';
+import { identifyLightingDevice, type LightingDevice } from '../../../../api/lighting';
 import { useTranslation } from '../../../../lib/i18n';
 import { usePersistentState } from '../../../../hooks/usePersistentState';
-import { ZoneCard } from './ZoneCard';
+import { ZoneCard, type BulkSelection } from './ZoneCard';
 import { MotherboardGroup } from './MotherboardGroup';
 import { lightingDeviceNoticeKey } from './lightingDeviceNotices';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
@@ -162,6 +162,25 @@ export function DevicePanel({ devices, header, selectedIds, onSelectDevice, onSe
     return key ? t(key) : undefined;
   };
 
+  // A card inside a multi-selection acts on the whole selection, the way a
+  // canvas right-click on a selected frame does. Aggregates read "any member
+  // still is", so one press lands every member on the same state.
+  const selectedDevices = selectedIds.size >= 2 ? devices.filter(d => selectedIds.has(d.id)) : [];
+  const bulkFor = (d: LightingDevice): BulkSelection | undefined => {
+    if (selectedDevices.length < 2 || !selectedIds.has(d.id)) return undefined;
+    return {
+      count: selectedDevices.length,
+      identifyCount: selectedDevices.filter(x => x.ledCount > 0).length,
+      controlled: selectedDevices.some(x => x.controlled !== false),
+      ledsOn: selectedDevices.some(x => x.ledsOn),
+      setControlled: (controlled: boolean) => selectedDevices.forEach(x => onSetControlled(x.id, controlled)),
+      setPower: (on: boolean) => selectedDevices.forEach(x => onSetPower(x.id, on)),
+      identify: () => selectedDevices
+        .filter(x => x.ledCount > 0)
+        .forEach(x => identifyLightingDevice(x.id, 2000).catch(() => { /* silent */ })),
+    };
+  };
+
   const renderCard = (d: LightingDevice, indent: boolean, displayName?: string, fwControlled?: boolean, drag?: SortableRowArgs) => (
     <ZoneCard
       key={d.id}
@@ -179,6 +198,7 @@ export function DevicePanel({ devices, header, selectedIds, onSelectDevice, onSe
       firmwareControlled={fwControlled || (!!lianLiFirmwareActive && d.id.startsWith('lianli:'))}
       // Grouped members carry the notice on their group header instead.
       notice={indent ? undefined : noticeFor(d)}
+      bulk={bulkFor(d)}
     />
   );
 
@@ -214,7 +234,7 @@ export function DevicePanel({ devices, header, selectedIds, onSelectDevice, onSe
         groupOn={groupOn} onTogglePower={handleToggle}
         groupControlled={groupControlled} onToggleControlled={handleToggleControlled}
         collapsed={isCollapsed(groupKey)} onToggleCollapsed={() => toggleCollapsed(groupKey)}
-        leftAction={leftAction} powerDisabled={fwOn}
+        leftAction={leftAction} hideLights={fwOn}
         notice={noticeFor(members[0])}
         drag={a ?? undefined}>
         <SortableList
