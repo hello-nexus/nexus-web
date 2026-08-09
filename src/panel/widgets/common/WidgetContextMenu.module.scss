@@ -27,6 +27,15 @@
   }
 }
 
+// A fixed box with `left` set is shrink-to-fit against the space remaining to
+// the viewport edge, so a menu opened near the right edge collapses to
+// min-width and wraps every label - the clamp that moves it back cannot undo
+// that. max-content sizes from the rows instead.
+.menuAutoWidth {
+  width: max-content;
+  max-width: calc(100vw - 16px);
+}
+
 @keyframes menuFadeIn {
   from {
     opacity: 0;

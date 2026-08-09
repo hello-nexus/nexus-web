@@ -80,7 +80,7 @@ export function DeviceContextMenu({ x, y, items, onClose }: DeviceContextMenuPro
       // stylesheet relies on; the lighting page (where this renders) has no
       // panel-root ancestor on the desktop dashboard. data-surface="desktop"
       // opts out of the monitor-panel zoom-scale override.
-      className={`panel-root ${styles.menu}`}
+      className={`panel-root ${styles.menu} ${styles.menuAutoWidth}`}
       data-surface="desktop"
       data-state={closing ? 'closing' : 'open'}
       style={menuStyle}
