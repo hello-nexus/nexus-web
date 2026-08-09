@@ -1351,7 +1351,7 @@ function PreviewAboutModal() {
 function PreviewUpdateBadge() {
   return (
     <div style={{ padding: 8 }}>
-      <UpdateBadge updateMode="notify" onOpen={() => {}} onInstall={() => {}} />
+      <UpdateBadge updateMode="notify" canAutoInstall downloadUrl="" onOpen={() => {}} onInstall={() => {}} />
     </div>
   );
 }
@@ -1381,6 +1381,8 @@ function PreviewUpdateModal() {
           latestVersion: '1.1.0',
           updateAvailable: true,
           updateReady: false,
+          canAutoInstall: true,
+          downloadUrl: '',
           channel: 'production',
           updateMode: 'notify',
           releaseNotes: '## What\'s new\n- Performance improvements\n- Bug fixes',
@@ -2093,7 +2095,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'UpdateBadge', category: 'status',
     filePath: 'src/components/common/UpdateBadge/UpdateBadge.tsx',
-    description: 'Top-bar green status button shown when a software update is available. Renders a TopBarStatusButton whose tooltip + action follow the update mode: notify opens the UpdateModal (release notes), staged installs immediately.',
+    description: 'Top-bar green status button shown when a software update is available. Renders a TopBarStatusButton whose tooltip + action follow the update mode: notify opens the UpdateModal (release notes), staged installs immediately. On platforms with no staging/install flow (canAutoInstall=false), always opens the release asset URL in a new tab instead.',
     Preview: PreviewUpdateBadge,
   },
   {
@@ -2105,7 +2107,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'UpdateModal', category: 'modals',
     filePath: 'src/components/common/UpdateModal/UpdateModal.tsx',
-    description: 'OTA update dialog. Shows release notes with an "Update now" / "Later" choice in the notes view; switches to a progress bar while downloading/verifying; shows a spinner while the installer relaunches the service.',
+    description: 'OTA update dialog. Shows release notes with an "Update now" / "Later" choice in the notes view; switches to a progress bar while downloading/verifying; shows a spinner while the installer relaunches the service. On platforms with no staging/install flow (canAutoInstall=false) the primary action instead opens the release asset URL in a new tab.',
     Preview: PreviewUpdateModal,
   },
   {

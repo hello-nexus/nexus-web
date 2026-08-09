@@ -108,6 +108,8 @@ export function UpdateStatusSlot({ serviceOnline, onOpen, onInstall }: {
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [updateReady, setUpdateReady] = useState(false);
   const [updateMode, setUpdateMode] = useState<string>('');
+  const [canAutoInstall, setCanAutoInstall] = useState(true);
+  const [downloadUrl, setDownloadUrl] = useState('');
 
   const refetch = useCallback(() => {
     getUpdateStatus().then(s => {
@@ -115,6 +117,8 @@ export function UpdateStatusSlot({ serviceOnline, onOpen, onInstall }: {
         setUpdateAvailable(s.updateAvailable);
         setUpdateReady(s.updateReady);
         setUpdateMode(s.updateMode ?? '');
+        setCanAutoInstall(s.canAutoInstall ?? true);
+        setDownloadUrl(s.downloadUrl ?? '');
       }
     });
   }, []);
@@ -134,12 +138,17 @@ export function UpdateStatusSlot({ serviceOnline, onOpen, onInstall }: {
   useTopicCallback(UPDATE_TOPIC, serviceOnline, refetch);
 
   const isNotify = updateMode === 'notify';
-  const visible = isNotify ? updateAvailable : updateReady;
+  // Platforms that never stage an update (canAutoInstall=false) show the
+  // banner purely on updateAvailable; updateMode/updateReady only matter
+  // where a staged install exists to distinguish.
+  const visible = canAutoInstall ? (isNotify ? updateAvailable : updateReady) : updateAvailable;
   if (!visible) return null;
 
   return (
     <UpdateBadge
       updateMode={updateMode}
+      canAutoInstall={canAutoInstall}
+      downloadUrl={downloadUrl}
       onOpen={onOpen}
       onInstall={onInstall}
     />

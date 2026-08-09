@@ -320,6 +320,13 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
 
   const whatsNewVersion = whatsNewVersionRef.current;
   const publishedUnix = status?.publishedAtUnix ?? 0;
+  // Platforms with no staging/install flow (mac/linux) get an informational
+  // primary action that opens the release asset instead of running startUpdate.
+  const canAutoInstall = status?.canAutoInstall ?? true;
+  const downloadUrl = status?.downloadUrl ?? '';
+  const handleDownload = () => {
+    if (downloadUrl) window.open(downloadUrl, '_blank', 'noopener,noreferrer');
+  };
 
   let title = t('update.modal.title');
   if (view === 'reconnecting' && !reconnectGaveUp) title = t('update.modal.reconnecting');
@@ -432,9 +439,15 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
                 )}
                 <div className={styles.buttonRowRight}>
                   {view === 'notes' && status?.updateAvailable && !isFailed && !startError && (
-                    <Button tone="accent" size="md" loading={starting} onClick={handleUpdateNow}>
-                      {t('update.modal.downloadAndInstall')}
-                    </Button>
+                    canAutoInstall ? (
+                      <Button tone="accent" size="md" loading={starting} onClick={handleUpdateNow}>
+                        {t('update.modal.downloadAndInstall')}
+                      </Button>
+                    ) : (
+                      <Button tone="accent" size="md" onClick={handleDownload}>
+                        {t('update.modal.download')}
+                      </Button>
+                    )
                   )}
                   {(view === 'whatsNew' || reconnectGaveUp) && (
                     <Button tone="neutral" size="md" onClick={onClose}>

@@ -10,6 +10,12 @@ export interface UpdateStatus {
   latestVersion: string;
   updateAvailable: boolean;
   updateReady: boolean;
+  // False on platforms with no staging/install flow (mac/linux); the badge
+  // and modal fall back to opening downloadUrl instead of starting the OTA.
+  canAutoInstall: boolean;
+  // The browser_download_url of this platform's release asset. Populated
+  // whenever updateAvailable is true.
+  downloadUrl: string;
   channel: UpdateChannel;
   updateMode: UpdateMode;
   releaseNotes: string;
