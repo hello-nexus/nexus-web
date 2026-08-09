@@ -8,7 +8,7 @@ import { Card } from '../../common/Card/Card';
 import { Badge } from '../../common/Badge/Badge';
 import { InfoList, InfoRow } from '../../common/InfoList/InfoList';
 import type { DiagnosticsFetchOptions, DiagnosticsGpu, DiagnosticsGpuResponse, GpuThrottle } from '../../../api/diagnostics';
-import { NotAvailableNote, SectionLoadError } from './DiagnosticsSectionStates';
+import { SectionLoadError } from './DiagnosticsSectionStates';
 import { durationLabel, resolveSectionState, UNAVAILABLE } from './diagnosticsHelpers';
 import styles from './DiagnosticsView.module.scss';
 
@@ -32,11 +32,15 @@ export function GpuSection({ data, loading, error, onRefresh, heading }: GpuSect
     isEmpty: (data?.gpus.length ?? 0) === 0,
   });
 
+  // A sibling section (CoolingSection) shares this tab, so an unsupported GPU
+  // renders nothing here rather than a redundant "not available" box next to
+  // real content.
+  if (state === 'notSupported') return null;
+
   return (
     <section className={styles.section}>
       {heading && <SectionHeader>{heading}</SectionHeader>}
       {state === 'error' && <SectionLoadError onRetry={() => onRefresh({ force: true })} loading={loading} />}
-      {state === 'notSupported' && <NotAvailableNote />}
       {state === 'empty' && <EmptyState compact icon={<Monitor size={22} />} title={t('diagnostics.gpu.empty')} />}
       {state === 'content' && data && (
         <div className={styles.gpuGrid}>

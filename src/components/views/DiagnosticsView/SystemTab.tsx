@@ -6,6 +6,7 @@ import type { IncidentRangeHours } from './incidentTimelineHelpers';
 import styles from './DiagnosticsView.module.scss';
 
 interface SystemTabProps {
+  platform: string;
   system: {
     data: DiagnosticsSystemResponse | null;
     loading: boolean;
@@ -29,7 +30,7 @@ interface SystemTabProps {
  *  detail), then a two-column row under it - the "Last 30 days" counters on the
  *  left and the Device Manager problems on the right. */
 export function SystemTab({
-  system, incidents, onLogsCleared, incidentHours, incidentDate, onIncidentHoursChange, onIncidentDateChange,
+  platform, system, incidents, onLogsCleared, incidentHours, incidentDate, onIncidentHoursChange, onIncidentDateChange,
 }: SystemTabProps) {
   return (
     <>
@@ -38,9 +39,10 @@ export function SystemTab({
         onRefresh={incidents.refresh} onLogsCleared={onLogsCleared}
         hours={incidentHours} date={incidentDate}
         onHoursChange={onIncidentHoursChange} onDateChange={onIncidentDateChange}
+        platform={platform}
       />
       <div className={styles.diagSplit}>
-        <IncidentCounts counts30d={system.data?.counts30d ?? null} />
+        {platform === 'windows' && <IncidentCounts counts30d={system.data?.counts30d ?? null} />}
         <SystemSection data={system.data} loading={system.loading} error={system.error} onRefresh={system.refresh} />
       </div>
     </>

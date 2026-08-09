@@ -9,6 +9,7 @@ import { IncidentCounts } from './IncidentCounts';
 import { MemorySection } from './MemorySection';
 import { StorageSection } from './StorageSection';
 import { SystemSection } from './SystemSection';
+import { SystemTab } from './SystemTab';
 import { ToastProvider } from '../../common/Toast/Toast';
 import { setActiveTransport } from '../../../api/service';
 import { useDiagnosticsTemperatures } from '../../../hooks/useDiagnosticsTemperatures';
@@ -71,16 +72,17 @@ function renderIncidents(props: {
   date?: string | null;
   onHoursChange?: (hours: 24 | 72 | 168 | 336) => void;
   onDateChange?: (date: string) => void;
+  platform?: string;
 }) {
   const {
     data, loading = false, error = false, onRefresh = () => {}, onLogsCleared = () => {},
-    hours = 168, date = null, onHoursChange = () => {}, onDateChange = () => {},
+    hours = 168, date = null, onHoursChange = () => {}, onDateChange = () => {}, platform = 'windows',
   } = props;
   return render(
     <ToastProvider>
       <IncidentsSection
         data={data} loading={loading} error={error} onRefresh={onRefresh} onLogsCleared={onLogsCleared}
-        hours={hours} date={date} onHoursChange={onHoursChange} onDateChange={onDateChange}
+        hours={hours} date={date} onHoursChange={onHoursChange} onDateChange={onDateChange} platform={platform}
       />
     </ToastProvider>,
   );
@@ -315,6 +317,16 @@ describe('IncidentsSection log actions', () => {
     expect(screen.queryAllByRole('button', { name: 'diagnostics.incidents.openEventViewer' })).toHaveLength(0);
     expect(screen.queryAllByRole('button', { name: 'diagnostics.incidents.clearLogs' })).toHaveLength(0);
   });
+
+  it('hides the Open Event Viewer / Clear Windows event logs actions off Windows even with supported data', () => {
+    renderIncidents({ data: response, platform: 'linux' });
+    expect(screen.queryByRole('button', { name: 'diagnostics.incidents.openEventViewer' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'diagnostics.incidents.clearLogs' })).not.toBeInTheDocument();
+
+    renderIncidents({ data: response, platform: 'macos' });
+    expect(screen.queryAllByRole('button', { name: 'diagnostics.incidents.openEventViewer' })).toHaveLength(0);
+    expect(screen.queryAllByRole('button', { name: 'diagnostics.incidents.clearLogs' })).toHaveLength(0);
+  });
 });
 
 describe('SystemSection PnP problems', () => {
@@ -476,6 +488,17 @@ describe('domain sections render without their outer kind title', () => {
     expect(screen.queryByText('diagnostics.gpu.throttle.hwThermal')).not.toBeInTheDocument();
   });
 
+  // GpuSection sits beside CoolingSection in the Cooling tab (via diagSplit);
+  // an unsupported GPU renders nothing rather than a redundant "not
+  // available" box next to the fan/pump content that IS supported.
+  it('GpuSection renders nothing (not the "not available" note) when unsupported', () => {
+    const data: DiagnosticsGpuResponse = { supported: false, gpus: [] };
+    const { container } = render(<GpuSection data={data} loading={false} error={false} onRefresh={() => {}} heading="GPU health" />);
+
+    expect(container).toBeEmptyDOMElement();
+    expect(screen.queryByText('diagnostics.notAvailable')).not.toBeInTheDocument();
+  });
+
   it('GpuSection falls back to "-" for every reading the service omits', () => {
     const data: DiagnosticsGpuResponse = {
       supported: true,
@@ -537,6 +560,54 @@ describe('domain sections render without their outer kind title', () => {
     expect(screen.queryByText('diagnostics.kind.system')).not.toBeInTheDocument();
     expect(screen.getByText('diagnostics.system.pnpProblems')).toBeInTheDocument();
   });
+
+  // SystemSection sits beside IncidentCounts (or alone) in the System tab; an
+  // unsupported platform (e.g. macOS/Linux PnP problems) renders nothing
+  // rather than a redundant "not available" box.
+  it('SystemSection renders nothing (not the "not available" note) when unsupported', () => {
+    const data: DiagnosticsSystemResponse = { supported: false, pnpProblems: [], counts30d: zeroCounts };
+    const { container } = renderSystem(data);
+
+    expect(container).toBeEmptyDOMElement();
+    expect(screen.queryByText('diagnostics.notAvailable')).not.toBeInTheDocument();
+  });
+});
+
+describe('SystemTab platform gating', () => {
+  const systemData: DiagnosticsSystemResponse = { supported: true, pnpProblems: [], counts30d: zeroCounts };
+
+  function renderSystemTab(platform: string) {
+    return render(
+      <ToastProvider>
+        <SystemTab
+          platform={platform}
+          system={{ data: systemData, loading: false, error: false, refresh: () => {} }}
+          incidents={{ data: null, loading: false, error: false, refresh: () => {} }}
+          onLogsCleared={() => {}}
+          incidentHours={168}
+          incidentDate={null}
+          onIncidentHoursChange={() => {}}
+          onIncidentDateChange={() => {}}
+        />
+      </ToastProvider>,
+    );
+  }
+
+  // The 30-day counters (WHEA/bugchecks/dirty shutdowns/disk/TDRs/app
+  // crashes) are Windows-only incident kinds - elsewhere they'd only ever
+  // read zero, so the whole block is hidden rather than shown as zeros.
+  it('shows the Last 30 days counters on windows', () => {
+    renderSystemTab('windows');
+    expect(screen.getByText('diagnostics.system.counts.title')).toBeInTheDocument();
+  });
+
+  it('hides the Last 30 days counters off windows', () => {
+    renderSystemTab('linux');
+    expect(screen.queryByText('diagnostics.system.counts.title')).not.toBeInTheDocument();
+
+    renderSystemTab('macos');
+    expect(screen.queryByText('diagnostics.system.counts.title')).not.toBeInTheDocument();
+  });
 });
 
 describe('DiagnosticsView tabs', () => {
@@ -544,10 +615,13 @@ describe('DiagnosticsView tabs', () => {
     mockHealth = null;
   });
 
-  function renderDiagnosticsView(props: { tab: string | null; onTabChange: (tab: string) => void }) {
+  function renderDiagnosticsView(props: { tab: string | null; onTabChange: (tab: string) => void; platform?: string }) {
     return render(
       <ToastProvider>
-        <DiagnosticsView serviceOnline={true} connectionState="online" tab={props.tab} onTabChange={props.onTabChange} />
+        <DiagnosticsView
+          serviceOnline={true} connectionState="online" platform={props.platform ?? ''}
+          tab={props.tab} onTabChange={props.onTabChange}
+        />
       </ToastProvider>,
     );
   }
@@ -588,6 +662,51 @@ describe('DiagnosticsView tabs', () => {
     fireEvent.click(screen.getByRole('tab', { name: /diagnostics.kind.memory/ }));
 
     expect(onTabChange).toHaveBeenCalledWith('memory', expect.anything());
+  });
+
+  it('shows every tab on windows and on an unknown platform', () => {
+    for (const platform of ['windows', '']) {
+      const { unmount } = renderDiagnosticsView({ tab: null, onTabChange: vi.fn(), platform });
+      expect(screen.getAllByRole('tab').map(el => el.textContent)).toEqual([
+        'diagnostics.tab.summary', 'diagnostics.kind.storage', 'diagnostics.kind.memory',
+        'diagnostics.kind.cooling', 'diagnostics.kind.system', 'diagnostics.tab.settings',
+      ]);
+      unmount();
+    }
+  });
+
+  it('hides the Memory tab on linux', () => {
+    renderDiagnosticsView({ tab: null, onTabChange: vi.fn(), platform: 'linux' });
+
+    expect(screen.getAllByRole('tab').map(el => el.textContent)).toEqual([
+      'diagnostics.tab.summary', 'diagnostics.kind.storage',
+      'diagnostics.kind.cooling', 'diagnostics.kind.system', 'diagnostics.tab.settings',
+    ]);
+  });
+
+  it('keeps only Summary/Cooling/Settings on macos', () => {
+    renderDiagnosticsView({ tab: null, onTabChange: vi.fn(), platform: 'macos' });
+
+    expect(screen.getAllByRole('tab').map(el => el.textContent)).toEqual([
+      'diagnostics.tab.summary', 'diagnostics.kind.cooling', 'diagnostics.tab.settings',
+    ]);
+  });
+
+  it('falls back to Summary and corrects the url when a deep link opens a platform-hidden tab', () => {
+    const onTabChange = vi.fn();
+    renderDiagnosticsView({ tab: 'memory', onTabChange, platform: 'linux' });
+
+    expect(screen.getByRole('tab', { name: /diagnostics.tab.summary/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.queryByRole('tab', { name: /diagnostics.kind.memory/ })).not.toBeInTheDocument();
+    expect(onTabChange).toHaveBeenCalledWith('summary');
+  });
+
+  it('does not correct the url for a plain unrecognized tab key even on a restricted platform', () => {
+    const onTabChange = vi.fn();
+    renderDiagnosticsView({ tab: 'not-a-real-tab', onTabChange, platform: 'macos' });
+
+    expect(screen.getByRole('tab', { name: /diagnostics.tab.summary/ })).toHaveAttribute('aria-selected', 'true');
+    expect(onTabChange).not.toHaveBeenCalled();
   });
 
   it('a Summary domain tile navigates straight to its tab, with GPU folded into Cooling', () => {

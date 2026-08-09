@@ -47,6 +47,8 @@ interface IncidentsSectionProps {
   date: string | null;
   onHoursChange: (hours: IncidentRangeHours) => void;
   onDateChange: (date: string) => void;
+  /** Open Event Viewer / Clear Windows event logs are Windows-only actions. */
+  platform: string;
 }
 
 const SEVERITY_ICON: Record<DiagnosticsIncidentSeverity, ComponentType<{ size?: number }>> = {
@@ -71,7 +73,7 @@ interface SelectedCluster {
  * 30-day counters and Device problems sit below this section (see SystemTab).
  */
 export function IncidentsSection({
-  data, loading, error, onRefresh, onLogsCleared, hours, date, onHoursChange, onDateChange,
+  data, loading, error, onRefresh, onLogsCleared, hours, date, onHoursChange, onDateChange, platform,
 }: IncidentsSectionProps) {
   const { t, language } = useTranslation();
   const { push } = useToast();
@@ -190,20 +192,22 @@ export function IncidentsSection({
             )}
           />
 
-          <div className={styles.incidentsActions}>
-            <Button
-              tone="ghost" size="sm" icon={<ExternalLink size={13} />} loading={openingViewer}
-              onClick={() => void handleOpenEventViewer()}
-            >
-              {t('diagnostics.incidents.openEventViewer')}
-            </Button>
-            <Button
-              tone="danger" size="sm" icon={<Trash2 size={13} />} loading={clearingLogs}
-              onClick={() => setClearLogsConfirmOpen(true)}
-            >
-              {t('diagnostics.incidents.clearLogs')}
-            </Button>
-          </div>
+          {platform === 'windows' && (
+            <div className={styles.incidentsActions}>
+              <Button
+                tone="ghost" size="sm" icon={<ExternalLink size={13} />} loading={openingViewer}
+                onClick={() => void handleOpenEventViewer()}
+              >
+                {t('diagnostics.incidents.openEventViewer')}
+              </Button>
+              <Button
+                tone="danger" size="sm" icon={<Trash2 size={13} />} loading={clearingLogs}
+                onClick={() => setClearLogsConfirmOpen(true)}
+              >
+                {t('diagnostics.incidents.clearLogs')}
+              </Button>
+            </div>
+          )}
 
           {selected && (
             <div className={styles.selectedDetail}>

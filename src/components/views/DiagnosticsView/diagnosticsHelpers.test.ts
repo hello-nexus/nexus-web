@@ -14,6 +14,7 @@ import {
   relativeTimeToken,
   resolveSectionState,
   statusColor,
+  visibleDiagnosticsTabs,
   worstReason,
 } from './diagnosticsHelpers';
 import type { DiagnosticsComponent, DiagnosticsIncidentApp, DiagnosticsReason } from '../../../api/diagnostics';
@@ -224,5 +225,25 @@ describe('incidentAppFaultLine', () => {
 
   it('returns null when neither is known', () => {
     expect(incidentAppFaultLine(app({ faultingModule: '', exceptionCode: '' }))).toBeNull();
+  });
+});
+
+describe('visibleDiagnosticsTabs', () => {
+  const allTabs = ['summary', 'storage', 'memory', 'cooling', 'system', 'settings'];
+
+  it('shows every tab on windows', () => {
+    expect(visibleDiagnosticsTabs('windows')).toEqual(allTabs);
+  });
+
+  it('shows every tab when the platform is unknown', () => {
+    expect(visibleDiagnosticsTabs('')).toEqual(allTabs);
+  });
+
+  it('hides Memory on linux (no Linux equivalent of Windows Memory Diagnostic)', () => {
+    expect(visibleDiagnosticsTabs('linux')).toEqual(['summary', 'storage', 'cooling', 'system', 'settings']);
+  });
+
+  it('keeps only Summary/Cooling/Settings on macos (no SMART/PnP/event-log diagnostics)', () => {
+    expect(visibleDiagnosticsTabs('macos')).toEqual(['summary', 'cooling', 'settings']);
   });
 });

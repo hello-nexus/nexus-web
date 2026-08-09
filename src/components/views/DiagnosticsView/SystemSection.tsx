@@ -7,7 +7,7 @@ import { InfoList, InfoRow } from '../../common/InfoList/InfoList';
 import { Button } from '../../common/Button/Button';
 import { useToast } from '../../common/Toast/Toast';
 import { openDiagnosticsDeviceManager, type DiagnosticsFetchOptions, type DiagnosticsSystemResponse, type PnpProblem } from '../../../api/diagnostics';
-import { NotAvailableNote, SectionLoadError } from './DiagnosticsSectionStates';
+import { SectionLoadError } from './DiagnosticsSectionStates';
 import { pnpProblemLabel, resolveSectionState } from './diagnosticsHelpers';
 import styles from './DiagnosticsView.module.scss';
 
@@ -40,10 +40,14 @@ export function SystemSection({ data, loading, error, onRefresh }: SystemSection
     if (!result?.opened) push({ title: t('diagnostics.system.openDeviceManagerFailed') });
   }, [push, t]);
 
+  // A sibling section (IncidentCounts, or Incidents alone) shares this tab, so
+  // an unsupported platform renders nothing here rather than a redundant "not
+  // available" box next to real content.
+  if (state === 'notSupported') return null;
+
   return (
     <section className={styles.section}>
       {state === 'error' && <SectionLoadError onRetry={() => onRefresh({ force: true })} loading={loading} />}
-      {state === 'notSupported' && <NotAvailableNote />}
       {state === 'content' && data && (
         <>
           <div className={styles.sectionHeaderRow}>
