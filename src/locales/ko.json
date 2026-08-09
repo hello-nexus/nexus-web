@@ -822,7 +822,7 @@
   "diagnostics.memory.testScheduled": "다음 재부팅 시 실행 예약됨",
   "diagnostics.memory.xmpActive": "XMP 활성화됨",
   "diagnostics.mockDataBadge": "샘플 데이터",
-  "diagnostics.notAvailable": "이 플랫폼에서는 사용할 수 없음",
+  "diagnostics.notAvailable": "호환 하드웨어가 감지되지 않음",
   "diagnostics.reason.cooling.fanStall": "팬 정지",
   "diagnostics.reason.cooling.pumpStall": "펌프 정지",
   "diagnostics.reason.cooling.sustainedHighTemp": "지속적인 고온",

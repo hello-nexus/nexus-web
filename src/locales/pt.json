@@ -822,7 +822,7 @@
   "diagnostics.memory.testScheduled": "Agendado para o próximo reinício",
   "diagnostics.memory.xmpActive": "XMP ativo",
   "diagnostics.mockDataBadge": "Dados de teste",
-  "diagnostics.notAvailable": "Não disponível nesta plataforma",
+  "diagnostics.notAvailable": "Nenhum hardware compatível detetado",
   "diagnostics.reason.cooling.fanStall": "Ventoinha parada",
   "diagnostics.reason.cooling.pumpStall": "Bomba parada",
   "diagnostics.reason.cooling.sustainedHighTemp": "Temperatura elevada sustentada",

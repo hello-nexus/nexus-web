@@ -835,7 +835,7 @@
   "diagnostics.memory.testScheduled": "Programât pal pross riavviament",
   "diagnostics.memory.xmpActive": "XMP atîf",
   "diagnostics.mockDataBadge": "Dâts di prove",
-  "diagnostics.notAvailable": "No disponibil su cheste plateforme",
+  "diagnostics.notAvailable": "Nissun hardware compatibil rilevât",
   "diagnostics.reason.cooling.fanStall": "Ventiladôr fermât",
   "diagnostics.reason.cooling.pumpStall": "Pompe fermade",
   "diagnostics.reason.cooling.sustainedHighTemp": "Temperadure alte sostignude",
