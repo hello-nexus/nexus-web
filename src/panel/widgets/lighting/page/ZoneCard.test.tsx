@@ -74,13 +74,24 @@ describe('ZoneCard state chip', () => {
 });
 
 describe('ZoneCard actions menu', () => {
-  it('offers both stateful rows as labelled toggles reflecting current state', () => {
-    renderCard({ ...baseDevice, controlled: false });
+  // Icon assertions are load-bearing: an inverted glyph reads fine in the
+  // source and every label-only test stays green.
+  const rowIcon = (namePattern: RegExp) =>
+    screen.getByRole('button', { name: namePattern }).querySelector('svg')?.getAttribute('class');
+
+  it('labels both rows with the action they perform, not the state they are in', () => {
+    renderCard({ ...baseDevice, controlled: false, ledsOn: true });
     fireEvent.click(screen.getByRole('button', { name: 'lighting.devices.moreActions' }));
-    const controlledRow = screen.getByRole('button', { name: /menuControlled/ });
-    const powerRow = screen.getByRole('button', { name: /menuLightsOn/ });
-    expect(controlledRow.getAttribute('aria-pressed')).toBe('false');
-    expect(powerRow.getAttribute('aria-pressed')).toBe('true');
+    expect(rowIcon(/menuControlOn/)).toContain('lucide-link-2');
+    expect(rowIcon(/menuLightsOff/)).toContain('lucide-power-off');
+  });
+
+  it('flips both labels and icons when the state flips', () => {
+    renderCard({ ...baseDevice, controlled: true, ledsOn: false });
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.devices.moreActions' }));
+    expect(rowIcon(/menuControlOff/)).toContain('lucide-unlink');
+    // lucide-power-off also contains "lucide-power", so pin the exact class.
+    expect(rowIcon(/menuLightsOn/)?.split(' ')).toContain('lucide-power');
   });
 
   it('fires the controlled toggle from its menu row', () => {
@@ -97,7 +108,7 @@ describe('ZoneCard actions menu', () => {
       />,
     );
     fireEvent.click(screen.getByRole('button', { name: 'lighting.devices.moreActions' }));
-    fireEvent.click(screen.getByRole('button', { name: /menuControlled/ }));
+    fireEvent.click(screen.getByRole('button', { name: /menuControlOff/ }));
     expect(onToggleControlled).toHaveBeenCalledTimes(1);
   });
 
@@ -105,12 +116,12 @@ describe('ZoneCard actions menu', () => {
     renderCard(baseDevice);
     const btn = screen.getByRole('button', { name: 'lighting.devices.moreActions' });
     fireEvent.click(btn);
-    expect(screen.getByRole('button', { name: /menuLightsOn/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /menuLightsOff/ })).toBeTruthy();
     // jsdom fires no pointerdown, so this exercises the explicit toggle only -
     // in a browser the menu's outside-pointerdown close runs first and lands
     // on the same closed state.
     fireEvent.click(btn);
-    expect(screen.queryByRole('button', { name: /menuLightsOn/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /menuLights/ })).toBeNull();
   });
 
   it('reopens at a new position after a right-click elsewhere', () => {
@@ -118,7 +129,7 @@ describe('ZoneCard actions menu', () => {
     const card = document.querySelector(`.${styles.deviceCard}`)!;
     fireEvent.click(screen.getByRole('button', { name: 'lighting.devices.moreActions' }));
     fireEvent.contextMenu(card, { clientX: 400, clientY: 300 });
-    expect(screen.getByRole('button', { name: /menuLightsOn/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /menuLightsOff/ })).toBeTruthy();
   });
 
   it('opens on right-click and suppresses the browser menu', () => {
@@ -126,15 +137,15 @@ describe('ZoneCard actions menu', () => {
     const card = document.querySelector(`.${styles.deviceCard}`)!;
     // fireEvent returns false when the handler called preventDefault.
     expect(fireEvent.contextMenu(card)).toBe(false);
-    expect(screen.getByRole('button', { name: /menuLightsOn/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /menuLightsOff/ })).toBeTruthy();
   });
 
   it('drops the stateful rows for a detection-failed card', () => {
     renderCard({ ...baseDevice, ledCount: 0 });
     fireEvent.click(screen.getByRole('button', { name: 'lighting.devices.moreActions' }));
     expect(screen.getByRole('button', { name: /ledMap.settings/ })).toBeTruthy();
-    expect(screen.queryByRole('button', { name: /menuControlled/ })).toBeNull();
-    expect(screen.queryByRole('button', { name: /menuLightsOn/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /menuControl/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /menuLights/ })).toBeNull();
   });
 
   it('is the card\'s only action affordance: identify and settings live in it', () => {
@@ -234,7 +245,7 @@ describe('ZoneCard toggleMode', () => {
     renderToggleCard(baseDevice);
     const card = screen.getByRole('switch', { name: 'Test Strip' });
     fireEvent.contextMenu(card);
-    expect(screen.queryByRole('button', { name: /menuLightsOn/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /menuLights/ })).toBeNull();
   });
 
   it('does not toggle an unavailable (detection-failed) card', () => {

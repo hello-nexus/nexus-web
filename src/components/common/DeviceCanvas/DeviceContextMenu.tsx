@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { Check } from 'lucide-react';
 // Reuse the panel widget menu's stylesheet.
 import styles from '../../../panel/widgets/common/WidgetContextMenu.module.scss';
 
@@ -8,9 +7,6 @@ export interface DeviceMenuItem {
   icon: ReactNode;
   label: string;
   onSelect: () => void;
-  /** Present on rows that toggle a persistent state; renders a trailing tick
-   *  and exposes the row as a toggle button. Omit for one-shot actions. */
-  checked?: boolean;
 }
 
 interface DeviceContextMenuProps {
@@ -94,12 +90,10 @@ export function DeviceContextMenu({ x, y, items, onClose }: DeviceContextMenuPro
           key={item.key}
           type="button"
           className={styles.item}
-          aria-pressed={item.checked}
           onClick={() => { item.onSelect(); requestClose(); }}
         >
           {item.icon}
           <span>{item.label}</span>
-          {item.checked && <span className={styles.itemCheck} aria-hidden><Check size={14} /></span>}
         </button>
       ))}
     </div>

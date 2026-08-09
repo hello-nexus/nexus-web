@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Settings, Power, Ban, Eye, Lightbulb, Users, Cpu, Check, Unlink, Link2, MoreVertical } from 'lucide-react';
+import { Settings, Power, PowerOff, Ban, Eye, Lightbulb, Users, Cpu, Check, Unlink, Link2, MoreVertical } from 'lucide-react';
 import {
   identifyLightingDevice,
   type LightingDevice,
@@ -107,7 +107,7 @@ export function ZoneCard({
     : !controlled
       ? { icon: <Unlink aria-hidden />, label: t('lighting.devices.stateNotControlled') }
       : !device.ledsOn
-        ? { icon: <Power aria-hidden />, label: t('lighting.devices.stateLightsOff') }
+        ? { icon: <PowerOff aria-hidden />, label: t('lighting.devices.stateLightsOff') }
         : null;
 
   const menuItems = (): DeviceMenuItem[] => {
@@ -120,14 +120,14 @@ export function ZoneCard({
       onSelect: onOpenSettings,
     });
     if (!unavailable) {
-      items.push({
-        key: 'controlled', icon: <Link2 size={14} />, label: t('lighting.devices.menuControlled'),
-        checked: controlled, onSelect: onToggleControlled,
-      });
-      items.push({
-        key: 'power', icon: <Power size={14} />, label: t('lighting.devices.menuLightsOn'),
-        checked: device.ledsOn, onSelect: onTogglePower,
-      });
+      // Label and icon name the action, not the state - the widget menu's
+      // pin/unpin idiom.
+      items.push(controlled
+        ? { key: 'controlled', icon: <Unlink size={14} />, label: t('lighting.devices.menuControlOff'), onSelect: onToggleControlled }
+        : { key: 'controlled', icon: <Link2 size={14} />, label: t('lighting.devices.menuControlOn'), onSelect: onToggleControlled });
+      items.push(device.ledsOn
+        ? { key: 'power', icon: <PowerOff size={14} />, label: t('lighting.devices.menuLightsOff'), onSelect: onTogglePower }
+        : { key: 'power', icon: <Power size={14} />, label: t('lighting.devices.menuLightsOn'), onSelect: onTogglePower });
     }
     return items;
   };

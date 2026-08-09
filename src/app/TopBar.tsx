@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import classNames from 'classnames';
 import {
   ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen,
-  MoreHorizontal, Settings, FlaskConical, Info, Unplug,
+  MoreVertical, Settings, FlaskConical, Info, Unplug,
   SlidersHorizontal, RefreshCw, Maximize2, Minimize2,
 } from 'lucide-react';
 import { DiscordGlyph } from '../components/icons/NexusBrand';
@@ -103,7 +103,7 @@ function TopBarMenu({ onNavigateSettings, onNavigateTools, onOpenAbout, onOpenUp
           aria-haspopup="menu"
           aria-expanded={open}
         >
-          <MoreHorizontal size={18} />
+          <MoreVertical size={18} />
         </button>
       </HoverTooltip>
       {open && (
