@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
+import { pluralSuffix } from '../../lib/pluralKey';
+import type { Language } from '../../lib/settings';
 
 const LOCALES_DIR = path.resolve(__dirname, '../../locales');
 const LOCALE_FILES = fs.readdirSync(LOCALES_DIR).filter(f => f.endsWith('.json')).sort();
@@ -48,6 +50,33 @@ describe('locale files', () => {
     const keys = Object.keys(en);
     const sorted = [...keys].sort();
     expect(keys).toEqual(sorted);
+  });
+
+  // pluralKey() resolves `<base>.<suffix>` at call time, so a base missing a
+  // form its language can ask for renders the raw key instead of a label.
+  // Scope: this checks the locale files against each other. A call site that
+  // pluralises a base English ships flat is invisible here - no `.one`, so it
+  // is not treated as a base at all.
+  it('every pluralised base carries the forms its locales can ask for', () => {
+    const en = loadLocale('en.json');
+    // A bare `.other` is an enum value elsewhere (diagnostics.gpu.throttle).
+    const bases = Object.keys(en)
+      .filter(k => k.endsWith('.other'))
+      .map(k => k.slice(0, -'.other'.length))
+      .filter(base => en[`${base}.one`] !== undefined);
+    expect(bases.length, 'expected pluralised keys in en.json').toBeGreaterThan(0);
+    for (const file of LOCALE_FILES) {
+      const locale = loadLocale(file);
+      // Asked of pluralSuffix rather than listed here, so adding a CLDR-few
+      // language to it cannot leave this guard blind to the new locale.
+      const language = file.slice(0, -'.json'.length) as Language;
+      const needsFew = pluralSuffix(language, 3) === 'few';
+      for (const base of bases) {
+        expect(locale[`${base}.one`], `${file} missing ${base}.one`).toBeTruthy();
+        expect(locale[`${base}.other`], `${file} missing ${base}.other`).toBeTruthy();
+        if (needsFew) expect(locale[`${base}.few`], `${file} missing ${base}.few`).toBeTruthy();
+      }
+    }
   });
 
   it('no non-English locale has English-identical values for long strings', () => {

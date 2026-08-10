@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ZoneCard, type BulkSelection } from './ZoneCard';
 import type { LightingDevice } from '../../../../api/lighting';
 import type { SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
@@ -7,12 +7,18 @@ import styles from '../LightingPage.module.scss';
 
 // Params are appended so assertions can pin what actually reaches a label -
 // a bare `key` mock would pass even if the interpolation object were dropped.
+// The language is mutable so a test can check which plural form a call site
+// asks for.
+const i18n = vi.hoisted(() => ({ language: 'en' }));
 vi.mock('../../../../lib/i18n', () => ({
   useTranslation: () => ({
     t: (key: string, params?: Record<string, unknown>) =>
       params ? `${key}:${JSON.stringify(params)}` : key,
+    language: i18n.language,
   }),
 }));
+
+afterEach(() => { i18n.language = 'en'; });
 
 const baseDevice: LightingDevice = {
   id: 'openrgb-0',
@@ -239,6 +245,19 @@ describe('ZoneCard bulk selection', () => {
     const card = document.querySelector(`.${styles.deviceCard}`)!;
     expect(fireEvent.contextMenu(card)).toBe(true); // no handler, so not prevented
     expect(document.querySelector('[class*="_menu_"]')).toBeNull();
+  });
+
+  it.each(['pl', 'ru'])('asks %s for the CLDR few form at 3', (language) => {
+    i18n.language = language;
+    renderBulkAndOpen(bulkProps({ count: 3, identifyCount: 3 }));
+    expect(screen.getByRole('button', { name: /menuControlOffCount\.few/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /identifyCount\.few/ })).toBeTruthy();
+  });
+
+  it('asks a language with no few category for the plain plural', () => {
+    i18n.language = 'en';
+    renderBulkAndOpen(bulkProps({ count: 3, identifyCount: 3 }));
+    expect(screen.getByRole('button', { name: /menuControlOffCount\.other/ })).toBeTruthy();
   });
 
   it('counts only the members that can actually flash', () => {

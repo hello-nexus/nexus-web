@@ -7,6 +7,7 @@ import {
 import { DeviceContextMenu, type DeviceMenuItem } from '../../../../components/common/DeviceCanvas/DeviceContextMenu';
 import { cardEnabledLedCount } from './zoneUtils';
 import { useTranslation } from '../../../../lib/i18n';
+import { pluralKey } from '../../../../lib/pluralKey';
 import { isMultiSelectModifier } from '../../../../lib/platform';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { DeviceNotice } from './DeviceNotice';
@@ -95,7 +96,7 @@ export function ZoneCard({
    *  acts on the whole selection, matching the device canvas's right-click. */
   bulk?: BulkSelection;
 }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const isZone = device.parentDeviceId != null && device.zoneIndex != null;
   const resizable = device.zoneResizable === true && isZone;
   const unavailable = zoneCardUnavailable(device);
@@ -135,7 +136,7 @@ export function ZoneCard({
     const items: DeviceMenuItem[] = [];
     if (bulk) {
       if (bulk.identifyCount > 0) {
-        items.push({ key: 'identify', icon: <Eye size={14} />, label: t('lighting.devices.identifyCount', { count: bulk.identifyCount }), onSelect: bulk.identify });
+        items.push({ key: 'identify', icon: <Eye size={14} />, label: t(pluralKey('lighting.devices.identifyCount', language, bulk.identifyCount), { count: bulk.identifyCount }), onSelect: bulk.identify });
       }
     } else if (device.ledCount > 0) {
       items.push({ key: 'identify', icon: <Eye size={14} />, label: t('lighting.devices.identify'), onSelect: identify });
@@ -156,7 +157,7 @@ export function ZoneCard({
       const setControlled = () => bulk ? bulk.setControlled(!isControlled) : onToggleControlled();
       const setPower = () => bulk ? bulk.setPower(!isOn) : onTogglePower();
       const label = (single: string, counted: string) =>
-        bulk ? t(counted, { count: bulk.count }) : t(single);
+        bulk ? t(pluralKey(counted, language, bulk.count), { count: bulk.count }) : t(single);
       items.push(isControlled
         ? { key: 'controlled', icon: <Unlink size={14} />, onSelect: setControlled, label: label('lighting.devices.menuControlOff', 'lighting.devices.menuControlOffCount') }
         : { key: 'controlled', icon: <Link2 size={14} />, onSelect: setControlled, label: label('lighting.devices.menuControlOn', 'lighting.devices.menuControlOnCount') });

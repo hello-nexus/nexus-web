@@ -1,10 +1,11 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Settings, Eye, Maximize2, Minimize2, RotateCw, RotateCcw, Power } from 'lucide-react';
+import { Settings, Eye, Maximize2, Minimize2, RotateCw, RotateCcw, Power, PowerOff } from 'lucide-react';
 import type { LightingDevice, LedMapEntry } from '../../../api/lighting';
 import { saveDeviceLayout, identifyLightingDevice } from '../../../api/lighting';
 import type { AudioSnapshot } from '../../../hooks/useAudioState';
 import { useShaderRenderer } from '../../../hooks/useShaderRenderer';
 import { useTranslation } from '../../../lib/i18n';
+import { pluralKey } from '../../../lib/pluralKey';
 import { isMultiSelectModifier } from '../../../lib/platform';
 import { paintLedFrame } from '../../../lib/ledFrame';
 import type { EffectState } from '../../../types/lighting';
@@ -226,7 +227,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
   onLayoutCommit?: () => void;
   onSetDevicesPower?: (ids: string[], on: boolean) => void;
 }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const onBeforeLayoutSaveRef = useRef(onBeforeLayoutSave);
   onBeforeLayoutSaveRef.current = onBeforeLayoutSave;
   const onLayoutCommitRef = useRef(onLayoutCommit);
@@ -769,7 +770,9 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
         if (ledTargets.length > 0) {
           items.push({
             key: 'identify', icon: <Eye size={14} />,
-            label: group ? t('lighting.devices.identifyCount', { count: ledTargets.length }) : t('lighting.devices.identify'),
+            label: group
+              ? t(pluralKey('lighting.devices.identifyCount', language, ledTargets.length), { count: ledTargets.length })
+              : t('lighting.devices.identify'),
             onSelect: () => { ledTargets.forEach(d => identifyLightingDevice(d.id, 2000).catch(() => { /* silent */ })); },
           });
         }
@@ -789,27 +792,27 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
           key: 'maximize',
           icon: maxed ? <Minimize2 size={14} /> : <Maximize2 size={14} />,
           label: group
-            ? (maxed ? t('lighting.devices.minimizeCount', { count }) : t('lighting.devices.maximizeCount', { count }))
+            ? t(pluralKey(maxed ? 'lighting.devices.minimizeCount' : 'lighting.devices.maximizeCount', language, count), { count })
             : (maxed ? t('lighting.devices.minimize') : t('lighting.devices.maximize')),
           onSelect: () => group ? handleMaximizeGroup(targets, !maxed) : handleMaximize(dev),
         });
         items.push({
           key: 'rotate-cw', icon: <RotateCw size={14} />,
-          label: group ? t('lighting.devices.rotateCwCount', { count }) : t('lighting.devices.rotateCw'),
+          label: group ? t(pluralKey('lighting.devices.rotateCwCount', language, count), { count }) : t('lighting.devices.rotateCw'),
           onSelect: () => group ? handleRotateGroup(targets, 1) : handleRotate(dev, 1),
         });
         items.push({
           key: 'rotate-ccw', icon: <RotateCcw size={14} />,
-          label: group ? t('lighting.devices.rotateCcwCount', { count }) : t('lighting.devices.rotateCcw'),
+          label: group ? t(pluralKey('lighting.devices.rotateCcwCount', language, count), { count }) : t('lighting.devices.rotateCcw'),
           onSelect: () => group ? handleRotateGroup(targets, -1) : handleRotate(dev, -1),
         });
         const anyOn = targets.some(d => d.ledsOn);
         items.push({
           key: 'power',
-          icon: <Power size={14} />,
+          icon: anyOn ? <PowerOff size={14} /> : <Power size={14} />,
           label: group
-            ? (anyOn ? t('lighting.devices.turnOffCount', { count }) : t('lighting.devices.turnOnCount', { count }))
-            : (dev.ledsOn ? t('lighting.devices.turnOff') : t('lighting.devices.turnOn')),
+            ? t(pluralKey(anyOn ? 'lighting.devices.menuLightsOffCount' : 'lighting.devices.menuLightsOnCount', language, count), { count })
+            : t(anyOn ? 'lighting.devices.menuLightsOff' : 'lighting.devices.menuLightsOn'),
           onSelect: () => onSetDevicesPower?.(targets.map(d => d.id), !anyOn),
         });
         return (

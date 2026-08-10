@@ -4,7 +4,7 @@ import { DeviceCanvas } from './DeviceCanvas';
 import styles from './DeviceCanvas.module.scss';
 import type { LightingDevice } from '../../../api/lighting';
 
-vi.mock('../../../lib/i18n', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
+vi.mock('../../../lib/i18n', () => ({ useTranslation: () => ({ t: (key: string) => key, language: 'en' }) }));
 vi.mock('../../../lib/platform', () => ({ isMultiSelectModifier: () => false }));
 vi.mock('../../../api/lighting', () => ({ saveDeviceLayout: vi.fn(() => Promise.resolve()), identifyLightingDevice: vi.fn() }));
 vi.mock('../../../hooks/useShaderRenderer', () => ({ useShaderRenderer: () => ({ ready: false }) }));
@@ -265,7 +265,7 @@ describe('DeviceCanvas', () => {
       />
     );
     fireEvent.contextMenu(screen.getByText('Alpha'));
-    fireEvent.click(screen.getByText('lighting.devices.minimizeCount'));
+    fireEvent.click(screen.getByText('lighting.devices.minimizeCount.other'));
 
     for (const d of devices) {
       expect(d.canvasW).toBe(240);
@@ -294,7 +294,7 @@ describe('DeviceCanvas', () => {
       />
     );
     fireEvent.contextMenu(screen.getByText('Alpha'));
-    fireEvent.click(screen.getByText('lighting.devices.minimizeCount'));
+    fireEvent.click(screen.getByText('lighting.devices.minimizeCount.other'));
 
     // Neighbouring columns must not share a center line, or their names collide.
     expect(devices[0].canvasY).not.toBe(devices[1].canvasY);
