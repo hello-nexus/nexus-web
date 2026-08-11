@@ -2083,7 +2083,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'Nexus2ImportDialog', category: 'modals',
     filePath: 'src/components/common/Nexus2WelcomeScreen/Nexus2ImportDialog.tsx',
-    description: 'Settings re-entry point for the Nexus 2 import: a DeviceModal hosting Nexus2ImportSection, opened from the Privacy & Data tab\'s "Import from Nexus 2" row once the service reports the app detected and importable.',
+    description: 'Settings re-entry point for the Nexus 2 import: a DeviceModal hosting Nexus2ImportSection, opened from the Privacy & Data tab\'s "Import from Nexus 2" row once the service reports importable Nexus 2 data (present whether or not Nexus 2 is still installed).',
     notes: 'No live preview - hosts Nexus2ImportSection, which posts real preview/apply requests.',
   },
   {

@@ -82,14 +82,16 @@ describe('PrivacyTab - Nexus 2 import entry visibility', () => {
     expect(screen.queryByText(NEXUS2_ROW_LABEL)).not.toBeInTheDocument();
   });
 
-  it('is hidden when importAvailable is true but detected is false', async () => {
+  // Nexus 2 uninstalled, its config.json left behind: the returning-user
+  // screen stays shut (service reports detected false) and this row is the
+  // only way to reach the import.
+  it('shows the row when importAvailable is true and detected is false', async () => {
     vi.mocked(fetchNexus2Status).mockResolvedValue(status({ detected: false, importAvailable: true }));
     renderTab();
-    await waitFor(() => expect(fetchNexus2Status).toHaveBeenCalledTimes(1));
-    expect(screen.queryByText(NEXUS2_ROW_LABEL)).not.toBeInTheDocument();
+    expect(await screen.findByText(NEXUS2_ROW_LABEL)).toBeInTheDocument();
   });
 
-  it('shows the row only when both detected and importAvailable are true', async () => {
+  it('shows the row when Nexus 2 is still installed and importable', async () => {
     vi.mocked(fetchNexus2Status).mockResolvedValue(status({ detected: true, importAvailable: true }));
     renderTab();
     expect(await screen.findByText(NEXUS2_ROW_LABEL)).toBeInTheDocument();

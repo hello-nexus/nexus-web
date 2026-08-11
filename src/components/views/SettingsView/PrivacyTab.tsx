@@ -27,8 +27,7 @@ export function PrivacyTab({ settings, serviceOnline }: PrivacyTabProps) {
   const [telemetryLoading, setTelemetryLoading] = useState(false);
   const telemetryBurstKey = useHeartBurstTrigger(telemetryOn);
   // Lazy, this-surface-only check (not fetched on dashboard load): the row
-  // stays hidden until the service confirms Nexus 2 is actually installed
-  // and its config is readable.
+  // stays hidden until the service reports readable Nexus 2 config data.
   const [nexus2Importable, setNexus2Importable] = useState(false);
   const [nexus2ImportOpen, setNexus2ImportOpen] = useState(false);
 
@@ -46,8 +45,10 @@ export function PrivacyTab({ settings, serviceOnline }: PrivacyTabProps) {
   useEffect(() => {
     if (!serviceOnline) return;
     let cancelled = false;
+    // Importable data, not `detected`: a config.json outlives the Nexus 2
+    // install it came from.
     fetchNexus2Status().then(data => {
-      if (data && !cancelled) setNexus2Importable(data.detected && data.importAvailable);
+      if (data && !cancelled) setNexus2Importable(data.importAvailable);
     });
     return () => { cancelled = true; };
   }, [serviceOnline]);
