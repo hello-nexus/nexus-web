@@ -119,6 +119,11 @@ export interface AppMetadata {
   // transfer widget sends the phone's photos/clipboard to the PC), so it's
   // hidden on the PC's own panel surfaces. Defaults to false.
   remoteOnly?: boolean;
+  // Whether the widget's only interaction is its fullscreen `Touch` facet
+  // (games). The desktop surface - the embedded dashboard and the floating
+  // desktop overlay - never enters immersive, so the tile would be inert
+  // there; set this to keep the widget on on-device panels only.
+  panelOnly?: boolean;
   // Whether the widget participates in slot selection during editing: the live
   // tile renders selectable cells and the edit sheet edits the selected slot
   // (monitoring, deck). When true, PanelApp/WidgetEditSheet/PanelEditorSheet

@@ -13,6 +13,7 @@ export const snakeApp: AppManifest = {
     supportsImmersive: { portrait: true, landscape: false },
     hasConfig: false,
     touch: true,
+    panelOnly: true,
   },
   Widget: SnakeWidget,
   Touch: SnakeTouch,

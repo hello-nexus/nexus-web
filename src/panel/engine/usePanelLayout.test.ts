@@ -42,6 +42,20 @@ describe('normalizePanelLayout registry reconciliation', () => {
     expect(result.pages[0].widgets).toHaveLength(0);
   });
 
+  it('drops panel-only widgets already placed on a desktop layout, keeping them on panels', () => {
+    // Dashboards saved before snake/blocks became panelOnly still carry the
+    // tiles; the reconcile clears them so an inert tile can't survive.
+    const games = [
+      widget({ id: 'a', type: 'clock', size: '2x2' }),
+      widget({ id: 'b', type: 'snake', size: '2x2' }),
+      widget({ id: 'c', type: 'blocks', size: '2x2' }),
+    ];
+    expect(normalizePanelLayout(layout(games), 'desktop').pages[0].widgets.map(w => w.id))
+      .toEqual(['a']);
+    expect(normalizePanelLayout(layout(games), 'y70').pages[0].widgets.map(w => w.id))
+      .toEqual(['a', 'b', 'c']);
+  });
+
   it('snaps a widget whose size is not in meta.sizes to the nearest allowed size', () => {
     // timer allows ['2x2', '4x2'] - 4x4 should snap down to 4x2 (same area).
     const result = normalizePanelLayout(

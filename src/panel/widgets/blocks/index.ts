@@ -13,6 +13,7 @@ export const blocksApp: AppManifest = {
     supportsImmersive: { portrait: true, landscape: false },
     hasConfig: false,
     touch: true,
+    panelOnly: true,
   },
   Widget: BlocksWidget,
   Touch: BlocksTouch,

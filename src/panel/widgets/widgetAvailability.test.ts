@@ -123,11 +123,12 @@ describe('appAvailableForSurface', () => {
     // size. Per the canonical rule, availability is determined by touch +
     // sizes only - no per-widget surface allowlist - so every widget in the
     // registry should be reachable from the desktop add-widget picker.
-    // Remote-only widgets are the one exception: desktop is the host's own
-    // surface, so they're hidden there by design.
+    // The reach flags are the exceptions: remote-only widgets are hidden
+    // because desktop is the host's own surface, panel-only widgets because
+    // the desktop never opens the fullscreen view they're played in.
     for (const [type, def] of Object.entries(APP_REGISTRY)) {
       expect(appAvailableForSurface(def.meta, 'desktop'),
-        `${type} on desktop`).toBe(!def.meta.remoteOnly);
+        `${type} on desktop`).toBe(!def.meta.remoteOnly && !def.meta.panelOnly);
     }
   });
 
@@ -136,6 +137,29 @@ describe('appAvailableForSurface', () => {
       expect(appAvailableForSurface(def.meta, 'y70'),
         `${type} on y70`).toBe(!def.meta.remoteOnly);
     }
+  });
+
+  it('hides panel-only widgets (games) on desktop but keeps them on panels', () => {
+    // snake/blocks are played only in their fullscreen Touch view, which the
+    // embedded dashboard and desktop overlay never enter - a tile there is
+    // inert, so they're offered on on-device panels only.
+    for (const type of ['snake', 'blocks']) {
+      const def = APP_REGISTRY[type];
+      expect(def, `missing widget type: ${type}`).toBeDefined();
+      expect(def.meta.panelOnly, `${type} should be panel-only`).toBe(true);
+      expect(def.Touch, `${type} should ship a fullscreen view`).toBeDefined();
+      expect(appAvailableForSurface(def.meta, 'desktop'), `${type} on desktop`).toBe(false);
+      expect(sizesForSurface(def.meta, 'desktop'), `${type} sizes on desktop`).toEqual([]);
+      expect(appAvailableForSurface(def.meta, 'y70'), `${type} on y70`).toBe(true);
+      expect(appAvailableForSurface(def.meta, 'phone'), `${type} on phone`).toBe(true);
+      expect(appAvailableForSurface(def.meta, 'monitor', { deviceTouch: true }),
+        `${type} on a touch monitor`).toBe(true);
+    }
+  });
+
+  it('leaves non-panel-only widgets on the desktop', () => {
+    expect(APP_REGISTRY.clock.meta.panelOnly).toBeUndefined();
+    expect(appAvailableForSurface(APP_REGISTRY.clock.meta, 'desktop')).toBe(true);
   });
 
   it('hides remote-only widgets (transfer) on the host\'s own panel surfaces', () => {

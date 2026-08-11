@@ -144,6 +144,17 @@ describe('buildEntries', () => {
     }
   });
 
+  it('omits page-less apps the dashboard picker will not offer', () => {
+    // The add-widget row navigates to the dashboard and opens the desktop
+    // picker, so an app that surface rejects would land on a picker without
+    // it: panel-only games (snake/blocks) and remote-only widgets (transfer).
+    const entries = buildEntries(ctx(true));
+    for (const type of ['snake', 'blocks', 'transfer']) {
+      expect(entries.find((e) => e.id === `widget:${type}`), `widget:${type}`).toBeUndefined();
+      expect(entries.find((e) => e.id === `app:${type}`), `app:${type}`).toBeUndefined();
+    }
+  });
+
   it('lists app pages regardless of service connectivity', () => {
     const ids = idsOf(false);
     expect(ids.has('app:clock')).toBe(true);
