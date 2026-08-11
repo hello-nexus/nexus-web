@@ -86,13 +86,15 @@ export const APP_REGISTRY: Record<string, AppManifest> = {
   blocks:     blocksApp,
 };
 
-// Whether an app can appear on a given surface. The decision is purely
+// Whether an app can appear on a given surface. The decision is
 // capability-based: the app's `touch` requirement vs the surface's
-// input modality, and the app's `sizes` vs the surface's accepted
-// sizes. No per-app surface allowlist - desktop (mouse), Y70 (touch),
-// and phone (touch) all expose a pointer and accept every app whose
-// sizes match. Single-widget surfaces (Q60) lock to one size and
-// additionally exclude touch-required apps since they have no pointer.
+// input modality, the app's `sizes` vs the surface's accepted sizes,
+// and the reach flags (`localOnly`/`remoteOnly`/`panelOnly`) an app
+// opts into. There is no per-app surface allowlist beyond those flags:
+// desktop (mouse), Y70 (touch), and phone (touch) all expose a pointer
+// and accept every app whose sizes match. Single-widget surfaces (Q60)
+// lock to one size and additionally exclude touch-required apps since
+// they have no pointer.
 export function appAvailableForSurface(
   meta: AppManifest['meta'],
   surface: PanelSurface,
@@ -109,6 +111,9 @@ export function appAvailableForSurface(
   // Remote-only widgets (e.g. transfer) act on the host from a paired remote;
   // on the PC's own surfaces they have nothing to send to.
   if (meta.remoteOnly && !remote) return false;
+  // Panel-only widgets (games) are driven entirely from their fullscreen Touch
+  // view, which the desktop surface never opens - see meta.panelOnly.
+  if (meta.panelOnly && surface === 'desktop') return false;
   const single = singleWidgetSurfaceSize(surface);
   if (single !== undefined) {
     return meta.sizes.includes(single);
@@ -209,6 +214,7 @@ function makeMarketplaceAppManifest(
 export function sizesForSurface(meta: AppManifest['meta'], surface?: PanelSurface, deviceTouch?: boolean): PanelWidgetSize[] {
   if (!surface) return [...meta.sizes];
   if (meta.touch && !surfaceSupportsTouch(surface, deviceTouch)) return [];
+  if (meta.panelOnly && surface === 'desktop') return [];
   const single = singleWidgetSurfaceSize(surface);
   if (single !== undefined) {
     return meta.sizes.includes(single) ? [single] : [];

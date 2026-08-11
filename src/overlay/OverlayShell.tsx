@@ -9,6 +9,7 @@ import {
 import { fetchService, postService } from '../api/service';
 import { useTopicCallback } from '../hooks/useMultiplexSocket';
 import { sizesForSurface, APP_REGISTRY } from '../panel/widgets/registry';
+import { purgePanelOnlyOverlayWidgets } from './overlayWidgetPurge';
 import type { DeckEditView } from '../panel/widgets/types';
 import { normalizePanelWidgetSize, type PanelConfigValue, type PanelWidget, type PanelWidgetSize } from '../panel/types';
 import { buildEmbeddedPanelThemeVars } from '../panel/theme/panelTheme';
@@ -165,11 +166,26 @@ export default function OverlayShell() {
     { x: number; y: number; w: number; h: number } | null
   >(null);
 
+  // Ids already sent to DELETE. Every prefs broadcast reloads (the opacity
+  // slider emits one per frame), so without this a record whose delete keeps
+  // failing would be retried at frame rate. A delete that fails is therefore
+  // not retried until the next overlay launch; the record stays server-side
+  // and stays listed in the Desktop Widgets modal, where it is unpinnable.
+
+  const unpinnedRef = useRef<Set<string>>(new Set());
+  const acceptWidgets = useCallback((widgets: OverlayWidgetDto[]) => {
+    setLayout(purgePanelOnlyOverlayWidgets(widgets, id => {
+      if (unpinnedRef.current.has(id)) return;
+      unpinnedRef.current.add(id);
+      void deleteOverlayWidget(id);
+    }));
+  }, []);
+
   const reload = useCallback(async () => {
     const result = await listOverlayWidgets();
-    setLayout(result);
+    acceptWidgets(result);
     setLoading(false);
-  }, []);
+  }, [acceptWidgets]);
 
   const [accentColor, setAccentColor] = useState<string | null>(null);
   const [themeMode, setThemeModeState] = useState<ThemeMode>('dark');
@@ -229,9 +245,9 @@ export default function OverlayShell() {
     ]);
     if (isStale?.()) return;
     if (prefs) applyPrefs(prefs);
-    setLayout(widgets);
+    acceptWidgets(widgets);
     setLoading(false);
-  }, [applyPrefs]);
+  }, [applyPrefs, acceptWidgets]);
 
   useEffect(() => {
     let cancelled = false;

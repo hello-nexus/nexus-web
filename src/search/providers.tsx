@@ -33,7 +33,7 @@ import { postService } from '../api/service';
 import type { UpdateMode, UpdateChannel } from '../api/update';
 import { COOLING_PRESETS, type CoolingPresetKey } from '../panel/widgets/cooling/page/coolingPresets';
 import { EFFECTS, MODES, BASE_DEFAULTS, categoryOf, type LightingMode } from '../types/lighting';
-import { getCatalogEntries } from '../panel/widgets/registry';
+import { appAvailableForSurface, getCatalogEntries } from '../panel/widgets/registry';
 import { preinstalledIconUrl } from '../app/sidebarApps';
 import { AppIconImage } from '../components/icons/AppIconImage';
 import { DEV_TOOLS } from '../lib/devTools';
@@ -289,8 +289,6 @@ const APP_KEYWORDS: Record<string, string[]> = {
   timer: ['countdown', 'alarm'],
   stopwatch: ['laps', 'timing'],
   calculator: ['math', 'arithmetic'],
-  camera: ['webcam', 'video'],
-  transfer: ['files', 'send', 'phone', 'share'],
   emoji: ['emotes', 'reactions'],
 };
 
@@ -315,9 +313,12 @@ const installedApps: SearchSource = (ctx) =>
 // itself is the picker; the signal survives the navigation.
 const widgetApps: SearchSource = (ctx) =>
   getCatalogEntries()
-    // Same delisting gate as the widget catalog itself, so search never
-    // offers an "Add widget" whose picker won't show the app.
-    .filter(([, m]) => !m.Page && (DEV_TOOLS || m.meta.listed !== false))
+    // Same delisting AND surface gate as the widget catalog itself, so search
+    // never offers an "Add widget" whose picker won't show the app. The
+    // navigation lands on the dashboard, so desktop is the surface to test.
+    .filter(([, m]) => !m.Page
+      && appAvailableForSurface(m.meta, 'desktop')
+      && (DEV_TOOLS || m.meta.listed !== false))
     .map(([type, m]) => {
       const Icon = m.meta.icon;
       return go(`widget:${type}`, {
