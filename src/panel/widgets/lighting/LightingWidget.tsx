@@ -332,13 +332,13 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
     applyEffect(next.key, nextState);
   }, [activeEffect, applyEffect, applyStatic, mode, templates]);
 
-  // Simple-mode arrow handler. From inside an animation, behaves like
-  // cycleAnimate. From any non-animate state (screen mirror / gif / off),
-  // the first press jumps into the animation list: right arrow lands on
-  // the first effect, left arrow lands on the last effect (i.e. the
-  // cycle's wrap-around starting position).
+  // Simple-mode arrow handler. From inside an animation or a static effect,
+  // behaves like cycleAnimate (which cycles the mode's own pool). From any
+  // other state (screen mirror / gif / off), the first press jumps into the
+  // animation list: right arrow lands on the first effect, left arrow lands
+  // on the last effect (i.e. the cycle's wrap-around starting position).
   const enterOrCycleAnimate = useCallback((delta: number) => {
-    if (mode === 'animate') {
+    if (mode === 'animate' || mode === 'static') {
       cycleAnimate(delta);
       return;
     }

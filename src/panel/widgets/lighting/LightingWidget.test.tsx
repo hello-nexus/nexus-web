@@ -1,8 +1,9 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PanelWidget } from '../../types';
-import { fetchCurrentSync } from '../../../api/lighting';
+import { fetchCurrentSync, startAnimate, startStatic } from '../../../api/lighting';
 import { pingService } from '../../../api/service';
+import { STATIC_EFFECTS } from '../../../types/lighting';
 import { LightingWidget } from './LightingWidget';
 
 vi.mock('../../../api/lighting', () => ({
@@ -195,6 +196,29 @@ describe('LightingWidget', () => {
       await waitFor(() => expect(screen.getByRole('button', { name: 'Previous' })).toBeInTheDocument());
       expect(screen.getByRole('button', { name: 'Next' })).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Animation' })).not.toBeInTheDocument();
+    });
+
+    // NEX-64: while in Static mode the arrows cycle the static pool in place;
+    // they must not jump into the animation list.
+    it('cycles the static pool from Static mode instead of entering animations', async () => {
+      vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'static' });
+      vi.mocked(startStatic).mockClear();
+      vi.mocked(startAnimate).mockClear();
+      render(<LightingWidget widget={lightingWidget('4x2')} />);
+      // Wait for the hydrated static effect's card label (simplewhite from the
+      // fetchStaticSettings mock) - the arrows alone also render pre-hydration.
+      await waitFor(() => expect(screen.getByText('lighting.controls.simplewhite')).toBeInTheDocument());
+
+      const startIdx = STATIC_EFFECTS.findIndex(e => e.key === 'simplewhite');
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+      await waitFor(() => expect(startStatic).toHaveBeenCalled());
+      expect(vi.mocked(startStatic).mock.calls[0][0]).toBe(STATIC_EFFECTS[(startIdx + 1) % STATIC_EFFECTS.length].key);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Previous' }));
+      await waitFor(() => expect(startStatic).toHaveBeenCalledTimes(2));
+      expect(vi.mocked(startStatic).mock.calls[1][0]).toBe('simplewhite');
+
+      expect(startAnimate).not.toHaveBeenCalled();
     });
   });
 });
