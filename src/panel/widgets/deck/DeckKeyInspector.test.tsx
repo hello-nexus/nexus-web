@@ -6,6 +6,7 @@ import { makePhysicalDeckTarget, makeWidgetDeckTarget } from './deckTarget';
 import type { PanelWidget } from '../types';
 import type { PanelSurface } from '../../types';
 import type { DeckConfig, DeckSlot } from './types';
+import styles from './DeckKeyInspector.module.scss';
 
 vi.mock('../common/AppPicker', () => ({ useAppIcon: () => null, AppPicker: () => null }));
 vi.mock('../../../api/service', () => ({
@@ -819,6 +820,34 @@ describe('DeckKeyInspector - Bug 6: Icon Color dims while the Custom image tab i
     for (const swatch of screen.getAllByRole('button', { name: 'panel.settings.deck.colorAuto' })) {
       expect(swatch).not.toBeDisabled();
     }
+  });
+});
+
+describe('DeckKeyInspector - Transparent background swatch', () => {
+  const transparentChips = () => screen.getAllByRole('button', { name: 'panel.settings.deck.colorTransparent' });
+
+  it('offers Transparent on the key background row but not the title text color row', () => {
+    renderInspector([{ action: { type: 'hotkey', keys: '' }, label: 'Hi', title: { show: true } }]);
+    // Two swatch rows are visible (key color + title text color); only the
+    // background one carries the chip.
+    expect(screen.getAllByText('panel.settings.deck.colorAuto')).toHaveLength(2);
+    expect(transparentChips()).toHaveLength(1);
+  });
+
+  it('stores "transparent" (active chip) and Auto clears it back to unset', () => {
+    renderInspector([{ action: { type: 'hotkey', keys: '' } }]);
+    expect(transparentChips()[0].className).not.toContain(styles.activeSwatch);
+    fireEvent.click(transparentChips()[0]);
+    expect(transparentChips()[0].className).toContain(styles.activeSwatch);
+    fireEvent.click(screen.getAllByRole('button', { name: 'panel.settings.deck.colorAuto' })[0]);
+    expect(transparentChips()[0].className).not.toContain(styles.activeSwatch);
+  });
+
+  it('offers Transparent only on the Background row of a monitoring tile', () => {
+    renderInspector([{ action: MONITORING_ACTION }]);
+    // Background / graph accent / name color rows; only Background gets the chip.
+    expect(screen.getAllByText('panel.settings.deck.colorAuto')).toHaveLength(3);
+    expect(transparentChips()).toHaveLength(1);
   });
 });
 

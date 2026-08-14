@@ -990,10 +990,14 @@ function TitleFields({
 }
 
 /** Shared color-swatch row: an "Auto" chip (unsets the field) plus DECK_SWATCHES. */
-function SwatchRow({ label, value, onChange, disabled = false }: {
+function SwatchRow({ label, value, onChange, disabled = false, allowTransparent = false }: {
   // Omit when the row is the sole control in an already-titled section (e.g.
   // the monitoring background swatch) so the label isn't repeated verbatim.
   label?: string; value: string | undefined; onChange: (color: string | undefined) => void; disabled?: boolean;
+  // Background rows only: adds a checkerboard chip storing 'transparent'. The
+  // on-screen cell then shows the surface behind it; a physical key renders
+  // the deck's native off-black (JPEG/BMP encode drops the alpha).
+  allowTransparent?: boolean;
 }) {
   const { t } = useTranslation();
   return (
@@ -1007,6 +1011,15 @@ function SwatchRow({ label, value, onChange, disabled = false }: {
         >
           {t('panel.settings.deck.colorAuto')}
         </button>
+        {allowTransparent && (
+          <button
+            type="button"
+            disabled={disabled}
+            className={`${styles.swatch} ${styles.transparentSwatch} ${value === 'transparent' ? styles.activeSwatch : ''}`}
+            onClick={() => onChange('transparent')}
+            aria-label={t('panel.settings.deck.colorTransparent')}
+          />
+        )}
         {DECK_SWATCHES.map(c => (
           <button
             key={c}
@@ -1178,6 +1191,7 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
             <SettingsSection title={t('panel.settings.deck.monitoringBackground')}>
               <SwatchRow
                 value={slot.color}
+                allowTransparent
                 onChange={color => writeSlot({ ...slot, color })}
               />
             </SettingsSection>
@@ -1195,7 +1209,7 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
               {/* A full-bleed Custom image ignores the tile color, so the swatch
                   dims while that tab is active - it would otherwise look live
                   while having no visible effect. */}
-              <SwatchRow label={t('panel.settings.deck.color')} value={slot.color} disabled={iconTab === 'custom'} onChange={color => writeSlot({ ...slot, color })} />
+              <SwatchRow label={t('panel.settings.deck.color')} value={slot.color} allowTransparent disabled={iconTab === 'custom'} onChange={color => writeSlot({ ...slot, color })} />
             </SettingsSection>
           )}
 

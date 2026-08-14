@@ -2097,6 +2097,7 @@
   "panel.settings.deck.category.system": "系统",
   "panel.settings.deck.color": "图标颜色",
   "panel.settings.deck.colorAuto": "自动",
+  "panel.settings.deck.colorTransparent": "透明",
   "panel.settings.deck.deckBrightness.down": "减小",
   "panel.settings.deck.deckBrightness.set": "设置",
   "panel.settings.deck.deckBrightness.up": "增大",

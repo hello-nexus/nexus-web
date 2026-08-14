@@ -2287,6 +2287,7 @@
   "panel.settings.deck.category.system": "Systeem",
   "panel.settings.deck.color": "Pictogramkleur",
   "panel.settings.deck.colorAuto": "Automatisch",
+  "panel.settings.deck.colorTransparent": "Transparant",
   "panel.settings.deck.deckBrightness.down": "Verlagen",
   "panel.settings.deck.deckBrightness.set": "Instellen",
   "panel.settings.deck.deckBrightness.up": "Verhogen",

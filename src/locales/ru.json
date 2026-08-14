@@ -2109,6 +2109,7 @@
   "panel.settings.deck.category.system": "Система",
   "panel.settings.deck.color": "Цвет значка",
   "panel.settings.deck.colorAuto": "Авто",
+  "panel.settings.deck.colorTransparent": "Прозрачный",
   "panel.settings.deck.deckBrightness.down": "Темнее",
   "panel.settings.deck.deckBrightness.set": "Установить",
   "panel.settings.deck.deckBrightness.up": "Ярче",

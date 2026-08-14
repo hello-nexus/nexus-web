@@ -2097,6 +2097,7 @@
   "panel.settings.deck.category.system": "系統",
   "panel.settings.deck.color": "圖示顏色",
   "panel.settings.deck.colorAuto": "自動",
+  "panel.settings.deck.colorTransparent": "透明",
   "panel.settings.deck.deckBrightness.down": "降低",
   "panel.settings.deck.deckBrightness.set": "設定",
   "panel.settings.deck.deckBrightness.up": "增加",

@@ -2097,6 +2097,7 @@
   "panel.settings.deck.category.system": "Sistem",
   "panel.settings.deck.color": "Simge rengi",
   "panel.settings.deck.colorAuto": "Otomatik",
+  "panel.settings.deck.colorTransparent": "Şeffaf",
   "panel.settings.deck.deckBrightness.down": "Azalt",
   "panel.settings.deck.deckBrightness.set": "Ayarla",
   "panel.settings.deck.deckBrightness.up": "Artır",

@@ -157,7 +157,7 @@ export interface DeckTitleStyle {
 export interface DeckSlot {
   icon?: DeckIcon;     // unset → auto icon by action category
   label?: string;      // shown when set (no global toggle); overlays the icon, never shrinks it
-  color?: string;      // unset → auto color by action category; else override token/hex
+  color?: string;      // unset → auto color by action category; else override token/hex or 'transparent'
   title?: DeckTitleStyle; // styling for `label`; unset → deckTitleStyle.ts defaults
   action?: DeckAction; // a slot is an action OR a folder OR empty
   folder?: DeckFolder;

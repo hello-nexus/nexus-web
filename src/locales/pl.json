@@ -2109,6 +2109,7 @@
   "panel.settings.deck.category.system": "System",
   "panel.settings.deck.color": "Kolor ikony",
   "panel.settings.deck.colorAuto": "Auto",
+  "panel.settings.deck.colorTransparent": "Przezroczysty",
   "panel.settings.deck.deckBrightness.down": "Zmniejsz",
   "panel.settings.deck.deckBrightness.set": "Ustaw",
   "panel.settings.deck.deckBrightness.up": "Zwiększ",

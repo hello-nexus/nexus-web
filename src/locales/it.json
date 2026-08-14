@@ -2097,6 +2097,7 @@
   "panel.settings.deck.category.system": "Sistema",
   "panel.settings.deck.color": "Colore icona",
   "panel.settings.deck.colorAuto": "Auto",
+  "panel.settings.deck.colorTransparent": "Trasparente",
   "panel.settings.deck.deckBrightness.down": "Diminuisci",
   "panel.settings.deck.deckBrightness.set": "Imposta",
   "panel.settings.deck.deckBrightness.up": "Aumenta",

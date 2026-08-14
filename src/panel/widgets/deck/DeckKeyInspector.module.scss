@@ -277,6 +277,13 @@ textarea.input { resize: vertical; min-height: 2.4rem; }
   border: 1px solid var(--deck-settings-border);
 }
 
+// Checkerboard, the standard transparent-color affordance; same resting
+// border treatment as the Auto chip.
+.transparentSwatch {
+  background: conic-gradient(var(--deck-settings-faint) 0 25%, transparent 0 50%, var(--deck-settings-faint) 0 75%, transparent 0) 0 0 / 10px 10px;
+  border: 1px solid var(--deck-settings-border);
+}
+
 .steps { display: flex; flex-direction: column; gap: 10px; }
 
 .step {

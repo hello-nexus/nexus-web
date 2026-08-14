@@ -284,7 +284,9 @@ export function DeckGrid({ slots, cols, rows, selectable, dragEnabled, selectedI
       {slots.map((slot, i) => (
         <Cell
           key={i}
-          slot={slot}
+          // square = hardware mirror: a 'transparent' background uploads as
+          // off-black (JPEG/BMP encoding drops the alpha), so preview it that way.
+          slot={square && slot.color === 'transparent' ? { ...slot, color: '#000000' } : slot}
           index={i}
           selectable={selectable}
           selected={selectable && i === selectedIndex}

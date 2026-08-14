@@ -2042,6 +2042,7 @@
   "panel.settings.deck.category.system": "システム",
   "panel.settings.deck.color": "アイコンの色",
   "panel.settings.deck.colorAuto": "自動",
+  "panel.settings.deck.colorTransparent": "透明",
   "panel.settings.deck.deckBrightness.down": "下げる",
   "panel.settings.deck.deckBrightness.set": "設定",
   "panel.settings.deck.deckBrightness.up": "上げる",

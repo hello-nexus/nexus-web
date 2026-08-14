@@ -318,3 +318,23 @@ describe('DeckGrid right-click delete', () => {
     expect(screen.queryByText('common.delete')).toBeNull();
   });
 });
+
+describe('DeckGrid transparent background', () => {
+  const slots: DeckSlot[] = [{ action: { type: 'hotkey', keys: '' }, color: 'transparent' }];
+
+  it('paints --deck-accent as transparent on the touch-widget grid', () => {
+    const { container } = render(
+      <DeckGrid slots={slots} cols={1} rows={1} selectable={false} onCell={() => {}} />,
+    );
+    const cell = container.querySelector('[data-deck-slot-index="0"]') as HTMLElement;
+    expect(cell.style.getPropertyValue('--deck-accent')).toBe('transparent');
+  });
+
+  it('previews transparent as the hardware off-black in square (physical mirror) mode', () => {
+    const { container } = render(
+      <DeckGrid slots={slots} cols={1} rows={1} selectable square onCell={() => {}} />,
+    );
+    const cell = container.querySelector('[data-deck-slot-index="0"]') as HTMLElement;
+    expect(cell.style.getPropertyValue('--deck-accent')).toBe('#000000');
+  });
+});
