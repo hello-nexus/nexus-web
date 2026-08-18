@@ -1387,6 +1387,7 @@
   "lighting.controls.color2": "Color 2",
   "lighting.controls.color3": "Color 3",
   "lighting.controls.color4": "Color 4",
+  "lighting.controls.colors": "Color",
   "lighting.controls.contrast": "Contraste",
   "lighting.controls.corners": "Esquinas",
   "lighting.controls.cosmicdust": "Polvo cósmico",

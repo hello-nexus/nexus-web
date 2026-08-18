@@ -443,11 +443,20 @@
   --effect-template-gap: 0.35rem;
   --effect-template-height: 32px;
   --effect-template-radius: var(--radius-sm);
-  --effect-template-border: var(--border);
+  // Border space is reserved but invisible at rest: selecting only recolours
+  // it, so the buttons never shift.
+  --effect-template-border-width: var(--picker-border-width);
+  --effect-template-border: transparent;
+  --effect-template-preview-inset: var(--picker-fill-gap);
   --effect-template-hover-border: var(--border-strong);
-  --effect-template-bg: var(--surface);
-  --effect-template-active-border: var(--accent);
-  --effect-template-active-shadow: 0 0 0 1px var(--accent), 0 0 8px var(--accent-glow-shadow);
+  // Transparent so the inset preview floats with no plate around it, matching
+  // the colour swatches' transparent gap.
+  --effect-template-bg: transparent;
+  // Selection reads in the text colour, not the accent: these rows sit next
+  // to real colour swatches, where a coloured ring misreads as a colour.
+  --effect-template-active-border: var(--text);
+  --effect-template-active-text: var(--text);
+  --effect-template-active-shadow: none;
 
   padding: 0.65rem 1rem 0;
   flex-shrink: 0;
@@ -1152,6 +1161,12 @@
 }
 
 .effectControls {
+  // Shared selection geometry for the two swatch-style pickers (preset row +
+  // colour slots): one knob keeps their border and fill-gap identical.
+  // Fill gap matches the browser cards' transparent-border content-to-ring gap.
+  --picker-border-width: 2px;
+  --picker-fill-gap: 1px;
+
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -1368,35 +1383,51 @@
   gap: 0.5rem;
 }
 
-.staticSwatchRow {
-  display: flex;
-  gap: 0.4rem;
+// Dim group title over the slot swatches; with the fixed-size centered row
+// below it, this is what tells the picker apart from the preset row above.
+.staticSwatchTitle {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  letter-spacing: 0.02em;
+  text-align: center;
 }
 
-// Selection reads the same as the preset row above it, so the two controls in
-// one pane share a visual language.
+.staticSwatchRow {
+  display: flex;
+  gap: 0.6rem;
+  align-self: center;
+}
+
+// Border/highlight treatment mirrors the drawer preset row (same underlying
+// tokens - the --effect-template-* vars are scoped to .drawerTemplates and do
+// not reach here).
 .staticSwatch {
-  flex: 1;
+  width: 2.25rem;
   height: 1.75rem;
+  flex: 0 0 auto;
   border-radius: var(--radius-sm);
-  border: var(--border-width) solid var(--separator);
+  // Reserved-but-invisible border, as on the preset row: selection only
+  // recolours it, so the swatch never shifts. The padding + content-box clip
+  // keep a gap between the colour fill and the border; the fill must be set
+  // via background-color (the background shorthand resets the clip).
+  border: var(--picker-border-width) solid transparent;
+  padding: var(--picker-fill-gap);
+  background-clip: content-box;
   cursor: pointer;
-  transition: border-color var(--ease-fast), box-shadow var(--ease-fast), transform var(--ease-fast);
+  transition: border-color var(--ease-fast), box-shadow var(--ease-fast);
 
   &:hover {
-    transform: translateY(-1px);
-    border-color: var(--effect-template-hover-border);
+    border-color: var(--border-strong);
   }
 
   &:focus-visible {
     outline: none;
-    border-color: var(--effect-template-active-border);
+    border-color: var(--accent);
     box-shadow: 0 0 0 2px var(--panel-accent-soft, var(--accent-soft));
   }
 }
 
 .staticSwatchActive,
 .staticSwatchActive:hover {
-  border-color: var(--effect-template-active-border);
-  box-shadow: var(--effect-template-active-shadow);
+  border-color: var(--text);
 }

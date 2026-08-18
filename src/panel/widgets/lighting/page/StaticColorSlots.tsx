@@ -3,6 +3,7 @@ import { useTranslation } from '../../../../lib/i18n';
 import { hsvToHex } from '../../../../lib/settings';
 import { PaletteRing } from '../../../../components/common/PaletteRing/PaletteRing';
 import { Slider } from '../../../../components/common/Slider/Slider';
+import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import type { EffectColorSlot, EffectState } from '../../../../types/lighting';
 import styles from '../LightingPage.module.scss';
 
@@ -55,22 +56,26 @@ export function StaticColorSlots({ slots, state, onChange, onCommit }: {
   return (
     <div className={styles.staticColorSlots}>
       {slots.length > 1 && (
-        <div className={styles.staticSwatchRow}>
-          {slots.map(slot => {
-            const selected = slot.id === active.id;
-            return (
-              <button
-                key={slot.id}
-                type="button"
-                className={`${styles.staticSwatch} ${selected ? styles.staticSwatchActive : ''}`}
-                style={{ background: slotHex(slot, state.params) }}
-                onClick={() => setActiveId(slot.id)}
-                aria-label={t(slot.labelKey)}
-                aria-pressed={selected}
-              />
-            );
-          })}
-        </div>
+        <>
+          <span className={styles.staticSwatchTitle}>{t('lighting.controls.colors')}</span>
+          <div className={styles.staticSwatchRow}>
+            {slots.map(slot => {
+              const selected = slot.id === active.id;
+              return (
+                <HoverTooltip key={slot.id} body={t(slot.labelKey)} side="top">
+                  <button
+                    type="button"
+                    className={`${styles.staticSwatch} ${selected ? styles.staticSwatchActive : ''}`}
+                    style={{ backgroundColor: slotHex(slot, state.params) }}
+                    onClick={() => setActiveId(slot.id)}
+                    aria-label={t(slot.labelKey)}
+                    aria-pressed={selected}
+                  />
+                </HoverTooltip>
+              );
+            })}
+          </div>
+        </>
       )}
       <div className={styles.paletteRingWrap}>
         <PaletteRing
