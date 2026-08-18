@@ -1279,9 +1279,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     );
   }
 
-  // Simple mode: only the browse grid (flat fills + gradient patterns) and
-  // the advanced-mode path. No mode tabs, preset toolbar, canvas, or right
-  // pane - those are the advanced page below.
+  // Simple mode: only the flat-colour browse grid and the advanced-mode
+  // path. No mode tabs, preset toolbar, canvas, or right pane - those are
+  // the advanced page below.
   if (simpleDashboard) {
     return (
       <div className={styles.lighting}>

@@ -277,9 +277,10 @@
   grid-template-columns: repeat(auto-fill, minmax(59px, 1fr));
 }
 
-// Simple-mode browse: enlarged cells throughout, colours included.
-.animateGridSectionLarge {
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+// Simple-mode browse: the flat colours as a fixed-width hero grid.
+.animateGridSectionHero {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
 }
 
 // Usage markers pinned to a grid cell's thumbnail (panels only): bulb = this
