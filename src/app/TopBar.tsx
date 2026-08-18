@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import classNames from 'classnames';
 import {
-  ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen,
+  ArrowLeftRight, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen,
   MoreVertical, Settings, FlaskConical, Info, Unplug,
   SlidersHorizontal, RefreshCw, Maximize2, Minimize2,
 } from 'lucide-react';
@@ -271,7 +271,7 @@ export function TopBar({
                 className={styles.modeToggleButton}
                 onClick={pageModeToggle.onToggle}
               >
-                <SlidersHorizontal size={14} aria-hidden />
+                <ArrowLeftRight size={14} aria-hidden />
                 <span className={styles.modeToggleLabel}>{pageModeToggle.label}</span>
               </button>
             </HoverTooltip>
