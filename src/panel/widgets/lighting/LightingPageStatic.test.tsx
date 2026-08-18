@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { UiSettingsProvider } from '../../../hooks/useUiSettings';
 import { LightingPage } from './LightingPage';
 
 const topicHandlers = vi.hoisted(() => ({ lighting: [] as (() => void)[] }));
@@ -80,7 +81,13 @@ const serviceState = { cooling: null, lighting: null, panel: null } as never;
 
 describe('LightingPage in static mode', () => {
   it('keeps the static selection when a lighting broadcast refreshes animate settings', async () => {
-    render(<LightingPage serviceOnline serviceState={serviceState} activeProfileId="p1" />);
+    // The test exercises the advanced page; the fresh-install default is simple.
+    localStorage.setItem('nexus_settings', JSON.stringify({ general: { dashboardMode: 'advanced' } }));
+    render(
+      <UiSettingsProvider>
+        <LightingPage serviceOnline serviceState={serviceState} activeProfileId="p1" />
+      </UiSettingsProvider>,
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId('grid-effect')).toHaveTextContent('checker');

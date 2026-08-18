@@ -307,3 +307,50 @@ describe('UiSettingsProvider - debounced write merge', () => {
     });
   });
 });
+
+describe('UiSettingsProvider - dashboardMode', () => {
+  const flush = () => act(async () => { await Promise.resolve(); });
+  const serverPrefs = (ui: Record<string, unknown> = {}) => ({
+    theme: { themeMode: 'dark', accentColor: '#2563eb', language: 'en' },
+    ui,
+  });
+
+  it('defaults to simple on a fresh install and posts a flip under the ui block', async () => {
+    h.fetchPreferences.mockResolvedValue(serverPrefs());
+    h.savePreferences.mockResolvedValue(undefined);
+    await act(async () => {
+      render(
+        <UiSettingsProvider serviceOnline manageDom>
+          <Consumer />
+        </UiSettingsProvider>,
+      );
+    });
+    await flush();
+
+    expect(captured.ctx!.settings.dashboardMode).toBe('simple');
+
+    await act(async () => { captured.ctx!.update({ dashboardMode: 'advanced' }); });
+    expect(captured.ctx!.settings.dashboardMode).toBe('advanced');
+    await act(async () => { await new Promise(r => setTimeout(r, 300)); });
+    expect(h.savePreferences).toHaveBeenCalledWith({ ui: { dashboardMode: 'advanced' } });
+  });
+
+  it('hydrates the server value and ignores an unknown one', async () => {
+    h.fetchPreferences.mockResolvedValue(serverPrefs({ dashboardMode: 'advanced' }));
+    await act(async () => {
+      render(
+        <UiSettingsProvider serviceOnline manageDom>
+          <Consumer />
+        </UiSettingsProvider>,
+      );
+    });
+    await flush();
+    expect(captured.ctx!.settings.dashboardMode).toBe('advanced');
+
+    // An unknown wire value (future schema, corruption) keeps the local value.
+    h.fetchPreferences.mockResolvedValue(serverPrefs({ dashboardMode: 'bogus' }));
+    await act(async () => { h.prefsCb?.(); });
+    await flush();
+    expect(captured.ctx!.settings.dashboardMode).toBe('advanced');
+  });
+});

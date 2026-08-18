@@ -31,48 +31,48 @@ vi.mock('../../../api/cooling', async (importOriginal) => {
   };
 });
 
-import { startCalibration } from '../../../api/cooling';
+import { applyProfile } from '../../../api/cooling';
 
 const serviceState = { cooling: { calibrating: false } } as unknown as ServiceState;
 
-async function clickCalibrate() {
-  render(
+function renderPage() {
+  return render(
     <UiSettingsProvider>
       <CoolingPage serviceOnline serviceState={serviceState} />
     </UiSettingsProvider>,
   );
-  const btn = await screen.findByRole('button', { name: /cooling\.calibrate\.button/ });
-  fireEvent.click(btn);
-  return btn;
 }
 
-describe('CoolingPage calibrate confirmation', () => {
+describe('CoolingPage simple mode', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Fresh install: no stored settings, dashboardMode defaults to 'simple'.
     localStorage.clear();
-    // These tests exercise the advanced page; the fresh-install default is simple.
-    localStorage.setItem('nexus_settings', JSON.stringify({ general: { dashboardMode: 'advanced' } }));
   });
 
-  it('explains the run instead of starting it when Calibrate is pressed', async () => {
-    await clickCalibrate();
-    expect(await screen.findByText('cooling.calibrate.confirmTitle')).toBeTruthy();
-    expect(screen.getByText('cooling.calibrate.confirmMessage')).toBeTruthy();
-    // The duration/lock warning rides the modal's note slot.
-    expect(screen.getByText('cooling.calibrate.locked')).toBeTruthy();
-    expect(startCalibration).not.toHaveBeenCalled();
+  it('renders the four preset tiles without the custom preset or advanced chrome', () => {
+    renderPage();
+    // Tile names concatenate the label and the description line.
+    for (const key of ['off', 'silent', 'balanced', 'turbo']) {
+      expect(screen.getByRole('button', { name: new RegExp(`cooling\\.preset\\.${key}\\b`) })).toBeTruthy();
+    }
+    expect(screen.queryByRole('button', { name: /cooling\.preset\.custom/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /cooling\.calibrate\.button/ })).toBeNull();
+    expect(screen.getByRole('button', { name: /cooling\.simple\.advancedCta/ })).toBeTruthy();
   });
 
-  it('starts calibration only after the confirm button', async () => {
-    await clickCalibrate();
-    fireEvent.click(await screen.findByRole('button', { name: 'cooling.calibrate.confirmStart' }));
-    await waitFor(() => expect(startCalibration).toHaveBeenCalledTimes(1));
+  it('applies a preset from its tile', async () => {
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: /cooling\.preset\.silent\b/ }));
+    await waitFor(() => {
+      expect(vi.mocked(applyProfile)).toHaveBeenCalledWith('silent');
+    });
   });
 
-  it('leaves calibration unstarted when the dialog is cancelled', async () => {
-    await clickCalibrate();
-    fireEvent.click(await screen.findByRole('button', { name: 'confirm.cancel' }));
-    await waitFor(() => expect(screen.queryByText('cooling.calibrate.confirmTitle')).toBeNull());
-    expect(startCalibration).not.toHaveBeenCalled();
+  it('switches to the advanced page from the CTA', async () => {
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: /cooling\.simple\.advancedCta/ }));
+    expect(await screen.findByRole('button', { name: /cooling\.calibrate\.button/ })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /cooling\.simple\.advancedCta/ })).toBeNull();
   });
 });

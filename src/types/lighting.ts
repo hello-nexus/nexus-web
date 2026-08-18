@@ -682,6 +682,17 @@ export const DEFAULT_STATIC_EFFECT = 'gradientlinear';
  */
 export const ANIMATE_EFFECTS: EffectDef[] = EFFECTS.filter(e => !STATIC_KEY_SET.has(e.key));
 
+/**
+ * Simple-mode (ui.dashboardMode) browse pool: the solid fills (applied as
+ * Static colours) followed by the full animation catalog. The frozen static
+ * patterns stay advanced-only - in one grid they would duplicate the
+ * animated categories' names with motionless lookalikes.
+ */
+export const SIMPLE_MODE_EFFECTS: EffectDef[] = [
+  ...EFFECTS.filter(e => STATIC_FILL_SET.has(e.key)),
+  ...ANIMATE_EFFECTS,
+];
+
 export function defaultParamsFor(key: string): Record<string, number> {
   const def = EFFECTS.find(e => e.key === key);
   if (!def) return {};

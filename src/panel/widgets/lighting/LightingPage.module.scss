@@ -89,6 +89,20 @@
   overflow: hidden;
 }
 
+// Simple-mode (ui.dashboardMode) layout: the browse grid fills the page with
+// the advanced-mode CTA docked beneath it. No tabs / canvas / right pane.
+.simpleBody {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-right: 0.5rem;
+}
+
+.simpleFooter {
+  flex: 0 0 auto;
+  padding: 0.75rem 0.3rem 1rem;
+}
+
 .canvasArea {
   flex-shrink: 0;
   display: flex;

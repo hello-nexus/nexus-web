@@ -19,6 +19,7 @@ vi.mock('./sidebar', () => ({
 }));
 
 import { TopBar } from './TopBar';
+import { PageChromeProvider, usePageModeToggle } from './PageChrome';
 
 const profiles: UseProfilesResult = {
   profiles: [],
@@ -116,5 +117,72 @@ describe('TopBar focus mode', () => {
   it('shows the page title again once Focus mode is off', () => {
     renderTopBar({ focusCapable: true, focusMode: false });
     expect(screen.getByText('Monitoring')).toBeInTheDocument();
+  });
+});
+
+// Stand-in for a page (Lighting/Cooling) registering its mode toggle.
+function RegisterModeToggle({ label, onToggle }: { label: string; onToggle: () => void }) {
+  usePageModeToggle({ label, onToggle });
+  return null;
+}
+
+function renderTopBarWithModeToggle(
+  onToggle: () => void,
+  overrides: Partial<Parameters<typeof TopBar>[0]> = {},
+) {
+  return render(
+    <PageChromeProvider>
+      <RegisterModeToggle label="uiMode.switchToAdvanced" onToggle={onToggle} />
+      <TopBar
+        hasSidebar
+        compact={false}
+        onToggleCompact={() => {}}
+        pageTitle="Lighting"
+        canGoBack={false}
+        canGoForward={false}
+        goBack={() => {}}
+        goForward={() => {}}
+        online={false}
+        platform=""
+        connectionState="online"
+        connectEpoch={0}
+        profiles={profiles}
+        cloudAccounts={cloudAccounts}
+        onPreferencesChanged={() => {}}
+        onNavigateSettings={() => {}}
+        onNavigateTools={() => {}}
+        onOpenUpdate={() => {}}
+        onInstall={() => {}}
+        onManageProfiles={() => {}}
+        onNavigateAccount={() => {}}
+        isWindowsApp
+        isMacApp={false}
+        focusCapable={false}
+        focusMode={false}
+        onToggleFocusMode={() => {}}
+        {...overrides}
+      />
+    </PageChromeProvider>,
+  );
+}
+
+describe('TopBar page mode toggle', () => {
+  it('renders no toggle when the active page registered none', () => {
+    renderTopBar();
+    expect(screen.queryByRole('button', { name: 'uiMode.switchToAdvanced' })).not.toBeInTheDocument();
+  });
+
+  it('renders the registered full-text toggle and fires it on click', () => {
+    const onToggle = vi.fn();
+    renderTopBarWithModeToggle(onToggle);
+    const btn = screen.getByRole('button', { name: 'uiMode.switchToAdvanced' });
+    expect(btn).toHaveTextContent('uiMode.switchToAdvanced');
+    fireEvent.click(btn);
+    expect(onToggle).toHaveBeenCalledTimes(1);
+  });
+
+  it('hides the toggle in Focus mode', () => {
+    renderTopBarWithModeToggle(vi.fn(), { focusCapable: true, focusMode: true });
+    expect(screen.queryByRole('button', { name: 'uiMode.switchToAdvanced' })).not.toBeInTheDocument();
   });
 });

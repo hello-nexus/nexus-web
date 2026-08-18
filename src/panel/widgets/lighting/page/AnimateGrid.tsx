@@ -4,7 +4,7 @@ import { useTranslation } from '../../../../lib/i18n';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { CollapsibleSection } from '../../../../components/common/CollapsibleSection/CollapsibleSection';
 import {
-  EFFECTS, EFFECT_CATEGORIES, categoryOf,
+  EFFECTS, EFFECT_CATEGORIES, categoryOf, isStaticFill,
   type EffectCategory, type EffectDef,
 } from '../../../../types/lighting';
 import { EffectCard } from '../../../../components/common/EffectCard/EffectCard';
@@ -60,7 +60,7 @@ function AnimateGridCell({ fx, slot, version, active, live, panel, label, hideLa
  * hardware gets a bulb. Effects are listed in pre-expanded category groups
  * (EFFECT_CATEGORIES order), each under a header in the cooling-panel style.
  */
-export function AnimateGrid({ effect, onSelect, effects = EFFECTS, slotFor, versionFor, rgbActiveEffect, panelEffects, gpuAvailable, frozen }: {
+export function AnimateGrid({ effect, onSelect, effects = EFFECTS, slotFor, versionFor, rgbActiveEffect, panelEffects, gpuAvailable, frozen, simpleBrowse }: {
   effect: string;
   onSelect: (key: string) => void;
   /** Effect pool to show. Defaults to the full RGB set; panel backgrounds pass
@@ -78,6 +78,9 @@ export function AnimateGrid({ effect, onSelect, effects = EFFECTS, slotFor, vers
   gpuAvailable?: boolean;
   /** Static mode: tiles render frozen so the grid matches the LED output. */
   frozen?: boolean;
+  /** Simple-mode browse (SIMPLE_MODE_EFFECTS pool): the simple colours render
+   *  at full card size with labels, and only the fill cells freeze. */
+  simpleBrowse?: boolean;
 }) {
   const { t } = useTranslation();
   const gridRef = useRef<HTMLDivElement>(null);
@@ -128,7 +131,7 @@ export function AnimateGrid({ effect, onSelect, effects = EFFECTS, slotFor, vers
             open={!collapsed.has(g.cat)}
             onToggle={() => toggle(g.cat)}
           >
-            <div className={`${styles.animateGridSection} ${g.cat === 'simple' ? styles.animateGridSectionSimple : ''}`}>
+            <div className={`${styles.animateGridSection} ${g.cat === 'simple' && !simpleBrowse ? styles.animateGridSectionSimple : ''}`}>
               {g.items.map(fx => (
                 <AnimateGridCell
                   key={fx.key}
@@ -139,9 +142,9 @@ export function AnimateGrid({ effect, onSelect, effects = EFFECTS, slotFor, vers
                   live={!!rgbActiveEffect && fx.key === rgbActiveEffect}
                   panel={!!panelEffects && panelEffects.has(fx.key)}
                   label={t(fx.labelKey)}
-                  hideLabel={g.cat === 'simple'}
+                  hideLabel={g.cat === 'simple' && !simpleBrowse}
                   gpuAvailable={gpuAvailable}
-                  frozen={frozen}
+                  frozen={frozen || (simpleBrowse && isStaticFill(fx.key))}
                   onSelect={() => onSelect(fx.key)}
                 />
               ))}

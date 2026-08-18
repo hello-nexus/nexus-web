@@ -35,7 +35,8 @@ import { LightingSkeleton } from '../../../components/views/PageSkeleton/PageSke
 import { DeviceCanvas } from '../../../components/common/DeviceCanvas/DeviceCanvas';
 import { usePanelBackgroundUsage } from '../../../hooks/usePanelBackgroundUsage';
 import {
-  EFFECTS, ANIMATE_EFFECTS, STATIC_EFFECTS, DEFAULT_STATIC_EFFECT, MODES, defaultStateFor, isStaticEffect,
+  EFFECTS, ANIMATE_EFFECTS, STATIC_EFFECTS, SIMPLE_MODE_EFFECTS, DEFAULT_STATIC_EFFECT, MODES,
+  defaultStateFor, isStaticEffect, isStaticFill,
   type EffectState, type EffectTemplateBundle, type LightingMode,
 } from '../../../types/lighting';
 import { defaultTemplatesFor, mergeTemplates, slotMatchesDefault, slotThumbSignature } from '../../../types/lightingTemplates';
@@ -54,6 +55,9 @@ import { PresetToolbar } from '../../../components/common/PresetToolbar/PresetTo
 import { EffectTab, type PostProcessState } from './page/EffectTab';
 import { useThrottle } from '../../../hooks/cadence';
 import { useAudioState } from '../../../hooks/useAudioState';
+import { useUiSettings } from '../../../hooks/useUiSettings';
+import { usePageModeToggle } from '../../../app/PageChrome';
+import { AdvancedModeCta } from '../../../components/common/AdvancedModeCta/AdvancedModeCta';
 import styles from './LightingPage.module.scss';
 
 /**
@@ -114,6 +118,15 @@ function loadDeviceOrder(): string[] {
 
 export function LightingPage({ serviceOnline, serviceState, connectionState, activeProfileId, platform = '', onSectionNavigate }: LightingViewProps) {
   const { t } = useTranslation();
+  const { settings: uiSettings, update: updateUiSettings } = useUiSettings();
+  const simpleDashboard = uiSettings.dashboardMode === 'simple';
+  const toggleDashboardMode = useCallback(() => {
+    updateUiSettings({ dashboardMode: simpleDashboard ? 'advanced' : 'simple' });
+  }, [simpleDashboard, updateUiSettings]);
+  usePageModeToggle({
+    label: t(simpleDashboard ? 'uiMode.switchToAdvanced' : 'uiMode.switchToSimple'),
+    onToggle: toggleDashboardMode,
+  });
   const { mode, setMode, rawSync, setRawSync, synced, paused: syncedPaused } = useLightingSync(serviceOnline, activeProfileId);
   // Game Sync requires the Windows Chroma capture shim; hide it on non-Windows
   // (empty platform = ping not yet resolved, keep hidden to avoid a flash).
@@ -716,6 +729,31 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     if (activeRightTab !== 'effect') pulseEffectTab();
   }, [activeEffect, activeRightTab, applyAnimate, pulseEffectTab, stateFor]);
 
+  // Simple mode has no mode tabs: picking a fill enters Static and picking an
+  // animation enters Animation, mirroring handleModeChange's start calls.
+  const handleSimpleEffectSelect = useCallback((key: string) => {
+    const isFill = isStaticFill(key);
+    const m: LightingMode = isFill ? 'static' : 'animate';
+    // Re-clicking the running card would restart the effect server-side
+    // (visible phase reset on animations).
+    if (effectiveMode === m && activeEffect === key) return;
+    setMode(m);
+    setPausedState(false);
+    setActiveEffect(key);
+    setRawSync(isFill ? 'static' : key);
+    if (isFill) staticEffectRef.current = key;
+    else animateEffectRef.current = key;
+    const state = stateFor(key);
+    if (isFill) {
+      startStatic(key, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params)
+        .catch(() => { /* best-effort; backend state becomes source of truth */ });
+    } else {
+      startAnimate(key, state.speed, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params)
+        .catch(() => { /* best-effort; backend state becomes source of truth */ });
+    }
+    publishControlSync({ domain: 'lighting', mode: m, rawSync: isFill ? 'static' : key, effect: key });
+  }, [effectiveMode, activeEffect, setMode, setRawSync, stateFor]);
+
   const effectPool = mode === 'static' ? STATIC_EFFECTS : ANIMATE_EFFECTS;
 
   const handlePrevEffect = useCallback(() => {
@@ -1232,8 +1270,38 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   if (!serviceOnline) {
     return (
       <div className={styles.lighting}>
-        <ViewHeader title={t('lighting.title')} tabs={modeTabs} activeTab={synced ? effectiveMode : undefined} onTabChange={k => handleModeChange(k as LightingMode)} tabsDisabled />
+        {!simpleDashboard && (
+          <ViewHeader title={t('lighting.title')} tabs={modeTabs} activeTab={synced ? effectiveMode : undefined} onTabChange={k => handleModeChange(k as LightingMode)} tabsDisabled />
+        )}
         <ServiceRequired state={connectionState} skeleton={<LightingSkeleton />} />
+      </div>
+    );
+  }
+
+  // Simple mode: only the browse grid (fills large + the animation catalog)
+  // and the advanced-mode path. No mode tabs, preset toolbar, canvas, or
+  // right pane - those are the advanced page below.
+  if (simpleDashboard) {
+    return (
+      <div className={styles.lighting}>
+        <div className={`${styles.simpleBody} pageBodyFill`}>
+          <AnimateGrid
+            effect={shaderMode ? activeEffect : ''}
+            onSelect={handleSimpleEffectSelect}
+            effects={SIMPLE_MODE_EFFECTS}
+            simpleBrowse
+            slotFor={slotForEffect}
+            versionFor={versionForEffect}
+            panelEffects={panelUsage.effects}
+            gpuAvailable={serviceState.lighting?.gpuAvailable ?? true}
+          />
+          <div className={styles.simpleFooter}>
+            <AdvancedModeCta
+              label={t('lighting.simple.advancedCta')}
+              onPress={() => updateUiSettings({ dashboardMode: 'advanced' })}
+            />
+          </div>
+        </div>
       </div>
     );
   }

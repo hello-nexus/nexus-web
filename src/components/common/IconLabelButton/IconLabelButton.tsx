@@ -4,6 +4,9 @@ import styles from './IconLabelButton.module.scss';
 
 export interface IconLabelButtonProps {
   label?: ReactNode;
+  /** Secondary line under the label (e.g. what a preset does). Sized by the
+   *  --icon-label-desc-size token. */
+  description?: ReactNode;
   icon?: ReactNode;
   active?: boolean;
   disabled?: boolean;
@@ -18,6 +21,7 @@ export interface IconLabelButtonProps {
 
 export function IconLabelButton({
   label,
+  description,
   icon,
   active,
   disabled = false,
@@ -75,6 +79,7 @@ export function IconLabelButton({
     >
       {icon && <span className={styles.icon}>{icon}</span>}
       {label != null && label !== '' && <span className={styles.label}>{label}</span>}
+      {description != null && description !== '' && <span className={styles.description}>{description}</span>}
     </button>
   );
   return title ? <HoverTooltip body={title} side="top">{btn}</HoverTooltip> : btn;

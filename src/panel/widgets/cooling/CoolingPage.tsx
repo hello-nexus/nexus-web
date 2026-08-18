@@ -36,6 +36,9 @@ import type { ServiceState } from '../../../hooks/useServiceState';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useTranslation } from '../../../lib/i18n';
 import { useUiSettings } from '../../../hooks/useUiSettings';
+import { usePageModeToggle } from '../../../app/PageChrome';
+import { AdvancedModeCta } from '../../../components/common/AdvancedModeCta/AdvancedModeCta';
+import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
 import { publishControlSync, subscribeControlSync } from '../../../lib/controlSync';
 import { emitRadialBloomFromElement } from '../../../lib/backgroundEffects';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
@@ -126,8 +129,17 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   const realtimeData = useCoolingRealtime(serviceOnline);
   const curveCalcs = useCoolingCurves(serviceOnline);
   const sensors = useSensors(serviceOnline);
-  const { settings } = useUiSettings();
+  const { settings, update: updateUi } = useUiSettings();
   const cpuTemp = resolveCpuTempSensor(sensors.cpu, settings.preferredCpuTempSensorId);
+
+  const simpleDashboard = settings.dashboardMode === 'simple';
+  const toggleDashboardMode = useCallback(() => {
+    updateUi({ dashboardMode: simpleDashboard ? 'advanced' : 'simple' });
+  }, [simpleDashboard, updateUi]);
+  usePageModeToggle({
+    label: t(simpleDashboard ? 'uiMode.switchToAdvanced' : 'uiMode.switchToSimple'),
+    onToggle: toggleDashboardMode,
+  });
 
   // The curve whose graph + editor the hero card shows; a row of buttons inside
   // the card selects it. Selecting also highlights the fans bound to it. Seeded
@@ -749,14 +761,50 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   if (!serviceOnline) {
     return (
       <div className={styles.cooling}>
-        <ViewHeader
-          title={t('cooling.title')}
-          tabs={presetTabs}
-          activeTab={activePreset ?? undefined}
-          onTabChange={k => handlePresetChange(k)}
-          tabsDisabled
-        />
+        {!simpleDashboard && (
+          <ViewHeader
+            title={t('cooling.title')}
+            tabs={presetTabs}
+            activeTab={activePreset ?? undefined}
+            onTabChange={k => handlePresetChange(k)}
+            tabsDisabled
+          />
+        )}
         <ServiceRequired state={connectionState} skeleton={<CoolingSkeleton />} />
+      </div>
+    );
+  }
+
+  // Simple mode: large preset tiles plus the advanced-mode path. Custom is
+  // advanced-only (it means editing curves), so an active custom preset shows
+  // as a hint line instead of a fifth tile.
+  if (simpleDashboard) {
+    return (
+      <div className={styles.cooling}>
+        <div className={`${styles.simpleBody} pageBodyFill`}>
+          <div className={styles.simplePresets} role="group" aria-label={t('cooling.title')}>
+            {COOLING_PRESETS.filter(p => p.key !== 'custom').map(p => (
+              <IconLabelButton
+                key={p.key}
+                className={styles.simplePresetTile}
+                icon={<p.Icon size={30} />}
+                label={t(p.i18nKey)}
+                description={t(p.key === 'off' ? 'cooling.preset.off.banner' : `cooling.preset.${p.key}.desc`)}
+                active={activePreset === p.key}
+                onPress={() => { void handlePresetChange(p.key); }}
+              />
+            ))}
+          </div>
+          {activePreset === 'custom' && (
+            <p className={styles.simpleCustomNote}>{t('cooling.simple.customActive')}</p>
+          )}
+          <div className={styles.simpleFooter}>
+            <AdvancedModeCta
+              label={t('cooling.simple.advancedCta')}
+              onPress={() => updateUi({ dashboardMode: 'advanced' })}
+            />
+          </div>
+        </div>
       </div>
     );
   }
