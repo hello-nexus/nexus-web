@@ -21,7 +21,7 @@
   font: inherit;
 
   &:hover {
-    border-color: var(--accent);
+    border-color: var(--border-strong);
     transform: translateY(-1px);
   }
 
@@ -30,12 +30,14 @@
   }
 }
 
+// Selection reads in the text colour, not the accent: pick-grid content is
+// colourful (shader thumbs, media art), where a coloured ring misreads.
 .cardActive {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-  box-shadow: 0 0 0 1px var(--accent);
+  border-color: var(--text);
+  background: color-mix(in srgb, var(--text) 10%, transparent);
+  box-shadow: 0 0 0 1px var(--text);
 
-  &:hover { border-color: var(--accent); }
+  &:hover { border-color: var(--text); }
 }
 
 // Overlay layout (shader browser): the screenshot IS the card, with the
@@ -49,9 +51,9 @@
   overflow: hidden;
   // External ring: a constant-width OUTSET shadow sitting just outside the card
   // edge (in the grid gap). It never touches the box model, so the card never
-  // shrinks OR moves - only the colour changes (transparent idle → accent on
-  // hover/selected). The grid gap is tightened (.animateGrid) to absorb the
-  // extra outer width so cards still read as evenly spaced.
+  // shrinks OR moves - only the colour changes on hover/selected. The grid gap
+  // is tightened (.animateGrid) to absorb the extra outer width so cards still
+  // read as evenly spaced.
   border-color: transparent;
   box-shadow: 0 0 0 var(--effect-card-ring) transparent;
   // Transition the ring only - NOT transform - so hovering never nudges the card.
@@ -71,19 +73,19 @@
   }
 
   // No lift on hover: cancel the base card's translateY so the card stays put.
-  // Hover ring is a muted neutral (NOT the accent) so it's a quiet hint - the
-  // accent ring is reserved for the actual selection below.
+  // Hover ring is a muted neutral so it's a quiet hint - the text-colour ring
+  // is reserved for the actual selection below.
   &:hover {
     transform: none;
     box-shadow: 0 0 0 var(--effect-card-ring) var(--border-strong);
   }
 }
 
-// Selected shader card: the prominent accent ring (wins over the hover ring
-// when a selected card is also hovered, via source order).
+// Selected shader card: the prominent text-colour ring (wins over the hover
+// ring when a selected card is also hovered, via source order).
 .cardOverlay.cardActive {
   border-color: transparent;
-  box-shadow: 0 0 0 var(--effect-card-ring) var(--accent);
+  box-shadow: 0 0 0 var(--effect-card-ring) var(--text);
 }
 
 // Non-interactive display card (nonInteractive prop): no pointer cursor and

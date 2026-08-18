@@ -1,7 +1,14 @@
-.selector {
+// Var defaults sit at zero specificity so a consumer class passed via
+// className (same element, e.g. .drawerTemplates) always wins - with a plain
+// .selector rule the winner would be compiled-chunk source order.
+:where(.selector) {
   --effect-template-gap: 0.35rem;
   --effect-template-height: 32px;
   --effect-template-radius: var(--radius-sm);
+  --effect-template-border-width: 1px;
+  // Gap between the preview fill and the button border (the EffectCard
+  // thumb-inset treatment); zero keeps the fill flush.
+  --effect-template-preview-inset: 0px;
   --effect-template-border: var(--panel-border, var(--border));
   --effect-template-hover-border: var(--border-strong, var(--effect-template-border));
   --effect-template-bg: var(--panel-element-bg, var(--surface));
@@ -10,7 +17,9 @@
   --effect-template-active-bg: var(--effect-template-bg);
   --effect-template-active-text: var(--panel-accent-glow, var(--accent));
   --effect-template-active-shadow: 0 0 0 1px var(--effect-template-active-border), 0 0 8px var(--accent-glow-shadow, transparent);
+}
 
+.selector {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--effect-template-gap);
@@ -22,17 +31,18 @@
   height: var(--effect-template-height);
   padding: 0;
   overflow: hidden;
-  border: 1px solid var(--effect-template-border);
+  border: var(--effect-template-border-width) solid var(--effect-template-border);
   border-radius: var(--effect-template-radius);
   background: var(--effect-template-bg);
   color: var(--effect-template-text);
   cursor: pointer;
-  transition: border-color var(--ease-fast), background var(--ease-fast), color var(--ease-fast), transform var(--ease-fast), box-shadow var(--ease-fast);
+  transition: border-color var(--ease-fast), background var(--ease-fast), color var(--ease-fast), box-shadow var(--ease-fast);
   appearance: none;
   font: inherit;
 
+  // Hover is a colour hint only - no transform, so selection state changes
+  // never shift the button.
   &:hover {
-    transform: translateY(-1px);
     border-color: var(--effect-template-hover-border);
   }
 
@@ -56,8 +66,10 @@
 
 .preview {
   position: absolute;
-  inset: 0;
-  border-radius: inherit;
+  inset: var(--effect-template-preview-inset);
+  // Concentric with the button's outer radius: shrink by border + inset so
+  // the gap stays even through the corners.
+  border-radius: calc(var(--effect-template-radius) - var(--effect-template-border-width) - var(--effect-template-preview-inset));
   overflow: hidden;
 }
 
