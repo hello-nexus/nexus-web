@@ -790,7 +790,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
               <IconLabelButton
                 key={p.key}
                 className={styles.simplePresetTile}
-                icon={<p.Icon size={30} />}
+                icon={<p.Icon size={48} />}
                 label={t(p.i18nKey)}
                 description={t(p.key === 'off' ? 'cooling.preset.off.banner' : `cooling.preset.${p.key}.desc`)}
                 active={activePreset === p.key}

@@ -67,21 +67,18 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 0.75rem;
-  // Splits the free height with the footer's auto margin, centering the tile
-  // block between the top bar and the CTA instead of pinning it to the top.
-  margin-top: auto;
 }
 
 .simplePresetTile {
-  --icon-label-button-height: 132px;
-  --icon-label-button-gap: 0.45rem;
-  --icon-label-icon-size: 30px;
-  --icon-label-label-size: var(--type-body);
-  --icon-label-desc-size: var(--type-small);
+  --icon-label-button-height: 264px;
+  --icon-label-button-gap: 0.7rem;
+  --icon-label-icon-size: 48px;
+  --icon-label-label-size: var(--type-heading);
+  --icon-label-desc-size: var(--type-body);
   --icon-label-button-radius: var(--radius-lg);
   --icon-label-button-active-border: var(--accent);
 
-  padding: 1.2rem 1rem;
+  padding: 1.6rem 1.25rem;
 }
 
 .simpleCustomNote {

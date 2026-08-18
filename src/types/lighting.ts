@@ -55,7 +55,7 @@ export const EFFECT_CATEGORIES: EffectCategory[] = [
 export const SIMPLE_EFFECT_KEYS = [
   'simplewhite', 'simplesoftpink', 'simplepink', 'simplered',
   'simpleorange', 'simpleyellow', 'simplegreen', 'simpledarkgreen',
-  'simpleturquoise', 'simplecyan', 'simpleblue', 'simpleviolet',
+  'simplecyan', 'simpleblue', 'simpleviolet',
 ] as const;
 
 /** A per-effect colour the user picks with the wheel. Each maps to an HSV
@@ -96,7 +96,7 @@ export const EFFECT_CATEGORY: Record<string, EffectCategory> = {
   // Simple solid-colour fills.
   simplewhite: 'simple', simplesoftpink: 'simple', simplepink: 'simple',
   simplered: 'simple', simpleorange: 'simple', simpleyellow: 'simple',
-  simplegreen: 'simple', simpledarkgreen: 'simple', simpleturquoise: 'simple',
+  simplegreen: 'simple', simpledarkgreen: 'simple',
   simplecyan: 'simple', simpleblue: 'simple', simpleviolet: 'simple',
   gradientlinear: 'gradient', gradientradial: 'gradient', gradienttri: 'gradient',
   gradientconic: 'gradient', mirror: 'gradient', corners: 'gradient',
@@ -170,7 +170,6 @@ export const EFFECTS: EffectDef[] = [
   { key: 'simpleyellow',    labelKey: 'lighting.controls.simpleyellow',    hideSpeed: true, params: SIMPLE_COLOR_PARAMS },
   { key: 'simplegreen',     labelKey: 'lighting.controls.simplegreen',     hideSpeed: true, params: SIMPLE_COLOR_PARAMS },
   { key: 'simpledarkgreen', labelKey: 'lighting.controls.simpledarkgreen', hideSpeed: true, params: SIMPLE_COLOR_PARAMS },
-  { key: 'simpleturquoise', labelKey: 'lighting.controls.simpleturquoise', hideSpeed: true, params: SIMPLE_COLOR_PARAMS },
   { key: 'simplecyan',      labelKey: 'lighting.controls.simplecyan',      hideSpeed: true, params: SIMPLE_COLOR_PARAMS },
   { key: 'simpleblue',      labelKey: 'lighting.controls.simpleblue',      hideSpeed: true, params: SIMPLE_COLOR_PARAMS },
   { key: 'simpleviolet',    labelKey: 'lighting.controls.simpleviolet',    hideSpeed: true, params: SIMPLE_COLOR_PARAMS },

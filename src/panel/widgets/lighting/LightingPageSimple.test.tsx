@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { UiSettingsProvider } from '../../../hooks/useUiSettings';
@@ -7,12 +8,13 @@ import { LightingPage } from './LightingPage';
 
 // Rendered outside I18nProvider, so t() falls back to raw keys.
 
+const syncState = vi.hoisted(() => ({ mode: 'none' }));
 vi.mock('../../../hooks/useLightingSync', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../hooks/useLightingSync')>()),
   useLightingSync: () => ({
-    mode: 'none',
+    mode: syncState.mode,
     setMode: vi.fn(),
-    rawSync: 'none',
+    rawSync: syncState.mode,
     setRawSync: vi.fn(),
     synced: true,
     paused: false,
@@ -35,16 +37,18 @@ vi.mock('../../../lib/controlSync', () => ({
 }));
 
 vi.mock('./page/AnimateGrid', () => ({
-  AnimateGrid: ({ onSelect, effects, simpleBrowse }: {
+  AnimateGrid: ({ onSelect, effects, simpleBrowse, leadingCell }: {
     onSelect: (key: string) => void;
     effects?: { key: string }[];
     simpleBrowse?: boolean;
+    leadingCell?: ReactNode;
   }) => (
     <div
       data-testid="animate-grid"
       data-simple-browse={simpleBrowse ? 'true' : 'false'}
       data-effect-count={effects?.length ?? 0}
     >
+      {leadingCell}
       <button type="button" onClick={() => onSelect('simplered')}>pick-fill</button>
       <button type="button" onClick={() => onSelect('rainbow')}>pick-animation</button>
     </div>
@@ -101,6 +105,7 @@ describe('LightingPage simple mode', () => {
     vi.clearAllMocks();
     // Fresh install: no stored settings, both page modes default to 'simple'.
     localStorage.clear();
+    syncState.mode = 'none';
   });
 
   it('defaults to the simple browse with the simple-mode pool and no advanced chrome', () => {
@@ -122,6 +127,25 @@ describe('LightingPage simple mode', () => {
     await waitFor(() => {
       expect(vi.mocked(lightingApi.startAnimate).mock.calls.some(c => c[0] === 'rainbow')).toBe(true);
     });
+  });
+
+  it('off tile stops lighting when a mode is running, and is an active no-op when off', async () => {
+    syncState.mode = 'static';
+    renderPage();
+    const offTile = screen.getByRole('button', { name: /lighting\.mode\.off/ });
+    expect(offTile.getAttribute('aria-pressed')).toBe('false');
+    fireEvent.click(offTile);
+    await waitFor(() => {
+      expect(vi.mocked(lightingApi.stopLighting)).toHaveBeenCalled();
+    });
+  });
+
+  it('off tile shows active and does not restart the stop while already off', () => {
+    renderPage();
+    const offTile = screen.getByRole('button', { name: /lighting\.mode\.off/ });
+    expect(offTile.getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(offTile);
+    expect(vi.mocked(lightingApi.stopLighting)).not.toHaveBeenCalled();
   });
 
   it('switches to the advanced page from the CTA', async () => {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Gamepad2, Music, Pause, Play } from 'lucide-react';
+import { Gamepad2, Music, Pause, Play, Power } from 'lucide-react';
 import {
   startAnimate, startStatic, startScreenMirror, stopLighting, startGameSync,
   fetchStaticSettings,
@@ -58,6 +58,7 @@ import { useAudioState } from '../../../hooks/useAudioState';
 import { useUiSettings } from '../../../hooks/useUiSettings';
 import { usePageModeToggle } from '../../../app/PageChrome';
 import { AdvancedModeCta } from '../../../components/common/AdvancedModeCta/AdvancedModeCta';
+import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
 import styles from './LightingPage.module.scss';
 
 /**
@@ -1293,6 +1294,15 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             onSelect={handleSimpleEffectSelect}
             effects={SIMPLE_MODE_EFFECTS}
             simpleBrowse
+            leadingCell={(
+              <IconLabelButton
+                className={styles.simpleOffTile}
+                icon={<Power size={30} />}
+                label={t('lighting.mode.off')}
+                active={synced && effectiveMode === 'none'}
+                onPress={() => { if (!synced || effectiveMode !== 'none') void handleModeChange('none'); }}
+              />
+            )}
             slotFor={slotForEffect}
             versionFor={versionForEffect}
             panelEffects={panelUsage.effects}

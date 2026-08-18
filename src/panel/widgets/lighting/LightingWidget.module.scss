@@ -54,6 +54,13 @@
   }
 }
 
+// The nonInteractive EffectCard (a div here) sets cursor: default, masking the
+// click-through dashboard tile's pointer on the thumbnail; the two-class
+// selector outranks .cardStatic regardless of bundle order.
+.thumbCardBox .thumbCardFit > * {
+  cursor: pointer;
+}
+
 .thumb {
   position: absolute;
   inset: 0;
