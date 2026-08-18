@@ -82,12 +82,12 @@
 }
 
 // Current-mode indicator/toggle for the active page: sliders glyph + the mode
-// name, pill to echo the search bar beside it. Type matches the search pill's
-// title (.searchTitle) so the top-bar text reads as one size. Width shrinks
-// with the window so the cluster never runs under the right cluster, and the
-// button hides entirely on windows too narrow to host it; MacAppWindow
-// mirrors this formula (TopBarModeToggleReserve / TopBarModeToggleMax /
-// TopBarModeToggleMinWindow) for the mac drag-strip carve-out.
+// name, pill to echo the search bar beside it. Type matches the sidebar nav
+// rows. Width shrinks with the window so the cluster never runs under the
+// right cluster, and the button hides entirely on windows too narrow to host
+// it; MacAppWindow mirrors this formula (TopBarModeToggleReserve /
+// TopBarModeToggleMax / TopBarModeToggleMinWindow) for the mac drag-strip
+// carve-out.
 .modeToggleButton {
   display: flex;
   align-items: center;
@@ -100,7 +100,7 @@
   background: var(--surface);
   color: var(--text-dim);
   font-family: inherit;
-  font-size: var(--type-body);
+  font-size: var(--type-small);
   font-weight: var(--weight-body);
   cursor: pointer;
   transition: color var(--ease-fast), background var(--ease-fast);

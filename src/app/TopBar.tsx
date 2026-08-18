@@ -271,7 +271,7 @@ export function TopBar({
                 className={styles.modeToggleButton}
                 onClick={pageModeToggle.onToggle}
               >
-                <SlidersHorizontal size={15} aria-hidden />
+                <SlidersHorizontal size={14} aria-hidden />
                 <span className={styles.modeToggleLabel}>{pageModeToggle.label}</span>
               </button>
             </HoverTooltip>
