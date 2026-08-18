@@ -123,8 +123,10 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const toggleDashboardMode = useCallback(() => {
     updateUiSettings({ lightingDashboardMode: simpleDashboard ? 'advanced' : 'simple' });
   }, [simpleDashboard, updateUiSettings]);
+  // The label names the TARGET mode (what a click switches to), matching the
+  // in-page advanced-mode card.
   usePageModeToggle({
-    label: t(simpleDashboard ? 'uiMode.simpleMode' : 'uiMode.advancedMode'),
+    label: t(simpleDashboard ? 'uiMode.advancedMode' : 'uiMode.simpleMode'),
     title: t(simpleDashboard ? 'uiMode.switchToAdvanced' : 'uiMode.switchToSimple'),
     onToggle: toggleDashboardMode,
   });

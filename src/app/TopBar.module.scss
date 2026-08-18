@@ -81,11 +81,12 @@
   app-region: no-drag;
 }
 
-// Current-mode indicator/toggle for the active page: swap glyph + the mode
-// name, pill to echo the search bar beside it. Type matches the sidebar nav
-// rows. Width shrinks with the window so the cluster never runs under the
-// right cluster, and the button hides entirely on windows too narrow to host
-// it; MacAppWindow mirrors this formula (TopBarModeToggleReserve /
+// Mode switch for the active page: swap glyph + the TARGET mode's name (what
+// a click switches to, matching the in-page advanced-mode card). Boxless -
+// plain dim text that lights up on hover. Type matches the sidebar nav rows.
+// Width shrinks with the window so the cluster never runs under the right
+// cluster, and the button hides entirely on windows too narrow to host it;
+// MacAppWindow mirrors this formula (TopBarModeToggleReserve /
 // TopBarModeToggleMax / TopBarModeToggleMinWindow) for the mac drag-strip
 // carve-out.
 .modeToggleButton {
@@ -94,27 +95,26 @@
   gap: 0.45rem;
   height: 34px;
   max-width: clamp(0px, calc(100vw - 1000px), 220px);
-  padding: 0 0.9rem;
-  border: var(--border-width) solid transparent;
-  border-radius: var(--radius-pill);
-  background: var(--surface);
+  padding: 0 0.4rem;
+  border: none;
+  background: transparent;
   color: var(--text-dim);
   font-family: inherit;
   font-size: var(--type-small);
   font-weight: var(--weight-body);
   cursor: pointer;
-  transition: color var(--ease-fast), background var(--ease-fast);
+  transition: color var(--ease-fast);
 
   svg { flex-shrink: 0; }
 
   &:hover {
-    background: var(--bg-card-hover);
     color: var(--text);
   }
 
   &:focus-visible {
     outline: none;
     box-shadow: 0 0 0 3px var(--accent-soft);
+    border-radius: var(--radius-sm);
   }
 
   @media (max-width: 1060px) {
