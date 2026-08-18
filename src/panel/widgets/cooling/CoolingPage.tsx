@@ -137,7 +137,8 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     updateUi({ dashboardMode: simpleDashboard ? 'advanced' : 'simple' });
   }, [simpleDashboard, updateUi]);
   usePageModeToggle({
-    label: t(simpleDashboard ? 'uiMode.switchToAdvanced' : 'uiMode.switchToSimple'),
+    label: t(simpleDashboard ? 'uiMode.simpleMode' : 'uiMode.advancedMode'),
+    title: t(simpleDashboard ? 'uiMode.switchToAdvanced' : 'uiMode.switchToSimple'),
     onToggle: toggleDashboardMode,
   });
 

@@ -23,7 +23,7 @@ export function AdvancedModeCta({ label, onPress, icon }: AdvancedModeCtaProps) 
     <button type="button" className={styles.cta} onClick={onPress}>
       <span className={styles.iconBox} aria-hidden>{icon ?? <SlidersHorizontal size={20} />}</span>
       <span className={styles.textCol}>
-        <span className={styles.badge}>{t('uiMode.advancedBadge')}</span>
+        <span className={styles.badge}>{t('uiMode.advancedMode')}</span>
         <span className={styles.label}>{label}</span>
       </span>
       <ChevronRight className={styles.chevron} size={18} aria-hidden />

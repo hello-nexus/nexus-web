@@ -265,13 +265,16 @@ export function TopBar({
       {!focusMode && (pageModeToggle || pageSettings) && (
         <div className={styles.pageSettings}>
           {pageModeToggle && (
-            <button
-              type="button"
-              className={styles.modeToggleButton}
-              onClick={pageModeToggle.onToggle}
-            >
-              {pageModeToggle.label}
-            </button>
+            <HoverTooltip body={pageModeToggle.title} side="bottom">
+              <button
+                type="button"
+                className={styles.modeToggleButton}
+                onClick={pageModeToggle.onToggle}
+              >
+                <SlidersHorizontal size={15} aria-hidden />
+                <span className={styles.modeToggleLabel}>{pageModeToggle.label}</span>
+              </button>
+            </HoverTooltip>
           )}
           {pageSettings && (
             <HoverTooltip body={pageSettings.label} side="bottom">

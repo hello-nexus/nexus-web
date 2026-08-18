@@ -4,7 +4,7 @@ import { useTranslation } from '../../../../lib/i18n';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { CollapsibleSection } from '../../../../components/common/CollapsibleSection/CollapsibleSection';
 import {
-  EFFECTS, EFFECT_CATEGORIES, categoryOf, isStaticFill,
+  EFFECTS, EFFECT_CATEGORIES, categoryOf, isStaticEffect,
   type EffectCategory, type EffectDef,
 } from '../../../../types/lighting';
 import { EffectCard } from '../../../../components/common/EffectCard/EffectCard';
@@ -78,8 +78,8 @@ export function AnimateGrid({ effect, onSelect, effects = EFFECTS, slotFor, vers
   gpuAvailable?: boolean;
   /** Static mode: tiles render frozen so the grid matches the LED output. */
   frozen?: boolean;
-  /** Simple-mode browse (SIMPLE_MODE_EFFECTS pool): the simple colours render
-   *  at full card size with labels, and only the fill cells freeze. */
+  /** Simple-mode browse (SIMPLE_MODE_EFFECTS pool): enlarged cells, labels on
+   *  the simple colours, static cells frozen. */
   simpleBrowse?: boolean;
 }) {
   const { t } = useTranslation();
@@ -131,7 +131,7 @@ export function AnimateGrid({ effect, onSelect, effects = EFFECTS, slotFor, vers
             open={!collapsed.has(g.cat)}
             onToggle={() => toggle(g.cat)}
           >
-            <div className={`${styles.animateGridSection} ${g.cat === 'simple' && !simpleBrowse ? styles.animateGridSectionSimple : ''}`}>
+            <div className={`${styles.animateGridSection} ${g.cat === 'simple' && !simpleBrowse ? styles.animateGridSectionSimple : ''} ${simpleBrowse ? styles.animateGridSectionLarge : ''}`}>
               {g.items.map(fx => (
                 <AnimateGridCell
                   key={fx.key}
@@ -144,7 +144,7 @@ export function AnimateGrid({ effect, onSelect, effects = EFFECTS, slotFor, vers
                   label={t(fx.labelKey)}
                   hideLabel={g.cat === 'simple' && !simpleBrowse}
                   gpuAvailable={gpuAvailable}
-                  frozen={frozen || (simpleBrowse && isStaticFill(fx.key))}
+                  frozen={frozen || (simpleBrowse && isStaticEffect(fx.key))}
                   onSelect={() => onSelect(fx.key)}
                 />
               ))}

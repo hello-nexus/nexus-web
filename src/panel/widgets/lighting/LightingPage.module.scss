@@ -277,6 +277,11 @@
   grid-template-columns: repeat(auto-fill, minmax(59px, 1fr));
 }
 
+// Simple-mode browse: enlarged cells throughout, colours included.
+.animateGridSectionLarge {
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+}
+
 // Usage markers pinned to a grid cell's thumbnail (panels only): bulb = this
 // effect drives the physical LEDs; monitor = a panel uses it as a background.
 // Both stack horizontally so the user knows edits here reach other surfaces.

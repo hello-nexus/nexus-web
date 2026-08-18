@@ -36,7 +36,7 @@ import { DeviceCanvas } from '../../../components/common/DeviceCanvas/DeviceCanv
 import { usePanelBackgroundUsage } from '../../../hooks/usePanelBackgroundUsage';
 import {
   EFFECTS, ANIMATE_EFFECTS, STATIC_EFFECTS, SIMPLE_MODE_EFFECTS, DEFAULT_STATIC_EFFECT, MODES,
-  defaultStateFor, isStaticEffect, isStaticFill,
+  defaultStateFor, isStaticEffect,
   type EffectState, type EffectTemplateBundle, type LightingMode,
 } from '../../../types/lighting';
 import { defaultTemplatesFor, mergeTemplates, slotMatchesDefault, slotThumbSignature } from '../../../types/lightingTemplates';
@@ -124,7 +124,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     updateUiSettings({ dashboardMode: simpleDashboard ? 'advanced' : 'simple' });
   }, [simpleDashboard, updateUiSettings]);
   usePageModeToggle({
-    label: t(simpleDashboard ? 'uiMode.switchToAdvanced' : 'uiMode.switchToSimple'),
+    label: t(simpleDashboard ? 'uiMode.simpleMode' : 'uiMode.advancedMode'),
+    title: t(simpleDashboard ? 'uiMode.switchToAdvanced' : 'uiMode.switchToSimple'),
     onToggle: toggleDashboardMode,
   });
   const { mode, setMode, rawSync, setRawSync, synced, paused: syncedPaused } = useLightingSync(serviceOnline, activeProfileId);
@@ -729,29 +730,29 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     if (activeRightTab !== 'effect') pulseEffectTab();
   }, [activeEffect, activeRightTab, applyAnimate, pulseEffectTab, stateFor]);
 
-  // Simple mode has no mode tabs: picking a fill enters Static and picking an
-  // animation enters Animation, mirroring handleModeChange's start calls.
+  // Simple mode has no mode tabs: picking a static card enters Static and
+  // picking an animation enters Animation, mirroring handleModeChange.
   const handleSimpleEffectSelect = useCallback((key: string) => {
-    const isFill = isStaticFill(key);
-    const m: LightingMode = isFill ? 'static' : 'animate';
+    const isStatic = isStaticEffect(key);
+    const m: LightingMode = isStatic ? 'static' : 'animate';
     // Re-clicking the running card would restart the effect server-side
     // (visible phase reset on animations).
     if (effectiveMode === m && activeEffect === key) return;
     setMode(m);
     setPausedState(false);
     setActiveEffect(key);
-    setRawSync(isFill ? 'static' : key);
-    if (isFill) staticEffectRef.current = key;
+    setRawSync(isStatic ? 'static' : key);
+    if (isStatic) staticEffectRef.current = key;
     else animateEffectRef.current = key;
     const state = stateFor(key);
-    if (isFill) {
+    if (isStatic) {
       startStatic(key, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params)
         .catch(() => { /* best-effort; backend state becomes source of truth */ });
     } else {
       startAnimate(key, state.speed, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params)
         .catch(() => { /* best-effort; backend state becomes source of truth */ });
     }
-    publishControlSync({ domain: 'lighting', mode: m, rawSync: isFill ? 'static' : key, effect: key });
+    publishControlSync({ domain: 'lighting', mode: m, rawSync: isStatic ? 'static' : key, effect: key });
   }, [effectiveMode, activeEffect, setMode, setRawSync, stateFor]);
 
   const effectPool = mode === 'static' ? STATIC_EFFECTS : ANIMATE_EFFECTS;
@@ -1278,9 +1279,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     );
   }
 
-  // Simple mode: only the browse grid (fills large + the animation catalog)
-  // and the advanced-mode path. No mode tabs, preset toolbar, canvas, or
-  // right pane - those are the advanced page below.
+  // Simple mode: only the browse grid (flat fills + gradient patterns) and
+  // the advanced-mode path. No mode tabs, preset toolbar, canvas, or right
+  // pane - those are the advanced page below.
   if (simpleDashboard) {
     return (
       <div className={styles.lighting}>

@@ -81,14 +81,17 @@
   app-region: no-drag;
 }
 
-// Full-text simple/advanced toggle for the active page. Pill to echo the
-// search bar beside it. Width shrinks with the window so the cluster never
-// runs under the right cluster, and the button hides entirely on windows too
-// narrow to host it; MacAppWindow mirrors this formula
-// (TopBarModeToggleReserve / TopBarModeToggleMax / TopBarModeToggleMinWindow)
-// for the mac drag-strip carve-out.
+// Current-mode indicator/toggle for the active page: sliders glyph + the mode
+// name, pill to echo the search bar beside it. Type matches the search pill's
+// title (.searchTitle) so the top-bar text reads as one size. Width shrinks
+// with the window so the cluster never runs under the right cluster, and the
+// button hides entirely on windows too narrow to host it; MacAppWindow
+// mirrors this formula (TopBarModeToggleReserve / TopBarModeToggleMax /
+// TopBarModeToggleMinWindow) for the mac drag-strip carve-out.
 .modeToggleButton {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
   height: 34px;
   max-width: clamp(0px, calc(100vw - 1000px), 220px);
   padding: 0 0.9rem;
@@ -97,13 +100,12 @@
   background: var(--surface);
   color: var(--text-dim);
   font-family: inherit;
-  font-size: var(--type-small);
+  font-size: var(--type-body);
   font-weight: var(--weight-body);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   cursor: pointer;
   transition: color var(--ease-fast), background var(--ease-fast);
+
+  svg { flex-shrink: 0; }
 
   &:hover {
     background: var(--bg-card-hover);
@@ -114,6 +116,16 @@
     outline: none;
     box-shadow: 0 0 0 3px var(--accent-soft);
   }
+
+  @media (max-width: 1060px) {
+    display: none;
+  }
+}
+
+.modeToggleLabel {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 // Flat icon button matching the "..." menu chrome: transparent at rest, a
@@ -139,10 +151,6 @@
   &:focus-visible {
     outline: none;
     box-shadow: 0 0 0 3px var(--accent-soft);
-  }
-
-  @media (max-width: 1060px) {
-    display: none;
   }
 }
 

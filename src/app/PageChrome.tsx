@@ -9,11 +9,13 @@ export interface PageSettingsAction {
 }
 
 // A page-level simple/advanced mode toggle lifted into the top bar, rendered
-// as a full-text button next to the search pill. The page owns the mode state
-// (ui.dashboardMode); it hands the top bar the translated label and the flip.
+// as an icon + full-text button next to the search pill. The page owns the
+// mode state (ui.dashboardMode); it hands the top bar the current mode's name
+// (`label`), the action's tooltip (`title`), and the flip.
 export interface PageModeToggle {
   onToggle: () => void;
   label: string;
+  title: string;
 }
 
 interface PageChromeValue {
@@ -75,14 +77,14 @@ export function usePageSettingsAction(action: PageSettingsAction, enabled = true
  */
 export function usePageModeToggle(toggle: PageModeToggle, enabled = true) {
   const register = usePageChrome()?.registerModeToggle;
-  const { onToggle, label } = toggle;
+  const { onToggle, label, title } = toggle;
   useEffect(() => {
     if (!register) return;
     if (!enabled) {
       register(null);
       return;
     }
-    register({ onToggle, label });
+    register({ onToggle, label, title });
     return () => register(null);
-  }, [register, onToggle, label, enabled]);
+  }, [register, onToggle, label, title, enabled]);
 }
