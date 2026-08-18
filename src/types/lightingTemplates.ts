@@ -36,17 +36,19 @@ export function baselineTemplates(effectKey: string): EffectTemplateBundle {
 /** The canonical default bundle for an effect, or the baseline fallback when
  *  the fetched defaults are missing (not yet loaded / old service). Always
  *  returns a full TEMPLATE_COUNT row - a short or sparse defaults bundle is
- *  padded from the baseline so callers can index slots unconditionally. */
+ *  padded from its own base slot (the simple fills ship a single slot), so
+ *  callers can index slots unconditionally and a padded slot still carries
+ *  the effect's real look. */
 export function defaultTemplatesFor(
   effectKey: string,
   defaults: Record<string, EffectTemplateBundle> | null | undefined,
 ): EffectTemplateBundle {
   const bundle = defaults?.[effectKey];
   if (!bundle || !bundle.slots || bundle.slots.length === 0) return baselineTemplates(effectKey);
-  const base = baselineTemplates(effectKey);
+  const fallback = bundle.slots[0];
   const slots: EffectState[] = Array.from({ length: TEMPLATE_COUNT }, (_, i) => {
-    const s = bundle.slots[i];
-    return s ? { ...s, params: { ...s.params } } : base.slots[i];
+    const s = bundle.slots[i] ?? fallback;
+    return { ...s, params: { ...s.params } };
   });
   return { selected: bundle.selected ?? 0, slots };
 }
