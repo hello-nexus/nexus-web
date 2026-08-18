@@ -130,7 +130,8 @@ function sampleCurveShape(curve: CurveDef, allCurves: CurveDef[], sources: Tempe
 // `tempMin`/`tempMax` set the x-axis span (default 20-100). When `editable`, the
 // point markers can be dragged (clamped between their neighbours and 0-100% duty,
 // snapped to whole units), double-click adds a point at the cursor and right-click
-// removes one (down to 2); `onChange` fires with the new point set.
+// removes one (down to 2); `onChange` fires with the new point set. Hovering or
+// dragging a marker shows its exact temp/duty on the axes.
 export function CurveGraph({
   points, currentTemp, showPoints = true, height = GRAPH_H,
   tempMin = TEMP_MIN, tempMax = TEMP_MAX, editable = false, onChange, onPreview, limitPercent,
@@ -156,6 +157,12 @@ export function CurveGraph({
   // Optimistic points while dragging a handle; null when idle (props own the data).
   const [dragPoints, setDragPoints] = useState<CurvePoint[] | null>(null);
   const dragIdxRef = useRef<number | null>(null);
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+  // An external points change re-orders indices without a pointerleave, so a
+  // held hover could name a different point's values. Keyed on content, not
+  // identity: some callers rebuild the array every render (CurveHost).
+  const pointsKey = useMemo(() => points.map(pt => `${pt.temp},${pt.speed}`).join(' '), [points]);
+  useEffect(() => { setHoverIdx(null); }, [pointsKey]);
 
   useEffect(() => {
     const el = svgRef.current?.parentElement;
@@ -265,7 +272,7 @@ export function CurveGraph({
   const onAddPoint = (e: React.MouseEvent) => {
     if (!editable || !onChange) return;
     const { temp, speed } = pointerToData(e);
-    dragIdxRef.current = null; setDragPoints(null);
+    dragIdxRef.current = null; setDragPoints(null); setHoverIdx(null);
     onChange([...sorted, {
       temp: Math.round(Math.max(tempMin, Math.min(tempMax, temp))),
       speed: Math.round(Math.max(0, Math.min(100, speed))),
@@ -275,7 +282,7 @@ export function CurveGraph({
     if (!editable || !onChange) return;
     e.preventDefault();
     if (sorted.length <= 2) return;
-    dragIdxRef.current = null; setDragPoints(null);
+    dragIdxRef.current = null; setDragPoints(null); setHoverIdx(null);
     onChange(sorted.filter((_, i) => i !== idx));
   };
 
@@ -287,6 +294,13 @@ export function CurveGraph({
   const dotX = hasDot ? tempToX(currentTemp!) : 0;
   const dotY = hasDot ? speedToY(dotSpeed) : 0;
   const dotLeftPct = hasDot ? ((currentTemp! - tempMin) / (tempMax - tempMin)) * 100 : 0;
+
+  // Handle readout while dragging or hovering a point: the same guide lines +
+  // axis badges as the live-temp indicator, anchored to the handle, so the
+  // exact temp/duty is visible while placing it. dragIdxRef is only consulted
+  // when dragPoints says a drag is live, so the ref read tracks state.
+  const readoutIdx = dragPoints !== null ? dragIdxRef.current : hoverIdx;
+  const readoutPt = editable && readoutIdx !== null && readoutIdx < sorted.length ? sorted[readoutIdx] : undefined;
 
   return (
     <div className={styles.curveGraphWrap}>
@@ -313,12 +327,20 @@ export function CurveGraph({
                 <circle cx={dotX} cy={dotY} r={4} className={styles.tempDot} />
               </g>
             )}
+            {readoutPt && (
+              <g className={styles.curveTempIndicator}>
+                <line x1={tempToX(readoutPt.temp)} y1={height - PAD.bottom} x2={tempToX(readoutPt.temp)} y2={speedToY(readoutPt.speed)} className={styles.tempLine} />
+                <line x1={width - PAD.right} y1={speedToY(readoutPt.speed)} x2={tempToX(readoutPt.temp)} y2={speedToY(readoutPt.speed)} className={styles.tempLine} />
+              </g>
+            )}
             {showPoints && sorted.map((p, i) => (
               <circle key={i} cx={tempToX(p.temp)} cy={speedToY(p.speed)} r={editable ? 7 : 6} className={styles.curvePoint}
                 style={editable ? { cursor: 'grab' } : undefined}
                 onPointerDown={editable ? (e) => onHandleDown(i, e) : undefined}
                 onPointerMove={editable ? onHandleMove : undefined}
                 onPointerUp={editable ? onHandleUp : undefined}
+                onPointerEnter={editable ? () => setHoverIdx(i) : undefined}
+                onPointerLeave={editable ? () => setHoverIdx(null) : undefined}
                 onContextMenu={editable ? (e) => onRemovePoint(i, e) : undefined} />
             ))}
           </svg>
@@ -332,9 +354,16 @@ export function CurveGraph({
                   {v}°
                 </span>
               ))}
-              {hasDot && (
+              {/* The handle readout takes the axis while active so the two
+                  badge texts never superimpose. */}
+              {hasDot && !readoutPt && (
                 <span className={styles.curveAxisLiveX} style={{ left: `${dotLeftPct}%` }}>
                   {t('cooling.curve.tempBadge', { temp: localizeNumbers(currentTemp!.toFixed(1), numberFormat) })}
+                </span>
+              )}
+              {readoutPt && (
+                <span className={styles.curveAxisLiveX} style={{ left: `${((readoutPt.temp - tempMin) / (tempMax - tempMin)) * 100}%` }}>
+                  {t('cooling.curve.tempBadge', { temp: localizeNumbers(readoutPt.temp.toFixed(0), numberFormat) })}
                 </span>
               )}
             </div>
@@ -346,9 +375,14 @@ export function CurveGraph({
           {[...H_LINES].reverse().map(s => (
             <span key={s} className={styles.curveAxisLabel}>{s}%</span>
           ))}
-          {hasDot && (
+          {hasDot && !readoutPt && (
             <span className={styles.curveAxisLiveY} style={{ top: `${dotY}px` }}>
               {localizeNumbers(`${dotSpeed.toFixed(0)}%`, numberFormat)}
+            </span>
+          )}
+          {readoutPt && (
+            <span className={styles.curveAxisLiveY} style={{ top: `${speedToY(readoutPt.speed)}px` }}>
+              {localizeNumbers(`${readoutPt.speed.toFixed(0)}%`, numberFormat)}
             </span>
           )}
         </div>
