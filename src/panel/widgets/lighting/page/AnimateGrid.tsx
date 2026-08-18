@@ -134,7 +134,7 @@ export function AnimateGrid({ effect, onSelect, effects = EFFECTS, slotFor, vers
               live={!!rgbActiveEffect && fx.key === rgbActiveEffect}
               panel={!!panelEffects && panelEffects.has(fx.key)}
               label={t(fx.labelKey)}
-              hideLabel={g.cat === 'simple'}
+              hideLabel={g.cat === 'simple' && !simpleBrowse}
               gpuAvailable={gpuAvailable}
               frozen={frozen || (simpleBrowse && isStaticEffect(fx.key))}
               onSelect={() => onSelect(fx.key)}
