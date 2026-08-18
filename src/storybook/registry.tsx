@@ -2016,7 +2016,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'AdvancedModeCta', category: 'cards',
     filePath: 'src/components/common/AdvancedModeCta/AdvancedModeCta.tsx',
-    description: 'Wide card-button at the bottom of the simple-mode lighting/cooling pages: "Advanced mode" eyebrow over a page-specific line describing what the full page adds, with a chevron affordance. Pressing it flips ui.dashboardMode to advanced (the page passes the flip as onPress).',
+    description: 'Wide card-button at the bottom of the simple-mode lighting/cooling pages: "Advanced mode" eyebrow over a page-specific line describing what the full page adds, with a chevron affordance. Pressing it flips that page\'s ui.*DashboardMode field to advanced (the page passes the flip as onPress).',
     Preview: PreviewAdvancedModeCta,
   },
   {

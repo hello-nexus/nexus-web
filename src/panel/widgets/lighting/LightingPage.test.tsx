@@ -6,7 +6,7 @@ import { LightingPage } from './LightingPage';
 
 // These tests exercise the advanced page; the fresh-install default is simple.
 function seedAdvancedDashboard() {
-  localStorage.setItem('nexus_settings', JSON.stringify({ general: { dashboardMode: 'advanced' } }));
+  localStorage.setItem('nexus_settings', JSON.stringify({ general: { lightingDashboardMode: 'advanced', coolingDashboardMode: 'advanced' } }));
 }
 
 const setModeMock = vi.hoisted(() => vi.fn());

@@ -119,9 +119,9 @@ function loadDeviceOrder(): string[] {
 export function LightingPage({ serviceOnline, serviceState, connectionState, activeProfileId, platform = '', onSectionNavigate }: LightingViewProps) {
   const { t } = useTranslation();
   const { settings: uiSettings, update: updateUiSettings } = useUiSettings();
-  const simpleDashboard = uiSettings.dashboardMode === 'simple';
+  const simpleDashboard = uiSettings.lightingDashboardMode === 'simple';
   const toggleDashboardMode = useCallback(() => {
-    updateUiSettings({ dashboardMode: simpleDashboard ? 'advanced' : 'simple' });
+    updateUiSettings({ lightingDashboardMode: simpleDashboard ? 'advanced' : 'simple' });
   }, [simpleDashboard, updateUiSettings]);
   usePageModeToggle({
     label: t(simpleDashboard ? 'uiMode.simpleMode' : 'uiMode.advancedMode'),
@@ -1299,7 +1299,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           <div className={styles.simpleFooter}>
             <AdvancedModeCta
               label={t('lighting.simple.advancedCta')}
-              onPress={() => updateUiSettings({ dashboardMode: 'advanced' })}
+              onPress={() => updateUiSettings({ lightingDashboardMode: 'advanced' })}
             />
           </div>
         </div>

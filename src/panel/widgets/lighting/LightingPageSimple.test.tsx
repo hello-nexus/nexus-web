@@ -99,7 +99,7 @@ function renderPage() {
 describe('LightingPage simple mode', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Fresh install: no stored settings, dashboardMode defaults to 'simple'.
+    // Fresh install: no stored settings, both page modes default to 'simple'.
     localStorage.clear();
   });
 

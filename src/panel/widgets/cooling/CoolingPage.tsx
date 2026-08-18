@@ -132,9 +132,9 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   const { settings, update: updateUi } = useUiSettings();
   const cpuTemp = resolveCpuTempSensor(sensors.cpu, settings.preferredCpuTempSensorId);
 
-  const simpleDashboard = settings.dashboardMode === 'simple';
+  const simpleDashboard = settings.coolingDashboardMode === 'simple';
   const toggleDashboardMode = useCallback(() => {
-    updateUi({ dashboardMode: simpleDashboard ? 'advanced' : 'simple' });
+    updateUi({ coolingDashboardMode: simpleDashboard ? 'advanced' : 'simple' });
   }, [simpleDashboard, updateUi]);
   usePageModeToggle({
     label: t(simpleDashboard ? 'uiMode.simpleMode' : 'uiMode.advancedMode'),
@@ -802,7 +802,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
           <div className={styles.simpleFooter}>
             <AdvancedModeCta
               label={t('cooling.simple.advancedCta')}
-              onPress={() => updateUi({ dashboardMode: 'advanced' })}
+              onPress={() => updateUi({ coolingDashboardMode: 'advanced' })}
             />
           </div>
         </div>

@@ -66,11 +66,11 @@ export type BackgroundMode = (typeof BACKGROUND_MODES)[number];
 // shell); 'custom' uses the user-picked accentColor.
 export type AccentSource = 'system' | 'custom';
 
-// Density of the dashboard lighting + cooling pages. 'simple' replaces the
-// full page (mode tabs, preset toolbar, right sidebar) with a reduced hero
-// layout; 'advanced' is the full page. Server-mirrored under ui.dashboardMode;
-// the service defaults new installs to 'simple' and migrates pre-existing
-// installs to 'advanced'.
+// Density of a dashboard page (lighting and cooling carry one each). 'simple'
+// replaces the full page (mode tabs, preset toolbar, right sidebar) with a
+// reduced hero layout; 'advanced' is the full page. Server-mirrored under
+// ui.lightingDashboardMode / ui.coolingDashboardMode; the service defaults
+// new installs to 'simple' and migrates pre-existing installs to 'advanced'.
 export const DASHBOARD_MODES = ['simple', 'advanced'] as const;
 export type DashboardMode = (typeof DASHBOARD_MODES)[number];
 
@@ -147,9 +147,11 @@ export interface GeneralSettings {
   // silent/balanced/turbo chips on cooling); default false (single-icon
   // -with-arrows layout). Client-only, not in the server preferences pipeline.
   widgetAdvancedMode: boolean;
-  // Density of the dashboard lighting + cooling pages (see DashboardMode).
-  // Server-mirrored under ui.dashboardMode.
-  dashboardMode: DashboardMode;
+  // Per-page density of the dashboard lighting/cooling pages (see
+  // DashboardMode). Server-mirrored under ui.lightingDashboardMode /
+  // ui.coolingDashboardMode.
+  lightingDashboardMode: DashboardMode;
+  coolingDashboardMode: DashboardMode;
   // Display-unit choices. Server-mirrored under the preferences `units` block
   // so they follow the profile. See lib/units.ts for their meaning. The
   // monitoring temperature unit governs in-app hardware temps only; outdoor
@@ -193,7 +195,8 @@ export function getDefaultSettings(): NexusSettings {
       pinnedSidebarApps: ['monitoring', 'lighting', 'cooling'],
       recentSidebarApps: [],
       widgetAdvancedMode: false,
-      dashboardMode: 'simple',
+      lightingDashboardMode: 'simple',
+      coolingDashboardMode: 'simple',
       monitoringTempUnit: DEFAULT_TEMP_UNIT,
       timeFormat: DEFAULT_TIME_FORMAT,
       numberFormat: DEFAULT_NUMBER_FORMAT,

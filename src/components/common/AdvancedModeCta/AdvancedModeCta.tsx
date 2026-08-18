@@ -21,12 +21,12 @@ export function AdvancedModeCta({ label, onPress, icon }: AdvancedModeCtaProps) 
   const { t } = useTranslation();
   return (
     <button type="button" className={styles.cta} onClick={onPress}>
-      <span className={styles.iconBox} aria-hidden>{icon ?? <ArrowLeftRight size={24} />}</span>
+      <span className={styles.iconBox} aria-hidden>{icon ?? <ArrowLeftRight size={20} />}</span>
       <span className={styles.textCol}>
         <span className={styles.badge}>{t('uiMode.advancedMode')}</span>
         <span className={styles.label}>{label}</span>
       </span>
-      <ChevronRight className={styles.chevron} size={22} aria-hidden />
+      <ChevronRight className={styles.chevron} size={18} aria-hidden />
     </button>
   );
 }

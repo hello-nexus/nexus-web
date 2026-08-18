@@ -9,9 +9,9 @@ export interface PageSettingsAction {
 }
 
 // A page-level simple/advanced mode toggle lifted into the top bar, rendered
-// as an icon + full-text button next to the search pill. The page owns the
-// mode state (ui.dashboardMode); it hands the top bar the current mode's name
-// (`label`), the action's tooltip (`title`), and the flip.
+// as an icon + full-text button next to the search pill. The page owns its
+// mode state (its own ui.*DashboardMode field); it hands the top bar the
+// current mode's name (`label`), the action's tooltip (`title`), and the flip.
 export interface PageModeToggle {
   onToggle: () => void;
   label: string;

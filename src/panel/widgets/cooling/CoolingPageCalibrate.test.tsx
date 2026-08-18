@@ -51,7 +51,7 @@ describe('CoolingPage calibrate confirmation', () => {
     vi.clearAllMocks();
     localStorage.clear();
     // These tests exercise the advanced page; the fresh-install default is simple.
-    localStorage.setItem('nexus_settings', JSON.stringify({ general: { dashboardMode: 'advanced' } }));
+    localStorage.setItem('nexus_settings', JSON.stringify({ general: { lightingDashboardMode: 'advanced', coolingDashboardMode: 'advanced' } }));
   });
 
   it('explains the run instead of starting it when Calibrate is pressed', async () => {

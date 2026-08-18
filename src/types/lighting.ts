@@ -686,7 +686,7 @@ export const DEFAULT_STATIC_EFFECT = 'gradientlinear';
 export const ANIMATE_EFFECTS: EffectDef[] = EFFECTS.filter(e => !STATIC_KEY_SET.has(e.key));
 
 /**
- * Simple-mode (ui.dashboardMode) browse pool: the flat colours, rendered as
+ * Simple-mode browse pool: the flat colours, rendered as
  * an uncategorised hero grid. Everything else stays advanced-only.
  */
 export const SIMPLE_MODE_EFFECTS: EffectDef[] = STATIC_EFFECTS.filter(e => isStaticFill(e.key));

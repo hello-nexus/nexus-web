@@ -308,14 +308,14 @@ describe('UiSettingsProvider - debounced write merge', () => {
   });
 });
 
-describe('UiSettingsProvider - dashboardMode', () => {
+describe('UiSettingsProvider - per-page dashboard modes', () => {
   const flush = () => act(async () => { await Promise.resolve(); });
   const serverPrefs = (ui: Record<string, unknown> = {}) => ({
     theme: { themeMode: 'dark', accentColor: '#2563eb', language: 'en' },
     ui,
   });
 
-  it('defaults to simple on a fresh install and posts a flip under the ui block', async () => {
+  it('defaults both pages to simple and posts a flip for only the touched page', async () => {
     h.fetchPreferences.mockResolvedValue(serverPrefs());
     h.savePreferences.mockResolvedValue(undefined);
     await act(async () => {
@@ -327,16 +327,19 @@ describe('UiSettingsProvider - dashboardMode', () => {
     });
     await flush();
 
-    expect(captured.ctx!.settings.dashboardMode).toBe('simple');
+    expect(captured.ctx!.settings.lightingDashboardMode).toBe('simple');
+    expect(captured.ctx!.settings.coolingDashboardMode).toBe('simple');
 
-    await act(async () => { captured.ctx!.update({ dashboardMode: 'advanced' }); });
-    expect(captured.ctx!.settings.dashboardMode).toBe('advanced');
+    await act(async () => { captured.ctx!.update({ lightingDashboardMode: 'advanced' }); });
+    expect(captured.ctx!.settings.lightingDashboardMode).toBe('advanced');
+    // The other page's mode is untouched by the flip.
+    expect(captured.ctx!.settings.coolingDashboardMode).toBe('simple');
     await act(async () => { await new Promise(r => setTimeout(r, 300)); });
-    expect(h.savePreferences).toHaveBeenCalledWith({ ui: { dashboardMode: 'advanced' } });
+    expect(h.savePreferences).toHaveBeenCalledWith({ ui: { lightingDashboardMode: 'advanced' } });
   });
 
-  it('hydrates the server value and ignores an unknown one', async () => {
-    h.fetchPreferences.mockResolvedValue(serverPrefs({ dashboardMode: 'advanced' }));
+  it('hydrates each page from the server and ignores an unknown value', async () => {
+    h.fetchPreferences.mockResolvedValue(serverPrefs({ lightingDashboardMode: 'advanced', coolingDashboardMode: 'simple' }));
     await act(async () => {
       render(
         <UiSettingsProvider serviceOnline manageDom>
@@ -345,12 +348,13 @@ describe('UiSettingsProvider - dashboardMode', () => {
       );
     });
     await flush();
-    expect(captured.ctx!.settings.dashboardMode).toBe('advanced');
+    expect(captured.ctx!.settings.lightingDashboardMode).toBe('advanced');
+    expect(captured.ctx!.settings.coolingDashboardMode).toBe('simple');
 
     // An unknown wire value (future schema, corruption) keeps the local value.
-    h.fetchPreferences.mockResolvedValue(serverPrefs({ dashboardMode: 'bogus' }));
+    h.fetchPreferences.mockResolvedValue(serverPrefs({ lightingDashboardMode: 'bogus' }));
     await act(async () => { h.prefsCb?.(); });
     await flush();
-    expect(captured.ctx!.settings.dashboardMode).toBe('advanced');
+    expect(captured.ctx!.settings.lightingDashboardMode).toBe('advanced');
   });
 });
