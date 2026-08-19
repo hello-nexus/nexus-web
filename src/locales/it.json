@@ -1788,7 +1788,7 @@
   "monitoring.events.kind.privacy-microphone": "Microfono utilizzato",
   "monitoring.events.kind.privacy-location": "Posizione utilizzata",
   "monitoring.events.kind.privacy-screen": "Schermo catturato",
-  "monitoring.gpuSelect.auto": "Automatico ({name})",
+  "monitoring.gpuSelect.auto": "Automatico - usa {name}",
   "monitoring.gpuSelect.integrated": "integrata",
   "monitoring.gpuSelect.label": "GPU",
   "monitoring.history.avg": "Med",

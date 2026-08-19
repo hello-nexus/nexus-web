@@ -77,6 +77,7 @@ export function LightingCoolingSection({ serviceOnline, platform }: LightingCool
       value: 'auto',
       label: autoName ? t('monitoring.gpuSelect.auto', { name: autoName }) : t('lighting.renderGpu.auto'),
     },
+    { value: '__sep__', label: '', divider: true },
     ...gpus.map(g => ({
       value: g.name,
       label: g.integrated ? `${g.name} (${t('monitoring.gpuSelect.integrated')})` : g.name,

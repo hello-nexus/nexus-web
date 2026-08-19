@@ -1802,7 +1802,7 @@
   "monitoring.events.kind.privacy-location": "Posizion doprade",
   "monitoring.events.kind.privacy-screen": "Schermi caturât",
   "monitoring.gpu.change": "Cambie",
-  "monitoring.gpuSelect.auto": "Auto ({name})",
+  "monitoring.gpuSelect.auto": "Automatic - al dopre {name}",
   "monitoring.gpuSelect.integrated": "integrât",
   "monitoring.gpuSelect.label": "GPU",
   "monitoring.history.avg": "Med",

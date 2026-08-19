@@ -1797,7 +1797,7 @@
   "monitoring.events.kind.privacy-microphone": "Использовался микрофон",
   "monitoring.events.kind.privacy-location": "Использовалось местоположение",
   "monitoring.events.kind.privacy-screen": "Выполнен захват экрана",
-  "monitoring.gpuSelect.auto": "Авто ({name})",
+  "monitoring.gpuSelect.auto": "Автоматически - используется {name}",
   "monitoring.gpuSelect.integrated": "встроенная",
   "monitoring.gpuSelect.label": "GPU",
   "monitoring.history.avg": "Среднее",

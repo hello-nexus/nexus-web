@@ -1788,7 +1788,7 @@
   "monitoring.events.kind.privacy-microphone": "Mikrofon verwendet",
   "monitoring.events.kind.privacy-location": "Standort verwendet",
   "monitoring.events.kind.privacy-screen": "Bildschirm aufgezeichnet",
-  "monitoring.gpuSelect.auto": "Auto ({name})",
+  "monitoring.gpuSelect.auto": "Automatisch - verwendet {name}",
   "monitoring.gpuSelect.integrated": "integriert",
   "monitoring.gpuSelect.label": "GPU",
   "monitoring.history.avg": "Mittel",

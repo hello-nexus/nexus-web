@@ -1967,7 +1967,7 @@
   "monitoring.events.kind.privacy-location": "Locatie gebruikt",
   "monitoring.events.kind.privacy-screen": "Scherm vastgelegd",
   "monitoring.gpu.change": "Wijzigen",
-  "monitoring.gpuSelect.auto": "Automatisch ({name})",
+  "monitoring.gpuSelect.auto": "Automatisch - gebruikt {name}",
   "monitoring.gpuSelect.integrated": "geïntegreerd",
   "monitoring.gpuSelect.label": "GPU",
   "monitoring.history.avg": "Gem.",

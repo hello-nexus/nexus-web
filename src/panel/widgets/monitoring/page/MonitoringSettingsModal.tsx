@@ -30,6 +30,7 @@ export function MonitoringSettingsModal({ open, onClose, gpus }: MonitoringSetti
 
   const options: SelectOption[] = [
     { value: '', label: t('monitoring.gpuSelect.auto', { name: autoName }) },
+    { value: '__sep__', label: '', divider: true },
     ...gpus.map(g => ({
       value: g.name,
       label: g.integrated ? `${g.name} (${t('monitoring.gpuSelect.integrated')})` : g.name,
