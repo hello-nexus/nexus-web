@@ -298,6 +298,8 @@
   "cooling.curve.responseSeconds": "{value}s",
   "cooling.curve.source": "Источник темп.",
   "cooling.curve.tempBadge": "{temp}°C",
+  "cooling.curve.tooltipDuty": "Duty вентилятора",
+  "cooling.curve.tooltipTemp": "Температура",
   "cooling.curve.type.custom": "Многоточечная",
   "cooling.curve.type.fixed": "Фиксированная",
   "cooling.curve.type.label": "Режим",

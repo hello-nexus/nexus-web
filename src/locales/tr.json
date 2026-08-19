@@ -298,6 +298,8 @@
   "cooling.curve.responseSeconds": "{value}s",
   "cooling.curve.source": "Sicaklik kaynagi",
   "cooling.curve.tempBadge": "{temp}°C",
+  "cooling.curve.tooltipDuty": "Fan görevi",
+  "cooling.curve.tooltipTemp": "Sıcaklık",
   "cooling.curve.type.custom": "Çok Noktalı",
   "cooling.curve.type.fixed": "Sabit",
   "cooling.curve.type.label": "Mod",

@@ -298,6 +298,8 @@
   "cooling.curve.responseSeconds": "{value}s",
   "cooling.curve.source": "Sorgente temperatura",
   "cooling.curve.tempBadge": "{temp}°C",
+  "cooling.curve.tooltipDuty": "Duty ventola",
+  "cooling.curve.tooltipTemp": "Temperatura",
   "cooling.curve.type.custom": "Multipunto",
   "cooling.curve.type.fixed": "Fisso",
   "cooling.curve.type.label": "Modalità",

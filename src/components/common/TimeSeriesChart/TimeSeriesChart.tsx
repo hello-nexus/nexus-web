@@ -2,6 +2,7 @@ import { Fragment, useCallback, useEffect, useId, useLayoutEffect, useMemo, useR
 import { AppWindow, Camera, MapPin, Mic, Monitor, Pencil, Plus, ShieldAlert, Unplug, Usb, type LucideIcon } from 'lucide-react';
 import type { MonitoringEventKind, TimelineEvent } from '../../../api/monitoringEvents';
 import { useChartHoverTooltip } from '../../../hooks/useChartHoverTooltip';
+import { ChartHoverTooltip, ChartTooltipHeader, ChartTooltipRow, ChartTooltipVal } from '../ChartHoverTooltip/ChartHoverTooltip';
 import { useTranslation } from '../../../lib/i18n';
 import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
 import {
@@ -842,27 +843,25 @@ export function TimeSeriesChart({
       </svg>
 
       {tooltip && !isDragging && (
-        <div ref={tooltipRef} className={styles.tooltip}>
-          <div className={styles.tooltipHeader}>
+        <ChartHoverTooltip ref={tooltipRef}>
+          <ChartTooltipHeader>
             <span>{formatTooltipTimestamp(tooltip.t, nowMs, language, stepSeconds)}</span>
             {tooltipHeaderExtra?.(tooltip.t)}
-          </div>
+          </ChartTooltipHeader>
           {!hideSeriesRows && tooltip.rows.map(row => (
-            <div key={row.id} className={styles.tooltipRow}>
-              <span className={styles.tooltipDot} style={{ background: row.color }} />
-              <span className={styles.tooltipName}>{row.name}</span>
+            <ChartTooltipRow key={row.id} color={row.color} name={row.name}>
               {singleValueTooltip ? (
-                <span className={styles.tooltipVal}>{valueFormat(row.point.avg)}</span>
+                <ChartTooltipVal>{valueFormat(row.point.avg)}</ChartTooltipVal>
               ) : (
                 <>
-                  <span className={styles.tooltipVal}>{avgLabel} {valueFormat(row.point.avg)}</span>
-                  <span className={styles.tooltipVal}>{maxLabel} {valueFormat(row.point.max)}</span>
+                  <ChartTooltipVal>{avgLabel} {valueFormat(row.point.avg)}</ChartTooltipVal>
+                  <ChartTooltipVal>{maxLabel} {valueFormat(row.point.max)}</ChartTooltipVal>
                 </>
               )}
-            </div>
+            </ChartTooltipRow>
           ))}
           {tooltipExtra?.(tooltip.t)}
-        </div>
+        </ChartHoverTooltip>
       )}
 
       {showLegend && series.length > 0 && (

@@ -298,6 +298,8 @@
   "cooling.curve.responseSeconds": "{value}s",
   "cooling.curve.source": "Fonte de temp",
   "cooling.curve.tempBadge": "{temp}°C",
+  "cooling.curve.tooltipDuty": "Duty da ventoinha",
+  "cooling.curve.tooltipTemp": "Temperatura",
   "cooling.curve.type.custom": "Multiponto",
   "cooling.curve.type.fixed": "Fixo",
   "cooling.curve.type.label": "Modo",

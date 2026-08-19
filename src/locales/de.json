@@ -298,6 +298,8 @@
   "cooling.curve.responseSeconds": "{value}s",
   "cooling.curve.source": "Temperaturquelle",
   "cooling.curve.tempBadge": "{temp}°C",
+  "cooling.curve.tooltipDuty": "Lüfterleistung",
+  "cooling.curve.tooltipTemp": "Temperatur",
   "cooling.curve.type.custom": "Mehrpunkt",
   "cooling.curve.type.fixed": "Fest",
   "cooling.curve.type.label": "Modus",

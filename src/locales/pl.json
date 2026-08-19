@@ -298,6 +298,8 @@
   "cooling.curve.responseSeconds": "{value}s",
   "cooling.curve.source": "Zrodlo temp.",
   "cooling.curve.tempBadge": "{temp}°C",
+  "cooling.curve.tooltipDuty": "Poziom wentylatora",
+  "cooling.curve.tooltipTemp": "Temperatura",
   "cooling.curve.type.custom": "Wielopunktowy",
   "cooling.curve.type.fixed": "Stala",
   "cooling.curve.type.label": "Tryb",

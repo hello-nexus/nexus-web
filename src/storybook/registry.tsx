@@ -22,6 +22,7 @@ import { Slideout } from '../components/common/Slideout/Slideout';
 import { CardDeleteButton } from '../components/common/CardDeleteButton/CardDeleteButton';
 import { InfoTooltip } from '../components/common/InfoTooltip/InfoTooltip';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
+import { ChartHoverTooltip, ChartTooltipHeader, ChartTooltipRow, ChartTooltipVal } from '../components/common/ChartHoverTooltip/ChartHoverTooltip';
 import { DeviceWarningIcon } from '../components/common/DeviceWarningIcon/DeviceWarningIcon';
 import { NexusControlOffIcon } from '../components/common/NexusControlOffIcon/NexusControlOffIcon';
 import { NexusControlCard } from '../components/common/NexusControlCard/NexusControlCard';
@@ -286,6 +287,22 @@ function PreviewHoverTooltip() {
           <AlertTriangle size={14} aria-hidden />
         </button>
       </HoverTooltip>
+    </div>
+  );
+}
+
+function PreviewChartHoverTooltip() {
+  return (
+    <div style={{ position: 'relative', height: 90 }}>
+      <ChartHoverTooltip>
+        <ChartTooltipHeader><span>14:32:05</span></ChartTooltipHeader>
+        <ChartTooltipRow color="var(--accent)" name="Temperature">
+          <ChartTooltipVal>45°C</ChartTooltipVal>
+        </ChartTooltipRow>
+        <ChartTooltipRow color="var(--accent-glow)" name="Fan duty">
+          <ChartTooltipVal>33%</ChartTooltipVal>
+        </ChartTooltipRow>
+      </ChartHoverTooltip>
     </div>
   );
 }
@@ -2146,6 +2163,12 @@ export const REGISTRY: StorybookEntry[] = [
     name: 'Sparkline', category: 'charts',
     filePath: 'src/components/common/Sparkline/Sparkline.tsx',
     description: 'Tiny SVG sparkline. Auto-scales or accepts a fixed domain. Flat alpha fill (color, fillOpacity) plus optional separate strokeColor / strokeWidth. Pass sampleCount to lock a window length and left-pad shorter buffers. fillOnly drops the stroke line for a seek-bar-style silhouette (right example above), bumping the default fillOpacity to match its weight. Used by Monitoring CPU/GPU/Network and panel widgets (SparklineGauge, LineGauge, CoolingWidget); fillOnly is used by the Monitoring process-list row minigraphs.', Preview: PreviewSparkline,
+  },
+  {
+    name: 'ChartHoverTooltip', category: 'charts',
+    filePath: 'src/components/common/ChartHoverTooltip/ChartHoverTooltip.tsx',
+    description: 'The hover value box shared by chart surfaces: an absolutely-positioned card with an optional bordered header row plus dot/name/value series rows. TimeSeriesChart renders its timestamp + per-series avg/max rows in it; the cooling curve editor shows a hovered or dragged handle\'s exact temperature and duty. Placement is the caller\'s job - pair the ref with useChartHoverTooltip inside a position:relative wrapper: anchor \'top\' pins it to the top of the chart while following the cursor horizontally (the monitoring charts), anchor \'follow\' centers it vertically on a trackPoint-fed anchor so it rides a specific element (the curve editor\'s handle).', Preview: PreviewChartHoverTooltip,
+    notes: 'Compose with ChartTooltipHeader, ChartTooltipRow (color dot omitted when no color is given) and ChartTooltipVal children - a row accepts multiple vals (e.g. avg + max). The box is pointer-events: none so it never steals the hover from the chart under it.',
   },
   {
     name: 'TimeSeriesChart', category: 'charts',

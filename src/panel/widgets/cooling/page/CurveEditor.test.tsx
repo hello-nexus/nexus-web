@@ -113,14 +113,17 @@ describe('curve handle temp/duty readout', () => {
     stubSvgGeometry();
   });
 
-  it('hovering a point shows its temp and duty on the axes, cleared on leave', async () => {
+  it('hovering a point shows its temp and duty in the hover box, cleared on leave', async () => {
     const { container, findByText, queryByText } = renderMultipointCardWithI18n();
     // Second-lowest seed point (45°, 33%): neither value collides with the
-    // static axis legend numbers, so the badge text is unambiguous.
+    // static axis legend numbers, so the box text is unambiguous.
     const circle = container.querySelectorAll('svg circle')[1];
     fireEvent.pointerOver(circle);
     await findByText('45°C');
     expect(queryByText('33%')).toBeTruthy();
+    // The box names both rows with the real locale strings.
+    expect(queryByText('Temperature')).toBeTruthy();
+    expect(queryByText('Fan duty')).toBeTruthy();
     fireEvent.pointerOut(circle);
     expect(queryByText('45°C')).toBeNull();
     expect(queryByText('33%')).toBeNull();
@@ -146,7 +149,7 @@ describe('curve handle temp/duty readout', () => {
     expect(queryByText('89%')).toBeNull();
   });
 
-  it('the handle readout takes over the live-temp indicator until the pointer leaves the dot', async () => {
+  it('the live-temp indicator stays up while the hover box is open', async () => {
     // newCurve's sourceId is '', so this source drives the live-temp dot.
     const { container, findByText, queryByText } = render(
       <StatefulMultipointCard sources={[{ id: '', name: 'CPU Package', category: 'CPU', value: 70 }]} />,
@@ -157,15 +160,16 @@ describe('curve handle temp/duty readout', () => {
     const circle = container.querySelector('svg circle[r="7"]')!;
     fireEvent.pointerDown(circle, { pointerId: 1, clientX: 0, clientY: 120 });
     await findByText('30°C');
-    expect(queryByText('70.0°C')).toBeNull();
-    expect(container.querySelector('svg circle[r="4"]')).toBeNull();
-    // Release keeps the pointer on the dot: the readout and takeover hold.
+    // The box coexists with the live badges and guide dot.
+    expect(queryByText('70.0°C')).toBeTruthy();
+    expect(container.querySelector('svg circle[r="4"]')).toBeTruthy();
+    // Release keeps the pointer on the dot: the box holds.
     fireEvent.pointerUp(circle, { pointerId: 1 });
     expect(queryByText('30°C')).toBeTruthy();
-    expect(queryByText('70.0°C')).toBeNull();
+    expect(queryByText('70.0°C')).toBeTruthy();
     fireEvent.pointerOut(circle);
-    await findByText('70.0°C');
     expect(queryByText('30°C')).toBeNull();
+    expect(queryByText('70.0°C')).toBeTruthy();
     expect(container.querySelector('svg circle[r="4"]')).toBeTruthy();
   });
 

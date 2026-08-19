@@ -289,6 +289,8 @@
   "cooling.curve.responseSeconds": "{value}s",
   "cooling.curve.source": "Sorzint temp",
   "cooling.curve.tempBadge": "{temp}°C",
+  "cooling.curve.tooltipDuty": "Duty dai ventilatôrs",
+  "cooling.curve.tooltipTemp": "Temperadure",
   "cooling.curve.type.custom": "Plui ponts",
   "cooling.curve.type.fixed": "Fis",
   "cooling.curve.type.label": "Modalitât",

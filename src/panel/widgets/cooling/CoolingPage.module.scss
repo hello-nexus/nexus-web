@@ -920,6 +920,9 @@
   gap: 0.3rem;
   min-width: 0;
 }
+// Anchors the handle hover box (ChartHoverTooltip); wraps the svg alone so
+// the box clamps inside the graph and never covers the x-axis labels.
+.curveSvgWrap { position: relative; }
 .curveGraph { width: 100%; height: 140px; border-radius: var(--radius); background: var(--bg); border: 1px solid transparent; display: block; }
 .curveXAxis {
   position: relative;

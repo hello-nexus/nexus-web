@@ -298,6 +298,8 @@
   "cooling.curve.responseSeconds": "{value}s",
   "cooling.curve.source": "温度ソース",
   "cooling.curve.tempBadge": "{temp}°C",
+  "cooling.curve.tooltipDuty": "ファンデューティ",
+  "cooling.curve.tooltipTemp": "温度",
   "cooling.curve.type.custom": "マルチポイント",
   "cooling.curve.type.fixed": "固定",
   "cooling.curve.type.label": "モード",

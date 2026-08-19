@@ -298,6 +298,8 @@
   "cooling.curve.responseSeconds": "{value}s",
   "cooling.curve.source": "温度来源",
   "cooling.curve.tempBadge": "{temp}°C",
+  "cooling.curve.tooltipDuty": "风扇占空比",
+  "cooling.curve.tooltipTemp": "温度",
   "cooling.curve.type.custom": "多点",
   "cooling.curve.type.fixed": "固定",
   "cooling.curve.type.label": "模式",

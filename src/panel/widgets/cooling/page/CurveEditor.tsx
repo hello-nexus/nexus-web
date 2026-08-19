@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Button } from '../../../../components/common/Button/Button';
 import { Minus, TrendingUp, Activity, Combine, Trash2, RotateCcw, Pencil } from 'lucide-react';
 import type { CurvePoint, TemperatureSource } from '../../../../api/cooling';
@@ -8,6 +8,8 @@ import { localizeNumbers } from '../../../../lib/units';
 import type { CurveDef, CurveType, MixFn } from '../../../../types/cooling';
 import { PromptModal } from '../../../../components/common/PromptModal/PromptModal';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
+import { ChartHoverTooltip, ChartTooltipRow, ChartTooltipVal } from '../../../../components/common/ChartHoverTooltip/ChartHoverTooltip';
+import { useChartHoverTooltip } from '../../../../hooks/useChartHoverTooltip';
 import { Slider } from '../../../../components/common/Slider/Slider';
 import { RangeSlider } from '../../../../components/common/Slider/RangeSlider';
 import { Select } from '../../../../components/common/Select/Select';
@@ -156,6 +158,7 @@ export function CurveGraph({
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
   const svgRef = useRef<SVGSVGElement>(null);
+  const chartAreaRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(400);
   const rafWidthRef = useRef(0);
   // Optimistic points while dragging a handle; null when idle (props own the data).
@@ -204,6 +207,19 @@ export function CurveGraph({
   // While a handle is dragged, the optimistic copy drives the render.
   const activePoints = dragPoints ?? points;
   const sorted = useMemo(() => [...activePoints].sort((a, b) => a.temp - b.temp), [activePoints]);
+  // Handle readout while dragging or hovering a point: a hover box (the
+  // shared chart tooltip) glued to the handle, naming its exact temp/duty.
+  // The live-temp indicator stays untouched. dragIdxRef is only consulted
+  // when dragPoints says a drag is live, so the ref read tracks state.
+  const readoutIdx = dragPoints !== null ? dragIdxRef.current : hoverIdx;
+  const readoutPt = editable && readoutIdx !== null && readoutIdx < sorted.length ? sorted[readoutIdx] : undefined;
+  const { tooltipRef, trackPoint } = useChartHoverTooltip(chartAreaRef, readoutPt !== undefined, { anchor: 'follow' });
+  // The svg's viewBox width/height mirror its layout size, and it sits at the
+  // wrapper's origin, so chart coordinates are wrapper layout px. Layout
+  // effect: runs after the hook's own re-place, so the anchor wins the frame.
+  useLayoutEffect(() => {
+    if (readoutPt) trackPoint(tempToX(readoutPt.temp), speedToY(readoutPt.speed));
+  });
   // X-axis grid + labels at ~10° steps (5° for a narrow span). For the default
   // 20-100 range this reproduces the original 20,30,…,100 ticks.
   const vLines = useMemo(() => {
@@ -316,17 +332,11 @@ export function CurveGraph({
   const dotY = hasDot ? speedToY(dotSpeed) : 0;
   const dotLeftPct = hasDot ? ((currentTemp! - tempMin) / (tempMax - tempMin)) * 100 : 0;
 
-  // Handle readout while dragging or hovering a point: the same guide lines +
-  // axis badges as the live-temp indicator, anchored to the handle, so the
-  // exact temp/duty is visible while placing it. dragIdxRef is only consulted
-  // when dragPoints says a drag is live, so the ref read tracks state.
-  const readoutIdx = dragPoints !== null ? dragIdxRef.current : hoverIdx;
-  const readoutPt = editable && readoutIdx !== null && readoutIdx < sorted.length ? sorted[readoutIdx] : undefined;
-
   return (
     <div className={styles.curveGraphWrap}>
       <div className={styles.curveGraphFrame}>
         <div className={styles.curveChartArea}>
+          <div ref={chartAreaRef} className={styles.curveSvgWrap}>
           <svg ref={svgRef} className={styles.curveGraph} style={{ height, touchAction: editable ? 'none' : undefined }} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none"
             onDoubleClick={editable ? onAddPoint : undefined}>
             {H_LINES.map(s => (<g key={`h${s}`}><line x1={PAD.left} y1={speedToY(s)} x2={width - PAD.right} y2={speedToY(s)} className={styles.gridLine} /></g>))}
@@ -339,21 +349,13 @@ export function CurveGraph({
                 x2={width - PAD.right} y2={speedToY(Math.max(0, Math.min(100, limitPercent)))}
                 className={styles.curveLimitLine} />
             )}
-            {/* Yields to the handle readout so two guide-line sets never
-                coexist, matching the axis badges. */}
-            {hasDot && !readoutPt && (
+            {hasDot && (
               <g className={styles.curveTempIndicator}>
                 {/* Guide lines meet at the dot: one up from the bottom temp
                     axis, one in from the right duty axis. */}
                 <line x1={dotX} y1={height - PAD.bottom} x2={dotX} y2={dotY} className={styles.tempLine} />
                 <line x1={width - PAD.right} y1={dotY} x2={dotX} y2={dotY} className={styles.tempLine} />
                 <circle cx={dotX} cy={dotY} r={4} className={styles.tempDot} />
-              </g>
-            )}
-            {readoutPt && (
-              <g className={styles.curveTempIndicator}>
-                <line x1={tempToX(readoutPt.temp)} y1={height - PAD.bottom} x2={tempToX(readoutPt.temp)} y2={speedToY(readoutPt.speed)} className={styles.tempLine} />
-                <line x1={width - PAD.right} y1={speedToY(readoutPt.speed)} x2={tempToX(readoutPt.temp)} y2={speedToY(readoutPt.speed)} className={styles.tempLine} />
               </g>
             )}
             {showPoints && sorted.map((p, i) => (
@@ -367,6 +369,17 @@ export function CurveGraph({
                 onContextMenu={editable ? (e) => onRemovePoint(i, e) : undefined} />
             ))}
           </svg>
+          {readoutPt && (
+            <ChartHoverTooltip ref={tooltipRef}>
+              <ChartTooltipRow color="var(--accent)" name={t('cooling.curve.tooltipTemp')}>
+                <ChartTooltipVal>{t('cooling.curve.tempBadge', { temp: localizeNumbers(readoutPt.temp.toFixed(0), numberFormat) })}</ChartTooltipVal>
+              </ChartTooltipRow>
+              <ChartTooltipRow color="var(--accent-glow)" name={t('cooling.curve.tooltipDuty')}>
+                <ChartTooltipVal>{localizeNumbers(`${readoutPt.speed.toFixed(0)}%`, numberFormat)}</ChartTooltipVal>
+              </ChartTooltipRow>
+            </ChartHoverTooltip>
+          )}
+          </div>
           <div className={styles.curveXAxis} aria-hidden="true">
             {/* Inner track is inset 8px left/right to match SVG PAD.left / PAD.right
                 so labels line up 1:1 with the vertical grid lines. */}
@@ -377,16 +390,9 @@ export function CurveGraph({
                   {v}°
                 </span>
               ))}
-              {/* The handle readout takes the axis while active so the two
-                  badge texts never superimpose. */}
-              {hasDot && !readoutPt && (
+              {hasDot && (
                 <span className={styles.curveAxisLiveX} style={{ left: `${dotLeftPct}%` }}>
                   {t('cooling.curve.tempBadge', { temp: localizeNumbers(currentTemp!.toFixed(1), numberFormat) })}
-                </span>
-              )}
-              {readoutPt && (
-                <span className={styles.curveAxisLiveX} style={{ left: `${((readoutPt.temp - tempMin) / (tempMax - tempMin)) * 100}%` }}>
-                  {t('cooling.curve.tempBadge', { temp: localizeNumbers(readoutPt.temp.toFixed(0), numberFormat) })}
                 </span>
               )}
             </div>
@@ -398,14 +404,9 @@ export function CurveGraph({
           {[...H_LINES].reverse().map(s => (
             <span key={s} className={styles.curveAxisLabel}>{s}%</span>
           ))}
-          {hasDot && !readoutPt && (
+          {hasDot && (
             <span className={styles.curveAxisLiveY} style={{ top: `${dotY}px` }}>
               {localizeNumbers(`${dotSpeed.toFixed(0)}%`, numberFormat)}
-            </span>
-          )}
-          {readoutPt && (
-            <span className={styles.curveAxisLiveY} style={{ top: `${speedToY(readoutPt.speed)}px` }}>
-              {localizeNumbers(`${readoutPt.speed.toFixed(0)}%`, numberFormat)}
             </span>
           )}
         </div>

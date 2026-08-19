@@ -298,6 +298,8 @@
   "cooling.curve.responseSeconds": "{value}s",
   "cooling.curve.source": "온도 소스",
   "cooling.curve.tempBadge": "{temp}°C",
+  "cooling.curve.tooltipDuty": "팬 듀티",
+  "cooling.curve.tooltipTemp": "온도",
   "cooling.curve.type.custom": "멀티포인트",
   "cooling.curve.type.fixed": "고정",
   "cooling.curve.type.label": "모드",
