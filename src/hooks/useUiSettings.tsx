@@ -8,6 +8,7 @@ import {
   loadSettings, saveSettings, cachePreferencesLocally,
   applyThemeMode, applyAccentColor, applyBackgroundMode,
   type NexusSettings, type ThemeMode, type Language, type BackgroundMode, type AccentSource,
+  type DashboardMode,
 } from '../lib/settings';
 import {
   fetchPreferences, savePreferences,
@@ -90,6 +91,11 @@ export interface UiSettingsValue {
   // mode buttons); default false (compact center-icon+arrows layout).
   // Per-widget config.advancedMode overrides this per instance.
   widgetAdvancedMode: boolean;
+  // Per-page density of the dashboard lighting/cooling pages. Server-mirrored
+  // under ui.lightingDashboardMode / ui.coolingDashboardMode; the service
+  // seeds pre-existing installs to 'advanced'.
+  lightingDashboardMode: DashboardMode;
+  coolingDashboardMode: DashboardMode;
   // Display-unit choices, server-mirrored under the preferences `units` block.
   // monitoringTempUnit governs in-app hardware temps only (default 'c');
   // outdoor weather keeps its own per-widget unit. See lib/units.ts.
@@ -196,6 +202,8 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     recentSidebarApps: sanitizeRecents(src.general.recentSidebarApps),
     oemAppSeeded: false,
     widgetAdvancedMode: src.general.widgetAdvancedMode,
+    lightingDashboardMode: src.general.lightingDashboardMode,
+    coolingDashboardMode: src.general.coolingDashboardMode,
     monitoringTempUnit: src.general.monitoringTempUnit,
     timeFormat: src.general.timeFormat,
     numberFormat: src.general.numberFormat,
@@ -243,6 +251,8 @@ function toNexusSettings(src: UiSettingsValue): NexusSettings {
       pinnedSidebarApps: src.pinnedSidebarApps,
       recentSidebarApps: src.recentSidebarApps,
       widgetAdvancedMode: src.widgetAdvancedMode,
+      lightingDashboardMode: src.lightingDashboardMode,
+      coolingDashboardMode: src.coolingDashboardMode,
       monitoringTempUnit: src.monitoringTempUnit,
       timeFormat: src.timeFormat,
       numberFormat: src.numberFormat,
@@ -278,11 +288,13 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.preferredGpuId !== undefined) cooling.preferredGpuId = patch.preferredGpuId;
   if (Object.keys(cooling).length > 0) out.cooling = cooling;
   // ui block
-  const ui: Partial<{ showConflictAlerts: boolean; pinnedSidebarApps: string[]; recentSidebarApps: string[]; oemAppSeeded: boolean }> = {};
+  const ui: Partial<{ showConflictAlerts: boolean; pinnedSidebarApps: string[]; recentSidebarApps: string[]; oemAppSeeded: boolean; lightingDashboardMode: DashboardMode; coolingDashboardMode: DashboardMode }> = {};
   if (patch.showConflictAlerts !== undefined) ui.showConflictAlerts = patch.showConflictAlerts;
   if (patch.pinnedSidebarApps !== undefined) ui.pinnedSidebarApps = patch.pinnedSidebarApps;
   if (patch.recentSidebarApps !== undefined) ui.recentSidebarApps = patch.recentSidebarApps;
   if (patch.oemAppSeeded !== undefined) ui.oemAppSeeded = patch.oemAppSeeded;
+  if (patch.lightingDashboardMode !== undefined) ui.lightingDashboardMode = patch.lightingDashboardMode;
+  if (patch.coolingDashboardMode !== undefined) ui.coolingDashboardMode = patch.coolingDashboardMode;
   if (Object.keys(ui).length > 0) out.ui = ui;
   // update block
   const update: Partial<{ updateMode: UpdateMode; updateChannel: UpdateChannel; lastDismissedUpdateVersion: string }> = {};
@@ -362,6 +374,13 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
     backgroundMode: (server.theme?.backgroundMode as BackgroundMode) || base.backgroundMode,
     accentSource: (server.theme?.accentSource as AccentSource) || base.accentSource,
     showConflictAlerts: server.ui?.showConflictAlerts ?? base.showConflictAlerts,
+    // Unknown/absent values keep the local value (older services omit them).
+    lightingDashboardMode: server.ui?.lightingDashboardMode === 'simple' || server.ui?.lightingDashboardMode === 'advanced'
+      ? server.ui.lightingDashboardMode
+      : base.lightingDashboardMode,
+    coolingDashboardMode: server.ui?.coolingDashboardMode === 'simple' || server.ui?.coolingDashboardMode === 'advanced'
+      ? server.ui.coolingDashboardMode
+      : base.coolingDashboardMode,
     monitoringDetailedCollapsed: server.monitoring?.detailedCollapsed ?? base.monitoringDetailedCollapsed,
     monitoringEventsEnabled: server.monitoring?.eventsEnabled ?? base.monitoringEventsEnabled,
     monitoringEventKindsHidden: server.monitoring?.eventKindsHidden ?? base.monitoringEventKindsHidden,

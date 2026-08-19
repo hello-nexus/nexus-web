@@ -1,7 +1,13 @@
 import { render, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as lightingApi from '../../../api/lighting';
+import { UiSettingsProvider } from '../../../hooks/useUiSettings';
 import { LightingPage } from './LightingPage';
+
+// These tests exercise the advanced page; the fresh-install default is simple.
+function seedAdvancedDashboard() {
+  localStorage.setItem('nexus_settings', JSON.stringify({ general: { lightingDashboardMode: 'advanced', coolingDashboardMode: 'advanced' } }));
+}
 
 const setModeMock = vi.hoisted(() => vi.fn());
 const setRawSyncMock = vi.hoisted(() => vi.fn());
@@ -150,11 +156,15 @@ describe('LightingPage profile switching', () => {
   beforeEach(() => {
     profileRef.current = 'old';
     vi.clearAllMocks();
+    localStorage.clear();
+    seedAdvancedDashboard();
   });
 
   it('replays the freshly loaded profile effect instead of stale rawSync', async () => {
     const { rerender } = render(
-      <LightingPage serviceOnline serviceState={{ cooling: null, lighting: null, panel: null }} activeProfileId="old" />,
+      <UiSettingsProvider>
+        <LightingPage serviceOnline serviceState={{ cooling: null, lighting: null, panel: null }} activeProfileId="old" />
+      </UiSettingsProvider>,
     );
 
     await waitFor(() => {
@@ -173,7 +183,11 @@ describe('LightingPage profile switching', () => {
     vi.mocked(lightingApi.startAnimate).mockClear();
 
     profileRef.current = 'new';
-    rerender(<LightingPage serviceOnline serviceState={{ cooling: null, lighting: null, panel: null }} activeProfileId="new" />);
+    rerender(
+      <UiSettingsProvider>
+        <LightingPage serviceOnline serviceState={{ cooling: null, lighting: null, panel: null }} activeProfileId="new" />
+      </UiSettingsProvider>,
+    );
 
     await waitFor(() => {
       expect(lightingApi.startAnimate).toHaveBeenCalledWith(
@@ -200,6 +214,7 @@ describe('LightingPage preset toolbar placement', () => {
     // The page persists the active right-pane tab; without this the Effect-tab
     // precondition depends on what an earlier test left behind.
     localStorage.clear();
+    seedAdvancedDashboard();
   });
 
   // The preset carries the mode + effect selection, so its control sits at the
@@ -207,7 +222,9 @@ describe('LightingPage preset toolbar placement', () => {
   it('renders the preset toolbar while the Effect tab is active', async () => {
     // t() is unmocked here and echoes keys, so queries name the key.
     const { findByLabelText, getByRole } = render(
-      <LightingPage serviceOnline serviceState={{ cooling: null, lighting: null, panel: null }} activeProfileId="old" />,
+      <UiSettingsProvider>
+        <LightingPage serviceOnline serviceState={{ cooling: null, lighting: null, panel: null }} activeProfileId="old" />
+      </UiSettingsProvider>,
     );
 
     expect(getByRole('radio', { name: 'lighting.rightPane.effect' }).getAttribute('aria-checked')).toBe('true');

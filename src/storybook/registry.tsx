@@ -45,6 +45,7 @@ import { Toggle } from '../components/common/Toggle/Toggle';
 import { EmptyState } from '../components/common/EmptyState/EmptyState';
 import { Select } from '../components/common/Select/Select';
 import { IconLabelButton } from '../components/common/IconLabelButton/IconLabelButton';
+import { AdvancedModeCta } from '../components/common/AdvancedModeCta/AdvancedModeCta';
 import { Button } from '../components/common/Button/Button';
 import { EndTaskButton } from '../components/common/EndTaskButton/EndTaskButton';
 import { ConflictAppCard } from '../components/common/ConflictAppCard/ConflictAppCard';
@@ -1121,6 +1122,17 @@ function PreviewIconLabelButton() {
   );
 }
 
+function PreviewAdvancedModeCta() {
+  return (
+    <div className={styles.previewStack} style={{ width: 520 }}>
+      <AdvancedModeCta
+        label="More effects, templates and per-device options"
+        onPress={() => {}}
+      />
+    </div>
+  );
+}
+
 function PreviewWidgetHeader() {
   return (
     <div className={styles.previewStack}>
@@ -2000,6 +2012,12 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/EffectCard/EffectCard.tsx',
     description: 'The one shared thumbnail card: lighting shader browser, panel Theme animation picker, media library, and the lighting widget tile all use it. overlay=true gives a full-bleed thumbnail with the label stroked over the lower third (both shader pickers); default layout is thumbnail-above-caption with optional meta line + hover-reveal delete X (media library).', Preview: PreviewEffectCard,
     notes: 'Pass overlay for the full-bleed label-on-thumbnail shader-picker layout. Pass asDiv when the card contains a nested button (CardDeleteButton) - nested buttons are invalid HTML. Pass nonInteractive for a display-only card (plain div, no hover ring / cursor) - the lighting widget tile. thumbUrl=null renders a shimmer skeleton.',
+  },
+  {
+    name: 'AdvancedModeCta', category: 'cards',
+    filePath: 'src/components/common/AdvancedModeCta/AdvancedModeCta.tsx',
+    description: 'Wide card-button at the bottom of the simple-mode lighting/cooling pages: "Advanced mode" eyebrow over a page-specific line describing what the full page adds, with a chevron affordance. Pressing it flips that page\'s ui.*DashboardMode field to advanced (the page passes the flip as onPress).',
+    Preview: PreviewAdvancedModeCta,
   },
   {
     name: 'DeviceCanvas', category: 'cards',

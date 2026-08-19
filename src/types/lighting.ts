@@ -53,9 +53,9 @@ export const EFFECT_CATEGORIES: EffectCategory[] = [
 // (hue / colorize / saturation), so each entry differs only by its template
 // feels - see SIMPLE_COLORS / buildDefaultTemplates in lightingTemplates.ts.
 export const SIMPLE_EFFECT_KEYS = [
-  'simplewhite',
-  'simplepink', 'simpleviolet', 'simpleblue', 'simplecyan', 'simplegreen',
-  'simpleyellow', 'simpleorange', 'simplered',
+  'simplewhite', 'simplesoftpink', 'simplepink', 'simplered',
+  'simpleorange', 'simpleyellow', 'simplegreen', 'simpledarkgreen',
+  'simplecyan', 'simpleblue', 'simpleviolet',
 ] as const;
 
 /** A per-effect colour the user picks with the wheel. Each maps to an HSV
@@ -93,11 +93,11 @@ export function categoryOf(key: string): EffectCategory {
 // anything also tagged audio"). When borderline (e.g. starpath could be
 // either cosmic or atmospheric), pick the dominant visual character.
 export const EFFECT_CATEGORY: Record<string, EffectCategory> = {
-  // Simple solid-colour fills (9).
-  simplewhite: 'simple',
+  // Simple solid-colour fills.
+  simplewhite: 'simple', simplesoftpink: 'simple', simplepink: 'simple',
   simplered: 'simple', simpleorange: 'simple', simpleyellow: 'simple',
-  simplegreen: 'simple', simplecyan: 'simple', simpleblue: 'simple',
-  simpleviolet: 'simple', simplepink: 'simple',
+  simplegreen: 'simple', simpledarkgreen: 'simple',
+  simplecyan: 'simple', simpleblue: 'simple', simpleviolet: 'simple',
   gradientlinear: 'gradient', gradientradial: 'gradient', gradienttri: 'gradient',
   gradientconic: 'gradient', mirror: 'gradient', corners: 'gradient',
   splitsharp: 'twotone', stripes: 'twotone', checker: 'twotone', border: 'twotone',
@@ -162,15 +162,17 @@ export const EFFECTS: EffectDef[] = [
   // Simple solid-colour fills lead the list. A flat swatch with a slight
   // hue-shift nudge is the only per-effect tweak; base colour / saturation /
   // contrast come from the template feels. No speed (the fill is static).
-  { key: 'simplewhite',  labelKey: 'lighting.controls.simplewhite',  hideSpeed: true, params: SIMPLE_WHITE_PARAMS },
-  { key: 'simplepink',   labelKey: 'lighting.controls.simplepink',   hideSpeed: true, params: SIMPLE_COLOR_PARAMS },
-  { key: 'simpleviolet', labelKey: 'lighting.controls.simpleviolet', hideSpeed: true, params: SIMPLE_COLOR_PARAMS },
-  { key: 'simpleblue',   labelKey: 'lighting.controls.simpleblue',   hideSpeed: true, params: SIMPLE_COLOR_PARAMS },
-  { key: 'simplecyan',   labelKey: 'lighting.controls.simplecyan',   hideSpeed: true, params: SIMPLE_COLOR_PARAMS },
-  { key: 'simplegreen',  labelKey: 'lighting.controls.simplegreen',  hideSpeed: true, params: SIMPLE_COLOR_PARAMS },
-  { key: 'simpleyellow', labelKey: 'lighting.controls.simpleyellow', hideSpeed: true, params: SIMPLE_COLOR_PARAMS },
-  { key: 'simpleorange', labelKey: 'lighting.controls.simpleorange', hideSpeed: true, params: SIMPLE_COLOR_PARAMS },
-  { key: 'simplered',    labelKey: 'lighting.controls.simplered',    hideSpeed: true, params: SIMPLE_COLOR_PARAMS },
+  { key: 'simplewhite',     labelKey: 'lighting.controls.simplewhite',     hideSpeed: true, params: SIMPLE_WHITE_PARAMS },
+  { key: 'simplesoftpink',  labelKey: 'lighting.controls.simplesoftpink',  hideSpeed: true, params: SIMPLE_COLOR_PARAMS },
+  { key: 'simplepink',      labelKey: 'lighting.controls.simplepink',      hideSpeed: true, params: SIMPLE_COLOR_PARAMS },
+  { key: 'simplered',       labelKey: 'lighting.controls.simplered',       hideSpeed: true, params: SIMPLE_COLOR_PARAMS },
+  { key: 'simpleorange',    labelKey: 'lighting.controls.simpleorange',    hideSpeed: true, params: SIMPLE_COLOR_PARAMS },
+  { key: 'simpleyellow',    labelKey: 'lighting.controls.simpleyellow',    hideSpeed: true, params: SIMPLE_COLOR_PARAMS },
+  { key: 'simplegreen',     labelKey: 'lighting.controls.simplegreen',     hideSpeed: true, params: SIMPLE_COLOR_PARAMS },
+  { key: 'simpledarkgreen', labelKey: 'lighting.controls.simpledarkgreen', hideSpeed: true, params: SIMPLE_COLOR_PARAMS },
+  { key: 'simplecyan',      labelKey: 'lighting.controls.simplecyan',      hideSpeed: true, params: SIMPLE_COLOR_PARAMS },
+  { key: 'simpleblue',      labelKey: 'lighting.controls.simpleblue',      hideSpeed: true, params: SIMPLE_COLOR_PARAMS },
+  { key: 'simpleviolet',    labelKey: 'lighting.controls.simpleviolet',    hideSpeed: true, params: SIMPLE_COLOR_PARAMS },
 
 // ── Static patterns ────────────────────────────────────────────────────────
 // Purpose-built for Static mode: a pure function of position, no clock at all,
@@ -681,6 +683,12 @@ export const DEFAULT_STATIC_EFFECT = 'gradientlinear';
  * must not appear here or Animation can select one and sit motionless.
  */
 export const ANIMATE_EFFECTS: EffectDef[] = EFFECTS.filter(e => !STATIC_KEY_SET.has(e.key));
+
+/**
+ * Simple-mode browse pool: the flat colours, rendered as
+ * an uncategorised hero grid. Everything else stays advanced-only.
+ */
+export const SIMPLE_MODE_EFFECTS: EffectDef[] = STATIC_EFFECTS.filter(e => isStaticFill(e.key));
 
 export function defaultParamsFor(key: string): Record<string, number> {
   const def = EFFECTS.find(e => e.key === key);

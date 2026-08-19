@@ -89,6 +89,33 @@
   overflow: hidden;
 }
 
+// Simple-mode (ui.lightingDashboardMode) layout: the browse grid fills the page with
+// the advanced-mode CTA docked beneath it. No tabs / canvas / right pane.
+.simpleBody {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-right: 0.5rem;
+}
+
+.simpleFooter {
+  flex: 0 0 auto;
+  padding: 0.75rem 0.3rem 1rem;
+}
+
+// Off tile leading the simple-mode hero grid: the cooling preset-tile look,
+// sized to the same box as the effect cells beside it.
+.simpleOffTile {
+  --icon-label-button-gap: 0.45rem;
+  --icon-label-icon-size: 30px;
+  --icon-label-label-size: var(--type-body);
+  --icon-label-button-radius: var(--radius);
+  --icon-label-button-active-border: var(--accent);
+
+  width: 100%;
+  aspect-ratio: 16 / 9;
+}
+
 .canvasArea {
   flex-shrink: 0;
   display: flex;
@@ -261,6 +288,12 @@
 // normal cell width - twice as many per row.
 .animateGridSectionSimple {
   grid-template-columns: repeat(auto-fill, minmax(59px, 1fr));
+}
+
+// Simple-mode browse: the flat colours as a fixed-width hero grid.
+.animateGridSectionHero {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
 }
 
 // Usage markers pinned to a grid cell's thumbnail (panels only): bulb = this

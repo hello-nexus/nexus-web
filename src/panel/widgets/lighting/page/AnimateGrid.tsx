@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Lightbulb, Monitor } from 'lucide-react';
 import { useTranslation } from '../../../../lib/i18n';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { CollapsibleSection } from '../../../../components/common/CollapsibleSection/CollapsibleSection';
 import {
-  EFFECTS, EFFECT_CATEGORIES, categoryOf,
+  EFFECTS, EFFECT_CATEGORIES, categoryOf, isStaticEffect,
   type EffectCategory, type EffectDef,
 } from '../../../../types/lighting';
 import { EffectCard } from '../../../../components/common/EffectCard/EffectCard';
@@ -60,7 +60,7 @@ function AnimateGridCell({ fx, slot, version, active, live, panel, label, hideLa
  * hardware gets a bulb. Effects are listed in pre-expanded category groups
  * (EFFECT_CATEGORIES order), each under a header in the cooling-panel style.
  */
-export function AnimateGrid({ effect, onSelect, effects = EFFECTS, slotFor, versionFor, rgbActiveEffect, panelEffects, gpuAvailable, frozen }: {
+export function AnimateGrid({ effect, onSelect, effects = EFFECTS, slotFor, versionFor, rgbActiveEffect, panelEffects, gpuAvailable, frozen, simpleBrowse, leadingCell }: {
   effect: string;
   onSelect: (key: string) => void;
   /** Effect pool to show. Defaults to the full RGB set; panel backgrounds pass
@@ -78,6 +78,11 @@ export function AnimateGrid({ effect, onSelect, effects = EFFECTS, slotFor, vers
   gpuAvailable?: boolean;
   /** Static mode: tiles render frozen so the grid matches the LED output. */
   frozen?: boolean;
+  /** Simple-mode browse (SIMPLE_MODE_EFFECTS pool): a bare hero grid with no
+   *  category headers, labelled cells, static cells frozen. */
+  simpleBrowse?: boolean;
+  /** Extra cell rendered before the effects in the simpleBrowse hero grid. */
+  leadingCell?: ReactNode;
 }) {
   const { t } = useTranslation();
   const gridRef = useRef<HTMLDivElement>(null);
@@ -120,34 +125,45 @@ export function AnimateGrid({ effect, onSelect, effects = EFFECTS, slotFor, vers
   return (
     <div className={styles.animateGridWrap}>
       <div ref={gridRef} className={styles.animateGrid}>
-        {groups.map(g => (
-          <CollapsibleSection
-            key={g.cat}
-            compact
-            title={t(`lighting.category.${g.cat}`)}
-            open={!collapsed.has(g.cat)}
-            onToggle={() => toggle(g.cat)}
-          >
-            <div className={`${styles.animateGridSection} ${g.cat === 'simple' ? styles.animateGridSectionSimple : ''}`}>
-              {g.items.map(fx => (
-                <AnimateGridCell
-                  key={fx.key}
-                  fx={fx}
-                  slot={slotFor ? slotFor(fx.key) : 0}
-                  version={versionFor ? versionFor(fx.key) : '0'}
-                  active={fx.key === effect}
-                  live={!!rgbActiveEffect && fx.key === rgbActiveEffect}
-                  panel={!!panelEffects && panelEffects.has(fx.key)}
-                  label={t(fx.labelKey)}
-                  hideLabel={g.cat === 'simple'}
-                  gpuAvailable={gpuAvailable}
-                  frozen={frozen}
-                  onSelect={() => onSelect(fx.key)}
-                />
-              ))}
-            </div>
-          </CollapsibleSection>
-        ))}
+        {groups.map((g, gi) => {
+          const cells = g.items.map(fx => (
+            <AnimateGridCell
+              key={fx.key}
+              fx={fx}
+              slot={slotFor ? slotFor(fx.key) : 0}
+              version={versionFor ? versionFor(fx.key) : '0'}
+              active={fx.key === effect}
+              live={!!rgbActiveEffect && fx.key === rgbActiveEffect}
+              panel={!!panelEffects && panelEffects.has(fx.key)}
+              label={t(fx.labelKey)}
+              hideLabel={g.cat === 'simple' && !simpleBrowse}
+              gpuAvailable={gpuAvailable}
+              frozen={frozen || (simpleBrowse && isStaticEffect(fx.key))}
+              onSelect={() => onSelect(fx.key)}
+            />
+          ));
+          if (simpleBrowse) {
+            return (
+              <div key={g.cat} className={`${styles.animateGridSection} ${styles.animateGridSectionHero}`}>
+                {gi === 0 && leadingCell}
+                {cells}
+              </div>
+            );
+          }
+          return (
+            <CollapsibleSection
+              key={g.cat}
+              compact
+              title={t(`lighting.category.${g.cat}`)}
+              open={!collapsed.has(g.cat)}
+              onToggle={() => toggle(g.cat)}
+            >
+              <div className={`${styles.animateGridSection} ${g.cat === 'simple' ? styles.animateGridSectionSimple : ''}`}>
+                {cells}
+              </div>
+            </CollapsibleSection>
+          );
+        })}
       </div>
     </div>
   );

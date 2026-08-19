@@ -42,10 +42,11 @@ export const EffectControls = memo(function EffectControls({
   if (!def) return null;
   const selected = bundle.selected;
   // Simple fills are a fixed base colour: no colour wheel, no speed, no
-  // contrast. Saturation is the HSV-S post-process multiplier, floored above
-  // white (that's the dedicated White fill) and capped at 100% - the shader
-  // clamps S at 1, so slider travel above that changed nothing. White itself
-  // hides the slider (its warmth comes from presets).
+  // contrast, and no preset slots - one look plus its sliders. Saturation is
+  // the HSV-S post-process multiplier, floored above white (that's the
+  // dedicated White fill) and capped at 100% - the shader clamps S at 1, so
+  // slider travel above that changed nothing. White itself hides the slider
+  // (only its warmth param applies).
   const isSimple = categoryOf(effect) === 'simple';
   // Static patterns write fragColor directly from their own colour params, so
   // the tint post-process (palette ring, saturation, contrast, the global hex)
@@ -57,16 +58,18 @@ export const EffectControls = memo(function EffectControls({
   const satValue = Math.max(satMin, Math.min(Math.round(state.saturation * 100), satMax));
   return (
     <div className={styles.effectControls}>
-      <EffectTemplateSelector
-        className={styles.drawerTemplates}
-        effect={effect}
-        slots={bundle.slots}
-        activeIndex={selected}
-        onSelect={onTemplateSelect}
-        ariaLabel="Presets"
-        rgbActiveSlot={rgbActiveSlot}
-        panelSlots={panelSlots}
-      />
+      {!isSimple && (
+        <EffectTemplateSelector
+          className={styles.drawerTemplates}
+          effect={effect}
+          slots={bundle.slots}
+          activeIndex={selected}
+          onSelect={onTemplateSelect}
+          ariaLabel="Presets"
+          rgbActiveSlot={rgbActiveSlot}
+          panelSlots={panelSlots}
+        />
+      )}
       <div className={styles.drawerSliders}>
         {ownsColors && (
           <StaticColorSlots slots={def.colors!} state={state} onChange={onChange} onCommit={onCommit} />

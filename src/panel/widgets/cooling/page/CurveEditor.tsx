@@ -318,7 +318,9 @@ export function CurveGraph({
                 x2={width - PAD.right} y2={speedToY(Math.max(0, Math.min(100, limitPercent)))}
                 className={styles.curveLimitLine} />
             )}
-            {hasDot && (
+            {/* Yields to the handle readout so two guide-line sets never
+                coexist, matching the axis badges. */}
+            {hasDot && !readoutPt && (
               <g className={styles.curveTempIndicator}>
                 {/* Guide lines meet at the dot: one up from the bottom temp
                     axis, one in from the right duty axis. */}

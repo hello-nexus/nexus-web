@@ -150,6 +150,11 @@ export interface UiPrefs {
   // have been reconciled onto this profile. Optional - older services
   // return Preferences without this field, which the client treats as false.
   oemAppSeeded?: boolean;
+  // Per-page density of the dashboard lighting/cooling pages
+  // ('simple' | 'advanced'). Optional - older services omit them, and the
+  // client keeps its local values.
+  lightingDashboardMode?: string;
+  coolingDashboardMode?: string;
 }
 
 export interface UpdatePrefs {
