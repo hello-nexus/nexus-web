@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { fireEvent, render } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CurveCard } from './CurveEditor';
@@ -96,6 +97,17 @@ function renderMultipointCardWithI18n(sources: TemperatureSource[] = []) {
   );
 }
 
+// Commits onChange back into props like the real cooling page, so post-release
+// assertions see the committed drag values rather than the initial seed.
+function StatefulMultipointCard({ sources = [] }: { sources?: TemperatureSource[] }) {
+  const [curve, setCurve] = useState<CurveDef>(() => newCurve('curve-test'));
+  return (
+    <I18nProvider>
+      <CurveCard curve={curve} allCurves={[curve]} sources={sources} onChange={setCurve} onDelete={() => {}} />
+    </I18nProvider>
+  );
+}
+
 describe('curve handle temp/duty readout', () => {
   beforeEach(() => {
     stubSvgGeometry();
@@ -114,8 +126,8 @@ describe('curve handle temp/duty readout', () => {
     expect(queryByText('33%')).toBeNull();
   });
 
-  it('dragging a point shows the readout tracking the dragged values, cleared on release', async () => {
-    const { container, findByText, queryByText } = renderMultipointCardWithI18n();
+  it('dragging a point shows the readout tracking the dragged values, held after release until leave', async () => {
+    const { container, findByText, queryByText } = render(<StatefulMultipointCard />);
     const circle = container.querySelector('svg circle')!;
     // Grab shows the point's current coordinates before any movement.
     fireEvent.pointerDown(circle, { pointerId: 1, clientX: 0, clientY: 120 });
@@ -125,16 +137,20 @@ describe('curve handle temp/duty readout', () => {
     fireEvent.pointerMove(circle, { pointerId: 1, clientX: 0, clientY: 20 });
     await findByText('20°C');
     expect(queryByText('89%')).toBeTruthy();
+    // The cursor still rests on the dot after release, so the readout holds.
     fireEvent.pointerUp(circle, { pointerId: 1 });
+    expect(queryByText('20°C')).toBeTruthy();
+    expect(queryByText('89%')).toBeTruthy();
+    fireEvent.pointerOut(circle);
     expect(queryByText('20°C')).toBeNull();
     expect(queryByText('89%')).toBeNull();
   });
 
-  it('the handle readout takes over the live-temp indicator entirely while active', async () => {
+  it('the handle readout takes over the live-temp indicator until the pointer leaves the dot', async () => {
     // newCurve's sourceId is '', so this source drives the live-temp dot.
-    const { container, findByText, queryByText } = renderMultipointCardWithI18n([
-      { id: '', name: 'CPU Package', category: 'CPU', value: 70 },
-    ]);
+    const { container, findByText, queryByText } = render(
+      <StatefulMultipointCard sources={[{ id: '', name: 'CPU Package', category: 'CPU', value: 70 }]} />,
+    );
     await findByText('70.0°C');
     // r=4 is the live-temp dot; r=7 the point markers.
     expect(container.querySelector('svg circle[r="4"]')).toBeTruthy();
@@ -143,9 +159,57 @@ describe('curve handle temp/duty readout', () => {
     await findByText('30°C');
     expect(queryByText('70.0°C')).toBeNull();
     expect(container.querySelector('svg circle[r="4"]')).toBeNull();
+    // Release keeps the pointer on the dot: the readout and takeover hold.
     fireEvent.pointerUp(circle, { pointerId: 1 });
+    expect(queryByText('30°C')).toBeTruthy();
+    expect(queryByText('70.0°C')).toBeNull();
+    fireEvent.pointerOut(circle);
     await findByText('70.0°C');
     expect(queryByText('30°C')).toBeNull();
     expect(container.querySelector('svg circle[r="4"]')).toBeTruthy();
   });
+
+  it('an external points change clears a held hover readout', async () => {
+    const curve = newCurve('curve-test');
+    const { container, findByText, queryByText, rerender } = render(staticCardUi(curve));
+    const circle = container.querySelectorAll('svg circle')[1];
+    fireEvent.pointerOver(circle);
+    await findByText('45°C');
+    rerender(staticCardUi(nudge45(curve)));
+    expect(queryByText('45°C')).toBeNull();
+  });
+
+  it('a drag release under a non-committing parent cannot swallow a later external clear', async () => {
+    const curve = newCurve('curve-test');
+    const { container, findByText, queryByText, rerender } = render(staticCardUi(curve));
+    const circle = container.querySelector('svg circle')!;
+    fireEvent.pointerDown(circle, { pointerId: 1, clientX: 0, clientY: 120 });
+    fireEvent.pointerMove(circle, { pointerId: 1, clientX: 0, clientY: 20 });
+    fireEvent.pointerUp(circle, { pointerId: 1 });
+    // The parent never echoed the commit, so the readout names the prop point.
+    await findByText('30°C');
+    rerender(staticCardUi(nudge45(curve)));
+    expect(queryByText('30°C')).toBeNull();
+  });
 });
+
+// A CurveHost-shaped caller: onChange goes nowhere, points only move when the
+// test rerenders with new content.
+function staticCardUi(c: CurveDef) {
+  return (
+    <I18nProvider>
+      <CurveCard curve={c} allCurves={[c]} sources={[]} onChange={() => {}} onDelete={() => {}} />
+    </I18nProvider>
+  );
+}
+
+// External edit unrelated to the dragged point: bump the 45° seed's duty.
+function nudge45(curve: CurveDef): CurveDef {
+  return {
+    ...curve,
+    multipoint: {
+      ...curve.multipoint,
+      points: curve.multipoint.points.map(p => (p.temp === 45 ? { ...p, speed: p.speed + 1 } : p)),
+    },
+  };
+}

@@ -110,6 +110,10 @@ const SAMPLE_STEP = 2;
 const H_LINES = [0, 25, 50, 75, 100];
 const V_LINES: number[] = []; for (let v = 20; v <= 100; v += 10) V_LINES.push(v);
 
+// Content key for a point set; the hover-clear effect and the drag-commit
+// hold compare these, so both sides must derive it identically.
+const pointsKeyOf = (pts: CurvePoint[]) => pts.map(pt => `${pt.temp},${pt.speed}`).join(' ');
+
 // Plot a curve's shape across the 20-100°C axis by evaluating it with every
 // source swept to the same temperature. Works for every type, including Mix
 // (its inputs evaluate at the same swept temperature), giving one line on a
@@ -158,11 +162,21 @@ export function CurveGraph({
   const [dragPoints, setDragPoints] = useState<CurvePoint[] | null>(null);
   const dragIdxRef = useRef<number | null>(null);
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+  // Our own drag commit keeps indices (points are clamped between neighbours)
+  // and the cursor still rests on the dot, so the hover holds across it: the
+  // ref carries the committed key and the effect suppresses the clear only on
+  // an exact match - a parent that ignores or transforms the commit (CurveHost
+  // apps) can never leave a hold that swallows a real external change.
+  const holdHoverKeyRef = useRef<string | null>(null);
   // An external points change re-orders indices without a pointerleave, so a
   // held hover could name a different point's values. Keyed on content, not
   // identity: some callers rebuild the array every render (CurveHost).
-  const pointsKey = useMemo(() => points.map(pt => `${pt.temp},${pt.speed}`).join(' '), [points]);
-  useEffect(() => { setHoverIdx(null); }, [pointsKey]);
+  const pointsKey = useMemo(() => pointsKeyOf(points), [points]);
+  useEffect(() => {
+    const held = holdHoverKeyRef.current;
+    holdHoverKeyRef.current = null;
+    if (held !== pointsKey) setHoverIdx(null);
+  }, [pointsKey]);
 
   useEffect(() => {
     const el = svgRef.current?.parentElement;
@@ -261,10 +275,17 @@ export function CurveGraph({
   };
   const onHandleUp = () => {
     if (dragIdxRef.current === null) return;
+    const draggedIdx = dragIdxRef.current;
     dragIdxRef.current = null;
     const committed = dragPoints;
     setDragPoints(null);
-    if (committed) onChange?.(committed);
+    if (committed) {
+      // pointerleave still clears the hover when the cursor ends up off the
+      // dot (clamped drags, touch lift).
+      holdHoverKeyRef.current = pointsKeyOf(committed);
+      setHoverIdx(draggedIdx);
+      onChange?.(committed);
+    }
   };
   // The engine clamps outside the point range, so an added point only needs to
   // land in 0-100 / tempMin-tempMax. Removal floors at 2 points. Both abandon
