@@ -1790,7 +1790,7 @@
   "monitoring.events.kind.privacy-microphone": "마이크 사용됨",
   "monitoring.events.kind.privacy-location": "위치 사용됨",
   "monitoring.events.kind.privacy-screen": "화면 캡처됨",
-  "monitoring.gpuSelect.auto": "자동 ({name})",
+  "monitoring.gpuSelect.auto": "자동 - {name} 사용",
   "monitoring.gpuSelect.integrated": "내장",
   "monitoring.gpuSelect.label": "GPU",
   "monitoring.history.avg": "평균",

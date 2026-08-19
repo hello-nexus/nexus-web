@@ -1735,7 +1735,7 @@
   "monitoring.events.kind.privacy-microphone": "マイクを使用",
   "monitoring.events.kind.privacy-location": "位置情報を使用",
   "monitoring.events.kind.privacy-screen": "画面をキャプチャ",
-  "monitoring.gpuSelect.auto": "自動 ({name})",
+  "monitoring.gpuSelect.auto": "自動 - {name} を使用",
   "monitoring.gpuSelect.integrated": "内蔵",
   "monitoring.gpuSelect.label": "GPU",
   "monitoring.history.avg": "平均",

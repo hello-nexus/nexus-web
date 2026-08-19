@@ -1790,7 +1790,7 @@
   "monitoring.events.kind.privacy-microphone": "已使用麦克风",
   "monitoring.events.kind.privacy-location": "已使用位置",
   "monitoring.events.kind.privacy-screen": "已捕获屏幕",
-  "monitoring.gpuSelect.auto": "自动 ({name})",
+  "monitoring.gpuSelect.auto": "自动 - 使用 {name}",
   "monitoring.gpuSelect.integrated": "集成",
   "monitoring.gpuSelect.label": "GPU",
   "monitoring.history.avg": "平均",

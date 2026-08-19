@@ -1969,7 +1969,7 @@
   "monitoring.events.settingsTitle": "Timeline events",
   "monitoring.events.showAll": "Show timeline events",
   "monitoring.gpu.change": "Change",
-  "monitoring.gpuSelect.auto": "Auto ({name})",
+  "monitoring.gpuSelect.auto": "Automatic - uses {name}",
   "monitoring.gpuSelect.integrated": "integrated",
   "monitoring.gpuSelect.label": "GPU",
   "monitoring.history.avg": "Avg",
