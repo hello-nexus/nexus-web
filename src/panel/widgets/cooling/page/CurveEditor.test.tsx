@@ -130,20 +130,22 @@ describe('curve handle temp/duty readout', () => {
     expect(queryByText('89%')).toBeNull();
   });
 
-  it('the handle readout takes the axes over the live-temp badges while active', async () => {
+  it('the handle readout takes over the live-temp indicator entirely while active', async () => {
     // newCurve's sourceId is '', so this source drives the live-temp dot.
     const { container, findByText, queryByText } = renderMultipointCardWithI18n([
       { id: '', name: 'CPU Package', category: 'CPU', value: 70 },
     ]);
     await findByText('70.0°C');
-    // r=7 selects a point marker; the live-temp dot circle (r=4) comes first
-    // in document order once a source is live.
+    // r=4 is the live-temp dot; r=7 the point markers.
+    expect(container.querySelector('svg circle[r="4"]')).toBeTruthy();
     const circle = container.querySelector('svg circle[r="7"]')!;
     fireEvent.pointerDown(circle, { pointerId: 1, clientX: 0, clientY: 120 });
     await findByText('30°C');
     expect(queryByText('70.0°C')).toBeNull();
+    expect(container.querySelector('svg circle[r="4"]')).toBeNull();
     fireEvent.pointerUp(circle, { pointerId: 1 });
     await findByText('70.0°C');
     expect(queryByText('30°C')).toBeNull();
+    expect(container.querySelector('svg circle[r="4"]')).toBeTruthy();
   });
 });
