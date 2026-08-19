@@ -1,8 +1,10 @@
 import { fireEvent, render } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CurveCard } from './CurveEditor';
+import { I18nProvider } from '../../../../lib/i18n';
 import { newCurve } from '../../../../types/cooling';
 import type { CurveDef } from '../../../../types/cooling';
+import type { TemperatureSource } from '../../../../api/cooling';
 
 // Regression guard for the cooling-page fan-curve graph. Commit 534af55 made
 // the graph display-only; the call sites stopped passing `editable`/`onChange`,
@@ -80,5 +82,70 @@ describe('cooling fan-curve graph interactivity', () => {
     expect(onChange).toHaveBeenCalledTimes(1);
     const next = onChange.mock.calls[0][0] as CurveDef;
     expect(next.multipoint.points).toHaveLength(4);
+  });
+});
+
+// Real locale strings via I18nProvider so the badge assertions exercise the
+// actual axis copy rather than raw i18n keys.
+function renderMultipointCardWithI18n(sources: TemperatureSource[] = []) {
+  const curve = newCurve('curve-test');
+  return render(
+    <I18nProvider>
+      <CurveCard curve={curve} allCurves={[curve]} sources={sources} onChange={() => {}} onDelete={() => {}} />
+    </I18nProvider>,
+  );
+}
+
+describe('curve handle temp/duty readout', () => {
+  beforeEach(() => {
+    stubSvgGeometry();
+  });
+
+  it('hovering a point shows its temp and duty on the axes, cleared on leave', async () => {
+    const { container, findByText, queryByText } = renderMultipointCardWithI18n();
+    // Second-lowest seed point (45°, 33%): neither value collides with the
+    // static axis legend numbers, so the badge text is unambiguous.
+    const circle = container.querySelectorAll('svg circle')[1];
+    fireEvent.pointerOver(circle);
+    await findByText('45°C');
+    expect(queryByText('33%')).toBeTruthy();
+    fireEvent.pointerOut(circle);
+    expect(queryByText('45°C')).toBeNull();
+    expect(queryByText('33%')).toBeNull();
+  });
+
+  it('dragging a point shows the readout tracking the dragged values, cleared on release', async () => {
+    const { container, findByText, queryByText } = renderMultipointCardWithI18n();
+    const circle = container.querySelector('svg circle')!;
+    // Grab shows the point's current coordinates before any movement.
+    fireEvent.pointerDown(circle, { pointerId: 1, clientX: 0, clientY: 120 });
+    await findByText('30°C');
+    // Dragging to the top-left corner clamps to the axis minimum temp and
+    // lands on a duty no static legend number shares.
+    fireEvent.pointerMove(circle, { pointerId: 1, clientX: 0, clientY: 20 });
+    await findByText('20°C');
+    expect(queryByText('89%')).toBeTruthy();
+    fireEvent.pointerUp(circle, { pointerId: 1 });
+    expect(queryByText('20°C')).toBeNull();
+    expect(queryByText('89%')).toBeNull();
+  });
+
+  it('the handle readout takes over the live-temp indicator entirely while active', async () => {
+    // newCurve's sourceId is '', so this source drives the live-temp dot.
+    const { container, findByText, queryByText } = renderMultipointCardWithI18n([
+      { id: '', name: 'CPU Package', category: 'CPU', value: 70 },
+    ]);
+    await findByText('70.0°C');
+    // r=4 is the live-temp dot; r=7 the point markers.
+    expect(container.querySelector('svg circle[r="4"]')).toBeTruthy();
+    const circle = container.querySelector('svg circle[r="7"]')!;
+    fireEvent.pointerDown(circle, { pointerId: 1, clientX: 0, clientY: 120 });
+    await findByText('30°C');
+    expect(queryByText('70.0°C')).toBeNull();
+    expect(container.querySelector('svg circle[r="4"]')).toBeNull();
+    fireEvent.pointerUp(circle, { pointerId: 1 });
+    await findByText('70.0°C');
+    expect(queryByText('30°C')).toBeNull();
+    expect(container.querySelector('svg circle[r="4"]')).toBeTruthy();
   });
 });
