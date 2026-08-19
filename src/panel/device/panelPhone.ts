@@ -30,15 +30,16 @@ export function usePhonePanelManifest(enabled: boolean) {
 }
 
 export function useIsLandscape(surface: PanelSurface): boolean {
-  // Y70 + Q60 are physically fixed orientations and don't flip; 'phone' and a
-  // promoted monitor (Xeneon Edge, which a user can physically rotate) both
-  // honour `(orientation: landscape)`.
+  // Q60 is a physically fixed orientation and doesn't flip; 'phone', a
+  // promoted monitor (Xeneon Edge, which a user can physically rotate), and
+  // the Y70 (rotatable via display settings once Force Display Orientation is
+  // off) all honour `(orientation: landscape)`.
   const [isLandscape, setIsLandscape] = useState(false);
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    if (surface !== 'phone' && surface !== 'monitor') {
+    if (surface !== 'phone' && surface !== 'monitor' && surface !== 'y70') {
       // Reset to portrait baseline when leaving an orientation-aware surface
-      // so a previously-latched landscape value doesn't persist on Y70/Q60.
+      // so a previously-latched landscape value doesn't persist on Q60.
 
       setIsLandscape(false);
       return;

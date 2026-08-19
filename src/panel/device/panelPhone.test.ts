@@ -40,10 +40,10 @@ describe('useIsLandscape', () => {
     expect(result.current).toBe(false);
   });
 
-  it('ignores matchMedia on the fixed-orientation y70 surface', () => {
+  it('honours matchMedia for the rotatable y70 surface', () => {
     stubMatchMedia(true);
     const { result } = renderHook(() => useIsLandscape('y70'));
-    expect(result.current).toBe(false);
+    expect(result.current).toBe(true);
   });
 
   it('ignores matchMedia on the fixed-orientation q60 surface', () => {

@@ -57,6 +57,37 @@ describe('sizeToSpan', () => {
     });
   });
 
+  it('transposes the Y70 grid to 16x4 in landscape', () => {
+    // 2.5K and 4K models both keep the fixed long-axis cell count as columns
+    // and the short-axis slot count as rows.
+    expect(panelGridCapacityForCanvas(2560, 682, { surface: 'y70', dpi: 337 })).toMatchObject({
+      columns: 16,
+      rows: 4,
+    });
+    expect(panelGridCapacityForCanvas(3840, 1100, { surface: 'y70', dpi: 283 })).toMatchObject({
+      columns: 16,
+      rows: 4,
+    });
+  });
+
+  it('keeps Y70 cell geometry and gap identical across a rotation', () => {
+    const ratio = panelWidgetPaddingRatio(50);
+    const portrait = panelGridCapacityForCanvas(682, 2560, { surface: 'y70', dpi: 337, paddingRatio: ratio });
+    const landscape = panelGridCapacityForCanvas(2560, 682, { surface: 'y70', dpi: 337, paddingRatio: ratio });
+    expect(landscape.gap).toBeCloseTo(portrait.gap, 6);
+    expect(landscape.padding).toBeCloseTo(portrait.padding, 6);
+    expect(landscape.cellSize).toBeCloseTo(portrait.rowSize, 6);
+    expect(landscape.rowSize).toBeCloseTo(portrait.cellSize, 6);
+    expect(landscape.columns * landscape.rows).toBe(portrait.columns * portrait.rows);
+  });
+
+  it('lets explicit columns/rows bypass the Y70 landscape transpose', () => {
+    expect(panelGridCapacityForCanvas(2560, 682, { surface: 'y70', dpi: 337, columns: 4, rows: 2 })).toMatchObject({
+      columns: 4,
+      rows: 2,
+    });
+  });
+
   it('uses physical short side to give tablets more columns than phones', () => {
     expect(panelPhysicalSize(1206, 2622, 460).shortSideInches).toBeCloseTo(2.6, 1);
     expect(panelPhysicalSize(1206, 2622, 460).diagonalInches).toBeCloseTo(6.3, 1);

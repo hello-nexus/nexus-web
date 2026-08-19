@@ -14,7 +14,12 @@ import {
   tryResizeWidget,
 } from '../../../panel/engine/panelLayoutOps';
 import { DEFAULT_SURFACE_DPI, MAX_PANEL_PAGES } from '../../../panel/engine/panelGrid';
-import { panelGridCapacityForCanvas, panelWidgetPaddingRatio } from '../../../panel/engine/grid';
+import {
+  panelGridCapacityForCanvas,
+  panelWidgetPaddingRatio,
+  PANEL_GRID_COLS,
+  PANEL_Y70_LONG_AXIS_CELLS,
+} from '../../../panel/engine/grid';
 import { normalizePanelWidgetPadding } from '../../../panel/background/panelBackground';
 import { normalizePanelLayout } from '../../../panel/engine/usePanelLayout';
 import { repaginatePanelLayout } from '../../../panel/engine/paginate';
@@ -476,7 +481,30 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       return { gridCols: capacity.columns, pageRows: capacity.rows };
     }
     if (surface === 'monitor') return { gridCols: 8, pageRows: 6 };
-    if (surface === 'y70') return { gridCols: 4, pageRows: 16 };
+    if (surface === 'y70') {
+      // The runtime transposes the fixed Y70 grid in landscape (grid.ts
+      // y70Landscape); conforming against the portrait grid there would fight
+      // the kiosk's own repagination. Canvas facts arrive via the kiosk's
+      // capability report; run them through the same capacity math the kiosk
+      // does (density + sizing knob included) so the counts cannot diverge.
+      // Without canvas facts assume portrait (the forced default).
+      const y70Canvas = liveCanvas ?? device?.previewSize;
+      if (y70Canvas) {
+        const dpr = (liveCanvas ? liveDpr : device?.previewDpr) || 1;
+        const capacity = panelGridCapacityForCanvas(
+          Math.max(1, Math.round(y70Canvas.width * dpr)),
+          Math.max(1, Math.round(y70Canvas.height * dpr)),
+          {
+            surface,
+            dpi: liveDpi ?? device?.previewDpi ?? DEFAULT_SURFACE_DPI.y70,
+            sizing: getPanelGridSizingSettings(),
+            paddingRatio,
+          },
+        );
+        return { gridCols: capacity.columns, pageRows: capacity.rows };
+      }
+      return { gridCols: PANEL_GRID_COLS, pageRows: PANEL_Y70_LONG_AXIS_CELLS };
+    }
     // Phone-surface rows here are simulated presets only (real phones are
     // self-managed and never open this editor), so the preset's native canvas
     // + density derive the true runtime grid - shared CSS-space math with the

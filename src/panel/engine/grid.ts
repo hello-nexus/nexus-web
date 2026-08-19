@@ -11,10 +11,13 @@ export const PANEL_GRID_COLS = 4;
 export const PANEL_LARGE_GRID_COLS = 8;
 export const PANEL_Q60_GRID_COLS = 2;
 export const PANEL_Q60_GRID_ROWS = 4;
-// Y70 portrait: 4x16 fixed. A canvas-derived row count drifts with the panel
-// model (~14 at native 682x2560); pinning it to 16 keeps placement stable and
-// paginates overflow to the next page instead of restacking the grid.
-export const PANEL_Y70_PORTRAIT_ROWS = 16;
+// Y70: fixed cell count along the long axis in either orientation, with the
+// short axis carrying the columnsForPhysicalSize slot count - capacity is
+// identical across a rotation, so repacking never drops or clips a widget.
+// A canvas-derived count drifts with the panel model (~14 at native 682x2560);
+// pinning it keeps placement stable and paginates overflow to the next page
+// instead of restacking the grid.
+export const PANEL_Y70_LONG_AXIS_CELLS = 16;
 export const PANEL_GRID_GAP = 8;
 export const PANEL_GRID_PREVIEW_PADDING = 8;
 export const DEFAULT_PANEL_GRID_SHORT_SIDE_JUMP_INCHES = 4;
@@ -125,14 +128,26 @@ export function panelGridCapacityForCanvas(
     paddingRatio?: number;
   } = {},
 ): PanelGridCapacity {
+  // Y70 landscape transposes the portrait grid: the fixed long-axis cell
+  // count becomes columns and the short-axis slot count becomes rows, so
+  // cell geometry and capacity match portrait exactly. Explicit columns/rows
+  // arguments own the geometry and bypass the transpose, mirroring
+  // isPhoneLandscape below.
+  const y70Landscape = surface === 'y70' && width > height
+    && columns === undefined && rows === undefined;
+  const shortAxisSlots = columnsForPhysicalSize(width, height, dpi, sizing);
   const defaultColumns = surface === 'q60'
     ? PANEL_Q60_GRID_COLS
-    : columnsForPhysicalSize(width, height, dpi, sizing);
+    : y70Landscape
+      ? PANEL_Y70_LONG_AXIS_CELLS
+      : shortAxisSlots;
   const defaultRows = surface === 'q60'
     ? PANEL_Q60_GRID_ROWS
-    : surface === 'y70' && height >= width
-      ? PANEL_Y70_PORTRAIT_ROWS
-      : undefined;
+    : y70Landscape
+      ? shortAxisSlots
+      : surface === 'y70' && height >= width
+        ? PANEL_Y70_LONG_AXIS_CELLS
+        : undefined;
   const fixedRows = rows ?? defaultRows;
   const canvasW = Math.max(1, width);
   const canvasH = Math.max(1, height);
@@ -151,9 +166,14 @@ export function panelGridCapacityForCanvas(
     safeGap = Math.max(0, gap);
     safePadding = Math.max(0, padding);
   } else {
+    // Landscape reflows solve spacing against the short (vertical) axis with
+    // the short-axis slot count, so the gap matches the portrait solve of the
+    // same physical panel and survives a rotation unchanged.
     const spacing = isPhoneLandscape
       ? resolvePanelSpacing(canvasH, toEvenRound(defaultColumns), resolvedPaddingRatio)
-      : resolvePanelSpacing(canvasW, toEvenRound(columns ?? defaultColumns), resolvedPaddingRatio);
+      : y70Landscape
+        ? resolvePanelSpacing(canvasH, toEvenRound(shortAxisSlots), resolvedPaddingRatio)
+        : resolvePanelSpacing(canvasW, toEvenRound(columns ?? defaultColumns), resolvedPaddingRatio);
     safeGap = spacing.gap;
     safePadding = spacing.padding;
   }

@@ -59,7 +59,7 @@ import { PanelOfflineOverlay } from './overlays/PanelOfflineOverlay';
 import { isInsecureBrowserPanel } from './overlays/PanelInsecureBanner';
 import { useTranslation } from '../lib/i18n';
 import { applyHtmlChromeTheme } from '../lib/settings';
-import { fetchPanelDevice } from '../api/panel';
+import { fetchPanelDevice, patchPanelDevice, type PanelDeviceCapabilitiesDto } from '../api/panel';
 import { isRemotePaired, isTunnelActive } from '../api/service';
 import { createUuid } from '../lib/uuid';
 import { spawnDropRing } from '../lib/dropRing';
@@ -146,11 +146,15 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
   // server (cleared profile etc.), fall back to a viewport-inferred surface
   // so the panel still mounts instead of showing a blank page.
   const [resolved, setResolved] = useState<{ surface: PanelSurface; touch?: boolean; dpi?: number; displayBound?: boolean } | null>(null);
+  // Record's last-known capabilities, kept for the rotation re-report below
+  // so the viewport patch preserves fields this kiosk doesn't own (dpi etc.).
+  const recordCapsRef = useRef<PanelDeviceCapabilitiesDto | null>(null);
   useEffect(() => {
     let cancelled = false;
     fetchPanelDevice(deviceId).then(record => {
       if (cancelled) return;
       const surfaceFromRecord = record?.capabilities?.surface;
+      recordCapsRef.current = record?.capabilities ?? null;
       setResolved({
         surface: surfaceFromRecord ?? inferSurfaceFromViewport(false),
         touch: record?.capabilities?.touch,
@@ -162,6 +166,58 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
     });
     return () => { cancelled = true; };
   }, [deviceId]);
+  // Keep the record's viewport facts truthful across a display rotation. The
+  // Y70 record is not display-bound, so the promoted-monitor topology sync
+  // never rewrites it - this kiosk is the only writer - and the device page
+  // derives its editor grid orientation and preview canvas from
+  // cssWidth/cssHeight, so a landscape kiosk must not leave portrait facts
+  // behind. Debounced past the rotation's resize storm; the patched record's
+  // panel/device broadcast then updates any open editor live.
+  useEffect(() => {
+    if (resolved?.surface !== 'y70' || resolved.displayBound) return undefined;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const report = () => {
+      timer = null;
+      const caps = recordCapsRef.current;
+      // The patch replaces the record's capabilities wholesale server-side,
+      // so a report without a fetched base would strip fields this kiosk
+      // doesn't own (touch, dpi). Wait for the record fetch to land.
+      if (!caps) return;
+      // The same /panel/<id> URL is a supported browser fallback; only a
+      // viewport that itself reads as the Y70 strip may write viewport facts,
+      // or a desktop tab's window size flips the record's orientation while
+      // the glass is unchanged.
+      if (inferSurfaceFromViewport(false) !== 'y70') return;
+      const cssWidth = Math.max(1, Math.round(window.innerWidth));
+      const cssHeight = Math.max(1, Math.round(window.innerHeight));
+      if (caps.cssWidth === cssWidth && caps.cssHeight === cssHeight) return;
+      const dpr = Number.isFinite(window.devicePixelRatio) && window.devicePixelRatio > 0
+        ? window.devicePixelRatio
+        : 1;
+      const next: PanelDeviceCapabilitiesDto = { ...caps, cssWidth, cssHeight, dpr };
+      // postService resolves null (never rejects) on failure: latch the ref
+      // only on a real response, so a transient failure retries on the next
+      // resize instead of the guard above suppressing it forever.
+      patchPanelDevice(deviceId, { capabilities: next }).then(record => {
+        if (record) recordCapsRef.current = record.capabilities ?? next;
+      }).catch(() => {});
+    };
+    const onResize = () => {
+      if (timer != null) clearTimeout(timer);
+      timer = setTimeout(report, 500);
+    };
+    // One armed check on mount: a kiosk recreated with a cached deviceId
+    // skips the allocate-time capability snapshot, so a rotation that
+    // happened while it was down would otherwise stay unreported.
+    onResize();
+    window.addEventListener('resize', onResize);
+    window.addEventListener('orientationchange', onResize);
+    return () => {
+      if (timer != null) clearTimeout(timer);
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('orientationchange', onResize);
+    };
+  }, [resolved?.surface, resolved?.displayBound, deviceId]);
   // The service re-derives promoted-monitor capabilities on topology changes
   // (rotation, display rescale, a service update stamping new curated facts)
   // and broadcasts panel/device. Refetch so a kiosk that mounted before the
@@ -172,6 +228,7 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
     fetchPanelDevice(deviceId).then(record => {
       const caps = record?.capabilities;
       if (!caps) return;
+      recordCapsRef.current = caps;
       setResolved(prev => {
         if (!prev) return prev;
         const surface = caps.surface ?? prev.surface;

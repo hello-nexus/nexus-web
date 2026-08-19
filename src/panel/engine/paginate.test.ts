@@ -221,4 +221,50 @@ describe('repaginatePanelLayout', () => {
     const backToPortrait = repaginatePanelLayout(landscape, { gridCols: 4, pageRows: 8 });
     assertNoClip(backToPortrait.pages[0].widgets, 4, 8);
   });
+
+  // Y70 rotation (NEX-67): the 4x16 portrait grid transposes to 16x4 in
+  // landscape (grid.ts y70Landscape), so both orientations hold 64 cells and
+  // any portrait page must survive rotating both ways without clip or overlap.
+  it('packs the NEX-67 five-widget Y70 stack into landscape (no overlap)', () => {
+    const stack = [
+      widget('4x2', 0, 0, 'clock'),
+      widget('4x2', 0, 2, 'mon'),
+      widget('4x2', 0, 4, 'light'),
+      widget('4x2', 0, 6, 'cool'),
+      widget('4x2', 0, 8, 'media'),
+    ];
+    const next = repaginatePanelLayout(layoutWith(stack), { gridCols: 16, pageRows: 4 });
+    const byId = Object.fromEntries(next.pages[0].widgets.map(w => [w.id, w]));
+    expect(byId.clock).toMatchObject({ col: 0, row: 0 });
+    expect(byId.mon).toMatchObject({ col: 0, row: 2 });
+    expect(byId.light).toMatchObject({ col: 4, row: 0 });
+    expect(byId.cool).toMatchObject({ col: 4, row: 2 });
+    expect(byId.media).toMatchObject({ col: 8, row: 0 });
+    assertNoClip(next.pages[0].widgets, 16, 4);
+  });
+
+  // Each config fills a 4x16 portrait Y70 page exactly (64 cells).
+  const Y70_FILLED_CONFIGS: Array<[string, Array<[PanelWidgetSize, number, number]>]> = [
+    ['eight 4x2 stacked', [['4x2', 0, 0], ['4x2', 0, 2], ['4x2', 0, 4], ['4x2', 0, 6],
+      ['4x2', 0, 8], ['4x2', 0, 10], ['4x2', 0, 12], ['4x2', 0, 14]]],
+    ['four 4x4 stacked', [['4x4', 0, 0], ['4x4', 0, 4], ['4x4', 0, 8], ['4x4', 0, 12]]],
+    ['mixed sizes', [['4x2', 0, 0], ['2x2', 0, 2], ['2x2', 2, 2], ['4x4', 0, 4],
+      ['2x4', 0, 8], ['2x4', 2, 8], ['4x2', 0, 12], ['2x2', 0, 14], ['2x2', 2, 14]]],
+    ['sixteen 2x2 grid', Array.from({ length: 16 }, (_, i): [PanelWidgetSize, number, number] =>
+      ['2x2', (i % 2) * 2, Math.floor(i / 2) * 2])],
+  ];
+
+  it.each(Y70_FILLED_CONFIGS)('does not clip rotating a filled Y70 page both ways: %s', (_name, cells) => {
+    const portrait = layoutWith(cells.map(([size, col, row], i) => widget(size, col, row, `w${i}`)));
+    // portrait -> landscape
+    const landscape = repaginatePanelLayout(portrait, { gridCols: 16, pageRows: 4 });
+    expect(landscape.pages).toHaveLength(1);
+    expect(landscape.pages[0].widgets).toHaveLength(cells.length);
+    assertNoClip(landscape.pages[0].widgets, 16, 4);
+    // landscape -> portrait
+    const backToPortrait = repaginatePanelLayout(landscape, { gridCols: 4, pageRows: 16 });
+    expect(backToPortrait.pages).toHaveLength(1);
+    expect(backToPortrait.pages[0].widgets).toHaveLength(cells.length);
+    assertNoClip(backToPortrait.pages[0].widgets, 4, 16);
+  });
 });

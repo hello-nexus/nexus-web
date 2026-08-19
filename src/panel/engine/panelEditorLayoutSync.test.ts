@@ -3,7 +3,7 @@ import type { PanelLayout, PanelWidget, PanelWidgetSize } from '../types';
 import { normalizePanelLayout } from './usePanelLayout';
 import { repaginatePanelLayout, type PaginateCapacity } from './paginate';
 import { tryResizeWidget } from './panelLayoutOps';
-import { PANEL_GRID_COLS, PANEL_Y70_PORTRAIT_ROWS } from './grid';
+import { PANEL_GRID_COLS, PANEL_Y70_LONG_AXIS_CELLS } from './grid';
 import { MAX_PANEL_PAGES } from './panelGrid';
 
 // The panel editor (PanelDevicePage) owns the canonical layout and runs every
@@ -20,7 +20,7 @@ import { MAX_PANEL_PAGES } from './panelGrid';
 // repagination (PanelApp gates the auto-persist effect on !simulator) - the
 // parent owns the persisted bytes; only user edits post layout-changed.
 
-const Y70_CAP: PaginateCapacity = { gridCols: PANEL_GRID_COLS, pageRows: PANEL_Y70_PORTRAIT_ROWS };
+const Y70_CAP: PaginateCapacity = { gridCols: PANEL_GRID_COLS, pageRows: PANEL_Y70_LONG_AXIS_CELLS };
 const MAX_PAGES = MAX_PANEL_PAGES;
 
 function w(id: string, size: PanelWidgetSize, col: number, row: number): PanelWidget {
@@ -31,7 +31,7 @@ function w(id: string, size: PanelWidgetSize, col: number, row: number): PanelWi
 function fullY70Page(): PanelWidget[] {
   const widgets: PanelWidget[] = [];
   let n = 0;
-  for (let row = 0; row < PANEL_Y70_PORTRAIT_ROWS; row += 2) {
+  for (let row = 0; row < PANEL_Y70_LONG_AXIS_CELLS; row += 2) {
     for (let col = 0; col < PANEL_GRID_COLS; col += 2) {
       widgets.push(w(`x${n++}`, '2x2', col, row));
     }
