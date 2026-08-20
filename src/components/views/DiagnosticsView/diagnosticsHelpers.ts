@@ -203,11 +203,13 @@ export function visibleDiagnosticsTabs(platform: string): readonly DiagnosticsTa
  *  health.components into a fixed 2x2: Storage / Memory / Cooling / System.
  *  GPU folds into Cooling (its temperature already lives in the Cooling tab's
  *  chart; its throttle is a thermal/power signal). Tile status is the worst of
- *  its members by STATUS_SEVERITY_RANK - 'unknown' when a domain has no
- *  component at all - matching kindStatus so the widget dots and these tiles
- *  agree. Reasons are concatenated in member order so the tile lists every
- *  flagged sub-device. The domain is a valid tab key, so a tile navigates
- *  straight to its tab. */
+ *  its MEASURED members by STATUS_SEVERITY_RANK; an 'unknown' member is a probe
+ *  with no source for that hardware (a GPU no NVML can read) rather than a
+ *  finding, so it cannot outrank a healthy sibling - the tile reads 'unknown'
+ *  only when no member was measured at all. Reasons are concatenated across
+ *  every member, unknown ones included so the gap is explainable, ordered worst
+ *  first so an informational line never leads an actionable one. The domain is
+ *  a valid tab key, so a tile navigates straight to its tab. */
 export interface DomainTile {
   domain: DiagnosticsKind;
   status: DiagnosticsStatus;
@@ -224,12 +226,14 @@ const DOMAIN_TILE_KINDS: readonly { domain: DiagnosticsKind; kinds: readonly Dia
 export function aggregateDomainTiles(components: DiagnosticsComponent[]): DomainTile[] {
   return DOMAIN_TILE_KINDS.map(({ domain, kinds }) => {
     const members = components.filter(c => kinds.includes(c.kind));
-    let status: DiagnosticsStatus = members.length === 0 ? 'unknown' : 'ok';
-    const reasons: DiagnosticsReason[] = [];
-    for (const member of members) {
+    const measured = members.filter(m => m.status !== 'unknown');
+    let status: DiagnosticsStatus = measured.length === 0 ? 'unknown' : 'ok';
+    for (const member of measured) {
       if (STATUS_SEVERITY_RANK[member.status] > STATUS_SEVERITY_RANK[status]) status = member.status;
-      reasons.push(...member.reasons);
     }
+    const reasons = members
+      .flatMap(m => m.reasons)
+      .sort((a, b) => STATUS_SEVERITY_RANK[b.severity] - STATUS_SEVERITY_RANK[a.severity]);
     return { domain, status, reasons };
   });
 }

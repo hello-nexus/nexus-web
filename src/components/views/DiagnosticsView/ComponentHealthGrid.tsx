@@ -50,7 +50,11 @@ export function ComponentHealthGrid({ components, onNavigate }: ComponentHealthG
               {tile.reasons.map((reason, i) => (
                 <li key={i} className={styles.reasonItem}>
                   <div className={styles.reasonText}>
-                    <div className={styles.reasonLabel}>{reasonLabel(reason, t)}</div>
+                    {/* An unmeasured probe states a coverage gap, not a finding,
+                        so it drops the finding weight the others carry. */}
+                    <div className={reason.severity === 'unknown' ? styles.reasonLabelMuted : styles.reasonLabel}>
+                      {reasonLabel(reason, t)}
+                    </div>
                     {reason.summary && <div className={styles.reasonSummary}>{reason.summary}</div>}
                   </div>
                   {reason.detail && (

@@ -191,6 +191,36 @@ describe('aggregateDomainTiles', () => {
     const tiles = aggregateDomainTiles([comp('storage', 'ok'), comp('storage', 'act')]);
     expect(tiles.find(t => t.domain === 'storage')?.status).toBe('act');
   });
+
+  it('an unmeasured member does not outrank a healthy sibling, but keeps its reason', () => {
+    // A GPU no NVML can read folds into Cooling as 'unknown'; the tile must
+    // still read the cooling devices' own healthy result.
+    const gap: DiagnosticsReason = { code: 'gpu.noHealthSource', severity: 'unknown', summary: 'no telemetry', detail: 'd' };
+    const tiles = aggregateDomainTiles([
+      comp('cooling', 'ok'),
+      { id: 'gpu:0', kind: 'gpu', name: 'AMD Radeon RX 6800', status: 'unknown', reasons: [gap] },
+    ]);
+    const cooling = tiles.find(t => t.domain === 'cooling');
+    expect(cooling?.status).toBe('ok');
+    expect(cooling?.reasons).toContain(gap);
+  });
+
+  it('stays unknown when every member of the domain is unmeasured', () => {
+    const tiles = aggregateDomainTiles([{ id: 'gpu:0', kind: 'gpu', name: 'GPU', status: 'unknown', reasons: [] }]);
+    expect(tiles.find(t => t.domain === 'cooling')?.status).toBe('unknown');
+  });
+
+  it('orders concatenated reasons worst first', () => {
+    const gap: DiagnosticsReason = { code: 'gpu.noHealthSource', severity: 'unknown', summary: 'no telemetry', detail: 'd' };
+    const stall: DiagnosticsReason = { code: 'cooling.fanStall', severity: 'act', summary: 'stalled', detail: 'd' };
+    const tiles = aggregateDomainTiles([
+      { id: 'gpu:0', kind: 'gpu', name: 'GPU', status: 'unknown', reasons: [gap] },
+      { id: 'cooling:1', kind: 'cooling', name: 'Fan', status: 'act', reasons: [stall] },
+    ]);
+    const cooling = tiles.find(t => t.domain === 'cooling');
+    expect(cooling?.status).toBe('act');
+    expect(cooling?.reasons).toEqual([stall, gap]);
+  });
 });
 
 describe('pnpProblemLabel', () => {
