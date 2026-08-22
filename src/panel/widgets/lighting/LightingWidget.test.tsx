@@ -16,6 +16,7 @@ vi.mock('../../../api/lighting', () => ({
   startStatic: vi.fn(() => Promise.resolve()),
   fetchCurrentSync: vi.fn(() => Promise.resolve({ sync: 'rainbow' })),
   fetchLightingStatus: vi.fn(() => Promise.resolve({ gpuAvailable: true })),
+  fetchLightingDevices: vi.fn(() => Promise.resolve({ isInit: true, devices: [] })),
   fetchScreenEffect: vi.fn(() => Promise.resolve({ hue: 0, colorize: 0, saturation: 1, contrast: 1, flipX: false, flipY: false })),
   setMusicReactive: vi.fn(() => Promise.resolve()),
   setScreenEffect: vi.fn(() => Promise.resolve()),
@@ -217,9 +218,10 @@ describe('LightingWidget', () => {
       vi.mocked(startStatic).mockClear();
       vi.mocked(startAnimate).mockClear();
       render(<LightingWidget widget={lightingWidget('4x2')} />);
-      // Wait for the hydrated static effect's card label (simplewhite from the
-      // fetchStaticSettings mock) - the arrows alone also render pre-hydration.
-      await waitFor(() => expect(screen.getByText('lighting.controls.simplewhite')).toBeInTheDocument());
+      // Static labels the card with the lit-device count, not the effect name,
+      // so hydration is observable through that key (the arrows alone also
+      // render pre-hydration).
+      await waitFor(() => expect(screen.getByText('lighting.devices.activeCount.other')).toBeInTheDocument());
 
       const startIdx = STATIC_EFFECTS.findIndex(e => e.key === 'simplewhite');
       fireEvent.click(screen.getByRole('button', { name: 'Next' }));

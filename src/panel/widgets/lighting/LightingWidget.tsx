@@ -9,6 +9,7 @@ import {
   fetchCurrentSync,
   fetchLightingStatus,
   fetchScreenEffect,
+  fetchLightingDevices,
   fetchStaticSettings,
   setMusicReactive,
   setScreenEffect,
@@ -33,6 +34,7 @@ import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { publishControlSync } from '../../../lib/controlSync';
 import { LIGHTING_MODE_ICONS } from '../../../lib/lightingModeIcons';
 import { useTranslation } from '../../../lib/i18n';
+import { pluralKey } from '../../../lib/pluralKey';
 import {
   ANIMATE_EFFECTS,
   DEFAULT_STATIC_EFFECT,
@@ -63,13 +65,14 @@ import styles from './LightingWidget.module.scss';
 const LIGHTING_PREVIEW_MODE: LightingMode = 'screen';
 
 export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?: boolean }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { settings: ui } = useUiSettings();
   const preview = usePanelPreview();
   // Preview forces simple mode for determinism.
   const simpleMode = preview || !resolveAdvancedMode(widget.config, ui.widgetAdvancedMode);
   const [mode, setMode] = useState<LightingMode>(preview ? LIGHTING_PREVIEW_MODE : 'none');
   const [gpuAvailable, setGpuAvailable] = useState(true);
+  const [activeDeviceCount, setActiveDeviceCount] = useState(0);
   // WS-synced from /lighting/current (re-hydrated on the 'lighting' topic), so
   // the shader preview freezes when lighting is paused from any surface.
   const [paused, setPaused] = useState(false);
@@ -135,15 +138,20 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
     : null;
 
   const hydrate = useCallback(async () => {
-    const [sync, animate, staticSettings, screen, lightStatus, defaults] = await Promise.all([
+    const [sync, animate, staticSettings, screen, lightStatus, defaults, deviceList] = await Promise.all([
       fetchCurrentSync(),
       fetchAnimateSettings(),
       fetchStaticSettings(),
       fetchScreenEffect(),
       fetchLightingStatus(),
       fetchAnimateDefaults(),
+      fetchLightingDevices(),
     ]);
     setGpuAvailable(lightStatus?.gpuAvailable ?? true);
+    // Static drives devices individually, so the widget reports how many are
+    // lit rather than naming one effect.
+    setActiveDeviceCount((deviceList?.devices ?? [])
+      .filter(d => d.ledsOn && d.controlled !== false).length);
 
     const nextTemplates: Record<string, EffectTemplateBundle> = {};
     for (const effect of EFFECTS) {
@@ -461,7 +469,9 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
       return {
         kind: 'thumb',
         thumbUrl: thumbs[effect.key] ?? null,
-        label: t(effect.labelKey),
+        label: mode === 'static'
+          ? t(pluralKey('lighting.devices.activeCount', language, activeDeviceCount), { count: activeDeviceCount })
+          : t(effect.labelKey),
         onPrev: prev ?? (() => cycleAnimate(-1)),
         onNext: next ?? (() => cycleAnimate(1)),
       };
@@ -502,7 +512,7 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
     // mode === 'none' (off). In simple mode we still show arrows so
     // the first press enters the animation cycle.
     return { kind: 'message', message: t('lighting.panel.selectMode'), label: t('lighting.mode.off'), onPrev: prev, onNext: next };
-  }, [mode, activeEffect, thumbs, t, reactive, mediaItems, activeMediaId, mediaThumbs, cycleAnimate, toggleReactive, simpleMode, cycleCurrentPool]);
+  }, [mode, activeEffect, activeDeviceCount, language, thumbs, t, reactive, mediaItems, activeMediaId, mediaThumbs, cycleAnimate, toggleReactive, simpleMode, cycleCurrentPool]);
 
   // The flash stands in for a thumbnail that has not painted yet, so it only
   // makes sense where a thumbnail renders: Off, Mirror and Game Sync show an

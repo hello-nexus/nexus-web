@@ -570,3 +570,6 @@ export function redoHistory(
     restored,
   };
 }
+
+/** How long an identify blink runs, on the hardware and on the card readout. */
+export const IDENTIFY_MS = 2000;

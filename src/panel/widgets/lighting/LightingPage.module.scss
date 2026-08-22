@@ -7,81 +7,73 @@
   height: 100%;
 }
 
-// Icon-track-value master brightness bar; fills its container width in the
-// lighting right pane (the track flexes, icon + value stay fixed).
+// Master brightness: a labelled stacked slider matching the effect controls
+// stacked beneath it. Reserves its row height so the dock does not shift while
+// the value hydrates.
 .globalBrightnessSlider {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  color: var(--text-dim);
   width: 100%;
   min-width: 0;
-
-  // Slider's own `.root { width: 100% }` ties on specificity (both
-  // single-class), so file order would decide. Anchor the inner track
-  // as a descendant selector so it wins by specificity, not order.
-  .globalBrightnessTrack {
-    flex: 1 1 auto;
-    min-width: 0;
-  }
-}
-
-.globalBrightnessIcon {
-  flex-shrink: 0;
-  color: var(--text-dim);
-}
-
-.globalBrightnessTrack {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.globalBrightnessValue {
-  font-size: var(--type-small);
-  color: var(--text-dim);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-  min-width: 2.6em;
-  text-align: right;
-  flex-shrink: 0;
+  min-height: 2.6rem;
 }
 
 .body {
   display: grid;
-  // Device column 300px, matching CoolingPage's right-pane width.
-  grid-template-columns: 1fr 300px;
-  // Row 1 holds the mode tabs in the left column; the device column spans
-  // both rows so it starts at the very top of the page next to the tabs.
-  grid-template-rows: auto minmax(0, 1fr);
+  // Device rail | tabs + content | effect dock. Both side columns match
+  // CoolingPage's sidebar width.
+  grid-template-columns: 300px minmax(0, 1fr) 300px;
+  // Gutter between the rail and the centre column, as on the cooling page.
+  column-gap: 1.5rem;
+  // Row 1: mode tabs across the left + centre, layout presets at their right.
+  // Row 2: the three pane titles, so they share one baseline. Row 3: content.
+  grid-template-rows: auto auto minmax(0, 1fr);
   flex: 1;
   min-height: 0;
   overflow: hidden;
   position: relative; // anchor for the settings drawer
 }
 
-// Mode-tabs cell: top-left of the body grid.
-.headerCell {
-  grid-column: 1;
+// Mode tabs: a full-width row at the top, starting at the page's left edge.
+.tabsCell {
+  grid-column: 1 / span 2;
   grid-row: 1;
   min-width: 0;
 }
 
-.main {
-  grid-column: 1;
+// One title per column, all on grid row 2 so they share a baseline whatever
+// each carries beside them.
+.paneHeader {
   grid-row: 2;
+  min-width: 0;
   display: flex;
-  flex-direction: column;
-  min-height: 0;
-  overflow: hidden;
-  // No left pad (inherits the app shell `.content` left pad, aligning
-  // with Monitoring + Cooling); right gap separates the devices column
-  // from the divider.
-  padding: 0 0.5rem 0 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  padding: 0.25rem 0.4rem 0.5rem;
 }
 
-.rightPane {
-  grid-column: 2;
-  grid-row: 1 / span 2;
+.headerLeft { grid-column: 1; }
+.headerCenter { grid-column: 2; }
+.headerRight { grid-column: 3; }
+
+.paneTitle {
+  font-size: var(--type-body);
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.deviceHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+// Device rail: the left column's card list, under the rail header.
+.devicePane {
+  grid-column: 1;
+  grid-row: 3;
   position: relative;
   min-height: 0;
   display: flex;
@@ -89,31 +81,25 @@
   overflow: hidden;
 }
 
-// Simple-mode (ui.lightingDashboardMode) layout: the browse grid fills the page with
-// the advanced-mode CTA docked beneath it. No tabs / canvas / right pane.
-.simpleBody {
+.main {
+  grid-column: 2;
+  grid-row: 3;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  // The grid gap supplies the separation from both side panes.
+  padding: 0;
+}
+
+.rightPane {
+  grid-column: 3;
+  grid-row: 3;
+  position: relative;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding-right: 0.5rem;
-}
-
-.simpleFooter {
-  flex: 0 0 auto;
-  padding: 0.75rem 0.3rem 1rem;
-}
-
-// Off tile leading the simple-mode hero grid: the cooling preset-tile look,
-// sized to the same box as the effect cells beside it.
-.simpleOffTile {
-  --icon-label-button-gap: 0.45rem;
-  --icon-label-icon-size: 30px;
-  --icon-label-label-size: var(--type-body);
-  --icon-label-button-radius: var(--radius);
-  --icon-label-button-active-border: var(--accent);
-
-  width: 100%;
-  aspect-ratio: 16 / 9;
 }
 
 .canvasArea {
@@ -288,12 +274,6 @@
 // normal cell width - twice as many per row.
 .animateGridSectionSimple {
   grid-template-columns: repeat(auto-fill, minmax(59px, 1fr));
-}
-
-// Simple-mode browse: the flat colours as a fixed-width hero grid.
-.animateGridSectionHero {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.75rem;
 }
 
 // Usage markers pinned to a grid cell's thumbnail (panels only): bulb = this
@@ -507,7 +487,9 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  padding: 1rem 1.1rem 1.1rem;
+  // Narrow side inset: the dock is already a column of its own, so the controls
+  // do not need to hold themselves off its edges.
+  padding: 1rem 0.5rem 1.1rem;
   overflow-y: auto;
   flex: 1;
   min-height: 0;
@@ -747,11 +729,9 @@
 // ── Device Panel ────────────────────────────────────────────────────────────
 
 .devicePanel {
-  // Tight right inset (matches CoolingPage's .fanList padding-right) so cards
-  // sit close to the scrollbar; 2.5rem left inset keeps them off the divider.
-  // The preset and tab rows above carry the same insets so the pane's blocks
-  // share one left and right edge.
-  padding: 0.5rem 0.4rem 0.5rem 2.5rem;
+  // No inset: the cards run to the rail's own edges so their top line matches
+  // the canvas beside them and their left matches the cooling rail.
+  padding: 0;
   overflow-y: auto;
   flex: 1 1 auto;
   min-height: 0;
@@ -764,7 +744,7 @@
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  margin: 0.5rem 0.4rem 0.85rem 2.5rem;
+  margin: 0.5rem 0.4rem 0.85rem;
   flex-shrink: 0;
   padding: 0.3rem 0.7rem;
   border: var(--border-width) solid transparent;
@@ -880,8 +860,8 @@
 .deviceCard {
   position: relative;
   display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
+  align-items: center;
+  gap: 0.6rem;
   padding: 0.6rem 0.75rem;
   border-radius: var(--radius);
   border: var(--border-width) solid transparent;
@@ -924,6 +904,60 @@
   justify-content: space-between;
   gap: 0.4rem;
   min-height: 20px;
+}
+
+// Live LED readout in the card's meta row: a thick rounded line between the
+// LED count and the card menu. One canvas pixel per drawn LED, upscaled with
+// hard edges so individual LEDs stay legible instead of blurring together.
+.ledStrip {
+  flex: 1 1 auto;
+  min-width: 20px;
+  height: 5px;
+  border-radius: var(--radius-pill);
+  background: var(--gauge-track);
+  image-rendering: pixelated;
+  align-self: center;
+}
+
+// Card body: the name and meta rows, stacked beside the selection checkbox.
+.deviceCardBody {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+// Multi-select checkbox. Locked (mode reaches every device) reads checked but
+// non-interactive, so the state is legible without implying it can change.
+.deviceCheck {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-sm);
+  border: var(--border-width) solid var(--control-border-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--accent-text);
+  transition: background var(--ease-fast), border-color var(--ease-fast), opacity var(--ease-fast);
+
+  svg {
+    width: 12px;
+    height: 12px;
+    stroke-width: 3;
+  }
+}
+
+.deviceCheckOn {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.deviceCheckLocked {
+  cursor: default;
+  opacity: var(--alpha-medium);
 }
 
 .deviceCardActions {
@@ -1147,38 +1181,34 @@
 // The preset owns the mode + effect selection, so its control sits above the
 // selector. Left inset matches .devicePanel so it aligns with the cards below.
 .presetHeader {
-  flex-shrink: 0;
-  padding: 0.25rem 0.4rem 0.4rem 2.5rem;
-}
-
-// Selector row, between the preset row and the device list / effect controls
-// it switches between.
-.rightPaneTabsHeader {
-  flex-shrink: 0;
-  padding: 0 0.4rem 0.5rem 2.5rem;
-}
-
-.rightPaneTabsWrap {
+  grid-column: 3;
+  grid-row: 1;
+  min-width: 0;
+  // Column, not row: the toolbar has to be sized on the CROSS axis so it
+  // stretches to the rail width, the way it did inside the old right pane. As a
+  // row item it is sized on the main axis instead - the preset name's width - so
+  // the box would resize every time the preset changed.
   display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
+  padding: 0 0.4rem;
 }
 
-
-// Short attention pulse on the Effect tab label when the user clicks a
-// shader while the Devices tab is active. The span re-mounts on each pulse
-// (key prop changes) so the animation runs from scratch.
-.rightPaneTabPulse {
-  // Icon + label live inside this one span so the pulse key remounts both;
-  // chip-base's own gap only reaches a chip's direct children.
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  animation: effectTabPulse 0.9s ease-out;
+// Master brightness sits under the preset row, above the effect controls, so
+// the whole-system controls stay together at the top of the dock.
+.dockBrightness {
+  flex-shrink: 0;
+  // Matches drawerSliders' inset so master brightness lines up with the effect
+  // sliders stacked under it.
+  padding: 0.5rem 0.5rem 0;
 }
 
-@keyframes effectTabPulse {
-  0%   { color: inherit; transform: scale(1); text-shadow: none; }
-  35%  { color: var(--accent-glow); transform: scale(1.06); text-shadow: 0 0 8px var(--accent-glow-shadow); }
-  100% { color: inherit; transform: scale(1); text-shadow: none; }
+// Locked: the selected devices disagree on colour, so there is no single value
+// to edit. Dimmed rather than hidden so the controls stay readable.
+.effectTabBodyLocked {
+  opacity: var(--alpha-medium);
+  pointer-events: none;
 }
 
 .effectTabBody {
@@ -1187,10 +1217,6 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  // Match the devicePanel's 2.5rem left inset (children carry their own ~1rem
-  // horizontal padding, so the parent supplies the extra 1.5rem so the effect
-  // controls line up with the device cards' left edge).
-  padding-left: 1.5rem;
 }
 
 .effectControls {

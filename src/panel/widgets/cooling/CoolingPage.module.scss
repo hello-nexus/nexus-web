@@ -35,20 +35,50 @@
 // Width cap comes from the pageBody utility on the wrapping div.
 .body {
   display: grid;
-  // 260px: with the 0.4rem right inset the fan cards land at the same width as
-  // the lighting device cards (300px column - 2.5rem left inset - 0.4rem). Here
-  // the 2.5rem separation is the grid gap (external), so the column is 40px
-  // narrower than lighting's but the cards match.
-  grid-template-columns: minmax(0, 1fr) 260px;
-  // Generous gutter between the curve column and the fan sidebar, matching the
-  // lighting page's canvas-to-device-panel spacing.
-  gap: 2.5rem;
+  // Fan rail | preset tabs + curve. The rail matches the lighting page's so the
+  // two views share one left edge.
+  grid-template-columns: 300px minmax(0, 1fr);
+  // Row 1: the preset tabs across both columns. Row 2: the two pane titles, so
+  // they share one baseline. Row 3: content.
+  grid-template-rows: auto auto minmax(0, 1fr);
+  column-gap: 1.5rem;
   flex: 1;
   min-height: 0;
 }
-// Left column: the curve hero card; scrolls on its own if it ever outgrows
-// the viewport so the fan sidebar keeps its independent scroll.
+
+// Preset tabs: a full-width row at the top, starting at the page's left edge.
+.tabsCell {
+  grid-column: 1 / span 2;
+  grid-row: 1;
+  min-width: 0;
+}
+
+// One title per column, both on grid row 2 so they share a baseline.
+.paneHeader {
+  grid-row: 2;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  padding: 0.25rem 0.4rem 0.5rem;
+}
+
+.headerLeft { grid-column: 1; }
+.headerRight { grid-column: 2; }
+
+.paneTitle {
+  font-size: var(--type-body);
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// Content column: the curve hero card; scrolls on its own if it ever outgrows
+// the viewport so the fan rail keeps its independent scroll.
 .curveCol {
+  grid-column: 2;
+  grid-row: 3;
   min-height: 0;
   overflow-y: auto;
 }
@@ -94,6 +124,8 @@
 }
 // Right column: fan header pinned, the fan list scrolls beneath it.
 .fanSidebar {
+  grid-column: 1;
+  grid-row: 3;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -331,7 +363,9 @@
   display: flex; flex-direction: column; gap: 0.4rem;
   padding: 0.6rem 0.75rem;
   border-radius: var(--radius); border: var(--border-width) solid transparent; background: var(--surface);
-  cursor: grab;
+  // Click selects, like a lighting device row; a drag only begins past the
+  // sensor's distance threshold, so the affordance is a pointer, not a grab.
+  cursor: pointer;
   transition: border-color var(--ease-fast) ease, background var(--ease-fast) ease, opacity var(--ease-fast) ease;
   &:hover { border-color: var(--border-strong); }
   &:active { cursor: grabbing; }
@@ -356,6 +390,32 @@
   align-items: center;
   gap: 0.5rem;
   min-width: 0;
+}
+
+// Multi-select checkbox: a mode change on any selected card applies to all.
+.fanCheck {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-sm);
+  border: var(--border-width) solid var(--control-border-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--accent-text);
+  transition: background var(--ease-fast), border-color var(--ease-fast);
+
+  svg {
+    width: 12px;
+    height: 12px;
+    stroke-width: 3;
+  }
+}
+
+.fanCheckOn {
+  background: var(--accent);
+  border-color: var(--accent);
 }
 // Fan icon next to the name, doubling as the lock toggle. Turns accent when
 // the fan is bound to the curve currently shown in the graph (the highlight,
@@ -1044,3 +1104,29 @@
 }
 // Compact card has tighter horizontal padding; mirror it on the nub offset.
 .fanCardCompact .fanInNub { left: -0.75rem; }
+
+// Selected fan card: same emphasis the lighting device rows use, so a
+// selection reads identically across the two pages.
+.fanCardSelected {
+  border-color: var(--accent);
+  background: var(--surface-selected, color-mix(in srgb, var(--accent) 12%, transparent));
+}
+
+// Curve buttons: their own block under the "Curve" title, in the same surface
+// container every other grouped block on the page uses.
+.curvePickerSection {
+  flex-shrink: 0;
+  margin-bottom: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--radius);
+  border: var(--border-width) solid transparent;
+  background: var(--surface);
+}
+
+// Heading for the editor block below the picker, matching the pane titles.
+.curveEditorHeader {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding: 0.25rem 0.4rem 0.5rem;
+}

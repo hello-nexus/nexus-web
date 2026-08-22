@@ -313,6 +313,7 @@
   "cooling.fanRole.picker": "Apparaat van ventilator instellen",
   "cooling.label.cpu": "CPU",
   "cooling.label.fan": "Ventilatoren",
+  "cooling.label.curve": "Curve",
   "cooling.label.gpu": "GPU",
   "cooling.lock.lock": "Vergrendelen",
   "cooling.lock.lockedHint": "Vergrendeld - koelmodi wijzigen deze ventilator niet.",
@@ -1677,6 +1678,8 @@
   "lighting.controls.wave": "Golf",
   "lighting.controls.wedges": "Taartpunten",
   "lighting.controls.wormhole": "Wormgat",
+  "lighting.devices.activeCount.one": "{count} apparaat verlicht",
+  "lighting.devices.activeCount.other": "{count} apparaten verlicht",
   "lighting.devices.brightness": "Helderheid",
   "lighting.devices.controlled": "Aangestuurd",
   "lighting.devices.detectionFailed": "Gedetecteerd maar niet aanstuurbaar",
@@ -1881,6 +1884,7 @@
   "lighting.musicReactive": "Muziekreactief",
   "lighting.off.message": "Verlichting is uit",
   "lighting.panel.next": "Volgende",
+  "lighting.pane.preview": "Voorbeeld",
   "lighting.panel.prev": "Vorige",
   "lighting.panel.screenActive": "Spiegelen is actief",
   "lighting.panel.selectMode": "Selecteer een modus om te beginnen met verlichten",
@@ -1893,7 +1897,7 @@
   "lighting.renderGpu.label": "Render-GPU",
   "lighting.resume": "Hervatten",
   "lighting.rightPane.devices": "Apparaten",
-  "lighting.rightPane.effect": "Effect",
+  "lighting.rightPane.effect": "Effect-editor",
   "lighting.rightPane.effectAnimateHint": "Kies hieronder een animatie om deze hier aan te passen.",
   "lighting.rightPane.effectEmpty": "Deze modus heeft geen effectbesturing.",
   "lighting.rightPane.label": "Verlichtingspaneel",
@@ -3340,5 +3344,6 @@
   "welcome.startWithOs.description": "Geoptimaliseerd om als achtergrondservice te draaien.",
   "welcome.startWithOs.label": "Starten met je pc",
   "welcome.tagline": "Verenigde computerbediening",
-  "welcome.title": "Welkom bij Nexus"
+  "welcome.title": "Welkom bij Nexus",
+  "cooling.label.curveEditor": "Curve-editor"
 }

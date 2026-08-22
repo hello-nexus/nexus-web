@@ -4,6 +4,9 @@ import { identifyLightingDevice, type LightingDevice } from '../../../../api/lig
 import { useTranslation } from '../../../../lib/i18n';
 import { usePersistentState } from '../../../../hooks/usePersistentState';
 import { ZoneCard, type BulkSelection } from './ZoneCard';
+import { type LedPick } from './DeviceLedStrip';
+import { startIdentify } from '../../../../lib/identifyFlash';
+import { IDENTIFY_MS } from './zoneUtils';
 import { MotherboardGroup } from './MotherboardGroup';
 import { lightingDeviceNoticeKey } from './lightingDeviceNotices';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
@@ -44,10 +47,21 @@ type DeviceBlock =
  * using the same component/styling as a motherboard group: a chevron, the brand
  * name, a group power switch, and its lights as indented child cards.
  */
-export function DevicePanel({ devices, header, selectedIds, onSelectDevice, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onDeviceReorder, communityCounts, onOpenCommunity, smartHubFirmwareControl, onSetSmartHubFirmwareControl, lianLiFirmwareActive, onOpenSmartLights }: {
+export function DevicePanel({ devices, header, selectable = true, devicePicks, versionForSlot, ledFullscreen, selectedIds, onSelectDevice, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onDeviceReorder, communityCounts, onOpenCommunity, smartHubFirmwareControl, onSetSmartHubFirmwareControl, lianLiFirmwareActive, onOpenSmartLights }: {
   devices: LightingDevice[];
   /** Optional control rendered at the top of the scrolling list (master brightness). */
   header?: ReactNode;
+  /** False when the running mode reaches every device: cards show a checked,
+   *  locked checkbox instead of one that tracks the selection. */
+  selectable?: boolean;
+  /** Per-device static pick keyed by device id; it overrides what the card's
+   *  LED strip samples from the effect canvas. Each pick names its own preset
+   *  slot, so two devices on one effect can wear different presets. */
+  devicePicks?: Readonly<Record<string, { key: string; slot: number; hex: string }>>;
+  /** Content hash of one effect's slot, for thumbnail cache-busting. */
+  versionForSlot?: (key: string, slot: number) => string;
+  /** Static mode: strips sample the whole canvas rather than each device's rect. */
+  ledFullscreen?: boolean;
   /** Device ids currently selected (single-tap → 1-element set, canvas marquee → N-element set). */
   selectedIds: Set<string>;
   /** Single-replace click: clears the set and selects only this id (or null to clear). */
@@ -177,8 +191,17 @@ export function DevicePanel({ devices, header, selectedIds, onSelectDevice, onSe
       setPower: (on: boolean) => selectedDevices.forEach(x => onSetPower(x.id, on)),
       identify: () => selectedDevices
         .filter(x => x.ledCount > 0)
-        .forEach(x => identifyLightingDevice(x.id, 2000).catch(() => { /* silent */ })),
+        .forEach(x => {
+          startIdentify(x.id, IDENTIFY_MS);
+          identifyLightingDevice(x.id, IDENTIFY_MS).catch(() => { /* silent */ });
+        }),
     };
+  };
+
+  const ledPickFor = (id: string): LedPick | undefined => {
+    const pick = devicePicks?.[id];
+    if (!pick) return undefined;
+    return { ...pick, version: versionForSlot?.(pick.key, pick.slot) ?? '0' };
   };
 
   const renderCard = (d: LightingDevice, indent: boolean, displayName?: string, fwControlled?: boolean, drag?: SortableRowArgs) => (
@@ -187,6 +210,9 @@ export function DevicePanel({ devices, header, selectedIds, onSelectDevice, onSe
       device={d}
       displayName={displayName}
       selected={selectedIds.has(d.id)}
+      selectable={selectable}
+      ledPick={ledPickFor(d.id)}
+      ledFullscreen={ledFullscreen}
       indent={indent}
       onSelect={additive => handleZoneSelect(d.id, additive)}
       onTogglePower={() => onTogglePower(d.id)}

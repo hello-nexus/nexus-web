@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Gamepad2, Music, Pause, Play, Power } from 'lucide-react';
+import { Ban, CheckCheck, Gamepad2, Music, Pause, Play } from 'lucide-react';
 import {
   startAnimate, startStatic, startScreenMirror, stopLighting, startGameSync,
   fetchStaticSettings,
@@ -12,6 +12,7 @@ import {
   resetDeviceLayouts, applyDeviceLayouts, setActiveLayoutPreset, updateLayoutPreset,
   type LightingDevice, type LedMapEntry, type PostProcessSettings, type GameSyncDevice,
   type GameSyncGame, type DeviceLayoutDto,
+  setLightingDeviceColor,
 } from '../../../api/lighting';
 import { useUndoRedo } from '../../../hooks/useUndoRedo';
 import { useLayoutPresets, devicesToLayouts, devicesToPower } from './page/useLayoutPresets';
@@ -33,32 +34,31 @@ import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { LightingSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
 import { DeviceCanvas } from '../../../components/common/DeviceCanvas/DeviceCanvas';
+import { usePersistentState } from '../../../hooks/usePersistentState';
 import { usePanelBackgroundUsage } from '../../../hooks/usePanelBackgroundUsage';
 import {
-  EFFECTS, ANIMATE_EFFECTS, STATIC_EFFECTS, SIMPLE_MODE_EFFECTS, DEFAULT_STATIC_EFFECT, MODES,
+  EFFECTS, ANIMATE_EFFECTS, STATIC_EFFECTS, DEFAULT_STATIC_EFFECT, MODES,
   defaultStateFor, isStaticEffect,
   type EffectState, type EffectTemplateBundle, type LightingMode,
 } from '../../../types/lighting';
 import { defaultTemplatesFor, mergeTemplates, slotMatchesDefault, slotThumbSignature } from '../../../types/lightingTemplates';
+import { hsvToHex } from '../../../lib/settings';
 import { AnimateGrid } from './page/AnimateGrid';
 import { FullscreenShader } from './page/FullscreenShader';
 import { ModeControls } from './page/ModeControls';
 import { MediaCanvasNotice } from './page/MediaCanvasNotice';
 import { DevicePanel } from './page/DevicePanel';
+import { zoneCardUnavailable } from './page/ZoneCard';
+import { Button } from '../../../components/common/Button/Button';
 import { GameSyncLeftPane } from './page/GameSyncLeftPane';
 import { LedMapEditor } from './page/LedMapEditor';
 import { visibleCards } from './page/zoneUtils';
 import { OpenRgbButton } from './page/OpenRgbButton';
 import { GlobalBrightnessSlider } from './page/GlobalBrightnessSlider';
-import { RightPaneTabs, type RightPaneTab } from './page/RightPaneTabs';
 import { PresetToolbar } from '../../../components/common/PresetToolbar/PresetToolbar';
 import { EffectTab, type PostProcessState } from './page/EffectTab';
 import { useThrottle } from '../../../hooks/cadence';
 import { useAudioState } from '../../../hooks/useAudioState';
-import { useUiSettings } from '../../../hooks/useUiSettings';
-import { usePageModeToggle } from '../../../app/PageChrome';
-import { AdvancedModeCta } from '../../../components/common/AdvancedModeCta/AdvancedModeCta';
-import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
 import styles from './LightingPage.module.scss';
 
 /**
@@ -88,6 +88,23 @@ interface LayoutHistorySnapshot {
   powerIds: string[];
 }
 
+/**
+ * One device's Static assignment: an effect plus the preset slot it was picked
+ * from. Presets are shared definitions and devices hold references, so the slot
+ * is stored here, never resolved from the effect's own selected pointer.
+ */
+interface DevicePick {
+  key: string;
+  slot: number;
+  hex: string;
+}
+
+/** What the effect grid and dock are pointed at - see the `scoped` memo. */
+type ScopedTarget =
+  | { kind: 'none' }
+  | { kind: 'locked' }
+  | { kind: 'pick'; key: string; slot: number; explicit: boolean };
+
 // Module scope so the layout undo/redo history survives LightingPage's unmount
 // on navigation. Session-only; not persisted to storage. Assumes one mounted
 // LightingPage - two concurrent instances would share and clobber this history.
@@ -96,15 +113,6 @@ const layoutHistoryStore = {
   read: () => layoutHistoryStacks,
   write: (s: { undo: LayoutHistorySnapshot[]; redo: LayoutHistorySnapshot[] }) => { layoutHistoryStacks = s; },
 };
-
-const RIGHT_PANE_TAB_KEY = 'lighting.rightPaneTab';
-function loadRightPaneTab(): RightPaneTab {
-  try {
-    const v = localStorage.getItem(RIGHT_PANE_TAB_KEY);
-    if (v === 'devices' || v === 'effect') return v;
-  } catch { /* localStorage unavailable; fall through to default */ }
-  return 'effect';
-}
 
 const DEVICE_ORDER_KEY = 'lighting.deviceOrder';
 function loadDeviceOrder(): string[] {
@@ -119,23 +127,16 @@ function loadDeviceOrder(): string[] {
 
 export function LightingPage({ serviceOnline, serviceState, connectionState, activeProfileId, platform = '', onSectionNavigate }: LightingViewProps) {
   const { t } = useTranslation();
-  const { settings: uiSettings, update: updateUiSettings } = useUiSettings();
-  const simpleDashboard = uiSettings.lightingDashboardMode === 'simple';
-  const toggleDashboardMode = useCallback(() => {
-    updateUiSettings({ lightingDashboardMode: simpleDashboard ? 'advanced' : 'simple' });
-  }, [simpleDashboard, updateUiSettings]);
-  // The label names the TARGET mode (what a click switches to), matching the
-  // in-page advanced-mode card.
-  usePageModeToggle({
-    label: t(simpleDashboard ? 'uiMode.advancedMode' : 'uiMode.simpleMode'),
-    title: t(simpleDashboard ? 'uiMode.switchToAdvanced' : 'uiMode.switchToSimple'),
-    onToggle: toggleDashboardMode,
-  });
   const { mode, setMode, rawSync, setRawSync, synced, paused: syncedPaused } = useLightingSync(serviceOnline, activeProfileId);
   // Game Sync requires the Windows Chroma capture shim; hide it on non-Windows
   // (empty platform = ping not yet resolved, keep hidden to avoid a flash).
   const isWindows = platform === 'windows';
   const effectiveMode: LightingMode = (mode === 'gamesync' && !isWindows) ? 'none' : mode;
+  // Off and Static are the per-device modes: a flat colour can be scoped to a
+  // subset of devices. Every other mode renders one shared canvas across all of
+  // them, so the device list drops its selection affordance there and keeps
+  // only the per-device power / controlled toggles.
+  const perDeviceMode = effectiveMode === 'static' || effectiveMode === 'none';
   const frames = useLightingFrames();
   // Read RGB running/scanning off useServiceState (already subscribed
   // to the lighting topic for the sidebar pip) so a topic push doesn't
@@ -186,6 +187,15 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     }
   }, []);
 
+  // Per-device static pick, keyed by device id. Kept out of the device records
+  // so a topic refetch cannot clobber a just-applied pick. A pick is (effect,
+  // preset slot): the slot is captured when the pick is made, never read back
+  // from the effect's shared pointer, or repointing one device would drag every
+  // other device on that effect to the same preset.
+  const [devicePicks, setDevicePicks] = usePersistentState<Record<string, DevicePick>>(
+    'nexus.lighting.devicePicks', {},
+  );
+
   const [activeEffect, setActiveEffect] = useState<string>('');
   // Read inside applyAnimate, which several handlers share: static and animate
   // drive the same template state through different start endpoints.
@@ -208,15 +218,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // frame (effectTemplates churns during drag for the live RGB preview).
   const [committedTemplates, setCommittedTemplates] = useState<Record<string, EffectTemplateBundle>>({});
   const [fullscreenOpen, setFullscreenOpen] = useState(false);
-  // Canvas hides the frame for any device with LEDs off, and hides all
-  // frames while the Effect tab is showing (frames are a Devices-tab
-  // concern). Right-pane tab: 'effect' = post-process controls for
-  // animate / media / screen; 'devices' = rescan + zone cards.
-  // Persisted across remounts.
-  const [activeRightTab, setActiveRightTab] = useState<RightPaneTab>(loadRightPaneTab);
-  useEffect(() => {
-    try { localStorage.setItem(RIGHT_PANE_TAB_KEY, activeRightTab); } catch { /* persist best-effort */ }
-  }, [activeRightTab]);
+  // Canvas hides the frame for any device whose LEDs are off. The device
+  // list is always mounted now, so there is no tab state to hide it behind.
   // Cards whose LEDs are all user-disabled disappear from the listing and
   // the canvas, but a device always keeps at least one card visible: a
   // fully parked device shows one card with its zero-enabled badge so it
@@ -224,13 +227,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const visibleDevices = useMemo(() => visibleCards(devices), [devices]);
   const hiddenFrameIds = useMemo(() => {
     const set = new Set<string>();
-    if (activeRightTab === 'effect') {
-      for (const d of visibleDevices) set.add(d.id);
-      return set;
-    }
     for (const d of visibleDevices) if (!d.ledsOn) set.add(d.id);
     return set;
-  }, [visibleDevices, activeRightTab]);
+  }, [visibleDevices]);
 
   // LED map editor - lifted here so both the canvas settings button and the
   // ZoneCard settings button can open it. Every card routes to the editor of
@@ -338,7 +337,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     }
   }, [paused]);
 
-  const [effectPulseKey, setEffectPulseKey] = useState(0);
 
   // Screen + Media share an identical post-process shape (hue, colorize,
   // saturation, contrast). Each mode has its own persisted snapshot; the
@@ -347,12 +345,17 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const [mediaPP, setMediaPP] = useState<PostProcessState>(DEFAULT_POST_PROCESS);
   const postProcess = mode === 'screen' ? screenPP : mediaPP;
 
-  const stateFor = useCallback((key: string): EffectState => {
+  const stateOf = useCallback((key: string, slot: number): EffectState => {
     const bundle = effectTemplates[key];
     if (!bundle || !bundle.slots || bundle.slots.length === 0) return defaultStateFor(key);
-    const idx = Math.min(Math.max(bundle.selected, 0), bundle.slots.length - 1);
+    const idx = Math.min(Math.max(slot, 0), bundle.slots.length - 1);
     return bundle.slots[idx];
   }, [effectTemplates]);
+  const slotOf = useCallback((key: string) => effectTemplates[key]?.selected ?? 0, [effectTemplates]);
+  const stateFor = useCallback(
+    (key: string): EffectState => stateOf(key, slotOf(key)),
+    [slotOf, stateOf],
+  );
   const currentState: EffectState | null = useMemo(
     () => activeEffect ? stateFor(activeEffect) : null,
     [activeEffect, stateFor],
@@ -372,6 +375,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       && !slotMatchesDefault(activeEffect, currentSelected, currentState, animateDefaults)),
     [activeEffect, currentState, currentSelected, animateDefaults],
   );
+
   const throttleAnimate = useThrottle();
   const throttlePostProcess = useThrottle();
   const localAnimateEditUntilRef = useRef(0);
@@ -710,11 +714,37 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     return Promise.resolve();
   }, [applyAnimate]);
 
-  // Clicking an effect on the Devices tab pulses the Effect tab label
-  // instead of switching away from the devices.
-  const pulseEffectTab = useCallback(() => setEffectPulseKey(k => k + 1), []);
+  // A static effect picked while devices are selected paints only those
+  // devices. The pick records the slot it was made against, so a later
+  // repoint of some other device leaves this one alone.
+  const writeDevicePicks = useCallback((key: string, slot: number, ids: string[], push: boolean) => {
+    const st = stateOf(key, slot);
+    const hue = Math.min(1, Math.max(0, st.hue));
+    const sat = Math.min(1, Math.max(0, st.saturation));
+    const hex = hsvToHex(hue * 360, sat * 100, 100);
+    setDevicePicks(prev => {
+      const next = { ...prev };
+      for (const id of ids) next[id] = { key, slot, hex };
+      return next;
+    });
+    if (!push) return;
+    for (const id of ids) {
+      setLightingDeviceColor(id, hue, sat).catch(() => { /* best-effort */ });
+    }
+  }, [setDevicePicks, stateOf]);
+
+  const applyDeviceColor = useCallback(
+    (key: string, ids: string[]) => writeDevicePicks(key, slotOf(key), ids, true),
+    [slotOf, writeDevicePicks],
+  );
 
   const handleEffectSelect = useCallback((key: string) => {
+    // Scoped pick: the running effect is untouched, only the selected devices
+    // take the colour.
+    if (perDeviceMode && selectedDeviceIds.size > 0 && isStaticEffect(key)) {
+      applyDeviceColor(key, [...selectedDeviceIds]);
+      return;
+    }
     if (activeEffect !== key) {
       setActiveEffect(key);
       applyAnimate(key, stateFor(key), true);
@@ -730,33 +760,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       rawSync: selectMode === 'static' ? 'static' : key,
       effect: key,
     });
-    if (activeRightTab !== 'effect') pulseEffectTab();
-  }, [activeEffect, activeRightTab, applyAnimate, pulseEffectTab, stateFor]);
-
-  // Simple mode has no mode tabs: picking a static card enters Static and
-  // picking an animation enters Animation, mirroring handleModeChange.
-  const handleSimpleEffectSelect = useCallback((key: string) => {
-    const isStatic = isStaticEffect(key);
-    const m: LightingMode = isStatic ? 'static' : 'animate';
-    // Re-clicking the running card would restart the effect server-side
-    // (visible phase reset on animations).
-    if (effectiveMode === m && activeEffect === key) return;
-    setMode(m);
-    setPausedState(false);
-    setActiveEffect(key);
-    setRawSync(isStatic ? 'static' : key);
-    if (isStatic) staticEffectRef.current = key;
-    else animateEffectRef.current = key;
-    const state = stateFor(key);
-    if (isStatic) {
-      startStatic(key, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params)
-        .catch(() => { /* best-effort; backend state becomes source of truth */ });
-    } else {
-      startAnimate(key, state.speed, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params)
-        .catch(() => { /* best-effort; backend state becomes source of truth */ });
-    }
-    publishControlSync({ domain: 'lighting', mode: m, rawSync: isStatic ? 'static' : key, effect: key });
-  }, [effectiveMode, activeEffect, setMode, setRawSync, stateFor]);
+  }, [activeEffect, applyAnimate, applyDeviceColor, perDeviceMode, selectedDeviceIds, stateFor]);
 
   const effectPool = mode === 'static' ? STATIC_EFFECTS : ANIMATE_EFFECTS;
 
@@ -774,7 +778,57 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     handleEffectSelect(effectPool[(idx + 1) % effectPool.length].key);
   }, [activeEffect, effectPool, handleEffectSelect]);
 
+  // What the effect grid and the dock are pointed at. With devices selected in
+  // a per-device mode, that is the look those devices share - identity is
+  // (effect, slot), so the same effect on two different presets counts as a
+  // disagreement. 'locked' also covers a selection with no pick yet: there is
+  // nothing scoped to edit, and the dock must not silently edit the global one.
+  const scoped: ScopedTarget = useMemo(() => {
+    if (!perDeviceMode || selectedDeviceIds.size === 0) return { kind: 'none' };
+    let first: DevicePick | undefined;
+    let explicit = false;
+    let sig: string | null = null;
+    for (const id of selectedDeviceIds) {
+      // No pick means the device is simply wearing the running effect - that
+      // IS its look, so it resolves rather than reading as "nothing chosen".
+      const pick = devicePicks[id];
+      const key = pick?.key ?? activeEffect;
+      const slot = pick?.slot ?? slotOf(activeEffect);
+      const s = `${key}#${slot}`;
+      if (sig === null) {
+        sig = s;
+        first = { key, slot, hex: pick?.hex ?? '' };
+        explicit = !!pick;
+      } else if (sig !== s) return { kind: 'locked' };
+    }
+    if (!first || !first.key) return { kind: 'locked' };
+    return { kind: 'pick', key: first.key, slot: first.slot, explicit };
+  }, [activeEffect, devicePicks, perDeviceMode, selectedDeviceIds, slotOf]);
+
+  // The dock always edits a single (effect, slot). Scoped, that is the
+  // selection's own preset; otherwise the running effect's selected one.
+  const dockEffect = scoped.kind === 'pick' ? scoped.key : activeEffect;
+  const dockSlot = scoped.kind === 'pick' ? scoped.slot : slotOf(activeEffect);
+  const dockState: EffectState | null = dockEffect ? stateOf(dockEffect, dockSlot) : null;
+  // The slot strip highlights what the dock edits, so a scoped bundle carries
+  // the selection's slot rather than the effect's shared pointer.
+  const dockBundle: EffectTemplateBundle | null = dockEffect
+    ? (committedTemplates[dockEffect] ? { ...committedTemplates[dockEffect], selected: dockSlot } : null)
+    : null;
+  const dockCanReset = !!(dockEffect && dockState
+    && !slotMatchesDefault(dockEffect, dockSlot, dockState, animateDefaults));
+
   const handleTemplateSelect = useCallback((idx: number) => {
+    // Scoped: repoint only the selected devices at this preset. The effect's
+    // shared pointer stays put, so every other device wearing this effect keeps
+    // the preset it was assigned.
+    if (scoped.kind === 'pick') {
+      if (idx === scoped.slot) return;
+      const bundle = effectTemplates[scoped.key];
+      const clampedIdx = bundle ? Math.min(Math.max(idx, 0), bundle.slots.length - 1) : idx;
+      writeDevicePicks(scoped.key, clampedIdx, [...selectedDeviceIds], true);
+      return;
+    }
     if (!activeEffect) return;
     const bundle = effectTemplates[activeEffect];
     if (!bundle) return;
@@ -798,42 +852,51 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       templateIndex: clamped,
       effectState: nextBundle.slots[clamped],
     });
-  }, [activeEffect, effectTemplates, writeTemplates]);
+  }, [activeEffect, effectTemplates, scoped, selectedDeviceIds, writeDevicePicks, writeTemplates]);
 
   const handleStatePatch = useCallback((patch: Partial<EffectState>, commit = false) => {
-    if (!activeEffect || !currentState) return;
+    if (!dockEffect || !dockState) return;
     localAnimateEditUntilRef.current = Date.now() + 1500;
-    const bundle = effectTemplates[activeEffect];
+    const bundle = effectTemplates[dockEffect];
     if (!bundle) return;
-    const idx = bundle.selected;
-    const nextSlot: EffectState = { ...currentState, ...patch };
+    const idx = Math.min(Math.max(dockSlot, 0), bundle.slots.length - 1);
+    const nextSlot: EffectState = { ...dockState, ...patch };
     const nextSlots = bundle.slots.slice();
     nextSlots[idx] = nextSlot;
     const nextBundle: EffectTemplateBundle = { ...bundle, slots: nextSlots };
+    // A preset is shared by every device that references it, so the edit lands
+    // in the slot either way. What scoping changes is the side effects: a
+    // scoped edit must not restart the global effect or announce itself to the
+    // other surfaces as a change of what is running.
+    const scopedEdit = scoped.kind === 'pick' && scoped.explicit;
     writeTemplates(
-      { ...effectTemplates, [activeEffect]: nextBundle },
-      activeEffect,
+      { ...effectTemplates, [dockEffect]: nextBundle },
+      scopedEdit ? null : dockEffect,
       commit,
     );
+    if (scopedEdit) {
+      writeDevicePicks(dockEffect, idx, [...selectedDeviceIds], commit);
+      return;
+    }
     publishControlSync({
       domain: 'lighting',
       // Static edits must not announce themselves as animate: subscribers
       // classify on rawSync, so a pattern key here flips every surface into
       // Animation mid-interaction.
       mode: modeRef.current === 'static' ? 'static' : 'animate',
-      rawSync: modeRef.current === 'static' ? 'static' : activeEffect,
-      effect: activeEffect,
+      rawSync: modeRef.current === 'static' ? 'static' : dockEffect,
+      effect: dockEffect,
       templateIndex: idx,
       effectState: nextSlot,
     });
-  }, [activeEffect, currentState, effectTemplates, writeTemplates]);
+  }, [dockEffect, dockSlot, dockState, effectTemplates, scoped, selectedDeviceIds, writeDevicePicks, writeTemplates]);
 
   const handleStateCommit = useCallback(() => {
-    if (!activeEffect) return;
+    if (!dockEffect) return;
     const freshTemplates = effectTemplatesRef.current;
-    const bundle = freshTemplates[activeEffect];
+    const bundle = freshTemplates[dockEffect];
     if (!bundle) return;
-    const idx = Math.min(Math.max(bundle.selected, 0), bundle.slots.length - 1);
+    const idx = Math.min(Math.max(dockSlot, 0), bundle.slots.length - 1);
     const latest = bundle.slots[idx];
     if (!latest) return;
     // Advance the committed snapshot only after the save lands, so the thumbnail
@@ -841,22 +904,33 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     saveAnimateTemplates(freshTemplates)
       .then(() => setCommittedTemplates(freshTemplates))
       .catch(() => { /* best-effort */ });
-    applyAnimate(activeEffect, latest, true);
-  }, [activeEffect, applyAnimate]);
+    // Scoped, the edit belongs to the selection's preset, not to whatever is
+    // running on the canvas - restarting the global effect here would swap it
+    // out from under every unselected device.
+    if (scoped.kind === 'pick' && scoped.explicit) {
+      writeDevicePicks(dockEffect, idx, [...selectedDeviceIds], true);
+      return;
+    }
+    applyAnimate(dockEffect, latest, true);
+  }, [applyAnimate, dockEffect, dockSlot, scoped, selectedDeviceIds, writeDevicePicks]);
 
   const handleStateReset = useCallback(() => {
-    if (!activeEffect) return;
-    const defaults = defaultTemplatesFor(activeEffect, animateDefaults);
-    const bundle = effectTemplates[activeEffect];
+    if (!dockEffect) return;
+    const defaults = defaultTemplatesFor(dockEffect, animateDefaults);
+    const bundle = effectTemplates[dockEffect];
     if (!bundle) return;
-    const idx = bundle.selected;
+    const idx = Math.min(Math.max(dockSlot, 0), bundle.slots.length - 1);
     const nextSlots = bundle.slots.slice();
     nextSlots[idx] = defaults.slots[idx];
     const nextBundle: EffectTemplateBundle = { ...bundle, slots: nextSlots };
-    const nextTemplates = { ...effectTemplates, [activeEffect]: nextBundle };
-    writeTemplates(nextTemplates, activeEffect, true)
-      .then(() => setCommittedTemplates(nextTemplates));
-  }, [activeEffect, effectTemplates, writeTemplates, animateDefaults]);
+    const nextTemplates = { ...effectTemplates, [dockEffect]: nextBundle };
+    const scopedEdit = scoped.kind === 'pick' && scoped.explicit;
+    writeTemplates(nextTemplates, scopedEdit ? null : dockEffect, true)
+      .then(() => {
+        setCommittedTemplates(nextTemplates);
+        if (scopedEdit) writeDevicePicks(dockEffect, idx, [...selectedDeviceIds], true);
+      });
+  }, [animateDefaults, dockEffect, dockSlot, effectTemplates, scoped, selectedDeviceIds, writeDevicePicks, writeTemplates]);
 
   // Cross-panel usage drives the "used by a panel" badge. No exclusion: the
   // desktop page isn't a panel, so every panel background counts.
@@ -865,11 +939,22 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // Grid cell = this surface's selected slot + its content hash, both from the
   // committed snapshot so thumbnails track commits, not drag frames.
   const slotForEffect = useCallback((e: string) => committedTemplates[e]?.selected ?? 0, [committedTemplates]);
-  const versionForEffect = useCallback((e: string) => {
+  const versionForSlot = useCallback((e: string, slot: number) => {
     const b = committedTemplates[e];
     if (!b || b.slots.length === 0) return '0';
-    return slotThumbSignature(b.slots[Math.min(Math.max(b.selected, 0), b.slots.length - 1)]);
+    return slotThumbSignature(b.slots[Math.min(Math.max(slot, 0), b.slots.length - 1)]);
   }, [committedTemplates]);
+  // The grid highlights what the selection wears, so the highlighted tile has
+  // to depict that device's preset - not the effect's shared pointer, which is
+  // some other device's business.
+  const gridSlotFor = useCallback(
+    (e: string) => (scoped.kind === 'pick' && e === scoped.key ? scoped.slot : slotForEffect(e)),
+    [scoped, slotForEffect],
+  );
+  const gridVersionFor = useCallback(
+    (e: string) => versionForSlot(e, gridSlotFor(e)),
+    [gridSlotFor, versionForSlot],
+  );
 
   const postProcessRef = useRef({ screen: screenPP, media: mediaPP });
   postProcessRef.current = { screen: screenPP, media: mediaPP };
@@ -980,6 +1065,14 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     for (const d of visibleDevices) if (!seen.has(d.id)) out.push(d);
     return out;
   }, [visibleDevices, deviceOrder]);
+
+  // Cards that can carry a selection; a zone the service could not drive is
+  // excluded, matching what ZoneCard renders as non-interactive.
+  const selectableIds = useMemo(
+    () => orderedDevices.filter(d => !zoneCardUnavailable(d)).map(d => d.id),
+    [orderedDevices],
+  );
+
 
   // Devices list: fetch on entry + profile change, then refresh push-driven.
   // The `lighting` topic fires on every /lighting mutation (layout edits,
@@ -1266,66 +1359,33 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       };
     });
 
-  // Effect tab applies to animate / media / screen only; in Off and Game Sync
-  // modes it renders an empty state and the tab header is disabled.
-  const effectTabDisabled = effectiveMode === 'none' || effectiveMode === 'gamesync';
   const shaderMode = effectiveMode === 'animate' || effectiveMode === 'static';
+  const gridEffect = scoped.kind === 'pick' ? scoped.key : (scoped.kind === 'locked' ? '' : activeEffect);
+  // Selected devices wearing different looks have no single value for the
+  // controls to edit, so the dock locks until the selection agrees.
+  const mixedSelection = scoped.kind === 'locked';
+  const allSelected = selectableIds.length > 0 && selectableIds.every(id => selectedDeviceIds.has(id));
+  // The canvas previews the shared effect canvas, which Static does not sample
+  // and Off has nothing to show on. Game Sync substitutes its own activity block.
+  const showCanvas = effectiveMode !== 'static' && effectiveMode !== 'none' && effectiveMode !== 'gamesync';
 
   if (!serviceOnline) {
     return (
       <div className={styles.lighting}>
-        {!simpleDashboard && (
-          <ViewHeader title={t('lighting.title')} tabs={modeTabs} activeTab={synced ? effectiveMode : undefined} onTabChange={k => handleModeChange(k as LightingMode)} tabsDisabled />
-        )}
+        <ViewHeader title={t('lighting.title')} tabs={modeTabs} activeTab={synced ? effectiveMode : undefined} onTabChange={k => handleModeChange(k as LightingMode)} tabsDisabled />
         <ServiceRequired state={connectionState} skeleton={<LightingSkeleton />} />
-      </div>
-    );
-  }
-
-  // Simple mode: only the flat-colour browse grid and the advanced-mode
-  // path. No mode tabs, preset toolbar, canvas, or right pane - those are
-  // the advanced page below.
-  if (simpleDashboard) {
-    return (
-      <div className={styles.lighting}>
-        <div className={`${styles.simpleBody} pageBodyFill`}>
-          <AnimateGrid
-            effect={shaderMode ? activeEffect : ''}
-            onSelect={handleSimpleEffectSelect}
-            effects={SIMPLE_MODE_EFFECTS}
-            simpleBrowse
-            leadingCell={(
-              <IconLabelButton
-                className={styles.simpleOffTile}
-                icon={<Power size={30} />}
-                label={t('lighting.mode.off')}
-                active={synced && effectiveMode === 'none'}
-                onPress={() => { if (!synced || effectiveMode !== 'none') void handleModeChange('none'); }}
-              />
-            )}
-            slotFor={slotForEffect}
-            versionFor={versionForEffect}
-            panelEffects={panelUsage.effects}
-            gpuAvailable={serviceState.lighting?.gpuAvailable ?? true}
-          />
-          <div className={styles.simpleFooter}>
-            <AdvancedModeCta
-              label={t('lighting.simple.advancedCta')}
-              onPress={() => updateUiSettings({ lightingDashboardMode: 'advanced' })}
-            />
-          </div>
-        </div>
       </div>
     );
   }
 
   return (
     <div className={styles.lighting}>
-      {/* ViewHeader lives in the left grid column so the device column (right)
-          can rise to the very top of the page, level with the mode tabs. Capped
-          at --page-max (pageBody) so the page matches every other view's width. */}
+      {/* Three columns: the device rail, the mode tabs + their content, and the
+          always-mounted effect dock. Both side columns span the tab row so they
+          rise to the very top of the page. Capped at --page-max (pageBody) so
+          the page matches every other view's width. */}
       <div className={`${styles.body} pageBody`}>
-        <div className={styles.headerCell}>
+        <div className={styles.tabsCell}>
           <ViewHeader
             title={t('lighting.title')}
             tabs={modeTabs}
@@ -1336,6 +1396,86 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
               void handleModeChange(k as LightingMode);
             }}
           />
+        </div>
+        <div className={styles.presetHeader}>
+          <PresetToolbar
+            presets={presets}
+            activeId={layoutActiveId}
+            presetCount={presetCount}
+            canUndo={canUndoLayout}
+            canRedo={canRedoLayout}
+            onLoad={handlePresetLoadWithHistory}
+            onCreate={handlePresetCreate}
+            onRename={handlePresetRename}
+            onDelete={handlePresetDelete}
+            onReset={handleResetWithHistory}
+            onUndo={handleUndoLayout}
+            onRedo={handleRedoLayout}
+          />
+        </div>
+        <div className={`${styles.paneHeader} ${styles.headerLeft}`}>
+          <span className={styles.paneTitle}>{t('lighting.rightPane.devices')}</span>
+          {selectableIds.length > 0 && (
+            <div className={styles.deviceHeaderActions}>
+              {/* Icon-only: the rail is too narrow for both labels beside the title. */}
+              <HoverTooltip body={t('lighting.ledMap.selectAll')} side="bottom">
+                <Button
+                  tone="ghost"
+                  size="sm"
+                  icon={<CheckCheck />}
+                  aria-label={t('lighting.ledMap.selectAll')}
+                  disabled={!perDeviceMode || allSelected}
+                  onClick={() => handleSetSelection(new Set(selectableIds), selectableIds[0] ?? null)}
+                />
+              </HoverTooltip>
+              <HoverTooltip body={t('lightingOnboarding.selectNone')} side="bottom">
+                <Button
+                  tone="ghost"
+                  size="sm"
+                  icon={<Ban />}
+                  aria-label={t('lightingOnboarding.selectNone')}
+                  disabled={!perDeviceMode || selectedDeviceIds.size === 0}
+                  onClick={() => handleSetSelection(new Set(), null)}
+                />
+              </HoverTooltip>
+            </div>
+          )}
+        </div>
+        <div className={`${styles.paneHeader} ${styles.headerCenter}`}>
+          <span className={styles.paneTitle}>{t('lighting.pane.preview')}</span>
+        </div>
+        <div className={`${styles.paneHeader} ${styles.headerRight}`}>
+          <span className={styles.paneTitle}>{t('lighting.rightPane.effect')}</span>
+        </div>
+        <div className={styles.devicePane}>
+          <DevicePanel
+            devices={orderedDevices}
+            selectable={perDeviceMode}
+            // A mode that reaches every device overrides what any one of them
+            // was assigned, so the picks stop applying - the strips go back to
+            // sampling the shared canvas. They are kept, not cleared, so
+            // returning to Static restores each device's own look.
+            devicePicks={perDeviceMode ? devicePicks : undefined}
+            versionForSlot={versionForSlot}
+            ledFullscreen={effectiveMode === 'static'}
+            selectedIds={selectedDeviceIds}
+            onSelectDevice={handleSelectDevice}
+            onSetSelection={handleSetSelection}
+            onTogglePower={handleTogglePower}
+            onSetPower={handleSetPower}
+            onToggleControlled={handleToggleControlled}
+            onSetControlled={handleSetControlled}
+            lightingOff={effectiveMode === 'none'}
+            onOpenSettings={handleOpenSettings}
+            onDeviceReorder={(newOrder) => setDeviceOrder(newOrder)}
+            communityCounts={mappingCounts}
+            onOpenCommunity={handleOpenCommunity}
+            smartHubFirmwareControl={smartHubFirmwareControl}
+            onSetSmartHubFirmwareControl={handleSetSmartHubFirmwareControl}
+            lianLiFirmwareActive={lianLiFirmwareActive}
+            onOpenSmartLights={() => onSectionNavigate?.('smart-lights')}
+          />
+          <OpenRgbButton rgbRunning={rgb.running} scanning={rgb.scanning} />
         </div>
         <div className={styles.main}>
           {effectiveMode === 'gamesync' ? (
@@ -1353,10 +1493,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             </>
           ) : (
             <>
+              {showCanvas && (
               <div className={styles.canvasArea}>
                 <DeviceCanvas devices={visibleDevices} canvasPixels={frames.canvasPixels} canvasW={frames.canvasW} canvasH={frames.canvasH} selectedIds={selectedDeviceIds} primaryDeviceId={primaryDeviceId} onSelectDevice={handleSelectDevice} onSetSelection={handleSetSelection} shaderEffect={shaderMode ? activeEffect : null} shaderState={shaderMode ? previewState : null} shaderPaused={paused} audioRef={audioRef} hiddenFrameIds={hiddenFrameIds} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={handleOpenSettings} onDragActiveChange={handleDragActiveChange} onBeforeLayoutSave={handleBeforeLayoutSave} onLayoutCommit={handleLayoutCommit} onSetDevicesPower={handleSetDevicesPower} gpuAvailable={serviceState.lighting?.gpuAvailable ?? true} />
                 {effectiveMode === 'gif' && <MediaCanvasNotice />}
-                {shaderMode && activeEffect && currentState && activeRightTab === 'effect' && (
+                {shaderMode && activeEffect && currentState && (
                   <>
                     {EFFECTS.find(e => e.key === activeEffect)?.audio && (
                       <HoverTooltip body={t('lighting.musicReactive')} side="left">
@@ -1381,9 +1522,12 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                   </>
                 )}
               </div>
+              )}
+              {/* Off renders no picker at all; Static and Animation each own an
+                  effect pool; Screen and Media get their source controls. */}
               {effectiveMode === 'animate' || effectiveMode === 'static' ? (
-                <AnimateGrid effect={activeEffect} onSelect={handleEffectSelect} effects={effectiveMode === 'static' ? STATIC_EFFECTS : ANIMATE_EFFECTS} frozen={effectiveMode === 'static'} slotFor={slotForEffect} versionFor={versionForEffect} panelEffects={panelUsage.effects} gpuAvailable={serviceState.lighting?.gpuAvailable ?? true} />
-              ) : (
+                <AnimateGrid effect={gridEffect} onSelect={handleEffectSelect} effects={effectiveMode === 'static' ? STATIC_EFFECTS : ANIMATE_EFFECTS} frozen={effectiveMode === 'static'} slotFor={gridSlotFor} versionFor={gridVersionFor} panelEffects={panelUsage.effects} gpuAvailable={serviceState.lighting?.gpuAvailable ?? true} />
+              ) : effectiveMode === 'none' ? null : (
                 <div className={`${styles.controls} ${effectiveMode === 'gif' ? styles.controlsFill : ''}`}>
                   <ModeControls
                     mode={effectiveMode}
@@ -1396,74 +1540,31 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           )}
         </div>
         <div className={styles.rightPane}>
-          <div className={styles.presetHeader}>
-            <PresetToolbar
-              presets={presets}
-              activeId={layoutActiveId}
-              presetCount={presetCount}
-              canUndo={canUndoLayout}
-              canRedo={canRedoLayout}
-              onLoad={handlePresetLoadWithHistory}
-              onCreate={handlePresetCreate}
-              onRename={handlePresetRename}
-              onDelete={handlePresetDelete}
-              onReset={handleResetWithHistory}
-              onUndo={handleUndoLayout}
-              onRedo={handleRedoLayout}
-            />
+          <div className={styles.dockBrightness}>
+            <GlobalBrightnessSlider serviceOnline={serviceOnline} />
           </div>
-          <div className={styles.rightPaneTabsHeader}>
-            <RightPaneTabs
-              active={activeRightTab}
-              onSelect={setActiveRightTab}
-              pulseKey={effectPulseKey}
-              effectTabDisabled={effectTabDisabled}
-            />
-          </div>
-          {activeRightTab === 'devices' ? (
-            <>
-              <DevicePanel
-                devices={orderedDevices}
-                header={<GlobalBrightnessSlider serviceOnline={serviceOnline} />}
-                selectedIds={selectedDeviceIds}
-                onSelectDevice={handleSelectDevice}
-                onSetSelection={handleSetSelection}
-                onTogglePower={handleTogglePower}
-                onSetPower={handleSetPower}
-                onToggleControlled={handleToggleControlled}
-                onSetControlled={handleSetControlled}
-                lightingOff={effectiveMode === 'none'}
-                onOpenSettings={handleOpenSettings}
-                onDeviceReorder={(newOrder) => setDeviceOrder(newOrder)}
-                communityCounts={mappingCounts}
-                onOpenCommunity={handleOpenCommunity}
-                smartHubFirmwareControl={smartHubFirmwareControl}
-                onSetSmartHubFirmwareControl={handleSetSmartHubFirmwareControl}
-                lianLiFirmwareActive={lianLiFirmwareActive}
-                onOpenSmartLights={() => onSectionNavigate?.('smart-lights')}
-              />
-              <OpenRgbButton rgbRunning={rgb.running} scanning={rgb.scanning} />
-            </>
-          ) : (
-            <div className={styles.effectTabBody}>
+            <div
+              className={`${styles.effectTabBody} ${mixedSelection ? styles.effectTabBodyLocked : ''}`}
+              inert={mixedSelection || undefined}
+              aria-hidden={mixedSelection || undefined}
+            >
               <EffectTab
                 mode={effectiveMode}
-                effect={activeEffect}
-                state={currentState}
-                bundle={activeEffect ? committedTemplates[activeEffect] ?? null : null}
-                canReset={canReset}
+                effect={dockEffect}
+                state={dockState}
+                bundle={dockBundle}
+                canReset={dockCanReset}
                 onTemplateSelect={handleTemplateSelect}
                 onAnimateChange={handleStatePatch}
                 onAnimateCommit={handleStateCommit}
                 onAnimateReset={handleStateReset}
-                panelSlots={panelUsage.slotsByEffect.get(activeEffect)}
+                panelSlots={panelUsage.slotsByEffect.get(dockEffect)}
                 postProcess={postProcess}
                 onPostProcessChange={handlePostProcessChange}
                 onPostProcessCommit={handlePostProcessCommit}
                 onPostProcessReset={handlePostProcessReset}
               />
             </div>
-          )}
         </div>
       </div>
       {fullscreenOpen && activeEffect && currentState && committedTemplates[activeEffect] && (

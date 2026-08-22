@@ -313,6 +313,7 @@
   "cooling.fanRole.picker": "Segne il dispositîf dal ventiladôr",
   "cooling.label.cpu": "CPU",
   "cooling.label.fan": "Ventilatôrs",
+  "cooling.label.curve": "Curve",
   "cooling.label.gpu": "GPU",
   "cooling.panel.next": "Profîl ventilatôr sucessîf",
   "cooling.panel.prev": "Profîl ventilatôr precedent",
@@ -1519,6 +1520,8 @@
   "lighting.controls.wave": "Onde",
   "lighting.controls.wedges": "Spichis",
   "lighting.controls.wormhole": "Tunel Spazitemporâl",
+  "lighting.devices.activeCount.one": "{count} dispositîf impiât",
+  "lighting.devices.activeCount.other": "{count} dispositîfs impiâts",
   "lighting.devices.brightness": "Luminositât",
   "lighting.devices.controlled": "Controlât",
   "lighting.devices.detectionFailed": "Rilevât ma no controlabil",
@@ -1723,6 +1726,7 @@
   "lighting.musicReactive": "Reative ae musiche",
   "lighting.off.message": "La iluminazion e je distudade",
   "lighting.panel.next": "Indenant",
+  "lighting.pane.preview": "Anteprime",
   "lighting.panel.prev": "Precedent",
   "lighting.panel.screenActive": "Il specli al è atîf",
   "lighting.panel.selectMode": "Selezione une modalitât par tacâ la iluminazion",
@@ -1735,7 +1739,7 @@
   "lighting.renderGpu.label": "GPU di rendering",
   "lighting.resume": "Continue",
   "lighting.rightPane.devices": "Dispositîfs",
-  "lighting.rightPane.effect": "Efiet",
+  "lighting.rightPane.effect": "Editor dai efiets",
   "lighting.rightPane.effectAnimateHint": "Sielç une animazion chi sot par scomençâ a regolâle achì.",
   "lighting.rightPane.effectEmpty": "Cheste modalitât no à controi pai efiets.",
   "lighting.rightPane.label": "Panel de iluminazion",
@@ -3340,5 +3344,6 @@
   "devices.streamdeck.import.reason.media": "Chest control multimedial nol è supuartât",
   "devices.streamdeck.import.reason.multiStep": "Chest passaç di azion multiple nol è supuartât",
   "devices.streamdeck.import.reason.encoder": "Lis azions di rotele no son supuartadis",
-  "devices.streamdeck.import.reason.pageLimit": "Salte: al supere il numar massim di pagjinis"
+  "devices.streamdeck.import.reason.pageLimit": "Salte: al supere il numar massim di pagjinis",
+  "cooling.label.curveEditor": "Editor des curvis"
 }

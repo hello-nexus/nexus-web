@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Sun, SunDim } from 'lucide-react';
 import { fetchGlobalBrightness, setGlobalBrightness } from '../../../../api/lighting';
 import { Slider } from '../../../../components/common/Slider/Slider';
-import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { useThrottle } from '../../../../hooks/cadence';
 import { useTopicCallback } from '../../../../hooks/useMultiplexSocket';
 import { useTranslation } from '../../../../lib/i18n';
@@ -15,8 +13,8 @@ import styles from '../LightingPage.module.scss';
  * brighter than master. Stored 0..1 on the service side, surfaced
  * 0..100% in the UI.
  *
- * Layout: [sun icon] [bare track] [value]. Same Sun glyph the Displays
- * widget uses for monitor brightness.
+ * Renders as a labelled stacked slider so it reads as the first control in the
+ * effect dock's stack rather than a separate widget.
  */
 export function GlobalBrightnessSlider({ serviceOnline }: { serviceOnline: boolean }) {
   const { t } = useTranslation();
@@ -67,30 +65,21 @@ export function GlobalBrightnessSlider({ serviceOnline }: { serviceOnline: boole
     return <div className={styles.globalBrightnessSlider} aria-hidden />;
   }
 
-  const ariaLabel = t('lighting.devices.brightness');
-  // At zero, swap to SunDim (shorter rays) as an off indicator,
-  // mirroring how VolumeX marks muted audio.
-  const Icon = percent === 0 ? SunDim : Sun;
-
   return (
     <div className={styles.globalBrightnessSlider}>
-      <HoverTooltip body={t('lighting.settings.brightnessLabel')} side="top">
-        <Icon size={14} strokeWidth={1.7} className={styles.globalBrightnessIcon} aria-hidden />
-      </HoverTooltip>
       <Slider
+        // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
+        orientation="stacked"
+        editable
+        trackFill
+        label={t('lighting.settings.brightnessLabel')}
         value={percent}
         min={0}
         max={100}
         step={1}
-        // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-        orientation="bare"
         onChange={handleChange}
         onCommit={handleCommit}
-        trackFill
-        ariaLabel={ariaLabel}
-        className={styles.globalBrightnessTrack}
       />
-      <span className={styles.globalBrightnessValue}>{percent}%</span>
     </div>
   );
 }

@@ -55,7 +55,6 @@ export const CurveSelector = memo(function CurveSelector({
 
   return (
     <div className={styles.curveSelector}>
-      <span className={styles.curveFieldHeader}>{t('cooling.sections.curves')}</span>
       <div className={styles.curveButtons} role="group" aria-label={t('cooling.sections.curves')}>
         {ordered.map(c => {
           const PresetIcon = presetIconFor(c.preset);

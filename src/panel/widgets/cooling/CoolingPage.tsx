@@ -36,9 +36,6 @@ import type { ServiceState } from '../../../hooks/useServiceState';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useTranslation } from '../../../lib/i18n';
 import { useUiSettings } from '../../../hooks/useUiSettings';
-import { usePageModeToggle } from '../../../app/PageChrome';
-import { AdvancedModeCta } from '../../../components/common/AdvancedModeCta/AdvancedModeCta';
-import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
 import { publishControlSync, subscribeControlSync } from '../../../lib/controlSync';
 import { emitRadialBloomFromElement } from '../../../lib/backgroundEffects';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
@@ -129,20 +126,8 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   const realtimeData = useCoolingRealtime(serviceOnline);
   const curveCalcs = useCoolingCurves(serviceOnline);
   const sensors = useSensors(serviceOnline);
-  const { settings, update: updateUi } = useUiSettings();
+  const { settings } = useUiSettings();
   const cpuTemp = resolveCpuTempSensor(sensors.cpu, settings.preferredCpuTempSensorId);
-
-  const simpleDashboard = settings.coolingDashboardMode === 'simple';
-  const toggleDashboardMode = useCallback(() => {
-    updateUi({ coolingDashboardMode: simpleDashboard ? 'advanced' : 'simple' });
-  }, [simpleDashboard, updateUi]);
-  // The label names the TARGET mode (what a click switches to), matching the
-  // in-page advanced-mode card.
-  usePageModeToggle({
-    label: t(simpleDashboard ? 'uiMode.advancedMode' : 'uiMode.simpleMode'),
-    title: t(simpleDashboard ? 'uiMode.switchToAdvanced' : 'uiMode.switchToSimple'),
-    onToggle: toggleDashboardMode,
-  });
 
   // The curve whose graph + editor the hero card shows; a row of buttons inside
   // the card selects it. Selecting also highlights the fans bound to it. Seeded
@@ -496,6 +481,17 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // is in Software so Nexus can actually drive frames into it. This auto-
   // switch matches how the hardware works - there's a single cooling mode
   // byte per hub, not per fan.
+  // Multi-select: a mode change on a selected card is applied to every selected
+  // fan, so a curve can be assigned to a group in one action.
+  const [selectedFanIds, setSelectedFanIds] = useState<Set<string>>(() => new Set());
+  const toggleFanSelected = useCallback((id: string) => {
+    setSelectedFanIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+
   const setFanMode = useCallback(async (fanId: string, value: string) => {
     const channel = channels.find(c => c.id === fanId);
     const deviceId = channel?.deviceId ?? null;
@@ -568,6 +564,36 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
       await assignCurve(fanId, targetCurveId);
     }
   }, [channels, fanStates, curves, hubModes, pushCurves, toggleSoftwareControl, assignCurve, exitOffToCustomIfNeeded]);
+
+  // A change on a card that is part of the selection applies to the whole
+  // selection; an unselected card still acts alone.
+  // Replace-or-extend selection from a card body click.
+  const selectFan = useCallback((id: string, additive: boolean) => {
+    setSelectedFanIds(prev => {
+      if (!additive) return prev.size === 1 && prev.has(id) ? new Set() : new Set([id]);
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+
+  // The curve the selection is wearing: shared across every selected fan, or
+  // null when they disagree - there is no single curve to highlight then.
+  const scopedCurveId = useMemo(() => {
+    if (selectedFanIds.size === 0) return undefined;
+    let common: string | null | undefined;
+    for (const id of selectedFanIds) {
+      const cid = fanStates[id]?.curveId ?? null;
+      if (common === undefined) common = cid;
+      else if (common !== cid) return null;
+    }
+    return common ?? null;
+  }, [fanStates, selectedFanIds]);
+
+  const applyFanMode = useCallback((fanId: string, value: string) => {
+    const ids = selectedFanIds.has(fanId) ? [...selectedFanIds] : [fanId];
+    for (const id of ids) void setFanMode(id, value);
+  }, [selectedFanIds, setFanMode]);
 
   // Create a curve and bind it to the fan in one shot so pushCurves sees both
   // the new curve AND the fan's assignment in the same write. Triggered from
@@ -764,95 +790,43 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   if (!serviceOnline) {
     return (
       <div className={styles.cooling}>
-        {!simpleDashboard && (
-          <ViewHeader
-            title={t('cooling.title')}
-            tabs={presetTabs}
-            activeTab={activePreset ?? undefined}
-            onTabChange={k => handlePresetChange(k)}
-            tabsDisabled
-          />
-        )}
+        <ViewHeader
+          title={t('cooling.title')}
+          tabs={presetTabs}
+          activeTab={activePreset ?? undefined}
+          onTabChange={k => handlePresetChange(k)}
+          tabsDisabled
+        />
         <ServiceRequired state={connectionState} skeleton={<CoolingSkeleton />} />
-      </div>
-    );
-  }
-
-  // Simple mode: large preset tiles plus the advanced-mode path. Custom is
-  // advanced-only (it means editing curves), so an active custom preset shows
-  // as a hint line instead of a fifth tile.
-  if (simpleDashboard) {
-    return (
-      <div className={styles.cooling}>
-        <div className={`${styles.simpleBody} pageBodyFill`}>
-          <div className={styles.simplePresets} role="group" aria-label={t('cooling.title')}>
-            {COOLING_PRESETS.filter(p => p.key !== 'custom').map(p => (
-              <IconLabelButton
-                key={p.key}
-                className={styles.simplePresetTile}
-                icon={<p.Icon size={48} />}
-                label={t(p.i18nKey)}
-                description={t(p.key === 'off' ? 'cooling.preset.off.banner' : `cooling.preset.${p.key}.desc`)}
-                active={activePreset === p.key}
-                onPress={() => { void handlePresetChange(p.key); }}
-              />
-            ))}
-          </div>
-          {activePreset === 'custom' && (
-            <p className={styles.simpleCustomNote}>{t('cooling.simple.customActive')}</p>
-          )}
-          <div className={styles.simpleFooter}>
-            <AdvancedModeCta
-              label={t('cooling.simple.advancedCta')}
-              onPress={() => updateUi({ coolingDashboardMode: 'advanced' })}
-            />
-          </div>
-        </div>
       </div>
     );
   }
 
   return (
     <div className={styles.cooling}>
-      <ViewHeader
-        title={t('cooling.title')}
-        tabs={presetTabs}
-        activeTab={activePreset ?? undefined}
-        onTabChange={(k, origin) => {
-          // Status-change bloom only on an actual preset switch, from the pressed tab.
-          if (origin && isCoolingPresetKey(k) && k !== activePreset) emitRadialBloomFromElement(origin, k === 'off');
-          void handlePresetChange(k);
-        }}
-      />
-
-      {/* Two columns: the curve block on the left, the fan sidebar (vertical
-          scroll) on the right. Capped at --page-max (pageBody) so the page
-          matches every other view's width, level with the header. */}
+      {/* Fan rail on the left, preset tabs + curve to its right, mirroring the
+          lighting page. The rail header shares grid row 1 with the tabs so both
+          columns start at the same line. Capped at --page-max (pageBody) so the
+          page matches every other view's width. */}
       <div className={`${styles.body} pageBody`}>
-        <div className={styles.curveCol}>
-        {selectedCurve ? (
-          <CurveCard
-            key={selectedCurve.id}
-            curve={selectedCurve}
-            allCurves={curves}
-            sources={sources}
-            onChange={saveCurveAndPush}
-            onDelete={() => deleteCurve(selectedCurve.id)}
-            onResetPreset={selectedCurve.preset ? () => handleResetPresetCurve(selectedCurve.preset!) : undefined}
-          >
-            <CurveSelector
-              curves={curves}
-              selectedCurveId={selectedCurveId}
-              curveFanCounts={curveFanCounts}
-              onSelect={setSelectedCurveId}
-              onAdd={() => { addCurve(); }}
-            />
-          </CurveCard>
-        ) : (
-          <p className={styles.curvesEmpty}>{t('cooling.curves.empty')}</p>
-        )}
+        <div className={styles.tabsCell}>
+          <ViewHeader
+            title={t('cooling.title')}
+            tabs={presetTabs}
+            activeTab={activePreset ?? undefined}
+            onTabChange={(k, origin) => {
+              // Status-change bloom only on an actual preset switch, from the pressed tab.
+              if (origin && isCoolingPresetKey(k) && k !== activePreset) emitRadialBloomFromElement(origin, k === 'off');
+              void handlePresetChange(k);
+            }}
+          />
         </div>
-
+        <div className={`${styles.paneHeader} ${styles.headerLeft}`}>
+          <span className={styles.paneTitle}>{t('cooling.label.fan')}</span>
+        </div>
+        <div className={`${styles.paneHeader} ${styles.headerRight}`}>
+          <span className={styles.paneTitle}>{t('cooling.label.curve')}</span>
+        </div>
         <aside className={styles.fanSidebar}>
           {calibrationResults && !calibrating && (
             <div className={styles.calibrationResults}>
@@ -915,13 +889,16 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
               const renderFanCard = (ch: FanChannel, drag: SortableRowArgs) => (
                 <FanCard key={ch.id} channel={ch} state={fanStates[ch.id]} curves={curves}
                   compact
+                  selected={selectedFanIds.has(ch.id)}
+                  onToggleSelect={toggleFanSelected}
+                  onSelect={additive => selectFan(ch.id, additive)}
                   calibrating={calibrating}
                   canCreateCurve={curves.length < MAX_CURVES}
                   highlighted={highlightedFanIds.has(ch.id) && !isFanDisconnected(ch)}
                   hubMode={ch.deviceId ? hubModes[ch.deviceId] : undefined}
                   hubSupportsFirmware={ch.deviceId?.startsWith('np50:') || ch.deviceId?.startsWith('qseries:')}
                   hubSupportsBios={!ch.deviceId?.startsWith('np50:') && !ch.deviceId?.startsWith('corsair:')}
-                  onSetMode={v => setFanMode(ch.id, v)}
+                  onSetMode={v => applyFanMode(ch.id, v)}
                   onCreateCurve={() => createCurveAndAssign(ch.id)}
                   onRename={handleRename}
                   onSpeedChange={handleSpeedChange}
@@ -1019,7 +996,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                           hubMode={ch.deviceId ? hubModes[ch.deviceId] : undefined}
                           hubSupportsFirmware={ch.deviceId?.startsWith('np50:') || ch.deviceId?.startsWith('qseries:')}
                           hubSupportsBios={!ch.deviceId?.startsWith('np50:') && !ch.deviceId?.startsWith('corsair:')}
-                          onSetMode={v => setFanMode(ch.id, v)}
+                          onSetMode={v => applyFanMode(ch.id, v)}
                           onCreateCurve={() => createCurveAndAssign(ch.id)}
                           onRename={handleRename}
                           onSpeedChange={handleSpeedChange}
@@ -1045,6 +1022,38 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
             </button>
           </div>
         </aside>
+        <div className={styles.curveCol}>
+          {/* Curve buttons are their own section under the "Curve" title; the
+              editor below is a separate section with its own heading. With
+              fans selected, the highlight follows what THEY are wearing, and
+              goes away entirely when their curves disagree. */}
+          <div className={styles.curvePickerSection}>
+            <CurveSelector
+              curves={curves}
+              selectedCurveId={scopedCurveId === undefined ? selectedCurveId : scopedCurveId}
+              curveFanCounts={curveFanCounts}
+              onSelect={setSelectedCurveId}
+              onAdd={() => { addCurve(); }}
+            />
+          </div>
+          <div className={styles.curveEditorHeader}>
+            <span className={styles.paneTitle}>{t('cooling.label.curveEditor')}</span>
+          </div>
+          {selectedCurve ? (
+            <CurveCard
+              key={selectedCurve.id}
+              curve={selectedCurve}
+              allCurves={curves}
+              sources={sources}
+              onChange={saveCurveAndPush}
+              onDelete={() => deleteCurve(selectedCurve.id)}
+              onResetPreset={selectedCurve.preset ? () => handleResetPresetCurve(selectedCurve.preset!) : undefined}
+            />
+          ) : (
+            <p className={styles.curvesEmpty}>{t('cooling.curves.empty')}</p>
+          )}
+        </div>
+
       </div>
       <ConfirmModal
         open={calConfirmOpen && !calibrating}

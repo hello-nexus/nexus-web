@@ -4,11 +4,6 @@ import * as lightingApi from '../../../api/lighting';
 import { UiSettingsProvider } from '../../../hooks/useUiSettings';
 import { LightingPage } from './LightingPage';
 
-// These tests exercise the advanced page; the fresh-install default is simple.
-function seedAdvancedDashboard() {
-  localStorage.setItem('nexus_settings', JSON.stringify({ general: { lightingDashboardMode: 'advanced', coolingDashboardMode: 'advanced' } }));
-}
-
 const setModeMock = vi.hoisted(() => vi.fn());
 const setRawSyncMock = vi.hoisted(() => vi.fn());
 const profileRef = vi.hoisted(() => ({ current: 'old' }));
@@ -123,9 +118,6 @@ vi.mock('./lighting/LedMapEditor', () => ({
   LedMapEditor: () => null,
 }));
 
-vi.mock('./lighting/RightPaneTabs', () => ({
-  RightPaneTabs: () => <div data-testid="right-pane-tabs" />,
-}));
 
 vi.mock('./lighting/EffectTab', () => ({
   EffectTab: () => <div data-testid="effect-tab" />,
@@ -157,7 +149,6 @@ describe('LightingPage profile switching', () => {
     profileRef.current = 'old';
     vi.clearAllMocks();
     localStorage.clear();
-    seedAdvancedDashboard();
   });
 
   it('replays the freshly loaded profile effect instead of stale rawSync', async () => {
@@ -211,23 +202,19 @@ describe('LightingPage preset toolbar placement', () => {
   beforeEach(() => {
     profileRef.current = 'old';
     vi.clearAllMocks();
-    // The page persists the active right-pane tab; without this the Effect-tab
-    // precondition depends on what an earlier test left behind.
     localStorage.clear();
-    seedAdvancedDashboard();
   });
 
-  // The preset carries the mode + effect selection, so its control sits at the
-  // top of the right pane, above the Devices | Effect selector.
-  it('renders the preset toolbar while the Effect tab is active', async () => {
+  // Layout presets carry device geometry, so the control heads the device rail
+  // rather than the effect dock it used to share with the device list.
+  it('renders the preset toolbar at the top of the device rail', async () => {
     // t() is unmocked here and echoes keys, so queries name the key.
-    const { findByLabelText, getByRole } = render(
+    const { findByLabelText } = render(
       <UiSettingsProvider>
         <LightingPage serviceOnline serviceState={{ cooling: null, lighting: null, panel: null }} activeProfileId="old" />
       </UiSettingsProvider>,
     );
 
-    expect(getByRole('radio', { name: 'lighting.rightPane.effect' }).getAttribute('aria-checked')).toBe('true');
     expect(await findByLabelText('lighting.layoutPresets.placeholder')).toBeTruthy();
   });
 });

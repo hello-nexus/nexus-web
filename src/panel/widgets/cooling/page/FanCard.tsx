@@ -1,5 +1,6 @@
 import { memo, useEffect, useRef, useState } from 'react';
-import { CircleSlash, Cpu, Fan, Gpu, Lock, Plus } from 'lucide-react';
+import { isMultiSelectModifier } from '../../../../lib/platform';
+import { Check, CircleSlash, Cpu, Fan, Gpu, Lock, Plus } from 'lucide-react';
 import { type FanChannel, type FanRole, isFanDisconnected } from '../../../../api/cooling';
 import { useUnitPrefs } from '../../../../hooks/useUiSettings';
 import { useTranslation } from '../../../../lib/i18n';
@@ -38,6 +39,7 @@ export type FanCardHubMode = 'software' | 'motherboard' | 'firmware';
 
 export const FanCard = memo(function FanCard({
   channel, state, curves, calibrating, compact, canCreateCurve = true, highlighted,
+  selected = false, onToggleSelect, onSelect,
   hubMode, hubSupportsFirmware,
   hubSupportsBios = true,
   nubRef, cardRef: cardRefProp, onWirePointerDown, onWireHover,
@@ -47,6 +49,13 @@ export const FanCard = memo(function FanCard({
   state: FanState | undefined;
   curves: CurveDef[];
   calibrating?: boolean;
+  /** Multi-select membership; a mode change on any selected card applies to all. */
+  selected?: boolean;
+  /** Body click. Receives whether the multi-select modifier was held, so the
+   *  caller owns additive vs replace without FanCard holding a Set. */
+  onSelect?: (additive: boolean) => void;
+  /** Omitted where the card is not selectable (no checkbox renders then). */
+  onToggleSelect?: (id: string) => void;
   /** Sidebar layout: 100% width, tighter padding. Used by the cooling page's right-side fan list. */
   compact?: boolean;
   /** When false, the mode dropdown hides the "Create curve" option (curve cap reached). */
@@ -254,11 +263,35 @@ export const FanCard = memo(function FanCard({
       style={drag?.style ?? {}}
       {...(drag?.attributes ?? {})}
       {...(drag?.listeners ?? {})}
-      className={`${styles.fanCard} ${calibrating ? styles.fanCardCalibrating : ''} ${dragClasses}`}
+      className={`${styles.fanCard} ${selected ? styles.fanCardSelected : ''} ${calibrating ? styles.fanCardCalibrating : ''} ${dragClasses}`}
+      onClick={onSelect ? e => {
+        // Controls inside the card own their own clicks; only bare card
+        // surface toggles selection. Matched via the same [data-no-dnd] marker
+        // the drag sensor honours - NOT [role="button"], which dnd-kit puts on
+        // the card root itself, so that guard swallowed every click.
+        if ((e.target as HTMLElement).closest('[data-no-dnd],button,input,select,textarea,a')) return;
+        onSelect(isMultiSelectModifier(e));
+      } : undefined}
       onMouseEnter={onWireHover ? () => onWireHover(channel.id) : undefined}
       onMouseLeave={onWireHover ? () => onWireHover(null) : undefined}
     >
       <div className={styles.fanCardHeader}>
+        {onToggleSelect && !isReadOnly && (
+          <span
+            className={`${styles.fanCheck} ${selected ? styles.fanCheckOn : ''}`}
+            role="checkbox"
+            aria-checked={selected}
+            aria-label={channel.name}
+            tabIndex={0}
+            data-no-dnd
+            onClick={e => { e.stopPropagation(); onToggleSelect(channel.id); }}
+            onKeyDown={e => {
+              if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onToggleSelect(channel.id); }
+            }}
+          >
+            {selected && <Check aria-hidden />}
+          </span>
+        )}
         {/* Fan icon opens the device-role picker (Generic fan / CPU / GPU) and
             reflects the current role; the lock badge/dim visual rides on it
             while the lock toggle itself lives in the mode dropdown. When this

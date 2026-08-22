@@ -5,12 +5,14 @@ import {
   type LightingDevice,
 } from '../../../../api/lighting';
 import { DeviceContextMenu, type DeviceMenuItem } from '../../../../components/common/DeviceCanvas/DeviceContextMenu';
-import { cardEnabledLedCount } from './zoneUtils';
+import { cardEnabledLedCount, IDENTIFY_MS } from './zoneUtils';
 import { useTranslation } from '../../../../lib/i18n';
 import { pluralKey } from '../../../../lib/pluralKey';
 import { isMultiSelectModifier } from '../../../../lib/platform';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { DeviceNotice } from './DeviceNotice';
+import { DeviceLedStrip, type LedPick } from './DeviceLedStrip';
+import { startIdentify } from '../../../../lib/identifyFlash';
 import { type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
 import styles from '../LightingPage.module.scss';
 
@@ -53,6 +55,9 @@ export function ZoneCard({
   device,
   displayName,
   selected,
+  selectable = true,
+  ledPick,
+  ledFullscreen,
   indent,
   onSelect,
   onTogglePower,
@@ -70,6 +75,14 @@ export function ZoneCard({
   /** Overrides the on-card name. Used to strip the parent prefix from child zones. */
   displayName?: string;
   selected: boolean;
+  /** False when the running mode reaches every device regardless: the checkbox
+   *  reads checked and locked instead of tracking the selection. */
+  selectable?: boolean;
+  /** This device's own Static selection; the LED strip renders it instead of
+   *  sampling the shared canvas. */
+  ledPick?: LedPick;
+  /** Static mode: the strip samples the whole canvas rather than the device's rect. */
+  ledFullscreen?: boolean;
   /** True when this card is a zone child rendered under a motherboard group header. */
   indent: boolean;
   /** Receives whether the multi-select modifier (Cmd/Ctrl) was held, so the
@@ -106,7 +119,11 @@ export function ZoneCard({
   const menuSeq = useRef(0);
   const openMenu = (x: number, y: number) => setMenuAt({ x, y, seq: ++menuSeq.current });
 
-  const identify = () => { identifyLightingDevice(device.id, 2000).catch(() => { /* silent */ }); };
+  const identify = () => {
+    // Blink the card's readout on the same clock as the hardware.
+    startIdentify(device.id, IDENTIFY_MS);
+    identifyLightingDevice(device.id, IDENTIFY_MS).catch(() => { /* silent */ });
+  };
 
   // Firmware-controlled and unavailable cards stay sort participants (ref +
   // style so neighbours shift around them) but are not themselves draggable -
@@ -208,6 +225,28 @@ export function ZoneCard({
         openMenu(e.clientX, e.clientY);
       } : undefined}
     >
+      {!unavailable && !toggleMode && (
+        <span
+          className={`${styles.deviceCheck} ${(selectable ? selected : true) ? styles.deviceCheckOn : ''} ${selectable ? '' : styles.deviceCheckLocked}`}
+          role="checkbox"
+          aria-checked={selectable ? selected : true}
+          aria-disabled={selectable ? undefined : true}
+          aria-label={displayName ?? device.name}
+          tabIndex={selectable ? 0 : -1}
+          data-no-dnd
+          onClick={e => {
+            e.stopPropagation();
+            if (selectable) onSelect(true);
+          }}
+          onKeyDown={e => {
+            if (!selectable) return;
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onSelect(true); }
+          }}
+        >
+          {(selectable ? selected : true) && <Check aria-hidden />}
+        </span>
+      )}
+      <div className={styles.deviceCardBody}>
       <div className={styles.deviceNameRow}>
         <span className={styles.deviceName}>{displayName ?? device.name}</span>
         {notice != null && !unavailable && <DeviceNotice notice={notice} />}
@@ -243,6 +282,11 @@ export function ZoneCard({
             {/* Active (enabled) LEDs, not the zone total. */}
             <span className={styles.deviceMetaCount}>{cardEnabledLedCount(device)}</span>
           </span>
+        )}
+        {/* A dark device has nothing to read out, and firmware lighting does not
+            come from our canvas, so the bar is absent rather than blank. */}
+        {!unavailable && !firmwareControlled && controlled && device.ledsOn && (
+          <DeviceLedStrip device={device} pick={ledPick} fullscreen={ledFullscreen} />
         )}
         {toggleable && (
           <span
@@ -287,6 +331,7 @@ export function ZoneCard({
             </HoverTooltip>
           </div>
         )}
+      </div>
       </div>
     </div>
   );

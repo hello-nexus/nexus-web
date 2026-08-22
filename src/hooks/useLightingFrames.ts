@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { lightingOutputUrl } from '../api/lighting';
+import { publishLedFrame, clearLedFrame } from '../lib/ledFrameStore';
 
 export interface LightingFrameState {
   deviceColors: Map<number, string[]>;
@@ -23,7 +24,7 @@ export function useLightingFrames(enabled = true): LightingFrameState {
     // Gated off (e.g. when connected via relay - the binary output stream is
     // too much bandwidth to forward). Stay on the empty state so consumers fall
     // back to a static preview.
-    if (!enabled) { setState(EMPTY); return undefined; }
+    if (!enabled) { setState(EMPTY); clearLedFrame(); return undefined; }
     let cancelled = false;
     let socket: WebSocket | null = null;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -55,8 +56,10 @@ export function useLightingFrames(enabled = true): LightingFrameState {
         l.canvasW = parsed.canvasW;
         l.canvasH = parsed.canvasH;
         l.frames++;
+        // Device cards paint from this outside React (see ledFrameStore).
+        publishLedFrame(parsed.canvasPixels, parsed.canvasW, parsed.canvasH);
       };
-      socket.onclose = () => { if (!cancelled) { setState(p => ({ ...p, connected: false })); if (rafRef.current !== null) { cancelAnimationFrame(rafRef.current); rafRef.current = null; } reconnectTimer = setTimeout(connect, 2000); } };
+      socket.onclose = () => { if (!cancelled) { setState(p => ({ ...p, connected: false })); clearLedFrame(); if (rafRef.current !== null) { cancelAnimationFrame(rafRef.current); rafRef.current = null; } reconnectTimer = setTimeout(connect, 2000); } };
       socket.onerror = () => { try { socket?.close(); } catch { /* socket already closed/torn down */ } };
     };
 
