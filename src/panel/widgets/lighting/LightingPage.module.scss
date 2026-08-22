@@ -917,6 +917,10 @@
   background: var(--gauge-track);
   image-rendering: pixelated;
   align-self: center;
+  // Breathing room from the LED count on its left and the overflow menu on
+  // its right; the left gap is wider because the count sits right against it.
+  margin-left: 0.65rem;
+  margin-right: 0.35rem;
 }
 
 // Card body: the name and meta rows, stacked beside the selection checkbox.

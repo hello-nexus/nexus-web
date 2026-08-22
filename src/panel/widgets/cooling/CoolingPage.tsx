@@ -595,6 +595,15 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     for (const id of ids) void setFanMode(id, value);
   }, [selectedFanIds, setFanMode]);
 
+  // Clicking a curve always opens it in the editor. With fans selected it also
+  // assigns it to them, routed through setFanMode so a curve pick from the
+  // buttons behaves exactly like picking it in a card's mode dropdown (hub
+  // hand-off, BIOS release and all).
+  const handleCurveSelect = useCallback((curveId: string) => {
+    setSelectedCurveId(curveId);
+    for (const id of selectedFanIds) void setFanMode(id, curveId);
+  }, [selectedFanIds, setFanMode]);
+
   // Create a curve and bind it to the fan in one shot so pushCurves sees both
   // the new curve AND the fan's assignment in the same write. Triggered from
   // the fan-card mode dropdown's "+ Create curve" entry, which is only
@@ -1032,7 +1041,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
               curves={curves}
               selectedCurveId={scopedCurveId === undefined ? selectedCurveId : scopedCurveId}
               curveFanCounts={curveFanCounts}
-              onSelect={setSelectedCurveId}
+              onSelect={handleCurveSelect}
               onAdd={() => { addCurve(); }}
             />
           </div>

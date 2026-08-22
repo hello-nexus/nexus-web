@@ -754,6 +754,16 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       applyDeviceColor(key, [...selectedDeviceIds]);
       return;
     }
+    // Static assigns per device and nothing else. With no selection there is
+    // nothing to assign, so browsing the grid moves the editor and the preview
+    // only - restarting the shared effect here would repaint every device that
+    // has no assignment of its own, which is not what "nothing is selected"
+    // should mean.
+    if (effectiveMode === 'static') {
+      setActiveEffect(key);
+      staticEffectRef.current = key;
+      return;
+    }
     if (activeEffect !== key) {
       setActiveEffect(key);
       applyAnimate(key, stateFor(key), true);
@@ -769,7 +779,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       rawSync: selectMode === 'static' ? 'static' : key,
       effect: key,
     });
-  }, [activeEffect, applyAnimate, applyDeviceColor, perDeviceMode, selectedDeviceIds, stateFor]);
+  }, [activeEffect, applyAnimate, applyDeviceColor, effectiveMode, perDeviceMode, selectedDeviceIds, stateFor]);
 
   const effectPool = mode === 'static' ? STATIC_EFFECTS : ANIMATE_EFFECTS;
 
