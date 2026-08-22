@@ -406,8 +406,26 @@ export const setLightingDeviceBrightness = (id: string, brightness: number) =>
 
 // Per-device color for color-capable smart lights. Hue + saturation are floats
 // in 0..1; both are sent on every call so the service has the full HS pair.
-export const setLightingDeviceColor = (id: string, hue: number, saturation: number) =>
-  postService('/devices/lighting-devices/color', { id, hue, saturation });
+/**
+ * Assign one device its own Static look. The whole effect goes over the wire,
+ * not a flattened colour: the service renders it per device, so patterns
+ * (gradients, two-tone, spectrum) and the tint controls (hue shift, warmth,
+ * contrast) reach the hardware. Pass effect '' to clear the assignment.
+ */
+export const setLightingDeviceColor = (
+  id: string,
+  hue: number,
+  saturation: number,
+  look?: { effect: string; intensity: number; colorize: number; contrast: number; params?: Record<string, number> },
+) =>
+  postService('/devices/lighting-devices/color', {
+    id, hue, saturation,
+    effect: look?.effect ?? '',
+    intensity: look?.intensity ?? 1,
+    colorize: look?.colorize ?? 0,
+    contrast: look?.contrast ?? 1,
+    params: look?.params ?? {},
+  });
 
 // Master brightness cap (0..1). Caps every per-device value so the effective
 // brightness for an LED is `min(global, device / 100)` - never brighter.

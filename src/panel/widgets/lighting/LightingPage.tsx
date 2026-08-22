@@ -728,8 +728,17 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       return next;
     });
     if (!push) return;
+    // The whole look travels, so the service renders THIS effect for the device
+    // rather than approximating it with the swatch colour.
+    const look = {
+      effect: key,
+      intensity: st.intensity,
+      colorize: st.colorize,
+      contrast: st.contrast,
+      params: st.params,
+    };
     for (const id of ids) {
-      setLightingDeviceColor(id, hue, sat).catch(() => { /* best-effort */ });
+      setLightingDeviceColor(id, hue, sat, look).catch(() => { /* best-effort */ });
     }
   }, [setDevicePicks, stateOf]);
 
