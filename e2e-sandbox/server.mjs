@@ -14,10 +14,12 @@ const here = dirname(fileURLToPath(import.meta.url));
 const webRoot = join(here, '..');
 const harnessDir = join(here, 'harness');
 const sdkDist = join(webRoot, 'sdk', 'dist');
-// App widget.mjs bundles are built in place in the apps repo (apps/<id>/).
+// Widget bundles the sandbox serves. Committed here so the suite runs against a
+// bare nexus-web checkout; point NEXUS_APPS_DIR at an apps repo to serve its
+// apps/<id>/ builds instead.
 const appsDir = process.env.NEXUS_APPS_DIR
   ? join(process.env.NEXUS_APPS_DIR, 'apps')
-  : join(webRoot, '..', 'nexus-apps', 'apps');
+  : join(here, 'fixtures');
 const PORT = Number(process.env.SANDBOX_PORT ?? 4317);
 
 // Blessed composites (ui-worldclock/ui-clockface) render real native components
@@ -50,8 +52,17 @@ const i18nStub = {
   },
 };
 
-// 1. Build worker widget bundles (idempotent).
+// 1. Build the SDK runtime this server hands out at /sdk-runtime.mjs. The same
+// script also rebuilds an apps repo's bundles when one sits beside the checkout
+// and exits non-zero when none does, so its status says nothing about the
+// runtime - check for the artifact instead.
 spawnSync(process.execPath, [join(webRoot, 'sdk', 'build.mjs')], { stdio: 'inherit' });
+const sdkRuntimeBundle = join(sdkDist, 'runtime', 'sdk-runtime.mjs');
+if (!existsSync(sdkRuntimeBundle)) {
+  console.error(`\nSDK runtime missing at ${sdkRuntimeBundle}`);
+  console.error('Build it first:  cd sdk && npm ci && npm run build\n');
+  process.exit(1);
+}
 
 // 2. Build the host harness bundle (react@19 from the web app's node_modules).
 await build({
@@ -165,7 +176,7 @@ const server = createServer(async (req, res) => {
     if (path === '/sdk-runtime.mjs') {
       file = join(sdkDist, 'runtime', 'sdk-runtime.mjs');
     } else if (path.startsWith('/widgets/')) {
-      // /widgets/<id>/widget.mjs -> the app's in-place build in the apps repo.
+      // /widgets/<id>/widget.mjs -> the committed fixture (or NEXUS_APPS_DIR).
       file = join(appsDir, normalize(path.slice('/widgets/'.length)).replace(/^(\.\.[/\\])+/, ''));
     } else {
       file = join(harnessDir, normalize(path).replace(/^(\.\.[/\\])+/, ''));
