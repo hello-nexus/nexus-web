@@ -2844,6 +2844,7 @@
   "settings.windowsTray.description": "在 Windows 通知區域中顯示 Nexus 圖示，以便快速存取儀表板和設定",
   "settings.windowsTray.label": "在通知區域中顯示圖示",
   "sidebar.collapse": "收合側邊欄",
+  "sidebar.device.removeSimulated": "移除模擬裝置",
   "sidebar.devices.empty": "未連接任何裝置",
   "sidebar.expand": "展開側邊欄",
   "sidebar.pin": "釘選到側邊欄",

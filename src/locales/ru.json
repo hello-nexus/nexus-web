@@ -2858,6 +2858,7 @@
   "settings.windowsTray.description": "Отображать значок Nexus в трее Windows для быстрого доступа к панели управления и настройкам",
   "settings.windowsTray.label": "Показывать значок в трее",
   "sidebar.collapse": "Свернуть боковую панель",
+  "sidebar.device.removeSimulated": "Удалить симулированное устройство",
   "sidebar.devices.empty": "Нет подключённых устройств",
   "sidebar.expand": "Развернуть боковую панель",
   "sidebar.pin": "Закрепить на боковой панели",

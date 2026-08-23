@@ -2844,6 +2844,7 @@
   "settings.windowsTray.description": "在 Windows 托盘中显示 Nexus 图标，以便快速访问仪表板和设置",
   "settings.windowsTray.label": "在托盘中显示图标",
   "sidebar.collapse": "折叠侧边栏",
+  "sidebar.device.removeSimulated": "移除模拟设备",
   "sidebar.devices.empty": "未连接设备",
   "sidebar.expand": "展开侧边栏",
   "sidebar.pin": "固定到侧边栏",

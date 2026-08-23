@@ -2844,6 +2844,7 @@
   "settings.windowsTray.description": "Panoya ve ayarlara hizli erisim icin Windows tepsisinde Nexus simgesini gosterin",
   "settings.windowsTray.label": "Simgeyi tepside goster",
   "sidebar.collapse": "Kenar cubugunu daralt",
+  "sidebar.device.removeSimulated": "Simüle cihazı kaldır",
   "sidebar.devices.empty": "Bağlı cihaz yok",
   "sidebar.expand": "Kenar cubugunu genislet",
   "sidebar.pin": "Kenar çubuğuna sabitle",

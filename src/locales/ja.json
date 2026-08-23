@@ -2789,6 +2789,7 @@
   "settings.windowsTray.description": "WindowsトレイにNexusアイコンを表示し、ダッシュボードと設定にすばやくアクセスできます",
   "settings.windowsTray.label": "トレイにアイコンを表示",
   "sidebar.collapse": "サイドバーを折りたたむ",
+  "sidebar.device.removeSimulated": "シミュレートデバイスを削除",
   "sidebar.devices.empty": "接続されているデバイスはありません",
   "sidebar.expand": "サイドバーを展開",
   "sidebar.pin": "サイドバーにピン留め",

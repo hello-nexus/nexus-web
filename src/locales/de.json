@@ -2844,6 +2844,7 @@
   "settings.windowsTray.description": "Nexus-Symbol im Windows-Infobereich anzeigen für schnellen Zugriff auf Dashboard und Einstellungen",
   "settings.windowsTray.label": "Symbol im Infobereich anzeigen",
   "sidebar.collapse": "Seitenleiste einklappen",
+  "sidebar.device.removeSimulated": "Simuliertes Gerät entfernen",
   "sidebar.devices.empty": "Keine Geräte verbunden",
   "sidebar.expand": "Seitenleiste ausklappen",
   "sidebar.pin": "An Seitenleiste anheften",

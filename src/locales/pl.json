@@ -2858,6 +2858,7 @@
   "settings.windowsTray.description": "Wyswietlaj ikone Nexus w zasobniku Windows, aby szybko przejsc do panelu i ustawien",
   "settings.windowsTray.label": "Pokaz ikone w zasobniku",
   "sidebar.collapse": "Zwin pasek boczny",
+  "sidebar.device.removeSimulated": "Usuń symulowane urządzenie",
   "sidebar.devices.empty": "Brak podłączonych urządzeń",
   "sidebar.expand": "Rozwin pasek boczny",
   "sidebar.pin": "Przypnij do paska bocznego",

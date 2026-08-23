@@ -3083,6 +3083,7 @@
   "settings.windowsTray.description": "Display the Nexus icon in the Windows tray for quick access to the dashboard and settings",
   "settings.windowsTray.label": "Show icon in tray",
   "sidebar.collapse": "Collapse sidebar",
+  "sidebar.device.removeSimulated": "Remove simulated device",
   "sidebar.devices.empty": "No devices connected",
   "sidebar.expand": "Expand sidebar",
   "sidebar.pin": "Pin to sidebar",
