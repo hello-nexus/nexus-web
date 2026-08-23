@@ -1,0 +1,42 @@
+.widget {
+  padding: 0;
+  overflow: hidden;
+}
+
+.board {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  overflow: hidden;
+  // The board carries its own background, which is independent of the panel
+  // theme - a light board must stay light on a dark panel.
+  transition: background var(--ease-slow) ease;
+}
+
+.empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  color: var(--text-dim);
+  pointer-events: none;
+}
+
+.emptyIcon {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.emptyLabel {
+  font-size: var(--type-small);
+}
+
+// The board's background is its own setting, not the panel theme's, so the
+// empty hint has to pick a contrast against the board rather than inherit.
+.board[data-bg='light'] .empty {
+  color: rgb(0 0 0 / 45%);
+}

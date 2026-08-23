@@ -50,6 +50,7 @@ import { homeAssistantApp } from './home-assistant';
 import { diagnosticsApp } from './diagnostics';
 import { snakeApp } from './snake';
 import { blocksApp } from './blocks';
+import { whiteboardApp } from './whiteboard';
 
 // Single source of truth for app type -> manifest. "App" is the
 // conceptual unit (one per widget type); the manifest carries up to
@@ -84,6 +85,7 @@ export const APP_REGISTRY: Record<string, AppManifest> = {
   diagnostics: diagnosticsApp,
   snake:      snakeApp,
   blocks:     blocksApp,
+  whiteboard: whiteboardApp,
 };
 
 // Whether an app can appear on a given surface. The decision is

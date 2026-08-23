@@ -188,6 +188,7 @@ describe('appAvailableForSurface', () => {
       'cooling',
       'deck',
       'emoji',
+      'whiteboard',
     ];
     for (const type of expectedTouch) {
       const def = APP_REGISTRY[type];

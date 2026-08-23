@@ -1,0 +1,19 @@
+.host {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  // The pointer handlers own every gesture on the board; without this the
+  // browser's own pan/zoom claims the touch and no stroke is ever drawn.
+  touch-action: none;
+  overscroll-behavior: contain;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
