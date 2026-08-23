@@ -1,3 +1,5 @@
+@use './clockDate' as *;
+
 .container {
   display: flex;
   flex-direction: column;
@@ -11,9 +13,9 @@
   overflow: hidden;
 
   &.size-2x2  {
-    --dot-size: 4px;
-    --dot-gap: 1.9px;
-    --row-gap: 3.1px;
+    --dot-size: 5px;
+    --dot-gap: 2.4px;
+    --row-gap: 3.9px;
     padding: 7px 6px;
 
     .ampm {
@@ -21,16 +23,13 @@
       margin-left: 0;
       padding-bottom: 1px;
     }
-
-    .date {
-      margin-top: 4px;
-      font-size: 9px;
-    }
   }
 
   &.size-2x4  { --dot-size: 6px; --dot-gap: 3px; }
   &.size-4x2  { --dot-size: 8px; --dot-gap: 4px; }
-  &.size-4x4  { --dot-size: 7px; --dot-gap: 3.5px; }
+  &.size-4x4  { --dot-size: 11px; --dot-gap: 5.5px; }
+
+  @include clock-date-scale;
 }
 
 .fitBox {
@@ -46,7 +45,6 @@
   align-items: center;
   gap: var(--row-gap, calc(var(--dot-gap, 4px) * 2.5));
   width: max-content;
-  transform-origin: center;
 }
 
 .digit {
@@ -98,14 +96,26 @@
   flex: 0 0 auto;
 }
 
+// Column of time lines: one line horizontally, one per unit when stacked. It
+// carries the fit transform, so the individual rows stay untransformed.
+.lines {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--dot-gap, 4px) * 3);
+  width: max-content;
+  transform-origin: center;
+}
+
+// Stacked fits by height too, which needs the box to own the leftover column
+// space - without a definite height its clientHeight collapses to the content.
+.container.stacked .fitBox {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 .date {
-  margin-top: 6px;
-  font-size: var(--type-tiny);
-  font-weight: var(--weight-body);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text-dim);
-  text-align: center;
+  @include clock-date;
 }
 
 .accent {

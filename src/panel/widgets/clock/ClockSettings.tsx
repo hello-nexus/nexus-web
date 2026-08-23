@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  Aperture,
   Binary,
   ChevronDown,
   CircleDot,
@@ -13,6 +14,7 @@ import {
 import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
 import type { WidgetSettingsProps } from '../types';
 import { CLOCK_DESIGNS } from '../clock/designs';
+import { VERTICAL_LAYOUT_SIZES } from '../clock/designs/layout';
 import { SettingsRow, SettingsToggle, SettingsSection, SettingsSelect } from '../common/SettingsRow/SettingsRow';
 import { useTranslation } from '../../../lib/i18n';
 import { TimezonePicker } from './TimezonePicker';
@@ -28,6 +30,7 @@ const DESIGN_ICONS: Record<string, LucideIcon> = {
   led: ScanLine,
   dots: CircleDot,
   matrix: Binary,
+  abstract: Aperture,
 };
 
 export function ClockSettings({ widget, onUpdate }: WidgetSettingsProps) {
@@ -39,6 +42,13 @@ export function ClockSettings({ widget, onUpdate }: WidgetSettingsProps) {
   const showDate = ((widget.config?.showDate as boolean | undefined) ?? true);
   const showTimezone = ((widget.config?.showTimezone as boolean | undefined) ?? false);
   const useAccentColor = ((widget.config?.useAccentColor as boolean | undefined) ?? false);
+  const verticalLayout = widget.config?.layout === 'stacked';
+  const design = CLOCK_DESIGNS[currentDesign];
+  const sizeAllowsVertical = VERTICAL_LAYOUT_SIZES.includes(widget.size);
+  // Dimmed rather than hidden: the row stays where the user last saw it, and
+  // the description says which of the two reasons is blocking it.
+  const verticalDisabled = !design?.stackable || !sizeAllowsVertical;
+  const accentDisabled = !design?.supportsAccent;
   // safeTimeZone discards a stale invalid value (saved by an older build's
   // free-text field) so the trigger shows Auto instead of a broken string.
   const timezone = safeTimeZone(widget.config?.timezone as string | undefined) ?? null;
@@ -61,6 +71,10 @@ export function ClockSettings({ widget, onUpdate }: WidgetSettingsProps) {
 
   const setShowTimezone = (checked: boolean) => {
     onUpdate({ showTimezone: checked });
+  };
+
+  const setVerticalLayout = (checked: boolean) => {
+    onUpdate({ layout: checked ? 'stacked' : 'horizontal' });
   };
 
   const setUseAccentColor = (checked: boolean) => {
@@ -122,8 +136,21 @@ export function ClockSettings({ widget, onUpdate }: WidgetSettingsProps) {
           onChange={setShowTimezone}
         />
         <SettingsToggle
+          label={t('panel.widget.clock.settings.verticalLayout')}
+          description={verticalDisabled
+            ? t(design?.stackable
+              ? 'panel.widget.clock.settings.unavailableForSize'
+              : 'panel.widget.clock.settings.unavailableForDesign')
+            : undefined}
+          checked={verticalLayout && !verticalDisabled}
+          disabled={verticalDisabled}
+          onChange={setVerticalLayout}
+        />
+        <SettingsToggle
           label={t('panel.widget.clock.settings.useAccentColor')}
-          checked={useAccentColor}
+          description={accentDisabled ? t('panel.widget.clock.settings.unavailableForDesign') : undefined}
+          checked={useAccentColor && !accentDisabled}
+          disabled={accentDisabled}
           onChange={setUseAccentColor}
         />
       </SettingsSection>

@@ -1,3 +1,5 @@
+@use './clockDate' as *;
+
 .container {
   display: flex;
   flex-direction: column;
@@ -11,7 +13,9 @@
   &.size-2x2  { --seg-scale: 0.52; padding: 10px; }
   &.size-2x4  { --seg-scale: 0.65; }
   &.size-4x2  { --seg-scale: 0.85; }
-  &.size-4x4  { --seg-scale: 0.75; }
+  &.size-4x4  { --seg-scale: 1.15; }
+
+  @include clock-date-scale;
 }
 
 .fitBox {
@@ -27,7 +31,6 @@
   align-items: center;
   gap: calc(6px * var(--seg-scale, 0.85));
   width: max-content;
-  transform-origin: center;
 }
 
 // Individual digit container - 7 positioned segments
@@ -111,21 +114,33 @@
 }
 
 .ampm {
-  font-size: calc(14px * var(--seg-scale, 0.85));
+  font-size: calc(10px * var(--seg-scale, 0.85));
   font-weight: var(--weight-heading);
   color: var(--text-dim);
   margin-left: calc(4px * var(--seg-scale, 0.85));
   align-self: flex-end;
 }
 
+// Column of time lines: one line horizontally, one per unit when stacked. It
+// carries the fit transform, so the individual rows stay untransformed.
+.lines {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(10px * var(--seg-scale, 0.85));
+  width: max-content;
+  transform-origin: center;
+}
+
+// Stacked fits by height too, which needs the box to own the leftover column
+// space - without a definite height its clientHeight collapses to the content.
+.container.stacked .fitBox {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 .date {
-  margin-top: calc(6px * var(--seg-scale, 0.85));
-  font-size: calc(12px * var(--seg-scale, 0.85));
-  font-weight: var(--weight-body);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text-dim);
-  text-align: center;
+  @include clock-date;
 }
 
 .accent {

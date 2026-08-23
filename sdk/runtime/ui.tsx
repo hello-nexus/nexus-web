@@ -139,6 +139,9 @@ export interface ClockFaceProps {
   nowMs: number; design?: string; tz?: string;
   showSeconds?: boolean; showDate?: boolean; showTimezone?: boolean; hour12?: boolean;
   useAccentColor?: boolean; size?: string;
+  // 'stacked' puts each unit on its own line; ignored by a design that cannot
+  // split the time into lines (analog). Defaults to 'horizontal'.
+  layout?: 'horizontal' | 'stacked';
 }
 export interface ViewHeaderTab { key: string; label: string; disabled?: boolean; icon?: string }
 export interface ViewHeaderProps {

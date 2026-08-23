@@ -1,0 +1,20 @@
+// The date line reads the same on every design at a given tile size: it is a
+// caption about the tile, not part of the face, so it must not ride each
+// design's own type scale. Sizes match the Digital face, the reference, at the
+// panel's 16px base.
+@mixin clock-date-scale {
+  &.size-2x2 { --clock-date-size: 14px; }
+  &.size-2x4 { --clock-date-size: 19px; }
+  &.size-4x2 { --clock-date-size: 22px; }
+  &.size-4x4 { --clock-date-size: 20px; }
+}
+
+@mixin clock-date {
+  margin-top: 0.55em;
+  font-size: var(--clock-date-size, 14px);
+  font-weight: var(--weight-body);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  text-align: center;
+}

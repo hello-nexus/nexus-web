@@ -1,3 +1,5 @@
+@use './clockDate' as *;
+
 .container {
   display: flex;
   flex-direction: column;
@@ -12,6 +14,8 @@
   &.size-2x4  { padding: 18px; }
   &.size-4x2  { padding: 16px; }
   &.size-4x4  { padding: 20px; }
+
+  @include clock-date-scale;
 }
 
 .face {
@@ -65,13 +69,7 @@
 }
 
 .date {
-  margin-top: 4px;
-  font-size: 0.7em;
-  font-weight: var(--weight-body);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text-dim);
-  text-align: center;
+  @include clock-date;
   flex-shrink: 0;
 }
 
