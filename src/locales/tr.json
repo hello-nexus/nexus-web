@@ -3417,8 +3417,6 @@
   "cooling.label.curveEditor": "Eğri düzenleyici",
   "lighting.effectDock.collapse": "Efekt duzenleyiciyi daralt",
   "lighting.effectDock.expand": "Efekt duzenleyiciyi genislet",
-  "lighting.pane.previewCount.one": "{count} cihaz",
-  "lighting.pane.previewCount.other": "{count} cihaz",
   "lighting.devices.discovery.off": "Aydınlatma açıldığında daha fazla cihaz algılanabilir",
   "lighting.devices.discovery.detecting": "Cihazlar algılanıyor...",
   "lighting.pane.offHint": "Etkinleştirmek için bir aydınlatma modu seçin",

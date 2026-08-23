@@ -1939,8 +1939,6 @@
   "lighting.pane.offHint": "Select a lighting mode to activate",
   "lighting.pane.pickDevices": "Select one or more devices to choose a color",
   "lighting.pane.preview": "Preview",
-  "lighting.pane.previewCount.one": "{count} device",
-  "lighting.pane.previewCount.other": "{count} devices",
   "lighting.pane.selectedCount.one": "{count} device selected",
   "lighting.pane.selectedCount.other": "{count} devices selected",
   "lighting.pane.selectedNone": "No devices selected",

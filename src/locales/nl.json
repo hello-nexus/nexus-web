@@ -3417,8 +3417,6 @@
   "cooling.label.curveEditor": "Curve-editor",
   "lighting.effectDock.collapse": "Effect-editor inklappen",
   "lighting.effectDock.expand": "Effect-editor uitklappen",
-  "lighting.pane.previewCount.one": "{count} apparaat",
-  "lighting.pane.previewCount.other": "{count} apparaten",
   "lighting.devices.discovery.off": "Er worden mogelijk meer apparaten gevonden zodra de verlichting aan staat",
   "lighting.devices.discovery.detecting": "Apparaten detecteren...",
   "lighting.pane.offHint": "Kies een verlichtingsmodus om te activeren",

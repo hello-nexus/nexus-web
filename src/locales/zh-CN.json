@@ -3417,8 +3417,6 @@
   "cooling.label.curveEditor": "曲线编辑器",
   "lighting.effectDock.collapse": "折叠效果编辑器",
   "lighting.effectDock.expand": "展开效果编辑器",
-  "lighting.pane.previewCount.one": "{count} 个设备",
-  "lighting.pane.previewCount.other": "{count} 个设备",
   "lighting.devices.discovery.off": "开启灯光后可能会检测到更多设备",
   "lighting.devices.discovery.detecting": "正在检测设备...",
   "lighting.pane.offHint": "选择一种灯光模式以启用",

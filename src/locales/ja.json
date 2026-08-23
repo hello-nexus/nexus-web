@@ -3417,8 +3417,6 @@
   "cooling.label.curveEditor": "カーブエディター",
   "lighting.effectDock.collapse": "エフェクトエディターを折りたたむ",
   "lighting.effectDock.expand": "エフェクトエディターを展開",
-  "lighting.pane.previewCount.one": "{count} 台",
-  "lighting.pane.previewCount.other": "{count} 台",
   "lighting.devices.discovery.off": "ライティングをオンにすると、さらにデバイスが検出される場合があります",
   "lighting.devices.discovery.detecting": "デバイスを検出しています...",
   "lighting.pane.offHint": "有効にするライティングモードを選択してください",
