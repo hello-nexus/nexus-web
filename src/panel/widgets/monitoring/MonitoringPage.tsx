@@ -17,7 +17,6 @@ import { localizeNumbers } from '../../../lib/units';
 import { fetchFanChannels, type FanRole } from '../../../api/cooling';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { Badge } from '../../../components/common/Badge/Badge';
-import { Button } from '../../../components/common/Button/Button';
 import { LiveFollowControl } from '../../../components/common/LiveFollowControl/LiveFollowControl';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { MonitoringSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
@@ -486,11 +485,6 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
         tabs={tabs}
         activeTab={tab}
         onTabChange={onTabChange}
-        tabActions={showPrivacy ? (
-          <Button size="sm" tone="neutral" icon={<History size={14} aria-hidden />} onClick={() => setPrivacyHistoryOpen(true)}>
-            {t('monitoring.privacy.history.title')}
-          </Button>
-        ) : undefined}
       />
       <div className={`${styles.tabContent} pageBodyFill`}>
         {tab === 'detailed' ? (
@@ -508,6 +502,18 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
                   )}
                   {history.mocked && <Badge label={t('monitoring.history.mocked')} color="var(--warn)" />}
                   <div className={styles.headerControls}>
+                    {showPrivacy && (
+                      <HoverTooltip body={t('monitoring.privacy.history.title')} side="bottom">
+                        <button
+                          type="button"
+                          className={styles.eventsToggle}
+                          aria-label={t('monitoring.privacy.history.title')}
+                          onClick={() => setPrivacyHistoryOpen(true)}
+                        >
+                          <History size={14} aria-hidden />
+                        </button>
+                      </HoverTooltip>
+                    )}
                     <HoverTooltip
                       body={eventsEnabled ? t('monitoring.events.hideAll') : t('monitoring.events.showAll')}
                       side="bottom"

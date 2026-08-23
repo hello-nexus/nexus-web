@@ -1,4 +1,4 @@
-import { render, waitFor } from '@testing-library/react';
+import { fireEvent, render, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as lightingApi from '../../../api/lighting';
 import { UiSettingsProvider } from '../../../hooks/useUiSettings';
@@ -7,6 +7,8 @@ import { LightingPage } from './LightingPage';
 const setModeMock = vi.hoisted(() => vi.fn());
 const setRawSyncMock = vi.hoisted(() => vi.fn());
 const profileRef = vi.hoisted(() => ({ current: 'old' }));
+const devicesRef = vi.hoisted(() => ({ current: [] as unknown[] }));
+const canvasDeviceIds = vi.hoisted(() => ({ current: [] as string[] }));
 
 vi.mock('../../../hooks/useLightingSync', async (importOriginal) => ({
   // normalizeSync is the shared sync-string classifier; keep the real one so
@@ -58,7 +60,7 @@ vi.mock('../../../api/lighting', async importOriginal => {
     fetchMusicReactive: vi.fn(() => Promise.resolve({ enabled: false })),
     fetchScreenEffect: vi.fn(() => Promise.resolve({ hue: 0, colorize: 0, saturation: 1, contrast: 1 })),
     fetchMediaEffect: vi.fn(() => Promise.resolve({ hue: 0, colorize: 0, saturation: 1, contrast: 1 })),
-    fetchLightingDevices: vi.fn(() => Promise.resolve({ isInit: true, devices: [] })),
+    fetchLightingDevices: vi.fn(() => Promise.resolve({ isInit: true, devices: devicesRef.current })),
     fetchLedMap: vi.fn(() => Promise.resolve(null)),
     fetchAvailableMappings: vi.fn(() => Promise.resolve(null)),
     saveAnimateTemplates: vi.fn(() => Promise.resolve(null)),
@@ -95,7 +97,10 @@ vi.mock('../../../components/views/PageSkeleton/PageSkeleton', () => ({
 }));
 
 vi.mock('../../../components/common/DeviceCanvas/DeviceCanvas', () => ({
-  DeviceCanvas: () => <div data-testid="device-canvas" />,
+  DeviceCanvas: ({ devices }: { devices: { id: string }[] }) => {
+    canvasDeviceIds.current = devices.map(d => d.id);
+    return <div data-testid="device-canvas" />;
+  },
 }));
 
 vi.mock('./lighting/AnimateGrid', () => ({
@@ -216,5 +221,56 @@ describe('LightingPage preset toolbar placement', () => {
     );
 
     expect(await findByLabelText('lighting.layoutPresets.placeholder')).toBeTruthy();
+  });
+});
+
+function makeDevice(id: string, name: string) {
+  return {
+    id,
+    name,
+    ledsOn: true,
+    ledCount: 8,
+    canvasX: 0,
+    canvasY: 0,
+    canvasW: 10,
+    canvasH: 10,
+    canvasRotation: 0,
+  };
+}
+
+// Animate (like media and mirror) drives every device, so the cards lock their
+// checkmark on - the selection still varies and is what the canvas draws.
+describe('LightingPage selection in a drive-everything mode', () => {
+  beforeEach(() => {
+    profileRef.current = 'old';
+    devicesRef.current = [makeDevice('dev-a', 'Device A'), makeDevice('dev-b', 'Device B')];
+    canvasDeviceIds.current = [];
+    vi.clearAllMocks();
+    localStorage.clear();
+  });
+
+  it('offers select all/none and draws only the selected devices on the canvas', async () => {
+    const { findByLabelText } = render(
+      <UiSettingsProvider>
+        <LightingPage serviceOnline serviceState={{ cooling: null, lighting: null, panel: null }} activeProfileId="old" />
+      </UiSettingsProvider>,
+    );
+
+    // Seeded selection is everything, so the canvas carries both devices and
+    // only "select none" has anything left to do.
+    const selectAll = await findByLabelText('lighting.ledMap.selectAll');
+    const selectNone = await findByLabelText('lightingOnboarding.selectNone');
+    await waitFor(() => expect(canvasDeviceIds.current).toEqual(['dev-a', 'dev-b']));
+    expect(selectAll).toBeDisabled();
+    expect(selectNone).not.toBeDisabled();
+
+    fireEvent.click(selectNone);
+
+    await waitFor(() => expect(canvasDeviceIds.current).toEqual([]));
+    expect(await findByLabelText('lighting.ledMap.selectAll')).not.toBeDisabled();
+
+    fireEvent.click(await findByLabelText('lighting.ledMap.selectAll'));
+
+    await waitFor(() => expect(canvasDeviceIds.current).toEqual(['dev-a', 'dev-b']));
   });
 });

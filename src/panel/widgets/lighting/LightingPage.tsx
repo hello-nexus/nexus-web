@@ -1453,9 +1453,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     });
 
   const shaderMode = effectiveMode === 'animate' || effectiveMode === 'static';
-  // Static and Off assign per device, so the preview stands for the selection;
-  // every other mode drives every device it can reach.
-  const previewDeviceCount = perDeviceMode ? selectedDeviceIds.size : selectableIds.length;
+  // The preview stands for the selection in every mode: the modes that drive
+  // every device still only draw the ones the selection highlights.
+  const previewDeviceCount = selectedDeviceIds.size;
   // Per-device modes count a selection; the rest drive everything, so only the
   // former can honestly say "selected".
   const previewBadgeLabel = perDeviceMode
@@ -1477,6 +1477,13 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // The canvas previews the shared effect canvas, which Static does not sample
   // and Off has nothing to show on. Game Sync substitutes its own activity block.
   const showCanvas = effectiveMode !== 'static' && effectiveMode !== 'none' && effectiveMode !== 'gamesync';
+  // The modes that reach every device lock their cards' checkmark on, so the
+  // highlight is the only per-device signal left - the canvas draws exactly
+  // the devices it highlights.
+  const canvasDevices = useMemo(
+    () => visibleDevices.filter(d => selectedDeviceIds.has(d.id)),
+    [visibleDevices, selectedDeviceIds],
+  );
 
   if (!serviceOnline) {
     return (
@@ -1540,7 +1547,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                   size="sm"
                   icon={<CheckCheck />}
                   aria-label={t('lighting.ledMap.selectAll')}
-                  disabled={!perDeviceMode || allSelected}
+                  disabled={allSelected}
                   onClick={() => handleSetSelection(new Set(selectableIds), selectableIds[0] ?? null)}
                 />
               </HoverTooltip>
@@ -1550,7 +1557,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                   size="sm"
                   icon={<Ban />}
                   aria-label={t('lightingOnboarding.selectNone')}
-                  disabled={!perDeviceMode || selectedDeviceIds.size === 0}
+                  disabled={selectedDeviceIds.size === 0}
                   onClick={() => handleSetSelection(new Set(), null)}
                 />
               </HoverTooltip>
@@ -1642,7 +1649,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             <>
               {showCanvas && (
               <div className={styles.canvasArea}>
-                <DeviceCanvas devices={visibleDevices} canvasPixels={frames.canvasPixels} canvasW={frames.canvasW} canvasH={frames.canvasH} selectedIds={selectedDeviceIds} primaryDeviceId={primaryDeviceId} onSelectDevice={handleSelectDevice} onSetSelection={handleSetSelection} shaderEffect={shaderMode ? activeEffect : null} shaderState={shaderMode ? previewState : null} shaderPaused={paused} audioRef={audioRef} hiddenFrameIds={hiddenFrameIds} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={handleOpenSettings} onDragActiveChange={handleDragActiveChange} onBeforeLayoutSave={handleBeforeLayoutSave} onLayoutCommit={handleLayoutCommit} onSetDevicesPower={handleSetDevicesPower} gpuAvailable={serviceState.lighting?.gpuAvailable ?? true} />
+                <DeviceCanvas devices={canvasDevices} canvasPixels={frames.canvasPixels} canvasW={frames.canvasW} canvasH={frames.canvasH} selectedIds={selectedDeviceIds} primaryDeviceId={primaryDeviceId} onSelectDevice={handleSelectDevice} onSetSelection={handleSetSelection} shaderEffect={shaderMode ? activeEffect : null} shaderState={shaderMode ? previewState : null} shaderPaused={paused} audioRef={audioRef} hiddenFrameIds={hiddenFrameIds} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={handleOpenSettings} onDragActiveChange={handleDragActiveChange} onBeforeLayoutSave={handleBeforeLayoutSave} onLayoutCommit={handleLayoutCommit} onSetDevicesPower={handleSetDevicesPower} gpuAvailable={serviceState.lighting?.gpuAvailable ?? true} />
                 {effectiveMode === 'gif' && <MediaCanvasNotice />}
                 {shaderMode && activeEffect && currentState && (
                   <>
