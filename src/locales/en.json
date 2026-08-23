@@ -611,6 +611,7 @@
   "devices.q60.rebootPanel.error": "Couldn't restart the panel",
   "devices.q60.rebootPanel.label": "Restart panel",
   "devices.q60.rebootPanel.started": "Panel restarting",
+  "devices.q60.rebootPanel.timeout": "Panel did not come back; check its connection",
   "devices.q60.saveAnimation": "Save animation",
   "devices.q60.saveCurve": "Save curves",
   "devices.q60.turbo": "Turbo",

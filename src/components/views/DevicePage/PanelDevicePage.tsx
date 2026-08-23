@@ -112,6 +112,11 @@ interface ToggleResponse { toggle: boolean }
 const Y70_ORIENTATIONS = ['Landscape', 'Portrait', 'LandscapeFlipped', 'PortraitFlipped'] as const;
 type Y70Orientation = (typeof Y70_ORIENTATIONS)[number];
 
+// Bounds the wait for a rebooted panel to re-register. The cold qshell
+// bootstrap runs ~2 min over USB-FFS; this only fires when the panel is not
+// coming back at all (a wedged USB gadget needs a physical replug).
+const REBOOT_COMPLETION_TIMEOUT_MS = 300_000;
+
 // Q60/Q80 mount portrait or portrait-flipped only; no landscape orientation exists.
 const QSERIES_ORIENTATIONS: readonly Y70Orientation[] = ['Portrait', 'PortraitFlipped'];
 
@@ -238,6 +243,9 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const [resettingHardware, setResettingHardware] = useState(false);
   const [rebootPanelConfirmOpen, setRebootPanelConfirmOpen] = useState(false);
   const [rebootingPanel, setRebootingPanel] = useState(false);
+  // Epoch of the in-flight reboot request; null when none. Compared against the
+  // record's lastSeenAt to decide the panel is back.
+  const rebootRequestedAtRef = useRef<number | null>(null);
   const [factoryResetConfirmOpen, setFactoryResetConfirmOpen] = useState(false);
   const [factoryResettingPanel, setFactoryResettingPanel] = useState(false);
   // Bumped after a hardware reset so the settings-load effect AND the Xeneon
@@ -647,10 +655,20 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   useTopicCallback('panel/device', true, (raw) => {
     const frame = raw as { deviceId?: string } | null;
     if (!editingDeviceId || frame?.deviceId !== editingDeviceId) return;
-    // The panel only reaches this topic once it is up again after a reboot.
-    // Cleared ahead of the pending-write guard below: the panel having
-    // contacted us is what ends the reboot, whether or not a write is settling.
-    setRebootingPanel(false);
+    // The frame carries no payload and fires for this client's own writes too,
+    // so its arrival cannot end a reboot on its own. lastSeenAt advancing past
+    // the request is what proves the panel came back; checked ahead of the
+    // pending-write guard because it reads the record without applying it.
+    if (rebootRequestedAtRef.current !== null) {
+      void fetchPanelDevice(editingDeviceId).then(record => {
+        const since = rebootRequestedAtRef.current;
+        if (since === null || !record) return;
+        if ((record.lastSeenAt ?? 0) > since) {
+          rebootRequestedAtRef.current = null;
+          setRebootingPanel(false);
+        }
+      }).catch(() => {});
+    }
     // A write of ours is in flight: defer rather than apply, or the echo
     // reverts a controlled field mid-edit. The write's settle runs it.
     if (pendingWritesRef.current > 0) {
@@ -821,13 +839,28 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // is a rejected request (no panel, or an install holds the transport).
   const rebootPanel = useCallback(async () => {
     setRebootPanelConfirmOpen(false);
+    rebootRequestedAtRef.current = Date.now();
     setRebootingPanel(true);
     const ok = await rebootQSeriesPanel();
     pushToast({
       title: ok ? t('devices.q60.rebootPanel.started') : t('devices.q60.rebootPanel.error'),
     });
-    if (!ok) setRebootingPanel(false);
+    if (!ok) { rebootRequestedAtRef.current = null; setRebootingPanel(false); }
   }, [pushToast, t]);
+
+  // A panel whose USB gadget wedges never re-registers (recovery is a physical
+  // replug), so the completion signal above can never arrive. Release the
+  // control after a bound well past the ~2 min cold qshell bootstrap rather
+  // than leaving the row dead until the page remounts.
+  useEffect(() => {
+    if (!rebootingPanel) return;
+    const timer = window.setTimeout(() => {
+      rebootRequestedAtRef.current = null;
+      setRebootingPanel(false);
+      pushToast({ title: t('devices.q60.rebootPanel.timeout') });
+    }, REBOOT_COMPLETION_TIMEOUT_MS);
+    return () => window.clearTimeout(timer);
+  }, [rebootingPanel, pushToast, t]);
 
   const { status: flashStatus } = useFlashStatus(factoryResettingPanel);
   useEffect(() => {
@@ -886,8 +919,13 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const panelReachable = !!panelAppItem;
   const panelAppInstalled = !!panelAppItem && panelAppItem.currentVersion !== '';
   const fwGateReady = loaded && (!isQSeries || firmwareLoaded);
-  const showFwGate = isQSeries && !isSimulated && fwGateReady && panelReachable && !panelAppInstalled;
-  const showDisconnected = isQSeries && !isSimulated && fwGateReady && !panelReachable;
+  // Both operations take the panel off adb, and the factory reset spends a
+  // window with it back but qshell absent. Without this the page swaps the tab
+  // for the disconnected state or an "install the panel app" CTA mid-operation,
+  // hiding the progress and inviting a flash the flash gate would reject.
+  const panelOperationInFlight = rebootingPanel || factoryResettingPanel;
+  const showFwGate = isQSeries && !isSimulated && fwGateReady && panelReachable && !panelAppInstalled && !panelOperationInFlight;
+  const showDisconnected = isQSeries && !isSimulated && fwGateReady && !panelReachable && !panelOperationInFlight;
 
   return (
     <section className={styles.page}>

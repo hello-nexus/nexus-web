@@ -28,6 +28,10 @@ export function useFlashStatus(enabled: boolean) {
   useEffect(() => {
     mountedRef.current = true;
     if (!enabled) return;
+    // Drop the previous run's terminal status before polling: a caller that
+    // toggles `enabled` per operation would otherwise read the last run's
+    // done/failed on this first commit and treat the new run as finished.
+    setStatus(null);
     void refresh();
     const timer = window.setInterval(() => { void refresh(); }, 1500);
     return () => {

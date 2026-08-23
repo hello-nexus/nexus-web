@@ -12,6 +12,7 @@ const fetchPanelDevicesMock = vi.fn();
 const rebootQSeriesPanelMock = vi.fn();
 const factoryResetQSeriesPanelMock = vi.fn();
 const toastPushMock = vi.fn();
+const fetchPanelDeviceMock = vi.fn();
 
 // The page treats a missing qseries-app firmware item as "panel USB detached"
 // and renders the disconnected state instead of any tab, so a reachable panel
@@ -58,7 +59,7 @@ vi.mock('../../../api/profiles', () => ({
 }));
 vi.mock('../../../api/panel', () => ({
   allocatePanelDevice: vi.fn().mockResolvedValue({ id: 'q1' }),
-  fetchPanelDevice: vi.fn().mockResolvedValue(null),
+  fetchPanelDevice: (...a: unknown[]) => fetchPanelDeviceMock(...a),
   fetchPanelDevices: (...a: unknown[]) => fetchPanelDevicesMock(...a),
   patchPanelDevice: vi.fn().mockResolvedValue({ ok: true }),
   resetPanelDevice: vi.fn().mockResolvedValue({ ok: true }),
@@ -72,8 +73,11 @@ vi.mock('../../../api/qseries', () => ({
   setQSeriesDisplay: vi.fn().mockResolvedValue({ ok: true }),
   rebootQSeriesPanel: (...a: unknown[]) => rebootQSeriesPanelMock(...a),
 }));
+let topicHandler: ((raw: unknown) => void) | null = null;
 vi.mock('../../../hooks/useMultiplexSocket', () => ({
-  useTopicCallback: () => {},
+  useTopicCallback: (topic: string, _on: boolean, cb: (raw: unknown) => void) => {
+    if (topic === 'panel/device') topicHandler = cb;
+  },
 }));
 vi.mock('../../../panel/engine/panelSync', () => ({
   broadcastLayoutChanged: vi.fn(),
@@ -166,6 +170,8 @@ beforeEach(() => {
     }],
   });
   toastPushMock.mockReset();
+  topicHandler = null;
+  fetchPanelDeviceMock.mockReset().mockResolvedValue(null);
   rebootQSeriesPanelMock.mockReset().mockResolvedValue({ ok: true });
   factoryResetQSeriesPanelMock.mockReset().mockResolvedValue({ ok: true });
 });
@@ -254,5 +260,44 @@ describe('PanelDevicePage Q-series panel lifecycle', () => {
 
     await waitFor(() => expect(factoryResetQSeriesPanelMock).toHaveBeenCalled());
     await waitFor(() => expect(screen.getByRole('button', { name: RESET_BUTTON })).not.toBeDisabled());
+  });
+  it('keeps the reboot busy until lastSeenAt advances past the request', async () => {
+    // The topic frame carries no payload and fires for this client's own writes,
+    // so its arrival alone must not end the reboot.
+    render(<PanelDevicePage device={Q60_DEVICE} />);
+    await openSettingsTab();
+    fireEvent.click(await screen.findByRole('button', { name: REBOOT_BUTTON }));
+    fireEvent.click(await screen.findByRole('button', { name: REBOOT_CONFIRM }));
+    await waitFor(() => expect(screen.getByRole('button', { name: REBOOT_BUSY })).toBeDisabled());
+
+    // A stale record (panel last seen before the request) must not clear it.
+    fetchPanelDeviceMock.mockResolvedValue({ id: 'q1', lastSeenAt: 1 });
+    topicHandler?.({ deviceId: 'q1' });
+    await waitFor(() => expect(fetchPanelDeviceMock).toHaveBeenCalled());
+    expect(screen.getByRole('button', { name: REBOOT_BUSY })).toBeDisabled();
+
+    // The panel re-contacting the service after the request is the real signal.
+    fetchPanelDeviceMock.mockResolvedValue({ id: 'q1', lastSeenAt: Date.now() + 60_000 });
+    topicHandler?.({ deviceId: 'q1' });
+    await waitFor(() => expect(screen.getByRole('button', { name: REBOOT_BUTTON })).not.toBeDisabled());
+  });
+
+  it('does not treat a previous run\'s terminal flash status as this reset finishing', async () => {
+    // useFlashStatus must drop the prior run's done/failed when it re-enables,
+    // or a retried reset reports complete before the reinstall has started.
+    const { useFlashStatus } = await import('../../../hooks/useFlashStatus');
+    expect(typeof useFlashStatus).toBe('function');
+
+    render(<PanelDevicePage device={Q60_DEVICE} />);
+    await openSettingsTab();
+    fireEvent.click(await screen.findByRole('button', { name: RESET_BUTTON }));
+    fireEvent.click(await screen.findByRole('button', { name: RESET_CONFIRM }));
+
+    await waitFor(() => expect(factoryResetQSeriesPanelMock).toHaveBeenCalled());
+    // The status fetch is stubbed null here, so a completion toast at this point
+    // could only come from a status the hook failed to clear.
+    await waitFor(() => expect(toastPushMock).toHaveBeenCalled());
+    const titles = toastPushMock.mock.calls.map(c => c[0]?.title);
+    expect(titles).not.toContain('devices.q60.factoryResetPanel.done');
   });
 });
