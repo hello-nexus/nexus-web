@@ -2862,6 +2862,7 @@
   "settings.windowsTray.description": "Exibir o icone do Nexus na bandeja do Windows para acesso rapido ao painel e configuracoes",
   "settings.windowsTray.label": "Mostrar icone na bandeja",
   "sidebar.collapse": "Recolher barra lateral",
+  "sidebar.device.removeSimulated": "Remover dispositivo simulado",
   "sidebar.devices.empty": "Nenhum dispositivo conectado",
   "sidebar.expand": "Expandir barra lateral",
   "sidebar.pin": "Fixar na barra lateral",

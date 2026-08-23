@@ -146,6 +146,7 @@ npm test                 # vitest unit tests (single run)
 npm run test:watch       # vitest watch mode
 npm run test:e2e         # playwright (run `npx playwright install` once first)
 npm run test:e2e:ui      # playwright UI mode
+npm run test:e2e:sandbox # playwright, SDK sandbox only (needs `cd sdk && npm ci && npm run build` once)
 npm run audit:locales    # locale key sync check
 npm run audit:styles     # style audits (also: audit:css-chunks, audit:text-styles)
 ```

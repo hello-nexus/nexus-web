@@ -3089,6 +3089,7 @@
   "settings.windowsTray.description": "Toon het Nexus-pictogram in het Windows-systeemvak voor snelle toegang tot het dashboard en de instellingen",
   "settings.windowsTray.label": "Pictogram in systeemvak tonen",
   "sidebar.collapse": "Zijbalk inklappen",
+  "sidebar.device.removeSimulated": "Gesimuleerd apparaat verwijderen",
   "sidebar.devices.empty": "Geen apparaten verbonden",
   "sidebar.expand": "Zijbalk uitklappen",
   "sidebar.pin": "Vastmaken aan zijbalk",

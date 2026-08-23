@@ -2862,6 +2862,7 @@
   "settings.windowsTray.description": "대시보드와 설정에 빠르게 접근할 수 있도록 Windows 트레이에 Nexus 아이콘을 표시합니다",
   "settings.windowsTray.label": "트레이에 아이콘 표시",
   "sidebar.collapse": "사이드바 접기",
+  "sidebar.device.removeSimulated": "시뮬레이션 장치 제거",
   "sidebar.devices.empty": "연결된 장치 없음",
   "sidebar.expand": "사이드바 펼치기",
   "sidebar.pin": "사이드바에 고정",

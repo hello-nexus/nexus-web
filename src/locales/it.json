@@ -2862,6 +2862,7 @@
   "settings.windowsTray.description": "Mostra l'icona Nexus nell'area di notifica di Windows per accedere rapidamente al pannello e alle impostazioni",
   "settings.windowsTray.label": "Mostra icona nell'area di notifica",
   "sidebar.collapse": "Comprimi barra laterale",
+  "sidebar.device.removeSimulated": "Rimuovi dispositivo simulato",
   "sidebar.devices.empty": "Nessun dispositivo connesso",
   "sidebar.expand": "Espandi barra laterale",
   "sidebar.pin": "Aggiungi alla barra laterale",

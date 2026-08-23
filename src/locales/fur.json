@@ -2911,6 +2911,7 @@
   "settings.windowsTray.description": "Mostre la icone di Nexus tal tray di Windows par un acès rapit al cruscot e aes impostazions",
   "settings.windowsTray.label": "Mostre la icone tal tray",
   "sidebar.collapse": "Strenç la sbare laterâl",
+  "sidebar.device.removeSimulated": "Gjavâ il dispositîf simulât",
   "sidebar.devices.empty": "Nissun dispositîf conetût",
   "sidebar.expand": "Slargje la sbare laterâl",
   "sidebar.pin": "Fisse te sbare laterâl",

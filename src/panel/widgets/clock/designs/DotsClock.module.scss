@@ -43,20 +43,23 @@
 .row {
   display: flex;
   align-items: center;
-  gap: var(--row-gap, calc(var(--dot-gap, 4px) * 2.5));
+  // no flex gap on Chromium 83 (Q60 WebView); margins carry the spacing
+  > *:not(:last-child) { margin-right: var(--row-gap, calc(var(--dot-gap, 4px) * 2.5)); }
   width: max-content;
 }
 
 .digit {
   display: flex;
   flex-direction: column;
-  gap: var(--dot-gap, 4px);
   flex: 0 0 auto;
+
+  > *:not(:last-child) { margin-bottom: var(--dot-gap, 4px); }
 }
 
 .dotRow {
   display: flex;
-  gap: var(--dot-gap, 4px);
+
+  > *:not(:last-child) { margin-right: var(--dot-gap, 4px); }
 }
 
 .dot {
@@ -81,8 +84,9 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: calc(var(--dot-gap, 4px) * 3);
   flex: 0 0 auto;
+
+  > *:not(:last-child) { margin-bottom: calc(var(--dot-gap, 4px) * 3); }
   // Match digit height (5 dots + 4 gaps)
   height: calc(var(--dot-size, 8px) * 5 + var(--dot-gap, 4px) * 4);
 }
@@ -102,8 +106,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: calc(var(--dot-gap, 4px) * 3);
   width: max-content;
+
+  > *:not(:last-child) { margin-bottom: calc(var(--dot-gap, 4px) * 3); }
   transform-origin: center;
 }
 
