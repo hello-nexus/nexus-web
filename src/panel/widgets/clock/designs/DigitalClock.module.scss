@@ -1,3 +1,5 @@
+@use './clockDate' as *;
+
 .container {
   display: flex;
   flex-direction: column;
@@ -15,6 +17,8 @@
   &.size-2x4  { font-size: 2.6em; padding: 12px 8px; }
   &.size-4x2  { font-size: 3em;   padding: 12px 8px; }
   &.size-4x4  { font-size: 2.8em; padding: 12px 8px; }
+
+  @include clock-date-scale;
 }
 
 // Full-width track the time scales within; clips the unscaled overflow before
@@ -67,12 +71,7 @@
 }
 
 .date {
-  margin-top: 0.25em;
-  font-size: 0.45em;
-  font-weight: var(--weight-body);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text-dim);
+  @include clock-date;
 }
 
 .accent .time {

@@ -1,3 +1,5 @@
+@use './clockDate' as *;
+
 .container {
   display: flex;
   flex-direction: column;
@@ -12,6 +14,8 @@
   &.size-2x4  { font-size: 2em; }
   &.size-4x2  { font-size: 3.3em; }
   &.size-4x4  { font-size: 3.1em; }
+
+  @include clock-date-scale;
 }
 
 .fitBox {
@@ -187,8 +191,8 @@
 // Offsets are in the badge's own em, hence the large-looking values.
 .ampm {
   position: absolute;
-  right: 0.5em;
-  bottom: 0.45em;
+  right: 0.26em;
+  bottom: 0.22em;
   font-size: 0.28em;
   font-weight: var(--weight-heading);
   letter-spacing: 0.06em;
@@ -198,13 +202,7 @@
 }
 
 .date {
-  margin-top: 0.34em;
-  font-size: 0.4em;
-  font-weight: var(--weight-body);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text-dim);
-  text-align: center;
+  @include clock-date;
 }
 
 .accent {

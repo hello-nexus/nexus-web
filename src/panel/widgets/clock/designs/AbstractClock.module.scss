@@ -1,3 +1,5 @@
+@use './clockDate' as *;
+
 .container {
   position: relative;
   height: 100%;
@@ -6,6 +8,8 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
+
+  @include clock-date-scale;
 }
 
 // Full-bleed accent sweep. The stops run bright to near-dark around the turn,
@@ -62,14 +66,11 @@
 }
 
 .date {
+  @include clock-date;
   position: relative;
   padding-bottom: 0.7em;
-  font-size: var(--type-mini);
-  font-weight: var(--weight-body);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  // Sits on the accent fill, where the dim text token has too little contrast.
   color: color-mix(in srgb, var(--panel-accent-text, #fff) 78%, transparent);
-  text-align: center;
 }
 
 .container.size-2x2 .date { padding-bottom: 0.5em; }

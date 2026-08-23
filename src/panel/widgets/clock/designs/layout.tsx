@@ -7,6 +7,10 @@ import styles from './layout.module.scss';
 // past its scss size to fill the frame; fit-to-box caps it at the tile.
 const STACK_MAX_SCALE = 2.4;
 
+// Tiles a vertical layout fits in. A 4x2 is too short for stacked lines - they
+// would scale down to less than the horizontal row they replaced.
+export const VERTICAL_LAYOUT_SIZES = ['2x2', '2x4', '4x4'];
+
 // The lines a design renders the time on. Horizontal is a single line with the
 // colons inline; stacked splits ON the colons, so they are consumed as the
 // separator and each unit (hour, minute, second) gets its own line.

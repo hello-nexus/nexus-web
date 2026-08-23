@@ -1,3 +1,5 @@
+@use './clockDate' as *;
+
 .container {
   display: flex;
   flex-direction: column;
@@ -12,6 +14,8 @@
   &.size-2x4  { font-size: 3em; }
   &.size-4x2  { font-size: 4.4em; }
   &.size-4x4  { font-size: 4.2em; }
+
+  @include clock-date-scale;
 }
 
 .fitBox {
@@ -100,13 +104,7 @@
 }
 
 .date {
-  margin-top: 0.2em;
-  font-size: 0.38em;
-  font-weight: var(--weight-body);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text-dim);
-  text-align: center;
+  @include clock-date;
 }
 
 .accent {

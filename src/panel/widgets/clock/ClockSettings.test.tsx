@@ -17,11 +17,11 @@ vi.mock('../../../components/common/Select/Select', () => ({
   ),
 }));
 
-function clockWidget(design = 'analog'): PanelWidget {
+function clockWidget(design = 'analog', size = '4x2'): PanelWidget {
   return {
     id: 'clock-1',
     type: 'clock',
-    size: '4x2',
+    size,
     col: 0,
     row: 0,
     config: {
@@ -64,25 +64,45 @@ describe('ClockSettings', () => {
     expect(onUpdate).toHaveBeenCalledWith({ showTimezone: true });
   });
 
-  // Stacking splits the time into lines, which the analog face has no notion
-  // of - the row is offered only by the designs that can do it.
-  it('offers the layout choice for a stackable design only', () => {
-    const stackable = render(<ClockSettings widget={clockWidget('splitflap')} onUpdate={vi.fn()} onResize={vi.fn()} />);
-    expect(stackable.getByText('panel.widget.clock.settings.layout')).toBeTruthy();
+  // Dimmed, not hidden: the row keeps its place and says why it is blocked.
+  it('dims the vertical layout row on a size that cannot stack', () => {
+    const wide = render(<ClockSettings widget={clockWidget('splitflap', '4x2')} onUpdate={vi.fn()} onResize={vi.fn()} />);
+    const wideToggle = wide.getByLabelText('panel.widget.clock.settings.verticalLayout');
+    expect(wideToggle).toBeDisabled();
+    expect(wide.getByText('panel.widget.clock.settings.unavailableForSize')).toBeTruthy();
 
-    stackable.unmount();
+    wide.unmount();
 
-    const analog = render(<ClockSettings widget={clockWidget('analog')} onUpdate={vi.fn()} onResize={vi.fn()} />);
-    expect(analog.queryByText('panel.widget.clock.settings.layout')).toBeNull();
+    const tall = render(<ClockSettings widget={clockWidget('splitflap', '2x4')} onUpdate={vi.fn()} onResize={vi.fn()} />);
+    expect(tall.getByLabelText('panel.widget.clock.settings.verticalLayout')).not.toBeDisabled();
   });
 
-  it('saves the picked layout on the widget', () => {
-    const onUpdate = vi.fn();
-    const { getAllByRole } = render(
-      <ClockSettings widget={clockWidget('splitflap')} onUpdate={onUpdate} onResize={vi.fn()} />,
+  it('dims the vertical layout row on a design that cannot stack', () => {
+    const { getByLabelText, getByText } = render(
+      <ClockSettings widget={clockWidget('analog', '2x4')} onUpdate={vi.fn()} onResize={vi.fn()} />,
     );
 
-    fireEvent.change(getAllByRole('combobox')[0], { target: { value: 'stacked' } });
+    expect(getByLabelText('panel.widget.clock.settings.verticalLayout')).toBeDisabled();
+    expect(getByText('panel.widget.clock.settings.unavailableForDesign')).toBeTruthy();
+  });
+
+  it('dims the accent colour row on a design that has no accent', () => {
+    const abstract = render(<ClockSettings widget={clockWidget('abstract', '2x4')} onUpdate={vi.fn()} onResize={vi.fn()} />);
+    expect(abstract.getByLabelText('panel.widget.clock.settings.useAccentColor')).toBeDisabled();
+
+    abstract.unmount();
+
+    const digital = render(<ClockSettings widget={clockWidget('digital', '2x4')} onUpdate={vi.fn()} onResize={vi.fn()} />);
+    expect(digital.getByLabelText('panel.widget.clock.settings.useAccentColor')).not.toBeDisabled();
+  });
+
+  it('saves the vertical layout choice on the widget', () => {
+    const onUpdate = vi.fn();
+    const { getByLabelText } = render(
+      <ClockSettings widget={clockWidget('splitflap', '2x4')} onUpdate={onUpdate} onResize={vi.fn()} />,
+    );
+
+    fireEvent.click(getByLabelText('panel.widget.clock.settings.verticalLayout'));
     expect(onUpdate).toHaveBeenCalledWith({ layout: 'stacked' });
   });
 });
