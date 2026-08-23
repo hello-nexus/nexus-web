@@ -55,6 +55,18 @@
   }
 }
 
+// descriptionBelow="tight" (SettingSlider only): the row's gap applies to both
+// axes, so it also spaces the wrapped line; zeroing it leaves the margin as the
+// whole gap, seating the description against the label. Other controls keep the
+// default spacing.
+.row.descBelow.descBelowTight {
+  row-gap: 0;
+
+  .desc {
+    margin-top: -0.15rem;
+  }
+}
+
 // Opt-in (stackOnNarrow prop): below the breakpoint, drop the control under
 // the description instead of squeezing both into a fixed-width control's
 // leftover space - a long description otherwise wraps one or two words per
