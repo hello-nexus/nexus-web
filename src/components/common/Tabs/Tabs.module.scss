@@ -78,8 +78,12 @@
   display: inline-flex;
   align-items: stretch;
   border-radius: var(--radius-sm);
-  border: var(--border-width) solid transparent;
-  transition: background var(--ease-fast) ease, border-color var(--ease-fast) ease;
+  // No border: nothing ever colours it, so it only added its width to the
+  // group's height - making a tab WITH a trailing control taller than its
+  // siblings, which stretch to match and step the whole header row down the
+  // moment the control appears. A grouped tab now measures exactly like a
+  // plain one.
+  transition: background var(--ease-fast) ease;
 
   .tab {
     // The group carries the pill; free the padding the trailing control's

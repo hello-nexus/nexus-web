@@ -1359,8 +1359,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
         key: m.key,
         label: t(m.labelKey),
         icon: <Icon size={14} />,
-        trailing: (
-          <span className={styles.pauseSlot}>{showPauseToggle ? (
+        trailing: showPauseToggle ? (
           <HoverTooltip body={t(paused ? 'lighting.resume' : 'lighting.pause')} side="top">
             <span
               role="button"
@@ -1384,8 +1383,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                 : <Pause size={13} fill="currentColor" stroke="none" />}
             </span>
           </HoverTooltip>
-        ) : null}</span>
-        ),
+        ) : undefined,
       };
     });
 
