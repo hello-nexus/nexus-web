@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { WidgetProps } from '../types';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { resolveHour12 } from '../../../lib/units';
-import { CLOCK_DESIGNS } from './designs';
+import { CLOCK_DESIGNS, type ClockLayout } from './designs';
 import { safeTimeZone } from './timezones';
 
 /**
@@ -35,6 +35,9 @@ export function ClockWidget({ widget }: WidgetProps) {
   const formatCfg = ((widget.config?.format as string | undefined) ?? 'auto');
   const hour12 = formatCfg === 'auto' ? resolveHour12(timeFormat) : formatCfg === '12h';
   const useAccentColor = ((widget.config?.useAccentColor as boolean | undefined) ?? false);
+  // Horizontal is the default everywhere; stacked is opt-in per widget and is
+  // ignored by a design that cannot split the time into lines (analog).
+  const layout: ClockLayout = widget.config?.layout === 'stacked' && entry.stackable ? 'stacked' : 'horizontal';
 
   return (
     <Design
@@ -46,6 +49,7 @@ export function ClockWidget({ widget }: WidgetProps) {
       size={widget.size}
       hour12={hour12}
       useAccentColor={useAccentColor}
+      layout={layout}
     />
   );
 }

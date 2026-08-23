@@ -90,6 +90,7 @@ export function ClockFace(p: HostProps) {
         size={str(p.size) ?? '4x2'}
         hour12={!!p.hour12}
         useAccentColor={!!p.useAccentColor}
+        layout={str(p.layout) === 'stacked' && entry.stackable ? 'stacked' : 'horizontal'}
       />
     </div>
   );

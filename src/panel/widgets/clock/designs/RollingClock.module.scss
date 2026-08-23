@@ -8,10 +8,10 @@
   padding: 12px;
   box-sizing: border-box;
 
-  &.size-2x2  { font-size: 1.65em; padding: 10px; }
-  &.size-2x4  { font-size: 2.2em; }
-  &.size-4x2  { font-size: 2.6em; }
-  &.size-4x4  { font-size: 2.4em; }
+  &.size-2x2  { font-size: 2.6em; padding: 8px; }
+  &.size-2x4  { font-size: 3em; }
+  &.size-4x2  { font-size: 4.4em; }
+  &.size-4x4  { font-size: 4.2em; }
 }
 
 .fitBox {
@@ -27,11 +27,10 @@
   align-items: center;
   gap: 0.04em;
   width: max-content;
-  transform-origin: center;
 }
 
 .digitWrapper {
-  width: 0.7em;
+  width: 0.62em;
   height: 1.2em;
   overflow: hidden;
   border-radius: 0.06em;
@@ -44,13 +43,13 @@
 }
 
 .digitCell {
-  width: 0.7em;
+  width: 0.62em;
   height: 1.2em;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: var(--weight-display);
-  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
   color: var(--text);
   flex-shrink: 0;
 }
@@ -74,12 +73,30 @@
 }
 
 .ampm {
-  font-size: 0.35em;
+  font-size: 0.24em;
   font-weight: var(--weight-heading);
   color: var(--text-dim);
   margin-left: 0.2em;
   align-self: flex-end;
   padding-bottom: 0.15em;
+}
+
+// Column of time lines: one line horizontally, one per unit when stacked. It
+// carries the fit transform, so the individual rows stay untransformed.
+.lines {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.08em;
+  width: max-content;
+  transform-origin: center;
+}
+
+// Stacked fits by height too, which needs the box to own the leftover column
+// space - without a definite height its clientHeight collapses to the content.
+.container.stacked .fitBox {
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .date {

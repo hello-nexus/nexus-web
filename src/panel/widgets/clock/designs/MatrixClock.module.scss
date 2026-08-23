@@ -14,10 +14,18 @@
   &.size-4x4  { font-size: 2.6em; }
 }
 
+.fitBox {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  overflow: hidden;
+}
+
 .row {
   display: flex;
   align-items: center;
-  max-width: 100%;
+  width: max-content;
 }
 
 .char {
@@ -44,12 +52,30 @@
 
 .ampm {
   font-family: 'Courier New', 'Consolas', monospace;
-  font-size: 0.4em;
+  font-size: 0.3em;
   font-weight: var(--weight-heading);
   color: var(--text-dim);
   margin-left: 0.3em;
   align-self: flex-end;
   padding-bottom: 0.15em;
+}
+
+// Column of time lines: one line horizontally, one per unit when stacked. It
+// carries the fit transform, so the individual rows stay untransformed.
+.lines {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.06em;
+  width: max-content;
+  transform-origin: center;
+}
+
+// Stacked fits by height too, which needs the box to own the leftover column
+// space - without a definite height its clientHeight collapses to the content.
+.container.stacked .fitBox {
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .date {

@@ -1,0 +1,6 @@
+// Invisible twin of the AM/PM badge, rendered at the head of the line. It
+// carries the same box and margin as the real one, so the time stays centered
+// whether the day period is shown or not.
+.mirror {
+  visibility: hidden;
+}

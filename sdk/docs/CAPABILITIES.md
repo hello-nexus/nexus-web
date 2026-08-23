@@ -682,7 +682,7 @@ const [tab, setTab] = useState('upload');
 ```
 
 #### `ClockFace`
-One of the 8 native clock designs. The worker supplies the epoch ms tick; the
+One of the native clock designs. The worker supplies the epoch ms tick; the
 host draws the face.
 
 | Prop | Type |
@@ -696,6 +696,7 @@ host draws the face.
 | `hour12` | `boolean` |
 | `useAccentColor` | `boolean` |
 | `size` | `string` (e.g. `'4x2'`) |
+| `layout` | `'horizontal'` (default) or `'stacked'` - stacked puts hour/minute/second on their own lines; ignored by `analog` |
 
 #### `WorldClock`
 The full day/night world map + scrollable city cards. Self-ticking.

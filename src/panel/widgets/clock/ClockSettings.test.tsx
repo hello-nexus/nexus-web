@@ -17,7 +17,7 @@ vi.mock('../../../components/common/Select/Select', () => ({
   ),
 }));
 
-function clockWidget(): PanelWidget {
+function clockWidget(design = 'analog'): PanelWidget {
   return {
     id: 'clock-1',
     type: 'clock',
@@ -25,7 +25,7 @@ function clockWidget(): PanelWidget {
     col: 0,
     row: 0,
     config: {
-      design: 'analog',
+      design,
     },
   };
 }
@@ -34,7 +34,7 @@ describe('ClockSettings', () => {
   it('renders clock designs as icon label buttons', () => {
     render(<ClockSettings widget={clockWidget()} onUpdate={vi.fn()} onResize={vi.fn()} />);
 
-    const labels = ['Digital', 'Analog', 'Split Flap', 'Rolling', 'LED', 'Dots', 'Matrix'];
+    const labels = ['Digital', 'Analog', 'Split Flap', 'Rolling', 'LED', 'Dots', 'Matrix', 'Abstract'];
     // Design buttons carry aria-pressed; the timezone trigger (aria-expanded) does not.
     const designButtons = screen.getAllByRole('button').filter(b => b.hasAttribute('aria-pressed'));
     expect(designButtons).toHaveLength(labels.length);
@@ -62,5 +62,27 @@ describe('ClockSettings', () => {
     fireEvent.click(screen.getByLabelText('panel.widget.clock.settings.showTimezone'));
 
     expect(onUpdate).toHaveBeenCalledWith({ showTimezone: true });
+  });
+
+  // Stacking splits the time into lines, which the analog face has no notion
+  // of - the row is offered only by the designs that can do it.
+  it('offers the layout choice for a stackable design only', () => {
+    const stackable = render(<ClockSettings widget={clockWidget('splitflap')} onUpdate={vi.fn()} onResize={vi.fn()} />);
+    expect(stackable.getByText('panel.widget.clock.settings.layout')).toBeTruthy();
+
+    stackable.unmount();
+
+    const analog = render(<ClockSettings widget={clockWidget('analog')} onUpdate={vi.fn()} onResize={vi.fn()} />);
+    expect(analog.queryByText('panel.widget.clock.settings.layout')).toBeNull();
+  });
+
+  it('saves the picked layout on the widget', () => {
+    const onUpdate = vi.fn();
+    const { getAllByRole } = render(
+      <ClockSettings widget={clockWidget('splitflap')} onUpdate={onUpdate} onResize={vi.fn()} />,
+    );
+
+    fireEvent.change(getAllByRole('combobox')[0], { target: { value: 'stacked' } });
+    expect(onUpdate).toHaveBeenCalledWith({ layout: 'stacked' });
   });
 });

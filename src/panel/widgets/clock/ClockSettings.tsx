@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  Aperture,
   Binary,
   ChevronDown,
   CircleDot,
@@ -28,6 +29,7 @@ const DESIGN_ICONS: Record<string, LucideIcon> = {
   led: ScanLine,
   dots: CircleDot,
   matrix: Binary,
+  abstract: Aperture,
 };
 
 export function ClockSettings({ widget, onUpdate }: WidgetSettingsProps) {
@@ -39,6 +41,7 @@ export function ClockSettings({ widget, onUpdate }: WidgetSettingsProps) {
   const showDate = ((widget.config?.showDate as boolean | undefined) ?? true);
   const showTimezone = ((widget.config?.showTimezone as boolean | undefined) ?? false);
   const useAccentColor = ((widget.config?.useAccentColor as boolean | undefined) ?? false);
+  const layout = ((widget.config?.layout as string | undefined) ?? 'horizontal');
   // safeTimeZone discards a stale invalid value (saved by an older build's
   // free-text field) so the trigger shows Auto instead of a broken string.
   const timezone = safeTimeZone(widget.config?.timezone as string | undefined) ?? null;
@@ -61,6 +64,10 @@ export function ClockSettings({ widget, onUpdate }: WidgetSettingsProps) {
 
   const setShowTimezone = (checked: boolean) => {
     onUpdate({ showTimezone: checked });
+  };
+
+  const setLayout = (value: string) => {
+    onUpdate({ layout: value });
   };
 
   const setUseAccentColor = (checked: boolean) => {
@@ -93,6 +100,19 @@ export function ClockSettings({ widget, onUpdate }: WidgetSettingsProps) {
       </SettingsSection>
 
       <SettingsSection title={t('panel.widget.clock.settings.display')}>
+        {CLOCK_DESIGNS[currentDesign]?.stackable && (
+          <SettingsSelect
+            label={t('panel.widget.clock.settings.layout')}
+            value={layout}
+            options={[
+              // eslint-disable-next-line i18next/no-literal-string -- enum value
+              { value: 'horizontal', label: t('panel.widget.clock.settings.layoutHorizontal') },
+              // eslint-disable-next-line i18next/no-literal-string -- enum value
+              { value: 'stacked', label: t('panel.widget.clock.settings.layoutStacked') },
+            ]}
+            onChange={setLayout}
+          />
+        )}
         <SettingsSelect
           label={t('panel.widget.clock.settings.timeFormat')}
           value={format}

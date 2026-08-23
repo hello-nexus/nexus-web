@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react';
 import type { ClockDesignProps } from './types';
 import { formatMetaLine, formatTime, getAmPm } from './timeFormat';
-import { useFitWidth } from '../../common/useFitWidth';
+import { ClockLine, splitTimeLines, useClockFit } from './layout';
 import styles from './LedClock.module.scss';
 
 // Seven-segment display: segments labeled a-g
@@ -50,33 +50,43 @@ function LedColon({ pulse }: { pulse: boolean }) {
   );
 }
 
-function LedClock({ now, tz, showSeconds, showDate, showTimezone, size, hour12, useAccentColor }: ClockDesignProps) {
+function LedClock({ now, tz, showSeconds, showDate, showTimezone, size, hour12, useAccentColor, layout }: ClockDesignProps) {
   const time = formatTime(now, tz, showSeconds, hour12);
   const ampm = getAmPm(now, tz, hour12);
   const colonVisible = now.getSeconds() % 2 === 0;
+  const stacked = layout === 'stacked';
+  const lines = splitTimeLines(time, layout);
   const sizeClass = styles[`size-${size}`] ?? styles['size-4x2'];
-  const { boxRef, contentRef, scale } = useFitWidth();
+  const { boxRef, contentRef, scale } = useClockFit(stacked);
 
   const dateStr = formatMetaLine(now, tz, showDate, showTimezone);
 
-  const elements: ReactElement[] = [];
-  let colonIdx = 0;
+  const lineCells = (line: string): ReactElement[] => {
+    const elements: ReactElement[] = [];
+    let colonIdx = 0;
 
-  for (let i = 0; i < time.length; i++) {
-    const ch = time[i];
-    if (ch === ':') {
-      elements.push(<LedColon key={`c${colonIdx++}`} pulse={colonVisible} />);
-    } else {
-      elements.push(<LedDigit key={`d${i}`} digit={ch} />);
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === ':') {
+        elements.push(<LedColon key={`c${colonIdx++}`} pulse={colonVisible} />);
+      } else {
+        elements.push(<LedDigit key={`d${i}`} digit={ch} />);
+      }
     }
-  }
+    return elements;
+  };
 
   return (
-    <div className={`${styles.container} ${sizeClass} ${useAccentColor ? styles.accent : ''}`}>
+    <div className={`${styles.container} ${sizeClass} ${stacked ? styles.stacked : ''} ${useAccentColor ? styles.accent : ''}`}>
       <div ref={boxRef} className={styles.fitBox}>
-        <div ref={contentRef} className={styles.row} style={{ transform: `scale(${scale})` }}>
-          {elements}
-          {ampm && <div className={styles.ampm}>{ampm}</div>}
+        <div ref={contentRef} className={styles.lines} style={{ transform: `scale(${scale})` }}>
+          {lines.map((line, li) => (
+            <div key={li} className={styles.row}>
+              <ClockLine ampm={li === 0 ? ampm : undefined} ampmClass={styles.ampm}>
+                {lineCells(line)}
+              </ClockLine>
+            </div>
+          ))}
         </div>
       </div>
       {dateStr && <div className={styles.date}>{dateStr}</div>}

@@ -35,7 +35,35 @@
   width: max-content;
   text-align: center;
   white-space: nowrap;
+}
+
+// Column of time lines: one line horizontally, one per unit when stacked. It
+// carries the fit transform, so the individual rows stay untransformed.
+.lines {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  width: max-content;
   transform-origin: center;
+}
+
+// Stacked fits by height too, which needs the box to own the leftover column
+// space - without a definite height its clientHeight collapses to the content.
+.container.stacked .fitBox {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+// Stacked splits the locale string into its parts, so the day period that was
+// inline in that string becomes its own element on the hour line.
+.ampm {
+  font-size: 0.2em;
+  font-weight: var(--weight-heading);
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+  margin-left: 0.25em;
+  vertical-align: baseline;
 }
 
 .date {
