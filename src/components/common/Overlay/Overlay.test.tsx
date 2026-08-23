@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Overlay } from './Overlay';
 import { resetModalStackForTests } from './modalStack';
 import { resetBackgroundLockForTests } from './backgroundLock';
+import { resetBlurScrimForTests } from './blurScrimGuard';
 
 function tabEvent(shiftKey = false) {
   return new KeyboardEvent('keydown', { key: 'Tab', shiftKey, bubbles: true, cancelable: true });
@@ -12,6 +13,7 @@ describe('Overlay a11y mechanism', () => {
   beforeEach(() => {
     resetModalStackForTests();
     resetBackgroundLockForTests();
+    resetBlurScrimForTests();
     document.body.innerHTML = '<div id="root"></div>';
   });
 
@@ -136,5 +138,32 @@ describe('Overlay a11y mechanism', () => {
 
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('marks the document while a blurring backdrop is open so glass mode restores an opaque fill', () => {
+    const mark = () => document.documentElement.classList.contains('nexus-blur-scrim');
+
+    const { rerender } = render(
+      <Overlay open onClose={vi.fn()} ariaLabel="Dialog">
+        <button>ok</button>
+      </Overlay>,
+    );
+    expect(mark()).toBe(true);
+
+    rerender(
+      <Overlay open={false} onClose={vi.fn()} ariaLabel="Dialog">
+        <button>ok</button>
+      </Overlay>,
+    );
+    expect(mark()).toBe(false);
+  });
+
+  it('leaves the mark off for sheets, which paint their own unblurred scrim', () => {
+    render(
+      <Overlay open variant="sheet" onClose={vi.fn()} ariaLabel="Sheet">
+        <button>ok</button>
+      </Overlay>,
+    );
+    expect(document.documentElement.classList.contains('nexus-blur-scrim')).toBe(false);
   });
 });

@@ -12,7 +12,6 @@ import {
   resetDeviceLayouts, applyDeviceLayouts, setActiveLayoutPreset, updateLayoutPreset,
   type LightingDevice, type LedMapEntry, type PostProcessSettings, type GameSyncDevice,
   type GameSyncGame, type DeviceLayoutDto,
-  setLightingDeviceColor,
 } from '../../../api/lighting';
 import { useUndoRedo } from '../../../hooks/useUndoRedo';
 import { useLayoutPresets, devicesToLayouts, devicesToPower } from './page/useLayoutPresets';
@@ -38,6 +37,11 @@ import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { LightingSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
 import { DeviceCanvas } from '../../../components/common/DeviceCanvas/DeviceCanvas';
 import { usePersistentState, usePersistentIdSet } from '../../../hooks/usePersistentState';
+import {
+  pickLookForDevices, pickPaletteForDevices,
+  DEVICE_PICKS_STORAGE_KEY, SELECTED_DEVICES_STORAGE_KEY, PRIMARY_DEVICE_STORAGE_KEY,
+  type DevicePick,
+} from './staticPicks';
 import { usePanelBackgroundUsage } from '../../../hooks/usePanelBackgroundUsage';
 import {
   EFFECTS, ANIMATE_EFFECTS, STATIC_EFFECTS, STATIC_PATTERN_EFFECTS, DEFAULT_STATIC_EFFECT, MODES,
@@ -46,10 +50,9 @@ import {
 } from '../../../types/lighting';
 import {
   nearestPaletteId, paletteColor, paletteColorForKey, paletteFamilyKey, paletteIdFromKey,
-  paletteKey, type PaletteColor,
+  type PaletteColor,
 } from '../../../types/lightingPalette';
 import { defaultTemplatesFor, mergeTemplates, slotMatchesDefault, slotThumbSignature } from '../../../types/lightingTemplates';
-import { hsvToHex } from '../../../lib/settings';
 import { AnimateGrid } from './page/AnimateGrid';
 import { StaticPalette } from './page/StaticPalette';
 import { FullscreenShader } from './page/FullscreenShader';
@@ -95,17 +98,6 @@ interface LayoutHistorySnapshot {
   /** Device ids whose power this action changed; empty for layout-only edits.
    *  Scopes power reconciliation on undo/redo to exactly the touched devices. */
   powerIds: string[];
-}
-
-/**
- * One device's Static assignment: an effect plus the preset slot it was picked
- * from. Presets are shared definitions and devices hold references, so the slot
- * is stored here, never resolved from the effect's own selected pointer.
- */
-interface DevicePick {
-  key: string;
-  slot: number;
-  hex: string;
 }
 
 /** What the effect grid and dock are pointed at - see the `scoped` memo. */
@@ -171,8 +163,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // device used for LED-dot rendering on the canvas and for the LED-map
   // fetch effect below (only one device's positions are visualised at a
   // time, even when several are selected for group drag).
-  const [selectedDeviceIds, setSelectedDeviceIds] = usePersistentIdSet('nexus.lighting.selectedDevices');
-  const [primaryDeviceId, setPrimaryDeviceId] = usePersistentState<string | null>('nexus.lighting.primaryDevice', null);
+  const [selectedDeviceIds, setSelectedDeviceIds] = usePersistentIdSet(SELECTED_DEVICES_STORAGE_KEY);
+  const [primaryDeviceId, setPrimaryDeviceId] = usePersistentState<string | null>(PRIMARY_DEVICE_STORAGE_KEY, null);
   const handleSelectDevice = useCallback((id: string | null) => {
     setSelectedDeviceIds(id ? new Set([id]) : new Set());
     setPrimaryDeviceId(id);
@@ -205,7 +197,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // from the effect's shared pointer, or repointing one device would drag every
   // other device on that effect to the same preset.
   const [devicePicks, setDevicePicks] = usePersistentState<Record<string, DevicePick>>(
-    'nexus.lighting.devicePicks', {},
+    DEVICE_PICKS_STORAGE_KEY, {},
   );
   // Collapsing the effect dock hands its space to the canvas and the browser.
   // The preset toolbar keeps its width either way - it lives in row 1, which
@@ -736,27 +728,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // repoint of some other device leaves this one alone.
   const writeDevicePicks = useCallback((key: string, slot: number, ids: string[], push: boolean) => {
     const st = stateOf(key, slot);
-    const hue = Math.min(1, Math.max(0, st.hue));
-    const sat = Math.min(1, Math.max(0, st.saturation));
-    const hex = hsvToHex(hue * 360, sat * 100, 100);
-    setDevicePicks(prev => {
-      const next = { ...prev };
-      for (const id of ids) next[id] = { key, slot, hex };
-      return next;
-    });
-    if (!push) return;
-    // The whole look travels, so the service renders THIS effect for the device
-    // rather than approximating it with the swatch colour.
-    const look = {
-      effect: key,
-      intensity: st.intensity,
-      colorize: st.colorize,
-      contrast: st.contrast,
-      params: st.params,
-    };
-    for (const id of ids) {
-      setLightingDeviceColor(id, hue, sat, look).catch(() => { /* best-effort */ });
-    }
+    setDevicePicks(prev => pickLookForDevices(prev, key, slot, st, ids, push));
   }, [setDevicePicks, stateOf]);
 
   const applyDeviceColor = useCallback(
@@ -767,17 +739,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // A palette pick is a colour and nothing else, so it travels as one and the
   // service paints it with no shader, no preset and no params.
   const writePalettePick = useCallback((color: PaletteColor, ids: string[]) => {
-    const key = paletteKey(color.id);
-    setDevicePicks(prev => {
-      const next = { ...prev };
-      for (const id of ids) next[id] = { key, slot: 0, hex: color.hex };
-      return next;
-    });
-    for (const id of ids) {
-      setLightingDeviceColor(id, color.h, color.s, {
-        effect: 'flat', color: color.hex, intensity: 1, colorize: 0, contrast: 1, params: {},
-      }).catch(() => { /* best-effort */ });
-    }
+    setDevicePicks(prev => pickPaletteForDevices(prev, color, ids));
   }, [setDevicePicks]);
 
   // A pick predating the palette names a flat EFFECT key. Repoint it at the

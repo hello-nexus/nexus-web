@@ -43,6 +43,15 @@
   :global(html.nexus-shell-native-glass[data-bg='glass']) & {
     background: transparent;
   }
+
+  // backdrop-filter samples the page's own backdrop, and glass mode leaves it
+  // with nothing to sample - a blurring scrim then reads as a plain dim over
+  // sharp content, at any radius. Restore the fill for as long as a blurring
+  // scrim is open; it covers the window anyway, so the material it hides was
+  // not visible. See blurScrimGuard.ts.
+  :global(html.nexus-shell-native-glass[data-bg='glass'].nexus-blur-scrim) & {
+    background: var(--backdrop-base);
+  }
 }
 
 // The native glass shells make the web view transparent so the OS frosted

@@ -1,6 +1,7 @@
-import { useRef, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useModalA11y } from './useModalA11y';
+import { acquireBlurScrim, releaseBlurScrim } from './blurScrimGuard';
 import styles from './Overlay.module.scss';
 
 /**
@@ -56,6 +57,15 @@ export function Overlay({
 }: OverlayProps) {
   const surfaceRef = useRef<HTMLDivElement>(null);
   useModalA11y({ open, onClose, onEnter, noEscDismiss, autoFocus, containerRef: surfaceRef });
+
+  // Only the centered variants paint a blurring backdrop; sheets bring their
+  // own scrim (Slideout) and never blur.
+  const blursBackdrop = open && variant !== 'sheet';
+  useEffect(() => {
+    if (!blursBackdrop) return;
+    acquireBlurScrim();
+    return releaseBlurScrim;
+  }, [blursBackdrop]);
 
   // Track whether the pointer went down inside the surface. A drag that
   // starts inside and ends outside should not dismiss; only a clean

@@ -16,6 +16,7 @@ import { PairRemoteContent } from '../../components/common/PairRemote/PairRemote
 import { PairedPcsContent } from '../../components/common/PairedPcs/PairedPcsContent';
 import { IconLabelButton } from '../../components/common/IconLabelButton/IconLabelButton';
 import { useModalA11y } from '../../components/common/Overlay/useModalA11y';
+import { acquireBlurScrim, releaseBlurScrim } from '../../components/common/Overlay/blurScrimGuard';
 import { useTranslation } from '../../lib/i18n';
 import { pluralKey } from '../../lib/pluralKey';
 import type { ThemeMode } from '../../lib/settings';
@@ -215,6 +216,14 @@ export function PanelEditorSheet({
     const t = window.setTimeout(() => setDidEnter(true), 320);
     return () => window.clearTimeout(t);
   }, []);
+
+  // Widget-edit is the only mode whose backdrop blurs the stage; the catalog
+  // and theme modes keep the plain scrim (PanelApp.module.scss).
+  useEffect(() => {
+    if (mode !== 'settings') return;
+    acquireBlurScrim();
+    return releaseBlurScrim;
+  }, [mode]);
 
   const handleResize = (size: PanelWidgetSize) => {
     if (!editingWidget) return;
