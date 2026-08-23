@@ -64,7 +64,10 @@ export function useLightingFrames(enabled = true): LightingFrameState {
     };
 
     connect();
-    return () => { cancelled = true; try { socket?.close(); } catch { /* socket already closed/torn down */ } if (reconnectTimer !== null) clearTimeout(reconnectTimer); if (rafRef.current !== null) cancelAnimationFrame(rafRef.current); };
+    // clearLedFrame here as well as in onclose: cancelled short-circuits that
+    // handler, so without this the last frame stays in the module-scope store
+    // and every card that subscribes afterwards paints it, frozen, forever.
+    return () => { cancelled = true; try { socket?.close(); } catch { /* socket already closed/torn down */ } if (reconnectTimer !== null) clearTimeout(reconnectTimer); if (rafRef.current !== null) cancelAnimationFrame(rafRef.current); clearLedFrame(); };
   }, [enabled]);
 
   return state;

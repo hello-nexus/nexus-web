@@ -36,6 +36,7 @@ function paint(
   pick: LedPick | undefined,
   pattern: HTMLImageElement | null,
   fullscreen: boolean,
+  pickOnly: boolean,
 ): void {
   const cells = Math.max(1, Math.min(cardEnabledLedCount(device) || 1, MAX_CELLS));
   if (canvas.width !== cells) canvas.width = cells;
@@ -80,8 +81,11 @@ function paint(
     return;
   }
 
+  // Static assigns per device, so there is no shared canvas to fall back to:
+  // a device with no assignment of its own is showing nothing in particular,
+  // and sampling the effect frame would state a colour it is not wearing.
   const { pixels, w, h } = frame;
-  if (!pixels || w === 0 || h === 0) {
+  if (pickOnly || !pixels || w === 0 || h === 0) {
     ctx.clearRect(0, 0, cells, 1);
     return;
   }
@@ -116,7 +120,7 @@ function paint(
  * the device list. The card decides whether a readout exists at all; a dark or
  * un-driven device does not mount this.
  */
-export const DeviceLedStrip = memo(function DeviceLedStrip({ device, pick, fullscreen }: { device: LightingDevice; pick?: LedPick; fullscreen?: boolean }) {
+export const DeviceLedStrip = memo(function DeviceLedStrip({ device, pick, fullscreen, pickOnly }: { device: LightingDevice; pick?: LedPick; fullscreen?: boolean; pickOnly?: boolean }) {
   const ref = useRef<HTMLCanvasElement>(null);
   // Read through refs so a device refetch (new object identity, same values)
   // does not tear down and rebuild the subscription.
@@ -126,6 +130,8 @@ export const DeviceLedStrip = memo(function DeviceLedStrip({ device, pick, fulls
   pickRef.current = pick;
   const fullscreenRef = useRef(fullscreen);
   fullscreenRef.current = fullscreen;
+  const pickOnlyRef = useRef(pickOnly);
+  pickOnlyRef.current = pickOnly;
   // Last frame delivered, so a pattern that decodes between frames can repaint
   // without waiting for the next one (there is none while lighting is held).
   const frameRef = useRef<LedFrame>(EMPTY_FRAME);
@@ -154,21 +160,23 @@ export const DeviceLedStrip = memo(function DeviceLedStrip({ device, pick, fulls
 
   useEffect(() => subscribeIdentify(() => {
     const el = ref.current;
-    if (el) paint(el, deviceRef.current, frameRef.current, pickRef.current, patternRef.current, !!fullscreenRef.current);
+    if (el) paint(el, deviceRef.current, frameRef.current, pickRef.current, patternRef.current, !!fullscreenRef.current, !!pickOnlyRef.current);
   }), []);
 
   useEffect(() => subscribeLedFrame(frame => {
     frameRef.current = frame;
     const el = ref.current;
-    if (el) paint(el, deviceRef.current, frame, pickRef.current, patternRef.current, !!fullscreenRef.current);
+    if (el) paint(el, deviceRef.current, frame, pickRef.current, patternRef.current, !!fullscreenRef.current, !!pickOnlyRef.current);
   }), []);
 
   // A pick or a decoded pattern lands between frames, so repaint immediately
   // instead of waiting for the next one.
+  // brightness is in the deps because it scales the paint: with no frames
+  // arriving (a per-device surface) nothing else would ever repaint it.
   useEffect(() => {
     const el = ref.current;
-    if (el) paint(el, deviceRef.current, frameRef.current, pick, pattern, !!fullscreen);
-  }, [pick, pattern, fullscreen]);
+    if (el) paint(el, deviceRef.current, frameRef.current, pick, pattern, !!fullscreen, !!pickOnly);
+  }, [pick, pattern, fullscreen, pickOnly, device.brightness]);
 
   return <canvas ref={ref} className={styles.ledStrip} aria-hidden />;
 });

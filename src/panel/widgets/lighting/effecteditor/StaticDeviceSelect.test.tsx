@@ -58,6 +58,25 @@ describe('StaticDeviceSelect', () => {
     expect([...onSetSelection.mock.calls[1][0]]).toEqual([]);
   });
 
+  // The strip must read THIS device's assignment. Without a pick it samples the
+  // shared effect canvas, which in a per-device mode shows something unrelated -
+  // it reads as a stale readout on every card.
+  it('gives each card its own pick rather than the shared canvas', () => {
+    const ledPickFor = vi.fn((id: string) => (
+      id === 'a' ? { key: 'flat:red-3', hex: '#ff0000', slot: 0, version: '1' } : undefined
+    ));
+    render(
+      <StaticDeviceSelect
+        devices={devices}
+        selectedIds={new Set()}
+        onSetSelection={vi.fn()}
+        ledPickFor={ledPickFor}
+      />,
+    );
+    expect(ledPickFor).toHaveBeenCalledWith('a');
+    expect(ledPickFor).toHaveBeenCalledWith('b');
+  });
+
   it('shows the empty state when no lighting devices exist', () => {
     render(<StaticDeviceSelect devices={[]} selectedIds={new Set()} onSetSelection={vi.fn()} />);
     expect(screen.getByText('lighting.devices.empty')).toBeInTheDocument();

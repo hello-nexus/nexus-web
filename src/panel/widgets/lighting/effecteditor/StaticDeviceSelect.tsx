@@ -5,6 +5,7 @@ import { useTranslation } from '../../../../lib/i18n';
 import type { LightingDevice } from '../../../../api/lighting';
 import { ZoneCard, zoneCardUnavailable } from '../page/ZoneCard';
 import { visibleCards } from '../page/zoneUtils';
+import type { LedPick } from '../page/DeviceLedStrip';
 import styles from './StaticDeviceSelect.module.scss';
 
 /**
@@ -20,11 +21,13 @@ function isFirmwareControlled(d: LightingDevice): boolean {
   return d.controlled === false;
 }
 
-export function StaticDeviceSelect({ devices, selectedIds, onSetSelection }: {
+export function StaticDeviceSelect({ devices, selectedIds, onSetSelection, ledPickFor }: {
   devices: LightingDevice[];
   selectedIds: Set<string>;
   /** Receives the whole next selection, matching DevicePanel's onSetSelection. */
   onSetSelection: (ids: Set<string>, primary: string | null) => void;
+  /** This device's own assignment, so each card reads what IT wears. */
+  ledPickFor?: (id: string) => LedPick | undefined;
 }) {
   const { t } = useTranslation();
   // The same listing the page shows: fully parked zone cards hide, and a
@@ -80,6 +83,8 @@ export function StaticDeviceSelect({ devices, selectedIds, onSetSelection }: {
             device={d}
             selectOnly
             ledFullscreen
+            ledPickOnly
+            ledPick={ledPickFor?.(d.id)}
             firmwareControlled={isFirmwareControlled(d)}
             selected={selectedIds.has(d.id)}
             indent={false}

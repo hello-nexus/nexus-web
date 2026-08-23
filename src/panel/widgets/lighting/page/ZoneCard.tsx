@@ -58,6 +58,7 @@ export function ZoneCard({
   selectable = true,
   ledPick,
   ledFullscreen,
+  ledPickOnly,
   indent,
   onSelect,
   onTogglePower,
@@ -84,6 +85,9 @@ export function ZoneCard({
   ledPick?: LedPick;
   /** Static mode: the strip samples the whole canvas rather than the device's rect. */
   ledFullscreen?: boolean;
+  /** Per-device surface: with no pick the strip stays blank instead of
+   *  sampling a shared canvas that does not describe this device. */
+  ledPickOnly?: boolean;
   /** True when this card is a zone child rendered under a motherboard group header. */
   indent: boolean;
   /** Receives whether the multi-select modifier (Cmd/Ctrl) was held, so the
@@ -300,7 +304,7 @@ export function ZoneCard({
         {/* A dark device has nothing to read out, and firmware lighting does not
             come from our canvas, so the bar is absent rather than blank. */}
         {!unavailable && !firmwareControlled && controlled && device.ledsOn && (
-          <DeviceLedStrip device={device} pick={ledPick} fullscreen={ledFullscreen} />
+          <DeviceLedStrip device={device} pick={ledPick} fullscreen={ledFullscreen} pickOnly={ledPickOnly} />
         )}
         {toggleable && (
           <span
