@@ -1,5 +1,6 @@
 import type { ClockDesignProps } from './types';
 import { formatMetaLine, getClockAngles } from './timeFormat';
+import { ClockDate } from './layout';
 import styles from './AbstractClock.module.scss';
 
 function AbstractClock({ now, tz, showSeconds, showDate, showTimezone, size }: ClockDesignProps) {
@@ -23,7 +24,7 @@ function AbstractClock({ now, tz, showSeconds, showDate, showTimezone, size }: C
         <circle cx="50" cy="50" r="1.6" className={styles.center} />
       </svg>
       {dateStr && <div className={styles.scrim} />}
-      {dateStr && <div className={styles.date}>{dateStr}</div>}
+      {dateStr && <ClockDate text={dateStr} className={styles.date} />}
     </div>
   );
 }

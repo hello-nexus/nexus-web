@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { ClockDesignProps } from './types';
 import { formatMetaLine, formatTime, getAmPm } from './timeFormat';
-import { splitTimeLines, useClockFit } from './layout';
+import { ClockDate, splitTimeLines, useClockFit } from './layout';
 import styles from './SplitFlapClock.module.scss';
 
 const FLIP_DURATION_MS = 220;
@@ -116,7 +116,7 @@ function SplitFlapClock({ now, tz, showSeconds, showDate, showTimezone, size, ho
           ))}
         </div>
       </div>
-      {dateStr && <div className={styles.date}>{dateStr}</div>}
+      {dateStr && <ClockDate text={dateStr} className={styles.date} />}
     </div>
   );
 }

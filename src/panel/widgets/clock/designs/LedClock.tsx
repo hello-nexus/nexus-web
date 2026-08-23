@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react';
 import type { ClockDesignProps } from './types';
 import { formatMetaLine, formatTime, getAmPm } from './timeFormat';
-import { ClockLine, splitTimeLines, useClockFit } from './layout';
+import { ClockDate, ClockLine, splitTimeLines, useClockFit } from './layout';
 import styles from './LedClock.module.scss';
 
 // Seven-segment display: segments labeled a-g
@@ -89,7 +89,7 @@ function LedClock({ now, tz, showSeconds, showDate, showTimezone, size, hour12, 
           ))}
         </div>
       </div>
-      {dateStr && <div className={styles.date}>{dateStr}</div>}
+      {dateStr && <ClockDate text={dateStr} className={styles.date} />}
     </div>
   );
 }

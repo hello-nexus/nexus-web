@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import type { ClockDesignProps } from './types';
 import { formatMetaLine, getClockAngles } from './timeFormat';
+import { ClockDate } from './layout';
 import styles from './AnalogClock.module.scss';
 
 function AnalogClock({ now, tz, showSeconds, showDate, showTimezone, size, useAccentColor }: ClockDesignProps) {
@@ -45,7 +46,7 @@ function AnalogClock({ now, tz, showSeconds, showDate, showTimezone, size, useAc
         )}
         <circle cx="50" cy="50" r="2.5" className={styles.center} />
       </svg>
-      {dateStr && <div className={styles.date}>{dateStr}</div>}
+      {dateStr && <ClockDate text={dateStr} className={styles.date} />}
     </div>
   );
 }

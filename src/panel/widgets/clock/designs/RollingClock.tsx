@@ -1,6 +1,6 @@
 import type { ClockDesignProps } from './types';
 import { formatMetaLine, formatTime, getAmPm } from './timeFormat';
-import { ClockLine, splitTimeLines, useClockFit } from './layout';
+import { ClockDate, ClockLine, splitTimeLines, useClockFit } from './layout';
 import styles from './RollingClock.module.scss';
 
 const DIGITS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
@@ -77,7 +77,7 @@ function RollingClock({ now, tz, showSeconds, showDate, showTimezone, size, hour
           ))}
         </div>
       </div>
-      {dateStr && <div className={styles.date}>{dateStr}</div>}
+      {dateStr && <ClockDate text={dateStr} className={styles.date} />}
     </div>
   );
 }

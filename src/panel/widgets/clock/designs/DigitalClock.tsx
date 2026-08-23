@@ -1,6 +1,6 @@
 import type { ClockDesignProps } from './types';
 import { formatMetaLine } from './timeFormat';
-import { ClockLine, useClockFit } from './layout';
+import { ClockDate, ClockLine, useClockFit } from './layout';
 import { StableDigits } from '../../common/StableDigits';
 import styles from './DigitalClock.module.scss';
 
@@ -40,7 +40,7 @@ function DigitalClock({ now, tz, showSeconds, showDate, showTimezone, size, hour
           ))}
         </div>
       </div>
-      {dateStr && <div className={styles.date}>{dateStr}</div>}
+      {dateStr && <ClockDate text={dateStr} className={styles.date} />}
     </div>
   );
 }

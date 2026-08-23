@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react';
 import type { ClockDesignProps } from './types';
 import { formatMetaLine, formatTime, getAmPm } from './timeFormat';
-import { ClockLine, splitTimeLines, useClockFit } from './layout';
+import { ClockDate, ClockLine, splitTimeLines, useClockFit } from './layout';
 import styles from './DotsClock.module.scss';
 
 // 3x5 dot matrix patterns for digits 0-9; 5 rows of 3 bits each.
@@ -80,7 +80,7 @@ function DotsClock({ now, tz, showSeconds, showDate, showTimezone, size, hour12,
           ))}
         </div>
       </div>
-      {dateStr && <div className={styles.date}>{dateStr}</div>}
+      {dateStr && <ClockDate text={dateStr} className={styles.date} />}
     </div>
   );
 }

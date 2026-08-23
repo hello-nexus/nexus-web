@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ClockDesignProps } from './types';
 import { formatMetaLine, formatTime, getAmPm } from './timeFormat';
-import { ClockLine, splitTimeLines, useClockFit } from './layout';
+import { ClockDate, ClockLine, splitTimeLines, useClockFit } from './layout';
 import styles from './MatrixClock.module.scss';
 
 const SCRAMBLE_CHARS = '0123456789#$%&@!?*+=/\\<>[]{}~^';
@@ -88,7 +88,7 @@ function MatrixClock({ now, tz, showSeconds, showDate, showTimezone, size, hour1
           ))}
         </div>
       </div>
-      {dateStr && <div className={styles.date}>{dateStr}</div>}
+      {dateStr && <ClockDate text={dateStr} className={styles.date} />}
     </div>
   );
 }

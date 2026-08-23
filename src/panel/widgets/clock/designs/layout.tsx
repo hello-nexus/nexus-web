@@ -24,6 +24,22 @@ export function useClockFit(stacked: boolean) {
   return useFitWidth(stacked ? STACK_MAX_SCALE : 1, stacked);
 }
 
+// The date line, kept to one line: it is fixed-px while a stacked face scales
+// to fit, so on a narrow tile it sits right at the wrap threshold and flips
+// between one and two lines on a few pixels of tile width. Scaling it down
+// instead keeps every surface showing the same thing.
+export function ClockDate({ text, className }: { text: string; className?: string }) {
+  const { boxRef, contentRef, scale } = useFitWidth();
+
+  return (
+    <div ref={boxRef} className={`${className ?? ''} ${styles.dateBox}`}>
+      <span ref={contentRef} className={styles.dateText} style={{ transform: `scale(${scale})` }}>
+        {text}
+      </span>
+    </div>
+  );
+}
+
 // One line of a clock face. AM/PM sits after the digits and is balanced by an
 // invisible twin before them, so turning on 12-hour never slides the time off
 // centre - and the badge still counts toward the fit, so it cannot be clipped.
