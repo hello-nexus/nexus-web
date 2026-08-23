@@ -17,12 +17,15 @@ export interface BadgeProps {
    *  reserved minWidth (the monitoring tab chips) rather than the default
    *  roomier pill other badges use. */
   compact?: boolean;
+  /** Renders the label in caps, for badges that read as a label on a heading
+   *  rather than as a value. */
+  uppercase?: boolean;
 }
 
-export function Badge({ label, color = 'var(--text)', icon, iconPosition = 'start', minWidth, compact }: BadgeProps) {
+export function Badge({ label, color = 'var(--text)', icon, iconPosition = 'start', minWidth, compact, uppercase }: BadgeProps) {
   return (
     <span
-      className={classNames(styles.badge, compact && styles.compact)}
+      className={classNames(styles.badge, compact && styles.compact, uppercase && styles.uppercase)}
       style={{ '--badge-color': color, ...(minWidth ? { '--badge-min-width': minWidth } : {}) } as CSSProperties}
     >
       {iconPosition === 'start' && icon}

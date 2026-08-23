@@ -368,6 +368,24 @@
 }
 
 // Multi-select checkbox: a mode change on any selected card applies to all.
+// Hit target for the select box: full card height and wider than the box, so a
+// slightly-off click still lands on it instead of selecting the card alone.
+// Negative inline margin cancels the padding, keeping the visual layout put.
+.fanCheckHit {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  padding: 0 0.45rem;
+  margin: 0 -0.45rem;
+  cursor: pointer;
+
+  &:focus-visible {
+    @include focus-ring;
+    border-radius: var(--radius-sm);
+  }
+}
+
 .fanCheck {
   flex: 0 0 auto;
   width: 18px;
@@ -377,7 +395,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
   color: var(--accent-text);
   transition: background var(--ease-fast), border-color var(--ease-fast);
 

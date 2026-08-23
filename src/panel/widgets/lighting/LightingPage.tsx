@@ -1600,7 +1600,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           <span className={styles.paneTitle}>{t('lighting.pane.preview')}</span>
           {/* How many devices this preview stands for: every device in the
               modes that drive them all, the selection in the per-device ones. */}
-          <Badge label={previewBadgeLabel} compact color="var(--text-dim)" />
+          <Badge label={previewBadgeLabel} compact uppercase color="var(--text-dim)" />
           {dockCollapsed && (
             <HoverTooltip body={t('lighting.effectDock.expand')} side="bottom">
               <Button
