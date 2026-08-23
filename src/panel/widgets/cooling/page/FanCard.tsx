@@ -283,7 +283,7 @@ export const FanCard = memo(function FanCard({
     >
       {onToggleSelect && !isReadOnly && (
         <span
-          className={`${styles.fanCheck} ${selected ? styles.fanCheckOn : ''}`}
+          className={styles.fanCheckHit}
           role="checkbox"
           aria-checked={selected}
           aria-label={channel.name}
@@ -294,7 +294,9 @@ export const FanCard = memo(function FanCard({
             if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onToggleSelect(channel.id); }
           }}
         >
-          {selected && <Check aria-hidden />}
+          <span className={`${styles.fanCheck} ${selected ? styles.fanCheckOn : ''}`} aria-hidden>
+            {selected && <Check aria-hidden />}
+          </span>
         </span>
       )}
       {/* Everything but the checkbox stacks in here, so the box sits centred
