@@ -500,7 +500,7 @@
 // Q60 cells are non-square (~236w × ~203h); --panel-content-scale = min(cell,
 // row) collapses --_content to the short axis, leaving a ~33px gap that reads
 // as a border. Size the content box per-axis from the real cell dims so it
-// fills the card. (Scale is --panel-scale: 2.5, set in tokens.scss for Chrome 83.)
+// fills the card.
 .panelRoot[data-surface='q60'] .cellScaler {
   --_grid-w: calc(var(--_cols) * var(--panel-cell-size) + (var(--_cols) - 1) * var(--_gap));
   --_grid-h: calc(var(--_rows) * var(--panel-row-size) + (var(--_rows) - 1) * var(--_gap));

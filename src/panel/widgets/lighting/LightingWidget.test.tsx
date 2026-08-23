@@ -1,8 +1,9 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PanelWidget } from '../../types';
 import {
-  fetchCurrentSync, startAnimate, startGameSync, startScreenMirror, startStatic, stopLighting,
+  fetchAnimateSettings, fetchCurrentSync, setMusicReactive, setScreenEffect, startAnimate, startGameSync,
+  startScreenMirror, startStatic, stopLighting,
 } from '../../../api/lighting';
 import { fetchMediaCurrent, fetchMediaLibrary, playMedia, type MediaItem } from '../../../api/mediaLibrary';
 import { pingService } from '../../../api/service';
@@ -40,8 +41,15 @@ vi.mock('../../../api/service', () => ({
   pingService: vi.fn(() => Promise.resolve({ service: 'nexus', platform: 'windows' })),
 }));
 
+// Captured so a test can fire the lighting broadcast the service sends after
+// every mode change - the re-hydrate it drives is where stale state creeps in.
+const lightingTopicCallbacks = vi.hoisted(() => [] as (() => void)[]);
 vi.mock('../../../hooks/useMultiplexSocket', () => ({
-  useTopicCallback: vi.fn(),
+  useTopicCallback: vi.fn((topic: string, enabled: boolean, cb: () => void) => {
+    if (topic === 'lighting' && enabled && !lightingTopicCallbacks.includes(cb)) {
+      lightingTopicCallbacks.push(cb);
+    }
+  }),
 }));
 
 vi.mock('../../../lib/controlSync', () => ({
@@ -239,6 +247,78 @@ describe('LightingWidget', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Previous' }));
       await waitFor(() => expect(stopLighting).toHaveBeenCalled());
       expect(startStatic).not.toHaveBeenCalled();
+    });
+
+    // The arrows change the mode and nothing else - stepping out of a mode and
+    // back must replay what was selected, not a catalog default.
+    it('restores the previous animation after stepping through Static', async () => {
+      vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'nebula' });
+      vi.mocked(fetchAnimateSettings).mockResolvedValueOnce({ effect: 'nebula', templates: {} });
+      vi.mocked(startAnimate).mockClear();
+      vi.mocked(startStatic).mockClear();
+      render(<LightingWidget widget={lightingWidget('4x2')} />);
+      await waitFor(() => expect(screen.getByText('lighting.controls.nebula')).toBeInTheDocument());
+
+      // MODES order: off, static, animate, gif, screen, gamesync.
+      fireEvent.click(screen.getByRole('button', { name: 'Previous' }));
+      await waitFor(() => expect(startStatic).toHaveBeenCalled());
+
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+      await waitFor(() => expect(startAnimate).toHaveBeenCalled());
+      expect(vi.mocked(startAnimate).mock.calls[0][0]).toBe('nebula');
+    });
+
+    it('keeps the animation when the mode step broadcasts a re-hydrate', async () => {
+      lightingTopicCallbacks.length = 0;
+      vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'nebula' });
+      vi.mocked(fetchAnimateSettings).mockResolvedValueOnce({ effect: 'nebula', templates: {} });
+      vi.mocked(startAnimate).mockClear();
+      vi.mocked(startStatic).mockClear();
+      render(<LightingWidget widget={lightingWidget('4x2')} />);
+      await waitFor(() => expect(screen.getByText('lighting.controls.nebula')).toBeInTheDocument());
+
+      fireEvent.click(screen.getByRole('button', { name: 'Previous' }));
+      await waitFor(() => expect(startStatic).toHaveBeenCalled());
+
+      // What the service reports once Static is running: sync flips, the
+      // animate pick stays behind it.
+      vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'static' });
+      vi.mocked(fetchAnimateSettings).mockResolvedValueOnce({ effect: 'nebula', templates: {} });
+      await act(async () => { for (const cb of lightingTopicCallbacks) cb(); });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+      await waitFor(() => expect(startAnimate).toHaveBeenCalled());
+      expect(vi.mocked(startAnimate).mock.calls[0][0]).toBe('nebula');
+    });
+
+    it('restores the previous static effect after stepping through Off', async () => {
+      vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'static' });
+      vi.mocked(startStatic).mockClear();
+      render(<LightingWidget widget={lightingWidget('4x2')} />);
+      await waitFor(() => expect(screen.getByText('lighting.devices.activeCount.other')).toBeInTheDocument());
+
+      fireEvent.click(screen.getByRole('button', { name: 'Previous' }));
+      await waitFor(() => expect(stopLighting).toHaveBeenCalled());
+
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+      await waitFor(() => expect(startStatic).toHaveBeenCalled());
+      expect(vi.mocked(startStatic).mock.calls[0][0]).toBe('simplewhite');
+    });
+
+    // Entering Mirror must not author its post-process, and no mode step may
+    // clear the music-reactive preference.
+    it('enters Mirror without writing its look or the music-reactive flag', async () => {
+      vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'gif' });
+      vi.mocked(setScreenEffect).mockClear();
+      vi.mocked(setMusicReactive).mockClear();
+      vi.mocked(startScreenMirror).mockClear();
+      render(<LightingWidget widget={lightingWidget('4x2')} />);
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Next' })).toBeInTheDocument());
+
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+      await waitFor(() => expect(startScreenMirror).toHaveBeenCalled());
+      expect(setScreenEffect).not.toHaveBeenCalled();
+      expect(setMusicReactive).not.toHaveBeenCalled();
     });
 
     it('wraps off the start of the mode list', async () => {
