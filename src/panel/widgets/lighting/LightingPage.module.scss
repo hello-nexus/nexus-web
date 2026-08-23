@@ -394,7 +394,7 @@
   display: flex;
   align-items: center;
   gap: 0.55rem;
-  margin: 0.4rem 0.4rem 0;
+  // Geometry matches .addSmartLights so the two tail entries line up.
   padding: 0.6rem 0.75rem;
   border: var(--border-width) dashed var(--border-strong);
   border-radius: var(--radius);
@@ -408,7 +408,6 @@
 }
 
 .discoveryIconBusy {
-  color: var(--accent);
   animation: deviceRescanSpin 1.1s linear infinite;
 }
 

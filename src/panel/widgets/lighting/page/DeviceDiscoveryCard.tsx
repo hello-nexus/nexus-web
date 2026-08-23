@@ -1,3 +1,4 @@
+import { RefreshCw } from 'lucide-react';
 import { useTranslation } from '../../../../lib/i18n';
 import { OpenRgbGlyph } from '../../../../components/icons/NexusBrand';
 import styles from '../LightingPage.module.scss';
@@ -19,8 +20,10 @@ export function DeviceDiscoveryCard({ state, rgbRunning }: {
   const detecting = state === 'detecting';
   return (
     <div className={styles.discoveryCard} role="status" aria-live="polite">
+      {/* Scanning wears the rescan button's own icon, so the two read as the
+          same operation; idle keeps the OpenRGB mark. */}
       <span className={`${styles.discoveryIcon} ${detecting ? styles.discoveryIconBusy : ''}`} aria-hidden>
-        <OpenRgbGlyph size={18} />
+        {detecting ? <RefreshCw size={18} /> : <OpenRgbGlyph size={18} />}
       </span>
       <span className={styles.discoveryText}>
         {t(detecting ? 'lighting.devices.discovery.detecting' : 'lighting.devices.discovery.off')}
