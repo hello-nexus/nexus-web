@@ -67,8 +67,9 @@
   display: block;
   overflow: hidden;
   // No fill: the image / skeleton / live canvas always covers this box; the
-  // icon view (off / mirror / no-media) is the only state where the box itself
-  // shows, and it reads the card's base background to match CoolingWidget.
+  // icon and message views (off / static / mirror / game sync / no-media) are
+  // the only states where the box itself shows, and it reads the card's base
+  // background to match CoolingWidget.
 
   img {
     width: 100%;

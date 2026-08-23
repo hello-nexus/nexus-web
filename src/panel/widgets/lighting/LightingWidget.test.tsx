@@ -6,7 +6,7 @@ import {
   startScreenMirror, startStatic, stopLighting,
 } from '../../../api/lighting';
 import { fetchMediaCurrent, fetchMediaLibrary, playMedia, type MediaItem } from '../../../api/mediaLibrary';
-import { pingService } from '../../../api/service';
+import { fetchServiceBlob, pingService } from '../../../api/service';
 import { LightingWidget } from './LightingWidget';
 
 vi.mock('../../../api/lighting', () => ({
@@ -34,6 +34,14 @@ vi.mock('../../../api/mediaLibrary', () => ({
   mediaIdle: vi.fn(() => Promise.resolve()),
   playCurrentOrFirstMedia: vi.fn(() => Promise.resolve(true)),
   playMedia: vi.fn(() => Promise.resolve(true)),
+}));
+
+vi.mock('./LightingLivePreview', () => ({
+  LightingLivePreview: () => <div data-testid="live-preview" />,
+}));
+
+vi.mock('./LightingShaderPreview', () => ({
+  LightingShaderPreview: () => <div data-testid="shader-preview" />,
 }));
 
 vi.mock('../../../api/service', () => ({
@@ -189,15 +197,55 @@ describe('LightingWidget', () => {
   });
 
   it('flashes inside the thumbnail when the mode changes', async () => {
+    vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'static' });
     render(<LightingWidget widget={lightingWidget('4x2')} />);
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Animation' }).getAttribute('data-active')).toBe('true');
+      expect(screen.getByRole('button', { name: /static/i }).getAttribute('data-active')).toBe('true');
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /static/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Animation' }));
     await waitFor(() => {
       expect(document.querySelector('[data-state-flash]')).toBeInTheDocument();
     });
+  });
+
+  // Static colours are assigned per device, so there is no one effect to
+  // picture - the mode icon and the lit-device count are the whole tile.
+  it('shows Static as an icon and a device count, with no effect thumbnail', async () => {
+    vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'static' });
+    vi.mocked(fetchServiceBlob).mockClear();
+    render(<LightingWidget widget={lightingWidget('4x2')} />);
+
+    await waitFor(() => expect(screen.getByText('lighting.devices.activeCount.other')).toBeInTheDocument());
+    // The icon view, not the framed effect card the animate tile uses.
+    expect(document.querySelector('[class*="thumbIconWrap"]')).toBeInTheDocument();
+    expect(document.querySelector('[class*="thumbCardBox"]')).not.toBeInTheDocument();
+    expect(document.querySelector('[data-state-flash]')).not.toBeInTheDocument();
+    // The pre-hydrate default fetch is for the animate key; no static effect's
+    // thumbnail is ever requested, because none is rendered.
+    const paths = vi.mocked(fetchServiceBlob).mock.calls.map(c => String(c[0]));
+    expect(paths.some(p => p.includes('simplewhite'))).toBe(false);
+  });
+
+  // Immersive got the same treatment: it used to render one static effect's
+  // shader full-bleed, which pictured a selection that does not exist. The live
+  // LED canvas replaces it - the editor below drives real devices, so it needs
+  // feedback, and per-device colour is the one thing worth showing.
+  it('immersive Static shows the live LED canvas, not one effect shader', async () => {
+    vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'static' });
+    render(<LightingWidget widget={lightingWidget('4x2')} immersive />);
+
+    await waitFor(() => expect(screen.getByText('lighting.devices.activeCount.other')).toBeInTheDocument());
+    expect(screen.getByTestId('live-preview')).toBeInTheDocument();
+    expect(screen.queryByTestId('shader-preview')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'lighting.fullscreen' })).not.toBeInTheDocument();
+  });
+
+  it('immersive Animation still renders its shader', async () => {
+    render(<LightingWidget widget={lightingWidget('4x2')} immersive />);
+
+    await waitFor(() => expect(screen.getByTestId('shader-preview')).toBeInTheDocument());
+    expect(screen.queryByTestId('live-preview')).not.toBeInTheDocument();
   });
 
   describe('simple mode', () => {

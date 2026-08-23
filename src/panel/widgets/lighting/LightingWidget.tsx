@@ -37,7 +37,6 @@ import {
   DEFAULT_STATIC_EFFECT,
   EFFECTS,
   MODES,
-  STATIC_EFFECTS,
   defaultStateFor,
   isStaticEffect,
   type EffectState,
@@ -109,6 +108,8 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
   // Immersive only: tapping the live shader preview expands it to a full-bleed
   // shader view; tapping that closes it. Auto-closes whenever the mode leaves
   // animate - the fullscreen view only renders a shader effect.
+  // Static is excluded: its colours are per device, so the immersive view
+  // shows the live LED canvas behind the icon rather than any one shader.
   const [shaderFullscreen, setShaderFullscreen] = useState(false);
 
   // False until the first hydrate() resolves: mode/effect/filter sets
@@ -118,7 +119,6 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
   // loads must never trigger the flash.
   const flashPulse = useStateChangePulse(
     mode === 'animate' ? `animate:${activeEffect}`
-      : mode === 'static' ? `static:${activeEffect}`
       : mode === 'screen' ? `screen:${reactive}`
       : mode,
     !hydrated,
@@ -200,7 +200,7 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
   // Leaving animate (a mode change from this surface or an external broadcast)
   // dismisses the immersive fullscreen shader.
   useEffect(() => {
-    if (mode !== 'animate' && mode !== 'static') setShaderFullscreen(false);
+    if (mode !== 'animate') setShaderFullscreen(false);
   }, [mode]);
 
   // The tile shows the active effect's selected universal slot. Its content hash
@@ -220,14 +220,12 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
   const thumbsRef = useRef<Record<string, string>>({});
   const loadedVersionRef = useRef<Record<string, string>>({});
   useEffect(() => {
-    if (preview || !activeEffect) return;
+    if (preview || !activeEffect || mode === 'static') return;
     const want = activeVersion ?? '';
     if (loadedVersionRef.current[activeEffect] === want) return;
     let cancelled = false;
     (async () => {
-      // frozen: static renders at speed 0, a different image than the animate
-      // tile, and useEffectThumbnail keys its cache on the same flag.
-      const blob = await fetchServiceBlob(effectThumbnailPath(activeEffect, activeSlot, activeVersion, mode === 'static'));
+      const blob = await fetchServiceBlob(effectThumbnailPath(activeEffect, activeSlot, activeVersion));
       if (cancelled || !blob) return;
       const url = URL.createObjectURL(blob);
       const prev = thumbsRef.current[activeEffect];
@@ -411,18 +409,23 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
     const prev = () => cycleMode(-1);
     const next = () => cycleMode(1);
 
-    if (mode === 'animate' || mode === 'static') {
-      const pool = mode === 'static' ? STATIC_EFFECTS : ANIMATE_EFFECTS;
-      const fallbackKey = mode === 'static' ? DEFAULT_STATIC_EFFECT : pool[0].key;
-      const effect = pool.find(e => e.key === activeEffect)
-        ?? pool.find(e => e.key === fallbackKey)
-        ?? pool[0];
+    // Static assigns a colour per device, so there is no one selection to
+    // picture - the icon plus how many devices are lit is the whole truth.
+    if (mode === 'static') {
+      return {
+        kind: 'icon',
+        icon: LIGHTING_MODE_ICONS.static,
+        label: t(pluralKey('lighting.devices.activeCount', language, activeDeviceCount), { count: activeDeviceCount }),
+        onPrev: prev,
+        onNext: next,
+      };
+    }
+    if (mode === 'animate') {
+      const effect = ANIMATE_EFFECTS.find(e => e.key === activeEffect) ?? ANIMATE_EFFECTS[0];
       return {
         kind: 'thumb',
         thumbUrl: thumbs[effect.key] ?? null,
-        label: mode === 'static'
-          ? t(pluralKey('lighting.devices.activeCount', language, activeDeviceCount), { count: activeDeviceCount })
-          : t(effect.labelKey),
+        label: t(effect.labelKey),
         onPrev: prev,
         onNext: next,
       };
@@ -462,20 +465,17 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
     return { kind: 'message', message: t('lighting.panel.selectMode'), label: t('lighting.mode.off'), onPrev: prev, onNext: next };
   }, [mode, activeEffect, activeDeviceCount, language, thumbs, t, reactive, mediaItems, activeMediaId, mediaThumbs, cycleMode]);
 
-  // The flash stands in for a thumbnail that has not painted yet, so it only
-  // makes sense where a thumbnail renders: Off, Mirror and Game Sync show an
-  // icon or a message and stay still.
+  // The flash stands in for a thumbnail that has not painted yet, so the tile
+  // only flashes where a thumbnail renders. Off, Static, Mirror and Game Sync
+  // show an icon or a message, so they stay still here.
   const thumbFlash = view.kind === 'thumb' ? flash : null;
 
   // Active Animate effect state for the immersive on-device preview: the shader
   // is rendered locally at full resolution, replacing the low-res streamed LED
   // canvas (LightingLivePreview) for shader effects only.
   const animateState = useMemo(
-    () => {
-      const state = resolveEffectState(activeEffect, templates);
-      return mode === 'static' ? { ...state, speed: 0 } : state;
-    },
-    [activeEffect, mode, templates],
+    () => resolveEffectState(activeEffect, templates),
+    [activeEffect, templates],
   );
 
   // Immersive (fullscreen panel) variant: a row of icon-only mode buttons
@@ -506,7 +506,7 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
           showArrows={false}
           overlay={
             <>
-              {mode === 'animate' || mode === 'static'
+              {mode === 'animate'
                 ? (
                   <button
                     type="button"
@@ -529,7 +529,7 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
             </>
           }
         />
-        {(mode === 'animate' || mode === 'static') && shaderFullscreen && (
+        {mode === 'animate' && shaderFullscreen && (
           <button
             type="button"
             className={styles.shaderFullscreen}
@@ -637,11 +637,16 @@ function SingleItemView({ view, t, showArrows, overlay, framed }: { view: Single
       ) : (
         <span className={styles.thumb}>
           {view.kind === 'icon' && (
-            <span className={styles.thumbIconWrap}>
-              {/* eslint-disable-next-line i18next/no-literal-string -- aria boolean */}
-              <view.icon className={styles.thumbIcon} aria-hidden="true" />
-              <span className={styles.thumbCaption}>{view.label}</span>
-            </span>
+            <>
+              <span className={styles.thumbIconWrap}>
+                {/* eslint-disable-next-line i18next/no-literal-string -- aria boolean */}
+                <view.icon className={styles.thumbIcon} aria-hidden="true" />
+                <span className={styles.thumbCaption}>{view.label}</span>
+              </span>
+              {/* Same as the message view: the immersive overlay is the live LED
+                  canvas, and a per-device mode has nothing truer to show. */}
+              {overlay}
+            </>
           )}
           {view.kind === 'thumb' && (
             view.thumbUrl
