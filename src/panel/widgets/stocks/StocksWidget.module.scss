@@ -205,14 +205,29 @@
   padding: 1px 7px;
   border-radius: var(--radius-pill);
   font-variant-numeric: tabular-nums;
+  // Pill tint: currentColor at low opacity instead of color-mix, which
+  // Chromium 83 (Q60) drops. Identical compositing on modern engines.
+  position: relative;
+  z-index: 0;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: currentColor;
+    opacity: 0.18;
+  }
 }
 
 .chipUp {
   color: var(--stock-up);
-  background: color-mix(in srgb, var(--stock-up) 18%, transparent);
 }
 
 .chipDown {
   color: var(--stock-down);
-  background: color-mix(in srgb, var(--stock-down) 18%, transparent);
 }
