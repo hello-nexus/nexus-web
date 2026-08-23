@@ -1202,7 +1202,9 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         </SettingRow>
                         <SettingRow
                           label={t('devices.panels.resetHardware.label')}
-                          description={t('devices.panels.resetHardware.description')}
+                          description={t(isQSeries
+                            ? 'devices.panels.resetHardware.descriptionQSeries'
+                            : 'devices.panels.resetHardware.description')}
                         >
                           <Button
                             type="button"
@@ -1329,7 +1331,9 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
         open={resetHardwareConfirmOpen}
         title={t('devices.panels.resetHardware.confirmTitle')}
         message={t('devices.panels.resetHardware.confirmMessage')}
-        bullets={t('devices.panels.resetHardware.wipeList').split('\n')}
+        bullets={t(isQSeries
+          ? 'devices.panels.resetHardware.wipeListQSeries'
+          : 'devices.panels.resetHardware.wipeList').split('\n')}
         note={t('devices.panels.resetHardware.confirmNote')}
         confirmLabel={t('devices.panels.resetHardware.confirmButton')}
         destructive

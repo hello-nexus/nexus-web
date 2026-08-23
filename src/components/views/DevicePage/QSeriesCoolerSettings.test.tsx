@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { QSeriesCoolerSettings } from './QSeriesCoolerSettings';
 
@@ -90,80 +90,98 @@ async function renderSettings() {
 }
 
 describe('QSeriesCoolerSettings', () => {
-  it('disables Save curves, Save animation, and Reset when the loaded state is already at factory defaults', async () => {
+  it('still offers a save path when the firmware has no curve support', async () => {
+    // Turbo is draft-only now, so hiding the save row with the curves left old
+    // firmware unable to write turbo at all.
+    mockGetCurve.mockResolvedValue(defaultCurve({ supported: false }));
     await renderSettings();
 
-    expect(screen.getByRole('button', { name: 'devices.q60.saveCurve' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'devices.q60.saveAnimation' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'cooling.curves.resetBtn' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('switch', { name: 'devices.q60.turbo' }));
+    const save = screen.getByRole('button', { name: 'devices.q60.saveCooling' });
+    expect(save).not.toBeDisabled();
+
+    await act(async () => { fireEvent.click(save); });
+    await waitFor(() => expect(mockSetTurbo).toHaveBeenCalledWith(true));
+    // Nothing to write, and the service rejects empty point arrays.
+    expect(mockSetCurve).not.toHaveBeenCalled();
   });
 
-  it('enables Reset when turbo is on, and writes only the resources that differ from device state', async () => {
+  it('reports a failed turbo write and does not write the curve against the old mode', async () => {
+    mockSetTurbo.mockResolvedValue(null);
+    await renderSettings();
+
+    fireEvent.click(screen.getByRole('switch', { name: 'devices.q60.turbo' }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'devices.q60.saveCooling' }));
+    });
+
+    await waitFor(() => expect(mockSetTurbo).toHaveBeenCalled());
+    // Turbo caps the duties the firmware accepts; writing the curve anyway would
+    // have it clamped and then refetched as if the user had authored it.
+    expect(mockSetCurve).not.toHaveBeenCalled();
+  });
+
+  it('holds turbo as a draft instead of writing it on toggle', async () => {
+    // Turbo persists to the MCU (FF CC 0A) as soon as it is written, so toggling
+    // must not reach the device until the user commits the cooling changes.
+    await renderSettings();
+
+    fireEvent.click(screen.getByRole('switch', { name: 'devices.q60.turbo' }));
+
+    expect(mockSetTurbo).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'devices.q60.saveCooling' })).not.toBeDisabled();
+  });
+
+  it('writes only turbo when the curve was not edited', async () => {
+    // The curve PUT sends whole point arrays, so re-sending an unedited curve
+    // costs an EEPROM write for nothing (and PUTs empty arrays if it never loaded).
+    await renderSettings();
+
+    fireEvent.click(screen.getByRole('switch', { name: 'devices.q60.turbo' }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'devices.q60.saveCooling' }));
+    });
+
+    await waitFor(() => expect(mockSetTurbo).toHaveBeenCalledWith(true));
+    expect(mockSetCurve).not.toHaveBeenCalled();
+  });
+
+  it('follows the device when an external change lands on a clean draft', async () => {
+    // A hardware reset turns turbo off behind this page. A draft the user never
+    // touched must adopt that, not stay stale and arm Save with no edit.
+    await renderSettings();
+    expect(screen.getByRole('button', { name: 'devices.q60.saveCooling' })).toBeDisabled();
+
     mockGetState.mockResolvedValue(baseState({ turboOn: true }));
-    mockGetAnimation.mockResolvedValue({ animation: 2, r: 10, g: 20, b: 30, brightness: 40 });
+    await act(async () => { window.dispatchEvent(new Event('focus')); });
 
-    await renderSettings();
-
-    const resetBtn = screen.getByRole('button', { name: 'cooling.curves.resetBtn' });
-    expect(resetBtn).not.toBeDisabled();
-
-    fireEvent.click(resetBtn);
-    await act(async () => {});
-
-    expect(mockSetTurbo).toHaveBeenCalledWith(false);
-    expect(mockSetCurve).not.toHaveBeenCalled();
-    expect(mockSetAnimation).toHaveBeenCalledWith(DEFAULT_ANIMATION);
+    await waitFor(() =>
+      expect(screen.getByRole('switch', { name: 'devices.q60.turbo' })).toHaveAttribute('aria-checked', 'true'));
+    expect(screen.getByRole('button', { name: 'devices.q60.saveCooling' })).toBeDisabled();
   });
 
-  it('leaves Reset disabled and issues no writes when only the curve differs but stays at default draft', async () => {
-    // Device curve is already at default and turbo is off, so nothing here
-    // should need a reset write; this also guards against a false-positive
-    // "dirty" reading immediately after load.
+  it('disables both save buttons when the loaded state matches the device', async () => {
     await renderSettings();
 
-    fireEvent.click(screen.getByRole('button', { name: 'cooling.curves.resetBtn' }));
-    await act(async () => {});
-
-    expect(mockSetTurbo).not.toHaveBeenCalled();
-    expect(mockSetCurve).not.toHaveBeenCalled();
-    expect(mockSetAnimation).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'devices.q60.saveCooling' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'devices.q60.saveLighting' })).toBeDisabled();
   });
 
-  it('never writes an unverified animation default when the firmware-animation read has not resolved', async () => {
-    // Turbo is off and the curve is already at default, so Reset is only
-    // enabled here because the animation baseline is unknown. Clicking it
-    // must not blindly PUT the default animation without ever having read
-    // the device's actual value.
-    mockGetAnimation.mockReturnValue(new Promise(() => {}));
 
-    await renderSettings();
 
-    const resetBtn = screen.getByRole('button', { name: 'cooling.curves.resetBtn' });
-    expect(resetBtn).not.toBeDisabled();
-
-    fireEvent.click(resetBtn);
-    await act(async () => {});
-
-    expect(mockSetTurbo).not.toHaveBeenCalled();
-    expect(mockSetCurve).not.toHaveBeenCalled();
-    expect(mockSetAnimation).not.toHaveBeenCalled();
-    // The draft must not follow the reset to defaults either: with no baseline a
-    // defaults draft would arm Save for the exact blind write Reset just skipped.
-    expect(screen.getByRole('button', { name: 'devices.q60.saveAnimation' })).toBeDisabled();
-  });
 
   it('enables Save animation after switching effect, saves the draft, and hides the color picker outside Color', async () => {
     await renderSettings();
 
     // Color is the default effect, so the hex field starts visible.
     expect(screen.getByRole('textbox', { name: 'common.hexColor' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'devices.q60.saveAnimation' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'devices.q60.saveLighting' })).toBeDisabled();
 
     fireEvent.click(screen.getByRole('button', { name: 'devices.fwAnimation.effect' }));
     fireEvent.click(screen.getByRole('option', { name: 'devices.fwAnimation.rainbowCycle' }));
 
     expect(screen.queryByRole('textbox', { name: 'common.hexColor' })).not.toBeInTheDocument();
-    const saveBtn = screen.getByRole('button', { name: 'devices.q60.saveAnimation' });
+    const saveBtn = screen.getByRole('button', { name: 'devices.q60.saveLighting' });
     expect(saveBtn).not.toBeDisabled();
 
     fireEvent.click(saveBtn);
@@ -202,13 +220,13 @@ describe('QSeriesCoolerSettings', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'devices.fwAnimation.effect' }));
     fireEvent.click(screen.getByRole('option', { name: 'devices.fwAnimation.rainbowCycle' }));
-    expect(screen.getByRole('button', { name: 'devices.q60.saveAnimation' })).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: 'devices.q60.saveLighting' })).not.toBeDisabled();
 
     await act(async () => {
       fireEvent(window, new Event('focus'));
     });
 
-    const saveBtn = screen.getByRole('button', { name: 'devices.q60.saveAnimation' });
+    const saveBtn = screen.getByRole('button', { name: 'devices.q60.saveLighting' });
     expect(saveBtn).not.toBeDisabled();
     fireEvent.click(saveBtn);
     await act(async () => {});
@@ -222,7 +240,7 @@ describe('QSeriesCoolerSettings', () => {
 
     expect(screen.getByText('devices.q60.fwAnimationUnsupported')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'devices.fwAnimation.effect' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'devices.q60.saveAnimation' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'devices.q60.saveLighting' })).not.toBeInTheDocument();
   });
 
   it('shows a brightness-specific hint when only brightness writes are unsupported', async () => {

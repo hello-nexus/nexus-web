@@ -39,13 +39,13 @@ describe('resolvePanelBackdrop', () => {
 });
 
 describe('normalizePanelBackgroundFrost', () => {
-  it('defaults an unset value to the mid-strength default', () => {
+  it('defaults an unset value to frost off', () => {
     expect(normalizePanelBackgroundFrost(undefined)).toBe(DEFAULT_PANEL_BACKGROUND_FROST);
     expect(normalizePanelBackgroundFrost(null)).toBe(DEFAULT_PANEL_BACKGROUND_FROST);
     expect(normalizePanelBackgroundFrost(Number.NaN)).toBe(DEFAULT_PANEL_BACKGROUND_FROST);
   });
 
-  it('keeps an explicit zero (frost off) distinct from unset', () => {
+  it('accepts an explicit zero rather than treating it as unset', () => {
     expect(normalizePanelBackgroundFrost(0)).toBe(0);
   });
 

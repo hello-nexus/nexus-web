@@ -229,6 +229,8 @@ export function PanelThemeSettings({
       editable
       trackFill
       label={label('panel.settings.backgroundOpacity', 'Background Opacity')}
+      description={label('panel.settings.backgroundOpacity.desc', 'Dims the backdrop')}
+      descriptionBelow
       value={backgroundOpacityPercent}
       min={0}
       max={100}
@@ -361,6 +363,8 @@ export function PanelThemeSettings({
             trackFill
             disabled={!frostApplies}
             label={label('panel.settings.backgroundFrost', 'Frosted glass')}
+            description={label('panel.settings.backgroundFrost.desc', 'Improves clarity on busy backdrops')}
+            descriptionBelow
             value={theme.backgroundFrost}
             min={0}
             max={100}

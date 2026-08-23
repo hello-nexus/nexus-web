@@ -13,7 +13,7 @@ import { getInstallDefaults } from '../../api/installDefaultsCache';
 export type PanelBackgroundMode = 'solid' | 'shader' | 'media';
 
 // Frost strength, percent 0-100; 0 renders no frost pass at all.
-export const DEFAULT_PANEL_BACKGROUND_FROST = 50;
+export const DEFAULT_PANEL_BACKGROUND_FROST = 0;
 // Granularity of the whole control, not just the drag: EditableNumber snaps a
 // typed value to it too.
 export const PANEL_BACKGROUND_FROST_STEP = 10;
