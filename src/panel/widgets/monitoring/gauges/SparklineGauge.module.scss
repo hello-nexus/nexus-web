@@ -1,3 +1,5 @@
+@use '../../../styles/flexGap' as *;
+
 .sparkline {
   display: flex;
   flex-direction: column;
@@ -8,7 +10,8 @@
   min-width: 0;
   min-height: 0;
   padding: 6px 6px 8px;
-  gap: 8px;
+
+  @include vgap(8px);
 }
 
 .chart {
@@ -31,10 +34,11 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
   // Shrink-to-fit box: clamp it, or GaugeValue's fit never sees an overflow.
   max-width: 100%;
   min-width: 0;
+
+  @include vgap(2px);
 }
 
 .value {

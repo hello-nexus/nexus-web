@@ -1,3 +1,5 @@
+@use '../../../styles/flexGap' as *;
+
 .backdrop {
   position: relative;
   display: flex;
@@ -11,7 +13,10 @@
 
 .chart {
   position: absolute;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   // Mask the full-bleed trace to rounded corners, matching the Filled Line graph.
   border-radius: var(--panel-element-radius);
   overflow: hidden;
@@ -29,11 +34,12 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
   pointer-events: none;
   // Shrink-to-fit box: clamp it, or GaugeValue's fit never sees an overflow.
   max-width: 100%;
   min-width: 0;
+
+  @include vgap(2px);
 }
 
 .value {

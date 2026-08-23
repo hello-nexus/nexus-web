@@ -1,0 +1,22 @@
+// Flex `gap` shipped in Chromium 84; the Q60 panel WebView is Chromium 83,
+// where it silently computes to 0 and spacing collapses. Panel-runtime styles
+// space flex children through these mixins instead - margins render
+// identically on modern engines. Grid `gap` is fine on 83 and stays as-is.
+// Enforced by src/panel/chromium83Floor.test.ts.
+
+@mixin hgap($v) {
+  > *:not(:last-child) { margin-right: $v; }
+}
+
+@mixin vgap($v) {
+  > *:not(:last-child) { margin-bottom: $v; }
+}
+
+// For flex-wrap containers: spacing on every side of every child, pulled back
+// in at the container edges. The container's negative margin means it needs a
+// parent that tolerates the overhang (or an inner wrapper).
+@mixin wrapgap($h, $v: $h) {
+  margin: calc(#{$v} / -2) calc(#{$h} / -2);
+
+  > * { margin: calc(#{$v} / 2) calc(#{$h} / 2); }
+}

@@ -37,7 +37,10 @@
   &::after {
     content: '';
     position: absolute;
-    inset: -1px;
+    top: -1px;
+    right: -1px;
+    bottom: -1px;
+    left: -1px;
     border: 2px solid transparent;
     border-style: dashed;
     border-radius: inherit;

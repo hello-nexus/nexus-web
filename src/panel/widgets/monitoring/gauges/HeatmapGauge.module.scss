@@ -1,3 +1,5 @@
+@use '../../../styles/flexGap' as *;
+
 .heatmap {
   display: flex;
   flex-direction: column;
@@ -6,7 +8,8 @@
   height: 100%;
   width: 100%;
   padding: 6px 6px 8px;
-  gap: 8px;
+
+  @include vgap(8px);
 }
 
 .graphicWrap {
@@ -23,10 +26,11 @@
 .cellGroup {
   display: flex;
   align-items: stretch;
-  gap: 2px;
   width: 92%;
   height: 100%;
   max-height: 58px;
+
+  @include hgap(2px);
 }
 
 .cell {
@@ -40,10 +44,11 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
   // Shrink-to-fit box: clamp it, or GaugeValue's fit never sees an overflow.
   max-width: 100%;
   min-width: 0;
+
+  @include vgap(2px);
 }
 
 .value {

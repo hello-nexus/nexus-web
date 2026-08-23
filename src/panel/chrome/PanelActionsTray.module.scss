@@ -1,3 +1,4 @@
+@use '../styles/flexGap' as *;
 .handleZone {
   position: absolute;
   bottom: 0;
@@ -34,7 +35,7 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 8px;
+  @include vgap(8px);
   // Safe-area insets on every side so landscape notched phones don't punch
   // buttons under the notch / rounded corners. max() keeps a gutter on
   // devices with no inset.
@@ -134,7 +135,7 @@
   flex-direction: row;
   align-items: baseline;
   justify-content: center;
-  gap: 6px;
+  @include hgap(6px);
   color: var(--text);
   line-height: 1.2;
   padding: 2px 4px 4px;
@@ -172,7 +173,7 @@
   flex-direction: row;
   align-items: stretch;
   justify-content: center;
-  gap: 8px;
+  @include hgap(8px);
 }
 
 // Tray buttons are the shared desktop <Button> (neutral tone); these classes
@@ -188,7 +189,10 @@
 
 .scrim {
   position: absolute;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   background: color-mix(in srgb, black 32%, transparent);
   opacity: 0;
   pointer-events: none;

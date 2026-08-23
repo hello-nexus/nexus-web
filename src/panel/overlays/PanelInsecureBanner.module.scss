@@ -1,3 +1,4 @@
+@use '../styles/flexGap' as *;
 .banner {
   position: fixed;
   top: 0;
@@ -8,7 +9,7 @@
   align-items: center;
   justify-content: center;
   flex-wrap: wrap;
-  gap: 6px 10px;
+  @include wrapgap(10px, 6px);
   padding: 8px 14px;
   font-family: var(--panel-font);
   font-size: var(--type-mini);

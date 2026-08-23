@@ -1,4 +1,5 @@
 @use '../../../styles/text' as *;
+@use '../../styles/flexGap' as *;
 
 // Single dim level for all secondary text; full-opacity is reserved for the
 // temperature and forecast numbers, accent for icons and the range bar.
@@ -27,19 +28,19 @@ $dim: 0.55;
   min-width: 0;
   min-height: 0;
   padding: 16px;
-  gap: 6px;
   box-sizing: border-box;
   text-align: center;
+  @include vgap(6px);
 }
 
 .compact2x2 {
   align-items: stretch;
   padding: 18px;
-  gap: 6px;
+  @include vgap(6px);
 }
 
 .compact1x1 {
-  gap: 4px;
+  @include vgap(4px);
 }
 
 .compactCurrent {
@@ -54,8 +55,8 @@ $dim: 0.55;
 .compact2x2 .compactCurrent {
   flex-direction: row;
   justify-content: center;
-  gap: 10px;
   width: 100%;
+  @include hgap(10px);
 }
 
 .compactIconWrap {
@@ -117,14 +118,13 @@ $dim: 0.55;
   @include label-secondary;
   display: flex;
   justify-content: center;
-  gap: 10px;
-  row-gap: 3px;
   flex-wrap: wrap;
   max-width: 100%;
+  @include wrapgap(10px, 3px);
 
-  .stat {
-    gap: 4px;
-  }
+  // The parent vgap outranks wrapgap's negative bottom margin; net the
+  // child overhang out of it so the visual spacing stays the vgap value.
+  .compact > &:not(:last-child) { margin-bottom: 4.5px; }
 
   .stat svg {
     width: 12px;
@@ -132,12 +132,14 @@ $dim: 0.55;
   }
 }
 
+// .stat's only element child is the icon, followed by a text node (the
+// value); text nodes can't be targeted by the hgap mixin's child selector,
+// so the icon gets an unconditional margin instead of relying on :not(:last-child).
 .stat {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
 
-  svg { width: 13px; height: 13px; }
+  svg { width: 13px; height: 13px; margin-right: 4px; }
 }
 
 // Large (4x4): current conditions, hourly strip, daily forecast rows
@@ -159,9 +161,9 @@ $dim: 0.55;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
   flex-shrink: 0;
   min-width: 0;
+  @include hgap(16px);
 }
 
 .largeCurrent {
@@ -170,7 +172,7 @@ $dim: 0.55;
   align-items: flex-start;
   flex-shrink: 0;
   min-width: 0;
-  gap: 4px;
+  @include vgap(4px);
 }
 
 .largeTemp {
@@ -184,18 +186,18 @@ $dim: 0.55;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 4px;
   min-width: 0;
   text-align: right;
+  @include vgap(4px);
 }
 
 .largeDescRow {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 6px;
   min-width: 0;
   max-width: 100%;
+  @include hgap(6px);
 }
 
 .largeIcon {
@@ -225,18 +227,17 @@ $dim: 0.55;
 .largeCurrentStats {
   @include label-secondary;
   display: flex;
-  gap: 12px;
-  row-gap: 4px;
   flex-wrap: wrap;
   max-width: 100%;
+  @include wrapgap(12px, 4px);
 }
 
 .hourlyRow {
   display: flex;
   justify-content: space-between;
-  gap: 4px;
   flex-shrink: 0;
   margin-top: 12px;
+  @include hgap(4px);
 }
 
 .hourlyItem {
@@ -245,7 +246,7 @@ $dim: 0.55;
   min-width: 0;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  @include vgap(6px);
 }
 
 .hourlyTemp {
@@ -282,8 +283,8 @@ $dim: 0.55;
 .dailyRow {
   display: flex;
   align-items: center;
-  gap: 9px;
   min-width: 0;
+  @include hgap(9px);
 }
 
 .dailyDay {

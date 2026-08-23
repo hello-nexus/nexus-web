@@ -1,9 +1,10 @@
+@use '../styles/flexGap' as *;
 .indicator {
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: center;
-  gap: 7px;
+  @include hgap(7px);
   padding: 4px 10px;
   border-radius: var(--radius-pill);
   background: color-mix(in srgb, black 28%, transparent);

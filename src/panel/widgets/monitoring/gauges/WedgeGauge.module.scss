@@ -1,3 +1,5 @@
+@use '../../../styles/flexGap' as *;
+
 .wedge {
   display: flex;
   flex-direction: column;
@@ -6,7 +8,8 @@
   height: 100%;
   width: 100%;
   padding: 6px 6px 8px;
-  gap: 8px;
+
+  @include vgap(8px);
 }
 
 .chartWrap {
@@ -18,10 +21,12 @@
   justify-content: center;
 }
 
+// No aspect-ratio (Chromium 88): the square viewBox already gives this
+// replaced element a 1:1 intrinsic ratio, so height derives from width the
+// same way an <img> without a height attribute keeps its own ratio.
 .svg {
   width: 80%;
   max-height: 100%;
-  aspect-ratio: 1 / 1;
 }
 
 .track {
@@ -36,10 +41,11 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
   // Shrink-to-fit box: clamp it, or GaugeValue's fit never sees an overflow.
   max-width: 100%;
   min-width: 0;
+
+  @include vgap(2px);
 }
 
 .value {

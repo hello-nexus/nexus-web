@@ -7,6 +7,7 @@
 @use '../styles/scrollbar' as *;
 @use '../styles/text' as *;
 @use '../styles/icon-buttons' as *;
+@use './styles/flexGap' as *;
 
 .panelRoot {
   --panel-columns: 4;
@@ -55,7 +56,10 @@
 
 .backgroundShader {
   position: fixed;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 0;
   pointer-events: none;
   opacity: 0;
@@ -69,7 +73,10 @@
 
 .backgroundSolid {
   position: fixed;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 0;
   pointer-events: none;
   background: var(--panel-background-solid);
@@ -84,7 +91,10 @@
 
 .backgroundMedia {
   position: fixed;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 0;
   pointer-events: none;
   opacity: 0;
@@ -117,7 +127,10 @@
 // panel's frost percent (panelBackgroundFrostScale); zero renders no element.
 .backgroundFrost {
   position: fixed;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 0;
   pointer-events: none;
   backdrop-filter: blur(calc(var(--blur-backdrop) * var(--panel-frost-scale, 1)));
@@ -167,7 +180,10 @@
 
 .connectionIntroBackdrop {
   position: absolute;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 48;
   pointer-events: none;
   background: var(--panel-background-solid, var(--bg, #080808));
@@ -182,7 +198,7 @@
   display: inline-flex;
   align-items: baseline;
   justify-content: center;
-  gap: 7px;
+  @include hgap(7px);
   width: min(360px, calc(100vw - max(32px, env(safe-area-inset-left)) - max(32px, env(safe-area-inset-right))));
   max-width: 88vw;
   min-height: 46px;
@@ -341,7 +357,10 @@
 // trap fixed descendants).
 .editorDockPortal {
   position: absolute;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   pointer-events: none;
   // The docked cell opts back into pointer events; this wrapper is only an
   // untransformed anchor.
@@ -974,7 +993,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  @include hgap(8px);
   width: 100%;
   min-height: 54px;
   border: 1px dashed var(--panel-border);
@@ -995,7 +1014,7 @@
   min-width: 0;
   min-height: 54px;
   flex-direction: column;
-  gap: 4px;
+  @include vgap(4px);
   padding: 6px 4px;
   line-height: 1;
   letter-spacing: 0;
@@ -1020,7 +1039,10 @@
   --panel-editor-dock-width: calc(var(--panel-editor-dock-cols) * var(--panel-cell-size) + (var(--panel-editor-dock-cols) - 1) * var(--panel-gap));
   --panel-editor-dock-height: calc(var(--panel-editor-dock-rows) * var(--panel-cell-size) + (var(--panel-editor-dock-rows) - 1) * var(--panel-gap));
   position: fixed;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   // No z-index here, but the backdrop is a stacking context anyway: the
   // scrimIn/scrimOut fill holds an active zero-radius backdrop-filter on
   // this element permanently, so the docked widget (z 200) paints above the
@@ -1206,7 +1228,7 @@
 .editorHeader {
   display: flex;
   align-items: center;
-  gap: 10px;
+  @include hgap(10px);
   padding-bottom: 12px;
   flex-shrink: 0;
 }
@@ -1248,7 +1270,7 @@
 .panelSettingsStack {
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  @include vgap(22px);
 }
 
 .editorActions {
@@ -1257,7 +1279,7 @@
 
   display: flex;
   align-items: flex-start;
-  gap: 10px;
+  @include hgap(10px);
   padding: 0 0 12px;
 }
 
@@ -1266,7 +1288,7 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 12px;
+  @include vgap(12px);
   min-width: 0;
 }
 
@@ -1288,7 +1310,7 @@
 
 .panelSettingsTabs {
   display: flex;
-  gap: 4px;
+  @include hgap(4px);
   flex-shrink: 0;
   padding: 10px 0 0;
 }
@@ -1325,7 +1347,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  @include hgap(8px);
   min-height: 120px;
   color: var(--text-dim);
 }
@@ -1646,7 +1668,10 @@
 
 .loading {
   position: absolute;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 1;
   display: flex;
   align-items: center;

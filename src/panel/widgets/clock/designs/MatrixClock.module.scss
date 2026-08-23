@@ -1,4 +1,5 @@
 @use './clockDate' as *;
+@use '../../../styles/flexGap' as *;
 
 .container {
   display: flex;
@@ -75,8 +76,7 @@
   flex-direction: column;
   align-items: center;
   width: max-content;
-  // no flex gap on Chromium 83 (Q60 WebView); margins carry the spacing
-  > *:not(:last-child) { margin-bottom: 0.06em; }
+  @include vgap(0.06em);
   transform-origin: center;
 }
 

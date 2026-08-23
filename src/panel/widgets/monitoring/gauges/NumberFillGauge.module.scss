@@ -1,3 +1,5 @@
+@use '../../../styles/flexGap' as *;
+
 .numberFill {
   display: flex;
   flex-direction: column;
@@ -6,7 +8,8 @@
   height: 100%;
   width: 100%;
   padding: 6px 6px 8px;
-  gap: 4px;
+
+  @include vgap(4px);
 }
 
 .textWrap {

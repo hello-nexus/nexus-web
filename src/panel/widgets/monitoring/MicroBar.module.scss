@@ -1,19 +1,22 @@
 @use '../../../styles/text' as *;
+@use '../../styles/flexGap' as *;
 
 .row {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 4px;
   width: 100%;
   min-width: 0;
+
+  @include vgap(4px);
 }
 
 .head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 6px;
+
+  @include hgap(6px);
 }
 
 .label {
@@ -66,7 +69,10 @@
 // Fill: a dim accent sweeps left-to-right to the sensor value over the track.
 .fillBar {
   position: absolute;
-  inset: 0 auto 0 0;
+  top: 0;
+  right: auto;
+  bottom: 0;
+  left: 0;
   height: 100%;
   background: var(--panel-accent-shadow);
 }
@@ -74,7 +80,10 @@
 // Graph: a dim filled history trace stretched over the whole row.
 .graphChart {
   position: absolute;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   border-radius: inherit;
   overflow: hidden;
 

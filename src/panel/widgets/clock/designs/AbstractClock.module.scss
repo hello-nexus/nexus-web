@@ -16,7 +16,10 @@
 // so the seam reads as a blade edge rather than a band.
 .sweep {
   position: absolute;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   background: conic-gradient(
     from var(--abstract-angle, 0deg) at 50% 50%,
     color-mix(in srgb, var(--panel-accent) 96%, transparent) 0deg,
@@ -27,15 +30,24 @@
   );
 }
 
-// Square so the hand angles stay true on any tile aspect; the hands are drawn
-// past the viewBox and overflow into the wide half of a non-square widget.
+// Full-bleed box; the square viewBox's uniform mapping keeps hand angles
+// true on any tile aspect, and overflow lets hands drawn past the viewBox
+// reach into the wide half of a non-square widget.
 .hands {
   position: absolute;
-  inset: 0;
-  margin: auto;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
   height: 100%;
-  aspect-ratio: 1;
   overflow: visible;
+
+  @supports (aspect-ratio: 1) {
+    width: auto;
+    margin: auto;
+    aspect-ratio: 1;
+  }
 }
 
 .hourHand,

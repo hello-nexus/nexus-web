@@ -1,3 +1,5 @@
+@use '../../styles/flexGap' as *;
+
 // ── Simple date card ─────────────────────────────────────────────
 .card {
   display: flex;
@@ -63,9 +65,9 @@
   // block beside the grid inherits the panel base and renders identically to
   // the standalone simple card.
   &.s-2x2 { flex-direction: column; padding: 18px 26px; }
-  &.s-4x2 { flex-direction: row; align-items: stretch; gap: 20px; padding: 16px 40px; }
+  &.s-4x2 { flex-direction: row; align-items: stretch; @include hgap(20px); padding: 16px 40px; }
   &.s-4x4 { flex-direction: column; padding: 30px 32px; }
-  &.s-2x4 { flex-direction: column; justify-content: space-between; gap: 14px; padding: 30px 26px; }
+  &.s-2x4 { flex-direction: column; justify-content: space-between; @include vgap(14px); padding: 30px 26px; }
 }
 
 .calBody {
@@ -74,7 +76,7 @@
   flex: 1;
   min-width: 0;
   min-height: 0;
-  gap: 0.5em;
+  @include vgap(0.5em);
 }
 
 .s-2x2 .calBody { font-size: 1em; }
@@ -85,16 +87,17 @@
 
 // Large + portrait grids stay at content height (compact rows) rather than
 // stretching to fill; the portrait is pinned low.
-.s-4x4 .grid { flex: 0 0 auto; row-gap: 0.55em; margin-bottom: auto; }
-.s-2x4 .grid { flex: 0 0 auto; row-gap: 0.5em; }
+.s-4x4 .grid { flex: 0 0 auto; /* c83:allow - .grid is display: grid */ row-gap: 0.55em; margin-bottom: auto; padding-bottom: 0.5em; }
+.s-2x4 .grid { flex: 0 0 auto; /* c83:allow - .grid is display: grid */ row-gap: 0.5em; }
 
 // Center the weekday row + days in the space below the month header so the
 // block sits lower instead of crowding the top.
 .s-4x4 .weekRow { margin-top: auto; }
 
 // Extra breathing room between the month header and the day grid on the large
-// square.
-.s-4x4 .header { margin-bottom: 0.4em; }
+// square. Outranks .calBody's vgap so this carries both the base inter-row
+// spacing and the header's own extra margin, combined into one value.
+.s-4x4 .calBody > .header:not(:last-child) { margin-bottom: 0.9em; }
 
 .header {
   font-size: 0.9em;
