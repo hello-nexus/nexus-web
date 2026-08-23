@@ -3417,8 +3417,6 @@
   "cooling.label.curveEditor": "커브 편집기",
   "lighting.effectDock.collapse": "이펙트 편집기 접기",
   "lighting.effectDock.expand": "이펙트 편집기 펼치기",
-  "lighting.pane.previewCount.one": "{count}개 장치",
-  "lighting.pane.previewCount.other": "{count}개 장치",
   "lighting.devices.discovery.off": "조명을 켜면 더 많은 장치가 감지될 수 있습니다",
   "lighting.devices.discovery.detecting": "장치를 감지하는 중...",
   "lighting.pane.offHint": "활성화할 조명 모드를 선택하세요",

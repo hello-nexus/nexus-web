@@ -1454,15 +1454,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
 
   const shaderMode = effectiveMode === 'animate' || effectiveMode === 'static';
   // The preview stands for the selection in every mode: the modes that drive
-  // every device still only draw the ones the selection highlights.
-  const previewDeviceCount = selectedDeviceIds.size;
-  // Per-device modes count a selection; the rest drive everything, so only the
-  // former can honestly say "selected".
-  const previewBadgeLabel = perDeviceMode
-    ? (selectedDeviceIds.size === 0
-      ? t('lighting.pane.selectedNone')
-      : t(pluralKey('lighting.pane.selectedCount', language, selectedDeviceIds.size), { count: selectedDeviceIds.size }))
-    : t(pluralKey('lighting.pane.previewCount', language, previewDeviceCount), { count: previewDeviceCount });
+  // every device still only draw the ones the selection highlights, so the
+  // badge reads the same here as it does on Static.
+  const previewBadgeLabel = selectedDeviceIds.size === 0
+    ? t('lighting.pane.selectedNone')
+    : t(pluralKey('lighting.pane.selectedCount', language, selectedDeviceIds.size), { count: selectedDeviceIds.size });
   // A colour picked with nothing selected has nowhere to land, so the browser
   // stops taking input until a device is chosen.
   const staticNeedsSelection = effectiveMode === 'static' && selectedDeviceIds.size === 0;

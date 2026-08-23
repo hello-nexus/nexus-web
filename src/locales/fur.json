@@ -3417,8 +3417,6 @@
   "cooling.label.curveEditor": "Editor des curvis",
   "lighting.effectDock.collapse": "Siare l'editor dai efiets",
   "lighting.effectDock.expand": "Slargje l'editor dai efiets",
-  "lighting.pane.previewCount.one": "{count} dispositif",
-  "lighting.pane.previewCount.other": "{count} dispositifs",
   "lighting.devices.discovery.off": "Altris dispositîfs a podaressin jessi rilevâts cuant che la iluminazion e je impiade",
   "lighting.devices.discovery.detecting": "Rilevament dai dispositîfs...",
   "lighting.pane.offHint": "Sielç une modalitât di iluminazion par ativâle",

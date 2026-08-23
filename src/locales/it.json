@@ -3417,8 +3417,6 @@
   "cooling.label.curveEditor": "Editor curve",
   "lighting.effectDock.collapse": "Comprimi editor effetti",
   "lighting.effectDock.expand": "Espandi editor effetti",
-  "lighting.pane.previewCount.one": "{count} dispositivo",
-  "lighting.pane.previewCount.other": "{count} dispositivi",
   "lighting.devices.discovery.off": "Altri dispositivi potrebbero essere rilevati quando l’illuminazione è attiva",
   "lighting.devices.discovery.detecting": "Rilevamento dispositivi...",
   "lighting.pane.offHint": "Seleziona una modalità di illuminazione per attivarla",

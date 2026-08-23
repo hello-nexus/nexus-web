@@ -3417,8 +3417,6 @@
   "cooling.label.curveEditor": "Editor de curvas",
   "lighting.effectDock.collapse": "Contraer editor de efectos",
   "lighting.effectDock.expand": "Expandir editor de efectos",
-  "lighting.pane.previewCount.one": "{count} dispositivo",
-  "lighting.pane.previewCount.other": "{count} dispositivos",
   "lighting.devices.discovery.off": "Puede que se detecten más dispositivos cuando la iluminación esté activada",
   "lighting.devices.discovery.detecting": "Detectando dispositivos...",
   "lighting.pane.offHint": "Selecciona un modo de iluminación para activarlo",

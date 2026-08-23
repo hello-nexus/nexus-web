@@ -3417,8 +3417,6 @@
   "cooling.label.curveEditor": "曲線編輯器",
   "lighting.effectDock.collapse": "摺疊效果編輯器",
   "lighting.effectDock.expand": "展開效果編輯器",
-  "lighting.pane.previewCount.one": "{count} 個裝置",
-  "lighting.pane.previewCount.other": "{count} 個裝置",
   "lighting.devices.discovery.off": "開啟燈光後可能會偵測到更多裝置",
   "lighting.devices.discovery.detecting": "正在偵測裝置...",
   "lighting.pane.offHint": "選擇一種燈光模式以啟用",
