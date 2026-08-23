@@ -16,7 +16,6 @@ import {
 } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { Button } from '../../../components/common/Button/Button';
-import { Popover } from '../../../components/common/Popover/Popover';
 import { Slider } from '../../../components/common/Slider/Slider';
 import { HsvPicker } from '../../../components/common/HsvPicker/HsvPicker';
 import { ColorPickerWithPresets } from '../../../components/common/ColorPickerWithPresets/ColorPickerWithPresets';
@@ -50,9 +49,7 @@ const SAVE_FEEDBACK_MS = 2600;
 // no-literal-string lint rule.
 const SLIDER_ORIENTATION = 'stacked' as const;
 
-// The toolbar sits at the BOTTOM (the top edge is the overlay's
-// swipe-to-dismiss zone), so its popovers have to open upward.
-const POPOVER_PLACEMENT = 'top-start' as const;
+type ToolPanel = 'color' | 'size';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
@@ -69,11 +66,13 @@ export function WhiteboardTouch({ widget }: WidgetProps) {
   const zoomLabelRef = useRef<HTMLSpanElement>(null);
 
   const [tool, setTool] = useState<WhiteboardTool>('pen');
-  const [colorOpen, setColorOpen] = useState(false);
-  const [sizeOpen, setSizeOpen] = useState(false);
+  const [panel, setPanel] = useState<ToolPanel | null>(null);
   const [saveState, setSaveState] = useState<SaveState>('idle');
-  const colorAnchorRef = useRef<HTMLDivElement>(null);
-  const sizeAnchorRef = useRef<HTMLDivElement>(null);
+
+  const togglePanel = useCallback((next: ToolPanel) => {
+    setPanel(current => (current === next ? null : next));
+  }, []);
+  const closePanel = useCallback(() => setPanel(null), []);
 
   const { board: data, setView, setPenColor, setPenWidth, setEraserWidth, setBackground } = board;
   const activeWidth = tool === 'eraser' ? data.eraserWidth : data.penWidth;
@@ -107,6 +106,13 @@ export function WhiteboardTouch({ widget }: WidgetProps) {
     // after choosing one would silently swallow the next stroke.
     setTool('pen');
   }, [setPenColor]);
+
+  useEffect(() => {
+    if (!panel) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closePanel(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [panel, closePanel]);
 
   const handleBackgroundCycle = useCallback(() => {
     const index = BACKGROUNDS.indexOf(data.background);
@@ -163,6 +169,7 @@ export function WhiteboardTouch({ widget }: WidgetProps) {
         style={{ backgroundColor: BACKGROUND_CSS[data.background] }}
       >
         <WhiteboardSurface
+          onPointerDownCapture={closePanel}
           strokes={data.strokes}
           view={data.view}
           interactive
@@ -176,6 +183,46 @@ export function WhiteboardTouch({ widget }: WidgetProps) {
           ariaLabel={t('panel.widget.whiteboard.boardLabel')}
         />
       </div>
+
+      <div className={styles.controls}>
+      {panel && (
+        <div
+          className={styles.drawer}
+          role="group"
+          aria-label={t(panel === 'color'
+            ? 'panel.widget.whiteboard.color'
+            : 'panel.widget.whiteboard.size')}
+          data-panel-no-sheet-swipe="true"
+        >
+          {panel === 'color' ? (
+            <>
+              <ColorPickerWithPresets
+                value={data.penColor}
+                presets={PEN_PRESETS}
+                onCommit={handleColorPick}
+              />
+              <HsvPicker
+                value={data.penColor}
+                onPreview={handleColorPick}
+                onCommit={handleColorPick}
+              />
+            </>
+          ) : (
+            <Slider
+              orientation={SLIDER_ORIENTATION}
+              editable
+              trackFill
+              label={t(tool === 'eraser' ? 'panel.widget.whiteboard.eraser' : 'panel.widget.whiteboard.pen')}
+              value={activeWidth}
+              min={tool === 'eraser' ? MIN_ERASER : MIN_PEN}
+              max={tool === 'eraser' ? MAX_ERASER : MAX_PEN}
+              step={1}
+              onChange={handleWidthChange}
+              ariaLabel={t('panel.widget.whiteboard.size')}
+            />
+          )}
+        </div>
+      )}
 
       <div className={styles.toolbar} data-panel-no-sheet-swipe="true">
         <div className={styles.group}>
@@ -200,72 +247,29 @@ export function WhiteboardTouch({ widget }: WidgetProps) {
         </div>
 
         <div className={styles.group}>
-          <div ref={colorAnchorRef} className={styles.anchor}>
-            <Button
-              className={styles.tool}
-              tone="neutral"
-              icon={<Circle fill={data.penColor} color={data.penColor} />}
-              aria-label={t('panel.widget.whiteboard.color')}
-              title={t('panel.widget.whiteboard.color')}
-              onClick={() => { setColorOpen(o => !o); setSizeOpen(false); }}
-            />
-            <Popover
-              open={colorOpen}
-              onClose={() => setColorOpen(false)}
-              anchorRef={colorAnchorRef}
-              placement={POPOVER_PLACEMENT}
-              className={styles.popover}
-              ariaLabel={t('panel.widget.whiteboard.color')}
-            >
-              <ColorPickerWithPresets
-                value={data.penColor}
-                presets={PEN_PRESETS}
-                onCommit={handleColorPick}
+          <Button
+            className={styles.tool}
+            tone={panel === 'color' ? 'accent' : 'neutral'}
+            icon={<Circle fill={data.penColor} color={data.penColor} />}
+            aria-expanded={panel === 'color'}
+            aria-label={t('panel.widget.whiteboard.color')}
+            title={t('panel.widget.whiteboard.color')}
+            onClick={() => togglePanel('color')}
+          />
+          <Button
+            className={styles.tool}
+            tone={panel === 'size' ? 'accent' : 'neutral'}
+            icon={
+              <span
+                className={styles.sizeDot}
+                style={{ width: Math.min(activeWidth, 18), height: Math.min(activeWidth, 18) }}
               />
-              <HsvPicker
-                value={data.penColor}
-                onPreview={handleColorPick}
-                onCommit={handleColorPick}
-              />
-            </Popover>
-          </div>
-
-          <div ref={sizeAnchorRef} className={styles.anchor}>
-            <Button
-              className={styles.tool}
-              tone="neutral"
-              icon={
-                <span
-                  className={styles.sizeDot}
-                  style={{ width: Math.min(activeWidth, 18), height: Math.min(activeWidth, 18) }}
-                />
-              }
-              aria-label={t('panel.widget.whiteboard.size')}
-              title={t('panel.widget.whiteboard.size')}
-              onClick={() => { setSizeOpen(o => !o); setColorOpen(false); }}
-            />
-            <Popover
-              open={sizeOpen}
-              onClose={() => setSizeOpen(false)}
-              anchorRef={sizeAnchorRef}
-              placement={POPOVER_PLACEMENT}
-              className={styles.popover}
-              ariaLabel={t('panel.widget.whiteboard.size')}
-            >
-              <Slider
-                orientation={SLIDER_ORIENTATION}
-                editable
-                trackFill
-                label={t(tool === 'eraser' ? 'panel.widget.whiteboard.eraser' : 'panel.widget.whiteboard.pen')}
-                value={activeWidth}
-                min={tool === 'eraser' ? MIN_ERASER : MIN_PEN}
-                max={tool === 'eraser' ? MAX_ERASER : MAX_PEN}
-                step={1}
-                onChange={handleWidthChange}
-                ariaLabel={t('panel.widget.whiteboard.size')}
-              />
-            </Popover>
-          </div>
+            }
+            aria-expanded={panel === 'size'}
+            aria-label={t('panel.widget.whiteboard.size')}
+            title={t('panel.widget.whiteboard.size')}
+            onClick={() => togglePanel('size')}
+          />
         </div>
 
         <div className={styles.group}>
@@ -346,6 +350,7 @@ export function WhiteboardTouch({ widget }: WidgetProps) {
             />
           </div>
         )}
+      </div>
       </div>
 
       {(saveState === 'saved' || saveState === 'error') && (

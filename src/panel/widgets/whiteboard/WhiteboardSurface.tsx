@@ -33,6 +33,8 @@ export interface WhiteboardSurfaceProps {
   onViewChange?: (view: ViewTransform) => void;
   /** Fires on every rendered frame of a pinch so a caller can show a live zoom readout without re-rendering. */
   onViewFrame?: (view: ViewTransform) => void;
+  /** Fires before a gesture starts, so a caller can dismiss transient chrome. */
+  onPointerDownCapture?: () => void;
 }
 
 interface ActivePointer {
@@ -65,6 +67,7 @@ export function WhiteboardSurface({
   onCommitStroke,
   onViewChange,
   onViewFrame,
+  onPointerDownCapture,
 }: WhiteboardSurfaceProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -196,6 +199,7 @@ export function WhiteboardSurface({
 
   const handlePointerDown = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
     if (!interactive) return;
+    onPointerDownCapture?.();
     // Only the left mouse button draws.
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     const host = hostRef.current;
@@ -234,7 +238,7 @@ export function WhiteboardSurface({
       points: [canvasPoint],
     };
     scheduleFrame();
-  }, [interactive, localPoint, beginPinch, scheduleFrame]);
+  }, [interactive, localPoint, beginPinch, scheduleFrame, onPointerDownCapture]);
 
   const handlePointerMove = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
     if (!interactive) return;
