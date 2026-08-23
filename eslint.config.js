@@ -23,7 +23,10 @@ const NON_UI_JSX_ATTRIBUTES = [
 ]
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // Build artifacts. The sandbox harness bundle is generated from harness/app.tsx
+  // by the SDK build and gitignored; linting it reports rules its own inlined
+  // eslint-disable comments reference but this config does not define.
+  globalIgnores(['dist', 'e2e-sandbox/harness/app.mjs', 'sdk/dist']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
@@ -70,11 +73,13 @@ export default defineConfig([
   {
     // Internal / developer-only surfaces that never ship as end-user UI: test
     // files, the component storybook, the in-app SDK + telemetry reference
-    // pages (dense API docs), and the component sandbox. Hardcoded strings
-    // there are fine; the user-facing Tools cards linking to them are not.
+    // pages (dense API docs), the component sandbox, and the SDK sandbox's
+    // widget fixtures. Hardcoded strings there are fine; the user-facing Tools
+    // cards linking to them are not.
     files: [
       '**/*.test.{ts,tsx}', '**/*.spec.{ts,tsx}',
       'src/storybook/**', 'src/sandbox/**', 'src/telemetry/reference/**',
+      'e2e-sandbox/fixtures/**',
     ],
     rules: { 'i18next/no-literal-string': 'off' },
   },
