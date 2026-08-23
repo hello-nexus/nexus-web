@@ -13,9 +13,9 @@
   overflow: hidden;
 
   &.size-2x2  {
-    --dot-size: 4px;
-    --dot-gap: 1.9px;
-    --row-gap: 3.1px;
+    --dot-size: 5px;
+    --dot-gap: 2.4px;
+    --row-gap: 3.9px;
     padding: 7px 6px;
 
     .ampm {
@@ -27,7 +27,7 @@
 
   &.size-2x4  { --dot-size: 6px; --dot-gap: 3px; }
   &.size-4x2  { --dot-size: 8px; --dot-gap: 4px; }
-  &.size-4x4  { --dot-size: 7px; --dot-gap: 3.5px; }
+  &.size-4x4  { --dot-size: 11px; --dot-gap: 5.5px; }
 
   @include clock-date-scale;
 }

@@ -12,8 +12,8 @@
 
   &.size-2x2  { font-size: 1.85em; padding: 10px; }
   &.size-2x4  { font-size: 2.4em; }
-  &.size-4x2  { font-size: 2.8em; }
-  &.size-4x4  { font-size: 2.6em; }
+  &.size-4x2  { font-size: 3.2em; }
+  &.size-4x4  { font-size: 4em; }
 
   @include clock-date-scale;
 }
@@ -44,8 +44,12 @@
   transition: color var(--ease), text-shadow var(--ease);
 }
 
+// The monospace colon carries a digit's advance width. A box narrower than that
+// does not centre it - the overflow lands entirely on the right, jamming the
+// glyph against the next digit. Keep the full advance and tighten with margins.
 .colonChar {
-  width: 0.35em;
+  width: 0.65em;
+  margin: 0 -0.16em;
   color: var(--text-dim);
 }
 
