@@ -108,8 +108,9 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
   // Immersive only: tapping the live shader preview expands it to a full-bleed
   // shader view; tapping that closes it. Auto-closes whenever the mode leaves
   // animate - the fullscreen view only renders a shader effect.
-  // Static is excluded: its colours are per device, so the immersive view
-  // shows the live LED canvas behind the icon rather than any one shader.
+  // Static is excluded, and gets no preview of its own either: its colours are
+  // assigned per device, so no single canvas or shader states what it is doing.
+  // The device cards' own LED strips carry that, one per device.
   const [shaderFullscreen, setShaderFullscreen] = useState(false);
 
   // False until the first hydrate() resolves: mode/effect/filter sets
@@ -637,16 +638,11 @@ function SingleItemView({ view, t, showArrows, overlay, framed }: { view: Single
       ) : (
         <span className={styles.thumb}>
           {view.kind === 'icon' && (
-            <>
-              <span className={styles.thumbIconWrap}>
-                {/* eslint-disable-next-line i18next/no-literal-string -- aria boolean */}
-                <view.icon className={styles.thumbIcon} aria-hidden="true" />
-                <span className={styles.thumbCaption}>{view.label}</span>
-              </span>
-              {/* Same as the message view: the immersive overlay is the live LED
-                  canvas, and a per-device mode has nothing truer to show. */}
-              {overlay}
-            </>
+            <span className={styles.thumbIconWrap}>
+              {/* eslint-disable-next-line i18next/no-literal-string -- aria boolean */}
+              <view.icon className={styles.thumbIcon} aria-hidden="true" />
+              <span className={styles.thumbCaption}>{view.label}</span>
+            </span>
           )}
           {view.kind === 'thumb' && (
             view.thumbUrl

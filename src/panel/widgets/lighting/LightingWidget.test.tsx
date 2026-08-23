@@ -227,17 +227,16 @@ describe('LightingWidget', () => {
     expect(paths.some(p => p.includes('simplewhite'))).toBe(false);
   });
 
-  // Immersive got the same treatment: it used to render one static effect's
-  // shader full-bleed, which pictured a selection that does not exist. The live
-  // LED canvas replaces it - the editor below drives real devices, so it needs
-  // feedback, and per-device colour is the one thing worth showing.
-  it('immersive Static shows the live LED canvas, not one effect shader', async () => {
+  // Static assigns per device, so no single preview can state what it is doing:
+  // it used to render one static effect's shader full-bleed, picturing a
+  // selection that does not exist. The device cards' own strips carry it now.
+  it('immersive Static shows no preview at all', async () => {
     vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'static' });
     render(<LightingWidget widget={lightingWidget('4x2')} immersive />);
 
     await waitFor(() => expect(screen.getByText('lighting.devices.activeCount.other')).toBeInTheDocument());
-    expect(screen.getByTestId('live-preview')).toBeInTheDocument();
     expect(screen.queryByTestId('shader-preview')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('live-preview')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'lighting.fullscreen' })).not.toBeInTheDocument();
   });
 

@@ -7,6 +7,7 @@ import { EffectControls } from './page/EffectControls';
 import { AnimateGrid } from './page/AnimateGrid';
 import { MediaList } from './effecteditor/MediaList';
 import { StaticDeviceSelect } from './effecteditor/StaticDeviceSelect';
+import type { LedPick } from './page/DeviceLedStrip';
 import { StaticPalette } from './page/StaticPalette';
 import { PostProcessControls } from './effecteditor/PostProcessControls';
 import type { PostProcessState } from './effecteditor/types';
@@ -136,6 +137,7 @@ function renderImmersiveEditor(
             devices={animate.devices}
             selectedIds={animate.selectedIds}
             onSetSelection={animate.onSetSelection}
+            ledPickFor={animate.ledPickFor}
           />
         ) : undefined}
         effectDisabled={needsSelection}
@@ -207,6 +209,9 @@ interface ImmersiveAnimateController {
   selectedIds: Set<string>;
   onSetSelection: (ids: Set<string>, primary: string | null) => void;
   onSelectPalette: (color: PaletteColor) => void;
+  /** A device's own Static assignment for its card readout; the shared effect
+   *  canvas is not what a per-device mode is showing. */
+  ledPickFor: (id: string) => LedPick | undefined;
   /** The palette swatch the selection agrees on, so it renders as picked. */
   selectedPaletteId: string | null;
   state: EffectState;
@@ -331,6 +336,17 @@ function useImmersiveAnimateState(): { mode: LightingMode; animate: ImmersiveAni
     void startAnimate(key, s.speed, s.intensity, s.hue, s.colorize, s.saturation, s.contrast, s.params, true);
   }, [mode, selectedIds, setDevicePicks]);
 
+  const versionForSlot = useCallback((key: string, slot: number) => {
+    const b = templates[key];
+    if (!b || b.slots.length === 0) return '0';
+    return slotThumbSignature(b.slots[Math.min(Math.max(slot, 0), b.slots.length - 1)]);
+  }, [templates]);
+
+  const ledPickFor = useCallback((id: string): LedPick | undefined => {
+    const pick = devicePicks[id];
+    return pick ? { ...pick, version: versionForSlot(pick.key, pick.slot) } : undefined;
+  }, [devicePicks, versionForSlot]);
+
   const onSelectPalette = useCallback((color: PaletteColor) => {
     if (selectedIds.size === 0) return;
     setDevicePicks(prev => pickPaletteForDevices(prev, color, [...selectedIds]));
@@ -402,16 +418,12 @@ function useImmersiveAnimateState(): { mode: LightingMode; animate: ImmersiveAni
       onSetSelection,
       onSelectPalette,
       selectedPaletteId,
+      ledPickFor,
       state: liveState,
       bundle,
       canReset: stagedRef.current !== null,
       slotFor: (e: string) => templates[e]?.selected ?? 0,
-      versionFor: (e: string) => {
-        const b = templates[e];
-        return b && b.slots.length
-          ? slotThumbSignature(b.slots[Math.min(Math.max(b.selected, 0), b.slots.length - 1)])
-          : '0';
-      },
+      versionFor: (e: string) => versionForSlot(e, templates[e]?.selected ?? 0),
       onSelectEffect,
       onTemplateSelect,
       onChange,
