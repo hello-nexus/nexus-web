@@ -4,6 +4,9 @@
 
 import { fetchService, postService, putService } from './service';
 
+/** Body these writes return; null from the client means the request failed. */
+interface ApiOk { ok?: boolean; error?: boolean; msg?: string }
+
 // Hub control mode (matches QSeriesCoolerProtocol.ControlMode* on the service).
 export const QSERIES_MODE_SOFTWARE = 1;
 export const QSERIES_MODE_MOTHERBOARD = 2;
@@ -35,8 +38,8 @@ export const getQSeriesState = (): Promise<QSeriesCoolerState | null> =>
 export const setQSeriesControlMode = (mode: QSeriesControlMode): Promise<unknown | null> =>
   putService('/devices/qseries/control-mode', { mode });
 
-export const setQSeriesTurbo = (on: boolean): Promise<unknown | null> =>
-  putService('/devices/qseries/turbo', { on });
+export const setQSeriesTurbo = (on: boolean): Promise<ApiOk | null> =>
+  putService<ApiOk>('/devices/qseries/turbo', { on });
 
 // ── Firmware-mode LED animation (effect + static color + brightness) ──
 
@@ -62,8 +65,8 @@ export interface QSeriesFirmwareAnimation {
 export const getQSeriesFirmwareAnimation = (): Promise<QSeriesFirmwareAnimation | null> =>
   fetchService<QSeriesFirmwareAnimation>('/devices/qseries/firmware-animation');
 
-export const setQSeriesFirmwareAnimation = (body: QSeriesFirmwareAnimation): Promise<unknown | null> =>
-  putService('/devices/qseries/firmware-animation', body);
+export const setQSeriesFirmwareAnimation = (body: QSeriesFirmwareAnimation): Promise<ApiOk | null> =>
+  putService<ApiOk>('/devices/qseries/firmware-animation', body);
 
 export { np50RgbToHex as qSeriesRgbToHex, np50HexToRgb as qSeriesHexToRgb } from './np50';
 
@@ -91,8 +94,8 @@ export const getQSeriesFirmwareCurve = (): Promise<QSeriesFirmwareCurve | null> 
 export const setQSeriesFirmwareCurve = (
   pump: QSeriesCurvePoint[],
   fan: QSeriesCurvePoint[],
-): Promise<unknown | null> =>
-  putService('/devices/qseries/firmware-curve', { pump, fan });
+): Promise<ApiOk | null> =>
+  putService<ApiOk>('/devices/qseries/firmware-curve', { pump, fan });
 
 // ── Panel orientation (mirrors /y70/rotation in shape and auth; Q60/Q80
 // mount portrait or portrait-flipped only, no landscape) ──
