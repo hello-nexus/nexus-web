@@ -1,3 +1,5 @@
+@use './clockDate' as *;
+
 .container {
   display: flex;
   flex-direction: column;
@@ -10,14 +12,24 @@
 
   &.size-2x2  { font-size: 1.85em; padding: 10px; }
   &.size-2x4  { font-size: 2.4em; }
-  &.size-4x2  { font-size: 2.8em; }
-  &.size-4x4  { font-size: 2.6em; }
+  &.size-4x2  { font-size: 3.2em; }
+  &.size-4x4  { font-size: 4em; }
+
+  @include clock-date-scale;
+}
+
+.fitBox {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  overflow: hidden;
 }
 
 .row {
   display: flex;
   align-items: center;
-  max-width: 100%;
+  width: max-content;
 }
 
 .char {
@@ -32,8 +44,12 @@
   transition: color var(--ease), text-shadow var(--ease);
 }
 
+// The monospace colon carries a digit's advance width. A box narrower than that
+// does not centre it - the overflow lands entirely on the right, jamming the
+// glyph against the next digit. Keep the full advance and tighten with margins.
 .colonChar {
-  width: 0.35em;
+  width: 0.65em;
+  margin: 0 -0.16em;
   color: var(--text-dim);
 }
 
@@ -44,7 +60,7 @@
 
 .ampm {
   font-family: 'Courier New', 'Consolas', monospace;
-  font-size: 0.4em;
+  font-size: 0.3em;
   font-weight: var(--weight-heading);
   color: var(--text-dim);
   margin-left: 0.3em;
@@ -52,14 +68,26 @@
   padding-bottom: 0.15em;
 }
 
+// Column of time lines: one line horizontally, one per unit when stacked. It
+// carries the fit transform, so the individual rows stay untransformed.
+.lines {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.06em;
+  width: max-content;
+  transform-origin: center;
+}
+
+// Stacked fits by height too, which needs the box to own the leftover column
+// space - without a definite height its clientHeight collapses to the content.
+.container.stacked .fitBox {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 .date {
-  margin-top: 0.15em;
-  font-size: 0.35em;
-  font-weight: var(--weight-body);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text-dim);
-  text-align: center;
+  @include clock-date;
 }
 
 .accent {

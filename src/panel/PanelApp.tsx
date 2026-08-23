@@ -473,9 +473,13 @@ export function PanelContent({
   // tan(atan2(cell, 90px)) length-ratio used for --panel-scale, returning a
   // negative number that flips every --panel-scale-driven element 180deg
   // (cellScaler content + the context menu). Compute the ratio in JS (exact in
-  // every engine) and set it inline. Phone (live --panel-widget-scale) and q60
-  // (Chrome-83 hardcoded 2.5) keep their own --panel-scale.
-  const webkitSafePanelScale = surface !== 'phone' && surface !== 'q60'
+  // every engine) and set it inline. Only phone opts out: it measures its own
+  // --panel-widget-scale live. q60 is included even though its Chrome 83
+  // WebView cannot parse the CSS trig - an inline unitless number needs none -
+  // which retires the tokens.scss 2.5 literal that was calibrated for the
+  // legacy 480px canvas and under-scales the 720px one current firmware
+  // reports, leaving widget content at 62% of the card's design size.
+  const webkitSafePanelScale = surface !== 'phone'
     ? runtimeGrid.contentScale / PHONE_WIDGET_REFERENCE_CELL
     : null;
   const panelThemeVars = useMemo(
@@ -586,6 +590,15 @@ export function PanelContent({
       webkitSafePanelScale,
     ],
   );
+  // The immersive overlay paints its own opaque background from
+  // --panel-background-solid; an inline `background` beats that rule, and in
+  // the see-through backdrop it is transparent, so the live desktop showed
+  // through the overlay.
+  const immersiveThemeStyle = useMemo<CSSProperties>(() => {
+    const style = { ...panelRootStyle };
+    delete style.background;
+    return style;
+  }, [panelRootStyle]);
 
   // ---------- Pagination derived from layout ----------
   // Touch surfaces hoist the focused widget above the editor's scrim, else
@@ -1735,7 +1748,7 @@ export function PanelContent({
             key={`${immersiveWidgetId}-${immersiveOpenCounter}`}
             open
             onExit={handleImmersiveExit}
-            themeStyle={panelRootStyle}
+            themeStyle={immersiveThemeStyle}
             themeMode={resolvedThemeMode}
             surface={surface}
           >

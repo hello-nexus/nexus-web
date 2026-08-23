@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 import type { PanelWidget } from '../types';
 import { ClockWidget } from './ClockWidget';
 
-function clockWidget(config: Record<string, unknown>): PanelWidget {
-  return { id: 'clock-1', type: 'clock', size: '4x2', col: 0, row: 0, config };
+function clockWidget(config: Record<string, unknown>, size = '4x2'): PanelWidget {
+  return { id: 'clock-1', type: 'clock', size, col: 0, row: 0, config };
 }
 
 describe('ClockWidget', () => {
@@ -45,6 +45,59 @@ describe('ClockWidget', () => {
     );
     expect(container.textContent).toContain(zone);
     expect(container.textContent).not.toContain('·');
+  });
+
+  // The colons ARE the separator a stacked layout splits on, so their absence
+  // is what distinguishes the two layouts in the rendered output.
+  it('drops the colons and keeps every unit when a design is stacked', () => {
+    for (const design of ['digital', 'splitflap', 'rolling', 'led', 'dots', 'matrix']) {
+      const stacked = render(
+        // 4x2 is too short to stack, so the vertical layout needs a taller tile.
+        <ClockWidget widget={clockWidget({ design, layout: 'stacked', showSeconds: true }, '2x4')} />,
+      );
+      const horizontal = render(
+        <ClockWidget widget={clockWidget({ design, showSeconds: true }, '2x4')} />,
+      );
+
+      // led and dots draw their digits as segment/dot divs, not text, so only
+      // the text-bearing designs can be asserted on their rendered string.
+      if (design === 'digital' || design === 'splitflap' || design === 'matrix') {
+        expect(horizontal.container.textContent).toMatch(/\d:\d/);
+        expect(stacked.container.textContent).not.toMatch(/\d:\d/);
+      }
+      // One line column per face, holding three lines once seconds are on.
+      expect(stacked.container.querySelectorAll('[class*="lines"]')).toHaveLength(1);
+    }
+  });
+
+  // The badge is balanced by an invisible twin at the head of the line, so
+  // switching to 12-hour cannot slide the digits off centre.
+  it('balances the AM/PM badge against the head of the line', () => {
+    for (const design of ['digital', 'rolling', 'led', 'dots', 'matrix']) {
+      const { container } = render(<ClockWidget widget={clockWidget({ design, format: '12h' })} />);
+      const badges = container.querySelectorAll('[class*="ampm"]');
+
+      expect(badges).toHaveLength(2);
+      expect(badges[0].getAttribute('aria-hidden')).toBe('true');
+      expect(badges[1].getAttribute('aria-hidden')).toBeNull();
+      expect(badges[0].textContent).toBe(badges[1].textContent);
+    }
+  });
+
+  it('ignores a stacked layout on a design that cannot split the time', () => {
+    expect(() =>
+      render(<ClockWidget widget={clockWidget({ design: 'analog', layout: 'stacked' }, '2x4')} />),
+    ).not.toThrow();
+  });
+
+  // A 4x2 is too short for stacked lines; the saved choice stays saved but the
+  // face renders horizontally there.
+  it('ignores a stacked layout on a tile too short to stack', () => {
+    const { container } = render(
+      <ClockWidget widget={clockWidget({ design: 'splitflap', layout: 'stacked', showSeconds: true }, '4x2')} />,
+    );
+
+    expect(container.textContent).toMatch(/\d:\d/);
   });
 
   it('omits the zone name by default', () => {

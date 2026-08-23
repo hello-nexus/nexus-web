@@ -11,8 +11,6 @@ import {
   fetchScreenEffect,
   fetchLightingDevices,
   fetchStaticSettings,
-  setMusicReactive,
-  setScreenEffect,
   startAnimate,
   startStatic,
   startGameSync,
@@ -79,6 +77,10 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
   // The service's remembered static key, so entering the mode from animate
   // returns to the last static pick instead of the catalog default.
   const staticEffectRef = useRef(DEFAULT_STATIC_EFFECT);
+  // Same, for animate. activeEffect holds the running mode's own pool, so it
+  // is a static key while Static runs; without this ref, stepping back into
+  // Animate would drop the user's animation for the catalog default.
+  const animateEffectRef = useRef('rainbow');
   const [templates, setTemplates] = useState<Record<string, EffectTemplateBundle>>({});
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
@@ -136,7 +138,12 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
     )
     : null;
 
+  // Every mode step broadcasts, so steps in quick succession put several
+  // hydrates in flight at once; without this the slowest one wins and reverts
+  // the newest mode, effect and remembered picks.
+  const hydrateSeqRef = useRef(0);
   const hydrate = useCallback(async () => {
+    const seq = ++hydrateSeqRef.current;
     const [sync, animate, staticSettings, screen, lightStatus, defaults, deviceList] = await Promise.all([
       fetchCurrentSync(),
       fetchAnimateSettings(),
@@ -146,6 +153,7 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
       fetchAnimateDefaults(),
       fetchLightingDevices(),
     ]);
+    if (seq !== hydrateSeqRef.current) return;
     setGpuAvailable(lightStatus?.gpuAvailable ?? true);
     // Static drives devices individually, so the widget reports how many are
     // lit rather than naming one effect.
@@ -161,11 +169,17 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
     const rawSync = sync?.sync || 'none';
     const nextMode = resolveMode(rawSync);
     if (isStaticEffect(staticSettings?.effect ?? '')) staticEffectRef.current = staticSettings!.effect;
+    // The running sync IS the animate key while Animate runs, and animate
+    // settings still hold the pick once another mode takes over - so the ref
+    // tracks it whatever mode we hydrate into.
+    const animatePick = [rawSync, animate?.effect]
+      .find(k => ANIMATE_EFFECTS.some(e => e.key === k));
+    if (animatePick) animateEffectRef.current = animatePick;
     const nextEffect = nextMode === 'static'
       ? staticEffectRef.current
       : EFFECTS.some(e => e.key === rawSync)
         ? rawSync
-        : animate?.effect || 'rainbow';
+        : animateEffectRef.current;
     setActiveEffect(nextEffect);
 
     setMode(nextMode);
@@ -287,8 +301,8 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
   const applyEffect = useCallback(async (effectKey: string, state?: EffectState, templateIndex?: number) => {
     const next = state ?? resolveEffectState(effectKey, templates);
     setActiveEffect(effectKey);
+    animateEffectRef.current = effectKey;
     setMode('animate');
-    setMusicReactive(false).catch(() => { /* best-effort */ });
     await startAnimate(
       effectKey,
       next.speed,
@@ -306,8 +320,8 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
   const applyStatic = useCallback(async (effectKey: string, state?: EffectState) => {
     const next = state ?? resolveEffectState(effectKey, templates);
     setActiveEffect(effectKey);
+    staticEffectRef.current = effectKey;
     setMode('static');
-    setMusicReactive(false).catch(() => { /* best-effort */ });
     await startStatic(
       effectKey,
       next.intensity,
@@ -321,19 +335,21 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
     publishLighting('static', 'static', { effect: effectKey, effectState: next });
   }, [publishLighting, templates]);
 
-  const applyMirror = useCallback(async (nextReactive: boolean) => {
-    setReactive(nextReactive);
+  const applyMirror = useCallback(async () => {
     setMode('screen');
-    setMusicReactive(false).catch(() => { /* best-effort */ });
+    // The mirror's look is service-side state: StartScreen ignores the
+    // post-process in its start body, and /lighting/screen/effect is its only
+    // writer. Read the flag for the label; author nothing.
     const current = await fetchScreenEffect();
-    const next = { hue: 0, colorize: 0, saturation: 1, contrast: 1, reactivity: 0.5, intensity: 0.5, ...current, reactive: nextReactive };
-    await setScreenEffect(next, true);
-    await startScreenMirror(next.saturation, next.contrast, '', next.hue, next.colorize);
+    setReactive(current?.reactive ?? false);
+    await startScreenMirror(current?.saturation, current?.contrast, '', current?.hue, current?.colorize);
     publishLighting('screen', 'screen');
   }, [publishLighting]);
 
   const onAnimateButton = useCallback(() => {
-    const effect = ANIMATE_EFFECTS.some(e => e.key === activeEffect) ? activeEffect : 'rainbow';
+    const effect = ANIMATE_EFFECTS.some(e => e.key === activeEffect)
+      ? activeEffect
+      : animateEffectRef.current;
     applyEffect(effect);
   }, [activeEffect, applyEffect]);
 
@@ -343,12 +359,11 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
   }, [activeEffect, applyStatic]);
 
   const onMirrorButton = useCallback(() => {
-    applyMirror(reactive);
-  }, [applyMirror, reactive]);
+    applyMirror();
+  }, [applyMirror]);
 
   const onMediaButton = useCallback(async () => {
     setMode('gif');
-    setMusicReactive(false).catch(() => { /* best-effort */ });
     const played = await playCurrentOrFirstMedia();
     if (!played) {
       // No playable media: black output while staying in Media mode, so the
@@ -360,14 +375,12 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
 
   const onOffButton = useCallback(async () => {
     setMode('none');
-    setMusicReactive(false).catch(() => { /* best-effort */ });
     await stopLighting();
     publishLighting('none', 'none');
   }, [publishLighting]);
 
   const onGameSyncButton = useCallback(async () => {
     setMode('gamesync');
-    setMusicReactive(false).catch(() => { /* best-effort */ });
     await startGameSync();
     publishLighting('gamesync', 'gamesync');
   }, [publishLighting]);

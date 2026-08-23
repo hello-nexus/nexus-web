@@ -236,10 +236,10 @@ function BackdropIcon(p: P) {
 function FillIcon(p: P) {
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...p}>
-      <rect x="3" y="7" width="18" height="10" rx="2.5" fill="currentColor" opacity="0.18" />
-      <clipPath id="fill-icon-clip"><rect x="3" y="7" width="18" height="10" rx="2.5" /></clipPath>
-      <rect x="3" y="7" width="11" height="10" fill="currentColor" opacity="0.4" clipPath="url(#fill-icon-clip)" />
-      <text x="12" y="15" textAnchor="middle" fontFamily="sans-serif" fontWeight="800" fontSize="8" fill="currentColor">42</text>
+      <rect x="2" y="4" width="20" height="16" rx="3.5" fill="currentColor" opacity="0.18" />
+      <clipPath id="fill-icon-clip"><rect x="2" y="4" width="20" height="16" rx="3.5" /></clipPath>
+      <rect x="2" y="4" width="12" height="16" fill="currentColor" opacity="0.32" clipPath="url(#fill-icon-clip)" />
+      <text x="12" y="16" textAnchor="middle" fontFamily="sans-serif" fontWeight="800" fontSize="12" fill="currentColor">42</text>
     </svg>
   );
 }

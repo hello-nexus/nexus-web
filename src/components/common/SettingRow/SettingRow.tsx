@@ -62,8 +62,9 @@ export function SettingRow({
   // Opt-in: render the description on its own full-width line under the
   // label+control line instead of beside the control. For rows whose
   // description changes with the control's value - inline, its height drives
-  // the row's, so the control jogs up and down as the text rewraps.
-  descriptionBelow?: boolean;
+  // the row's, so the control jogs up and down as the text rewraps. 'tight'
+  // seats the description against the label instead (SettingSlider).
+  descriptionBelow?: boolean | 'tight';
 }) {
   const cls = [
     styles.row,
@@ -72,6 +73,7 @@ export function SettingRow({
     wrapControl && styles.wrapControl,
     stackOnNarrow && styles.stackNarrow,
     descriptionBelow && styles.descBelow,
+    descriptionBelow === 'tight' && styles.descBelowTight,
   ].filter(Boolean).join(' ');
   return (
     <div id={anchorId} data-search-anchor={anchorId} className={cls}>
@@ -160,6 +162,7 @@ export function SettingSelect({
 export function SettingSlider({
   label,
   description,
+  descriptionBelow,
   value,
   min,
   max,
@@ -176,6 +179,10 @@ export function SettingSlider({
 }: {
   label?: string;
   description?: ReactNode;
+  // Renders the description on its own full-width line: the slider takes a
+  // fixed slice of the row, so an inline description wraps to a few words per
+  // line in a settings pane.
+  descriptionBelow?: boolean;
   value: number;
   min: number;
   max: number;
@@ -191,8 +198,17 @@ export function SettingSlider({
   // Overrides the default control width (min(12rem, 45vw)); pass a CSS length.
   controlWidth?: string;
 }) {
+  // Built outside the JSX: the variant id is not UI text, and the i18n literal
+  // rule scans JSX only.
+  const below = descriptionBelow ? 'tight' as const : undefined;
   return (
-    <SettingRow label={label} description={description} disabled={disabled} anchorId={anchorId}>
+    <SettingRow
+      label={label}
+      description={description}
+      descriptionBelow={below}
+      disabled={disabled}
+      anchorId={anchorId}
+    >
       <div className={styles.sliderControl} style={controlWidth ? { width: controlWidth } : undefined}>
         <Slider
           value={value}

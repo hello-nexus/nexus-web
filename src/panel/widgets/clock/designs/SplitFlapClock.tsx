@@ -1,11 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { ClockDesignProps } from './types';
 import { formatMetaLine, formatTime, getAmPm } from './timeFormat';
+import { ClockDate, splitTimeLines, useClockFit } from './layout';
 import styles from './SplitFlapClock.module.scss';
 
 const FLIP_DURATION_MS = 220;
 
-function FlapCard({ char }: { char: string }) {
+function FlapCard({ char, badge }: { char: string; badge?: ReactNode }) {
   const currentRef = useRef(char);
   const sequenceRef = useRef(0);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -47,7 +48,7 @@ function FlapCard({ char }: { char: string }) {
   const staticTop = state.flipping ? state.to : state.current;
   const staticBottom = state.flipping ? state.from : state.current;
 
-  return (
+  const card = (
     <div className={styles.card}>
       <div className={styles.cardTop}>
         <span>{staticTop}</span>
@@ -68,25 +69,54 @@ function FlapCard({ char }: { char: string }) {
       )}
     </div>
   );
+
+  // The badge rides a wrapper, not the card: the card is a 3D rendering
+  // context, where the flipping halves sort by their position in space and can
+  // sweep over a child no matter its z-index.
+  if (!badge) return card;
+
+  return (
+    <div className={styles.cardWrap}>
+      {card}
+      {badge}
+    </div>
+  );
 }
 
-function SplitFlapClock({ now, tz, showSeconds, showDate, showTimezone, size, hour12, useAccentColor }: ClockDesignProps) {
+function SplitFlapClock({ now, tz, showSeconds, showDate, showTimezone, size, hour12, useAccentColor, layout }: ClockDesignProps) {
   const time = formatTime(now, tz, showSeconds, hour12);
   const ampm = getAmPm(now, tz, hour12);
-  const chars = time.split('');
+  const stacked = layout === 'stacked';
+  const lines = splitTimeLines(time, layout);
+  const { boxRef, contentRef, scale } = useClockFit(stacked);
   const sizeClass = styles[`size-${size}`] ?? styles['size-4x2'];
 
   const dateStr = formatMetaLine(now, tz, showDate, showTimezone);
 
+  // AM/PM rides the last hour digit: the char before the first colon on a
+  // horizontal line, the last char of the hour line when stacked.
+  const firstColon = lines[0].indexOf(':');
+  const hourEnd = firstColon === -1 ? lines[0].length - 1 : firstColon - 1;
+  const badge = ampm ? <span className={styles.ampm}>{ampm}</span> : undefined;
+
   return (
-    <div className={`${styles.container} ${sizeClass} ${useAccentColor ? styles.accent : ''}`}>
-      <div className={styles.row}>
-        {chars.map((ch, i) => (
-          <FlapCard key={i} char={ch} />
-        ))}
-        {ampm && <div className={styles.ampm}>{ampm}</div>}
+    <div className={`${styles.container} ${sizeClass} ${stacked ? styles.stacked : ''} ${useAccentColor ? styles.accent : ''}`}>
+      <div ref={boxRef} className={styles.fitBox}>
+        <div ref={contentRef} className={styles.lines} style={{ transform: `scale(${scale})` }}>
+          {lines.map((line, li) => (
+            <div key={li} className={styles.row}>
+              {line.split('').map((ch, i) => (
+                <FlapCard
+                  key={`${li}-${i}`}
+                  char={ch}
+                  badge={li === 0 && i === hourEnd ? badge : undefined}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
       </div>
-      {dateStr && <div className={styles.date}>{dateStr}</div>}
+      {dateStr && <ClockDate text={dateStr} className={styles.date} />}
     </div>
   );
 }

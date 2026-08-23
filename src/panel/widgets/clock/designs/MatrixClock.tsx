@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ClockDesignProps } from './types';
 import { formatMetaLine, formatTime, getAmPm } from './timeFormat';
+import { ClockDate, ClockLine, splitTimeLines, useClockFit } from './layout';
 import styles from './MatrixClock.module.scss';
 
 const SCRAMBLE_CHARS = '0123456789#$%&@!?*+=/\\<>[]{}~^';
@@ -62,23 +63,32 @@ function ScrambleChar({ char }: { char: string }) {
   );
 }
 
-function MatrixClock({ now, tz, showSeconds, showDate, showTimezone, size, hour12, useAccentColor }: ClockDesignProps) {
+function MatrixClock({ now, tz, showSeconds, showDate, showTimezone, size, hour12, useAccentColor, layout }: ClockDesignProps) {
   const time = formatTime(now, tz, showSeconds, hour12);
   const ampm = getAmPm(now, tz, hour12);
-  const chars = time.split('');
+  const stacked = layout === 'stacked';
+  const lines = splitTimeLines(time, layout);
   const sizeClass = styles[`size-${size}`] ?? styles['size-4x2'];
+  const { boxRef, contentRef, scale } = useClockFit(stacked);
 
   const dateStr = formatMetaLine(now, tz, showDate, showTimezone);
 
   return (
-    <div className={`${styles.container} ${sizeClass} ${useAccentColor ? styles.accent : ''}`}>
-      <div className={styles.row}>
-        {chars.map((ch, i) => (
-          <ScrambleChar key={i} char={ch} />
-        ))}
-        {ampm && <span className={styles.ampm}>{ampm}</span>}
+    <div className={`${styles.container} ${sizeClass} ${stacked ? styles.stacked : ''} ${useAccentColor ? styles.accent : ''}`}>
+      <div ref={boxRef} className={styles.fitBox}>
+        <div ref={contentRef} className={styles.lines} style={{ transform: `scale(${scale})` }}>
+          {lines.map((line, li) => (
+            <div key={li} className={styles.row}>
+              <ClockLine ampm={li === 0 ? ampm : undefined} ampmClass={styles.ampm}>
+                {line.split('').map((ch, i) => (
+                  <ScrambleChar key={`${li}-${i}`} char={ch} />
+                ))}
+              </ClockLine>
+            </div>
+          ))}
+        </div>
       </div>
-      {dateStr && <div className={styles.date}>{dateStr}</div>}
+      {dateStr && <ClockDate text={dateStr} className={styles.date} />}
     </div>
   );
 }

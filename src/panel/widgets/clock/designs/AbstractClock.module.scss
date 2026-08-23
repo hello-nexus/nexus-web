@@ -1,0 +1,76 @@
+@use './clockDate' as *;
+
+.container {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+
+  @include clock-date-scale;
+}
+
+// Full-bleed accent sweep. The stops run bright to near-dark around the turn,
+// so the seam reads as a blade edge rather than a band.
+.sweep {
+  position: absolute;
+  inset: 0;
+  background: conic-gradient(
+    from var(--abstract-angle, 0deg) at 50% 50%,
+    color-mix(in srgb, var(--panel-accent) 96%, transparent) 0deg,
+    color-mix(in srgb, var(--panel-accent) 62%, transparent) 70deg,
+    color-mix(in srgb, var(--panel-accent) 22%, transparent) 170deg,
+    color-mix(in srgb, var(--panel-accent) 6%, transparent) 250deg,
+    color-mix(in srgb, var(--panel-accent) 96%, transparent) 360deg
+  );
+}
+
+// Square so the hand angles stay true on any tile aspect; the hands are drawn
+// past the viewBox and overflow into the wide half of a non-square widget.
+.hands {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  height: 100%;
+  aspect-ratio: 1;
+  overflow: visible;
+}
+
+.hourHand,
+.minuteHand,
+.secondHand {
+  stroke: var(--panel-accent-text, #fff);
+  stroke-linecap: round;
+  transform-origin: 50px 50px;
+  vector-effect: non-scaling-stroke;
+}
+
+.hourHand   { stroke-width: 3.5; }
+.minuteHand { stroke-width: 2; }
+.secondHand { stroke-width: 1; opacity: 0.75; }
+
+.center {
+  fill: var(--panel-accent-text, #fff);
+}
+
+// Keeps the date legible where a hand sweeps under it.
+.scrim {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 45%;
+  background: linear-gradient(to bottom, transparent, color-mix(in srgb, #000 42%, transparent));
+}
+
+.date {
+  @include clock-date;
+  position: relative;
+  padding-bottom: 0.7em;
+  // Sits on the accent fill, where the dim text token has too little contrast.
+  color: color-mix(in srgb, var(--panel-accent-text, #fff) 78%, transparent);
+}
+
+.container.size-2x2 .date { padding-bottom: 0.5em; }

@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { RotateCcw } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingSelect, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
@@ -16,31 +15,27 @@ import {
   type QSeriesCoolerState, type QSeriesFirmwareCurve, type QSeriesCurvePoint,
   type QSeriesFirmwareAnimation, type QSeriesFwAnimationKind,
 } from '../../../api/qseries';
-import {
-  QSERIES_DEFAULT_ANIMATION,
-  animationsEqual, curvesEqual, isAtFactoryDefaults, planResetWrites,
-} from './qseriesFirmwareLightingUtils';
+import { animationsEqual, curvesEqual } from './qseriesFirmwareLightingUtils';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
+// Safe variant: the component tests render this bare, outside a ToastProvider.
+import { useToastSafe } from '../../common/Toast/Toast';
 import { useTranslation } from '../../../lib/i18n';
 import { localizeNumbers } from '../../../lib/units';
 import styles from './QSeriesCoolerSettings.module.scss';
 
 /**
- * Q-series (Q60 / Q80) cooler firmware options, rendered inside the Q60 device
- * page's settings tab. Pump control MODE (BIOS / FW Control / curves) lives in
- * the cooling menu's fan card, not here. This single "Cooler firmware" section
- * carries turbo, the two onboard temperature curves (pump + fan), and the
- * firmware-mode LED animation the cooler drives from when Nexus isn't
- * streaming lighting frames. State from <c>GET /devices/qseries</c>, the curve
- * from <c>GET /devices/qseries/firmware-curve</c>, the animation from
- * <c>GET /devices/qseries/firmware-animation</c>.
+ * Q-series (Q60 / Q80) cooler firmware options on the Q60 device page's settings
+ * tab, split into a Cooling firmware section (turbo + the onboard pump/fan
+ * curves) and a Lighting firmware section (the animation the cooler drives
+ * itself when Nexus is not driving its LEDs). Pump control MODE (BIOS / FW
+ * Control / curves) lives in the cooling menu's fan card, not here.
  *
- * Curves and the animation are draft-state: onChange only mutates local
- * state, an explicit Save PUTs. The Q-series firmware has a limited EEPROM
- * write budget, so nothing here writes on every drag/keystroke. The
- * firmware-animation read in particular can fail transiently (a read racing
- * an in-flight EEPROM write); a null result MUST NOT be treated as the
- * device disconnecting - that gate is `state.connected` alone.
+ * Everything here is draft-state - turbo included, because writing it persists
+ * to the MCU immediately - and an explicit Save PUTs. The Q-series firmware has
+ * a limited EEPROM write budget, so nothing writes on a drag or a toggle. The
+ * firmware-animation read can fail transiently (a read racing an in-flight
+ * EEPROM write); a null result MUST NOT be treated as the device disconnecting -
+ * that gate is `state.connected` alone.
  */
 const toCurve = (pts: QSeriesCurvePoint[]): CurvePoint[] =>
   pts.map(p => ({ temp: p.tempC, speed: p.dutyPercent }));
@@ -52,20 +47,11 @@ const toApi = (pts: CurvePoint[]): QSeriesCurvePoint[] =>
 const PUMP_TURBO_OFF_LIMIT = 70;
 const FAN_TURBO_OFF_LIMIT = 65;
 
-// HYTE factory-default firmware curves (coolant temp -> duty %). The firmware has
-// no reset command, so Reset writes these known-good defaults back to the device.
-const DEFAULT_PUMP: CurvePoint[] = [
-  { temp: 34, speed: 32 }, { temp: 38, speed: 37 }, { temp: 43, speed: 45 },
-  { temp: 47, speed: 56 }, { temp: 50, speed: 91 },
-];
-const DEFAULT_FAN: CurvePoint[] = [
-  { temp: 43, speed: 29 }, { temp: 48, speed: 39 }, { temp: 51, speed: 50 },
-  { temp: 54, speed: 59 }, { temp: 56, speed: 91 },
-];
 
 export function QSeriesCoolerSettings() {
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
+  const { push: pushToast } = useToastSafe();
   const [state, setState] = useState<QSeriesCoolerState | null>(null);
   const aliveRef = useRef(true);
 
@@ -74,6 +60,11 @@ export function QSeriesCoolerSettings() {
   const [pumpPts, setPumpPts] = useState<CurvePoint[]>([]);
   const [fanPts, setFanPts] = useState<CurvePoint[]>([]);
   const [curveSaving, setCurveSaving] = useState(false);
+  // Turbo persists to the MCU (FF CC 0A) the moment it is written, so it is held
+  // as a draft and committed with the curves rather than on every toggle.
+  const [turboDraft, setTurboDraft] = useState<boolean | null>(null);
+  // Mirrors the device turbo value so the stable refresh callback can read it.
+  const turboBaselineRef = useRef<boolean | null>(null);
 
   // Firmware animation: `animation` is the local draft; `animationBaseline`
   // is the last-known device value, used to compute dirty/reset state.
@@ -83,11 +74,18 @@ export function QSeriesCoolerSettings() {
   const animationBaselineRef = useRef<QSeriesFirmwareAnimation | null>(null);
   const [animationSaving, setAnimationSaving] = useState(false);
 
-  const [resetting, setResetting] = useState(false);
-
+  // Keeps an unsaved turbo edit (draft differing from the baseline the user
+  // edited against) while still following the device when the draft is clean, so
+  // a change made elsewhere - the hardware reset, another dashboard - lands here
+  // instead of leaving a stale draft armed to write itself back.
   const refresh = useCallback(async () => {
     const s = await getQSeriesState().catch(() => null);
-    if (aliveRef.current && s) setState(s);
+    if (!aliveRef.current || !s) return;
+    const prevBaseline = turboBaselineRef.current;
+    turboBaselineRef.current = s.turboOn;
+    setState(s);
+    setTurboDraft(prev =>
+      prev !== null && prevBaseline !== null && prev !== prevBaseline ? prev : s.turboOn);
   }, []);
 
   const refreshCurve = useCallback(async () => {
@@ -121,7 +119,11 @@ export function QSeriesCoolerSettings() {
     void refresh();
     void refreshCurve();
     void refreshAnimation();
-    const onFocus = () => { void refresh(); void refreshAnimation({ keepDirtyDraft: true }); };
+    const onFocus = () => {
+      void refresh();
+      void refreshCurve();
+      void refreshAnimation({ keepDirtyDraft: true });
+    };
     window.addEventListener('focus', onFocus);
     return () => {
       aliveRef.current = false;
@@ -129,67 +131,54 @@ export function QSeriesCoolerSettings() {
     };
   }, [refresh, refreshCurve, refreshAnimation]);
 
-  const commitTurbo = useCallback(async (on: boolean) => {
-    setState(prev => (prev ? { ...prev, turboOn: on } : prev));
-    await setQSeriesTurbo(on).catch(() => {});
-  }, []);
-
-  const writeCurve = useCallback(async (pump: CurvePoint[], fan: CurvePoint[]) => {
+  const writeCooling = useCallback(async (
+    pump: CurvePoint[], fan: CurvePoint[], turbo: boolean | null, writeCurve: boolean,
+  ) => {
     setCurveSaving(true);
     try {
-      await setQSeriesFirmwareCurve(toApi(pump), toApi(fan));
+      // Turbo first: it caps the duties the firmware accepts, so the curve must
+      // be written against the mode being saved. A failed turbo write therefore
+      // aborts the curve too - writing it against the old mode would have the
+      // firmware clamp the duties and the refetch would adopt the clamped values.
+      if (turbo !== null) {
+        const turboOk = await setQSeriesTurbo(turbo);
+        if (!turboOk) {
+          pushToast({ title: t('devices.q60.saveCoolingError') });
+          return;
+        }
+        setState(prev => (prev ? { ...prev, turboOn: turbo } : prev));
+        turboBaselineRef.current = turbo;
+      }
+      // Only when the curve is both supported and actually edited: an unloaded
+      // curve would otherwise PUT empty point arrays, which the service rejects.
+      if (writeCurve && !await setQSeriesFirmwareCurve(toApi(pump), toApi(fan))) {
+        pushToast({ title: t('devices.q60.saveCoolingError') });
+      }
       await refreshCurve();
     } finally {
       if (aliveRef.current) setCurveSaving(false);
     }
-  }, [refreshCurve]);
+  }, [refreshCurve, pushToast, t]);
 
   const writeAnimation = useCallback(async (next: QSeriesFirmwareAnimation) => {
     setAnimationSaving(true);
     try {
-      await setQSeriesFirmwareAnimation(next);
-      await refreshAnimation();
+      // The service verifies the write against a device readback and fails the
+      // request when the cooler did not take it. Discarding that turned a failed
+      // save into a silent revert to the old value (NEX-62).
+      const ok = await setQSeriesFirmwareAnimation(next);
+      if (!ok) pushToast({ title: t('devices.q60.saveAnimationError') });
+      // Keep the draft on failure: the user has to retry it, and adopting the
+      // device value here would silently discard the edit being reported failed.
+      await refreshAnimation({ keepDirtyDraft: !ok });
     } finally {
       if (aliveRef.current) setAnimationSaving(false);
     }
-  }, [refreshAnimation]);
-
-  const performReset = useCallback(async () => {
-    if (!state) return;
-    setResetting(true);
-    try {
-      const plan = planResetWrites({
-        deviceTurboOn: state.turboOn,
-        curveSupported: curve?.supported ?? false,
-        devicePump: curve ? toCurve(curve.pump) : [],
-        deviceFan: curve ? toCurve(curve.fan) : [],
-        defaultPump: DEFAULT_PUMP,
-        defaultFan: DEFAULT_FAN,
-        animationSupported: state.fwAnimationSupported,
-        deviceAnimation: animationBaseline,
-      });
-
-      setState(prev => (prev ? { ...prev, turboOn: false } : prev));
-      if (curve?.supported) { setPumpPts(DEFAULT_PUMP); setFanPts(DEFAULT_FAN); }
-      // Draft follows the reset only when the device state is known; with a null
-      // baseline the write was skipped, and a defaults draft would arm a blind save.
-      if (state.fwAnimationSupported && animationBaseline !== null) setAnimation(QSERIES_DEFAULT_ANIMATION);
-
-      const writes: Promise<unknown>[] = [];
-      if (plan.writeTurboOff) writes.push(setQSeriesTurbo(false));
-      if (plan.writeCurve) writes.push(setQSeriesFirmwareCurve(toApi(DEFAULT_PUMP), toApi(DEFAULT_FAN)));
-      if (plan.writeAnimation) writes.push(setQSeriesFirmwareAnimation(QSERIES_DEFAULT_ANIMATION));
-      await Promise.all(writes);
-
-      await Promise.all([refreshCurve(), refreshAnimation()]);
-    } finally {
-      if (aliveRef.current) setResetting(false);
-    }
-  }, [state, curve, animationBaseline, refreshCurve, refreshAnimation]);
+  }, [refreshAnimation, pushToast, t]);
 
   if (!state?.connected) {
     return (
-      <SettingsSection title={t('devices.q60.firmwareSection')} boxClassName={styles.sectionBox}>
+      <SettingsSection title={t('devices.q60.coolingFirmwareSection')} boxClassName={styles.sectionBox}>
         <div className={styles.note} data-settings-aside="true">{t('devices.q60.notConnected')}</div>
       </SettingsSection>
     );
@@ -197,9 +186,13 @@ export function QSeriesCoolerSettings() {
 
   const tempMin = curve?.tempMin ?? 0;
   const tempMax = curve?.tempMax ?? 75;
-  const curveDirty = curve?.supported
-    ? !curvesEqual(pumpPts, toCurve(curve.pump)) || !curvesEqual(fanPts, toCurve(curve.fan))
+  const curveSupported = curve?.supported ?? false;
+  const curveDirty = curveSupported
+    ? !curvesEqual(pumpPts, toCurve(curve!.pump)) || !curvesEqual(fanPts, toCurve(curve!.fan))
     : false;
+  const turboOn = turboDraft ?? state.turboOn;
+  const turboDirty = turboDraft !== null && turboDraft !== state.turboOn;
+  const coolingDirty = curveDirty || turboDirty;
 
   const animationLoaded = animation !== null;
   const animKind = animation?.animation ?? QSERIES_FW_ANIMATION_COLOR;
@@ -207,27 +200,14 @@ export function QSeriesCoolerSettings() {
   const hex = animation ? qSeriesRgbToHex(animation.r, animation.g, animation.b) : '#ffffff';
   const animationDirty = animationLoaded && !animationsEqual(animation, animationBaseline);
 
-  const resetDisabled = isAtFactoryDefaults({
-    turboOn: state.turboOn,
-    curveSupported: curve?.supported ?? false,
-    draftPump: pumpPts,
-    draftFan: fanPts,
-    devicePump: curve ? toCurve(curve.pump) : [],
-    deviceFan: curve ? toCurve(curve.fan) : [],
-    defaultPump: DEFAULT_PUMP,
-    defaultFan: DEFAULT_FAN,
-    animationSupported: state.fwAnimationSupported,
-    draftAnimation: animation,
-    deviceAnimation: animationBaseline,
-  });
-
   return (
-    <SettingsSection title={t('devices.q60.firmwareSection')} boxClassName={styles.sectionBox}>
+    <>
+    <SettingsSection title={t('devices.q60.coolingFirmwareSection')} boxClassName={styles.sectionBox}>
       <SettingToggle
         label={t('devices.q60.turbo')}
         description={t('devices.q60.turboHelp')}
-        checked={state.turboOn}
-        onChange={on => void commitTurbo(on)}
+        checked={turboOn}
+        onChange={on => setTurboDraft(on)}
       />
 
       {curve && !curve.supported ? (
@@ -241,7 +221,7 @@ export function QSeriesCoolerSettings() {
               tempMin={tempMin}
               tempMax={tempMax}
               editable
-              limitPercent={state.turboOn ? undefined : PUMP_TURBO_OFF_LIMIT}
+              limitPercent={turboOn ? undefined : PUMP_TURBO_OFF_LIMIT}
               onChange={pts => setPumpPts(pts)}
             />
           </div>
@@ -252,25 +232,52 @@ export function QSeriesCoolerSettings() {
               tempMin={tempMin}
               tempMax={tempMax}
               editable
-              limitPercent={state.turboOn ? undefined : FAN_TURBO_OFF_LIMIT}
+              limitPercent={turboOn ? undefined : FAN_TURBO_OFF_LIMIT}
               onChange={pts => setFanPts(pts)}
             />
           </div>
           <span className={styles.helpText} data-settings-aside="true">{t('devices.q60.curveHint')}</span>
-          <div className={styles.saveRow} data-settings-aside="true">
-            <Button type="button" size="sm" tone="accent"
-              onClick={() => void writeCurve(pumpPts, fanPts)} disabled={!curveDirty || curveSaving}>
-              {curveSaving ? t('devices.saving') : t('devices.q60.saveCurve')}
-            </Button>
-          </div>
         </>
       )}
+
+      <div className={styles.saveRow} data-settings-aside="true">
+        <Button type="button" size="sm" tone="accent"
+          onClick={() => void writeCooling(pumpPts, fanPts, turboDirty ? turboOn : null, curveDirty)}
+          disabled={!coolingDirty || curveSaving}>
+          {curveSaving ? t('devices.saving') : t('devices.q60.saveCooling')}
+        </Button>
+      </div>
+
+    </SettingsSection>
+
+    <SettingsSection title={t('devices.q60.lightingFirmwareSection')} boxClassName={styles.sectionBox}>
+      {/* The cooler only drives these LEDs itself when Nexus is not driving them,
+          so say when that is rather than leave the setting looking inert. */}
+      <div className={styles.note} data-settings-aside="true">{t('devices.q60.lightingFirmwareHelp')}</div>
 
       {!state.fwAnimationSupported ? (
         <div className={styles.note} data-settings-aside="true">{t('devices.q60.fwAnimationUnsupported')}</div>
       ) : (
         <>
-          <span className={styles.blockTitle} data-settings-aside="true">{t('devices.q60.ledAnimationSection')}</span>
+          {state.fwAnimationBrightnessSupported ? (
+            <SettingSlider
+              label={t('devices.y70.brightness')}
+              value={animation?.brightness ?? 100}
+              min={0}
+              max={100}
+              step={1}
+              editable
+              trackFill
+              formatValue={v => localizeNumbers(`${Math.round(v)}%`, numberFormat)}
+              disabled={!animationLoaded}
+              onChange={(v: number) => {
+                if (!animation) return;
+                setAnimation({ ...animation, brightness: Math.round(v) });
+              }}
+            />
+          ) : (
+            <div className={styles.note} data-settings-aside="true">{t('devices.q60.fwAnimationBrightnessUnsupported')}</div>
+          )}
           <SettingSelect
             label={t('devices.fwAnimation.effect')}
             value={String(animKind)}
@@ -303,41 +310,17 @@ export function QSeriesCoolerSettings() {
               />
             </div>
           )}
-          {state.fwAnimationBrightnessSupported ? (
-            <SettingSlider
-              label={t('devices.y70.brightness')}
-              value={animation?.brightness ?? 100}
-              min={0}
-              max={100}
-              step={1}
-              editable
-              trackFill
-              formatValue={v => localizeNumbers(`${Math.round(v)}%`, numberFormat)}
-              disabled={!animationLoaded}
-              onChange={(v: number) => {
-                if (!animation) return;
-                setAnimation({ ...animation, brightness: Math.round(v) });
-              }}
-            />
-          ) : (
-            <div className={styles.note} data-settings-aside="true">{t('devices.q60.fwAnimationBrightnessUnsupported')}</div>
-          )}
           <div className={styles.saveRow} data-settings-aside="true">
             <Button type="button" size="sm" tone="accent"
               onClick={() => { if (animation) void writeAnimation(animation); }}
               disabled={!animationDirty || animationSaving}>
-              {animationSaving ? t('devices.saving') : t('devices.q60.saveAnimation')}
+              {animationSaving ? t('devices.saving') : t('devices.q60.saveLighting')}
             </Button>
           </div>
         </>
       )}
 
-      <div className={styles.saveRow} data-settings-aside="true">
-        <Button type="button" size="sm" tone="neutral" icon={<RotateCcw size={12} aria-hidden />}
-          onClick={() => void performReset()} disabled={resetDisabled || resetting}>
-          {t('cooling.curves.resetBtn')}
-        </Button>
-      </div>
     </SettingsSection>
+    </>
   );
 }
