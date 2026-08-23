@@ -1,10 +1,11 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PanelWidget } from '../../types';
-import { fetchCurrentSync, setScreenEffect, startAnimate, startScreenMirror, startStatic } from '../../../api/lighting';
+import {
+  fetchCurrentSync, startAnimate, startGameSync, startScreenMirror, startStatic, stopLighting,
+} from '../../../api/lighting';
 import { fetchMediaCurrent, fetchMediaLibrary, playMedia, type MediaItem } from '../../../api/mediaLibrary';
 import { pingService } from '../../../api/service';
-import { STATIC_EFFECTS } from '../../../types/lighting';
 import { LightingWidget } from './LightingWidget';
 
 vi.mock('../../../api/lighting', () => ({
@@ -179,13 +180,13 @@ describe('LightingWidget', () => {
     expect(document.querySelector('[data-state-flash]')).not.toBeInTheDocument();
   });
 
-  it('flashes inside the thumbnail when the effect changes', async () => {
+  it('flashes inside the thumbnail when the mode changes', async () => {
     render(<LightingWidget widget={lightingWidget('4x2')} />);
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Animation' }).getAttribute('data-active')).toBe('true');
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    fireEvent.click(screen.getByRole('button', { name: /static/i }));
     await waitFor(() => {
       expect(document.querySelector('[data-state-flash]')).toBeInTheDocument();
     });
@@ -213,26 +214,41 @@ describe('LightingWidget', () => {
 
     // NEX-64: while in Static mode the arrows cycle the static pool in place;
     // they must not jump into the animation list.
-    it('cycles the static pool from Static mode instead of entering animations', async () => {
+    // The arrows switch mode and nothing else: what plays inside a mode is
+    // chosen on the lighting page. MODES order is off, static, animate, gif,
+    // screen, gamesync (the last only on Windows, which pingService reports).
+    it('steps to the next mode instead of into the effect list', async () => {
       vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'static' });
       vi.mocked(startStatic).mockClear();
       vi.mocked(startAnimate).mockClear();
       render(<LightingWidget widget={lightingWidget('4x2')} />);
-      // Static labels the card with the lit-device count, not the effect name,
-      // so hydration is observable through that key (the arrows alone also
-      // render pre-hydration).
       await waitFor(() => expect(screen.getByText('lighting.devices.activeCount.other')).toBeInTheDocument());
 
-      const startIdx = STATIC_EFFECTS.findIndex(e => e.key === 'simplewhite');
       fireEvent.click(screen.getByRole('button', { name: 'Next' }));
-      await waitFor(() => expect(startStatic).toHaveBeenCalled());
-      expect(vi.mocked(startStatic).mock.calls[0][0]).toBe(STATIC_EFFECTS[(startIdx + 1) % STATIC_EFFECTS.length].key);
+      await waitFor(() => expect(startAnimate).toHaveBeenCalled());
+      expect(startStatic).not.toHaveBeenCalled();
+    });
+
+    it('steps to the previous mode', async () => {
+      vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'static' });
+      vi.mocked(stopLighting).mockClear();
+      vi.mocked(startStatic).mockClear();
+      render(<LightingWidget widget={lightingWidget('4x2')} />);
+      await waitFor(() => expect(screen.getByText('lighting.devices.activeCount.other')).toBeInTheDocument());
 
       fireEvent.click(screen.getByRole('button', { name: 'Previous' }));
-      await waitFor(() => expect(startStatic).toHaveBeenCalledTimes(2));
-      expect(vi.mocked(startStatic).mock.calls[1][0]).toBe('simplewhite');
+      await waitFor(() => expect(stopLighting).toHaveBeenCalled());
+      expect(startStatic).not.toHaveBeenCalled();
+    });
 
-      expect(startAnimate).not.toHaveBeenCalled();
+    it('wraps off the start of the mode list', async () => {
+      vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'none' });
+      vi.mocked(startGameSync).mockClear();
+      render(<LightingWidget widget={lightingWidget('4x2')} />);
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Previous' })).toBeInTheDocument());
+
+      fireEvent.click(screen.getByRole('button', { name: 'Previous' }));
+      await waitFor(() => expect(startGameSync).toHaveBeenCalled());
     });
 
     const mediaItem = (id: string, name: string): MediaItem => ({
@@ -248,58 +264,21 @@ describe('LightingWidget', () => {
 
     // NEX-64: while in Media mode the arrows cycle the media library in
     // place; they must not jump into the animation list.
-    it('cycles media items from Media mode instead of entering animations', async () => {
-      const items = [mediaItem('m1', 'Alpha.gif'), mediaItem('m2', 'Beta.gif'), mediaItem('m3', 'Gamma.gif')];
-      vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'gif' });
-      vi.mocked(fetchMediaLibrary).mockResolvedValueOnce({ items });
-      vi.mocked(fetchMediaCurrent).mockResolvedValueOnce({ mediaId: 'm2', item: items[1] });
-      vi.mocked(startAnimate).mockClear();
-      vi.mocked(playMedia).mockClear();
-      render(<LightingWidget widget={lightingWidget('4x2')} />);
-      await waitFor(() => expect(screen.getByText('Beta')).toBeInTheDocument());
-
-      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
-      await waitFor(() => expect(playMedia).toHaveBeenCalledWith('m3'));
-      await waitFor(() => expect(screen.getByText('Gamma')).toBeInTheDocument());
-
-      fireEvent.click(screen.getByRole('button', { name: 'Previous' }));
-      await waitFor(() => expect(playMedia).toHaveBeenCalledWith('m2'));
-
-      expect(startAnimate).not.toHaveBeenCalled();
-    });
-
-    // No current clip reported: the view shows the first item, so the first
-    // press must advance past it, not replay it.
-    it('advances from the displayed first item when no clip is active', async () => {
+    // Media is a mode like any other: the arrows leave it rather than paging
+    // its library.
+    it('leaves Media mode instead of paging its library', async () => {
       const items = [mediaItem('m1', 'Alpha.gif'), mediaItem('m2', 'Beta.gif')];
       vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'gif' });
       vi.mocked(fetchMediaLibrary).mockResolvedValueOnce({ items });
-      vi.mocked(fetchMediaCurrent).mockResolvedValueOnce({ mediaId: null, item: null });
+      vi.mocked(fetchMediaCurrent).mockResolvedValueOnce({ mediaId: 'm1', item: items[0] });
       vi.mocked(playMedia).mockClear();
+      vi.mocked(startScreenMirror).mockClear();
       render(<LightingWidget widget={lightingWidget('4x2')} />);
       await waitFor(() => expect(screen.getByText('Alpha')).toBeInTheDocument());
 
       fireEvent.click(screen.getByRole('button', { name: 'Next' }));
-      await waitFor(() => expect(playMedia).toHaveBeenCalledWith('m2'));
-    });
-
-    // While the library fetch is in flight the arrows are a no-op: an
-    // unloaded library must not be misread as empty (which would jump the
-    // panel into the animation list - the NEX-64 symptom).
-    it('arrows no-op in Media mode until the library has loaded', async () => {
-      vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'gif' });
-      vi.mocked(fetchMediaLibrary).mockReturnValueOnce(new Promise(() => {}));
-      vi.mocked(fetchMediaCurrent).mockReturnValueOnce(new Promise(() => {}));
-      vi.mocked(startAnimate).mockClear();
-      vi.mocked(playMedia).mockClear();
-      render(<LightingWidget widget={lightingWidget('4x2')} />);
-      await waitFor(() => expect(screen.getByText('Media')).toBeInTheDocument());
-
-      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
-      fireEvent.click(screen.getByRole('button', { name: 'Previous' }));
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await waitFor(() => expect(startScreenMirror).toHaveBeenCalled());
       expect(playMedia).not.toHaveBeenCalled();
-      expect(startAnimate).not.toHaveBeenCalled();
     });
 
     // The 2x2 simple widget shows the media name + arrows, so it loads the
@@ -313,27 +292,5 @@ describe('LightingWidget', () => {
       await waitFor(() => expect(screen.getByText('Alpha')).toBeInTheDocument());
     });
 
-    // NEX-64: while in Mirror mode the arrows step between the two mirror
-    // filters; they must not jump into the animation list.
-    it('toggles the mirror filter from Mirror mode instead of entering animations', async () => {
-      vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'screen' });
-      vi.mocked(startAnimate).mockClear();
-      vi.mocked(startScreenMirror).mockClear();
-      vi.mocked(setScreenEffect).mockClear();
-      render(<LightingWidget widget={lightingWidget('4x2')} />);
-      await waitFor(() => expect(screen.getByText('Pass-Through')).toBeInTheDocument());
-
-      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
-      await waitFor(() => expect(startScreenMirror).toHaveBeenCalledTimes(1));
-      expect(vi.mocked(setScreenEffect).mock.calls[0][0]).toMatchObject({ reactive: true });
-      await waitFor(() => expect(screen.getByText('Reactive')).toBeInTheDocument());
-
-      fireEvent.click(screen.getByRole('button', { name: 'Previous' }));
-      await waitFor(() => expect(startScreenMirror).toHaveBeenCalledTimes(2));
-      expect(vi.mocked(setScreenEffect).mock.calls[1][0]).toMatchObject({ reactive: false });
-      await waitFor(() => expect(screen.getByText('Pass-Through')).toBeInTheDocument());
-
-      expect(startAnimate).not.toHaveBeenCalled();
-    });
   });
 });

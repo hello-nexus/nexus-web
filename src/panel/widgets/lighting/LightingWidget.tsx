@@ -24,7 +24,6 @@ import {
   fetchMediaLibrary,
   mediaIdle,
   playCurrentOrFirstMedia,
-  playMedia,
   type MediaItem,
 } from '../../../api/mediaLibrary';
 import { fetchServiceBlob, pingService } from '../../../api/service';
@@ -231,18 +230,11 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
     thumbsRef.current = {};
   }, []);
 
-  // Media library is only needed in gif mode: the active media name, and the
-  // simple-mode arrows cycle it. Skipped at 2x2 advanced, which shows neither.
-  // mediaLoaded separates "library not fetched yet" from "library is empty".
-  const [mediaLoaded, setMediaLoaded] = useState(false);
+  // Media library is only needed in gif mode, for the active media name.
+  // Skipped at 2x2 advanced, which does not show it.
   const refreshMedia = useCallback(async () => {
     const [lib, cur] = await Promise.all([fetchMediaLibrary(), fetchMediaCurrent()]);
-    if (lib?.items) {
-      setMediaItems(lib.items);
-      // A failed fetch stays "not loaded" so the arrows keep no-oping; the
-      // lighting-topic subscription retries on the next broadcast.
-      setMediaLoaded(true);
-    }
+    if (lib?.items) setMediaItems(lib.items);
     if (cur?.mediaId !== undefined) setActiveMediaId(cur.mediaId);
   }, []);
 
@@ -340,70 +332,6 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
     publishLighting('screen', 'screen');
   }, [publishLighting]);
 
-  const cycleAnimate = useCallback((delta: number) => {
-    const pool = mode === 'static' ? STATIC_EFFECTS : ANIMATE_EFFECTS;
-    const idx = pool.findIndex(e => e.key === activeEffect);
-    const nextIdx = (idx < 0 ? 0 : (idx + delta + pool.length) % pool.length);
-    const next = pool[nextIdx];
-    const nextState = resolveEffectState(next.key, templates);
-    if (mode === 'static') {
-      void applyStatic(next.key, nextState);
-      return;
-    }
-    applyEffect(next.key, nextState);
-  }, [activeEffect, applyEffect, applyStatic, mode, templates]);
-
-  const toggleReactive = useCallback(() => {
-    applyMirror(!reactive);
-  }, [applyMirror, reactive]);
-
-  const cycleMedia = useCallback(async (delta: number) => {
-    // A missing active id anchors on index 0, the item the view displays, so
-    // the first press advances instead of replaying it.
-    const idx = mediaItems.findIndex(m => m.id === activeMediaId);
-    const anchor = idx < 0 ? 0 : idx;
-    const nextIdx = (anchor + delta + mediaItems.length) % mediaItems.length;
-    const item = mediaItems[nextIdx];
-    if (!item) return;
-    // Optimistic set like the other apply paths, so rapid taps step from the
-    // already-advanced anchor; a failed play re-syncs from the service.
-    setActiveMediaId(item.id);
-    if (!(await playMedia(item.id))) {
-      void refreshMedia();
-      return;
-    }
-    publishLighting('gif', 'gif');
-  }, [mediaItems, activeMediaId, publishLighting, refreshMedia]);
-
-  // Simple-mode arrow handler (NEX-64): cycles the current mode's own pool -
-  // animations, static effects, media items, or the two mirror filters. From a
-  // state with nothing to cycle (game sync / off / an empty media library),
-  // the first press jumps into the animation list: right arrow lands on the
-  // first effect, left arrow lands on the last effect (i.e. the cycle's
-  // wrap-around starting position).
-  const cycleCurrentPool = useCallback((delta: number) => {
-    if (mode === 'animate' || mode === 'static') {
-      cycleAnimate(delta);
-      return;
-    }
-    if (mode === 'gif') {
-      // Library not fetched yet: no-op rather than misread it as empty and
-      // jump into the animation list.
-      if (!mediaLoaded) return;
-      if (mediaItems.length > 0) {
-        void cycleMedia(delta);
-        return;
-      }
-    }
-    if (mode === 'screen') {
-      toggleReactive();
-      return;
-    }
-    const targetIdx = delta > 0 ? 0 : EFFECTS.length - 1;
-    const next = EFFECTS[targetIdx];
-    applyEffect(next.key, resolveEffectState(next.key, templates));
-  }, [mode, cycleAnimate, mediaLoaded, mediaItems, cycleMedia, toggleReactive, applyEffect, templates]);
-
   const onAnimateButton = useCallback(() => {
     const effect = ANIMATE_EFFECTS.some(e => e.key === activeEffect) ? activeEffect : 'rainbow';
     applyEffect(effect);
@@ -445,20 +373,30 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
   }, [publishLighting]);
 
   // Mode-button dispatch (widget row + immersive grid) - covers every mode.
-  const handleMode = (k: LightingMode) => {
+  const handleMode = useCallback((k: LightingMode) => {
     if (k === 'none') onOffButton();
     else if (k === 'animate') onAnimateButton();
     else if (k === 'static') onStaticButton();
     else if (k === 'gif') onMediaButton();
     else if (k === 'screen') onMirrorButton();
     else if (k === 'gamesync') onGameSyncButton();
-  };
+  }, [onOffButton, onAnimateButton, onStaticButton, onMediaButton, onMirrorButton, onGameSyncButton]);
+
+  // The arrows step through the mode list, the way the cooling widget's step
+  // through its presets. What plays inside a mode - the effect, the media item,
+  // the mirror filter - is chosen on the lighting page, not here.
+  const cycleMode = useCallback((delta: number) => {
+    const keys = modeButtons.map(m => m.key);
+    const idx = keys.indexOf(mode);
+    const nextIdx = idx < 0
+      ? (delta > 0 ? 0 : keys.length - 1)
+      : (idx + delta + keys.length) % keys.length;
+    handleMode(keys[nextIdx]);
+  }, [handleMode, mode, modeButtons]);
 
   const view = useMemo<SingleView>(() => {
-    // In simple mode every mode's prev/next cycles that mode's own pool
-    // (see cycleCurrentPool).
-    const prev = simpleMode ? () => cycleCurrentPool(-1) : undefined;
-    const next = simpleMode ? () => cycleCurrentPool(1)  : undefined;
+    const prev = () => cycleMode(-1);
+    const next = () => cycleMode(1);
 
     if (mode === 'animate' || mode === 'static') {
       const pool = mode === 'static' ? STATIC_EFFECTS : ANIMATE_EFFECTS;
@@ -472,8 +410,8 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
         label: mode === 'static'
           ? t(pluralKey('lighting.devices.activeCount', language, activeDeviceCount), { count: activeDeviceCount })
           : t(effect.labelKey),
-        onPrev: prev ?? (() => cycleAnimate(-1)),
-        onNext: next ?? (() => cycleAnimate(1)),
+        onPrev: prev,
+        onNext: next,
       };
     }
     if (mode === 'screen') {
@@ -481,13 +419,11 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
         kind: 'icon',
         icon: Monitor,
         label: t(reactive ? 'lighting.filter.reactive' : 'lighting.filter.passthrough'),
-        onPrev: prev ?? toggleReactive,
-        onNext: next ?? toggleReactive,
+        onPrev: prev,
+        onNext: next,
       };
     }
     if (mode === 'gamesync') {
-      // Game Sync is driven by the captured game; nothing to cycle here. Simple
-      // mode keeps arrows (prev/next jump into the animation list).
       return {
         kind: 'icon',
         icon: LIGHTING_MODE_ICONS.gamesync,
@@ -509,10 +445,9 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
         onNext: next,
       };
     }
-    // mode === 'none' (off). In simple mode we still show arrows so
-    // the first press enters the animation cycle.
+    // mode === 'none' (off).
     return { kind: 'message', message: t('lighting.panel.selectMode'), label: t('lighting.mode.off'), onPrev: prev, onNext: next };
-  }, [mode, activeEffect, activeDeviceCount, language, thumbs, t, reactive, mediaItems, activeMediaId, mediaThumbs, cycleAnimate, toggleReactive, simpleMode, cycleCurrentPool]);
+  }, [mode, activeEffect, activeDeviceCount, language, thumbs, t, reactive, mediaItems, activeMediaId, mediaThumbs, cycleMode]);
 
   // The flash stands in for a thumbnail that has not painted yet, so it only
   // makes sense where a thumbnail renders: Off, Mirror and Game Sync show an
@@ -596,9 +531,8 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
     );
   }
 
-  // Simple mode: same UX at every size - center icon/label + arrows,
-  // no mode-buttons row. Arrows cycle the active mode's own pool
-  // (wired via the `view` builder's simpleMode-aware onPrev/onNext).
+  // Simple mode: same UX at every size - center icon/label + arrows, no
+  // mode-buttons row. The arrows switch mode (see cycleMode).
   if (simpleMode) {
     return (
       <div className={styles.lighting} data-size={widget.size} data-mode={mode} data-simple="true">
