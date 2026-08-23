@@ -30,6 +30,7 @@
   position: relative;
   z-index: 2;
   margin: 0 auto var(--space-sm);
+  flex: 0 0 auto;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -39,9 +40,8 @@
   max-width: calc(100% - var(--space-lg));
   border-radius: var(--radius-lg);
   border: var(--border-width) solid var(--border);
-  // Opaque rather than themed-translucent: the toolbar floats over user ink,
-  // which can be any colour, so a see-through bar loses its icons.
-  background: var(--surface);
+  // Opaque: the toolbar floats over user ink of any colour.
+  background: var(--panel-card-fill-opaque);
   box-shadow: var(--shadow-md);
 }
 
@@ -57,11 +57,6 @@
   width: var(--border-width);
   margin-inline: var(--space-xs);
   background: var(--border);
-}
-
-.anchor {
-  position: relative;
-  display: flex;
 }
 
 .tool {
@@ -86,6 +81,10 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  // Bounded by the stage, so the drawer is clamped in the panel's own
+  // (transform-scaled) coordinate space. A vh clamp is in viewport units and
+  // does not bind once --panel-scale counter-sizes the immersive body.
+  max-height: 100%;
   min-height: 0;
 }
 
@@ -93,14 +92,18 @@
   position: relative;
   z-index: 2;
   // Shares the toolbar's centred column and is clamped to the stage, so it
-  // cannot escape the panel frame however wide its contents are. Anchoring to
-  // an individual toolbar button (a Popover) overflowed the right edge on a
-  // narrow panel, because Popover positions purely by CSS with no collision
-  // handling.
+  // cannot escape the panel frame however wide its contents are.
   margin: 0 auto var(--space-xs);
   width: max-content;
+  // Popover supplied a 220px floor; without one the size panel resolves off a
+  // native range input's ~129px intrinsic width and the drag target shrinks.
+  min-width: 15rem;
   max-width: calc(100% - var(--space-lg));
-  max-height: min(60vh, 32rem);
+  // Shrinks before the toolbar does, so the toolbar can never be pushed off
+  // the stage. min-height:0 is required or a flex item refuses to shrink
+  // below its content.
+  flex: 0 1 auto;
+  min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
   display: flex;
@@ -109,7 +112,9 @@
   padding: var(--space-sm);
   border-radius: var(--radius-lg);
   border: var(--border-width) solid var(--border);
-  background: var(--surface);
+  // Opaque: the drawer floats over user ink of any colour, which a
+  // translucent fill would show through.
+  background: var(--panel-card-fill-opaque);
   box-shadow: var(--shadow-md);
 }
 
@@ -130,13 +135,13 @@
 .toast {
   position: absolute;
   left: 50%;
-  // Top, because the toolbar now owns the bottom of the stage.
+  // Top: the toolbar owns the bottom of the stage.
   top: var(--space-lg);
   transform: translateX(-50%);
   z-index: 3;
   padding: var(--space-xs) var(--space-md);
   border-radius: var(--radius-pill);
-  background: var(--surface);
+  background: var(--panel-card-fill-opaque);
   border: var(--border-width) solid var(--border);
   font-size: var(--type-small);
   box-shadow: var(--shadow-md);
