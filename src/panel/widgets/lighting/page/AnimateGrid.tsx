@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Lightbulb, Monitor } from 'lucide-react';
 import { useTranslation } from '../../../../lib/i18n';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
@@ -60,9 +60,11 @@ function AnimateGridCell({ fx, slot, version, active, live, panel, label, hideLa
  * hardware gets a bulb. Effects are listed in pre-expanded category groups
  * (EFFECT_CATEGORIES order), each under a header in the cooling-panel style.
  */
-export function AnimateGrid({ effect, onSelect, effects = EFFECTS, slotFor, versionFor, rgbActiveEffect, panelEffects, gpuAvailable, frozen }: {
+export function AnimateGrid({ effect, onSelect, effects = EFFECTS, slotFor, versionFor, rgbActiveEffect, panelEffects, gpuAvailable, frozen, leading }: {
   effect: string;
   onSelect: (key: string) => void;
+  /** Rendered above the category groups, inside the same scroll container. */
+  leading?: ReactNode;
   /** Effect pool to show. Defaults to the full RGB set; panel backgrounds pass
    *  PANEL_BACKGROUND_EFFECTS (no audio-reactive effects). */
   effects?: EffectDef[];
@@ -120,6 +122,7 @@ export function AnimateGrid({ effect, onSelect, effects = EFFECTS, slotFor, vers
   return (
     <div className={styles.animateGridWrap}>
       <div ref={gridRef} className={styles.animateGrid}>
+        {leading}
         {groups.map(g => {
           const cells = g.items.map(fx => (
             <AnimateGridCell

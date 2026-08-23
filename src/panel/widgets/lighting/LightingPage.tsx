@@ -39,13 +39,18 @@ import { DeviceCanvas } from '../../../components/common/DeviceCanvas/DeviceCanv
 import { usePersistentState } from '../../../hooks/usePersistentState';
 import { usePanelBackgroundUsage } from '../../../hooks/usePanelBackgroundUsage';
 import {
-  EFFECTS, ANIMATE_EFFECTS, STATIC_EFFECTS, DEFAULT_STATIC_EFFECT, MODES,
-  defaultStateFor, isStaticEffect,
+  EFFECTS, ANIMATE_EFFECTS, STATIC_EFFECTS, STATIC_PATTERN_EFFECTS, DEFAULT_STATIC_EFFECT, MODES,
+  defaultStateFor, isStaticEffect, isStaticFill,
   type EffectState, type EffectTemplateBundle, type LightingMode,
 } from '../../../types/lighting';
+import {
+  nearestPaletteId, paletteColor, paletteColorForKey, paletteFamilyKey, paletteIdFromKey,
+  paletteKey, type PaletteColor,
+} from '../../../types/lightingPalette';
 import { defaultTemplatesFor, mergeTemplates, slotMatchesDefault, slotThumbSignature } from '../../../types/lightingTemplates';
 import { hsvToHex } from '../../../lib/settings';
 import { AnimateGrid } from './page/AnimateGrid';
+import { StaticPalette } from './page/StaticPalette';
 import { FullscreenShader } from './page/FullscreenShader';
 import { ModeControls } from './page/ModeControls';
 import { MediaCanvasNotice } from './page/MediaCanvasNotice';
@@ -200,6 +205,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // Collapsing the effect dock hands its space to the canvas and the browser.
   // Row 1 is untouched: the preset toolbar keeps its own column.
   const [dockCollapsed, setDockCollapsed] = usePersistentState('nexus.lighting.effectDockCollapsed', true);
+  const [paletteOpen, setPaletteOpen] = useState(true);
   // Re-mounted on every effect pick so the dock's pulse animation restarts.
   const [dockPulse, setDockPulse] = useState(0);
 
@@ -754,6 +760,37 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     [slotOf, writeDevicePicks],
   );
 
+  // A palette pick is a colour and nothing else, so it travels as one and the
+  // service paints it with no shader, no preset and no params.
+  const writePalettePick = useCallback((color: PaletteColor, ids: string[]) => {
+    const key = paletteKey(color.id);
+    setDevicePicks(prev => {
+      const next = { ...prev };
+      for (const id of ids) next[id] = { key, slot: 0, hex: color.hex };
+      return next;
+    });
+    for (const id of ids) {
+      setLightingDeviceColor(id, color.h, color.s, {
+        effect: 'flat', color: color.hex, intensity: 1, colorize: 0, contrast: 1, params: {},
+      }).catch(() => { /* best-effort */ });
+    }
+  }, [setDevicePicks]);
+
+  // A pick predating the palette names a flat EFFECT key. Repoint it at the
+  // swatch nearest the colour it stored, and push so the LEDs match the card.
+  const palettesMigratedRef = useRef(false);
+  useEffect(() => {
+    if (palettesMigratedRef.current) return;
+    palettesMigratedRef.current = true;
+    for (const [id, pick] of Object.entries(devicePicks)) {
+      if (!isStaticFill(pick.key)) continue;
+      const color = paletteColor(nearestPaletteId(pick.hex));
+      if (color) writePalettePick(color, [id]);
+    }
+    // Once, against what storage restored; later picks are already palette picks.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleEffectSelect = useCallback((key: string) => {
     // Draw the eye to where the pick landed, the way the old Effect tab did.
     setDockPulse(p => p + 1);
@@ -789,6 +826,14 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       effect: key,
     });
   }, [activeEffect, applyAnimate, applyDeviceColor, effectiveMode, perDeviceMode, selectedDeviceIds, stateFor]);
+
+  // A colour has nothing to browse into, so with no selection the swatch is
+  // inert - the effect grid's rule, minus the editor move it still has to do.
+  const handlePaletteSelect = useCallback((color: PaletteColor) => {
+    if (!perDeviceMode || selectedDeviceIds.size === 0) return;
+    setDockPulse(p => p + 1);
+    writePalettePick(color, [...selectedDeviceIds]);
+  }, [perDeviceMode, selectedDeviceIds, writePalettePick]);
 
   const effectPool = mode === 'static' ? STATIC_EFFECTS : ANIMATE_EFFECTS;
 
@@ -843,7 +888,10 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const dockBundle: EffectTemplateBundle | null = dockEffect
     ? (committedTemplates[dockEffect] ? { ...committedTemplates[dockEffect], selected: dockSlot } : null)
     : null;
-  const dockCanReset = !!(dockEffect && dockState
+  // A palette pick is a colour: the dock shows which one, and there is nothing
+  // to edit or reset.
+  const dockPalette = paletteColorForKey(dockEffect);
+  const dockCanReset = !!(dockEffect && dockState && !dockPalette
     && !slotMatchesDefault(dockEffect, dockSlot, dockState, animateDefaults));
 
   const handleTemplateSelect = useCallback((idx: number) => {
@@ -1392,6 +1440,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // every other mode drives every device it can reach.
   const previewDeviceCount = perDeviceMode ? selectedDeviceIds.size : selectableIds.length;
   const gridEffect = scoped.kind === 'pick' ? scoped.key : (scoped.kind === 'locked' ? '' : activeEffect);
+  // The palette highlights the selection's colour; an effect pick highlights a
+  // tile instead, so only one of the two ever reads as active.
+  const scopedPaletteId = scoped.kind === 'pick' ? paletteIdFromKey(scoped.key) : null;
   // Selected devices wearing different looks have no single value for the
   // controls to edit, so the dock locks until the selection agrees.
   const mixedSelection = scoped.kind === 'locked';
@@ -1587,7 +1638,24 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
               {/* Off renders no picker at all; Static and Animation each own an
                   effect pool; Screen and Media get their source controls. */}
               {effectiveMode === 'animate' || effectiveMode === 'static' ? (
-                <AnimateGrid effect={gridEffect} onSelect={handleEffectSelect} effects={effectiveMode === 'static' ? STATIC_EFFECTS : ANIMATE_EFFECTS} frozen={effectiveMode === 'static'} slotFor={gridSlotFor} versionFor={gridVersionFor} panelEffects={panelUsage.effects} gpuAvailable={serviceState.lighting?.gpuAvailable ?? true} />
+                <AnimateGrid
+                  effect={gridEffect}
+                  onSelect={handleEffectSelect}
+                  effects={effectiveMode === 'static' ? STATIC_PATTERN_EFFECTS : ANIMATE_EFFECTS}
+                  frozen={effectiveMode === 'static'}
+                  slotFor={gridSlotFor}
+                  versionFor={gridVersionFor}
+                  panelEffects={panelUsage.effects}
+                  gpuAvailable={serviceState.lighting?.gpuAvailable ?? true}
+                  leading={effectiveMode === 'static' ? (
+                    <StaticPalette
+                      selectedId={scopedPaletteId}
+                      open={paletteOpen}
+                      onToggle={() => setPaletteOpen(o => !o)}
+                      onSelect={handlePaletteSelect}
+                    />
+                  ) : undefined}
+                />
               ) : effectiveMode === 'none' ? null : (
                 <div className={`${styles.controls} ${effectiveMode === 'gif' ? styles.controlsFill : ''}`}>
                   <ModeControls
@@ -1610,6 +1678,15 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
               inert={mixedSelection || undefined}
               aria-hidden={mixedSelection || undefined}
             >
+              {dockPalette ? (
+                <div className={styles.paletteDetail}>
+                  <div className={styles.paletteDetailSwatch} style={{ backgroundColor: dockPalette.hex }} />
+                  <span className={styles.paletteDetailName}>
+                    {`${t(paletteFamilyKey(dockPalette.family))} ${dockPalette.shade}`}
+                  </span>
+                  <span className={styles.paletteDetailHint}>{t('lighting.palette.noControls')}</span>
+                </div>
+              ) : (
               <EffectTab
                 mode={effectiveMode}
                 effect={dockEffect}
@@ -1626,6 +1703,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                 onPostProcessCommit={handlePostProcessCommit}
                 onPostProcessReset={handlePostProcessReset}
               />
+              )}
             </div>
         </div>
         )}

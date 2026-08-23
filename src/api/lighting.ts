@@ -416,11 +416,13 @@ export const setLightingDeviceColor = (
   id: string,
   hue: number,
   saturation: number,
-  look?: { effect: string; intensity: number; colorize: number; contrast: number; params?: Record<string, number> },
+  look?: { effect: string; color?: string; intensity: number; colorize: number; contrast: number; params?: Record<string, number> },
 ) =>
   postService('/devices/lighting-devices/color', {
     id, hue, saturation,
     effect: look?.effect ?? '',
+    // A palette pick is just this colour; the service skips the shader for it.
+    color: look?.color ?? '',
     intensity: look?.intensity ?? 1,
     colorize: look?.colorize ?? 0,
     contrast: look?.contrast ?? 1,

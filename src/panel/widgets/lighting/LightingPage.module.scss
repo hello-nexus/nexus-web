@@ -275,6 +275,71 @@
   grid-template-columns: repeat(auto-fill, minmax(59px, 1fr));
 }
 
+// Static colour palette: one row per family, rows packing side by side as the
+// pane widens so the family grouping survives every width.
+.paletteGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 0.5rem 0.75rem;
+  align-content: start;
+  padding: 0 0.2rem 0.2rem;
+}
+
+.paletteRow {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.25rem;
+}
+
+.paletteSwatch {
+  aspect-ratio: 1;
+  min-width: 0;
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  padding: 0;
+  transition: transform var(--ease-fast) ease, box-shadow var(--ease-fast) ease;
+
+  &:hover {
+    transform: scale(1.08);
+  }
+}
+
+.paletteSwatchActive {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+// Effect-editor stand-in for a palette pick: names the colour, and says why
+// there is nothing under it.
+.paletteDetail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 0.75rem;
+  text-align: center;
+}
+
+.paletteDetailSwatch {
+  width: 100%;
+  max-width: 8rem;
+  aspect-ratio: 1;
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius);
+}
+
+.paletteDetailName {
+  font-size: var(--type-body);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.paletteDetailHint {
+  font-size: var(--type-mini);
+  color: var(--text-dim);
+}
+
 // Usage markers pinned to a grid cell's thumbnail (panels only): bulb = this
 // effect drives the physical LEDs; monitor = a panel uses it as a background.
 // Both stack horizontally so the user knows edits here reach other surfaces.

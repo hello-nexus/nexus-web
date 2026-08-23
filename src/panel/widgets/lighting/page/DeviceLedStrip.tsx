@@ -3,6 +3,7 @@ import { subscribeLedFrame, type LedFrame } from '../../../../lib/ledFrameStore'
 import { identifyPhase, subscribeIdentify } from '../../../../lib/identifyFlash';
 import { useEffectThumbnail } from '../../../../hooks/useEffectThumbnail';
 import { isStaticFill } from '../../../../types/lighting';
+import { isPaletteKey } from '../../../../types/lightingPalette';
 import { cardEnabledLedCount } from './zoneUtils';
 import type { LightingDevice } from '../../../../api/lighting';
 import styles from '../LightingPage.module.scss';
@@ -131,7 +132,9 @@ export const DeviceLedStrip = memo(function DeviceLedStrip({ device, pick, fulls
 
   // The picked pattern's own render. The effect grid has already fetched this
   // exact blob for its tile, so a pick costs no extra request.
-  const isPattern = !!pick && !isStaticFill(pick.key);
+  // Palette picks and flat fills carry their colour outright; only a pattern
+  // needs its rendered thumbnail to read from.
+  const isPattern = !!pick && !isStaticFill(pick.key) && !isPaletteKey(pick.key);
   const thumbUrl = useEffectThumbnail(pick?.key ?? '', pick?.slot ?? 0, pick?.version ?? '0', !isPattern, true);
   const [pattern, setPattern] = useState<HTMLImageElement | null>(null);
   const patternRef = useRef<HTMLImageElement | null>(null);

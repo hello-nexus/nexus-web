@@ -674,6 +674,12 @@ export function isStaticEffect(key: string): boolean {
 /** Static-mode pool: fills first (category order), then the frozen patterns. */
 export const STATIC_EFFECTS: EffectDef[] = EFFECTS.filter(e => STATIC_KEY_SET.has(e.key));
 
+/**
+ * Static-mode browse pool for the lighting page. Flat colours come from the
+ * palette instead, so only the patterns are browsed as effects.
+ */
+export const STATIC_PATTERN_EFFECTS: EffectDef[] = STATIC_EFFECTS.filter(e => !isStaticFill(e.key));
+
 /** Mirrors StaticEffectCatalog.DefaultEffect in nexus-service. */
 export const DEFAULT_STATIC_EFFECT = 'gradientlinear';
 
