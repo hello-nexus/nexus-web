@@ -50,14 +50,14 @@
 .group {
   display: flex;
   align-items: center;
-  gap: var(--space-2xs);
+  gap: var(--space-xs);
 }
 
 .group + .group::before {
   content: '';
   align-self: stretch;
   width: var(--border-width);
-  margin-inline: var(--space-2xs);
+  margin-inline: var(--space-xs);
   background: var(--border);
 }
 
@@ -114,6 +114,6 @@
 }
 
 .toast[data-tone='error'] {
-  color: var(--danger);
-  border-color: var(--danger);
+  color: var(--bad);
+  border-color: var(--bad);
 }

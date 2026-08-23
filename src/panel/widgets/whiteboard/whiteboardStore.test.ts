@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { clearBoard, loadBoard, MAX_BOARD_BYTES, saveBoard, subscribeBoard } from './whiteboardStore';
+import { clearBoard, loadBoard, MAX_BOARD_CHARS, saveBoard, subscribeBoard } from './whiteboardStore';
 import { createEmptyBoard, type Stroke } from './whiteboardTypes';
 
 const KEY = 'nexus_panel_whiteboard_w1';
@@ -73,6 +73,14 @@ describe('loadBoard', () => {
 });
 
 describe('saveBoard', () => {
+  it('never empties the board to satisfy the size cap', () => {
+    // A single over-cap stroke has nothing older to drop; trimming to zero
+    // would discard the whole drawing in the name of saving it.
+    const huge = { tool: 'pen' as const, color: '#fff', width: 4,
+      points: Array.from({ length: 40000 }, (_, i) => ({ x: i, y: i })) };
+    expect(saveBoard('w1', { ...createEmptyBoard(), strokes: [huge] })).toHaveLength(1);
+  });
+
   it('drops oldest strokes until the payload fits the size cap', () => {
     // 900 points per stroke pushes the board past the cap; the newest strokes
     // are the ones worth keeping.
@@ -80,7 +88,7 @@ describe('saveBoard', () => {
     const written = saveBoard('w1', { ...createEmptyBoard(), strokes });
     expect(written.length).toBeLessThan(strokes.length);
     expect(written[written.length - 1]).toBe(strokes[strokes.length - 1]);
-    expect((localStorage.getItem(KEY) ?? '').length).toBeLessThanOrEqual(MAX_BOARD_BYTES);
+    expect((localStorage.getItem(KEY) ?? '').length).toBeLessThanOrEqual(MAX_BOARD_CHARS);
   });
 
   it('returns the in-memory strokes and does not throw when the quota is full', () => {

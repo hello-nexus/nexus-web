@@ -23,8 +23,8 @@ import { ColorPickerWithPresets } from '../../../components/common/ColorPickerWi
 import { uploadTransferItems } from '../../../api/transfer';
 import { useImmersiveExit } from '../../overlays/immersiveExit';
 import { useWhiteboardBoard } from './useWhiteboardBoard';
-import { WhiteboardSurface, type WhiteboardSurfaceHandle } from './WhiteboardSurface';
-import { BACKGROUND_CSS, rasterizeBoard } from './whiteboardRender';
+import { WhiteboardSurface } from './WhiteboardSurface';
+import { BACKGROUND_CSS, rasterizeBoardBlob } from './whiteboardRender';
 import { fitView } from './whiteboardGeometry';
 import type { WhiteboardBackground, WhiteboardTool } from './whiteboardTypes';
 import type { WidgetProps } from '../types';
@@ -65,7 +65,6 @@ export function WhiteboardTouch({ widget }: WidgetProps) {
   const { t } = useTranslation();
   const board = useWhiteboardBoard(widget.id);
   const exitImmersive = useImmersiveExit();
-  const surfaceRef = useRef<WhiteboardSurfaceHandle>(null);
   const hostRef = useRef<HTMLDivElement>(null);
   const zoomLabelRef = useRef<HTMLSpanElement>(null);
 
@@ -123,14 +122,13 @@ export function WhiteboardTouch({ widget }: WidgetProps) {
     // Export the whole drawing, not the current viewport - what is on screen at
     // 8x zoom is rarely what the user means by "save this board".
     const view = fitView(data.strokes, rect.width, rect.height, 24);
-    const dataUrl = rasterizeBoard(data.strokes, view, rect.width, rect.height, data.background);
-    if (!dataUrl) {
-      setSaveState('error');
-      return;
-    }
 
     try {
-      const blob = await (await fetch(dataUrl)).blob();
+      const blob = await rasterizeBoardBlob(data.strokes, view, rect.width, rect.height, data.background);
+      if (!blob) {
+        setSaveState('error');
+        return;
+      }
       const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
       const file = new File([blob], `whiteboard-${stamp}.png`, { type: 'image/png' });
       const resp = await uploadTransferItems([file]);
@@ -160,10 +158,11 @@ export function WhiteboardTouch({ widget }: WidgetProps) {
         ref={hostRef}
         className={styles.stage}
         data-bg={data.background}
-        style={{ background: BACKGROUND_CSS[data.background] }}
+        // backgroundColor, not the `background` shorthand: the shorthand would
+        // reset background-image and kill the transparent-mode checker.
+        style={{ backgroundColor: BACKGROUND_CSS[data.background] }}
       >
         <WhiteboardSurface
-          ref={surfaceRef}
           strokes={data.strokes}
           view={data.view}
           interactive

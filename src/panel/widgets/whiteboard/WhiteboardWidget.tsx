@@ -29,7 +29,7 @@ export function WhiteboardWidget({ widget }: WidgetProps) {
 
   return (
     <PanelWidgetShell size={widget.size} className={styles.widget}>
-      <div className={styles.board} data-bg={background} style={{ background: BACKGROUND_CSS[background] }}>
+      <div className={styles.board} data-bg={background} style={{ backgroundColor: BACKGROUND_CSS[background] }}>
         <WhiteboardSurface
           strokes={strokes}
           view={DEFAULT_VIEW}

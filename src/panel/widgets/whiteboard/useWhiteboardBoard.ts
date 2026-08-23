@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { clearBoard, loadBoard, saveBoard, subscribeBoard } from './whiteboardStore';
+import { loadBoard, saveBoard, subscribeBoard } from './whiteboardStore';
 import {
   createEmptyBoard,
   type Board,
@@ -14,6 +14,17 @@ const HISTORY_LIMIT = 50;
 
 /** Coalesces the bursts of updates a drawing session produces into one write per quiet moment. */
 const SAVE_DEBOUNCE_MS = 400;
+
+// Ceiling on one stroke's point count. Strokes are simplified on commit, so
+// reaching this takes a pathological gesture; the cap exists because a single
+// stroke over the store's whole-board size cap is the one case trimming older
+// strokes cannot resolve.
+const MAX_STROKE_POINTS = 5000;
+
+function capStrokePoints(stroke: Stroke): Stroke {
+  if (stroke.points.length <= MAX_STROKE_POINTS) return stroke;
+  return { ...stroke, points: stroke.points.slice(0, MAX_STROKE_POINTS) };
+}
 
 export interface WhiteboardBoardState {
   board: Board;
@@ -63,8 +74,8 @@ export function useWhiteboardBoard(widgetId: string, readOnly = false): Whiteboa
   const flush = useCallback(() => {
     const pending = pendingRef.current;
     if (!pending || !widgetId) return;
-    pendingRef.current = null;
     const written = saveBoard(widgetId, pending);
+    pendingRef.current = null;
     // saveBoard trims to fit its size cap; adopt what actually landed so the
     // in-memory board and storage cannot diverge.
     if (written !== pending.strokes) {
@@ -86,85 +97,70 @@ export function useWhiteboardBoard(widgetId: string, readOnly = false): Whiteboa
     flush();
   }, [flush]);
 
-  const update = useCallback((patch: (prev: Board) => Board) => {
-    setBoard(prev => {
-      const next = patch(prev);
-      if (next === prev) return prev;
-      schedule(next);
-      return next;
-    });
-  }, [schedule]);
+  // Every mutation goes through here. React may re-invoke a setState updater
+  // (StrictMode does it on every commit), so updaters stay pure: history and
+  // the save schedule are computed from a ref that mirrors the board, never
+  // from inside an updater.
+  const boardRef = useRef(board);
+  boardRef.current = board;
 
-  const pushHistory = useCallback((strokes: Stroke[]) => {
-    setUndoStack(prev => {
-      const next = [...prev, strokes];
-      return next.length > HISTORY_LIMIT ? next.slice(next.length - HISTORY_LIMIT) : next;
-    });
-    setRedoStack([]);
-  }, []);
+  const apply = useCallback((next: Board, historyFrom?: Stroke[]) => {
+    if (historyFrom) {
+      setUndoStack(prev => {
+        const grown = [...prev, historyFrom];
+        return grown.length > HISTORY_LIMIT ? grown.slice(grown.length - HISTORY_LIMIT) : grown;
+      });
+      setRedoStack([]);
+    }
+    boardRef.current = next;
+    setBoard(next);
+    schedule(next);
+  }, [schedule]);
 
   const commitStroke = useCallback((stroke: Stroke) => {
-    update(prev => {
-      pushHistory(prev.strokes);
-      return { ...prev, strokes: [...prev.strokes, stroke] };
-    });
-  }, [update, pushHistory]);
+    const prev = boardRef.current;
+    apply({ ...prev, strokes: [...prev.strokes, capStrokePoints(stroke)] }, prev.strokes);
+  }, [apply]);
 
   const undo = useCallback(() => {
-    setUndoStack(prevUndo => {
-      if (prevUndo.length === 0) return prevUndo;
-      const restore = prevUndo[prevUndo.length - 1];
-      setBoard(prev => {
-        setRedoStack(prevRedo => [...prevRedo, prev.strokes]);
-        const next = { ...prev, strokes: restore };
-        schedule(next);
-        return next;
-      });
-      return prevUndo.slice(0, -1);
-    });
-  }, [schedule]);
+    const history = undoStack;
+    if (history.length === 0) return;
+    const restore = history[history.length - 1];
+    const prev = boardRef.current;
+    setUndoStack(history.slice(0, -1));
+    setRedoStack(r => [...r, prev.strokes]);
+    boardRef.current = { ...prev, strokes: restore };
+    setBoard(boardRef.current);
+    schedule(boardRef.current);
+  }, [undoStack, schedule]);
 
   const redo = useCallback(() => {
-    setRedoStack(prevRedo => {
-      if (prevRedo.length === 0) return prevRedo;
-      const restore = prevRedo[prevRedo.length - 1];
-      setBoard(prev => {
-        setUndoStack(prevUndo => [...prevUndo, prev.strokes]);
-        const next = { ...prev, strokes: restore };
-        schedule(next);
-        return next;
-      });
-      return prevRedo.slice(0, -1);
-    });
-  }, [schedule]);
+    const stack = redoStack;
+    if (stack.length === 0) return;
+    const restore = stack[stack.length - 1];
+    const prev = boardRef.current;
+    setRedoStack(stack.slice(0, -1));
+    setUndoStack(u => [...u, prev.strokes]);
+    boardRef.current = { ...prev, strokes: restore };
+    setBoard(boardRef.current);
+    schedule(boardRef.current);
+  }, [redoStack, schedule]);
 
   const clear = useCallback(() => {
-    update(prev => {
-      if (prev.strokes.length === 0) return prev;
-      pushHistory(prev.strokes);
-      return { ...prev, strokes: [] };
-    });
-  }, [update, pushHistory]);
+    const prev = boardRef.current;
+    if (prev.strokes.length === 0) return;
+    apply({ ...prev, strokes: [] }, prev.strokes);
+  }, [apply]);
 
-  const setView = useCallback((view: ViewTransform) => {
-    update(prev => ({ ...prev, view }));
-  }, [update]);
+  const patch = useCallback((fields: Partial<Board>) => {
+    apply({ ...boardRef.current, ...fields });
+  }, [apply]);
 
-  const setBackground = useCallback((background: WhiteboardBackground) => {
-    update(prev => ({ ...prev, background }));
-  }, [update]);
-
-  const setPenColor = useCallback((penColor: string) => {
-    update(prev => ({ ...prev, penColor }));
-  }, [update]);
-
-  const setPenWidth = useCallback((penWidth: number) => {
-    update(prev => ({ ...prev, penWidth }));
-  }, [update]);
-
-  const setEraserWidth = useCallback((eraserWidth: number) => {
-    update(prev => ({ ...prev, eraserWidth }));
-  }, [update]);
+  const setView = useCallback((view: ViewTransform) => patch({ view }), [patch]);
+  const setBackground = useCallback((background: WhiteboardBackground) => patch({ background }), [patch]);
+  const setPenColor = useCallback((penColor: string) => patch({ penColor }), [patch]);
+  const setPenWidth = useCallback((penWidth: number) => patch({ penWidth }), [patch]);
+  const setEraserWidth = useCallback((eraserWidth: number) => patch({ eraserWidth }), [patch]);
 
   return {
     board,
@@ -180,9 +176,4 @@ export function useWhiteboardBoard(widgetId: string, readOnly = false): Whiteboa
     setPenWidth,
     setEraserWidth,
   };
-}
-
-/** Wipes a board's stored ink. Exported for the widget-removal path. */
-export function forgetWhiteboard(widgetId: string): void {
-  clearBoard(widgetId);
 }

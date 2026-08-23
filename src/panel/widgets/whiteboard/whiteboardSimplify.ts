@@ -67,7 +67,7 @@ export function simplify(points: readonly Point[], tolerance: number): Point[] {
   return out;
 }
 
-/** Rounds to 0.1 canvas units. Storage is JSON text, so trailing float noise is pure cost. */
+/** Storage is JSON text, so trailing float noise costs bytes for invisible precision. */
 export function quantize(points: readonly Point[]): Point[] {
   return points.map(p => ({
     x: Math.round(p.x * 10) / 10,

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useImperativeHandle, useRef, type PointerEvent as ReactPointerEvent, type Ref } from 'react';
+import { useCallback, useEffect, useRef, type PointerEvent as ReactPointerEvent } from 'react';
 import { applyPinch, fitView, screenToCanvas, zoomAbout } from './whiteboardGeometry';
 import { paintStroke, paintStrokes, prepareCanvas } from './whiteboardRender';
 import { quantize, shouldCapture, simplify } from './whiteboardSimplify';
@@ -11,12 +11,6 @@ import styles from './WhiteboardSurface.module.scss';
 // destroys detail when zoomed out.
 const CAPTURE_GAP_PX = 1.5;
 const SIMPLIFY_TOLERANCE_PX = 0.4;
-
-export interface WhiteboardSurfaceHandle {
-  /** Live view, including mid-gesture values React state has not seen yet. */
-  currentView: () => ViewTransform;
-  zoomBy: (factor: number) => void;
-}
 
 export interface WhiteboardSurfaceProps {
   strokes: readonly Stroke[];
@@ -39,7 +33,6 @@ export interface WhiteboardSurfaceProps {
   onViewChange?: (view: ViewTransform) => void;
   /** Fires on every rendered frame of a pinch so a caller can show a live zoom readout without re-rendering. */
   onViewFrame?: (view: ViewTransform) => void;
-  ref?: Ref<WhiteboardSurfaceHandle>;
 }
 
 interface ActivePointer {
@@ -72,7 +65,6 @@ export function WhiteboardSurface({
   onCommitStroke,
   onViewChange,
   onViewFrame,
-  ref,
 }: WhiteboardSurfaceProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -175,18 +167,6 @@ export function WhiteboardSurface({
     if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
   }, []);
 
-  useImperativeHandle(ref, () => ({
-    currentView: () => viewRef.current,
-    zoomBy: (factor: number) => {
-      const { width, height } = sizeRef.current;
-      const next = zoomAbout(viewRef.current, { x: width / 2, y: height / 2 }, factor);
-      viewRef.current = next;
-      cacheDirtyRef.current = true;
-      scheduleFrame();
-      onViewChange?.(next);
-    },
-  }), [onViewChange, scheduleFrame]);
-
   const localPoint = useCallback((e: ReactPointerEvent | PointerEvent): Point => {
     const host = hostRef.current;
     if (!host) return { x: 0, y: 0 };
@@ -216,10 +196,18 @@ export function WhiteboardSurface({
 
   const handlePointerDown = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
     if (!interactive) return;
-    // Middle/right buttons pan on a mouse; they must not start ink.
+    // Only the left mouse button draws.
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     const host = hostRef.current;
     if (!host) return;
+    // isPrimary marks the first pointer of a new gesture, so anything still
+    // tracked here is a leftover from an up/cancel the WebView dropped.
+    // Without this a single lost event strands a phantom pointer and every
+    // later touch reads as a pinch, making the board undrawable.
+    if (e.isPrimary && pointersRef.current.size > 0) {
+      pointersRef.current.clear();
+      pinchRef.current = null;
+    }
     host.setPointerCapture(e.pointerId);
     const point = localPoint(e);
     pointersRef.current.set(e.pointerId, { id: e.pointerId, point });
@@ -279,12 +267,17 @@ export function WhiteboardSurface({
   }, [interactive, localPoint, scheduleFrame]);
 
   const endPointer = useCallback((pointerId: number, cancelled: boolean) => {
-    pointersRef.current.delete(pointerId);
+    // Only pointers this surface is tracking may end a gesture: a mouse's
+    // right/middle button never starts one (handlePointerDown skips it), and
+    // its release must not commit the stroke the left button is drawing.
+    if (!pointersRef.current.delete(pointerId)) return;
 
     if (pinchRef.current) {
-      // Hold the pinch until BOTH fingers are up. Ending it on the first lift
-      // would turn the remaining finger into a stroke mid-gesture.
-      if (pointersRef.current.size === 0) {
+      // The pinch ends as soon as it no longer has two fingers, so a dropped
+      // pointerup cannot strand the surface in pinch mode forever. The
+      // remaining finger does not become a stroke: no active stroke exists,
+      // and a new one only starts on the next pointerdown.
+      if (pointersRef.current.size < 2) {
         pinchRef.current = null;
         onViewChange?.(viewRef.current);
       }

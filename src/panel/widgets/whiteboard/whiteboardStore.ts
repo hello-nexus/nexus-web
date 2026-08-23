@@ -11,11 +11,12 @@ import { createEmptyBoard, type Board, type Stroke, type WhiteboardBackground } 
 const STORAGE_PREFIX = 'nexus_panel_whiteboard_';
 
 /**
- * Ceiling on one board's serialized size. Well under the ~5 MB origin budget
- * localStorage gives us, which the panel shares with every other consumer.
- * Oldest strokes are dropped when a save would exceed it.
+ * Ceiling on one board's serialized length in UTF-16 code units (what
+ * `String.length` and the localStorage quota both count). Well under the ~5 MB
+ * origin budget, which the panel shares with every other consumer. Oldest
+ * strokes are dropped when a save would exceed it.
  */
-export const MAX_BOARD_BYTES = 512 * 1024;
+export const MAX_BOARD_CHARS = 512 * 1024;
 
 /** Second, cheaper guard so a save never has to serialize an unbounded array to discover it is too big. */
 export const MAX_STROKES = 4000;
@@ -130,9 +131,9 @@ export function saveBoard(widgetId: string, board: Board): Stroke[] {
   let strokes = board.strokes.length > MAX_STROKES ? board.strokes.slice(-MAX_STROKES) : board.strokes;
   let payload = JSON.stringify({ ...board, strokes });
 
-  // Trim from the oldest end until the payload fits. Halving converges in a
-  // few passes even from a pathological single-huge-stroke board.
-  while (payload.length > MAX_BOARD_BYTES && strokes.length > 0) {
+  // Trim from the oldest end until the payload fits, never below one stroke:
+  // emptying the array would discard the whole drawing to save it.
+  while (payload.length > MAX_BOARD_CHARS && strokes.length > 1) {
     strokes = strokes.slice(Math.max(1, Math.floor(strokes.length / 2)));
     payload = JSON.stringify({ ...board, strokes });
   }

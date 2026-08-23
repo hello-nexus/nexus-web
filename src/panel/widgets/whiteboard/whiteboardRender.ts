@@ -1,10 +1,7 @@
 // Canvas painting. The ink canvas is kept fully TRANSPARENT and the board
-// background is painted behind it (CSS on screen, a composite pass on export).
-// That is what lets the eraser be a real eraser - `destination-out` removes
-// ink and reveals whatever is behind, on every background including
-// transparent - instead of the old build's trick of drawing over ink in the
-// background colour, which leaves visible smears the moment the background
-// changes.
+// background is painted behind it (CSS on screen, a composite pass on export),
+// so `destination-out` erases ink and reveals whatever is behind it on every
+// background including transparent.
 
 import { midpoint } from './whiteboardGeometry';
 import type { Point, Stroke, ViewTransform, WhiteboardBackground } from './whiteboardTypes';
@@ -24,9 +21,8 @@ export const BACKGROUND_EXPORT: Record<WhiteboardBackground, string | null> = {
 
 /**
  * Traces a stroke as quadratic curves through the midpoints of consecutive
- * captured points, which is what turns a polyline of pointer samples into a
- * line that reads as hand-drawn. Both prior implementations used raw `lineTo`
- * and visibly faceted on fast strokes.
+ * captured points. A raw `lineTo` polyline visibly facets on fast strokes,
+ * where samples are far apart.
  */
 export function tracePath(ctx: CanvasRenderingContext2D, points: readonly Point[], view: ViewTransform): void {
   const toScreen = (p: Point) => ({ x: p.x * view.scale + view.panX, y: p.y * view.scale + view.panY });
@@ -114,18 +110,20 @@ export function prepareCanvas(
 }
 
 /**
- * Flattens a board to a PNG data URL at `scale` device pixels per canvas unit.
- * Ink is composited onto the background rather than drawn over it, so eraser
- * strokes cut through ink without also cutting through the background fill.
+ * Flattens a board onto an offscreen canvas at `scale` device pixels per canvas
+ * unit. Ink is composited onto the background rather than drawn over it, so
+ * eraser strokes cut through ink without also cutting through the background
+ * fill. Returns a canvas rather than a data URL because the panel CSP's
+ * connect-src carries no `data:`, so a caller cannot fetch() one back to a Blob.
  */
-export function rasterizeBoard(
+export function renderBoardToCanvas(
   strokes: readonly Stroke[],
   view: ViewTransform,
   width: number,
   height: number,
   background: WhiteboardBackground,
   scale = 2,
-): string | null {
+): HTMLCanvasElement | null {
   if (width <= 0 || height <= 0) return null;
 
   const ink = document.createElement('canvas');
@@ -147,5 +145,19 @@ export function rasterizeBoard(
     outCtx.fillRect(0, 0, out.width, out.height);
   }
   outCtx.drawImage(ink, 0, 0);
-  return out.toDataURL('image/png');
+  return out;
+}
+
+/** The flattened board as a PNG blob, or null when it cannot be rendered or encoded. */
+export function rasterizeBoardBlob(
+  strokes: readonly Stroke[],
+  view: ViewTransform,
+  width: number,
+  height: number,
+  background: WhiteboardBackground,
+  scale = 2,
+): Promise<Blob | null> {
+  const canvas = renderBoardToCanvas(strokes, view, width, height, background, scale);
+  if (!canvas) return Promise.resolve(null);
+  return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
 }
