@@ -70,4 +70,54 @@ describe('DeckSettings (touch widget)', () => {
     const patch = onUpdate.mock.calls[0][0] as { deck: DeckConfig };
     expect(patch.deck.pages[0].slots[0].label).toBe('New label');
   });
+
+  it('clears the selected key back to blank from the delete control, with no confirm for a plain action', () => {
+    const { onUpdate } = renderSettings();
+
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.deleteKey' }));
+
+    expect(screen.queryByText('panel.settings.deck.deleteFolder.title')).toBeNull();
+    const patch = onUpdate.mock.calls[0][0] as { deck: DeckConfig };
+    expect(patch.deck.pages[0].slots[0]).toEqual({});
+  });
+
+  it('confirms first when the selected key is a folder holding bound keys', () => {
+    const deck: DeckConfig = {
+      pages: [{ slots: [{ folder: { slots: [{ action: { type: 'hotkey', keys: 'a' } }] } }] }],
+    };
+    const { onUpdate } = renderSettings(deck);
+
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.deleteKey' }));
+
+    expect(onUpdate).not.toHaveBeenCalled();
+    expect(screen.getByText('panel.settings.deck.deleteFolder.title')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'confirm.ok' }));
+    const patch = onUpdate.mock.calls[0][0] as { deck: DeckConfig };
+    expect(patch.deck.pages[0].slots[0]).toEqual({});
+  });
+
+  it('keeps the folder when the delete confirm is cancelled', () => {
+    const deck: DeckConfig = {
+      pages: [{ slots: [{ folder: { slots: [{ action: { type: 'hotkey', keys: 'a' } }] } }] }],
+    };
+    const { onUpdate } = renderSettings(deck);
+
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.deleteKey' }));
+    fireEvent.click(screen.getByRole('button', { name: 'confirm.cancel' }));
+
+    expect(onUpdate).not.toHaveBeenCalled();
+    expect(screen.queryByText('panel.settings.deck.deleteFolder.title')).toBeNull();
+  });
+
+  it('deletes an empty folder outright - nothing inside it to warn about', () => {
+    const deck: DeckConfig = { pages: [{ slots: [{ folder: { slots: [] } }] }] };
+    const { onUpdate } = renderSettings(deck);
+
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.deleteKey' }));
+
+    expect(screen.queryByText('panel.settings.deck.deleteFolder.title')).toBeNull();
+    const patch = onUpdate.mock.calls[0][0] as { deck: DeckConfig };
+    expect(patch.deck.pages[0].slots[0]).toEqual({});
+  });
 });
