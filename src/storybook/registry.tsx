@@ -1315,6 +1315,10 @@ function PreviewSettingRow() {
         options={[{ value: 'quiet', label: 'Quiet' }, { value: 'balanced', label: 'Balanced' }, { value: 'max', label: 'Max' }]} />
       <SettingSlider label="Brightness" value={level} min={0} max={100} step={1} editable trackFill
         formatValue={v => `${Math.round(v)}%`} onChange={v => setLevel(v)} />
+      <SettingSlider label="Frosted glass" value={level} min={0} max={100} step={10} editable trackFill
+        description="descriptionBelow: seats under the label, clear of the slider."
+        descriptionBelow
+        formatValue={v => `${Math.round(v)}%`} onChange={v => setLevel(v)} />
       <SettingRow
         label="Backdrop"
         description="Full-width description: the control keeps its place as this text changes length."

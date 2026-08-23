@@ -586,6 +586,15 @@ export function PanelContent({
       webkitSafePanelScale,
     ],
   );
+  // The immersive overlay paints its own opaque background from
+  // --panel-background-solid; an inline `background` beats that rule, and in
+  // the see-through backdrop it is transparent, so the live desktop showed
+  // through the overlay.
+  const immersiveThemeStyle = useMemo<CSSProperties>(() => {
+    const style = { ...panelRootStyle };
+    delete style.background;
+    return style;
+  }, [panelRootStyle]);
 
   // ---------- Pagination derived from layout ----------
   // Touch surfaces hoist the focused widget above the editor's scrim, else
@@ -1735,7 +1744,7 @@ export function PanelContent({
             key={`${immersiveWidgetId}-${immersiveOpenCounter}`}
             open
             onExit={handleImmersiveExit}
-            themeStyle={panelRootStyle}
+            themeStyle={immersiveThemeStyle}
             themeMode={resolvedThemeMode}
             surface={surface}
           >

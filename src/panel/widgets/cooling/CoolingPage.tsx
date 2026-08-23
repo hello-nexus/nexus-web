@@ -960,7 +960,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
         <div className={`${styles.paneHeader} ${styles.headerRight}`}>
           <span className={styles.paneTitle}>{t('cooling.label.curve')}</span>
           {/* What a curve press would apply to, in the lighting page's wording. */}
-          <Badge label={selectedFanLabel} compact color="var(--text-dim)" />
+          <Badge label={selectedFanLabel} compact uppercase color="var(--text-dim)" />
         </div>
         <aside className={styles.fanSidebar}>
           {calibrationResults && !calibrating && (

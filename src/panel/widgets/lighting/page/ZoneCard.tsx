@@ -227,7 +227,7 @@ export function ZoneCard({
     >
       {!unavailable && !toggleMode && (
         <span
-          className={`${styles.deviceCheck} ${(selectable ? selected : true) ? styles.deviceCheckOn : ''} ${selectable ? '' : styles.deviceCheckLocked}`}
+          className={styles.deviceCheckHit}
           role="checkbox"
           aria-checked={selectable ? selected : true}
           aria-disabled={selectable ? undefined : true}
@@ -243,7 +243,12 @@ export function ZoneCard({
             if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onSelect(true); }
           }}
         >
-          {(selectable ? selected : true) && <Check aria-hidden />}
+          <span
+            className={`${styles.deviceCheck} ${(selectable ? selected : true) ? styles.deviceCheckOn : ''} ${selectable ? '' : styles.deviceCheckLocked}`}
+            aria-hidden
+          >
+            {(selectable ? selected : true) && <Check aria-hidden />}
+          </span>
         </span>
       )}
       <div className={styles.deviceCardBody}>

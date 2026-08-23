@@ -1041,6 +1041,24 @@
   gap: 0.15rem;
 }
 
+// Hit target for the select box: full card height and wider than the box, so a
+// slightly-off click still lands on it instead of selecting the card alone.
+// Negative inline margin cancels the padding, keeping the visual layout put.
+.deviceCheckHit {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  padding: 0 0.45rem;
+  margin: 0 -0.45rem;
+  cursor: pointer;
+
+  &:focus-visible {
+    @include focus-ring;
+    border-radius: var(--radius-sm);
+  }
+}
+
 // Multi-select checkbox. Locked (mode reaches every device) reads checked but
 // non-interactive, so the state is legible without implying it can change.
 .deviceCheck {
@@ -1052,7 +1070,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
   color: var(--accent-text);
   transition: background var(--ease-fast), border-color var(--ease-fast), opacity var(--ease-fast);
 
