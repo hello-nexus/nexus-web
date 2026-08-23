@@ -37,8 +37,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.1em;
   width: max-content;
+  // no flex gap on Chromium 83 (Q60 WebView); margins carry the spacing
+  > *:not(:last-child) { margin-bottom: 0.1em; }
   transform-origin: center;
 }
 
@@ -46,7 +47,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.07em;
+
+  > *:not(:last-child) { margin-right: 0.07em; }
+  // re-applies .colon's margin tightening, which the rule above outranks
+  > .colon:not(:last-child) { margin-right: 0.04em; }
 }
 
 // Hugs the card it wraps; exists only to hold the AM/PM badge outside the

@@ -29,7 +29,8 @@
 .row {
   display: flex;
   align-items: center;
-  gap: calc(6px * var(--seg-scale, 0.85));
+  // no flex gap on Chromium 83 (Q60 WebView); margins carry the spacing
+  > *:not(:last-child) { margin-right: calc(6px * var(--seg-scale, 0.85)); }
   width: max-content;
 }
 
@@ -92,7 +93,8 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: calc(16px * var(--seg-scale, 0.85));
+
+  > *:not(:last-child) { margin-bottom: calc(16px * var(--seg-scale, 0.85)); }
   width: calc(10px * var(--seg-scale, 0.85));
   height: calc(68px * var(--seg-scale, 0.85));
 }
@@ -127,8 +129,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: calc(10px * var(--seg-scale, 0.85));
   width: max-content;
+
+  > *:not(:last-child) { margin-bottom: calc(10px * var(--seg-scale, 0.85)); }
   transform-origin: center;
 }
 
