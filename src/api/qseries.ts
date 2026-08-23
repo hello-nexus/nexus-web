@@ -124,3 +124,14 @@ export const setQSeriesDisplay = (
   patch: Partial<QSeriesDisplay>,
 ): Promise<unknown | null> =>
   postService('/qseries/display', patch);
+
+// ── Panel lifecycle (NEX-14) ──
+//
+// A PC shutdown cuts panel power without letting its Android side power-cycle,
+// so these give the user a clean reboot and a way back from a corrupted panel.
+// Both return once the work is QUEUED, not once it is finished: null means the
+// request was rejected (no panel, or an install already holds the transport).
+
+/** Reboots the panel's Android side; a cold qshell bootstrap follows, ~2 min over USB-FFS. */
+export const rebootQSeriesPanel = (): Promise<unknown | null> =>
+  postService('/devices/qseries/reboot', {});

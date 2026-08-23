@@ -1,0 +1,258 @@
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+// Q60/Q80 panel lifecycle (NEX-14): restart and factory reset for the panel's
+// Android side. A PC shutdown cuts panel power without letting Android
+// power-cycle, so these are the user's clean reboot and their way back from a
+// corrupted panel. Both are Q-series-only - no other surface runs an APK we
+// install - and both return once QUEUED, so the busy state must be driven by a
+// completion signal rather than the call resolving.
+
+const fetchPanelDevicesMock = vi.fn();
+const rebootQSeriesPanelMock = vi.fn();
+const factoryResetQSeriesPanelMock = vi.fn();
+const toastPushMock = vi.fn();
+
+// The page treats a missing qseries-app firmware item as "panel USB detached"
+// and renders the disconnected state instead of any tab, so a reachable panel
+// with qshell installed is the precondition for these controls existing.
+const APP_ITEM = {
+  deviceType: 'qseries-app',
+  firmwareType: 'qseries-app',
+  name: 'Q60 Panel App',
+  category: 'display',
+  currentVersion: '3.1.0',
+  availableVersion: '3.1.0',
+  updateAvailable: false,
+  availableVersions: ['3.1.0'],
+  devImages: [],
+};
+
+vi.mock('../../../api/service', () => ({
+  fetchService: vi.fn((url: string) =>
+    url === '/devices/firmware/status'
+      ? Promise.resolve([APP_ITEM])
+      : Promise.resolve(null)),
+  postService: vi.fn().mockResolvedValue(null),
+}));
+vi.mock('../../../api/displays', () => ({
+  demoteDisplayPanel: vi.fn().mockResolvedValue(null),
+  fetchDisplays: vi.fn().mockResolvedValue({ displays: [] }),
+  fetchDisplayTopology: vi.fn().mockResolvedValue({
+    hostingSupported: true,
+    rotationSupported: false,
+    reserveSupported: false,
+    positionsAvailable: true,
+    revision: 1,
+    displays: [],
+    hint: '',
+  }),
+  fetchXeneonEdgeSettings: vi.fn().mockResolvedValue(null),
+  rotateDisplay: vi.fn().mockResolvedValue(null),
+  setDisplayBrightness: vi.fn().mockResolvedValue(null),
+  setXeneonEdgeSettings: vi.fn().mockResolvedValue(null),
+}));
+vi.mock('../../../api/profiles', () => ({
+  fetchPreferences: vi.fn().mockResolvedValue({ panel: { autoLaunch: false, reserveMonitor: true } }),
+  savePreferences: vi.fn().mockResolvedValue(null),
+}));
+vi.mock('../../../api/panel', () => ({
+  allocatePanelDevice: vi.fn().mockResolvedValue({ id: 'q1' }),
+  fetchPanelDevice: vi.fn().mockResolvedValue(null),
+  fetchPanelDevices: (...a: unknown[]) => fetchPanelDevicesMock(...a),
+  patchPanelDevice: vi.fn().mockResolvedValue({ ok: true }),
+  resetPanelDevice: vi.fn().mockResolvedValue({ ok: true }),
+  resetPanelDeviceHardware: vi.fn().mockResolvedValue({ id: 'q1' }),
+  factoryResetPanelDevice: (...a: unknown[]) => factoryResetQSeriesPanelMock(...a),
+}));
+vi.mock('../../../api/qseries', () => ({
+  getQSeriesRotation: vi.fn().mockResolvedValue({ orientation: 'Portrait' }),
+  setQSeriesRotation: vi.fn().mockResolvedValue({ ok: true }),
+  getQSeriesDisplay: vi.fn().mockResolvedValue({ brightness: 100, screenOff: false, sleepWithHost: true }),
+  setQSeriesDisplay: vi.fn().mockResolvedValue({ ok: true }),
+  rebootQSeriesPanel: (...a: unknown[]) => rebootQSeriesPanelMock(...a),
+}));
+vi.mock('../../../hooks/useMultiplexSocket', () => ({
+  useTopicCallback: () => {},
+}));
+vi.mock('../../../panel/engine/panelSync', () => ({
+  broadcastLayoutChanged: vi.fn(),
+}));
+vi.mock('../../../panel/theme/panelTheme', () => ({
+  usePanelTheme: () => ({
+    theme: { themeSyncWithDesktop: false, themeMode: 'dark', appThemeMode: 'dark', appResolvedThemeMode: 'dark' },
+    commitThemeSync: vi.fn(), commitThemeMode: vi.fn(), commitAccentSync: vi.fn(),
+    previewAccent: vi.fn(), commitAccent: vi.fn(), previewBackground: vi.fn(),
+    commitBackground: vi.fn(), commitBackgroundMode: vi.fn(), commitBackgroundEffect: vi.fn(),
+    commitBackgroundTemplate: vi.fn(), previewBackgroundEffectState: vi.fn(), commitBackgroundEffectState: vi.fn(),
+    previewBackgroundOpacity: vi.fn(), commitBackgroundOpacity: vi.fn(), previewWidgetOpacity: vi.fn(),
+    commitWidgetOpacity: vi.fn(), commitWidgetLabels: vi.fn(), commitBackgroundFrost: vi.fn(),
+  }),
+  buildPanelThemeVars: () => ({}),
+  useResolvedPanelThemeMode: () => 'dark',
+}));
+vi.mock('../../../panel/editor/PanelWidgetCatalog', () => ({
+  PanelWidgetCatalog: () => <div data-testid="catalog" />,
+}));
+vi.mock('../../../panel/editor/PanelThemeSettings', () => ({
+  PanelThemeSettings: () => <div data-testid="theme" />,
+}));
+vi.mock('../../../panel/widgets/registry', () => ({
+  lookupApp: (type: string) => ({
+    meta: { type, i18nKey: 'k', sizes: ['2x2'], defaultSize: '2x2', icon: () => null },
+    Widget: () => <div data-testid="widget-preview" />,
+    Settings: undefined,
+  }),
+  sizesForSurface: () => ['2x2'],
+  appAvailableForSurface: () => true,
+}));
+vi.mock('./PanelEmbedFrame', () => ({
+  PanelEmbedFrame: () => <div data-testid="embed" />,
+}));
+vi.mock('./QSeriesCoolerSettings', () => ({
+  QSeriesCoolerSettings: () => <div data-testid="cooler-settings" />,
+}));
+vi.mock('../../common/Toast/Toast', () => ({
+  useToast: () => ({ push: toastPushMock }),
+  useToastSafe: () => ({ push: toastPushMock }),
+}));
+
+import { PanelDevicePage } from './PanelDevicePage';
+import type { PanelDevice } from '../../../panel/device/panelDevices';
+
+const Q60_DEVICE: PanelDevice = {
+  id: 'q60',
+  name: 'Q60',
+  connectionKind: 'usb',
+  surfaceProfileKey: 'q60',
+  runtimeSurface: 'q60',
+  panelRecordId: 'q1',
+  capabilities: {
+    layout: true, theme: true, displayControls: true, launchClose: false,
+    pairing: false, presence: false, touch: true,
+  },
+} as PanelDevice;
+
+const MONITOR_DEVICE: PanelDevice = {
+  id: 'display:rec1',
+  name: 'Xeneon Edge',
+  connectionKind: 'attached-monitor',
+  surfaceProfileKey: 'monitor-rec1',
+  runtimeSurface: 'monitor',
+  displayId: 'disp1',
+  panelRecordId: 'rec1',
+  capabilities: {
+    layout: true, theme: true, displayControls: false, launchClose: false,
+    pairing: false, presence: false, touch: true,
+  },
+} as PanelDevice;
+
+const SETTINGS_TAB = 'devices.y70.tab.settings';
+const REBOOT_BUTTON = 'devices.q60.rebootPanel.button';
+const REBOOT_CONFIRM = 'devices.q60.rebootPanel.confirmButton';
+const REBOOT_BUSY = 'devices.q60.rebootPanel.busy';
+const RESET_BUTTON = 'devices.q60.factoryResetPanel.button';
+const RESET_CONFIRM = 'devices.q60.factoryResetPanel.confirmButton';
+
+async function openSettingsTab() {
+  fireEvent.click(await screen.findByRole('tab', { name: SETTINGS_TAB }));
+}
+
+beforeEach(() => {
+  fetchPanelDevicesMock.mockReset().mockResolvedValue({
+    devices: [{
+      id: 'q1',
+      capabilities: { surface: 'q60', touch: true, orientation: 'Portrait' },
+    }],
+  });
+  toastPushMock.mockReset();
+  rebootQSeriesPanelMock.mockReset().mockResolvedValue({ ok: true });
+  factoryResetQSeriesPanelMock.mockReset().mockResolvedValue({ ok: true });
+});
+
+afterEach(() => vi.restoreAllMocks());
+
+describe('PanelDevicePage Q-series panel lifecycle', () => {
+  it('offers restart and factory reset on a Q60', async () => {
+    render(<PanelDevicePage device={Q60_DEVICE} />);
+    await openSettingsTab();
+
+    expect(await screen.findByRole('button', { name: REBOOT_BUTTON })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: RESET_BUTTON })).toBeInTheDocument();
+  });
+
+  it('offers neither on a non-Q-series panel', async () => {
+    // Only the Q-series runs a Nexus-installed APK; a monitor surface has
+    // nothing to reboot or reinstall, so both rows must stay Q-series-only.
+    fetchPanelDevicesMock.mockResolvedValue({
+      devices: [{
+        id: 'rec1',
+        displayId: 'disp1',
+        capabilities: { surface: 'monitor', touch: true, family: 'xeneon-edge', orientation: 'Landscape' },
+      }],
+    });
+    render(<PanelDevicePage device={MONITOR_DEVICE} />);
+    await openSettingsTab();
+    await screen.findByRole('button', { name: 'devices.panels.resetHardware.button' });
+
+    expect(screen.queryByRole('button', { name: REBOOT_BUTTON })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: RESET_BUTTON })).not.toBeInTheDocument();
+  });
+
+  it('requires the confirm before rebooting', async () => {
+    render(<PanelDevicePage device={Q60_DEVICE} />);
+    await openSettingsTab();
+
+    fireEvent.click(await screen.findByRole('button', { name: REBOOT_BUTTON }));
+    expect(rebootQSeriesPanelMock).not.toHaveBeenCalled();
+
+    fireEvent.click(await screen.findByRole('button', { name: REBOOT_CONFIRM }));
+    await waitFor(() => expect(rebootQSeriesPanelMock).toHaveBeenCalledTimes(1));
+  });
+
+  it('requires the confirm before factory resetting', async () => {
+    render(<PanelDevicePage device={Q60_DEVICE} />);
+    await openSettingsTab();
+
+    fireEvent.click(await screen.findByRole('button', { name: RESET_BUTTON }));
+    expect(factoryResetQSeriesPanelMock).not.toHaveBeenCalled();
+
+    fireEvent.click(await screen.findByRole('button', { name: RESET_CONFIRM }));
+    await waitFor(() => expect(factoryResetQSeriesPanelMock).toHaveBeenCalledWith('q1'));
+  });
+
+  it('holds the reboot button busy after a queued request', async () => {
+    // The POST returns once the reboot is QUEUED; the panel is unreachable for
+    // ~2 min afterwards, so the button must not re-arm when the call resolves.
+    render(<PanelDevicePage device={Q60_DEVICE} />);
+    await openSettingsTab();
+    fireEvent.click(await screen.findByRole('button', { name: REBOOT_BUTTON }));
+    fireEvent.click(await screen.findByRole('button', { name: REBOOT_CONFIRM }));
+
+    await waitFor(() => expect(screen.getByRole('button', { name: REBOOT_BUSY })).toBeDisabled());
+  });
+
+  it('re-arms the reboot button when the service rejects the request', async () => {
+    // A null result means no panel was connected or an install holds the
+    // transport - nothing was queued, so the user must be able to retry.
+    rebootQSeriesPanelMock.mockResolvedValue(null);
+    render(<PanelDevicePage device={Q60_DEVICE} />);
+    await openSettingsTab();
+    fireEvent.click(await screen.findByRole('button', { name: REBOOT_BUTTON }));
+    fireEvent.click(await screen.findByRole('button', { name: REBOOT_CONFIRM }));
+
+    await waitFor(() => expect(rebootQSeriesPanelMock).toHaveBeenCalled());
+    await waitFor(() => expect(screen.getByRole('button', { name: REBOOT_BUTTON })).not.toBeDisabled());
+  });
+
+  it('re-arms the factory reset button when the service rejects the request', async () => {
+    factoryResetQSeriesPanelMock.mockResolvedValue(null);
+    render(<PanelDevicePage device={Q60_DEVICE} />);
+    await openSettingsTab();
+    fireEvent.click(await screen.findByRole('button', { name: RESET_BUTTON }));
+    fireEvent.click(await screen.findByRole('button', { name: RESET_CONFIRM }));
+
+    await waitFor(() => expect(factoryResetQSeriesPanelMock).toHaveBeenCalled());
+    await waitFor(() => expect(screen.getByRole('button', { name: RESET_BUTTON })).not.toBeDisabled());
+  });
+});

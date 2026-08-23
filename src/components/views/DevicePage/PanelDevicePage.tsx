@@ -47,15 +47,18 @@ import {
   patchPanelDevice,
   resetPanelDevice,
   resetPanelDeviceHardware,
+  factoryResetPanelDevice,
 } from '../../../api/panel';
 import {
   getQSeriesRotation,
   setQSeriesRotation,
   getQSeriesDisplay,
   setQSeriesDisplay,
+  rebootQSeriesPanel,
   type QSeriesOrientation,
 } from '../../../api/qseries';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
+import { useFlashStatus } from '../../../hooks/useFlashStatus';
 import { useTranslation } from '../../../lib/i18n';
 import { createUuid } from '../../../lib/uuid';
 import { IconLabelButton } from '../../common/IconLabelButton/IconLabelButton';
@@ -213,6 +216,10 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const [resettingPersonalization, setResettingPersonalization] = useState(false);
   const [resetHardwareConfirmOpen, setResetHardwareConfirmOpen] = useState(false);
   const [resettingHardware, setResettingHardware] = useState(false);
+  const [rebootPanelConfirmOpen, setRebootPanelConfirmOpen] = useState(false);
+  const [rebootingPanel, setRebootingPanel] = useState(false);
+  const [factoryResetConfirmOpen, setFactoryResetConfirmOpen] = useState(false);
+  const [factoryResettingPanel, setFactoryResettingPanel] = useState(false);
   // Bumped after a hardware reset so the settings-load effect AND the Xeneon
   // DDC fetch effect re-read the now-defaulted state from the service; their
   // completion is also what clears resettingHardware.
@@ -581,6 +588,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   useTopicCallback('panel/device', true, (raw) => {
     const frame = raw as { deviceId?: string } | null;
     if (!editingDeviceId || frame?.deviceId !== editingDeviceId) return;
+    // The panel only reaches this topic once it is up again after a reboot.
+    setRebootingPanel(false);
     fetchPanelDevice(editingDeviceId).then(record => {
       if (!record) return;
       const cw = record.capabilities?.cssWidth;
@@ -748,6 +757,48 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       pushToast({ title: t('devices.panels.resetHardware.error') });
       setResettingHardware(false);
     }
+  }, [editingDeviceId, pushToast, t]);
+
+  // Both actions return once QUEUED, so the busy flag is cleared by the signal
+  // that the work finished, not by this call: the panel/device topic firing
+  // again for a reboot (the panel re-contacted the service), and the shared
+  // flash status leaving its active phases for a factory reset. A null result
+  // is a rejected request (no panel, or an install holds the transport).
+  const rebootPanel = useCallback(async () => {
+    setRebootPanelConfirmOpen(false);
+    setRebootingPanel(true);
+    const ok = await rebootQSeriesPanel();
+    pushToast({
+      title: ok ? t('devices.q60.rebootPanel.started') : t('devices.q60.rebootPanel.error'),
+    });
+    if (!ok) setRebootingPanel(false);
+  }, [pushToast, t]);
+
+  const { status: flashStatus } = useFlashStatus(factoryResettingPanel);
+  useEffect(() => {
+    if (!factoryResettingPanel || !flashStatus) return;
+    if (flashStatus.phase === 'done' || flashStatus.phase === 'failed') {
+      setFactoryResettingPanel(false);
+      pushToast({
+        title: flashStatus.success
+          ? t('devices.q60.factoryResetPanel.done')
+          : t('devices.q60.factoryResetPanel.error'),
+      });
+    }
+  }, [factoryResettingPanel, flashStatus, pushToast, t]);
+
+  const factoryResetPanel = useCallback(async () => {
+    if (!editingDeviceId) return;
+    setFactoryResetConfirmOpen(false);
+    setFactoryResettingPanel(true);
+    const ok = await factoryResetPanelDevice(editingDeviceId);
+    // The service already wiped the record; re-read so this page stops showing
+    // the pre-reset layout and hardware values.
+    if (ok) { broadcastLayoutChanged(); setSettingsRefreshNonce(n => n + 1); }
+    pushToast({
+      title: ok ? t('devices.q60.factoryResetPanel.started') : t('devices.q60.factoryResetPanel.error'),
+    });
+    if (!ok) setFactoryResettingPanel(false);
   }, [editingDeviceId, pushToast, t]);
 
   const tabs: { key: Tab; label: string; icon: ReactNode }[] = [
@@ -1070,6 +1121,42 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                             {t('devices.panels.resetHardware.button')}
                           </Button>
                         </SettingRow>
+                        {isQSeries && (
+                          <>
+                            <SettingRow
+                              label={t('devices.q60.rebootPanel.label')}
+                              description={t('devices.q60.rebootPanel.description')}
+                            >
+                              <Button
+                                type="button"
+                                tone="danger"
+                                size="sm"
+                                onClick={() => setRebootPanelConfirmOpen(true)}
+                                disabled={rebootingPanel || factoryResettingPanel}
+                              >
+                                {rebootingPanel
+                                  ? t('devices.q60.rebootPanel.busy')
+                                  : t('devices.q60.rebootPanel.button')}
+                              </Button>
+                            </SettingRow>
+                            <SettingRow
+                              label={t('devices.q60.factoryResetPanel.label')}
+                              description={t('devices.q60.factoryResetPanel.description')}
+                            >
+                              <Button
+                                type="button"
+                                tone="danger"
+                                size="sm"
+                                onClick={() => setFactoryResetConfirmOpen(true)}
+                                disabled={factoryResettingPanel || rebootingPanel}
+                              >
+                                {factoryResettingPanel
+                                  ? t('devices.q60.factoryResetPanel.busy')
+                                  : t('devices.q60.factoryResetPanel.button')}
+                              </Button>
+                            </SettingRow>
+                          </>
+                        )}
                       </SettingsSection>
                     </div>
                   )}
@@ -1155,6 +1242,28 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
         destructive
         onConfirm={() => void resetHardware()}
         onCancel={() => setResetHardwareConfirmOpen(false)}
+      />
+      <ConfirmModal
+        open={rebootPanelConfirmOpen}
+        title={t('devices.q60.rebootPanel.confirmTitle')}
+        message={t('devices.q60.rebootPanel.confirmMessage')}
+        note={t('devices.q60.rebootPanel.confirmNote')}
+        confirmLabel={t('devices.q60.rebootPanel.confirmButton')}
+        onConfirm={() => void rebootPanel()}
+        onCancel={() => setRebootPanelConfirmOpen(false)}
+      />
+      <ConfirmModal
+        open={factoryResetConfirmOpen}
+        title={t('devices.q60.factoryResetPanel.confirmTitle')}
+        message={t('devices.q60.factoryResetPanel.confirmMessage')}
+        bullets={t('devices.q60.factoryResetPanel.wipeList').split('\n')}
+        note={t('devices.q60.factoryResetPanel.confirmNote')}
+        // eslint-disable-next-line i18next/no-literal-string -- note tone enum value
+        noteTone="danger"
+        confirmLabel={t('devices.q60.factoryResetPanel.confirmButton')}
+        destructive
+        onConfirm={() => void factoryResetPanel()}
+        onCancel={() => setFactoryResetConfirmOpen(false)}
       />
     </section>
   );
