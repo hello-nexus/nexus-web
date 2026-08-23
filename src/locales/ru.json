@@ -3359,5 +3359,7 @@
   "devices.streamdeck.import.reason.multiStep": "Этот шаг многошагового действия не поддерживается",
   "devices.streamdeck.import.reason.encoder": "Действия поворотного регулятора не поддерживаются",
   "devices.streamdeck.import.reason.pageLimit": "Пропущено: превышено максимальное количество страниц",
-  "cooling.label.curveEditor": "Редактор кривой"
+  "cooling.label.curveEditor": "Редактор кривой",
+  "lighting.effectDock.collapse": "Свернуть редактор эффекта",
+  "lighting.effectDock.expand": "Развернуть редактор эффекта"
 }

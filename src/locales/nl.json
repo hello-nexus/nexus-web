@@ -3345,5 +3345,7 @@
   "welcome.startWithOs.label": "Starten met je pc",
   "welcome.tagline": "Verenigde computerbediening",
   "welcome.title": "Welkom bij Nexus",
-  "cooling.label.curveEditor": "Curve-editor"
+  "cooling.label.curveEditor": "Curve-editor",
+  "lighting.effectDock.collapse": "Effect-editor inklappen",
+  "lighting.effectDock.expand": "Effect-editor uitklappen"
 }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Ban, CheckCheck, Gamepad2, Music, Pause, Play } from 'lucide-react';
+import { Ban, CheckCheck, Gamepad2, Music, Pause, Play, PanelRightOpen, PanelRightClose } from 'lucide-react';
 import {
   startAnimate, startStatic, startScreenMirror, stopLighting, startGameSync,
   fetchStaticSettings,
@@ -195,6 +195,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const [devicePicks, setDevicePicks] = usePersistentState<Record<string, DevicePick>>(
     'nexus.lighting.devicePicks', {},
   );
+  // Collapsing the effect dock hands its space to the canvas and the browser.
+  // Row 1 is untouched: the preset toolbar keeps its own column.
+  const [dockCollapsed, setDockCollapsed] = usePersistentState('nexus.lighting.effectDockCollapsed', false);
+  // Re-mounted on every effect pick so the dock's pulse animation restarts.
+  const [dockPulse, setDockPulse] = useState(0);
 
   const [activeEffect, setActiveEffect] = useState<string>('');
   // Read inside applyAnimate, which several handlers share: static and animate
@@ -748,6 +753,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   );
 
   const handleEffectSelect = useCallback((key: string) => {
+    // Draw the eye to where the pick landed, the way the old Effect tab did.
+    setDockPulse(p => p + 1);
     // Scoped pick: the running effect is untouched, only the selected devices
     // take the colour.
     if (perDeviceMode && selectedDeviceIds.size > 0 && isStaticEffect(key)) {
@@ -1379,6 +1386,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     });
 
   const shaderMode = effectiveMode === 'animate' || effectiveMode === 'static';
+  // Static and Off assign per device, so the preview stands for the selection;
+  // every other mode drives every device it can reach.
+  const previewDeviceCount = perDeviceMode ? selectedDeviceIds.size : selectableIds.length;
   const gridEffect = scoped.kind === 'pick' ? scoped.key : (scoped.kind === 'locked' ? '' : activeEffect);
   // Selected devices wearing different looks have no single value for the
   // controls to edit, so the dock locks until the selection agrees.
@@ -1403,7 +1413,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           always-mounted effect dock. Both side columns span the tab row so they
           rise to the very top of the page. Capped at --page-max (pageBody) so
           the page matches every other view's width. */}
-      <div className={`${styles.body} pageBody`}>
+      <div className={`${styles.body} ${dockCollapsed ? styles.bodyDockCollapsed : ''} pageBody`}>
         <div className={styles.tabsCell}>
           <ViewHeader
             title={t('lighting.title')}
@@ -1462,10 +1472,38 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
         </div>
         <div className={`${styles.paneHeader} ${styles.headerCenter}`}>
           <span className={styles.paneTitle}>{t('lighting.pane.preview')}</span>
+          {/* How many devices this preview stands for: every device in the
+              modes that drive them all, the selection in the per-device ones. */}
+          <span className={styles.previewCount}>{previewDeviceCount}</span>
+          {dockCollapsed && (
+            <HoverTooltip body={t('lighting.effectDock.expand')} side="bottom">
+              <Button
+                key={dockPulse}
+                tone="ghost"
+                size="sm"
+                icon={<PanelRightOpen />}
+                aria-label={t('lighting.effectDock.expand')}
+                className={`${styles.dockToggle} ${styles.dockTogglePulse}`}
+                onClick={() => setDockCollapsed(false)}
+              />
+            </HoverTooltip>
+          )}
         </div>
-        <div className={`${styles.paneHeader} ${styles.headerRight}`}>
-          <span className={styles.paneTitle}>{t('lighting.rightPane.effect')}</span>
-        </div>
+        {!dockCollapsed && (
+          <div className={`${styles.paneHeader} ${styles.headerRight}`}>
+            <span className={styles.paneTitle}>{t('lighting.rightPane.effect')}</span>
+            <HoverTooltip body={t('lighting.effectDock.collapse')} side="bottom">
+              <Button
+                tone="ghost"
+                size="sm"
+                icon={<PanelRightClose />}
+                aria-label={t('lighting.effectDock.collapse')}
+                className={styles.dockToggle}
+                onClick={() => setDockCollapsed(true)}
+              />
+            </HoverTooltip>
+          </div>
+        )}
         <div className={styles.devicePane}>
           <DevicePanel
             devices={orderedDevices}
@@ -1558,6 +1596,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             </>
           )}
         </div>
+        {!dockCollapsed && (
         <div className={styles.rightPane}>
           <div className={styles.dockBrightness}>
             <GlobalBrightnessSlider serviceOnline={serviceOnline} />
@@ -1585,6 +1624,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
               />
             </div>
         </div>
+        )}
       </div>
       {fullscreenOpen && activeEffect && currentState && committedTemplates[activeEffect] && (
         <FullscreenShader

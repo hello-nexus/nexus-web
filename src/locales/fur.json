@@ -3345,5 +3345,7 @@
   "devices.streamdeck.import.reason.multiStep": "Chest passaç di azion multiple nol è supuartât",
   "devices.streamdeck.import.reason.encoder": "Lis azions di rotele no son supuartadis",
   "devices.streamdeck.import.reason.pageLimit": "Salte: al supere il numar massim di pagjinis",
-  "cooling.label.curveEditor": "Editor des curvis"
+  "cooling.label.curveEditor": "Editor des curvis",
+  "lighting.effectDock.collapse": "Siare l'editor dai efiets",
+  "lighting.effectDock.expand": "Slargje l'editor dai efiets"
 }

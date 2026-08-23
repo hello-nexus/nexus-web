@@ -3345,5 +3345,7 @@
   "devices.streamdeck.import.reason.multiStep": "Dieser Mehrfachaktionsschritt wird nicht unterstützt",
   "devices.streamdeck.import.reason.encoder": "Drehregler-Aktionen werden nicht unterstützt",
   "devices.streamdeck.import.reason.pageLimit": "Übersprungen: überschreitet die maximale Seitenzahl",
-  "cooling.label.curveEditor": "Kurven-Editor"
+  "cooling.label.curveEditor": "Kurven-Editor",
+  "lighting.effectDock.collapse": "Effekt-Editor einklappen",
+  "lighting.effectDock.expand": "Effekt-Editor ausklappen"
 }

@@ -590,10 +590,57 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     return common ?? null;
   }, [fanStates, selectedFanIds]);
 
+  /**
+   * Assign one curve to many fans in a single write.
+   *
+   * Calling setFanMode per fan in a loop raced: each call derived its next
+   * state from the SAME closed-over fanStates, so the last write clobbered the
+   * others and only one fan ended up on the curve (and pushCurves ran N times
+   * with conflicting snapshots).
+   */
+  const assignCurveToFans = useCallback(async (ids: string[], curveId: string | null) => {
+    if (ids.length === 0) return;
+    // A hub has to be in Software before the curve engine can drive it. One
+    // write per hub, not per fan.
+    const hubs = new Set(
+      ids.map(id => channels.find(c => c.id === id)?.deviceId).filter((d): d is string => !!d),
+    );
+    for (const deviceId of hubs) {
+      if (!hubModes[deviceId] || hubModes[deviceId] === 'software') continue;
+      if (deviceId.startsWith('np50:')) await setNp50LiveCoolingMode(NP50_LIVE_MODE_SOFTWARE);
+      else if (deviceId.startsWith('minihub:')) await setMiniHubLiveCoolingMode(MINIHUB_LIVE_MODE_SOFTWARE);
+      else if (deviceId.startsWith('qseries:')) await setQSeriesControlMode(QSERIES_MODE_SOFTWARE);
+      setHubModes(prev => ({ ...prev, [deviceId]: 'software' }));
+    }
+    await exitOffToCustomIfNeeded();
+
+    const next = { ...fanStates };
+    const takingOver: string[] = [];
+    for (const id of ids) {
+      if (!(fanStates[id]?.softwareControl ?? false)) takingOver.push(id);
+      next[id] = { ...next[id], softwareControl: true, curveId };
+    }
+    setFanStates(next);
+    // Seed a duty only for fans that were not already software-driven, same as
+    // the single-fan path did.
+    for (const id of takingOver) await setFanSpeed(id, 50);
+    await pushCurves(curves, next);
+    if (takingOver.length > 0) {
+      const fans = await fetchFanChannels();
+      if (fans?.channels) setChannels(fans.channels);
+    }
+  }, [channels, curves, exitOffToCustomIfNeeded, fanStates, hubModes, pushCurves]);
+
   const applyFanMode = useCallback((fanId: string, value: string) => {
     const ids = selectedFanIds.has(fanId) ? [...selectedFanIds] : [fanId];
+    // Curve and manual assignments go through the batched writer; the hub
+    // hand-off values stay per-fan, since each one is its own device call.
+    if (ids.length > 1 && value !== 'bios' && value !== 'fw') {
+      void assignCurveToFans(ids, value === 'manual' ? null : value);
+      return;
+    }
     for (const id of ids) void setFanMode(id, value);
-  }, [selectedFanIds, setFanMode]);
+  }, [assignCurveToFans, selectedFanIds, setFanMode]);
 
   // Clicking a curve always opens it in the editor. With fans selected it also
   // assigns it to them, routed through setFanMode so a curve pick from the
@@ -601,8 +648,9 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // hand-off, BIOS release and all).
   const handleCurveSelect = useCallback((curveId: string) => {
     setSelectedCurveId(curveId);
-    for (const id of selectedFanIds) void setFanMode(id, curveId);
-  }, [selectedFanIds, setFanMode]);
+    if (selectedFanIds.size === 0) return;
+    void assignCurveToFans([...selectedFanIds], curveId);
+  }, [assignCurveToFans, selectedFanIds]);
 
   // Create a curve and bind it to the fan in one shot so pushCurves sees both
   // the new curve AND the fan's assignment in the same write. Triggered from

@@ -3345,5 +3345,7 @@
   "devices.streamdeck.import.reason.multiStep": "Este passo de ação múltipla não é suportado",
   "devices.streamdeck.import.reason.encoder": "As ações do botão giratório não são suportadas",
   "devices.streamdeck.import.reason.pageLimit": "Ignorada: excede o número máximo de páginas",
-  "cooling.label.curveEditor": "Editor de curva"
+  "cooling.label.curveEditor": "Editor de curva",
+  "lighting.effectDock.collapse": "Recolher editor de efeito",
+  "lighting.effectDock.expand": "Expandir editor de efeito"
 }

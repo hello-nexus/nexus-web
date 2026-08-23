@@ -3345,5 +3345,7 @@
   "devices.streamdeck.import.reason.multiStep": "이 다중 작업 단계는 지원되지 않습니다",
   "devices.streamdeck.import.reason.encoder": "다이얼 작업은 지원되지 않습니다",
   "devices.streamdeck.import.reason.pageLimit": "건너뜀: 최대 페이지 수를 초과합니다",
-  "cooling.label.curveEditor": "커브 편집기"
+  "cooling.label.curveEditor": "커브 편집기",
+  "lighting.effectDock.collapse": "이펙트 편집기 접기",
+  "lighting.effectDock.expand": "이펙트 편집기 펼치기"
 }

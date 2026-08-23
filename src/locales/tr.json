@@ -3345,5 +3345,7 @@
   "devices.streamdeck.import.reason.multiStep": "Bu çoklu eylem adımı desteklenmiyor",
   "devices.streamdeck.import.reason.encoder": "Döner düğme eylemleri desteklenmiyor",
   "devices.streamdeck.import.reason.pageLimit": "Atlandı: en fazla sayfa sayısını aşıyor",
-  "cooling.label.curveEditor": "Eğri düzenleyici"
+  "cooling.label.curveEditor": "Eğri düzenleyici",
+  "lighting.effectDock.collapse": "Efekt duzenleyiciyi daralt",
+  "lighting.effectDock.expand": "Efekt duzenleyiciyi genislet"
 }

@@ -3359,5 +3359,7 @@
   "devices.streamdeck.import.reason.multiStep": "Ten krok akcji wieloetapowej nie jest obsługiwany",
   "devices.streamdeck.import.reason.encoder": "Akcje pokrętła nie są obsługiwane",
   "devices.streamdeck.import.reason.pageLimit": "Pominięto: przekracza maksymalną liczbę stron",
-  "cooling.label.curveEditor": "Edytor krzywej"
+  "cooling.label.curveEditor": "Edytor krzywej",
+  "lighting.effectDock.collapse": "Zwin edytor efektu",
+  "lighting.effectDock.expand": "Rozwin edytor efektu"
 }

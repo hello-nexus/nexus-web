@@ -3345,5 +3345,7 @@
   "devices.streamdeck.import.reason.multiStep": "不支持此多步骤操作中的这一步",
   "devices.streamdeck.import.reason.encoder": "不支持旋钮操作",
   "devices.streamdeck.import.reason.pageLimit": "已跳过：超出最大页数",
-  "cooling.label.curveEditor": "曲线编辑器"
+  "cooling.label.curveEditor": "曲线编辑器",
+  "lighting.effectDock.collapse": "折叠效果编辑器",
+  "lighting.effectDock.expand": "展开效果编辑器"
 }

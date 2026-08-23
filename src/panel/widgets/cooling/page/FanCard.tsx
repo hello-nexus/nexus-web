@@ -269,7 +269,13 @@ export const FanCard = memo(function FanCard({
         // surface toggles selection. Matched via the same [data-no-dnd] marker
         // the drag sensor honours - NOT [role="button"], which dnd-kit puts on
         // the card root itself, so that guard swallowed every click.
-        if ((e.target as HTMLElement).closest('[data-no-dnd],button,input,select,textarea,a')) return;
+        const target = e.target as HTMLElement;
+        // React events bubble through the COMPONENT tree, so a click inside a
+        // portaled dropdown menu reaches this handler even though the menu is
+        // not a DOM descendant - which flipped the card's selection every time
+        // a curve was picked. Anything outside the card is not ours.
+        if (!e.currentTarget.contains(target)) return;
+        if (target.closest('[data-no-dnd],button,input,select,textarea,a')) return;
         onSelect(isMultiSelectModifier(e));
       } : undefined}
       onMouseEnter={onWireHover ? () => onWireHover(channel.id) : undefined}

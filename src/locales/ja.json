@@ -3345,5 +3345,7 @@
   "devices.streamdeck.import.reason.multiStep": "このマルチアクションのステップには対応していません",
   "devices.streamdeck.import.reason.encoder": "ダイヤル操作には対応していません",
   "devices.streamdeck.import.reason.pageLimit": "スキップされました。ページ数の上限を超えています",
-  "cooling.label.curveEditor": "カーブエディター"
+  "cooling.label.curveEditor": "カーブエディター",
+  "lighting.effectDock.collapse": "エフェクトエディターを折りたたむ",
+  "lighting.effectDock.expand": "エフェクトエディターを展開"
 }

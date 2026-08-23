@@ -3345,5 +3345,7 @@
   "devices.streamdeck.import.reason.multiStep": "Este paso de acción múltiple no es compatible",
   "devices.streamdeck.import.reason.encoder": "Las acciones de dial no son compatibles",
   "devices.streamdeck.import.reason.pageLimit": "Omitida: supera el número máximo de páginas",
-  "cooling.label.curveEditor": "Editor de curvas"
+  "cooling.label.curveEditor": "Editor de curvas",
+  "lighting.effectDock.collapse": "Contraer editor de efectos",
+  "lighting.effectDock.expand": "Expandir editor de efectos"
 }

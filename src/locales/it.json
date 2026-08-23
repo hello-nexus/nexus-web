@@ -3345,5 +3345,7 @@
   "devices.streamdeck.import.reason.multiStep": "Questo passaggio multi-azione non è supportato",
   "devices.streamdeck.import.reason.encoder": "Le azioni della manopola non sono supportate",
   "devices.streamdeck.import.reason.pageLimit": "Saltata: supera il numero massimo di pagine",
-  "cooling.label.curveEditor": "Editor curve"
+  "cooling.label.curveEditor": "Editor curve",
+  "lighting.effectDock.collapse": "Comprimi editor effetti",
+  "lighting.effectDock.expand": "Espandi editor effetti"
 }
