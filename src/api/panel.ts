@@ -171,6 +171,14 @@ export const resetPanelDevice = (id: string) =>
 export const resetPanelDeviceHardware = (id: string) =>
   postService<PanelDeviceRecord>(`/panel/devices/${encodeURIComponent(id)}/reset-hardware`, {});
 
+/**
+ * Factory reset (Q-series only): restores the panel's personalization AND its
+ * hardware settings, then uninstalls and reinstalls the panel software. Returns
+ * once the work is QUEUED - the reinstall runs on the shared flash status.
+ */
+export const factoryResetPanelDevice = (id: string): Promise<unknown | null> =>
+  postService(`/panel/devices/${encodeURIComponent(id)}/factory-reset`, {});
+
 export type PanelDeviceFetchResult =
   | { found: true; record: PanelDeviceRecord }
   | { found: false; status: number };

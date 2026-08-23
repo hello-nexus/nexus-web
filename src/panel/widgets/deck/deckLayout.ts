@@ -240,6 +240,21 @@ function slotHasContent(slot: DeckSlot): boolean {
   return false;
 }
 
+/**
+ * Total bound keys inside a folder (recursively), so a delete-folder confirm
+ * can tell the user how many keys go with it. Counts only keys that DO
+ * something (action or folder); slotHasContent above is deliberately wider
+ * (a bare icon/label counts) because removing a page also discards styling.
+ */
+export function countBoundSlots(slots: readonly DeckSlot[]): number {
+  let n = 0;
+  for (const s of slots) {
+    if (s.action || s.folder) n++;
+    if (s.folder) n += countBoundSlots(s.folder.slots);
+  }
+  return n;
+}
+
 /** Whether any slot on this page (including nested folders) is configured. */
 export function pageHasContent(pageConfig: DeckPage): boolean {
   return pageConfig.slots.some(slotHasContent);

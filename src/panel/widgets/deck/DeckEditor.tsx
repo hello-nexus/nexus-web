@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { ChevronLeft } from 'lucide-react';
 import { DndContext, PointerSensor, useSensor, useSensors, closestCenter, type DragEndEvent } from '@dnd-kit/core';
 import { useTranslation } from '../../../lib/i18n';
-import { padSlots, pageHasContent, MAX_DECK_PAGES } from './deckLayout';
+import { ConfirmModal } from '../../../components/common/ConfirmModal/ConfirmModal';
+import { countBoundSlots, padSlots, pageHasContent, MAX_DECK_PAGES } from './deckLayout';
 import { withPageIndicatorDisplay } from './deckIcons';
 import { resolveTargetView, slotCountAtDepth, type DeckTarget } from './deckTarget';
 import { DeckGrid } from './DeckGrid';
@@ -47,6 +49,13 @@ export function DeckEditor({ target, page, onPageChange, folderPath, onFolderPat
     pageCount,
   );
   const selSlot = clamp(selectedSlot ?? 0, 0, Math.max(0, viewCount - 1));
+  // The folder key awaiting delete confirmation, pinned by the full address
+  // (page + folder path + index) it was requested at, so the confirm can only
+  // ever clear the key the user was shown. A plain key clears straight away
+  // (same rule as the device page's grid).
+  const [deleteConfirm, setDeleteConfirm] = useState<
+    { page: number; folderPath: readonly number[]; index: number; count: number } | null
+  >(null);
 
   const onDragEnd = (e: DragEndEvent) => {
     const from = Number(e.active.id);
@@ -56,6 +65,13 @@ export function DeckEditor({ target, page, onPageChange, folderPath, onFolderPat
   };
 
   const onBack = () => { onFolderPathChange(folderPath.slice(0, -1)); onSelectedSlotChange?.(0); };
+
+  const onDeleteSlot = () => {
+    const folder = viewSlots[selSlot]?.folder;
+    const count = folder ? countBoundSlots(folder.slots) : 0;
+    if (count > 0) setDeleteConfirm({ page, folderPath, index: selSlot, count });
+    else target.updateSlot(page, folderPath, selSlot, {});
+  };
 
   const onSelectPage = (p: number) => {
     onPageChange(p);
@@ -108,6 +124,19 @@ export function DeckEditor({ target, page, onPageChange, folderPath, onFolderPat
         onSelectedSlotChange={onSelectedSlotChange}
         surface={surface}
         desktopEditor={desktopEditor}
+        onDeleteSlot={onDeleteSlot}
+      />
+
+      <ConfirmModal
+        open={!!deleteConfirm}
+        title={t('panel.settings.deck.deleteFolder.title')}
+        message={t('panel.settings.deck.deleteFolder.body', { count: deleteConfirm?.count ?? 0 })}
+        destructive
+        onConfirm={() => {
+          if (deleteConfirm) target.updateSlot(deleteConfirm.page, deleteConfirm.folderPath, deleteConfirm.index, {});
+          setDeleteConfirm(null);
+        }}
+        onCancel={() => setDeleteConfirm(null)}
       />
     </div>
   );

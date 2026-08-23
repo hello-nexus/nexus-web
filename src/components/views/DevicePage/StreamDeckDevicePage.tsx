@@ -16,10 +16,10 @@ import { useDeckPresets, AUTO_SAVE_DEBOUNCE_MS } from '../../../panel/widgets/de
 import { DeckGrid } from '../../../panel/widgets/deck/DeckGrid';
 import { DeckKeyInspector, DeckDefaultTitleSettings, DeckActionDragPreview, slotForPickerKind, type DeckPickerKind } from '../../../panel/widgets/deck/DeckKeyInspector';
 import { DeckPageStrip } from '../../../panel/widgets/deck/DeckPageStrip';
-import { padSlots, pageHasContent, emptyDeck, MAX_DECK_PAGES } from '../../../panel/widgets/deck/deckLayout';
+import { padSlots, pageHasContent, emptyDeck, countBoundSlots, MAX_DECK_PAGES } from '../../../panel/widgets/deck/deckLayout';
 import { withPageIndicatorDisplay } from '../../../panel/widgets/deck/deckIcons';
 import { resolveTargetView, slotCountAtDepth } from '../../../panel/widgets/deck/deckTarget';
-import type { DeckConfig, DeckSlot } from '../../../panel/widgets/deck/types';
+import type { DeckConfig } from '../../../panel/widgets/deck/types';
 import { isRemoteOrigin } from '../../../api/service';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { PresetToolbar } from '../../common/PresetToolbar/PresetToolbar';
@@ -35,17 +35,6 @@ import { Button } from '../../common/Button/Button';
 import styles from './StreamDeckDevicePage.module.scss';
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
-
-// Total bound keys inside a folder (recursively), so a delete-folder confirm
-// can tell the user how many keys go with it.
-function countBoundSlots(slots: readonly DeckSlot[]): number {
-  let n = 0;
-  for (const s of slots) {
-    if (s.action || s.folder) n++;
-    if (s.folder) n += countBoundSlots(s.folder.slots);
-  }
-  return n;
-}
 
 // Resolve the drop to the key under the pointer (so an assigned/reordered key
 // lands where the cursor is, matching the hover highlight), not the nearest

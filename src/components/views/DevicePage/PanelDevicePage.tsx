@@ -13,6 +13,7 @@ import {
   swapSingleWidget,
   tryResizeWidget,
 } from '../../../panel/engine/panelLayoutOps';
+import { findWidgetById } from '../../../panel/engine/panelLayoutHelpers';
 import { DEFAULT_SURFACE_DPI, MAX_PANEL_PAGES } from '../../../panel/engine/panelGrid';
 import {
   panelGridCapacityForCanvas,
@@ -47,15 +48,18 @@ import {
   patchPanelDevice,
   resetPanelDevice,
   resetPanelDeviceHardware,
+  factoryResetPanelDevice,
 } from '../../../api/panel';
 import {
   getQSeriesRotation,
   setQSeriesRotation,
   getQSeriesDisplay,
   setQSeriesDisplay,
+  rebootQSeriesPanel,
   type QSeriesOrientation,
 } from '../../../api/qseries';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
+import { useFlashStatus } from '../../../hooks/useFlashStatus';
 import { useTranslation } from '../../../lib/i18n';
 import { createUuid } from '../../../lib/uuid';
 import { IconLabelButton } from '../../common/IconLabelButton/IconLabelButton';
@@ -107,6 +111,11 @@ interface ToggleResponse { toggle: boolean }
 
 const Y70_ORIENTATIONS = ['Landscape', 'Portrait', 'LandscapeFlipped', 'PortraitFlipped'] as const;
 type Y70Orientation = (typeof Y70_ORIENTATIONS)[number];
+
+// Bounds the wait for a rebooted panel to re-register. The cold qshell
+// bootstrap runs ~2 min over USB-FFS; this only fires when the panel is not
+// coming back at all (a wedged USB gadget needs a physical replug).
+const REBOOT_COMPLETION_TIMEOUT_MS = 300_000;
 
 // Q60/Q80 mount portrait or portrait-flipped only; no landscape orientation exists.
 const QSERIES_ORIENTATIONS: readonly Y70Orientation[] = ['Portrait', 'PortraitFlipped'];
@@ -206,13 +215,39 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // Physical density from the record (capabilities.dpi, curated known
   // displays like the Xeneon Edge); null falls back to the surface default.
   const [liveDpi, setLiveDpi] = useState<number | null>(null);
-  const [configuringWidget, setConfiguringWidget] = useState<PanelWidget | null>(null);
+  const [configuringWidgetId, setConfiguringWidgetId] = useState<string | null>(null);
+  // Derived, never snapshotted: the on-device panel writes its own edits back
+  // through the panel/device reverse sync below, so a copy of the widget goes
+  // stale the moment its size or config changes anywhere but here. Resolving
+  // to null when the id no longer exists also closes the pane when the widget
+  // is removed on the device.
+  const configuringWidget = configuringWidgetId ? findWidgetById(layout, configuringWidgetId) ?? null : null;
+  // Our own PATCHes echo back as panel/device broadcasts, and the reverse
+  // sync below refetches on them. Applying that echo would revert a
+  // controlled input to the value its round trip started with - the
+  // monitoring label field and the deck URL field write per keystroke, so a
+  // character typed inside the window would be lost.
+  const pendingWritesRef = useRef(0);
+  const writeSeqRef = useRef(0);
+  // A broadcast skipped during a local write is DEFERRED, not dropped: the
+  // service broadcasts before the PATCH response returns, so our own echo is
+  // skipped too and no later frame would arrive to trigger a catch-up. A
+  // genuine device edit inside the window would be lost until some unrelated
+  // broadcast - the very bug this page is being fixed for.
+  const missedBroadcastRef = useRef(false);
   const embedFrameRef = useRef<PanelEmbedFrameHandle | null>(null);
   const [screenshotBusy, setScreenshotBusy] = useState(false);
   const [resetPersonalizationConfirmOpen, setResetPersonalizationConfirmOpen] = useState(false);
   const [resettingPersonalization, setResettingPersonalization] = useState(false);
   const [resetHardwareConfirmOpen, setResetHardwareConfirmOpen] = useState(false);
   const [resettingHardware, setResettingHardware] = useState(false);
+  const [rebootPanelConfirmOpen, setRebootPanelConfirmOpen] = useState(false);
+  const [rebootingPanel, setRebootingPanel] = useState(false);
+  // Epoch of the in-flight reboot request; null when none. Compared against the
+  // record's lastSeenAt to decide the panel is back.
+  const rebootRequestedAtRef = useRef<number | null>(null);
+  const [factoryResetConfirmOpen, setFactoryResetConfirmOpen] = useState(false);
+  const [factoryResettingPanel, setFactoryResettingPanel] = useState(false);
   // Bumped after a hardware reset so the settings-load effect AND the Xeneon
   // DDC fetch effect re-read the now-defaulted state from the service; their
   // completion is also what clears resettingHardware.
@@ -543,6 +578,35 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     if (conformed !== layout) setLayout(conformed);
   }, [layout, editorCapacity, editorCapacityDerived]);
 
+  // Reads the record back into page state. Called from the panel/device
+  // broadcast, and from a local write's settle when a broadcast arrived while
+  // that write was in flight.
+  const refetchDeviceRecord = useCallback(() => {
+    if (!editingDeviceId) return;
+    // Ignore a result a newer local write overtook while it was in flight.
+    const seq = writeSeqRef.current;
+    fetchPanelDevice(editingDeviceId).then(record => {
+      if (!record) return;
+      const cw = record.capabilities?.cssWidth;
+      const ch = record.capabilities?.cssHeight;
+      setLiveCanvas(cw && ch ? { width: cw, height: ch } : null);
+      setLiveDpr(record.capabilities?.dpr ?? null);
+      setLiveDpi(record.capabilities?.dpi ?? null);
+      // A physical rotation (Xeneon Edge auto-orient) rewrites the record's
+      // orientation and broadcasts here. Without this the page keeps its
+      // mount-time value, so the rotation picker and the landscape preview
+      // dock never track a panel the user turns in their hands.
+      if (record.capabilities?.orientation) setOrientation(normalizeOrientation(record.capabilities.orientation));
+      // Only the LAYOUT can be stale here: a local layout write cannot age a
+      // canvas or orientation fact, and those setters have no other source
+      // after mount - discarding them strands a rotation until remount, and a
+      // stale liveCanvas feeds editorCapacity, which the next edit conforms
+      // and persists against.
+      if (writeSeqRef.current !== seq) return;
+      setLayout(normalizePanelLayout(record.layout ?? defaultLayoutForSurface(surface), surface, deviceTouch));
+    }).catch(() => {});
+  }, [editingDeviceId, surface, deviceTouch]);
+
   const updateLayout = useCallback((next: PanelLayout) => {
     // Normalize is geometry-neutral (registry reconcile + size snap only), so
     // conform the geometry to the editor grid before persisting - the stored
@@ -557,10 +621,20 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     // Per-device editing path. If no device for this surface is registered
     // yet (no panel of this kind has ever connected), allocate one on first
     // edit so the user's changes persist.
-    const persist = (id: string) =>
-      patchPanelDevice(id, { layout: normalized })
+    const persist = (id: string) => {
+      pendingWritesRef.current += 1;
+      writeSeqRef.current += 1;
+      return patchPanelDevice(id, { layout: normalized })
         .then(() => broadcastLayoutChanged())
-        .catch(() => {});
+        .catch(() => {})
+        .finally(() => {
+          pendingWritesRef.current -= 1;
+          if (pendingWritesRef.current === 0 && missedBroadcastRef.current) {
+            missedBroadcastRef.current = false;
+            refetchDeviceRecord();
+          }
+        });
+    };
     if (editingDeviceId) {
       void persist(editingDeviceId);
       return;
@@ -571,7 +645,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
         return persist(record.id);
       }
     });
-  }, [editingDeviceId, surface, deviceTouch, editorCapacity, editorCapacityDerived]);
+  }, [editingDeviceId, surface, deviceTouch, editorCapacity, editorCapacityDerived, refetchDeviceRecord]);
 
   // Reverse sync: when the physical panel (or another editor) saves a layout,
   // the service broadcasts panel/device with the changed id. Refetch this
@@ -581,20 +655,27 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   useTopicCallback('panel/device', true, (raw) => {
     const frame = raw as { deviceId?: string } | null;
     if (!editingDeviceId || frame?.deviceId !== editingDeviceId) return;
-    fetchPanelDevice(editingDeviceId).then(record => {
-      if (!record) return;
-      const cw = record.capabilities?.cssWidth;
-      const ch = record.capabilities?.cssHeight;
-      setLiveCanvas(cw && ch ? { width: cw, height: ch } : null);
-      setLiveDpr(record.capabilities?.dpr ?? null);
-      setLiveDpi(record.capabilities?.dpi ?? null);
-      // A physical rotation (Xeneon Edge auto-orient) rewrites the record's
-      // orientation and broadcasts here. Without this the page keeps its
-      // mount-time value, so the rotation picker and the landscape preview
-      // dock never track a panel the user turns in their hands.
-      if (record.capabilities?.orientation) setOrientation(normalizeOrientation(record.capabilities.orientation));
-      setLayout(normalizePanelLayout(record.layout ?? defaultLayoutForSurface(surface), surface, deviceTouch));
-    }).catch(() => {});
+    // The frame carries no payload and fires for this client's own writes too,
+    // so its arrival cannot end a reboot on its own. lastSeenAt advancing past
+    // the request is what proves the panel came back; checked ahead of the
+    // pending-write guard because it reads the record without applying it.
+    if (rebootRequestedAtRef.current !== null) {
+      void fetchPanelDevice(editingDeviceId).then(record => {
+        const since = rebootRequestedAtRef.current;
+        if (since === null || !record) return;
+        if ((record.lastSeenAt ?? 0) > since) {
+          rebootRequestedAtRef.current = null;
+          setRebootingPanel(false);
+        }
+      }).catch(() => {});
+    }
+    // A write of ours is in flight: defer rather than apply, or the echo
+    // reverts a controlled field mid-edit. The write's settle runs it.
+    if (pendingWritesRef.current > 0) {
+      missedBroadcastRef.current = true;
+      return;
+    }
+    refetchDeviceRecord();
   });
 
   const singleWidget = isSingleWidgetSurface(surface);
@@ -636,15 +717,17 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
 
   const handleRemoveWidget = useCallback((widgetId: string) => {
     updateLayout(removeWidgetById(layout, widgetId, editorCapacity));
+    // The derived lookup already closes the pane, but a swallowed PATCH
+    // failure could let a later refetch re-supply the widget and reopen it.
+    setConfiguringWidgetId(prev => prev === widgetId ? null : prev);
   }, [editorCapacity, layout, updateLayout]);
 
   const handleConfigureWidget = useCallback((widget: PanelWidget) => {
-    setConfiguringWidget(widget);
+    setConfiguringWidgetId(widget.id);
   }, []);
 
   const handleUpdateWidgetConfig = useCallback((widgetId: string, config: Record<string, PanelConfigValue>) => {
     updateLayout(patchWidgetById(layout, widgetId, w => ({ ...w, config }), editorCapacity));
-    setConfiguringWidget(prev => prev?.id === widgetId ? { ...prev, config } : prev);
   }, [editorCapacity, layout, updateLayout]);
 
   const handleResizeWidget = useCallback((widgetId: string, size: PanelWidgetSize) => {
@@ -662,7 +745,6 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     }
     if (next === layout) return;
     updateLayout(next);
-    setConfiguringWidget(prev => prev?.id === widgetId ? { ...prev, size } : prev);
   }, [editorCapacity, layout, updateLayout]);
 
   // Page navigation. The active page rides in layout.activePageId; writing it
@@ -750,6 +832,63 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     }
   }, [editingDeviceId, pushToast, t]);
 
+  // Both actions return once QUEUED, so the busy flag is cleared by the signal
+  // that the work finished, not by this call: the panel/device topic firing
+  // again for a reboot (the panel re-contacted the service), and the shared
+  // flash status leaving its active phases for a factory reset. A null result
+  // is a rejected request (no panel, or an install holds the transport).
+  const rebootPanel = useCallback(async () => {
+    setRebootPanelConfirmOpen(false);
+    rebootRequestedAtRef.current = Date.now();
+    setRebootingPanel(true);
+    const ok = await rebootQSeriesPanel();
+    pushToast({
+      title: ok ? t('devices.q60.rebootPanel.started') : t('devices.q60.rebootPanel.error'),
+    });
+    if (!ok) { rebootRequestedAtRef.current = null; setRebootingPanel(false); }
+  }, [pushToast, t]);
+
+  // A panel whose USB gadget wedges never re-registers (recovery is a physical
+  // replug), so the completion signal above can never arrive. Release the
+  // control after a bound well past the ~2 min cold qshell bootstrap rather
+  // than leaving the row dead until the page remounts.
+  useEffect(() => {
+    if (!rebootingPanel) return;
+    const timer = window.setTimeout(() => {
+      rebootRequestedAtRef.current = null;
+      setRebootingPanel(false);
+      pushToast({ title: t('devices.q60.rebootPanel.timeout') });
+    }, REBOOT_COMPLETION_TIMEOUT_MS);
+    return () => window.clearTimeout(timer);
+  }, [rebootingPanel, pushToast, t]);
+
+  const { status: flashStatus } = useFlashStatus(factoryResettingPanel);
+  useEffect(() => {
+    if (!factoryResettingPanel || !flashStatus) return;
+    if (flashStatus.phase === 'done' || flashStatus.phase === 'failed') {
+      setFactoryResettingPanel(false);
+      pushToast({
+        title: flashStatus.success
+          ? t('devices.q60.factoryResetPanel.done')
+          : t('devices.q60.factoryResetPanel.error'),
+      });
+    }
+  }, [factoryResettingPanel, flashStatus, pushToast, t]);
+
+  const factoryResetPanel = useCallback(async () => {
+    if (!editingDeviceId) return;
+    setFactoryResetConfirmOpen(false);
+    setFactoryResettingPanel(true);
+    const ok = await factoryResetPanelDevice(editingDeviceId);
+    // The service already wiped the record; re-read so this page stops showing
+    // the pre-reset layout and hardware values.
+    if (ok) { broadcastLayoutChanged(); setSettingsRefreshNonce(n => n + 1); }
+    pushToast({
+      title: ok ? t('devices.q60.factoryResetPanel.started') : t('devices.q60.factoryResetPanel.error'),
+    });
+    if (!ok) setFactoryResettingPanel(false);
+  }, [editingDeviceId, pushToast, t]);
+
   const tabs: { key: Tab; label: string; icon: ReactNode }[] = [
     { key: 'widgets', label: t('devices.y70.tab.widgets'), icon: <LayoutGrid size={14} /> },
     { key: 'theme', label: t('devices.y70.tab.theme'), icon: <Palette size={14} /> },
@@ -780,8 +919,13 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const panelReachable = !!panelAppItem;
   const panelAppInstalled = !!panelAppItem && panelAppItem.currentVersion !== '';
   const fwGateReady = loaded && (!isQSeries || firmwareLoaded);
-  const showFwGate = isQSeries && !isSimulated && fwGateReady && panelReachable && !panelAppInstalled;
-  const showDisconnected = isQSeries && !isSimulated && fwGateReady && !panelReachable;
+  // Both operations take the panel off adb, and the factory reset spends a
+  // window with it back but qshell absent. Without this the page swaps the tab
+  // for the disconnected state or an "install the panel app" CTA mid-operation,
+  // hiding the progress and inviting a flash the flash gate would reject.
+  const panelOperationInFlight = rebootingPanel || factoryResettingPanel;
+  const showFwGate = isQSeries && !isSimulated && fwGateReady && panelReachable && !panelAppInstalled && !panelOperationInFlight;
+  const showDisconnected = isQSeries && !isSimulated && fwGateReady && !panelReachable && !panelOperationInFlight;
 
   return (
     <section className={styles.page}>
@@ -789,7 +933,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
         title={pageTitle}
         tabs={showFwGate || showDisconnected ? undefined : tabs}
         activeTab={activeTab}
-        onTabChange={(k) => { setConfiguringWidget(null); setTab(k as Tab); }}
+        onTabChange={(k) => { setConfiguringWidgetId(null); setTab(k as Tab); }}
         tabActions={
           <Button
             size="sm"
@@ -835,10 +979,10 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                 deviceTouch={deviceTouch}
                 themeMode={desktopResolvedThemeMode}
                 themeStyle={panelPreviewThemeStyle}
-                onBack={() => setConfiguringWidget(null)}
+                onBack={() => setConfiguringWidgetId(null)}
                 onUpdate={handleUpdateWidgetConfig}
                 onResize={handleResizeWidget}
-                onRemove={(id) => { handleRemoveWidget(id); setConfiguringWidget(null); }}
+                onRemove={handleRemoveWidget}
                 onSectionNavigate={onSectionNavigate}
               />
             ) : (
@@ -1070,6 +1214,42 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                             {t('devices.panels.resetHardware.button')}
                           </Button>
                         </SettingRow>
+                        {isQSeries && (
+                          <>
+                            <SettingRow
+                              label={t('devices.q60.rebootPanel.label')}
+                              description={t('devices.q60.rebootPanel.description')}
+                            >
+                              <Button
+                                type="button"
+                                tone="danger"
+                                size="sm"
+                                onClick={() => setRebootPanelConfirmOpen(true)}
+                                disabled={rebootingPanel || factoryResettingPanel}
+                              >
+                                {rebootingPanel
+                                  ? t('devices.q60.rebootPanel.busy')
+                                  : t('devices.q60.rebootPanel.button')}
+                              </Button>
+                            </SettingRow>
+                            <SettingRow
+                              label={t('devices.q60.factoryResetPanel.label')}
+                              description={t('devices.q60.factoryResetPanel.description')}
+                            >
+                              <Button
+                                type="button"
+                                tone="danger"
+                                size="sm"
+                                onClick={() => setFactoryResetConfirmOpen(true)}
+                                disabled={factoryResettingPanel || rebootingPanel}
+                              >
+                                {factoryResettingPanel
+                                  ? t('devices.q60.factoryResetPanel.busy')
+                                  : t('devices.q60.factoryResetPanel.button')}
+                              </Button>
+                            </SettingRow>
+                          </>
+                        )}
                       </SettingsSection>
                     </div>
                   )}
@@ -1108,7 +1288,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                 flashSignal={flashSignal}
                 onLayoutChange={updateLayout}
                 onWidgetClicked={handleConfigureWidget}
-                onBackgroundClicked={() => setConfiguringWidget(null)}
+                onBackgroundClicked={() => setConfiguringWidgetId(null)}
                 canvasSize={liveCanvas ?? device?.previewSize}
                 canvasDpi={device?.previewDpi}
                 // Hosted-monitor previewSize is CSS px (record cssWidth/
@@ -1155,6 +1335,28 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
         destructive
         onConfirm={() => void resetHardware()}
         onCancel={() => setResetHardwareConfirmOpen(false)}
+      />
+      <ConfirmModal
+        open={rebootPanelConfirmOpen}
+        title={t('devices.q60.rebootPanel.confirmTitle')}
+        message={t('devices.q60.rebootPanel.confirmMessage')}
+        note={t('devices.q60.rebootPanel.confirmNote')}
+        confirmLabel={t('devices.q60.rebootPanel.confirmButton')}
+        onConfirm={() => void rebootPanel()}
+        onCancel={() => setRebootPanelConfirmOpen(false)}
+      />
+      <ConfirmModal
+        open={factoryResetConfirmOpen}
+        title={t('devices.q60.factoryResetPanel.confirmTitle')}
+        message={t('devices.q60.factoryResetPanel.confirmMessage')}
+        bullets={t('devices.q60.factoryResetPanel.wipeList').split('\n')}
+        note={t('devices.q60.factoryResetPanel.confirmNote')}
+        // eslint-disable-next-line i18next/no-literal-string -- note tone enum value
+        noteTone="danger"
+        confirmLabel={t('devices.q60.factoryResetPanel.confirmButton')}
+        destructive
+        onConfirm={() => void factoryResetPanel()}
+        onCancel={() => setFactoryResetConfirmOpen(false)}
       />
     </section>
   );

@@ -148,6 +148,12 @@
   font-weight: var(--weight-heading);
 }
 
+.reasonLabelMuted {
+  composes: reasonLabel;
+  color: var(--text-dim);
+  font-weight: var(--weight-body);
+}
+
 .reasonSummary {
   font-size: var(--type-mini);
   color: var(--text-dim);
