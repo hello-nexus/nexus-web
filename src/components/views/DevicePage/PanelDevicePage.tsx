@@ -13,6 +13,7 @@ import {
   swapSingleWidget,
   tryResizeWidget,
 } from '../../../panel/engine/panelLayoutOps';
+import { findWidgetById } from '../../../panel/engine/panelLayoutHelpers';
 import { DEFAULT_SURFACE_DPI, MAX_PANEL_PAGES } from '../../../panel/engine/panelGrid';
 import {
   panelGridCapacityForCanvas,
@@ -209,7 +210,26 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // Physical density from the record (capabilities.dpi, curated known
   // displays like the Xeneon Edge); null falls back to the surface default.
   const [liveDpi, setLiveDpi] = useState<number | null>(null);
-  const [configuringWidget, setConfiguringWidget] = useState<PanelWidget | null>(null);
+  const [configuringWidgetId, setConfiguringWidgetId] = useState<string | null>(null);
+  // Derived, never snapshotted: the on-device panel writes its own edits back
+  // through the panel/device reverse sync below, so a copy of the widget goes
+  // stale the moment its size or config changes anywhere but here. Resolving
+  // to null when the id no longer exists also closes the pane when the widget
+  // is removed on the device.
+  const configuringWidget = configuringWidgetId ? findWidgetById(layout, configuringWidgetId) ?? null : null;
+  // Our own PATCHes echo back as panel/device broadcasts, and the reverse
+  // sync below refetches on them. Applying that echo would revert a
+  // controlled input to the value its round trip started with - the
+  // monitoring label field and the deck URL field write per keystroke, so a
+  // character typed inside the window would be lost.
+  const pendingWritesRef = useRef(0);
+  const writeSeqRef = useRef(0);
+  // A broadcast skipped during a local write is DEFERRED, not dropped: the
+  // service broadcasts before the PATCH response returns, so our own echo is
+  // skipped too and no later frame would arrive to trigger a catch-up. A
+  // genuine device edit inside the window would be lost until some unrelated
+  // broadcast - the very bug this page is being fixed for.
+  const missedBroadcastRef = useRef(false);
   const embedFrameRef = useRef<PanelEmbedFrameHandle | null>(null);
   const [screenshotBusy, setScreenshotBusy] = useState(false);
   const [resetPersonalizationConfirmOpen, setResetPersonalizationConfirmOpen] = useState(false);
@@ -550,6 +570,35 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     if (conformed !== layout) setLayout(conformed);
   }, [layout, editorCapacity, editorCapacityDerived]);
 
+  // Reads the record back into page state. Called from the panel/device
+  // broadcast, and from a local write's settle when a broadcast arrived while
+  // that write was in flight.
+  const refetchDeviceRecord = useCallback(() => {
+    if (!editingDeviceId) return;
+    // Ignore a result a newer local write overtook while it was in flight.
+    const seq = writeSeqRef.current;
+    fetchPanelDevice(editingDeviceId).then(record => {
+      if (!record) return;
+      const cw = record.capabilities?.cssWidth;
+      const ch = record.capabilities?.cssHeight;
+      setLiveCanvas(cw && ch ? { width: cw, height: ch } : null);
+      setLiveDpr(record.capabilities?.dpr ?? null);
+      setLiveDpi(record.capabilities?.dpi ?? null);
+      // A physical rotation (Xeneon Edge auto-orient) rewrites the record's
+      // orientation and broadcasts here. Without this the page keeps its
+      // mount-time value, so the rotation picker and the landscape preview
+      // dock never track a panel the user turns in their hands.
+      if (record.capabilities?.orientation) setOrientation(normalizeOrientation(record.capabilities.orientation));
+      // Only the LAYOUT can be stale here: a local layout write cannot age a
+      // canvas or orientation fact, and those setters have no other source
+      // after mount - discarding them strands a rotation until remount, and a
+      // stale liveCanvas feeds editorCapacity, which the next edit conforms
+      // and persists against.
+      if (writeSeqRef.current !== seq) return;
+      setLayout(normalizePanelLayout(record.layout ?? defaultLayoutForSurface(surface), surface, deviceTouch));
+    }).catch(() => {});
+  }, [editingDeviceId, surface, deviceTouch]);
+
   const updateLayout = useCallback((next: PanelLayout) => {
     // Normalize is geometry-neutral (registry reconcile + size snap only), so
     // conform the geometry to the editor grid before persisting - the stored
@@ -564,10 +613,20 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     // Per-device editing path. If no device for this surface is registered
     // yet (no panel of this kind has ever connected), allocate one on first
     // edit so the user's changes persist.
-    const persist = (id: string) =>
-      patchPanelDevice(id, { layout: normalized })
+    const persist = (id: string) => {
+      pendingWritesRef.current += 1;
+      writeSeqRef.current += 1;
+      return patchPanelDevice(id, { layout: normalized })
         .then(() => broadcastLayoutChanged())
-        .catch(() => {});
+        .catch(() => {})
+        .finally(() => {
+          pendingWritesRef.current -= 1;
+          if (pendingWritesRef.current === 0 && missedBroadcastRef.current) {
+            missedBroadcastRef.current = false;
+            refetchDeviceRecord();
+          }
+        });
+    };
     if (editingDeviceId) {
       void persist(editingDeviceId);
       return;
@@ -578,7 +637,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
         return persist(record.id);
       }
     });
-  }, [editingDeviceId, surface, deviceTouch, editorCapacity, editorCapacityDerived]);
+  }, [editingDeviceId, surface, deviceTouch, editorCapacity, editorCapacityDerived, refetchDeviceRecord]);
 
   // Reverse sync: when the physical panel (or another editor) saves a layout,
   // the service broadcasts panel/device with the changed id. Refetch this
@@ -589,21 +648,16 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     const frame = raw as { deviceId?: string } | null;
     if (!editingDeviceId || frame?.deviceId !== editingDeviceId) return;
     // The panel only reaches this topic once it is up again after a reboot.
+    // Cleared ahead of the pending-write guard below: the panel having
+    // contacted us is what ends the reboot, whether or not a write is settling.
     setRebootingPanel(false);
-    fetchPanelDevice(editingDeviceId).then(record => {
-      if (!record) return;
-      const cw = record.capabilities?.cssWidth;
-      const ch = record.capabilities?.cssHeight;
-      setLiveCanvas(cw && ch ? { width: cw, height: ch } : null);
-      setLiveDpr(record.capabilities?.dpr ?? null);
-      setLiveDpi(record.capabilities?.dpi ?? null);
-      // A physical rotation (Xeneon Edge auto-orient) rewrites the record's
-      // orientation and broadcasts here. Without this the page keeps its
-      // mount-time value, so the rotation picker and the landscape preview
-      // dock never track a panel the user turns in their hands.
-      if (record.capabilities?.orientation) setOrientation(normalizeOrientation(record.capabilities.orientation));
-      setLayout(normalizePanelLayout(record.layout ?? defaultLayoutForSurface(surface), surface, deviceTouch));
-    }).catch(() => {});
+    // A write of ours is in flight: defer rather than apply, or the echo
+    // reverts a controlled field mid-edit. The write's settle runs it.
+    if (pendingWritesRef.current > 0) {
+      missedBroadcastRef.current = true;
+      return;
+    }
+    refetchDeviceRecord();
   });
 
   const singleWidget = isSingleWidgetSurface(surface);
@@ -645,15 +699,17 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
 
   const handleRemoveWidget = useCallback((widgetId: string) => {
     updateLayout(removeWidgetById(layout, widgetId, editorCapacity));
+    // The derived lookup already closes the pane, but a swallowed PATCH
+    // failure could let a later refetch re-supply the widget and reopen it.
+    setConfiguringWidgetId(prev => prev === widgetId ? null : prev);
   }, [editorCapacity, layout, updateLayout]);
 
   const handleConfigureWidget = useCallback((widget: PanelWidget) => {
-    setConfiguringWidget(widget);
+    setConfiguringWidgetId(widget.id);
   }, []);
 
   const handleUpdateWidgetConfig = useCallback((widgetId: string, config: Record<string, PanelConfigValue>) => {
     updateLayout(patchWidgetById(layout, widgetId, w => ({ ...w, config }), editorCapacity));
-    setConfiguringWidget(prev => prev?.id === widgetId ? { ...prev, config } : prev);
   }, [editorCapacity, layout, updateLayout]);
 
   const handleResizeWidget = useCallback((widgetId: string, size: PanelWidgetSize) => {
@@ -671,7 +727,6 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     }
     if (next === layout) return;
     updateLayout(next);
-    setConfiguringWidget(prev => prev?.id === widgetId ? { ...prev, size } : prev);
   }, [editorCapacity, layout, updateLayout]);
 
   // Page navigation. The active page rides in layout.activePageId; writing it
@@ -840,7 +895,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
         title={pageTitle}
         tabs={showFwGate || showDisconnected ? undefined : tabs}
         activeTab={activeTab}
-        onTabChange={(k) => { setConfiguringWidget(null); setTab(k as Tab); }}
+        onTabChange={(k) => { setConfiguringWidgetId(null); setTab(k as Tab); }}
         tabActions={
           <Button
             size="sm"
@@ -886,10 +941,10 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                 deviceTouch={deviceTouch}
                 themeMode={desktopResolvedThemeMode}
                 themeStyle={panelPreviewThemeStyle}
-                onBack={() => setConfiguringWidget(null)}
+                onBack={() => setConfiguringWidgetId(null)}
                 onUpdate={handleUpdateWidgetConfig}
                 onResize={handleResizeWidget}
-                onRemove={(id) => { handleRemoveWidget(id); setConfiguringWidget(null); }}
+                onRemove={handleRemoveWidget}
                 onSectionNavigate={onSectionNavigate}
               />
             ) : (
@@ -1195,7 +1250,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                 flashSignal={flashSignal}
                 onLayoutChange={updateLayout}
                 onWidgetClicked={handleConfigureWidget}
-                onBackgroundClicked={() => setConfiguringWidget(null)}
+                onBackgroundClicked={() => setConfiguringWidgetId(null)}
                 canvasSize={liveCanvas ?? device?.previewSize}
                 canvasDpi={device?.previewDpi}
                 // Hosted-monitor previewSize is CSS px (record cssWidth/
