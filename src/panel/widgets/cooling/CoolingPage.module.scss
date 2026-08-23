@@ -88,45 +88,6 @@
   overflow-y: auto;
 }
 
-// ── Simple mode (ui.coolingDashboardMode) ───────────────────────────────────
-// Large preset tiles at the top, the advanced-mode CTA docked at the bottom.
-.simpleBody {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  padding-top: 0.75rem;
-  overflow-y: auto;
-}
-
-.simplePresets {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 0.75rem;
-}
-
-.simplePresetTile {
-  --icon-label-button-height: 264px;
-  --icon-label-button-gap: 0.7rem;
-  --icon-label-icon-size: 48px;
-  --icon-label-label-size: var(--type-heading);
-  --icon-label-desc-size: var(--type-body);
-  --icon-label-button-radius: var(--radius-lg);
-  --icon-label-button-active-border: var(--accent);
-
-  padding: 1.6rem 1.25rem;
-}
-
-.simpleCustomNote {
-  margin: 0;
-  font-size: var(--type-small);
-  color: var(--text-dim);
-}
-
-.simpleFooter {
-  flex: 0 0 auto;
-  margin-top: auto;
-  padding: 0.75rem 0 1rem;
-}
 // Right column: fan header pinned, the fan list scrolls beneath it.
 .fanSidebar {
   grid-column: 1;

@@ -1181,6 +1181,17 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     ? 'off'
     : (leftOff ? 'detecting' : undefined);
 
+  // Nothing chosen yet means every device, not none: a first visit should be
+  // able to pick a colour straight away. Stored separately from the selection
+  // itself, because deselecting everything is a choice the page must keep.
+  const [selectionSeeded, setSelectionSeeded] = usePersistentState('nexus.lighting.selectionSeeded', false);
+  useEffect(() => {
+    if (selectionSeeded || selectableIds.length === 0) return;
+    setSelectionSeeded(true);
+    setSelectedDeviceIds(new Set(selectableIds));
+    setPrimaryDeviceId(selectableIds[0] ?? null);
+  }, [selectionSeeded, selectableIds, setSelectionSeeded, setSelectedDeviceIds, setPrimaryDeviceId]);
+
   // A restored selection can name devices that are no longer present (unplugged
   // between visits). Drop those once the list has actually loaded, or the
   // preview count and the scoped-look checks count devices that are not there.

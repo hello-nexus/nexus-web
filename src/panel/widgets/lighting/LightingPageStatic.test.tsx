@@ -82,7 +82,7 @@ const serviceState = { cooling: null, lighting: null, panel: null } as never;
 describe('LightingPage in static mode', () => {
   it('keeps the static selection when a lighting broadcast refreshes animate settings', async () => {
     // The test exercises the advanced page; the fresh-install default is simple.
-    localStorage.setItem('nexus_settings', JSON.stringify({ general: { lightingDashboardMode: 'advanced', coolingDashboardMode: 'advanced' } }));
+    localStorage.setItem('nexus_settings', JSON.stringify({ general: {} }));
     render(
       <UiSettingsProvider>
         <LightingPage serviceOnline serviceState={serviceState} activeProfileId="p1" />

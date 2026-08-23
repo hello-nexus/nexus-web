@@ -1,7 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import classNames from 'classnames';
-import {
-  ArrowLeftRight, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen,
+import { ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen,
   MoreVertical, Settings, FlaskConical, Info, Unplug,
   SlidersHorizontal, RefreshCw, Maximize2, Minimize2,
 } from 'lucide-react';
@@ -171,11 +170,9 @@ export function TopBar({
   // Search's About entry opens the modal this bar owns.
   useSearchSignal('about', useCallback(() => setAboutOpen(true), []));
   // Page-registered chrome, surfaced just right of the search pill: a
-  // settings action (Monitoring registers one) and a simple/advanced mode
-  // toggle (Lighting / Cooling register one).
+  // settings action (Monitoring registers one).
   const pageChrome = usePageChrome();
   const pageSettings = pageChrome?.settings ?? null;
-  const pageModeToggle = pageChrome?.modeToggle ?? null;
   // Empty areas of the bar drag the window (Windows shell only); see hook.
   const dragRegion = useWindowDragRegion();
 
@@ -262,20 +259,8 @@ export function TopBar({
           drag-strip carve-out mirrors this cluster's geometry
           (MacAppWindow.IsTopBarButtonColumn) - width changes here need the
           matching constants updated there. */}
-      {!focusMode && (pageModeToggle || pageSettings) && (
+      {!focusMode && pageSettings && (
         <div className={styles.pageSettings}>
-          {pageModeToggle && (
-            <HoverTooltip body={pageModeToggle.title} side="bottom">
-              <button
-                type="button"
-                className={styles.modeToggleButton}
-                onClick={pageModeToggle.onToggle}
-              >
-                <ArrowLeftRight size={14} aria-hidden />
-                <span className={styles.modeToggleLabel}>{pageModeToggle.label}</span>
-              </button>
-            </HoverTooltip>
-          )}
           {pageSettings && (
             <HoverTooltip body={pageSettings.label} side="bottom">
               <button
