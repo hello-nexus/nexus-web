@@ -3347,5 +3347,7 @@
   "devices.streamdeck.import.reason.pageLimit": "Saltata: supera il numero massimo di pagine",
   "cooling.label.curveEditor": "Editor curve",
   "lighting.effectDock.collapse": "Comprimi editor effetti",
-  "lighting.effectDock.expand": "Espandi editor effetti"
+  "lighting.effectDock.expand": "Espandi editor effetti",
+  "lighting.pane.previewCount.one": "{count} dispositivo",
+  "lighting.pane.previewCount.other": "{count} dispositivi"
 }

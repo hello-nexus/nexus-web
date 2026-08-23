@@ -196,8 +196,19 @@
   width: 18px;
   height: 18px;
   color: var(--text-dim);
-
   @include bare-icon-button;
+}
+
+// Trailing slot every mode tab reserves, occupied or not. Without it the tab
+// grows the moment pause appears and the whole header row steps down
+// (measured: 37px -> 39px), because only the active tab carries the glyph.
+.pauseSlot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 }
 
 .pauseTogglePaused {
@@ -1493,34 +1504,6 @@
 .staticSwatchActive,
 .staticSwatchActive:hover {
   border-color: var(--text);
-}
-
-// Device count the preview stands for, beside the Preview title.
-.previewCount {
-  flex-shrink: 0;
-  min-width: 1.35rem;
-  padding: 0 0.35rem;
-  border-radius: var(--radius-pill);
-  background: var(--surface-raised, var(--surface));
-  color: var(--text-dim);
-  font-size: var(--type-caption);
-  font-variant-numeric: tabular-nums;
-  text-align: center;
-  line-height: 1.5;
-}
-
-// Collapsed dock: the centre pane takes the dock's column for the rows the
-// dock occupies. grid-template-columns is deliberately untouched, so row 1 -
-// the preset toolbar - keeps its own column and does not move.
-.bodyDockCollapsed {
-  .headerCenter { grid-column: 2 / span 2; }
-  .main { grid-column: 2 / span 2; }
-}
-
-// Collapse / expand control, right-aligned on the pane-title row.
-.dockToggle {
-  margin-left: auto;
-  flex-shrink: 0;
 }
 
 // Attention pulse on the expand control while the dock is hidden: a pick still

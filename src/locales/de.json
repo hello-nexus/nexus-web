@@ -3347,5 +3347,7 @@
   "devices.streamdeck.import.reason.pageLimit": "Übersprungen: überschreitet die maximale Seitenzahl",
   "cooling.label.curveEditor": "Kurven-Editor",
   "lighting.effectDock.collapse": "Effekt-Editor einklappen",
-  "lighting.effectDock.expand": "Effekt-Editor ausklappen"
+  "lighting.effectDock.expand": "Effekt-Editor ausklappen",
+  "lighting.pane.previewCount.one": "{count} Gerat",
+  "lighting.pane.previewCount.other": "{count} Gerate"
 }

@@ -3347,5 +3347,7 @@
   "devices.streamdeck.import.reason.pageLimit": "已跳过：超出最大页数",
   "cooling.label.curveEditor": "曲线编辑器",
   "lighting.effectDock.collapse": "折叠效果编辑器",
-  "lighting.effectDock.expand": "展开效果编辑器"
+  "lighting.effectDock.expand": "展开效果编辑器",
+  "lighting.pane.previewCount.one": "{count} 个设备",
+  "lighting.pane.previewCount.other": "{count} 个设备"
 }

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Gauge, Power } from 'lucide-react';
+import { Ban, CheckCheck, Gauge, Power } from 'lucide-react';
+import { Button } from '../../../components/common/Button/Button';
+import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { usePersistentState } from '../../../hooks/usePersistentState';
 import {
   getNp50ConnectionState,
@@ -800,6 +802,15 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     return dead.length === 0 ? base : [...live, ...dead];
   }, [channels, fanOrder]);
 
+  // Only live fans carry a checkbox, so only they can be bulk-selected.
+  const selectableFanIds = useMemo(
+    () => orderedChannels.filter(c => !isFanDisconnected(c) && !(c.readOnly ?? false)).map(c => c.id),
+    [orderedChannels],
+  );
+  const allFansSelected = selectableFanIds.length > 0
+    && selectableFanIds.every(id => selectedFanIds.has(id));
+
+
 
   // Number of fans bound to each curve, shown under its selector button.
   // Excludes hardware-unresponsive (disconnected) fans - they sit in the
@@ -880,6 +891,31 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
         </div>
         <div className={`${styles.paneHeader} ${styles.headerLeft}`}>
           <span className={styles.paneTitle}>{t('cooling.label.fan')}</span>
+          {selectableFanIds.length > 0 && (
+            <div className={styles.fanHeaderActions}>
+              {/* Icon-only, matching the lighting rail: too narrow for labels. */}
+              <HoverTooltip body={t('lighting.ledMap.selectAll')} side="bottom">
+                <Button
+                  tone="ghost"
+                  size="sm"
+                  icon={<CheckCheck />}
+                  aria-label={t('lighting.ledMap.selectAll')}
+                  disabled={allFansSelected}
+                  onClick={() => setSelectedFanIds(new Set(selectableFanIds))}
+                />
+              </HoverTooltip>
+              <HoverTooltip body={t('lightingOnboarding.selectNone')} side="bottom">
+                <Button
+                  tone="ghost"
+                  size="sm"
+                  icon={<Ban />}
+                  aria-label={t('lightingOnboarding.selectNone')}
+                  disabled={selectedFanIds.size === 0}
+                  onClick={() => setSelectedFanIds(new Set())}
+                />
+              </HoverTooltip>
+            </div>
+          )}
         </div>
         <div className={`${styles.paneHeader} ${styles.headerRight}`}>
           <span className={styles.paneTitle}>{t('cooling.label.curve')}</span>

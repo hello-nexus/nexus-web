@@ -3347,5 +3347,7 @@
   "devices.streamdeck.import.reason.pageLimit": "Atlandı: en fazla sayfa sayısını aşıyor",
   "cooling.label.curveEditor": "Eğri düzenleyici",
   "lighting.effectDock.collapse": "Efekt duzenleyiciyi daralt",
-  "lighting.effectDock.expand": "Efekt duzenleyiciyi genislet"
+  "lighting.effectDock.expand": "Efekt duzenleyiciyi genislet",
+  "lighting.pane.previewCount.one": "{count} cihaz",
+  "lighting.pane.previewCount.other": "{count} cihaz"
 }

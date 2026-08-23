@@ -3347,5 +3347,7 @@
   "devices.streamdeck.import.reason.pageLimit": "スキップされました。ページ数の上限を超えています",
   "cooling.label.curveEditor": "カーブエディター",
   "lighting.effectDock.collapse": "エフェクトエディターを折りたたむ",
-  "lighting.effectDock.expand": "エフェクトエディターを展開"
+  "lighting.effectDock.expand": "エフェクトエディターを展開",
+  "lighting.pane.previewCount.one": "{count} 台",
+  "lighting.pane.previewCount.other": "{count} 台"
 }

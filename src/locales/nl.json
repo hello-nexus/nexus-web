@@ -3347,5 +3347,7 @@
   "welcome.title": "Welkom bij Nexus",
   "cooling.label.curveEditor": "Curve-editor",
   "lighting.effectDock.collapse": "Effect-editor inklappen",
-  "lighting.effectDock.expand": "Effect-editor uitklappen"
+  "lighting.effectDock.expand": "Effect-editor uitklappen",
+  "lighting.pane.previewCount.one": "{count} apparaat",
+  "lighting.pane.previewCount.other": "{count} apparaten"
 }

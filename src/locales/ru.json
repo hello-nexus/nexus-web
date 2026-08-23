@@ -3361,5 +3361,8 @@
   "devices.streamdeck.import.reason.pageLimit": "Пропущено: превышено максимальное количество страниц",
   "cooling.label.curveEditor": "Редактор кривой",
   "lighting.effectDock.collapse": "Свернуть редактор эффекта",
-  "lighting.effectDock.expand": "Развернуть редактор эффекта"
+  "lighting.effectDock.expand": "Развернуть редактор эффекта",
+  "lighting.pane.previewCount.one": "{count} устройство",
+  "lighting.pane.previewCount.few": "{count} устройства",
+  "lighting.pane.previewCount.other": "{count} устройств"
 }

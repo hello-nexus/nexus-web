@@ -3347,5 +3347,7 @@
   "devices.streamdeck.import.reason.pageLimit": "Salte: al supere il numar massim di pagjinis",
   "cooling.label.curveEditor": "Editor des curvis",
   "lighting.effectDock.collapse": "Siare l'editor dai efiets",
-  "lighting.effectDock.expand": "Slargje l'editor dai efiets"
+  "lighting.effectDock.expand": "Slargje l'editor dai efiets",
+  "lighting.pane.previewCount.one": "{count} dispositif",
+  "lighting.pane.previewCount.other": "{count} dispositifs"
 }

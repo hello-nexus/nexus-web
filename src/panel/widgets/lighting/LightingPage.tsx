@@ -29,6 +29,8 @@ import { useTranslation } from '../../../lib/i18n';
 import { publishControlSync, subscribeControlSync } from '../../../lib/controlSync';
 import { emitRadialBloomFromElement } from '../../../lib/backgroundEffects';
 import { LIGHTING_MODE_ICONS } from '../../../lib/lightingModeIcons';
+import { pluralKey } from '../../../lib/pluralKey';
+import { Badge } from '../../../components/common/Badge/Badge';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
@@ -126,7 +128,7 @@ function loadDeviceOrder(): string[] {
 }
 
 export function LightingPage({ serviceOnline, serviceState, connectionState, activeProfileId, platform = '', onSectionNavigate }: LightingViewProps) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { mode, setMode, rawSync, setRawSync, synced, paused: syncedPaused } = useLightingSync(serviceOnline, activeProfileId);
   // Game Sync requires the Windows Chroma capture shim; hide it on non-Windows
   // (empty platform = ping not yet resolved, keep hidden to avoid a flash).
@@ -197,7 +199,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   );
   // Collapsing the effect dock hands its space to the canvas and the browser.
   // Row 1 is untouched: the preset toolbar keeps its own column.
-  const [dockCollapsed, setDockCollapsed] = usePersistentState('nexus.lighting.effectDockCollapsed', false);
+  const [dockCollapsed, setDockCollapsed] = usePersistentState('nexus.lighting.effectDockCollapsed', true);
   // Re-mounted on every effect pick so the dock's pulse animation restarts.
   const [dockPulse, setDockPulse] = useState(0);
 
@@ -1357,7 +1359,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
         key: m.key,
         label: t(m.labelKey),
         icon: <Icon size={14} />,
-        trailing: showPauseToggle ? (
+        trailing: (
+          <span className={styles.pauseSlot}>{showPauseToggle ? (
           <HoverTooltip body={t(paused ? 'lighting.resume' : 'lighting.pause')} side="top">
             <span
               role="button"
@@ -1381,7 +1384,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                 : <Pause size={13} fill="currentColor" stroke="none" />}
             </span>
           </HoverTooltip>
-        ) : undefined,
+        ) : null}</span>
+        ),
       };
     });
 
@@ -1474,7 +1478,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           <span className={styles.paneTitle}>{t('lighting.pane.preview')}</span>
           {/* How many devices this preview stands for: every device in the
               modes that drive them all, the selection in the per-device ones. */}
-          <span className={styles.previewCount}>{previewDeviceCount}</span>
+          <Badge label={t(pluralKey('lighting.pane.previewCount', language, previewDeviceCount), { count: previewDeviceCount })} compact color="var(--text-dim)" />
           {dockCollapsed && (
             <HoverTooltip body={t('lighting.effectDock.expand')} side="bottom">
               <Button
@@ -1485,7 +1489,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                 aria-label={t('lighting.effectDock.expand')}
                 className={`${styles.dockToggle} ${styles.dockTogglePulse}`}
                 onClick={() => setDockCollapsed(false)}
-              />
+              >
+                {t('lighting.rightPane.effect')}
+              </Button>
             </HoverTooltip>
           )}
         </div>
