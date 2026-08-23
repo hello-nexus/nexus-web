@@ -60,6 +60,10 @@
   min-width: 0;
   display: flex;
   align-items: center;
+  // Matches the lighting page, so a title and the badge beside it sit apart by
+  // the same amount on both. The action cluster still reaches the right edge on
+  // its own margin.
+  gap: 0.4rem;
   padding: 0.25rem 0.4rem 0.5rem;
 }
 
