@@ -29,7 +29,9 @@
 .toolbar {
   position: relative;
   z-index: 2;
-  margin: var(--space-sm) auto 0;
+  // Pushed to the bottom of the column: the TOP edge is the overlay's
+  // swipe-to-dismiss zone, where a toolbar would fight the gesture.
+  margin: auto auto var(--space-sm);
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -99,7 +101,8 @@
 .toast {
   position: absolute;
   left: 50%;
-  bottom: var(--space-lg);
+  // Top, because the toolbar now owns the bottom of the stage.
+  top: var(--space-lg);
   transform: translateX(-50%);
   z-index: 3;
   padding: var(--space-xs) var(--space-md);

@@ -2719,6 +2719,7 @@
   "panel.widget.whiteboard.background.transparent": "Geen achtergrond",
   "panel.widget.whiteboard.boardLabel": "Whiteboard-canvas",
   "panel.widget.whiteboard.clear": "Bord wissen",
+  "panel.widget.whiteboard.close": "Sluiten",
   "panel.widget.whiteboard.color": "Kleur",
   "panel.widget.whiteboard.empty": "Tik om te tekenen",
   "panel.widget.whiteboard.eraser": "Gum",

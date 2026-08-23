@@ -2503,6 +2503,7 @@
   "panel.widget.whiteboard.background.transparent": "Sem plano de fundo",
   "panel.widget.whiteboard.boardLabel": "Área de desenho do quadro",
   "panel.widget.whiteboard.clear": "Limpar quadro",
+  "panel.widget.whiteboard.close": "Fechar",
   "panel.widget.whiteboard.color": "Cor",
   "panel.widget.whiteboard.empty": "Toque para desenhar",
   "panel.widget.whiteboard.eraser": "Borracha",

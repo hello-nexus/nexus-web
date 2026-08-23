@@ -2503,6 +2503,7 @@
   "panel.widget.whiteboard.background.transparent": "Aucun arrière-plan",
   "panel.widget.whiteboard.boardLabel": "Zone de dessin du tableau blanc",
   "panel.widget.whiteboard.clear": "Effacer le tableau",
+  "panel.widget.whiteboard.close": "Fermer",
   "panel.widget.whiteboard.color": "Couleur",
   "panel.widget.whiteboard.empty": "Touchez pour dessiner",
   "panel.widget.whiteboard.eraser": "Gomme",

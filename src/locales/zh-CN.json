@@ -2503,6 +2503,7 @@
   "panel.widget.whiteboard.background.transparent": "无背景",
   "panel.widget.whiteboard.boardLabel": "白板画布",
   "panel.widget.whiteboard.clear": "清空白板",
+  "panel.widget.whiteboard.close": "关闭",
   "panel.widget.whiteboard.color": "颜色",
   "panel.widget.whiteboard.empty": "点按开始绘制",
   "panel.widget.whiteboard.eraser": "橡皮擦",

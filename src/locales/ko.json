@@ -2503,6 +2503,7 @@
   "panel.widget.whiteboard.background.transparent": "배경 없음",
   "panel.widget.whiteboard.boardLabel": "화이트보드 캔버스",
   "panel.widget.whiteboard.clear": "보드 지우기",
+  "panel.widget.whiteboard.close": "닫기",
   "panel.widget.whiteboard.color": "색상",
   "panel.widget.whiteboard.empty": "탭하여 그리기",
   "panel.widget.whiteboard.eraser": "지우개",

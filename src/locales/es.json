@@ -2503,6 +2503,7 @@
   "panel.widget.whiteboard.background.transparent": "Sin fondo",
   "panel.widget.whiteboard.boardLabel": "Lienzo de la pizarra",
   "panel.widget.whiteboard.clear": "Borrar pizarra",
+  "panel.widget.whiteboard.close": "Cerrar",
   "panel.widget.whiteboard.color": "Color",
   "panel.widget.whiteboard.empty": "Toca para dibujar",
   "panel.widget.whiteboard.eraser": "Borrador",

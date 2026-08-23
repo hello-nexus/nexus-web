@@ -2448,6 +2448,7 @@
   "panel.widget.whiteboard.background.transparent": "背景なし",
   "panel.widget.whiteboard.boardLabel": "ホワイトボードのキャンバス",
   "panel.widget.whiteboard.clear": "ボードを消去",
+  "panel.widget.whiteboard.close": "閉じる",
   "panel.widget.whiteboard.color": "色",
   "panel.widget.whiteboard.empty": "タップして描く",
   "panel.widget.whiteboard.eraser": "消しゴム",

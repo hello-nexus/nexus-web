@@ -2503,6 +2503,7 @@
   "panel.widget.whiteboard.background.transparent": "Arka plan yok",
   "panel.widget.whiteboard.boardLabel": "Beyaz tahta tuvali",
   "panel.widget.whiteboard.clear": "Tahtayı temizle",
+  "panel.widget.whiteboard.close": "Kapat",
   "panel.widget.whiteboard.color": "Renk",
   "panel.widget.whiteboard.empty": "Çizmek için dokunun",
   "panel.widget.whiteboard.eraser": "Silgi",

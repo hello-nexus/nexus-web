@@ -2516,6 +2516,7 @@
   "panel.widget.whiteboard.background.transparent": "Bez tła",
   "panel.widget.whiteboard.boardLabel": "Obszar rysowania tablicy",
   "panel.widget.whiteboard.clear": "Wyczyść tablicę",
+  "panel.widget.whiteboard.close": "Zamknij",
   "panel.widget.whiteboard.color": "Kolor",
   "panel.widget.whiteboard.empty": "Dotknij, aby rysować",
   "panel.widget.whiteboard.eraser": "Gumka",

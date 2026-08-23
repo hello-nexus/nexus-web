@@ -2503,6 +2503,7 @@
   "panel.widget.whiteboard.background.transparent": "Nessuno sfondo",
   "panel.widget.whiteboard.boardLabel": "Area di disegno della lavagna",
   "panel.widget.whiteboard.clear": "Cancella lavagna",
+  "panel.widget.whiteboard.close": "Chiudi",
   "panel.widget.whiteboard.color": "Colore",
   "panel.widget.whiteboard.empty": "Tocca per disegnare",
   "panel.widget.whiteboard.eraser": "Gomma",

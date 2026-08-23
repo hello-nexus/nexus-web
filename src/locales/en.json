@@ -2731,6 +2731,7 @@
   "panel.widget.whiteboard.background.transparent": "No background",
   "panel.widget.whiteboard.boardLabel": "Whiteboard canvas",
   "panel.widget.whiteboard.clear": "Clear board",
+  "panel.widget.whiteboard.close": "Close",
   "panel.widget.whiteboard.color": "Color",
   "panel.widget.whiteboard.empty": "Tap to draw",
   "panel.widget.whiteboard.eraser": "Eraser",

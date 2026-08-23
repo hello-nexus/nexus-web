@@ -2503,6 +2503,7 @@
   "panel.widget.whiteboard.background.transparent": "Kein Hintergrund",
   "panel.widget.whiteboard.boardLabel": "Whiteboard-Zeichenfläche",
   "panel.widget.whiteboard.clear": "Tafel leeren",
+  "panel.widget.whiteboard.close": "Schließen",
   "panel.widget.whiteboard.color": "Farbe",
   "panel.widget.whiteboard.empty": "Zum Zeichnen tippen",
   "panel.widget.whiteboard.eraser": "Radierer",

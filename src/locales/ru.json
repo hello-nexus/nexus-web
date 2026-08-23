@@ -2516,6 +2516,7 @@
   "panel.widget.whiteboard.background.transparent": "Без фона",
   "panel.widget.whiteboard.boardLabel": "Холст доски",
   "panel.widget.whiteboard.clear": "Очистить доску",
+  "panel.widget.whiteboard.close": "Закрыть",
   "panel.widget.whiteboard.color": "Цвет",
   "panel.widget.whiteboard.empty": "Нажмите, чтобы рисовать",
   "panel.widget.whiteboard.eraser": "Ластик",

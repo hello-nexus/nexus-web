@@ -12,6 +12,7 @@ import {
   Sun,
   Trash2,
   Undo2,
+  X,
 } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { Button } from '../../../components/common/Button/Button';
@@ -20,6 +21,7 @@ import { Slider } from '../../../components/common/Slider/Slider';
 import { HsvPicker } from '../../../components/common/HsvPicker/HsvPicker';
 import { ColorPickerWithPresets } from '../../../components/common/ColorPickerWithPresets/ColorPickerWithPresets';
 import { uploadTransferItems } from '../../../api/transfer';
+import { useImmersiveExit } from '../../overlays/immersiveExit';
 import { useWhiteboardBoard } from './useWhiteboardBoard';
 import { WhiteboardSurface, type WhiteboardSurfaceHandle } from './WhiteboardSurface';
 import { BACKGROUND_CSS, rasterizeBoard } from './whiteboardRender';
@@ -48,6 +50,10 @@ const SAVE_FEEDBACK_MS = 2600;
 // no-literal-string lint rule.
 const SLIDER_ORIENTATION = 'stacked' as const;
 
+// The toolbar sits at the BOTTOM (the top edge is the overlay's
+// swipe-to-dismiss zone), so its popovers have to open upward.
+const POPOVER_PLACEMENT = 'top-start' as const;
+
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
 /**
@@ -58,6 +64,7 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 export function WhiteboardTouch({ widget }: WidgetProps) {
   const { t } = useTranslation();
   const board = useWhiteboardBoard(widget.id);
+  const exitImmersive = useImmersiveExit();
   const surfaceRef = useRef<WhiteboardSurfaceHandle>(null);
   const hostRef = useRef<HTMLDivElement>(null);
   const zoomLabelRef = useRef<HTMLSpanElement>(null);
@@ -207,7 +214,7 @@ export function WhiteboardTouch({ widget }: WidgetProps) {
               open={colorOpen}
               onClose={() => setColorOpen(false)}
               anchorRef={colorAnchorRef}
-              placement="bottom-start"
+              placement={POPOVER_PLACEMENT}
               className={styles.popover}
               ariaLabel={t('panel.widget.whiteboard.color')}
             >
@@ -242,7 +249,7 @@ export function WhiteboardTouch({ widget }: WidgetProps) {
               open={sizeOpen}
               onClose={() => setSizeOpen(false)}
               anchorRef={sizeAnchorRef}
-              placement="bottom-start"
+              placement={POPOVER_PLACEMENT}
               className={styles.popover}
               ariaLabel={t('panel.widget.whiteboard.size')}
             >
@@ -324,6 +331,22 @@ export function WhiteboardTouch({ widget }: WidgetProps) {
             onClick={handleSave}
           />
         </div>
+
+        {/* The overlay's own close notch sits at the top and fades out; a
+            drawing surface needs a close that is always visible and nowhere
+            near the ink. Absent when rendered outside the immersive overlay. */}
+        {exitImmersive && (
+          <div className={styles.group}>
+            <Button
+              className={styles.tool}
+              tone="neutral"
+              icon={<X />}
+              aria-label={t('panel.widget.whiteboard.close')}
+              title={t('panel.widget.whiteboard.close')}
+              onClick={exitImmersive}
+            />
+          </div>
+        )}
       </div>
 
       {(saveState === 'saved' || saveState === 'error') && (
