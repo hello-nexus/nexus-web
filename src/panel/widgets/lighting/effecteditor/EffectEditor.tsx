@@ -3,7 +3,7 @@ import { Tabs } from '../../../../components/common/Tabs/Tabs';
 import { useTranslation } from '../../../../lib/i18n';
 import styles from './EffectEditor.module.scss';
 
-type EditorTab = 'options' | 'effect';
+type EditorTab = 'devices' | 'options' | 'effect';
 
 /**
  * Shared Options | Effect editor shell. A pure presenter: it renders the two
@@ -14,8 +14,13 @@ type EditorTab = 'options' | 'effect';
  *
  * `effectFooter` is an optional panel-only slot rendered under the Effect tab
  * (the panel injects its background-opacity slider; the immersive view omits it).
+ *
+ * `devices` is an optional leading tab. Static assigns a colour per device, so
+ * that mode needs somewhere to choose which devices a pick lands on; every
+ * other caller passes nothing and sees the same two tabs as before.
  */
 export function EffectEditor({
+  devices,
   options,
   effect,
   effectFooter,
@@ -23,6 +28,7 @@ export function EffectEditor({
   optionsLabel,
   effectLabel,
 }: {
+  devices?: ReactNode;
   options: ReactNode;
   effect: ReactNode;
   effectFooter?: ReactNode;
@@ -32,10 +38,14 @@ export function EffectEditor({
 }) {
   const { t } = useTranslation();
   const [active, setActive] = useState<EditorTab>('options');
-  // A disabled Effect tab can't stay selected (e.g. mode with no tweakables).
-  const current: EditorTab = effectDisabled && active === 'effect' ? 'options' : active;
+  // Neither a disabled Effect tab nor an absent Devices tab can stay selected
+  // (a mode with no tweakables; a mode that reaches every device anyway).
+  const current: EditorTab = (effectDisabled && active === 'effect') || (!devices && active === 'devices')
+    ? 'options'
+    : active;
 
   const tabs = [
+    ...(devices ? [{ key: 'devices', label: t('lighting.rightPane.devices') }] : []),
     { key: 'options', label: optionsLabel ?? t('lighting.editor.options') },
     { key: 'effect', label: effectLabel ?? t('lighting.rightPane.effect'), disabled: effectDisabled },
   ];
@@ -52,7 +62,7 @@ export function EffectEditor({
         />
       </div>
       <div className={styles.body} data-panel-scrollable="true">
-        {current === 'options' ? options : (
+        {current === 'devices' ? devices : current === 'options' ? options : (
           <>
             {effect}
             {effectFooter}

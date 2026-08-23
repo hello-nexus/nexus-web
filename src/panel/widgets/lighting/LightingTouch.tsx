@@ -6,6 +6,8 @@ import { EffectEditor } from './effecteditor/EffectEditor';
 import { EffectControls } from './page/EffectControls';
 import { AnimateGrid } from './page/AnimateGrid';
 import { MediaList } from './effecteditor/MediaList';
+import { StaticDeviceSelect } from './effecteditor/StaticDeviceSelect';
+import { StaticPalette } from './page/StaticPalette';
 import { PostProcessControls } from './effecteditor/PostProcessControls';
 import type { PostProcessState } from './effecteditor/types';
 import {
@@ -18,8 +20,9 @@ import {
   setMediaEffect,
   setScreenEffect,
   fetchStaticSettings,
+  fetchLightingDevices,
   startAnimate,
-  startStatic,
+  type LightingDevice,
 } from '../../../api/lighting';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { subscribeControlSync } from '../../../lib/controlSync';
@@ -28,7 +31,7 @@ import {
   ANIMATE_EFFECTS,
   DEFAULT_STATIC_EFFECT,
   EFFECTS,
-  STATIC_EFFECTS,
+  STATIC_PATTERN_EFFECTS,
   defaultStateFor,
   isStaticEffect,
   type EffectState,
@@ -37,7 +40,16 @@ import {
 } from '../../../types/lighting';
 import { mergeTemplates, slotThumbSignature } from '../../../types/lightingTemplates';
 import { normalizeSync as resolveImmersiveMode } from '../../../hooks/useLightingSync';
+import { usePersistentState, usePersistentIdSet } from '../../../hooks/usePersistentState';
+import { useTranslation } from '../../../lib/i18n';
+import { paletteIdFromKey, type PaletteColor } from '../../../types/lightingPalette';
+import {
+  pickLookForDevices, pickPaletteForDevices,
+  DEVICE_PICKS_STORAGE_KEY, SELECTED_DEVICES_STORAGE_KEY, PRIMARY_DEVICE_STORAGE_KEY,
+  type DevicePicks,
+} from './staticPicks';
 import type { WidgetProps } from '../types';
+import styles from './LightingPage.module.scss';
 
 const DEFAULT_PP: PostProcessState = { hue: 0, colorize: 0, saturation: 1, contrast: 1 };
 
@@ -74,6 +86,37 @@ export function LightingTouch({ widget, surface, immersiveGrid }: WidgetProps) {
   );
 }
 
+/** The page's palette, with the collapse state the immersive surface needs. */
+function ImmersiveStaticPalette({ selectedId, onSelect }: {
+  selectedId?: string | null;
+  onSelect: (color: PaletteColor) => void;
+}) {
+  const [open, setOpen] = useState(true);
+  return (
+    <StaticPalette
+      selectedId={selectedId}
+      open={open}
+      onToggle={() => setOpen(o => !o)}
+      onSelect={onSelect}
+    />
+  );
+}
+
+/**
+ * The lighting page's static lockout, reusing its classes: with no devices
+ * selected a pick has no target, so the browser shows through but is inert.
+ */
+function StaticBrowser({ locked, children }: { locked: boolean; children: ReactNode }) {
+  const { t } = useTranslation();
+  if (!locked) return <>{children}</>;
+  return (
+    <>
+      <p className={styles.browserHint}>{t('lighting.pane.pickDevices')}</p>
+      <div className={styles.browserLocked} inert>{children}</div>
+    </>
+  );
+}
+
 function renderImmersiveEditor(
   mode: LightingMode,
   animate: ImmersiveAnimateController | null,
@@ -83,19 +126,38 @@ function renderImmersiveEditor(
   if (mode === 'animate' || mode === 'static') {
     if (!animate) return null;
     const isStatic = mode === 'static';
+    // Static picks land on the selection, so with none there is nothing to
+    // pick for - the same lockout the lighting page shows.
+    const needsSelection = isStatic && animate.selectedIds.size === 0;
     return (
       <EffectEditor
-        options={(
-          <AnimateGrid
-            effect={animate.effect}
-            onSelect={animate.onSelectEffect}
-            effects={isStatic ? STATIC_EFFECTS : ANIMATE_EFFECTS}
-            frozen={isStatic}
-            slotFor={animate.slotFor}
-            versionFor={animate.versionFor}
-            rgbActiveEffect={animate.effect}
-            panelEffects={panelUsage.effects}
+        devices={isStatic ? (
+          <StaticDeviceSelect
+            devices={animate.devices}
+            selectedIds={animate.selectedIds}
+            onSetSelection={animate.onSetSelection}
           />
+        ) : undefined}
+        effectDisabled={needsSelection}
+        options={(
+          <StaticBrowser locked={needsSelection}>
+            <AnimateGrid
+              effect={animate.effect}
+              onSelect={animate.onSelectEffect}
+              effects={isStatic ? STATIC_PATTERN_EFFECTS : ANIMATE_EFFECTS}
+              frozen={isStatic}
+              slotFor={animate.slotFor}
+              versionFor={animate.versionFor}
+              rgbActiveEffect={animate.effect}
+              panelEffects={panelUsage.effects}
+              leading={isStatic ? (
+                <ImmersiveStaticPalette
+                  selectedId={animate.selectedPaletteId}
+                  onSelect={animate.onSelectPalette}
+                />
+              ) : undefined}
+            />
+          </StaticBrowser>
         )}
         effect={(
           <EffectControls
@@ -140,6 +202,13 @@ function renderImmersiveEditor(
 
 interface ImmersiveAnimateController {
   effect: string;
+  /** Static only: the devices a pick lands on, shared with the lighting page. */
+  devices: LightingDevice[];
+  selectedIds: Set<string>;
+  onSetSelection: (ids: Set<string>, primary: string | null) => void;
+  onSelectPalette: (color: PaletteColor) => void;
+  /** The palette swatch the selection agrees on, so it renders as picked. */
+  selectedPaletteId: string | null;
   state: EffectState;
   bundle: EffectTemplateBundle;
   canReset: boolean;
@@ -152,12 +221,54 @@ interface ImmersiveAnimateController {
   onReset: () => void;
 }
 
+/**
+ * The lighting devices plus the selection the lighting page keeps, so a static
+ * pick made here targets exactly what that page shows selected.
+ */
+function useImmersiveDevices(enabled: boolean) {
+  const [devices, setDevices] = useState<LightingDevice[]>([]);
+  const [selectedIds, setSelectedIds] = usePersistentIdSet(SELECTED_DEVICES_STORAGE_KEY);
+  const [, setPrimaryId] = usePersistentState<string | null>(PRIMARY_DEVICE_STORAGE_KEY, null);
+
+  const refresh = useCallback(async () => {
+    const list = await fetchLightingDevices();
+    if (list?.devices) setDevices(list.devices);
+  }, []);
+  useEffect(() => {
+    if (!enabled) return;
+    void refresh();
+  }, [enabled, refresh]);
+  useTopicCallback('lighting', enabled, refresh);
+
+  const onSetSelection = useCallback((ids: Set<string>, primary: string | null) => {
+    setSelectedIds(ids);
+    setPrimaryId(primary);
+  }, [setPrimaryId, setSelectedIds]);
+
+  return { devices, selectedIds, onSetSelection };
+}
+
 function useImmersiveAnimateState(): { mode: LightingMode; animate: ImmersiveAnimateController | null } {
   const [active, setActive] = useState<string>('rainbow');
   const [templates, setTemplates] = useState<Record<string, EffectTemplateBundle>>({});
   const [mode, setMode] = useState<LightingMode>('none');
   const stagedRef = useRef<EffectState | null>(null);
   const [, force] = useState(0);
+  const { devices, selectedIds, onSetSelection } = useImmersiveDevices(mode === 'static');
+  const [devicePicks, setDevicePicks] = usePersistentState<DevicePicks>(DEVICE_PICKS_STORAGE_KEY, {});
+  // Only when every selected device wears the same one; a mixed selection has
+  // no single swatch to mark.
+  const selectedPaletteId = useMemo(() => {
+    let found: string | null = null;
+    for (const id of selectedIds) {
+      const pick = devicePicks[id];
+      const paletteId = pick ? paletteIdFromKey(pick.key) : null;
+      if (!paletteId) return null;
+      if (found && found !== paletteId) return null;
+      found = paletteId;
+    }
+    return found;
+  }, [devicePicks, selectedIds]);
 
   const hydrate = useCallback(async () => {
     const [sync, settings, staticSettings, defaults] = await Promise.all([
@@ -175,7 +286,12 @@ function useImmersiveAnimateState(): { mode: LightingMode; animate: ImmersiveAni
     const nextMode = resolveImmersiveMode(rawSync);
     setMode(nextMode);
     if (nextMode === 'static') {
-      setActive(isStaticEffect(staticSettings?.effect ?? '') ? staticSettings!.effect : DEFAULT_STATIC_EFFECT);
+      // Static picks are per device, so nothing here writes Lighting.Static.Effect
+      // any more - re-seeding on every broadcast (there are dozens, most unrelated
+      // to lighting picks) would yank the browsed effect back. Seed on entry only.
+      setActive(prev => isStaticEffect(prev)
+        ? prev
+        : (isStaticEffect(staticSettings?.effect ?? '') ? staticSettings!.effect : DEFAULT_STATIC_EFFECT));
     } else if (EFFECTS.some(e => e.key === rawSync)) {
       setActive(rawSync);
     } else if (settings?.effect) {
@@ -202,14 +318,23 @@ function useImmersiveAnimateState(): { mode: LightingMode; animate: ImmersiveAni
   const bundle = templates[active];
   const baseState = bundle?.slots[bundle.selected] ?? defaultStateFor(active);
 
-  // Static and animate share this editor; only the start endpoint differs.
-  const applyLook = useCallback((key: string, s: EffectState) => {
+  // Static and animate share this editor; only the target differs. A static
+  // pick belongs to the selected devices, exactly as on the lighting page -
+  // starting the shared effect instead would repaint every device that carries
+  // an assignment of its own.
+  const applyLook = useCallback((key: string, s: EffectState, slot: number) => {
     if (mode === 'static') {
-      void startStatic(key, s.intensity, s.hue, s.colorize, s.saturation, s.contrast, s.params, true);
+      if (selectedIds.size === 0) return;
+      setDevicePicks(prev => pickLookForDevices(prev, key, slot, s, [...selectedIds], true));
       return;
     }
     void startAnimate(key, s.speed, s.intensity, s.hue, s.colorize, s.saturation, s.contrast, s.params, true);
-  }, [mode]);
+  }, [mode, selectedIds, setDevicePicks]);
+
+  const onSelectPalette = useCallback((color: PaletteColor) => {
+    if (selectedIds.size === 0) return;
+    setDevicePicks(prev => pickPaletteForDevices(prev, color, [...selectedIds]));
+  }, [selectedIds, setDevicePicks]);
   // Ref-backed staged state bypasses the render cycle on slider drag; `force`
   // a render after mutation.
   const liveState = stagedRef.current ?? baseState;
@@ -219,14 +344,14 @@ function useImmersiveAnimateState(): { mode: LightingMode; animate: ImmersiveAni
     stagedRef.current = next;
     force(n => n + 1);
     if (commit) {
-      applyLook(active, next);
+      applyLook(active, next, bundle?.selected ?? 0);
     }
-  }, [active, applyLook, baseState]);
+  }, [active, applyLook, baseState, bundle]);
 
   const onCommit = useCallback(() => {
     const s = stagedRef.current;
     if (!s) return;
-    applyLook(active, s);
+    applyLook(active, s, bundle?.selected ?? 0);
     if (bundle) {
       const slots = bundle.slots.slice();
       slots[bundle.selected] = s;
@@ -247,7 +372,7 @@ function useImmersiveAnimateState(): { mode: LightingMode; animate: ImmersiveAni
     const next = nextBundle.slots[clamped];
     saveAnimateTemplates(nextTemplates).catch(() => { /* best-effort */ });
     if (next) {
-      applyLook(active, next);
+      applyLook(active, next, clamped);
     }
   }, [active, applyLook, bundle, templates]);
 
@@ -256,7 +381,7 @@ function useImmersiveAnimateState(): { mode: LightingMode; animate: ImmersiveAni
     force(n => n + 1);
     if (bundle) {
       const slot = bundle.slots[bundle.selected] ?? defaultStateFor(active);
-      applyLook(active, slot);
+      applyLook(active, slot, bundle.selected);
     }
   }, [active, applyLook, bundle]);
 
@@ -266,12 +391,17 @@ function useImmersiveAnimateState(): { mode: LightingMode; animate: ImmersiveAni
     force(n => n + 1);
     const b = templates[key];
     const s = b?.slots[b.selected] ?? defaultStateFor(key);
-    applyLook(key, s);
+    applyLook(key, s, b?.selected ?? 0);
   }, [applyLook, templates]);
 
   const animate: ImmersiveAnimateController | null = ((mode === 'animate' || mode === 'static') && bundle)
     ? {
       effect: active,
+      devices,
+      selectedIds,
+      onSetSelection,
+      onSelectPalette,
+      selectedPaletteId,
       state: liveState,
       bundle,
       canReset: stagedRef.current !== null,
