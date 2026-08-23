@@ -1,0 +1,22 @@
+.pane {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.2rem;
+}
+
+// Flush right above the grid, the same shape the onboarding screen's bulk row uses.
+.bulkRow {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+// One column on a phone panel, more once the fill cell can fit another whole
+// card; the EffectEditor body owns the scrolling.
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr));
+  gap: 0.4rem;
+  align-items: stretch;
+}

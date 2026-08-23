@@ -69,6 +69,7 @@ export function ZoneCard({
   firmwareControlled,
   notice,
   toggleMode,
+  selectOnly,
   bulk,
 }: {
   device: LightingDevice;
@@ -88,9 +89,10 @@ export function ZoneCard({
   /** Receives whether the multi-select modifier (Cmd/Ctrl) was held, so the
    *  caller can implement additive selection without ZoneCard owning a Set. */
   onSelect: (additive: boolean) => void;
-  onTogglePower: () => void;
-  onToggleControlled: () => void;
-  onOpenSettings: () => void;
+  /** Omitted by select-only callers, where no control can reach them. */
+  onTogglePower?: () => void;
+  onToggleControlled?: () => void;
+  onOpenSettings?: () => void;
   /** Optional dnd-kit drag wiring for reorderable lists. */
   drag?: SortableRowArgs;
   /** Available community layout count; the badge renders only when positive. */
@@ -105,6 +107,10 @@ export function ZoneCard({
    *  switch (click or Enter/Space fires onToggleControlled) and the per-card
    *  action buttons and community badge are hidden. */
   toggleMode?: boolean;
+  /** Selection-only mode: the checkbox and card-click selection stay, the
+   *  per-card actions and context menu go. For surfaces that pick devices and
+   *  nothing else, like the immersive Static editor's Devices tab. */
+  selectOnly?: boolean;
   /** Present only when this card is part of a multi-selection. The menu then
    *  acts on the whole selection, matching the device canvas's right-click. */
   bulk?: BulkSelection;
@@ -135,13 +141,16 @@ export function ZoneCard({
   // cards expose no per-device controls. A bulk-selected card that can offer
   // no row either (detection-failed, so no identify and no state rows, and
   // the LED map is single-device) gets no button rather than an empty menu.
-  const menuEnabled = !toggleMode && !firmwareControlled
+  const menuEnabled = !toggleMode && !selectOnly && !firmwareControlled
     && !(bulk && unavailable && bulk.identifyCount === 0);
 
   // Persistent marker for a card that is not in its default state, so the
   // reason is readable without hovering. An ignored device is not driven at
   // all, which makes its power state moot, so that chip stands alone.
-  const stateChip = !menuEnabled || unavailable
+  // Rides its own flag, not menuEnabled: a select-only card still has to say
+  // that a device is off or not controlled, it just offers no way to change it.
+  const stateChip = toggleMode || firmwareControlled || unavailable
+    || (bulk && unavailable && bulk.identifyCount === 0)
     ? null
     : !controlled
       ? { icon: <Unlink aria-hidden />, label: t('lighting.devices.stateNotControlled') }
@@ -163,7 +172,7 @@ export function ZoneCard({
     if (!bulk) {
       items.push({
         key: 'settings', icon: <Settings size={14} />, label: t('lighting.ledMap.settings'),
-        onSelect: onOpenSettings,
+        onSelect: () => onOpenSettings?.(),
       });
     }
     if (!unavailable) {
@@ -171,8 +180,8 @@ export function ZoneCard({
       // pin/unpin idiom.
       const isControlled = bulk ? bulk.controlled : controlled;
       const isOn = bulk ? bulk.ledsOn : device.ledsOn;
-      const setControlled = () => bulk ? bulk.setControlled(!isControlled) : onToggleControlled();
-      const setPower = () => bulk ? bulk.setPower(!isOn) : onTogglePower();
+      const setControlled = () => bulk ? bulk.setControlled(!isControlled) : onToggleControlled?.();
+      const setPower = () => bulk ? bulk.setPower(!isOn) : onTogglePower?.();
       const label = (single: string, counted: string) =>
         bulk ? t(pluralKey(counted, language, bulk.count), { count: bulk.count }) : t(single);
       items.push(isControlled
@@ -201,7 +210,7 @@ export function ZoneCard({
           // Keep Enter from bubbling to the modal stack's document listener,
           // which would fire the hosting Overlay's onEnter (Continue).
           e.stopPropagation();
-          onToggleControlled();
+          onToggleControlled?.();
         }
       } : undefined}
       {...(dragEnabled ? drag!.attributes : {})}
@@ -216,7 +225,7 @@ export function ZoneCard({
       ].filter(Boolean).join(' ')}
       onClick={e => {
         if (unavailable || firmwareControlled) return;
-        if (toggleMode) onToggleControlled();
+        if (toggleMode) onToggleControlled?.();
         else onSelect(isMultiSelectModifier(e));
       }}
       onContextMenu={menuEnabled ? e => {
