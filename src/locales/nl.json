@@ -3367,5 +3367,12 @@
   "lighting.effectDock.collapse": "Effect-editor inklappen",
   "lighting.effectDock.expand": "Effect-editor uitklappen",
   "lighting.pane.previewCount.one": "{count} apparaat",
-  "lighting.pane.previewCount.other": "{count} apparaten"
+  "lighting.pane.previewCount.other": "{count} apparaten",
+  "lighting.devices.discovery.off": "Er worden mogelijk meer apparaten gevonden zodra de verlichting aan staat",
+  "lighting.devices.discovery.detecting": "Apparaten detecteren...",
+  "lighting.pane.offHint": "Kies een verlichtingsmodus om te activeren",
+  "lighting.pane.pickDevices": "Selecteer een of meer apparaten om een kleur te kiezen",
+  "lighting.pane.selectedNone": "Geen apparaten geselecteerd",
+  "lighting.pane.selectedCount.one": "{count} apparaat geselecteerd",
+  "lighting.pane.selectedCount.other": "{count} apparaten geselecteerd"
 }

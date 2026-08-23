@@ -3,6 +3,8 @@ import { Ban, CheckCheck, Gauge, Power } from 'lucide-react';
 import { Button } from '../../../components/common/Button/Button';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { usePersistentState, usePersistentIdSet } from '../../../hooks/usePersistentState';
+import { pluralKey } from '../../../lib/pluralKey';
+import { Badge } from '../../../components/common/Badge/Badge';
 import {
   getNp50ConnectionState,
   np50HubModeFromName,
@@ -67,7 +69,7 @@ import styles from './CoolingPage.module.scss';
 interface CoolingViewProps { serviceOnline: boolean; serviceState: ServiceState; connectionState?: ConnectionState; activeProfileId?: string; }
 
 export function CoolingPage({ serviceOnline, serviceState, connectionState, activeProfileId }: CoolingViewProps) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   // Seed every primary slice from localStorage so subsequent visits to this
   // route paint cards immediately instead of flashing an empty fan list for
   // the duration of the /cooling/fans+curves+sources+profiles round-trip.
@@ -134,7 +136,8 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // The curve whose graph + editor the hero card shows; a row of buttons inside
   // the card selects it. Selecting also highlights the fans bound to it. Seeded
   // from the cached curves so a revisit paints the hero card immediately.
-  const [selectedCurveId, setSelectedCurveId] = useState<string | null>(() => cachedSeed.curves[0]?.id ?? null);
+  const [selectedCurveId, setSelectedCurveId] = usePersistentState<string | null>(
+    'nexus.cooling.selectedCurve', cachedSeed.curves[0]?.id ?? null);
 
   const refreshCoolingConfig = useCallback(async () => {
     if (!serviceOnline) return;
@@ -404,7 +407,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     publishControlSync({ domain: 'cooling', activePreset: key });
     await applyProfile(key);
     refreshCoolingConfig();
-  }, [activePreset, refreshCoolingConfig, curves]);
+  }, [activePreset, curves, refreshCoolingConfig, setSelectedCurveId]);
 
   const toggleSoftwareControl = useCallback(async (fanId: string, enabled: boolean) => {
     if (enabled) {
@@ -471,7 +474,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     setSelectedCurveId(id);
     pushCurves(next, fanStates);
     return id;
-  }, [curves, sources, fanStates, pushCurves, cpuTemp?.id]);
+  }, [cpuTemp?.id, curves, fanStates, pushCurves, setSelectedCurveId, sources]);
 
   // BIOS = release control; 'manual' = software control, no curve; curve id =
   // bind that curve; 'fw' = NP50 only, switches the whole hub to its EEPROM
@@ -592,6 +595,12 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     return common ?? null;
   }, [fanStates, selectedFanIds]);
 
+  // The curve both highlights answer to: what the selected fans wear, or the
+  // curve the editor is on when nothing is selected. Reading the fan highlight
+  // off selectedCurveId instead let a reload light up the first curve's fans
+  // while the button row was already showing the selection's curve.
+  const effectiveCurveId = scopedCurveId === undefined ? selectedCurveId : scopedCurveId;
+
   /**
    * Assign one curve to many fans in a single write.
    *
@@ -652,7 +661,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     setSelectedCurveId(curveId);
     if (selectedFanIds.size === 0) return;
     void assignCurveToFans([...selectedFanIds], curveId);
-  }, [assignCurveToFans, selectedFanIds]);
+  }, [assignCurveToFans, selectedFanIds, setSelectedCurveId]);
 
   // Create a curve and bind it to the fan in one shot so pushCurves sees both
   // the new curve AND the fan's assignment in the same write. Triggered from
@@ -676,7 +685,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
       const fans = await fetchFanChannels();
       if (fans?.channels) setChannels(fans.channels);
     }
-  }, [curves, sources, fanStates, pushCurves, exitOffToCustomIfNeeded, cpuTemp?.id]);
+  }, [cpuTemp?.id, curves, exitOffToCustomIfNeeded, fanStates, pushCurves, setSelectedCurveId, sources]);
 
   // Reset a preset curve (silent/balanced/turbo) back to defaults via
   // the service endpoint. Fan attachments are preserved server-side, so the
@@ -712,7 +721,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
       const fans = await fetchFanChannels();
       if (fans?.channels) setChannels(fans.channels);
     }
-  }, [curves, fanStates, pushCurves, selectedCurveId]);
+  }, [curves, fanStates, pushCurves, selectedCurveId, setSelectedCurveId]);
 
   const saveCurveAndPush = useCallback((updated: CurveDef) => {
     // Any edit to a preset curve diverges it from defaults; flip the dirty
@@ -751,7 +760,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     if (!selectedCurveId || !curves.some(c => c.id === selectedCurveId)) {
       setSelectedCurveId(curves[0].id);
     }
-  }, [curves, selectedCurveId]);
+  }, [curves, selectedCurveId, setSelectedCurveId]);
 
   // Fall back to the first curve so the hero card paints immediately even
   // before the maintenance effect commits a selection (no one-frame "no
@@ -809,6 +818,9 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   );
   const allFansSelected = selectableFanIds.length > 0
     && selectableFanIds.every(id => selectedFanIds.has(id));
+  const selectedFanLabel = selectedFanIds.size === 0
+    ? t('lighting.pane.selectedNone')
+    : t(pluralKey('lighting.pane.selectedCount', language, selectedFanIds.size), { count: selectedFanIds.size });
 
 
 
@@ -842,12 +854,12 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // its fanState.curveId matches.
   const highlightedFanIds = useMemo(() => {
     const s = new Set<string>();
-    if (!selectedCurveId) return s;
+    if (!effectiveCurveId) return s;
     for (const [fanId, st] of Object.entries(fanStates)) {
-      if (st.curveId === selectedCurveId) s.add(fanId);
+      if (st.curveId === effectiveCurveId) s.add(fanId);
     }
     return s;
-  }, [selectedCurveId, fanStates]);
+  }, [effectiveCurveId, fanStates]);
 
   const presetTabs = COOLING_PRESETS.map(p => ({
     key: p.key,
@@ -947,6 +959,8 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
         </div>
         <div className={`${styles.paneHeader} ${styles.headerRight}`}>
           <span className={styles.paneTitle}>{t('cooling.label.curve')}</span>
+          {/* What a curve press would apply to, in the lighting page's wording. */}
+          <Badge label={selectedFanLabel} compact color="var(--text-dim)" />
         </div>
         <aside className={styles.fanSidebar}>
           {calibrationResults && !calibrating && (
@@ -1141,7 +1155,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
           <div className={styles.curvePickerSection}>
             <CurveSelector
               curves={curves}
-              selectedCurveId={scopedCurveId === undefined ? selectedCurveId : scopedCurveId}
+              selectedCurveId={effectiveCurveId}
               curveFanCounts={curveFanCounts}
               onSelect={handleCurveSelect}
               onAdd={() => { addCurve(); }}

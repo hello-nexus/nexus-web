@@ -3367,5 +3367,12 @@
   "lighting.effectDock.collapse": "Reduire l'editeur d'effet",
   "lighting.effectDock.expand": "Developper l'editeur d'effet",
   "lighting.pane.previewCount.one": "{count} appareil",
-  "lighting.pane.previewCount.other": "{count} appareils"
+  "lighting.pane.previewCount.other": "{count} appareils",
+  "lighting.devices.discovery.off": "D’autres appareils pourront être détectés une fois l’éclairage activé",
+  "lighting.devices.discovery.detecting": "Détection des appareils...",
+  "lighting.pane.offHint": "Sélectionnez un mode d’éclairage pour l’activer",
+  "lighting.pane.pickDevices": "Sélectionnez un ou plusieurs appareils pour choisir une couleur",
+  "lighting.pane.selectedNone": "Aucun appareil sélectionné",
+  "lighting.pane.selectedCount.one": "{count} appareil sélectionné",
+  "lighting.pane.selectedCount.other": "{count} appareils sélectionnés"
 }

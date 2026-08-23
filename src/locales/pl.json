@@ -3382,5 +3382,13 @@
   "lighting.effectDock.expand": "Rozwin edytor efektu",
   "lighting.pane.previewCount.one": "{count} urzadzenie",
   "lighting.pane.previewCount.few": "{count} urzadzenia",
-  "lighting.pane.previewCount.other": "{count} urzadzen"
+  "lighting.pane.previewCount.other": "{count} urzadzen",
+  "lighting.devices.discovery.off": "Po włączeniu podświetlenia mogą zostać wykryte kolejne urządzenia",
+  "lighting.devices.discovery.detecting": "Wykrywanie urządzeń...",
+  "lighting.pane.offHint": "Wybierz tryb podświetlenia, aby go włączyć",
+  "lighting.pane.pickDevices": "Wybierz co najmniej jedno urządzenie, aby wybrać kolor",
+  "lighting.pane.selectedNone": "Nie wybrano urządzeń",
+  "lighting.pane.selectedCount.one": "Wybrano {count} urządzenie",
+  "lighting.pane.selectedCount.other": "Wybrano {count} urzadzen",
+  "lighting.pane.selectedCount.few": "Wybrano {count} urzadzenia"
 }

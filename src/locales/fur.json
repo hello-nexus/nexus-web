@@ -3367,5 +3367,12 @@
   "lighting.effectDock.collapse": "Siare l'editor dai efiets",
   "lighting.effectDock.expand": "Slargje l'editor dai efiets",
   "lighting.pane.previewCount.one": "{count} dispositif",
-  "lighting.pane.previewCount.other": "{count} dispositifs"
+  "lighting.pane.previewCount.other": "{count} dispositifs",
+  "lighting.devices.discovery.off": "Altris dispositîfs a podaressin jessi rilevâts cuant che la iluminazion e je impiade",
+  "lighting.devices.discovery.detecting": "Rilevament dai dispositîfs...",
+  "lighting.pane.offHint": "Sielç une modalitât di iluminazion par ativâle",
+  "lighting.pane.pickDevices": "Sielç un o plui dispositîfs par sielzi un colôr",
+  "lighting.pane.selectedNone": "Nissun dispositîf selezionât",
+  "lighting.pane.selectedCount.one": "{count} dispositîf selezionât",
+  "lighting.pane.selectedCount.other": "{count} dispositîfs selezionâts"
 }

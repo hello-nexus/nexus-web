@@ -6,21 +6,6 @@ import { Button } from '../../../../components/common/Button/Button';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import styles from '../LightingPage.module.scss';
 
-/** Subprocess health, beside the rail title. Colour is the whole signal. */
-export function OpenRgbDot({ rgbRunning }: { rgbRunning: boolean }) {
-  const { t } = useTranslation();
-  const label = rgbRunning ? t('lighting.devices.openRgbOnline') : t('lighting.devices.openRgbOffline');
-  return (
-    <HoverTooltip body={label} side="bottom">
-      <span
-        className={`${styles.openRgbDot} ${rgbRunning ? styles.openRgbDotOnline : styles.openRgbDotOffline}`}
-        role="img"
-        aria-label={label}
-      />
-    </HoverTooltip>
-  );
-}
-
 /**
  * Re-enumerate devices. Disabled while the subprocess is down or a scan is
  * already running; the icon spins for the duration and the tooltip carries the

@@ -76,15 +76,6 @@
   justify-content: flex-start;
 }
 
-// Title plus the status dot that belongs to it, so the pair reads as one label
-// and the header's action cluster still sits at the far edge.
-.paneTitleGroup {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  min-width: 0;
-}
-
 .paneTitle {
   font-size: var(--type-body);
   font-weight: 600;
@@ -372,6 +363,60 @@
 .paletteDetailHint {
   font-size: var(--type-mini);
   color: var(--text-dim);
+}
+
+// Effect browser shell. Static with nothing selected has nowhere to put a
+// colour, so it dims and stops taking input rather than silently doing nothing.
+.browserWrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  transition: opacity var(--ease-fast) ease;
+}
+
+.browserLocked {
+  opacity: var(--alpha-medium);
+}
+
+.browserHint {
+  flex-shrink: 0;
+  margin: 0.6rem 0 0;
+  padding: 0 0.3rem;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  text-align: center;
+}
+
+// Rail tail card: why the list may be short, plus the subprocess dot the
+// Devices title used to carry.
+.discoveryCard {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0.4rem 0.4rem 0;
+  padding: 0.6rem 0.75rem;
+  border: var(--border-width) dashed var(--border-strong);
+  border-radius: var(--radius);
+  color: var(--text-dim);
+}
+
+.discoveryIcon {
+  display: flex;
+  flex-shrink: 0;
+  color: var(--text-dim);
+}
+
+.discoveryIconBusy {
+  color: var(--accent);
+  animation: deviceRescanSpin 1.1s linear infinite;
+}
+
+.discoveryText {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--type-small);
+  line-height: 1.35;
 }
 
 // Usage markers pinned to a grid cell's thumbnail (panels only): bulb = this
@@ -938,7 +983,7 @@
     border-color: var(--border-strong);
   }
 
-  &.deviceCardControlled {
+  &.deviceCardSelected {
     border-color: var(--accent);
     background: var(--accent-soft);
   }

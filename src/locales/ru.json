@@ -3382,5 +3382,13 @@
   "lighting.effectDock.expand": "Развернуть редактор эффекта",
   "lighting.pane.previewCount.one": "{count} устройство",
   "lighting.pane.previewCount.few": "{count} устройства",
-  "lighting.pane.previewCount.other": "{count} устройств"
+  "lighting.pane.previewCount.other": "{count} устройств",
+  "lighting.devices.discovery.off": "После включения подсветки могут быть найдены другие устройства",
+  "lighting.devices.discovery.detecting": "Поиск устройств...",
+  "lighting.pane.offHint": "Выберите режим подсветки для включения",
+  "lighting.pane.pickDevices": "Выберите одно или несколько устройств, чтобы задать цвет",
+  "lighting.pane.selectedNone": "Устройства не выбраны",
+  "lighting.pane.selectedCount.one": "Выбрано {count} устройство",
+  "lighting.pane.selectedCount.other": "Выбрано {count} устройств",
+  "lighting.pane.selectedCount.few": "Выбрано {count} устройства"
 }

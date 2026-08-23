@@ -5,6 +5,7 @@ import { useTranslation } from '../../../../lib/i18n';
 import { usePersistentState } from '../../../../hooks/usePersistentState';
 import { ZoneCard, type BulkSelection } from './ZoneCard';
 import { type LedPick } from './DeviceLedStrip';
+import { DeviceDiscoveryCard, type DiscoveryState } from './DeviceDiscoveryCard';
 import { startIdentify } from '../../../../lib/identifyFlash';
 import { IDENTIFY_MS } from './zoneUtils';
 import { MotherboardGroup } from './MotherboardGroup';
@@ -47,7 +48,7 @@ type DeviceBlock =
  * using the same component/styling as a motherboard group: a chevron, the brand
  * name, a group power switch, and its lights as indented child cards.
  */
-export function DevicePanel({ devices, header, selectable = true, devicePicks, versionForSlot, ledFullscreen, selectedIds, onSelectDevice, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onDeviceReorder, communityCounts, onOpenCommunity, smartHubFirmwareControl, onSetSmartHubFirmwareControl, lianLiFirmwareActive, onOpenSmartLights }: {
+export function DevicePanel({ devices, header, selectable = true, devicePicks, versionForSlot, ledFullscreen, selectedIds, onSelectDevice, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onDeviceReorder, communityCounts, onOpenCommunity, smartHubFirmwareControl, onSetSmartHubFirmwareControl, lianLiFirmwareActive, onOpenSmartLights, discovery, rgbRunning = false }: {
   devices: LightingDevice[];
   /** Optional control rendered at the top of the scrolling list (master brightness). */
   header?: ReactNode;
@@ -93,6 +94,9 @@ export function DevicePanel({ devices, header, selectable = true, devicePicks, v
   lianLiFirmwareActive?: boolean;
   /** Renders a dashed "add smart lights" entry at the bottom of the list. */
   onOpenSmartLights?: () => void;
+  /** Tail card explaining a short list; absent once a mode is running. */
+  discovery?: DiscoveryState;
+  rgbRunning?: boolean;
 }) {
   const { t } = useTranslation();
 
@@ -319,6 +323,7 @@ export function DevicePanel({ devices, header, selectable = true, devicePicks, v
             return renderBlock(block, a);
           }}
         />
+        {discovery && <DeviceDiscoveryCard state={discovery} rgbRunning={rgbRunning} />}
         {onOpenSmartLights && (
           <button type="button" className={styles.addSmartLights} onClick={onOpenSmartLights}>
             <Plus size={22} aria-hidden />

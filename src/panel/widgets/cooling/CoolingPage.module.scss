@@ -368,6 +368,11 @@
   &:active { cursor: grabbing; }
 }
 
+.fanCardSelected {
+  border-color: var(--accent);
+  background: var(--surface-selected, color-mix(in srgb, var(--accent) 12%, transparent));
+}
+
 .fanCardBody {
   flex: 1 1 auto;
   min-width: 0;

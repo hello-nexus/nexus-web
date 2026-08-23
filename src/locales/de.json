@@ -3367,5 +3367,12 @@
   "lighting.effectDock.collapse": "Effekt-Editor einklappen",
   "lighting.effectDock.expand": "Effekt-Editor ausklappen",
   "lighting.pane.previewCount.one": "{count} Gerat",
-  "lighting.pane.previewCount.other": "{count} Gerate"
+  "lighting.pane.previewCount.other": "{count} Gerate",
+  "lighting.devices.discovery.off": "Weitere Geräte werden möglicherweise erkannt, sobald die Beleuchtung an ist",
+  "lighting.devices.discovery.detecting": "Geräte werden erkannt...",
+  "lighting.pane.offHint": "Wähle einen Beleuchtungsmodus zum Aktivieren",
+  "lighting.pane.pickDevices": "Wähle ein oder mehrere Geräte, um eine Farbe zu wählen",
+  "lighting.pane.selectedNone": "Keine Geräte ausgewählt",
+  "lighting.pane.selectedCount.one": "{count} Gerät ausgewählt",
+  "lighting.pane.selectedCount.other": "{count} Geräte ausgewählt"
 }

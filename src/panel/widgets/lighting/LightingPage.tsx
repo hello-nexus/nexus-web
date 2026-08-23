@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Ban, CheckCheck, Gamepad2, Music, Pause, Play, PanelRightOpen, PanelRightClose } from 'lucide-react';
+import { Ban, CheckCheck, Gamepad2, Lightbulb, Music, Pause, Play, PanelRightOpen, PanelRightClose } from 'lucide-react';
 import {
   startAnimate, startStatic, startScreenMirror, stopLighting, startGameSync,
   fetchStaticSettings,
@@ -31,6 +31,7 @@ import { emitRadialBloomFromElement } from '../../../lib/backgroundEffects';
 import { LIGHTING_MODE_ICONS } from '../../../lib/lightingModeIcons';
 import { pluralKey } from '../../../lib/pluralKey';
 import { Badge } from '../../../components/common/Badge/Badge';
+import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
@@ -55,12 +56,13 @@ import { FullscreenShader } from './page/FullscreenShader';
 import { ModeControls } from './page/ModeControls';
 import { MediaCanvasNotice } from './page/MediaCanvasNotice';
 import { DevicePanel } from './page/DevicePanel';
+import { type DiscoveryState } from './page/DeviceDiscoveryCard';
 import { zoneCardUnavailable } from './page/ZoneCard';
 import { Button } from '../../../components/common/Button/Button';
 import { GameSyncLeftPane } from './page/GameSyncLeftPane';
 import { LedMapEditor } from './page/LedMapEditor';
 import { visibleCards } from './page/zoneUtils';
-import { OpenRgbButton, OpenRgbDot } from './page/OpenRgbButton';
+import { OpenRgbButton } from './page/OpenRgbButton';
 import { GlobalBrightnessSlider } from './page/GlobalBrightnessSlider';
 import { PresetToolbar } from '../../../components/common/PresetToolbar/PresetToolbar';
 import { EffectTab, type PostProcessState } from './page/EffectTab';
@@ -120,6 +122,9 @@ const layoutHistoryStore = {
   read: () => layoutHistoryStacks,
   write: (s: { undo: LayoutHistorySnapshot[]; redo: LayoutHistorySnapshot[] }) => { layoutHistoryStacks = s; },
 };
+
+// How long the rail keeps saying a scan is running when none was ever reported.
+const DISCOVERY_GRACE_MS = 4000;
 
 const DEVICE_ORDER_KEY = 'lighting.deviceOrder';
 function loadDeviceOrder(): string[] {
@@ -1146,6 +1151,36 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   );
 
 
+  // Off shuts the OpenRGB subprocess down, so the rail can be short for a
+  // reason the list itself cannot show. The tail card says so while off, then
+  // reports the scan that turning a mode on kicks off, then goes away.
+  const [leftOff, setLeftOff] = useState(false);
+  // Null until the sync resolves: the mode reads 'none' while hydrating, and
+  // treating that as the user turning lighting on flashed the card on load.
+  const wasOffRef = useRef<boolean | null>(null);
+  const sawScanRef = useRef(false);
+  useEffect(() => {
+    if (!synced) return;
+    const off = effectiveMode === 'none';
+    if (wasOffRef.current === null) { wasOffRef.current = off; return; }
+    if (off) { wasOffRef.current = true; sawScanRef.current = false; setLeftOff(false); return; }
+    if (wasOffRef.current) { wasOffRef.current = false; sawScanRef.current = false; setLeftOff(true); }
+  }, [effectiveMode, synced]);
+  useEffect(() => {
+    if (!leftOff) return undefined;
+    if (rgb.scanning) { sawScanRef.current = true; return undefined; }
+    // The scan we were reporting has ended.
+    if (sawScanRef.current) { setLeftOff(false); return undefined; }
+    // No scan was reported at all - a box with no OpenRGB never starts one, so
+    // give up rather than leave the card claiming a scan forever. This bounds
+    // a display state; nothing waits on it.
+    const timer = setTimeout(() => setLeftOff(false), DISCOVERY_GRACE_MS);
+    return () => clearTimeout(timer);
+  }, [leftOff, rgb.scanning]);
+  const discovery: DiscoveryState | undefined = effectiveMode === 'none'
+    ? 'off'
+    : (leftOff ? 'detecting' : undefined);
+
   // A restored selection can name devices that are no longer present (unplugged
   // between visits). Drop those once the list has actually loaded, or the
   // preview count and the scoped-look checks count devices that are not there.
@@ -1448,6 +1483,16 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // Static and Off assign per device, so the preview stands for the selection;
   // every other mode drives every device it can reach.
   const previewDeviceCount = perDeviceMode ? selectedDeviceIds.size : selectableIds.length;
+  // Per-device modes count a selection; the rest drive everything, so only the
+  // former can honestly say "selected".
+  const previewBadgeLabel = perDeviceMode
+    ? (selectedDeviceIds.size === 0
+      ? t('lighting.pane.selectedNone')
+      : t(pluralKey('lighting.pane.selectedCount', language, selectedDeviceIds.size), { count: selectedDeviceIds.size }))
+    : t(pluralKey('lighting.pane.previewCount', language, previewDeviceCount), { count: previewDeviceCount });
+  // A colour picked with nothing selected has nowhere to land, so the browser
+  // stops taking input until a device is chosen.
+  const staticNeedsSelection = effectiveMode === 'static' && selectedDeviceIds.size === 0;
   const gridEffect = scoped.kind === 'pick' ? scoped.key : (scoped.kind === 'locked' ? '' : activeEffect);
   // The palette highlights the selection's colour; an effect pick highlights a
   // tile instead, so only one of the two ever reads as active.
@@ -1509,10 +1554,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           </div>
         </div>
         <div className={`${styles.paneHeader} ${styles.headerLeft}`}>
-          <span className={styles.paneTitleGroup}>
-            <span className={styles.paneTitle}>{t('lighting.rightPane.devices')}</span>
-            <OpenRgbDot rgbRunning={rgb.running} />
-          </span>
+          <span className={styles.paneTitle}>{t('lighting.rightPane.devices')}</span>
           <div className={styles.deviceHeaderActions}>
             <OpenRgbButton rgbRunning={rgb.running} scanning={rgb.scanning} />
             {selectableIds.length > 0 && (
@@ -1547,7 +1589,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           <span className={styles.paneTitle}>{t('lighting.pane.preview')}</span>
           {/* How many devices this preview stands for: every device in the
               modes that drive them all, the selection in the per-device ones. */}
-          <Badge label={t(pluralKey('lighting.pane.previewCount', language, previewDeviceCount), { count: previewDeviceCount })} compact color="var(--text-dim)" />
+          <Badge label={previewBadgeLabel} compact color="var(--text-dim)" />
           {dockCollapsed && (
             <HoverTooltip body={t('lighting.effectDock.expand')} side="bottom">
               <Button
@@ -1605,6 +1647,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             onSetSmartHubFirmwareControl={handleSetSmartHubFirmwareControl}
             lianLiFirmwareActive={lianLiFirmwareActive}
             onOpenSmartLights={() => onSectionNavigate?.('smart-lights')}
+            discovery={discovery}
+            rgbRunning={rgb.running}
           />
         </div>
         <div className={styles.main}>
@@ -1656,6 +1700,14 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
               {/* Off renders no picker at all; Static and Animation each own an
                   effect pool; Screen and Media get their source controls. */}
               {effectiveMode === 'animate' || effectiveMode === 'static' ? (
+                <>
+                {staticNeedsSelection && (
+                  <p className={styles.browserHint}>{t('lighting.pane.pickDevices')}</p>
+                )}
+                <div
+                  className={`${styles.browserWrap} ${staticNeedsSelection ? styles.browserLocked : ''}`}
+                  inert={staticNeedsSelection || undefined}
+                >
                 <AnimateGrid
                   effect={gridEffect}
                   onSelect={handleEffectSelect}
@@ -1674,7 +1726,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                     />
                   ) : undefined}
                 />
-              ) : effectiveMode === 'none' ? null : (
+                </div>
+                </>
+              ) : effectiveMode === 'none' ? (
+                <EmptyState icon={<Lightbulb />} title={t('lighting.pane.offHint')} />
+              ) : (
                 <div className={`${styles.controls} ${effectiveMode === 'gif' ? styles.controlsFill : ''}`}>
                   <ModeControls
                     mode={effectiveMode}

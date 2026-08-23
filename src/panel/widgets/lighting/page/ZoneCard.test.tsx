@@ -324,29 +324,11 @@ describe('ZoneCard toggleMode', () => {
     return onToggleControlled;
   }
 
-  it('leaves the card surface alone when a device is multi-selected', () => {
-    // The checkbox carries the selection; a tinted card read as a mode change.
-    const { container } = render(
-      <ZoneCard
-        device={baseDevice}
-        selected
-        indent={false}
-        onSelect={() => {}}
-        onTogglePower={() => {}}
-        onToggleControlled={() => {}}
-        onOpenSettings={() => {}}
-      />,
-    );
-    const card = container.querySelector(`.${styles.deviceCard}`)!;
-    expect(card.className).not.toContain(styles.deviceCardControlled);
-    expect(container.querySelector(`.${styles.deviceCheckOn}`)).toBeTruthy();
-  });
-
   it('makes the whole card a switch named after the device, checked when controlled', () => {
     renderToggleCard(baseDevice);
     const card = screen.getByRole('switch', { name: 'Test Strip' });
     expect(card.getAttribute('aria-checked')).toBe('true');
-    expect(card.className).toContain(styles.deviceCardControlled);
+    expect(card.className).toContain(styles.deviceCardSelected);
   });
 
   it('unchecks and dims the card when the device is ignored', () => {
@@ -354,7 +336,7 @@ describe('ZoneCard toggleMode', () => {
     const card = screen.getByRole('switch', { name: 'Test Strip' });
     expect(card.getAttribute('aria-checked')).toBe('false');
     expect(card.className).toContain(styles.deviceCardPoweredOff);
-    expect(card.className).not.toContain(styles.deviceCardControlled);
+    expect(card.className).not.toContain(styles.deviceCardSelected);
   });
 
   it('fires onToggleControlled from a card click and from Enter/Space', () => {
