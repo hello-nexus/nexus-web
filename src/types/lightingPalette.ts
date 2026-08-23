@@ -49,13 +49,17 @@ const SHADES: { s: number; v: number }[] = [
   { s: 1.00, v: 0.45 },
 ];
 
-/** Neutrals: plain, warm and cool white, then two dimmed steps. */
+/**
+ * Neutral white, dimmed down its column the way every hue darkens down its own.
+ * Tinted whites are the pale end of the hue columns - yellow 1 is a warm white,
+ * azure 1 a cool one - so this stays a straight value ramp.
+ */
 const WHITES: { h: number; s: number; v: number }[] = [
-  { h: 0.00, s: 0.00, v: 1.00 },
-  { h: 0.09, s: 0.22, v: 1.00 },
-  { h: 0.55, s: 0.15, v: 1.00 },
-  { h: 0.00, s: 0.00, v: 0.60 },
-  { h: 0.00, s: 0.00, v: 0.30 },
+  { h: 0, s: 0, v: 1.00 },
+  { h: 0, s: 0, v: 0.78 },
+  { h: 0, s: 0, v: 0.58 },
+  { h: 0, s: 0, v: 0.42 },
+  { h: 0, s: 0, v: 0.30 },
 ];
 
 function build(): PaletteColor[] {
@@ -81,9 +85,16 @@ function build(): PaletteColor[] {
 
 export const PALETTE: readonly PaletteColor[] = build();
 
-/** Family-major, which is also how the swatch grid lays out its rows. */
-export const PALETTE_ROWS: readonly { family: PaletteFamily; colors: PaletteColor[] }[] =
-  PALETTE_FAMILIES.map(family => ({ family, colors: PALETTE.filter(c => c.family === family) }));
+export const PALETTE_SHADE_COUNT = SHADES.length;
+
+/**
+ * Shade-major: one entry per step, each listing every family's colour at that
+ * step. Drawn as the swatch grid's rows, so hues line up across and a family's
+ * light-to-dark run reads down a column.
+ */
+export const PALETTE_SHADE_ROWS: readonly (readonly PaletteColor[])[] =
+  Array.from({ length: PALETTE_SHADE_COUNT }, (_, i) =>
+    PALETTE_FAMILIES.map(family => PALETTE.find(c => c.family === family && c.shade === i + 1)!));
 
 const BY_ID = new Map(PALETTE.map(c => [c.id, c]));
 

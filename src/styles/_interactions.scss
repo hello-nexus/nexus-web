@@ -181,3 +181,14 @@
     background: var(--panel-element-bg-active);
   }
 }
+
+// Hairline divider between two groups of controls sharing a row (preset
+// toolbar, pane-header action clusters). Sized so it reads shorter than the
+// buttons it separates.
+@mixin control-separator {
+  width: 1px;
+  height: 1.2rem;
+  background: var(--separator);
+  flex-shrink: 0;
+  margin: 0 0.15rem;
+}

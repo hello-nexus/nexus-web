@@ -263,7 +263,7 @@ export const FanCard = memo(function FanCard({
       style={drag?.style ?? {}}
       {...(drag?.attributes ?? {})}
       {...(drag?.listeners ?? {})}
-      className={`${styles.fanCard} ${selected ? styles.fanCardSelected : ''} ${calibrating ? styles.fanCardCalibrating : ''} ${dragClasses}`}
+      className={`${styles.fanCard} ${calibrating ? styles.fanCardCalibrating : ''} ${dragClasses}`}
       onClick={onSelect ? e => {
         // Controls inside the card own their own clicks; only bare card
         // surface toggles selection. Matched via the same [data-no-dnd] marker
@@ -281,23 +281,26 @@ export const FanCard = memo(function FanCard({
       onMouseEnter={onWireHover ? () => onWireHover(channel.id) : undefined}
       onMouseLeave={onWireHover ? () => onWireHover(null) : undefined}
     >
+      {onToggleSelect && !isReadOnly && (
+        <span
+          className={`${styles.fanCheck} ${selected ? styles.fanCheckOn : ''}`}
+          role="checkbox"
+          aria-checked={selected}
+          aria-label={channel.name}
+          tabIndex={0}
+          data-no-dnd
+          onClick={e => { e.stopPropagation(); onToggleSelect(channel.id); }}
+          onKeyDown={e => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onToggleSelect(channel.id); }
+          }}
+        >
+          {selected && <Check aria-hidden />}
+        </span>
+      )}
+      {/* Everything but the checkbox stacks in here, so the box sits centred
+          against the whole card the way the lighting rail's does. */}
+      <div className={styles.fanCardBody}>
       <div className={styles.fanCardHeader}>
-        {onToggleSelect && !isReadOnly && (
-          <span
-            className={`${styles.fanCheck} ${selected ? styles.fanCheckOn : ''}`}
-            role="checkbox"
-            aria-checked={selected}
-            aria-label={channel.name}
-            tabIndex={0}
-            data-no-dnd
-            onClick={e => { e.stopPropagation(); onToggleSelect(channel.id); }}
-            onKeyDown={e => {
-              if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onToggleSelect(channel.id); }
-            }}
-          >
-            {selected && <Check aria-hidden />}
-          </span>
-        )}
         {/* Fan icon opens the device-role picker (Generic fan / CPU / GPU) and
             reflects the current role; the lock badge/dim visual rides on it
             while the lock toggle itself lives in the mode dropdown. When this
@@ -433,6 +436,7 @@ export const FanCard = memo(function FanCard({
           </span>
         </>
       )}
+      </div>
     </div>
   );
 });

@@ -1715,6 +1715,8 @@
   "lighting.devices.notControlled": "Genegeerd - niet aangestuurd",
   "lighting.devices.powerOff": "Uit",
   "lighting.devices.powerOn": "Aan",
+  "lighting.devices.openRgbOffline": "OpenRGB is niet actief",
+  "lighting.devices.openRgbOnline": "OpenRGB is actief",
   "lighting.devices.rescan": "Apparaten opnieuw scannen",
   "lighting.devices.rotateCcw": "Linksom draaien",
   "lighting.devices.rotateCcwCount.one": "Linksom draaien ({count} apparaat)",

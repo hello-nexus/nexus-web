@@ -1544,6 +1544,8 @@
   "lighting.devices.notControlled": "무시됨 - 제어되지 않음",
   "lighting.devices.powerOff": "끄기",
   "lighting.devices.powerOn": "켜기",
+  "lighting.devices.openRgbOffline": "OpenRGB가 실행되고 있지 않습니다",
+  "lighting.devices.openRgbOnline": "OpenRGB가 실행 중입니다",
   "lighting.devices.rescan": "기기 다시 스캔",
   "lighting.devices.rotateCcw": "반시계 방향으로 회전",
   "lighting.devices.rotateCcwCount.one": "반시계 방향으로 회전 ({count}개 장치)",

@@ -2,14 +2,29 @@ import { useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { rescanLightingDevices } from '../../../../api/lighting';
 import { useTranslation } from '../../../../lib/i18n';
+import { Button } from '../../../../components/common/Button/Button';
+import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import styles from '../LightingPage.module.scss';
 
+/** Subprocess health, beside the rail title. Colour is the whole signal. */
+export function OpenRgbDot({ rgbRunning }: { rgbRunning: boolean }) {
+  const { t } = useTranslation();
+  const label = rgbRunning ? t('lighting.devices.openRgbOnline') : t('lighting.devices.openRgbOffline');
+  return (
+    <HoverTooltip body={label} side="bottom">
+      <span
+        className={`${styles.openRgbDot} ${rgbRunning ? styles.openRgbDotOnline : styles.openRgbDotOffline}`}
+        role="img"
+        aria-label={label}
+      />
+    </HoverTooltip>
+  );
+}
+
 /**
- * Full-width OpenRGB control at the bottom of the device pane. Left: a status
- * dot reflecting the subprocess, then a localized rescan label (swapped for
- * the scanning label while a scan is in flight). Right edge: a refresh icon that
- * re-enumerates devices on press (disabled while the subprocess is down or a
- * scan is running). Sized to match the dashboard's "Add widget" button.
+ * Re-enumerate devices. Disabled while the subprocess is down or a scan is
+ * already running; the icon spins for the duration and the tooltip carries the
+ * state, so the control stays the size of every other header button.
  */
 export function OpenRgbButton({ rgbRunning, scanning }: {
   /** True when the OpenRGB subprocess is alive. */
@@ -36,18 +51,15 @@ export function OpenRgbButton({ rgbRunning, scanning }: {
   const label = busy ? t('lighting.devices.scanning') : t('lighting.devices.rescan');
 
   return (
-    <button
-      type="button"
-      className={styles.openRgbButton}
-      onClick={handleRescan}
-      disabled={rescanDisabled}
-    >
-      <span
-        className={`${styles.openRgbDot} ${rgbRunning ? styles.openRgbDotOnline : styles.openRgbDotOffline}`}
-        aria-hidden
+    <HoverTooltip body={label} side="bottom">
+      <Button
+        tone="ghost"
+        size="sm"
+        icon={<RefreshCw className={busy ? styles.rescanIconSpinning : undefined} />}
+        aria-label={label}
+        disabled={rescanDisabled}
+        onClick={handleRescan}
       />
-      <span>{label}</span>
-      <RefreshCw size={14} className={`${styles.openRgbSpinner} ${busy ? styles.rescanIconSpinning : ''}`} aria-hidden />
-    </button>
+    </HoverTooltip>
   );
 }

@@ -1714,6 +1714,8 @@
   "lighting.devices.moreActions": "More actions",
   "lighting.devices.motherboardHeader": "Motherboard ARGB",
   "lighting.devices.notControlled": "Ignored - not controlled",
+  "lighting.devices.openRgbOffline": "OpenRGB is not running",
+  "lighting.devices.openRgbOnline": "OpenRGB is running",
   "lighting.devices.powerOff": "Off",
   "lighting.devices.powerOn": "On",
   "lighting.devices.rescan": "Rescan devices",

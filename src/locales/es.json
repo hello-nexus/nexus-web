@@ -1544,6 +1544,8 @@
   "lighting.devices.notControlled": "Ignorado - no controlado",
   "lighting.devices.powerOff": "Apagado",
   "lighting.devices.powerOn": "Encendido",
+  "lighting.devices.openRgbOffline": "OpenRGB no está en ejecución",
+  "lighting.devices.openRgbOnline": "OpenRGB está en ejecución",
   "lighting.devices.rescan": "Reescanear dispositivos",
   "lighting.devices.rotateCcw": "Girar en sentido antihorario",
   "lighting.devices.rotateCcwCount.one": "Girar en sentido antihorario ({count} dispositivo)",

@@ -1544,6 +1544,8 @@
   "lighting.devices.notControlled": "已忽略 - 未控制",
   "lighting.devices.powerOff": "關閉",
   "lighting.devices.powerOn": "開啟",
+  "lighting.devices.openRgbOffline": "OpenRGB 未執行",
+  "lighting.devices.openRgbOnline": "OpenRGB 正在執行",
   "lighting.devices.rescan": "重新掃描裝置",
   "lighting.devices.rotateCcw": "逆時針旋轉",
   "lighting.devices.rotateCcwCount.one": "逆時針旋轉 ({count} 台裝置)",

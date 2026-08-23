@@ -1,15 +1,23 @@
 import { describe, it, expect } from 'vitest';
 import {
-  PALETTE, PALETTE_FAMILIES, PALETTE_ROWS, isPaletteKey, nearestPaletteId,
-  paletteColor, paletteColorForKey, paletteIdFromKey, paletteKey,
+  PALETTE, PALETTE_FAMILIES, PALETTE_SHADE_COUNT, PALETTE_SHADE_ROWS, isPaletteKey,
+  nearestPaletteId, paletteColor, paletteColorForKey, paletteIdFromKey, paletteKey,
 } from './lightingPalette';
 import { hsvToHex } from '../lib/settings';
 
 describe('lighting palette', () => {
-  it('offers a swatch for every family', () => {
-    expect(PALETTE_ROWS).toHaveLength(PALETTE_FAMILIES.length);
-    for (const row of PALETTE_ROWS) expect(row.colors.length).toBeGreaterThan(0);
-    expect(PALETTE.length).toBe(PALETTE_ROWS.reduce((n, r) => n + r.colors.length, 0));
+  it('offers every family at every shade', () => {
+    expect(PALETTE_SHADE_ROWS).toHaveLength(PALETTE_SHADE_COUNT);
+    expect(PALETTE.length).toBe(PALETTE_FAMILIES.length * PALETTE_SHADE_COUNT);
+  });
+
+  // The grid draws these rows in order, so a family owning one column depends
+  // on every row listing the families in the same order.
+  it('lines the families up column by column', () => {
+    for (const [i, row] of PALETTE_SHADE_ROWS.entries()) {
+      expect(row.map(c => c.family)).toEqual([...PALETTE_FAMILIES]);
+      expect(row.map(c => c.shade)).toEqual(row.map(() => i + 1));
+    }
   });
 
   it('has unique ids and well-formed hexes', () => {

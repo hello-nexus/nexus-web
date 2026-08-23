@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Ban, CheckCheck, Gauge, Power } from 'lucide-react';
 import { Button } from '../../../components/common/Button/Button';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
-import { usePersistentState } from '../../../hooks/usePersistentState';
+import { usePersistentState, usePersistentIdSet } from '../../../hooks/usePersistentState';
 import {
   getNp50ConnectionState,
   np50HubModeFromName,
@@ -485,14 +485,14 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // byte per hub, not per fan.
   // Multi-select: a mode change on a selected card is applied to every selected
   // fan, so a curve can be assigned to a group in one action.
-  const [selectedFanIds, setSelectedFanIds] = useState<Set<string>>(() => new Set());
+  const [selectedFanIds, setSelectedFanIds] = usePersistentIdSet('nexus.cooling.selectedFans');
   const toggleFanSelected = useCallback((id: string) => {
     setSelectedFanIds(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
-  }, []);
+  }, [setSelectedFanIds]);
 
   const setFanMode = useCallback(async (fanId: string, value: string) => {
     const channel = channels.find(c => c.id === fanId);
@@ -577,7 +577,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
       if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
-  }, []);
+  }, [setSelectedFanIds]);
 
   // The curve the selection is wearing: shared across every selected fan, or
   // null when they disagree - there is no single curve to highlight then.
@@ -812,6 +812,18 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
 
 
 
+  // A restored selection can name fans that are gone (hub unplugged between
+  // visits). Drop those once channels have loaded, or bulk actions target ids
+  // no card can show.
+  useEffect(() => {
+    if (channels.length === 0) return;
+    const present = new Set(channels.map(c => c.id));
+    setSelectedFanIds(prev => {
+      if ([...prev].every(id => present.has(id))) return prev;
+      return new Set([...prev].filter(id => present.has(id)));
+    });
+  }, [channels, setSelectedFanIds]);
+
   // Number of fans bound to each curve, shown under its selector button.
   // Excludes hardware-unresponsive (disconnected) fans - they sit in the
   // Disconnected group and can't be driven, so they don't count as "in use".
@@ -891,8 +903,23 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
         </div>
         <div className={`${styles.paneHeader} ${styles.headerLeft}`}>
           <span className={styles.paneTitle}>{t('cooling.label.fan')}</span>
-          {selectableFanIds.length > 0 && (
-            <div className={styles.fanHeaderActions}>
+          <div className={styles.fanHeaderActions}>
+            <HoverTooltip
+              body={calibrating ? t('cooling.calibrate.running').split('-')[0].trim() : t('cooling.calibrate.button')}
+              side="bottom"
+            >
+              <Button
+                tone="ghost"
+                size="sm"
+                icon={<Gauge />}
+                aria-label={t('cooling.calibrate.button')}
+                disabled={calibrating}
+                onClick={() => setCalConfirmOpen(true)}
+              />
+            </HoverTooltip>
+            {selectableFanIds.length > 0 && (
+            <>
+              <span className={styles.headerSep} aria-hidden />
               {/* Icon-only, matching the lighting rail: too narrow for labels. */}
               <HoverTooltip body={t('lighting.ledMap.selectAll')} side="bottom">
                 <Button
@@ -914,8 +941,9 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                   onClick={() => setSelectedFanIds(new Set())}
                 />
               </HoverTooltip>
-            </div>
-          )}
+            </>
+            )}
+          </div>
         </div>
         <div className={`${styles.paneHeader} ${styles.headerRight}`}>
           <span className={styles.paneTitle}>{t('cooling.label.curve')}</span>
@@ -1103,16 +1131,6 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
               );
             })()}
             </div>
-          </div>
-
-          {/* Calibrate pinned at the bottom of the sidebar, like the lighting
-              page's OpenRGB button. */}
-          <div className={styles.fanSidebarFooter}>
-            <button type="button" className="chip-action"
-              onClick={() => setCalConfirmOpen(true)} disabled={calibrating}>
-              <Gauge size={14} aria-hidden />
-              {calibrating ? t('cooling.calibrate.running').split('-')[0].trim() : t('cooling.calibrate.button')}
-            </button>
           </div>
         </aside>
         <div className={styles.curveCol}>

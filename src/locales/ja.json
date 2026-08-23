@@ -1489,6 +1489,8 @@
   "lighting.devices.notControlled": "無視 - 未制御",
   "lighting.devices.powerOff": "オフ",
   "lighting.devices.powerOn": "オン",
+  "lighting.devices.openRgbOffline": "OpenRGB は実行されていません",
+  "lighting.devices.openRgbOnline": "OpenRGB は実行中です",
   "lighting.devices.rescan": "デバイスを再スキャン",
   "lighting.devices.rotateCcw": "反時計回りに回転",
   "lighting.devices.rotateCcwCount.one": "反時計回りに回転 ({count} 台のデバイス)",

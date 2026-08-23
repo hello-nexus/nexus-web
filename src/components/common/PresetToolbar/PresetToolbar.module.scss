@@ -1,3 +1,5 @@
+@use '../../../styles/interactions' as *;
+
 .toolbar {
   display: flex;
   align-items: center;
@@ -13,11 +15,7 @@
 }
 
 .sep {
-  width: 1px;
-  height: 1.2rem;
-  background: var(--separator);
-  flex-shrink: 0;
-  margin: 0 0.15rem;
+  @include control-separator;
 }
 
 .actionOption {

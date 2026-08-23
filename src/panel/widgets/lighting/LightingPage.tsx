@@ -36,7 +36,7 @@ import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { LightingSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
 import { DeviceCanvas } from '../../../components/common/DeviceCanvas/DeviceCanvas';
-import { usePersistentState } from '../../../hooks/usePersistentState';
+import { usePersistentState, usePersistentIdSet } from '../../../hooks/usePersistentState';
 import { usePanelBackgroundUsage } from '../../../hooks/usePanelBackgroundUsage';
 import {
   EFFECTS, ANIMATE_EFFECTS, STATIC_EFFECTS, STATIC_PATTERN_EFFECTS, DEFAULT_STATIC_EFFECT, MODES,
@@ -60,7 +60,7 @@ import { Button } from '../../../components/common/Button/Button';
 import { GameSyncLeftPane } from './page/GameSyncLeftPane';
 import { LedMapEditor } from './page/LedMapEditor';
 import { visibleCards } from './page/zoneUtils';
-import { OpenRgbButton } from './page/OpenRgbButton';
+import { OpenRgbButton, OpenRgbDot } from './page/OpenRgbButton';
 import { GlobalBrightnessSlider } from './page/GlobalBrightnessSlider';
 import { PresetToolbar } from '../../../components/common/PresetToolbar/PresetToolbar';
 import { EffectTab, type PostProcessState } from './page/EffectTab';
@@ -166,16 +166,16 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // device used for LED-dot rendering on the canvas and for the LED-map
   // fetch effect below (only one device's positions are visualised at a
   // time, even when several are selected for group drag).
-  const [selectedDeviceIds, setSelectedDeviceIds] = useState<Set<string>>(() => new Set());
-  const [primaryDeviceId, setPrimaryDeviceId] = useState<string | null>(null);
+  const [selectedDeviceIds, setSelectedDeviceIds] = usePersistentIdSet('nexus.lighting.selectedDevices');
+  const [primaryDeviceId, setPrimaryDeviceId] = usePersistentState<string | null>('nexus.lighting.primaryDevice', null);
   const handleSelectDevice = useCallback((id: string | null) => {
     setSelectedDeviceIds(id ? new Set([id]) : new Set());
     setPrimaryDeviceId(id);
-  }, []);
+  }, [setPrimaryDeviceId, setSelectedDeviceIds]);
   const handleSetSelection = useCallback((ids: Set<string>, primary: string | null) => {
     setSelectedDeviceIds(ids);
     setPrimaryDeviceId(primary);
-  }, []);
+  }, [setPrimaryDeviceId, setSelectedDeviceIds]);
   const handleBeforeLayoutSave = useCallback(() => {
     pushLayoutRef.current?.({ layouts: devicesToLayouts(devicesRef.current), power: devicesToPower(devicesRef.current), activeId: layoutActiveIdRef.current, powerIds: [] });
   }, []);
@@ -203,11 +203,10 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     'nexus.lighting.devicePicks', {},
   );
   // Collapsing the effect dock hands its space to the canvas and the browser.
-  // Row 1 is untouched: the preset toolbar keeps its own column.
+  // The preset toolbar keeps its width either way - it lives in row 1, which
+  // sizes itself.
   const [dockCollapsed, setDockCollapsed] = usePersistentState('nexus.lighting.effectDockCollapsed', true);
   const [paletteOpen, setPaletteOpen] = useState(true);
-  // Re-mounted on every effect pick so the dock's pulse animation restarts.
-  const [dockPulse, setDockPulse] = useState(0);
 
   const [activeEffect, setActiveEffect] = useState<string>('');
   // Read inside applyAnimate, which several handlers share: static and animate
@@ -792,8 +791,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   }, []);
 
   const handleEffectSelect = useCallback((key: string) => {
-    // Draw the eye to where the pick landed, the way the old Effect tab did.
-    setDockPulse(p => p + 1);
     // Scoped pick: the running effect is untouched, only the selected devices
     // take the colour.
     if (perDeviceMode && selectedDeviceIds.size > 0 && isStaticEffect(key)) {
@@ -831,7 +828,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // inert - the effect grid's rule, minus the editor move it still has to do.
   const handlePaletteSelect = useCallback((color: PaletteColor) => {
     if (!perDeviceMode || selectedDeviceIds.size === 0) return;
-    setDockPulse(p => p + 1);
     writePalettePick(color, [...selectedDeviceIds]);
   }, [perDeviceMode, selectedDeviceIds, writePalettePick]);
 
@@ -1150,6 +1146,19 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   );
 
 
+  // A restored selection can name devices that are no longer present (unplugged
+  // between visits). Drop those once the list has actually loaded, or the
+  // preview count and the scoped-look checks count devices that are not there.
+  useEffect(() => {
+    if (orderedDevices.length === 0) return;
+    const present = new Set(orderedDevices.map(d => d.id));
+    setSelectedDeviceIds(prev => {
+      if ([...prev].every(id => present.has(id))) return prev;
+      return new Set([...prev].filter(id => present.has(id)));
+    });
+    setPrimaryDeviceId(prev => (prev && !present.has(prev) ? null : prev));
+  }, [orderedDevices, setSelectedDeviceIds, setPrimaryDeviceId]);
+
   // Devices list: fetch on entry + profile change, then refresh push-driven.
   // The `lighting` topic fires on every /lighting mutation (layout edits,
   // renames). The `devices` topic fires on USB hardware add/remove. RGB
@@ -1467,38 +1476,48 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           rise to the very top of the page. Capped at --page-max (pageBody) so
           the page matches every other view's width. */}
       <div className={`${styles.body} ${dockCollapsed ? styles.bodyDockCollapsed : ''} pageBody`}>
-        <div className={styles.tabsCell}>
-          <ViewHeader
-            title={t('lighting.title')}
-            tabs={modeTabs}
-            activeTab={synced ? effectiveMode : undefined}
-            onTabChange={(k, origin) => {
-              // Status-change bloom only on an actual mode switch, from the pressed tab.
-              if (origin && k !== (synced ? effectiveMode : null)) emitRadialBloomFromElement(origin, k === 'none');
-              void handleModeChange(k as LightingMode);
-            }}
-          />
-        </div>
-        <div className={styles.presetHeader}>
-          <PresetToolbar
-            presets={presets}
-            activeId={layoutActiveId}
-            presetCount={presetCount}
-            canUndo={canUndoLayout}
-            canRedo={canRedoLayout}
-            onLoad={handlePresetLoadWithHistory}
-            onCreate={handlePresetCreate}
-            onRename={handlePresetRename}
-            onDelete={handlePresetDelete}
-            onReset={handleResetWithHistory}
-            onUndo={handleUndoLayout}
-            onRedo={handleRedoLayout}
-          />
+        {/* Tabs and presets share one flex row: the presets keep their column
+            width until the tab bar needs the space, then give it up. */}
+        <div className={styles.topRow}>
+          <div className={styles.tabsCell}>
+            <ViewHeader
+              title={t('lighting.title')}
+              tabs={modeTabs}
+              activeTab={synced ? effectiveMode : undefined}
+              onTabChange={(k, origin) => {
+                // Status-change bloom only on an actual mode switch, from the pressed tab.
+                if (origin && k !== (synced ? effectiveMode : null)) emitRadialBloomFromElement(origin, k === 'none');
+                void handleModeChange(k as LightingMode);
+              }}
+            />
+          </div>
+          <div className={styles.presetHeader}>
+            <PresetToolbar
+              presets={presets}
+              activeId={layoutActiveId}
+              presetCount={presetCount}
+              canUndo={canUndoLayout}
+              canRedo={canRedoLayout}
+              onLoad={handlePresetLoadWithHistory}
+              onCreate={handlePresetCreate}
+              onRename={handlePresetRename}
+              onDelete={handlePresetDelete}
+              onReset={handleResetWithHistory}
+              onUndo={handleUndoLayout}
+              onRedo={handleRedoLayout}
+            />
+          </div>
         </div>
         <div className={`${styles.paneHeader} ${styles.headerLeft}`}>
-          <span className={styles.paneTitle}>{t('lighting.rightPane.devices')}</span>
-          {selectableIds.length > 0 && (
-            <div className={styles.deviceHeaderActions}>
+          <span className={styles.paneTitleGroup}>
+            <span className={styles.paneTitle}>{t('lighting.rightPane.devices')}</span>
+            <OpenRgbDot rgbRunning={rgb.running} />
+          </span>
+          <div className={styles.deviceHeaderActions}>
+            <OpenRgbButton rgbRunning={rgb.running} scanning={rgb.scanning} />
+            {selectableIds.length > 0 && (
+            <>
+              <span className={styles.headerSep} aria-hidden />
               {/* Icon-only: the rail is too narrow for both labels beside the title. */}
               <HoverTooltip body={t('lighting.ledMap.selectAll')} side="bottom">
                 <Button
@@ -1520,8 +1539,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                   onClick={() => handleSetSelection(new Set(), null)}
                 />
               </HoverTooltip>
-            </div>
-          )}
+            </>
+            )}
+          </div>
         </div>
         <div className={`${styles.paneHeader} ${styles.headerCenter}`}>
           <span className={styles.paneTitle}>{t('lighting.pane.preview')}</span>
@@ -1531,12 +1551,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           {dockCollapsed && (
             <HoverTooltip body={t('lighting.effectDock.expand')} side="bottom">
               <Button
-                key={dockPulse}
                 tone="ghost"
                 size="sm"
                 icon={<PanelRightOpen />}
                 aria-label={t('lighting.effectDock.expand')}
-                className={`${styles.dockToggle} ${styles.dockTogglePulse}`}
+                className={styles.dockToggle}
                 onClick={() => setDockCollapsed(false)}
               >
                 {t('lighting.rightPane.effect')}
@@ -1587,7 +1606,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             lianLiFirmwareActive={lianLiFirmwareActive}
             onOpenSmartLights={() => onSectionNavigate?.('smart-lights')}
           />
-          <OpenRgbButton rgbRunning={rgb.running} scanning={rgb.scanning} />
         </div>
         <div className={styles.main}>
           {effectiveMode === 'gamesync' ? (

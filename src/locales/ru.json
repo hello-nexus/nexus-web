@@ -1552,6 +1552,8 @@
   "lighting.devices.notControlled": "Игнорируется - не управляется",
   "lighting.devices.powerOff": "Выкл.",
   "lighting.devices.powerOn": "Вкл.",
+  "lighting.devices.openRgbOffline": "OpenRGB не запущен",
+  "lighting.devices.openRgbOnline": "OpenRGB запущен",
   "lighting.devices.rescan": "Пересканировать устройства",
   "lighting.devices.rotateCcw": "Повернуть против часовой стрелки",
   "lighting.devices.rotateCcwCount.few": "Повернуть против часовой стрелки ({count} устройства)",

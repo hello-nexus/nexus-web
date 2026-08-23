@@ -208,7 +208,10 @@ export function ZoneCard({
       {...(dragEnabled ? drag!.listeners ?? {} : {})}
       className={[
         styles.deviceCard,
-        (toggleMode ? toggleable && controlled : selected && !firmwareControlled) ? styles.deviceCardSelected : '',
+        // Multi-select shows in the checkbox alone; tinting the whole card made
+        // a selection read like a mode. Toggle mode still tints, because there
+        // the fill IS the state.
+        toggleMode && toggleable && controlled ? styles.deviceCardControlled : '',
         unavailable ? styles.deviceCardUnavailable : '',
         !unavailable && (!device.ledsOn || firmwareControlled || !controlled) ? styles.deviceCardPoweredOff : '',
         indent ? styles.deviceCardZone : '',

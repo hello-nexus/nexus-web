@@ -1552,6 +1552,8 @@
   "lighting.devices.notControlled": "Ignorowane - niesterowane",
   "lighting.devices.powerOff": "Wył.",
   "lighting.devices.powerOn": "Wł.",
+  "lighting.devices.openRgbOffline": "OpenRGB nie jest uruchomiony",
+  "lighting.devices.openRgbOnline": "OpenRGB jest uruchomiony",
   "lighting.devices.rescan": "Przeskanuj ponownie urządzenia",
   "lighting.devices.rotateCcw": "Obróć przeciwnie do ruchu wskazówek zegara",
   "lighting.devices.rotateCcwCount.few": "Obróć przeciwnie do ruchu wskazówek zegara ({count} urządzenia)",

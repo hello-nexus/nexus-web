@@ -1557,6 +1557,8 @@
   "lighting.devices.notControlled": "Ignorât - no controlât",
   "lighting.devices.powerOff": "Distudât",
   "lighting.devices.powerOn": "Impiât",
+  "lighting.devices.openRgbOffline": "OpenRGB nol è in esecuzion",
+  "lighting.devices.openRgbOnline": "OpenRGB al è in esecuzion",
   "lighting.devices.rescan": "Torne scansione dai dispositîfs",
   "lighting.devices.rotateCcw": "Zire in sens antiorari",
   "lighting.devices.rotateCcwCount.one": "Zire in sens antiorari ({count} dispositîf)",

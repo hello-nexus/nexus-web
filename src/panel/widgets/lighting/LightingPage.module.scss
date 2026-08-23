@@ -32,11 +32,24 @@
   position: relative; // anchor for the settings drawer
 }
 
-// Mode tabs: a full-width row at the top, starting at the page's left edge.
-.tabsCell {
-  grid-column: 1 / span 2;
+// Row 1, spanning every column: mode tabs from the page's left edge, presets at
+// the right. A flex row rather than grid cells so the two can negotiate - the
+// tab bar cannot compress below its labels, so when the row runs short the
+// presets are what gives, instead of the tabs overflowing across them.
+.topRow {
+  grid-column: 1 / span 3;
   grid-row: 1;
+  display: flex;
+  align-items: center;
+  // Matches the body's column gap, so the presets sit where column 3 starts.
+  gap: 1.5rem;
   min-width: 0;
+}
+
+.tabsCell {
+  flex: 1 1 auto;
+  // Never below the tab labels: shrink pressure has to land on the presets.
+  min-width: min-content;
 }
 
 // One title per column, all on grid row 2 so they share a baseline whatever
@@ -52,8 +65,25 @@
 }
 
 .headerLeft { grid-column: 1; }
-.headerCenter { grid-column: 2; }
 .headerRight { grid-column: 3; }
+
+// The device-count badge belongs to the Preview label, so it sits against it
+// whether or not the expand control shares the row - space-between would send
+// it to the far edge the moment the dock opens and the button goes away. The
+// control keeps its own margin-left:auto to reach the right edge.
+.headerCenter {
+  grid-column: 2;
+  justify-content: flex-start;
+}
+
+// Title plus the status dot that belongs to it, so the pair reads as one label
+// and the header's action cluster still sits at the far edge.
+.paneTitleGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
 
 .paneTitle {
   font-size: var(--type-body);
@@ -68,6 +98,10 @@
   display: flex;
   align-items: center;
   gap: 0.2rem;
+}
+
+.headerSep {
+  @include control-separator;
 }
 
 // Device rail: the left column's card list, under the rail header.
@@ -275,20 +309,15 @@
   grid-template-columns: repeat(auto-fill, minmax(59px, 1fr));
 }
 
-// Static colour palette: one row per family, rows packing side by side as the
-// pane widens so the family grouping survives every width.
+// Static colour palette. The column count comes from the family list, set
+// inline; capping the width keeps the swatches swatch-sized when the effect
+// dock is collapsed and the pane is wide.
 .paletteGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-  gap: 0.5rem 0.75rem;
-  align-content: start;
-  padding: 0 0.2rem 0.2rem;
-}
-
-.paletteRow {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
   gap: 0.25rem;
+  align-content: start;
+  max-width: 44rem;
+  padding: 0 0.2rem 0.2rem;
 }
 
 .paletteSwatch {
@@ -305,9 +334,14 @@
   }
 }
 
+// Same selection language as every other pick grid (EffectCard .cardActive):
+// the ring is the text colour, because a coloured one misreads against
+// colourful content - and here the content IS a colour.
 .paletteSwatchActive {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent);
+  border-color: var(--text);
+  box-shadow: 0 0 0 1px var(--text);
+
+  &:hover { border-color: var(--text); }
 }
 
 // Effect-editor stand-in for a palette pick: names the colour, and says why
@@ -804,40 +838,7 @@
 // Bottom-of-pane OpenRGB rescan control: refresh icon + rescan action on the
 // left, OpenRGB label + status dot pushed to the right edge. Spans the pane
 // width via the right pane's column stretch.
-.openRgbButton {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  margin: 0.5rem 0.4rem 0.85rem;
-  flex-shrink: 0;
-  padding: 0.3rem 0.7rem;
-  border: var(--border-width) solid transparent;
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: var(--text-dim);
-  font: inherit;
-  font-size: var(--type-small);
-  cursor: pointer;
-  transition: color var(--ease-fast), border-color var(--ease-fast), background var(--ease-fast);
-
-  &:hover:not(:disabled),
-  &:focus-visible {
-    color: var(--accent);
-    border-color: var(--accent);
-    background: var(--bg-card-hover);
-  }
-
-  &:disabled {
-    cursor: default;
-    opacity: 0.55;
-  }
-}
-
 // Push the refresh icon to the right edge; status dot + label stay left.
-.openRgbSpinner {
-  margin-left: auto;
-}
-
 .openRgbDot {
   width: 7px;
   height: 7px;
@@ -937,7 +938,7 @@
     border-color: var(--border-strong);
   }
 
-  &.deviceCardSelected {
+  &.deviceCardControlled {
     border-color: var(--accent);
     background: var(--accent-soft);
   }
@@ -1249,9 +1250,10 @@
 // The preset owns the mode + effect selection, so its control sits above the
 // selector. Left inset matches .devicePanel so it aligns with the cards below.
 .presetHeader {
-  grid-column: 3;
-  grid-row: 1;
-  min-width: 0;
+  // Column width until the tabs need the room; the toolbar's own select is the
+  // flexible part, so the buttons survive and the preset name truncates.
+  flex: 0 1 300px;
+  min-width: min-content;
   // Column, not row: the toolbar has to be sized on the CROSS axis so it
   // stretches to the rail width, the way it did inside the old right pane. As a
   // row item it is sized on the main axis instead - the preset name's width - so
@@ -1573,15 +1575,3 @@
   flex-shrink: 0;
 }
 
-// Attention pulse on the expand control while the dock is hidden: a pick still
-// changed something the user cannot see. Re-mounted per pick (key), so the
-// animation restarts every time.
-.dockTogglePulse {
-  animation: effectDockPulse 0.6s ease-out;
-}
-
-@keyframes effectDockPulse {
-  0%   { color: inherit; transform: scale(1); }
-  35%  { color: var(--accent-glow, var(--accent)); transform: scale(1.18); }
-  100% { color: inherit; transform: scale(1); }
-}

@@ -1,3 +1,4 @@
+@use '../../../styles/interactions' as *;
 // Two-column shape (mirrors LightingPage): main pane on the left holds the
 // trend chart + curves list; the right sidebar holds the fan cards. The
 // page owns its own vertical layout so the sidebar can fill height; the
@@ -272,12 +273,6 @@
 }
 // Calibrate button pinned near the bottom of the fan sidebar, lifted off the
 // edge so it doesn't read as flush against the container bottom.
-.fanSidebarFooter {
-  flex-shrink: 0;
-  padding-top: 0.25rem;
-  padding-bottom: 0.75rem;
-}
-.fanSidebarFooter > button { width: 100%; justify-content: center; }
 .empty { color: var(--text-dim); font-size: var(--type-body); text-align: center; padding: 3rem 0; }
 
 // ── Section titles ─────────────────────────────────────────────────────────
@@ -360,7 +355,9 @@
 // sidebar column, name on top, RPM meta + duty bar + dropdown beneath.
 .fanCard {
   position: relative;
-  display: flex; flex-direction: column; gap: 0.4rem;
+  // Row, matching the lighting rail: the select box sits centred against the
+  // full card height and the fan's own stack sits beside it.
+  display: flex; align-items: center; gap: 0.6rem;
   padding: 0.6rem 0.75rem;
   border-radius: var(--radius); border: var(--border-width) solid transparent; background: var(--surface);
   // Click selects, like a lighting device row; a drag only begins past the
@@ -369,6 +366,14 @@
   transition: border-color var(--ease-fast) ease, background var(--ease-fast) ease, opacity var(--ease-fast) ease;
   &:hover { border-color: var(--border-strong); }
   &:active { cursor: grabbing; }
+}
+
+.fanCardBody {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
 }
 
 // Sidebar variant: fill the column width.
@@ -1107,11 +1112,6 @@
 
 // Selected fan card: same emphasis the lighting device rows use, so a
 // selection reads identically across the two pages.
-.fanCardSelected {
-  border-color: var(--accent);
-  background: var(--surface-selected, color-mix(in srgb, var(--accent) 12%, transparent));
-}
-
 // Curve buttons: their own block under the "Curve" title, in the same surface
 // container every other grouped block on the page uses.
 .curvePickerSection {
@@ -1132,6 +1132,10 @@
 }
 
 // Select all / none beside the Fans title, matching the lighting rail.
+.headerSep {
+  @include control-separator;
+}
+
 .fanHeaderActions {
   display: flex;
   align-items: center;

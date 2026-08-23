@@ -1544,6 +1544,8 @@
   "lighting.devices.notControlled": "Yok sayılıyor - kontrol edilmiyor",
   "lighting.devices.powerOff": "Kapalı",
   "lighting.devices.powerOn": "Açık",
+  "lighting.devices.openRgbOffline": "OpenRGB çalışmıyor",
+  "lighting.devices.openRgbOnline": "OpenRGB çalışıyor",
   "lighting.devices.rescan": "Cihazları Yeniden Tara",
   "lighting.devices.rotateCcw": "Saat yönünün tersine döndür",
   "lighting.devices.rotateCcwCount.one": "Saat yönünün tersine döndür ({count} cihaz)",
