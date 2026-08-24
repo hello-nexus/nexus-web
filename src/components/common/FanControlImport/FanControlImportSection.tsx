@@ -194,7 +194,10 @@ export function FanControlImportSection({
     <SettingsSection
       className={wide ? styles.sectionWide : styles.section}
       boxClassName={styles.box}
-      title={t('fanControlImport.title')}
+      // In a dialog the host already carries this as its title; repeating it
+      // inside the surface just says it twice.
+      title={wide ? undefined : t('fanControlImport.title')}
+      ariaLabel={t('fanControlImport.title')}
       description={<p>{t('fanControlImport.description')}</p>}
     >
       {configs.length > 1 && (
