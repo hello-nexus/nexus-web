@@ -63,7 +63,10 @@ export function FanControlImportScreen({ open, payload, onComplete, onBack }: Fa
 
   const heading = t('fanControlImport.screen.title');
 
-  const handleContinue = async () => {
+  // `runImport` is what separates the two buttons: both close FanControl and
+  // remove its autostart, because the apps cannot share the fan controllers -
+  // only one of them brings the configuration over.
+  const handleContinue = async (runImport: boolean) => {
     if (applyPhase === 'applying' || dismissing || importBusy) return;
 
     // A second click after a failure always dismisses; it never retries.
@@ -77,7 +80,7 @@ export function FanControlImportScreen({ open, payload, onComplete, onBack }: Fa
     setApplyPhase('applying');
 
     let importFailed = false;
-    if (importHasSelection && importHandle.current) {
+    if (runImport && importHasSelection && importHandle.current) {
       importFailed = await importHandle.current.runImport() === 'failed';
     }
 
@@ -108,7 +111,7 @@ export function FanControlImportScreen({ open, payload, onComplete, onBack }: Fa
       onClose={() => { /* non-dismissable: only Continue proceeds */ }}
       noEscDismiss
       noBackdropDismiss
-      onEnter={handleContinue}
+      onEnter={() => handleContinue(true)}
       ariaLabel={heading}
       className={styles.surface}
       backdropClassName={styles.backdrop}
@@ -165,18 +168,29 @@ export function FanControlImportScreen({ open, payload, onComplete, onBack }: Fa
             {t('nav.back')}
           </Button>
         )}
+        {applyPhase !== 'failed' && payload?.importAvailable && (
+          <Button
+            tone="neutral"
+            size="lg"
+            onClick={() => handleContinue(false)}
+            disabled={applyPhase === 'applying' || dismissing || importBusy}
+            className={styles.continueButton}
+          >
+            {t('fanControlImport.screen.skipImport')}
+          </Button>
+        )}
         <Button
           tone="accent"
           size="lg"
-          onClick={handleContinue}
+          onClick={() => handleContinue(true)}
           loading={applyPhase === 'applying' || dismissing}
           loadingHidesLabel
-          disabled={importBusy}
+          disabled={importBusy || (applyPhase !== 'failed' && payload?.importAvailable === true && !importHasSelection)}
           className={styles.continueButton}
         >
           {applyPhase === 'failed'
             ? t('fanControlImport.screen.continueAnyway')
-            : importHasSelection
+            : payload?.importAvailable
               ? t('fanControlImport.screen.importAndContinue')
               : t('fanControlImport.screen.continue')}
         </Button>

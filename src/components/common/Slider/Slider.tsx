@@ -1,5 +1,6 @@
 import { useEffect, useRef, type CSSProperties, type PointerEventHandler, type ReactNode } from 'react';
 import { EditableNumber } from '../Editable/EditableNumber';
+import { InfoTooltip } from '../InfoTooltip/InfoTooltip';
 import styles from './Slider.module.scss';
 
 /*
@@ -32,6 +33,8 @@ import styles from './Slider.module.scss';
  */
 export interface SliderProps {
   label?: string;
+  /** One-sentence explanation shown behind an info affordance beside the label. */
+  info?: string;
   value: number;
   min: number;
   max: number;
@@ -63,7 +66,7 @@ export interface SliderProps {
 }
 
 export function Slider({
-  label = '', value, min, max, step = 1,
+  label = '', info, value, min, max, step = 1,
   orientation = 'inline', editable = false, zeroMarker = false, showRange = false,
   formatValue, onChange, onCommit, onPointerDown, onPointerCancel,
   disabled, trackFill, marker, markerLabel, fillCap, ariaLabel, className,
@@ -194,7 +197,7 @@ export function Slider({
     return (
       <label className={`${styles.root} ${styles.stacked} ${className ?? ''}`}>
         <div className={styles.head}>
-          <span className={styles.label}>{label}</span>
+          <span className={styles.label}>{label}{info && <InfoTooltip message={info} side="top" />}</span>
           {valueNode}
         </div>
         <div className={styles.track}>
@@ -218,7 +221,7 @@ export function Slider({
   // reverts it. The range carries its own aria-label, so no label is needed.
   return (
     <div className={`${styles.root} ${styles.inline} ${className ?? ''}`}>
-      {label && <span className={styles.label}>{label}</span>}
+      {label && <span className={styles.label}>{label}{info && <InfoTooltip message={info} side="top" />}</span>}
       <div className={styles.track}>
         {range}
         {showZero && <span className={styles.zeroTick} style={{ left: `${zeroPct}%` }} />}

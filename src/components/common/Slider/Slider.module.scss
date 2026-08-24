@@ -37,6 +37,11 @@
   color: var(--text-dim);
   letter-spacing: 0.02em;
   white-space: nowrap;
+  // inline-flex so an info affordance sits on the label's baseline row
+  // without changing the layout of a label that has none.
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
 }
 
 .inline .label {

@@ -94,6 +94,8 @@ export interface FanControlImportSectionProps {
   handleRef?: RefObject<FanControlImportHandle | null>;
   /** Fires after a successful apply, so a host can refetch cooling state. */
   onImported?: () => void;
+  /** Fills the host's width instead of the narrower onboarding column. */
+  wide?: boolean;
 }
 
 /**
@@ -102,7 +104,7 @@ export interface FanControlImportSectionProps {
  * onboarding screen and the cooling page's dialog so the markup lives once.
  */
 export function FanControlImportSection({
-  open, configs, disabled, onBusyChange, showAction = true, onSelectionChange, handleRef, onImported,
+  open, configs, disabled, onBusyChange, showAction = true, onSelectionChange, handleRef, onImported, wide,
 }: FanControlImportSectionProps) {
   const { t, language } = useTranslation();
   const defaultPath = configs.find(c => c.isDefault)?.path ?? configs[0]?.path ?? '';
@@ -190,7 +192,7 @@ export function FanControlImportSection({
 
   return (
     <SettingsSection
-      className={styles.section}
+      className={wide ? styles.sectionWide : styles.section}
       boxClassName={styles.box}
       title={t('fanControlImport.title')}
       description={<p>{t('fanControlImport.description')}</p>}

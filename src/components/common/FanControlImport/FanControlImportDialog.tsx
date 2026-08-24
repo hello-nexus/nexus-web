@@ -18,8 +18,8 @@ export interface FanControlImportDialogProps {
 export function FanControlImportDialog({ open, configs, onClose, onImported }: FanControlImportDialogProps) {
   const { t } = useTranslation();
   return (
-    <DeviceModal open={open} onClose={onClose} title={t('fanControlImport.title')}>
-      <FanControlImportSection open={open} configs={configs} onImported={onImported} />
+    <DeviceModal open={open} onClose={onClose} title={t('fanControlImport.title')} large>
+      <FanControlImportSection open={open} configs={configs} onImported={onImported} wide />
     </DeviceModal>
   );
 }
