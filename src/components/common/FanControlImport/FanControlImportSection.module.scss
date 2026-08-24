@@ -72,9 +72,11 @@
 
 .row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) auto;
+  // Name left, what it maps to right. Anything that needs a third value (the
+  // fans a curve drives) wraps to its own full-width line below.
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
   align-items: baseline;
-  gap: 0.5rem;
+  column-gap: 0.75rem;
   @include text-caption;
 }
 
@@ -91,6 +93,7 @@
 
 .rowMeta {
   color: var(--text-dim);
+  justify-self: end;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -98,7 +101,8 @@
 
 .rowFans {
   color: var(--text-dim);
-  grid-column: 2 / -1;
+  grid-column: 1 / -1;
+  padding-left: 0.75rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -107,6 +111,7 @@
 .rowBadge {
   color: var(--text-dim);
   justify-self: end;
+  white-space: nowrap;
 }
 
 .skippedList {

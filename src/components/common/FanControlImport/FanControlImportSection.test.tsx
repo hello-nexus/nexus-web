@@ -86,7 +86,8 @@ describe('FanControlImportSection', () => {
     renderSection();
     // "CPU Fan" shows twice: once as the curve's fan, once as its own row.
     await screen.findAllByText('CPU Fan');
-    expect(screen.getByText('fanControlImport.match.normalized')).toBeInTheDocument();
+    // The matched channel and how it was matched read as one line.
+    expect(screen.getByText('CPU (fanControlImport.match.normalized)')).toBeInTheDocument();
     expect(screen.getAllByText('fanControlImport.match.none').length).toBeGreaterThan(0);
   });
 

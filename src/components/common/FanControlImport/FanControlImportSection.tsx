@@ -255,9 +255,10 @@ export function FanControlImportSection({
                   <li key={fan.identifier} className={fan.channelId ? styles.row : styles.rowSkipped}>
                     <span className={styles.rowName}>{fan.sourceName}</span>
                     <span className={styles.rowMeta}>
-                      {fan.channelId ? fan.channelName : t('fanControlImport.match.none')}
+                      {fan.channelId
+                        ? `${fan.channelName} (${t(MATCH_LABEL_KEYS[fan.match])})`
+                        : t(MATCH_LABEL_KEYS.none)}
                     </span>
-                    <span className={styles.rowBadge}>{t(MATCH_LABEL_KEYS[fan.match])}</span>
                   </li>
                 ))}
               </ul>
