@@ -12,6 +12,8 @@ interface Shortcut {
   id: string;
   name: string;
   path: string;
+  /** Resolved by the service; empty when it could not be. */
+  processName?: string;
 }
 
 /** Id prefix for an app taken off the running list rather than the installed
@@ -22,6 +24,7 @@ interface PickerEntry {
   id: string;
   name: string;
   iconPath: string;
+  processName: string;
 }
 
 interface AppPickerProps {
@@ -33,9 +36,14 @@ interface AppPickerProps {
   /** Prepends a "Running now" group of apps that currently own a window, for
    *  binding something the installed-app list does not carry. */
   showRunning?: boolean;
+  /** Keys that are spoken for, mapped to a reason shown on the row. Matched
+   *  against an entry's id AND its resolved process name, so the same app
+   *  reads as taken whichever list it came from. They stay clickable so the
+   *  caller can explain; they just do not read as selectable. */
+  unavailableIds?: Record<string, string>;
 }
 
-export function AppPicker({ selectedId, selectedIds, onSelect, showRunning = false }: AppPickerProps) {
+export function AppPicker({ selectedId, selectedIds, onSelect, showRunning = false, unavailableIds }: AppPickerProps) {
   const { t } = useTranslation();
   const [apps, setApps] = useState<Shortcut[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,23 +70,58 @@ export function AppPicker({ selectedId, selectedIds, onSelect, showRunning = fal
     return () => { cancelled = true; };
   }, []);
 
-  const installedEntries = useMemo<PickerEntry[]>(() => apps.map(a => ({
-    id: a.id,
-    name: a.name,
-    iconPath: `/shortcuts/icon?targetId=${encodeURIComponent(a.id)}`,
-  })), [apps]);
+  // A running process that matches an installed app is shown once, under
+  // Running now, but carries the installed entry's id and display name - the
+  // stable id and the nicer label - instead of the bare process name.
+  const installedByProcess = useMemo(() => {
+    const out = new Map<string, Shortcut>();
+    for (const a of apps) {
+      if (a.processName && !out.has(a.processName)) out.set(a.processName, a);
+    }
+    return out;
+  }, [apps]);
 
-  const runningEntries = useMemo<PickerEntry[]>(() => running.map(name => ({
-    id: RUNNING_APP_ID_PREFIX + name,
-    name,
-    iconPath: processIconPath(name),
-  })), [running]);
+  const runningEntries = useMemo<PickerEntry[]>(() => running.map(name => {
+    const key = name.toLowerCase();
+    const installed = installedByProcess.get(key);
+    return installed
+      ? {
+        id: installed.id,
+        name: installed.name,
+        iconPath: `/shortcuts/icon?targetId=${encodeURIComponent(installed.id)}`,
+        processName: key,
+      }
+      : {
+        id: RUNNING_APP_ID_PREFIX + name,
+        name,
+        iconPath: processIconPath(name),
+        processName: key,
+      };
+  }), [running, installedByProcess]);
+
+  const runningProcesses = useMemo(
+    () => new Set(runningEntries.map(e => e.processName)),
+    [runningEntries],
+  );
+
+  const installedEntries = useMemo<PickerEntry[]>(() => apps
+    // Already listed above under Running now; listing it twice reads as two
+    // different apps when it is one.
+    .filter(a => !(a.processName && runningProcesses.has(a.processName)))
+    .map(a => ({
+      id: a.id,
+      name: a.name,
+      iconPath: `/shortcuts/icon?targetId=${encodeURIComponent(a.id)}`,
+      processName: a.processName ?? '',
+    })), [apps, runningProcesses]);
 
   const matches = (e: PickerEntry) => e.name.toLowerCase().includes(query.toLowerCase());
   const filtered = query ? installedEntries.filter(matches) : installedEntries;
   const filteredRunning = query ? runningEntries.filter(matches) : runningEntries;
 
   const isSelected = (id: string) => (selectedIds ? selectedIds.includes(id) : id === selectedId);
+  const unavailableReason = (entry: PickerEntry) =>
+    unavailableIds?.[entry.id] ?? (entry.processName ? unavailableIds?.[entry.processName] : undefined);
 
   return (
     <div className={styles.picker}>
@@ -102,6 +145,7 @@ export function AppPicker({ selectedId, selectedIds, onSelect, showRunning = fal
             key={app.id}
             app={app}
             selected={isSelected(app.id)}
+            unavailable={unavailableReason(app)}
             onSelect={() => onSelect({ id: app.id, name: app.name })}
           />
         ))}
@@ -113,6 +157,7 @@ export function AppPicker({ selectedId, selectedIds, onSelect, showRunning = fal
             key={app.id}
             app={app}
             selected={isSelected(app.id)}
+            unavailable={unavailableReason(app)}
             onSelect={() => onSelect({ id: app.id, name: app.name })}
           />
         ))}
@@ -121,9 +166,10 @@ export function AppPicker({ selectedId, selectedIds, onSelect, showRunning = fal
   );
 }
 
-function AppRow({ app, selected, onSelect }: {
+function AppRow({ app, selected, unavailable, onSelect }: {
   app: PickerEntry;
   selected: boolean;
+  unavailable?: string;
   onSelect: () => void;
 }) {
   const [iconUrl, setIconUrl] = useState<string | null>(null);
@@ -166,8 +212,10 @@ function AppRow({ app, selected, onSelect }: {
     <button
       ref={rowRef}
       type="button"
-      className={`${styles.appRow} ${selected ? styles.appRowSelected : ''}`}
+      className={`${styles.appRow} ${selected ? styles.appRowSelected : ''} ${unavailable ? styles.appRowTaken : ''}`}
       onClick={onSelect}
+      title={unavailable}
+      aria-disabled={unavailable ? true : undefined}
     >
       {iconUrl
         ? <img src={iconUrl} className={styles.rowIcon} alt="" />

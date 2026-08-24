@@ -3,7 +3,7 @@ import type { LightingDevice } from '../../../../api/lighting';
 import {
   fetchLayoutPresets, createLayoutPreset, updateLayoutPreset,
   deleteLayoutPreset, activateLayoutPreset, setLayoutPresetApps,
-  type LayoutPreset, type DeviceLayoutDto, type PresetApp,
+  type LayoutPreset, type DeviceLayoutDto, type PresetApp, type PresetAppConflict,
 } from '../../../../api/lighting';
 import { useTopicCallback } from '../../../../hooks/useMultiplexSocket';
 
@@ -38,7 +38,8 @@ export interface UseLayoutPresetsResult {
   handleRename: (id: string, name: string) => Promise<void>;
   handleDelete: (id: string) => Promise<void>;
   handleLoad: (id: string) => Promise<void>;
-  handleSetApps: (id: string, apps: PresetApp[]) => Promise<void>;
+  /** Null on success, or the conflict the server refused the save with. */
+  handleSetApps: (id: string, apps: PresetApp[]) => Promise<PresetAppConflict | null>;
 }
 
 export function useLayoutPresets(serviceOnline: boolean, activeProfileId?: string): UseLayoutPresetsResult {
@@ -89,8 +90,9 @@ export function useLayoutPresets(serviceOnline: boolean, activeProfileId?: strin
   }, [loadPresets]);
 
   const handleSetApps = useCallback(async (id: string, apps: PresetApp[]) => {
-    await setLayoutPresetApps(id, apps);
+    const result = await setLayoutPresetApps(id, apps);
     await loadPresets();
+    return result.ok ? null : (result.conflict ?? null);
   }, [loadPresets]);
 
   // AppPresetSwitcher activates a preset server-side when a bound app takes

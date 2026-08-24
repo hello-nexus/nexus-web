@@ -29,8 +29,9 @@ import { fetchService, fetchServiceBlob } from '../../../api/service';
 
 const SHORTCUTS = {
   shortcuts: [
-    { id: 'com.example.chrome', name: 'Google Chrome', path: '/Applications/Chrome.app' },
-    { id: 'com.example.code', name: 'Visual Studio Code', path: '/Applications/Code.app' },
+    { id: 'com.example.chrome', name: 'Google Chrome', path: '/c/chrome.exe', processName: 'chrome' },
+    { id: 'com.example.code', name: 'Visual Studio Code', path: '/c/code.exe', processName: 'code' },
+    { id: 'Some.Uwp!App', name: 'Notepad', path: '', processName: '' },
   ],
 };
 
@@ -122,11 +123,80 @@ describe('AppPicker running-apps group', () => {
     emitProcesses([{ name: 'steam', isApp: true }, { name: 'code', isApp: true }]);
     await waitFor(() => expect(screen.getByText('steam')).toBeTruthy());
 
-    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'code' } });
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'stea' } });
+    expect([...document.querySelectorAll('button')]
+      .filter(b => b.className.includes('appRow'))
+      .map(b => b.textContent)).toEqual(['steam']);
 
+    // 'code' is running AND installed, so it appears once - under Running now,
+    // with its installed name.
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'code' } });
+    expect([...document.querySelectorAll('button')]
+      .filter(b => b.className.includes('appRow'))
+      .map(b => b.textContent)).toEqual(['Visual Studio Code']);
+  });
+
+  // ---- one app, one row ----
+
+  it('a running app that is also installed is listed once, with its installed identity', async () => {
+    const onSelect = vi.fn();
+    render(<AppPicker showRunning onSelect={onSelect} />);
+    await screen.findByText('Google Chrome');
+    emitProcesses([{ name: 'chrome', isApp: true }]);
+    await waitFor(() => expect(
+      [...document.querySelectorAll('button')].filter(b => b.className.includes('appRow')).length,
+    ).toBeGreaterThan(0));
+
+    // Exactly one Chrome row, and it sits in the Running now group.
     const rows = [...document.querySelectorAll('button')]
       .filter(b => b.className.includes('appRow'))
       .map(b => b.textContent);
-    expect(rows).toEqual(['code', 'Visual Studio Code']);
+    expect(rows.filter(r => r === 'Google Chrome')).toHaveLength(1);
+    expect(rows[0]).toBe('Google Chrome');
+
+    // It binds under the installed id, not proc:chrome.
+    fireEvent.click(screen.getByText('Google Chrome'));
+    expect(onSelect).toHaveBeenCalledWith({ id: 'com.example.chrome', name: 'Google Chrome' });
+  });
+
+  it('a running process with no installed match keeps its proc: identity', async () => {
+    const onSelect = vi.fn();
+    render(<AppPicker showRunning onSelect={onSelect} />);
+    await screen.findByText('Google Chrome');
+    emitProcesses([{ name: 'steam', isApp: true }]);
+    await waitFor(() => expect(screen.getByText('steam')).toBeTruthy());
+
+    fireEvent.click(screen.getByText('steam'));
+    expect(onSelect).toHaveBeenCalledWith({ id: 'proc:steam', name: 'steam' });
+  });
+
+  it('greys a row taken under its process name, whichever list it came from', async () => {
+    render(
+      <AppPicker
+        showRunning
+        unavailableIds={{ code: 'taken by Desk' }}
+        onSelect={vi.fn()}
+      />,
+    );
+    await screen.findByText('Visual Studio Code');
+    // Not running, so it sits in All apps - and must still read as taken.
+    emitProcesses([{ name: 'chrome', isApp: true }]);
+    await waitFor(() => expect(screen.getByText('Google Chrome')).toBeTruthy());
+
+    const code = screen.getByText('Visual Studio Code').closest('button')!;
+    expect(code.className).toContain('appRowTaken');
+    expect(code.getAttribute('title')).toBe('taken by Desk');
+
+    const chrome = screen.getByText('Google Chrome').closest('button')!;
+    expect(chrome.className).not.toContain('appRowTaken');
+  });
+
+  it('an unresolved app is never deduped away by an empty process name', async () => {
+    render(<AppPicker showRunning onSelect={vi.fn()} />);
+    await screen.findByText('Notepad');
+    emitProcesses([{ name: 'chrome', isApp: true }]);
+    await waitFor(() => expect(screen.getByText('Google Chrome')).toBeTruthy());
+
+    expect(screen.getByText('Notepad')).toBeTruthy();
   });
 });

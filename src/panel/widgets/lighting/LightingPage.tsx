@@ -1279,6 +1279,20 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // can activate a different preset while it is open (a bound app taking
   // focus), which would otherwise retarget the save.
   const [presetAppsTarget, setPresetAppsTarget] = useState<{ id: string; name: string; apps: PresetApp[] } | null>(null);
+  // Apps other presets already trigger, keyed by id and by resolved process
+  // name so the same app picked two ways is recognised as one.
+  const takenApps = useMemo(() => {
+    const out: Record<string, string> = {};
+    for (const preset of presets) {
+      if (preset.id === presetAppsTarget?.id) continue;
+      for (const app of preset.apps ?? []) {
+        out[app.id] = preset.name;
+        if (app.processName) out[app.processName] = preset.name;
+      }
+    }
+    return out;
+  }, [presets, presetAppsTarget?.id]);
+
   const presetOptions = useMemo(
     () => presets.map(p => ({ id: p.id, name: p.name, hasApps: (p.apps?.length ?? 0) > 0 })),
     [presets],
@@ -1932,9 +1946,17 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
         <PresetAppsModal
           presetName={presetAppsTarget.name}
           apps={presetAppsTarget.apps}
+          taken={takenApps}
           onSave={async apps => {
-            await handlePresetSetApps(presetAppsTarget.id, apps);
+            const conflict = await handlePresetSetApps(presetAppsTarget.id, apps);
+            if (conflict) {
+              return t('lighting.layoutPresets.appsTaken', {
+                app: conflict.appName,
+                preset: conflict.presetName,
+              });
+            }
             setPresetAppsTarget(null);
+            return null;
           }}
           onClose={() => setPresetAppsTarget(null)}
         />

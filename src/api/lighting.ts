@@ -1,6 +1,6 @@
 // Lighting API wrapper - authenticated fetch/post to the local service.
 
-import { fetchService, postService, deleteService, putService, resolveAuthWs } from './service';
+import { fetchService, postService, deleteService, putService, authFetchWithStatus, resolveAuthWs } from './service';
 
 export async function lightingOutputUrl(): Promise<string> {
   return resolveAuthWs('/lighting/output');
@@ -374,6 +374,17 @@ export interface DeviceLayoutDto {
 export interface PresetApp {
   id: string;
   name: string;
+  /** Resolved match key, so the same app picked off the running list and the
+   *  installed list is recognised as one app. Empty when unresolvable. */
+  processName?: string;
+}
+
+/** 409 body when an app in the request already triggers another preset. */
+export interface PresetAppConflict {
+  error: boolean;
+  msg: string;
+  appName: string;
+  presetName: string;
 }
 
 export interface LayoutPreset {
@@ -409,10 +420,29 @@ export const deleteLayoutPreset = (id: string) =>
 export const setActiveLayoutPreset = (id: string | null) =>
   putService('/devices/lighting-devices/layout-presets/active', { id });
 
-// Assigning an app here unbinds it from every other preset - an app drives
-// exactly one preset.
-export const setLayoutPresetApps = (id: string, apps: PresetApp[]) =>
-  putService('/devices/lighting-devices/layout-presets/' + encodeURIComponent(id) + '/apps', { apps });
+// An app drives exactly one preset, so assigning one another preset already
+// uses is refused with a 409 naming the owner rather than moved.
+export type SetPresetAppsResult =
+  | { ok: true }
+  | { ok: false; conflict?: PresetAppConflict };
+
+export async function setLayoutPresetApps(id: string, apps: PresetApp[]): Promise<SetPresetAppsResult> {
+  // authFetch drops the body of a non-2xx, and the 409 carries which preset
+  // already owns the app - so this call needs the status-aware path.
+  const { response, status } = await authFetchWithStatus(
+    '/devices/lighting-devices/layout-presets/' + encodeURIComponent(id) + '/apps',
+    { method: 'PUT', body: { apps } },
+  );
+  if (status === 200) return { ok: true };
+  if (status === 409 && response) {
+    try {
+      return { ok: false, conflict: (await response.json()) as PresetAppConflict };
+    } catch {
+      return { ok: false };
+    }
+  }
+  return { ok: false };
+}
 
 export const activateLayoutPreset = (id: string) =>
   postService('/devices/lighting-devices/layout-presets/' + encodeURIComponent(id) + '/activate', {});
