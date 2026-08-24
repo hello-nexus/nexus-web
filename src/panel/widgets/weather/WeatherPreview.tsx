@@ -179,9 +179,11 @@ export function WeatherPreview({ widget }: WidgetProps) {
 
   if (large) {
     return (
-      <div className={styles.large}>
-        {renderTop()}
-        {renderHourly()}
+      <div className={`${styles.large} ${styles.largeTall}`}>
+        <div className={styles.topSection}>
+          {renderTop()}
+          {renderHourly()}
+        </div>
         <div className={styles.divider} />
         {renderDailyList(true)}
       </div>
@@ -190,9 +192,11 @@ export function WeatherPreview({ widget }: WidgetProps) {
 
   if (wide) {
     return (
-      <div className={styles.large}>
-        {renderTop()}
-        {renderHourly()}
+      <div className={`${styles.large} ${styles.largeWide}`}>
+        <div className={styles.topSection}>
+          {renderTop()}
+          {renderHourly()}
+        </div>
       </div>
     );
   }

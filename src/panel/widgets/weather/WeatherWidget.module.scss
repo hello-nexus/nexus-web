@@ -17,6 +17,33 @@ $dim: 0.55;
   opacity: $dim;
 }
 
+// All-round inset on the large layouts. 4x4 keeps it at the bottom, since
+// moving that edge would move the daily list.
+$base-pad: 22px;
+// Vertical inset for the current-conditions region. Bounded by the tightest
+// surface, where the region has the least room to give.
+$region-pad-y: 14px;
+// Lead-in from the region to the separator on 4x4.
+$tall-divider-lead: 20px;
+// 4x4's percentage height resolves against a content box whose top and bottom
+// insets differ; this is the correction that makes the region come out the
+// height of a whole 4x2 on the same surface.
+$tall-region-offset: 2 * $region-pad-y - ($region-pad-y + $base-pad) * 0.5;
+// A 4x4 is taller than two stacked 4x2s by the seam between their rows: the
+// grid gap, plus the per-card chrome the scaler subtracts once per cell
+// whatever the row span (.cellScaler --_card-h in PanelApp.module.scss - the
+// label strip is the one that moves, and only when widget labels are on).
+// These are CSS px; dividing by the panel scale puts the seam in the widget's
+// own units, which is what the insets above are written in.
+$row-seam: calc(
+  (
+    var(--panel-gap, 10px)
+    + var(--panel-widget-label-strip, 0px)
+    + var(--panel-widget-card-bottom-gap, 0px)
+    + 2 * var(--panel-widget-card-inner-pad, 0px)
+  ) / var(--panel-scale, 1)
+);
+
 // Compact (2x2 and 1x1): icon hero + temp + condition stacked
 .compact {
   display: flex;
@@ -94,7 +121,8 @@ $dim: 0.55;
 
 .compactTemp {
   font-size: 2.4em;
-  font-weight: var(--weight-body);
+  font-weight: var(--weight-display);
+  letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
 }
 
@@ -118,13 +146,9 @@ $dim: 0.55;
   @include label-secondary;
   display: flex;
   justify-content: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   max-width: 100%;
-  @include wrapgap(10px, 3px);
-
-  // The parent vgap outranks wrapgap's negative bottom margin; net the
-  // child overhang out of it so the visual spacing stays the vgap value.
-  .compact > &:not(:last-child) { margin-bottom: 4.5px; }
+  @include hgap(10px);
 
   .stat svg {
     width: 12px;
@@ -138,6 +162,7 @@ $dim: 0.55;
 .stat {
   display: inline-flex;
   align-items: center;
+  white-space: nowrap;
 
   svg { width: 13px; height: 13px; margin-right: 4px; }
 }
@@ -150,8 +175,39 @@ $dim: 0.55;
   height: 100%;
   min-width: 0;
   min-height: 0;
-  padding: 22px;
+  padding: $base-pad;
   box-sizing: border-box;
+}
+
+// The current block and the hourly strip form one region, spaced apart within
+// it. Surfaces differ in box height while the content is a fixed size, so the
+// difference lands in the gap between them rather than piling up at the bottom
+// edge.
+.topSection {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex-shrink: 0;
+  min-height: 0;
+}
+
+.largeWide {
+  padding-top: $region-pad-y;
+  padding-bottom: $region-pad-y;
+
+  .topSection { flex: 1; }
+}
+
+// Giving the region the height a 4x2 has on the same surface keeps the hourly
+// strip in place when a widget is expanded. The separator then follows the
+// region, so its offset from the top of the widget tracks the surface rather
+// than staying fixed; the daily list below keeps its bottom edge either way.
+.largeTall {
+  padding-top: $region-pad-y;
+
+  .topSection { height: calc(50% - #{$tall-region-offset} - #{$row-seam} / 2); }
+
+  .divider { margin-top: $tall-divider-lead; }
 }
 
 // The right meta column is shorter than the temp column, so center them
@@ -177,7 +233,8 @@ $dim: 0.55;
 
 .largeTemp {
   font-size: 2.8em;
-  font-weight: var(--weight-body);
+  font-weight: var(--weight-display);
+  letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
@@ -227,16 +284,16 @@ $dim: 0.55;
 .largeCurrentStats {
   @include label-secondary;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   max-width: 100%;
-  @include wrapgap(12px, 4px);
+  @include hgap(12px);
 }
 
 .hourlyRow {
   display: flex;
   justify-content: space-between;
   flex-shrink: 0;
-  margin-top: 12px;
+  margin-top: 10px;
   @include hgap(4px);
 }
 
