@@ -1,5 +1,6 @@
 import { useEffect, useRef, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
 import { EditableNumber } from '../Editable/EditableNumber';
+import { InfoTooltip } from '../InfoTooltip/InfoTooltip';
 import styles from './RangeSlider.module.scss';
 
 /*
@@ -27,6 +28,8 @@ import styles from './RangeSlider.module.scss';
  */
 export interface RangeSliderProps {
   label?: string;
+  /** One-sentence explanation shown behind an info affordance beside the label. */
+  info?: string;
   value: [number, number];
   min: number;
   max: number;
@@ -53,7 +56,7 @@ interface BandDragState {
 }
 
 export function RangeSlider({
-  label = '', value, min, max, step = 1,
+  label = '', info, value, min, max, step = 1,
   orientation = 'inline', editable = false, showRange = false,
   formatValue, minGap, onChange, onCommit, disabled,
   ariaLabelMin, ariaLabelMax, className,
@@ -219,7 +222,7 @@ export function RangeSlider({
     return (
       <div className={`${styles.root} ${styles.stacked} ${className ?? ''}`}>
         <div className={styles.head}>
-          <span className={styles.label}>{label}</span>
+          <span className={styles.label}>{label}{info && <InfoTooltip message={info} side="top" />}</span>
           {valueNode}
         </div>
         <div className={styles.track}>{trackInner}</div>
@@ -235,7 +238,7 @@ export function RangeSlider({
 
   return (
     <div className={`${styles.root} ${styles.inline} ${className ?? ''}`}>
-      <span className={styles.label}>{label}</span>
+      <span className={styles.label}>{label}{info && <InfoTooltip message={info} side="top" />}</span>
       <div className={styles.track}>{trackInner}</div>
       {valueNode}
     </div>

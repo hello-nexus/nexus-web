@@ -22,6 +22,15 @@
   @include scrollbar-visible;
 }
 
+.groupLabel {
+  grid-column: 1 / -1;
+  padding: 0.4rem 0.5rem 0.15rem;
+  color: var(--text-dim);
+  font-size: var(--type-tiny);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
 .empty {
   grid-column: 1 / -1;
   padding: 1rem 0.5rem;
@@ -51,17 +60,23 @@
   }
 
   &:focus-visible {
-    outline: 2px solid var(--panel-accent);
+    // The picker also mounts outside .panel-root (the lighting preset
+    // app-binding modal), where the panel tokens do not resolve.
+    outline: 2px solid var(--panel-accent, var(--accent));
     outline-offset: -2px;
   }
 }
 
 .appRowSelected {
-  background: var(--panel-accent-soft);
+  background: var(--panel-accent-soft, var(--accent-soft));
 
   &:hover {
-    background: var(--panel-accent-soft);
+    background: var(--panel-accent-soft, var(--accent-soft));
   }
+}
+
+.appRowTaken {
+  opacity: 0.45;
 }
 
 .rowIcon {

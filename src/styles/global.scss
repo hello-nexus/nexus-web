@@ -351,6 +351,14 @@ input[type="range"][data-range-knob] {
   gap: 0.25rem;
 }
 
+// Wrap variant (ChipGroup wrap): a token list whose length is driven by data
+// (bound apps), so it must reflow instead of forcing its container wider.
+.chip-group-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+
 // Stretch variant (ChipGroup fullWidth): the row fills its container and the
 // chips share it equally, so a settings row reads as a segmented control.
 .chip-group-full {

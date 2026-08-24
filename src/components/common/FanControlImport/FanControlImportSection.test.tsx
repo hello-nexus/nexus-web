@@ -11,6 +11,7 @@ vi.mock('../../../api/fancontrol', () => ({
 
 vi.mock('../../../lib/i18n', () => ({
   useTranslation: () => ({
+    language: 'en',
     t: (key: string, params?: Record<string, string | number>) => {
       if (!params) return key;
       return `${key}:${Object.values(params).join(',')}`;
@@ -68,7 +69,7 @@ describe('FanControlImportSection', () => {
 
   it('translates every note about what is being left behind', async () => {
     renderSection();
-    expect(await screen.findByText('fanControlImport.skip.fansMissing:1')).toBeInTheDocument();
+    expect(await screen.findByText('fanControlImport.skip.fansMissing.one:1')).toBeInTheDocument();
   });
 
   it('offers only the categories that have something to import', async () => {

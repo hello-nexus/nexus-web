@@ -1,10 +1,16 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { LightingDevice } from '../../../../api/lighting';
 import {
   fetchLayoutPresets, createLayoutPreset, updateLayoutPreset,
-  deleteLayoutPreset, activateLayoutPreset,
-  type LayoutPreset, type DeviceLayoutDto,
+  deleteLayoutPreset, activateLayoutPreset, setLayoutPresetApps,
+  type LayoutPreset, type DeviceLayoutDto, type PresetApp, type SetPresetAppsResult,
 } from '../../../../api/lighting';
+import { useTopicCallback } from '../../../../hooks/useMultiplexSocket';
+
+// Trailing window for the lighting-topic refetch. Long enough that a slider
+// drag collapses to one GET, short enough that a preset the service activated
+// shows up as a prompt UI change.
+const PresetRefetchDebounceMs = 400;
 
 export function devicesToLayouts(devices: LightingDevice[]): Record<string, DeviceLayoutDto> {
   const out: Record<string, DeviceLayoutDto> = {};
@@ -32,17 +38,23 @@ export interface UseLayoutPresetsResult {
   handleRename: (id: string, name: string) => Promise<void>;
   handleDelete: (id: string) => Promise<void>;
   handleLoad: (id: string) => Promise<void>;
+  handleSetApps: (id: string, apps: PresetApp[]) => Promise<SetPresetAppsResult>;
 }
 
 export function useLayoutPresets(serviceOnline: boolean, activeProfileId?: string): UseLayoutPresetsResult {
   const [presets, setPresets] = useState<LayoutPreset[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
+  // Concurrent GETs are routine now that a topic frame can trigger one, so a
+  // response that resolves after a newer request must not overwrite it.
+  const loadGenRef = useRef(0);
+  const refetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const activePreset = presets.find(p => p.id === activeId) ?? null;
 
   const loadPresets = useCallback(async () => {
+    const gen = ++loadGenRef.current;
     const data = await fetchLayoutPresets();
-    if (!data) return;
+    if (!data || gen !== loadGenRef.current) return;
     setPresets(data.presets ?? []);
     setActiveId(data.activeId);
   }, []);
@@ -76,6 +88,25 @@ export function useLayoutPresets(serviceOnline: boolean, activeProfileId?: strin
     await loadPresets();
   }, [loadPresets]);
 
+  const handleSetApps = useCallback(async (id: string, apps: PresetApp[]) => {
+    const result = await setLayoutPresetApps(id, apps);
+    await loadPresets();
+    return result;
+  }, [loadPresets]);
+
+  // AppPresetSwitcher activates a preset server-side when a bound app takes
+  // focus, so the active id can change with no local action. Every /lighting/*
+  // mutation publishes on this topic - a shader-slider drag alone reaches ~30
+  // frames/s - so the refetch is trailing-debounced rather than per-frame.
+  useTopicCallback('lighting', serviceOnline, () => {
+    if (refetchTimerRef.current) clearTimeout(refetchTimerRef.current);
+    refetchTimerRef.current = setTimeout(() => { void loadPresets(); }, PresetRefetchDebounceMs);
+  });
+
+  useEffect(() => () => {
+    if (refetchTimerRef.current) clearTimeout(refetchTimerRef.current);
+  }, []);
+
   return {
     presets,
     activeId,
@@ -86,5 +117,6 @@ export function useLayoutPresets(serviceOnline: boolean, activeProfileId?: strin
     handleRename,
     handleDelete,
     handleLoad,
+    handleSetApps,
   };
 }

@@ -1,6 +1,7 @@
 import { useEffect, useImperativeHandle, useMemo, useState, type ReactNode, type RefObject } from 'react';
 import { Fan, Gauge, SlidersHorizontal, Tag, Waves } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
+import { pluralKey } from '../../../lib/pluralKey';
 import { SettingsSection } from '../SettingsSection/SettingsSection';
 import { SettingToggle } from '../SettingRow/SettingRow';
 import { Button } from '../Button/Button';
@@ -69,6 +70,10 @@ const CATEGORIES: {
   },
 ];
 
+// Skip notes that name a number and so have plural forms; the rest are flat
+// sentences whose key has no .one/.other.
+const COUNTED_SKIP_NOTES = new Set(['fansMissing', 'rpmCurves']);
+
 const MATCH_LABEL_KEYS: Record<FanControlMatch, string> = {
   exact: 'fanControlImport.match.exact',
   normalized: 'fanControlImport.match.normalized',
@@ -89,6 +94,8 @@ export interface FanControlImportSectionProps {
   handleRef?: RefObject<FanControlImportHandle | null>;
   /** Fires after a successful apply, so a host can refetch cooling state. */
   onImported?: () => void;
+  /** Fills the host's width instead of the narrower onboarding column. */
+  wide?: boolean;
 }
 
 /**
@@ -97,9 +104,9 @@ export interface FanControlImportSectionProps {
  * onboarding screen and the cooling page's dialog so the markup lives once.
  */
 export function FanControlImportSection({
-  open, configs, disabled, onBusyChange, showAction = true, onSelectionChange, handleRef, onImported,
+  open, configs, disabled, onBusyChange, showAction = true, onSelectionChange, handleRef, onImported, wide,
 }: FanControlImportSectionProps) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const defaultPath = configs.find(c => c.isDefault)?.path ?? configs[0]?.path ?? '';
   const [configPath, setConfigPath] = useState(defaultPath);
   const [previewStatus, setPreviewStatus] = useState<PreviewStatus>('idle');
@@ -185,9 +192,12 @@ export function FanControlImportSection({
 
   return (
     <SettingsSection
-      className={styles.section}
+      className={wide ? styles.sectionWide : styles.section}
       boxClassName={styles.box}
-      title={t('fanControlImport.title')}
+      // In a dialog the host already carries this as its title; repeating it
+      // inside the surface just says it twice.
+      title={wide ? undefined : t('fanControlImport.title')}
+      ariaLabel={t('fanControlImport.title')}
       description={<p>{t('fanControlImport.description')}</p>}
     >
       {configs.length > 1 && (
@@ -218,7 +228,7 @@ export function FanControlImportSection({
             <SettingToggle
               key={c.id}
               label={t(c.labelKey)}
-              description={t(c.descriptionKey, { count: c.count(preview) })}
+              description={t(pluralKey(c.descriptionKey, language, c.count(preview)), { count: c.count(preview) })}
               icon={c.icon}
               iconLeading
               checked={selected.has(c.id)}
@@ -272,7 +282,12 @@ export function FanControlImportSection({
             <ul className={styles.skippedList} data-settings-aside>
               {preview.skipped.map(note => (
                 <li key={note.code} className={styles.skippedNote}>
-                  {t(`fanControlImport.skip.${note.code}`, { count: note.count })}
+                  {t(
+                    COUNTED_SKIP_NOTES.has(note.code)
+                      ? pluralKey(`fanControlImport.skip.${note.code}`, language, note.count)
+                      : `fanControlImport.skip.${note.code}`,
+                    { count: note.count },
+                  )}
                 </li>
               ))}
             </ul>

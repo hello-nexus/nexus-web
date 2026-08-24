@@ -9,6 +9,10 @@
 
 import { fetchServiceBlob } from './service';
 
+export function processIconPath(name: string): string {
+  return `/monitoring/process-icon?name=${encodeURIComponent(name)}`;
+}
+
 export async function fetchProcessIcon(name: string): Promise<Blob | null> {
-  return fetchServiceBlob(`/monitoring/process-icon?name=${encodeURIComponent(name)}`);
+  return fetchServiceBlob(processIconPath(name));
 }

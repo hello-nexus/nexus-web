@@ -31,6 +31,10 @@
   color: var(--text-dim);
   letter-spacing: 0.02em;
   white-space: nowrap;
+  // Same as Slider: room for an info affordance beside the label.
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
 }
 
 .inline .label {

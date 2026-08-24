@@ -808,8 +808,10 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     setChannels(prev => prev.map(c => (c.id === id ? { ...c, offset: 0 } : c)));
   }, [serviceOnline]);
 
-  const syncSourceChannels = useMemo(
-    () => channels.filter(c => fanStates[c.id]?.curveId !== selectedCurve?.id),
+  // Fans the selected curve drives: a Sync curve may not follow its own output,
+  // so the picker greys these rather than hiding them.
+  const syncExcludedIds = useMemo(
+    () => channels.filter(c => fanStates[c.id]?.curveId === selectedCurve?.id).map(c => c.id),
     [channels, fanStates, selectedCurve],
   );
 
@@ -1028,21 +1030,6 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                 onClick={() => setCalConfirmOpen(true)}
               />
             </HoverTooltip>
-            {fanControl.payload?.importAvailable && (
-              <>
-                <span className={styles.headerSep} aria-hidden />
-                <HoverTooltip body={t('fanControlImport.entry')} side="bottom">
-                  <Button
-                    tone="ghost"
-                    size="sm"
-                    icon={<Import />}
-                    aria-label={t('fanControlImport.entry')}
-                    disabled={calibrating}
-                    onClick={() => setFanControlImportOpen(true)}
-                  />
-                </HoverTooltip>
-              </>
-            )}
             {selectableFanIds.length > 0 && (
             <>
               <span className={styles.headerSep} aria-hidden />
@@ -1072,9 +1059,26 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
           </div>
         </div>
         <div className={`${styles.paneHeader} ${styles.headerRight}`}>
-          <span className={styles.paneTitle}>{t('cooling.label.curve')}</span>
+          <span className={styles.paneTitle}>{t('cooling.label.curves')}</span>
           {/* What a curve press would apply to, in the lighting page's wording. */}
           <Badge label={selectedFanLabel} compact uppercase color="var(--text-dim)" />
+          {fanControl.payload?.importAvailable && (
+            <HoverTooltip body={t('fanControlImport.entry')} side="bottom">
+              <Button
+                tone="ghost"
+                size="sm"
+                icon={<Import />}
+                className={styles.curveHeaderAction}
+                // Visible label is the short one; the accessible name keeps
+                // what it imports, which the tooltip only says on hover.
+                aria-label={t('fanControlImport.entry')}
+                disabled={calibrating}
+                onClick={() => setFanControlImportOpen(true)}
+              >
+                {t('cooling.curves.import')}
+              </Button>
+            </HoverTooltip>
+          )}
         </div>
         <aside className={styles.fanSidebar}>
           {calibrationResults && !calibrating && (
@@ -1285,7 +1289,8 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
               curve={selectedCurve}
               allCurves={curves}
               sources={sources}
-              channels={syncSourceChannels}
+              channels={channels}
+              syncExcludedIds={syncExcludedIds}
               onChange={saveCurveAndPush}
               onDelete={() => deleteCurve(selectedCurve.id)}
               onResetPreset={selectedCurve.preset ? () => handleResetPresetCurve(selectedCurve.preset!) : undefined}
