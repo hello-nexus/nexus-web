@@ -60,7 +60,7 @@ import { COOLING_PRESETS, isCoolingPresetKey, type CoolingPresetKey } from './pa
 import { loadCoolingCache, saveCoolingCache } from './coolingCache';
 import { resolveCpuTempSensor, defaultCurveSourceId } from '../../../lib/tempSensorResolver';
 import { curveDefsFromApi, curveDefToApi, MAX_CURVES, newCurve, type CurveDef, type FanState } from '../../../types/cooling';
-import { CoolingImportDialog } from '../../../components/common/CoolingImport/CoolingImportDialog';
+import { CoolingImportDialog, coolingImportHasSources } from '../../../components/common/CoolingImport/CoolingImportDialog';
 import styles from './CoolingPage.module.scss';
 
 /**
@@ -71,9 +71,16 @@ import styles from './CoolingPage.module.scss';
  * fans bind to a curve through each fan card's mode dropdown.
  */
 
-interface CoolingViewProps { serviceOnline: boolean; serviceState: ServiceState; connectionState?: ConnectionState; activeProfileId?: string; }
+interface CoolingViewProps {
+  serviceOnline: boolean;
+  serviceState: ServiceState;
+  connectionState?: ConnectionState;
+  activeProfileId?: string;
+  /** Host OS from /ping, as the lighting page takes it. Empty until the ping resolves, which keeps a Windows-only entry from flashing in on other hosts. */
+  platform?: string;
+}
 
-export function CoolingPage({ serviceOnline, serviceState, connectionState, activeProfileId }: CoolingViewProps) {
+export function CoolingPage({ serviceOnline, serviceState, connectionState, activeProfileId, platform = '' }: CoolingViewProps) {
   const { t, language } = useTranslation();
   // Seed every primary slice from localStorage so subsequent visits to this
   // route paint cards immediately instead of flashing an empty fan list for
@@ -791,7 +798,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     [curves, selectedCurveId],
   );
 
-  const [fanControlImportOpen, setFanControlImportOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   // Fans a Sync curve may follow: everything except the fans this curve itself
   // drives, so it can never end up chasing its own output.
@@ -1057,6 +1064,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
           <span className={styles.paneTitle}>{t('cooling.label.curves')}</span>
           {/* What a curve press would apply to, in the lighting page's wording. */}
           <Badge label={selectedFanLabel} compact uppercase color="var(--text-dim)" />
+          {coolingImportHasSources(platform) && (
           <HoverTooltip body={t('coolingImport.title')} side="bottom">
             <Button
               tone="ghost"
@@ -1067,11 +1075,12 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
               // it opens, which the tooltip only shows on hover.
               aria-label={t('coolingImport.title')}
               disabled={calibrating}
-              onClick={() => setFanControlImportOpen(true)}
+              onClick={() => setImportDialogOpen(true)}
             >
               {t('cooling.curves.import')}
             </Button>
           </HoverTooltip>
+          )}
         </div>
         <aside className={styles.fanSidebar}>
           {calibrationResults && !calibrating && (
@@ -1295,8 +1304,8 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
 
       </div>
       <CoolingImportDialog
-        open={fanControlImportOpen}
-        onClose={() => setFanControlImportOpen(false)}
+        open={importDialogOpen}
+        onClose={() => setImportDialogOpen(false)}
         onImported={() => { void refreshCoolingConfig(); }}
       />
       <ConfirmModal

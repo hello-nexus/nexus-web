@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { CoolingImportDialog } from './CoolingImportDialog';
+import { CoolingImportDialog, coolingImportHasSources } from './CoolingImportDialog';
 import { fetchFanControlStatus, previewFanControlImport } from '../../../api/fancontrol';
 import type { FanControlStatusResponse } from '../../../api/fancontrol';
 
@@ -35,6 +35,19 @@ const PREVIEW = {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(previewFanControlImport).mockResolvedValue(PREVIEW);
+});
+
+describe('coolingImportHasSources', () => {
+  it('is true on Windows, where the only source can exist', () => {
+    expect(coolingImportHasSources('windows')).toBe(true);
+  });
+
+  it('is false elsewhere, so the entry point is not a dead end', () => {
+    expect(coolingImportHasSources('macos')).toBe(false);
+    expect(coolingImportHasSources('linux')).toBe(false);
+    // Empty until /ping resolves: keep it hidden rather than flash it in.
+    expect(coolingImportHasSources('')).toBe(false);
+  });
 });
 
 describe('CoolingImportDialog', () => {
@@ -76,7 +89,10 @@ describe('CoolingImportDialog', () => {
 
   it('renders nothing while closed', () => {
     vi.mocked(fetchFanControlStatus).mockResolvedValue(INSTALLED);
-    const { container } = render(<CoolingImportDialog open={false} onClose={() => {}} />);
-    expect(container).toBeEmptyDOMElement();
+    // The overlay portals to document.body, so this has to be asked of the
+    // screen; the render container is empty either way.
+    render(<CoolingImportDialog open={false} onClose={() => {}} />);
+    expect(screen.queryByText('coolingImport.source.fancontrol')).not.toBeInTheDocument();
+    expect(previewFanControlImport).not.toHaveBeenCalled();
   });
 });

@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useId, useState, type ReactNode } from 'react';
 import { Fan, PlugZap } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { pluralKey } from '../../../lib/pluralKey';
@@ -22,6 +22,16 @@ interface SourceRow {
   panel: ReactNode;
 }
 
+/**
+ * Whether any source this dialog knows about can exist on `platform`.
+ * FanControl is Windows-only, so on macOS and Linux the dialog would have
+ * nothing but a permanent "not found" to show, and the entry point that opens
+ * it should not be there at all.
+ */
+export function coolingImportHasSources(platform: string): boolean {
+  return platform === 'windows';
+}
+
 export interface CoolingImportDialogProps {
   open: boolean;
   onClose: () => void;
@@ -41,6 +51,7 @@ export function CoolingImportDialog({ open, onClose, onImported }: CoolingImport
   const { t, language } = useTranslation();
   const fanControl = useFanControlStatus();
   const [selected, setSelected] = useState<SourceId>('fancontrol');
+  const sourceHeaderId = useId();
 
   // Re-read detection on every open: the user may have just installed the app
   // this dialog is asking about.
@@ -86,8 +97,9 @@ export function CoolingImportDialog({ open, onClose, onImported }: CoolingImport
   return (
     <DeviceModal open={open} onClose={onClose} title={t('coolingImport.title')} large>
       <div className={styles.body}>
-        <div className={styles.sourceList} role="radiogroup" aria-label={t('coolingImport.sourceLabel')}>
-          <span className={styles.sourceHeader}>{t('coolingImport.sourceLabel')}</span>
+        <div className={styles.sourceColumn}>
+          <span className={styles.sourceHeader} id={sourceHeaderId}>{t('coolingImport.sourceLabel')}</span>
+          <div className={styles.sourceList} role="radiogroup" aria-labelledby={sourceHeaderId}>
           {sources.map(source => (
             <button
               key={source.id}
@@ -106,6 +118,7 @@ export function CoolingImportDialog({ open, onClose, onImported }: CoolingImport
               </span>
             </button>
           ))}
+          </div>
         </div>
         <div className={styles.panel}>{current.panel}</div>
       </div>
