@@ -2142,6 +2142,24 @@ export const REGISTRY: StorybookEntry[] = [
     notes: 'No live preview - hosts Nexus2ImportSection, which posts real preview/apply requests.',
   },
   {
+    name: 'FanControlImportScreen', category: 'modals',
+    filePath: 'src/components/common/FanControlImport/FanControlImportScreen.tsx',
+    description: 'One-time gate for users arriving from FanControl, last in the onboarding sequence. States that Continue closes FanControl and stops it starting with Windows (both apps drive the same fan controllers), hosts the shared FanControlImportSection, and relabels Continue to Import and continue while any category is selected.',
+    notes: 'No live preview - Continue posts real /migration/fancontrol/apply, /close-app, /disable-autostart and /dismiss requests, so opening it here would close FanControl and overwrite the running install\'s fan curves.',
+  },
+  {
+    name: 'FanControlImportSection', category: 'modals',
+    filePath: 'src/components/common/FanControlImport/FanControlImportSection.tsx',
+    description: 'FanControl import flow: picks one of that app\'s saved configurations, previews what maps onto this PC (curves with their target mode, fans with how each was matched, and what is being left behind), and applies the selected categories - curves, calibration, fan names, offsets, fixed speeds. Shared by FanControlImportScreen and FanControlImportDialog.',
+    notes: 'No live preview - it posts real /migration/fancontrol/preview and /apply requests, so opening it here would overwrite the running install\'s fan curves.',
+  },
+  {
+    name: 'FanControlImportDialog', category: 'modals',
+    filePath: 'src/components/common/FanControlImport/FanControlImportDialog.tsx',
+    description: 'Cooling-page re-entry point for the FanControl import: a DeviceModal hosting FanControlImportSection, opened from the fan list header once the service reports an importable FanControl configuration (which outlives an uninstall).',
+    notes: 'No live preview - hosts FanControlImportSection, which posts real preview/apply requests.',
+  },
+  {
     name: 'LightingOnboardingScreen', category: 'modals',
     filePath: 'src/components/common/LightingOnboardingScreen/LightingOnboardingScreen.tsx',
     description: 'Non-dismissable second onboarding gate, queued behind WelcomeScreen: a grid of the lighting page\'s ZoneCards in whole-card toggle mode (controlled/ignored, all controlled by default), a conflicting-apps warning when any are detected, and a Continue button that writes /onboarding/lighting-complete before dismissing.',
