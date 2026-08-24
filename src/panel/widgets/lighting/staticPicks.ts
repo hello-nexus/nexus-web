@@ -1,6 +1,6 @@
-import { setLightingDeviceColor } from '../../../api/lighting';
+import { setLightingDeviceColor, type StaticDeviceLookDto } from '../../../api/lighting';
 import { hsvToHex } from '../../../lib/settings';
-import { paletteKey, type PaletteColor } from '../../../types/lightingPalette';
+import { nearestPaletteId, paletteKey, type PaletteColor } from '../../../types/lightingPalette';
 import type { EffectState } from '../../../types/lighting';
 
 /**
@@ -60,6 +60,7 @@ export function pickLookForDevices(
     colorize: state.colorize,
     contrast: state.contrast,
     params: state.params,
+    slot,
   };
   for (const id of ids) {
     setLightingDeviceColor(id, hue, sat, look).catch(() => { /* best-effort */ });
@@ -77,10 +78,31 @@ export function pickPaletteForDevices(
   ids: string[],
 ): DevicePicks {
   const next = withPick(prev, ids, { key: paletteKey(color.id), slot: 0, hex: color.hex });
-  for (const id of ids) {
-    setLightingDeviceColor(id, color.h, color.s, {
-      effect: 'flat', color: color.hex, intensity: 1, colorize: 0, contrast: 1, params: {},
-    }).catch(() => { /* best-effort */ });
-  }
+  pushPalettePick(color, ids);
   return next;
+}
+
+/** The service-side half of {@link pickPaletteForDevices}, exposed so a caller
+ *  that must run after the writes land can await them. */
+export function pushPalettePick(color: PaletteColor, ids: string[]): Promise<unknown> {
+  return Promise.all(ids.map(id => setLightingDeviceColor(id, color.h, color.s, {
+    effect: 'flat', color: color.hex, intensity: 1, colorize: 0, contrast: 1, params: {},
+  }).catch(() => { /* best-effort */ })));
+}
+
+/**
+ * Rebuild every device's pick from what the service has stored. The service is
+ * the owner - a preset activate, a profile switch or a fresh browser all leave
+ * the local record stale, and only this reconciles them.
+ */
+export function devicePicksFromLooks(looks: Record<string, StaticDeviceLookDto>): DevicePicks {
+  const out: DevicePicks = {};
+  for (const [id, look] of Object.entries(looks)) {
+    if (!look?.effect) continue;
+    out[id] = look.effect === 'flat' && look.color
+      // A palette pick stores only its hex, so the id resolves back from that.
+      ? { key: paletteKey(nearestPaletteId(look.color)), slot: 0, hex: look.color }
+      : { key: look.effect, slot: look.slot, hex: hsvToHex(look.hue * 360, look.saturation * 100, 100) };
+  }
+  return out;
 }

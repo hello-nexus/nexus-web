@@ -1,9 +1,12 @@
 import { Ban, CheckCheck, Lightbulb } from 'lucide-react';
 import { Button } from '../../../../components/common/Button/Button';
 import { EmptyState } from '../../../../components/common/EmptyState/EmptyState';
+import { usePersistentState } from '../../../../hooks/usePersistentState';
 import { useTranslation } from '../../../../lib/i18n';
 import type { LightingDevice } from '../../../../api/lighting';
-import { ZoneCard, zoneCardUnavailable } from '../page/ZoneCard';
+import { ZoneCard, zoneCardSelectable } from '../page/ZoneCard';
+import { MotherboardGroup } from '../page/MotherboardGroup';
+import { buildDeviceBlocks, stripParentPrefix } from '../page/deviceBlocks';
 import { visibleCards } from '../page/zoneUtils';
 import type { LedPick } from '../page/DeviceLedStrip';
 import styles from './StaticDeviceSelect.module.scss';
@@ -12,15 +15,12 @@ import styles from './StaticDeviceSelect.module.scss';
  * Static-mode device picker for the immersive editor. Static assigns a colour
  * per device, so a pick needs a target; this is the tab that supplies one.
  *
- * Cards are the lighting page's own ZoneCards in `selectOnly` mode, and the
- * selection Set is the page's, so a selection made here is the one the desktop
- * page shows and vice versa.
+ * Cards are the lighting page's own ZoneCards in `selectOnly` mode, grouped by
+ * the page's own blocks and MotherboardGroup headers, and the selection Set is
+ * the page's - so a selection made here is the one the desktop page shows and
+ * vice versa. Group headers collapse only; power and Nexus Control belong to
+ * the page, not to a picker.
  */
-/** A device the firmware drives itself overrides anything we assign it. */
-function isFirmwareControlled(d: LightingDevice): boolean {
-  return d.controlled === false;
-}
-
 export function StaticDeviceSelect({ devices, selectedIds, onSetSelection, ledPickFor }: {
   devices: LightingDevice[];
   selectedIds: Set<string>;
@@ -30,18 +30,23 @@ export function StaticDeviceSelect({ devices, selectedIds, onSetSelection, ledPi
   ledPickFor?: (id: string) => LedPick | undefined;
 }) {
   const { t } = useTranslation();
-  // The same listing the page shows: fully parked zone cards hide, and a
-  // firmware-driven device cannot wear a pick, so it cannot be a target.
+  // Its own collapse state: this picker is a different shape from the rail, so
+  // a group folded here should not fold there.
+  const [collapsed, setCollapsed] = usePersistentState<string[]>('lighting.immersiveCollapsedDeviceGroups', []);
+  const toggleCollapsed = (key: string) =>
+    setCollapsed(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
+
+  // The same listing the page shows: fully parked zone cards hide.
   const cards = visibleCards(devices);
-  const targetable = (d: LightingDevice) => !zoneCardUnavailable(d) && !isFirmwareControlled(d);
-  const selectableIds = cards.filter(targetable).map(d => d.id);
+  const selectableIds = cards.filter(zoneCardSelectable).map(d => d.id);
+  const blocks = buildDeviceBlocks(cards);
 
   if (cards.length === 0) {
     return <EmptyState icon={<Lightbulb />} title={t('lighting.devices.empty')} />;
   }
 
-  // Touch has no multi-select modifier, so every tap here toggles additively -
-  // on the card as well as its checkbox, which ZoneCard already does.
+  // Touch has no multi-select modifier, so every tap toggles additively - on
+  // the card as well as its checkbox, which ZoneCard already does.
   const toggle = (id: string) => {
     const next = new Set(selectedIds);
     if (next.has(id)) next.delete(id);
@@ -53,6 +58,21 @@ export function StaticDeviceSelect({ devices, selectedIds, onSetSelection, ledPi
       : (selectableIds.filter(x => next.has(x)).pop() ?? null);
     onSetSelection(next, primary);
   };
+
+  const card = (d: LightingDevice, indent: boolean, displayName?: string) => (
+    <ZoneCard
+      key={d.id}
+      device={d}
+      displayName={displayName}
+      selectOnly
+      ledFullscreen
+      ledPickOnly
+      ledPick={ledPickFor?.(d.id)}
+      selected={selectedIds.has(d.id)}
+      indent={indent}
+      onSelect={() => toggle(d.id)}
+    />
+  );
 
   return (
     <div className={styles.pane}>
@@ -77,20 +97,28 @@ export function StaticDeviceSelect({ devices, selectedIds, onSetSelection, ledPi
         </Button>
       </div>
       <div className={styles.grid} role="group" aria-label={t('lighting.rightPane.devices')}>
-        {cards.map(d => (
-          <ZoneCard
-            key={d.id}
-            device={d}
-            selectOnly
-            ledFullscreen
-            ledPickOnly
-            ledPick={ledPickFor?.(d.id)}
-            firmwareControlled={isFirmwareControlled(d)}
-            selected={selectedIds.has(d.id)}
-            indent={false}
-            onSelect={() => toggle(d.id)}
-          />
-        ))}
+        {blocks.map(block => block.kind === 'single'
+          ? card(block.device, false)
+          : (
+            <MotherboardGroup
+              key={block.groupKey}
+              parentName={block.label}
+              ariaLabel={block.isBrand ? block.label : undefined}
+              collapsed={collapsed.includes(block.groupKey)}
+              onToggleCollapsed={() => toggleCollapsed(block.groupKey)}
+              groupOn={block.devices.some(d => d.ledsOn)}
+              onTogglePower={() => {}}
+              groupControlled={block.devices.some(d => d.controlled !== false)}
+              onToggleControlled={() => {}}
+              hideActions
+            >
+              {block.devices.map(d => card(
+                d,
+                true,
+                block.isBrand ? undefined : stripParentPrefix(d.name, block.label),
+              ))}
+            </MotherboardGroup>
+          ))}
       </div>
     </div>
   );

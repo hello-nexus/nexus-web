@@ -1774,7 +1774,6 @@
   "lighting.palette.violet": "Viole",
   "lighting.palette.white": "Blanc",
   "lighting.palette.yellow": "Zâl",
-  "lighting.pane.preview": "Anteprime",
   "lighting.panel.prev": "Precedent",
   "lighting.panel.screenActive": "Il specli al è atîf",
   "lighting.panel.selectMode": "Selezione une modalitât par tacâ la iluminazion",
@@ -3437,5 +3436,19 @@
   "lighting.pane.pickDevices": "Sielç un o plui dispositîfs par sielzi un colôr",
   "lighting.pane.selectedNone": "Nissun dispositîf selezionât",
   "lighting.pane.selectedCount.one": "{count} dispositîf selezionât",
-  "lighting.pane.selectedCount.other": "{count} dispositîfs selezionâts"
+  "lighting.pane.selectedCount.other": "{count} dispositîfs selezionâts",
+  "cooling.simple.controlled": "{count} controlâts",
+  "cooling.simple.detected.one": "{count} ventilatôr rilevât",
+  "cooling.simple.detected.other": "{count} ventilatôrs rilevâts",
+  "lighting.devices.selectOnly": "Selezione dome {name}",
+  "lighting.pane.effect": "Efiet",
+  "lighting.simple.controlled": "{count} controlâts",
+  "lighting.simple.detected.one": "{count} dispositîf di iluminazion rilevât",
+  "lighting.simple.detected.other": "{count} dispositîfs di iluminazion rilevâts",
+  "lighting.sleepBlackout.description": "Al distude ducj i dispositîfs controlâts di Nexus cuant che il PC al va a polsâ e al torne a meti il to efiet cuant che si dismire. Cence chest, l'hardware che al reste alimentât dilunc il polsâ (soredut la RAM RGB) al reste impiât.",
+  "lighting.sleepBlackout.label": "Distude la iluminazion tal polsâ",
+  "uiMode.advancedMode": "Modalitât avanzade",
+  "uiMode.simpleMode": "Modalitât semplice",
+  "uiMode.switchToAdvanced": "Passe ae modalitât avanzade",
+  "uiMode.switchToSimple": "Passe ae modalitât semplice"
 }

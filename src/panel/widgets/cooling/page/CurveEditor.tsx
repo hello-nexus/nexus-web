@@ -521,7 +521,7 @@ export const CurveCard = memo(function CurveCard({
   const sourceRow = (curve.type !== 'mix' && curve.type !== 'flat') ? (
     <label className={styles.sourceRow}>
       <span className={styles.controlLabel}>{t('cooling.curve.source')}</span>
-      <Select className={styles.sourceSelect} variant="ghost" value={curve.sourceId}
+      <Select className={styles.sourceSelect} value={curve.sourceId}
         onChange={v => set({ sourceId: v })} ariaLabel={t('cooling.curve.source')}>
         {sources.map(s => (<option key={s.id} value={s.id}>{s.category} - {s.name} ({localizeNumbers(s.value.toFixed(1), numberFormat)}°C)</option>))}
       </Select>

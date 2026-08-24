@@ -46,6 +46,8 @@ import { Toggle } from '../components/common/Toggle/Toggle';
 import { EmptyState } from '../components/common/EmptyState/EmptyState';
 import { Select } from '../components/common/Select/Select';
 import { IconLabelButton } from '../components/common/IconLabelButton/IconLabelButton';
+import { AdvancedModeCta } from '../components/common/AdvancedModeCta/AdvancedModeCta';
+import { DeviceCountSummary } from '../components/common/DeviceCountSummary/DeviceCountSummary';
 import { Button } from '../components/common/Button/Button';
 import { EndTaskButton } from '../components/common/EndTaskButton/EndTaskButton';
 import { ConflictAppCard } from '../components/common/ConflictAppCard/ConflictAppCard';
@@ -1138,6 +1140,26 @@ function PreviewIconLabelButton() {
   );
 }
 
+function PreviewAdvancedModeCta() {
+  return (
+    <div className={styles.previewStack} style={{ width: 520 }}>
+      <AdvancedModeCta
+        label="More effects, templates and per-device options"
+        onPress={() => {}}
+      />
+    </div>
+  );
+}
+
+function PreviewDeviceCountSummary() {
+  return (
+    <div className={styles.previewStack} style={{ width: 420 }}>
+      <DeviceCountSummary detected="6 lighting devices detected" controlled="6 controlled" />
+      <DeviceCountSummary detected="14 fans detected" controlled="0 controlled" />
+    </div>
+  );
+}
+
 function PreviewWidgetHeader() {
   return (
     <div className={styles.previewStack}>
@@ -1848,7 +1870,7 @@ export const REGISTRY: StorybookEntry[] = [
     name: 'Select', category: 'inputs',
     filePath: 'src/components/common/Select/Select.tsx',
     description: 'Custom select: a button trigger plus a listbox portaled to <body> and clamped to the viewport, not the native <select> popup, which renders off-screen on the Y70 kiosk WebView. One control across desktop, phone, and Y70. Pass options for flat lists or <option> children (value + text, optional disabled/className/icon); optgroups are unsupported. Each option takes an optional `icon` ReactNode shown before the label in the trigger and the row (the language picker uses it for flags). On a keyboard/pointer desktop (not touch), a list of 8+ entries grows an auto-focused in-menu search field that substring-filters the options while the arrow keys still walk the filtered results. Used by SettingsView, CoolingView FanCard + CurveEditor, LightingView ModeControls, and the panel widget settings rows.', Preview: PreviewSelect,
-    notes: 'One size across the app. variant="ghost" drops the border/background for selects already inside a bordered card (cooling fan / curve rows). triggerIconOnly collapses the trigger to just the selected option icon (no label or chevron; the label moves to the trigger title) for compact icon controls like a header language flag - the open menu keeps the full icon + label rows. Long lists (8+) get an in-menu search on keyboard/pointer devices; the preview here is below that threshold.',
+    notes: 'One size and one box across the app - a surface that needs its own palette (deck inspector, monitoring settings, cooling fan / curve rows) sets --select-bg / --select-border / --select-border-hover / --select-text on the wrapper rather than framing the trigger a second time. triggerIconOnly collapses the trigger to just the selected option icon (no label or chevron; the label moves to the trigger title) for compact icon controls like a header language flag - the open menu keeps the full icon + label rows. Long lists (8+) get an in-menu search on keyboard/pointer devices; the preview here is below that threshold.',
   },
   {
     name: 'ui-select (SDK dropdown)', category: 'inputs',
@@ -2021,6 +2043,18 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/EffectCard/EffectCard.tsx',
     description: 'The one shared thumbnail card: lighting shader browser, panel Theme animation picker, media library, and the lighting widget tile all use it. overlay=true gives a full-bleed thumbnail with the label stroked over the lower third (both shader pickers); default layout is thumbnail-above-caption with optional meta line + hover-reveal delete X (media library).', Preview: PreviewEffectCard,
     notes: 'Pass overlay for the full-bleed label-on-thumbnail shader-picker layout. Pass asDiv when the card contains a nested button (CardDeleteButton) - nested buttons are invalid HTML. Pass nonInteractive for a display-only card (plain div, no hover ring / cursor) - the lighting widget tile. thumbUrl=null renders a shimmer skeleton.',
+  },
+  {
+    name: 'AdvancedModeCta', category: 'cards',
+    filePath: 'src/components/common/AdvancedModeCta/AdvancedModeCta.tsx',
+    description: 'Wide card-button at the bottom of the simple-mode lighting/cooling pages: "Advanced mode" eyebrow over a page-specific line describing what the full page adds, with a chevron affordance. Pressing it flips that page\'s ui.*DashboardMode field to advanced (the page passes the flip as onPress).',
+    Preview: PreviewAdvancedModeCta,
+  },
+  {
+    name: 'DeviceCountSummary', category: 'cards',
+    filePath: 'src/components/common/DeviceCountSummary/DeviceCountSummary.tsx',
+    description: 'One-line "what am I driving" summary at the top of the simple-mode lighting/cooling pages: how many devices the service found, plus a dim badge for how many Nexus actually drives. Both strings arrive translated - the page owns the plural key and the noun (devices on lighting, fans on cooling).',
+    Preview: PreviewDeviceCountSummary,
   },
   {
     name: 'DeviceCanvas', category: 'cards',

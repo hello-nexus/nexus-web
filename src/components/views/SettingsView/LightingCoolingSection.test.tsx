@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LightingCoolingSection } from './LightingCoolingSection';
 import type { TempUnit } from '../../../lib/units';
 
@@ -36,10 +36,19 @@ vi.mock('../../../hooks/useSensors', () => ({
   }),
 }));
 
+const lightingApi = vi.hoisted(() => ({
+  // Resolved by default: the sensor-picker tests below mount the same component
+  // and would otherwise trip over an undefined return inside its effect.
+  fetchSleepBlackout: vi.fn().mockResolvedValue({ enabled: true }),
+  setSleepBlackout: vi.fn().mockResolvedValue(null),
+}));
+
 vi.mock('../../../api/lighting', () => ({
   fetchRenderGpu: vi.fn().mockResolvedValue(null),
   setRenderGpu: vi.fn().mockResolvedValue(null),
   restartService: vi.fn().mockResolvedValue(null),
+  fetchSleepBlackout: lightingApi.fetchSleepBlackout,
+  setSleepBlackout: lightingApi.setSleepBlackout,
 }));
 
 vi.mock('../../../lib/i18n', () => ({
@@ -73,5 +82,47 @@ describe('LightingCoolingSection sensor pickers', () => {
     const listbox = screen.getByRole('listbox');
     expect(within(listbox).getByText(/CPU Core 0 \(122\.0°F\)/)).toBeInTheDocument();
     expect(within(listbox).queryByText(/°C/)).not.toBeInTheDocument();
+  });
+});
+
+describe('LightingCoolingSection sleep blackout', () => {
+  const toggle = () => screen.getByRole('switch', { name: 'lighting.sleepBlackout.label' });
+
+  beforeEach(() => {
+    lightingApi.fetchSleepBlackout.mockReset().mockResolvedValue({ enabled: true });
+    lightingApi.setSleepBlackout.mockReset().mockResolvedValue(null);
+  });
+
+  it('reflects the service value and persists a change', async () => {
+    lightingApi.fetchSleepBlackout.mockResolvedValue({ enabled: false });
+    render(<LightingCoolingSection serviceOnline platform="windows" />);
+
+    await waitFor(() => expect(toggle()).toHaveAttribute('aria-checked', 'false'));
+
+    fireEvent.click(toggle());
+
+    expect(lightingApi.setSleepBlackout).toHaveBeenCalledWith(true);
+    await waitFor(() => expect(toggle()).toHaveAttribute('aria-checked', 'true'));
+  });
+
+  it('reverts the switch when the service rejects the write', async () => {
+    lightingApi.setSleepBlackout.mockRejectedValue(new Error('offline'));
+    render(<LightingCoolingSection serviceOnline platform="windows" />);
+
+    await waitFor(() => expect(toggle()).toHaveAttribute('aria-checked', 'true'));
+    fireEvent.click(toggle());
+
+    // Flips optimistically...
+    expect(toggle()).toHaveAttribute('aria-checked', 'false');
+    // ...then back, so a failed write never leaves the UI claiming a setting
+    // the service did not take.
+    await waitFor(() => expect(toggle()).toHaveAttribute('aria-checked', 'true'));
+  });
+
+  it('is hidden where the OS gives the service no pre-suspend notification', () => {
+    render(<LightingCoolingSection serviceOnline platform="macos" />);
+
+    expect(screen.queryByRole('switch', { name: 'lighting.sleepBlackout.label' })).not.toBeInTheDocument();
+    expect(lightingApi.fetchSleepBlackout).not.toHaveBeenCalled();
   });
 });

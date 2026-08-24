@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Ban, CheckCheck, Gamepad2, Lightbulb, Music, Pause, Play, PanelRightOpen, PanelRightClose } from 'lucide-react';
+import { Ban, CheckCheck, Gamepad2, Lightbulb, Music, Pause, Play, PanelRightOpen, PanelRightClose, Power } from 'lucide-react';
 import {
   startAnimate, startStatic, startScreenMirror, stopLighting, startGameSync,
   fetchStaticSettings,
@@ -8,6 +8,7 @@ import {
   fetchMusicReactive, setMusicReactive, setLightingDevicePower, setLightingDeviceControlled,
   fetchScreenEffect, setScreenEffect, fetchMediaEffect, setMediaEffect, fetchLedMap,
   fetchCurrentSync, fetchAvailableMappings, fetchGameSyncState, fetchGameSyncGames,
+  fetchStaticDeviceLooks,
   steamArtworkUrl, resolveActiveGame, setLightingPaused,
   resetDeviceLayouts, applyDeviceLayouts, setActiveLayoutPreset, updateLayoutPreset,
   type LightingDevice, type LedMapEntry, type PostProcessSettings, type GameSyncDevice,
@@ -33,12 +34,17 @@ import { Badge } from '../../../components/common/Badge/Badge';
 import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
+import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
+import { AdvancedModeCta } from '../../../components/common/AdvancedModeCta/AdvancedModeCta';
+import { DeviceCountSummary } from '../../../components/common/DeviceCountSummary/DeviceCountSummary';
+import { usePageModeToggle } from '../../../app/PageChrome';
+import { useUiSettings } from '../../../hooks/useUiSettings';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { LightingSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
 import { DeviceCanvas } from '../../../components/common/DeviceCanvas/DeviceCanvas';
 import { usePersistentState, usePersistentIdSet } from '../../../hooks/usePersistentState';
 import {
-  pickLookForDevices, pickPaletteForDevices,
+  pickLookForDevices, pickPaletteForDevices, pushPalettePick, devicePicksFromLooks,
   DEVICE_PICKS_STORAGE_KEY, SELECTED_DEVICES_STORAGE_KEY, PRIMARY_DEVICE_STORAGE_KEY,
   type DevicePick,
 } from './staticPicks';
@@ -60,7 +66,7 @@ import { ModeControls } from './page/ModeControls';
 import { MediaCanvasNotice } from './page/MediaCanvasNotice';
 import { DevicePanel } from './page/DevicePanel';
 import { type DiscoveryState } from './page/DeviceDiscoveryCard';
-import { zoneCardUnavailable } from './page/ZoneCard';
+import { zoneCardSelectable } from './page/ZoneCard';
 import { Button } from '../../../components/common/Button/Button';
 import { GameSyncLeftPane } from './page/GameSyncLeftPane';
 import { LedMapEditor } from './page/LedMapEditor';
@@ -141,6 +147,18 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // them, so the device list drops its selection affordance there and keeps
   // only the per-device power / controlled toggles.
   const perDeviceMode = effectiveMode === 'static' || effectiveMode === 'none';
+  const { settings: uiSettings, update: updateUiSettings } = useUiSettings();
+  const simpleDashboard = uiSettings.lightingDashboardMode === 'simple';
+  const toggleDashboardMode = useCallback(() => {
+    updateUiSettings({ lightingDashboardMode: simpleDashboard ? 'advanced' : 'simple' });
+  }, [simpleDashboard, updateUiSettings]);
+  // The label names the TARGET mode (what a click switches to), matching the
+  // in-page advanced-mode card.
+  usePageModeToggle({
+    label: t(simpleDashboard ? 'uiMode.advancedMode' : 'uiMode.simpleMode'),
+    title: t(simpleDashboard ? 'uiMode.switchToAdvanced' : 'uiMode.switchToSimple'),
+    onToggle: toggleDashboardMode,
+  });
   const frames = useLightingFrames();
   // Read RGB running/scanning off useServiceState (already subscribed
   // to the lighting topic for the sidebar pip) so a topic push doesn't
@@ -742,17 +760,36 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     setDevicePicks(prev => pickPaletteForDevices(prev, color, ids));
   }, [setDevicePicks]);
 
+  // The service owns the assignments, so its copy wins over the local record:
+  // a preset activate, a profile switch and a browser that has never seen this
+  // machine all leave the local one stale.
+  // Resolves once the legacy-flat migration's pushes have landed, so the read
+  // below cannot observe pre-migration state and write it back.
+  const migrationPushRef = useRef<Promise<unknown>>(Promise.resolve());
+  const syncDevicePicks = useCallback(async () => {
+    await migrationPushRef.current;
+    // A service predating this route answers the SPA index with 200, so the
+    // JSON parse throws rather than returning null.
+    const res = await fetchStaticDeviceLooks().catch(() => null);
+    if (!res?.looks) return;
+    setDevicePicks(devicePicksFromLooks(res.looks));
+  }, [setDevicePicks]);
+
   // A pick predating the palette names a flat EFFECT key. Repoint it at the
   // swatch nearest the colour it stored, and push so the LEDs match the card.
   const palettesMigratedRef = useRef(false);
   useEffect(() => {
     if (palettesMigratedRef.current) return;
     palettesMigratedRef.current = true;
+    const pushes: Promise<unknown>[] = [];
     for (const [id, pick] of Object.entries(devicePicks)) {
       if (!isStaticFill(pick.key)) continue;
       const color = paletteColor(nearestPaletteId(pick.hex));
-      if (color) writePalettePick(color, [id]);
+      if (!color) continue;
+      writePalettePick(color, [id]);
+      pushes.push(pushPalettePick(color, [id]));
     }
+    migrationPushRef.current = Promise.all(pushes);
     // Once, against what storage restored; later picks are already palette picks.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -1105,10 +1142,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     return out;
   }, [visibleDevices, deviceOrder]);
 
-  // Cards that can carry a selection; a zone the service could not drive is
-  // excluded, matching what ZoneCard renders as non-interactive.
+  // Cards that can carry a selection; a zone the service could not drive, or
+  // one with Nexus Control off, is excluded - matching what ZoneCard renders
+  // as non-interactive.
   const selectableIds = useMemo(
-    () => orderedDevices.filter(d => !zoneCardUnavailable(d)).map(d => d.id),
+    () => orderedDevices.filter(zoneCardSelectable).map(d => d.id),
     [orderedDevices],
   );
 
@@ -1154,18 +1192,19 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     setPrimaryDeviceId(selectableIds[0] ?? null);
   }, [selectionSeeded, selectableIds, setSelectionSeeded, setSelectedDeviceIds, setPrimaryDeviceId]);
 
-  // A restored selection can name devices that are no longer present (unplugged
-  // between visits). Drop those once the list has actually loaded, or the
-  // preview count and the scoped-look checks count devices that are not there.
+  // A restored selection can name devices that are gone (unplugged between
+  // visits) or that stopped being selectable (Nexus Control switched off).
+  // Drop those once the list has loaded, or the preview count and the
+  // scoped-look checks count devices no pick can reach.
   useEffect(() => {
     if (orderedDevices.length === 0) return;
-    const present = new Set(orderedDevices.map(d => d.id));
+    const keep = new Set(selectableIds);
     setSelectedDeviceIds(prev => {
-      if ([...prev].every(id => present.has(id))) return prev;
-      return new Set([...prev].filter(id => present.has(id)));
+      if ([...prev].every(id => keep.has(id))) return prev;
+      return new Set([...prev].filter(id => keep.has(id)));
     });
-    setPrimaryDeviceId(prev => (prev && !present.has(prev) ? null : prev));
-  }, [orderedDevices, setSelectedDeviceIds, setPrimaryDeviceId]);
+    setPrimaryDeviceId(prev => (prev && !keep.has(prev) ? null : prev));
+  }, [orderedDevices, selectableIds, setSelectedDeviceIds, setPrimaryDeviceId]);
 
   // Devices list: fetch on entry + profile change, then refresh push-driven.
   // The `lighting` topic fires on every /lighting mutation (layout edits,
@@ -1186,7 +1225,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   useEffect(() => {
     if (!serviceOnline) return;
     void refreshDevices();
-  }, [serviceOnline, activeProfileId, refreshDevices]);
+    void syncDevicePicks();
+  }, [serviceOnline, activeProfileId, refreshDevices, syncDevicePicks]);
 
   useEffect(() => {
     if (!serviceOnline) return;
@@ -1262,7 +1302,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       await setActiveLayoutPreset(restored.activeId);
     }
     if (restored.activeId) {
-      await updateLayoutPreset(restored.activeId, { saveCurrent: true });
+      await updateLayoutPreset(restored.activeId, { saveCurrent: true, saveDeviceLooks: false });
     }
     await loadPresets();
     await refreshDevices();
@@ -1290,7 +1330,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       await setActiveLayoutPreset(restored.activeId);
     }
     if (restored.activeId) {
-      await updateLayoutPreset(restored.activeId, { saveCurrent: true });
+      await updateLayoutPreset(restored.activeId, { saveCurrent: true, saveDeviceLooks: false });
     }
     await loadPresets();
     await refreshDevices();
@@ -1321,7 +1361,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     pushLayout({ layouts: devicesToLayouts(devicesRef.current), power: devicesToPower(devicesRef.current), activeId: layoutActiveIdRef.current, powerIds: devicesRef.current.map(d => d.id) });
     await handlePresetLoad(id);
     await refreshDevices();
-  }, [pushLayout, handlePresetLoad, refreshDevices]);
+    await syncDevicePicks();
+  }, [pushLayout, handlePresetLoad, refreshDevices, syncDevicePicks]);
 
   const handleResetWithHistory = useCallback(async () => {
     resetLayoutHistory();
@@ -1411,6 +1452,48 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     } catch { /* best-effort; backend state becomes source of truth */ }
   }, [activeEffect, rawSync, setMode, setRawSync, screenPP, stateFor, setPausedState]);
 
+  // Simple mode has no device rail, so a colour paints every device at once.
+  // Static has to own the output before the picks land - starting it after
+  // would repaint them with the shared effect.
+  const handleSimplePaletteSelect = useCallback(async (color: PaletteColor) => {
+    if (effectiveMode !== 'static') await handleModeChange('static');
+    if (selectableIds.length > 0) writePalettePick(color, selectableIds);
+  }, [effectiveMode, handleModeChange, selectableIds, writePalettePick]);
+
+  // Simple mode has no per-device toggle, so a device left un-driven or dark on
+  // the advanced page would sit black here with nothing on the page saying why -
+  // and zoneCardSelectable needs BOTH, so a colour would skip it entirely.
+  useEffect(() => {
+    if (!simpleDashboard) return;
+    for (const d of devices) {
+      if (d.controlled === false) handleSetControlled(d.id, true);
+      if (!d.ledsOn) handleSetPower(d.id, true);
+    }
+  }, [simpleDashboard, devices, handleSetControlled, handleSetPower]);
+
+  // Matches zoneCardSelectable: a device Nexus drives AND that is lit. Counting
+  // only `controlled` would claim a dark device is being driven.
+  const controlledCount = useMemo(
+    () => orderedDevices.filter(d => d.controlled !== false && d.ledsOn).length,
+    [orderedDevices],
+  );
+
+  // The swatch simple mode marks active: the colour every device is wearing.
+  // A mixed set (or a device with no pick, which wears the shared effect) has
+  // no single answer, so nothing reads as active.
+  const simplePaletteId = useMemo(() => {
+    if (effectiveMode !== 'static' || selectableIds.length === 0) return null;
+    let shared: string | null = null;
+    for (const deviceId of selectableIds) {
+      const pick = devicePicks[deviceId];
+      const colorId = pick ? paletteIdFromKey(pick.key) : null;
+      if (!colorId) return null;
+      if (shared === null) shared = colorId;
+      else if (shared !== colorId) return null;
+    }
+    return shared;
+  }, [devicePicks, effectiveMode, selectableIds]);
+
   // Pause/freeze applies to the three modes that drive a continuous output
   // (animate shader, media playback, screen mirror) - Off has nothing to
   // freeze and Game Sync is driven by the foreground game, not us.
@@ -1484,8 +1567,45 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   if (!serviceOnline) {
     return (
       <div className={styles.lighting}>
-        <ViewHeader title={t('lighting.title')} tabs={modeTabs} activeTab={synced ? effectiveMode : undefined} onTabChange={k => handleModeChange(k as LightingMode)} tabsDisabled />
+        {!simpleDashboard && (
+          <ViewHeader title={t('lighting.title')} tabs={modeTabs} activeTab={synced ? effectiveMode : undefined} onTabChange={k => handleModeChange(k as LightingMode)} tabsDisabled />
+        )}
         <ServiceRequired state={connectionState} skeleton={<LightingSkeleton />} />
+      </div>
+    );
+  }
+
+  // Simple mode: one colour everywhere, or off, plus the advanced-mode path.
+  // No mode tabs, preset toolbar, device rail, canvas or dock - those are the
+  // advanced page below, and so are the patterns (gradients, two-tone,
+  // spectrum), which are looks rather than colours.
+  if (simpleDashboard) {
+    return (
+      <div className={styles.lighting}>
+        <div className={`${styles.simpleBody} pageBodyFill`}>
+          <DeviceCountSummary
+            detected={t(pluralKey('lighting.simple.detected', language, orderedDevices.length), { count: orderedDevices.length })}
+            controlled={t('lighting.simple.controlled', { count: controlledCount })}
+          />
+          <IconLabelButton
+            className={styles.simpleOffTile}
+            icon={<Power size={22} />}
+            label={t('lighting.mode.off')}
+            active={synced && effectiveMode === 'none'}
+            onPress={() => { if (!synced || effectiveMode !== 'none') void handleModeChange('none'); }}
+          />
+          <StaticPalette
+            hero
+            selectedId={simplePaletteId}
+            onSelect={color => { void handleSimplePaletteSelect(color); }}
+          />
+          <div className={styles.simpleFooter}>
+            <AdvancedModeCta
+              label={t('lighting.simple.advancedCta')}
+              onPress={() => updateUiSettings({ lightingDashboardMode: 'advanced' })}
+            />
+          </div>
+        </div>
       </div>
     );
   }
@@ -1530,7 +1650,10 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           </div>
         </div>
         <div className={`${styles.paneHeader} ${styles.headerLeft}`}>
-          <span className={styles.paneTitle}>{t('lighting.rightPane.devices')}</span>
+          <div className={styles.paneTitleGroup}>
+            <span className={styles.paneTitle}>{t('lighting.rightPane.devices')}</span>
+            <Badge label={String(orderedDevices.length)} compact color="var(--text-dim)" />
+          </div>
           <div className={styles.deviceHeaderActions}>
             <OpenRgbButton rgbRunning={rgb.running} scanning={rgb.scanning} />
             {selectableIds.length > 0 && (
@@ -1562,7 +1685,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           </div>
         </div>
         <div className={`${styles.paneHeader} ${styles.headerCenter}`}>
-          <span className={styles.paneTitle}>{t('lighting.pane.preview')}</span>
+          <span className={styles.paneTitle}>{t('lighting.pane.effect')}</span>
           {/* How many devices this preview stands for: every device in the
               modes that drive them all, the selection in the per-device ones. */}
           <Badge label={previewBadgeLabel} compact uppercase color="var(--text-dim)" />
@@ -1599,7 +1722,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
         <div className={styles.devicePane}>
           <DevicePanel
             devices={orderedDevices}
-            selectable={perDeviceMode}
             // A mode that reaches every device overrides what any one of them
             // was assigned, so the picks stop applying - the strips go back to
             // sampling the shared canvas. They are kept, not cleared, so
@@ -1608,7 +1730,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             versionForSlot={versionForSlot}
             ledFullscreen={effectiveMode === 'static'}
             selectedIds={selectedDeviceIds}
-            onSelectDevice={handleSelectDevice}
             onSetSelection={handleSetSelection}
             onTogglePower={handleTogglePower}
             onSetPower={handleSetPower}

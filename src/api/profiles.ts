@@ -153,6 +153,8 @@ export interface UiPrefs {
   // Per-page density of the dashboard lighting/cooling pages
   // ('simple' | 'advanced'). Optional - older services omit them, and the
   // client keeps its local values.
+  lightingDashboardMode?: string;
+  coolingDashboardMode?: string;
 }
 
 export interface UpdatePrefs {

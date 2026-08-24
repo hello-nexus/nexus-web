@@ -81,6 +81,53 @@
   app-region: no-drag;
 }
 
+// Mode switch for the active page: swap glyph + the TARGET mode's name (what
+// a click switches to, matching the in-page advanced-mode card). Boxless -
+// plain dim text that lights up on hover. Type matches the sidebar nav rows.
+// Width shrinks with the window so the cluster never runs under the right
+// cluster, and the button hides entirely on windows too narrow to host it;
+// MacAppWindow mirrors this formula (TopBarModeToggleReserve /
+// TopBarModeToggleMax / TopBarModeToggleMinWindow) for the mac drag-strip
+// carve-out.
+.modeToggleButton {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  height: 34px;
+  max-width: clamp(0px, calc(100vw - 1000px), 220px);
+  padding: 0 0.4rem;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  font-family: inherit;
+  font-size: var(--type-small);
+  font-weight: var(--weight-body);
+  cursor: pointer;
+  transition: color var(--ease-fast);
+
+  svg { flex-shrink: 0; }
+
+  &:hover {
+    color: var(--text);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--accent-soft);
+    border-radius: var(--radius-sm);
+  }
+
+  @media (max-width: 1060px) {
+    display: none;
+  }
+}
+
+.modeToggleLabel {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 // Flat icon button matching the "..." menu chrome: transparent at rest, a
 // hover-only fill, and a small rounded-square radius (no circle).
 .pageSettingsButton {

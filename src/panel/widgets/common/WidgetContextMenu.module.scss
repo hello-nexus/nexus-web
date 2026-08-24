@@ -133,6 +133,18 @@
   }
 }
 
+// The row that fixes the state the card is advertising (lights off, Nexus
+// Control off), so the fix is findable without reading every row.
+.itemAccent {
+  color: var(--panel-accent);
+  background: color-mix(in srgb, var(--panel-accent) 12%, transparent);
+
+  &:hover {
+    background: color-mix(in srgb, var(--panel-accent) 20%, transparent);
+    color: var(--panel-accent);
+  }
+}
+
 .itemChecked {
   color: var(--panel-accent);
 

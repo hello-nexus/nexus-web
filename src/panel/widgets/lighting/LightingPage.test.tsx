@@ -154,6 +154,8 @@ describe('LightingPage profile switching', () => {
     profileRef.current = 'old';
     vi.clearAllMocks();
     localStorage.clear();
+    // These tests exercise the advanced page; the fresh-install default is simple.
+    localStorage.setItem('nexus_settings', JSON.stringify({ general: { lightingDashboardMode: 'advanced', coolingDashboardMode: 'advanced' } }));
   });
 
   it('replays the freshly loaded profile effect instead of stale rawSync', async () => {
@@ -208,6 +210,8 @@ describe('LightingPage preset toolbar placement', () => {
     profileRef.current = 'old';
     vi.clearAllMocks();
     localStorage.clear();
+    // These tests exercise the advanced page; the fresh-install default is simple.
+    localStorage.setItem('nexus_settings', JSON.stringify({ general: { lightingDashboardMode: 'advanced', coolingDashboardMode: 'advanced' } }));
   });
 
   // Layout presets carry device geometry, so the control heads the device rail
@@ -247,6 +251,8 @@ describe('LightingPage selection in a drive-everything mode', () => {
     canvasDeviceIds.current = [];
     vi.clearAllMocks();
     localStorage.clear();
+    // These tests exercise the advanced page; the fresh-install default is simple.
+    localStorage.setItem('nexus_settings', JSON.stringify({ general: { lightingDashboardMode: 'advanced', coolingDashboardMode: 'advanced' } }));
   });
 
   it('offers select all/none and draws only the selected devices on the canvas', async () => {

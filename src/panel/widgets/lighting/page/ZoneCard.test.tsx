@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ZoneCard, type BulkSelection } from './ZoneCard';
+import { ZoneCard, zoneCardSelectable, type BulkSelection } from './ZoneCard';
 import type { LightingDevice } from '../../../../api/lighting';
 import type { SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
 import styles from '../LightingPage.module.scss';
@@ -49,7 +49,8 @@ function renderCard(device: LightingDevice) {
 describe('ZoneCard state chip', () => {
   it('shows no chip and does not dim the card in the default state', () => {
     renderCard(baseDevice);
-    expect(document.querySelector(`.${styles.deviceStateChip}`)).toBeNull();
+    expect(screen.queryByText('lighting.devices.stateNotControlled')).toBeNull();
+    expect(screen.queryByText('lighting.devices.stateLightsOff')).toBeNull();
     const card = document.querySelector(`.${styles.deviceCard}`);
     expect(card?.className).not.toContain(styles.deviceCardPoweredOff);
   });
@@ -57,6 +58,7 @@ describe('ZoneCard state chip', () => {
   it('names the ignored state persistently, in place of the LED count', () => {
     renderCard({ ...baseDevice, controlled: false });
     expect(screen.getByText('lighting.devices.stateNotControlled')).toBeTruthy();
+    // An un-driven device has nothing to read out, so the badge stands in.
     expect(document.querySelector(`.${styles.deviceMetaCount}`)).toBeNull();
     const card = document.querySelector(`.${styles.deviceCard}`);
     expect(card?.className).toContain(styles.deviceCardPoweredOff);
@@ -351,7 +353,7 @@ describe('ZoneCard toggleMode', () => {
   it('hides the actions menu and the state chip', () => {
     renderToggleCard({ ...baseDevice, controlled: false });
     expect(screen.queryByRole('button', { name: 'lighting.devices.moreActions' })).toBeNull();
-    expect(document.querySelector(`.${styles.deviceStateChip}`)).toBeNull();
+    expect(screen.queryByText('lighting.devices.stateNotControlled')).toBeNull();
     // The whole card is the switch here, so the ignored state reads from
     // aria-checked rather than a chip.
     expect(screen.getByRole('switch', { name: 'Test Strip' }).getAttribute('aria-checked')).toBe('false');
@@ -384,3 +386,185 @@ describe('ZoneCard toggleMode', () => {
     expect(onToggle).not.toHaveBeenCalled();
   });
 });
+
+describe('ZoneCard selection gate', () => {
+  it('takes a card-click selection in the default state', () => {
+    const onSelect = vi.fn();
+    render(
+      <ZoneCard
+        device={baseDevice}
+        selected={false}
+        indent={false}
+        onSelect={onSelect}
+        onTogglePower={() => {}}
+        onToggleControlled={() => {}}
+        onOpenSettings={() => {}}
+      />,
+    );
+    fireEvent.click(document.querySelector(`.${styles.deviceCard}`)!);
+    expect(onSelect).toHaveBeenCalled();
+  });
+
+  it('carries no leading control at all', () => {
+    renderCard(baseDevice);
+    expect(screen.queryByRole('checkbox')).toBeNull();
+  });
+
+  it('drops the checkbox and refuses card-click selection with Nexus Control off', () => {
+    const onSelect = vi.fn();
+    render(
+      <ZoneCard
+        device={{ ...baseDevice, controlled: false }}
+        selected={false}
+        indent={false}
+        onSelect={onSelect}
+        onTogglePower={() => {}}
+        onToggleControlled={() => {}}
+        onOpenSettings={() => {}}
+      />,
+    );
+    fireEvent.click(document.querySelector(`.${styles.deviceCard}`)!);
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('still lets toggle mode switch an un-driven device back on', () => {
+    const onToggle = vi.fn();
+    render(
+      <ZoneCard
+        device={{ ...baseDevice, controlled: false }}
+        toggleMode
+        selected={false}
+        indent={false}
+        onSelect={() => {}}
+        onTogglePower={() => {}}
+        onToggleControlled={onToggle}
+        onOpenSettings={() => {}}
+      />,
+    );
+    fireEvent.click(document.querySelector(`.${styles.deviceCard}`)!);
+    expect(onToggle).toHaveBeenCalled();
+  });
+
+  it('zoneCardSelectable rejects un-driven, dark and detection-failed devices', () => {
+    expect(zoneCardSelectable(baseDevice)).toBe(true);
+    expect(zoneCardSelectable({ ...baseDevice, controlled: false })).toBe(false);
+    expect(zoneCardSelectable({ ...baseDevice, ledsOn: false })).toBe(false);
+    expect(zoneCardSelectable({ ...baseDevice, ledCount: 0 })).toBe(false);
+  });
+
+  it('drops the checkbox and refuses selection with the lights off', () => {
+    const onSelect = vi.fn();
+    render(
+      <ZoneCard
+        device={{ ...baseDevice, ledsOn: false }}
+        selected={false}
+        indent={false}
+        onSelect={onSelect}
+        onTogglePower={() => {}}
+        onToggleControlled={() => {}}
+        onOpenSettings={() => {}}
+      />,
+    );
+    expect(screen.getByText('lighting.devices.stateLightsOff')).toBeTruthy();
+    fireEvent.click(document.querySelector(`.${styles.deviceCard}`)!);
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+});
+
+describe('ZoneCard select-only row', () => {
+  function renderWithSelectOnly(onSelectOnly?: () => void) {
+    return render(
+      <ZoneCard
+        device={baseDevice}
+        selected
+        indent={false}
+        onSelect={() => {}}
+        onSelectOnly={onSelectOnly}
+        onTogglePower={() => {}}
+        onToggleControlled={() => {}}
+        onOpenSettings={() => {}}
+      />,
+    );
+  }
+
+  it('omits the row when nothing passed it (one card or none selected)', () => {
+    renderWithSelectOnly(undefined);
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.devices.moreActions' }));
+    expect(screen.queryByText(/lighting\.devices\.selectOnly/)).toBeNull();
+  });
+
+  it('leads the menu, names the device, and fires the narrow', () => {
+    const onSelectOnly = vi.fn();
+    renderWithSelectOnly(onSelectOnly);
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.devices.moreActions' }));
+    const rows = screen.getAllByRole('button').filter(b => /lighting\.devices\./.test(b.textContent ?? ''));
+    expect(rows[0].textContent).toContain('lighting.devices.selectOnly');
+    // The label interpolates the card's own name, so the row is unambiguous.
+    expect(rows[0].textContent).toContain('Test Strip');
+    fireEvent.click(rows[0]);
+    expect(onSelectOnly).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('ZoneCard menu highlight', () => {
+  const openMenuFor = (device: LightingDevice) => {
+    renderCard(device);
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.devices.moreActions' }));
+    return (label: string) =>
+      screen.getAllByRole('button').find(b => (b.textContent ?? '').includes(label));
+  };
+
+  it('leaves both rows plain when the device is driven and lit', () => {
+    const row = openMenuFor(baseDevice);
+    expect(row('lighting.devices.menuControlOff')?.className).not.toContain('itemAccent');
+    expect(row('lighting.devices.menuLightsOff')?.className).not.toContain('itemAccent');
+  });
+
+  it('accents the lights row when only the lights are off', () => {
+    const row = openMenuFor({ ...baseDevice, ledsOn: false });
+    expect(row('lighting.devices.menuLightsOn')?.className).toContain('itemAccent');
+    expect(row('lighting.devices.menuControlOff')?.className).not.toContain('itemAccent');
+  });
+
+  it('accents only the control row while the device is un-driven', () => {
+    const row = openMenuFor({ ...baseDevice, controlled: false, ledsOn: false });
+    expect(row('lighting.devices.menuControlOn')?.className).toContain('itemAccent');
+    // Power is moot until Nexus drives it again, so that row stays plain.
+    expect(row('lighting.devices.menuLightsOn')?.className).not.toContain('itemAccent');
+  });
+
+  it('offers no select-only row on a card that cannot be selected', () => {
+    render(
+      <ZoneCard
+        device={{ ...baseDevice, ledsOn: false }}
+        selected={false}
+        indent={false}
+        onSelect={() => {}}
+        onSelectOnly={() => {}}
+        onTogglePower={() => {}}
+        onToggleControlled={() => {}}
+        onOpenSettings={() => {}}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.devices.moreActions' }));
+    expect(screen.queryByText(/lighting\.devices\.selectOnly/)).toBeNull();
+  });
+
+  it('offers select-only on a selectable card even with nothing else selected', () => {
+    render(
+      <ZoneCard
+        device={baseDevice}
+        selected={false}
+        indent={false}
+        onSelect={() => {}}
+        onSelectOnly={() => {}}
+        onTogglePower={() => {}}
+        onToggleControlled={() => {}}
+        onOpenSettings={() => {}}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.devices.moreActions' }));
+    expect(screen.getByText(/lighting\.devices\.selectOnly/)).toBeTruthy();
+  });
+});
+

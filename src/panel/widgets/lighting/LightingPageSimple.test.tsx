@@ -1,0 +1,169 @@
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { UiSettingsProvider } from '../../../hooks/useUiSettings';
+import { PALETTE } from '../../../types/lightingPalette';
+import * as lightingApi from '../../../api/lighting';
+import { LightingPage } from './LightingPage';
+
+// Rendered outside I18nProvider, so t() falls back to raw keys.
+
+const syncState = vi.hoisted(() => ({ mode: 'none' }));
+vi.mock('../../../hooks/useLightingSync', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../hooks/useLightingSync')>()),
+  useLightingSync: () => ({
+    mode: syncState.mode,
+    setMode: vi.fn(),
+    rawSync: syncState.mode,
+    setRawSync: vi.fn(),
+    synced: true,
+    paused: false,
+  }),
+}));
+
+vi.mock('../../../hooks/useMultiplexSocket', () => ({
+  useTopicCallback: vi.fn(),
+  useTopic: vi.fn(() => null),
+}));
+
+vi.mock('../../../hooks/useLightingFrames', () => ({
+  useLightingFrames: () => ({ canvasPixels: null, canvasW: 160, canvasH: 90 }),
+}));
+vi.mock('../../../hooks/useUsbDevices', () => ({ useUsbDevices: () => ({ devices: [] }) }));
+vi.mock('../../../hooks/useAudioState', () => ({ useAudioState: () => ({ current: null }) }));
+vi.mock('../../../lib/controlSync', () => ({
+  publishControlSync: vi.fn(),
+  subscribeControlSync: vi.fn(() => () => {}),
+}));
+
+vi.mock('./page/FullscreenShader', () => ({ FullscreenShader: () => null }));
+vi.mock('./page/ModeControls', () => ({ ModeControls: () => null }));
+// Advanced-branch marker: the simple page never mounts the device rail.
+vi.mock('./page/DevicePanel', () => ({ DevicePanel: () => <div data-testid="device-panel" /> }));
+vi.mock('./page/LedMapEditor', () => ({ LedMapEditor: () => null }));
+vi.mock('./page/EffectTab', () => ({ EffectTab: () => null }));
+vi.mock('../../../components/common/ViewHeader/ViewHeader', () => ({ ViewHeader: () => null }));
+vi.mock('../../../components/views/ServiceRequired', () => ({ ServiceRequired: () => null }));
+vi.mock('../../../components/views/PageSkeleton/PageSkeleton', () => ({ LightingSkeleton: () => null }));
+vi.mock('../../../components/common/DeviceCanvas/DeviceCanvas', () => ({ DeviceCanvas: () => null }));
+
+vi.mock('../../../api/lighting', async importOriginal => {
+  const actual = await importOriginal<typeof import('../../../api/lighting')>();
+  return {
+    ...actual,
+    fetchCurrentSync: vi.fn(() => Promise.resolve({ sync: 'none' })),
+    fetchAnimateSettings: vi.fn(() => Promise.resolve({ effect: 'rainbow', states: {}, templates: {} })),
+    fetchStaticSettings: vi.fn(() => Promise.resolve({ effect: 'gradientlinear', states: {} })),
+    fetchAnimateDefaults: vi.fn(() => Promise.resolve(null)),
+    cachedAnimateDefaults: vi.fn(() => null),
+    fetchMusicReactive: vi.fn(() => Promise.resolve({ enabled: false })),
+    fetchScreenEffect: vi.fn(() => Promise.resolve({ hue: 0, colorize: 0, saturation: 1, contrast: 1 })),
+    fetchMediaEffect: vi.fn(() => Promise.resolve({ hue: 0, colorize: 0, saturation: 1, contrast: 1 })),
+    fetchLightingDevices: vi.fn(() => Promise.resolve({
+      isInit: true,
+      devices: [
+        { id: 'dev-1', name: 'Strip', ledsOn: true, ledCount: 8, x: 0, y: 0, w: 1, h: 1 },
+        { id: 'dev-2', name: 'Fan', ledsOn: true, ledCount: 8, controlled: false, x: 0, y: 0, w: 1, h: 1 },
+      ],
+    })),
+    fetchLedMap: vi.fn(() => Promise.resolve(null)),
+    fetchAvailableMappings: vi.fn(() => Promise.resolve(null)),
+    fetchLayoutPresets: vi.fn(() => Promise.resolve(null)),
+    saveAnimateTemplates: vi.fn(() => Promise.resolve(null)),
+    startAnimate: vi.fn(() => Promise.resolve(null)),
+    startStatic: vi.fn(() => Promise.resolve(null)),
+    stopLighting: vi.fn(() => Promise.resolve(null)),
+    setMusicReactive: vi.fn(() => Promise.resolve(null)),
+    setLightingDeviceColor: vi.fn(() => Promise.resolve(null)),
+    setLightingDeviceControlled: vi.fn(() => Promise.resolve(null)),
+  };
+});
+
+const serviceState = { cooling: null, lighting: null, panel: null } as never;
+
+function renderPage() {
+  return render(
+    <UiSettingsProvider>
+      <LightingPage serviceOnline serviceState={serviceState} activeProfileId="p1" />
+    </UiSettingsProvider>,
+  );
+}
+
+describe('LightingPage simple mode', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Fresh install: no stored settings, both page modes default to 'simple'.
+    localStorage.clear();
+    syncState.mode = 'none';
+  });
+
+  it('renders the whole colour palette and no advanced chrome', () => {
+    const { container } = renderPage();
+    expect(container.querySelectorAll('[data-palette-id]').length).toBe(PALETTE.length);
+    expect(screen.queryByTestId('device-panel')).toBeNull();
+    expect(screen.getByRole('button', { name: /lighting\.simple\.advancedCta/ })).toBeTruthy();
+  });
+
+  it('offers no gradient, two-tone or spectrum pattern', () => {
+    renderPage();
+    for (const key of ['gradientlinear', 'gradientradial', 'twotone', 'spectrumramp', 'huewheel']) {
+      expect(screen.queryByRole('button', { name: new RegExp(`lighting\\.effect\\.${key}\\b`) })).toBeNull();
+    }
+  });
+
+  it('summarises how many devices are detected and driven', async () => {
+    renderPage();
+    expect(await screen.findByText('lighting.simple.detected.other')).toBeTruthy();
+    expect(screen.getByText('lighting.simple.controlled')).toBeTruthy();
+  });
+
+  it('takes over a device the advanced page had left un-driven', async () => {
+    renderPage();
+    await waitFor(() => {
+      expect(vi.mocked(lightingApi.setLightingDeviceControlled)).toHaveBeenCalledWith('dev-2', true);
+    });
+    // The already-driven device is left alone.
+    expect(vi.mocked(lightingApi.setLightingDeviceControlled).mock.calls.some(c => c[0] === 'dev-1')).toBe(false);
+  });
+
+  it('paints every device with a picked colour, entering static first', async () => {
+    const { container } = renderPage();
+    // Wait for the device fetch: a colour has nowhere to land until it lands.
+    await waitFor(() => {
+      expect(vi.mocked(lightingApi.fetchLightingDevices)).toHaveBeenCalled();
+    });
+    const swatch = container.querySelector('[data-palette-id="red-3"]') as HTMLButtonElement;
+    fireEvent.click(swatch);
+    await waitFor(() => {
+      expect(vi.mocked(lightingApi.startStatic)).toHaveBeenCalled();
+      expect(vi.mocked(lightingApi.setLightingDeviceColor).mock.calls.some(c => c[0] === 'dev-1')).toBe(true);
+    });
+  });
+
+  it('off tile stops lighting when a mode is running', async () => {
+    syncState.mode = 'static';
+    renderPage();
+    const offTile = screen.getByRole('button', { name: /lighting\.mode\.off/ });
+    expect(offTile.getAttribute('aria-pressed')).toBe('false');
+    fireEvent.click(offTile);
+    await waitFor(() => {
+      expect(vi.mocked(lightingApi.stopLighting)).toHaveBeenCalled();
+    });
+  });
+
+  it('off tile shows active and does not restart the stop while already off', () => {
+    renderPage();
+    const offTile = screen.getByRole('button', { name: /lighting\.mode\.off/ });
+    expect(offTile.getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(offTile);
+    expect(vi.mocked(lightingApi.stopLighting)).not.toHaveBeenCalled();
+  });
+
+  it('switches to the advanced page from the CTA', async () => {
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: /lighting\.simple\.advancedCta/ }));
+    await waitFor(() => {
+      expect(screen.getByTestId('device-panel')).toBeTruthy();
+    });
+    expect(screen.queryByRole('button', { name: /lighting\.simple\.advancedCta/ })).toBeNull();
+  });
+});
