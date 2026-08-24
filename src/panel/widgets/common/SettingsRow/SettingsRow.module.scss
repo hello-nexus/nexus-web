@@ -30,24 +30,6 @@
   min-height: 34px;
 }
 
-.button,
-.buttonMuted {
-  @include text-label;
-  min-height: 32px;
-  border: 1px solid var(--panel-accent);
-  border-radius: var(--radius);
-  background: var(--panel-accent-soft);
-  color: var(--panel-accent-glow);
-  padding: 0 12px;
-  cursor: pointer;
-}
-
-.buttonMuted {
-  border-color: var(--panel-border);
-  background: var(--panel-element-bg);
-  color: var(--text-dim);
-}
-
 .saved,
 .hint {
   @include text-caption;
@@ -58,4 +40,11 @@
   display: block;
   margin-top: -2px;
   line-height: 1.25;
+}
+
+// The UA default shrinks <code> to ~0.85em of an already-tiny caption, which
+// lands well under the readable floor; inline values track the hint's size.
+.hint code {
+  font-family: var(--font-mono);
+  font-size: inherit;
 }
