@@ -1,0 +1,86 @@
+@use '../../../styles/text' as *;
+
+.body {
+  display: grid;
+  grid-template-columns: minmax(0, 15rem) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+// One column on a narrow surface: the source list stacks above its panel.
+@media (max-width: 720px) {
+  .body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.sourceList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.sourceHeader {
+  @include text-caption;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0 0.25rem 0.15rem;
+}
+
+.sourceRow {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  min-width: 0;
+
+  &:hover { border-color: var(--border-strong); }
+}
+
+.sourceRowActive {
+  composes: sourceRow;
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.sourceIcon {
+  display: flex;
+  flex-shrink: 0;
+  color: var(--accent);
+}
+
+// A source that is not on this PC reads as present but inactive.
+.sourceIconOff {
+  color: var(--text-dim);
+}
+
+.sourceText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.sourceName {
+  font-size: var(--type-small);
+  font-weight: 600;
+}
+
+.sourceStatus {
+  @include text-caption;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.panel {
+  min-width: 0;
+}
