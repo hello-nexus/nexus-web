@@ -4,6 +4,7 @@ import type { WidgetSettingsProps } from '../types';
 import {
   SettingsActions,
   SettingsButton,
+  SettingsHint,
   SettingsInput,
   SettingsRow,
   SettingsSaved,
@@ -44,6 +45,12 @@ export function ObsSettings(props: WidgetSettingsProps) {
 
   return (
     <SettingsSection title={t('panel.widget.obs.settings.title')}>
+      <SettingsHint>
+        {t('panel.widget.obs.settings.hint.before')}{' '}
+        {/* eslint-disable-next-line i18next/no-literal-string -- OBS's own menu path */}
+        <code>Tools &gt; WebSocket Server Settings</code>
+        {t('panel.widget.obs.settings.hint.after')}
+      </SettingsHint>
       <SettingsRow label={t('panel.widget.obs.settings.host')}>
         <SettingsInput
           type="text"

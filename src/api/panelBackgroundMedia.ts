@@ -1,13 +1,4 @@
-import { deleteService, fetchService, postService, postServiceForm, resolveHttp } from './service';
-import { getTokenSync } from './auth';
-
-// <img>/<video> element loads can't send a Bearer header, so authenticated
-// asset URLs carry the session token as a query param (the server's
-// ExtractBearerOrQueryToken accepts ?token=), same as the WS URL.
-function tokenParam(): string {
-  const t = getTokenSync();
-  return t ? `token=${encodeURIComponent(t)}` : '';
-}
+import { deleteService, fetchService, postService, postServiceForm, resolveHttp, tokenParam } from './service';
 
 export interface BackgroundMediaItem {
   id: string;

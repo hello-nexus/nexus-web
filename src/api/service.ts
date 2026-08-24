@@ -2,7 +2,7 @@
 // Override host/port via Vite env vars VITE_SERVICE_HOST / VITE_SERVICE_PORT.
 // All authenticated calls include the Bearer token obtained via /pair.
 
-import { getToken, handleUnauthorized, hasSessionToken } from './auth';
+import { getToken, getTokenSync, handleUnauthorized, hasSessionToken } from './auth';
 import { relayFetch, type RelayHttpMethod } from './relayHttp';
 import type { RelayResponse } from './httpTunnelFraming';
 
@@ -135,6 +135,14 @@ export const loopbackFetchInit: RequestInit = (() => {
 
 export function resolveHttp(path: string): string {
   return `${SERVICE_PROTOCOL}//${endpoint}${path}`;
+}
+
+// <img>/<video> element loads can't send a Bearer header, so authenticated
+// asset URLs carry the session token as a query param (the server's
+// ExtractBearerOrQueryToken accepts ?token=), same as the WS URL.
+export function tokenParam(): string {
+  const t = getTokenSync();
+  return t ? `token=${encodeURIComponent(t)}` : '';
 }
 
 export function resolveWs(path: string): string {

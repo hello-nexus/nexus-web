@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 /*
  * Generic cadence helper for rate-limiting work driven by user interaction
@@ -36,4 +36,17 @@ export function useThrottle(ms = 33) {
       }, remaining);
     }
   }, [ms]);
+}
+
+/**
+ * Debounced mirror of a value: settles to `value` once it has stopped changing
+ * for `ms`. For work that should follow typing rather than each keystroke.
+ */
+export function useDebouncedValue<T>(value: T, ms = 500): T {
+  const [settled, setSettled] = useState(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setSettled(value), ms);
+    return () => clearTimeout(timer);
+  }, [value, ms]);
+  return settled;
 }

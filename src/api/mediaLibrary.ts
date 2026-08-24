@@ -1,10 +1,4 @@
-import { deleteService, fetchService, postService, postServiceForm, resolveHttp } from './service';
-import { getTokenSync } from './auth';
-
-function tokenParam(): string {
-  const t = getTokenSync();
-  return t ? `token=${encodeURIComponent(t)}` : '';
-}
+import { deleteService, fetchService, postService, postServiceForm, resolveHttp, tokenParam } from './service';
 
 export interface MediaItem {
   id: string;

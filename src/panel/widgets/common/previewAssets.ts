@@ -28,3 +28,16 @@ export function previewWallpaperUri(hue: number): string {
     + '</svg>';
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
+
+// Chat-emote stand-in for the Twitch fixture: the real emote art comes from
+// the service's CDN proxy, which a preview must not call.
+export function previewEmoteUri(hue: number): string {
+  const svg =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">'
+    + `<rect width="32" height="32" rx="9" fill="hsl(${hue} 55% 42%)"/>`
+    + `<circle cx="11" cy="13" r="3" fill="hsl(${hue} 60% 92%)"/>`
+    + `<circle cx="21" cy="13" r="3" fill="hsl(${hue} 60% 92%)"/>`
+    + `<path d="M9 20q7 6 14 0" stroke="hsl(${hue} 60% 92%)" stroke-width="3" fill="none" stroke-linecap="round"/>`
+    + '</svg>';
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}

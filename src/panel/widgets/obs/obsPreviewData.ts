@@ -8,6 +8,7 @@ import type { ObsStatusResponse } from '../../../api/obs';
 export const OBS_PREVIEW: ObsStatusResponse = {
   error: false,
   msg: '',
+  reason: '',
   connected: true,
   host: '127.0.0.1',
   port: 4455,
