@@ -26,7 +26,7 @@ import {
 } from '../../../api/qseries';
 import {
   fetchFanChannels, fetchTemperatureSources, fetchCurves,
-  setFanSpeed, releaseFanAuto, saveCurves, renameFan, setFanLock, setFanRole,
+  setFanSpeed, releaseFanAuto, saveCurves, renameFan, setFanLock, setFanRole, setFanOffset,
   startCalibration, fetchCalibrationResults, fetchProfiles, applyProfile,
   resetPresetCurve, isFanDisconnected,
   type FanChannel, type FanRole, type TemperatureSource,
@@ -799,6 +799,14 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
 
   // Fans a Sync curve may follow: everything except the fans this curve itself
   // drives, so it can never end up chasing its own output.
+  // Only ever clears: offsets arrive with a FanControl import, and the card is
+  // where the user finds out one exists.
+  const handleClearOffset = useCallback(async (id: string) => {
+    if (!serviceOnline) return;
+    await setFanOffset(id, 0);
+    setChannels(prev => prev.map(c => (c.id === id ? { ...c, offset: 0 } : c)));
+  }, [serviceOnline]);
+
   const syncSourceChannels = useMemo(
     () => channels.filter(c => fanStates[c.id]?.curveId !== selectedCurve?.id),
     [channels, fanStates, selectedCurve],
@@ -1143,6 +1151,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                   onSpeedChange={handleSpeedChange}
                   onToggleLock={handleToggleLock}
                   onSetRole={handleSetRole}
+                  onClearOffset={handleClearOffset}
                   drag={drag}
                 />
               );
@@ -1241,6 +1250,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                           onSpeedChange={handleSpeedChange}
                           onToggleLock={handleToggleLock}
                           onSetRole={handleSetRole}
+                  onClearOffset={handleClearOffset}
                         />
                       ))}</div>
                     </CollapsibleSection>

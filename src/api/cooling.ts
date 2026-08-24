@@ -24,6 +24,8 @@ export interface FanChannel {
   classification?: string | null; // "Controllable" | "Fixed" | "Stalling" | "Unresponsive"
   calibrated?: boolean;
   role?: FanRole;
+  /** Duty points added to whatever drives this fan, in [-100,100]. 0 when it has none. */
+  offset?: number;
   seriesId?: string; // sanitized id; "fan:" + seriesId is the monitoring series id
   // ── External-device metadata.
   // All null for motherboard/GPU fans; populated by the service only when the
@@ -203,6 +205,10 @@ export const setFanLock = (id: string, locked: boolean) =>
 
 export const setFanRole = (id: string, role: FanRole) =>
   postService(`/cooling/fan/${encodeURIComponent(id)}/role`, { role });
+
+/** Shifts this fan off whatever drives it. 0 removes the offset. */
+export const setFanOffset = (id: string, offset: number) =>
+  postService(`/cooling/fan/${encodeURIComponent(id)}/offset`, { offset });
 
 export const saveCurves = (body: {
   globalSpeedModifier: number;

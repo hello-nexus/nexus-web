@@ -426,6 +426,14 @@
   justify-content: flex-start;
 }
 
+// Sits under the fan's name when something shifts it off what drives it.
+.fanOffsetBadge {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-top: -0.15rem;
+}
+
 // Fan icon next to the name, doubling as the lock toggle. Turns accent when
 // the fan is bound to the curve currently shown in the graph (the highlight,
 // replacing the old border).

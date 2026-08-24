@@ -1,6 +1,6 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import { isMultiSelectModifier } from '../../../../lib/platform';
-import { CircleSlash, Cpu, Fan, Gpu, Lock, Plus, Unplug } from 'lucide-react';
+import { CircleSlash, Cpu, Fan, Gpu, Lock, Plus, RotateCcw, Unplug } from 'lucide-react';
 import { type FanChannel, type FanRole, isFanDisconnected } from '../../../../api/cooling';
 import { useUnitPrefs } from '../../../../hooks/useUiSettings';
 import { useTranslation } from '../../../../lib/i18n';
@@ -44,7 +44,7 @@ export const FanCard = memo(function FanCard({
   hubMode, hubSupportsFirmware,
   hubSupportsBios = true,
   nubRef, cardRef: cardRefProp, onWirePointerDown, onWireHover,
-  onSetMode, onCreateCurve, onRename, onSpeedChange, onToggleLock, onSetRole, drag,
+  onSetMode, onCreateCurve, onRename, onSpeedChange, onToggleLock, onSetRole, onClearOffset, drag,
 }: {
   channel: FanChannel;
   state: FanState | undefined;
@@ -87,6 +87,8 @@ export const FanCard = memo(function FanCard({
   onSpeedChange: (id: string, speed: number) => void;
   onToggleLock: (id: string, locked: boolean) => void;
   onSetRole: (id: string, role: FanRole) => void;
+  /** Clears a per-fan duty offset (the FanControl import is what creates them). Absent on surfaces that do not offer it. */
+  onClearOffset?: (id: string) => void;
   drag?: SortableRowArgs;
 }) {
   const { t } = useTranslation();
@@ -134,6 +136,10 @@ export const FanCard = memo(function FanCard({
     ? { icon: <Unplug size={11} />, label: t('cooling.fan.disconnected') }
     : (isFixed ? { icon: <CircleSlash size={11} />, label: t('cooling.fan.fixed') } : null);
   const locked = channel.locked ?? false;
+  // An offset shifts this fan off whatever drives it, so it says so on the
+  // card: an import can set one, and nothing else would show why the fan sits
+  // above its curve.
+  const offset = channel.offset ?? 0;
   const role: FanRole = channel.role ?? 'none';
   const RoleIcon = role === 'cpu' ? Cpu : role === 'gpu' ? Gpu : Fan;
 
@@ -256,11 +262,15 @@ export const FanCard = memo(function FanCard({
     ] : []),
     { value: '__lockSep__', label: '', divider: true },
     { value: '__lock__', label: lockOptionLabel, icon: <Lock size={14} /> },
+    ...(offset !== 0 && onClearOffset
+      ? [{ value: '__clearOffset__', label: t('cooling.card.clearOffset'), icon: <RotateCcw size={14} /> }]
+      : []),
   ];
 
   const handleModeChange = (v: string) => {
     if (v === '__create__') { onCreateCurve(); return; }
     if (v === '__lock__') { onToggleLock(channel.id, !locked); return; }
+    if (v === '__clearOffset__') { onClearOffset?.(channel.id); return; }
     onSetMode(v);
   };
 
@@ -356,6 +366,15 @@ export const FanCard = memo(function FanCard({
           <span className={styles.fanRpmLabel}>RPM</span>
         </span>
       </div>
+
+      {offset !== 0 && (
+        <div className={styles.fanOffsetBadge}>
+          <Badge
+            label={t('cooling.fan.offsetBadge', { value: offset > 0 ? `+${offset}` : String(offset) })}
+            compact uppercase color="var(--text-dim)"
+          />
+        </div>
+      )}
 
       {isHwDisconnected ? (
         // Hardware unresponsive: the whole fan block is "off", so the badge
