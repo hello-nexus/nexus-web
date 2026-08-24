@@ -1,6 +1,7 @@
 import { useEffect, useImperativeHandle, useMemo, useState, type ReactNode, type RefObject } from 'react';
 import { Fan, Gauge, SlidersHorizontal, Tag, Waves } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
+import { pluralKey } from '../../../lib/pluralKey';
 import { SettingsSection } from '../SettingsSection/SettingsSection';
 import { SettingToggle } from '../SettingRow/SettingRow';
 import { Button } from '../Button/Button';
@@ -69,6 +70,10 @@ const CATEGORIES: {
   },
 ];
 
+// Skip notes that name a number and so have plural forms; the rest are flat
+// sentences whose key has no .one/.other.
+const COUNTED_SKIP_NOTES = new Set(['fansMissing', 'rpmCurves']);
+
 const MATCH_LABEL_KEYS: Record<FanControlMatch, string> = {
   exact: 'fanControlImport.match.exact',
   normalized: 'fanControlImport.match.normalized',
@@ -99,7 +104,7 @@ export interface FanControlImportSectionProps {
 export function FanControlImportSection({
   open, configs, disabled, onBusyChange, showAction = true, onSelectionChange, handleRef, onImported,
 }: FanControlImportSectionProps) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const defaultPath = configs.find(c => c.isDefault)?.path ?? configs[0]?.path ?? '';
   const [configPath, setConfigPath] = useState(defaultPath);
   const [previewStatus, setPreviewStatus] = useState<PreviewStatus>('idle');
@@ -218,7 +223,7 @@ export function FanControlImportSection({
             <SettingToggle
               key={c.id}
               label={t(c.labelKey)}
-              description={t(c.descriptionKey, { count: c.count(preview) })}
+              description={t(pluralKey(c.descriptionKey, language, c.count(preview)), { count: c.count(preview) })}
               icon={c.icon}
               iconLeading
               checked={selected.has(c.id)}
@@ -272,7 +277,12 @@ export function FanControlImportSection({
             <ul className={styles.skippedList} data-settings-aside>
               {preview.skipped.map(note => (
                 <li key={note.code} className={styles.skippedNote}>
-                  {t(`fanControlImport.skip.${note.code}`, { count: note.count })}
+                  {t(
+                    COUNTED_SKIP_NOTES.has(note.code)
+                      ? pluralKey(`fanControlImport.skip.${note.code}`, language, note.count)
+                      : `fanControlImport.skip.${note.code}`,
+                    { count: note.count },
+                  )}
                 </li>
               ))}
             </ul>

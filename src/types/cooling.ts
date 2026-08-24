@@ -162,6 +162,28 @@ export function curveDefToApi(c: CurveDef, outputs: Array<{ id: string; type: st
   };
 }
 
+/**
+ * Fills in any mode object a CurveDef is missing. A curve read back from a
+ * cache written by an older build has no object for a mode that did not exist
+ * then, and the editor reads `curve.<mode>.<field>` unconditionally - which is
+ * a crash, not a missing value. Adding a mode should not be able to break a
+ * page for everyone who visited it before.
+ */
+export function withCurveDefaults(curve: CurveDef): CurveDef {
+  const defaults = newCurve(curve.id);
+  return {
+    ...defaults,
+    ...curve,
+    flat: { ...defaults.flat, ...curve.flat },
+    linear: { ...defaults.linear, ...curve.linear },
+    multipoint: { ...defaults.multipoint, ...curve.multipoint },
+    mix: { ...defaults.mix, ...curve.mix },
+    trigger: { ...defaults.trigger, ...curve.trigger },
+    sync: { ...defaults.sync, ...curve.sync },
+    auto: { ...defaults.auto, ...curve.auto },
+  };
+}
+
 export function newCurve(id: string): CurveDef {
   return {
     id, name: `Curve ${id.slice(-4)}`, type: 'multipoint', sourceId: '',

@@ -1685,7 +1685,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           </div>
         </div>
         <div className={`${styles.paneHeader} ${styles.headerCenter}`}>
-          <span className={styles.paneTitle}>{t('lighting.pane.effect')}</span>
+          <span className={styles.paneTitle}>{t('lighting.pane.effects')}</span>
           {/* How many devices this preview stands for: every device in the
               modes that drive them all, the selection in the per-device ones. */}
           <Badge label={previewBadgeLabel} compact uppercase color="var(--text-dim)" />
