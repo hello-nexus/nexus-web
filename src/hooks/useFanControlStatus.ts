@@ -23,11 +23,16 @@ export function useFanControlStatus(): FanControlGate {
 
   useEffect(() => {
     let cancelled = false;
-    void fetchFanControlStatus().then(res => {
-      if (cancelled) return;
-      setPayload(res);
-      setStatus(res?.pending ? 'pending' : 'settled');
-    });
+    // Settles on a rejection too, not just on a null: the dashboard waits on
+    // this gate, so a request that throws (a non-JSON body, a dropped
+    // connection) must not leave it 'unknown' forever.
+    void fetchFanControlStatus()
+      .catch(() => null)
+      .then(res => {
+        if (cancelled) return;
+        setPayload(res);
+        setStatus(res?.pending ? 'pending' : 'settled');
+      });
     return () => { cancelled = true; };
   }, [nonce]);
 
