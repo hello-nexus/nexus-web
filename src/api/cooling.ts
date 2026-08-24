@@ -1,6 +1,6 @@
 // Cooling API wrapper - authenticated fetch/post to the local service.
 
-import { fetchService, postService } from './service';
+import { fetchService, postService, putService, deleteService } from './service';
 
 // ── Types ──
 
@@ -222,3 +222,39 @@ export const startCalibration = (fanIds: string[]) =>
  *  channel from /cooling/fans instead. */
 export const fetchCalibrationResults = () =>
   fetchService<{ calibrations: FanCalibration[] }>('/cooling/calibration/results');
+
+// ----- User-saved cooling presets -----
+
+/** A saved cooling configuration. `mode` is the built-in mode it restores. */
+export interface CoolingPreset {
+  id: string;
+  name: string;
+  mode: CoolingPresetMode;
+}
+
+export type CoolingPresetMode = 'off' | 'silent' | 'balanced' | 'turbo' | 'custom';
+
+export interface CoolingPresetsResponse {
+  presets: CoolingPreset[];
+  activeId: string | null;
+}
+
+export const fetchCoolingPresets = () =>
+  fetchService<CoolingPresetsResponse>('/cooling/presets');
+
+export const createCoolingPreset = (name: string) =>
+  postService<{ preset: CoolingPreset; activeId: string | null; error?: boolean; msg?: string }>(
+    '/cooling/presets', { name });
+
+/** saveCurrent re-captures the live configuration into the preset. */
+export const updateCoolingPreset = (id: string, body: { name?: string; saveCurrent?: boolean }) =>
+  putService('/cooling/presets/' + encodeURIComponent(id), body);
+
+export const deleteCoolingPreset = (id: string) =>
+  deleteService<{ activeId: string | null }>('/cooling/presets/' + encodeURIComponent(id));
+
+export const setActiveCoolingPreset = (id: string | null) =>
+  putService('/cooling/presets/active', { id });
+
+export const activateCoolingPreset = (id: string) =>
+  postService('/cooling/presets/' + encodeURIComponent(id) + '/activate', {});

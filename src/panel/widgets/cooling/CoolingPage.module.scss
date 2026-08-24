@@ -48,10 +48,33 @@
 }
 
 // Preset tabs: a full-width row at the top, starting at the page's left edge.
-.tabsCell {
+// Row 1, spanning both columns: mode tabs from the page's left edge, the saved
+// presets at the right. A flex row so the two negotiate - the tab bar cannot
+// compress below its labels, so the presets give first. Mirrors the lighting
+// page's .topRow.
+.topRow {
   grid-column: 1 / span 2;
   grid-row: 1;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
   min-width: 0;
+}
+
+.tabsCell {
+  flex: 1 1 auto;
+  min-width: min-content;
+}
+
+.presetHeader {
+  // Column width until the tabs need the room; the toolbar's own select is the
+  // flexible part, so the buttons survive and the preset name truncates.
+  flex: 0 1 300px;
+  min-width: min-content;
+  // Column, not row: the toolbar is sized on the CROSS axis so it stretches to
+  // the rail width instead of tracking the preset name's width.
+  display: flex;
+  flex-direction: column;
 }
 
 // One title per column, both on grid row 2 so they share a baseline.

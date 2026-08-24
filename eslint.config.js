@@ -20,6 +20,9 @@ const NON_UI_JSX_ATTRIBUTES = [
   'layout', 'yAxisSide',
   // Search deep-link target id stamped on a control; technical, never displayed.
   'anchorId',
+  // i18n key prefixes/overrides handed to a shared component so it reads its
+  // caller's strings; these ARE the translation lookup, not display text.
+  'translationPrefix', 'resetLabelKey', 'resetConfirmKey', 'importLabelKey',
 ]
 
 export default defineConfig([

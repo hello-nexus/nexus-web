@@ -27,6 +27,8 @@ import {
 import {
   fetchFanChannels, fetchTemperatureSources, fetchCurves,
   setFanSpeed, releaseFanAuto, saveCurves, renameFan, setFanLock, setFanRole, setFanOffset,
+  fetchCoolingPresets, createCoolingPreset, updateCoolingPreset, deleteCoolingPreset,
+  activateCoolingPreset, type CoolingPreset,
   startCalibration, fetchCalibrationResults, fetchProfiles, applyProfile,
   resetPresetCurve, isFanDisconnected,
   type FanChannel, type FanRole, type TemperatureSource,
@@ -43,6 +45,7 @@ import { useUiSettings } from '../../../hooks/useUiSettings';
 import { publishControlSync, subscribeControlSync } from '../../../lib/controlSync';
 import { emitRadialBloomFromElement } from '../../../lib/backgroundEffects';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
+import { PresetToolbar } from '../../../components/common/PresetToolbar/PresetToolbar';
 import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
 import { AdvancedModeCta } from '../../../components/common/AdvancedModeCta/AdvancedModeCta';
 import { DeviceCountSummary } from '../../../components/common/DeviceCountSummary/DeviceCountSummary';
@@ -380,13 +383,68 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
+  // ── Saved presets ─────────────────────────────────────────────────────────
+  // Live write-through, matching the lighting page: there is no Save button, so
+  // every configuration change re-captures into whichever preset is loaded.
+  const [presets, setPresets] = useState<CoolingPreset[]>([]);
+  const [activePresetId, setActivePresetId] = useState<string | null>(null);
+  const activePresetIdRef = useRef<string | null>(null);
+  useEffect(() => { activePresetIdRef.current = activePresetId; }, [activePresetId]);
+
+  const loadPresets = useCallback(async () => {
+    const res = await fetchCoolingPresets();
+    if (!res) return;
+    setPresets(res.presets);
+    setActivePresetId(res.activeId);
+  }, []);
+
+  useEffect(() => {
+    if (!serviceOnline) return;
+    void loadPresets();
+  }, [serviceOnline, loadPresets]);
+
+  // Fired after any change the preset stores. The service captures live state,
+  // so this needs no payload - and it is a no-op when no preset is loaded.
+  const saveActivePreset = useCallback(async () => {
+    const id = activePresetIdRef.current;
+    if (!id) return;
+    await updateCoolingPreset(id, { saveCurrent: true });
+  }, []);
+
+  const handlePresetLoad = useCallback(async (id: string) => {
+    setActivePresetId(id);
+    await activateCoolingPreset(id);
+    await refreshCoolingConfig();
+    await loadPresets();
+  }, [refreshCoolingConfig, loadPresets]);
+
+  const handlePresetCreate = useCallback(async (name: string) => {
+    const res = await createCoolingPreset(name);
+    if (!res || res.error) {
+      return { error: true, msg: res?.msg };
+    }
+    await loadPresets();
+    return { error: false };
+  }, [loadPresets]);
+
+  const handlePresetRename = useCallback(async (id: string, name: string) => {
+    await updateCoolingPreset(id, { name });
+    await loadPresets();
+  }, [loadPresets]);
+
+  const handlePresetDelete = useCallback(async (id: string) => {
+    await deleteCoolingPreset(id);
+    await loadPresets();
+  }, [loadPresets]);
+
   const pushCurves = useCallback((defs: CurveDef[], states: Record<string, FanState>) => {
     const apiCurves = defs.map(c => curveDefToApi(
       c,
       Object.entries(states).filter(([, st]) => st.curveId === c.id).map(([fanId]) => ({ id: fanId, type: 'Fan' })),
     ));
-    return saveCurves({ globalSpeedModifier: 1, curves: apiCurves });
-  }, []);
+    return saveCurves({ globalSpeedModifier: 1, curves: apiCurves })
+      .then(res => { void saveActivePreset(); return res; });
+  }, [saveActivePreset]);
 
   // Issue rule: when cooling is Off, the user changing any fan setting other
   // than reverting to BIOS Control snaps the active tab to Custom. We do the
@@ -415,7 +473,8 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     publishControlSync({ domain: 'cooling', activePreset: key });
     await applyProfile(key);
     refreshCoolingConfig();
-  }, [activeMode, curves, refreshCoolingConfig, setSelectedCurveId]);
+    void saveActivePreset();
+  }, [activeMode, curves, refreshCoolingConfig, setSelectedCurveId, saveActivePreset]);
 
   const toggleSoftwareControl = useCallback(async (fanId: string, enabled: boolean) => {
     if (enabled) {
@@ -447,7 +506,8 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     await setFanSpeed(id, speed);
     const fans = await fetchFanChannels();
     if (fans?.channels) setChannels(fans.channels);
-  }, [exitOffToCustomIfNeeded]);
+    void saveActivePreset();
+  }, [exitOffToCustomIfNeeded, saveActivePreset]);
 
   const handleRename = useCallback(async (id: string, name: string) => {
     await renameFan(id, name);
@@ -994,22 +1054,39 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
 
   return (
     <div className={styles.cooling}>
-      {/* Fan rail on the left, preset tabs + curve to its right, mirroring the
+      {/* Fan rail on the left, mode tabs + curve to its right, mirroring the
           lighting page. The rail header shares grid row 1 with the tabs so both
           columns start at the same line. Capped at --page-max (pageBody) so the
           page matches every other view's width. */}
       <div className={`${styles.body} pageBody`}>
-        <div className={styles.tabsCell}>
-          <ViewHeader
-            title={t('cooling.title')}
-            tabs={modeTabs}
-            activeTab={activeMode ?? undefined}
-            onTabChange={(k, origin) => {
-              // Status-change bloom only on an actual preset switch, from the pressed tab.
-              if (origin && isCoolingModeKey(k) && k !== activeMode) emitRadialBloomFromElement(origin, k === 'off');
-              void handleModeChange(k);
-            }}
-          />
+        {/* Mode tabs and saved presets share one flex row: the presets keep
+            their column width until the tab bar needs the space. */}
+        <div className={styles.topRow}>
+          <div className={styles.tabsCell}>
+            <ViewHeader
+              title={t('cooling.title')}
+              tabs={modeTabs}
+              activeTab={activeMode ?? undefined}
+              onTabChange={(k, origin) => {
+                // Status-change bloom only on an actual mode switch, from the pressed tab.
+                if (origin && isCoolingModeKey(k) && k !== activeMode) emitRadialBloomFromElement(origin, k === 'off');
+                void handleModeChange(k);
+              }}
+            />
+          </div>
+          <div className={styles.presetHeader}>
+            <PresetToolbar
+              presets={presets}
+              activeId={activePresetId}
+              presetCount={presets.length}
+              showHistory={false}
+              translationPrefix="cooling.presets"
+              onLoad={id => { void handlePresetLoad(id); }}
+              onCreate={handlePresetCreate}
+              onRename={handlePresetRename}
+              onDelete={handlePresetDelete}
+            />
+          </div>
         </div>
         <div className={`${styles.paneHeader} ${styles.headerLeft}`}>
           <div className={styles.paneTitleGroup}>
