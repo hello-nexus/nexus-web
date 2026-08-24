@@ -19,6 +19,7 @@ vi.mock('./sidebar', () => ({
 }));
 
 import { TopBar } from './TopBar';
+import { PageChromeProvider, usePageModeToggle } from './PageChrome';
 
 const profiles: UseProfilesResult = {
   profiles: [],
@@ -119,3 +120,69 @@ describe('TopBar focus mode', () => {
   });
 });
 
+// Stand-in for a page (Lighting/Cooling) registering its mode toggle.
+function RegisterModeToggle({ label, onToggle }: { label: string; onToggle: () => void }) {
+  usePageModeToggle({ label, title: 'uiMode.switchToAdvanced', onToggle });
+  return null;
+}
+
+function renderTopBarWithModeToggle(
+  onToggle: () => void,
+  overrides: Partial<Parameters<typeof TopBar>[0]> = {},
+) {
+  return render(
+    <PageChromeProvider>
+      <RegisterModeToggle label="uiMode.simpleMode" onToggle={onToggle} />
+      <TopBar
+        hasSidebar
+        compact={false}
+        onToggleCompact={() => {}}
+        pageTitle="Lighting"
+        canGoBack={false}
+        canGoForward={false}
+        goBack={() => {}}
+        goForward={() => {}}
+        online={false}
+        platform=""
+        connectionState="online"
+        connectEpoch={0}
+        profiles={profiles}
+        cloudAccounts={cloudAccounts}
+        onPreferencesChanged={() => {}}
+        onNavigateSettings={() => {}}
+        onNavigateTools={() => {}}
+        onOpenUpdate={() => {}}
+        onInstall={() => {}}
+        onManageProfiles={() => {}}
+        onNavigateAccount={() => {}}
+        isWindowsApp
+        isMacApp={false}
+        focusCapable={false}
+        focusMode={false}
+        onToggleFocusMode={() => {}}
+        {...overrides}
+      />
+    </PageChromeProvider>,
+  );
+}
+
+describe('TopBar page mode toggle', () => {
+  it('renders no toggle when the active page registered none', () => {
+    renderTopBar();
+    expect(screen.queryByRole('button', { name: 'uiMode.simpleMode' })).not.toBeInTheDocument();
+  });
+
+  it('renders the registered full-text toggle and fires it on click', () => {
+    const onToggle = vi.fn();
+    renderTopBarWithModeToggle(onToggle);
+    const btn = screen.getByRole('button', { name: 'uiMode.simpleMode' });
+    expect(btn).toHaveTextContent('uiMode.simpleMode');
+    fireEvent.click(btn);
+    expect(onToggle).toHaveBeenCalledTimes(1);
+  });
+
+  it('hides the toggle in Focus mode', () => {
+    renderTopBarWithModeToggle(vi.fn(), { focusCapable: true, focusMode: true });
+    expect(screen.queryByRole('button', { name: 'uiMode.simpleMode' })).not.toBeInTheDocument();
+  });
+});

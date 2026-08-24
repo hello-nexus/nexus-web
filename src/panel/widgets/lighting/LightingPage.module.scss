@@ -85,6 +85,15 @@
   text-overflow: ellipsis;
 }
 
+// Title + its count badge as one unit, so the header's space-between still
+// pushes only the action cluster to the far edge.
+.paneTitleGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
 .deviceHeaderActions {
   display: flex;
   align-items: center;
@@ -106,6 +115,8 @@
   overflow: hidden;
 }
 
+// Effect and Effect Editor each sit on their own card surface, matching the
+// cooling page's curve block; the device rail stays bare.
 .main {
   grid-column: 2;
   grid-row: 3;
@@ -113,10 +124,12 @@
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
-  // The grid gap supplies the separation from both side panes.
-  padding: 0;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius);
+  background: var(--surface);
 }
 
+// Dock children carry their own inset, so this side pads tighter than .main.
 .rightPane {
   grid-column: 3;
   grid-row: 3;
@@ -125,6 +138,9 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  padding: 0.85rem 0.5rem;
+  border-radius: var(--radius);
+  background: var(--surface);
 }
 
 .canvasArea {
@@ -311,6 +327,36 @@
   padding: 0 0.2rem 0.2rem;
 }
 
+// -- Simple mode (ui.lightingDashboardMode) --------------------------------
+// The palette at hero size with the Off tile above it, and the advanced-mode
+// CTA docked at the bottom.
+.simpleBody {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding-top: 0.75rem;
+  overflow-y: auto;
+}
+
+// Off tile above the simple-mode palette: the cooling preset-tile look, kept
+// to a single row so the colours stay the page.
+.simpleOffTile {
+  --icon-label-button-gap: 0.5rem;
+  --icon-label-icon-size: 22px;
+  --icon-label-label-size: var(--type-body);
+  --icon-label-button-radius: var(--radius);
+  --icon-label-button-active-border: var(--accent);
+
+  width: 100%;
+  padding: 0.9rem 1rem;
+}
+
+.simpleFooter {
+  flex: 0 0 auto;
+  margin-top: auto;
+  padding: 0.75rem 0 1rem;
+}
+
 .paletteSwatch {
   aspect-ratio: 1;
   min-width: 0;
@@ -323,6 +369,14 @@
   &:hover {
     transform: scale(1.08);
   }
+}
+
+// Simple mode gives the palette the whole page, so the swatch column drops the
+// side-pane width cap and the gap grows with it.
+.paletteGridHero {
+  gap: 0.5rem;
+  max-width: none;
+  padding: 0;
 }
 
 // Same selection language as every other pick grid (EffectCard .cardActive):
@@ -1041,55 +1095,6 @@
   gap: 0.15rem;
 }
 
-// Hit target for the select box: full card height and wider than the box, so a
-// slightly-off click still lands on it instead of selecting the card alone.
-// Negative inline margin cancels the padding, keeping the visual layout put.
-.deviceCheckHit {
-  align-self: stretch;
-  display: flex;
-  align-items: center;
-  flex: 0 0 auto;
-  padding: 0 0.45rem;
-  margin: 0 -0.45rem;
-  cursor: pointer;
-
-  &:focus-visible {
-    @include focus-ring;
-    border-radius: var(--radius-sm);
-  }
-}
-
-// Multi-select checkbox. Locked (mode reaches every device) reads checked but
-// non-interactive, so the state is legible without implying it can change.
-.deviceCheck {
-  flex: 0 0 auto;
-  width: 18px;
-  height: 18px;
-  border-radius: var(--radius-sm);
-  border: var(--border-width) solid var(--control-border-strong);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--accent-text);
-  transition: background var(--ease-fast), border-color var(--ease-fast), opacity var(--ease-fast);
-
-  svg {
-    width: 12px;
-    height: 12px;
-    stroke-width: 3;
-  }
-}
-
-.deviceCheckOn {
-  background: var(--accent);
-  border-color: var(--accent);
-}
-
-.deviceCheckLocked {
-  cursor: default;
-  opacity: var(--alpha-medium);
-}
-
 .deviceCardActions {
   display: flex;
   align-items: center;
@@ -1139,21 +1144,6 @@
 // Names why a card is off: ignored by Nexus, or lights powered down. Replaces
 // whatever the meta row would otherwise lead with (LED count, fixed-zone
 // label) - that detail is noise while the device is not being driven.
-.deviceStateChip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  flex-shrink: 0;
-  padding: 0.05rem 0.4rem;
-  border: var(--border-width) solid var(--border-strong);
-  border-radius: 999px;
-  font-size: 0.65rem;
-  color: var(--text-dim);
-  white-space: nowrap;
-
-  svg { width: 11px; height: 11px; }
-}
-
 // Controlled/ignored state marker in the card's toggleMode (lighting
 // onboarding): replaces the per-card action buttons, non-interactive - the
 // whole card is the switch.

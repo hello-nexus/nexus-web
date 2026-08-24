@@ -1735,7 +1735,6 @@
   "lighting.palette.violet": "Violet",
   "lighting.palette.white": "Blanc",
   "lighting.palette.yellow": "Jaune",
-  "lighting.pane.preview": "Aperçu",
   "lighting.panel.prev": "Précédent",
   "lighting.panel.screenActive": "Le miroir est actif",
   "lighting.panel.selectMode": "Sélectionnez un mode pour démarrer l'éclairage",
@@ -3144,6 +3143,10 @@
   "transfer.toast.openFolder": "Ouvrir le dossier",
   "transfer.toast.savedTo": "Enregistré dans {inbox}",
   "twitch.chatTitle": "Chat Twitch",
+  "uiMode.advancedMode": "Mode avancé",
+  "uiMode.simpleMode": "Mode simple",
+  "uiMode.switchToAdvanced": "Passer en mode avancé",
+  "uiMode.switchToSimple": "Passer en mode simple",
   "devices.q60.notConnected": "HYTE Q60 non connecté",
   "devices.q60.turbo": "Turbo",
   "devices.q60.turboHelp": "Permet au système de refroidissement de fonctionner à vitesse maximale. Désactivé, la vitesse du ventilateur est limitée à 2000 RPM (65%) et celle de la pompe à 3000 RPM (70%).",
@@ -3423,5 +3426,13 @@
   "lighting.pane.pickDevices": "Sélectionnez un ou plusieurs appareils pour choisir une couleur",
   "lighting.pane.selectedNone": "Aucun appareil sélectionné",
   "lighting.pane.selectedCount.one": "{count} appareil sélectionné",
-  "lighting.pane.selectedCount.other": "{count} appareils sélectionnés"
+  "lighting.pane.selectedCount.other": "{count} appareils sélectionnés",
+  "lighting.pane.effect": "Effet",
+  "lighting.simple.detected.one": "{count} appareil d’éclairage détecté",
+  "lighting.simple.detected.other": "{count} appareils d’éclairage détectés",
+  "lighting.simple.controlled": "{count} pilotés",
+  "cooling.simple.detected.one": "{count} ventilateur détecté",
+  "cooling.simple.detected.other": "{count} ventilateurs détectés",
+  "cooling.simple.controlled": "{count} pilotés",
+  "lighting.devices.selectOnly": "Sélectionner uniquement {name}"
 }

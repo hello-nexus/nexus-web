@@ -1735,7 +1735,6 @@
   "lighting.palette.violet": "紫羅蘭",
   "lighting.palette.white": "白色",
   "lighting.palette.yellow": "黃色",
-  "lighting.pane.preview": "預覽",
   "lighting.panel.prev": "上一個",
   "lighting.panel.screenActive": "鏡射已啟用",
   "lighting.panel.selectMode": "選擇任一模式以開啟燈光",
@@ -3144,6 +3143,10 @@
   "transfer.toast.openFolder": "開啟資料夾",
   "transfer.toast.savedTo": "已儲存到 {inbox}",
   "twitch.chatTitle": "Twitch 聊天室",
+  "uiMode.advancedMode": "進階模式",
+  "uiMode.simpleMode": "簡易模式",
+  "uiMode.switchToAdvanced": "切換至進階模式",
+  "uiMode.switchToSimple": "切換至簡易模式",
   "devices.q60.notConnected": "HYTE Q60 未連線",
   "devices.q60.turbo": "Turbo",
   "devices.q60.turboHelp": "讓散熱器以最高速度運行。停用後，風扇轉速限制為 2000 RPM（65%），水泵轉速限制為 3000 RPM（70%）。",
@@ -3423,5 +3426,13 @@
   "lighting.pane.pickDevices": "請先選擇一個或多個裝置，再選擇顏色",
   "lighting.pane.selectedNone": "未選擇裝置",
   "lighting.pane.selectedCount.one": "已選擇 {count} 個裝置",
-  "lighting.pane.selectedCount.other": "已選擇 {count} 個裝置"
+  "lighting.pane.selectedCount.other": "已選擇 {count} 個裝置",
+  "lighting.pane.effect": "效果",
+  "lighting.simple.detected.one": "偵測到 {count} 個燈光裝置",
+  "lighting.simple.detected.other": "偵測到 {count} 個燈光裝置",
+  "lighting.simple.controlled": "控制 {count} 個",
+  "cooling.simple.detected.one": "偵測到 {count} 個風扇",
+  "cooling.simple.detected.other": "偵測到 {count} 個風扇",
+  "cooling.simple.controlled": "控制 {count} 個",
+  "lighting.devices.selectOnly": "僅選擇 {name}"
 }

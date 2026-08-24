@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 // Reuse the panel widget menu's stylesheet.
 import styles from '../../../panel/widgets/common/WidgetContextMenu.module.scss';
 
@@ -7,6 +7,11 @@ export interface DeviceMenuItem {
   icon: ReactNode;
   label: string;
   onSelect: () => void;
+  /** Rule under this row, splitting it off from the rows below. */
+  separatorAfter?: boolean;
+  /** Accent-fills the row: it is the one that resolves the state the card is
+   *  advertising. */
+  highlighted?: boolean;
 }
 
 interface DeviceContextMenuProps {
@@ -86,15 +91,17 @@ export function DeviceContextMenu({ x, y, items, onClose }: DeviceContextMenuPro
       style={menuStyle}
     >
       {items.map(item => (
-        <button
-          key={item.key}
-          type="button"
-          className={styles.item}
-          onClick={() => { item.onSelect(); requestClose(); }}
-        >
-          {item.icon}
-          <span>{item.label}</span>
-        </button>
+        <Fragment key={item.key}>
+          <button
+            type="button"
+            className={item.highlighted ? `${styles.item} ${styles.itemAccent}` : styles.item}
+            onClick={() => { item.onSelect(); requestClose(); }}
+          >
+            {item.icon}
+            <span>{item.label}</span>
+          </button>
+          {item.separatorAfter && <span className={styles.divider} aria-hidden />}
+        </Fragment>
       ))}
     </div>
   );

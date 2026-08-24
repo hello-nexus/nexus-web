@@ -43,6 +43,10 @@ import { useUiSettings } from '../../../hooks/useUiSettings';
 import { publishControlSync, subscribeControlSync } from '../../../lib/controlSync';
 import { emitRadialBloomFromElement } from '../../../lib/backgroundEffects';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
+import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
+import { AdvancedModeCta } from '../../../components/common/AdvancedModeCta/AdvancedModeCta';
+import { DeviceCountSummary } from '../../../components/common/DeviceCountSummary/DeviceCountSummary';
+import { usePageModeToggle } from '../../../app/PageChrome';
 import { ConfirmModal } from '../../../components/common/ConfirmModal/ConfirmModal';
 import { CollapsibleSection } from '../../../components/common/CollapsibleSection/CollapsibleSection';
 import { SortableList, type SortableRowArgs } from '../../../components/common/SortableList/SortableList';
@@ -130,8 +134,20 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   const realtimeData = useCoolingRealtime(serviceOnline);
   const curveCalcs = useCoolingCurves(serviceOnline);
   const sensors = useSensors(serviceOnline);
-  const { settings } = useUiSettings();
+  const { settings, update: updateUi } = useUiSettings();
   const cpuTemp = resolveCpuTempSensor(sensors.cpu, settings.preferredCpuTempSensorId);
+
+  const simpleDashboard = settings.coolingDashboardMode === 'simple';
+  const toggleDashboardMode = useCallback(() => {
+    updateUi({ coolingDashboardMode: simpleDashboard ? 'advanced' : 'simple' });
+  }, [simpleDashboard, updateUi]);
+  // The label names the TARGET mode (what a click switches to), matching the
+  // in-page advanced-mode card.
+  usePageModeToggle({
+    label: t(simpleDashboard ? 'uiMode.advancedMode' : 'uiMode.simpleMode'),
+    title: t(simpleDashboard ? 'uiMode.switchToAdvanced' : 'uiMode.switchToSimple'),
+    onToggle: toggleDashboardMode,
+  });
 
   // The curve whose graph + editor the hero card shows; a row of buttons inside
   // the card selects it. Selecting also highlights the fans bound to it. Seeded
@@ -453,6 +469,28 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     if (fans?.channels) setChannels(fans.channels);
   }, []);
 
+  // A locked fan is skipped by the preset buttons, and simple mode has no fan
+  // rail to unlock it from - it would sit on its old speed, unexplained.
+  // Latched per id: every lock write refetches the channels, so an unlatched
+  // effect re-fires on its own result and a fan the service refuses to unlock
+  // would loop forever.
+  const unlockAttemptedRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!simpleDashboard) { unlockAttemptedRef.current.clear(); return; }
+    for (const ch of channels) {
+      if (!ch.locked || unlockAttemptedRef.current.has(ch.id)) continue;
+      unlockAttemptedRef.current.add(ch.id);
+      void handleToggleLock(ch.id, false);
+    }
+  }, [simpleDashboard, channels, handleToggleLock]);
+
+  // Driven means bound to a curve or Manual; the Off preset hands every fan
+  // back to the BIOS, so this reads zero there.
+  const controlledFanCount = useMemo(
+    () => channels.filter(ch => fanStates[ch.id]?.softwareControl).length,
+    [channels, fanStates],
+  );
+
   const handleSetRole = useCallback(async (id: string, role: FanRole) => {
     setChannels(prev => prev.map(ch => ch.id === id ? { ...ch, role } : ch));
     await setFanRole(id, role);
@@ -489,13 +527,6 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // Multi-select: a mode change on a selected card is applied to every selected
   // fan, so a curve can be assigned to a group in one action.
   const [selectedFanIds, setSelectedFanIds] = usePersistentIdSet('nexus.cooling.selectedFans');
-  const toggleFanSelected = useCallback((id: string) => {
-    setSelectedFanIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  }, [setSelectedFanIds]);
 
   const setFanMode = useCallback(async (fanId: string, value: string) => {
     const channel = channels.find(c => c.id === fanId);
@@ -811,9 +842,12 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     return dead.length === 0 ? base : [...live, ...dead];
   }, [channels, fanOrder]);
 
-  // Only live fans carry a checkbox, so only they can be bulk-selected.
+  // Only fans Nexus can actually drive carry a checkbox, so only they can be
+  // bulk-selected. Must match FanCard's own state-glyph rule.
   const selectableFanIds = useMemo(
-    () => orderedChannels.filter(c => !isFanDisconnected(c) && !(c.readOnly ?? false)).map(c => c.id),
+    () => orderedChannels
+      .filter(c => !isFanDisconnected(c) && !(c.readOnly ?? false) && c.classification !== 'Fixed')
+      .map(c => c.id),
     [orderedChannels],
   );
   const allFansSelected = selectableFanIds.length > 0
@@ -882,14 +916,64 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   if (!serviceOnline) {
     return (
       <div className={styles.cooling}>
-        <ViewHeader
-          title={t('cooling.title')}
-          tabs={presetTabs}
-          activeTab={activePreset ?? undefined}
-          onTabChange={k => handlePresetChange(k)}
-          tabsDisabled
-        />
+        {!simpleDashboard && (
+          <ViewHeader
+            title={t('cooling.title')}
+            tabs={presetTabs}
+            activeTab={activePreset ?? undefined}
+            onTabChange={k => handlePresetChange(k)}
+            tabsDisabled
+          />
+        )}
         <ServiceRequired state={connectionState} skeleton={<CoolingSkeleton />} />
+      </div>
+    );
+  }
+
+  // Simple mode: large preset tiles plus the advanced-mode path. Custom is
+  // advanced-only (it means editing curves), so an active custom preset shows
+  // as a hint line instead of a fifth tile.
+  if (simpleDashboard) {
+    return (
+      <div className={styles.cooling}>
+        <div className={`${styles.simpleBody} pageBodyFill`}>
+          <DeviceCountSummary
+            detected={t(pluralKey('cooling.simple.detected', language, channels.length), { count: channels.length })}
+            controlled={t('cooling.simple.controlled', { count: controlledFanCount })}
+          />
+          {/* Off is a state rather than a speed, so it leads as a wide row
+              instead of competing with the three speed tiles. */}
+          <IconLabelButton
+            className={styles.simpleOffTile}
+            icon={<Power size={22} />}
+            label={t('cooling.preset.off')}
+            description={t('cooling.preset.off.banner')}
+            active={activePreset === 'off'}
+            onPress={() => { void handlePresetChange('off'); }}
+          />
+          <div className={styles.simplePresets} role="group" aria-label={t('cooling.title')}>
+            {COOLING_PRESETS.filter(p => p.key !== 'custom' && p.key !== 'off').map(p => (
+              <IconLabelButton
+                key={p.key}
+                className={styles.simplePresetTile}
+                icon={<p.Icon size={48} />}
+                label={t(p.i18nKey)}
+                description={t(`cooling.preset.${p.key}.desc`)}
+                active={activePreset === p.key}
+                onPress={() => { void handlePresetChange(p.key); }}
+              />
+            ))}
+          </div>
+          {activePreset === 'custom' && (
+            <p className={styles.simpleCustomNote}>{t('cooling.simple.customActive')}</p>
+          )}
+          <div className={styles.simpleFooter}>
+            <AdvancedModeCta
+              label={t('cooling.simple.advancedCta')}
+              onPress={() => updateUi({ coolingDashboardMode: 'advanced' })}
+            />
+          </div>
+        </div>
       </div>
     );
   }
@@ -914,7 +998,10 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
           />
         </div>
         <div className={`${styles.paneHeader} ${styles.headerLeft}`}>
-          <span className={styles.paneTitle}>{t('cooling.label.fan')}</span>
+          <div className={styles.paneTitleGroup}>
+            <span className={styles.paneTitle}>{t('cooling.label.fan')}</span>
+            <Badge label={String(channels.length)} compact color="var(--text-dim)" />
+          </div>
           <div className={styles.fanHeaderActions}>
             <HoverTooltip
               body={calibrating ? t('cooling.calibrate.running').split('-')[0].trim() : t('cooling.calibrate.button')}
@@ -1025,7 +1112,6 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                 <FanCard key={ch.id} channel={ch} state={fanStates[ch.id]} curves={curves}
                   compact
                   selected={selectedFanIds.has(ch.id)}
-                  onToggleSelect={toggleFanSelected}
                   onSelect={additive => selectFan(ch.id, additive)}
                   calibrating={calibrating}
                   canCreateCurve={curves.length < MAX_CURVES}

@@ -1735,7 +1735,6 @@
   "lighting.palette.violet": "Menekşe",
   "lighting.palette.white": "Beyaz",
   "lighting.palette.yellow": "Sarı",
-  "lighting.pane.preview": "Önizleme",
   "lighting.panel.prev": "Önceki",
   "lighting.panel.screenActive": "Yansıtma etkin",
   "lighting.panel.selectMode": "Aydınlatmayı başlatmak için bir mod seçin",
@@ -3144,6 +3143,10 @@
   "transfer.toast.openFolder": "Klasörü aç",
   "transfer.toast.savedTo": "{inbox} klasörüne kaydedildi",
   "twitch.chatTitle": "Twitch sohbeti",
+  "uiMode.advancedMode": "Gelişmiş mod",
+  "uiMode.simpleMode": "Basit mod",
+  "uiMode.switchToAdvanced": "Gelişmiş moda geç",
+  "uiMode.switchToSimple": "Basit moda geç",
   "devices.q60.notConnected": "HYTE Q60 bağlı değil",
   "devices.q60.turbo": "Turbo",
   "devices.q60.turboHelp": "Soğutucunun maksimum hızda çalışmasını sağlar. Devre dışı bırakıldığında fan hızı 2000 RPM (%65), pompa hızı ise 3000 RPM (%70) ile sınırlanır.",
@@ -3423,5 +3426,13 @@
   "lighting.pane.pickDevices": "Renk seçmek için bir veya daha fazla cihaz seçin",
   "lighting.pane.selectedNone": "Cihaz seçilmedi",
   "lighting.pane.selectedCount.one": "{count} cihaz seçildi",
-  "lighting.pane.selectedCount.other": "{count} cihaz seçildi"
+  "lighting.pane.selectedCount.other": "{count} cihaz seçildi",
+  "lighting.pane.effect": "Efekt",
+  "lighting.simple.detected.one": "{count} aydınlatma cihazı algılandı",
+  "lighting.simple.detected.other": "{count} aydınlatma cihazı algılandı",
+  "lighting.simple.controlled": "{count} kontrol ediliyor",
+  "cooling.simple.detected.one": "{count} fan algılandı",
+  "cooling.simple.detected.other": "{count} fan algılandı",
+  "cooling.simple.controlled": "{count} kontrol ediliyor",
+  "lighting.devices.selectOnly": "Yalnızca {name} seç"
 }

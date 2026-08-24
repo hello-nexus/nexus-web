@@ -31,6 +31,7 @@ export function MotherboardGroup({
   hideLights,
   notice,
   drag,
+  hideActions,
 }: {
   parentName: string;
   /** True iff at least one child zone has its LEDs on, so the menu offers to
@@ -58,6 +59,9 @@ export function MotherboardGroup({
   notice?: string;
   /** Optional reorder drag wiring; makes the whole group draggable. */
   drag?: SortableRowArgs;
+  /** Header collapses only - no actions menu. The immersive picker groups
+   *  cards for selection; power and Nexus Control belong to the page. */
+  hideActions?: boolean;
 }) {
   const { t } = useTranslation();
   const expanded = !collapsed;
@@ -92,7 +96,7 @@ export function MotherboardGroup({
         titleAfter={notice != null ? <DeviceNotice notice={notice} /> : undefined}
         drag={drag}
         rightInteractive
-        right={
+        right={hideActions ? leftAction : (
           <>
             {leftAction}
             <HoverTooltip body={t('lighting.devices.moreActions')} side="top">
@@ -111,7 +115,7 @@ export function MotherboardGroup({
               </button>
             </HoverTooltip>
           </>
-        }
+        )}
       >
         <div className={styles.motherboardGroupChildren}>
           {children}

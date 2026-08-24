@@ -375,7 +375,13 @@ export const fetchLayoutPresets = () =>
 export const createLayoutPreset = (name: string) =>
   postService<{ preset: LayoutPreset; activeId: string | null }>('/devices/lighting-devices/layout-presets', { name });
 
-export const updateLayoutPreset = (id: string, body: { name?: string; saveCurrent?: boolean }) =>
+export const updateLayoutPreset = (
+  id: string,
+  // saveDeviceLooks false keeps the preset's stored per-device assignments: the
+  // undo/redo reconcile restores geometry and power but not colours, so a
+  // blanket save would write the other preset's colours over this one's.
+  body: { name?: string; saveCurrent?: boolean; saveDeviceLooks?: boolean },
+) =>
   putService('/devices/lighting-devices/layout-presets/' + encodeURIComponent(id), body);
 
 export const deleteLayoutPreset = (id: string) =>
@@ -416,7 +422,7 @@ export const setLightingDeviceColor = (
   id: string,
   hue: number,
   saturation: number,
-  look?: { effect: string; color?: string; intensity: number; colorize: number; contrast: number; params?: Record<string, number> },
+  look?: { effect: string; color?: string; intensity: number; colorize: number; contrast: number; params?: Record<string, number>; slot?: number },
 ) =>
   postService('/devices/lighting-devices/color', {
     id, hue, saturation,
@@ -427,7 +433,28 @@ export const setLightingDeviceColor = (
     colorize: look?.colorize ?? 0,
     contrast: look?.contrast ?? 1,
     params: look?.params ?? {},
+    // Round-tripped so a preset restores which slot the pick came from; the
+    // service carries it without reading it.
+    slot: look?.slot ?? 0,
   });
+
+/** One device's stored Static assignment, as the service holds it. */
+export interface StaticDeviceLookDto {
+  effect: string;
+  color: string;
+  intensity: number;
+  hue: number;
+  colorize: number;
+  saturation: number;
+  contrast: number;
+  slot: number;
+}
+
+/** Every per-device Static assignment. The service owns these, so this is how a
+ *  client rebuilds them after a preset activate or on a machine that has never
+ *  seen them. */
+export const fetchStaticDeviceLooks = () =>
+  fetchService<{ looks: Record<string, StaticDeviceLookDto> }>('/devices/lighting-devices/static-looks');
 
 // Master brightness cap (0..1). Caps every per-device value so the effective
 // brightness for an LED is `min(global, device / 100)` - never brighter.

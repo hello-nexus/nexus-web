@@ -69,27 +69,16 @@ textarea.input { resize: vertical; min-height: 2.4rem; }
   color: var(--deck-settings-text);
 }
 
+// Deck palette on the shared select chrome: the trigger draws the one box, so
+// these recolour it rather than framing it a second time.
 .selectWide {
   width: 100%;
-  background: var(--deck-settings-bg);
-  border: 1px solid var(--deck-settings-border);
-  border-radius: var(--radius-sm);
+  --select-bg: var(--deck-settings-bg);
+  --select-border: var(--deck-settings-border);
+  --select-border-hover: var(--deck-settings-accent);
+  --select-text: var(--deck-settings-text);
 
-  select[class] {
-    background: transparent;
-    border-color: transparent;
-    box-shadow: none;
-    padding: 0.3rem 1.55rem 0.3rem 0.55rem;
-    color: var(--deck-settings-text);
-    font-size: var(--type-small, 12px);
-
-    &:focus,
-    &:focus-visible { border-color: transparent; box-shadow: none; }
-    option { background: var(--bg-elevated); color: var(--text); }
-  }
-
-  &:hover { background: var(--deck-settings-bg-hover); }
-  &:focus-within { border-color: var(--deck-settings-accent); }
+  &:hover { --select-bg: var(--deck-settings-bg-hover); }
 }
 
 // Category + sensor Selects on one row, the Monitoring action editor's Sensor
@@ -103,25 +92,12 @@ textarea.input { resize: vertical; min-height: 2.4rem; }
 .selectSmall {
   flex: 0 0 auto;
   width: 160px;
-  background: var(--deck-settings-bg);
-  border: 1px solid var(--deck-settings-border);
-  border-radius: var(--radius-sm);
+  --select-bg: var(--deck-settings-bg);
+  --select-border: var(--deck-settings-border);
+  --select-border-hover: var(--deck-settings-accent);
+  --select-text: var(--deck-settings-text);
 
-  select[class] {
-    background: transparent;
-    border-color: transparent;
-    box-shadow: none;
-    padding: 0.3rem 1.55rem 0.3rem 0.55rem;
-    color: var(--deck-settings-text);
-    font-size: var(--type-small);
-
-    &:focus,
-    &:focus-visible { border-color: transparent; box-shadow: none; }
-    option { background: var(--bg-elevated); color: var(--text); }
-  }
-
-  &:hover { background: var(--deck-settings-bg-hover); }
-  &:focus-within { border-color: var(--deck-settings-accent); }
+  &:hover { --select-bg: var(--deck-settings-bg-hover); }
 }
 
 // Monitoring action editor's Design icon-button grid.

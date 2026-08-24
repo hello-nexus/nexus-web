@@ -16,10 +16,13 @@
   align-items: center;
   width: 100%;
   appearance: none;
-  background: var(--bg);
-  border: var(--border-width) solid var(--control-border);
+  // Recoloured by the caller through these tokens - a surface that needs its
+  // own palette (deck inspector, monitoring settings) sets them rather than
+  // drawing a second box around the trigger.
+  background: var(--select-bg, var(--bg));
+  border: var(--border-width) solid var(--select-border, var(--control-border));
   border-radius: var(--radius-sm);
-  color: var(--text);
+  color: var(--select-text, var(--text));
   font-family: inherit;
   font-size: var(--type-small);
   text-align: left;
@@ -61,6 +64,9 @@
   align-items: center;
   justify-content: center;
   width: 1.35em;
+  // Capped so an icon row cannot grow the line box past a text-only one - the
+  // language trigger measured 1.5px taller than every other select without it.
+  height: 1em;
   margin-right: 0.5rem;
   vertical-align: middle;
 
@@ -87,32 +93,12 @@
   color: var(--text);
 }
 
-.wrapper:hover:not(.ghost) .trigger:not(:focus):not(:focus-visible) {
-  border-color: var(--control-border-strong);
-}
-
-/* Ghost variant: no border, no background fill - value as plain text with
-   the chevron beside it. For selects already inside a bordered card (cooling
-   fan / curve rows). */
-/* Border lives on the outer box wrapper (e.g. .fanModeSelect / .sourceSelect),
-   not the inset trigger, so it sits on the control's visible edge. */
-.ghost .trigger {
-  background: transparent;
-  border-color: transparent;
-  box-shadow: none;
-  padding-left: 0.25rem;
-
-  &:focus,
-  &:focus-visible {
-    border-color: transparent;
-    box-shadow: none;
-    color: var(--accent);
-  }
+.wrapper:hover .trigger:not(:focus):not(:focus-visible) {
+  border-color: var(--select-border-hover, var(--control-border-strong));
 }
 
 /* Icon-only trigger (triggerIconOnly): the glyph is the whole control, so the
-   chevron gutter and the icon-to-label gap go. Declared after .ghost so the
-   ghost + iconOnly combination keeps this padding. */
+   chevron gutter and the icon-to-label gap go. */
 .iconOnly .trigger {
   padding: 0.3rem 0.45rem;
 }

@@ -1,0 +1,18 @@
+@use '../../../styles/text' as *;
+
+.summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 0 0 auto;
+  min-width: 0;
+  padding: 0 0.15rem;
+}
+
+.detected {
+  @include text-body;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

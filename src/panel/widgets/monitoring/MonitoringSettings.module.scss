@@ -139,71 +139,15 @@
 .selectSmall {
   flex: 0 0 auto;
   width: 160px;
-  background: var(--surface);
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
+  --select-bg: var(--surface);
 
-  select[class] {
-    background: transparent;
-    border-color: transparent;
-    box-shadow: none;
-    padding: 0.3rem 1.55rem 0.3rem 0.55rem;
-    color: var(--text);
-    font-size: var(--type-small, 12px);
-
-    &:focus,
-    &:focus-visible {
-      border-color: transparent;
-      box-shadow: none;
-    }
-
-    option {
-      background: var(--bg-elevated);
-      color: var(--text);
-    }
-  }
-
-  &:hover {
-    background: var(--bg-card-hover);
-  }
-
-  &:focus-within {
-    border-color: var(--panel-accent);
-  }
+  &:hover { --select-bg: var(--bg-card-hover); }
 }
 
 .selectWide {
   flex: 1;
   min-width: 0;
-  background: var(--surface);
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
+  --select-bg: var(--surface);
 
-  select[class] {
-    background: transparent;
-    border-color: transparent;
-    box-shadow: none;
-    padding: 0.3rem 1.55rem 0.3rem 0.55rem;
-    color: var(--text);
-    font-size: var(--type-small, 12px);
-
-    &:focus,
-    &:focus-visible {
-      border-color: transparent;
-      box-shadow: none;
-    }
-
-    option {
-      background: var(--bg-elevated);
-      color: var(--text);
-    }
-  }
-
-  &:hover {
-    background: var(--bg-card-hover);
-  }
-
-  &:focus-within {
-    border-color: var(--panel-accent);
-  }
+  &:hover { --select-bg: var(--bg-card-hover); }
 }

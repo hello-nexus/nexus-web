@@ -1932,7 +1932,6 @@
   "lighting.palette.violet": "Violet",
   "lighting.palette.white": "Wit",
   "lighting.palette.yellow": "Geel",
-  "lighting.pane.preview": "Voorbeeld",
   "lighting.panel.prev": "Vorige",
   "lighting.panel.screenActive": "Spiegelen is actief",
   "lighting.panel.selectMode": "Selecteer een modus om te beginnen met verlichten",
@@ -3372,6 +3371,10 @@
   "transfer.toast.openFolder": "Map openen",
   "transfer.toast.savedTo": "Opgeslagen in {inbox}",
   "twitch.chatTitle": "Twitch-chat",
+  "uiMode.advancedMode": "Geavanceerde modus",
+  "uiMode.simpleMode": "Eenvoudige modus",
+  "uiMode.switchToAdvanced": "Schakel naar Geavanceerd",
+  "uiMode.switchToSimple": "Schakel naar Eenvoudig",
   "update.badge.label": "Update beschikbaar",
   "update.badge.labelDownload": "Update downloaden",
   "update.badge.labelReady": "Update installeren",
@@ -3423,5 +3426,13 @@
   "lighting.pane.pickDevices": "Selecteer een of meer apparaten om een kleur te kiezen",
   "lighting.pane.selectedNone": "Geen apparaten geselecteerd",
   "lighting.pane.selectedCount.one": "{count} apparaat geselecteerd",
-  "lighting.pane.selectedCount.other": "{count} apparaten geselecteerd"
+  "lighting.pane.selectedCount.other": "{count} apparaten geselecteerd",
+  "lighting.pane.effect": "Effect",
+  "lighting.simple.detected.one": "{count} verlichtingsapparaat gedetecteerd",
+  "lighting.simple.detected.other": "{count} verlichtingsapparaten gedetecteerd",
+  "lighting.simple.controlled": "{count} aangestuurd",
+  "cooling.simple.detected.one": "{count} ventilator gedetecteerd",
+  "cooling.simple.detected.other": "{count} ventilatoren gedetecteerd",
+  "cooling.simple.controlled": "{count} aangestuurd",
+  "lighting.devices.selectOnly": "Alleen {name} selecteren"
 }

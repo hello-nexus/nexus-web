@@ -12,34 +12,8 @@ import { MotherboardGroup } from './MotherboardGroup';
 import { lightingDeviceNoticeKey } from './lightingDeviceNotices';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { SortableList, type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
+import { buildDeviceBlocks, stripParentPrefix, type DeviceBlock } from './deviceBlocks';
 import styles from '../LightingPage.module.scss';
-
-// Smart-light brands, in display order, keyed by the device-id prefix the
-// service routes on (e.g. "hue:<bridge>:<rid>"). Brand labels are proper nouns
-// - intentionally not localized. Add a brand here when its driver ships.
-const SMART_BRANDS: ReadonlyArray<readonly [prefix: string, label: string]> = [
-  ['hue:', 'Philips Hue'],
-  ['nanoleaf:', 'Nanoleaf'],
-  ['wled:', 'WLED'],
-  ['lifx:', 'LIFX'],
-  ['govee:', 'Govee'],
-  ['twinkly:', 'Twinkly'],
-  ['wiz:', 'WiZ'],
-  ['yeelight:', 'Yeelight'],
-  ['elgato:', 'Elgato'],
-];
-
-function brandKeyFor(id: string): string | null {
-  for (const [prefix] of SMART_BRANDS) if (id.startsWith(prefix)) return prefix;
-  return null; // native PC RGB (OpenRGB / NP50 / CNVS / keeb / …)
-}
-function brandLabel(prefix: string): string {
-  return SMART_BRANDS.find(([p]) => p === prefix)?.[1] ?? prefix;
-}
-
-type DeviceBlock =
-  | { kind: 'single'; device: LightingDevice }
-  | { kind: 'group'; groupKey: string; label: string; isBrand: boolean; isSmartHub: boolean; devices: LightingDevice[] };
 
 /**
  * Right-side sidebar listing detected RGB devices. Native PC devices render as
@@ -48,13 +22,10 @@ type DeviceBlock =
  * using the same component/styling as a motherboard group: a chevron, the brand
  * name, a group power switch, and its lights as indented child cards.
  */
-export function DevicePanel({ devices, header, selectable = true, devicePicks, versionForSlot, ledFullscreen, selectedIds, onSelectDevice, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onDeviceReorder, communityCounts, onOpenCommunity, smartHubFirmwareControl, onSetSmartHubFirmwareControl, lianLiFirmwareActive, onOpenSmartLights, discovery, rgbRunning = false }: {
+export function DevicePanel({ devices, header, devicePicks, versionForSlot, ledFullscreen, selectedIds, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onDeviceReorder, communityCounts, onOpenCommunity, smartHubFirmwareControl, onSetSmartHubFirmwareControl, lianLiFirmwareActive, onOpenSmartLights, discovery, rgbRunning = false }: {
   devices: LightingDevice[];
   /** Optional control rendered at the top of the scrolling list (master brightness). */
   header?: ReactNode;
-  /** False when the running mode reaches every device: cards show a checked,
-   *  locked checkbox instead of one that tracks the selection. */
-  selectable?: boolean;
   /** Per-device static pick keyed by device id; it overrides what the card's
    *  LED strip samples from the effect canvas. Each pick names its own preset
    *  slot, so two devices on one effect can wear different presets. */
@@ -65,8 +36,6 @@ export function DevicePanel({ devices, header, selectable = true, devicePicks, v
   ledFullscreen?: boolean;
   /** Device ids currently selected (single-tap → 1-element set, canvas marquee → N-element set). */
   selectedIds: Set<string>;
-  /** Single-replace click: clears the set and selects only this id (or null to clear). */
-  onSelectDevice: (id: string | null) => void;
   /** Bulk set: Cmd/Ctrl+click on a row toggles membership without clobbering the rest. */
   onSetSelection: (ids: Set<string>, primary: string | null) => void;
   onTogglePower: (id: string) => void;
@@ -107,46 +76,7 @@ export function DevicePanel({ devices, header, selectable = true, devicePicks, v
   const toggleCollapsed = (key: string) =>
     setCollapsedGroups(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
 
-  // One ordered list of blocks: a single card, a motherboard group, or a
-  // smart-light brand group. Each block is positioned by the first occurrence
-  // of one of its members in the incoming device order, so groups and singles
-  // interleave in that order and any block reorders the same way a card does.
-  const blocks: DeviceBlock[] = [];
-  const groupIndex = new Map<string, number>();
-  const addToGroup = (key: string, make: () => Extract<DeviceBlock, { kind: 'group' }>, d: LightingDevice) => {
-    const existing = groupIndex.get(key);
-    if (existing != null) {
-      const g = blocks[existing];
-      if (g.kind === 'group') g.devices.push(d);
-    } else {
-      groupIndex.set(key, blocks.length);
-      blocks.push(make());
-    }
-  };
-  for (const d of devices) {
-    const brand = brandKeyFor(d.id);
-    if (brand) {
-      const key = 'brand:' + brand;
-      addToGroup(key, () => ({ kind: 'group', groupKey: key, label: brandLabel(brand), isBrand: true, isSmartHub: false, devices: [d] }), d);
-    } else if (d.parentDeviceId && d.zoneIndex != null) {
-      const parentId = d.parentDeviceId;
-      const key = 'mb:' + parentId;
-      addToGroup(key, () => ({ kind: 'group', groupKey: key, label: deriveParentName(d), isBrand: false, isSmartHub: parentId.startsWith('smarthub:'), devices: [d] }), d);
-    } else {
-      blocks.push({ kind: 'single', device: d });
-    }
-  }
-
-  // A parent-device group that collapsed to a single zone (e.g. a keeb whose
-  // keys + underglow were merged into one) renders as a standalone card, not a
-  // one-child category. Brand and smart-hub groups keep their header even at one
-  // member: it carries the brand/firmware-control affordances a card can't.
-  for (let i = 0; i < blocks.length; i++) {
-    const b = blocks[i];
-    if (b.kind === 'group' && !b.isBrand && !b.isSmartHub && b.devices.length === 1) {
-      blocks[i] = { kind: 'single', device: b.devices[0] };
-    }
-  }
+  const blocks = buildDeviceBlocks(devices);
 
   // Block-level ids for the top-level SortableList: single device id for singles,
   // groupKey for groups.
@@ -161,6 +91,8 @@ export function DevicePanel({ devices, header, selectable = true, devicePicks, v
       const next = new Set(selectedIds);
       if (next.has(id)) {
         next.delete(id);
+        // Primary follows the last remaining card in device order;
+        // Set-insertion order would pick a different one.
         let nextPrimary: string | null = null;
         for (let i = devices.length - 1; i >= 0; i--) {
           if (next.has(devices[i].id)) { nextPrimary = devices[i].id; break; }
@@ -172,8 +104,10 @@ export function DevicePanel({ devices, header, selectable = true, devicePicks, v
       }
       return;
     }
-    onSelectDevice(selectedIds.size === 1 && selectedIds.has(id) ? null : id);
+    onSetSelection(new Set([id]), id);
   };
+
+  const selectOnlyFor = (d: LightingDevice) => () => onSetSelection(new Set([d.id]), d.id);
 
   const noticeFor = (d: LightingDevice): string | undefined => {
     const key = lightingDeviceNoticeKey(d);
@@ -214,11 +148,11 @@ export function DevicePanel({ devices, header, selectable = true, devicePicks, v
       device={d}
       displayName={displayName}
       selected={selectedIds.has(d.id)}
-      selectable={selectable}
       ledPick={ledPickFor(d.id)}
       ledFullscreen={ledFullscreen}
       indent={indent}
       onSelect={additive => handleZoneSelect(d.id, additive)}
+      onSelectOnly={selectOnlyFor(d)}
       onTogglePower={() => onTogglePower(d.id)}
       onToggleControlled={() => onToggleControlled(d.id)}
       onOpenSettings={() => onOpenSettings(d.id)}
@@ -333,27 +267,4 @@ export function DevicePanel({ devices, header, selectable = true, devicePicks, v
       </div>
     </aside>
   );
-}
-
-// Zone names come in as "{Motherboard Name} - {Zone Name}". The parent header
-// only needs the motherboard part. Fall back to the zone name if the service
-// didn't use the separator convention.
-function deriveParentName(zone: LightingDevice): string {
-  const dash = zone.name.indexOf(' - ');
-  if (dash > 0) return zone.name.slice(0, dash);
-  return zone.name;
-}
-
-// Strip the parent name (plus a separator) off the front of a child zone's
-// name so the child card shows just the zone-specific part.
-function stripParentPrefix(name: string, parentName: string): string {
-  if (!parentName) return name;
-  for (const sep of [' - ', ': ', ' ']) {
-    const prefix = parentName + sep;
-    if (name.startsWith(prefix)) {
-      const rest = name.slice(prefix.length).trim();
-      if (rest) return rest;
-    }
-  }
-  return name;
 }

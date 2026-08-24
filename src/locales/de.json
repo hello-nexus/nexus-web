@@ -1735,7 +1735,6 @@
   "lighting.palette.violet": "Violett",
   "lighting.palette.white": "Weiß",
   "lighting.palette.yellow": "Gelb",
-  "lighting.pane.preview": "Vorschau",
   "lighting.panel.prev": "Zurück",
   "lighting.panel.screenActive": "Spiegel ist aktiv",
   "lighting.panel.selectMode": "Wähle einen Modus, um die Beleuchtung zu starten",
@@ -3144,6 +3143,10 @@
   "transfer.toast.openFolder": "Ordner öffnen",
   "transfer.toast.savedTo": "Gespeichert in {inbox}",
   "twitch.chatTitle": "Twitch-Chat",
+  "uiMode.advancedMode": "Erweiterter Modus",
+  "uiMode.simpleMode": "Einfacher Modus",
+  "uiMode.switchToAdvanced": "Zu Erweitert wechseln",
+  "uiMode.switchToSimple": "Zu Einfach wechseln",
   "devices.q60.notConnected": "HYTE Q60 nicht verbunden",
   "devices.q60.turbo": "Turbo",
   "devices.q60.turboHelp": "Lässt den Kühler mit maximaler Drehzahl laufen. Wenn deaktiviert, ist die Lüfterdrehzahl auf 2000 RPM (65%) und die Pumpendrehzahl auf 3000 RPM (70%) begrenzt.",
@@ -3423,5 +3426,13 @@
   "lighting.pane.pickDevices": "Wähle ein oder mehrere Geräte, um eine Farbe zu wählen",
   "lighting.pane.selectedNone": "Keine Geräte ausgewählt",
   "lighting.pane.selectedCount.one": "{count} Gerät ausgewählt",
-  "lighting.pane.selectedCount.other": "{count} Geräte ausgewählt"
+  "lighting.pane.selectedCount.other": "{count} Geräte ausgewählt",
+  "lighting.pane.effect": "Effekt",
+  "lighting.simple.detected.one": "{count} Beleuchtungsgerät erkannt",
+  "lighting.simple.detected.other": "{count} Beleuchtungsgeräte erkannt",
+  "lighting.simple.controlled": "{count} gesteuert",
+  "cooling.simple.detected.one": "{count} Lüfter erkannt",
+  "cooling.simple.detected.other": "{count} Lüfter erkannt",
+  "cooling.simple.controlled": "{count} gesteuert",
+  "lighting.devices.selectOnly": "Nur {name} auswählen"
 }

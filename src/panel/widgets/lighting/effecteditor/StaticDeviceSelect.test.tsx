@@ -82,3 +82,46 @@ describe('StaticDeviceSelect', () => {
     expect(screen.getByText('lighting.devices.empty')).toBeInTheDocument();
   });
 });
+
+// The picker groups with the device rail's own blocks + MotherboardGroup, so a
+// multi-zone parent and a smart-light brand read the same on both surfaces.
+describe('StaticDeviceSelect grouping', () => {
+  const zone = (id: string, parent: string, name: string, index: number): LightingDevice => ({
+    ...device(id, name), parentDeviceId: parent, zoneIndex: index,
+  });
+
+  it('heads a multi-zone parent with its group and strips the prefix off children', () => {
+    render(
+      <StaticDeviceSelect
+        devices={[
+          zone('z1', 'mb-1', 'HYTE NP50 - Port 1', 0),
+          zone('z2', 'mb-1', 'HYTE NP50 - Port 2', 1),
+        ]}
+        selectedIds={new Set()}
+        onSetSelection={vi.fn()}
+      />,
+    );
+    expect(screen.getByText('HYTE NP50')).toBeInTheDocument();
+    expect(screen.getByText('Port 1')).toBeInTheDocument();
+    expect(screen.getByText('Port 2')).toBeInTheDocument();
+  });
+
+  it('heads a smart-light brand with its own group', () => {
+    render(
+      <StaticDeviceSelect
+        devices={[device('hue:bridge:1', 'Desk Lamp')]}
+        selectedIds={new Set()}
+        onSetSelection={vi.fn()}
+      />,
+    );
+    expect(screen.getByText('Philips Hue')).toBeInTheDocument();
+    expect(screen.getByText('Desk Lamp')).toBeInTheDocument();
+  });
+
+  it('leaves an ungrouped device as a plain card', () => {
+    render(<StaticDeviceSelect devices={devices} selectedIds={new Set()} onSetSelection={vi.fn()} />);
+    expect(screen.queryByText('Philips Hue')).toBeNull();
+    expect(screen.getByText('Case Strip')).toBeInTheDocument();
+  });
+});
+

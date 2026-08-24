@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Settings, Power, PowerOff, Ban, Eye, Lightbulb, Users, Cpu, Check, Unlink, Link2, MoreVertical } from 'lucide-react';
+import { Settings, Power, PowerOff, Ban, Eye, Lightbulb, Users, Cpu, Check, Unlink, Link2, MoreVertical, MousePointerClick } from 'lucide-react';
 import {
   identifyLightingDevice,
   type LightingDevice,
@@ -10,6 +10,7 @@ import { useTranslation } from '../../../../lib/i18n';
 import { pluralKey } from '../../../../lib/pluralKey';
 import { isMultiSelectModifier } from '../../../../lib/platform';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
+import { Badge } from '../../../../components/common/Badge/Badge';
 import { DeviceNotice } from './DeviceNotice';
 import { DeviceLedStrip, type LedPick } from './DeviceLedStrip';
 import { startIdentify } from '../../../../lib/identifyFlash';
@@ -28,6 +29,13 @@ export function zoneCardUnavailable(device: LightingDevice): boolean {
   const isZone = device.parentDeviceId != null && device.zoneIndex != null;
   const resizable = device.zoneResizable === true && isZone;
   return device.ledCount <= 0 && !resizable;
+}
+
+/** Whether a card can carry a selection. Nexus Control off and lights off both
+ *  mean a pick has nowhere to land, so the card trades its checkbox for a state
+ *  glyph and takes no card-click selection - what a detection failure gets. */
+export function zoneCardSelectable(device: LightingDevice): boolean {
+  return !zoneCardUnavailable(device) && device.controlled !== false && device.ledsOn;
 }
 
 /** The selection a card's menu acts on when the card is part of one. Aggregate
@@ -55,7 +63,6 @@ export function ZoneCard({
   device,
   displayName,
   selected,
-  selectable = true,
   ledPick,
   ledFullscreen,
   ledPickOnly,
@@ -71,15 +78,13 @@ export function ZoneCard({
   notice,
   toggleMode,
   selectOnly,
+  onSelectOnly,
   bulk,
 }: {
   device: LightingDevice;
   /** Overrides the on-card name. Used to strip the parent prefix from child zones. */
   displayName?: string;
   selected: boolean;
-  /** False when the running mode reaches every device regardless: the checkbox
-   *  reads checked and locked instead of tracking the selection. */
-  selectable?: boolean;
   /** This device's own Static selection; the LED strip renders it instead of
    *  sampling the shared canvas. */
   ledPick?: LedPick;
@@ -115,6 +120,9 @@ export function ZoneCard({
    *  per-card actions and context menu go. For surfaces that pick devices and
    *  nothing else, like the immersive Static editor's Devices tab. */
   selectOnly?: boolean;
+  /** Narrow the selection to this card alone. Offered on every menu except a
+   *  card that cannot be selected at all. */
+  onSelectOnly?: () => void;
   /** Present only when this card is part of a multi-selection. The menu then
    *  acts on the whole selection, matching the device canvas's right-click. */
   bulk?: BulkSelection;
@@ -157,13 +165,28 @@ export function ZoneCard({
     || (bulk && unavailable && bulk.identifyCount === 0)
     ? null
     : !controlled
-      ? { icon: <Unlink aria-hidden />, label: t('lighting.devices.stateNotControlled') }
+      ? { icon: <Unlink size={11} />, label: t('lighting.devices.stateNotControlled') }
       : !device.ledsOn
-        ? { icon: <PowerOff aria-hidden />, label: t('lighting.devices.stateLightsOff') }
+        ? { icon: <PowerOff size={11} />, label: t('lighting.devices.stateLightsOff') }
         : null;
+  // A pick can only land on a device Nexus drives and that is lit; the badge
+  // under the name says which of the two is missing.
+  const pickable = controlled && device.ledsOn;
 
   const menuItems = (): DeviceMenuItem[] => {
     const items: DeviceMenuItem[] = [];
+    // Leads the menu and names the device, so it is unambiguous which card the
+    // selection is about to narrow to. A card wearing a state glyph cannot be
+    // selected, so it gets no row.
+    if (onSelectOnly && pickable) {
+      items.push({
+        key: 'selectOnly',
+        icon: <MousePointerClick size={14} />,
+        label: t('lighting.devices.selectOnly', { name: displayName ?? device.name }),
+        onSelect: onSelectOnly,
+        separatorAfter: true,
+      });
+    }
     if (bulk) {
       if (bulk.identifyCount > 0) {
         items.push({ key: 'identify', icon: <Eye size={14} />, label: t(pluralKey('lighting.devices.identifyCount', language, bulk.identifyCount), { count: bulk.identifyCount }), onSelect: bulk.identify });
@@ -188,12 +211,15 @@ export function ZoneCard({
       const setPower = () => bulk ? bulk.setPower(!isOn) : onTogglePower?.();
       const label = (single: string, counted: string) =>
         bulk ? t(pluralKey(counted, language, bulk.count), { count: bulk.count }) : t(single);
+      // Whichever row un-sticks the card's current state gets the accent. An
+      // un-driven device ignores its power state, so control leads and lights
+      // only light up once control is back on.
       items.push(isControlled
         ? { key: 'controlled', icon: <Unlink size={14} />, onSelect: setControlled, label: label('lighting.devices.menuControlOff', 'lighting.devices.menuControlOffCount') }
-        : { key: 'controlled', icon: <Link2 size={14} />, onSelect: setControlled, label: label('lighting.devices.menuControlOn', 'lighting.devices.menuControlOnCount') });
+        : { key: 'controlled', icon: <Link2 size={14} />, onSelect: setControlled, label: label('lighting.devices.menuControlOn', 'lighting.devices.menuControlOnCount'), highlighted: true });
       items.push(isOn
         ? { key: 'power', icon: <PowerOff size={14} />, onSelect: setPower, label: label('lighting.devices.menuLightsOff', 'lighting.devices.menuLightsOffCount') }
-        : { key: 'power', icon: <Power size={14} />, onSelect: setPower, label: label('lighting.devices.menuLightsOn', 'lighting.devices.menuLightsOnCount') });
+        : { key: 'power', icon: <Power size={14} />, onSelect: setPower, label: label('lighting.devices.menuLightsOn', 'lighting.devices.menuLightsOnCount'), highlighted: isControlled });
     }
     return items;
   };
@@ -229,8 +255,11 @@ export function ZoneCard({
       ].filter(Boolean).join(' ')}
       onClick={e => {
         if (unavailable || firmwareControlled) return;
-        if (toggleMode) onToggleControlled?.();
-        else onSelect(isMultiSelectModifier(e));
+        // Toggle mode is how an un-driven device gets turned back on, so it
+        // runs before the Nexus-Control gate rather than after it.
+        if (toggleMode) { onToggleControlled?.(); return; }
+        if (!pickable) return;
+        onSelect(isMultiSelectModifier(e));
       }}
       onContextMenu={menuEnabled ? e => {
         e.preventDefault();
@@ -238,32 +267,6 @@ export function ZoneCard({
         openMenu(e.clientX, e.clientY);
       } : undefined}
     >
-      {!unavailable && !toggleMode && (
-        <span
-          className={styles.deviceCheckHit}
-          role="checkbox"
-          aria-checked={selectable ? selected : true}
-          aria-disabled={selectable ? undefined : true}
-          aria-label={displayName ?? device.name}
-          tabIndex={selectable ? 0 : -1}
-          data-no-dnd
-          onClick={e => {
-            e.stopPropagation();
-            if (selectable) onSelect(true);
-          }}
-          onKeyDown={e => {
-            if (!selectable) return;
-            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onSelect(true); }
-          }}
-        >
-          <span
-            className={`${styles.deviceCheck} ${(selectable ? selected : true) ? styles.deviceCheckOn : ''} ${selectable ? '' : styles.deviceCheckLocked}`}
-            aria-hidden
-          >
-            {(selectable ? selected : true) && <Check aria-hidden />}
-          </span>
-        </span>
-      )}
       <div className={styles.deviceCardBody}>
       <div className={styles.deviceNameRow}>
         <span className={styles.deviceName}>{displayName ?? device.name}</span>
@@ -283,10 +286,7 @@ export function ZoneCard({
             {t('lighting.devices.detectionFailed')}
           </span>
         ) : stateChip ? (
-          <span className={styles.deviceStateChip}>
-            {stateChip.icon}
-            {stateChip.label}
-          </span>
+          <Badge label={stateChip.label} icon={stateChip.icon} compact uppercase color="var(--text-dim)" />
         ) : isZone && device.zoneType === 'single' && !resizable ? (
           <HoverTooltip body={t('lighting.devices.zoneFixedTooltip')} side="top">
             <span className={styles.deviceMeta}>

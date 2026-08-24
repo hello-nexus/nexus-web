@@ -1,9 +1,10 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import { isMultiSelectModifier } from '../../../../lib/platform';
-import { Check, CircleSlash, Cpu, Fan, Gpu, Lock, Plus } from 'lucide-react';
+import { CircleSlash, Cpu, Fan, Gpu, Lock, Plus, Unplug } from 'lucide-react';
 import { type FanChannel, type FanRole, isFanDisconnected } from '../../../../api/cooling';
 import { useUnitPrefs } from '../../../../hooks/useUiSettings';
 import { useTranslation } from '../../../../lib/i18n';
+import { Badge } from '../../../../components/common/Badge/Badge';
 import { formatNumber } from '../../../../lib/units';
 import type { CurveDef, FanState } from '../../../../types/cooling';
 import { EditableText } from '../../../../components/common/Editable/EditableText';
@@ -39,7 +40,7 @@ export type FanCardHubMode = 'software' | 'motherboard' | 'firmware';
 
 export const FanCard = memo(function FanCard({
   channel, state, curves, calibrating, compact, canCreateCurve = true, highlighted,
-  selected = false, onToggleSelect, onSelect,
+  selected = false, onSelect,
   hubMode, hubSupportsFirmware,
   hubSupportsBios = true,
   nubRef, cardRef: cardRefProp, onWirePointerDown, onWireHover,
@@ -54,8 +55,6 @@ export const FanCard = memo(function FanCard({
   /** Body click. Receives whether the multi-select modifier was held, so the
    *  caller owns additive vs replace without FanCard holding a Set. */
   onSelect?: (additive: boolean) => void;
-  /** Omitted where the card is not selectable (no checkbox renders then). */
-  onToggleSelect?: (id: string) => void;
   /** Sidebar layout: 100% width, tighter padding. Used by the cooling page's right-side fan list. */
   compact?: boolean;
   /** When false, the mode dropdown hides the "Create curve" option (curve cap reached). */
@@ -126,6 +125,14 @@ export const FanCard = memo(function FanCard({
   // Telemetry-only channel (Q-series pump today): header readout only, no duty
   // bar or mode dropdown - nothing here drives it.
   const isReadOnly = channel.readOnly ?? false;
+  // A fan Nexus cannot drive says so in the badge under its name, and takes no
+  // selection - the lighting rail's rule for an un-driven device.
+  // Read-only channels render no badge at all (their branch is null), but they
+  // are just as un-drivable, so the selection gate keys off this too.
+  const undrivable = isHwDisconnected || isFixed || isReadOnly;
+  const stateBadge = isHwDisconnected
+    ? { icon: <Unplug size={11} />, label: t('cooling.fan.disconnected') }
+    : (isFixed ? { icon: <CircleSlash size={11} />, label: t('cooling.fan.fixed') } : null);
   const locked = channel.locked ?? false;
   const role: FanRole = channel.role ?? 'none';
   const RoleIcon = role === 'cpu' ? Cpu : role === 'gpu' ? Gpu : Fan;
@@ -276,31 +283,12 @@ export const FanCard = memo(function FanCard({
         // a curve was picked. Anything outside the card is not ours.
         if (!e.currentTarget.contains(target)) return;
         if (target.closest('[data-no-dnd],button,input,select,textarea,a')) return;
+        if (undrivable) return;
         onSelect(isMultiSelectModifier(e));
       } : undefined}
       onMouseEnter={onWireHover ? () => onWireHover(channel.id) : undefined}
       onMouseLeave={onWireHover ? () => onWireHover(null) : undefined}
     >
-      {onToggleSelect && !isReadOnly && (
-        <span
-          className={styles.fanCheckHit}
-          role="checkbox"
-          aria-checked={selected}
-          aria-label={channel.name}
-          tabIndex={0}
-          data-no-dnd
-          onClick={e => { e.stopPropagation(); onToggleSelect(channel.id); }}
-          onKeyDown={e => {
-            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onToggleSelect(channel.id); }
-          }}
-        >
-          <span className={`${styles.fanCheck} ${selected ? styles.fanCheckOn : ''}`} aria-hidden>
-            {selected && <Check aria-hidden />}
-          </span>
-        </span>
-      )}
-      {/* Everything but the checkbox stacks in here, so the box sits centred
-          against the whole card the way the lighting rail's does. */}
       <div className={styles.fanCardBody}>
       <div className={styles.fanCardHeader}>
         {/* Fan icon opens the device-role picker (Generic fan / CPU / GPU) and
@@ -370,19 +358,19 @@ export const FanCard = memo(function FanCard({
       </div>
 
       {isHwDisconnected ? (
-        // Hardware unresponsive: the entire fan block is "off". Single
-        // marker replaces the duty bar and the mode dropdown.
-        <div className={styles.fanBindingDisconnected}>
-          <span>{t('cooling.fan.disconnected')}</span>
+        // Hardware unresponsive: the whole fan block is "off", so the badge
+        // replaces the duty bar and the mode dropdown. Its glyph is in the
+        // card's leading slot.
+        <div className={styles.fanStateBadge}>
+          <Badge label={stateBadge!.label} icon={stateBadge!.icon} compact uppercase color="var(--text-dim)" />
         </div>
       ) : isReadOnly ? null : isFixed ? (
-        // Fixed speed: keep the RPM readout in the header and swap the duty
-        // bar for a "Fixed speed" marker. No mode dropdown at all - nothing
-        // here can drive a fan whose header ignores PWM.
+        // Fixed speed: the RPM readout stays in the header and the duty bar
+        // goes. No mode dropdown at all - nothing here can drive a fan whose
+        // header ignores PWM.
         <HoverTooltip body={t('cooling.fan.fixedHint')} side="top">
-          <div className={styles.fanBindingDisconnected}>
-            <CircleSlash size={13} aria-hidden="true" />
-            <span>{t('cooling.fan.fixed')}</span>
+          <div className={styles.fanStateBadge}>
+            <Badge label={stateBadge!.label} icon={stateBadge!.icon} compact uppercase color="var(--text-dim)" />
           </div>
         </HoverTooltip>
       ) : (
@@ -428,7 +416,6 @@ export const FanCard = memo(function FanCard({
           <span data-no-dnd style={{ display: 'contents' }}>
           <Select
             className={highlighted ? `${styles.fanModeSelect} ${styles.fanModeSelectAccent}` : styles.fanModeSelect}
-            variant="ghost"
             accentValue={highlighted}
             value={modeValue}
             onChange={handleModeChange}
