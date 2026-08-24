@@ -3520,6 +3520,7 @@
   "lighting.simple.detected.one": "ライティングデバイス {count} 台を検出",
   "lighting.simple.detected.other": "ライティングデバイス {count} 台を検出",
   "lighting.simple.controlled": "{count} 台を制御中",
+  "lighting.simple.customActive": "カスタムのライティングが有効です。管理するには詳細モードに切り替えてください。",
   "lighting.sleepBlackout.description": "PC がスリープに入るときに Nexus が制御するすべてのデバイスを消灯し、復帰時にエフェクトを復元します。これがないと、スリープ中も給電され続けるハードウェア (特に RGB メモリ) は点灯したままになります。",
   "lighting.sleepBlackout.label": "スリープ中は照明をオフにする",
   "cooling.simple.detected.one": "ファン {count} 基を検出",

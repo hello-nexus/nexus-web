@@ -3520,6 +3520,7 @@
   "lighting.simple.detected.one": "{count} aydınlatma cihazı algılandı",
   "lighting.simple.detected.other": "{count} aydınlatma cihazı algılandı",
   "lighting.simple.controlled": "{count} kontrol ediliyor",
+  "lighting.simple.customActive": "Özel bir aydınlatma etkin. Yönetmek için gelişmiş moda geçin.",
   "lighting.sleepBlackout.description": "Bilgisayar uykuya geçtiğinde Nexus'un yönettiği tüm cihazları söndürür ve uyanışta efektinizi geri yükler. Bu olmadan, uyku sırasında beslenmeye devam eden donanım (özellikle RGB RAM) yanık kalır.",
   "lighting.sleepBlackout.label": "Uyku sırasında aydınlatmayı kapat",
   "cooling.simple.detected.one": "{count} fan algılandı",

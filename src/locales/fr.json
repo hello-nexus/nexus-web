@@ -3520,6 +3520,7 @@
   "lighting.simple.detected.one": "{count} appareil d’éclairage détecté",
   "lighting.simple.detected.other": "{count} appareils d’éclairage détectés",
   "lighting.simple.controlled": "{count} pilotés",
+  "lighting.simple.customActive": "Un éclairage personnalisé est actif. Passez en mode avancé pour le gérer.",
   "lighting.sleepBlackout.description": "Éteint tous les appareils pilotés par Nexus lorsque le PC se met en veille, puis restaure votre effet au réveil. Sans cela, le matériel qui reste alimenté en veille (la RAM RGB en particulier) continue de briller.",
   "lighting.sleepBlackout.label": "Éteindre l'éclairage en veille",
   "cooling.simple.detected.one": "{count} ventilateur détecté",

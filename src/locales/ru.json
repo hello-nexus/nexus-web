@@ -3536,6 +3536,7 @@
   "lighting.simple.detected.other": "Обнаружено {count} устройств подсветки",
   "lighting.simple.detected.few": "Обнаружено {count} устройства подсветки",
   "lighting.simple.controlled": "{count} под управлением",
+  "lighting.simple.customActive": "Активна пользовательская подсветка. Перейдите в расширенный режим, чтобы управлять ею.",
   "lighting.sleepBlackout.description": "Гасит все устройства, которыми управляет Nexus, при переходе компьютера в спящий режим и восстанавливает эффект при пробуждении. Без этого оборудование, остающееся под питанием во сне (прежде всего RGB-память), продолжает светиться.",
   "lighting.sleepBlackout.label": "Выключать подсветку в спящем режиме",
   "cooling.simple.detected.one": "Обнаружен {count} вентилятор",

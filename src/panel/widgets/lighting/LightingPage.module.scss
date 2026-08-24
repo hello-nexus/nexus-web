@@ -925,9 +925,10 @@
 // ── Device Panel ────────────────────────────────────────────────────────────
 
 .devicePanel {
-  // No inset: the cards run to the rail's own edges so their top line matches
-  // the canvas beside them and their left matches the cooling rail.
-  padding: 0;
+  // No side/top inset: the cards run to the rail's own edges so their top line
+  // matches the canvas beside them and their left matches the cooling rail.
+  // Bottom gap matches .animateGrid, so a scrolled-to-end list is not flush.
+  padding: 0 0 1rem;
   overflow-y: auto;
   flex: 1 1 auto;
   min-height: 0;

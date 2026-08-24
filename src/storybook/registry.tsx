@@ -48,6 +48,7 @@ import { Select } from '../components/common/Select/Select';
 import { IconLabelButton } from '../components/common/IconLabelButton/IconLabelButton';
 import { AdvancedModeCta } from '../components/common/AdvancedModeCta/AdvancedModeCta';
 import { DeviceCountSummary } from '../components/common/DeviceCountSummary/DeviceCountSummary';
+import { SimpleModeNotice } from '../components/common/SimpleModeNotice/SimpleModeNotice';
 import { Button } from '../components/common/Button/Button';
 import { EndTaskButton } from '../components/common/EndTaskButton/EndTaskButton';
 import { ConflictAppCard } from '../components/common/ConflictAppCard/ConflictAppCard';
@@ -1151,6 +1152,14 @@ function PreviewAdvancedModeCta() {
   );
 }
 
+function PreviewSimpleModeNotice() {
+  return (
+    <div className={styles.previewStack} style={{ width: 520 }}>
+      <SimpleModeNotice message="A custom preset is active. Switch to advanced mode to manage it." />
+    </div>
+  );
+}
+
 function PreviewDeviceCountSummary() {
   return (
     <div className={styles.previewStack} style={{ width: 420 }}>
@@ -2049,6 +2058,12 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/AdvancedModeCta/AdvancedModeCta.tsx',
     description: 'Wide card-button at the bottom of the simple-mode lighting/cooling pages: "Advanced mode" eyebrow over a page-specific line describing what the full page adds, with a chevron affordance. Pressing it flips that page\'s ui.*DashboardMode field to advanced (the page passes the flip as onPress).',
     Preview: PreviewAdvancedModeCta,
+  },
+  {
+    name: 'SimpleModeNotice', category: 'cards',
+    filePath: 'src/components/common/SimpleModeNotice/SimpleModeNotice.tsx',
+    description: 'Accent-tinted line on the simple-mode lighting/cooling pages, shown when the active configuration has no tile on the page (a custom cooling preset, a lighting effect or mixed per-device colours) - without it the page reads as though nothing is running. The page owns the wording and the condition.',
+    Preview: PreviewSimpleModeNotice,
   },
   {
     name: 'DeviceCountSummary', category: 'cards',

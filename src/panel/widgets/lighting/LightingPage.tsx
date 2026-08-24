@@ -37,6 +37,7 @@ import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
 import { AdvancedModeCta } from '../../../components/common/AdvancedModeCta/AdvancedModeCta';
 import { DeviceCountSummary } from '../../../components/common/DeviceCountSummary/DeviceCountSummary';
+import { SimpleModeNotice } from '../../../components/common/SimpleModeNotice/SimpleModeNotice';
 import { usePageModeToggle } from '../../../app/PageChrome';
 import { useUiSettings } from '../../../hooks/useUiSettings';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
@@ -1494,6 +1495,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     return shared;
   }, [devicePicks, effectiveMode, selectableIds]);
 
+  // The simple page can only show Off or one palette swatch; anything else
+  // leaves nothing marked active. `synced` gates it: an unsynced mode is a guess.
+  const simpleCustomActive = synced && effectiveMode !== 'none'
+    && selectableIds.length > 0 && simplePaletteId === null;
+
   // Pause/freeze applies to the three modes that drive a continuous output
   // (animate shader, media playback, screen mirror) - Off has nothing to
   // freeze and Game Sync is driven by the foreground game, not us.
@@ -1599,6 +1605,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             selectedId={simplePaletteId}
             onSelect={color => { void handleSimplePaletteSelect(color); }}
           />
+          {simpleCustomActive && (
+            <SimpleModeNotice message={t('lighting.simple.customActive')} />
+          )}
           <div className={styles.simpleFooter}>
             <AdvancedModeCta
               label={t('lighting.simple.advancedCta')}

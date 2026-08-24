@@ -3520,6 +3520,7 @@
   "lighting.simple.detected.one": "{count} verlichtingsapparaat gedetecteerd",
   "lighting.simple.detected.other": "{count} verlichtingsapparaten gedetecteerd",
   "lighting.simple.controlled": "{count} aangestuurd",
+  "lighting.simple.customActive": "Er is aangepaste verlichting actief. Schakel naar de geavanceerde modus om deze te beheren.",
   "lighting.sleepBlackout.description": "Zet alle apparaten die Nexus aanstuurt uit zodra de pc in slaapstand gaat en herstelt je effect bij het ontwaken. Zonder deze optie blijft hardware die tijdens de slaapstand stroom houdt (vooral RGB-geheugen) branden.",
   "lighting.sleepBlackout.label": "Verlichting uitschakelen in slaapstand",
   "cooling.simple.detected.one": "{count} ventilator gedetecteerd",

@@ -3518,6 +3518,7 @@
   "lighting.devices.selectOnly": "Selezione dome {name}",
   "lighting.pane.effect": "Efiet",
   "lighting.simple.controlled": "{count} controlâts",
+  "lighting.simple.customActive": "Une iluminazion personalizade e je ative. Passe ae modalitât avanzade par gjestîle.",
   "lighting.simple.detected.one": "{count} dispositîf di iluminazion rilevât",
   "lighting.simple.detected.other": "{count} dispositîfs di iluminazion rilevâts",
   "lighting.sleepBlackout.description": "Al distude ducj i dispositîfs controlâts di Nexus cuant che il PC al va a polsâ e al torne a meti il to efiet cuant che si dismire. Cence chest, l'hardware che al reste alimentât dilunc il polsâ (soredut la RAM RGB) al reste impiât.",
