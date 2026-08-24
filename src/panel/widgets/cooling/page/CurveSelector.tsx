@@ -3,7 +3,7 @@ import { Fan, Plus } from 'lucide-react';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { useTranslation } from '../../../../lib/i18n';
 import { MAX_CURVES, type CurveDef } from '../../../../types/cooling';
-import { presetIconFor } from './coolingPresets';
+import { modeIconFor } from './coolingModes';
 import styles from '../CoolingPage.module.scss';
 
 /**
@@ -57,7 +57,7 @@ export const CurveSelector = memo(function CurveSelector({
     <div className={styles.curveSelector}>
       <div className={styles.curveButtons} role="group" aria-label={t('cooling.sections.curves')}>
         {ordered.map(c => {
-          const PresetIcon = presetIconFor(c.preset);
+          const PresetIcon = modeIconFor(c.preset);
           const viewing = c.id === selectedCurveId;
           const fanCount = curveFanCounts.get(c.id) ?? 0;
           return (

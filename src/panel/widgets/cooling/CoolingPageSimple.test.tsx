@@ -57,13 +57,13 @@ describe('CoolingPage simple mode', () => {
     localStorage.clear();
   });
 
-  it('renders the four preset tiles without the custom preset or advanced chrome', () => {
+  it('renders the four mode tiles without the custom mode or advanced chrome', () => {
     renderPage();
     // Tile names concatenate the label and the description line.
     for (const key of ['off', 'silent', 'balanced', 'turbo']) {
-      expect(screen.getByRole('button', { name: new RegExp(`cooling\\.preset\\.${key}\\b`) })).toBeTruthy();
+      expect(screen.getByRole('button', { name: new RegExp(`cooling\\.mode\\.${key}\\b`) })).toBeTruthy();
     }
-    expect(screen.queryByRole('button', { name: /cooling\.preset\.custom/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /cooling\.mode\.custom/ })).toBeNull();
     expect(screen.queryByRole('button', { name: /cooling\.calibrate\.button/ })).toBeNull();
     expect(screen.getByRole('button', { name: /cooling\.simple\.advancedCta/ })).toBeTruthy();
   });
@@ -74,7 +74,7 @@ describe('CoolingPage simple mode', () => {
     expect(screen.getByText('cooling.simple.controlled')).toBeTruthy();
   });
 
-  it('unlocks a fan the preset buttons would otherwise skip', async () => {
+  it('unlocks a fan the mode buttons would otherwise skip', async () => {
     renderPage();
     await waitFor(() => {
       expect(vi.mocked(setFanLock)).toHaveBeenCalledWith('fan-rear', false);
@@ -82,9 +82,9 @@ describe('CoolingPage simple mode', () => {
     expect(vi.mocked(setFanLock).mock.calls.some(c => c[0] === 'fan-cpu')).toBe(false);
   });
 
-  it('applies a preset from its tile', async () => {
+  it('applies a mode from its tile', async () => {
     renderPage();
-    fireEvent.click(screen.getByRole('button', { name: /cooling\.preset\.silent\b/ }));
+    fireEvent.click(screen.getByRole('button', { name: /cooling\.mode\.silent\b/ }));
     await waitFor(() => {
       expect(vi.mocked(applyProfile)).toHaveBeenCalledWith('silent');
     });

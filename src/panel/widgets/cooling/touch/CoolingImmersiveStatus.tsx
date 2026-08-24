@@ -4,7 +4,7 @@ import { useSensors } from '../../../../hooks/useSensors';
 import { useTempSensorPrefs } from '../../../../hooks/useUiSettings';
 import { resolveCpuTempSensor, resolveGpuTempSensor } from '../../../../lib/tempSensorResolver';
 import { useTranslation } from '../../../../lib/i18n';
-import { COOLING_PRESETS } from '../page/coolingPresets';
+import { COOLING_MODES } from '../page/coolingModes';
 import { CoolingTrendChart } from '../page/CoolingTrendChart';
 import type { CoolingImmersiveController } from './useCoolingImmersive';
 import styles from './CoolingImmersiveStatus.module.scss';
@@ -65,8 +65,8 @@ export function CoolingImmersiveStatus({ cooling }: { cooling: CoolingImmersiveC
   return (
     <div className={styles.status}>
       <div className={styles.modes}>
-        {COOLING_PRESETS.map(p => {
-          const active = cooling.activePreset === p.key;
+        {COOLING_MODES.map(p => {
+          const active = cooling.activeMode === p.key;
           return (
             <IconLabelButton
               key={p.key}

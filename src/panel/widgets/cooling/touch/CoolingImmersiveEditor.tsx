@@ -163,12 +163,12 @@ function FansSection({ cooling, liveChannels }: {
   return (
     <div className={styles.fanCol}>
       <span className={pageStyles.curveFieldHeader}>{t('cooling.label.fan')}</span>
-      {cooling.activePreset === 'off' && (
+      {cooling.activeMode === 'off' && (
         <div className={pageStyles.offStatus}
           role="status"
-          aria-label={t('cooling.preset.off.banner')}>
+          aria-label={t('cooling.mode.off.banner')}>
           <Power size={13} aria-hidden />
-          <span className={pageStyles.offStatusLabel}>{t('cooling.preset.off.banner')}</span>
+          <span className={pageStyles.offStatusLabel}>{t('cooling.mode.off.banner')}</span>
         </div>
       )}
       {calibrating && <p className={styles.calibratingHint}>{t('cooling.calibrate.locked')}</p>}

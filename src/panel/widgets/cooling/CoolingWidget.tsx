@@ -16,7 +16,7 @@ import { SignalBarsIcon } from './SignalBarsIcon';
 import { resolveCpuTempSensor, resolveGpuTempSensor } from '../../../lib/tempSensorResolver';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { publishControlSync, subscribeControlSync } from '../../../lib/controlSync';
-import { COOLING_PRESETS, isCoolingPresetKey, type CoolingPresetKey } from './page/coolingPresets';
+import { COOLING_MODES, isCoolingModeKey, type CoolingModeKey } from './page/coolingModes';
 import { setCachedCoolingActivePreset } from './coolingCache';
 import { MicroBar } from '../monitoring/MicroBar';
 import type { GaugeProps } from '../monitoring/gauges/types';
@@ -27,12 +27,12 @@ import { usePanelPreview } from '../common/PanelPreviewContext';
 import { CoolingResponseChart } from './CoolingResponseChart';
 import styles from './CoolingWidget.module.scss';
 
-const WIDGET_PRESET_KEYS: CoolingPresetKey[] = ['silent', 'balanced', 'turbo'];
+const WIDGET_PRESET_KEYS: CoolingModeKey[] = ['silent', 'balanced', 'turbo'];
 const TEMP_MAX = 100;
 // Catalog preview shows a deterministic preset (label via the existing
-// cooling.preset.balanced key). Keep in sync with the simple-mode render -
+// cooling.mode.balanced key). Keep in sync with the simple-mode render -
 // see .agents/rules/widget-preview-fixtures.md in the master repo.
-const COOLING_PREVIEW_PRESET: CoolingPresetKey = 'balanced';
+const COOLING_PREVIEW_PRESET: CoolingModeKey = 'balanced';
 
 interface CoolingSlot {
   key: 'cpu' | 'gpu' | 'fan';
@@ -45,7 +45,7 @@ export function CoolingWidget({ widget }: WidgetProps) {
   const preview = usePanelPreview();
   // Preview forces simple mode for determinism.
   const simpleMode = preview || !resolveAdvancedMode(widget.config, ui.widgetAdvancedMode);
-  const [active, setActive] = useState<CoolingPresetKey>(preview ? COOLING_PREVIEW_PRESET : 'custom');
+  const [active, setActive] = useState<CoolingModeKey>(preview ? COOLING_PREVIEW_PRESET : 'custom');
   // False until the first profiles fetch resolves: preset changes before
   // that are hydration, not state changes, and must not animate.
   const [hydrated, setHydrated] = useState(false);
@@ -117,7 +117,7 @@ export function CoolingWidget({ widget }: WidgetProps) {
       if (!data) return;
       setHydrated(true);
       if (Date.now() < presetLockUntilRef.current) return; // honour the lock
-      if (data.active && isCoolingPresetKey(data.active)) {
+      if (data.active && isCoolingModeKey(data.active)) {
         setActive(data.active);
         // Mirror the freshly-fetched active preset into the page's
         // localStorage cache so a subsequent navigation to /cooling
@@ -172,14 +172,14 @@ export function CoolingWidget({ widget }: WidgetProps) {
       if (event.domain !== 'cooling') return;
       if (Date.now() < presetLockUntilRef.current) return; // honour the lock
       const next = event.activePreset ?? event.activeProfile;
-      if (next && isCoolingPresetKey(next)) {
+      if (next && isCoolingModeKey(next)) {
         setActive(next);
         setCachedCoolingActivePreset(next);
       }
     });
   }, [preview]);
 
-  const apply = useCallback((key: CoolingPresetKey) => {
+  const apply = useCallback((key: CoolingModeKey) => {
     // Lock first so any topic/control-sync push triggered by *this* write
     // (or a still-in-flight previous write) can't revert the optimistic
     // setActive below.
@@ -200,7 +200,7 @@ export function CoolingWidget({ widget }: WidgetProps) {
   // state jumps to the first item in the cycle direction: right →
   // silent, left → turbo (per user spec).
   const cyclePreset = useCallback((delta: number) => {
-    const idx = WIDGET_PRESET_KEYS.indexOf(active as CoolingPresetKey);
+    const idx = WIDGET_PRESET_KEYS.indexOf(active as CoolingModeKey);
     let nextIdx: number;
     if (idx < 0) {
       nextIdx = delta > 0 ? 0 : WIDGET_PRESET_KEYS.length - 1;
@@ -219,11 +219,11 @@ export function CoolingWidget({ widget }: WidgetProps) {
       : active === 'turbo' ? 3
       : null;
     const labelKey =
-      active === 'silent' ? 'cooling.preset.silent'
-      : active === 'balanced' ? 'cooling.preset.balanced'
-      : active === 'turbo' ? 'cooling.preset.turbo'
-      : active === 'off' ? 'cooling.preset.off'
-      : 'cooling.preset.custom';
+      active === 'silent' ? 'cooling.mode.silent'
+      : active === 'balanced' ? 'cooling.mode.balanced'
+      : active === 'turbo' ? 'cooling.mode.turbo'
+      : active === 'off' ? 'cooling.mode.off'
+      : 'cooling.mode.custom';
     const showLabel = widget.size !== '2x2';
     return (
       <div className={styles.cooling} data-size={widget.size} data-simple="true">
@@ -292,7 +292,7 @@ export function CoolingWidget({ widget }: WidgetProps) {
       />
 
       <div className={styles.chips}>
-        {COOLING_PRESETS.map(p => {
+        {COOLING_MODES.map(p => {
           const label = t(p.i18nKey);
           return (
             <IconLabelButton

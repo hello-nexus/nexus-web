@@ -70,10 +70,6 @@ const CATEGORIES: {
   },
 ];
 
-// Skip notes that name a number and so have plural forms; the rest are flat
-// sentences whose key has no .one/.other.
-const COUNTED_SKIP_NOTES = new Set(['fansMissing', 'rpmCurves']);
-
 const MATCH_LABEL_KEYS: Record<FanControlMatch, string> = {
   exact: 'fanControlImport.match.exact',
   normalized: 'fanControlImport.match.normalized',
@@ -146,6 +142,23 @@ export function FanControlImportSection({
     () => (preview ? CATEGORIES.filter(c => c.count(preview) > 0) : []),
     [preview],
   );
+  // The fan rows follow the switches: a fan is listed when the selection
+  // actually takes something from it, and an unmatched one is listed whenever
+  // any per-fan category is on, since that is what will not come over.
+  const shownFans = useMemo(() => {
+    if (!preview) return [];
+    const perFan = (['calibration', 'names', 'offsets', 'manual'] as const).some(c => selected.has(c));
+    if (!perFan) return [];
+    return preview.fans.filter(fan => {
+      if (!fan.channelId) return true;
+      if (selected.has('calibration') && fan.hasCalibration) return true;
+      if (selected.has('names') && fan.nickName) return true;
+      if (selected.has('offsets') && fan.offset !== 0) return true;
+      if (selected.has('manual') && fan.manualDuty != null) return true;
+      return false;
+    });
+  }, [preview, selected]);
+
   const selectionEmpty = selected.size === 0;
   const locked = importPhase === 'busy' || !!disabled;
 
@@ -237,7 +250,7 @@ export function FanControlImportSection({
             />
           ))}
 
-          {preview.curves.length > 0 && (
+          {selected.has('curves') && preview.curves.length > 0 && (
             <div className={styles.detail} data-settings-aside>
               <span className={styles.detailHeader}>{t('fanControlImport.curvesHeader')}</span>
               <ul className={styles.detailList}>
@@ -260,11 +273,11 @@ export function FanControlImportSection({
             </div>
           )}
 
-          {preview.fans.length > 0 && (
+          {shownFans.length > 0 && (
             <div className={styles.detail} data-settings-aside>
               <span className={styles.detailHeader}>{t('fanControlImport.fansHeader')}</span>
               <ul className={styles.detailList}>
-                {preview.fans.map(fan => (
+                {shownFans.map(fan => (
                   <li key={fan.identifier} className={fan.channelId ? styles.row : styles.rowSkipped}>
                     <span className={styles.rowName}>{fan.sourceName}</span>
                     <span className={styles.rowMeta}>
@@ -276,21 +289,6 @@ export function FanControlImportSection({
                 ))}
               </ul>
             </div>
-          )}
-
-          {preview.skipped.length > 0 && (
-            <ul className={styles.skippedList} data-settings-aside>
-              {preview.skipped.map(note => (
-                <li key={note.code} className={styles.skippedNote}>
-                  {t(
-                    COUNTED_SKIP_NOTES.has(note.code)
-                      ? pluralKey(`fanControlImport.skip.${note.code}`, language, note.count)
-                      : `fanControlImport.skip.${note.code}`,
-                    { count: note.count },
-                  )}
-                </li>
-              ))}
-            </ul>
           )}
 
           {importPhase === 'results' && result && (

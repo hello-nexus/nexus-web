@@ -22,21 +22,21 @@
 import type { FanChannel, TemperatureSource } from '../../../api/cooling';
 import { withCurveDefaults } from '../../../types/cooling';
 import type { CurveDef, FanState } from '../../../types/cooling';
-import type { CoolingPresetKey } from './page/coolingPresets';
+import type { CoolingModeKey } from './page/coolingModes';
 import type { FanCardHubMode } from './page/FanCard';
 
-// v3: the trigger / sync / auto modes arrived, so a v2 payload holds curves
-// with no object for them. The read below fills any missing mode in as well,
-// which is the durable half of the fix - the key bump only skips one stale
+// v4: activePreset became activeMode, so a v3 payload carries the field under
+// the old name. The read below fills any missing curve mode in as well, which
+// is the durable half of the v3 fix - the key bump only skips one stale
 // payload, the normalizer survives the next mode too.
-const STORAGE_KEY = 'nexus_cooling_cache_v3';
+const STORAGE_KEY = 'nexus_cooling_cache_v4';
 
 export interface CoolingCache {
   channels: FanChannel[];
   curves: CurveDef[];
   sources: TemperatureSource[];
   fanStates: Record<string, FanState>;
-  activePreset: CoolingPresetKey | null;
+  activeMode: CoolingModeKey | null;
   hubModes: Record<string, FanCardHubMode>;
 }
 
@@ -45,7 +45,7 @@ const EMPTY: CoolingCache = {
   curves: [],
   sources: [],
   fanStates: {},
-  activePreset: null,
+  activeMode: null,
   hubModes: {},
 };
 
@@ -65,8 +65,8 @@ export function loadCoolingCache(): CoolingCache {
       curves:       Array.isArray(parsed.curves)       ? parsed.curves.map(withCurveDefaults) : [],
       sources:      Array.isArray(parsed.sources)      ? parsed.sources      : [],
       fanStates:    isPlainObject(parsed.fanStates)    ? parsed.fanStates    : {},
-      activePreset: typeof parsed.activePreset === 'string'
-        ? parsed.activePreset as CoolingPresetKey
+      activeMode: typeof parsed.activeMode === 'string'
+        ? parsed.activeMode as CoolingModeKey
         : null,
       hubModes:     isPlainObject(parsed.hubModes)     ? parsed.hubModes     : {},
     };
@@ -95,10 +95,10 @@ export function saveCoolingCache(cache: CoolingCache): void {
  * initializer needs to find the freshly-set preset when it mounts next.
  * Idempotent - a no-op write when the preset hasn't actually changed.
  */
-export function setCachedCoolingActivePreset(preset: CoolingPresetKey): void {
+export function setCachedCoolingActivePreset(preset: CoolingModeKey): void {
   const current = loadCoolingCache();
-  if (current.activePreset === preset) return;
-  saveCoolingCache({ ...current, activePreset: preset });
+  if (current.activeMode === preset) return;
+  saveCoolingCache({ ...current, activeMode: preset });
 }
 
 function isPlainObject<T>(v: unknown): v is Record<string, T> {

@@ -36,7 +36,6 @@ const PREVIEW: FanControlPreviewResponse = {
     { identifier: '/lpc/it8696e/control/0', sourceName: 'CPU Fan', channelId: '/lpc/it8696e/0/control/0', channelName: 'CPU', match: 'normalized', hasCalibration: true, offset: 0 },
     { identifier: '/lpc/it8696e/control/3', sourceName: 'Fan #4', channelId: null, channelName: null, match: 'none', hasCalibration: false, offset: 0 },
   ],
-  skipped: [{ code: 'fansMissing' as const, count: 1 }],
   curveCount: 1,
   calibrationCount: 3,
   nameCount: 2,
@@ -67,9 +66,28 @@ describe('FanControlImportSection', () => {
     expect(previewFanControlImport).toHaveBeenCalledTimes(1);
   });
 
-  it('translates every note about what is being left behind', async () => {
+  it('drops the curve list when curves are switched off', async () => {
     renderSection();
-    expect(await screen.findByText('fanControlImport.skip.fansMissing.one:1')).toBeInTheDocument();
+    await screen.findByText('CPU Graph');
+
+    fireEvent.click(screen.getByRole('switch', { name: /fanControlImport.category.curves/ }));
+    await waitFor(() => expect(screen.queryByText('CPU Graph')).not.toBeInTheDocument());
+    // The fans are still coming over, so their rows stay.
+    expect(screen.getByText('CPU Fan')).toBeInTheDocument();
+  });
+
+  it('drops the fan list when every per-fan category is switched off', async () => {
+    renderSection();
+    // "CPU Fan" appears twice (the curve's fan and its own row), so key this on
+    // the fan that only exists as a row.
+    await screen.findByText('Fan #4');
+
+    for (const name of [/fanControlImport.category.calibration/, /fanControlImport.category.names/]) {
+      fireEvent.click(screen.getByRole('switch', { name }));
+    }
+    await waitFor(() => expect(screen.queryByText('Fan #4')).not.toBeInTheDocument());
+    // Curves are still on, and this curve's fan is named in its row.
+    expect(screen.getByText('CPU Graph')).toBeInTheDocument();
   });
 
   it('offers only the categories that have something to import', async () => {
@@ -153,7 +171,7 @@ describe('FanControlImportSection', () => {
 
   it('says so when a config maps onto nothing here', async () => {
     vi.mocked(previewFanControlImport).mockResolvedValue({
-      ...PREVIEW, curves: [], fans: [], skipped: [], curveCount: 0, calibrationCount: 0, nameCount: 0, offsetCount: 0,
+      ...PREVIEW, curves: [], fans: [], curveCount: 0, calibrationCount: 0, nameCount: 0, offsetCount: 0,
     });
     renderSection();
     expect(await screen.findByText('fanControlImport.nothingToImport')).toBeInTheDocument();

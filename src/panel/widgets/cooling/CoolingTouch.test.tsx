@@ -99,10 +99,10 @@ describe('CoolingTouch', () => {
 
   it('renders preset mode buttons with the active preset hydrated from /cooling/profiles', async () => {
     renderTouch();
-    const balanced = await screen.findByRole('button', { name: 'cooling.preset.balanced' });
+    const balanced = await screen.findByRole('button', { name: 'cooling.mode.balanced' });
     await waitFor(() => expect(balanced).toHaveAttribute('aria-pressed', 'true'));
     for (const key of ['off', 'silent', 'turbo', 'custom']) {
-      expect(screen.getByRole('button', { name: `cooling.preset.${key}` }))
+      expect(screen.getByRole('button', { name: `cooling.mode.${key}` }))
         .toHaveAttribute('aria-pressed', 'false');
     }
     // Live trend chart frames cell 1 under the buttons: title hidden in the
@@ -161,7 +161,7 @@ describe('CoolingTouch', () => {
 
   it('applies a preset optimistically on tap', async () => {
     renderTouch();
-    const turbo = await screen.findByRole('button', { name: 'cooling.preset.turbo' });
+    const turbo = await screen.findByRole('button', { name: 'cooling.mode.turbo' });
     fireEvent.click(turbo);
     expect(turbo).toHaveAttribute('aria-pressed', 'true');
     expect(applyProfile).toHaveBeenCalledWith('turbo');

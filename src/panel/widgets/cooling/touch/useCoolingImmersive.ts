@@ -37,7 +37,7 @@ import { publishControlSync, subscribeControlSync } from '../../../../lib/contro
 import { defaultCurveSourceId } from '../../../../lib/tempSensorResolver';
 import { curveDefsFromApi, curveDefToApi, newCurve, MAX_CURVES, type CurveDef, type FanState } from '../../../../types/cooling';
 import { loadCoolingCache, saveCoolingCache, setCachedCoolingActivePreset } from '../coolingCache';
-import { isCoolingPresetKey, type CoolingPresetKey } from '../page/coolingPresets';
+import { isCoolingModeKey, type CoolingModeKey } from '../page/coolingModes';
 import type { FanCardHubMode } from '../page/FanCard';
 
 // Optimistic-lock window shared with CoolingPage / CoolingWidget: after a
@@ -50,7 +50,7 @@ export interface CoolingImmersiveController {
   sources: TemperatureSource[];
   curves: CurveDef[];
   fanStates: Record<string, FanState>;
-  activePreset: CoolingPresetKey | null;
+  activeMode: CoolingModeKey | null;
   hubModes: Record<string, FanCardHubMode>;
   canAddCurve: boolean;
   /** The curve shown in the hero card; selecting also highlights the fans
@@ -60,7 +60,7 @@ export interface CoolingImmersiveController {
    *  as the desktop page's dimmed rail). */
   calibrating: boolean;
   selectCurve: (id: string) => void;
-  applyPreset: (key: CoolingPresetKey) => void;
+  applyPreset: (key: CoolingModeKey) => void;
   setFanMode: (fanId: string, value: string) => void;
   createCurveAndAssign: (fanId: string) => void;
   addCurve: () => void;
@@ -86,7 +86,7 @@ export function useCoolingImmersive(): CoolingImmersiveController {
   const [sources, setSources] = useState<TemperatureSource[]>(() => cachedSeed.sources);
   const [curves, setCurves] = useState<CurveDef[]>(() => cachedSeed.curves);
   const [fanStates, setFanStates] = useState<Record<string, FanState>>(() => cachedSeed.fanStates);
-  const [activePreset, setActivePreset] = useState<CoolingPresetKey | null>(() => cachedSeed.activePreset);
+  const [activeMode, setActiveMode] = useState<CoolingModeKey | null>(() => cachedSeed.activeMode);
   const [hubModes, setHubModes] = useState<Record<string, FanCardHubMode>>(() => cachedSeed.hubModes);
   // Seeded from the cached curves so a revisit paints the hero card
   // immediately (same as CoolingPage).
@@ -143,7 +143,7 @@ export function useCoolingImmersive(): CoolingImmersiveController {
 
     if (profiles?.active && Date.now() >= presetLockUntilRef.current) {
       activeProfileRef.current = profiles.active;
-      if (isCoolingPresetKey(profiles.active)) setActivePreset(profiles.active);
+      if (isCoolingModeKey(profiles.active)) setActiveMode(profiles.active);
     }
 
     if (fans?.channels) setChannels(fans.channels);
@@ -170,8 +170,8 @@ export function useCoolingImmersive(): CoolingImmersiveController {
   // Mirror the desktop page's stale-while-revalidate write-back so the next
   // open (here or on the dashboard) paints from the last-good snapshot.
   useEffect(() => {
-    saveCoolingCache({ channels, curves, sources, fanStates, activePreset, hubModes });
-  }, [channels, curves, sources, fanStates, activePreset, hubModes]);
+    saveCoolingCache({ channels, curves, sources, fanStates, activeMode, hubModes });
+  }, [channels, curves, sources, fanStates, activeMode, hubModes]);
 
   // Every cooling-config mutation lands a 'cooling' push from the service.
   const onCoolingTopic = useCallback(() => {
@@ -197,9 +197,9 @@ export function useCoolingImmersive(): CoolingImmersiveController {
   useEffect(() => subscribeControlSync(event => {
     if (event.domain !== 'cooling') return;
     const next = event.activePreset ?? event.activeProfile;
-    if (next && isCoolingPresetKey(next) && Date.now() >= presetLockUntilRef.current) {
+    if (next && isCoolingModeKey(next) && Date.now() >= presetLockUntilRef.current) {
       activeProfileRef.current = next;
-      setActivePreset(next);
+      setActiveMode(next);
     }
     void refresh();
   }), [refresh]);
@@ -258,30 +258,30 @@ export function useCoolingImmersive(): CoolingImmersiveController {
   // the preset to Custom first so the curve writes land in the right state.
   const exitOffToCustomIfNeeded = useCallback(async () => {
     if (activeProfileRef.current !== 'off') return;
-    setActivePreset('custom');
+    setActiveMode('custom');
     activeProfileRef.current = 'custom';
     presetLockUntilRef.current = Date.now() + PRESET_LOCK_MS;
     publishControlSync({ domain: 'cooling', activePreset: 'custom' });
     await applyProfile('custom');
   }, []);
 
-  const applyPreset = useCallback((key: CoolingPresetKey) => {
+  const applyPreset = useCallback((key: CoolingModeKey) => {
     // Pressing a preset also shows that preset's curve in the hero card
     // (same as the desktop page's preset tabs).
     const presetCurve = curves.find(c => c.preset === key);
     if (presetCurve) setSelectedCurveId(presetCurve.id);
-    if (key === activePreset) return;
+    if (key === activeMode) return;
     // Lock first so pushes triggered by this write can't revert the
     // optimistic update below.
     presetLockUntilRef.current = Date.now() + PRESET_LOCK_MS;
-    setActivePreset(key);
+    setActiveMode(key);
     activeProfileRef.current = key;
     publishControlSync({ domain: 'cooling', activePreset: key });
     // Seed the page's cache so a later navigation to /cooling paints the
     // right preset on first frame.
     setCachedCoolingActivePreset(key);
     void applyProfile(key).then(() => refresh()).catch(() => { /* best-effort */ });
-  }, [activePreset, curves, refresh]);
+  }, [activeMode, curves, refresh]);
 
   const toggleSoftwareControl = useCallback(async (fanId: string, enabled: boolean) => {
     if (enabled) {
@@ -484,7 +484,7 @@ export function useCoolingImmersive(): CoolingImmersiveController {
   }, [curves]);
 
   return {
-    channels, sources, curves, fanStates, activePreset, hubModes,
+    channels, sources, curves, fanStates, activeMode, hubModes,
     canAddCurve: curves.length < MAX_CURVES,
     selectedCurveId,
     calibrating,

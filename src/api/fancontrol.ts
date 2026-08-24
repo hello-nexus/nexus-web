@@ -43,12 +43,6 @@ export interface FanControlCurvePreview {
   fanNames: string[];
 }
 
-/** Something the import leaves behind, as a code plus how many items it covers. */
-export interface FanControlSkipNote {
-  code: 'fansMissing' | 'rpmCurves' | 'startStop' | 'smoothing';
-  count: number;
-}
-
 export interface FanControlFanPreview {
   identifier: string;
   sourceName: string;
@@ -68,7 +62,6 @@ export interface FanControlPreviewResponse {
   version: number;
   curves: FanControlCurvePreview[];
   fans: FanControlFanPreview[];
-  skipped: FanControlSkipNote[];
   curveCount: number;
   calibrationCount: number;
   nameCount: number;
