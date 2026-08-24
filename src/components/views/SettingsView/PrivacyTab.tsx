@@ -5,6 +5,7 @@ import { SettingRow, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { ScreenTimeDataControl } from '../ScreenTimeBrowse/ScreenTimeDataControl';
 import { Nexus2ImportDialog } from '../../common/Nexus2WelcomeScreen/Nexus2ImportDialog';
 import { AiIntegrationSection } from './AiIntegrationSection';
+import { DiscordPresenceSection } from './DiscordPresenceSection';
 import { fetchService, postService } from '../../../api/service';
 import { fetchNexus2Status } from '../../../api/migration';
 import { useTranslation } from '../../../lib/i18n';
@@ -126,6 +127,10 @@ export function PrivacyTab({ settings, serviceOnline }: PrivacyTabProps) {
       />
 
       <Nexus2ImportDialog open={nexus2ImportOpen} onClose={() => setNexus2ImportOpen(false)} />
+
+      {/* Rich Presence publishes a status line off this machine, so it sits
+          with the other data-sharing controls rather than in General. */}
+      <DiscordPresenceSection serviceOnline={serviceOnline} />
 
       <AiIntegrationSection serviceOnline={serviceOnline} numberFormat={settings.general.numberFormat} />
     </div>

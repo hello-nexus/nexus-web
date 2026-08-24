@@ -140,6 +140,7 @@ export function SettingSelect({
   onChange,
   disabled,
   description,
+  descriptionBelow,
   anchorId,
 }: {
   label?: string;
@@ -148,10 +149,17 @@ export function SettingSelect({
   onChange: (value: string) => void;
   disabled?: boolean;
   description?: ReactNode;
+  descriptionBelow?: boolean | 'tight';
   anchorId?: string;
 }) {
   return (
-    <SettingRow label={label} description={description} anchorId={anchorId}>
+    <SettingRow
+      label={label}
+      description={description}
+      descriptionBelow={descriptionBelow}
+      anchorId={anchorId}
+      disabled={disabled}
+    >
       <Select value={value} onChange={onChange} options={options} ariaLabel={label} disabled={disabled} />
     </SettingRow>
   );

@@ -33,7 +33,6 @@ import { lightingApp } from './lighting';
 import { smartLightsApp } from './smart-lights';
 import { obsApp } from './obs';
 import { steamApp } from './steam';
-import { discordApp } from './discord';
 import { coolingApp } from './cooling';
 import { displaysApp } from './displays';
 import { timerApp } from './timer';
@@ -69,7 +68,6 @@ export const APP_REGISTRY: Record<string, AppManifest> = {
   'home-assistant': homeAssistantApp,
   obs:        obsApp,
   steam:      steamApp,
-  discord:    discordApp,
   cooling:    coolingApp,
   displays:   displaysApp,
   timer:      timerApp,
