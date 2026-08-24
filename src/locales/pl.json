@@ -1108,7 +1108,6 @@
   "fanControlImport.curveType.trigger": "Wyzwalacz",
   "fanControlImport.curvesHeader": "Krzywe",
   "fanControlImport.description": "Przenieś swoje krzywe i ustawienia wentylatorów z FanControl. W samym FanControl nic się nie zmienia.",
-  "fanControlImport.entry": "Importuj z FanControl",
   "fanControlImport.error": "Nie udało się odczytać konfiguracji FanControl.",
   "fanControlImport.fansHeader": "Wentylatory",
   "fanControlImport.match.exact": "Dopasowano",

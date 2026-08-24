@@ -1102,7 +1102,6 @@
   "fanControlImport.curveType.trigger": "Trigger",
   "fanControlImport.curvesHeader": "Kurven",
   "fanControlImport.description": "Übernimmt Ihre Lüfterkurven und Lüftereinstellungen aus FanControl. An FanControl selbst ändert sich nichts.",
-  "fanControlImport.entry": "Aus FanControl importieren",
   "fanControlImport.error": "Die FanControl-Konfiguration konnte nicht gelesen werden.",
   "fanControlImport.fansHeader": "Lüfter",
   "fanControlImport.match.exact": "Zugeordnet",

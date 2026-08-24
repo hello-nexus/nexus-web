@@ -1102,7 +1102,6 @@
   "fanControlImport.curveType.trigger": "トリガー",
   "fanControlImport.curvesHeader": "カーブ",
   "fanControlImport.description": "FanControl からファンカーブとファン設定を引き継ぎます。FanControl 側は何も変更されません。",
-  "fanControlImport.entry": "FanControl からインポート",
   "fanControlImport.error": "FanControl の設定を読み込めませんでした。",
   "fanControlImport.fansHeader": "ファン",
   "fanControlImport.match.exact": "一致",

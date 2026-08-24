@@ -1102,7 +1102,6 @@
   "fanControlImport.curveType.trigger": "Tetik",
   "fanControlImport.curvesHeader": "Eğriler",
   "fanControlImport.description": "Fan eğrilerini ve fan ayarlarını FanControl'den aktar. FanControl'de hiçbir şey değişmez.",
-  "fanControlImport.entry": "FanControl'den içe aktar",
   "fanControlImport.error": "FanControl yapılandırması okunamadı.",
   "fanControlImport.fansHeader": "Fanlar",
   "fanControlImport.match.exact": "Eşleşti",

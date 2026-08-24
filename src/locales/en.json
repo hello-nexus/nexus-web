@@ -1191,7 +1191,6 @@
   "fanControlImport.curveType.trigger": "Trigger",
   "fanControlImport.curvesHeader": "Curves",
   "fanControlImport.description": "Bring your fan curves and fan settings over from FanControl. Nothing in FanControl is changed.",
-  "fanControlImport.entry": "Import from FanControl",
   "fanControlImport.error": "Could not read the FanControl configuration.",
   "fanControlImport.fansHeader": "Fans",
   "fanControlImport.match.exact": "Matched",

@@ -1102,7 +1102,6 @@
   "fanControlImport.curveType.trigger": "Soglia",
   "fanControlImport.curvesHeader": "Curve",
   "fanControlImport.description": "Porta qui le tue curve e le impostazioni delle ventole da FanControl. In FanControl non cambia nulla.",
-  "fanControlImport.entry": "Importa da FanControl",
   "fanControlImport.error": "Impossibile leggere la configurazione di FanControl.",
   "fanControlImport.fansHeader": "Ventole",
   "fanControlImport.match.exact": "Associata",

@@ -1108,7 +1108,6 @@
   "fanControlImport.curveType.trigger": "Триггер",
   "fanControlImport.curvesHeader": "Кривые",
   "fanControlImport.description": "Перенесите свои кривые и настройки вентиляторов из FanControl. В самом FanControl ничего не изменится.",
-  "fanControlImport.entry": "Импорт из FanControl",
   "fanControlImport.error": "Не удалось прочитать конфигурацию FanControl.",
   "fanControlImport.fansHeader": "Вентиляторы",
   "fanControlImport.match.exact": "Сопоставлен",

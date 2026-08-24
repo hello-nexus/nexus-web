@@ -1141,7 +1141,6 @@
   "fanControlImport.curveType.trigger": "Trigger",
   "fanControlImport.curvesHeader": "Curvis",
   "fanControlImport.description": "Puarte chi lis tôs curvis e impostazions dai ventilatôrs di FanControl. Nuie al cambie in FanControl.",
-  "fanControlImport.entry": "Impuarte di FanControl",
   "fanControlImport.error": "No si pues lei la configurazion di FanControl.",
   "fanControlImport.fansHeader": "Ventilatôrs",
   "fanControlImport.match.exact": "Associât",

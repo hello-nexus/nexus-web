@@ -1102,7 +1102,6 @@
   "fanControlImport.curveType.trigger": "觸發",
   "fanControlImport.curvesHeader": "曲線",
   "fanControlImport.description": "從 FanControl 匯入你的風扇曲線與風扇設定。FanControl 中的內容不會有任何改變。",
-  "fanControlImport.entry": "從 FanControl 匯入",
   "fanControlImport.error": "無法讀取 FanControl 設定。",
   "fanControlImport.fansHeader": "風扇",
   "fanControlImport.match.exact": "已配對",

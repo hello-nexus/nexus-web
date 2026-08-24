@@ -1187,7 +1187,6 @@
   "fanControlImport.curveType.trigger": "Trigger",
   "fanControlImport.curvesHeader": "Curves",
   "fanControlImport.description": "Neem je ventilatorcurves en -instellingen over uit FanControl. Er verandert niets in FanControl zelf.",
-  "fanControlImport.entry": "Importeren vanuit FanControl",
   "fanControlImport.error": "Kon de FanControl-configuratie niet lezen.",
   "fanControlImport.fansHeader": "Ventilatoren",
   "fanControlImport.match.exact": "Gekoppeld",

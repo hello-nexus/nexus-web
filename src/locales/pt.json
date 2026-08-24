@@ -1102,7 +1102,6 @@
   "fanControlImport.curveType.trigger": "Gatilho",
   "fanControlImport.curvesHeader": "Curvas",
   "fanControlImport.description": "Traz as curvas e as definições de ventoinha do FanControl. Nada é alterado no FanControl.",
-  "fanControlImport.entry": "Importar do FanControl",
   "fanControlImport.error": "Não foi possível ler a configuração do FanControl.",
   "fanControlImport.fansHeader": "Ventoinhas",
   "fanControlImport.match.exact": "Correspondida",

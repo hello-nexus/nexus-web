@@ -1102,7 +1102,6 @@
   "fanControlImport.curveType.trigger": "Déclencheur",
   "fanControlImport.curvesHeader": "Courbes",
   "fanControlImport.description": "Récupérez vos courbes et réglages de ventilateur depuis FanControl. Rien n'est modifié dans FanControl.",
-  "fanControlImport.entry": "Importer depuis FanControl",
   "fanControlImport.error": "Impossible de lire la configuration de FanControl.",
   "fanControlImport.fansHeader": "Ventilateurs",
   "fanControlImport.match.exact": "Associé",

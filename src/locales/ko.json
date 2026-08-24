@@ -1102,7 +1102,6 @@
   "fanControlImport.curveType.trigger": "트리거",
   "fanControlImport.curvesHeader": "커브",
   "fanControlImport.description": "FanControl에서 팬 커브와 팬 설정을 가져옵니다. FanControl 자체는 변경되지 않습니다.",
-  "fanControlImport.entry": "FanControl에서 가져오기",
   "fanControlImport.error": "FanControl 구성을 읽을 수 없습니다.",
   "fanControlImport.fansHeader": "팬",
   "fanControlImport.match.exact": "일치함",
