@@ -4,7 +4,7 @@ import { SearchInput } from '../../components/common/SearchInput/SearchInput';
 import { usePersistentState } from '../../hooks/usePersistentState';
 import { useTranslation } from '../../lib/i18n';
 import { singleWidgetSurfaceSize, surfaceSupportsTextInput, type PanelLayout, type PanelSurface, type PanelWidget, type PanelWidgetSize } from '../types';
-import { PANEL_GRID_GAP, sizeToSpan } from '../engine/grid';
+import { sizeToSpan } from '../engine/grid';
 import { PHONE_WIDGET_REFERENCE_CELL } from '../engine/panelGrid';
 import { appendWidget } from '../engine/panelLayoutOps';
 import { getCatalogEntries, pickerSizeFor, sizesForSurface, appAvailableForSurface } from '../widgets/registry';
@@ -26,6 +26,11 @@ import styles from './PanelWidgetCatalog.module.scss';
 // narrow add-widget sheet lands on 4 columns (like the phone panel); wider
 // device-page panes step up to 8 / 12.
 const CATALOG_TARGET_CELL = 100;
+
+// Separation between catalog tiles, on both axes. Wider than the live panel's
+// grid gap - the catalog is a browsing surface - but a single value, so spans
+// stay additive: a 4x4 tile covers exactly what two stacked 2x2s do.
+const CATALOG_GRID_GAP = 12;
 
 // Browse-size preference: which of the common 2x2/4x2 pair the catalog
 // previews (and inserts) when the widget supports it on the surface.
@@ -163,16 +168,17 @@ export function PanelWidgetCatalog({
     return () => ro.disconnect();
   }, []);
 
-  const gap = PANEL_GRID_GAP;
+  const gap = CATALOG_GRID_GAP;
   const cols = gridWidth > 0
     ? Math.max(4, Math.ceil(gridWidth / (CATALOG_TARGET_CELL + gap) / 4) * 4)
     : 4;
   const cellSize = gridWidth > 0 ? (gridWidth - (cols - 1) * gap) / cols : CATALOG_TARGET_CELL;
 
-  // Panel grid CSS vars on the catalog root so the reused .grid + PanelCatalogCell
-  // inherit the live panel's column count, cell size, content scale, label-strip
-  // sizing, and gap - one rendering path, identical to the panel. Always set
-  // (cols/cellSize fall back to 4 / target before the first measure) so
+  // Panel grid CSS vars on the catalog root so the reused .grid +
+  // PanelCatalogCell render through the panel's own path for content scale and
+  // label-strip sizing. Columns, cell size, and gap are the catalog's own, so
+  // browse tiles size for reading rather than matching the target surface.
+  // Always set (cols/cellSize fall back before the first measure) so
   // `--panel-columns` is never undefined, which would collapse the grid.
   const panelGridVars: CSSProperties = {
     '--panel-columns': cols,
