@@ -35,7 +35,7 @@ import { useServiceState } from '../../../../hooks/useServiceState';
 import { useTempSensorPrefs } from '../../../../hooks/useUiSettings';
 import { publishControlSync, subscribeControlSync } from '../../../../lib/controlSync';
 import { defaultCurveSourceId } from '../../../../lib/tempSensorResolver';
-import { curveDefsFromApi, newCurve, MAX_CURVES, type CurveDef, type FanState } from '../../../../types/cooling';
+import { curveDefsFromApi, curveDefToApi, newCurve, MAX_CURVES, type CurveDef, type FanState } from '../../../../types/cooling';
 import { loadCoolingCache, saveCoolingCache, setCachedCoolingActivePreset } from '../coolingCache';
 import { isCoolingPresetKey, type CoolingPresetKey } from '../page/coolingPresets';
 import type { FanCardHubMode } from '../page/FanCard';
@@ -247,17 +247,10 @@ export function useCoolingImmersive(): CoolingImmersiveController {
   // ── Handlers (ports of CoolingPage's transactional handlers) ─────────────
 
   const pushCurves = useCallback((defs: CurveDef[], states: Record<string, FanState>) => {
-    const apiCurves = defs.map(c => ({
-      id: c.id, name: c.name,
-      type: c.type === 'flat' ? 'Flat' : c.type === 'linear' ? 'Linear' : c.type === 'multipoint' ? 'Graph' : 'Mixed',
-      input: { id: c.sourceId, type: 'Temperature', device: '' },
-      outputs: Object.entries(states).filter(([, s]) => s.curveId === c.id).map(([fanId]) => ({ id: fanId, type: 'Fan' })),
-      flat: c.type === 'flat' ? { speed: c.flat.speed } : null,
-      linear: c.type === 'linear' ? c.linear : null,
-      graph: c.type === 'multipoint' ? { responseTime: c.multipoint.responseTime, speedModifier: 1, points: c.multipoint.points } : null,
-      mixed: c.type === 'mix' ? { responseTime: c.mix.responseTime, curveIds: c.mix.curveIds, fn: c.mix.fn } : null,
-      preset: c.preset ?? null,
-    }));
+    const apiCurves = defs.map(c => curveDefToApi(
+      c,
+      Object.entries(states).filter(([, st]) => st.curveId === c.id).map(([fanId]) => ({ id: fanId, type: 'Fan' })),
+    ));
     return saveCurves({ globalSpeedModifier: 1, curves: apiCurves });
   }, []);
 

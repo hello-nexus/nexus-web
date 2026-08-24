@@ -27,6 +27,7 @@ const CONTINUE_BUTTON_NAME = 'nexus2Welcome.continue';
 const CONTINUE_ANYWAY_BUTTON_NAME = 'nexus2Welcome.continueAnyway';
 const IMPORT_BUTTON_NAME = 'nexus2Welcome.import.action';
 const IMPORT_AND_CONTINUE_BUTTON_NAME = 'nexus2Welcome.importAndContinue';
+const SKIP_BUTTON_NAME = 'nexus2Welcome.skipImport';
 const Y70_GROUP_SWITCH_NAME = 'nexus2Welcome.import.group.y70Panel.label';
 
 const BASE_PAYLOAD: Nexus2StatusResponse = {
@@ -215,31 +216,45 @@ describe('Nexus2WelcomeScreen - action failures', () => {
 });
 
 describe('Nexus2WelcomeScreen - import section wiring', () => {
-  it('is optional: Continue still works while the preview is loading', async () => {
+  it('is optional: skipping works while the preview is loading', async () => {
     let resolvePreview: (v: Nexus2PreviewResponse) => void = () => {};
     vi.mocked(previewNexus2Import).mockReturnValue(new Promise(resolve => { resolvePreview = resolve; }));
     const onComplete = vi.fn();
     renderScreen({ ...BASE_PAYLOAD, importAvailable: true }, onComplete);
 
-    fireEvent.click(screen.getByRole('button', { name: CONTINUE_BUTTON_NAME }));
+    fireEvent.click(screen.getByRole('button', { name: SKIP_BUTTON_NAME }));
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
     expect(applyNexus2Import).not.toHaveBeenCalled();
 
     resolvePreview(BASE_PREVIEW);
   });
 
-  it('drives the import from Continue: no in-section apply button, and the label follows the selection', async () => {
+  it('drives the import from its own button, with skipping offered beside it', async () => {
     renderScreen({ ...BASE_PAYLOAD, importAvailable: true });
 
     const y70 = await screen.findByRole('switch', { name: Y70_GROUP_SWITCH_NAME });
-    // Groups start selected, so Continue offers to import first (the label
-    // flips a render after the preview lands, hence findBy).
-    expect(await screen.findByRole('button', { name: IMPORT_AND_CONTINUE_BUTTON_NAME })).toBeInTheDocument();
+    // Two explicit choices, and the section keeps no apply button of its own.
+    expect(await screen.findByRole('button', { name: IMPORT_AND_CONTINUE_BUTTON_NAME })).toBeEnabled();
+    expect(screen.getByRole('button', { name: SKIP_BUTTON_NAME })).toBeEnabled();
     expect(screen.queryByRole('button', { name: IMPORT_BUTTON_NAME })).not.toBeInTheDocument();
 
+    // Nothing selected leaves nothing to import, so that button goes quiet
+    // while skipping stays available.
     fireEvent.click(y70);
-    await waitFor(() => expect(screen.getByRole('button', { name: CONTINUE_BUTTON_NAME })).toBeInTheDocument());
-    expect(screen.queryByRole('button', { name: IMPORT_AND_CONTINUE_BUTTON_NAME })).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole('button', { name: IMPORT_AND_CONTINUE_BUTTON_NAME })).toBeDisabled());
+    expect(screen.getByRole('button', { name: SKIP_BUTTON_NAME })).toBeEnabled();
+  });
+
+  it('skips the import but still closes Nexus 2 and clears its autostart', async () => {
+    const onComplete = vi.fn();
+    renderScreen({ ...BASE_PAYLOAD, importAvailable: true, running: true }, onComplete);
+
+    fireEvent.click(await screen.findByRole('button', { name: SKIP_BUTTON_NAME }));
+    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+    // The coexistence actions are the part this screen promises either way.
+    expect(applyNexus2Import).not.toHaveBeenCalled();
+    expect(closeNexus2App).toHaveBeenCalledTimes(1);
+    expect(disableNexus2Autostart).toHaveBeenCalledTimes(1);
   });
 
   it('applies the selected import then dismisses, in one Continue click', async () => {

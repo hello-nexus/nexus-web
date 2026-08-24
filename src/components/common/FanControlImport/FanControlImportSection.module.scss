@@ -1,0 +1,146 @@
+@use '../../../styles/text' as *;
+@use '../../../styles/scrollbar' as *;
+@use '../../../styles/onboarding' as *;
+
+.section {
+  width: 100%;
+  max-width: $onboarding-content-width;
+}
+
+// In a dialog the section gets the whole surface, which is wider than the
+// onboarding column.
+.sectionWide {
+  composes: section;
+  max-width: none;
+}
+
+// Internal scroller so a config with many curves and fans never grows the
+// host past its own height. Tall enough that a typical config shows its
+// categories and the start of the per-curve list without scrolling.
+.box {
+  padding-top: 0.75rem;
+  padding-bottom: 1rem;
+  max-height: min(34rem, 60vh);
+  overflow-y: auto;
+  @include scrollbar-visible;
+}
+
+.configRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.35rem 0;
+}
+
+.configLabel {
+  @include text-caption;
+  color: var(--text-dim);
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  padding: 0.5rem 0;
+}
+
+.error {
+  @include text-caption;
+  color: var(--bad);
+}
+
+.empty {
+  @include text-caption;
+  color: var(--text-dim);
+  margin: 0;
+  padding: 0.35rem 0;
+}
+
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.5rem 0 0.25rem;
+}
+
+.detailHeader {
+  @include text-caption;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.detailList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin: 0;
+  padding: 0;
+}
+
+.row {
+  display: grid;
+  // Name left, what it maps to right. Anything that needs a third value (the
+  // fans a curve drives) wraps to its own full-width line below.
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  align-items: baseline;
+  column-gap: 0.75rem;
+  @include text-caption;
+}
+
+.rowSkipped {
+  composes: row;
+  color: var(--text-dim);
+}
+
+.rowName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowMeta {
+  color: var(--text-dim);
+  justify-self: end;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowFans {
+  color: var(--text-dim);
+  grid-column: 1 / -1;
+  padding-left: 0.75rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.skippedList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin: 0;
+  padding: 0.5rem 0 0;
+}
+
+.skippedNote {
+  @include text-caption;
+  color: var(--text-dim);
+}
+
+.success {
+  @include text-caption;
+  color: var(--good);
+  margin: 0;
+  padding: 0.35rem 0;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+}

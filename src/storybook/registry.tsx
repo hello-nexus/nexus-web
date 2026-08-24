@@ -48,6 +48,7 @@ import { Select } from '../components/common/Select/Select';
 import { IconLabelButton } from '../components/common/IconLabelButton/IconLabelButton';
 import { AdvancedModeCta } from '../components/common/AdvancedModeCta/AdvancedModeCta';
 import { DeviceCountSummary } from '../components/common/DeviceCountSummary/DeviceCountSummary';
+import { SimpleModeNotice } from '../components/common/SimpleModeNotice/SimpleModeNotice';
 import { Button } from '../components/common/Button/Button';
 import { EndTaskButton } from '../components/common/EndTaskButton/EndTaskButton';
 import { ConflictAppCard } from '../components/common/ConflictAppCard/ConflictAppCard';
@@ -1151,6 +1152,14 @@ function PreviewAdvancedModeCta() {
   );
 }
 
+function PreviewSimpleModeNotice() {
+  return (
+    <div className={styles.previewStack} style={{ width: 520 }}>
+      <SimpleModeNotice message="A custom preset is active. Switch to advanced mode to manage it." />
+    </div>
+  );
+}
+
 function PreviewDeviceCountSummary() {
   return (
     <div className={styles.previewStack} style={{ width: 420 }}>
@@ -1859,7 +1868,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'ChipGroup', category: 'inputs',
     filePath: 'src/components/common/ChipGroup/ChipGroup.tsx',
-    description: 'Single-select chip row reusing the cooling curve/mode .chip-action buttons (.chip-active fills the selected one with the accent, labelled in the contrast-paired --accent-text). Single-select renders a radiogroup: one tab stop on the checked chip, arrows move focus without selecting, Space/Enter commits - callers write firmware and device settings on change, so selection must not follow focus. multiSelect keeps aria-pressed toggle buttons. fullWidth stretches the row so it reads as a segmented control.', Preview: PreviewChipGroup,
+    description: 'Single-select chip row reusing the cooling curve/mode .chip-action buttons (.chip-active fills the selected one with the accent, labelled in the contrast-paired --accent-text). Single-select renders a radiogroup: one tab stop on the checked chip, arrows move focus without selecting, Space/Enter commits - callers write firmware and device settings on change, so selection must not follow focus. multiSelect keeps aria-pressed toggle buttons. fullWidth stretches the row so it reads as a segmented control; wrap reflows onto further lines for a data-length chip list (the lighting preset app bindings) instead of widening its container.', Preview: PreviewChipGroup,
   },
   {
     name: 'ChipGroup (multi-select)', category: 'inputs',
@@ -2051,6 +2060,12 @@ export const REGISTRY: StorybookEntry[] = [
     Preview: PreviewAdvancedModeCta,
   },
   {
+    name: 'SimpleModeNotice', category: 'cards',
+    filePath: 'src/components/common/SimpleModeNotice/SimpleModeNotice.tsx',
+    description: 'Accent-tinted line on the simple-mode lighting/cooling pages, shown when the active configuration has no tile on the page (a custom cooling preset, a lighting effect or mixed per-device colours) - without it the page reads as though nothing is running. The page owns the wording and the condition.',
+    Preview: PreviewSimpleModeNotice,
+  },
+  {
     name: 'DeviceCountSummary', category: 'cards',
     filePath: 'src/components/common/DeviceCountSummary/DeviceCountSummary.tsx',
     description: 'One-line "what am I driving" summary at the top of the simple-mode lighting/cooling pages: how many devices the service found, plus a dim badge for how many Nexus actually drives. Both strings arrive translated - the page owns the plural key and the noun (devices on lighting, fans on cooling).',
@@ -2140,6 +2155,24 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/Nexus2WelcomeScreen/Nexus2ImportDialog.tsx',
     description: 'Settings re-entry point for the Nexus 2 import: a DeviceModal hosting Nexus2ImportSection, opened from the Privacy & Data tab\'s "Import from Nexus 2" row once the service reports importable Nexus 2 data (present whether or not Nexus 2 is still installed).',
     notes: 'No live preview - hosts Nexus2ImportSection, which posts real preview/apply requests.',
+  },
+  {
+    name: 'FanControlImportScreen', category: 'modals',
+    filePath: 'src/components/common/FanControlImport/FanControlImportScreen.tsx',
+    description: 'One-time gate for users arriving from FanControl, last in the onboarding sequence. States that Continue closes FanControl and stops it starting with Windows (both apps drive the same fan controllers), hosts the shared FanControlImportSection, and relabels Continue to Import and continue while any category is selected.',
+    notes: 'No live preview - Continue posts real /migration/fancontrol/apply, /close-app, /disable-autostart and /dismiss requests, so opening it here would close FanControl and overwrite the running install\'s fan curves.',
+  },
+  {
+    name: 'FanControlImportSection', category: 'modals',
+    filePath: 'src/components/common/FanControlImport/FanControlImportSection.tsx',
+    description: 'FanControl import flow: picks one of that app\'s saved configurations, previews what maps onto this PC (curves with their target mode, fans with how each was matched, and what is being left behind), and applies the selected categories - curves, calibration, fan names, offsets, fixed speeds. Shared by FanControlImportScreen and the cooling page\'s CoolingImportDialog.',
+    notes: 'No live preview - it posts real /migration/fancontrol/preview and /apply requests, so opening it here would overwrite the running install\'s fan curves.',
+  },
+  {
+    name: 'CoolingImportDialog', category: 'modals',
+    filePath: 'src/components/common/CoolingImport/CoolingImportDialog.tsx',
+    description: 'The cooling page\'s import surface, opened from the Curves header: a list of apps a cooling setup can come from beside the selected one\'s flow. FanControl is the only source today, and it is listed whether or not it is installed - a source that is missing says so rather than the entry disappearing.',
+    notes: 'No live preview - the FanControl source hosts FanControlImportSection, which posts real preview/apply requests.',
   },
   {
     name: 'LightingOnboardingScreen', category: 'modals',
@@ -2406,7 +2439,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'AppPicker', category: 'panel-kit',
     filePath: 'src/panel/widgets/common/AppPicker.tsx',
-    description: 'Searchable list of installed shortcuts. Used by widget settings to pick which app a button or screentime row points at. Composes SearchInput.',
+    description: 'Searchable list of installed shortcuts. Used by widget settings to pick which app a button or screentime row points at, and by the lighting preset app-binding modal. Composes SearchInput. `selectedIds` makes it multi-select; `showRunning` prepends a "Running now" group from the processes topic so an app missing from the Start menu can still be picked - a running process the installed list also carries is shown once there, under the installed entry\'s id and name. `unavailableIds` dims rows that are spoken for, matched on id or resolved process name so the same app reads as taken from either list.',
     notes: 'No live preview - needs the local service /shortcuts response.',
   },
   {
@@ -2564,9 +2597,15 @@ export const REGISTRY: StorybookEntry[] = [
     notes: 'No live preview -- requires a running service for the Run tab and cloud API for Leaderboards.',
   },
   {
+    name: 'PresetAppsModal', category: 'panel-kit',
+    filePath: 'src/panel/widgets/lighting/page/PresetAppsModal.tsx',
+    description: 'Picks which apps auto-activate a lighting preset when they take focus. Composes DeviceModal + ChipGroup (wrap variant, one removable chip per bound app, plus Clear all) + AppPicker (multi-select, running-apps group); selection is local until Save. An app triggers exactly one preset: rows another preset already claims are dimmed, and picking one shows an inline alert naming the owner instead of stealing it (the service refuses the save with a 409 as the backstop).',
+    notes: 'No live preview -- needs the local service /shortcuts response and a saved layout preset.',
+  },
+  {
     name: 'PresetToolbar', category: 'inputs',
     filePath: 'src/components/common/PresetToolbar/PresetToolbar.tsx',
-    description: 'Generic named-preset manager: dropdown (with Rename/Delete when active and a capped New preset... entry, plus an optional capped Import preset... entry via onImport), optionally paired with Reset / Undo / Redo icon buttons via showHistory. Used by the lighting canvas layout toolbar (full history controls) and the Stream Deck page (dropdown + onImport opening the Elgato import modal).',
+    description: 'Generic named-preset manager: dropdown (with Rename/Delete when active and a capped New preset... entry, plus an optional capped Import preset... entry via onImport and an optional Trigger with apps... entry via onManageApps), optionally paired with Reset / Undo / Redo icon buttons via showHistory. A preset with `hasApps` carries an app glyph, marking it as one an app in focus activates. Used by the lighting canvas layout toolbar (full history controls) and the Stream Deck page (dropdown + onImport opening the Elgato import modal).',
     notes: 'No live preview -- bound to live preset state via useLayoutPresets / useDeckPresets and requires a running service.',
   },
   {

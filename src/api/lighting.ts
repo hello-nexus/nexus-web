@@ -1,6 +1,6 @@
 // Lighting API wrapper - authenticated fetch/post to the local service.
 
-import { fetchService, postService, deleteService, putService, resolveAuthWs } from './service';
+import { fetchService, postService, deleteService, putService, authFetchWithStatus, resolveAuthWs } from './service';
 
 export async function lightingOutputUrl(): Promise<string> {
   return resolveAuthWs('/lighting/output');
@@ -369,10 +369,29 @@ export interface DeviceLayoutDto {
   rotation: number;
 }
 
+/** An app that auto-activates its preset when it takes focus. `id` is a
+ *  shortcut target id, or `proc:<name>` for a pick off the running list. */
+export interface PresetApp {
+  id: string;
+  name: string;
+  /** Resolved match key, so the same app picked off the running list and the
+   *  installed list is recognised as one app. Empty when unresolvable. */
+  processName?: string;
+}
+
+/** 409 body when an app in the request already triggers another preset. */
+export interface PresetAppConflict {
+  error: boolean;
+  msg: string;
+  appName: string;
+  presetName: string;
+}
+
 export interface LayoutPreset {
   id: string;
   name: string;
   layouts: Record<string, DeviceLayoutDto>;
+  apps?: PresetApp[];
 }
 
 export interface LayoutPresetsResponse {
@@ -400,6 +419,33 @@ export const deleteLayoutPreset = (id: string) =>
 
 export const setActiveLayoutPreset = (id: string | null) =>
   putService('/devices/lighting-devices/layout-presets/active', { id });
+
+// An app drives exactly one preset, so assigning one another preset already
+// uses is refused with a 409 naming the owner rather than moved.
+/** A refused save is not the same as an unreachable service: the caller has to
+ *  tell the user which happened, and must never read either as success. */
+export type SetPresetAppsResult =
+  | { kind: 'ok' }
+  | { kind: 'conflict'; conflict: PresetAppConflict }
+  | { kind: 'failed' };
+
+export async function setLayoutPresetApps(id: string, apps: PresetApp[]): Promise<SetPresetAppsResult> {
+  // authFetch drops the body of a non-2xx, and the 409 carries which preset
+  // already owns the app - so this call needs the status-aware path.
+  const { response, status } = await authFetchWithStatus(
+    '/devices/lighting-devices/layout-presets/' + encodeURIComponent(id) + '/apps',
+    { method: 'PUT', body: { apps } },
+  );
+  if (status === 200) return { kind: 'ok' };
+  if (status === 409 && response) {
+    try {
+      return { kind: 'conflict', conflict: (await response.json()) as PresetAppConflict };
+    } catch {
+      return { kind: 'failed' };
+    }
+  }
+  return { kind: 'failed' };
+}
 
 export const activateLayoutPreset = (id: string) =>
   postService('/devices/lighting-devices/layout-presets/' + encodeURIComponent(id) + '/activate', {});

@@ -24,6 +24,8 @@ export interface FanChannel {
   classification?: string | null; // "Controllable" | "Fixed" | "Stalling" | "Unresponsive"
   calibrated?: boolean;
   role?: FanRole;
+  /** Duty points added to whatever drives this fan, in [-100,100]. 0 when it has none. */
+  offset?: number;
   seriesId?: string; // sanitized id; "fan:" + seriesId is the monitoring series id
   // ── External-device metadata.
   // All null for motherboard/GPU fans; populated by the service only when the
@@ -106,38 +108,62 @@ interface TemperatureSourcesResponse {
   sources: TemperatureSource[];
 }
 
+/** One curve as the service stores and returns it. */
+export interface WireCurve {
+  id: string;
+  name: string;
+  type: string;
+  input: { id: string; type: string; device: string };
+  outputs: Array<{ id: string; type: string }>;
+  flat?: { speed: number } | null;
+  linear?: {
+    responseTime: number;
+    minTemp: number;
+    maxTemp: number;
+    minSpeed: number;
+    maxSpeed: number;
+  } | null;
+  graph?: {
+    responseTime: number;
+    speedModifier: number;
+    points: CurvePoint[];
+  } | null;
+  mixed?: {
+    responseTime: number;
+    curveIds: string[];
+    fn: string;
+  } | null;
+  trigger?: {
+    responseTime: number;
+    idleTemp: number;
+    loadTemp: number;
+    idleSpeed: number;
+    loadSpeed: number;
+  } | null;
+  sync?: {
+    sourceChannelId: string;
+    offset: number;
+    proportional: boolean;
+  } | null;
+  auto?: {
+    responseTime: number;
+    idleTemp: number;
+    loadTemp: number;
+    minSpeed: number;
+    maxSpeed: number;
+    step: number;
+    deadband: number;
+  } | null;
+  preset?: 'silent' | 'balanced' | 'turbo' | null;
+  /** For preset curves only: true when the curve's Type + Linear params
+   *  still match the service's PresetDefaults. Drives the Reset button's
+   *  enabled state. Null for user curves. */
+  isDefault?: boolean | null;
+}
+
 export interface CurvesResponse {
   globalSpeedModifier: number;
-  curves: Array<{
-    id: string;
-    name: string;
-    type: string;
-    input: { id: string; type: string; device: string };
-    outputs: Array<{ id: string; type: string }>;
-    flat?: { speed: number } | null;
-    linear?: {
-      responseTime: number;
-      minTemp: number;
-      maxTemp: number;
-      minSpeed: number;
-      maxSpeed: number;
-    } | null;
-    graph?: {
-      responseTime: number;
-      speedModifier: number;
-      points: CurvePoint[];
-    } | null;
-    mixed?: {
-      responseTime: number;
-      curveIds: string[];
-      fn: string;
-    } | null;
-    preset?: 'silent' | 'balanced' | 'turbo' | null;
-    /** For preset curves only: true when the curve's Type + Linear params
-     *  still match the service's PresetDefaults. Drives the Reset button's
-     *  enabled state. Null for user curves. */
-    isDefault?: boolean | null;
-  }>;
+  curves: WireCurve[];
 }
 
 interface ProfilesResponse {
@@ -180,34 +206,13 @@ export const setFanLock = (id: string, locked: boolean) =>
 export const setFanRole = (id: string, role: FanRole) =>
   postService(`/cooling/fan/${encodeURIComponent(id)}/role`, { role });
 
+/** Shifts this fan off whatever drives it. 0 removes the offset. */
+export const setFanOffset = (id: string, offset: number) =>
+  postService(`/cooling/fan/${encodeURIComponent(id)}/offset`, { offset });
+
 export const saveCurves = (body: {
   globalSpeedModifier: number;
-  curves: Array<{
-    id: string;
-    name: string;
-    type: string;
-    input: { id: string; type: string; device: string };
-    outputs: Array<{ id: string; type: string }>;
-    flat?: { speed: number } | null;
-    linear?: {
-      responseTime: number;
-      minTemp: number;
-      maxTemp: number;
-      minSpeed: number;
-      maxSpeed: number;
-    } | null;
-    graph?: {
-      responseTime: number;
-      speedModifier: number;
-      points: CurvePoint[];
-    } | null;
-    mixed?: {
-      responseTime: number;
-      curveIds: string[];
-      fn: string;
-    } | null;
-    preset?: 'silent' | 'balanced' | 'turbo' | null;
-  }>;
+  curves: WireCurve[];
 }) => postService('/cooling/curves/set', body);
 
 export const startCalibration = (fanIds: string[]) =>

@@ -158,6 +158,20 @@ describe('LightingPage simple mode', () => {
     expect(vi.mocked(lightingApi.stopLighting)).not.toHaveBeenCalled();
   });
 
+  it('says a custom setup is active when the mode has no tile on the page', async () => {
+    syncState.mode = 'animate';
+    renderPage();
+    expect(await screen.findByText('lighting.simple.customActive')).toBeTruthy();
+  });
+
+  it('says nothing while lighting is off', async () => {
+    renderPage();
+    await waitFor(() => {
+      expect(vi.mocked(lightingApi.fetchLightingDevices)).toHaveBeenCalled();
+    });
+    expect(screen.queryByText('lighting.simple.customActive')).toBeNull();
+  });
+
   it('switches to the advanced page from the CTA', async () => {
     renderPage();
     fireEvent.click(screen.getByRole('button', { name: /lighting\.simple\.advancedCta/ }));

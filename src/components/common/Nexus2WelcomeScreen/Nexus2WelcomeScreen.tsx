@@ -65,7 +65,10 @@ export function Nexus2WelcomeScreen({ open, payload, onComplete, onBack }: Nexus
   // Nexus 2 and remove its autostart. Anything that fails leaves the screen
   // open with the reason inline and relabels Continue to "continue anyway" -
   // a second click always dismisses, never re-attempting.
-  const handleContinue = async () => {
+  // `runImport` is what separates the two buttons: both close Nexus 2 and
+  // remove its autostart either way, since it holds the same hardware - only
+  // one of them brings the personalization over.
+  const handleContinue = async (runImport: boolean) => {
     if (applyPhase === 'applying' || dismissing || importBusy) return;
 
     if (applyPhase === 'failed') {
@@ -82,7 +85,7 @@ export function Nexus2WelcomeScreen({ open, payload, onComplete, onBack }: Nexus
     // and leaving Nexus 2 running and autostarting is the single thing this
     // screen promises unconditionally.
     let importFailed = false;
-    if (importHasSelection && importHandle.current) {
+    if (runImport && importHasSelection && importHandle.current) {
       importFailed = await importHandle.current.runImport() === 'failed';
     }
 
@@ -120,7 +123,7 @@ export function Nexus2WelcomeScreen({ open, payload, onComplete, onBack }: Nexus
       onClose={() => { /* non-dismissable: only Continue proceeds */ }}
       noEscDismiss
       noBackdropDismiss
-      onEnter={handleContinue}
+      onEnter={() => handleContinue(true)}
       ariaLabel={heading}
       className={styles.surface}
       backdropClassName={styles.backdrop}
@@ -176,18 +179,29 @@ export function Nexus2WelcomeScreen({ open, payload, onComplete, onBack }: Nexus
             {t('nav.back')}
           </Button>
         )}
+        {applyPhase !== 'failed' && payload?.importAvailable && (
+          <Button
+            tone="neutral"
+            size="lg"
+            onClick={() => handleContinue(false)}
+            disabled={applyPhase === 'applying' || dismissing || importBusy}
+            className={styles.continueButton}
+          >
+            {t('nexus2Welcome.skipImport')}
+          </Button>
+        )}
         <Button
           tone="accent"
           size="lg"
-          onClick={handleContinue}
+          onClick={() => handleContinue(true)}
           loading={applyPhase === 'applying' || dismissing}
           loadingHidesLabel
-          disabled={importBusy}
+          disabled={importBusy || (applyPhase !== 'failed' && payload?.importAvailable === true && !importHasSelection)}
           className={styles.continueButton}
         >
           {applyPhase === 'failed'
             ? t('nexus2Welcome.continueAnyway')
-            : importHasSelection
+            : payload?.importAvailable
               ? t('nexus2Welcome.importAndContinue')
               : t('nexus2Welcome.continue')}
         </Button>

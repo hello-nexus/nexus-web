@@ -12,7 +12,7 @@ import {
   steamArtworkUrl, resolveActiveGame, setLightingPaused,
   resetDeviceLayouts, applyDeviceLayouts, setActiveLayoutPreset, updateLayoutPreset,
   type LightingDevice, type LedMapEntry, type PostProcessSettings, type GameSyncDevice,
-  type GameSyncGame, type DeviceLayoutDto,
+  type GameSyncGame, type DeviceLayoutDto, type PresetApp,
 } from '../../../api/lighting';
 import { useUndoRedo } from '../../../hooks/useUndoRedo';
 import { useLayoutPresets, devicesToLayouts, devicesToPower } from './page/useLayoutPresets';
@@ -37,6 +37,7 @@ import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
 import { AdvancedModeCta } from '../../../components/common/AdvancedModeCta/AdvancedModeCta';
 import { DeviceCountSummary } from '../../../components/common/DeviceCountSummary/DeviceCountSummary';
+import { SimpleModeNotice } from '../../../components/common/SimpleModeNotice/SimpleModeNotice';
 import { usePageModeToggle } from '../../../app/PageChrome';
 import { useUiSettings } from '../../../hooks/useUiSettings';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
@@ -74,6 +75,7 @@ import { visibleCards } from './page/zoneUtils';
 import { OpenRgbButton } from './page/OpenRgbButton';
 import { GlobalBrightnessSlider } from './page/GlobalBrightnessSlider';
 import { PresetToolbar } from '../../../components/common/PresetToolbar/PresetToolbar';
+import { PresetAppsModal } from './page/PresetAppsModal';
 import { EffectTab, type PostProcessState } from './page/EffectTab';
 import { useThrottle } from '../../../hooks/cadence';
 import { useAudioState } from '../../../hooks/useAudioState';
@@ -1271,7 +1273,31 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     handleRename: handlePresetRename,
     handleDelete: handlePresetDelete,
     handleLoad: handlePresetLoad,
+    handleSetApps: handlePresetSetApps,
   } = useLayoutPresets(serviceOnline, activeProfileId);
+
+  // Snapshot of the preset the app-binding modal was opened for. The service
+  // can activate a different preset while it is open (a bound app taking
+  // focus), which would otherwise retarget the save.
+  const [presetAppsTarget, setPresetAppsTarget] = useState<{ id: string; name: string; apps: PresetApp[] } | null>(null);
+  // Apps other presets already trigger, keyed by id and by resolved process
+  // name so the same app picked two ways is recognised as one.
+  const takenApps = useMemo(() => {
+    const out: Record<string, string> = {};
+    for (const preset of presets) {
+      if (preset.id === presetAppsTarget?.id) continue;
+      for (const app of preset.apps ?? []) {
+        out[app.id] = preset.name;
+        if (app.processName) out[app.processName] = preset.name;
+      }
+    }
+    return out;
+  }, [presets, presetAppsTarget?.id]);
+
+  const presetOptions = useMemo(
+    () => presets.map(p => ({ id: p.id, name: p.name, hasApps: (p.apps?.length ?? 0) > 0 })),
+    [presets],
+  );
 
   layoutActiveIdRef.current = layoutActiveId;
 
@@ -1494,6 +1520,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     return shared;
   }, [devicePicks, effectiveMode, selectableIds]);
 
+  // The simple page can only show Off or one palette swatch; anything else
+  // leaves nothing marked active. `synced` gates it: an unsynced mode is a guess.
+  const simpleCustomActive = synced && effectiveMode !== 'none'
+    && selectableIds.length > 0 && simplePaletteId === null;
+
   // Pause/freeze applies to the three modes that drive a continuous output
   // (animate shader, media playback, screen mirror) - Off has nothing to
   // freeze and Game Sync is driven by the foreground game, not us.
@@ -1599,6 +1630,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             selectedId={simplePaletteId}
             onSelect={color => { void handleSimplePaletteSelect(color); }}
           />
+          {simpleCustomActive && (
+            <SimpleModeNotice message={t('lighting.simple.customActive')} />
+          )}
           <div className={styles.simpleFooter}>
             <AdvancedModeCta
               label={t('lighting.simple.advancedCta')}
@@ -1634,7 +1668,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           </div>
           <div className={styles.presetHeader}>
             <PresetToolbar
-              presets={presets}
+              presets={presetOptions}
               activeId={layoutActiveId}
               presetCount={presetCount}
               canUndo={canUndoLayout}
@@ -1643,6 +1677,12 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
               onCreate={handlePresetCreate}
               onRename={handlePresetRename}
               onDelete={handlePresetDelete}
+              onManageApps={() => {
+                const preset = presets.find(p => p.id === layoutActiveId);
+                if (preset) {
+                  setPresetAppsTarget({ id: preset.id, name: preset.name, apps: preset.apps ?? [] });
+                }
+              }}
               onReset={handleResetWithHistory}
               onUndo={handleUndoLayout}
               onRedo={handleRedoLayout}
@@ -1685,7 +1725,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           </div>
         </div>
         <div className={`${styles.paneHeader} ${styles.headerCenter}`}>
-          <span className={styles.paneTitle}>{t('lighting.pane.effect')}</span>
+          <span className={styles.paneTitle}>{t('lighting.pane.effects')}</span>
           {/* How many devices this preview stands for: every device in the
               modes that drive them all, the selection in the per-device ones. */}
           <Badge label={previewBadgeLabel} compact uppercase color="var(--text-dim)" />
@@ -1909,6 +1949,30 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           onClose={() => setEditorTarget(null)}
           onCompositionChanged={hubId => { void handleCompositionChanged(hubId); }}
           onNavigateToDevicePage={deviceKey => onSectionNavigate?.('device', { deviceKey })}
+        />
+      )}
+      {presetAppsTarget && (
+        <PresetAppsModal
+          presetName={presetAppsTarget.name}
+          apps={presetAppsTarget.apps}
+          taken={takenApps}
+          onSave={async apps => {
+            const result = await handlePresetSetApps(presetAppsTarget.id, apps);
+            if (result.kind === 'conflict') {
+              return t('lighting.layoutPresets.appsTaken', {
+                app: result.conflict.appName,
+                preset: result.conflict.presetName,
+              });
+            }
+            // Anything other than a clean 200 keeps the modal open with the
+            // edit intact - closing on a failed write discards it silently.
+            if (result.kind === 'failed') {
+              return t('lighting.layoutPresets.appsSaveFailed');
+            }
+            setPresetAppsTarget(null);
+            return null;
+          }}
+          onClose={() => setPresetAppsTarget(null)}
         />
       )}
     </div>

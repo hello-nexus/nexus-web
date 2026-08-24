@@ -1,13 +1,14 @@
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Button } from '../../../../components/common/Button/Button';
-import { Minus, TrendingUp, Activity, Combine, Trash2, RotateCcw, Pencil } from 'lucide-react';
-import type { CurvePoint, TemperatureSource } from '../../../../api/cooling';
+import { Minus, TrendingUp, Activity, Combine, Trash2, RotateCcw, Pencil, ToggleRight, Link, Wand2 } from 'lucide-react';
+import type { CurvePoint, FanChannel, TemperatureSource } from '../../../../api/cooling';
 import { useUnitPrefs } from '../../../../hooks/useUiSettings';
 import { useTranslation } from '../../../../lib/i18n';
 import { localizeNumbers } from '../../../../lib/units';
 import type { CurveDef, CurveType, MixFn } from '../../../../types/cooling';
 import { PromptModal } from '../../../../components/common/PromptModal/PromptModal';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
+import { InfoTooltip } from '../../../../components/common/InfoTooltip/InfoTooltip';
 import { ChartHoverTooltip, ChartTooltipRow, ChartTooltipVal } from '../../../../components/common/ChartHoverTooltip/ChartHoverTooltip';
 import { useChartHoverTooltip } from '../../../../hooks/useChartHoverTooltip';
 import { Slider } from '../../../../components/common/Slider/Slider';
@@ -21,6 +22,9 @@ const CURVE_TYPES: { key: CurveType; labelKey: string; hintKey: string; icon: Re
   { key: 'linear', labelKey: 'cooling.curve.type.linear', hintKey: 'cooling.curve.linear.hint', icon: <TrendingUp size={14} /> },
   { key: 'multipoint', labelKey: 'cooling.curve.type.custom', hintKey: 'cooling.curve.graph.hint', icon: <Activity size={14} /> },
   { key: 'mix', labelKey: 'cooling.curve.type.mix', hintKey: 'cooling.curve.mix.hint', icon: <Combine size={14} /> },
+  { key: 'trigger', labelKey: 'cooling.curve.type.trigger', hintKey: 'cooling.curve.trigger.hint', icon: <ToggleRight size={14} /> },
+  { key: 'sync', labelKey: 'cooling.curve.type.sync', hintKey: 'cooling.curve.sync.hint', icon: <Link size={14} /> },
+  { key: 'auto', labelKey: 'cooling.curve.type.auto', hintKey: 'cooling.curve.auto.hint', icon: <Wand2 size={14} /> },
 ];
 
 // Sum is intentionally omitted from the UI -- the backend still honors it for
@@ -29,6 +33,13 @@ const MIX_FNS: { key: MixFn; labelKey: string }[] = [
   { key: 'min', labelKey: 'cooling.curve.mix.fn.min' },
   { key: 'max', labelKey: 'cooling.curve.mix.fn.max' },
   { key: 'avg', labelKey: 'cooling.curve.mix.fn.avg' },
+];
+
+// Sync applies its offset either as a percentage of the source's duty or as a
+// number of duty points, matching the two modes the engine implements.
+const SYNC_MODES: { proportional: boolean; labelKey: string }[] = [
+  { proportional: false, labelKey: 'cooling.curve.sync.points' },
+  { proportional: true, labelKey: 'cooling.curve.sync.percent' },
 ];
 
 // Mirror of the backend curve engine so the UI can show a live preview value
@@ -43,6 +54,7 @@ export function computeCurveSpeed(
   sources: TemperatureSource[],
   allCurves: CurveDef[],
   seen: Set<string> = new Set(),
+  channels: FanChannel[] = [],
 ): number {
   if (seen.has(curve.id)) return 0;
   seen.add(curve.id);
@@ -73,12 +85,46 @@ export function computeCurveSpeed(
     const inputs = curve.mix.curveIds
       .map(id => allCurves.find(c => c.id === id))
       .filter((c): c is CurveDef => !!c)
-      .map(c => computeCurveSpeed(c, sources, allCurves, seen));
+      .map(c => computeCurveSpeed(c, sources, allCurves, seen, channels));
     if (inputs.length === 0) return 0;
     if (curve.mix.fn === 'min') return Math.min(...inputs);
     if (curve.mix.fn === 'max') return Math.max(...inputs);
     if (curve.mix.fn === 'avg') return inputs.reduce((a, b) => a + b, 0) / inputs.length;
     if (curve.mix.fn === 'sum') return Math.min(100, inputs.reduce((a, b) => a + b, 0));
+    if (curve.mix.fn === 'subtract') {
+      return Math.max(0, Math.min(100, inputs.reduce((a, b) => a - b)));
+    }
+  }
+  if (curve.type === 'trigger') {
+    const src = sources.find(s => s.id === curve.sourceId);
+    if (!src) return 0;
+    // The engine latches, holding the last speed between the thresholds. The
+    // preview has no latch to read, so it shows which side the temperature is
+    // closer to, which is where the curve settles.
+    const { idleTemp, loadTemp, idleSpeed, loadSpeed } = curve.trigger;
+    if (src.value >= loadTemp) return loadSpeed;
+    if (src.value <= idleTemp) return idleSpeed;
+    return src.value >= (idleTemp + loadTemp) / 2 ? loadSpeed : idleSpeed;
+  }
+  if (curve.type === 'auto') {
+    const src = sources.find(s => s.id === curve.sourceId);
+    if (!src) return 0;
+    // Below the load band the controller settles on this ramp; at load it
+    // steps around it, so the ramp is the honest steady-state preview.
+    const { idleTemp, loadTemp, minSpeed, maxSpeed } = curve.auto;
+    const span = loadTemp - idleTemp;
+    if (span <= 0) return maxSpeed;
+    const t01 = Math.max(0, Math.min(1, (src.value - idleTemp) / span));
+    return minSpeed + t01 * (maxSpeed - minSpeed);
+  }
+  if (curve.type === 'sync') {
+    const source = channels.find(c => c.id === curve.sync.sourceChannelId);
+    if (!source) return 0;
+    const duty = source.dutyPercent ?? 0;
+    const out = curve.sync.proportional
+      ? duty * (1 + curve.sync.offset / 100)
+      : duty + curve.sync.offset;
+    return Math.max(0, Math.min(100, out));
   }
   return 0;
 }
@@ -91,7 +137,8 @@ function ResponseTimeSlider({ value, onChange }: { value: number; onChange: (v: 
   return (
     <Slider
       // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-      orientation="stacked" editable label={t('cooling.curve.response')} value={value}
+      orientation="stacked" editable label={t('cooling.curve.response')}
+      info={t('cooling.curve.response.help')} value={value}
       min={0.1} max={5.0} step={0.1} trackFill
       formatValue={v => t('cooling.curve.responseSeconds', { value: localizeNumbers(v.toFixed(1), numberFormat) })} onChange={onChange} />
   );
@@ -120,11 +167,13 @@ const pointsKeyOf = (pts: CurvePoint[]) => pts.map(pt => `${pt.temp},${pt.speed}
 // source swept to the same temperature. Works for every type, including Mix
 // (its inputs evaluate at the same swept temperature), giving one line on a
 // single axis. Multipoint plots its own points instead.
-function sampleCurveShape(curve: CurveDef, allCurves: CurveDef[], sources: TemperatureSource[]): CurvePoint[] {
+function sampleCurveShape(
+  curve: CurveDef, allCurves: CurveDef[], sources: TemperatureSource[], channels: FanChannel[] = [],
+): CurvePoint[] {
   const out: CurvePoint[] = [];
   for (let temp = TEMP_MIN; temp <= TEMP_MAX; temp += SAMPLE_STEP) {
     const swept = sources.map(s => ({ ...s, value: temp }));
-    out.push({ temp, speed: Math.max(0, Math.min(100, computeCurveSpeed(curve, swept, allCurves))) });
+    out.push({ temp, speed: Math.max(0, Math.min(100, computeCurveSpeed(curve, swept, allCurves, new Set(), channels))) });
   }
   return out;
 }
@@ -417,10 +466,11 @@ export function CurveGraph({
 
 // ── Mix controls ───────────────────────────────────────────────────────────
 
-function MixControls({ curve, allCurves, sources, onChange }: {
+function MixControls({ curve, allCurves, sources, channels, onChange }: {
   curve: CurveDef;
   allCurves: CurveDef[];
   sources: TemperatureSource[];
+  channels: FanChannel[];
   onChange: (c: CurveDef) => void;
 }) {
   const { t } = useTranslation();
@@ -434,12 +484,15 @@ function MixControls({ curve, allCurves, sources, onChange }: {
   };
   const curveSpeedMap = useMemo(() => {
     const m = new Map<string, number>();
-    for (const c of otherCurves) m.set(c.id, computeCurveSpeed(c, sources, allCurves));
+    for (const c of otherCurves) m.set(c.id, computeCurveSpeed(c, sources, allCurves, new Set(), channels));
     return m;
-  }, [otherCurves, sources, allCurves]);
+  }, [otherCurves, sources, allCurves, channels]);
   return (
     <div className={styles.mixControls}>
-      <span className={styles.mixSectionLabel}>{t('cooling.curve.mix.fn')}</span>
+      <span className={styles.mixSectionLabel}>
+        {t('cooling.curve.mix.fn')}
+        <InfoTooltip message={t('cooling.curve.mix.fn.help')} side="top" />
+      </span>
       <div className="chip-group">
         {MIX_FNS.map(fn => (
           <button key={fn.key} type="button"
@@ -476,12 +529,19 @@ function MixControls({ curve, allCurves, sources, onChange }: {
 // ── Curve Card ─────────────────────────────────────────────────────────────
 
 export const CurveCard = memo(function CurveCard({
-  curve, allCurves, sources, children,
+  curve, allCurves, sources, channels = [], syncExcludedIds = [], children,
   onChange, onDelete, onResetPreset,
 }: {
   curve: CurveDef;
   allCurves: CurveDef[];
   sources: TemperatureSource[];
+  /** Fan channels a Sync curve may follow. */
+  channels?: FanChannel[];
+  /** Fans this curve already drives: offered but not selectable, since a curve
+   *  following its own output would chase itself. Listing them greyed beats
+   *  hiding them - a curve that drives every fan would otherwise show an empty
+   *  picker with no hint why. */
+  syncExcludedIds?: string[];
   /** The curve-selector buttons, rendered inside the card under the graph. */
   children?: ReactNode;
   onChange: (c: CurveDef) => void;
@@ -493,6 +553,17 @@ export const CurveCard = memo(function CurveCard({
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
   const set = (partial: Partial<CurveDef>) => onChange({ ...curve, ...partial });
+
+  const excludedSyncIds = useMemo(() => new Set(syncExcludedIds), [syncExcludedIds]);
+
+  // A Sync curve with no fan selected evaluates to nothing, so the fans bound
+  // to it would silently hold their last duty. Picking the mode picks the first
+  // fan it is allowed to follow.
+  const pickType = (type: CurveType): Partial<CurveDef> => {
+    if (type !== 'sync' || curve.sync.sourceChannelId) return { type };
+    const first = channels.find(c => !excludedSyncIds.has(c.id));
+    return first ? { type, sync: { ...curve.sync, sourceChannelId: first.id } } : { type };
+  };
   const isPreset = !!curve.preset;
   const [renaming, setRenaming] = useState(false);
 
@@ -507,7 +578,7 @@ export const CurveCard = memo(function CurveCard({
           <HoverTooltip key={ct.key} title={label} body={t(ct.hintKey)} side="bottom">
             <button type="button" role="radio"
               className={`chip-action${selected ? ' chip-active' : ''}`}
-              onClick={() => set({ type: ct.key })}
+              onClick={() => set(pickType(ct.key))}
               aria-label={label} aria-checked={selected}>
               {ct.icon}
               <span className={styles.curveTypeChipLabel}>{label}</span>
@@ -518,9 +589,12 @@ export const CurveCard = memo(function CurveCard({
     </div>
   );
 
-  const sourceRow = (curve.type !== 'mix' && curve.type !== 'flat') ? (
+  const sourceRow = (curve.type !== 'mix' && curve.type !== 'flat' && curve.type !== 'sync') ? (
     <label className={styles.sourceRow}>
-      <span className={styles.controlLabel}>{t('cooling.curve.source')}</span>
+      <span className={styles.controlLabel}>
+        {t('cooling.curve.source')}
+        <InfoTooltip message={t('cooling.curve.source.help')} side="top" />
+      </span>
       <Select className={styles.sourceSelect} value={curve.sourceId}
         onChange={v => set({ sourceId: v })} ariaLabel={t('cooling.curve.source')}>
         {sources.map(s => (<option key={s.id} value={s.id}>{s.category} - {s.name} ({localizeNumbers(s.value.toFixed(1), numberFormat)}°C)</option>))}
@@ -569,15 +643,18 @@ export const CurveCard = memo(function CurveCard({
 
   const flatSlider = (
     <Slider orientation="stacked" editable label={t('cooling.curve.fixed.speed')}
+      info={t('cooling.curve.fixed.speed.help')}
       value={curve.flat.speed} min={0} max={100} trackFill formatValue={v => `${v}%`}
       onChange={v => set({ flat: { speed: v } })} />
   );
   const linearBlock = (
     <div className={styles.linearControls}>
       <RangeSlider orientation="stacked" editable label={t('cooling.curve.linear.temp')}
+        info={t('cooling.curve.linear.temp.help')}
         value={[curve.linear.minTemp, curve.linear.maxTemp]} min={20} max={100} formatValue={v => `${v}°`}
         onChange={([minTemp, maxTemp]) => set({ linear: { ...curve.linear, minTemp, maxTemp } })} />
       <RangeSlider orientation="stacked" editable label={t('cooling.curve.linear.speed')}
+        info={t('cooling.curve.linear.speed.help')}
         value={[curve.linear.minSpeed, curve.linear.maxSpeed]} min={0} max={100} formatValue={v => `${v}%`}
         onChange={([minSpeed, maxSpeed]) => set({ linear: { ...curve.linear, minSpeed, maxSpeed } })} />
       <ResponseTimeSlider value={curve.linear.responseTime}
@@ -590,15 +667,89 @@ export const CurveCard = memo(function CurveCard({
   );
   const mixBlock = (
     <>
-      <MixControls curve={curve} allCurves={allCurves} sources={sources} onChange={onChange} />
+      <MixControls curve={curve} allCurves={allCurves} sources={sources} channels={channels} onChange={onChange} />
       <ResponseTimeSlider value={curve.mix.responseTime}
         onChange={v => set({ mix: { ...curve.mix, responseTime: v } })} />
     </>
   );
 
-  // The curve's source temperature, used to place the on-graph dot. Fixed and
-  // Mix have no single source, so no dot (the line stands alone).
-  const dotTemp = curve.type === 'flat' || curve.type === 'mix'
+  const triggerBlock = (
+    <div className={styles.linearControls}>
+      <RangeSlider orientation="stacked" editable label={t('cooling.curve.trigger.temp')}
+        info={t('cooling.curve.trigger.temp.help')}
+        value={[curve.trigger.idleTemp, curve.trigger.loadTemp]} min={20} max={100} formatValue={v => `${v}°`}
+        onChange={([idleTemp, loadTemp]) => set({ trigger: { ...curve.trigger, idleTemp, loadTemp } })} />
+      <RangeSlider orientation="stacked" editable label={t('cooling.curve.trigger.speed')}
+        info={t('cooling.curve.trigger.speed.help')}
+        value={[curve.trigger.idleSpeed, curve.trigger.loadSpeed]} min={0} max={100} formatValue={v => `${v}%`}
+        onChange={([idleSpeed, loadSpeed]) => set({ trigger: { ...curve.trigger, idleSpeed, loadSpeed } })} />
+      <ResponseTimeSlider value={curve.trigger.responseTime}
+        onChange={v => set({ trigger: { ...curve.trigger, responseTime: v } })} />
+    </div>
+  );
+
+  const autoBlock = (
+    <div className={styles.linearControls}>
+      <RangeSlider orientation="stacked" editable label={t('cooling.curve.auto.temp')}
+        info={t('cooling.curve.auto.temp.help')}
+        value={[curve.auto.idleTemp, curve.auto.loadTemp]} min={20} max={100} formatValue={v => `${v}°`}
+        onChange={([idleTemp, loadTemp]) => set({ auto: { ...curve.auto, idleTemp, loadTemp } })} />
+      <RangeSlider orientation="stacked" editable label={t('cooling.curve.auto.speed')}
+        info={t('cooling.curve.auto.speed.help')}
+        value={[curve.auto.minSpeed, curve.auto.maxSpeed]} min={0} max={100} formatValue={v => `${v}%`}
+        onChange={([minSpeed, maxSpeed]) => set({ auto: { ...curve.auto, minSpeed, maxSpeed } })} />
+      <Slider orientation="stacked" editable label={t('cooling.curve.auto.step')}
+        info={t('cooling.curve.auto.step.help')}
+        value={curve.auto.step} min={1} max={20} step={1} trackFill formatValue={v => `${v}%`}
+        onChange={v => set({ auto: { ...curve.auto, step: v } })} />
+      <Slider orientation="stacked" editable label={t('cooling.curve.auto.deadband')}
+        info={t('cooling.curve.auto.deadband.help')}
+        value={curve.auto.deadband} min={0} max={10} step={1} trackFill formatValue={v => `${v}°`}
+        onChange={v => set({ auto: { ...curve.auto, deadband: v } })} />
+      <ResponseTimeSlider value={curve.auto.responseTime}
+        onChange={v => set({ auto: { ...curve.auto, responseTime: v } })} />
+    </div>
+  );
+
+  const syncBlock = (
+    <div className={styles.linearControls}>
+      <label className={styles.sourceRow}>
+        <span className={styles.controlLabel}>
+          {t('cooling.curve.sync.source')}
+          <InfoTooltip message={t('cooling.curve.sync.source.help')} side="top" />
+        </span>
+        <Select className={styles.sourceSelect} value={curve.sync.sourceChannelId}
+          onChange={v => set({ sync: { ...curve.sync, sourceChannelId: v } })}
+          ariaLabel={t('cooling.curve.sync.source')}>
+          {channels.map(c => (
+            <option key={c.id} value={c.id} disabled={excludedSyncIds.has(c.id)}>
+              {excludedSyncIds.has(c.id)
+                ? t('cooling.curve.sync.drivenByThis', { name: c.name })
+                : `${c.name} (${localizeNumbers(`${c.dutyPercent ?? 0}%`, numberFormat)})`}
+            </option>
+          ))}
+        </Select>
+      </label>
+      <div className="chip-group">
+        {SYNC_MODES.map(m => (
+          <button key={String(m.proportional)} type="button"
+            className={`chip-action${m.proportional === curve.sync.proportional ? ' chip-active' : ''}`}
+            onClick={() => set({ sync: { ...curve.sync, proportional: m.proportional } })}>
+            {t(m.labelKey)}
+          </button>
+        ))}
+      </div>
+      <Slider orientation="stacked" editable label={t('cooling.curve.sync.offset')}
+        info={t('cooling.curve.sync.offset.help')}
+        value={curve.sync.offset} min={-50} max={50} step={1} trackFill
+        formatValue={v => (curve.sync.proportional ? `${v > 0 ? '+' : ''}${v}%` : `${v > 0 ? '+' : ''}${v}`)}
+        onChange={v => set({ sync: { ...curve.sync, offset: v } })} />
+    </div>
+  );
+
+  // The curve's source temperature, used to place the on-graph dot. Fixed, Mix
+  // and Sync have no single source, so no dot (the line stands alone).
+  const dotTemp = curve.type === 'flat' || curve.type === 'mix' || curve.type === 'sync'
     ? undefined
     : sources.find(s => s.id === curve.sourceId)?.value;
 
@@ -607,13 +758,16 @@ export const CurveCard = memo(function CurveCard({
     curve.type === 'flat' ? flatSlider :
     curve.type === 'linear' ? linearBlock :
     curve.type === 'multipoint' ? multipointResponse :
+    curve.type === 'trigger' ? triggerBlock :
+    curve.type === 'auto' ? autoBlock :
+    curve.type === 'sync' ? syncBlock :
     mixBlock;
   return (
     <div className={styles.curveCard}>
       {/* Graph always on top. Live duty/temp read out on the axes. */}
       <div className={styles.heroGraph}>
         <CurveGraph
-          points={isMp ? curve.multipoint.points : sampleCurveShape(curve, allCurves, sources)}
+          points={isMp ? curve.multipoint.points : sampleCurveShape(curve, allCurves, sources, channels)}
           showPoints={isMp}
           editable={isMp}
           height={PINNED_GRAPH_H}

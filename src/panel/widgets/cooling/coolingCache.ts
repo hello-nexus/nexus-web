@@ -20,14 +20,16 @@
  * into garbage state.
  */
 import type { FanChannel, TemperatureSource } from '../../../api/cooling';
+import { withCurveDefaults } from '../../../types/cooling';
 import type { CurveDef, FanState } from '../../../types/cooling';
 import type { CoolingPresetKey } from './page/coolingPresets';
 import type { FanCardHubMode } from './page/FanCard';
 
-// v2: curve shape changed (the `graph` field became `multipoint`); the v1
-// payload would deserialise into curves missing `multipoint` and crash the
-// editor, so the old key is abandoned.
-const STORAGE_KEY = 'nexus_cooling_cache_v2';
+// v3: the trigger / sync / auto modes arrived, so a v2 payload holds curves
+// with no object for them. The read below fills any missing mode in as well,
+// which is the durable half of the fix - the key bump only skips one stale
+// payload, the normalizer survives the next mode too.
+const STORAGE_KEY = 'nexus_cooling_cache_v3';
 
 export interface CoolingCache {
   channels: FanChannel[];
@@ -60,7 +62,7 @@ export function loadCoolingCache(): CoolingCache {
     const parsed = JSON.parse(raw) as Partial<CoolingCache>;
     return {
       channels:     Array.isArray(parsed.channels)     ? parsed.channels     : [],
-      curves:       Array.isArray(parsed.curves)       ? parsed.curves       : [],
+      curves:       Array.isArray(parsed.curves)       ? parsed.curves.map(withCurveDefaults) : [],
       sources:      Array.isArray(parsed.sources)      ? parsed.sources      : [],
       fanStates:    isPlainObject(parsed.fanStates)    ? parsed.fanStates    : {},
       activePreset: typeof parsed.activePreset === 'string'
