@@ -29,13 +29,13 @@ const PREVIEW: FanControlPreviewResponse = {
   version: 215,
   curves: [
     { name: 'CPU Graph', sourceKind: 'graph', targetType: 'Graph', supported: true, sensorName: 'Core', fanNames: ['CPU Fan'] },
-    { name: 'RPM Target', sourceKind: 'flat', targetType: '', supported: false, reason: 'RPM curves are not supported', fanNames: [] },
+    { name: 'RPM Target', sourceKind: 'flat', targetType: '', supported: false, reasonCode: 'rpmMode' as const, fanNames: [] },
   ],
   fans: [
     { identifier: '/lpc/it8696e/control/0', sourceName: 'CPU Fan', channelId: '/lpc/it8696e/0/control/0', channelName: 'CPU', match: 'normalized', hasCalibration: true, offset: 0 },
     { identifier: '/lpc/it8696e/control/3', sourceName: 'Fan #4', channelId: null, channelName: null, match: 'none', hasCalibration: false, offset: 0 },
   ],
-  skipped: ['1 fan(s) FanControl knows are not available here'],
+  skipped: [{ code: 'fansMissing' as const, count: 1 }],
   curveCount: 1,
   calibrationCount: 3,
   nameCount: 2,
@@ -60,9 +60,15 @@ beforeEach(() => {
 });
 
 describe('FanControlImportSection', () => {
-  it('previews the default config on open', async () => {
+  it('previews the default config on open, once', async () => {
     renderSection();
     await waitFor(() => expect(previewFanControlImport).toHaveBeenCalledWith(CONFIGS[0].path));
+    expect(previewFanControlImport).toHaveBeenCalledTimes(1);
+  });
+
+  it('translates every note about what is being left behind', async () => {
+    renderSection();
+    expect(await screen.findByText('fanControlImport.skip.fansMissing:1')).toBeInTheDocument();
   });
 
   it('offers only the categories that have something to import', async () => {
@@ -79,7 +85,8 @@ describe('FanControlImportSection', () => {
     renderSection();
     await screen.findByText('CPU Graph');
     expect(screen.getByText('fanControlImport.curveType.graph')).toBeInTheDocument();
-    expect(screen.getByText('RPM curves are not supported')).toBeInTheDocument();
+    // The service sends a code; the wording comes from the locale file.
+    expect(screen.getByText('fanControlImport.reason.rpmMode:')).toBeInTheDocument();
   });
 
   it('shows how each fan matched, including the ones this PC does not have', async () => {
@@ -145,7 +152,7 @@ describe('FanControlImportSection', () => {
 
   it('says so when a config maps onto nothing here', async () => {
     vi.mocked(previewFanControlImport).mockResolvedValue({
-      ...PREVIEW, curves: [], fans: [], skipped: [], curveCount: 0, calibrationCount: 0, nameCount: 0,
+      ...PREVIEW, curves: [], fans: [], skipped: [], curveCount: 0, calibrationCount: 0, nameCount: 0, offsetCount: 0,
     });
     renderSection();
     expect(await screen.findByText('fanControlImport.nothingToImport')).toBeInTheDocument();

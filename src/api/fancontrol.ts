@@ -26,14 +26,27 @@ export interface FanControlStatusResponse {
 /** How a FanControl fan was matched to a local channel. */
 export type FanControlMatch = 'exact' | 'normalized' | 'name' | 'position' | 'none';
 
+/** Why a curve cannot be imported. The service sends the code; the wording lives here. */
+export type FanControlReasonCode =
+  | 'rpmMode' | 'noSensor' | 'noPoints' | 'badPoints'
+  | 'noSyncSource' | 'noMixMembers' | 'noSpeedRange' | 'cycle' | 'unknownKind';
+
 export interface FanControlCurvePreview {
   name: string;
   sourceKind: string;
   targetType: string;
   supported: boolean;
-  reason?: string | null;
+  reasonCode?: FanControlReasonCode | null;
+  /** Fills the reason's placeholder where it has one (the FanControl curve kind). */
+  reasonDetail?: string | null;
   sensorName?: string | null;
   fanNames: string[];
+}
+
+/** Something the import leaves behind, as a code plus how many items it covers. */
+export interface FanControlSkipNote {
+  code: 'fansMissing' | 'rpmCurves' | 'startStop' | 'smoothing';
+  count: number;
 }
 
 export interface FanControlFanPreview {
@@ -55,7 +68,7 @@ export interface FanControlPreviewResponse {
   version: number;
   curves: FanControlCurvePreview[];
   fans: FanControlFanPreview[];
-  skipped: string[];
+  skipped: FanControlSkipNote[];
   curveCount: number;
   calibrationCount: number;
   nameCount: number;

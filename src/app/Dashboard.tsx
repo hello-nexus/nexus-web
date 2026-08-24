@@ -808,10 +808,9 @@ export function Dashboard() {
           onComplete={() => setNexus2Dismissed(true)}
           onBack={() => { setWelcomeRevisit(true); setOnboardingDismissed(false); }}
         />
-        {/* Lighting device-selection gate, last in the sequence, gated by its
-            own server-side flag so a factory reset reopens everything. Back
-            targets the Nexus 2 gate when this install has one, else the
-            welcome screen. */}
+        {/* Lighting device-selection gate, gated by its own server-side flag so
+            a factory reset reopens everything. Back targets the Nexus 2 gate
+            when this install has one, else the welcome screen. */}
         <LightingOnboardingScreen
           open={lightingOnboardingOpen}
           onComplete={() => setLightingOnboardingDismissed(true)}
@@ -827,11 +826,15 @@ export function Dashboard() {
           open={fanControlOpen}
           payload={fanControl.payload}
           onComplete={() => setFanControlDismissed(true)}
-          onBack={() => {
-            if (lightingStatus === 'pending') setLightingOnboardingDismissed(false);
-            else if (nexus2.status === 'pending') setNexus2Dismissed(false);
-            else { setWelcomeRevisit(true); setOnboardingDismissed(false); }
-          }}
+          // Back only exists when there is a screen behind this one. The
+          // service re-offers this gate whenever a FanControl config appears,
+          // so for an existing install it opens on its own and stepping back
+          // into first-run onboarding would make no sense.
+          onBack={lightingStatus === 'pending'
+            ? () => setLightingOnboardingDismissed(false)
+            : nexus2.status === 'pending'
+              ? () => setNexus2Dismissed(false)
+              : undefined}
         />
         {/* Global incoming-pair prompt, at the layout root so it lands on top
             of any section. Pair Remote stays in its own modal below. */}

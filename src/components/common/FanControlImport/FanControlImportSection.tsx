@@ -100,7 +100,8 @@ export function FanControlImportSection({
   open, configs, disabled, onBusyChange, showAction = true, onSelectionChange, handleRef, onImported,
 }: FanControlImportSectionProps) {
   const { t } = useTranslation();
-  const [configPath, setConfigPath] = useState('');
+  const defaultPath = configs.find(c => c.isDefault)?.path ?? configs[0]?.path ?? '';
+  const [configPath, setConfigPath] = useState(defaultPath);
   const [previewStatus, setPreviewStatus] = useState<PreviewStatus>('idle');
   const [preview, setPreview] = useState<FanControlPreviewResponse | null>(null);
   const [selected, setSelected] = useState<Set<FanControlCategory>>(new Set());
@@ -110,11 +111,13 @@ export function FanControlImportSection({
 
   useEffect(() => {
     if (!open) return;
-    setConfigPath(configs.find(c => c.isDefault)?.path ?? configs[0]?.path ?? '');
+    setConfigPath(defaultPath);
     setImportPhase('idle');
     setResult(null);
     setRequestError(false);
-  }, [open, configs]);
+    // Keyed on the path, not the configs array: a re-render with a new array
+    // identity must not throw away the config the user picked.
+  }, [open, defaultPath]);
 
   useEffect(() => {
     if (!open) return;
@@ -126,8 +129,6 @@ export function FanControlImportSection({
       if (cancelled) return;
       if (!res || res.error || !res.available) { setPreviewStatus('error'); return; }
       setPreview(res);
-      // Everything with something to import starts on: the user came here to
-      // move their setup over, not to assemble it a checkbox at a time.
       setSelected(new Set(CATEGORIES.filter(c => c.count(res) > 0).map(c => c.id)));
       setPreviewStatus('loaded');
     });
@@ -236,7 +237,9 @@ export function FanControlImportSection({
                     <span className={styles.rowMeta}>
                       {curve.supported
                         ? t(`fanControlImport.curveType.${curve.targetType.toLowerCase()}`)
-                        : (curve.reason ?? t('fanControlImport.curveSkipped'))}
+                        : (curve.reasonCode
+                          ? t(`fanControlImport.reason.${curve.reasonCode}`, { detail: curve.reasonDetail ?? '' })
+                          : t('fanControlImport.curveSkipped'))}
                     </span>
                     {curve.supported && curve.fanNames.length > 0 && (
                       <span className={styles.rowFans}>{curve.fanNames.join(', ')}</span>
@@ -267,7 +270,11 @@ export function FanControlImportSection({
 
           {preview.skipped.length > 0 && (
             <ul className={styles.skippedList} data-settings-aside>
-              {preview.skipped.map(note => (<li key={note} className={styles.skippedNote}>{note}</li>))}
+              {preview.skipped.map(note => (
+                <li key={note.code} className={styles.skippedNote}>
+                  {t(`fanControlImport.skip.${note.code}`, { count: note.count })}
+                </li>
+              ))}
             </ul>
           )}
 
@@ -275,7 +282,10 @@ export function FanControlImportSection({
             <p className={styles.success} data-settings-aside>
               {t('fanControlImport.successSummary', {
                 curves: result.curvesImported,
-                fans: result.calibrationsImported,
+                calibrated: result.calibrationsImported,
+                names: result.namesImported,
+                offsets: result.offsetsImported,
+                fixed: result.manualImported,
               })}
             </p>
           )}

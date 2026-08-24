@@ -26,16 +26,19 @@ describe('useFanControlStatus', () => {
     await waitFor(() => expect(result.current.status).toBe('settled'));
   });
 
-  it('settles when the service is unreachable', async () => {
+  it('retries an unreachable service, then settles', async () => {
     vi.mocked(fetchFanControlStatus).mockResolvedValue(null);
     const { result } = renderHook(() => useFanControlStatus());
-    await waitFor(() => expect(result.current.status).toBe('settled'));
+    // The dashboard can mount before the service answers, so a single null is
+    // not the end of it; the bound is what keeps the gate from hanging.
+    await waitFor(() => expect(result.current.status).toBe('settled'), { timeout: 5000 });
+    expect(vi.mocked(fetchFanControlStatus).mock.calls.length).toBeGreaterThan(1);
   });
 
   it('settles when the request throws, so the dashboard cannot hang behind it', async () => {
     vi.mocked(fetchFanControlStatus).mockRejectedValue(new Error('not json'));
     const { result } = renderHook(() => useFanControlStatus());
-    await waitFor(() => expect(result.current.status).toBe('settled'));
+    await waitFor(() => expect(result.current.status).toBe('settled'), { timeout: 5000 });
     expect(result.current.payload).toBeNull();
   });
 });

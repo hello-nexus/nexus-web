@@ -121,7 +121,9 @@ export function CoolingResponseChart({
           if (ch) { sum += ch.dutyPercent; n += 1; }
         } else {
           const curve = curves.find(c => c.id === state.curveId);
-          if (curve) { sum += computeCurveSpeed(curve, swept, curves); n += 1; }
+          // channels: a Sync curve follows a fan's duty, and without them it
+          // would contribute a flat zero at every temperature.
+          if (curve) { sum += computeCurveSpeed(curve, swept, curves, new Set(), channels); n += 1; }
         }
       }
 

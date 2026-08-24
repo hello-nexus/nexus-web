@@ -464,10 +464,11 @@ export function CurveGraph({
 
 // ── Mix controls ───────────────────────────────────────────────────────────
 
-function MixControls({ curve, allCurves, sources, onChange }: {
+function MixControls({ curve, allCurves, sources, channels, onChange }: {
   curve: CurveDef;
   allCurves: CurveDef[];
   sources: TemperatureSource[];
+  channels: FanChannel[];
   onChange: (c: CurveDef) => void;
 }) {
   const { t } = useTranslation();
@@ -481,9 +482,9 @@ function MixControls({ curve, allCurves, sources, onChange }: {
   };
   const curveSpeedMap = useMemo(() => {
     const m = new Map<string, number>();
-    for (const c of otherCurves) m.set(c.id, computeCurveSpeed(c, sources, allCurves));
+    for (const c of otherCurves) m.set(c.id, computeCurveSpeed(c, sources, allCurves, new Set(), channels));
     return m;
-  }, [otherCurves, sources, allCurves]);
+  }, [otherCurves, sources, allCurves, channels]);
   return (
     <div className={styles.mixControls}>
       <span className={styles.mixSectionLabel}>{t('cooling.curve.mix.fn')}</span>
@@ -543,6 +544,13 @@ export const CurveCard = memo(function CurveCard({
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
   const set = (partial: Partial<CurveDef>) => onChange({ ...curve, ...partial });
+
+  // A Sync curve with no fan selected evaluates to nothing, so the fans bound
+  // to it would silently hold their last duty. Picking the mode picks a fan.
+  const pickType = (type: CurveType): Partial<CurveDef> =>
+    type === 'sync' && !curve.sync.sourceChannelId && channels.length > 0
+      ? { type, sync: { ...curve.sync, sourceChannelId: channels[0].id } }
+      : { type };
   const isPreset = !!curve.preset;
   const [renaming, setRenaming] = useState(false);
 
@@ -557,7 +565,7 @@ export const CurveCard = memo(function CurveCard({
           <HoverTooltip key={ct.key} title={label} body={t(ct.hintKey)} side="bottom">
             <button type="button" role="radio"
               className={`chip-action${selected ? ' chip-active' : ''}`}
-              onClick={() => set({ type: ct.key })}
+              onClick={() => set(pickType(ct.key))}
               aria-label={label} aria-checked={selected}>
               {ct.icon}
               <span className={styles.curveTypeChipLabel}>{label}</span>
@@ -640,7 +648,7 @@ export const CurveCard = memo(function CurveCard({
   );
   const mixBlock = (
     <>
-      <MixControls curve={curve} allCurves={allCurves} sources={sources} onChange={onChange} />
+      <MixControls curve={curve} allCurves={allCurves} sources={sources} channels={channels} onChange={onChange} />
       <ResponseTimeSlider value={curve.mix.responseTime}
         onChange={v => set({ mix: { ...curve.mix, responseTime: v } })} />
     </>
@@ -685,7 +693,6 @@ export const CurveCard = memo(function CurveCard({
         <Select className={styles.sourceSelect} value={curve.sync.sourceChannelId}
           onChange={v => set({ sync: { ...curve.sync, sourceChannelId: v } })}
           ariaLabel={t('cooling.curve.sync.source')}>
-          <option value="">{t('cooling.curve.sync.pick')}</option>
           {channels.map(c => (
             <option key={c.id} value={c.id}>
               {c.name} ({localizeNumbers(`${c.dutyPercent ?? 0}%`, numberFormat)})
