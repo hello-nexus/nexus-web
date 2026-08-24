@@ -46,9 +46,9 @@ export function CoolingImmersiveEditor({ cooling }: { cooling: CoolingImmersiveC
     [curves, selectedCurveId],
   );
 
-  // Fans a Sync curve may follow: not the ones this curve already drives.
-  const syncSourceChannels = useMemo(
-    () => liveChannels.filter(c => fanStates[c.id]?.curveId !== selectedCurve?.id),
+  // Fans the selected curve drives; a Sync curve may not follow its own output.
+  const syncExcludedIds = useMemo(
+    () => liveChannels.filter(c => fanStates[c.id]?.curveId === selectedCurve?.id).map(c => c.id),
     [liveChannels, fanStates, selectedCurve],
   );
 
@@ -62,7 +62,8 @@ export function CoolingImmersiveEditor({ cooling }: { cooling: CoolingImmersiveC
               curve={selectedCurve}
               allCurves={curves}
               sources={sources}
-              channels={syncSourceChannels}
+              channels={liveChannels}
+              syncExcludedIds={syncExcludedIds}
               onChange={cooling.saveCurve}
               onDelete={() => cooling.deleteCurve(selectedCurve.id)}
               onResetPreset={selectedCurve.preset ? () => cooling.resetPresetCurve(selectedCurve.preset!) : undefined}

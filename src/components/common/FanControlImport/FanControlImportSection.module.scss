@@ -3,15 +3,24 @@
 @use '../../../styles/onboarding' as *;
 
 .section {
-  width: min($onboarding-content-width, 100%);
+  width: 100%;
+  max-width: $onboarding-content-width;
+}
+
+// In a dialog the section gets the whole surface, which is wider than the
+// onboarding column.
+.sectionWide {
+  composes: section;
+  max-width: none;
 }
 
 // Internal scroller so a config with many curves and fans never grows the
-// host modal past its own height.
+// host past its own height. Tall enough that a typical config shows its
+// categories and the start of the per-curve list without scrolling.
 .box {
   padding-top: 0.75rem;
   padding-bottom: 1rem;
-  max-height: 26rem;
+  max-height: min(34rem, 60vh);
   overflow-y: auto;
   @include scrollbar-visible;
 }

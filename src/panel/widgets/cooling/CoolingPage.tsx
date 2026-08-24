@@ -807,8 +807,10 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     setChannels(prev => prev.map(c => (c.id === id ? { ...c, offset: 0 } : c)));
   }, [serviceOnline]);
 
-  const syncSourceChannels = useMemo(
-    () => channels.filter(c => fanStates[c.id]?.curveId !== selectedCurve?.id),
+  // Fans the selected curve drives: a Sync curve may not follow its own output,
+  // so the picker greys these rather than hiding them.
+  const syncExcludedIds = useMemo(
+    () => channels.filter(c => fanStates[c.id]?.curveId === selectedCurve?.id).map(c => c.id),
     [channels, fanStates, selectedCurve],
   );
 
@@ -1286,7 +1288,8 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
               curve={selectedCurve}
               allCurves={curves}
               sources={sources}
-              channels={syncSourceChannels}
+              channels={channels}
+              syncExcludedIds={syncExcludedIds}
               onChange={saveCurveAndPush}
               onDelete={() => deleteCurve(selectedCurve.id)}
               onResetPreset={selectedCurve.preset ? () => handleResetPresetCurve(selectedCurve.preset!) : undefined}
