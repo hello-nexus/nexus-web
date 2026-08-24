@@ -99,7 +99,7 @@
 }
 
 // -- Simple mode (ui.coolingDashboardMode) ---------------------------------
-// Large preset tiles at the top, the advanced-mode CTA docked at the bottom.
+// Large preset tiles at the top, the advanced-mode CTA in flow beneath them.
 .simpleBody {
   display: flex;
   flex-direction: column;
@@ -138,15 +138,8 @@
   padding: 0.9rem 1rem;
 }
 
-.simpleCustomNote {
-  margin: 0;
-  font-size: var(--type-small);
-  color: var(--text-dim);
-}
-
 .simpleFooter {
   flex: 0 0 auto;
-  margin-top: auto;
   padding: 0.75rem 0 1rem;
 }
 
@@ -281,6 +274,8 @@
   gap: 0.4rem;
   flex: 1;
   min-height: 0;
+  // Bottom-only inset, matching the lighting rail's .devicePanel.
+  padding-bottom: 1rem;
   overflow-y: auto;
 }
 // Fan cards inside a hub group: indented under the shared CollapsibleSection

@@ -46,6 +46,7 @@ import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
 import { AdvancedModeCta } from '../../../components/common/AdvancedModeCta/AdvancedModeCta';
 import { DeviceCountSummary } from '../../../components/common/DeviceCountSummary/DeviceCountSummary';
+import { SimpleModeNotice } from '../../../components/common/SimpleModeNotice/SimpleModeNotice';
 import { usePageModeToggle } from '../../../app/PageChrome';
 import { ConfirmModal } from '../../../components/common/ConfirmModal/ConfirmModal';
 import { CollapsibleSection } from '../../../components/common/CollapsibleSection/CollapsibleSection';
@@ -981,7 +982,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
             ))}
           </div>
           {activePreset === 'custom' && (
-            <p className={styles.simpleCustomNote}>{t('cooling.simple.customActive')}</p>
+            <SimpleModeNotice message={t('cooling.simple.customActive')} />
           )}
           <div className={styles.simpleFooter}>
             <AdvancedModeCta

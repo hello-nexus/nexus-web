@@ -33,6 +33,9 @@ export type ChipGroupProps = {
   /** Stretch the row to 100% width with each chip sharing it equally, for
    *  settings rows that read as a segmented control. Mirrors Tabs' fullWidth. */
   fullWidth?: boolean;
+  /** Reflow onto further lines instead of growing the row, for a chip list
+   *  whose length comes from data rather than a fixed option set. */
+  wrap?: boolean;
 } & (ChipGroupSingleProps | ChipGroupMultiProps);
 
 /**
@@ -44,7 +47,7 @@ export type ChipGroupProps = {
  * toggle independently, so they stay `aria-pressed` toggle buttons in a group.
  */
 export function ChipGroup(props: ChipGroupProps) {
-  const { options, ariaLabel, className, fullWidth } = props;
+  const { options, ariaLabel, className, fullWidth, wrap } = props;
   const groupRef = useRef<HTMLDivElement>(null);
 
   // Radio semantics put the whole group on one tab stop and arrows move inside
@@ -84,7 +87,7 @@ export function ChipGroup(props: ChipGroupProps) {
   return (
     <div
       ref={groupRef}
-      className={classNames('chip-group', fullWidth && 'chip-group-full', className)}
+      className={classNames('chip-group', fullWidth && 'chip-group-full', wrap && 'chip-group-wrap', className)}
       role={singleSelect ? 'radiogroup' : 'group'}
       aria-label={ariaLabel}
       onKeyDown={handleKeyDown}
