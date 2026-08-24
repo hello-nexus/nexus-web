@@ -99,7 +99,7 @@
 }
 
 // -- Simple mode (ui.coolingDashboardMode) ---------------------------------
-// Large preset tiles at the top, the advanced-mode CTA docked at the bottom.
+// Large preset tiles at the top, the advanced-mode CTA in flow beneath them.
 .simpleBody {
   display: flex;
   flex-direction: column;
@@ -140,7 +140,6 @@
 
 .simpleFooter {
   flex: 0 0 auto;
-  margin-top: auto;
   padding: 0.75rem 0 1rem;
 }
 

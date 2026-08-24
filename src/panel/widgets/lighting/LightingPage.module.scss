@@ -329,7 +329,7 @@
 
 // -- Simple mode (ui.lightingDashboardMode) --------------------------------
 // The palette at hero size with the Off tile above it, and the advanced-mode
-// CTA docked at the bottom.
+// CTA in flow beneath it.
 .simpleBody {
   display: flex;
   flex-direction: column;
@@ -353,7 +353,6 @@
 
 .simpleFooter {
   flex: 0 0 auto;
-  margin-top: auto;
   padding: 0.75rem 0 1rem;
 }
 
