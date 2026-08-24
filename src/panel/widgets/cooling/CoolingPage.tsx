@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Ban, CheckCheck, Gauge, Power } from 'lucide-react';
+import { Ban, CheckCheck, Gauge, Import, Power } from 'lucide-react';
 import { Button } from '../../../components/common/Button/Button';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { usePersistentState, usePersistentIdSet } from '../../../hooks/usePersistentState';
@@ -26,7 +26,7 @@ import {
 } from '../../../api/qseries';
 import {
   fetchFanChannels, fetchTemperatureSources, fetchCurves,
-  setFanSpeed, releaseFanAuto, saveCurves, renameFan, setFanLock, setFanRole,
+  setFanSpeed, releaseFanAuto, saveCurves, renameFan, setFanLock, setFanRole, setFanOffset,
   startCalibration, fetchCalibrationResults, fetchProfiles, applyProfile,
   resetPresetCurve, isFanDisconnected,
   type FanChannel, type FanRole, type TemperatureSource,
@@ -59,7 +59,9 @@ import { fanDeviceGroupName } from './page/deviceGroupName';
 import { COOLING_PRESETS, isCoolingPresetKey, type CoolingPresetKey } from './page/coolingPresets';
 import { loadCoolingCache, saveCoolingCache } from './coolingCache';
 import { resolveCpuTempSensor, defaultCurveSourceId } from '../../../lib/tempSensorResolver';
-import { curveDefsFromApi, MAX_CURVES, newCurve, type CurveDef, type FanState } from '../../../types/cooling';
+import { curveDefsFromApi, curveDefToApi, MAX_CURVES, newCurve, type CurveDef, type FanState } from '../../../types/cooling';
+import { useFanControlStatus } from '../../../hooks/useFanControlStatus';
+import { FanControlImportDialog } from '../../../components/common/FanControlImport/FanControlImportDialog';
 import styles from './CoolingPage.module.scss';
 
 /**
@@ -378,21 +380,10 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // ── Handlers ──────────────────────────────────────────────────────────────
 
   const pushCurves = useCallback((defs: CurveDef[], states: Record<string, FanState>) => {
-    const apiCurves = defs.map(c => ({
-      id: c.id, name: c.name,
-      type: c.type === 'flat' ? 'Flat' : c.type === 'linear' ? 'Linear' : c.type === 'multipoint' ? 'Graph' : 'Mixed',
-      input: { id: c.sourceId, type: 'Temperature', device: '' },
-      outputs: Object.entries(states).filter(([, s]) => s.curveId === c.id).map(([fanId]) => ({ id: fanId, type: 'Fan' })),
-      // Persist every mode's params, not just the active type's, so switching
-      // type (fixed/linear/multipoint/mix) and back doesn't reset the others to
-      // defaults on the next refetch. The engine still applies only `type`. The
-      // multipoint curve persists as the wire "Graph" type / `graph` object.
-      flat: { speed: c.flat.speed },
-      linear: c.linear,
-      graph: { responseTime: c.multipoint.responseTime, speedModifier: 1, points: c.multipoint.points },
-      mixed: { responseTime: c.mix.responseTime, curveIds: c.mix.curveIds, fn: c.mix.fn },
-      preset: c.preset ?? null,
-    }));
+    const apiCurves = defs.map(c => curveDefToApi(
+      c,
+      Object.entries(states).filter(([, st]) => st.curveId === c.id).map(([fanId]) => ({ id: fanId, type: 'Fan' })),
+    ));
     return saveCurves({ globalSpeedModifier: 1, curves: apiCurves });
   }, []);
 
@@ -801,6 +792,26 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     [curves, selectedCurveId],
   );
 
+  // FanControl import: the header entry only exists when that app left a
+  // configuration behind, which outlives an uninstall.
+  const fanControl = useFanControlStatus();
+  const [fanControlImportOpen, setFanControlImportOpen] = useState(false);
+
+  // Fans a Sync curve may follow: everything except the fans this curve itself
+  // drives, so it can never end up chasing its own output.
+  // Only ever clears: offsets arrive with a FanControl import, and the card is
+  // where the user finds out one exists.
+  const handleClearOffset = useCallback(async (id: string) => {
+    if (!serviceOnline) return;
+    await setFanOffset(id, 0);
+    setChannels(prev => prev.map(c => (c.id === id ? { ...c, offset: 0 } : c)));
+  }, [serviceOnline]);
+
+  const syncSourceChannels = useMemo(
+    () => channels.filter(c => fanStates[c.id]?.curveId !== selectedCurve?.id),
+    [channels, fanStates, selectedCurve],
+  );
+
   // ── Fan card reordering (drag/drop, grip-gated, persisted per profile) ────
   const { settings: uiSettings, update: updateUiSettings } = useUiSettings();
   const savedFanOrder = uiSettings.fanChannelOrder;
@@ -1045,9 +1056,26 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
           </div>
         </div>
         <div className={`${styles.paneHeader} ${styles.headerRight}`}>
-          <span className={styles.paneTitle}>{t('cooling.label.curve')}</span>
+          <span className={styles.paneTitle}>{t('cooling.label.curves')}</span>
           {/* What a curve press would apply to, in the lighting page's wording. */}
           <Badge label={selectedFanLabel} compact uppercase color="var(--text-dim)" />
+          {fanControl.payload?.importAvailable && (
+            <HoverTooltip body={t('fanControlImport.entry')} side="bottom">
+              <Button
+                tone="ghost"
+                size="sm"
+                icon={<Import />}
+                className={styles.curveHeaderAction}
+                // Visible label is the short one; the accessible name keeps
+                // what it imports, which the tooltip only says on hover.
+                aria-label={t('fanControlImport.entry')}
+                disabled={calibrating}
+                onClick={() => setFanControlImportOpen(true)}
+              >
+                {t('cooling.curves.import')}
+              </Button>
+            </HoverTooltip>
+          )}
         </div>
         <aside className={styles.fanSidebar}>
           {calibrationResults && !calibrating && (
@@ -1125,6 +1153,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                   onSpeedChange={handleSpeedChange}
                   onToggleLock={handleToggleLock}
                   onSetRole={handleSetRole}
+                  onClearOffset={handleClearOffset}
                   drag={drag}
                 />
               );
@@ -1223,6 +1252,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                           onSpeedChange={handleSpeedChange}
                           onToggleLock={handleToggleLock}
                           onSetRole={handleSetRole}
+                  onClearOffset={handleClearOffset}
                         />
                       ))}</div>
                     </CollapsibleSection>
@@ -1256,6 +1286,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
               curve={selectedCurve}
               allCurves={curves}
               sources={sources}
+              channels={syncSourceChannels}
               onChange={saveCurveAndPush}
               onDelete={() => deleteCurve(selectedCurve.id)}
               onResetPreset={selectedCurve.preset ? () => handleResetPresetCurve(selectedCurve.preset!) : undefined}
@@ -1266,6 +1297,12 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
         </div>
 
       </div>
+      <FanControlImportDialog
+        open={fanControlImportOpen}
+        configs={fanControl.payload?.configs ?? []}
+        onClose={() => setFanControlImportOpen(false)}
+        onImported={() => { void refreshCoolingConfig(); }}
+      />
       <ConfirmModal
         open={calConfirmOpen && !calibrating}
         destructive={false}

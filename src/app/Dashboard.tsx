@@ -30,6 +30,7 @@ import { lookupApp } from '../panel/widgets/registry';
 import { useServiceStatus, DESKTOP_OFFLINE_GRACE_MS } from '../hooks/useServiceStatus';
 import { useServiceState } from '../hooks/useServiceState';
 import { useOnboardingStatus } from '../hooks/useOnboardingStatus';
+import { useFanControlStatus } from '../hooks/useFanControlStatus';
 import { useNexus2WelcomeStatus } from '../hooks/useNexus2WelcomeStatus';
 import { useProfiles } from '../hooks/useProfiles';
 import { useCloudAccounts } from '../hooks/useCloudAccounts';
@@ -66,6 +67,7 @@ import { PairPhoneModal } from './PairPhoneModal';
 import { WelcomeScreen } from '../components/common/WelcomeScreen/WelcomeScreen';
 import { Nexus2WelcomeScreen } from '../components/common/Nexus2WelcomeScreen/Nexus2WelcomeScreen';
 import { LightingOnboardingScreen } from '../components/common/LightingOnboardingScreen/LightingOnboardingScreen';
+import { FanControlImportScreen } from '../components/common/FanControlImport/FanControlImportScreen';
 import { UpdateModal } from '../components/common/UpdateModal/UpdateModal';
 import { getUpdateStatus, startUpdate, type UpdateStatus } from '../api/update';
 import { IncomingPairModal } from './IncomingPairModal';
@@ -251,6 +253,8 @@ export function Dashboard() {
   // WelcomeScreen to this screen can land in the same render pass.
   const nexus2 = useNexus2WelcomeStatus();
   const [nexus2Dismissed, setNexus2Dismissed] = useState(false);
+  const fanControl = useFanControlStatus();
+  const [fanControlDismissed, setFanControlDismissed] = useState(false);
   // Second gate: a returning Nexus 2 user closes/imports from the old app
   // BEFORE device selection - Nexus 2 holds the very hardware the lighting
   // gate enumerates, so it must be out of the way for that list to be
@@ -263,6 +267,13 @@ export function Dashboard() {
   const lightingOnboardingOpen = onboardingStatus !== 'unknown' && nexus2.status !== 'unknown'
     && !welcomeOpen && !nexus2Open
     && lightingStatus === 'pending' && !lightingOnboardingDismissed;
+  // Fourth gate: FanControl users. Runs after device selection because it is
+  // about cooling configuration, not about which hardware Nexus drives, and
+  // its import binds curves to the fan channels that selection settles.
+  const fanControlOpen = onboardingStatus !== 'unknown' && nexus2.status !== 'unknown'
+    && fanControl.status !== 'unknown'
+    && !welcomeOpen && !nexus2Open && !lightingOnboardingOpen
+    && fanControl.status === 'pending' && !fanControlDismissed;
   // 'unknown' renders neither the dashboard nor any onboarding gate (only
   // the app background) so a fresh install never flashes the dashboard
   // chrome while the fast local /onboarding fetch is still in flight. All
@@ -275,7 +286,8 @@ export function Dashboard() {
   // heavier read - without this the dashboard would flash before
   // Nexus2WelcomeScreen pops in on top of it.
   const showDashboard = onboardingStatus !== 'unknown' && nexus2.status !== 'unknown'
-    && !welcomeOpen && !lightingOnboardingOpen && !nexus2Open;
+    && fanControl.status !== 'unknown'
+    && !welcomeOpen && !lightingOnboardingOpen && !nexus2Open && !fanControlOpen;
   const multiplex = useMultiplexConnection(online);
   const serviceState = useServiceState(online, multiplex);
   const profilesHook = useProfiles(online);
@@ -796,10 +808,9 @@ export function Dashboard() {
           onComplete={() => setNexus2Dismissed(true)}
           onBack={() => { setWelcomeRevisit(true); setOnboardingDismissed(false); }}
         />
-        {/* Lighting device-selection gate, last in the sequence, gated by its
-            own server-side flag so a factory reset reopens everything. Back
-            targets the Nexus 2 gate when this install has one, else the
-            welcome screen. */}
+        {/* Lighting device-selection gate, gated by its own server-side flag so
+            a factory reset reopens everything. Back targets the Nexus 2 gate
+            when this install has one, else the welcome screen. */}
         <LightingOnboardingScreen
           open={lightingOnboardingOpen}
           onComplete={() => setLightingOnboardingDismissed(true)}
@@ -807,6 +818,23 @@ export function Dashboard() {
             if (nexus2.status === 'pending') setNexus2Dismissed(false);
             else { setWelcomeRevisit(true); setOnboardingDismissed(false); }
           }}
+        />
+        {/* FanControl gate, last in the sequence: offers to bring that app's
+            curves, calibrations and fan settings over, then closes it and
+            removes its autostart so the two do not drive the same fans. */}
+        <FanControlImportScreen
+          open={fanControlOpen}
+          payload={fanControl.payload}
+          onComplete={() => setFanControlDismissed(true)}
+          // Back only exists when there is a screen behind this one. The
+          // service re-offers this gate whenever a FanControl config appears,
+          // so for an existing install it opens on its own and stepping back
+          // into first-run onboarding would make no sense.
+          onBack={lightingStatus === 'pending'
+            ? () => setLightingOnboardingDismissed(false)
+            : nexus2.status === 'pending'
+              ? () => setNexus2Dismissed(false)
+              : undefined}
         />
         {/* Global incoming-pair prompt, at the layout root so it lands on top
             of any section. Pair Remote stays in its own modal below. */}

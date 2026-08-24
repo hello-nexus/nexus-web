@@ -46,6 +46,12 @@ export function CoolingImmersiveEditor({ cooling }: { cooling: CoolingImmersiveC
     [curves, selectedCurveId],
   );
 
+  // Fans a Sync curve may follow: not the ones this curve already drives.
+  const syncSourceChannels = useMemo(
+    () => liveChannels.filter(c => fanStates[c.id]?.curveId !== selectedCurve?.id),
+    [liveChannels, fanStates, selectedCurve],
+  );
+
   return (
     <div className={styles.editor}>
       <div className={styles.body} data-panel-scrollable="true">
@@ -56,6 +62,7 @@ export function CoolingImmersiveEditor({ cooling }: { cooling: CoolingImmersiveC
               curve={selectedCurve}
               allCurves={curves}
               sources={sources}
+              channels={syncSourceChannels}
               onChange={cooling.saveCurve}
               onDelete={() => cooling.deleteCurve(selectedCurve.id)}
               onResetPreset={selectedCurve.preset ? () => cooling.resetPresetCurve(selectedCurve.preset!) : undefined}

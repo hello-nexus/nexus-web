@@ -68,7 +68,17 @@
 }
 
 .headerLeft { grid-column: 1; }
-.headerRight { grid-column: 2; }
+// min-width lets the title ellipsize instead of pushing the badge and the
+// action out of the column, the same way the fan header's title group does.
+.headerRight {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.curveHeaderAction {
+  margin-left: auto;
+  flex-shrink: 0;
+}
 
 .paneTitle {
   font-size: var(--type-body);
@@ -424,6 +434,14 @@
   display: flex;
   align-items: center;
   justify-content: flex-start;
+}
+
+// Sits under the fan's name when something shifts it off what drives it.
+.fanOffsetBadge {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-top: -0.15rem;
 }
 
 // Fan icon next to the name, doubling as the lock toggle. Turns accent when
