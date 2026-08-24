@@ -85,7 +85,7 @@ const PREVIEW_CONTENT: Record<string, string[]> = {
   stocks: ['Dow Jones', 'NASDAQ', 'AAPL', '52,637'],
   screentime: ['Figma', 'Chrome'],
   displays: ['Built-in Display', 'Studio Monitor', '#1', '#2'],
-  cooling: ['cooling.preset.balanced'],
+  cooling: ['cooling.mode.balanced'],
   'smart-lights': ['smartLights.onlineOfTotal'],
   deck: ['CPU Total', '58 %'],
   twitch: ['nova_streams', 'pixel_kat', 'that last round was clean'],

@@ -31,7 +31,7 @@ import {
 } from '../api/diagnostics';
 import { postService } from '../api/service';
 import type { UpdateMode, UpdateChannel } from '../api/update';
-import { COOLING_PRESETS, type CoolingPresetKey } from '../panel/widgets/cooling/page/coolingPresets';
+import { COOLING_MODES, type CoolingModeKey } from '../panel/widgets/cooling/page/coolingModes';
 import { EFFECTS, MODES, BASE_DEFAULTS, categoryOf, type LightingMode } from '../types/lighting';
 import { appAvailableForSurface, getCatalogEntries } from '../panel/widgets/registry';
 import { preinstalledIconUrl } from '../app/sidebarApps';
@@ -217,7 +217,7 @@ const MODE_POLICY: Record<LightingMode, { icon: ReactNode; keywords: string[]; a
 
 // Cooling presets that need the page rather than a blind apply (custom = your
 // editable curve). Everything else applies via applyProfile.
-const COOLING_NAVIGATE: ReadonlySet<CoolingPresetKey> = new Set(['custom']);
+const COOLING_NAVIGATE: ReadonlySet<CoolingModeKey> = new Set(['custom']);
 
 // ── Sources ─────────────────────────────────────────────────────────────────
 const navigation: SearchSource = (ctx) =>
@@ -344,7 +344,7 @@ const devices: SearchSource = (ctx) =>
 
 const cooling: SearchSource = (ctx) => {
   if (!ctx.online) return [];
-  return COOLING_PRESETS.map(({ key, i18nKey, Icon }) => {
+  return COOLING_MODES.map(({ key, i18nKey, Icon }) => {
     const opts = { title: `${ctx.t('cooling.title')} · ${ctx.t(i18nKey)}`, icon: <Icon size={18} />, keywords: ['cooling', 'fan', 'fans', 'preset', 'profile', 'mode', key] };
     return COOLING_NAVIGATE.has(key)
       ? go(`cooling:${key}`, { ...opts, to: () => ctx.host.goView('cooling') })

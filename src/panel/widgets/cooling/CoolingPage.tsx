@@ -57,7 +57,7 @@ import { FanCard, type FanCardHubMode } from './page/FanCard';
 import { CurveCard } from './page/CurveEditor';
 import { CurveSelector } from './page/CurveSelector';
 import { fanDeviceGroupName } from './page/deviceGroupName';
-import { COOLING_PRESETS, isCoolingPresetKey, type CoolingPresetKey } from './page/coolingPresets';
+import { COOLING_MODES, isCoolingModeKey, type CoolingModeKey } from './page/coolingModes';
 import { loadCoolingCache, saveCoolingCache } from './coolingCache';
 import { resolveCpuTempSensor, defaultCurveSourceId } from '../../../lib/tempSensorResolver';
 import { curveDefsFromApi, curveDefToApi, MAX_CURVES, newCurve, type CurveDef, type FanState } from '../../../types/cooling';
@@ -90,7 +90,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   const [calibrationResults, setCalibrationResults] = useState<FanCalibration[] | null>(null);
   // Seeded from the cache so the active preset tab on the header doesn't
   // flash unselected on every revisit. The live fetch refreshes it.
-  const [activePreset, setActivePreset] = useState<CoolingPresetKey | null>(() => cachedSeed.activePreset);
+  const [activeMode, setActiveMode] = useState<CoolingModeKey | null>(() => cachedSeed.activeMode);
   // Per-hub live cooling mode keyed by FanChannel.deviceId (e.g.
   // 'np50:1A2B3C', 'minihub:XYZ'). NP50 can report its own mode; MiniHub
   // can't, so we cache what we last set. Drives the per-fan dropdown
@@ -174,7 +174,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
         // Skip - locally-set preset wins for another beat.
       } else {
         activeCoolingProfileRef.current = profiles.active;
-        if (isCoolingPresetKey(profiles.active)) setActivePreset(profiles.active);
+        if (isCoolingModeKey(profiles.active)) setActiveMode(profiles.active);
       }
     }
 
@@ -211,8 +211,8 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // since these slices only mutate on real events (refresh, user edit,
   // profile switch, hot-plug).
   useEffect(() => {
-    saveCoolingCache({ channels, curves, sources, fanStates, activePreset, hubModes });
-  }, [channels, curves, sources, fanStates, activePreset, hubModes]);
+    saveCoolingCache({ channels, curves, sources, fanStates, activeMode, hubModes });
+  }, [channels, curves, sources, fanStates, activeMode, hubModes]);
 
   // Re-runs on profile switch so the curves/fan assignments reflect the new
   // profile's persisted config.
@@ -267,7 +267,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     const next = event.activePreset ?? event.activeProfile;
     if (next) {
       activeCoolingProfileRef.current = next;
-      if (isCoolingPresetKey(next)) setActivePreset(next);
+      if (isCoolingModeKey(next)) setActiveMode(next);
     }
     refreshCoolingConfig();
   }), [refreshCoolingConfig]);
@@ -395,27 +395,27 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // service emits after applyProfile.
   const exitOffToCustomIfNeeded = useCallback(async () => {
     if (activeCoolingProfileRef.current !== 'off') return;
-    setActivePreset('custom');
+    setActiveMode('custom');
     activeCoolingProfileRef.current = 'custom';
     presetLockUntilRef.current = Date.now() + 1500;
     publishControlSync({ domain: 'cooling', activePreset: 'custom' });
     await applyProfile('custom');
   }, []);
 
-  const handlePresetChange = useCallback(async (key: string) => {
-    if (!isCoolingPresetKey(key)) return;
+  const handleModeChange = useCallback(async (key: string) => {
+    if (!isCoolingModeKey(key)) return;
     // Pressing a preset (header tab or a Silent/Balanced/Turbo curve button)
     // also shows that preset's curve in the hero graph.
     const presetCurve = curves.find(c => c.preset === key);
     if (presetCurve) setSelectedCurveId(presetCurve.id);
-    if (key === activePreset) return;
-    setActivePreset(key);
+    if (key === activeMode) return;
+    setActiveMode(key);
     activeCoolingProfileRef.current = key;
     presetLockUntilRef.current = Date.now() + 1500;
     publishControlSync({ domain: 'cooling', activePreset: key });
     await applyProfile(key);
     refreshCoolingConfig();
-  }, [activePreset, curves, refreshCoolingConfig, setSelectedCurveId]);
+  }, [activeMode, curves, refreshCoolingConfig, setSelectedCurveId]);
 
   const toggleSoftwareControl = useCallback(async (fanId: string, enabled: boolean) => {
     if (enabled) {
@@ -909,21 +909,21 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     return s;
   }, [effectiveCurveId, fanStates]);
 
-  const presetTabs = COOLING_PRESETS.map(p => ({
+  const modeTabs = COOLING_MODES.map(p => ({
     key: p.key,
     // Silent/Balanced/Turbo apply to every fan, so the tab reads "All <preset>".
     label: p.key === 'silent' || p.key === 'balanced' || p.key === 'turbo'
-      ? `${t('cooling.preset.allPrefix')} ${t(p.i18nKey)}`
+      ? `${t('cooling.mode.allPrefix')} ${t(p.i18nKey)}`
       : t(p.i18nKey),
     icon: <p.Icon size={14} />,
   }));
 
-  const offStatusCard = activePreset === 'off' ? (
+  const offStatusCard = activeMode === 'off' ? (
     <div className={styles.offStatus}
       role="status"
-      aria-label={t('cooling.preset.off.banner')}>
+      aria-label={t('cooling.mode.off.banner')}>
       <Power size={13} aria-hidden />
-      <span className={styles.offStatusLabel}>{t('cooling.preset.off.banner')}</span>
+      <span className={styles.offStatusLabel}>{t('cooling.mode.off.banner')}</span>
     </div>
   ) : null;
 
@@ -933,9 +933,9 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
         {!simpleDashboard && (
           <ViewHeader
             title={t('cooling.title')}
-            tabs={presetTabs}
-            activeTab={activePreset ?? undefined}
-            onTabChange={k => handlePresetChange(k)}
+            tabs={modeTabs}
+            activeTab={activeMode ?? undefined}
+            onTabChange={k => handleModeChange(k)}
             tabsDisabled
           />
         )}
@@ -960,25 +960,25 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
           <IconLabelButton
             className={styles.simpleOffTile}
             icon={<Power size={22} />}
-            label={t('cooling.preset.off')}
-            description={t('cooling.preset.off.banner')}
-            active={activePreset === 'off'}
-            onPress={() => { void handlePresetChange('off'); }}
+            label={t('cooling.mode.off')}
+            description={t('cooling.mode.off.banner')}
+            active={activeMode === 'off'}
+            onPress={() => { void handleModeChange('off'); }}
           />
           <div className={styles.simplePresets} role="group" aria-label={t('cooling.title')}>
-            {COOLING_PRESETS.filter(p => p.key !== 'custom' && p.key !== 'off').map(p => (
+            {COOLING_MODES.filter(p => p.key !== 'custom' && p.key !== 'off').map(p => (
               <IconLabelButton
                 key={p.key}
                 className={styles.simplePresetTile}
                 icon={<p.Icon size={48} />}
                 label={t(p.i18nKey)}
-                description={t(`cooling.preset.${p.key}.desc`)}
-                active={activePreset === p.key}
-                onPress={() => { void handlePresetChange(p.key); }}
+                description={t(`cooling.mode.${p.key}.desc`)}
+                active={activeMode === p.key}
+                onPress={() => { void handleModeChange(p.key); }}
               />
             ))}
           </div>
-          {activePreset === 'custom' && (
+          {activeMode === 'custom' && (
             <SimpleModeNotice message={t('cooling.simple.customActive')} />
           )}
           <div className={styles.simpleFooter}>
@@ -1002,12 +1002,12 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
         <div className={styles.tabsCell}>
           <ViewHeader
             title={t('cooling.title')}
-            tabs={presetTabs}
-            activeTab={activePreset ?? undefined}
+            tabs={modeTabs}
+            activeTab={activeMode ?? undefined}
             onTabChange={(k, origin) => {
               // Status-change bloom only on an actual preset switch, from the pressed tab.
-              if (origin && isCoolingPresetKey(k) && k !== activePreset) emitRadialBloomFromElement(origin, k === 'off');
-              void handlePresetChange(k);
+              if (origin && isCoolingModeKey(k) && k !== activeMode) emitRadialBloomFromElement(origin, k === 'off');
+              void handleModeChange(k);
             }}
           />
         </div>

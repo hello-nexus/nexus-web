@@ -1,5 +1,5 @@
 import type { EffectState, LightingMode } from '../types/lighting';
-import type { CoolingPresetKey } from '../panel/widgets/cooling/page/coolingPresets';
+import type { CoolingModeKey } from '../panel/widgets/cooling/page/coolingModes';
 
 const CHANNEL_NAME = 'nexus-control-sync';
 const WINDOW_EVENT = 'nexus-control-sync';
@@ -17,7 +17,7 @@ export type ControlSyncEvent =
   | {
       domain: 'cooling';
       /** Active preset key after the change. Replaces the legacy `activeProfile` field. */
-      activePreset?: CoolingPresetKey;
+      activePreset?: CoolingModeKey;
       /** @deprecated Older surfaces still publish this; new code reads `activePreset`. Kept transitional so an old widget on the panel doesn't lose sync mid-deploy. */
       activeProfile?: string;
       revision?: number;

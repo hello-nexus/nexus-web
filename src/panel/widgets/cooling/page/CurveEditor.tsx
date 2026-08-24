@@ -14,7 +14,7 @@ import { useChartHoverTooltip } from '../../../../hooks/useChartHoverTooltip';
 import { Slider } from '../../../../components/common/Slider/Slider';
 import { RangeSlider } from '../../../../components/common/Slider/RangeSlider';
 import { Select } from '../../../../components/common/Select/Select';
-import { isPresetCurveDirty } from './coolingPresets';
+import { isModeCurveDirty } from './coolingModes';
 import styles from '../CoolingPage.module.scss';
 
 const CURVE_TYPES: { key: CurveType; labelKey: string; hintKey: string; icon: ReactNode }[] = [
@@ -547,7 +547,7 @@ export const CurveCard = memo(function CurveCard({
   onChange: (c: CurveDef) => void;
   onDelete: () => void;
   /** Reset a preset curve (silent/balanced/turbo) back to its defaults. Only
-   *  rendered when curve.preset is set; gated by isPresetCurveDirty. */
+   *  rendered when curve.preset is set; gated by isModeCurveDirty. */
   onResetPreset?: () => void;
 }) {
   const { t } = useTranslation();
@@ -615,7 +615,7 @@ export const CurveCard = memo(function CurveCard({
         {isPreset && onResetPreset && (
           <HoverTooltip body={t('cooling.curves.resetToDefaults')} side="top">
             <Button type="button" size="sm" tone="neutral" icon={<RotateCcw size={12} aria-hidden />}
-              onClick={e => { e.stopPropagation(); onResetPreset(); }} disabled={!isPresetCurveDirty(curve)}>
+              onClick={e => { e.stopPropagation(); onResetPreset(); }} disabled={!isModeCurveDirty(curve)}>
               {t('cooling.curves.resetBtn')}
             </Button>
           </HoverTooltip>
