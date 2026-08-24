@@ -236,14 +236,16 @@ export type CoolingPresetMode = 'off' | 'silent' | 'balanced' | 'turbo' | 'custo
 
 export interface CoolingPresetsResponse {
   presets: CoolingPreset[];
+  /** Null when no preset is loaded. */
   activeId: string | null;
 }
 
 export const fetchCoolingPresets = () =>
   fetchService<CoolingPresetsResponse>('/cooling/presets');
 
+/** `preset` is null on the error paths (blank name, cap reached). */
 export const createCoolingPreset = (name: string) =>
-  postService<{ preset: CoolingPreset; activeId: string | null; error?: boolean; msg?: string }>(
+  postService<{ preset: CoolingPreset | null; activeId: string | null; error: boolean; msg: string }>(
     '/cooling/presets', { name });
 
 /** saveCurrent re-captures the live configuration into the preset. */
