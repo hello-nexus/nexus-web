@@ -1,56 +1,36 @@
 @use '../../../styles/text' as *;
 @use '../../styles/flexGap' as *;
 
-.container {
+.twitch {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
   width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: 12px;
   box-sizing: border-box;
   color: var(--text);
   font-family: var(--panel-font);
-}
-
-.placeholder {
-  @include text-button;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
   @include vgap(8px);
-  color: var(--text-dim);
 }
 
-.frame {
-  width: 100%;
-  height: 100%;
-  border: none;
-  border-radius: var(--panel-element-radius, var(--radius-sm));
-}
-
-// Catalog preview mock chat frame.
-.mock {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  height: 100%;
-  @include vgap(8px);
-  padding: 10px;
-  box-sizing: border-box;
-  overflow: hidden;
-}
-
-.mockHeader {
+.header {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
-  @include hgap(6px);
+  min-width: 0;
   padding-bottom: 8px;
   border-bottom: 1px solid var(--separator);
-  color: var(--text);
+  @include hgap(6px);
+
+  > svg {
+    flex-shrink: 0;
+    color: var(--panel-accent-glow);
+  }
 }
 
-.channelName {
+.channel {
   @include text-button;
   flex: 1;
   min-width: 0;
@@ -59,28 +39,68 @@
   white-space: nowrap;
 }
 
-.liveBadge {
-  @include text-label;
-  color: var(--bad);
-}
-
-.chat {
+.placeholder {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  @include vgap(6px);
+  align-items: center;
+  justify-content: center;
   min-height: 0;
-  overflow: hidden;
-}
-
-.chatLine {
-  @include text-caption;
+  text-align: center;
   color: var(--text-dim);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  @include vgap(8px);
+
+  span {
+    @include text-caption;
+  }
 }
 
-.chatUser {
+.log {
+  flex: 1;
+  // Reversed so the newest line (first in DOM) paints at the bottom and the
+  // browser keeps the view there as messages append. See ChatLog.
+  display: flex;
+  flex-direction: column-reverse;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  // The Q60 has no pointer, so a scrollbar there is dead pixels; the log
+  // auto-follows the newest line instead.
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.line {
+  @include text-caption;
+  line-height: 1.45;
+  color: var(--text);
+  word-break: break-word;
+  overflow-wrap: anywhere;
+
+  & + & {
+    margin-top: 5px;
+  }
+}
+
+.user {
   font-weight: var(--weight-heading);
-  margin-right: 6px;
+  margin-right: 5px;
+}
+
+.emote {
+  // Sized to the line box so an emote never grows the row it sits in.
+  height: 1.5em;
+  width: auto;
+  vertical-align: middle;
+  margin: 0 2px;
+}
+
+// The q-series tile is the whole 720x1280 panel, which the panel shell already
+// scales up via --panel-scale; only the frame breathes here. Bumping the type
+// scale too would double-scale it down to about four visible lines.
+.twitch[data-size='2x4'] {
+  padding: 16px;
 }

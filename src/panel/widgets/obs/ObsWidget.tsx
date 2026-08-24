@@ -7,6 +7,7 @@ import {
   setObsScene,
   toggleObsRecording,
   toggleObsStreaming,
+  type ObsFailureReason,
   type ObsStatusResponse,
 } from '../../../api/obs';
 import type { WidgetProps } from '../types';
@@ -15,13 +16,23 @@ import { useTranslation } from '../../../lib/i18n';
 import { OBS_PREVIEW } from './obsPreviewData';
 import styles from './ObsWidget.module.scss';
 
-export function ObsWidget({ widget }: WidgetProps) {
+const EMPTY_COPY: Record<ObsFailureReason, string> = {
+  auth: 'panel.widget.obs.needsPassword',
+  offline: 'panel.widget.obs.notRunning',
+  error: 'panel.widget.obs.notConnected',
+  '': 'panel.widget.obs.notConnected',
+};
+
+export function ObsWidget({ widget, onConfigure }: WidgetProps) {
   const { t } = useTranslation();
   const preview = usePanelPreview();
   const [status, setStatus] = useState<ObsStatusResponse | null>(preview ? OBS_PREVIEW : null);
   const [busy, setBusy] = useState(false);
   const connected = Boolean(status?.connected && !status.error);
   const compact = widget.size === '2x2';
+  // No status yet reads as offline: that is the common first paint (OBS shut),
+  // and its copy is the only one that does not accuse the user of a misconfig.
+  const reason: ObsFailureReason = connected ? '' : (status?.reason || 'offline');
 
   const refresh = useCallback(async () => {
     const next = await fetchObsStatus();
@@ -63,21 +74,24 @@ export function ObsWidget({ widget }: WidgetProps) {
         <div className={styles.titleBlock}>
           <RadioTower size={compact ? 17 : 19} />
           <div>
+            <div className={styles.title}>{t('panel.widget.obs')}</div>
             <div className={styles.statusLine}>
               <span className={styles.dot} />
-              <span>{connected ? t('panel.widget.obs.connected') : status?.msg || t('panel.widget.obs.disconnected')}</span>
+              <span>{connected ? t('panel.widget.obs.connected') : t('panel.widget.obs.disconnected')}</span>
             </div>
           </div>
         </div>
-        <button
-          type="button"
-          className={styles.iconButton}
-          onClick={() => run(connectObs)}
-          disabled={busy}
-          aria-label={t('panel.widget.obs.reconnect')}
-        >
-          <RefreshCw size={15} />
-        </button>
+        {connected && (
+          <button
+            type="button"
+            className={styles.iconButton}
+            onClick={() => run(connectObs)}
+            disabled={busy}
+            aria-label={t('panel.widget.obs.reconnect')}
+          >
+            <RefreshCw size={15} />
+          </button>
+        )}
       </header>
 
       {connected ? (
@@ -135,14 +149,26 @@ export function ObsWidget({ widget }: WidgetProps) {
         </div>
       ) : (
         <div className={styles.empty}>
-          <div className={styles.emptyText}>{status?.msg || t('panel.widget.obs.notConnected')}</div>
+          <div className={styles.emptyText}>{t(EMPTY_COPY[reason])}</div>
           <div className={styles.emptyActions}>
-            <button type="button" className="panel-chip" onClick={() => run(connectObs)} disabled={busy}>
-              {t('panel.widget.obs.connect')}
-            </button>
-            <button type="button" className="panel-chip" onClick={() => run(launchObs)} disabled={busy}>
-              {t('panel.widget.obs.launch')}
-            </button>
+            {reason === 'auth'
+              ? onConfigure && (
+                <button type="button" className="panel-chip" onClick={onConfigure}>
+                  {t('panel.widget.obs.openSettings')}
+                </button>
+              )
+              : (
+                <>
+                  {reason === 'offline' && (
+                    <button type="button" className="panel-chip" onClick={() => run(launchObs)} disabled={busy}>
+                      {t('panel.widget.obs.launch')}
+                    </button>
+                  )}
+                  <button type="button" className="panel-chip" onClick={() => run(connectObs)} disabled={busy}>
+                    {t('panel.widget.obs.connect')}
+                  </button>
+                </>
+              )}
           </div>
         </div>
       )}

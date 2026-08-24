@@ -1,4 +1,5 @@
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react';
+import type { InputHTMLAttributes, ReactNode } from 'react';
+import { Button, type ButtonProps } from '../../../../components/common/Button/Button';
 import { SettingsSection as SettingsSectionBase } from '../../../../components/common/SettingsSection/SettingsSection';
 import styles from './SettingsRow.module.scss';
 
@@ -28,12 +29,16 @@ export function SettingsActions({ children }: { children: ReactNode }) {
   return <div className={styles.actions} data-settings-aside="true">{children}</div>;
 }
 
+/**
+ * Settings-sheet action button. Delegates to the canonical Button so these
+ * sheets match the main Settings pages, the same reason SettingRow above is
+ * re-exported rather than reimplemented.
+ */
 export function SettingsButton({
   variant = 'primary',
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'muted' }) {
-  const className = variant === 'muted' ? styles.buttonMuted : styles.button;
-  return <button {...props} type={props.type ?? 'button'} className={`${className} ${props.className ?? ''}`} />;
+}: Omit<ButtonProps, 'tone' | 'size'> & { variant?: 'primary' | 'muted' }) {
+  return <Button {...props} size="sm" tone={variant === 'muted' ? 'neutral' : 'accent'} />;
 }
 
 export function SettingsSaved({ children }: { children: ReactNode }) {

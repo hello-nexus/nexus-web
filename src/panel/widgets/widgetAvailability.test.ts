@@ -285,7 +285,7 @@ describe('isSingleWidgetSurface', () => {
 describe('catalog listing (delist)', () => {
   // Delisted from the Add-a-Widget picker but still resolvable: an existing
   // placed instance keeps rendering; only new insertion is removed.
-  const DELISTED = ['discord', 'obs', 'steam', 'twitch'] as const;
+  const DELISTED = ['discord', 'steam'] as const;
 
   it('hides the delisted built-ins from the picker yet keeps them resolvable', () => {
     const listedTypes = new Set(

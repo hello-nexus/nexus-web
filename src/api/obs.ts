@@ -19,10 +19,14 @@ export interface ObsScene {
   uuid: string;
 }
 
+/** Why the connection is down, so the UI can offer the action that fixes it. */
+export type ObsFailureReason = 'auth' | 'offline' | 'error' | '';
+
 export interface ObsStatusResponse {
   error: boolean;
   msg: string;
   connected: boolean;
+  reason: ObsFailureReason;
   host: string;
   port: number;
   activeScene: string;
