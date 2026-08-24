@@ -88,7 +88,7 @@ const PREVIEW_CONTENT: Record<string, string[]> = {
   cooling: ['cooling.preset.balanced'],
   'smart-lights': ['smartLights.onlineOfTotal'],
   deck: ['CPU Total', '58 %'],
-  twitch: ['nova_streams', 'LIVE'],
+  twitch: ['nova_streams', 'pixel_kat', 'that last round was clean'],
   // The mocked t() returns keys, so the overall status pill surfaces as the
   // raw 'diagnostics.status.watch' key; the reason line falls back to the
   // fixture's own summary text (see diagnosticsHelpers.reasonLabel).
