@@ -441,11 +441,8 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
             onUndo={handleUndoDeck}
             onRedo={handleRedoDeck}
             onImport={() => setImportOpen(true)}
-            // eslint-disable-next-line i18next/no-literal-string -- i18n key name, not literal UI text
             resetLabelKey="devices.streamdeck.presets.reset"
-            // eslint-disable-next-line i18next/no-literal-string -- i18n key name, not literal UI text
             resetConfirmKey="devices.streamdeck.presets.resetConfirm"
-            // eslint-disable-next-line i18next/no-literal-string -- i18n key name, not literal UI text
             importLabelKey="devices.streamdeck.presets.importOption"
           />
         ) : undefined}

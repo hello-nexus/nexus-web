@@ -68,11 +68,11 @@ vi.mock('../../../lib/i18n', () => ({
   useTranslation: () => ({
     t: (key: string) => ({
       'cooling.title': 'Cooling',
-      'cooling.preset.off': 'Off',
-      'cooling.preset.silent': 'Silent',
-      'cooling.preset.balanced': 'Balanced',
-      'cooling.preset.turbo': 'Turbo',
-      'cooling.preset.custom': 'Custom',
+      'cooling.mode.off': 'Off',
+      'cooling.mode.silent': 'Silent',
+      'cooling.mode.balanced': 'Balanced',
+      'cooling.mode.turbo': 'Turbo',
+      'cooling.mode.custom': 'Custom',
       'cooling.label.cpu': 'CPU',
       'cooling.label.gpu': 'GPU',
       'cooling.label.fan': 'FAN',

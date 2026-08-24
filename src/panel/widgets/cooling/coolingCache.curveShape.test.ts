@@ -6,7 +6,7 @@ import { loadCoolingCache } from './coolingCache';
 // that is a crash on open, which is exactly what shipping the trigger / sync /
 // auto modes did to anyone who had visited the cooling page before.
 
-const KEY = 'nexus_cooling_cache_v3';
+const KEY = 'nexus_cooling_cache_v4';
 
 beforeEach(() => localStorage.clear());
 
