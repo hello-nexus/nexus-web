@@ -619,7 +619,7 @@ export function Dashboard() {
       }} />;
       case 'smart-lights': return <SmartLightsPage onSectionNavigate={(target) => setView(target)} />;
       case 'home-assistant': return <HomeAssistantPage />;
-      case 'cooling':    return <CoolingPage serviceOnline={online} serviceState={serviceState} connectionState={status.state} activeProfileId={profilesHook.activeId} />;
+      case 'cooling':    return <CoolingPage serviceOnline={online} serviceState={serviceState} connectionState={status.state} activeProfileId={profilesHook.activeId} platform={status.ping?.platform ?? ''} />;
       case 'devices':    return (
         <DevicesPage
           serviceOnline={online}

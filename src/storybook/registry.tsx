@@ -2165,14 +2165,14 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'FanControlImportSection', category: 'modals',
     filePath: 'src/components/common/FanControlImport/FanControlImportSection.tsx',
-    description: 'FanControl import flow: picks one of that app\'s saved configurations, previews what maps onto this PC (curves with their target mode, fans with how each was matched, and what is being left behind), and applies the selected categories - curves, calibration, fan names, offsets, fixed speeds. Shared by FanControlImportScreen and FanControlImportDialog.',
+    description: 'FanControl import flow: picks one of that app\'s saved configurations, previews what maps onto this PC (curves with their target mode, fans with how each was matched, and what is being left behind), and applies the selected categories - curves, calibration, fan names, offsets, fixed speeds. Shared by FanControlImportScreen and the cooling page\'s CoolingImportDialog.',
     notes: 'No live preview - it posts real /migration/fancontrol/preview and /apply requests, so opening it here would overwrite the running install\'s fan curves.',
   },
   {
-    name: 'FanControlImportDialog', category: 'modals',
-    filePath: 'src/components/common/FanControlImport/FanControlImportDialog.tsx',
-    description: 'Cooling-page re-entry point for the FanControl import: a DeviceModal hosting FanControlImportSection, opened from the fan list header once the service reports an importable FanControl configuration (which outlives an uninstall).',
-    notes: 'No live preview - hosts FanControlImportSection, which posts real preview/apply requests.',
+    name: 'CoolingImportDialog', category: 'modals',
+    filePath: 'src/components/common/CoolingImport/CoolingImportDialog.tsx',
+    description: 'The cooling page\'s import surface, opened from the Curves header: a list of apps a cooling setup can come from beside the selected one\'s flow. FanControl is the only source today, and it is listed whether or not it is installed - a source that is missing says so rather than the entry disappearing.',
+    notes: 'No live preview - the FanControl source hosts FanControlImportSection, which posts real preview/apply requests.',
   },
   {
     name: 'LightingOnboardingScreen', category: 'modals',
