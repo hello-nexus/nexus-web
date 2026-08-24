@@ -3431,6 +3431,8 @@
   "lighting.simple.controlled": "{count} controlâts",
   "lighting.simple.detected.one": "{count} dispositîf di iluminazion rilevât",
   "lighting.simple.detected.other": "{count} dispositîfs di iluminazion rilevâts",
+  "lighting.sleepBlackout.description": "Al distude ducj i dispositîfs controlâts di Nexus cuant che il PC al va a polsâ e al torne a meti il to efiet cuant che si dismire. Cence chest, l'hardware che al reste alimentât dilunc il polsâ (soredut la RAM RGB) al reste impiât.",
+  "lighting.sleepBlackout.label": "Distude la iluminazion tal polsâ",
   "uiMode.advancedMode": "Modalitât avanzade",
   "uiMode.simpleMode": "Modalitât semplice",
   "uiMode.switchToAdvanced": "Passe ae modalitât avanzade",

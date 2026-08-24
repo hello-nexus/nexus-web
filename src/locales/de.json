@@ -3431,6 +3431,8 @@
   "lighting.simple.detected.one": "{count} Beleuchtungsgerät erkannt",
   "lighting.simple.detected.other": "{count} Beleuchtungsgeräte erkannt",
   "lighting.simple.controlled": "{count} gesteuert",
+  "lighting.sleepBlackout.description": "Schaltet beim Wechsel in den Ruhezustand alle von Nexus gesteuerten Geräte dunkel und stellt deinen Effekt beim Aufwachen wieder her. Ohne diese Option bleibt Hardware, die im Ruhezustand weiter mit Strom versorgt wird (vor allem RGB-RAM), beleuchtet.",
+  "lighting.sleepBlackout.label": "Beleuchtung im Ruhezustand ausschalten",
   "cooling.simple.detected.one": "{count} Lüfter erkannt",
   "cooling.simple.detected.other": "{count} Lüfter erkannt",
   "cooling.simple.controlled": "{count} gesteuert",

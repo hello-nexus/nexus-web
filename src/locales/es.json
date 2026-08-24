@@ -3431,6 +3431,8 @@
   "lighting.simple.detected.one": "{count} dispositivo de iluminación detectado",
   "lighting.simple.detected.other": "{count} dispositivos de iluminación detectados",
   "lighting.simple.controlled": "{count} controlados",
+  "lighting.sleepBlackout.description": "Apaga todos los dispositivos que controla Nexus cuando el PC entra en suspensión y restaura tu efecto al despertar. Sin esto, el hardware que sigue alimentado durante la suspensión (sobre todo la RAM RGB) permanece encendido.",
+  "lighting.sleepBlackout.label": "Apagar la iluminación al suspender",
   "cooling.simple.detected.one": "{count} ventilador detectado",
   "cooling.simple.detected.other": "{count} ventiladores detectados",
   "cooling.simple.controlled": "{count} controlados",

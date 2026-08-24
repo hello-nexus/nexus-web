@@ -3,9 +3,11 @@ import { RotateCcw } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { Select } from '../../common/Select/Select';
-import { SettingRow, SettingSelect } from '../../common/SettingRow/SettingRow';
+import { SettingRow, SettingSelect, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
-import { fetchRenderGpu, restartService, setRenderGpu } from '../../../api/lighting';
+import {
+  fetchRenderGpu, fetchSleepBlackout, restartService, setRenderGpu, setSleepBlackout,
+} from '../../../api/lighting';
 import { useSensors, type HardwareSensor } from '../../../hooks/useSensors';
 import { useUiSettings } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
@@ -38,6 +40,12 @@ export function LightingCoolingSection({ serviceOnline, platform }: LightingCool
   const [renderGpu, setRenderGpuValue] = useState('auto');
   const [restartOpen, setRestartOpen] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
+  // Only Windows notifies the service before the host suspends, which is the
+  // one moment black can still be written; elsewhere the setting would be a
+  // switch that does nothing. Defaults to the service default (on) so the row
+  // never renders off for a moment and reads as a user preference.
+  const showSleepBlackout = platform === 'windows';
+  const [sleepBlackout, setSleepBlackoutValue] = useState(true);
 
   useEffect(() => {
     if (!showGpuPicker || !serviceOnline) return;
@@ -48,6 +56,15 @@ export function LightingCoolingSection({ serviceOnline, platform }: LightingCool
     return () => { cancelled = true; };
   }, [showGpuPicker, serviceOnline]);
 
+  useEffect(() => {
+    if (!showSleepBlackout || !serviceOnline) return;
+    let cancelled = false;
+    fetchSleepBlackout()
+      .then(r => { if (!cancelled && r) setSleepBlackoutValue(!!r.enabled); })
+      .catch(() => { /* keep default */ });
+    return () => { cancelled = true; };
+  }, [showSleepBlackout, serviceOnline]);
+
   const cpuOptions = useMemo(() => listTempSensors(sensors.cpu), [sensors.cpu]);
   const gpuOptions = useMemo(() => listTempSensors(sensors.gpu), [sensors.gpu]);
   const cpuDefault = useMemo(() => defaultCpuTempSensor(sensors.cpu), [sensors.cpu]);
@@ -57,6 +74,11 @@ export function LightingCoolingSection({ serviceOnline, platform }: LightingCool
     setRenderGpuValue(value);
     try { await setRenderGpu(value); } catch { /* persist may retry; UI keeps the pick */ }
     setRestartOpen(true);
+  };
+  const handleSleepBlackoutChange = async (next: boolean) => {
+    setSleepBlackoutValue(next);
+    try { await setSleepBlackout(next); }
+    catch { setSleepBlackoutValue(!next); }
   };
   const handleRestart = async () => {
     try { await restartService(); } catch { /* the socket drops as the service restarts */ }
@@ -107,6 +129,16 @@ export function LightingCoolingSection({ serviceOnline, platform }: LightingCool
             value={renderGpu}
             options={gpuSelectOptions}
             onChange={handleGpuChange}
+          />
+        )}
+        {showSleepBlackout && (
+          <SettingToggle
+            label={t('lighting.sleepBlackout.label')}
+            anchorId="set-sleep-blackout"
+            description={t('lighting.sleepBlackout.description')}
+            checked={sleepBlackout}
+            onChange={handleSleepBlackoutChange}
+            disabled={!serviceOnline}
           />
         )}
         <SensorRow

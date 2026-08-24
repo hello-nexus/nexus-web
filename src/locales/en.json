@@ -1968,6 +1968,8 @@
   "lighting.simple.controlled": "{count} controlled",
   "lighting.simple.detected.one": "{count} lighting device detected",
   "lighting.simple.detected.other": "{count} lighting devices detected",
+  "lighting.sleepBlackout.description": "Blanks every device Nexus controls when the PC goes to sleep and restores your effect on wake. Without it, hardware that keeps its power while asleep (RGB RAM especially) stays lit.",
+  "lighting.sleepBlackout.label": "Turn off lighting during sleep",
   "lighting.title": "Lighting",
   "lightingOnboarding.continue": "Continue",
   "lightingOnboarding.emptyHint": "You can rescan any time from the Lighting page.",

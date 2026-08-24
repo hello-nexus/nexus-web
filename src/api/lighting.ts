@@ -293,6 +293,17 @@ export const fetchMusicReactive = () =>
 export const setMusicReactive = (enabled: boolean) =>
   postService('/lighting/music-reactive', { enabled });
 
+// --- Sleep blackout ---
+// Blank every lighting device Nexus drives while the host sleeps. Devices that
+// keep their bus powered across sleep (RAM over SMBus above all) otherwise hold
+// their last frame and stay lit. Host-only route - a paired phone cannot flip it.
+
+export const fetchSleepBlackout = () =>
+  fetchService<{ enabled: boolean }>('/lighting/sleep-blackout');
+
+export const setSleepBlackout = (enabled: boolean) =>
+  postService('/lighting/sleep-blackout', { enabled });
+
 // --- Device list ---
 
 export interface LightingDevice {

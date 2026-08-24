@@ -3447,6 +3447,8 @@
   "lighting.simple.detected.other": "Wykryto {count} urządzeń podświetlenia",
   "lighting.simple.detected.few": "Wykryto {count} urządzenia podświetlenia",
   "lighting.simple.controlled": "{count} sterowanych",
+  "lighting.sleepBlackout.description": "Wygasza wszystkie urządzenia sterowane przez Nexus, gdy komputer przechodzi w stan uśpienia, i przywraca efekt po wybudzeniu. Bez tego sprzęt, który pozostaje zasilany podczas uśpienia (zwłaszcza pamięć RGB), świeci dalej.",
+  "lighting.sleepBlackout.label": "Wyłącz podświetlenie w trybie uśpienia",
   "cooling.simple.detected.one": "Wykryto {count} wentylator",
   "cooling.simple.detected.other": "Wykryto {count} wentylatorów",
   "cooling.simple.detected.few": "Wykryto {count} wentylatory",

@@ -3431,6 +3431,8 @@
   "lighting.simple.detected.one": "조명 장치 {count}개 감지됨",
   "lighting.simple.detected.other": "조명 장치 {count}개 감지됨",
   "lighting.simple.controlled": "{count}개 제어 중",
+  "lighting.sleepBlackout.description": "PC가 절전 모드로 들어갈 때 Nexus가 제어하는 모든 장치를 끄고, 깨어날 때 효과를 복원합니다. 이 설정이 없으면 절전 중에도 전원이 유지되는 하드웨어(특히 RGB 메모리)는 계속 켜져 있습니다.",
+  "lighting.sleepBlackout.label": "절전 모드에서 조명 끄기",
   "cooling.simple.detected.one": "팬 {count}개 감지됨",
   "cooling.simple.detected.other": "팬 {count}개 감지됨",
   "cooling.simple.controlled": "{count}개 제어 중",
