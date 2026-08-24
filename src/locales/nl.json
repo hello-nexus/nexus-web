@@ -1881,6 +1881,7 @@
   "lighting.layoutPresets.appsHint": "Deze preset wordt actief zolang een van deze apps op de voorgrond is. Een app kan maar één preset activeren.",
   "lighting.layoutPresets.appsRemove": "{name} verwijderen",
   "lighting.layoutPresets.appsSave": "Opslaan",
+  "lighting.layoutPresets.appsSaveFailed": "Opslaan mislukt. Controleer of Nexus actief is en probeer het opnieuw.",
   "lighting.layoutPresets.appsTaken": "{app} activeert al \"{preset}\". Een app kan maar één preset activeren.",
   "lighting.layoutPresets.appsTakenShort": "Activeert al \"{preset}\"",
   "lighting.layoutPresets.reset": "Indeling herstellen",

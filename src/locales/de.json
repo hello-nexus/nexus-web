@@ -1684,6 +1684,7 @@
   "lighting.layoutPresets.appsHint": "Dieses Preset wird aktiv, solange eine dieser Apps im Vordergrund ist. Eine App kann nur ein Preset aktivieren.",
   "lighting.layoutPresets.appsRemove": "{name} entfernen",
   "lighting.layoutPresets.appsSave": "Speichern",
+  "lighting.layoutPresets.appsSaveFailed": "Speichern fehlgeschlagen. Prüfe, ob Nexus läuft, und versuche es erneut.",
   "lighting.layoutPresets.appsTaken": "{app} löst bereits \"{preset}\" aus. Eine App kann nur ein Preset auslösen.",
   "lighting.layoutPresets.appsTakenShort": "Löst bereits \"{preset}\" aus",
   "lighting.layoutPresets.reset": "Layout zurücksetzen",

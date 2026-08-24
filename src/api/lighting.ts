@@ -422,9 +422,12 @@ export const setActiveLayoutPreset = (id: string | null) =>
 
 // An app drives exactly one preset, so assigning one another preset already
 // uses is refused with a 409 naming the owner rather than moved.
+/** A refused save is not the same as an unreachable service: the caller has to
+ *  tell the user which happened, and must never read either as success. */
 export type SetPresetAppsResult =
-  | { ok: true }
-  | { ok: false; conflict?: PresetAppConflict };
+  | { kind: 'ok' }
+  | { kind: 'conflict'; conflict: PresetAppConflict }
+  | { kind: 'failed' };
 
 export async function setLayoutPresetApps(id: string, apps: PresetApp[]): Promise<SetPresetAppsResult> {
   // authFetch drops the body of a non-2xx, and the 409 carries which preset
@@ -433,15 +436,15 @@ export async function setLayoutPresetApps(id: string, apps: PresetApp[]): Promis
     '/devices/lighting-devices/layout-presets/' + encodeURIComponent(id) + '/apps',
     { method: 'PUT', body: { apps } },
   );
-  if (status === 200) return { ok: true };
+  if (status === 200) return { kind: 'ok' };
   if (status === 409 && response) {
     try {
-      return { ok: false, conflict: (await response.json()) as PresetAppConflict };
+      return { kind: 'conflict', conflict: (await response.json()) as PresetAppConflict };
     } catch {
-      return { ok: false };
+      return { kind: 'failed' };
     }
   }
-  return { ok: false };
+  return { kind: 'failed' };
 }
 
 export const activateLayoutPreset = (id: string) =>

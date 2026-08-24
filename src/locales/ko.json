@@ -1684,6 +1684,7 @@
   "lighting.layoutPresets.appsHint": "이 앱 중 하나가 활성 상태인 동안 이 프리셋이 적용됩니다. 앱 하나는 프리셋 하나만 활성화할 수 있습니다.",
   "lighting.layoutPresets.appsRemove": "{name} 제거",
   "lighting.layoutPresets.appsSave": "저장",
+  "lighting.layoutPresets.appsSaveFailed": "저장하지 못했습니다. Nexus가 실행 중인지 확인한 후 다시 시도하세요.",
   "lighting.layoutPresets.appsTaken": "{app} 은(는) 이미 \"{preset}\"을(를) 실행합니다. 앱 하나는 프리셋 하나만 실행할 수 있습니다.",
   "lighting.layoutPresets.appsTakenShort": "이미 \"{preset}\" 실행",
   "lighting.layoutPresets.reset": "레이아웃 초기화",

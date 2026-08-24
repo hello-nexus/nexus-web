@@ -1684,6 +1684,7 @@
   "lighting.layoutPresets.appsHint": "Questo preset si attiva mentre una di queste app è in primo piano. Un'app può attivare un solo preset.",
   "lighting.layoutPresets.appsRemove": "Rimuovi {name}",
   "lighting.layoutPresets.appsSave": "Salva",
+  "lighting.layoutPresets.appsSaveFailed": "Salvataggio non riuscito. Verifica che Nexus sia in esecuzione e riprova.",
   "lighting.layoutPresets.appsTaken": "{app} attiva già \"{preset}\". Un'app può attivare un solo preset.",
   "lighting.layoutPresets.appsTakenShort": "Attiva già \"{preset}\"",
   "lighting.layoutPresets.reset": "Reimposta layout",

@@ -1701,6 +1701,7 @@
   "lighting.layoutPresets.appsHint": "Ten preset włącza się, gdy jedna z tych aplikacji jest na pierwszym planie. Aplikacja może włączać tylko jeden preset.",
   "lighting.layoutPresets.appsRemove": "Usuń {name}",
   "lighting.layoutPresets.appsSave": "Zapisz",
+  "lighting.layoutPresets.appsSaveFailed": "Nie udało się zapisać. Sprawdź, czy Nexus działa, i spróbuj ponownie.",
   "lighting.layoutPresets.appsTaken": "{app} już uruchamia \"{preset}\". Aplikacja może uruchamiać tylko jeden preset.",
   "lighting.layoutPresets.appsTakenShort": "Już uruchamia \"{preset}\"",
   "lighting.layoutPresets.reset": "Resetuj układ",

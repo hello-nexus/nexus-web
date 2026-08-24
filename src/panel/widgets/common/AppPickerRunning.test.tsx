@@ -30,8 +30,9 @@ import { fetchService, fetchServiceBlob } from '../../../api/service';
 const SHORTCUTS = {
   shortcuts: [
     { id: 'com.example.chrome', name: 'Google Chrome', path: '/c/chrome.exe', processName: 'chrome' },
-    { id: 'com.example.code', name: 'Visual Studio Code', path: '/c/code.exe', processName: 'code' },
+    { id: 'com.example.code', name: 'Visual Studio Code', path: '/c/code.exe', processName: 'Code' },
     { id: 'Some.Uwp!App', name: 'Notepad', path: '', processName: '' },
+    { id: 'com.example.chrome.beta', name: 'Chrome Beta', path: '/c/chrome.exe', processName: 'chrome' },
   ],
 };
 
@@ -89,7 +90,7 @@ describe('AppPicker running-apps group', () => {
 
     await waitFor(() => expect(screen.getByText('steam')).toBeTruthy());
     fireEvent.click(screen.getByText('steam'));
-    expect(onSelect).toHaveBeenCalledWith({ id: 'proc:steam', name: 'steam' });
+    expect(onSelect).toHaveBeenCalledWith({ id: 'proc:steam', name: 'steam', processName: 'steam' });
   });
 
   it('running icons come from the process-icon route, installed ones from shortcuts', async () => {
@@ -156,7 +157,7 @@ describe('AppPicker running-apps group', () => {
 
     // It binds under the installed id, not proc:chrome.
     fireEvent.click(screen.getByText('Google Chrome'));
-    expect(onSelect).toHaveBeenCalledWith({ id: 'com.example.chrome', name: 'Google Chrome' });
+    expect(onSelect).toHaveBeenCalledWith({ id: 'com.example.chrome', name: 'Google Chrome', processName: 'chrome' });
   });
 
   it('a running process with no installed match keeps its proc: identity', async () => {
@@ -167,7 +168,7 @@ describe('AppPicker running-apps group', () => {
     await waitFor(() => expect(screen.getByText('steam')).toBeTruthy());
 
     fireEvent.click(screen.getByText('steam'));
-    expect(onSelect).toHaveBeenCalledWith({ id: 'proc:steam', name: 'steam' });
+    expect(onSelect).toHaveBeenCalledWith({ id: 'proc:steam', name: 'steam', processName: 'steam' });
   });
 
   it('greys a row taken under its process name, whichever list it came from', async () => {
@@ -198,5 +199,44 @@ describe('AppPicker running-apps group', () => {
     await waitFor(() => expect(screen.getByText('Google Chrome')).toBeTruthy());
 
     expect(screen.getByText('Notepad')).toBeTruthy();
+  });
+
+  it('matches a mixed-case processName from the service against a running name', async () => {
+    // macOS reports CFBundleDisplayName with its original case ("Code");
+    // Windows lowercases. Both must dedupe against a running process.
+    const onSelect = vi.fn();
+    render(<AppPicker showRunning onSelect={onSelect} />);
+    await screen.findByText('Visual Studio Code');
+    emitProcesses([{ name: 'Code', isApp: true }]);
+    await waitFor(() => expect(screen.getByText('Google Chrome')).toBeTruthy());
+
+    const rows = [...document.querySelectorAll('button')]
+      .filter(b => b.className.includes('appRow'))
+      .map(b => b.textContent);
+    expect(rows.filter(r => r === 'Visual Studio Code')).toHaveLength(1);
+    expect(rows[0]).toBe('Visual Studio Code');
+  });
+
+  it('hands the resolved process name to onSelect', async () => {
+    const onSelect = vi.fn();
+    render(<AppPicker showRunning onSelect={onSelect} />);
+    await screen.findByText('Google Chrome');
+
+    fireEvent.click(screen.getByText('Google Chrome'));
+    expect(onSelect).toHaveBeenCalledWith({
+      id: 'com.example.chrome',
+      name: 'Google Chrome',
+      processName: 'chrome',
+    });
+  });
+
+  it('keeps a second shortcut that targets the same exe reachable', async () => {
+    render(<AppPicker showRunning onSelect={vi.fn()} />);
+    await screen.findByText('Google Chrome');
+    emitProcesses([{ name: 'chrome', isApp: true }]);
+    await waitFor(() => expect(screen.getByText('Google Chrome')).toBeTruthy());
+
+    // Only the promoted entry leaves All apps; a sibling shortcut stays.
+    expect(screen.getByText('Chrome Beta')).toBeTruthy();
   });
 });

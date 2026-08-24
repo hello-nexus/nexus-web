@@ -1684,6 +1684,7 @@
   "lighting.layoutPresets.appsHint": "Bu önayar, bu uygulamalardan biri ön plandayken etkinleşir. Bir uygulama yalnızca bir önayarı etkinleştirebilir.",
   "lighting.layoutPresets.appsRemove": "{name} kaldır",
   "lighting.layoutPresets.appsSave": "Kaydet",
+  "lighting.layoutPresets.appsSaveFailed": "Kaydedilemedi. Nexus'un çalıştığından emin olup yeniden deneyin.",
   "lighting.layoutPresets.appsTaken": "{app} zaten \"{preset}\" önayarını tetikliyor. Bir uygulama yalnızca bir önayarı tetikleyebilir.",
   "lighting.layoutPresets.appsTakenShort": "Zaten \"{preset}\" tetikliyor",
   "lighting.layoutPresets.reset": "Düzeni Sıfırla",

@@ -1684,6 +1684,7 @@
   "lighting.layoutPresets.appsHint": "Este preset se activa mientras una de estas aplicaciones está en primer plano. Una aplicación solo puede activar un preset.",
   "lighting.layoutPresets.appsRemove": "Quitar {name}",
   "lighting.layoutPresets.appsSave": "Guardar",
+  "lighting.layoutPresets.appsSaveFailed": "No se pudo guardar. Comprueba que Nexus esté en ejecución e inténtalo de nuevo.",
   "lighting.layoutPresets.appsTaken": "{app} ya activa \"{preset}\". Una aplicación solo puede activar un preset.",
   "lighting.layoutPresets.appsTakenShort": "Ya activa \"{preset}\"",
   "lighting.layoutPresets.reset": "Restablecer diseño",

@@ -14,10 +14,16 @@ vi.mock('../../common/AppPicker', () => ({
     <div>
       <span data-testid="selected">{(selectedIds ?? []).join(',')}</span>
       <span data-testid="unavailable">{Object.keys(unavailableIds ?? {}).sort().join(',')}</span>
-      <button type="button" onClick={() => onSelect({ id: 'proc:chrome', name: 'chrome' })}>
+      <button
+        type="button"
+        onClick={() => onSelect({ id: 'proc:chrome', name: 'chrome', processName: 'chrome' })}
+      >
         pick-chrome
       </button>
-      <button type="button" onClick={() => onSelect({ id: 'proc:code', name: 'code' })}>
+      <button
+        type="button"
+        onClick={() => onSelect({ id: 'proc:code', name: 'code', processName: 'code' })}
+      >
         pick-code
       </button>
       <button
@@ -79,7 +85,10 @@ describe('PresetAppsModal', () => {
     const { onSave } = renderModal([CHROME]);
     fireEvent.click(screen.getByText('pick-code'));
     fireEvent.click(screen.getByText('lighting.layoutPresets.appsSave'));
-    expect(onSave).toHaveBeenCalledWith([CHROME, { id: 'proc:code', name: 'code' }]);
+    expect(onSave).toHaveBeenCalledWith([
+      CHROME,
+      { id: 'proc:code', name: 'code', processName: 'code' },
+    ]);
   });
 
   it('cancel closes without saving', () => {
@@ -181,5 +190,20 @@ describe('PresetAppsModal', () => {
 
     expect(screen.getByRole('alert').textContent).toBe('taken by Desk');
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('keeps the edit and explains when the save fails outright', async () => {
+    // Offline / 404 / 500: not a conflict, and emphatically not success.
+    const onSave = vi.fn(() => Promise.resolve('could not save'));
+    const onClose = vi.fn();
+    renderModal([], onSave, onClose);
+
+    fireEvent.click(screen.getByText('pick-code'));
+    fireEvent.click(screen.getByText('lighting.layoutPresets.appsSave'));
+    await act(async () => { await Promise.resolve(); });
+
+    expect(screen.getByRole('alert').textContent).toBe('could not save');
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByTestId('selected').textContent).toBe('proc:code');
   });
 });

@@ -1684,6 +1684,7 @@
   "lighting.layoutPresets.appsHint": "Este preset é ativado enquanto um destes aplicativos está em primeiro plano. Um aplicativo só pode ativar um preset.",
   "lighting.layoutPresets.appsRemove": "Remover {name}",
   "lighting.layoutPresets.appsSave": "Salvar",
+  "lighting.layoutPresets.appsSaveFailed": "Não foi possível salvar. Verifique se o Nexus está em execução e tente novamente.",
   "lighting.layoutPresets.appsTaken": "{app} já ativa \"{preset}\". Um aplicativo só pode ativar um preset.",
   "lighting.layoutPresets.appsTakenShort": "Já ativa \"{preset}\"",
   "lighting.layoutPresets.reset": "Redefinir layout",

@@ -1684,6 +1684,7 @@
   "lighting.layoutPresets.appsHint": "Esta predefinição ativa-se enquanto uma destas aplicações está em primeiro plano. Uma aplicação só pode ativar uma predefinição.",
   "lighting.layoutPresets.appsRemove": "Remover {name}",
   "lighting.layoutPresets.appsSave": "Guardar",
+  "lighting.layoutPresets.appsSaveFailed": "Não foi possível guardar. Verifique se o Nexus está em execução e tente novamente.",
   "lighting.layoutPresets.appsTaken": "{app} já ativa \"{preset}\". Uma aplicação só pode ativar uma predefinição.",
   "lighting.layoutPresets.appsTakenShort": "Já ativa \"{preset}\"",
   "lighting.layoutPresets.reset": "Repor disposição",

@@ -1701,6 +1701,7 @@
   "lighting.layoutPresets.appsHint": "Этот пресет включается, пока одно из этих приложений активно. Приложение может включать только один пресет.",
   "lighting.layoutPresets.appsRemove": "Удалить {name}",
   "lighting.layoutPresets.appsSave": "Сохранить",
+  "lighting.layoutPresets.appsSaveFailed": "Не удалось сохранить. Убедитесь, что Nexus запущен, и повторите попытку.",
   "lighting.layoutPresets.appsTaken": "{app} уже запускает \"{preset}\". Приложение может запускать только один пресет.",
   "lighting.layoutPresets.appsTakenShort": "Уже запускает \"{preset}\"",
   "lighting.layoutPresets.reset": "Сбросить расположение",

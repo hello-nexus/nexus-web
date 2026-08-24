@@ -1629,6 +1629,7 @@
   "lighting.layoutPresets.appsHint": "これらのアプリがフォアグラウンドにある間、このプリセットが有効になります。1つのアプリが有効にできるプリセットは1つだけです。",
   "lighting.layoutPresets.appsRemove": "{name} を削除",
   "lighting.layoutPresets.appsSave": "保存",
+  "lighting.layoutPresets.appsSaveFailed": "保存できませんでした。Nexus が実行中か確認してもう一度お試しください。",
   "lighting.layoutPresets.appsTaken": "{app} はすでに「{preset}」を起動します。1つのアプリが起動できるプリセットは1つだけです。",
   "lighting.layoutPresets.appsTakenShort": "すでに「{preset}」を起動",
   "lighting.layoutPresets.reset": "レイアウトをリセット",

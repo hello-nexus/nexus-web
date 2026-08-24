@@ -1684,6 +1684,7 @@
   "lighting.layoutPresets.appsHint": "當其中一個應用程式在前景時啟用此預設。一個應用程式只能啟用一個預設。",
   "lighting.layoutPresets.appsRemove": "移除 {name}",
   "lighting.layoutPresets.appsSave": "儲存",
+  "lighting.layoutPresets.appsSaveFailed": "儲存失敗。請確認 Nexus 正在執行後再試一次。",
   "lighting.layoutPresets.appsTaken": "{app} 已用於觸發「{preset}」。一個應用程式只能觸發一個預設。",
   "lighting.layoutPresets.appsTakenShort": "已觸發「{preset}」",
   "lighting.layoutPresets.reset": "重置配置",

@@ -1948,12 +1948,17 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           apps={presetAppsTarget.apps}
           taken={takenApps}
           onSave={async apps => {
-            const conflict = await handlePresetSetApps(presetAppsTarget.id, apps);
-            if (conflict) {
+            const result = await handlePresetSetApps(presetAppsTarget.id, apps);
+            if (result.kind === 'conflict') {
               return t('lighting.layoutPresets.appsTaken', {
-                app: conflict.appName,
-                preset: conflict.presetName,
+                app: result.conflict.appName,
+                preset: result.conflict.presetName,
               });
+            }
+            // Anything other than a clean 200 keeps the modal open with the
+            // edit intact - closing on a failed write discards it silently.
+            if (result.kind === 'failed') {
+              return t('lighting.layoutPresets.appsSaveFailed');
             }
             setPresetAppsTarget(null);
             return null;

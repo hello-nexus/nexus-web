@@ -1684,6 +1684,7 @@
   "lighting.layoutPresets.appsHint": "Ce preset s'active tant qu'une de ces applications est au premier plan. Une application ne peut activer qu'un seul preset.",
   "lighting.layoutPresets.appsRemove": "Retirer {name}",
   "lighting.layoutPresets.appsSave": "Enregistrer",
+  "lighting.layoutPresets.appsSaveFailed": "Enregistrement impossible. Vérifiez que Nexus est en cours d'exécution et réessayez.",
   "lighting.layoutPresets.appsTaken": "{app} déclenche déjà \"{preset}\". Une application ne peut déclencher qu'un seul preset.",
   "lighting.layoutPresets.appsTakenShort": "Déclenche déjà \"{preset}\"",
   "lighting.layoutPresets.reset": "Réinitialiser la disposition",

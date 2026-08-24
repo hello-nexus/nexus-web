@@ -1878,6 +1878,7 @@
   "lighting.layoutPresets.appsHint": "This preset activates while one of these apps is in focus. An app can only activate one preset.",
   "lighting.layoutPresets.appsRemove": "Remove {name}",
   "lighting.layoutPresets.appsSave": "Save",
+  "lighting.layoutPresets.appsSaveFailed": "Couldn't save. Check that Nexus is running and try again.",
   "lighting.layoutPresets.appsTaken": "{app} already triggers \"{preset}\". An app can only trigger one preset.",
   "lighting.layoutPresets.appsTakenShort": "Already triggers \"{preset}\"",
   "lighting.layoutPresets.appsTitle": "Apps for \"{name}\"",

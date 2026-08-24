@@ -17,8 +17,9 @@ interface Shortcut {
 }
 
 /** Id prefix for an app taken off the running list rather than the installed
- *  one - the suffix is the process name, which is what focus matching keys on. */
-export const RUNNING_APP_ID_PREFIX = 'proc:';
+ *  one - the suffix is the process name, which is what focus matching keys on.
+ *  Mirrors RunningPrefix in the service's LightingDevicesRoutes. */
+const RUNNING_APP_ID_PREFIX = 'proc:';
 
 interface PickerEntry {
   id: string;
@@ -32,7 +33,9 @@ interface AppPickerProps {
   selectedId?: string;
   /** Multi-select callers: every id in the list renders selected. */
   selectedIds?: string[];
-  onSelect: (app: { id: string; name: string }) => void;
+  /** Carries the resolved process name so a caller can match this app against
+   *  one bound under a different id (the running list vs the installed list). */
+  onSelect: (app: { id: string; name: string; processName?: string }) => void;
   /** Prepends a "Running now" group of apps that currently own a window, for
    *  binding something the installed-app list does not carry. */
   showRunning?: boolean;
@@ -52,7 +55,12 @@ export function AppPicker({ selectedId, selectedIds, onSelect, showRunning = fal
 
   useTopicCallback('processes', showRunning, (data) => {
     const rows = (data as { processes?: { name: string; isApp?: boolean }[] }).processes ?? [];
-    const names = Array.from(new Set(rows.filter(r => r.isApp && r.name).map(r => r.name)));
+    // Case-folded, matching how the service aggregates process names.
+    const seen = new Map<string, string>();
+    for (const r of rows) {
+      if (r.isApp && r.name) seen.set(r.name.toLowerCase(), r.name);
+    }
+    const names = Array.from(seen.values());
     names.sort((a, b) => a.localeCompare(b));
     setRunning(prev => (prev.length === names.length && prev.every((n, i) => n === names[i]) ? prev : names));
   });
@@ -76,7 +84,8 @@ export function AppPicker({ selectedId, selectedIds, onSelect, showRunning = fal
   const installedByProcess = useMemo(() => {
     const out = new Map<string, Shortcut>();
     for (const a of apps) {
-      if (a.processName && !out.has(a.processName)) out.set(a.processName, a);
+      const key = a.processName?.toLowerCase();
+      if (key && !out.has(key)) out.set(key, a);
     }
     return out;
   }, [apps]);
@@ -99,21 +108,21 @@ export function AppPicker({ selectedId, selectedIds, onSelect, showRunning = fal
       };
   }), [running, installedByProcess]);
 
-  const runningProcesses = useMemo(
-    () => new Set(runningEntries.map(e => e.processName)),
+  // Only the entry actually promoted into Running now is dropped, by id: two
+  // shortcuts can target one exe, and the other must stay reachable.
+  const promotedIds = useMemo(
+    () => new Set(runningEntries.map(e => e.id)),
     [runningEntries],
   );
 
   const installedEntries = useMemo<PickerEntry[]>(() => apps
-    // Already listed above under Running now; listing it twice reads as two
-    // different apps when it is one.
-    .filter(a => !(a.processName && runningProcesses.has(a.processName)))
+    .filter(a => !promotedIds.has(a.id))
     .map(a => ({
       id: a.id,
       name: a.name,
       iconPath: `/shortcuts/icon?targetId=${encodeURIComponent(a.id)}`,
-      processName: a.processName ?? '',
-    })), [apps, runningProcesses]);
+      processName: a.processName?.toLowerCase() ?? '',
+    })), [apps, promotedIds]);
 
   const matches = (e: PickerEntry) => e.name.toLowerCase().includes(query.toLowerCase());
   const filtered = query ? installedEntries.filter(matches) : installedEntries;
@@ -146,7 +155,7 @@ export function AppPicker({ selectedId, selectedIds, onSelect, showRunning = fal
             app={app}
             selected={isSelected(app.id)}
             unavailable={unavailableReason(app)}
-            onSelect={() => onSelect({ id: app.id, name: app.name })}
+            onSelect={() => onSelect({ id: app.id, name: app.name, processName: app.processName })}
           />
         ))}
         {showRunning && filteredRunning.length > 0 && filtered.length > 0 && (
@@ -158,7 +167,7 @@ export function AppPicker({ selectedId, selectedIds, onSelect, showRunning = fal
             app={app}
             selected={isSelected(app.id)}
             unavailable={unavailableReason(app)}
-            onSelect={() => onSelect({ id: app.id, name: app.name })}
+            onSelect={() => onSelect({ id: app.id, name: app.name, processName: app.processName })}
           />
         ))}
       </div>
