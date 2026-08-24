@@ -141,6 +141,8 @@ export function SettingSelect({
   disabled,
   description,
   descriptionBelow,
+  icon,
+  iconLeading,
   anchorId,
 }: {
   label?: string;
@@ -150,6 +152,8 @@ export function SettingSelect({
   disabled?: boolean;
   description?: ReactNode;
   descriptionBelow?: boolean | 'tight';
+  icon?: ReactNode;
+  iconLeading?: boolean;
   anchorId?: string;
 }) {
   return (
@@ -157,6 +161,8 @@ export function SettingSelect({
       label={label}
       description={description}
       descriptionBelow={descriptionBelow}
+      icon={icon}
+      iconLeading={iconLeading}
       anchorId={anchorId}
       disabled={disabled}
     >
@@ -181,12 +187,16 @@ export function SettingSlider({
   editable,
   trackFill,
   disabled,
+  icon,
+  iconLeading,
   anchorId,
   ariaLabel,
   controlWidth,
 }: {
   label?: string;
   description?: ReactNode;
+  icon?: ReactNode;
+  iconLeading?: boolean;
   // Renders the description on its own full-width line: the slider takes a
   // fixed slice of the row, so an inline description wraps to a few words per
   // line in a settings pane.
@@ -214,6 +224,8 @@ export function SettingSlider({
       label={label}
       description={description}
       descriptionBelow={below}
+      icon={icon}
+      iconLeading={iconLeading}
       disabled={disabled}
       anchorId={anchorId}
     >
