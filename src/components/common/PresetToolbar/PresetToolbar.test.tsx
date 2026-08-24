@@ -16,14 +16,18 @@ vi.mock('../../../lib/platform', () => ({
 }));
 
 vi.mock('../Select/Select', () => ({
-  Select: ({ value, onChange, ariaLabel, placeholder, options }: { value: string; onChange: (v: string) => void; ariaLabel?: string; placeholder?: string; options?: Array<{ value: string; label: string; disabled?: boolean }> }) => {
+  Select: ({ value, onChange, ariaLabel, placeholder, options }: { value: string; onChange: (v: string) => void; ariaLabel?: string; placeholder?: string; options?: Array<{ value: string; label: string; disabled?: boolean; icon?: React.ReactNode }> }) => {
     const matched = options?.find(o => o.value === value);
     const displayText = matched ? matched.label : (placeholder ?? '');
     return (
       <>
         <button aria-label={ariaLabel} data-testid="preset-trigger">{displayText}</button>
         <select aria-label={ariaLabel} value={value} onChange={e => onChange(e.target.value)} data-testid="preset-select">
-          {options?.map(o => <option key={o.value} value={o.value} disabled={o.disabled}>{o.label}</option>)}
+          {options?.map(o => (
+            <option key={o.value} value={o.value} disabled={o.disabled} data-icon={o.icon ? 'yes' : 'no'}>
+              {o.label}
+            </option>
+          ))}
         </select>
       </>
     );
@@ -250,5 +254,36 @@ describe('PresetToolbar (onImport)', () => {
     const presets = Array.from({ length: 9 }, (_, i) => ({ id: `p${i}`, name: `Preset ${i}` }));
     render(<PresetToolbar {...defaultProps({ presets, presetCount: 9, onImport: vi.fn() })} />);
     expect(screen.getByRole('option', { name: 'lighting.layoutPresets.importOption' })).not.toBeDisabled();
+  });
+
+  // ---- app bindings ----
+
+  it('hides the apps option without onManageApps', () => {
+    render(<PresetToolbar {...defaultProps({ presets: [PRESET_A], activeId: 'a', presetCount: 1 })} />);
+    expect(screen.queryByRole('option', { name: 'lighting.layoutPresets.apps' })).toBeNull();
+  });
+
+  it('offers the apps option when a preset is active', () => {
+    render(<PresetToolbar {...defaultProps({ presets: [PRESET_A], activeId: 'a', presetCount: 1, onManageApps: vi.fn() })} />);
+    expect(screen.getByRole('option', { name: 'lighting.layoutPresets.apps' })).toBeTruthy();
+  });
+
+  it('hides the apps option with no preset active - it edits the active one', () => {
+    render(<PresetToolbar {...defaultProps({ presets: [PRESET_A], activeId: null, presetCount: 1, onManageApps: vi.fn() })} />);
+    expect(screen.queryByRole('option', { name: 'lighting.layoutPresets.apps' })).toBeNull();
+  });
+
+  it('fires onManageApps when the apps option is selected', () => {
+    const onManageApps = vi.fn();
+    render(<PresetToolbar {...defaultProps({ presets: [PRESET_A], activeId: 'a', presetCount: 1, onManageApps })} />);
+    fireEvent.change(screen.getByTestId('preset-select'), { target: { value: '__apps__' } });
+    expect(onManageApps).toHaveBeenCalledTimes(1);
+  });
+
+  it('marks a preset that apps activate with a glyph', () => {
+    const bound: PresetToolbarPreset = { id: 'b', name: 'Bound', hasApps: true };
+    render(<PresetToolbar {...defaultProps({ presets: [PRESET_A, bound], activeId: 'a', presetCount: 2 })} />);
+    expect(screen.getByRole('option', { name: 'Bound' }).getAttribute('data-icon')).toBe('yes');
+    expect(screen.getByRole('option', { name: 'My Preset' }).getAttribute('data-icon')).toBe('no');
   });
 });

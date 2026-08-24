@@ -2406,7 +2406,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'AppPicker', category: 'panel-kit',
     filePath: 'src/panel/widgets/common/AppPicker.tsx',
-    description: 'Searchable list of installed shortcuts. Used by widget settings to pick which app a button or screentime row points at. Composes SearchInput.',
+    description: 'Searchable list of installed shortcuts. Used by widget settings to pick which app a button or screentime row points at, and by the lighting preset app-binding modal. Composes SearchInput. `selectedIds` makes it multi-select; `showRunning` prepends a "Running now" group from the processes topic so an app missing from the Start menu can still be picked.',
     notes: 'No live preview - needs the local service /shortcuts response.',
   },
   {
@@ -2564,9 +2564,15 @@ export const REGISTRY: StorybookEntry[] = [
     notes: 'No live preview -- requires a running service for the Run tab and cloud API for Leaderboards.',
   },
   {
+    name: 'PresetAppsModal', category: 'panel-kit',
+    filePath: 'src/panel/widgets/lighting/page/PresetAppsModal.tsx',
+    description: 'Picks which apps auto-activate a lighting preset when they take focus. Composes DeviceModal + AppPicker (multi-select, running-apps group); selection is local until Save, and saving unbinds each app from whichever preset held it.',
+    notes: 'No live preview -- needs the local service /shortcuts response and a saved layout preset.',
+  },
+  {
     name: 'PresetToolbar', category: 'inputs',
     filePath: 'src/components/common/PresetToolbar/PresetToolbar.tsx',
-    description: 'Generic named-preset manager: dropdown (with Rename/Delete when active and a capped New preset... entry, plus an optional capped Import preset... entry via onImport), optionally paired with Reset / Undo / Redo icon buttons via showHistory. Used by the lighting canvas layout toolbar (full history controls) and the Stream Deck page (dropdown + onImport opening the Elgato import modal).',
+    description: 'Generic named-preset manager: dropdown (with Rename/Delete when active and a capped New preset... entry, plus an optional capped Import preset... entry via onImport and an optional Apps... entry via onManageApps), optionally paired with Reset / Undo / Redo icon buttons via showHistory. A preset with `hasApps` carries an app glyph, marking it as one an app in focus activates. Used by the lighting canvas layout toolbar (full history controls) and the Stream Deck page (dropdown + onImport opening the Elgato import modal).',
     notes: 'No live preview -- bound to live preset state via useLayoutPresets / useDeckPresets and requires a running service.',
   },
   {

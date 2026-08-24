@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { RotateCcw, Undo2, Redo2, Pencil, Trash2, Plus, Import } from 'lucide-react';
+import { RotateCcw, Undo2, Redo2, Pencil, Trash2, Plus, Import, AppWindow } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { isApplePlatform } from '../../../lib/platform';
 import { isNameTaken } from '../../../lib/nameCollision';
@@ -16,6 +16,8 @@ const isMac = isApplePlatform();
 export interface PresetToolbarPreset {
   id: string;
   name: string;
+  /** Marks the preset with an app glyph: an app in focus activates it. */
+  hasApps?: boolean;
 }
 
 interface PresetToolbarProps {
@@ -51,6 +53,9 @@ interface PresetToolbarProps {
    *  `${translationPrefix}.reset` / `.resetConfirm`. */
   resetLabelKey?: string;
   resetConfirmKey?: string;
+  /** Adds an "Apps" option that opens the caller's app-binding modal. Omit to
+   *  hide the option entirely (every existing caller). */
+  onManageApps?: () => void;
   /** Hides the create/rename options - both open a PromptModal text input,
    *  unusable on a keyboardless surface. Switching and deleting stay
    *  available. Defaults to true (every existing caller keeps typing). */
@@ -59,7 +64,7 @@ interface PresetToolbarProps {
 
 export function PresetToolbar({
   presets, activeId, presetCount, cap = PRESET_CAP,
-  onLoad, onCreate, onRename, onDelete, onImport, importLabelKey,
+  onLoad, onCreate, onRename, onDelete, onImport, importLabelKey, onManageApps,
   showHistory = true, canUndo = false, canRedo = false, onReset, onUndo, onRedo,
   translationPrefix = 'lighting.layoutPresets',
   resetLabelKey, resetConfirmKey,
@@ -81,10 +86,15 @@ export function PresetToolbar({
   const atCap = presetCount >= cap;
 
   const selectOptions = [
-    ...presets.map(p => ({ value: p.id, label: p.name })),
+    ...presets.map(p => ({
+      value: p.id,
+      label: p.name,
+      ...(p.hasApps ? { icon: <AppWindow size={14} aria-hidden /> } : {}),
+    })),
     ...(activeId ? [
       { value: '__sep__', label: '', divider: true },
       ...(allowCreateRename ? [{ value: '__rename__', label: t(key('rename')), className: styles.actionOption, icon: <Pencil size={14} /> }] : []),
+      ...(onManageApps ? [{ value: '__apps__', label: t(key('apps')), className: styles.actionOption, icon: <AppWindow size={14} /> }] : []),
       { value: '__delete__', label: t(key('delete')), className: styles.actionOption, icon: <Trash2 size={14} /> },
     ] : []),
     ...(allowCreateRename ? [{ value: '__create__', label: t(key('newOption')), className: styles.createOption, disabled: atCap, icon: <Plus size={14} /> }] : []),
@@ -101,6 +111,7 @@ export function PresetToolbar({
       return;
     }
     if (value === '__rename__') { setPromptMode('rename'); setPromptOpen(true); return; }
+    if (value === '__apps__') { onManageApps?.(); return; }
     if (value === '__delete__') { setDeleteConfirmOpen(true); return; }
   };
 

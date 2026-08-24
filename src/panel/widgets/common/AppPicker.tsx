@@ -1,9 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { AppWindow } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { fetchService, fetchServiceBlob } from '../../../api/service';
+import { processIconPath } from '../../../api/processIcon';
 import { SearchInput } from '../../../components/common/SearchInput/SearchInput';
 import { withMediaFetchSlot as withIconSlot } from '../../../lib/mediaFetchSlot';
+import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import styles from './AppPicker.module.scss';
 
 interface Shortcut {
@@ -12,16 +14,40 @@ interface Shortcut {
   path: string;
 }
 
-interface AppPickerProps {
-  selectedId: string;
-  onSelect: (app: { id: string; name: string }) => void;
+/** Id prefix for an app taken off the running list rather than the installed
+ *  one - the suffix is the process name, which is what focus matching keys on. */
+export const RUNNING_APP_ID_PREFIX = 'proc:';
+
+interface PickerEntry {
+  id: string;
+  name: string;
+  iconPath: string;
 }
 
-export function AppPicker({ selectedId, onSelect }: AppPickerProps) {
+interface AppPickerProps {
+  /** Single-select callers. Ignored when `selectedIds` is given. */
+  selectedId?: string;
+  /** Multi-select callers: every id in the list renders selected. */
+  selectedIds?: string[];
+  onSelect: (app: { id: string; name: string }) => void;
+  /** Prepends a "Running now" group of apps that currently own a window, for
+   *  binding something the installed-app list does not carry. */
+  showRunning?: boolean;
+}
+
+export function AppPicker({ selectedId, selectedIds, onSelect, showRunning = false }: AppPickerProps) {
   const { t } = useTranslation();
   const [apps, setApps] = useState<Shortcut[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
+  const [running, setRunning] = useState<string[]>([]);
+
+  useTopicCallback('processes', showRunning, (data) => {
+    const rows = (data as { processes?: { name: string; isApp?: boolean }[] }).processes ?? [];
+    const names = Array.from(new Set(rows.filter(r => r.isApp && r.name).map(r => r.name)));
+    names.sort((a, b) => a.localeCompare(b));
+    setRunning(prev => (prev.length === names.length && prev.every((n, i) => n === names[i]) ? prev : names));
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -36,9 +62,23 @@ export function AppPicker({ selectedId, onSelect }: AppPickerProps) {
     return () => { cancelled = true; };
   }, []);
 
-  const filtered = query
-    ? apps.filter(a => a.name.toLowerCase().includes(query.toLowerCase()))
-    : apps;
+  const installedEntries = useMemo<PickerEntry[]>(() => apps.map(a => ({
+    id: a.id,
+    name: a.name,
+    iconPath: `/shortcuts/icon?targetId=${encodeURIComponent(a.id)}`,
+  })), [apps]);
+
+  const runningEntries = useMemo<PickerEntry[]>(() => running.map(name => ({
+    id: RUNNING_APP_ID_PREFIX + name,
+    name,
+    iconPath: processIconPath(name),
+  })), [running]);
+
+  const matches = (e: PickerEntry) => e.name.toLowerCase().includes(query.toLowerCase());
+  const filtered = query ? installedEntries.filter(matches) : installedEntries;
+  const filteredRunning = query ? runningEntries.filter(matches) : runningEntries;
+
+  const isSelected = (id: string) => (selectedIds ? selectedIds.includes(id) : id === selectedId);
 
   return (
     <div className={styles.picker}>
@@ -49,16 +89,30 @@ export function AppPicker({ selectedId, onSelect }: AppPickerProps) {
       />
       <div className={styles.list} data-panel-scrollable="true">
         {loading && <div className={styles.empty}>{t('panel.settings.loadingApps')}</div>}
-        {!loading && filtered.length === 0 && (
+        {!loading && filtered.length === 0 && filteredRunning.length === 0 && (
           <div className={styles.empty}>
             {apps.length === 0 ? t('panel.settings.connectForApps') : t('panel.settings.noApps')}
           </div>
+        )}
+        {filteredRunning.length > 0 && (
+          <div className={styles.groupLabel}>{t('panel.settings.runningApps')}</div>
+        )}
+        {filteredRunning.map(app => (
+          <AppRow
+            key={app.id}
+            app={app}
+            selected={isSelected(app.id)}
+            onSelect={() => onSelect({ id: app.id, name: app.name })}
+          />
+        ))}
+        {showRunning && filteredRunning.length > 0 && filtered.length > 0 && (
+          <div className={styles.groupLabel}>{t('panel.settings.installedApps')}</div>
         )}
         {filtered.map(app => (
           <AppRow
             key={app.id}
             app={app}
-            selected={app.id === selectedId}
+            selected={isSelected(app.id)}
             onSelect={() => onSelect({ id: app.id, name: app.name })}
           />
         ))}
@@ -68,7 +122,7 @@ export function AppPicker({ selectedId, onSelect }: AppPickerProps) {
 }
 
 function AppRow({ app, selected, onSelect }: {
-  app: Shortcut;
+  app: PickerEntry;
   selected: boolean;
   onSelect: () => void;
 }) {
@@ -89,7 +143,7 @@ function AppRow({ app, selected, onSelect }: {
       loadedRef.current = true;
       void withIconSlot(async () => {
         if (cancelled) return;
-        const blob = await fetchServiceBlob(`/shortcuts/icon?targetId=${encodeURIComponent(app.id)}`);
+        const blob = await fetchServiceBlob(app.iconPath);
         if (!cancelled && blob && blob.size > 0) {
           const url = URL.createObjectURL(blob);
           revoke = url;
@@ -106,7 +160,7 @@ function AppRow({ app, selected, onSelect }: {
       observer.disconnect();
       if (revoke) URL.revokeObjectURL(revoke);
     };
-  }, [app.id]);
+  }, [app.iconPath]);
 
   return (
     <button

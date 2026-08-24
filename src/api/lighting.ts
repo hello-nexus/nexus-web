@@ -369,10 +369,18 @@ export interface DeviceLayoutDto {
   rotation: number;
 }
 
+/** An app that auto-activates its preset when it takes focus. `id` is a
+ *  shortcut target id, or `proc:<name>` for a pick off the running list. */
+export interface PresetApp {
+  id: string;
+  name: string;
+}
+
 export interface LayoutPreset {
   id: string;
   name: string;
   layouts: Record<string, DeviceLayoutDto>;
+  apps?: PresetApp[];
 }
 
 export interface LayoutPresetsResponse {
@@ -400,6 +408,11 @@ export const deleteLayoutPreset = (id: string) =>
 
 export const setActiveLayoutPreset = (id: string | null) =>
   putService('/devices/lighting-devices/layout-presets/active', { id });
+
+// Assigning an app here unbinds it from every other preset - an app drives
+// exactly one preset.
+export const setLayoutPresetApps = (id: string, apps: PresetApp[]) =>
+  putService('/devices/lighting-devices/layout-presets/' + encodeURIComponent(id) + '/apps', { apps });
 
 export const activateLayoutPreset = (id: string) =>
   postService('/devices/lighting-devices/layout-presets/' + encodeURIComponent(id) + '/activate', {});
