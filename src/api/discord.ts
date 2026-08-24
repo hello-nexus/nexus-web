@@ -1,19 +1,5 @@
 import { fetchService, postService } from './service';
 
-export interface DiscordConfigResponse {
-  error: boolean;
-  msg: string;
-  clientId: string;
-  hasClientSecret: boolean;
-  configured: boolean;
-}
-
-export interface DiscordConfigBody {
-  clientId?: string;
-  clientSecret?: string;
-  clearClientSecret?: boolean;
-}
-
 export interface DiscordUser {
   id: string;
   username: string;
@@ -79,11 +65,21 @@ export interface DiscordStatusResponse {
   notifications: DiscordNotification[];
 }
 
-export const fetchDiscordConfig = () =>
-  fetchService<DiscordConfigResponse>('/api/discord/config');
+export interface DiscordPresenceResponse {
+  error: boolean;
+  msg: string;
+  /** False when the build carries no Discord application id, which hides the control. */
+  available: boolean;
+  enabled: boolean;
+  preset: string;
+  presets: string[];
+  connected: boolean;
+}
 
-export const saveDiscordConfig = (body: DiscordConfigBody) =>
-  postService<DiscordConfigResponse>('/api/discord/config', body);
+export interface DiscordPresenceBody {
+  enabled?: boolean;
+  preset?: string;
+}
 
 export const fetchDiscordStatus = () =>
   fetchService<DiscordStatusResponse>('/api/discord/status');
@@ -91,14 +87,15 @@ export const fetchDiscordStatus = () =>
 export const launchDiscord = () =>
   postService('/api/discord/launch', {});
 
-export const openDiscordPath = (path: string) =>
-  postService('/api/discord/open', { path });
-
 export const setDiscordMute = (enabled: boolean) =>
   postService('/api/discord/voice/mute', { enabled });
 
 export const setDiscordDeaf = (enabled: boolean) =>
   postService('/api/discord/voice/deaf', { enabled });
 
-export const disconnectDiscordVoice = () =>
-  postService('/api/discord/voice/disconnect', {});
+
+export const fetchDiscordPresence = () =>
+  fetchService<DiscordPresenceResponse>('/api/discord/presence');
+
+export const saveDiscordPresence = (body: DiscordPresenceBody) =>
+  postService<DiscordPresenceResponse>('/api/discord/presence', body);

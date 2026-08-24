@@ -176,6 +176,7 @@ const SETTINGS_ITEMS: { tab: string; tabLabelKey: string; labelKey: string; anch
   { tab: 'monitoring', tabLabelKey: 'settings.tab.monitoring', labelKey: 'cooling.settings.gpuLabel',    anchor: 'set-gpu-sensor', keywords: ['gpu', 'temp', 'temperature', 'sensor', 'source'] },
   { tab: 'privacy', tabLabelKey: 'settings.tab.privacyData', labelKey: 'settings.screentime.title', anchor: 'set-screentime', keywords: ['screen time', 'tracking', 'usage', 'data'] },
   { tab: 'privacy', tabLabelKey: 'settings.tab.privacyData', labelKey: 'settings.telemetry.label',  anchor: 'set-telemetry',  keywords: ['telemetry', 'privacy', 'anonymous', 'data', 'consent'] },
+  { tab: 'privacy', tabLabelKey: 'settings.tab.privacyData', labelKey: 'discord.presence.enable', anchor: 'set-discord-presence', keywords: ['discord', 'rich presence', 'status', 'profile', 'presence'] },
   { tab: 'privacy', tabLabelKey: 'settings.tab.privacyData', labelKey: 'settings.ai.master.label',     anchor: 'set-ai-integration', keywords: ['ai', 'mcp', 'model context protocol', 'assistant', 'agent', 'integration', 'token'] },
   { tab: 'privacy', tabLabelKey: 'settings.tab.privacyData', labelKey: 'nexus2Welcome.settingsEntry.rowLabel', anchor: 'set-nexus2-import', keywords: ['nexus 2', 'hyte', 'import', 'migration', 'personalization'] },
 ];
