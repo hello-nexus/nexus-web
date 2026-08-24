@@ -50,6 +50,7 @@ import { IconLabelButton } from '../../../components/common/IconLabelButton/Icon
 import { AdvancedModeCta } from '../../../components/common/AdvancedModeCta/AdvancedModeCta';
 import { DeviceCountSummary } from '../../../components/common/DeviceCountSummary/DeviceCountSummary';
 import { SimpleModeNotice } from '../../../components/common/SimpleModeNotice/SimpleModeNotice';
+import { useUndoRedo } from '../../../hooks/useUndoRedo';
 import { usePageModeToggle } from '../../../app/PageChrome';
 import { ConfirmModal } from '../../../components/common/ConfirmModal/ConfirmModal';
 import { CollapsibleSection } from '../../../components/common/CollapsibleSection/CollapsibleSection';
@@ -83,6 +84,26 @@ interface CoolingViewProps {
   /** Host OS from /ping, as the lighting page takes it. Empty until the ping resolves, which keeps a Windows-only entry from flashing in on other hosts. */
   platform?: string;
 }
+
+/** The whole cooling configuration the page can change: curve shapes and the
+ *  library itself, what drives each fan, manual duties, per-fan offsets, and
+ *  the active mode. One stack covers the page because, unlike lighting, there
+ *  is no separate modal editor with its own history. */
+interface CoolingHistorySnapshot {
+  curves: CurveDef[];
+  fanStates: Record<string, FanState>;
+  manualSpeeds: Record<string, number>;
+  offsets: Record<string, number>;
+  mode: CoolingModeKey | null;
+}
+
+// Module scope so the history survives CoolingPage's unmount on navigation.
+// Session-only; assumes one mounted CoolingPage, as the lighting page does.
+let coolingHistoryStacks: { undo: CoolingHistorySnapshot[]; redo: CoolingHistorySnapshot[] } | null = null;
+const coolingHistoryStore = {
+  read: () => coolingHistoryStacks,
+  write: (s: { undo: CoolingHistorySnapshot[]; redo: CoolingHistorySnapshot[] }) => { coolingHistoryStacks = s; },
+};
 
 export function CoolingPage({ serviceOnline, serviceState, connectionState, activeProfileId, platform = '' }: CoolingViewProps) {
   const { t, language } = useTranslation();
@@ -409,6 +430,97 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     void loadPresets();
   }, [serviceOnline, loadPresets]);
 
+  // ── Undo / redo ───────────────────────────────────────────────────────────
+  // Latest-value refs so a snapshot taken inside a callback reads current
+  // state rather than the closure's.
+  const curvesRef = useRef(curves);
+  const fanStatesRef = useRef(fanStates);
+  const channelsRef = useRef(channels);
+  const activeModeRef = useRef(activeMode);
+  useEffect(() => { curvesRef.current = curves; }, [curves]);
+  useEffect(() => { fanStatesRef.current = fanStates; }, [fanStates]);
+  useEffect(() => { channelsRef.current = channels; }, [channels]);
+  useEffect(() => { activeModeRef.current = activeMode; }, [activeMode]);
+
+  const captureHistory = useCallback((): CoolingHistorySnapshot => {
+    const manualSpeeds: Record<string, number> = {};
+    const offsets: Record<string, number> = {};
+    for (const ch of channelsRef.current) {
+      if (fanStatesRef.current[ch.id]?.softwareControl && !fanStatesRef.current[ch.id]?.curveId) {
+        manualSpeeds[ch.id] = ch.dutyPercent ?? 0;
+      }
+      if (ch.offset) offsets[ch.id] = ch.offset;
+    }
+    return {
+      // Deep-copied: a later point drag mutates the live curve objects, which
+      // would otherwise rewrite the snapshot already on the stack.
+      curves: structuredClone(curvesRef.current),
+      fanStates: structuredClone(fanStatesRef.current),
+      manualSpeeds,
+      offsets,
+      mode: activeModeRef.current,
+    };
+  }, []);
+
+  const pushCurvesRef = useRef<((d: CurveDef[], st: Record<string, FanState>) => Promise<unknown>) | null>(null);
+  const saveActivePresetRef = useRef<(() => Promise<void>) | null>(null);
+
+  const undoRedoRef = useRef<{
+    undo: (c: CoolingHistorySnapshot) => CoolingHistorySnapshot | null;
+    redo: (c: CoolingHistorySnapshot) => CoolingHistorySnapshot | null;
+  }>({ undo: () => null, redo: () => null });
+  const pushHistoryRef = useRef<((s: CoolingHistorySnapshot) => void) | null>(null);
+  const pushHistory = useCallback(() => { pushHistoryRef.current?.(captureHistory()); }, [captureHistory]);
+
+  // Mode first (it rewrites assignments), then the curve library and
+  // assignments the snapshot actually recorded, then the per-fan values.
+  const applyHistory = useCallback(async (snap: CoolingHistorySnapshot) => {
+    if (snap.mode && snap.mode !== activeModeRef.current) {
+      setActiveMode(snap.mode);
+      activeCoolingProfileRef.current = snap.mode;
+      presetLockUntilRef.current = Date.now() + 1500;
+      publishControlSync({ domain: 'cooling', activePreset: snap.mode });
+      await applyProfile(snap.mode);
+    }
+    setCurves(snap.curves);
+    setFanStates(snap.fanStates);
+    await pushCurvesRef.current?.(snap.curves, snap.fanStates);
+    for (const [fanId, duty] of Object.entries(snap.manualSpeeds)) {
+      await setFanSpeed(fanId, duty);
+    }
+    for (const ch of channelsRef.current) {
+      const want = snap.offsets[ch.id] ?? 0;
+      if ((ch.offset ?? 0) !== want) await setFanOffset(ch.id, want);
+    }
+    await refreshCoolingConfig();
+    void saveActivePresetRef.current?.();
+  }, [refreshCoolingConfig]);
+
+  const handleUndo = useCallback(async () => {
+    const restored = undoRedoRef.current.undo(captureHistory());
+    if (restored) await applyHistory(restored);
+  }, [captureHistory, applyHistory]);
+
+  const handleRedo = useCallback(async () => {
+    const restored = undoRedoRef.current.redo(captureHistory());
+    if (restored) await applyHistory(restored);
+  }, [captureHistory, applyHistory]);
+
+  const {
+    push: pushHistorySnapshot,
+    undo: undoHistory,
+    redo: redoHistory,
+    canUndo,
+    canRedo,
+  } = useUndoRedo<CoolingHistorySnapshot>({
+    maxDepth: 50,
+    onUndo: handleUndo,
+    onRedo: handleRedo,
+    store: coolingHistoryStore,
+  });
+  undoRedoRef.current = { undo: undoHistory, redo: redoHistory };
+  pushHistoryRef.current = pushHistorySnapshot;
+
   // Fired after any change the preset stores. The service captures live state,
   // so this needs no payload - and it is a no-op when no preset is loaded.
   const saveActivePreset = useCallback(async () => {
@@ -416,6 +528,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     if (!id) return;
     await updateCoolingPreset(id, { saveCurrent: true });
   }, []);
+  saveActivePresetRef.current = saveActivePreset;
 
   const handlePresetLoad = useCallback(async (id: string) => {
     setActivePresetId(id);
@@ -432,6 +545,24 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     await loadPresets();
     return { error: false };
   }, [loadPresets]);
+
+  const handlePresetLoadWithHistory = useCallback(async (id: string) => {
+    pushHistory();
+    await handlePresetLoad(id);
+  }, [pushHistory, handlePresetLoad]);
+
+  // Reset returns every fan to BIOS control, the Off mode's own behaviour, and
+  // is undoable like any other change.
+  const handleResetCooling = useCallback(async () => {
+    pushHistory();
+    setActiveMode('off');
+    activeCoolingProfileRef.current = 'off';
+    presetLockUntilRef.current = Date.now() + 1500;
+    publishControlSync({ domain: 'cooling', activePreset: 'off' });
+    await applyProfile('off');
+    await refreshCoolingConfig();
+    void saveActivePreset();
+  }, [pushHistory, refreshCoolingConfig, saveActivePreset]);
 
   const handlePresetRename = useCallback(async (id: string, name: string) => {
     await updateCoolingPreset(id, { name });
@@ -451,6 +582,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     return saveCurves({ globalSpeedModifier: 1, curves: apiCurves })
       .then(res => { void saveActivePreset(); return res; });
   }, [saveActivePreset]);
+  pushCurvesRef.current = pushCurves;
 
   // Issue rule: when cooling is Off, the user changing any fan setting other
   // than reverting to BIOS Control snaps the active tab to Custom. We do the
@@ -473,6 +605,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     const presetCurve = curves.find(c => c.preset === key);
     if (presetCurve) setSelectedCurveId(presetCurve.id);
     if (key === activeMode) return;
+    pushHistory();
     setActiveMode(key);
     activeCoolingProfileRef.current = key;
     presetLockUntilRef.current = Date.now() + 1500;
@@ -480,9 +613,10 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     await applyProfile(key);
     refreshCoolingConfig();
     void saveActivePreset();
-  }, [activeMode, curves, refreshCoolingConfig, setSelectedCurveId, saveActivePreset]);
+  }, [activeMode, curves, refreshCoolingConfig, setSelectedCurveId, saveActivePreset, pushHistory]);
 
   const toggleSoftwareControl = useCallback(async (fanId: string, enabled: boolean) => {
+    pushHistory();
     if (enabled) {
       // Enabling software control is a non-BIOS user change; honour the Off-guard.
       await exitOffToCustomIfNeeded();
@@ -499,21 +633,23 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     }
     const fans = await fetchFanChannels();
     if (fans?.channels) setChannels(fans.channels);
-  }, [fanStates, curves, pushCurves, exitOffToCustomIfNeeded]);
+  }, [fanStates, curves, pushCurves, exitOffToCustomIfNeeded, pushHistory]);
 
   const assignCurve = useCallback(async (fanId: string, curveId: string | null) => {
+    pushHistory();
     if (curveId !== null) await exitOffToCustomIfNeeded();
     setFanStates(prev => ({ ...prev, [fanId]: { ...prev[fanId], curveId } }));
     await pushCurves(curves, { ...fanStates, [fanId]: { ...fanStates[fanId], curveId } });
-  }, [fanStates, curves, pushCurves, exitOffToCustomIfNeeded]);
+  }, [fanStates, curves, pushCurves, exitOffToCustomIfNeeded, pushHistory]);
 
   const handleSpeedChange = useCallback(async (id: string, speed: number) => {
+    pushHistory();
     await exitOffToCustomIfNeeded();
     await setFanSpeed(id, speed);
     const fans = await fetchFanChannels();
     if (fans?.channels) setChannels(fans.channels);
     void saveActivePreset();
-  }, [exitOffToCustomIfNeeded, saveActivePreset]);
+  }, [exitOffToCustomIfNeeded, saveActivePreset, pushHistory]);
 
   const handleRename = useCallback(async (id: string, name: string) => {
     await renameFan(id, name);
@@ -700,6 +836,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
    */
   const assignCurveToFans = useCallback(async (ids: string[], curveId: string | null) => {
     if (ids.length === 0) return;
+    pushHistory();
     // A hub has to be in Software before the curve engine can drive it. One
     // write per hub, not per fan.
     const hubs = new Set(
@@ -729,7 +866,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
       const fans = await fetchFanChannels();
       if (fans?.channels) setChannels(fans.channels);
     }
-  }, [channels, curves, exitOffToCustomIfNeeded, fanStates, hubModes, pushCurves]);
+  }, [channels, curves, exitOffToCustomIfNeeded, fanStates, hubModes, pushCurves, pushHistory]);
 
   const applyFanMode = useCallback((fanId: string, value: string) => {
     const ids = selectedFanIds.has(fanId) ? [...selectedFanIds] : [fanId];
@@ -813,6 +950,9 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   }, [curves, fanStates, pushCurves, selectedCurveId, setSelectedCurveId]);
 
   const saveCurveAndPush = useCallback((updated: CurveDef) => {
+    // One entry per drag: CurveEditor commits on pointer-up (onChange), while
+    // the continuous in-drag stream goes to onPreview and never lands here.
+    pushHistory();
     // Any edit to a preset curve diverges it from defaults; flip the dirty
     // flag optimistically so the Reset button enables immediately. The echoed
     // `cooling` refresh is suppressed below (so the edit isn't clobbered
@@ -826,7 +966,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     // multipoint) isn't clobbered mid-gesture by our own save bouncing back.
     curveEditLockUntilRef.current = Date.now() + 2000;
     pushCurves(next, fanStates);
-  }, [curves, fanStates, pushCurves]);
+  }, [curves, fanStates, pushCurves, pushHistory]);
 
   const runCalibration = useCallback(async () => {
     setCalConfirmOpen(false);
@@ -1082,9 +1222,14 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
               presets={presets}
               activeId={activePresetId}
               presetCount={presets.length}
-              showHistory={false}
+              showHistory
+              canUndo={canUndo}
+              canRedo={canRedo}
+              onUndo={() => { void handleUndo(); }}
+              onRedo={() => { void handleRedo(); }}
+              onReset={() => { void handleResetCooling(); }}
               translationPrefix="cooling.presets"
-              onLoad={id => { void handlePresetLoad(id); }}
+              onLoad={id => { void handlePresetLoadWithHistory(id); }}
               onCreate={handlePresetCreate}
               onRename={handlePresetRename}
               onDelete={handlePresetDelete}
