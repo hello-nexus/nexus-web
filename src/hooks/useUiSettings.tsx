@@ -635,6 +635,18 @@ export function useUiSettings(): UiSettingsContextValue {
 }
 
 /**
+ * Update accessor that no-ops outside a provider, for the onboarding gates:
+ * they render inside the app tree at runtime but are mounted bare in tests and
+ * must not throw there.
+ */
+export function useUiSettingsUpdateSafe(): (patch: Patch) => void {
+  const ctx = useContext(UiSettingsContext);
+  return ctx ? ctx.update : NO_OP_UPDATE;
+}
+
+const NO_OP_UPDATE = () => {};
+
+/**
  * Read-only accessor for the preferred CPU/GPU temperature sensor ids.
  * Returns empty strings (auto-mode) when called outside a UiSettingsProvider,
  * so the resolver falls back to the per-domain default sensor.

@@ -13,12 +13,14 @@ import {
   fetchLightingStatus,
   setLightingDeviceControlled,
   startStatic,
+  stopLighting,
   fetchAnimateDefaults,
   cachedAnimateDefaults,
   type LightingDevice,
 } from '../../../api/lighting';
 import { ZoneCard, zoneCardUnavailable } from '../../../panel/widgets/lighting/page/ZoneCard';
 import { visibleCards } from '../../../panel/widgets/lighting/page/zoneUtils';
+import { useUiSettingsUpdateSafe } from '../../../hooks/useUiSettings';
 import styles from './LightingOnboardingScreen.module.scss';
 
 export interface LightingOnboardingScreenProps {
@@ -70,6 +72,10 @@ export function LightingOnboardingScreen({ open, onComplete, onBack }: LightingO
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(false);
   const [testFill, setTestFill] = useState<string | null>(null);
+  // Which way the app opens after this, and whether this screen picks devices
+  // at all. Simple drives everything, so there is nothing here to choose.
+  const [mode, setMode] = useState<'simple' | 'advanced' | 'off'>('simple');
+  const updateUiSettings = useUiSettingsUpdateSafe();
   const devicesRef = useRef<LightingDevice[] | null>(null);
   devicesRef.current = devices;
   // What the user asked for per device, held until the service reports it.
@@ -218,6 +224,22 @@ export function LightingOnboardingScreen({ open, onComplete, onBack }: LightingO
     setSubmitting(true);
     setError(false);
     try {
+      // Simple drives every device, so anything switched off here goes back on
+      // rather than sitting dark on a page with no control to explain it.
+      if (mode === 'off') {
+        // Nothing to drive: stop the engine rather than leave it running over
+        // devices the user just said they do not want lit.
+        await stopLighting().catch(() => null);
+      }
+      if (mode === 'simple') {
+        const off = (devicesRef.current ?? []).filter(d => d.controlled === false);
+        if (off.length > 0) {
+          intentRef.current.clear();
+          await Promise.allSettled(off.map(d => setLightingDeviceControlled(d.id, true)));
+        }
+      }
+      // 'off' has no page of its own; it opens simple, with lighting stopped.
+      updateUiSettings({ lightingDashboardMode: mode === 'advanced' ? 'advanced' : 'simple' });
       const result = await completeLightingOnboarding();
       if (result?.lightingCompleted) {
         onComplete();
@@ -248,7 +270,9 @@ export function LightingOnboardingScreen({ open, onComplete, onBack }: LightingO
           <Lightbulb size={40} />
         </span>
         <h1 className={styles.title}>{t('lightingOnboarding.title')}</h1>
-        <p className={styles.subtitle}>{t('lightingOnboarding.subtitle')}</p>
+        <p className={styles.subtitle}>
+          {t(`lightingOnboarding.subtitle.${mode}`)}
+        </p>
       </div>
 
       {conflicts.length > 0 && (
@@ -267,7 +291,23 @@ export function LightingOnboardingScreen({ open, onComplete, onBack }: LightingO
         </div>
       )}
 
-      {cards !== null && cards.length > 0 && (
+      <div className={styles.modeRow} role="radiogroup" aria-label={t('lightingOnboarding.modeLabel')}>
+        {(['simple', 'advanced', 'off'] as const).map(m => (
+          <button
+            key={m}
+            type="button"
+            role="radio"
+            aria-checked={mode === m}
+            className={`${styles.modeCard} ${mode === m ? styles.modeCardActive : ''}`}
+            onClick={() => setMode(m)}
+          >
+            <span className={styles.modeName}>{t(`lightingOnboarding.mode.${m}`)}</span>
+            <span className={styles.modeHint}>{t(`lightingOnboarding.mode.${m}.hint`)}</span>
+          </button>
+        ))}
+      </div>
+
+      {mode === 'advanced' && cards !== null && cards.length > 0 && (
         <div className={styles.bulkRow}>
           <Button
             tone="ghost"
@@ -290,6 +330,7 @@ export function LightingOnboardingScreen({ open, onComplete, onBack }: LightingO
         </div>
       )}
 
+      {mode !== 'off' && (
       <div className={styles.deviceArea}>
         {cards !== null && cards.length > 0 && (
           <>
@@ -304,7 +345,7 @@ export function LightingOnboardingScreen({ open, onComplete, onBack }: LightingO
                   indent={false}
                   onSelect={noop}
                   onTogglePower={noop}
-                  onToggleControlled={() => handleToggle(d)}
+                  onToggleControlled={mode === 'advanced' ? () => handleToggle(d) : undefined}
                   onOpenSettings={noop}
                 />
               ))}
@@ -324,17 +365,18 @@ export function LightingOnboardingScreen({ open, onComplete, onBack }: LightingO
           />
         ))}
       </div>
+      )}
 
       {/* Below the listing and outside its scroller: the strip and the scanning
           note must not resize the scrollable area as devices arrive. */}
-      {scanning && cards !== null && cards.length > 0 && (
+      {mode !== 'off' && scanning && cards !== null && cards.length > 0 && (
         <p className={styles.scanningNote}>
           <RotateCw className={styles.scanningIcon} aria-hidden />
           {t('lightingOnboarding.scanning')}
         </p>
       )}
 
-      {cards !== null && cards.length > 0 && (
+      {mode !== 'off' && cards !== null && cards.length > 0 && (
         <div className={styles.testStrip} role="group" aria-label={t('lightingOnboarding.testColors')}>
           <span className={styles.testLabel}>{t('lightingOnboarding.testColors')}</span>
           {TEST_FILLS.map(f => (
