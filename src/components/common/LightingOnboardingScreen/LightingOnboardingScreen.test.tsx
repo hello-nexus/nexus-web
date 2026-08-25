@@ -483,7 +483,8 @@ describe('LightingOnboardingScreen mode choice', () => {
     renderScreen();
     await screen.findByRole('radio', { name: /lightingOnboarding\.mode\.simple/ });
     expect(screen.getByRole('radio', { name: /lightingOnboarding\.mode\.simple/ })).toHaveAttribute('aria-checked', 'true');
-    expect(screen.queryByRole('button', { name: 'lighting.ledMap.selectAll' })).toBeNull();
+    // The bulk actions stay on the screen, with nothing to act on.
+    expect(screen.getByRole('button', { name: 'lighting.ledMap.selectAll' })).toBeDisabled();
   });
 
   it('Simple drives every device, putting back any the user had switched off', async () => {
@@ -511,5 +512,23 @@ describe('LightingOnboardingScreen mode choice', () => {
     fireEvent.click(screen.getByRole('button', { name: 'lightingOnboarding.continue' }));
     await waitFor(() => expect(onComplete).toHaveBeenCalled());
     expect(stopLighting).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the bulk actions visible in every mode, live only in Advanced', async () => {
+    seed([strip, hub]);
+    renderScreen();
+    await screen.findByRole('switch', { name: 'Test Strip' });
+
+    // Simple: present, but there is nothing for them to choose between.
+    expect(screen.getByRole('button', { name: 'lighting.ledMap.selectAll' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'lightingOnboarding.selectNone' })).toBeDisabled();
+
+    fireEvent.click(screen.getByRole('radio', { name: /lightingOnboarding\.mode\.off/ }));
+    expect(screen.getByRole('button', { name: 'lighting.ledMap.selectAll' })).toBeDisabled();
+
+    chooseAdvanced();
+    // One device is ignored, so both actions have work to do.
+    expect(screen.getByRole('button', { name: 'lighting.ledMap.selectAll' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'lightingOnboarding.selectNone' })).toBeEnabled();
   });
 });

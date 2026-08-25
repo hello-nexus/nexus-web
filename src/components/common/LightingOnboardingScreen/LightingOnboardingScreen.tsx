@@ -325,13 +325,13 @@ export function LightingOnboardingScreen({ open, onComplete, onBack }: LightingO
       )}
 
 
-      {mode === 'advanced' && cards !== null && cards.length > 0 && (
+      {cards !== null && cards.length > 0 && (
         <div className={styles.bulkRow}>
           <Button
             tone="ghost"
             size="sm"
             icon={<CheckCheck />}
-            disabled={toggleables.every(d => d.controlled !== false)}
+            disabled={mode !== 'advanced' || toggleables.every(d => d.controlled !== false)}
             onClick={() => handleSetAll(true)}
           >
             {t('lighting.ledMap.selectAll')}
@@ -340,7 +340,7 @@ export function LightingOnboardingScreen({ open, onComplete, onBack }: LightingO
             tone="ghost"
             size="sm"
             icon={<Ban />}
-            disabled={toggleables.every(d => d.controlled === false)}
+            disabled={mode !== 'advanced' || toggleables.every(d => d.controlled === false)}
             onClick={() => handleSetAll(false)}
           >
             {t('lightingOnboarding.selectNone')}
