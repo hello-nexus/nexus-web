@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ExternalLink, FolderOpen } from 'lucide-react';
+import { Eraser, ExternalLink, FolderOpen, GitBranch, Languages, Megaphone, PanelBottom, Power, PowerOff, RefreshCw, ScrollText, SquareMenu, Timer, TriangleAlert } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingToggle, SettingSelect, SettingSlider, SettingRow } from '../../common/SettingRow/SettingRow';
@@ -103,6 +103,8 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
         <SettingSelect
           label={t('settings.language')}
           anchorId="set-language"
+          icon={<Languages />}
+          iconLeading="subtle"
           value={settings.general.language}
           options={LANGUAGES.map(l => ({
             value: l,
@@ -115,6 +117,8 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
         <SettingToggle
           label={t('settings.alerts.label')}
           anchorId="set-alerts"
+          icon={<TriangleAlert />}
+          iconLeading="subtle"
           description={t('settings.alerts.description')}
           checked={settings.general.showConflictAlerts}
           onChange={() => updateGeneral({ showConflictAlerts: !settings.general.showConflictAlerts })}
@@ -127,6 +131,8 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
             <SettingToggle
               label={t('settings.systemStartup.label')}
               anchorId="set-startup"
+              icon={<Power />}
+              iconLeading="subtle"
               description={t('settings.systemStartup.description')}
               checked={autoStart}
               onChange={toggleAutoStart}
@@ -137,6 +143,8 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
             <SettingSlider
               label={t('settings.startupDelay.label')}
               anchorId="set-startup-delay"
+              icon={<Timer />}
+              iconLeading="subtle"
               description={t('settings.startupDelay.description')}
               value={startupDelayPreview ?? settings.general.startupDelaySeconds}
               min={0}
@@ -162,6 +170,8 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
           {platform === 'windows' && (
             <SettingToggle
               label={t('settings.windowsTray.label')}
+              icon={<PanelBottom />}
+              iconLeading="subtle"
               anchorId="set-tray"
               description={t('settings.windowsTray.description')}
               checked={settings.general.showWindowsTrayIcon}
@@ -171,6 +181,8 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
           {platform === 'macos' && (
             <SettingToggle
               label={t('settings.macStatusBar.label')}
+              icon={<SquareMenu />}
+              iconLeading="subtle"
               anchorId="set-menubar"
               description={t('settings.macStatusBar.description')}
               checked={settings.general.showMacStatusBarIcon}
@@ -185,6 +197,8 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
           <SettingSelect
             label={t('settings.updates.mode.label')}
             anchorId="set-update-mode"
+            icon={<RefreshCw />}
+            iconLeading="subtle"
             description={t('settings.updates.mode.description')}
             value={settings.general.updateMode ?? 'always'}
             options={[
@@ -200,6 +214,8 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
           <SettingSelect
             label={t('settings.updates.channel.label')}
             anchorId="set-update-channel"
+            icon={<GitBranch />}
+            iconLeading="subtle"
             description={t('settings.updates.channel.description')}
             value={settings.general.updateChannel ?? 'production'}
             options={[
@@ -216,6 +232,8 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
       <SettingsSection title={t('settings.diagnostics.title')}>
         <SettingRow
           label={t('settings.diagnostics.logsLabel')}
+          icon={<ScrollText />}
+          iconLeading="subtle"
           description={t('settings.diagnostics.logsDescription')}
         >
           <Button
@@ -230,7 +248,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
           </Button>
         </SettingRow>
 
-        <SettingRow label={t('settings.feedback')}>
+        <SettingRow label={t('settings.feedback')} icon={<Megaphone />} iconLeading="subtle">
           <Button
             tone="neutral"
             size="sm"
@@ -250,6 +268,8 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
           <SettingRow
             label={t('settings.shutDown.label')}
             anchorId="set-shutdown"
+            icon={<PowerOff />}
+            iconLeading="subtle"
             description={flashing ? t('settings.shutDown.flashBlocked') : t('settings.shutDown.description')}
           >
             <Button
@@ -267,6 +287,8 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
         <SettingRow
           label={t('settings.factoryReset.label')}
           anchorId="set-factory-reset"
+          icon={<Eraser />}
+          iconLeading="subtle"
           description={flashing ? t('settings.factoryReset.flashBlocked') : t('settings.factoryReset.description')}
         >
           <Button

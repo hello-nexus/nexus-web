@@ -1,4 +1,5 @@
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
+import { Thermometer } from 'lucide-react';
 import { SettingRow } from '../../common/SettingRow/SettingRow';
 import { ChipGroup } from '../../common/ChipGroup/ChipGroup';
 import { MonitoringEventsSettings } from '../../../panel/widgets/monitoring/page/MonitoringEventsSettings';
@@ -23,6 +24,8 @@ export function MonitoringTab({ settings, updateGeneral, serviceOnline, platform
       <SettingsSection>
         <SettingRow
           label={t('settings.units.temperature.label')}
+          icon={<Thermometer />}
+          iconLeading="subtle"
           anchorId="set-temp-unit"
           description={t('settings.units.temperature.description')}
         >

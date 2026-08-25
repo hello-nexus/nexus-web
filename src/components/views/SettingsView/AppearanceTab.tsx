@@ -1,4 +1,5 @@
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
+import { Clock, Hash } from 'lucide-react';
 import { SettingRow } from '../../common/SettingRow/SettingRow';
 import { ChipGroup } from '../../common/ChipGroup/ChipGroup';
 import { ThemeTab } from './ThemeTab';
@@ -22,7 +23,7 @@ export function AppearanceTab({ settings, updateGeneral }: AppearanceTabProps) {
       </SettingsSection>
 
       <SettingsSection>
-        <SettingRow label={t('settings.units.time.label')} anchorId="set-time-format">
+        <SettingRow label={t('settings.units.time.label')} anchorId="set-time-format" icon={<Clock />} iconLeading="subtle">
           <ChipGroup
             ariaLabel={t('settings.units.time.label')}
             activeKey={settings.general.timeFormat}
@@ -37,7 +38,7 @@ export function AppearanceTab({ settings, updateGeneral }: AppearanceTabProps) {
             ]}
           />
         </SettingRow>
-        <SettingRow label={t('settings.units.number.label')} anchorId="set-number-format">
+        <SettingRow label={t('settings.units.number.label')} anchorId="set-number-format" icon={<Hash />} iconLeading="subtle">
           <ChipGroup
             ariaLabel={t('settings.units.number.label')}
             activeKey={settings.general.numberFormat}

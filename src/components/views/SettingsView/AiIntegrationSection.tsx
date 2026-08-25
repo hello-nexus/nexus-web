@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { Activity, Bot, Box, Brain, Eye, EyeOff, Fan, History, IdCard, KeyRound, Lightbulb, RefreshCcwDot } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingRow, SettingToggle } from '../../common/SettingRow/SettingRow';
@@ -29,6 +29,14 @@ export interface AiIntegrationSectionProps {
 
 const CAPABILITY_KEYS = ['telemetry', 'cooling', 'lighting', 'profiles', 'history'] as const;
 type CapabilityKey = typeof CAPABILITY_KEYS[number];
+
+const CAPABILITY_ICONS: Record<CapabilityKey, ReactNode> = {
+  telemetry: <Activity />,
+  cooling: <Fan />,
+  lighting: <Lightbulb />,
+  profiles: <IdCard />,
+  history: <History />,
+};
 
 // Decorative placeholder for the masked token - its length is unrelated to
 // the real token's length so the mask alone never leaks a size hint.
@@ -307,6 +315,8 @@ export function AiIntegrationSection({ serviceOnline, numberFormat = DEFAULT_NUM
         <SettingsSection title={t('settings.ai.title')}>
           <SettingToggle
             label={t('settings.ai.master.label')}
+            icon={<Bot />}
+            iconLeading="subtle"
             anchorId="set-ai-integration"
             description={t('settings.ai.master.description')}
             checked={status.enabled}
@@ -319,6 +329,8 @@ export function AiIntegrationSection({ serviceOnline, numberFormat = DEFAULT_NUM
                 <SettingToggle
                   key={key}
                   label={t(`settings.ai.capability.${key}.label`)}
+                  icon={CAPABILITY_ICONS[key]}
+                  iconLeading="subtle"
                   description={t(`settings.ai.capability.${key}.description`)}
                   checked={status.capabilities[key]}
                   onChange={() => toggleCapability(key)}
@@ -328,6 +340,8 @@ export function AiIntegrationSection({ serviceOnline, numberFormat = DEFAULT_NUM
 
               <SettingRow
                 label={t('settings.ai.token.label')}
+                icon={<KeyRound />}
+                iconLeading="subtle"
                 description={t('settings.ai.token.description')}
               >
                 <span className={styles.tokenValue}>{revealed ? status.token : TOKEN_MASK}</span>
@@ -354,6 +368,8 @@ export function AiIntegrationSection({ serviceOnline, numberFormat = DEFAULT_NUM
 
               <SettingRow
                 label={t('settings.ai.rotate.label')}
+                icon={<RefreshCcwDot />}
+                iconLeading="subtle"
                 description={t('settings.ai.rotate.description')}
               >
                 <Button
@@ -384,6 +400,8 @@ export function AiIntegrationSection({ serviceOnline, numberFormat = DEFAULT_NUM
                 <>
                   <SettingRow
                     label={t('settings.ai.assistant.runtime.label')}
+                    icon={<Box />}
+                    iconLeading="subtle"
                     description={t('settings.ai.assistant.runtime.description')}
                   >
                     <div className={styles.runtimeControl}>
@@ -424,6 +442,8 @@ export function AiIntegrationSection({ serviceOnline, numberFormat = DEFAULT_NUM
 
                   <SettingRow
                     label={t('settings.ai.assistant.model.label')}
+                    icon={<Brain />}
+                    iconLeading="subtle"
                     description={t('settings.ai.assistant.model.description')}
                     align="start"
                   >

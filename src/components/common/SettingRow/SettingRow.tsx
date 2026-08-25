@@ -5,6 +5,14 @@ import { Slider } from '../Slider/Slider';
 import styles from './SettingRow.module.scss';
 
 /**
+ * Which leading-icon treatment a row uses. `true` is the prominent tier, for
+ * first-run and import screens; 'subtle' is the dense tier for settings
+ * lists. Both size and colour live in the stylesheet, so a caller passes a
+ * bare `<Icon />` and cannot drift the treatment.
+ */
+export type LeadingIconTone = boolean | 'subtle';
+
+/**
  * Canonical settings row: a label (+ optional description) on the left and a
  * control on the right (no per-row divider - the rule belongs under section
  * headers, via SectionHeader). The one settings row for the whole app (main
@@ -32,11 +40,10 @@ export function SettingRow({
   description?: ReactNode;
   // Optional accent glyph rendered inline before the label text.
   icon?: ReactNode;
-  // Renders `icon` as a large leading column beside label+description
-  // (vertically centered against the whole row) instead of the small inline
-  // glyph before the label text. Caller sizes the icon element itself larger
-  // to match.
-  iconLeading?: boolean;
+  // Renders `icon` as a leading column beside label+description (vertically
+  // centered against the whole row) instead of the small inline glyph before
+  // the label text. The stylesheet sizes and colours it per tier.
+  iconLeading?: LeadingIconTone;
   // Omit for a pure status row (label/description only, no control).
   children?: ReactNode;
   disabled?: boolean;
@@ -74,10 +81,18 @@ export function SettingRow({
     stackOnNarrow && styles.stackNarrow,
     descriptionBelow && styles.descBelow,
     descriptionBelow === 'tight' && styles.descBelowTight,
+    icon && iconLeading && styles.hasLeadingIcon,
   ].filter(Boolean).join(' ');
   return (
     <div id={anchorId} data-search-anchor={anchorId} className={cls}>
-      {icon && iconLeading && <span className={styles.leadingIcon} aria-hidden="true">{icon}</span>}
+      {icon && iconLeading && (
+        <span
+          className={iconLeading === 'subtle' ? `${styles.leadingIcon} ${styles.leadingIconSubtle}` : styles.leadingIcon}
+          aria-hidden="true"
+        >
+          {icon}
+        </span>
+      )}
       {(label || (description && !descriptionBelow)) && (
         <div className={styles.info}>
           {label && (
@@ -110,7 +125,7 @@ export function SettingToggle({
   label: string;
   description?: ReactNode;
   icon?: ReactNode;
-  iconLeading?: boolean;
+  iconLeading?: LeadingIconTone;
   checked: boolean;
   onChange: (checked: boolean) => void;
   disabled?: boolean;
@@ -153,7 +168,7 @@ export function SettingSelect({
   description?: ReactNode;
   descriptionBelow?: boolean | 'tight';
   icon?: ReactNode;
-  iconLeading?: boolean;
+  iconLeading?: LeadingIconTone;
   anchorId?: string;
 }) {
   return (
@@ -196,7 +211,7 @@ export function SettingSlider({
   label?: string;
   description?: ReactNode;
   icon?: ReactNode;
-  iconLeading?: boolean;
+  iconLeading?: LeadingIconTone;
   // Renders the description on its own full-width line: the slider takes a
   // fixed slice of the row, so an inline description wraps to a few words per
   // line in a settings pane.

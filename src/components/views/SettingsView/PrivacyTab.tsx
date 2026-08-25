@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { ChartColumn, Hourglass, Import } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingRow, SettingToggle } from '../../common/SettingRow/SettingRow';
@@ -76,6 +77,8 @@ export function PrivacyTab({ settings, serviceOnline }: PrivacyTabProps) {
           <div className={styles.telemetryRow}>
             <SettingToggle
               label={t('settings.telemetry.label')}
+              icon={<ChartColumn />}
+              iconLeading="subtle"
               anchorId="set-telemetry"
               description={buildTelemetryConsentDescription(t)}
               checked={telemetryOn}
@@ -87,6 +90,8 @@ export function PrivacyTab({ settings, serviceOnline }: PrivacyTabProps) {
         )}
         <SettingRow
           label={t('settings.screentime.title')}
+          icon={<Hourglass />}
+          iconLeading="subtle"
           anchorId="set-screentime"
           description={t('settings.screentime.trackingDesc')}
         >
@@ -104,6 +109,8 @@ export function PrivacyTab({ settings, serviceOnline }: PrivacyTabProps) {
         {nexus2Importable && (
           <SettingRow
             label={t('nexus2Welcome.settingsEntry.rowLabel')}
+            icon={<Import />}
+            iconLeading="subtle"
             anchorId="set-nexus2-import"
             description={t('nexus2Welcome.import.description')}
           >

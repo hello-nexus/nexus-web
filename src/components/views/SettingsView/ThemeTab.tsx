@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Droplet, Image as ImageIcon, Palette } from 'lucide-react';
 import { ColorPickerWithPresets } from '../../common/ColorPickerWithPresets/ColorPickerWithPresets';
 import { SettingRow } from '../../common/SettingRow/SettingRow';
 import { ChipGroup } from '../../common/ChipGroup/ChipGroup';
@@ -76,7 +77,7 @@ export function ThemeTab({ settings, updateGeneral }: ThemeTabProps) {
 
   return (
     <>
-      <SettingRow label={t('settings.theme')} anchorId="set-theme-mode">
+      <SettingRow label={t('settings.theme')} anchorId="set-theme-mode" icon={<Palette />} iconLeading="subtle">
         <ChipGroup
           ariaLabel={t('settings.theme')}
           activeKey={settings.general.themeMode}
@@ -85,7 +86,7 @@ export function ThemeTab({ settings, updateGeneral }: ThemeTabProps) {
         />
       </SettingRow>
 
-      <SettingRow label={t('settings.background')} anchorId="set-background">
+      <SettingRow label={t('settings.background')} anchorId="set-background" icon={<ImageIcon />} iconLeading="subtle">
         <ChipGroup
           ariaLabel={t('settings.background')}
           activeKey={backgroundActiveKey}
@@ -97,7 +98,7 @@ export function ThemeTab({ settings, updateGeneral }: ThemeTabProps) {
       {/* One box child: the swatch reveal is part of the accent row, not a
           separate setting, so it must not pick up the box's row divider. */}
       <div className={styles.accentGroup}>
-        <SettingRow label={t('settings.accent')} anchorId="set-accent">
+        <SettingRow label={t('settings.accent')} anchorId="set-accent" icon={<Droplet />} iconLeading="subtle">
           <ChipGroup
             ariaLabel={t('settings.accent')}
             activeKey={settings.general.accentSource}

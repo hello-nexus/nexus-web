@@ -18,6 +18,8 @@ const NON_UI_JSX_ATTRIBUTES = [
   'tone', 'size', 'variant', 'position', 'align', 'justify', 'direction', 'autoFocus',
   'gap', 'as', 'icon', 'iconPosition', 'color', 'accent', 'mode', 'kind', 'side', 'placement',
   'layout', 'yAxisSide',
+  // Leading-icon treatment tier ('subtle'); a style enum, not display text.
+  'iconLeading',
   // Search deep-link target id stamped on a control; technical, never displayed.
   'anchorId',
   // i18n key prefixes/overrides handed to a shared component so it reads its

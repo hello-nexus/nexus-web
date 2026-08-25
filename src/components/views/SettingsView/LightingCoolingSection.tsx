@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { RotateCcw } from 'lucide-react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { CircuitBoard, Cpu, Moon, RotateCcw, Zap } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { Select } from '../../common/Select/Select';
@@ -124,6 +124,8 @@ export function LightingCoolingSection({ serviceOnline, platform }: LightingCool
         {showGpuPicker && (
           <SettingSelect
             label={t('lighting.renderGpu.label')}
+            icon={<Zap />}
+            iconLeading="subtle"
             anchorId="set-render-gpu"
             description={t('lighting.renderGpu.hint')}
             value={renderGpu}
@@ -134,6 +136,8 @@ export function LightingCoolingSection({ serviceOnline, platform }: LightingCool
         {showSleepBlackout && (
           <SettingToggle
             label={t('lighting.sleepBlackout.label')}
+            icon={<Moon />}
+            iconLeading="subtle"
             anchorId="set-sleep-blackout"
             description={t('lighting.sleepBlackout.description')}
             checked={sleepBlackout}
@@ -142,6 +146,7 @@ export function LightingCoolingSection({ serviceOnline, platform }: LightingCool
           />
         )}
         <SensorRow
+          icon={<Cpu />}
           label={t('cooling.settings.cpuLabel')}
           anchorId="set-cpu-sensor"
           options={cpuOptions}
@@ -154,6 +159,7 @@ export function LightingCoolingSection({ serviceOnline, platform }: LightingCool
           onChange={id => update({ preferredCpuTempSensorId: id })}
         />
         <SensorRow
+          icon={<CircuitBoard />}
           label={t('cooling.settings.gpuLabel')}
           anchorId="set-gpu-sensor"
           options={gpuOptions}
@@ -189,6 +195,7 @@ export function LightingCoolingSection({ serviceOnline, platform }: LightingCool
 }
 
 interface SensorRowProps {
+  icon?: ReactNode;
   label: string;
   /** Search deep-link target stamped on the row (SettingRow anchorId). */
   anchorId?: string;
@@ -204,7 +211,7 @@ interface SensorRowProps {
   onChange: (id: string) => void;
 }
 
-function SensorRow({ label, anchorId, options, defaultSensor, defaultSuffix, emptyLabel, value, tempUnit, numberFormat, onChange }: SensorRowProps) {
+function SensorRow({ label, anchorId, icon, options, defaultSensor, defaultSuffix, emptyLabel, value, tempUnit, numberFormat, onChange }: SensorRowProps) {
   // The visible option list must include both the stored pick and the default
   // sensor, or the controlled <select> would carry a value with no matching
   // <option> and snap to the first one (then persist it on the next change).
@@ -239,11 +246,11 @@ function SensorRow({ label, anchorId, options, defaultSensor, defaultSuffix, emp
   };
 
   if (visibleOptions.length === 0) {
-    return <SettingRow label={label} anchorId={anchorId} description={emptyLabel} />;
+    return <SettingRow label={label} anchorId={anchorId} icon={icon} iconLeading="subtle" description={emptyLabel} />;
   }
 
   return (
-    <SettingRow label={label} anchorId={anchorId}>
+    <SettingRow label={label} anchorId={anchorId} icon={icon} iconLeading="subtle">
       <Select value={displayedValue} onChange={handleChange} ariaLabel={label}>
         {visibleOptions.map(s => {
           const isDefault = s.id === defaultSensor?.id;

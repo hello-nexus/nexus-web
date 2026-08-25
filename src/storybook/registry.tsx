@@ -2,7 +2,7 @@
 // file per preview to satisfy the fast-refresh rule would be dozens of tiny
 // files. Storybook entries reload (not HMR) on edit.
 import { useEffect, useRef, useState, type CSSProperties, type FC } from 'react';
-import { Monitor, Palette, Sparkles, X, Plus, Settings, Download, AlertTriangle, HardDrive, Pause } from 'lucide-react';
+import { Monitor, Palette, Sparkles, X, Plus, Settings, Download, AlertTriangle, HardDrive, Heart, Pause } from 'lucide-react';
 import { ViewHeader } from '../components/common/ViewHeader/ViewHeader';
 import { Sparkline } from '../components/common/Sparkline/Sparkline';
 import { SensorCard } from '../components/common/SensorCard/SensorCard';
@@ -1342,6 +1342,18 @@ function PreviewSettingRow() {
       <SettingToggle label="Run at startup" description="Launch Nexus when you sign in"
         checked={startup} onChange={setStartup} />
       <SettingToggle label="Beta updates" checked={beta} onChange={setBeta} disabled />
+      {/* Both leading-icon tiers: the caller passes a bare glyph and the row
+          sizes and colours it, so the two never drift apart. */}
+      <SettingToggle
+        label="Prominent tier" description="First-run and import screens"
+        icon={<Heart />} iconLeading
+        checked={startup} onChange={setStartup}
+      />
+      <SettingToggle
+        label="Subtle tier" description="Settings lists"
+        icon={<Heart />} iconLeading="subtle"
+        checked={beta} onChange={setBeta}
+      />
       <SettingSelect label="Performance mode" value={mode} onChange={setMode}
         options={[{ value: 'quiet', label: 'Quiet' }, { value: 'balanced', label: 'Balanced' }, { value: 'max', label: 'Max' }]} />
       <SettingSlider label="Brightness" value={level} min={0} max={100} step={1} editable trackFill
@@ -1916,7 +1928,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'SettingRow / SettingToggle / SettingSelect / SettingSlider', category: 'inputs',
     filePath: 'src/components/common/SettingRow/SettingRow.tsx',
-    description: 'Canonical settings row: label (+ optional description / icon) left, control right. wrapControl lets a control too wide for the space beside the label (a swatch grid) shrink and wrap there instead of squeezing the label; stackOnNarrow drops the control under the description below 480px. The one settings row for the whole app (Settings pages, lighting/keeb pages, panel editor sheet, device Settings tab); the panel SettingsRow re-exports it. SettingToggle, SettingSelect, and SettingSlider (a right-aligned inline slider bar) bundle the matching control.',
+    description: 'Canonical settings row: label (+ optional description / icon) left, control right. wrapControl lets a control too wide for the space beside the label (a swatch grid) shrink and wrap there instead of squeezing the label; stackOnNarrow drops the control under the description below 480px. The one settings row for the whole app (Settings pages, lighting/keeb pages, panel editor sheet, device Settings tab); the panel SettingsRow re-exports it. SettingToggle, SettingSelect, and SettingSlider (a right-aligned inline slider bar) bundle the matching control. iconLeading renders the icon as a leading column instead of inline before the label, in one of two tiers: true is the prominent tier used by first-run and import screens, "subtle" the dense tier for settings lists. The row owns both size and colour, so pass a bare glyph with no size prop.',
     Preview: PreviewSettingRow,
     notes: 'Token fallbacks (--panel-* → app globals) keep it correct inside .panel-root and on the dashboard. No per-row divider - rules belong to SectionHeader.',
   },

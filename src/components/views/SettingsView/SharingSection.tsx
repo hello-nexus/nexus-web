@@ -1,4 +1,5 @@
-import { RotateCcw, UsersRound } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { Fan, HardDrive, LayoutDashboard, Lightbulb, Palette, RotateCcw, UsersRound } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { Badge } from '../../common/Badge/Badge';
 import { ChipGroup } from '../../common/ChipGroup/ChipGroup';
@@ -22,6 +23,14 @@ export interface SharingSectionProps {
   onResetCategory: (profileId: string, category: ProfileCategory, shared: boolean) => void;
   onShareCategory: (category: ProfileCategory) => void;
 }
+
+const CATEGORY_ICONS: Record<ProfileCategory, ReactNode> = {
+  lighting: <Lightbulb />,
+  cooling: <Fan />,
+  theme: <Palette />,
+  dashboard: <LayoutDashboard />,
+  device: <HardDrive />,
+};
 
 export function SharingSection({ profiles, sharing, primaryId, sharedCats, counts, onlyOneProfile, onResetCategory, onShareCategory }: SharingSectionProps) {
   const { t, language } = useTranslation();
@@ -57,6 +66,8 @@ export function SharingSection({ profiles, sharing, primaryId, sharedCats, count
           <SettingRow
             key={category}
             label={t(`settings.profiles.sharing.cat.${category}.label`)}
+            icon={CATEGORY_ICONS[category]}
+            iconLeading="subtle"
             description={t(`settings.profiles.sharing.cat.${category}.desc`)}
           >
             {count > 0 && (

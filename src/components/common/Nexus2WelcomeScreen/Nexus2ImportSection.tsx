@@ -16,8 +16,6 @@ import styles from './Nexus2ImportSection.module.scss';
 type PreviewStatus = 'idle' | 'loading' | 'loaded' | 'error';
 type ImportPhase = 'idle' | 'busy' | 'results';
 
-const GROUP_ICON_SIZE = 28;
-
 /** Apply outcome for a host-driven import. */
 export type Nexus2ImportOutcome = 'clean' | 'failed';
 
@@ -168,7 +166,7 @@ export function Nexus2ImportSection({
                 key={group.id}
                 label={label}
                 description={detail}
-                icon={<Icon size={GROUP_ICON_SIZE} />}
+                icon={<Icon />}
                 iconLeading
                 checked={selectedGroups.has(group.id)}
                 disabled={locked}

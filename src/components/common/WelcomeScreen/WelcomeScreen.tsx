@@ -146,7 +146,7 @@ export function WelcomeScreen({ open, platform, onComplete }: WelcomeScreenProps
           <SettingToggle
             label={startLabel}
             description={t('welcome.startWithOs.description')}
-            icon={<PlatformIcon platform={platform} size={28} />}
+            icon={<PlatformIcon platform={platform} />}
             iconLeading
             checked={startWithOs}
             onChange={setStartWithOsValue}
@@ -157,7 +157,7 @@ export function WelcomeScreen({ open, platform, onComplete }: WelcomeScreenProps
           <div className={styles.telemetryRow}>
             <SettingToggle
               label={t('settings.telemetry.label')}
-              icon={<Heart size={28} />}
+              icon={<Heart />}
               iconLeading
               description={buildTelemetryConsentDescription(t)}
               checked={telemetryOn}

@@ -116,6 +116,10 @@
 // element itself; a fixed column width (rather than the icon's own rendered
 // width) keeps the label/description left edge aligned across rows whose
 // icons differ in ink density at the same nominal size.
+// Prominent tier, for first-run and import screens. The glyph is sized here
+// rather than by callers so the treatment cannot drift between them. Sizing
+// the child element (not `svg`) also constrains a non-svg icon, which the
+// row already accepts elsewhere.
 .leadingIcon {
   display: flex;
   align-items: center;
@@ -124,6 +128,29 @@
   width: 1.75rem;
   margin-right: 0.5rem;
   color: var(--accent);
+
+  > * {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+// Dense tier, for settings lists. Compounded with .leadingIcon so the
+// override wins on specificity rather than on source order.
+.leadingIcon.leadingIconSubtle {
+  color: var(--text);
+
+  > * {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+// A leading icon indents the label; a full-width description line has to
+// follow it or the wrapped text starts left of the label it belongs to.
+.row.descBelow.hasLeadingIcon .desc {
+  // .leadingIcon width + its margin-right + .row gap.
+  padding-left: calc(1.75rem + 0.5rem + 1rem);
 }
 
 .desc {

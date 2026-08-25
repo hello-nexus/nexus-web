@@ -14,8 +14,6 @@ import {
 } from '../../../api/fancontrol';
 import styles from './FanControlImportSection.module.scss';
 
-const CATEGORY_ICON_SIZE = 28;
-
 type PreviewStatus = 'idle' | 'loading' | 'loaded' | 'error';
 type ImportPhase = 'idle' | 'busy' | 'results';
 
@@ -37,35 +35,35 @@ const CATEGORIES: {
     id: 'curves',
     labelKey: 'fanControlImport.category.curves',
     descriptionKey: 'fanControlImport.category.curvesDetail',
-    icon: <Waves size={CATEGORY_ICON_SIZE} />,
+    icon: <Waves />,
     count: p => p.curveCount,
   },
   {
     id: 'calibration',
     labelKey: 'fanControlImport.category.calibration',
     descriptionKey: 'fanControlImport.category.calibrationDetail',
-    icon: <Gauge size={CATEGORY_ICON_SIZE} />,
+    icon: <Gauge />,
     count: p => p.calibrationCount,
   },
   {
     id: 'names',
     labelKey: 'fanControlImport.category.names',
     descriptionKey: 'fanControlImport.category.namesDetail',
-    icon: <Tag size={CATEGORY_ICON_SIZE} />,
+    icon: <Tag />,
     count: p => p.nameCount,
   },
   {
     id: 'offsets',
     labelKey: 'fanControlImport.category.offsets',
     descriptionKey: 'fanControlImport.category.offsetsDetail',
-    icon: <SlidersHorizontal size={CATEGORY_ICON_SIZE} />,
+    icon: <SlidersHorizontal />,
     count: p => p.offsetCount,
   },
   {
     id: 'manual',
     labelKey: 'fanControlImport.category.manual',
     descriptionKey: 'fanControlImport.category.manualDetail',
-    icon: <Fan size={CATEGORY_ICON_SIZE} />,
+    icon: <Fan />,
     count: p => p.manualCount,
   },
 ];

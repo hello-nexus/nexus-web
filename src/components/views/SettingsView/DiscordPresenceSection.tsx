@@ -9,6 +9,8 @@ import {
   type DiscordPresenceResponse,
 } from '../../../api/discord';
 import { useTranslation } from '../../../lib/i18n';
+import { CircleAlert, Quote } from 'lucide-react';
+import { DiscordGlyph } from '../../icons/NexusBrand';
 
 /** How often the live connection state is re-read while this tab is open. */
 const POLL_MS = 5000;
@@ -83,12 +85,16 @@ export function DiscordPresenceSection({ serviceOnline }: { serviceOnline: boole
         label={t('discord.presence.enable')}
         description={t('discord.presence.hint')}
         anchorId="set-discord-presence"
+        icon={<DiscordGlyph />}
+        iconLeading="subtle"
         checked={presence.enabled}
         disabled={busy}
         onChange={checked => { void update({ enabled: checked }); }}
       />
       <SettingSelect
         label={t('discord.presence.status')}
+        icon={<Quote />}
+        iconLeading="subtle"
         description={status}
         descriptionBelow
         value={presence.preset}
@@ -98,7 +104,7 @@ export function DiscordPresenceSection({ serviceOnline }: { serviceOnline: boole
       />
       {/* Only worth offering while presence is on but cannot attach. */}
       {presence.enabled && !presence.connected && (
-        <SettingRow label={t('discord.presence.discordClosed')}>
+        <SettingRow label={t('discord.presence.discordClosed')} icon={<CircleAlert />} iconLeading="subtle">
           <Button onClick={() => { void launchDiscord(); }} disabled={busy}>
             {t('discord.launch')}
           </Button>
