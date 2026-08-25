@@ -551,19 +551,6 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     await handlePresetLoad(id);
   }, [pushHistory, handlePresetLoad]);
 
-  // Reset returns every fan to BIOS control, the Off mode's own behaviour, and
-  // is undoable like any other change.
-  const handleResetCooling = useCallback(async () => {
-    pushHistory();
-    setActiveMode('off');
-    activeCoolingProfileRef.current = 'off';
-    presetLockUntilRef.current = Date.now() + 1500;
-    publishControlSync({ domain: 'cooling', activePreset: 'off' });
-    await applyProfile('off');
-    await refreshCoolingConfig();
-    void saveActivePreset();
-  }, [pushHistory, refreshCoolingConfig, saveActivePreset]);
-
   const handlePresetRename = useCallback(async (id: string, name: string) => {
     await updateCoolingPreset(id, { name });
     await loadPresets();
@@ -1227,7 +1214,6 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
               canRedo={canRedo}
               onUndo={() => { void handleUndo(); }}
               onRedo={() => { void handleRedo(); }}
-              onReset={() => { void handleResetCooling(); }}
               translationPrefix="cooling.presets"
               onLoad={id => { void handlePresetLoadWithHistory(id); }}
               onCreate={handlePresetCreate}

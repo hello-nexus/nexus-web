@@ -376,8 +376,6 @@
   "cooling.presets.placeholder": "Presets",
   "cooling.presets.redo": "Refazer",
   "cooling.presets.rename": "Renomear",
-  "cooling.presets.reset": "Redefinir ventoinhas",
-  "cooling.presets.resetConfirm": "Retornar todas as ventoinhas ao controle da BIOS?",
   "cooling.presets.undo": "Desfazer",
   "cooling.response.avgFanDuty": "Duty médio da ventoinha",
   "cooling.sections.curves": "Curvas",

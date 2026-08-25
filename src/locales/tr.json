@@ -376,8 +376,6 @@
   "cooling.presets.placeholder": "Önayarlar",
   "cooling.presets.redo": "Yeniden Yap",
   "cooling.presets.rename": "Yeniden Adlandır",
-  "cooling.presets.reset": "Fanları sıfırla",
-  "cooling.presets.resetConfirm": "Tüm fanlar BIOS denetimine döndürülsün mü?",
   "cooling.presets.undo": "Geri Al",
   "cooling.response.avgFanDuty": "Ortalama fan görevi",
   "cooling.sections.curves": "Egriler",

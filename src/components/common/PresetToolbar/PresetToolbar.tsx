@@ -36,8 +36,9 @@ interface PresetToolbarProps {
   /** i18n key for the import option's label, falling back to
    *  `${translationPrefix}.importOption` like resetLabelKey does for reset. */
   importLabelKey?: string;
-  /** Reset + Undo/Redo controls. Off for callers with no editable history to
-   *  undo; on (default) matches the original lighting-canvas toolbar. */
+  /** Undo/Redo controls, plus Reset when `onReset` is supplied. Off for
+   *  callers with no editable history to undo; on (default) matches the
+   *  original lighting-canvas toolbar. */
   showHistory?: boolean;
   canUndo?: boolean;
   canRedo?: boolean;
@@ -160,15 +161,19 @@ export function PresetToolbar({
       />
       {showHistory && (
         <>
-          <Button
-            tone="ghost"
-            size="sm"
-            icon={<RotateCcw size={14} />}
-            title={t(resetKey)}
-            aria-label={t(resetKey)}
-            onClick={() => setResetConfirmOpen(true)}
-          />
-          <div className={styles.sep} aria-hidden="true" />
+          {onReset && (
+            <>
+              <Button
+                tone="ghost"
+                size="sm"
+                icon={<RotateCcw size={14} />}
+                title={t(resetKey)}
+                aria-label={t(resetKey)}
+                onClick={() => setResetConfirmOpen(true)}
+              />
+              <div className={styles.sep} aria-hidden="true" />
+            </>
+          )}
           <Button
             tone="ghost"
             size="sm"
@@ -206,7 +211,7 @@ export function PresetToolbar({
         onConfirm={() => { if (activeId) { onDelete(activeId); } setDeleteConfirmOpen(false); }}
         onCancel={() => setDeleteConfirmOpen(false)}
       />
-      {showHistory && (
+      {showHistory && onReset && (
         <ConfirmModal
           open={resetConfirmOpen}
           title={t(resetKey)}

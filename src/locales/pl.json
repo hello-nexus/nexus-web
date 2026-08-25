@@ -376,8 +376,6 @@
   "cooling.presets.placeholder": "Presety",
   "cooling.presets.redo": "Ponów",
   "cooling.presets.rename": "Zmień nazwę",
-  "cooling.presets.reset": "Zresetuj wentylatory",
-  "cooling.presets.resetConfirm": "Przywrócić wszystkie wentylatory pod kontrolę BIOS-u?",
   "cooling.presets.undo": "Cofnij",
   "cooling.response.avgFanDuty": "Średni poziom wentylatora",
   "cooling.sections.curves": "Krzywe",

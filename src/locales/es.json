@@ -376,8 +376,6 @@
   "cooling.presets.placeholder": "Presets",
   "cooling.presets.redo": "Rehacer",
   "cooling.presets.rename": "Renombrar",
-  "cooling.presets.reset": "Restablecer ventiladores",
-  "cooling.presets.resetConfirm": "¿Devolver todos los ventiladores al control de la BIOS?",
   "cooling.presets.undo": "Deshacer",
   "cooling.response.avgFanDuty": "Duty medio del ventilador",
   "cooling.sections.curves": "Curvas",

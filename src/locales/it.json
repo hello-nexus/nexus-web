@@ -376,8 +376,6 @@
   "cooling.presets.placeholder": "Preset",
   "cooling.presets.redo": "Ripristina",
   "cooling.presets.rename": "Rinomina",
-  "cooling.presets.reset": "Reimposta ventole",
-  "cooling.presets.resetConfirm": "Riportare tutte le ventole al controllo del BIOS?",
   "cooling.presets.undo": "Annulla",
   "cooling.response.avgFanDuty": "Duty medio ventola",
   "cooling.sections.curves": "Curve",

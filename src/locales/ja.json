@@ -376,8 +376,6 @@
   "cooling.presets.placeholder": "プリセット",
   "cooling.presets.redo": "やり直し",
   "cooling.presets.rename": "名前の変更",
-  "cooling.presets.reset": "ファンをリセット",
-  "cooling.presets.resetConfirm": "すべてのファンをBIOS制御に戻しますか？",
   "cooling.presets.undo": "元に戻す",
   "cooling.response.avgFanDuty": "平均ファンデューティ",
   "cooling.sections.curves": "カーブ",

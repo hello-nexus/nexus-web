@@ -376,8 +376,6 @@
   "cooling.presets.placeholder": "Presets",
   "cooling.presets.redo": "Wiederholen",
   "cooling.presets.rename": "Umbenennen",
-  "cooling.presets.reset": "Lüfter zurücksetzen",
-  "cooling.presets.resetConfirm": "Alle Lüfter wieder der BIOS-Steuerung überlassen?",
   "cooling.presets.undo": "Rückgängig",
   "cooling.response.avgFanDuty": "Durchschnittliche Lüfterleistung",
   "cooling.sections.curves": "Kurven",

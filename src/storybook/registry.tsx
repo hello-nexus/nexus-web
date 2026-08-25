@@ -2605,7 +2605,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'PresetToolbar', category: 'inputs',
     filePath: 'src/components/common/PresetToolbar/PresetToolbar.tsx',
-    description: 'Generic named-preset manager: dropdown (with Rename/Delete when active and a capped New preset... entry, plus an optional capped Import preset... entry via onImport and an optional Trigger with apps... entry via onManageApps), optionally paired with Reset / Undo / Redo icon buttons via showHistory. A preset with `hasApps` carries an app glyph, marking it as one an app in focus activates. Used by the lighting canvas layout toolbar (full history controls) and the Stream Deck page (dropdown + onImport opening the Elgato import modal).',
+    description: 'Generic named-preset manager: dropdown (with Rename/Delete when active and a capped New preset... entry, plus an optional capped Import preset... entry via onImport and an optional Trigger with apps... entry via onManageApps), optionally paired with Undo / Redo icon buttons via showHistory, plus a Reset button when onReset is supplied. A preset with `hasApps` carries an app glyph, marking it as one an app in focus activates. Used by the lighting canvas layout toolbar (full history controls) and the Stream Deck page (dropdown + onImport opening the Elgato import modal).',
     notes: 'No live preview -- bound to live preset state via useLayoutPresets / useDeckPresets and requires a running service.',
   },
   {

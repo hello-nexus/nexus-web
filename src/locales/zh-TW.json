@@ -376,8 +376,6 @@
   "cooling.presets.placeholder": "預設",
   "cooling.presets.redo": "取消復原",
   "cooling.presets.rename": "重新命名",
-  "cooling.presets.reset": "重設風扇",
-  "cooling.presets.resetConfirm": "將所有風扇交回 BIOS 控制？",
   "cooling.presets.undo": "復原",
   "cooling.response.avgFanDuty": "平均風扇工作週期",
   "cooling.sections.curves": "曲線",

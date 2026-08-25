@@ -376,8 +376,6 @@
   "cooling.presets.placeholder": "Presets",
   "cooling.presets.redo": "Rétablir",
   "cooling.presets.rename": "Renommer",
-  "cooling.presets.reset": "Réinitialiser les ventilateurs",
-  "cooling.presets.resetConfirm": "Rendre tous les ventilateurs au contrôle du BIOS ?",
   "cooling.presets.undo": "Annuler",
   "cooling.response.avgFanDuty": "Duty moyen des ventilateurs",
   "cooling.sections.curves": "Courbes",

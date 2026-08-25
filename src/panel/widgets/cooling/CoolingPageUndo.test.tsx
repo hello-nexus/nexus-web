@@ -112,13 +112,10 @@ describe('CoolingPage undo/redo', () => {
     await waitFor(() => { expect(redoBtn()).not.toBeDisabled(); });
   });
 
-  it('offers a reset that returns fans to BIOS', async () => {
+  it('offers no reset: the Off mode tab beside it already returns fans to BIOS', async () => {
     renderAdvanced();
     await screen.findByRole('tab', { name: /cooling\.mode\.turbo/ });
-    const reset = screen.getByRole('button', { name: /cooling\.presets\.reset/ });
-    expect(reset).toBeTruthy();
-    fireEvent.click(reset);
-    // Reset is destructive, so it routes through a confirm dialog first.
-    expect(await screen.findByText('cooling.presets.resetConfirm')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /cooling\.presets\.reset/ })).toBeNull();
+    expect(screen.getByRole('tab', { name: /cooling\.mode\.off/ })).toBeTruthy();
   });
 });
