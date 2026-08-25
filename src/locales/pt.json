@@ -1309,7 +1309,6 @@
   "importCenter.source.nexus2": "Nexus 2",
   "importCenter.source.ready": "Pronto para importar",
   "importOnboarding.closeApp": "Fechar e remover do arranque",
-  "importOnboarding.closeAppAria": "Fechar {app} e removê-la do arranque",
   "importOnboarding.continue": "Continuar",
   "importOnboarding.continueAnyway": "Continuar de qualquer forma",
   "importOnboarding.errorActions": "Não foi possível fechar uma aplicação nem impedir que iniciasse com o Windows. Feche-a antes de usar o Nexus.",

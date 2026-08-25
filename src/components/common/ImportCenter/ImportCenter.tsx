@@ -314,7 +314,11 @@ export function ImportCenter({
         {/* Every source stays mounted: one can be included without being
             looked at, and its flow holds the preview and the runner. */}
         {rows.map(row => (
-          <div key={row.id} className={styles.sourcePanel} hidden={row.id !== current.id}>
+          <div
+            key={row.id}
+            className={`${styles.sourcePanel} ${isIncluded(row.id) ? '' : styles.sourcePanelOff}`}
+            hidden={row.id !== current.id}
+          >
             {row.panel}
           </div>
         ))}

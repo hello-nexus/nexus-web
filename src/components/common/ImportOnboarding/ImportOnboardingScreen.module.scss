@@ -58,8 +58,8 @@
 }
 
 .title {
-  @include text-heading;
-  margin: 0.5rem 0 0;
+  @include text-display;
+  margin: 0;
 }
 
 
@@ -87,19 +87,12 @@
   width: min(280px, 100%);
 }
 
-// The app's own coexistence control, inside its card and under its name.
-.closeRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.6rem;
+// What continuing does to the app, stated in its card. Not a choice: it and
+// Nexus drive the same hardware.
+.closeNote {
   width: 100%;
-  padding-top: 0.55rem;
+  padding-top: 0.5rem;
   border-top: 1px solid var(--border);
-}
-
-.closeLabel {
   font-size: var(--type-small);
   color: var(--text-dim);
-  min-width: 0;
 }

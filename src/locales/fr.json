@@ -1309,7 +1309,6 @@
   "importCenter.source.nexus2": "Nexus 2",
   "importCenter.source.ready": "Prêt à importer",
   "importOnboarding.closeApp": "Fermer et retirer du démarrage",
-  "importOnboarding.closeAppAria": "Fermer {app} et la retirer du démarrage",
   "importOnboarding.continue": "Continuer",
   "importOnboarding.continueAnyway": "Continuer quand même",
   "importOnboarding.errorActions": "Impossible de fermer une application ou de l'empêcher de démarrer avec Windows. Fermez-la vous-même avant d'utiliser Nexus.",

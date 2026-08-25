@@ -137,7 +137,10 @@ describe('ImportOnboardingScreen', () => {
 
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
     expect(applyNexus2Import).toHaveBeenCalledTimes(1);
-    expect(applyFanControlImport).toHaveBeenCalledTimes(1);
+    // Off by default, so it is not brought over unless asked for.
+    expect(applyFanControlImport).not.toHaveBeenCalled();
+    // Both are still closed: that is not a choice.
+    expect(closeFanControlApp).toHaveBeenCalledTimes(1);
     expect(dismissNexus2Welcome).toHaveBeenCalledTimes(1);
     expect(dismissFanControlImport).toHaveBeenCalledTimes(1);
   });
@@ -180,23 +183,21 @@ describe('ImportOnboardingScreen', () => {
     expect(screen.queryByRole('button', { name: 'nav.back' })).not.toBeInTheDocument();
   });
 
-  it('offers closing each app as its first option, on by default', async () => {
+  it('states in each card that the app will be closed, without offering it as a choice', async () => {
     renderScreen();
-    const closeNexus2 = await screen.findByRole('switch', { name: /importOnboarding.closeAppAria:importCenter.source.nexus2/ });
-    expect(closeNexus2).toHaveAttribute('aria-checked', 'true');
+    await screen.findByText('importCenter.source.nexus2');
+    expect(screen.getAllByText('importOnboarding.closeApp')).toHaveLength(2);
+    // One switch per card: whether the app is included. Closing it is not one.
+    const cards = document.querySelectorAll('[class*=sourceRow]');
+    expect(cards).toHaveLength(2);
+    cards.forEach(card => expect(card.querySelectorAll('[role=switch]')).toHaveLength(1));
   });
 
-  it('leaves an app running when its close option is switched off', async () => {
-    const onComplete = vi.fn();
-    renderScreen({ onComplete });
-
-    fireEvent.click(await screen.findByRole('switch', { name: /importOnboarding.closeAppAria:importCenter.source.nexus2/ }));
-    fireEvent.click(screen.getByRole('button', { name: SKIP }));
-
-    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
-    expect(closeNexus2App).not.toHaveBeenCalled();
-    expect(disableNexus2Autostart).not.toHaveBeenCalled();
-    // The other app is untouched by that choice.
-    expect(closeFanControlApp).toHaveBeenCalledTimes(1);
+  it('starts with Nexus 2 included and every other app opt-in', async () => {
+    renderScreen();
+    const nexus2 = await screen.findByLabelText('importCenter.include:importCenter.source.nexus2');
+    const fanControl = screen.getByLabelText('importCenter.include:importCenter.source.fancontrol');
+    expect(nexus2).toHaveAttribute('aria-checked', 'true');
+    expect(fanControl).toHaveAttribute('aria-checked', 'false');
   });
 });

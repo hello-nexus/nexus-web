@@ -70,6 +70,7 @@ export function LightingOnboardingScreen({ open, onComplete, onBack }: LightingO
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(false);
   const [testFill, setTestFill] = useState<string | null>(null);
+  const testSwatch = TEST_FILLS.find(f => f.key === testFill)?.swatch ?? null;
   const { conflicts: allConflicts } = useConflictApps(open);
   // HYTE Nexus 2 is excluded here: its shutdown offer belongs to the
   // Nexus2WelcomeScreen gate, which precedes this screen on eligible
@@ -266,25 +267,10 @@ export function LightingOnboardingScreen({ open, onComplete, onBack }: LightingO
       <div className={styles.deviceArea}>
         {cards !== null && cards.length > 0 && (
           <>
-            <div className={styles.testStrip} role="group" aria-label={t('lightingOnboarding.testColors')}>
-              <span className={styles.testLabel}>{t('lightingOnboarding.testColors')}</span>
-              {TEST_FILLS.map(f => (
-                <button
-                  key={f.key}
-                  type="button"
-                  className={`${styles.swatch} ${testFill === f.key ? styles.swatchActive : ''}`}
-                  style={{ '--swatch': f.swatch } as CSSProperties}
-                  aria-label={t(`lighting.controls.${f.key}`)}
-                  title={t(`lighting.controls.${f.key}`)}
-                  aria-pressed={testFill === f.key}
-                  onClick={() => { void runTestFill(f.key); }}
-                />
-              ))}
-            </div>
             <div className={styles.deviceGrid} role="group" aria-label={t('lightingOnboarding.title')}>
               {cards.map(d => (
+                <div key={d.id} className={styles.deviceTint} style={testSwatch ? { '--tint': testSwatch } as CSSProperties : undefined}>
                 <ZoneCard
-                  key={d.id}
                   device={d}
                   toggleMode
                   selected={false}
@@ -294,14 +280,9 @@ export function LightingOnboardingScreen({ open, onComplete, onBack }: LightingO
                   onToggleControlled={() => handleToggle(d)}
                   onOpenSettings={noop}
                 />
+                </div>
               ))}
             </div>
-            {scanning && (
-              <p className={styles.scanningNote}>
-                <RotateCw className={styles.scanningIcon} aria-hidden />
-                {t('lightingOnboarding.scanning')}
-              </p>
-            )}
           </>
         )}
         {cards !== null && cards.length === 0 && (scanning ? (
@@ -317,6 +298,33 @@ export function LightingOnboardingScreen({ open, onComplete, onBack }: LightingO
           />
         ))}
       </div>
+
+      {/* Below the listing and outside its scroller: the strip and the scanning
+          note must not resize the scrollable area as devices arrive. */}
+      {scanning && cards !== null && cards.length > 0 && (
+        <p className={styles.scanningNote}>
+          <RotateCw className={styles.scanningIcon} aria-hidden />
+          {t('lightingOnboarding.scanning')}
+        </p>
+      )}
+
+      {cards !== null && cards.length > 0 && (
+        <div className={styles.testStrip} role="group" aria-label={t('lightingOnboarding.testColors')}>
+          <span className={styles.testLabel}>{t('lightingOnboarding.testColors')}</span>
+          {TEST_FILLS.map(f => (
+            <button
+              key={f.key}
+              type="button"
+              className={`${styles.swatch} ${testFill === f.key ? styles.swatchActive : ''}`}
+              style={{ '--swatch': f.swatch } as CSSProperties}
+              aria-label={t(`lighting.controls.${f.key}`)}
+              title={t(`lighting.controls.${f.key}`)}
+              aria-pressed={testFill === f.key}
+              onClick={() => { void runTestFill(f.key); }}
+            />
+          ))}
+        </div>
+      )}
 
       <p className={styles.hint}>{t('lightingOnboarding.hint')}</p>
 

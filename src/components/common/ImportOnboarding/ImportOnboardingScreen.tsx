@@ -4,7 +4,6 @@ import { useTranslation } from '../../../lib/i18n';
 import { Overlay } from '../Overlay/Overlay';
 import { Button } from '../Button/Button';
 import { ImportCenter, type ImportCenterHandle, type ImportSourceId, type SourceDetection } from '../ImportCenter/ImportCenter';
-import { Toggle } from '../Toggle/Toggle';
 import { closeFanControlApp, disableFanControlAutostart, dismissFanControlImport } from '../../../api/fancontrol';
 import type { FanControlStatusResponse } from '../../../api/fancontrol';
 import { closeNexus2App, disableNexus2Autostart, dismissNexus2Welcome } from '../../../api/migration';
@@ -52,10 +51,6 @@ export function ImportOnboardingScreen({ open, fanControl, nexus2, offeredFor, o
   const [importBusy, setImportBusy] = useState(false);
   const [importHasSelection, setImportHasSelection] = useState(false);
   const [actionError, setActionError] = useState(false);
-  // Closing the app and clearing its autostart. On by default: it and Nexus
-  // drive the same hardware, so leaving it running is the unusual choice.
-  const [closeApps, setCloseApps] = useState<Partial<Record<ImportSourceId, boolean>>>({});
-  const shouldClose = (id: ImportSourceId) => closeApps[id] ?? true;
   const importHandle = useRef<ImportCenterHandle | null>(null);
 
   // Listed when the app holds data to import. Detected-but-empty apps are not
@@ -71,7 +66,6 @@ export function ImportOnboardingScreen({ open, fanControl, nexus2, offeredFor, o
     setApplyPhase('idle');
     setDismissing(false);
     setActionError(false);
-    setCloseApps({});
   }, [open]);
 
   if (!open) return null;
@@ -87,24 +81,14 @@ export function ImportOnboardingScreen({ open, fanControl, nexus2, offeredFor, o
     ...(nexus2Here ? { nexus2: { importAvailable: true } } : {}),
     ...(fanControlHere ? { fancontrol: { importAvailable: true, configCount: fanControl?.configs.length ?? 0 } } : {}),
   };
-  // Every listed app starts on; `offeredFor` still decides whose offer flag
-  // latches, so an app dealt with before is not marked dealt with again.
+  // Nexus 2 starts on; every other app is opt-in. `offeredFor` still decides
+  // whose offer flag latches, so an app dealt with before is not re-marked.
   const includedByDefault: Partial<Record<ImportSourceId, boolean>> = {
     nexus2: nexus2Here,
-    fancontrol: fanControlHere,
+    fancontrol: false,
   };
 
-  const closeRow = (id: ImportSourceId, app: string) => (
-    <div className={styles.closeRow}>
-      <span className={styles.closeLabel}>{t('importOnboarding.closeApp')}</span>
-      <Toggle
-        checked={shouldClose(id)}
-        disabled={applyPhase !== 'idle'}
-        ariaLabel={t('importOnboarding.closeAppAria', { app })}
-        onChange={next => setCloseApps(prev => ({ ...prev, [id]: next }))}
-      />
-    </div>
-  );
+  const closeNote = <span className={styles.closeNote}>{t('importOnboarding.closeApp')}</span>;
 
   // Latches the offer flag only for the apps this gate was shown for; latching
   // the other would silently consume a gate that app has not had yet.
@@ -137,11 +121,11 @@ export function ImportOnboardingScreen({ open, fanControl, nexus2, offeredFor, o
     // installed but never configured still drives the hardware. Close before
     // clearing autostart, so a relaunch cannot race the autostart removal.
     let actionsOk = true;
-    if (nexus2Detected && shouldClose('nexus2')) {
+    if (nexus2Detected) {
       actionsOk = await runAction(closeNexus2App) && actionsOk;
       actionsOk = await runAction(disableNexus2Autostart) && actionsOk;
     }
-    if (fanControlDetected && shouldClose('fancontrol')) {
+    if (fanControlDetected) {
       actionsOk = await runAction(closeFanControlApp) && actionsOk;
       actionsOk = await runAction(disableFanControlAutostart) && actionsOk;
     }
@@ -185,8 +169,8 @@ export function ImportOnboardingScreen({ open, fanControl, nexus2, offeredFor, o
           detected={detected}
           includedByDefault={includedByDefault}
           rowFooter={{
-            nexus2: nexus2Detected ? closeRow('nexus2', t('importCenter.source.nexus2')) : undefined,
-            fancontrol: fanControlDetected ? closeRow('fancontrol', t('importCenter.source.fancontrol')) : undefined,
+            nexus2: nexus2Detected ? closeNote : undefined,
+            fancontrol: fanControlDetected ? closeNote : undefined,
           }}
           disabled={applyPhase !== 'idle'}
           onBusyChange={setImportBusy}

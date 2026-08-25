@@ -1316,7 +1316,6 @@
   "importCenter.source.nexus2": "Nexus 2",
   "importCenter.source.ready": "Готово к импорту",
   "importOnboarding.closeApp": "Закрыть и убрать из автозапуска",
-  "importOnboarding.closeAppAria": "Закрыть приложение {app} и убрать его из автозапуска",
   "importOnboarding.continue": "Продолжить",
   "importOnboarding.continueAnyway": "Всё равно продолжить",
   "importOnboarding.errorActions": "Не удалось закрыть приложение или отключить его автозапуск с Windows. Закройте его самостоятельно, прежде чем использовать Nexus.",

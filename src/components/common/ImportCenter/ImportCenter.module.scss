@@ -134,6 +134,12 @@
   display: none;
 }
 
+// Its app is switched off, so nothing here will be imported. Still readable
+// and still adjustable, so turning the app back on keeps the choices made.
+.sourcePanelOff {
+  opacity: 0.45;
+}
+
 .footer {
   display: flex;
   justify-content: flex-end;

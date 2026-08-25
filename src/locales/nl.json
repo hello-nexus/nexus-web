@@ -1309,7 +1309,6 @@
   "importCenter.source.nexus2": "Nexus 2",
   "importCenter.source.ready": "Klaar om te importeren",
   "importOnboarding.closeApp": "Sluiten en uitschakelen bij opstarten",
-  "importOnboarding.closeAppAria": "{app} sluiten en uitschakelen bij opstarten",
   "importOnboarding.continue": "Doorgaan",
   "importOnboarding.continueAnyway": "Toch doorgaan",
   "importOnboarding.errorActions": "Kon een app niet afsluiten of voorkomen dat deze met Windows opstart. Sluit de app zelf af voordat je Nexus gebruikt.",

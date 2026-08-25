@@ -1309,7 +1309,6 @@
   "importCenter.source.nexus2": "Nexus 2",
   "importCenter.source.ready": "가져올 준비 완료",
   "importOnboarding.closeApp": "종료하고 시작 프로그램에서 제거",
-  "importOnboarding.closeAppAria": "{app}을(를) 종료하고 시작 프로그램에서 제거",
   "importOnboarding.continue": "계속",
   "importOnboarding.continueAnyway": "그래도 계속",
   "importOnboarding.errorActions": "앱을 종료하지 못했거나 Windows 시작 시 자동 실행을 막지 못했습니다. Nexus를 사용하기 전에 직접 종료해 주세요.",

@@ -345,4 +345,20 @@ describe('LightingOnboardingScreen colour test strip', () => {
     await screen.findByRole('switch', { name: 'Test Strip' });
     expect(startStatic).not.toHaveBeenCalled();
   });
+
+  it('keeps the scanning note and the strip out of the device scroller', async () => {
+    seed([strip], true);
+    renderScreen();
+    await screen.findByRole('switch', { name: 'Test Strip' });
+
+    // Anything that appears and disappears inside the scroller resizes it on
+    // every poll, which is what made it flicker.
+    const scroller = document.querySelector('[class*=deviceArea]');
+    expect(scroller).not.toBeNull();
+    expect(scroller!.querySelector('[class*=scanningNote]')).toBeNull();
+    expect(scroller!.querySelector('[class*=testStrip]')).toBeNull();
+    // Both still render, just outside it.
+    expect(document.querySelector('[class*=scanningNote]')).not.toBeNull();
+    expect(document.querySelector('[class*=testStrip]')).not.toBeNull();
+  });
 });

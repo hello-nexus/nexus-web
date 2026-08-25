@@ -28,10 +28,12 @@
   background: var(--backdrop-base);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  // Top-aligned so the screen does not move as devices arrive. `safe` keeps a
+  // screen wider than the viewport reachable from its own start edge.
+  align-items: safe center;
+  justify-content: flex-start;
   gap: 1.5rem;
-  padding: 2rem;
+  padding: 4rem 2rem 2rem;
   overflow-y: auto;
 
   :global(html.nexus-shell-native-glass[data-bg='glass']) & {
@@ -199,8 +201,8 @@
 }
 
 .swatch {
-  width: 26px;
-  height: 26px;
+  width: 30px;
+  height: 30px;
   padding: 0;
   border-radius: 50%;
   border: 1px solid var(--border);
@@ -210,7 +212,20 @@
   &:hover { border-color: var(--border-strong); }
 }
 
+// The ring the lighting thumbnails use for their selected state.
 .swatch.swatchActive {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent-soft);
+  border-color: transparent;
+  box-shadow: 0 0 0 4px var(--text);
+}
+
+// Carries the colour being tested onto the device cards, so it is obvious
+// which lights the strip is driving.
+.deviceTint {
+  display: flex;
+  border-radius: var(--radius);
+  transition: box-shadow var(--ease-fast);
+}
+
+.deviceTint[style*='--tint'] {
+  box-shadow: 0 0 0 2px var(--tint);
 }

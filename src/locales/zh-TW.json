@@ -1309,7 +1309,6 @@
   "importCenter.source.nexus2": "Nexus 2",
   "importCenter.source.ready": "已就緒，可以匯入",
   "importOnboarding.closeApp": "關閉並取消自動啟動",
-  "importOnboarding.closeAppAria": "關閉 {app} 並取消其自動啟動",
   "importOnboarding.continue": "繼續",
   "importOnboarding.continueAnyway": "仍要繼續",
   "importOnboarding.errorActions": "無法關閉應用程式或停止它隨 Windows 啟動。請在使用 Nexus 前自行關閉它。",

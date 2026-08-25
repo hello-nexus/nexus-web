@@ -1309,7 +1309,6 @@
   "importCenter.source.nexus2": "Nexus 2",
   "importCenter.source.ready": "İçe aktarmaya hazır",
   "importOnboarding.closeApp": "Kapat ve başlangıçtan kaldır",
-  "importOnboarding.closeAppAria": "{app} uygulamasını kapat ve başlangıçtan kaldır",
   "importOnboarding.continue": "Devam et",
   "importOnboarding.continueAnyway": "Yine de devam et",
   "importOnboarding.errorActions": "Bir uygulama kapatılamadı veya Windows ile başlaması durdurulamadı. Nexus'u kullanmadan önce kendin kapat.",

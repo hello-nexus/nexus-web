@@ -1316,7 +1316,6 @@
   "importCenter.source.nexus2": "Nexus 2",
   "importCenter.source.ready": "Gotowe do importu",
   "importOnboarding.closeApp": "Zamknij i usuń z autostartu",
-  "importOnboarding.closeAppAria": "Zamknij aplikację {app} i usuń ją z autostartu",
   "importOnboarding.continue": "Kontynuuj",
   "importOnboarding.continueAnyway": "Kontynuuj mimo to",
   "importOnboarding.errorActions": "Nie udało się zamknąć aplikacji ani wyłączyć jej autostartu z Windows. Zamknij ją samodzielnie przed użyciem Nexusa.",
