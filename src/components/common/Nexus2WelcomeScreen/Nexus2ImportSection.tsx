@@ -138,9 +138,15 @@ export function Nexus2ImportSection({
     <SettingsSection
       className={wide ? styles.sectionWide : styles.section}
       boxClassName={styles.box}
-      title={t('nexus2Welcome.import.title')}
-      description={<p>{t('nexus2Welcome.import.description')}</p>}
+      // In the two-column import surface the column already carries a title,
+      // so the section repeating one just says it twice.
+      title={wide ? undefined : t('nexus2Welcome.import.title')}
+      ariaLabel={t('nexus2Welcome.import.title')}
+      description={wide ? undefined : <p>{t('nexus2Welcome.import.description')}</p>}
     >
+      {wide && (
+        <p className={styles.replaceNotice} data-settings-aside>{t('nexus2Welcome.import.description')}</p>
+      )}
       {previewStatus === 'loading' && (
         <div className={styles.previewLoading} data-settings-aside>
           <Spinner size={20} />

@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { fireEvent, render, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as lightingApi from '../../../api/lighting';
@@ -85,7 +86,11 @@ vi.mock('../../../api/lighting', async importOriginal => {
 });
 
 vi.mock('../../../components/common/ViewHeader/ViewHeader', () => ({
-  ViewHeader: () => <div data-testid="view-header" />,
+  // Renders tabActions: the preset toolbar is handed to ViewHeader as a prop,
+  // so a stub that drops its children would hide the thing under test.
+  ViewHeader: ({ tabActions }: { tabActions?: ReactNode }) => (
+    <div data-testid="view-header">{tabActions}</div>
+  ),
 }));
 
 vi.mock('../../../components/views/ServiceRequired', () => ({

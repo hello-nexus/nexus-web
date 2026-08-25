@@ -126,12 +126,12 @@ describe('ImportCenter', () => {
     // Both flows are mounted from the start; only one is shown.
     await waitFor(() => expect(previewNexus2Import).toHaveBeenCalled());
     const panelFor = (key: string) => screen.getByText(key).closest('[class*=sourcePanel]');
-    expect(panelFor('nexus2Welcome.import.title')).toHaveAttribute('hidden');
+    expect(panelFor('nexus2Welcome.import.group.y70Panel.label')).toHaveAttribute('hidden');
     expect(panelFor('fanControlImport.category.curves')).not.toHaveAttribute('hidden');
 
     fireEvent.click(screen.getByText('importCenter.source.nexus2'));
 
-    expect(panelFor('nexus2Welcome.import.title')).not.toHaveAttribute('hidden');
+    expect(panelFor('nexus2Welcome.import.group.y70Panel.label')).not.toHaveAttribute('hidden');
     expect(panelFor('fanControlImport.category.curves')).toHaveAttribute('hidden');
   });
 

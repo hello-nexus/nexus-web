@@ -427,8 +427,8 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
         activeTab={tab}
         onTabChange={k => handleTabChange(k as StreamDeckTab)}
         tabActions={tab === 'customize' && deckPresets.available ? (
-          <div className={styles.presetSlot}>
           <PresetToolbar
+            rail
             presets={deckPresets.presets}
             activeId={deckPresets.activeId}
             presetCount={deckPresets.presetCount}
@@ -446,7 +446,6 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
             resetConfirmKey="devices.streamdeck.presets.resetConfirm"
             importLabelKey="devices.streamdeck.presets.importOption"
           />
-          </div>
         ) : undefined}
       />
       <div className={`${styles.pageBody} pageBody`}>

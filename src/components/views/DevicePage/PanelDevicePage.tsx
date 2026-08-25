@@ -934,7 +934,10 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
         tabs={showFwGate || showDisconnected ? undefined : tabs}
         activeTab={activeTab}
         onTabChange={(k) => { setConfiguringWidgetId(null); setTab(k as Tab); }}
-        tabActions={
+        // Only where there is a panel to capture: the firmware-gate and
+        // disconnected states render an EmptyState with no embed frame, so the
+        // button could do nothing but report an error.
+        tabActions={showFwGate || showDisconnected ? undefined : (
           <Button
             size="sm"
             tone="ghost"
@@ -944,7 +947,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
             loading={screenshotBusy}
             onClick={() => { void takeScreenshot(); }}
           />
-        }
+        )}
       />
       <div className={`${styles.pageBody} pageBody`}>
       {!fwGateReady ? (

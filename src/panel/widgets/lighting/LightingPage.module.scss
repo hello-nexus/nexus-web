@@ -41,15 +41,13 @@
   grid-row: 1;
   display: flex;
   align-items: center;
-  // Matches the body's column gap, so the presets sit where column 3 starts.
   gap: 1.5rem;
   min-width: 0;
 }
 
 .tabsCell {
   flex: 1 1 auto;
-  // Never below the tab labels: shrink pressure has to land on the presets.
-  min-width: min-content;
+  min-width: 0;
 }
 
 // One title per column, all on grid row 2 so they share a baseline whatever
@@ -1058,7 +1056,6 @@
   }
 }
 
-
 // Second line of the device card: LED count on the left, action icons
 // flush right, sharing one row to trim card height.
 .deviceMetaRow {
@@ -1297,24 +1294,6 @@
 }
 
 // ── Right-pane header: preset row, then the Devices | Effect selector ─────
-
-// The preset owns the mode + effect selection, so its control sits above the
-// selector. Left inset matches .devicePanel so it aligns with the cards below.
-.presetHeader {
-  // Column width until the tabs need the room; the toolbar's own select is the
-  // flexible part, so the buttons survive and the preset name truncates.
-  flex: 0 1 300px;
-  min-width: min-content;
-  // Column, not row: the toolbar has to be sized on the CROSS axis so it
-  // stretches to the rail width, the way it did inside the old right pane. As a
-  // row item it is sized on the main axis instead - the preset name's width - so
-  // the box would resize every time the preset changed.
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: stretch;
-  padding: 0 0.4rem;
-}
 
 // Master brightness sits under the preset row, above the effect controls, so
 // the whole-system controls stay together at the top of the dock.

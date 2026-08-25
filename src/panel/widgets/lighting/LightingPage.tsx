@@ -1651,8 +1651,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           rise to the very top of the page. Capped at --page-max (pageBody) so
           the page matches every other view's width. */}
       <div className={`${styles.body} ${dockCollapsed ? styles.bodyDockCollapsed : ''} pageBody`}>
-        {/* Tabs and presets share one flex row: the presets keep their column
-            width until the tab bar needs the space, then give it up. */}
         <div className={styles.topRow}>
           <div className={styles.tabsCell}>
             <ViewHeader
@@ -1664,28 +1662,29 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                 if (origin && k !== (synced ? effectiveMode : null)) emitRadialBloomFromElement(origin, k === 'none');
                 void handleModeChange(k as LightingMode);
               }}
-            />
-          </div>
-          <div className={styles.presetHeader}>
-            <PresetToolbar
-              presets={presetOptions}
-              activeId={layoutActiveId}
-              presetCount={presetCount}
-              canUndo={canUndoLayout}
-              canRedo={canRedoLayout}
-              onLoad={handlePresetLoadWithHistory}
-              onCreate={handlePresetCreate}
-              onRename={handlePresetRename}
-              onDelete={handlePresetDelete}
-              onManageApps={() => {
-                const preset = presets.find(p => p.id === layoutActiveId);
-                if (preset) {
-                  setPresetAppsTarget({ id: preset.id, name: preset.name, apps: preset.apps ?? [] });
-                }
-              }}
-              onReset={handleResetWithHistory}
-              onUndo={handleUndoLayout}
-              onRedo={handleRedoLayout}
+              tabActions={(
+                <PresetToolbar
+                  rail
+                  presets={presetOptions}
+                  activeId={layoutActiveId}
+                  presetCount={presetCount}
+                  canUndo={canUndoLayout}
+                  canRedo={canRedoLayout}
+                  onLoad={handlePresetLoadWithHistory}
+                  onCreate={handlePresetCreate}
+                  onRename={handlePresetRename}
+                  onDelete={handlePresetDelete}
+                  onManageApps={() => {
+                    const preset = presets.find(p => p.id === layoutActiveId);
+                    if (preset) {
+                      setPresetAppsTarget({ id: preset.id, name: preset.name, apps: preset.apps ?? [] });
+                    }
+                  }}
+                  onReset={handleResetWithHistory}
+                  onUndo={handleUndoLayout}
+                  onRedo={handleRedoLayout}
+                />
+              )}
             />
           </div>
         </div>

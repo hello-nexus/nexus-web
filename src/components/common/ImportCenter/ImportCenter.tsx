@@ -5,6 +5,7 @@ import { pluralKey } from '../../../lib/pluralKey';
 import { Button } from '../Button/Button';
 import { EmptyState } from '../EmptyState/EmptyState';
 import { Spinner } from '../Spinner/Spinner';
+import { SectionHeader } from '../SectionHeader/SectionHeader';
 import { Toggle } from '../Toggle/Toggle';
 import { FanControlImportSection, type FanControlImportHandle } from '../FanControlImport/FanControlImportSection';
 import { Nexus2ImportSection, type Nexus2ImportHandle } from '../Nexus2WelcomeScreen/Nexus2ImportSection';
@@ -57,6 +58,9 @@ export interface ImportCenterProps {
   handleRef?: RefObject<ImportCenterHandle | null>;
   /** Fires after a run that reached at least one source, clean or not. */
   onImported?: () => void;
+  /** Which sources start included. Defaults to every available one; a host
+   *  that lists a source it is not offering passes false for it. */
+  includedByDefault?: Partial<Record<ImportSourceId, boolean>>;
   /** Detection a host already holds. Given, it is authoritative for that
    *  source: a host that opened because an app was found must not then be
    *  told by a second read that it is missing. */
@@ -71,15 +75,13 @@ export interface SourceDetection {
 }
 
 /**
- * Every app a setup can come from, listed with a switch deciding whether it is
- * included, beside the highlighted app's own flow. An app that is not
- * installed still gets a row, greyed, with the reason.
- *
- * Each source owns its preview, category switches and results; this owns the
- * list, the include switches, and one run across them.
+ * Every app a setup can come from, each with a switch deciding whether it is
+ * included, beside the highlighted app's own flow. Each source owns its
+ * preview and results; this owns the list and one run across them.
  */
 export function ImportCenter({
   open, sources, disabled, onBusyChange, onSelectionChange, showAction = true, handleRef, onImported, detected,
+  includedByDefault,
 }: ImportCenterProps) {
   const { t, language } = useTranslation();
   const fanControl = useFanControlStatus();
@@ -102,17 +104,15 @@ export function ImportCenter({
     fancontrol: detected?.fancontrol?.importAvailable ?? fanControl.payload?.importAvailable === true,
     nexus2: detected?.nexus2?.importAvailable ?? nexus2.payload?.importAvailable === true,
   };
-  // Detection is a request, so until it answers a source is neither here nor
-  // missing; claiming "not found" in that window shows the wrong answer and
-  // then takes it back. A host-supplied answer needs no waiting.
+  // Until detection answers, a source is neither here nor missing; claiming
+  // "not found" in that window shows an answer that is then taken back.
   const resolved: Record<ImportSourceId, boolean> = {
     fancontrol: detected?.fancontrol !== undefined || fanControl.status !== 'unknown',
     nexus2: detected?.nexus2 !== undefined || nexus2.status !== 'unknown',
   };
 
-  // Re-read detection on every open: the user may have just installed the app
-  // this is asking about. Also drops both overrides, so a reopened surface
-  // starts from the defaults rather than the last visit's choices.
+  // Re-read detection on every open, and drop the user's choices with it: the
+  // app may have been installed since.
   const { refresh: refreshFanControl } = fanControl;
   const { refresh: refreshNexus2 } = nexus2;
   // Whether the hooks' mount fetch already covers the first open.
@@ -125,9 +125,8 @@ export function ImportCenter({
     setHighlightOverride(null);
     setIncludeOverride({});
     setSourceHasSelection({});
-    // The hooks fetch once on mount, which covers a surface that was already
-    // open then; every other open needs a fresh read, since the user may have
-    // installed the app since. Only what this surface lists is re-read.
+    // The mount fetch covers a surface that was already open then; any other
+    // open needs a fresh read, for the sources this surface lists.
     const coveredByMount = !openedOnce.current && mountedOpen.current;
     openedOnce.current = true;
     if (!coveredByMount) {
@@ -138,7 +137,7 @@ export function ImportCenter({
 
   // Every installed source is included by default: the common case is "bring
   // everything over", and an app that is not here can never be.
-  const isIncluded = (id: ImportSourceId) => includeOverride[id] ?? available[id];
+  const isIncluded = (id: ImportSourceId) => includeOverride[id] ?? includedByDefault?.[id] ?? available[id];
   const setIncluded = (id: ImportSourceId, next: boolean) => {
     setIncludeOverride(prev => ({ ...prev, [id]: next }));
   };
@@ -153,12 +152,16 @@ export function ImportCenter({
     setSourceHasSelection(prev => (prev.nexus2 === has ? prev : { ...prev, nexus2: has }));
   }, []);
 
+  const sourcesKey = sources.join(',');
   const runnable = (id: ImportSourceId) => isIncluded(id) && available[id] && sourceHasSelection[id] === true;
   const anyRunnable = sources.some(runnable);
 
+  // `open` is a dependency so a host that resets its copy of this when a late
+  // detection lands is told the current value again, not only on a change.
   useEffect(() => {
+    if (!open) return;
     onSelectionChange?.(anyRunnable);
-  }, [anyRunnable, onSelectionChange]);
+  }, [open, anyRunnable, sourcesKey, onSelectionChange]);
 
   // Guards on its own in-flight state only, never the host's `disabled`: a host
   // driving this from its own button sets that flag in the same tick, and
@@ -264,9 +267,11 @@ export function ImportCenter({
   return (
     <div className={styles.body}>
       <div className={styles.sourceColumn}>
-        <span className={styles.sourceHeader} id={listLabelId}>{t('importCenter.sourceLabel')}</span>
+        <SectionHeader className={styles.columnTitle}>
+          <span id={listLabelId}>{t('importCenter.appsTitle')}</span>
+        </SectionHeader>
         {/* A group, not a radiogroup: each row also carries an include switch,
-            which a radiogroup cannot own. `aria-current` marks the shown one. */}
+            which a radiogroup cannot own. */}
         <div className={styles.sourceList} role="group" aria-labelledby={listLabelId}>
           {rows.map(row => (
             <div
@@ -298,9 +303,9 @@ export function ImportCenter({
         </div>
       </div>
       <div className={styles.panel}>
-        {/* Every source stays mounted, not just the highlighted one: a source
-            can be included without ever being looked at, and its flow is what
-            holds the preview and the runner that an import needs. */}
+        <SectionHeader className={styles.columnTitle}>{t('importCenter.settingsTitle')}</SectionHeader>
+        {/* Every source stays mounted: one can be included without being
+            looked at, and its flow holds the preview and the runner. */}
         {rows.map(row => (
           <div key={row.id} className={styles.sourcePanel} hidden={row.id !== current.id}>
             {row.panel}

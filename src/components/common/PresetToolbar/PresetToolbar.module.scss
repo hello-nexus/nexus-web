@@ -9,6 +9,16 @@
   flex-shrink: 0;
 }
 
+// The page-header rail: one width on every page, and the half that gives way
+// when the row is tight, so the tab labels are never the thing that is cut.
+// Its own select truncates instead.
+.toolbarRail {
+  flex: 0 1 300px;
+  // Never below its own buttons: the select truncates, the controls stay.
+  min-width: min-content;
+  margin-bottom: 0;
+}
+
 .presetSelect {
   flex: 1 1 0;
   min-width: 0;

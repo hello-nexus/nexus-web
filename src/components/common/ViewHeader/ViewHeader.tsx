@@ -11,8 +11,8 @@ interface ViewHeaderProps {
   onTabChange?: (key: string, origin?: HTMLButtonElement) => void;
   tabsDisabled?: boolean;
   actions?: ReactNode;
-  /** Right-aligned widget at the same vertical level as the tabs. Overlaid via
-   *  absolute positioning so it doesn't stretch the tab bar's width. */
+  /** Right-aligned widget sharing the tab row: the tab bar takes what it needs
+   *  and this keeps its own width beside it. */
   tabActions?: ReactNode;
 }
 
@@ -21,6 +21,7 @@ interface ViewHeaderProps {
 // single component.
 
 export function ViewHeader({ title, tabs, activeTab, onTabChange, tabsDisabled, actions, tabActions }: ViewHeaderProps) {
+  const hasTabs = !!tabs && tabs.length > 0;
   return (
     <header className={styles.header}>
       {actions && (
@@ -28,17 +29,21 @@ export function ViewHeader({ title, tabs, activeTab, onTabChange, tabsDisabled, 
           <div className={styles.actions}>{actions}</div>
         </div>
       )}
-      {tabs && tabs.length > 0 && (
+      {(hasTabs || tabActions) && (
         <div className={styles.tabsRow}>
-          <Tabs
-            tabs={tabs}
-            activeKey={activeTab ?? ''}
-            onChange={(k, origin) => onTabChange?.(k, origin)}
-            disabled={tabsDisabled}
-            className={styles.viewHeaderTabs}
-            ariaLabel={title}
-          />
-          {tabActions && <div className={styles.tabActions}>{tabActions}</div>}
+          {hasTabs && (
+            <Tabs
+              tabs={tabs}
+              activeKey={activeTab ?? ''}
+              onChange={(k, origin) => onTabChange?.(k, origin)}
+              disabled={tabsDisabled}
+              className={styles.viewHeaderTabs}
+              ariaLabel={title}
+            />
+          )}
+          {tabActions && (
+            <div className={styles.tabActions}>{tabActions}</div>
+          )}
         </div>
       )}
     </header>

@@ -36,8 +36,14 @@
 // Row wrapping the Tabs bar. Anchors the absolutely-positioned tabActions
 // overlay on the right (page-level right-aligned widget that sits at the
 // same vertical level as the tab buttons without compressing the bar).
+// One row: the tab bar takes what it needs and the actions keep a fixed rail
+// beside it. Overlaying the actions instead would cover the last tabs at the
+// window's minimum width, where they stop being clickable.
 .tabsRow {
-  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  min-width: 0;
 }
 
 // Spacing below the shared <Tabs /> bar when it's used inside a ViewHeader.
@@ -45,6 +51,8 @@
 // (e.g. the Lighting right-pane selector) can control their own margins.
 .viewHeaderTabs {
   margin-bottom: 0.75rem;
+  // Never below the tab labels: shrink pressure has to land on the actions.
+  min-width: min-content;
 }
 
 // Right-aligned overlay container at tabs-row level. Spans the full row
@@ -54,14 +62,12 @@
 // empty space between the slot and the rightmost tab still falls through
 // to the page underneath.
 .tabActions {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0.75rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  pointer-events: none;
-
-  > * { pointer-events: auto; }
+  flex: 0 1 auto;
+  min-width: 0;
+  margin-left: auto;
+  // The tab bar carries the row's bottom spacing, so match it here.
+  margin-bottom: 0.75rem;
 }

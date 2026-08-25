@@ -2151,27 +2151,21 @@ export const REGISTRY: StorybookEntry[] = [
     notes: 'No live preview - the Enter button posts real /telemetry/consent, /start, and /onboarding/complete requests to the connected service, so opening it here would mutate the running install\'s actual first-run state.',
   },
   {
-    name: 'Nexus2WelcomeScreen', category: 'modals',
-    filePath: 'src/components/common/Nexus2WelcomeScreen/Nexus2WelcomeScreen.tsx',
-    description: 'One-time returning-user gate for Nexus 2 owners, mounted on the desktop Dashboard after WelcomeScreen hands off. Text-only Nexus 2 references, a highlighted block stating that Continue closes Nexus 2 and removes its autostart (not opt-in), the shared Nexus2ImportSection, and a Continue button that relabels to Import & Continue while any import group is selected.',
-    notes: 'No live preview - the autostart action posts a real /migration/nexus2/disable-autostart request and Continue posts /migration/nexus2/dismiss, so opening it here would mutate the running install\'s migration-offered state.',
-  },
-  {
     name: 'Nexus2ImportSection', category: 'modals',
     filePath: 'src/components/common/Nexus2WelcomeScreen/Nexus2ImportSection.tsx',
-    description: 'Grouped Nexus 2 import flow: previews on open, two consolidated checkboxes (Y70 panel personalization, Q-Series panel personalization) each expanding to their wire categories, apply (always replacing the current personalization), and per-group results in an internally scrolling box. Hosted by Nexus2WelcomeScreen and by ImportCenter, which is what the Settings entry and the cooling page open.',
+    description: 'Grouped Nexus 2 import flow: previews on open, two consolidated checkboxes (Y70 panel personalization, Q-Series panel personalization) each expanding to their wire categories, apply (always replacing the current personalization), and per-group results in an internally scrolling box. Hosted by ImportCenter, which the onboarding gate and the Settings entry both open.',
     notes: 'No live preview - it posts real /migration/nexus2/preview and /apply requests on open/submit, so opening it here would mutate the running install\'s panel layouts.',
   },
   {
-    name: 'FanControlImportScreen', category: 'modals',
-    filePath: 'src/components/common/FanControlImport/FanControlImportScreen.tsx',
-    description: 'One-time gate for users arriving from FanControl, last in the onboarding sequence. States that Continue closes FanControl and stops it starting with Windows (both apps drive the same fan controllers), hosts the shared FanControlImportSection, and relabels Continue to Import and continue while any category is selected.',
-    notes: 'No live preview - Continue posts real /migration/fancontrol/apply, /close-app, /disable-autostart and /dismiss requests, so opening it here would close FanControl and overwrite the running install\'s fan curves.',
+    name: 'ImportOnboardingScreen', category: 'modals',
+    filePath: 'src/components/common/ImportOnboarding/ImportOnboardingScreen.tsx',
+    description: 'The one onboarding gate for bringing a previous setup over. Hosts ImportCenter with every app found on this PC (Nexus 2 first, then FanControl), and on continue also closes those apps and clears their autostart, since each drives hardware Nexus is taking over.',
+    notes: 'No live preview - continuing posts real apply, close-app, disable-autostart and dismiss requests for every detected app, so opening it here would close them and overwrite the running install\'s configuration.',
   },
   {
     name: 'FanControlImportSection', category: 'modals',
     filePath: 'src/components/common/FanControlImport/FanControlImportSection.tsx',
-    description: 'FanControl import flow: picks one of that app\'s saved configurations, previews what maps onto this PC (curves with their target mode, fans with how each was matched, and what is being left behind), and applies the selected categories - curves, calibration, fan names, offsets, fixed speeds. Hosted by FanControlImportScreen and by ImportCenter, which is what the cooling page\'s preset dropdown opens.',
+    description: 'FanControl import flow: picks one of that app\'s saved configurations, previews what maps onto this PC (curves with their target mode, fans with how each was matched, and what is being left behind), and applies the selected categories - curves, calibration, fan names, offsets, fixed speeds. Hosted by ImportCenter, which the onboarding gate, the cooling page\'s preset dropdown and the Settings entry all open.',
     notes: 'No live preview - it posts real /migration/fancontrol/preview and /apply requests, so opening it here would overwrite the running install\'s fan curves.',
   },
   {

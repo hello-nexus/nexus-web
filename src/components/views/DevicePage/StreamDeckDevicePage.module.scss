@@ -181,11 +181,3 @@
   color: var(--text-dim);
 }
 
-// ViewHeader's tabActions slot shrink-wraps its child, so the toolbar's
-// flexible select has no share of a row to take and collapses to its content.
-// A definite width gives it the same rail the cooling and lighting pages put
-// it in.
-.presetSlot {
-  width: 300px;
-  max-width: 100%;
-}

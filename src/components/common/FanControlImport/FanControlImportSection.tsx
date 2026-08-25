@@ -209,7 +209,7 @@ export function FanControlImportSection({
       // inside the surface just says it twice.
       title={wide ? undefined : t('fanControlImport.title')}
       ariaLabel={t('fanControlImport.title')}
-      description={<p>{t('fanControlImport.description')}</p>}
+      description={wide ? undefined : <p>{t('fanControlImport.description')}</p>}
     >
       {configs.length > 1 && (
         <label className={styles.configRow} data-settings-aside>

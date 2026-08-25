@@ -63,18 +63,7 @@
 
 .tabsCell {
   flex: 1 1 auto;
-  min-width: min-content;
-}
-
-.presetHeader {
-  // Column width until the tabs need the room; the toolbar's own select is the
-  // flexible part, so the buttons survive and the preset name truncates.
-  flex: 0 1 300px;
-  min-width: min-content;
-  // Column, not row: the toolbar is sized on the CROSS axis so it stretches to
-  // the rail width instead of tracking the preset name's width.
-  display: flex;
-  flex-direction: column;
+  min-width: 0;
 }
 
 // One title per column, both on grid row 2 so they share a baseline.
@@ -96,11 +85,6 @@
 .headerRight {
   grid-column: 2;
   min-width: 0;
-}
-
-.curveHeaderAction {
-  margin-left: auto;
-  flex-shrink: 0;
 }
 
 .paneTitle {
@@ -428,7 +412,6 @@
 
 // Sidebar variant: fill the column width.
 .fanCardCompact { width: 100%; }
-
 
 // Software-controlled (not BIOS/FW): keep the card surface unchanged and
 // signal it on the duty bar instead - a much lighter cue than a full-card
@@ -839,7 +822,6 @@
   gap: 0.3rem;
   flex-wrap: wrap;
 }
-
 
 // ── Temp source row (inset) ────────────────────────────────────────────────
 // Stacked layout (label above, select below) matches the Slider stacked

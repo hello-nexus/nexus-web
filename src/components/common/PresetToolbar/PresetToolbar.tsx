@@ -60,6 +60,10 @@ interface PresetToolbarProps {
   /** Adds an "Apps" option that opens the caller's app-binding modal. Omit to
    *  hide the option entirely (every existing caller). */
   onManageApps?: () => void;
+  /** Renders as a page-header rail: a fixed-width control that every page
+   *  hands to ViewHeader's tabActions slot, so the preset box sits identically
+   *  on all of them. Off for the in-modal callers, which size themselves. */
+  rail?: boolean;
   /** Hides the create/rename options - both open a PromptModal text input,
    *  unusable on a keyboardless surface. Switching and deleting stay
    *  available. Defaults to true (every existing caller keeps typing). */
@@ -73,6 +77,7 @@ export function PresetToolbar({
   translationPrefix = 'lighting.layoutPresets',
   resetLabelKey, resetConfirmKey,
   allowCreateRename = true,
+  rail,
 }: PresetToolbarProps) {
   const { t } = useTranslation();
   const key = (suffix: string) => `${translationPrefix}.${suffix}`;
@@ -153,7 +158,7 @@ export function PresetToolbar({
   const redoTitle = `${t(key('redo'))} (${isMac ? 'Cmd' : 'Ctrl'}+Shift+Z)`;
 
   return (
-    <div className={styles.toolbar}>
+    <div className={rail ? `${styles.toolbar} ${styles.toolbarRail}` : styles.toolbar}>
       <Select
         value={activeId ?? ''}
         onChange={handleSelectChange}

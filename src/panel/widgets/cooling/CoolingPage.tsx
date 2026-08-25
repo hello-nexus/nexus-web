@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Ban, CheckCheck, Gauge, Import, Power } from 'lucide-react';
+import { Ban, CheckCheck, Gauge, Power } from 'lucide-react';
 import { Button } from '../../../components/common/Button/Button';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { usePersistentState, usePersistentIdSet } from '../../../hooks/usePersistentState';
@@ -1205,26 +1205,27 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                 if (origin && isCoolingModeKey(k) && k !== activeMode) emitRadialBloomFromElement(origin, k === 'off');
                 void handleModeChange(k);
               }}
-            />
-          </div>
-          <div className={styles.presetHeader}>
-            <PresetToolbar
-              presets={presets}
-              activeId={activePresetId}
-              presetCount={presets.length}
-              showHistory
-              canUndo={canUndo}
-              canRedo={canRedo}
-              onUndo={() => { void handleUndo(); }}
-              onRedo={() => { void handleRedo(); }}
-              translationPrefix="cooling.presets"
-              onImport={importSources.length > 0 ? () => setImportDialogOpen(true) : undefined}
-              importLabelKey="cooling.presets.importOption"
-              importDisabled={calibrating}
-              onLoad={id => { void handlePresetLoadWithHistory(id); }}
-              onCreate={handlePresetCreate}
-              onRename={handlePresetRename}
-              onDelete={handlePresetDelete}
+              tabActions={(
+                <PresetToolbar
+                  rail
+                  presets={presets}
+                  activeId={activePresetId}
+                  presetCount={presets.length}
+                  showHistory
+                  canUndo={canUndo}
+                  canRedo={canRedo}
+                  onUndo={() => { void handleUndo(); }}
+                  onRedo={() => { void handleRedo(); }}
+                  translationPrefix="cooling.presets"
+                  onImport={importSources.length > 0 ? () => setImportDialogOpen(true) : undefined}
+                  importLabelKey="cooling.presets.importOption"
+                  importDisabled={calibrating}
+                  onLoad={id => { void handlePresetLoadWithHistory(id); }}
+                  onCreate={handlePresetCreate}
+                  onRename={handlePresetRename}
+                  onDelete={handlePresetDelete}
+                />
+              )}
             />
           </div>
         </div>
@@ -1279,23 +1280,6 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
           <span className={styles.paneTitle}>{t('cooling.label.curves')}</span>
           {/* What a curve press would apply to, in the lighting page's wording. */}
           <Badge label={selectedFanLabel} compact uppercase color="var(--text-dim)" />
-          {importSources.length > 0 && (
-          <HoverTooltip body={t('coolingImport.title')} side="bottom">
-            <Button
-              tone="ghost"
-              size="sm"
-              icon={<Import />}
-              className={styles.curveHeaderAction}
-              // Visible label is the short one; the accessible name says what
-              // it opens, which the tooltip only shows on hover.
-              aria-label={t('coolingImport.title')}
-              disabled={calibrating}
-              onClick={() => setImportDialogOpen(true)}
-            >
-              {t('cooling.curves.import')}
-            </Button>
-          </HoverTooltip>
-          )}
         </div>
         <aside className={styles.fanSidebar}>
           {calibrationResults && !calibrating && (
