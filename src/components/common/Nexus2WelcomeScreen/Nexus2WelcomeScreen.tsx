@@ -6,7 +6,7 @@ import { SettingsSection } from '../SettingsSection/SettingsSection';
 import { Button } from '../Button/Button';
 import { closeNexus2App, disableNexus2Autostart, dismissNexus2Welcome } from '../../../api/migration';
 import type { Nexus2StatusResponse } from '../../../api/migration';
-import { Nexus2ImportSection, type Nexus2ImportHandle } from './Nexus2ImportSection';
+import { ImportCenter, type ImportCenterHandle, type ImportSourceId } from '../ImportCenter/ImportCenter';
 import styles from './Nexus2WelcomeScreen.module.scss';
 
 const ACTION_ICON_SIZE = 28;
@@ -32,6 +32,11 @@ export interface Nexus2WelcomeScreenProps {
 
 type ApplyPhase = 'idle' | 'applying' | 'failed';
 
+// This gate runs before device selection because Nexus 2 holds the hardware
+// that gate enumerates, so it offers that source alone.
+const NEXUS2_ONLY: ImportSourceId[] = ['nexus2'];
+const NEXUS2_PRESENT = { nexus2: { importAvailable: true } };
+
 /**
  * One-time returning-user screen for Nexus 2 owners, shown after the
  * onboarding WelcomeScreen completes. Non-dismissable: Continue is the only
@@ -47,7 +52,7 @@ export function Nexus2WelcomeScreen({ open, payload, onComplete, onBack }: Nexus
   const [importBusy, setImportBusy] = useState(false);
   const [importHasSelection, setImportHasSelection] = useState(false);
   const [actionErrors, setActionErrors] = useState({ close: false, autostart: false });
-  const importHandle = useRef<Nexus2ImportHandle | null>(null);
+  const importHandle = useRef<ImportCenterHandle | null>(null);
 
   // Resets on every open (the component stays mounted across open toggles, per
   // Dashboard's always-rendered gating).
@@ -157,8 +162,12 @@ export function Nexus2WelcomeScreen({ open, payload, onComplete, onBack }: Nexus
       </SettingsSection>
 
       {payload?.importAvailable && (
-        <Nexus2ImportSection
+        <ImportCenter
           open={open}
+          sources={NEXUS2_ONLY}
+          // This screen opened because detection found the app; re-reading it
+          // here could only disagree with the gate that mounted this.
+          detected={NEXUS2_PRESENT}
           disabled={applyPhase !== 'idle'}
           onBusyChange={setImportBusy}
           showAction={false}

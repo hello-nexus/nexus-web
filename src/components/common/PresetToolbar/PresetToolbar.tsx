@@ -36,6 +36,9 @@ interface PresetToolbarProps {
   /** i18n key for the import option's label, falling back to
    *  `${translationPrefix}.importOption` like resetLabelKey does for reset. */
   importLabelKey?: string;
+  /** Greys the import option out while the caller cannot accept one (the
+   *  cooling page during a fan calibration), on top of the cap rule. */
+  importDisabled?: boolean;
   /** Undo/Redo controls, plus Reset when `onReset` is supplied. Off for
    *  callers with no editable history to undo; on (default) matches the
    *  original lighting-canvas toolbar. */
@@ -65,7 +68,7 @@ interface PresetToolbarProps {
 
 export function PresetToolbar({
   presets, activeId, presetCount, cap = PRESET_CAP,
-  onLoad, onCreate, onRename, onDelete, onImport, importLabelKey, onManageApps,
+  onLoad, onCreate, onRename, onDelete, onImport, importLabelKey, importDisabled, onManageApps,
   showHistory = true, canUndo = false, canRedo = false, onReset, onUndo, onRedo,
   translationPrefix = 'lighting.layoutPresets',
   resetLabelKey, resetConfirmKey,
@@ -99,7 +102,7 @@ export function PresetToolbar({
       { value: '__delete__', label: t(key('delete')), className: styles.actionOption, icon: <Trash2 size={14} /> },
     ] : []),
     ...(allowCreateRename ? [{ value: '__create__', label: t(key('newOption')), className: styles.createOption, disabled: atCap, icon: <Plus size={14} /> }] : []),
-    ...(onImport ? [{ value: '__import__', label: t(importKey), className: styles.createOption, disabled: atCap, icon: <Import size={14} /> }] : []),
+    ...(onImport ? [{ value: '__import__', label: t(importKey), className: styles.createOption, disabled: atCap || !!importDisabled, icon: <Import size={14} /> }] : []),
   ];
 
   const handleSelectChange = (value: string) => {

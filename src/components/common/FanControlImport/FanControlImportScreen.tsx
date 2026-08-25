@@ -8,7 +8,7 @@ import {
   closeFanControlApp, disableFanControlAutostart, dismissFanControlImport,
   type FanControlStatusResponse,
 } from '../../../api/fancontrol';
-import { FanControlImportSection, type FanControlImportHandle } from './FanControlImportSection';
+import { ImportCenter, type ImportCenterHandle, type ImportSourceId } from '../ImportCenter/ImportCenter';
 import styles from './FanControlImportScreen.module.scss';
 
 const ACTION_ICON_SIZE = 28;
@@ -34,6 +34,10 @@ export interface FanControlImportScreenProps {
 
 type ApplyPhase = 'idle' | 'applying' | 'failed';
 
+// This gate is about FanControl alone; the other sources have their own
+// place in the sequence.
+const FAN_CONTROL_ONLY: ImportSourceId[] = ['fancontrol'];
+
 /**
  * One-time screen for users coming from FanControl, shown after the lighting
  * device-selection gate. Continue imports whatever is selected, then closes
@@ -48,7 +52,7 @@ export function FanControlImportScreen({ open, payload, onComplete, onBack }: Fa
   const [importBusy, setImportBusy] = useState(false);
   const [importHasSelection, setImportHasSelection] = useState(false);
   const [actionErrors, setActionErrors] = useState({ close: false, autostart: false });
-  const importHandle = useRef<FanControlImportHandle | null>(null);
+  const importHandle = useRef<ImportCenterHandle | null>(null);
 
   // Resets on every open; the component stays mounted across open toggles.
   useEffect(() => {
@@ -145,9 +149,12 @@ export function FanControlImportScreen({ open, payload, onComplete, onBack }: Fa
       </SettingsSection>
 
       {payload?.importAvailable && (
-        <FanControlImportSection
+        <ImportCenter
           open={open}
-          configs={payload.configs}
+          sources={FAN_CONTROL_ONLY}
+          // This screen opened because detection found the app; re-reading it
+          // here could only disagree with the gate that mounted this.
+          detected={{ fancontrol: { importAvailable: true, configCount: payload.configs.length } }}
           disabled={applyPhase !== 'idle'}
           onBusyChange={setImportBusy}
           showAction={false}

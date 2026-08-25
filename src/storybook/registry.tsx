@@ -2147,14 +2147,8 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'Nexus2ImportSection', category: 'modals',
     filePath: 'src/components/common/Nexus2WelcomeScreen/Nexus2ImportSection.tsx',
-    description: 'Grouped Nexus 2 import flow: previews on open, two consolidated checkboxes (Y70 panel personalization, Q-Series panel personalization) each expanding to their wire categories, apply (always replacing the current personalization), and per-group results in an internally scrolling box. Shared by Nexus2WelcomeScreen and the Settings entry (Nexus2ImportDialog).',
+    description: 'Grouped Nexus 2 import flow: previews on open, two consolidated checkboxes (Y70 panel personalization, Q-Series panel personalization) each expanding to their wire categories, apply (always replacing the current personalization), and per-group results in an internally scrolling box. Hosted by Nexus2WelcomeScreen and by ImportCenter, which is what the Settings entry and the cooling page open.',
     notes: 'No live preview - it posts real /migration/nexus2/preview and /apply requests on open/submit, so opening it here would mutate the running install\'s panel layouts.',
-  },
-  {
-    name: 'Nexus2ImportDialog', category: 'modals',
-    filePath: 'src/components/common/Nexus2WelcomeScreen/Nexus2ImportDialog.tsx',
-    description: 'Settings re-entry point for the Nexus 2 import: a DeviceModal hosting Nexus2ImportSection, opened from the Privacy & Data tab\'s "Import from Nexus 2" row once the service reports importable Nexus 2 data (present whether or not Nexus 2 is still installed).',
-    notes: 'No live preview - hosts Nexus2ImportSection, which posts real preview/apply requests.',
   },
   {
     name: 'FanControlImportScreen', category: 'modals',
@@ -2165,14 +2159,20 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'FanControlImportSection', category: 'modals',
     filePath: 'src/components/common/FanControlImport/FanControlImportSection.tsx',
-    description: 'FanControl import flow: picks one of that app\'s saved configurations, previews what maps onto this PC (curves with their target mode, fans with how each was matched, and what is being left behind), and applies the selected categories - curves, calibration, fan names, offsets, fixed speeds. Shared by FanControlImportScreen and the cooling page\'s CoolingImportDialog.',
+    description: 'FanControl import flow: picks one of that app\'s saved configurations, previews what maps onto this PC (curves with their target mode, fans with how each was matched, and what is being left behind), and applies the selected categories - curves, calibration, fan names, offsets, fixed speeds. Hosted by FanControlImportScreen and by ImportCenter, which is what the cooling page\'s preset dropdown opens.',
     notes: 'No live preview - it posts real /migration/fancontrol/preview and /apply requests, so opening it here would overwrite the running install\'s fan curves.',
   },
   {
-    name: 'CoolingImportDialog', category: 'modals',
-    filePath: 'src/components/common/CoolingImport/CoolingImportDialog.tsx',
-    description: 'The cooling page\'s import surface, opened from the Curves header: a list of apps a cooling setup can come from beside the selected one\'s flow. FanControl is the only source today, and it is listed whether or not it is installed - a source that is missing says so rather than the entry disappearing.',
-    notes: 'No live preview - the FanControl source hosts FanControlImportSection, which posts real preview/apply requests.',
+    name: 'ImportCenter', category: 'modals',
+    filePath: 'src/components/common/ImportCenter/ImportCenter.tsx',
+    description: 'The one import surface: every app a setup can come from listed on the left, each with a switch deciding whether it is included, and the highlighted app\'s own flow on the right. An app that is not installed still gets a row, greyed, with the reason. Hosted by ImportDialog (the cooling page\'s preset dropdown and the Settings entry) and by both onboarding gates, which drive the import from their own footer.',
+    notes: 'No live preview - each source posts real preview/apply requests, so opening it here would overwrite the running install\'s fan curves and panel layouts.',
+  },
+  {
+    name: 'ImportDialog', category: 'modals',
+    filePath: 'src/components/common/ImportCenter/ImportDialog.tsx',
+    description: 'Modal host for ImportCenter, used by the on-demand entry points: the cooling page\'s preset dropdown (FanControl) and the Privacy & Data tab\'s Nexus 2 row. The modal body is the single scroller, so a tall preview scrolls as one page.',
+    notes: 'No live preview - hosts ImportCenter, which posts real preview/apply requests.',
   },
   {
     name: 'LightingOnboardingScreen', category: 'modals',

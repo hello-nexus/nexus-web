@@ -1,20 +1,24 @@
 @use '../../../styles/text' as *;
-@use '../../../styles/scrollbar' as *;
 @use '../../../styles/onboarding' as *;
 
 .section {
-  width: min($onboarding-content-width, 100%);
+  width: 100%;
+  max-width: $onboarding-content-width;
 }
 
-// Extra top/bottom breathing room over SettingsSection's default box
-// padding, plus an internal scroller so the category count/results never
-// grow the host modal's overall height.
+// In a dialog the section gets the whole surface, which is wider than the
+// onboarding column.
+.sectionWide {
+  composes: section;
+  max-width: none;
+}
+
+// Extra top/bottom breathing room over SettingsSection's default box padding.
+// No scroller of its own: the host owns the single one, so a tall preview
+// scrolls as one page instead of a window inside a page that also scrolls.
 .box {
   padding-top: 0.75rem;
   padding-bottom: 1rem;
-  max-height: 24rem;
-  overflow-y: auto;
-  @include scrollbar-visible;
 }
 
 .error {
