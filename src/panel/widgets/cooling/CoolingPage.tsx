@@ -65,7 +65,7 @@ import { COOLING_MODES, isCoolingModeKey, type CoolingModeKey } from './page/coo
 import { loadCoolingCache, saveCoolingCache } from './coolingCache';
 import { resolveCpuTempSensor, defaultCurveSourceId } from '../../../lib/tempSensorResolver';
 import { curveDefsFromApi, curveDefToApi, MAX_CURVES, newCurve, type CurveDef, type FanState } from '../../../types/cooling';
-import { CoolingImportDialog, coolingImportHasSources } from '../../../components/common/CoolingImport/CoolingImportDialog';
+import { ImportDialog, availableImportSources } from '../../../components/common/ImportCenter/ImportDialog';
 import styles from './CoolingPage.module.scss';
 
 /**
@@ -987,6 +987,9 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   );
 
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+  // Cooling offers only the apps that carry a cooling setup; Nexus 2's import
+  // is panel personalization, so it belongs to the Settings entry, not here.
+  const importSources = useMemo(() => availableImportSources(platform, ['fancontrol']), [platform]);
 
   // Fans a Sync curve may follow: everything except the fans this curve itself
   // drives, so it can never end up chasing its own output.
@@ -1215,6 +1218,9 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
               onUndo={() => { void handleUndo(); }}
               onRedo={() => { void handleRedo(); }}
               translationPrefix="cooling.presets"
+              onImport={importSources.length > 0 ? () => setImportDialogOpen(true) : undefined}
+              importLabelKey="cooling.presets.importOption"
+              importDisabled={calibrating}
               onLoad={id => { void handlePresetLoadWithHistory(id); }}
               onCreate={handlePresetCreate}
               onRename={handlePresetRename}
@@ -1273,7 +1279,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
           <span className={styles.paneTitle}>{t('cooling.label.curves')}</span>
           {/* What a curve press would apply to, in the lighting page's wording. */}
           <Badge label={selectedFanLabel} compact uppercase color="var(--text-dim)" />
-          {coolingImportHasSources(platform) && (
+          {importSources.length > 0 && (
           <HoverTooltip body={t('coolingImport.title')} side="bottom">
             <Button
               tone="ghost"
@@ -1512,9 +1518,11 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
         </div>
 
       </div>
-      <CoolingImportDialog
+      <ImportDialog
         open={importDialogOpen}
         onClose={() => setImportDialogOpen(false)}
+        title={t('coolingImport.title')}
+        sources={importSources}
         onImported={() => { void refreshCoolingConfig(); }}
       />
       <ConfirmModal

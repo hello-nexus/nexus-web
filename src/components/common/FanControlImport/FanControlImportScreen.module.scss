@@ -18,8 +18,10 @@
   background: var(--backdrop-base);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  // `safe` matters: plain centering plus overflow puts the top of a tall screen
+  // above the scroll origin, where it can never be reached.
+  align-items: safe center;
+  justify-content: safe center;
   gap: 1.5rem;
   padding: 2rem;
   overflow-y: auto;

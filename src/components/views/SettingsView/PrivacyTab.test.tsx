@@ -28,12 +28,12 @@ vi.mock('./AiIntegrationSection', () => ({
   AiIntegrationSection: () => null,
 }));
 
-// Records the props Nexus2ImportDialog was rendered with, so this suite can
-// assert on the SAME dialog component PrivacyTab reuses without re-exercising
-// its internals (covered by Nexus2ImportSection.test.tsx).
-vi.mock('../../common/Nexus2WelcomeScreen/Nexus2ImportDialog', () => ({
-  Nexus2ImportDialog: ({ open }: { open: boolean }) => (
-    <div data-testid="nexus2-import-dialog" data-open={open ? 'true' : 'false'} />
+// Records the props the shared ImportDialog was rendered with, so this suite
+// can assert on the SAME dialog every import entry point opens without
+// re-exercising its internals (covered by ImportCenter.test.tsx).
+vi.mock('../../common/ImportCenter/ImportDialog', () => ({
+  ImportDialog: ({ open, sources }: { open: boolean; sources: string[] }) => (
+    <div data-testid="nexus2-import-dialog" data-open={open ? 'true' : 'false'} data-sources={sources.join(',')} />
   ),
 }));
 
@@ -104,12 +104,14 @@ describe('PrivacyTab - Nexus 2 import entry visibility', () => {
   });
 });
 
-describe('PrivacyTab - Nexus 2 import dialog reuse', () => {
-  it('opens the shared Nexus2ImportDialog on click, closed by default', async () => {
+describe('PrivacyTab - shared import dialog reuse', () => {
+  it('opens the shared import dialog on the Nexus 2 source, closed by default', async () => {
     vi.mocked(fetchNexus2Status).mockResolvedValue(status());
     renderTab();
     const dialog = await screen.findByTestId('nexus2-import-dialog');
     expect(dialog).toHaveAttribute('data-open', 'false');
+    // This row is the Nexus 2 entry, whatever else the dialog can host.
+    expect(dialog).toHaveAttribute('data-sources', 'nexus2');
 
     fireEvent.click(screen.getByRole('button', { name: NEXUS2_OPEN_BUTTON_NAME }));
     expect(dialog).toHaveAttribute('data-open', 'true');

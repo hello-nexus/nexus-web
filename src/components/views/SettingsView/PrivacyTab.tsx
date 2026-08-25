@@ -4,7 +4,8 @@ import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingRow, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { ScreenTimeDataControl } from '../ScreenTimeBrowse/ScreenTimeDataControl';
-import { Nexus2ImportDialog } from '../../common/Nexus2WelcomeScreen/Nexus2ImportDialog';
+import { ImportDialog } from '../../common/ImportCenter/ImportDialog';
+import type { ImportSourceId } from '../../common/ImportCenter/ImportCenter';
 import { AiIntegrationSection } from './AiIntegrationSection';
 import { DiscordPresenceSection } from './DiscordPresenceSection';
 import { fetchService, postService } from '../../../api/service';
@@ -19,6 +20,10 @@ export interface PrivacyTabProps {
   settings: NexusSettings;
   serviceOnline: boolean;
 }
+
+// This entry is the Nexus 2 row's own; the cooling page and onboarding open
+// the same dialog with their own sources.
+const NEXUS2_ONLY: ImportSourceId[] = ['nexus2'];
 
 export function PrivacyTab({ settings, serviceOnline }: PrivacyTabProps) {
   const { t } = useTranslation();
@@ -133,7 +138,12 @@ export function PrivacyTab({ settings, serviceOnline }: PrivacyTabProps) {
         onChanged={() => { /* settings page doesn't need to refetch */ }}
       />
 
-      <Nexus2ImportDialog open={nexus2ImportOpen} onClose={() => setNexus2ImportOpen(false)} />
+      <ImportDialog
+        open={nexus2ImportOpen}
+        onClose={() => setNexus2ImportOpen(false)}
+        title={t('nexus2Welcome.settingsEntry.rowLabel')}
+        sources={NEXUS2_ONLY}
+      />
 
       {/* Rich Presence publishes a status line off this machine, so it sits
           with the other data-sharing controls rather than in General. */}

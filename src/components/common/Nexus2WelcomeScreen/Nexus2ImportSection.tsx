@@ -37,17 +37,19 @@ export interface Nexus2ImportSectionProps {
   onSelectionChange?: (hasSelection: boolean) => void;
   /** Receives the apply runner for hosts with showAction=false. */
   handleRef?: RefObject<Nexus2ImportHandle | null>;
+  /** True in a dialog, where the section gets the whole surface rather than
+   *  the narrower onboarding column. */
+  wide?: boolean;
 }
 
 /**
  * Grouped Nexus 2 import flow: preview fetch, two grouped switches (Y70
  * panel personalization, Q-Series panel personalization), apply, and per-group
- * results. Shared by Nexus2WelcomeScreen and
- * the Settings re-entry dialog (Nexus2ImportDialog) - one place owns the
- * markup so both stay in sync.
+ * results. Hosted by Nexus2WelcomeScreen and by ImportCenter, which is what
+ * the Settings entry opens - one place owns the markup so both stay in sync.
  */
 export function Nexus2ImportSection({
-  open, disabled, onBusyChange, showAction = true, onSelectionChange, handleRef,
+  open, disabled, onBusyChange, showAction = true, onSelectionChange, handleRef, wide,
 }: Nexus2ImportSectionProps) {
   const { t } = useTranslation();
   const [previewStatus, setPreviewStatus] = useState<PreviewStatus>('idle');
@@ -134,7 +136,7 @@ export function Nexus2ImportSection({
 
   return (
     <SettingsSection
-      className={styles.section}
+      className={wide ? styles.sectionWide : styles.section}
       boxClassName={styles.box}
       title={t('nexus2Welcome.import.title')}
       description={<p>{t('nexus2Welcome.import.description')}</p>}

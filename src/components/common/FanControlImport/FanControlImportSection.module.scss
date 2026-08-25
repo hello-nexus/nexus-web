@@ -1,5 +1,4 @@
 @use '../../../styles/text' as *;
-@use '../../../styles/scrollbar' as *;
 @use '../../../styles/onboarding' as *;
 
 .section {
@@ -14,15 +13,12 @@
   max-width: none;
 }
 
-// Internal scroller so a config with many curves and fans never grows the
-// host past its own height. Tall enough that a typical config shows its
-// categories and the start of the per-curve list without scrolling.
+// No scroller of its own: the host (modal body or onboarding surface) owns the
+// single one, so a tall preview scrolls as one page instead of a small window
+// inside a page that is also scrolling.
 .box {
   padding-top: 0.75rem;
   padding-bottom: 1rem;
-  max-height: min(34rem, 60vh);
-  overflow-y: auto;
-  @include scrollbar-visible;
 }
 
 .configRow {

@@ -2,11 +2,12 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Nexus2WelcomeScreen } from './Nexus2WelcomeScreen';
 import {
-  applyNexus2Import, closeNexus2App, disableNexus2Autostart, dismissNexus2Welcome, previewNexus2Import,
+  applyNexus2Import, closeNexus2App, disableNexus2Autostart, dismissNexus2Welcome, fetchNexus2Status, previewNexus2Import,
 } from '../../../api/migration';
 import type { Nexus2PreviewResponse, Nexus2StatusResponse } from '../../../api/migration';
 
 vi.mock('../../../api/migration', () => ({
+  fetchNexus2Status: vi.fn(),
   dismissNexus2Welcome: vi.fn(),
   disableNexus2Autostart: vi.fn(),
   closeNexus2App: vi.fn(),
@@ -48,7 +49,10 @@ const BASE_PREVIEW: Nexus2PreviewResponse = {
   ],
 };
 
+// The screen takes the Dashboard's payload for its own copy; the shared
+// ImportCenter it hosts reads detection itself, so both see the same thing.
 function renderScreen(payload: Nexus2StatusResponse | null, onComplete = vi.fn()) {
+  vi.mocked(fetchNexus2Status).mockResolvedValue(payload);
   return render(<Nexus2WelcomeScreen open payload={payload} onComplete={onComplete} />);
 }
 
@@ -234,7 +238,7 @@ describe('Nexus2WelcomeScreen - import section wiring', () => {
 
     const y70 = await screen.findByRole('switch', { name: Y70_GROUP_SWITCH_NAME });
     // Two explicit choices, and the section keeps no apply button of its own.
-    expect(await screen.findByRole('button', { name: IMPORT_AND_CONTINUE_BUTTON_NAME })).toBeEnabled();
+    await waitFor(() => expect(screen.getByRole('button', { name: IMPORT_AND_CONTINUE_BUTTON_NAME })).toBeEnabled());
     expect(screen.getByRole('button', { name: SKIP_BUTTON_NAME })).toBeEnabled();
     expect(screen.queryByRole('button', { name: IMPORT_BUTTON_NAME })).not.toBeInTheDocument();
 
@@ -263,7 +267,9 @@ describe('Nexus2WelcomeScreen - import section wiring', () => {
     renderScreen({ ...BASE_PAYLOAD, importAvailable: true }, onComplete);
 
     await screen.findByRole('switch', { name: Y70_GROUP_SWITCH_NAME });
-    fireEvent.click(await screen.findByRole('button', { name: IMPORT_AND_CONTINUE_BUTTON_NAME }));
+    const go = screen.getByRole('button', { name: IMPORT_AND_CONTINUE_BUTTON_NAME });
+    await waitFor(() => expect(go).toBeEnabled());
+    fireEvent.click(go);
 
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
     expect(applyNexus2Import).toHaveBeenCalledTimes(1);
@@ -278,7 +284,9 @@ describe('Nexus2WelcomeScreen - import section wiring', () => {
     renderScreen({ ...BASE_PAYLOAD, importAvailable: true, running: true }, onComplete);
 
     await screen.findByRole('switch', { name: Y70_GROUP_SWITCH_NAME });
-    fireEvent.click(await screen.findByRole('button', { name: IMPORT_AND_CONTINUE_BUTTON_NAME }));
+    const go = screen.getByRole('button', { name: IMPORT_AND_CONTINUE_BUTTON_NAME });
+    await waitFor(() => expect(go).toBeEnabled());
+    fireEvent.click(go);
 
     const anyway = await screen.findByRole('button', { name: CONTINUE_ANYWAY_BUTTON_NAME });
     expect(onComplete).not.toHaveBeenCalled();

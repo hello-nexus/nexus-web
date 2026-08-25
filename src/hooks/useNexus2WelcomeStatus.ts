@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { fetchNexus2Status, type Nexus2StatusResponse } from '../api/migration';
 
 export type Nexus2WelcomeStatus = 'unknown' | 'pending' | 'completed';
@@ -12,6 +12,8 @@ const MAX_ATTEMPTS = 5;
 export interface Nexus2WelcomeState {
   status: Nexus2WelcomeStatus;
   payload: Nexus2StatusResponse | null;
+  /** Re-reads detection, for a surface that opens the import on demand. */
+  refresh: () => void;
 }
 
 /**
@@ -24,13 +26,16 @@ export interface Nexus2WelcomeState {
 export function useNexus2WelcomeStatus(): Nexus2WelcomeState {
   const [status, setStatus] = useState<Nexus2WelcomeStatus>('unknown');
   const [payload, setPayload] = useState<Nexus2StatusResponse | null>(null);
+  const [nonce, setNonce] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
 
     const attempt = async (n: number) => {
-      const data = await fetchNexus2Status();
+      // Settles on a rejection too, not just on a null: a caller that gates a
+      // gate or a spinner on this must never be left waiting forever.
+      const data = await fetchNexus2Status().catch(() => null);
       if (cancelled) return;
       if (data) {
         setPayload(data);
@@ -41,15 +46,16 @@ export function useNexus2WelcomeStatus(): Nexus2WelcomeState {
         setStatus('completed');
         return;
       }
-      timer = setTimeout(() => attempt(n + 1), RETRY_DELAY_MS);
+      timer = setTimeout(() => void attempt(n + 1), RETRY_DELAY_MS);
     };
-    attempt(1);
+    void attempt(1);
 
     return () => {
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, []);
+  }, [nonce]);
 
-  return { status, payload };
+  const refresh = useCallback(() => setNonce(n => n + 1), []);
+  return { status, payload, refresh };
 }

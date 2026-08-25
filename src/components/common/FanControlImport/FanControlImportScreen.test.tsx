@@ -3,11 +3,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { FanControlImportScreen } from './FanControlImportScreen';
 import {
   applyFanControlImport, closeFanControlApp, disableFanControlAutostart,
-  dismissFanControlImport, previewFanControlImport,
+  dismissFanControlImport, fetchFanControlStatus, previewFanControlImport,
 } from '../../../api/fancontrol';
 import type { FanControlStatusResponse } from '../../../api/fancontrol';
 
 vi.mock('../../../api/fancontrol', () => ({
+  fetchFanControlStatus: vi.fn(),
   previewFanControlImport: vi.fn(),
   applyFanControlImport: vi.fn(),
   dismissFanControlImport: vi.fn(),
@@ -43,6 +44,9 @@ const PREVIEW = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // The screen takes the Dashboard's payload for its own copy; the shared
+  // ImportCenter it hosts reads detection itself, so both see the same thing.
+  vi.mocked(fetchFanControlStatus).mockResolvedValue(PAYLOAD);
   vi.mocked(previewFanControlImport).mockResolvedValue(PREVIEW);
   vi.mocked(applyFanControlImport).mockResolvedValue({
     error: false, msg: 'Ok', curvesImported: 2, calibrationsImported: 3, namesImported: 0, offsetsImported: 0, manualImported: 0,
