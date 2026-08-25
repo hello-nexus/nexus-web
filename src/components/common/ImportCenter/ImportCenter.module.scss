@@ -2,7 +2,7 @@
 
 .body {
   display: grid;
-  grid-template-columns: minmax(0, 15rem) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 17.5rem) minmax(0, 1fr);
   gap: 1rem;
   align-items: start;
 }
@@ -23,7 +23,7 @@
 .sourceList {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.5rem;
   min-width: 0;
 }
 
@@ -37,8 +37,8 @@
 .sourceRow {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.6rem 0.7rem;
+  gap: 0.6rem;
+  padding: 0.85rem 0.9rem;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
@@ -60,7 +60,7 @@
 .sourceMain {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.7rem;
   flex: 1 1 auto;
   min-width: 0;
   padding: 0;
@@ -69,6 +69,13 @@
   color: inherit;
   text-align: left;
   cursor: pointer;
+
+  // Hugs the row it fills rather than drawing a second box inside the card.
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 0.35rem;
+    border-radius: var(--radius);
+  }
 }
 
 .sourceIcon {
@@ -85,16 +92,17 @@
 .sourceText {
   display: flex;
   flex-direction: column;
+  gap: 0.1rem;
   min-width: 0;
 }
 
 .sourceName {
-  font-size: var(--type-small);
+  @include text-body;
   font-weight: 600;
 }
 
 .sourceStatus {
-  @include text-caption;
+  font-size: var(--type-small);
   color: var(--text-dim);
   overflow: hidden;
   text-overflow: ellipsis;

@@ -18,12 +18,13 @@
   background: var(--backdrop-base);
   display: flex;
   flex-direction: column;
-  // `safe` matters: plain centering plus overflow puts the top of a tall screen
-  // above the scroll origin, where it can never be reached.
+  // Top-aligned, not centred: the panel's height changes with the selected
+  // app, and centring moved the whole screen every time it did. `safe` keeps
+  // a screen wider than the viewport reachable from its own start edge.
   align-items: safe center;
-  justify-content: safe center;
+  justify-content: flex-start;
   gap: 1.5rem;
-  padding: 2rem;
+  padding: 4rem 2rem 2rem;
   overflow-y: auto;
 
   :global(html.nexus-shell-native-glass[data-bg='glass']) & {
