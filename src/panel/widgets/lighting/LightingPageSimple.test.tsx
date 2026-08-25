@@ -116,8 +116,18 @@ describe('LightingPage simple mode', () => {
     expect(screen.getByText('lighting.simple.controlled')).toBeTruthy();
   });
 
-  it('takes over a device the advanced page had left un-driven', async () => {
-    renderPage();
+  it('takes over a device the advanced page had left un-driven, when asked to light one', async () => {
+    const { container } = renderPage();
+    await waitFor(() => {
+      expect(vi.mocked(lightingApi.fetchLightingDevices)).toHaveBeenCalled();
+    });
+    // Arriving here changes nothing: the view is not a decision about which
+    // devices Nexus drives.
+    expect(vi.mocked(lightingApi.setLightingDeviceControlled)).not.toHaveBeenCalled();
+
+    const swatch = container.querySelector('[data-palette-id="red-3"]') as HTMLButtonElement;
+    fireEvent.click(swatch);
+
     await waitFor(() => {
       expect(vi.mocked(lightingApi.setLightingDeviceControlled)).toHaveBeenCalledWith('dev-2', true);
     });
