@@ -86,10 +86,15 @@ describe('LightingOnboardingScreen - device grid', () => {
     seed([strip, hub]);
     renderScreen();
 
+    // Simple shows every device as driven whatever its stored state; only
+    // advanced reads each one back the way the user left it.
     const stripCard = await screen.findByRole('switch', { name: 'Test Strip' });
-    const hubCard = screen.getByRole('switch', { name: 'Test Hub' });
     expect(stripCard).toHaveAttribute('aria-checked', 'true');
-    expect(hubCard).toHaveAttribute('aria-checked', 'false');
+    expect(screen.getByRole('switch', { name: 'Test Hub' })).toHaveAttribute('aria-checked', 'true');
+
+    chooseAdvanced();
+    expect(screen.getByRole('switch', { name: 'Test Strip' })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByRole('switch', { name: 'Test Hub' })).toHaveAttribute('aria-checked', 'false');
   });
 
   it('Enter on a focused card toggles it without firing the Overlay Continue handler', async () => {
@@ -476,15 +481,16 @@ describe('LightingOnboardingScreen mode choice', () => {
   it('opens on Simple, where there is nothing to pick', async () => {
     seed([strip]);
     renderScreen();
-    await screen.findByText('lightingOnboarding.subtitle.simple');
+    await screen.findByRole('radio', { name: /lightingOnboarding\.mode\.simple/ });
     expect(screen.getByRole('radio', { name: /lightingOnboarding\.mode\.simple/ })).toHaveAttribute('aria-checked', 'true');
-    expect(screen.queryByRole('button', { name: 'lighting.ledMap.selectAll' })).toBeNull();
+    // The bulk actions stay on the screen, with nothing to act on.
+    expect(screen.getByRole('button', { name: 'lighting.ledMap.selectAll' })).toBeDisabled();
   });
 
   it('Simple drives every device, putting back any the user had switched off', async () => {
     seed([{ ...strip, controlled: false }]);
     const onComplete = renderScreen();
-    await screen.findByText('lightingOnboarding.subtitle.simple');
+    await screen.findByRole('radio', { name: /lightingOnboarding\.mode\.simple/ });
 
     fireEvent.click(screen.getByRole('button', { name: 'lightingOnboarding.continue' }));
 
@@ -496,13 +502,33 @@ describe('LightingOnboardingScreen mode choice', () => {
   it('No lighting stops the engine and leaves the picker out of it', async () => {
     seed([strip]);
     const onComplete = renderScreen();
-    await screen.findByText('lightingOnboarding.subtitle.simple');
+    await screen.findByRole('radio', { name: /lightingOnboarding\.mode\.simple/ });
 
     fireEvent.click(screen.getByRole('radio', { name: /lightingOnboarding\.mode\.off/ }));
-    expect(screen.queryByRole('switch', { name: 'Test Strip' })).toBeNull();
+    // The devices still list, they just cannot be chosen between.
+    expect(screen.getByRole('switch', { name: 'Test Strip' })).toBeInTheDocument();
+    expect(document.querySelector('[class*=deviceGridLocked]')).not.toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: 'lightingOnboarding.continue' }));
     await waitFor(() => expect(onComplete).toHaveBeenCalled());
     expect(stopLighting).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the bulk actions visible in every mode, live only in Advanced', async () => {
+    seed([strip, hub]);
+    renderScreen();
+    await screen.findByRole('switch', { name: 'Test Strip' });
+
+    // Simple: present, but there is nothing for them to choose between.
+    expect(screen.getByRole('button', { name: 'lighting.ledMap.selectAll' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'lightingOnboarding.selectNone' })).toBeDisabled();
+
+    fireEvent.click(screen.getByRole('radio', { name: /lightingOnboarding\.mode\.off/ }));
+    expect(screen.getByRole('button', { name: 'lighting.ledMap.selectAll' })).toBeDisabled();
+
+    chooseAdvanced();
+    // One device is ignored, so both actions have work to do.
+    expect(screen.getByRole('button', { name: 'lighting.ledMap.selectAll' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'lightingOnboarding.selectNone' })).toBeEnabled();
   });
 });

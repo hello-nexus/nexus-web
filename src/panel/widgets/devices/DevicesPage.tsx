@@ -72,7 +72,7 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
   // Single USB subscription, reused for both the catalog "detected" highlight
   // and the Connected Devices modal - no second socket subscription.
   const allUsb = useUsbDevices(serviceOnline);
-  const { items: firmwareItems } = useFirmwareStatus(serviceOnline && tab === 'firmware');
+  const { items: firmwareItems, refresh: refreshFirmware } = useFirmwareStatus(serviceOnline && tab === 'firmware');
   const systemSpecs = useSystemSpecs(serviceOnline && tab === 'specs');
 
   const detectedVidPids = useMemo(() => {
@@ -162,7 +162,7 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
           !serviceOnline ? (
             <ServiceRequired state={connectionState} skeleton={<DevicesSkeleton />} />
           ) : (
-            <FirmwarePanel items={firmwareItems} />
+            <FirmwarePanel items={firmwareItems} onRetryCheck={refreshFirmware} />
           )
         ) : !serviceOnline ? (
           <ServiceRequired state={connectionState} skeleton={<DevicesSkeleton />} />
@@ -286,6 +286,7 @@ function DeviceCard({
 
 interface FirmwarePanelProps {
   items: FirmwareStatusItem[];
+  onRetryCheck: () => void | Promise<void>;
 }
 
 // Device glyphs keyed by the firmware status deviceType (= IDeviceHandler.Id).
@@ -310,7 +311,7 @@ const DEV_TOOLS = import.meta.env.DEV || __DEV_TOOLS__;
 // the Status column. The Install action flashes the latest bundled image via
 // the dfu-util flasher; downgrade / cross-branch re-flashing lives behind
 // DEV_TOOLS (see above) and is absent from release builds.
-function FirmwarePanel({ items }: FirmwarePanelProps) {
+function FirmwarePanel({ items, onRetryCheck }: FirmwarePanelProps) {
   const { t } = useTranslation();
   const { status, startFlash } = useFlashStatus(true);
   const anyFlashing = !!status?.active;
@@ -337,6 +338,7 @@ function FirmwarePanel({ items }: FirmwarePanelProps) {
                   status={status}
                   anyFlashing={anyFlashing}
                   onFlash={startFlash}
+                  onRetryCheck={onRetryCheck}
                 />
               ))}
             </tbody>
@@ -352,9 +354,10 @@ interface FirmwareRowProps {
   status: FlashStatus | null;
   anyFlashing: boolean;
   onFlash: (deviceType: string, version: string) => void | Promise<void>;
+  onRetryCheck: () => void | Promise<void>;
 }
 
-function FirmwareRow({ item, status, anyFlashing, onFlash }: FirmwareRowProps) {
+function FirmwareRow({ item, status, anyFlashing, onFlash, onRetryCheck }: FirmwareRowProps) {
   const { t } = useTranslation();
   const icon = FW_ICONS[item.deviceType] ?? FW_FALLBACK_ICON;
 
@@ -386,6 +389,19 @@ function FirmwareRow({ item, status, anyFlashing, onFlash }: FirmwareRowProps) {
     && status?.phase === 'done' && !!status?.success
     && item.currentVersion !== status.version;
   const installedVersion = awaitingRefresh ? status!.version : item.currentVersion;
+  // A just-flashed row already knows its verified version, so a failed check must
+  // not overwrite the bridge's "up to date" with "couldn't check".
+  const checkFailed = !!item.availableUnknown && !awaitingRefresh;
+  const [retrying, setRetrying] = useState(false);
+  const retryCheck = useCallback(async () => {
+    if (retrying) return;
+    setRetrying(true);
+    try {
+      await onRetryCheck();
+    } finally {
+      setRetrying(false);
+    }
+  }, [onRetryCheck, retrying]);
 
   return (
     <tr>
@@ -407,7 +423,24 @@ function FirmwareRow({ item, status, anyFlashing, onFlash }: FirmwareRowProps) {
         ) : (
           <>
             {lastError && <div className={styles.fwFailed}>{lastError}</div>}
-            {DEV_TOOLS ? (
+            {checkFailed ? (
+              // The version check itself failed (offline host, CDN blip): there is
+              // no version to offer, so this precedes the dev picker, which would
+              // otherwise render an empty Select and a disabled Flash.
+              <span className={styles.fwUpdateRow}>
+                <span className={styles.fwFailed}>{t('devices.firmware.status.checkFailed')}</span>
+                <Button
+                  type="button"
+                  tone="ghost"
+                  size="sm"
+                  disabled={anyFlashing}
+                  loading={retrying}
+                  onClick={() => { void retryCheck(); }}
+                >
+                  {t('devices.firmware.retryCheck')}
+                </Button>
+              </span>
+            ) : DEV_TOOLS ? (
               <span className={styles.fwUpdateRow}>
                 <Select
                   value={String(sel)}

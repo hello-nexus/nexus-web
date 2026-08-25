@@ -220,19 +220,22 @@
 }
 
 
-// The two ways in: drive everything, or choose. Also sets how the app opens.
+
+// The three ways in, directly under the title. Wide enough that each one's
+// own copy carries the explanation, so the screen needs no subtitle.
 .modeRow {
   display: flex;
   gap: 0.75rem;
-  width: min($onboarding-content-width, 100%);
+  width: min(900px, 100%);
 }
 
 .modeCard {
   flex: 1 1 0;
   display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  padding: 0.85rem 0.9rem;
+  align-items: center;
+  gap: 0.7rem;
+  min-width: 0;
+  padding: 0.9rem 1rem;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
@@ -248,6 +251,19 @@
   background: var(--accent-soft);
 }
 
+.modeIcon {
+  display: flex;
+  flex-shrink: 0;
+  color: var(--accent);
+}
+
+.modeText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
 .modeName {
   font-size: var(--type-body);
   font-weight: 600;
@@ -256,4 +272,20 @@
 .modeHint {
   font-size: var(--type-small);
   color: var(--text-dim);
+}
+
+// Simple drives everything and No lighting drives nothing, so neither offers
+// the cards as a choice.
+.deviceGridLocked {
+  pointer-events: none;
+}
+
+.deviceGridOff {
+  opacity: 0.45;
+}
+
+// Nothing to test while lighting is off.
+.testStripOff {
+  opacity: 0.45;
+  pointer-events: none;
 }

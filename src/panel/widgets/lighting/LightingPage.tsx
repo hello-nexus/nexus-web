@@ -67,7 +67,7 @@ import { ModeControls } from './page/ModeControls';
 import { MediaCanvasNotice } from './page/MediaCanvasNotice';
 import { DevicePanel } from './page/DevicePanel';
 import { type DiscoveryState } from './page/DeviceDiscoveryCard';
-import { zoneCardSelectable } from './page/ZoneCard';
+import { zoneCardSelectable, zoneCardUnavailable } from './page/ZoneCard';
 import { Button } from '../../../components/common/Button/Button';
 import { GameSyncLeftPane } from './page/GameSyncLeftPane';
 import { LedMapEditor } from './page/LedMapEditor';
@@ -1481,21 +1481,23 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // Simple mode has no device rail, so a colour paints every device at once.
   // Static has to own the output before the picks land - starting it after
   // would repaint them with the shared effect.
-  const handleSimplePaletteSelect = useCallback(async (color: PaletteColor) => {
+  const handleSimplePaletteSelect = useCallback(async (color: PaletteColor, targets?: string[]) => {
     if (effectiveMode !== 'static') await handleModeChange('static');
-    if (selectableIds.length > 0) writePalettePick(color, selectableIds);
+    const ids = targets ?? selectableIds;
+    if (ids.length > 0) writePalettePick(color, ids);
   }, [effectiveMode, handleModeChange, selectableIds, writePalettePick]);
 
   // Simple mode has no per-device toggle, so a device left un-driven or dark on
-  // the advanced page would sit black here with nothing on the page saying why -
-  // and zoneCardSelectable needs BOTH, so a colour would skip it entirely.
-  useEffect(() => {
-    if (!simpleDashboard) return;
+  // the advanced page would sit black here with nothing on the page saying why.
+  // Claimed when the user asks for something, not on arrival: switching the
+  // view is not a decision about which devices Nexus drives.
+  const claimAllDevices = useCallback((): string[] => {
     for (const d of devices) {
       if (d.controlled === false) handleSetControlled(d.id, true);
       if (!d.ledsOn) handleSetPower(d.id, true);
     }
-  }, [simpleDashboard, devices, handleSetControlled, handleSetPower]);
+    return orderedDevices.filter(d => !zoneCardUnavailable(d)).map(d => d.id);
+  }, [devices, orderedDevices, handleSetControlled, handleSetPower]);
 
   // Matches zoneCardSelectable: a device Nexus drives AND that is lit. Counting
   // only `controlled` would claim a dark device is being driven.
@@ -1623,12 +1625,16 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             icon={<Power size={22} />}
             label={t('lighting.mode.off')}
             active={synced && effectiveMode === 'none'}
-            onPress={() => { if (!synced || effectiveMode !== 'none') void handleModeChange('none'); }}
+            onPress={() => {
+              if (synced && effectiveMode === 'none') return;
+              claimAllDevices();
+              void handleModeChange('none');
+            }}
           />
           <StaticPalette
             hero
             selectedId={simplePaletteId}
-            onSelect={color => { void handleSimplePaletteSelect(color); }}
+            onSelect={color => { void handleSimplePaletteSelect(color, claimAllDevices()); }}
           />
           {simpleCustomActive && (
             <SimpleModeNotice message={t('lighting.simple.customActive')} />
