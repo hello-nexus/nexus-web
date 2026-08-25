@@ -218,14 +218,3 @@
   box-shadow: 0 0 0 4px var(--text);
 }
 
-// Carries the colour being tested onto the device cards, so it is obvious
-// which lights the strip is driving.
-.deviceTint {
-  display: flex;
-  border-radius: var(--radius);
-  transition: box-shadow var(--ease-fast);
-}
-
-.deviceTint[style*='--tint'] {
-  box-shadow: 0 0 0 2px var(--tint);
-}

@@ -70,7 +70,11 @@ export function LightingOnboardingScreen({ open, onComplete, onBack }: LightingO
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(false);
   const [testFill, setTestFill] = useState<string | null>(null);
-  const testSwatch = TEST_FILLS.find(f => f.key === testFill)?.swatch ?? null;
+  // Renders in each card's own LED strip, the way a Static pick does.
+  const testSwatch = TEST_FILLS.find(f => f.key === testFill)?.swatch;
+  const testPick = testFill && testSwatch
+    ? { key: testFill, hex: testSwatch, slot: 0, version: testFill }
+    : undefined;
   const { conflicts: allConflicts } = useConflictApps(open);
   // HYTE Nexus 2 is excluded here: its shutdown offer belongs to the
   // Nexus2WelcomeScreen gate, which precedes this screen on eligible
@@ -269,9 +273,10 @@ export function LightingOnboardingScreen({ open, onComplete, onBack }: LightingO
           <>
             <div className={styles.deviceGrid} role="group" aria-label={t('lightingOnboarding.title')}>
               {cards.map(d => (
-                <div key={d.id} className={styles.deviceTint} style={testSwatch ? { '--tint': testSwatch } as CSSProperties : undefined}>
                 <ZoneCard
+                  key={d.id}
                   device={d}
+                  ledPick={testPick}
                   toggleMode
                   selected={false}
                   indent={false}
@@ -280,7 +285,6 @@ export function LightingOnboardingScreen({ open, onComplete, onBack }: LightingO
                   onToggleControlled={() => handleToggle(d)}
                   onOpenSettings={noop}
                 />
-                </div>
               ))}
             </div>
           </>

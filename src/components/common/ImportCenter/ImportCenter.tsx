@@ -280,13 +280,15 @@ export function ImportCenter({
               key={row.id}
               className={`${styles.sourceRow} ${row.id === current.id ? styles.sourceRowActive : ''}`}
             >
-              <div className={styles.sourceLine}>
-                <button
-                  type="button"
-                  className={styles.sourceMain}
-                  aria-current={row.id === current.id ? 'true' : undefined}
-                  onClick={() => setHighlightOverride(row.id)}
-                >
+              {/* The whole card selects the app; the include switch sits over it
+                  as a sibling, since one control cannot nest inside another. */}
+              <button
+                type="button"
+                className={styles.sourceMain}
+                aria-current={row.id === current.id ? 'true' : undefined}
+                onClick={() => setHighlightOverride(row.id)}
+              >
+                <span className={styles.sourceLine}>
                   <span className={`${styles.sourceIcon} ${row.available ? '' : styles.sourceIconOff}`} aria-hidden>
                     {row.icon}
                   </span>
@@ -296,15 +298,20 @@ export function ImportCenter({
                         app cannot be imported, or that it is still unknown. */}
                     {!row.available && <span className={styles.sourceStatus}>{row.status}</span>}
                   </span>
-                </button>
-                <Toggle
-                  checked={isIncluded(row.id)}
-                  disabled={!row.available || locked}
-                  ariaLabel={t('importCenter.include', { app: row.name })}
-                  onChange={next => setIncluded(row.id, next)}
-                />
-              </div>
-              {rowFooter?.[row.id]}
+                </span>
+                {rowFooter?.[row.id] && (
+                  <span className={`${styles.sourceFooter} ${isIncluded(row.id) ? '' : styles.sourceFooterOff}`}>
+                    {rowFooter[row.id]}
+                  </span>
+                )}
+              </button>
+              <Toggle
+                className={styles.sourceToggle}
+                checked={isIncluded(row.id)}
+                disabled={!row.available || locked}
+                ariaLabel={t('importCenter.include', { app: row.name })}
+                onChange={next => setIncluded(row.id, next)}
+              />
             </div>
           ))}
         </div>

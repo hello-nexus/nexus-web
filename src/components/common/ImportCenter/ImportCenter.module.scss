@@ -35,10 +35,10 @@
 }
 
 .sourceRow {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 0.55rem;
-  padding: 0.85rem 0.9rem;
+  padding: 0;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
@@ -57,22 +57,25 @@
 
 // The row's own click target. A sibling of the include switch rather than its
 // parent: a switch nested inside a button is not a valid control.
-// The app itself: name and whether it is included.
+// The app itself: icon and name.
 .sourceLine {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.7rem;
   width: 100%;
   min-width: 0;
+  // Room for the include switch, which sits over the card's top-right.
+  padding-right: 3rem;
 }
 
+// The card's own click target, filling it so anywhere but the switch selects.
 .sourceMain {
   display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.55rem;
+  width: 100%;
   min-width: 0;
-  padding: 0;
+  padding: 0.85rem 0.9rem;
   border: 0;
   background: none;
   color: inherit;
@@ -82,7 +85,7 @@
   // Hugs the row it fills rather than drawing a second box inside the card.
   &:focus-visible {
     outline: 2px solid var(--accent);
-    outline-offset: 0.35rem;
+    outline-offset: -2px;
     border-radius: var(--radius);
   }
 }
@@ -144,4 +147,22 @@
   display: flex;
   justify-content: flex-end;
   padding-top: 0.75rem;
+}
+
+.sourceToggle {
+  position: absolute;
+  top: 0.85rem;
+  right: 0.9rem;
+}
+
+// Whatever the host puts under the name, dimmed while the app is switched off
+// so it reads as describing something that will not happen.
+.sourceFooter {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+}
+
+.sourceFooterOff {
+  opacity: 0.45;
 }

@@ -161,14 +161,17 @@ export function ZoneCard({
   // all, which makes its power state moot, so that chip stands alone.
   // Rides its own flag, not menuEnabled: a select-only card still has to say
   // that a device is off or not controlled, it just offers no way to change it.
-  const stateChip = toggleMode || firmwareControlled || unavailable
+  const stateChip = firmwareControlled || unavailable
     || (bulk && unavailable && bulk.identifyCount === 0)
     ? null
     : !controlled
       ? { icon: <Unlink size={11} />, label: t('lighting.devices.stateNotControlled') }
-      : !device.ledsOn
-        ? { icon: <PowerOff size={11} />, label: t('lighting.devices.stateLightsOff') }
-        : null;
+      : toggleMode
+        // Power is moot where the card only decides what Nexus drives.
+        ? null
+        : !device.ledsOn
+          ? { icon: <PowerOff size={11} />, label: t('lighting.devices.stateLightsOff') }
+          : null;
   // A pick can only land on a device Nexus drives and that is lit; the badge
   // under the name says which of the two is missing.
   const pickable = controlled && device.ledsOn;

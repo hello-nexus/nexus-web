@@ -23,6 +23,14 @@ vi.mock('../../../api/lighting', () => ({
   cachedAnimateDefaults: vi.fn(),
 }));
 
+// The strip paints on a canvas, which jsdom does not implement; echoing the
+// pick is how this suite can see the colour reach the card.
+vi.mock('../../../panel/widgets/lighting/page/DeviceLedStrip', () => ({
+  DeviceLedStrip: ({ pick }: { pick?: { hex: string } }) => (
+    <div data-testid="led-strip" data-hex={pick?.hex ?? ''} />
+  ),
+}));
+
 vi.mock('../../../api/onboarding', () => ({
   completeLightingOnboarding: vi.fn(),
 }));
@@ -360,5 +368,16 @@ describe('LightingOnboardingScreen colour test strip', () => {
     // Both still render, just outside it.
     expect(document.querySelector('[class*=scanningNote]')).not.toBeNull();
     expect(document.querySelector('[class*=testStrip]')).not.toBeNull();
+  });
+
+  it('paints the picked colour into each device card, not around it', async () => {
+    seed([strip]);
+    renderScreen();
+    await screen.findByRole('switch', { name: 'Test Strip' });
+    expect(screen.getAllByTestId('led-strip')[0]).toHaveAttribute('data-hex', '');
+
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.controls.simplered' }));
+
+    await waitFor(() => expect(screen.getAllByTestId('led-strip')[0]).toHaveAttribute('data-hex', '#ff2d2d'));
   });
 });

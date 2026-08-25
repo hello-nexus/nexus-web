@@ -350,13 +350,18 @@ describe('ZoneCard toggleMode', () => {
     expect(onToggle).toHaveBeenCalledTimes(3);
   });
 
-  it('hides the actions menu and the state chip', () => {
+  it('hides the actions menu but still says when Nexus is not driving the device', () => {
     renderToggleCard({ ...baseDevice, controlled: false });
     expect(screen.queryByRole('button', { name: 'lighting.devices.moreActions' })).toBeNull();
-    expect(screen.queryByText('lighting.devices.stateNotControlled')).toBeNull();
-    // The whole card is the switch here, so the ignored state reads from
-    // aria-checked rather than a chip.
+    // The same chip the lighting page shows, so an ignored device reads the
+    // same wherever the card appears.
+    expect(screen.getByText('lighting.devices.stateNotControlled')).toBeInTheDocument();
     expect(screen.getByRole('switch', { name: 'Test Strip' }).getAttribute('aria-checked')).toBe('false');
+  });
+
+  it('says nothing about power, which this card cannot change', () => {
+    renderToggleCard({ ...baseDevice, controlled: true, ledsOn: false });
+    expect(screen.queryByText('lighting.devices.stateLightsOff')).toBeNull();
   });
 
   it('does not open the actions menu on right-click', () => {
