@@ -1,6 +1,11 @@
 @use '../../../styles/icon-buttons' as *;
 
 .sheet {
+  // One gap for every group in the sheet - the Layout/Slots pickers and the
+  // widget's own setting sections are all SettingsSections, so a second value
+  // reads as a mistake. Monitoring's settings root consumes it too.
+  --edit-sheet-section-gap: 16px;
+
   position: fixed;
   z-index: var(--z-dropdown);
   width: min(440px, 92vw);
@@ -101,7 +106,7 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 12px;
+  gap: var(--edit-sheet-section-gap, 16px);
   min-width: 0;
 }
 
@@ -113,8 +118,16 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 12px 2px 0 0;
+  padding: var(--edit-sheet-section-gap, 16px) 2px 16px 0;
   overscroll-behavior: contain;
+
+  // A settings sheet that returns several sections stacked them flush, so a
+  // section title sat hard against the box above it. Margin rather than a flex
+  // gap: the children are whatever a widget's Settings facet renders, and this
+  // must not change their layout model.
+  > * + * {
+    margin-top: var(--edit-sheet-section-gap, 16px);
+  }
 }
 
 .empty {

@@ -12,6 +12,11 @@ export interface PanelMixerSliderProps {
   valueLabel?: string;
   /** Ordinal badge rendered inside the top of the track, mirroring the bottom icon. */
   indexBadge?: string;
+  /** Render `valueLabel` in the badge slot. A fader whose number is aria-only
+   *  leaves the operator guessing at everything but the fill height. */
+  showValue?: boolean;
+  /** Live signal level 0-1, drawn inside the fill. Omit for a plain fader. */
+  meter?: number;
   icon?: ReactNode;
   ariaLabel: string;
   disabled?: boolean;
@@ -36,6 +41,8 @@ export function PanelMixerSlider({
   label,
   valueLabel,
   indexBadge,
+  showValue = false,
+  meter,
   icon,
   ariaLabel,
   disabled = false,
@@ -201,8 +208,18 @@ export function PanelMixerSlider({
               </div>
             )}
           </div>
-          {indexBadge && (
-            <div className={styles.indexBadge} aria-hidden="true">{indexBadge}</div>
+          {/* Clamped to the fill: a session meter can read louder than the
+              fader depending on where the driver taps it, and a bar sticking
+              out above the fill would read as a value, not as signal. */}
+          {meter !== undefined && (
+            <div
+              className={styles.meter}
+              style={{ height: `${Math.min(clamp(meter, 0, 1), pct) * 100}%` }}
+              aria-hidden="true"
+            />
+          )}
+          {(indexBadge || showValue) && (
+            <div className={styles.indexBadge} aria-hidden="true">{indexBadge ?? formattedValue}</div>
           )}
           {iconNode}
         </div>

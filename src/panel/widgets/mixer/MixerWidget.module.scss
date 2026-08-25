@@ -1,0 +1,368 @@
+@use '../../../styles/text' as *;
+@use '../../styles/flexGap' as *;
+
+.mixer {
+  display: flex;
+  flex-direction: column;
+  @include vgap(10px);
+  height: 100%;
+  width: 100%;
+  padding: 12px 14px;
+  color: var(--text);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+// Arrows sit outside the row and only exist when the row actually overflows,
+// so a mixer that fits keeps the full width for its faders.
+.faderStage {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+
+  &[data-paged='true'] {
+    padding: 0 42px;
+    box-sizing: border-box;
+  }
+}
+
+.faderArrow {
+  width: 38px;
+}
+
+// Centred row of equal cells, same shape as the display-brightness widget.
+.sliderGrid {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  align-items: stretch;
+  justify-content: center;
+  @include hgap(14px);
+}
+
+.sliderCell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 1 76px;
+  min-width: 0;
+  height: 100%;
+
+  &[data-idle='true'] {
+    opacity: 0.72;
+  }
+
+  &[data-muted='true'] {
+    opacity: 0.55;
+  }
+}
+
+// Sized above the display-brightness widget's control: a mixer is dragged far
+// more often than a brightness slider, and this one is 4x2-only.
+// Scoped through .sliderCell purely for specificity. PanelMixerSlider declares
+// these same vars on its own root, so a bare .mixerSlider rule is a coin flip on
+// CSS emission order - two classes beats one whatever the order.
+.sliderCell .mixerSlider {
+  width: 100%;
+  max-width: 76px;
+  // Lets a cell shrink below the touch width in a small tile (the catalog)
+  // instead of the label overflowing into its neighbour.
+  min-width: 0;
+  --mixer-track-min: 74px;
+  // 4x4 is twice the height of the old 4x2, so faders grow into it rather than
+  // centring short ones in dead space.
+  --mixer-track-max: 300px;
+  --mixer-touch-width: 68px;
+  --mixer-pill-width: 52px;
+  --mixer-icon-size: 38px;
+  --mixer-margin-y: 8px;
+}
+
+// One block for the fader and the output button, so the button's pill lands on
+// exactly the track geometry rather than drifting a few px per breakpoint.
+
+
+.appIcon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+.appInitial {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+// ── Output switcher: a fader-shaped button, first in the row ──────────────
+// Full-width band: the endpoint every fader below is measured against.
+.outputSection {
+  display: flex;
+  align-items: center;
+  @include hgap(12px);
+  flex: 0 0 auto;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: var(--radius, 12px);
+  background: var(--panel-control-translucent);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  box-sizing: border-box;
+  transition: background-color var(--ease-fast) ease, transform var(--ease-fast) ease;
+
+  &:hover {
+    background: var(--panel-accent-soft);
+  }
+
+  &:active {
+    transform: scale(0.99);
+  }
+}
+
+.outputCircle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--panel-element-bg, rgba(255, 255, 255, 0.07));
+}
+
+.outputGlyph {
+  width: 22px;
+  height: 22px;
+}
+
+.outputText {
+  display: flex;
+  flex-direction: column;
+  @include vgap(2px);
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.outputKind {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  line-height: 1.1;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.outputName {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.outputChevron {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  color: var(--text-dim);
+}
+
+// ── Device list (takes over the tile) ─────────────────────────────────────
+// Paged rather than scrolled: a kiosk gives no scrollbar affordance, and a
+// fade over the last row cost more legibility than it bought.
+.pickerStage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  box-sizing: border-box;
+
+  // Room for the edge arrows, only when there are arrows.
+  &[data-paged='true'] {
+    padding: 0 44px;
+  }
+}
+
+.pickerArrow {
+  width: 40px;
+}
+
+.pickerRows {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  @include vgap(4px);
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.pickerRow {
+  display: flex;
+  align-items: center;
+  @include hgap(9px);
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: var(--radius-sm, 8px);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition: background-color var(--ease-fast) ease;
+
+  &:hover,
+  &[data-active='true'] {
+    background: var(--panel-control-translucent);
+  }
+}
+
+// Same slot width as .pickerKind, so the back label and every device name
+// start at the same x.
+// Docked above the paged rows, styled as one of them.
+.pickerBack {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: var(--radius-sm, 8px);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition: background-color var(--ease-fast) ease;
+
+  &:hover {
+    background: var(--panel-control-translucent);
+  }
+}
+
+.pickerBackIcon {
+  flex: 0 0 auto;
+  box-sizing: content-box;
+  width: 17px;
+  height: 17px;
+  padding-right: 25px;
+}
+
+// Fixed width so every device name starts at the same x.
+.pickerKind {
+  flex: 0 0 auto;
+  width: 42px;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  line-height: 1.1;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.pickerRowName {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pickerCheck {
+  flex: 0 0 auto;
+  width: 17px;
+  height: 17px;
+  color: var(--panel-accent);
+}
+
+// ── Presets + hint ────────────────────────────────────────────────────────
+.hint {
+  @include text-caption;
+
+  flex-shrink: 0;
+  text-align: center;
+  color: var(--text-dim);
+  padding-top: 4px;
+}
+
+.presetStage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  width: 100%;
+  padding-top: 8px;
+  box-sizing: border-box;
+
+  &[data-paged='true'] {
+    padding-left: 38px;
+    padding-right: 38px;
+  }
+}
+
+.presetArrow {
+  width: 34px;
+}
+
+.presets {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  @include hgap(6px);
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.preset {
+  @include text-caption;
+
+  flex: 0 0 auto;
+  min-height: 32px;
+  padding: 6px 14px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--panel-control-translucent);
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color var(--ease-fast) ease, transform var(--ease-fast) ease, color var(--ease-fast) ease;
+
+  &:hover {
+    background: var(--panel-accent-soft);
+    color: var(--text);
+  }
+
+  &:active {
+    transform: scale(0.96);
+  }
+}
+
+.mixer[data-immersive='true'] {
+  .sliderGrid {
+    @include hgap(22px);
+  }
+
+  .sliderCell {
+    flex-basis: 104px;
+  }
+
+  .sliderCell .mixerSlider {
+    max-width: 104px;
+    --mixer-track-min: 120px;
+    --mixer-track-max: 460px;
+    --mixer-touch-width: 96px;
+    --mixer-pill-width: 72px;
+    --mixer-icon-size: 46px;
+  }
+
+  .outputCircle {
+    width: 58px;
+    height: 58px;
+  }
+}

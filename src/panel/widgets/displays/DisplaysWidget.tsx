@@ -5,6 +5,8 @@ import { fetchDisplays, fetchDisplayBrightness, setDisplayBrightness, type Displ
 import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { PanelMixerSlider } from '../common/PanelMixerSlider';
+import { useFaderPager } from '../common/useFaderPager';
+import { PanelArrowButton } from '../../chrome/PanelArrowButton';
 import type { WidgetProps } from '../types';
 import { usePanelPreview } from '../common/PanelPreviewContext';
 import { DISPLAYS_PREVIEW } from './displaysPreviewData';
@@ -12,8 +14,10 @@ import styles from './DisplaysWidget.module.scss';
 
 const REFRESH_MS = 5000;
 const OPTIMISTIC_SETTLE_MS = 1500;
-const COMPACT_DISPLAY_LIMIT = 2;
-const FULL_DISPLAY_LIMIT = 4;
+// Per page, not a cap: what fits across the tile at a usable slider width.
+// Anything past this pages behind the arrows rather than vanishing.
+const COMPACT_DISPLAYS_PER_PAGE = 2;
+const FULL_DISPLAYS_PER_PAGE = 4;
 
 export function DisplaysWidget({ widget }: WidgetProps) {
   const { t } = useTranslation();
@@ -154,6 +158,11 @@ export function DisplaysWidget({ widget }: WidgetProps) {
     void drainPending(id);
   }, [drainPending]);
 
+  const orderedDisplays = applyDisplayOrder(displays, savedOrder);
+  const perPage = compact ? COMPACT_DISPLAYS_PER_PAGE : FULL_DISPLAYS_PER_PAGE;
+  // Above the early return: a hook cannot sit behind a conditional.
+  const pager = useFaderPager(orderedDisplays, perPage);
+
   if (displays.length === 0) {
     return (
       <EmptyState
@@ -165,13 +174,20 @@ export function DisplaysWidget({ widget }: WidgetProps) {
     );
   }
 
-  const orderedDisplays = applyDisplayOrder(displays, savedOrder);
-  const visibleDisplays = orderedDisplays.slice(0, compact ? COMPACT_DISPLAY_LIMIT : FULL_DISPLAY_LIMIT);
-
   return (
     <div className={styles.displays} data-size={widget.size}>
+      <div className={styles.sliderStage} data-paged={pager.paged ? 'true' : 'false'}>
+        {pager.paged && (
+          <PanelArrowButton
+            side="prev"
+            className={styles.sliderArrow}
+            disabled={pager.page === 0}
+            onClick={pager.prev}
+            ariaLabel={t('displays.panel.prev')}
+          />
+        )}
       <div className={styles.sliderGrid}>
-        {visibleDisplays.map((d, i) => {
+        {pager.visible.map((d, i) => {
           const brightness = values[d.id] ?? d.brightnessControl?.current ?? 0;
           return (
             <DisplayBrightnessSlider
@@ -179,7 +195,7 @@ export function DisplaysWidget({ widget }: WidgetProps) {
               display={d}
               brightness={brightness}
               error={errors[d.id] || ''}
-              indexBadge={visibleDisplays.length > 1 ? `#${i + 1}` : undefined}
+              indexBadge={orderedDisplays.length > 1 ? `#${pager.page * perPage + i + 1}` : undefined}
               onPointerDown={() => startDrag(d.id)}
               onChange={v => pushBrightness(d.id, v)}
               onCommit={v => endDrag(d.id, v)}
@@ -187,6 +203,16 @@ export function DisplaysWidget({ widget }: WidgetProps) {
             />
           );
         })}
+      </div>
+        {pager.paged && (
+          <PanelArrowButton
+            side="next"
+            className={styles.sliderArrow}
+            disabled={pager.page >= pager.pages - 1}
+            onClick={pager.next}
+            ariaLabel={t('displays.panel.next')}
+          />
+        )}
       </div>
       {hint && <div className={styles.hint}>{hint}</div>}
     </div>

@@ -45,6 +45,7 @@ export function SettingsSaved({ children }: { children: ReactNode }) {
   return <span className={styles.saved}>{children}</span>;
 }
 
-export function SettingsHint({ children }: { children: ReactNode }) {
-  return <span className={styles.hint} data-settings-aside="true">{children}</span>;
+/** `tone="warning"` marks a hint the user has to act on to proceed. */
+export function SettingsHint({ children, tone }: { children: ReactNode; tone?: 'warning' }) {
+  return <span className={styles.hint} data-tone={tone} data-settings-aside="true">{children}</span>;
 }

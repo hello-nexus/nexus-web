@@ -20,7 +20,8 @@
 
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  // Matches every other group in the edit sheet; see WidgetEditSheet's .sheet.
+  gap: var(--edit-sheet-section-gap, 16px);
 }
 
 .designRow {

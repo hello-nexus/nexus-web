@@ -39,7 +39,9 @@ export function useSystemVolume(enabled: boolean, pollMs = 1000) {
     timer: null,
   });
 
-  const live = useTopic<SystemVolumeState>('volume', enabled);
+  // Two shapes ride this topic: the monitoring broadcaster pushes the full
+  // state, PanelTopics.BroadcastVolume pushes a valueless change ping.
+  const live = useTopic<Partial<SystemVolumeState>>('volume', enabled);
 
   // pumpVolumeWrites schedules itself via setTimeout and re-invokes from
   // postService().finally. Both recursive call sites route through a ref to
@@ -75,15 +77,33 @@ export function useSystemVolume(enabled: boolean, pollMs = 1000) {
     pumpRef.current = pumpVolumeWrites;
   }, [pumpVolumeWrites]);
 
+  const refresh = useCallback(async () => {
+    const data = await fetchService<SystemVolumeState>('/system/volume');
+    if (!mounted.current) return;
+    if (!data || Date.now() < localOverrideUntil.current) return;
+    setState({
+      supported: !!data.supported,
+      volume: typeof data.volume === 'number' ? data.volume : 0,
+      muted: !!data.muted,
+    });
+  }, []);
+  const refreshRef = useRef(refresh);
+  useEffect(() => { refreshRef.current = refresh; }, [refresh]);
+
   useEffect(() => {
     if (!live) return;
     if (Date.now() < localOverrideUntil.current) return;
-    // Mirror multiplex topic into local state. The local-override window
-    // (set by previewVolume/commitVolume) suppresses these updates so a
-    // slider drag isn't snapped back by a stale broadcast.
+    // A frame with no numeric volume is the change ping, not a state - reading
+    // it as one is what snapped the fader to zero and greyed it out until the
+    // next poll. The local-override window (set by previewVolume/commitVolume)
+    // suppresses both so a slider drag isn't snapped back by a stale broadcast.
+    if (typeof live.volume !== 'number') {
+      void refreshRef.current();
+      return;
+    }
     setState({
       supported: !!live.supported,
-      volume: typeof live.volume === 'number' ? live.volume : 0,
+      volume: live.volume,
       muted: !!live.muted,
     });
   }, [live]);
@@ -94,15 +114,8 @@ export function useSystemVolume(enabled: boolean, pollMs = 1000) {
 
     let timer: ReturnType<typeof setTimeout>;
     const tick = async () => {
-      const data = await fetchService<SystemVolumeState>('/system/volume');
+      await refreshRef.current();
       if (!mounted.current) return;
-      if (data && Date.now() >= localOverrideUntil.current) {
-        setState({
-          supported: !!data.supported,
-          volume: typeof data.volume === 'number' ? data.volume : 0,
-          muted: !!data.muted,
-        });
-      }
       timer = setTimeout(tick, pollMs);
     };
     tick();

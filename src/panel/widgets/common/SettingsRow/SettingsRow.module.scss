@@ -25,6 +25,8 @@
 .actions {
   display: flex;
   align-items: center;
+  // Submit sits at the trailing edge, matching the settings rows above it.
+  justify-content: flex-end;
   flex-wrap: wrap;
   gap: 8px;
   min-height: 34px;
@@ -40,6 +42,20 @@
   display: block;
   margin-top: -2px;
   line-height: 1.25;
+
+  // Rows in a settings box are separated by a hairline and an aside gets none,
+  // so a hint between two rows would otherwise sit flush against both.
+  &:not(:first-child) {
+    padding-top: 10px;
+  }
+
+  &:not(:last-child) {
+    padding-bottom: 10px;
+  }
+
+  &[data-tone='warning'] {
+    color: var(--warn);
+  }
 }
 
 // The UA default shrinks <code> to ~0.85em of an already-tiny caption, which

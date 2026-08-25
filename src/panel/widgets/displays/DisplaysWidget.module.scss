@@ -9,6 +9,26 @@
   overflow: hidden;
 }
 
+// Arrows live outside the row and only exist when it overflows, so a setup that
+// fits keeps the full width.
+.sliderStage {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+
+  &[data-paged='true'] {
+    padding: 0 40px;
+    box-sizing: border-box;
+  }
+}
+
+.sliderArrow {
+  width: 36px;
+}
+
 .sliderGrid {
   display: flex;
   flex: 1;
@@ -57,7 +77,27 @@
 .displays[data-size='2x2'] {
   padding: 10px 12px;
 
-  .sliderGrid {
+  // Arrows live outside the row and only exist when it overflows, so a setup that
+// fits keeps the full width.
+.sliderStage {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+
+  &[data-paged='true'] {
+    padding: 0 40px;
+    box-sizing: border-box;
+  }
+}
+
+.sliderArrow {
+  width: 36px;
+}
+
+.sliderGrid {
     gap: 8px;
   }
 

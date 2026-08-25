@@ -88,6 +88,18 @@
 }
 
 
+// Signal level, painted over the fill (both are z-auto, so DOM order decides)
+// and under the icons at z 1/2.
+.meter {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.24);
+  transition: height 60ms linear;
+  pointer-events: none;
+}
+
 .icon,
 .iconButton,
 .iconOnFill {

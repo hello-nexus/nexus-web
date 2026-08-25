@@ -1,0 +1,35 @@
+@use '../../styles/flexGap' as *;
+
+// Name takes the row; the actions sit hard right so Apply never reads as the
+// commit for the rename beside it.
+.presetRow {
+  display: flex;
+  align-items: center;
+  @include hgap(12px);
+  width: 100%;
+  min-height: 40px;
+}
+
+.presetName {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.presetNameField {
+  width: 100%;
+  max-width: 100%;
+}
+
+.presetNameStatic {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.presetActions {
+  display: flex;
+  align-items: center;
+  @include hgap(6px);
+  flex: 0 0 auto;
+  margin-left: auto;
+}
