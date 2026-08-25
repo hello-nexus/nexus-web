@@ -86,3 +86,20 @@
 .continueButton {
   width: min(280px, 100%);
 }
+
+// The app's own coexistence control, inside its card and under its name.
+.closeRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  width: 100%;
+  padding-top: 0.55rem;
+  border-top: 1px solid var(--border);
+}
+
+.closeLabel {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  min-width: 0;
+}

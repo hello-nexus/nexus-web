@@ -6,6 +6,7 @@ import {
   fetchLightingStatus,
   setLightingDeviceControlled,
   startStatic,
+  cachedAnimateDefaults,
   type LightingDevice,
 } from '../../../api/lighting';
 import { completeLightingOnboarding } from '../../../api/onboarding';
@@ -18,6 +19,8 @@ vi.mock('../../../api/lighting', () => ({
   // ZoneCard's identify affordance; unused in toggleMode but imported.
   identifyLightingDevice: vi.fn(),
   startStatic: vi.fn(),
+  fetchAnimateDefaults: vi.fn(),
+  cachedAnimateDefaults: vi.fn(),
 }));
 
 vi.mock('../../../api/onboarding', () => ({
@@ -315,6 +318,25 @@ describe('LightingOnboardingScreen colour test strip', () => {
     // Last argument is `persist`: a test look must not overwrite the saved one.
     expect(call[7]).toBe(false);
     expect(red).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('sends each fill its own colour, so a second pick actually changes', async () => {
+    // The fills share one parameter set; only the template slot differs.
+    vi.mocked(cachedAnimateDefaults).mockReturnValue({
+      simplered: { selected: 0, slots: [{ intensity: 1, hue: 0.02, colorize: 1, saturation: 1, contrast: 1, params: { u_warmth: 0 } }] },
+      simpleblue: { selected: 0, slots: [{ intensity: 1, hue: 0.62, colorize: 1, saturation: 1, contrast: 1, params: { u_warmth: 0 } }] },
+    } as never);
+    seed([strip]);
+    renderScreen();
+    await screen.findByRole('switch', { name: 'Test Strip' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.controls.simplered' }));
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.controls.simpleblue' }));
+
+    await waitFor(() => expect(startStatic).toHaveBeenCalledTimes(2));
+    const [first, second] = vi.mocked(startStatic).mock.calls;
+    expect(first[2]).toBe(0.02);
+    expect(second[2]).toBe(0.62);
   });
 
   it('does not run a fill until a swatch is pressed', async () => {

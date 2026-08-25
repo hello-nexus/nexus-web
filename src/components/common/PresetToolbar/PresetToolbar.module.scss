@@ -13,9 +13,12 @@
 // when the row is tight, so the tab labels are never the thing that is cut.
 // Its own select truncates instead.
 .toolbarRail {
-  flex: 0 1 300px;
-  // Never below its own buttons: the select truncates, the controls stay.
-  min-width: min-content;
+  // Holds its width and gives way only when the tab bar needs the room, never
+  // below the point where the preset name stops being readable.
+  width: 300px;
+  flex: 0 1 auto;
+  min-width: 15rem;
+  max-width: 100%;
   margin-bottom: 0;
 }
 

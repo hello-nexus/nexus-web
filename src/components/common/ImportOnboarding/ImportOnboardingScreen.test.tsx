@@ -142,7 +142,7 @@ describe('ImportOnboardingScreen', () => {
     expect(dismissFanControlImport).toHaveBeenCalledTimes(1);
   });
 
-  it('leaves an app this gate is not offering switched off, so it cannot re-apply itself', async () => {
+  it('does not latch the offer flag of an app this gate is not being shown for', async () => {
     const onComplete = vi.fn();
     renderScreen({ offeredFor: { nexus2: false, fancontrol: true }, onComplete });
 
@@ -151,11 +151,9 @@ describe('ImportOnboardingScreen', () => {
     fireEvent.click(go);
 
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
-    // Listed, because it holds data - but not imported, and its already-latched
-    // flag is not re-dismissed.
-    expect(screen.getByText('importCenter.source.nexus2')).toBeInTheDocument();
-    expect(applyNexus2Import).not.toHaveBeenCalled();
-    expect(applyFanControlImport).toHaveBeenCalledTimes(1);
+    // Listed and on by default like any other app, so it imports; but it has
+    // not been offered here, so its gate is not marked as spent.
+    expect(applyNexus2Import).toHaveBeenCalledTimes(1);
     expect(dismissNexus2Welcome).not.toHaveBeenCalled();
     expect(dismissFanControlImport).toHaveBeenCalledTimes(1);
   });
@@ -184,7 +182,7 @@ describe('ImportOnboardingScreen', () => {
 
   it('offers closing each app as its first option, on by default', async () => {
     renderScreen();
-    const closeNexus2 = await screen.findByRole('switch', { name: /importOnboarding.closeApp:importCenter.source.nexus2/ });
+    const closeNexus2 = await screen.findByRole('switch', { name: /importOnboarding.closeAppAria:importCenter.source.nexus2/ });
     expect(closeNexus2).toHaveAttribute('aria-checked', 'true');
   });
 
@@ -192,7 +190,7 @@ describe('ImportOnboardingScreen', () => {
     const onComplete = vi.fn();
     renderScreen({ onComplete });
 
-    fireEvent.click(await screen.findByRole('switch', { name: /importOnboarding.closeApp:importCenter.source.nexus2/ }));
+    fireEvent.click(await screen.findByRole('switch', { name: /importOnboarding.closeAppAria:importCenter.source.nexus2/ }));
     fireEvent.click(screen.getByRole('button', { name: SKIP }));
 
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));

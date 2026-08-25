@@ -58,8 +58,8 @@ export interface ImportCenterProps {
   handleRef?: RefObject<ImportCenterHandle | null>;
   /** Fires after a run that reached at least one source, clean or not. */
   onImported?: () => void;
-  /** Rendered at the top of a source's panel, above its own options. */
-  leadingRow?: Partial<Record<ImportSourceId, ReactNode>>;
+  /** Rendered inside a source's card, under its name. */
+  rowFooter?: Partial<Record<ImportSourceId, ReactNode>>;
   /** Which sources start included. Defaults to every available one; a host
    *  that lists a source it is not offering passes false for it. */
   includedByDefault?: Partial<Record<ImportSourceId, boolean>>;
@@ -83,7 +83,7 @@ export interface SourceDetection {
  */
 export function ImportCenter({
   open, sources, disabled, onBusyChange, onSelectionChange, showAction = true, handleRef, onImported, detected,
-  includedByDefault, leadingRow,
+  includedByDefault, rowFooter,
 }: ImportCenterProps) {
   const { t, language } = useTranslation();
   const fanControl = useFanControlStatus();
@@ -280,26 +280,31 @@ export function ImportCenter({
               key={row.id}
               className={`${styles.sourceRow} ${row.id === current.id ? styles.sourceRowActive : ''}`}
             >
-              <button
-                type="button"
-                className={styles.sourceMain}
-                aria-current={row.id === current.id ? 'true' : undefined}
-                onClick={() => setHighlightOverride(row.id)}
-              >
-                <span className={`${styles.sourceIcon} ${row.available ? '' : styles.sourceIconOff}`} aria-hidden>
-                  {row.icon}
-                </span>
-                <span className={styles.sourceText}>
-                  <span className={styles.sourceName}>{row.name}</span>
-                  <span className={styles.sourceStatus}>{row.status}</span>
-                </span>
-              </button>
-              <Toggle
-                checked={isIncluded(row.id)}
-                disabled={!row.available || locked}
-                ariaLabel={t('importCenter.include', { app: row.name })}
-                onChange={next => setIncluded(row.id, next)}
-              />
+              <div className={styles.sourceLine}>
+                <button
+                  type="button"
+                  className={styles.sourceMain}
+                  aria-current={row.id === current.id ? 'true' : undefined}
+                  onClick={() => setHighlightOverride(row.id)}
+                >
+                  <span className={`${styles.sourceIcon} ${row.available ? '' : styles.sourceIconOff}`} aria-hidden>
+                    {row.icon}
+                  </span>
+                  <span className={styles.sourceText}>
+                    <span className={styles.sourceName}>{row.name}</span>
+                    {/* Only when it explains something the name cannot: why an
+                        app cannot be imported, or that it is still unknown. */}
+                    {!row.available && <span className={styles.sourceStatus}>{row.status}</span>}
+                  </span>
+                </button>
+                <Toggle
+                  checked={isIncluded(row.id)}
+                  disabled={!row.available || locked}
+                  ariaLabel={t('importCenter.include', { app: row.name })}
+                  onChange={next => setIncluded(row.id, next)}
+                />
+              </div>
+              {rowFooter?.[row.id]}
             </div>
           ))}
         </div>
@@ -310,7 +315,6 @@ export function ImportCenter({
             looked at, and its flow holds the preview and the runner. */}
         {rows.map(row => (
           <div key={row.id} className={styles.sourcePanel} hidden={row.id !== current.id}>
-            {leadingRow?.[row.id]}
             {row.panel}
           </div>
         ))}

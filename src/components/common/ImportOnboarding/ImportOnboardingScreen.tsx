@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, DownloadCloud, PowerOff } from 'lucide-react';
+import { ArrowLeft, DownloadCloud } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { Overlay } from '../Overlay/Overlay';
 import { Button } from '../Button/Button';
 import { ImportCenter, type ImportCenterHandle, type ImportSourceId, type SourceDetection } from '../ImportCenter/ImportCenter';
-import { SettingToggle } from '../SettingRow/SettingRow';
+import { Toggle } from '../Toggle/Toggle';
 import { closeFanControlApp, disableFanControlAutostart, dismissFanControlImport } from '../../../api/fancontrol';
 import type { FanControlStatusResponse } from '../../../api/fancontrol';
 import { closeNexus2App, disableNexus2Autostart, dismissNexus2Welcome } from '../../../api/migration';
@@ -14,7 +14,6 @@ import styles from './ImportOnboardingScreen.module.scss';
 type ApplyPhase = 'idle' | 'applying' | 'failed';
 
 const HERO_ICON_SIZE = 40;
-const ACTION_ICON_SIZE = 28;
 
 /** True when the request came back without an error; a throw counts as failure. */
 async function runAction(call: () => Promise<{ error: boolean } | null>): Promise<boolean> {
@@ -88,23 +87,23 @@ export function ImportOnboardingScreen({ open, fanControl, nexus2, offeredFor, o
     ...(nexus2Here ? { nexus2: { importAvailable: true } } : {}),
     ...(fanControlHere ? { fancontrol: { importAvailable: true, configCount: fanControl?.configs.length ?? 0 } } : {}),
   };
-  // Only the apps this gate is for start ticked: one already dismissed in an
-  // earlier session must not re-apply itself on a default press.
+  // Every listed app starts on; `offeredFor` still decides whose offer flag
+  // latches, so an app dealt with before is not marked dealt with again.
   const includedByDefault: Partial<Record<ImportSourceId, boolean>> = {
-    nexus2: nexus2Here && offeredFor.nexus2 === true,
-    fancontrol: fanControlHere && offeredFor.fancontrol === true,
+    nexus2: nexus2Here,
+    fancontrol: fanControlHere,
   };
 
   const closeRow = (id: ImportSourceId, app: string) => (
-    <SettingToggle
-      label={t('importOnboarding.closeApp', { app })}
-      description={t('importOnboarding.closeAppDetail', { app })}
-      icon={<PowerOff size={ACTION_ICON_SIZE} />}
-      iconLeading
-      checked={shouldClose(id)}
-      disabled={applyPhase !== 'idle'}
-      onChange={next => setCloseApps(prev => ({ ...prev, [id]: next }))}
-    />
+    <div className={styles.closeRow}>
+      <span className={styles.closeLabel}>{t('importOnboarding.closeApp')}</span>
+      <Toggle
+        checked={shouldClose(id)}
+        disabled={applyPhase !== 'idle'}
+        ariaLabel={t('importOnboarding.closeAppAria', { app })}
+        onChange={next => setCloseApps(prev => ({ ...prev, [id]: next }))}
+      />
+    </div>
   );
 
   // Latches the offer flag only for the apps this gate was shown for; latching
@@ -185,7 +184,7 @@ export function ImportOnboardingScreen({ open, fanControl, nexus2, offeredFor, o
           sources={sources}
           detected={detected}
           includedByDefault={includedByDefault}
-          leadingRow={{
+          rowFooter={{
             nexus2: nexus2Detected ? closeRow('nexus2', t('importCenter.source.nexus2')) : undefined,
             fancontrol: fanControlDetected ? closeRow('fancontrol', t('importCenter.source.fancontrol')) : undefined,
           }}

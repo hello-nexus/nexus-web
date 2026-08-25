@@ -97,8 +97,10 @@ describe('ImportCenter', () => {
 
     expect(await screen.findByText('importCenter.source.fancontrol')).toBeInTheDocument();
     expect(await screen.findByText('importCenter.source.nexus2')).toBeInTheDocument();
-    expect(await screen.findByText('importCenter.source.fancontrol.found.one:1')).toBeInTheDocument();
-    expect(await screen.findByText('importCenter.source.ready')).toBeInTheDocument();
+    // An app that can be imported says so by being listed and switched on;
+    // the status line is only for one that cannot.
+    expect(screen.queryByText('importCenter.source.fancontrol.found.one:1')).not.toBeInTheDocument();
+    expect(screen.queryByText('importCenter.source.ready')).not.toBeInTheDocument();
     // The highlighted source's own flow, not just its row.
     await waitFor(() => expect(previewFanControlImport).toHaveBeenCalled());
   });
@@ -220,7 +222,6 @@ describe('ImportCenter', () => {
       />,
     );
 
-    expect(await screen.findByText('importCenter.source.fancontrol.found.other:2')).toBeInTheDocument();
     await waitFor(() => expect(previewFanControlImport).toHaveBeenCalled());
     expect(screen.queryByText('importCenter.source.missing')).not.toBeInTheDocument();
   });

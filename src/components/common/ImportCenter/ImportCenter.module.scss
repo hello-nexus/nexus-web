@@ -36,8 +36,8 @@
 
 .sourceRow {
   display: flex;
-  align-items: center;
-  gap: 0.6rem;
+  flex-direction: column;
+  gap: 0.55rem;
   padding: 0.85rem 0.9rem;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -57,6 +57,15 @@
 
 // The row's own click target. A sibling of the include switch rather than its
 // parent: a switch nested inside a button is not a valid control.
+// The app itself: name and whether it is included.
+.sourceLine {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  min-width: 0;
+}
+
 .sourceMain {
   display: flex;
   align-items: center;

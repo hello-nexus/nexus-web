@@ -13,9 +13,10 @@ import {
   fetchLightingStatus,
   setLightingDeviceControlled,
   startStatic,
+  fetchAnimateDefaults,
+  cachedAnimateDefaults,
   type LightingDevice,
 } from '../../../api/lighting';
-import { defaultParamsFor } from '../../../types/lighting';
 import { ZoneCard, zoneCardUnavailable } from '../../../panel/widgets/lighting/page/ZoneCard';
 import { visibleCards } from '../../../panel/widgets/lighting/page/zoneUtils';
 import styles from './LightingOnboardingScreen.module.scss';
@@ -123,10 +124,32 @@ export function LightingOnboardingScreen({ open, onComplete, onBack }: LightingO
     return () => clearInterval(timer);
   }, [open, refresh]);
 
-  // persist=false: this is a look at the lights, not a saved choice.
+  // Primes the cache the test fills read their colours from.
+  useEffect(() => {
+    if (!open) return;
+    void fetchAnimateDefaults();
+  }, [open]);
+
+  // Each fill's colour lives in its server-side template slot, not in the key:
+  // the simple fills share one parameter set, so sending generic params paints
+  // every one of them the same.
   const runTestFill = useCallback(async (key: string) => {
     setTestFill(key);
-    try { await startStatic(key, 1, 0, 0, 1, 1, defaultParamsFor(key), false); } catch { /* best-effort */ }
+    const bundle = (cachedAnimateDefaults() ?? {})[key];
+    const look = bundle?.slots[bundle.selected];
+    try {
+      await startStatic(
+        key,
+        look?.intensity ?? 1,
+        look?.hue ?? 0,
+        look?.colorize ?? 0,
+        look?.saturation ?? 1,
+        look?.contrast ?? 1,
+        look?.params,
+        // A look at the lights, not a saved choice.
+        false,
+      );
+    } catch { /* best-effort */ }
   }, []);
 
   if (!open) return null;
