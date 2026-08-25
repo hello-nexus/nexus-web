@@ -440,6 +440,8 @@
   "devices.firmware.flash": "Flashen",
   "devices.firmware.flash.failed": "Update mislukt",
   "devices.firmware.install": "Installeren",
+  "devices.firmware.retryCheck": "Opnieuw proberen",
+  "devices.firmware.status.checkFailed": "Controle mislukt",
   "devices.firmware.status.unknown": "Onbekend",
   "devices.firmware.status.upToDate": "Up-to-date",
   "devices.firmware.status.updateAvailable": "Update beschikbaar",

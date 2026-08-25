@@ -15,6 +15,11 @@ export interface FirmwareStatusItem {
   currentVersion: string;
   availableVersion: string;
   updateAvailable: boolean;
+  // True when the available version could not be determined at all (the remote
+  // manifest fetch failed). Distinct from updateAvailable=false, which means
+  // "checked, nothing newer". Optional because a web-only deploy can run against
+  // an older service that does not send it; absent reads as "checked".
+  availableUnknown?: boolean;
   availableVersions: string[];  // connected variant's bundled versions
   devImages: FlashableImage[];  // all images the device can flash (incl. sibling variants) - dev picker
 }
@@ -56,5 +61,5 @@ export function useFirmwareStatus(enabled: boolean) {
     void refresh();
   });
 
-  return { items, loaded };
+  return { items, loaded, refresh };
 }

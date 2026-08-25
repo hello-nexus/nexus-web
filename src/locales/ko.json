@@ -440,6 +440,8 @@
   "devices.firmware.flash": "플래시",
   "devices.firmware.flash.failed": "업데이트 실패",
   "devices.firmware.install": "설치",
+  "devices.firmware.retryCheck": "다시 시도",
+  "devices.firmware.status.checkFailed": "확인할 수 없음",
   "devices.firmware.status.unknown": "알 수 없음",
   "devices.firmware.status.upToDate": "최신 상태",
   "devices.firmware.status.updateAvailable": "업데이트 사용 가능",

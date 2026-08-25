@@ -440,6 +440,8 @@
   "devices.firmware.flash": "刷写",
   "devices.firmware.flash.failed": "更新失败",
   "devices.firmware.install": "安装",
+  "devices.firmware.retryCheck": "重试",
+  "devices.firmware.status.checkFailed": "无法检查",
   "devices.firmware.status.unknown": "未知",
   "devices.firmware.status.upToDate": "已是最新",
   "devices.firmware.status.updateAvailable": "有可用更新",

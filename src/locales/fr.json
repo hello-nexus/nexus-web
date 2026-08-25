@@ -440,6 +440,8 @@
   "devices.firmware.flash": "Flasher",
   "devices.firmware.flash.failed": "Échec de la mise à jour",
   "devices.firmware.install": "Installer",
+  "devices.firmware.retryCheck": "Réessayer",
+  "devices.firmware.status.checkFailed": "Vérification impossible",
   "devices.firmware.status.unknown": "Inconnu",
   "devices.firmware.status.upToDate": "À jour",
   "devices.firmware.status.updateAvailable": "Mise à jour disponible",

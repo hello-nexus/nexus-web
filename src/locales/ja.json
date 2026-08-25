@@ -440,6 +440,8 @@
   "devices.firmware.flash": "書き込み",
   "devices.firmware.flash.failed": "更新に失敗しました",
   "devices.firmware.install": "インストール",
+  "devices.firmware.retryCheck": "再試行",
+  "devices.firmware.status.checkFailed": "確認できませんでした",
   "devices.firmware.status.unknown": "不明",
   "devices.firmware.status.upToDate": "最新",
   "devices.firmware.status.updateAvailable": "更新があります",

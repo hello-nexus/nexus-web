@@ -440,6 +440,8 @@
   "devices.firmware.flash": "Flash",
   "devices.firmware.flash.failed": "Inzornament falît",
   "devices.firmware.install": "Instale",
+  "devices.firmware.retryCheck": "Torne prove",
+  "devices.firmware.status.checkFailed": "No si è podût controlâ",
   "devices.firmware.status.unknown": "No cognossût",
   "devices.firmware.status.upToDate": "Inzornât",
   "devices.firmware.status.updateAvailable": "Inzornament disponibil",

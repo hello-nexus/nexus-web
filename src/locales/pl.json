@@ -441,6 +441,8 @@
   "devices.firmware.flash": "Wgraj",
   "devices.firmware.flash.failed": "Aktualizacja nie powiodła się",
   "devices.firmware.install": "Zainstaluj",
+  "devices.firmware.retryCheck": "Ponów",
+  "devices.firmware.status.checkFailed": "Nie można sprawdzić",
   "devices.firmware.status.unknown": "Nieznany",
   "devices.firmware.status.upToDate": "Aktualny",
   "devices.firmware.status.updateAvailable": "Dostępna aktualizacja",

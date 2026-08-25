@@ -440,6 +440,8 @@
   "devices.firmware.flash": "Yükle",
   "devices.firmware.flash.failed": "Güncelleme başarısız",
   "devices.firmware.install": "Yükle",
+  "devices.firmware.retryCheck": "Yeniden dene",
+  "devices.firmware.status.checkFailed": "Denetlenemedi",
   "devices.firmware.status.unknown": "Bilinmiyor",
   "devices.firmware.status.upToDate": "Güncel",
   "devices.firmware.status.updateAvailable": "Güncelleme mevcut",

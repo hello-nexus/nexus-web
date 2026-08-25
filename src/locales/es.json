@@ -440,6 +440,8 @@
   "devices.firmware.flash": "Grabar",
   "devices.firmware.flash.failed": "Error en la actualización",
   "devices.firmware.install": "Instalar",
+  "devices.firmware.retryCheck": "Reintentar",
+  "devices.firmware.status.checkFailed": "No se pudo comprobar",
   "devices.firmware.status.unknown": "Desconocido",
   "devices.firmware.status.upToDate": "Actualizado",
   "devices.firmware.status.updateAvailable": "Actualización disponible",
