@@ -6,6 +6,7 @@ import {
   fetchLightingStatus,
   setLightingDeviceControlled,
   startStatic,
+  stopLighting,
   cachedAnimateDefaults,
   type LightingDevice,
 } from '../../../api/lighting';
@@ -16,6 +17,7 @@ vi.mock('../../../api/lighting', () => ({
   fetchLightingDevices: vi.fn(),
   fetchLightingStatus: vi.fn(),
   setLightingDeviceControlled: vi.fn(),
+  stopLighting: vi.fn(),
   // ZoneCard's identify affordance; unused in toggleMode but imported.
   identifyLightingDevice: vi.fn(),
   startStatic: vi.fn(),
@@ -67,10 +69,16 @@ function renderScreen(onComplete = vi.fn()) {
   return onComplete;
 }
 
+/** Device picking lives in Advanced; the screen opens on Simple. */
+function chooseAdvanced() {
+  fireEvent.click(screen.getByRole('radio', { name: /lightingOnboarding\.mode\.advanced/ }));
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(useConflictApps).mockReturnValue({ conflicts: [], ready: true });
   vi.mocked(setLightingDeviceControlled).mockResolvedValue(null);
+  vi.mocked(stopLighting).mockResolvedValue(null);
 });
 
 describe('LightingOnboardingScreen - device grid', () => {
@@ -89,6 +97,7 @@ describe('LightingOnboardingScreen - device grid', () => {
     vi.mocked(completeLightingOnboarding).mockResolvedValue({ completed: true, lightingCompleted: true });
     const onComplete = renderScreen();
 
+    chooseAdvanced();
     const card = await screen.findByRole('switch', { name: 'Test Strip' });
     fireEvent.keyDown(card, { key: 'Enter' });
 
@@ -101,6 +110,7 @@ describe('LightingOnboardingScreen - device grid', () => {
     seed([strip, hub]);
     renderScreen();
 
+    chooseAdvanced();
     fireEvent.click(await screen.findByRole('switch', { name: 'Test Strip' }));
     expect(setLightingDeviceControlled).toHaveBeenCalledWith('openrgb-0', false);
     // Optimistic flip, before any refetch.
@@ -114,6 +124,7 @@ describe('LightingOnboardingScreen - device grid', () => {
   it('select none ignores every controlled device; select all restores every ignored one', async () => {
     seed([strip, hub]);
     renderScreen();
+    chooseAdvanced();
     await screen.findByRole('switch', { name: 'Test Strip' });
 
     // Mixed selection: both bulk actions available.
@@ -138,6 +149,7 @@ describe('LightingOnboardingScreen - device grid', () => {
   it('disables select all while everything is already selected', async () => {
     seed([strip]);
     renderScreen();
+    chooseAdvanced();
     await screen.findByRole('switch', { name: 'Test Strip' });
     expect(screen.getByRole('button', { name: 'lighting.ledMap.selectAll' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'lightingOnboarding.selectNone' })).toBeEnabled();
@@ -159,6 +171,7 @@ describe('LightingOnboardingScreen - device grid', () => {
       render(<LightingOnboardingScreen open onComplete={vi.fn()} />);
       await act(async () => { await vi.advanceTimersByTimeAsync(0); });
 
+      chooseAdvanced();
       fireEvent.click(screen.getByRole('switch', { name: 'Test Strip' }));
       expect(screen.getByRole('switch', { name: 'Test Strip' })).toHaveAttribute('aria-checked', 'false');
 
@@ -183,6 +196,7 @@ describe('LightingOnboardingScreen - device grid', () => {
     seed([strip], true);
     renderScreen();
 
+    chooseAdvanced();
     await screen.findByRole('switch', { name: 'Test Strip' });
     expect(screen.getByText('lightingOnboarding.scanning')).toBeInTheDocument();
   });
@@ -249,6 +263,7 @@ describe('LightingOnboardingScreen - conflicts', () => {
     });
     renderScreen();
 
+    chooseAdvanced();
     await screen.findByRole('switch', { name: 'Test Strip' });
     expect(screen.queryByText('conflicts.modal.intro')).not.toBeInTheDocument();
   });
@@ -257,6 +272,7 @@ describe('LightingOnboardingScreen - conflicts', () => {
     seed([strip]);
     renderScreen();
 
+    chooseAdvanced();
     await screen.findByRole('switch', { name: 'Test Strip' });
     expect(screen.queryByText('conflicts.modal.intro')).not.toBeInTheDocument();
   });
@@ -268,6 +284,7 @@ describe('LightingOnboardingScreen - continue flow', () => {
     vi.mocked(completeLightingOnboarding).mockResolvedValue({ completed: true, lightingCompleted: true });
     const onComplete = renderScreen();
 
+    chooseAdvanced();
     await screen.findByRole('switch', { name: 'Test Strip' });
     fireEvent.click(screen.getByRole('button', { name: 'lightingOnboarding.continue' }));
 
@@ -280,6 +297,7 @@ describe('LightingOnboardingScreen - continue flow', () => {
     vi.mocked(completeLightingOnboarding).mockResolvedValue(null);
     const onComplete = renderScreen();
 
+    chooseAdvanced();
     await screen.findByRole('switch', { name: 'Test Strip' });
     fireEvent.click(screen.getByRole('button', { name: 'lightingOnboarding.continue' }));
 
@@ -298,6 +316,7 @@ describe('LightingOnboardingScreen - continue flow', () => {
     seed([strip]);
     const onBack = vi.fn();
     const { unmount } = render(<LightingOnboardingScreen open onComplete={vi.fn()} onBack={onBack} />);
+    chooseAdvanced();
     await screen.findByRole('switch', { name: 'Test Strip' });
 
     fireEvent.click(screen.getByRole('button', { name: 'nav.back' }));
@@ -306,6 +325,7 @@ describe('LightingOnboardingScreen - continue flow', () => {
     unmount();
 
     render(<LightingOnboardingScreen open onComplete={vi.fn()} />);
+    chooseAdvanced();
     await screen.findByRole('switch', { name: 'Test Strip' });
     expect(screen.queryByRole('button', { name: 'nav.back' })).toBeNull();
   });
@@ -315,6 +335,7 @@ describe('LightingOnboardingScreen colour test strip', () => {
   it('offers a swatch per test fill, and running one does not persist it', async () => {
     seed([strip]);
     renderScreen();
+    chooseAdvanced();
     await screen.findByRole('switch', { name: 'Test Strip' });
 
     const red = screen.getByRole('button', { name: 'lighting.controls.simplered' });
@@ -336,6 +357,7 @@ describe('LightingOnboardingScreen colour test strip', () => {
     } as never);
     seed([strip]);
     renderScreen();
+    chooseAdvanced();
     await screen.findByRole('switch', { name: 'Test Strip' });
 
     fireEvent.click(screen.getByRole('button', { name: 'lighting.controls.simplered' }));
@@ -350,6 +372,7 @@ describe('LightingOnboardingScreen colour test strip', () => {
   it('does not run a fill until a swatch is pressed', async () => {
     seed([strip]);
     renderScreen();
+    chooseAdvanced();
     await screen.findByRole('switch', { name: 'Test Strip' });
     expect(startStatic).not.toHaveBeenCalled();
   });
@@ -357,6 +380,7 @@ describe('LightingOnboardingScreen colour test strip', () => {
   it('keeps the scanning note and the strip out of the device scroller', async () => {
     seed([strip], true);
     renderScreen();
+    chooseAdvanced();
     await screen.findByRole('switch', { name: 'Test Strip' });
 
     // Anything that appears and disappears inside the scroller resizes it on
@@ -373,6 +397,7 @@ describe('LightingOnboardingScreen colour test strip', () => {
   it('paints the picked colour into each device card, not around it', async () => {
     seed([strip]);
     renderScreen();
+    chooseAdvanced();
     await screen.findByRole('switch', { name: 'Test Strip' });
     expect(screen.getAllByTestId('led-strip')[0]).toHaveAttribute('data-hex', '');
 
@@ -422,6 +447,7 @@ describe('LightingOnboardingScreen colour test strip', () => {
       render(<LightingOnboardingScreen open onComplete={vi.fn()} />);
       await act(async () => { await vi.advanceTimersByTimeAsync(0); });
 
+      chooseAdvanced();
       fireEvent.click(screen.getByRole('switch', { name: 'Test Strip' }));
       expect(screen.getByRole('switch', { name: 'Test Strip' })).toHaveAttribute('aria-checked', 'false');
 
@@ -439,5 +465,44 @@ describe('LightingOnboardingScreen colour test strip', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe('LightingOnboardingScreen mode choice', () => {
+  beforeEach(() => {
+    vi.mocked(completeLightingOnboarding).mockResolvedValue({ lightingCompleted: true } as never);
+  });
+
+  it('opens on Simple, where there is nothing to pick', async () => {
+    seed([strip]);
+    renderScreen();
+    await screen.findByText('lightingOnboarding.subtitle.simple');
+    expect(screen.getByRole('radio', { name: /lightingOnboarding\.mode\.simple/ })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.queryByRole('button', { name: 'lighting.ledMap.selectAll' })).toBeNull();
+  });
+
+  it('Simple drives every device, putting back any the user had switched off', async () => {
+    seed([{ ...strip, controlled: false }]);
+    const onComplete = renderScreen();
+    await screen.findByText('lightingOnboarding.subtitle.simple');
+
+    fireEvent.click(screen.getByRole('button', { name: 'lightingOnboarding.continue' }));
+
+    await waitFor(() => expect(onComplete).toHaveBeenCalled());
+    expect(setLightingDeviceControlled).toHaveBeenCalledWith('openrgb-0', true);
+    expect(stopLighting).not.toHaveBeenCalled();
+  });
+
+  it('No lighting stops the engine and leaves the picker out of it', async () => {
+    seed([strip]);
+    const onComplete = renderScreen();
+    await screen.findByText('lightingOnboarding.subtitle.simple');
+
+    fireEvent.click(screen.getByRole('radio', { name: /lightingOnboarding\.mode\.off/ }));
+    expect(screen.queryByRole('switch', { name: 'Test Strip' })).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'lightingOnboarding.continue' }));
+    await waitFor(() => expect(onComplete).toHaveBeenCalled());
+    expect(stopLighting).toHaveBeenCalledTimes(1);
   });
 });
