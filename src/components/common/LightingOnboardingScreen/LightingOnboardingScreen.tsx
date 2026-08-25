@@ -70,6 +70,8 @@ export function LightingOnboardingScreen({ open, onComplete, onBack }: LightingO
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(false);
   const [testFill, setTestFill] = useState<string | null>(null);
+  const devicesRef = useRef<LightingDevice[] | null>(null);
+  devicesRef.current = devices;
   // Renders in each card's own LED strip, the way a Static pick does.
   const testSwatch = TEST_FILLS.find(f => f.key === testFill)?.swatch;
   const testPick = testFill && testSwatch
@@ -122,12 +124,16 @@ export function LightingOnboardingScreen({ open, onComplete, onBack }: LightingO
     }
   }, []);
 
+  // Polls only until a scan has settled with devices in hand. Left running it
+  // keeps rebuilding the list underneath the user, which reorders the cards
+  // and makes a click land on a card object that no longer exists.
+  const settled = devices !== null && devices.length > 0 && !scanning;
   useEffect(() => {
-    if (!open) return;
+    if (!open || settled) return;
     void refresh();
     const timer = setInterval(() => { void refresh(); }, POLL_MS);
     return () => clearInterval(timer);
-  }, [open, refresh]);
+  }, [open, settled, refresh]);
 
   // Primes the cache the test fills read their colours from.
   useEffect(() => {
@@ -163,17 +169,20 @@ export function LightingOnboardingScreen({ open, onComplete, onBack }: LightingO
   const toggleables = (cards ?? []).filter(isToggleable);
 
   const handleToggle = (card: LightingDevice) => {
-    const nextControlled = card.controlled === false;
     mutatedAtRef.current = Date.now();
     pendingWritesRef.current += 1;
     lastWriteStartAtRef.current = Date.now();
+    // The live value, not the captured card: a rescan can replace the device
+    // objects between render and click, and a stale one would invert the write.
+    const live = devicesRef.current?.find(d => d.id === card.id) ?? card;
+    const nextControlled = live.controlled === false;
+    setDevices(prev => prev?.map(d => (d.id === card.id ? { ...d, controlled: nextControlled } : d)) ?? prev);
     setLightingDeviceControlled(card.id, nextControlled)
       .catch(() => { /* poll reconciles */ })
       .finally(() => {
         pendingWritesRef.current -= 1;
         mutatedAtRef.current = Date.now();
       });
-    setDevices(prev => prev?.map(d => (d.id === card.id ? { ...d, controlled: nextControlled } : d)) ?? prev);
   };
 
   const handleSetAll = (controlled: boolean) => {

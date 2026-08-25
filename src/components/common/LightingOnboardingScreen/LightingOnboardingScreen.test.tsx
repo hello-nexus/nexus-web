@@ -153,7 +153,7 @@ describe('LightingOnboardingScreen - device grid', () => {
   it('holds poll application while a controlled write is in flight, so stale state cannot revert the flip', async () => {
     vi.useFakeTimers();
     try {
-      seed([strip]);
+      seed([strip], true);
       let resolveWrite!: (v: null) => void;
       vi.mocked(setLightingDeviceControlled).mockReturnValue(new Promise<null>(r => { resolveWrite = r; }) as never);
       render(<LightingOnboardingScreen open onComplete={vi.fn()} />);
@@ -169,7 +169,7 @@ describe('LightingOnboardingScreen - device grid', () => {
 
       // Once the write settles, polls apply again - proven by a payload
       // field the optimistic flip could not have produced (the rename).
-      seed([{ ...strip, name: 'Test Strip Committed', controlled: false }]);
+      seed([{ ...strip, name: 'Test Strip Committed', controlled: false }], true);
       await act(async () => { resolveWrite(null); });
       await act(async () => { await vi.advanceTimersByTimeAsync(2100); });
       const resumed = screen.getByRole('switch', { name: 'Test Strip Committed' });
@@ -379,5 +379,38 @@ describe('LightingOnboardingScreen colour test strip', () => {
     fireEvent.click(screen.getByRole('button', { name: 'lighting.controls.simplered' }));
 
     await waitFor(() => expect(screen.getAllByTestId('led-strip')[0]).toHaveAttribute('data-hex', '#ff2d2d'));
+  });
+
+  it('stops polling once a scan has settled with devices', async () => {
+    vi.useFakeTimers();
+    try {
+      seed([strip]);
+      render(<LightingOnboardingScreen open onComplete={vi.fn()} />);
+      await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+      const settledCalls = vi.mocked(fetchLightingDevices).mock.calls.length;
+
+      await act(async () => { await vi.advanceTimersByTimeAsync(10000); });
+
+      // Left running, the poll keeps rebuilding the list under the user.
+      expect(vi.mocked(fetchLightingDevices).mock.calls.length).toBe(settledCalls);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('keeps polling while a scan is still running', async () => {
+    vi.useFakeTimers();
+    try {
+      seed([strip], true);
+      render(<LightingOnboardingScreen open onComplete={vi.fn()} />);
+      await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+      const before = vi.mocked(fetchLightingDevices).mock.calls.length;
+
+      await act(async () => { await vi.advanceTimersByTimeAsync(6000); });
+
+      expect(vi.mocked(fetchLightingDevices).mock.calls.length).toBeGreaterThan(before);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
