@@ -52,6 +52,11 @@
   .hero { animation: none; }
 }
 
+.heroIcon {
+  display: flex;
+  color: var(--accent);
+}
+
 .title {
   @include text-heading;
   margin: 0.5rem 0 0;

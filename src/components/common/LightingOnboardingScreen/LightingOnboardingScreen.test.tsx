@@ -5,6 +5,7 @@ import {
   fetchLightingDevices,
   fetchLightingStatus,
   setLightingDeviceControlled,
+  startStatic,
   type LightingDevice,
 } from '../../../api/lighting';
 import { completeLightingOnboarding } from '../../../api/onboarding';
@@ -16,6 +17,7 @@ vi.mock('../../../api/lighting', () => ({
   setLightingDeviceControlled: vi.fn(),
   // ZoneCard's identify affordance; unused in toggleMode but imported.
   identifyLightingDevice: vi.fn(),
+  startStatic: vi.fn(),
 }));
 
 vi.mock('../../../api/onboarding', () => ({
@@ -295,5 +297,30 @@ describe('LightingOnboardingScreen - continue flow', () => {
     render(<LightingOnboardingScreen open onComplete={vi.fn()} />);
     await screen.findByRole('switch', { name: 'Test Strip' });
     expect(screen.queryByRole('button', { name: 'nav.back' })).toBeNull();
+  });
+});
+
+describe('LightingOnboardingScreen colour test strip', () => {
+  it('offers a swatch per test fill, and running one does not persist it', async () => {
+    seed([strip]);
+    renderScreen();
+    await screen.findByRole('switch', { name: 'Test Strip' });
+
+    const red = screen.getByRole('button', { name: 'lighting.controls.simplered' });
+    fireEvent.click(red);
+
+    await waitFor(() => expect(startStatic).toHaveBeenCalledTimes(1));
+    const call = vi.mocked(startStatic).mock.calls[0];
+    expect(call[0]).toBe('simplered');
+    // Last argument is `persist`: a test look must not overwrite the saved one.
+    expect(call[7]).toBe(false);
+    expect(red).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('does not run a fill until a swatch is pressed', async () => {
+    seed([strip]);
+    renderScreen();
+    await screen.findByRole('switch', { name: 'Test Strip' });
+    expect(startStatic).not.toHaveBeenCalled();
   });
 });

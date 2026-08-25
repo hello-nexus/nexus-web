@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, DownloadCloud, PowerOff } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { Overlay } from '../Overlay/Overlay';
 import { Button } from '../Button/Button';
 import { ImportCenter, type ImportCenterHandle, type ImportSourceId, type SourceDetection } from '../ImportCenter/ImportCenter';
+import { SettingToggle } from '../SettingRow/SettingRow';
 import { closeFanControlApp, disableFanControlAutostart, dismissFanControlImport } from '../../../api/fancontrol';
 import type { FanControlStatusResponse } from '../../../api/fancontrol';
 import { closeNexus2App, disableNexus2Autostart, dismissNexus2Welcome } from '../../../api/migration';
@@ -11,6 +12,9 @@ import type { Nexus2StatusResponse } from '../../../api/migration';
 import styles from './ImportOnboardingScreen.module.scss';
 
 type ApplyPhase = 'idle' | 'applying' | 'failed';
+
+const HERO_ICON_SIZE = 40;
+const ACTION_ICON_SIZE = 28;
 
 /** True when the request came back without an error; a throw counts as failure. */
 async function runAction(call: () => Promise<{ error: boolean } | null>): Promise<boolean> {
@@ -49,6 +53,10 @@ export function ImportOnboardingScreen({ open, fanControl, nexus2, offeredFor, o
   const [importBusy, setImportBusy] = useState(false);
   const [importHasSelection, setImportHasSelection] = useState(false);
   const [actionError, setActionError] = useState(false);
+  // Closing the app and clearing its autostart. On by default: it and Nexus
+  // drive the same hardware, so leaving it running is the unusual choice.
+  const [closeApps, setCloseApps] = useState<Partial<Record<ImportSourceId, boolean>>>({});
+  const shouldClose = (id: ImportSourceId) => closeApps[id] ?? true;
   const importHandle = useRef<ImportCenterHandle | null>(null);
 
   // Listed when the app holds data to import. Detected-but-empty apps are not
@@ -64,6 +72,7 @@ export function ImportOnboardingScreen({ open, fanControl, nexus2, offeredFor, o
     setApplyPhase('idle');
     setDismissing(false);
     setActionError(false);
+    setCloseApps({});
   }, [open]);
 
   if (!open) return null;
@@ -85,6 +94,18 @@ export function ImportOnboardingScreen({ open, fanControl, nexus2, offeredFor, o
     nexus2: nexus2Here && offeredFor.nexus2 === true,
     fancontrol: fanControlHere && offeredFor.fancontrol === true,
   };
+
+  const closeRow = (id: ImportSourceId, app: string) => (
+    <SettingToggle
+      label={t('importOnboarding.closeApp', { app })}
+      description={t('importOnboarding.closeAppDetail', { app })}
+      icon={<PowerOff size={ACTION_ICON_SIZE} />}
+      iconLeading
+      checked={shouldClose(id)}
+      disabled={applyPhase !== 'idle'}
+      onChange={next => setCloseApps(prev => ({ ...prev, [id]: next }))}
+    />
+  );
 
   // Latches the offer flag only for the apps this gate was shown for; latching
   // the other would silently consume a gate that app has not had yet.
@@ -117,11 +138,11 @@ export function ImportOnboardingScreen({ open, fanControl, nexus2, offeredFor, o
     // installed but never configured still drives the hardware. Close before
     // clearing autostart, so a relaunch cannot race the autostart removal.
     let actionsOk = true;
-    if (nexus2Detected) {
+    if (nexus2Detected && shouldClose('nexus2')) {
       actionsOk = await runAction(closeNexus2App) && actionsOk;
       actionsOk = await runAction(disableNexus2Autostart) && actionsOk;
     }
-    if (fanControlDetected) {
+    if (fanControlDetected && shouldClose('fancontrol')) {
       actionsOk = await runAction(closeFanControlApp) && actionsOk;
       actionsOk = await runAction(disableFanControlAutostart) && actionsOk;
     }
@@ -152,6 +173,9 @@ export function ImportOnboardingScreen({ open, fanControl, nexus2, offeredFor, o
       backdropClassName={styles.backdrop}
     >
       <div className={styles.hero}>
+        <span className={styles.heroIcon} aria-hidden>
+          <DownloadCloud size={HERO_ICON_SIZE} />
+        </span>
         <h1 className={styles.title}>{heading}</h1>
       </div>
 
@@ -161,6 +185,10 @@ export function ImportOnboardingScreen({ open, fanControl, nexus2, offeredFor, o
           sources={sources}
           detected={detected}
           includedByDefault={includedByDefault}
+          leadingRow={{
+            nexus2: nexus2Detected ? closeRow('nexus2', t('importCenter.source.nexus2')) : undefined,
+            fancontrol: fanControlDetected ? closeRow('fancontrol', t('importCenter.source.fancontrol')) : undefined,
+          }}
           disabled={applyPhase !== 'idle'}
           onBusyChange={setImportBusy}
           showAction={false}

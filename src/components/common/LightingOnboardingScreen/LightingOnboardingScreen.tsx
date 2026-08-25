@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { AlertTriangle, ArrowLeft, Ban, CheckCheck, Lightbulb, RotateCw } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { Overlay } from '../Overlay/Overlay';
@@ -12,8 +12,10 @@ import {
   fetchLightingDevices,
   fetchLightingStatus,
   setLightingDeviceControlled,
+  startStatic,
   type LightingDevice,
 } from '../../../api/lighting';
+import { defaultParamsFor } from '../../../types/lighting';
 import { ZoneCard, zoneCardUnavailable } from '../../../panel/widgets/lighting/page/ZoneCard';
 import { visibleCards } from '../../../panel/widgets/lighting/page/zoneUtils';
 import styles from './LightingOnboardingScreen.module.scss';
@@ -35,6 +37,19 @@ const WRITE_PAUSE_CAP_MS = 10_000;
 
 const noop = () => {};
 
+// A few of the simple fills, for checking which lights actually respond. The
+// swatch is the fill's own colour; the fills themselves are server-owned, so
+// this only names them.
+const TEST_FILLS: { key: string; swatch: string }[] = [
+  { key: 'simplewhite', swatch: '#ffffff' },
+  { key: 'simplered', swatch: '#ff2d2d' },
+  { key: 'simpleorange', swatch: '#ff8a1e' },
+  { key: 'simplegreen', swatch: '#2fd45a' },
+  { key: 'simplecyan', swatch: '#22d3ee' },
+  { key: 'simpleblue', swatch: '#2f6bff' },
+  { key: 'simpleviolet', swatch: '#a855f7' },
+];
+
 // Cards ZoneCard renders non-interactive are excluded from bulk toggles.
 const isToggleable = (d: LightingDevice): boolean => !zoneCardUnavailable(d);
 
@@ -53,6 +68,7 @@ export function LightingOnboardingScreen({ open, onComplete, onBack }: LightingO
   const [scanning, setScanning] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(false);
+  const [testFill, setTestFill] = useState<string | null>(null);
   const { conflicts: allConflicts } = useConflictApps(open);
   // HYTE Nexus 2 is excluded here: its shutdown offer belongs to the
   // Nexus2WelcomeScreen gate, which precedes this screen on eligible
@@ -106,6 +122,12 @@ export function LightingOnboardingScreen({ open, onComplete, onBack }: LightingO
     const timer = setInterval(() => { void refresh(); }, POLL_MS);
     return () => clearInterval(timer);
   }, [open, refresh]);
+
+  // persist=false: this is a look at the lights, not a saved choice.
+  const runTestFill = useCallback(async (key: string) => {
+    setTestFill(key);
+    try { await startStatic(key, 1, 0, 0, 1, 1, defaultParamsFor(key), false); } catch { /* best-effort */ }
+  }, []);
 
   if (!open) return null;
 
@@ -221,6 +243,21 @@ export function LightingOnboardingScreen({ open, onComplete, onBack }: LightingO
       <div className={styles.deviceArea}>
         {cards !== null && cards.length > 0 && (
           <>
+            <div className={styles.testStrip} role="group" aria-label={t('lightingOnboarding.testColors')}>
+              <span className={styles.testLabel}>{t('lightingOnboarding.testColors')}</span>
+              {TEST_FILLS.map(f => (
+                <button
+                  key={f.key}
+                  type="button"
+                  className={`${styles.swatch} ${testFill === f.key ? styles.swatchActive : ''}`}
+                  style={{ '--swatch': f.swatch } as CSSProperties}
+                  aria-label={t(`lighting.controls.${f.key}`)}
+                  title={t(`lighting.controls.${f.key}`)}
+                  aria-pressed={testFill === f.key}
+                  onClick={() => { void runTestFill(f.key); }}
+                />
+              ))}
+            </div>
             <div className={styles.deviceGrid} role="group" aria-label={t('lightingOnboarding.title')}>
               {cards.map(d => (
                 <ZoneCard

@@ -181,4 +181,24 @@ describe('ImportOnboardingScreen', () => {
     await screen.findByRole('button', { name: SKIP });
     expect(screen.queryByRole('button', { name: 'nav.back' })).not.toBeInTheDocument();
   });
+
+  it('offers closing each app as its first option, on by default', async () => {
+    renderScreen();
+    const closeNexus2 = await screen.findByRole('switch', { name: /importOnboarding.closeApp:importCenter.source.nexus2/ });
+    expect(closeNexus2).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('leaves an app running when its close option is switched off', async () => {
+    const onComplete = vi.fn();
+    renderScreen({ onComplete });
+
+    fireEvent.click(await screen.findByRole('switch', { name: /importOnboarding.closeApp:importCenter.source.nexus2/ }));
+    fireEvent.click(screen.getByRole('button', { name: SKIP }));
+
+    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+    expect(closeNexus2App).not.toHaveBeenCalled();
+    expect(disableNexus2Autostart).not.toHaveBeenCalled();
+    // The other app is untouched by that choice.
+    expect(closeFanControlApp).toHaveBeenCalledTimes(1);
+  });
 });

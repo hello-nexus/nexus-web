@@ -182,3 +182,35 @@
 .continueButton {
   width: min(280px, 100%);
 }
+
+// Quick check that the lights respond, above the device grid.
+.testStrip {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.85rem;
+}
+
+.testLabel {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  margin-right: 0.15rem;
+}
+
+.swatch {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--swatch);
+  cursor: pointer;
+
+  &:hover { border-color: var(--border-strong); }
+}
+
+.swatch.swatchActive {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}

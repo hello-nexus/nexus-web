@@ -58,6 +58,8 @@ export interface ImportCenterProps {
   handleRef?: RefObject<ImportCenterHandle | null>;
   /** Fires after a run that reached at least one source, clean or not. */
   onImported?: () => void;
+  /** Rendered at the top of a source's panel, above its own options. */
+  leadingRow?: Partial<Record<ImportSourceId, ReactNode>>;
   /** Which sources start included. Defaults to every available one; a host
    *  that lists a source it is not offering passes false for it. */
   includedByDefault?: Partial<Record<ImportSourceId, boolean>>;
@@ -81,7 +83,7 @@ export interface SourceDetection {
  */
 export function ImportCenter({
   open, sources, disabled, onBusyChange, onSelectionChange, showAction = true, handleRef, onImported, detected,
-  includedByDefault,
+  includedByDefault, leadingRow,
 }: ImportCenterProps) {
   const { t, language } = useTranslation();
   const fanControl = useFanControlStatus();
@@ -308,6 +310,7 @@ export function ImportCenter({
             looked at, and its flow holds the preview and the runner. */}
         {rows.map(row => (
           <div key={row.id} className={styles.sourcePanel} hidden={row.id !== current.id}>
+            {leadingRow?.[row.id]}
             {row.panel}
           </div>
         ))}
