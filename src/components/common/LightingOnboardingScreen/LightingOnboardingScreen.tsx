@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
-import { AlertTriangle, ArrowLeft, Ban, CheckCheck, Lightbulb, RotateCw } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Ban, CheckCheck, Lightbulb, PowerOff, RotateCw, SlidersHorizontal, Sparkles } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { Overlay } from '../Overlay/Overlay';
 import { Button } from '../Button/Button';
@@ -39,6 +39,15 @@ const POLL_MS = 2000;
 const WRITE_PAUSE_CAP_MS = 10_000;
 
 const noop = () => {};
+
+const MODE_ICON_SIZE = 22;
+
+/** In the order they are offered: leave RGB alone, drive it all, or choose. */
+const MODE_CHOICES = [
+  { key: 'off' as const, Icon: PowerOff },
+  { key: 'simple' as const, Icon: Sparkles },
+  { key: 'advanced' as const, Icon: SlidersHorizontal },
+];
 
 // A few of the simple fills, for checking which lights actually respond. The
 // swatch is the fill's own colour; the fills themselves are server-owned, so
@@ -82,6 +91,14 @@ export function LightingOnboardingScreen({ open, onComplete, onBack }: LightingO
   // A poll that started before the write lands still answers with the old
   // value, and applying it puts the card back the way it was.
   const intentRef = useRef(new Map<string, boolean>());
+  // Simple drives everything and No lighting drives nothing; only advanced
+  // shows each device as the user left it.
+  const displayDevice = (d: LightingDevice): LightingDevice => (
+    mode === 'simple' ? { ...d, controlled: true }
+      : mode === 'off' ? { ...d, controlled: false }
+        : d
+  );
+
   // Renders in each card's own LED strip, the way a Static pick does.
   const testSwatch = TEST_FILLS.find(f => f.key === testFill)?.swatch;
   const testPick = testFill && testSwatch
@@ -270,9 +287,25 @@ export function LightingOnboardingScreen({ open, onComplete, onBack }: LightingO
           <Lightbulb size={40} />
         </span>
         <h1 className={styles.title}>{t('lightingOnboarding.title')}</h1>
-        <p className={styles.subtitle}>
-          {t(`lightingOnboarding.subtitle.${mode}`)}
-        </p>
+      </div>
+
+      <div className={styles.modeRow} role="radiogroup" aria-label={t('lightingOnboarding.modeLabel')}>
+        {MODE_CHOICES.map(({ key, Icon }) => (
+          <button
+            key={key}
+            type="button"
+            role="radio"
+            aria-checked={mode === key}
+            className={`${styles.modeCard} ${mode === key ? styles.modeCardActive : ''}`}
+            onClick={() => setMode(key)}
+          >
+            <span className={styles.modeIcon} aria-hidden><Icon size={MODE_ICON_SIZE} /></span>
+            <span className={styles.modeText}>
+              <span className={styles.modeName}>{t(`lightingOnboarding.mode.${key}`)}</span>
+              <span className={styles.modeHint}>{t(`lightingOnboarding.mode.${key}.hint`)}</span>
+            </span>
+          </button>
+        ))}
       </div>
 
       {conflicts.length > 0 && (
@@ -291,21 +324,6 @@ export function LightingOnboardingScreen({ open, onComplete, onBack }: LightingO
         </div>
       )}
 
-      <div className={styles.modeRow} role="radiogroup" aria-label={t('lightingOnboarding.modeLabel')}>
-        {(['simple', 'advanced', 'off'] as const).map(m => (
-          <button
-            key={m}
-            type="button"
-            role="radio"
-            aria-checked={mode === m}
-            className={`${styles.modeCard} ${mode === m ? styles.modeCardActive : ''}`}
-            onClick={() => setMode(m)}
-          >
-            <span className={styles.modeName}>{t(`lightingOnboarding.mode.${m}`)}</span>
-            <span className={styles.modeHint}>{t(`lightingOnboarding.mode.${m}.hint`)}</span>
-          </button>
-        ))}
-      </div>
 
       {mode === 'advanced' && cards !== null && cards.length > 0 && (
         <div className={styles.bulkRow}>
@@ -330,22 +348,25 @@ export function LightingOnboardingScreen({ open, onComplete, onBack }: LightingO
         </div>
       )}
 
-      {mode !== 'off' && (
       <div className={styles.deviceArea}>
         {cards !== null && cards.length > 0 && (
           <>
-            <div className={styles.deviceGrid} role="group" aria-label={t('lightingOnboarding.title')}>
-              {cards.map(d => (
+            <div
+              className={`${styles.deviceGrid} ${mode === 'advanced' ? '' : styles.deviceGridLocked} ${mode === 'off' ? styles.deviceGridOff : ''}`}
+              role="group"
+              aria-label={t('lightingOnboarding.title')}
+            >
+              {cards.map(raw => (
                 <ZoneCard
-                  key={d.id}
-                  device={d}
+                  key={raw.id}
+                  device={displayDevice(raw)}
                   ledPick={testPick}
                   toggleMode
                   selected={false}
                   indent={false}
                   onSelect={noop}
                   onTogglePower={noop}
-                  onToggleControlled={mode === 'advanced' ? () => handleToggle(d) : undefined}
+                  onToggleControlled={mode === 'advanced' ? () => handleToggle(raw) : undefined}
                   onOpenSettings={noop}
                 />
               ))}
@@ -365,19 +386,18 @@ export function LightingOnboardingScreen({ open, onComplete, onBack }: LightingO
           />
         ))}
       </div>
-      )}
 
       {/* Below the listing and outside its scroller: the strip and the scanning
           note must not resize the scrollable area as devices arrive. */}
-      {mode !== 'off' && scanning && cards !== null && cards.length > 0 && (
+      {scanning && cards !== null && cards.length > 0 && (
         <p className={styles.scanningNote}>
           <RotateCw className={styles.scanningIcon} aria-hidden />
           {t('lightingOnboarding.scanning')}
         </p>
       )}
 
-      {mode !== 'off' && cards !== null && cards.length > 0 && (
-        <div className={styles.testStrip} role="group" aria-label={t('lightingOnboarding.testColors')}>
+      {cards !== null && cards.length > 0 && (
+        <div className={`${styles.testStrip} ${mode === 'off' ? styles.testStripOff : ''}`} role="group" aria-label={t('lightingOnboarding.testColors')}>
           <span className={styles.testLabel}>{t('lightingOnboarding.testColors')}</span>
           {TEST_FILLS.map(f => (
             <button
