@@ -72,6 +72,10 @@ export function LightingOnboardingScreen({ open, onComplete, onBack }: LightingO
   const [testFill, setTestFill] = useState<string | null>(null);
   const devicesRef = useRef<LightingDevice[] | null>(null);
   devicesRef.current = devices;
+  // What the user asked for per device, held until the service reports it.
+  // A poll that started before the write lands still answers with the old
+  // value, and applying it puts the card back the way it was.
+  const intentRef = useRef(new Map<string, boolean>());
   // Renders in each card's own LED strip, the way a Static pick does.
   const testSwatch = TEST_FILLS.find(f => f.key === testFill)?.swatch;
   const testPick = testFill && testSwatch
@@ -112,7 +116,14 @@ export function LightingOnboardingScreen({ open, onComplete, onBack }: LightingO
       const writesPending = pendingWritesRef.current > 0
         && Date.now() - lastWriteStartAtRef.current < WRITE_PAUSE_CAP_MS;
       if (data && mutatedAtRef.current < startedAt && !writesPending) {
-        setDevices(data.devices ?? []);
+        const intents = intentRef.current;
+        const fresh = (data.devices ?? []).map(d => {
+          const want = intents.get(d.id);
+          if (want === undefined) return d;
+          if ((d.controlled !== false) === want) { intents.delete(d.id); return d; }
+          return { ...d, controlled: want };
+        });
+        setDevices(fresh);
       }
       // isInit=false with the RGB subprocess up means the bridge is still
       // coming online: treat it as scanning so a fresh boot shows progress,
@@ -176,6 +187,7 @@ export function LightingOnboardingScreen({ open, onComplete, onBack }: LightingO
     // objects between render and click, and a stale one would invert the write.
     const live = devicesRef.current?.find(d => d.id === card.id) ?? card;
     const nextControlled = live.controlled === false;
+    intentRef.current.set(card.id, nextControlled);
     setDevices(prev => prev?.map(d => (d.id === card.id ? { ...d, controlled: nextControlled } : d)) ?? prev);
     setLightingDeviceControlled(card.id, nextControlled)
       .catch(() => { /* poll reconciles */ })
@@ -189,6 +201,7 @@ export function LightingOnboardingScreen({ open, onComplete, onBack }: LightingO
     const targets = toggleables.filter(d => (d.controlled !== false) !== controlled);
     if (targets.length === 0) return;
     const ids = new Set(targets.map(d => d.id));
+    for (const id of ids) intentRef.current.set(id, controlled);
     mutatedAtRef.current = Date.now();
     pendingWritesRef.current += targets.length;
     lastWriteStartAtRef.current = Date.now();

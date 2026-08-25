@@ -413,4 +413,31 @@ describe('LightingOnboardingScreen colour test strip', () => {
       vi.useRealTimers();
     }
   });
+
+  it('keeps a flip that a pre-write poll answers with the old value', async () => {
+    vi.useFakeTimers();
+    try {
+      // Scanning, so polling is still live while the user clicks.
+      seed([strip], true);
+      render(<LightingOnboardingScreen open onComplete={vi.fn()} />);
+      await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+
+      fireEvent.click(screen.getByRole('switch', { name: 'Test Strip' }));
+      expect(screen.getByRole('switch', { name: 'Test Strip' })).toHaveAttribute('aria-checked', 'false');
+
+      // Every later poll still answers `controlled: true` - the service has
+      // not caught up. The card must not flip back on its own.
+      for (let i = 0; i < 3; i++) {
+        await act(async () => { await vi.advanceTimersByTimeAsync(2100); });
+        expect(screen.getByRole('switch', { name: 'Test Strip' })).toHaveAttribute('aria-checked', 'false');
+      }
+
+      // Once the service agrees, the poll is authoritative again.
+      seed([{ ...strip, controlled: false }], true);
+      await act(async () => { await vi.advanceTimersByTimeAsync(2100); });
+      expect(screen.getByRole('switch', { name: 'Test Strip' })).toHaveAttribute('aria-checked', 'false');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
