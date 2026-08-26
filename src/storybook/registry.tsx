@@ -52,7 +52,6 @@ import { SimpleModeNotice } from '../components/common/SimpleModeNotice/SimpleMo
 import { Button } from '../components/common/Button/Button';
 import { EndTaskButton } from '../components/common/EndTaskButton/EndTaskButton';
 import { ConflictAppCard } from '../components/common/ConflictAppCard/ConflictAppCard';
-import { RemoveFromStartupButton } from '../components/common/RemoveFromStartupButton/RemoveFromStartupButton';
 import { SkipOnboardingButton } from '../components/common/SkipOnboardingButton/SkipOnboardingButton';
 import { ToastProvider, useToast } from '../components/common/Toast/Toast';
 import { WidgetHeader } from '../components/common/WidgetHeader/WidgetHeader';
@@ -1027,31 +1026,6 @@ function PreviewButtonMatrix() {
   );
 }
 
-function PreviewRemoveFromStartupButton() {
-  // Swallowed in capture phase, same as PreviewEndTaskButton - the button calls
-  // the real /conflicts/autostart/disable endpoint with no override prop.
-  return (
-    <div className={styles.previewStack}>
-      <div className={styles.previewHoverCard} onClickCapture={e => e.stopPropagation()}>
-        <span>iCUE</span>
-        <RemoveFromStartupButton
-          conflictId="preview-icue"
-          entries={[
-            { kind: 'service', entryName: 'CorsairDeviceListerService' },
-            { kind: 'runKeyMachine', entryName: 'Corsair iCUE5 Software' },
-          ]}
-        />
-      </div>
-      <div className={styles.previewHoverCard} onClickCapture={e => e.stopPropagation()}>
-        <span>NZXT CAM</span>
-        <RemoveFromStartupButton
-          conflictId="preview-cam"
-          entries={[{ kind: 'service', entryName: 'CAMService' }]}
-        />
-      </div>
-    </div>
-  );
-}
 
 function PreviewSkipOnboardingButton() {
   return (
@@ -1963,12 +1937,6 @@ export const REGISTRY: StorybookEntry[] = [
     Preview: PreviewEndTaskButton,
   },
   {
-    name: 'RemoveFromStartupButton', category: 'inputs',
-    filePath: 'src/components/common/RemoveFromStartupButton/RemoveFromStartupButton.tsx',
-    description: 'Secondary Button that removes every autostart entry for one conflicting app (POST /conflicts/autostart/disable), on an explicit click only. Rendered by ConflictAppCard solely when the service resolved at least one entry to that app\'s own executable, so an app with no resolvable entry is never offered it. An app can hold several at once - iCUE ships an Automatic service and a Run value - and the label reads as a service only when every entry is one. The app keeps running afterwards, so the button latches to a done state rather than waiting for the watcher to clear the row.',
-    Preview: PreviewRemoveFromStartupButton,
-  },
-  {
     name: 'SkipOnboardingButton', category: 'inputs',
     filePath: 'src/components/common/SkipOnboardingButton/SkipOnboardingButton.tsx',
     description: 'Low-emphasis escape hatch pinned to the top-right of every onboarding screen after the welcome step, where there is finally something to skip. Absolutely positioned, so its host needs position: relative.',
@@ -2142,7 +2110,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'ConflictAppCard', category: 'cards',
     filePath: 'src/components/common/ConflictAppCard/ConflictAppCard.tsx',
-    description: 'Detected-conflict row: app name, translated category / process name / PID meta line, and an EndTaskButton. Used by ConflictWarningModal (one per detected conflict) and the device-page NexusControlOff gate (the single conflict blocking that device).',
+    description: 'Detected-conflict row: app name, executable / PID meta line, and an EndTaskButton. Used by ConflictWarningModal (one per detected conflict) and the device-page NexusControlOff gate (the single conflict blocking that device).',
     Preview: PreviewConflictAppCard,
   },
 
@@ -2215,8 +2183,8 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'ConflictOnboardingScreen', category: 'modals',
     filePath: 'src/components/common/ConflictOnboardingScreen/ConflictOnboardingScreen.tsx',
-    description: 'The last onboarding gate: apps already driving the lighting, fans or peripherals Nexus is taking over. A full screen like the gates before it, not the sidebar badge\'s ConflictWarningModal. Lists one ConflictAppCard per detected app, each with End task and - only when the service resolved one - Remove from startup. Continuing ends nothing and clears no autostart entry; every action is per-app and explicit.',
-    notes: 'No live preview - the cards post real /conflicts/kill and /conflicts/autostart/disable requests, so a click here would end a running app or remove its real startup entry.',
+    description: 'The last onboarding gate: apps already driving the lighting, fans or peripherals Nexus is taking over. A full screen like the gates before it, not the sidebar badge\'s ConflictWarningModal. Lists one ConflictAppCard per detected app, each with End task. Continuing ends nothing; the action is per-app and explicit.',
+    notes: 'No live preview - the cards post real /conflicts/kill requests, so a click here would end a running app.',
   },
   {
     name: 'FanControlImportSection', category: 'modals',

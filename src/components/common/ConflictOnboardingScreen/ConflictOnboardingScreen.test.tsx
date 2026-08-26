@@ -12,16 +12,12 @@ vi.mock('../../../lib/i18n', () => ({
 }));
 
 const mockKill = vi.fn();
-const mockDisableAutostart = vi.fn();
-
 vi.mock('../../../api/conflicts', () => ({
   killConflict: (...args: any[]) => mockKill(...args),
-  disableConflictAutostart: (...args: any[]) => mockDisableAutostart(...args),
 }));
 
 beforeEach(() => {
   mockKill.mockReset();
-  mockDisableAutostart.mockReset();
 });
 
 const icue = { id: 'icue', displayName: 'Corsair iCUE', category: 'lighting', processName: 'iCUE', pid: 396 };
@@ -37,27 +33,11 @@ describe('ConflictOnboardingScreen', () => {
     expect(screen.getByText('conflicts.modal.pid:396')).toBeInTheDocument();
   });
 
-  it('offers the startup control only for an app whose entry resolved', () => {
-    render(<ConflictOnboardingScreen
-      open
-      conflicts={[icue, cam]}
-      autostartById={{ icue: [{ kind: 'runKeyMachine', entryName: 'Corsair iCUE5 Software' }], 'nzxt-cam': [] }}
-      onComplete={() => {}}
-    />);
 
-    expect(screen.getAllByRole('button', { name: 'conflicts.modal.removeStartup' })).toHaveLength(1);
-  });
-
-  it('ends nothing and clears no autostart on mount or on continue', async () => {
+  it('ends nothing on mount or on continue', async () => {
     const onComplete = vi.fn();
-    render(<ConflictOnboardingScreen
-      open
-      conflicts={[icue, cam]}
-      autostartById={{ icue: [{ kind: 'service', entryName: 'CorsairDeviceListerService' }] }}
-      onComplete={onComplete}
-    />);
+    render(<ConflictOnboardingScreen open conflicts={[icue, cam]} onComplete={onComplete} />);
     expect(mockKill).not.toHaveBeenCalled();
-    expect(mockDisableAutostart).not.toHaveBeenCalled();
 
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'conflicts.onboarding.done' }));
@@ -65,7 +45,6 @@ describe('ConflictOnboardingScreen', () => {
 
     expect(onComplete).toHaveBeenCalledTimes(1);
     expect(mockKill).not.toHaveBeenCalled();
-    expect(mockDisableAutostart).not.toHaveBeenCalled();
   });
 
   it('shows the all-clear state and a Continue label when nothing is detected', () => {

@@ -1,9 +1,8 @@
 import { AlertTriangle, CheckCircle2, ShieldOff } from 'lucide-react';
-import type { ConflictAutostartEntry, DetectedConflict } from '../../../api/conflicts';
+import type { DetectedConflict } from '../../../api/conflicts';
 import { ConflictAppCard } from '../ConflictAppCard/ConflictAppCard';
 import { DeviceModal } from '../DeviceModal/DeviceModal';
 import { TopBarStatusButton } from '../TopBarStatusButton/TopBarStatusButton';
-import { useConflictAutostart } from '../../../hooks/useConflictAutostart';
 import { useTranslation } from '../../../lib/i18n';
 import styles from './ConflictWarning.module.scss';
 
@@ -33,7 +32,6 @@ interface ConflictWarningProps {
  */
 export function ConflictWarningBadge({ conflicts, pulsing, suppressed, open, onOpenChange, onSuppressedChange }: ConflictWarningProps) {
   const { t } = useTranslation();
-  const autostartById = useConflictAutostart(open);
   const count = conflicts.length;
   const showButton = count > 0 && !suppressed;
 
@@ -57,7 +55,6 @@ export function ConflictWarningBadge({ conflicts, pulsing, suppressed, open, onO
         suppressed={suppressed}
         onClose={() => onOpenChange(false)}
         onSuppressedChange={onSuppressedChange}
-        autostartById={autostartById}
       />
     </>
   );
@@ -69,12 +66,10 @@ interface ConflictWarningModalProps {
   suppressed: boolean;
   onClose: () => void;
   onSuppressedChange: (suppressed: boolean) => void;
-  /** Resolved autostart entries per conflict id; an id absent here gets no startup control. */
-  autostartById?: Readonly<Record<string, ConflictAutostartEntry[]>>;
 }
 
 export function ConflictWarningModal({
-  open, conflicts, suppressed, onClose, onSuppressedChange, autostartById,
+  open, conflicts, suppressed, onClose, onSuppressedChange,
 }: ConflictWarningModalProps) {
   const { t } = useTranslation();
 
@@ -98,7 +93,7 @@ export function ConflictWarningModal({
           <ul className={styles.list}>
             {conflicts.map(conflict => (
               <li key={conflict.id}>
-                <ConflictAppCard conflict={conflict} autostart={autostartById?.[conflict.id]} />
+                <ConflictAppCard conflict={conflict} />
               </li>
             ))}
           </ul>

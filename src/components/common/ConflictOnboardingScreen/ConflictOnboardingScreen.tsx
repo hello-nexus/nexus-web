@@ -5,7 +5,7 @@ import { EmptyState } from '../EmptyState/EmptyState';
 import { ConflictAppCard } from '../ConflictAppCard/ConflictAppCard';
 import { SkipOnboardingButton } from '../SkipOnboardingButton/SkipOnboardingButton';
 import { useTranslation } from '../../../lib/i18n';
-import type { ConflictAutostartEntry, DetectedConflict } from '../../../api/conflicts';
+import type { DetectedConflict } from '../../../api/conflicts';
 import styles from './ConflictOnboardingScreen.module.scss';
 
 const HERO_ICON_SIZE = 40;
@@ -13,8 +13,6 @@ const HERO_ICON_SIZE = 40;
 export interface ConflictOnboardingScreenProps {
   open: boolean;
   conflicts: readonly DetectedConflict[];
-  /** Resolved autostart entries per conflict id; an id absent here gets no startup control. */
-  autostartById?: Readonly<Record<string, ConflictAutostartEntry[]>>;
   onComplete: () => void;
   /** Steps back to the previous onboarding screen; the Back button only renders when provided. */
   onBack?: () => void;
@@ -24,12 +22,11 @@ export interface ConflictOnboardingScreenProps {
 
 /**
  * The last onboarding gate: apps already driving the hardware Nexus is taking
- * over. Every action is per-app and explicit - continuing ends nothing and
- * clears no autostart entry, so a user who just wants past this screen keeps
- * their setup exactly as it was.
+ * over. Ending one is per-app and explicit; continuing ends nothing, so a user
+ * who just wants past this screen keeps their setup exactly as it was.
  */
 export function ConflictOnboardingScreen({
-  open, conflicts, autostartById, onComplete, onBack, onSkipOnboarding,
+  open, conflicts, onComplete, onBack, onSkipOnboarding,
 }: ConflictOnboardingScreenProps) {
   const { t } = useTranslation();
   const heading = t('conflicts.onboarding.title');
@@ -76,7 +73,7 @@ export function ConflictOnboardingScreen({
           <div className={styles.list}>
             {conflicts.map(conflict => (
               <div key={conflict.id} className={styles.listItem}>
-                <ConflictAppCard conflict={conflict} autostart={autostartById?.[conflict.id]} />
+                <ConflictAppCard conflict={conflict} />
               </div>
             ))}
           </div>

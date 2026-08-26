@@ -31,7 +31,6 @@ import { useServiceStatus, DESKTOP_OFFLINE_GRACE_MS } from '../hooks/useServiceS
 import { useServiceState } from '../hooks/useServiceState';
 import { useOnboardingStatus } from '../hooks/useOnboardingStatus';
 import { useConflictApps } from '../hooks/useConflictApps';
-import { useConflictAutostart } from '../hooks/useConflictAutostart';
 import { completeLightingOnboarding, completeOnboarding } from '../api/onboarding';
 import { dismissNexus2Welcome } from '../api/migration';
 import { dismissFanControlImport } from '../api/fancontrol';
@@ -314,7 +313,6 @@ export function Dashboard() {
   // Open depends on the latch, not on the live list, so ending the last app
   // from inside the modal shows the all-clear state instead of vanishing.
   const conflictStepOpen = conflictStepArmed && !conflictStepDone;
-  const onboardingAutostart = useConflictAutostart(conflictStepOpen);
 
   // Skips every remaining step at once. Marks the same server flags the
   // screens themselves would, so a reload does not reopen them.
@@ -884,8 +882,7 @@ export function Dashboard() {
           onComplete={() => setOnboardingDismissed(true)}
         />
         {/* Import gate: offers every app a previous setup can come from.
-            Closing an app and clearing its autostart is the conflict gate's
-            job, per app, on an explicit click. */}
+            Ending one is the conflict gate's job, on an explicit click. */}
         <ImportOnboardingScreen
           open={importOpen}
           nexus2={nexus2.payload}
@@ -923,7 +920,6 @@ export function Dashboard() {
         <ConflictOnboardingScreen
           open={conflictStepOpen}
           conflicts={onboardingConflicts}
-          autostartById={onboardingAutostart}
           onComplete={() => setConflictStepDone(true)}
           onSkipOnboarding={skipOnboarding}
           onBack={() => setLightingOnboardingDismissed(false)}

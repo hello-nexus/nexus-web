@@ -31,8 +31,8 @@ export interface ImportOnboardingScreenProps {
 
 /**
  * The onboarding gate for bringing a previous setup over. It never closes an
- * app or touches its autostart; the end-of-onboarding conflict step does that,
- * per app, on an explicit click.
+ * app; the end-of-onboarding conflict step does that, per app, on an explicit
+ * click.
  */
 export function ImportOnboardingScreen({ open, fanControl, nexus2, offeredFor, onComplete, onBack, onSkipOnboarding }: ImportOnboardingScreenProps) {
   const { t } = useTranslation();
@@ -81,9 +81,9 @@ export function ImportOnboardingScreen({ open, fanControl, nexus2, offeredFor, o
     if (offeredFor.fancontrol) await dismissFanControlImport().catch(() => null);
   };
 
-  // Neither button touches the detected apps; closing them and clearing their
-  // autostart is the end-of-onboarding conflict step's job, on an explicit
-  // per-app click. Only one button imports.
+  // Neither button touches the detected apps; closing them is the
+  // end-of-onboarding conflict step's job, on an explicit per-app click.
+  // Only one button imports.
   const handleContinue = async (runImport: boolean) => {
     if (applyPhase === 'applying' || dismissing || importBusy) return;
 

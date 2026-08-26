@@ -13,16 +13,12 @@ vi.mock('../../../lib/i18n', () => ({
 
 const mockKillConflict = vi.fn();
 
-const mockDisableAutostart = vi.fn();
-
 vi.mock('../../../api/conflicts', () => ({
   killConflict: (...args: any[]) => mockKillConflict(...args),
-  disableConflictAutostart: (...args: any[]) => mockDisableAutostart(...args),
 }));
 
 beforeEach(() => {
   mockKillConflict.mockReset();
-  mockDisableAutostart.mockReset();
 });
 
 const conflict = { id: 'icue', displayName: 'iCUE', category: 'cooling', processName: 'iCUE.exe', pid: 4212 };
@@ -45,25 +41,7 @@ describe('ConflictAppCard', () => {
     expect(screen.queryByText(/cooling/i)).not.toBeInTheDocument();
   });
 
-  it('offers no startup control when no entry resolved', () => {
-    render(<ConflictAppCard conflict={conflict} autostart={[]} />);
 
-    expect(screen.queryByText('conflicts.modal.removeStartup')).not.toBeInTheDocument();
-    expect(screen.queryByText('conflicts.modal.removeStartupService')).not.toBeInTheDocument();
-  });
-
-  it('offers one startup control for an app holding several entries', () => {
-    render(<ConflictAppCard
-      conflict={conflict}
-      autostart={[
-        { kind: 'service', entryName: 'CorsairDeviceListerService' },
-        { kind: 'runKeyMachine', entryName: 'Corsair iCUE5 Software' },
-      ]}
-    />);
-
-    expect(screen.getByRole('button', { name: 'conflicts.modal.removeStartup' })).toBeInTheDocument();
-    expect(mockDisableAutostart).not.toHaveBeenCalled();
-  });
 
   it('wires the End Task button to kill this conflict by id', async () => {
     mockKillConflict.mockResolvedValue({ killed: true });
