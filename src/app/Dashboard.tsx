@@ -625,18 +625,27 @@ export function Dashboard() {
   useSearchSignal('update-modal', useCallback(() => { void handleUpdateOpen(); }, [handleUpdateOpen]));
 
   // The tray sends an update balloon click here as /?openUpdate=1, which is the
-  // only way a click reaches an already-open window. The param is stripped
-  // before the modal opens so a reload does not reopen it.
+  // only way a click reaches an already-open window. Read during render, not in
+  // an effect: useRoute's initial redirect rewrites the address without the
+  // query, and its effect is registered first, so by then the param is gone.
+  const [openUpdateRequested] = useState(() => {
+    try { return new URLSearchParams(window.location.search).has(OPEN_UPDATE_PARAM); }
+    catch { return false; }
+  });
   const openUpdateParamRef = useRef(false);
   useEffect(() => {
-    if (openUpdateParamRef.current) return;
-    const url = new URL(window.location.href);
-    if (!url.searchParams.has(OPEN_UPDATE_PARAM)) return;
+    if (!openUpdateRequested || openUpdateParamRef.current) return;
     openUpdateParamRef.current = true;
-    url.searchParams.delete(OPEN_UPDATE_PARAM);
-    window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+    // Survives that redirect when the landing path is already canonical, so a
+    // reload would otherwise reopen the modal. history.state carries useRoute's
+    // navigation index and must be preserved.
+    const url = new URL(window.location.href);
+    if (url.searchParams.has(OPEN_UPDATE_PARAM)) {
+      url.searchParams.delete(OPEN_UPDATE_PARAM);
+      window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
+    }
     void handleUpdateOpen();
-  }, [handleUpdateOpen]);
+  }, [openUpdateRequested, handleUpdateOpen]);
 
   // Bump on every offline -> online transition so the profile dropdown
   // remounts and replays its fade-in once.
