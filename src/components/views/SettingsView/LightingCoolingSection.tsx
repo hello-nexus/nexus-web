@@ -1,12 +1,13 @@
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
-import { CircuitBoard, Cpu, Moon, RotateCcw, Zap } from 'lucide-react';
+import { CircuitBoard, Cpu, Lock, Moon, RotateCcw, Zap } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { Select } from '../../common/Select/Select';
 import { SettingRow, SettingSelect, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import {
-  fetchRenderGpu, fetchSleepBlackout, restartService, setRenderGpu, setSleepBlackout,
+  fetchLockBlackout, fetchRenderGpu, fetchSleepBlackout, restartService, setLockBlackout,
+  setRenderGpu, setSleepBlackout,
 } from '../../../api/lighting';
 import { useSensors, type HardwareSensor } from '../../../hooks/useSensors';
 import { useUiSettings } from '../../../hooks/useUiSettings';
@@ -46,6 +47,11 @@ export function LightingCoolingSection({ serviceOnline, platform }: LightingCool
   // never renders off for a moment and reads as a user preference.
   const showSleepBlackout = platform === 'windows';
   const [sleepBlackout, setSleepBlackoutValue] = useState(true);
+  // Every desktop OS reports its session lock while still running, so unlike
+  // sleep-blackout this is not Windows-only. Defaults to the service default
+  // (on) so the row never renders off for a moment and reads as a user choice.
+  const showLockBlackout = platform === 'windows' || platform === 'macos' || platform === 'linux';
+  const [lockBlackout, setLockBlackoutValue] = useState(true);
 
   useEffect(() => {
     if (!showGpuPicker || !serviceOnline) return;
@@ -65,6 +71,15 @@ export function LightingCoolingSection({ serviceOnline, platform }: LightingCool
     return () => { cancelled = true; };
   }, [showSleepBlackout, serviceOnline]);
 
+  useEffect(() => {
+    if (!showLockBlackout || !serviceOnline) return;
+    let cancelled = false;
+    fetchLockBlackout()
+      .then(r => { if (!cancelled && r) setLockBlackoutValue(!!r.enabled); })
+      .catch(() => { /* keep default */ });
+    return () => { cancelled = true; };
+  }, [showLockBlackout, serviceOnline]);
+
   const cpuOptions = useMemo(() => listTempSensors(sensors.cpu), [sensors.cpu]);
   const gpuOptions = useMemo(() => listTempSensors(sensors.gpu), [sensors.gpu]);
   const cpuDefault = useMemo(() => defaultCpuTempSensor(sensors.cpu), [sensors.cpu]);
@@ -79,6 +94,11 @@ export function LightingCoolingSection({ serviceOnline, platform }: LightingCool
     setSleepBlackoutValue(next);
     try { await setSleepBlackout(next); }
     catch { setSleepBlackoutValue(!next); }
+  };
+  const handleLockBlackoutChange = async (next: boolean) => {
+    setLockBlackoutValue(next);
+    try { await setLockBlackout(next); }
+    catch { setLockBlackoutValue(!next); }
   };
   const handleRestart = async () => {
     try { await restartService(); } catch { /* the socket drops as the service restarts */ }
@@ -142,6 +162,18 @@ export function LightingCoolingSection({ serviceOnline, platform }: LightingCool
             description={t('lighting.sleepBlackout.description')}
             checked={sleepBlackout}
             onChange={handleSleepBlackoutChange}
+            disabled={!serviceOnline}
+          />
+        )}
+        {showLockBlackout && (
+          <SettingToggle
+            label={t('lighting.lockBlackout.label')}
+            icon={<Lock />}
+            iconLeading="subtle"
+            anchorId="set-lock-blackout"
+            description={t('lighting.lockBlackout.description')}
+            checked={lockBlackout}
+            onChange={handleLockBlackoutChange}
             disabled={!serviceOnline}
           />
         )}

@@ -41,6 +41,8 @@ const lightingApi = vi.hoisted(() => ({
   // and would otherwise trip over an undefined return inside its effect.
   fetchSleepBlackout: vi.fn().mockResolvedValue({ enabled: true }),
   setSleepBlackout: vi.fn().mockResolvedValue(null),
+  fetchLockBlackout: vi.fn().mockResolvedValue({ enabled: true }),
+  setLockBlackout: vi.fn().mockResolvedValue(null),
 }));
 
 vi.mock('../../../api/lighting', () => ({
@@ -49,6 +51,8 @@ vi.mock('../../../api/lighting', () => ({
   restartService: vi.fn().mockResolvedValue(null),
   fetchSleepBlackout: lightingApi.fetchSleepBlackout,
   setSleepBlackout: lightingApi.setSleepBlackout,
+  fetchLockBlackout: lightingApi.fetchLockBlackout,
+  setLockBlackout: lightingApi.setLockBlackout,
 }));
 
 vi.mock('../../../lib/i18n', () => ({
@@ -124,5 +128,46 @@ describe('LightingCoolingSection sleep blackout', () => {
 
     expect(screen.queryByRole('switch', { name: 'lighting.sleepBlackout.label' })).not.toBeInTheDocument();
     expect(lightingApi.fetchSleepBlackout).not.toHaveBeenCalled();
+  });
+});
+
+describe('LightingCoolingSection lock blackout', () => {
+  const toggle = () => screen.getByRole('switch', { name: 'lighting.lockBlackout.label' });
+
+  beforeEach(() => {
+    lightingApi.fetchLockBlackout.mockReset().mockResolvedValue({ enabled: true });
+    lightingApi.setLockBlackout.mockReset().mockResolvedValue(null);
+  });
+
+  it('reflects the service value and persists a change', async () => {
+    lightingApi.fetchLockBlackout.mockResolvedValue({ enabled: false });
+    render(<LightingCoolingSection serviceOnline platform="windows" />);
+
+    await waitFor(() => expect(toggle()).toHaveAttribute('aria-checked', 'false'));
+
+    fireEvent.click(toggle());
+
+    expect(lightingApi.setLockBlackout).toHaveBeenCalledWith(true);
+    await waitFor(() => expect(toggle()).toHaveAttribute('aria-checked', 'true'));
+  });
+
+  it('reverts the switch when the service rejects the write', async () => {
+    lightingApi.setLockBlackout.mockRejectedValue(new Error('offline'));
+    render(<LightingCoolingSection serviceOnline platform="windows" />);
+
+    await waitFor(() => expect(toggle()).toHaveAttribute('aria-checked', 'true'));
+    fireEvent.click(toggle());
+
+    expect(toggle()).toHaveAttribute('aria-checked', 'false');
+    await waitFor(() => expect(toggle()).toHaveAttribute('aria-checked', 'true'));
+  });
+
+  it('shows on macOS, where sleep blackout does not', async () => {
+    // The lock is reported by every desktop OS while the host is still up, so
+    // this row is not bound to the pre-suspend notification sleep needs.
+    render(<LightingCoolingSection serviceOnline platform="macos" />);
+
+    await waitFor(() => expect(toggle()).toBeInTheDocument());
+    expect(lightingApi.fetchLockBlackout).toHaveBeenCalled();
   });
 });
