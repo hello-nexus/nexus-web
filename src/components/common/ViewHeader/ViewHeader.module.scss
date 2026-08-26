@@ -51,8 +51,9 @@
 // (e.g. the Lighting right-pane selector) can control their own margins.
 .viewHeaderTabs {
   margin-bottom: 0.75rem;
-  // Never below the tab labels: shrink pressure has to land on the actions.
-  min-width: min-content;
+  // Never below the tab labels: shrink pressure has to land on the actions,
+  // whose rail carries a floor of its own (PresetToolbar .toolbarRail).
+  flex: 0 0 auto;
 }
 
 // Right-aligned overlay container at tabs-row level. Spans the full row
@@ -69,5 +70,15 @@
   min-width: 0;
   margin-left: auto;
   // The tab bar carries the row's bottom spacing, so match it here.
+  margin-bottom: 0.75rem;
+}
+
+// Sits directly beside the tab bar (no auto margin), so a page-level readout
+// reads as attached to the tabs rather than pinned to the far edge. Carries
+// the tab bar's bottom spacing so both line up on the same centre.
+.tabsAdjacent {
+  display: flex;
+  align-items: center;
+  min-width: 0;
   margin-bottom: 0.75rem;
 }

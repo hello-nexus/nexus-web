@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
-import { ArrowLeft, Ban, CheckCheck, Lightbulb, PowerOff, RotateCw, SlidersHorizontal, Sparkles } from 'lucide-react';
+import { ArrowLeft, Ban, CheckCheck, Lightbulb, PanelsTopLeft, PowerOff, RotateCw, SquareDashed } from 'lucide-react';
 import { SkipOnboardingButton } from '../SkipOnboardingButton/SkipOnboardingButton';
 import { useTranslation } from '../../../lib/i18n';
 import { Overlay } from '../Overlay/Overlay';
@@ -45,8 +45,8 @@ const MODE_ICON_SIZE = 22;
 /** In the order they are offered: leave RGB alone, drive it all, or choose. */
 const MODE_CHOICES = [
   { key: 'off' as const, Icon: PowerOff },
-  { key: 'simple' as const, Icon: Sparkles },
-  { key: 'advanced' as const, Icon: SlidersHorizontal },
+  { key: 'simple' as const, Icon: SquareDashed },
+  { key: 'advanced' as const, Icon: PanelsTopLeft },
 ];
 
 // A few of the simple fills, for checking which lights actually respond. The

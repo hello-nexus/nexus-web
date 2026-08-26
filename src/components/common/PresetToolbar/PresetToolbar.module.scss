@@ -13,11 +13,13 @@
 // when the row is tight, so the tab labels are never the thing that is cut.
 // Its own select truncates instead.
 .toolbarRail {
-  // Holds its width and gives way only when the tab bar needs the room, never
-  // below the point where the preset name stops being readable.
+  // Holds its width and gives way only when the tab bar needs the room. The
+  // floor is the toolbar's own controls plus a sliver of the select; it is
+  // reached only near the shell's 1000px minimum window width, where the tab
+  // strip runs the full row.
   width: 300px;
   flex: 0 1 auto;
-  min-width: 15rem;
+  min-width: 7rem;
   max-width: 100%;
   margin-bottom: 0;
 }

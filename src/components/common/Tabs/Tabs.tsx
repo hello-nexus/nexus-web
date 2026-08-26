@@ -12,6 +12,15 @@ export interface TabDef {
   readonly icon?: ReactNode;
   /** Per-tab disable. Takes precedence over the `disabled` root flag. */
   readonly disabled?: boolean;
+  /** Accessible name for a tab whose label carries no text (icon-only). */
+  readonly ariaLabel?: string;
+  /** Wraps the tab's content in the sidebar section-header pill (Apps /
+   *  Devices), marking it as a control rather than one more page tab. */
+  readonly chip?: boolean;
+  /** Marks the tab as a menu trigger and carries the menu's open state, so a
+   *  tab that drops a popup announces itself as one (the lighting / cooling
+   *  mode tab). Omit for a plain tab. */
+  readonly expanded?: boolean;
   /** Optional trailing control, right-aligned after the label (e.g. a per-tab
    *  pause toggle). Rendered as a DOM sibling of the tab's own `<button>`,
    *  inside a shared visual pill - never a descendant of it. A focusable
@@ -58,11 +67,14 @@ export function Tabs({ tabs, activeKey, onChange, disabled, ariaLabel = 'Tabs', 
               type="button"
               role="tab"
               aria-selected={isActive}
+              aria-label={tab.ariaLabel}
+              aria-haspopup={tab.expanded === undefined ? undefined : 'menu'}
+              aria-expanded={tab.expanded}
               className={classNames(styles.tab, { [styles.active]: isActive })}
               disabled={disabled || tab.disabled}
               onClick={e => onChange(tab.key, e.currentTarget)}
             >
-              <span className={styles.tabInner}>
+              <span className={classNames(styles.tabInner, { [styles.tabChip]: tab.chip })}>
                 {tab.icon && <span className={styles.tabIcon} aria-hidden="true">{tab.icon}</span>}
                 <span className={styles.tabLabel}>{tab.label}</span>
               </span>
@@ -79,11 +91,14 @@ export function Tabs({ tabs, activeKey, onChange, disabled, ariaLabel = 'Tabs', 
               type="button"
               role="tab"
               aria-selected={isActive}
+              aria-label={tab.ariaLabel}
+              aria-haspopup={tab.expanded === undefined ? undefined : 'menu'}
+              aria-expanded={tab.expanded}
               className={styles.tab}
               disabled={disabled || tab.disabled}
               onClick={e => onChange(tab.key, e.currentTarget)}
             >
-              <span className={styles.tabInner}>
+              <span className={classNames(styles.tabInner, { [styles.tabChip]: tab.chip })}>
                 {tab.icon && <span className={styles.tabIcon} aria-hidden="true">{tab.icon}</span>}
                 <span className={styles.tabLabel}>{tab.label}</span>
               </span>

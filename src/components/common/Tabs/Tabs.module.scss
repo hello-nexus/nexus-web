@@ -7,7 +7,14 @@
 }
 
 .tab {
-  padding: 0.4rem 1.2rem;
+  // Flex, not inline layout: an inline-flex .tabInner sits on the text
+  // baseline, which parked the whole line box's descender space under the
+  // glyph and pushed the content up. The extra 2px of block padding replaces
+  // that space, so the tab measures exactly as it did before.
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc(0.4rem + 2px) 1.2rem;
   font-size: var(--type-small);
   font-weight: var(--weight-body);
   line-height: 1.5;
@@ -59,15 +66,37 @@
   height: 1.5em;
   transition: color var(--ease-fast) ease;
 
+  // Sidebar icon size (sidebarNav ICON_SIZE), overriding whatever each caller
+  // passed to its glyph. Still inside the 1.5em slot, so the tab keeps its
+  // height.
   svg {
     display: block;
     position: relative;
     z-index: 1;
+    width: 18px;
+    height: 18px;
   }
 }
 
 .tabLabel {
   min-width: 0;
+  // A tab label that wraps doubles the strip's height and shifts everything
+  // under it; the row gives way elsewhere (see ViewHeader's tabsRow).
+  white-space: nowrap;
+}
+
+// Sidebar section-header treatment (Apps / Devices): a faint pill around the
+// tab's own content. The negative margins cancel the pill's padding exactly,
+// so a chip tab measures the same as a plain one in every state.
+.tabChip {
+  --tab-chip-pad-x: 10px;
+  --tab-chip-pad-y: 4px;
+
+  padding: var(--tab-chip-pad-y) var(--tab-chip-pad-x);
+  margin: calc(-1 * var(--tab-chip-pad-y)) calc(-1 * var(--tab-chip-pad-x));
+  border-radius: var(--radius-pill);
+  // Sidebar's own chip fill, verbatim (Sidebar.module.scss .headerChip).
+  background: color-mix(in srgb, var(--text) 5%, transparent);
 }
 
 // A tab with a trailing control renders as button + trailing sibling inside

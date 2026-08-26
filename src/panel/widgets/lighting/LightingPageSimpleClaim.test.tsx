@@ -1,6 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ReactNode } from 'react';
 import { UiSettingsProvider } from '../../../hooks/useUiSettings';
 import { LightingPage } from './LightingPage';
 import * as lightingApi from '../../../api/lighting';
@@ -14,9 +13,7 @@ vi.mock('../../../hooks/useUsbDevices', () => ({ useUsbDevices: () => ({ devices
 vi.mock('../../../hooks/useAudioState', () => ({ useAudioState: () => ({ current: null }) }));
 vi.mock('../../../hooks/useMultiplexSocket', () => ({ useTopicCallback: vi.fn(), useTopic: vi.fn(() => null) }));
 vi.mock('../../../lib/controlSync', () => ({ publishControlSync: vi.fn(), subscribeControlSync: vi.fn(() => () => {}) }));
-vi.mock('../../../components/common/ViewHeader/ViewHeader', () => ({
-  ViewHeader: ({ tabActions }: { tabActions?: ReactNode }) => <div>{tabActions}</div>,
-}));
+
 vi.mock('../../../components/views/ServiceRequired', () => ({ ServiceRequired: () => null }));
 vi.mock('../../../components/views/PageSkeleton/PageSkeleton', () => ({ LightingSkeleton: () => null }));
 
@@ -68,7 +65,7 @@ beforeEach(() => {
 describe('LightingPage simple mode device claiming', () => {
   it('leaves devices alone until the user asks for something', async () => {
     renderSimple();
-    await screen.findByText('lighting.mode.off');
+    await screen.findByRole('tab');
 
     // Arriving on the page is not a decision about which devices Nexus drives.
     await waitFor(() => expect(lightingApi.fetchLightingDevices).toHaveBeenCalled());
@@ -78,7 +75,8 @@ describe('LightingPage simple mode device claiming', () => {
 
   it('claims every device when the user presses off', async () => {
     renderSimple();
-    fireEvent.click(await screen.findByText('lighting.mode.off'));
+    fireEvent.click(await screen.findByRole('tab'));
+    fireEvent.click(screen.getByRole('menuitemradio', { name: /lighting\.mode\.off/ }));
 
     await waitFor(() => expect(lightingApi.setLightingDeviceControlled).toHaveBeenCalledWith('openrgb-0', true));
     expect(lightingApi.setLightingDevicePower).toHaveBeenCalledWith('openrgb-0', true);
@@ -98,15 +96,18 @@ describe('LightingPage simple mode device claiming', () => {
     expect(painted).toContain('openrgb-0');
   });
 
-  it('claims nothing when the off tile is already off', async () => {
+  it('claims nothing when Off is picked while already off', async () => {
     renderSimple();
     await waitFor(() => expect(lightingApi.fetchLightingDevices).toHaveBeenCalled());
-    fireEvent.click(screen.getByText('lighting.mode.off'));
+    const openMenu = () => fireEvent.click(screen.getByRole('tab'));
+    openMenu();
+    fireEvent.click(screen.getByRole('menuitemradio', { name: /lighting\.mode\.off/ }));
     await waitFor(() => expect(lightingApi.setLightingDeviceControlled).toHaveBeenCalled());
     vi.mocked(lightingApi.setLightingDeviceControlled).mockClear();
 
-    // Pressing it again asks for nothing new, so it takes over nothing.
-    fireEvent.click(screen.getByText('lighting.mode.off'));
+    // Picking it again asks for nothing new, so it takes over nothing.
+    openMenu();
+    fireEvent.click(screen.getByRole('menuitemradio', { name: /lighting\.mode\.off/ }));
     expect(lightingApi.setLightingDeviceControlled).not.toHaveBeenCalled();
   });
 });

@@ -41,7 +41,6 @@ vi.mock('./page/ModeControls', () => ({ ModeControls: () => null }));
 vi.mock('./page/DevicePanel', () => ({ DevicePanel: () => <div data-testid="device-panel" /> }));
 vi.mock('./page/LedMapEditor', () => ({ LedMapEditor: () => null }));
 vi.mock('./page/EffectTab', () => ({ EffectTab: () => null }));
-vi.mock('../../../components/common/ViewHeader/ViewHeader', () => ({ ViewHeader: () => null }));
 vi.mock('../../../components/views/ServiceRequired', () => ({ ServiceRequired: () => null }));
 vi.mock('../../../components/views/PageSkeleton/PageSkeleton', () => ({ LightingSkeleton: () => null }));
 vi.mock('../../../components/common/DeviceCanvas/DeviceCanvas', () => ({ DeviceCanvas: () => null }));
@@ -100,7 +99,8 @@ describe('LightingPage simple mode', () => {
     const { container } = renderPage();
     expect(container.querySelectorAll('[data-palette-id]').length).toBe(PALETTE.length);
     expect(screen.queryByTestId('device-panel')).toBeNull();
-    expect(screen.getByRole('button', { name: /lighting\.simple\.advancedCta/ })).toBeTruthy();
+    // Simple mode carries the mode tab and nothing after it.
+    expect(screen.getAllByRole('tab')).toHaveLength(1);
   });
 
   it('offers no gradient, two-tone or spectrum pattern', () => {
@@ -111,11 +111,22 @@ describe('LightingPage simple mode', () => {
   });
 
   it('summarises how many devices are driven out of the total', async () => {
+    syncState.mode = 'static';
     renderPage();
     expect(await screen.findByText('lighting.simple.controlledOf.other')).toBeTruthy();
   });
 
+  // The same line, in the same place: what Off did instead of a count nothing
+  // is driving.
+  it('states that lighting is off instead of counting devices, while off', async () => {
+    renderPage();
+    expect(await screen.findByText('lighting.off.message')).toBeTruthy();
+    expect(screen.queryByText('lighting.simple.controlledOf.other')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'lighting.simple.controlAll' })).toBeNull();
+  });
+
   it('offers a one-click claim while a device is left un-driven, and drops it once none are', async () => {
+    syncState.mode = 'static';
     renderPage();
     const claim = await screen.findByRole('button', { name: 'lighting.simple.controlAll' });
     fireEvent.click(claim);
@@ -160,22 +171,24 @@ describe('LightingPage simple mode', () => {
     });
   });
 
-  it('off tile stops lighting when a mode is running', async () => {
+  it('the mode menu stops lighting when a mode is running', async () => {
     syncState.mode = 'static';
     renderPage();
-    const offTile = screen.getByRole('button', { name: /lighting\.mode\.off/ });
-    expect(offTile.getAttribute('aria-pressed')).toBe('false');
-    fireEvent.click(offTile);
+    fireEvent.click(screen.getByRole('tab'));
+    const off = screen.getByRole('menuitemradio', { name: /lighting\.mode\.off/ });
+    expect(off.getAttribute('aria-checked')).toBe('false');
+    fireEvent.click(off);
     await waitFor(() => {
       expect(vi.mocked(lightingApi.stopLighting)).toHaveBeenCalled();
     });
   });
 
-  it('off tile shows active and does not restart the stop while already off', () => {
+  it('marks Off in the menu and does not restart the stop while already off', () => {
     renderPage();
-    const offTile = screen.getByRole('button', { name: /lighting\.mode\.off/ });
-    expect(offTile.getAttribute('aria-pressed')).toBe('true');
-    fireEvent.click(offTile);
+    fireEvent.click(screen.getByRole('tab'));
+    const off = screen.getByRole('menuitemradio', { name: /lighting\.mode\.off/ });
+    expect(off.getAttribute('aria-checked')).toBe('true');
+    fireEvent.click(off);
     expect(vi.mocked(lightingApi.stopLighting)).not.toHaveBeenCalled();
   });
 
@@ -193,12 +206,14 @@ describe('LightingPage simple mode', () => {
     expect(screen.queryByText('lighting.simple.customActive')).toBeNull();
   });
 
-  it('switches to the advanced page from the CTA', async () => {
+  it('switches to the advanced page from the mode menu', async () => {
     renderPage();
-    fireEvent.click(screen.getByRole('button', { name: /lighting\.simple\.advancedCta/ }));
+    fireEvent.click(screen.getByRole('tab'));
+    fireEvent.click(screen.getByRole('menuitemradio', { name: /uiMode\.advancedMode/ }));
     await waitFor(() => {
       expect(screen.getByTestId('device-panel')).toBeTruthy();
     });
-    expect(screen.queryByRole('button', { name: /lighting\.simple\.advancedCta/ })).toBeNull();
+    // The advanced page's own tab strip: the mode tab plus every mode after it.
+    expect(screen.getAllByRole('tab').length).toBeGreaterThan(1);
   });
 });

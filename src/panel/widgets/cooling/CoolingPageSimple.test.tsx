@@ -58,15 +58,18 @@ describe('CoolingPage simple mode', () => {
     localStorage.clear();
   });
 
-  it('renders the four mode tiles without the custom mode or advanced chrome', () => {
+  it('renders the three speed tiles without the custom mode or advanced chrome', () => {
     renderPage();
     // Tile names concatenate the label and the description line.
-    for (const key of ['off', 'silent', 'balanced', 'turbo']) {
+    for (const key of ['silent', 'balanced', 'turbo']) {
       expect(screen.getByRole('button', { name: new RegExp(`cooling\\.mode\\.${key}\\b`) })).toBeTruthy();
     }
     expect(screen.queryByRole('button', { name: /cooling\.mode\.custom/ })).toBeNull();
     expect(screen.queryByRole('button', { name: /cooling\.calibrate\.button/ })).toBeNull();
-    expect(screen.getByRole('button', { name: /cooling\.simple\.advancedCta/ })).toBeTruthy();
+    // Simple mode carries the mode tab and nothing after it; Off lives in it.
+    expect(screen.getAllByRole('tab')).toHaveLength(1);
+    fireEvent.click(screen.getByRole('tab'));
+    expect(screen.getByRole('menuitemradio', { name: /cooling\.mode\.off/ })).toBeTruthy();
   });
 
   it('summarises how many fans Nexus controls out of the total', async () => {
@@ -101,10 +104,12 @@ describe('CoolingPage simple mode', () => {
     });
   });
 
-  it('switches to the advanced page from the CTA', async () => {
+  it('switches to the advanced page from the mode menu', async () => {
     renderPage();
-    fireEvent.click(screen.getByRole('button', { name: /cooling\.simple\.advancedCta/ }));
+    fireEvent.click(screen.getByRole('tab'));
+    fireEvent.click(screen.getByRole('menuitemradio', { name: /uiMode\.advancedMode/ }));
     expect(await screen.findByRole('button', { name: /cooling\.calibrate\.button/ })).toBeTruthy();
-    expect(screen.queryByRole('button', { name: /cooling\.simple\.advancedCta/ })).toBeNull();
+    // The advanced page's own tab strip: the mode tab plus every mode after it.
+    expect(screen.getAllByRole('tab').length).toBeGreaterThan(1);
   });
 });
