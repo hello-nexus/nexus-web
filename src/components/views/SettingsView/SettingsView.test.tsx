@@ -2,6 +2,11 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { SettingsView } from './SettingsView';
 
+vi.mock('../../../api/smartPoll', async (importActual) => ({
+  ...(await importActual<typeof import('../../../api/smartPoll')>()),
+  fetchSmartPoll: vi.fn(async () => null),
+}));
+
 vi.mock('../../../api/service', () => ({
   fetchService: vi.fn().mockResolvedValue(null),
   postService: vi.fn().mockResolvedValue(null),

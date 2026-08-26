@@ -4,6 +4,7 @@ import { SettingRow } from '../../common/SettingRow/SettingRow';
 import { ChipGroup } from '../../common/ChipGroup/ChipGroup';
 import { MonitoringEventsSettings } from '../../../panel/widgets/monitoring/page/MonitoringEventsSettings';
 import { LightingCoolingSection } from './LightingCoolingSection';
+import { SmartPollSection } from './SmartPollSection';
 import { useTranslation } from '../../../lib/i18n';
 import type { NexusSettings } from '../../../lib/settings';
 import type { TempUnit } from '../../../lib/units';
@@ -44,6 +45,8 @@ export function MonitoringTab({ settings, updateGeneral, serviceOnline, platform
       </SettingsSection>
 
       <MonitoringEventsSettings />
+
+      <SmartPollSection serviceOnline={serviceOnline} />
 
       <LightingCoolingSection serviceOnline={serviceOnline} platform={platform} />
     </div>
