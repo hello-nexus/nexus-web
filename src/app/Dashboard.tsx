@@ -947,9 +947,9 @@ export function Dashboard() {
         />
         {/* Final onboarding gate: conflicting apps. A full screen like the
             gates before it, not the top-bar modal - that one belongs to the
-            badge and carries its "don't show again" row. Rendered here rather
-            than beside the other gates because it subscribes to the conflicts
-            topic, which only resolves inside the provider above. */}
+            badge and carries its "don't show again" row. Its hook call lives in
+            the child, not in Dashboard's body: useTopic reads MultiplexContext
+            from above its component, and Dashboard is what renders it. */}
         <ConflictOnboardingGate
           enabled={gatesSettled && !conflictStepDone}
           armed={conflictStepArmed}
@@ -958,7 +958,10 @@ export function Dashboard() {
           onSpend={() => setConflictStepDone(true)}
           onComplete={() => setConflictStepDone(true)}
           onSkipOnboarding={skipOnboarding}
-          onBack={() => setLightingOnboardingDismissed(false)}
+          // Disarm as well as reopening the previous gate: `open` here is the
+          // only gate condition that does not exclude an earlier one, so
+          // leaving it armed stacks two full-screen overlays.
+          onBack={() => { setConflictStepArmed(false); setLightingOnboardingDismissed(false); }}
         />
         {/* Global incoming-pair prompt, at the layout root so it lands on top
             of any section. Pair Remote stays in its own modal below. */}
