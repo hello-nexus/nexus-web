@@ -390,11 +390,60 @@
   padding: 0.6rem 0.75rem;
   border-radius: var(--radius); border: var(--border-width) solid transparent; background: var(--surface);
   // Click selects, like a lighting device row; a drag only begins past the
-  // sensor's distance threshold, so the affordance is a pointer, not a grab.
+  // sensor's distance threshold, so the affordance is a pointer, not a grab -
+  // including while the pointer is down, matching .deviceCard exactly.
   cursor: pointer;
   transition: border-color var(--ease-fast) ease, background var(--ease-fast) ease, opacity var(--ease-fast) ease;
   &:hover { border-color: var(--border-strong); }
-  &:active { cursor: grabbing; }
+}
+
+// The mode control and the overflow button share one row, so the button's
+// width comes out of the dropdown rather than out of the whole card.
+.fanModeRow {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+
+  // The mode control takes whatever the button leaves.
+  > :first-child { flex: 1 1 auto; min-width: 0; }
+}
+
+// Overflow-menu slot, mirroring .deviceCardActions / .deviceMenuBtn on the
+// lighting card. Always visible: the menu is the only route to Lock and Nexus
+// Control, so hover is not a precondition for reaching them.
+.fanCardActions {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+// Stands in for the dropdown's lock icon on the rows that have no dropdown.
+.fanLockGlyph {
+  color: var(--text-dim);
+  flex: 0 0 auto;
+}
+
+.fanMenuBtn {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color var(--ease-fast), background var(--ease-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  svg { width: 13px; height: 13px; }
 }
 
 .fanCardSelected {
@@ -464,22 +513,6 @@
   cursor: pointer;
   &:hover .fanKindIcon { color: var(--text); }
 }
-// Overlaid on the fan icon's bottom-right corner; the fan dims when locked so
-// this reads as the primary glyph. The surface-colored ring punches a gap
-// through the fan blades behind it so the lock stays legible against them.
-.fanLockBadge {
-  position: absolute;
-  right: -4px;
-  bottom: -4px;
-  color: var(--text);
-  background: var(--surface);
-  border-radius: 50%;
-  padding: 1px;
-  box-shadow: 0 0 0 2px var(--surface);
-}
-// Locked fans dim the fan glyph so the lock badge is the dominant mark.
-.fanKindIconDim { opacity: 0.3; }
-
 // Positioned ancestor for the role picker Popover (see Popover.tsx: it
 // positions absolute against the nearest positioned ancestor, not its anchor
 // prop, which is only used for click-outside detection).

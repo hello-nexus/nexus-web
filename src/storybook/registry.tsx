@@ -1176,8 +1176,8 @@ function PreviewSimpleModeNotice() {
 function PreviewDeviceCountSummary() {
   return (
     <div className={styles.previewStack} style={{ width: 420 }}>
-      <DeviceCountSummary detected="6 lighting devices detected" controlled="6 controlled" />
-      <DeviceCountSummary detected="14 fans detected" controlled="0 controlled" />
+      <DeviceCountSummary detected="4/6 lighting devices controlled" action={<Button size="sm" pill>Control all</Button>} />
+      <DeviceCountSummary detected="14/14 fans controlled" />
     </div>
   );
 }
@@ -2099,7 +2099,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'DeviceCountSummary', category: 'cards',
     filePath: 'src/components/common/DeviceCountSummary/DeviceCountSummary.tsx',
-    description: 'One-line "what am I driving" summary at the top of the simple-mode lighting/cooling pages: how many devices the service found, plus a dim badge for how many Nexus actually drives. Both strings arrive translated - the page owns the plural key and the noun (devices on lighting, fans on cooling).',
+    description: 'One-line "what am I driving" summary at the top of the simple-mode lighting/cooling pages: how many of the devices the service found Nexus actually controls, plus an optional trailing action (the one-click "control all"). The line arrives translated - the page owns the plural key and the noun (devices on lighting, fans on cooling).',
     Preview: PreviewDeviceCountSummary,
   },
   {

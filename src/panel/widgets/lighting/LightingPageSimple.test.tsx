@@ -110,10 +110,21 @@ describe('LightingPage simple mode', () => {
     }
   });
 
-  it('summarises how many devices are detected and driven', async () => {
+  it('summarises how many devices are driven out of the total', async () => {
     renderPage();
-    expect(await screen.findByText('lighting.simple.detected.other')).toBeTruthy();
-    expect(screen.getByText('lighting.simple.controlled')).toBeTruthy();
+    expect(await screen.findByText('lighting.simple.controlledOf.other')).toBeTruthy();
+  });
+
+  it('offers a one-click claim while a device is left un-driven, and drops it once none are', async () => {
+    renderPage();
+    const claim = await screen.findByRole('button', { name: 'lighting.simple.controlAll' });
+    fireEvent.click(claim);
+    await waitFor(() => {
+      expect(vi.mocked(lightingApi.setLightingDeviceControlled)).toHaveBeenCalledWith('dev-2', true);
+    });
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: 'lighting.simple.controlAll' })).toBeNull();
+    });
   });
 
   it('takes over a device the advanced page had left un-driven, when asked to light one', async () => {

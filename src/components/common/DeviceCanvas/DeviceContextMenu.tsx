@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 // Reuse the panel widget menu's stylesheet.
 import styles from '../../../panel/widgets/common/WidgetContextMenu.module.scss';
 
@@ -78,7 +79,17 @@ export function DeviceContextMenu({ x, y, items, onClose }: DeviceContextMenuPro
     '--menu-origin-y': `${origin.y}px`,
   } as CSSProperties;
 
-  return (
+  // Portaled to <body>: the menu is position:fixed, and a fixed element is
+  // still positioned and stacked inside the nearest ancestor that creates a
+  // stacking context. Both card families that host this menu create one - a
+  // dimmed card (opacity < 1) and every dnd-kit sortable row (transform) - so
+  // rendered in place the menu slid under neighbouring panels whatever
+  // z-index it carried. React portals keep bubbling through the component
+  // tree, so a host whose root handles clicks needs a
+  // `currentTarget.contains(target)` guard - FanCard carries one; ZoneCard
+  // does not, and a row click there flips the card's selection (pre-existing:
+  // the menu bubbled the same way as a DOM child).
+  return createPortal(
     <div
       ref={menuRef}
       // panel-root establishes the --panel-* CSS variables the reused menu
@@ -103,7 +114,8 @@ export function DeviceContextMenu({ x, y, items, onClose }: DeviceContextMenuPro
           {item.separatorAfter && <span className={styles.divider} aria-hidden />}
         </Fragment>
       ))}
-    </div>
+    </div>,
+    document.body,
   );
 }
 

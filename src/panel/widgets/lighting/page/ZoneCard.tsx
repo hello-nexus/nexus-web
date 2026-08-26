@@ -5,6 +5,7 @@ import {
   type LightingDevice,
 } from '../../../../api/lighting';
 import { DeviceContextMenu, type DeviceMenuItem } from '../../../../components/common/DeviceCanvas/DeviceContextMenu';
+import { bulkMenuLabel } from '../../../../components/common/DeviceCanvas/bulkMenuLabel';
 import { cardEnabledLedCount, IDENTIFY_MS } from './zoneUtils';
 import { useTranslation } from '../../../../lib/i18n';
 import { pluralKey } from '../../../../lib/pluralKey';
@@ -212,8 +213,7 @@ export function ZoneCard({
       const isOn = bulk ? bulk.ledsOn : device.ledsOn;
       const setControlled = () => bulk ? bulk.setControlled(!isControlled) : onToggleControlled?.();
       const setPower = () => bulk ? bulk.setPower(!isOn) : onTogglePower?.();
-      const label = (single: string, counted: string) =>
-        bulk ? t(pluralKey(counted, language, bulk.count), { count: bulk.count }) : t(single);
+      const label = (single: string, counted: string) => bulkMenuLabel(t, language, bulk, single, counted);
       // Whichever row un-sticks the card's current state gets the accent. An
       // un-driven device ignores its power state, so control leads and lights
       // only light up once control is back on.
