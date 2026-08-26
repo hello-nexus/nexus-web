@@ -1,10 +1,13 @@
 // Context-dependent sidebar nav section (used inside the sidebar column)
 
 .nav {
+  // The add-strip measures its x position from this, so the two padding
+  // declarations below and that calc stay locked to one value.
+  --nav-side-pad: 0.5rem;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 0.5rem 0.5rem 0;
+  padding: 0.5rem var(--nav-side-pad) 0;
   flex: 1;
   // min-height:0 lets the inner scrollable tail actually scroll instead
   // of forcing the column to grow past the viewport. Without this the
@@ -18,7 +21,7 @@
 // shift vertically when the sidebar toggles compact; only the side padding
 // changes to 0.5rem.
 .navCompact {
-  padding: 0.5rem 0.5rem 0;
+  padding: 0.5rem var(--nav-side-pad) 0;
 }
 
 .serviceHeader {
@@ -65,8 +68,8 @@
   --header-chip-pad: 11px;
   padding: 5px var(--header-chip-pad);
   margin-left: calc(-1 * var(--header-chip-pad));
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--text) 5%, transparent);
+  border-radius: var(--radius-pill);
+  background: var(--sidebar-chip-bg);
 }
 
 .item {
@@ -105,6 +108,71 @@
       color: var(--accent-glow);
     }
   }
+}
+
+// Rows the add-app drawer lists for apps already in the sidebar: same box,
+// dimmed, not activatable. Keyed off a class, not :disabled - these rows carry
+// aria-disabled so they stay reachable by keyboard.
+.itemDisabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+
+  &:hover {
+    color: var(--text-dim);
+  }
+}
+
+// The + affordance closing the app list. Shorter than a nav row and inside a
+// row's highlight on every side, so it reads as an affordance rather than
+// another app. Height is reserved at all times: fading opacity rather than
+// mounting on hover keeps the rows below from shifting under the pointer.
+.addStrip {
+  // The rail's row width (--rail-width less .nav's side padding) pulled in
+  // further, so the box always sits inside a row's highlight.
+  --add-strip-width: calc(var(--rail-width) - 28px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--add-strip-width);
+  height: 28px;
+  // padding:0 (not just a reset of one side) because a button's UA default
+  // padding-right otherwise narrows the box this centers the glyph in.
+  padding: 0;
+  // Centered on the row icons in BOTH states, so the box holds the same column
+  // whether the sidebar is expanded or collapsed. That column is the rail
+  // centerline (--rail-width / 2) shifted by .item's --border-width, which
+  // insets the icon inside the row box; without that term the box sits left of
+  // every icon above it by exactly the border.
+  align-self: flex-start;
+  margin-left: calc(
+    var(--rail-width) / 2 + var(--border-width)
+    - var(--nav-side-pad) - var(--add-strip-width) / 2
+  );
+  margin-top: 2px;
+  border: none;
+  // Same pill + faint fill as the APPS / DEVICES section chips (this file's
+  // .headerChip and SidebarDevicesSection's, both reading --sidebar-chip-bg).
+  border-radius: var(--radius-pill);
+  background: var(--sidebar-chip-bg);
+  color: var(--text-dim);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--ease-fast), background var(--ease-fast), color var(--ease-fast);
+
+  // The chips are static headings, so they carry no hover; this one is a
+  // button, so it deepens the same fill rather than switching treatment.
+  &:hover {
+    background: color-mix(in srgb, var(--text) 12%, transparent);
+    color: var(--text);
+  }
+}
+
+// Revealed by a pointer anywhere over the sidebar nav, and whenever it takes
+// keyboard focus (which a hover-only reveal would strand off-screen).
+.nav:hover .addStrip,
+.addStrip:focus-visible {
+  opacity: 1;
 }
 
 .icon {

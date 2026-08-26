@@ -23,8 +23,8 @@
   --header-chip-pad: 11px;
   padding: 5px var(--header-chip-pad);
   margin-left: calc(-1 * var(--header-chip-pad));
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--text) 5%, transparent);
+  border-radius: var(--radius-pill);
+  background: var(--sidebar-chip-bg);
 }
 
 // Lucide glyph slot for the header (usb). The device rows use the mask-based

@@ -60,4 +60,16 @@ describe('Slideout', () => {
     expect(backdrop.className).toMatch(/backdropSheet/);
     expect(backdrop.className).not.toMatch(/backdropDialog/);
   });
+
+  it('docks and slides from the left when side is "left"', () => {
+    const { container } = render(
+      <Slideout open onClose={vi.fn()} title="Details" side="left" className="consumer">
+        Body
+      </Slideout>,
+    );
+    const sheet = container.ownerDocument.querySelector('.consumer');
+    expect(sheet).not.toBeNull();
+    expect(sheet?.className).toContain('sheetLeft');
+    expect(sheet?.parentElement?.className).toContain('backdropLeft');
+  });
 });

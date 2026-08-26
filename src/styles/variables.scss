@@ -27,6 +27,27 @@
   // hover-highlighted containers stroke --border-strong.
   --border-width: 1px;
 
+  // Height of the full-width application top bar (collapse + nav + search +
+  // profile). Consumed by .topBar in TopBar.module.scss, and by the add-app
+  // drawer, which clears the same band the macOS traffic lights sit in.
+  --topbar-height: 52px;
+  // Expanded sidebar column width, and the faint fill behind the sidebar's
+  // section chips (APPS / DEVICES headers, the add-app button). Both are read
+  // by the add-app drawer, which is portaled to <body>.
+  --sidebar-width: 240px;
+  --sidebar-chip-bg: color-mix(in srgb, var(--text) 5%, transparent);
+  // Collapsed sidebar rail width. Declared here rather than on .layout because
+  // the add-app drawer paints the same nav rows from a <body> portal, outside
+  // it - and an undefined --rail-item-pad invalidates the row's `padding`
+  // shorthand, dropping the inset entirely rather than degrading.
+  --rail-width: 70px;
+  // Horizontal padding on each nav item, subtracting .nav's side pad and the
+  // icon half-width from --rail-width / 2 so the icon's center lands on the
+  // rail centerline. Identical expanded + compact so icons never shift between
+  // states, and shrinking --rail-width slides the whole icon/label inset (and
+  // the brand mark, anchored to the same centerline) left in lockstep.
+  --rail-item-pad: calc(var(--rail-width) / 2 - 18px);
+
   // Universal control border for buttons / dropdowns / search bars (and the
   // selected tab): a neutral grey (the text hue at low alpha, light-on-dark) so
   // the stroke shows on the near-black control fill. Faint at rest; -strong on
