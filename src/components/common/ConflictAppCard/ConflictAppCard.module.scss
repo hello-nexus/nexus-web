@@ -34,14 +34,6 @@
   color: var(--text-dim);
 }
 
-.rowCategory {
-  text-transform: capitalize;
-}
-
-.rowDot {
-  opacity: 0.6;
-}
-
 .rowProcess {
   font-family: var(--font-mono, monospace);
   font-size: 0.78rem;
@@ -49,7 +41,12 @@
 
 .rowPid {
   font-family: var(--font-mono, monospace);
-  font-size: 0.78rem;
+  font-size: 0.72rem;
+  padding: 0.05rem 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-dim);
 }
 
 .rowActions {

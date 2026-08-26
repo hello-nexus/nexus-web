@@ -5,7 +5,10 @@ import { ConflictOnboardingScreen } from './ConflictOnboardingScreen';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 vi.mock('../../../lib/i18n', () => ({
-  useTranslation: () => ({ t: (key: string) => key }),
+  useTranslation: () => ({
+    t: (key: string, params?: Record<string, string | number>) =>
+      (params ? `${key}:${Object.values(params).join('|')}` : key),
+  }),
 }));
 
 const mockKill = vi.fn();
@@ -31,7 +34,7 @@ describe('ConflictOnboardingScreen', () => {
     expect(screen.getByText('Corsair iCUE')).toBeInTheDocument();
     // NZXT CAM's display name and process name are the same string.
     expect(screen.getAllByText('NZXT CAM').length).toBeGreaterThan(0);
-    expect(screen.getByText('PID 396')).toBeInTheDocument();
+    expect(screen.getByText('conflicts.modal.pid:396')).toBeInTheDocument();
   });
 
   it('offers the startup control only for an app whose entry resolved', () => {

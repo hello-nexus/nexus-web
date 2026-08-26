@@ -55,7 +55,7 @@ describe('NexusControlOff', () => {
 
     // ConflictAppCard row: display name and PID.
     expect(screen.getByText('iCUE')).toBeInTheDocument();
-    expect(screen.getByText('PID 42')).toBeInTheDocument();
+    expect(screen.getByText('conflicts.modal.pid:{"pid":42}')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'conflicts.modal.endTask' })).toBeInTheDocument();
 
     const toggle = screen.getByRole('switch', { name: 'devices.nexusControl' });

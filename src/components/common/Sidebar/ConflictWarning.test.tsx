@@ -6,7 +6,10 @@ import type { DetectedConflict } from '../../../api/conflicts';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 vi.mock('../../../lib/i18n', () => ({
-  useTranslation: () => ({ t: (key: string) => key }),
+  useTranslation: () => ({
+    t: (key: string, params?: Record<string, string | number>) =>
+      (params ? `${key}:${Object.values(params).join('|')}` : key),
+  }),
 }));
 
 vi.mock('../../../api/conflicts', async () => {
@@ -33,9 +36,9 @@ describe('ConflictWarningModal', () => {
     );
 
     expect(screen.getByText('iCUE')).toBeInTheDocument();
-    expect(screen.getByText('PID 42')).toBeInTheDocument();
+    expect(screen.getByText('conflicts.modal.pid:42')).toBeInTheDocument();
     expect(screen.getByText('L-Connect')).toBeInTheDocument();
-    expect(screen.getByText('PID 7')).toBeInTheDocument();
+    expect(screen.getByText('conflicts.modal.pid:7')).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: 'conflicts.modal.endTask' })).toHaveLength(2);
   });
 

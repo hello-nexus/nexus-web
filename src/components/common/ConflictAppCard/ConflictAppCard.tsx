@@ -14,25 +14,12 @@ interface ConflictAppCardProps {
   autostart?: readonly ConflictAutostartEntry[] | null;
 }
 
-type TranslateFn = (key: string, params?: Record<string, string | number>) => string;
-
-const KNOWN_CATEGORIES = new Set(['lighting', 'cooling', 'peripherals', 'monitoring']);
-
-function translateCategory(t: TranslateFn, category: string): string {
-  // A category with no matching locale string falls back to the raw value
-  // instead of showing "conflicts.category.foo".
-  if (KNOWN_CATEGORIES.has(category)) {
-    return t(`conflicts.category.${category}`);
-  }
-  return category;
-}
-
 /**
- * Name + category/process/PID meta row for a single detected conflicting
- * app, with an End Task action and, when one was resolved, a remove-from-
- * startup action. Used by ConflictWarningModal (one per detected conflict),
- * the end-of-onboarding conflict step, and the device-page NexusControlOff
- * gate (the single conflict blocking that device).
+ * Name + executable/PID meta row for a single detected conflicting app, with
+ * an End Task action and, when one was resolved, a remove-from-startup action.
+ * Used by ConflictWarningModal (one per detected conflict),
+ * ConflictOnboardingScreen, and the device-page NexusControlOff gate (the
+ * single conflict blocking that device).
  */
 export function ConflictAppCard({ conflict, autostart }: ConflictAppCardProps) {
   const { t } = useTranslation();
@@ -41,11 +28,10 @@ export function ConflictAppCard({ conflict, autostart }: ConflictAppCardProps) {
       <div className={styles.rowMain}>
         <div className={styles.rowName}>{conflict.displayName}</div>
         <div className={styles.rowMeta}>
-          <span className={styles.rowCategory}>{translateCategory(t, conflict.category)}</span>
-          <span className={styles.rowDot} aria-hidden>·</span>
+          {/* No category: the catalog's guess at what an app drives is often
+              wrong, and the executable is what the user can actually check. */}
           <span className={styles.rowProcess}>{conflict.processName}</span>
-          <span className={styles.rowDot} aria-hidden>·</span>
-          <span className={styles.rowPid}>PID {conflict.pid}</span>
+          <span className={styles.rowPid}>{t('conflicts.modal.pid', { pid: conflict.pid })}</span>
         </div>
       </div>
       <div className={styles.rowActions}>

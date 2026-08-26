@@ -239,7 +239,7 @@ describe('StreamDeckDevicePage', () => {
     await renderPage();
 
     expect(screen.getByText('Elgato Stream Deck')).toBeInTheDocument();
-    expect(screen.getByText('PID 99')).toBeInTheDocument();
+    expect(screen.getByText('conflicts.modal.pid:{"pid":99}')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'conflicts.modal.endTask' })).toBeInTheDocument();
   });
 

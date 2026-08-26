@@ -71,3 +71,8 @@
   flex-shrink: 0;
   opacity: 0.7;
 }
+
+.warnIcon {
+  display: flex;
+  color: var(--warn);
+}

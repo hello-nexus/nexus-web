@@ -5,7 +5,10 @@ import { ConflictAppCard } from './ConflictAppCard';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 vi.mock('../../../lib/i18n', () => ({
-  useTranslation: () => ({ t: (key: string) => key }),
+  useTranslation: () => ({
+    t: (key: string, params?: Record<string, string | number>) =>
+      (params ? `${key}:${Object.values(params).join('|')}` : key),
+  }),
 }));
 
 const mockKillConflict = vi.fn();
@@ -25,20 +28,21 @@ beforeEach(() => {
 const conflict = { id: 'icue', displayName: 'iCUE', category: 'cooling', processName: 'iCUE.exe', pid: 4212 };
 
 describe('ConflictAppCard', () => {
-  it('renders the display name, translated category, process name, PID, and an End Task button', () => {
+  it('renders the display name, executable, PID, and an End Task button', () => {
     render(<ConflictAppCard conflict={conflict} />);
 
     expect(screen.getByText('iCUE')).toBeInTheDocument();
-    expect(screen.getByText('conflicts.category.cooling')).toBeInTheDocument();
     expect(screen.getByText('iCUE.exe')).toBeInTheDocument();
-    expect(screen.getByText('PID 4212')).toBeInTheDocument();
+    expect(screen.getByText('conflicts.modal.pid:4212')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'conflicts.modal.endTask' })).toBeInTheDocument();
   });
 
-  it('falls back to the raw category when it has no matching locale key', () => {
-    render(<ConflictAppCard conflict={{ ...conflict, category: 'unknown-category' }} />);
+  it('never shows a category', () => {
+    // The catalog's guess at what an app drives is often wrong, so the row
+    // stays to what the user can verify: the executable and its PID.
+    render(<ConflictAppCard conflict={{ ...conflict, category: 'cooling' }} />);
 
-    expect(screen.getByText('unknown-category')).toBeInTheDocument();
+    expect(screen.queryByText(/cooling/i)).not.toBeInTheDocument();
   });
 
   it('offers no startup control when no entry resolved', () => {

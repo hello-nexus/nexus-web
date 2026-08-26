@@ -87,7 +87,9 @@ export function ConflictWarningModal({
       open={open}
       onClose={onClose}
       title={t('conflicts.modal.title')}
-      icon={<AlertTriangle size={18} />}
+      // DeviceModal tints its icon slot with --accent; conflicts are a warning
+      // everywhere else they appear (the badge, the onboarding screen).
+      icon={<span className={styles.warnIcon}><AlertTriangle size={18} /></span>}
     >
       <div className={styles.modal}>
         <p className={styles.intro}>{t('conflicts.modal.intro')}</p>
