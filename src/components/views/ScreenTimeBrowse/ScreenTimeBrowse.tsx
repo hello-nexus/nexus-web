@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from '../../../lib/i18n';
+import { useUnitPrefs } from '../../../hooks/useUiSettings';
+import { resolveHour12, type TimeFormat } from '../../../lib/units';
 import { formatDuration } from '../../../lib/formatDuration';
 import * as monitoringStore from '../../../lib/monitoringStore';
 import { useScreenTime } from '../../../hooks/useScreenTime';
@@ -61,12 +63,21 @@ export function ScreenTimeBrowse({ mode, onModeChange }: ScreenTimeBrowseProps) 
   );
 }
 
+// Hour-of-day label for the usage chart. The bars are whole hours, so this
+// prints the hour alone rather than a wall-clock time with minutes.
+function hourLabel(hour: number, timeFormat: TimeFormat): string {
+  if (!resolveHour12(timeFormat)) return `${String(hour).padStart(2, '0')}:00`;
+  const at = new Date(2000, 0, 1, hour);
+  return new Intl.DateTimeFormat(undefined, { hour: 'numeric', hour12: true }).format(at);
+}
+
 function DayPanel({ date, setDate, onAppClick }: {
   date: string;
   setDate: (d: string) => void;
   onAppClick: (name: string) => void;
 }) {
   const { t } = useTranslation();
+  const { timeFormat } = useUnitPrefs();
   const { data: day } = useScreenTimeDay(date);
   const yesterdayIso = useMemo(() => addDays(date, -1), [date]);
   const { data: yesterday } = useScreenTimeDay(yesterdayIso);
@@ -118,7 +129,7 @@ function DayPanel({ date, setDate, onAppClick }: {
         </div>
         <div className={styles.hourlyChart}>
           {merged.hourlyMs.map((ms, h) => (
-            <HoverTooltip key={h} title={`${h}:00`} body={formatDuration(ms)} side="top">
+            <HoverTooltip key={h} title={hourLabel(h, timeFormat)} body={formatDuration(ms)} side="top">
               <button type="button"
                 className={selectedHour === h ? styles.hourBarActive : styles.hourBar}
                 onClick={() => setSelectedHour(selectedHour === h ? null : h)}>
@@ -129,14 +140,14 @@ function DayPanel({ date, setDate, onAppClick }: {
           ))}
         </div>
         <div className={styles.hourlyAxis}>
-          <span>0</span><span>6</span><span>12</span><span>18</span><span>23</span>
+          {[0, 6, 12, 18, 23].map(h => <span key={h}>{hourLabel(h, timeFormat)}</span>)}
         </div>
       </div>
 
       <div className={styles.appsCard}>
         <div className={styles.cardTitle}>
           {selectedHour !== null
-            ? t('screentime.hourFilter', { hour: String(selectedHour).padStart(2, '0') })
+            ? t('screentime.hourFilter', { hour: hourLabel(selectedHour, timeFormat) })
             : t('screentime.appsList')}
         </div>
         {apps.length === 0 ? (

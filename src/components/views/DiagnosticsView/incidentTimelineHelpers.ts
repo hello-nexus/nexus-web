@@ -7,6 +7,7 @@
 import type { DiagnosticsIncident, DiagnosticsIncidentSeverity, DiagnosticsIncidentSource } from '../../../api/diagnostics';
 import type { EventTimelineEvent, EventTimelineLane } from '../../common/EventTimeline/EventTimeline';
 import { incidentSeverityColor } from './diagnosticsHelpers';
+import type { TimeFormat } from '../../../lib/units';
 import { TEMPERATURE_RANGE_OPTIONS, xTickFormatForRange, type TemperatureRangeHours } from './temperatureHelpers';
 
 export type IncidentRangeHours = TemperatureRangeHours;
@@ -122,6 +123,6 @@ export function incidentEvents(incidents: readonly DiagnosticsIncident[]): Incid
 
 /** X-axis tick granularity for a query, reusing the temperature chart's
  *  range-to-format mapping (a date spans one 24h day). */
-export function incidentXTickFormat(query: IncidentTimelineQuery): (t: number) => string {
-  return 'date' in query ? xTickFormatForRange(24) : xTickFormatForRange(query.hours);
+export function incidentXTickFormat(query: IncidentTimelineQuery, timeFormat: TimeFormat): (t: number) => string {
+  return 'date' in query ? xTickFormatForRange(24, timeFormat) : xTickFormatForRange(query.hours, timeFormat);
 }

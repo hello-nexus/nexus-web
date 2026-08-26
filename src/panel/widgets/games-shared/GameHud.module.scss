@@ -1,3 +1,5 @@
+@use '../../../styles/text' as *;
+
 .hud {
   flex: 0 0 auto;
   display: flex;
@@ -24,4 +26,46 @@
     color: var(--accent-glow);
     flex-shrink: 0;
   }
+}
+
+// ── Labeled (two-line) layout ──
+// Equal auto-flow columns so a widening value - or a caller's chip appearing
+// beside one - never resizes or shifts the other columns.
+.hud[data-hud-layout='labeled'] {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  align-items: center;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius);
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.columnLabel {
+  @include text-label;
+
+  color: var(--text-dim);
+}
+
+.columnValue {
+  @include text-numeric;
+
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  // Holds the row's height steady whether it carries text or the next-piece
+  // swatch, so the two lines never shift between pieces.
+  min-height: 20px;
+  // A caller's chip is clipped at the track edge rather than painted over
+  // the next column - the tracks are fixed fractions and never reflow.
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-weight: var(--weight-strong);
 }

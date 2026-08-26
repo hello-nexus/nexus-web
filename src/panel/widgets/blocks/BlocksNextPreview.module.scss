@@ -1,22 +1,3 @@
-.wrap {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  padding: var(--space-xs) var(--space-sm);
-  background: var(--surface);
-  border: var(--border-width) solid var(--border);
-  border-radius: var(--radius-pill);
-}
-
-.label {
-  color: var(--text-dim);
-  font-family: var(--font-mono);
-  font-size: var(--type-tiny);
-  font-weight: var(--weight-strong);
-  text-transform: uppercase;
-}
-
 .grid {
   position: relative;
   flex: 0 0 auto;

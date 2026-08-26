@@ -329,25 +329,28 @@ $row-seam: calc(
   background: var(--panel-border);
 }
 
+// Five columns, one row per day, so the day column takes the width of the
+// widest label in the active locale instead of a fixed box a longer
+// translation ("Aujourd'hui") would overflow. A max-content track grows only
+// into free space, so the bar column is the one that gives it up, and
+// .dailyDay's overflow: hidden drops the track's automatic minimum to 0 - it
+// ellipsizes on a tile too narrow to fit rather than pushing the row wider.
 .dailyList {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, max-content) 22px 31px minmax(0, 1fr) 31px;
+  align-content: space-evenly;
+  align-items: center;
   flex: 1;
   min-height: 0;
-  flex-direction: column;
-  justify-content: space-evenly;
-}
-
-.dailyRow {
-  display: flex;
-  align-items: center;
-  min-width: 0;
-  @include hgap(9px);
+  column-gap: 9px;
 }
 
 .dailyDay {
   @include label-primary;
-  width: 46px;
-  flex-shrink: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .dailyIcon {
@@ -355,7 +358,6 @@ $row-seam: calc(
   align-items: center;
   justify-content: center;
   width: 22px;
-  flex-shrink: 0;
   color: var(--panel-accent-glow);
 
   svg {
@@ -371,23 +373,17 @@ $row-seam: calc(
 
 .dailyHi {
   @include label-primary;
-  width: 31px;
-  flex-shrink: 0;
   font-variant-numeric: tabular-nums;
 }
 
 .dailyLo {
   @include label-secondary;
-  width: 31px;
-  flex-shrink: 0;
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
 
 .dailyBarTrack {
   position: relative;
-  flex: 1;
-  min-width: 0;
   height: 5px;
   overflow: hidden;
   border-radius: var(--radius-pill);
@@ -410,13 +406,12 @@ $row-seam: calc(
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 100%;
+  grid-column: 1 / -1;
 }
 
-// Bar-less daily row (2x4): the range track is replaced by this spacer so the
-// low/high stay in the same columns as the 4x4 bar layout.
+// Bar-less daily row (2x4): the range track is replaced by this empty cell so
+// the low/high stay in the same columns as the 4x4 bar layout.
 .dailySpacer {
-  flex: 1;
   min-width: 0;
 }
 
@@ -430,6 +425,14 @@ $row-seam: calc(
   min-height: 0;
   padding: 18px;
   box-sizing: border-box;
+}
+
+// A 2x4 on a phone-class surface has barely more row width than the fixed
+// icon/low/high columns claim; a tighter gutter is what buys the day column
+// enough room for a weekday abbreviation in every locale.
+.portrait .dailyList {
+  /* c83:allow - .dailyList is display: grid */
+  column-gap: 6px;
 }
 
 // Reuse the 2x2 compact block, detached from its full-height centering so the
