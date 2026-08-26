@@ -30,6 +30,12 @@ import { lookupApp } from '../panel/widgets/registry';
 import { useServiceStatus, DESKTOP_OFFLINE_GRACE_MS } from '../hooks/useServiceStatus';
 import { useServiceState } from '../hooks/useServiceState';
 import { useOnboardingStatus } from '../hooks/useOnboardingStatus';
+import { useConflictApps } from '../hooks/useConflictApps';
+import { useConflictAutostart } from '../hooks/useConflictAutostart';
+import { completeLightingOnboarding, completeOnboarding } from '../api/onboarding';
+import { dismissNexus2Welcome } from '../api/migration';
+import { dismissFanControlImport } from '../api/fancontrol';
+import { ConflictWarningModal } from '../components/common/Sidebar/ConflictWarning';
 import { useFanControlStatus } from '../hooks/useFanControlStatus';
 import { useNexus2WelcomeStatus } from '../hooks/useNexus2WelcomeStatus';
 import { useProfiles } from '../hooks/useProfiles';
@@ -44,6 +50,7 @@ import { fetchPanelRemoteControlState } from '../api/panel';
 import { isRemoteOrigin } from '../api/service';
 import { MultiplexContext, useMultiplexConnection, useTopicCallback } from '../hooks/useMultiplexSocket';
 import { UiSettingsProvider } from '../hooks/useUiSettings';
+import { Button } from '../components/common/Button/Button';
 import { useTranslation } from '../lib/i18n';
 import { applyThemeMode, applyAccentColor, cachePreferencesLocally } from '../lib/settings';
 import type { Preferences } from '../api/profiles';
@@ -274,9 +281,48 @@ export function Dashboard() {
     && fanControl.status !== 'unknown'
     && !welcomeOpen && !importOpen
     && lightingStatus === 'pending' && !lightingOnboardingDismissed;
-  // Fourth gate: FanControl users. Runs after device selection because it is
-  // about cooling configuration, not about which hardware Nexus drives, and
-  // its import binds curves to the fan channels that selection settles.
+  // Final gate: conflicting apps, after every other step, because ending one
+  // is about the running system rather than about setup. Opens only when the
+  // sequence actually ran (a returning user with nothing pending never sees
+  // it) and only when something was detected; its actions are per-app clicks.
+  const [conflictStepDone, setConflictStepDone] = useState(false);
+  // Armed once, at the moment the last gate closes, and never re-armed. Keying
+  // the modal on "conflicts exist right now" instead would leave the gate live
+  // all session: an app launched an hour later would pop it open and, because
+  // showDashboard excludes it, unmount the whole dashboard underneath.
+  const [conflictStepArmed, setConflictStepArmed] = useState(false);
+  const ranOnboarding = onboardingDismissed || lightingOnboardingDismissed || importDismissed;
+  const gatesSettled = ranOnboarding && !welcomeOpen && !importOpen && !lightingOnboardingOpen;
+  const { conflicts: onboardingConflicts, ready: conflictsReady } = useConflictApps(
+    gatesSettled && !conflictStepDone);
+  useEffect(() => {
+    if (conflictStepArmed || conflictStepDone || !gatesSettled || !conflictsReady) return;
+    // Nothing to show: spend the step rather than leaving it armed.
+    if (onboardingConflicts.length === 0) setConflictStepDone(true);
+    else setConflictStepArmed(true);
+  }, [conflictStepArmed, conflictStepDone, gatesSettled, conflictsReady, onboardingConflicts.length]);
+  // Open depends on the latch, not on the live list, so ending the last app
+  // from inside the modal shows the all-clear state instead of vanishing.
+  const conflictStepOpen = conflictStepArmed && !conflictStepDone;
+  const onboardingAutostart = useConflictAutostart(conflictStepOpen);
+
+  // Skips every remaining step at once. Marks the same server flags the
+  // screens themselves would, so a reload does not reopen them.
+  const skipOnboarding = useCallback(() => {
+    // The import gate latches on its own per-app dismiss flags, not on the
+    // onboarding ones - without these it reopens on the next launch.
+    void Promise.allSettled([
+      completeOnboarding(),
+      completeLightingOnboarding(),
+      dismissNexus2Welcome(),
+      dismissFanControlImport(),
+    ]);
+    setOnboardingDismissed(true);
+    setImportDismissed(true);
+    setLightingOnboardingDismissed(true);
+    setConflictStepDone(true);
+    setWelcomeRevisit(false);
+  }, []);
 
   // 'unknown' renders neither the dashboard nor any onboarding gate (only
   // the app background) so a fresh install never flashes the dashboard
@@ -291,7 +337,7 @@ export function Dashboard() {
   // Nexus2WelcomeScreen pops in on top of it.
   const showDashboard = onboardingStatus !== 'unknown' && nexus2.status !== 'unknown'
     && fanControl.status !== 'unknown'
-    && !welcomeOpen && !lightingOnboardingOpen && !importOpen;
+    && !welcomeOpen && !lightingOnboardingOpen && !importOpen && !conflictStepOpen;
   const multiplex = useMultiplexConnection(online);
   const serviceState = useServiceState(online, multiplex);
   const profilesHook = useProfiles(online);
@@ -802,21 +848,22 @@ export function Dashboard() {
           platform={status.ping?.platform ?? ''}
           onComplete={() => setOnboardingDismissed(true)}
         />
-        {/* Import gate: offers every app a previous setup can come from, then
-            closes them and clears their autostart. Runs before device
-            selection so those apps release the hardware first. */}
+        {/* Import gate: offers every app a previous setup can come from. It
+            no longer closes them or clears autostart - the conflict gate below
+            does that, per app, on an explicit click. */}
         <ImportOnboardingScreen
           open={importOpen}
           nexus2={nexus2.payload}
           fanControl={fanControl.payload}
-          // Which apps this gate is being shown FOR. Only these start ticked
-          // and get closed; an app already dealt with is still listed if it
-          // holds data, but off by default so it cannot re-apply itself.
+          // Which apps this gate is being shown FOR. Only these start ticked;
+          // an app already dealt with is still listed if it holds data, but off
+          // by default so it cannot re-apply itself.
           offeredFor={{
             nexus2: nexus2.status === 'pending',
             fancontrol: fanControl.status === 'pending',
           }}
           onComplete={() => setImportDismissed(true)}
+          onSkipOnboarding={skipOnboarding}
           // Back only steps into first-run onboarding while that sequence is
           // still running; this gate also reopens on its own later.
           onBack={onboardingStatus === 'pending'
@@ -829,10 +876,29 @@ export function Dashboard() {
         <LightingOnboardingScreen
           open={lightingOnboardingOpen}
           onComplete={() => setLightingOnboardingDismissed(true)}
+          onSkipOnboarding={skipOnboarding}
           onBack={() => {
             if (importOffered) setImportDismissed(false);
             else { setWelcomeRevisit(true); setOnboardingDismissed(false); }
           }}
+        />
+        {/* Final onboarding gate: conflicting apps. Reuses the top-bar conflict
+            modal so both surfaces stay one component; its Done button replaces
+            the "don't show again" row, which belongs to the badge. */}
+        <ConflictWarningModal
+          open={conflictStepOpen}
+          conflicts={onboardingConflicts}
+          suppressed={false}
+          autostartById={onboardingAutostart}
+          onClose={() => setConflictStepDone(true)}
+          onSuppressedChange={() => { /* suppression is the badge's setting, not this step's */ }}
+          footer={(
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Button tone="accent" size="lg" onClick={() => setConflictStepDone(true)}>
+                {t('conflicts.onboarding.done')}
+              </Button>
+            </div>
+          )}
         />
         {/* Global incoming-pair prompt, at the layout root so it lands on top
             of any section. Pair Remote stays in its own modal below. */}

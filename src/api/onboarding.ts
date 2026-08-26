@@ -17,3 +17,8 @@ export async function completeOnboarding() {
 export async function completeLightingOnboarding() {
   return postService<OnboardingStatusResponse>('/onboarding/lighting-complete', {});
 }
+
+/** Replays the whole first-run sequence, import steps included where still detected. */
+export async function resetOnboarding() {
+  return postService<OnboardingStatusResponse>('/onboarding/reset', {});
+}

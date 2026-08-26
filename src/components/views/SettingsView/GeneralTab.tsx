@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Eraser, ExternalLink, FolderOpen, GitBranch, Languages, Megaphone, PanelBottom, Power, PowerOff, RefreshCw, ScrollText, SquareMenu, Timer, TriangleAlert } from 'lucide-react';
+import { Compass, Eraser, ExternalLink, FolderOpen, GitBranch, Languages, Megaphone, PanelBottom, Power, PowerOff, RefreshCw, ScrollText, SquareMenu, Timer, TriangleAlert } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingToggle, SettingSelect, SettingSlider, SettingRow } from '../../common/SettingRow/SettingRow';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { fetchAutoStart, setAutoStart as postAutoStart } from '../../../api/autoStart';
 import { postService } from '../../../api/service';
+import { resetOnboarding } from '../../../api/onboarding';
 import { useFlashStatus } from '../../../hooks/useFlashStatus';
 import { useTranslation } from '../../../lib/i18n';
 import {
@@ -25,6 +26,15 @@ export interface GeneralTabProps {
 
 export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }: GeneralTabProps) {
   const { t } = useTranslation();
+  const [restartingOnboarding, setRestartingOnboarding] = useState(false);
+  // Reloads rather than flipping local state: the gates are derived on mount,
+  // so the sequence only replays from a fresh load.
+  const handleRestartOnboarding = async () => {
+    setRestartingOnboarding(true);
+    const res = await resetOnboarding().catch(() => null);
+    if (res) window.location.reload();
+    else setRestartingOnboarding(false);
+  };
   const [autoStart, setAutoStart] = useState<boolean | null>(null);
   const [autoStartLoading, setAutoStartLoading] = useState(false);
   // Local drag preview - only committed to useUiSettings (and so posted to the
@@ -245,6 +255,17 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
             disabled={!serviceOnline}
           >
             {t('settings.diagnostics.openLogsButton')}
+          </Button>
+        </SettingRow>
+
+        <SettingRow
+          label={t('settings.restartOnboarding')}
+          description={t('settings.restartOnboarding.detail')}
+          icon={<Compass />}
+          iconLeading="subtle"
+        >
+          <Button tone="neutral" size="sm" loading={restartingOnboarding} onClick={handleRestartOnboarding}>
+            {t('settings.restartOnboarding.action')}
           </Button>
         </SettingRow>
 

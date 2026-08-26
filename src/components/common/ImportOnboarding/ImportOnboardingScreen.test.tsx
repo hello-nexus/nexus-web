@@ -94,22 +94,7 @@ describe('ImportOnboardingScreen', () => {
     expect(names.map(n => n.textContent)).toEqual(['importCenter.source.nexus2', 'importCenter.source.fancontrol']);
   });
 
-  it('closes each detected app and clears its autostart, import or not', async () => {
-    const onComplete = vi.fn();
-    renderScreen({ onComplete });
-
-    fireEvent.click(await screen.findByRole('button', { name: SKIP }));
-
-    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
-    expect(closeNexus2App).toHaveBeenCalledTimes(1);
-    expect(disableNexus2Autostart).toHaveBeenCalledTimes(1);
-    expect(closeFanControlApp).toHaveBeenCalledTimes(1);
-    expect(disableFanControlAutostart).toHaveBeenCalledTimes(1);
-    expect(applyNexus2Import).not.toHaveBeenCalled();
-    expect(applyFanControlImport).not.toHaveBeenCalled();
-  });
-
-  it('still closes an app that is installed but has nothing to import', async () => {
+  it('dismisses an app that is installed but has nothing to import', async () => {
     const onComplete = vi.fn();
     renderScreen({
       nexus2: { ...NEXUS2, importAvailable: false },
@@ -120,10 +105,8 @@ describe('ImportOnboardingScreen', () => {
     fireEvent.click(await screen.findByRole('button', { name: SKIP }));
 
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
-    // Not listed (nothing to bring over) but still holding the hardware.
+    // Not listed (nothing to bring over), but its gate is still spent.
     expect(screen.queryByText('importCenter.source.nexus2')).not.toBeInTheDocument();
-    expect(closeNexus2App).toHaveBeenCalledTimes(1);
-    expect(disableNexus2Autostart).toHaveBeenCalledTimes(1);
     expect(dismissNexus2Welcome).toHaveBeenCalledTimes(1);
   });
 
@@ -139,8 +122,6 @@ describe('ImportOnboardingScreen', () => {
     expect(applyNexus2Import).toHaveBeenCalledTimes(1);
     // Off by default, so it is not brought over unless asked for.
     expect(applyFanControlImport).not.toHaveBeenCalled();
-    // Both are still closed: that is not a choice.
-    expect(closeFanControlApp).toHaveBeenCalledTimes(1);
     expect(dismissNexus2Welcome).toHaveBeenCalledTimes(1);
     expect(dismissFanControlImport).toHaveBeenCalledTimes(1);
   });
@@ -161,20 +142,20 @@ describe('ImportOnboardingScreen', () => {
     expect(dismissFanControlImport).toHaveBeenCalledTimes(1);
   });
 
-  it('offers a continue-anyway exit when an action fails, and never retries it', async () => {
-    vi.mocked(closeFanControlApp).mockResolvedValue({ error: true, msg: 'busy' });
+  it('never closes a detected app or clears its autostart', async () => {
+    // The screen used to fire both for every detected app as a side effect of
+    // continuing. Ending an app is now the end-of-onboarding conflict step's
+    // job, on an explicit per-app click.
     const onComplete = vi.fn();
     renderScreen({ onComplete });
 
     fireEvent.click(await screen.findByRole('button', { name: SKIP }));
-
-    const anyway = await screen.findByRole('button', { name: 'importOnboarding.continueAnyway' });
-    expect(onComplete).not.toHaveBeenCalled();
-    expect(screen.getByRole('alert')).toHaveTextContent('importOnboarding.errorActions');
-
-    fireEvent.click(anyway);
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
-    expect(closeFanControlApp).toHaveBeenCalledTimes(1);
+
+    expect(closeFanControlApp).not.toHaveBeenCalled();
+    expect(disableFanControlAutostart).not.toHaveBeenCalled();
+    expect(closeNexus2App).not.toHaveBeenCalled();
+    expect(disableNexus2Autostart).not.toHaveBeenCalled();
   });
 
   it('offers no back step when there is no screen behind it', async () => {
@@ -183,10 +164,10 @@ describe('ImportOnboardingScreen', () => {
     expect(screen.queryByRole('button', { name: 'nav.back' })).not.toBeInTheDocument();
   });
 
-  it('states in each card that the app will be closed, without offering it as a choice', async () => {
+  it('promises no app closure in the cards, and offers one switch each', async () => {
     renderScreen();
     await screen.findByText('importCenter.source.nexus2');
-    expect(screen.getAllByText('importOnboarding.closeApp')).toHaveLength(2);
+    expect(screen.queryByText('importOnboarding.closeApp')).not.toBeInTheDocument();
     // One switch per card: whether the app is included. Closing it is not one.
     const cards = document.querySelectorAll('[class*=sourceRow]');
     expect(cards).toHaveLength(2);

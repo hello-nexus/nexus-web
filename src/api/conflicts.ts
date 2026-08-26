@@ -46,3 +46,41 @@ export async function fetchConflicts(): Promise<DetectedConflict[]> {
 export function killConflict(id: string): Promise<KillConflictResponse | null> {
   return postService<KillConflictResponse>('/conflicts/kill', { id });
 }
+
+/** How a conflicting app is launched at login, when one resolved to its executable. */
+export interface ConflictAutostartEntry {
+  /** "runKeyUser" | "runKeyMachine" | "service" */
+  kind: string;
+  /** Run value name or service name, shown so the user sees what is removed. */
+  entryName: string;
+}
+
+export interface ConflictAutostartStatus {
+  id: string;
+  autostart: ConflictAutostartEntry | null;
+}
+
+export interface GetConflictAutostartResponse {
+  apps: ConflictAutostartStatus[];
+}
+
+export interface DisableConflictAutostartResponse {
+  ok: boolean;
+  msg: string;
+}
+
+/**
+ * Read-only: which autostart entry launches each detected conflict. Separate
+ * from fetchConflicts so nothing is discovered until a user opens the modal.
+ * An app with no resolvable entry comes back with autostart null and must not
+ * be offered the control.
+ */
+export async function fetchConflictAutostart(): Promise<ConflictAutostartStatus[]> {
+  const result = await fetchService<GetConflictAutostartResponse>('/conflicts/autostart');
+  return result?.apps ?? [];
+}
+
+/** Removes one app's autostart entry. Only ever called from an explicit click. */
+export function disableConflictAutostart(id: string): Promise<DisableConflictAutostartResponse | null> {
+  return postService<DisableConflictAutostartResponse>('/conflicts/autostart/disable', { id });
+}

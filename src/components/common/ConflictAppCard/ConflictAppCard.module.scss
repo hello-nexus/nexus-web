@@ -51,3 +51,10 @@
   font-family: var(--font-mono, monospace);
   font-size: 0.78rem;
 }
+
+.rowActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}

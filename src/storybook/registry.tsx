@@ -52,6 +52,8 @@ import { SimpleModeNotice } from '../components/common/SimpleModeNotice/SimpleMo
 import { Button } from '../components/common/Button/Button';
 import { EndTaskButton } from '../components/common/EndTaskButton/EndTaskButton';
 import { ConflictAppCard } from '../components/common/ConflictAppCard/ConflictAppCard';
+import { RemoveFromStartupButton } from '../components/common/RemoveFromStartupButton/RemoveFromStartupButton';
+import { SkipOnboardingButton } from '../components/common/SkipOnboardingButton/SkipOnboardingButton';
 import { ToastProvider, useToast } from '../components/common/Toast/Toast';
 import { WidgetHeader } from '../components/common/WidgetHeader/WidgetHeader';
 import { DEFAULT_ACCENT, PRESET_ACCENTS } from '../lib/settings';
@@ -1025,6 +1027,39 @@ function PreviewButtonMatrix() {
   );
 }
 
+function PreviewRemoveFromStartupButton() {
+  // Swallowed in capture phase, same as PreviewEndTaskButton - the button calls
+  // the real /conflicts/autostart/disable endpoint with no override prop.
+  return (
+    <div className={styles.previewStack}>
+      <div className={styles.previewHoverCard} onClickCapture={e => e.stopPropagation()}>
+        <span>iCUE</span>
+        <RemoveFromStartupButton
+          conflictId="preview-icue"
+          entry={{ kind: 'runKeyMachine', entryName: 'Corsair iCUE5 Software' }}
+        />
+      </div>
+      <div className={styles.previewHoverCard} onClickCapture={e => e.stopPropagation()}>
+        <span>NZXT CAM</span>
+        <RemoveFromStartupButton
+          conflictId="preview-cam"
+          entry={{ kind: 'service', entryName: 'CAMService' }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function PreviewSkipOnboardingButton() {
+  return (
+    <div className={styles.previewStack}>
+      <div style={{ position: 'relative', minHeight: 64 }}>
+        <SkipOnboardingButton onSkip={() => { /* preview only */ }} />
+      </div>
+    </div>
+  );
+}
+
 function PreviewEndTaskButton() {
   // Swallowed in capture phase so the click never reaches EndTaskButton's own
   // handler - it calls the real /conflicts/kill endpoint with no override prop.
@@ -1923,6 +1958,18 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/EndTaskButton/EndTaskButton.tsx',
     description: 'Danger Button wired to kill a detected conflicting app by catalog id (POST /conflicts/kill). Keeps its spinner up after a successful kill until the watcher clears the row; resets on failure so the user can retry. Used by ConflictWarningModal (per-row) and the device-page NexusControlOff gate.',
     Preview: PreviewEndTaskButton,
+  },
+  {
+    name: 'RemoveFromStartupButton', category: 'inputs',
+    filePath: 'src/components/common/RemoveFromStartupButton/RemoveFromStartupButton.tsx',
+    description: 'Secondary Button that removes one conflicting app\'s autostart entry (POST /conflicts/autostart/disable), on an explicit click only. Rendered by ConflictAppCard solely when the service resolved an entry to that app\'s own executable, so an app with no resolvable entry is never offered it. A "service" entry sets the service to manual and gets its own label. The app keeps running afterwards, so the button latches to a done state rather than waiting for the watcher to clear the row.',
+    Preview: PreviewRemoveFromStartupButton,
+  },
+  {
+    name: 'SkipOnboardingButton', category: 'inputs',
+    filePath: 'src/components/common/SkipOnboardingButton/SkipOnboardingButton.tsx',
+    description: 'Low-emphasis escape hatch pinned to the top-right of every onboarding screen after the welcome step, where there is finally something to skip. Absolutely positioned, so its host needs position: relative.',
+    Preview: PreviewSkipOnboardingButton,
   },
 
   {

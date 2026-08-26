@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, DownloadCloud } from 'lucide-react';
+import { SkipOnboardingButton } from '../SkipOnboardingButton/SkipOnboardingButton';
 import { useTranslation } from '../../../lib/i18n';
 import { Overlay } from '../Overlay/Overlay';
 import { Button } from '../Button/Button';
 import { ImportCenter, type ImportCenterHandle, type ImportSourceId, type SourceDetection } from '../ImportCenter/ImportCenter';
-import { closeFanControlApp, disableFanControlAutostart, dismissFanControlImport } from '../../../api/fancontrol';
+import { dismissFanControlImport } from '../../../api/fancontrol';
 import type { FanControlStatusResponse } from '../../../api/fancontrol';
-import { closeNexus2App, disableNexus2Autostart, dismissNexus2Welcome } from '../../../api/migration';
+import { dismissNexus2Welcome } from '../../../api/migration';
 import type { Nexus2StatusResponse } from '../../../api/migration';
 import styles from './ImportOnboardingScreen.module.scss';
 
@@ -14,17 +15,9 @@ type ApplyPhase = 'idle' | 'applying' | 'failed';
 
 const HERO_ICON_SIZE = 40;
 
-/** True when the request came back without an error; a throw counts as failure. */
-async function runAction(call: () => Promise<{ error: boolean } | null>): Promise<boolean> {
-  try {
-    const res = await call();
-    return !!res && !res.error;
-  } catch {
-    return false;
-  }
-}
-
 export interface ImportOnboardingScreenProps {
+  /** Skips every remaining onboarding step; renders the top-right escape hatch when provided. */
+  onSkipOnboarding?: () => void;
   open: boolean;
   /** Detection from the Dashboard. */
   fanControl: FanControlStatusResponse | null;
@@ -43,29 +36,25 @@ export interface ImportOnboardingScreenProps {
  * closes the detected apps and removes their autostart, since each drives
  * hardware Nexus is taking over.
  */
-export function ImportOnboardingScreen({ open, fanControl, nexus2, offeredFor, onComplete, onBack }: ImportOnboardingScreenProps) {
+export function ImportOnboardingScreen({ open, fanControl, nexus2, offeredFor, onComplete, onBack, onSkipOnboarding }: ImportOnboardingScreenProps) {
   const { t } = useTranslation();
 
   const [applyPhase, setApplyPhase] = useState<ApplyPhase>('idle');
   const [dismissing, setDismissing] = useState(false);
   const [importBusy, setImportBusy] = useState(false);
   const [importHasSelection, setImportHasSelection] = useState(false);
-  const [actionError, setActionError] = useState(false);
   const importHandle = useRef<ImportCenterHandle | null>(null);
 
   // Listed when the app holds data to import. Detected-but-empty apps are not
   // listed, but are still closed below: they drive the same hardware.
   const nexus2Here = nexus2?.importAvailable === true;
   const fanControlHere = fanControl?.importAvailable === true;
-  const nexus2Detected = nexus2?.detected === true;
-  const fanControlDetected = fanControl?.detected === true;
 
   // Resets on every open; the component stays mounted across open toggles.
   useEffect(() => {
     if (!open) return;
     setApplyPhase('idle');
     setDismissing(false);
-    setActionError(false);
   }, [open]);
 
   if (!open) return null;
@@ -88,8 +77,6 @@ export function ImportOnboardingScreen({ open, fanControl, nexus2, offeredFor, o
     fancontrol: false,
   };
 
-  const closeNote = <span className={styles.closeNote}>{t('importOnboarding.closeApp')}</span>;
-
   // Latches the offer flag only for the apps this gate was shown for; latching
   // the other would silently consume a gate that app has not had yet.
   const dismissOffered = async () => {
@@ -97,7 +84,9 @@ export function ImportOnboardingScreen({ open, fanControl, nexus2, offeredFor, o
     if (offeredFor.fancontrol) await dismissFanControlImport().catch(() => null);
   };
 
-  // Both buttons close the apps and clear their autostart; only one imports.
+  // Neither button touches the detected apps; closing them and clearing their
+  // autostart is the end-of-onboarding conflict step's job, on an explicit
+  // per-app click. Only one button imports.
   const handleContinue = async (runImport: boolean) => {
     if (applyPhase === 'applying' || dismissing || importBusy) return;
 
@@ -117,21 +106,7 @@ export function ImportOnboardingScreen({ open, fanControl, nexus2, offeredFor, o
       importFailed = await importHandle.current.runImport() === 'failed';
     }
 
-    // Runs for every DETECTED app, not just the ones with data: an app that is
-    // installed but never configured still drives the hardware. Close before
-    // clearing autostart, so a relaunch cannot race the autostart removal.
-    let actionsOk = true;
-    if (nexus2Detected) {
-      actionsOk = await runAction(closeNexus2App) && actionsOk;
-      actionsOk = await runAction(disableNexus2Autostart) && actionsOk;
-    }
-    if (fanControlDetected) {
-      actionsOk = await runAction(closeFanControlApp) && actionsOk;
-      actionsOk = await runAction(disableFanControlAutostart) && actionsOk;
-    }
-    setActionError(!actionsOk);
-
-    if (importFailed || !actionsOk) {
+    if (importFailed) {
       setApplyPhase('failed');
       return;
     }
@@ -151,10 +126,21 @@ export function ImportOnboardingScreen({ open, fanControl, nexus2, offeredFor, o
       noEscDismiss
       noBackdropDismiss
       onEnter={() => handleContinue(true)}
+      // Without this the first focusable is the skip button, and a Space press
+      // meant to scroll the surface would skip the whole sequence.
+      autoFocus="container"
       ariaLabel={heading}
       className={styles.surface}
       backdropClassName={styles.backdrop}
     >
+      <div className={styles.topBar}>
+        {onBack ? (
+          <Button tone="ghost" size="sm" icon={<ArrowLeft />} disabled={busy || importBusy} onClick={onBack}>
+            {t('nav.back')}
+          </Button>
+        ) : <span />}
+        {onSkipOnboarding ? <SkipOnboardingButton onSkip={onSkipOnboarding} /> : <span />}
+      </div>
       <div className={styles.hero}>
         <span className={styles.heroIcon} aria-hidden>
           <DownloadCloud size={HERO_ICON_SIZE} />
@@ -168,10 +154,6 @@ export function ImportOnboardingScreen({ open, fanControl, nexus2, offeredFor, o
           sources={sources}
           detected={detected}
           includedByDefault={includedByDefault}
-          rowFooter={{
-            nexus2: nexus2Detected ? closeNote : undefined,
-            fancontrol: fanControlDetected ? closeNote : undefined,
-          }}
           disabled={applyPhase !== 'idle'}
           onBusyChange={setImportBusy}
           showAction={false}
@@ -180,16 +162,7 @@ export function ImportOnboardingScreen({ open, fanControl, nexus2, offeredFor, o
         />
       </div>
 
-      {actionError && (
-        <p className={styles.error} role="alert">{t('importOnboarding.errorActions')}</p>
-      )}
-
       <div className={styles.footerRow}>
-        {onBack && (
-          <Button tone="ghost" size="lg" icon={<ArrowLeft />} disabled={busy || importBusy} onClick={onBack}>
-            {t('nav.back')}
-          </Button>
-        )}
         {applyPhase !== 'failed' && sources.length > 0 && (
           <Button
             tone="neutral"

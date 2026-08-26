@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
-import { AlertTriangle, ArrowLeft, Ban, CheckCheck, Lightbulb, PowerOff, RotateCw, SlidersHorizontal, Sparkles } from 'lucide-react';
+import { ArrowLeft, Ban, CheckCheck, Lightbulb, PowerOff, RotateCw, SlidersHorizontal, Sparkles } from 'lucide-react';
+import { SkipOnboardingButton } from '../SkipOnboardingButton/SkipOnboardingButton';
 import { useTranslation } from '../../../lib/i18n';
 import { Overlay } from '../Overlay/Overlay';
 import { Button } from '../Button/Button';
 import { EmptyState } from '../EmptyState/EmptyState';
-import { ConflictAppCard } from '../ConflictAppCard/ConflictAppCard';
-import { useConflictApps } from '../../../hooks/useConflictApps';
-import { HYTE_NEXUS2_CONFLICT_ID } from '../../../api/conflicts';
 import { completeLightingOnboarding } from '../../../api/onboarding';
 import {
   fetchLightingDevices,
@@ -24,6 +22,8 @@ import { useUiSettingsUpdateSafe } from '../../../hooks/useUiSettings';
 import styles from './LightingOnboardingScreen.module.scss';
 
 export interface LightingOnboardingScreenProps {
+  /** Skips every remaining onboarding step; renders the top-right escape hatch when provided. */
+  onSkipOnboarding?: () => void;
   open: boolean;
   onComplete: () => void;
   /** Steps back to the previous onboarding screen; the Back button only renders when provided. */
@@ -74,7 +74,7 @@ const isToggleable = (d: LightingDevice): boolean => !zoneCardUnavailable(d);
  * succeeds. Device toggles write through immediately (same call the lighting
  * page uses), so Continue has nothing to batch.
  */
-export function LightingOnboardingScreen({ open, onComplete, onBack }: LightingOnboardingScreenProps) {
+export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboarding }: LightingOnboardingScreenProps) {
   const { t } = useTranslation();
   const [devices, setDevices] = useState<LightingDevice[] | null>(null);
   const [scanning, setScanning] = useState(false);
@@ -104,13 +104,6 @@ export function LightingOnboardingScreen({ open, onComplete, onBack }: LightingO
   const testPick = testFill && testSwatch
     ? { key: testFill, hex: testSwatch, slot: 0, version: testFill }
     : undefined;
-  const { conflicts: allConflicts } = useConflictApps(open);
-  // HYTE Nexus 2 is excluded here: its shutdown offer belongs to the
-  // Nexus2WelcomeScreen gate, which precedes this screen on eligible
-  // installs - by the time this strip shows, that offer already happened.
-  // An ineligible install leans on the post-onboarding sidebar conflict
-  // warning instead, so this strip never duplicates the dedicated flow.
-  const conflicts = allConflicts.filter(c => c.id !== HYTE_NEXUS2_CONFLICT_ID);
   // Timestamp of the last local toggle (bumped again when its write settles);
   // a poll response whose fetch started before it would clobber the
   // optimistic flip with pre-write server state.
@@ -282,6 +275,14 @@ export function LightingOnboardingScreen({ open, onComplete, onBack }: LightingO
       className={styles.surface}
       backdropClassName={styles.backdrop}
     >
+      <div className={styles.topBar}>
+        {onBack ? (
+          <Button tone="ghost" size="sm" icon={<ArrowLeft />} disabled={submitting} onClick={onBack}>
+            {t('nav.back')}
+          </Button>
+        ) : <span />}
+        {onSkipOnboarding ? <SkipOnboardingButton onSkip={onSkipOnboarding} /> : <span />}
+      </div>
       <div className={styles.hero}>
         <span className={styles.heroIcon} aria-hidden>
           <Lightbulb size={40} />
@@ -307,22 +308,6 @@ export function LightingOnboardingScreen({ open, onComplete, onBack }: LightingO
           </button>
         ))}
       </div>
-
-      {conflicts.length > 0 && (
-        <div className={styles.conflicts}>
-          <p className={styles.conflictsIntro}>
-            <AlertTriangle className={styles.conflictsIcon} aria-hidden />
-            {t('conflicts.modal.intro')}
-          </p>
-          <ul className={styles.conflictList}>
-            {conflicts.map(c => (
-              <li key={c.id}>
-                <ConflictAppCard conflict={c} />
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
 
 
       {cards !== null && cards.length > 0 && (
@@ -419,17 +404,6 @@ export function LightingOnboardingScreen({ open, onComplete, onBack }: LightingO
       {error && <p className={styles.error}>{t('welcome.error')}</p>}
 
       <div className={styles.footerRow}>
-        {onBack && (
-          <Button
-            tone="ghost"
-            size="lg"
-            icon={<ArrowLeft />}
-            disabled={submitting}
-            onClick={onBack}
-          >
-            {t('nav.back')}
-          </Button>
-        )}
         <Button
           tone="accent"
           size="lg"

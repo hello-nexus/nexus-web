@@ -24,7 +24,7 @@
   align-items: safe center;
   justify-content: flex-start;
   gap: 1.5rem;
-  padding: 4rem 2rem 2rem;
+  padding: 2rem 2rem 2rem;
   overflow-y: auto;
 
   :global(html.nexus-shell-native-glass[data-bg='glass']) & {
@@ -96,4 +96,14 @@
   font-size: var(--type-small);
   line-height: 1.3;
   color: var(--text-dim);
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  // Sticks to the surface edges rather than the centred content column, so
+  // Back and Skip sit in the page corners.
+  flex-shrink: 0;
 }

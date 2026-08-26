@@ -1,8 +1,10 @@
+import type { ReactNode } from 'react';
 import { AlertTriangle, CheckCircle2, ShieldOff } from 'lucide-react';
-import type { DetectedConflict } from '../../../api/conflicts';
+import type { ConflictAutostartEntry, DetectedConflict } from '../../../api/conflicts';
 import { ConflictAppCard } from '../ConflictAppCard/ConflictAppCard';
 import { DeviceModal } from '../DeviceModal/DeviceModal';
 import { TopBarStatusButton } from '../TopBarStatusButton/TopBarStatusButton';
+import { useConflictAutostart } from '../../../hooks/useConflictAutostart';
 import { useTranslation } from '../../../lib/i18n';
 import styles from './ConflictWarning.module.scss';
 
@@ -32,6 +34,7 @@ interface ConflictWarningProps {
  */
 export function ConflictWarningBadge({ conflicts, pulsing, suppressed, open, onOpenChange, onSuppressedChange }: ConflictWarningProps) {
   const { t } = useTranslation();
+  const autostartById = useConflictAutostart(open);
   const count = conflicts.length;
   const showButton = count > 0 && !suppressed;
 
@@ -55,6 +58,7 @@ export function ConflictWarningBadge({ conflicts, pulsing, suppressed, open, onO
         suppressed={suppressed}
         onClose={() => onOpenChange(false)}
         onSuppressedChange={onSuppressedChange}
+        autostartById={autostartById}
       />
     </>
   );
@@ -66,9 +70,15 @@ interface ConflictWarningModalProps {
   suppressed: boolean;
   onClose: () => void;
   onSuppressedChange: (suppressed: boolean) => void;
+  /** Resolved autostart entry per conflict id; an id absent here gets no startup control. */
+  autostartById?: Readonly<Record<string, ConflictAutostartEntry | null>>;
+  /** Replaces the "don't show again" row, for the onboarding step that ends in a Done button. */
+  footer?: ReactNode;
 }
 
-function ConflictWarningModal({ open, conflicts, suppressed, onClose, onSuppressedChange }: ConflictWarningModalProps) {
+export function ConflictWarningModal({
+  open, conflicts, suppressed, onClose, onSuppressedChange, autostartById, footer,
+}: ConflictWarningModalProps) {
   const { t } = useTranslation();
 
   if (!open) return null;
@@ -89,7 +99,7 @@ function ConflictWarningModal({ open, conflicts, suppressed, onClose, onSuppress
           <ul className={styles.list}>
             {conflicts.map(conflict => (
               <li key={conflict.id}>
-                <ConflictAppCard conflict={conflict} />
+                <ConflictAppCard conflict={conflict} autostart={autostartById?.[conflict.id]} />
               </li>
             ))}
           </ul>
@@ -100,6 +110,7 @@ function ConflictWarningModal({ open, conflicts, suppressed, onClose, onSuppress
           </div>
         )}
 
+        {footer ?? (
         <label className={styles.dismissRow}>
           <input
             type="checkbox"
@@ -111,6 +122,7 @@ function ConflictWarningModal({ open, conflicts, suppressed, onClose, onSuppress
             {t('conflicts.modal.dontShowAgain')}
           </span>
         </label>
+        )}
       </div>
     </DeviceModal>
   );
