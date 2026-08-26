@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from '../../../lib/i18n';
-import { GameHud } from '../games-shared/GameHud';
+import { GameHud, GameHudStat } from '../games-shared/GameHud';
 import { GameOverScreen } from '../games-shared/GameOverScreen';
 import { RotatePrompt } from '../games-shared/RotatePrompt';
 import { useGameOrientation } from '../games-shared/useGameOrientation';
@@ -200,31 +200,26 @@ export function BlocksTouch({ immersiveGrid }: WidgetProps) {
   const landingPreview = dropping
     ? null
     : computeLandingPreview(runState.board, runState.blocks, runState.position);
-  // Scales with the board's own cell size so the swatch tracks the board
-  // across viewports instead of a fixed size; floored so it never vanishes
-  // before cellSize is measured.
-  const previewCellPx = Math.max(8, Math.round(cellSize * 0.4));
-
   return (
     <div className={styles.root}>
-      <div className={styles.topRow}>
-        <GameHud
-          className={styles.hud}
-          scoreText={t('panel.widget.blocks.scoreValue', { score: runState.score })}
-          elapsedMs={elapsed}
-          middle={
-            <span className={styles.hudMiddle}>
-              <span className={styles.hudChip}>{t('panel.widget.blocks.level', { level: computeLevel(runState.score) })}</span>
-              {runState.combo > 1 && (
-                <span className={`${styles.hudChip} ${styles.hudChipCombo}`}>
-                  {t('panel.widget.blocks.combo', { combo: runState.combo })}
-                </span>
-              )}
-            </span>
-          }
-        />
-        <BlocksNextPreview blocks={runState.nextBlocks} label={t('panel.widget.blocks.next')} cellPx={previewCellPx} />
-      </div>
+      <GameHud
+        scoreText={String(runState.score)}
+        elapsedMs={elapsed}
+        labels={{ score: t('panel.widget.blocks.scoreLabel'), time: t('panel.widget.blocks.timeLabel') }}
+        middle={
+          <GameHudStat label={t('panel.widget.blocks.levelLabel')}>
+            {computeLevel(runState.score)}
+            {runState.combo > 1 && (
+              <span className={styles.comboChip}>{t('panel.widget.blocks.combo', { combo: runState.combo })}</span>
+            )}
+          </GameHudStat>
+        }
+        trailing={
+          <GameHudStat label={t('panel.widget.blocks.next')}>
+            <BlocksNextPreview blocks={runState.nextBlocks} />
+          </GameHudStat>
+        }
+      />
       <BlocksBoard
         board={runState.board}
         fallingBlocks={fallingBlocks}
