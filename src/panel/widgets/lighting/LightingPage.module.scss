@@ -323,11 +323,20 @@
 // Static colour palette. The column count comes from the family list, set
 // inline; capping the width keeps the swatches swatch-sized when the effect
 // dock is collapsed and the pane is wide.
+// Single source for the swatch track metrics. Must sit on the shared PARENT:
+// .paletteCustomRow is a sibling of .paletteGrid, and custom properties
+// inherit down, not across.
+.paletteBody {
+  --palette-gap: 0.25rem;
+  --palette-max-width: 44rem;
+}
+
 .paletteGrid {
   display: grid;
-  gap: 0.25rem;
+  // Fallbacks carry hero mode, which renders the grid with no .paletteBody.
+  gap: var(--palette-gap, 0.25rem);
   align-content: start;
-  max-width: 44rem;
+  max-width: var(--palette-max-width, 44rem);
   padding: 0 0.2rem 0.2rem;
 }
 
@@ -378,28 +387,25 @@
   &:hover { border-color: var(--text); }
 }
 
-// Custom-colour row under the palette grid (advanced mode).
+// Custom-colour row under the palette grid (advanced mode). Gap and cap must
+// track .paletteGrid or the block stops lining up with the swatch columns.
 .paletteCustomRow {
-  display: flex;
+  display: grid;
+  gap: var(--palette-gap);
   align-items: center;
-  padding: 0.35rem 0.2rem 0.2rem;
-}
-
-.paletteCustomLabel {
-  font-size: var(--type-mini);
-  color: var(--text-dim);
-  margin-right: 0.5rem;
+  max-width: var(--palette-max-width);
+  padding: 0.3rem 0.2rem 0.2rem;
 }
 
 .paletteCustomSlotWrap {
   position: relative;
   display: flex;
+  grid-column: span 2;
 }
 
 .paletteCustomSwatch {
-  /* Matches one grid swatch; the grid's columns are fluid, this row's are not. */
-  width: 1.6rem;
-  height: 1.6rem;
+  width: 100%;
+  aspect-ratio: 2 / 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -411,8 +417,8 @@
 }
 
 .paletteCustomIcon {
-  width: 12px;
-  height: 12px;
+  height: 50%;
+  width: auto;
   color: #fff;
   filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.8));
   pointer-events: none;

@@ -101,9 +101,10 @@ export function pickCustomForDevices(
   prev: DevicePicks,
   hex: string,
   ids: string[],
+  push = true,
 ): DevicePicks {
   const next = withPick(prev, ids, { key: paletteKey(nearestPaletteId(hex)), slot: 0, hex });
-  pushCustomPick(hex, ids);
+  if (push) pushCustomPick(hex, ids);
   return next;
 }
 

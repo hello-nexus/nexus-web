@@ -23,6 +23,7 @@ const FALLBACK_CUSTOM = '#ff0000';
  */
 export function StaticPalette({
   selectedId, open, onToggle, onSelect, hero, customColor, customSelected, onSelectCustom,
+  onPreviewCustom,
 }: {
   /** Palette id the selected devices wear, if they agree on one. */
   selectedId?: string | null;
@@ -38,9 +39,13 @@ export function StaticPalette({
   customSelected?: boolean;
   /** Omitted (or in hero mode) the custom row is not rendered at all. */
   onSelectCustom?: (hex: string) => void;
+  /** Fires per pointer-move; the caller paces its own writes. */
+  onPreviewCustom?: (hex: string) => void;
 }) {
   const { t } = useTranslation();
   const [pickerOpen, setPickerOpen] = useState(false);
+  // Drag preview never reaches the pick record, so the swatch tracks it here.
+  const [previewHex, setPreviewHex] = useState<string | null>(null);
   const slotRef = useRef<HTMLDivElement>(null);
   const grid = (
     <div
@@ -68,10 +73,19 @@ export function StaticPalette({
   );
   if (hero) return grid;
 
-  const slotColor = customColor || '';
+  const slotColor = previewHex || customColor || '';
+  // Opening applies what the slot already shows, so the block selects a colour
+  // the way a preset tile does.
+  const handleSlotClick = () => {
+    const opening = !pickerOpen;
+    if (opening && slotColor) onSelectCustom?.(slotColor);
+    setPickerOpen(opening);
+  };
   const customRow = onSelectCustom ? (
-    <div className={styles.paletteCustomRow}>
-      <span className={styles.paletteCustomLabel}>{t('common.customColor')}</span>
+    <div
+      className={styles.paletteCustomRow}
+      style={{ gridTemplateColumns: `repeat(${PALETTE_FAMILIES.length}, minmax(0, 1fr))` }}
+    >
       <div ref={slotRef} className={styles.paletteCustomSlotWrap}>
         <button
           type="button"
@@ -79,7 +93,7 @@ export function StaticPalette({
           // `background`, not `backgroundColor`: the unset slot's hue wheel is a
           // background-IMAGE and would paint straight over a colour set behind it.
           style={slotColor ? { background: slotColor, color: contrastTextOn(slotColor) } : undefined}
-          onClick={() => setPickerOpen(o => !o)}
+          onClick={handleSlotClick}
           aria-label={t('common.customColor')}
           aria-haspopup="dialog"
           aria-expanded={pickerOpen}
@@ -92,7 +106,9 @@ export function StaticPalette({
         </button>
         <Popover
           open={pickerOpen}
-          onClose={() => setPickerOpen(false)}
+          // HsvPicker resets only on pointerup, so a cancelled drag would leave
+          // the swatch on a colour the pick record never took.
+          onClose={() => { setPickerOpen(false); setPreviewHex(null); }}
           anchorRef={slotRef}
           placement="bottom-start"
           ariaLabel={t('common.customColor')}
@@ -100,10 +116,8 @@ export function StaticPalette({
         >
           <HsvPicker
             value={slotColor || FALLBACK_CUSTOM}
-            // Commit only: a preview per pointer-move would be one HTTP write
-            // per selected device per move.
-            onPreview={() => {}}
-            onCommit={onSelectCustom}
+            onPreview={hex => { setPreviewHex(hex); onPreviewCustom?.(hex); }}
+            onCommit={hex => { setPreviewHex(null); onSelectCustom(hex); }}
           />
         </Popover>
       </div>
@@ -117,8 +131,10 @@ export function StaticPalette({
       open={!!open}
       onToggle={onToggle ?? (() => {})}
     >
-      {grid}
-      {customRow}
+      <div className={styles.paletteBody}>
+        {grid}
+        {customRow}
+      </div>
     </CollapsibleSection>
   );
 }

@@ -45,7 +45,7 @@ import { LightingSkeleton } from '../../../components/views/PageSkeleton/PageSke
 import { DeviceCanvas } from '../../../components/common/DeviceCanvas/DeviceCanvas';
 import { usePersistentState, usePersistentIdSet } from '../../../hooks/usePersistentState';
 import {
-  pickLookForDevices, pickPaletteForDevices, pickCustomForDevices, pushPalettePick, devicePicksFromLooks,
+  pickLookForDevices, pickPaletteForDevices, pickCustomForDevices, pushPalettePick, pushCustomPick, devicePicksFromLooks,
   DEVICE_PICKS_STORAGE_KEY, SELECTED_DEVICES_STORAGE_KEY, PRIMARY_DEVICE_STORAGE_KEY,
   type DevicePick,
 } from './staticPicks';
@@ -837,11 +837,48 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     writePalettePick(color, [...selectedDeviceIds]);
   }, [perDeviceMode, selectedDeviceIds, writePalettePick]);
 
+  // Custom-colour writes: one in flight, newest wins. Paced by the write
+  // landing rather than a timer, so a slow write drops the frames it outran
+  // instead of queueing them behind the pointer. The queued entry carries its
+  // own target ids - the selection can change before the chain drains.
+  const customWrite = useRef<{ inFlight: boolean; queued: { hex: string; ids: string[] } | null }>(
+    { inFlight: false, queued: null },
+  );
+  // Ref-held so the .finally re-entry keeps one stable identity, as
+  // useSystemVolume's pump does.
+  const pumpCustomRef = useRef<() => void>(() => {});
+  const pumpCustom = useCallback(() => {
+    const write = customWrite.current;
+    if (write.inFlight || !write.queued) return;
+    const { hex, ids } = write.queued;
+    write.queued = null;
+    write.inFlight = true;
+    pushCustomPick(hex, ids).finally(() => {
+      write.inFlight = false;
+      pumpCustomRef.current();
+    });
+  }, []);
+  pumpCustomRef.current = pumpCustom;
+
+  const queueCustomWrite = useCallback((hex: string, ids: string[]) => {
+    customWrite.current.queued = { hex, ids };
+    pumpCustom();
+  }, [pumpCustom]);
+
   const handleCustomSelect = useCallback((hex: string) => {
     setCustomStaticColor(hex);
     if (!perDeviceMode || selectedDeviceIds.size === 0) return;
-    setDevicePicks(prev => pickCustomForDevices(prev, hex, [...selectedDeviceIds]));
-  }, [perDeviceMode, selectedDeviceIds, setCustomStaticColor, setDevicePicks]);
+    const ids = [...selectedDeviceIds];
+    // Record without pushing and queue the write, so the commit cannot race a
+    // preview still in flight and leave the hardware on the older colour.
+    setDevicePicks(prev => pickCustomForDevices(prev, hex, ids, false));
+    queueCustomWrite(hex, ids);
+  }, [perDeviceMode, queueCustomWrite, selectedDeviceIds, setCustomStaticColor, setDevicePicks]);
+
+  const handleCustomPreview = useCallback((hex: string) => {
+    if (!perDeviceMode || selectedDeviceIds.size === 0) return;
+    queueCustomWrite(hex, [...selectedDeviceIds]);
+  }, [perDeviceMode, queueCustomWrite, selectedDeviceIds]);
 
   const effectPool = mode === 'static' ? STATIC_EFFECTS : ANIMATE_EFFECTS;
 
@@ -1964,6 +2001,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                       customColor={scopedCustom ? scopedHex : customStaticColor}
                       customSelected={scopedCustom}
                       onSelectCustom={handleCustomSelect}
+                      onPreviewCustom={handleCustomPreview}
                     />
                   ) : undefined}
                 />
