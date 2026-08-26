@@ -60,8 +60,9 @@
 }
 
 .entryTitle {
-  @include text-body;
-  line-height: 1.25;
+  // Tab type: the rows name the same choices the tab strip does.
+  font-size: var(--type-small);
+  font-weight: var(--weight-body);
   color: var(--text);
 }
 
@@ -75,13 +76,9 @@
   color: var(--accent-glow);
 }
 
-.trigger {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-}
-
 .triggerCaret {
   flex: 0 0 auto;
+  // Air between the glyph and the caret: the tab has no label between them.
+  margin-left: 0.15rem;
   opacity: 0.7;
 }

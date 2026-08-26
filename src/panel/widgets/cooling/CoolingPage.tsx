@@ -47,6 +47,7 @@ import { emitRadialBloomFromElement } from '../../../lib/backgroundEffects';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { PresetToolbar } from '../../../components/common/PresetToolbar/PresetToolbar';
 import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
+import { AdvancedModeCta } from '../../../components/common/AdvancedModeCta/AdvancedModeCta';
 import { ModeMenu, MODE_MENU_TAB_KEY } from '../../../components/common/ModeMenu/ModeMenu';
 import { usePageModeMenu } from '../../../components/common/ModeMenu/usePageModeMenu';
 import { DeviceCountSummary } from '../../../components/common/DeviceCountSummary/DeviceCountSummary';
@@ -1182,6 +1183,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   const modeMenuTab = {
     key: MODE_MENU_TAB_KEY,
     label: modeMenu.triggerLabel,
+    ariaLabel: modeMenu.triggerAriaLabel,
     icon: modeMenu.triggerIcon,
     expanded: modeMenuOpen,
   };
@@ -1259,23 +1261,25 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
               tabs={simpleTabs}
               activeTab={activeTabKey}
               onTabChange={handleTabChange}
+              /* Same summary+claim pair as the simple lighting page: one line
+                 carrying both counts, and the action only while it has
+                 something to resolve. */
+              tabsAdjacent={(
+                <DeviceCountSummary
+                  detected={t(pluralKey('cooling.simple.controlledOf', language, channels.length), {
+                    controlled: controlledFanCount,
+                    total: channels.length,
+                  })}
+                  action={controlledFanCount < channels.length ? (
+                    <Button size="sm" pill onClick={() => { void claimAllFans(); }}>
+                      {t('cooling.simple.controlAll')}
+                    </Button>
+                  ) : undefined}
+                />
+              )}
             />
             {modeMenuNode}
           </div>
-          {/* Same summary+claim pair as the simple lighting page: one line
-              carrying both counts, and the action only while it has something
-              to resolve. */}
-          <DeviceCountSummary
-            detected={t(pluralKey('cooling.simple.controlledOf', language, channels.length), {
-              controlled: controlledFanCount,
-              total: channels.length,
-            })}
-            action={controlledFanCount < channels.length ? (
-              <Button size="sm" pill onClick={() => { void claimAllFans(); }}>
-                {t('cooling.simple.controlAll')}
-              </Button>
-            ) : undefined}
-          />
           <div className={styles.simplePresets} role="group" aria-label={t('cooling.title')}>
             {COOLING_MODES.filter(p => p.key !== 'custom' && p.key !== 'off').map(p => (
               <IconLabelButton
@@ -1292,6 +1296,12 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
           {activeMode === 'custom' && (
             <SimpleModeNotice message={t('cooling.simple.customActive')} />
           )}
+          <div className={styles.simpleFooter}>
+            <AdvancedModeCta
+              label={t('cooling.simple.advancedCta')}
+              onPress={() => setDashboardMode('advanced')}
+            />
+          </div>
         </div>
       </div>
     );

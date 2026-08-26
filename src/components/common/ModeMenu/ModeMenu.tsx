@@ -67,15 +67,10 @@ export function ModeMenu({ open, onClose, anchorRef, entries, ariaLabel }: ModeM
 }
 
 /**
- * Label for the tab that opens a {@link ModeMenu}: the current choice's name
- * plus a caret, so the tab reads as a menu rather than a plain tab. The
- * matching glyph rides the tab's own icon slot.
+ * Label for the tab that opens a {@link ModeMenu}: the caret alone, so the tab
+ * is the current choice's glyph plus the affordance that it drops a menu. The
+ * glyph rides the tab's own icon slot and names the tab through `ariaLabel`.
  */
-export function ModeMenuTriggerLabel({ label }: { label: string }) {
-  return (
-    <span className={styles.trigger}>
-      {label}
-      <ChevronDown className={styles.triggerCaret} size={12} aria-hidden />
-    </span>
-  );
+export function ModeMenuTriggerLabel() {
+  return <ChevronDown className={styles.triggerCaret} size={12} aria-hidden />;
 }

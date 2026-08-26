@@ -34,6 +34,7 @@ import { Badge } from '../../../components/common/Badge/Badge';
 import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
+import { AdvancedModeCta } from '../../../components/common/AdvancedModeCta/AdvancedModeCta';
 import { ModeMenu, MODE_MENU_TAB_KEY } from '../../../components/common/ModeMenu/ModeMenu';
 import { usePageModeMenu } from '../../../components/common/ModeMenu/usePageModeMenu';
 import { DeviceCountSummary } from '../../../components/common/DeviceCountSummary/DeviceCountSummary';
@@ -1559,6 +1560,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const modeMenuTab = {
     key: MODE_MENU_TAB_KEY,
     label: modeMenu.triggerLabel,
+    ariaLabel: modeMenu.triggerAriaLabel,
     icon: modeMenu.triggerIcon,
     expanded: modeMenuOpen,
   };
@@ -1689,25 +1691,28 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
               tabs={simpleTabs}
               activeTab={activeTabKey}
               onTabChange={handleTabChange}
+              /* One line carries both counts, so a device the advanced page
+                 left un-driven is visible here without a device list. The
+                 action runs the same claim the palette does - controlledCount
+                 also requires the lights to be on, so setting `controlled`
+                 alone would leave the count short and the button stuck on
+                 screen. */
+              tabsAdjacent={(
+                <DeviceCountSummary
+                  detected={t(pluralKey('lighting.simple.controlledOf', language, claimableDevices.length), {
+                    controlled: controlledCount,
+                    total: claimableDevices.length,
+                  })}
+                  action={controlledCount < claimableDevices.length ? (
+                    <Button size="sm" pill onClick={() => { claimAllDevices(); }}>
+                      {t('lighting.simple.controlAll')}
+                    </Button>
+                  ) : undefined}
+                />
+              )}
             />
             {modeMenuNode}
           </div>
-          {/* One line carries both counts, so a device the advanced page left
-              un-driven is visible here without a device list. The action runs
-              the same claim the palette does - controlledCount also requires
-              the lights to be on, so setting `controlled` alone would leave
-              the count short and the button stuck on screen. */}
-          <DeviceCountSummary
-            detected={t(pluralKey('lighting.simple.controlledOf', language, claimableDevices.length), {
-              controlled: controlledCount,
-              total: claimableDevices.length,
-            })}
-            action={controlledCount < claimableDevices.length ? (
-              <Button size="sm" pill onClick={() => { claimAllDevices(); }}>
-                {t('lighting.simple.controlAll')}
-              </Button>
-            ) : undefined}
-          />
           <StaticPalette
             hero
             selectedId={simplePaletteId}
@@ -1716,6 +1721,12 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           {simpleCustomActive && (
             <SimpleModeNotice message={t('lighting.simple.customActive')} />
           )}
+          <div className={styles.simpleFooter}>
+            <AdvancedModeCta
+              label={t('lighting.simple.advancedCta')}
+              onPress={() => setDashboardMode('advanced')}
+            />
+          </div>
         </div>
       </div>
     );

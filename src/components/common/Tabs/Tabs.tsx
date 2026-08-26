@@ -12,6 +12,8 @@ export interface TabDef {
   readonly icon?: ReactNode;
   /** Per-tab disable. Takes precedence over the `disabled` root flag. */
   readonly disabled?: boolean;
+  /** Accessible name for a tab whose label carries no text (icon-only). */
+  readonly ariaLabel?: string;
   /** Marks the tab as a menu trigger and carries the menu's open state, so a
    *  tab that drops a popup announces itself as one (the lighting / cooling
    *  mode tab). Omit for a plain tab. */
@@ -62,6 +64,7 @@ export function Tabs({ tabs, activeKey, onChange, disabled, ariaLabel = 'Tabs', 
               type="button"
               role="tab"
               aria-selected={isActive}
+              aria-label={tab.ariaLabel}
               aria-haspopup={tab.expanded === undefined ? undefined : 'menu'}
               aria-expanded={tab.expanded}
               className={classNames(styles.tab, { [styles.active]: isActive })}
@@ -85,6 +88,7 @@ export function Tabs({ tabs, activeKey, onChange, disabled, ariaLabel = 'Tabs', 
               type="button"
               role="tab"
               aria-selected={isActive}
+              aria-label={tab.ariaLabel}
               aria-haspopup={tab.expanded === undefined ? undefined : 'menu'}
               aria-expanded={tab.expanded}
               className={styles.tab}

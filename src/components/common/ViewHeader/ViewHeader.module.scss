@@ -71,3 +71,13 @@
   // The tab bar carries the row's bottom spacing, so match it here.
   margin-bottom: 0.75rem;
 }
+
+// Sits directly beside the tab bar (no auto margin), so a page-level readout
+// reads as attached to the tabs rather than pinned to the far edge. Carries
+// the tab bar's bottom spacing so both line up on the same centre.
+.tabsAdjacent {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  margin-bottom: 0.75rem;
+}

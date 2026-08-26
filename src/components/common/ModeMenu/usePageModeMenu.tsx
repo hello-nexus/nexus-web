@@ -1,5 +1,5 @@
 import { useMemo, type ComponentType, type ReactNode } from 'react';
-import { LayoutGrid, SlidersHorizontal } from 'lucide-react';
+import { Joystick, Pointer } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { ModeMenuTriggerLabel, type ModeMenuEntry } from './ModeMenu';
 
@@ -28,8 +28,10 @@ export interface PageModeMenuState {
   entries: ModeMenuEntry[];
   /** Glyph for the tab that opens the menu: whatever is currently in force. */
   triggerIcon: ReactNode;
-  /** That tab's label - the current choice's name plus the caret. */
+  /** That tab's label - the caret alone; the glyph carries the meaning. */
   triggerLabel: ReactNode;
+  /** Accessible name for the tab, which renders no text of its own. */
+  triggerAriaLabel: string;
 }
 
 /**
@@ -58,25 +60,23 @@ export function usePageModeMenu({
     simple
       ? {
         key: 'advanced',
-        icon: <SlidersHorizontal size={ENTRY_ICON_SIZE} />,
+        icon: <Joystick size={ENTRY_ICON_SIZE} />,
         title: t('uiMode.advancedMode'),
         description: advancedDescription,
         onSelect: () => onModeChange('advanced'),
       }
       : {
         key: 'simple',
-        icon: <LayoutGrid size={ENTRY_ICON_SIZE} />,
+        icon: <Pointer size={ENTRY_ICON_SIZE} />,
         title: t('uiMode.simpleMode'),
         description: simpleDescription,
         onSelect: () => onModeChange('simple'),
       },
   ], [OffIcon, offLabel, offDescription, off, onOff, simple, t, advancedDescription, simpleDescription, onModeChange]);
 
-  const ModeIcon = simple ? LayoutGrid : SlidersHorizontal;
+  const ModeIcon = simple ? Pointer : Joystick;
   const triggerIcon = off ? <OffIcon size={TRIGGER_ICON_SIZE} /> : <ModeIcon size={TRIGGER_ICON_SIZE} />;
-  const triggerLabel = (
-    <ModeMenuTriggerLabel label={off ? offLabel : t(simple ? 'uiMode.simple' : 'uiMode.advanced')} />
-  );
+  const triggerAriaLabel = off ? offLabel : t(simple ? 'uiMode.simpleMode' : 'uiMode.advancedMode');
 
-  return { entries, triggerIcon, triggerLabel };
+  return { entries, triggerIcon, triggerLabel: <ModeMenuTriggerLabel />, triggerAriaLabel };
 }
