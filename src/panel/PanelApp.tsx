@@ -1757,6 +1757,10 @@ export function PanelContent({
               surface={surface}
               deviceTouch={deviceTouch}
               immersiveGrid={{ columns: runtimeGrid.columns, rows: runtimeGrid.rows }}
+              // Immersive views own state the user sets from inside them (the
+              // media visualizer's on/off + effect), so the persist path has to
+              // reach the layout from run mode, not only from the edit sheet.
+              onUpdate={cfg => updateWidgetConfig(w.id, cfg)}
             />
           </PanelImmersiveOverlay>
         );

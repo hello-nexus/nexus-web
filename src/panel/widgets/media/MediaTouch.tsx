@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
 import {
-  Music, Pause, Play, SkipBack, SkipForward, Shuffle, Repeat, Repeat1,
+  AudioLines, Music, Pause, Play, SkipBack, SkipForward, Shuffle, Repeat, Repeat1,
   Volume, Volume1, Volume2, VolumeX,
 } from 'lucide-react';
 import { ImmersiveLayout } from '../common/ImmersiveLayout';
@@ -11,9 +11,12 @@ import { useSystemVolume } from '../../../hooks/useSystemVolume';
 import { fetchServiceBlob } from '../../../api/service';
 import { useTranslation } from '../../../lib/i18n';
 import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
+import { surfaceSupportsTouch } from '../../types';
 import type { WidgetProps } from '../types';
 import { mediaArtSignature } from './mediaArt';
 import { formatTrackTime, useLivePositionMs } from './mediaTime';
+import { MediaVisualizer } from './MediaVisualizer';
+import { nextVisualizerEffect, normalizeVisualizerEffect, visualizerLabelKey } from './mediaVisualizers';
 import styles from './MediaTouch.module.scss';
 
 interface MediaArtAsset {
@@ -44,7 +47,12 @@ function isImageBlob(blob: Blob | null): blob is Blob {
   return !!blob && blob.size > 0 && blob.type.startsWith('image/');
 }
 
-export function MediaTouch({ immersiveGrid }: WidgetProps) {
+// Idle delay before the transport controls fade back out over the visualizer.
+const CONTROLS_IDLE_MS = 3_000;
+// How long the effect name stays up after a cycle tap.
+const EFFECT_TOAST_MS = 1_600;
+
+export function MediaTouch({ widget, surface, deviceTouch, immersiveGrid, onUpdate }: WidgetProps) {
   const { t } = useTranslation();
   const { sessions } = useMedia(true);
   const [artAsset, setArtAsset] = useState<MediaArtAsset>({ key: '', signature: '', url: '' });
@@ -97,6 +105,62 @@ export function MediaTouch({ immersiveGrid }: WidgetProps) {
   const gridColumns = immersiveGrid?.columns ?? 4;
   const gridRows = immersiveGrid?.rows ?? 8;
 
+  // Config is the persistence; local state is what renders, so a tap lands
+  // immediately whether or not the host wired onUpdate (the simulator does not).
+  const canTouch = surface ? surfaceSupportsTouch(surface, deviceTouch) : true;
+  const [visualizerOn, setVisualizerOn] = useState(() => widget?.config?.visualizer === true);
+  const [effect, setEffect] = useState(() => normalizeVisualizerEffect(widget?.config?.visualizerEffect));
+  const [controlsRevealed, setControlsRevealed] = useState(true);
+  // Bumped on every reveal so re-tapping while already revealed re-arms the
+  // idle timer; a boolean alone would leave the first timeout running.
+  const [revealNonce, setRevealNonce] = useState(0);
+  const [effectToast, setEffectToast] = useState(0);
+  // A service that predates these effects 404s the shader source, leaving a
+  // transparent canvas; the album-art backdrop goes back behind the player so
+  // the frame is never plain black.
+  const [shaderUnavailable, setShaderUnavailable] = useState(false);
+
+  const revealControls = useCallback(() => {
+    setControlsRevealed(true);
+    setRevealNonce(n => n + 1);
+  }, []);
+
+  useEffect(() => {
+    if (!visualizerOn || !controlsRevealed) return;
+    const id = window.setTimeout(() => setControlsRevealed(false), CONTROLS_IDLE_MS);
+    return () => window.clearTimeout(id);
+  }, [visualizerOn, controlsRevealed, revealNonce]);
+
+  useEffect(() => {
+    if (!effectToast) return;
+    const id = window.setTimeout(() => setEffectToast(0), EFFECT_TOAST_MS);
+    return () => window.clearTimeout(id);
+  }, [effectToast]);
+
+  const toggleVisualizer = useCallback(() => {
+    setVisualizerOn(on => {
+      const next = !on;
+      onUpdate?.({ visualizer: next });
+      return next;
+    });
+    revealControls();
+  }, [onUpdate, revealControls]);
+
+  // A tap with the controls faded only brings them back; a tap while they are
+  // up cycles the effect. Cycling on the reveal tap too would change the
+  // visualizer every time the user reached for the pause button.
+  const handleVisualizerTap = useCallback(() => {
+    if (!controlsRevealed) { revealControls(); return; }
+    setEffect(current => {
+      const next = nextVisualizerEffect(current);
+      onUpdate?.({ visualizerEffect: next });
+      return next;
+    });
+    setShaderUnavailable(false);
+    setEffectToast(n => n + 1);
+    revealControls();
+  }, [controlsRevealed, onUpdate, revealControls]);
+
   if (!active) {
     return (
       <ImmersiveLayout
@@ -118,28 +182,65 @@ export function MediaTouch({ immersiveGrid }: WidgetProps) {
   // cellsPerPage keeps them on ONE page on short grids, where the derived fit
   // (floor(rows/4) = 1 on a 4x6 phone) would otherwise split them across a swipe.
   const art = hdArtUrl || artUrl;
+  const player = (
+    <MediaPlayerCell
+      session={active.session}
+      sourceKey={active.key}
+      t={t}
+      visualizer={visualizerOn}
+      controlsRevealed={controlsRevealed}
+      canToggleVisualizer={canTouch}
+      onToggleVisualizer={toggleVisualizer}
+    />
+  );
   return (
-    <div className={styles.immersiveRoot}>
+    <div className={styles.immersiveRoot} data-visualizer={visualizerOn ? 'true' : undefined}>
       {/* Backdrop uses the standard art, not the HD upgrade: it is blurred past
           the point the extra resolution can show, so the bigger decode buys
           nothing. */}
-      {artUrl && (
+      {artUrl && (!visualizerOn || shaderUnavailable) && (
         <div className={styles.backdrop} aria-hidden="true">
           <img className={styles.backdropArt} src={artUrl} alt="" />
           <div className={styles.backdropTint} />
         </div>
       )}
+      {visualizerOn && (
+        <>
+          <MediaVisualizer effect={effect} surface={surface} onUnavailable={setShaderUnavailable} />
+          {/* Scrim under the text only: the shader is high-contrast in places
+              the title would otherwise sit on. */}
+          <div className={styles.visualizerScrim} aria-hidden="true" />
+          <button
+            type="button"
+            className={styles.visualizerSurface}
+            onClick={handleVisualizerTap}
+            // The sheet-swipe engine arms a drag on plain touches; without this
+            // the tap races the overlay's snap-back and the cycle is dropped.
+            data-panel-no-sheet-swipe="true"
+            aria-label={t(controlsRevealed ? 'panel.media.visualizer.next' : 'panel.media.visualizer.showControls')}
+          />
+          {effectToast > 0 && (
+            <div className={styles.visualizerToast} role="status">{t(visualizerLabelKey(effect))}</div>
+          )}
+        </>
+      )}
       <div className={styles.immersiveContent}>
-        <ImmersiveLayout
-          cells={[
-            <MediaArtCell artUrl={art} />,
-            <MediaPlayerCell session={active.session} sourceKey={active.key} t={t} />,
-          ]}
-          gridColumns={gridColumns}
-          gridRows={gridRows}
-          fillLast={false}
-          cellsPerPage={2}
-        />
+        {visualizerOn ? (
+          <ImmersiveLayout
+            cells={[player]}
+            gridColumns={gridColumns}
+            gridRows={gridRows}
+            cellsPerPage={1}
+          />
+        ) : (
+          <ImmersiveLayout
+            cells={[<MediaArtCell artUrl={art} />, player]}
+            gridColumns={gridColumns}
+            gridRows={gridRows}
+            fillLast={false}
+            cellsPerPage={2}
+          />
+        )}
       </div>
     </div>
   );
@@ -170,10 +271,18 @@ function MediaPlayerCell({
   session,
   sourceKey,
   t,
+  visualizer,
+  controlsRevealed,
+  canToggleVisualizer,
+  onToggleVisualizer,
 }: {
   session: MediaSession;
   sourceKey: string;
   t: (k: string, params?: Record<string, string | number>) => string;
+  visualizer: boolean;
+  controlsRevealed: boolean;
+  canToggleVisualizer: boolean;
+  onToggleVisualizer: () => void;
 }) {
   const control = (action: string) => { void controlMedia(sourceKey, action); };
   const playing = session.playback.playing && !session.playback.stopped;
@@ -194,69 +303,86 @@ function MediaPlayerCell({
         <div className={styles.artist}>{session.song.artist || ''}</div>
         {session.song.album && <div className={styles.album}>{session.song.album}</div>}
       </div>
-      {session.playback.durationMs > 0 && (
-        <SeekBar
-          durationMs={session.playback.durationMs}
-          positionMs={session.playback.positionMs}
-          playing={playing}
-          seekable={!!session.controls.isSeekEnabled}
-          onSeek={ms => seekMedia(sourceKey, ms)}
-          t={t}
-        />
-      )}
-      <div className={styles.controls}>
-        <IconLabelButton
-          variant="bare"
-          className={styles.btn}
-          icon={<Shuffle strokeWidth={1.8} />}
-          active={!!session.playback.shuffled}
-          ariaLabel={t('panel.media.shuffle')}
-          disabled={!session.controls.isShuffleEnabled}
-          onPress={() => control('shuffle')}
-        />
-        <IconLabelButton
-          variant="bare"
-          className={styles.btn}
-          icon={<SkipBack strokeWidth={1.8} fill="currentColor" />}
-          ariaLabel={t('panel.media.previous')}
-          disabled={!session.controls.isPrevEnabled}
-          onPress={() => control('previous')}
-        />
-        <IconLabelButton
-          variant="bare"
-          className={styles.primary}
-          icon={playing ? <Pause fill="currentColor" stroke="none" /> : <Play fill="currentColor" stroke="none" />}
-          ariaLabel={playing ? t('panel.media.pause') : t('panel.media.play')}
-          onPress={() => control(playing ? 'pause' : 'play')}
-        />
-        <IconLabelButton
-          variant="bare"
-          className={styles.btn}
-          icon={<SkipForward strokeWidth={1.8} fill="currentColor" />}
-          ariaLabel={t('panel.media.next')}
-          disabled={!session.controls.isNextEnabled}
-          onPress={() => control('next')}
-        />
-        <IconLabelButton
-          variant="bare"
-          className={styles.btn}
-          icon={<RepeatIcon strokeWidth={1.8} />}
-          active={repeatActive}
-          ariaLabel={t('panel.media.repeat')}
-          disabled={!session.controls.isRepeatModeEnabled}
-          onPress={() => control('repeatmode')}
-        />
+      <div
+        className={styles.fadeGroup}
+        // Only the visualizer fades these; off it, the group is a plain
+        // wrapper and data-revealed stays true.
+        data-revealed={!visualizer || controlsRevealed ? 'true' : 'false'}
+      >
+        {session.playback.durationMs > 0 && (
+          <SeekBar
+            durationMs={session.playback.durationMs}
+            positionMs={session.playback.positionMs}
+            playing={playing}
+            seekable={!!session.controls.isSeekEnabled}
+            onSeek={ms => seekMedia(sourceKey, ms)}
+            t={t}
+          />
+        )}
+        <div className={styles.controls}>
+          <IconLabelButton
+            variant="bare"
+            className={styles.btn}
+            icon={<Shuffle strokeWidth={1.8} />}
+            active={!!session.playback.shuffled}
+            ariaLabel={t('panel.media.shuffle')}
+            disabled={!session.controls.isShuffleEnabled}
+            onPress={() => control('shuffle')}
+          />
+          <IconLabelButton
+            variant="bare"
+            className={styles.btn}
+            icon={<SkipBack strokeWidth={1.8} fill="currentColor" />}
+            ariaLabel={t('panel.media.previous')}
+            disabled={!session.controls.isPrevEnabled}
+            onPress={() => control('previous')}
+          />
+          <IconLabelButton
+            variant="bare"
+            className={styles.primary}
+            icon={playing ? <Pause fill="currentColor" stroke="none" /> : <Play fill="currentColor" stroke="none" />}
+            ariaLabel={playing ? t('panel.media.pause') : t('panel.media.play')}
+            onPress={() => control(playing ? 'pause' : 'play')}
+          />
+          <IconLabelButton
+            variant="bare"
+            className={styles.btn}
+            icon={<SkipForward strokeWidth={1.8} fill="currentColor" />}
+            ariaLabel={t('panel.media.next')}
+            disabled={!session.controls.isNextEnabled}
+            onPress={() => control('next')}
+          />
+          <IconLabelButton
+            variant="bare"
+            className={styles.btn}
+            icon={<RepeatIcon strokeWidth={1.8} />}
+            active={repeatActive}
+            ariaLabel={t('panel.media.repeat')}
+            disabled={!session.controls.isRepeatModeEnabled}
+            onPress={() => control('repeatmode')}
+          />
+          {canToggleVisualizer && (
+            <IconLabelButton
+              variant="bare"
+              className={styles.btn}
+              icon={<AudioLines strokeWidth={1.8} />}
+              active={visualizer}
+              ariaLabel={t(visualizer ? 'panel.media.visualizer.hide' : 'panel.media.visualizer.show')}
+              onPress={onToggleVisualizer}
+            />
+          )}
+        </div>
+        {volume.supported && (
+          <HorizontalVolume
+            volume={volume.volume}
+            muted={volume.muted}
+            onPreview={previewVolume}
+            onCommit={commitVolume}
+            onToggleMute={() => setMuted(!volume.muted)}
+            t={t}
+          />
+        )}
       </div>
-      {volume.supported && (
-        <HorizontalVolume
-          volume={volume.volume}
-          muted={volume.muted}
-          onPreview={previewVolume}
-          onCommit={commitVolume}
-          onToggleMute={() => setMuted(!volume.muted)}
-          t={t}
-        />
-      )}
     </div>
   );
 }

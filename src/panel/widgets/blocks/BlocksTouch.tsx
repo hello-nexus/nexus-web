@@ -23,15 +23,10 @@ import {
   type BlockCell,
   type BlocksRunState,
 } from './blocksLogic';
+import { beginGesture, updateGesture } from './blocksGesture';
 import { useBlocksHardDrop } from './useBlocksHardDrop';
 import type { WidgetProps } from '../types';
 import styles from './BlocksTouch.module.scss';
-
-// A drag must cross one cell's width before it moves the piece; a downward
-// drag past 1.2 cells triggers the hard drop. Anything short of that (and no
-// move/drop fired during the gesture) is a tap-to-rotate.
-const MOVE_CELL_FRACTION = 1;
-const DROP_CELL_FRACTION = 1.2;
 
 export function BlocksTouch({ immersiveGrid }: WidgetProps) {
   const { t } = useTranslation();
@@ -137,22 +132,14 @@ export function BlocksTouch({ immersiveGrid }: WidgetProps) {
   // avoids that outright, matching PaletteRing.tsx's drag pattern.
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     if (runState.gameOver || paused || dropping) return;
-    const startY = e.clientY;
-    let lastX = e.clientX;
-    let moved = false;
+    let gesture = beginGesture(e.clientX, e.clientY);
 
     const move = (ev: PointerEvent) => {
-      if (cellSize <= 0) return;
-      const dx = ev.clientX - lastX;
-      const dy = ev.clientY - startY;
-      if (Math.abs(dx) > cellSize * MOVE_CELL_FRACTION) {
-        handleMove(dx > 0 ? 1 : -1);
-        lastX = ev.clientX;
-        moved = true;
-      }
-      if (dy > cellSize * DROP_CELL_FRACTION) {
+      const result = updateGesture(gesture, ev.clientX, ev.clientY, cellSize);
+      gesture = result.gesture;
+      if (result.move !== 0) handleMove(result.move);
+      if (result.drop) {
         handleHardDrop();
-        moved = true;
         window.removeEventListener('pointermove', move);
         window.removeEventListener('pointerup', up);
       }
@@ -160,7 +147,7 @@ export function BlocksTouch({ immersiveGrid }: WidgetProps) {
     const up = () => {
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
-      if (!moved) handleRotate();
+      if (!gesture.dragged) handleRotate();
     };
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);

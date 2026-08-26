@@ -103,10 +103,12 @@ export const EFFECT_CATEGORY: Record<string, EffectCategory> = {
   splitsharp: 'twotone', stripes: 'twotone', checker: 'twotone', border: 'twotone',
   rings: 'twotone', dots: 'twotone', wedges: 'twotone',
   spectrumramp: 'spectrum', spectrumbands: 'spectrum', huewheel: 'spectrum',
-  // Audio-reactive set (9).
+  // Audio-reactive set (13).
   spectrumbars: 'audio', spectrumradial: 'audio', scope: 'audio',
   basspulse: 'audio', beatstrobe: 'audio', harmonicstar: 'audio',
   audiotunnel: 'audio', bassbloom: 'audio', beatbuilder: 'audio',
+  spectrumaurora: 'audio', neonwaveform: 'audio', liquidbeat: 'audio',
+  beatburst: 'audio',
   // Cosmic: space, sky, electric (13).
   aurora: 'cosmic', starfield: 'cosmic', nebula: 'cosmic', cosmicdust: 'cosmic',
   caustics: 'cosmic', galaxy: 'cosmic', starpath: 'cosmic', meteor: 'cosmic',
@@ -643,6 +645,32 @@ export const EFFECTS: EffectDef[] = [
       { name: 'u_petals',     label: 'Petals', labelKey: 'lighting.controls.param.petals',          min: 4,    max: 12,  step: 1,    defaultValue: 7 },
       { name: 'u_shimmer',    label: 'Shimmer', labelKey: 'lighting.controls.param.shimmer',         min: 0.0,  max: 2.0, step: 0.05, defaultValue: 1.0 },
       { name: 'u_bloomSize',  label: 'Size', labelKey: 'lighting.controls.param.size',            min: 0.1,  max: 0.8, step: 0.02, defaultValue: 0.4 },
+      { name: 'u_audioBoost', label: 'Audio Intensity', labelKey: 'lighting.controls.param.audioIntensity',  min: 0,    max: 2,   step: 0.05, defaultValue: 1.0 },
+  ]},
+  // Authored for a whole panel rather than an LED strip - see
+  // MEDIA_VISUALIZER_EFFECTS, which is the media immersive visualizer's set.
+  { key: 'spectrumaurora', labelKey: 'lighting.controls.spectrumaurora', audio: true, params: [
+      { name: 'u_curtains',   label: 'Curtains', labelKey: 'lighting.controls.param.curtains',       min: 2,    max: 8,   step: 1,    defaultValue: 5 },
+      { name: 'u_height',     label: 'Height', labelKey: 'lighting.controls.param.height',         min: 0.2,  max: 1.4, step: 0.05, defaultValue: 0.75 },
+      { name: 'u_glow',       label: 'Glow', labelKey: 'lighting.controls.param.glow',           min: 0.3,  max: 2.0, step: 0.05, defaultValue: 1.0 },
+      { name: 'u_audioBoost', label: 'Audio Intensity', labelKey: 'lighting.controls.param.audioIntensity',  min: 0,    max: 2,   step: 0.05, defaultValue: 1.0 },
+  ]},
+  { key: 'neonwaveform',   labelKey: 'lighting.controls.neonwaveform',   audio: true, params: [
+      { name: 'u_amplitude',  label: 'Amplitude', labelKey: 'lighting.controls.param.amplitude',      min: 0.1,  max: 0.9,  step: 0.05,  defaultValue: 0.35 },
+      { name: 'u_thickness',  label: 'Thickness', labelKey: 'lighting.controls.param.thickness',      min: 0.01, max: 0.2,  step: 0.005, defaultValue: 0.03 },
+      { name: 'u_glow',       label: 'Glow', labelKey: 'lighting.controls.param.glow',           min: 0.3,  max: 2.0,  step: 0.05,  defaultValue: 1.0 },
+      { name: 'u_audioBoost', label: 'Audio Intensity', labelKey: 'lighting.controls.param.audioIntensity',  min: 0,    max: 2,    step: 0.05,  defaultValue: 1.0 },
+  ]},
+  { key: 'liquidbeat',     labelKey: 'lighting.controls.liquidbeat',     audio: true, params: [
+      { name: 'u_blobs',      label: 'Blobs', labelKey: 'lighting.controls.param.blobs',          min: 2,    max: 9,   step: 1,    defaultValue: 5 },
+      { name: 'u_viscosity',  label: 'Viscosity', labelKey: 'lighting.controls.param.viscosity',      min: 0.2,  max: 2.5, step: 0.05, defaultValue: 1.0 },
+      { name: 'u_glow',       label: 'Glow', labelKey: 'lighting.controls.param.glow',           min: 0.3,  max: 2.0, step: 0.05, defaultValue: 1.0 },
+      { name: 'u_audioBoost', label: 'Audio Intensity', labelKey: 'lighting.controls.param.audioIntensity',  min: 0,    max: 2,   step: 0.05, defaultValue: 1.0 },
+  ]},
+  { key: 'beatburst',      labelKey: 'lighting.controls.beatburst',      audio: true, params: [
+      { name: 'u_streaks',    label: 'Streaks', labelKey: 'lighting.controls.param.streaks',        min: 8,    max: 64,  step: 1,    defaultValue: 40 },
+      { name: 'u_trail',      label: 'Trail', labelKey: 'lighting.controls.param.trail',          min: 0.2,  max: 1.8, step: 0.05, defaultValue: 1.15 },
+      { name: 'u_spread',     label: 'Spread', labelKey: 'lighting.controls.param.spread',         min: 0.05, max: 1.2, step: 0.05, defaultValue: 0.45 },
       { name: 'u_audioBoost', label: 'Audio Intensity', labelKey: 'lighting.controls.param.audioIntensity',  min: 0,    max: 2,   step: 0.05, defaultValue: 1.0 },
   ]},
 ];
