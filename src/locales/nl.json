@@ -3215,6 +3215,7 @@
   "settings.features.lighting.label": "Verlichting",
   "settings.features.monitoring.description": "Verzamelt sensorgeschiedenis op schijf. Widgets blijven live waarden tonen, ook als dit uitstaat.",
   "settings.features.monitoring.label": "Monitoring",
+  "settings.features.title": "Functies",
   "settings.feedback": "Feedback",
   "settings.feedback.report": "Een bug melden",
   "settings.general": "Algemeen",

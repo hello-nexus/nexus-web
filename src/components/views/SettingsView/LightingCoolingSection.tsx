@@ -118,33 +118,39 @@ export function LightingCoolingSection({ serviceOnline, platform }: LightingCool
     </Button>
   ) : undefined;
 
+  const showLightingSection = showGpuPicker || showSleepBlackout;
+
   return (
     <>
-      <SettingsSection title={t('settings.lightingCooling.title')} action={resetAction}>
-        {showGpuPicker && (
-          <SettingSelect
-            label={t('lighting.renderGpu.label')}
-            icon={<Zap />}
-            iconLeading="subtle"
-            anchorId="set-render-gpu"
-            description={t('lighting.renderGpu.hint')}
-            value={renderGpu}
-            options={gpuSelectOptions}
-            onChange={handleGpuChange}
-          />
-        )}
-        {showSleepBlackout && (
-          <SettingToggle
-            label={t('lighting.sleepBlackout.label')}
-            icon={<Moon />}
-            iconLeading="subtle"
-            anchorId="set-sleep-blackout"
-            description={t('lighting.sleepBlackout.description')}
-            checked={sleepBlackout}
-            onChange={handleSleepBlackoutChange}
-            disabled={!serviceOnline}
-          />
-        )}
+      {showLightingSection && (
+        <SettingsSection title={t('lighting.title')}>
+          {showGpuPicker && (
+            <SettingSelect
+              label={t('lighting.renderGpu.label')}
+              icon={<Zap />}
+              iconLeading="subtle"
+              anchorId="set-render-gpu"
+              description={t('lighting.renderGpu.hint')}
+              value={renderGpu}
+              options={gpuSelectOptions}
+              onChange={handleGpuChange}
+            />
+          )}
+          {showSleepBlackout && (
+            <SettingToggle
+              label={t('lighting.sleepBlackout.label')}
+              icon={<Moon />}
+              iconLeading="subtle"
+              anchorId="set-sleep-blackout"
+              description={t('lighting.sleepBlackout.description')}
+              checked={sleepBlackout}
+              onChange={handleSleepBlackoutChange}
+              disabled={!serviceOnline}
+            />
+          )}
+        </SettingsSection>
+      )}
+      <SettingsSection title={t('cooling.title')} action={resetAction}>
         <SensorRow
           icon={<Cpu />}
           label={t('cooling.settings.cpuLabel')}

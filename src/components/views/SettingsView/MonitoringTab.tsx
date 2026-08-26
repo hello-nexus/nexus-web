@@ -20,7 +20,7 @@ export function MonitoringTab({ settings, updateGeneral, serviceOnline }: Monito
 
   return (
     <div className={styles.tabPanel}>
-      <SettingsSection>
+      <SettingsSection title={t('settings.features.title')}>
         <SettingToggle
           label={t('settings.features.monitoring.label')}
           description={t('settings.features.monitoring.description')}

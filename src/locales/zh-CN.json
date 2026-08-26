@@ -3215,6 +3215,7 @@
   "settings.features.lighting.label": "灯光效果",
   "settings.features.monitoring.description": "将传感器历史记录保存到磁盘。即使关闭，小组件仍会持续显示实时数值。",
   "settings.features.monitoring.label": "监控",
+  "settings.features.title": "功能",
   "settings.feedback": "反馈",
   "settings.feedback.report": "报告错误",
   "settings.general": "通用",

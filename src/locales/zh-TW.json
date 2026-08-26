@@ -3215,6 +3215,7 @@
   "settings.features.lighting.label": "燈光效果",
   "settings.features.monitoring.description": "將感測器歷史記錄儲存到磁碟。即使關閉，小工具仍會持續顯示即時數值。",
   "settings.features.monitoring.label": "監控",
+  "settings.features.title": "功能",
   "settings.feedback": "意見回饋",
   "settings.feedback.report": "回報錯誤",
   "settings.general": "一般",

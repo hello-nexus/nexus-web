@@ -3215,6 +3215,7 @@
   "settings.features.lighting.label": "라이팅",
   "settings.features.monitoring.description": "센서 기록을 디스크에 수집합니다. 꺼져 있어도 위젯은 계속 실시간 값을 표시합니다.",
   "settings.features.monitoring.label": "모니터링",
+  "settings.features.title": "기능",
   "settings.feedback": "피드백",
   "settings.feedback.report": "버그 신고",
   "settings.general": "일반",

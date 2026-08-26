@@ -3215,6 +3215,7 @@
   "settings.features.lighting.label": "Aydınlatma",
   "settings.features.monitoring.description": "Sensör geçmişini diske toplar. Bu kapalıyken bile widget'lar canlı değerleri göstermeye devam eder.",
   "settings.features.monitoring.label": "İzleme",
+  "settings.features.title": "Özellikler",
   "settings.feedback": "Geri Bildirim",
   "settings.feedback.report": "Hata Bildir",
   "settings.general": "Genel",

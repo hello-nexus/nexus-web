@@ -22,7 +22,7 @@ export function AppearanceTab({ settings, updateGeneral }: AppearanceTabProps) {
         <ThemeTab settings={settings} updateGeneral={updateGeneral} />
       </SettingsSection>
 
-      <SettingsSection>
+      <SettingsSection title={t('settings.units.title')}>
         <SettingRow label={t('settings.units.time.label')} anchorId="set-time-format" icon={<Clock />} iconLeading="subtle">
           <ChipGroup
             ariaLabel={t('settings.units.time.label')}

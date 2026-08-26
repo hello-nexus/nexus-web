@@ -3215,6 +3215,7 @@
   "settings.features.lighting.label": "ライティング",
   "settings.features.monitoring.description": "センサー履歴をディスクに収集します。オフになっていても、ウィジェットはライブ値を表示し続けます。",
   "settings.features.monitoring.label": "モニタリング",
+  "settings.features.title": "機能",
   "settings.feedback": "フィードバック",
   "settings.feedback.report": "バグを報告",
   "settings.general": "一般",

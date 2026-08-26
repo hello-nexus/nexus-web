@@ -55,6 +55,24 @@ vi.mock('../../../lib/i18n', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
 
+describe('LightingCoolingSection section split', () => {
+  it('groups sleep blackout under Lighting and the sensor pickers under Cooling', () => {
+    render(<LightingCoolingSection serviceOnline platform="windows" />);
+
+    expect(screen.getByText('lighting.title')).toBeInTheDocument();
+    expect(screen.getByText('cooling.title')).toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: 'lighting.sleepBlackout.label' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'cooling.settings.cpuLabel' })).toBeInTheDocument();
+  });
+
+  it('omits the Lighting section entirely when it would have no rows', () => {
+    render(<LightingCoolingSection serviceOnline platform="macos" />);
+
+    expect(screen.queryByText('lighting.title')).not.toBeInTheDocument();
+    expect(screen.getByText('cooling.title')).toBeInTheDocument();
+  });
+});
+
 describe('LightingCoolingSection sensor pickers', () => {
   it('labels the CPU/GPU sensors in the selected temperature unit and switches instantly', () => {
     prefs.monitoringTempUnit = 'c';

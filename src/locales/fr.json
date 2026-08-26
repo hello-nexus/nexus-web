@@ -3215,6 +3215,7 @@
   "settings.features.lighting.label": "Éclairage",
   "settings.features.monitoring.description": "Collecte l'historique des capteurs sur le disque. Les widgets continuent d'afficher les valeurs en direct même lorsque c'est désactivé.",
   "settings.features.monitoring.label": "Surveillance",
+  "settings.features.title": "Fonctionnalités",
   "settings.feedback": "Retour d'information",
   "settings.feedback.report": "Signaler un bug",
   "settings.general": "Général",

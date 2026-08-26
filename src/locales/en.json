@@ -3215,6 +3215,7 @@
   "settings.features.lighting.label": "Lighting",
   "settings.features.monitoring.description": "Collect sensor history to disk. Widgets keep showing live values while this is off.",
   "settings.features.monitoring.label": "Monitoring",
+  "settings.features.title": "Features",
   "settings.feedback": "Feedback",
   "settings.feedback.report": "Report a Bug",
   "settings.general": "General",

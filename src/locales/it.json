@@ -3215,6 +3215,7 @@
   "settings.features.lighting.label": "Illuminazione",
   "settings.features.monitoring.description": "Raccoglie la cronologia dei sensori su disco. I widget continuano a mostrare i valori in tempo reale anche quando è disattivato.",
   "settings.features.monitoring.label": "Monitoraggio",
+  "settings.features.title": "Funzionalità",
   "settings.feedback": "Feedback",
   "settings.feedback.report": "Segnala un bug",
   "settings.general": "Generali",

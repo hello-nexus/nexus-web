@@ -3241,6 +3241,7 @@
   "settings.features.lighting.label": "Podświetlenie",
   "settings.features.monitoring.description": "Zbiera historię czujników na dysku. Widżety nadal pokazują bieżące wartości, nawet gdy ta funkcja jest wyłączona.",
   "settings.features.monitoring.label": "Monitorowanie",
+  "settings.features.title": "Funkcje",
   "settings.feedback": "Opinie",
   "settings.feedback.report": "Zglos blad",
   "settings.general": "Ogolne",

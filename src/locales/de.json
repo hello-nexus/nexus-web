@@ -3215,6 +3215,7 @@
   "settings.features.lighting.label": "Beleuchtung",
   "settings.features.monitoring.description": "Erfasst den Sensorverlauf auf der Festplatte. Widgets zeigen weiterhin Live-Werte an, auch wenn dies deaktiviert ist.",
   "settings.features.monitoring.label": "Überwachung",
+  "settings.features.title": "Funktionen",
   "settings.feedback": "Feedback",
   "settings.feedback.report": "Fehler melden",
   "settings.general": "Allgemein",

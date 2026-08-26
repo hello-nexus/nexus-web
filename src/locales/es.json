@@ -3215,6 +3215,7 @@
   "settings.features.lighting.label": "Iluminación",
   "settings.features.monitoring.description": "Recopila el historial de sensores en disco. Los widgets siguen mostrando valores en vivo aunque esto esté desactivado.",
   "settings.features.monitoring.label": "Monitorización",
+  "settings.features.title": "Funciones",
   "settings.feedback": "Comentarios",
   "settings.feedback.report": "Reportar un error",
   "settings.general": "General",

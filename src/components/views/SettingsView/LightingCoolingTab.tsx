@@ -18,7 +18,7 @@ export function LightingCoolingTab({ settings, updateGeneral, serviceOnline, pla
 
   return (
     <div className={styles.tabPanel}>
-      <SettingsSection>
+      <SettingsSection title={t('settings.features.title')}>
         <SettingToggle
           label={t('settings.features.lighting.label')}
           description={t('settings.features.lighting.description')}
