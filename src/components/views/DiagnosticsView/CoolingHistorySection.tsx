@@ -13,7 +13,7 @@ import type { UseMetricHistoryResult } from '../../../hooks/useMetricHistory';
 import type { DiagnosticsTemperatureEpisode } from '../../../api/diagnostics';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
-import { localizeNumbers } from '../../../lib/units';
+import { localizeNumbers, resolveHour12 } from '../../../lib/units';
 import {
   RANGE_OPTIONS,
   averageRpmSeries,
@@ -41,7 +41,7 @@ const CHART_HEIGHT = 246;
  */
 export function CoolingHistorySection({ history, episodes }: CoolingHistorySectionProps) {
   const { t, language } = useTranslation();
-  const { monitoringTempUnit, numberFormat } = useUnitPrefs();
+  const { monitoringTempUnit, numberFormat, timeFormat } = useUnitPrefs();
 
   const chartSeries = useMemo(() => toCoolingTempChartSeries(history.series), [history.series]);
   const silhouettePoints = useMemo(() => coolingSilhouettePoints(history.silhouette), [history.silhouette]);
@@ -49,11 +49,11 @@ export function CoolingHistorySection({ history, episodes }: CoolingHistorySecti
 
   const windowEnd = history.domain[1];
   const windowMs = windowEnd - history.domain[0];
-  const xTickFormat = useMemo(() => xTickFormatForWindow(windowMs), [windowMs]);
+  const xTickFormat = useMemo(() => xTickFormatForWindow(windowMs, timeFormat), [windowMs, timeFormat]);
   // No per-frame click-to-pin here (unlike the monitoring page) - detaching
   // via the seek bar leaves the viewed window's right edge as the frame of
   // record, so that is what the chip shows once following goes false.
-  const detachedLabel = useMemo(() => formatSelectedFrameTime(windowEnd, windowMs), [windowEnd, windowMs]);
+  const detachedLabel = useMemo(() => formatSelectedFrameTime(windowEnd, windowMs, timeFormat), [windowEnd, windowMs, timeFormat]);
   const valueFormat = useMemo(
     () => (v: number) => formatTemperatureCelsius(v, monitoringTempUnit, numberFormat),
     [monitoringTempUnit, numberFormat],
@@ -94,7 +94,7 @@ export function CoolingHistorySection({ history, episodes }: CoolingHistorySecti
   }, [rpmPoints, currentRpmLabel]);
 
   const rangeOptions = RANGE_OPTIONS.map(o => ({ value: o.key, label: t(o.labelKey) }));
-  const edgeLabelFormat = (edgeT: number) => new Date(edgeT).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', second: '2-digit' });
+  const edgeLabelFormat = (edgeT: number) => new Date(edgeT).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: resolveHour12(timeFormat) });
   const ariaValueText = (from: number, to: number) => `${edgeLabelFormat(from)} - ${edgeLabelFormat(to)}`;
 
   const showUnsupported = !history.supported;
@@ -178,7 +178,7 @@ export function CoolingHistorySection({ history, episodes }: CoolingHistorySecti
               silhouette={silhouettePoints.map(p => ({ t: p.t, v: p.avg }))}
               ariaLabel={t('monitoring.history.brushAriaLabel')}
               ariaValueText={ariaValueText}
-              formatEdgeLabels={(start, end) => formatBrushEdgeLabels(start, end, language)}
+              formatEdgeLabels={(start, end) => formatBrushEdgeLabels(start, end, timeFormat, language)}
             />
           </div>
         </>

@@ -28,6 +28,7 @@ interface WorldClockMapProps {
   // IANA tz of the user's "Local" entry. A matching city's pin is
   // highlighted; no effect when no city in the list matches.
   highlightTz?: string;
+  hour12: boolean;
 }
 
 const VIEWBOX = '-180 -90 360 180';
@@ -82,7 +83,7 @@ function squaresPath(cells: readonly LandCell[]): string {
   return d;
 }
 
-export function WorldClockMap({ now, cities, highlightTz }: WorldClockMapProps) {
+export function WorldClockMap({ now, cities, highlightTz, hour12 }: WorldClockMapProps) {
   const declination = solarDeclination(now);
   const subLon = subsolarLongitude(now);
 
@@ -183,7 +184,7 @@ export function WorldClockMap({ now, cities, highlightTz }: WorldClockMapProps) 
                 textAnchor={textAnchor}
                 className={isLocal ? `${styles.cityLabel} ${styles.cityLabelLocal}` : styles.cityLabel}
               >
-                <tspan className={styles.labelTime}>{formatLocalTime(now, city.tz)}</tspan>
+                <tspan className={styles.labelTime}>{formatLocalTime(now, city.tz, hour12)}</tspan>
                 {' '}{city.name}
               </text>
             </g>
@@ -194,16 +195,16 @@ export function WorldClockMap({ now, cities, highlightTz }: WorldClockMapProps) 
   );
 }
 
-function formatLocalTime(now: Date, tz: string): string {
+function formatLocalTime(now: Date, tz: string, hour12: boolean): string {
   try {
     return new Intl.DateTimeFormat('en-US', {
       timeZone: tz,
       hour: 'numeric',
       minute: '2-digit',
-      hour12: false,
+      hour12,
     }).format(now);
   } catch {
-    return new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', hour12: false }).format(now);
+    return new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', hour12 }).format(now);
   }
 }
 

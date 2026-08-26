@@ -15,12 +15,16 @@ import { usePersistentState } from '../../../hooks/usePersistentState';
 import { useTranslation } from '../../../lib/i18n';
 import { CITY_BY_ID, CITY_CATALOG, cityMatches, DEFAULT_CITY_IDS, type City } from './cities';
 import { WorldClockMap } from './WorldClockMap';
+import { useUnitPrefs } from '../../../hooks/useUiSettings';
+import { resolveHour12 } from '../../../lib/units';
 import styles from './ClockPage.module.scss';
 
 const STORAGE_KEY = 'clock.cities';
 
 export function ClockWorldView({ highlightTz }: { highlightTz?: string }) {
   const { t } = useTranslation();
+  const { timeFormat } = useUnitPrefs();
+  const hour12 = resolveHour12(timeFormat);
   const localTz = useMemo(() => highlightTz || resolveLocalTz(), [highlightTz]);
   const [now, setNow] = useState(() => new Date());
   const [cityIds, setCityIds] = usePersistentState<string[]>(STORAGE_KEY, [...DEFAULT_CITY_IDS]);
@@ -62,7 +66,7 @@ export function ClockWorldView({ highlightTz }: { highlightTz?: string }) {
   return (
     <div className={styles.body}>
       <div className={styles.mapSlot}>
-        <WorldClockMap now={now} cities={selected} highlightTz={localTz} />
+        <WorldClockMap now={now} cities={selected} highlightTz={localTz} hour12={hour12} />
       </div>
 
       <div className={styles.listHeader}>
@@ -82,6 +86,7 @@ export function ClockWorldView({ highlightTz }: { highlightTz?: string }) {
           onQuery={setQuery}
           now={now}
           selectedIds={selectedIds}
+          hour12={hour12}
           onAdd={addCity}
         />
       )}
@@ -96,6 +101,7 @@ export function ClockWorldView({ highlightTz }: { highlightTz?: string }) {
               city={city}
               now={now}
               local={city.tz === localTz}
+              hour12={hour12}
               onRemove={() => removeCity(city.id)}
             />
           ))
@@ -106,10 +112,10 @@ export function ClockWorldView({ highlightTz }: { highlightTz?: string }) {
 }
 
 function CityCard({
-  city, now, local, onRemove,
-}: { city: City; now: Date; local: boolean; onRemove: () => void }) {
+  city, now, local, hour12, onRemove,
+}: { city: City; now: Date; local: boolean; hour12: boolean; onRemove: () => void }) {
   const { t } = useTranslation();
-  const time = useMemo(() => formatLocalLong(now, city.tz), [now, city.tz]);
+  const time = useMemo(() => formatLocalLong(now, city.tz, hour12), [now, city.tz, hour12]);
   const offset = useMemo(() => formatUtcOffset(now, city.tz), [now, city.tz]);
   return (
     <Card
@@ -144,12 +150,13 @@ function CityCard({
 }
 
 function AddCityPicker({
-  query, onQuery, now, selectedIds, onAdd,
+  query, onQuery, now, selectedIds, hour12, onAdd,
 }: {
   query: string;
   onQuery: (v: string) => void;
   now: Date;
   selectedIds: ReadonlySet<string>;
+  hour12: boolean;
   onAdd: (id: string) => void;
 }) {
   const { t } = useTranslation();
@@ -180,7 +187,7 @@ function AddCityPicker({
               subtitle={`${city.country} · ${formatUtcOffset(now, city.tz)}`}
               actions={
                 <span className={styles.addResultAction}>
-                  <span className={styles.cityCardTime}>{formatLocalLong(now, city.tz)}</span>
+                  <span className={styles.cityCardTime}>{formatLocalLong(now, city.tz, hour12)}</span>
                   <Plus size={16} aria-hidden="true" />
                 </span>
               }
@@ -197,10 +204,10 @@ function resolveLocalTz(): string {
   try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return 'UTC'; }
 }
 
-function formatLocalLong(now: Date, tz: string): string {
+function formatLocalLong(now: Date, tz: string, hour12: boolean): string {
   try {
     return new Intl.DateTimeFormat('en-US', {
-      timeZone: tz, weekday: 'short', hour: 'numeric', minute: '2-digit', hour12: false,
+      timeZone: tz, weekday: 'short', hour: 'numeric', minute: '2-digit', hour12,
     }).format(now);
   } catch { return '--'; }
 }

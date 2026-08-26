@@ -4,6 +4,8 @@ import type { MonitoringEventKind, TimelineEvent } from '../../../api/monitoring
 import { useChartHoverTooltip } from '../../../hooks/useChartHoverTooltip';
 import { ChartHoverTooltip, ChartTooltipHeader, ChartTooltipRow, ChartTooltipVal } from '../ChartHoverTooltip/ChartHoverTooltip';
 import { useTranslation } from '../../../lib/i18n';
+import { useUnitPrefs } from '../../../hooks/useUiSettings';
+
 import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
 import {
   GAP_MULTIPLIER,
@@ -227,6 +229,7 @@ export function TimeSeriesChart({
   yAxisSide = 'left', ribbons, selectedT, onPointClick, singleValueTooltip = false,
 }: TimeSeriesChartProps) {
   const { t, language } = useTranslation();
+  const { timeFormat } = useUnitPrefs();
   const basePad = yAxisSide === 'right' ? CHART_PAD_RIGHT_AXIS : CHART_PAD;
   // `events` passed at all (even []) reserves the lane's space, so the
   // layout doesn't jump as events come and go while panning/zooming - only
@@ -845,7 +848,7 @@ export function TimeSeriesChart({
       {tooltip && !isDragging && (
         <ChartHoverTooltip ref={tooltipRef}>
           <ChartTooltipHeader>
-            <span>{formatTooltipTimestamp(tooltip.t, nowMs, language, stepSeconds)}</span>
+            <span>{formatTooltipTimestamp(tooltip.t, nowMs, timeFormat, language, stepSeconds)}</span>
             {tooltipHeaderExtra?.(tooltip.t)}
           </ChartTooltipHeader>
           {!hideSeriesRows && tooltip.rows.map(row => (

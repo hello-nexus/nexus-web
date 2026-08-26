@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type ComponentType } from 'react';
 import { ExternalLink, Gamepad2, Info, OctagonAlert, Trash2, TriangleAlert } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
+import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { SectionHeader } from '../../common/SectionHeader/SectionHeader';
 import { Button } from '../../common/Button/Button';
 import { Badge } from '../../common/Badge/Badge';
@@ -76,6 +77,7 @@ export function IncidentsSection({
   data, loading, error, onRefresh, onLogsCleared, hours, date, onHoursChange, onDateChange, platform,
 }: IncidentsSectionProps) {
   const { t, language } = useTranslation();
+  const { timeFormat } = useUnitPrefs();
   const { push } = useToast();
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => { setNow(Date.now()); }, [data]);
@@ -178,7 +180,7 @@ export function IncidentsSection({
             lanes={lanes}
             events={events}
             domain={domain}
-            xTickFormat={incidentXTickFormat(query)}
+            xTickFormat={incidentXTickFormat(query, timeFormat)}
             ariaLabel={t('diagnostics.incidents.title')}
             selectedKey={selected?.key ?? null}
             onSelect={cluster => {
@@ -243,6 +245,7 @@ function IncidentClusterTooltip({ laneId, events, nowMs, language }: {
   language: string;
 }) {
   const { t } = useTranslation();
+  const { timeFormat } = useUnitPrefs();
   const MAX_ROWS = 6;
   const shown = events.slice(0, MAX_ROWS);
   const extra = events.length - shown.length;
@@ -257,7 +260,7 @@ function IncidentClusterTooltip({ laneId, events, nowMs, language }: {
               <Icon size={13} aria-hidden />
             </span>
             <span className={styles.incidentTooltipTitle}>{ev.incident.title}</span>
-            <span className={styles.incidentTooltipTime}>{formatTooltipTimestamp(ev.t, nowMs, language)}</span>
+            <span className={styles.incidentTooltipTime}>{formatTooltipTimestamp(ev.t, nowMs, timeFormat, language)}</span>
           </div>
         );
       })}

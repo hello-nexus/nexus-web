@@ -5,6 +5,8 @@ import { SettingsSection } from '../../../common/SettingsSection/SettingsSection
 import { SettingRow } from '../../../common/SettingRow/SettingRow';
 import { SyncConflictModal } from '../../../common/SyncConflictModal/SyncConflictModal';
 import { useTranslation } from '../../../../lib/i18n';
+import { useUnitPrefs } from '../../../../hooks/useUiSettings';
+import { resolveHour12 } from '../../../../lib/units';
 import type { AuthAccount, AuthBackend } from '../../../../api/authBackend';
 import type { UseCloudAccountsResult } from '../../../../hooks/useCloudAccounts';
 import type { UseSyncStatusResult } from '../../../../hooks/useSyncStatus';
@@ -28,6 +30,7 @@ interface AccountSignedInProps {
 // plus Profile sync, which stays app-only (nexus-service is the sync engine;
 // the public /account page renders Authentication + Danger zone alone).
 export function AccountSignedIn({ backend, account, accounts, sync, recoveryFresh, onRecoveryFreshConsumed }: AccountSignedInProps) {
+  const { timeFormat } = useUnitPrefs();
   const { t } = useTranslation();
 
   // ── Profile sync ────────────────────────────────────────────────────────
@@ -88,7 +91,7 @@ export function AccountSignedIn({ backend, account, accounts, sync, recoveryFres
           <SettingRow
             key={profile.profileId}
             label={profile.name}
-            description={profile.lastSyncedAt ? new Date(profile.lastSyncedAt).toLocaleString() : t('account.sync.neverSyncedYet')}
+            description={profile.lastSyncedAt ? new Date(profile.lastSyncedAt).toLocaleString(undefined, { hour12: resolveHour12(timeFormat) }) : t('account.sync.neverSyncedYet')}
           />
         ))}
         {sync.conflicts.length > 0 && (

@@ -9,7 +9,7 @@ import { Button } from '../../../../components/common/Button/Button';
 import { EmptyState } from '../../../../components/common/EmptyState/EmptyState';
 import type { GpuComponent } from '../../../../lib/gpuResolver';
 import { resolvePrimaryGpu } from '../../../../lib/gpuResolver';
-import { convertTemperature, localizeNumbers, tempUnitSymbol } from '../../../../lib/units';
+import { convertTemperature, localizeNumbers, resolveHour12, tempUnitSymbol } from '../../../../lib/units';
 import { formatMemoryMb } from '../../../../lib/formatMemory';
 import type { UseMetricHistoryResult } from '../../../../hooks/useMetricHistory';
 import type { UseMetricHistoryAppsResult } from '../../../../hooks/useMetricHistoryApps';
@@ -119,7 +119,7 @@ export function MetricHistorySection({
   selectedAppName, memoryTotalMb, events, onEventClick, onAddEventAt, renderEventTooltip,
 }: MetricHistorySectionProps) {
   const { t, language } = useTranslation();
-  const { monitoringTempUnit, numberFormat } = useUnitPrefs();
+  const { monitoringTempUnit, numberFormat, timeFormat } = useUnitPrefs();
 
   const primaryGpu = metric === 'gpu' ? resolvePrimaryGpu(gpuComponents, preferredGpuId) : undefined;
 
@@ -256,7 +256,7 @@ export function MetricHistorySection({
   );
 
   const windowMs = history.domain[1] - history.domain[0];
-  const xTickFormat = useMemo(() => xTickFormatForWindow(windowMs), [windowMs]);
+  const xTickFormat = useMemo(() => xTickFormatForWindow(windowMs, timeFormat), [windowMs, timeFormat]);
 
   // The temp ribbon's own right-side readout - the value at the selected
   // frame (the window's own right edge / real "now" while following, or a
@@ -340,7 +340,7 @@ export function MetricHistorySection({
 
   const rangeOptions = RANGE_OPTIONS.map(o => ({ value: o.key, label: t(o.labelKey) }));
 
-  const edgeLabelFormat = (t2: number) => new Date(t2).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', second: '2-digit' });
+  const edgeLabelFormat = (t2: number) => new Date(t2).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: resolveHour12(timeFormat) });
   const ariaValueText = (from: number, to: number) => `${edgeLabelFormat(from)} - ${edgeLabelFormat(to)}`;
 
   const silhouettePoints = useMemo(() => {
@@ -497,7 +497,7 @@ export function MetricHistorySection({
               silhouette={silhouettePoints.map(p => ({ t: p.t, v: p.avg }))}
               ariaLabel={t('monitoring.history.brushAriaLabel')}
               ariaValueText={ariaValueText}
-              formatEdgeLabels={(start, end) => formatBrushEdgeLabels(start, end, language)}
+              formatEdgeLabels={(start, end) => formatBrushEdgeLabels(start, end, timeFormat, language)}
             />
           </div>
         </>
