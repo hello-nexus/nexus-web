@@ -1,6 +1,7 @@
 // Settings persistence layer.
 // All settings stored in localStorage, exposed via typed getters/setters.
 import type { UpdateChannel, UpdateMode } from '../api/update';
+import { DEFAULT_SMART_POLL_SECONDS } from '../api/smartPoll';
 import {
   DEFAULT_TEMP_UNIT, DEFAULT_TIME_FORMAT, DEFAULT_NUMBER_FORMAT,
   type TempUnit, type TimeFormat, type NumberFormat,
@@ -131,6 +132,9 @@ export interface GeneralSettings {
   showConflictAlerts: boolean;
   monitoringDetailedCollapsed: string[];
   monitoringEventsEnabled: boolean;
+  smartPollSeconds: Record<string, number>;
+  smartPollDefaultSeconds: number;
+  smartPollPerDrive: boolean;
   monitoringEventKindsHidden: string[];
   showMacStatusBarIcon: boolean;
   showWindowsTrayIcon: boolean;
@@ -189,6 +193,9 @@ export function getDefaultSettings(): NexusSettings {
       showConflictAlerts: true,
       monitoringDetailedCollapsed: [],
       monitoringEventsEnabled: true,
+      smartPollSeconds: {},
+      smartPollDefaultSeconds: DEFAULT_SMART_POLL_SECONDS,
+      smartPollPerDrive: false,
       monitoringEventKindsHidden: [],
       showMacStatusBarIcon: true,
       showWindowsTrayIcon: true,

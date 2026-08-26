@@ -42,6 +42,12 @@ export interface MonitoringSettings {
   /** Event kinds the user hid. A kind absent from this list is visible, so
    *  kinds added later default to shown rather than silently invisible. */
   eventKindsHidden?: string[];
+  /** Seconds between SMART reads per drive, keyed by LHM identifier ("/hdd/0"). 0 = never. */
+  smartPollSeconds?: Record<string, number>;
+  /** Seconds between SMART reads for a drive with no explicit entry. */
+  smartPollDefaultSeconds?: number;
+  /** False: the default governs every drive. True: each drive uses its own entry. */
+  smartPollPerDrive?: boolean;
 }
 
 export interface PanelSettings {
