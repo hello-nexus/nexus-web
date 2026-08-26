@@ -240,6 +240,45 @@ function ResizeStrip({ className, edge }: { className: string; edge: NexusResize
   );
 }
 
+/**
+ * Owns the conflicts subscription for the final onboarding gate. Separate from
+ * Dashboard because useTopic reads MultiplexContext from ABOVE its component,
+ * and Dashboard is what renders that provider - a subscription there receives
+ * the null default and never sees a frame, leaving the list frozen at whatever
+ * the one-shot REST seed returned.
+ */
+function ConflictOnboardingGate({
+  enabled, armed, done, onArm, onSpend, onComplete, onSkipOnboarding, onBack,
+}: {
+  enabled: boolean;
+  armed: boolean;
+  done: boolean;
+  onArm: () => void;
+  onSpend: () => void;
+  onComplete: () => void;
+  onSkipOnboarding: () => void;
+  onBack: () => void;
+}) {
+  const { conflicts, ready } = useConflictApps(enabled);
+
+  useEffect(() => {
+    if (armed || done || !enabled || !ready) return;
+    // Nothing to show: spend the step rather than leaving it armed.
+    if (conflicts.length === 0) onSpend();
+    else onArm();
+  }, [armed, done, enabled, ready, conflicts.length, onArm, onSpend]);
+
+  return (
+    <ConflictOnboardingScreen
+      open={armed && !done}
+      conflicts={conflicts}
+      onComplete={onComplete}
+      onSkipOnboarding={onSkipOnboarding}
+      onBack={onBack}
+    />
+  );
+}
+
 export function Dashboard() {
   const {
     section, view, subtab,
@@ -302,14 +341,6 @@ export function Dashboard() {
   const [conflictStepArmed, setConflictStepArmed] = useState(false);
   const ranOnboarding = onboardingDismissed || lightingOnboardingDismissed || importDismissed;
   const gatesSettled = ranOnboarding && !welcomeOpen && !importOpen && !lightingOnboardingOpen;
-  const { conflicts: onboardingConflicts, ready: conflictsReady } = useConflictApps(
-    gatesSettled && !conflictStepDone);
-  useEffect(() => {
-    if (conflictStepArmed || conflictStepDone || !gatesSettled || !conflictsReady) return;
-    // Nothing to show: spend the step rather than leaving it armed.
-    if (onboardingConflicts.length === 0) setConflictStepDone(true);
-    else setConflictStepArmed(true);
-  }, [conflictStepArmed, conflictStepDone, gatesSettled, conflictsReady, onboardingConflicts.length]);
   // Open depends on the latch, not on the live list, so ending the last app
   // from inside the modal shows the all-clear state instead of vanishing.
   const conflictStepOpen = conflictStepArmed && !conflictStepDone;
@@ -916,10 +947,15 @@ export function Dashboard() {
         />
         {/* Final onboarding gate: conflicting apps. A full screen like the
             gates before it, not the top-bar modal - that one belongs to the
-            badge and carries its "don't show again" row. */}
-        <ConflictOnboardingScreen
-          open={conflictStepOpen}
-          conflicts={onboardingConflicts}
+            badge and carries its "don't show again" row. Rendered here rather
+            than beside the other gates because it subscribes to the conflicts
+            topic, which only resolves inside the provider above. */}
+        <ConflictOnboardingGate
+          enabled={gatesSettled && !conflictStepDone}
+          armed={conflictStepArmed}
+          done={conflictStepDone}
+          onArm={() => setConflictStepArmed(true)}
+          onSpend={() => setConflictStepDone(true)}
           onComplete={() => setConflictStepDone(true)}
           onSkipOnboarding={skipOnboarding}
           onBack={() => setLightingOnboardingDismissed(false)}
