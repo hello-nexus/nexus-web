@@ -1,9 +1,14 @@
-import type { ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Activity, Fan, Lightbulb, Stethoscope, type LucideIcon } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { NexusControlCard } from '../NexusControlCard/NexusControlCard';
 import { useFeatureFlags, useUiSettingsUpdateSafe, type FeatureKey } from '../../../hooks/useUiSettings';
 import styles from './FeatureDisabled.module.scss';
+
+// Holds the disabled shell mounted after the flag flips on so the Toggle's
+// own transition (Toggle.module.scss, --ease) finishes playing before
+// FeatureGate swaps to the live page.
+const REENABLE_HOLD_MS = 350;
 
 const FEATURE_ICON: Record<FeatureKey, LucideIcon> = {
   lighting: Lightbulb,
@@ -36,14 +41,20 @@ export interface FeatureDisabledProps {
 /**
  * Full-page disabled shell for a feature pillar turned off in Settings,
  * matching DevicePage's NexusControlOff layout (title, hint, a re-enable
- * card). The toggle writes straight through useUiSettingsUpdateSafe, so the
- * gated page underneath re-renders live once the flag flips.
+ * card). The toggle's own optimistic `enabling` state animates it to "on"
+ * immediately on click, ahead of the real write and the parent FeatureGate's
+ * delayed swap to the live page - see REENABLE_HOLD_MS.
  */
 export function FeatureDisabled({ feature }: FeatureDisabledProps) {
   const { t } = useTranslation();
   const update = useUiSettingsUpdateSafe();
+  const [enabling, setEnabling] = useState(false);
   const Icon = FEATURE_ICON[feature];
   const title = t(FEATURE_TITLE_KEY[feature]);
+  const handleEnable = () => {
+    setEnabling(true);
+    update({ [FEATURE_SETTINGS_KEY[feature]]: true });
+  };
   return (
     <section className={styles.page}>
       <div className={styles.controlOff}>
@@ -51,10 +62,10 @@ export function FeatureDisabled({ feature }: FeatureDisabledProps) {
         <div className={styles.controlOffBody}>
           <p className={styles.controlOffHint}>{t(`featureDisabled.hint.${feature}`)}</p>
           <NexusControlCard
-            checked={false}
+            checked={enabling}
             icon={<Icon size={13} aria-hidden />}
             label={title}
-            onChange={() => update({ [FEATURE_SETTINGS_KEY[feature]]: true })}
+            onChange={handleEnable}
           />
         </div>
       </div>
@@ -71,10 +82,26 @@ export interface FeatureGateProps {
  * Wraps a feature page's content; renders the FeatureDisabled shell instead
  * while the pillar is off, so the wrapped page (and its data hooks) never
  * mounts. Mounted around exactly the four gated Dashboard cases: monitoring,
- * lighting, cooling, diagnostics.
+ * lighting, cooling, diagnostics. Keeps rendering the shell for
+ * REENABLE_HOLD_MS after the flag flips on, so the re-enable toggle's own
+ * animation (played by FeatureDisabled) is visible before the swap.
  */
 export function FeatureGate({ feature, children }: FeatureGateProps) {
   const flags = useFeatureFlags();
-  if (!flags[feature]) return <FeatureDisabled feature={feature} />;
+  const enabled = flags[feature];
+  const [holdingShell, setHoldingShell] = useState(false);
+  const prevEnabledRef = useRef(enabled);
+
+  useEffect(() => {
+    if (enabled && !prevEnabledRef.current) {
+      setHoldingShell(true);
+      const timer = setTimeout(() => setHoldingShell(false), REENABLE_HOLD_MS);
+      prevEnabledRef.current = enabled;
+      return () => clearTimeout(timer);
+    }
+    prevEnabledRef.current = enabled;
+  }, [enabled]);
+
+  if (!enabled || holdingShell) return <FeatureDisabled feature={feature} />;
   return <>{children}</>;
 }

@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { FeatureDisabled, FeatureGate } from './FeatureDisabled';
 import type { FeatureFlags, FeatureKey } from '../../../hooks/useUiSettings';
 
@@ -39,6 +39,14 @@ describe('FeatureDisabled', () => {
     fireEvent.click(screen.getByRole('switch'));
     expect(mockUpdate).toHaveBeenCalledWith({ [settingsKey]: true });
   });
+
+  it('animates the toggle to checked immediately on click, ahead of the write settling', () => {
+    render(<FeatureDisabled feature="lighting" />);
+    const toggle = screen.getByRole('switch');
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-checked', 'true');
+  });
 });
 
 describe('FeatureGate', () => {
@@ -53,5 +61,29 @@ describe('FeatureGate', () => {
     render(<FeatureGate feature="lighting"><div>live page</div></FeatureGate>);
     expect(screen.queryByText('live page')).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'lighting.title' })).toBeInTheDocument();
+  });
+
+  describe('re-enable hold', () => {
+    beforeEach(() => { vi.useFakeTimers(); });
+    afterEach(() => { vi.useRealTimers(); });
+
+    it('keeps the disabled shell mounted briefly after the flag turns on, then swaps to children', () => {
+      mockFlags = { ...mockFlags, lighting: false };
+      const { rerender } = render(<FeatureGate feature="lighting"><div>live page</div></FeatureGate>);
+      expect(screen.queryByText('live page')).not.toBeInTheDocument();
+
+      mockFlags = { ...mockFlags, lighting: true };
+      rerender(<FeatureGate feature="lighting"><div>live page</div></FeatureGate>);
+      expect(screen.queryByText('live page')).not.toBeInTheDocument();
+
+      act(() => { vi.advanceTimersByTime(400); });
+      expect(screen.getByText('live page')).toBeInTheDocument();
+    });
+
+    it('does not hold when the feature was already enabled on mount', () => {
+      mockFlags = { ...mockFlags, lighting: true };
+      render(<FeatureGate feature="lighting"><div>live page</div></FeatureGate>);
+      expect(screen.getByText('live page')).toBeInTheDocument();
+    });
   });
 });
