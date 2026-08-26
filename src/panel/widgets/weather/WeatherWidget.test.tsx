@@ -11,7 +11,7 @@ const mockSnapshot = vi.hoisted(() => ({
     temperatureC: 22,
     temperatureF: 72,
     weatherCode: 1,
-    condition: 'Mostly sunny',
+    condition: 'Partly cloudy',
     humidityPct: 54,
     windKph: 11,
     locationLabel: 'San Francisco',

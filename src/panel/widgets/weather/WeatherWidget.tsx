@@ -228,8 +228,8 @@ export function WeatherWidget({ widget }: WidgetProps) {
     );
   };
 
-  // 4x4 shows a per-day range bar; 2x4 drops the bar and keeps a flex spacer so
-  // the low/high stay aligned to the same columns.
+  // 4x4 shows a per-day range bar; 2x4 drops the bar and leaves the column
+  // empty so the low/high stay aligned to the same columns.
   const renderDailyList = (showBars: boolean) => (
     <div className={styles.dailyList}>
       {dailyItems.length > 0 ? dailyItems.map((item, index) => {

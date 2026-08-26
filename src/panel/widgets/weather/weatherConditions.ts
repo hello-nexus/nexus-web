@@ -2,7 +2,8 @@
 // string alongside the code (nexus-service OpenMeteoWeatherProvider.
 // ConditionFor); the panel translates the code itself and keeps that string
 // only as the fallback for a code this table does not cover.
-// Groups match the icon ranges in WeatherIcon.
+// The groups mirror ConditionFor, NOT WeatherIcon's ranges - one icon covers
+// several labels (Sun draws 0 and 1; one rain glyph covers 61-67).
 export function weatherConditionKey(code: number | null | undefined): string | null {
   if (code === null || code === undefined || code < 0) return null;
   if (code === 0) return 'panel.widget.weather.cond.clear';
