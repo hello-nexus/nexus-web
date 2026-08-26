@@ -37,7 +37,7 @@ export function ConflictAppCard({ conflict, autostart }: ConflictAppCardProps) {
       <div className={styles.rowActions}>
         {autostart && autostart.length > 0
           && <RemoveFromStartupButton conflictId={conflict.id} entries={autostart} />}
-        <EndTaskButton conflictId={conflict.id} />
+        <EndTaskButton conflictId={conflict.id} pid={conflict.pid} />
       </div>
     </div>
   );

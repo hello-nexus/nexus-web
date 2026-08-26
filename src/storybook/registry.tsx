@@ -1959,7 +1959,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'EndTaskButton', category: 'inputs',
     filePath: 'src/components/common/EndTaskButton/EndTaskButton.tsx',
-    description: 'Danger Button wired to kill a detected conflicting app by catalog id (POST /conflicts/kill). Keeps its spinner up after a successful kill until the watcher clears the row; resets on failure so the user can retry. Used by ConflictWarningModal (per-row) and the device-page NexusControlOff gate.',
+    description: 'Danger Button wired to kill a detected conflicting app by catalog id (POST /conflicts/kill). Keeps its spinner up after a successful kill until the watcher clears the row and it unmounts; resets on failure, and when the app comes back under a new pid - an Automatic service the SCM restarts keeps the row and its React key, so without that the spinner would never clear. Used by ConflictAppCard, so by ConflictWarningModal, ConflictOnboardingScreen and the device-page NexusControlOff gate.',
     Preview: PreviewEndTaskButton,
   },
   {

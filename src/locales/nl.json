@@ -235,7 +235,7 @@
   "conflicts.onboarding.allClearTitle": "Niets concurreert met Nexus",
   "conflicts.onboarding.continue": "Doorgaan",
   "conflicts.onboarding.done": "Klaar",
-  "conflicts.onboarding.intro": "Deze draaien nu en sturen dezelfde verlichting, ventilatoren of randapparatuur aan als Nexus. Sluit er een af, of voorkom dat die met Windows opstart - hier gebeurt niets tenzij je erop klikt.",
+  "conflicts.onboarding.intro": "Deze draaien nu en sturen dezelfde verlichting, ventilatoren of randapparatuur aan als Nexus. Sluit er een af, of voorkom dat die met Windows opstart.",
   "conflicts.onboarding.title": "Apps die om je hardware concurreren",
   "connection.directFailed.disconnect": "Verbinding verbreken",
   "connection.directFailed.message": "Er kon geen directe verbinding met deze pc tot stand worden gebracht. Doorgaan via de versleutelde cloud-relay?",

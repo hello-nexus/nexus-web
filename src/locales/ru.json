@@ -235,7 +235,7 @@
   "conflicts.onboarding.allClearTitle": "Ничто не конкурирует с Nexus",
   "conflicts.onboarding.continue": "Продолжить",
   "conflicts.onboarding.done": "Готово",
-  "conflicts.onboarding.intro": "Они запущены сейчас и управляют той же подсветкой, вентиляторами или периферией, что и Nexus. Завершите одно из них или отключите его автозапуск с Windows - здесь ничего не произойдёт без вашего щелчка.",
+  "conflicts.onboarding.intro": "Они запущены сейчас и управляют той же подсветкой, вентиляторами или периферией, что и Nexus. Завершите одно из них или отключите его автозапуск с Windows.",
   "conflicts.onboarding.title": "Приложения, борющиеся за ваше оборудование",
   "connection.directFailed.disconnect": "Отключиться",
   "connection.directFailed.message": "Не удалось установить прямое подключение к этому ПК. Продолжить через зашифрованный облачный ретранслятор?",

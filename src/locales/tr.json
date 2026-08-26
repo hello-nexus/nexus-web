@@ -235,7 +235,7 @@
   "conflicts.onboarding.allClearTitle": "Nexus ile yarışan bir şey yok",
   "conflicts.onboarding.continue": "Devam et",
   "conflicts.onboarding.done": "Bitti",
-  "conflicts.onboarding.intro": "Şu anda çalışıyorlar ve Nexus ile aynı aydınlatmayı, fanları veya çevre birimlerini sürüyorlar. Birini kapat ya da Windows ile başlamasını engelle - burada tıklamadığın sürece hiçbir şey olmaz.",
+  "conflicts.onboarding.intro": "Şu anda çalışıyorlar ve Nexus ile aynı aydınlatmayı, fanları veya çevre birimlerini sürüyorlar. Birini kapat ya da Windows ile başlamasını engelle.",
   "conflicts.onboarding.title": "Donanımın için yarışan uygulamalar",
   "connection.directFailed.disconnect": "Bağlantıyı kes",
   "connection.directFailed.message": "Bu PC ile doğrudan bağlantı kurulamadı. Şifreli bulut aktarıcı üzerinden devam edilsin mi?",

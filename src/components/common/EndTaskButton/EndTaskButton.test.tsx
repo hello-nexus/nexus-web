@@ -8,51 +8,81 @@ vi.mock('../../../lib/i18n', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
 
-const mockKillConflict = vi.fn();
+const mockKill = vi.fn();
 
 vi.mock('../../../api/conflicts', () => ({
-  killConflict: (...args: any[]) => mockKillConflict(...args),
+  killConflict: (...args: any[]) => mockKill(...args),
 }));
 
 beforeEach(() => {
-  mockKillConflict.mockReset();
+  mockKill.mockReset();
 });
 
+// loadingHidesLabel keeps the label in the DOM to hold the width, so the
+// loading state reads off Button's data-loading attribute instead.
+const spinning = () => screen.getByRole('button').hasAttribute('data-loading');
+
+async function clickEnd() {
+  await act(async () => {
+    fireEvent.click(screen.getByRole('button'));
+  });
+}
+
 describe('EndTaskButton', () => {
-  it('calls killConflict with the conflict id on click', async () => {
-    mockKillConflict.mockResolvedValue({ killed: true });
-    render(<EndTaskButton conflictId="icue" />);
+  it('kills by catalog id and keeps spinning while the row stands', async () => {
+    mockKill.mockResolvedValue({ error: false, msg: 'Killed', killed: true });
+    render(<EndTaskButton conflictId="signalrgb" pid={100} />);
 
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'conflicts.modal.endTask' }));
-    });
+    await clickEnd();
 
-    expect(mockKillConflict).toHaveBeenCalledWith('icue');
+    expect(mockKill).toHaveBeenCalledWith('signalrgb');
+    expect(spinning()).toBe(true);
   });
 
-  it('shows the loading state while the kill is in flight', async () => {
-    let resolveKill: (value: { killed: boolean }) => void = () => {};
-    mockKillConflict.mockReturnValue(new Promise(resolve => { resolveKill = resolve; }));
-    render(<EndTaskButton conflictId="icue" />);
+  it('stops spinning once the app comes back under a new pid', async () => {
+    // An Automatic service the SCM restarts keeps the row - and its React key -
+    // so the spinner would otherwise never clear.
+    mockKill.mockResolvedValue({ error: false, msg: 'Killed', killed: true });
+    const { rerender } = render(<EndTaskButton conflictId="signalrgb" pid={100} />);
 
-    const button = screen.getByRole('button', { name: 'conflicts.modal.endTask' });
-    fireEvent.click(button);
-    expect(button).toHaveAttribute('data-loading', 'true');
+    await clickEnd();
+    expect(spinning()).toBe(true);
 
-    await act(async () => {
-      resolveKill({ killed: true });
-    });
+    await act(async () => { rerender(<EndTaskButton conflictId="signalrgb" pid={412} />); });
+
+    expect(spinning()).toBe(false);
   });
 
-  it('resets the loading state on failure so the user can retry', async () => {
-    mockKillConflict.mockResolvedValue({ killed: false });
-    render(<EndTaskButton conflictId="icue" />);
-    const button = screen.getByRole('button', { name: 'conflicts.modal.endTask' });
+  it('keeps spinning while the pid is unchanged', async () => {
+    mockKill.mockResolvedValue({ error: false, msg: 'Killed', killed: true });
+    const { rerender } = render(<EndTaskButton conflictId="signalrgb" pid={100} />);
 
-    await act(async () => {
-      fireEvent.click(button);
-    });
+    await clickEnd();
+    await act(async () => { rerender(<EndTaskButton conflictId="signalrgb" pid={100} />); });
 
-    expect(button).not.toHaveAttribute('data-loading');
+    expect(spinning()).toBe(true);
+  });
+
+  it('resets when nothing was killed so the user can retry', async () => {
+    mockKill.mockResolvedValue({ error: false, msg: 'No matching process', killed: false });
+    render(<EndTaskButton conflictId="signalrgb" pid={100} />);
+
+    await clickEnd();
+
+    expect(spinning()).toBe(false);
+  });
+
+  it('resets when the request throws', async () => {
+    mockKill.mockRejectedValue(new Error('offline'));
+    render(<EndTaskButton conflictId="signalrgb" pid={100} />);
+
+    await clickEnd();
+
+    expect(spinning()).toBe(false);
+  });
+
+  it('never fires on mount', () => {
+    render(<EndTaskButton conflictId="signalrgb" pid={100} />);
+    expect(mockKill).not.toHaveBeenCalled();
   });
 });

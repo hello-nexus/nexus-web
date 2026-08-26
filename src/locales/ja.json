@@ -235,7 +235,7 @@
   "conflicts.onboarding.allClearTitle": "Nexus と競合しているものはありません",
   "conflicts.onboarding.continue": "続ける",
   "conflicts.onboarding.done": "完了",
-  "conflicts.onboarding.intro": "現在実行中で、Nexus と同じライティング、ファン、周辺機器を制御しています。終了するか、Windows と同時に起動しないようにできます。クリックしない限り何も起こりません。",
+  "conflicts.onboarding.intro": "現在実行中で、Nexus と同じライティング、ファン、周辺機器を制御しています。終了するか、Windows と同時に起動しないようにできます。",
   "conflicts.onboarding.title": "ハードウェアを奪い合っているアプリ",
   "connection.directFailed.disconnect": "切断",
   "connection.directFailed.message": "このPCへの直接接続を確立できませんでした。暗号化されたクラウドリレー経由で続行しますか？",

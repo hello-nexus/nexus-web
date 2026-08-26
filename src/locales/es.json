@@ -235,7 +235,7 @@
   "conflicts.onboarding.allClearTitle": "Nada compite con Nexus",
   "conflicts.onboarding.continue": "Continuar",
   "conflicts.onboarding.done": "Listo",
-  "conflicts.onboarding.intro": "Se están ejecutando ahora y controlan la misma iluminación, ventiladores o periféricos que Nexus. Cierra alguna o evita que se inicie con Windows: aquí no ocurre nada si no haces clic.",
+  "conflicts.onboarding.intro": "Se están ejecutando ahora y controlan la misma iluminación, ventiladores o periféricos que Nexus. Cierra alguna o evita que se inicie con Windows.",
   "conflicts.onboarding.title": "Apps que compiten por tu hardware",
   "connection.directFailed.disconnect": "Desconectar",
   "connection.directFailed.message": "No se pudo establecer una conexión directa con este PC. ¿Quieres continuar mediante el relay en la nube cifrado?",
