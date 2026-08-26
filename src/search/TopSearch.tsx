@@ -204,8 +204,9 @@ export function TopSearch({ pageTitle, online, platform }: { pageTitle: string; 
       return;
     }
     recordUse(entry.id);
-    if (pillRef.current) emitRadialBloomFromElement(pillRef.current);
     if (entry.kind === 'action') {
+      // Selecting an action blooms; a navigation commits nothing, so it does not.
+      if (pillRef.current) emitRadialBloomFromElement(pillRef.current);
       setTriggered(entry.id);
       if (entry.toggle !== undefined) applyToggle(entry);
       else entry.run();

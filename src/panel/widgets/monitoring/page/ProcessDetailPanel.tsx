@@ -14,7 +14,7 @@ import { useTranslation } from '../../../../lib/i18n';
 import { pluralKey } from '../../../../lib/pluralKey';
 import { useUnitPrefs } from '../../../../hooks/useUiSettings';
 import { formatMemoryMb } from '../../../../lib/formatMemory';
-import { localizeNumbers } from '../../../../lib/units';
+import { hour12OptionFor, localizeNumbers, type TimeFormat } from '../../../../lib/units';
 import { relativeTimeLabel } from '../../../../components/views/DiagnosticsView/diagnosticsHelpers';
 import { useMonitoringProcessInfo } from '../../../../hooks/useMonitoringProcessInfo';
 import { useProcessDetailUsage } from '../../../../hooks/useProcessDetailUsage';
@@ -59,9 +59,10 @@ export interface ProcessDetailPanelProps {
 
 const PATH_TRUNCATE_CHARS = 46;
 
-function formatAbsolute(ms: number): string {
+function formatAbsolute(ms: number, timeFormat: TimeFormat): string {
   return new Date(ms).toLocaleString(undefined, {
     year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+    hour12: hour12OptionFor(timeFormat),
   });
 }
 
@@ -115,7 +116,7 @@ export function ProcessDetailPanel({
   selectedFrameMs, following, historyFrom, historyTo,
 }: ProcessDetailPanelProps) {
   const { t, language } = useTranslation();
-  const { numberFormat } = useUnitPrefs();
+  const { numberFormat, timeFormat } = useUnitPrefs();
   const toast = useToastSafe();
   const info = useMonitoringProcessInfo(true, name);
 
@@ -234,7 +235,7 @@ export function ProcessDetailPanel({
   const sessions = sessionsForProcess(privacySessions, name);
   const showPrivacy = privacySupported && sessions.length > 0;
 
-  const relativeAndAbsolute = (ms: number) => `${relativeTimeLabel(new Date(ms).toISOString(), nowMs, t)} · ${formatAbsolute(ms)}`;
+  const relativeAndAbsolute = (ms: number) => `${relativeTimeLabel(new Date(ms).toISOString(), nowMs, t)} · ${formatAbsolute(ms, timeFormat)}`;
 
   const headerMeta = (instanceCount !== undefined || data?.publisher) ? (
     <span className={styles.headerMeta}>
@@ -277,7 +278,7 @@ export function ProcessDetailPanel({
         <div className={styles.timeframeRow}>
           {isLive
             ? <Badge label={t('monitoring.history.live')} color="var(--good)" />
-            : <span>{t('monitoring.processDetail.timeframe.asOf', { time: formatAbsolute(selectedFrameMs) })}</span>}
+            : <span>{t('monitoring.processDetail.timeframe.asOf', { time: formatAbsolute(selectedFrameMs, timeFormat) })}</span>}
         </div>
 
         {usageTiles.length > 0 ? (
@@ -338,10 +339,10 @@ export function ProcessDetailPanel({
                 />
               )}
               {data.createdAtMs !== undefined && (
-                <InfoRow label={t('monitoring.processDetail.info.created')} value={formatAbsolute(data.createdAtMs)} />
+                <InfoRow label={t('monitoring.processDetail.info.created')} value={formatAbsolute(data.createdAtMs, timeFormat)} />
               )}
               {data.modifiedAtMs !== undefined && (
-                <InfoRow label={t('monitoring.processDetail.info.modified')} value={formatAbsolute(data.modifiedAtMs)} />
+                <InfoRow label={t('monitoring.processDetail.info.modified')} value={formatAbsolute(data.modifiedAtMs, timeFormat)} />
               )}
               {data.startedAtMs !== undefined && (
                 <InfoRow label={t('monitoring.processDetail.info.started')} value={relativeAndAbsolute(data.startedAtMs)} />
@@ -359,8 +360,8 @@ export function ProcessDetailPanel({
               {sessions.map((s, i) => {
                 const Icon = PRIVACY_ICONS[iconKindForCapability(s.capability)];
                 const timeText = s.end === null
-                  ? t('monitoring.privacy.since', { time: formatPrivacyTime(s.start) })
-                  : t('monitoring.privacy.until', { time: formatPrivacyTime(s.end) });
+                  ? t('monitoring.privacy.since', { time: formatPrivacyTime(s.start, timeFormat) })
+                  : t('monitoring.privacy.until', { time: formatPrivacyTime(s.end, timeFormat) });
                 return (
                   <InfoRow
                     key={i}

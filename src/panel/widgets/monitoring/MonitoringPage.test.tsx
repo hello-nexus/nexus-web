@@ -10,7 +10,7 @@ import { formatSelectedFrameTime } from './page/metricHistoryHelpers';
 // The mocked useMetricHistory below fixes domain at [0, 1] and no test here
 // pins a click, so resolveSelectedFrame always lands on domain[1] (1ms) -
 // this is the exact string MonitoringPage's own detached chip renders.
-const DETACHED_LABEL = formatSelectedFrameTime(1, 1);
+const DETACHED_LABEL = formatSelectedFrameTime(1, 1, 'system');
 
 const HOUR_MS = 3_600_000;
 // Used only by the graph-click detach test below, which overrides
@@ -18,7 +18,7 @@ const HOUR_MS = 3_600_000;
 // formatted label visibly differs from the default domain[1] (live-edge) one.
 const CLICK_DOMAIN: [number, number] = [0, HOUR_MS];
 const GRAPH_CLICK_MS = HOUR_MS / 3;
-const GRAPH_CLICK_LABEL = formatSelectedFrameTime(GRAPH_CLICK_MS, HOUR_MS);
+const GRAPH_CLICK_LABEL = formatSelectedFrameTime(GRAPH_CLICK_MS, HOUR_MS, 'system');
 
 // MetricHistorySection and ProcessListSection are the persistent hero + list
 // mounted once above the switched tab content - stub both with a
@@ -485,7 +485,7 @@ describe('MonitoringPage', () => {
       // Scrub away to a window that no longer contains the pinned frame - it
       // should fall back to this window's own right edge.
       const AWAY_DOMAIN: [number, number] = [10 * HOUR_MS, 11 * HOUR_MS];
-      const AWAY_FALLBACK_LABEL = formatSelectedFrameTime(AWAY_DOMAIN[1], AWAY_DOMAIN[1] - AWAY_DOMAIN[0]);
+      const AWAY_FALLBACK_LABEL = formatSelectedFrameTime(AWAY_DOMAIN[1], AWAY_DOMAIN[1] - AWAY_DOMAIN[0], 'system');
       historyOverride = { following: false, detach, domain: AWAY_DOMAIN };
       rerender(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
       expect(screen.getByText(AWAY_FALLBACK_LABEL)).toBeInTheDocument();
@@ -494,7 +494,7 @@ describe('MonitoringPage', () => {
       // Scrub back to the ORIGINAL window (which still contains the pinned
       // timestamp) - the stale pin must stay forgotten, not silently
       // reactivate and jump the persistent selection line back onto it.
-      const REENTRY_FALLBACK_LABEL = formatSelectedFrameTime(CLICK_DOMAIN[1], CLICK_DOMAIN[1] - CLICK_DOMAIN[0]);
+      const REENTRY_FALLBACK_LABEL = formatSelectedFrameTime(CLICK_DOMAIN[1], CLICK_DOMAIN[1] - CLICK_DOMAIN[0], 'system');
       historyOverride = { following: false, detach, domain: CLICK_DOMAIN };
       rerender(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
       expect(screen.getByText(REENTRY_FALLBACK_LABEL)).toBeInTheDocument();

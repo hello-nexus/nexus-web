@@ -96,6 +96,17 @@ export function localizeNumbers(display: string, fmt: NumberFormat): string {
 // like ClockWidget re-render every second.
 let systemHour12: boolean | undefined;
 
+// DateTimeFormat's hour12 option for a chosen format: undefined on 'system' so
+// the locale in play decides. Callers pass a locale that may differ from the OS
+// one (the app language), and pinning the OS hour cycle onto it would render a
+// German string with English AM/PM. Callers that must have a definite boolean
+// (the clock designs, the weather hour strip) use resolveHour12 instead.
+export function hour12OptionFor(fmt: TimeFormat): boolean | undefined {
+  if (fmt === '12h') return true;
+  if (fmt === '24h') return false;
+  return undefined;
+}
+
 // Whether the clock should render 12-hour (with AM/PM). 'system' derives from
 // the OS locale's hour cycle; the explicit formats pin it.
 export function resolveHour12(fmt: TimeFormat): boolean {

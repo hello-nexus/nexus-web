@@ -4,6 +4,7 @@ import { SearchInput } from '../../../../components/common/SearchInput/SearchInp
 import { Badge } from '../../../../components/common/Badge/Badge';
 import { Button } from '../../../../components/common/Button/Button';
 import { useTranslation } from '../../../../lib/i18n';
+import { useUnitPrefs } from '../../../../hooks/useUiSettings';
 import { usePrivacyHistory } from '../../../../hooks/usePrivacyHistory';
 import { durationLabel } from '../../../../components/views/DiagnosticsView/diagnosticsHelpers';
 import {
@@ -29,6 +30,7 @@ interface PrivacyHistoryModalProps {
  */
 export function PrivacyHistoryModal({ open, onClose }: PrivacyHistoryModalProps) {
   const { t } = useTranslation();
+  const { timeFormat } = useUnitPrefs();
   const [query, setQuery] = useState('');
   const { sessions, retentionDays, loading, error, mocked, supported, reload } = usePrivacyHistory(open);
   // Re-snapshot on every open (not a one-time mount snapshot): MonitoringPage
@@ -98,8 +100,8 @@ export function PrivacyHistoryModal({ open, onClose }: PrivacyHistoryModalProps)
                     </div>
                     <div className={styles.rowTime}>
                       {s.end === null
-                        ? <Badge label={t('monitoring.privacy.since', { time: formatPrivacyDateTime(s.start) })} color="var(--good)" />
-                        : <span>{t('monitoring.privacy.until', { time: formatPrivacyDateTime(s.end) })}</span>}
+                        ? <Badge label={t('monitoring.privacy.since', { time: formatPrivacyDateTime(s.start, timeFormat) })} color="var(--good)" />
+                        : <span>{t('monitoring.privacy.until', { time: formatPrivacyDateTime(s.end, timeFormat) })}</span>}
                       <span className={styles.duration}>{durationLabel(durationMs * 1000, t)}</span>
                     </div>
                   </div>

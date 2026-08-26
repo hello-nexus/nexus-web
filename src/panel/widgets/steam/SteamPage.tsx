@@ -30,7 +30,7 @@ import { Select } from '../../../components/common/Select/Select';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
-import { formatNumber, type NumberFormat } from '../../../lib/units';
+import { formatNumber, localizeNumbers, type NumberFormat } from '../../../lib/units';
 import { SteamLogo } from './SteamLogo';
 import styles from './SteamPage.module.scss';
 
@@ -726,7 +726,7 @@ function DrillView({
                     </div>
                     <div className={styles.achievementRight}>
                       {a.rarity !== null && (
-                        <HoverTooltip body={t('steam.drill.rarityTooltip', { percent: a.rarity.toFixed(1) })} side="top">
+                        <HoverTooltip body={t('steam.drill.rarityTooltip', { percent: localizeNumbers(a.rarity.toFixed(1), numberFormat) })} side="top">
                           <div className={styles.rarityBar}>
                             <div className={styles.rarityFill} style={{ width: `${Math.min(100, Math.max(2, a.rarity))}%` }} />
                             <span className={styles.rarityText}>{a.rarity.toFixed(0)}%</span>
