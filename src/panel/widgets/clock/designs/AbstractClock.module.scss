@@ -20,14 +20,20 @@
   right: 0;
   bottom: 0;
   left: 0;
-  background: conic-gradient(
-    from var(--abstract-angle, 0deg) at 50% 50%,
-    color-mix(in srgb, var(--panel-accent) 96%, transparent) 0deg,
-    color-mix(in srgb, var(--panel-accent) 62%, transparent) 70deg,
-    color-mix(in srgb, var(--panel-accent) 22%, transparent) 170deg,
-    color-mix(in srgb, var(--panel-accent) 6%, transparent) 250deg,
-    color-mix(in srgb, var(--panel-accent) 96%, transparent) 360deg
-  );
+  // Darkening wash over a flat accent fill rather than accent-to-transparent
+  // stops: those needed color-mix(), which the panel's Chromium 83 WebView does
+  // not parse, and one bad colour invalidates the whole gradient - the sweep was
+  // simply absent on device. Plain rgba() carries the same ramp.
+  background:
+    conic-gradient(
+      from var(--abstract-angle, 0deg) at 50% 50%,
+      rgba(0, 0, 0, 0.04) 0deg,
+      rgba(0, 0, 0, 0.38) 70deg,
+      rgba(0, 0, 0, 0.78) 170deg,
+      rgba(0, 0, 0, 0.94) 250deg,
+      rgba(0, 0, 0, 0.04) 360deg
+    ),
+    var(--panel-accent);
 }
 
 // Full-bleed box; the square viewBox's uniform mapping keeps hand angles
@@ -42,12 +48,6 @@
   width: 100%;
   height: 100%;
   overflow: visible;
-
-  @supports (aspect-ratio: 1) {
-    width: auto;
-    margin: auto;
-    aspect-ratio: 1;
-  }
 }
 
 .hourHand,
@@ -74,7 +74,7 @@
   right: 0;
   bottom: 0;
   height: 45%;
-  background: linear-gradient(to bottom, transparent, color-mix(in srgb, #000 42%, transparent));
+  background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.42));
 }
 
 .date {
@@ -82,7 +82,8 @@
   position: relative;
   padding-bottom: 0.7em;
   // Sits on the accent fill, where the dim text token has too little contrast.
-  color: color-mix(in srgb, var(--panel-accent-text, #fff) 78%, transparent);
+  color: var(--panel-accent-text, #fff);
+  opacity: 0.78;
 }
 
 .container.size-2x2 .date { padding-bottom: 0.5em; }
