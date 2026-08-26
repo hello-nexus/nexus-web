@@ -51,8 +51,9 @@
 // (e.g. the Lighting right-pane selector) can control their own margins.
 .viewHeaderTabs {
   margin-bottom: 0.75rem;
-  // Never below the tab labels: shrink pressure has to land on the actions.
-  min-width: min-content;
+  // Never below the tab labels: shrink pressure has to land on the actions,
+  // whose rail carries a floor of its own (PresetToolbar .toolbarRail).
+  flex: 0 0 auto;
 }
 
 // Right-aligned overlay container at tabs-row level. Spans the full row

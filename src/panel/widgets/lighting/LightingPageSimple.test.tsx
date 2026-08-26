@@ -111,11 +111,22 @@ describe('LightingPage simple mode', () => {
   });
 
   it('summarises how many devices are driven out of the total', async () => {
+    syncState.mode = 'static';
     renderPage();
     expect(await screen.findByText('lighting.simple.controlledOf.other')).toBeTruthy();
   });
 
+  // The same line, in the same place: what Off did instead of a count nothing
+  // is driving.
+  it('states that lighting is off instead of counting devices, while off', async () => {
+    renderPage();
+    expect(await screen.findByText('lighting.off.message')).toBeTruthy();
+    expect(screen.queryByText('lighting.simple.controlledOf.other')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'lighting.simple.controlAll' })).toBeNull();
+  });
+
   it('offers a one-click claim while a device is left un-driven, and drops it once none are', async () => {
+    syncState.mode = 'static';
     renderPage();
     const claim = await screen.findByRole('button', { name: 'lighting.simple.controlAll' });
     fireEvent.click(claim);

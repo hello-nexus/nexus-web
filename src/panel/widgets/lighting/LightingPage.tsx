@@ -1648,6 +1648,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     [visibleDevices, selectedDeviceIds],
   );
 
+  const simpleOff = synced && effectiveMode === 'none';
   // The mode tab leads the strip in both dashboard modes; simple mode carries
   // nothing after it, so its header is the mode tab alone.
   const simpleTabs = [modeMenuTab];
@@ -1692,19 +1693,21 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
               tabs={simpleTabs}
               activeTab={activeTabKey}
               onTabChange={handleTabChange}
-              /* One line carries both counts, so a device the advanced page
-                 left un-driven is visible here without a device list. The
-                 action runs the same claim the palette does - controlledCount
-                 also requires the lights to be on, so setting `controlled`
-                 alone would leave the count short and the button stuck on
-                 screen. */
+              /* Off states what it did; every other mode carries both counts,
+                 so a device the advanced page left un-driven is visible here
+                 without a device list. Same line either way. The action runs
+                 the same claim the palette does - controlledCount also
+                 requires the lights to be on, so setting `controlled` alone
+                 would leave the count short and the button stuck on screen. */
               tabsAdjacent={(
                 <DeviceCountSummary
-                  detected={t(pluralKey('lighting.simple.controlledOf', language, claimableDevices.length), {
-                    controlled: controlledCount,
-                    total: claimableDevices.length,
-                  })}
-                  action={controlledCount < claimableDevices.length ? (
+                  detected={simpleOff
+                    ? t('lighting.off.message')
+                    : t(pluralKey('lighting.simple.controlledOf', language, claimableDevices.length), {
+                      controlled: controlledCount,
+                      total: claimableDevices.length,
+                    })}
+                  action={!simpleOff && controlledCount < claimableDevices.length ? (
                     <Button size="sm" pill onClick={() => { claimAllDevices(); }}>
                       {t('lighting.simple.controlAll')}
                     </Button>

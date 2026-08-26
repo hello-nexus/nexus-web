@@ -7,7 +7,14 @@
 }
 
 .tab {
-  padding: 0.4rem 1.2rem;
+  // Flex, not inline layout: an inline-flex .tabInner sits on the text
+  // baseline, which parked the whole line box's descender space under the
+  // glyph and pushed the content up. The extra 2px of block padding replaces
+  // that space, so the tab measures exactly as it did before.
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc(0.4rem + 2px) 1.2rem;
   font-size: var(--type-small);
   font-weight: var(--weight-body);
   line-height: 1.5;
@@ -73,6 +80,9 @@
 
 .tabLabel {
   min-width: 0;
+  // A tab label that wraps doubles the strip's height and shifts everything
+  // under it; the row gives way elsewhere (see ViewHeader's tabsRow).
+  white-space: nowrap;
 }
 
 // Sidebar section-header treatment (Apps / Devices): a faint pill around the
@@ -85,9 +95,8 @@
   padding: var(--tab-chip-pad-y) var(--tab-chip-pad-x);
   margin: calc(-1 * var(--tab-chip-pad-y)) calc(-1 * var(--tab-chip-pad-x));
   border-radius: var(--radius-pill);
-  // The sidebar chip's faint lift, from a token rather than a color-mix
-  // literal (color-mix is past the Chromium 83 panel floor).
-  background: var(--border);
+  // Sidebar's own chip fill, verbatim (Sidebar.module.scss .headerChip).
+  background: color-mix(in srgb, var(--text) 5%, transparent);
 }
 
 // A tab with a trailing control renders as button + trailing sibling inside

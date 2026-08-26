@@ -1262,16 +1262,18 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
               tabs={simpleTabs}
               activeTab={activeTabKey}
               onTabChange={handleTabChange}
-              /* Same summary+claim pair as the simple lighting page: one line
-                 carrying both counts, and the action only while it has
-                 something to resolve. */
+              /* Same line as the simple lighting page: what Off did while it
+                 is off, both counts otherwise, and the action only while it
+                 has something to resolve. */
               tabsAdjacent={(
                 <DeviceCountSummary
-                  detected={t(pluralKey('cooling.simple.controlledOf', language, channels.length), {
-                    controlled: controlledFanCount,
-                    total: channels.length,
-                  })}
-                  action={controlledFanCount < channels.length ? (
+                  detected={activeMode === 'off'
+                    ? t('cooling.mode.off.banner')
+                    : t(pluralKey('cooling.simple.controlledOf', language, channels.length), {
+                      controlled: controlledFanCount,
+                      total: channels.length,
+                    })}
+                  action={activeMode !== 'off' && controlledFanCount < channels.length ? (
                     <Button size="sm" pill onClick={() => { void claimAllFans(); }}>
                       {t('cooling.simple.controlAll')}
                     </Button>
