@@ -70,7 +70,9 @@ describe('LightingCoolingSection section split', () => {
   });
 
   it('omits the Lighting section entirely when it would have no rows', () => {
-    render(<LightingCoolingSection serviceOnline platform="macos" />);
+    // Lock blackout shows on every desktop platform, so the only real
+    // no-rows case is before the platform ping resolves (empty string).
+    render(<LightingCoolingSection serviceOnline platform="" />);
 
     expect(screen.queryByText('lighting.title')).not.toBeInTheDocument();
     expect(screen.getByText('cooling.title')).toBeInTheDocument();
