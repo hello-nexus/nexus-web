@@ -10,6 +10,7 @@ import {
   createEmptyBoard,
   SHAPES,
   SPAWN_POSITION,
+  stepBlocks,
   type BlocksRunState,
 } from './blocksLogic';
 
@@ -31,7 +32,7 @@ function stateAtSpawn(): BlocksRunState {
 function useHarness(initial: BlocksRunState, paused: boolean) {
   const [runState, setRunState] = useState(initial);
   const controls = useBlocksHardDrop(runState, setRunState, paused, fixedRandom);
-  return { runState, ...controls };
+  return { runState, setRunState, ...controls };
 }
 
 describe('useBlocksHardDrop', () => {
@@ -183,6 +184,44 @@ describe('useBlocksHardDrop', () => {
     act(() => result.current.triggerHardDrop());
     expect(result.current.dropping).toBe(false);
     expect(result.current.runState.board).not.toBe(resting.board);
+  });
+
+  // The drag gesture registers its pointermove/pointerup listeners once, at
+  // pointerdown, so they call the trigger captured by THAT render. Gravity
+  // ticks landing during the drag used to leave the trigger's distance a row
+  // too long per tick, walking the piece into the stack - where the lock
+  // overwrote the cells it had landed on.
+  it('lands on the stack, not through it, when triggered from a pre-gravity-tick closure', () => {
+    const board = createEmptyBoard();
+    // Two nubs on the floor for a flat I piece to come to rest on.
+    board[BOARD_HEIGHT - 1][0] = 'red';
+    board[BOARD_HEIGHT - 1][1] = 'red';
+    const initial: BlocksRunState = {
+      board,
+      blocks: SHAPES.cyan,
+      nextBlocks: SHAPES.yellow,
+      position: { x: 0, y: 0 },
+      score: 0,
+      combo: 0,
+      gameOver: false,
+      lastClearedRowIndices: [],
+    };
+    const { result } = renderHook(() => useHarness(initial, false));
+    const staleTrigger = result.current.triggerHardDrop;
+
+    // A gravity tick lands between pointerdown and the drag crossing its
+    // drop threshold.
+    act(() => { result.current.setRunState(prev => stepBlocks(prev, fixedRandom)); });
+    expect(result.current.runState.position.y).toBe(1);
+
+    act(() => { staleTrigger(); });
+    act(() => { vi.advanceTimersByTime(10_000); });
+
+    expect(result.current.runState.board[BOARD_HEIGHT - 1][0]).toBe('red');
+    expect(result.current.runState.board[BOARD_HEIGHT - 1][1]).toBe('red');
+    // The I piece's own row sits directly on top of the nubs.
+    expect(result.current.runState.board[BOARD_HEIGHT - 2].slice(0, 4))
+      .toEqual(['cyan', 'cyan', 'cyan', 'cyan']);
   });
 
   it('respects reduced motion by dropping instantly with no intermediate steps', () => {
