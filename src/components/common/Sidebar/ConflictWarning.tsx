@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react';
 import { AlertTriangle, CheckCircle2, ShieldOff } from 'lucide-react';
 import type { ConflictAutostartEntry, DetectedConflict } from '../../../api/conflicts';
 import { ConflictAppCard } from '../ConflictAppCard/ConflictAppCard';
@@ -72,12 +71,10 @@ interface ConflictWarningModalProps {
   onSuppressedChange: (suppressed: boolean) => void;
   /** Resolved autostart entries per conflict id; an id absent here gets no startup control. */
   autostartById?: Readonly<Record<string, ConflictAutostartEntry[]>>;
-  /** Replaces the "don't show again" row, for the onboarding step that ends in a Done button. */
-  footer?: ReactNode;
 }
 
 export function ConflictWarningModal({
-  open, conflicts, suppressed, onClose, onSuppressedChange, autostartById, footer,
+  open, conflicts, suppressed, onClose, onSuppressedChange, autostartById,
 }: ConflictWarningModalProps) {
   const { t } = useTranslation();
 
@@ -110,7 +107,6 @@ export function ConflictWarningModal({
           </div>
         )}
 
-        {footer ?? (
         <label className={styles.dismissRow}>
           <input
             type="checkbox"
@@ -122,7 +118,6 @@ export function ConflictWarningModal({
             {t('conflicts.modal.dontShowAgain')}
           </span>
         </label>
-        )}
       </div>
     </DeviceModal>
   );

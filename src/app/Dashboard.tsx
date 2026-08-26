@@ -35,7 +35,7 @@ import { useConflictAutostart } from '../hooks/useConflictAutostart';
 import { completeLightingOnboarding, completeOnboarding } from '../api/onboarding';
 import { dismissNexus2Welcome } from '../api/migration';
 import { dismissFanControlImport } from '../api/fancontrol';
-import { ConflictWarningModal } from '../components/common/Sidebar/ConflictWarning';
+import { ConflictOnboardingScreen } from '../components/common/ConflictOnboardingScreen/ConflictOnboardingScreen';
 import { useFanControlStatus } from '../hooks/useFanControlStatus';
 import { useNexus2WelcomeStatus } from '../hooks/useNexus2WelcomeStatus';
 import { useProfiles } from '../hooks/useProfiles';
@@ -51,7 +51,6 @@ import { fetchPanelRemoteControlState } from '../api/panel';
 import { isRemoteOrigin } from '../api/service';
 import { MultiplexContext, useMultiplexConnection, useTopicCallback } from '../hooks/useMultiplexSocket';
 import { UiSettingsProvider } from '../hooks/useUiSettings';
-import { Button } from '../components/common/Button/Button';
 import { useTranslation } from '../lib/i18n';
 import { applyThemeMode, applyAccentColor, cachePreferencesLocally } from '../lib/settings';
 import type { Preferences } from '../api/profiles';
@@ -918,23 +917,16 @@ export function Dashboard() {
             else { setWelcomeRevisit(true); setOnboardingDismissed(false); }
           }}
         />
-        {/* Final onboarding gate: conflicting apps. Reuses the top-bar conflict
-            modal so both surfaces stay one component; its Done button replaces
-            the "don't show again" row, which belongs to the badge. */}
-        <ConflictWarningModal
+        {/* Final onboarding gate: conflicting apps. A full screen like the
+            gates before it, not the top-bar modal - that one belongs to the
+            badge and carries its "don't show again" row. */}
+        <ConflictOnboardingScreen
           open={conflictStepOpen}
           conflicts={onboardingConflicts}
-          suppressed={false}
           autostartById={onboardingAutostart}
-          onClose={() => setConflictStepDone(true)}
-          onSuppressedChange={() => { /* suppression is the badge's setting, not this step's */ }}
-          footer={(
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <Button tone="accent" size="lg" onClick={() => setConflictStepDone(true)}>
-                {t('conflicts.onboarding.done')}
-              </Button>
-            </div>
-          )}
+          onComplete={() => setConflictStepDone(true)}
+          onSkipOnboarding={skipOnboarding}
+          onBack={() => setLightingOnboardingDismissed(false)}
         />
         {/* Global incoming-pair prompt, at the layout root so it lands on top
             of any section. Pair Remote stays in its own modal below. */}

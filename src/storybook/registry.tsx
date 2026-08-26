@@ -2209,8 +2209,14 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'ImportOnboardingScreen', category: 'modals',
     filePath: 'src/components/common/ImportOnboarding/ImportOnboardingScreen.tsx',
-    description: 'The one onboarding gate for bringing a previous setup over. Hosts ImportCenter with every app found on this PC (Nexus 2 first, then FanControl), and on continue also closes those apps and clears their autostart, since each drives hardware Nexus is taking over.',
-    notes: 'No live preview - continuing posts real apply, close-app, disable-autostart and dismiss requests for every detected app, so opening it here would close them and overwrite the running install\'s configuration.',
+    description: 'The one onboarding gate for bringing a previous setup over. Hosts ImportCenter with every app found on this PC (Nexus 2 first, then FanControl). It never closes an app or touches its autostart - ConflictOnboardingScreen does that, per app, on an explicit click.',
+    notes: 'No live preview - continuing posts real apply and dismiss requests for every detected app, so opening it here would overwrite the running install\'s configuration.',
+  },
+  {
+    name: 'ConflictOnboardingScreen', category: 'modals',
+    filePath: 'src/components/common/ConflictOnboardingScreen/ConflictOnboardingScreen.tsx',
+    description: 'The last onboarding gate: apps already driving the lighting, fans or peripherals Nexus is taking over. A full screen like the gates before it, not the sidebar badge\'s ConflictWarningModal. Lists one ConflictAppCard per detected app, each with End task and - only when the service resolved one - Remove from startup. Continuing ends nothing and clears no autostart entry; every action is per-app and explicit.',
+    notes: 'No live preview - the cards post real /conflicts/kill and /conflicts/autostart/disable requests, so a click here would end a running app or remove its real startup entry.',
   },
   {
     name: 'FanControlImportSection', category: 'modals',
