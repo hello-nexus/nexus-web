@@ -34,18 +34,38 @@ describe('FeatureDisabled', () => {
     expect(screen.getByText(`featureDisabled.hint.${feature}`)).toBeInTheDocument();
   });
 
-  it.each(CASES)('re-enabling $feature patches only that flag on', ({ feature, settingsKey }) => {
-    render(<FeatureDisabled feature={feature} />);
-    fireEvent.click(screen.getByRole('switch'));
-    expect(mockUpdate).toHaveBeenCalledWith({ [settingsKey]: true });
-  });
-
   it('animates the toggle to checked immediately on click, ahead of the write settling', () => {
     render(<FeatureDisabled feature="lighting" />);
     const toggle = screen.getByRole('switch');
     expect(toggle).toHaveAttribute('aria-checked', 'false');
     fireEvent.click(toggle);
     expect(toggle).toHaveAttribute('aria-checked', 'true');
+  });
+
+  describe('re-enable delay', () => {
+    beforeEach(() => { vi.useFakeTimers(); });
+    afterEach(() => { vi.useRealTimers(); });
+
+    it.each(CASES)('patches $feature only after the delay, and disables the toggle meanwhile', ({ feature, settingsKey }) => {
+      render(<FeatureDisabled feature={feature} />);
+      const toggle = screen.getByRole('switch');
+
+      fireEvent.click(toggle);
+      expect(mockUpdate).not.toHaveBeenCalled();
+      expect(toggle).toBeDisabled();
+
+      act(() => { vi.advanceTimersByTime(400); });
+      expect(mockUpdate).toHaveBeenCalledWith({ [settingsKey]: true });
+    });
+
+    it('ignores a second click while the write is pending', () => {
+      render(<FeatureDisabled feature="lighting" />);
+      const toggle = screen.getByRole('switch');
+      fireEvent.click(toggle);
+      fireEvent.click(toggle);
+      act(() => { vi.advanceTimersByTime(400); });
+      expect(mockUpdate).toHaveBeenCalledTimes(1);
+    });
   });
 });
 
@@ -63,27 +83,13 @@ describe('FeatureGate', () => {
     expect(screen.getByRole('heading', { name: 'lighting.title' })).toBeInTheDocument();
   });
 
-  describe('re-enable hold', () => {
-    beforeEach(() => { vi.useFakeTimers(); });
-    afterEach(() => { vi.useRealTimers(); });
+  it('renders children immediately on mount with no shell frame, even when the flag was off a moment ago', () => {
+    mockFlags = { ...mockFlags, lighting: false };
+    const { rerender } = render(<FeatureGate feature="lighting"><div>live page</div></FeatureGate>);
+    expect(screen.queryByText('live page')).not.toBeInTheDocument();
 
-    it('keeps the disabled shell mounted briefly after the flag turns on, then swaps to children', () => {
-      mockFlags = { ...mockFlags, lighting: false };
-      const { rerender } = render(<FeatureGate feature="lighting"><div>live page</div></FeatureGate>);
-      expect(screen.queryByText('live page')).not.toBeInTheDocument();
-
-      mockFlags = { ...mockFlags, lighting: true };
-      rerender(<FeatureGate feature="lighting"><div>live page</div></FeatureGate>);
-      expect(screen.queryByText('live page')).not.toBeInTheDocument();
-
-      act(() => { vi.advanceTimersByTime(400); });
-      expect(screen.getByText('live page')).toBeInTheDocument();
-    });
-
-    it('does not hold when the feature was already enabled on mount', () => {
-      mockFlags = { ...mockFlags, lighting: true };
-      render(<FeatureGate feature="lighting"><div>live page</div></FeatureGate>);
-      expect(screen.getByText('live page')).toBeInTheDocument();
-    });
+    mockFlags = { ...mockFlags, lighting: true };
+    rerender(<FeatureGate feature="lighting"><div>live page</div></FeatureGate>);
+    expect(screen.getByText('live page')).toBeInTheDocument();
   });
 });
