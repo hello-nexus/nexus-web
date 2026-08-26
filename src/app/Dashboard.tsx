@@ -959,11 +959,13 @@ export function Dashboard() {
           }}
           onComplete={() => setImportDismissed(true)}
           onSkipOnboarding={skipOnboarding}
-          // Back steps to the features gate while that sequence is still
-          // running; this gate also reopens on its own later.
+          // Back steps to whichever earlier gate ran this session: features,
+          // else welcome; this gate also reopens on its own later.
           onBack={featuresStatus === 'pending'
             ? () => setFeaturesOnboardingDismissed(false)
-            : undefined}
+            : onboardingStatus === 'pending'
+              ? () => { setWelcomeRevisit(true); setOnboardingDismissed(false); }
+              : undefined}
         />
         {/* Lighting device-selection gate, gated by its own server-side flag so
             a factory reset reopens everything. Back targets whichever earlier

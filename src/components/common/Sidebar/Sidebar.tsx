@@ -20,10 +20,7 @@ interface NavItem {
   readonly key: string;
   readonly label: string;
   readonly icon: ReactNode;
-  // Pre-resolved tooltip text; when present the row shows the same
-  // "disabled" glyph a device row shows for Nexus Control off (SidebarDevicesSection).
-  // Used by the four feature-pillar rows (monitoring/lighting/cooling/diagnostics)
-  // when their global switch is off in Settings.
+  // Pre-resolved tooltip; when set, renders the same disabled glyph as a device row's Nexus Control off (SidebarDevicesSection).
   readonly offTooltip?: string;
 }
 
