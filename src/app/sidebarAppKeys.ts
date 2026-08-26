@@ -25,7 +25,7 @@ export function isPinnableAppKey(s: string): boolean {
 // in the registry but omitted to keep the tail short. Devices has no Page
 // (it's a launcher widget drilling into per-device pages) and lives in the
 // dedicated DEVICES section instead.
-export const DEFAULT_PINNED_TAIL: string[] = ['monitoring', 'lighting', 'cooling'];
+export const DEFAULT_PINNED_TAIL: string[] = ['monitoring', 'lighting', 'cooling', 'diagnostics'];
 
 // Default tail for a fresh profile: the curated base plus any preinstalled
 // page-app (OEM bake-in - e.g. a bundled device app). The

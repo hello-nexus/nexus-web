@@ -140,8 +140,8 @@ export interface GeneralSettings {
   showWindowsTrayIcon: boolean;
   // Order of pinnable sidebar apps after the locked Dashboard row. Each
   // entry is a PinnableAppKey ('monitoring' | 'lighting' | 'cooling' |
-  // 'devices'). Server-mirrored under ui.pinnedSidebarApps so it follows
-  // the profile.
+  // 'diagnostics' | 'devices'). Server-mirrored under ui.pinnedSidebarApps so
+  // it follows the profile.
   pinnedSidebarApps: string[];
   // Recently opened unpinned apps, oldest first - the sidebar's below-separator
   // "recently opened" rows. Server-mirrored under ui.recentSidebarApps.
@@ -208,7 +208,7 @@ export function getDefaultSettings(): NexusSettings {
       monitoringEventKindsHidden: [],
       showMacStatusBarIcon: true,
       showWindowsTrayIcon: true,
-      pinnedSidebarApps: ['monitoring', 'lighting', 'cooling'],
+      pinnedSidebarApps: ['monitoring', 'lighting', 'cooling', 'diagnostics'],
       recentSidebarApps: [],
       widgetAdvancedMode: false,
       lightingDashboardMode: 'simple',
