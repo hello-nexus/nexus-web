@@ -337,6 +337,7 @@
   "cooling.curves.delete": "Supprimer",
   "cooling.curves.empty": "Aucune courbe définie. Créez-en une pour piloter vos ventilateurs.",
   "cooling.curves.maxReached": "Limite atteinte: 10 courbes max. Supprime-en une pour en ajouter.",
+  "cooling.curves.noCurveSelected": "Aucune courbe sélectionnée. Choisis-en une ci-dessus pour l'appliquer à la sélection.",
   "cooling.curves.removeBtn": "Supprimer la courbe",
   "cooling.curves.rename": "Renommer",
   "cooling.curves.renameBtn": "Renommer la courbe",

@@ -337,6 +337,7 @@
   "cooling.curves.delete": "Elimine",
   "cooling.curves.empty": "No je definide nissune curve. Cree une par pilotâ i tiei ventilatôrs.",
   "cooling.curves.maxReached": "Limit rivât: massim 10 curvis. Elimine une par zontâ altris.",
+  "cooling.curves.noCurveSelected": "Nissune curve selezionade. Sielç une parsore par aplicâle ae selezion.",
   "cooling.curves.removeBtn": "Gjave curve",
   "cooling.curves.rename": "Cambie non",
   "cooling.curves.renameBtn": "Cambie non ae curve",
