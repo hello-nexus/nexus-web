@@ -22,17 +22,9 @@
   // Dashboard chrome uses the same solid --surface as the rest of the app; the
   // gradient backdrop reads through the gaps between cards (panel gap,
   // margins), not through the cards themselves.
-  // Height of the full-width application top bar (collapse + nav + search +
-  // profile). Consumed by .topBar in TopBar.module.scss.
-  --topbar-height: 52px;
-  // Collapsed sidebar rail width. The expanded sidebar is 240px (.sidebarColumn).
-  --rail-width: 70px;
-  // Horizontal padding on each nav item, derived so the icon's center lands on
-  // the rail centerline: nav side-pad (8px) + this + icon-half (10px) =
-  // --rail-width / 2. Identical expanded + compact so icons never shift between
-  // states; shrinking --rail-width slides the icon/label inset left in lockstep
-  // (and the brand mark below, which shares the same --rail-width / 2 anchor).
-  --rail-item-pad: calc(var(--rail-width) / 2 - 18px);
+  // --topbar-height, --sidebar-width, --sidebar-chip-bg, --rail-width and
+  // --rail-item-pad live in styles/variables.scss (:root): the add-app drawer
+  // paints the same nav rows from a <body> portal, outside this element.
   // macOS shell only: horizontal inset that pushes the top bar's collapse toggle
   // clear of the native traffic lights (centered in the rail) with extra gap.
   --mac-traffic-light-inset: 96px;
@@ -213,7 +205,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  width: 240px;
+  width: var(--sidebar-width);
   // No container treatment - the sidebar is transparent and its nav items float
   // directly over the app backdrop.
   background: transparent;
