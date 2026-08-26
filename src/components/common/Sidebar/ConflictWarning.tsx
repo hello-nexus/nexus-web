@@ -1,5 +1,6 @@
-import { AlertTriangle, CheckCircle2, ShieldOff } from 'lucide-react';
+import { AlertTriangle, ShieldOff } from 'lucide-react';
 import type { DetectedConflict } from '../../../api/conflicts';
+import { ConflictAllClear } from '../ConflictAllClear/ConflictAllClear';
 import { ConflictAppCard } from '../ConflictAppCard/ConflictAppCard';
 import { DeviceModal } from '../DeviceModal/DeviceModal';
 import { TopBarStatusButton } from '../TopBarStatusButton/TopBarStatusButton';
@@ -98,10 +99,7 @@ export function ConflictWarningModal({
             ))}
           </ul>
         ) : (
-          <div className={styles.empty}>
-            <CheckCircle2 size={18} className={styles.emptyIcon} />
-            <span>{t('conflicts.modal.empty')}</span>
-          </div>
+          <ConflictAllClear />
         )}
 
         <label className={styles.dismissRow}>

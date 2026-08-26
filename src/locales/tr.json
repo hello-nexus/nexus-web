@@ -227,8 +227,6 @@
   "conflicts.modal.intro": "Bu uygulamalar aydınlatmanızın, fanlarınızın veya çevre birimlerinizin kontrolü için Nexus ile çekişebilir. Nexus'un bunları sorunsuz yönetebilmesi için ihtiyaç duymadıklarınızı sonlandırın.",
   "conflicts.modal.pid": "PID {pid}",
   "conflicts.modal.title": "Çakışan uygulamalar algılandı",
-  "conflicts.onboarding.allClearBody": "Şu anda başka hiçbir uygulama aydınlatmanı, fanlarını veya çevre birimlerini sürmüyor.",
-  "conflicts.onboarding.allClearTitle": "Nexus ile yarışan bir şey yok",
   "conflicts.onboarding.continue": "Devam et",
   "conflicts.onboarding.done": "Bitti",
   "conflicts.onboarding.intro": "Şu anda çalışıyorlar ve Nexus ile aynı aydınlatmayı, fanları veya çevre birimlerini sürüyorlar. İhtiyacın olmayanları kapat.",

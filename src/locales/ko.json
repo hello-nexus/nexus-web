@@ -227,8 +227,6 @@
   "conflicts.modal.intro": "이러한 앱은 조명, 팬, 주변기기 제어를 두고 Nexus와 충돌할 수 있습니다. Nexus가 원활하게 제어할 수 있도록 필요 없는 앱을 종료하세요.",
   "conflicts.modal.pid": "PID {pid}",
   "conflicts.modal.title": "충돌하는 앱 감지됨",
-  "conflicts.onboarding.allClearBody": "현재 다른 앱이 조명, 팬 또는 주변 기기를 제어하고 있지 않습니다.",
-  "conflicts.onboarding.allClearTitle": "Nexus와 경쟁하는 항목이 없습니다",
   "conflicts.onboarding.continue": "계속",
   "conflicts.onboarding.done": "완료",
   "conflicts.onboarding.intro": "지금 실행 중이며 Nexus와 동일한 조명, 팬, 주변 기기를 제어합니다. 필요하지 않은 것은 종료하세요.",

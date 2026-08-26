@@ -51,6 +51,7 @@ import { DeviceCountSummary } from '../components/common/DeviceCountSummary/Devi
 import { SimpleModeNotice } from '../components/common/SimpleModeNotice/SimpleModeNotice';
 import { Button } from '../components/common/Button/Button';
 import { EndTaskButton } from '../components/common/EndTaskButton/EndTaskButton';
+import { ConflictAllClear } from '../components/common/ConflictAllClear/ConflictAllClear';
 import { ConflictAppCard } from '../components/common/ConflictAppCard/ConflictAppCard';
 import { SkipOnboardingButton } from '../components/common/SkipOnboardingButton/SkipOnboardingButton';
 import { ToastProvider, useToast } from '../components/common/Toast/Toast';
@@ -2179,6 +2180,12 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/ImportOnboarding/ImportOnboardingScreen.tsx',
     description: 'The one onboarding gate for bringing a previous setup over. Hosts ImportCenter with every app found on this PC (Nexus 2 first, then FanControl). It never closes an app or touches its autostart - ConflictOnboardingScreen does that, per app, on an explicit click.',
     notes: 'No live preview - continuing posts real apply and dismiss requests for every detected app, so opening it here would overwrite the running install\'s configuration.',
+  },
+  {
+    name: 'ConflictAllClear', category: 'status',
+    filePath: 'src/components/common/ConflictAllClear/ConflictAllClear.tsx',
+    description: 'All-clear row for the conflict surfaces: dashed box, green check, "nothing is competing with Nexus". Shared so ConflictWarningModal and ConflictOnboardingScreen state it identically.',
+    Preview: () => <ConflictAllClear />,
   },
   {
     name: 'ConflictOnboardingScreen', category: 'modals',

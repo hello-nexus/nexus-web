@@ -1,7 +1,7 @@
 import { ArrowLeft, TriangleAlert } from 'lucide-react';
 import { Overlay } from '../Overlay/Overlay';
 import { Button } from '../Button/Button';
-import { EmptyState } from '../EmptyState/EmptyState';
+import { ConflictAllClear } from '../ConflictAllClear/ConflictAllClear';
 import { ConflictAppCard } from '../ConflictAppCard/ConflictAppCard';
 import { SkipOnboardingButton } from '../SkipOnboardingButton/SkipOnboardingButton';
 import { useTranslation } from '../../../lib/i18n';
@@ -64,11 +64,7 @@ export function ConflictOnboardingScreen({
 
       <div className={styles.section}>
         {conflicts.length === 0 ? (
-          <EmptyState
-            icon={<TriangleAlert size={28} />}
-            title={t('conflicts.onboarding.allClearTitle')}
-            hint={t('conflicts.onboarding.allClearBody')}
-          />
+          <ConflictAllClear />
         ) : (
           <div className={styles.list}>
             {conflicts.map(conflict => (

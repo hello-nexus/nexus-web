@@ -50,7 +50,7 @@ describe('ConflictOnboardingScreen', () => {
   it('shows the all-clear state and a Continue label when nothing is detected', () => {
     render(<ConflictOnboardingScreen open conflicts={[]} onComplete={() => {}} />);
 
-    expect(screen.getByText('conflicts.onboarding.allClearTitle')).toBeInTheDocument();
+    expect(screen.getByText('conflicts.modal.empty')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'conflicts.onboarding.continue' })).toBeInTheDocument();
   });
 

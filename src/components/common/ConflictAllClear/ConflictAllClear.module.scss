@@ -1,0 +1,15 @@
+.root {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 1rem 0.85rem;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  font-size: var(--type-body);
+}
+
+.icon {
+  flex-shrink: 0;
+  color: var(--good);
+}

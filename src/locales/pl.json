@@ -227,8 +227,6 @@
   "conflicts.modal.intro": "Te aplikacje mogą rywalizować z Nexusem o kontrolę nad podświetleniem, wentylatorami lub urządzeniami peryferyjnymi. Zakończ te, których nie potrzebujesz, aby Nexus mógł nimi sterować bez zakłóceń.",
   "conflicts.modal.pid": "PID {pid}",
   "conflicts.modal.title": "Wykryto konfliktujące aplikacje",
-  "conflicts.onboarding.allClearBody": "Obecnie żadna inna aplikacja nie steruje twoim podświetleniem, wentylatorami ani peryferiami.",
-  "conflicts.onboarding.allClearTitle": "Nic nie rywalizuje z Nexusem",
   "conflicts.onboarding.continue": "Kontynuuj",
   "conflicts.onboarding.done": "Gotowe",
   "conflicts.onboarding.intro": "Są teraz uruchomione i sterują tym samym podświetleniem, wentylatorami lub peryferiami co Nexus. Zamknij te, których nie potrzebujesz.",

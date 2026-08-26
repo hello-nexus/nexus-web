@@ -227,8 +227,6 @@
   "conflicts.modal.intro": "这些应用可能会与 Nexus 争夺对灯效、风扇或外设的控制权。请结束不需要的应用，以便 Nexus 能够顺畅地驱动它们。",
   "conflicts.modal.pid": "PID {pid}",
   "conflicts.modal.title": "检测到冲突的应用",
-  "conflicts.onboarding.allClearBody": "目前没有其他应用在控制你的灯效、风扇或外设。",
-  "conflicts.onboarding.allClearTitle": "没有应用与 Nexus 争夺控制权",
   "conflicts.onboarding.continue": "继续",
   "conflicts.onboarding.done": "完成",
   "conflicts.onboarding.intro": "这些应用正在运行，并与 Nexus 控制同一套灯效、风扇或外设。结束你不需要的那些。",

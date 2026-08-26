@@ -227,8 +227,6 @@
   "conflicts.modal.intro": "Эти приложения могут конкурировать с Nexus за управление подсветкой, вентиляторами или периферией. Завершите ненужные, чтобы Nexus мог управлять ими без помех.",
   "conflicts.modal.pid": "PID {pid}",
   "conflicts.modal.title": "Обнаружены конфликтующие приложения",
-  "conflicts.onboarding.allClearBody": "Сейчас никакое другое приложение не управляет вашей подсветкой, вентиляторами или периферией.",
-  "conflicts.onboarding.allClearTitle": "Ничто не конкурирует с Nexus",
   "conflicts.onboarding.continue": "Продолжить",
   "conflicts.onboarding.done": "Готово",
   "conflicts.onboarding.intro": "Они запущены сейчас и управляют той же подсветкой, вентиляторами или периферией, что и Nexus. Завершите те, которые вам не нужны.",

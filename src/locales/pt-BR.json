@@ -227,8 +227,6 @@
   "conflicts.modal.intro": "Estes apps podem disputar com o Nexus o controle da sua iluminação, ventoinhas ou periféricos. Encerre os que você não precisa para que o Nexus possa controlá-los sem interferência.",
   "conflicts.modal.pid": "PID {pid}",
   "conflicts.modal.title": "Apps conflitantes detectados",
-  "conflicts.onboarding.allClearBody": "No momento, nenhum outro app está controlando sua iluminação, ventoinhas ou periféricos.",
-  "conflicts.onboarding.allClearTitle": "Nada está disputando com o Nexus",
   "conflicts.onboarding.continue": "Continuar",
   "conflicts.onboarding.done": "Concluído",
   "conflicts.onboarding.intro": "Estão em execução agora e controlam a mesma iluminação, ventoinhas ou periféricos que o Nexus. Encerre os que você não precisa.",

@@ -227,8 +227,6 @@
   "conflicts.modal.intro": "Diese Apps können mit Nexus um die Kontrolle über deine Beleuchtung, Lüfter oder Peripherie konkurrieren. Beende die, die du nicht brauchst, damit Nexus sie sauber steuern kann.",
   "conflicts.modal.pid": "PID {pid}",
   "conflicts.modal.title": "Konfliktverursachende Apps erkannt",
-  "conflicts.onboarding.allClearBody": "Zurzeit steuert keine andere App deine Beleuchtung, Lüfter oder Peripherie.",
-  "conflicts.onboarding.allClearTitle": "Nichts konkurriert mit Nexus",
   "conflicts.onboarding.continue": "Weiter",
   "conflicts.onboarding.done": "Fertig",
   "conflicts.onboarding.intro": "Diese laufen gerade und steuern dieselbe Beleuchtung, Lüfter oder Peripherie wie Nexus. Beende die, die du nicht brauchst.",

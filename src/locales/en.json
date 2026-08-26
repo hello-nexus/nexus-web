@@ -227,8 +227,6 @@
   "conflicts.modal.intro": "These apps can fight Nexus for control of your lighting, fans, or peripherals. End the ones you don't need so Nexus can drive them cleanly.",
   "conflicts.modal.pid": "PID {pid}",
   "conflicts.modal.title": "Conflicting apps detected",
-  "conflicts.onboarding.allClearBody": "No other app is driving your lighting, fans, or peripherals right now.",
-  "conflicts.onboarding.allClearTitle": "Nothing is competing with Nexus",
   "conflicts.onboarding.continue": "Continue",
   "conflicts.onboarding.done": "Done",
   "conflicts.onboarding.intro": "These are running now and drive the same lighting, fans, or peripherals as Nexus. End the ones you don't need.",
