@@ -1,3 +1,5 @@
+$btn-active-fill: color-mix(in srgb, var(--text) 20%, transparent);
+
 .calculator {
   display: flex;
   flex-direction: column;
@@ -16,7 +18,7 @@
   justify-content: flex-end;
   padding: 8px 12px;
   min-height: 56px;
-  background: var(--panel-element-bg);
+  background: transparent;
   border-radius: var(--panel-element-radius);
   overflow: hidden;
 }
@@ -65,21 +67,21 @@
 // Number buttons
 .btnNum {
   @extend %btn-base;
-  background: var(--panel-element-bg);
+  background: var(--panel-control-translucent);
 
-  &:hover { background: var(--panel-element-bg-hover); }
-  &:active { background: var(--panel-element-bg-active); }
+  &:hover { background: var(--panel-accent-soft); }
+  &:active { background: $btn-active-fill; }
 }
 
 // Function buttons (percent, negate, delete)
 .btnFunc {
   @extend %btn-base;
-  background: var(--panel-element-bg);
+  background: var(--panel-control-translucent);
   color: var(--text-dim);
   font-size: 0.95em;
 
-  &:hover { background: var(--panel-element-bg-hover); }
-  &:active { background: var(--panel-element-bg-active); }
+  &:hover { background: var(--panel-accent-soft); }
+  &:active { background: $btn-active-fill; }
 }
 
 // AC button - subtle red tint
@@ -95,11 +97,11 @@
 // Operator buttons (default state)
 .btnOp {
   @extend %btn-base;
-  background: var(--panel-element-bg);
+  background: var(--panel-control-translucent);
   color: var(--panel-accent-glow);
 
-  &:hover { background: var(--panel-element-bg-hover); }
-  &:active { background: var(--panel-element-bg-active); }
+  &:hover { background: var(--panel-accent-soft); }
+  &:active { background: $btn-active-fill; }
 }
 
 // Operator buttons (active/selected state)
@@ -107,17 +109,18 @@
   @extend %btn-base;
   background: var(--panel-accent);
   border-color: var(--panel-accent);
-  color: var(--accent-text);
+  color: var(--panel-accent-text, var(--accent-text));
 
   &:hover { background: var(--panel-accent-glow); }
   &:active { background: var(--panel-accent); }
 }
 
-// Equals button - accent background
+// Equals button - accent background, labelled in the contrast-paired foreground
 .btnEquals {
   @extend %btn-base;
   background: var(--panel-accent);
   border-color: var(--panel-accent);
+  color: var(--panel-accent-text, var(--accent-text));
 
   &:hover { background: var(--panel-accent-glow); }
   &:active { background: var(--panel-accent); }
