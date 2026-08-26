@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from 'react';
+import { Fragment, useEffect, useState, type CSSProperties } from 'react';
 import {
   Sun, Cloud, CloudSun, CloudFog, CloudDrizzle, CloudRain,
   CloudSnow, CloudRainWind, CloudLightning, HelpCircle, Droplet, Wind,
@@ -6,7 +6,10 @@ import {
 import { fetchService } from '../../../api/service';
 import { weatherLocationQuery, type WeatherLocation } from '../../../api/weather';
 import { useTranslation } from '../../../lib/i18n';
+import { resolveHour12 } from '../../../lib/units';
+import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import type { WidgetProps } from '../types';
+import { formatWeatherHour, weatherConditionKey } from './weatherConditions';
 import styles from './WeatherWidget.module.scss';
 
 interface WeatherSnapshot {
@@ -97,6 +100,7 @@ function dailyMax(item: WeatherDailyForecast, unit: 'C' | 'F') {
 
 export function WeatherWidget({ widget }: WidgetProps) {
   const { t } = useTranslation();
+  const { timeFormat } = useUnitPrefs();
   const [snap, setSnap] = useState<WeatherSnapshot | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [referenceNow, setReferenceNow] = useState(0);
@@ -126,14 +130,10 @@ export function WeatherWidget({ widget }: WidgetProps) {
     return () => { cancelled = true; clearInterval(timer); };
   }, [locationQuery]);
 
+  const hour12 = resolveHour12(timeFormat);
   function hourLabel(time: string) {
-    const date = new Date(time);
-    if (Number.isNaN(date.getTime())) {
-      return time.split('T')[1]?.slice(0, 5) || '';
-    }
-    const hour = date.getHours();
-    const suffix = hour >= 12 ? t('panel.widget.weather.pm') : t('panel.widget.weather.am');
-    return `${hour % 12 || 12}${suffix}`;
+    return formatWeatherHour(
+      time, hour12, t('panel.widget.weather.am'), t('panel.widget.weather.pm'));
   }
 
   function dayLabel(date: string, index: number) {
@@ -148,6 +148,8 @@ export function WeatherWidget({ widget }: WidgetProps) {
   const showLocation = (widget.config?.showLocation as boolean | undefined) ?? true;
   const showDetails = (widget.config?.showDetails as boolean | undefined) ?? true;
   const tempValue = snap ? (unit === 'F' ? snap.temperatureF : snap.temperatureC) : null;
+  const conditionKey = weatherConditionKey(snap?.weatherCode);
+  const conditionText = conditionKey ? t(conditionKey) : (snap?.condition || '');
   const tempText = formatTemp(tempValue, loaded ? '--' : '…');
 
   const wide = widget.size === '4x2';
@@ -197,7 +199,7 @@ export function WeatherWidget({ widget }: WidgetProps) {
       <div className={styles.largeMeta}>
         <div className={styles.largeDescRow}>
           <WeatherIcon code={snap?.weatherCode} className={styles.largeIcon} strokeWidth={1.5} />
-          {showCondition && <span className={styles.largeDescription}>{snap?.condition || ''}</span>}
+          {showCondition && <span className={styles.largeDescription}>{conditionText}</span>}
         </div>
         {todayMax !== null && todayMax !== undefined && todayMin !== null && todayMin !== undefined && (
           <span className={styles.largeHiLo}>
@@ -240,7 +242,7 @@ export function WeatherWidget({ widget }: WidgetProps) {
           '--weather-bar-right': `${barRight}%`,
         } as CSSProperties;
         return (
-          <div key={`${item.date}-${index}`} className={styles.dailyRow}>
+          <Fragment key={`${item.date}-${index}`}>
             <span className={styles.dailyDay}>{dayLabel(item.date, index)}</span>
             <div className={styles.dailyIcon}>
               <WeatherIcon code={item.weatherCode} className={styles.dailyIconSvg} strokeWidth={1.6} />
@@ -254,7 +256,7 @@ export function WeatherWidget({ widget }: WidgetProps) {
               <span className={styles.dailySpacer} />
             )}
             <span className={styles.dailyHi}>{formatTemp(max)}</span>
-          </div>
+          </Fragment>
         );
       }) : (
         <div className={styles.forecastEmpty}>{loaded ? t('panel.widget.weather.noForecast') : t('common.loading')}</div>
@@ -273,7 +275,7 @@ export function WeatherWidget({ widget }: WidgetProps) {
         </div>
       </div>
       {showStats && renderStats(styles.compactStats)}
-      {showCondition && <div className={styles.compactCondition}>{snap?.condition || ''}</div>}
+      {showCondition && <div className={styles.compactCondition}>{conditionText}</div>}
       {showLocation && <div className={styles.compactLocation}>{snap?.locationLabel || ''}</div>}
     </div>
   );

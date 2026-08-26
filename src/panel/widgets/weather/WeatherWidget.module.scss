@@ -329,25 +329,27 @@ $row-seam: calc(
   background: var(--panel-border);
 }
 
+// Five columns, one row per day, so the day column takes the width of the
+// widest label in the active locale instead of a fixed box a longer
+// translation ("Aujourd'hui") would overflow. fit-content caps it on a narrow
+// surface, where .dailyDay's overflow: hidden lets it ellipsize; the bar
+// column is the one that gives up the space.
 .dailyList {
-  display: flex;
+  display: grid;
+  grid-template-columns: fit-content(40%) 22px 31px minmax(0, 1fr) 31px;
+  align-content: space-evenly;
+  align-items: center;
   flex: 1;
   min-height: 0;
-  flex-direction: column;
-  justify-content: space-evenly;
-}
-
-.dailyRow {
-  display: flex;
-  align-items: center;
-  min-width: 0;
-  @include hgap(9px);
+  column-gap: 9px;
 }
 
 .dailyDay {
   @include label-primary;
-  width: 46px;
-  flex-shrink: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .dailyIcon {
@@ -355,7 +357,6 @@ $row-seam: calc(
   align-items: center;
   justify-content: center;
   width: 22px;
-  flex-shrink: 0;
   color: var(--panel-accent-glow);
 
   svg {
@@ -371,23 +372,17 @@ $row-seam: calc(
 
 .dailyHi {
   @include label-primary;
-  width: 31px;
-  flex-shrink: 0;
   font-variant-numeric: tabular-nums;
 }
 
 .dailyLo {
   @include label-secondary;
-  width: 31px;
-  flex-shrink: 0;
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
 
 .dailyBarTrack {
   position: relative;
-  flex: 1;
-  min-width: 0;
   height: 5px;
   overflow: hidden;
   border-radius: var(--radius-pill);
@@ -410,13 +405,13 @@ $row-seam: calc(
   display: flex;
   align-items: center;
   justify-content: center;
+  grid-column: 1 / -1;
   height: 100%;
 }
 
-// Bar-less daily row (2x4): the range track is replaced by this spacer so the
-// low/high stay in the same columns as the 4x4 bar layout.
+// Bar-less daily row (2x4): the range track is replaced by this empty cell so
+// the low/high stay in the same columns as the 4x4 bar layout.
 .dailySpacer {
-  flex: 1;
   min-width: 0;
 }
 
@@ -430,6 +425,14 @@ $row-seam: calc(
   min-height: 0;
   padding: 18px;
   box-sizing: border-box;
+}
+
+// A 2x4 on a phone-class surface is ~150px of usable row width, and the fixed
+// icon/low/high columns claim most of it; a tighter gutter is what buys the day
+// column enough room for a weekday abbreviation in every locale.
+.portrait .dailyList {
+  /* c83:allow - .dailyList is display: grid */
+  column-gap: 6px;
 }
 
 // Reuse the 2x2 compact block, detached from its full-height centering so the
