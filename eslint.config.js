@@ -18,6 +18,9 @@ const NON_UI_JSX_ATTRIBUTES = [
   'tone', 'size', 'variant', 'position', 'align', 'justify', 'direction', 'autoFocus',
   'gap', 'as', 'icon', 'iconPosition', 'color', 'accent', 'mode', 'kind', 'side', 'placement',
   'layout', 'yAxisSide',
+  // Global feature-switch selector on FeatureGate ('lighting' | 'cooling' |
+  // 'monitoring' | 'diagnostics'); a style/routing enum, not display text.
+  'feature',
   // Leading-icon treatment tier ('subtle'); a style enum, not display text.
   'iconLeading',
   // Search deep-link target id stamped on a control; technical, never displayed.
