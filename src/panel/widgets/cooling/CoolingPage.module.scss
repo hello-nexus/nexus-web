@@ -1152,6 +1152,23 @@
   padding: 0.25rem 0.4rem 0.5rem;
 }
 
+// Why the editor below is greyed out; rendered only in that state.
+.curveEditorHint {
+  margin-left: 0.5rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-dim);
+  font-size: var(--type-small);
+}
+
+// The selection wears no one curve, so the editor has nothing to apply to.
+.curveEditorInert {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
 // Select all / none beside the Fans title, matching the lighting rail.
 .headerSep {
   @include control-separator;
