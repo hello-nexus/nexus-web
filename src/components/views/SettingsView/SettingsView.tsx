@@ -1,5 +1,5 @@
 import { useCallback, useMemo, type ReactNode } from 'react';
-import { Activity, Palette, ShieldCheck, SlidersHorizontal } from 'lucide-react';
+import { Activity, Lightbulb, Palette, ShieldCheck, SlidersHorizontal } from 'lucide-react';
 import { ServiceRequired } from '../ServiceRequired';
 import { GenericSkeleton } from '../PageSkeleton/PageSkeleton';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
@@ -9,6 +9,7 @@ import type { NexusSettings } from '../../../lib/settings';
 import { useTranslation } from '../../../lib/i18n';
 import { GeneralTab } from './GeneralTab';
 import { AppearanceTab } from './AppearanceTab';
+import { LightingCoolingTab } from './LightingCoolingTab';
 import { MonitoringTab } from './MonitoringTab';
 import { PrivacyTab } from './PrivacyTab';
 import styles from './SettingsView.module.scss';
@@ -21,7 +22,7 @@ interface SettingsViewProps {
   onTabChange: (tab: string) => void;
 }
 
-type SettingsTabKey = 'general' | 'appearance' | 'monitoring' | 'privacy';
+type SettingsTabKey = 'general' | 'appearance' | 'lighting-cooling' | 'monitoring' | 'privacy';
 
 // Single source of truth for the settings tab strip - key, translated label,
 // icon, and tab validity (isValidTab below) all derive from this list so they
@@ -30,7 +31,8 @@ type SettingsTabKey = 'general' | 'appearance' | 'monitoring' | 'privacy';
 const TAB_DEFS: readonly { key: SettingsTabKey; labelKey: string; icon: ReactNode }[] = [
   { key: 'general', labelKey: 'settings.general', icon: <SlidersHorizontal size={14} /> },
   { key: 'appearance', labelKey: 'settings.tab.appearance', icon: <Palette size={14} /> },
-  { key: 'monitoring', labelKey: 'settings.tab.monitoring', icon: <Activity size={14} /> },
+  { key: 'lighting-cooling', labelKey: 'settings.lightingCooling.title', icon: <Lightbulb size={14} /> },
+  { key: 'monitoring', labelKey: 'settings.tab.monitoringDiagnostics', icon: <Activity size={14} /> },
   { key: 'privacy', labelKey: 'settings.tab.privacyData', icon: <ShieldCheck size={14} /> },
 ];
 
@@ -74,6 +76,10 @@ export function SettingsView({ serviceOnline, connectionState, platform, tab: ur
       timeFormat: ui.timeFormat,
       numberFormat: ui.numberFormat,
       startupDelaySeconds: ui.startupDelaySeconds,
+      featureLightingEnabled: ui.featureLightingEnabled,
+      featureCoolingEnabled: ui.featureCoolingEnabled,
+      featureMonitoringEnabled: ui.featureMonitoringEnabled,
+      featureDiagnosticsEnabled: ui.featureDiagnosticsEnabled,
       updateMode: ui.updateMode,
       updateChannel: ui.updateChannel,
       lastDismissedUpdateVersion: ui.lastDismissedUpdateVersion,
@@ -103,8 +109,10 @@ export function SettingsView({ serviceOnline, connectionState, platform, tab: ur
     switch (tab) {
       case 'appearance':
         return <AppearanceTab settings={settings} updateGeneral={updateGeneral} />;
+      case 'lighting-cooling':
+        return <LightingCoolingTab settings={settings} updateGeneral={updateGeneral} serviceOnline={serviceOnline} platform={platform} />;
       case 'monitoring':
-        return <MonitoringTab settings={settings} updateGeneral={updateGeneral} serviceOnline={serviceOnline} platform={platform} />;
+        return <MonitoringTab settings={settings} updateGeneral={updateGeneral} serviceOnline={serviceOnline} />;
       case 'privacy':
         return <PrivacyTab settings={settings} serviceOnline={serviceOnline} />;
       case 'general':

@@ -137,14 +137,15 @@ const navSubtabs: SearchSource = (ctx) =>
     to: () => ctx.host.goView(s.view, s.sub),
   }));
 
-// Settings is 4 top tabs; these all deep-link to the Settings page and select
+// Settings is 5 top tabs; these all deep-link to the Settings page and select
 // the owning tab (the `to:` handler below passes `tab` as the subtab).
 // Profiles and Dev tools moved to their own pages - see `standalonePages`.
 const SETTINGS_TABS: { tab: string; labelKey: string; keywords: string[] }[] = [
-  { tab: 'general',    labelKey: 'settings.general',           keywords: ['startup', 'tray', 'login', 'language', 'updates', 'diagnostics', 'danger', 'reset'] },
-  { tab: 'appearance', labelKey: 'settings.tab.appearance',     keywords: ['theme', 'dark', 'light', 'accent', 'color', 'time', 'number', 'format'] },
-  { tab: 'monitoring', labelKey: 'settings.tab.monitoring',     keywords: ['temperature', 'celsius', 'fahrenheit', 'sensors', 'lighting', 'cooling'] },
-  { tab: 'privacy',    labelKey: 'settings.tab.privacyData',    keywords: ['telemetry', 'screen time', 'data', 'ai'] },
+  { tab: 'general',          labelKey: 'settings.general',               keywords: ['startup', 'tray', 'login', 'language', 'updates', 'diagnostics', 'danger', 'reset'] },
+  { tab: 'appearance',       labelKey: 'settings.tab.appearance',        keywords: ['theme', 'dark', 'light', 'accent', 'color', 'time', 'number', 'format'] },
+  { tab: 'lighting-cooling', labelKey: 'settings.lightingCooling.title', keywords: ['lighting', 'cooling', 'rgb', 'led', 'fans', 'render gpu', 'sleep blackout'] },
+  { tab: 'monitoring',       labelKey: 'settings.tab.monitoringDiagnostics', keywords: ['temperature', 'celsius', 'fahrenheit', 'sensors', 'diagnostics', 'health'] },
+  { tab: 'privacy',          labelKey: 'settings.tab.privacyData',       keywords: ['telemetry', 'screen time', 'data', 'ai'] },
 ];
 
 // Individual settings, indexed by their real label so "tray" finds the actual
@@ -169,11 +170,15 @@ const SETTINGS_ITEMS: { tab: string; tabLabelKey: string; labelKey: string; anch
   { tab: 'appearance', tabLabelKey: 'settings.tab.appearance', labelKey: 'settings.background',          anchor: 'set-background', keywords: ['background', 'glass', 'flat', 'gradient', 'transparency', 'blur'] },
   { tab: 'appearance', tabLabelKey: 'settings.tab.appearance', labelKey: 'settings.units.time.label',        anchor: 'set-time-format',  keywords: ['time', 'clock', '12 hour', '24 hour', 'am pm', 'format', 'units'] },
   { tab: 'appearance', tabLabelKey: 'settings.tab.appearance', labelKey: 'settings.units.number.label',      anchor: 'set-number-format', keywords: ['number', 'decimal', 'separator', 'comma', 'period', 'thousands', 'units', 'format'] },
-  { tab: 'monitoring', tabLabelKey: 'settings.tab.monitoring', labelKey: 'settings.units.temperature.label', anchor: 'set-temp-unit',    keywords: ['temperature', 'celsius', 'fahrenheit', 'degrees', 'units', 'temp'] },
-  { tab: 'monitoring', tabLabelKey: 'settings.tab.monitoring', labelKey: 'lighting.renderGpu.label',     anchor: 'set-render-gpu', keywords: ['render', 'gpu', 'shader', 'graphics card'], platforms: ['windows', 'linux'] },
-  { tab: 'monitoring', tabLabelKey: 'settings.tab.monitoring', labelKey: 'lighting.sleepBlackout.label', anchor: 'set-sleep-blackout', keywords: ['sleep', 'suspend', 'standby', 'shutdown', 'power off', 'fade', 'leds', 'lights', 'off', 'ram', 'memory'], platforms: ['windows'] },
-  { tab: 'monitoring', tabLabelKey: 'settings.tab.monitoring', labelKey: 'cooling.settings.cpuLabel',    anchor: 'set-cpu-sensor', keywords: ['cpu', 'temp', 'temperature', 'sensor', 'source'] },
-  { tab: 'monitoring', tabLabelKey: 'settings.tab.monitoring', labelKey: 'cooling.settings.gpuLabel',    anchor: 'set-gpu-sensor', keywords: ['gpu', 'temp', 'temperature', 'sensor', 'source'] },
+  { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'settings.features.lighting.label', anchor: 'set-feature-lighting', keywords: ['lighting', 'rgb', 'led', 'on', 'off', 'switch', 'feature'] },
+  { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'settings.features.cooling.label',  anchor: 'set-feature-cooling',  keywords: ['cooling', 'fans', 'on', 'off', 'switch', 'feature'] },
+  { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'lighting.renderGpu.label',     anchor: 'set-render-gpu', keywords: ['render', 'gpu', 'shader', 'graphics card'], platforms: ['windows', 'linux'] },
+  { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'lighting.sleepBlackout.label', anchor: 'set-sleep-blackout', keywords: ['sleep', 'suspend', 'standby', 'shutdown', 'power off', 'fade', 'leds', 'lights', 'off', 'ram', 'memory'], platforms: ['windows'] },
+  { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'cooling.settings.cpuLabel',    anchor: 'set-cpu-sensor', keywords: ['cpu', 'temp', 'temperature', 'sensor', 'source'] },
+  { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'cooling.settings.gpuLabel',    anchor: 'set-gpu-sensor', keywords: ['gpu', 'temp', 'temperature', 'sensor', 'source'] },
+  { tab: 'monitoring', tabLabelKey: 'settings.tab.monitoringDiagnostics', labelKey: 'settings.units.temperature.label', anchor: 'set-temp-unit',    keywords: ['temperature', 'celsius', 'fahrenheit', 'degrees', 'units', 'temp'] },
+  { tab: 'monitoring', tabLabelKey: 'settings.tab.monitoringDiagnostics', labelKey: 'settings.features.monitoring.label',  anchor: 'set-feature-monitoring',  keywords: ['monitoring', 'history', 'on', 'off', 'switch', 'feature'] },
+  { tab: 'monitoring', tabLabelKey: 'settings.tab.monitoringDiagnostics', labelKey: 'settings.features.diagnostics.label', anchor: 'set-feature-diagnostics', keywords: ['diagnostics', 'health', 'alerts', 'on', 'off', 'switch', 'feature'] },
   { tab: 'privacy', tabLabelKey: 'settings.tab.privacyData', labelKey: 'settings.screentime.title', anchor: 'set-screentime', keywords: ['screen time', 'tracking', 'usage', 'data'] },
   { tab: 'privacy', tabLabelKey: 'settings.tab.privacyData', labelKey: 'settings.telemetry.label',  anchor: 'set-telemetry',  keywords: ['telemetry', 'privacy', 'anonymous', 'data', 'consent'] },
   { tab: 'privacy', tabLabelKey: 'settings.tab.privacyData', labelKey: 'discord.presence.enable', anchor: 'set-discord-presence', keywords: ['discord', 'rich presence', 'status', 'profile', 'presence'] },
