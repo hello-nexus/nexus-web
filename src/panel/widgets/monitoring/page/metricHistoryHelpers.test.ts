@@ -413,8 +413,7 @@ describe('xTickFormatForWindow', () => {
 });
 
 // The monitoring surfaces render through these helpers, so the Units > Time
-// format setting has to reach every one of them (Discord 2026-08-26: the
-// weather widget shipped ignoring it).
+// format setting has to reach every one of them.
 describe('Time format setting', () => {
   const T = new Date('2026-07-08T14:32:10Z').getTime();
 

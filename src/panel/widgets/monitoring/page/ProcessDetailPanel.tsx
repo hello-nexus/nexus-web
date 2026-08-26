@@ -14,7 +14,7 @@ import { useTranslation } from '../../../../lib/i18n';
 import { pluralKey } from '../../../../lib/pluralKey';
 import { useUnitPrefs } from '../../../../hooks/useUiSettings';
 import { formatMemoryMb } from '../../../../lib/formatMemory';
-import { localizeNumbers, resolveHour12, type TimeFormat } from '../../../../lib/units';
+import { hour12OptionFor, localizeNumbers, type TimeFormat } from '../../../../lib/units';
 import { relativeTimeLabel } from '../../../../components/views/DiagnosticsView/diagnosticsHelpers';
 import { useMonitoringProcessInfo } from '../../../../hooks/useMonitoringProcessInfo';
 import { useProcessDetailUsage } from '../../../../hooks/useProcessDetailUsage';
@@ -62,7 +62,7 @@ const PATH_TRUNCATE_CHARS = 46;
 function formatAbsolute(ms: number, timeFormat: TimeFormat): string {
   return new Date(ms).toLocaleString(undefined, {
     year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
-    hour12: resolveHour12(timeFormat),
+    hour12: hour12OptionFor(timeFormat),
   });
 }
 

@@ -39,10 +39,13 @@ const GAP = CELL * 0.16; // inter-square gap, in viewBox units
 const clampCell = (i: number, n: number) => Math.max(0, Math.min(n - 1, i));
 
 // City-label metrics, in viewBox units. CHAR_W approximates glyph advance as a
-// fraction of font size; TIME_LEN is the "HH:MM" prefix length.
+// fraction of font size; the time prefix is "HH:MM" in 24-hour and "10:05 AM"
+// at its widest in 12-hour. The anti-overlap pass reads this width, so a
+// 12-hour label measured as 24-hour collides with its neighbour.
 const NAME_FS = 6;
 const CHAR_W = 0.58;
-const TIME_LEN = 5;
+const TIME_LEN_24 = 5;
+const TIME_LEN_12 = 8;
 const LABEL_GAP_Y = 1.4;
 
 interface CityLayout {
@@ -112,7 +115,8 @@ export function WorldClockMap({ now, cities, highlightTz, hour12 }: WorldClockMa
   // Snap each city to its grid cell, then push its single-line label straight
   // down until it clears every already-placed label (greedy, north-first) - so
   // labels of nearby cities stack instead of overlapping. Geometry only; it
-  // depends on the selection, not the clock tick.
+  // depends on the selection and the label width the hour cycle implies, not
+  // on the clock tick.
   const cityLayout = useMemo(() => {
     const placed: Array<{ x0: number; x1: number; y0: number; y1: number }> = [];
     const out = new Map<string, CityLayout>();
@@ -124,7 +128,7 @@ export function WorldClockMap({ now, cities, highlightTz, hour12 }: WorldClockMa
       const cLat = latTop - CELL / 2;
       const anchorRight = lon0 + CELL / 2 > 120;
       const tx = lon0 + CELL / 2 + (anchorRight ? -3 : 3);
-      const w = (TIME_LEN + 1 + city.name.length) * NAME_FS * CHAR_W;
+      const w = ((hour12 ? TIME_LEN_12 : TIME_LEN_24) + 1 + city.name.length) * NAME_FS * CHAR_W;
       const x0 = anchorRight ? tx - w : tx;
       const x1 = anchorRight ? tx : tx + w;
       const top0 = -cLat - 4; // single line, baseline at -cLat + 2
@@ -141,7 +145,7 @@ export function WorldClockMap({ now, cities, highlightTz, hour12 }: WorldClockMa
       out.set(city.id, { lon0, latTop, cLat, tx, anchorRight, dy });
     }
     return out;
-  }, [cities]);
+  }, [cities, hour12]);
 
   return (
     <div className={styles.wrap}>

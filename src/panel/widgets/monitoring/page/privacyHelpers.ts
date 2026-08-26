@@ -6,7 +6,7 @@
 import type { ComponentType } from 'react';
 import { MapPin, Mic, ScreenShare, Webcam } from 'lucide-react';
 import type { PrivacyCapability, PrivacySession } from '../../../../api/monitoringPrivacy';
-import { resolveHour12, type TimeFormat } from '../../../../lib/units';
+import { hour12OptionFor, type TimeFormat } from '../../../../lib/units';
 
 /** Both graphicsCapture* capabilities collapse onto one 'screen' icon - the
  *  distinction still shows up per-session in a tooltip via the capability
@@ -34,7 +34,7 @@ export const PRIVACY_ICONS: Record<PrivacyIconKind, ComponentType<{ size?: numbe
 
 export function formatPrivacyTime(ms: number, timeFormat: TimeFormat): string {
   return new Date(ms).toLocaleTimeString(undefined, {
-    hour: 'numeric', minute: '2-digit', hour12: resolveHour12(timeFormat),
+    hour: 'numeric', minute: '2-digit', hour12: hour12OptionFor(timeFormat),
   });
 }
 
@@ -44,7 +44,7 @@ export function formatPrivacyTime(ms: number, timeFormat: TimeFormat): string {
 export function formatPrivacyDateTime(ms: number, timeFormat: TimeFormat): string {
   return new Date(ms).toLocaleString(undefined, {
     month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
-    hour12: resolveHour12(timeFormat),
+    hour12: hour12OptionFor(timeFormat),
   });
 }
 

@@ -6,7 +6,7 @@ import { SettingRow } from '../../../common/SettingRow/SettingRow';
 import { SyncConflictModal } from '../../../common/SyncConflictModal/SyncConflictModal';
 import { useTranslation } from '../../../../lib/i18n';
 import { useUnitPrefs } from '../../../../hooks/useUiSettings';
-import { resolveHour12 } from '../../../../lib/units';
+import { hour12OptionFor } from '../../../../lib/units';
 import type { AuthAccount, AuthBackend } from '../../../../api/authBackend';
 import type { UseCloudAccountsResult } from '../../../../hooks/useCloudAccounts';
 import type { UseSyncStatusResult } from '../../../../hooks/useSyncStatus';
@@ -91,7 +91,7 @@ export function AccountSignedIn({ backend, account, accounts, sync, recoveryFres
           <SettingRow
             key={profile.profileId}
             label={profile.name}
-            description={profile.lastSyncedAt ? new Date(profile.lastSyncedAt).toLocaleString(undefined, { hour12: resolveHour12(timeFormat) }) : t('account.sync.neverSyncedYet')}
+            description={profile.lastSyncedAt ? new Date(profile.lastSyncedAt).toLocaleString(undefined, { hour12: hour12OptionFor(timeFormat) }) : t('account.sync.neverSyncedYet')}
           />
         ))}
         {sync.conflicts.length > 0 && (

@@ -2,7 +2,7 @@
 // React, no i18n) so they're covered directly by timeSeriesChartUtils.test.ts
 // instead of through component rendering.
 
-import { resolveHour12, type TimeFormat } from '../../../lib/units';
+import { hour12OptionFor, type TimeFormat } from '../../../lib/units';
 
 export interface TimeSeriesPoint {
   t: number;
@@ -267,6 +267,6 @@ export function formatTooltipTimestamp(t: number, nowMs: number, timeFormat: Tim
     hour: 'numeric',
     minute: '2-digit',
     second: showSeconds ? '2-digit' : undefined,
-    hour12: resolveHour12(timeFormat),
+    hour12: hour12OptionFor(timeFormat),
   });
 }

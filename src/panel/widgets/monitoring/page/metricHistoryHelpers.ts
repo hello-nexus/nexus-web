@@ -9,7 +9,7 @@ import type { TimelineBrushEdgeLabel } from '../../../../components/common/Timel
 import type { MetricHistorySeries } from '../../../../api/monitoringHistory';
 import type { AppWindowSeries } from '../../../../api/monitoringHistoryApps';
 import type { FanRole } from '../../../../api/cooling';
-import { resolveHour12, type TimeFormat } from '../../../../lib/units';
+import { hour12OptionFor, resolveHour12, type TimeFormat } from '../../../../lib/units';
 
 export type HistoryMetric = 'cpu' | 'memory' | 'storage' | 'network' | 'gpu';
 
@@ -283,7 +283,7 @@ export function xTickFormatForWindow(windowMs: number, timeFormat: TimeFormat): 
  *  unambiguous across days. */
 export function formatSelectedFrameTime(t: number, windowMs: number, timeFormat: TimeFormat): string {
   const d = new Date(t);
-  const time = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: resolveHour12(timeFormat) });
+  const time = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: hour12OptionFor(timeFormat) });
   if (windowMs > DAY_MS) {
     return `${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} ${time}`;
   }
@@ -538,7 +538,7 @@ export function formatBrushEdgeLabels(startMs: number, endMs: number, timeFormat
     && start.getMonth() === end.getMonth()
     && start.getDate() === end.getDate();
   const label = (d: Date): TimelineBrushEdgeLabel => ({
-    time: d.toLocaleString(locale, { ...BRUSH_LABEL_TIME_OPTS, hour12: resolveHour12(timeFormat) }),
+    time: d.toLocaleString(locale, { ...BRUSH_LABEL_TIME_OPTS, hour12: hour12OptionFor(timeFormat) }),
     ...(sameDay ? {} : { day: d.toLocaleString(locale, BRUSH_LABEL_DAY_OPTS) }),
   });
   return [label(start), label(end)];

@@ -13,7 +13,7 @@ import type { UseMetricHistoryResult } from '../../../hooks/useMetricHistory';
 import type { DiagnosticsTemperatureEpisode } from '../../../api/diagnostics';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
-import { localizeNumbers, resolveHour12 } from '../../../lib/units';
+import { hour12OptionFor, localizeNumbers } from '../../../lib/units';
 import {
   RANGE_OPTIONS,
   averageRpmSeries,
@@ -94,7 +94,7 @@ export function CoolingHistorySection({ history, episodes }: CoolingHistorySecti
   }, [rpmPoints, currentRpmLabel]);
 
   const rangeOptions = RANGE_OPTIONS.map(o => ({ value: o.key, label: t(o.labelKey) }));
-  const edgeLabelFormat = (edgeT: number) => new Date(edgeT).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: resolveHour12(timeFormat) });
+  const edgeLabelFormat = (edgeT: number) => new Date(edgeT).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: hour12OptionFor(timeFormat) });
   const ariaValueText = (from: number, to: number) => `${edgeLabelFormat(from)} - ${edgeLabelFormat(to)}`;
 
   const showUnsupported = !history.supported;

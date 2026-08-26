@@ -3,7 +3,7 @@ import { InfoList, InfoRow } from '../InfoList/InfoList';
 import { Button } from '../Button/Button';
 import { useTranslation } from '../../../lib/i18n';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
-import { resolveHour12, type TimeFormat } from '../../../lib/units';
+import { hour12OptionFor, type TimeFormat } from '../../../lib/units';
 import type { SyncConflict } from '../../../api/cloud';
 import styles from './SyncConflictModal.module.scss';
 
@@ -16,7 +16,7 @@ interface SyncConflictModalProps {
 
 function formatUpdated(iso: string, timeFormat: TimeFormat): string {
   const date = new Date(iso);
-  return Number.isNaN(date.getTime()) ? iso : date.toLocaleString(undefined, { hour12: resolveHour12(timeFormat) });
+  return Number.isNaN(date.getTime()) ? iso : date.toLocaleString(undefined, { hour12: hour12OptionFor(timeFormat) });
 }
 
 // Steam-cloud-style keep-local/take-cloud prompt for profiles that changed on

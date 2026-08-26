@@ -1,6 +1,6 @@
 import { formatDuration } from '../../../../lib/formatDuration';
 import type { MonitoringEventKind, TimelineEvent } from '../../../../api/monitoringEvents';
-import { resolveHour12, type TimeFormat } from '../../../../lib/units';
+import { hour12OptionFor, type TimeFormat } from '../../../../lib/units';
 
 type Translate = (key: string, vars?: Record<string, string | number>) => string;
 
@@ -14,7 +14,7 @@ export function eventKindLabel(t: Translate, kind: MonitoringEventKind): string 
  *  specific instant, finer than the x-axis ticks it sits above. */
 export function formatEventTime(t: number, timeFormat: TimeFormat): string {
   return new Date(t).toLocaleTimeString(undefined, {
-    hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: resolveHour12(timeFormat),
+    hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: hour12OptionFor(timeFormat),
   });
 }
 

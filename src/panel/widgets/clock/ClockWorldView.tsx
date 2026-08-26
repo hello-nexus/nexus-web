@@ -16,7 +16,6 @@ import { useTranslation } from '../../../lib/i18n';
 import { CITY_BY_ID, CITY_CATALOG, cityMatches, DEFAULT_CITY_IDS, type City } from './cities';
 import { WorldClockMap } from './WorldClockMap';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
-import { resolveHour12 } from '../../../lib/units';
 import styles from './ClockPage.module.scss';
 
 const STORAGE_KEY = 'clock.cities';
@@ -24,7 +23,9 @@ const STORAGE_KEY = 'clock.cities';
 export function ClockWorldView({ highlightTz }: { highlightTz?: string }) {
   const { t } = useTranslation();
   const { timeFormat } = useUnitPrefs();
-  const hour12 = resolveHour12(timeFormat);
+  // The world surfaces have always rendered 24-hour; 'system' keeps that and
+  // only an explicit 12-hour pick moves them, so the default look is unchanged.
+  const hour12 = timeFormat === '12h';
   const localTz = useMemo(() => highlightTz || resolveLocalTz(), [highlightTz]);
   const [now, setNow] = useState(() => new Date());
   const [cityIds, setCityIds] = usePersistentState<string[]>(STORAGE_KEY, [...DEFAULT_CITY_IDS]);

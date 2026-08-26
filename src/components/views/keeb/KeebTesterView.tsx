@@ -6,11 +6,11 @@ import { InfoList, InfoRow } from '../../common/InfoList/InfoList';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { useTranslation } from '../../../lib/i18n';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
-import { resolveHour12, type TimeFormat } from '../../../lib/units';
+import { hour12OptionFor, type TimeFormat } from '../../../lib/units';
 import styles from './KeebTesterView.module.scss';
 
 function formatEventClock(ms: number, timeFormat: TimeFormat): string {
-  return new Date(ms).toLocaleTimeString(undefined, { hour12: resolveHour12(timeFormat) });
+  return new Date(ms).toLocaleTimeString(undefined, { hour12: hour12OptionFor(timeFormat) });
 }
 
 interface TouchEntry {

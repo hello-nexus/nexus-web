@@ -6,7 +6,7 @@ import { Sparkline } from '../../../../components/common/Sparkline/Sparkline';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { Badge } from '../../../../components/common/Badge/Badge';
 import { useTranslation } from '../../../../lib/i18n';
-import { resolveHour12, type TimeFormat } from '../../../../lib/units';
+import { hour12OptionFor, type TimeFormat } from '../../../../lib/units';
 import { useUnitPrefs } from '../../../../hooks/useUiSettings';
 import type { PrivacySession } from '../../../../api/monitoringPrivacy';
 import { PRIVACY_ICONS, formatPrivacyTime, privacyIndicatorsForProcess, type PrivacyIndicator } from './privacyHelpers';
@@ -266,7 +266,7 @@ const ProcessRow = memo(function ProcessRow({
  */
 function formatSnapshotTime(ms: number, timeFormat: TimeFormat): string {
   return new Date(ms).toLocaleTimeString(undefined, {
-    hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: resolveHour12(timeFormat),
+    hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: hour12OptionFor(timeFormat),
   });
 }
 

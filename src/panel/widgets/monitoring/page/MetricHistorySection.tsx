@@ -9,7 +9,7 @@ import { Button } from '../../../../components/common/Button/Button';
 import { EmptyState } from '../../../../components/common/EmptyState/EmptyState';
 import type { GpuComponent } from '../../../../lib/gpuResolver';
 import { resolvePrimaryGpu } from '../../../../lib/gpuResolver';
-import { convertTemperature, localizeNumbers, resolveHour12, tempUnitSymbol } from '../../../../lib/units';
+import { convertTemperature, hour12OptionFor, localizeNumbers, tempUnitSymbol } from '../../../../lib/units';
 import { formatMemoryMb } from '../../../../lib/formatMemory';
 import type { UseMetricHistoryResult } from '../../../../hooks/useMetricHistory';
 import type { UseMetricHistoryAppsResult } from '../../../../hooks/useMetricHistoryApps';
@@ -340,7 +340,7 @@ export function MetricHistorySection({
 
   const rangeOptions = RANGE_OPTIONS.map(o => ({ value: o.key, label: t(o.labelKey) }));
 
-  const edgeLabelFormat = (t2: number) => new Date(t2).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: resolveHour12(timeFormat) });
+  const edgeLabelFormat = (t2: number) => new Date(t2).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: hour12OptionFor(timeFormat) });
   const ariaValueText = (from: number, to: number) => `${edgeLabelFormat(from)} - ${edgeLabelFormat(to)}`;
 
   const silhouettePoints = useMemo(() => {

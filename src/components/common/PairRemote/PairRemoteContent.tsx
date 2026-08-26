@@ -32,7 +32,7 @@ import {
 } from '../../../api/panel';
 import { useTranslation } from '../../../lib/i18n';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
-import { resolveHour12, type TimeFormat } from '../../../lib/units';
+import { hour12OptionFor, type TimeFormat } from '../../../lib/units';
 import appStyles from '../../../App.module.scss';
 import local from './PairRemoteContent.module.scss';
 
@@ -62,7 +62,7 @@ function formatDateTime(value: number, t: TranslateFn, timeFormat: TimeFormat) {
     day: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
-    hour12: resolveHour12(timeFormat),
+    hour12: hour12OptionFor(timeFormat),
   }).format(new Date(value));
 }
 

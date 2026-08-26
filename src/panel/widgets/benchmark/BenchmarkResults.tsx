@@ -40,7 +40,7 @@ function SubsystemCard({ s, model }: { s: BenchmarkSubScore; model: string }) {
           {s.spread != null && (
             s.trials && s.trials.length > 0
               ? (
-                <HoverTooltip title={t('benchmark.result.trials')} body={s.trials.map(v => localizeNumbers(v.toFixed(1), numberFormat)).join(', ') + ' ' + s.rawUnit}>
+                <HoverTooltip title={t('benchmark.result.trials')} body={s.trials.map(v => localizeNumbers(v.toFixed(1), numberFormat)).join(' \u00b7 ') + ' ' + s.rawUnit}>
                   <span className={styles.subSpread}>{spreadPct}</span>
                 </HoverTooltip>
               )

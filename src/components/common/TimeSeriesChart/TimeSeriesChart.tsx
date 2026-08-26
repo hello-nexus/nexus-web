@@ -5,7 +5,6 @@ import { useChartHoverTooltip } from '../../../hooks/useChartHoverTooltip';
 import { ChartHoverTooltip, ChartTooltipHeader, ChartTooltipRow, ChartTooltipVal } from '../ChartHoverTooltip/ChartHoverTooltip';
 import { useTranslation } from '../../../lib/i18n';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
-
 import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
 import {
   GAP_MULTIPLIER,
