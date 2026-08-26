@@ -1,5 +1,7 @@
 import { Cpu, Monitor, MemoryStick, HardDrive, AppWindow } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
+import { localizeNumbers } from '../../../lib/units';
+import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import type { BenchmarkResult, BenchmarkSubScore } from '../../../types/benchmark';
 import { Card } from '../../../components/common/Card/Card';
 import { SystemSpecsPanel } from '../../../components/common/SystemSpecsPanel/SystemSpecsPanel';
@@ -22,7 +24,8 @@ const SUBSYSTEM_ICONS: Record<string, React.ReactNode> = {
 
 function SubsystemCard({ s, model }: { s: BenchmarkSubScore; model: string }) {
   const { t } = useTranslation();
-  const spreadPct = t('benchmark.result.spread', { pct: (Math.abs(s.spread ?? 0) * 100).toFixed(1) });
+  const { numberFormat } = useUnitPrefs();
+  const spreadPct = t('benchmark.result.spread', { pct: localizeNumbers((Math.abs(s.spread ?? 0) * 100).toFixed(1), numberFormat) });
   return (
     <Card
       title={
@@ -37,7 +40,7 @@ function SubsystemCard({ s, model }: { s: BenchmarkSubScore; model: string }) {
           {s.spread != null && (
             s.trials && s.trials.length > 0
               ? (
-                <HoverTooltip title={t('benchmark.result.trials')} body={s.trials.map(v => v.toFixed(1)).join(', ') + ' ' + s.rawUnit}>
+                <HoverTooltip title={t('benchmark.result.trials')} body={s.trials.map(v => localizeNumbers(v.toFixed(1), numberFormat)).join(', ') + ' ' + s.rawUnit}>
                   <span className={styles.subSpread}>{spreadPct}</span>
                 </HoverTooltip>
               )
@@ -47,7 +50,7 @@ function SubsystemCard({ s, model }: { s: BenchmarkSubScore; model: string }) {
       }
     >
       <div className={styles.subRawPrimary}>
-        {s.rawValue.toFixed(1)}{' '}
+        {localizeNumbers(s.rawValue.toFixed(1), numberFormat)}{' '}
         <span className={styles.subUnit}>{s.rawUnit}</span>
       </div>
       {model && <div className={styles.subModel} title={model}>{model}</div>}
@@ -57,6 +60,7 @@ function SubsystemCard({ s, model }: { s: BenchmarkSubScore; model: string }) {
 
 export function BenchmarkResults({ result, submission, submitting }: Props) {
   const { t } = useTranslation();
+  const { numberFormat } = useUnitPrefs();
   const hw = result.hardware;
   const subs: BenchmarkSubScore[] = [result.cpu, result.gpu, result.ram, result.storage];
   const models: Record<string, string> = {
@@ -77,7 +81,7 @@ export function BenchmarkResults({ result, submission, submitting }: Props) {
         {submission && (
           <div className={styles.percentile}>
             {t('benchmark.result.percentile', {
-              pct: submission.percentile.toFixed(1),
+              pct: localizeNumbers(submission.percentile.toFixed(1), numberFormat),
               total: String(submission.total),
             })}
           </div>

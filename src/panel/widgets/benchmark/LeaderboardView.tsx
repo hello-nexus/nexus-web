@@ -1,6 +1,8 @@
 import { Fragment, useEffect, useState } from 'react';
 import { Trophy, ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
+import { useUnitPrefs } from '../../../hooks/useUiSettings';
+import { localizeNumbers } from '../../../lib/units';
 import { getBenchmarkVersions, getLeaderboard, getLastSubmissionId } from '../../../api/nexusApi';
 import type { BenchmarkVersionInfo, LeaderboardEntry, LeaderboardResponse } from '../../../types/benchmark';
 import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
@@ -187,6 +189,7 @@ export function LeaderboardView() {
 
 function EntryDetail({ entry }: { entry: LeaderboardEntry }) {
   const { t } = useTranslation();
+  const { numberFormat } = useUnitPrefs();
 
   const axes: Array<{ key: keyof Pick<LeaderboardEntry, 'cpu' | 'gpu' | 'ram' | 'storage'>; label: string }> = [
     { key: 'cpu', label: 'CPU' },
@@ -219,7 +222,7 @@ function EntryDetail({ entry }: { entry: LeaderboardEntry }) {
             return (
               <li key={key}>
                 <span className={styles.detailKey}>{label}</span>
-                {' '}{axis.raw.toFixed(1)} {axis.unit}
+                {' '}{localizeNumbers(axis.raw.toFixed(1), numberFormat)} {axis.unit}
                 <span className={styles.axisScore}> ({Math.round(axis.score)})</span>
               </li>
             );
