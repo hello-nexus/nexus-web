@@ -89,8 +89,10 @@ vi.mock('../../../lib/i18n', () => ({
 // rich UI (mode buttons + per-mode arrows). Simple mode has its own
 // test block below.
 const mockUiSettings = vi.hoisted(() => ({ widgetAdvancedMode: true }));
+const mockFlags = vi.hoisted(() => ({ lighting: true, cooling: true, monitoring: true, diagnostics: true }));
 vi.mock('../../../hooks/useUiSettings', () => ({
   useUiSettings: () => ({ settings: mockUiSettings, update: vi.fn(), reload: vi.fn() }),
+  useFeatureFlags: () => mockFlags,
 }));
 
 function lightingWidget(size: PanelWidget['size']): PanelWidget {
@@ -419,5 +421,29 @@ describe('LightingWidget', () => {
       await waitFor(() => expect(screen.getByText('Alpha')).toBeInTheDocument());
     });
 
+  });
+
+  describe('lighting feature disabled', () => {
+    beforeEach(() => { mockFlags.lighting = false; });
+    afterEach(() => { mockFlags.lighting = true; });
+
+    it('renders the disabled shell and fetches nothing', async () => {
+      vi.mocked(fetchCurrentSync).mockClear();
+      vi.mocked(pingService).mockClear();
+      render(<LightingWidget widget={lightingWidget('4x2')} />);
+
+      expect(screen.getByText('featureDisabled.widget.lighting')).toBeInTheDocument();
+      await new Promise(r => setTimeout(r, 0));
+      expect(fetchCurrentSync).not.toHaveBeenCalled();
+      expect(pingService).not.toHaveBeenCalled();
+    });
+
+    it('calls onSectionNavigate with lighting when the action button is clicked', () => {
+      const onSectionNavigate = vi.fn();
+      render(<LightingWidget widget={lightingWidget('4x2')} onSectionNavigate={onSectionNavigate} />);
+
+      fireEvent.click(screen.getByText('featureDisabled.widget.open'));
+      expect(onSectionNavigate).toHaveBeenCalledWith('lighting');
+    });
   });
 });

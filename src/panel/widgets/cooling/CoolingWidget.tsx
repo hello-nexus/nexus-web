@@ -7,11 +7,13 @@ import {
   fetchCurves, fetchFanChannels, fetchTemperatureSources,
   type FanChannel, type TemperatureSource,
 } from '../../../api/cooling';
+import { Button } from '../../../components/common/Button/Button';
 import { useSensors } from '../../../hooks/useSensors';
-import { useTempSensorPrefs, useUiSettings, useUnitPrefs } from '../../../hooks/useUiSettings';
+import { useFeatureFlags, useTempSensorPrefs, useUiSettings, useUnitPrefs } from '../../../hooks/useUiSettings';
 import { convertTemperature, localizeNumbers, tempUnitSymbol, type NumberFormat, type TempUnit } from '../../../lib/units';
 import { resolveAdvancedMode } from '../common/AdvancedModeSettings';
 import { useStateChangePulse } from '../common/useStateChangePulse';
+import { PanelWidgetEmpty } from '../common/PanelWidgetChrome';
 import { SignalBarsIcon } from './SignalBarsIcon';
 import { resolveCpuTempSensor, resolveGpuTempSensor } from '../../../lib/tempSensorResolver';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
@@ -39,9 +41,10 @@ interface CoolingSlot {
   props: GaugeProps;
 }
 
-export function CoolingWidget({ widget }: WidgetProps) {
+export function CoolingWidget({ widget, onSectionNavigate }: WidgetProps) {
   const { t } = useTranslation();
   const { settings: ui } = useUiSettings();
+  const flags = useFeatureFlags();
   const preview = usePanelPreview();
   // Preview forces simple mode for determinism.
   const simpleMode = preview || !resolveAdvancedMode(widget.config, ui.widgetAdvancedMode);
@@ -64,7 +67,7 @@ export function CoolingWidget({ widget }: WidgetProps) {
   const [channels, setChannels] = useState<FanChannel[]>([]);
   const [sources, setSources] = useState<TemperatureSource[]>([]);
 
-  const sensors = useSensors(!preview);
+  const sensors = useSensors(!preview && flags.cooling);
   const tempPrefs = useTempSensorPrefs();
   const { monitoringTempUnit, numberFormat } = useUnitPrefs();
   const cpuTemp = resolveCpuTempSensor(sensors.cpu, tempPrefs.cpuId);
@@ -160,14 +163,14 @@ export function CoolingWidget({ widget }: WidgetProps) {
   }, [refreshProfiles, refreshCoolingConfig]);
 
   useEffect(() => {
-    if (preview) return;
+    if (preview || !flags.cooling) return;
     refreshProfiles();
     refreshCoolingConfig();
-  }, [preview, refreshProfiles, refreshCoolingConfig]);
-  useTopicCallback('cooling', !preview, onCoolingTopic);
+  }, [preview, flags.cooling, refreshProfiles, refreshCoolingConfig]);
+  useTopicCallback('cooling', !preview && flags.cooling, onCoolingTopic);
 
   useEffect(() => {
-    if (preview) return;
+    if (preview || !flags.cooling) return;
     return subscribeControlSync(event => {
       if (event.domain !== 'cooling') return;
       if (Date.now() < presetLockUntilRef.current) return; // honour the lock
@@ -177,7 +180,7 @@ export function CoolingWidget({ widget }: WidgetProps) {
         setCachedCoolingActivePreset(next);
       }
     });
-  }, [preview]);
+  }, [preview, flags.cooling]);
 
   const apply = useCallback((key: CoolingModeKey) => {
     // Lock first so any topic/control-sync push triggered by *this* write
@@ -209,6 +212,23 @@ export function CoolingWidget({ widget }: WidgetProps) {
     }
     apply(WIDGET_PRESET_KEYS[nextIdx]);
   }, [active, apply]);
+
+  if (!preview && !flags.cooling) {
+    return (
+      <div className={styles.cooling} data-size={widget.size} data-mode="off">
+        <PanelWidgetEmpty
+          icon={<Fan size={24} />}
+          title={t('featureDisabled.widget.cooling')}
+          text={onSectionNavigate ? undefined : t('featureDisabled.hint.cooling')}
+          action={onSectionNavigate ? (
+            <Button size="sm" icon={<Fan size={14} />} onClick={() => onSectionNavigate('cooling')}>
+              {t('featureDisabled.widget.open', { feature: t('cooling.title') })}
+            </Button>
+          ) : undefined}
+        />
+      </div>
+    );
+  }
 
   if (simpleMode) {
     // Identical layout at every size: fan-with-signal-bars icon centered,
