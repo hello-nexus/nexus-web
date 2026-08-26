@@ -59,15 +59,35 @@
   height: 1.5em;
   transition: color var(--ease-fast) ease;
 
+  // Sidebar icon size (sidebarNav ICON_SIZE), overriding whatever each caller
+  // passed to its glyph. Still inside the 1.5em slot, so the tab keeps its
+  // height.
   svg {
     display: block;
     position: relative;
     z-index: 1;
+    width: 18px;
+    height: 18px;
   }
 }
 
 .tabLabel {
   min-width: 0;
+}
+
+// Sidebar section-header treatment (Apps / Devices): a faint pill around the
+// tab's own content. The negative margins cancel the pill's padding exactly,
+// so a chip tab measures the same as a plain one in every state.
+.tabChip {
+  --tab-chip-pad-x: 10px;
+  --tab-chip-pad-y: 4px;
+
+  padding: var(--tab-chip-pad-y) var(--tab-chip-pad-x);
+  margin: calc(-1 * var(--tab-chip-pad-y)) calc(-1 * var(--tab-chip-pad-x));
+  border-radius: var(--radius-pill);
+  // The sidebar chip's faint lift, from a token rather than a color-mix
+  // literal (color-mix is past the Chromium 83 panel floor).
+  background: var(--border);
 }
 
 // A tab with a trailing control renders as button + trailing sibling inside

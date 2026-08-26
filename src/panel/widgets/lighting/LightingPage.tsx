@@ -1562,6 +1562,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     label: modeMenu.triggerLabel,
     ariaLabel: modeMenu.triggerAriaLabel,
     icon: modeMenu.triggerIcon,
+    chip: true,
     expanded: modeMenuOpen,
   };
   const modeTabs = [modeMenuTab, ...MODES

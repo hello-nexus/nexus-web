@@ -1185,6 +1185,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     label: modeMenu.triggerLabel,
     ariaLabel: modeMenu.triggerAriaLabel,
     icon: modeMenu.triggerIcon,
+    chip: true,
     expanded: modeMenuOpen,
   };
   const modeTabs = [modeMenuTab, ...COOLING_MODES.filter(p => p.key !== 'off').map(p => ({

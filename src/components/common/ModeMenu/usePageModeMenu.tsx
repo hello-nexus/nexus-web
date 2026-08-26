@@ -1,5 +1,5 @@
 import { useMemo, type ComponentType, type ReactNode } from 'react';
-import { Joystick, Pointer } from 'lucide-react';
+import { PanelsTopLeft, SquareDashed } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { ModeMenuTriggerLabel, type ModeMenuEntry } from './ModeMenu';
 
@@ -60,21 +60,21 @@ export function usePageModeMenu({
     simple
       ? {
         key: 'advanced',
-        icon: <Joystick size={ENTRY_ICON_SIZE} />,
+        icon: <PanelsTopLeft size={ENTRY_ICON_SIZE} />,
         title: t('uiMode.advancedMode'),
         description: advancedDescription,
         onSelect: () => onModeChange('advanced'),
       }
       : {
         key: 'simple',
-        icon: <Pointer size={ENTRY_ICON_SIZE} />,
+        icon: <SquareDashed size={ENTRY_ICON_SIZE} />,
         title: t('uiMode.simpleMode'),
         description: simpleDescription,
         onSelect: () => onModeChange('simple'),
       },
   ], [OffIcon, offLabel, offDescription, off, onOff, simple, t, advancedDescription, simpleDescription, onModeChange]);
 
-  const ModeIcon = simple ? Pointer : Joystick;
+  const ModeIcon = simple ? SquareDashed : PanelsTopLeft;
   const triggerIcon = off ? <OffIcon size={TRIGGER_ICON_SIZE} /> : <ModeIcon size={TRIGGER_ICON_SIZE} />;
   const triggerAriaLabel = off ? offLabel : t(simple ? 'uiMode.simpleMode' : 'uiMode.advancedMode');
 
