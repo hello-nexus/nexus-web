@@ -333,6 +333,7 @@
   "cooling.curves.delete": "削除",
   "cooling.curves.empty": "カーブが定義されていません。ファンを制御するには作成してください。",
   "cooling.curves.maxReached": "上限に達しました:カーブは最大10。1つ削除してから追加してください。",
+  "cooling.curves.noCurveSelected": "カーブが選択されていません。上でカーブを選ぶと選択中のファンに適用されます。",
   "cooling.curves.removeBtn": "カーブを削除",
   "cooling.curves.rename": "名前を変更",
   "cooling.curves.renameBtn": "カーブの名前を変更",

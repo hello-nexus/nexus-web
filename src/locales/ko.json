@@ -333,6 +333,7 @@
   "cooling.curves.delete": "삭제",
   "cooling.curves.empty": "정의된 커브가 없습니다. 팬을 제어하려면 하나 만드세요.",
   "cooling.curves.maxReached": "한도 도달: 최대 10개 커브. 추가하려면 하나 삭제하세요.",
+  "cooling.curves.noCurveSelected": "선택된 커브가 없습니다. 위에서 하나를 골라 선택 항목에 적용하세요.",
   "cooling.curves.removeBtn": "곡선 제거",
   "cooling.curves.rename": "이름 변경",
   "cooling.curves.renameBtn": "곡선 이름 변경",

@@ -333,6 +333,7 @@
   "cooling.curves.delete": "Verwijderen",
   "cooling.curves.empty": "Geen curves gedefinieerd. Maak er een aan om je ventilatoren aan te sturen.",
   "cooling.curves.maxReached": "Limiet bereikt: maximaal 10 curves. Verwijder er een om meer toe te voegen.",
+  "cooling.curves.noCurveSelected": "Geen curve geselecteerd. Kies er hierboven een om die op de selectie toe te passen.",
   "cooling.curves.removeBtn": "Curve verwijderen",
   "cooling.curves.rename": "Naam wijzigen",
   "cooling.curves.renameBtn": "Curvenaam wijzigen",

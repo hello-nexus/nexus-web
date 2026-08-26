@@ -333,6 +333,7 @@
   "cooling.curves.delete": "Eliminar",
   "cooling.curves.empty": "No hay curvas definidas. Crea una para controlar tus ventiladores.",
   "cooling.curves.maxReached": "Límite alcanzado: máx. 10 curvas. Borra una para añadir más.",
+  "cooling.curves.noCurveSelected": "Ninguna curva seleccionada. Elige una arriba para aplicarla a la selección.",
   "cooling.curves.removeBtn": "Eliminar curva",
   "cooling.curves.rename": "Renombrar",
   "cooling.curves.renameBtn": "Renombrar curva",

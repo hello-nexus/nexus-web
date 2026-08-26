@@ -105,6 +105,11 @@ const coolingHistoryStore = {
   write: (s: { undo: CoolingHistorySnapshot[]; redo: CoolingHistorySnapshot[] }) => { coolingHistoryStacks = s; },
 };
 
+// Swapped in for the curve editor's mutating callbacks while it is inert.
+// `pointer-events: none` stops the mouse; a keyboard user still reaches the
+// controls, so this is what actually keeps the edit from landing.
+const noopCurveEdit = () => {};
+
 export function CoolingPage({ serviceOnline, serviceState, connectionState, activeProfileId, platform = '' }: CoolingViewProps) {
   const { t, language } = useTranslation();
   // Seed every primary slice from localStorage so subsequent visits to this
@@ -679,6 +684,11 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     if (fans?.channels) setChannels(fans.channels);
   }, []);
 
+  // Multi-select: a mode change on a selected card is applied to every selected
+  // fan, so a curve can be assigned to a group in one action. Declared here
+  // because the curve-creation paths below clear it.
+  const [selectedFanIds, setSelectedFanIds] = usePersistentIdSet('nexus.cooling.selectedFans');
+
   const addCurve = useCallback((): string => {
     if (curves.length >= MAX_CURVES) return '';
     const id = `curve-${Date.now()}`;
@@ -689,11 +699,15 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     // Append so new curves land at the end of the selector list.
     const next = [...curves, c];
     setCurves(next);
-    // Show the new curve in the hero card right away.
+    // Show the new curve in the hero card right away. Dropping the fan
+    // selection is what makes that work at all: the editor follows what the
+    // selection wears, and a new curve binds no fan - so a surviving selection
+    // would leave the editor greyed out, or sat on the fans' own curve.
+    setSelectedFanIds(new Set());
     setSelectedCurveId(id);
     pushCurves(next, fanStates);
     return id;
-  }, [cpuTemp?.id, curves, fanStates, pushCurves, setSelectedCurveId, sources]);
+  }, [cpuTemp?.id, curves, fanStates, pushCurves, setSelectedCurveId, setSelectedFanIds, sources]);
 
   // BIOS = release control; 'manual' = software control, no curve; curve id =
   // bind that curve; 'fw' = NP50 only, switches the whole hub to its EEPROM
@@ -705,10 +719,6 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // is in Software so Nexus can actually drive frames into it. This auto-
   // switch matches how the hardware works - there's a single cooling mode
   // byte per hub, not per fan.
-  // Multi-select: a mode change on a selected card is applied to every selected
-  // fan, so a curve can be assigned to a group in one action.
-  const [selectedFanIds, setSelectedFanIds] = usePersistentIdSet('nexus.cooling.selectedFans');
-
   const setFanMode = useCallback(async (fanId: string, value: string) => {
     const channel = channels.find(c => c.id === fanId);
     const deviceId = channel?.deviceId ?? null;
@@ -891,6 +901,9 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     const nextStates = { ...fanStates, [fanId]: { softwareControl: true, curveId: id } };
     setCurves(nextCurves);
     setFanStates(nextStates);
+    // Only fanId gets the new curve, so any other selected fan would still
+    // disagree and grey the editor out - see addCurve.
+    setSelectedFanIds(new Set());
     setSelectedCurveId(id);
     if (!wasSw) await setFanSpeed(fanId, 50);
     pushCurves(nextCurves, nextStates);
@@ -898,7 +911,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
       const fans = await fetchFanChannels();
       if (fans?.channels) setChannels(fans.channels);
     }
-  }, [cpuTemp?.id, curves, exitOffToCustomIfNeeded, fanStates, pushCurves, setSelectedCurveId, sources]);
+  }, [cpuTemp?.id, curves, exitOffToCustomIfNeeded, fanStates, pushCurves, setSelectedCurveId, setSelectedFanIds, sources]);
 
   // Reset a preset curve (silent/balanced/turbo) back to defaults via
   // the service endpoint. Fan attachments are preserved server-side, so the
@@ -978,13 +991,19 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     }
   }, [curves, selectedCurveId, setSelectedCurveId]);
 
-  // Fall back to the first curve so the hero card paints immediately even
-  // before the maintenance effect commits a selection (no one-frame "no
-  // curves" flash on a cached revisit).
-  const selectedCurve = useMemo(
-    () => curves.find(c => c.id === selectedCurveId) ?? curves[0] ?? null,
-    [curves, selectedCurveId],
-  );
+  // Keyed on effectiveCurveId so the editor tracks the button row's highlight.
+  // The curves[0] tail keeps the card painted before the maintenance effect
+  // above commits a selection (no one-frame "no curves" flash on a revisit).
+  const selectedCurve = useMemo(() => {
+    const id = effectiveCurveId ?? selectedCurveId;
+    return curves.find(c => c.id === id) ?? curves[0] ?? null;
+  }, [curves, effectiveCurveId, selectedCurveId]);
+
+  // The selection wears no one curve - fans disagree, or they are unbound
+  // (BIOS/Manual, the state before a first assignment) - so an edit has no
+  // target: grey the editor. NOT effectiveCurveId, which is also null for the
+  // beat before the first curve is picked and greyed it out on every load.
+  const curveEditorInert = scopedCurveId === null;
 
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   // Cooling offers only the apps that carry a cooling setup; Nexus 2's import
@@ -1483,19 +1502,29 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
           </div>
           <div className={styles.curveEditorHeader}>
             <span className={styles.paneTitle}>{t('cooling.label.curveEditor')}</span>
+            {curveEditorInert && selectedCurve && (
+              <span className={styles.curveEditorHint}>{t('cooling.curves.noCurveSelected')}</span>
+            )}
           </div>
           {selectedCurve ? (
-            <CurveCard
-              key={selectedCurve.id}
-              curve={selectedCurve}
-              allCurves={curves}
-              sources={sources}
-              channels={channels}
-              syncExcludedIds={syncExcludedIds}
-              onChange={saveCurveAndPush}
-              onDelete={() => deleteCurve(selectedCurve.id)}
-              onResetPreset={selectedCurve.preset ? () => handleResetPresetCurve(selectedCurve.preset!) : undefined}
-            />
+            <div
+              className={curveEditorInert ? styles.curveEditorInert : undefined}
+              aria-disabled={curveEditorInert || undefined}
+            >
+              <CurveCard
+                key={selectedCurve.id}
+                curve={selectedCurve}
+                allCurves={curves}
+                sources={sources}
+                channels={channels}
+                syncExcludedIds={syncExcludedIds}
+                onChange={curveEditorInert ? noopCurveEdit : saveCurveAndPush}
+                onDelete={curveEditorInert ? noopCurveEdit : () => deleteCurve(selectedCurve.id)}
+                onResetPreset={selectedCurve.preset
+                  ? (curveEditorInert ? noopCurveEdit : () => handleResetPresetCurve(selectedCurve.preset!))
+                  : undefined}
+              />
+            </div>
           ) : (
             <p className={styles.curvesEmpty}>{t('cooling.curves.empty')}</p>
           )}

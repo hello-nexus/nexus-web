@@ -333,6 +333,7 @@
   "cooling.curves.delete": "Sil",
   "cooling.curves.empty": "Tanimli egri yok. Fanlarinizi yonetmek icin bir tane olusturun.",
   "cooling.curves.maxReached": "Sınıra ulaşıldı: en fazla 10 eğri. Eklemek için birini sil.",
+  "cooling.curves.noCurveSelected": "Eğri seçilmedi. Seçime uygulamak için yukarıdan birini seç.",
   "cooling.curves.removeBtn": "Egriyi kaldir",
   "cooling.curves.rename": "Yeniden adlandır",
   "cooling.curves.renameBtn": "Eğriyi yeniden adlandır",

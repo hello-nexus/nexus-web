@@ -333,6 +333,7 @@
   "cooling.curves.delete": "Удалить",
   "cooling.curves.empty": "Кривые не заданы. Создайте одну для управления вентиляторами.",
   "cooling.curves.maxReached": "Достигнут лимит: максимум 10 кривых. Удали одну, чтобы добавить новую.",
+  "cooling.curves.noCurveSelected": "Кривая не выбрана. Выберите одну выше, чтобы применить её к выделению.",
   "cooling.curves.removeBtn": "Удалить кривую",
   "cooling.curves.rename": "Переименовать",
   "cooling.curves.renameBtn": "Переименовать кривую",
