@@ -1036,14 +1036,17 @@ function PreviewRemoveFromStartupButton() {
         <span>iCUE</span>
         <RemoveFromStartupButton
           conflictId="preview-icue"
-          entry={{ kind: 'runKeyMachine', entryName: 'Corsair iCUE5 Software' }}
+          entries={[
+            { kind: 'service', entryName: 'CorsairDeviceListerService' },
+            { kind: 'runKeyMachine', entryName: 'Corsair iCUE5 Software' },
+          ]}
         />
       </div>
       <div className={styles.previewHoverCard} onClickCapture={e => e.stopPropagation()}>
         <span>NZXT CAM</span>
         <RemoveFromStartupButton
           conflictId="preview-cam"
-          entry={{ kind: 'service', entryName: 'CAMService' }}
+          entries={[{ kind: 'service', entryName: 'CAMService' }]}
         />
       </div>
     </div>
@@ -1962,7 +1965,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'RemoveFromStartupButton', category: 'inputs',
     filePath: 'src/components/common/RemoveFromStartupButton/RemoveFromStartupButton.tsx',
-    description: 'Secondary Button that removes one conflicting app\'s autostart entry (POST /conflicts/autostart/disable), on an explicit click only. Rendered by ConflictAppCard solely when the service resolved an entry to that app\'s own executable, so an app with no resolvable entry is never offered it. A "service" entry sets the service to manual and gets its own label. The app keeps running afterwards, so the button latches to a done state rather than waiting for the watcher to clear the row.',
+    description: 'Secondary Button that removes every autostart entry for one conflicting app (POST /conflicts/autostart/disable), on an explicit click only. Rendered by ConflictAppCard solely when the service resolved at least one entry to that app\'s own executable, so an app with no resolvable entry is never offered it. An app can hold several at once - iCUE ships an Automatic service and a Run value - and the label reads as a service only when every entry is one. The app keeps running afterwards, so the button latches to a done state rather than waiting for the watcher to clear the row.',
     Preview: PreviewRemoveFromStartupButton,
   },
   {

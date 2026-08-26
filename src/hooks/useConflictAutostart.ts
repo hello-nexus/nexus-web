@@ -2,12 +2,12 @@ import { useEffect, useState } from 'react';
 import { fetchConflictAutostart, type ConflictAutostartEntry } from '../api/conflicts';
 
 /**
- * Resolved autostart entry per conflict id, fetched only while `enabled` is
+ * Resolved autostart entries per conflict id, fetched only while `enabled` is
  * true - the lookup walks the registry, so it runs when a user opens a modal
  * rather than on the watcher's poll. Read-only: nothing is removed here.
  */
-export function useConflictAutostart(enabled: boolean): Record<string, ConflictAutostartEntry | null> {
-  const [byId, setById] = useState<Record<string, ConflictAutostartEntry | null>>({});
+export function useConflictAutostart(enabled: boolean): Record<string, ConflictAutostartEntry[]> {
+  const [byId, setById] = useState<Record<string, ConflictAutostartEntry[]>>({});
 
   useEffect(() => {
     if (!enabled) return;
@@ -15,8 +15,8 @@ export function useConflictAutostart(enabled: boolean): Record<string, ConflictA
     void (async () => {
       const apps = await fetchConflictAutostart();
       if (cancelled) return;
-      const next: Record<string, ConflictAutostartEntry | null> = {};
-      for (const app of apps) next[app.id] = app.autostart;
+      const next: Record<string, ConflictAutostartEntry[]> = {};
+      for (const app of apps) next[app.id] = app.entries ?? [];
       setById(next);
     })();
     return () => { cancelled = true; };

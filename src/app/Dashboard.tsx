@@ -42,6 +42,7 @@ import { useProfiles } from '../hooks/useProfiles';
 import { useCloudAccounts } from '../hooks/useCloudAccounts';
 import { useSyncStatus } from '../hooks/useSyncStatus';
 import { useRoute, type Section } from '../hooks/useRoute';
+import { useLastRoute } from '../hooks/useLastRoute';
 import { onDeckOpenMonitoring } from '../panel/widgets/deck/deckMonitoringNav';
 import { requestOpenDeckEditor } from '../panel/widgets/deck/deckOpenEditorNav';
 import { getPendingDeckEdit, type PendingDeckEdit } from '../api/streamdeck';
@@ -89,6 +90,10 @@ import styles from '../App.module.scss';
 const PORTAL_URL = 'https://hellonexus.com';
 
 const WHATS_NEW_SHOWN_KEY = 'nexus.whatsNewShownFor';
+
+// Query param the Windows tray appends when an update balloon is clicked; must
+// match BalloonKind.UpdateReady's path in nexus-service TrayIcon.cs.
+const OPEN_UPDATE_PARAM = 'openUpdate';
 
 // True only the first time it sees a given version. The service holds
 // justUpdatedTo for a fixed window after an update, so a window close+reopen
@@ -245,6 +250,12 @@ export function Dashboard() {
   } = useRoute();
   const status = useServiceStatus(true, DESKTOP_OFFLINE_GRACE_MS);
   const online = status.state === 'online';
+  // Reopening the window lands where it was left; a service start clears it.
+  useLastRoute(
+    view ? `/${section}/${view}${subtab ? `/${subtab}` : ''}` : '',
+    navigate,
+    online,
+  );
   const { status: onboardingStatus, lightingStatus } = useOnboardingStatus();
   // Flips true once WelcomeScreen posts /onboarding/complete, so a later
   // reconnect (which re-derives onboardingStatus) can't reopen it mid-session.
@@ -612,6 +623,20 @@ export function Dashboard() {
   // Search's "Check for updates" entry opens the modal this component owns
   // (the modal auto-checks on open).
   useSearchSignal('update-modal', useCallback(() => { void handleUpdateOpen(); }, [handleUpdateOpen]));
+
+  // The tray sends an update balloon click here as /?openUpdate=1, which is the
+  // only way a click reaches an already-open window. The param is stripped
+  // before the modal opens so a reload does not reopen it.
+  const openUpdateParamRef = useRef(false);
+  useEffect(() => {
+    if (openUpdateParamRef.current) return;
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has(OPEN_UPDATE_PARAM)) return;
+    openUpdateParamRef.current = true;
+    url.searchParams.delete(OPEN_UPDATE_PARAM);
+    window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+    void handleUpdateOpen();
+  }, [handleUpdateOpen]);
 
   // Bump on every offline -> online transition so the profile dropdown
   // remounts and replays its fade-in once.

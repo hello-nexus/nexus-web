@@ -49,7 +49,7 @@ export function killConflict(id: string): Promise<KillConflictResponse | null> {
 
 /** How a conflicting app is launched at login, when one resolved to its executable. */
 export interface ConflictAutostartEntry {
-  /** "runKeyUser" | "runKeyMachine" | "service" */
+  /** "runKeyUser" | "runKeyMachine" | "runKeyMachine32" | "service" */
   kind: string;
   /** Run value name or service name, shown so the user sees what is removed. */
   entryName: string;
@@ -57,7 +57,8 @@ export interface ConflictAutostartEntry {
 
 export interface ConflictAutostartStatus {
   id: string;
-  autostart: ConflictAutostartEntry | null;
+  /** Every entry launching this app; an app can hold several at once. */
+  entries: ConflictAutostartEntry[];
 }
 
 export interface GetConflictAutostartResponse {
@@ -65,14 +66,16 @@ export interface GetConflictAutostartResponse {
 }
 
 export interface DisableConflictAutostartResponse {
-  ok: boolean;
+  error: boolean;
   msg: string;
+  /** How many entries the service removed and verified gone. */
+  removed: number;
 }
 
 /**
- * Read-only: which autostart entry launches each detected conflict. Separate
+ * Read-only: which autostart entries launch each detected conflict. Separate
  * from fetchConflicts so nothing is discovered until a user opens the modal.
- * An app with no resolvable entry comes back with autostart null and must not
+ * An app with no resolvable entry comes back with an empty list and must not
  * be offered the control.
  */
 export async function fetchConflictAutostart(): Promise<ConflictAutostartStatus[]> {
@@ -80,7 +83,7 @@ export async function fetchConflictAutostart(): Promise<ConflictAutostartStatus[
   return result?.apps ?? [];
 }
 
-/** Removes one app's autostart entry. Only ever called from an explicit click. */
+/** Removes every autostart entry for one app. Only ever called from an explicit click. */
 export function disableConflictAutostart(id: string): Promise<DisableConflictAutostartResponse | null> {
   return postService<DisableConflictAutostartResponse>('/conflicts/autostart/disable', { id });
 }

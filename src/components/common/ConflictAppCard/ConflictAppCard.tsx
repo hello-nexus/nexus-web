@@ -7,11 +7,11 @@ import styles from './ConflictAppCard.module.scss';
 interface ConflictAppCardProps {
   conflict: DetectedConflict;
   /**
-   * Autostart entry that launches this app, when one resolved to its own
-   * executable. Absent or null renders no startup control at all - an app whose
-   * entry could not be resolved must never be offered one.
+   * Autostart entries that launch this app, when any resolved to its own
+   * executable. Absent or empty renders no startup control at all - an app
+   * whose entry could not be resolved must never be offered one.
    */
-  autostart?: ConflictAutostartEntry | null;
+  autostart?: readonly ConflictAutostartEntry[] | null;
 }
 
 type TranslateFn = (key: string, params?: Record<string, string | number>) => string;
@@ -49,7 +49,8 @@ export function ConflictAppCard({ conflict, autostart }: ConflictAppCardProps) {
         </div>
       </div>
       <div className={styles.rowActions}>
-        {autostart && <RemoveFromStartupButton conflictId={conflict.id} entry={autostart} />}
+        {autostart && autostart.length > 0
+          && <RemoveFromStartupButton conflictId={conflict.id} entries={autostart} />}
         <EndTaskButton conflictId={conflict.id} />
       </div>
     </div>

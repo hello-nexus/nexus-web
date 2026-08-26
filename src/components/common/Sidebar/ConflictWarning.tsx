@@ -70,8 +70,8 @@ interface ConflictWarningModalProps {
   suppressed: boolean;
   onClose: () => void;
   onSuppressedChange: (suppressed: boolean) => void;
-  /** Resolved autostart entry per conflict id; an id absent here gets no startup control. */
-  autostartById?: Readonly<Record<string, ConflictAutostartEntry | null>>;
+  /** Resolved autostart entries per conflict id; an id absent here gets no startup control. */
+  autostartById?: Readonly<Record<string, ConflictAutostartEntry[]>>;
   /** Replaces the "don't show again" row, for the onboarding step that ends in a Done button. */
   footer?: ReactNode;
 }

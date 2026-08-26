@@ -6,16 +6,17 @@ import { useTranslation } from '../../../lib/i18n';
 
 interface RemoveFromStartupButtonProps {
   conflictId: string;
-  entry: ConflictAutostartEntry;
+  /** Every entry launching this app; the service removes all of them in one call. */
+  entries: readonly ConflictAutostartEntry[];
   className?: string;
 }
 
 /**
- * Removes one app's autostart entry, on an explicit click only. The app keeps
- * running afterwards, so the watcher never clears the row - the button latches
- * to a done state itself instead of waiting to unmount.
+ * Removes every autostart entry for one app, on an explicit click only. The app
+ * keeps running afterwards, so the watcher never clears the row - the button
+ * latches to a done state itself instead of waiting to unmount.
  */
-export function RemoveFromStartupButton({ conflictId, entry, className }: RemoveFromStartupButtonProps) {
+export function RemoveFromStartupButton({ conflictId, entries, className }: RemoveFromStartupButtonProps) {
   const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
@@ -25,7 +26,9 @@ export function RemoveFromStartupButton({ conflictId, entry, className }: Remove
     let ok = false;
     try {
       const res = await disableConflictAutostart(conflictId);
-      ok = res?.ok ?? false;
+      // A null body is a transport failure, and a partial removal leaves the
+      // app still starting with Windows, which the service reports as an error.
+      ok = res !== null && !res.error;
     } catch {
       ok = false;
     }
@@ -50,10 +53,10 @@ export function RemoveFromStartupButton({ conflictId, entry, className }: Remove
       loading={busy}
       loadingHidesLabel
       className={className}
-      title={t('conflicts.modal.removeStartupEntry', { entry: entry.entryName })}
+      title={t('conflicts.modal.removeStartupEntry', { entry: entries.map(e => e.entryName).join(', ') })}
       onClick={handleClick}
     >
-      {entry.kind === 'service'
+      {entries.length > 0 && entries.every(e => e.kind === 'service')
         ? t('conflicts.modal.removeStartupService')
         : t('conflicts.modal.removeStartup')}
     </Button>
