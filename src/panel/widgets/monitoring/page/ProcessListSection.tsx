@@ -6,6 +6,8 @@ import { Sparkline } from '../../../../components/common/Sparkline/Sparkline';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { Badge } from '../../../../components/common/Badge/Badge';
 import { useTranslation } from '../../../../lib/i18n';
+import { hour12OptionFor, type TimeFormat } from '../../../../lib/units';
+import { useUnitPrefs } from '../../../../hooks/useUiSettings';
 import type { PrivacySession } from '../../../../api/monitoringPrivacy';
 import { PRIVACY_ICONS, formatPrivacyTime, privacyIndicatorsForProcess, type PrivacyIndicator } from './privacyHelpers';
 import { useStableRanking } from './useStableRanking';
@@ -90,9 +92,10 @@ const EMPTY_PRIVACY_SESSIONS: readonly PrivacySession[] = [];
  *  status-dot pattern) rather than a <button>, since nothing happens on
  *  activation. Active sessions render accented, sessions that only ended
  *  within the last hour render dimmed. */
-function PrivacyIndicators({ indicators, t }: {
+function PrivacyIndicators({ indicators, t, timeFormat }: {
   indicators: readonly PrivacyIndicator[];
   t: (key: string, params?: Record<string, string | number>) => string;
+  timeFormat: TimeFormat;
 }) {
   if (indicators.length === 0) return null;
   return (
@@ -112,8 +115,8 @@ function PrivacyIndicators({ indicators, t }: {
               <span key={i}>
                 {showCapabilityPerLine && `${t(`monitoring.privacy.capability.${s.capability}`)} `}
                 {s.end === null
-                  ? t('monitoring.privacy.since', { time: formatPrivacyTime(s.start) })
-                  : t('monitoring.privacy.until', { time: formatPrivacyTime(s.end) })}
+                  ? t('monitoring.privacy.since', { time: formatPrivacyTime(s.start, timeFormat) })
+                  : t('monitoring.privacy.until', { time: formatPrivacyTime(s.end, timeFormat) })}
                 {i < indicator.sessions.length - 1 && <br />}
               </span>
             ))}
@@ -144,6 +147,7 @@ interface ProcessRowProps {
   formatValue: (value: number) => string;
   onSelect: (name: string) => void;
   t: (key: string, params?: Record<string, string | number>) => string;
+  timeFormat: TimeFormat;
   privacySessions: readonly PrivacySession[];
   privacyAsOfMs: number;
   showPrivacy: boolean;
@@ -168,6 +172,7 @@ function rowPropsEqual(prev: ProcessRowProps, next: ProcessRowProps): boolean {
     && prev.formatValue === next.formatValue
     && prev.onSelect === next.onSelect
     && prev.t === next.t
+    && prev.timeFormat === next.timeFormat
     && prev.privacySessions === next.privacySessions
     && prev.privacyAsOfMs === next.privacyAsOfMs
     && prev.showPrivacy === next.showPrivacy
@@ -176,7 +181,7 @@ function rowPropsEqual(prev: ProcessRowProps, next: ProcessRowProps): boolean {
 }
 
 const ProcessRow = memo(function ProcessRow({
-  item, formatValue, onSelect, t, privacySessions, privacyAsOfMs, showPrivacy, selected, valueMinWidth,
+  item, formatValue, onSelect, t, timeFormat, privacySessions, privacyAsOfMs, showPrivacy, selected, valueMinWidth,
 }: ProcessRowProps) {
   return (
     <div
@@ -208,6 +213,7 @@ const ProcessRow = memo(function ProcessRow({
       <PrivacyIndicators
         indicators={showPrivacy ? privacyIndicatorsForProcess(privacySessions, item.name, privacyAsOfMs) : []}
         t={t}
+        timeFormat={timeFormat}
       />
       <Sparkline
         className={styles.sparkline}
@@ -258,8 +264,10 @@ const ProcessRow = memo(function ProcessRow({
  * frozen-order guarantee holds independently within each group. An empty
  * group renders no header.
  */
-function formatSnapshotTime(ms: number): string {
-  return new Date(ms).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', second: '2-digit' });
+function formatSnapshotTime(ms: number, timeFormat: TimeFormat): string {
+  return new Date(ms).toLocaleTimeString(undefined, {
+    hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: hour12OptionFor(timeFormat),
+  });
 }
 
 export function ProcessListSection({
@@ -268,6 +276,7 @@ export function ProcessListSection({
   selectedProcessName = null, valueMinWidth,
 }: ProcessListSectionProps) {
   const { t } = useTranslation();
+  const { timeFormat } = useUnitPrefs();
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<SortMode>('recent');
 
@@ -308,7 +317,7 @@ export function ProcessListSection({
       </div>
       {snapshotAtMs != null && (
         <div className={styles.snapshotBadge}>
-          <span>{t('monitoring.history.process.snapshotAt', { time: formatSnapshotTime(snapshotAtMs) })}</span>
+          <span>{t('monitoring.history.process.snapshotAt', { time: formatSnapshotTime(snapshotAtMs, timeFormat) })}</span>
           <button
             type="button"
             className={styles.snapshotClear}
@@ -335,6 +344,7 @@ export function ProcessListSection({
                 formatValue={formatValue}
                 onSelect={onSelectProcess}
                 t={t}
+                timeFormat={timeFormat}
                 privacySessions={privacySessions}
                 privacyAsOfMs={privacyAsOfMs}
                 showPrivacy={showPrivacy}
@@ -352,6 +362,7 @@ export function ProcessListSection({
                 formatValue={formatValue}
                 onSelect={onSelectProcess}
                 t={t}
+                timeFormat={timeFormat}
                 privacySessions={privacySessions}
                 privacyAsOfMs={privacyAsOfMs}
                 showPrivacy={showPrivacy}

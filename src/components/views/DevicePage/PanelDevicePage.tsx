@@ -203,6 +203,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const [qSeriesBrightness, setQSeriesBrightness] = useState(100);
   const [qSeriesScreenOff, setQSeriesScreenOff] = useState(false);
   const [qSeriesSleepWithHost, setQSeriesSleepWithHost] = useState(true);
+  const [qSeriesSleepWhenLocked, setQSeriesSleepWhenLocked] = useState(true);
   const [loaded, setLoaded] = useState(false);
   const [layout, setLayout] = useState<PanelLayout>(() => defaultLayoutForSurface('y70'));
   const [editingDeviceId, setEditingDeviceId] = useState<string | null>(null);
@@ -412,6 +413,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
         setQSeriesBrightness(qDisplay.brightness);
         setQSeriesScreenOff(qDisplay.screenOff);
         setQSeriesSleepWithHost(qDisplay.sleepWithHost);
+        setQSeriesSleepWhenLocked(qDisplay.sleepWhenLocked);
       }
       // /y70/toggle returns the persisted ScreenOff value, not "screen on".
       if (tog) setScreenOn(!tog.toggle);
@@ -1073,6 +1075,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                       onScreenOffToggle={() => {}}
                       sleepWithHost={null}
                       onSleepWithHostToggle={() => {}}
+                      sleepWhenLocked={null}
+                      onSleepWhenLockedToggle={() => {}}
                       autoOrient={monitorAutoOrient ? recordAutoOrient : null}
                       onAutoOrientToggle={() => {
                         const next = !recordAutoOrient;
@@ -1165,6 +1169,12 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                           const next = !qSeriesSleepWithHost;
                           setQSeriesSleepWithHost(next);
                           void setQSeriesDisplay({ sleepWithHost: next }).catch(() => {});
+                        }}
+                        sleepWhenLocked={qSeriesSleepWhenLocked}
+                        onSleepWhenLockedToggle={() => {
+                          const next = !qSeriesSleepWhenLocked;
+                          setQSeriesSleepWhenLocked(next);
+                          void setQSeriesDisplay({ sleepWhenLocked: next }).catch(() => {});
                         }}
                         reserveMonitor={null}
                         onReserveMonitorToggle={() => {}}
@@ -1576,6 +1586,8 @@ interface MonitorSettingsPanelProps {
   onScreenOffToggle: () => void;
   sleepWithHost: boolean | null;
   onSleepWithHostToggle: () => void;
+  sleepWhenLocked: boolean | null;
+  onSleepWhenLockedToggle: () => void;
   // Null hides the row (no orientation sensor on this panel family).
   autoOrient: boolean | null;
   onAutoOrientToggle: () => void;
@@ -1598,6 +1610,7 @@ function MonitorSettingsPanel({
   orientation, onOrientation, orientationOptions,
   screenOff, onScreenOffToggle,
   sleepWithHost, onSleepWithHostToggle,
+  sleepWhenLocked, onSleepWhenLockedToggle,
   autoOrient, onAutoOrientToggle,
   reserveMonitor, onReserveMonitorToggle,
   xeneonSettings, onXeneonChange, onXeneonCommit,
@@ -1665,6 +1678,13 @@ function MonitorSettingsPanel({
           label={t('devices.qseries.sleepWithHost')}
           checked={sleepWithHost}
           onChange={onSleepWithHostToggle}
+        />
+      )}
+      {sleepWhenLocked !== null && (
+        <SettingToggle
+          label={t('devices.qseries.sleepWhenLocked')}
+          checked={sleepWhenLocked}
+          onChange={onSleepWhenLockedToggle}
         />
       )}
       {reserveMonitor !== null && (

@@ -5,7 +5,13 @@ import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { InfoList, InfoRow } from '../../common/InfoList/InfoList';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { useTranslation } from '../../../lib/i18n';
+import { useUnitPrefs } from '../../../hooks/useUiSettings';
+import { hour12OptionFor, type TimeFormat } from '../../../lib/units';
 import styles from './KeebTesterView.module.scss';
+
+function formatEventClock(ms: number, timeFormat: TimeFormat): string {
+  return new Date(ms).toLocaleTimeString(undefined, { hour12: hour12OptionFor(timeFormat) });
+}
 
 interface TouchEntry {
   key: string;
@@ -19,6 +25,7 @@ interface TouchEntry {
 /// on the tester tab, so the mount lifetime gates the global key listener.
 export function KeebTesterView() {
   const { t } = useTranslation();
+  const { timeFormat } = useUnitPrefs();
   const [history, setHistory] = useState<TouchEntry[]>([]);
 
   const handler = useCallback((event: KeyboardEvent) => {
@@ -57,7 +64,7 @@ export function KeebTesterView() {
           <InfoRow label={t('keeb.tester.code')} value={latest?.code ?? '-'} />
           <InfoRow
             label={t('keeb.tester.time')}
-            value={latest ? new Date(latest.timestamp).toLocaleTimeString() : '-'}
+            value={latest ? formatEventClock(latest.timestamp, timeFormat) : '-'}
           />
         </InfoList>
       </SettingsSection>
@@ -75,7 +82,7 @@ export function KeebTesterView() {
               <InfoRow
                 key={`${entry.timestamp}-${entry.key}`}
                 label={`${entry.key} · ${entry.code}`}
-                value={new Date(entry.timestamp).toLocaleTimeString()}
+                value={formatEventClock(entry.timestamp, timeFormat)}
               />
             ))}
           </InfoList>

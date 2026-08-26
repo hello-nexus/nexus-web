@@ -84,7 +84,7 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
   const sensors = useSensors(serviceOnline);
   const { specs } = useSystemSpecs(serviceOnline);
   const { settings, update } = useUiSettings();
-  const { numberFormat } = useUnitPrefs();
+  const { numberFormat, timeFormat } = useUnitPrefs();
 
   // Sourced once here (not inside ProcessListSection) since the selected
   // process's own detail panel needs the same sessions/support - a second
@@ -293,16 +293,16 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
   }, [addEventAtMs, refetchEvents, t]);
 
   const renderEventTooltip = useCallback(
-    (event: TimelineEvent) => eventTooltipText(t, event),
-    [t],
+    (event: TimelineEvent) => eventTooltipText(t, event, timeFormat),
+    [t, timeFormat],
   );
 
   // The detached chip shows the exact viewed instant, seconds included - finer
   // than the x-axis ticks the frame sits under.
   const windowMs = history.domain[1] - history.domain[0];
   const detachedLabel = useMemo(
-    () => formatSelectedFrameTime(selectedFrameMs, windowMs),
-    [windowMs, selectedFrameMs],
+    () => formatSelectedFrameTime(selectedFrameMs, windowMs, timeFormat),
+    [windowMs, selectedFrameMs, timeFormat],
   );
 
   const gpuVramByName = useMemo(() => new Map(gpuProcMemSeries.map(s => [s.name, s.current])), [gpuProcMemSeries]);

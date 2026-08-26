@@ -1,3 +1,5 @@
+@use '../../../styles/text' as *;
+
 .root {
   position: relative;
   width: 100%;
@@ -7,42 +9,17 @@
   color: var(--text);
 }
 
-.topRow {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: stretch;
-  gap: var(--space-sm);
-  margin: var(--space-sm) var(--space-lg) 0;
-}
+.comboChip {
+  @include text-label;
 
-// The shared GameHud owns its own margin normally; here the .topRow wrapper
-// owns it instead, and the bar shrinks to make room for the preview beside it.
-.hud {
-  flex: 1 1 auto;
-  min-width: 0;
-  margin: 0;
-}
-
-.hudMiddle {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-}
-
-.hudChip {
   padding: 2px var(--space-sm);
   border-radius: var(--radius-pill);
-  background: var(--panel-control-translucent, var(--surface));
-  color: var(--text-dim);
-  font-family: var(--font-mono);
-  font-size: var(--type-tiny);
-  font-weight: var(--weight-strong);
-  text-transform: uppercase;
-}
-
-.hudChipCombo {
   background: var(--accent-soft);
   color: var(--accent-glow);
+  white-space: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .pauseOverlay {

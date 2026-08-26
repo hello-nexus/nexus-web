@@ -4,6 +4,7 @@ import { TopSearch } from './TopSearch';
 import { CommandPaletteProvider } from './CommandPaletteProvider';
 import { fetchAssistantStatus, runAssistantQuery, type AiAssistantStatus, type AiAssistantQueryResponse } from '../api/aiIntegration';
 import { buildEntries } from './providers';
+import { emitRadialBloomFromElement } from '../lib/backgroundEffects';
 import type { SearchEntry } from './types';
 import styles from './TopSearch.module.scss';
 
@@ -62,7 +63,7 @@ vi.mock('./helloGreetingStore', () => ({
 }));
 
 vi.mock('../lib/backgroundEffects', () => ({
-  emitRadialBloomFromElement: () => {},
+  emitRadialBloomFromElement: vi.fn(),
 }));
 
 function makeAssistantStatus(overrides: Partial<AiAssistantStatus> = {}): AiAssistantStatus {
@@ -291,5 +292,43 @@ describe('TopSearch - AI ask default highlight', () => {
     fireEvent.keyDown(input, { key: 'Enter' });
 
     expect(runAssistantQuery).toHaveBeenCalledWith('how do rgb effects work', expect.any(AbortSignal));
+  });
+});
+
+describe('TopSearch - radial bloom', () => {
+  beforeEach(() => {
+    vi.mocked(fetchAssistantStatus).mockResolvedValue(makeAssistantStatus());
+  });
+
+  it('blooms when an action entry is selected', async () => {
+    const run = vi.fn();
+    vi.mocked(buildEntries).mockReturnValue([
+      { id: 'action:dark', title: 'Dark theme', kind: 'action', run },
+    ]);
+    renderSearch();
+    const input = openPalette();
+
+    fireEvent.change(input, { target: { value: 'dark theme' } });
+    await screen.findByText('Dark theme');
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(run).toHaveBeenCalledTimes(1);
+    expect(emitRadialBloomFromElement).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not bloom when a navigate entry is selected - opening commits nothing', async () => {
+    const run = vi.fn();
+    vi.mocked(buildEntries).mockReturnValue([
+      { id: 'nav:lighting', title: 'Lighting', kind: 'navigate', run },
+    ]);
+    renderSearch();
+    const input = openPalette();
+
+    fireEvent.change(input, { target: { value: 'lighting' } });
+    await screen.findByText('Lighting');
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(run).toHaveBeenCalledTimes(1);
+    expect(emitRadialBloomFromElement).not.toHaveBeenCalled();
   });
 });

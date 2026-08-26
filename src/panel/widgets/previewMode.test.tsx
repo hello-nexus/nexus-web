@@ -81,7 +81,10 @@ const PREVIEW_CONTENT: Record<string, string[]> = {
   steam: ['Nova', 'Star Voyager', 'Driftline'],
   obs: ['Gameplay'],
   media: ['Midnight Drive', 'The Wavelengths'],
-  weather: ['Mostly sunny', 'San Francisco', 'panel.widget.weather.hiLo'],
+  // The condition label comes from the fixture's weather code through the
+  // shared key table, so the mocked t() surfaces the key, not the fixture's
+  // own English `condition` string.
+  weather: ['panel.widget.weather.cond.partlyCloudy', 'San Francisco', 'panel.widget.weather.hiLo'],
   stocks: ['Dow Jones', 'NASDAQ', 'AAPL', '52,637'],
   screentime: ['Figma', 'Chrome'],
   displays: ['Built-in Display', 'Studio Monitor', '#1', '#2'],

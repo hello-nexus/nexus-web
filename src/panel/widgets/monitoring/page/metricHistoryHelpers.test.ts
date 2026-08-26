@@ -398,17 +398,40 @@ describe('viewportReducer', () => {
 describe('xTickFormatForWindow', () => {
   it('uses time-of-day format for a window at or under a day', () => {
     const t = new Date('2026-07-08T14:32:00Z').getTime();
-    expect(xTickFormatForWindow(HOUR)(t)).toMatch(/\d{1,2}:\d{2}/);
+    expect(xTickFormatForWindow(HOUR, 'system')(t)).toMatch(/\d{1,2}:\d{2}/);
   });
 
   it('uses weekday+hour format for a window under a week', () => {
     const t = new Date('2026-07-08T14:32:00Z').getTime();
-    expect(xTickFormatForWindow(3 * DAY)(t)).not.toMatch(/^\d{1,2}:\d{2}/);
+    expect(xTickFormatForWindow(3 * DAY, 'system')(t)).not.toMatch(/^\d{1,2}:\d{2}/);
   });
 
   it('uses month+day format for a window at or over a week', () => {
     const t = new Date('2026-07-08T14:32:00Z').getTime();
-    expect(xTickFormatForWindow(7 * DAY)(t)).toContain('Jul');
+    expect(xTickFormatForWindow(7 * DAY, 'system')(t)).toContain('Jul');
+  });
+});
+
+// The monitoring surfaces render through these helpers, so the Units > Time
+// format setting has to reach every one of them.
+describe('Time format setting', () => {
+  const T = new Date('2026-07-08T14:32:10Z').getTime();
+
+  it('drops AM/PM from the axis ticks under 24h', () => {
+    expect(xTickFormatForWindow(HOUR, '24h')(T)).not.toMatch(/[AP]M/i);
+    expect(xTickFormatForWindow(HOUR, '12h')(T)).toMatch(/[AP]M/i);
+  });
+
+  it('drops AM/PM from the selected-frame chip under 24h', () => {
+    expect(formatSelectedFrameTime(T, HOUR, '24h')).not.toMatch(/[AP]M/i);
+    expect(formatSelectedFrameTime(T, HOUR, '12h')).toMatch(/[AP]M/i);
+  });
+
+  it('drops AM/PM from the seek-bar edge labels under 24h', () => {
+    const [a] = formatBrushEdgeLabels(T, T + HOUR, '24h', 'en-US');
+    expect(a.time).not.toMatch(/[AP]M/i);
+    const [b] = formatBrushEdgeLabels(T, T + HOUR, '12h', 'en-US');
+    expect(b.time).toMatch(/[AP]M/i);
   });
 });
 
@@ -416,16 +439,16 @@ describe('formatSelectedFrameTime', () => {
   const T = new Date('2026-07-08T14:32:23Z').getTime();
 
   it('always carries seconds for a window within a day', () => {
-    expect(formatSelectedFrameTime(T, HOUR)).toMatch(/\d{1,2}:\d{2}:\d{2}/);
+    expect(formatSelectedFrameTime(T, HOUR, 'system')).toMatch(/\d{1,2}:\d{2}:\d{2}/);
   });
 
   it('stays time-only (no date) at exactly one day, matching the axis time-only branch', () => {
-    expect(formatSelectedFrameTime(T, DAY)).not.toContain('Jul');
-    expect(formatSelectedFrameTime(T, DAY)).toMatch(/\d{1,2}:\d{2}:\d{2}/);
+    expect(formatSelectedFrameTime(T, DAY, 'system')).not.toContain('Jul');
+    expect(formatSelectedFrameTime(T, DAY, 'system')).toMatch(/\d{1,2}:\d{2}:\d{2}/);
   });
 
   it('prepends the date and keeps seconds for a window wider than a day', () => {
-    const label = formatSelectedFrameTime(T, 3 * DAY);
+    const label = formatSelectedFrameTime(T, 3 * DAY, 'system');
     expect(label).toContain('Jul');
     expect(label).toMatch(/\d{1,2}:\d{2}:\d{2}/);
   });
@@ -724,7 +747,7 @@ describe('formatBrushEdgeLabels', () => {
     // implementation itself uses.
     const start = new Date(2026, 6, 16, 11, 31, 4).getTime();
     const end = new Date(2026, 6, 16, 11, 36, 4).getTime();
-    const [a, b] = formatBrushEdgeLabels(start, end, 'en-US');
+    const [a, b] = formatBrushEdgeLabels(start, end, 'system', 'en-US');
     expect(a.day).toBeUndefined();
     expect(b.day).toBeUndefined();
     expect(a.time).toMatch(/11:31:04/);
@@ -734,7 +757,7 @@ describe('formatBrushEdgeLabels', () => {
   it('sets the short localized day on both labels when the edges span different days', () => {
     const start = new Date(2026, 6, 15, 23, 58, 0).getTime();
     const end = new Date(2026, 6, 16, 0, 3, 0).getTime();
-    const [a, b] = formatBrushEdgeLabels(start, end, 'en-US');
+    const [a, b] = formatBrushEdgeLabels(start, end, 'system', 'en-US');
     expect(a.day).toBe('Jul 15');
     expect(b.day).toBe('Jul 16');
     expect(a.time).not.toMatch(/Jul/);

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useTranslation } from '../../../../lib/i18n';
+import { useUnitPrefs } from '../../../../hooks/useUiSettings';
 import { Overlay } from '../../../../components/common/Overlay/Overlay';
 import { Button } from '../../../../components/common/Button/Button';
 import { CHART_EVENT_ICONS } from '../../../../components/common/TimeSeriesChart/TimeSeriesChart';
@@ -26,6 +27,7 @@ export function MonitoringEventsModal({
   open, onClose, events, highlightedKey, onRemoveCustom,
 }: MonitoringEventsModalProps) {
   const { t } = useTranslation();
+  const { timeFormat } = useUnitPrefs();
   const { setKindHidden } = useEventKindVisibility();
   const highlightRef = useRef<HTMLLIElement>(null);
 
@@ -69,7 +71,7 @@ export function MonitoringEventsModal({
                   </span>
                 </span>
                 <span className={styles.rowTime}>
-                  {formatEventTime(event.t)}
+                  {formatEventTime(event.t, timeFormat)}
                   {event.endT !== null || event.kind.startsWith('privacy-')
                     ? ` · ${formatPrivacyDuration(t, event.t, event.endT)}`
                     : ''}

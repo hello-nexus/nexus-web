@@ -11,7 +11,7 @@ const mockSnapshot = vi.hoisted(() => ({
     temperatureC: 22,
     temperatureF: 72,
     weatherCode: 1,
-    condition: 'Mostly sunny',
+    condition: 'Partly cloudy',
     humidityPct: 54,
     windKph: 11,
     locationLabel: 'San Francisco',
@@ -40,6 +40,7 @@ vi.mock('../../../lib/i18n', () => {
     'panel.widget.weather.pm': 'PM',
     'panel.widget.weather.hiLo': 'H:{hi}° L:{lo}°',
     'panel.widget.weather.noForecast': 'No forecast',
+    'panel.widget.weather.cond.partlyCloudy': 'Partly cloudy',
   };
   const t = (key: string, params?: Record<string, string | number>) => {
     let text = dict[key] ?? key;
@@ -61,7 +62,8 @@ describe('WeatherWidget', () => {
   it('renders the compact (2x2) layout with live data', async () => {
     render(<WeatherWidget widget={weatherWidget('2x2')} />);
     expect(await screen.findByText('72°')).toBeInTheDocument();
-    expect(screen.getByText('Mostly sunny')).toBeInTheDocument();
+    // The label comes from the weather code, not the server's English string.
+    expect(screen.getByText('Partly cloudy')).toBeInTheDocument();
     expect(screen.getByText('San Francisco')).toBeInTheDocument();
   });
 

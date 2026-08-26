@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from '../../../../lib/i18n';
+import { useUnitPrefs } from '../../../../hooks/useUiSettings';
+import { localizeNumbers } from '../../../../lib/units';
 import { EffectCard } from '../../../../components/common/EffectCard/EffectCard';
 import type { MediaItem } from '../../../../api/mediaLibrary';
 import styles from '../LightingPage.module.scss';
@@ -21,13 +23,14 @@ export function MediaGrid({ items, activeId, thumbs, onPlay, onDelete, deleteAri
   thumbAspect?: number;
 }) {
   const { t } = useTranslation();
+  const { numberFormat } = useUnitPrefs();
   return (
     <div className={styles.mediaGrid}>
       {prepend}
       {items.map(item => {
         const label = item.name.replace(/\.[^.]+$/, '');
         const meta = item.type === 'animated'
-          ? `${(item.frames / Math.max(item.fps, 1)).toFixed(1)}s`
+          ? `${localizeNumbers((item.frames / Math.max(item.fps, 1)).toFixed(1), numberFormat)}s`
           : t('lighting.controls.mediaStatic');
         return (
           <EffectCard

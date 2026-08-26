@@ -112,12 +112,13 @@ export const getQSeriesRotation = (): Promise<QSeriesRotation | null> =>
 export const setQSeriesRotation = (orientation: QSeriesOrientation): Promise<{ ok: boolean } | null> =>
   postService('/qseries/rotation', { orientation });
 
-// ── Display (brightness, screen power, sleep-with-host) ──
+// ── Display (brightness, screen power, sleep-with-host, sleep-when-locked) ──
 
 export interface QSeriesDisplay {
   brightness: number;
   screenOff: boolean;
   sleepWithHost: boolean;
+  sleepWhenLocked: boolean;
 }
 
 export const getQSeriesDisplay = (): Promise<QSeriesDisplay | null> =>

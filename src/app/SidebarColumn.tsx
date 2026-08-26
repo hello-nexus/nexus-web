@@ -9,6 +9,7 @@ import { SidebarBrand } from './sidebar';
 import { PairPhoneButton } from './PairPhoneModal';
 import { SidebarContextMenu } from './SidebarContextMenu';
 import { SidebarDevicesSection } from './SidebarDevicesSection';
+import { AddSidebarAppSlideout } from './AddSidebarAppSlideout';
 import { ICON_SIZE } from './sidebarNav';
 import {
   DASHBOARD_APP_KEY,
@@ -104,6 +105,8 @@ export function SidebarColumn({
     update({ pinnedSidebarApps: nextTailKeys });
   };
 
+  const [addAppOpen, setAddAppOpen] = useState(false);
+
   // Right-click context menu state. Held here so the menu portal dismisses
   // on outside click without each row tracking its own open state. `pinned`
   // picks the menu: a pinned row offers Unpin; a recent row offers Pin (plus
@@ -159,6 +162,14 @@ export function SidebarColumn({
     if (next !== recentsNow) update({ recentSidebarApps: next });
   }, [serviceNavActive, settings.pinnedSidebarApps, settings.recentSidebarApps, update]);
 
+  // Add from the drawer: pin it, then open it. Picking an app out of a list of
+  // apps reads as "I want this one", so landing on its page is the expected
+  // end of the gesture - the row is already pinned behind you.
+  const handleAddApp = (key: string) => {
+    handlePin(key);
+    onServiceNavChange(key);
+  };
+
   // Drop-pin from dragging a recent row above the fold: insert at the slot it
   // was dropped on and strip it from recents.
   const handleRunningPinAt = (key: string, index: number) => {
@@ -206,6 +217,7 @@ export function SidebarColumn({
         onItemContextMenu={handleItemContextMenu}
         runningItems={recentItems}
         onRunningPinAt={handleRunningPinAt}
+        addItem={{ label: t('sidebar.addApp'), onClick: () => setAddAppOpen(true) }}
         compact={compact}
         extraItems={portalNav}
         extraSectionLabel=""
@@ -221,6 +233,12 @@ export function SidebarColumn({
             headerActive={devicesHeaderActive}
           />
         }
+      />
+      <AddSidebarAppSlideout
+        open={addAppOpen}
+        onClose={() => setAddAppOpen(false)}
+        pinnedKeys={tail}
+        onAdd={handleAddApp}
       />
       <PairPhoneButton
         connectedCount={phoneSubscribers}

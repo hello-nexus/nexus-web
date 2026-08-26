@@ -915,15 +915,24 @@ function PreviewDeviceModal() {
 }
 
 function PreviewSlideout() {
-  const [open, setOpen] = useState(false);
+  const [side, setSide] = useState<'right' | 'left' | null>(null);
   return (
     <>
-      <button type="button" className={styles.previewBtn} onClick={() => setOpen(true)}>
-        Open sample slideout
+      <button type="button" className={styles.previewBtn} onClick={() => setSide('right')}>
+        Open slideout (right)
       </button>
-      <Slideout open={open} onClose={() => setOpen(false)} title="Sample slideout">
+      <button type="button" className={styles.previewBtn} onClick={() => setSide('left')}>
+        Open slideout (left)
+      </button>
+      <Slideout
+        open={side !== null}
+        onClose={() => setSide(null)}
+        side={side ?? 'right'}
+        title="Sample slideout"
+      >
         <p className={styles.previewModalBody}>
-          Right-anchored slide-in panel matching the panel editor's desktop add-widget drawer look.
+          Edge-anchored slide-in panel matching the panel editor's desktop add-widget drawer look.
+          `side` picks the edge it docks to and slides in from.
         </p>
       </Slideout>
     </>
@@ -2177,7 +2186,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'Slideout', category: 'modals',
     filePath: 'src/components/common/Slideout/Slideout.tsx',
-    description: 'Right-anchored slide-in panel built on Overlay\'s sheet variant, matching the panel editor\'s desktop add-widget drawer look (translucent scrim, backdrop-base surface, left border, slide-in animation). Title + optional icon + optional headerRight + close button. Esc and a backdrop click both dismiss.', Preview: PreviewSlideout,
+    description: 'Edge-anchored slide-in panel built on Overlay\'s sheet variant, matching the panel editor\'s desktop add-widget drawer look (translucent scrim, backdrop-base surface, border on the docked edge, slide-in animation). `side` docks it right (default) or left; width and inner padding are set through the --slideout-* custom properties. Title + optional icon + optional headerRight + close button. Esc and a backdrop click both dismiss.', Preview: PreviewSlideout,
     notes: 'Use for a dashboard detail/inspector drawer outside the panel editor (e.g. the monitoring process-detail slideout) - PanelEditorSheet stays the widget-grid editor\'s own component.',
   },
   {
@@ -2405,7 +2414,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'Sidebar', category: 'navigation',
     filePath: 'src/components/common/Sidebar/Sidebar.tsx',
-    description: 'Main app navigation column: drag-to-reorder nav rows, compact (icon-only) mode, service status shield, bottom-pinned Settings. SidebarNavButton reuses the exact row chrome for one-off entries.',
+    description: 'Main app navigation column: drag-to-reorder nav rows, compact (icon-only) mode, service status shield, bottom-pinned Settings. `addItem` closes the list with a short + strip that fades in on sidebar hover. SidebarNavButton reuses the exact row chrome for one-off entries, incl. a `disabled` (aria-disabled, still tabbable) variant for rows that are already placed.',
     notes: 'No live preview - needs DnD context, service state, and profile store.',
   },
   {

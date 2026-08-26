@@ -12,7 +12,7 @@ const RATCHETS = [
   {
     script: 'audit-styles.mjs',
     pattern: /(\d+) total findings/,
-    baseline: 721,
+    baseline: 719,
     hint: 'use the --radius/--shadow/--alpha/--blur/--ease tokens and text mixins instead of raw values (run "npm run audit:styles" for the list)',
   },
   {

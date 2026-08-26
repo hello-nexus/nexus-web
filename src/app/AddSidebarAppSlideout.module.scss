@@ -1,0 +1,35 @@
+@use '../styles/text' as *;
+
+// Sized and inset to the sidebar column - the same --sidebar-width the column
+// itself reads, plus .nav's padding - so the rows inside land on exactly the x
+// positions the sidebar rows occupy underneath.
+.sheet {
+  --slideout-width: var(--sidebar-width);
+  --slideout-header-padding: 0.65rem 0.5rem 0.65rem 0.75rem;
+  --slideout-body-padding: 0.25rem 0.5rem 0.5rem;
+  --slideout-body-gap: 0.5rem;
+}
+
+// macOS app shell only: the native traffic lights sit inside the top-bar band
+// (that is what TopBar's --mac-traffic-light-inset clears horizontally), so
+// reserve that band's height before the header content starts.
+.sheetMacApp {
+  --slideout-header-padding: calc(var(--topbar-height) - 12px) 0.5rem 0.65rem 0.75rem;
+}
+
+.search {
+  flex-shrink: 0;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.empty {
+  @include text-body;
+  padding: 1rem 0.75rem;
+  color: var(--text-dim);
+  text-align: center;
+}

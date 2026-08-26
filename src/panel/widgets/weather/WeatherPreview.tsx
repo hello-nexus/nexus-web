@@ -1,10 +1,13 @@
-import { type CSSProperties } from 'react';
+import { Fragment, type CSSProperties } from 'react';
 import {
   Sun, Cloud, CloudSun, CloudFog, CloudDrizzle, CloudRain,
   CloudSnow, CloudRainWind, CloudLightning, HelpCircle, Droplet, Wind,
 } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
+import { resolveHour12 } from '../../../lib/units';
+import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import type { WidgetProps } from '../types';
+import { formatWeatherHour, weatherConditionKey } from './weatherConditions';
 import {
   WEATHER_PREVIEW,
   type WeatherDailyForecast,
@@ -58,15 +61,18 @@ function dailyMax(item: WeatherDailyForecast) {
 
 export function WeatherPreview({ widget }: WidgetProps) {
   const { t } = useTranslation();
+  const { timeFormat } = useUnitPrefs();
   const snap = WEATHER_PREVIEW;
   const tempText = formatTemp(unit === 'F' ? snap.temperatureF : snap.temperatureC);
+  // The condition label is chrome, not fixture payload: the live widget derives
+  // it from the same weather code, so the catalog face must match.
+  const conditionKey = weatherConditionKey(snap.weatherCode);
+  const conditionText = conditionKey ? t(conditionKey) : snap.condition;
 
+  const hour12 = resolveHour12(timeFormat);
   function hourLabel(time: string) {
-    const date = new Date(time);
-    if (Number.isNaN(date.getTime())) return time.split('T')[1]?.slice(0, 5) || '';
-    const hour = date.getHours();
-    const suffix = hour >= 12 ? t('panel.widget.weather.pm') : t('panel.widget.weather.am');
-    return `${hour % 12 || 12}${suffix}`;
+    return formatWeatherHour(
+      time, hour12, t('panel.widget.weather.am'), t('panel.widget.weather.pm'));
   }
 
   function dayLabel(date: string, index: number) {
@@ -109,7 +115,7 @@ export function WeatherPreview({ widget }: WidgetProps) {
       <div className={styles.largeMeta}>
         <div className={styles.largeDescRow}>
           <WeatherIcon code={snap.weatherCode} className={styles.largeIcon} strokeWidth={1.5} />
-          <span className={styles.largeDescription}>{snap.condition}</span>
+          <span className={styles.largeDescription}>{conditionText}</span>
         </div>
         {hiLoText && <span className={styles.largeHiLo}>{hiLoText}</span>}
         <span className={styles.largeLocation}>{snap.locationLabel}</span>
@@ -141,7 +147,7 @@ export function WeatherPreview({ widget }: WidgetProps) {
           '--weather-bar-right': `${barRight}%`,
         } as CSSProperties;
         return (
-          <div key={`${item.date}-${index}`} className={styles.dailyRow}>
+          <Fragment key={`${item.date}-${index}`}>
             <span className={styles.dailyDay}>{dayLabel(item.date, index)}</span>
             <div className={styles.dailyIcon}>
               <WeatherIcon code={item.weatherCode} className={styles.dailyIconSvg} strokeWidth={1.6} />
@@ -155,7 +161,7 @@ export function WeatherPreview({ widget }: WidgetProps) {
               <span className={styles.dailySpacer} />
             )}
             <span className={styles.dailyHi}>{formatTemp(max)}</span>
-          </div>
+          </Fragment>
         );
       })}
     </div>
@@ -172,7 +178,7 @@ export function WeatherPreview({ widget }: WidgetProps) {
         </div>
       </div>
       {showStats && renderStats(styles.compactStats)}
-      <div className={styles.compactCondition}>{snap.condition}</div>
+      <div className={styles.compactCondition}>{conditionText}</div>
       <div className={styles.compactLocation}>{snap.locationLabel}</div>
     </div>
   );

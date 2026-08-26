@@ -2,6 +2,8 @@
 // React, no i18n) so they're covered directly by timeSeriesChartUtils.test.ts
 // instead of through component rendering.
 
+import { hour12OptionFor, type TimeFormat } from '../../../lib/units';
+
 export interface TimeSeriesPoint {
   t: number;
   avg: number;
@@ -252,7 +254,7 @@ export function ribbonOpacityFraction(value: number, min: number, max: number): 
  * current effective point spacing) is sub-minute - at a coarse zoom level a
  * seconds digit is meaningless precision the data doesn't actually have.
  */
-export function formatTooltipTimestamp(t: number, nowMs: number, locale?: string, stepSeconds?: number | null): string {
+export function formatTooltipTimestamp(t: number, nowMs: number, timeFormat: TimeFormat, locale?: string, stepSeconds?: number | null): string {
   const at = new Date(t);
   const now = new Date(nowMs);
   const sameDay = at.getFullYear() === now.getFullYear() && at.getMonth() === now.getMonth() && at.getDate() === now.getDate();
@@ -265,5 +267,6 @@ export function formatTooltipTimestamp(t: number, nowMs: number, locale?: string
     hour: 'numeric',
     minute: '2-digit',
     second: showSeconds ? '2-digit' : undefined,
+    hour12: hour12OptionFor(timeFormat),
   });
 }

@@ -304,6 +304,16 @@ export const fetchSleepBlackout = () =>
 export const setSleepBlackout = (enabled: boolean) =>
   postService('/lighting/sleep-blackout', { enabled });
 
+// --- Lock blackout ---
+// Fade lighting out while the session is locked and back in on unlock.
+// Host-only route, same as sleep-blackout.
+
+export const fetchLockBlackout = () =>
+  fetchService<{ enabled: boolean }>('/lighting/lock-blackout');
+
+export const setLockBlackout = (enabled: boolean) =>
+  postService('/lighting/lock-blackout', { enabled });
+
 // --- Device list ---
 
 export interface LightingDevice {

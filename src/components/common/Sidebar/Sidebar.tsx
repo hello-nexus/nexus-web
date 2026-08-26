@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, Plus } from 'lucide-react';
 import classNames from 'classnames';
 import {
   DndContext, type CollisionDetection, type DragEndEvent, type DragOverEvent,
@@ -69,6 +69,11 @@ interface SidebarProps {
   // items. Used by SidebarColumn to slot the DEVICES section below
   // APPS so both share one scroll context.
   afterTail?: ReactNode;
+  // Opens the add-app drawer. When set, a short semi-transparent + strip
+  // renders below the last app row, revealed on sidebar hover / keyboard
+  // focus. One prop rather than two so the label - the icon-only button's
+  // only accessible name - can't be omitted. Undefined -> no strip.
+  addItem?: { label: string; onClick: () => void };
 }
 
 // Per-row status dot - same logic for sortable & locked rows. Suppressed on
@@ -143,11 +148,25 @@ function SidebarRow({ item, active, compact, serviceState, onClick, onContextMen
 // hover/active highlight, compact tooltip). Used for one-off entries outside
 // the sortable apps list - e.g. the bottom-pinned Settings button in the
 // sidebar column - so they read identically to the nav rows above.
-export function SidebarNavButton({ icon, label, active, compact, onClick }: {
+export function SidebarNavButton({
+  icon, label, active, compact, disabled = false, disabledReason, toggle = true, onClick,
+}: {
   icon: ReactNode;
   label: string;
   active: boolean;
   compact: boolean;
+  // Nav rows are a selected-state set, so they carry aria-pressed. A plain
+  // listing (the add-app drawer) passes false: nothing there toggles, and
+  // every row announcing as an unpressed toggle button is worse than none.
+  toggle?: boolean;
+  // Dims the row and blocks activation, keeping the same box (used by the
+  // add-app drawer for apps already in the sidebar). aria-disabled rather than
+  // the native attribute: a disabled button leaves the tab order, so a
+  // keyboard user would skip the dimmed rows entirely and read the list as
+  // missing them.
+  disabled?: boolean;
+  // Why the row is inert, surfaced as the row's description.
+  disabledReason?: string;
   onClick: () => void;
 }) {
   const button = (
@@ -156,10 +175,13 @@ export function SidebarNavButton({ icon, label, active, compact, onClick }: {
       className={classNames(styles.item, {
         [styles.active]: active,
         [styles.itemCompact]: compact,
+        [styles.itemDisabled]: disabled,
       })}
-      onClick={onClick}
+      onClick={disabled ? undefined : onClick}
+      aria-disabled={disabled || undefined}
+      title={disabled ? disabledReason : undefined}
       aria-label={compact ? label : undefined}
-      aria-pressed={active}
+      aria-pressed={toggle ? active : undefined}
     >
       <span className={styles.icon}>{icon}</span>
       {!compact && <span className={styles.label}>{label}</span>}
@@ -223,6 +245,7 @@ export function Sidebar({
   onTailReorder, onItemContextMenu,
   runningItems, onRunningPinAt,
   afterTail,
+  addItem,
 }: SidebarProps) {
   const tail = items;
   const sortable = Boolean(onTailReorder);
@@ -290,6 +313,26 @@ export function Sidebar({
     if (from < 0 || to < 0) return;
     const next = arrayMove(tailKeys, from, to);
     onTailReorder(next);
+  };
+
+  // Short + strip closing the app list. Hidden until the pointer enters the
+  // sidebar (or it takes keyboard focus) - see .addStrip in the stylesheet -
+  // and deliberately shorter than a nav row so it reads as an affordance
+  // rather than another app.
+  const renderAddStrip = () => {
+    if (!addItem) return null;
+    return (
+      <HoverTooltip body={addItem.label} side="right">
+        <button
+          type="button"
+          className={styles.addStrip}
+          onClick={addItem.onClick}
+          aria-label={addItem.label}
+        >
+          <Plus size={14} aria-hidden />
+        </button>
+      </HoverTooltip>
+    );
   };
 
   const renderExtra = () => {
@@ -438,6 +481,7 @@ export function Sidebar({
               )}
             </SortableContext>
           </DndContext>
+          {renderAddStrip()}
           {afterTail}
         </div>
       ) : (
@@ -475,6 +519,7 @@ export function Sidebar({
               ))}
             </>
           )}
+          {renderAddStrip()}
           {afterTail}
         </div>
       )}
