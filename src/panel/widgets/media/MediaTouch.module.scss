@@ -321,3 +321,151 @@
   box-shadow: var(--shadow-sm);
   pointer-events: none;
 }
+
+// ── Visualizer ─────────────────────────────────────────────────────────────
+
+.visualizer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--ease-slow) ease;
+
+  &[data-ready='true'] {
+    opacity: 1;
+  }
+}
+
+.visualizerCanvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+// Darkens the top and bottom thirds only, where the metadata and transport
+// sit; the shader keeps its own contrast through the middle.
+.visualizerScrim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgb(0 0 0 / 45%) 0%,
+    transparent 28%,
+    transparent 62%,
+    rgb(0 0 0 / 55%) 100%
+  );
+}
+
+// Full-bleed tap target under the controls: reveals them while faded, cycles
+// the effect while they are up.
+.visualizerSurface {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.visualizerToast {
+  @include text-caption;
+
+  position: absolute;
+  left: 50%;
+  bottom: 14%;
+  transform: translateX(-50%);
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  background: rgb(0 0 0 / 45%);
+  color: #fff;
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: visualizer-toast var(--ease-slow) ease;
+}
+
+@keyframes visualizer-toast {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+// display: contents off the visualizer so the seek / transport / volume stay
+// direct flex children of .player and its space-evenly distribution is
+// unchanged; the wrapper only becomes a real box (and a fade unit) once the
+// visualizer owns the frame.
+.fadeGroup {
+  display: contents;
+}
+
+.immersiveRoot[data-visualizer='true'] {
+  // Taps fall through the layout to .visualizerSurface; the revealed controls
+  // opt back in below.
+  .immersiveContent {
+    pointer-events: none;
+  }
+
+  .title,
+  .artist,
+  .album,
+  .source {
+    color: #fff;
+    text-shadow: 0 1px 12px rgb(0 0 0 / 60%);
+  }
+
+  .artist,
+  .album {
+    opacity: 0.75;
+  }
+
+  // The panel palette is tuned against a solid theme background; over a shader
+  // the same tokens sink into the image, so the transport switches to a
+  // white-on-glass treatment while the visualizer owns the frame.
+  .seekTime,
+  .btn,
+  .primary,
+  .volumeMuteBtn {
+    --icon-label-button-text: #fff;
+
+    color: #fff;
+    opacity: 1;
+    text-shadow: 0 1px 10px rgb(0 0 0 / 55%);
+  }
+
+  .seekBar,
+  .volumeTrack::before {
+    background: rgb(255 255 255 / 25%);
+  }
+
+  .seekFill,
+  .volumeFill,
+  .volumeKnob {
+    background: #fff;
+  }
+
+  // Metadata to the top, transport to the bottom, so the middle of the frame
+  // stays the visualizer instead of the title sitting on the busiest part of
+  // the shader.
+  .player {
+    justify-content: flex-start;
+  }
+
+  .fadeGroup {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-width: 0;
+    opacity: 0;
+    transition: opacity var(--ease-slow) ease;
+
+    &[data-revealed='true'] {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  }
+}

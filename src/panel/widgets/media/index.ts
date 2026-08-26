@@ -2,6 +2,7 @@ import { Music } from 'lucide-react';
 import type { AppManifest } from '../types';
 import { MediaWidget } from './MediaWidget';
 import { MediaTouch } from './MediaTouch';
+import { MediaSettings } from './MediaSettings';
 
 export const mediaApp: AppManifest = {
   meta: {
@@ -16,4 +17,5 @@ export const mediaApp: AppManifest = {
   },
   Widget: MediaWidget,
   Touch: MediaTouch,
+  Settings: MediaSettings,
 };
