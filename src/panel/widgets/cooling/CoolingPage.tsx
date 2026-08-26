@@ -26,7 +26,7 @@ import {
 } from '../../../api/qseries';
 import {
   fetchFanChannels, fetchTemperatureSources, fetchCurves,
-  setFanSpeed, releaseFanAuto, saveCurves, renameFan, setFanLock, setFanRole, setFanOffset,
+  setFanSpeed, releaseFanAuto, saveCurves, renameFan, setFanLock, setFanControlled, setFanRole, setFanOffset,
   fetchCoolingPresets, createCoolingPreset, updateCoolingPreset, deleteCoolingPreset,
   activateCoolingPreset, type CoolingPreset,
   startCalibration, fetchCalibrationResults, fetchProfiles, applyProfile,
@@ -57,7 +57,7 @@ import { CollapsibleSection } from '../../../components/common/CollapsibleSectio
 import { SortableList, type SortableRowArgs } from '../../../components/common/SortableList/SortableList';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { CoolingSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
-import { FanCard, type FanCardHubMode } from './page/FanCard';
+import { FanCard, type FanBulkSelection, type FanCardHubMode } from './page/FanCard';
 import { CurveCard } from './page/CurveEditor';
 import { CurveSelector } from './page/CurveSelector';
 import { fanDeviceGroupName } from './page/deviceGroupName';
@@ -650,6 +650,27 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     if (fans?.channels) setChannels(fans.channels);
   }, []);
 
+  // Nexus Control on/off for one channel. The service releases the fan to the
+  // motherboard on the way off, so the refetch is what brings its mode back as
+  // BIOS; the optimistic write just keeps the card from flickering first.
+  const handleSetFanControlled = useCallback(async (id: string, controlled: boolean) => {
+    setChannels(prev => prev.map(ch => ch.id === id ? { ...ch, controlled } : ch));
+    await setFanControlled(id, controlled);
+    const fans = await fetchFanChannels();
+    if (fans?.channels) setChannels(fans.channels);
+  }, []);
+
+  // Simple mode's one-click claim. Sequential rather than parallel: each write
+  // re-derives the active preset service-side, and concurrent writes would race
+  // that derivation.
+  const claimAllFans = useCallback(async () => {
+    for (const ch of channels) {
+      if (ch.controlled === false) await setFanControlled(ch.id, true);
+    }
+    const fans = await fetchFanChannels();
+    if (fans?.channels) setChannels(fans.channels);
+  }, [channels]);
+
   // A locked fan is skipped by the preset buttons, and simple mode has no fan
   // rail to unlock it from - it would sit on its old speed, unexplained.
   // Latched per id: every lock write refetches the channels, so an unlatched
@@ -665,11 +686,13 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     }
   }, [simpleDashboard, channels, handleToggleLock]);
 
-  // Driven means bound to a curve or Manual; the Off preset hands every fan
-  // back to the BIOS, so this reads zero there.
+  // Counts Nexus Control, not "currently driven": the Off preset legitimately
+  // drives nothing, and a summary that read 0/6 there would put a claim button
+  // in front of a user who chose Off on purpose. Nexus Control off is the only
+  // state the claim button can resolve, so it is the one the count tracks.
   const controlledFanCount = useMemo(
-    () => channels.filter(ch => fanStates[ch.id]?.softwareControl).length,
-    [channels, fanStates],
+    () => channels.filter(ch => ch.controlled !== false).length,
+    [channels],
   );
 
   const handleSetRole = useCallback(async (id: string, role: FanRole) => {
@@ -793,6 +816,22 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
       return next;
     });
   }, [setSelectedFanIds]);
+
+  // A card inside a multi-selection acts on the whole selection, the way the
+  // lighting device cards do. Aggregates read "any member still is", so one
+  // press lands every member on the same state.
+  const bulkForFan = useCallback((ch: FanChannel): FanBulkSelection | undefined => {
+    if (selectedFanIds.size < 2 || !selectedFanIds.has(ch.id)) return undefined;
+    const members = channels.filter(c => selectedFanIds.has(c.id));
+    if (members.length < 2) return undefined;
+    return {
+      count: members.length,
+      locked: members.some(c => c.locked === true),
+      controlled: members.some(c => c.controlled !== false),
+      setLocked: (locked: boolean) => { for (const c of members) void handleToggleLock(c.id, locked); },
+      setControlled: (controlled: boolean) => { for (const c of members) void handleSetFanControlled(c.id, controlled); },
+    };
+  }, [channels, selectedFanIds, handleToggleLock, handleSetFanControlled]);
 
   // The curve the selection is wearing: shared across every selected fan, or
   // null when they disagree - there is no single curve to highlight then.
@@ -1053,7 +1092,11 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // bulk-selected. Must match FanCard's own state-glyph rule.
   const selectableFanIds = useMemo(
     () => orderedChannels
-      .filter(c => !isFanDisconnected(c) && !(c.readOnly ?? false) && c.classification !== 'Fixed')
+      .filter(c => !isFanDisconnected(c) && !(c.readOnly ?? false) && c.classification !== 'Fixed'
+        // Nexus Control off joined FanCard's undrivable rule, so it has to join
+        // this one too: select-all would otherwise put a card in the selection
+        // that refuses its own click, leaving no way to take it back out.
+        && c.controlled !== false)
       .map(c => c.id),
     [orderedChannels],
   );
@@ -1144,9 +1187,19 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     return (
       <div className={styles.cooling}>
         <div className={`${styles.simpleBody} pageBodyFill`}>
+          {/* Same summary+claim pair as the simple lighting page: one line
+              carrying both counts, and the action only while it has something
+              to resolve. */}
           <DeviceCountSummary
-            detected={t(pluralKey('cooling.simple.detected', language, channels.length), { count: channels.length })}
-            controlled={t('cooling.simple.controlled', { count: controlledFanCount })}
+            detected={t(pluralKey('cooling.simple.controlledOf', language, channels.length), {
+              controlled: controlledFanCount,
+              total: channels.length,
+            })}
+            action={controlledFanCount < channels.length ? (
+              <Button size="sm" pill onClick={() => { void claimAllFans(); }}>
+                {t('cooling.simple.controlAll')}
+              </Button>
+            ) : undefined}
           />
           {/* Off is a state rather than a speed, so it leads as a wide row
               instead of competing with the three speed tiles. */}
@@ -1356,6 +1409,9 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                   onRename={handleRename}
                   onSpeedChange={handleSpeedChange}
                   onToggleLock={handleToggleLock}
+                  onToggleControlled={handleSetFanControlled}
+                  onSelectOnly={() => setSelectedFanIds(new Set([ch.id]))}
+                  bulk={bulkForFan(ch)}
                   onSetRole={handleSetRole}
                   onClearOffset={handleClearOffset}
                   drag={drag}
@@ -1455,6 +1511,9 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                           onRename={handleRename}
                           onSpeedChange={handleSpeedChange}
                           onToggleLock={handleToggleLock}
+                          onToggleControlled={handleSetFanControlled}
+                          onSelectOnly={() => setSelectedFanIds(new Set([ch.id]))}
+                          bulk={bulkForFan(ch)}
                           onSetRole={handleSetRole}
                   onClearOffset={handleClearOffset}
                         />

@@ -212,10 +212,12 @@ describe('FanCard device-role picker', () => {
     expect(onToggleLock).not.toHaveBeenCalled();
   });
 
-  it('explains the lock in the icon tooltip only while locked', () => {
+  it('names the role picker in its tooltip whether or not the fan is locked', () => {
+    // Lock moved into the mode dropdown's value, so the icon carries no lock
+    // meaning any more and its tooltip is the same in both states.
     const { trigger, rerender } = renderRolePicker(makeChannel({ locked: true }));
     fireEvent.focus(trigger);
-    expect(screen.getByRole('tooltip')).toHaveTextContent('cooling.lock.lockedHint');
+    expect(screen.getByRole('tooltip')).toHaveTextContent('cooling.fanRole.picker');
     fireEvent.blur(trigger);
 
     rerender(
@@ -228,60 +230,182 @@ describe('FanCard device-role picker', () => {
   });
 });
 
-describe('FanCard mode dropdown Lock toggle', () => {
+describe('FanCard overflow menu', () => {
   beforeEach(() => {
     stubBarGeometry();
   });
 
-  function optionValues(select: HTMLSelectElement) {
-    return Array.from(select.querySelectorAll('option')).map(o => o.value);
+  function openMenu() {
+    fireEvent.click(screen.getByRole('button', { name: 'cooling.fan.moreActions' }));
   }
 
-  it('lists Lock after the create-curve divider and toggles it', () => {
-    const onToggleLock = vi.fn();
-    render(
-      <FanCard channel={makeChannel()} state={manualState} curves={[]}
+  function renderMenuCard(ch: FanChannel, extra: Record<string, unknown> = {}) {
+    return render(
+      <FanCard channel={ch} state={manualState} curves={[]}
         onSetMode={() => {}} onCreateCurve={() => {}} onRename={() => {}} onSpeedChange={() => {}}
-        onToggleLock={onToggleLock} onSetRole={() => {}} />,
+        onToggleLock={() => {}} onSetRole={() => {}} {...extra} />,
     );
-    const select = screen.getByLabelText('cooling.card.mode') as HTMLSelectElement;
-    const values = optionValues(select);
-    const createIdx = values.indexOf('__create__');
-    const lockIdx = values.indexOf('__lock__');
-    expect(createIdx).toBeGreaterThanOrEqual(0);
-    expect(lockIdx).toBeGreaterThan(createIdx);
-    // The row names the action, not the state.
-    const lockOption = select.querySelector('option[value="__lock__"]')!;
-    expect(lockOption.textContent).toBe('cooling.lock.lock');
+  }
 
-    fireEvent.change(select, { target: { value: '__lock__' } });
+  it('moves Lock out of the mode dropdown and into the menu', () => {
+    const onToggleLock = vi.fn();
+    renderMenuCard(makeChannel(), { onToggleLock });
+    const select = screen.getByLabelText('cooling.card.mode') as HTMLSelectElement;
+    // The dropdown is modes only now - that is what keeps it narrow.
+    const values = Array.from(select.querySelectorAll('option')).map(o => o.value);
+    expect(values).not.toContain('__lock__');
+
+    openMenu();
+    // The row names the action, not the state.
+    fireEvent.click(screen.getByText('cooling.lock.lock'));
     expect(onToggleLock).toHaveBeenCalledWith('fan1', true);
   });
 
   it('offers Unlock when the fan is locked and toggles it off', () => {
     const onToggleLock = vi.fn();
-    render(
-      <FanCard channel={makeChannel({ locked: true })} state={manualState} curves={[]}
-        onSetMode={() => {}} onCreateCurve={() => {}} onRename={() => {}} onSpeedChange={() => {}}
-        onToggleLock={onToggleLock} onSetRole={() => {}} />,
-    );
-    const select = screen.getByLabelText('cooling.card.mode') as HTMLSelectElement;
-    const lockOption = select.querySelector('option[value="__lock__"]')!;
-    expect(lockOption.textContent).toBe('cooling.lock.unlock');
-
-    fireEvent.change(select, { target: { value: '__lock__' } });
+    renderMenuCard(makeChannel({ locked: true }), { onToggleLock });
+    openMenu();
+    fireEvent.click(screen.getByText('cooling.lock.unlock'));
     expect(onToggleLock).toHaveBeenCalledWith('fan1', false);
   });
 
-  it('still lists Lock when the curve cap is reached (no create-curve entry)', () => {
-    const onToggleLock = vi.fn();
-    render(
-      <FanCard channel={makeChannel()} state={manualState} curves={[]} canCreateCurve={false}
+  it('opens from a right-click on the card as well as the button', () => {
+    const { container } = renderMenuCard(makeChannel());
+    expect(screen.queryByText('cooling.lock.lock')).toBeNull();
+    fireEvent.contextMenu(container.firstElementChild!);
+    expect(screen.getByText('cooling.lock.lock')).toBeTruthy();
+  });
+
+  it('toggles Nexus Control from the menu when the page offers it', () => {
+    const onToggleControlled = vi.fn();
+    renderMenuCard(makeChannel(), { onToggleControlled });
+    openMenu();
+    fireEvent.click(screen.getByText('cooling.fan.menuControlOff'));
+    expect(onToggleControlled).toHaveBeenCalledWith('fan1', false);
+  });
+
+  it('omits the Nexus Control row on a surface that cannot set it', () => {
+    renderMenuCard(makeChannel());
+    openMenu();
+    expect(screen.queryByText('cooling.fan.menuControlOff')).toBeNull();
+  });
+});
+
+describe('FanCard menu in a multi-selection', () => {
+  beforeEach(() => {
+    stubBarGeometry();
+  });
+
+  const bulk = (over = {}) => ({
+    count: 3, locked: false, controlled: true,
+    setLocked: vi.fn(), setControlled: vi.fn(), ...over,
+  });
+
+  function renderBulkCard(b, extra = {}) {
+    return render(
+      <FanCard channel={makeChannel()} state={manualState} curves={[]}
         onSetMode={() => {}} onCreateCurve={() => {}} onRename={() => {}} onSpeedChange={() => {}}
-        onToggleLock={onToggleLock} onSetRole={() => {}} />,
+        onToggleLock={() => {}} onSetRole={() => {}} onToggleControlled={() => {}} bulk={b} {...extra} />,
     );
-    const select = screen.getByLabelText('cooling.card.mode') as HTMLSelectElement;
-    expect(optionValues(select)).not.toContain('__create__');
-    expect(optionValues(select)).toContain('__lock__');
+  }
+  const openMenu = () => fireEvent.click(screen.getByRole('button', { name: 'cooling.fan.moreActions' }));
+
+  it('locks the whole selection, counting it in the row', () => {
+    const b = bulk();
+    renderBulkCard(b);
+    openMenu();
+    fireEvent.click(screen.getByText('cooling.lock.lockCount.other'));
+    expect(b.setLocked).toHaveBeenCalledWith(true);
+  });
+
+  it('turns Nexus Control off for the whole selection, counting it in the row', () => {
+    const b = bulk();
+    renderBulkCard(b);
+    openMenu();
+    fireEvent.click(screen.getByText('cooling.fan.menuControlOffCount.other'));
+    expect(b.setControlled).toHaveBeenCalledWith(false);
+  });
+
+  it('reads the aggregate, not this card, so one press lands the whole selection', () => {
+    // This card is unlocked, but a member is locked - the row offers Unlock.
+    const b = bulk({ locked: true });
+    renderBulkCard(b);
+    openMenu();
+    fireEvent.click(screen.getByText('cooling.lock.unlockCount.other'));
+    expect(b.setLocked).toHaveBeenCalledWith(false);
+  });
+
+  it('drops the per-fan offset row, which a selection cannot act on', () => {
+    renderBulkCard(bulk(), { channel: makeChannel({ offset: 5 }), onClearOffset: vi.fn() });
+    openMenu();
+    expect(screen.queryByText('cooling.card.clearOffset')).toBeNull();
+  });
+
+  it('leads with a row that narrows the selection to this fan', () => {
+    const onSelectOnly = vi.fn();
+    renderBulkCard(bulk(), { onSelectOnly });
+    openMenu();
+    fireEvent.click(screen.getByText('cooling.fan.selectOnly'));
+    expect(onSelectOnly).toHaveBeenCalled();
+  });
+
+  it('offers no narrow-to-this row on a fan that cannot be selected at all', () => {
+    render(
+      <FanCard channel={makeChannel({ classification: 'Fixed' })} state={manualState} curves={[]}
+        onSetMode={() => {}} onCreateCurve={() => {}} onRename={() => {}} onSpeedChange={() => {}}
+        onToggleLock={() => {}} onSetRole={() => {}} onToggleControlled={() => {}} onSelectOnly={vi.fn()} />,
+    );
+    openMenu();
+    expect(screen.queryByText('cooling.fan.selectOnly')).toBeNull();
+  });
+});
+
+describe('FanCard with Nexus Control off', () => {
+  beforeEach(() => {
+    stubBarGeometry();
+  });
+
+  it('replaces the mode dropdown with the not-controlled badge', () => {
+    render(
+      <FanCard channel={makeChannel({ controlled: false })} state={manualState} curves={[]}
+        onSetMode={() => {}} onCreateCurve={() => {}} onRename={() => {}} onSpeedChange={() => {}}
+        onToggleLock={() => {}} onSetRole={() => {}} onToggleControlled={() => {}} />,
+    );
+    expect(screen.queryByLabelText('cooling.card.mode')).toBeNull();
+    expect(screen.getByText('cooling.fan.notControlled')).toBeTruthy();
+  });
+
+  it('takes no card selection while control is off', () => {
+    const onSelect = vi.fn();
+    const { container } = render(
+      <FanCard channel={makeChannel({ controlled: false })} state={manualState} curves={[]}
+        onSetMode={() => {}} onCreateCurve={() => {}} onRename={() => {}} onSpeedChange={() => {}}
+        onToggleLock={() => {}} onSetRole={() => {}} onSelect={onSelect} onToggleControlled={() => {}} />,
+    );
+    fireEvent.click(container.firstElementChild!);
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('keeps the lock visible where there is no dropdown to carry it', () => {
+    // The lock normally rides the mode option's icon; a card with no dropdown
+    // would otherwise show no lock while the menu still offered Unlock.
+    const { container } = render(
+      <FanCard channel={makeChannel({ controlled: false, locked: true })} state={manualState} curves={[]}
+        onSetMode={() => {}} onCreateCurve={() => {}} onRename={() => {}} onSpeedChange={() => {}}
+        onToggleLock={() => {}} onSetRole={() => {}} onToggleControlled={() => {}} />,
+    );
+    expect(container.querySelector('[class*="fanLockGlyph"]')).toBeTruthy();
+  });
+
+  it('offers only the turn-on row, so the state is always reversible', () => {
+    render(
+      <FanCard channel={makeChannel({ controlled: false, locked: true })} state={manualState} curves={[]}
+        onSetMode={() => {}} onCreateCurve={() => {}} onRename={() => {}} onSpeedChange={() => {}}
+        onToggleLock={() => {}} onSetRole={() => {}} onToggleControlled={() => {}} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'cooling.fan.moreActions' }));
+    expect(screen.getByText('cooling.fan.menuControlOn')).toBeTruthy();
+    // Lock is meaningless while nothing drives the channel.
+    expect(screen.queryByText('cooling.lock.unlock')).toBeNull();
   });
 });

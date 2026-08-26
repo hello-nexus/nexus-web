@@ -16,6 +16,7 @@ export interface FanChannel {
   mode: string; // "Auto" | "Manual" | "Curve"
   kind?: string; // "Fan" | "Pump" - hardware channel type reported by the service
   locked?: boolean; // skipped by the global preset buttons; still settable from the mode dropdown
+  controlled?: boolean; // false = Nexus drives no duty onto this channel and no preset reclaims it; undefined means controlled
   readOnly?: boolean; // telemetry-only channel: header readout, no duty bar / mode control
   rpmUnavailable?: boolean; // duty is controllable but RPM cannot be read (SLV3 wireless chain that does not enumerate its fans)
   minRpm?: number | null;
@@ -202,6 +203,9 @@ export const renameFan = (id: string, name: string) =>
 
 export const setFanLock = (id: string, locked: boolean) =>
   postService(`/cooling/fan/${encodeURIComponent(id)}/lock`, { locked });
+
+export const setFanControlled = (id: string, controlled: boolean) =>
+  postService(`/cooling/fan/${encodeURIComponent(id)}/controlled`, { controlled });
 
 export const setFanRole = (id: string, role: FanRole) =>
   postService(`/cooling/fan/${encodeURIComponent(id)}/role`, { role });

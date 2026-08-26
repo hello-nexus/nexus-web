@@ -1,6 +1,6 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import { isMultiSelectModifier } from '../../../../lib/platform';
-import { CircleSlash, Cpu, Fan, Gpu, Lock, Plus, RotateCcw, Unplug } from 'lucide-react';
+import { CircleSlash, Cpu, Fan, Gpu, Link2, Lock, LockOpen, MoreVertical, MousePointerClick, Plus, RotateCcw, Unlink, Unplug } from 'lucide-react';
 import { type FanChannel, type FanRole, isFanDisconnected } from '../../../../api/cooling';
 import { useUnitPrefs } from '../../../../hooks/useUiSettings';
 import { useTranslation } from '../../../../lib/i18n';
@@ -11,6 +11,8 @@ import { EditableText } from '../../../../components/common/Editable/EditableTex
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { Popover } from '../../../../components/common/Popover/Popover';
 import { Select, type SelectOption } from '../../../../components/common/Select/Select';
+import { DeviceContextMenu, type DeviceMenuItem } from '../../../../components/common/DeviceCanvas/DeviceContextMenu';
+import { bulkMenuLabel } from '../../../../components/common/DeviceCanvas/bulkMenuLabel';
 import { type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
 import styles from '../CoolingPage.module.scss';
 
@@ -38,13 +40,25 @@ import styles from '../CoolingPage.module.scss';
  */
 export type FanCardHubMode = 'software' | 'motherboard' | 'firmware';
 
+/** The selection a fan card's menu acts on when the card is part of one.
+ *  Aggregate flags follow the lighting cards' convention: true when ANY member
+ *  still is, so one press lands every member on the same state. */
+export interface FanBulkSelection {
+  count: number;
+  locked: boolean;
+  controlled: boolean;
+  setLocked: (locked: boolean) => void;
+  setControlled: (controlled: boolean) => void;
+}
+
 export const FanCard = memo(function FanCard({
   channel, state, curves, calibrating, compact, canCreateCurve = true, highlighted,
   selected = false, onSelect,
   hubMode, hubSupportsFirmware,
   hubSupportsBios = true,
   nubRef, cardRef: cardRefProp, onWirePointerDown, onWireHover,
-  onSetMode, onCreateCurve, onRename, onSpeedChange, onToggleLock, onSetRole, onClearOffset, drag,
+  onSetMode, onCreateCurve, onRename, onSpeedChange, onToggleLock, onToggleControlled, onSetRole, onClearOffset, drag,
+  onSelectOnly, bulk,
 }: {
   channel: FanChannel;
   state: FanState | undefined;
@@ -86,12 +100,21 @@ export const FanCard = memo(function FanCard({
   onRename: (id: string, name: string) => void;
   onSpeedChange: (id: string, speed: number) => void;
   onToggleLock: (id: string, locked: boolean) => void;
+  /** Nexus Control on/off for this channel. Off releases it to the motherboard
+   *  and keeps every preset apply off it. Absent on surfaces that cannot set it. */
+  onToggleControlled?: (id: string, controlled: boolean) => void;
   onSetRole: (id: string, role: FanRole) => void;
   /** Clears a per-fan duty offset (the FanControl import is what creates them). Absent on surfaces that do not offer it. */
   onClearOffset?: (id: string) => void;
   drag?: SortableRowArgs;
+  /** Narrow the selection to this card alone. Offered on every menu except a
+   *  card that cannot be selected at all. */
+  onSelectOnly?: () => void;
+  /** Present only when this card is part of a multi-selection. The menu then
+   *  acts on the whole selection, matching the lighting device card. */
+  bulk?: FanBulkSelection;
 }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { numberFormat } = useUnitPrefs();
   const dutyPct = Math.max(0, Math.min(100, channel.dutyPercent));
   const swEnabled = state?.softwareControl ?? false;
@@ -131,10 +154,17 @@ export const FanCard = memo(function FanCard({
   // selection - the lighting rail's rule for an un-driven device.
   // Read-only channels render no badge at all (their branch is null), but they
   // are just as un-drivable, so the selection gate keys off this too.
-  const undrivable = isHwDisconnected || isFixed || isReadOnly;
+  // Nexus Control off: the user handed this channel to the motherboard or a
+  // vendor app. Unlike BIOS Control it survives a preset apply, so the card
+  // drops its mode dropdown entirely rather than showing a mode we do not own -
+  // the lighting device card's treatment for the same state.
+  const controlled = channel.controlled !== false;
+  const undrivable = isHwDisconnected || isFixed || isReadOnly || !controlled;
   const stateBadge = isHwDisconnected
     ? { icon: <Unplug size={11} />, label: t('cooling.fan.disconnected') }
-    : (isFixed ? { icon: <CircleSlash size={11} />, label: t('cooling.fan.fixed') } : null);
+    : isFixed ? { icon: <CircleSlash size={11} />, label: t('cooling.fan.fixed') }
+    : !controlled ? { icon: <Unlink size={11} />, label: t('cooling.fan.notControlled') }
+    : null;
   const locked = channel.locked ?? false;
   // An offset shifts this fan off whatever drives it, so it says so on the
   // card: an import can set one, and nothing else would show why the fan sits
@@ -157,6 +187,12 @@ export const FanCard = memo(function FanCard({
   // absolute against this wrapper (see Popover.tsx).
   const [roleMenuOpen, setRoleMenuOpen] = useState(false);
   const roleAnchorRef = useRef<HTMLDivElement | null>(null);
+  // seq remounts the menu on every open: it latches its own closing state, so
+  // a reused instance would fade the reopened menu straight back out. Same
+  // shape as ZoneCard.
+  const [menuAt, setMenuAt] = useState<{ x: number; y: number; seq: number } | null>(null);
+  const menuSeq = useRef(0);
+  const openMenu = (x: number, y: number) => setMenuAt({ x, y, seq: ++menuSeq.current });
   const roleChoices: Array<{ value: FanRole; label: string; Icon: typeof Fan }> = [
     { value: 'none', label: t('cooling.fanRole.generic'), Icon: Fan },
     { value: 'cpu', label: t('cooling.label.cpu'), Icon: Cpu },
@@ -232,7 +268,7 @@ export const FanCard = memo(function FanCard({
   const dragClasses = [
     driven && !isFixed ? styles.fanCardActive : '',
     compact ? styles.fanCardCompact : '',
-    isHwDisconnected || isFixed ? styles.fanCardOff : '',
+    isHwDisconnected || isFixed || !controlled ? styles.fanCardOff : '',
     drag?.isDragging ? drag.placeholderClassName : '',
   ].filter(Boolean).join(' ');
 
@@ -241,17 +277,13 @@ export const FanCard = memo(function FanCard({
     drag?.ref(el);
   };
 
-  // Select has no persistent checkbox, so the row names the action it performs.
-  const lockOptionLabel = locked ? t('cooling.lock.unlock') : t('cooling.lock.lock');
   const rolePickerLabel = t('cooling.fanRole.picker');
-  // Locked state shows only as the badge, so the icon tooltip carries its meaning.
-  const fanIconTooltip = locked ? t('cooling.lock.lockedHint') : rolePickerLabel;
 
   // NP50 lists only FW Control (no BIOS hand-off); a Q-series pump lists both;
-  // everything else lists only BIOS. The create-curve action and the Lock
-  // toggle each sit below a thin rule separator, matching the lighting preset
-  // and Profile dropdowns.
-  const modeOptions: SelectOption[] = [
+  // everything else lists only BIOS. Modes only - Lock and Nexus Control are
+  // states rather than modes and live in the card's overflow menu, which is
+  // what keeps this dropdown narrow.
+  const baseModeOptions: SelectOption[] = [
     ...(hubSupportsFirmware ? [{ value: 'fw', label: t('cooling.card.firmware') }] : []),
     ...(hubSupportsBios ? [{ value: 'bios', label: t('cooling.card.bios') }] : []),
     { value: 'manual', label: t('cooling.card.manual') },
@@ -260,19 +292,99 @@ export const FanCard = memo(function FanCard({
       { value: '__sep__', label: '', divider: true },
       { value: '__create__', label: t('cooling.card.createCurve'), className: styles.fanModeOptionCreate, icon: <Plus size={14} /> },
     ] : []),
-    { value: '__lockSep__', label: '', divider: true },
-    { value: '__lock__', label: lockOptionLabel, icon: <Lock size={14} /> },
-    ...(offset !== 0 && onClearOffset
-      ? [{ value: '__clearOffset__', label: t('cooling.card.clearOffset'), icon: <RotateCcw size={14} /> }]
-      : []),
   ];
+  // Select renders the selected option's icon in its trigger, so hanging the
+  // lock on the current mode is what puts it inside the dropdown ("[lock]
+  // Silent"). The fan icon no longer carries it.
+  const modeOptions: SelectOption[] = locked
+    ? baseModeOptions.map(o => o.value === modeValue ? { ...o, icon: <Lock size={14} /> } : o)
+    : baseModeOptions;
 
   const handleModeChange = (v: string) => {
     if (v === '__create__') { onCreateCurve(); return; }
-    if (v === '__lock__') { onToggleLock(channel.id, !locked); return; }
-    if (v === '__clearOffset__') { onClearOffset?.(channel.id); return; }
     onSetMode(v);
   };
+
+  // Overflow menu, mirroring the lighting device card: a right-click anywhere
+  // on the card and the trailing button both open it.
+  const menuItems = (): DeviceMenuItem[] => {
+    const items: DeviceMenuItem[] = [];
+    // Leads the menu and names the fan, so it is unambiguous which card the
+    // selection is about to narrow to. Matches the lighting card, including
+    // the rule under it.
+    if (onSelectOnly && !undrivable) {
+      items.push({
+        key: 'selectOnly',
+        icon: <MousePointerClick size={14} />,
+        label: t('cooling.fan.selectOnly', { name: channel.name }),
+        onSelect: onSelectOnly,
+        separatorAfter: true,
+      });
+    }
+    // Aggregates read "any member still is", so one press lands the whole
+    // selection on the same state.
+    const isLocked = bulk ? bulk.locked : locked;
+    const isControlled = bulk ? bulk.controlled : controlled;
+    const setLocked = (next: boolean) => bulk ? bulk.setLocked(next) : onToggleLock(channel.id, next);
+    const label = (single: string, counted: string) => bulkMenuLabel(t, language, bulk, single, counted);
+
+    if (isControlled) {
+      items.push(isLocked
+        ? { key: 'lock', icon: <LockOpen size={14} />, label: label('cooling.lock.unlock', 'cooling.lock.unlockCount'), onSelect: () => setLocked(false) }
+        : { key: 'lock', icon: <Lock size={14} />, label: label('cooling.lock.lock', 'cooling.lock.lockCount'), onSelect: () => setLocked(true) });
+      // An offset belongs to one fan, so a selection has nothing to clear -
+      // the same rule the lighting menu applies to the LED map row.
+      if (!bulk && offset !== 0 && onClearOffset) {
+        items.push({ key: 'clearOffset', icon: <RotateCcw size={14} />, label: t('cooling.card.clearOffset'), onSelect: () => onClearOffset(channel.id) });
+      }
+    }
+    if (onToggleControlled) {
+      const setControlled = (next: boolean) => bulk ? bulk.setControlled(next) : onToggleControlled(channel.id, next);
+      // The menu only offers separatorAfter, so the rule is set on the row
+      // above rather than the Nexus Control row itself.
+      if (items.length > 0) items[items.length - 1] = { ...items[items.length - 1], separatorAfter: true };
+      items.push(isControlled
+        ? { key: 'controlled', icon: <Unlink size={14} />, label: label('cooling.fan.menuControlOff', 'cooling.fan.menuControlOffCount'), onSelect: () => setControlled(false) }
+        // Highlighted for the same reason the lighting card highlights it: it
+        // is the row that un-sticks the card's current state.
+        : { key: 'controlled', icon: <Link2 size={14} />, label: label('cooling.fan.menuControlOn', 'cooling.fan.menuControlOnCount'), onSelect: () => setControlled(true), highlighted: true });
+    }
+    return items;
+  };
+  // A hardware-dead channel has no state worth changing, and a read-only one
+  // exposes no controls at all.
+  const menuEnabled = !isHwDisconnected && !isReadOnly && menuItems().length > 0;
+
+  // The lock normally rides the selected mode option's icon, so a branch with
+  // no dropdown (disconnected, fixed, read-only, Nexus Control off) would show
+  // no lock at all - and the menu still offers Lock/Unlock there. Carry it
+  // beside the state badge in those rows instead.
+  const lockGlyph = locked ? <Lock size={12} className={styles.fanLockGlyph} aria-hidden="true" /> : null;
+
+  // Shares the mode control's row rather than the card's full height, so the
+  // space it takes comes out of the dropdown's width and the card keeps its
+  // original height.
+  const menuButton = menuEnabled ? (
+    <div className={styles.fanCardActions} data-no-dnd>
+      <HoverTooltip body={t('cooling.fan.moreActions')} side="top">
+        <button
+          type="button"
+          className={styles.fanMenuBtn}
+          aria-label={t('cooling.fan.moreActions')}
+          onClick={e => {
+            e.stopPropagation();
+            // Explicit toggle: the button is its own close affordance, and the
+            // menu's outside-pointerdown close has already run.
+            if (menuAt) { setMenuAt(null); return; }
+            const r = e.currentTarget.getBoundingClientRect();
+            openMenu(r.right, r.bottom + 4);
+          }}
+        >
+          <MoreVertical />
+        </button>
+      </HoverTooltip>
+    </div>
+  ) : null;
 
   return (
     <div
@@ -298,20 +410,27 @@ export const FanCard = memo(function FanCard({
       } : undefined}
       onMouseEnter={onWireHover ? () => onWireHover(channel.id) : undefined}
       onMouseLeave={onWireHover ? () => onWireHover(null) : undefined}
+      onContextMenu={menuEnabled ? e => {
+        // The menu is portaled, so its own right-clicks still bubble through
+        // the component tree and would reopen it at the new coords. Same guard
+        // the card's onClick carries.
+        if (!e.currentTarget.contains(e.target as HTMLElement)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        openMenu(e.clientX, e.clientY);
+      } : undefined}
     >
       <div className={styles.fanCardBody}>
       <div className={styles.fanCardHeader}>
         {/* Fan icon opens the device-role picker (Generic fan / CPU / GPU) and
-            reflects the current role; the lock badge/dim visual rides on it
-            while the lock toggle itself lives in the mode dropdown. When this
-            fan is bound to the curve shown in the graph, the highlight lives on
-            the dropdown value (accentValue) instead of the icon. */}
+            reflects the current role. Lock is shown inside the mode dropdown,
+            not here. When this fan is bound to the curve shown in the graph,
+            the highlight lives on the dropdown value (accentValue). */}
         <div ref={roleAnchorRef} className={styles.fanRoleAnchor} data-no-dnd={isReadOnly ? undefined : true}>
-          <HoverTooltip body={fanIconTooltip} side="top">
+          <HoverTooltip body={rolePickerLabel} side="top">
             {isReadOnly ? (
               <span className={styles.fanKindToggle} role="img" aria-label={rolePickerLabel}>
-                <RoleIcon size={18} className={locked ? `${styles.fanKindIcon} ${styles.fanKindIconDim}` : styles.fanKindIcon} aria-hidden="true" />
-                {locked && <Lock size={14} className={styles.fanLockBadge} aria-hidden="true" />}
+                <RoleIcon size={18} className={styles.fanKindIcon} aria-hidden="true" />
               </span>
             ) : (
               <button
@@ -322,8 +441,7 @@ export const FanCard = memo(function FanCard({
                 aria-label={rolePickerLabel}
                 onClick={() => setRoleMenuOpen(o => !o)}
               >
-                <RoleIcon size={18} className={locked ? `${styles.fanKindIcon} ${styles.fanKindIconDim}` : styles.fanKindIcon} aria-hidden="true" />
-                {locked && <Lock size={14} className={styles.fanLockBadge} aria-hidden="true" />}
+                <RoleIcon size={18} className={styles.fanKindIcon} aria-hidden="true" />
               </button>
             )}
           </HoverTooltip>
@@ -376,22 +494,31 @@ export const FanCard = memo(function FanCard({
         </div>
       )}
 
-      {isHwDisconnected ? (
-        // Hardware unresponsive: the whole fan block is "off", so the badge
-        // replaces the duty bar and the mode dropdown. Its glyph is in the
-        // card's leading slot.
-        <div className={styles.fanStateBadge}>
-          <Badge label={stateBadge!.label} icon={stateBadge!.icon} compact uppercase color="var(--text-dim)" />
+      {isHwDisconnected || !controlled ? (
+        // Hardware unresponsive, or the user handed the channel away: the whole
+        // fan block is "off", so the badge replaces the duty bar and the mode
+        // dropdown. Nothing here would drive the channel, and leaving a live
+        // dropdown would imply otherwise.
+        <div className={styles.fanModeRow}>
+          <div className={styles.fanStateBadge}>
+            <Badge label={stateBadge!.label} icon={stateBadge!.icon} compact uppercase color="var(--text-dim)" />
+          </div>
+          {lockGlyph}
+          {menuButton}
         </div>
       ) : isReadOnly ? null : isFixed ? (
         // Fixed speed: the RPM readout stays in the header and the duty bar
         // goes. No mode dropdown at all - nothing here can drive a fan whose
         // header ignores PWM.
-        <HoverTooltip body={t('cooling.fan.fixedHint')} side="top">
-          <div className={styles.fanStateBadge}>
-            <Badge label={stateBadge!.label} icon={stateBadge!.icon} compact uppercase color="var(--text-dim)" />
-          </div>
-        </HoverTooltip>
+        <div className={styles.fanModeRow}>
+          <HoverTooltip body={t('cooling.fan.fixedHint')} side="top">
+            <div className={styles.fanStateBadge}>
+              <Badge label={stateBadge!.label} icon={stateBadge!.icon} compact uppercase color="var(--text-dim)" />
+            </div>
+          </HoverTooltip>
+          {lockGlyph}
+          {menuButton}
+        </div>
       ) : (
         <>
           <div
@@ -432,19 +559,31 @@ export const FanCard = memo(function FanCard({
               Default (boxed) Select chrome, matching the app settings
               dropdowns; binding a curve here is how a fan picks its curve. */}
           {/* Same display:contents data-no-dnd guard as the name editor. */}
-          <span data-no-dnd style={{ display: 'contents' }}>
-          <Select
-            className={highlighted ? `${styles.fanModeSelect} ${styles.fanModeSelectAccent}` : styles.fanModeSelect}
-            accentValue={highlighted}
-            value={modeValue}
-            onChange={handleModeChange}
-            ariaLabel={t('cooling.card.mode')}
-            options={modeOptions}
-          />
-          </span>
+          <div className={styles.fanModeRow}>
+            <span data-no-dnd style={{ display: 'contents' }}>
+            <Select
+              className={highlighted ? `${styles.fanModeSelect} ${styles.fanModeSelectAccent}` : styles.fanModeSelect}
+              accentValue={highlighted}
+              value={modeValue}
+              onChange={handleModeChange}
+              ariaLabel={t('cooling.card.mode')}
+              options={modeOptions}
+            />
+            </span>
+            {menuButton}
+          </div>
         </>
       )}
       </div>
+      {menuAt && (
+        <DeviceContextMenu
+          key={menuAt.seq}
+          x={menuAt.x}
+          y={menuAt.y}
+          items={menuItems()}
+          onClose={() => setMenuAt(null)}
+        />
+      )}
     </div>
   );
 });

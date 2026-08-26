@@ -53,17 +53,19 @@ describe('FanCard duty offset', () => {
     expect(screen.queryByText(/offsetBadge/)).not.toBeInTheDocument();
   });
 
-  it('offers to clear it from the mode menu', () => {
+  it('offers to clear it from the card menu', () => {
+    // Clearing an offset is an action, not a mode, so it moved out of the mode
+    // dropdown with Lock when the overflow menu arrived.
     const onClear = vi.fn();
     renderCard({ ...CHANNEL, offset: 5 }, onClear);
-    fireEvent.click(screen.getByRole('button', { name: /cooling.card/ }));
-    fireEvent.click(screen.getByRole('option', { name: 'cooling.card.clearOffset' }));
+    fireEvent.click(screen.getByRole('button', { name: 'cooling.fan.moreActions' }));
+    fireEvent.click(screen.getByText('cooling.card.clearOffset'));
     expect(onClear).toHaveBeenCalledWith('fan1');
   });
 
   it('does not offer to clear one that is not there', () => {
     renderCard({ ...CHANNEL, offset: 0 }, vi.fn());
-    fireEvent.click(screen.getByRole('button', { name: /cooling.card/ }));
-    expect(screen.queryByRole('option', { name: 'cooling.card.clearOffset' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'cooling.fan.moreActions' }));
+    expect(screen.queryByText('cooling.card.clearOffset')).not.toBeInTheDocument();
   });
 });

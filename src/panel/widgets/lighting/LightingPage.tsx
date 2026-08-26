@@ -1499,11 +1499,18 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     return orderedDevices.filter(d => !zoneCardUnavailable(d)).map(d => d.id);
   }, [devices, orderedDevices, handleSetControlled, handleSetPower]);
 
+  // Counted over the devices the claim can actually reach. A zone with no LEDs
+  // cannot be lit, so including it would leave the ratio permanently short of
+  // its total and pin the claim button on screen with nothing left to do.
+  const claimableDevices = useMemo(
+    () => orderedDevices.filter(d => !zoneCardUnavailable(d)),
+    [orderedDevices],
+  );
   // Matches zoneCardSelectable: a device Nexus drives AND that is lit. Counting
   // only `controlled` would claim a dark device is being driven.
   const controlledCount = useMemo(
-    () => orderedDevices.filter(d => d.controlled !== false && d.ledsOn).length,
-    [orderedDevices],
+    () => claimableDevices.filter(d => d.controlled !== false && d.ledsOn).length,
+    [claimableDevices],
   );
 
   // The swatch simple mode marks active: the colour every device is wearing.
@@ -1616,9 +1623,21 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     return (
       <div className={styles.lighting}>
         <div className={`${styles.simpleBody} pageBodyFill`}>
+          {/* One line carries both counts, so a device the advanced page left
+              un-driven is visible here without a device list. The action runs
+              the same claim the palette does - controlledCount also requires
+              the lights to be on, so setting `controlled` alone would leave
+              the count short and the button stuck on screen. */}
           <DeviceCountSummary
-            detected={t(pluralKey('lighting.simple.detected', language, orderedDevices.length), { count: orderedDevices.length })}
-            controlled={t('lighting.simple.controlled', { count: controlledCount })}
+            detected={t(pluralKey('lighting.simple.controlledOf', language, claimableDevices.length), {
+              controlled: controlledCount,
+              total: claimableDevices.length,
+            })}
+            action={controlledCount < claimableDevices.length ? (
+              <Button size="sm" pill onClick={() => { claimAllDevices(); }}>
+                {t('lighting.simple.controlAll')}
+              </Button>
+            ) : undefined}
           />
           <IconLabelButton
             className={styles.simpleOffTile}

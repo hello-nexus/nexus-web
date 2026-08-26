@@ -18,7 +18,7 @@ vi.mock('../../../api/cooling', async (importOriginal) => {
         },
         {
           id: 'fan-rear', name: 'Rear Fan', dutyPercent: 30, rpm: 900, mode: 'Auto',
-          classification: 'Controllable', calibrated: true, locked: true,
+          classification: 'Controllable', calibrated: true, locked: true, controlled: false,
         },
       ],
     })),
@@ -35,10 +35,11 @@ vi.mock('../../../api/cooling', async (importOriginal) => {
     renameFan: vi.fn(async () => undefined),
     setFanSpeed: vi.fn(async () => undefined),
     setFanLock: vi.fn(async () => undefined),
+    setFanControlled: vi.fn(async () => undefined),
   };
 });
 
-import { applyProfile, setFanLock } from '../../../api/cooling';
+import { applyProfile, setFanControlled, setFanLock } from '../../../api/cooling';
 
 const serviceState = { cooling: { calibrating: false } } as unknown as ServiceState;
 
@@ -68,10 +69,20 @@ describe('CoolingPage simple mode', () => {
     expect(screen.getByRole('button', { name: /cooling\.simple\.advancedCta/ })).toBeTruthy();
   });
 
-  it('summarises how many fans are detected and driven', async () => {
+  it('summarises how many fans Nexus controls out of the total', async () => {
     renderPage();
-    expect(await screen.findByText('cooling.simple.detected.other')).toBeTruthy();
-    expect(screen.getByText('cooling.simple.controlled')).toBeTruthy();
+    expect(await screen.findByText('cooling.simple.controlledOf.other')).toBeTruthy();
+  });
+
+  it('offers a one-click claim while a fan has Nexus Control off, and drops it once none do', async () => {
+    renderPage();
+    const claim = await screen.findByRole('button', { name: 'cooling.simple.controlAll' });
+    fireEvent.click(claim);
+    await waitFor(() => {
+      expect(vi.mocked(setFanControlled)).toHaveBeenCalledWith('fan-rear', true);
+    });
+    // Only the fan that was actually off is claimed.
+    expect(vi.mocked(setFanControlled).mock.calls.some(c => c[0] === 'fan-cpu')).toBe(false);
   });
 
   it('unlocks a fan the mode buttons would otherwise skip', async () => {
