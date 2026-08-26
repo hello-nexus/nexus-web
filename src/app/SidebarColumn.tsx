@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import classNames from 'classnames';
 import { LayoutGrid, Pin, PinOff, X } from 'lucide-react';
 import { Sidebar } from '../components/common/Sidebar/Sidebar';
-import { useUiSettings } from '../hooks/useUiSettings';
+import { useUiSettings, type UiSettingsValue } from '../hooks/useUiSettings';
 import type { ServiceState } from '../hooks/useServiceState';
 import { useTranslation } from '../lib/i18n';
 import { SidebarBrand } from './sidebar';
@@ -21,6 +21,18 @@ import {
 } from './sidebarApps';
 import { useCrossZoneDrag } from './CrossZoneDrag';
 import styles from '../App.module.scss';
+
+// The four feature-pillar sidebar rows share their key with FeatureKey
+// (useUiSettings) verbatim - no separate lookup table needed.
+function featureFlagOff(key: string, settings: UiSettingsValue): boolean {
+  switch (key) {
+    case 'monitoring': return !settings.featureMonitoringEnabled;
+    case 'lighting': return !settings.featureLightingEnabled;
+    case 'cooling': return !settings.featureCoolingEnabled;
+    case 'diagnostics': return !settings.featureDiagnosticsEnabled;
+    default: return false;
+  }
+}
 
 interface ExtraNavItem {
   readonly key: string;
@@ -79,10 +91,11 @@ export function SidebarColumn({
   // sanitizePinnedTail() drops unknown / duplicate server keys so a stale
   // or hand-edited prefs blob can't render gaps.
   const tail = sanitizePinnedTail(settings.pinnedSidebarApps);
+  const offTooltip = t('featureDisabled.sidebarTooltip');
   const items = tail.flatMap(key => {
     const meta = getSidebarAppMeta(key);
     if (!meta) return [];
-    return [{ key, label: t(meta.i18nKey), icon: meta.icon }];
+    return [{ key, label: t(meta.i18nKey), icon: meta.icon, offTooltip: featureFlagOff(key, settings) ? offTooltip : undefined }];
   });
 
   // Persist a reorder by writing the new tail back. The sanitizer in
@@ -134,7 +147,7 @@ export function SidebarColumn({
   const recentItems = recents.flatMap(key => {
     const meta = getSidebarAppMeta(key);
     if (!meta) return [];
-    return [{ key, label: t(meta.i18nKey), icon: meta.icon }];
+    return [{ key, label: t(meta.i18nKey), icon: meta.icon, offTooltip: featureFlagOff(key, settings) ? offTooltip : undefined }];
   });
 
   // Persists the FIFO append: stable order, no-op when the app is already in

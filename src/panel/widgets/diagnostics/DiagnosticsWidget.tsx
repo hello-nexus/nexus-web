@@ -1,6 +1,7 @@
 import { Stethoscope } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { useDiagnosticsHealth } from '../../../hooks/useDiagnosticsHealth';
+import { useFeatureFlags } from '../../../hooks/useUiSettings';
 import { DIAGNOSTICS_PREVIEW } from './diagnosticsPreviewData';
 import type { DiagnosticsStatus } from '../../../api/diagnostics';
 import {
@@ -32,8 +33,17 @@ function panelToneFor(status: DiagnosticsStatus): 'online' | 'away' | 'busy' | '
 export function DiagnosticsWidget({ widget }: WidgetProps) {
   const { t } = useTranslation();
   const preview = usePanelPreview();
-  const { health: liveHealth } = useDiagnosticsHealth(!preview);
+  const flags = useFeatureFlags();
+  const { health: liveHealth } = useDiagnosticsHealth(!preview && flags.diagnostics);
   const health = preview ? DIAGNOSTICS_PREVIEW : liveHealth;
+
+  if (!preview && !flags.diagnostics) {
+    return (
+      <PanelWidgetShell size={widget.size}>
+        <PanelWidgetEmpty icon={<Stethoscope size={24} />} title={t('featureDisabled.widget.diagnostics')} />
+      </PanelWidgetShell>
+    );
+  }
 
   if (!health) {
     return (

@@ -26,6 +26,7 @@ import { ChartHoverTooltip, ChartTooltipHeader, ChartTooltipRow, ChartTooltipVal
 import { DeviceWarningIcon } from '../components/common/DeviceWarningIcon/DeviceWarningIcon';
 import { NexusControlOffIcon } from '../components/common/NexusControlOffIcon/NexusControlOffIcon';
 import { NexusControlCard } from '../components/common/NexusControlCard/NexusControlCard';
+import { FeatureDisabled } from '../components/common/FeatureDisabled/FeatureDisabled';
 import { Popover } from '../components/common/Popover/Popover';
 import { DatePicker } from '../components/common/DatePicker/DatePicker';
 import { EffectCard } from '../components/common/EffectCard/EffectCard';
@@ -341,6 +342,10 @@ function PreviewNexusControlOffIcon() {
 function PreviewNexusControlCard() {
   const [checked, setChecked] = useState(true);
   return <NexusControlCard checked={checked} onChange={() => setChecked(c => !c)} />;
+}
+
+function PreviewFeatureDisabled() {
+  return <FeatureDisabled feature="lighting" />;
 }
 
 function PreviewCardDeleteButton() {
@@ -2225,6 +2230,12 @@ export const REGISTRY: StorybookEntry[] = [
     notes: 'No live preview - the Enter button posts real /telemetry/consent, /start, and /onboarding/complete requests to the connected service, so opening it here would mutate the running install\'s actual first-run state.',
   },
   {
+    name: 'FeaturesOnboardingScreen', category: 'modals',
+    filePath: 'src/components/common/FeaturesOnboardingScreen/FeaturesOnboardingScreen.tsx',
+    description: 'Non-dismissable onboarding gate, queued right after WelcomeScreen: a 2x2 grid of feature-pillar cards (Lighting, Cooling, Monitoring, Diagnostics), all on by default, and a Continue button that patches only the pillars switched off before writing /onboarding/features-complete.',
+    notes: 'No live preview - Continue posts real /preferences and /onboarding/features-complete requests (and /onboarding/lighting-complete when Lighting is switched off), so opening it here would mutate the running install\'s feature switches.',
+  },
+  {
     name: 'Nexus2ImportSection', category: 'modals',
     filePath: 'src/components/common/Nexus2WelcomeScreen/Nexus2ImportSection.tsx',
     description: 'Grouped Nexus 2 import flow: previews on open, two consolidated checkboxes (Y70 panel personalization, Q-Series panel personalization) each expanding to their wire categories, apply (always replacing the current personalization), and per-group results in an internally scrolling box. Hosted by ImportCenter, which the onboarding gate and the Settings entry both open.',
@@ -2241,6 +2252,13 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/ConflictAllClear/ConflictAllClear.tsx',
     description: 'All-clear row for the conflict surfaces: dashed box, green check, "nothing is competing with Nexus". Shared so ConflictWarningModal and ConflictOnboardingScreen state it identically.',
     Preview: () => <ConflictAllClear />,
+  },
+  {
+    name: 'FeatureDisabled', category: 'status',
+    filePath: 'src/components/common/FeatureDisabled/FeatureDisabled.tsx',
+    description: 'Full-page disabled shell for a feature pillar (Lighting/Cooling/Monitoring/Diagnostics) switched off in Settings, matching DevicePage\'s NexusControlOff layout: title, hint, and a re-enable NexusControlCard. FeatureGate mounts this instead of the page\'s real content while the pillar is off, so the page\'s data hooks never run.',
+    Preview: PreviewFeatureDisabled,
+    notes: 'The re-enable toggle writes through useUiSettingsUpdateSafe, which no-ops outside a UiSettingsProvider - safe to click here.',
   },
   {
     name: 'ConflictOnboardingScreen', category: 'modals',

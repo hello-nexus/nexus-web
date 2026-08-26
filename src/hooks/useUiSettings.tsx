@@ -17,6 +17,7 @@ import {
   type DiagnosticsThresholds,
   type DiagnosticsNotificationPrefs,
   type DiagnosticsComponentPrefs,
+  type FeaturesPrefs,
 } from '../api/profiles';
 import type { UpdateChannel, UpdateMode } from '../api/update';
 import {
@@ -112,6 +113,13 @@ export interface UiSettingsValue {
   // Windows-only: seconds to wait before starting Nexus at system startup.
   // Server-mirrored under the preferences top-level startupDelaySeconds field.
   startupDelaySeconds: number;
+  // Global feature switches (default on), server-mirrored under the
+  // preferences `features` block. See {@link useFeatureFlags} for the
+  // read-only accessor gated surfaces should use instead of this hook.
+  featureLightingEnabled: boolean;
+  featureCoolingEnabled: boolean;
+  featureMonitoringEnabled: boolean;
+  featureDiagnosticsEnabled: boolean;
   // Server-only update prefs (not saved to localStorage).
   updateMode: UpdateMode;
   updateChannel: UpdateChannel;
@@ -219,6 +227,10 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     timeFormat: src.general.timeFormat,
     numberFormat: src.general.numberFormat,
     startupDelaySeconds: src.general.startupDelaySeconds,
+    featureLightingEnabled: src.general.featureLightingEnabled,
+    featureCoolingEnabled: src.general.featureCoolingEnabled,
+    featureMonitoringEnabled: src.general.featureMonitoringEnabled,
+    featureDiagnosticsEnabled: src.general.featureDiagnosticsEnabled,
     updateMode: 'always' as UpdateMode,
     updateChannel: 'production' as UpdateChannel,
     lastDismissedUpdateVersion: '',
@@ -272,6 +284,10 @@ function toNexusSettings(src: UiSettingsValue): NexusSettings {
       timeFormat: src.timeFormat,
       numberFormat: src.numberFormat,
       startupDelaySeconds: src.startupDelaySeconds,
+      featureLightingEnabled: src.featureLightingEnabled,
+      featureCoolingEnabled: src.featureCoolingEnabled,
+      featureMonitoringEnabled: src.featureMonitoringEnabled,
+      featureDiagnosticsEnabled: src.featureDiagnosticsEnabled,
     },
   };
 }
@@ -329,6 +345,13 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (Object.keys(units).length > 0) out.units = units;
   // Top-level field (not nested under a domain block), per the wire contract.
   if (patch.startupDelaySeconds !== undefined) out.startupDelaySeconds = patch.startupDelaySeconds;
+  // features block
+  const features: FeaturesPrefs = {};
+  if (patch.featureLightingEnabled !== undefined) features.lighting = patch.featureLightingEnabled;
+  if (patch.featureCoolingEnabled !== undefined) features.cooling = patch.featureCoolingEnabled;
+  if (patch.featureMonitoringEnabled !== undefined) features.monitoring = patch.featureMonitoringEnabled;
+  if (patch.featureDiagnosticsEnabled !== undefined) features.diagnostics = patch.featureDiagnosticsEnabled;
+  if (Object.keys(features).length > 0) out.features = features;
   // diagnostics block
   const thresholds: Partial<DiagnosticsThresholds> = {};
   if (patch.diagnosticsCpuTempC !== undefined) thresholds.cpuC = patch.diagnosticsCpuTempC;
@@ -434,6 +457,10 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
     timeFormat: (server.units?.timeFormat as TimeFormat) ?? base.timeFormat,
     numberFormat: (server.units?.numberFormat as NumberFormat) ?? base.numberFormat,
     startupDelaySeconds: server.startupDelaySeconds ?? base.startupDelaySeconds,
+    featureLightingEnabled: server.features?.lighting ?? base.featureLightingEnabled,
+    featureCoolingEnabled: server.features?.cooling ?? base.featureCoolingEnabled,
+    featureMonitoringEnabled: server.features?.monitoring ?? base.featureMonitoringEnabled,
+    featureDiagnosticsEnabled: server.features?.diagnostics ?? base.featureDiagnosticsEnabled,
     diagnosticsCpuTempC: server.diagnostics?.thresholds?.cpuC ?? base.diagnosticsCpuTempC,
     diagnosticsGpuTempC: server.diagnostics?.thresholds?.gpuC ?? base.diagnosticsGpuTempC,
     diagnosticsStorageTempC: server.diagnostics?.thresholds?.storageC ?? base.diagnosticsStorageTempC,
@@ -511,7 +538,7 @@ export function UiSettingsProvider({
     // checked for definedness rather than truthiness like the domain blocks.
     const anyBlock = serverPatch.theme || serverPatch.panel || serverPatch.overlay
       || serverPatch.monitoring || serverPatch.cooling || serverPatch.ui || serverPatch.update
-      || serverPatch.units || serverPatch.diagnostics
+      || serverPatch.units || serverPatch.diagnostics || serverPatch.features
       || serverPatch.startupDelaySeconds !== undefined;
     if (!anyBlock) return;
     if (writeTimer.current) clearTimeout(writeTimer.current);
@@ -727,4 +754,28 @@ export function useUnitPrefs(): {
 export function useDiagnosticsWarningLingerMinutes(): number {
   const ctx = useContext(UiSettingsContext);
   return ctx ? ctx.settings.diagnosticsWarningLingerMinutes : DIAGNOSTICS_SETTINGS_DEFAULTS.warningLingerMinutes;
+}
+
+/** One of the four global feature switches (Lighting, Cooling, Monitoring, Diagnostics). */
+export type FeatureKey = 'lighting' | 'cooling' | 'monitoring' | 'diagnostics';
+
+export type FeatureFlags = Record<FeatureKey, boolean>;
+
+const ALL_FEATURES_ON: FeatureFlags = { lighting: true, cooling: true, monitoring: true, diagnostics: true };
+
+/**
+ * Read-only accessor for the four global feature switches. Returns all-true
+ * outside a UiSettingsProvider (preview catalog, tests, widgets mounted
+ * providerless) so a gated surface defaults to enabled instead of crashing -
+ * same pattern as {@link useUnitPrefs}.
+ */
+export function useFeatureFlags(): FeatureFlags {
+  const ctx = useContext(UiSettingsContext);
+  if (!ctx) return ALL_FEATURES_ON;
+  return {
+    lighting: ctx.settings.featureLightingEnabled,
+    cooling: ctx.settings.featureCoolingEnabled,
+    monitoring: ctx.settings.featureMonitoringEnabled,
+    diagnostics: ctx.settings.featureDiagnosticsEnabled,
+  };
 }

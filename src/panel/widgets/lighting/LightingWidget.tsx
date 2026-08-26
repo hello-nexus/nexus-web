@@ -25,8 +25,10 @@ import {
   type MediaItem,
 } from '../../../api/mediaLibrary';
 import { fetchServiceBlob, pingService } from '../../../api/service';
+import { Button } from '../../../components/common/Button/Button';
 import { EffectCard } from '../../../components/common/EffectCard/EffectCard';
 import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
+import { PanelWidgetEmpty } from '../common/PanelWidgetChrome';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { publishControlSync } from '../../../lib/controlSync';
 import { LIGHTING_MODE_ICONS } from '../../../lib/lightingModeIcons';
@@ -45,7 +47,7 @@ import {
 } from '../../../types/lighting';
 import { normalizeSync as resolveMode } from '../../../hooks/useLightingSync';
 import { mergeTemplates, slotThumbSignature } from '../../../types/lightingTemplates';
-import { useUiSettings } from '../../../hooks/useUiSettings';
+import { useFeatureFlags, useUiSettings } from '../../../hooks/useUiSettings';
 import { resolveAdvancedMode } from '../common/AdvancedModeSettings';
 import { useStateChangePulse } from '../common/useStateChangePulse';
 import { usePanelPreview } from '../common/PanelPreviewContext';
@@ -60,9 +62,10 @@ import styles from './LightingWidget.module.scss';
 // master repo.
 const LIGHTING_PREVIEW_MODE: LightingMode = 'screen';
 
-export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?: boolean }) {
+export function LightingWidget({ widget, immersive, onSectionNavigate }: WidgetProps & { immersive?: boolean }) {
   const { t, language } = useTranslation();
   const { settings: ui } = useUiSettings();
+  const flags = useFeatureFlags();
   const preview = usePanelPreview();
   // Preview forces simple mode for determinism.
   const simpleMode = preview || !resolveAdvancedMode(widget.config, ui.widgetAdvancedMode);
@@ -93,13 +96,13 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
   // until the ping resolves (empty platform), matching LightingPage.
   const [platform, setPlatform] = useState('');
   useEffect(() => {
-    if (preview) return;
+    if (preview || !flags.lighting) return;
     let cancelled = false;
     pingService().then(p => {
       if (!cancelled && p?.platform) setPlatform(p.platform);
     });
     return () => { cancelled = true; };
-  }, [preview]);
+  }, [preview, flags.lighting]);
   const modeButtons = useMemo(
     () => MODES.filter(m => m.key !== 'gamesync' || platform === 'windows'),
     [platform],
@@ -190,13 +193,13 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
   }, []);
 
   useEffect(() => {
-    if (preview) return;
+    if (preview || !flags.lighting) return;
     // hydrate() fetches initial lighting state over HTTP; its setState
     // calls run after the fetches resolve, not during the effect body.
 
     hydrate();
-  }, [preview, hydrate]);
-  useTopicCallback('lighting', !preview, hydrate);
+  }, [preview, flags.lighting, hydrate]);
+  useTopicCallback('lighting', !preview && flags.lighting, hydrate);
 
   // Leaving animate (a mode change from this surface or an external broadcast)
   // dismisses the immersive fullscreen shader.
@@ -478,6 +481,23 @@ export function LightingWidget({ widget, immersive }: WidgetProps & { immersive?
     () => resolveEffectState(activeEffect, templates),
     [activeEffect, templates],
   );
+
+  if (!preview && !flags.lighting) {
+    return (
+      <div className={styles.lighting} data-size={widget.size} data-mode="off">
+        <PanelWidgetEmpty
+          icon={<Lightbulb size={24} />}
+          title={t('featureDisabled.widget.lighting')}
+          text={onSectionNavigate ? undefined : t('featureDisabled.hint.lighting')}
+          action={onSectionNavigate ? (
+            <Button size="sm" icon={<Lightbulb size={14} />} onClick={() => onSectionNavigate('lighting')}>
+              {t('featureDisabled.widget.open', { feature: t('lighting.title') })}
+            </Button>
+          ) : undefined}
+        />
+      </div>
+    );
+  }
 
   // Immersive (fullscreen panel) variant: a row of icon-only mode buttons
   // on top, preview below. Shown for every mode and regardless of the

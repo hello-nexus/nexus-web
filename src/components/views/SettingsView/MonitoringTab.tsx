@@ -1,9 +1,8 @@
+import { Activity, Stethoscope, Thermometer } from 'lucide-react';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
-import { Thermometer } from 'lucide-react';
-import { SettingRow } from '../../common/SettingRow/SettingRow';
+import { SettingRow, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { ChipGroup } from '../../common/ChipGroup/ChipGroup';
 import { MonitoringEventsSettings } from '../../../panel/widgets/monitoring/page/MonitoringEventsSettings';
-import { LightingCoolingSection } from './LightingCoolingSection';
 import { SmartPollSection } from './SmartPollSection';
 import { useTranslation } from '../../../lib/i18n';
 import type { NexusSettings } from '../../../lib/settings';
@@ -14,14 +13,34 @@ export interface MonitoringTabProps {
   settings: NexusSettings;
   updateGeneral: (patch: Partial<NexusSettings['general']>) => void;
   serviceOnline: boolean;
-  platform: string;
 }
 
-export function MonitoringTab({ settings, updateGeneral, serviceOnline, platform }: MonitoringTabProps) {
+export function MonitoringTab({ settings, updateGeneral, serviceOnline }: MonitoringTabProps) {
   const { t } = useTranslation();
 
   return (
     <div className={styles.tabPanel}>
+      <SettingsSection title={t('settings.features.title')}>
+        <SettingToggle
+          label={t('settings.features.monitoring.label')}
+          description={t('settings.features.monitoring.description')}
+          icon={<Activity />}
+          iconLeading="subtle"
+          anchorId="set-feature-monitoring"
+          checked={settings.general.featureMonitoringEnabled}
+          onChange={checked => updateGeneral({ featureMonitoringEnabled: checked })}
+        />
+        <SettingToggle
+          label={t('settings.features.diagnostics.label')}
+          description={t('settings.features.diagnostics.description')}
+          icon={<Stethoscope />}
+          iconLeading="subtle"
+          anchorId="set-feature-diagnostics"
+          checked={settings.general.featureDiagnosticsEnabled}
+          onChange={checked => updateGeneral({ featureDiagnosticsEnabled: checked })}
+        />
+      </SettingsSection>
+
       <SettingsSection>
         <SettingRow
           label={t('settings.units.temperature.label')}
@@ -47,8 +66,6 @@ export function MonitoringTab({ settings, updateGeneral, serviceOnline, platform
       <MonitoringEventsSettings />
 
       <SmartPollSection serviceOnline={serviceOnline} />
-
-      <LightingCoolingSection serviceOnline={serviceOnline} platform={platform} />
     </div>
   );
 }

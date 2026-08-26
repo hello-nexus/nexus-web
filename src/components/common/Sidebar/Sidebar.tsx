@@ -12,6 +12,7 @@ import {
 import { restrictToVerticalAxis, restrictToParentElement } from '@dnd-kit/modifiers';
 import { CSS } from '@dnd-kit/utilities';
 import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
+import { NexusControlOffIcon } from '../NexusControlOffIcon/NexusControlOffIcon';
 import type { ServiceState } from '../../../hooks/useServiceState';
 import styles from './Sidebar.module.scss';
 
@@ -19,6 +20,8 @@ interface NavItem {
   readonly key: string;
   readonly label: string;
   readonly icon: ReactNode;
+  // Pre-resolved tooltip; when set, renders the same disabled glyph as a device row's Nexus Control off (SidebarDevicesSection).
+  readonly offTooltip?: string;
 }
 
 interface ExtraNavItem {
@@ -73,8 +76,13 @@ interface SidebarProps {
   addItem?: { label: string; onClick: () => void };
 }
 
-// Per-row status dot - same logic for sortable & locked rows.
-function rowStatus(key: string, state: ServiceState): { show: boolean; pulsing: boolean } {
+// Per-row status dot - same logic for sortable & locked rows. Suppressed on
+// a row carrying offTooltip: lighting/cooling status polling deliberately
+// keeps running while a feature is disabled (so re-enable can restore it),
+// and the off-badge is the only indicator that row should show.
+function rowStatus(item: NavItem, state: ServiceState): { show: boolean; pulsing: boolean } {
+  if (item.offTooltip) return { show: false, pulsing: false };
+  const key = item.key;
   const coolActive = key === 'cooling'
     && ((state.cooling?.activeCurveFanCount ?? 0) + (state.cooling?.manualFans ?? 0)) > 0;
   const coolCalibrating = key === 'cooling' && state.cooling?.calibrating;
@@ -103,7 +111,7 @@ interface RowProps {
 }
 
 function SidebarRow({ item, active, compact, serviceState, onClick, onContextMenu, sortableProps }: RowProps) {
-  const { show, pulsing } = rowStatus(item.key, serviceState);
+  const { show, pulsing } = rowStatus(item, serviceState);
   const button = (
     <button
       ref={sortableProps?.setNodeRef}
@@ -128,6 +136,7 @@ function SidebarRow({ item, active, compact, serviceState, onClick, onContextMen
         )}
       </span>
       {!compact && <span className={styles.label}>{item.label}</span>}
+      {!compact && item.offTooltip && <NexusControlOffIcon label={item.offTooltip} />}
     </button>
   );
   return compact ? (

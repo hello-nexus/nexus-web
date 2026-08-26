@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { gaugeReadings } from '../../../__tests__/panel/visibleText';
 import type { PanelWidget } from '../../types';
+import { fetchProfiles } from '../../../api/cooling';
 import { CoolingWidget } from './CoolingWidget';
 
 const sensorFixture = vi.hoisted(() => {
@@ -54,6 +55,7 @@ const mockUiSettings = vi.hoisted(() => ({
   preferredGpuTempSensorId: '',
   widgetAdvancedMode: true,
 }));
+const mockFlags = vi.hoisted(() => ({ lighting: true, cooling: true, monitoring: true, diagnostics: true }));
 vi.mock('../../../hooks/useUiSettings', () => ({
   useUiSettings: () => ({
     settings: mockUiSettings,
@@ -62,6 +64,7 @@ vi.mock('../../../hooks/useUiSettings', () => ({
   }),
   useTempSensorPrefs: () => ({ cpuId: '', gpuId: '' }),
   useUnitPrefs: () => ({ monitoringTempUnit: 'c', timeFormat: 'system', numberFormat: 'system' }),
+  useFeatureFlags: () => mockFlags,
 }));
 
 vi.mock('../../../lib/i18n', () => ({
@@ -215,5 +218,27 @@ describe('CoolingWidget', () => {
     expect(screen.getByText('CPU')).toBeInTheDocument();
     expect(screen.queryByText('GPU')).not.toBeInTheDocument();
     expect(screen.queryByText('FAN')).not.toBeInTheDocument();
+  });
+
+  describe('cooling feature disabled', () => {
+    beforeEach(() => { mockFlags.cooling = false; });
+    afterEach(() => { mockFlags.cooling = true; });
+
+    it('renders the disabled shell and fetches nothing', async () => {
+      vi.mocked(fetchProfiles).mockClear();
+      render(<CoolingWidget widget={coolingWidget('4x2')} />);
+
+      expect(screen.getByText('featureDisabled.widget.cooling')).toBeInTheDocument();
+      await new Promise(r => setTimeout(r, 0));
+      expect(fetchProfiles).not.toHaveBeenCalled();
+    });
+
+    it('calls onSectionNavigate with cooling when the action button is clicked', () => {
+      const onSectionNavigate = vi.fn();
+      render(<CoolingWidget widget={coolingWidget('4x2')} onSectionNavigate={onSectionNavigate} />);
+
+      fireEvent.click(screen.getByText('featureDisabled.widget.open'));
+      expect(onSectionNavigate).toHaveBeenCalledWith('cooling');
+    });
   });
 });

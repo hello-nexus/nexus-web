@@ -27,6 +27,10 @@ vi.mock('../../../hooks/useUiSettings', () => ({
       timeFormat: 'system',
       numberFormat: 'system',
       startupDelaySeconds: 0,
+      featureLightingEnabled: true,
+      featureCoolingEnabled: true,
+      featureMonitoringEnabled: true,
+      featureDiagnosticsEnabled: true,
     },
     update: vi.fn(),
     reload: vi.fn(),
@@ -70,12 +74,12 @@ describe('SettingsView', () => {
     expect(screen.getByRole('tab', { name: 'settings.tab.privacyData' })).toBeInTheDocument();
   });
 
-  it('renders exactly 4 tabs, with no Advanced tab', () => {
+  it('renders exactly 5 tabs, with no Advanced tab', () => {
     render(
       <SettingsView serviceOnline connectionState="online" platform="windows" tab="general" onTabChange={() => {}} />,
     );
 
-    expect(screen.getAllByRole('tab')).toHaveLength(4);
+    expect(screen.getAllByRole('tab')).toHaveLength(5);
     expect(screen.queryByRole('tab', { name: 'settings.tab.advanced' })).not.toBeInTheDocument();
   });
 
@@ -118,10 +122,29 @@ describe('SettingsView', () => {
     expect(screen.queryByText('settings.dangerZone')).not.toBeInTheDocument();
 
     rerender(
+      <SettingsView serviceOnline connectionState="online" platform="windows" tab="lighting-cooling" onTabChange={() => {}} />,
+    );
+    // Lighting + Cooling master toggles now lead this tab, above the moved
+    // LightingCoolingSection sensor/GPU controls.
+    expect(screen.getByText('settings.features.lighting.label')).toBeInTheDocument();
+    expect(screen.getByText('settings.features.cooling.label')).toBeInTheDocument();
+    // 'settings.lightingCooling.title' labels both the active tab strip entry
+    // and the moved LightingCoolingSection's own box title.
+    expect(screen.getAllByText('settings.lightingCooling.title').length).toBeGreaterThan(0);
+    expect(screen.queryByText('settings.dangerZone')).not.toBeInTheDocument();
+
+    rerender(
       <SettingsView serviceOnline connectionState="online" platform="windows" tab="monitoring" onTabChange={() => {}} />,
     );
+    // Monitoring + Diagnostics master toggles now lead this tab; the
+    // LightingCoolingSection moved out to its own tab.
+    expect(screen.getByText('settings.features.monitoring.label')).toBeInTheDocument();
+    expect(screen.getByText('settings.features.diagnostics.label')).toBeInTheDocument();
     expect(screen.getByText('settings.units.temperature.label')).toBeInTheDocument();
-    expect(screen.getByText('settings.lightingCooling.title')).toBeInTheDocument();
+    // 'settings.lightingCooling.title' always shows as the (inactive) tab
+    // strip entry now, so absence of its section is asserted via section-only
+    // content instead.
+    expect(screen.queryByText('settings.features.lighting.label')).not.toBeInTheDocument();
     expect(screen.queryByText('settings.dangerZone')).not.toBeInTheDocument();
 
     rerender(
@@ -131,7 +154,7 @@ describe('SettingsView', () => {
     // section only mounts once the server status resolves; see
     // AiIntegrationSection.test.tsx for that behavior).
     expect(screen.getByText('settings.screentime.title')).toBeInTheDocument();
-    expect(screen.queryByText('settings.lightingCooling.title')).not.toBeInTheDocument();
+    expect(screen.queryByText('settings.features.lighting.label')).not.toBeInTheDocument();
     expect(screen.queryByText('settings.dangerZone')).not.toBeInTheDocument();
   });
 

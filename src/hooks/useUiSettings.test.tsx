@@ -190,7 +190,7 @@ describe('UiSettingsProvider - pinnedSidebarApps', () => {
     });
     await flush();
 
-    expect(captured.ctx!.settings.pinnedSidebarApps).toEqual(['monitoring', 'lighting', 'cooling']);
+    expect(captured.ctx!.settings.pinnedSidebarApps).toEqual(['monitoring', 'lighting', 'cooling', 'diagnostics']);
   });
 
   // Boot-order race: nothing in reload() may reset pinnedSidebarApps to
@@ -356,5 +356,62 @@ describe('UiSettingsProvider - per-page dashboard modes', () => {
     await act(async () => { h.prefsCb?.(); });
     await flush();
     expect(captured.ctx!.settings.lightingDashboardMode).toBe('advanced');
+  });
+});
+
+describe('UiSettingsProvider - features patch', () => {
+  const flush = () => act(async () => { await Promise.resolve(); });
+  const serverPrefs = () => ({
+    theme: { themeMode: 'dark', accentColor: '#2563eb', language: 'en' },
+    features: { lighting: true, cooling: true, monitoring: true, diagnostics: true },
+  });
+
+  it('patches only the toggled feature, leaving the other three local flags and the wire patch untouched', async () => {
+    h.fetchPreferences.mockResolvedValue(serverPrefs());
+    h.savePreferences.mockResolvedValue(undefined);
+    await act(async () => {
+      render(
+        <UiSettingsProvider serviceOnline manageDom>
+          <Consumer />
+        </UiSettingsProvider>,
+      );
+    });
+    await flush();
+
+    await act(async () => { captured.ctx!.update({ featureCoolingEnabled: false }); });
+    expect(captured.ctx!.settings.featureCoolingEnabled).toBe(false);
+    expect(captured.ctx!.settings.featureLightingEnabled).toBe(true);
+    expect(captured.ctx!.settings.featureMonitoringEnabled).toBe(true);
+    expect(captured.ctx!.settings.featureDiagnosticsEnabled).toBe(true);
+    await act(async () => { await new Promise(r => setTimeout(r, 300)); });
+    expect(h.savePreferences).toHaveBeenCalledWith({ features: { cooling: false } });
+  });
+
+  it('a prefs-topic echo after the write does not clobber the other three flags', async () => {
+    h.fetchPreferences.mockResolvedValue(serverPrefs());
+    h.savePreferences.mockResolvedValue(undefined);
+    await act(async () => {
+      render(
+        <UiSettingsProvider serviceOnline manageDom>
+          <Consumer />
+        </UiSettingsProvider>,
+      );
+    });
+    await flush();
+
+    await act(async () => { captured.ctx!.update({ featureCoolingEnabled: false }); });
+    await act(async () => { await new Promise(r => setTimeout(r, 300)); });
+
+    h.fetchPreferences.mockResolvedValue({
+      theme: { themeMode: 'dark', accentColor: '#2563eb', language: 'en' },
+      features: { lighting: true, cooling: false, monitoring: true, diagnostics: true },
+    });
+    await act(async () => { h.prefsCb?.(); });
+    await flush();
+
+    expect(captured.ctx!.settings.featureLightingEnabled).toBe(true);
+    expect(captured.ctx!.settings.featureCoolingEnabled).toBe(false);
+    expect(captured.ctx!.settings.featureMonitoringEnabled).toBe(true);
+    expect(captured.ctx!.settings.featureDiagnosticsEnabled).toBe(true);
   });
 });

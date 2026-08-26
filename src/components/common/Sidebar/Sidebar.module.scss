@@ -209,6 +209,10 @@
 }
 
 .label {
+  // Stretches to fill the row so a trailing glyph (the feature-off badge)
+  // pins to the right edge, matching SidebarDevicesSection's label treatment.
+  flex: 1 1 auto;
+  min-width: 0;
   white-space: nowrap;
 }
 

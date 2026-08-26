@@ -144,8 +144,8 @@ export interface GeneralSettings {
   showWindowsTrayIcon: boolean;
   // Order of pinnable sidebar apps after the locked Dashboard row. Each
   // entry is a PinnableAppKey ('monitoring' | 'lighting' | 'cooling' |
-  // 'devices'). Server-mirrored under ui.pinnedSidebarApps so it follows
-  // the profile.
+  // 'diagnostics' | 'devices'). Server-mirrored under ui.pinnedSidebarApps so
+  // it follows the profile.
   pinnedSidebarApps: string[];
   // Recently opened unpinned apps, oldest first - the sidebar's below-separator
   // "recently opened" rows. Server-mirrored under ui.recentSidebarApps.
@@ -173,6 +173,15 @@ export interface GeneralSettings {
   // Windows-only: seconds to wait before starting Nexus at system startup.
   // Server-mirrored under the preferences top-level startupDelaySeconds field.
   startupDelaySeconds: number;
+  // Global feature switches (default on). Server-mirrored under the
+  // preferences `features` block; the localStorage boot mirror is what lets a
+  // reload of an already-disabled page render the FeatureDisabled shell on
+  // the first frame instead of flashing the live page before the server
+  // hydrate lands.
+  featureLightingEnabled: boolean;
+  featureCoolingEnabled: boolean;
+  featureMonitoringEnabled: boolean;
+  featureDiagnosticsEnabled: boolean;
 }
 
 export interface NexusSettings {
@@ -204,7 +213,7 @@ export function getDefaultSettings(): NexusSettings {
       monitoringEventKindsHidden: [],
       showMacStatusBarIcon: true,
       showWindowsTrayIcon: true,
-      pinnedSidebarApps: ['monitoring', 'lighting', 'cooling'],
+      pinnedSidebarApps: ['monitoring', 'lighting', 'cooling', 'diagnostics'],
       recentSidebarApps: [],
       widgetAdvancedMode: false,
       lightingDashboardMode: 'simple',
@@ -213,6 +222,10 @@ export function getDefaultSettings(): NexusSettings {
       timeFormat: DEFAULT_TIME_FORMAT,
       numberFormat: DEFAULT_NUMBER_FORMAT,
       startupDelaySeconds: 0,
+      featureLightingEnabled: true,
+      featureCoolingEnabled: true,
+      featureMonitoringEnabled: true,
+      featureDiagnosticsEnabled: true,
     },
   };
 }

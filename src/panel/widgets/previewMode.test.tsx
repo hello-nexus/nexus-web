@@ -45,6 +45,7 @@ vi.mock('../../hooks/useUiSettings', () => ({
   useTempSensorPrefs: () => ({ cpuId: '', gpuId: '' }),
   usePreferredGpuId: () => '',
   useUnitPrefs: () => ({ monitoringTempUnit: 'c', timeFormat: 'system', numberFormat: 'system' }),
+  useFeatureFlags: () => ({ lighting: true, cooling: true, monitoring: true, diagnostics: true }),
 }));
 
 const fetchSpy = vi.fn(() => Promise.resolve(new Response('{}')));

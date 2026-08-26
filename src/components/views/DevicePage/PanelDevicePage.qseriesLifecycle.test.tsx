@@ -69,7 +69,7 @@ vi.mock('../../../api/panel', () => ({
 vi.mock('../../../api/qseries', () => ({
   getQSeriesRotation: vi.fn().mockResolvedValue({ orientation: 'Portrait' }),
   setQSeriesRotation: vi.fn().mockResolvedValue({ ok: true }),
-  getQSeriesDisplay: vi.fn().mockResolvedValue({ brightness: 100, screenOff: false, sleepWithHost: true }),
+  getQSeriesDisplay: vi.fn().mockResolvedValue({ brightness: 100, screenOff: false, sleepWithHost: true, sleepWhenLocked: true }),
   setQSeriesDisplay: vi.fn().mockResolvedValue({ ok: true }),
   rebootQSeriesPanel: (...a: unknown[]) => rebootQSeriesPanelMock(...a),
 }));

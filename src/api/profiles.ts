@@ -183,6 +183,19 @@ export interface UnitsPrefs {
   numberFormat?: NumberFormat;
 }
 
+// preferences.features - the four global feature switches (Lighting, Cooling,
+// Monitoring, Diagnostics). Mirrors nexus-service's FeaturesSettings /
+// FeaturesSettingsPatch verbatim; one type covers both read and write since
+// every field is already optional. Absent = true (the service default), on
+// both GET (an older service omits the block) and PATCH (omitted fields are
+// left unchanged).
+export interface FeaturesPrefs {
+  lighting?: boolean;
+  cooling?: boolean;
+  monitoring?: boolean;
+  diagnostics?: boolean;
+}
+
 // Nested preferences shape - same nesting on read (GET /preferences) and
 // write (POST /preferences). Per-domain sub-patches are partial; omitted
 // fields are unchanged.
@@ -196,6 +209,7 @@ export interface Preferences {
   update?: UpdatePrefs;
   units?: UnitsPrefs;
   diagnostics?: DiagnosticsPrefs;
+  features?: FeaturesPrefs;
   // Windows-only: seconds the service holds hardware enumeration for on a
   // boot-time start, clamped server-side to 0..60. Optional - an older service
   // omits it, and the client then keeps its last known value.
@@ -212,6 +226,7 @@ export interface PreferencesPatch {
   update?: Partial<UpdatePrefs>;
   units?: Partial<UnitsPrefs>;
   diagnostics?: DiagnosticsPrefsPatch;
+  features?: FeaturesPrefs;
   startupDelaySeconds?: number;
 }
 
