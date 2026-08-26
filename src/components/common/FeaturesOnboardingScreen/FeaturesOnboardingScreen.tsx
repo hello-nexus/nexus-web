@@ -55,17 +55,17 @@ export function FeaturesOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
     setSubmitting(true);
     setError(false);
     try {
-      const patch: Partial<{
-        featureLightingEnabled: boolean;
-        featureCoolingEnabled: boolean;
-        featureMonitoringEnabled: boolean;
-        featureDiagnosticsEnabled: boolean;
-      }> = {};
-      if (!flags.lighting) patch.featureLightingEnabled = false;
-      if (!flags.cooling) patch.featureCoolingEnabled = false;
-      if (!flags.monitoring) patch.featureMonitoringEnabled = false;
-      if (!flags.diagnostics) patch.featureDiagnosticsEnabled = false;
-      if (Object.keys(patch).length > 0) updateUiSettings(patch);
+      // Explicit true/false for all four, not only the ones the user turned
+      // off: a prior write (another session, a test run) can leave the
+      // server disagreeing with a pillar the user left visually on, and an
+      // omitted field would keep that stale server value instead of
+      // overwriting it.
+      updateUiSettings({
+        featureLightingEnabled: flags.lighting,
+        featureCoolingEnabled: flags.cooling,
+        featureMonitoringEnabled: flags.monitoring,
+        featureDiagnosticsEnabled: flags.diagnostics,
+      });
 
       const result = await completeFeaturesOnboarding();
       if (!result?.featuresCompleted) {

@@ -36,7 +36,7 @@ describe('FeaturesOnboardingScreen', () => {
     expect(lightingCard).toHaveAttribute('aria-checked', 'false');
   });
 
-  it('Continue with everything on posts no preference patch, completes onboarding, and calls onComplete', async () => {
+  it('Continue with everything on posts an explicit all-true patch, completes onboarding, and calls onComplete', async () => {
     vi.mocked(completeFeaturesOnboarding).mockResolvedValue({ completed: true, featuresCompleted: true });
     const onComplete = vi.fn();
     render(<FeaturesOnboardingScreen open onComplete={onComplete} />);
@@ -44,11 +44,16 @@ describe('FeaturesOnboardingScreen', () => {
     fireEvent.click(screen.getByText('featuresOnboarding.continue'));
 
     await waitFor(() => expect(onComplete).toHaveBeenCalledWith({ lighting: true, cooling: true, monitoring: true, diagnostics: true }));
-    expect(mockUpdate).not.toHaveBeenCalled();
+    expect(mockUpdate).toHaveBeenCalledWith({
+      featureLightingEnabled: true,
+      featureCoolingEnabled: true,
+      featureMonitoringEnabled: true,
+      featureDiagnosticsEnabled: true,
+    });
     expect(completeLightingOnboarding).not.toHaveBeenCalled();
   });
 
-  it('Continue with a pillar off patches only that flag false', async () => {
+  it('Continue with a pillar off patches all four fields explicitly, overriding any stale server state', async () => {
     vi.mocked(completeFeaturesOnboarding).mockResolvedValue({ completed: true, featuresCompleted: true });
     const onComplete = vi.fn();
     render(<FeaturesOnboardingScreen open onComplete={onComplete} />);
@@ -57,7 +62,12 @@ describe('FeaturesOnboardingScreen', () => {
     fireEvent.click(screen.getByText('featuresOnboarding.continue'));
 
     await waitFor(() => expect(onComplete).toHaveBeenCalled());
-    expect(mockUpdate).toHaveBeenCalledWith({ featureCoolingEnabled: false });
+    expect(mockUpdate).toHaveBeenCalledWith({
+      featureLightingEnabled: true,
+      featureCoolingEnabled: false,
+      featureMonitoringEnabled: true,
+      featureDiagnosticsEnabled: true,
+    });
   });
 
   it('turning lighting off also posts lighting-complete, so a reload does not resurrect the device-selection step', async () => {
