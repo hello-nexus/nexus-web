@@ -47,11 +47,11 @@ import { emitRadialBloomFromElement } from '../../../lib/backgroundEffects';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { PresetToolbar } from '../../../components/common/PresetToolbar/PresetToolbar';
 import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
-import { AdvancedModeCta } from '../../../components/common/AdvancedModeCta/AdvancedModeCta';
+import { ModeMenu, MODE_MENU_TAB_KEY } from '../../../components/common/ModeMenu/ModeMenu';
+import { usePageModeMenu } from '../../../components/common/ModeMenu/usePageModeMenu';
 import { DeviceCountSummary } from '../../../components/common/DeviceCountSummary/DeviceCountSummary';
 import { SimpleModeNotice } from '../../../components/common/SimpleModeNotice/SimpleModeNotice';
 import { useUndoRedo } from '../../../hooks/useUndoRedo';
-import { usePageModeToggle } from '../../../app/PageChrome';
 import { ConfirmModal } from '../../../components/common/ConfirmModal/ConfirmModal';
 import { CollapsibleSection } from '../../../components/common/CollapsibleSection/CollapsibleSection';
 import { SortableList, type SortableRowArgs } from '../../../components/common/SortableList/SortableList';
@@ -176,16 +176,15 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   const cpuTemp = resolveCpuTempSensor(sensors.cpu, settings.preferredCpuTempSensorId);
 
   const simpleDashboard = settings.coolingDashboardMode === 'simple';
-  const toggleDashboardMode = useCallback(() => {
-    updateUi({ coolingDashboardMode: simpleDashboard ? 'advanced' : 'simple' });
-  }, [simpleDashboard, updateUi]);
-  // The label names the TARGET mode (what a click switches to), matching the
-  // in-page advanced-mode card.
-  usePageModeToggle({
-    label: t(simpleDashboard ? 'uiMode.advancedMode' : 'uiMode.simpleMode'),
-    title: t(simpleDashboard ? 'uiMode.switchToAdvanced' : 'uiMode.switchToSimple'),
-    onToggle: toggleDashboardMode,
-  });
+  // Off / simple / advanced live behind the first tab (see modeTabs). The
+  // popover anchors on the tab row, which is why the ref sits on the element
+  // wrapping the header rather than on the tab itself.
+  const [modeMenuOpen, setModeMenuOpen] = useState(false);
+  const modeMenuAnchorRef = useRef<HTMLDivElement | null>(null);
+  const closeModeMenu = useCallback(() => setModeMenuOpen(false), []);
+  const setDashboardMode = useCallback((next: 'simple' | 'advanced') => {
+    updateUi({ coolingDashboardMode: next });
+  }, [updateUi]);
 
   // The curve whose graph + editor the hero card shows; a row of buttons inside
   // the card selects it. Selecting also highlights the fans bound to it. Seeded
@@ -1164,14 +1163,62 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     return s;
   }, [effectiveCurveId, fanStates]);
 
-  const modeTabs = COOLING_MODES.map(p => ({
+  // Off is not a tab any more: it shares the first tab with the simple /
+  // advanced swap, which the tab opens as a menu instead of switching mode.
+  const modeMenu = usePageModeMenu({
+    mode: simpleDashboard ? 'simple' : 'advanced',
+    off: activeMode === 'off',
+    offIcon: Power,
+    offLabel: t('cooling.mode.off'),
+    offDescription: t('cooling.modeMenu.offDesc'),
+    simpleDescription: t('cooling.modeMenu.simpleDesc'),
+    advancedDescription: t('cooling.modeMenu.advancedDesc'),
+    onOff: origin => {
+      emitRadialBloomFromElement(origin, true);
+      void handleModeChange('off');
+    },
+    onModeChange: setDashboardMode,
+  });
+  const modeMenuTab = {
+    key: MODE_MENU_TAB_KEY,
+    label: modeMenu.triggerLabel,
+    icon: modeMenu.triggerIcon,
+    expanded: modeMenuOpen,
+  };
+  const modeTabs = [modeMenuTab, ...COOLING_MODES.filter(p => p.key !== 'off').map(p => ({
     key: p.key,
     // Silent/Balanced/Turbo apply to every fan, so the tab reads "All <preset>".
     label: p.key === 'silent' || p.key === 'balanced' || p.key === 'turbo'
       ? `${t('cooling.mode.allPrefix')} ${t(p.i18nKey)}`
       : t(p.i18nKey),
     icon: <p.Icon size={14} />,
-  }));
+  }))];
+  // The strip marks the mode tab while cooling is off - it is the tab Off now
+  // lives on. Every other mode still marks its own tab.
+  const activeTabKey = activeMode === 'off' ? MODE_MENU_TAB_KEY : (activeMode ?? undefined);
+  // A tab press either opens the mode menu or switches mode; a mode switch
+  // also drops the menu, which the tab row keeps "inside" its anchor.
+  const handleTabChange = (key: string, origin?: HTMLButtonElement) => {
+    if (key === MODE_MENU_TAB_KEY) {
+      setModeMenuOpen(open => !open);
+      return;
+    }
+    closeModeMenu();
+    if (origin && isCoolingModeKey(key) && key !== activeMode) emitRadialBloomFromElement(origin, false);
+    void handleModeChange(key);
+  };
+  // The mode tab leads the strip in both dashboard modes; simple mode carries
+  // nothing after it, so its header is the mode tab alone.
+  const simpleTabs = [modeMenuTab];
+  const modeMenuNode = (
+    <ModeMenu
+      open={modeMenuOpen}
+      onClose={closeModeMenu}
+      anchorRef={modeMenuAnchorRef}
+      entries={modeMenu.entries}
+      ariaLabel={t('uiMode.menuLabel')}
+    />
+  );
 
   const offStatusCard = activeMode === 'off' ? (
     <div className={styles.offStatus}
@@ -1185,15 +1232,15 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   if (!serviceOnline) {
     return (
       <div className={styles.cooling}>
-        {!simpleDashboard && (
+        <div className={styles.tabsAnchor} ref={modeMenuAnchorRef}>
           <ViewHeader
             title={t('cooling.title')}
-            tabs={modeTabs}
-            activeTab={activeMode ?? undefined}
-            onTabChange={k => handleModeChange(k)}
+            tabs={simpleDashboard ? simpleTabs : modeTabs}
+            activeTab={activeTabKey}
+            onTabChange={handleTabChange}
             tabsDisabled
           />
-        )}
+        </div>
         <ServiceRequired state={connectionState} skeleton={<CoolingSkeleton />} />
       </div>
     );
@@ -1206,6 +1253,15 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     return (
       <div className={styles.cooling}>
         <div className={`${styles.simpleBody} pageBodyFill`}>
+          <div className={styles.tabsAnchor} ref={modeMenuAnchorRef}>
+            <ViewHeader
+              title={t('cooling.title')}
+              tabs={simpleTabs}
+              activeTab={activeTabKey}
+              onTabChange={handleTabChange}
+            />
+            {modeMenuNode}
+          </div>
           {/* Same summary+claim pair as the simple lighting page: one line
               carrying both counts, and the action only while it has something
               to resolve. */}
@@ -1219,16 +1275,6 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                 {t('cooling.simple.controlAll')}
               </Button>
             ) : undefined}
-          />
-          {/* Off is a state rather than a speed, so it leads as a wide row
-              instead of competing with the three speed tiles. */}
-          <IconLabelButton
-            className={styles.simpleOffTile}
-            icon={<Power size={22} />}
-            label={t('cooling.mode.off')}
-            description={t('cooling.mode.off.banner')}
-            active={activeMode === 'off'}
-            onPress={() => { void handleModeChange('off'); }}
           />
           <div className={styles.simplePresets} role="group" aria-label={t('cooling.title')}>
             {COOLING_MODES.filter(p => p.key !== 'custom' && p.key !== 'off').map(p => (
@@ -1246,12 +1292,6 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
           {activeMode === 'custom' && (
             <SimpleModeNotice message={t('cooling.simple.customActive')} />
           )}
-          <div className={styles.simpleFooter}>
-            <AdvancedModeCta
-              label={t('cooling.simple.advancedCta')}
-              onPress={() => updateUi({ coolingDashboardMode: 'advanced' })}
-            />
-          </div>
         </div>
       </div>
     );
@@ -1267,16 +1307,12 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
         {/* Mode tabs and saved presets share one flex row: the presets keep
             their column width until the tab bar needs the space. */}
         <div className={styles.topRow}>
-          <div className={styles.tabsCell}>
+          <div className={`${styles.tabsCell} ${styles.tabsAnchor}`} ref={modeMenuAnchorRef}>
             <ViewHeader
               title={t('cooling.title')}
               tabs={modeTabs}
-              activeTab={activeMode ?? undefined}
-              onTabChange={(k, origin) => {
-                // Status-change bloom only on an actual mode switch, from the pressed tab.
-                if (origin && isCoolingModeKey(k) && k !== activeMode) emitRadialBloomFromElement(origin, k === 'off');
-                void handleModeChange(k);
-              }}
+              activeTab={activeTabKey}
+              onTabChange={handleTabChange}
               tabActions={(
                 <PresetToolbar
                   rail
@@ -1299,6 +1335,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                 />
               )}
             />
+            {modeMenuNode}
           </div>
         </div>
         <div className={`${styles.paneHeader} ${styles.headerLeft}`}>

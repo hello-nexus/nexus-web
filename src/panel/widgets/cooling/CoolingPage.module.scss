@@ -66,6 +66,12 @@
   min-width: 0;
 }
 
+// Positioning context for the mode menu, which drops out of the mode tab and
+// is placed against this element's left edge (the tab leads the strip).
+.tabsAnchor {
+  position: relative;
+}
+
 // One title per column, both on grid row 2 so they share a baseline.
 .paneHeader {
   grid-row: 2;
@@ -106,7 +112,8 @@
 }
 
 // -- Simple mode (ui.coolingDashboardMode) ---------------------------------
-// Large preset tiles at the top, the advanced-mode CTA in flow beneath them.
+// The mode tab on top, large preset tiles beneath it. Off and the swap into
+// advanced both live in the tab's menu.
 .simpleBody {
   display: flex;
   flex-direction: column;
@@ -131,23 +138,6 @@
   --icon-label-button-active-border: var(--accent);
 
   padding: 1.6rem 1.25rem;
-}
-
-// Off leads the simple page as a wide row: it is a state rather than a speed,
-// so it does not compete with the three speed tiles below it.
-.simpleOffTile {
-  --icon-label-button-gap: 0.5rem;
-  --icon-label-label-size: var(--type-body);
-  --icon-label-button-radius: var(--radius);
-  --icon-label-button-active-border: var(--accent);
-
-  width: 100%;
-  padding: 0.9rem 1rem;
-}
-
-.simpleFooter {
-  flex: 0 0 auto;
-  padding: 0.75rem 0 1rem;
 }
 
 // Right column: fan header pinned, the fan list scrolls beneath it.

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Ban, CheckCheck, Gamepad2, Lightbulb, Music, Pause, Play, PanelRightOpen, PanelRightClose, Power } from 'lucide-react';
+import { Ban, CheckCheck, Gamepad2, Lightbulb, Music, Pause, Play, PanelRightOpen, PanelRightClose } from 'lucide-react';
 import {
   startAnimate, startStatic, startScreenMirror, stopLighting, startGameSync,
   fetchStaticSettings,
@@ -34,11 +34,10 @@ import { Badge } from '../../../components/common/Badge/Badge';
 import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
-import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
-import { AdvancedModeCta } from '../../../components/common/AdvancedModeCta/AdvancedModeCta';
+import { ModeMenu, MODE_MENU_TAB_KEY } from '../../../components/common/ModeMenu/ModeMenu';
+import { usePageModeMenu } from '../../../components/common/ModeMenu/usePageModeMenu';
 import { DeviceCountSummary } from '../../../components/common/DeviceCountSummary/DeviceCountSummary';
 import { SimpleModeNotice } from '../../../components/common/SimpleModeNotice/SimpleModeNotice';
-import { usePageModeToggle } from '../../../app/PageChrome';
 import { useUiSettings } from '../../../hooks/useUiSettings';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { LightingSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
@@ -151,16 +150,15 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const perDeviceMode = effectiveMode === 'static' || effectiveMode === 'none';
   const { settings: uiSettings, update: updateUiSettings } = useUiSettings();
   const simpleDashboard = uiSettings.lightingDashboardMode === 'simple';
-  const toggleDashboardMode = useCallback(() => {
-    updateUiSettings({ lightingDashboardMode: simpleDashboard ? 'advanced' : 'simple' });
-  }, [simpleDashboard, updateUiSettings]);
-  // The label names the TARGET mode (what a click switches to), matching the
-  // in-page advanced-mode card.
-  usePageModeToggle({
-    label: t(simpleDashboard ? 'uiMode.advancedMode' : 'uiMode.simpleMode'),
-    title: t(simpleDashboard ? 'uiMode.switchToAdvanced' : 'uiMode.switchToSimple'),
-    onToggle: toggleDashboardMode,
-  });
+  // Off / simple / advanced live behind the first tab (see modeTabs). The
+  // popover anchors on the tab row, which is why the ref sits on the element
+  // wrapping the header rather than on the tab itself.
+  const [modeMenuOpen, setModeMenuOpen] = useState(false);
+  const modeMenuAnchorRef = useRef<HTMLDivElement | null>(null);
+  const closeModeMenu = useCallback(() => setModeMenuOpen(false), []);
+  const setDashboardMode = useCallback((next: 'simple' | 'advanced') => {
+    updateUiSettings({ lightingDashboardMode: next });
+  }, [updateUiSettings]);
   const frames = useLightingFrames();
   // Read RGB running/scanning off useServiceState (already subscribed
   // to the lighting topic for the sidebar pip) so a topic push doesn't
@@ -1537,7 +1535,35 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // Pause/freeze applies to the three modes that drive a continuous output
   // (animate shader, media playback, screen mirror) - Off has nothing to
   // freeze and Game Sync is driven by the foreground game, not us.
-  const modeTabs = MODES
+  // Off is not a tab any more: it shares the first tab with the simple /
+  // advanced swap, which the tab opens as a menu instead of switching mode.
+  const modeMenu = usePageModeMenu({
+    mode: simpleDashboard ? 'simple' : 'advanced',
+    off: synced && effectiveMode === 'none',
+    offIcon: LIGHTING_MODE_ICONS.none,
+    offLabel: t('lighting.mode.off'),
+    offDescription: t('lighting.modeMenu.offDesc'),
+    simpleDescription: t('lighting.modeMenu.simpleDesc'),
+    advancedDescription: t('lighting.modeMenu.advancedDesc'),
+    // Simple mode never shows the device list, so Off claims what it can reach
+    // first - the same claim the palette runs, so the page's counts agree.
+    onOff: origin => {
+      // Already off: asking again would re-run the claim and re-issue the stop.
+      if (synced && effectiveMode === 'none') return;
+      emitRadialBloomFromElement(origin, true);
+      if (simpleDashboard) claimAllDevices();
+      void handleModeChange('none');
+    },
+    onModeChange: setDashboardMode,
+  });
+  const modeMenuTab = {
+    key: MODE_MENU_TAB_KEY,
+    label: modeMenu.triggerLabel,
+    icon: modeMenu.triggerIcon,
+    expanded: modeMenuOpen,
+  };
+  const modeTabs = [modeMenuTab, ...MODES
+    .filter(m => m.key !== 'none')
     .filter(m => m.key !== 'gamesync' || isWindows)
     .map(m => {
       const Icon = LIGHTING_MODE_ICONS[m.key];
@@ -1573,7 +1599,22 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           </HoverTooltip>
         ) : undefined,
       };
-    });
+    })];
+  // The strip marks the mode tab while lighting is off - it is the tab Off now
+  // lives on. Every other mode still marks its own tab.
+  const activeTabKey = !synced ? undefined
+    : (effectiveMode === 'none' ? MODE_MENU_TAB_KEY : effectiveMode);
+  // A tab press either opens the mode menu or switches mode; a mode switch
+  // also drops the menu, which the tab row keeps "inside" its anchor.
+  const handleTabChange = (key: string, origin?: HTMLButtonElement) => {
+    if (key === MODE_MENU_TAB_KEY) {
+      setModeMenuOpen(open => !open);
+      return;
+    }
+    closeModeMenu();
+    if (origin && key !== activeTabKey) emitRadialBloomFromElement(origin, false);
+    void handleModeChange(key as LightingMode);
+  };
 
   const shaderMode = effectiveMode === 'animate' || effectiveMode === 'static';
   // The preview stands for the selection in every mode: the modes that drive
@@ -1604,12 +1645,31 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     [visibleDevices, selectedDeviceIds],
   );
 
+  // The mode tab leads the strip in both dashboard modes; simple mode carries
+  // nothing after it, so its header is the mode tab alone.
+  const simpleTabs = [modeMenuTab];
+  const modeMenuNode = (
+    <ModeMenu
+      open={modeMenuOpen}
+      onClose={closeModeMenu}
+      anchorRef={modeMenuAnchorRef}
+      entries={modeMenu.entries}
+      ariaLabel={t('uiMode.menuLabel')}
+    />
+  );
+
   if (!serviceOnline) {
     return (
       <div className={styles.lighting}>
-        {!simpleDashboard && (
-          <ViewHeader title={t('lighting.title')} tabs={modeTabs} activeTab={synced ? effectiveMode : undefined} onTabChange={k => handleModeChange(k as LightingMode)} tabsDisabled />
-        )}
+        <div className={styles.tabsAnchor} ref={modeMenuAnchorRef}>
+          <ViewHeader
+            title={t('lighting.title')}
+            tabs={simpleDashboard ? simpleTabs : modeTabs}
+            activeTab={activeTabKey}
+            onTabChange={handleTabChange}
+            tabsDisabled
+          />
+        </div>
         <ServiceRequired state={connectionState} skeleton={<LightingSkeleton />} />
       </div>
     );
@@ -1623,6 +1683,15 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     return (
       <div className={styles.lighting}>
         <div className={`${styles.simpleBody} pageBodyFill`}>
+          <div className={styles.tabsAnchor} ref={modeMenuAnchorRef}>
+            <ViewHeader
+              title={t('lighting.title')}
+              tabs={simpleTabs}
+              activeTab={activeTabKey}
+              onTabChange={handleTabChange}
+            />
+            {modeMenuNode}
+          </div>
           {/* One line carries both counts, so a device the advanced page left
               un-driven is visible here without a device list. The action runs
               the same claim the palette does - controlledCount also requires
@@ -1639,17 +1708,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
               </Button>
             ) : undefined}
           />
-          <IconLabelButton
-            className={styles.simpleOffTile}
-            icon={<Power size={22} />}
-            label={t('lighting.mode.off')}
-            active={synced && effectiveMode === 'none'}
-            onPress={() => {
-              if (synced && effectiveMode === 'none') return;
-              claimAllDevices();
-              void handleModeChange('none');
-            }}
-          />
           <StaticPalette
             hero
             selectedId={simplePaletteId}
@@ -1658,12 +1716,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           {simpleCustomActive && (
             <SimpleModeNotice message={t('lighting.simple.customActive')} />
           )}
-          <div className={styles.simpleFooter}>
-            <AdvancedModeCta
-              label={t('lighting.simple.advancedCta')}
-              onPress={() => updateUiSettings({ lightingDashboardMode: 'advanced' })}
-            />
-          </div>
         </div>
       </div>
     );
@@ -1677,16 +1729,12 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           the page matches every other view's width. */}
       <div className={`${styles.body} ${dockCollapsed ? styles.bodyDockCollapsed : ''} pageBody`}>
         <div className={styles.topRow}>
-          <div className={styles.tabsCell}>
+          <div className={`${styles.tabsCell} ${styles.tabsAnchor}`} ref={modeMenuAnchorRef}>
             <ViewHeader
               title={t('lighting.title')}
               tabs={modeTabs}
-              activeTab={synced ? effectiveMode : undefined}
-              onTabChange={(k, origin) => {
-                // Status-change bloom only on an actual mode switch, from the pressed tab.
-                if (origin && k !== (synced ? effectiveMode : null)) emitRadialBloomFromElement(origin, k === 'none');
-                void handleModeChange(k as LightingMode);
-              }}
+              activeTab={activeTabKey}
+              onTabChange={handleTabChange}
               tabActions={(
                 <PresetToolbar
                   rail
@@ -1711,6 +1759,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                 />
               )}
             />
+            {modeMenuNode}
           </div>
         </div>
         <div className={`${styles.paneHeader} ${styles.headerLeft}`}>

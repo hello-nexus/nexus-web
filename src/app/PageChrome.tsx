@@ -8,40 +8,21 @@ export interface PageSettingsAction {
   label: string;
 }
 
-// A page-level simple/advanced mode toggle lifted into the top bar, rendered
-// as an icon + full-text button next to the search pill. The page owns its
-// mode state (its own ui.*DashboardMode field); it hands the top bar the
-// TARGET mode's name (`label`), the action's tooltip (`title`), and the flip.
-export interface PageModeToggle {
-  onToggle: () => void;
-  label: string;
-  title: string;
-}
-
 interface PageChromeValue {
   settings: PageSettingsAction | null;
-  modeToggle: PageModeToggle | null;
   // Stable across renders so a page's registration effect doesn't re-fire when
-  // `settings` / `modeToggle` themselves change.
+  // `settings` itself changes.
   register: (action: PageSettingsAction | null) => void;
-  registerModeToggle: (toggle: PageModeToggle | null) => void;
 }
 
 const PageChromeContext = createContext<PageChromeValue | null>(null);
 
 export function PageChromeProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<PageSettingsAction | null>(null);
-  const [modeToggle, setModeToggle] = useState<PageModeToggle | null>(null);
   const register = useCallback((action: PageSettingsAction | null) => {
     setSettings(action);
   }, []);
-  const registerModeToggle = useCallback((toggle: PageModeToggle | null) => {
-    setModeToggle(toggle);
-  }, []);
-  const value = useMemo(
-    () => ({ settings, modeToggle, register, registerModeToggle }),
-    [settings, modeToggle, register, registerModeToggle],
-  );
+  const value = useMemo(() => ({ settings, register }), [settings, register]);
   return <PageChromeContext.Provider value={value}>{children}</PageChromeContext.Provider>;
 }
 
@@ -70,21 +51,3 @@ export function usePageSettingsAction(action: PageSettingsAction, enabled = true
   }, [register, onOpen, label, enabled]);
 }
 
-/**
- * Register the active page's simple/advanced mode toggle with the top bar.
- * Same contract as {@link usePageSettingsAction}: no-op without the provider,
- * and `onToggle` must be stable or the registration re-fires every render.
- */
-export function usePageModeToggle(toggle: PageModeToggle, enabled = true) {
-  const register = usePageChrome()?.registerModeToggle;
-  const { onToggle, label, title } = toggle;
-  useEffect(() => {
-    if (!register) return;
-    if (!enabled) {
-      register(null);
-      return;
-    }
-    register({ onToggle, label, title });
-    return () => register(null);
-  }, [register, onToggle, label, title, enabled]);
-}

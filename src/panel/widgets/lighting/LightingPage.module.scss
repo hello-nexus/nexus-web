@@ -50,6 +50,12 @@
   min-width: 0;
 }
 
+// Positioning context for the mode menu, which drops out of the mode tab and
+// is placed against this element's left edge (the tab leads the strip).
+.tabsAnchor {
+  position: relative;
+}
+
 // One title per column, all on grid row 2 so they share a baseline whatever
 // each carries beside them.
 .paneHeader {
@@ -326,32 +332,14 @@
 }
 
 // -- Simple mode (ui.lightingDashboardMode) --------------------------------
-// The palette at hero size with the Off tile above it, and the advanced-mode
-// CTA in flow beneath it.
+// The mode tab on top, the palette at hero size beneath it. Off and the swap
+// into advanced both live in the tab's menu.
 .simpleBody {
   display: flex;
   flex-direction: column;
   gap: 1rem;
   padding-top: 0.75rem;
   overflow-y: auto;
-}
-
-// Off tile above the simple-mode palette: the cooling preset-tile look, kept
-// to a single row so the colours stay the page.
-.simpleOffTile {
-  --icon-label-button-gap: 0.5rem;
-  --icon-label-icon-size: 22px;
-  --icon-label-label-size: var(--type-body);
-  --icon-label-button-radius: var(--radius);
-  --icon-label-button-active-border: var(--accent);
-
-  width: 100%;
-  padding: 0.9rem 1rem;
-}
-
-.simpleFooter {
-  flex: 0 0 auto;
-  padding: 0.75rem 0 1rem;
 }
 
 .paletteSwatch {

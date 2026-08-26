@@ -2,7 +2,7 @@
 // file per preview to satisfy the fast-refresh rule would be dozens of tiny
 // files. Storybook entries reload (not HMR) on edit.
 import { useEffect, useRef, useState, type CSSProperties, type FC } from 'react';
-import { Monitor, Palette, Sparkles, X, Plus, Settings, Download, AlertTriangle, HardDrive, Heart, Pause } from 'lucide-react';
+import { Monitor, Palette, Sparkles, X, Plus, Settings, Download, AlertTriangle, HardDrive, Heart, LayoutGrid, Pause, Power } from 'lucide-react';
 import { ViewHeader } from '../components/common/ViewHeader/ViewHeader';
 import { Sparkline } from '../components/common/Sparkline/Sparkline';
 import { SensorCard } from '../components/common/SensorCard/SensorCard';
@@ -46,7 +46,7 @@ import { Toggle } from '../components/common/Toggle/Toggle';
 import { EmptyState } from '../components/common/EmptyState/EmptyState';
 import { Select } from '../components/common/Select/Select';
 import { IconLabelButton } from '../components/common/IconLabelButton/IconLabelButton';
-import { AdvancedModeCta } from '../components/common/AdvancedModeCta/AdvancedModeCta';
+import { ModeMenu } from '../components/common/ModeMenu/ModeMenu';
 import { DeviceCountSummary } from '../components/common/DeviceCountSummary/DeviceCountSummary';
 import { SimpleModeNotice } from '../components/common/SimpleModeNotice/SimpleModeNotice';
 import { Button } from '../components/common/Button/Button';
@@ -1154,13 +1154,37 @@ function PreviewIconLabelButton() {
   );
 }
 
-function PreviewAdvancedModeCta() {
+function PreviewModeMenu() {
+  // The menu positions itself against its anchor, so the preview supplies the
+  // positioned wrapper the lighting / cooling tab row provides in the app.
+  const anchorRef = useRef<HTMLDivElement>(null);
   return (
-    <div className={styles.previewStack} style={{ width: 520 }}>
-      <AdvancedModeCta
-        label="More effects, templates and per-device options"
-        onPress={() => {}}
-      />
+    <div className={styles.previewStack} style={{ width: 520, height: 200 }}>
+      <div ref={anchorRef} style={{ position: 'relative' }}>
+        <ModeMenu
+          open
+          onClose={() => {}}
+          anchorRef={anchorRef}
+          ariaLabel="Page mode"
+          entries={[
+            {
+              key: 'off',
+              icon: <Power size={20} />,
+              title: 'Off',
+              description: 'Stops driving RGB. Devices fall back to their own lighting.',
+              active: true,
+              onSelect: () => {},
+            },
+            {
+              key: 'simple',
+              icon: <LayoutGrid size={20} />,
+              title: 'Simple mode',
+              description: 'One colour on every device. No effects, patterns or per-device control.',
+              onSelect: () => {},
+            },
+          ]}
+        />
+      </div>
     </div>
   );
 }
@@ -2085,10 +2109,10 @@ export const REGISTRY: StorybookEntry[] = [
     notes: 'Pass overlay for the full-bleed label-on-thumbnail shader-picker layout. Pass asDiv when the card contains a nested button (CardDeleteButton) - nested buttons are invalid HTML. Pass nonInteractive for a display-only card (plain div, no hover ring / cursor) - the lighting widget tile. thumbUrl=null renders a shimmer skeleton.',
   },
   {
-    name: 'AdvancedModeCta', category: 'cards',
-    filePath: 'src/components/common/AdvancedModeCta/AdvancedModeCta.tsx',
-    description: 'Wide card-button at the bottom of the simple-mode lighting/cooling pages: "Advanced mode" eyebrow over a page-specific line describing what the full page adds, with a chevron affordance. Pressing it flips that page\'s ui.*DashboardMode field to advanced (the page passes the flip as onPress).',
-    Preview: PreviewAdvancedModeCta,
+    name: 'ModeMenu', category: 'cards',
+    filePath: 'src/components/common/ModeMenu/ModeMenu.tsx',
+    description: 'The lighting / cooling page-mode menu, dropped from the first mode tab: large rows carrying a glyph, a title and one line saying what the choice does. Off is always offered; the second row is whichever of simple / advanced the page is not in, and picking it flips that page\'s ui.*DashboardMode field. usePageModeMenu (same folder) builds the entries plus the tab\'s own glyph + caret label.',
+    Preview: PreviewModeMenu,
   },
   {
     name: 'SimpleModeNotice', category: 'cards',

@@ -112,10 +112,13 @@ describe('CoolingPage undo/redo', () => {
     await waitFor(() => { expect(redoBtn()).not.toBeDisabled(); });
   });
 
-  it('offers no reset: the Off mode tab beside it already returns fans to BIOS', async () => {
+  it('offers no reset: the mode tab beside it already returns fans to BIOS', async () => {
     renderAdvanced();
     await screen.findByRole('tab', { name: /cooling\.mode\.turbo/ });
     expect(screen.queryByRole('button', { name: /cooling\.presets\.reset/ })).toBeNull();
-    expect(screen.getByRole('tab', { name: /cooling\.mode\.off/ })).toBeTruthy();
+    // Off moved into the first tab's menu; the tab itself reads as the mode
+    // the page is in (advanced here), so open it and look for the Off row.
+    fireEvent.click(screen.getByRole('tab', { name: /uiMode\.advanced/ }));
+    expect(screen.getByRole('menuitemradio', { name: /cooling\.mode\.off/ })).toBeTruthy();
   });
 });
