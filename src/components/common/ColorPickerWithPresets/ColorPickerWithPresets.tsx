@@ -1,13 +1,26 @@
+import { useRef, useState } from 'react';
+import { Pipette } from 'lucide-react';
+import { HsvPicker } from '../HsvPicker/HsvPicker';
+import { Popover } from '../Popover/Popover';
+import { contrastTextOn } from '../../../lib/settings';
+import { useTranslation } from '../../../lib/i18n';
 import styles from './ColorPickerWithPresets.module.scss';
+
+// Presets wrap at 10 per row; the custom slot takes the column after them.
+const PRESET_COLUMNS = 10;
 
 /**
  * Preset-swatch grid used by every theming surface (app accent, panel accent,
- * panel background). Renders the supplied presets as a fixed 2-row grid; tiles
- * commit immediately on click. There is no free-form color input - the preset
- * list is the entire palette.
+ * panel background). Tiles commit immediately on click.
  *
- * onPreview is kept in the prop contract for symmetry with other live-preview
- * controls but is unused here because preset selection is a single-click commit.
+ * With `allowCustom` a final full-height slot opens an HsvPicker popover for
+ * colors outside the preset list. Whenever the current value is off-palette the
+ * slot shows that value, so it tracks a drag preview; once a preset is selected
+ * the slot falls back to `customColor`, the host's saved pick.
+ *
+ * onPreview fires per pointer-move inside the popover (live theme application
+ * without persistence). Preset tiles are a single-click commit and never
+ * preview.
  */
 export interface ColorPickerWithPresetsProps {
   value: string;
@@ -16,6 +29,16 @@ export interface ColorPickerWithPresetsProps {
   fallback?: string;
   onPreview?: (hex: string) => void;
   onCommit: (hex: string) => void;
+  /** Render the trailing custom-color slot (HsvPicker popover). */
+  allowCustom?: boolean;
+  /**
+   * Saved custom-slot color, shown once a preset is selected. Hosts with
+   * nowhere to store it can omit it: picking any color still works, the slot
+   * just reverts to the hue wheel after a preset is chosen.
+   */
+  customColor?: string;
+  /** Persist the custom slot. Called alongside onCommit, never on preview. */
+  onCustomCommit?: (hex: string) => void;
   className?: string;
 }
 
@@ -23,14 +46,40 @@ export function ColorPickerWithPresets({
   value,
   presets,
   fallback,
+  onPreview,
   onCommit,
+  allowCustom,
+  customColor,
+  onCustomCommit,
   className,
 }: ColorPickerWithPresetsProps) {
+  const { t } = useTranslation();
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const slotRef = useRef<HTMLDivElement>(null);
+
   const normalized = (value || fallback || presets[0] || '#000000').toLowerCase();
+  const isPreset = presets.some(hex => hex.toLowerCase() === normalized);
+  // An off-palette value IS the custom color right now, and it lands on preview,
+  // a whole gesture before onCustomCommit does.
+  const slotColor = (isPreset ? customColor?.toLowerCase() : normalized) || '';
+
+  // Track the preset count so a short list keeps the slot flush against the
+  // palette instead of stranding it past empty columns.
+  const presetColumns = Math.min(Math.max(presets.length, 1), PRESET_COLUMNS);
+  const presetRows = Math.max(1, Math.ceil(presets.length / PRESET_COLUMNS));
+  const columns = presetColumns + (allowCustom ? 1 : 0);
 
   return (
-    <div className={`${styles.root} ${className ?? ''}`}>
-      <div className={styles.swatchGrid}>
+    <div
+      className={`${styles.root} ${className ?? ''}`}
+      style={{
+        maxWidth: `calc(${columns} * var(--swatch-size-cap) + ${columns - 1} * var(--swatch-gap))`,
+      }}
+    >
+      <div
+        className={styles.swatchGrid}
+        style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
+      >
         {presets.map(hex => {
           const selected = hex.toLowerCase() === normalized;
           return (
@@ -45,6 +94,45 @@ export function ColorPickerWithPresets({
             />
           );
         })}
+        {allowCustom && (
+          <div
+            ref={slotRef}
+            className={styles.customSlot}
+            style={{ gridColumn: columns, gridRow: `1 / span ${presetRows}` }}
+          >
+            <button
+              type="button"
+              className={`${styles.swatch} ${styles.customSwatch} ${!isPreset ? styles.swatchSelected : ''}`}
+              style={slotColor ? { background: slotColor, color: contrastTextOn(slotColor) } : undefined}
+              onClick={() => setPickerOpen(open => !open)}
+              aria-label={t('common.customColor')}
+              aria-haspopup="dialog"
+              aria-expanded={pickerOpen}
+              // Not aria-pressed: this button opens the picker, it does not
+              // toggle the selection a press would announce.
+              aria-current={!isPreset}
+            >
+              <Pipette
+                className={`${styles.customIcon} ${slotColor ? styles.customIconOnFill : ''}`}
+                aria-hidden
+              />
+            </button>
+            <Popover
+              open={pickerOpen}
+              onClose={() => setPickerOpen(false)}
+              anchorRef={slotRef}
+              placement="bottom-end"
+              ariaLabel={t('common.customColor')}
+              className={styles.customPopover}
+            >
+              <HsvPicker
+                value={slotColor || normalized}
+                onPreview={hex => onPreview?.(hex)}
+                onCommit={hex => { onCustomCommit?.(hex); onCommit(hex); }}
+              />
+            </Popover>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -330,6 +330,7 @@ export function PanelThemeSettings({
               fallback={theme.appAccentColor || DEFAULT_ACCENT}
               onPreview={onAccentPreview}
               onCommit={onAccentCommit}
+              allowCustom
             />
           )}
         </div>
@@ -388,6 +389,7 @@ export function PanelThemeSettings({
                 fallback={panelBackgroundDefault(resolvedThemeMode)}
                 onPreview={onBackgroundPreview}
                 onCommit={onBackgroundCommit}
+                allowCustom
               />
             </>
           ) : theme.backgroundMode === 'media' ? (

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { setLightingDeviceColor } from '../../../api/lighting';
 import { paletteColor } from '../../../types/lightingPalette';
 import { defaultStateFor } from '../../../types/lighting';
-import { pickLookForDevices, pickPaletteForDevices } from './staticPicks';
+import { devicePicksFromLooks, pickCustomForDevices, pickLookForDevices, pickPaletteForDevices } from './staticPicks';
 
 vi.mock('../../../api/lighting', () => ({
   setLightingDeviceColor: vi.fn(() => Promise.resolve()),
@@ -47,5 +47,29 @@ describe('staticPicks', () => {
     expect(setLightingDeviceColor).toHaveBeenCalledWith('a', red.h, red.s, {
       effect: 'flat', color: red.hex, intensity: 1, colorize: 0, contrast: 1, params: {},
     });
+  });
+
+  it('pushes a custom colour as a flat look carrying the exact hex', () => {
+    const next = pickCustomForDevices({}, '#abcdef', ['a', 'b']);
+
+    expect(next.a.hex).toBe('#abcdef');
+    expect(setLightingDeviceColor).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(setLightingDeviceColor).mock.calls[0][3]).toMatchObject({
+      effect: 'flat', color: '#abcdef',
+    });
+  });
+
+  it('keeps a custom hex distinguishable from the palette id it snaps to', () => {
+    // devicePicksFromLooks snaps every flat colour to a nearest palette id, so
+    // the id alone would read an off-palette pick as an exact palette pick. The
+    // stored hex is what separates them, and it must survive the round trip.
+    const next = pickCustomForDevices({}, '#abcdef', ['a']);
+    const restored = devicePicksFromLooks({
+      a: { effect: 'flat', color: '#abcdef', hue: 0, saturation: 0, slot: 0 },
+    } as Parameters<typeof devicePicksFromLooks>[0]);
+
+    expect(restored.a.key).toBe(next.a.key);
+    expect(restored.a.hex).toBe('#abcdef');
+    expect(paletteColor(restored.a.key.replace('flat:', ''))?.hex).not.toBe('#abcdef');
   });
 });

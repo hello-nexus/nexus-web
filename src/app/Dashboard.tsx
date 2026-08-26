@@ -427,6 +427,7 @@ export function Dashboard() {
       language: prefs.theme.language,
       themeMode: prefs.theme.themeMode,
       accentColor: prefs.theme.accentColor,
+      customAccentColor: prefs.theme.customAccentColor,
       showConflictAlerts: prefs.ui?.showConflictAlerts,
       monitoringDetailedCollapsed: prefs.monitoring?.detailedCollapsed,
       showMacStatusBarIcon: prefs.monitoring?.showMacStatusBarIcon,

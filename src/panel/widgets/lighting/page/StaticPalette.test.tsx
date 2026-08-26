@@ -46,4 +46,61 @@ describe('StaticPalette', () => {
     expect(screen.getByLabelText('lighting.palette.red 3')).toBeTruthy();
     expect(screen.getByLabelText('lighting.palette.white 1')).toBeTruthy();
   });
+
+  it('renders no custom slot without onSelectCustom, nor in hero mode', () => {
+    const { rerender } = render(
+      <StaticPalette open onToggle={() => {}} onSelect={() => {}} />,
+    );
+    expect(screen.queryByLabelText('common.customColor')).toBeNull();
+    rerender(<StaticPalette hero onSelect={() => {}} onSelectCustom={() => {}} />);
+    expect(screen.queryByLabelText('common.customColor')).toBeNull();
+  });
+
+  it('applies the colour the slot already shows on click', () => {
+    const onSelectCustom = vi.fn();
+    render(
+      <StaticPalette
+        open onToggle={() => {}} onSelect={() => {}}
+        customColor="#abcdef" onSelectCustom={onSelectCustom}
+      />,
+    );
+    fireEvent.click(screen.getByLabelText('common.customColor'));
+    expect(onSelectCustom).toHaveBeenCalledWith('#abcdef');
+  });
+
+  it('opens the picker without applying when the slot has no colour yet', () => {
+    const onSelectCustom = vi.fn();
+    render(
+      <StaticPalette open onToggle={() => {}} onSelect={() => {}} onSelectCustom={onSelectCustom} />,
+    );
+    const slot = screen.getByLabelText('common.customColor');
+    fireEvent.click(slot);
+    expect(onSelectCustom).not.toHaveBeenCalled();
+    expect(slot).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('does not re-apply when the click closes the picker', () => {
+    const onSelectCustom = vi.fn();
+    render(
+      <StaticPalette
+        open onToggle={() => {}} onSelect={() => {}}
+        customColor="#abcdef" onSelectCustom={onSelectCustom}
+      />,
+    );
+    const slot = screen.getByLabelText('common.customColor');
+    fireEvent.click(slot);
+    fireEvent.click(slot);
+    expect(onSelectCustom).toHaveBeenCalledTimes(1);
+  });
+
+  it('marks the slot current and clears the grid when the pick is off-palette', () => {
+    const { container } = render(
+      <StaticPalette
+        selectedId={null} open onToggle={() => {}} onSelect={() => {}}
+        customColor="#abcdef" customSelected onSelectCustom={() => {}}
+      />,
+    );
+    expect(screen.getByLabelText('common.customColor')).toHaveAttribute('aria-current', 'true');
+    expect(container.querySelectorAll('[data-palette-id][aria-pressed="true"]')).toHaveLength(0);
+  });
 });

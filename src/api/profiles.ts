@@ -31,6 +31,10 @@ export interface ThemeSettings {
   // local default and seeds the server once (see useUiSettings migration).
   backgroundMode?: string;
   accentSource?: string;
+  // Last colour picked from the accent palette's custom slot. Separate from
+  // accentColor so the slot still shows it after a preset is chosen. '' = the
+  // slot has never been used; older services omit the field entirely.
+  customAccentColor?: string;
 }
 
 export interface MonitoringSettings {

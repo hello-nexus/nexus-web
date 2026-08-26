@@ -45,7 +45,7 @@ import { LightingSkeleton } from '../../../components/views/PageSkeleton/PageSke
 import { DeviceCanvas } from '../../../components/common/DeviceCanvas/DeviceCanvas';
 import { usePersistentState, usePersistentIdSet } from '../../../hooks/usePersistentState';
 import {
-  pickLookForDevices, pickPaletteForDevices, pushPalettePick, devicePicksFromLooks,
+  pickLookForDevices, pickPaletteForDevices, pickCustomForDevices, pushPalettePick, pushCustomPick, devicePicksFromLooks,
   DEVICE_PICKS_STORAGE_KEY, SELECTED_DEVICES_STORAGE_KEY, PRIMARY_DEVICE_STORAGE_KEY,
   type DevicePick,
 } from './staticPicks';
@@ -112,7 +112,7 @@ interface LayoutHistorySnapshot {
 type ScopedTarget =
   | { kind: 'none' }
   | { kind: 'locked' }
-  | { kind: 'pick'; key: string; slot: number; explicit: boolean };
+  | { kind: 'pick'; key: string; slot: number; explicit: boolean; hex: string };
 
 // Module scope so the layout undo/redo history survives LightingPage's unmount
 // on navigation. Session-only; not persisted to storage. Assumes one mounted
@@ -223,6 +223,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // sizes itself.
   const [dockCollapsed, setDockCollapsed] = usePersistentState('nexus.lighting.effectDockCollapsed', true);
   const [paletteOpen, setPaletteOpen] = useState(true);
+  const [customStaticColor, setCustomStaticColor] = usePersistentState('nexus.lighting.customColor', '');
 
   const [activeEffect, setActiveEffect] = useState<string>('');
   // Read inside applyAnimate, which several handlers share: static and animate
@@ -836,6 +837,49 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     writePalettePick(color, [...selectedDeviceIds]);
   }, [perDeviceMode, selectedDeviceIds, writePalettePick]);
 
+  // Custom-colour writes: one in flight, newest wins. Paced by the write
+  // landing rather than a timer, so a slow write drops the frames it outran
+  // instead of queueing them behind the pointer. The queued entry carries its
+  // own target ids - the selection can change before the chain drains.
+  const customWrite = useRef<{ inFlight: boolean; queued: { hex: string; ids: string[] } | null }>(
+    { inFlight: false, queued: null },
+  );
+  // Ref-held so the .finally re-entry keeps one stable identity, as
+  // useSystemVolume's pump does.
+  const pumpCustomRef = useRef<() => void>(() => {});
+  const pumpCustom = useCallback(() => {
+    const write = customWrite.current;
+    if (write.inFlight || !write.queued) return;
+    const { hex, ids } = write.queued;
+    write.queued = null;
+    write.inFlight = true;
+    pushCustomPick(hex, ids).finally(() => {
+      write.inFlight = false;
+      pumpCustomRef.current();
+    });
+  }, []);
+  pumpCustomRef.current = pumpCustom;
+
+  const queueCustomWrite = useCallback((hex: string, ids: string[]) => {
+    customWrite.current.queued = { hex, ids };
+    pumpCustom();
+  }, [pumpCustom]);
+
+  const handleCustomSelect = useCallback((hex: string) => {
+    setCustomStaticColor(hex);
+    if (!perDeviceMode || selectedDeviceIds.size === 0) return;
+    const ids = [...selectedDeviceIds];
+    // Record without pushing and queue the write, so the commit cannot race a
+    // preview still in flight and leave the hardware on the older colour.
+    setDevicePicks(prev => pickCustomForDevices(prev, hex, ids, false));
+    queueCustomWrite(hex, ids);
+  }, [perDeviceMode, queueCustomWrite, selectedDeviceIds, setCustomStaticColor, setDevicePicks]);
+
+  const handleCustomPreview = useCallback((hex: string) => {
+    if (!perDeviceMode || selectedDeviceIds.size === 0) return;
+    queueCustomWrite(hex, [...selectedDeviceIds]);
+  }, [perDeviceMode, queueCustomWrite, selectedDeviceIds]);
+
   const effectPool = mode === 'static' ? STATIC_EFFECTS : ANIMATE_EFFECTS;
 
   const handlePrevEffect = useCallback(() => {
@@ -876,7 +920,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       } else if (sig !== s) return { kind: 'locked' };
     }
     if (!first || !first.key) return { kind: 'locked' };
-    return { kind: 'pick', key: first.key, slot: first.slot, explicit };
+    return { kind: 'pick', key: first.key, slot: first.slot, explicit, hex: first.hex };
   }, [activeEffect, devicePicks, perDeviceMode, selectedDeviceIds, slotOf]);
 
   // The dock always edits a single (effect, slot). Scoped, that is the
@@ -1632,7 +1676,13 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const gridEffect = scoped.kind === 'pick' ? scoped.key : (scoped.kind === 'locked' ? '' : activeEffect);
   // The palette highlights the selection's colour; an effect pick highlights a
   // tile instead, so only one of the two ever reads as active.
-  const scopedPaletteId = scoped.kind === 'pick' ? paletteIdFromKey(scoped.key) : null;
+  // devicePicksFromLooks snaps ANY flat colour to its nearest palette id, so the
+  // key alone cannot tell a palette pick from a custom one - only the hex can.
+  const scopedHex = scoped.kind === 'pick' ? scoped.hex : '';
+  const scopedRawPaletteId = scoped.kind === 'pick' ? paletteIdFromKey(scoped.key) : null;
+  const scopedCustom = !!scopedRawPaletteId && !!scopedHex
+    && paletteColor(scopedRawPaletteId)?.hex.toLowerCase() !== scopedHex.toLowerCase();
+  const scopedPaletteId = scopedCustom ? null : scopedRawPaletteId;
   // Selected devices wearing different looks have no single value for the
   // controls to edit, so the dock locks until the selection agrees.
   const mixedSelection = scoped.kind === 'locked';
@@ -1948,6 +1998,10 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                       open={paletteOpen}
                       onToggle={() => setPaletteOpen(o => !o)}
                       onSelect={handlePaletteSelect}
+                      customColor={scopedCustom ? scopedHex : customStaticColor}
+                      customSelected={scopedCustom}
+                      onSelectCustom={handleCustomSelect}
+                      onPreviewCustom={handleCustomPreview}
                     />
                   ) : undefined}
                 />

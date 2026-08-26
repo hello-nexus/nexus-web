@@ -55,6 +55,7 @@ export function SettingsView({ serviceOnline, connectionState, platform, tab: ur
       language: ui.language,
       themeMode: ui.themeMode,
       accentColor: ui.accentColor,
+      customAccentColor: ui.customAccentColor,
       backgroundMode: ui.backgroundMode,
       smartPollSeconds: ui.smartPollSeconds,
       smartPollDefaultSeconds: ui.smartPollDefaultSeconds,
