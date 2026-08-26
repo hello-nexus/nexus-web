@@ -31,7 +31,7 @@ import { useServiceStatus, DESKTOP_OFFLINE_GRACE_MS } from '../hooks/useServiceS
 import { useServiceState } from '../hooks/useServiceState';
 import { useOnboardingStatus } from '../hooks/useOnboardingStatus';
 import { useConflictApps } from '../hooks/useConflictApps';
-import { completeLightingOnboarding, completeOnboarding } from '../api/onboarding';
+import { completeFeaturesOnboarding, completeLightingOnboarding, completeOnboarding } from '../api/onboarding';
 import { dismissNexus2Welcome } from '../api/migration';
 import { dismissFanControlImport } from '../api/fancontrol';
 import { ConflictOnboardingScreen } from '../components/common/ConflictOnboardingScreen/ConflictOnboardingScreen';
@@ -71,8 +71,10 @@ import { useSearchSignal } from '../search/signals';
 import { checkHelloGreetingOnce } from '../search/helloGreetingStore';
 import { PairPhoneModal } from './PairPhoneModal';
 import { WelcomeScreen } from '../components/common/WelcomeScreen/WelcomeScreen';
+import { FeaturesOnboardingScreen } from '../components/common/FeaturesOnboardingScreen/FeaturesOnboardingScreen';
 import { LightingOnboardingScreen } from '../components/common/LightingOnboardingScreen/LightingOnboardingScreen';
 import { ImportOnboardingScreen } from '../components/common/ImportOnboarding/ImportOnboardingScreen';
+import { FeatureGate } from '../components/common/FeatureDisabled/FeatureDisabled';
 import { UpdateModal } from '../components/common/UpdateModal/UpdateModal';
 import { getUpdateStatus, startUpdate, type UpdateStatus } from '../api/update';
 import { IncomingPairModal } from './IncomingPairModal';
@@ -293,16 +295,27 @@ export function Dashboard() {
     navigate,
     online,
   );
-  const { status: onboardingStatus, lightingStatus } = useOnboardingStatus();
+  const { status: onboardingStatus, lightingStatus, featuresStatus } = useOnboardingStatus();
   // Flips true once WelcomeScreen posts /onboarding/complete, so a later
   // reconnect (which re-derives onboardingStatus) can't reopen it mid-session.
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
+  const [featuresOnboardingDismissed, setFeaturesOnboardingDismissed] = useState(false);
   const [lightingOnboardingDismissed, setLightingOnboardingDismissed] = useState(false);
+  // Latched by FeaturesOnboardingScreen's onComplete when the user switched
+  // Lighting off there. Dashboard's body can't call useUiSettings() itself
+  // (it renders the provider), so this is the only way the skip decision
+  // reaches the lighting gate below.
+  const [lightingFeatureOff, setLightingFeatureOff] = useState(false);
   // Set by any later gate's Back path that targets the welcome screen.
   // Reopens it even when its server flag already completed (e.g. a reload
   // mid-sequence resolved onboardingStatus to 'completed').
   const [welcomeRevisit, setWelcomeRevisit] = useState(false);
   const welcomeOpen = (onboardingStatus === 'pending' || welcomeRevisit) && !onboardingDismissed;
+  // First gate after welcome: which functional pillars (lighting/cooling/
+  // monitoring/diagnostics) the user wants at all.
+  const featuresOpen = onboardingStatus !== 'unknown'
+    && (onboardingStatus === 'completed' || onboardingDismissed)
+    && !welcomeOpen && featuresStatus === 'pending' && !featuresOnboardingDismissed;
   // Fetched on mount alongside onboarding (not deferred) so the handoff from
   // WelcomeScreen to this screen can land in the same render pass.
   const nexus2 = useNexus2WelcomeStatus();
@@ -321,13 +334,14 @@ export function Dashboard() {
   const importOpen = onboardingStatus !== 'unknown' && nexus2.status !== 'unknown'
     && fanControl.status !== 'unknown'
     && (onboardingStatus === 'completed' || onboardingDismissed)
-    && !welcomeOpen && importOffered && !importDismissed;
+    && !welcomeOpen && !featuresOpen && importOffered && !importDismissed;
   // Third gate: device selection runs last, against the fullest device list.
   // Waits on nexus2.status resolving so it cannot flash open before the
   // heavier Nexus 2 detection read decides whether that gate comes first.
+  // Skipped entirely when the features gate already turned Lighting off.
   const lightingOnboardingOpen = onboardingStatus !== 'unknown' && nexus2.status !== 'unknown'
     && fanControl.status !== 'unknown'
-    && !welcomeOpen && !importOpen
+    && !welcomeOpen && !importOpen && !featuresOpen && !lightingFeatureOff
     && lightingStatus === 'pending' && !lightingOnboardingDismissed;
   // Final gate: conflicting apps, after every other step, because ending one
   // is about the running system rather than about setup. Opens only when the
@@ -339,14 +353,16 @@ export function Dashboard() {
   // all session: an app launched an hour later would pop it open and, because
   // showDashboard excludes it, unmount the whole dashboard underneath.
   const [conflictStepArmed, setConflictStepArmed] = useState(false);
-  const ranOnboarding = onboardingDismissed || lightingOnboardingDismissed || importDismissed;
-  const gatesSettled = ranOnboarding && !welcomeOpen && !importOpen && !lightingOnboardingOpen;
+  const ranOnboarding = onboardingDismissed || featuresOnboardingDismissed || lightingOnboardingDismissed || importDismissed;
+  const gatesSettled = ranOnboarding && !welcomeOpen && !featuresOpen && !importOpen && !lightingOnboardingOpen;
   // Open depends on the latch, not on the live list, so ending the last app
   // from inside the modal shows the all-clear state instead of vanishing.
   const conflictStepOpen = conflictStepArmed && !conflictStepDone;
 
   // Skips every remaining step at once. Marks the same server flags the
-  // screens themselves would, so a reload does not reopen them.
+  // screens themselves would, so a reload does not reopen them. Leaves all
+  // four feature switches enabled - skip means "stop asking", not "turn
+  // things off".
   const skipOnboarding = useCallback(() => {
     // The import gate latches on its own per-app dismiss flags, not on the
     // onboarding ones - without these it reopens on the next launch. Only the
@@ -354,11 +370,13 @@ export function Dashboard() {
     // latching one for an app not yet installed consumes its offer for good.
     void Promise.allSettled([
       completeOnboarding(),
+      completeFeaturesOnboarding(),
       completeLightingOnboarding(),
       ...(nexus2.status === 'pending' ? [dismissNexus2Welcome()] : []),
       ...(fanControl.status === 'pending' ? [dismissFanControlImport()] : []),
     ]);
     setOnboardingDismissed(true);
+    setFeaturesOnboardingDismissed(true);
     setImportDismissed(true);
     setLightingOnboardingDismissed(true);
     setConflictStepDone(true);
@@ -378,7 +396,7 @@ export function Dashboard() {
   // Nexus2WelcomeScreen pops in on top of it.
   const showDashboard = onboardingStatus !== 'unknown' && nexus2.status !== 'unknown'
     && fanControl.status !== 'unknown'
-    && !welcomeOpen && !lightingOnboardingOpen && !importOpen && !conflictStepOpen;
+    && !welcomeOpen && !featuresOpen && !lightingOnboardingOpen && !importOpen && !conflictStepOpen;
   const multiplex = useMultiplexConnection(online);
   const serviceState = useServiceState(online, multiplex);
   const profilesHook = useProfiles(online);
@@ -723,17 +741,17 @@ export function Dashboard() {
           }}
         />
       );
-      case 'monitoring': return <MonitoringPage serviceOnline={online} connectionState={status.state} tab={subtab} onTabChange={setSubtab} />;
+      case 'monitoring': return <FeatureGate feature="monitoring"><MonitoringPage serviceOnline={online} connectionState={status.state} tab={subtab} onTabChange={setSubtab} /></FeatureGate>;
       case 'screentime': return <ScreentimePage serviceOnline={online} connectionState={status.state} tab={subtab} onTabChange={setSubtab} />;
       case 'benchmark':  return <BenchmarkPage serviceOnline={online} connectionState={status.state} tab={subtab} onTabChange={setSubtab} />;
-      case 'lighting':   return <LightingPage serviceOnline={online} serviceState={serviceState} connectionState={status.state} activeProfileId={profilesHook.activeId} platform={status.ping?.platform ?? ''} onSectionNavigate={(target, payload) => {
+      case 'lighting':   return <FeatureGate feature="lighting"><LightingPage serviceOnline={online} serviceState={serviceState} connectionState={status.state} activeProfileId={profilesHook.activeId} platform={status.ping?.platform ?? ''} onSectionNavigate={(target, payload) => {
         // The LED-map hub composition panel deep-links to a device page.
         if (target === 'device' && payload?.deviceKey) { navigate('system', 'device', payload.deviceKey); return; }
         setView(target);
-      }} />;
+      }} /></FeatureGate>;
       case 'smart-lights': return <SmartLightsPage onSectionNavigate={(target) => setView(target)} />;
       case 'home-assistant': return <HomeAssistantPage />;
-      case 'cooling':    return <CoolingPage serviceOnline={online} serviceState={serviceState} connectionState={status.state} activeProfileId={profilesHook.activeId} platform={status.ping?.platform ?? ''} />;
+      case 'cooling':    return <FeatureGate feature="cooling"><CoolingPage serviceOnline={online} serviceState={serviceState} connectionState={status.state} activeProfileId={profilesHook.activeId} platform={status.ping?.platform ?? ''} /></FeatureGate>;
       case 'devices':    return (
         <DevicesPage
           serviceOnline={online}
@@ -752,7 +770,7 @@ export function Dashboard() {
           onSectionNavigate={(target) => setView(target)}
         />
       );
-      case 'diagnostics': return <DiagnosticsPage serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} tab={subtab} onTabChange={setSubtab} />;
+      case 'diagnostics': return <FeatureGate feature="diagnostics"><DiagnosticsPage serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} tab={subtab} onTabChange={setSubtab} /></FeatureGate>;
       case 'clock':      return <ClockPage />;
       case 'steam':      return <SteamPage />;
       case 'gallery':    return <GalleryPage />;
@@ -912,6 +930,20 @@ export function Dashboard() {
           platform={status.ping?.platform ?? ''}
           onComplete={() => setOnboardingDismissed(true)}
         />
+        {/* Feature-pillars gate: lets the user turn off whole functional
+            areas up front. Back only steps into first-run onboarding while
+            that sequence is still running. */}
+        <FeaturesOnboardingScreen
+          open={featuresOpen}
+          onComplete={(flags) => {
+            setFeaturesOnboardingDismissed(true);
+            if (!flags.lighting) setLightingFeatureOff(true);
+          }}
+          onSkipOnboarding={skipOnboarding}
+          onBack={onboardingStatus === 'pending'
+            ? () => { setWelcomeRevisit(true); setOnboardingDismissed(false); }
+            : undefined}
+        />
         {/* Import gate: offers every app a previous setup can come from.
             Ending one is the conflict gate's job, on an explicit click. */}
         <ImportOnboardingScreen
@@ -927,22 +959,24 @@ export function Dashboard() {
           }}
           onComplete={() => setImportDismissed(true)}
           onSkipOnboarding={skipOnboarding}
-          // Back only steps into first-run onboarding while that sequence is
-          // still running; this gate also reopens on its own later.
-          onBack={onboardingStatus === 'pending'
-            ? () => { setWelcomeRevisit(true); setOnboardingDismissed(false); }
+          // Back steps to the features gate while that sequence is still
+          // running; this gate also reopens on its own later.
+          onBack={featuresStatus === 'pending'
+            ? () => setFeaturesOnboardingDismissed(false)
             : undefined}
         />
         {/* Lighting device-selection gate, gated by its own server-side flag so
-            a factory reset reopens everything. Back targets the Nexus 2 gate
-            when this install has one, else the welcome screen. */}
+            a factory reset reopens everything. Back targets whichever earlier
+            gate actually ran this session: import, else features, else
+            welcome. */}
         <LightingOnboardingScreen
           open={lightingOnboardingOpen}
           onComplete={() => setLightingOnboardingDismissed(true)}
           onSkipOnboarding={skipOnboarding}
           onBack={() => {
-            if (importOffered) setImportDismissed(false);
-            else { setWelcomeRevisit(true); setOnboardingDismissed(false); }
+            if (importOffered) { setImportDismissed(false); return; }
+            if (featuresStatus === 'pending') { setFeaturesOnboardingDismissed(false); return; }
+            setWelcomeRevisit(true); setOnboardingDismissed(false);
           }}
         />
         {/* Final onboarding gate: conflicting apps. A full screen like the
@@ -960,8 +994,16 @@ export function Dashboard() {
           onSkipOnboarding={skipOnboarding}
           // Disarm as well as reopening the previous gate: `open` here is the
           // only gate condition that does not exclude an earlier one, so
-          // leaving it armed stacks two full-screen overlays.
-          onBack={() => { setConflictStepArmed(false); setLightingOnboardingDismissed(false); }}
+          // leaving it armed stacks two full-screen overlays. The lighting
+          // gate never ran this session when it was skipped by the features
+          // gate, so back up past it to whichever gate ran instead.
+          onBack={() => {
+            setConflictStepArmed(false);
+            if (!lightingFeatureOff) { setLightingOnboardingDismissed(false); return; }
+            if (importOffered) { setImportDismissed(false); return; }
+            if (featuresStatus === 'pending') { setFeaturesOnboardingDismissed(false); return; }
+            setWelcomeRevisit(true); setOnboardingDismissed(false);
+          }}
         />
         {/* Global incoming-pair prompt, at the layout root so it lands on top
             of any section. Pair Remote stays in its own modal below. */}

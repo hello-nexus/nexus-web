@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Link } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { Toggle } from '../Toggle/Toggle';
@@ -7,20 +8,26 @@ interface NexusControlCardProps {
   checked: boolean;
   disabled?: boolean;
   onChange: () => void;
+  /** Leading icon; defaults to the Link glyph (Nexus Control's own icon). */
+  icon?: ReactNode;
+  /** Row label; defaults to `devices.nexusControl`. */
+  label?: string;
 }
 
 /**
  * Label + toggle in a card, matching the DevicesPage device-card control
  * group treatment (same label, same toggle) so the on/off switch reads as
  * the same control wherever it appears. Used by DevicePage's NexusControlOff
- * gate (curated devices and a promoted monitor with Nexus Control off).
+ * gate (curated devices and a promoted monitor with Nexus Control off) and
+ * FeatureDisabled's re-enable toggle (icon/label overridden per feature).
  */
-export function NexusControlCard({ checked, disabled, onChange }: NexusControlCardProps) {
+export function NexusControlCard({ checked, disabled, onChange, icon, label }: NexusControlCardProps) {
   const { t } = useTranslation();
+  const resolvedLabel = label ?? t('devices.nexusControl');
   return (
     <div className={styles.controlCard}>
-      <span className={styles.controlLabel}><Link size={13} aria-hidden />{t('devices.nexusControl')}</span>
-      <Toggle checked={checked} disabled={disabled} onChange={onChange} ariaLabel={t('devices.nexusControl')} />
+      <span className={styles.controlLabel}>{icon ?? <Link size={13} aria-hidden />}{resolvedLabel}</span>
+      <Toggle checked={checked} disabled={disabled} onChange={onChange} ariaLabel={resolvedLabel} />
     </div>
   );
 }

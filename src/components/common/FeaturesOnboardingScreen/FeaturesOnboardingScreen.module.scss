@@ -1,0 +1,147 @@
+@use '../../../styles/text' as *;
+@use '../../../styles/onboarding' as *;
+
+// Neutralizes Overlay's dimmed/blurred backdropDialog fill - same treatment
+// as the other full-viewport onboarding screens.
+.backdrop {
+  background: transparent;
+  backdrop-filter: none;
+  padding: 0;
+}
+
+.surface {
+  width: 100vw;
+  height: 100vh;
+  max-width: 100vw;
+  max-height: 100vh;
+  border: none;
+  background: var(--backdrop-base);
+  display: flex;
+  flex-direction: column;
+  align-items: safe center;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 2rem;
+  overflow-y: auto;
+
+  :global(html.nexus-shell-native-glass[data-bg='glass']) & {
+    background: transparent;
+  }
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text);
+  text-align: center;
+  @include onboarding-hero-in;
+}
+
+.heroIcon {
+  display: flex;
+  color: var(--accent);
+}
+
+.title {
+  @include text-display;
+  margin: 0;
+}
+
+.pillarGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(240px, 320px));
+  gap: 1rem;
+  width: min(680px, 100%);
+}
+
+.pillarCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 1.5rem 1.25rem;
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  text-align: center;
+  cursor: pointer;
+
+  &:hover { border-color: var(--border-strong); }
+}
+
+.pillarCard.pillarCardOn {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.pillarIndicator {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: var(--text-dim);
+
+  svg { width: 15px; height: 15px; }
+}
+
+.pillarCard.pillarCardOn .pillarIndicator {
+  color: var(--accent);
+}
+
+.pillarIcon {
+  display: flex;
+  color: var(--accent);
+}
+
+.pillarTitle {
+  font-size: var(--type-body);
+  font-weight: 600;
+}
+
+.pillarDescription {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}
+
+.hint {
+  font-size: var(--type-small);
+  font-weight: var(--weight-body);
+  line-height: 1.4;
+  color: var(--text-dim);
+  margin: 0;
+  text-align: center;
+}
+
+.error {
+  @include text-caption;
+  margin: -0.75rem 0 0;
+  color: var(--bad);
+  text-align: center;
+}
+
+.footerRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.continueButton {
+  width: min(280px, 100%);
+}
