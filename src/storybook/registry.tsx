@@ -976,12 +976,16 @@ function PreviewRangeSliderSpeed() {
 
 function PreviewColorPickerWithPresets() {
   const [color, setColor] = useState<string>(PRESET_ACCENTS[0]);
+  const [custom, setCustom] = useState('');
   return (
     <ColorPickerWithPresets
       value={color}
       presets={PRESET_ACCENTS}
       onPreview={setColor}
       onCommit={setColor}
+      allowCustom
+      customColor={custom}
+      onCustomCommit={setCustom}
     />
   );
 }
@@ -2063,8 +2067,8 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'ColorPickerWithPresets', category: 'editable',
     filePath: 'src/components/common/ColorPickerWithPresets/ColorPickerWithPresets.tsx',
-    description: 'Fixed 10-column swatch grid for theming surfaces (app accent, panel accent, panel background). Click commits immediately - the preset list is the entire palette, no free-form input.', Preview: PreviewColorPickerWithPresets,
-    notes: 'Pass a 20-entry preset list to render two rows. Row 2 should be a vertically paired darker / more saturated sibling of row 1 by hue family; selected swatch gets an accent ring. Swatches stretch to 1/10 of the container width and cap at ~36px on desktop, so the grid fills phone-sheet widths edge-to-edge.',
+    description: 'Fixed 10-column swatch grid for theming surfaces (app accent, panel accent, panel background). Click commits immediately; allowCustom adds a trailing slot that opens an HsvPicker popover for any off-palette colour.', Preview: PreviewColorPickerWithPresets,
+    notes: 'Pass a 20-entry preset list to render two rows. Row 2 should be a vertically paired darker / more saturated sibling of row 1 by hue family; the selected swatch gets a text-colour ring (not accent - on a grid of colours an accent ring vanishes on the swatch that IS the accent). Swatches stretch to 1/10 of the container width and cap at ~36px on desktop, so the grid fills phone-sheet widths edge-to-edge. With allowCustom the grid gains a column for the full-height custom slot, which opens an HsvPicker popover. The slot shows the current value whenever that value is off-palette (so it tracks a drag preview); pass customColor + onCustomCommit and it keeps showing the saved pick after a preset is selected.',
   },
   {
     name: 'PaletteRing', category: 'editable',

@@ -119,6 +119,9 @@ export function ThemeTab({ settings, updateGeneral }: ThemeTabProps) {
                 presets={PRESET_ACCENTS}
                 onPreview={handleAccentPreview}
                 onCommit={handleAccentCommit}
+                allowCustom
+                customColor={settings.general.customAccentColor}
+                onCustomCommit={hex => updateGeneral({ customAccentColor: hex })}
               />
             </div>
           </div>

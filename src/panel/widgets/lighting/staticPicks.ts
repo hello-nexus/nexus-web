@@ -1,5 +1,5 @@
 import { setLightingDeviceColor, type StaticDeviceLookDto } from '../../../api/lighting';
-import { hsvToHex } from '../../../lib/settings';
+import { hexToHsv, hsvToHex } from '../../../lib/settings';
 import { nearestPaletteId, paletteKey, type PaletteColor } from '../../../types/lightingPalette';
 import type { EffectState } from '../../../types/lighting';
 
@@ -87,6 +87,31 @@ export function pickPaletteForDevices(
 export function pushPalettePick(color: PaletteColor, ids: string[]): Promise<unknown> {
   return Promise.all(ids.map(id => setLightingDeviceColor(id, color.h, color.s, {
     effect: 'flat', color: color.hex, intensity: 1, colorize: 0, contrast: 1, params: {},
+  }).catch(() => { /* best-effort */ })));
+}
+
+/**
+ * A colour picked from the palette's custom slot. Same wire shape as a palette
+ * pick - the service paints a flat colour either way - but the key carries the
+ * nearest palette id only so existing key handling keeps working; the hex is
+ * what actually travels, and it is what marks the pick as off-palette on
+ * read-back.
+ */
+export function pickCustomForDevices(
+  prev: DevicePicks,
+  hex: string,
+  ids: string[],
+): DevicePicks {
+  const next = withPick(prev, ids, { key: paletteKey(nearestPaletteId(hex)), slot: 0, hex });
+  pushCustomPick(hex, ids);
+  return next;
+}
+
+/** The service-side half of {@link pickCustomForDevices}. */
+export function pushCustomPick(hex: string, ids: string[]): Promise<unknown> {
+  const { h, s } = hexToHsv(hex);
+  return Promise.all(ids.map(id => setLightingDeviceColor(id, h / 360, s / 100, {
+    effect: 'flat', color: hex, intensity: 1, colorize: 0, contrast: 1, params: {},
   }).catch(() => { /* best-effort */ })));
 }
 

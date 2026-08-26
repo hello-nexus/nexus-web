@@ -126,6 +126,10 @@ export interface GeneralSettings {
   language: Language;
   themeMode: ThemeMode;
   accentColor: string;
+  // Last colour picked from the accent palette's custom slot. Kept apart from
+  // accentColor so the slot still shows it once a preset is selected. '' = the
+  // slot has never been used. Server-mirrored under theme.customAccentColor.
+  customAccentColor: string;
   backgroundMode: BackgroundMode;
   accentSource: AccentSource;
   startOnLogin: boolean;
@@ -187,6 +191,7 @@ export function getDefaultSettings(): NexusSettings {
       language: 'en',
       themeMode: 'system',
       accentColor: DEFAULT_ACCENT,
+      customAccentColor: '',
       backgroundMode: 'glass',
       accentSource: 'system',
       startOnLogin: false,
@@ -224,6 +229,14 @@ function normalizeAccent(candidate: unknown): string {
     : DEFAULT_ACCENT;
 }
 
+/** Same as normalizeAccent but '' (slot never used) is a valid value, not a
+ *  reason to fall back to the default accent. */
+function normalizeCustomAccent(candidate: unknown): string {
+  return typeof candidate === 'string' && HEX6_RE.test(candidate)
+    ? candidate.toLowerCase()
+    : '';
+}
+
 export function loadSettings(): NexusSettings {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -234,6 +247,7 @@ export function loadSettings(): NexusSettings {
         general: { ...defaults.general, ...parsed.general },
       };
       merged.general.accentColor = normalizeAccent(merged.general.accentColor);
+      merged.general.customAccentColor = normalizeCustomAccent(merged.general.customAccentColor);
       return merged;
     }
   } catch { /* corrupt data - reset */ }
@@ -263,6 +277,7 @@ export function loadStoredLanguage(): Language | null {
 
 export function cachePreferencesLocally(prefs: {
   language?: string; themeMode?: string; accentColor?: string;
+  customAccentColor?: string;
   showConflictAlerts?: boolean;
   monitoringDetailedCollapsed?: string[];
   showMacStatusBarIcon?: boolean;
@@ -274,6 +289,8 @@ export function cachePreferencesLocally(prefs: {
   if (prefs.language) current.general.language = prefs.language as Language;
   if (prefs.themeMode) current.general.themeMode = prefs.themeMode as ThemeMode;
   if (prefs.accentColor) current.general.accentColor = prefs.accentColor;
+  // Not `if (truthy)`: '' is a meaningful value here (slot cleared / never used).
+  if (prefs.customAccentColor !== undefined) current.general.customAccentColor = prefs.customAccentColor;
   if (prefs.showConflictAlerts !== undefined) current.general.showConflictAlerts = prefs.showConflictAlerts;
   if (prefs.monitoringDetailedCollapsed !== undefined) current.general.monitoringDetailedCollapsed = prefs.monitoringDetailedCollapsed;
   if (prefs.showMacStatusBarIcon !== undefined) current.general.showMacStatusBarIcon = prefs.showMacStatusBarIcon;
@@ -461,6 +478,16 @@ function needsDarkTextOnHsl(h: number, s: number, l: number): boolean {
   // Orange through bright green; excludes teal (~173) and cyan (~190).
   const warmToGreen = hue >= 20 && hue <= 160;
   return L > 0.6 || (warmToGreen && L > 0.32);
+}
+
+/**
+ * Black or white, whichever reads on a fill of this colour. The same pick that
+ * backs --accent-text, exposed for surfaces that must contrast against a colour
+ * which is not the accent (a palette swatch, a user-chosen background).
+ */
+export function contrastTextOn(hex: string): string {
+  const { h, s, l } = hexToHsl(normalizeAccent(hex));
+  return needsDarkTextOnHsl(h, s, l) ? '#000000' : '#ffffff';
 }
 
 /**

@@ -255,6 +255,26 @@ describe('loadSettings / saveSettings', () => {
     expect(loaded.general.accentColor).toBe(DEFAULT_ACCENT);
   });
 
+  it('defaults the custom accent slot to empty, not to the default accent', () => {
+    // '' is the "slot never used" marker; falling back to DEFAULT_ACCENT here
+    // would paint a swatch the user never picked.
+    expect(loadSettings().general.customAccentColor).toBe('');
+  });
+
+  it('round-trips and lower-cases the custom accent slot', () => {
+    const settings = getDefaultSettings();
+    settings.general.customAccentColor = '#AB12CD';
+    saveSettings(settings);
+    expect(loadSettings().general.customAccentColor).toBe('#ab12cd');
+  });
+
+  it('normalizes an invalid custom accent slot to empty', () => {
+    localStorage.setItem('nexus_settings', JSON.stringify({
+      general: { customAccentColor: 'garbage' },
+    }));
+    expect(loadSettings().general.customAccentColor).toBe('');
+  });
+
   it('handles corrupt JSON gracefully', () => {
     localStorage.setItem('nexus_settings', '{broken json');
     const loaded = loadSettings();

@@ -56,6 +56,9 @@ export interface UiSettingsValue {
   language: Language;
   themeMode: ThemeMode;
   accentColor: string;
+  // Last colour picked from the accent palette's custom slot; '' = never used.
+  // Held apart from accentColor so the slot survives picking a preset.
+  customAccentColor: string;
   showConflictAlerts: boolean;
   monitoringDetailedCollapsed: string[];
   monitoringEventsEnabled: boolean;
@@ -192,6 +195,7 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     language: src.general.language,
     themeMode: src.general.themeMode,
     accentColor: src.general.accentColor,
+    customAccentColor: src.general.customAccentColor,
     showConflictAlerts: src.general.showConflictAlerts,
     monitoringDetailedCollapsed: src.general.monitoringDetailedCollapsed,
     monitoringEventsEnabled: src.general.monitoringEventsEnabled,
@@ -246,6 +250,7 @@ function toNexusSettings(src: UiSettingsValue): NexusSettings {
       language: src.language,
       themeMode: src.themeMode,
       accentColor: src.accentColor,
+      customAccentColor: src.customAccentColor,
       backgroundMode: src.backgroundMode,
       accentSource: src.accentSource,
       startOnLogin: src.startOnLogin,
@@ -275,10 +280,11 @@ function toNexusSettings(src: UiSettingsValue): NexusSettings {
 function toServerPatch(patch: Patch): PreferencesPatch {
   const out: PreferencesPatch = {};
   // theme block
-  const theme: Partial<{ language: Language; themeMode: ThemeMode; accentColor: string; backgroundMode: BackgroundMode; accentSource: AccentSource }> = {};
+  const theme: Partial<{ language: Language; themeMode: ThemeMode; accentColor: string; customAccentColor: string; backgroundMode: BackgroundMode; accentSource: AccentSource }> = {};
   if (patch.language !== undefined) theme.language = patch.language;
   if (patch.themeMode !== undefined) theme.themeMode = patch.themeMode;
   if (patch.accentColor !== undefined) theme.accentColor = patch.accentColor;
+  if (patch.customAccentColor !== undefined) theme.customAccentColor = patch.customAccentColor;
   if (patch.backgroundMode !== undefined) theme.backgroundMode = patch.backgroundMode;
   if (patch.accentSource !== undefined) theme.accentSource = patch.accentSource;
   if (Object.keys(theme).length > 0) out.theme = theme;
@@ -382,6 +388,7 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
     language: (server.theme?.language as Language) ?? base.language,
     themeMode: (server.theme?.themeMode as ThemeMode) ?? base.themeMode,
     accentColor: server.theme?.accentColor ?? base.accentColor,
+    customAccentColor: server.theme?.customAccentColor ?? base.customAccentColor,
     // Empty (never written) falls back to the local value, so an upgraded
     // client keeps its choice until it seeds the server (see reload migration).
     backgroundMode: (server.theme?.backgroundMode as BackgroundMode) || base.backgroundMode,
@@ -593,6 +600,7 @@ export function UiSettingsProvider({
         language: prefs.theme?.language,
         themeMode: prefs.theme?.themeMode,
         accentColor: prefs.theme?.accentColor,
+        customAccentColor: prefs.theme?.customAccentColor,
         showConflictAlerts: prefs.ui?.showConflictAlerts,
         monitoringDetailedCollapsed: prefs.monitoring?.detailedCollapsed,
         showMacStatusBarIcon: prefs.monitoring?.showMacStatusBarIcon,

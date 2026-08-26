@@ -1,5 +1,6 @@
-/* Fixed 10-column swatch grid. Swatches stretch to fill the container edge-to-
-   edge in narrow surfaces (panel sheet, phone), capped in size on wide ones. */
+/* Swatches stretch to fill the container edge-to-edge in narrow surfaces (panel
+   sheet, phone), capped in size on wide ones. The column count and the width cap
+   follow the preset count and are set inline. */
 
 .root {
   --swatch-size-cap: 38px;
@@ -9,14 +10,10 @@
   flex-direction: column;
   gap: 0.75rem;
   width: 100%;
-  /* Cap total width on wide containers; narrow containers (phone settings
-     sheet) flex below the cap, each swatch filling 1/10 of the width. */
-  max-width: calc(10 * var(--swatch-size-cap) + 9 * var(--swatch-gap));
 }
 
 .swatchGrid {
   display: grid;
-  grid-template-columns: repeat(10, minmax(0, 1fr));
   gap: var(--swatch-gap);
 }
 
@@ -38,7 +35,52 @@
   }
 }
 
+/* Selection reads in the text colour, matching the animate / media pick grids
+   (EffectCard .cardActive). An accent ring competes with the swatch under it and
+   disappears entirely on the swatch that IS the current accent. */
 .swatchSelected {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent-soft);
+  border-color: var(--text);
+  box-shadow: 0 0 0 2px var(--text);
+
+  &:hover:not([disabled]) { border-color: var(--text); }
+}
+
+.customSlot {
+  position: relative;
+  display: flex;
+}
+
+.customSwatch {
+  aspect-ratio: auto;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Unset slot. A saved pick paints over this via an inline background. */
+  background:
+    conic-gradient(
+      from 0deg,
+      #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000
+    );
+}
+
+.customIcon {
+  width: 14px;
+  height: 14px;
+  /* Shadowed so it survives the hue wheel's yellow and cyan arcs. */
+  color: #fff;
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.8));
+  pointer-events: none;
+}
+
+/* Solid slot colour: the button carries the contrast-paired colour inline. */
+.customIconOnFill {
+  color: inherit;
+  filter: none;
+}
+
+.customPopover {
+  /* The HsvPicker's SV square needs real width; the slot itself is one swatch. */
+  width: 220px;
+  padding: 0.6rem;
 }
