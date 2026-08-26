@@ -321,19 +321,21 @@ export function Dashboard() {
   // screens themselves would, so a reload does not reopen them.
   const skipOnboarding = useCallback(() => {
     // The import gate latches on its own per-app dismiss flags, not on the
-    // onboarding ones - without these it reopens on the next launch.
+    // onboarding ones - without these it reopens on the next launch. Only the
+    // apps this run actually offered: these are persistent server flags, so
+    // latching one for an app not yet installed consumes its offer for good.
     void Promise.allSettled([
       completeOnboarding(),
       completeLightingOnboarding(),
-      dismissNexus2Welcome(),
-      dismissFanControlImport(),
+      ...(nexus2.status === 'pending' ? [dismissNexus2Welcome()] : []),
+      ...(fanControl.status === 'pending' ? [dismissFanControlImport()] : []),
     ]);
     setOnboardingDismissed(true);
     setImportDismissed(true);
     setLightingOnboardingDismissed(true);
     setConflictStepDone(true);
     setWelcomeRevisit(false);
-  }, []);
+  }, [nexus2.status, fanControl.status]);
 
   // 'unknown' renders neither the dashboard nor any onboarding gate (only
   // the app background) so a fresh install never flashes the dashboard
@@ -882,9 +884,9 @@ export function Dashboard() {
           platform={status.ping?.platform ?? ''}
           onComplete={() => setOnboardingDismissed(true)}
         />
-        {/* Import gate: offers every app a previous setup can come from. It
-            no longer closes them or clears autostart - the conflict gate below
-            does that, per app, on an explicit click. */}
+        {/* Import gate: offers every app a previous setup can come from.
+            Closing an app and clearing its autostart is the conflict gate's
+            job, per app, on an explicit click. */}
         <ImportOnboardingScreen
           open={importOpen}
           nexus2={nexus2.payload}

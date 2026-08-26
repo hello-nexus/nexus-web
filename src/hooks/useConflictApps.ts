@@ -37,7 +37,9 @@ export function useConflictApps(enabled: boolean): ConflictAppsState {
     }
     let cancelled = false;
     fetchConflicts().then(list => {
-      if (!cancelled) setSeed(list);
+      // A failed read leaves the seed null, so `ready` stays false rather than
+      // reporting an empty list a caller would read as "none detected".
+      if (!cancelled && list) setSeed(list);
     });
     return () => { cancelled = true; };
   }, [enabled]);

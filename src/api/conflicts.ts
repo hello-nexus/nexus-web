@@ -38,9 +38,10 @@ export interface KillConflictResponse {
   killed: boolean;
 }
 
-export async function fetchConflicts(): Promise<DetectedConflict[]> {
+/** Null when the read failed; an empty array means the service reported none. */
+export async function fetchConflicts(): Promise<DetectedConflict[] | null> {
   const result = await fetchService<GetConflictsResponse>('/conflicts');
-  return result?.conflicts ?? [];
+  return result ? result.conflicts ?? [] : null;
 }
 
 export function killConflict(id: string): Promise<KillConflictResponse | null> {

@@ -22,9 +22,7 @@ export interface ImportOnboardingScreenProps {
   /** Detection from the Dashboard. */
   fanControl: FanControlStatusResponse | null;
   nexus2: Nexus2StatusResponse | null;
-  /** Which apps this gate is being shown for: only these start included, get
-   *  closed, and have their offer flag latched. An app not listed here may
-   *  still appear (it holds importable data) but stays off by default. */
+  /** Which apps this gate is being shown for: only these start included and have their offer flag latched. An app not listed here may still appear (it holds importable data) but stays off by default. */
   offeredFor: Partial<Record<ImportSourceId, boolean>>;
   onComplete: () => void;
   /** Steps back to the previous onboarding screen; the Back button only renders when provided. */
@@ -32,9 +30,9 @@ export interface ImportOnboardingScreenProps {
 }
 
 /**
- * The onboarding gate for bringing a previous setup over. Continuing also
- * closes the detected apps and removes their autostart, since each drives
- * hardware Nexus is taking over.
+ * The onboarding gate for bringing a previous setup over. It never closes an
+ * app or touches its autostart; the end-of-onboarding conflict step does that,
+ * per app, on an explicit click.
  */
 export function ImportOnboardingScreen({ open, fanControl, nexus2, offeredFor, onComplete, onBack, onSkipOnboarding }: ImportOnboardingScreenProps) {
   const { t } = useTranslation();
@@ -45,8 +43,7 @@ export function ImportOnboardingScreen({ open, fanControl, nexus2, offeredFor, o
   const [importHasSelection, setImportHasSelection] = useState(false);
   const importHandle = useRef<ImportCenterHandle | null>(null);
 
-  // Listed when the app holds data to import. Detected-but-empty apps are not
-  // listed, but are still closed below: they drive the same hardware.
+  // Listed when the app holds data to import.
   const nexus2Here = nexus2?.importAvailable === true;
   const fanControlHere = fanControl?.importAvailable === true;
 

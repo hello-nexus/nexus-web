@@ -59,11 +59,31 @@ describe('useLastRoute', () => {
     expect(navigate).not.toHaveBeenCalled();
   });
 
-  it('records each route change', async () => {
+  it('records each route change once the restore read has answered', async () => {
     const { rerender } = render(<Harness path="/system/dashboard" />);
     await act(async () => { rerender(<Harness path="/system/lighting" />); });
 
-    expect(mockSave).toHaveBeenCalledWith('/system/dashboard');
+    expect(mockSave).toHaveBeenCalledWith('/system/lighting');
+  });
+
+  it('never saves before the restore read answers', async () => {
+    // The default route the window opened on would otherwise overwrite the
+    // stored one, and the service serves both requests concurrently.
+    let resolveFetch: (v: string) => void = () => {};
+    mockFetch.mockReturnValue(new Promise<string>(r => { resolveFetch = r; }));
+
+    render(<Harness path="/system/dashboard" />);
+    expect(mockSave).not.toHaveBeenCalled();
+
+    await act(async () => { resolveFetch('/system/monitoring/cpu'); });
+    expect(navigate).toHaveBeenCalledWith('system', 'monitoring', 'cpu');
+  });
+
+  it('still saves when the restore read fails', async () => {
+    mockFetch.mockRejectedValue(new Error('offline'));
+
+    await act(async () => { render(<Harness path="/system/lighting" />); });
+
     expect(mockSave).toHaveBeenCalledWith('/system/lighting');
   });
 
