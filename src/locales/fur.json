@@ -1208,6 +1208,7 @@
   "featureDisabled.hint.diagnostics": "La diagnostiche e je distudade. Impiile par viodi i control di stât.",
   "featureDisabled.hint.lighting": "La iluminazion e je distudade. Impiile par controlâ i tiei dispositîfs RGB.",
   "featureDisabled.hint.monitoring": "Il monitoraç al è distudât. Impiilu par tacumulâ la storie dai sensôrs.",
+  "featureDisabled.sidebarTooltip": "Distudât tes impostazions",
   "featureDisabled.widget.diagnostics": "La diagnostiche e je distudade",
   "featuresOnboarding.continue": "Continuâ",
   "featuresOnboarding.pillar.cooling.description": "Curvis di ventulis e profii di rinfrescjament.",

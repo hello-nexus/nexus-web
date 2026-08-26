@@ -1218,6 +1218,7 @@
   "featureDisabled.hint.diagnostics": "Diagnostyka jest wyłączona. Włącz ją, aby zobaczyć kontrole stanu.",
   "featureDisabled.hint.lighting": "Podświetlenie jest wyłączone. Włącz je, aby sterować urządzeniami RGB.",
   "featureDisabled.hint.monitoring": "Monitorowanie jest wyłączone. Włącz je, aby zbierać historię czujników.",
+  "featureDisabled.sidebarTooltip": "Wyłączone w ustawieniach",
   "featureDisabled.widget.diagnostics": "Diagnostyka jest wyłączona",
   "featuresOnboarding.continue": "Kontynuuj",
   "featuresOnboarding.pillar.cooling.description": "Krzywe wentylatorów i profile chłodzenia.",

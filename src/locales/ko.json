@@ -1208,6 +1208,7 @@
   "featureDisabled.hint.diagnostics": "진단이 꺼져 있습니다. 켜면 상태 점검을 볼 수 있습니다.",
   "featureDisabled.hint.lighting": "라이팅이 꺼져 있습니다. 켜면 RGB 장치를 제어할 수 있습니다.",
   "featureDisabled.hint.monitoring": "모니터링이 꺼져 있습니다. 켜면 센서 기록을 수집할 수 있습니다.",
+  "featureDisabled.sidebarTooltip": "설정에서 꺼짐",
   "featureDisabled.widget.diagnostics": "진단이 꺼져 있습니다",
   "featuresOnboarding.continue": "계속",
   "featuresOnboarding.pillar.cooling.description": "팬 커브와 쿨링 프로필.",

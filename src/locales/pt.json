@@ -1208,6 +1208,7 @@
   "featureDisabled.hint.diagnostics": "O diagnóstico está desativado. Ative-o para ver as verificações de estado.",
   "featureDisabled.hint.lighting": "A iluminação está desativada. Ative-a para controlar os seus dispositivos RGB.",
   "featureDisabled.hint.monitoring": "A monitorização está desativada. Ative-a para recolher o histórico dos sensores.",
+  "featureDisabled.sidebarTooltip": "Desativado nas definições",
   "featureDisabled.widget.diagnostics": "O diagnóstico está desativado",
   "featuresOnboarding.continue": "Continuar",
   "featuresOnboarding.pillar.cooling.description": "Curvas de ventoinhas e perfis de arrefecimento.",

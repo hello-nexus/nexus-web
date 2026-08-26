@@ -1208,6 +1208,7 @@
   "featureDisabled.hint.diagnostics": "诊断已关闭。开启后即可查看健康检查。",
   "featureDisabled.hint.lighting": "灯光效果已关闭。开启后即可控制您的 RGB 设备。",
   "featureDisabled.hint.monitoring": "监控已关闭。开启后即可收集传感器历史记录。",
+  "featureDisabled.sidebarTooltip": "在设置中已关闭",
   "featureDisabled.widget.diagnostics": "诊断已关闭",
   "featuresOnboarding.continue": "继续",
   "featuresOnboarding.pillar.cooling.description": "风扇曲线与散热配置。",

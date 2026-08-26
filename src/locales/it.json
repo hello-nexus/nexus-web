@@ -1208,6 +1208,7 @@
   "featureDisabled.hint.diagnostics": "La diagnostica è disattivata. Attivala per vedere i controlli di stato.",
   "featureDisabled.hint.lighting": "L'illuminazione è disattivata. Attivala per controllare i tuoi dispositivi RGB.",
   "featureDisabled.hint.monitoring": "Il monitoraggio è disattivato. Attivalo per raccogliere la cronologia dei sensori.",
+  "featureDisabled.sidebarTooltip": "Disattivato nelle impostazioni",
   "featureDisabled.widget.diagnostics": "La diagnostica è disattivata",
   "featuresOnboarding.continue": "Continua",
   "featuresOnboarding.pillar.cooling.description": "Curve delle ventole e profili di raffreddamento.",

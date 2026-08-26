@@ -1208,6 +1208,7 @@
   "featureDisabled.hint.diagnostics": "Diagnostiek staat uit. Zet het aan om statuscontroles te zien.",
   "featureDisabled.hint.lighting": "Verlichting staat uit. Zet het aan om je RGB-apparaten te bedienen.",
   "featureDisabled.hint.monitoring": "Monitoring staat uit. Zet het aan om sensorgeschiedenis te verzamelen.",
+  "featureDisabled.sidebarTooltip": "Uitgeschakeld in instellingen",
   "featureDisabled.widget.diagnostics": "Diagnostiek staat uit",
   "featuresOnboarding.continue": "Doorgaan",
   "featuresOnboarding.pillar.cooling.description": "Ventilatorcurves en koelprofielen.",

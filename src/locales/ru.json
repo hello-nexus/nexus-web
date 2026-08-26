@@ -1218,6 +1218,7 @@
   "featureDisabled.hint.diagnostics": "Диагностика отключена. Включите её, чтобы видеть проверки состояния.",
   "featureDisabled.hint.lighting": "Подсветка отключена. Включите её, чтобы управлять устройствами RGB.",
   "featureDisabled.hint.monitoring": "Мониторинг отключён. Включите его, чтобы собирать историю датчиков.",
+  "featureDisabled.sidebarTooltip": "Отключено в настройках",
   "featureDisabled.widget.diagnostics": "Диагностика отключена",
   "featuresOnboarding.continue": "Продолжить",
   "featuresOnboarding.pillar.cooling.description": "Кривые вентиляторов и профили охлаждения.",

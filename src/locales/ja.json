@@ -1208,6 +1208,7 @@
   "featureDisabled.hint.diagnostics": "診断はオフです。オンにすると状態チェックを確認できます。",
   "featureDisabled.hint.lighting": "ライティングはオフです。オンにすると RGB デバイスを制御できます。",
   "featureDisabled.hint.monitoring": "モニタリングはオフです。オンにするとセンサー履歴を収集できます。",
+  "featureDisabled.sidebarTooltip": "設定でオフです",
   "featureDisabled.widget.diagnostics": "診断はオフです",
   "featuresOnboarding.continue": "続行",
   "featuresOnboarding.pillar.cooling.description": "ファンカーブと冷却プロファイル。",

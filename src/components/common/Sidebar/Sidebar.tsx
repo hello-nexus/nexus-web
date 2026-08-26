@@ -12,6 +12,7 @@ import {
 import { restrictToVerticalAxis, restrictToParentElement } from '@dnd-kit/modifiers';
 import { CSS } from '@dnd-kit/utilities';
 import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
+import { NexusControlOffIcon } from '../NexusControlOffIcon/NexusControlOffIcon';
 import type { ServiceState } from '../../../hooks/useServiceState';
 import styles from './Sidebar.module.scss';
 
@@ -19,6 +20,11 @@ interface NavItem {
   readonly key: string;
   readonly label: string;
   readonly icon: ReactNode;
+  // Pre-resolved tooltip text; when present the row shows the same
+  // "disabled" glyph a device row shows for Nexus Control off (SidebarDevicesSection).
+  // Used by the four feature-pillar rows (monitoring/lighting/cooling/diagnostics)
+  // when their global switch is off in Settings.
+  readonly offTooltip?: string;
 }
 
 interface ExtraNavItem {
@@ -123,6 +129,7 @@ function SidebarRow({ item, active, compact, serviceState, onClick, onContextMen
         )}
       </span>
       {!compact && <span className={styles.label}>{item.label}</span>}
+      {!compact && item.offTooltip && <NexusControlOffIcon label={item.offTooltip} />}
     </button>
   );
   return compact ? (

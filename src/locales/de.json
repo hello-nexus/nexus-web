@@ -1208,6 +1208,7 @@
   "featureDisabled.hint.diagnostics": "Diagnose ist deaktiviert. Aktivieren Sie sie, um Zustandsprüfungen zu sehen.",
   "featureDisabled.hint.lighting": "Beleuchtung ist deaktiviert. Aktivieren Sie sie, um Ihre RGB-Geräte zu steuern.",
   "featureDisabled.hint.monitoring": "Überwachung ist deaktiviert. Aktivieren Sie sie, um den Sensorverlauf zu erfassen.",
+  "featureDisabled.sidebarTooltip": "In den Einstellungen ausgeschaltet",
   "featureDisabled.widget.diagnostics": "Diagnose ist deaktiviert",
   "featuresOnboarding.continue": "Weiter",
   "featuresOnboarding.pillar.cooling.description": "Lüfterkurven und Kühlprofile.",

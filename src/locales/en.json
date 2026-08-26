@@ -1208,6 +1208,7 @@
   "featureDisabled.hint.diagnostics": "Diagnostics is off. Turn it on to see health checks.",
   "featureDisabled.hint.lighting": "Lighting is off. Turn it on to control your RGB devices.",
   "featureDisabled.hint.monitoring": "Monitoring is off. Turn it on to collect sensor history.",
+  "featureDisabled.sidebarTooltip": "Off in Settings",
   "featureDisabled.widget.diagnostics": "Diagnostics is off",
   "featuresOnboarding.continue": "Continue",
   "featuresOnboarding.pillar.cooling.description": "Fan curves and cooling profiles.",
