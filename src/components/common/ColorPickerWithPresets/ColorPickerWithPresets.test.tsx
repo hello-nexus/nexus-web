@@ -49,6 +49,30 @@ describe('ColorPickerWithPresets', () => {
     expect(screen.getByLabelText('common.hexColor')).toBeInTheDocument();
   });
 
+  it('applies the saved custom color on the click that opens the picker', () => {
+    const onCommit = vi.fn();
+    render(
+      <ColorPickerWithPresets
+        value="#111111"
+        presets={PRESETS}
+        onCommit={onCommit}
+        allowCustom
+        customColor="#abcdef"
+      />,
+    );
+    fireEvent.click(screen.getByLabelText('common.customColor'));
+    expect(onCommit).toHaveBeenCalledWith('#abcdef');
+  });
+
+  it('does not re-commit when the slot already shows the current value', () => {
+    const onCommit = vi.fn();
+    render(
+      <ColorPickerWithPresets value="#abcdef" presets={PRESETS} onCommit={onCommit} allowCustom />,
+    );
+    fireEvent.click(screen.getByLabelText('common.customColor'));
+    expect(onCommit).not.toHaveBeenCalled();
+  });
+
   it('commits a hex typed into the popover to both the value and the slot', () => {
     const onCommit = vi.fn();
     const onCustomCommit = vi.fn();

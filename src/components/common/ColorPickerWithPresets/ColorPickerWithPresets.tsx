@@ -19,8 +19,8 @@ const PRESET_COLUMNS = 10;
  * the slot falls back to `customColor`, the host's saved pick.
  *
  * onPreview fires per pointer-move inside the popover (live theme application
- * without persistence). Preset tiles are a single-click commit and never
- * preview.
+ * without persistence). Preset tiles and the custom slot are a single-click
+ * commit and never preview.
  */
 export interface ColorPickerWithPresetsProps {
   value: string;
@@ -63,6 +63,14 @@ export function ColorPickerWithPresets({
   // a whole gesture before onCustomCommit does.
   const slotColor = (isPreset ? customColor?.toLowerCase() : normalized) || '';
 
+  // Opening applies what the slot already shows, so the slot selects a colour
+  // the way a preset tile does instead of only being a door to the picker.
+  const handleSlotClick = () => {
+    const opening = !pickerOpen;
+    if (opening && slotColor && slotColor !== normalized) onCommit(slotColor);
+    setPickerOpen(opening);
+  };
+
   // Track the preset count so a short list keeps the slot flush against the
   // palette instead of stranding it past empty columns.
   const presetColumns = Math.min(Math.max(presets.length, 1), PRESET_COLUMNS);
@@ -104,7 +112,7 @@ export function ColorPickerWithPresets({
               type="button"
               className={`${styles.swatch} ${styles.customSwatch} ${!isPreset ? styles.swatchSelected : ''}`}
               style={slotColor ? { background: slotColor, color: contrastTextOn(slotColor) } : undefined}
-              onClick={() => setPickerOpen(open => !open)}
+              onClick={handleSlotClick}
               aria-label={t('common.customColor')}
               aria-haspopup="dialog"
               aria-expanded={pickerOpen}
