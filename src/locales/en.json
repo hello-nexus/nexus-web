@@ -495,7 +495,6 @@
   "devices.lianli-wireless.clockFaceLabel": "Face",
   "devices.lianli-wireless.colorAccentLabel": "Accent color",
   "devices.lianli-wireless.colorSecondaryLabel": "Secondary color",
-  "devices.lianli-wireless.connected": "Connected",
   "devices.lianli-wireless.connectionSection": "Connection",
   "devices.lianli-wireless.contentMixedHint": "Selected fans have different content. Choose a type to apply to all.",
   "devices.lianli-wireless.contentSection": "Content",

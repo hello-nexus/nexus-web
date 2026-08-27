@@ -495,7 +495,6 @@
   "devices.lianli-wireless.clockFaceLabel": "Ziffernblatt",
   "devices.lianli-wireless.colorAccentLabel": "Akzentfarbe",
   "devices.lianli-wireless.colorSecondaryLabel": "Sekundärfarbe",
-  "devices.lianli-wireless.connected": "Verbunden",
   "devices.lianli-wireless.connectionSection": "Verbindung",
   "devices.lianli-wireless.contentMixedHint": "Ausgewählte Lüfter haben unterschiedliche Inhalte. Wähle einen Typ für alle.",
   "devices.lianli-wireless.contentSection": "Inhalt",

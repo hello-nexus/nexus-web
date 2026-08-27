@@ -495,7 +495,6 @@
   "devices.lianli-wireless.clockFaceLabel": "文字盤",
   "devices.lianli-wireless.colorAccentLabel": "アクセントカラー",
   "devices.lianli-wireless.colorSecondaryLabel": "セカンダリーカラー",
-  "devices.lianli-wireless.connected": "接続済み",
   "devices.lianli-wireless.connectionSection": "接続",
   "devices.lianli-wireless.contentMixedHint": "選択したファンの内容が異なります。すべてに適用する種類を選んでください。",
   "devices.lianli-wireless.contentSection": "コンテンツ",

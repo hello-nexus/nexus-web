@@ -500,7 +500,6 @@
   "devices.lianli-wireless.clockFaceLabel": "Циферблат",
   "devices.lianli-wireless.colorAccentLabel": "Цвет акцента",
   "devices.lianli-wireless.colorSecondaryLabel": "Дополнительный цвет",
-  "devices.lianli-wireless.connected": "Подключён",
   "devices.lianli-wireless.connectionSection": "Подключение",
   "devices.lianli-wireless.contentMixedHint": "У выбранных вентиляторов разное содержимое. Выберите тип для всех.",
   "devices.lianli-wireless.contentSection": "Содержимое",

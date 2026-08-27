@@ -74,7 +74,6 @@ export function LianLiWirelessDevicePage({ onSectionNavigate }: LianLiWirelessDe
   }, [refresh, refreshLive]);
 
   const disconnected = connection === 'disconnected';
-  const loaded = state !== null;
 
   const tabs = [
     { key: 'fans', label: t('devices.lianli-wireless.tab.fans'), icon: <Fan size={14} /> },
@@ -89,7 +88,6 @@ export function LianLiWirelessDevicePage({ onSectionNavigate }: LianLiWirelessDe
         tabs={disconnected ? undefined : tabs}
         activeTab={activeTab}
         onTabChange={key => setActiveTab(key as LianLiWirelessTab)}
-        actions={loaded ? <span className={styles.statusBadge}>{t('devices.lianli-wireless.connected')}</span> : null}
       />
       <div className={`${styles.pageBody} pageBody`}>
         {disconnected && <EmptyState icon={<Unplug size={40} />} title={t('devices.lianli-wireless.notConnected')} />}
