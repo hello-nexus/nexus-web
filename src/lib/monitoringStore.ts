@@ -45,6 +45,13 @@ const memHist = new Map<string, HistEntry>();
 let otherCpuHist: number[] = [];
 let totalMemUsedHist: number[] = [];
 
+export interface ProcessValues {
+  name: string;
+  cpu: number;
+  memMb: number;
+  startedAtMs?: number;
+}
+
 interface GroupedProc {
   cpu: number;
   mem: number;
@@ -366,6 +373,28 @@ function buildGpuSeries(
   }
   result.sort((a, b) => b.avg - a.avg);
   return result.slice(0, topN);
+}
+
+/** Current-frame values with no history arrays, for a consumer that draws no
+ *  per-row sparkline: same latestGroupedProcs membership as
+ *  getAllCpuMemSeries, without its padded 30-sample array per process. */
+export function getAllProcessValues(): ProcessValues[] {
+  const rows: ProcessValues[] = [];
+  for (const [name, g] of latestGroupedProcs) {
+    rows.push({ name, cpu: g.cpu, memMb: g.mem, startedAtMs: g.startedAtMs });
+  }
+  return rows;
+}
+
+/** Per-process GPU utilization from the current gpu-processes frame, summed
+ *  across adapters and clamped to 100. Empty off Windows, the only platform
+ *  with a per-process GPU source. */
+export function getGpuPercentByName(): Map<string, number> {
+  const out = new Map<string, number>();
+  for (const p of latestGpuProcs) {
+    out.set(p.name, Math.min(100, (out.get(p.name) ?? 0) + p.gpuPercent));
+  }
+  return out;
 }
 
 // Uncapped counterpart to getProcessData's cpuSeries/memSeries (item 48): no

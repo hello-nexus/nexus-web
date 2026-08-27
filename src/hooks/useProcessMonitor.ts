@@ -60,15 +60,22 @@ export function useAllProcesses(): { cpuSeries: SeriesEntry[]; memSeries: Series
   return store.getAllCpuMemSeries();
 }
 
+let lastIngestedGpuFrame: unknown = null;
+
 /**
  * Subscribes to the gpu-processes topic and ingests each frame into the store.
  * Mounted at monitoring-page level (not per-tab) so the PDH backend collector
- * stays warm and per-process history accrues across tab switches. Exactly one
- * feed may be mounted: a second concurrent subscriber double-ingests and halves
- * the 60s history window. Ingest-only (no re-render) - read via useGpuProcessData.
+ * stays warm and per-process history accrues across tab switches. Safe to mount
+ * from more than one place at once (page + process-list widget): the socket
+ * hands every listener of a topic the same parsed frame object, so a repeat
+ * sighting is a second subscriber, not a second frame. Guarding on identity
+ * rather than refcounting keeps every consumer subscribed, so the feed survives
+ * whichever unmounts first. Ingest-only - read via useGpuProcessData.
  */
 export function useGpuProcessFeed(enabled: boolean): void {
   useTopicCallback('gpu-processes', enabled, (data) => {
+    if (data === lastIngestedGpuFrame) return;
+    lastIngestedGpuFrame = data;
     store.ingestGpuProcesses((data as { processes?: GpuProcess[] }).processes ?? []);
   });
 }

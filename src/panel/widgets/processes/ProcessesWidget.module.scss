@@ -1,0 +1,166 @@
+@use '../../../styles/scrollbar' as *;
+
+// Header and rows share one template so the columns line up; the GPU column
+// only exists on Windows (see ProcessesWidget), so the template swaps rather
+// than reserving a blank track for it.
+.processes {
+  --proc-cols: minmax(0, 1fr) 3.2rem 4rem;
+  // Every panel widget insets its own content (ScreentimeWidget uses
+  // 14px 16px). Without it the leftmost icons sit flush against the tile edge
+  // and the tile's rounded corner clips them.
+  --proc-pad-x: 16px;
+  // ProcessIcon's fixed 16px slot plus .nameCell's gap - the NAME heading is
+  // indented by it so it starts where the process names do, the same way the
+  // metric headings end where their numbers do.
+  --proc-name-indent: calc(16px + 0.4rem);
+
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  padding: 14px var(--proc-pad-x);
+  box-sizing: border-box;
+}
+
+.processes[data-gpu='true'] {
+  --proc-cols: minmax(0, 1fr) 3.2rem 3.2rem 4rem;
+}
+
+.header {
+  display: grid;
+  grid-template-columns: var(--proc-cols);
+  align-items: center;
+  gap: var(--space-sm);
+  border-bottom: 1px solid var(--separator);
+  flex: 0 0 auto;
+}
+
+.headerCell {
+  min-width: 0;
+}
+
+// Every header is a full-height press target: on a touch panel the label alone
+// is too small to hit reliably, and the taller bar also separates the headings
+// from the rows without needing a second rule.
+.headerButton {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  width: 100%;
+  padding: 0.55rem 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--type-mini);
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.headerCell:first-child .headerButton {
+  justify-content: flex-start;
+  padding-left: var(--proc-name-indent);
+}
+.headerCell:not(:first-child) .headerButton { justify-content: flex-end; }
+
+// The sort chevron sits BEFORE the label on the right-aligned metric columns,
+// so the label's right edge lands on the grid track's right edge - exactly
+// where the numbers below it end. Trailing it would push the heading left by
+// the chevron's width, and only on whichever column happens to be sorted.
+.headerCell:not(:first-child) .sortIcon { order: -1; }
+
+.headerCell[aria-sort='ascending'] .headerButton,
+.headerCell[aria-sort='descending'] .headerButton {
+  color: var(--text);
+}
+
+.headerLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sortIcon {
+  width: 11px;
+  height: 11px;
+  flex-shrink: 0;
+}
+
+// The tile clips to whole rows and never scrolls (ProcessesWidget slices the
+// list to what fits); only the immersive view scrolls.
+.rows {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+// Immersive is the only scrolling surface. The scroll container reaches out
+// through the widget's right inset so the scrollbar rides at the panel edge
+// rather than floating inboard, and puts the inset back as padding so the rows
+// stay under their headings. --proc-sb-w is what the scrollbar actually
+// consumes on this platform (0 for overlay scrollbars), measured in
+// useRowsMetrics; the header reserves the same so the two edges still line up.
+.processes[data-immersive='true'] .header {
+  padding-right: var(--proc-sb-w, 0px);
+}
+
+.processes[data-immersive='true'] .rows {
+  overflow-y: auto;
+  margin-right: calc(-1 * var(--proc-pad-x));
+  padding-right: var(--proc-pad-x);
+  @include scrollbar-visible;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: var(--proc-cols);
+  align-items: center;
+  gap: var(--space-sm);
+  height: var(--proc-row-h);
+  font-size: var(--type-small);
+  color: var(--text);
+}
+
+.nameCell {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+}
+
+// Empty state: centred both ways, and the only thing rendered - no headings,
+// so no grid track can move between the empty and populated layouts.
+.isEmpty {
+  align-items: center;
+  justify-content: center;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  text-align: center;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}
+
+.emptyIcon {
+  width: 26px;
+  height: 26px;
+  opacity: 0.7;
+}

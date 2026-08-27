@@ -7,9 +7,12 @@ import styles from './ProcessListSection.module.scss';
  *  per-app color, matching the sparkline's accent-only treatment.
  *
  *  Shared by ProcessListSection's rows, MetricHistorySection's hover-tooltip
- *  top-apps rows, and ProcessDetailPanel's header - kept in its own file so
- *  none of those three form a circular import. */
-export function ProcessIcon({ name }: { name: string }) {
+ *  top-apps rows, ProcessDetailPanel's header, and the process-list widget -
+ *  kept in its own file so none of them form a circular import.
+ *
+ *  An omitted name renders the dot and fetches nothing, which is how the
+ *  process widget's catalog preview stays network-free. */
+export function ProcessIcon({ name }: { name?: string }) {
   const iconUrl = useProcessIcon(name);
   // The slot itself is the fixed-size box (item 44): whichever of the two
   // variants below renders, the next sibling (the row label) sits at the
