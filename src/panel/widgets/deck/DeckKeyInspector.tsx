@@ -56,9 +56,9 @@ const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n
 // 'toggle'), not a nestable sub-action, so it's excluded from NESTED_KINDS the
 // same way those are - a sequence step or toggle branch fires once on press,
 // which doesn't fit a continuously-rendered sensor tile.
-const NESTED_KINDS: DeckActionType[] = [
+const NESTED_KINDS: DeckPickerKind[] = [
   'launchApp', 'openUrl', 'openFile', 'openFolder', 'system', 'hotkey', 'hotkeySwitch',
-  'text', 'power', 'nexus', 'deckBrightness', 'deckSleep', 'playAudio',
+  'text', 'power', 'lighting', 'cooling', 'y70', 'deckBrightness', 'deckSleep', 'playAudio',
 ];
 
 // deckBrightness/deckSleep control a physical Stream Deck's own screen (see
@@ -77,7 +77,29 @@ function kindsForTarget<K extends string>(kinds: K[], targetKind: DeckTarget['ki
 // page-navigate action's three ops (prev/next/goto) are split into distinct
 // picker entries so each shows as its own Navigation item instead of one
 // "Page" entry plus a nested op selector.
-export type DeckPickerKind = Exclude<DeckActionType, 'page'> | 'folder' | 'pagePrev' | 'pageNext' | 'pageGoto';
+// 'nexus' is not a picker kind: the one "Nexus device" entry is split into
+// Lighting / Cooling / Y70, each seeding the same `nexus` DeckAction with an op
+// from its own group, so the picker lists them beside Monitoring and Weather
+// instead of hiding all eight ops behind one entry.
+export type DeckPickerKind =
+  | Exclude<DeckActionType, 'page' | 'nexus'>
+  | 'folder' | 'pagePrev' | 'pageNext' | 'pageGoto'
+  | 'lighting' | 'cooling' | 'y70';
+
+/** Which picker entry (and op dropdown) a nexus op belongs to. */
+export const NEXUS_OP_GROUPS = {
+  lighting: ['rgbEffect', 'lightingBrightness', 'lightingPreset'],
+  cooling: ['fanProfile', 'coolingPreset'],
+  y70: ['y70Power', 'y70Brightness', 'y70Rotation'],
+} as const satisfies Record<'lighting' | 'cooling' | 'y70', readonly DeckNexusOp[]>;
+
+export type DeckNexusGroup = keyof typeof NEXUS_OP_GROUPS;
+
+export function nexusGroupForOp(op: DeckNexusOp): DeckNexusGroup {
+  if ((NEXUS_OP_GROUPS.cooling as readonly string[]).includes(op)) return 'cooling';
+  if ((NEXUS_OP_GROUPS.y70 as readonly string[]).includes(op)) return 'y70';
+  return 'lighting';
+}
 
 interface DeckActionCategory {
   key: 'navigation' | 'streamdeck' | 'system' | 'nexus' | 'multi';
@@ -104,7 +126,7 @@ const DECK_ACTION_CATEGORIES: DeckActionCategory[] = [
   {
     key: 'nexus',
     labelKey: 'panel.settings.deck.category.nexus',
-    kinds: ['nexus', 'monitoring', 'weather'],
+    kinds: ['lighting', 'cooling', 'y70', 'monitoring', 'weather'],
   },
   {
     key: 'multi',
@@ -113,12 +135,17 @@ const DECK_ACTION_CATEGORIES: DeckActionCategory[] = [
   },
 ];
 
-function actionToPickerKind(slot: DeckSlot): DeckPickerKind {
-  if (slot.folder) return 'folder';
-  const a = slot.action;
+/** The picker entry an action maps back to, so the list highlights it and a
+ *  nested step's type select shows what it currently holds. */
+function actionPickerKind(a: DeckAction | undefined): DeckPickerKind {
   if (!a) return 'launchApp';
   if (a.type === 'page') return a.op === 'goto' ? 'pageGoto' : a.op === 'prev' ? 'pagePrev' : 'pageNext';
+  if (a.type === 'nexus') return nexusGroupForOp(a.action.op);
   return a.type;
+}
+
+function actionToPickerKind(slot: DeckSlot): DeckPickerKind {
+  return slot.folder ? 'folder' : actionPickerKind(slot.action);
 }
 
 function categoryForKind(kind: DeckPickerKind): DeckActionCategory {
@@ -162,6 +189,9 @@ function defaultActionForPickerKind(kind: Exclude<DeckPickerKind, 'folder'>): De
     case 'pagePrev': return { type: 'page', op: 'prev' };
     case 'pageNext': return { type: 'page', op: 'next' };
     case 'pageGoto': return { type: 'page', op: 'goto', target: 0 };
+    case 'lighting':
+    case 'cooling':
+    case 'y70': return { type: 'nexus', action: defaultNexusAction(NEXUS_OP_GROUPS[kind][0]) };
     default: return defaultActionFor(kind);
   }
 }
@@ -207,7 +237,7 @@ function SelectField({ label, value, options, onChange, disabled }: { label: str
 }
 
 function ActionEditor({ action, onChange, showType, allowed, surface, desktopEditor, pageCount }: {
-  action: DeckAction; onChange: (a: DeckAction) => void; showType: boolean; allowed: DeckActionType[]; surface?: PanelSurface; desktopEditor?: boolean; pageCount?: number;
+  action: DeckAction; onChange: (a: DeckAction) => void; showType: boolean; allowed: DeckPickerKind[]; surface?: PanelSurface; desktopEditor?: boolean; pageCount?: number;
 }) {
   const { t } = useTranslation();
   return (
@@ -215,9 +245,9 @@ function ActionEditor({ action, onChange, showType, allowed, surface, desktopEdi
       {showType && (
         <SelectField
           label={t('panel.settings.deck.actionType')}
-          value={action.type}
+          value={actionPickerKind(action)}
           options={allowed.map(k => ({ value: k, label: t(`panel.settings.deck.action.${k}`) }))}
-          onChange={k => onChange(defaultActionFor(k as DeckActionType))}
+          onChange={k => onChange(defaultActionForPickerKind(k as Exclude<DeckPickerKind, 'folder'>))}
         />
       )}
       <ActionFields action={action} onChange={onChange} allowed={allowed} surface={surface} desktopEditor={desktopEditor} pageCount={pageCount} />
@@ -226,7 +256,7 @@ function ActionEditor({ action, onChange, showType, allowed, surface, desktopEdi
 }
 
 function ActionFields({ action, onChange, allowed, surface, desktopEditor, pageCount }: {
-  action: DeckAction; onChange: (a: DeckAction) => void; allowed: DeckActionType[]; surface?: PanelSurface; desktopEditor?: boolean; pageCount?: number;
+  action: DeckAction; onChange: (a: DeckAction) => void; allowed: DeckPickerKind[]; surface?: PanelSurface; desktopEditor?: boolean; pageCount?: number;
 }) {
   const { t } = useTranslation();
   const audioOut = useServiceOptions('/system/audio/devices', d => ((d as { outputs?: { id: string; name: string }[] })?.outputs ?? []).map(x => ({ value: x.id, label: x.name })));
@@ -384,12 +414,6 @@ function ActionFields({ action, onChange, allowed, surface, desktopEditor, pageC
 // that have no preset list at all.
 const EMPTY_OPTIONS: { value: string; label: string }[] = [];
 
-const NEXUS_OPS: DeckNexusOp[] = [
-  'rgbEffect', 'lightingBrightness', 'lightingPreset',
-  'fanProfile', 'coolingPreset',
-  'y70Power', 'y70Brightness', 'y70Rotation',
-];
-
 // The three live lighting modes a key can start. Static and Game Sync are
 // deliberately absent: neither is a one-press mode (Static needs a per-device
 // colour assignment, Game Sync needs a running detected game).
@@ -422,6 +446,9 @@ function NexusFields({ action, onChange }: { action: Extract<DeckAction, { type:
   const { t } = useTranslation();
   const a = action.action;
   const set = (patch: Partial<DeckNexusAction>) => onChange({ type: 'nexus', action: { ...a, ...patch } });
+  // Only this entry's own ops. Switching group is done by picking a different
+  // action in the picker, so the dropdown stays 2-3 entries instead of eight.
+  const groupOps: readonly DeckNexusOp[] = NEXUS_OP_GROUPS[nexusGroupForOp(a.op)];
 
   const lightingPresets = useServiceOptions('/devices/lighting-devices/layout-presets', d => {
     const list = (d as { presets?: { id: string; name: string }[] } | null)?.presets ?? [];
@@ -452,7 +479,7 @@ function NexusFields({ action, onChange }: { action: Extract<DeckAction, { type:
       <SelectField
         label={t('panel.settings.deck.nexusOp')}
         value={a.op}
-        options={NEXUS_OPS.map(o => ({ value: o, label: t(`panel.settings.deck.nexus.${o}`) }))}
+        options={groupOps.map(o => ({ value: o, label: t(`panel.settings.deck.nexus.${o}`) }))}
         onChange={op => onChange({ type: 'nexus', action: defaultNexusAction(op as DeckNexusOp) })}
       />
       {a.op === 'rgbEffect' && (
@@ -811,7 +838,7 @@ function PlayAudioFields({ action, onChange, surface, desktopEditor }: {
   );
 }
 
-function SequenceEditor({ action, onChange, allowed, surface, desktopEditor }: { action: Extract<DeckAction, { type: 'sequence' }>; onChange: (a: DeckAction) => void; allowed: DeckActionType[]; surface?: PanelSurface; desktopEditor?: boolean }) {
+function SequenceEditor({ action, onChange, allowed, surface, desktopEditor }: { action: Extract<DeckAction, { type: 'sequence' }>; onChange: (a: DeckAction) => void; allowed: DeckPickerKind[]; surface?: PanelSurface; desktopEditor?: boolean }) {
   const { t } = useTranslation();
   const steps = action.steps;
   const setSteps = (next: typeof steps) => onChange({ type: 'sequence', steps: next });
@@ -838,7 +865,7 @@ function SequenceEditor({ action, onChange, allowed, surface, desktopEditor }: {
   );
 }
 
-function ToggleEditor({ action, onChange, allowed, surface, desktopEditor }: { action: Extract<DeckAction, { type: 'toggle' }>; onChange: (a: DeckAction) => void; allowed: DeckActionType[]; surface?: PanelSurface; desktopEditor?: boolean }) {
+function ToggleEditor({ action, onChange, allowed, surface, desktopEditor }: { action: Extract<DeckAction, { type: 'toggle' }>; onChange: (a: DeckAction) => void; allowed: DeckPickerKind[]; surface?: PanelSurface; desktopEditor?: boolean }) {
   const { t } = useTranslation();
   const stateKinds = ['mute', 'lightingPower', 'internal'];
   return (

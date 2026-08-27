@@ -175,7 +175,13 @@ textarea.input { resize: vertical; min-height: 2.4rem; }
   font-size: var(--type-small, 12px);
   text-align: left;
   cursor: grab;
-  touch-action: none;
+  // NOT touch-action: none. dnd-kit's docs suggest it for draggables, but on a
+  // phone the picker list is the tail of the settings sheet's only scroller:
+  // a finger landing on a row opted the whole gesture out of panning, so the
+  // scroll died the moment it reached the actions. pan-y hands vertical
+  // gestures back to the scroller and still lets a sideways drag start a drag;
+  // tapping a row assigns it, which is the touch path anyway.
+  touch-action: pan-y;
 
   &:hover { background: var(--deck-settings-bg-hover); }
 }

@@ -75,6 +75,36 @@ describe('defaultNexusAction - every op is armed the moment it is picked', () =>
   });
 });
 
+describe('Nexus picker entries - Lighting / Cooling / Y70 stand alone', () => {
+  it('a cooling op highlights the Cooling entry, not one shared "Nexus device" row', async () => {
+    renderInspector([{ action: { type: 'nexus', action: { op: 'fanProfile', profile: 'balanced' } } }]);
+    const cooling = await screen.findByRole('option', { name: /panel.settings.deck.action.cooling/ });
+    expect(cooling).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('option', { name: /panel.settings.deck.action.lighting/ })).toHaveAttribute('aria-selected', 'false');
+    // The old single entry is gone.
+    expect(screen.queryByRole('option', { name: /panel.settings.deck.action.nexus/ })).not.toBeInTheDocument();
+  });
+
+  it('a y70 op highlights the Y70 entry', async () => {
+    renderInspector([{ action: { type: 'nexus', action: { op: 'y70Rotation', orientation: 'landscape' } } }]);
+    expect(await screen.findByRole('option', { name: /panel.settings.deck.action.y70/ })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('the op dropdown carries only its own group, so Cooling cannot offer a lighting op', async () => {
+    renderInspector([{ action: { type: 'nexus', action: { op: 'fanProfile', profile: 'balanced' } } }]);
+    fireEvent.click(await screen.findByLabelText('panel.settings.deck.nexusOp'));
+    expect(await screen.findByText('panel.settings.deck.nexus.coolingPreset')).toBeInTheDocument();
+    expect(screen.queryByText('panel.settings.deck.nexus.rgbEffect')).not.toBeInTheDocument();
+  });
+
+  it('picking Cooling seeds a cooling action, not a lighting one', async () => {
+    renderInspector([{ action: defaultActionFor('nexus') }]);
+    fireEvent.click(await screen.findByRole('option', { name: /panel.settings.deck.action.cooling/ }));
+    expect(await screen.findByLabelText('panel.settings.deck.coolingMode')).toBeInTheDocument();
+    expect(screen.queryByLabelText('panel.settings.deck.lightingMode')).not.toBeInTheDocument();
+  });
+});
+
 describe('NexusFields - lighting effect mode', () => {
   it('offers Animation/Media/Mirror and drops the effect picker off Animation', async () => {
     renderInspector([{ action: defaultActionFor('nexus') }]);
