@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
 // isApplePlatform memoizes on first call, so each case re-imports the module

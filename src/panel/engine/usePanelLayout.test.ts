@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { normalizePanelLayout } from './usePanelLayout';
 import { repaginatePanelLayout } from './paginate';

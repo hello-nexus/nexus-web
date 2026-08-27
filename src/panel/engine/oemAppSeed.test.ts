@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { hasOemApp, planOemAppSeed } from './oemAppSeed';
 import type { AppInstalledListing, AppManifestCapabilities } from '../../widgets/types';

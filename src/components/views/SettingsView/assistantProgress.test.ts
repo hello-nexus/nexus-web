@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { isAssistantTransient, progressPercent } from './assistantProgress';
 import type { AssistantPullProgress } from '../../../api/aiIntegration';

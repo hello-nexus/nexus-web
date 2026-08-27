@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { advanceSnakeInput, createSnakeInputState, queueDirection } from './snakeInput';
 import { changeDirection, createInitialState } from './snakeLogic';

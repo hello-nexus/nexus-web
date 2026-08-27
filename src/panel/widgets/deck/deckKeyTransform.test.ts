@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { applyKeyTransform, applyOrientation, resolveDeckKeyTransform, transformForModel, type RawImage } from './deckKeyTransform';
 

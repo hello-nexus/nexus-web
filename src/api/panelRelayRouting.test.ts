@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Proves the panel.ts *WithStatus helpers - which bypass authFetch to read the

@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { mediaArtSignature } from './mediaArt';
 import type { MediaSession } from '../../../hooks/useMedia';

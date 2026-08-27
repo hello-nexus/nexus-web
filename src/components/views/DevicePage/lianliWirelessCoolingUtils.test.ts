@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import type { FanChannel } from '../../../api/cooling';
 import type { LianLiWirelessFan } from '../../../api/lianli-wireless';

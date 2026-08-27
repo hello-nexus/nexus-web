@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { buildBenchmarkSubmission } from './benchmarkSubmission';
 import type { BenchmarkResult } from '../../../types/benchmark';

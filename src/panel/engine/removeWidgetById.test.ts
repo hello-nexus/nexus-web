@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { removeWidgetById } from './panelLayoutOps';
 import type { PanelLayout, PanelWidget } from '../types';

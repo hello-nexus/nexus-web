@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { resolveDeckTitleStyle, titleFontSizeCss, DECK_TITLE_SIZE_MIN, DECK_TITLE_SIZE_MAX, DECK_TITLE_SIZE_DEFAULT } from './deckTitleStyle';
 

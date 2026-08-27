@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { ELEMENT_COMPONENTS } from '../elementMap';
 import { UI_ELEMENT_NAMES } from '../contract/elements';

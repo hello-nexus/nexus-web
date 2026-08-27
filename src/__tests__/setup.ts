@@ -1,5 +1,8 @@
 import '@testing-library/jest-dom/vitest';
 
+if (typeof window !== 'undefined') {
+
+
 // Stub matchMedia for jsdom (theme detection)
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
@@ -32,3 +35,5 @@ Element.prototype.scrollIntoView ??= function () {};
 afterEach(() => {
   localStorage.clear();
 });
+
+}

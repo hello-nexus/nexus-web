@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { buildLiveUsageByName, buildMiniChart, resolveTileValue, sessionsForProcess, truncateMiddle } from './processDetailHelpers';
 import type { PrivacySession } from '../../../../api/monitoringPrivacy';

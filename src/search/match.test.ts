@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { fuzzyScore, scoreEntry } from './match';
 import type { SearchEntry } from './types';

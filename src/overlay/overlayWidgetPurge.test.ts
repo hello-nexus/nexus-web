@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { purgePanelOnlyOverlayWidgets } from './overlayWidgetPurge';
 import type { OverlayWidgetDto } from '../api/overlay';

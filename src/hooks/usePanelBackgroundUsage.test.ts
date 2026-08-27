@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { buildUsage } from './usePanelBackgroundUsage';
 import type { PanelDeviceRecord } from '../api/panel';

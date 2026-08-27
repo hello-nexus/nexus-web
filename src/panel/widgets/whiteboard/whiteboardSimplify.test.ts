@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { quantize, shouldCapture, simplify } from './whiteboardSimplify';
 import type { Point } from './whiteboardTypes';

@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { patchWidgetById } from './panelLayoutOps';
 import type { PanelLayout, PanelWidget, PanelWidgetSize } from '../types';
