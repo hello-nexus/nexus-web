@@ -127,10 +127,22 @@ export function Slider({
     onChange(next, commit);
   };
 
+  // A typed edit is a complete gesture: it has no drag-end, so nothing would
+  // fire onCommit and consumers that persist/apply there (the effect editor
+  // applies the shader and refreshes its thumbnail in onCommit) saw the value
+  // land in state and nothing else happen. Mirror the drag-end here.
+  const handleEditCommit = (next: number) => {
+    handleChange(next, true);
+    // Same shape as the drag-end commit below: cancel any deferred commit so a
+    // trailing pointer-up cannot re-commit a stale value over the typed one.
+    if (commitTimerRef.current) clearTimeout(commitTimerRef.current);
+    onCommitRef.current?.(next);
+  };
+
   const fmt = (v: number) => (formatValue ? formatValue(v) : String(v));
   const valueNode = editable ? (
     <EditableNumber value={value} min={min} max={max} step={step}
-      onCommit={v => handleChange(v, true)} format={formatValue} className={styles.value} />
+      onCommit={handleEditCommit} format={formatValue} className={styles.value} />
   ) : (
     <span className={styles.value}>{fmt(value)}</span>
   );
@@ -145,7 +157,7 @@ export function Slider({
     <span className={styles.inlineValue} style={{ minWidth: `${reserveCh}ch` }}>
       {editable ? (
         <EditableNumber value={value} min={min} max={max} step={step}
-          onCommit={v => handleChange(v, true)} format={formatValue} ariaLabel={ariaLabel} className={styles.value} />
+          onCommit={handleEditCommit} format={formatValue} ariaLabel={ariaLabel} className={styles.value} />
       ) : (
         <span className={styles.value}>{fmt(value)}</span>
       )}

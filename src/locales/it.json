@@ -1866,6 +1866,7 @@
   "lighting.devices.menuLightsOn": "Accendi le luci",
   "lighting.devices.menuLightsOnCount.one": "Accendi le luci ({count} dispositivo)",
   "lighting.devices.menuLightsOnCount.other": "Accendi le luci ({count} dispositivi)",
+  "lighting.devices.menuTakeControl": "Prendi il controllo",
   "lighting.devices.minimize": "Riduci a icona",
   "lighting.devices.minimizeCount.one": "Riduci ({count} dispositivo)",
   "lighting.devices.minimizeCount.other": "Riduci ({count} dispositivi)",

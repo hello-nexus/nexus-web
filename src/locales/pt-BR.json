@@ -1866,6 +1866,7 @@
   "lighting.devices.menuLightsOn": "Ligar as luzes",
   "lighting.devices.menuLightsOnCount.one": "Ligar as luzes ({count} dispositivo)",
   "lighting.devices.menuLightsOnCount.other": "Ligar as luzes ({count} dispositivos)",
+  "lighting.devices.menuTakeControl": "Assumir o controle",
   "lighting.devices.minimize": "Minimizar",
   "lighting.devices.minimizeCount.one": "Minimizar ({count} dispositivo)",
   "lighting.devices.minimizeCount.other": "Minimizar ({count} dispositivos)",

@@ -1866,6 +1866,7 @@
   "lighting.devices.menuLightsOn": "Licht einschalten",
   "lighting.devices.menuLightsOnCount.one": "Licht einschalten ({count} Gerät)",
   "lighting.devices.menuLightsOnCount.other": "Licht einschalten ({count} Geräte)",
+  "lighting.devices.menuTakeControl": "Steuerung übernehmen",
   "lighting.devices.minimize": "Minimieren",
   "lighting.devices.minimizeCount.one": "Minimieren ({count} Gerät)",
   "lighting.devices.minimizeCount.other": "Minimieren ({count} Geräte)",

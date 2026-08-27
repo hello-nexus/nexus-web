@@ -1866,6 +1866,7 @@
   "lighting.devices.menuLightsOn": "조명 켜기",
   "lighting.devices.menuLightsOnCount.one": "조명 켜기 ({count}개 장치)",
   "lighting.devices.menuLightsOnCount.other": "조명 켜기 ({count}개 장치)",
+  "lighting.devices.menuTakeControl": "제어 가져오기",
   "lighting.devices.minimize": "최소화",
   "lighting.devices.minimizeCount.one": "최소화 ({count}개 장치)",
   "lighting.devices.minimizeCount.other": "최소화 ({count}개 장치)",

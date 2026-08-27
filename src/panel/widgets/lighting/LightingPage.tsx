@@ -18,7 +18,7 @@ import { useUndoRedo } from '../../../hooks/useUndoRedo';
 import { useLayoutPresets, devicesToLayouts, devicesToPower } from './page/useLayoutPresets';
 import { mediaIdle, playCurrentOrFirstMedia } from '../../../api/mediaLibrary';
 import { getSmartHubFirmwareControl, setSmartHubFirmwareControl } from '../../../api/smarthub';
-import { getLianLiLighting } from '../../../api/lianli';
+import { getLianLiLighting, setLianLiLighting } from '../../../api/lianli';
 import { useLightingFrames } from '../../../hooks/useLightingFrames';
 import { useLightingSync, normalizeSync } from '../../../hooks/useLightingSync';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
@@ -200,6 +200,19 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const [lianLiMode, setLianLiMode] = useState<string | null>(null);
   // true when the hub's active lighting mode is not 'custom' (firmware animation overrides per-LED engine).
   const lianLiFirmwareActive = lianLiMode !== null && lianLiMode !== 'custom';
+
+  // Hands the hub's LEDs back to the engine. Optimistic like the SmartHub
+  // toggle above: the card state flips immediately and reverts if the PUT
+  // fails, since nothing else re-reads the mode until a refetch.
+  const handleLianLiTakeControl = useCallback(async () => {
+    const previous = lianLiMode;
+    setLianLiMode('custom');
+    try {
+      await setLianLiLighting({ mode: 'custom' });
+    } catch {
+      setLianLiMode(previous);
+    }
+  }, [lianLiMode]);
 
   const handleSetSmartHubFirmwareControl = useCallback(async (enabled: boolean) => {
     setSmartHubFirmwareControlState(enabled);
@@ -1921,6 +1934,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             smartHubFirmwareControl={smartHubFirmwareControl}
             onSetSmartHubFirmwareControl={handleSetSmartHubFirmwareControl}
             lianLiFirmwareActive={lianLiFirmwareActive}
+            onLianLiTakeControl={handleLianLiTakeControl}
             onOpenSmartLights={() => onSectionNavigate?.('smart-lights')}
             discovery={discovery}
             rgbRunning={rgb.running}

@@ -22,7 +22,7 @@ import styles from '../LightingPage.module.scss';
  * using the same component/styling as a motherboard group: a chevron, the brand
  * name, a group power switch, and its lights as indented child cards.
  */
-export function DevicePanel({ devices, header, devicePicks, versionForSlot, ledFullscreen, selectedIds, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onDeviceReorder, communityCounts, onOpenCommunity, smartHubFirmwareControl, onSetSmartHubFirmwareControl, lianLiFirmwareActive, onOpenSmartLights, discovery, rgbRunning = false }: {
+export function DevicePanel({ devices, header, devicePicks, versionForSlot, ledFullscreen, selectedIds, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onDeviceReorder, communityCounts, onOpenCommunity, smartHubFirmwareControl, onSetSmartHubFirmwareControl, lianLiFirmwareActive, onLianLiTakeControl, onOpenSmartLights, discovery, rgbRunning = false }: {
   devices: LightingDevice[];
   /** Optional control rendered at the top of the scrolling list (master brightness). */
   header?: ReactNode;
@@ -61,6 +61,9 @@ export function DevicePanel({ devices, header, devicePicks, versionForSlot, ledF
   onSetSmartHubFirmwareControl?: (enabled: boolean) => void;
   /** When true, Lian Li device cards are shown in the firmwareControlled (dimmed) state. */
   lianLiFirmwareActive?: boolean;
+  /** Switches the Lian Li hub to its per-LED 'custom' mode, handing its zones
+   *  back to the engine. Drives the take-control row on those cards' menus. */
+  onLianLiTakeControl?: () => void;
   /** Renders a dashed "add smart lights" entry at the bottom of the list. */
   onOpenSmartLights?: () => void;
   /** Tail card explaining a short list; absent once a mode is running. */
@@ -160,6 +163,9 @@ export function DevicePanel({ devices, header, devicePicks, versionForSlot, ledF
       communityCount={communityCounts?.[d.id]}
       onOpenCommunity={onOpenCommunity ? () => onOpenCommunity(d.id) : undefined}
       firmwareControlled={fwControlled || (!!lianLiFirmwareActive && d.id.startsWith('lianli:'))}
+      // Only the Lian Li hub exposes a mode switch back to per-LED control;
+      // the SmartHub's FW Control lives on its group header instead.
+      onTakeControl={!!lianLiFirmwareActive && d.id.startsWith('lianli:') ? onLianLiTakeControl : undefined}
       // Grouped members carry the notice on their group header instead.
       notice={indent ? undefined : noticeFor(d)}
       bulk={bulkFor(d)}

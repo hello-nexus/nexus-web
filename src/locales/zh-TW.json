@@ -1866,6 +1866,7 @@
   "lighting.devices.menuLightsOn": "開啟燈光",
   "lighting.devices.menuLightsOnCount.one": "開啟燈光 ({count} 台裝置)",
   "lighting.devices.menuLightsOnCount.other": "開啟燈光 ({count} 台裝置)",
+  "lighting.devices.menuTakeControl": "接管控制",
   "lighting.devices.minimize": "最小化",
   "lighting.devices.minimizeCount.one": "最小化 ({count} 台裝置)",
   "lighting.devices.minimizeCount.other": "最小化 ({count} 台裝置)",

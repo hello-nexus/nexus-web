@@ -1866,6 +1866,7 @@
   "lighting.devices.menuLightsOn": "Turn lights on",
   "lighting.devices.menuLightsOnCount.one": "Turn lights on ({count} device)",
   "lighting.devices.menuLightsOnCount.other": "Turn lights on ({count} devices)",
+  "lighting.devices.menuTakeControl": "Take control",
   "lighting.devices.minimize": "Minimize",
   "lighting.devices.minimizeCount.one": "Minimize ({count} device)",
   "lighting.devices.minimizeCount.other": "Minimize ({count} devices)",

@@ -1866,6 +1866,7 @@
   "lighting.devices.menuLightsOn": "Allumer l'éclairage",
   "lighting.devices.menuLightsOnCount.one": "Allumer l'éclairage ({count} appareil)",
   "lighting.devices.menuLightsOnCount.other": "Allumer l'éclairage ({count} appareils)",
+  "lighting.devices.menuTakeControl": "Prendre le contrôle",
   "lighting.devices.minimize": "Réduire",
   "lighting.devices.minimizeCount.one": "Réduire ({count} appareil)",
   "lighting.devices.minimizeCount.other": "Réduire ({count} appareils)",

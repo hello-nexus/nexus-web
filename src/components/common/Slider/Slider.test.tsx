@@ -3,6 +3,37 @@ import { describe, expect, it, vi } from 'vitest';
 import { Slider } from './Slider';
 
 describe('Slider', () => {
+  it('fires onCommit when a value is typed into the editable field', async () => {
+    // A typed edit has no drag-end, so without this the value landed in state
+    // and consumers that apply/persist in onCommit (the effect editor applies
+    // the shader and refreshes its thumbnail there) never ran.
+    const onChange = vi.fn();
+    const onCommit = vi.fn();
+
+    render(
+      <Slider
+        label="Position"
+        value={10}
+        min={0}
+        max={100}
+        editable
+        ariaLabel="Position"
+        onChange={onChange}
+        onCommit={onCommit}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Position' }));
+    // The range input carries the same aria-label, so select the typed field
+    // by its role rather than by label.
+    const input = screen.getByRole('spinbutton') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: '75' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(onChange).toHaveBeenCalledWith(75, true);
+    await waitFor(() => expect(onCommit).toHaveBeenCalledWith(75));
+  });
+
   it('commits the latest changed value when pointer-up sees a stale range value', async () => {
     const onChange = vi.fn();
     const onCommit = vi.fn();

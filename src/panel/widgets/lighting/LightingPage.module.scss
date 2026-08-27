@@ -1273,13 +1273,11 @@
 }
 
 // Firmware badge in the meta row of a firmware-controlled zone card.
-.deviceMetaFirmware {
-  font-size: 0.65rem;
-  color: var(--text-dim);
+// Tooltip trigger around the firmware-controlled Badge. HoverTooltip clones
+// onto its single child, so the badge needs an element wrapper of its own.
+.deviceMetaBadge {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  opacity: 0.7;
 }
 
 // Active state for the FW Control toggle button in the group header.

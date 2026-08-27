@@ -1884,6 +1884,7 @@
   "lighting.devices.menuLightsOnCount.few": "Włącz podświetlenie ({count} urządzenia)",
   "lighting.devices.menuLightsOnCount.one": "Włącz podświetlenie ({count} urządzenie)",
   "lighting.devices.menuLightsOnCount.other": "Włącz podświetlenie ({count} urządzeń)",
+  "lighting.devices.menuTakeControl": "Przejmij kontrolę",
   "lighting.devices.minimize": "Minimalizuj",
   "lighting.devices.minimizeCount.few": "Minimalizuj ({count} urządzenia)",
   "lighting.devices.minimizeCount.one": "Minimalizuj ({count} urządzenie)",

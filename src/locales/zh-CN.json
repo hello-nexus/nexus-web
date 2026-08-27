@@ -1866,6 +1866,7 @@
   "lighting.devices.menuLightsOn": "开启灯光",
   "lighting.devices.menuLightsOnCount.one": "开启灯光 ({count} 个设备)",
   "lighting.devices.menuLightsOnCount.other": "开启灯光 ({count} 个设备)",
+  "lighting.devices.menuTakeControl": "接管控制",
   "lighting.devices.minimize": "最小化",
   "lighting.devices.minimizeCount.one": "最小化 ({count} 个设备)",
   "lighting.devices.minimizeCount.other": "最小化 ({count} 个设备)",

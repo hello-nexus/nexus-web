@@ -1866,6 +1866,7 @@
   "lighting.devices.menuLightsOn": "Verlichting inschakelen",
   "lighting.devices.menuLightsOnCount.one": "Verlichting inschakelen ({count} apparaat)",
   "lighting.devices.menuLightsOnCount.other": "Verlichting inschakelen ({count} apparaten)",
+  "lighting.devices.menuTakeControl": "Besturing overnemen",
   "lighting.devices.minimize": "Minimaliseren",
   "lighting.devices.minimizeCount.one": "Minimaliseren ({count} apparaat)",
   "lighting.devices.minimizeCount.other": "Minimaliseren ({count} apparaten)",

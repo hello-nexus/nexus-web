@@ -76,6 +76,7 @@ export function ZoneCard({
   communityCount,
   onOpenCommunity,
   firmwareControlled,
+  onTakeControl,
   notice,
   toggleMode,
   selectOnly,
@@ -111,6 +112,10 @@ export function ZoneCard({
   onOpenCommunity?: () => void;
   /** When true, the card is non-interactive; the meta row shows a firmware badge. */
   firmwareControlled?: boolean;
+  /** Present when the firmware mode driving this card can be handed back to
+   *  Nexus (the Lian Li hub's per-LED "custom" mode). Gives a firmware-owned
+   *  card its only menu row; absent, such a card stays menu-less. */
+  onTakeControl?: () => void;
   /** Optional advisory shown via an (i) next to the device name. */
   notice?: string;
   /** Onboarding selection mode: the whole card is a controlled/ignored
@@ -154,7 +159,10 @@ export function ZoneCard({
   // cards expose no per-device controls. A bulk-selected card that can offer
   // no row either (detection-failed, so no identify and no state rows, and
   // the LED map is single-device) gets no button rather than an empty menu.
-  const menuEnabled = !toggleMode && !selectOnly && !firmwareControlled
+  // A firmware-owned card offers exactly one row - take control - so it opts
+  // in only when that handler exists; every other gate is unchanged.
+  const menuEnabled = !toggleMode && !selectOnly
+    && (firmwareControlled ? !!onTakeControl : true)
     && !(bulk && unavailable && bulk.identifyCount === 0);
 
   // Persistent marker for a card that is not in its default state, so the
@@ -179,6 +187,20 @@ export function ZoneCard({
 
   const menuItems = (): DeviceMenuItem[] => {
     const items: DeviceMenuItem[] = [];
+    // Nothing else on the menu can act while firmware owns the LEDs, so the
+    // handoff is the whole menu rather than one row among dead ones.
+    if (firmwareControlled) {
+      if (onTakeControl) {
+        items.push({
+          key: 'takeControl',
+          icon: <Link2 size={14} />,
+          label: t('lighting.devices.menuTakeControl'),
+          onSelect: onTakeControl,
+          highlighted: true,
+        });
+      }
+      return items;
+    }
     // Leads the menu and names the device, so it is unambiguous which card the
     // selection is about to narrow to. A card wearing a state glyph cannot be
     // selected, so it gets no row.
@@ -278,10 +300,14 @@ export function ZoneCard({
       <div className={styles.deviceMetaRow}>
         {firmwareControlled ? (
           <HoverTooltip body={t('lighting.devices.firmwareTooltip')} side="top">
-            <span className={styles.deviceMetaFirmware}>
-              {/* eslint-disable-next-line i18next/no-literal-string -- aria boolean */}
-              <Cpu className={styles.deviceMetaIcon} aria-hidden="true" />
-              {t('lighting.devices.smarthub.firmwareBadge')}
+            <span className={styles.deviceMetaBadge}>
+              <Badge
+                label={t('lighting.devices.smarthub.firmwareBadge')}
+                icon={<Cpu size={11} />}
+                compact
+                uppercase
+                color="var(--text-dim)"
+              />
             </span>
           </HoverTooltip>
         ) : unavailable ? (
