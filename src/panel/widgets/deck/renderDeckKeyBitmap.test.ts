@@ -1,4 +1,3 @@
-// @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { shouldPaintIcon, DECK_BACK_KEY_ICON } from './renderDeckKeyBitmap';
 import { DECK_ICONS } from './deckIcons';

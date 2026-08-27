@@ -1,4 +1,3 @@
-// @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { appendCappedBurst, randomBurstStyle, type BurstParticle } from './particleBurst';
 

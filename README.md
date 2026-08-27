@@ -151,10 +151,11 @@ npm run audit:locales    # locale key sync check
 npm run audit:styles     # style audits (also: audit:css-chunks, audit:text-styles)
 ```
 
-Tests default to the `jsdom` environment. Building one costs roughly half a
-second per test file, so a file that touches no DOM opts out with a
-`// @vitest-environment node` docblock on its first line; `__tests__/setup.ts`
-guards its DOM stubs so it still loads there.
+Tests default to the `jsdom` environment, and building one is the largest cost
+in a run, paid per test file. A file that touches no DOM opts out with a
+`// @vitest-environment node` docblock; `__tests__/setup.ts` guards its DOM
+stubs so it still loads there. Vitest matches that comment anywhere in the
+file, so avoid writing it in a fixture or a doc comment.
 
 ## Environment
 
