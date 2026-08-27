@@ -252,6 +252,8 @@ describe('useUnifiedDevices - iBUYPOWER AW5', () => {
       connected: true,
       // The vendor driver owns the cooler, so the service reports no control gate.
       supportsNexusControl: false,
+      // ...and nothing to configure, so the handler declares no page of its own.
+      hasPage: false,
       ...over,
     });
   }
@@ -277,6 +279,35 @@ describe('useUnifiedDevices - iBUYPOWER AW5', () => {
 
     const { result } = renderHook(() => useUnifiedDevices(true));
     expect(result.current.unified.some(d => d.curatedId === 'aw5')).toBe(false);
+  });
+});
+
+describe('useUnifiedDevices - hasPage gates navigable', () => {
+  it('follows the flag, not the device id', () => {
+    // Nothing here knows which devices lack a page; the service says so per
+    // device, so a new handler is linkable by what it declares.
+    mockUseDevices.mockReturnValue({
+      devices: [
+        makeHandlerRow({ id: 'with-page', category: 'hub', connected: true, hasPage: true }),
+        makeHandlerRow({ id: 'without-page', category: 'hub', connected: true, hasPage: false }),
+      ],
+      controlDevice: vi.fn(),
+    });
+
+    const { result } = renderHook(() => useUnifiedDevices(true));
+    expect(result.current.unified.find(d => d.curatedId === 'with-page')?.navigable).toBe(true);
+    expect(result.current.unified.find(d => d.curatedId === 'without-page')?.navigable).toBe(false);
+  });
+
+  it('treats an absent flag as having a page', () => {
+    // An older service omits the field; every curated device had a page then.
+    mockUseDevices.mockReturnValue({
+      devices: [makeHandlerRow({ id: 'legacy', category: 'hub', connected: true })],
+      controlDevice: vi.fn(),
+    });
+
+    const { result } = renderHook(() => useUnifiedDevices(true));
+    expect(result.current.unified.find(d => d.curatedId === 'legacy')?.navigable).toBe(true);
   });
 });
 

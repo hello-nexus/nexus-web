@@ -3,7 +3,7 @@
 // can deep-link to a card on the page by matching keys.
 
 import { useEffect, useMemo, useState } from 'react';
-import { useDevices } from './useDevices';
+import { useDevices, type DeviceListItem } from './useDevices';
 import { usePanelDevices } from './usePanelDevices';
 import { useStreamDecks } from './useStreamDecks';
 import {
@@ -134,15 +134,6 @@ const CURATED_SHORT_NAMES: Record<string, string> = {
 
 const FALLBACK_ICON = '/assets/devices/device.svg';
 
-// Curated devices the service detects but that have no dedicated settings
-// page - their controls live on shared pages. Keep them in the device list
-// (status/firmware) but don't give them a sidebar row or a clickable card
-// that would land on the empty "no page yet" placeholder.
-//   fan-hub (iBUYPOWER MiniHub): fans → Cooling page, ARGB → Lighting page.
-//   aw5 (iBUYPOWER AW5): the vendor driver owns the cooler; Nexus only reports
-//     that it is present, so there is nothing to configure anywhere.
-const CURATED_WITHOUT_PAGE = new Set<string>(['fan-hub', 'aw5']);
-
 export function useUnifiedDevices(enabled: boolean) {
   const { t } = useTranslation();
   const tryxSimulated = useTryxSimulated();
@@ -263,7 +254,7 @@ export function useUnifiedDevices(enabled: boolean) {
 
 function buildUnifiedList(
   panelDevices: PanelDevice[],
-  curated: { id: string; name: string; category: string; connected: boolean; firmwareVersion: string; nexusControlEnabled?: boolean; supportsNexusControl?: boolean; experimental?: boolean; warning?: string | null; conflictAppId?: string }[],
+  curated: DeviceListItem[],
   deviceApps: AppInstalledListing[] = [],
 ): UnifiedDevice[] {
   const list: UnifiedDevice[] = [];
@@ -328,7 +319,7 @@ function buildUnifiedList(
       connected: d.connected,
       kind: 'curated',
       curatedId: d.id,
-      navigable: !CURATED_WITHOUT_PAGE.has(d.id),
+      navigable: d.hasPage ?? true,
       nexusControlEnabled: d.nexusControlEnabled ?? true,
       supportsNexusControl: d.supportsNexusControl ?? false,
       experimental: d.experimental ?? false,

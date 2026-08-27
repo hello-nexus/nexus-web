@@ -27,6 +27,9 @@ export interface DeviceListItem {
   warning?: string | null;
   // Conflict-app catalog id competing with this device; drives the device-page enable gate.
   conflictAppId?: string;
+  // False when the device's controls live on shared pages (Cooling/Lighting).
+  // Undefined on an older service; callers treat that as having a page.
+  hasPage?: boolean;
 }
 
 export function useDevices(enabled: boolean) {
