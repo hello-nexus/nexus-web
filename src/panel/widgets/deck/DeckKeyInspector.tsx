@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, AlignVerticalJustifyStart, FolderInput, FolderOpen, Plus, Trash2 } from 'lucide-react';
 import { useDraggable } from '@dnd-kit/core';
 import { Button } from '../../../components/common/Button/Button';
@@ -38,8 +38,10 @@ import { DESIGN_ICONS } from '../monitoring/gauges/DesignIcons';
 import { defaultFixedMax } from '../monitoring/perfDomain';
 import { WeatherLocationSearch } from '../weather/WeatherLocationSearch';
 import type { WeatherGeocodeResult } from '../../../api/weather';
+import { ANIMATE_EFFECTS } from '../../../types/lighting';
 import type {
-  DeckAction, DeckActionType, DeckMonitoringCategory, DeckMonitoringPress, DeckMonitoringStyle, DeckSlot, DeckTitleStyle,
+  DeckAction, DeckActionType, DeckLightingMode, DeckMonitoringCategory, DeckMonitoringPress,
+  DeckMonitoringStyle, DeckNexusAction, DeckNexusOp, DeckSlot, DeckTitleStyle,
 } from './types';
 import styles from './DeckKeyInspector.module.scss';
 
@@ -139,7 +141,7 @@ export function defaultActionFor(kind: DeckActionType): DeckAction {
     case 'power': return { type: 'power', action: 'lock' };
     case 'audioOutput': return { type: 'audioOutput', deviceId: '' };
     case 'audioInput': return { type: 'audioInput', deviceId: '' };
-    case 'nexus': return { type: 'nexus', action: { op: 'rgbEffect' } };
+    case 'nexus': return { type: 'nexus', action: defaultNexusAction('rgbEffect') };
     case 'monitoring': return {
       type: 'monitoring', category: 'quick', sensor: 'summary/cpu-usage', style: 'line', showName: true, press: 'none',
     };
@@ -378,21 +380,134 @@ function ActionFields({ action, onChange, allowed, surface, desktopEditor, pageC
   }
 }
 
+// Stable identity so the seeding effect below does not re-run for the ops
+// that have no preset list at all.
+const EMPTY_OPTIONS: { value: string; label: string }[] = [];
+
+const NEXUS_OPS: DeckNexusOp[] = [
+  'rgbEffect', 'lightingBrightness', 'lightingPreset',
+  'fanProfile', 'coolingPreset',
+  'y70Power', 'y70Brightness', 'y70Rotation',
+];
+
+// The three live lighting modes a key can start. Static and Game Sync are
+// deliberately absent: neither is a one-press mode (Static needs a per-device
+// colour assignment, Game Sync needs a running detected game).
+const NEXUS_LIGHTING_MODES: DeckLightingMode[] = ['animate', 'gif', 'screen'];
+
+// Same keys FanProfiles.GetBuiltInProfiles() canonicalizes to; "off" (BIOS
+// control) and the legacy "auto" synonym are not offered as a key action.
+const NEXUS_COOLING_MODES = ['silent', 'balanced', 'turbo', 'custom'];
+
+/**
+ * A freshly picked op carries every field its executor branch reads, so a key
+ * fires correctly the moment it is bound - the old shape left `profile` /
+ * `effect` undefined until the second dropdown was touched, and the executor
+ * silently no-opped on those keys.
+ */
+export function defaultNexusAction(op: DeckNexusOp): DeckNexusAction {
+  switch (op) {
+    case 'rgbEffect': return { op, mode: 'animate', effect: ANIMATE_EFFECTS[0].key };
+    case 'lightingBrightness': return { op, value: 1 };
+    case 'fanProfile': return { op, profile: 'balanced' };
+    case 'y70Power': return { op, on: true };
+    case 'y70Brightness': return { op, value: 50 };
+    case 'y70Rotation': return { op, orientation: 'landscape' };
+    // The preset ops seed from live service data instead - see the effect below.
+    default: return { op };
+  }
+}
+
 function NexusFields({ action, onChange }: { action: Extract<DeckAction, { type: 'nexus' }>; onChange: (a: DeckAction) => void }) {
   const { t } = useTranslation();
   const a = action.action;
-  const set = (patch: Partial<typeof a>) => onChange({ type: 'nexus', action: { ...a, ...patch } });
-  const ops = ['rgbEffect', 'rgbScene', 'lightingBrightness', 'lightingPower', 'fanProfile', 'fanSpeed', 'y70Power', 'y70Brightness', 'y70Rotation'];
+  const set = (patch: Partial<DeckNexusAction>) => onChange({ type: 'nexus', action: { ...a, ...patch } });
+
+  const lightingPresets = useServiceOptions('/devices/lighting-devices/layout-presets', d => {
+    const list = (d as { presets?: { id: string; name: string }[] } | null)?.presets ?? [];
+    return list.map(p => ({ value: p.id, label: p.name }));
+  });
+  const coolingPresets = useServiceOptions('/cooling/presets', d => {
+    const list = (d as { presets?: { id: string; name: string }[] } | null)?.presets ?? [];
+    return list.map(p => ({ value: p.id, label: p.name }));
+  });
+  const isPreset = a.op === 'lightingPreset' || a.op === 'coolingPreset';
+  const presets = useMemo(
+    () => (a.op === 'lightingPreset' ? lightingPresets : a.op === 'coolingPreset' ? coolingPresets : EMPTY_OPTIONS),
+    [a.op, lightingPresets, coolingPresets],
+  );
+  const presetValue = presets.some(p => p.value === a.presetId) ? a.presetId ?? '' : '';
+
+  // A preset list can only be seeded once it has loaded, and has to re-seed
+  // when the stored id names a preset that has since been deleted - otherwise
+  // the select renders blank and the key fires nothing.
+  useEffect(() => {
+    if (isPreset && presets.length > 0 && !presetValue) {
+      onChange({ type: 'nexus', action: { ...a, presetId: presets[0].value } });
+    }
+  }, [isPreset, presets, presetValue, a, onChange]);
+
   return (
     <>
-      <SelectField label={t('panel.settings.deck.nexusOp')} value={a.op} options={ops.map(o => ({ value: o, label: t(`panel.settings.deck.nexus.${o}`) }))} onChange={op => set({ op: op as typeof a.op })} />
-      {a.op === 'rgbEffect' && <Field label={t('panel.settings.deck.effect')}><input className={styles.input} type="text" value={a.effect ?? ''} onChange={e => set({ effect: e.target.value })} /></Field>}
-      {a.op === 'rgbScene' && <Field label={t('panel.settings.deck.scene')}><input className={styles.input} type="text" value={a.profileId ?? ''} onChange={e => set({ profileId: e.target.value })} /></Field>}
-      {a.op === 'lightingBrightness' && <Field label={t('panel.settings.deck.value')}><input className={styles.input} type="number" min={0} max={100} value={Math.round((a.value ?? 1) * 100)} onChange={e => set({ value: clamp(Number(e.target.value) / 100, 0, 1) })} /></Field>}
-      {/* eslint-disable-next-line i18next/no-literal-string -- option enum values */}
-      {a.op === 'lightingPower' && <><Field label={t('panel.settings.deck.device')}><input className={styles.input} type="text" value={a.deviceId ?? ''} onChange={e => set({ deviceId: e.target.value })} /></Field><SelectField label={t('panel.settings.deck.on')} value={(a.on ?? true) ? 'yes' : 'no'} options={[{ value: 'yes', label: t('panel.settings.deck.stateOn') }, { value: 'no', label: t('panel.settings.deck.stateOff') }]} onChange={v => set({ on: v === 'yes' })} /></>}
-      {a.op === 'fanProfile' && <SelectField label={t('panel.settings.deck.fanProfile')} value={a.profile ?? 'Balanced'} options={['Silent', 'Balanced', 'Performance', 'auto'].map(p => ({ value: p, label: p }))} onChange={profile => set({ profile })} />}
-      {a.op === 'fanSpeed' && <><Field label={t('panel.settings.deck.fan')}><input className={styles.input} type="text" value={a.fanId ?? ''} onChange={e => set({ fanId: e.target.value })} /></Field><Field label={t('panel.settings.deck.value')}><input className={styles.input} type="number" min={0} max={100} value={a.value ?? 0} onChange={e => set({ value: clamp(Number(e.target.value), 0, 100) })} /></Field></>}
+      <SelectField
+        label={t('panel.settings.deck.nexusOp')}
+        value={a.op}
+        options={NEXUS_OPS.map(o => ({ value: o, label: t(`panel.settings.deck.nexus.${o}`) }))}
+        onChange={op => onChange({ type: 'nexus', action: defaultNexusAction(op as DeckNexusOp) })}
+      />
+      {a.op === 'rgbEffect' && (
+        <SelectField
+          label={t('panel.settings.deck.lightingMode')}
+          value={a.mode ?? 'animate'}
+          options={NEXUS_LIGHTING_MODES.map(m => ({ value: m, label: t(`lighting.mode.${m}`) }))}
+          // The effect is kept across a mode change rather than cleared: the
+          // executor reads it only in Animation, and dropping it would lose the
+          // user's pick on a round trip through Media or Mirror.
+          onChange={m => set({ mode: m as DeckLightingMode, effect: a.effect ?? ANIMATE_EFFECTS[0].key })}
+        />
+      )}
+      {a.op === 'rgbEffect' && (a.mode ?? 'animate') === 'animate' && (
+        <SelectField
+          label={t('panel.settings.deck.effect')}
+          value={a.effect ?? ANIMATE_EFFECTS[0].key}
+          options={ANIMATE_EFFECTS.map(e => ({ value: e.key, label: t(e.labelKey) }))}
+          onChange={effect => set({ effect })}
+        />
+      )}
+      {a.op === 'lightingBrightness' && (
+        <Slider
+          // eslint-disable-next-line i18next/no-literal-string -- Slider orientation enum value
+          orientation="stacked"
+          editable
+          trackFill
+          label={t('panel.settings.deck.value')}
+          ariaLabel={t('panel.settings.deck.value')}
+          value={Math.round((a.value ?? 1) * 100)}
+          min={0}
+          max={100}
+          onChange={v => set({ value: clamp(Math.round(v) / 100, 0, 1) })}
+        />
+      )}
+      {isPreset && (presets.length > 0 ? (
+        <SelectField
+          label={t('panel.settings.deck.preset')}
+          value={presetValue}
+          options={presets}
+          onChange={presetId => set({ presetId })}
+        />
+      ) : (
+        <Field label={t('panel.settings.deck.preset')}>
+          <p className={styles.description}>{t('panel.settings.deck.noPresets')}</p>
+        </Field>
+      ))}
+      {a.op === 'fanProfile' && (
+        <SelectField
+          label={t('panel.settings.deck.coolingMode')}
+          value={a.profile ?? 'balanced'}
+          options={NEXUS_COOLING_MODES.map(p => ({ value: p, label: t(`cooling.mode.${p}`) }))}
+          onChange={profile => set({ profile })}
+        />
+      )}
       {/* eslint-disable-next-line i18next/no-literal-string -- option enum values */}
       {a.op === 'y70Power' && <SelectField label={t('panel.settings.deck.on')} value={(a.on ?? true) ? 'yes' : 'no'} options={[{ value: 'yes', label: t('panel.settings.deck.stateOn') }, { value: 'no', label: t('panel.settings.deck.stateOff') }]} onChange={v => set({ on: v === 'yes' })} />}
       {a.op === 'y70Brightness' && <Field label={t('panel.settings.deck.value')}><input className={styles.input} type="number" min={0} max={100} value={a.value ?? 0} onChange={e => set({ value: clamp(Number(e.target.value), 0, 100) })} /></Field>}

@@ -1,6 +1,7 @@
 import { fetchService, postService } from '../../../api/service';
-import { startAnimate, setGlobalBrightness, setLightingDevicePower } from '../../../api/lighting';
-import { applyProfile, setFanSpeed } from '../../../api/cooling';
+import { startAnimate, startScreenMirror, setGlobalBrightness, activateLayoutPreset } from '../../../api/lighting';
+import { applyProfile, activateCoolingPreset } from '../../../api/cooling';
+import { mediaIdle, playCurrentOrFirstMedia } from '../../../api/mediaLibrary';
 import { controlMedia } from '../../../hooks/useMedia';
 import type { MediaSession } from '../../../hooks/useMedia';
 import { requestOpenMonitoring } from './deckMonitoringNav';
@@ -157,23 +158,35 @@ async function runSystem(a: DeckSystemAction): Promise<void> {
 
 async function runNexus(a: DeckNexusAction): Promise<void> {
   switch (a.op) {
+    // Each branch starts the mode the way the lighting page's own mode switch
+    // does, so a key and the page land on the same live state. Mirror is
+    // started with the wrapper's defaults on purpose: StartScreen keeps the
+    // saved post-process, so no look is clobbered by a key press.
     case 'rgbEffect':
-      if (a.effect) await startAnimate(a.effect);
-      return;
-    case 'rgbScene':
-      if (a.profileId) await postService(`/profiles/${encodeURIComponent(a.profileId)}/switch`, {});
-      return;
+      switch (a.mode ?? 'animate') {
+        case 'gif':
+          // No playable media: idle black keeps Media the active mode instead
+          // of dropping to Off, matching LightingPage/LightingWidget.
+          if (!(await playCurrentOrFirstMedia())) await mediaIdle();
+          return;
+        case 'screen':
+          await startScreenMirror();
+          return;
+        default:
+          if (a.effect) await startAnimate(a.effect);
+          return;
+      }
     case 'lightingBrightness':
       await setGlobalBrightness(clamp(a.value ?? 1, 0, 1));
       return;
-    case 'lightingPower':
-      if (a.deviceId) await setLightingDevicePower(a.deviceId, a.on ?? true);
+    case 'lightingPreset':
+      if (a.presetId) await activateLayoutPreset(a.presetId);
       return;
     case 'fanProfile':
       if (a.profile) await applyProfile(a.profile);
       return;
-    case 'fanSpeed':
-      if (a.fanId) await setFanSpeed(a.fanId, clamp(a.value ?? 0, 0, 100));
+    case 'coolingPreset':
+      if (a.presetId) await activateCoolingPreset(a.presetId);
       return;
     case 'y70Power':
       await postService('/y70/toggle', { toggle: !(a.on ?? true) });

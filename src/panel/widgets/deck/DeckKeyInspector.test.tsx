@@ -48,7 +48,50 @@ vi.mock('../../../hooks/useSensors', async (importOriginal) => {
   };
 });
 
-import { DeckKeyInspector, defaultActionFor, pickerKindIcon } from './DeckKeyInspector';
+import { DeckKeyInspector, defaultActionFor, defaultNexusAction, pickerKindIcon } from './DeckKeyInspector';
+import { ANIMATE_EFFECTS } from '../../../types/lighting';
+
+describe('defaultNexusAction - every op is armed the moment it is picked', () => {
+  // The executor's nexus branches all guard on their own field, so an op whose
+  // second dropdown was never touched used to bind a key that pressed to
+  // nothing. Each default here has to carry that field.
+  it('lighting effect defaults to Animation on a real effect key', () => {
+    expect(defaultNexusAction('rgbEffect')).toEqual({ op: 'rgbEffect', mode: 'animate', effect: ANIMATE_EFFECTS[0].key });
+  });
+  it('cooling mode defaults to a name FanProfiles canonicalizes, not "Performance"', () => {
+    expect(defaultNexusAction('fanProfile')).toEqual({ op: 'fanProfile', profile: 'balanced' });
+  });
+  it('lighting brightness defaults to full', () => {
+    expect(defaultNexusAction('lightingBrightness')).toEqual({ op: 'lightingBrightness', value: 1 });
+  });
+  it('y70 ops keep their own seeded field', () => {
+    expect(defaultNexusAction('y70Power')).toEqual({ op: 'y70Power', on: true });
+    expect(defaultNexusAction('y70Brightness')).toEqual({ op: 'y70Brightness', value: 50 });
+    expect(defaultNexusAction('y70Rotation')).toEqual({ op: 'y70Rotation', orientation: 'landscape' });
+  });
+  it('the preset ops seed from the live list instead, so they start bare', () => {
+    expect(defaultNexusAction('lightingPreset')).toEqual({ op: 'lightingPreset' });
+    expect(defaultNexusAction('coolingPreset')).toEqual({ op: 'coolingPreset' });
+  });
+});
+
+describe('NexusFields - lighting effect mode', () => {
+  it('offers Animation/Media/Mirror and drops the effect picker off Animation', async () => {
+    renderInspector([{ action: defaultActionFor('nexus') }]);
+    expect(await screen.findByLabelText('panel.settings.deck.lightingMode')).toBeInTheDocument();
+    expect(screen.getByLabelText('panel.settings.deck.effect')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText('panel.settings.deck.lightingMode'));
+    fireEvent.click(await screen.findByText('lighting.mode.screen'));
+
+    await waitFor(() => expect(screen.queryByLabelText('panel.settings.deck.effect')).not.toBeInTheDocument());
+  });
+
+  it('falls back to a hint when no presets are saved', async () => {
+    renderInspector([{ action: { type: 'nexus', action: { op: 'coolingPreset' } } }]);
+    expect(await screen.findByText('panel.settings.deck.noPresets')).toBeInTheDocument();
+  });
+});
 
 describe('defaultActionFor - new Stream Deck action kinds', () => {
   it('deckBrightness defaults to op set at 50%', () => {

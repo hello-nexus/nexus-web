@@ -28,19 +28,24 @@ export interface DeckSystemAction {
 }
 
 // ── Nexus device control (reuses existing service endpoints) ──
+// Op ids are the stored wire contract and stay as first written; the UI labels
+// them Lighting effect / Cooling mode (see panel.settings.deck.nexus.*).
 export type DeckNexusOp =
-  | 'rgbEffect' | 'rgbScene' | 'lightingBrightness' | 'lightingPower'
-  | 'fanProfile' | 'fanSpeed' | 'y70Power' | 'y70Brightness' | 'y70Rotation';
+  | 'rgbEffect' | 'lightingBrightness' | 'lightingPreset'
+  | 'fanProfile' | 'coolingPreset'
+  | 'y70Power' | 'y70Brightness' | 'y70Rotation';
+
+/** rgbEffect targets one of the lighting page's three live modes. */
+export type DeckLightingMode = 'animate' | 'gif' | 'screen';
 
 export interface DeckNexusAction {
   op: DeckNexusOp;
-  effect?: string;        // rgbEffect
-  profileId?: string;     // rgbScene
-  profile?: string;       // fanProfile (preset name)
-  deviceId?: string;      // lightingPower
-  fanId?: string;         // fanSpeed
-  value?: number;         // lightingBrightness (0..1), fanSpeed (0..100), y70Brightness (0..100)
-  on?: boolean;           // lightingPower, y70Power
+  mode?: DeckLightingMode; // rgbEffect; absent = 'animate'
+  effect?: string;        // rgbEffect, mode 'animate'
+  presetId?: string;      // lightingPreset, coolingPreset
+  profile?: string;       // fanProfile: off | silent | balanced | turbo | custom
+  value?: number;         // lightingBrightness (0..1), y70Brightness (0..100)
+  on?: boolean;           // y70Power
   orientation?: string;   // y70Rotation
 }
 

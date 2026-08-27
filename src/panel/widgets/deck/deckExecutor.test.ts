@@ -76,6 +76,41 @@ describe('executeDeckAction → REST', () => {
     await executeDeckAction({ type: 'nexus', action: { op: 'lightingBrightness', value: 0.4 } });
     expect(postService).toHaveBeenCalledWith('/lighting/global-brightness', { value: 0.4 });
   });
+  it('nexus lighting effect, Animation mode, starts the named effect', async () => {
+    await executeDeckAction({ type: 'nexus', action: { op: 'rgbEffect', mode: 'animate', effect: 'rainbow' } });
+    expect(postService).toHaveBeenCalledWith('/lighting/animate/headless-start', expect.objectContaining({ effect: 'rainbow' }));
+  });
+  it('nexus lighting effect with no mode still means Animation', async () => {
+    await executeDeckAction({ type: 'nexus', action: { op: 'rgbEffect', effect: 'rainbow' } });
+    expect(postService).toHaveBeenCalledWith('/lighting/animate/headless-start', expect.objectContaining({ effect: 'rainbow' }));
+  });
+  it('nexus lighting effect, Mirror mode, starts screen mirror', async () => {
+    await executeDeckAction({ type: 'nexus', action: { op: 'rgbEffect', mode: 'screen' } });
+    expect(postService).toHaveBeenCalledWith('/lighting/screen/headless-start', expect.objectContaining({ effect: 'average' }));
+  });
+  it('nexus lighting effect, Media mode, plays the last media', async () => {
+    fetchService.mockResolvedValueOnce({ mediaId: 'm1', item: { id: 'm1' } });
+    postService.mockResolvedValueOnce({});
+    await executeDeckAction({ type: 'nexus', action: { op: 'rgbEffect', mode: 'gif' } });
+    expect(postService).toHaveBeenCalledWith('/media/m1/play', {});
+    expect(postService).not.toHaveBeenCalledWith('/media/idle', {});
+  });
+  it('nexus lighting effect, Media mode with an empty library, idles instead of falling to Off', async () => {
+    await executeDeckAction({ type: 'nexus', action: { op: 'rgbEffect', mode: 'gif' } });
+    expect(postService).toHaveBeenCalledWith('/media/idle', {});
+  });
+  it('nexus lighting preset activates the layout preset', async () => {
+    await executeDeckAction({ type: 'nexus', action: { op: 'lightingPreset', presetId: 'p 1' } });
+    expect(postService).toHaveBeenCalledWith('/devices/lighting-devices/layout-presets/p%201/activate', {});
+  });
+  it('nexus cooling mode applies the built-in profile', async () => {
+    await executeDeckAction({ type: 'nexus', action: { op: 'fanProfile', profile: 'turbo' } });
+    expect(postService).toHaveBeenCalledWith('/cooling/profile/turbo', {});
+  });
+  it('nexus cooling preset activates the saved preset', async () => {
+    await executeDeckAction({ type: 'nexus', action: { op: 'coolingPreset', presetId: 'c1' } });
+    expect(postService).toHaveBeenCalledWith('/cooling/presets/c1/activate', {});
+  });
   it('nexus y70 power maps on→toggle:false', async () => {
     await executeDeckAction({ type: 'nexus', action: { op: 'y70Power', on: true } });
     expect(postService).toHaveBeenCalledWith('/y70/toggle', { toggle: false });
