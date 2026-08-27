@@ -3280,6 +3280,8 @@
   "settings.profiles.sharing.shareConfirmMessage": "모든 프로필이 {primary}의 {category}(으)로 초기화되며 프리셋도 포함됩니다. 각 프로필의 개별 {category}은(는) 사라집니다.",
   "settings.profiles.sharing.shareConfirmTitle": "{category}을(를) 프로필 간에 공유할까요?",
   "settings.profiles.sharing.shared": "공유됨",
+  "settings.rememberLastPage.description": "대시보드 대신 마지막으로 열었던 페이지에서 Nexus를 다시 엽니다. Nexus를 다시 시작하면 초기화됩니다.",
+  "settings.rememberLastPage.label": "마지막 페이지 기억",
   "settings.restartOnboarding": "초기 설정 다시 실행",
   "settings.restartOnboarding.action": "다시 실행",
   "settings.restartOnboarding.detail": "최초 설정을 다시 진행합니다. 아직 설치된 앱은 가져오기 단계가 다시 표시됩니다.",

@@ -3280,6 +3280,8 @@
   "settings.profiles.sharing.shareConfirmMessage": "Alle profielen worden hersteld naar {category} van {primary}, inclusief presets. De individuele {category} van elk profiel gaat verloren.",
   "settings.profiles.sharing.shareConfirmTitle": "{category} delen over profielen heen?",
   "settings.profiles.sharing.shared": "Gedeeld",
+  "settings.rememberLastPage.description": "Open Nexus opnieuw op de pagina die je het laatst open had in plaats van op het dashboard. De pagina wordt gereset wanneer Nexus opnieuw start.",
+  "settings.rememberLastPage.label": "Laatste pagina onthouden",
   "settings.restartOnboarding": "Configuratie opnieuw starten",
   "settings.restartOnboarding.action": "Opnieuw starten",
   "settings.restartOnboarding.detail": "Doorloop de eerste configuratie opnieuw. Importstappen verschijnen weer voor apps die nog geïnstalleerd zijn.",

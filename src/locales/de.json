@@ -3280,6 +3280,8 @@
   "settings.profiles.sharing.shareConfirmMessage": "Alle Profile werden auf {primary}s {category} zurückgesetzt, einschließlich Presets. Das individuelle {category} jedes Profils geht verloren.",
   "settings.profiles.sharing.shareConfirmTitle": "{category} profilübergreifend teilen?",
   "settings.profiles.sharing.shared": "Geteilt",
+  "settings.rememberLastPage.description": "Nexus wieder auf der zuletzt geöffneten Seite starten statt auf dem Dashboard. Die Seite wird zurückgesetzt, wenn Nexus neu startet.",
+  "settings.rememberLastPage.label": "Letzte Seite merken",
   "settings.restartOnboarding": "Einrichtung neu starten",
   "settings.restartOnboarding.action": "Neu starten",
   "settings.restartOnboarding.detail": "Die Ersteinrichtung erneut durchlaufen. Import-Schritte erscheinen für weiterhin installierte Apps.",

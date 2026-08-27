@@ -3280,6 +3280,8 @@
   "settings.profiles.sharing.shareConfirmMessage": "すべてのプロファイルが {primary} の {category}（プリセットを含む）にリセットされます。各プロファイル個別の {category} は失われます。",
   "settings.profiles.sharing.shareConfirmTitle": "{category} をプロファイル間で共有しますか？",
   "settings.profiles.sharing.shared": "共有",
+  "settings.rememberLastPage.description": "ダッシュボードではなく、最後に開いていたページでNexusを再度開きます。Nexusを再起動するとリセットされます。",
+  "settings.rememberLastPage.label": "最後のページを記憶",
   "settings.restartOnboarding": "初期設定をやり直す",
   "settings.restartOnboarding.action": "やり直す",
   "settings.restartOnboarding.detail": "初回セットアップをもう一度実行します。インストール済みのアプリはインポート手順が再表示されます。",

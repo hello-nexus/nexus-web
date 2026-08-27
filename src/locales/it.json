@@ -3280,6 +3280,8 @@
   "settings.profiles.sharing.shareConfirmMessage": "Tutti i profili verranno reimpostati su {category} di {primary}, inclusi i preset. La {category} individuale di ciascun profilo andrà persa.",
   "settings.profiles.sharing.shareConfirmTitle": "Condividere {category} tra i profili?",
   "settings.profiles.sharing.shared": "Condivisa",
+  "settings.rememberLastPage.description": "Riapre Nexus sull'ultima pagina aperta, invece di partire dalla dashboard. La pagina viene azzerata al riavvio di Nexus.",
+  "settings.rememberLastPage.label": "Ricorda l'ultima pagina",
   "settings.restartOnboarding": "Riavvia la configurazione",
   "settings.restartOnboarding.action": "Riavvia",
   "settings.restartOnboarding.detail": "Ripeti la configurazione iniziale. I passaggi di importazione riappaiono per le app ancora installate.",

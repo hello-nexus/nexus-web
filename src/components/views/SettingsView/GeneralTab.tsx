@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Compass, Eraser, ExternalLink, FolderOpen, GitBranch, Languages, Megaphone, PanelBottom, Power, PowerOff, RefreshCw, ScrollText, SquareMenu, Timer, TriangleAlert } from 'lucide-react';
+import { Compass, Eraser, ExternalLink, FolderOpen, GitBranch, History, Languages, Megaphone, PanelBottom, Power, PowerOff, RefreshCw, ScrollText, SquareMenu, Timer, TriangleAlert } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingToggle, SettingSelect, SettingSlider, SettingRow } from '../../common/SettingRow/SettingRow';
@@ -199,6 +199,15 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
               onChange={() => updateGeneral({ showMacStatusBarIcon: !settings.general.showMacStatusBarIcon })}
             />
           )}
+          <SettingToggle
+            label={t('settings.rememberLastPage.label')}
+            icon={<History />}
+            iconLeading="subtle"
+            anchorId="set-remember-page"
+            description={t('settings.rememberLastPage.description')}
+            checked={settings.general.rememberLastPage}
+            onChange={() => updateGeneral({ rememberLastPage: !settings.general.rememberLastPage })}
+          />
         </SettingsSection>
       )}
 

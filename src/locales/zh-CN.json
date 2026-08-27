@@ -3280,6 +3280,8 @@
   "settings.profiles.sharing.shareConfirmMessage": "所有配置文件将被重置为 {primary} 的 {category}（包括预设）。每个配置文件各自的 {category} 都将丢失。",
   "settings.profiles.sharing.shareConfirmTitle": "跨配置文件共享 {category}？",
   "settings.profiles.sharing.shared": "共享",
+  "settings.rememberLastPage.description": "重新打开 Nexus 时回到上次打开的页面，而不是仪表盘。Nexus 重启后会重置。",
+  "settings.rememberLastPage.label": "记住上次打开的页面",
   "settings.restartOnboarding": "重新进行初始设置",
   "settings.restartOnboarding.action": "重新开始",
   "settings.restartOnboarding.detail": "重新执行首次设置。仍已安装的应用会再次出现导入步骤。",

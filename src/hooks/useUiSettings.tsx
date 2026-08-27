@@ -32,7 +32,8 @@ import { sanitizePinnedTail, sanitizeRecents } from '../app/sidebarApps';
  * Unified user-settings hook.
  *
  * Rules enforced here:
- *   - `clientScoped` fields (startOnLogin) live in localStorage only.
+ *   - `clientScoped` fields (startOnLogin, rememberLastPage, widgetAdvancedMode)
+ *     live in localStorage only.
  *   - `profileScoped` fields (language, theme, accent, monitoring,
  *     fanChannelOrder, etc.) live on the server per-profile; localStorage is
  *     a boot-time cache so the first render is not blank, and every write
@@ -48,6 +49,8 @@ import { sanitizePinnedTail, sanitizeRecents } from '../app/sidebarApps';
 export interface UiSettingsValue {
   // Client-scoped (local only, never synced to server)
   startOnLogin: boolean;
+  // Reopen the window on the page it was last closed on (see useLastRoute).
+  rememberLastPage: boolean;
 
   // Profile-scoped (server is source of truth; localStorage mirrors)
   // Dashboard background style (glass / gradient / flat).
@@ -213,6 +216,7 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     monitoringEventKindsHidden: src.general.monitoringEventKindsHidden,
     showMacStatusBarIcon: src.general.showMacStatusBarIcon,
     showWindowsTrayIcon: src.general.showWindowsTrayIcon,
+    rememberLastPage: src.general.rememberLastPage,
     fanChannelOrder: [],
     preferredCpuTempSensorId: '',
     preferredGpuTempSensorId: '',
@@ -275,6 +279,7 @@ function toNexusSettings(src: UiSettingsValue): NexusSettings {
       monitoringEventKindsHidden: src.monitoringEventKindsHidden,
       showMacStatusBarIcon: src.showMacStatusBarIcon,
       showWindowsTrayIcon: src.showWindowsTrayIcon,
+      rememberLastPage: src.rememberLastPage,
       pinnedSidebarApps: src.pinnedSidebarApps,
       recentSidebarApps: src.recentSidebarApps,
       widgetAdvancedMode: src.widgetAdvancedMode,

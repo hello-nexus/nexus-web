@@ -3307,6 +3307,8 @@
   "settings.profiles.sharing.shareConfirmMessage": "Wszystkie profile zostaną zresetowane do {category} profilu {primary}, łącznie z presetami. Indywidualna {category} każdego profilu zostanie utracona.",
   "settings.profiles.sharing.shareConfirmTitle": "Współdzielić {category} między profilami?",
   "settings.profiles.sharing.shared": "Współdzielone",
+  "settings.rememberLastPage.description": "Otwiera Nexus ponownie na ostatnio otwartej stronie zamiast na panelu. Strona jest resetowana po ponownym uruchomieniu Nexusa.",
+  "settings.rememberLastPage.label": "Zapamiętaj ostatnią stronę",
   "settings.restartOnboarding": "Uruchom konfigurację ponownie",
   "settings.restartOnboarding.action": "Uruchom ponownie",
   "settings.restartOnboarding.detail": "Powtórz konfigurację początkową. Kroki importu wracają dla aplikacji nadal zainstalowanych.",

@@ -3280,6 +3280,8 @@
   "settings.profiles.sharing.shareConfirmMessage": "Ducj i profîi a vegnaran ripristinâts a {category} di {primary}, includûts i presets. Il {category} individuâl di ogni profîl al sarà pierdût.",
   "settings.profiles.sharing.shareConfirmTitle": "Condividi {category} tra i profîi?",
   "settings.profiles.sharing.shared": "Condividude",
+  "settings.rememberLastPage.description": "Torne a vierzi Nexus su la ultime pagjine vierte, invezit che sul cruscot. La pagjine e ven ristabilide cuant che Nexus al torne a partî.",
+  "settings.rememberLastPage.label": "Visâ la ultime pagjine",
   "settings.restartOnboarding": "Torne a scomencâ la configurazion",
   "settings.restartOnboarding.action": "Torne a scomençâ",
   "settings.restartOnboarding.detail": "Torne a fâ la configurazion iniziâl. I passaçs di importazion a tornin par lis aplicazions ancjemò instaladis.",

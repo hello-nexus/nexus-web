@@ -142,6 +142,9 @@ export interface GeneralSettings {
   monitoringEventKindsHidden: string[];
   showMacStatusBarIcon: boolean;
   showWindowsTrayIcon: boolean;
+  // Reopen the window on the page it was last closed on (see useLastRoute).
+  // Client-only: the route it governs lives in the service's process memory.
+  rememberLastPage: boolean;
   // Order of pinnable sidebar apps after the locked Dashboard row. Each
   // entry is a PinnableAppKey ('monitoring' | 'lighting' | 'cooling' |
   // 'diagnostics' | 'devices'). Server-mirrored under ui.pinnedSidebarApps so
@@ -213,6 +216,7 @@ export function getDefaultSettings(): NexusSettings {
       monitoringEventKindsHidden: [],
       showMacStatusBarIcon: true,
       showWindowsTrayIcon: true,
+      rememberLastPage: true,
       pinnedSidebarApps: ['monitoring', 'lighting', 'cooling', 'diagnostics'],
       recentSidebarApps: [],
       widgetAdvancedMode: false,

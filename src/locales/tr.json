@@ -3280,6 +3280,8 @@
   "settings.profiles.sharing.shareConfirmMessage": "Tüm profiller {primary} profilinin {category} değerine (hazır ayarlar dahil) sıfırlanacak. Her profilin kendi {category} değeri kaybolacak.",
   "settings.profiles.sharing.shareConfirmTitle": "{category} profiller arasında paylaşılsın mı?",
   "settings.profiles.sharing.shared": "Paylaşılan",
+  "settings.rememberLastPage.description": "Nexus'u panodan değil, en son açık olan sayfadan yeniden açar. Nexus yeniden başlatıldığında sayfa sıfırlanır.",
+  "settings.rememberLastPage.label": "Son sayfayı hatırla",
   "settings.restartOnboarding": "Kurulumu yeniden başlat",
   "settings.restartOnboarding.action": "Yeniden başlat",
   "settings.restartOnboarding.detail": "İlk kurulumu yeniden yapın. Hâlâ yüklü uygulamalar için içe aktarma adımları yeniden görünür.",

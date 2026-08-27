@@ -68,6 +68,7 @@ export function SettingsView({ serviceOnline, connectionState, platform, tab: ur
       monitoringEventKindsHidden: ui.monitoringEventKindsHidden,
       showMacStatusBarIcon: ui.showMacStatusBarIcon,
       showWindowsTrayIcon: ui.showWindowsTrayIcon,
+      rememberLastPage: ui.rememberLastPage,
       pinnedSidebarApps: ui.pinnedSidebarApps,
       recentSidebarApps: ui.recentSidebarApps,
       widgetAdvancedMode: ui.widgetAdvancedMode,

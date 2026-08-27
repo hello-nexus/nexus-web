@@ -3280,6 +3280,8 @@
   "settings.profiles.sharing.shareConfirmMessage": "Todos os perfis serão repostos para o {category} de {primary}, incluindo predefinições. O {category} individual de cada perfil será perdido.",
   "settings.profiles.sharing.shareConfirmTitle": "Partilhar {category} entre perfis?",
   "settings.profiles.sharing.shared": "Partilhado",
+  "settings.rememberLastPage.description": "Reabre o Nexus na última página aberta, em vez de começar no painel. A página é reposta quando o Nexus reinicia.",
+  "settings.rememberLastPage.label": "Memorizar a última página",
   "settings.restartOnboarding": "Reiniciar a configuração",
   "settings.restartOnboarding.action": "Reiniciar",
   "settings.restartOnboarding.detail": "Repetir a configuração inicial. Os passos de importação reaparecem para as apps ainda instaladas.",

@@ -3280,6 +3280,8 @@
   "settings.profiles.sharing.shareConfirmMessage": "All profiles will be reset to {primary}'s {category}, including presets. Each profile's individual {category} will be lost.",
   "settings.profiles.sharing.shareConfirmTitle": "Share {category} across profiles?",
   "settings.profiles.sharing.shared": "Shared",
+  "settings.rememberLastPage.description": "Reopen Nexus on the page you had open last, instead of starting on the Dashboard. The page resets when Nexus restarts.",
+  "settings.rememberLastPage.label": "Remember last page",
   "settings.restartOnboarding": "Restart onboarding",
   "settings.restartOnboarding.action": "Restart",
   "settings.restartOnboarding.detail": "Replay the first-run setup. Import steps reappear for apps still installed.",

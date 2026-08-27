@@ -3280,6 +3280,8 @@
   "settings.profiles.sharing.shareConfirmMessage": "所有設定檔將會重設為 {primary} 的{category}（包含預設集）。每個設定檔各自的{category}將會遺失。",
   "settings.profiles.sharing.shareConfirmTitle": "要跨設定檔共用{category}嗎？",
   "settings.profiles.sharing.shared": "共用",
+  "settings.rememberLastPage.description": "重新開啟 Nexus 時回到上次開啟的頁面，而不是儀表板。Nexus 重新啟動後會重設。",
+  "settings.rememberLastPage.label": "記住上次開啟的頁面",
   "settings.restartOnboarding": "重新進行初始設定",
   "settings.restartOnboarding.action": "重新開始",
   "settings.restartOnboarding.detail": "重新執行首次設定。仍已安裝的應用程式會再次出現匯入步驟。",
