@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, AlignVerticalJustifyStart, FolderInput, FolderOpen, Plus, Trash2 } from 'lucide-react';
 import { useDraggable } from '@dnd-kit/core';
 import { Button } from '../../../components/common/Button/Button';
@@ -38,8 +38,10 @@ import { DESIGN_ICONS } from '../monitoring/gauges/DesignIcons';
 import { defaultFixedMax } from '../monitoring/perfDomain';
 import { WeatherLocationSearch } from '../weather/WeatherLocationSearch';
 import type { WeatherGeocodeResult } from '../../../api/weather';
+import { ANIMATE_EFFECTS } from '../../../types/lighting';
 import type {
-  DeckAction, DeckActionType, DeckMonitoringCategory, DeckMonitoringPress, DeckMonitoringStyle, DeckSlot, DeckTitleStyle,
+  DeckAction, DeckActionType, DeckLightingMode, DeckMonitoringCategory, DeckMonitoringPress,
+  DeckMonitoringStyle, DeckNexusAction, DeckNexusOp, DeckSlot, DeckTitleStyle,
 } from './types';
 import styles from './DeckKeyInspector.module.scss';
 
@@ -54,9 +56,9 @@ const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n
 // 'toggle'), not a nestable sub-action, so it's excluded from NESTED_KINDS the
 // same way those are - a sequence step or toggle branch fires once on press,
 // which doesn't fit a continuously-rendered sensor tile.
-const NESTED_KINDS: DeckActionType[] = [
+const NESTED_KINDS: DeckPickerKind[] = [
   'launchApp', 'openUrl', 'openFile', 'openFolder', 'system', 'hotkey', 'hotkeySwitch',
-  'text', 'power', 'nexus', 'deckBrightness', 'deckSleep', 'playAudio',
+  'text', 'power', 'lighting', 'cooling', 'y70', 'deckBrightness', 'deckSleep', 'playAudio',
 ];
 
 // deckBrightness/deckSleep control a physical Stream Deck's own screen (see
@@ -75,7 +77,29 @@ function kindsForTarget<K extends string>(kinds: K[], targetKind: DeckTarget['ki
 // page-navigate action's three ops (prev/next/goto) are split into distinct
 // picker entries so each shows as its own Navigation item instead of one
 // "Page" entry plus a nested op selector.
-export type DeckPickerKind = Exclude<DeckActionType, 'page'> | 'folder' | 'pagePrev' | 'pageNext' | 'pageGoto';
+// 'nexus' is not a picker kind: the one "Nexus device" entry is split into
+// Lighting / Cooling / Y70, each seeding the same `nexus` DeckAction with an op
+// from its own group, so the picker lists them beside Monitoring and Weather
+// instead of hiding all eight ops behind one entry.
+export type DeckPickerKind =
+  | Exclude<DeckActionType, 'page' | 'nexus'>
+  | 'folder' | 'pagePrev' | 'pageNext' | 'pageGoto'
+  | 'lighting' | 'cooling' | 'y70';
+
+/** Which picker entry (and op dropdown) a nexus op belongs to. */
+export const NEXUS_OP_GROUPS = {
+  lighting: ['rgbEffect', 'lightingBrightness', 'lightingPreset'],
+  cooling: ['fanProfile', 'coolingPreset'],
+  y70: ['y70Power', 'y70Brightness', 'y70Rotation'],
+} as const satisfies Record<'lighting' | 'cooling' | 'y70', readonly DeckNexusOp[]>;
+
+export type DeckNexusGroup = keyof typeof NEXUS_OP_GROUPS;
+
+export function nexusGroupForOp(op: DeckNexusOp): DeckNexusGroup {
+  if ((NEXUS_OP_GROUPS.cooling as readonly string[]).includes(op)) return 'cooling';
+  if ((NEXUS_OP_GROUPS.y70 as readonly string[]).includes(op)) return 'y70';
+  return 'lighting';
+}
 
 interface DeckActionCategory {
   key: 'navigation' | 'streamdeck' | 'system' | 'nexus' | 'multi';
@@ -102,7 +126,7 @@ const DECK_ACTION_CATEGORIES: DeckActionCategory[] = [
   {
     key: 'nexus',
     labelKey: 'panel.settings.deck.category.nexus',
-    kinds: ['nexus', 'monitoring', 'weather'],
+    kinds: ['lighting', 'cooling', 'y70', 'monitoring', 'weather'],
   },
   {
     key: 'multi',
@@ -111,12 +135,17 @@ const DECK_ACTION_CATEGORIES: DeckActionCategory[] = [
   },
 ];
 
-function actionToPickerKind(slot: DeckSlot): DeckPickerKind {
-  if (slot.folder) return 'folder';
-  const a = slot.action;
+/** The picker entry an action maps back to, so the list highlights it and a
+ *  nested step's type select shows what it currently holds. */
+function actionPickerKind(a: DeckAction | undefined): DeckPickerKind {
   if (!a) return 'launchApp';
   if (a.type === 'page') return a.op === 'goto' ? 'pageGoto' : a.op === 'prev' ? 'pagePrev' : 'pageNext';
+  if (a.type === 'nexus') return nexusGroupForOp(a.action.op);
   return a.type;
+}
+
+function actionToPickerKind(slot: DeckSlot): DeckPickerKind {
+  return slot.folder ? 'folder' : actionPickerKind(slot.action);
 }
 
 function categoryForKind(kind: DeckPickerKind): DeckActionCategory {
@@ -139,7 +168,7 @@ export function defaultActionFor(kind: DeckActionType): DeckAction {
     case 'power': return { type: 'power', action: 'lock' };
     case 'audioOutput': return { type: 'audioOutput', deviceId: '' };
     case 'audioInput': return { type: 'audioInput', deviceId: '' };
-    case 'nexus': return { type: 'nexus', action: { op: 'rgbEffect' } };
+    case 'nexus': return { type: 'nexus', action: defaultNexusAction('rgbEffect') };
     case 'monitoring': return {
       type: 'monitoring', category: 'quick', sensor: 'summary/cpu-usage', style: 'line', showName: true, press: 'none',
     };
@@ -160,6 +189,9 @@ function defaultActionForPickerKind(kind: Exclude<DeckPickerKind, 'folder'>): De
     case 'pagePrev': return { type: 'page', op: 'prev' };
     case 'pageNext': return { type: 'page', op: 'next' };
     case 'pageGoto': return { type: 'page', op: 'goto', target: 0 };
+    case 'lighting':
+    case 'cooling':
+    case 'y70': return { type: 'nexus', action: defaultNexusAction(NEXUS_OP_GROUPS[kind][0]) };
     default: return defaultActionFor(kind);
   }
 }
@@ -205,7 +237,7 @@ function SelectField({ label, value, options, onChange, disabled }: { label: str
 }
 
 function ActionEditor({ action, onChange, showType, allowed, surface, desktopEditor, pageCount }: {
-  action: DeckAction; onChange: (a: DeckAction) => void; showType: boolean; allowed: DeckActionType[]; surface?: PanelSurface; desktopEditor?: boolean; pageCount?: number;
+  action: DeckAction; onChange: (a: DeckAction) => void; showType: boolean; allowed: DeckPickerKind[]; surface?: PanelSurface; desktopEditor?: boolean; pageCount?: number;
 }) {
   const { t } = useTranslation();
   return (
@@ -213,9 +245,9 @@ function ActionEditor({ action, onChange, showType, allowed, surface, desktopEdi
       {showType && (
         <SelectField
           label={t('panel.settings.deck.actionType')}
-          value={action.type}
+          value={actionPickerKind(action)}
           options={allowed.map(k => ({ value: k, label: t(`panel.settings.deck.action.${k}`) }))}
-          onChange={k => onChange(defaultActionFor(k as DeckActionType))}
+          onChange={k => onChange(defaultActionForPickerKind(k as Exclude<DeckPickerKind, 'folder'>))}
         />
       )}
       <ActionFields action={action} onChange={onChange} allowed={allowed} surface={surface} desktopEditor={desktopEditor} pageCount={pageCount} />
@@ -224,7 +256,7 @@ function ActionEditor({ action, onChange, showType, allowed, surface, desktopEdi
 }
 
 function ActionFields({ action, onChange, allowed, surface, desktopEditor, pageCount }: {
-  action: DeckAction; onChange: (a: DeckAction) => void; allowed: DeckActionType[]; surface?: PanelSurface; desktopEditor?: boolean; pageCount?: number;
+  action: DeckAction; onChange: (a: DeckAction) => void; allowed: DeckPickerKind[]; surface?: PanelSurface; desktopEditor?: boolean; pageCount?: number;
 }) {
   const { t } = useTranslation();
   const audioOut = useServiceOptions('/system/audio/devices', d => ((d as { outputs?: { id: string; name: string }[] })?.outputs ?? []).map(x => ({ value: x.id, label: x.name })));
@@ -378,21 +410,131 @@ function ActionFields({ action, onChange, allowed, surface, desktopEditor, pageC
   }
 }
 
+// Stable identity so the seeding effect below does not re-run for the ops
+// that have no preset list at all.
+const EMPTY_OPTIONS: { value: string; label: string }[] = [];
+
+// The three live lighting modes a key can start. Static and Game Sync are
+// deliberately absent: neither is a one-press mode (Static needs a per-device
+// colour assignment, Game Sync needs a running detected game).
+const NEXUS_LIGHTING_MODES: DeckLightingMode[] = ['animate', 'gif', 'screen'];
+
+// Same keys FanProfiles.GetBuiltInProfiles() canonicalizes to; "off" (BIOS
+// control) and the legacy "auto" synonym are not offered as a key action.
+const NEXUS_COOLING_MODES = ['silent', 'balanced', 'turbo', 'custom'];
+
+/**
+ * A freshly picked op carries every field its executor branch reads, so a key
+ * fires correctly the moment it is bound - the old shape left `profile` /
+ * `effect` undefined until the second dropdown was touched, and the executor
+ * silently no-opped on those keys.
+ */
+export function defaultNexusAction(op: DeckNexusOp): DeckNexusAction {
+  switch (op) {
+    case 'rgbEffect': return { op, mode: 'animate', effect: ANIMATE_EFFECTS[0].key };
+    case 'lightingBrightness': return { op, value: 1 };
+    case 'fanProfile': return { op, profile: 'balanced' };
+    case 'y70Power': return { op, on: true };
+    case 'y70Brightness': return { op, value: 50 };
+    case 'y70Rotation': return { op, orientation: 'landscape' };
+    // The preset ops seed from live service data instead - see the effect below.
+    default: return { op };
+  }
+}
+
 function NexusFields({ action, onChange }: { action: Extract<DeckAction, { type: 'nexus' }>; onChange: (a: DeckAction) => void }) {
   const { t } = useTranslation();
   const a = action.action;
-  const set = (patch: Partial<typeof a>) => onChange({ type: 'nexus', action: { ...a, ...patch } });
-  const ops = ['rgbEffect', 'rgbScene', 'lightingBrightness', 'lightingPower', 'fanProfile', 'fanSpeed', 'y70Power', 'y70Brightness', 'y70Rotation'];
+  const set = (patch: Partial<DeckNexusAction>) => onChange({ type: 'nexus', action: { ...a, ...patch } });
+  // Only this entry's own ops. Switching group is done by picking a different
+  // action in the picker, so the dropdown stays 2-3 entries instead of eight.
+  const groupOps: readonly DeckNexusOp[] = NEXUS_OP_GROUPS[nexusGroupForOp(a.op)];
+
+  const lightingPresets = useServiceOptions('/devices/lighting-devices/layout-presets', d => {
+    const list = (d as { presets?: { id: string; name: string }[] } | null)?.presets ?? [];
+    return list.map(p => ({ value: p.id, label: p.name }));
+  });
+  const coolingPresets = useServiceOptions('/cooling/presets', d => {
+    const list = (d as { presets?: { id: string; name: string }[] } | null)?.presets ?? [];
+    return list.map(p => ({ value: p.id, label: p.name }));
+  });
+  const isPreset = a.op === 'lightingPreset' || a.op === 'coolingPreset';
+  const presets = useMemo(
+    () => (a.op === 'lightingPreset' ? lightingPresets : a.op === 'coolingPreset' ? coolingPresets : EMPTY_OPTIONS),
+    [a.op, lightingPresets, coolingPresets],
+  );
+  const presetValue = presets.some(p => p.value === a.presetId) ? a.presetId ?? '' : '';
+
+  // A preset list can only be seeded once it has loaded, and has to re-seed
+  // when the stored id names a preset that has since been deleted - otherwise
+  // the select renders blank and the key fires nothing.
+  useEffect(() => {
+    if (isPreset && presets.length > 0 && !presetValue) {
+      onChange({ type: 'nexus', action: { ...a, presetId: presets[0].value } });
+    }
+  }, [isPreset, presets, presetValue, a, onChange]);
+
   return (
     <>
-      <SelectField label={t('panel.settings.deck.nexusOp')} value={a.op} options={ops.map(o => ({ value: o, label: t(`panel.settings.deck.nexus.${o}`) }))} onChange={op => set({ op: op as typeof a.op })} />
-      {a.op === 'rgbEffect' && <Field label={t('panel.settings.deck.effect')}><input className={styles.input} type="text" value={a.effect ?? ''} onChange={e => set({ effect: e.target.value })} /></Field>}
-      {a.op === 'rgbScene' && <Field label={t('panel.settings.deck.scene')}><input className={styles.input} type="text" value={a.profileId ?? ''} onChange={e => set({ profileId: e.target.value })} /></Field>}
-      {a.op === 'lightingBrightness' && <Field label={t('panel.settings.deck.value')}><input className={styles.input} type="number" min={0} max={100} value={Math.round((a.value ?? 1) * 100)} onChange={e => set({ value: clamp(Number(e.target.value) / 100, 0, 1) })} /></Field>}
-      {/* eslint-disable-next-line i18next/no-literal-string -- option enum values */}
-      {a.op === 'lightingPower' && <><Field label={t('panel.settings.deck.device')}><input className={styles.input} type="text" value={a.deviceId ?? ''} onChange={e => set({ deviceId: e.target.value })} /></Field><SelectField label={t('panel.settings.deck.on')} value={(a.on ?? true) ? 'yes' : 'no'} options={[{ value: 'yes', label: t('panel.settings.deck.stateOn') }, { value: 'no', label: t('panel.settings.deck.stateOff') }]} onChange={v => set({ on: v === 'yes' })} /></>}
-      {a.op === 'fanProfile' && <SelectField label={t('panel.settings.deck.fanProfile')} value={a.profile ?? 'Balanced'} options={['Silent', 'Balanced', 'Performance', 'auto'].map(p => ({ value: p, label: p }))} onChange={profile => set({ profile })} />}
-      {a.op === 'fanSpeed' && <><Field label={t('panel.settings.deck.fan')}><input className={styles.input} type="text" value={a.fanId ?? ''} onChange={e => set({ fanId: e.target.value })} /></Field><Field label={t('panel.settings.deck.value')}><input className={styles.input} type="number" min={0} max={100} value={a.value ?? 0} onChange={e => set({ value: clamp(Number(e.target.value), 0, 100) })} /></Field></>}
+      <SelectField
+        label={t('panel.settings.deck.nexusOp')}
+        value={a.op}
+        options={groupOps.map(o => ({ value: o, label: t(`panel.settings.deck.nexus.${o}`) }))}
+        onChange={op => onChange({ type: 'nexus', action: defaultNexusAction(op as DeckNexusOp) })}
+      />
+      {a.op === 'rgbEffect' && (
+        <SelectField
+          label={t('panel.settings.deck.lightingMode')}
+          value={a.mode ?? 'animate'}
+          options={NEXUS_LIGHTING_MODES.map(m => ({ value: m, label: t(`lighting.mode.${m}`) }))}
+          // The effect is kept across a mode change rather than cleared: the
+          // executor reads it only in Animation, and dropping it would lose the
+          // user's pick on a round trip through Media or Mirror.
+          onChange={m => set({ mode: m as DeckLightingMode, effect: a.effect ?? ANIMATE_EFFECTS[0].key })}
+        />
+      )}
+      {a.op === 'rgbEffect' && (a.mode ?? 'animate') === 'animate' && (
+        <SelectField
+          label={t('panel.settings.deck.effect')}
+          value={a.effect ?? ANIMATE_EFFECTS[0].key}
+          options={ANIMATE_EFFECTS.map(e => ({ value: e.key, label: t(e.labelKey) }))}
+          onChange={effect => set({ effect })}
+        />
+      )}
+      {a.op === 'lightingBrightness' && (
+        <Slider
+          // eslint-disable-next-line i18next/no-literal-string -- Slider orientation enum value
+          orientation="stacked"
+          editable
+          trackFill
+          label={t('panel.settings.deck.value')}
+          ariaLabel={t('panel.settings.deck.value')}
+          value={Math.round((a.value ?? 1) * 100)}
+          min={0}
+          max={100}
+          onChange={v => set({ value: clamp(Math.round(v) / 100, 0, 1) })}
+        />
+      )}
+      {isPreset && (presets.length > 0 ? (
+        <SelectField
+          label={t('panel.settings.deck.preset')}
+          value={presetValue}
+          options={presets}
+          onChange={presetId => set({ presetId })}
+        />
+      ) : (
+        <Field label={t('panel.settings.deck.preset')}>
+          <p className={styles.description}>{t('panel.settings.deck.noPresets')}</p>
+        </Field>
+      ))}
+      {a.op === 'fanProfile' && (
+        <SelectField
+          label={t('panel.settings.deck.coolingMode')}
+          value={a.profile ?? 'balanced'}
+          options={NEXUS_COOLING_MODES.map(p => ({ value: p, label: t(`cooling.mode.${p}`) }))}
+          onChange={profile => set({ profile })}
+        />
+      )}
       {/* eslint-disable-next-line i18next/no-literal-string -- option enum values */}
       {a.op === 'y70Power' && <SelectField label={t('panel.settings.deck.on')} value={(a.on ?? true) ? 'yes' : 'no'} options={[{ value: 'yes', label: t('panel.settings.deck.stateOn') }, { value: 'no', label: t('panel.settings.deck.stateOff') }]} onChange={v => set({ on: v === 'yes' })} />}
       {a.op === 'y70Brightness' && <Field label={t('panel.settings.deck.value')}><input className={styles.input} type="number" min={0} max={100} value={a.value ?? 0} onChange={e => set({ value: clamp(Number(e.target.value), 0, 100) })} /></Field>}
@@ -696,7 +838,7 @@ function PlayAudioFields({ action, onChange, surface, desktopEditor }: {
   );
 }
 
-function SequenceEditor({ action, onChange, allowed, surface, desktopEditor }: { action: Extract<DeckAction, { type: 'sequence' }>; onChange: (a: DeckAction) => void; allowed: DeckActionType[]; surface?: PanelSurface; desktopEditor?: boolean }) {
+function SequenceEditor({ action, onChange, allowed, surface, desktopEditor }: { action: Extract<DeckAction, { type: 'sequence' }>; onChange: (a: DeckAction) => void; allowed: DeckPickerKind[]; surface?: PanelSurface; desktopEditor?: boolean }) {
   const { t } = useTranslation();
   const steps = action.steps;
   const setSteps = (next: typeof steps) => onChange({ type: 'sequence', steps: next });
@@ -723,7 +865,7 @@ function SequenceEditor({ action, onChange, allowed, surface, desktopEditor }: {
   );
 }
 
-function ToggleEditor({ action, onChange, allowed, surface, desktopEditor }: { action: Extract<DeckAction, { type: 'toggle' }>; onChange: (a: DeckAction) => void; allowed: DeckActionType[]; surface?: PanelSurface; desktopEditor?: boolean }) {
+function ToggleEditor({ action, onChange, allowed, surface, desktopEditor }: { action: Extract<DeckAction, { type: 'toggle' }>; onChange: (a: DeckAction) => void; allowed: DeckPickerKind[]; surface?: PanelSurface; desktopEditor?: boolean }) {
   const { t } = useTranslation();
   const stateKinds = ['mute', 'lightingPower', 'internal'];
   return (

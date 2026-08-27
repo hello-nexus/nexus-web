@@ -151,12 +151,11 @@ export function autoIconName(action: DeckAction | undefined, isFolder = false): 
     case 'audioInput': return 'Mic';
     case 'nexus':
       switch (action.action.op) {
-        case 'rgbEffect':
-        case 'rgbScene': return 'Palette';
+        case 'rgbEffect': return 'Palette';
         case 'lightingBrightness':
-        case 'lightingPower': return 'Lightbulb';
+        case 'lightingPreset': return 'Lightbulb';
         case 'fanProfile':
-        case 'fanSpeed': return 'Fan';
+        case 'coolingPreset': return 'Fan';
         case 'y70Power':
         case 'y70Brightness':
         case 'y70Rotation': return 'Monitor';
