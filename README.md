@@ -151,6 +151,11 @@ npm run audit:locales    # locale key sync check
 npm run audit:styles     # style audits (also: audit:css-chunks, audit:text-styles)
 ```
 
+Tests default to the `jsdom` environment. Building one costs roughly half a
+second per test file, so a file that touches no DOM opts out with a
+`// @vitest-environment node` docblock on its first line; `__tests__/setup.ts`
+guards its DOM stubs so it still loads there.
+
 ## Environment
 
 - `VITE_SERVICE_HOST` / `VITE_SERVICE_PORT` / `VITE_SERVICE_PROTOCOL` -
