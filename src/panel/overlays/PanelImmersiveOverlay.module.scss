@@ -7,6 +7,15 @@
   display: flex;
   flex-direction: column;
   animation: immersiveEnter 240ms cubic-bezier(0.32, 0.72, 0, 1) both;
+  // This overlay renders as a SIBLING of the grid's .panelRoot (PanelApp.tsx),
+  // sharing only the global .panel-root class - not that element's
+  // touch-action: none, which is what actually holds pinch-zoom off the grid
+  // on engines that ignore the viewport meta's user-scalable=no. Without a
+  // value here immersive content resolves to `auto` and the whole page
+  // pinch-zooms. `none` is wrong - immersive pages (steam, gallery,
+  // smart-lights, home-assistant, benchmark, screentime) scroll natively - so
+  // permit both pan axes and withhold only pinch-zoom and double-tap zoom.
+  touch-action: pan-x pan-y;
   // Safe-area only (no extra 12px): immersive content fills edge-to-edge like
   // the grid so the widget renders at its tile width.
   padding:
@@ -59,8 +68,10 @@
   background: transparent;
   padding: 0;
   cursor: pointer;
-  // Parent .panelRoot's touch-action: none can suppress synthetic click on
-  // tap in WebView2/Edge; re-enable click synthesis here.
+  // A restrictive touch-action can suppress synthetic click on tap in
+  // WebView2/Edge; re-enable click synthesis here. This cannot re-open
+  // pinch-zoom: the browser intersects touch-action from the hit element up
+  // through its ancestors, so .overlay's withheld pinch-zoom still wins.
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   z-index: 210;

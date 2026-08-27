@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { NOTCH_FADE_DELAY_MS, PanelImmersiveOverlay } from './PanelImmersiveOverlay';
 import { pushModalStackEntry, removeModalStackEntry } from '../../components/common/Overlay/modalStack';
+import styles from './PanelImmersiveOverlay.module.scss';
 
 // The top-centre swipe hint is the only close control; asserting the count
 // keeps a second one from reappearing.
@@ -26,6 +27,19 @@ describe('PanelImmersiveOverlay', () => {
       </PanelImmersiveOverlay>,
     );
     expect(screen.getAllByLabelText(CLOSE)).toHaveLength(1);
+  });
+
+  // Pairs with PanelImmersiveOverlay.touchAction.test.ts: that one proves the
+  // stylesheet withholds pinch-zoom, this one proves the class carrying it
+  // still lands on the element. Dropping styles.overlay from the className
+  // restores the zoom bug with the stylesheet untouched.
+  it('applies the overlay class that withholds pinch-zoom', () => {
+    render(
+      <PanelImmersiveOverlay open onExit={() => {}}>
+        <div>content</div>
+      </PanelImmersiveOverlay>,
+    );
+    expect(screen.getByRole('dialog').className).toContain(styles.overlay);
   });
 
   // A mouse cannot drag the hint back into view the way touch does, so without
