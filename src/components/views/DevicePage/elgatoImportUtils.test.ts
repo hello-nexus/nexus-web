@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { dedupePresetName, unmappedReasonKey } from './elgatoImportUtils';
 import type { ElgatoUnmappedReason } from '../../../api/streamdeck';

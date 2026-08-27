@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import {
   PALETTE, PALETTE_FAMILIES, PALETTE_SHADE_COUNT, PALETTE_SHADE_ROWS, isPaletteKey,

@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { afterEach, describe, expect, it } from 'vitest';
 import type { AppManifestCapabilities } from './types';
 import type { AppInstalledListing } from './types';

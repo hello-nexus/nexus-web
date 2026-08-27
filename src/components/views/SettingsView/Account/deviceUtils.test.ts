@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import {
   DEVICE_HOSTNAME_MAX_LENGTH, generateManualInstallId, isValidDeviceHostname, trimDeviceSpecs,

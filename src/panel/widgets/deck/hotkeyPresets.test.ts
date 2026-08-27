@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { HOTKEY_PRESET_CATEGORIES, hotkeyPresetId, findHotkeyPreset } from './hotkeyPresets';
 

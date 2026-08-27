@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import type { Nexus2ApplyResult, Nexus2PreviewCategory, Nexus2PreviewResponse } from '../../../api/migration';
 import {

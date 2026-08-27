@@ -1,3 +1,4 @@
+// @vitest-environment node
 // Layout data tests - pin the physical layout shape of the Keeb TKL render.
 // Every cell is a real key verified against a factory layer-table dump; the
 // (x, y) coordinates are the wire contract with the service's KeebLayerMap,

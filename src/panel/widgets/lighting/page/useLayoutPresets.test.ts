@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import type { LightingDevice } from '../../../../api/lighting';
 import { devicesToLayouts } from './useLayoutPresets';

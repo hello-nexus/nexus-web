@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import type { KeyAssignmentMode } from '../../../api/keeb';
 import en from '../../../locales/en.json';

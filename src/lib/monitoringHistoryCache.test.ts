@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { MonitoringHistoryCache, sliceToWindow } from './monitoringHistoryCache';
 import type { MetricHistoryResponse } from '../api/monitoringHistory';

@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import type { HardwareSensor } from '../../../hooks/useSensors';
 import { SENSOR_CATEGORIES } from '../../../panel/widgets/monitoring/sensorCategories';

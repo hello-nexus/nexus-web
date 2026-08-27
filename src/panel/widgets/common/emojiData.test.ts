@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { EMOJI_CATEGORIES, EMOJI_CATEGORY_KEYS, searchEmojis } from './emojiData';
 

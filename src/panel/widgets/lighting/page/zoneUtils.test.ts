@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import type { DeviceMapResponse, DeviceSegment, DeviceZone } from '../../../../api/lighting';
 import {

@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import {
   ANIMATE_EFFECTS, DEFAULT_STATIC_EFFECT, EFFECTS, MODES, SIMPLE_EFFECT_KEYS, STATIC_EFFECTS,
