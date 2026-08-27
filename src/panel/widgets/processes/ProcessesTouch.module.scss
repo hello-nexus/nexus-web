@@ -4,7 +4,7 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  // Breathing room above the column headers so they do not sit flush against
-  // the immersive page's top edge.
-  padding-top: 0.75rem;
+  // Breathing room above the first card / the list headings so they do not sit
+  // flush against the immersive page's top edge.
+  padding-top: 0.5rem;
 }

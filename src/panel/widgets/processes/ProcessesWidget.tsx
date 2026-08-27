@@ -21,6 +21,7 @@ import {
   type SortDirection,
 } from './processesData';
 import { useProcessRows } from './useProcessRows';
+import { useResourceHistoryFeed } from './useResourceHistoryFeed';
 import styles from './ProcessesWidget.module.scss';
 
 // Published to the stylesheet as a custom property and used to work out how
@@ -73,6 +74,10 @@ export function ProcessesWidget({ widget, immersive }: WidgetProps & { immersive
   // Mounted in preview too (a store read, no network); the fixture replaces it.
   const live = useProcessRows(refreshFrames, showGpu && !preview);
   const rows = preview ? PROCESSES_PREVIEW : live;
+  // Fills the immersive graph cards' histories while the tile is up, so they
+  // open already drawn. No-op in preview and while immersive (the cards sample
+  // their own keys).
+  useResourceHistoryFeed(!preview && !immersive, showGpu);
 
   const [column, setColumn] = useState<ProcessColumn>(DEFAULT_COLUMN);
   const [direction, setDirection] = useState<SortDirection>(() => defaultDirectionFor(DEFAULT_COLUMN));

@@ -2465,6 +2465,8 @@
   "panel.processes.col.name": "Nome",
   "panel.processes.col.ram": "RAM",
   "panel.processes.empty": "Nessun processo",
+  "panel.processes.resource.io": "I/O disco",
+  "panel.processes.resource.memory": "Memoria",
   "panel.processes.settings.refresh": "Aggiornamento",
   "panel.processes.settings.seconds": "{n} s",
   "panel.processes.settings.title": "Elenco processi",

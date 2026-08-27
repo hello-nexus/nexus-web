@@ -2465,6 +2465,8 @@
   "panel.processes.col.name": "名称",
   "panel.processes.col.ram": "内存",
   "panel.processes.empty": "没有进程",
+  "panel.processes.resource.io": "磁盘 I/O",
+  "panel.processes.resource.memory": "内存",
   "panel.processes.settings.refresh": "刷新",
   "panel.processes.settings.seconds": "{n} 秒",
   "panel.processes.settings.title": "进程列表",
