@@ -42,12 +42,12 @@ export function ForgotPasswordPage() {
               onAccountChanged={() => void refresh()}
               recoveryFresh={recoveryFresh}
               onRecoveryFreshConsumed={handleRecoveryFreshConsumed}
+              onLoggedOut={goToSignIn}
             />
             <AccountDangerZoneSection
               backend={directApiBackend}
               recoveryFresh={recoveryFresh}
               onRecoveryFreshConsumed={handleRecoveryFreshConsumed}
-              onLoggedOut={goToSignIn}
               onDeleted={goToHome}
             />
           </>

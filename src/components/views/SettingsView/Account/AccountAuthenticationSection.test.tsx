@@ -40,7 +40,7 @@ function makeBackend(overrides: Partial<AuthBackend> = {}): AuthBackend {
   };
 }
 
-function renderSection(backend: AuthBackend, onAccountChanged = vi.fn()) {
+function renderSection(backend: AuthBackend, onAccountChanged = vi.fn(), onLoggedOut = vi.fn()) {
   return render(
     <ToastProvider>
       <AccountAuthenticationSection
@@ -49,6 +49,7 @@ function renderSection(backend: AuthBackend, onAccountChanged = vi.fn()) {
         onAccountChanged={onAccountChanged}
         recoveryFresh={false}
         onRecoveryFreshConsumed={vi.fn()}
+        onLoggedOut={onLoggedOut}
       />
     </ToastProvider>,
   );
@@ -97,5 +98,25 @@ describe('AccountAuthenticationSection username cooldown', () => {
     saveNewUsername();
 
     await waitFor(() => expect(onAccountChanged).toHaveBeenCalled());
+  });
+});
+
+describe('AccountAuthenticationSection log out', () => {
+  it('sits with the account settings, not the danger zone, and calls onLoggedOut', async () => {
+    const logout = vi.fn().mockResolvedValue(undefined);
+    const onLoggedOut = vi.fn();
+    renderSection(makeBackend({ logout }), vi.fn(), onLoggedOut);
+
+    fireEvent.click(screen.getByRole('button', { name: 'account.logOut.label' }));
+
+    await waitFor(() => expect(logout).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(onLoggedOut).toHaveBeenCalledTimes(1));
+  });
+
+  it('renders after the private-account toggle', () => {
+    renderSection(makeBackend());
+    const rows = screen.getByText('account.privacy.label').closest('section') ?? document.body;
+    const text = rows.textContent ?? '';
+    expect(text.indexOf('account.privacy.label')).toBeLessThan(text.indexOf('account.logOut.label'));
   });
 });

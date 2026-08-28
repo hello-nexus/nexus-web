@@ -25,6 +25,7 @@ interface AccountAuthenticationSectionProps {
   onAccountChanged: () => void;
   recoveryFresh: boolean;
   onRecoveryFreshConsumed: () => void;
+  onLoggedOut: () => void;
 }
 
 const AVATAR_OUTPUT_SIZE = 512;
@@ -99,11 +100,11 @@ function useRetryCountdown(retryAt: string | null): { hours: number; minutes: nu
   return { hours: Math.floor(totalMinutes / 60), minutes: totalMinutes % 60 };
 }
 
-// Avatar, username, password, and the private-account toggle - the block
+// Avatar, username, password, the private-account toggle, and log out - the block
 // shared by the in-app Account page and the public /account and /recover
 // pages (the public surface renders this block alone, no profile sync).
 export function AccountAuthenticationSection({
-  backend, account, onAccountChanged, recoveryFresh, onRecoveryFreshConsumed,
+  backend, account, onAccountChanged, recoveryFresh, onRecoveryFreshConsumed, onLoggedOut,
 }: AccountAuthenticationSectionProps) {
   const { t } = useTranslation();
   const { push } = useToast();
@@ -202,6 +203,11 @@ export function AccountAuthenticationSection({
     const ok = await backend.setPrivate(!account.isPrivate);
     setPrivacySaving(false);
     if (ok) onAccountChanged();
+  };
+
+  // ── Session ─────────────────────────────────────────────────────────────
+  const handleLogout = () => {
+    void backend.logout().then(onLoggedOut);
   };
 
   // Defensive reset if `account.accountId` ever changes while this component
@@ -314,6 +320,12 @@ export function AccountAuthenticationSection({
         disabled={privacySaving}
         stackOnNarrow
       />
+
+      <SettingRow label={t('account.logOut.label')} description={t('account.logOut.description')} stackOnNarrow>
+        <Button type="button" tone="neutral" size="sm" onClick={handleLogout}>
+          {t('account.logOut.label')}
+        </Button>
+      </SettingRow>
 
       <ChangePasswordModal
         open={passwordModalOpen}

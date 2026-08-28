@@ -24,27 +24,6 @@ function makeBackend(overrides: Partial<AuthBackend> = {}): AuthBackend {
   };
 }
 
-describe('AccountDangerZoneSection logout', () => {
-  it('calls backend.logout then onLoggedOut', async () => {
-    const logout = vi.fn().mockResolvedValue(undefined);
-    const onLoggedOut = vi.fn();
-    render(
-      <AccountDangerZoneSection
-        backend={makeBackend({ logout })}
-        recoveryFresh={false}
-        onRecoveryFreshConsumed={vi.fn()}
-        onLoggedOut={onLoggedOut}
-        onDeleted={vi.fn()}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: 'account.danger.logOut.label' }));
-
-    await waitFor(() => expect(logout).toHaveBeenCalledTimes(1));
-    await waitFor(() => expect(onLoggedOut).toHaveBeenCalledTimes(1));
-  });
-});
-
 describe('AccountDangerZoneSection delete account', () => {
   it('requires a current-password field when not recovery-fresh, and calls onDeleted on success', async () => {
     const deleteAccount = vi.fn().mockResolvedValue({ status: 200, body: { error: false } });
@@ -54,7 +33,6 @@ describe('AccountDangerZoneSection delete account', () => {
         backend={makeBackend({ deleteAccount })}
         recoveryFresh={false}
         onRecoveryFreshConsumed={vi.fn()}
-        onLoggedOut={vi.fn()}
         onDeleted={onDeleted}
       />,
     );
@@ -75,7 +53,6 @@ describe('AccountDangerZoneSection delete account', () => {
         backend={makeBackend()}
         recoveryFresh
         onRecoveryFreshConsumed={vi.fn()}
-        onLoggedOut={vi.fn()}
         onDeleted={vi.fn()}
       />,
     );

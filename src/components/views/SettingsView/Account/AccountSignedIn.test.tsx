@@ -87,13 +87,13 @@ function renderSignedIn(opts: {
   );
 }
 
-describe('AccountSignedIn danger zone bridging', () => {
+describe('AccountSignedIn log out bridging', () => {
   it('logs out through the backend and refreshes the accounts hook', async () => {
     const logout = vi.fn().mockResolvedValue(undefined);
     const accounts = makeAccounts();
     renderSignedIn({ backend: makeBackend({ logout }), accounts });
 
-    fireEvent.click(screen.getByRole('button', { name: 'account.danger.logOut.label' }));
+    fireEvent.click(screen.getByRole('button', { name: 'account.logOut.label' }));
 
     await waitFor(() => expect(logout).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(accounts.refresh).toHaveBeenCalled());

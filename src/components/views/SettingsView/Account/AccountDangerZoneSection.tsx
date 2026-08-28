@@ -14,20 +14,16 @@ interface AccountDangerZoneSectionProps {
   backend: AuthBackend;
   recoveryFresh: boolean;
   onRecoveryFreshConsumed: () => void;
-  onLoggedOut: () => void;
   onDeleted: () => void;
 }
 
-// Log out + delete account - shared by the in-app Account page and the
-// public /account and /recover pages.
+// Delete account - shared by the in-app Account page and the public
+// /account and /recover pages. Log out is not destructive, so it lives on
+// the authentication block instead.
 export function AccountDangerZoneSection({
-  backend, recoveryFresh, onRecoveryFreshConsumed, onLoggedOut, onDeleted,
+  backend, recoveryFresh, onRecoveryFreshConsumed, onDeleted,
 }: AccountDangerZoneSectionProps) {
   const { t } = useTranslation();
-
-  const handleLogout = () => {
-    void backend.logout().then(onLoggedOut);
-  };
 
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
@@ -55,11 +51,6 @@ export function AccountDangerZoneSection({
     <>
       {/* eslint-disable-next-line i18next/no-literal-string -- CSS variable token */}
       <SettingsSection title={t('settings.dangerZone')} titleStyle={{ color: 'var(--bad)' }}>
-        <SettingRow label={t('account.danger.logOut.label')} description={t('account.danger.logOut.description')}>
-          <Button type="button" tone="danger" size="sm" onClick={handleLogout}>
-            {t('account.danger.logOut.label')}
-          </Button>
-        </SettingRow>
         <SettingRow label={t('account.danger.delete.label')} description={t('account.danger.delete.description')}>
           <Button type="button" tone="danger" size="sm" icon={<Trash2 size={14} />} onClick={() => setDeleteConfirmOpen(true)}>
             {t('account.danger.delete.button')}

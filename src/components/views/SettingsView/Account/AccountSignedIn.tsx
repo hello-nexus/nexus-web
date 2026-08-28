@@ -24,6 +24,7 @@ export function AccountSignedIn({ backend, account, accounts, recoveryFresh, onR
         onAccountChanged={() => void accounts.refresh()}
         recoveryFresh={recoveryFresh}
         onRecoveryFreshConsumed={onRecoveryFreshConsumed}
+        onLoggedOut={() => void accounts.refresh()}
       />
 
       <AccountDevicesSection backend={backend} prefillFromLocalSpecs />
@@ -32,7 +33,6 @@ export function AccountSignedIn({ backend, account, accounts, recoveryFresh, onR
         backend={backend}
         recoveryFresh={recoveryFresh}
         onRecoveryFreshConsumed={onRecoveryFreshConsumed}
-        onLoggedOut={() => void accounts.refresh()}
         onDeleted={() => void accounts.refresh()}
       />
     </div>

@@ -41,13 +41,13 @@ export function AccountPage() {
           onAccountChanged={() => void refresh()}
           recoveryFresh={false}
           onRecoveryFreshConsumed={noop}
+          onLoggedOut={goToSignIn}
         />
         <AccountDevicesSection backend={directApiBackend} />
         <AccountDangerZoneSection
           backend={directApiBackend}
           recoveryFresh={false}
           onRecoveryFreshConsumed={noop}
-          onLoggedOut={goToSignIn}
           onDeleted={goToHome}
         />
       </PublicPageFrame>

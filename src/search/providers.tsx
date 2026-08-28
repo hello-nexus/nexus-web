@@ -787,7 +787,7 @@ const accountExtra: SearchSource = (ctx) => {
       run: () => { void syncCloudNow().catch(() => {}); },
     }),
     go('account:sign-out', {
-      title: ctx.t('account.danger.logOut.label'), subtitle: ctx.t('account.title'),
+      title: ctx.t('account.logOut.label'), subtitle: ctx.t('account.title'),
       icon: <UserRound size={18} />,
       keywords: ['sign out', 'log out', 'logout', 'account'],
       to: () => ctx.host.goView('account'),
