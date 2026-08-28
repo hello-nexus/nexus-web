@@ -43,9 +43,9 @@ import { mergeTemplates, slotThumbSignature } from '../../../types/lightingTempl
 import { normalizeSync as resolveImmersiveMode } from '../../../hooks/useLightingSync';
 import { usePersistentState, usePersistentIdSet } from '../../../hooks/usePersistentState';
 import { useTranslation } from '../../../lib/i18n';
-import { paletteIdFromKey, type PaletteColor } from '../../../types/lightingPalette';
+import { paletteColor, paletteIdFromKey, type PaletteColor } from '../../../types/lightingPalette';
 import {
-  pickLookForDevices, pickPaletteForDevices,
+  pickCustomForDevices, pickLookForDevices, pickPaletteForDevices,
   DEVICE_PICKS_STORAGE_KEY, SELECTED_DEVICES_STORAGE_KEY, PRIMARY_DEVICE_STORAGE_KEY,
   type DevicePicks,
 } from './staticPicks';
@@ -87,10 +87,16 @@ export function LightingTouch({ widget, surface, immersiveGrid }: WidgetProps) {
   );
 }
 
-/** The page's palette, with the collapse state the immersive surface needs. */
-function ImmersiveStaticPalette({ selectedId, onSelect }: {
+/** The page's palette, with the collapse state the immersive surface needs.
+ *  onPreviewCustom is deliberately not wired: the page paces its pointer-move
+ *  writes through a queue, and without one a drag would flood the device
+ *  writes. The commit on release still lands. */
+function ImmersiveStaticPalette({ selectedId, onSelect, customColor, customSelected, onSelectCustom }: {
   selectedId?: string | null;
   onSelect: (color: PaletteColor) => void;
+  customColor: string;
+  customSelected: boolean;
+  onSelectCustom: (hex: string) => void;
 }) {
   const [open, setOpen] = useState(true);
   return (
@@ -99,6 +105,9 @@ function ImmersiveStaticPalette({ selectedId, onSelect }: {
       open={open}
       onToggle={() => setOpen(o => !o)}
       onSelect={onSelect}
+      customColor={customColor}
+      customSelected={customSelected}
+      onSelectCustom={onSelectCustom}
     />
   );
 }
@@ -156,6 +165,9 @@ function renderImmersiveEditor(
                 <ImmersiveStaticPalette
                   selectedId={animate.selectedPaletteId}
                   onSelect={animate.onSelectPalette}
+                  customColor={animate.customColor}
+                  customSelected={animate.customSelected}
+                  onSelectCustom={animate.onSelectCustom}
                 />
               ) : undefined}
             />
@@ -209,6 +221,9 @@ interface ImmersiveAnimateController {
   selectedIds: Set<string>;
   onSetSelection: (ids: Set<string>, primary: string | null) => void;
   onSelectPalette: (color: PaletteColor) => void;
+  customColor: string;
+  customSelected: boolean;
+  onSelectCustom: (hex: string) => void;
   /** A device's own Static assignment for its card readout; the shared effect
    *  canvas is not what a per-device mode is showing. */
   ledPickFor: (id: string) => LedPick | undefined;
@@ -273,6 +288,26 @@ function useImmersiveAnimateState(): { mode: LightingMode; animate: ImmersiveAni
       found = paletteId;
     }
     return found;
+  }, [devicePicks, selectedIds]);
+
+  // Shared with the lighting page under the same key, so a colour picked on
+  // either surface is the one the other offers back.
+  const [customStaticColor, setCustomStaticColor] = usePersistentState('nexus.lighting.customColor', '');
+
+  // The selection wears an off-palette colour when every device agrees on a hex
+  // that is not its own palette id's hex.
+  const { selectedHex, customSelected } = useMemo(() => {
+    let hex: string | null = null;
+    for (const id of selectedIds) {
+      const pick = devicePicks[id];
+      if (!pick?.hex) return { selectedHex: '', customSelected: false };
+      if (hex && hex.toLowerCase() !== pick.hex.toLowerCase()) return { selectedHex: '', customSelected: false };
+      hex = pick.hex;
+    }
+    if (!hex) return { selectedHex: '', customSelected: false };
+    const paletteId = [...selectedIds].map(id => paletteIdFromKey(devicePicks[id]!.key))[0];
+    const off = !paletteId || paletteColor(paletteId)?.hex.toLowerCase() !== hex.toLowerCase();
+    return { selectedHex: hex, customSelected: off };
   }, [devicePicks, selectedIds]);
 
   const hydrate = useCallback(async () => {
@@ -351,6 +386,12 @@ function useImmersiveAnimateState(): { mode: LightingMode; animate: ImmersiveAni
     if (selectedIds.size === 0) return;
     setDevicePicks(prev => pickPaletteForDevices(prev, color, [...selectedIds]));
   }, [selectedIds, setDevicePicks]);
+
+  const onSelectCustom = useCallback((hex: string) => {
+    setCustomStaticColor(hex);
+    if (selectedIds.size === 0) return;
+    setDevicePicks(prev => pickCustomForDevices(prev, hex, [...selectedIds]));
+  }, [selectedIds, setCustomStaticColor, setDevicePicks]);
   // Ref-backed staged state bypasses the render cycle on slider drag; `force`
   // a render after mutation.
   const liveState = stagedRef.current ?? baseState;
@@ -417,6 +458,9 @@ function useImmersiveAnimateState(): { mode: LightingMode; animate: ImmersiveAni
       selectedIds,
       onSetSelection,
       onSelectPalette,
+      customColor: customSelected ? selectedHex : customStaticColor,
+      customSelected,
+      onSelectCustom,
       selectedPaletteId,
       ledPickFor,
       state: liveState,

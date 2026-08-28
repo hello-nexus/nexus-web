@@ -13,13 +13,27 @@ vi.mock('../common/ImmersiveLayout', () => ({
   ImmersiveLayout: ({ cells }: { cells: React.ReactNode[] }) => <div>{cells}</div>,
 }));
 vi.mock('./page/EffectControls', () => ({ EffectControls: () => <div /> }));
-vi.mock('./page/StaticPalette', () => ({ StaticPalette: () => <div /> }));
+const paletteProps = vi.hoisted(() => ({ current: null as Record<string, unknown> | null }));
+vi.mock('./page/StaticPalette', () => ({
+  StaticPalette: (props: Record<string, unknown>) => {
+    paletteProps.current = props;
+    return (
+      <button type="button" onClick={() => (props.onSelectCustom as (hex: string) => void)?.('#123456')}>
+        pick-custom
+      </button>
+    );
+  },
+}));
 vi.mock('./effecteditor/MediaList', () => ({ MediaList: () => <div /> }));
 vi.mock('./effecteditor/PostProcessControls', () => ({ PostProcessControls: () => <div /> }));
 vi.mock('./page/ModeControls', () => ({ ScreenControls: () => <div /> }));
 vi.mock('./page/AnimateGrid', () => ({
-  AnimateGrid: ({ onSelect }: { onSelect: (key: string) => void }) => (
-    <button type="button" onClick={() => onSelect('stripes')}>pick-stripes</button>
+  // `leading` carries the static palette; dropping it hides the subject.
+  AnimateGrid: ({ onSelect, leading }: { onSelect: (key: string) => void; leading?: React.ReactNode }) => (
+    <>
+      {leading}
+      <button type="button" onClick={() => onSelect('stripes')}>pick-stripes</button>
+    </>
   ),
 }));
 vi.mock('./effecteditor/StaticDeviceSelect', () => ({
@@ -91,6 +105,25 @@ describe('LightingTouch static picks', () => {
     await waitFor(() => expect(setLightingDeviceColor).toHaveBeenCalled());
     const picks = JSON.parse(localStorage.getItem(DEVICE_PICKS_STORAGE_KEY) ?? '{}');
     expect(picks['dev-a']).toMatchObject({ key: 'stripes', slot: 2 });
+  });
+
+  it('offers the custom-colour slot, which the immersive palette was rendering without', async () => {
+    localStorage.setItem(SELECTED_DEVICES_STORAGE_KEY, JSON.stringify(['dev-a']));
+    render(<LightingTouch widget={widget} />);
+    await waitFor(() => expect(paletteProps.current).not.toBeNull());
+    // StaticPalette drops the custom row entirely when onSelectCustom is absent.
+    expect(typeof paletteProps.current!.onSelectCustom).toBe('function');
+  });
+
+  it('routes a custom colour to the selected devices', async () => {
+    localStorage.setItem(SELECTED_DEVICES_STORAGE_KEY, JSON.stringify(['dev-a']));
+    render(<LightingTouch widget={widget} />);
+    const pick = await screen.findByText('pick-custom');
+    fireEvent.click(pick);
+    await waitFor(() => expect(setLightingDeviceColor).toHaveBeenCalled());
+    const [id, , , body] = vi.mocked(setLightingDeviceColor).mock.calls[0] as unknown as [string, number, number, { color: string }];
+    expect(id).toBe('dev-a');
+    expect(body.color).toBe('#123456');
   });
 
   it('writes nothing while no device is selected', async () => {

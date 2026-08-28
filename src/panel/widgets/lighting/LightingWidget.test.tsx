@@ -146,6 +146,20 @@ describe('LightingWidget', () => {
     expect(screen.queryByRole('button', { name: 'Static' })).not.toBeInTheDocument();
   });
 
+  it('leaves the small animate preview swipeable, and blocks the swipe only in fullscreen', async () => {
+    // The overlay's swipe-to-dismiss is opted out of with
+    // data-panel-no-sheet-swipe. On the small preview that made the immersive
+    // view impossible to close by dragging from the canvas, which is most of
+    // its area; only the fullscreen shader should block it.
+    render(<LightingWidget widget={lightingWidget('4x4')} immersive />);
+    const open = await screen.findByRole('button', { name: 'lighting.fullscreen' });
+    expect(open).not.toHaveAttribute('data-panel-no-sheet-swipe');
+
+    fireEvent.click(open);
+    const exit = await screen.findByRole('button', { name: 'lighting.fullscreen.exit' });
+    expect(exit).toHaveAttribute('data-panel-no-sheet-swipe', 'true');
+  });
+
   it('marks the active mode button as pressed', async () => {
     render(<LightingWidget widget={lightingWidget('4x2')} />);
     await waitFor(() => {
