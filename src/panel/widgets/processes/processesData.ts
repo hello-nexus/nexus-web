@@ -23,6 +23,9 @@ export interface ProcessRow {
   /** Summed across adapters, 0..100. Undefined where the platform reports no
    *  per-process GPU at all (everything except Windows - see the manifest). */
   gpu?: number;
+  /** Combined disk read+write, bytes/sec. Undefined on a service too old to
+   *  put it on the wire. */
+  io?: number;
 }
 
 // Refresh cadence the settings sheet offers, in seconds. The wire is a fixed
