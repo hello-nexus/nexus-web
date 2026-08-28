@@ -237,6 +237,10 @@ $dot-offline: var(--text-dim);
   }
 }
 
+.gameTileArtWrap {
+  position: relative;
+}
+
 .gameTileArt {
   display: block;
   width: 100%;
@@ -246,6 +250,25 @@ $dot-offline: var(--text-dim);
   object-fit: cover;
   background: var(--panel-element-bg);
   border-radius: var(--radius) var(--radius) 0 0;
+}
+
+// Overlaid on the art, not stacked into .gameTileMeta: a per-tile line would
+// change row height only for tiles with FPS data, breaking the virtualized
+// grid's fixed row-height math (see TILE_META_HEIGHT_PX).
+.fpsChip {
+  @include text-caption;
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  padding: 2px 6px;
+  border-radius: var(--radius);
+  background: rgb(0 0 0 / var(--alpha-strong));
+  color: #fff;
+}
+
+.gameTileTooltipFps {
+  margin-top: 2px;
+  color: var(--text-dim);
 }
 
 .gameTileMeta {
@@ -662,6 +685,17 @@ $dot-offline: var(--text-dim);
   @include text-body;
   font-variant-numeric: tabular-nums;
   font-weight: var(--weight-strong);
+}
+
+.fpsCappedBadge {
+  @include text-caption;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: var(--radius);
+  background: var(--panel-element-bg-hover);
+  color: var(--text-dim);
+  font-weight: var(--weight-heading);
+  vertical-align: middle;
 }
 
 .drillNewsList {
