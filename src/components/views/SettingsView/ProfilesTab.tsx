@@ -326,8 +326,6 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
         onCancel={() => setCreateOpen(false)}
       />
 
-      <CloudProfilesSection profiles={profiles} />
-
       <SharingSection
         profiles={profiles}
         sharing={sharing}
@@ -343,6 +341,8 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
           setConfirmTarget({ kind: 'shareCategory', category, primaryName: primaryProfile?.name ?? '' });
         }}
       />
+
+      <CloudProfilesSection profiles={profiles} />
 
       {confirmTarget && confirmCopy && (
         <ConfirmModal

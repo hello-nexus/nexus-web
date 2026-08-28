@@ -1,7 +1,6 @@
 import { getToken, handleUnauthorized } from './auth';
 import { fetchService, loopbackFetchInit, patchService, postService, resolveHttp } from './service';
 import type { GameLeaderboardEntry, GameType } from '../types/games';
-import type { ProfileCategory } from './profiles';
 
 export interface CloudAvatar {
   large: string;
@@ -295,40 +294,9 @@ export interface CloudLibrary {
   machines: CloudLibraryMachine[];
 }
 
-export interface CloudImportCategory {
-  category: ProfileCategory;
-  sizeBytes: number;
-  /** Metric id -> count; rendered against locale labels, absent ids simply omitted. */
-  metrics: Record<string, number>;
-}
-
-export interface CloudImportPreview {
-  installId: string;
-  hostname: string;
-  profileId: string;
-  name: string;
-  revision: number;
-  updatedAt: string;
-  categories: CloudImportCategory[];
-}
-
 export const fetchCloudLibrary = () =>
   fetchService<CloudLibrary>('/cloud/profiles/library');
 
-export const fetchCloudImportPreview = (installId: string, profileId: string) =>
-  fetchService<CloudImportPreview>(
-    `/cloud/profiles/${encodeURIComponent(installId)}/${encodeURIComponent(profileId)}/preview`,
-  );
-
-export const importCloudProfile = (
-  installId: string,
-  profileId: string,
-  categories: ProfileCategory[],
-  targetProfileId?: string,
-) =>
-  postService<{ error?: boolean; msg?: string }>('/cloud/profiles/import', {
-    installId,
-    profileId,
-    categories,
-    targetProfileId: targetProfileId ?? '',
-  });
+/** Copies another machine's profile in as a NEW local profile; nothing existing is overwritten. */
+export const importCloudProfile = (installId: string, profileId: string) =>
+  postService<{ error?: boolean; msg?: string }>('/cloud/profiles/import', { installId, profileId });

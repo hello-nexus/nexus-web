@@ -4,6 +4,7 @@ import { CloudProfilesSection } from './CloudProfilesSection';
 import type { UseCloudAccountsResult } from '../../../hooks/useCloudAccounts';
 import type { UseSyncStatusResult } from '../../../hooks/useSyncStatus';
 import type { UseProfilesResult } from '../../../hooks/useProfiles';
+import { fetchCloudLibrary, importCloudProfile } from '../../../api/cloud';
 
 vi.mock('../../../lib/i18n', () => ({
   useTranslation: () => ({
@@ -26,8 +27,7 @@ vi.mock('../../../hooks/useSyncStatus', () => ({
   useSyncStatus: () => syncResult(),
 }));
 vi.mock('../../../api/cloud', () => ({
-  fetchCloudLibrary: vi.fn().mockResolvedValue({ machines: [] }),
-  fetchCloudImportPreview: vi.fn(),
+  fetchCloudLibrary: vi.fn(),
   importCloudProfile: vi.fn(),
 }));
 
@@ -58,10 +58,25 @@ function renderSection() {
   return render(<CloudProfilesSection profiles={PROFILES} />);
 }
 
+const LIBRARY = {
+  machines: [
+    {
+      installId: 'this-one', hostname: 'T1', isThisMachine: true, lastSeenAt: 't',
+      profiles: [{ profileId: 'p1', name: 'Default', revision: 1, sizeBytes: 10, updatedAt: 't' }],
+    },
+    {
+      installId: 'other', hostname: 'HYTEY70', isThisMachine: false, lastSeenAt: 't',
+      profiles: [{ profileId: 'p2', name: 'Default', revision: 1, sizeBytes: 10, updatedAt: 't' }],
+    },
+  ],
+};
+
 beforeEach(() => {
   vi.clearAllMocks();
   accountsResult.mockReturnValue(SIGNED_IN);
   syncResult.mockReturnValue(BASE_SYNC);
+  vi.mocked(fetchCloudLibrary).mockResolvedValue(LIBRARY);
+  vi.mocked(importCloudProfile).mockResolvedValue({ error: false });
 });
 
 describe('CloudProfilesSection signed-out state', () => {
@@ -123,14 +138,47 @@ describe('CloudProfilesSection backup control', () => {
   });
 });
 
-describe('CloudProfilesSection import entry point', () => {
-  it('opens the picker panel and reports when no other machine has backed anything up', async () => {
+describe('CloudProfilesSection profile list', () => {
+  it('labels every profile with the computer it belongs to and marks this one', async () => {
     renderSection();
+
+    // Both computers name their profile "Default", so the owner label is the
+    // only thing telling the two rows apart.
+    await waitFor(() => {
+      expect(screen.getByText('T1')).toBeInTheDocument();
+    });
+    expect(screen.getByText('HYTEY70')).toBeInTheDocument();
+    expect(screen.getAllByText('Default')).toHaveLength(2);
+    expect(screen.getAllByText('profile.cloud.list.thisComputer')).toHaveLength(1);
+  });
+
+  it('offers import only on another computer profile and copies it in one click', async () => {
+    renderSection();
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'profile.cloud.import.open' })).toBeInTheDocument();
+    });
+    // One button, for the row that is not this machine.
+    expect(screen.getAllByRole('button', { name: 'profile.cloud.import.open' })).toHaveLength(1);
 
     fireEvent.click(screen.getByRole('button', { name: 'profile.cloud.import.open' }));
 
     await waitFor(() => {
-      expect(screen.getByText('profile.cloud.import.noMachines.title')).toBeInTheDocument();
+      expect(importCloudProfile).toHaveBeenCalledWith('other', 'p2');
+    });
+  });
+
+  it('surfaces the local profile cap instead of failing silently', async () => {
+    vi.mocked(importCloudProfile).mockResolvedValue({ error: true, msg: 'profile_limit_reached' });
+    renderSection();
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'profile.cloud.import.open' })).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'profile.cloud.import.open' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('profile.cloud.import.error.limit');
     });
   });
 });

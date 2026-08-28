@@ -1,11 +1,11 @@
-import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { AccountSignedIn } from './AccountSignedIn';
 import { ToastProvider } from '../../../common/Toast/Toast';
 import type { AuthAccount, AuthBackend } from '../../../../api/authBackend';
 import type { UseCloudAccountsResult } from '../../../../hooks/useCloudAccounts';
 import type { UseSyncStatusResult } from '../../../../hooks/useSyncStatus';
-import type { CloudAccountSummary, SyncProfileStatus } from '../../../../api/cloud';
+import type { CloudAccountSummary } from '../../../../api/cloud';
 
 vi.mock('../../../../lib/i18n', () => ({
   useTranslation: () => ({
