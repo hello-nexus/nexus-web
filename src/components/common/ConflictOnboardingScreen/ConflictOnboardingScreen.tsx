@@ -5,6 +5,7 @@ import { ConflictAllClear } from '../ConflictAllClear/ConflictAllClear';
 import { ConflictAppCard } from '../ConflictAppCard/ConflictAppCard';
 import { SkipOnboardingButton } from '../SkipOnboardingButton/SkipOnboardingButton';
 import { useTranslation } from '../../../lib/i18n';
+import { useConflictDevices } from '../../../hooks/useConflictDevices';
 import type { DetectedConflict } from '../../../api/conflicts';
 import styles from './ConflictOnboardingScreen.module.scss';
 
@@ -29,6 +30,7 @@ export function ConflictOnboardingScreen({
   open, conflicts, onComplete, onBack, onSkipOnboarding,
 }: ConflictOnboardingScreenProps) {
   const { t } = useTranslation();
+  const { devicesByApp, setOwner } = useConflictDevices(conflicts, open);
   const heading = t('conflicts.onboarding.title');
 
   return (
@@ -69,7 +71,11 @@ export function ConflictOnboardingScreen({
           <div className={styles.list}>
             {conflicts.map(conflict => (
               <div key={conflict.id} className={styles.listItem}>
-                <ConflictAppCard conflict={conflict} />
+                <ConflictAppCard
+                  conflict={conflict}
+                  devices={devicesByApp.get(conflict.id)}
+                  onSetOwner={owner => setOwner(conflict.id, owner)}
+                />
               </div>
             ))}
           </div>
