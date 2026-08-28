@@ -26,6 +26,43 @@ $dot-offline: var(--text-dim);
   overflow: hidden;
 }
 
+// ---------- Not-configured setup screen ----------
+
+// The page body clips, so the setup column scrolls on its own. `margin: auto`
+// on the inner stack centres the notice + form as one group without the
+// top-clipping `justify-content: center` causes once it overflows.
+.setup {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.setupInner {
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 520px;
+  padding: 1rem 0;
+  box-sizing: border-box;
+}
+
+// EmptyState fills its container by default, which would push the form to the
+// bottom of the page instead of sitting directly under the notice. Nested under
+// .setupInner so this wins on specificity rather than on CSS chunk order.
+.setupInner .setupNotice {
+  height: auto;
+  padding: 0 1rem;
+}
+
+.setupForm {
+  width: 100%;
+}
+
 // ---------- Profile strip (between ViewHeader and content) ----------
 
 .profileStrip {

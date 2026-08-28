@@ -533,9 +533,6 @@ export function LightingWidget({ widget, immersive, onSectionNavigate }: WidgetP
                     type="button"
                     className={styles.previewExpand}
                     onClick={() => setShaderFullscreen(true)}
-                    // Tap opens the fullscreen shader; never arm the overlay's
-                    // swipe-to-dismiss here (it races the tap on Y70 WebView2).
-                    data-panel-no-sheet-swipe="true"
                     aria-label={t('lighting.fullscreen')}
                   >
                     {/* Gated off while fullscreen is open: that view (below)
@@ -555,6 +552,8 @@ export function LightingWidget({ widget, immersive, onSectionNavigate }: WidgetP
             type="button"
             className={styles.shaderFullscreen}
             onClick={() => setShaderFullscreen(false)}
+            // Only the FULLSCREEN shader blocks the overlay's swipe-to-dismiss;
+            // the small preview above must stay swipeable to close the panel.
             data-panel-no-sheet-swipe="true"
             aria-label={t('lighting.fullscreen.exit')}
           >

@@ -103,9 +103,7 @@ const PREVIEW_CONTENT: Record<string, string[]> = {
   // value never renders - assert on the keys the tile always shows instead.
   snake: ['panel.widget.snake.best', 'panel.widget.snake.play'],
   blocks: ['panel.widget.blocks.best', 'panel.widget.blocks.play'],
-  // The GPU column needs a resolved platform ping, which preview gates out,
-  // so the preview tile shows name + CPU + RAM only.
-  processes: ['chrome', 'Nexus', '12.4%', '2.7 GB'],
+  processes: ['chrome', 'Nexus', '12.4%', '8.2%', '2.7 GB'],
 };
 
 function panelWidget(type: string, size: PanelWidgetSize): PanelWidget {

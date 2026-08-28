@@ -21,6 +21,7 @@ import { buildBenchmarkSubmission } from './benchmarkSubmission';
 import { BenchmarkProgress } from './BenchmarkProgress';
 import { BenchmarkResults } from './BenchmarkResults';
 import { LeaderboardView } from './LeaderboardView';
+import { OFFICIAL_BUILD } from '../../../lib/officialBuild';
 import styles from './BenchmarkPage.module.scss';
 
 type BenchmarkTab = 'run' | 'results' | 'leaderboards';
@@ -58,13 +59,17 @@ export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onT
   const [submissionId, setSubmissionIdState] = useState<string | null>(() => getLastSubmissionId());
   const [savedResult, setSavedResult] = useState<typeof result>(null);
 
+  // The board is hosted; local runs and results are not, so only it drops out.
   const tabs = [
     { key: 'run', label: t('benchmark.tab.run'), icon: <Play size={14} /> },
     { key: 'results', label: t('benchmark.tab.results'), icon: <History size={14} /> },
-    { key: 'leaderboards', label: t('benchmark.tab.leaderboards'), icon: <Trophy size={14} /> },
-  ] as const;
+    ...(OFFICIAL_BUILD
+      ? [{ key: 'leaderboards' as const, label: t('benchmark.tab.leaderboards'), icon: <Trophy size={14} /> }]
+      : []),
+  ] satisfies readonly { key: BenchmarkTab; label: string; icon: ReactNode }[];
 
-  const tab: BenchmarkTab = urlTab && ['run', 'results', 'leaderboards'].includes(urlTab)
+  const validTabs: readonly string[] = tabs.map((t) => t.key);
+  const tab: BenchmarkTab = urlTab && validTabs.includes(urlTab)
     ? urlTab as BenchmarkTab : 'run';
 
   useEffect(() => {
@@ -236,7 +241,7 @@ export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onT
     switch (tab) {
       case 'run': return renderRunTab();
       case 'results': return renderResultsTab();
-      case 'leaderboards': return <LeaderboardView />;
+      case 'leaderboards': return OFFICIAL_BUILD ? <LeaderboardView /> : null;
     }
   };
 

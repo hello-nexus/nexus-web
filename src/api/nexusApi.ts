@@ -5,9 +5,30 @@
 
 import type { BenchmarkVersionInfo, LeaderboardResponse } from '../types/benchmark';
 import type { GameScoresResponse, GameType } from '../types/games';
+import { authFetchWithStatus } from './service';
 
 const DEFAULT_API = 'https://api.hellonexus.com';
 const BASE = import.meta.env.VITE_API_URL ?? DEFAULT_API;
+
+// In a service-embedded build these reads go through the local service: a
+// browser cannot attach the build credential the API will require, and routing
+// them keeps the boards working once it does. Other builds keep the direct
+// call and are admitted by their own Origin.
+async function readApi<T>(servicePath: string, directUrl: string): Promise<{ ok: boolean; data: T | null; retryable: boolean }> {
+  try {
+    if (__SERVICE_BUILD__) {
+      const { response, status } = await authFetchWithStatus(servicePath, { cache: 'no-store' });
+      if (!response) return { ok: false, data: null, retryable: true };
+      if (response.ok) return { ok: true, data: (await response.json()) as T, retryable: false };
+      return { ok: false, data: null, retryable: status >= 500 || status === 429 };
+    }
+    const res = await fetch(directUrl);
+    if (res.ok) return { ok: true, data: (await res.json()) as T, retryable: false };
+    return { ok: false, data: null, retryable: res.status >= 500 || res.status === 429 };
+  } catch {
+    return { ok: false, data: null, retryable: true };
+  }
+}
 
 const SUBMISSION_ID_KEY = 'nexus_benchmark_submission_id';
 
@@ -35,19 +56,18 @@ export async function getLeaderboard(params: LeaderboardParams = {}): Promise<Le
   if (params.limit != null) qs.set('limit', String(params.limit));
   if (params.offset != null) qs.set('offset', String(params.offset));
   const query = qs.toString();
-  const url = `${BASE}/benchmarks/leaderboard${query ? `?${query}` : ''}`;
+  const suffix = query ? `?${query}` : '';
   // The cloud API can cold-start: the first request after idle can 502/503 or
   // time out. A single failure would dead-end the leaderboard view, so retry
   // transient failures (network error / 5xx / 429) with backoff before giving
   // up. A non-transient 4xx returns null immediately.
   for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      const res = await fetch(url);
-      if (res.ok) return (await res.json()) as LeaderboardResponse;
-      if (res.status < 500 && res.status !== 429) return null;
-    } catch {
-      // network error: fall through to retry
-    }
+    const r = await readApi<LeaderboardResponse>(
+      `/cloud/benchmarks/leaderboard${suffix}`,
+      `${BASE}/benchmarks/leaderboard${suffix}`,
+    );
+    if (r.ok) return r.data;
+    if (!r.retryable) return null;
     if (attempt < 2) await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)));
   }
   return null;
@@ -61,9 +81,11 @@ export async function getLeaderboard(params: LeaderboardParams = {}): Promise<Le
  */
 export async function getBenchmarkVersions(): Promise<BenchmarkVersionInfo[] | null> {
   try {
-    const res = await fetch(`${BASE}/benchmarks/versions`);
-    if (!res.ok) return null;
-    return (await res.json()) as BenchmarkVersionInfo[];
+    const r = await readApi<BenchmarkVersionInfo[]>(
+      '/cloud/benchmarks/versions',
+      `${BASE}/benchmarks/versions`,
+    );
+    return r.ok ? r.data : null;
   } catch {
     return null;
   }
@@ -88,15 +110,13 @@ export function getDeviceId(): string {
  */
 export async function getGameScores(gameType: GameType, limit = 20): Promise<GameScoresResponse | null> {
   const qs = new URLSearchParams({ gameType, limit: String(limit) });
-  const url = `${BASE}/games/scores?${qs.toString()}`;
   for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      const res = await fetch(url);
-      if (res.ok) return (await res.json()) as GameScoresResponse;
-      if (res.status < 500 && res.status !== 429) return null;
-    } catch {
-      // network error: fall through to retry
-    }
+    const r = await readApi<GameScoresResponse>(
+      `/cloud/games/scores?${qs.toString()}`,
+      `${BASE}/games/scores?${qs.toString()}`,
+    );
+    if (r.ok) return r.data;
+    if (!r.retryable) return null;
     if (attempt < 2) await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)));
   }
   return null;

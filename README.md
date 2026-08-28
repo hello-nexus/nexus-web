@@ -175,6 +175,12 @@ file, so avoid writing it in a fixture or a doc comment.
   the committed `.env.development` points `npm run dev` at
   `http://localhost:3000`. Set it explicitly to target a local/staging API
   from a build.
+- `NEXUS_CLIENT_TOKEN` - build credential minted by release CI. Its presence
+  sets the `__OFFICIAL_BUILD__` define, which is what compiles in the account,
+  profile-sync, remote-access, leaderboard, and updater surfaces. Absent (the
+  default, and every public clone) those surfaces are absent and the client is
+  local-only; the token itself is never put in the bundle. Falls back to
+  `~/.nexus-build/client-token` so a lab machine does not have to export it.
 - `VITE_RELAY_URL` - relay origin override for local relay testing.
 - `VITE_LAN_SEALED` - set to `1` to force the LAN-sealed transport (also
   toggleable at runtime via `localStorage['nexus.lanSealed']`). Debug flag.

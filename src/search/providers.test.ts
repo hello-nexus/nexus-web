@@ -196,7 +196,9 @@ describe('buildEntries', () => {
     const win = idsOf(true);
     const mac = idsOf(true, { platform: 'macos' });
     // Windows-only: update prefs, tray toggle + row, lock/sleep, event viewer.
-    for (const id of ['update-mode:notify', 'update-channel:beta', 'toggle:tray', 'system:lock', 'system:sleep', 'diag:event-viewer', 'gamesync:scan']) {
+    // The two setting: ids are also the positive control for the credential
+    // gate asserted in providers.unofficial.test.ts.
+    for (const id of ['update-mode:notify', 'update-channel:beta', 'setting:settings.updates.mode.label', 'setting:settings.updates.channel.label', 'toggle:tray', 'system:lock', 'system:sleep', 'diag:event-viewer', 'gamesync:scan']) {
       expect(win.has(id)).toBe(true);
       expect(mac.has(id)).toBe(false);
     }
