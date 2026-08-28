@@ -16,5 +16,5 @@ node sdk/cli/nexus-app.mjs build e2e-sandbox/fixtures/<id>   # from the repo roo
 The suite needs the SDK runtime built once (`cd sdk && npm ci && npm run build`);
 `server.mjs` says so and exits if it is missing.
 
-Set `NEXUS_APPS_DIR=/path/to/nexus-apps` to serve that repo's `apps/<id>/`
+Set `NEXUS_APPS_DIR=/path/to/apps-repo` to serve an external repo's `apps/<id>/`
 builds instead of these.

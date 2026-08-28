@@ -5,8 +5,8 @@
 // therefore ships only the author's code; react-dom + remote-dom + the SDK are
 // downloaded once and shared - exactly what a third-party author's build produces.
 //
-// The author SOURCE lives in the apps repo (nexus-apps): apps/<id>/index.tsx,
-// committed + studyable next to the built widgets/<id>/widget.mjs. The SDK runtime
+// The author SOURCE lives in the apps repo: apps/<id>/index.tsx, committed
+// next to the built widgets/<id>/widget.mjs. The SDK runtime
 // + the shared element contract still live in nexus-web (the host owns the
 // vocabulary); this build aliases them. NEXUS_APPS_DIR overrides the apps-repo
 // location (defaults to the sibling worktree).
@@ -85,7 +85,7 @@ const rt = await build({
 console.log(`built shared runtime → dist/runtime/sdk-runtime.mjs (${mjsBytes(rt)} KB)`);
 // Stage the runtime into the web's public/ so `vite build` ships it to wwwroot
 // at /sdk-runtime.mjs (the host fetches it once, relay-aware). Phase 5 relocates
-// this into the apps dir + a service route when the build moves to nexus-apps.
+// this into the apps dir + a service route when the build moves to the apps repo.
 const pub = join(root, '..', 'public');
 if (existsSync(pub)) {
   copyFileSync(join(outDir, 'runtime', 'sdk-runtime.mjs'), join(pub, 'sdk-runtime.mjs'));
