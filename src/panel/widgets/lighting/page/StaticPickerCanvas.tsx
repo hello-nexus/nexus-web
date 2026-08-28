@@ -49,7 +49,7 @@ interface Marker extends PickerDevice {
  * whole canvas, drops the marks, and answers a press with a notice instead.
  */
 export function StaticPickerCanvas({
-  devices, hasSelection, hex, segmented, compact, patternEffect, patternSlot, patternVersion, gpuAvailable,
+  devices, hasSelection, hex, segmented, fill, patternEffect, patternSlot, patternVersion, gpuAvailable,
   onPreview, onCommit,
 }: {
   /** Selected devices, in rail order. */
@@ -59,8 +59,8 @@ export function StaticPickerCanvas({
   hex: string;
   /** Sample the field on the coarse grid instead of continuously. */
   segmented: boolean;
-  /** Touch surfaces give the field the pane's width and a shorter height. */
-  compact?: boolean;
+  /** Touch surfaces hand the field a whole preview cell, so it takes all of it. */
+  fill?: boolean;
   /** Non-null when the selection wears a pattern - the field is replaced by it. */
   patternEffect: string | null;
   patternSlot: number;
@@ -217,11 +217,14 @@ export function StaticPickerCanvas({
 
   return (
     // The hold is one value: the CSS animation reads it from the constant.
-    <div className={styles.staticPicker} style={{ '--picker-notice-hold': `${NOTICE_MS}ms` } as React.CSSProperties}>
+    <div className={`${styles.staticPicker} ${fill ? styles.staticPickerFill : ''}`} style={{ '--picker-notice-hold': `${NOTICE_MS}ms` } as React.CSSProperties}>
       <div
         ref={fieldRef}
-        className={`${styles.staticField} ${compact ? styles.staticFieldCompact : ''} ${patternEffect ? styles.staticFieldPattern : ''} ${!patternEffect && segmented ? styles.staticFieldSegmented : ''}`}
+        className={`${styles.staticField} ${fill ? styles.staticFieldFill : ''} ${patternEffect ? styles.staticFieldPattern : ''} ${!patternEffect && segmented ? styles.staticFieldSegmented : ''}`}
         style={patternEffect && blastUrl ? { backgroundImage: `url(${blastUrl})` } : undefined}
+        // The field owns its drag; without this a vertical pick on a panel
+        // sheet arms the swipe-to-dismiss instead of moving the colour.
+        data-panel-no-sheet-swipe="true"
         onPointerDown={handleDown}
         onPointerMove={handleMove}
         onPointerUp={handleUp}

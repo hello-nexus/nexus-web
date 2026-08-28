@@ -1812,8 +1812,14 @@
   bottom: calc(100% + 5px);
 }
 
-// Touch surfaces have no room for the 380px canvas the page mirrors.
-.staticFieldCompact {
-  height: clamp(140px, 32vh, 280px);
+// Touch surfaces put the picker in the immersive preview cell (the place
+// Animate's shader gets), so it takes that cell whole rather than the fixed
+// frame the page gives it.
+.staticPickerFill {
+  height: 100%;
+}
+
+.staticFieldFill {
+  height: 100%;
   width: 100%;
 }
