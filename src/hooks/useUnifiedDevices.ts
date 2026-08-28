@@ -106,6 +106,7 @@ const CURATED_ICONS: Record<string, string> = {
   'lianli-wireless': '/assets/devices/lianli.svg',
   strimer: '/assets/devices/device.svg',
   tryx: '/assets/devices/tryx.svg',
+  'nzxt-kraken': '/assets/devices/nzxt.svg',
   streamdeck: '/assets/devices/elgato.svg',
 };
 
