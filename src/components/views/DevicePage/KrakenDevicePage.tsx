@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Image as ImageIcon, Lightbulb, Unplug } from 'lucide-react';
+import { Image as ImageIcon, LayoutGrid, Lightbulb, Unplug } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { SettingSelect, SettingSlider } from '../../common/SettingRow/SettingRow';
@@ -14,6 +14,8 @@ import {
   type KrakenState,
 } from '../../../api/nzxt-kraken';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
+import { usePanelDevices } from '../../../hooks/usePanelDevices';
+import type { DashboardSectionNavigate } from '../../../panel/engine/panelLayoutHelpers';
 import { useTranslation } from '../../../lib/i18n';
 import { convertTemperature, formatNumber, localizeNumbers, tempUnitSymbol } from '../../../lib/units';
 import styles from './LianLiDevicePage.module.scss';
@@ -29,8 +31,13 @@ const LCD_MODES: { value: KrakenState['lcdMode']; labelKey: string }[] = [
 
 const LCD_ROTATIONS = [0, 90, 180, 270];
 
-export function KrakenDevicePage({ onSectionNavigate }: { onSectionNavigate?: (section: string) => void }) {
+export function KrakenDevicePage({ onSectionNavigate }: { onSectionNavigate?: DashboardSectionNavigate }) {
   const { t } = useTranslation();
+  // The LCD is a panel of its own: the overlay renders widgets into it and the
+  // service streams the frames over USB. Its editor lives on that panel's page,
+  // so link across rather than duplicating the editor here.
+  const { devices: panels } = usePanelDevices(true);
+  const lcdPanel = panels.find(p => p.runtimeSurface === 'kraken');
   const { numberFormat, monitoringTempUnit } = useUnitPrefs();
   const [connection, setConnection] = useState<'unknown' | 'connected' | 'disconnected'>('unknown');
   const [state, setState] = useState<KrakenState | null>(null);
@@ -215,6 +222,17 @@ export function KrakenDevicePage({ onSectionNavigate }: { onSectionNavigate?: (s
                 <p className={styles.customNote} data-settings-aside="true">
                   {t('devices.nzxt-kraken.screenUploadFailed')}
                 </p>
+              )}
+              {lcdPanel && onSectionNavigate && (
+                <Button
+                  className={styles.lightingLink}
+                  size="sm"
+                  tone="neutral"
+                  icon={<LayoutGrid size={14} />}
+                  onClick={() => onSectionNavigate('device', { deviceKey: `panel-${lcdPanel.id}` })}
+                >
+                  {t('devices.nzxt-kraken.screenCustomizeWidgets')}
+                </Button>
               )}
             </>
           )}

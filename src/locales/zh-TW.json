@@ -621,6 +621,7 @@
   "devices.nzxt-kraken.pump": "水泵",
   "devices.nzxt-kraken.screenBrightness": "亮度",
   "devices.nzxt-kraken.screenBrightnessAria": "螢幕亮度",
+  "devices.nzxt-kraken.screenCustomizeWidgets": "自訂小工具",
   "devices.nzxt-kraken.screenMode": "顯示",
   "devices.nzxt-kraken.screenModeImage": "圖片",
   "devices.nzxt-kraken.screenModeLiquid": "液溫",

@@ -621,6 +621,7 @@
   "devices.nzxt-kraken.pump": "Pompa",
   "devices.nzxt-kraken.screenBrightness": "Parlaklık",
   "devices.nzxt-kraken.screenBrightnessAria": "Ekran parlaklığı",
+  "devices.nzxt-kraken.screenCustomizeWidgets": "Widget'ları özelleştir",
   "devices.nzxt-kraken.screenMode": "Görüntü",
   "devices.nzxt-kraken.screenModeImage": "Görsel",
   "devices.nzxt-kraken.screenModeLiquid": "Sıvı sıcaklığı",

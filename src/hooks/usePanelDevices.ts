@@ -67,6 +67,25 @@ const HOSTED_MONITOR_CAPABILITIES: Omit<PanelDeviceCapabilities, 'touch'> = {
   presence: false,
 };
 
+// Streamed panels are driven by the host: the overlay renders the panel and the
+// service pushes frames over USB, so there is no kiosk to launch or close and no
+// display of our own to control. Layout and theme are the whole surface.
+const STREAMED_PANEL_CAPABILITIES: PanelDeviceCapabilities = {
+  layout: true,
+  theme: true,
+  displayControls: false,
+  launchClose: false,
+  pairing: false,
+  presence: false,
+  touch: false,
+};
+
+// Per-surface branding for streamed panels; they carry no curated device id to
+// look an icon up from.
+const STREAMED_PANEL_ICONS: Partial<Record<PanelSurface, string>> = {
+  kraken: '/assets/devices/nzxt.svg',
+};
+
 const WIDGET_PANEL_PROFILES: Partial<Record<string, {
   surface: PanelSurface;
   width: number;
@@ -247,6 +266,35 @@ export function buildPanelDevices({
   // the monitor stays physically attached, unmanaged rather than
   // disconnected - so its device page can show an accurate off state instead
   // of "not connected".
+  // Streamed panels: glass the overlay renders into and the service pushes
+  // frames to (the Kraken LCD). Layout + theme edit like any panel; there is no
+  // kiosk to launch, no display to control, and no touch digitizer.
+  for (const record of records) {
+    if (!record.streamed) continue;
+    const cssWidth = record.capabilities?.cssWidth ?? 0;
+    const cssHeight = record.capabilities?.cssHeight ?? 0;
+    const surface = record.capabilities?.surface as PanelSurface | undefined;
+    devices.push({
+      id: `stream:${record.id}`,
+      panelRecordId: record.id,
+      name: record.displayName,
+      subtitle: cssWidth > 0 && cssHeight > 0
+        ? `${labels.online} - ${cssWidth}x${cssHeight}`
+        : labels.online,
+      status: 'online',
+      statusLabel: labels.online,
+      connectionKind: 'usb-display',
+      managementMode: 'managed',
+      surfaceProfileKey: `stream-${record.id}`,
+      runtimeSurface: surface,
+      previewSize: cssWidth > 0 && cssHeight > 0 ? { width: cssWidth, height: cssHeight } : undefined,
+      previewDpr: record.capabilities?.dpr,
+      iconSrc: (surface && STREAMED_PANEL_ICONS[surface]) ?? PANEL_MONITOR_ICON,
+      capabilities: STREAMED_PANEL_CAPABILITIES,
+      modalKind: 'panel-editor',
+    });
+  }
+
   for (const record of records) {
     if (!record.displayId || record.displayAttached === false) continue;
     const linkEnabled = record.enabled !== false;

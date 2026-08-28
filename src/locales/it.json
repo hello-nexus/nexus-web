@@ -621,6 +621,7 @@
   "devices.nzxt-kraken.pump": "Pompa",
   "devices.nzxt-kraken.screenBrightness": "Luminosità",
   "devices.nzxt-kraken.screenBrightnessAria": "Luminosità dello schermo",
+  "devices.nzxt-kraken.screenCustomizeWidgets": "Personalizza i widget",
   "devices.nzxt-kraken.screenMode": "Visualizzazione",
   "devices.nzxt-kraken.screenModeImage": "Immagine",
   "devices.nzxt-kraken.screenModeLiquid": "Temperatura del liquido",

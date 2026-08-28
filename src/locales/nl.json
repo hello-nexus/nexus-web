@@ -621,6 +621,7 @@
   "devices.nzxt-kraken.pump": "Pomp",
   "devices.nzxt-kraken.screenBrightness": "Helderheid",
   "devices.nzxt-kraken.screenBrightnessAria": "Schermhelderheid",
+  "devices.nzxt-kraken.screenCustomizeWidgets": "Widgets aanpassen",
   "devices.nzxt-kraken.screenMode": "Weergave",
   "devices.nzxt-kraken.screenModeImage": "Afbeelding",
   "devices.nzxt-kraken.screenModeLiquid": "Vloeistoftemperatuur",

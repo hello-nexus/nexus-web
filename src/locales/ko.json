@@ -621,6 +621,7 @@
   "devices.nzxt-kraken.pump": "펌프",
   "devices.nzxt-kraken.screenBrightness": "밝기",
   "devices.nzxt-kraken.screenBrightnessAria": "화면 밝기",
+  "devices.nzxt-kraken.screenCustomizeWidgets": "위젯 사용자 지정",
   "devices.nzxt-kraken.screenMode": "표시",
   "devices.nzxt-kraken.screenModeImage": "이미지",
   "devices.nzxt-kraken.screenModeLiquid": "냉각수 온도",

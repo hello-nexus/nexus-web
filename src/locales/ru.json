@@ -626,6 +626,7 @@
   "devices.nzxt-kraken.pump": "Помпа",
   "devices.nzxt-kraken.screenBrightness": "Яркость",
   "devices.nzxt-kraken.screenBrightnessAria": "Яркость экрана",
+  "devices.nzxt-kraken.screenCustomizeWidgets": "Настроить виджеты",
   "devices.nzxt-kraken.screenMode": "Отображение",
   "devices.nzxt-kraken.screenModeImage": "Изображение",
   "devices.nzxt-kraken.screenModeLiquid": "Температура жидкости",

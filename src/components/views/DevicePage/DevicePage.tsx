@@ -5,6 +5,7 @@ import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { ServiceRequired } from '../ServiceRequired';
 import { Placeholder } from '../Placeholder';
+import type { DashboardSectionNavigate } from '../../../panel/engine/panelLayoutHelpers';
 import { PanelDevicePage } from './PanelDevicePage';
 import { KeebDevicePage } from './KeebDevicePage';
 import { LianLiDevicePage } from './LianLiDevicePage';
@@ -55,7 +56,7 @@ interface DevicePageProps {
   serviceOnline: boolean;
   connectionState?: ConnectionState;
   onOpenFirmware?: () => void;
-  onSectionNavigate?: (section: string) => void;
+  onSectionNavigate?: DashboardSectionNavigate;
 }
 
 export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFirmware, onSectionNavigate }: DevicePageProps) {
