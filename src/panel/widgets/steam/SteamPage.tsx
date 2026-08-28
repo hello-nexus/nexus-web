@@ -32,6 +32,7 @@ import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { formatNumber, localizeNumbers, type NumberFormat } from '../../../lib/units';
 import { SteamLogo } from './SteamLogo';
+import { SteamSettings } from './SteamSettings';
 import styles from './SteamPage.module.scss';
 
 type SortKey = 'recent' | 'playtime' | 'name';
@@ -79,6 +80,9 @@ export function SteamPage() {
   const [view, setView] = useState<ViewState>({ kind: 'entry' });
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<SortKey>('recent');
+  // Bumped when the inline setup form saves, so the status poll re-runs
+  // immediately instead of leaving the setup screen up for a poll cycle.
+  const [configRev, setConfigRev] = useState(0);
 
   const currentGame = useMemo(() => {
     const appId = Number(profile?.gameId);
@@ -101,7 +105,7 @@ export function SteamPage() {
     loadProfile();
     const timer = window.setInterval(loadProfile, PROFILE_POLL_MS);
     return () => { cancelled = true; window.clearInterval(timer); };
-  }, []);
+  }, [configRev]);
 
   useEffect(() => {
     if (!status?.ready) return;
@@ -155,11 +159,19 @@ export function SteamPage() {
       <ViewHeader title={t('panel.widget.steam')} />
       <div className={`${styles.body} pageBody`}>
         {!status?.ready ? (
-          <EmptyState
-            icon={<SteamLogo size={40} />}
-            title={t('steam.notConfigured.title')}
-            hint={status?.reason || t('steam.notConfigured.hint')}
-          />
+          <div className={styles.setup}>
+            <div className={styles.setupInner}>
+              <EmptyState
+                className={styles.setupNotice}
+                icon={<SteamLogo size={40} />}
+                title={t('steam.notConfigured.title')}
+                hint={t(status?.hasApiKey ? 'steam.notConfigured.hintSteamId' : 'steam.notConfigured.hint')}
+              />
+              <div className={styles.setupForm}>
+                <SteamSettings onSaved={() => setConfigRev(rev => rev + 1)} />
+              </div>
+            </div>
+          </div>
         ) : (
           <>
             <ProfileStrip profile={profile} level={level} currentGame={currentGame} />

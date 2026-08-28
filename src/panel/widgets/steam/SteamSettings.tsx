@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { fetchSteamConfig, saveSteamConfig } from '../../../api/steam';
 import { useTranslation } from '../../../lib/i18n';
 import type { WidgetSettingsProps } from '../types';
@@ -12,14 +12,24 @@ import {
   SettingsSection,
 } from '../common/SettingsRow/SettingsRow';
 
-export function SteamSettings(props: WidgetSettingsProps) {
-  void props;
+/**
+ * Steam API key + Steam ID form. Rendered both as the widget's settings
+ * sheet and inline on SteamPage when Steam is not configured yet, so the
+ * props are optional - the embedded copy passes only `onSaved`, which the
+ * page uses to re-check status the moment a key lands.
+ */
+export function SteamSettings({ onSaved }: Partial<WidgetSettingsProps> & { onSaved?: () => void }) {
   const { t } = useTranslation();
   const [apiKey, setApiKey] = useState('');
   const [steamId, setSteamId] = useState('');
   const [autoDetectedSteamId, setAutoDetectedSteamId] = useState('');
   const [hasApiKey, setHasApiKey] = useState(false);
   const [saved, setSaved] = useState(false);
+  const savedTimer = useRef(0);
+
+  // The inline copy on SteamPage unmounts as soon as a save flips Steam ready,
+  // so the badge timer routinely outlives the component.
+  useEffect(() => () => window.clearTimeout(savedTimer.current), []);
 
   useEffect(() => {
     fetchSteamConfig().then(config => {
@@ -42,7 +52,9 @@ export function SteamSettings(props: WidgetSettingsProps) {
     }
     setApiKey('');
     setSaved(true);
-    window.setTimeout(() => setSaved(false), 1200);
+    if (config) onSaved?.();
+    window.clearTimeout(savedTimer.current);
+    savedTimer.current = window.setTimeout(() => setSaved(false), 1200);
   };
 
   return (
