@@ -54,6 +54,22 @@ export interface FpsSessionsResponse {
   sessions: FpsSession[];
 }
 
+/** A session row from the range route - carries the game identity the per-game
+ *  routes above already know from their own URL, since a range spans games. */
+export interface FpsRangeSession {
+  id: string;
+  gameKey: string;
+  name: string;
+  store: string;
+  startedUtcMs: number;
+  endedUtcMs: number;
+  avgFps: number;
+}
+
+export interface FpsSessionsInRangeResponse {
+  sessions: FpsRangeSession[];
+}
+
 export const getFpsTrackingStatus = () =>
   fetchService<FpsTrackingStatus>('/api/fps/tracking');
 
@@ -68,6 +84,11 @@ export const fetchFpsGames = () =>
 
 export const fetchFpsGameSessions = (gameKey: string, limit = 50) =>
   fetchService<FpsSessionsResponse>(`/api/fps/games/${encodeURIComponent(gameKey)}/sessions?limit=${limit}`);
+
+/** Every session overlapping [from, to], newest first - for the monitoring
+ *  history FPS overlay's session-range masking and hover-tooltip game name. */
+export const fetchFpsSessionsInRange = (from: number, to: number, limit = 200) =>
+  fetchService<FpsSessionsInRangeResponse>(`/api/fps/sessions?from=${Math.round(from)}&to=${Math.round(to)}&limit=${limit}`);
 
 /** Steam's canonical gameKey shape - see plan's "Signature key" decisions. */
 export function steamGameKey(appId: number): string {

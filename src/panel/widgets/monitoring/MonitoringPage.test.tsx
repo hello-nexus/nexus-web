@@ -252,15 +252,21 @@ vi.mock('../../../hooks/useSensorExtras', () => ({
 
 const updateMock = vi.fn();
 let collapsedState: string[] = [];
+let fpsOverlayState = false;
 vi.mock('../../../hooks/useUiSettings', () => ({
   useUiSettings: () => ({
-    settings: { preferredGpuId: '', monitoringDetailedCollapsed: collapsedState },
-    update: (patch: { monitoringDetailedCollapsed?: string[] }) => {
+    settings: { preferredGpuId: '', monitoringDetailedCollapsed: collapsedState, monitoringFpsOverlayEnabled: fpsOverlayState },
+    update: (patch: { monitoringDetailedCollapsed?: string[]; monitoringFpsOverlayEnabled?: boolean }) => {
       if (patch.monitoringDetailedCollapsed) collapsedState = patch.monitoringDetailedCollapsed;
+      if (patch.monitoringFpsOverlayEnabled !== undefined) fpsOverlayState = patch.monitoringFpsOverlayEnabled;
       updateMock(patch);
     },
   }),
   useUnitPrefs: () => ({ monitoringTempUnit: 'c', timeFormat: 'system', numberFormat: 'system' }),
+}));
+
+vi.mock('../../../hooks/useFpsSessionsInRange', () => ({
+  useFpsSessionsInRange: () => ({ sessions: [], loading: false }),
 }));
 
 vi.mock('../../../../lib/i18n', () => ({
@@ -1214,6 +1220,35 @@ describe('MonitoringPage', () => {
       const storageTab = screen.getByRole('tab', { name: /monitoring\.tab\.storage/ });
       expect(within(storageTab).getByText('1.4 MB/s')).toBeInTheDocument();
       expect(lastDiskIoRateEnabled).toBe(true);
+    });
+  });
+
+  describe('FPS overlay toggle', () => {
+    afterEach(() => {
+      fpsOverlayState = false;
+    });
+
+    it('is off by default', () => {
+      render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+      const toggle = screen.getByRole('button', { name: 'monitoring.fpsOverlay.show' });
+      expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('persists the toggle through useUiSettings.update and reflects the new state', () => {
+      const { rerender } = render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+
+      fireEvent.click(screen.getByRole('button', { name: 'monitoring.fpsOverlay.show' }));
+      expect(updateMock).toHaveBeenCalledWith({ monitoringFpsOverlayEnabled: true });
+
+      // The mocked useUiSettings closes over a plain module variable, not
+      // React state - re-render to re-invoke it and pick up the mutation.
+      rerender(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
+      expect(screen.getByRole('button', { name: 'monitoring.fpsOverlay.hide' })).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    it('renders the same toggle across every metric tab, not just cpu/gpu', () => {
+      render(<MonitoringPage serviceOnline={true} connectionState="online" tab="network" onTabChange={vi.fn()} />);
+      expect(screen.getByRole('button', { name: 'monitoring.fpsOverlay.show' })).toBeInTheDocument();
     });
   });
 });

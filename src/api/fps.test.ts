@@ -3,6 +3,7 @@ import {
   deleteFpsAll,
   fetchFpsGameSessions,
   fetchFpsGames,
+  fetchFpsSessionsInRange,
   getFpsTrackingStatus,
   setFpsTrackingEnabled,
   steamGameKey,
@@ -114,5 +115,36 @@ describe('fetchFpsGameSessions', () => {
 
     const [url] = fetchMock.mock.calls[0] as [string];
     expect(url).toContain('limit=50');
+  });
+});
+
+describe('fetchFpsSessionsInRange', () => {
+  it('builds the URL with from/to/limit', async () => {
+    const fetchMock = vi.fn(async () => jsonResponse(200, { sessions: [] }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await fetchFpsSessionsInRange(1000, 2000, 50);
+
+    const [url] = fetchMock.mock.calls[0] as [string];
+    expect(url).toContain('/api/fps/sessions?');
+    expect(url).toContain('from=1000');
+    expect(url).toContain('to=2000');
+    expect(url).toContain('limit=50');
+  });
+
+  it('defaults the limit to 200', async () => {
+    const fetchMock = vi.fn(async () => jsonResponse(200, { sessions: [] }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await fetchFpsSessionsInRange(1000, 2000);
+
+    const [url] = fetchMock.mock.calls[0] as [string];
+    expect(url).toContain('limit=200');
+  });
+
+  it('resolves the sessions list', async () => {
+    const body = { sessions: [{ id: 's1', gameKey: 'steam:730', name: 'Counter-Strike 2', store: 'steam', startedUtcMs: 1000, endedUtcMs: 2000, avgFps: 132 }] };
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(200, body)));
+    expect(await fetchFpsSessionsInRange(1000, 2000)).toEqual(body);
   });
 });

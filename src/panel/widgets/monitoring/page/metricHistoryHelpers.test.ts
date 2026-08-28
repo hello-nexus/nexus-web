@@ -5,14 +5,17 @@ import {
   adaptivePercentYMax,
   appsSeriesParamFor,
   averageRpmSeries,
+  buildFpsOverlaySeries,
   buildSelectedAppSeries,
   currentDiskRateBytesPerSec,
   defaultBoxWidthMs,
   deriveMemoryTotalMb,
   fanNamesForRole,
   fanSeriesIdsForRole,
+  findFpsSessionAt,
   formatBrushEdgeLabels,
   initViewport,
+  maskFpsPointsToSessions,
   maxAvgValue,
   nearestTempAt,
   pickGpuHistorySeries,
@@ -29,6 +32,7 @@ import {
   type FanRoleMap,
   type ViewportState,
 } from './metricHistoryHelpers';
+import type { FpsRangeSession } from '../../../../api/fps';
 import type { MetricHistorySeries } from '../../../../api/monitoringHistory';
 import type { AppWindowSeries } from '../../../../api/monitoringHistoryApps';
 import { MIN_BOX_WINDOW_MS } from '../../../../components/common/TimelineBrush/timelineBrushUtils';
@@ -797,5 +801,57 @@ describe('resolveSelectedFrame (point-in-time snapshot)', () => {
     // is, with no separate following-aware branch.
     const liveDomain: [number, number] = [Date.now() - 60_000, Date.now()];
     expect(resolveSelectedFrame(null, liveDomain).selectedFrameMs).toBe(liveDomain[1]);
+  });
+});
+
+describe('findFpsSessionAt / maskFpsPointsToSessions / buildFpsOverlaySeries', () => {
+  function fpsSession(over: Partial<FpsRangeSession> = {}): FpsRangeSession {
+    return { id: 's1', gameKey: 'steam:730', name: 'Counter-Strike 2', store: 'steam', startedUtcMs: 1000, endedUtcMs: 2000, avgFps: 132, ...over };
+  }
+
+  describe('findFpsSessionAt', () => {
+    it('finds the session covering a timestamp, inclusive of both edges', () => {
+      const sessions = [fpsSession()];
+      expect(findFpsSessionAt(sessions, 1000)?.id).toBe('s1');
+      expect(findFpsSessionAt(sessions, 1500)?.id).toBe('s1');
+      expect(findFpsSessionAt(sessions, 2000)?.id).toBe('s1');
+    });
+
+    it('returns null for a timestamp between sessions', () => {
+      const sessions = [fpsSession({ id: 's1', startedUtcMs: 1000, endedUtcMs: 2000 }), fpsSession({ id: 's2', startedUtcMs: 3000, endedUtcMs: 4000 })];
+      expect(findFpsSessionAt(sessions, 2500)).toBeNull();
+    });
+  });
+
+  describe('maskFpsPointsToSessions', () => {
+    it('keeps only points inside a session range', () => {
+      const points = [{ t: 500, avg: 60, max: 60 }, { t: 1500, avg: 120, max: 130 }, { t: 2500, avg: 90, max: 90 }];
+      const masked = maskFpsPointsToSessions(points, [fpsSession()]);
+      expect(masked).toEqual([{ t: 1500, avg: 120, max: 130 }]);
+    });
+
+    it('drops every point when there are no sessions', () => {
+      const points = [{ t: 1500, avg: 120, max: 130 }];
+      expect(maskFpsPointsToSessions(points, [])).toEqual([]);
+    });
+  });
+
+  describe('buildFpsOverlaySeries', () => {
+    it('returns null for an empty masked series', () => {
+      expect(buildFpsOverlaySeries([], 'cpu', 'var(--text)')).toBeNull();
+    });
+
+    it('rescales onto the 0-100 band for percent tabs (cpu/gpu/memory)', () => {
+      const out = buildFpsOverlaySeries([{ t: 1000, avg: 120, max: 240 }], 'cpu', 'var(--text)');
+      expect(out?.points).toEqual([{ t: 1000, avg: 50, max: 100 }]);
+      expect(out?.id).toBe('fps-overlay');
+      expect(out?.noFill).toBe(true);
+      expect(out?.noDots).toBe(true);
+    });
+
+    it('passes raw fps values through unscaled for network/storage', () => {
+      const out = buildFpsOverlaySeries([{ t: 1000, avg: 132, max: 144 }], 'network', 'var(--text)');
+      expect(out?.points).toEqual([{ t: 1000, avg: 132, max: 144 }]);
+    });
   });
 });

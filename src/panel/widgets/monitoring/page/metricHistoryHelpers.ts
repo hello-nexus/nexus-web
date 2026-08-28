@@ -6,9 +6,10 @@ import { nearestPoint, type TimeSeriesPoint } from '../../../../components/commo
 import type { TimeSeriesSeries } from '../../../../components/common/TimeSeriesChart/TimeSeriesChart';
 import { MIN_BOX_WINDOW_MS } from '../../../../components/common/TimelineBrush/timelineBrushUtils';
 import type { TimelineBrushEdgeLabel } from '../../../../components/common/TimelineBrush/TimelineBrush';
-import type { MetricHistorySeries } from '../../../../api/monitoringHistory';
+import type { MetricHistoryPoint, MetricHistorySeries } from '../../../../api/monitoringHistory';
 import type { AppWindowSeries } from '../../../../api/monitoringHistoryApps';
 import type { FanRole } from '../../../../api/cooling';
+import type { FpsRangeSession } from '../../../../api/fps';
 import { hour12OptionFor, resolveHour12, type TimeFormat } from '../../../../lib/units';
 
 export type HistoryMetric = 'cpu' | 'memory' | 'storage' | 'network' | 'gpu';
@@ -356,6 +357,45 @@ export function maxAvgValue(series: readonly TimeSeriesSeries[]): number {
     }
   }
   return max;
+}
+
+// The same fixed FPS ceiling perfDomain.ts uses for the panel's live FPS
+// gauge - the overlay line's reference max, independent of whichever tab's
+// own adaptive axis is showing (so adding the overlay can't feed back into
+// that axis's own ceiling computation).
+const FPS_OVERLAY_REFERENCE_MAX = 240;
+
+/** A point in time is "in a game" only while it falls inside a Frames
+ *  session's own [startedUtcMs, endedUtcMs] - desktop apps present frames
+ *  too, so an unmasked fps series would draw between games as well. */
+export function findFpsSessionAt(sessions: readonly FpsRangeSession[], t: number): FpsRangeSession | null {
+  return sessions.find(s => t >= s.startedUtcMs && t <= s.endedUtcMs) ?? null;
+}
+
+/** Drops every fps point that falls outside every known session's range. */
+export function maskFpsPointsToSessions(
+  points: readonly MetricHistoryPoint[],
+  sessions: readonly FpsRangeSession[],
+): MetricHistoryPoint[] {
+  if (sessions.length === 0) return [];
+  return points.filter(p => findFpsSessionAt(sessions, p.t) !== null);
+}
+
+/**
+ * The FPS overlay line, in the current tab's own visual space: the network
+ * and storage tabs plot an unbounded rate with no fixed ceiling to rescale
+ * onto, so their overlay rides the raw fps values; cpu/memory/gpu rescale
+ * fps onto the 0-100 band the percent tabs use, via FPS_OVERLAY_REFERENCE_MAX.
+ */
+export function buildFpsOverlaySeries(
+  maskedPoints: readonly MetricHistoryPoint[],
+  metric: HistoryMetric,
+  color: string,
+): TimeSeriesSeries | null {
+  if (maskedPoints.length === 0) return null;
+  const scale = metric === 'network' || metric === 'storage' ? 1 : 100 / FPS_OVERLAY_REFERENCE_MAX;
+  const points: TimeSeriesPoint[] = maskedPoints.map(p => ({ t: p.t, avg: p.avg * scale, max: p.max * scale }));
+  return { id: 'fps-overlay', name: 'FPS', color, points, noFill: true, noDots: true };
 }
 
 // Round, human-legible ceilings for a 0-100 percent axis (cpu/gpu/memory) -
