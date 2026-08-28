@@ -103,6 +103,9 @@ export interface AppMetadata {
   // Per-orientation flag for whether the touch fullscreen view is
   // available. The menu entry is gated on (Touch != null) && this.
   supportsImmersive: { portrait: boolean; landscape: boolean };
+  // Only one instance per panel. Default (undefined/false) allows many, each
+  // with its own config - the long-standing behaviour for every built-in.
+  singleInstance?: boolean;
   hasConfig: boolean;
   // Whether the widget *requires* a touch / pointer input modality. true
   // means it's hidden on display-only surfaces (currently Q60). false means
