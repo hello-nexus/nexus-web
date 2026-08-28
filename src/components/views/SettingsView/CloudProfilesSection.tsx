@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Check, CloudOff, CloudUpload, DownloadCloud } from 'lucide-react';
-import { Badge } from '../../common/Badge/Badge';
 import { Button } from '../../common/Button/Button';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
@@ -102,84 +101,94 @@ export function CloudProfilesSection({ profiles }: { profiles: UseProfilesResult
   const atLimit = profiles.profiles.length >= 5;
   const unknown = t('profile.cloud.machine.unknown');
 
-  // This computer's profiles first: they are the ones being backed up, and the
-  // rest of the list is other computers you might copy from.
-  const rows = (library?.machines ?? [])
-    .flatMap(machine => machine.profiles.map(profile => ({ machine, profile })))
-    .sort((a, b) => Number(b.machine.isThisMachine) - Number(a.machine.isThisMachine));
+  const allRows = (library?.machines ?? [])
+    .flatMap(machine => machine.profiles.map(profile => ({ machine, profile })));
+  const mine = allRows.filter(r => r.machine.isThisMachine);
+  const others = allRows.filter(r => !r.machine.isThisMachine);
 
   const backedUpAt = (profileId: string) => {
     const status = sync.profiles.find(p => p.profileId === profileId);
     return status?.lastSyncedAt ? new Date(status.lastSyncedAt).toLocaleString() : null;
   };
 
-  return (
-    <SettingsSection title={t('profile.cloud.title')} description={t('profile.cloud.subtitle')}>
-      {library === null ? <Spinner size={24} /> : rows.length === 0 ? (
-        <EmptyState title={t('profile.cloud.list.empty')} />
-      ) : rows.map(({ machine, profile }) => {
-        const key = `${machine.installId}:${profile.profileId}`;
-        const when = machine.isThisMachine ? backedUpAt(profile.profileId) : null;
-        const imported = importedKeys.includes(key);
-        return (
-          <SettingRow
-            key={key}
-            label={profile.name}
-            description={(
-              <span className={styles.cloudProfileOwner}>
-                {machine.hostname || unknown}
-                {machine.isThisMachine && <Badge label={t('profile.cloud.list.thisComputer')} />}
-                {machine.isThisMachine && (
-                  <span className={styles.cloudProfileBackedUp}>
-                    {when
-                      ? t('profile.cloud.backup.lastSynced', { when })
-                      : t('profile.cloud.backup.never')}
-                  </span>
-                )}
-              </span>
-            )}
-          >
-            {machine.isThisMachine ? (
-              <Button
-                type="button"
-                tone="neutral"
-                size="sm"
-                icon={<CloudUpload />}
-                loading={syncBusy}
-                onClick={handleSyncNow}
-              >
-                {t('profile.cloud.backup.syncNow')}
-              </Button>
-            ) : (
-              <Button
-                type="button"
-                tone="neutral"
-                size="sm"
-                icon={imported ? <Check /> : <DownloadCloud />}
-                loading={busyKey === key}
-                disabled={atLimit || busyKey !== null}
-                onClick={() => void runImport(machine.installId, profile.profileId, key, false, profile.name)}
-              >
-                {imported ? t('profile.cloud.import.done') : t('profile.cloud.import.open')}
-              </Button>
-            )}
-          </SettingRow>
-        );
-      })}
-
-      {importError && <p className={styles.profileImportError} role="alert" data-settings-aside="true">{importError}</p>}
-      {atLimit && <p className={styles.note} data-settings-aside="true">{t('profile.maxReached')}</p>}
-
-      {/* Per-machine rows make a conflict need two writers on THIS machine. */}
-      {sync.conflicts.length > 0 && (
-        <SettingRow
-          label={t('account.sync.conflict.title')}
-          description={t('account.sync.conflict.pendingCount', { count: sync.conflicts.length })}
+  const ownRow = ({ profile }: typeof allRows[number]) => {
+    const when = backedUpAt(profile.profileId);
+    return (
+      <SettingRow
+        key={profile.profileId}
+        label={profile.name}
+        description={when
+          ? t('profile.cloud.backup.lastSynced', { when })
+          : t('profile.cloud.backup.never')}
+      >
+        <Button
+          type="button"
+          tone="neutral"
+          size="sm"
+          icon={<CloudUpload />}
+          loading={syncBusy}
+          onClick={handleSyncNow}
         >
-          <Button type="button" tone="accent" size="sm" onClick={() => setConflictOpen(true)}>
-            {t('account.sync.conflict.review')}
-          </Button>
-        </SettingRow>
+          {t('profile.cloud.backup.syncNow')}
+        </Button>
+      </SettingRow>
+    );
+  };
+
+  const otherRow = ({ machine, profile }: typeof allRows[number]) => {
+    const key = `${machine.installId}:${profile.profileId}`;
+    const imported = importedKeys.includes(key);
+    return (
+      <SettingRow
+        key={key}
+        label={profile.name}
+        description={machine.hostname || unknown}
+      >
+        <Button
+          type="button"
+          tone="neutral"
+          size="sm"
+          icon={imported ? <Check /> : <DownloadCloud />}
+          loading={busyKey === key}
+          disabled={atLimit || busyKey !== null}
+          onClick={() => void runImport(machine.installId, profile.profileId, key, false, profile.name)}
+        >
+          {imported ? t('profile.cloud.import.done') : t('profile.cloud.import.open')}
+        </Button>
+      </SettingRow>
+    );
+  };
+
+  return (
+    <>
+      <SettingsSection title={t('profile.cloud.title')} description={t('profile.cloud.subtitle')}>
+        {library === null ? <Spinner size={24} /> : mine.length === 0 ? (
+          <EmptyState title={t('profile.cloud.list.empty')} />
+        ) : mine.map(ownRow)}
+
+        {importError && <p className={styles.profileImportError} role="alert" data-settings-aside="true">{importError}</p>}
+
+        {/* Per-machine rows make a conflict need two writers on THIS machine. */}
+        {sync.conflicts.length > 0 && (
+          <SettingRow
+            label={t('account.sync.conflict.title')}
+            description={t('account.sync.conflict.pendingCount', { count: sync.conflicts.length })}
+          >
+            <Button type="button" tone="accent" size="sm" onClick={() => setConflictOpen(true)}>
+              {t('account.sync.conflict.review')}
+            </Button>
+          </SettingRow>
+        )}
+      </SettingsSection>
+
+      {others.length > 0 && (
+        <SettingsSection
+          title={t('profile.cloud.others.title')}
+          description={t('profile.cloud.others.subtitle')}
+        >
+          {others.map(otherRow)}
+          {atLimit && <p className={styles.note} data-settings-aside="true">{t('profile.maxReached')}</p>}
+        </SettingsSection>
       )}
 
       <ConfirmModal
@@ -202,6 +211,6 @@ export function CloudProfilesSection({ profiles }: { profiles: UseProfilesResult
         onResolve={sync.resolve}
         onClose={() => setConflictOpen(false)}
       />
-    </SettingsSection>
+    </>
   );
 }

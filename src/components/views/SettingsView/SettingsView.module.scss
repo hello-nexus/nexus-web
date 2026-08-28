@@ -355,15 +355,4 @@
 }
 
 
-/* Cloud profile row subtitle: the owning computer, plus the "this computer"
-   badge on the machine you are sitting at. */
-.cloudProfileOwner {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-}
 
-/* "Last backed up" stamp riding along the owner label on this computer's rows. */
-.cloudProfileBackedUp {
-  color: var(--text-dim);
-}
