@@ -17,6 +17,7 @@ import { typeForMarketplace } from '../../../widgets/marketplaceRegistry';
 import { LianLiTlDevicePage } from './LianLiTlDevicePage';
 import { LianLiWirelessDevicePage } from './LianLiWirelessDevicePage';
 import { Galahad2DevicePage } from './Galahad2DevicePage';
+import { KrakenDevicePage } from './KrakenDevicePage';
 import { StrimerDevicePage } from './StrimerDevicePage';
 import { TryxDevicePage } from './TryxDevicePage';
 import { StreamDeckDevicePage } from './StreamDeckDevicePage';
@@ -180,6 +181,10 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFi
 
   if (device.curatedId === 'lianli-aio') {
     return <Galahad2DevicePage key={device.key} onSectionNavigate={onSectionNavigate} />;
+  }
+
+  if (device.curatedId === 'nzxt-kraken') {
+    return <KrakenDevicePage key={device.key} onSectionNavigate={onSectionNavigate} />;
   }
 
   if (device.curatedId === 'lianli-wireless') {
