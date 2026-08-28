@@ -372,3 +372,17 @@
 
   &:hover { color: var(--text); }
 }
+
+/* Spins only while a library read is in flight, so the control reports the
+   request rather than decorating the button. */
+@keyframes cloud-refresh-spin {
+  to { transform: rotate(360deg); }
+}
+
+.cloudRefreshSpinning {
+  animation: cloud-refresh-spin 0.8s linear infinite;
+}
+
+.cloudRefresh:disabled {
+  cursor: default;
+}

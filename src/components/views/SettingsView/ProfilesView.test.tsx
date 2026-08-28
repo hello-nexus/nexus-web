@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { ProfilesView } from './ProfilesView';
 import type { UseProfilesResult } from '../../../hooks/useProfiles';
@@ -13,10 +13,20 @@ vi.mock('../../../lib/i18n', () => ({
 vi.mock('./ProfilesTab', () => ({
   ProfilesTab: () => <div>LOCAL_PROFILES</div>,
 }));
+const accountsResult = vi.fn(() => ({ activeAccountId: 'acct-1', activeAccount: null, refresh: vi.fn() }));
+vi.mock('../../../hooks/useCloudAccounts', () => ({
+  useCloudAccounts: () => accountsResult(),
+}));
+
+let reportLoading: ((loading: boolean) => void) | undefined;
 vi.mock('./CloudProfilesSection', () => ({
-  CloudProfilesSection: ({ reloadToken }: { reloadToken?: number }) => (
-    <div>CLOUD_PROFILES token={String(reloadToken)}</div>
-  ),
+  CloudProfilesSection: ({ reloadToken, onLoadingChange }: {
+    reloadToken?: number;
+    onLoadingChange?: (loading: boolean) => void;
+  }) => {
+    reportLoading = onLoadingChange;
+    return <div>CLOUD_PROFILES token={String(reloadToken)}</div>;
+  },
 }));
 
 const PROFILES = {
@@ -63,6 +73,31 @@ describe('ProfilesView tabs', () => {
 });
 
 describe('ProfilesView cloud refresh', () => {
+  it('hides the refresh control while signed out', () => {
+    accountsResult.mockReturnValueOnce({ activeAccountId: null, activeAccount: null, refresh: vi.fn() });
+    render(
+      <ProfilesView serviceOnline profiles={PROFILES} tab="cloud" onTabChange={vi.fn()} />,
+    );
+    // Nothing to re-read signed out; the page is just the sign-in prompt.
+    expect(screen.queryByRole('button', { name: 'profile.cloud.refresh' })).not.toBeInTheDocument();
+  });
+
+  it('spins only while a read is in flight', async () => {
+    render(
+      <ProfilesView serviceOnline profiles={PROFILES} tab="cloud" onTabChange={vi.fn()} />,
+    );
+    const button = () => screen.getByRole('button', { name: 'profile.cloud.refresh' });
+    expect(button()).not.toHaveAttribute('data-loading');
+
+    await act(async () => { reportLoading?.(true); });
+    expect(button()).toHaveAttribute('data-loading', 'true');
+    expect(button()).toBeDisabled();
+
+    await act(async () => { reportLoading?.(false); });
+    expect(button()).not.toHaveAttribute('data-loading');
+    expect(button()).not.toBeDisabled();
+  });
+
   it('bumps the reload token when the tab refresh control is pressed', () => {
     render(
       <ProfilesView serviceOnline profiles={PROFILES} tab="cloud" onTabChange={vi.fn()} />,

@@ -24,7 +24,12 @@ interface ConflictPrompt {
 
 /** This machine's profiles back up to the account; another machine's never arrive on their own, so crossing machines is an explicit per-profile import. */
 export function CloudProfilesSection(
-  { profiles, reloadToken = 0 }: { profiles: UseProfilesResult; reloadToken?: number },
+  { profiles, reloadToken = 0, onLoadingChange }: {
+    profiles: UseProfilesResult;
+    reloadToken?: number;
+    /** Reports whether a library read is in flight, so the tab's refresh control can spin while it is. */
+    onLoadingChange?: (loading: boolean) => void;
+  },
 ) {
   const { t } = useTranslation();
   const accounts = useCloudAccounts(true);
@@ -44,10 +49,12 @@ export function CloudProfilesSection(
 
   const loadLibrary = useCallback(() => {
     if (!signedIn) return;
+    onLoadingChange?.(true);
     void fetchCloudLibrary()
       .then(data => setLibrary(data ?? { machines: [] }))
-      .catch(() => setLibrary({ machines: [] }));
-  }, [signedIn]);
+      .catch(() => setLibrary({ machines: [] }))
+      .finally(() => onLoadingChange?.(false));
+  }, [signedIn, onLoadingChange]);
 
   useEffect(() => {
     loadLibrary();
