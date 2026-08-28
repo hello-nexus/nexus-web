@@ -12,7 +12,6 @@ import { useProfileSharing, type UseProfilesResult } from '../../../hooks/usePro
 import { isProfileNameTaken } from '../../../hooks/profileNameUtils';
 import { useTranslation } from '../../../lib/i18n';
 import { SharingSection } from './SharingSection';
-import { CloudProfilesSection } from './CloudProfilesSection';
 import styles from './SettingsView.module.scss';
 
 type ConfirmKind =
@@ -341,8 +340,6 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
           setConfirmTarget({ kind: 'shareCategory', category, primaryName: primaryProfile?.name ?? '' });
         }}
       />
-
-      <CloudProfilesSection profiles={profiles} />
 
       {confirmTarget && confirmCopy && (
         <ConfirmModal
