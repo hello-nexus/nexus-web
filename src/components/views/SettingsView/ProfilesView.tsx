@@ -4,7 +4,8 @@ import { GenericSkeleton } from '../PageSkeleton/PageSkeleton';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import type { UseProfilesResult } from '../../../hooks/useProfiles';
 import type { Preferences } from '../../../api/profiles';
-import { Tabs, type TabDef } from '../../common/Tabs/Tabs';
+import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
+import type { TabDef } from '../../common/Tabs/Tabs';
 import { useTranslation } from '../../../lib/i18n';
 import { ProfilesTab } from './ProfilesTab';
 import { CloudProfilesSection } from './CloudProfilesSection';
@@ -47,7 +48,7 @@ export function ProfilesView({ serviceOnline, connectionState, profiles, tab, on
 
   return (
     <div className={styles.settings}>
-      <Tabs tabs={tabs} activeKey={active} onChange={onTabChange} ariaLabel={t('profile.tab.aria')} />
+      <ViewHeader title={t('profile.manageTitle')} tabs={tabs} activeTab={active} onTabChange={onTabChange} />
       <div className={`${styles.tabContent} pageBody`}>
         {active === 'cloud'
           ? <CloudProfilesSection profiles={profiles} />

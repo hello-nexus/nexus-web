@@ -56,18 +56,20 @@ export function CloudProfilesSection({ profiles }: { profiles: UseProfilesResult
 
   if (!signedIn) {
     return (
-      <SettingsSection title={t('profile.cloud.title')}>
-        <EmptyState
-          icon={<CloudOff />}
-          title={t('profile.cloud.signedOut.title')}
-          hint={t('profile.cloud.signedOut.hint')}
-          action={(
-            <Button type="button" tone="accent" href="/system/account">
-              {t('profile.cloud.signedOut.signIn')}
-            </Button>
-          )}
-        />
-      </SettingsSection>
+      <div className={styles.tabPanel}>
+        <SettingsSection title={t('profile.cloud.title')}>
+          <EmptyState
+            icon={<CloudOff />}
+            title={t('profile.cloud.signedOut.title')}
+            hint={t('profile.cloud.signedOut.hint')}
+            action={(
+              <Button type="button" tone="accent" href="/system/account">
+                {t('profile.cloud.signedOut.signIn')}
+              </Button>
+            )}
+          />
+        </SettingsSection>
+      </div>
     );
   }
 
@@ -239,7 +241,7 @@ export function CloudProfilesSection({ profiles }: { profiles: UseProfilesResult
   };
 
   return (
-    <>
+    <div className={styles.tabPanel}>
       <SettingsSection title={t('profile.cloud.title')}>
         {library === null && profiles.profiles.length === 0 ? <Spinner size={24} /> : mine.length === 0 ? (
           <EmptyState title={t('profile.cloud.list.empty')} />
@@ -300,6 +302,6 @@ export function CloudProfilesSection({ profiles }: { profiles: UseProfilesResult
         onResolve={sync.resolve}
         onClose={() => setConflictOpen(false)}
       />
-    </>
+    </div>
   );
 }
