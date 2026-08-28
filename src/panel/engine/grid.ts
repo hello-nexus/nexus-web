@@ -80,6 +80,8 @@ export function sizeToSpan(size: PanelWidgetSize | string): GridSpan {
     case '2x4': return { cols: 2, rows: 4 };
     case '4x2': return { cols: 4, rows: 2 };
     case '4x4': return { cols: 4, rows: 4 };
+    // Round is a 2x2 block; only its rendering is circular.
+    case '2x2round': return { cols: 2, rows: 2 };
   }
 }
 

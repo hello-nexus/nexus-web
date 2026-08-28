@@ -16,7 +16,9 @@ function buildLayout(surface: PanelLayout['surface']): PanelLayout {
   const defaults = getInstallDefaults();
   // Promoted monitors seed from the desktop layout - same landscape,
   // large-canvas shape (mirrors PanelLayoutDefaults in nexus-service).
-  const sourceKey = surface === 'monitor' ? 'desktop' : surface;
+  // Promoted monitors seed from desktop; the Kraken's round single-tile glass seeds
+  // from the Q-series, the other single-widget surface.
+  const sourceKey = surface === 'monitor' ? 'desktop' : surface === 'kraken' ? 'q60' : surface;
   const src = defaults?.panel.layouts[sourceKey];
   return {
     layoutSchemaVersion: src?.layoutSchemaVersion ?? 2,

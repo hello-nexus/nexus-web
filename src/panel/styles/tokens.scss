@@ -200,6 +200,16 @@
   font-family: var(--panel-font);
 }
 
+// Round glass (the Kraken LCD). The size is only offered on square surfaces, so
+// a 50% radius is a true circle rather than an ellipse. Content is inset off the
+// arc: the inscribed square would cost 14.6% a side, which wastes most of the
+// tile, so this takes the readable middle ground and lets widgets bleed slightly
+// into the corners they do not paint.
+.panel-card[data-size='2x2round'] {
+  border-radius: 50%;
+  padding: 8%;
+}
+
 .panel-chip {
   display: inline-flex;
   align-items: center;

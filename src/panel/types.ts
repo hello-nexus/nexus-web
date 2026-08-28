@@ -1,11 +1,13 @@
 // Canonical shape for the panel widget engine. Mirrors
 // nexus-service/Models/Panel/PanelLayoutDto.cs. Keep in sync.
 
-export const PANEL_WIDGET_SIZES = ['1x1', '2x2', '2x4', '4x2', '4x4'] as const;
+// '2x2round' occupies a 2x2 cell block but is masked to a circle. It exists for
+// round glass (the Kraken LCD) and is reserved to those surfaces.
+export const PANEL_WIDGET_SIZES = ['1x1', '2x2', '2x4', '4x2', '4x4', '2x2round'] as const;
 export type PanelWidgetSize = typeof PANEL_WIDGET_SIZES[number];
 // 'monitor' = a user-promoted OS monitor hosting a fullscreen kiosk
 // (service-stamped surface; see PanelSurfaces.Monitor in nexus-service).
-export type PanelSurface = 'y70' | 'q60' | 'phone' | 'desktop' | 'monitor';
+export type PanelSurface = 'y70' | 'q60' | 'phone' | 'desktop' | 'monitor' | 'kraken';
 
 // Whether a surface accepts direct pointer input. Q60 is display-only;
 // desktop, phone, Y70 support interactive widget controls (desktop via mouse).
@@ -14,7 +16,8 @@ export type PanelSurface = 'y70' | 'q60' | 'phone' | 'desktop' | 'monitor';
 // plain monitors are glanceable displays like the Q-series.
 export function surfaceSupportsTouch(surface: PanelSurface, deviceTouch?: boolean): boolean {
   if (surface === 'monitor') return deviceTouch === true;
-  return surface !== 'q60';
+  // The Kraken LCD is a framebuffer on a USB pipe with no input path at all.
+  return surface !== 'q60' && surface !== 'kraken';
 }
 
 // Whether the operator at this surface has a usable text-entry method: desktop
@@ -49,6 +52,8 @@ export function canEditFreeText(surface?: PanelSurface, desktopEditor?: boolean)
 // LCD: ~240x800 portrait strip, no touch, room for one tile.
 export const SINGLE_WIDGET_SURFACE_SIZE: Readonly<Partial<Record<PanelSurface, PanelWidgetSize>>> = {
   q60: '2x4',
+  // 640x640 round glass: one circular tile.
+  kraken: '2x2round',
 };
 
 export function singleWidgetSurfaceSize(surface: PanelSurface): PanelWidgetSize | undefined {
