@@ -420,6 +420,42 @@ scheme.
 | `height` | `number` |
 | `aspect` | `string \| number` |
 | `tone` | `UiTone` |
+| `pixelated` | `boolean` - nearest-neighbour scaling, for pixel art |
+
+#### `Layer`
+A positioned stage: `Sprite` children place themselves freely inside it and are
+clipped at its edge. The only element that allows overlap and free 2D placement.
+`onPress` reports the tap in layer-local pixels, which is the only way an author
+can learn a coordinate.
+
+| Prop | Type |
+|---|---|
+| `grow` | `boolean` |
+| `padding` | `number` |
+| `aspect` | `string \| number` |
+| `tone` | `UiTone` |
+| `radius` | `number` |
+| `interactive` | `boolean` - required for `onPress` |
+| `onPress` | `(at: { x: number; y: number }) => void` |
+
+#### `Sprite`
+One cell of a sprite atlas, absolutely placed inside a `Layer`. Ship the atlas
+once as a `data:` URL and animate by changing `frame`, so a frame costs three
+numbers over the worker port instead of a fresh image. Scaling is a compositor
+transform, and `pixelated` is on by default.
+
+| Prop | Type |
+|---|---|
+| `src` | `string` - the atlas (`https:`/`data:`/`blob:`) |
+| `frame` | `number` - cell index, row-major |
+| `cols` | `number` - cells per atlas row |
+| `cw` / `ch` | `number` - cell size in atlas px (default 32) |
+| `x` / `y` / `z` | `number` - position within the `Layer` |
+| `scale` | `number` |
+| `flip` | `boolean` - mirror horizontally |
+| `opacity` | `number` |
+| `pixelated` | `boolean` - default `true` |
+| `alt` | `string` |
 
 #### `Badge`
 A small status pill. Host renders `src/components/common/Badge/Badge.tsx`.
