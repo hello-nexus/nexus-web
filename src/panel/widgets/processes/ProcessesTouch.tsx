@@ -23,6 +23,11 @@ import styles from './ProcessesTouch.module.scss';
  * heaviest processes beneath it - then the full scrollable list as the last
  * page. ImmersiveLayout decides how many cards fit a page, so a Y70 landscape
  * shows all four at once and a phone pages through them.
+ *
+ * Left on ImmersiveLayout's default fillLast, so the list - alone on its own
+ * page - takes the full height instead of sitting in a pinned 4x4. The graph
+ * pages are unaffected wherever the cards divide the long axis exactly, which
+ * is every surface that fits a whole number of them.
  */
 export function ProcessesTouch({ widget, surface, deviceTouch, immersiveGrid }: WidgetProps) {
   const { numberFormat } = useUnitPrefs();
@@ -83,7 +88,6 @@ export function ProcessesTouch({ widget, surface, deviceTouch, immersiveGrid }: 
       cells={[...cards, list]}
       gridColumns={immersiveGrid?.columns ?? 4}
       gridRows={immersiveGrid?.rows ?? 8}
-      fillLast={false}
     />
   );
 }

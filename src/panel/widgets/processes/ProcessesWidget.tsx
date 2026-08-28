@@ -67,7 +67,8 @@ export function ProcessesWidget({ widget, immersive }: WidgetProps & { immersive
     });
     return () => { cancelled = true; };
   }, [preview]);
-  const showGpu = platform === 'windows';
+  // The catalog shows every column; preview gates out the ping that resolves it.
+  const showGpu = preview || platform === 'windows';
 
   // Seconds map 1:1 onto frames: the service broadcasts at a fixed 1 Hz.
   const refreshFrames = resolveRefreshSeconds(widget.config?.refreshSeconds);

@@ -70,6 +70,17 @@ describe('ProcessesTouch', () => {
     expect(screen.getAllByRole('columnheader').length).toBeGreaterThan(0);
   });
 
+  it('gives the list cell the full page height rather than a pinned 4x4', async () => {
+    // ImmersiveLayout stamps data-fill on the cell it lets grow. The list is
+    // the last cell, so it must be the one that fills - a pinned 4x4 would
+    // leave the list a quarter-page tall on its own page.
+    render(<ProcessesTouch widget={widget()} immersiveGrid={{ columns: 4, rows: 20 }} />);
+    await act(async () => {});
+    const filled = document.querySelector('[data-fill="true"]');
+    expect(filled).not.toBeNull();
+    expect(filled!.querySelector('[role="rowgroup"]')).not.toBeNull();
+  });
+
   it('shows each resource its own system-wide figure', async () => {
     await renderTouch();
     expect(screen.getByText('42.0%')).toBeTruthy();
