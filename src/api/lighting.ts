@@ -351,6 +351,10 @@ export interface LightingDevice {
   deviceId?: string;
   /** False for smart lights / 1-LED devices; the editor hides all zone management then. */
   zoneCustomizable?: boolean;
+  /** Conflict-app catalog ids competing with Nexus for this card's hardware. Undefined on older services. */
+  conflictAppIds?: string[];
+  /** Curated handler whose Nexus Control gate claims this card's hardware (Lian Li / Corsair hubs); the conflict UI folds the card into that handler's row. */
+  controlHandlerId?: string;
 }
 
 export interface LightingDevicesResponse {

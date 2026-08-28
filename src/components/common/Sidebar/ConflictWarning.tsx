@@ -5,6 +5,7 @@ import { ConflictAppCard } from '../ConflictAppCard/ConflictAppCard';
 import { DeviceModal } from '../DeviceModal/DeviceModal';
 import { TopBarStatusButton } from '../TopBarStatusButton/TopBarStatusButton';
 import { useTranslation } from '../../../lib/i18n';
+import { useConflictDevices } from '../../../hooks/useConflictDevices';
 import styles from './ConflictWarning.module.scss';
 
 interface ConflictWarningProps {
@@ -73,6 +74,7 @@ export function ConflictWarningModal({
   open, conflicts, suppressed, onClose, onSuppressedChange,
 }: ConflictWarningModalProps) {
   const { t } = useTranslation();
+  const { devicesByApp, setOwner } = useConflictDevices(conflicts, open);
 
   if (!open) return null;
 
@@ -94,7 +96,11 @@ export function ConflictWarningModal({
           <ul className={styles.list}>
             {conflicts.map(conflict => (
               <li key={conflict.id}>
-                <ConflictAppCard conflict={conflict} />
+                <ConflictAppCard
+                  conflict={conflict}
+                  devices={devicesByApp.get(conflict.id)}
+                  onSetOwner={owner => setOwner(conflict.id, owner)}
+                />
               </li>
             ))}
           </ul>

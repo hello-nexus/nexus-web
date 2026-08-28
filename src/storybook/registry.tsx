@@ -1072,10 +1072,19 @@ function PreviewEndTaskButton() {
 
 function PreviewConflictAppCard() {
   // Swallowed in capture phase, same as PreviewEndTaskButton - the card's End
-  // Task button calls the real /conflicts/kill endpoint with no override prop.
+  // Task button and its owner switch call the real /conflicts/kill endpoint
+  // with no override prop.
   return (
     <div className={styles.previewStack} onClickCapture={e => e.stopPropagation()}>
       <ConflictAppCard conflict={{ id: 'preview-icue', displayName: 'iCUE', category: 'cooling', processName: 'iCUE.exe', pid: 4212 }} />
+      <ConflictAppCard
+        conflict={{ id: 'preview-icue', displayName: 'iCUE', category: 'cooling', processName: 'iCUE.exe', pid: 4212 }}
+        devices={[
+          { key: 'device:corsair', name: 'iCUE LINK System Hub', owner: 'app' },
+          { key: 'lighting:openrgb-s-RAM1', name: 'Vengeance RGB', owner: 'mixed' },
+        ]}
+        onSetOwner={async () => {}}
+      />
     </div>
   );
 }
@@ -2173,7 +2182,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'ConflictAppCard', category: 'cards',
     filePath: 'src/components/common/ConflictAppCard/ConflictAppCard.tsx',
-    description: 'Detected-conflict row: app name, executable / PID meta line, and an EndTaskButton. Used by ConflictWarningModal (one per detected conflict) and the device-page NexusControlOff gate (the single conflict blocking that device).',
+    description: 'Detected-conflict row: app name, executable / PID meta line, and an EndTaskButton. With `devices` (from useConflictDevices) it also lists the hardware Nexus recognizes that the app drives too, each tagged with who drives it now, under an all-or-none "Nexus controls these / <app> controls these" switch; choosing Nexus flips every device on and then ends the app. Used by ConflictWarningModal and ConflictOnboardingScreen (with devices) and the device-page NexusControlOff gate (plain row).',
     Preview: PreviewConflictAppCard,
   },
 
