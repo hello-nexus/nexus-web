@@ -5,16 +5,20 @@
 // curated here (one design choice we don't want to derive).
 
 import { APP_REGISTRY, lookupApp } from '../panel/widgets/registry';
+import { isPageOnlyAppKey } from './pageOnlyApps';
 import { getPreinstalledPageAppTypes, hasMarketplaceLoadedOnce, isMarketplaceType, normalizeAppType } from '../widgets/marketplaceRegistry';
 
 export const DASHBOARD_APP_KEY = 'dashboard' as const;
 export type SidebarAppKey = string; // any app type that has a Page, or 'dashboard'
 
-// True iff a widget type has a desktop SPA Page - i.e. it's pinnable to the
-// sidebar AND its tile becomes click-through. Built-ins read from the static
-// registry; marketplace (SDK) apps resolve their synthetic manifest, so a
-// page-capable SDK app (the clock) pins exactly like a native one.
+// True iff a key can be pinned to the sidebar. Page-only apps (Store) qualify
+// outright; every other key must be a widget type shipping a desktop SPA Page,
+// read from the static registry for built-ins or from the synthetic manifest
+// for marketplace (SDK) apps, so a page-capable SDK app pins like a native one.
+// Not the same as click-through: that needs a tile, so it excludes page-only
+// apps (see isDashboardClickthroughType).
 export function isPinnableAppKey(s: string): boolean {
+  if (isPageOnlyAppKey(s)) return true;
   if (APP_REGISTRY[s]?.Page != null) return true;
   if (isMarketplaceType(s)) return lookupApp(s)?.Page != null;
   return false;

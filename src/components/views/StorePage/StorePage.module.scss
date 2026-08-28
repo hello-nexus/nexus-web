@@ -1,0 +1,18 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 2rem;
+}
+
+.placeholderText {
+  color: var(--text-dim);
+  font-size: var(--type-small);
+}

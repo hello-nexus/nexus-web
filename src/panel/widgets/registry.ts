@@ -1,4 +1,5 @@
 import { Boxes } from 'lucide-react';
+import { appIconComponent } from '../../components/icons/AppIconImage';
 import { MarketplaceWidget } from './marketplace/MarketplaceWidget';
 import { MarketplaceWidgetSettings } from './marketplace/MarketplaceWidgetSettings';
 import { SdkMarketplacePage } from './marketplace/SdkMarketplacePage';
@@ -131,7 +132,7 @@ export function lookupApp(type: string): AppManifest | undefined {
     if (!id) return undefined;
     const listing = getMarketplaceListing(id);
     if (!listing) return undefined;
-    return makeMarketplaceAppManifest(id, listing.name, listing.sizes, listing.defaultSize, !!listing.page);
+    return makeMarketplaceAppManifest(id, listing.name, listing.sizes, listing.defaultSize, !!listing.page, listing.iconUrl);
   }
   return APP_REGISTRY[type];
 }
@@ -147,7 +148,7 @@ export function getCatalogEntries(): Array<[string, AppManifest]> {
   const builtIns = Object.entries(APP_REGISTRY);
   const marketplace = getAllMarketplaceListings().map((listing): [string, AppManifest] => [
     typeForMarketplace(listing.id),
-    makeMarketplaceAppManifest(listing.id, listing.name, listing.sizes, listing.defaultSize, !!listing.page),
+    makeMarketplaceAppManifest(listing.id, listing.name, listing.sizes, listing.defaultSize, !!listing.page, listing.iconUrl),
   ]);
   return [...builtIns, ...marketplace];
 }
@@ -173,6 +174,7 @@ function makeMarketplaceAppManifest(
   manifestSizes: string[] | undefined,
   manifestDefault: string | undefined,
   hasPage: boolean,
+  iconUrl: string | null | undefined,
 ): AppManifest {
   const sizes = (manifestSizes ?? [])
     .filter((s): s is PanelWidgetSize => (VALID_MARKETPLACE_SIZES as readonly string[]).includes(s));
@@ -185,7 +187,10 @@ function makeMarketplaceAppManifest(
     meta: {
       type: typeForMarketplace(id),
       i18nKey: label,
-      icon: Boxes,
+      // The app's own manifest mark when it ships one; the generic catalog
+      // glyph otherwise. Not gated on `preinstalled` - the OEM flag decides
+      // whether an app auto-seeds, not which icon it draws.
+      icon: iconUrl ? appIconComponent(iconUrl) : Boxes,
       sizes: safeSizes,
       defaultSize,
       supportsImmersive: { portrait: false, landscape: false },

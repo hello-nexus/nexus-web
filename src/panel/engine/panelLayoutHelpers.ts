@@ -1,6 +1,7 @@
 import type { CollisionDetection } from '@dnd-kit/core';
 import { snapStride } from './grid';
 import type { PanelLayout, PanelWidget } from '../types';
+import { isPageOnlyAppKey } from '../../app/pageOnlyApps';
 import { isPinnableAppKey } from '../../app/sidebarAppKeys';
 
 // A click on a dashboard widget tile navigates to the widget's app page, keyed
@@ -18,9 +19,10 @@ export type DashboardSectionNavigate =
   (section: DashboardWidgetSection, payload?: DashboardSectionNavigatePayload) => void;
 
 export function isDashboardClickthroughType(type: string): type is DashboardWidgetSection {
-  // A page-capable app is both click-through and sidebar-pinnable; isPinnableAppKey
-  // now covers built-ins AND page-capable marketplace (SDK) apps.
-  return isPinnableAppKey(type);
+  // Click-through needs a TILE to click through from, so this is narrower than
+  // sidebar-pinnable: isPinnableAppKey also admits page-only apps (Store), which
+  // have no widget. A stale layout naming one must not be treated as clickable.
+  return !isPageOnlyAppKey(type) && isPinnableAppKey(type);
 }
 
 export interface DragTarget { pageId: string; col: number; row: number; }
