@@ -131,7 +131,9 @@ export function lookupApp(type: string): AppManifest | undefined {
     if (!id) return undefined;
     const listing = getMarketplaceListing(id);
     if (!listing) return undefined;
-    return makeMarketplaceAppManifest(id, listing.name, listing.sizes, listing.defaultSize, !!listing.page);
+    return makeMarketplaceAppManifest(
+      id, listing.name, listing.sizes, listing.defaultSize, !!listing.page, !!listing.immersive,
+    );
   }
   return APP_REGISTRY[type];
 }
@@ -147,7 +149,9 @@ export function getCatalogEntries(): Array<[string, AppManifest]> {
   const builtIns = Object.entries(APP_REGISTRY);
   const marketplace = getAllMarketplaceListings().map((listing): [string, AppManifest] => [
     typeForMarketplace(listing.id),
-    makeMarketplaceAppManifest(listing.id, listing.name, listing.sizes, listing.defaultSize, !!listing.page),
+    makeMarketplaceAppManifest(
+      listing.id, listing.name, listing.sizes, listing.defaultSize, !!listing.page, !!listing.immersive,
+    ),
   ]);
   return [...builtIns, ...marketplace];
 }
@@ -173,6 +177,7 @@ function makeMarketplaceAppManifest(
   manifestSizes: string[] | undefined,
   manifestDefault: string | undefined,
   hasPage: boolean,
+  immersive = false,
 ): AppManifest {
   const sizes = (manifestSizes ?? [])
     .filter((s): s is PanelWidgetSize => (VALID_MARKETPLACE_SIZES as readonly string[]).includes(s));
@@ -188,7 +193,9 @@ function makeMarketplaceAppManifest(
       icon: Boxes,
       sizes: safeSizes,
       defaultSize,
-      supportsImmersive: { portrait: false, landscape: false },
+      // Opt-in per app: the immersive view re-renders the same widget at the
+      // panel's full size, which only suits an app that lays out from useSize().
+      supportsImmersive: { portrait: immersive, landscape: immersive },
       hasConfig: true,
       touch: false,
       // Marketplace curation runs through the same flag as built-ins: only

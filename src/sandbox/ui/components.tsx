@@ -418,6 +418,12 @@ export function Layer(p: HostProps) {
 export function Sprite(p: HostProps) {
   const src = safeAtlasUrl(str(p.src));
   if (!src) return null;
+  // A sprite is placed by transform, so one that has not received a position
+  // yet would paint at the layer's origin for a frame - a visible flash in the
+  // top-left corner whenever the worker inserts a new sprite. Draw nothing
+  // until it is positioned; an intentional (0,0) still passes, since those
+  // arrive as real numbers.
+  if (num(p.x) === undefined && num(p.y) === undefined) return null;
   const cw = num(p.cw) ?? 32;
   const ch = num(p.ch) ?? 32;
   const cols = Math.max(1, Math.trunc(num(p.cols) ?? 1));

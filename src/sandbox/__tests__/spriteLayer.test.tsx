@@ -12,7 +12,8 @@ afterEach(() => cleanup());
 const ATLAS = 'data:image/webp;base64,UklGRhYAAABXRUJQ';
 
 function sprite(props: Record<string, unknown>) {
-  const { container } = render(<Sprite src={ATLAS} {...props} />);
+  // x/y default in: an unpositioned sprite deliberately renders nothing.
+  const { container } = render(<Sprite src={ATLAS} x={0} y={0} {...props} />);
   return container.firstElementChild as HTMLElement | null;
 }
 
@@ -42,8 +43,19 @@ describe('ui-sprite', () => {
   });
 
   it('renders nothing for a src that is not an allowed scheme', () => {
-    const { container } = render(<Sprite src="http://evil.test/a.png" />);
+    const { container } = render(<Sprite src="http://evil.test/a.png" x={0} y={0} />);
     expect(container.firstElementChild).toBeNull();
+  });
+
+  it('does not paint before it has a position, so a new sprite cannot flash at the origin', () => {
+    const { container } = render(<Sprite src={ATLAS} frame={3} cols={12} />);
+    expect(container.firstElementChild).toBeNull();
+  });
+
+  it('paints at the origin when the origin is what the author asked for', () => {
+    const { container } = render(<Sprite src={ATLAS} x={0} y={0} />);
+    const el = container.firstElementChild as HTMLElement;
+    expect(el.style.transform).toBe('translate3d(0px, 0px, 0) scale(1, 1)');
   });
 
   it('rejects a src that could break out of the CSS url() token', () => {
@@ -54,7 +66,7 @@ describe('ui-sprite', () => {
       'data:image/png;base64,AA\\22 ',
       'data:image/png;base64,AA B',
     ]) {
-      const { container } = render(<Sprite src={bad} />);
+      const { container } = render(<Sprite src={bad} x={0} y={0} />);
       expect(container.firstElementChild, bad).toBeNull();
       cleanup();
     }
