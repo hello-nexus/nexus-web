@@ -4,7 +4,7 @@ import { CloudProfilesSection } from './CloudProfilesSection';
 import type { UseCloudAccountsResult } from '../../../hooks/useCloudAccounts';
 import type { UseSyncStatusResult } from '../../../hooks/useSyncStatus';
 import type { UseProfilesResult } from '../../../hooks/useProfiles';
-import { fetchCloudLibrary, importCloudProfile } from '../../../api/cloud';
+import { deleteCloudProfile, fetchCloudLibrary, importCloudProfile } from '../../../api/cloud';
 
 vi.mock('../../../lib/i18n', () => ({
   useTranslation: () => ({
@@ -29,6 +29,7 @@ vi.mock('../../../hooks/useSyncStatus', () => ({
 vi.mock('../../../api/cloud', () => ({
   fetchCloudLibrary: vi.fn(),
   importCloudProfile: vi.fn(),
+  deleteCloudProfile: vi.fn(),
 }));
 
 const SIGNED_OUT: UseCloudAccountsResult = { activeAccountId: null, activeAccount: null, refresh: vi.fn() };
@@ -77,6 +78,7 @@ beforeEach(() => {
   syncResult.mockReturnValue(BASE_SYNC);
   vi.mocked(fetchCloudLibrary).mockResolvedValue(LIBRARY);
   vi.mocked(importCloudProfile).mockResolvedValue({ status: 200, body: { error: false } });
+  vi.mocked(deleteCloudProfile).mockResolvedValue({ error: false });
 });
 
 describe('CloudProfilesSection signed-out state', () => {
@@ -234,6 +236,7 @@ describe('CloudProfilesSection profile list', () => {
       expect(screen.getByText('profile.cloud.import.nameTaken.title')).toBeInTheDocument();
     });
     vi.mocked(importCloudProfile).mockResolvedValue({ status: 200, body: { error: false } });
+  vi.mocked(deleteCloudProfile).mockResolvedValue({ error: false });
     fireEvent.click(screen.getByRole('button', { name: 'profile.cloud.import.nameTaken.replace' }));
 
     await waitFor(() => {
@@ -252,6 +255,48 @@ describe('CloudProfilesSection profile list', () => {
 
     await waitFor(() => {
       expect(screen.getByRole('alert')).toHaveTextContent('profile.cloud.import.error.limit');
+    });
+  });
+});
+
+describe('CloudProfilesSection backup that has no local profile', () => {
+  // The user's scenario: everything backed up, then the local profile is
+  // deleted. Its backup must offer restore + remove, not another backup.
+  const ORPHANED = {
+    machines: [{
+      installId: 'this-one', hostname: 'T1', isThisMachine: true, lastSeenAt: 't',
+      profiles: [{ profileId: 'deleted-locally', name: 'Gaming', revision: 2, sizeBytes: 10, updatedAt: 't' }],
+    }],
+  };
+
+  it('offers import and remove instead of back up', async () => {
+    vi.mocked(fetchCloudLibrary).mockResolvedValue(ORPHANED);
+    renderSection();
+
+    await waitFor(() => {
+      expect(screen.getByText('profile.cloud.list.notOnThisComputer')).toBeInTheDocument();
+    });
+    expect(screen.getByRole('button', { name: 'profile.cloud.import.open' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'profile.cloud.delete.action' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'profile.cloud.backup.syncNow' })).not.toBeInTheDocument();
+  });
+
+  it('confirms before removing the backup and leaves the local profile alone', async () => {
+    vi.mocked(fetchCloudLibrary).mockResolvedValue(ORPHANED);
+    renderSection();
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'profile.cloud.delete.action' })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'profile.cloud.delete.action' }));
+    await waitFor(() => {
+      expect(screen.getByText('profile.cloud.delete.title')).toBeInTheDocument();
+    });
+    expect(deleteCloudProfile).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'profile.cloud.delete.action' })[1]);
+    await waitFor(() => {
+      expect(deleteCloudProfile).toHaveBeenCalledWith('this-one', 'deleted-locally');
     });
   });
 });

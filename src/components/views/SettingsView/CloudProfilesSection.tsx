@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Check, CloudOff, CloudUpload, DownloadCloud } from 'lucide-react';
+import { Check, CloudOff, CloudUpload, DownloadCloud, Trash2 } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
@@ -7,7 +7,7 @@ import { SettingRow } from '../../common/SettingRow/SettingRow';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { Spinner } from '../../common/Spinner/Spinner';
 import { SyncConflictModal } from '../../common/SyncConflictModal/SyncConflictModal';
-import { fetchCloudLibrary, importCloudProfile, type CloudLibrary } from '../../../api/cloud';
+import { deleteCloudProfile, fetchCloudLibrary, importCloudProfile, type CloudLibrary } from '../../../api/cloud';
 import { useCloudAccounts } from '../../../hooks/useCloudAccounts';
 import { useSyncStatus } from '../../../hooks/useSyncStatus';
 import type { UseProfilesResult } from '../../../hooks/useProfiles';
@@ -32,6 +32,7 @@ export function CloudProfilesSection({ profiles }: { profiles: UseProfilesResult
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [importedKeys, setImportedKeys] = useState<string[]>([]);
   const [conflict, setConflict] = useState<ConflictPrompt | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<{ installId: string; profileId: string; key: string } | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [conflictOpen, setConflictOpen] = useState(false);
   const [syncBusy, setSyncBusy] = useState(false);
@@ -98,8 +99,35 @@ export function CloudProfilesSection({ profiles }: { profiles: UseProfilesResult
     loadLibrary();
   };
 
+  const removeFromCloud = async (installId: string, profileId: string, key: string) => {
+    if (busyKey) return;
+    setBusyKey(key);
+    setImportError(null);
+    const result = await deleteCloudProfile(installId, profileId);
+    setBusyKey(null);
+    if (!result || result.error) {
+      setImportError(t('profile.cloud.delete.error'));
+      return;
+    }
+    loadLibrary();
+  };
+
   const atLimit = profiles.profiles.length >= 5;
   const unknown = t('profile.cloud.machine.unknown');
+  const localIds = new Set(profiles.profiles.map(p => p.id));
+
+  const deleteButton = (installId: string, profileId: string, key: string) => (
+    <Button
+      type="button"
+      tone="danger"
+      size="sm"
+      icon={<Trash2 />}
+      disabled={busyKey !== null}
+      onClick={() => setPendingDelete({ installId, profileId, key })}
+    >
+      {t('profile.cloud.delete.action')}
+    </Button>
+  );
 
   const allRows = (library?.machines ?? [])
     .flatMap(machine => machine.profiles.map(profile => ({ machine, profile })));
@@ -111,26 +139,52 @@ export function CloudProfilesSection({ profiles }: { profiles: UseProfilesResult
     return status?.lastSyncedAt ? new Date(status.lastSyncedAt).toLocaleString() : null;
   };
 
-  const ownRow = ({ profile }: typeof allRows[number]) => {
+  const ownRow = ({ machine, profile }: typeof allRows[number]) => {
+    const key = `${machine.installId}:${profile.profileId}`;
     const when = backedUpAt(profile.profileId);
+    // The local profile is gone: this row is a backup to restore or remove,
+    // not something to back up again.
+    const missingLocally = !localIds.has(profile.profileId);
     return (
       <SettingRow
-        key={profile.profileId}
+        key={key}
         label={profile.name}
-        description={when
-          ? t('profile.cloud.backup.lastSynced', { when })
-          : t('profile.cloud.backup.never')}
+        description={missingLocally
+          ? t('profile.cloud.list.notOnThisComputer')
+          : when
+            ? t('profile.cloud.backup.lastSynced', { when })
+            : t('profile.cloud.backup.never')}
       >
-        <Button
-          type="button"
-          tone="neutral"
-          size="sm"
-          icon={<CloudUpload />}
-          loading={syncBusy}
-          onClick={handleSyncNow}
-        >
-          {t('profile.cloud.backup.syncNow')}
-        </Button>
+        {missingLocally ? (
+          <>
+            <Button
+              type="button"
+              tone="neutral"
+              size="sm"
+              icon={<DownloadCloud />}
+              loading={busyKey === key}
+              disabled={atLimit || busyKey !== null}
+              onClick={() => void runImport(machine.installId, profile.profileId, key, false, profile.name)}
+            >
+              {t('profile.cloud.import.open')}
+            </Button>
+            {deleteButton(machine.installId, profile.profileId, key)}
+          </>
+        ) : (
+          <>
+            <Button
+              type="button"
+              tone="neutral"
+              size="sm"
+              icon={<CloudUpload />}
+              loading={syncBusy}
+              onClick={handleSyncNow}
+            >
+              {t('profile.cloud.backup.syncNow')}
+            </Button>
+            {deleteButton(machine.installId, profile.profileId, key)}
+          </>
+        )}
       </SettingRow>
     );
   };
@@ -155,6 +209,7 @@ export function CloudProfilesSection({ profiles }: { profiles: UseProfilesResult
         >
           {imported ? t('profile.cloud.import.done') : t('profile.cloud.import.open')}
         </Button>
+        {deleteButton(machine.installId, profile.profileId, key)}
       </SettingRow>
     );
   };
@@ -199,6 +254,20 @@ export function CloudProfilesSection({ profiles }: { profiles: UseProfilesResult
           if (pending) void runImport(pending.installId, pending.profileId, pending.key, true, pending.name);
         }}
         onCancel={() => setConflict(null)}
+      />
+
+      <ConfirmModal
+        open={pendingDelete !== null}
+        title={t('profile.cloud.delete.title')}
+        message={t('profile.cloud.delete.message')}
+        confirmLabel={t('profile.cloud.delete.action')}
+        destructive
+        onConfirm={() => {
+          const pending = pendingDelete;
+          setPendingDelete(null);
+          if (pending) void removeFromCloud(pending.installId, pending.profileId, pending.key);
+        }}
+        onCancel={() => setPendingDelete(null)}
       />
 
       <SyncConflictModal

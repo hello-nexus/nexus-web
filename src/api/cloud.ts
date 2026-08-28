@@ -1,5 +1,5 @@
 import { getToken, handleUnauthorized } from './auth';
-import { authFetchWithStatus, fetchService, loopbackFetchInit, patchService, postService, resolveHttp } from './service';
+import { authFetchWithStatus, deleteService, fetchService, loopbackFetchInit, patchService, postService, resolveHttp } from './service';
 import type { GameLeaderboardEntry, GameType } from '../types/games';
 
 export interface CloudAvatar {
@@ -293,6 +293,10 @@ export interface CloudLibraryMachine {
 export interface CloudLibrary {
   machines: CloudLibraryMachine[];
 }
+
+/** Removes a profile from the account's backup; the local profile, if any, is untouched. */
+export const deleteCloudProfile = (installId: string, profileId: string) =>
+  deleteService<{ error?: boolean }>(`/cloud/profiles/${encodeURIComponent(installId)}/${encodeURIComponent(profileId)}`);
 
 export const fetchCloudLibrary = () =>
   fetchService<CloudLibrary>('/cloud/profiles/library');
