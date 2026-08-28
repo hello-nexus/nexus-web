@@ -19,12 +19,28 @@ const isServiceBuild = process.env.BUILD_TARGET === 'service'
 // automatically via import.meta.env.DEV at the use site.
 const devTools = process.env.DEV_TOOLS === '1'
 
+// Presence of the build credential is the single switch for the cloud surfaces.
+// Resolution matches Nexus.Service.csproj's env-then-file order; the csproj also
+// accepts -p:NexusClientToken=, which a publish passing it must therefore also
+// export here or the halves disagree. Only this boolean reaches the bundle.
+const officialBuild = (() => {
+  if (process.env.NEXUS_CLIENT_TOKEN) return true;
+  const home = process.env.USERPROFILE || process.env.HOME
+  if (!home) return false;
+  try {
+    return readFileSync(resolve(home, '.nexus-build', 'client-token'), 'utf8').trim().length > 0;
+  } catch {
+    return false;
+  }
+})()
+
 export default defineConfig({
   plugins: [react()],
   define: {
     __APP_VERSION__: JSON.stringify(appVersion),
     __SERVICE_BUILD__: JSON.stringify(isServiceBuild),
     __DEV_TOOLS__: JSON.stringify(devTools),
+    __OFFICIAL_BUILD__: JSON.stringify(officialBuild),
   },
   // The HYTE Q60 ships Android System WebView v83 (Chromium 83, June 2020).
   // Vite's default `modules` target uses class field declarations and other

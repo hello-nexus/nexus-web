@@ -10,7 +10,8 @@ import styles from './AboutModal.module.scss';
 interface AboutModalProps {
   open: boolean;
   onClose: () => void;
-  onCheckUpdate: () => void;
+  /** Omitted in a build with no credential: OTA ships our signed releases. */
+  onCheckUpdate?: () => void;
 }
 
 // Third-party open-source projects Nexus bundles. Names are proper nouns
@@ -44,9 +45,11 @@ export function AboutModal({ open, onClose, onCheckUpdate }: AboutModalProps) {
         <img className={styles.logo} src="/nexus-mark-color.png" alt="" width={84} height={84} />
         <NexusWordmark height={26} />
         <div className={styles.version}>{t('about.version', { version: liveVersion ?? __APP_VERSION__ })}</div>
-        <button type="button" className={styles.checkUpdateLink} onClick={() => { onClose(); onCheckUpdate(); }}>
-          {t('about.checkUpdate')}
-        </button>
+        {onCheckUpdate && (
+          <button type="button" className={styles.checkUpdateLink} onClick={() => { onClose(); onCheckUpdate(); }}>
+            {t('about.checkUpdate')}
+          </button>
+        )}
       </div>
 
       <div className={styles.links}>

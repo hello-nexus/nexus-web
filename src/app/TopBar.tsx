@@ -12,6 +12,7 @@ import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { useClickOutside } from '../hooks/useClickOutside';
 import { useTranslation } from '../lib/i18n';
 import { DEV_TOOLS } from '../lib/devTools';
+import { OFFICIAL_BUILD } from '../lib/officialBuild';
 import { useCommandPaletteOptional } from '../search/CommandPaletteContext';
 import { useSearchSignal } from '../search/signals';
 import { TopSearch } from '../search/TopSearch';
@@ -112,10 +113,12 @@ function TopBarMenu({ onNavigateSettings, onNavigateTools, onOpenAbout, onOpenUp
             onClick={() => { close(); onNavigateSettings(); }}>
             <Settings size={14} /> {t('nav.settings')}
           </button>
-          <button type="button" className={styles.menuItem} role="menuitem"
-            onClick={() => { close(); onOpenUpdate(); }}>
-            <RefreshCw size={14} /> {t('update.menu.check')}
-          </button>
+          {OFFICIAL_BUILD && (
+            <button type="button" className={styles.menuItem} role="menuitem"
+              onClick={() => { close(); onOpenUpdate(); }}>
+              <RefreshCw size={14} /> {t('update.menu.check')}
+            </button>
+          )}
           {DEV_TOOLS && (
             <button type="button" className={styles.menuItem} role="menuitem"
               onClick={() => { close(); onNavigateTools(); }}>
@@ -280,7 +283,7 @@ export function TopBar({
             All hidden in Focus mode along with the rest of this cluster - only
             the window controls (below) survive it. */}
         {!focusMode && <ConflictStatusSlot serviceOnline={online} />}
-        {!focusMode && <UpdateStatusSlot serviceOnline={online} onOpen={onOpenUpdate} onInstall={onInstall} />}
+        {!focusMode && OFFICIAL_BUILD && <UpdateStatusSlot serviceOnline={online} onOpen={onOpenUpdate} onInstall={onInstall} />}
         {!focusMode && (
           <TopBarMenu onNavigateSettings={onNavigateSettings} onNavigateTools={onNavigateTools} onOpenAbout={() => setAboutOpen(true)} onOpenUpdate={onOpenUpdate} />
         )}
@@ -318,7 +321,7 @@ export function TopBar({
         {isWindowsApp && <CaptionButtons />}
       </div>
 
-      <AboutModal open={aboutOpen} onClose={() => setAboutOpen(false)} onCheckUpdate={onOpenUpdate} />
+      <AboutModal open={aboutOpen} onClose={() => setAboutOpen(false)} onCheckUpdate={OFFICIAL_BUILD ? onOpenUpdate : undefined} />
     </header>
   );
 }

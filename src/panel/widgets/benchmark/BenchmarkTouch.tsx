@@ -7,6 +7,7 @@ import { Button } from '../../../components/common/Button/Button';
 import { BenchmarkProgress } from './BenchmarkProgress';
 import { BenchmarkResults } from './BenchmarkResults';
 import { LeaderboardView } from './LeaderboardView';
+import { OFFICIAL_BUILD } from '../../../lib/officialBuild';
 import type { WidgetProps } from '../types';
 import { useTranslation } from '../../../lib/i18n';
 
@@ -84,7 +85,9 @@ export function BenchmarkTouch({ immersiveGrid }: WidgetProps) {
     );
   })();
 
-  const cells: ReactNode[] = [statusCell, <LeaderboardView key="leaderboard" />];
+  const cells: ReactNode[] = OFFICIAL_BUILD
+    ? [statusCell, <LeaderboardView key="leaderboard" />]
+    : [statusCell];
 
   return (
     <ImmersiveLayout

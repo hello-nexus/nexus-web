@@ -14,6 +14,7 @@ import {
   type Language, type NexusSettings,
 } from '../../../lib/settings';
 import type { UpdateChannel, UpdateMode } from '../../../api/update';
+import { OFFICIAL_BUILD } from '../../../lib/officialBuild';
 import friuliFlag from '../../../assets/flags/friuli.png';
 import styles from './SettingsView.module.scss';
 
@@ -211,7 +212,8 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
         </SettingsSection>
       )}
 
-      {platform === 'windows' && (
+      {/* OTA ships our signed releases. */}
+      {platform === 'windows' && OFFICIAL_BUILD && (
         <SettingsSection title={t('settings.updates.title')}>
           <SettingSelect
             label={t('settings.updates.mode.label')}

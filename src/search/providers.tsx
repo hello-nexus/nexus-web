@@ -25,6 +25,7 @@ import { setSystemMuted, systemPower } from '../api/system';
 import { toggleObsRecording, toggleObsStreaming } from '../api/obs';
 import { setDiscordMute, setDiscordDeaf } from '../api/discord';
 import { syncCloudNow } from '../api/cloud';
+import { OFFICIAL_BUILD } from '../lib/officialBuild';
 import { exportProfile } from '../api/profiles';
 import {
   openDiagnosticsEventViewer, openDiagnosticsDeviceManager, downloadDiagnosticsReport,
@@ -105,7 +106,9 @@ const navDisplays: SearchSource = (ctx) => [go('nav:displays', {
 // Every routed subtab, titled "Page › Tab" from the tab's own label key so it
 // deep-links exactly where the page's tab strip would land. Displays has its
 // curated entry above; the diagnostics view lives behind `app:diagnostics`.
-const SUBTABS: { view: string; sub: string; viewLabelKey: string; labelKey: string; keywords: string[] }[] = [
+// `official` limits a row to a build carrying the credential, the same way
+// `platforms` limits SETTINGS_ITEMS to the hosts that render them.
+const SUBTABS: { view: string; sub: string; viewLabelKey: string; labelKey: string; keywords: string[]; official?: boolean }[] = [
   { view: 'monitoring', sub: 'cpu',      viewLabelKey: 'nav.monitoring', labelKey: 'monitoring.tab.cpu',      keywords: ['cpu', 'processor', 'cores', 'usage'] },
   { view: 'monitoring', sub: 'gpu',      viewLabelKey: 'nav.monitoring', labelKey: 'monitoring.tab.gpu',      keywords: ['gpu', 'graphics', 'vram', 'usage'] },
   { view: 'monitoring', sub: 'memory',   viewLabelKey: 'nav.monitoring', labelKey: 'monitoring.tab.memory',   keywords: ['ram', 'memory', 'usage'] },
@@ -118,7 +121,7 @@ const SUBTABS: { view: string; sub: string; viewLabelKey: string; labelKey: stri
   { view: 'screentime', sub: 'app',      viewLabelKey: 'screentime.title', labelKey: 'screentime.tab.app',    keywords: ['per app', 'app usage', 'screen time'] },
   { view: 'benchmark',  sub: 'run',          viewLabelKey: 'benchmark.title', labelKey: 'benchmark.tab.run',          keywords: ['benchmark', 'test', 'score', 'fps'] },
   { view: 'benchmark',  sub: 'results',      viewLabelKey: 'benchmark.title', labelKey: 'benchmark.tab.results',      keywords: ['benchmark', 'history', 'scores'] },
-  { view: 'benchmark',  sub: 'leaderboards', viewLabelKey: 'benchmark.title', labelKey: 'benchmark.tab.leaderboards', keywords: ['benchmark', 'leaderboard', 'ranking', 'compare'] },
+  { view: 'benchmark',  sub: 'leaderboards', viewLabelKey: 'benchmark.title', labelKey: 'benchmark.tab.leaderboards', keywords: ['benchmark', 'leaderboard', 'ranking', 'compare'], official: true },
   { view: 'devices',    sub: 'firmware', viewLabelKey: 'devices.title', labelKey: 'devices.tabs.firmware', keywords: ['firmware', 'flash', 'fw', 'update'] },
   { view: 'devices',    sub: 'specs',    viewLabelKey: 'devices.title', labelKey: 'devices.tabs.specs',    keywords: ['specs', 'specifications', 'system info', 'hardware info'] },
   { view: 'diagnostics', sub: 'storage', viewLabelKey: 'diagnostics.title', labelKey: 'diagnostics.kind.storage', keywords: ['disk', 'ssd', 'nvme', 'smart', 'health', 'storage'] },
@@ -130,7 +133,7 @@ const SUBTABS: { view: string; sub: string; viewLabelKey: string; labelKey: stri
   { view: 'diagnostics', sub: 'settings', viewLabelKey: 'diagnostics.title', labelKey: 'diagnostics.tab.settings', keywords: ['thresholds', 'notifications', 'alerts'] },
 ];
 const navSubtabs: SearchSource = (ctx) =>
-  SUBTABS.map((s) => go(`nav:${s.view}/${s.sub}`, {
+  SUBTABS.filter((s) => !s.official || OFFICIAL_BUILD).map((s) => go(`nav:${s.view}/${s.sub}`, {
     title: `${ctx.t(s.viewLabelKey)} › ${ctx.t(s.labelKey)}`,
     icon: NAV_ICONS[s.view] ?? <LayoutGrid size={18} />,
     keywords: s.keywords,
@@ -154,7 +157,7 @@ const SETTINGS_TABS: { tab: string; labelKey: string; keywords: string[] }[] = [
 // to Settings, selects the owning tab, and scrolls to + shines that exact row.
 // `platforms` limits a row to the hosts whose Settings page renders it, so
 // "tray" on macOS doesn't offer a scroll target that isn't there.
-const SETTINGS_ITEMS: { tab: string; tabLabelKey: string; labelKey: string; anchor: string; keywords: string[]; platforms?: string[] }[] = [
+const SETTINGS_ITEMS: { tab: string; tabLabelKey: string; labelKey: string; anchor: string; keywords: string[]; platforms?: string[]; official?: boolean }[] = [
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.windowsTray.label',  anchor: 'set-tray',       keywords: ['tray', 'system tray', 'notification area', 'taskbar', 'icon', 'windows'], platforms: ['windows'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.macStatusBar.label',  anchor: 'set-menubar',    keywords: ['menu bar', 'status bar', 'menubar', 'macos', 'mac', 'icon'], platforms: ['macos'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.systemStartup.label', anchor: 'set-startup',    keywords: ['startup', 'boot', 'systemd', 'login', 'autostart', 'auto start', 'launch', 'start with windows'], platforms: ['windows', 'linux'] },
@@ -162,8 +165,8 @@ const SETTINGS_ITEMS: { tab: string; tabLabelKey: string; labelKey: string; anch
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.rememberLastPage.label', anchor: 'set-remember-page', keywords: ['remember', 'last page', 'restore', 'reopen', 'resume', 'startup', 'tray'], platforms: ['windows', 'macos', 'linux'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.alerts.label',        anchor: 'set-alerts',     keywords: ['conflict', 'warnings', 'alerts', 'notifications'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.language',            anchor: 'set-language',   keywords: ['language', 'locale', 'translation'] },
-  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.updates.mode.label',    anchor: 'set-update-mode',    keywords: ['update', 'updates', 'automatic', 'install', 'mode'], platforms: ['windows'] },
-  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.updates.channel.label', anchor: 'set-update-channel', keywords: ['update', 'updates', 'channel', 'beta', 'production'], platforms: ['windows'] },
+  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.updates.mode.label',    anchor: 'set-update-mode',    keywords: ['update', 'updates', 'automatic', 'install', 'mode'], platforms: ['windows'], official: true },
+  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.updates.channel.label', anchor: 'set-update-channel', keywords: ['update', 'updates', 'channel', 'beta', 'production'], platforms: ['windows'], official: true },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.shutDown.label',      anchor: 'set-shutdown',   keywords: ['shut down', 'shutdown', 'stop', 'quit', 'exit', 'close'], platforms: ['windows', 'macos', 'linux'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.factoryReset.label',  anchor: 'set-factory-reset', keywords: ['factory reset', 'reset', 'wipe', 'erase', 'defaults', 'clean'] },
   { tab: 'appearance', tabLabelKey: 'settings.tab.appearance', labelKey: 'settings.accent',              anchor: 'set-accent',     keywords: ['accent', 'color', 'colour', 'highlight'] },
@@ -243,6 +246,7 @@ const settingsTabs: SearchSource = (ctx) =>
 const settingsItems: SearchSource = (ctx) =>
   SETTINGS_ITEMS
     .filter((s) => !s.platforms || s.platforms.includes(ctx.platform))
+    .filter((s) => !s.official || OFFICIAL_BUILD)
     .map((s) => go(`setting:${s.labelKey}`, {
       title: ctx.t(s.labelKey), subtitle: `${ctx.t('settings.title')} › ${ctx.t(s.tabLabelKey)}`,
       icon: NAV_ICONS.settings, keywords: s.keywords,
@@ -262,7 +266,8 @@ const standalonePages: SearchSource = (ctx) => [
     title: ctx.t('settings.tab.tools'), icon: <FlaskConical size={18} />,
     keywords: ['developer', 'dev tools', 'debug', 'advanced', 'storybook', 'diagnostics'],
     to: () => ctx.host.goView('tools'),
-  }), go('page:account', {
+  })] : []),
+  ...(DEV_TOOLS && OFFICIAL_BUILD ? [go('page:account', {
     title: ctx.t('account.title'), icon: <UserRound size={18} />,
     keywords: ['account', 'sign in', 'login', 'log in', 'register', 'cloud', 'sync', 'password', 'sign out', 'log out'],
     to: () => ctx.host.goView('account'),
@@ -453,11 +458,11 @@ const remoteAccess: SearchSource = (ctx) => {
       keywords: ['remote', 'control', 'relay', 'pair', 'access'],
       isOn: ctx.panel.remoteEnabled, set: (en) => { void setPanelRemoteControlEnabled(en).catch(() => {}); },
     }),
-    toggleEntry('toggle:relay', {
+    ...(OFFICIAL_BUILD ? [toggleEntry('toggle:relay', {
       label: ctx.t('phonePair.relay.label'), icon: <Cloud size={18} />,
       keywords: ['relay', 'cloud', 'internet', 'remote'],
       isOn: ctx.panel.relayEnabled, set: (en) => { void setPanelRelay(en).catch(() => {}); },
-    }),
+    })] : []),
     toggleEntry('toggle:wifi', {
       label: ctx.t('search.wifi.label'), icon: <Wifi size={18} />,
       keywords: ['wifi', 'wi-fi', 'discover', 'find', 'airdrop', 'network', 'pair'],
@@ -519,11 +524,11 @@ const profilesExtra: SearchSource = (ctx) => {
 // One-keystroke opens for chrome that otherwise hides in menus and page
 // headers. Cross-page opens navigate first; the signal survives the mount.
 const quickOpens: SearchSource = (ctx) => [
-  go('open:check-updates', {
+  ...(OFFICIAL_BUILD ? [go('open:check-updates', {
     title: ctx.t('update.menu.check'), icon: <RefreshCw size={18} />,
     keywords: ['update', 'updates', 'upgrade', 'version', 'check', 'install', 'new version'],
     to: () => fireSearchSignal('update-modal'),
-  }),
+  })] : []),
   go('open:about', {
     title: ctx.t('nav.about'), icon: <Info size={18} />,
     keywords: ['about', 'version', 'info', 'credits'],
@@ -560,7 +565,7 @@ const quickOpens: SearchSource = (ctx) => [
 const UPDATE_MODES: UpdateMode[] = ['always', 'download', 'notify'];
 const UPDATE_CHANNELS: UpdateChannel[] = ['production', 'beta'];
 const updatePrefs: SearchSource = (ctx) => {
-  if (ctx.platform !== 'windows') return [];
+  if (ctx.platform !== 'windows' || !OFFICIAL_BUILD) return [];
   const active = ctx.t('search.hint.active');
   return [
     ...UPDATE_MODES.map((mode) => act(`update-mode:${mode}`, {
@@ -773,7 +778,7 @@ const systemMedia: SearchSource = (ctx) => {
 // Cloud account one-shots, dev-gated like the Account page. Sign-out opens
 // the page (its flow also clears local tokens); sync-now is safe directly.
 const accountExtra: SearchSource = (ctx) => {
-  if (!DEV_TOOLS || !ctx.live.cloud?.activeAccountId) return [];
+  if (!DEV_TOOLS || !OFFICIAL_BUILD || !ctx.live.cloud?.activeAccountId) return [];
   return [
     act('account:sync-now', {
       title: ctx.t('account.sync.syncNow'), subtitle: ctx.t('account.title'),
