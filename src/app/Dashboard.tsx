@@ -85,6 +85,7 @@ import { SyncConflictGate } from './SyncConflictGate';
 import { useMonitoringStoreBridge } from './monitoringBridge';
 import { isWindowsAppShell, isMacAppShell, postResizeStart, NEXUS_RESIZE_EDGES, type NexusResizeEdge } from './windowActions';
 import { DEV_TOOLS } from '../lib/devTools';
+import { OFFICIAL_BUILD } from '../lib/officialBuild';
 import styles from '../App.module.scss';
 
 const PORTAL_URL = 'https://hellonexus.com';
@@ -400,7 +401,8 @@ export function Dashboard() {
   const multiplex = useMultiplexConnection(online);
   const serviceState = useServiceState(online, multiplex);
   const profilesHook = useProfiles(online);
-  const cloudAccounts = useCloudAccounts(online);
+  // No accounts without a credential, so the sync poll below stays off too.
+  const cloudAccounts = useCloudAccounts(online && OFFICIAL_BUILD);
   // Sync conflicts only exist while a cloud account is signed in; without this
   // gate the 25s poll in useSyncStatus would run forever on every install,
   // signed in or not. useCloudAccounts itself only fetches once per online
@@ -678,6 +680,7 @@ export function Dashboard() {
   // an effect: useRoute's initial redirect rewrites the address without the
   // query, and its effect is registered first, so by then the param is gone.
   const [openUpdateRequested] = useState(() => {
+    if (!OFFICIAL_BUILD) return false;
     try { return new URLSearchParams(window.location.search).has(OPEN_UPDATE_PARAM); }
     catch { return false; }
   });
@@ -777,7 +780,7 @@ export function Dashboard() {
       case 'gallery':    return <GalleryPage />;
       case 'settings':   return <SettingsView serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} tab={subtab} onTabChange={setSubtab} />;
       case 'profiles':   return <ProfilesView serviceOnline={online} connectionState={status.state} profiles={profilesHook} />;
-      case 'account':    return DEV_TOOLS ? <AccountView serviceOnline={online} connectionState={status.state} accounts={cloudAccounts} sync={syncStatus} tab={subtab} onTabChange={setSubtab} /> : <Placeholder title={activeView} />;
+      case 'account':    return DEV_TOOLS && OFFICIAL_BUILD ? <AccountView serviceOnline={online} connectionState={status.state} accounts={cloudAccounts} sync={syncStatus} tab={subtab} onTabChange={setSubtab} /> : <Placeholder title={activeView} />;
       case 'tools':      return DEV_TOOLS ? <ToolsView serviceOnline={online} connectionState={status.state} /> : <Placeholder title={activeView} />;
       default: {
         // Page-capable marketplace (SDK) widget: render its bundle's page surface
@@ -1024,7 +1027,7 @@ export function Dashboard() {
           onRemoteEnabledChange={setRemoteControlEnabled}
           onClose={() => setPairPhoneOpen(false)}
         />
-        <UpdateAutoOpener online={online} onOpen={handleUpdateOpen} />
+        {OFFICIAL_BUILD && <UpdateAutoOpener online={online} onOpen={handleUpdateOpen} />}
         <DeckEditAutoOpener online={online} onOpen={handleOpenDeckEditor} />
         <UpdateModalWithDismiss
           open={updateModalOpen}

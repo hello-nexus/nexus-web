@@ -10,6 +10,7 @@ import { EditableText } from '../Editable/EditableText';
 import { Select } from '../Select/Select';
 import { SettingsSection } from '../SettingsSection/SettingsSection';
 import { SettingRow, SettingToggle } from '../SettingRow/SettingRow';
+import { OFFICIAL_BUILD } from '../../../lib/officialBuild';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import {
   fetchPanelPhonePairQr,
@@ -525,6 +526,9 @@ export function PairRemoteContent({
       ariaLabel={t('phonePair.connectionOptions')}
       boxClassName={appStyles.phonePairBox}
     >
+      {/* The killswitch stays in every build: RemoteControlEnabled defaults on,
+          so hiding it would remove the only way to turn remote access off. Only
+          the relay transport is ours. */}
       <SettingToggle
         label={t('phonePair.killswitch.label')}
         description={effRemoteEnabled
@@ -533,14 +537,16 @@ export function PairRemoteContent({
         checked={effRemoteEnabled}
         onChange={handleRemoteToggle}
       />
-      <SettingToggle
-        label={t('phonePair.relay.label')}
-        description={t('phonePair.relay.hint')}
-        icon={<SatelliteDish size={14} />}
-        checked={effRemoteEnabled && relayEnabled}
-        onChange={applyRelayEnabled}
-        disabled={!effRemoteEnabled}
-      />
+      {OFFICIAL_BUILD && (
+        <SettingToggle
+          label={t('phonePair.relay.label')}
+          description={t('phonePair.relay.hint')}
+          icon={<SatelliteDish size={14} />}
+          checked={effRemoteEnabled && relayEnabled}
+          onChange={applyRelayEnabled}
+          disabled={!effRemoteEnabled}
+        />
+      )}
       <PairBroadcastRow value={broadcast} onChange={updateBroadcast} now={now} />
     </SettingsSection>
   );

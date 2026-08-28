@@ -1,7 +1,13 @@
 import { defineConfig, mergeConfig } from 'vitest/config';
 import viteConfig from './vite.config';
 
+// The suite covers the shipped surface, so it runs as an official build whatever
+// the machine has. The other shape is covered by files that mock
+// lib/officialBuild - see src/search/providers.unofficial.test.ts.
 export default mergeConfig(viteConfig, defineConfig({
+  define: {
+    __OFFICIAL_BUILD__: JSON.stringify(true),
+  },
   test: {
     // Building a jsdom is the single largest cost in a run, and it is paid per
     // test file; a file that touches no DOM opts out with a

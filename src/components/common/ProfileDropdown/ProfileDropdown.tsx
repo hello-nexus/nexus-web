@@ -3,6 +3,7 @@ import { ChevronDown, Plus, UsersRound, UserRound, LogIn } from 'lucide-react';
 import classNames from 'classnames';
 import { useTranslation } from '../../../lib/i18n';
 import { DEV_TOOLS } from '../../../lib/devTools';
+import { OFFICIAL_BUILD } from '../../../lib/officialBuild';
 import { useClickOutside } from '../../../hooks/useClickOutside';
 import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
 import { MenuDivider } from '../MenuDivider/MenuDivider';
@@ -172,7 +173,7 @@ export function ProfileDropdown({
           [styles.avatarDropdown]: isAvatar,
         })}>
           {/* The cloud account system is not user-facing yet. */}
-          {DEV_TOOLS && onNavigateAccount && (
+          {DEV_TOOLS && OFFICIAL_BUILD && onNavigateAccount && (
             <>
               <div className={styles.groupLabel}>{t('account.title')}</div>
               <div className={styles.accountSection}>
