@@ -61,7 +61,8 @@ const DEFAULT_PP: PostProcessState = { hue: 0, colorize: 0, saturation: 1, contr
 /**
  * Fullscreen lighting controller. Two stacked cells:
  *  - Cell 1: the immersive LightingWidget - square mode buttons (off / animate
- *    / media / mirror) over the effect preview.
+ *    / media / mirror) over the effect preview; in Static that preview is the
+ *    colour picker itself, since picking IS what the mode's canvas shows.
  *  - Cell 2 (the fill cell): the shared Options | Effect editor, composed for
  *    the current mode (animate = shader grid + EffectControls; media = media
  *    list + post-process; mirror = monitor picker + post-process). Omitted in
@@ -74,7 +75,12 @@ export function LightingTouch({ widget, surface, immersiveGrid }: WidgetProps) {
   const panelUsage = usePanelBackgroundUsage();
 
   const cells: ReactNode[] = [
-    <LightingWidget widget={fullsizeWidget} surface={surface} immersive />,
+    <LightingWidget
+      widget={fullsizeWidget}
+      surface={surface}
+      immersive
+      immersiveCanvas={mode === 'static' && animate ? <ImmersivePickerCanvas animate={animate} /> : undefined}
+    />,
   ];
   // Always keep a second (fill) cell below the fixed 4x4 preview so the preview
   // stays a 4x4 even when there's no editor (off mode). The spacer just holds
@@ -91,7 +97,26 @@ export function LightingTouch({ widget, surface, immersiveGrid }: WidgetProps) {
   );
 }
 
-/** Static's picker for the touch surface: the field, then its two tiles. */
+/** Static's colour field, filling the immersive preview cell. */
+function ImmersivePickerCanvas({ animate }: { animate: ImmersiveAnimateController }) {
+  return (
+    <StaticPickerCanvas
+      fill
+      devices={animate.pickerDevices}
+      hasSelection={animate.selectedIds.size > 0}
+      hex={animate.selectedHex}
+      segmented={animate.segmented}
+      patternEffect={animate.staticPattern?.key ?? null}
+      patternSlot={animate.staticPattern?.slot ?? 0}
+      patternVersion={animate.staticPattern ? animate.versionForSlot(animate.staticPattern.key, animate.staticPattern.slot) : '0'}
+      gpuAvailable
+      onPreview={animate.onPreviewCustom}
+      onCommit={animate.onSelectCustom}
+    />
+  );
+}
+
+/** The two tiles that pick which field the canvas above shows. */
 function ImmersivePicker({ animate }: { animate: ImmersiveAnimateController }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(true);
@@ -107,44 +132,29 @@ function ImmersivePicker({ animate }: { animate: ImmersiveAnimateController }) {
     animate.onSelectCustom(pickerHexAt(snapped.x, snapped.y));
   };
   return (
-    <>
-      <StaticPickerCanvas
-        compact
-        devices={animate.pickerDevices}
-        hasSelection={animate.selectedIds.size > 0}
-        hex={animate.selectedHex}
-        segmented={animate.segmented}
-        patternEffect={animate.staticPattern?.key ?? null}
-        patternSlot={animate.staticPattern?.slot ?? 0}
-        patternVersion={animate.staticPattern ? animate.versionForSlot(animate.staticPattern.key, animate.staticPattern.slot) : '0'}
-        gpuAvailable
-        onPreview={animate.onPreviewCustom}
-        onCommit={animate.onSelectCustom}
-      />
-      <CollapsibleSection
-        compact
-        title={t('lighting.static.pickerGroup')}
-        open={open}
-        onToggle={() => setOpen(o => !o)}
-      >
-        <div className={styles.animateGridSection}>
-          <EffectCard
-            overlay
-            label={t('lighting.static.pickerSegmented')}
-            thumbUrl={PICKER_SEGMENTED_SVG}
-            active={!animate.staticPattern && animate.segmented}
-            onClick={() => pick(true)}
-          />
-          <EffectCard
-            overlay
-            label={t('lighting.static.picker')}
-            thumbUrl={PICKER_FIELD_SVG}
-            active={!animate.staticPattern && !animate.segmented}
-            onClick={() => pick(false)}
-          />
-        </div>
-      </CollapsibleSection>
-    </>
+    <CollapsibleSection
+      compact
+      title={t('lighting.static.pickerGroup')}
+      open={open}
+      onToggle={() => setOpen(o => !o)}
+    >
+      <div className={styles.animateGridSection}>
+        <EffectCard
+          overlay
+          label={t('lighting.static.pickerSegmented')}
+          thumbUrl={PICKER_SEGMENTED_SVG}
+          active={!animate.staticPattern && animate.segmented}
+          onClick={() => pick(true)}
+        />
+        <EffectCard
+          overlay
+          label={t('lighting.static.picker')}
+          thumbUrl={PICKER_FIELD_SVG}
+          active={!animate.staticPattern && !animate.segmented}
+          onClick={() => pick(false)}
+        />
+      </div>
+    </CollapsibleSection>
   );
 }
 
@@ -189,13 +199,18 @@ function renderImmersiveEditor(
         options={(
           <StaticBrowser locked={needsSelection}>
             <AnimateGrid
-              effect={animate.effect}
+              // Static's highlight belongs to what the SELECTION wears, not to
+              // what was last browsed: a pattern tile left lit after a colour
+              // pick reads as a second selection beside the picker tile. A
+              // selection with no pick of its own lights nothing here (the
+              // lighting page falls back to the browsed effect instead).
+              effect={isStatic ? (animate.staticPattern?.key ?? '') : animate.effect}
               onSelect={animate.onSelectEffect}
               effects={isStatic ? STATIC_PATTERN_EFFECTS : ANIMATE_EFFECTS}
               frozen={isStatic}
               slotFor={animate.slotFor}
               versionFor={animate.versionFor}
-              rgbActiveEffect={animate.effect}
+              rgbActiveEffect={isStatic ? null : animate.effect}
               panelEffects={panelUsage.effects}
               leading={isStatic ? <ImmersivePicker animate={animate} /> : undefined}
             />

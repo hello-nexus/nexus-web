@@ -62,7 +62,7 @@ import styles from './LightingWidget.module.scss';
 // master repo.
 const LIGHTING_PREVIEW_MODE: LightingMode = 'screen';
 
-export function LightingWidget({ widget, immersive, onSectionNavigate }: WidgetProps & { immersive?: boolean }) {
+export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNavigate }: WidgetProps & { immersive?: boolean; immersiveCanvas?: ReactNode }) {
   const { t, language } = useTranslation();
   const { settings: ui } = useUiSettings();
   const flags = useFeatureFlags();
@@ -501,7 +501,8 @@ export function LightingWidget({ widget, immersive, onSectionNavigate }: WidgetP
 
   // Immersive (fullscreen panel) variant: a row of icon-only mode buttons
   // on top, preview below. Shown for every mode and regardless of the
-  // simple/advanced widget setting.
+  // simple/advanced widget setting. `immersiveCanvas` replaces that preview
+  // with a mode's own canvas.
   if (immersive) {
     return (
       <div className={styles.lighting} data-size={widget.size} data-mode={mode} data-immersive="true">
@@ -521,39 +522,43 @@ export function LightingWidget({ widget, immersive, onSectionNavigate }: WidgetP
             );
           })}
         </div>
-        <SingleItemView
-          view={view}
-          t={t}
-          showArrows={false}
-          overlay={
-            <>
-              {mode === 'animate'
-                ? (
-                  <button
-                    type="button"
-                    className={styles.previewExpand}
-                    onClick={() => setShaderFullscreen(true)}
-                    aria-label={t('lighting.fullscreen')}
-                  >
-                    {/* Gated off while fullscreen is open: that view (below)
-                        fully occludes this one, so only one WebGL context runs
-                        at a time. The shader source is cached, so the remount
-                        on close is instant. */}
-                    {!shaderFullscreen && <LightingShaderPreview effect={activeEffect} state={animateState} gpuAvailable={gpuAvailable} paused={paused} />}
-                  </button>
-                )
-                : <LightingLivePreview />}
-              {flash}
-            </>
-          }
-        />
+        {immersiveCanvas ? <div className={styles.thumbBox}>{immersiveCanvas}</div> : (
+          <SingleItemView
+            view={view}
+            t={t}
+            showArrows={false}
+            overlay={
+              <>
+                {mode === 'animate'
+                  ? (
+                    <button
+                      type="button"
+                      className={styles.previewExpand}
+                      onClick={() => setShaderFullscreen(true)}
+                      aria-label={t('lighting.fullscreen')}
+                    >
+                      {/* Gated off while fullscreen is open: that view (below)
+                          fully occludes this one, so only one WebGL context runs
+                          at a time. The shader source is cached, so the remount
+                          on close is instant. */}
+                      {!shaderFullscreen && <LightingShaderPreview effect={activeEffect} state={animateState} gpuAvailable={gpuAvailable} paused={paused} />}
+                    </button>
+                  )
+                  : <LightingLivePreview />}
+                {flash}
+              </>
+            }
+          />
+        )}
         {mode === 'animate' && shaderFullscreen && (
           <button
             type="button"
             className={styles.shaderFullscreen}
             onClick={() => setShaderFullscreen(false)}
-            // Only the FULLSCREEN shader blocks the overlay's swipe-to-dismiss;
-            // the small preview above must stay swipeable to close the panel.
+            // Of the shader views only the FULLSCREEN one blocks the overlay's
+            // swipe-to-dismiss; the small preview above must stay swipeable to
+            // close the panel. An immersiveCanvas may opt out on its own - the
+            // Static picker does, since a vertical pick is its own drag.
             data-panel-no-sheet-swipe="true"
             aria-label={t('lighting.fullscreen.exit')}
           >

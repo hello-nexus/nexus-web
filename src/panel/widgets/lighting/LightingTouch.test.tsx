@@ -8,7 +8,11 @@ import type { PanelWidget } from '../types';
 
 // The immersive shell and its heavy leaves are not what this file is about:
 // the subject is where a Static pick is routed, and against which preset slot.
-vi.mock('./LightingWidget', () => ({ LightingWidget: () => <div /> }));
+// Static's picker rides in the widget's immersive canvas slot, so the stub has
+// to render what is handed to it or the subject disappears.
+vi.mock('./LightingWidget', () => ({
+  LightingWidget: ({ immersiveCanvas }: { immersiveCanvas?: React.ReactNode }) => <div>{immersiveCanvas}</div>,
+}));
 vi.mock('../common/ImmersiveLayout', () => ({
   ImmersiveLayout: ({ cells }: { cells: React.ReactNode[] }) => <div>{cells}</div>,
 }));
@@ -32,14 +36,18 @@ vi.mock('./page/StaticPickerCanvas', () => ({
 vi.mock('./effecteditor/MediaList', () => ({ MediaList: () => <div /> }));
 vi.mock('./effecteditor/PostProcessControls', () => ({ PostProcessControls: () => <div /> }));
 vi.mock('./page/ModeControls', () => ({ ScreenControls: () => <div /> }));
+const gridProps = vi.hoisted(() => ({ current: null as Record<string, unknown> | null }));
 vi.mock('./page/AnimateGrid', () => ({
   // `leading` carries the static palette; dropping it hides the subject.
-  AnimateGrid: ({ onSelect, leading }: { onSelect: (key: string) => void; leading?: React.ReactNode }) => (
-    <>
-      {leading}
-      <button type="button" onClick={() => onSelect('stripes')}>pick-stripes</button>
-    </>
-  ),
+  AnimateGrid: (props: { onSelect: (key: string) => void; leading?: React.ReactNode }) => {
+    gridProps.current = props as unknown as Record<string, unknown>;
+    return (
+      <>
+        {props.leading}
+        <button type="button" onClick={() => props.onSelect('stripes')}>pick-stripes</button>
+      </>
+    );
+  },
 }));
 vi.mock('./effecteditor/StaticDeviceSelect', () => ({
   StaticDeviceSelect: () => <div data-testid="device-select" />,
@@ -75,6 +83,10 @@ const widget: PanelWidget = { id: 'w', type: 'lighting', size: '4x4', col: 0, ro
 describe('LightingTouch static picks', () => {
   beforeEach(() => {
     localStorage.clear();
+    // Both hold the last props of an unmounted tree, so a stale one can satisfy
+    // the next test's assertion.
+    gridProps.current = null;
+    pickerProps.current = null;
     vi.mocked(setLightingDeviceColor).mockClear();
     vi.mocked(startStatic).mockClear();
   });
@@ -146,6 +158,21 @@ describe('LightingTouch static picks', () => {
     const [id, , , body] = vi.mocked(setLightingDeviceColor).mock.calls[0] as unknown as [string, number, number, { color: string }];
     expect(id).toBe('dev-a');
     expect(body.color).toBe('#123456');
+  });
+
+  // The browsed effect is not what the devices wear: leaving the grid keyed on
+  // it lights a pattern tile alongside the picker tile, so both read selected.
+  it('highlights the grid from what the selection wears, not the browsed effect', async () => {
+    localStorage.setItem(SELECTED_DEVICES_STORAGE_KEY, JSON.stringify(['dev-a']));
+    render(<LightingTouch widget={widget} />);
+
+    // A pattern pick: the grid marks the tile the selection now wears.
+    fireEvent.click(await screen.findByText('pick-stripes'));
+    await waitFor(() => expect(gridProps.current!.effect).toBe('stripes'));
+
+    // A colour pick replaces it, so no pattern tile stays lit.
+    fireEvent.click(screen.getByText('pick-custom'));
+    await waitFor(() => expect(gridProps.current!.effect).toBe(''));
   });
 
   it('writes nothing while no device is selected', async () => {
