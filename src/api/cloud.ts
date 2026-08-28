@@ -1,5 +1,5 @@
 import { getToken, handleUnauthorized } from './auth';
-import { fetchService, loopbackFetchInit, patchService, postService, resolveHttp } from './service';
+import { authFetchWithStatus, fetchService, loopbackFetchInit, patchService, postService, resolveHttp } from './service';
 import type { GameLeaderboardEntry, GameType } from '../types/games';
 
 export interface CloudAvatar {
@@ -297,8 +297,30 @@ export interface CloudLibrary {
 export const fetchCloudLibrary = () =>
   fetchService<CloudLibrary>('/cloud/profiles/library');
 
-/** Copies another machine's profile in as a NEW local profile; nothing existing is overwritten. */
-export const importCloudProfile = (installId: string, profileId: string, replaceExisting = false) =>
-  postService<{ error?: boolean; msg?: string }>('/cloud/profiles/import', {
-    installId, profileId, replaceExisting,
+export interface CloudImportResult {
+  status: number;
+  body: { error?: boolean; msg?: string } | null;
+}
+
+/**
+ * Copies another machine's profile in as a NEW local profile; nothing existing
+ * is overwritten. Uses authFetchWithStatus rather than postService because the
+ * name-conflict answer is a 409 and postService discards every non-2xx body,
+ * which turned the conflict into a generic failure.
+ */
+export async function importCloudProfile(
+  installId: string,
+  profileId: string,
+  replaceExisting = false,
+): Promise<CloudImportResult> {
+  const { response, status } = await authFetchWithStatus('/cloud/profiles/import', {
+    method: 'POST',
+    body: { installId, profileId, replaceExisting },
   });
+  if (!response) return { status, body: null };
+  try {
+    return { status, body: (await response.json()) as { error?: boolean; msg?: string } };
+  } catch {
+    return { status, body: null };
+  }
+}

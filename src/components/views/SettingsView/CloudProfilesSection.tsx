@@ -81,14 +81,14 @@ export function CloudProfilesSection({ profiles }: { profiles: UseProfilesResult
     if (busyKey) return;
     setBusyKey(key);
     setImportError(null);
-    const result = await importCloudProfile(installId, profileId, replaceExisting);
+    const { status, body } = await importCloudProfile(installId, profileId, replaceExisting);
     setBusyKey(null);
-    if (result?.error && result.msg === 'profile_name_taken') {
+    if (status === 409 || body?.msg === 'profile_name_taken') {
       setConflict({ installId, profileId, key, name });
       return;
     }
-    if (!result || result.error) {
-      setImportError(result?.msg === 'profile_limit_reached'
+    if (status < 200 || status >= 300) {
+      setImportError(body?.msg === 'profile_limit_reached'
         ? t('profile.cloud.import.error.limit')
         : t('profile.cloud.import.error.failed'));
       return;
@@ -161,12 +161,10 @@ export function CloudProfilesSection({ profiles }: { profiles: UseProfilesResult
 
   return (
     <>
-      <SettingsSection title={t('profile.cloud.title')} description={t('profile.cloud.subtitle')}>
+      <SettingsSection title={t('profile.cloud.title')}>
         {library === null ? <Spinner size={24} /> : mine.length === 0 ? (
           <EmptyState title={t('profile.cloud.list.empty')} />
         ) : mine.map(ownRow)}
-
-        {importError && <p className={styles.profileImportError} role="alert" data-settings-aside="true">{importError}</p>}
 
         {/* Per-machine rows make a conflict need two writers on THIS machine. */}
         {sync.conflicts.length > 0 && (
@@ -182,11 +180,9 @@ export function CloudProfilesSection({ profiles }: { profiles: UseProfilesResult
       </SettingsSection>
 
       {others.length > 0 && (
-        <SettingsSection
-          title={t('profile.cloud.others.title')}
-          description={t('profile.cloud.others.subtitle')}
-        >
+        <SettingsSection title={t('profile.cloud.others.title')}>
           {others.map(otherRow)}
+          {importError && <p className={styles.profileImportError} role="alert" data-settings-aside="true">{importError}</p>}
           {atLimit && <p className={styles.note} data-settings-aside="true">{t('profile.maxReached')}</p>}
         </SettingsSection>
       )}

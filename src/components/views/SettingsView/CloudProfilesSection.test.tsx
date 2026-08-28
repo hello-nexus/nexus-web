@@ -76,7 +76,7 @@ beforeEach(() => {
   accountsResult.mockReturnValue(SIGNED_IN);
   syncResult.mockReturnValue(BASE_SYNC);
   vi.mocked(fetchCloudLibrary).mockResolvedValue(LIBRARY);
-  vi.mocked(importCloudProfile).mockResolvedValue({ error: false });
+  vi.mocked(importCloudProfile).mockResolvedValue({ status: 200, body: { error: false } });
 });
 
 describe('CloudProfilesSection signed-out state', () => {
@@ -150,6 +150,23 @@ describe('CloudProfilesSection profile list', () => {
     expect(screen.getAllByText('Default')).toHaveLength(2);
   });
 
+  it('reports an import failure beside the import buttons, not under this computer', async () => {
+    // A 409 body used to be discarded by postService, so the conflict showed
+    // as a generic failure - and it rendered in the wrong section.
+    vi.mocked(importCloudProfile).mockResolvedValue({ status: 400, body: { error: true, msg: 'nope' } });
+    renderSection();
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'profile.cloud.import.open' })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'profile.cloud.import.open' }));
+
+    const alert = await screen.findByRole('alert');
+    const othersHeading = screen.getByText('profile.cloud.others.title');
+    // The alert must sit inside the other-computers section.
+    expect(othersHeading.closest('section')).toContainElement(alert);
+  });
+
   it('separates this computer from the others and stamps its own backup time', async () => {
     syncResult.mockReturnValue({
       ...BASE_SYNC,
@@ -205,7 +222,7 @@ describe('CloudProfilesSection profile list', () => {
   });
 
   it('asks whether to replace on a name clash and retries with replaceExisting', async () => {
-    vi.mocked(importCloudProfile).mockResolvedValueOnce({ error: true, msg: 'profile_name_taken' });
+    vi.mocked(importCloudProfile).mockResolvedValueOnce({ status: 409, body: { error: true, msg: 'profile_name_taken' } });
     renderSection();
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'profile.cloud.import.open' })).toBeInTheDocument();
@@ -216,7 +233,7 @@ describe('CloudProfilesSection profile list', () => {
     await waitFor(() => {
       expect(screen.getByText('profile.cloud.import.nameTaken.title')).toBeInTheDocument();
     });
-    vi.mocked(importCloudProfile).mockResolvedValue({ error: false });
+    vi.mocked(importCloudProfile).mockResolvedValue({ status: 200, body: { error: false } });
     fireEvent.click(screen.getByRole('button', { name: 'profile.cloud.import.nameTaken.replace' }));
 
     await waitFor(() => {
@@ -225,7 +242,7 @@ describe('CloudProfilesSection profile list', () => {
   });
 
   it('surfaces the local profile cap instead of failing silently', async () => {
-    vi.mocked(importCloudProfile).mockResolvedValue({ error: true, msg: 'profile_limit_reached' });
+    vi.mocked(importCloudProfile).mockResolvedValue({ status: 400, body: { error: true, msg: 'profile_limit_reached' } });
     renderSection();
 
     await waitFor(() => {
