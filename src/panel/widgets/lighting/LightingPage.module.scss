@@ -320,23 +320,10 @@
   grid-template-columns: repeat(auto-fill, minmax(59px, 1fr));
 }
 
-// Static colour palette. The column count comes from the family list, set
-// inline; capping the width keeps the swatches swatch-sized when the effect
-// dock is collapsed and the pane is wide.
-// Single source for the swatch track metrics. Must sit on the shared PARENT:
-// .paletteCustomRow is a sibling of .paletteGrid, and custom properties
-// inherit down, not across.
-.paletteBody {
-  --palette-gap: 0.25rem;
-  --palette-max-width: 44rem;
-}
-
 .paletteGrid {
   display: grid;
-  // Fallbacks carry hero mode, which renders the grid with no .paletteBody.
-  gap: var(--palette-gap, 0.25rem);
+  gap: 0.5rem;
   align-content: start;
-  max-width: var(--palette-max-width, 44rem);
   padding: 0 0.2rem 0.2rem;
 }
 
@@ -369,14 +356,6 @@
   }
 }
 
-// Simple mode gives the palette the whole page, so the swatch column drops the
-// side-pane width cap and the gap grows with it.
-.paletteGridHero {
-  gap: 0.5rem;
-  max-width: none;
-  padding: 0;
-}
-
 // Same selection language as every other pick grid (EffectCard .cardActive):
 // the ring is the text colour, because a coloured one misreads against
 // colourful content - and here the content IS a colour.
@@ -387,52 +366,6 @@
   &:hover { border-color: var(--text); }
 }
 
-// Custom-colour row under the palette grid (advanced mode). Gap and cap must
-// track .paletteGrid or the block stops lining up with the swatch columns.
-.paletteCustomRow {
-  display: grid;
-  gap: var(--palette-gap);
-  align-items: center;
-  max-width: var(--palette-max-width);
-  padding: 0.3rem 0.2rem 0.2rem;
-}
-
-.paletteCustomSlotWrap {
-  position: relative;
-  display: flex;
-  grid-column: span 2;
-}
-
-.paletteCustomSwatch {
-  width: 100%;
-  aspect-ratio: 2 / 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background:
-    conic-gradient(
-      from 0deg,
-      #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000
-    );
-}
-
-.paletteCustomIcon {
-  height: 50%;
-  width: auto;
-  color: #fff;
-  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.8));
-  pointer-events: none;
-}
-
-.paletteCustomIconOnFill {
-  color: inherit;
-  filter: none;
-}
-
-.paletteCustomPopover {
-  width: 220px;
-  padding: 0.6rem;
-}
 
 // Effect-editor stand-in for a palette pick: names the colour, and says why
 // there is nothing under it.
@@ -1656,6 +1589,12 @@
 // in staticPickerField.ts; change one and the dots stop sitting on their own
 // colour.
 .staticPicker {
+  // The field is a full-saturation surface in both themes, so its scrim and
+  // halo stay dark where a theme token would flip with the background.
+  --picker-scrim: rgb(0 0 0 / var(--alpha-strong));
+  --picker-halo: rgb(0 0 0 / var(--alpha-strong));
+  --picker-hairline: rgb(255 255 255 / var(--alpha-medium));
+  // --picker-notice-hold is set inline from NOTICE_MS in StaticPickerCanvas.
   display: flex;
   justify-content: center;
   width: 100%;
@@ -1699,7 +1638,7 @@
   height: 20px;
   border-radius: 50%;
   border: 3px solid #fff;
-  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 0 0 2px var(--picker-halo), var(--shadow-sm);
 }
 
 // Muted colour the saturated field cannot reach - the dot marks the nearest point.
@@ -1717,15 +1656,19 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   padding: 1px 6px;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.62);
+  border-radius: var(--radius-pill);
+  background: var(--picker-scrim);
   color: #fff;
   font-size: var(--type-mini);
 }
 
 .staticNotice {
   position: absolute;
-  inset: 0;
+  // Chromium 83 (the Q60 panel floor) has no `inset` shorthand.
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1739,11 +1682,11 @@
   max-width: 24rem;
   padding: 0.7rem 1rem;
   border-radius: var(--radius);
-  background: rgba(0, 0, 0, 0.78);
+  background: var(--picker-scrim);
   color: #fff;
   font-size: var(--type-small);
   text-align: center;
-  animation: staticNoticeFade 2.2s ease forwards;
+  animation: staticNoticeFade var(--picker-notice-hold) ease forwards;
 }
 
 @keyframes staticNoticeFade {
@@ -1782,7 +1725,7 @@
   gap: 0.35rem;
   padding: 0.25rem 0.3rem 0.25rem 0.4rem;
   border-radius: var(--radius-sm);
-  background: rgba(0, 0, 0, 0.62);
+  background: var(--picker-scrim);
 }
 
 .staticHexSwatch {
@@ -1790,7 +1733,7 @@
   height: 16px;
   flex-shrink: 0;
   border-radius: var(--radius-sm);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / var(--alpha-medium));
+  box-shadow: inset 0 0 0 1px var(--picker-hairline);
 }
 
 .staticHexInput {
@@ -1801,7 +1744,6 @@
   color: #fff;
   font-family: var(--font-mono);
   font-size: var(--type-small);
-  letter-spacing: 0.04em;
   text-transform: uppercase;
   text-align: center;
   outline: none;
@@ -1842,7 +1784,10 @@
 
 .staticSegments {
   position: absolute;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   display: grid;
   pointer-events: none;
 }
@@ -1853,7 +1798,7 @@
   box-sizing: border-box;
   border: 2px solid #fff;
   border-radius: var(--radius-sm);
-  box-shadow: 0 0 0 1px rgb(0 0 0 / var(--alpha-strong)), inset 0 0 0 1px rgb(0 0 0 / var(--alpha-strong));
+  box-shadow: 0 0 0 1px var(--picker-halo), inset 0 0 0 1px var(--picker-halo);
 }
 
 // The device wears a colour this cell only stands in for.
@@ -1865,4 +1810,10 @@
 .staticPinLabelAbove {
   top: auto;
   bottom: calc(100% + 5px);
+}
+
+// Touch surfaces have no room for the 380px canvas the page mirrors.
+.staticFieldCompact {
+  height: clamp(140px, 32vh, 280px);
+  width: 100%;
 }

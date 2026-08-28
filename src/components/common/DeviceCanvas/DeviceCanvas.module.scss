@@ -1,4 +1,9 @@
 .canvas {
+  // The canvas is a full-saturation surface in both themes, so its frame lines
+  // and scrims stay fixed where a theme token would flip with the background.
+  --frame-line: rgb(255 255 255 / 0.85);
+  --frame-halo: rgb(0 0 0 / var(--alpha-strong));
+  --frame-scrim: rgb(0 0 0 / var(--alpha-strong));
   position: relative;
   height: 380px;
   // Fit the container, capped at 21:9. No min-width floor: a floor makes the
@@ -54,9 +59,9 @@
   position: absolute;
   // Same outline Static's swatch cell wears: a white rule with a dark halo on
   // both sides, which holds up over any shader without tinting what it frames.
-  border: 2px solid rgb(255 255 255 / 0.85);
+  border: 2px solid var(--frame-line);
   border-radius: var(--radius-sm);
-  box-shadow: 0 0 0 1px rgb(0 0 0 / var(--alpha-strong)), inset 0 0 0 1px rgb(0 0 0 / var(--alpha-strong));
+  box-shadow: 0 0 0 1px var(--frame-halo), inset 0 0 0 1px var(--frame-halo);
   cursor: grab;
   overflow: visible;
   z-index: 2;
@@ -131,8 +136,8 @@
   // Same pill Static's dots wear: a name over a busy shader needs its own
   // ground, not a shadow.
   padding: 1px 7px;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.62);
+  border-radius: var(--radius-pill);
+  background: var(--frame-scrim);
   font-weight: var(--weight-body);
   transition: opacity var(--ease-fast);
 
@@ -183,7 +188,7 @@
     height: 10px;
     border-radius: var(--radius-sm);
     background: #fff;
-    box-shadow: 0 0 0 1px rgb(0 0 0 / var(--alpha-strong));
+    box-shadow: 0 0 0 1px var(--frame-halo);
     transition: background var(--ease-fast);
   }
 

@@ -42,19 +42,39 @@ export function pickerPointFor(hex: string): PickerPoint {
 
 /**
  * The segmented view samples the same field on a coarse grid - the old palette's
- * 14 hue columns. The rows are lightness stops rather than an even split of the
- * axis: the ends pull in from white and black, which an LED renders as blown out
- * and as off. The middle stops sit where an even 6-row split puts them.
+ * 14 hue columns. The rows are lightness stops, not an even split of the axis:
+ * the centre stop is the pure hue (full saturation and value), four tints run
+ * above it and four shades below, and the ends pull in from white and black,
+ * which an LED renders as blown out and as off.
  */
 export const PICKER_SEGMENT_COLS = 14;
-const SEGMENT_ROW_L = [0.84, 0.75, 7 / 12, 5 / 12, 0.25, 0.18];
+const SEGMENT_ROW_L = [0.84, 0.755, 0.67, 0.585, 0.5, 0.42, 0.34, 0.26, 0.18];
 export const PICKER_SEGMENT_ROWS = SEGMENT_ROW_L.length;
+
+/**
+ * The cell a point falls in. Rows resolve by nearest lightness stop, not by an
+ * even split of the axis: the stops are uneven, so an even split cannot reach
+ * the row whose stop sits outside its own band.
+ */
+export function segmentCellFor(x: number, y: number): { col: number; row: number } {
+  const col = Math.min(PICKER_SEGMENT_COLS - 1, Math.floor(clamp01(x) * PICKER_SEGMENT_COLS));
+  const l = 1 - clamp01(y);
+  let row = 0;
+  let best = Infinity;
+  for (let r = 0; r < SEGMENT_ROW_L.length; r++) {
+    const d = Math.abs(SEGMENT_ROW_L[r] - l);
+    if (d < best) {
+      best = d;
+      row = r;
+    }
+  }
+  return { col, row };
+}
 
 /** Snaps a point to its cell's swatch, so a segmented press lands on one. */
 export function snapToSegment(x: number, y: number): { x: number; y: number } {
-  const c = Math.min(PICKER_SEGMENT_COLS - 1, Math.floor(clamp01(x) * PICKER_SEGMENT_COLS));
-  const r = Math.min(PICKER_SEGMENT_ROWS - 1, Math.floor(clamp01(y) * PICKER_SEGMENT_ROWS));
-  return { x: (c + 0.5) / PICKER_SEGMENT_COLS, y: 1 - SEGMENT_ROW_L[r] };
+  const { col, row } = segmentCellFor(x, y);
+  return { x: (col + 0.5) / PICKER_SEGMENT_COLS, y: 1 - SEGMENT_ROW_L[row] };
 }
 
 /** Every segmented swatch, row-major. */

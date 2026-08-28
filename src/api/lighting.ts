@@ -368,9 +368,9 @@ export const fetchLightingDevices = async (): Promise<LightingDevicesResponse | 
   const res = await fetchService<LightingDevicesResponse>('/devices/lighting-devices/all');
   if (!loadLightingMock) return res;
   const mock = await loadLightingMock();
-  // isInit gates it: a host mid-enumeration also answers with an empty list, and
-  // standing in mock hardware there would flash fake devices onto a real rig.
-  const empty = !!res && res.isInit && res.devices.length === 0;
+  // isInit is the OpenRGB bridge's connection state, not "enumeration done" - a
+  // Mac with no bridge never reports it, so an empty list is the only signal.
+  const empty = !res || res.devices.length === 0;
   mock.setMockLightingActive(empty);
   return empty ? { isInit: true, devices: mock.MOCK_LIGHTING_DEVICES } : res;
 };
@@ -505,7 +505,9 @@ export const setLightingDeviceColor = async (
   saturation: number,
   look?: { effect: string; color?: string; intensity: number; colorize: number; contrast: number; params?: Record<string, number>; slot?: number },
 ) => {
-  if (loadLightingMock) {
+  // Scoped to mock ids: a real device's write must never be swallowed, even in
+  // the window where a host with hardware has not enumerated it yet.
+  if (loadLightingMock && id.startsWith('mock-')) {
     const mock = await loadLightingMock();
     if (mock.mockLightingActive()) {
       mock.setMockLightingLook(id, {

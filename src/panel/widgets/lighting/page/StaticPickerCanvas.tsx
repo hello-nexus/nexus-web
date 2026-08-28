@@ -3,7 +3,8 @@ import { Check, Copy } from 'lucide-react';
 import { useTranslation } from '../../../../lib/i18n';
 import { useEffectThumbnail } from '../../../../hooks/useEffectThumbnail';
 import {
-  PICKER_SEGMENT_COLS, PICKER_SEGMENT_ROWS, SEGMENT_SWATCHES, pickerHexAt, pickerPointFor, sameSwatch, snapToSegment,
+  PICKER_SEGMENT_COLS, PICKER_SEGMENT_ROWS, SEGMENT_SWATCHES,
+  pickerHexAt, pickerPointFor, sameSwatch, segmentCellFor, snapToSegment,
 } from './staticPickerField';
 import styles from '../LightingPage.module.scss';
 
@@ -14,8 +15,10 @@ export interface PickerDevice {
   hex: string;
 }
 
-// Matches the staticNoticeFade keyframes, which own the fade-out.
+// The staticNoticeFade keyframes own the fade; this drives their duration.
 const NOTICE_MS = 2200;
+/** How long the copy button holds its check. */
+const COPIED_MS = 1500;
 /** Keeps a dot whole when its colour sits on the field's own edge. */
 const DOT_EDGE = 15;
 const LABEL_EDGE = 90;
@@ -46,7 +49,7 @@ interface Marker extends PickerDevice {
  * whole canvas, drops the marks, and answers a press with a notice instead.
  */
 export function StaticPickerCanvas({
-  devices, hasSelection, hex, segmented, patternEffect, patternSlot, patternVersion, gpuAvailable,
+  devices, hasSelection, hex, segmented, compact, patternEffect, patternSlot, patternVersion, gpuAvailable,
   onPreview, onCommit,
 }: {
   /** Selected devices, in rail order. */
@@ -56,6 +59,8 @@ export function StaticPickerCanvas({
   hex: string;
   /** Sample the field on the coarse grid instead of continuously. */
   segmented: boolean;
+  /** Touch surfaces give the field the pane's width and a shorter height. */
+  compact?: boolean;
   /** Non-null when the selection wears a pattern - the field is replaced by it. */
   patternEffect: string | null;
   patternSlot: number;
@@ -68,7 +73,8 @@ export function StaticPickerCanvas({
   const { t } = useTranslation();
   const fieldRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
-  const [notice, setNotice] = useState<{ title: string; body: string } | null>(null);
+  const [notice, setNotice] = useState<{ title: string; body: string; seq: number } | null>(null);
+  const noticeSeq = useRef(0);
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dragging = useRef(false);
   const lastHex = useRef<string | null>(null);
@@ -76,6 +82,7 @@ export function StaticPickerCanvas({
   // by the value the last valid keystroke already committed.
   const [hexDraft, setHexDraft] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const blastUrl = useEffectThumbnail(
     patternEffect ?? '', patternSlot, patternVersion,
@@ -92,10 +99,14 @@ export function StaticPickerCanvas({
     return () => ro.disconnect();
   }, []);
 
-  useEffect(() => () => { if (noticeTimer.current) clearTimeout(noticeTimer.current); }, []);
+  useEffect(() => () => {
+    if (noticeTimer.current) clearTimeout(noticeTimer.current);
+    if (copiedTimer.current) clearTimeout(copiedTimer.current);
+  }, []);
 
   const showNotice = useCallback((title: string, body: string) => {
-    setNotice({ title, body });
+    noticeSeq.current += 1;
+    setNotice({ title, body, seq: noticeSeq.current });
     if (noticeTimer.current) clearTimeout(noticeTimer.current);
     noticeTimer.current = setTimeout(() => setNotice(null), NOTICE_MS);
   }, []);
@@ -111,31 +122,30 @@ export function StaticPickerCanvas({
     for (const d of devices) {
       if (!d.hex) continue;
       const p = pickerPointFor(d.hex);
-      const col = Math.min(PICKER_SEGMENT_COLS - 1, Math.floor(p.x * PICKER_SEGMENT_COLS));
-      const row = Math.min(PICKER_SEGMENT_ROWS - 1, Math.floor(p.y * PICKER_SEGMENT_ROWS));
-      const key = segmented ? `${col},${row}` : d.hex.toLowerCase();
+      const cell = segmented ? segmentCellFor(p.x, p.y) : null;
+      const key = cell ? `${cell.col},${cell.row}` : d.hex.toLowerCase();
       const seen = at.get(key);
       if (seen !== undefined) {
         out[seen].extra += 1;
         continue;
       }
       at.set(key, out.length);
-      const left = segmented
-        ? (col + 0.5) * cw
+      const left = cell
+        ? (cell.col + 0.5) * cw
         : Math.min(size.w - DOT_EDGE, Math.max(DOT_EDGE, p.x * size.w));
-      const top = segmented
-        ? (row + 0.5) * ch
+      const top = cell
+        ? (cell.row + 0.5) * ch
         : Math.min(size.h - DOT_EDGE, Math.max(DOT_EDGE, p.y * size.h));
-      const swatch = SEGMENT_SWATCHES[row * PICKER_SEGMENT_COLS + col];
+      const swatch = cell ? SEGMENT_SWATCHES[cell.row * PICKER_SEGMENT_COLS + cell.col] : '';
       out.push({
         ...d,
         left,
         top,
-        inexact: segmented ? !sameSwatch(d.hex.toLowerCase(), swatch.toLowerCase()) : p.offField,
+        inexact: cell ? !sameSwatch(d.hex.toLowerCase(), swatch.toLowerCase()) : p.offField,
         align: left < LABEL_EDGE ? 'start' : left > size.w - LABEL_EDGE ? 'end' : 'center',
-        labelAbove: segmented && row === PICKER_SEGMENT_ROWS - 1,
+        labelAbove: !!cell && cell.row === PICKER_SEGMENT_ROWS - 1,
         extra: 0,
-        cell: segmented ? { w: cw, h: ch } : null,
+        cell: cell ? { w: cw, h: ch } : null,
       });
     }
     return out;
@@ -200,15 +210,17 @@ export function StaticPickerCanvas({
     try {
       await navigator.clipboard.writeText(hex.toUpperCase());
       setCopied(true);
-      window.setTimeout(() => setCopied(false), 1500);
+      if (copiedTimer.current) clearTimeout(copiedTimer.current);
+      copiedTimer.current = setTimeout(() => setCopied(false), COPIED_MS);
     } catch { /* older panel WebViews have no async clipboard; no toast to show */ }
   };
 
   return (
-    <div className={styles.staticPicker}>
+    // The hold is one value: the CSS animation reads it from the constant.
+    <div className={styles.staticPicker} style={{ '--picker-notice-hold': `${NOTICE_MS}ms` } as React.CSSProperties}>
       <div
         ref={fieldRef}
-        className={`${styles.staticField} ${patternEffect ? styles.staticFieldPattern : ''} ${!patternEffect && segmented ? styles.staticFieldSegmented : ''}`}
+        className={`${styles.staticField} ${compact ? styles.staticFieldCompact : ''} ${patternEffect ? styles.staticFieldPattern : ''} ${!patternEffect && segmented ? styles.staticFieldSegmented : ''}`}
         style={patternEffect && blastUrl ? { backgroundImage: `url(${blastUrl})` } : undefined}
         onPointerDown={handleDown}
         onPointerMove={handleMove}
@@ -283,7 +295,7 @@ export function StaticPickerCanvas({
         )}
         {notice && (
           <div className={styles.staticNotice}>
-            <div className={styles.staticNoticeBox}>
+            <div key={notice.seq} className={styles.staticNoticeBox}>
               <strong>{notice.title}</strong>
               <span>{notice.body}</span>
             </div>

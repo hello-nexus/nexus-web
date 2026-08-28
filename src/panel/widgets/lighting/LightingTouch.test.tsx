@@ -13,14 +13,19 @@ vi.mock('../common/ImmersiveLayout', () => ({
   ImmersiveLayout: ({ cells }: { cells: React.ReactNode[] }) => <div>{cells}</div>,
 }));
 vi.mock('./page/EffectControls', () => ({ EffectControls: () => <div /> }));
-const paletteProps = vi.hoisted(() => ({ current: null as Record<string, unknown> | null }));
-vi.mock('./page/StaticPalette', () => ({
-  StaticPalette: (props: Record<string, unknown>) => {
-    paletteProps.current = props;
+const pickerProps = vi.hoisted(() => ({ current: null as Record<string, unknown> | null }));
+vi.mock('./page/StaticPickerCanvas', () => ({
+  StaticPickerCanvas: (props: Record<string, unknown>) => {
+    pickerProps.current = props;
     return (
-      <button type="button" onClick={() => (props.onSelectCustom as (hex: string) => void)?.('#123456')}>
-        pick-custom
-      </button>
+      <>
+        <button type="button" onClick={() => (props.onCommit as (hex: string) => void)('#123456')}>
+          pick-custom
+        </button>
+        <button type="button" onClick={() => (props.onPreview as (hex: string) => void)('#abcdef')}>
+          drag-custom
+        </button>
+      </>
     );
   },
 }));
@@ -107,12 +112,29 @@ describe('LightingTouch static picks', () => {
     expect(picks['dev-a']).toMatchObject({ key: 'stripes', slot: 2 });
   });
 
-  it('offers the custom-colour slot, which the immersive palette was rendering without', async () => {
+  it('offers the picker canvas, scoped to the selection', async () => {
     localStorage.setItem(SELECTED_DEVICES_STORAGE_KEY, JSON.stringify(['dev-a']));
     render(<LightingTouch widget={widget} />);
-    await waitFor(() => expect(paletteProps.current).not.toBeNull());
-    // StaticPalette drops the custom row entirely when onSelectCustom is absent.
-    expect(typeof paletteProps.current!.onSelectCustom).toBe('function');
+    await waitFor(() => expect(pickerProps.current).not.toBeNull());
+    expect(pickerProps.current!.hasSelection).toBe(true);
+    expect(typeof pickerProps.current!.onPreview).toBe('function');
+    expect(typeof pickerProps.current!.onCommit).toBe('function');
+  });
+
+  // A finger drag has to reach the hardware on every move, but the persisted
+  // record is written on every change - so only the release may touch it.
+  it('writes a dragged colour to the devices without persisting it', async () => {
+    localStorage.setItem(SELECTED_DEVICES_STORAGE_KEY, JSON.stringify(['dev-a']));
+    localStorage.setItem(DEVICE_PICKS_STORAGE_KEY, JSON.stringify({}));
+    render(<LightingTouch widget={widget} />);
+
+    fireEvent.click(await screen.findByText('drag-custom'));
+
+    await waitFor(() => expect(setLightingDeviceColor).toHaveBeenCalled());
+    const [id, , , body] = vi.mocked(setLightingDeviceColor).mock.calls[0] as unknown as [string, number, number, { color: string }];
+    expect(id).toBe('dev-a');
+    expect(body.color).toBe('#abcdef');
+    expect(JSON.parse(localStorage.getItem(DEVICE_PICKS_STORAGE_KEY) ?? '{}')['dev-a']).toBeUndefined();
   });
 
   it('routes a custom colour to the selected devices', async () => {

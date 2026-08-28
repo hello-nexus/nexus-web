@@ -46,7 +46,7 @@ import { LightingSkeleton } from '../../../components/views/PageSkeleton/PageSke
 import { DeviceCanvas } from '../../../components/common/DeviceCanvas/DeviceCanvas';
 import { usePersistentState, usePersistentIdSet } from '../../../hooks/usePersistentState';
 import {
-  pickLookForDevices, pickPaletteForDevices, pickCustomForDevices, pushPalettePick, pushCustomPick, devicePicksFromLooks,
+  pickLookForDevices, pickPaletteForDevices, pickCustomForDevices, pushPalettePick, devicePicksFromLooks,
   DEVICE_PICKS_STORAGE_KEY, SELECTED_DEVICES_STORAGE_KEY, PRIMARY_DEVICE_STORAGE_KEY,
   type DevicePick,
 } from './staticPicks';
@@ -65,6 +65,7 @@ import { AnimateGrid } from './page/AnimateGrid';
 import { StaticPalette } from './page/StaticPalette';
 import { StaticPickerCanvas } from './page/StaticPickerCanvas';
 import { PICKER_FIELD_SVG, PICKER_SEGMENTED_SVG, snapToSegment, pickerHexAt, pickerPointFor } from './page/staticPickerField';
+import { useColorWriteQueue } from './page/useColorWriteQueue';
 import { EffectCard } from '../../../components/common/EffectCard/EffectCard';
 import { FullscreenShader } from './page/FullscreenShader';
 import { ModeControls } from './page/ModeControls';
@@ -232,8 +233,17 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // preset slot): the slot is captured when the pick is made, never read back
   // from the effect's shared pointer, or repointing one device would drag every
   // other device on that effect to the same preset.
+  // A drag's per-move picks live here, not in the persisted record: the store
+  // writes localStorage on every change, and a pointer-move rate of those is
+  // what the panel feels first.
+  const [previewPicks, setPreviewPicks] = useState<Record<string, DevicePick> | null>(null);
   const [devicePicks, setDevicePicks] = usePersistentState<Record<string, DevicePick>>(
     DEVICE_PICKS_STORAGE_KEY, {},
+  );
+  // What every reader sees: the persisted record with a live drag laid over it.
+  const livePicks = useMemo(
+    () => (previewPicks ? { ...devicePicks, ...previewPicks } : devicePicks),
+    [devicePicks, previewPicks],
   );
   // Collapsing the effect dock hands its space to the canvas and the browser.
   // The preset toolbar keeps its width either way - it lives in row 1, which
@@ -848,33 +858,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     });
   }, [activeEffect, applyAnimate, applyDeviceColor, effectiveMode, perDeviceMode, selectedDeviceIds, stateFor]);
 
-  // Custom-colour writes: one in flight, newest wins. Paced by the write
-  // landing rather than a timer, so a slow write drops the frames it outran
-  // instead of queueing them behind the pointer. The queued entry carries its
-  // own target ids - the selection can change before the chain drains.
-  const customWrite = useRef<{ inFlight: boolean; queued: { hex: string; ids: string[] } | null }>(
-    { inFlight: false, queued: null },
-  );
-  // Ref-held so the .finally re-entry keeps one stable identity, as
-  // useSystemVolume's pump does.
-  const pumpCustomRef = useRef<() => void>(() => {});
-  const pumpCustom = useCallback(() => {
-    const write = customWrite.current;
-    if (write.inFlight || !write.queued) return;
-    const { hex, ids } = write.queued;
-    write.queued = null;
-    write.inFlight = true;
-    pushCustomPick(hex, ids).finally(() => {
-      write.inFlight = false;
-      pumpCustomRef.current();
-    });
-  }, []);
-  pumpCustomRef.current = pumpCustom;
-
-  const queueCustomWrite = useCallback((hex: string, ids: string[]) => {
-    customWrite.current.queued = { hex, ids };
-    pumpCustom();
-  }, [pumpCustom]);
+  const queueCustomWrite = useColorWriteQueue();
 
   const handleCustomSelect = useCallback((hex: string) => {
     setCustomStaticColor(hex);
@@ -882,18 +866,19 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     const ids = [...selectedDeviceIds];
     // Record without pushing and queue the write, so the commit cannot race a
     // preview still in flight and leave the hardware on the older colour.
+    setPreviewPicks(null);
     setDevicePicks(prev => pickCustomForDevices(prev, hex, ids, false));
     queueCustomWrite(hex, ids);
   }, [perDeviceMode, queueCustomWrite, selectedDeviceIds, setCustomStaticColor, setDevicePicks]);
 
-  // Records as well as writes: the dots and the device cards read the pick, so
+  // Records as well as writes: the marks and the device cards read the pick, so
   // a drag has to move them with the pointer, not on release.
   const handleCustomPreview = useCallback((hex: string) => {
     if (!perDeviceMode || selectedDeviceIds.size === 0) return;
     const ids = [...selectedDeviceIds];
-    setDevicePicks(prev => pickCustomForDevices(prev, hex, ids, false));
+    setPreviewPicks(pickCustomForDevices({}, hex, ids, false));
     queueCustomWrite(hex, ids);
-  }, [perDeviceMode, queueCustomWrite, selectedDeviceIds, setDevicePicks]);
+  }, [perDeviceMode, queueCustomWrite, selectedDeviceIds]);
 
   const effectPool = mode === 'static' ? STATIC_EFFECTS : ANIMATE_EFFECTS;
 
@@ -924,7 +909,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     for (const id of selectedDeviceIds) {
       // No pick means the device is simply wearing the running effect - that
       // IS its look, so it resolves rather than reading as "nothing chosen".
-      const pick = devicePicks[id];
+      const pick = livePicks[id];
       const key = pick?.key ?? activeEffect;
       const slot = pick?.slot ?? slotOf(activeEffect);
       const s = `${key}#${slot}`;
@@ -936,7 +921,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     }
     if (!first || !first.key) return { kind: 'locked' };
     return { kind: 'pick', key: first.key, slot: first.slot, explicit, hex: first.hex };
-  }, [activeEffect, devicePicks, perDeviceMode, selectedDeviceIds, slotOf]);
+  }, [activeEffect, livePicks, perDeviceMode, selectedDeviceIds, slotOf]);
 
   // The dock always edits a single (effect, slot). Scoped, that is the
   // selection's own preset; otherwise the running effect's selected one.
@@ -1578,14 +1563,14 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     if (effectiveMode !== 'static' || selectableIds.length === 0) return null;
     let shared: string | null = null;
     for (const deviceId of selectableIds) {
-      const pick = devicePicks[deviceId];
+      const pick = livePicks[deviceId];
       const colorId = pick ? paletteIdFromKey(pick.key) : null;
       if (!colorId) return null;
       if (shared === null) shared = colorId;
       else if (shared !== colorId) return null;
     }
     return shared;
-  }, [devicePicks, effectiveMode, selectableIds]);
+  }, [livePicks, effectiveMode, selectableIds]);
 
   // The simple page can only show Off or one palette swatch; anything else
   // leaves nothing marked active. `synced` gates it: an unsynced mode is a guess.
@@ -1713,8 +1698,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     ? { key: scoped.key, slot: scoped.slot }
     : null;
   const pickerDevices = useMemo(
-    () => canvasDevices.map(d => ({ id: d.id, name: d.name, hex: devicePicks[d.id]?.hex ?? '' })),
-    [canvasDevices, devicePicks],
+    () => canvasDevices.map(d => ({ id: d.id, name: d.name, hex: livePicks[d.id]?.hex ?? '' })),
+    [canvasDevices, livePicks],
   );
   // The picker tiles re-flatten the selection onto the colour it already shows,
   // the way the palette's custom slot did; the segmented one conforms it to the
@@ -1801,7 +1786,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             {modeMenuNode}
           </div>
           <StaticPalette
-            hero
             selectedId={simplePaletteId}
             onSelect={color => { void handleSimplePaletteSelect(color, claimAllDevices()); }}
           />
@@ -1937,7 +1921,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             // was assigned, so the picks stop applying - the strips go back to
             // sampling the shared canvas. They are kept, not cleared, so
             // returning to Static restores each device's own look.
-            devicePicks={perDeviceMode ? devicePicks : undefined}
+            devicePicks={perDeviceMode ? livePicks : undefined}
             versionForSlot={versionForSlot}
             ledFullscreen={effectiveMode === 'static'}
             selectedIds={selectedDeviceIds}
