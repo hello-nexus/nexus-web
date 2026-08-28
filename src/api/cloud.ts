@@ -1,6 +1,7 @@
 import { getToken, handleUnauthorized } from './auth';
 import { fetchService, loopbackFetchInit, patchService, postService, resolveHttp } from './service';
 import type { GameLeaderboardEntry, GameType } from '../types/games';
+import type { ProfileCategory } from './profiles';
 
 export interface CloudAvatar {
   large: string;
@@ -64,9 +65,13 @@ export interface SyncConflict {
   profileId: string;
   name: string;
   localUpdatedAt: string;
+  /** Machine holding the local copy, so the comparison names a computer instead of a GUID. */
+  localHostname: string;
   cloudRevision: number;
   cloudUpdatedAt: string;
   cloudName: string;
+  /** Machine that wrote the cloud copy; "" when it cannot be named, and the UI falls back to the id. */
+  cloudHostname: string;
   updatedByInstallId: string;
 }
 
@@ -262,3 +267,68 @@ export const syncCloudNow = () =>
 
 export const resolveCloudSyncConflict = (profileId: string, choice: 'local' | 'cloud') =>
   postService('/cloud/sync/resolve', { profileId, choice });
+
+// ── cross-machine profile library ──────────────────────────────────────────
+// Profiles are a per-machine backup, so nothing crosses between machines
+// automatically. These three calls are the explicit path: list what every
+// machine has, look inside one of its profiles, then overwrite the chosen
+// categories of a local profile from it.
+
+export interface CloudLibraryProfile {
+  profileId: string;
+  name: string;
+  revision: number;
+  sizeBytes: number;
+  updatedAt: string;
+}
+
+export interface CloudLibraryMachine {
+  installId: string;
+  /** "" when the machine never registered a device record; the UI falls back to the id. */
+  hostname: string;
+  isThisMachine: boolean;
+  lastSeenAt: string;
+  profiles: CloudLibraryProfile[];
+}
+
+export interface CloudLibrary {
+  machines: CloudLibraryMachine[];
+}
+
+export interface CloudImportCategory {
+  category: ProfileCategory;
+  sizeBytes: number;
+  /** Metric id -> count; rendered against locale labels, absent ids simply omitted. */
+  metrics: Record<string, number>;
+}
+
+export interface CloudImportPreview {
+  installId: string;
+  hostname: string;
+  profileId: string;
+  name: string;
+  revision: number;
+  updatedAt: string;
+  categories: CloudImportCategory[];
+}
+
+export const fetchCloudLibrary = () =>
+  fetchService<CloudLibrary>('/cloud/profiles/library');
+
+export const fetchCloudImportPreview = (installId: string, profileId: string) =>
+  fetchService<CloudImportPreview>(
+    `/cloud/profiles/${encodeURIComponent(installId)}/${encodeURIComponent(profileId)}/preview`,
+  );
+
+export const importCloudProfile = (
+  installId: string,
+  profileId: string,
+  categories: ProfileCategory[],
+  targetProfileId?: string,
+) =>
+  postService<{ error?: boolean; msg?: string }>('/cloud/profiles/import', {
+    installId,
+    profileId,
+    categories,
+    targetProfileId: targetProfileId ?? '',
+  });

@@ -777,7 +777,7 @@ export function Dashboard() {
       case 'gallery':    return <GalleryPage />;
       case 'settings':   return <SettingsView serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} tab={subtab} onTabChange={setSubtab} />;
       case 'profiles':   return <ProfilesView serviceOnline={online} connectionState={status.state} profiles={profilesHook} />;
-      case 'account':    return DEV_TOOLS ? <AccountView serviceOnline={online} connectionState={status.state} accounts={cloudAccounts} sync={syncStatus} tab={subtab} onTabChange={setSubtab} /> : <Placeholder title={activeView} />;
+      case 'account':    return DEV_TOOLS ? <AccountView serviceOnline={online} connectionState={status.state} accounts={cloudAccounts} tab={subtab} onTabChange={setSubtab} /> : <Placeholder title={activeView} />;
       case 'tools':      return DEV_TOOLS ? <ToolsView serviceOnline={online} connectionState={status.state} /> : <Placeholder title={activeView} />;
       default: {
         // Page-capable marketplace (SDK) widget: render its bundle's page surface

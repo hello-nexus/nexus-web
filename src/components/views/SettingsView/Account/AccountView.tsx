@@ -3,7 +3,6 @@ import { ServiceRequired } from '../../ServiceRequired';
 import { GenericSkeleton } from '../../PageSkeleton/PageSkeleton';
 import type { ConnectionState } from '../../../../hooks/useServiceStatus';
 import type { UseCloudAccountsResult } from '../../../../hooks/useCloudAccounts';
-import type { UseSyncStatusResult } from '../../../../hooks/useSyncStatus';
 import { localServiceBackend } from '../../../../api/localServiceBackend';
 import { AccountSignedOut, type AccountSignedOutSubtab } from './AccountSignedOut';
 import { AccountSignedIn } from './AccountSignedIn';
@@ -13,7 +12,6 @@ interface AccountViewProps {
   serviceOnline: boolean;
   connectionState?: ConnectionState;
   accounts: UseCloudAccountsResult;
-  sync: UseSyncStatusResult;
   /** The route's subtab segment (/system/account/<tab>) - drives the signed-out flow. */
   tab: string | null;
   onTabChange: (tab: string) => void;
@@ -27,7 +25,7 @@ function isSignedOutSubtab(value: string | null): value is AccountSignedOutSubta
 
 // Standalone Account page, reached from the top-bar profile menu's "Manage
 // account" entry - mirrors ProfilesView's page shell/wiring pattern.
-export function AccountView({ serviceOnline, connectionState, accounts, sync, tab, onTabChange }: AccountViewProps) {
+export function AccountView({ serviceOnline, connectionState, accounts, tab, onTabChange }: AccountViewProps) {
   // Set when the user just came back from password recovery: the service
   // grants a recovery-fresh session that authorizes password change AND
   // account deletion without the current password, so AccountSignedIn hides
@@ -78,7 +76,6 @@ export function AccountView({ serviceOnline, connectionState, accounts, sync, ta
               backend={localServiceBackend}
               account={accounts.activeAccount}
               accounts={accounts}
-              sync={sync}
               recoveryFresh={recoveryFresh}
               onRecoveryFreshConsumed={handleRecoveryFreshConsumed}
             />

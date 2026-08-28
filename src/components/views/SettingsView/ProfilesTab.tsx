@@ -12,6 +12,7 @@ import { useProfileSharing, type UseProfilesResult } from '../../../hooks/usePro
 import { isProfileNameTaken } from '../../../hooks/profileNameUtils';
 import { useTranslation } from '../../../lib/i18n';
 import { SharingSection } from './SharingSection';
+import { CloudProfilesSection } from './CloudProfilesSection';
 import styles from './SettingsView.module.scss';
 
 type ConfirmKind =
@@ -324,6 +325,8 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
         }}
         onCancel={() => setCreateOpen(false)}
       />
+
+      <CloudProfilesSection profiles={profiles} />
 
       <SharingSection
         profiles={profiles}

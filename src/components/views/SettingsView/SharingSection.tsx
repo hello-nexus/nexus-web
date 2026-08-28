@@ -24,7 +24,8 @@ export interface SharingSectionProps {
   onShareCategory: (category: ProfileCategory) => void;
 }
 
-const CATEGORY_ICONS: Record<ProfileCategory, ReactNode> = {
+/** Shared with the cross-machine import sheet so both surfaces label a category identically. */
+export const CATEGORY_ICONS: Record<ProfileCategory, ReactNode> = {
   lighting: <Lightbulb />,
   cooling: <Fan />,
   theme: <Palette />,

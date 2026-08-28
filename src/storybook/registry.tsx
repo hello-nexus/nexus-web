@@ -1818,9 +1818,11 @@ const SYNC_CONFLICT_PREVIEW = [
     profileId: 'profile-1',
     name: 'Gaming',
     localUpdatedAt: '2026-06-30T18:04:00.000Z',
+    localHostname: 'HYTEY70',
     cloudRevision: 4,
     cloudUpdatedAt: '2026-06-30T20:11:00.000Z',
     cloudName: 'Gaming',
+    cloudHostname: 'HYTEY70',
     updatedByInstallId: 'install-abc',
   },
 ];

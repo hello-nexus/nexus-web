@@ -102,6 +102,14 @@ Settings > Account view, swapped onto an `AuthBackend` adapter that talks to
 in-app adapter that proxies through the local service
 (`api/localServiceBackend.ts`).
 
+Cloud profiles are not part of the account surface: their backup status and
+the cross-machine import live under Settings > Profiles
+(`CloudProfilesSection`), next to the profiles they act on, and show a
+sign-in prompt when signed out. Profiles are backed up per machine, so
+copying config between machines is an explicit import
+(`ImportFromMachinePanel`) that overwrites only the categories the user
+ticks.
+
 ## Project layout
 
 Everything ships from `src/`. Top-level folders:
