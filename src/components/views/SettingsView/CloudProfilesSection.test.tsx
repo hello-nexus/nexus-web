@@ -146,10 +146,12 @@ describe('CloudProfilesSection profile list', () => {
   it('names the owning computer on other-computer rows', async () => {
     renderSection();
 
-    // Both machines call their profile "Default"; the machine name in the
-    // other-computers section is what tells them apart.
+    // The other-computers row is named by its machine. This computer's row is
+    // labelled from the LOCAL profile ("Main"), which is the name that is true
+    // here even if the backup was taken under a different one.
     await waitFor(() => expect(screen.getByText('HYTEY70')).toBeInTheDocument());
-    expect(screen.getAllByText('Default')).toHaveLength(2);
+    expect(screen.getAllByText('Default')).toHaveLength(1);
+    expect(screen.getByText('Main')).toBeInTheDocument();
   });
 
   it('reports an import failure beside the import buttons, not under this computer', async () => {
@@ -278,7 +280,10 @@ describe('CloudProfilesSection backup that has no local profile', () => {
     });
     expect(screen.getByRole('button', { name: 'profile.cloud.import.open' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'profile.cloud.delete.action' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'profile.cloud.backup.syncNow' })).not.toBeInTheDocument();
+    // The local profile from the fixture keeps its own back-up row; the
+    // orphaned backup is the one that must not offer one.
+    const orphanRow = screen.getByText('profile.cloud.list.notOnThisComputer').closest('div');
+    expect(orphanRow?.textContent).not.toContain('profile.cloud.backup.syncNow');
   });
 
   it('confirms before removing the backup and leaves the local profile alone', async () => {
@@ -297,6 +302,91 @@ describe('CloudProfilesSection backup that has no local profile', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'profile.cloud.delete.action' })[1]);
     await waitFor(() => {
       expect(deleteCloudProfile).toHaveBeenCalledWith('this-one', 'deleted-locally');
+    });
+  });
+});
+
+/**
+ * The three states a row for THIS computer can be in. Each one has a different
+ * set of actions, and getting them wrong is what shipped broken twice: a
+ * backup removed while the profile still existed made the row vanish, and the
+ * replace prompt named the source profile instead of the local one it clashed
+ * with.
+ */
+describe('CloudProfilesSection row states for this computer', () => {
+  const localAndBackedUp = {
+    machines: [{
+      installId: 'this-one', hostname: 'T1', isThisMachine: true, lastSeenAt: 't',
+      profiles: [{ profileId: 'p1', name: 'Main', revision: 1, sizeBytes: 10, updatedAt: 't' }],
+    }],
+  };
+  const nothingBackedUp = {
+    machines: [{
+      installId: 'this-one', hostname: 'T1', isThisMachine: true, lastSeenAt: 't', profiles: [],
+    }],
+  };
+  const backupOnly = {
+    machines: [{
+      installId: 'this-one', hostname: 'T1', isThisMachine: true, lastSeenAt: 't',
+      profiles: [{ profileId: 'orphan', name: 'Gaming', revision: 1, sizeBytes: 10, updatedAt: 't' }],
+    }],
+  };
+
+  function names(role: string) {
+    return screen.queryAllByRole('button', { name: role });
+  }
+
+  it('local + backed up: back up and remove, no import', async () => {
+    vi.mocked(fetchCloudLibrary).mockResolvedValue(localAndBackedUp);
+    renderSection();
+
+    await waitFor(() => expect(screen.getByText('Main')).toBeInTheDocument());
+    expect(names('profile.cloud.backup.syncNow')).toHaveLength(1);
+    expect(names('profile.cloud.delete.action')).toHaveLength(1);
+    expect(names('profile.cloud.import.open')).toHaveLength(0);
+  });
+
+  it('local with no backup: back up only, nothing to remove or import', async () => {
+    vi.mocked(fetchCloudLibrary).mockResolvedValue(nothingBackedUp);
+    renderSection();
+
+    // The local profile must still be listed - removing its backup previously
+    // made the row disappear entirely.
+    await waitFor(() => expect(screen.getByText('Main')).toBeInTheDocument());
+    expect(names('profile.cloud.backup.syncNow')).toHaveLength(1);
+    expect(names('profile.cloud.delete.action')).toHaveLength(0);
+    expect(names('profile.cloud.import.open')).toHaveLength(0);
+  });
+
+  it('backup with no local profile: import and remove, no back up', async () => {
+    vi.mocked(fetchCloudLibrary).mockResolvedValue(backupOnly);
+    renderSection();
+
+    await waitFor(() => expect(screen.getByText('Gaming')).toBeInTheDocument());
+    expect(screen.getByText('profile.cloud.list.notOnThisComputer')).toBeInTheDocument();
+    // PROFILES fixture still has local "Main", which keeps its own back-up row.
+    expect(names('profile.cloud.import.open')).toHaveLength(1);
+    expect(names('profile.cloud.delete.action')).toHaveLength(1);
+  });
+});
+
+describe('CloudProfilesSection name conflict', () => {
+  it('names the local profile that clashed, not the row that was clicked', async () => {
+    // Importing "Default" from HYTEY70 lands as "Default (HYTEY70)" locally, so
+    // that derived name is what clashes and what the prompt must say.
+    vi.mocked(importCloudProfile).mockResolvedValueOnce({
+      status: 409,
+      body: { error: true, msg: 'profile_name_taken', name: 'Default (HYTEY70)' },
+    });
+    renderSection();
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'profile.cloud.import.open' })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'profile.cloud.import.open' }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/name=Default \(HYTEY70\)/)).toBeInTheDocument();
     });
   });
 });

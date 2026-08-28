@@ -85,7 +85,9 @@ export function CloudProfilesSection({ profiles }: { profiles: UseProfilesResult
     const { status, body } = await importCloudProfile(installId, profileId, replaceExisting);
     setBusyKey(null);
     if (status === 409 || body?.msg === 'profile_name_taken') {
-      setConflict({ installId, profileId, key, name });
+      // body.name is the derived local name ("<name> (<hostname>)"), which is
+      // what clashed - not the name on the row the user clicked.
+      setConflict({ installId, profileId, key, name: body?.name || name });
       return;
     }
     if (status < 200 || status >= 300) {
@@ -114,7 +116,6 @@ export function CloudProfilesSection({ profiles }: { profiles: UseProfilesResult
 
   const atLimit = profiles.profiles.length >= 5;
   const unknown = t('profile.cloud.machine.unknown');
-  const localIds = new Set(profiles.profiles.map(p => p.id));
 
   const deleteButton = (installId: string, profileId: string, key: string) => (
     <Button
@@ -131,46 +132,53 @@ export function CloudProfilesSection({ profiles }: { profiles: UseProfilesResult
 
   const allRows = (library?.machines ?? [])
     .flatMap(machine => machine.profiles.map(profile => ({ machine, profile })));
-  const mine = allRows.filter(r => r.machine.isThisMachine);
   const others = allRows.filter(r => !r.machine.isThisMachine);
+  const ownCloud = allRows.filter(r => r.machine.isThisMachine);
+  const ownInstallId = library?.machines.find(m => m.isThisMachine)?.installId ?? '';
+
+  // The list is the union of what is local and what is backed up, so a profile
+  // whose backup was removed still appears - with only a Back up action - and
+  // a backup whose local profile was deleted still appears to be restored.
+  const mine = [
+    ...profiles.profiles.map(local => ({
+      profileId: local.id,
+      name: local.name,
+      installId: ownCloud.find(r => r.profile.profileId === local.id)?.machine.installId ?? ownInstallId,
+      inCloud: ownCloud.some(r => r.profile.profileId === local.id),
+      isLocal: true,
+    })),
+    ...ownCloud
+      .filter(r => !profiles.profiles.some(local => local.id === r.profile.profileId))
+      .map(r => ({
+        profileId: r.profile.profileId,
+        name: r.profile.name,
+        installId: r.machine.installId,
+        inCloud: true,
+        isLocal: false,
+      })),
+  ];
 
   const backedUpAt = (profileId: string) => {
     const status = sync.profiles.find(p => p.profileId === profileId);
     return status?.lastSyncedAt ? new Date(status.lastSyncedAt).toLocaleString() : null;
   };
 
-  const ownRow = ({ machine, profile }: typeof allRows[number]) => {
-    const key = `${machine.installId}:${profile.profileId}`;
-    const when = backedUpAt(profile.profileId);
-    // The local profile is gone: this row is a backup to restore or remove,
-    // not something to back up again.
-    const missingLocally = !localIds.has(profile.profileId);
+  const ownRow = (row: typeof mine[number]) => {
+    const key = `${row.installId}:${row.profileId}`;
+    const when = backedUpAt(row.profileId);
     return (
       <SettingRow
         key={key}
-        label={profile.name}
-        description={missingLocally
+        label={row.name}
+        description={!row.isLocal
           ? t('profile.cloud.list.notOnThisComputer')
-          : when
-            ? t('profile.cloud.backup.lastSynced', { when })
-            : t('profile.cloud.backup.never')}
+          : !row.inCloud
+            ? t('profile.cloud.backup.never')
+            : when
+              ? t('profile.cloud.backup.lastSynced', { when })
+              : t('profile.cloud.backup.never')}
       >
-        {missingLocally ? (
-          <>
-            <Button
-              type="button"
-              tone="neutral"
-              size="sm"
-              icon={<DownloadCloud />}
-              loading={busyKey === key}
-              disabled={atLimit || busyKey !== null}
-              onClick={() => void runImport(machine.installId, profile.profileId, key, false, profile.name)}
-            >
-              {t('profile.cloud.import.open')}
-            </Button>
-            {deleteButton(machine.installId, profile.profileId, key)}
-          </>
-        ) : (
+        {row.isLocal ? (
           <>
             <Button
               type="button"
@@ -182,7 +190,23 @@ export function CloudProfilesSection({ profiles }: { profiles: UseProfilesResult
             >
               {t('profile.cloud.backup.syncNow')}
             </Button>
-            {deleteButton(machine.installId, profile.profileId, key)}
+            {/* Nothing to remove or restore until it has actually been backed up. */}
+            {row.inCloud && deleteButton(row.installId, row.profileId, key)}
+          </>
+        ) : (
+          <>
+            <Button
+              type="button"
+              tone="neutral"
+              size="sm"
+              icon={<DownloadCloud />}
+              loading={busyKey === key}
+              disabled={atLimit || busyKey !== null}
+              onClick={() => void runImport(row.installId, row.profileId, key, false, row.name)}
+            >
+              {t('profile.cloud.import.open')}
+            </Button>
+            {deleteButton(row.installId, row.profileId, key)}
           </>
         )}
       </SettingRow>
@@ -217,7 +241,7 @@ export function CloudProfilesSection({ profiles }: { profiles: UseProfilesResult
   return (
     <>
       <SettingsSection title={t('profile.cloud.title')}>
-        {library === null ? <Spinner size={24} /> : mine.length === 0 ? (
+        {library === null && profiles.profiles.length === 0 ? <Spinner size={24} /> : mine.length === 0 ? (
           <EmptyState title={t('profile.cloud.list.empty')} />
         ) : mine.map(ownRow)}
 
