@@ -208,6 +208,16 @@
 .panel-card[data-size='2x2round'] {
   border-radius: 50%;
   padding: 8%;
+  // Round glass has no corners to anchor to, and the bezel eats anything that
+  // reaches them, so the tile centres its content instead of top-left aligning it.
+  display: grid;
+  place-items: center;
+  text-align: center;
+
+  > * {
+    width: 100%;
+    height: 100%;
+  }
 }
 
 .panel-chip {

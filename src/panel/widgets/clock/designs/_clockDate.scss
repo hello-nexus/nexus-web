@@ -4,6 +4,7 @@
 // panel's 16px base. 2x4 is as narrow as 2x2, so it takes the 2x2 size.
 @mixin clock-date-scale {
   &.size-2x2 { --clock-date-size: 14px; }
+  &.size-2x2round { --clock-date-size: 14px; }
   &.size-2x4 { --clock-date-size: 14px; }
   &.size-4x2 { --clock-date-size: 22px; }
   &.size-4x4 { --clock-date-size: 20px; }
