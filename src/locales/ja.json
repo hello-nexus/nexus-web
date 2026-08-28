@@ -3079,6 +3079,7 @@
   "profile.cloud.list.notOnThisComputer": "この PC にはありません",
   "profile.cloud.machine.unknown": "不明な PC",
   "profile.cloud.others.title": "他の PC のクラウドプロファイル",
+  "profile.cloud.refresh": "更新",
   "profile.cloud.signedOut.hint": "Nexus アカウントがあれば、この PC のプロファイルをバックアップし、PC 間でプロファイルをコピーできます。",
   "profile.cloud.signedOut.signIn": "サインイン",
   "profile.cloud.signedOut.title": "サインインしてプロファイルをバックアップ",

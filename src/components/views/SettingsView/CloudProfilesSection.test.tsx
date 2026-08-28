@@ -89,6 +89,9 @@ describe('CloudProfilesSection signed-out state', () => {
     expect(screen.getByText('profile.cloud.signedOut.title')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'profile.cloud.backup.syncNow' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'profile.cloud.import.open' })).not.toBeInTheDocument();
+    // The prompt stands alone: no section title describing a list that cannot
+    // exist while signed out.
+    expect(screen.queryByText('profile.cloud.title')).not.toBeInTheDocument();
   });
 });
 
@@ -388,5 +391,16 @@ describe('CloudProfilesSection name conflict', () => {
     await waitFor(() => {
       expect(screen.getByText(/name=Default \(HYTEY70\)/)).toBeInTheDocument();
     });
+  });
+});
+
+describe('CloudProfilesSection reload token', () => {
+  it('re-reads the library when the tab refresh control fires', async () => {
+    const { rerender } = render(<CloudProfilesSection profiles={PROFILES} reloadToken={0} />);
+    await waitFor(() => expect(fetchCloudLibrary).toHaveBeenCalledTimes(1));
+
+    rerender(<CloudProfilesSection profiles={PROFILES} reloadToken={1} />);
+
+    await waitFor(() => expect(fetchCloudLibrary).toHaveBeenCalledTimes(2));
   });
 });

@@ -3079,6 +3079,7 @@
   "profile.cloud.list.notOnThisComputer": "Non su questo computer",
   "profile.cloud.machine.unknown": "Computer sconosciuto",
   "profile.cloud.others.title": "Profili cloud di altri computer",
+  "profile.cloud.refresh": "Aggiorna",
   "profile.cloud.signedOut.hint": "Con un account Nexus puoi salvare i profili di questo computer e copiare profili tra i tuoi computer.",
   "profile.cloud.signedOut.signIn": "Accedi",
   "profile.cloud.signedOut.title": "Accedi per salvare i profili",

@@ -14,7 +14,9 @@ vi.mock('./ProfilesTab', () => ({
   ProfilesTab: () => <div>LOCAL_PROFILES</div>,
 }));
 vi.mock('./CloudProfilesSection', () => ({
-  CloudProfilesSection: () => <div>CLOUD_PROFILES</div>,
+  CloudProfilesSection: ({ reloadToken }: { reloadToken?: number }) => (
+    <div>CLOUD_PROFILES token={String(reloadToken)}</div>
+  ),
 }));
 
 const PROFILES = {
@@ -35,13 +37,13 @@ describe('ProfilesView tabs', () => {
     renderView(null);
 
     expect(screen.getByText('LOCAL_PROFILES')).toBeInTheDocument();
-    expect(screen.queryByText('CLOUD_PROFILES')).not.toBeInTheDocument();
+    expect(screen.queryByText(/CLOUD_PROFILES/)).not.toBeInTheDocument();
   });
 
   it('shows cloud management on its own tab', () => {
     renderView('cloud');
 
-    expect(screen.getByText('CLOUD_PROFILES')).toBeInTheDocument();
+    expect(screen.getByText(/CLOUD_PROFILES/)).toBeInTheDocument();
     expect(screen.queryByText('LOCAL_PROFILES')).not.toBeInTheDocument();
   });
 
@@ -57,5 +59,25 @@ describe('ProfilesView tabs', () => {
     renderView('nonsense');
 
     expect(screen.getByText('LOCAL_PROFILES')).toBeInTheDocument();
+  });
+});
+
+describe('ProfilesView cloud refresh', () => {
+  it('bumps the reload token when the tab refresh control is pressed', () => {
+    render(
+      <ProfilesView serviceOnline profiles={PROFILES} tab="cloud" onTabChange={vi.fn()} />,
+    );
+    expect(screen.getByText(/token=0/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'profile.cloud.refresh' }));
+
+    expect(screen.getByText(/token=1/)).toBeInTheDocument();
+  });
+
+  it('offers no refresh control on the local tab', () => {
+    render(
+      <ProfilesView serviceOnline profiles={PROFILES} tab="local" onTabChange={vi.fn()} />,
+    );
+    expect(screen.queryByRole('button', { name: 'profile.cloud.refresh' })).not.toBeInTheDocument();
   });
 });

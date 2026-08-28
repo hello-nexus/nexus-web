@@ -3079,6 +3079,7 @@
   "profile.cloud.list.notOnThisComputer": "Bu bilgisayarda yok",
   "profile.cloud.machine.unknown": "Bilinmeyen bilgisayar",
   "profile.cloud.others.title": "Diğer bilgisayarların bulut profilleri",
+  "profile.cloud.refresh": "Yenile",
   "profile.cloud.signedOut.hint": "Nexus hesabıyla bu bilgisayarın profillerini yedekleyebilir ve bilgisayarlarınız arasında profil kopyalayabilirsiniz.",
   "profile.cloud.signedOut.signIn": "Oturum aç",
   "profile.cloud.signedOut.title": "Profilleri yedeklemek için oturum açın",

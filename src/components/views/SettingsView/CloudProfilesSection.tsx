@@ -23,7 +23,9 @@ interface ConflictPrompt {
 }
 
 /** This machine's profiles back up to the account; another machine's never arrive on their own, so crossing machines is an explicit per-profile import. */
-export function CloudProfilesSection({ profiles }: { profiles: UseProfilesResult }) {
+export function CloudProfilesSection(
+  { profiles, reloadToken = 0 }: { profiles: UseProfilesResult; reloadToken?: number },
+) {
   const { t } = useTranslation();
   const accounts = useCloudAccounts(true);
   const signedIn = accounts.activeAccountId !== null;
@@ -47,28 +49,35 @@ export function CloudProfilesSection({ profiles }: { profiles: UseProfilesResult
       .catch(() => setLibrary({ machines: [] }));
   }, [signedIn]);
 
-  useEffect(() => { loadLibrary(); }, [loadLibrary, sync.lastSyncAt]);
+  useEffect(() => {
+    loadLibrary();
+    // The backup timestamps come from the sync status, so the tab's refresh
+    // has to re-read both, not just the library.
+    if (reloadToken > 0) void sync.refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- sync is rebuilt each render; only the token should retrigger
+  }, [loadLibrary, sync.lastSyncAt, reloadToken]);
 
   useEffect(() => {
     if (!syncBusy || !ownRefreshLanded) return;
     if (isSyncPassSettled(sync.state)) setSyncBusy(false);
   }, [sync.state, syncBusy, ownRefreshLanded]);
 
+  // Signed out there is nothing to head up: the sign-in prompt IS the page, so
+  // it stands alone rather than under a "this computer's cloud profiles" title
+  // describing a list that cannot exist yet.
   if (!signedIn) {
     return (
       <div className={styles.tabPanel}>
-        <SettingsSection title={t('profile.cloud.title')}>
-          <EmptyState
-            icon={<CloudOff />}
-            title={t('profile.cloud.signedOut.title')}
-            hint={t('profile.cloud.signedOut.hint')}
-            action={(
-              <Button type="button" tone="accent" href="/system/account">
-                {t('profile.cloud.signedOut.signIn')}
-              </Button>
-            )}
-          />
-        </SettingsSection>
+        <EmptyState
+          icon={<CloudOff />}
+          title={t('profile.cloud.signedOut.title')}
+          hint={t('profile.cloud.signedOut.hint')}
+          action={(
+            <Button type="button" tone="accent" href="/system/account">
+              {t('profile.cloud.signedOut.signIn')}
+            </Button>
+          )}
+        />
       </div>
     );
   }

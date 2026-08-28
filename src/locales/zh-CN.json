@@ -3079,6 +3079,7 @@
   "profile.cloud.list.notOnThisComputer": "本电脑上没有",
   "profile.cloud.machine.unknown": "未知电脑",
   "profile.cloud.others.title": "其他电脑的云配置文件",
+  "profile.cloud.refresh": "刷新",
   "profile.cloud.signedOut.hint": "使用 Nexus 账户，你可以备份本电脑的配置文件，并在你的电脑之间复制配置文件。",
   "profile.cloud.signedOut.signIn": "登录",
   "profile.cloud.signedOut.title": "登录后备份配置文件",

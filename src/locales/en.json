@@ -3079,6 +3079,7 @@
   "profile.cloud.list.notOnThisComputer": "Not on this computer",
   "profile.cloud.machine.unknown": "Unknown computer",
   "profile.cloud.others.title": "Other computers' cloud profiles",
+  "profile.cloud.refresh": "Refresh",
   "profile.cloud.signedOut.hint": "With a Nexus account you can back this computer's profiles up and copy profiles between your computers.",
   "profile.cloud.signedOut.signIn": "Sign in",
   "profile.cloud.signedOut.title": "Sign in to back up profiles",

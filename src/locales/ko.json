@@ -3079,6 +3079,7 @@
   "profile.cloud.list.notOnThisComputer": "이 PC에 없음",
   "profile.cloud.machine.unknown": "알 수 없는 PC",
   "profile.cloud.others.title": "다른 PC의 클라우드 프로필",
+  "profile.cloud.refresh": "새로 고침",
   "profile.cloud.signedOut.hint": "Nexus 계정이 있으면 이 PC의 프로필을 백업하고 PC 간에 프로필을 복사할 수 있습니다.",
   "profile.cloud.signedOut.signIn": "로그인",
   "profile.cloud.signedOut.title": "로그인하여 프로필 백업",

@@ -3105,6 +3105,7 @@
   "profile.cloud.list.notOnThisComputer": "Нет на этом компьютере",
   "profile.cloud.machine.unknown": "Неизвестный компьютер",
   "profile.cloud.others.title": "Облачные профили других компьютеров",
+  "profile.cloud.refresh": "Обновить",
   "profile.cloud.signedOut.hint": "С учётной записью Nexus вы можете сохранять профили этого компьютера и копировать профили между компьютерами.",
   "profile.cloud.signedOut.signIn": "Войти",
   "profile.cloud.signedOut.title": "Войдите, чтобы сохранять профили",

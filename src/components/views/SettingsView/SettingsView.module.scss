@@ -356,3 +356,19 @@
 
 
 
+
+/* Refresh control living inside the Cloud profiles tab pill. Sibling of the
+   tab button, never nested inside it (see Tabs' trailing contract). */
+.cloudRefresh {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.15rem;
+  border: 0;
+  border-radius: var(--radius-sm, 4px);
+  background: none;
+  color: var(--text-dim);
+  cursor: pointer;
+
+  &:hover { color: var(--text); }
+}
