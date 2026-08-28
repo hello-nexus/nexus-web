@@ -10,6 +10,7 @@ import {
   marketplaceIdFromType,
   typeForMarketplace,
 } from '../../widgets/marketplaceRegistry';
+import { makeWidgetTouchView } from './common/WidgetTouchView';
 import type { AppManifest } from './types';
 import {
   SINGLE_WIDGET_SIZES,
@@ -161,6 +162,11 @@ export function getCatalogEntries(): Array<[string, AppManifest]> {
 // falls through the filter so a typo can't crash the picker.
 const VALID_MARKETPLACE_SIZES: ReadonlyArray<PanelWidgetSize> = ['1x1', '2x2', '4x2', '4x4'];
 
+// One shared immersive adapter for every SDK app: makeWidgetTouchView returns a
+// new component per call, so building it inline would remount the sandbox on
+// each render.
+const MARKETPLACE_TOUCH = makeWidgetTouchView(MarketplaceWidget);
+
 // Native-style catalog faces for specific SDK apps. The picker renders this in
 // place of the live sandbox load (MarketplaceWidget) so the tile shows a real
 // preview instead of a blank sandbox load. Empty until an SDK app without a
@@ -204,6 +210,11 @@ function makeMarketplaceAppManifest(
       listed: isMarketplaceIdEnabled(id),
     },
     Widget: MarketplaceWidget,
+    // The immersive view is the same widget at full size - the SDK app already
+    // lays out from useSize(), so it needs nothing of its own. Gated on the
+    // manifest flag, since a widget that ignores its size reads as a stretched
+    // cell rather than a fullscreen view.
+    Touch: immersive ? MARKETPLACE_TOUCH : undefined,
     Preview: MARKETPLACE_PREVIEWS[id],
     // A page-capable SDK widget becomes click-through into a desktop section
     // view (Dashboard.renderSystemView). The wrapper reads the marketplace type
