@@ -2202,6 +2202,7 @@
   "monitoring.history.brushAriaLabel": "时间范围",
   "monitoring.history.download": "下载",
   "monitoring.history.error": "无法加载历史数据。",
+  "monitoring.history.fps.ariaLabel": "每秒帧数",
   "monitoring.history.gpuUnavailable": "没有可用的 GPU 历史记录。",
   "monitoring.history.live": "实时",
   "monitoring.history.max": "最大",

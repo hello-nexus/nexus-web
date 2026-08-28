@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import { Thermometer, ZoomOut } from 'lucide-react';
-import { TimeSeriesChart } from '../../../../components/common/TimeSeriesChart/TimeSeriesChart';
+import { Gamepad2, Thermometer, ZoomOut } from 'lucide-react';
+import { RIBBON_ICON_SIZE, TimeSeriesChart } from '../../../../components/common/TimeSeriesChart/TimeSeriesChart';
 import type { TimelineEvent } from '../../../../api/monitoringEvents';
 import { nearestPoint } from '../../../../components/common/TimeSeriesChart/timeSeriesChartUtils';
 import { TimelineBrush, TIMELINE_BRUSH_DEFAULT_HEIGHT } from '../../../../components/common/TimelineBrush/TimelineBrush';
@@ -313,11 +313,26 @@ export function MetricHistorySection({
     return t(fanRole === 'cpu' ? 'monitoring.history.rpm.hintCpu' : 'monitoring.history.rpm.hintGpu');
   }, [fanRole, rpmPoints.length, markedFanNames, t]);
 
+  // FPS ribbon points - cpu/gpu only (see seriesQueryFor), gaps stay gaps:
+  // an empty array here (no game had focus in this window) renders no band
+  // at all, the same points.length gate the RPM band already uses below.
+  const fpsPoints = useMemo(() => {
+    if (!fanRole) return [];
+    return history.series.find(s => s.kind === 'fps')?.points ?? [];
+  }, [fanRole, history.series]);
+
+  const currentFpsLabel = useMemo(() => {
+    if (fpsPoints.length === 0) return undefined;
+    const nearest = nearestPoint(fpsPoints, selectedFrameMs, windowMs);
+    if (!nearest) return undefined;
+    return localizeNumbers(`${Math.round(nearest.avg)} fps`, numberFormat);
+  }, [fpsPoints, selectedFrameMs, windowMs, numberFormat]);
+
   // Rendered inside the chart's own plot, directly under the line (and,
-  // when both are present, the fan-speed band sits directly under the temp
-  // band) - see TimeSeriesChart's ribbons prop. Temp covers cpu/gpu/memory;
-  // fan speed covers cpu/gpu only - network requests neither series, so the
-  // chart renders no bands there.
+  // when more than one is present, each band sits directly under the last)
+  // - see TimeSeriesChart's ribbons prop. Temp covers cpu/gpu/memory; fan
+  // speed and FPS cover cpu/gpu only - network requests neither series, so
+  // the chart renders no bands there.
   const ribbons: ChartRibbonSpec[] = useMemo(() => {
     const list: ChartRibbonSpec[] = [];
     if (resolved.temp) {
@@ -335,8 +350,17 @@ export function MetricHistorySection({
         valueLabelTooltip: rpmTooltip,
       });
     }
+    if (fpsPoints.length > 0) {
+      list.push({
+        points: fpsPoints,
+        fill: 'var(--accent)',
+        valueLabel: currentFpsLabel,
+        icon: <Gamepad2 size={RIBBON_ICON_SIZE} />,
+        ariaLabel: t('monitoring.history.fps.ariaLabel'),
+      });
+    }
     return list;
-  }, [resolved.temp, currentTempLabel, rpmPoints, currentRpmLabel, rpmTooltip]);
+  }, [resolved.temp, currentTempLabel, rpmPoints, currentRpmLabel, rpmTooltip, fpsPoints, currentFpsLabel, t]);
 
   const rangeOptions = RANGE_OPTIONS.map(o => ({ value: o.key, label: t(o.labelKey) }));
 

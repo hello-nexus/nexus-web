@@ -97,13 +97,14 @@ describe('defaultBoxWidthMs', () => {
 describe('seriesQueryFor', () => {
   it('maps each metric to its series csv', () => {
     // cpu/gpu request fan too (average fan-speed ribbon, under the temp
-    // band); memory requests its own averaged mem-temp series but no fan
-    // (no fan-speed band there) - network/storage have no temp band at all.
-    expect(seriesQueryFor('cpu')).toBe('cpu,cpu-temp,fan');
+    // band) and fps (the FPS ribbon, gaps stay gaps when nothing presented);
+    // memory requests its own averaged mem-temp series but no fan or fps -
+    // network/storage have no temp band at all.
+    expect(seriesQueryFor('cpu')).toBe('cpu,cpu-temp,fan,fps');
     expect(seriesQueryFor('memory')).toBe('memory,mem-temp');
     expect(seriesQueryFor('storage')).toBe('disk-read,disk-write');
     expect(seriesQueryFor('network')).toBe('net-in,net-out');
-    expect(seriesQueryFor('gpu')).toBe('gpu,gpu-temp,fan');
+    expect(seriesQueryFor('gpu')).toBe('gpu,gpu-temp,fan,fps');
   });
 });
 

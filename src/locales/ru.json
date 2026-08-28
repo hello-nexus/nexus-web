@@ -2225,6 +2225,7 @@
   "monitoring.history.brushAriaLabel": "Диапазон времени",
   "monitoring.history.download": "Скачивание",
   "monitoring.history.error": "Не удалось загрузить данные истории.",
+  "monitoring.history.fps.ariaLabel": "Кадров в секунду",
   "monitoring.history.gpuUnavailable": "История GPU недоступна.",
   "monitoring.history.live": "Живое",
   "monitoring.history.max": "Макс.",

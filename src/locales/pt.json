@@ -2202,6 +2202,7 @@
   "monitoring.history.brushAriaLabel": "Intervalo de tempo",
   "monitoring.history.download": "Download",
   "monitoring.history.error": "Não foi possível carregar os dados do histórico.",
+  "monitoring.history.fps.ariaLabel": "Fotogramas por segundo",
   "monitoring.history.gpuUnavailable": "Não há histórico de GPU disponível.",
   "monitoring.history.live": "Em direto",
   "monitoring.history.max": "Máx",

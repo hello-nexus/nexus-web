@@ -2202,6 +2202,7 @@
   "monitoring.history.brushAriaLabel": "Interval di timp",
   "monitoring.history.download": "Discjariament",
   "monitoring.history.error": "Impussibil cjariâ i dâts de cronologjie.",
+  "monitoring.history.fps.ariaLabel": "Fotograms par secont",
   "monitoring.history.gpuUnavailable": "Nissune cronologjie GPU disponibile.",
   "monitoring.history.live": "In direte",
   "monitoring.history.max": "Max",

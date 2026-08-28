@@ -2225,6 +2225,7 @@
   "monitoring.history.brushAriaLabel": "Zakres czasu",
   "monitoring.history.download": "Pobieranie",
   "monitoring.history.error": "Nie udało się wczytać danych historii.",
+  "monitoring.history.fps.ariaLabel": "Liczba klatek na sekundę",
   "monitoring.history.gpuUnavailable": "Brak dostępnej historii GPU.",
   "monitoring.history.live": "Na żywo",
   "monitoring.history.max": "Maks",

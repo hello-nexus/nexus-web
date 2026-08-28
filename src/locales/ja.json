@@ -2202,6 +2202,7 @@
   "monitoring.history.brushAriaLabel": "期間",
   "monitoring.history.download": "ダウンロード",
   "monitoring.history.error": "履歴データを読み込めませんでした。",
+  "monitoring.history.fps.ariaLabel": "1秒あたりのフレーム数",
   "monitoring.history.gpuUnavailable": "GPU履歴は利用できません。",
   "monitoring.history.live": "ライブ",
   "monitoring.history.max": "最大",

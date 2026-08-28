@@ -2202,6 +2202,7 @@
   "monitoring.history.brushAriaLabel": "Tijdsbereik",
   "monitoring.history.download": "Downloaden",
   "monitoring.history.error": "Kon geschiedenisgegevens niet laden.",
+  "monitoring.history.fps.ariaLabel": "Beelden per seconde",
   "monitoring.history.gpuUnavailable": "Geen GPU-geschiedenis beschikbaar.",
   "monitoring.history.live": "Live",
   "monitoring.history.max": "Max",

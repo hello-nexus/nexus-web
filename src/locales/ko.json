@@ -2202,6 +2202,7 @@
   "monitoring.history.brushAriaLabel": "기간",
   "monitoring.history.download": "다운로드",
   "monitoring.history.error": "기록 데이터를 불러올 수 없습니다.",
+  "monitoring.history.fps.ariaLabel": "초당 프레임 수",
   "monitoring.history.gpuUnavailable": "GPU 기록을 사용할 수 없습니다.",
   "monitoring.history.live": "실시간",
   "monitoring.history.max": "최대",
