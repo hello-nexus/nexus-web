@@ -1,6 +1,6 @@
 {
   "name": "@hello-nexus/sdk",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "description": "Author-facing SDK for building sandboxed Nexus apps - @hello-nexus/sdk (mount + hooks) and @hello-nexus/sdk/ui (the blessed component set). The host runtime is provided at load; an app bundle externalizes these to it.",
   "license": "UNLICENSED",
   "private": false,
@@ -15,7 +15,8 @@
     "directory": "sdk"
   },
   "homepage": "https://hellonexus.com",
-  "files": ["dist", "README.md"],
+  "files": ["dist", "cli", "README.md"],
+  "bin": { "nexus-app": "./cli/nexus-app.mjs" },
   "exports": {
     ".": {
       "types": "./dist/types/sdk/runtime/sdk.d.ts",
@@ -31,6 +32,7 @@
     "react": "^18.3.0"
   },
   "dependencies": {
+    "esbuild": "^0.25.0",
     "@quilted/threads": "^4.0.1",
     "@remote-dom/core": "^1.11.1",
     "@remote-dom/react": "^1.2.2"
