@@ -16,7 +16,7 @@ export interface ConflictAppsState {
 /**
  * Live list of competing third-party apps currently detected by the service.
  *
- * The service rebroadcasts only when the set of detected ids changes, so this
+ * The service rebroadcasts only when the set of detected id:pid pairs changes, so this
  * hook seeds from a one-shot REST fetch on every offline→online transition,
  * covering the case where the conflict set is unchanged and no push arrives.
  * (Multiplex snapshot providers also cover newly subscribed clients.)

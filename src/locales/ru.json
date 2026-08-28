@@ -233,6 +233,7 @@
   "conflicts.modal.endTask": "Завершить задачу",
   "conflicts.modal.intro": "Эти приложения могут конкурировать с Nexus за управление подсветкой, вентиляторами или периферией. Завершите ненужные, чтобы Nexus мог управлять ими без помех.",
   "conflicts.modal.pid": "PID {pid}",
+  "conflicts.modal.terminated": "Завершено",
   "conflicts.modal.title": "Обнаружены конфликтующие приложения",
   "conflicts.onboarding.continue": "Продолжить",
   "conflicts.onboarding.done": "Готово",

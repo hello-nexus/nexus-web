@@ -276,6 +276,7 @@ function ConflictOnboardingGate({
     <ConflictOnboardingScreen
       open={armed && !done}
       conflicts={conflicts}
+      ready={ready}
       onComplete={onComplete}
       onSkipOnboarding={onSkipOnboarding}
       onBack={onBack}

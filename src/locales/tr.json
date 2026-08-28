@@ -233,6 +233,7 @@
   "conflicts.modal.endTask": "Görevi sonlandır",
   "conflicts.modal.intro": "Bu uygulamalar aydınlatmanızın, fanlarınızın veya çevre birimlerinizin kontrolü için Nexus ile çekişebilir. Nexus'un bunları sorunsuz yönetebilmesi için ihtiyaç duymadıklarınızı sonlandırın.",
   "conflicts.modal.pid": "PID {pid}",
+  "conflicts.modal.terminated": "Sonlandırıldı",
   "conflicts.modal.title": "Çakışan uygulamalar algılandı",
   "conflicts.onboarding.continue": "Devam et",
   "conflicts.onboarding.done": "Bitti",

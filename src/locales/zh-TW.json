@@ -233,6 +233,7 @@
   "conflicts.modal.endTask": "結束工作",
   "conflicts.modal.intro": "這些應用程式可能會與 Nexus 爭奪燈效、風扇或周邊裝置的控制權。請結束你不需要的應用程式，讓 Nexus 能順暢地控制它們。",
   "conflicts.modal.pid": "PID {pid}",
+  "conflicts.modal.terminated": "已結束",
   "conflicts.modal.title": "偵測到衝突的應用程式",
   "conflicts.onboarding.continue": "繼續",
   "conflicts.onboarding.done": "完成",

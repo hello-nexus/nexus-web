@@ -33,6 +33,7 @@ describe('ConflictWarningModal', () => {
     render(
       <ConflictWarningBadge
         conflicts={conflicts}
+        ready
         pulsing={false}
         suppressed={false}
         open
@@ -52,6 +53,7 @@ describe('ConflictWarningModal', () => {
     render(
       <ConflictWarningBadge
         conflicts={[]}
+        ready
         pulsing={false}
         suppressed={false}
         open

@@ -233,6 +233,7 @@
   "conflicts.modal.endTask": "End task",
   "conflicts.modal.intro": "These apps can fight Nexus for control of your lighting, fans, or peripherals. End the ones you don't need so Nexus can drive them cleanly.",
   "conflicts.modal.pid": "PID {pid}",
+  "conflicts.modal.terminated": "Terminated",
   "conflicts.modal.title": "Conflicting apps detected",
   "conflicts.onboarding.continue": "Continue",
   "conflicts.onboarding.done": "Done",

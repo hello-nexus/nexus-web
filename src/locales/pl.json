@@ -233,6 +233,7 @@
   "conflicts.modal.endTask": "Zakończ zadanie",
   "conflicts.modal.intro": "Te aplikacje mogą rywalizować z Nexusem o kontrolę nad podświetleniem, wentylatorami lub urządzeniami peryferyjnymi. Zakończ te, których nie potrzebujesz, aby Nexus mógł nimi sterować bez zakłóceń.",
   "conflicts.modal.pid": "PID {pid}",
+  "conflicts.modal.terminated": "Zakończono",
   "conflicts.modal.title": "Wykryto konfliktujące aplikacje",
   "conflicts.onboarding.continue": "Kontynuuj",
   "conflicts.onboarding.done": "Gotowe",

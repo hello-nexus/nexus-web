@@ -17,6 +17,10 @@ interface ConflictAppCardProps {
   devices?: readonly ConflictDevice[];
   /** Flips every listed device to the chosen owner. Required for the switch to render. */
   onSetOwner?: (owner: ConflictOwnerChoice) => Promise<void>;
+  /** The app has been ended: the row stays listed with its devices, minus the owner switch. */
+  terminated?: boolean;
+  /** Reports a kill that stuck, from either the button or the owner switch. */
+  onTerminated?: () => void;
 }
 
 /** The switch position the device list already agrees on; '' when the devices are split. */
@@ -38,9 +42,12 @@ export function selectedOwner(devices: readonly ConflictDevice[]): ConflictOwner
  * as well, so it cannot keep fighting for handles Nexus is about to claim;
  * handing it to the app leaves the app running.
  */
-export function ConflictAppCard({ conflict, devices, onSetOwner }: ConflictAppCardProps) {
+export function ConflictAppCard({ conflict, devices, onSetOwner, terminated, onTerminated }: ConflictAppCardProps) {
   const { t } = useTranslation();
-  const [applying, setApplying] = useState(false);
+  // Which owner is being applied, or null when idle. Held as the choice rather
+  // than a flag because only the Nexus path ends the app, and End task must
+  // spin for that one alone.
+  const [applying, setApplying] = useState<ConflictOwnerChoice | null>(null);
   // Set when handing over to Nexus did not end the app: the devices are now
   // Nexus-controlled but the app is still up, so the row stays and says so.
   const [endFailed, setEndFailed] = useState(false);
@@ -52,26 +59,37 @@ export function ConflictAppCard({ conflict, devices, onSetOwner }: ConflictAppCa
     return () => { mountedRef.current = false; };
   }, []);
 
+  // A row that un-terminates (the app returned under a new pid) must not
+  // resurface the previous attempt's failure alongside a live switch.
+  useEffect(() => {
+    if (terminated) setEndFailed(false);
+  }, [terminated]);
+
   const list = devices ?? [];
   const selection = selectedOwner(list);
   const showDevices = list.length > 0 && onSetOwner !== undefined;
+  // An ended app drives nothing, so the choice is moot; the devices stay
+  // listed so the row still says what it was fighting Nexus for.
+  const showSwitch = showDevices && terminated !== true;
 
   const handleOwner = useCallback(async (key: string) => {
-    if (!onSetOwner || applying) return;
+    if (!onSetOwner || applying !== null) return;
     const owner: ConflictOwnerChoice = key === NEXUS_OWNER ? NEXUS_OWNER : APP_OWNER;
     if (owner === selection) return;
-    setApplying(true);
+    setApplying(owner);
     setEndFailed(false);
     try {
       await onSetOwner(owner);
       if (owner === NEXUS_OWNER) {
         const res = await killConflict(conflict.id).catch(() => null);
-        if (mountedRef.current && !res?.killed) setEndFailed(true);
+        if (!mountedRef.current) return;
+        if (res?.killed) onTerminated?.();
+        else setEndFailed(true);
       }
     } finally {
-      if (mountedRef.current) setApplying(false);
+      if (mountedRef.current) setApplying(null);
     }
-  }, [applying, conflict.id, onSetOwner, selection]);
+  }, [applying, conflict.id, onSetOwner, onTerminated, selection]);
 
   const ownerLabel = (device: ConflictDevice): string => {
     if (device.owner === 'nexus') return t('brand');
@@ -92,7 +110,13 @@ export function ConflictAppCard({ conflict, devices, onSetOwner }: ConflictAppCa
           </div>
         </div>
         <div className={styles.rowActions}>
-          <EndTaskButton conflictId={conflict.id} pid={conflict.pid} />
+          <EndTaskButton
+            conflictId={conflict.id}
+            pid={conflict.pid}
+            busy={applying === NEXUS_OWNER}
+            terminated={terminated}
+            onKilled={onTerminated}
+          />
         </div>
       </div>
 
@@ -107,21 +131,23 @@ export function ConflictAppCard({ conflict, devices, onSetOwner }: ConflictAppCa
               </li>
             ))}
           </ul>
-          {endFailed && (
+          {endFailed && !terminated && (
             <p className={styles.endFailed} role="alert">
               {t('conflicts.devices.endFailed', { app: conflict.displayName })}
             </p>
           )}
-          <ChipGroup
-            fullWidth
-            ariaLabel={t('conflicts.devices.switchLabel')}
-            activeKey={selection}
-            onChange={key => { void handleOwner(key); }}
-            options={[
-              { key: NEXUS_OWNER, label: t('conflicts.devices.nexusControls'), disabled: applying },
-              { key: APP_OWNER, label: t('conflicts.devices.appControls', { app: conflict.displayName }), disabled: applying },
-            ]}
-          />
+          {showSwitch && (
+            <ChipGroup
+              fullWidth
+              ariaLabel={t('conflicts.devices.switchLabel')}
+              activeKey={selection}
+              onChange={key => { void handleOwner(key); }}
+              options={[
+                { key: NEXUS_OWNER, label: t('conflicts.devices.nexusControls'), disabled: applying !== null },
+                { key: APP_OWNER, label: t('conflicts.devices.appControls', { app: conflict.displayName }), disabled: applying !== null },
+              ]}
+            />
+          )}
         </div>
       )}
     </div>

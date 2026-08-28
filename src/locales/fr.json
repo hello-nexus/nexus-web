@@ -233,6 +233,7 @@
   "conflicts.modal.endTask": "Terminer la tâche",
   "conflicts.modal.intro": "Ces applications peuvent entrer en conflit avec Nexus pour le contrôle de votre éclairage, de vos ventilateurs ou de vos périphériques. Fermez celles dont vous n'avez pas besoin pour que Nexus puisse les piloter proprement.",
   "conflicts.modal.pid": "PID {pid}",
+  "conflicts.modal.terminated": "Terminé",
   "conflicts.modal.title": "Applications en conflit détectées",
   "conflicts.onboarding.continue": "Continuer",
   "conflicts.onboarding.done": "Terminé",

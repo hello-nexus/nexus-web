@@ -233,6 +233,7 @@
   "conflicts.modal.endTask": "Terminar tarefa",
   "conflicts.modal.intro": "Estas aplicações podem disputar com o Nexus o controlo da iluminação, ventoinhas ou periféricos. Termine as que não precisa para que o Nexus as possa controlar sem interferências.",
   "conflicts.modal.pid": "PID {pid}",
+  "conflicts.modal.terminated": "Terminado",
   "conflicts.modal.title": "Aplicações em conflito detetadas",
   "conflicts.onboarding.continue": "Continuar",
   "conflicts.onboarding.done": "Concluído",

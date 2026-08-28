@@ -233,6 +233,7 @@
   "conflicts.modal.endTask": "タスクを終了",
   "conflicts.modal.intro": "これらのアプリは、ライティング、ファン、周辺機器の制御をめぐって Nexus と競合することがあります。不要なものを終了して、Nexus がスムーズに制御できるようにしてください。",
   "conflicts.modal.pid": "PID {pid}",
+  "conflicts.modal.terminated": "終了しました",
   "conflicts.modal.title": "競合するアプリを検出しました",
   "conflicts.onboarding.continue": "続ける",
   "conflicts.onboarding.done": "完了",

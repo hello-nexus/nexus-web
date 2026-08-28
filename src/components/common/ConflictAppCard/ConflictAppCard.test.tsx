@@ -117,6 +117,41 @@ describe('ConflictAppCard', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('conflicts.devices.endFailed:iCUE');
   });
 
+  it('keeps the devices but drops the owner switch once the app is terminated', () => {
+    const devices: ConflictDevice[] = [
+      { key: 'a', name: 'iCUE LINK Hub', owner: 'nexus' },
+      { key: 'b', name: 'Vengeance RAM', owner: 'nexus' },
+    ];
+    render(<ConflictAppCard conflict={conflict} devices={devices} onSetOwner={vi.fn()} terminated />);
+
+    expect(screen.getByText('iCUE LINK Hub')).toBeInTheDocument();
+    expect(screen.getByText('Vengeance RAM')).toBeInTheDocument();
+    expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'conflicts.modal.endTask' })).not.toBeInTheDocument();
+    expect(screen.getByText('conflicts.modal.terminated')).toBeInTheDocument();
+  });
+
+  it('reports the kill from the owner switch so the row can go terminated', async () => {
+    mockKillConflict.mockResolvedValue({ killed: true });
+    const onTerminated = vi.fn();
+    const devices: ConflictDevice[] = [{ key: 'a', name: 'Hub', owner: 'app' }];
+    render(
+      <ConflictAppCard
+        conflict={conflict}
+        devices={devices}
+        onSetOwner={vi.fn(async () => {})}
+        onTerminated={onTerminated}
+      />,
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('radio', { name: 'conflicts.devices.nexusControls' }));
+    });
+
+    expect(onTerminated).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
   it('hands the devices to the app without ending it', async () => {
     const onSetOwner = vi.fn(async () => {});
     const devices: ConflictDevice[] = [{ key: 'a', name: 'Hub', owner: 'nexus' }];
@@ -128,6 +163,38 @@ describe('ConflictAppCard', () => {
 
     expect(onSetOwner).toHaveBeenCalledWith('app');
     expect(mockKillConflict).not.toHaveBeenCalled();
+  });
+
+  it('never spins End task for the app choice, which ends nothing', async () => {
+    const endTask = () => screen.getByRole('button', { name: 'conflicts.modal.endTask' });
+    // Held open so the button can be read mid-flight.
+    let release = () => {};
+    const onSetOwner = vi.fn(() => new Promise<void>(resolve => { release = resolve; }));
+    const devices: ConflictDevice[] = [{ key: 'a', name: 'Hub', owner: 'nexus' }];
+    render(<ConflictAppCard conflict={conflict} devices={devices} onSetOwner={onSetOwner} />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('radio', { name: 'conflicts.devices.appControls:iCUE' }));
+    });
+    expect(endTask()).not.toHaveAttribute('data-loading', 'true');
+
+    await act(async () => { release(); });
+    expect(endTask()).not.toHaveAttribute('data-loading', 'true');
+  });
+
+  it('spins End task while the Nexus choice runs, since that one ends the app', async () => {
+    let release = () => {};
+    const onSetOwner = vi.fn(() => new Promise<void>(resolve => { release = resolve; }));
+    mockKillConflict.mockResolvedValue({ killed: true });
+    const devices: ConflictDevice[] = [{ key: 'a', name: 'Hub', owner: 'app' }];
+    render(<ConflictAppCard conflict={conflict} devices={devices} onSetOwner={onSetOwner} />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('radio', { name: 'conflicts.devices.nexusControls' }));
+    });
+    expect(screen.getByRole('button', { name: 'conflicts.modal.endTask' })).toHaveAttribute('data-loading', 'true');
+
+    await act(async () => { release(); });
   });
 
   it('ignores a click on the owner already selected', async () => {

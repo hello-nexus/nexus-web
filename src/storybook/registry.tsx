@@ -1085,6 +1085,15 @@ function PreviewConflictAppCard() {
         ]}
         onSetOwner={async () => {}}
       />
+      <ConflictAppCard
+        conflict={{ id: 'preview-icue', displayName: 'iCUE', category: 'cooling', processName: 'iCUE.exe', pid: 4212 }}
+        devices={[
+          { key: 'device:corsair', name: 'iCUE LINK System Hub', owner: 'nexus' },
+          { key: 'lighting:openrgb-s-RAM1', name: 'Vengeance RGB', owner: 'nexus' },
+        ]}
+        onSetOwner={async () => {}}
+        terminated
+      />
     </div>
   );
 }
@@ -1999,7 +2008,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'EndTaskButton', category: 'inputs',
     filePath: 'src/components/common/EndTaskButton/EndTaskButton.tsx',
-    description: 'Danger Button wired to kill a detected conflicting app by catalog id (POST /conflicts/kill). Keeps its spinner up after a successful kill until the watcher clears the row and it unmounts; resets on failure, and when the app comes back under a new pid - an Automatic service the SCM restarts keeps the row and its React key, so without that the spinner would never clear. Used by ConflictAppCard, so by ConflictWarningModal, ConflictOnboardingScreen and the device-page NexusControlOff gate.',
+    description: 'Danger Button wired to kill a detected conflicting app by catalog id (POST /conflicts/kill). Keeps its spinner up after a successful kill until the watcher clears the row and it unmounts; resets on failure, and when the app comes back under a new pid - an Automatic service the SCM restarts keeps the row and its React key, so without that the spinner would never clear. `busy` spins it while another control runs the same kill; `onKilled` + `terminated` hand the ended state to a surface that keeps the row listed, where it renders a green Terminated marker. Used by ConflictAppCard, so by ConflictWarningModal, ConflictOnboardingScreen and the device-page NexusControlOff gate.',
     Preview: PreviewEndTaskButton,
   },
   {
@@ -2182,7 +2191,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'ConflictAppCard', category: 'cards',
     filePath: 'src/components/common/ConflictAppCard/ConflictAppCard.tsx',
-    description: 'Detected-conflict row: app name, executable / PID meta line, and an EndTaskButton. With `devices` (from useConflictDevices) it also lists the hardware Nexus recognizes that the app drives too, each tagged with who drives it now, under an all-or-none "Nexus controls these / <app> controls these" switch; choosing Nexus flips every device on and then ends the app. Used by ConflictWarningModal and ConflictOnboardingScreen (with devices) and the device-page NexusControlOff gate (plain row).',
+    description: 'Detected-conflict row: app name, executable / PID meta line, and an EndTaskButton. With `devices` (from useConflictDevices) it also lists the hardware Nexus recognizes that the app drives too, each tagged with who drives it now, under an all-or-none "Nexus controls these / <app> controls these" switch; choosing Nexus flips every device on and then ends the app, spinning the End task button while it runs. `terminated` keeps the row of an ended app listed with its devices, swapping the button for a green Terminated marker and dropping the switch. Used by ConflictWarningModal and ConflictOnboardingScreen (with devices) and the device-page NexusControlOff gate (plain row).',
     Preview: PreviewConflictAppCard,
   },
 
