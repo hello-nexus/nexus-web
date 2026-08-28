@@ -362,3 +362,8 @@
   align-items: center;
   gap: 0.4rem;
 }
+
+/* "Last backed up" stamp riding along the owner label on this computer's rows. */
+.cloudProfileBackedUp {
+  color: var(--text-dim);
+}

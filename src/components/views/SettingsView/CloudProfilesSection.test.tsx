@@ -99,6 +99,7 @@ describe('CloudProfilesSection backup control', () => {
     const syncNow = vi.fn().mockResolvedValue(undefined);
     syncResult.mockReturnValue({ ...BASE_SYNC, syncNow });
     const { rerender } = renderSection();
+    await waitFor(() => expect(syncNowButton()).toBeInTheDocument());
 
     fireEvent.click(syncNowButton());
     expect(syncNow).toHaveBeenCalledTimes(1);
@@ -121,6 +122,7 @@ describe('CloudProfilesSection backup control', () => {
     const syncNow = vi.fn().mockReturnValue(new Promise<void>(res => { resolveSync = () => res(); }));
     syncResult.mockReturnValue({ ...BASE_SYNC, syncNow });
     const { rerender } = renderSection();
+    await waitFor(() => expect(syncNowButton()).toBeInTheDocument());
 
     fireEvent.click(syncNowButton());
 
@@ -164,7 +166,40 @@ describe('CloudProfilesSection profile list', () => {
     fireEvent.click(screen.getByRole('button', { name: 'profile.cloud.import.open' }));
 
     await waitFor(() => {
-      expect(importCloudProfile).toHaveBeenCalledWith('other', 'p2');
+      expect(importCloudProfile).toHaveBeenCalledWith('other', 'p2', false);
+    });
+  });
+
+  it('marks the row as imported once the copy lands', async () => {
+    renderSection();
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'profile.cloud.import.open' })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'profile.cloud.import.open' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'profile.cloud.import.done' })).toBeInTheDocument();
+    });
+  });
+
+  it('asks whether to replace on a name clash and retries with replaceExisting', async () => {
+    vi.mocked(importCloudProfile).mockResolvedValueOnce({ error: true, msg: 'profile_name_taken' });
+    renderSection();
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'profile.cloud.import.open' })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'profile.cloud.import.open' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('profile.cloud.import.nameTaken.title')).toBeInTheDocument();
+    });
+    vi.mocked(importCloudProfile).mockResolvedValue({ error: false });
+    fireEvent.click(screen.getByRole('button', { name: 'profile.cloud.import.nameTaken.replace' }));
+
+    await waitFor(() => {
+      expect(importCloudProfile).toHaveBeenLastCalledWith('other', 'p2', true);
     });
   });
 

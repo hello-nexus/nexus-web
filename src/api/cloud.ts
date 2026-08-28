@@ -298,5 +298,7 @@ export const fetchCloudLibrary = () =>
   fetchService<CloudLibrary>('/cloud/profiles/library');
 
 /** Copies another machine's profile in as a NEW local profile; nothing existing is overwritten. */
-export const importCloudProfile = (installId: string, profileId: string) =>
-  postService<{ error?: boolean; msg?: string }>('/cloud/profiles/import', { installId, profileId });
+export const importCloudProfile = (installId: string, profileId: string, replaceExisting = false) =>
+  postService<{ error?: boolean; msg?: string }>('/cloud/profiles/import', {
+    installId, profileId, replaceExisting,
+  });
