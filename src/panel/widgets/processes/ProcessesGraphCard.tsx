@@ -1,4 +1,4 @@
-import { useLayoutEffect, useState } from 'react';
+import { useLayoutEffect, useMemo, useState } from 'react';
 import { Sparkline } from '../../../components/common/Sparkline/Sparkline';
 import { formatMemoryMb } from '../../../lib/formatMemory';
 import { useTranslation } from '../../../lib/i18n';
@@ -16,8 +16,8 @@ import {
 } from './processesResources';
 import styles from './ProcessesGraphCard.module.scss';
 
-// Matches ProcessesWidget's own row height so a card's list and the raw list
-// page read as the same thing at the same density.
+// Shared with ProcessesWidget so a card's list and the raw list page stay at
+// one density; published to the stylesheet as --proc-row-h.
 const ROW_HEIGHT_PX = 26;
 
 // Memory is the one resource whose system figure and per-process figure carry
@@ -50,19 +50,26 @@ export function ProcessesGraphCard({ resource, value, history, rows, numberForma
   showRows: boolean;
 }) {
   const { t } = useTranslation();
+  // Sparkline memoizes on the array identity; a fresh copy per render would
+  // recompute the path on every frame.
+  const values = useMemo(() => [...history], [history]);
   const [listEl, setListEl] = useState<HTMLDivElement | null>(null);
   const fitCount = useRowsThatFit(listEl);
   const top = showRows ? topRowsFor(resource, rows, fitCount) : [];
 
   return (
-    <div className={styles.card} data-graph-only={showRows ? undefined : 'true'}>
+    <div
+      className={styles.card}
+      data-graph-only={showRows ? undefined : 'true'}
+      style={{ '--proc-row-h': `${ROW_HEIGHT_PX}px` } as React.CSSProperties}
+    >
       <div className={styles.head}>
         <span className={styles.label}>{t(RESOURCE_LABEL_KEYS[resource])}</span>
         <span className={styles.value}>{formatSystemValue(resource, value, numberFormat)}</span>
       </div>
       <div className={styles.chart}>
         <Sparkline
-          values={[...history]}
+          values={values}
           domain={resourceDomain(resource)}
           sampleCount={PERF_HISTORY_SAMPLES}
           color="var(--panel-accent-glow)"

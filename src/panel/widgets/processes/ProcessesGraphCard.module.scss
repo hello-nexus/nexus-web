@@ -67,7 +67,7 @@
   grid-template-columns: 16px minmax(0, 1fr) auto;
   align-items: center;
   gap: 0.4rem;
-  height: 26px;
+  height: var(--proc-row-h);
   font-size: var(--type-small);
   color: var(--text);
 }

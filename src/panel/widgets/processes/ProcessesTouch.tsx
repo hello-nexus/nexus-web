@@ -22,7 +22,8 @@ import styles from './ProcessesTouch.module.scss';
  * system-wide figure over the shared 60 s history with that resource's
  * heaviest processes beneath it - then the full scrollable list as the last
  * page. ImmersiveLayout decides how many cards fit a page, so a Y70 landscape
- * shows all four at once and a phone pages through them.
+ * shows all four at once and a phone pages through them. The cards chart the
+ * shared history's 40-sample window (PERF_HISTORY_SAMPLES).
  *
  * Left on ImmersiveLayout's default fillLast, so the list - alone on its own
  * page - takes the full height instead of sitting in a pinned 4x4. The graph
@@ -56,15 +57,19 @@ export function ProcessesTouch({ widget, surface, deviceTouch, immersiveGrid }: 
   const series = { cpu, gpu, memory, io };
 
   // A resource with no per-process figures renders graph-only rather than
-  // sitting above a permanently empty list.
+  // sitting above a permanently empty list. I/O is the exception: its system
+  // figure IS the row sum, so with no rows carrying it there is nothing to
+  // chart either and the card is dropped. Held until rows arrive, so it does
+  // not flash out on the first frame.
+  const ioReported = rows.length === 0 || rows.some(r => r.io !== undefined);
   const hasRows: Record<ResourceKey, boolean> = {
     cpu: true,
     gpu: showGpu,
     memory: true,
-    io: rows.some(r => r.io !== undefined),
+    io: ioReported,
   };
 
-  const cards = RESOURCE_KEYS.map(resource => (
+  const cards = RESOURCE_KEYS.filter(r => r !== 'io' || ioReported).map(resource => (
     <div className={styles.cell} key={resource}>
       <ProcessesGraphCard
         resource={resource}

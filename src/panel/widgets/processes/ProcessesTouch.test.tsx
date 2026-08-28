@@ -99,9 +99,16 @@ describe('ProcessesTouch', () => {
     expect(cardLabels()).toContain('panel.processes.col.gpu');
   });
 
-  it('renders the I/O card graph-only against a service that sends no per-process I/O', async () => {
+  it('drops the I/O card entirely against a service that sends no per-process I/O', async () => {
+    // Its system figure IS the row sum, so with no rows carrying I/O there is
+    // nothing to chart - a graph-only card would be a flat 0 B/s forever.
     currentRows = [{ name: 'chrome', cpu: 10, memMb: 2048, gpu: 20 }];
     await renderTouch();
-    expect(document.querySelectorAll('[data-graph-only]').length).toBe(1);
+    expect(cardLabels()).toEqual([
+      'panel.processes.col.cpu',
+      'panel.processes.col.gpu',
+      'panel.processes.resource.memory',
+    ]);
+    expect(document.querySelectorAll('[data-graph-only]').length).toBe(0);
   });
 });

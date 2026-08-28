@@ -57,7 +57,7 @@ interface GroupedProc {
   cpu: number;
   mem: number;
   /** Summed across the name's instances; undefined on a service too old to
-   *  report it, which the widget renders as "no data" rather than 0. */
+   *  report it, which consumers must distinguish from a real 0. */
   io?: number;
   startedAtMs?: number;
   /** isApp/publisher/signed: real data once the service ships them on the
