@@ -666,6 +666,9 @@ export interface DeviceStructureResponse {
   zones: DeviceZone[];
   isDefaultPartition: boolean;
   hubComposition?: HubComposition;
+  /** Set when the service has no structure for the device; the body is otherwise an empty shell at HTTP 200. */
+  error?: boolean;
+  msg?: string;
 }
 
 /** Zone definition as posted back to the service (ids are service-assigned). */
@@ -715,6 +718,9 @@ export interface DeviceMapResponse {
   id: string;
   segments: DeviceMapSegment[];
   aspectRatio: number;
+  /** Set when the service has no structure for the device; the body is otherwise an empty shell at HTTP 200. */
+  error?: boolean;
+  msg?: string;
 }
 
 /** Segment-local LED override as posted to the device-scoped map endpoint. */
