@@ -2202,7 +2202,6 @@
   "monitoring.history.brushAriaLabel": "Zeitraum",
   "monitoring.history.download": "Download",
   "monitoring.history.error": "Verlaufsdaten konnten nicht geladen werden.",
-  "monitoring.history.fps.ariaLabel": "Bilder pro Sekunde",
   "monitoring.history.gpuUnavailable": "Kein GPU-Verlauf verfügbar.",
   "monitoring.history.live": "Live",
   "monitoring.history.max": "Max",

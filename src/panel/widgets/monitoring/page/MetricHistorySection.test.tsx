@@ -591,46 +591,6 @@ describe('MetricHistorySection', () => {
     });
   });
 
-  describe('fps ribbon', () => {
-    it('renders no fps band when there is no fps series', () => {
-      stubGeometry();
-      const series: UseMetricHistoryResult['series'] = [
-        { id: 'cpu', kind: 'cpu', name: 'CPU', points: [{ t: NOW, avg: 50, max: 51 }] },
-      ];
-      const { container } = renderSection({ metric: 'cpu', history: { series } });
-      expect(container.querySelector('rect[fill="var(--accent)"]')).toBeNull();
-    });
-
-    it('renders an fps band on the cpu tab, stacked under the fan band, with an accessible name', () => {
-      stubGeometry();
-      const series: UseMetricHistoryResult['series'] = [
-        { id: 'cpu', kind: 'cpu', name: 'CPU', points: [{ t: NOW, avg: 50, max: 51 }] },
-        { id: 'cpu-temp', kind: 'cpu-temp', name: 'CPU', points: [{ t: NOW, avg: 70, max: 72 }] },
-        { id: 'fan:1', kind: 'fan', name: 'Fan 1', points: [{ t: NOW, avg: 1200, max: 1250 }] },
-        { id: 'fps', kind: 'fps', name: 'FPS', points: [{ t: NOW, avg: 132, max: 140 }] },
-      ];
-      const { container } = renderSection({ metric: 'cpu', history: { series } });
-      const rects = [...container.querySelectorAll('rect[fill="var(--accent)"]')];
-      expect(rects.length).toBe(3);
-      const [tempRect, rpmRect, fpsRect] = rects;
-      // FPS sits below both the temp and fan-speed bands (highest y).
-      expect(Number(fpsRect.getAttribute('y'))).toBeGreaterThan(Number(rpmRect.getAttribute('y')));
-      expect(Number(rpmRect.getAttribute('y'))).toBeGreaterThan(Number(tempRect.getAttribute('y')));
-      expect(screen.getByText('132 fps')).toBeInTheDocument();
-      expect(container.querySelector('g[role="img"][aria-label="monitoring.history.fps.ariaLabel"]')).toBeInTheDocument();
-    });
-
-    it('never renders the fps band on memory/network, even with a stray fps series left over from a tab switch', () => {
-      stubGeometry();
-      const series: UseMetricHistoryResult['series'] = [
-        { id: 'memory', kind: 'memory', name: 'Memory', points: [{ t: NOW, avg: 50, max: 51 }] },
-        { id: 'fps', kind: 'fps', name: 'FPS', points: [{ t: NOW, avg: 132, max: 140 }] },
-      ];
-      const { container } = renderSection({ metric: 'memory', history: { series } });
-      expect(container.querySelector('rect[fill="var(--accent)"]')).toBeNull();
-    });
-  });
-
   describe('role-aware fan speed sum (cpu/gpu tabs marked in Cooling)', () => {
     const series: UseMetricHistoryResult['series'] = [
       { id: 'cpu', kind: 'cpu', name: 'CPU', points: [{ t: NOW, avg: 50, max: 51 }] },

@@ -2202,7 +2202,6 @@
   "monitoring.history.brushAriaLabel": "時間範圍",
   "monitoring.history.download": "下載",
   "monitoring.history.error": "無法載入歷史資料。",
-  "monitoring.history.fps.ariaLabel": "每秒影格數",
   "monitoring.history.gpuUnavailable": "沒有可用的 GPU 歷史記錄。",
   "monitoring.history.live": "即時",
   "monitoring.history.max": "最大",

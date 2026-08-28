@@ -15,11 +15,11 @@ export type HistoryMetric = 'cpu' | 'memory' | 'storage' | 'network' | 'gpu';
 
 export function seriesQueryFor(metric: HistoryMetric): string {
   switch (metric) {
-    case 'cpu': return 'cpu,cpu-temp,fan,fps';
+    case 'cpu': return 'cpu,cpu-temp,fan';
     case 'memory': return 'memory,mem-temp';
     case 'storage': return 'disk-read,disk-write';
     case 'network': return 'net-in,net-out';
-    case 'gpu': return 'gpu,gpu-temp,fan,fps';
+    case 'gpu': return 'gpu,gpu-temp,fan';
   }
 }
 

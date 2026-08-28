@@ -2202,7 +2202,6 @@
   "monitoring.history.brushAriaLabel": "Time range",
   "monitoring.history.download": "Download",
   "monitoring.history.error": "Could not load history data.",
-  "monitoring.history.fps.ariaLabel": "Frames per second",
   "monitoring.history.gpuUnavailable": "No GPU history available.",
   "monitoring.history.live": "Live",
   "monitoring.history.max": "Max",
