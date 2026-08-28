@@ -358,8 +358,22 @@ export interface LightingDevicesResponse {
   devices: LightingDevice[];
 }
 
-export const fetchLightingDevices = () =>
-  fetchService<LightingDevicesResponse>('/devices/lighting-devices/all');
+// Dev-tools builds stand in mock hardware when the host has none, so the
+// lighting page can be driven on a machine with no RGB devices.
+const loadLightingMock = (import.meta.env.DEV || __DEV_TOOLS__)
+  ? () => import('./mockLightingDevices')
+  : null;
+
+export const fetchLightingDevices = async (): Promise<LightingDevicesResponse | null> => {
+  const res = await fetchService<LightingDevicesResponse>('/devices/lighting-devices/all');
+  if (!loadLightingMock) return res;
+  const mock = await loadLightingMock();
+  // isInit gates it: a host mid-enumeration also answers with an empty list, and
+  // standing in mock hardware there would flash fake devices onto a real rig.
+  const empty = !!res && res.isInit && res.devices.length === 0;
+  mock.setMockLightingActive(empty);
+  return empty ? { isInit: true, devices: mock.MOCK_LIGHTING_DEVICES } : res;
+};
 
 export const saveDeviceLayout = (id: string, x: number, y: number, w: number, h: number, rotation: number = 0) =>
   postService('/devices/lighting-devices/layout', { id, x, y, w, h, rotation });
@@ -485,13 +499,29 @@ export const setLightingDeviceBrightness = (id: string, brightness: number) =>
  * (gradients, two-tone, spectrum) and the tint controls (hue shift, warmth,
  * contrast) reach the hardware. Pass effect '' to clear the assignment.
  */
-export const setLightingDeviceColor = (
+export const setLightingDeviceColor = async (
   id: string,
   hue: number,
   saturation: number,
   look?: { effect: string; color?: string; intensity: number; colorize: number; contrast: number; params?: Record<string, number>; slot?: number },
-) =>
-  postService('/devices/lighting-devices/color', {
+) => {
+  if (loadLightingMock) {
+    const mock = await loadLightingMock();
+    if (mock.mockLightingActive()) {
+      mock.setMockLightingLook(id, {
+        effect: look?.effect ?? '',
+        color: look?.color ?? '',
+        intensity: look?.intensity ?? 1,
+        hue,
+        colorize: look?.colorize ?? 0,
+        saturation,
+        contrast: look?.contrast ?? 1,
+        slot: look?.slot ?? 0,
+      });
+      return null;
+    }
+  }
+  return postService('/devices/lighting-devices/color', {
     id, hue, saturation,
     effect: look?.effect ?? '',
     // A palette pick is just this colour; the service skips the shader for it.
@@ -504,6 +534,7 @@ export const setLightingDeviceColor = (
     // service carries it without reading it.
     slot: look?.slot ?? 0,
   });
+};
 
 /** One device's stored Static assignment, as the service holds it. */
 export interface StaticDeviceLookDto {
@@ -520,8 +551,13 @@ export interface StaticDeviceLookDto {
 /** Every per-device Static assignment. The service owns these, so this is how a
  *  client rebuilds them after a preset activate or on a machine that has never
  *  seen them. */
-export const fetchStaticDeviceLooks = () =>
-  fetchService<{ looks: Record<string, StaticDeviceLookDto> }>('/devices/lighting-devices/static-looks');
+export const fetchStaticDeviceLooks = async () => {
+  if (loadLightingMock) {
+    const mock = await loadLightingMock();
+    if (mock.mockLightingActive()) return { looks: mock.mockLightingLooks() };
+  }
+  return fetchService<{ looks: Record<string, StaticDeviceLookDto> }>('/devices/lighting-devices/static-looks');
+};
 
 // Master brightness cap (0..1). Caps every per-device value so the effective
 // brightness for an LED is `min(global, device / 100)` - never brighter.

@@ -52,23 +52,24 @@
 
 .device {
   position: absolute;
-  border: 1.5px solid rgb(255 255 255 / var(--alpha-medium));
+  // Same outline Static's swatch cell wears: a white rule with a dark halo on
+  // both sides, which holds up over any shader without tinting what it frames.
+  border: 2px solid rgb(255 255 255 / 0.85);
   border-radius: var(--radius-sm);
-  background-color: rgba(255, 255, 255, 0.04);
-  background-image: radial-gradient(circle, rgb(255 255 255 / var(--alpha-faint)) 0.8px, transparent 1.2px);
-  background-size: 8px 8px;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / var(--alpha-strong)), inset 0 0 0 1px rgb(0 0 0 / var(--alpha-strong));
   cursor: grab;
   overflow: visible;
   z-index: 2;
-  transition: border-color var(--ease-fast), background var(--ease-fast);
+  transition: border-color var(--ease-fast), box-shadow var(--ease-fast);
 
   &:hover {
-    border-color: rgba(255, 255, 255, 0.8);
+    border-color: #fff;
     .resizeHandle { opacity: 1; }
   }
 
+  // The canvas only ever draws the selection, so a selected frame keeps the
+  // white outline; the accent is left to the states that need to stand out.
   &.selected {
-    border-color: var(--accent);
     z-index: 8;
     .resizeHandle { opacity: 1; }
   }
@@ -79,6 +80,7 @@
     box-shadow: 0 0 12px var(--accent-glow-shadow);
     z-index: 10;
     .resizeHandle { opacity: 1; }
+    .resizeHandle::before { background: var(--accent); }
   }
 
   // While a selection is active the unselected frames recede so the selection
@@ -86,6 +88,7 @@
   // receded frame shows no border or resize handle until selected.
   &.deemphasized {
     border-color: transparent;
+    box-shadow: none;
 
     &:hover .resizeHandle { opacity: 0; }
   }
@@ -98,7 +101,7 @@
   // and dragging accents alone; pointer capture withholds pointerleave for a
   // label-initiated drag, so excluding .dragging keeps this off the dragged frame.
   &.labelHover:not(.selected):not(.dragging) {
-    border-color: rgba(255, 255, 255, 0.8);
+    border-color: #fff;
 
     .resizeHandle { opacity: 1; }
   }
@@ -125,7 +128,11 @@
   max-width: 40%;
   pointer-events: auto;
   cursor: grab;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+  // Same pill Static's dots wear: a name over a busy shader needs its own
+  // ground, not a shadow.
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.62);
   font-weight: var(--weight-body);
   transition: opacity var(--ease-fast);
 
@@ -155,14 +162,32 @@
 
 .resizeHandle {
   position: absolute;
-  bottom: -4px;
-  right: -4px;
-  width: 9px;
-  height: 9px;
-  border-radius: var(--radius-sm);
-  background: var(--accent);
+  // The box is the grab area; ::before is the dot, so the corner stays easy to
+  // hit on touch without growing the mark.
+  bottom: -9px;
+  right: -9px;
+  width: 20px;
+  height: 20px;
+  background: transparent;
   cursor: se-resize;
   opacity: 0;
   transition: opacity var(--ease-fast);
   z-index: 5;
+
+  &::before {
+    content: '';
+    position: absolute;
+    right: 5px;
+    bottom: 5px;
+    width: 10px;
+    height: 10px;
+    border-radius: var(--radius-sm);
+    background: #fff;
+    box-shadow: 0 0 0 1px rgb(0 0 0 / var(--alpha-strong));
+    transition: background var(--ease-fast);
+  }
+
+  &:active::before {
+    background: var(--accent);
+  }
 }

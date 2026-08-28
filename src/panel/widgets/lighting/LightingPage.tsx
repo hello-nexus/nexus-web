@@ -35,6 +35,7 @@ import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { AdvancedModeCta } from '../../../components/common/AdvancedModeCta/AdvancedModeCta';
+import { CollapsibleSection } from '../../../components/common/CollapsibleSection/CollapsibleSection';
 import { ModeMenu, MODE_MENU_TAB_KEY } from '../../../components/common/ModeMenu/ModeMenu';
 import { usePageModeMenu } from '../../../components/common/ModeMenu/usePageModeMenu';
 import { DeviceCountSummary } from '../../../components/common/DeviceCountSummary/DeviceCountSummary';
@@ -56,12 +57,15 @@ import {
   type EffectState, type EffectTemplateBundle, type LightingMode,
 } from '../../../types/lighting';
 import {
-  nearestPaletteId, paletteColor, paletteColorForKey, paletteFamilyKey, paletteIdFromKey,
+  isPaletteKey, nearestPaletteId, paletteColor, paletteColorForKey, paletteFamilyKey, paletteIdFromKey,
   type PaletteColor,
 } from '../../../types/lightingPalette';
 import { defaultTemplatesFor, mergeTemplates, slotMatchesDefault, slotThumbSignature } from '../../../types/lightingTemplates';
 import { AnimateGrid } from './page/AnimateGrid';
 import { StaticPalette } from './page/StaticPalette';
+import { StaticPickerCanvas } from './page/StaticPickerCanvas';
+import { PICKER_FIELD_SVG, PICKER_SEGMENTED_SVG, snapToSegment, pickerHexAt, pickerPointFor } from './page/staticPickerField';
+import { EffectCard } from '../../../components/common/EffectCard/EffectCard';
 import { FullscreenShader } from './page/FullscreenShader';
 import { ModeControls } from './page/ModeControls';
 import { MediaCanvasNotice } from './page/MediaCanvasNotice';
@@ -236,6 +240,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // sizes itself.
   const [dockCollapsed, setDockCollapsed] = usePersistentState('nexus.lighting.effectDockCollapsed', true);
   const [paletteOpen, setPaletteOpen] = useState(true);
+  const [pickerSegmented, setPickerSegmented] = usePersistentState('nexus.lighting.pickerSegmented', true);
   const [customStaticColor, setCustomStaticColor] = usePersistentState('nexus.lighting.customColor', '');
 
   const [activeEffect, setActiveEffect] = useState<string>('');
@@ -843,13 +848,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     });
   }, [activeEffect, applyAnimate, applyDeviceColor, effectiveMode, perDeviceMode, selectedDeviceIds, stateFor]);
 
-  // A colour has nothing to browse into, so with no selection the swatch is
-  // inert - the effect grid's rule, minus the editor move it still has to do.
-  const handlePaletteSelect = useCallback((color: PaletteColor) => {
-    if (!perDeviceMode || selectedDeviceIds.size === 0) return;
-    writePalettePick(color, [...selectedDeviceIds]);
-  }, [perDeviceMode, selectedDeviceIds, writePalettePick]);
-
   // Custom-colour writes: one in flight, newest wins. Paced by the write
   // landing rather than a timer, so a slow write drops the frames it outran
   // instead of queueing them behind the pointer. The queued entry carries its
@@ -888,10 +886,14 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     queueCustomWrite(hex, ids);
   }, [perDeviceMode, queueCustomWrite, selectedDeviceIds, setCustomStaticColor, setDevicePicks]);
 
+  // Records as well as writes: the dots and the device cards read the pick, so
+  // a drag has to move them with the pointer, not on release.
   const handleCustomPreview = useCallback((hex: string) => {
     if (!perDeviceMode || selectedDeviceIds.size === 0) return;
-    queueCustomWrite(hex, [...selectedDeviceIds]);
-  }, [perDeviceMode, queueCustomWrite, selectedDeviceIds]);
+    const ids = [...selectedDeviceIds];
+    setDevicePicks(prev => pickCustomForDevices(prev, hex, ids, false));
+    queueCustomWrite(hex, ids);
+  }, [perDeviceMode, queueCustomWrite, selectedDeviceIds, setDevicePicks]);
 
   const effectPool = mode === 'static' ? STATIC_EFFECTS : ANIMATE_EFFECTS;
 
@@ -1687,15 +1689,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // stops taking input until a device is chosen.
   const staticNeedsSelection = effectiveMode === 'static' && selectedDeviceIds.size === 0;
   const gridEffect = scoped.kind === 'pick' ? scoped.key : (scoped.kind === 'locked' ? '' : activeEffect);
-  // The palette highlights the selection's colour; an effect pick highlights a
-  // tile instead, so only one of the two ever reads as active.
-  // devicePicksFromLooks snaps ANY flat colour to its nearest palette id, so the
-  // key alone cannot tell a palette pick from a custom one - only the hex can.
+  // The colour the selection wears, which is where its dots sit on the field.
   const scopedHex = scoped.kind === 'pick' ? scoped.hex : '';
-  const scopedRawPaletteId = scoped.kind === 'pick' ? paletteIdFromKey(scoped.key) : null;
-  const scopedCustom = !!scopedRawPaletteId && !!scopedHex
-    && paletteColor(scopedRawPaletteId)?.hex.toLowerCase() !== scopedHex.toLowerCase();
-  const scopedPaletteId = scopedCustom ? null : scopedRawPaletteId;
   // Selected devices wearing different looks have no single value for the
   // controls to edit, so the dock locks until the selection agrees.
   const mixedSelection = scoped.kind === 'locked';
@@ -1710,6 +1705,31 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     () => visibleDevices.filter(d => selectedDeviceIds.has(d.id)),
     [visibleDevices, selectedDeviceIds],
   );
+
+  // Static's canvas is the colour picker. A pattern pick replaces the field
+  // with the effect's own render; a colour pick (or none yet) keeps the field.
+  const staticPattern = effectiveMode === 'static' && scoped.kind === 'pick'
+    && scoped.explicit && !isPaletteKey(scoped.key)
+    ? { key: scoped.key, slot: scoped.slot }
+    : null;
+  const pickerDevices = useMemo(
+    () => canvasDevices.map(d => ({ id: d.id, name: d.name, hex: devicePicks[d.id]?.hex ?? '' })),
+    [canvasDevices, devicePicks],
+  );
+  // The picker tiles re-flatten the selection onto the colour it already shows,
+  // the way the palette's custom slot did; the segmented one conforms it to the
+  // nearest swatch, which is what makes the two tiles distinct picks.
+  const handlePickerSelect = useCallback((toSegment: boolean) => {
+    setPickerSegmented(toSegment);
+    const base = scopedHex || customStaticColor || '#ff0000';
+    if (!toSegment) {
+      handleCustomSelect(base);
+      return;
+    }
+    const p = pickerPointFor(base);
+    const snapped = snapToSegment(p.x, p.y);
+    handleCustomSelect(pickerHexAt(snapped.x, snapped.y));
+  }, [customStaticColor, handleCustomSelect, scopedHex, setPickerSegmented]);
 
   const simpleOff = synced && effectiveMode === 'none';
   // The mode tab leads the strip in both dashboard modes; simple mode carries
@@ -1956,6 +1976,22 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             </>
           ) : (
             <>
+              {effectiveMode === 'static' && (
+              <div className={styles.canvasArea}>
+                <StaticPickerCanvas
+                  devices={pickerDevices}
+                  hasSelection={selectedDeviceIds.size > 0}
+                  hex={scopedHex}
+                  segmented={pickerSegmented}
+                  patternEffect={staticPattern?.key ?? null}
+                  patternSlot={staticPattern?.slot ?? 0}
+                  patternVersion={staticPattern ? versionForSlot(staticPattern.key, staticPattern.slot) : '0'}
+                  gpuAvailable={serviceState.lighting?.gpuAvailable ?? true}
+                  onPreview={handleCustomPreview}
+                  onCommit={handleCustomSelect}
+                />
+              </div>
+              )}
               {showCanvas && (
               <div className={styles.canvasArea}>
                 <DeviceCanvas devices={canvasDevices} canvasPixels={frames.canvasPixels} canvasW={frames.canvasW} canvasH={frames.canvasH} selectedIds={selectedDeviceIds} primaryDeviceId={primaryDeviceId} onSelectDevice={handleSelectDevice} onSetSelection={handleSetSelection} shaderEffect={shaderMode ? activeEffect : null} shaderState={shaderMode ? previewState : null} shaderPaused={paused} audioRef={audioRef} hiddenFrameIds={hiddenFrameIds} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={handleOpenSettings} onDragActiveChange={handleDragActiveChange} onBeforeLayoutSave={handleBeforeLayoutSave} onLayoutCommit={handleLayoutCommit} onSetDevicesPower={handleSetDevicesPower} gpuAvailable={serviceState.lighting?.gpuAvailable ?? true} />
@@ -2007,16 +2043,29 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                   panelEffects={panelUsage.effects}
                   gpuAvailable={serviceState.lighting?.gpuAvailable ?? true}
                   leading={effectiveMode === 'static' ? (
-                    <StaticPalette
-                      selectedId={scopedPaletteId}
+                    <CollapsibleSection
+                      compact
+                      title={t('lighting.static.pickerGroup')}
                       open={paletteOpen}
                       onToggle={() => setPaletteOpen(o => !o)}
-                      onSelect={handlePaletteSelect}
-                      customColor={scopedCustom ? scopedHex : customStaticColor}
-                      customSelected={scopedCustom}
-                      onSelectCustom={handleCustomSelect}
-                      onPreviewCustom={handleCustomPreview}
-                    />
+                    >
+                      <div className={styles.animateGridSection}>
+                        <EffectCard
+                          overlay
+                          label={t('lighting.static.pickerSegmented')}
+                          thumbUrl={PICKER_SEGMENTED_SVG}
+                          active={!staticPattern && pickerSegmented}
+                          onClick={() => handlePickerSelect(true)}
+                        />
+                        <EffectCard
+                          overlay
+                          label={t('lighting.static.picker')}
+                          thumbUrl={PICKER_FIELD_SVG}
+                          active={!staticPattern && !pickerSegmented}
+                          onClick={() => handlePickerSelect(false)}
+                        />
+                      </div>
+                    </CollapsibleSection>
                   ) : undefined}
                 />
                 </div>
