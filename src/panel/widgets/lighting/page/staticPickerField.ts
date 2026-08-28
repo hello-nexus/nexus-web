@@ -41,14 +41,14 @@ export function pickerPointFor(hex: string): PickerPoint {
 }
 
 /**
- * The segmented view samples the same field on a coarse grid - the old palette's
- * 14 hue columns. The rows are lightness stops, not an even split of the axis:
- * the centre stop is the pure hue (full saturation and value), four tints run
- * above it and four shades below, and the ends pull in from white and black,
+ * The segmented view samples the same field on a coarse grid - twelve hues, one
+ * every 30 degrees. The rows are lightness stops, not an even split of the axis:
+ * the centre stop is the pure hue (full saturation and value), three tints run
+ * above it and three shades below, and the ends pull in from white and black,
  * which an LED renders as blown out and as off.
  */
-export const PICKER_SEGMENT_COLS = 14;
-const SEGMENT_ROW_L = [0.84, 0.755, 0.67, 0.585, 0.5, 0.42, 0.34, 0.26, 0.18];
+export const PICKER_SEGMENT_COLS = 12;
+const SEGMENT_ROW_L = [0.84, 0.727, 0.613, 0.5, 0.393, 0.287, 0.18];
 export const PICKER_SEGMENT_ROWS = SEGMENT_ROW_L.length;
 
 /**
