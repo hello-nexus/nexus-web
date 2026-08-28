@@ -19,11 +19,10 @@
 }
 
 .label {
-  font-size: var(--type-mini);
+  font-size: var(--type-body);
   text-transform: uppercase;
   color: var(--text-dim);
-  // A narrow card must not wrap the heading onto a second line: that pushes
-  // the value down and eats the chart's height.
+  // A narrow card must not wrap the heading onto a second line.
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
