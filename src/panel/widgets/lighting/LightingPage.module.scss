@@ -1594,7 +1594,6 @@
   --picker-scrim: rgb(0 0 0 / var(--alpha-strong));
   --picker-halo: rgb(0 0 0 / var(--alpha-strong));
   --picker-hairline: rgb(255 255 255 / var(--alpha-medium));
-  --picker-grid-line: rgb(0 0 0 / var(--alpha-medium));
   // --picker-notice-hold is set inline from NOTICE_MS in StaticPickerCanvas.
   display: flex;
   justify-content: center;
@@ -1791,12 +1790,6 @@
   left: 0;
   display: grid;
   pointer-events: none;
-
-  // Drawn inside the cell, not as a gap: the selection ring is sized from the
-  // track width, so a real gap would shift every cell out from under it.
-  span {
-    box-shadow: inset 0 0 0 1px var(--picker-grid-line);
-  }
 }
 
 // Segmented: the swatch itself is the mark, so the ring outlines the cell.
