@@ -154,6 +154,30 @@ describe('CloudProfilesSection profile list', () => {
     expect(screen.getAllByText('profile.cloud.list.thisComputer')).toHaveLength(1);
   });
 
+  it('puts this computer first and shows its backup time on the same line', async () => {
+    syncResult.mockReturnValue({
+      ...BASE_SYNC,
+      profiles: [{ profileId: 'p1', name: 'Default', lastSyncedAt: '2026-08-28T02:31:10.000Z', revision: 1 }],
+    });
+    renderSection();
+
+    await waitFor(() => expect(screen.getByText('T1')).toBeInTheDocument());
+
+    // The library arrives with the other machine first; the section reorders so
+    // this computer leads.
+    const mine = screen.getByText('T1');
+    const theirs = screen.getByText('HYTEY70');
+    const minePrecedes = mine.compareDocumentPosition(theirs) & Node.DOCUMENT_POSITION_FOLLOWING;
+    expect(minePrecedes).toBeTruthy();
+
+    // The backup stamp and the badge ride the same line as the machine name,
+    // instead of living in a separate Backup entry.
+    const ownerLine = mine.closest('span');
+    expect(ownerLine?.textContent).toContain('profile.cloud.list.thisComputer');
+    expect(ownerLine?.textContent).toContain('profile.cloud.backup.lastSynced');
+    expect(screen.queryByText('profile.cloud.backup.label')).not.toBeInTheDocument();
+  });
+
   it('offers import only on another computer profile and copies it in one click', async () => {
     renderSection();
 
