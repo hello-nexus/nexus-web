@@ -1,4 +1,3 @@
-import type { LucideIcon } from 'lucide-react';
 import type { ComponentType, LazyExoticComponent } from 'react';
 import type { DashboardSectionNavigate } from '../engine/panelLayoutHelpers';
 import type { PanelConfigValue, PanelSurface, PanelWidget, PanelWidgetSize } from '../types';
@@ -89,10 +88,19 @@ export interface WidgetSettingsProps {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AppPageComponent = ComponentType<any>;
 
+// An app's sidebar / picker glyph. Built-ins pass a lucide icon; an SDK app
+// that ships an `icon` in its manifest passes a component rendering that mark
+// instead (appIconComponent). Both accept the prop subset the render sites use,
+// so every consumer draws `meta.icon` without knowing which kind it holds.
+export type AppIcon = ComponentType<{
+  size?: number | string;
+  'aria-hidden'?: boolean | 'true' | 'false';
+}>;
+
 export interface AppMetadata {
   type: string;
   i18nKey: string;
-  icon: LucideIcon;
+  icon: AppIcon;
   sizes: PanelWidgetSize[];
   defaultSize: PanelWidgetSize;
   // When false, the app is hidden from the Add-a-Widget picker: it can't be

@@ -1,4 +1,5 @@
 import { Boxes } from 'lucide-react';
+import { appIconComponent } from '../../components/icons/AppIconImage';
 import { MarketplaceWidget } from './marketplace/MarketplaceWidget';
 import { MarketplaceWidgetSettings } from './marketplace/MarketplaceWidgetSettings';
 import { SdkMarketplacePage } from './marketplace/SdkMarketplacePage';
@@ -133,7 +134,7 @@ export function lookupApp(type: string): AppManifest | undefined {
     const listing = getMarketplaceListing(id);
     if (!listing) return undefined;
     return makeMarketplaceAppManifest(
-      id, listing.name, listing.sizes, listing.defaultSize, !!listing.page,
+      id, listing.name, listing.sizes, listing.defaultSize, !!listing.page, listing.iconUrl,
       !!listing.immersive, !!listing.singleInstance,
     );
   }
@@ -152,7 +153,7 @@ export function getCatalogEntries(): Array<[string, AppManifest]> {
   const marketplace = getAllMarketplaceListings().map((listing): [string, AppManifest] => [
     typeForMarketplace(listing.id),
     makeMarketplaceAppManifest(
-      listing.id, listing.name, listing.sizes, listing.defaultSize, !!listing.page,
+      listing.id, listing.name, listing.sizes, listing.defaultSize, !!listing.page, listing.iconUrl,
       !!listing.immersive, !!listing.singleInstance,
     ),
   ]);
@@ -185,6 +186,7 @@ function makeMarketplaceAppManifest(
   manifestSizes: string[] | undefined,
   manifestDefault: string | undefined,
   hasPage: boolean,
+  iconUrl: string | null | undefined,
   immersive = false,
   singleInstance = false,
 ): AppManifest {
@@ -199,7 +201,10 @@ function makeMarketplaceAppManifest(
     meta: {
       type: typeForMarketplace(id),
       i18nKey: label,
-      icon: Boxes,
+      // The app's own manifest mark when it ships one; the generic catalog
+      // glyph otherwise. Not gated on `preinstalled` - the OEM flag decides
+      // whether an app auto-seeds, not which icon it draws.
+      icon: iconUrl ? appIconComponent(iconUrl) : Boxes,
       sizes: safeSizes,
       defaultSize,
       // Opt-in per app: the immersive view re-renders the same widget at the

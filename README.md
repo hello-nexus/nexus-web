@@ -139,7 +139,7 @@ Everything ships from `src/`. Top-level folders:
 Three "widget/app" layers are easy to confuse: `panel/widgets/` is the built-in
 widgets; `widgets/` is the marketplace feed that injects installed SDK apps into
 the panel picker; `sandbox/` is the runtime that hosts those SDK apps. The app
-bundle **sources** live outside this repo, in the sibling `nexus-apps/`.
+bundle **sources** live outside this repo.
 
 ## Scripts
 

@@ -17,6 +17,12 @@ vi.mock('../../../api/conflicts', async () => {
   return { ...actual, killConflict: vi.fn() };
 });
 
+// The device join is covered by useConflictDevices' own tests; here the modal
+// only needs the card rows.
+vi.mock('../../../hooks/useConflictDevices', () => ({
+  useConflictDevices: () => ({ devicesByApp: new Map(), setOwner: vi.fn() }),
+}));
+
 const conflicts: DetectedConflict[] = [
   { id: 'icue', displayName: 'iCUE', category: 'cooling', processName: 'iCUE.exe', pid: 42 },
   { id: 'lian-li-l-connect', displayName: 'L-Connect', category: 'lighting', processName: 'LConnect.exe', pid: 7 },
