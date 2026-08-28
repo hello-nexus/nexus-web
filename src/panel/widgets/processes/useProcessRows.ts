@@ -56,6 +56,7 @@ function buildRows(gpuEnabled: boolean): ProcessRow[] {
     name: p.name,
     cpu: p.cpu,
     memMb: p.memMb,
+    io: p.io,
     // undefined where the platform has no per-process GPU source at all, so a
     // missing source is distinguishable from a genuine 0.
     gpu: gpu ? gpu.get(p.name) ?? 0 : undefined,

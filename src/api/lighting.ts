@@ -358,8 +358,22 @@ export interface LightingDevicesResponse {
   devices: LightingDevice[];
 }
 
-export const fetchLightingDevices = () =>
-  fetchService<LightingDevicesResponse>('/devices/lighting-devices/all');
+// Dev-tools builds stand in mock hardware when the host has none, so the
+// lighting page can be driven on a machine with no RGB devices.
+const loadLightingMock = (import.meta.env.DEV || __DEV_TOOLS__)
+  ? () => import('./mockLightingDevices')
+  : null;
+
+export const fetchLightingDevices = async (): Promise<LightingDevicesResponse | null> => {
+  const res = await fetchService<LightingDevicesResponse>('/devices/lighting-devices/all');
+  if (!loadLightingMock) return res;
+  const mock = await loadLightingMock();
+  // isInit is the OpenRGB bridge's connection state, not "enumeration done" - a
+  // Mac with no bridge never reports it, so an empty list is the only signal.
+  const empty = !res || res.devices.length === 0;
+  mock.setMockLightingActive(empty);
+  return empty ? { isInit: true, devices: mock.MOCK_LIGHTING_DEVICES } : res;
+};
 
 export const saveDeviceLayout = (id: string, x: number, y: number, w: number, h: number, rotation: number = 0) =>
   postService('/devices/lighting-devices/layout', { id, x, y, w, h, rotation });
@@ -485,13 +499,31 @@ export const setLightingDeviceBrightness = (id: string, brightness: number) =>
  * (gradients, two-tone, spectrum) and the tint controls (hue shift, warmth,
  * contrast) reach the hardware. Pass effect '' to clear the assignment.
  */
-export const setLightingDeviceColor = (
+export const setLightingDeviceColor = async (
   id: string,
   hue: number,
   saturation: number,
   look?: { effect: string; color?: string; intensity: number; colorize: number; contrast: number; params?: Record<string, number>; slot?: number },
-) =>
-  postService('/devices/lighting-devices/color', {
+) => {
+  // Scoped to mock ids: a real device's write must never be swallowed, even in
+  // the window where a host with hardware has not enumerated it yet.
+  if (loadLightingMock && id.startsWith('mock-')) {
+    const mock = await loadLightingMock();
+    if (mock.mockLightingActive()) {
+      mock.setMockLightingLook(id, {
+        effect: look?.effect ?? '',
+        color: look?.color ?? '',
+        intensity: look?.intensity ?? 1,
+        hue,
+        colorize: look?.colorize ?? 0,
+        saturation,
+        contrast: look?.contrast ?? 1,
+        slot: look?.slot ?? 0,
+      });
+      return null;
+    }
+  }
+  return postService('/devices/lighting-devices/color', {
     id, hue, saturation,
     effect: look?.effect ?? '',
     // A palette pick is just this colour; the service skips the shader for it.
@@ -504,6 +536,7 @@ export const setLightingDeviceColor = (
     // service carries it without reading it.
     slot: look?.slot ?? 0,
   });
+};
 
 /** One device's stored Static assignment, as the service holds it. */
 export interface StaticDeviceLookDto {
@@ -520,8 +553,13 @@ export interface StaticDeviceLookDto {
 /** Every per-device Static assignment. The service owns these, so this is how a
  *  client rebuilds them after a preset activate or on a machine that has never
  *  seen them. */
-export const fetchStaticDeviceLooks = () =>
-  fetchService<{ looks: Record<string, StaticDeviceLookDto> }>('/devices/lighting-devices/static-looks');
+export const fetchStaticDeviceLooks = async () => {
+  if (loadLightingMock) {
+    const mock = await loadLightingMock();
+    if (mock.mockLightingActive()) return { looks: mock.mockLightingLooks() };
+  }
+  return fetchService<{ looks: Record<string, StaticDeviceLookDto> }>('/devices/lighting-devices/static-looks');
+};
 
 // Master brightness cap (0..1). Caps every per-device value so the effective
 // brightness for an LED is `min(global, device / 100)` - never brighter.
@@ -666,6 +704,9 @@ export interface DeviceStructureResponse {
   zones: DeviceZone[];
   isDefaultPartition: boolean;
   hubComposition?: HubComposition;
+  /** Set when the service has no structure for the device; the body is otherwise an empty shell at HTTP 200. */
+  error?: boolean;
+  msg?: string;
 }
 
 /** Zone definition as posted back to the service (ids are service-assigned). */
@@ -715,6 +756,9 @@ export interface DeviceMapResponse {
   id: string;
   segments: DeviceMapSegment[];
   aspectRatio: number;
+  /** Set when the service has no structure for the device; the body is otherwise an empty shell at HTTP 200. */
+  error?: boolean;
+  msg?: string;
 }
 
 /** Segment-local LED override as posted to the device-scoped map endpoint. */

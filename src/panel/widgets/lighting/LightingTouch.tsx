@@ -8,7 +8,11 @@ import { AnimateGrid } from './page/AnimateGrid';
 import { MediaList } from './effecteditor/MediaList';
 import { StaticDeviceSelect } from './effecteditor/StaticDeviceSelect';
 import type { LedPick } from './page/DeviceLedStrip';
-import { StaticPalette } from './page/StaticPalette';
+import { StaticPickerCanvas } from './page/StaticPickerCanvas';
+import { PICKER_FIELD_SVG, PICKER_SEGMENTED_SVG, pickerHexAt, pickerPointFor, snapToSegment } from './page/staticPickerField';
+import { useColorWriteQueue } from './page/useColorWriteQueue';
+import { EffectCard } from '../../../components/common/EffectCard/EffectCard';
+import { CollapsibleSection } from '../../../components/common/CollapsibleSection/CollapsibleSection';
 import { PostProcessControls } from './effecteditor/PostProcessControls';
 import type { PostProcessState } from './effecteditor/types';
 import {
@@ -43,11 +47,11 @@ import { mergeTemplates, slotThumbSignature } from '../../../types/lightingTempl
 import { normalizeSync as resolveImmersiveMode } from '../../../hooks/useLightingSync';
 import { usePersistentState, usePersistentIdSet } from '../../../hooks/usePersistentState';
 import { useTranslation } from '../../../lib/i18n';
-import { paletteIdFromKey, type PaletteColor } from '../../../types/lightingPalette';
+import { isPaletteKey } from '../../../types/lightingPalette';
 import {
-  pickLookForDevices, pickPaletteForDevices,
+  pickCustomForDevices, pickLookForDevices,
   DEVICE_PICKS_STORAGE_KEY, SELECTED_DEVICES_STORAGE_KEY, PRIMARY_DEVICE_STORAGE_KEY,
-  type DevicePicks,
+  type DevicePick, type DevicePicks,
 } from './staticPicks';
 import type { WidgetProps } from '../types';
 import styles from './LightingPage.module.scss';
@@ -87,19 +91,60 @@ export function LightingTouch({ widget, surface, immersiveGrid }: WidgetProps) {
   );
 }
 
-/** The page's palette, with the collapse state the immersive surface needs. */
-function ImmersiveStaticPalette({ selectedId, onSelect }: {
-  selectedId?: string | null;
-  onSelect: (color: PaletteColor) => void;
-}) {
+/** Static's picker for the touch surface: the field, then its two tiles. */
+function ImmersivePicker({ animate }: { animate: ImmersiveAnimateController }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(true);
+  const pick = (toSegment: boolean) => {
+    animate.onSetSegmented(toSegment);
+    const base = animate.selectedHex || animate.customColor || '#ff0000';
+    if (!toSegment) {
+      animate.onSelectCustom(base);
+      return;
+    }
+    const p = pickerPointFor(base);
+    const snapped = snapToSegment(p.x, p.y);
+    animate.onSelectCustom(pickerHexAt(snapped.x, snapped.y));
+  };
   return (
-    <StaticPalette
-      selectedId={selectedId}
-      open={open}
-      onToggle={() => setOpen(o => !o)}
-      onSelect={onSelect}
-    />
+    <>
+      <StaticPickerCanvas
+        compact
+        devices={animate.pickerDevices}
+        hasSelection={animate.selectedIds.size > 0}
+        hex={animate.selectedHex}
+        segmented={animate.segmented}
+        patternEffect={animate.staticPattern?.key ?? null}
+        patternSlot={animate.staticPattern?.slot ?? 0}
+        patternVersion={animate.staticPattern ? animate.versionForSlot(animate.staticPattern.key, animate.staticPattern.slot) : '0'}
+        gpuAvailable
+        onPreview={animate.onPreviewCustom}
+        onCommit={animate.onSelectCustom}
+      />
+      <CollapsibleSection
+        compact
+        title={t('lighting.static.pickerGroup')}
+        open={open}
+        onToggle={() => setOpen(o => !o)}
+      >
+        <div className={styles.animateGridSection}>
+          <EffectCard
+            overlay
+            label={t('lighting.static.pickerSegmented')}
+            thumbUrl={PICKER_SEGMENTED_SVG}
+            active={!animate.staticPattern && animate.segmented}
+            onClick={() => pick(true)}
+          />
+          <EffectCard
+            overlay
+            label={t('lighting.static.picker')}
+            thumbUrl={PICKER_FIELD_SVG}
+            active={!animate.staticPattern && !animate.segmented}
+            onClick={() => pick(false)}
+          />
+        </div>
+      </CollapsibleSection>
+    </>
   );
 }
 
@@ -152,12 +197,7 @@ function renderImmersiveEditor(
               versionFor={animate.versionFor}
               rgbActiveEffect={animate.effect}
               panelEffects={panelUsage.effects}
-              leading={isStatic ? (
-                <ImmersiveStaticPalette
-                  selectedId={animate.selectedPaletteId}
-                  onSelect={animate.onSelectPalette}
-                />
-              ) : undefined}
+              leading={isStatic ? <ImmersivePicker animate={animate} /> : undefined}
             />
           </StaticBrowser>
         )}
@@ -208,17 +248,28 @@ interface ImmersiveAnimateController {
   devices: LightingDevice[];
   selectedIds: Set<string>;
   onSetSelection: (ids: Set<string>, primary: string | null) => void;
-  onSelectPalette: (color: PaletteColor) => void;
+  customColor: string;
+  onSelectCustom: (hex: string) => void;
+  /** Fires per pointer-move; the controller paces its own writes. */
+  onPreviewCustom: (hex: string) => void;
+  /** The colour the selection shares, for the picker's marks and hex readout. */
+  selectedHex: string;
+  /** Set when the selection wears a pattern rather than a flat colour. */
+  staticPattern: { key: string; slot: number } | null;
+  segmented: boolean;
+  onSetSegmented: (on: boolean) => void;
+  pickerDevices: { id: string; name: string; hex: string }[];
   /** A device's own Static assignment for its card readout; the shared effect
    *  canvas is not what a per-device mode is showing. */
   ledPickFor: (id: string) => LedPick | undefined;
-  /** The palette swatch the selection agrees on, so it renders as picked. */
-  selectedPaletteId: string | null;
   state: EffectState;
   bundle: EffectTemplateBundle;
   canReset: boolean;
   slotFor: (key: string) => number;
   versionFor: (key: string) => string;
+  /** A specific slot's content hash - a pattern's thumbnail is keyed on the
+   *  slot the pick came from, not the effect's currently selected one. */
+  versionForSlot: (key: string, slot: number) => string;
   onSelectEffect: (key: string) => void;
   onTemplateSelect: (idx: number) => void;
   onChange: (patch: Partial<EffectState>, commit?: boolean) => void;
@@ -260,20 +311,29 @@ function useImmersiveAnimateState(): { mode: LightingMode; animate: ImmersiveAni
   const stagedRef = useRef<EffectState | null>(null);
   const [, force] = useState(0);
   const { devices, selectedIds, onSetSelection } = useImmersiveDevices(mode === 'static');
+  // A drag's per-move picks stay out of the persisted record, which writes
+  // localStorage on every change.
+  const [previewPicks, setPreviewPicks] = useState<DevicePicks | null>(null);
   const [devicePicks, setDevicePicks] = usePersistentState<DevicePicks>(DEVICE_PICKS_STORAGE_KEY, {});
-  // Only when every selected device wears the same one; a mixed selection has
-  // no single swatch to mark.
-  const selectedPaletteId = useMemo(() => {
-    let found: string | null = null;
+  const livePicks = useMemo(
+    () => (previewPicks ? { ...devicePicks, ...previewPicks } : devicePicks),
+    [devicePicks, previewPicks],
+  );
+  const [segmented, setSegmented] = usePersistentState('nexus.lighting.pickerSegmented', true);
+  const queueCustomWrite = useColorWriteQueue();
+  const [customStaticColor, setCustomStaticColor] = usePersistentState('nexus.lighting.customColor', '');
+
+  // The colour the selection shares, which is where the picker marks it.
+  const selectedHex = useMemo(() => {
+    let hex = '';
     for (const id of selectedIds) {
-      const pick = devicePicks[id];
-      const paletteId = pick ? paletteIdFromKey(pick.key) : null;
-      if (!paletteId) return null;
-      if (found && found !== paletteId) return null;
-      found = paletteId;
+      const pick = livePicks[id];
+      if (!pick?.hex) return '';
+      if (hex && hex.toLowerCase() !== pick.hex.toLowerCase()) return '';
+      hex = pick.hex;
     }
-    return found;
-  }, [devicePicks, selectedIds]);
+    return hex;
+  }, [livePicks, selectedIds]);
 
   const hydrate = useCallback(async () => {
     const [sync, settings, staticSettings, defaults] = await Promise.all([
@@ -343,14 +403,48 @@ function useImmersiveAnimateState(): { mode: LightingMode; animate: ImmersiveAni
   }, [templates]);
 
   const ledPickFor = useCallback((id: string): LedPick | undefined => {
-    const pick = devicePicks[id];
+    const pick = livePicks[id];
     return pick ? { ...pick, version: versionForSlot(pick.key, pick.slot) } : undefined;
-  }, [devicePicks, versionForSlot]);
+  }, [livePicks, versionForSlot]);
 
-  const onSelectPalette = useCallback((color: PaletteColor) => {
+  // The selection wears a pattern when every device agrees on one look and that
+  // look is an effect rather than a flat colour.
+  const staticPattern = useMemo(() => {
+    if (selectedIds.size === 0) return null;
+    let first: DevicePick | undefined;
+    for (const id of selectedIds) {
+      const pick = livePicks[id];
+      if (!pick) return null;
+      if (!first) first = pick;
+      else if (first.key !== pick.key || first.slot !== pick.slot) return null;
+    }
+    return first && !isPaletteKey(first.key) ? { key: first.key, slot: first.slot } : null;
+  }, [livePicks, selectedIds]);
+
+  const pickerDevices = useMemo(
+    () => devices
+      .filter(d => selectedIds.has(d.id))
+      .map(d => ({ id: d.id, name: d.name, hex: livePicks[d.id]?.hex ?? '' })),
+    [devices, livePicks, selectedIds],
+  );
+
+  const onSelectCustom = useCallback((hex: string) => {
+    setCustomStaticColor(hex);
     if (selectedIds.size === 0) return;
-    setDevicePicks(prev => pickPaletteForDevices(prev, color, [...selectedIds]));
-  }, [selectedIds, setDevicePicks]);
+    const ids = [...selectedIds];
+    // Record without pushing and queue the write, so a commit cannot race a
+    // preview still in flight and leave the hardware on the older colour.
+    setPreviewPicks(null);
+    setDevicePicks(prev => pickCustomForDevices(prev, hex, ids, false));
+    queueCustomWrite(hex, ids);
+  }, [queueCustomWrite, selectedIds, setCustomStaticColor, setDevicePicks]);
+
+  const onPreviewCustom = useCallback((hex: string) => {
+    if (selectedIds.size === 0) return;
+    const ids = [...selectedIds];
+    setPreviewPicks(pickCustomForDevices({}, hex, ids, false));
+    queueCustomWrite(hex, ids);
+  }, [queueCustomWrite, selectedIds]);
   // Ref-backed staged state bypasses the render cycle on slider drag; `force`
   // a render after mutation.
   const liveState = stagedRef.current ?? baseState;
@@ -416,14 +510,21 @@ function useImmersiveAnimateState(): { mode: LightingMode; animate: ImmersiveAni
       devices,
       selectedIds,
       onSetSelection,
-      onSelectPalette,
-      selectedPaletteId,
+      customColor: selectedHex || customStaticColor,
+      onSelectCustom,
+      onPreviewCustom,
+      selectedHex,
+      staticPattern,
+      segmented,
+      onSetSegmented: setSegmented,
+      pickerDevices,
       ledPickFor,
       state: liveState,
       bundle,
       canReset: stagedRef.current !== null,
       slotFor: (e: string) => templates[e]?.selected ?? 0,
       versionFor: (e: string) => versionForSlot(e, templates[e]?.selected ?? 0),
+      versionForSlot,
       onSelectEffect,
       onTemplateSelect,
       onChange,

@@ -22,6 +22,9 @@ export interface MonitoringProcessEntry {
    *  signer found, undefined while still unresolved (or unreported). */
   publisher?: string | null;
   signed?: 'signed' | 'unsigned' | 'unknown';
+  /** Combined disk read+write rate in bytes/sec for this process instance;
+   *  undefined on a service too old to report it. */
+  storageBytesPerSec?: number;
 }
 
 export interface MonitoringProcesses {

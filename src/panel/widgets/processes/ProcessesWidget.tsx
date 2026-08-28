@@ -4,7 +4,7 @@ import { pingService } from '../../../api/service';
 import { formatMemoryMb } from '../../../lib/formatMemory';
 import { useTranslation } from '../../../lib/i18n';
 import { localizeNumbers } from '../../../lib/units';
-import { useUnitPrefs } from '../../../hooks/useUiSettings';
+import { usePreferredGpuId, useUnitPrefs } from '../../../hooks/useUiSettings';
 import { ProcessIcon } from '../monitoring/page/ProcessIcon';
 import { compareItems } from '../monitoring/page/processRanking';
 import { usePanelPreview } from '../common/PanelPreviewContext';
@@ -21,6 +21,7 @@ import {
   type SortDirection,
 } from './processesData';
 import { useProcessRows } from './useProcessRows';
+import { useResourceHistoryFeed } from './useResourceHistoryFeed';
 import styles from './ProcessesWidget.module.scss';
 
 // Published to the stylesheet as a custom property and used to work out how
@@ -52,6 +53,7 @@ const COLUMN_LABEL_KEYS: Record<ProcessColumn, string> = {
 export function ProcessesWidget({ widget, immersive }: WidgetProps & { immersive?: boolean }) {
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
+  const preferredGpu = usePreferredGpuId();
   const preview = usePanelPreview();
 
   // Per-process GPU is Windows-only (GpuProcessMonitor is #if WINDOWS), so the
@@ -66,13 +68,18 @@ export function ProcessesWidget({ widget, immersive }: WidgetProps & { immersive
     });
     return () => { cancelled = true; };
   }, [preview]);
-  const showGpu = platform === 'windows';
+  // The catalog shows every column; preview gates out the ping that resolves it.
+  const showGpu = preview || platform === 'windows';
 
   // Seconds map 1:1 onto frames: the service broadcasts at a fixed 1 Hz.
   const refreshFrames = resolveRefreshSeconds(widget.config?.refreshSeconds);
   // Mounted in preview too (a store read, no network); the fixture replaces it.
   const live = useProcessRows(refreshFrames, showGpu && !preview);
   const rows = preview ? PROCESSES_PREVIEW : live;
+  // Fills the immersive graph cards' histories while the tile is up, so they
+  // open already drawn. No-op in preview and while immersive (the cards sample
+  // their own keys).
+  useResourceHistoryFeed(!preview && !immersive, preferredGpu);
 
   const [column, setColumn] = useState<ProcessColumn>(DEFAULT_COLUMN);
   const [direction, setDirection] = useState<SortDirection>(() => defaultDirectionFor(DEFAULT_COLUMN));
