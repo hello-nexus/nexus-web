@@ -30,12 +30,26 @@ describe('systemValue', () => {
     expect(systemValue('memory', frame(), rows)).toBe(55);
   });
 
-  it('skips a GPU reporting no load and takes the next one', () => {
+  it('charts the preferred adapter, not whichever one happens to report load', () => {
+    // Taking the first non-zero adapter would chart the iGPU here, and could
+    // swap adapters mid-window on any frame the preferred one read 0 -
+    // interleaving two adapters in one shared history buffer.
     const f = frame({ gpu: [
-      { name: 'iGPU', sensors: [sensor('GPU Core', 'Load', 0)] },
+      { name: 'iGPU', sensors: [sensor('GPU Core', 'Load', 40)], integrated: true },
       { name: 'dGPU', sensors: [sensor('GPU Core', 'Load', 88)] },
     ] } as Partial<MonitoringFrame>);
+    expect(systemValue('gpu', f, rows, 'dGPU')).toBe(88);
+    expect(systemValue('gpu', f, rows, 'iGPU')).toBe(40);
+    // No preference: the discrete adapter, matching resolvePrimaryGpu.
     expect(systemValue('gpu', f, rows)).toBe(88);
+  });
+
+  it('reads 0 for the preferred adapter when it reports no load, never a sibling\'s', () => {
+    const f = frame({ gpu: [
+      { name: 'iGPU', sensors: [sensor('GPU Core', 'Load', 40)], integrated: true },
+      { name: 'dGPU', sensors: [sensor('GPU Core', 'Load', 0)] },
+    ] } as Partial<MonitoringFrame>);
+    expect(systemValue('gpu', f, rows, 'dGPU')).toBe(0);
   });
 
   it('sums the per-process rates for I/O, so the graph and its rows describe the same quantity', () => {

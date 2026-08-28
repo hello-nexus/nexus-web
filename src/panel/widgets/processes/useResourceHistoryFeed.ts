@@ -11,12 +11,15 @@ import { RESOURCE_HISTORY_KEYS, RESOURCE_KEYS, systemValue } from './processesRe
  * per frame or the graphs read at the wrong time base. pushPanelSensorSample
  * dedups by key + frameTick, so a mounted card sampling the same key is free.
  *
+ * Every resource is sampled, GPU included: its system figure comes off the
+ * frame on any platform, unlike the per-process split.
+ *
  * `enabled` is false in preview: the catalog must never write into this shared,
  * key-addressed store.
  */
-export function useResourceHistoryFeed(enabled: boolean, gpuEnabled: boolean): void {
-  const gpuRef = useRef(gpuEnabled);
-  gpuRef.current = gpuEnabled;
+export function useResourceHistoryFeed(enabled: boolean, preferredGpuName = ''): void {
+  const preferredRef = useRef(preferredGpuName);
+  preferredRef.current = preferredGpuName;
 
   useEffect(() => {
     if (!enabled) return;
@@ -24,8 +27,10 @@ export function useResourceHistoryFeed(enabled: boolean, gpuEnabled: boolean): v
       const frame = store.getMonitoringFrame();
       const rows = store.getAllProcessValues();
       for (const resource of RESOURCE_KEYS) {
-        if (resource === 'gpu' && !gpuRef.current) continue;
-        store.pushPanelSensorSample(RESOURCE_HISTORY_KEYS[resource], systemValue(resource, frame, rows));
+        store.pushPanelSensorSample(
+          RESOURCE_HISTORY_KEYS[resource],
+          systemValue(resource, frame, rows, preferredRef.current),
+        );
       }
     };
     store.subscribe(onFrame);

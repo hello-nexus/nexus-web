@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { pingService } from '../../../api/service';
 import { getMonitoringFrame } from '../../../lib/monitoringStore';
-import { useUnitPrefs } from '../../../hooks/useUiSettings';
+import { usePreferredGpuId, useUnitPrefs } from '../../../hooks/useUiSettings';
 import { ImmersiveLayout } from '../common/ImmersiveLayout';
 import { useSharedSensorHistory } from '../common/useSharedSensorHistory';
 import type { WidgetProps } from '../types';
@@ -32,6 +32,7 @@ import styles from './ProcessesTouch.module.scss';
  */
 export function ProcessesTouch({ widget, surface, deviceTouch, immersiveGrid }: WidgetProps) {
   const { numberFormat } = useUnitPrefs();
+  const preferredGpu = usePreferredGpuId();
 
   const [platform, setPlatform] = useState('');
   useEffect(() => {
@@ -50,10 +51,10 @@ export function ProcessesTouch({ widget, surface, deviceTouch, immersiveGrid }: 
   // One hook per resource, fixed order, so the count never varies between
   // renders. Each pushes its sample into the shared per-key buffer and reads
   // the same buffer back, so a card re-mounting keeps its history.
-  const cpu = useResourceSeries('cpu', frame, rows);
-  const gpu = useResourceSeries('gpu', frame, rows);
-  const memory = useResourceSeries('memory', frame, rows);
-  const io = useResourceSeries('io', frame, rows);
+  const cpu = useResourceSeries('cpu', frame, rows, preferredGpu);
+  const gpu = useResourceSeries('gpu', frame, rows, preferredGpu);
+  const memory = useResourceSeries('memory', frame, rows, preferredGpu);
+  const io = useResourceSeries('io', frame, rows, preferredGpu);
   const series = { cpu, gpu, memory, io };
 
   // A resource with no per-process figures renders graph-only rather than
@@ -101,8 +102,9 @@ function useResourceSeries(
   resource: ResourceKey,
   frame: ReturnType<typeof getMonitoringFrame>,
   rows: Parameters<typeof systemValue>[2],
+  preferredGpuName: string,
 ): { value: number; history: readonly number[] } {
-  const value = systemValue(resource, frame, rows);
+  const value = systemValue(resource, frame, rows, preferredGpuName);
   return { value, history: useSharedSensorHistory(RESOURCE_HISTORY_KEYS[resource], value) };
 }
 

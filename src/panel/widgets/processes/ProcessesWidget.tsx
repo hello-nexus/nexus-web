@@ -4,7 +4,7 @@ import { pingService } from '../../../api/service';
 import { formatMemoryMb } from '../../../lib/formatMemory';
 import { useTranslation } from '../../../lib/i18n';
 import { localizeNumbers } from '../../../lib/units';
-import { useUnitPrefs } from '../../../hooks/useUiSettings';
+import { usePreferredGpuId, useUnitPrefs } from '../../../hooks/useUiSettings';
 import { ProcessIcon } from '../monitoring/page/ProcessIcon';
 import { compareItems } from '../monitoring/page/processRanking';
 import { usePanelPreview } from '../common/PanelPreviewContext';
@@ -53,6 +53,7 @@ const COLUMN_LABEL_KEYS: Record<ProcessColumn, string> = {
 export function ProcessesWidget({ widget, immersive }: WidgetProps & { immersive?: boolean }) {
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
+  const preferredGpu = usePreferredGpuId();
   const preview = usePanelPreview();
 
   // Per-process GPU is Windows-only (GpuProcessMonitor is #if WINDOWS), so the
@@ -78,7 +79,7 @@ export function ProcessesWidget({ widget, immersive }: WidgetProps & { immersive
   // Fills the immersive graph cards' histories while the tile is up, so they
   // open already drawn. No-op in preview and while immersive (the cards sample
   // their own keys).
-  useResourceHistoryFeed(!preview && !immersive, showGpu);
+  useResourceHistoryFeed(!preview && !immersive, preferredGpu);
 
   const [column, setColumn] = useState<ProcessColumn>(DEFAULT_COLUMN);
   const [direction, setDirection] = useState<SortDirection>(() => defaultDirectionFor(DEFAULT_COLUMN));

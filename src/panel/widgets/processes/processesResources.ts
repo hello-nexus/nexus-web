@@ -5,6 +5,7 @@
 // subscribes to (PanelEntrypoint's monitoring bridge), so the cards add no
 // socket topic of their own.
 
+import { resolvePrimaryGpu } from '../../../lib/gpuResolver';
 import type { MonitoringFrame } from '../../../types/monitoringFrame';
 import type { ProcessRow } from './processesData';
 
@@ -38,21 +39,27 @@ function loadOf(sensors: { name: string; type: string; value: number }[] | undef
 }
 
 /**
- * System-wide value for a resource. CPU/GPU/memory are percentages read the
- * same way the Monitoring page's tab chips read them (tabChipValue.ts); I/O is
- * the sum of the per-process rates, so the card's graph and its rows below
- * always describe the same quantity.
+ * System-wide value for a resource. CPU/GPU/memory are percentages; I/O is the
+ * sum of the per-process rates, so the card's graph and its rows below always
+ * describe the same quantity.
+ *
+ * `preferredGpuName` scopes GPU to one adapter, the same resolution useSensors
+ * applies. Scanning for the first adapter reporting load instead would chart
+ * the iGPU on a dual-GPU box, and swap adapters mid-window on any frame the
+ * real one reads exactly 0 - interleaving two adapters in one history buffer.
  */
-export function systemValue(resource: ResourceKey, frame: MonitoringFrame | null, rows: readonly ProcessRow[]): number {
+export function systemValue(
+  resource: ResourceKey,
+  frame: MonitoringFrame | null,
+  rows: readonly ProcessRow[],
+  preferredGpuName = '',
+): number {
   switch (resource) {
     case 'cpu':
       return loadOf(frame?.cpu?.sensors, s => s.name === 'CPU Total');
     case 'gpu': {
-      for (const gpu of frame?.gpu ?? []) {
-        const value = loadOf(gpu.sensors, s => s.type === 'Load' && (s.name === 'GPU Core' || s.name.startsWith('D3D')));
-        if (value > 0) return value;
-      }
-      return 0;
+      const gpu = resolvePrimaryGpu(frame?.gpu ?? [], preferredGpuName);
+      return loadOf(gpu?.sensors, s => s.type === 'Load' && (s.name === 'GPU Core' || s.name.startsWith('D3D')));
     }
     case 'memory': {
       const sensors = frame?.memory?.sensors;
