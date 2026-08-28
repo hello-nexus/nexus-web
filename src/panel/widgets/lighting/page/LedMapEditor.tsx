@@ -446,37 +446,44 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   // it survives, falling back to the first zone in device order.
   const load = useCallback(async (selectDeviceIndex?: number) => {
     setLoading(true);
-    const [st, dm] = await Promise.all([
+    const [rawSt, rawDm] = await Promise.all([
       fetchDeviceStructure(deviceId),
       fetchDeviceMap(deviceId),
     ]);
-    // A failed structure refetch must not blank the zone list: zoneScoped
-    // would flip off and every zone's LEDs would become editable at once.
-    // Keep the previous structure and surface the failure instead.
-    if (st) setStructure(st);
-    if (!st || !dm) loadFailedNoteRef.current();
-    if (dm) {
-      const flat = flattenDeviceMap(dm);
-      setLeds(flat);
-      baselineRef.current = baselineFrom(flat);
-      const snap = new Map<number, SavedLedState>();
-      for (const l of flat) snap.set(l.index, { u: l.u, v: l.v, disabled: l.disabled, isCustom: l.isCustom });
-      setSavedLedsMap(snap);
-      setRectRatio(dm.aspectRatio > 0 ? dm.aspectRatio : DEFAULT_RATIO);
-      loadedRatioRef.current = dm.aspectRatio > 0 ? dm.aspectRatio : DEFAULT_RATIO;
+    // Both routes answer an unknown device with `error: true` at HTTP 200, so a
+    // truthy body is not a loaded device.
+    const st = rawSt?.error ? null : rawSt;
+    const dm = rawDm?.error ? null : rawDm;
+    // Structure and map must land together or not at all: applying one half
+    // pairs the new map's zone ids with the old zone list (nothing selectable)
+    // or the new counts with the old map, and the setDirty(false) below would
+    // present that mismatch as saved. Keep the last good state instead.
+    if (!st || !dm) {
+      loadFailedNoteRef.current();
+      setLoading(false);
+      return;
     }
-    if (st) {
-      const offs = segmentOffsets(st.segments);
-      let nextZone: DeviceZone | undefined;
-      if (selectDeviceIndex !== undefined) {
-        nextZone = st.zones.find(z => zoneDeviceIndices(z, offs).includes(selectDeviceIndex));
-      }
-      if (!nextZone) nextZone = st.zones.find(z => z.id === selectedZoneIdRef.current);
-      if (!nextZone) nextZone = orderZones(st.zones, offs)[0];
-      if (nextZone) {
-        setSelectedZoneId(nextZone.id);
-        setZoneMultiSel(new Set([nextZone.id]));
-      }
+    setStructure(st);
+
+    const flat = flattenDeviceMap(dm);
+    setLeds(flat);
+    baselineRef.current = baselineFrom(flat);
+    const snap = new Map<number, SavedLedState>();
+    for (const l of flat) snap.set(l.index, { u: l.u, v: l.v, disabled: l.disabled, isCustom: l.isCustom });
+    setSavedLedsMap(snap);
+    setRectRatio(dm.aspectRatio > 0 ? dm.aspectRatio : DEFAULT_RATIO);
+    loadedRatioRef.current = dm.aspectRatio > 0 ? dm.aspectRatio : DEFAULT_RATIO;
+
+    const offs = segmentOffsets(st.segments);
+    let nextZone: DeviceZone | undefined;
+    if (selectDeviceIndex !== undefined) {
+      nextZone = st.zones.find(z => zoneDeviceIndices(z, offs).includes(selectDeviceIndex));
+    }
+    if (!nextZone) nextZone = st.zones.find(z => z.id === selectedZoneIdRef.current);
+    if (!nextZone) nextZone = orderZones(st.zones, offs)[0];
+    if (nextZone) {
+      setSelectedZoneId(nextZone.id);
+      setZoneMultiSel(new Set([nextZone.id]));
     }
     historyRef.current = emptyHistory();
     setUndoLen(0);
@@ -1315,7 +1322,8 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
       // refetched structure carries the service-assigned ids every live
       // per-card call (highlight, test pattern, brightness, clear) uses
       // from here on.
-      const st = await fetchDeviceStructure(deviceId);
+      const stResp = await fetchDeviceStructure(deviceId);
+      const st = stResp?.error ? null : stResp;
       if (st) {
         setStructure(st);
         const offs = segmentOffsets(st.segments);
@@ -1411,13 +1419,19 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   // motherboard headers) the count sends RESIZEZONE and round-trips through
   // load(). For SmartHub soft-count zones the count is deferred: updated
   // locally (leds + structure) and persisted only on Save.
-  const activeZoneLedCount = activeZone ? zoneLedCount(activeZone) : leds.length;
+  // With no resolved zone the card's own count is the zone-scoped number;
+  // leds is the whole device's map, so it is only the last resort.
+  const activeZoneLedCount = activeZone
+    ? zoneLedCount(activeZone)
+    : (zoneCard?.ledCount ?? leds.length);
   const activeZoneLedCountRef = useRef(activeZoneLedCount);
   activeZoneLedCountRef.current = activeZoneLedCount;
   const [ledCountDraft, setLedCountDraft] = useState(String(activeZoneLedCount));
   const ledCountEscapeRef = useRef(false);
   const resizingCountRef = useRef(false);
-  const canEditLedCount = zoneCard?.zoneResizable === true;
+  // No resolved zone means no count to resize: without this the input stays
+  // live after a failed load and a commit rewrites leds against a null structure.
+  const canEditLedCount = zoneCard?.zoneResizable === true && activeZone !== undefined;
   useEffect(() => { setLedCountDraft(String(activeZoneLedCount)); }, [activeZoneLedCount, selectedZoneId]);
 
   const handleLedCountCommit = useCallback((n: number) => {

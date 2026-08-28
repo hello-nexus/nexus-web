@@ -1,0 +1,84 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+  // ImmersiveLayout owns the horizontal inset; a second one doubles it.
+  padding: 10px 0;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  flex: 0 0 auto;
+}
+
+.label {
+  font-size: var(--type-body);
+  text-transform: uppercase;
+  color: var(--text-dim);
+  // A narrow card must not wrap the heading onto a second line.
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.value {
+  font-size: var(--type-body);
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+// Top half graph, bottom half rows. A card with no per-process figures for its
+// resource gives the whole card to the graph.
+.chart {
+  flex: 1 1 50%;
+  min-height: 0;
+  display: flex;
+  align-items: stretch;
+  padding: 0.4rem 0;
+}
+
+.card[data-graph-only='true'] .chart {
+  flex: 1 1 auto;
+}
+
+.spark {
+  width: 100%;
+  height: 100%;
+}
+
+.rows {
+  flex: 1 1 50%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.4rem;
+  height: var(--proc-row-h);
+  font-size: var(--type-small);
+  color: var(--text);
+}
+
+.name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowValue {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+}

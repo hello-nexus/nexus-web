@@ -49,12 +49,16 @@ export interface ProcessValues {
   name: string;
   cpu: number;
   memMb: number;
+  io?: number;
   startedAtMs?: number;
 }
 
 interface GroupedProc {
   cpu: number;
   mem: number;
+  /** Summed across the name's instances; undefined on a service too old to
+   *  report it, which consumers must distinguish from a real 0. */
+  io?: number;
   startedAtMs?: number;
   /** isApp/publisher/signed: real data once the service ships them on the
    *  live wire entry, or a DEV_TOOLS-only mock stand-in (processMetaMock.ts)
@@ -230,6 +234,9 @@ export function ingestMonitoring(frame: MonitoringFrame) {
       if (existing) {
         existing.cpu += p.cpuPercent;
         existing.mem += p.memoryMb;
+        if (p.storageBytesPerSec !== undefined) {
+          existing.io = (existing.io ?? 0) + p.storageBytesPerSec;
+        }
         if (p.startedAtMs !== undefined && (existing.startedAtMs === undefined || p.startedAtMs > existing.startedAtMs)) {
           existing.startedAtMs = p.startedAtMs;
         }
@@ -245,7 +252,7 @@ export function ingestMonitoring(frame: MonitoringFrame) {
         const real = p.isApp !== undefined;
         const mock = !real && DEV_TOOLS ? mockProcessMeta(p.name) : undefined;
         grouped.set(p.name, {
-          cpu: p.cpuPercent, mem: p.memoryMb, startedAtMs: p.startedAtMs,
+          cpu: p.cpuPercent, mem: p.memoryMb, io: p.storageBytesPerSec, startedAtMs: p.startedAtMs,
           isApp: real ? p.isApp : mock?.isApp,
           publisher: real ? p.publisher : mock?.publisher,
           signed: real ? p.signed : mock?.signed,
@@ -381,7 +388,7 @@ function buildGpuSeries(
 export function getAllProcessValues(): ProcessValues[] {
   const rows: ProcessValues[] = [];
   for (const [name, g] of latestGroupedProcs) {
-    rows.push({ name, cpu: g.cpu, memMb: g.mem, startedAtMs: g.startedAtMs });
+    rows.push({ name, cpu: g.cpu, memMb: g.mem, io: g.io, startedAtMs: g.startedAtMs });
   }
   return rows;
 }

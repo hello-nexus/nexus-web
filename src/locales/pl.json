@@ -2499,6 +2499,8 @@
   "panel.processes.col.name": "Nazwa",
   "panel.processes.col.ram": "RAM",
   "panel.processes.empty": "Brak procesów",
+  "panel.processes.resource.io": "We/Wy dysku",
+  "panel.processes.resource.memory": "Pamięć",
   "panel.processes.settings.refresh": "Odświeżanie",
   "panel.processes.settings.seconds": "{n} s",
   "panel.processes.settings.title": "Lista procesów",

@@ -2473,6 +2473,8 @@
   "panel.processes.col.name": "Nom",
   "panel.processes.col.ram": "RAM",
   "panel.processes.empty": "Aucun processus",
+  "panel.processes.resource.io": "E/S disque",
+  "panel.processes.resource.memory": "Mémoire",
   "panel.processes.settings.refresh": "Actualisation",
   "panel.processes.settings.seconds": "{n} s",
   "panel.processes.settings.title": "Liste des processus",

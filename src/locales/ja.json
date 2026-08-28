@@ -2473,6 +2473,8 @@
   "panel.processes.col.name": "名前",
   "panel.processes.col.ram": "RAM",
   "panel.processes.empty": "プロセスがありません",
+  "panel.processes.resource.io": "ディスク I/O",
+  "panel.processes.resource.memory": "メモリ",
   "panel.processes.settings.refresh": "更新間隔",
   "panel.processes.settings.seconds": "{n}秒",
   "panel.processes.settings.title": "プロセス一覧",

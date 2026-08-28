@@ -2473,6 +2473,8 @@
   "panel.processes.col.name": "Ad",
   "panel.processes.col.ram": "RAM",
   "panel.processes.empty": "İşlem yok",
+  "panel.processes.resource.io": "Disk G/Ç",
+  "panel.processes.resource.memory": "Bellek",
   "panel.processes.settings.refresh": "Yenileme",
   "panel.processes.settings.seconds": "{n} sn",
   "panel.processes.settings.title": "İşlem listesi",

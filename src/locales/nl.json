@@ -2473,6 +2473,8 @@
   "panel.processes.col.name": "Naam",
   "panel.processes.col.ram": "RAM",
   "panel.processes.empty": "Geen processen",
+  "panel.processes.resource.io": "Schijf-I/O",
+  "panel.processes.resource.memory": "Geheugen",
   "panel.processes.settings.refresh": "Vernieuwen",
   "panel.processes.settings.seconds": "{n} s",
   "panel.processes.settings.title": "Processenlijst",

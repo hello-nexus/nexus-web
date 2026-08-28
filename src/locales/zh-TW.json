@@ -2473,6 +2473,8 @@
   "panel.processes.col.name": "名稱",
   "panel.processes.col.ram": "記憶體",
   "panel.processes.empty": "沒有處理程序",
+  "panel.processes.resource.io": "磁碟 I/O",
+  "panel.processes.resource.memory": "記憶體",
   "panel.processes.settings.refresh": "重新整理",
   "panel.processes.settings.seconds": "{n} 秒",
   "panel.processes.settings.title": "處理程序清單",

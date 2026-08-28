@@ -2499,6 +2499,8 @@
   "panel.processes.col.name": "Имя",
   "panel.processes.col.ram": "ОЗУ",
   "panel.processes.empty": "Нет процессов",
+  "panel.processes.resource.io": "Дисковый ввод-вывод",
+  "panel.processes.resource.memory": "Память",
   "panel.processes.settings.refresh": "Обновление",
   "panel.processes.settings.seconds": "{n} с",
   "panel.processes.settings.title": "Список процессов",

@@ -2473,6 +2473,8 @@
   "panel.processes.col.name": "Non",
   "panel.processes.col.ram": "RAM",
   "panel.processes.empty": "Nissun procès",
+  "panel.processes.resource.io": "I/O dal disc",
+  "panel.processes.resource.memory": "Memorie",
   "panel.processes.settings.refresh": "Inzornament",
   "panel.processes.settings.seconds": "{n} s",
   "panel.processes.settings.title": "Liste dai procès",
