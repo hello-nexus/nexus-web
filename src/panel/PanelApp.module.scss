@@ -909,6 +909,12 @@
   --_inner-w: calc(var(--_card-w) * var(--_fit));
   --_inner-h: calc(var(--_card-h) * var(--_fit));
   --_s: calc(var(--panel-scale, 1) * var(--_fit));
+  // The round card stretches every direct child to fill it (the `> *` rule in
+  // panel/styles/tokens.scss), and that selector outranks the plain .cellScaler
+  // box above - so the scaler was sized by content and ran off the top and
+  // bottom of the glass. Restate the box at this specificity to win it back.
+  width: calc(var(--_inner-w) / var(--_s));
+  height: calc(var(--_inner-h) / var(--_s));
 }
 
 .panelRoot:not([data-surface='q60']) .cellEditorDocked {
