@@ -42,6 +42,22 @@ describe('panelSimulation', () => {
     });
   });
 
+  it('carries the Kraken round glass as a single-tile 640x640 preset', () => {
+    expect(SIMULATED_PANEL_PRESETS).toContainEqual({
+      id: 'kraken',
+      name: 'NZXT Kraken LCD',
+      surface: 'kraken',
+      width: 640,
+      height: 640,
+      dpi: 271,
+    });
+
+    const kraken = SIMULATED_PANEL_PRESETS.find(panel => panel.id === 'kraken');
+
+    // One 2x2 round tile, the same grid the real streamed Kraken reports.
+    expect(kraken && getSimulatedPanelGridCapacity(kraken)).toMatchObject({ columns: 2, rows: 2 });
+  });
+
   it('calculates physical inches and assigns tablets a larger power-of-two grid than phones', () => {
     const phone = SIMULATED_PANEL_PRESETS.find(panel => panel.id === 'phone');
     const tablet = SIMULATED_PANEL_PRESETS.find(panel => panel.id === 'tablet');

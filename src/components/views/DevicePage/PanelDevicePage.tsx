@@ -26,7 +26,7 @@ import { normalizePanelLayout } from '../../../panel/engine/usePanelLayout';
 import { repaginatePanelLayout } from '../../../panel/engine/paginate';
 import { simulatedPanelEditorCapacity } from '../../../panel/embed/simulatedPanelViewport';
 import { getPanelGridSizingSettings } from '../../../lib/panelSimulation';
-import { isSingleWidgetSurface } from '../../../panel/types';
+import { isSingleWidgetSurface, singleWidgetSurfaceSize } from '../../../panel/types';
 import { supportsDesktopWallpaper } from '../../../panel/device/wiredPanel';
 import { fetchService, postService } from '../../../api/service';
 import {
@@ -271,6 +271,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // matched record - drives which promoted-monitor-only settings apply.
   const [recordFamily, setRecordFamily] = useState<string | undefined>(undefined);
   const surface = device?.runtimeSurface ?? 'y70';
+  const isSimulated = device?.connectionKind === 'simulated';
   const supportsDisplayControls = device?.capabilities.displayControls ?? surface === 'y70';
   const supportsAutoLaunch = device?.capabilities.launchClose ?? surface === 'y70';
   // Y70 connected as a monitor only (no USB serial channel): brightness and
@@ -374,8 +375,10 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     || isXeneonEdgePanel
     // Q60 carries an AIO cooler, so its settings tab hosts the cooler firmware options.
     || surface === 'q60'
-    // Same for the Kraken: the glass is a panel, the cooler around it is the settings tab.
-    || surface === 'kraken';
+    // Same for the Kraken: the glass is a panel, the cooler around it is the
+    // settings tab. A simulated one has no cooler to talk to, so the tab would
+    // open empty.
+    || (surface === 'kraken' && !isSimulated);
   const activeTab: Tab = tab === 'settings' && !settingsAvailable ? 'widgets' : tab;
   // Simulator and real hardware share one code path: theme, layout,
   // brightness, orientation, screen-on, and auto-launch all read/write the
@@ -500,7 +503,15 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // the shared simulator viewport math; the remaining surfaces have fixed
   // per-surface grids.
   const editorCapacity = useMemo(() => {
-    if (surface === 'q60') return { gridCols: 2, pageRows: 4 };
+    // A single-widget surface (Q-series, the Kraken's round glass) is exactly
+    // its one tile; the multi-page fallback below would offer canvas that does
+    // not exist and let the editor place widgets the device cannot show. Same
+    // span the runtime derives its grid from, so the two cannot diverge.
+    const singleSize = singleWidgetSurfaceSize(surface);
+    if (singleSize) {
+      const span = sizeToSpan(singleSize);
+      return { gridCols: span.cols, pageRows: span.rows };
+    }
     // Row counts on gap-derived surfaces (below) must resolve against the
     // same ratio the live grid renders with, or the editor allows placements
     // the device can't actually fit (or clamps ones it could).
@@ -568,7 +579,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   }, [surface, liveCanvas, liveDpr, liveDpi, device?.previewSize, device?.previewDpi, device?.previewDpr, theme.widgetPadding]);
 
   // True when editorCapacity reflects the device's real grid rather than a
-  // fallback guess. q60/y70 fixed grids ARE the runtime grid; monitor is
+  // fallback guess. Single-widget and y70 fixed grids ARE the runtime grid; monitor is
   // derived whenever canvas facts exist; phone-sim derives from preset facts
   // and its 4x16 fallback matches the runtime's fixed phone editor default.
   // Only the monitor 8x6 fallback (record with no canvas facts) is a guess -
@@ -917,7 +928,6 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // device is a simulator. usePanelDevices keeps device.name bare
   // (so the sidebar entry stays compact: "Q60" / "Y70"), and the
   // suffix is applied here uniformly for every simulated panel.
-  const isSimulated = device?.connectionKind === 'simulated';
   const baseTitle = device?.name ?? t('devices.y70.title');
   const pageTitle = isSimulated ? `${baseTitle}${t('devices.panels.simulatedSuffix')}` : baseTitle;
 
@@ -1207,7 +1217,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                       <QSeriesCoolerSettings />
                     </div>
                   )}
-                  {activeTab === 'settings' && surface === 'kraken' && (
+                  {activeTab === 'settings' && surface === 'kraken' && !isSimulated && (
                     <div className={styles.settingsContent}>
                       <KrakenCoolerSettings onSectionNavigate={onSectionNavigate} screenStreamed />
                     </div>

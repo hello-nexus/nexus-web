@@ -79,6 +79,9 @@ export const PANEL_FAMILY_ICONS: Readonly<Record<string, string>> = {
   // Corsair Xeneon Edge (simulated preset id; real units are promoted
   // monitors branded via capabilities.family in usePanelDevices).
   'xeneon-edge': '/assets/devices/corsair.svg',
+  // NZXT Kraken LCD (simulated preset id; a real one arrives as a streamed
+  // record and takes its icon from STREAMED_PANEL_ICONS).
+  kraken:   '/assets/devices/nzxt.svg',
 };
 
 export function panelIconForSource(sourceId: string): string {
