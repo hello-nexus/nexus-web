@@ -247,19 +247,20 @@ function AppDetail({ appId, onBack, installed }: {
         <SettingsSection title={t('store.section.details')}>
           <dl className={styles.specs}>
             <dt>{t('store.spec.widget')}</dt>
-            <dd>{app.latest.hasWidget ? t('store.value.yes') : t('store.value.no')}</dd>
+            <dd>{app.latest.hasWidget ? t('store.value.hasFeature') : t('store.value.noFeature')}</dd>
             {app.latest.hasWidget && app.latest.sizes.length > 0 && (
               <>
                 <dt>{t('store.spec.widgetSizes')}</dt>
                 <dd className={styles.sizes}>
-                  {app.latest.sizes.map(size => (
+                  {/* Deduped: sizes is wire data, and a repeat would collide on key. */}
+                  {[...new Set(app.latest.sizes)].map(size => (
                     <span key={size} className={styles.size}>{size}</span>
                   ))}
                 </dd>
               </>
             )}
             <dt>{t('store.spec.page')}</dt>
-            <dd>{app.latest.hasPage ? t('store.value.yes') : t('store.value.no')}</dd>
+            <dd>{app.latest.hasPage ? t('store.value.hasFeature') : t('store.value.noFeature')}</dd>
             <dt>{t('store.spec.touch')}</dt>
             <dd>
               {app.latest.requiresTouch

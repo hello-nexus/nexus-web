@@ -1,6 +1,7 @@
 // Store catalog client. Every call goes to the LOCAL service, which proxies the
-// cloud catalog: the dashboard is served under connect-src 'self', so it cannot
-// reach the cloud API itself.
+// cloud catalog. Not because the catalog fetch is blocked - connect-src lists
+// api.hellonexus.com - but because img-src does not list assets.hellonexus.com,
+// so the listing has to come back with its media rewritten onto this origin.
 
 import { fetchService, postService } from './service';
 
