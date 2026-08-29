@@ -896,6 +896,18 @@
   flex-shrink: 0;
 }
 
+// Round glass: a widget laid out for the square tile overflows the circle at
+// every corner, so the scaler paints into the tile's inscribed square and
+// scales its whole subtree to match. Scaling the box and the transform by the
+// same factor leaves the CSS-px layout identical to 2x2, so widgets come out
+// uniformly smaller rather than cropped or re-flowed.
+:global(.panel-card[data-size='2x2round']) .cellScaler {
+  --_fit: 0.74;
+  --_inner-w: calc(var(--_card-w) * var(--_fit));
+  --_inner-h: calc(var(--_card-h) * var(--_fit));
+  --_s: calc(var(--panel-scale, 1) * var(--_fit));
+}
+
 .panelRoot:not([data-surface='q60']) .cellEditorDocked {
   position: fixed;
   // Above the safe-area scrim (z 140) so the focused widget reads sharp on

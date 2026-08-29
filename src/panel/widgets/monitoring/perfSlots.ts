@@ -1,4 +1,4 @@
-import type { PanelWidgetSize } from '../../types';
+import { widgetLayoutSize, type PanelWidgetSize } from '../../types';
 import type { GaugeDesignKey } from './gauges';
 
 // 'fan' is kept only so a widget saved before the motherboard category
@@ -60,7 +60,8 @@ export const DEFAULT_SLOTS: SlotConfig[] = [
 // Default slot count for a freshly-resized widget when no explicit count is
 // persisted. Always a multi-sensor count, never the Micro count - existing
 // widgets without a configured count keep their pre-Micro behavior.
-export function defaultSlotCountForSize(size: PanelWidgetSize): number {
+export function defaultSlotCountForSize(rawSize: PanelWidgetSize): number {
+  const size = widgetLayoutSize(rawSize);
   switch (size) {
     case '4x4': return 4;
     case '2x4':
@@ -69,7 +70,8 @@ export function defaultSlotCountForSize(size: PanelWidgetSize): number {
   }
 }
 
-export function slotCountOptionsForSize(size: PanelWidgetSize): number[] {
+export function slotCountOptionsForSize(rawSize: PanelWidgetSize): number[] {
+  const size = widgetLayoutSize(rawSize);
   switch (size) {
     case '4x4': return [2, 4];
     case '2x4': return [2, MICRO_MIN_COUNT, MICRO_MAX_COUNT, ...MICRO_WIDE_COUNTS];
@@ -79,7 +81,8 @@ export function slotCountOptionsForSize(size: PanelWidgetSize): number[] {
   }
 }
 
-export function microSupportsSize(size: PanelWidgetSize): boolean {
+export function microSupportsSize(rawSize: PanelWidgetSize): boolean {
+  const size = widgetLayoutSize(rawSize);
   return size === '2x2' || size === '4x2' || size === '2x4';
 }
 

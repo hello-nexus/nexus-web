@@ -60,6 +60,14 @@ export function singleWidgetSurfaceSize(surface: PanelSurface): PanelWidgetSize 
   return SINGLE_WIDGET_SURFACE_SIZE[surface];
 }
 
+// The size a widget should lay out and theme for. The round tile is a 2x2 cell
+// block masked to a circle, so widgets treat it as 2x2 and the card fits that
+// square inside the circle; without this every `size === '2x2'` branch falls
+// through to the largest layout, which then overflows the glass.
+export function widgetLayoutSize(size: PanelWidgetSize): PanelWidgetSize {
+  return size === '2x2round' ? '2x2' : size;
+}
+
 export function isSingleWidgetSurface(surface: PanelSurface): boolean {
   return singleWidgetSurfaceSize(surface) !== undefined;
 }

@@ -12,7 +12,7 @@
   box-sizing: border-box;
 
   &.size-2x2  { --seg-scale: 0.52; padding: 10px; }
-  &.size-2x2round { --seg-scale: 0.46; padding: 12%; }
+  &.size-2x2round { --seg-scale: 0.46; }
   &.size-2x4  { --seg-scale: 0.65; }
   &.size-4x2  { --seg-scale: 0.85; }
   &.size-4x4  { --seg-scale: 1.15; }
