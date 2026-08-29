@@ -154,13 +154,13 @@
   color: var(--text-dim);
 }
 
-.facets {
+.sizes {
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
 }
 
-.facet {
+.size {
   padding: 0.15rem 0.5rem;
   border-radius: var(--radius-pill);
   background: var(--bg-elevated);
