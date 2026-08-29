@@ -2036,6 +2036,8 @@
   "lighting.ledMap.testSection": "Предпросмотр",
   "lighting.ledMap.testV": "Верт.",
   "lighting.ledMap.title": "Карта LED",
+  "lighting.ledMap.unavailableBody": "Зоны с более чем {max} светодиодами нельзя разметить визуально. Количество светодиодов сохраняется.",
+  "lighting.ledMap.unavailableTitle": "Визуальная карта недоступна",
   "lighting.ledMap.undo": "Отменить",
   "lighting.ledMap.ungroup": "Разгруппировать",
   "lighting.ledMap.unsavedMessage": "Есть несохранённые изменения в карте светодиодов. Всё равно закрыть?",

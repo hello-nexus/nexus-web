@@ -2015,6 +2015,8 @@
   "lighting.ledMap.testSection": "Anteprima",
   "lighting.ledMap.testV": "Sweep V",
   "lighting.ledMap.title": "Mappa LED",
+  "lighting.ledMap.unavailableBody": "Le zone con più di {max} LED non possono essere mappate visivamente. Il numero di LED resta valido.",
+  "lighting.ledMap.unavailableTitle": "Mappatura visiva non disponibile",
   "lighting.ledMap.undo": "Annulla",
   "lighting.ledMap.ungroup": "Separa gruppo",
   "lighting.ledMap.unsavedMessage": "Ci sono modifiche non salvate alla mappa LED. Chiudere comunque?",

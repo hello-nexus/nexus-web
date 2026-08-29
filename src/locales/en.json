@@ -2015,6 +2015,8 @@
   "lighting.ledMap.testSection": "Preview",
   "lighting.ledMap.testV": "V Swipe",
   "lighting.ledMap.title": "LED Map",
+  "lighting.ledMap.unavailableBody": "Zones over {max} LEDs can't be mapped visually. The LED count still applies.",
+  "lighting.ledMap.unavailableTitle": "Visual mapping unavailable",
   "lighting.ledMap.undo": "Undo",
   "lighting.ledMap.ungroup": "Ungroup",
   "lighting.ledMap.unsavedMessage": "You have unsaved LED-map changes. Close anyway?",

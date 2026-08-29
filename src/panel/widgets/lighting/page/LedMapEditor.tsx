@@ -68,6 +68,13 @@ const SELECTION_BBOX_PAD_UV = 0.04;
 // Height (canvas %) of the parking row below the device frame where deleted
 // LEDs sit. Enough to show the LED circle + 1-indexed label comfortably.
 const PARK_ROW_HEIGHT = 11;
+// Above this the per-LED canvas stops being usable (and stops being drawable
+// at a readable dot size), so the mapper declines rather than rendering a
+// meaningless swarm. The count stays editable; only the visual map opts out.
+const MAX_MAPPABLE_LEDS = 300;
+// Input ceiling only; the service clamps to the device's real per-channel max
+// (a Nollie 1 takes 630, a Nollie 16 takes 256).
+const MAX_LED_COUNT = 1024;
 // Pixel nudge step for arrow-key movement. Shift multiplies this by 5 for
 // coarse nudges when reshaping wide selections.
 const NUDGE_STEP_UV = 0.005;
@@ -1435,7 +1442,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   useEffect(() => { setLedCountDraft(String(activeZoneLedCount)); }, [activeZoneLedCount, selectedZoneId]);
 
   const handleLedCountCommit = useCallback((n: number) => {
-    const clamped = Math.max(1, Math.min(300, n));
+    const clamped = Math.max(1, Math.min(MAX_LED_COUNT, n));
     if (!canEditLedCount || resizingCountRef.current) return;
     if (clamped === activeZoneLedCountRef.current) {
       setLedCountDraft(String(clamped));
@@ -1739,6 +1746,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   // Any parked LED at all keeps the parking-row separator visible; the
   // restore-all affordance only counts the editable zone's parked LEDs.
   const hasParked = useMemo(() => leds.some(l => l.disabled), [leds]);
+  const mappingUnavailable = leds.length > MAX_MAPPABLE_LEDS;
   const hasRestorable = useMemo(() => leds.some(l => l.disabled && isLedEnabled(l)), [leds, isLedEnabled]);
 
   // Set of LED indices that differ from the last-saved snapshot. Only these
@@ -2175,7 +2183,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
                   className={styles.ledCountInput}
                   value={ledCountDraft}
                   min={1}
-                  max={300}
+                  max={MAX_LED_COUNT}
                   aria-label={t('lighting.ledMap.ledCount')}
                   onChange={e => setLedCountDraft(e.target.value)}
                   onBlur={e => {
@@ -2376,11 +2384,23 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
             ref={canvasRef}
             className={styles.canvas}
             style={{ aspectRatio: String(CANVAS_RATIO) }}
-            onPointerDown={handleCanvasPointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={e => handlePointerUp(e)}
-            onPointerLeave={() => handlePointerUp()}
+            onPointerDown={mappingUnavailable ? undefined : handleCanvasPointerDown}
+            onPointerMove={mappingUnavailable ? undefined : handlePointerMove}
+            onPointerUp={mappingUnavailable ? undefined : (e => handlePointerUp(e))}
+            onPointerLeave={mappingUnavailable ? undefined : (() => handlePointerUp())}
           >
+            {mappingUnavailable && (
+              <div className={styles.mappingUnavailable} role="status">
+                <span className={styles.mappingUnavailableTitle}>
+                  {t('lighting.ledMap.unavailableTitle')}
+                </span>
+                <span className={styles.mappingUnavailableBody}>
+                  {t('lighting.ledMap.unavailableBody', { max: MAX_MAPPABLE_LEDS })}
+                </span>
+              </div>
+            )}
+            {!mappingUnavailable && (
+            <>
             <div className={styles.centerGuideV} />
             <div className={styles.centerGuideH} />
             <div
@@ -2479,8 +2499,10 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
               }
               return elements;
             })()}
+            </>
+            )}
 
-            {selectionCanvasBounds && (
+            {!mappingUnavailable && selectionCanvasBounds && (
               /* Selection bbox outline + 4 corner resize handles. Dragging a
                  handle proportionally stretches every selected LED toward
                  the opposite (anchored) corner. Only shown for multi-LED

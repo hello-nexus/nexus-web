@@ -2015,6 +2015,8 @@
   "lighting.ledMap.testSection": "Vorschau",
   "lighting.ledMap.testV": "V-Wisch",
   "lighting.ledMap.title": "LED-Karte",
+  "lighting.ledMap.unavailableBody": "Zonen mit mehr als {max} LEDs können nicht visuell zugeordnet werden. Die LED-Anzahl gilt weiterhin.",
+  "lighting.ledMap.unavailableTitle": "Visuelle Zuordnung nicht verfügbar",
   "lighting.ledMap.undo": "Ruckgangig",
   "lighting.ledMap.ungroup": "Gruppierung aufheben",
   "lighting.ledMap.unsavedMessage": "Sie haben ungespeicherte LED-Map-Aenderungen. Trotzdem schliessen?",

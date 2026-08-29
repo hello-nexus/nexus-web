@@ -2036,6 +2036,8 @@
   "lighting.ledMap.testSection": "Podgląd",
   "lighting.ledMap.testV": "Przesuniecie V",
   "lighting.ledMap.title": "Mapa LED",
+  "lighting.ledMap.unavailableBody": "Stref z ponad {max} diodami LED nie można zmapować wizualnie. Liczba diod LED nadal obowiązuje.",
+  "lighting.ledMap.unavailableTitle": "Mapowanie wizualne niedostępne",
   "lighting.ledMap.undo": "Cofnij",
   "lighting.ledMap.ungroup": "Rozgrupuj",
   "lighting.ledMap.unsavedMessage": "Masz niezapisane zmiany w mapie LED. Zamknac mimo to?",

@@ -2015,6 +2015,8 @@
   "lighting.ledMap.testSection": "Vista previa",
   "lighting.ledMap.testV": "Barrido V",
   "lighting.ledMap.title": "Mapa LED",
+  "lighting.ledMap.unavailableBody": "Las zonas con más de {max} LED no se pueden mapear visualmente. El número de LED sigue aplicándose.",
+  "lighting.ledMap.unavailableTitle": "Mapeo visual no disponible",
   "lighting.ledMap.undo": "Deshacer",
   "lighting.ledMap.ungroup": "Desagrupar",
   "lighting.ledMap.unsavedMessage": "Tienes cambios sin guardar en el mapa LED. Cerrar de todas formas?",

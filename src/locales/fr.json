@@ -2015,6 +2015,8 @@
   "lighting.ledMap.testSection": "Aperçu",
   "lighting.ledMap.testV": "Balayage V",
   "lighting.ledMap.title": "Carte LED",
+  "lighting.ledMap.unavailableBody": "Les zones de plus de {max} LED ne peuvent pas être cartographiées visuellement. Le nombre de LED reste appliqué.",
+  "lighting.ledMap.unavailableTitle": "Cartographie visuelle indisponible",
   "lighting.ledMap.undo": "Annuler",
   "lighting.ledMap.ungroup": "Dégrouper",
   "lighting.ledMap.unsavedMessage": "Vous avez des modifications non enregistrees. Fermer quand meme?",

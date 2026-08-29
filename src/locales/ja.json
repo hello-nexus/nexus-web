@@ -2015,6 +2015,8 @@
   "lighting.ledMap.testSection": "プレビュー",
   "lighting.ledMap.testV": "縦スワイプ",
   "lighting.ledMap.title": "LEDマップ",
+  "lighting.ledMap.unavailableBody": "{max} 個を超える LED のゾーンはビジュアルマッピングできません。LED 数の設定は有効です。",
+  "lighting.ledMap.unavailableTitle": "ビジュアルマッピングは利用できません",
   "lighting.ledMap.undo": "元に戻す",
   "lighting.ledMap.ungroup": "グループ解除",
   "lighting.ledMap.unsavedMessage": "LEDマップに未保存の変更があります。閉じますか？",

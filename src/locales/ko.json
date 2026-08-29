@@ -2015,6 +2015,8 @@
   "lighting.ledMap.testSection": "미리보기",
   "lighting.ledMap.testV": "수직 스와이프",
   "lighting.ledMap.title": "LED 맵",
+  "lighting.ledMap.unavailableBody": "{max}개를 초과하는 LED 영역은 비주얼 매핑할 수 없습니다. LED 개수 설정은 그대로 적용됩니다.",
+  "lighting.ledMap.unavailableTitle": "비주얼 매핑을 사용할 수 없음",
   "lighting.ledMap.undo": "실행 취소",
   "lighting.ledMap.ungroup": "그룹 해제",
   "lighting.ledMap.unsavedMessage": "LED 맵에 저장되지 않은 변경사항이 있습니다. 닫으시겠습니까?",

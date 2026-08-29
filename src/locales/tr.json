@@ -2015,6 +2015,8 @@
   "lighting.ledMap.testSection": "Önizleme",
   "lighting.ledMap.testV": "Dikey",
   "lighting.ledMap.title": "LED Haritasi",
+  "lighting.ledMap.unavailableBody": "{max} LED'den fazla olan bölgeler görsel olarak eşlenemez. LED sayısı geçerli olmaya devam eder.",
+  "lighting.ledMap.unavailableTitle": "Görsel eşleme kullanılamıyor",
   "lighting.ledMap.undo": "Geri al",
   "lighting.ledMap.ungroup": "Grubu Çöz",
   "lighting.ledMap.unsavedMessage": "Kaydedilmemis LED harita degisiklikleri var. Yine de kapatilsin mi?",

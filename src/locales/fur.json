@@ -2015,6 +2015,8 @@
   "lighting.ledMap.testSection": "Anteprime",
   "lighting.ledMap.testV": "Passade V",
   "lighting.ledMap.title": "Mape dai LED",
+  "lighting.ledMap.unavailableBody": "Lis zonis cun plui di {max} LED no puedin jessi mapadis in maniere visuâl. Il numar di LED al reste valit.",
+  "lighting.ledMap.unavailableTitle": "Mapadure visuâl no disponibile",
   "lighting.ledMap.undo": "Disfe",
   "lighting.ledMap.ungroup": "Disingrupe",
   "lighting.ledMap.unsavedMessage": "Tu âs modifichis ae mape dai LED no salvadis. Sierâ distès?",

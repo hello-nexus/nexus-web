@@ -2015,6 +2015,8 @@
   "lighting.ledMap.testSection": "Visualização",
   "lighting.ledMap.testV": "Var. V",
   "lighting.ledMap.title": "Mapa LED",
+  "lighting.ledMap.unavailableBody": "Zonas com mais de {max} LEDs não podem ser mapeadas visualmente. A contagem de LEDs continua valendo.",
+  "lighting.ledMap.unavailableTitle": "Mapeamento visual indisponível",
   "lighting.ledMap.undo": "Desfazer",
   "lighting.ledMap.ungroup": "Desagrupar",
   "lighting.ledMap.unsavedMessage": "Voce tem alteracoes nao salvas no mapa LED. Fechar mesmo assim?",

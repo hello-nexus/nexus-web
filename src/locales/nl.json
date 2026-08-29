@@ -2015,6 +2015,8 @@
   "lighting.ledMap.testSection": "Voorbeeld",
   "lighting.ledMap.testV": "V-veeg",
   "lighting.ledMap.title": "LED-kaart",
+  "lighting.ledMap.unavailableBody": "Zones met meer dan {max} leds kunnen niet visueel worden toegewezen. Het aantal leds blijft gelden.",
+  "lighting.ledMap.unavailableTitle": "Visuele mapping niet beschikbaar",
   "lighting.ledMap.undo": "Ongedaan maken",
   "lighting.ledMap.ungroup": "Groep opheffen",
   "lighting.ledMap.unsavedMessage": "Je hebt niet-opgeslagen wijzigingen in de LED-kaart. Toch sluiten?",

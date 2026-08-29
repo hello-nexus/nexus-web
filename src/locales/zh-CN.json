@@ -2015,6 +2015,8 @@
   "lighting.ledMap.testSection": "预览",
   "lighting.ledMap.testV": "垂直扫描",
   "lighting.ledMap.title": "LED 映射",
+  "lighting.ledMap.unavailableBody": "超过 {max} 颗 LED 的区域无法进行可视映射。LED 数量设置仍然生效。",
+  "lighting.ledMap.unavailableTitle": "无法使用可视映射",
   "lighting.ledMap.undo": "撤销",
   "lighting.ledMap.ungroup": "取消分组",
   "lighting.ledMap.unsavedMessage": "LED 映射有未保存的更改。仍要关闭吗？",
