@@ -1,14 +1,16 @@
-import { useEffect, useState } from 'react';
-import { Compass, Eraser, ExternalLink, FolderOpen, GitBranch, History, Languages, Megaphone, PanelBottom, Power, PowerOff, RefreshCw, ScrollText, SquareMenu, Timer, TriangleAlert } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { Compass, Eraser, ExternalLink, FolderOpen, GitBranch, History, Languages, Megaphone, PanelBottom, Power, PowerOff, RefreshCw, ScrollText, SlidersHorizontal, SquareMenu, Timer, TriangleAlert } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingToggle, SettingSelect, SettingSlider, SettingRow } from '../../common/SettingRow/SettingRow';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
+import { ManageConflictAppsModal } from './ManageConflictAppsModal';
 import { fetchAutoStart, setAutoStart as postAutoStart } from '../../../api/autoStart';
 import { postService } from '../../../api/service';
 import { resetOnboarding } from '../../../api/onboarding';
 import { useFlashStatus } from '../../../hooks/useFlashStatus';
 import { useTranslation } from '../../../lib/i18n';
+import { useSearchSignal } from '../../../search/signals';
 import {
   LANGUAGE_FLAGS, LANGUAGE_LABELS, LANGUAGES,
   type Language, type NexusSettings,
@@ -44,6 +46,10 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
   const [stopConfirmOpen, setStopConfirmOpen] = useState(false);
   const [stopping, setStopping] = useState(false);
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+  const [conflictAppsOpen, setConflictAppsOpen] = useState(false);
+  // The conflict-shutdown toast's button deep-links here; the signal is held
+  // until this tab mounts, so it opens the modal on arrival.
+  useSearchSignal('conflict-apps', useCallback(() => setConflictAppsOpen(true), []));
   const [resetting, setResetting] = useState(false);
   // Block shutdown while a firmware flash is running - stopping the service
   // mid-flash would strand the device in the DFU bootloader. (The service
@@ -124,15 +130,6 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
             icon: l === 'fur' ? <img src={friuliFlag} alt="" /> : LANGUAGE_FLAGS[l],
           }))}
           onChange={v => updateGeneral({ language: v as Language })}
-        />
-        <SettingToggle
-          label={t('settings.alerts.label')}
-          anchorId="set-alerts"
-          icon={<TriangleAlert />}
-          iconLeading="subtle"
-          description={t('settings.alerts.description')}
-          checked={settings.general.showConflictAlerts}
-          onChange={() => updateGeneral({ showConflictAlerts: !settings.general.showConflictAlerts })}
         />
       </SettingsSection>
 
@@ -250,6 +247,29 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
         </SettingsSection>
       )}
 
+      <SettingsSection title={t('settings.conflictApps.title')}>
+        <SettingToggle
+          label={t('settings.alerts.label')}
+          anchorId="set-alerts"
+          icon={<TriangleAlert />}
+          iconLeading="subtle"
+          description={t('settings.alerts.description')}
+          checked={settings.general.showConflictAlerts}
+          onChange={() => updateGeneral({ showConflictAlerts: !settings.general.showConflictAlerts })}
+        />
+        <SettingRow
+          label={t('settings.conflictApps.manage.label')}
+          anchorId="set-conflict-apps"
+          icon={<SlidersHorizontal />}
+          iconLeading="subtle"
+          description={t('settings.conflictApps.manage.description')}
+        >
+          <Button type="button" size="sm" onClick={() => setConflictAppsOpen(true)} disabled={!serviceOnline}>
+            {t('settings.conflictApps.manage.action')}
+          </Button>
+        </SettingRow>
+      </SettingsSection>
+
       <SettingsSection title={t('settings.diagnostics.title')}>
         <SettingRow
           label={t('settings.diagnostics.logsLabel')}
@@ -334,6 +354,15 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
           </Button>
         </SettingRow>
       </SettingsSection>
+
+      <ManageConflictAppsModal
+        open={conflictAppsOpen}
+        onClose={() => setConflictAppsOpen(false)}
+        autoShutdown={settings.general.autoKillConflictsAtStartup}
+        onAutoShutdownChange={v => updateGeneral({ autoKillConflictsAtStartup: v })}
+        exclusions={settings.general.conflictAutoKillExclusions}
+        onExclusionsChange={ids => updateGeneral({ conflictAutoKillExclusions: ids })}
+      />
 
       <ConfirmModal
         open={stopConfirmOpen}

@@ -1,0 +1,92 @@
+// "Manage conflicting applications" modal: the startup-shutdown switch above
+// a grouped list of every app in the service catalog, one toggle each.
+
+@use '../../../styles/text' as *;
+
+.modal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  min-width: 360px;
+}
+
+.listIntro,
+.empty {
+  @include text-button;
+  margin: 0;
+  color: var(--text-dim);
+  font-weight: var(--weight-body);
+}
+
+// The catalog is long, so the list scrolls inside the modal rather than
+// growing it past the viewport.
+.groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  max-height: 46vh;
+  overflow-y: auto;
+}
+
+// Each category is its own card, so the rows read as grouped sets rather
+// than one long undifferentiated column.
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-md);
+  border: 1px solid var(--separator);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+// Detected on this PC: the set the user most likely came here for.
+.groupRunning {
+  border-color: var(--warn);
+}
+
+.groupTitle {
+  @include text-label;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin: 0;
+  color: var(--text-dim);
+}
+
+.groupTitleRunning {
+  color: var(--warn);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.appRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+}
+
+.appRowRunning {
+  background: var(--surface-hover);
+}
+
+.appName {
+  @include text-body;
+  color: var(--text);
+}
+
+// Matches the tone the conflict badge and onboarding screen already use, so
+// the modal's header icon is not the accent tint DeviceModal defaults to.
+.warnIcon {
+  display: flex;
+  color: var(--warn);
+}

@@ -12,7 +12,8 @@ export type SearchSignal =
   | 'add-widget'
   | 'desktop-widgets'
   | 'devices-connected'
-  | 'devices-supported';
+  | 'devices-supported'
+  | 'conflict-apps';
 
 type Handler = () => void;
 

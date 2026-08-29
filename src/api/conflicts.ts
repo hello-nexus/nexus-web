@@ -47,3 +47,25 @@ export async function fetchConflicts(): Promise<DetectedConflict[] | null> {
 export function killConflict(id: string): Promise<KillConflictResponse | null> {
   return postService<KillConflictResponse>('/conflicts/kill', { id });
 }
+
+/**
+ * One entry of the service's static conflict catalog - every app Nexus knows
+ * how to shut down, running or not. Shape mirrors
+ * `Models.Conflicts.ConflictCatalogApp`; process names stay server-side.
+ */
+export interface ConflictCatalogApp {
+  id: string;
+  displayName: string;
+  /** "lighting" | "cooling" | "peripherals" | "monitoring" */
+  category: string;
+}
+
+export interface GetConflictCatalogResponse {
+  apps: ConflictCatalogApp[];
+}
+
+/** Null when the read failed; an empty array means the service reported none. */
+export async function fetchConflictCatalog(): Promise<ConflictCatalogApp[] | null> {
+  const result = await fetchService<GetConflictCatalogResponse>('/conflicts/catalog');
+  return result ? result.apps ?? [] : null;
+}
