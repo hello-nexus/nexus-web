@@ -771,12 +771,7 @@ export function Dashboard() {
           serviceOnline={online}
           connectionState={status.state}
           onOpenFirmware={() => navigate('system', 'devices', 'firmware')}
-          onSectionNavigate={(target, payload) => {
-            // A device page can deep-link to another device (the Kraken's LCD
-            // is its own panel entry), same shape the LED map's hub panel uses.
-            if (target === 'device' && payload?.deviceKey) { navigate('system', 'device', payload.deviceKey); return; }
-            setView(target);
-          }}
+          onSectionNavigate={(target) => setView(target)}
         />
       );
       case 'diagnostics': return <FeatureGate feature="diagnostics"><DiagnosticsPage serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} tab={subtab} onTabChange={setSubtab} /></FeatureGate>;

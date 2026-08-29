@@ -86,6 +86,13 @@ const STREAMED_PANEL_ICONS: Partial<Record<PanelSurface, string>> = {
   kraken: '/assets/devices/nzxt.svg',
 };
 
+// The curated device a streamed panel belongs to. Claiming it merges the two into
+// one sidebar entry: the glass is the panel, the hardware around it is that
+// panel's settings tab, the way the Q60 carries its cooler.
+const STREAMED_PANEL_SOURCE: Partial<Record<PanelSurface, string>> = {
+  kraken: 'nzxt-kraken',
+};
+
 const WIDGET_PANEL_PROFILES: Partial<Record<string, {
   surface: PanelSurface;
   width: number;
@@ -274,10 +281,15 @@ export function buildPanelDevices({
     const cssWidth = record.capabilities?.cssWidth ?? 0;
     const cssHeight = record.capabilities?.cssHeight ?? 0;
     const surface = record.capabilities?.surface as PanelSurface | undefined;
+    const claimed = surface ? STREAMED_PANEL_SOURCE[surface] : undefined;
+    // A claimed panel IS the device's row, so it carries the device's name; the
+    // record's own name describes only the glass ("NZXT Kraken LCD").
+    const claimedName = claimed ? curatedDevices.find(d => d.id === claimed)?.name : undefined;
     devices.push({
       id: `stream:${record.id}`,
       panelRecordId: record.id,
-      name: record.displayName,
+      sourceId: claimed,
+      name: claimedName ?? record.displayName,
       subtitle: cssWidth > 0 && cssHeight > 0
         ? `${labels.online} - ${cssWidth}x${cssHeight}`
         : labels.online,

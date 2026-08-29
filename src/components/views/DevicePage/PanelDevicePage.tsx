@@ -71,6 +71,7 @@ import { resolvePanelNativeCanvas } from '../../../panel/embed/panelNativeCanvas
 import { saveBlobToFile } from '../../../lib/saveFile';
 import { sanitizeFileName } from '../../../panel/widgets/lighting/page/mappingUtils';
 import { QSeriesCoolerSettings } from './QSeriesCoolerSettings';
+import { KrakenCoolerSettings } from './KrakenCoolerSettings';
 import { useFirmwareStatus } from '../../../hooks/useFirmwareStatus';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { Button } from '../../common/Button/Button';
@@ -367,7 +368,9 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     // family, so it must not depend on ddcSupported/monitorRotation.
     || isXeneonEdgePanel
     // Q60 carries an AIO cooler, so its settings tab hosts the cooler firmware options.
-    || surface === 'q60';
+    || surface === 'q60'
+    // Same for the Kraken: the glass is a panel, the cooler around it is the settings tab.
+    || surface === 'kraken';
   const activeTab: Tab = tab === 'settings' && !settingsAvailable ? 'widgets' : tab;
   // Simulator and real hardware share one code path: theme, layout,
   // brightness, orientation, screen-on, and auto-launch all read/write the
@@ -1189,6 +1192,11 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         hardwareResetBusy={resettingHardware}
                       />
                       <QSeriesCoolerSettings />
+                    </div>
+                  )}
+                  {activeTab === 'settings' && surface === 'kraken' && (
+                    <div className={styles.settingsContent}>
+                      <KrakenCoolerSettings onSectionNavigate={onSectionNavigate} />
                     </div>
                   )}
                   {/* Panel devices with a settings tab (Y70 / Q-series /
