@@ -65,6 +65,7 @@ export function SettingsView({ serviceOnline, connectionState, platform, tab: ur
       showConflictAlerts: ui.showConflictAlerts,
       monitoringDetailedCollapsed: ui.monitoringDetailedCollapsed,
       monitoringEventsEnabled: ui.monitoringEventsEnabled,
+      monitoringFpsOverlayEnabled: ui.monitoringFpsOverlayEnabled,
       monitoringEventKindsHidden: ui.monitoringEventKindsHidden,
       showMacStatusBarIcon: ui.showMacStatusBarIcon,
       showWindowsTrayIcon: ui.showWindowsTrayIcon,

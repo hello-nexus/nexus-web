@@ -11,6 +11,7 @@ import {
   subscribeMarketplaceRegistry,
 } from '../widgets/marketplaceRegistry';
 import { getSidebarAppMeta } from './sidebarApps';
+import { PAGE_ONLY_APPS } from './pageOnlyApps';
 import { isMacAppShell } from './windowActions';
 import styles from './AddSidebarAppSlideout.module.scss';
 
@@ -58,15 +59,19 @@ export function AddSidebarAppSlideout({ open, onClose, pinnedKeys, onAdd }: AddS
   // Derived per render, not memoised: getCatalogEntries reads a module-level
   // cache that a marketplace load mutates behind React, so a dep array would
   // hold a stale list through exactly the refresh the subscription exists for.
-  const entries = getCatalogEntries()
-    .flatMap(([key, def]) => {
+  const entries = [
+    ...Object.keys(PAGE_ONLY_APPS).flatMap(key => {
+      const meta = getSidebarAppMeta(key);
+      return meta ? [{ key, label: t(meta.i18nKey), icon: meta.icon }] : [];
+    }),
+    ...getCatalogEntries().flatMap(([key, def]) => {
       if (def.Page == null) return [];
       if (!DEV_TOOLS && def.meta.listed === false) return [];
       const meta = getSidebarAppMeta(key);
       if (!meta) return [];
       return [{ key, label: t(meta.i18nKey), icon: meta.icon }];
-    })
-    .sort((a, b) => a.label.localeCompare(b.label));
+    }),
+  ].sort((a, b) => a.label.localeCompare(b.label));
 
   const normalised = query.trim().toLowerCase();
   const visible = normalised

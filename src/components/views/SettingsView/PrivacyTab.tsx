@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
-import { ChartColumn, Hourglass, Import } from 'lucide-react';
+import { ChartColumn, Import } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingRow, SettingToggle } from '../../common/SettingRow/SettingRow';
-import { ScreenTimeDataControl } from '../ScreenTimeBrowse/ScreenTimeDataControl';
 import { ImportDialog } from '../../common/ImportCenter/ImportDialog';
 import type { ImportSourceId } from '../../common/ImportCenter/ImportCenter';
 import { AiIntegrationSection } from './AiIntegrationSection';
 import { DiscordPresenceSection } from './DiscordPresenceSection';
+import { LocalDataStoreSection } from './LocalDataStoreSection';
 import { fetchService, postService } from '../../../api/service';
 import { fetchNexus2Status } from '../../../api/migration';
 import { useTranslation } from '../../../lib/i18n';
@@ -27,7 +27,6 @@ const NEXUS2_ONLY: ImportSourceId[] = ['nexus2'];
 
 export function PrivacyTab({ settings, serviceOnline }: PrivacyTabProps) {
   const { t } = useTranslation();
-  const [screenTimeOpen, setScreenTimeOpen] = useState(false);
   // Telemetry consent is server-authoritative (the service gates sending), so
   // it's fetched/written directly like auto-start, not via the local UI store.
   const [telemetryOn, setTelemetryOn] = useState<boolean | null>(null);
@@ -93,24 +92,6 @@ export function PrivacyTab({ settings, serviceOnline }: PrivacyTabProps) {
             <HeartBurst burstKey={telemetryBurstKey} />
           </div>
         )}
-        <SettingRow
-          label={t('settings.screentime.title')}
-          icon={<Hourglass />}
-          iconLeading="subtle"
-          anchorId="set-screentime"
-          description={t('settings.screentime.trackingDesc')}
-        >
-          <Button
-            type="button"
-            tone="neutral"
-            size="sm"
-            onClick={() => setScreenTimeOpen(true)}
-            disabled={!serviceOnline}
-          >
-            {t('settings.screentime.openButton')}
-          </Button>
-        </SettingRow>
-
         {nexus2Importable && (
           <SettingRow
             label={t('nexus2Welcome.settingsEntry.rowLabel')}
@@ -132,11 +113,7 @@ export function PrivacyTab({ settings, serviceOnline }: PrivacyTabProps) {
         )}
       </SettingsSection>
 
-      <ScreenTimeDataControl
-        open={screenTimeOpen}
-        onClose={() => setScreenTimeOpen(false)}
-        onChanged={() => { /* settings page doesn't need to refetch */ }}
-      />
+      <LocalDataStoreSection serviceOnline={serviceOnline} />
 
       <ImportDialog
         open={nexus2ImportOpen}

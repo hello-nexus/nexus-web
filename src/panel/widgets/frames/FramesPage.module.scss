@@ -1,0 +1,259 @@
+@use '../../../styles/text' as *;
+
+.app {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  height: 100%;
+  min-height: 0;
+  padding: 0 0 1rem;
+  box-sizing: border-box;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.emptyWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 auto;
+  min-height: 200px;
+}
+
+// ---------- History ----------
+
+.history {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 0;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.searchInput {
+  max-width: 320px;
+}
+
+.count {
+  @include text-caption;
+  color: var(--text-dim);
+  margin-left: auto;
+}
+
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+  overflow-y: auto;
+}
+
+.gameCard {
+  padding: 0;
+  overflow: hidden;
+  gap: 0;
+}
+
+.gameCardArt {
+  width: 100%;
+  aspect-ratio: 231 / 87;
+  background: var(--panel-element-bg);
+}
+
+.gameCardImg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.gameCardPlaceholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.gameCardBody {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px 12px;
+}
+
+.gameCardName {
+  @include text-button;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gameCardAvg {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.gameCardAvgValue {
+  @include text-heading;
+  font-size: 40px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.gameCardAvgUnit {
+  @include text-caption;
+  color: var(--text-dim);
+}
+
+.gameCardSecondary {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+.gameCardSecondaryValue {
+  @include text-button;
+  color: var(--text);
+}
+
+.gameCardSecondaryLabel {
+  @include text-caption;
+  color: var(--text-dim);
+}
+
+.gameCardMeta {
+  @include text-caption;
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-dim);
+  margin-top: 8px;
+}
+
+// ---------- Game detail ----------
+
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.detailTopBar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.detailTitle {
+  @include text-heading;
+  margin: 0;
+}
+
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.detailColumns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  min-height: 0;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.detailCol {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+// Left detail column: a plain SectionHeader above a scroller of per-session
+// Cards, instead of a "Sessions" container Card - stretched by the grid to
+// the timeline column's height, then clamped by sessionScroller's own
+// overflow so a long session list scrolls internally instead of growing
+// past the timeline card.
+.sessionsCol {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-height: 0;
+}
+
+.sessionScroller {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.sessionCard {
+  flex-shrink: 0;
+}
+
+.sessionCardActive {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.sessionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+}
+
+.sessionMain {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sessionMeta {
+  @include text-caption;
+  color: var(--text-dim);
+}
+
+.sessionStats {
+  @include text-caption;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+// ---------- Rig ----------
+
+.rig {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-height: 0;
+}

@@ -62,6 +62,9 @@ export interface PanelWidgetCatalogProps {
   // naming the reason. Omitted on surfaces that can spill onto a new page:
   // they are never full, so nothing is dimmed.
   canAddSize?: (size: PanelWidgetSize) => boolean;
+  // Widget types already on this panel. A type whose meta sets singleInstance
+  // is dimmed once one is placed; every other type ignores this.
+  placedTypes?: readonly string[];
   searchable?: boolean;
   variant?: 'panel-sheet' | 'desktop-modal';
   // The target panel connects over the network (paired phone/browser/app), so
@@ -86,6 +89,7 @@ export function PanelWidgetCatalog({
   surface,
   onAdd,
   canAddSize,
+  placedTypes,
   searchable = true,
   variant = 'panel-sheet',
   remote = false,
@@ -244,7 +248,8 @@ export function PanelWidgetCatalog({
   const renderPacked = (items: CatalogEntry[]) =>
     packEntries(items).map(w => {
       const def = defByType.get(w.type);
-      const addable = fits(w.size);
+      const alreadyPlaced = !!def?.meta.singleInstance && !!placedTypes?.includes(w.type);
+      const addable = fits(w.size) && !alreadyPlaced;
       return (
         <PanelCatalogCell
           key={w.id}

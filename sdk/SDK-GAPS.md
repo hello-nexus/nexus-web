@@ -58,6 +58,21 @@ Closes several D/E/F/G/I gaps below (the original lines are left intact for the 
   curated entry in the shared element contract (a deliberate coupling), and only **first-party**
   pure components can be blessed - arbitrary third-party custom visuals still can't.
 
+## Fixed in the sprite/stage round (2026-08-28)
+Closes the positioning half of **E** and gives **D**'s "no canvas" a bounded answer:
+- **`ui-layer`** - a clipped, positioned stage. Children overlap and place freely, so
+  "no absolute/overlap/z-index positioning" no longer blocks animated or game-like widgets.
+  Its `press` event carries a layer-local `{ x, y }` - previously no event carried a
+  coordinate at all.
+- **`ui-sprite`** - one cell of a sprite atlas, placed by transform. The atlas crosses once
+  as a `data:` URL and a frame is an index, so per-frame animation costs three numbers over
+  the port instead of an image. This is the sanctioned answer to "no canvas": authors get
+  frame animation without a raw drawing surface, so the consistency boundary holds.
+- **`pixelated`** on `ui-image` / `ui-sprite` - nearest-neighbour scaling, without which
+  pixel art authored at its native grid is smoothed to mush.
+- Still open in E: no raw colour outside the tone tokens, no CSS transitions/keyframes
+  (motion must be driven from the worker tick), no gradient/shadow beyond the presets.
+
 ## A. Data the SDK can't reach (major)
 - Only **two** read host-actions exist: `screentime.today`, `displays.list`. Everything else is
   unreachable: media now-playing, cooling curves/channels, lighting state, OBS/Discord/Steam

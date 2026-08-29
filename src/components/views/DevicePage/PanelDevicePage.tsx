@@ -224,6 +224,11 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // to null when the id no longer exists also closes the pane when the widget
   // is removed on the device.
   const configuringWidget = configuringWidgetId ? findWidgetById(layout, configuringWidgetId) ?? null : null;
+  // Types already on this panel, across pages, for the single-instance gate.
+  const placedTypes = useMemo(
+    () => [...new Set(layout.pages.flatMap(p => p.widgets.map(w => w.type)))],
+    [layout],
+  );
   // Our own PATCHes echo back as panel/device broadcasts, and the reverse
   // sync below refetches on them. Applying that echo would revert a
   // controlled input to the value its round trip started with - the
@@ -1001,6 +1006,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                       surface={surface}
                       deviceTouch={deviceTouch}
                       onAdd={handleAddWidget}
+                      placedTypes={placedTypes}
                       variant="desktop-modal"
                       remote={isRemotePanel(device?.connectionKind)}
                       className={styles.catalog}

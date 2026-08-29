@@ -58,7 +58,10 @@ async function probeExports(entry) {
   const r = await build({
     entryPoints: [entry], bundle: true, write: false, metafile: true,
     format: 'esm', jsx: 'automatic', jsxImportSource: 'react', logLevel: 'silent',
-    // The in-tree ui.tsx imports the contract relatively; that resolves on its own.
+    // Only the entry's export names are wanted, and an author's app dir has no
+    // react-dom for the installed dist to resolve against. The in-tree ui.tsx
+    // imports the contract relatively, which is unaffected.
+    packages: 'external',
   });
   const out = Object.values(r.metafile.outputs).find((o) => o.entryPoint);
   return (out?.exports ?? []).filter((n) => n !== 'default');

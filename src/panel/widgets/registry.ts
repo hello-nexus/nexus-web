@@ -1,4 +1,5 @@
 import { Boxes } from 'lucide-react';
+import { appIconComponent } from '../../components/icons/AppIconImage';
 import { MarketplaceWidget } from './marketplace/MarketplaceWidget';
 import { MarketplaceWidgetSettings } from './marketplace/MarketplaceWidgetSettings';
 import { SdkMarketplacePage } from './marketplace/SdkMarketplacePage';
@@ -10,6 +11,7 @@ import {
   marketplaceIdFromType,
   typeForMarketplace,
 } from '../../widgets/marketplaceRegistry';
+import { makeWidgetTouchView } from './common/WidgetTouchView';
 import type { AppManifest } from './types';
 import {
   SINGLE_WIDGET_SIZES,
@@ -30,6 +32,7 @@ import { mixerApp } from './mixer';
 import { weatherApp } from './weather';
 import { stocksApp } from './stocks';
 import { screentimeApp } from './screentime';
+import { framesApp } from './frames';
 import { lightingApp } from './lighting';
 import { smartLightsApp } from './smart-lights';
 import { obsApp } from './obs';
@@ -66,6 +69,7 @@ export const APP_REGISTRY: Record<string, AppManifest> = {
   weather:    weatherApp,
   stocks:     stocksApp,
   screentime: screentimeApp,
+  frames:     framesApp,
   lighting:   lightingApp,
   'smart-lights': smartLightsApp,
   'home-assistant': homeAssistantApp,
@@ -131,7 +135,10 @@ export function lookupApp(type: string): AppManifest | undefined {
     if (!id) return undefined;
     const listing = getMarketplaceListing(id);
     if (!listing) return undefined;
-    return makeMarketplaceAppManifest(id, listing.name, listing.sizes, listing.defaultSize, !!listing.page);
+    return makeMarketplaceAppManifest(
+      id, listing.name, listing.sizes, listing.defaultSize, !!listing.page, listing.iconUrl,
+      !!listing.immersive, !!listing.singleInstance,
+    );
   }
   return APP_REGISTRY[type];
 }
@@ -147,7 +154,10 @@ export function getCatalogEntries(): Array<[string, AppManifest]> {
   const builtIns = Object.entries(APP_REGISTRY);
   const marketplace = getAllMarketplaceListings().map((listing): [string, AppManifest] => [
     typeForMarketplace(listing.id),
-    makeMarketplaceAppManifest(listing.id, listing.name, listing.sizes, listing.defaultSize, !!listing.page),
+    makeMarketplaceAppManifest(
+      listing.id, listing.name, listing.sizes, listing.defaultSize, !!listing.page, listing.iconUrl,
+      !!listing.immersive, !!listing.singleInstance,
+    ),
   ]);
   return [...builtIns, ...marketplace];
 }
@@ -156,6 +166,11 @@ export function getCatalogEntries(): Array<[string, AppManifest]> {
 // The manifest may declare any string here; anything outside this set
 // falls through the filter so a typo can't crash the picker.
 const VALID_MARKETPLACE_SIZES: ReadonlyArray<PanelWidgetSize> = ['1x1', '2x2', '4x2', '4x4'];
+
+// One shared immersive adapter for every SDK app: makeWidgetTouchView returns a
+// new component per call, so building it inline would remount the sandbox on
+// each render.
+const MARKETPLACE_TOUCH = makeWidgetTouchView(MarketplaceWidget);
 
 // Native-style catalog faces for specific SDK apps. The picker renders this in
 // place of the live sandbox load (MarketplaceWidget) so the tile shows a real
@@ -173,6 +188,9 @@ function makeMarketplaceAppManifest(
   manifestSizes: string[] | undefined,
   manifestDefault: string | undefined,
   hasPage: boolean,
+  iconUrl: string | null | undefined,
+  immersive = false,
+  singleInstance = false,
 ): AppManifest {
   const sizes = (manifestSizes ?? [])
     .filter((s): s is PanelWidgetSize => (VALID_MARKETPLACE_SIZES as readonly string[]).includes(s));
@@ -185,10 +203,16 @@ function makeMarketplaceAppManifest(
     meta: {
       type: typeForMarketplace(id),
       i18nKey: label,
-      icon: Boxes,
+      // The app's own manifest mark when it ships one; the generic catalog
+      // glyph otherwise. Not gated on `preinstalled` - the OEM flag decides
+      // whether an app auto-seeds, not which icon it draws.
+      icon: iconUrl ? appIconComponent(iconUrl) : Boxes,
       sizes: safeSizes,
       defaultSize,
-      supportsImmersive: { portrait: false, landscape: false },
+      // Opt-in per app: the immersive view re-renders the same widget at the
+      // panel's full size, which only suits an app that lays out from useSize().
+      supportsImmersive: { portrait: immersive, landscape: immersive },
+      singleInstance,
       hasConfig: true,
       touch: false,
       // Marketplace curation runs through the same flag as built-ins: only
@@ -197,6 +221,11 @@ function makeMarketplaceAppManifest(
       listed: isMarketplaceIdEnabled(id),
     },
     Widget: MarketplaceWidget,
+    // The immersive view is the same widget at full size - the SDK app already
+    // lays out from useSize(), so it needs nothing of its own. Gated on the
+    // manifest flag, since a widget that ignores its size reads as a stretched
+    // cell rather than a fullscreen view.
+    Touch: immersive ? MARKETPLACE_TOUCH : undefined,
     Preview: MARKETPLACE_PREVIEWS[id],
     // A page-capable SDK widget becomes click-through into a desktop section
     // view (Dashboard.renderSystemView). The wrapper reads the marketplace type

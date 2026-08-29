@@ -136,6 +136,7 @@ export interface GeneralSettings {
   showConflictAlerts: boolean;
   monitoringDetailedCollapsed: string[];
   monitoringEventsEnabled: boolean;
+  monitoringFpsOverlayEnabled: boolean;
   smartPollSeconds: Record<string, number>;
   smartPollDefaultSeconds: number;
   smartPollPerDrive: boolean;
@@ -210,6 +211,7 @@ export function getDefaultSettings(): NexusSettings {
       showConflictAlerts: true,
       monitoringDetailedCollapsed: [],
       monitoringEventsEnabled: true,
+      monitoringFpsOverlayEnabled: false,
       smartPollSeconds: {},
       smartPollDefaultSeconds: DEFAULT_SMART_POLL_SECONDS,
       smartPollPerDrive: false,

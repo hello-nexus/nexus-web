@@ -19,12 +19,14 @@ const DevicesPage = lazy(() => import('../panel/widgets/devices/DevicesPage').th
 const LightingPage = lazy(() => import('../panel/widgets/lighting/LightingPage').then(m => ({ default: m.LightingPage })));
 const SmartLightsPage = lazy(() => import('../panel/widgets/smart-lights/SmartLightsPage').then(m => ({ default: m.SmartLightsPage })));
 const HomeAssistantPage = lazy(() => import('../panel/widgets/home-assistant/HomeAssistantPage').then(m => ({ default: m.HomeAssistantPage })));
+const StorePage = lazy(() => import('../components/views/StorePage/StorePage').then(m => ({ default: m.StorePage })));
 const ClockPage = lazy(() => import('../panel/widgets/clock/ClockPage').then(m => ({ default: m.ClockPage })));
 const SteamPage = lazy(() => import('../panel/widgets/steam/SteamPage').then(m => ({ default: m.SteamPage })));
 const GalleryPage = lazy(() => import('../panel/widgets/gallery/page/GalleryPage').then(m => ({ default: m.GalleryPage })));
 const ScreentimePage = lazy(() => import('../panel/widgets/screentime/ScreentimePage').then(m => ({ default: m.ScreentimePage })));
 const BenchmarkPage = lazy(() => import('../panel/widgets/benchmark/BenchmarkPage').then(m => ({ default: m.BenchmarkPage })));
 const DiagnosticsPage = lazy(() => import('../panel/widgets/diagnostics/DiagnosticsPage').then(m => ({ default: m.DiagnosticsPage })));
+const FramesPage = lazy(() => import('../panel/widgets/frames/FramesPage').then(m => ({ default: m.FramesPage })));
 import { getMarketplaceListing, isMarketplaceType, loadMarketplaceApps, marketplaceIdFromType } from '../widgets/marketplaceRegistry';
 import { lookupApp } from '../panel/widgets/registry';
 import { useServiceStatus, DESKTOP_OFFLINE_GRACE_MS } from '../hooks/useServiceStatus';
@@ -43,6 +45,7 @@ import { useSyncStatus } from '../hooks/useSyncStatus';
 import { useRoute, type Section } from '../hooks/useRoute';
 import { useLastRoute } from '../hooks/useLastRoute';
 import { onDeckOpenMonitoring } from '../panel/widgets/deck/deckMonitoringNav';
+import { onOpenFramesGame } from '../panel/widgets/frames/framesNav';
 import { requestOpenDeckEditor } from '../panel/widgets/deck/deckOpenEditorNav';
 import { getPendingDeckEdit, type PendingDeckEdit } from '../api/streamdeck';
 import { useUnifiedDevices } from '../hooks/useUnifiedDevices';
@@ -275,6 +278,7 @@ function ConflictOnboardingGate({
     <ConflictOnboardingScreen
       open={armed && !done}
       conflicts={conflicts}
+      ready={ready}
       onComplete={onComplete}
       onSkipOnboarding={onSkipOnboarding}
       onBack={onBack}
@@ -446,6 +450,7 @@ export function Dashboard() {
   // Bridges a monitoring deck tile's `press: 'monitoringPage'` (deckExecutor
   // has no router access) to this surface's in-app Monitoring page.
   useEffect(() => onDeckOpenMonitoring(() => navigate('system', 'monitoring')), [navigate]);
+  useEffect(() => onOpenFramesGame(gameKey => navigate('system', 'frames', gameKey)), [navigate]);
 
   // Navigate to the held deck's editor and hand the target to the (possibly
   // about-to-mount) device page, which selects the held key.
@@ -775,6 +780,8 @@ export function Dashboard() {
         />
       );
       case 'diagnostics': return <FeatureGate feature="diagnostics"><DiagnosticsPage serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} tab={subtab} onTabChange={setSubtab} /></FeatureGate>;
+      case 'frames':      return <FramesPage tab={subtab} onTabChange={setSubtab} />;
+      case 'store':      return <StorePage />;
       case 'clock':      return <ClockPage />;
       case 'steam':      return <SteamPage />;
       case 'gallery':    return <GalleryPage />;

@@ -6,9 +6,10 @@ import { nearestPoint, type TimeSeriesPoint } from '../../../../components/commo
 import type { TimeSeriesSeries } from '../../../../components/common/TimeSeriesChart/TimeSeriesChart';
 import { MIN_BOX_WINDOW_MS } from '../../../../components/common/TimelineBrush/timelineBrushUtils';
 import type { TimelineBrushEdgeLabel } from '../../../../components/common/TimelineBrush/TimelineBrush';
-import type { MetricHistorySeries } from '../../../../api/monitoringHistory';
+import type { MetricHistoryPoint, MetricHistorySeries } from '../../../../api/monitoringHistory';
 import type { AppWindowSeries } from '../../../../api/monitoringHistoryApps';
 import type { FanRole } from '../../../../api/cooling';
+import type { FpsRangeSession } from '../../../../api/fps';
 import { hour12OptionFor, resolveHour12, type TimeFormat } from '../../../../lib/units';
 
 export type HistoryMetric = 'cpu' | 'memory' | 'storage' | 'network' | 'gpu';
@@ -356,6 +357,44 @@ export function maxAvgValue(series: readonly TimeSeriesSeries[]): number {
     }
   }
   return max;
+}
+
+/** A point in time is "in a game" only while it falls inside a Frames
+ *  session's own [startedUtcMs, endedUtcMs] - desktop apps present frames
+ *  too, so an unmasked fps series would draw between games as well. */
+export function findFpsSessionAt(sessions: readonly FpsRangeSession[], t: number): FpsRangeSession | null {
+  return sessions.find(s => t >= s.startedUtcMs && t <= s.endedUtcMs) ?? null;
+}
+
+/** Drops every fps point that falls outside every known session's range. */
+export function maskFpsPointsToSessions(
+  points: readonly MetricHistoryPoint[],
+  sessions: readonly FpsRangeSession[],
+): MetricHistoryPoint[] {
+  if (sessions.length === 0) return [];
+  return points.filter(p => findFpsSessionAt(sessions, p.t) !== null);
+}
+
+/**
+ * The FPS overlay line, on its own y-domain (TimeSeriesChart's fixedYDomain)
+ * adaptive to the fps window's own peak - so the highest fps in view fills
+ * the chart height, while staying independent of the tab's primary series
+ * axis, so the same fps renders at the same height on every tab. Computed
+ * from the fps points alone, so it is identical across tabs for the same
+ * window.
+ */
+export function buildFpsOverlaySeries(
+  maskedPoints: readonly MetricHistoryPoint[],
+  color: string,
+): TimeSeriesSeries | null {
+  if (maskedPoints.length === 0) return null;
+  let observedMax = 0;
+  for (const p of maskedPoints) {
+    if (p.max > observedMax) observedMax = p.max;
+  }
+  const domainMax = Math.max(1, Math.ceil(observedMax));
+  const points: TimeSeriesPoint[] = maskedPoints.map(p => ({ t: p.t, avg: p.avg, max: p.max }));
+  return { id: 'fps-overlay', name: 'FPS', color, points, noFill: true, noDots: true, fixedYDomain: [0, domainMax] };
 }
 
 // Round, human-legible ceilings for a 0-100 percent axis (cpu/gpu/memory) -

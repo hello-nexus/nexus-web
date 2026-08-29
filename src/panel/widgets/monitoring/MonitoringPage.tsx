@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Cpu, Gpu, MemoryStick, HardDrive, Network, History, List, CalendarClock } from 'lucide-react';
+import { Cpu, Gpu, MemoryStick, HardDrive, Network, History, List, CalendarClock, Gamepad2 } from 'lucide-react';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useNetworkMonitor, useAllNetworkSeries } from '../../../hooks/useNetworkMonitor';
 import { useAllProcesses, useGpuProcessFeed, useGpuProcessData } from '../../../hooks/useProcessMonitor';
@@ -30,6 +30,7 @@ import { MonitoringEventsModal } from './page/MonitoringEventsModal';
 import { useEventKindVisibility } from './page/useEventKindVisibility';
 import { eventTooltipText } from './page/monitoringEventLabels';
 import { useMonitoringEvents } from '../../../hooks/useMonitoringEvents';
+import { useFpsSessionsInRange } from '../../../hooks/useFpsSessionsInRange';
 import { createCustomEvent, deleteCustomEvent, type TimelineEvent } from '../../../api/monitoringEvents';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { PromptModal } from '../../../components/common/PromptModal/PromptModal';
@@ -187,9 +188,16 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
     })();
   }, [tab]);
 
+  // Off by default (settings.ts): only appended to the fetch once a user
+  // opts in, so the common case pays no extra series cost.
+  const fpsOverlayEnabled = settings.monitoringFpsOverlayEnabled;
   const isMetricTab = tab !== 'detailed';
-  const seriesQuery = isMetricTab ? seriesQueryFor(tab) : '';
+  const seriesQuery = isMetricTab ? seriesQueryFor(tab) + (fpsOverlayEnabled ? ',fps' : '') : '';
   const history = useMetricHistory(isMetricTab, seriesQuery);
+  // Session ranges mask the overlay to actual game time (see
+  // maskFpsPointsToSessions) - fetched only while the overlay is on, for
+  // whatever window the chart currently shows.
+  const { sessions: fpsSessions } = useFpsSessionsInRange(history.domain, fpsOverlayEnabled);
 
   const appsSeriesParam = isMetricTab ? appsSeriesParamFor(tab) : '';
   const appsWindow = useMetricHistoryApps(isMetricTab && appsSeriesParam !== '', appsSeriesParam, history.domain[0], history.domain[1], history.following);
@@ -528,6 +536,20 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
                         <CalendarClock size={14} aria-hidden />
                       </button>
                     </HoverTooltip>
+                    <HoverTooltip
+                      body={fpsOverlayEnabled ? t('monitoring.fpsOverlay.hide') : t('monitoring.fpsOverlay.show')}
+                      side="bottom"
+                    >
+                      <button
+                        type="button"
+                        className={fpsOverlayEnabled ? `${styles.eventsToggle} ${styles.eventsToggleOn}` : styles.eventsToggle}
+                        aria-pressed={fpsOverlayEnabled}
+                        aria-label={fpsOverlayEnabled ? t('monitoring.fpsOverlay.hide') : t('monitoring.fpsOverlay.show')}
+                        onClick={() => update({ monitoringFpsOverlayEnabled: !fpsOverlayEnabled })}
+                      >
+                        <Gamepad2 size={14} aria-hidden />
+                      </button>
+                    </HoverTooltip>
                     <LiveFollowControl
                       following={history.following}
                       detachedLabel={detachedLabel}
@@ -552,6 +574,8 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
                 renderEventTooltip={renderEventTooltip}
                 selectedAppName={selectedProcess}
                 memoryTotalMb={memoryTotalMb}
+                fpsOverlayEnabled={fpsOverlayEnabled}
+                fpsSessions={fpsSessions}
               />
               <div className={styles.listScroll}>
                 <ProcessListSection

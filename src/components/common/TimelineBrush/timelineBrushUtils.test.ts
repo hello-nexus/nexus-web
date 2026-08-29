@@ -214,27 +214,39 @@ describe('buildSilhouettePathD', () => {
     expect(d).toContain('200.0,100.0 Z');
   });
 
-  it('a gap wider than the median-spacing threshold splits into two independent subpaths, never lerping across it', () => {
-    // Two evenly-spaced runs (0/100/200 and 1000/1100) separated by an 800ms
-    // gap - far wider than the ~100ms median spacing within each run.
-    const points = [{ t: 0, v: 10 }, { t: 100, v: 20 }, { t: 200, v: 15 }, { t: 1000, v: 90 }, { t: 1100, v: 95 }];
+  it('a gap wider than the median-spacing threshold and past the 5s bridge floor splits into two independent subpaths, never lerping across it', () => {
+    // Two evenly-spaced runs (0/100/200 and 8000/8100) separated by a 7800ms
+    // gap - past both the ~100ms median spacing within each run AND the 5s
+    // bridge floor, so it stays a break.
+    const points = [{ t: 0, v: 10 }, { t: 100, v: 20 }, { t: 200, v: 15 }, { t: 8000, v: 90 }, { t: 8100, v: 95 }];
     const d = buildSilhouettePathD(points, tPx, vY, baselineY)!;
     expect(d.match(/M/g)?.length).toBe(2);
     // The first subpath drops to baseline at its own last point (200), not a
-    // diagonal ramp toward the far run at 1000.
+    // diagonal ramp toward the far run at 8000.
     expect(d).toContain('200.0,100.0 Z');
     // The second subpath starts fresh (from baseline) at its own first
     // point, not connected to the first run at all.
-    expect(d).toContain('M1000.0,100.0');
+    expect(d).toContain('M8000.0,100.0');
+  });
+
+  it('bridges a gap of 5s or less even when it dwarfs the surrounding median spacing', () => {
+    // Two tightly-spaced runs (~10ms median) separated by a 4000ms gap - far
+    // wider than the local median, but within the 5s bridge floor, so the
+    // whole thing renders as one continuous subpath.
+    const points = [{ t: 0, v: 10 }, { t: 10, v: 12 }, { t: 20, v: 11 }, { t: 4020, v: 90 }, { t: 4030, v: 95 }];
+    const d = buildSilhouettePathD(points, tPx, vY, baselineY)!;
+    expect(d.match(/M/g)?.length).toBe(1);
+    expect(d.match(/Z/g)?.length).toBe(1);
+    expect(d).toContain('20.0,89.0 L4020.0,10.0');
   });
 
   it('renders a point isolated by gaps on both sides as a thin filled sliver, not a vanishing moveto-only path', () => {
     // Two tightly-spaced runs (median spacing ~10) bracket one lone point at
-    // t=500, far outside that spacing on both sides.
+    // t=6000, past the 5s bridge floor on both sides.
     const points = [
       { t: 0, v: 10 }, { t: 10, v: 12 }, { t: 20, v: 11 },
-      { t: 500, v: 90 },
-      { t: 1000, v: 10 }, { t: 1010, v: 12 }, { t: 1020, v: 11 },
+      { t: 6000, v: 90 },
+      { t: 12000, v: 10 }, { t: 12010, v: 12 }, { t: 12020, v: 11 },
     ];
     const d = buildSilhouettePathD(points, tPx, vY, baselineY)!;
     expect(d.match(/M/g)?.length).toBe(3);
@@ -243,7 +255,7 @@ describe('buildSilhouettePathD', () => {
     // draws a non-degenerate sliver - both of its side edges present, not
     // collapsed to a single coordinate.
     const middle = d.split('Z')[1];
-    expect(middle).toContain('499');
-    expect(middle).toContain('500');
+    expect(middle).toContain('5999');
+    expect(middle).toContain('6000');
   });
 });

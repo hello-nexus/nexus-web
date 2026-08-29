@@ -1,0 +1,15 @@
+@use '../../../styles/text' as *;
+
+.statTile {
+  gap: 4px;
+}
+
+.statTileValue {
+  @include text-heading;
+  font-size: 20px;
+}
+
+.statTileLabel {
+  @include text-caption;
+  color: var(--text-dim);
+}

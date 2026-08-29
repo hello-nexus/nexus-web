@@ -43,6 +43,8 @@ export interface MonitoringSettings {
   detailedCollapsed: string[];
   /** Global on/off for the graph's timeline event overlay. */
   eventsEnabled?: boolean;
+  /** Global on/off for the graph's FPS overlay line (masked to Frames session ranges). */
+  fpsOverlayEnabled?: boolean;
   /** Event kinds the user hid. A kind absent from this list is visible, so
    *  kinds added later default to shown rather than silently invisible. */
   eventKindsHidden?: string[];

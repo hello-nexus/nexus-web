@@ -91,6 +91,7 @@ export function ConflictStatusSlot({ serviceOnline }: {
   return (
     <ConflictWarningBadge
       conflicts={conflicts}
+      ready={ready}
       pulsing={pulsing}
       suppressed={suppressed}
       open={open}

@@ -4,7 +4,9 @@ import {
   avgValueRange,
   clusterChartEvents,
   formatTooltipTimestamp,
+  GAP_BRIDGE_FLOOR_MS,
   GAP_MULTIPLIER,
+  gapThresholdMs,
   medianSpacingMs,
   medianSpacingOfPoints,
   nearestPoint,
@@ -76,6 +78,50 @@ describe('splitIntoSegments', () => {
   it('returns a single one-point segment for a single point', () => {
     const points = [pt(0, 1)];
     expect(splitIntoSegments(points, 1000)).toEqual([points]);
+  });
+});
+
+describe('gapThresholdMs', () => {
+  // Dense, sub-5s cadence (1s ticks, like a cpu/gpu/fps series) - the exact
+  // shape where a single dropped sample used to punch a visible break before
+  // the 5s floor existed.
+  it('bridges a 4s gap in dense data into one continuous segment', () => {
+    const points = [pt(0, 1), pt(1_000, 2), pt(2_000, 3), pt(6_000, 4), pt(7_000, 5)];
+    const segments = splitIntoSegments(points, gapThresholdMs(points));
+    expect(segments).toHaveLength(1);
+    expect(segments[0]).toHaveLength(points.length);
+  });
+
+  it('breaks a 6s gap in dense data into two segments', () => {
+    const points = [pt(0, 1), pt(1_000, 2), pt(2_000, 3), pt(8_000, 4), pt(9_000, 5)];
+    const segments = splitIntoSegments(points, gapThresholdMs(points));
+    expect(segments).toEqual([
+      [points[0], points[1], points[2]],
+      [points[3], points[4]],
+    ]);
+  });
+
+  it('bridges a gap exactly at the 5s floor', () => {
+    const points = [pt(0, 1), pt(1_000, 2), pt(1_000 + GAP_BRIDGE_FLOOR_MS, 3)];
+    expect(splitIntoSegments(points, gapThresholdMs(points))).toHaveLength(1);
+  });
+
+  it('does not lower an already-wide, decimation-derived threshold below its own relative value', () => {
+    // ~20-minute median spacing (a wide-zoom decimated series) - a real
+    // missing bucket here is already far past the 5s floor, so the floor
+    // never engages and this stays a hard break exactly as before.
+    const points = [pt(0, 1), pt(1_200_000, 2), pt(2_400_000, 3), pt(10_000_000, 4)];
+    expect(gapThresholdMs(points)).toBe(1_200_000 * GAP_MULTIPLIER);
+    const segments = splitIntoSegments(points, gapThresholdMs(points));
+    expect(segments).toEqual([
+      [points[0], points[1], points[2]],
+      [points[3]],
+    ]);
+  });
+
+  it('returns Infinity (never breaks) for fewer than two points', () => {
+    expect(gapThresholdMs([pt(0, 1)])).toBe(Infinity);
+    expect(gapThresholdMs([])).toBe(Infinity);
   });
 });
 

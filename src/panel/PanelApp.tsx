@@ -1053,6 +1053,13 @@ export function PanelContent({
   // The dashboard cannot spill onto a new page, so a full grid has no room and
   // the catalog dims what will not fit. Multi-page surfaces always accept a
   // widget, so they get no predicate and nothing is dimmed.
+  // Every type currently on the panel, across pages: a single-instance widget
+  // is one per panel, not one per page.
+  const placedTypes = useMemo(
+    () => [...new Set(paginatedLayout.pages.flatMap(p => p.widgets.map(w => w.type)))],
+    [paginatedLayout],
+  );
+
   const canAddSize = useMemo(() => {
     if (!(embedded && surface === 'desktop')) return undefined;
     return (size: PanelWidgetSize) => canAppendWidget(paginatedLayout, size, capacity, {
@@ -1778,6 +1785,7 @@ export function PanelContent({
           gridColumns={runtimeGrid.columns}
           gridRows={runtimeGrid.rows}
           canAddSize={canAddSize}
+          placedTypes={placedTypes}
           resolvedThemeMode={resolvedThemeMode}
           panelThemeStyle={editorSheetThemeStyle}
           closing={sheetClosing}

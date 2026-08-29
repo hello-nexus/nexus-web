@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fetchMonitoringHistory } from './monitoringHistory';
+import { deleteMonitoringHistory, fetchMonitoringHistory } from './monitoringHistory';
 import { setActiveTransport } from './service';
 
 function jsonResponse(status: number, body: unknown): Response {
@@ -84,5 +84,19 @@ describe('fetchMonitoringHistory', () => {
     vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('network down'); }));
 
     expect(await fetchMonitoringHistory({ from: 0, to: 1000 })).toEqual({ data: null, mocked: false, unsupported: false });
+  });
+});
+
+describe('deleteMonitoringHistory', () => {
+  it('DELETEs the history route', async () => {
+    const fetchMock = vi.fn(async () => jsonResponse(200, { deleted: 12 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await deleteMonitoringHistory();
+
+    expect(result).toEqual({ deleted: 12 });
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain('/monitoring/history');
+    expect(init.method).toBe('DELETE');
   });
 });
