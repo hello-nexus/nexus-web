@@ -421,7 +421,7 @@ export function MetricHistorySection({
     };
   }, [metric, resolved.main, windowMs, numberFormat, t]);
 
-  // "GameName - 118 fps" at the hovered instant - only inside a masked
+  // "GameName - 118 FPS" at the hovered instant - only inside a masked
   // session's own range, so hovering between games shows nothing.
   const fpsTooltipRow = (hoverT: number) => {
     if (maskedFpsPoints.length === 0) return null;

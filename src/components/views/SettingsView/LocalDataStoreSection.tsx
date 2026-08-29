@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Gauge, Hourglass, LineChart, Trash2 } from 'lucide-react';
+import { Film, Hourglass, LineChart, Trash2 } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { SettingRow } from '../../common/SettingRow/SettingRow';
@@ -121,7 +121,7 @@ export function LocalDataStoreSection({ serviceOnline }: LocalDataStoreSectionPr
 
         <SettingRow
           label={t('settings.localDataStore.fps.label')}
-          icon={<Gauge />}
+          icon={<Film />}
           iconLeading="subtle"
           anchorId="set-fps-tracking"
           description={t('settings.localDataStore.fps.description')}

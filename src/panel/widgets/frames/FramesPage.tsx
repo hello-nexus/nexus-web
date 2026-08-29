@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Gamepad2, Trash2 } from 'lucide-react';
+import { ArrowLeft, Film, Trash2 } from 'lucide-react';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { Card } from '../../../components/common/Card/Card';
 import { ConfirmModal } from '../../../components/common/ConfirmModal/ConfirmModal';
@@ -127,7 +127,7 @@ function HistoryTab({
   if (!supported) {
     return (
       <div className={styles.emptyWrap}>
-        <EmptyState icon={<Gamepad2 size={28} />} title={t('frames.unsupported')} />
+        <EmptyState icon={<Film size={28} />} title={t('frames.unsupported')} />
       </div>
     );
   }
@@ -136,7 +136,7 @@ function HistoryTab({
     return (
       <div className={styles.emptyWrap}>
         <EmptyState
-          icon={<Gamepad2 size={28} />}
+          icon={<Film size={28} />}
           title={t('frames.trackingOff.title')}
           hint={t('frames.trackingOff.hint')}
         />
@@ -147,7 +147,7 @@ function HistoryTab({
   if (games.length === 0) {
     return (
       <div className={styles.emptyWrap}>
-        <EmptyState icon={<Gamepad2 size={28} />} title={t('frames.empty.title')} hint={t('frames.empty.hint')} />
+        <EmptyState icon={<Film size={28} />} title={t('frames.empty.title')} hint={t('frames.empty.hint')} />
       </div>
     );
   }
@@ -221,8 +221,8 @@ function GameCard({
           <span className={styles.gameCardAvgUnit}>{t('frames.card.fpsUnit')}</span>
         </div>
         <div className={styles.gameCardSecondary}>
-          <span>{t('steam.stat.fps1pctLow')} {Math.round(game.p1Fps)}</span>
-          <span>{t('steam.stat.fps99th')} {Math.round(game.p99Fps)}</span>
+          <span className={styles.gameCardSecondaryValue}>{Math.round(game.p1Fps)}</span>
+          <span className={styles.gameCardSecondaryLabel}>{t('steam.stat.fps1pctLow')}</span>
         </div>
         <div className={styles.gameCardMeta}>
           <span>{formatHours(game.focusedSec, numberFormat)}</span>
@@ -439,7 +439,7 @@ function SessionTimeline({
       series={[{ id: 'fps', name: 'FPS', color: 'var(--accent)', points }]}
       height={200}
       domain={[session.startedUtcMs, session.endedUtcMs]}
-      valueFormat={v => localizeNumbers(`${Math.round(v)} fps`, numberFormat)}
+      valueFormat={v => localizeNumbers(`${Math.round(v)} FPS`, numberFormat)}
       xTickFormat={t2 => new Date(t2).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: hour12OptionFor(timeFormat) })}
       avgLabel={t('monitoring.history.avg')}
       maxLabel={t('monitoring.history.max')}

@@ -154,6 +154,19 @@ describe('FramesPage - History tab states', () => {
     expect(container.querySelector('img[src*="steamstatic"]')).toBeInTheDocument();
     expect(screen.getAllByText('epic')).toHaveLength(2);
   });
+
+  it('shows the 1% low value and its dim label under the avg, and drops the 99th percentile from the card face', async () => {
+    fpsGamesResult = { supported: true, gamesByKey: gamesByKey(game()), refetch: refetchGamesMock };
+    renderPage();
+    await flush();
+    await screen.findByText('Counter-Strike 2');
+
+    expect(screen.getByText('132')).toBeInTheDocument();
+    expect(screen.getByText('90')).toBeInTheDocument();
+    expect(screen.getByText('steam.stat.fps1pctLow')).toBeInTheDocument();
+    expect(screen.queryByText('steam.stat.fps99th')).not.toBeInTheDocument();
+    expect(screen.queryByText('200')).not.toBeInTheDocument();
+  });
 });
 
 describe('FramesPage - game detail', () => {

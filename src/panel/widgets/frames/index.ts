@@ -1,5 +1,5 @@
 import { lazy } from 'react';
-import { Gamepad2 } from 'lucide-react';
+import { Film } from 'lucide-react';
 import type { AppManifest } from '../types';
 import { FramesWidget } from './FramesWidget';
 
@@ -14,7 +14,7 @@ export const framesApp: AppManifest = {
   meta: {
     type: 'frames',
     i18nKey: 'panel.widget.frames',
-    icon: Gamepad2,
+    icon: Film,
     sizes: ['2x2'],
     defaultSize: '2x2',
     supportsImmersive: { portrait: false, landscape: false },
