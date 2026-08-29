@@ -58,5 +58,3 @@ export const toggleObsStreaming = () =>
 export const setObsScene = (sceneName: string) =>
   postService<ObsStatusResponse>('/api/obs/scene', { sceneName });
 
-export const launchObs = () =>
-  postService('/api/obs/launch', {});
