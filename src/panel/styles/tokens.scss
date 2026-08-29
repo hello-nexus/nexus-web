@@ -211,6 +211,13 @@
   // Round glass has no corners to anchor to, and the bezel eats anything that
   // reaches them, so the tile centres its content instead of top-left aligning it.
   display: grid;
+  // One track the size of the content box. Without it the row track auto-sizes
+  // to the child, and the widget scaler lays out at card/--panel-scale - larger
+  // than the card whenever the scale is below 1, as in the add-widget catalog -
+  // so the track grew to fit, place-items had nothing to centre against on the
+  // block axis, and the box sat top-aligned with its centre below the circle's.
+  grid-template-columns: 100%;
+  grid-template-rows: 100%;
   place-items: center;
   text-align: center;
 
