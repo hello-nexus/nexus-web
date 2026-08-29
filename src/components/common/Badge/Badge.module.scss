@@ -7,7 +7,7 @@
   justify-content: center;
   gap: 4px;
   padding: 2px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   white-space: nowrap;
   color: var(--badge-color, var(--text));
   background: color-mix(in srgb, var(--badge-color, var(--text)) 14%, transparent);
