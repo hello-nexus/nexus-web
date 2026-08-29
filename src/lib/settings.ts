@@ -134,6 +134,9 @@ export interface GeneralSettings {
   accentSource: AccentSource;
   startOnLogin: boolean;
   showConflictAlerts: boolean;
+  autoKillConflictsAtStartup: boolean;
+  /** Catalog ids excluded from the startup shutdown; every other known app is included. */
+  conflictAutoKillExclusions: string[];
   monitoringDetailedCollapsed: string[];
   monitoringEventsEnabled: boolean;
   monitoringFpsOverlayEnabled: boolean;
@@ -209,6 +212,8 @@ export function getDefaultSettings(): NexusSettings {
       accentSource: 'system',
       startOnLogin: false,
       showConflictAlerts: true,
+      autoKillConflictsAtStartup: false,
+      conflictAutoKillExclusions: [],
       monitoringDetailedCollapsed: [],
       monitoringEventsEnabled: true,
       monitoringFpsOverlayEnabled: false,
