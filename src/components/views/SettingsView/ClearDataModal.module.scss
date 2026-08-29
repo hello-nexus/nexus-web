@@ -1,0 +1,41 @@
+.presets {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.presetOption {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: var(--type-body);
+  color: var(--text);
+  padding: 0.35rem 0.4rem;
+  border-radius: var(--radius);
+
+  input[type='radio'] {
+    accent-color: var(--accent);
+    margin: 0;
+  }
+
+  &:hover {
+    background: var(--bg-card-hover);
+  }
+}
+
+.customRange {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  margin-top: 0.3rem;
+  margin-left: 1.65rem;
+}
+
+.customField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}

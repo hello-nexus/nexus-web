@@ -1,22 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Film, Hourglass, LineChart, Trash2 } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
-import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { SettingRow } from '../../common/SettingRow/SettingRow';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { Toggle } from '../../common/Toggle/Toggle';
 import { useToastSafe } from '../../common/Toast/Toast';
-import { ScreenTimeDataControl } from '../ScreenTimeBrowse/ScreenTimeDataControl';
-import {
-  deleteScreenTimeAll,
-  getTrackingStatus,
-  setTrackingEnabled,
-} from '../../../hooks/useScreenTimeBrowse';
-import { deleteFpsAll, getFpsTrackingStatus, setFpsTrackingEnabled } from '../../../api/fps';
-import { deleteMonitoringHistory } from '../../../api/monitoringHistory';
+import { ClearDataModal, type ClearDataScope } from './ClearDataModal';
+import { getTrackingStatus, setTrackingEnabled } from '../../../hooks/useScreenTimeBrowse';
+import { getFpsTrackingStatus, setFpsTrackingEnabled } from '../../../api/fps';
 import { useTranslation } from '../../../lib/i18n';
-
-type PurgeRow = 'screenTime' | 'fps' | 'monitoringHistory';
+import styles from './LocalDataStoreSection.module.scss';
 
 interface LocalDataStoreSectionProps {
   serviceOnline: boolean;
@@ -24,10 +17,9 @@ interface LocalDataStoreSectionProps {
 
 /**
  * Privacy & Data's "Local data store" section: the screen-time tracking
- * toggle, the FPS capture toggle, and a tracking-less purge for the
- * monitoring history graphs. Every row shares one shape - label, description,
- * an optional toggle, and a Purge button behind a ConfirmModal stating what
- * is deleted and that it cannot be undone.
+ * toggle, the FPS capture toggle, and the tracking-less monitoring history
+ * graphs. Every toggle row carries a second "Clear data" line underneath,
+ * which opens the shared ClearDataModal scoped to that row's data.
  */
 export function LocalDataStoreSection({ serviceOnline }: LocalDataStoreSectionProps) {
   const { t } = useTranslation();
@@ -37,9 +29,7 @@ export function LocalDataStoreSection({ serviceOnline }: LocalDataStoreSectionPr
   const [fpsOn, setFpsOn] = useState<boolean | null>(null);
   const [togglingScreenTime, setTogglingScreenTime] = useState(false);
   const [togglingFps, setTogglingFps] = useState(false);
-  const [manageOpen, setManageOpen] = useState(false);
-  const [purgeOpen, setPurgeOpen] = useState<PurgeRow | null>(null);
-  const [purging, setPurging] = useState(false);
+  const [clearScope, setClearScope] = useState<ClearDataScope | null>(null);
 
   useEffect(() => {
     if (!serviceOnline) return;
@@ -75,15 +65,9 @@ export function LocalDataStoreSection({ serviceOnline }: LocalDataStoreSectionPr
     setTogglingFps(false);
   };
 
-  const confirmPurge = async () => {
-    if (!purgeOpen || purging) return;
-    setPurging(true);
-    const result = purgeOpen === 'screenTime' ? await deleteScreenTimeAll()
-      : purgeOpen === 'fps' ? await deleteFpsAll()
-        : await deleteMonitoringHistory();
-    setPurging(false);
-    setPurgeOpen(null);
-    toast.push({ title: t('settings.localDataStore.purgeDone', { count: result?.deleted ?? 0 }) });
+  const handleCleared = (count: number) => {
+    setClearScope(null);
+    toast.push({ title: t('settings.localDataStore.clearDataModal.done', { count }) });
   };
 
   return (
@@ -104,20 +88,19 @@ export function LocalDataStoreSection({ serviceOnline }: LocalDataStoreSectionPr
               ariaLabel={t('settings.screentime.tracking')}
             />
           )}
-          <Button type="button" tone="neutral" size="sm" onClick={() => setManageOpen(true)} disabled={!serviceOnline}>
-            {t('settings.screentime.openButton')}
-          </Button>
+        </SettingRow>
+        <div className={styles.clearRow} data-settings-aside="true">
           <Button
             type="button"
             tone="danger"
             size="sm"
             icon={<Trash2 size={14} />}
-            onClick={() => setPurgeOpen('screenTime')}
+            onClick={() => setClearScope('screenTime')}
             disabled={!serviceOnline}
           >
-            {t('settings.localDataStore.purgeButton')}
+            {t('settings.localDataStore.clearButton')}
           </Button>
-        </SettingRow>
+        </div>
 
         <SettingRow
           label={t('settings.localDataStore.fps.label')}
@@ -134,17 +117,19 @@ export function LocalDataStoreSection({ serviceOnline }: LocalDataStoreSectionPr
               ariaLabel={t('settings.localDataStore.fps.label')}
             />
           )}
+        </SettingRow>
+        <div className={styles.clearRow} data-settings-aside="true">
           <Button
             type="button"
             tone="danger"
             size="sm"
             icon={<Trash2 size={14} />}
-            onClick={() => setPurgeOpen('fps')}
+            onClick={() => setClearScope('fps')}
             disabled={!serviceOnline}
           >
-            {t('settings.localDataStore.purgeButton')}
+            {t('settings.localDataStore.clearButton')}
           </Button>
-        </SettingRow>
+        </div>
 
         <SettingRow
           label={t('settings.localDataStore.monitoringHistory.label')}
@@ -152,53 +137,29 @@ export function LocalDataStoreSection({ serviceOnline }: LocalDataStoreSectionPr
           iconLeading="subtle"
           anchorId="set-monitoring-history-purge"
           description={t('settings.localDataStore.monitoringHistory.description')}
-        >
+        />
+        <div className={styles.clearRow} data-settings-aside="true">
           <Button
             type="button"
             tone="danger"
             size="sm"
             icon={<Trash2 size={14} />}
-            onClick={() => setPurgeOpen('monitoringHistory')}
+            onClick={() => setClearScope('monitoringHistory')}
             disabled={!serviceOnline}
           >
-            {t('settings.localDataStore.purgeButton')}
+            {t('settings.localDataStore.clearButton')}
           </Button>
-        </SettingRow>
+        </div>
       </SettingsSection>
 
-      <ScreenTimeDataControl
-        open={manageOpen}
-        onClose={() => setManageOpen(false)}
-        onChanged={() => { /* the settings page doesn't need to refetch */ }}
-      />
-
-      <ConfirmModal
-        open={purgeOpen === 'screenTime'}
-        title={t('settings.localDataStore.screenTime.purgeConfirmTitle')}
-        message={t('settings.localDataStore.screenTime.purgeConfirmMessage')}
-        confirmLabel={t('settings.localDataStore.purgeButton')}
-        confirmDisabled={purging}
-        onConfirm={() => void confirmPurge()}
-        onCancel={() => setPurgeOpen(null)}
-      />
-      <ConfirmModal
-        open={purgeOpen === 'fps'}
-        title={t('settings.localDataStore.fps.purgeConfirmTitle')}
-        message={t('settings.localDataStore.fps.purgeConfirmMessage')}
-        confirmLabel={t('settings.localDataStore.purgeButton')}
-        confirmDisabled={purging}
-        onConfirm={() => void confirmPurge()}
-        onCancel={() => setPurgeOpen(null)}
-      />
-      <ConfirmModal
-        open={purgeOpen === 'monitoringHistory'}
-        title={t('settings.localDataStore.monitoringHistory.purgeConfirmTitle')}
-        message={t('settings.localDataStore.monitoringHistory.purgeConfirmMessage')}
-        confirmLabel={t('settings.localDataStore.purgeButton')}
-        confirmDisabled={purging}
-        onConfirm={() => void confirmPurge()}
-        onCancel={() => setPurgeOpen(null)}
-      />
+      {clearScope !== null && (
+        <ClearDataModal
+          scope={clearScope}
+          open
+          onClose={() => setClearScope(null)}
+          onCleared={handleCleared}
+        />
+      )}
     </>
   );
 }
