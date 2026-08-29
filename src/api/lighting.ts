@@ -1008,3 +1008,58 @@ export function resolveActiveGame(activeApp: string, games: GameSyncGame[]): Gam
 
   return null;
 }
+
+// --- Manually registered OpenRGB devices ---
+// Two device classes the bundled daemon cannot detect on its own: QMK-OpenRGB
+// keyboards (found only by the vid/pid the board was flashed with) and E1.31 /
+// WLED devices (a bare IP). OpenRGB's own GUI stores the same two lists, so the
+// import adopts an existing install's registrations. Every mutation restarts
+// the RGB subprocess service-side; the daemon reads its config only at launch.
+
+export interface QmkDeviceEntry {
+  name: string;
+  usbVid: string;
+  usbPid: string;
+}
+
+export interface E131DeviceEntry {
+  name: string;
+  ip: string;
+  numLeds: number;
+  startUniverse: number;
+  startChannel: number;
+  keepaliveTime: number;
+  universeSize: number;
+}
+
+export interface ManualDevicesResponse {
+  qmk: QmkDeviceEntry[];
+  e131: E131DeviceEntry[];
+  /** Where an existing OpenRGB install would keep its config on this OS. */
+  importSourcePath: string;
+  /** True when that file exists, so the import can be offered without probing. */
+  importSourceAvailable: boolean;
+}
+
+export interface ImportOpenRgbConfigResult {
+  sourceFound: boolean;
+  path: string;
+  added: number;
+  qmkSeen: number;
+  e131Seen: number;
+}
+
+export const fetchManualDevices = () =>
+  fetchService<ManualDevicesResponse>('/devices/openrgb/manual-devices');
+
+export const addQmkDevice = (name: string, usbVid: string, usbPid: string) =>
+  postService('/devices/openrgb/manual-devices/qmk', { name, usbVid, usbPid });
+
+export const addE131Device = (entry: Partial<E131DeviceEntry> & { ip: string }) =>
+  postService('/devices/openrgb/manual-devices/e131', entry);
+
+export const removeManualDevice = (kind: 'qmk' | 'e131', key: string, key2: string) =>
+  postService('/devices/openrgb/manual-devices/remove', { kind, key, key2 });
+
+export const importOpenRgbConfig = (path?: string) =>
+  postService<ImportOpenRgbConfigResult>('/devices/openrgb/manual-devices/import', { path: path ?? '' });

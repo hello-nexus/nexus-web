@@ -1,0 +1,72 @@
+@use '../../../styles/text' as *;
+
+.form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  align-items: center;
+  padding: var(--space-sm) 0 var(--space-md);
+}
+
+.input,
+.inputShort {
+  @include text-body;
+  min-width: 0;
+  padding: var(--space-xs) var(--space-sm);
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.input { flex: 1 1 10rem; }
+.inputShort { flex: 0 1 6rem; }
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin: 0 0 var(--space-md);
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+}
+
+.itemName {
+  @include text-body;
+  flex: 1 1 auto;
+  color: var(--text);
+}
+
+.itemMeta {
+  @include text-caption;
+  color: var(--text-dim);
+}
+
+.remove {
+  display: flex;
+  align-items: center;
+  padding: var(--space-xs);
+  color: var(--text-dim);
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+
+  &:hover:not(:disabled) { color: var(--text); }
+  &:disabled { cursor: default; opacity: 0.5; }
+}
+
+.status {
+  @include text-caption;
+  margin: 0 0 var(--space-md);
+  color: var(--text-dim);
+}

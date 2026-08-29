@@ -2,6 +2,7 @@ import { Fan, Lightbulb } from 'lucide-react';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingToggle } from '../../common/SettingRow/SettingRow';
 import { LightingCoolingSection } from './LightingCoolingSection';
+import { ManualRgbDevicesSection } from './ManualRgbDevicesSection';
 import { useTranslation } from '../../../lib/i18n';
 import type { NexusSettings } from '../../../lib/settings';
 import styles from './SettingsView.module.scss';
@@ -40,6 +41,8 @@ export function LightingCoolingTab({ settings, updateGeneral, serviceOnline, pla
       </SettingsSection>
 
       <LightingCoolingSection serviceOnline={serviceOnline} platform={platform} />
+
+      <ManualRgbDevicesSection serviceOnline={serviceOnline} />
     </div>
   );
 }
