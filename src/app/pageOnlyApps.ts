@@ -16,10 +16,8 @@ export interface PageOnlyApp {
 }
 
 export const PAGE_ONLY_APPS: Record<string, PageOnlyApp> = {
-  // The store is DEV_TOOLS-only for now: the catalog holds one app and the
-  // install path has not been exercised outside this machine. Gating the
-  // registry entry is what removes it everywhere, since pinning, the add-app
-  // drawer, search and pin sanitizing all resolve through this record.
+  // Gating this entry is what removes the store everywhere: pinning, pin
+  // sanitizing, the add-app drawer and search all resolve through this record.
   ...(DEV_TOOLS ? { store: { i18nKey: 'apps.tabs.store', icon: ShoppingBag } } : {}),
 };
 
