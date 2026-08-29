@@ -271,7 +271,10 @@ export function PanelEditorSheet({
         <span className={styles.editorSheetGrabber} aria-hidden="true" />
         <header className={styles.editorHeader}>
           <div className={styles.editorTitle}>{title}</div>
-          {mode === 'settings' && editingWidget && (
+          {/* Single-widget surfaces (Q-series, Kraken) always show exactly one
+              widget - there is nothing to remove it to, so the only way to
+              change it is picking a replacement from the catalog. */}
+          {mode === 'settings' && editingWidget && !isSingleWidgetSurface(surface) && (
             <button
               type="button"
               className={styles.removeButton}

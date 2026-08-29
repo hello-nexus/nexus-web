@@ -693,18 +693,22 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     ? layout.pages[0]?.widgets[0]
     : undefined;
 
-  const handleAddWidget = useCallback((type: string, size: PanelWidgetSize) => {
+  // Returns the id of the widget that landed so the catalog can offer
+  // "click to edit" on the card that was just clicked.
+  const handleAddWidget = useCallback((type: string, size: PanelWidgetSize): string | undefined => {
     if (singleWidget) {
       // Single-widget surface (q-series): one widget at a time, fixed 2x4.
       // Clicking the catalog tile already on the device is a no-op.
       const current = layout.pages[0]?.widgets[0];
-      if (current && current.type === type) return;
+      // Already the widget on the device: nothing lands, so report no add (the
+      // catalog would otherwise confirm a widget it never placed).
+      if (current && current.type === type) return undefined;
       // swapSingleWidget preserves each type's config on the layout, so
       // switching widgets restores prior settings (persisted like multi-widget
       // panels' configs, not reset on every swap).
       const next: PanelWidget = { id: createUuid(), type, size, col: 0, row: 0 };
       updateLayout(swapSingleWidget(layout, next));
-      return;
+      return next.id;
     }
     const next: PanelWidget = {
       id: createUuid(),
@@ -723,6 +727,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     // otherwise appear off-screen.
     const landingPage = appended.pages.find(p => p.widgets.some(w => w.id === next.id));
     updateLayout(landingPage ? { ...appended, activePageId: landingPage.id } : appended);
+    // appendWidget refuses a full grid; only report an id the layout kept.
+    return landingPage ? next.id : undefined;
   }, [editorCapacity, layout, singleWidget, updateLayout]);
 
   const handleRemoveWidget = useCallback((widgetId: string) => {
@@ -1006,6 +1012,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                       surface={surface}
                       deviceTouch={deviceTouch}
                       onAdd={handleAddWidget}
+                      onEditWidget={setConfiguringWidgetId}
                       placedTypes={placedTypes}
                       variant="desktop-modal"
                       remote={isRemotePanel(device?.connectionKind)}
@@ -1453,14 +1460,18 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeMode = 'dark'
           <span>{widgetLabel}</span>
         </div>
         <div className={styles.inlineSettingsActions}>
-          <button
-            type="button"
-            className={styles.inlineRemoveBtn}
-            onClick={() => onRemove(widget.id)}
-            aria-label={t('devices.panels.widgetSettings.remove')}
-          >
-            <Trash2 size={14} />
-          </button>
+          {/* Single-widget surfaces (Q-series, Kraken) can't be left empty:
+              the widget is replaced from the catalog, never removed. */}
+          {!isSingleWidgetSurface(surface) && (
+            <button
+              type="button"
+              className={styles.inlineRemoveBtn}
+              onClick={() => onRemove(widget.id)}
+              aria-label={t('devices.panels.widgetSettings.remove')}
+            >
+              <Trash2 size={14} />
+            </button>
+          )}
         </div>
       </div>
 

@@ -1698,3 +1698,97 @@
   align-items: center;
   justify-content: center;
 }
+
+// Full-cell notices painted over a widget's preview: the canvas-preview
+// "Edit widget" hint (NEX-6) and the catalog's post-add confirmation. Both
+// cover the whole card, so they share one box.
+%cellNotice {
+  position: absolute;
+  // Longhands, not the `inset` shorthand - Chromium 83 floor (see
+  // chromium83Floor.test.ts).
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  // Flex gap is a no-op on 83; space through the child margin below.
+  @include vgap(6px);
+  padding: 6%;
+  text-align: center;
+  color: var(--text);
+  // One scrim layer still leaves the widget's own text legible through the
+  // notice; stacking the token composites it opaque enough to read against.
+  background-image:
+    linear-gradient(var(--panel-scrim-bg), var(--panel-scrim-bg)),
+    linear-gradient(var(--panel-scrim-bg), var(--panel-scrim-bg)),
+    linear-gradient(var(--panel-scrim-bg), var(--panel-scrim-bg));
+  border-radius: inherit;
+}
+
+%cellNoticeIcon {
+  width: min(30%, 34px);
+  height: auto;
+  flex: 0 0 auto;
+}
+
+// In the device page's canvas preview (simulator), a widget is click-to-edit
+// and nothing said so (NEX-6). Hovering one fades the notice in.
+// pointer-events:none so the click keeps landing on the cell wrapper exactly as
+// before; the hint is aria-hidden decoration.
+.cellEditHint {
+  @extend %cellNotice;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--ease-fast) ease-out;
+}
+
+.cellEditHintIcon {
+  @extend %cellNoticeIcon;
+  stroke-width: 1.6;
+}
+
+.cellEditHintLabel {
+  @include text-caption;
+}
+
+// Preview cells read as buttons, and only a real pointer can hover.
+@media (hover: hover) {
+  .panelRoot[data-simulator='true'] .cellWrap:hover .cellEditHint {
+    opacity: 1;
+  }
+}
+
+.panelRoot[data-simulator='true'] .cellWrap {
+  cursor: pointer;
+}
+
+// Post-add confirmation over a catalog card's preview (desktop catalog only).
+// Two beats - checkmark "Added", then the edit prompt - held while the pointer
+// stays on the card. See PanelWidgetCatalog.
+.cellAdded {
+  @extend %cellNotice;
+  cursor: pointer;
+  animation: cellAddedIn var(--ease-fast) ease-out both;
+}
+
+.cellAdded[data-stage='edit'] {
+  color: var(--panel-accent);
+}
+
+.cellAddedIcon {
+  @extend %cellNoticeIcon;
+  stroke-width: 1.8;
+}
+
+.cellAddedLabel {
+  @include text-caption;
+}
+
+@keyframes cellAddedIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

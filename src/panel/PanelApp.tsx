@@ -1569,6 +1569,10 @@ export function PanelContent({
                               // onCellTap via the pointer pipeline; a plain
                               // click opens the edit sheet from an iframe tap.
                               onSimulatorClick={simulator && !surfaceSupportsTouch(surface, deviceTouch) ? () => onSimulatorWidgetClicked?.(w.id) : undefined}
+                              // Device-page preview only: nothing else says a
+                              // widget in the canvas is click-to-edit (NEX-6),
+                              // so hovering one fades in a full-cell notice.
+                              editHint={simulator && !touch.rearranging && !activeDragId && simulatorSelectedWidgetId !== w.id}
                               previewLayout={previewLayout}
                               onSectionNavigate={embedded && surface === 'desktop' ? onSectionNavigate : undefined}
                               onConfigureWidget={openWidgetSettings}
