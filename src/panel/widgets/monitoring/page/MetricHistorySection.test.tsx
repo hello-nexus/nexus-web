@@ -5,6 +5,7 @@ import type { UseMetricHistoryResult } from '../../../../hooks/useMetricHistory'
 import type { UseMetricHistoryAppsResult } from '../../../../hooks/useMetricHistoryApps';
 import type { GpuComponent } from '../../../../lib/gpuResolver';
 import type { FanRoleMap } from './metricHistoryHelpers';
+import type { FpsRangeSession } from '../../../../api/fps';
 
 vi.mock('../../../../hooks/useUiSettings', () => ({
   useUnitPrefs: () => ({ monitoringTempUnit: 'c', timeFormat: 'system', numberFormat: 'system' }),
@@ -83,6 +84,8 @@ function renderSection(over: {
   onGraphClick?: (t: number) => void;
   selectedAppName?: string | null;
   memoryTotalMb?: number | null;
+  fpsOverlayEnabled?: boolean;
+  fpsSessions?: readonly FpsRangeSession[];
 } = {}) {
   const history = baseHistory(over.history);
   return render(
@@ -97,6 +100,8 @@ function renderSection(over: {
       onGraphClick={over.onGraphClick ?? vi.fn()}
       selectedAppName={over.selectedAppName ?? null}
       memoryTotalMb={over.memoryTotalMb ?? null}
+      fpsOverlayEnabled={over.fpsOverlayEnabled ?? false}
+      fpsSessions={over.fpsSessions ?? []}
     />,
   );
 }
@@ -180,6 +185,8 @@ describe('MetricHistorySection', () => {
           onGraphClick={vi.fn()}
           selectedAppName={null}
           memoryTotalMb={null}
+          fpsOverlayEnabled={false}
+          fpsSessions={[]}
         />,
       );
     }
@@ -774,6 +781,8 @@ describe('MetricHistorySection', () => {
           onGraphClick={vi.fn()}
           selectedAppName={null}
           memoryTotalMb={null}
+          fpsOverlayEnabled={false}
+          fpsSessions={[]}
         />,
       );
       expect(container.querySelector('path[stroke="var(--text)"]')).toBeNull();
@@ -832,5 +841,116 @@ describe('MetricHistorySection', () => {
       expect(container.querySelector('path[stroke="var(--text)"]')).toBeInTheDocument();
       expect(container.querySelectorAll('path[stroke="var(--accent)"]').length).toBe(2);
     });
+  });
+});
+
+describe('fps overlay', () => {
+  function fpsSession(over: Partial<FpsRangeSession> = {}): FpsRangeSession {
+    return {
+      id: 's1', gameKey: 'steam:730', name: 'Cyberpunk 2077', store: 'steam',
+      // Spans the full domain so the test doesn't depend on the chart's own
+      // pixel-to-time mapping (plot-area padding for axis labels).
+      startedUtcMs: NOW - HOUR, endedUtcMs: NOW, avgFps: 118,
+      ...over,
+    };
+  }
+
+  function seriesWithFps(metric: 'cpu' | 'memory' | 'storage' | 'network' | 'gpu'): UseMetricHistoryResult['series'] {
+    const base: UseMetricHistoryResult['series'] = metric === 'network'
+      ? [{ id: 'net-in', kind: 'net', name: 'Download', points: [{ t: NOW - HOUR, avg: 100, max: 100 }, { t: NOW, avg: 100, max: 100 }] }]
+      : [{ id: metric, kind: metric, name: metric, points: [{ t: NOW - HOUR, avg: 50, max: 51 }, { t: NOW, avg: 50, max: 51 }] }];
+    return [...base, { id: 'fps', kind: 'fps', name: 'FPS', points: [{ t: NOW - HOUR, avg: 118, max: 120 }, { t: NOW, avg: 118, max: 120 }] }];
+  }
+
+  it('renders no overlay line when the toggle is off, even with fps data and a covering session', () => {
+    stubGeometry();
+    const { container } = renderSection({
+      metric: 'cpu', history: { series: seriesWithFps('cpu') },
+      fpsOverlayEnabled: false, fpsSessions: [fpsSession()],
+    });
+    expect(container.querySelector('path[stroke="var(--good)"]')).toBeNull();
+  });
+
+  it('renders no overlay line when the toggle is on but no session covers any fps point', () => {
+    stubGeometry();
+    const { container } = renderSection({
+      metric: 'cpu', history: { series: seriesWithFps('cpu') },
+      fpsOverlayEnabled: true, fpsSessions: [],
+    });
+    expect(container.querySelector('path[stroke="var(--good)"]')).toBeNull();
+  });
+
+  it('renders the overlay line once enabled with a covering session, on the cpu tab', () => {
+    stubGeometry();
+    const { container } = renderSection({
+      metric: 'cpu', history: { series: seriesWithFps('cpu') },
+      fpsOverlayEnabled: true, fpsSessions: [fpsSession()],
+    });
+    expect(container.querySelector('path[stroke="var(--good)"]')).toBeInTheDocument();
+  });
+
+  it('also overlays on the network tab, not just cpu/gpu', () => {
+    stubGeometry();
+    const { container } = renderSection({
+      metric: 'network', history: { series: seriesWithFps('network') },
+      fpsOverlayEnabled: true, fpsSessions: [fpsSession()],
+    });
+    expect(container.querySelector('path[stroke="var(--good)"]')).toBeInTheDocument();
+  });
+
+  it('shows the game name and fps value in the tooltip when hovering inside a masked session', () => {
+    stubGeometry();
+    const { container } = renderSection({
+      metric: 'cpu', history: { series: seriesWithFps('cpu') },
+      fpsOverlayEnabled: true, fpsSessions: [fpsSession({ name: 'Cyberpunk 2077' })],
+    });
+    const svg = container.querySelector('svg')!;
+    fireEvent.mouseMove(svg, { clientX: 200 });
+    expect(screen.getByText('monitoring.fpsOverlay.tooltip:Cyberpunk 2077,118')).toBeInTheDocument();
+  });
+
+  it('shows no game/fps tooltip row when hovering between sessions', () => {
+    stubGeometry();
+    const { container } = renderSection({
+      metric: 'cpu', history: { series: seriesWithFps('cpu') },
+      fpsOverlayEnabled: true,
+      // Entirely outside the domain, so it can never cover wherever the
+      // hover actually lands within it.
+      fpsSessions: [fpsSession({ startedUtcMs: NOW + HOUR, endedUtcMs: NOW + 2 * HOUR })],
+    });
+    const svg = container.querySelector('svg')!;
+    fireEvent.mouseMove(svg, { clientX: 200 });
+    expect(screen.queryByText(/monitoring\.fpsOverlay\.tooltip/)).not.toBeInTheDocument();
+  });
+
+  it('renders the same fps value at the same pixel height regardless of the tab\'s own primary domain', () => {
+    // cpu's own series sits near its 100% ceiling (driving the percent axis
+    // toward its own max) while network's own series is an unrelated
+    // multi-megabyte rate (driving an unbounded, wildly different axis) -
+    // the fps overlay's own points are identical in both, so its rendered
+    // path must be identical too if it truly ignores the primary axis.
+    stubGeometry();
+    const highLoadCpuSeries: UseMetricHistoryResult['series'] = [
+      { id: 'cpu', kind: 'cpu', name: 'CPU', points: [{ t: NOW - HOUR, avg: 95, max: 96 }, { t: NOW, avg: 95, max: 96 }] },
+      { id: 'fps', kind: 'fps', name: 'FPS', points: [{ t: NOW - HOUR, avg: 118, max: 120 }, { t: NOW, avg: 118, max: 120 }] },
+    ];
+    const bigRateNetworkSeries: UseMetricHistoryResult['series'] = [
+      { id: 'net-in', kind: 'net', name: 'Download', points: [{ t: NOW - HOUR, avg: 8_000_000, max: 8_100_000 }, { t: NOW, avg: 8_000_000, max: 8_100_000 }] },
+      { id: 'fps', kind: 'fps', name: 'FPS', points: [{ t: NOW - HOUR, avg: 118, max: 120 }, { t: NOW, avg: 118, max: 120 }] },
+    ];
+    const sessions = [fpsSession()];
+
+    const cpuRender = renderSection({ metric: 'cpu', history: { series: highLoadCpuSeries }, fpsOverlayEnabled: true, fpsSessions: sessions });
+    const cpuPath = cpuRender.container.querySelector('path[stroke="var(--good)"]');
+    const cpuD = cpuPath?.getAttribute('d');
+    cpuRender.unmount();
+
+    const netRender = renderSection({ metric: 'network', history: { series: bigRateNetworkSeries }, fpsOverlayEnabled: true, fpsSessions: sessions });
+    const netPath = netRender.container.querySelector('path[stroke="var(--good)"]');
+    const netD = netPath?.getAttribute('d');
+    netRender.unmount();
+
+    expect(cpuD).toBeTruthy();
+    expect(cpuD).toBe(netD);
   });
 });

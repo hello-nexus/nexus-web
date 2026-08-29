@@ -22,10 +22,13 @@ import {
   RANGE_OPTIONS,
   adaptivePercentYMax,
   averageRpmSeries,
+  buildFpsOverlaySeries,
   buildSelectedAppSeries,
   fanNamesForRole,
   fanSeriesIdsForRole,
+  findFpsSessionAt,
   formatBrushEdgeLabels,
+  maskFpsPointsToSessions,
   maxAvgValue,
   nearestTempAt,
   pickGpuHistorySeries,
@@ -37,6 +40,7 @@ import {
   type HistoryMetric,
 } from './metricHistoryHelpers';
 import type { ChartRibbonSpec } from '../../../../components/common/TimeSeriesChart/TimeSeriesChart';
+import type { FpsRangeSession } from '../../../../api/fps';
 import type { MetricHistorySeries } from '../../../../api/monitoringHistory';
 import styles from './MetricHistorySection.module.scss';
 
@@ -78,6 +82,13 @@ export interface MetricHistorySectionProps {
    *  the top of the selection line is offered. */
   onAddEventAt?: (t: number) => void;
   renderEventTooltip: (event: TimelineEvent) => ReactNode;
+  /** Global toggle (settings.monitoringFpsOverlayEnabled, off by default) -
+   *  gates both the overlay line and the session-range fetch that masks it. */
+  fpsOverlayEnabled: boolean;
+  /** Sessions overlapping the current window, for masking the fps series to
+   *  actual game time and naming the hovered game in the tooltip. Empty
+   *  while the overlay is off. */
+  fpsSessions: readonly FpsRangeSession[];
 }
 
 // Tall enough to keep the line/area's own plot area comfortable even with
@@ -88,6 +99,8 @@ const TOOLTIP_APPS_LIMIT = 8;
 // selectedT) so the overlaid app line reads as the same "highlighted on top"
 // treatment, distinct from --accent (the base metric line underneath it).
 const SELECTED_APP_LINE_COLOR = 'var(--text)';
+// Distinct from both --accent (base line) and --text (selected-app line).
+const FPS_OVERLAY_LINE_COLOR = 'var(--good)';
 
 // Stable empty instances for the non-cpu/gpu tabs' fanRole branch, so the
 // dependent useMemos below don't see a new identity every render.
@@ -117,6 +130,7 @@ function initYCeilingFreeze(dragging: boolean, liveYMax: number | null): YCeilin
 export function MetricHistorySection({
   metric, gpuComponents, preferredGpuId, history, appsWindow, fanRoles, selectedFrameMs, onGraphClick,
   selectedAppName, memoryTotalMb, events, onEventClick, onAddEventAt, renderEventTooltip,
+  fpsOverlayEnabled, fpsSessions,
 }: MetricHistorySectionProps) {
   const { t, language } = useTranslation();
   const { monitoringTempUnit, numberFormat, timeFormat } = useUnitPrefs();
@@ -177,15 +191,32 @@ export function MetricHistorySection({
     return buildSelectedAppSeries(app, metric, memoryTotalMb, SELECTED_APP_LINE_COLOR);
   }, [selectedAppName, appsWindow.apps, metric, memoryTotalMb]);
 
+  // Masked to Frames session ranges (see maskFpsPointsToSessions) - a
+  // desktop app presents frames too, so the raw fps series would otherwise
+  // draw between games as well. Off entirely while the overlay is disabled,
+  // since fpsSessions stays empty and history.series never carries fps then.
+  const maskedFpsPoints = useMemo(() => {
+    if (!fpsOverlayEnabled) return [];
+    const raw = history.series.find(s => s.kind === 'fps')?.points ?? [];
+    return maskFpsPointsToSessions(raw, fpsSessions);
+  }, [fpsOverlayEnabled, history.series, fpsSessions]);
+
+  const fpsOverlaySeries = useMemo(
+    () => buildFpsOverlaySeries(maskedFpsPoints, FPS_OVERLAY_LINE_COLOR),
+    [maskedFpsPoints],
+  );
+
   // Selecting an app appends its own line on top of the base metric line(s),
   // which stay visible underneath - the app series carries noFill (see
   // buildSelectedAppSeries) so its own gradient fill doesn't stack a second
-  // translucent layer over the base line's own fill.
+  // translucent layer over the base line's own fill. The fps overlay is the
+  // same shape, appended after so it draws on top of a selected-app line too.
   const chartSeries = useMemo(() => {
     const mapped = toHistoryChartSeries(resolved.main, colorFor);
     const base = nameOverride ? mapped.map(s => ({ ...s, name: nameOverride(s.id) })) : mapped;
-    return selectedAppSeries ? [...base, selectedAppSeries] : base;
-  }, [resolved.main, colorFor, nameOverride, selectedAppSeries]);
+    const withApp = selectedAppSeries ? [...base, selectedAppSeries] : base;
+    return fpsOverlaySeries ? [...withApp, fpsOverlaySeries] : withApp;
+  }, [resolved.main, colorFor, nameOverride, selectedAppSeries, fpsOverlaySeries]);
 
   // Network and storage auto-scale their own ceiling to the data ([0, null],
   // unbounded rate); the percent metrics (cpu/gpu/memory) instead adapt to
@@ -390,13 +421,30 @@ export function MetricHistorySection({
     };
   }, [metric, resolved.main, windowMs, numberFormat, t]);
 
+  // "GameName - 118 fps" at the hovered instant - only inside a masked
+  // session's own range, so hovering between games shows nothing.
+  const fpsTooltipRow = (hoverT: number) => {
+    if (maskedFpsPoints.length === 0) return null;
+    const session = findFpsSessionAt(fpsSessions, hoverT);
+    if (!session) return null;
+    const nearest = nearestPoint(maskedFpsPoints, hoverT, windowMs);
+    if (!nearest) return null;
+    return (
+      <div className={styles.tooltipTopRow}>
+        <span>{t('monitoring.fpsOverlay.tooltip', { name: session.name, value: Math.round(nearest.avg) })}</span>
+      </div>
+    );
+  };
+
   const tooltipExtra = (hoverT: number) => {
     const topRow = tooltipRateRow?.(hoverT) ?? null;
+    const fpsRow = fpsTooltipRow(hoverT);
     const apps = appsWindow.supported && appsWindow.ready ? topAppsAtHover(appsWindow.apps, hoverT, TOOLTIP_APPS_LIMIT) : [];
-    if (!topRow && apps.length === 0) return null;
+    if (!topRow && !fpsRow && apps.length === 0) return null;
     return (
       <div className={styles.tooltipCustom}>
         {topRow}
+        {fpsRow}
         {apps.length > 0 && (
           <div className={styles.tooltipApps}>
             {apps.map(app => (

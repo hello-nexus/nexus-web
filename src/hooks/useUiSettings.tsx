@@ -66,6 +66,7 @@ export interface UiSettingsValue {
   showConflictAlerts: boolean;
   monitoringDetailedCollapsed: string[];
   monitoringEventsEnabled: boolean;
+  monitoringFpsOverlayEnabled: boolean;
   /** Seconds between SMART reads per drive, keyed by LHM identifier. 0 = never. */
   smartPollSeconds: Record<string, number>;
   smartPollDefaultSeconds: number;
@@ -210,6 +211,7 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     showConflictAlerts: src.general.showConflictAlerts,
     monitoringDetailedCollapsed: src.general.monitoringDetailedCollapsed,
     monitoringEventsEnabled: src.general.monitoringEventsEnabled,
+    monitoringFpsOverlayEnabled: src.general.monitoringFpsOverlayEnabled,
     smartPollSeconds: src.general.smartPollSeconds,
     smartPollDefaultSeconds: src.general.smartPollDefaultSeconds,
     smartPollPerDrive: src.general.smartPollPerDrive,
@@ -273,6 +275,7 @@ function toNexusSettings(src: UiSettingsValue): NexusSettings {
       showConflictAlerts: src.showConflictAlerts,
       monitoringDetailedCollapsed: src.monitoringDetailedCollapsed,
       monitoringEventsEnabled: src.monitoringEventsEnabled,
+      monitoringFpsOverlayEnabled: src.monitoringFpsOverlayEnabled,
       smartPollSeconds: src.smartPollSeconds,
       smartPollDefaultSeconds: src.smartPollDefaultSeconds,
       smartPollPerDrive: src.smartPollPerDrive,
@@ -310,9 +313,10 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.accentSource !== undefined) theme.accentSource = patch.accentSource;
   if (Object.keys(theme).length > 0) out.theme = theme;
   // monitoring block
-  const monitoring: Partial<{ showMacStatusBarIcon: boolean; showWindowsTrayIcon: boolean; detailedCollapsed: string[]; eventsEnabled: boolean; eventKindsHidden: string[]; smartPollSeconds: Record<string, number>; smartPollDefaultSeconds: number; smartPollPerDrive: boolean }> = {};
+  const monitoring: Partial<{ showMacStatusBarIcon: boolean; showWindowsTrayIcon: boolean; detailedCollapsed: string[]; eventsEnabled: boolean; fpsOverlayEnabled: boolean; eventKindsHidden: string[]; smartPollSeconds: Record<string, number>; smartPollDefaultSeconds: number; smartPollPerDrive: boolean }> = {};
   if (patch.monitoringDetailedCollapsed !== undefined) monitoring.detailedCollapsed = patch.monitoringDetailedCollapsed;
   if (patch.monitoringEventsEnabled !== undefined) monitoring.eventsEnabled = patch.monitoringEventsEnabled;
+  if (patch.monitoringFpsOverlayEnabled !== undefined) monitoring.fpsOverlayEnabled = patch.monitoringFpsOverlayEnabled;
   if (patch.smartPollSeconds !== undefined) monitoring.smartPollSeconds = patch.smartPollSeconds;
   if (patch.smartPollDefaultSeconds !== undefined) monitoring.smartPollDefaultSeconds = patch.smartPollDefaultSeconds;
   if (patch.smartPollPerDrive !== undefined) monitoring.smartPollPerDrive = patch.smartPollPerDrive;
@@ -431,6 +435,7 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
       : base.coolingDashboardMode,
     monitoringDetailedCollapsed: server.monitoring?.detailedCollapsed ?? base.monitoringDetailedCollapsed,
     monitoringEventsEnabled: server.monitoring?.eventsEnabled ?? base.monitoringEventsEnabled,
+    monitoringFpsOverlayEnabled: server.monitoring?.fpsOverlayEnabled ?? base.monitoringFpsOverlayEnabled,
     smartPollSeconds: server.monitoring?.smartPollSeconds ?? base.smartPollSeconds,
     smartPollDefaultSeconds: server.monitoring?.smartPollDefaultSeconds ?? base.smartPollDefaultSeconds,
     smartPollPerDrive: server.monitoring?.smartPollPerDrive ?? base.smartPollPerDrive,

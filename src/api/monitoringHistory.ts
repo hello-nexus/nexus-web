@@ -10,10 +10,11 @@
 // so it never enters a production bundle - see api/diagnostics.ts for the
 // same pattern.
 
+import { deleteService } from './service';
 import { classifyFetchOutcome, requestJson } from './fetchOutcome';
 
 export type MetricHistoryKind =
-  | 'cpu' | 'memory' | 'net' | 'disk' | 'gpu' | 'cpu-temp' | 'gpu-temp' | 'mem-temp' | 'drive-temp' | 'fan' | 'fan-duty';
+  | 'cpu' | 'memory' | 'net' | 'disk' | 'gpu' | 'cpu-temp' | 'gpu-temp' | 'mem-temp' | 'drive-temp' | 'fan' | 'fan-duty' | 'fps';
 
 export interface MetricHistoryPoint {
   t: number;
@@ -86,3 +87,12 @@ export async function fetchMonitoringHistory(query: MetricHistoryQuery): Promise
     case 'error': return { data: null, mocked: false, unsupported: false };
   }
 }
+
+export interface DeleteMonitoringHistoryResult {
+  deleted: number;
+}
+
+/** Purges every ring/segment store this route owns (Privacy & Data's Local
+ *  data store section); recording resumes on the next sample. */
+export const deleteMonitoringHistory = () =>
+  deleteService<DeleteMonitoringHistoryResult>('/monitoring/history');

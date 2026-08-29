@@ -22,12 +22,16 @@ import {
   type SteamStatusResponse,
   type SteamUserStat,
 } from '../../../api/steam';
+import { steamGameKey, type FpsGameSummary } from '../../../api/fps';
+import { requestOpenFramesGame } from '../frames/framesNav';
 import { Button } from '../../../components/common/Button/Button';
 import { Card } from '../../../components/common/Card/Card';
 import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
 import { SearchInput } from '../../../components/common/SearchInput/SearchInput';
 import { Select } from '../../../components/common/Select/Select';
+import { StatTile } from '../../../components/common/StatTile/StatTile';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
+import { useFpsGames } from '../../../hooks/useFpsGames';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { formatNumber, localizeNumbers, type NumberFormat } from '../../../lib/units';
@@ -83,6 +87,7 @@ export function SteamPage() {
   // Bumped when the inline setup form saves, so the status poll re-runs
   // immediately instead of leaving the setup screen up for a poll cycle.
   const [configRev, setConfigRev] = useState(0);
+  const { gamesByKey: fpsGamesByKey } = useFpsGames();
 
   const currentGame = useMemo(() => {
     const appId = Number(profile?.gameId);
@@ -186,6 +191,7 @@ export function SteamPage() {
                 sort={sort}
                 setSort={setSort}
                 onOpenGame={handleOpenDrill}
+                fpsGamesByKey={fpsGamesByKey}
               />
             ) : (
               <DrillView
@@ -244,6 +250,7 @@ function EntryView({
   sort,
   setSort,
   onOpenGame,
+  fpsGamesByKey,
 }: {
   ownedGames: SteamOwnedGame[];
   friends: SteamFriendSummary[];
@@ -254,6 +261,7 @@ function EntryView({
   sort: SortKey;
   setSort: (s: SortKey) => void;
   onOpenGame: (appId: number, name: string) => void;
+  fpsGamesByKey: ReadonlyMap<string, FpsGameSummary>;
 }) {
   const { t } = useTranslation();
   const filtered = useMemo(() => {
@@ -308,7 +316,7 @@ function EntryView({
             />
           </div>
         ) : (
-          <VirtualizedLibrary games={filtered} onOpenGame={onOpenGame} />
+          <VirtualizedLibrary games={filtered} onOpenGame={onOpenGame} fpsGamesByKey={fpsGamesByKey} />
         )}
       </main>
 
@@ -398,9 +406,11 @@ function EntryView({
 function VirtualizedLibrary({
   games,
   onOpenGame,
+  fpsGamesByKey,
 }: {
   games: SteamOwnedGame[];
   onOpenGame: (appId: number, name: string) => void;
+  fpsGamesByKey: ReadonlyMap<string, FpsGameSummary>;
 }) {
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const rafRef = useRef<number | null>(null);
@@ -498,7 +508,12 @@ function VirtualizedLibrary({
           }}
         >
           {visible.map(game => (
-            <GameTile key={game.appId} game={game} onOpen={onOpenGame} />
+            <GameTile
+              key={game.appId}
+              game={game}
+              onOpen={onOpenGame}
+              fps={fpsGamesByKey.get(steamGameKey(game.appId))}
+            />
           ))}
         </div>
       </div>
@@ -517,32 +532,77 @@ function VirtualizedLibrary({
 function GameTile({
   game,
   onOpen,
+  fps,
 }: {
   game: SteamOwnedGame;
   onOpen: (appId: number, name: string) => void;
+  fps?: FpsGameSummary;
 }) {
+  const { t } = useTranslation();
   const [failed, setFailed] = useState(false);
+  // The tile's own tooltip already shows the (possibly truncated) game name;
+  // when FPS data exists it gains a second line rather than opening a nested
+  // tooltip on the chip itself.
+  const tooltipBody = fps ? (
+    <>
+      <div>{game.name}</div>
+      <div className={styles.gameTileTooltipFps}>
+        {t('steam.fps.chipTooltip', {
+          p1: Math.round(fps.p1Fps),
+          p99: Math.round(fps.p99Fps),
+          count: fps.sessions,
+        })}
+      </div>
+    </>
+  ) : game.name;
+
   return (
-    <HoverTooltip body={game.name} side="top">
+    <HoverTooltip body={tooltipBody} side="top">
       <button
         type="button"
         className={styles.gameTile}
+        // Pins the tile's own accessible name so it can't absorb the nested
+        // FPS chip's aria-label (a button with no name of its own inherits
+        // descendant text into its computed name).
+        aria-label={game.name}
         onClick={() => onOpen(game.appId, game.name)}
       >
-        {failed ? (
-          <div className={styles.gameTileArt} aria-hidden="true" />
-        ) : (
-          <img
-            className={styles.gameTileArt}
-            src={steamCapsuleUrl(game.appId)}
-            width={231}
-            height={87}
-            alt=""
-            loading="lazy"
-            decoding="async"
-            onError={() => setFailed(true)}
-          />
-        )}
+        <div className={styles.gameTileArtWrap}>
+          {failed ? (
+            <div className={styles.gameTileArt} aria-hidden="true" />
+          ) : (
+            <img
+              className={styles.gameTileArt}
+              src={steamCapsuleUrl(game.appId)}
+              width={231}
+              height={87}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              onError={() => setFailed(true)}
+            />
+          )}
+          {fps && (
+            <span
+              role="button"
+              tabIndex={0}
+              className={styles.fpsChip}
+              aria-label={t('steam.fps.chipAriaLabel', { name: game.name })}
+              onClick={e => {
+                e.stopPropagation();
+                requestOpenFramesGame(steamGameKey(game.appId));
+              }}
+              onKeyDown={e => {
+                if (e.key !== 'Enter' && e.key !== ' ') return;
+                e.preventDefault();
+                e.stopPropagation();
+                requestOpenFramesGame(steamGameKey(game.appId));
+              }}
+            >
+              {t('steam.fps.chip', { value: Math.round(fps.avgFps) })}
+            </span>
+          )}
+        </div>
         <div className={styles.gameTileMeta}>
           <div className={styles.gameTileName}>{game.name}</div>
           <div className={styles.gameTileSub}>{formatMinutes(game.playtimeForever)}</div>
@@ -767,6 +827,7 @@ function DrillView({
               </ul>
             </Card>
           )}
+
         </section>
 
         <section className={styles.drillCol}>
@@ -811,15 +872,6 @@ function DrillView({
   );
 }
 
-function StatTile({ label, value }: { label: string; value: string }) {
-  return (
-    <div className={styles.statTile}>
-      <span className={styles.statTileValue}>{value}</span>
-      <span className={styles.statTileLabel}>{label}</span>
-    </div>
-  );
-}
-
 function PersonaDot({ state }: { state: number | undefined }) {
   return <span className={styles.personaDot} data-state={personaToneKey(state)} aria-hidden="true" />;
 }
@@ -845,7 +897,7 @@ function personaStatusLabel(t: (key: string) => string, state: number | undefine
 
 // Library-tile capsule (231x87, ~2.66:1). No fallback URL on 404
 // (see GameTile).
-function steamCapsuleUrl(appId: number) {
+export function steamCapsuleUrl(appId: number) {
   return `https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/capsule_231x87.jpg`;
 }
 

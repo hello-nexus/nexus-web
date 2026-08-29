@@ -21,6 +21,7 @@ const uiAnchorIds = () => {
     '../components/views/SettingsView/AppearanceTab.tsx',
     '../components/views/SettingsView/MonitoringTab.tsx',
     '../components/views/SettingsView/PrivacyTab.tsx',
+    '../components/views/SettingsView/LocalDataStoreSection.tsx',
     '../components/views/SettingsView/ThemeTab.tsx',
     '../components/views/SettingsView/LightingCoolingTab.tsx',
     '../components/views/SettingsView/LightingCoolingSection.tsx',

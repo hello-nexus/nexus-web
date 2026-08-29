@@ -6,9 +6,10 @@ import { nearestPoint, type TimeSeriesPoint } from '../../../../components/commo
 import type { TimeSeriesSeries } from '../../../../components/common/TimeSeriesChart/TimeSeriesChart';
 import { MIN_BOX_WINDOW_MS } from '../../../../components/common/TimelineBrush/timelineBrushUtils';
 import type { TimelineBrushEdgeLabel } from '../../../../components/common/TimelineBrush/TimelineBrush';
-import type { MetricHistorySeries } from '../../../../api/monitoringHistory';
+import type { MetricHistoryPoint, MetricHistorySeries } from '../../../../api/monitoringHistory';
 import type { AppWindowSeries } from '../../../../api/monitoringHistoryApps';
 import type { FanRole } from '../../../../api/cooling';
+import type { FpsRangeSession } from '../../../../api/fps';
 import { hour12OptionFor, resolveHour12, type TimeFormat } from '../../../../lib/units';
 
 export type HistoryMetric = 'cpu' | 'memory' | 'storage' | 'network' | 'gpu';
@@ -356,6 +357,47 @@ export function maxAvgValue(series: readonly TimeSeriesSeries[]): number {
     }
   }
   return max;
+}
+
+// The same fixed FPS ceiling perfDomain.ts uses for the panel's live FPS
+// gauge - the overlay's own fixed floor for its y-domain, extended only by
+// the series' own observed max (see buildFpsOverlaySeries), never by
+// whichever tab's primary axis is showing.
+const FPS_OVERLAY_DOMAIN_FLOOR_MAX = 240;
+
+/** A point in time is "in a game" only while it falls inside a Frames
+ *  session's own [startedUtcMs, endedUtcMs] - desktop apps present frames
+ *  too, so an unmasked fps series would draw between games as well. */
+export function findFpsSessionAt(sessions: readonly FpsRangeSession[], t: number): FpsRangeSession | null {
+  return sessions.find(s => t >= s.startedUtcMs && t <= s.endedUtcMs) ?? null;
+}
+
+/** Drops every fps point that falls outside every known session's range. */
+export function maskFpsPointsToSessions(
+  points: readonly MetricHistoryPoint[],
+  sessions: readonly FpsRangeSession[],
+): MetricHistoryPoint[] {
+  if (sessions.length === 0) return [];
+  return points.filter(p => findFpsSessionAt(sessions, p.t) !== null);
+}
+
+/**
+ * The FPS overlay line, on its own fixed [0, 240+] y-domain (TimeSeriesChart's
+ * fixedYDomain) - independent of whatever the tab's own primary series axis
+ * is doing, so the same fps value renders at the same pixel height on every
+ * tab. Extended past 240 only when the window's own data exceeds it.
+ */
+export function buildFpsOverlaySeries(
+  maskedPoints: readonly MetricHistoryPoint[],
+  color: string,
+): TimeSeriesSeries | null {
+  if (maskedPoints.length === 0) return null;
+  let domainMax = FPS_OVERLAY_DOMAIN_FLOOR_MAX;
+  for (const p of maskedPoints) {
+    if (p.avg > domainMax) domainMax = p.avg;
+  }
+  const points: TimeSeriesPoint[] = maskedPoints.map(p => ({ t: p.t, avg: p.avg, max: p.max }));
+  return { id: 'fps-overlay', name: 'FPS', color, points, noFill: true, noDots: true, fixedYDomain: [0, domainMax] };
 }
 
 // Round, human-legible ceilings for a 0-100 percent axis (cpu/gpu/memory) -

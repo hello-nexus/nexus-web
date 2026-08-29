@@ -23,6 +23,11 @@ export interface TimeSeriesSeries {
   /** Suppresses the isolated single-point-segment circle marker for this
    *  series; a multi-point segment's stroked line still renders. */
   noDots?: boolean;
+  /** Renders this series against its own [min, max] instead of the chart's
+   *  shared yDomain - for an overlay whose unit/scale is unrelated to the
+   *  primary series (e.g. an FPS line on a percent-load chart), so its
+   *  pixel height stays constant regardless of what else is plotted. */
+  fixedYDomain?: readonly [number, number];
 }
 
 // A gap wider than this multiple of the actual median point spacing renders
@@ -67,6 +72,25 @@ export function medianSpacingMs(series: readonly TimeSeriesSeries[]): number | n
  *  the exact gap-detection math instead of reimplementing it. */
 export function medianSpacingOfPoints(points: readonly { t: number }[]): number | null {
   return pooledMedianDelta([points]);
+}
+
+// A gap at or below this floor always bridges - see gapThresholdMs.
+export const GAP_BRIDGE_FLOOR_MS = 5000;
+
+/**
+ * The gap threshold (ms) above which two consecutive points render as a
+ * broken run instead of a connected one. Derived from the points' own
+ * median spacing (GAP_MULTIPLIER times it) so it self-calibrates to
+ * whatever decimation cadence is actually in view, then floored at
+ * GAP_BRIDGE_FLOOR_MS so a small real-time gap always bridges even when the
+ * local median is tiny. Does not affect the hover tooltip's own
+ * nearest-point attachment distance - that stays derived straight from the
+ * data's median spacing, unchanged.
+ */
+export function gapThresholdMs(points: readonly { t: number }[]): number {
+  const median = medianSpacingOfPoints(points);
+  const relative = median === null ? Infinity : median * GAP_MULTIPLIER;
+  return Math.max(relative, GAP_BRIDGE_FLOOR_MS);
 }
 
 /**
