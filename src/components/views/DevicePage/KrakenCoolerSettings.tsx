@@ -15,6 +15,7 @@ import {
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { convertTemperature, formatNumber, localizeNumbers, tempUnitSymbol } from '../../../lib/units';
+import { KrakenFirmwareLightingSection } from './KrakenFirmwareLighting';
 import styles from './LianLiDevicePage.module.scss';
 
 // Matches the service status poll so the readout tracks the cooler without adding load.
@@ -241,6 +242,8 @@ export function KrakenCoolerSettings({ onSectionNavigate }: {
           </Button>
         )}
       </SettingsSection>
+
+      <KrakenFirmwareLightingSection />
     </>
   );
 }

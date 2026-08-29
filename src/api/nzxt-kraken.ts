@@ -37,6 +37,47 @@ export function setKrakenLcd(patch: KrakenLcdPatch): Promise<unknown | null> {
   return putService('/devices/nzxt-kraken/lcd', patch);
 }
 
+/** One animation the cooler plays by itself, and the palette it reads. */
+export interface KrakenEffect {
+  id: string;
+  minColors: number;
+  maxColors: number;
+  directional: boolean;
+}
+
+export interface KrakenFirmwareChannel {
+  id: string;
+  accessoryName: string;
+  effect: string;
+  speed: number;
+  forward: boolean;
+  colors: string[];
+  /** True while Nexus still pushes frames to this channel, which overrides the animation. */
+  nexusDriven: boolean;
+}
+
+export interface KrakenFirmwareLighting {
+  isConnected: boolean;
+  effects: KrakenEffect[];
+  channels: KrakenFirmwareChannel[];
+}
+
+export interface KrakenFirmwareLightingPatch {
+  channel: string;
+  effect: string;
+  speed: number;
+  forward: boolean;
+  colors: string[];
+}
+
+export function getKrakenFirmwareLighting(): Promise<KrakenFirmwareLighting | null> {
+  return fetchService<KrakenFirmwareLighting>('/devices/nzxt-kraken/firmware-lighting');
+}
+
+export function setKrakenFirmwareLighting(patch: KrakenFirmwareLightingPatch): Promise<unknown | null> {
+  return putService('/devices/nzxt-kraken/firmware-lighting', patch);
+}
+
 /** Uploads one full-panel RGBA frame; the service rejects any other length. */
 export async function uploadKrakenLcdImage(rgba: Uint8Array): Promise<boolean> {
   const r = await postServiceBytes('/devices/nzxt-kraken/lcd/image', rgba, 'application/octet-stream');
