@@ -66,7 +66,32 @@ export const UI_ELEMENTS = {
   },
   // An image from an https/data/blob URL (the host validates the scheme). The
   // worker supplies a URL string; the host owns sizing/fit/radius via tokens.
-  'ui-image': { properties: ['src', 'alt', 'fit', 'radius', 'width', 'height', 'aspect', 'tone'] },
+  // `pixelated` switches to nearest-neighbour scaling, so pixel art authored at
+  // its native grid stays crisp instead of being smoothed when it is scaled up.
+  'ui-image': { properties: ['src', 'alt', 'fit', 'radius', 'width', 'height', 'aspect', 'tone', 'pixelated'] },
+  // A positioned stage: `position: relative` + clipping, so `ui-sprite` children
+  // can overlap and move freely. The ONLY place the closed layout set allows
+  // free 2D placement, and it stays inside the consistency boundary because the
+  // children are still blessed elements the host draws.
+  // `press` reports the tap position as { x, y } in layer-local pixels, so an
+  // author can react where the user actually touched (the closed event set has
+  // no other way to learn a coordinate).
+  'ui-layer': {
+    properties: ['grow', 'padding', 'aspect', 'tone', 'radius', 'interactive'],
+    events: ['press'],
+  },
+  // One cell of a sprite atlas, absolutely placed inside a `ui-layer`. The
+  // worker ships the atlas ONCE as a data URL and then animates by sending a
+  // frame INDEX plus a position - three small numbers per frame instead of a
+  // fresh image URL, which is what makes per-frame animation affordable over
+  // the worker MessagePort. `cols` describes the atlas grid; `cw`/`ch` are the
+  // cell size; `x`/`y`/`z` place it; `scale`/`flip`/`opacity` transform it.
+  'ui-sprite': {
+    properties: [
+      'src', 'frame', 'cols', 'cw', 'ch',
+      'x', 'y', 'z', 'scale', 'flip', 'opacity', 'pixelated', 'alt',
+    ],
+  },
   // A looping muted video from a same-origin (/...), https, or blob URL (the host
   // validates the scheme). Autoplays muted+inline for a live preview tile.
   'ui-video': { properties: ['src', 'fit', 'radius', 'width', 'height', 'aspect', 'tone', 'loop'] },

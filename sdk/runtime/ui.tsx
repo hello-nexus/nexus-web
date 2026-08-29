@@ -108,12 +108,41 @@ export interface StepperProps {
 export interface ImageProps {
   src: string; alt?: string; fit?: 'cover' | 'contain' | 'fill' | 'none';
   radius?: number; width?: number; height?: number; aspect?: string | number; tone?: UiTone;
+  /** Nearest-neighbour scaling, for pixel art authored at its native grid. */
+  pixelated?: boolean;
 }
 export interface VideoProps {
   src: string; fit?: 'cover' | 'contain' | 'fill' | 'none';
   radius?: number; width?: number; height?: number; aspect?: string | number; tone?: UiTone;
   /** Loop playback (default true). Always muted + autoplay + inline. */
   loop?: boolean;
+}
+export interface LayerProps extends WithChildren {
+  /** Fill the available space (the usual case for a stage). */
+  grow?: boolean; padding?: number; aspect?: string | number;
+  tone?: UiTone; radius?: number;
+  /** Make the stage tappable; onPress reports layer-local { x, y }. */
+  interactive?: boolean;
+  onPress?: (at: { x: number; y: number }) => void;
+}
+export interface SpriteProps {
+  /** The atlas, shipped once as an https/data/blob URL. */
+  src: string;
+  /** Cell index into the atlas, row-major. */
+  frame?: number;
+  /** Cells per atlas row. */
+  cols?: number;
+  /** Cell size in atlas pixels (defaults to 32x32). */
+  cw?: number; ch?: number;
+  /** Position within the parent Layer, in CSS pixels. */
+  x?: number; y?: number; z?: number;
+  scale?: number;
+  /** Mirror horizontally - the usual way to face a sprite the other way. */
+  flip?: boolean;
+  opacity?: number;
+  /** Nearest-neighbour scaling. On by default; pass false for smooth art. */
+  pixelated?: boolean;
+  alt?: string;
 }
 export interface ScrollProps extends WithChildren {
   direction?: 'vertical' | 'horizontal' | 'both'; gap?: number; padding?: number; grow?: boolean;
@@ -282,6 +311,8 @@ export const Button = eventComponent<ButtonProps>('ui-button', ELEMENT_CTORS['ui
 export const Stepper = eventComponent<StepperProps>('ui-stepper', ELEMENT_CTORS['ui-stepper'], [['onChange', 'change']]);
 export const Image = createRemoteComponent('ui-image' as any, ELEMENT_CTORS['ui-image']) as unknown as React.FC<ImageProps>;
 export const Video = createRemoteComponent('ui-video' as any, ELEMENT_CTORS['ui-video']) as unknown as React.FC<VideoProps>;
+export const Layer = eventComponent<LayerProps>('ui-layer', ELEMENT_CTORS['ui-layer'], [['onPress', 'press']]);
+export const Sprite = createRemoteComponent('ui-sprite' as any, ELEMENT_CTORS['ui-sprite']) as unknown as React.FC<SpriteProps>;
 export const Scroll = createRemoteComponent('ui-scroll' as any, ELEMENT_CTORS['ui-scroll']) as unknown as React.FC<ScrollProps>;
 export const Input = eventComponent<InputProps>('ui-input', ELEMENT_CTORS['ui-input'], [['onValueChange', 'input'], ['onEnter', 'submit'], ['onLeave', 'blur']]);
 export const Chart = createRemoteComponent('ui-chart' as any, ELEMENT_CTORS['ui-chart']) as unknown as React.FC<ChartProps>;

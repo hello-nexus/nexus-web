@@ -52,12 +52,18 @@ export const DEFAULT_SIMULATED_PANEL_GRID_SIZING: SimulatedPanelGridSizing = {
   shortSideJumpAtInches: DEFAULT_PANEL_GRID_SHORT_SIDE_JUMP_INCHES,
 };
 
+// Native pixels, like every other entry in this table. The previous default
+// was 734x1707: 734 is the 4K panel's CSS width (1100/1.5) and 1707 the 2.5K's
+// CSS height (2560/1.5), so two CSS-space numbers from two different panels sat
+// in a native-pixel field and were divided by the DPR a second time. That
+// rendered at aspect 0.43 against a real Y70's 0.27 - visibly squat. The dpi
+// here has always been the 2.5K's, so that is the panel this meant to describe.
 const DEFAULT_CUSTOM_PANEL: SimulatedPanelDefinition = {
   id: 'custom',
   name: 'Custom Panel',
   surface: 'y70',
-  width: 734,
-  height: 1707,
+  width: 682,
+  height: 2560,
   dpi: 337,
 };
 

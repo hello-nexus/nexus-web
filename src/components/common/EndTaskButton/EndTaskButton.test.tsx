@@ -85,4 +85,37 @@ describe('EndTaskButton', () => {
     render(<EndTaskButton conflictId="signalrgb" pid={100} />);
     expect(mockKill).not.toHaveBeenCalled();
   });
+
+  it('spins as though pressed while another control runs the same kill', () => {
+    render(<EndTaskButton conflictId="signalrgb" pid={100} busy />);
+    expect(spinning()).toBe(true);
+  });
+
+  it('renders the terminated marker in place of the button once the app is ended', () => {
+    render(<EndTaskButton conflictId="signalrgb" pid={100} terminated />);
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    expect(screen.getByText('conflicts.modal.terminated')).toBeInTheDocument();
+  });
+
+  it('hands a stuck kill to the caller and stops spinning, since the row now stays', async () => {
+    mockKill.mockResolvedValue({ error: false, msg: 'Killed', killed: true });
+    const onKilled = vi.fn();
+    render(<EndTaskButton conflictId="signalrgb" pid={100} onKilled={onKilled} />);
+
+    await clickEnd();
+
+    expect(onKilled).toHaveBeenCalledTimes(1);
+    expect(spinning()).toBe(false);
+  });
+
+  it('does not report a kill that did not stick', async () => {
+    mockKill.mockResolvedValue({ error: false, msg: 'Still running', killed: false });
+    const onKilled = vi.fn();
+    render(<EndTaskButton conflictId="signalrgb" pid={100} onKilled={onKilled} />);
+
+    await clickEnd();
+
+    expect(onKilled).not.toHaveBeenCalled();
+    expect(spinning()).toBe(false);
+  });
 });

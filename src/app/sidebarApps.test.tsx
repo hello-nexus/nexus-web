@@ -1,7 +1,8 @@
 import type { ReactElement } from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
-import { getSidebarAppMeta, sanitizePinnedTail } from './sidebarApps';
-import { AppIconImage } from '../components/icons/AppIconImage';
+import { DEFAULT_PINNED_TAIL, getSidebarAppMeta, isPinnableAppKey, sanitizePinnedTail } from './sidebarApps';
+import { Boxes } from 'lucide-react';
+import { appIconComponent } from '../components/icons/AppIconImage';
 import {
   _resetMarketplaceRegistryForTests,
   _seedMarketplaceRegistryForTests,
@@ -23,32 +24,62 @@ function listing(over: Partial<AppInstalledListing>): AppInstalledListing {
 
 afterEach(() => _resetMarketplaceRegistryForTests());
 
-describe('getSidebarAppMeta - preinstalled OEM icon', () => {
+describe('getSidebarAppMeta - SDK app manifest icon', () => {
+  const MARK = '/apps-api/installed/com.ibuypower.control/asset/assets/mark.svg';
+
   it('renders the app manifest icon for a preinstalled app', () => {
     _seedMarketplaceRegistryForTests([
       listing({
         id: 'com.ibuypower.control', name: 'iBUYPOWER', preinstalled: true, page: true,
-        iconUrl: '/apps-api/installed/com.ibuypower.control/asset/assets/mark.svg',
+        iconUrl: MARK,
       }),
     ]);
     const meta = getSidebarAppMeta(typeForMarketplace('com.ibuypower.control'));
     expect(meta).not.toBeNull();
-    expect((meta!.icon as ReactElement).type).toBe(AppIconImage);
+    expect((meta!.icon as ReactElement).type).toBe(appIconComponent(MARK));
   });
 
-  it('leaves a non-preinstalled page app on the generic marketplace glyph', () => {
+  // The OEM flag decides whether an app auto-seeds onto the sidebar, not which
+  // glyph it draws - an app that ships a mark renders it on every machine.
+  it('renders the manifest icon for a non-preinstalled app too', () => {
     _seedMarketplaceRegistryForTests([
       listing({ id: 'com.hellonexus.weather', name: 'Weather', page: true, iconUrl: '/x.svg' }),
     ]);
     const meta = getSidebarAppMeta(typeForMarketplace('com.hellonexus.weather'));
     expect(meta).not.toBeNull();
-    expect((meta!.icon as ReactElement).type).not.toBe(AppIconImage);
+    expect((meta!.icon as ReactElement).type).toBe(appIconComponent('/x.svg'));
+  });
+
+  it('falls back to the generic glyph for an app that ships no icon', () => {
+    _seedMarketplaceRegistryForTests([
+      listing({ id: 'com.hellonexus.plain', name: 'Plain', page: true }),
+    ]);
+    const meta = getSidebarAppMeta(typeForMarketplace('com.hellonexus.plain'));
+    expect(meta).not.toBeNull();
+    expect((meta!.icon as ReactElement).type).toBe(Boxes);
   });
 
   it('leaves a built-in app (e.g. clock) untouched', () => {
     const meta = getSidebarAppMeta('clock');
     expect(meta).not.toBeNull();
-    expect((meta!.icon as ReactElement).type).not.toBe(AppIconImage);
+    expect((meta!.icon as ReactElement).type).not.toBe(Boxes);
+  });
+});
+
+describe('page-only apps (Store)', () => {
+  it('resolves sidebar meta from the page-only registry', () => {
+    const meta = getSidebarAppMeta('store');
+    expect(meta).not.toBeNull();
+    expect(meta!.i18nKey).toBe('apps.tabs.store');
+  });
+
+  it('is pinnable, so it can be added from the drawer and persisted', () => {
+    expect(isPinnableAppKey('store')).toBe(true);
+    expect(sanitizePinnedTail(['store'])).toEqual(['store']);
+  });
+
+  it('is not in the default pinned tail', () => {
+    expect(DEFAULT_PINNED_TAIL).not.toContain('store');
   });
 });
 

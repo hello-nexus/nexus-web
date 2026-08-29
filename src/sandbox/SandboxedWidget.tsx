@@ -3,7 +3,7 @@
 // renders the worker's remote tree as real @hellonexus/ui components. A pure
 // flex-fill container, like DeclarativeWidget, since the panel cell sizes it.
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { RemoteTree } from './RemoteTree';
 import { SdkErrorBoundary } from './SdkErrorBoundary';
 import { spawnSandboxedWidget, type SandboxContext, type SandboxHandle } from './host';
@@ -49,7 +49,16 @@ function readLocal(widgetId: string, instanceId: string): Record<string, unknown
 // live worker for a short grace window keyed by instance, so a remount reuses it
 // and the RemoteTree re-renders the receiver's existing tree instantly. A widget
 // that is genuinely removed disposes after the window elapses.
-interface LiveWidget { handle: SandboxHandle; disposeTimer: ReturnType<typeof setTimeout> | null; }
+interface LiveWidget {
+  handle: SandboxHandle;
+  disposeTimer: ReturnType<typeof setTimeout> | null;
+  // A widget can be on screen twice at once - the panel cell keeps rendering
+  // behind the fullscreen (immersive) view of the same instance - and both
+  // drive this one worker, which holds one size. Newest mount last: it owns the
+  // size, and when it leaves the one below re-asserts its own, else the cell
+  // stays drawn at fullscreen scale. Disposal waits for the last mount.
+  mounts: Array<{ pushSize: () => void }>;
+}
 const liveWidgets = new Map<string, LiveWidget>();
 const KEEP_ALIVE_MS = 2500;
 
@@ -67,15 +76,28 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
   );
   const settingsKey = JSON.stringify(settings ?? {});
 
+  const handleRef = useRef<SandboxHandle | null>(null);
+  const pushOwnSize = useCallback(() => {
+    const el = wrapRef.current;
+    const h = handleRef.current;
+    if (!el || !h) return;
+    const width = Math.round(el.clientWidth);
+    const height = Math.round(el.clientHeight);
+    if (width > 0 && height > 0) h.update({ size: { width, height } });
+  }, []);
+  // This mount's identity inside the cache entry's stack; stable for its life.
+  const mountRef = useRef<{ pushSize: () => void } | null>(null);
+  if (mountRef.current === null) mountRef.current = { pushSize: () => pushOwnSize() };
+
   useEffect(() => {
     const key = cacheKey;
+    const mount = mountRef.current!;
     let entry = liveWidgets.get(key);
 
     if (entry) {
       // Reuse across a transient remount; cancel any pending disposal.
       if (entry.disposeTimer) { clearTimeout(entry.disposeTimer); entry.disposeTimer = null; }
       entry.handle.update({ settings: settings ?? {} });
-      setHandle(entry.handle);
     } else {
       const el = wrapRef.current;
       const size = el
@@ -105,15 +127,25 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
             : (action, args) => onDispatch?.(action, args) ?? Promise.resolve(null),
         },
       };
-      entry = { handle: spawnSandboxedWidget(runtimeUrl, entryUrl, context), disposeTimer: null };
+      entry = { handle: spawnSandboxedWidget(runtimeUrl, entryUrl, context), disposeTimer: null, mounts: [] };
       liveWidgets.set(key, entry);
-      setHandle(entry.handle);
     }
+
+    handleRef.current = entry.handle;
+    entry.mounts.push(mount);
+    setHandle(entry.handle);
+    pushOwnSize();
 
     return () => {
       setHandle(null);
+      handleRef.current = null;
       const e = liveWidgets.get(key);
-      if (e && !e.disposeTimer) {
+      if (!e) return;
+      const at = e.mounts.indexOf(mount);
+      if (at >= 0) e.mounts.splice(at, 1);
+      const below = e.mounts[e.mounts.length - 1];
+      if (below) { below.pushSize(); return; }
+      if (!e.disposeTimer) {
         e.disposeTimer = setTimeout(() => {
           e.handle.dispose();
           liveWidgets.delete(key);
@@ -136,11 +168,16 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
     if (!el || typeof ResizeObserver === 'undefined' || !handle) return;
     const ro = new ResizeObserver((entries) => {
       const rect = entries[0]?.contentRect;
-      if (rect) handle.update({ size: { width: Math.round(rect.width), height: Math.round(rect.height) } });
+      if (!rect) return;
+      // Only the newest mount drives the size: a cell reflowing behind an open
+      // fullscreen view of the same widget must not shrink it.
+      const e = liveWidgets.get(cacheKey);
+      if (e && e.mounts.length > 0 && e.mounts[e.mounts.length - 1] !== mountRef.current) return;
+      handle.update({ size: { width: Math.round(rect.width), height: Math.round(rect.height) } });
     });
     ro.observe(el);
     return () => ro.disconnect();
-  }, [handle]);
+  }, [handle, cacheKey]);
 
   return (
     <div ref={wrapRef} style={{ width: '100%', height: '100%', display: 'flex', minWidth: 0, minHeight: 0 }}>

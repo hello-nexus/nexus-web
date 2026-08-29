@@ -4,14 +4,14 @@
 // (elements.ts) + the contract become ONE shared chunk (a single
 // customElements registration, never doubled). react / react-dom / @remote-dom
 // / @quilted are externalized (the host runtime provides them; an app bundle
-// externalizes @hello-nexus/* to it). No source maps ship (the tarball is
-// dist/ only, so the original TS never leaves the private repo).
+// externalizes @hello-nexus/* to it). No source maps ship and the tarball
+// carries only dist/ + the CLI, so the original TS never leaves the private repo.
 
 import { build } from 'esbuild';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
-import { rmSync, existsSync, writeFileSync, readFileSync } from 'node:fs';
+import { rmSync, mkdirSync, existsSync, writeFileSync, readFileSync, copyFileSync, chmodSync } from 'node:fs';
 
 const here = dirname(fileURLToPath(import.meta.url)); // sdk/publish
 const runtime = join(here, '..', 'runtime');          // sdk/runtime
@@ -59,7 +59,17 @@ try {
   process.exit(1);
 }
 
-// --- 3. Stage README into the package dir so it ships + renders. ---
+// --- 3. Stage the author CLI, which is the package's `nexus-app` bin. npm
+//        `files` are package-root relative, so the source at sdk/cli is copied
+//        in rather than referenced. ---
+const cliDir = join(here, 'cli');
+rmSync(cliDir, { recursive: true, force: true });
+mkdirSync(cliDir, { recursive: true });
+copyFileSync(join(here, '..', 'cli', 'nexus-app.mjs'), join(cliDir, 'nexus-app.mjs'));
+chmodSync(join(cliDir, 'nexus-app.mjs'), 0o755);
+console.log('staged CLI -> cli/nexus-app.mjs');
+
+// --- 4. Stage README into the package dir so it ships + renders. ---
 const readme = join(here, 'README.md');
 if (!existsSync(readme)) console.warn('no README.md in sdk/publish (it should ship)');
 

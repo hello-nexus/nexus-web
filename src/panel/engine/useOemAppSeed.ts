@@ -42,11 +42,17 @@ export function useOemAppSeed({
   uiHydrated, uiSettings, updateUiSettings,
 }: UseOemAppSeedArgs): void {
   const forceRender = useReducer((r: number) => r + 1, 0)[1];
+  // Deliberately NOT gated on `enabled`. The OEM seed below is desktop-only,
+  // but the registry load is what lets lookupApp resolve an `app:<id>` type at
+  // all - and every surface needs that to render an installed SDK app. Gating
+  // it left panels (y70/q60/phone, and the device-page simulator) with an empty
+  // registry, so lookupApp returned undefined, the widget had no component, and
+  // the cell rendered blank: an SDK app could be added to a panel and would
+  // simply never appear.
   useEffect(() => {
-    if (!enabled) return;
     if (isMarketplaceRegistryStale()) void loadMarketplaceApps();
     return subscribeMarketplaceRegistry(forceRender);
-  }, [enabled, forceRender]);
+  }, [forceRender]);
 
   // Guards a duplicate run within one mount (e.g. React StrictMode's
   // double-invoke); the persisted oemAppSeeded flag is what makes the

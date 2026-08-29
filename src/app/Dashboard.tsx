@@ -19,6 +19,7 @@ const DevicesPage = lazy(() => import('../panel/widgets/devices/DevicesPage').th
 const LightingPage = lazy(() => import('../panel/widgets/lighting/LightingPage').then(m => ({ default: m.LightingPage })));
 const SmartLightsPage = lazy(() => import('../panel/widgets/smart-lights/SmartLightsPage').then(m => ({ default: m.SmartLightsPage })));
 const HomeAssistantPage = lazy(() => import('../panel/widgets/home-assistant/HomeAssistantPage').then(m => ({ default: m.HomeAssistantPage })));
+const StorePage = lazy(() => import('../components/views/StorePage/StorePage').then(m => ({ default: m.StorePage })));
 const ClockPage = lazy(() => import('../panel/widgets/clock/ClockPage').then(m => ({ default: m.ClockPage })));
 const SteamPage = lazy(() => import('../panel/widgets/steam/SteamPage').then(m => ({ default: m.SteamPage })));
 const GalleryPage = lazy(() => import('../panel/widgets/gallery/page/GalleryPage').then(m => ({ default: m.GalleryPage })));
@@ -277,6 +278,7 @@ function ConflictOnboardingGate({
     <ConflictOnboardingScreen
       open={armed && !done}
       conflicts={conflicts}
+      ready={ready}
       onComplete={onComplete}
       onSkipOnboarding={onSkipOnboarding}
       onBack={onBack}
@@ -779,6 +781,7 @@ export function Dashboard() {
       );
       case 'diagnostics': return <FeatureGate feature="diagnostics"><DiagnosticsPage serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} tab={subtab} onTabChange={setSubtab} /></FeatureGate>;
       case 'frames':      return <FramesPage tab={subtab} onTabChange={setSubtab} />;
+      case 'store':      return <StorePage />;
       case 'clock':      return <ClockPage />;
       case 'steam':      return <SteamPage />;
       case 'gallery':    return <GalleryPage />;

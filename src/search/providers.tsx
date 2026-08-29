@@ -35,8 +35,7 @@ import type { UpdateMode, UpdateChannel } from '../api/update';
 import { COOLING_MODES, type CoolingModeKey } from '../panel/widgets/cooling/page/coolingModes';
 import { EFFECTS, MODES, BASE_DEFAULTS, categoryOf, type LightingMode } from '../types/lighting';
 import { appAvailableForSurface, getCatalogEntries } from '../panel/widgets/registry';
-import { preinstalledIconUrl } from '../app/sidebarApps';
-import { AppIconImage } from '../components/icons/AppIconImage';
+import { PAGE_ONLY_APPS } from '../app/pageOnlyApps';
 import { DEV_TOOLS } from '../lib/devTools';
 import { DISCORD_INVITE_URL, GITHUB_ISSUES_URL } from '../lib/externalLinks';
 import type { CommandContext, SearchEntry, SearchSource } from './types';
@@ -286,6 +285,7 @@ const CURATED_APP_VIEWS = new Set(NAV.map((n) => n.view));
 // Hand-tuned synonyms per app, so "hue" finds Smart Lights and "leaderboard"
 // finds Benchmark. Apps absent here still match on their localized title.
 const APP_KEYWORDS: Record<string, string[]> = {
+  store: ['shop', 'marketplace', 'apps', 'download', 'install'],
   clock: ['time', 'timezone', 'world clock'],
   calendar: ['events', 'schedule', 'agenda', 'date'],
   gallery: ['photos', 'images', 'pictures', 'slideshow', 'wallpaper'],
@@ -308,17 +308,25 @@ const APP_KEYWORDS: Record<string, string[]> = {
   emoji: ['emotes', 'reactions'],
 };
 
+const pageOnlyApps: SearchSource = (ctx) =>
+  Object.entries(PAGE_ONLY_APPS).map(([key, app]) => {
+    const Icon = app.icon;
+    return go(`app:${key}`, {
+      title: ctx.t(app.i18nKey),
+      icon: <Icon size={18} />,
+      keywords: ['app', ...(APP_KEYWORDS[key] ?? [])],
+      to: () => ctx.host.goView(key),
+    });
+  });
+
 const installedApps: SearchSource = (ctx) =>
   getCatalogEntries()
     .filter(([type, m]) => !!m.Page && !CURATED_APP_VIEWS.has(type))
     .map(([type, m]) => {
       const Icon = m.meta.icon;
-      // A preinstalled (OEM) app renders its own manifest mark, same as the
-      // sidebar; every other app falls back to the generic catalog glyph.
-      const iconUrl = preinstalledIconUrl(type);
       return go(`app:${type}`, {
         title: ctx.t(m.meta.i18nKey),
-        icon: iconUrl ? <AppIconImage src={iconUrl} size={18} /> : <Icon size={18} />,
+        icon: <Icon size={18} />,
         keywords: ['app', ...(APP_KEYWORDS[type] ?? [])],
         to: () => ctx.host.goView(type),
       });
@@ -844,7 +852,7 @@ const diagnostics: SearchSource = (ctx) => [
 // are ranked by relevance, not source order.
 export const SOURCES: SearchSource[] = [
   navigation, navDisplays, navSubtabs, settingsTabs, settingsItems, standalonePages,
-  installedApps, widgetApps, devices, profilesSource, profilesExtra,
+  pageOnlyApps, installedApps, widgetApps, devices, profilesSource, profilesExtra,
   cooling, lightingModes, lightingEffects, lightingExtras, lightingDeviceActions,
   smartLightsSource, gameSyncScan, appearance, updatePrefs,
   actions, quickOpens, remoteAccess, settingsToggles, privacyToggles,

@@ -55,7 +55,7 @@ The same widget as declarative JSON was ~120 lines plus a binding mini-language
 (`now()`, `formatDuration`, `conditional`, `localUpdate`). Here it is plain React.
 
 - **Components** (`@hellonexus/ui`): layout - `Stack`, `Grid`, `Frame`, `Spacer`, `Divider`,
-  `Scroll`; content - `Text`, `Icon`, `Image`, `Badge`, `Empty`, `Section`, `Card`; data viz -
+  `Scroll`, `Layer`; content - `Text`, `Icon`, `Image`, `Sprite`, `Badge`, `Empty`, `Section`, `Card`; data viz -
   `Ring`, `Bar`, `Range`, `Gauge`, `Sparkline`, `Chart`; input - `Slider` (see `trackFill` /
   `orientation` below), `Button`, `Stepper`, `Input`, `Toggle`, `Segmented`, `Color` (native HSV
   picker), `Curve` (draggable curve editor), `Spinner`; blessed composites - `ClockFace`,
@@ -70,6 +70,13 @@ The same widget as declarative JSON was ~120 lines plus a binding mini-language
   `number` 0..100 to pin the fill end; bipolar ranges auto-fill centre-out). `orientation`
   selects `'inline'` (label+track+value on one row, default), `'stacked'` (label above,
   full-width track), or `'bare'` (track only, for custom label layouts).
+- **`Layer` + `Sprite`**: the one escape from the closed layout set. `Layer` is a clipped,
+  positioned stage whose `Sprite` children carry `x`/`y`/`z`/`scale`/`flip` and may overlap;
+  `Layer`'s `onPress` reports a layer-local `{ x, y }`, the only coordinate an author can
+  read. A `Sprite` draws one cell of an atlas shipped once as a `data:` URL, so animating is
+  a `frame` index rather than an image per frame, and `pixelated` (default on) keeps pixel
+  art crisp. Built for sprite-animated widgets - the aquarium app runs 92 frames of artwork
+  in a 6 KB gzipped bundle this way.
 - **`ViewHeader`**: a blessed composite that renders the real native page header (title in the
   top bar + a tab strip). Pass `tabs` (`[{ key, label, disabled? }]`), `activeTab`, and
   `onChange` to get a first-class tabbed page identical to a native one.

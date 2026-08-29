@@ -3,7 +3,7 @@
 // feeds them synced properties + event listeners. An author can ONLY cause one of
 // these to render, which is the structural visual-consistency guarantee.
 
-import { type CSSProperties, type ReactNode, useEffect, useRef, useState } from 'react';
+import { type CSSProperties, type MouseEvent as ReactMouseEvent, type ReactNode, useEffect, useRef, useState } from 'react';
 import { Copy, Check } from 'lucide-react';
 import { Spinner as NativeSpinner } from '../../components/common/Spinner/Spinner';
 import { Stepper as NativeStepper } from '../../components/common/Stepper/Stepper';
@@ -340,6 +340,7 @@ export function Image(p: HostProps) {
     aspectRatio: p.aspect != null ? String(p.aspect) : undefined,
     borderRadius: num(p.radius) ?? 0,
     background: p.tone ? toneVar(str(p.tone)) : undefined,
+    imageRendering: p.pixelated ? 'pixelated' : undefined,
     display: 'block', minWidth: 0,
   };
   return <img src={src} alt={str(p.alt) ?? ''} style={style} loading="lazy" referrerPolicy="no-referrer" draggable={false} />;
@@ -367,6 +368,85 @@ export function Video(p: HostProps) {
     display: 'block', minWidth: 0,
   };
   return <video src={src} style={style} autoPlay loop={p.loop !== false} muted playsInline preload="auto" />;
+}
+
+// A sprite atlas crosses the boundary as a CSS `url()`, not an <img src>, so the
+// scheme check is not enough on its own: a quote, backslash, or paren in the
+// string could break out of the url() and inject a declaration. Require the
+// scheme AND reject every character that could terminate the url() token.
+const CSS_URL_UNSAFE = /["'()\\\s]/;
+function safeAtlasUrl(src: string | undefined): string | undefined {
+  if (!src || !SAFE_IMG.test(src) || CSS_URL_UNSAFE.test(src)) return undefined;
+  return src;
+}
+
+// A positioned stage. Establishes the containing block `ui-sprite` children
+// position against, and clips them at its edge so a fish that swims out of
+// frame does not paint over the rest of the tile.
+export function Layer(p: HostProps) {
+  const interactive = !!p.interactive;
+  const style: CSSProperties = {
+    position: 'relative',
+    overflow: 'hidden',
+    padding: num(p.padding),
+    aspectRatio: p.aspect != null ? String(p.aspect) : undefined,
+    background: p.tone ? toneVar(str(p.tone)) : undefined,
+    borderRadius: num(p.radius) ?? 0,
+    // height as well as flex: the stage clips its children, so a Layer that
+    // collapsed to zero height in a non-flex parent would hide every sprite.
+    flex: p.grow ? 1 : undefined,
+    width: '100%',
+    height: p.grow ? '100%' : undefined,
+    minWidth: 0, minHeight: 0,
+    touchAction: interactive ? 'manipulation' : undefined,
+    cursor: interactive ? 'pointer' : undefined,
+  };
+  // The tap coordinate is resolved against the layer's own box before it crosses
+  // back to the worker: the worker has no DOM, so it could not do this itself.
+  const onClick = interactive
+    ? (e: ReactMouseEvent<HTMLDivElement>) => {
+        const r = e.currentTarget.getBoundingClientRect();
+        p.__events?.press?.({ x: e.clientX - r.left, y: e.clientY - r.top });
+      }
+    : undefined;
+  return <div style={style} onClick={onClick}>{p.children}</div>;
+}
+
+// One cell of a sprite atlas. Drawn as a background-position offset into the
+// atlas so animating a frame costs one number, and moved with a transform so
+// the compositor handles motion without a layout pass.
+export function Sprite(p: HostProps) {
+  const src = safeAtlasUrl(str(p.src));
+  if (!src) return null;
+  // A sprite is placed by transform, so one that has not received a position
+  // yet would paint at the layer's origin for a frame - a visible flash in the
+  // top-left corner whenever the worker inserts a new sprite. Draw nothing
+  // until it is positioned; an intentional (0,0) still passes, since those
+  // arrive as real numbers.
+  if (num(p.x) === undefined && num(p.y) === undefined) return null;
+  const cw = num(p.cw) ?? 32;
+  const ch = num(p.ch) ?? 32;
+  const cols = Math.max(1, Math.trunc(num(p.cols) ?? 1));
+  const frame = Math.max(0, Math.trunc(num(p.frame) ?? 0));
+  const scale = num(p.scale) ?? 1;
+  const transform =
+    `translate3d(${num(p.x) ?? 0}px, ${num(p.y) ?? 0}px, 0)` +
+    ` scale(${p.flip ? -scale : scale}, ${scale})`;
+  const style: CSSProperties = {
+    position: 'absolute', left: 0, top: 0,
+    width: cw, height: ch,
+    transform,
+    transformOrigin: 'center center',
+    backgroundImage: `url("${src}")`,
+    backgroundPosition: `${-(frame % cols) * cw}px ${-Math.floor(frame / cols) * ch}px`,
+    backgroundRepeat: 'no-repeat',
+    imageRendering: p.pixelated === false ? undefined : 'pixelated',
+    opacity: num(p.opacity),
+    zIndex: num(p.z),
+    willChange: 'transform',
+    pointerEvents: 'none',
+  };
+  return <div style={style} role={p.alt ? 'img' : undefined} aria-label={str(p.alt)} />;
 }
 
 export function Scroll(p: HostProps) {
