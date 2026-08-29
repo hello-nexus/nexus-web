@@ -7,7 +7,7 @@ import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { useTranslation } from '../../../lib/i18n';
 import {
   fetchStoreApp, fetchStoreApps, installStoreApp,
-  type StoreApp, type StoreAppDetail, type StoreVersion,
+  type StoreApp, type StoreAppDetail,
 } from '../../../api/store';
 import {
   getAllMarketplaceListings, loadMarketplaceApps, subscribeMarketplaceRegistry,
@@ -58,22 +58,6 @@ function Stars({ rating }: { rating: { average: number; count: number } }) {
       ))}
       <span className={styles.ratingCount}>{rating.average.toFixed(1)} ({rating.count})</span>
     </span>
-  );
-}
-
-/** What the release offers, read from the version rather than the app. */
-function Facets({ version }: { version: StoreVersion }) {
-  const { t } = useTranslation();
-  const facets = [
-    version.hasWidget ? t('store.facet.widget') : null,
-    version.hasPage ? t('store.facet.page') : null,
-    version.requiresTouch ? t('store.facet.touch') : null,
-    version.sizes.length > 0 ? version.sizes.join(' · ') : null,
-  ].filter(Boolean) as string[];
-  return (
-    <div className={styles.facets}>
-      {facets.map(f => <span key={f} className={styles.facet}>{f}</span>)}
-    </div>
   );
 }
 
@@ -261,8 +245,27 @@ function AppDetail({ appId, onBack, installed }: {
 
       {app.latest && (
         <SettingsSection title={t('store.section.details')}>
-          <Facets version={app.latest} />
           <dl className={styles.specs}>
+            <dt>{t('store.spec.widget')}</dt>
+            <dd>{app.latest.hasWidget ? t('store.value.yes') : t('store.value.no')}</dd>
+            {app.latest.hasWidget && app.latest.sizes.length > 0 && (
+              <>
+                <dt>{t('store.spec.widgetSizes')}</dt>
+                <dd className={styles.sizes}>
+                  {app.latest.sizes.map(size => (
+                    <span key={size} className={styles.size}>{size}</span>
+                  ))}
+                </dd>
+              </>
+            )}
+            <dt>{t('store.spec.page')}</dt>
+            <dd>{app.latest.hasPage ? t('store.value.yes') : t('store.value.no')}</dd>
+            <dt>{t('store.spec.touch')}</dt>
+            <dd>
+              {app.latest.requiresTouch
+                ? t('store.value.touchRequired')
+                : t('store.value.touchAny')}
+            </dd>
             <dt>{t('store.spec.version')}</dt>
             <dd>{app.latest.version}</dd>
             <dt>{t('store.spec.size')}</dt>
