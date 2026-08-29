@@ -8,6 +8,7 @@
 
 import { ShoppingBag } from 'lucide-react';
 import type { AppIcon } from '../panel/widgets/types';
+import { DEV_TOOLS } from '../lib/devTools';
 
 export interface PageOnlyApp {
   i18nKey: string;
@@ -15,7 +16,9 @@ export interface PageOnlyApp {
 }
 
 export const PAGE_ONLY_APPS: Record<string, PageOnlyApp> = {
-  store: { i18nKey: 'apps.tabs.store', icon: ShoppingBag },
+  // Gating this entry is what removes the store everywhere: pinning, pin
+  // sanitizing, the add-app drawer and search all resolve through this record.
+  ...(DEV_TOOLS ? { store: { i18nKey: 'apps.tabs.store', icon: ShoppingBag } } : {}),
 };
 
 export function isPageOnlyAppKey(key: string): boolean {

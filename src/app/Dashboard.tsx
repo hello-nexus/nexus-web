@@ -538,6 +538,9 @@ export function Dashboard() {
     if (activeView === 'profiles') return t('settings.tab.profiles');
     if (activeView === 'account') return t('account.title');
     if (activeView === 'tools') return t('settings.tab.tools');
+    // Gated views keep their own title on the Placeholder a release build
+    // renders, rather than falling through to the generic "Apps" label.
+    if (activeView === 'store') return t('apps.tabs.store');
     // A specific device page shows the device's own name; the all-devices
     // landing keeps the generic "Devices" label.
     if (activeView === 'device') {
@@ -781,7 +784,7 @@ export function Dashboard() {
       );
       case 'diagnostics': return <FeatureGate feature="diagnostics"><DiagnosticsPage serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} tab={subtab} onTabChange={setSubtab} /></FeatureGate>;
       case 'frames':      return <FramesPage tab={subtab} onTabChange={setSubtab} />;
-      case 'store':      return <StorePage />;
+      case 'store':      return DEV_TOOLS ? <StorePage /> : <Placeholder title={activeView} />;
       case 'clock':      return <ClockPage />;
       case 'steam':      return <SteamPage />;
       case 'gallery':    return <GalleryPage />;
