@@ -1868,7 +1868,7 @@
   "lighting.devices.identify": "Identifier",
   "lighting.devices.identifyCount.one": "Identifier ({count} appareil)",
   "lighting.devices.identifyCount.other": "Identifier ({count} appareils)",
-  "lighting.devices.krakenStreamRate": "Ce refroidisseur met ses LED a jour lentement, les animations y paraissent donc saccadees.",
+  "lighting.devices.krakenStreamRate": "Ce contrôleur ne prend en charge que le streaming en temps réel partiel.",
   "lighting.devices.lianliStreamRate": "Ce contrôleur ne prend en charge que le streaming en temps réel partiel.",
   "lighting.devices.maximize": "Agrandir à toute la zone",
   "lighting.devices.maximizeCount.one": "Agrandir ({count} appareil)",

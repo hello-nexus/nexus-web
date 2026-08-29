@@ -1868,7 +1868,7 @@
   "lighting.devices.identify": "识别",
   "lighting.devices.identifyCount.one": "识别 ({count} 个设备)",
   "lighting.devices.identifyCount.other": "识别 ({count} 个设备)",
-  "lighting.devices.krakenStreamRate": "此散热器的灯效刷新较慢，动画在上面会显得卡顿。",
+  "lighting.devices.krakenStreamRate": "此控制器仅支持部分实时推流。",
   "lighting.devices.lianliStreamRate": "此控制器仅支持部分实时推流。",
   "lighting.devices.maximize": "最大化到整个画布",
   "lighting.devices.maximizeCount.one": "最大化 ({count} 个设备)",

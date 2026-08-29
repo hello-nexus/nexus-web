@@ -1868,7 +1868,7 @@
   "lighting.devices.identify": "Identificar",
   "lighting.devices.identifyCount.one": "Identificar ({count} dispositivo)",
   "lighting.devices.identifyCount.other": "Identificar ({count} dispositivos)",
-  "lighting.devices.krakenStreamRate": "Este disipador actualiza sus LED lentamente, por lo que las animaciones se ven entrecortadas.",
+  "lighting.devices.krakenStreamRate": "Este controlador solo admite la transmisión en tiempo real parcial.",
   "lighting.devices.lianliStreamRate": "Este controlador solo admite la transmisión en tiempo real parcial.",
   "lighting.devices.maximize": "Maximizar a todo el área",
   "lighting.devices.maximizeCount.one": "Maximizar ({count} dispositivo)",

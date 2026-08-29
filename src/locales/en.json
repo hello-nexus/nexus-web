@@ -1868,7 +1868,7 @@
   "lighting.devices.identify": "Identify",
   "lighting.devices.identifyCount.one": "Identify ({count} device)",
   "lighting.devices.identifyCount.other": "Identify ({count} devices)",
-  "lighting.devices.krakenStreamRate": "This cooler updates its LEDs slowly, so animations look choppy on it.",
+  "lighting.devices.krakenStreamRate": "This controller only supports partial real-time streaming.",
   "lighting.devices.lianliStreamRate": "This controller only supports partial real-time streaming.",
   "lighting.devices.maximize": "Maximize to full canvas",
   "lighting.devices.maximizeCount.one": "Maximize ({count} device)",

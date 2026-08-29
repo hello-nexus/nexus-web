@@ -1868,7 +1868,7 @@
   "lighting.devices.identify": "Identificar",
   "lighting.devices.identifyCount.one": "Identificar ({count} dispositivo)",
   "lighting.devices.identifyCount.other": "Identificar ({count} dispositivos)",
-  "lighting.devices.krakenStreamRate": "Este cooler atualiza os LEDs lentamente, entao as animacoes ficam travadas.",
+  "lighting.devices.krakenStreamRate": "Este controlador só suporta transmissão em tempo real parcial.",
   "lighting.devices.lianliStreamRate": "Este controlador só suporta transmissão em tempo real parcial.",
   "lighting.devices.maximize": "Maximizar para tela cheia",
   "lighting.devices.maximizeCount.one": "Maximizar ({count} dispositivo)",

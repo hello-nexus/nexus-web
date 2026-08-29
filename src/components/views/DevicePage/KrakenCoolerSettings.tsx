@@ -229,9 +229,6 @@ export function KrakenCoolerSettings({ onSectionNavigate }: {
         <p className={styles.customNote} data-settings-aside="true">
           {t('devices.nzxt-kraken.lightingNote')}
         </p>
-        <p className={styles.customNote} data-settings-aside="true">
-          {t('lighting.devices.krakenStreamRate')}
-        </p>
         {onSectionNavigate && (
           <Button
             className={styles.lightingLink}

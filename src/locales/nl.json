@@ -1868,7 +1868,7 @@
   "lighting.devices.identify": "Identificeren",
   "lighting.devices.identifyCount.one": "Identificeren ({count} apparaat)",
   "lighting.devices.identifyCount.other": "Identificeren ({count} apparaten)",
-  "lighting.devices.krakenStreamRate": "Deze koeler werkt zijn leds traag bij, waardoor animaties er schokkerig uitzien.",
+  "lighting.devices.krakenStreamRate": "Deze controller ondersteunt slechts gedeeltelijke realtime streaming.",
   "lighting.devices.lianliStreamRate": "Deze controller ondersteunt slechts gedeeltelijke realtime streaming.",
   "lighting.devices.maximize": "Maximaliseren naar volledig canvas",
   "lighting.devices.maximizeCount.one": "Maximaliseren ({count} apparaat)",

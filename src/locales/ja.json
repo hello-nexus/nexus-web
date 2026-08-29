@@ -1868,7 +1868,7 @@
   "lighting.devices.identify": "識別",
   "lighting.devices.identifyCount.one": "識別 ({count} 台のデバイス)",
   "lighting.devices.identifyCount.other": "識別 ({count} 台のデバイス)",
-  "lighting.devices.krakenStreamRate": "このクーラーはLEDの更新が遅いため、アニメーションはカクついて見えます。",
+  "lighting.devices.krakenStreamRate": "このコントローラーは部分的なリアルタイムストリーミングのみをサポートします。",
   "lighting.devices.lianliStreamRate": "このコントローラーは部分的なリアルタイムストリーミングのみをサポートします。",
   "lighting.devices.maximize": "キャンバス全体に最大化",
   "lighting.devices.maximizeCount.one": "最大化 ({count} 台のデバイス)",

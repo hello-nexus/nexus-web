@@ -1868,7 +1868,7 @@
   "lighting.devices.identify": "식별",
   "lighting.devices.identifyCount.one": "식별 ({count}개 장치)",
   "lighting.devices.identifyCount.other": "식별 ({count}개 장치)",
-  "lighting.devices.krakenStreamRate": "이 쿨러는 LED 갱신이 느려 애니메이션이 끊겨 보입니다.",
+  "lighting.devices.krakenStreamRate": "이 컨트롤러는 부분적인 실시간 스트리밍만 지원합니다.",
   "lighting.devices.lianliStreamRate": "이 컨트롤러는 부분적인 실시간 스트리밍만 지원합니다.",
   "lighting.devices.maximize": "전체 캔버스로 최대화",
   "lighting.devices.maximizeCount.one": "최대화 ({count}개 장치)",

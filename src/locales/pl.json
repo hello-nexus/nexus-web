@@ -1881,7 +1881,7 @@
   "lighting.devices.identifyCount.few": "Identyfikuj ({count} urządzenia)",
   "lighting.devices.identifyCount.one": "Identyfikuj ({count} urządzenie)",
   "lighting.devices.identifyCount.other": "Identyfikuj ({count} urządzeń)",
-  "lighting.devices.krakenStreamRate": "Ten chlodzacy aktualizuje diody LED powoli, wiec animacje wygladaja na nim skokowo.",
+  "lighting.devices.krakenStreamRate": "Ten kontroler obsługuje tylko częściowe przesyłanie w czasie rzeczywistym.",
   "lighting.devices.lianliStreamRate": "Ten kontroler obsługuje tylko częściowe przesyłanie w czasie rzeczywistym.",
   "lighting.devices.maximize": "Maksymalizuj do pelnego plotna",
   "lighting.devices.maximizeCount.few": "Maksymalizuj ({count} urządzenia)",

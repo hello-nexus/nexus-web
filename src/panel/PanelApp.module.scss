@@ -902,7 +902,10 @@
 // same factor leaves the CSS-px layout identical to 2x2, so widgets come out
 // uniformly smaller rather than cropped or re-flowed.
 :global(.panel-card[data-size='2x2round']) .cellScaler {
-  --_fit: 0.74;
+  // The circle's inscribed square: content that fills its box edge to edge (the
+  // monitoring graphs) then stops short of the arc on every side instead of
+  // running off the top and bottom of the glass.
+  --_fit: 0.707;
   --_inner-w: calc(var(--_card-w) * var(--_fit));
   --_inner-h: calc(var(--_card-h) * var(--_fit));
   --_s: calc(var(--panel-scale, 1) * var(--_fit));

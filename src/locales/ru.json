@@ -1881,7 +1881,7 @@
   "lighting.devices.identifyCount.few": "Определить ({count} устройства)",
   "lighting.devices.identifyCount.one": "Определить ({count} устройство)",
   "lighting.devices.identifyCount.other": "Определить ({count} устройств)",
-  "lighting.devices.krakenStreamRate": "Этот кулер медленно обновляет светодиоды, поэтому анимации выглядят рывками.",
+  "lighting.devices.krakenStreamRate": "Этот контроллер поддерживает только частичную потоковую передачу в реальном времени.",
   "lighting.devices.lianliStreamRate": "Этот контроллер поддерживает только частичную потоковую передачу в реальном времени.",
   "lighting.devices.maximize": "Развернуть на весь холст",
   "lighting.devices.maximizeCount.few": "Развернуть ({count} устройства)",
