@@ -202,9 +202,9 @@
 
 // Round glass (the Kraken LCD). The size is only offered on square surfaces, so
 // a 50% radius is a true circle rather than an ellipse. The padding here is the
-// inset for plain children; the widget scaler ignores it and paints the circle's
-// inscribed square instead (see the 2x2round rule in PanelApp.module.scss), so
-// the two do not stack.
+// inset for plain children; the widget scaler ignores it and sizes itself from
+// the card instead (see the 2x2round rule in PanelApp.module.scss, which paints
+// deliberately wider than the inscribed square), so the two do not stack.
 .panel-card[data-size='2x2round'] {
   border-radius: 50%;
   padding: 8%;
