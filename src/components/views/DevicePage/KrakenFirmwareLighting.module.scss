@@ -1,3 +1,5 @@
+@use '../../../styles/text' as *;
+
 .channelBlock {
   display: flex;
   flex-direction: column;
@@ -12,8 +14,8 @@
 }
 
 .channelTitle {
-  font-size: var(--type-small);
-  font-weight: 600;
+  @include text-caption;
+
   color: var(--text-dim);
 }
 

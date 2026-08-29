@@ -25,18 +25,6 @@
       padding-bottom: 1px;
     }
   }
-  &.size-2x2round  {
-    --dot-size: 5px;
-    --dot-gap: 2.4px;
-    --row-gap: 3.9px;
-    padding: 7px 6px;
-
-    .ampm {
-      font-size: 8px;
-      margin-left: 0;
-      padding-bottom: 1px;
-    }
-  }
 
   &.size-2x4  { --dot-size: 6px; --dot-gap: 3px; }
   &.size-4x2  { --dot-size: 8px; --dot-gap: 4px; }
