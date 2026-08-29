@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Gamepad2 } from 'lucide-react';
+import { ArrowLeft, Gamepad2, Trash2 } from 'lucide-react';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { Card } from '../../../components/common/Card/Card';
+import { ConfirmModal } from '../../../components/common/ConfirmModal/ConfirmModal';
 import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
 import { SearchInput } from '../../../components/common/SearchInput/SearchInput';
 import { Badge } from '../../../components/common/Badge/Badge';
@@ -10,6 +11,8 @@ import { StatTile } from '../../../components/common/StatTile/StatTile';
 import { SystemSpecsPanel } from '../../../components/common/SystemSpecsPanel/SystemSpecsPanel';
 import { TimeSeriesChart } from '../../../components/common/TimeSeriesChart/TimeSeriesChart';
 import {
+  deleteFpsGame,
+  deleteFpsSession,
   fetchFpsGameSessions,
   getFpsTrackingStatus,
   type FpsGameSummary,
@@ -21,6 +24,7 @@ import { useSystemSpecs } from '../../../hooks/useSystemSpecs';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { hour12OptionFor, localizeNumbers, type NumberFormat, type TimeFormat } from '../../../lib/units';
+import { steamCapsuleUrl } from '../steam/SteamPage';
 import styles from './FramesPage.module.scss';
 
 const SESSIONS_LIMIT = 50;
@@ -28,7 +32,7 @@ const SESSIONS_LIMIT = 50;
 // plan) - a session ending before this has no timeline left to fetch.
 const HISTORY_RETENTION_DAYS = 7;
 
-type FramesTab = 'library' | 'rig';
+type FramesTab = 'history' | 'discover';
 
 interface FramesPageProps {
   tab: string | null;
@@ -36,19 +40,19 @@ interface FramesPageProps {
 }
 
 /**
- * Frames: the local FPS history browser. A games library leading into a
- * per-game detail (stats, sessions, the selected session's own timeline),
- * plus a Rig tab for the rig-estimate placeholder. Page-only - see
- * panel/widgets/frames/index.ts.
+ * Frames: the local FPS history browser. A History tab (every game with
+ * sessions) leading into a per-game detail (stats, sessions, the selected
+ * session's own timeline), plus a Discover tab for the community-estimate
+ * placeholder. Page-only - see panel/widgets/frames/index.ts.
  */
 export function FramesPage({ tab, onTabChange }: FramesPageProps) {
   const { t } = useTranslation();
-  const activeTab: FramesTab = tab === 'rig' ? 'rig' : 'library';
-  // Any tab value besides 'library'/'rig' is a deep-linked gameKey (see
+  const activeTab: FramesTab = tab === 'discover' ? 'discover' : 'history';
+  // Any tab value besides 'history'/'discover' is a deep-linked gameKey (see
   // framesNav.ts, used by the Steam page's own FPS chip).
-  const selectedGameKey = tab && tab !== 'library' && tab !== 'rig' ? tab : null;
+  const selectedGameKey = tab && tab !== 'history' && tab !== 'discover' ? tab : null;
 
-  const { supported, gamesByKey } = useFpsGames();
+  const { supported, gamesByKey, refetch: refetchGames } = useFpsGames();
   const games = useMemo(() => [...gamesByKey.values()], [gamesByKey]);
 
   const [trackingEnabled, setTrackingEnabled] = useState<boolean | null>(null);
@@ -59,24 +63,25 @@ export function FramesPage({ tab, onTabChange }: FramesPageProps) {
   }, []);
 
   const tabs = [
-    { key: 'library', label: t('frames.tab.library') },
-    { key: 'rig', label: t('frames.tab.rig') },
+    { key: 'history', label: t('frames.tab.history') },
+    { key: 'discover', label: t('frames.tab.discover') },
   ];
 
   return (
     <div className={styles.app}>
       <ViewHeader title={t('panel.widget.frames')} tabs={tabs} activeTab={activeTab} onTabChange={onTabChange} />
       <div className={`${styles.body} pageBody`}>
-        {activeTab === 'rig' ? (
-          <RigTab />
+        {activeTab === 'discover' ? (
+          <DiscoverTab />
         ) : selectedGameKey ? (
           <GameDetail
             gameKey={selectedGameKey}
             summary={gamesByKey.get(selectedGameKey)}
-            onBack={() => onTabChange('library')}
+            onBack={() => onTabChange('history')}
+            onGamesChanged={refetchGames}
           />
         ) : (
-          <LibraryTab
+          <HistoryTab
             games={games}
             supported={supported}
             trackingEnabled={trackingEnabled}
@@ -93,7 +98,11 @@ function formatHours(focusedSec: number, numberFormat: NumberFormat): string {
   return localizeNumbers(`${hours.toFixed(hours < 10 ? 1 : 0)}h`, numberFormat);
 }
 
-function LibraryTab({
+function formatLastPlayed(unixMs: number): string {
+  return new Date(unixMs).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+function HistoryTab({
   games,
   supported,
   trackingEnabled,
@@ -143,7 +152,7 @@ function LibraryTab({
   }
 
   return (
-    <div className={styles.library}>
+    <div className={styles.history}>
       <div className={styles.toolbar}>
         <SearchInput
           value={search}
@@ -162,22 +171,61 @@ function LibraryTab({
           <EmptyState compact title={t('steam.library.noMatch', { query: search })} />
         </div>
       ) : (
-        <ul className={styles.rows}>
+        <div className={styles.cardGrid}>
           {filtered.map(g => (
-            <li key={g.gameKey}>
-              <button type="button" className={styles.row} onClick={() => onOpenGame(g.gameKey)}>
-                <span className={styles.rowName}>{g.name}</span>
-                <Badge label={g.store} />
-                <span className={styles.rowStat}>{t('steam.fps.sessionAvg', { value: Math.round(g.avgFps) })}</span>
-                <span className={styles.rowStat}>{t('steam.stat.fps1pctLow')} {Math.round(g.p1Fps)}</span>
-                <span className={styles.rowStat}>{t('steam.stat.fps99th')} {Math.round(g.p99Fps)}</span>
-                <span className={styles.rowStat}>{formatHours(g.focusedSec, numberFormat)}</span>
-              </button>
-            </li>
+            <GameCard key={g.gameKey} game={g} numberFormat={numberFormat} onOpen={() => onOpenGame(g.gameKey)} />
           ))}
-        </ul>
+        </div>
       )}
     </div>
+  );
+}
+
+function GameCard({
+  game,
+  numberFormat,
+  onOpen,
+}: {
+  game: FpsGameSummary;
+  numberFormat: NumberFormat;
+  onOpen: () => void;
+}) {
+  const { t } = useTranslation();
+  const [artFailed, setArtFailed] = useState(false);
+  const showCapsule = game.store === 'steam' && game.steamAppId !== null && !artFailed;
+
+  return (
+    <Card interactive onClick={onOpen} className={styles.gameCard} compact>
+      <div className={styles.gameCardArt}>
+        {showCapsule ? (
+          <img
+            className={styles.gameCardImg}
+            src={steamCapsuleUrl(game.steamAppId as number)}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            onError={() => setArtFailed(true)}
+          />
+        ) : (
+          <div className={styles.gameCardPlaceholder}>
+            <Badge label={game.store} />
+          </div>
+        )}
+      </div>
+      <div className={styles.gameCardBody}>
+        <div className={styles.gameCardName}>{game.name}</div>
+        <Badge label={game.store} />
+        <div className={styles.gameCardAvg}>{t('steam.fps.sessionAvg', { value: Math.round(game.avgFps) })}</div>
+        <div className={styles.gameCardSecondary}>
+          <span>{t('steam.stat.fps1pctLow')} {Math.round(game.p1Fps)}</span>
+          <span>{t('steam.stat.fps99th')} {Math.round(game.p99Fps)}</span>
+        </div>
+        <div className={styles.gameCardMeta}>
+          <span>{formatHours(game.focusedSec, numberFormat)}</span>
+          <span>{formatLastPlayed(game.lastPlayedUtcMs)}</span>
+        </div>
+      </div>
+    </Card>
   );
 }
 
@@ -185,15 +233,20 @@ function GameDetail({
   gameKey,
   summary,
   onBack,
+  onGamesChanged,
 }: {
   gameKey: string;
   summary?: FpsGameSummary;
   onBack: () => void;
+  onGamesChanged: () => void;
 }) {
   const { t } = useTranslation();
   const { numberFormat, timeFormat } = useUnitPrefs();
   const [sessions, setSessions] = useState<FpsSession[]>([]);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [pendingDeleteSessionId, setPendingDeleteSessionId] = useState<string | null>(null);
+  const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -207,6 +260,29 @@ function GameDetail({
     return () => { cancelled = true; };
   }, [gameKey]);
 
+  const confirmDeleteSession = async () => {
+    if (!pendingDeleteSessionId || deleting) return;
+    setDeleting(true);
+    await deleteFpsSession(pendingDeleteSessionId);
+    setDeleting(false);
+    const remaining = sessions.filter(s => s.id !== pendingDeleteSessionId);
+    setSessions(remaining);
+    setSelectedSessionId(prev => (prev === pendingDeleteSessionId ? remaining[0]?.id ?? null : prev));
+    setPendingDeleteSessionId(null);
+    onGamesChanged();
+    if (remaining.length === 0) onBack();
+  };
+
+  const confirmDeleteAllSessions = async () => {
+    if (deleting) return;
+    setDeleting(true);
+    await deleteFpsGame(gameKey);
+    setDeleting(false);
+    setConfirmDeleteAll(false);
+    onGamesChanged();
+    onBack();
+  };
+
   const selectedSession = sessions.find(s => s.id === selectedSessionId) ?? null;
   const title = summary?.name ?? gameKey;
 
@@ -217,6 +293,15 @@ function GameDetail({
           {t('steam.action.back')}
         </Button>
         <h2 className={styles.detailTitle}>{title}</h2>
+        <Button
+          size="sm"
+          tone="danger"
+          icon={<Trash2 size={14} />}
+          onClick={() => setConfirmDeleteAll(true)}
+          disabled={sessions.length === 0}
+        >
+          {t('frames.drill.deleteAll')}
+        </Button>
       </div>
 
       {summary && (
@@ -237,10 +322,23 @@ function GameDetail({
             <ul className={styles.sessionList}>
               {sessions.map(s => (
                 <li key={s.id}>
-                  <button
-                    type="button"
+                  <div
                     className={s.id === selectedSessionId ? `${styles.sessionRow} ${styles.sessionRowActive}` : styles.sessionRow}
+                    role="button"
+                    tabIndex={0}
+                    // Pins the row's own accessible name so it can't absorb
+                    // the nested delete button's aria-label. A real <button>
+                    // can't nest the delete Button (invalid HTML content
+                    // model), so this row uses role="button" instead.
+                    aria-label={formatSessionDate(s.startedUtcMs, timeFormat)}
                     onClick={() => setSelectedSessionId(s.id)}
+                    onKeyDown={e => {
+                      if (e.target !== e.currentTarget) return;
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setSelectedSessionId(s.id);
+                      }
+                    }}
                   >
                     <span className={styles.sessionMain}>
                       <span>{formatSessionDate(s.startedUtcMs, timeFormat)}</span>
@@ -254,7 +352,14 @@ function GameDetail({
                       {!s.fullscreen && <Badge label={t('frames.session.windowed')} />}
                       {s.capped && <Badge label={t('steam.fps.capped')} />}
                     </span>
-                  </button>
+                    <Button
+                      size="sm"
+                      tone="ghost"
+                      icon={<Trash2 size={14} />}
+                      aria-label={t('frames.session.deleteAria')}
+                      onClick={e => { e.stopPropagation(); setPendingDeleteSessionId(s.id); }}
+                    />
+                  </div>
                 </li>
               ))}
             </ul>
@@ -269,6 +374,25 @@ function GameDetail({
           )}
         </Card>
       </div>
+
+      <ConfirmModal
+        open={pendingDeleteSessionId !== null}
+        title={t('frames.session.deleteConfirmTitle')}
+        message={t('frames.session.deleteConfirmMessage')}
+        confirmLabel={t('frames.session.deleteAria')}
+        confirmDisabled={deleting}
+        onConfirm={() => void confirmDeleteSession()}
+        onCancel={() => setPendingDeleteSessionId(null)}
+      />
+      <ConfirmModal
+        open={confirmDeleteAll}
+        title={t('frames.drill.deleteAllConfirmTitle', { name: title })}
+        message={t('frames.drill.deleteAllConfirmMessage')}
+        confirmLabel={t('frames.drill.deleteAll')}
+        confirmDisabled={deleting}
+        onConfirm={() => void confirmDeleteAllSessions()}
+        onCancel={() => setConfirmDeleteAll(false)}
+      />
     </div>
   );
 }
@@ -329,7 +453,7 @@ function SessionTimeline({
   );
 }
 
-function RigTab() {
+function DiscoverTab() {
   const { t } = useTranslation();
   const { specs } = useSystemSpecs(true);
 

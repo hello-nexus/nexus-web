@@ -90,6 +90,14 @@ export const fetchFpsGameSessions = (gameKey: string, limit = 50) =>
 export const fetchFpsSessionsInRange = (from: number, to: number, limit = 200) =>
   fetchService<FpsSessionsInRangeResponse>(`/api/fps/sessions?from=${Math.round(from)}&to=${Math.round(to)}&limit=${limit}`);
 
+/** Deletes one recorded session. */
+export const deleteFpsSession = (id: string) =>
+  deleteService<FpsDeleteResult>(`/api/fps/sessions/${encodeURIComponent(id)}`);
+
+/** Deletes every recorded session for one game. */
+export const deleteFpsGame = (gameKey: string) =>
+  deleteService<FpsDeleteResult>(`/api/fps/games/${encodeURIComponent(gameKey)}`);
+
 /** Steam's canonical gameKey shape - see plan's "Signature key" decisions. */
 export function steamGameKey(appId: number): string {
   return `steam:${appId}`;

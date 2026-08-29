@@ -23,6 +23,11 @@ export interface TimeSeriesSeries {
   /** Suppresses the isolated single-point-segment circle marker for this
    *  series; a multi-point segment's stroked line still renders. */
   noDots?: boolean;
+  /** Renders this series against its own [min, max] instead of the chart's
+   *  shared yDomain - for an overlay whose unit/scale is unrelated to the
+   *  primary series (e.g. an FPS line on a percent-load chart), so its
+   *  pixel height stays constant regardless of what else is plotted. */
+  fixedYDomain?: readonly [number, number];
 }
 
 // A gap wider than this multiple of the actual median point spacing renders

@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   deleteFpsAll,
+  deleteFpsGame,
+  deleteFpsSession,
   fetchFpsGameSessions,
   fetchFpsGames,
   fetchFpsSessionsInRange,
@@ -78,6 +80,34 @@ describe('deleteFpsAll', () => {
     expect(result).toEqual({ deleted: 42 });
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toContain('/api/fps/all');
+    expect(init.method).toBe('DELETE');
+  });
+});
+
+describe('deleteFpsSession', () => {
+  it('DELETEs the session route', async () => {
+    const fetchMock = vi.fn(async () => jsonResponse(200, { deleted: 1 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await deleteFpsSession('s1');
+
+    expect(result).toEqual({ deleted: 1 });
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain('/api/fps/sessions/s1');
+    expect(init.method).toBe('DELETE');
+  });
+});
+
+describe('deleteFpsGame', () => {
+  it('DELETEs the game route', async () => {
+    const fetchMock = vi.fn(async () => jsonResponse(200, { deleted: 5 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await deleteFpsGame('steam:730');
+
+    expect(result).toEqual({ deleted: 5 });
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain('/api/fps/games/steam%3A730');
     expect(init.method).toBe('DELETE');
   });
 });

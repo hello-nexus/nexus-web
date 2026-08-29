@@ -922,4 +922,35 @@ describe('fps overlay', () => {
     fireEvent.mouseMove(svg, { clientX: 200 });
     expect(screen.queryByText(/monitoring\.fpsOverlay\.tooltip/)).not.toBeInTheDocument();
   });
+
+  it('renders the same fps value at the same pixel height regardless of the tab\'s own primary domain', () => {
+    // cpu's own series sits near its 100% ceiling (driving the percent axis
+    // toward its own max) while network's own series is an unrelated
+    // multi-megabyte rate (driving an unbounded, wildly different axis) -
+    // the fps overlay's own points are identical in both, so its rendered
+    // path must be identical too if it truly ignores the primary axis.
+    stubGeometry();
+    const highLoadCpuSeries: UseMetricHistoryResult['series'] = [
+      { id: 'cpu', kind: 'cpu', name: 'CPU', points: [{ t: NOW - HOUR, avg: 95, max: 96 }, { t: NOW, avg: 95, max: 96 }] },
+      { id: 'fps', kind: 'fps', name: 'FPS', points: [{ t: NOW - HOUR, avg: 118, max: 120 }, { t: NOW, avg: 118, max: 120 }] },
+    ];
+    const bigRateNetworkSeries: UseMetricHistoryResult['series'] = [
+      { id: 'net-in', kind: 'net', name: 'Download', points: [{ t: NOW - HOUR, avg: 8_000_000, max: 8_100_000 }, { t: NOW, avg: 8_000_000, max: 8_100_000 }] },
+      { id: 'fps', kind: 'fps', name: 'FPS', points: [{ t: NOW - HOUR, avg: 118, max: 120 }, { t: NOW, avg: 118, max: 120 }] },
+    ];
+    const sessions = [fpsSession()];
+
+    const cpuRender = renderSection({ metric: 'cpu', history: { series: highLoadCpuSeries }, fpsOverlayEnabled: true, fpsSessions: sessions });
+    const cpuPath = cpuRender.container.querySelector('path[stroke="var(--good)"]');
+    const cpuD = cpuPath?.getAttribute('d');
+    cpuRender.unmount();
+
+    const netRender = renderSection({ metric: 'network', history: { series: bigRateNetworkSeries }, fpsOverlayEnabled: true, fpsSessions: sessions });
+    const netPath = netRender.container.querySelector('path[stroke="var(--good)"]');
+    const netD = netPath?.getAttribute('d');
+    netRender.unmount();
+
+    expect(cpuD).toBeTruthy();
+    expect(cpuD).toBe(netD);
+  });
 });

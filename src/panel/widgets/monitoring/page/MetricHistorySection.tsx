@@ -202,8 +202,8 @@ export function MetricHistorySection({
   }, [fpsOverlayEnabled, history.series, fpsSessions]);
 
   const fpsOverlaySeries = useMemo(
-    () => buildFpsOverlaySeries(maskedFpsPoints, metric, FPS_OVERLAY_LINE_COLOR),
-    [maskedFpsPoints, metric],
+    () => buildFpsOverlaySeries(maskedFpsPoints, FPS_OVERLAY_LINE_COLOR),
+    [maskedFpsPoints],
   );
 
   // Selecting an app appends its own line on top of the base metric line(s),

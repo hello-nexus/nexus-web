@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { FramesPage } from './FramesPage';
 import type { FpsGameSummary, FpsSessionsResponse } from '../../../api/fps';
@@ -8,9 +8,13 @@ import type { SystemSpecs } from '../../../hooks/useSystemSpecs';
 
 const getFpsTrackingStatusMock = vi.fn();
 const fetchFpsGameSessionsMock = vi.fn();
+const deleteFpsSessionMock = vi.fn();
+const deleteFpsGameMock = vi.fn();
 vi.mock('../../../api/fps', () => ({
   getFpsTrackingStatus: () => getFpsTrackingStatusMock(),
   fetchFpsGameSessions: (gameKey: string, limit?: number) => fetchFpsGameSessionsMock(gameKey, limit),
+  deleteFpsSession: (id: string) => deleteFpsSessionMock(id),
+  deleteFpsGame: (gameKey: string) => deleteFpsGameMock(gameKey),
 }));
 
 const fetchMonitoringHistoryMock = vi.fn();
@@ -18,7 +22,8 @@ vi.mock('../../../api/monitoringHistory', () => ({
   fetchMonitoringHistory: (query: unknown) => fetchMonitoringHistoryMock(query),
 }));
 
-let fpsGamesResult: UseFpsGamesResult = { supported: true, gamesByKey: new Map() };
+const refetchGamesMock = vi.fn();
+let fpsGamesResult: UseFpsGamesResult = { supported: true, gamesByKey: new Map(), refetch: refetchGamesMock };
 vi.mock('../../../hooks/useFpsGames', () => ({
   useFpsGames: () => fpsGamesResult,
 }));
@@ -49,6 +54,10 @@ function game(overrides: Partial<FpsGameSummary> = {}): FpsGameSummary {
   };
 }
 
+function gamesByKey(...entries: FpsGameSummary[]): UseFpsGamesResult['gamesByKey'] {
+  return new Map(entries.map(g => [g.gameKey, g]));
+}
+
 function session(overrides: Partial<FpsSessionsResponse['sessions'][number]> = {}) {
   return {
     id: 's1', startedUtcMs: Date.now() - 1000, endedUtcMs: Date.now(), focusedSec: 600, validSec: 600,
@@ -63,10 +72,13 @@ const flush = () => act(async () => {
 });
 
 beforeEach(() => {
-  fpsGamesResult = { supported: true, gamesByKey: new Map() };
+  fpsGamesResult = { supported: true, gamesByKey: new Map(), refetch: refetchGamesMock };
   systemSpecs = null;
   getFpsTrackingStatusMock.mockReset().mockResolvedValue({ enabled: true });
   fetchFpsGameSessionsMock.mockReset().mockResolvedValue({ sessions: [] });
+  deleteFpsSessionMock.mockReset().mockResolvedValue({ deleted: 1 });
+  deleteFpsGameMock.mockReset().mockResolvedValue({ deleted: 1 });
+  refetchGamesMock.mockReset();
   fetchMonitoringHistoryMock.mockReset().mockResolvedValue({ data: { supported: true, retentionDays: 7, stepSeconds: 1, series: [] }, mocked: false, unsupported: false });
 });
 
@@ -87,9 +99,9 @@ function renderPage(tab: string | null = null) {
   return render(<Harness initialTab={tab} />);
 }
 
-describe('FramesPage - library states', () => {
+describe('FramesPage - History tab states', () => {
   it('shows the unsupported message when the platform has no fps capture', async () => {
-    fpsGamesResult = { supported: false, gamesByKey: new Map() };
+    fpsGamesResult = { supported: false, gamesByKey: new Map(), refetch: refetchGamesMock };
     renderPage();
     await flush();
     expect(await screen.findByText('frames.unsupported')).toBeInTheDocument();
@@ -102,17 +114,22 @@ describe('FramesPage - library states', () => {
     expect(screen.getByText('frames.trackingOff.hint')).toBeInTheDocument();
   });
 
-  it('shows the empty state when tracking is on but no games have data', async () => {
+  it('shows a dedicated blank state with no search box or counter when there are no recordings at all', async () => {
     renderPage();
     await flush();
+
     expect(await screen.findByText('frames.empty.title')).toBeInTheDocument();
+    expect(screen.getByText('frames.empty.hint')).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('steam.library.searchPlaceholder')).not.toBeInTheDocument();
+    expect(screen.queryByText(/steam\.library\.count/)).not.toBeInTheDocument();
   });
 
-  it('lists every game and filters by search', async () => {
-    fpsGamesResult = { supported: true, gamesByKey: new Map([
-      ['steam:730', game()],
-      ['steam:440', game({ gameKey: 'steam:440', name: 'Team Fortress 2', steamAppId: 440 })],
-    ]) };
+  it('lists every game as a card and filters by search', async () => {
+    fpsGamesResult = {
+      supported: true,
+      gamesByKey: gamesByKey(game(), game({ gameKey: 'steam:440', name: 'Team Fortress 2', steamAppId: 440 })),
+      refetch: refetchGamesMock,
+    };
     renderPage();
     await flush();
 
@@ -123,14 +140,28 @@ describe('FramesPage - library states', () => {
     expect(screen.queryByText('Counter-Strike 2')).not.toBeInTheDocument();
     expect(screen.getByText('Team Fortress 2')).toBeInTheDocument();
   });
+
+  it('shows a Steam capsule image for a steam game and a store-badge placeholder for a non-steam one', async () => {
+    fpsGamesResult = {
+      supported: true,
+      gamesByKey: gamesByKey(game(), game({ gameKey: 'epic:foo', name: 'Some Epic Game', store: 'epic', steamAppId: null })),
+      refetch: refetchGamesMock,
+    };
+    const { container } = renderPage();
+    await flush();
+    await screen.findByText('Counter-Strike 2');
+
+    expect(container.querySelector('img[src*="steamstatic"]')).toBeInTheDocument();
+    expect(screen.getAllByText('epic')).toHaveLength(2);
+  });
 });
 
 describe('FramesPage - game detail', () => {
   beforeEach(() => {
-    fpsGamesResult = { supported: true, gamesByKey: new Map([['steam:730', game()]]) };
+    fpsGamesResult = { supported: true, gamesByKey: gamesByKey(game()), refetch: refetchGamesMock };
   });
 
-  it('opens the detail view on row click and fetches its sessions', async () => {
+  it('opens the detail view on card click and fetches its sessions', async () => {
     fetchFpsGameSessionsMock.mockResolvedValue({ sessions: [session()] });
     renderPage();
     await flush();
@@ -174,14 +205,99 @@ describe('FramesPage - game detail', () => {
   });
 });
 
-describe('FramesPage - Rig tab', () => {
+describe('FramesPage - deleting a single session', () => {
+  beforeEach(() => {
+    fpsGamesResult = { supported: true, gamesByKey: gamesByKey(game()), refetch: refetchGamesMock };
+  });
+
+  it('does nothing when the confirm dialog is cancelled', async () => {
+    fetchFpsGameSessionsMock.mockResolvedValue({ sessions: [session({ id: 's1' }), session({ id: 's2', startedUtcMs: Date.now() - 5000, endedUtcMs: Date.now() - 4000 })] });
+    renderPage('steam:730');
+    await flush();
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'frames.session.deleteAria' })[0]);
+    const dialog = await screen.findByRole('alertdialog', { name: 'frames.session.deleteConfirmTitle' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'confirm.cancel' }));
+
+    expect(deleteFpsSessionMock).not.toHaveBeenCalled();
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+  });
+
+  it('deletes the session, refetches games, and stays in the detail view when other sessions remain', async () => {
+    fetchFpsGameSessionsMock.mockResolvedValue({
+      sessions: [session({ id: 's1' }), session({ id: 's2', startedUtcMs: Date.now() - 5000, endedUtcMs: Date.now() - 4000 })],
+    });
+    renderPage('steam:730');
+    await flush();
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'frames.session.deleteAria' })[0]);
+    const dialog = await screen.findByRole('alertdialog', { name: 'frames.session.deleteConfirmTitle' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'frames.session.deleteAria' }));
+    await flush();
+
+    expect(deleteFpsSessionMock).toHaveBeenCalledWith('s1');
+    expect(refetchGamesMock).toHaveBeenCalled();
+    expect(screen.getByText('Counter-Strike 2')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'frames.session.deleteAria' })).toHaveLength(1);
+  });
+
+  it('returns to History once the last session for a game is deleted', async () => {
+    fetchFpsGameSessionsMock.mockResolvedValue({ sessions: [session({ id: 's1' })] });
+    renderPage('steam:730');
+    await flush();
+
+    fireEvent.click(screen.getByRole('button', { name: 'frames.session.deleteAria' }));
+    const dialog = await screen.findByRole('alertdialog', { name: 'frames.session.deleteConfirmTitle' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'frames.session.deleteAria' }));
+    await flush();
+
+    expect(deleteFpsSessionMock).toHaveBeenCalledWith('s1');
+    expect(screen.queryByText('steam.action.back')).not.toBeInTheDocument();
+    expect(screen.getByText('Counter-Strike 2')).toBeInTheDocument();
+  });
+});
+
+describe('FramesPage - deleting all recordings for a game', () => {
+  beforeEach(() => {
+    fpsGamesResult = { supported: true, gamesByKey: gamesByKey(game()), refetch: refetchGamesMock };
+    fetchFpsGameSessionsMock.mockResolvedValue({ sessions: [session()] });
+  });
+
+  it('does nothing when the confirm dialog is cancelled', async () => {
+    renderPage('steam:730');
+    await flush();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'frames.drill.deleteAll' }));
+    const dialog = await screen.findByRole('alertdialog', { name: 'frames.drill.deleteAllConfirmTitle(name=Counter-Strike 2)' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'confirm.cancel' }));
+
+    expect(deleteFpsGameMock).not.toHaveBeenCalled();
+    expect(screen.getByText('Counter-Strike 2')).toBeInTheDocument();
+  });
+
+  it('deletes every session, refetches games, and returns to History', async () => {
+    renderPage('steam:730');
+    await flush();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'frames.drill.deleteAll' }));
+    const dialog = await screen.findByRole('alertdialog', { name: 'frames.drill.deleteAllConfirmTitle(name=Counter-Strike 2)' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'frames.drill.deleteAll' }));
+    await flush();
+
+    expect(deleteFpsGameMock).toHaveBeenCalledWith('steam:730');
+    expect(refetchGamesMock).toHaveBeenCalled();
+    expect(screen.queryByText('steam.action.back')).not.toBeInTheDocument();
+  });
+});
+
+describe('FramesPage - Discover tab', () => {
   it('shows spec rows once loaded and the estimates-coming-soon note', async () => {
     systemSpecs = {
       pcName: 'Nexus-PC', osBuild: '26100', processor: 'Ryzen 9 9950X3D', motherboard: 'X670E',
       memory: '32 GB', storage: '2 TB NVMe', graphicsCard: 'RTX 5080', monitor: '2560x1440 @ 165Hz',
       soundCard: 'Realtek', networkCard: 'Intel',
     };
-    renderPage('rig');
+    renderPage('discover');
     await flush();
 
     expect(await screen.findByText('Ryzen 9 9950X3D')).toBeInTheDocument();

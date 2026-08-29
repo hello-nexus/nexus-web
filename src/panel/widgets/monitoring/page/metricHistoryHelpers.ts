@@ -360,10 +360,10 @@ export function maxAvgValue(series: readonly TimeSeriesSeries[]): number {
 }
 
 // The same fixed FPS ceiling perfDomain.ts uses for the panel's live FPS
-// gauge - the overlay line's reference max, independent of whichever tab's
-// own adaptive axis is showing (so adding the overlay can't feed back into
-// that axis's own ceiling computation).
-const FPS_OVERLAY_REFERENCE_MAX = 240;
+// gauge - the overlay's own fixed floor for its y-domain, extended only by
+// the series' own observed max (see buildFpsOverlaySeries), never by
+// whichever tab's primary axis is showing.
+const FPS_OVERLAY_DOMAIN_FLOOR_MAX = 240;
 
 /** A point in time is "in a game" only while it falls inside a Frames
  *  session's own [startedUtcMs, endedUtcMs] - desktop apps present frames
@@ -382,20 +382,22 @@ export function maskFpsPointsToSessions(
 }
 
 /**
- * The FPS overlay line, in the current tab's own visual space: the network
- * and storage tabs plot an unbounded rate with no fixed ceiling to rescale
- * onto, so their overlay rides the raw fps values; cpu/memory/gpu rescale
- * fps onto the 0-100 band the percent tabs use, via FPS_OVERLAY_REFERENCE_MAX.
+ * The FPS overlay line, on its own fixed [0, 240+] y-domain (TimeSeriesChart's
+ * fixedYDomain) - independent of whatever the tab's own primary series axis
+ * is doing, so the same fps value renders at the same pixel height on every
+ * tab. Extended past 240 only when the window's own data exceeds it.
  */
 export function buildFpsOverlaySeries(
   maskedPoints: readonly MetricHistoryPoint[],
-  metric: HistoryMetric,
   color: string,
 ): TimeSeriesSeries | null {
   if (maskedPoints.length === 0) return null;
-  const scale = metric === 'network' || metric === 'storage' ? 1 : 100 / FPS_OVERLAY_REFERENCE_MAX;
-  const points: TimeSeriesPoint[] = maskedPoints.map(p => ({ t: p.t, avg: p.avg * scale, max: p.max * scale }));
-  return { id: 'fps-overlay', name: 'FPS', color, points, noFill: true, noDots: true };
+  let domainMax = FPS_OVERLAY_DOMAIN_FLOOR_MAX;
+  for (const p of maskedPoints) {
+    if (p.avg > domainMax) domainMax = p.avg;
+  }
+  const points: TimeSeriesPoint[] = maskedPoints.map(p => ({ t: p.t, avg: p.avg, max: p.max }));
+  return { id: 'fps-overlay', name: 'FPS', color, points, noFill: true, noDots: true, fixedYDomain: [0, domainMax] };
 }
 
 // Round, human-legible ceilings for a 0-100 percent axis (cpu/gpu/memory) -

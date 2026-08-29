@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchFpsGames, type FpsGameSummary } from '../api/fps';
 
 const REFETCH_MS = 60_000;
@@ -8,6 +8,9 @@ export interface UseFpsGamesResult {
    *  games stays empty either way, so callers rarely need to branch on this. */
   supported: boolean;
   gamesByKey: ReadonlyMap<string, FpsGameSummary>;
+  /** Forces an immediate fetch, bypassing the 60s interval - for a caller
+   *  that just changed the underlying data (e.g. Frames after a delete). */
+  refetch: () => void;
 }
 
 /**
@@ -19,24 +22,28 @@ export interface UseFpsGamesResult {
 export function useFpsGames(): UseFpsGamesResult {
   const [supported, setSupported] = useState(true);
   const [gamesByKey, setGamesByKey] = useState<ReadonlyMap<string, FpsGameSummary>>(new Map());
+  const mountedRef = useRef(true);
+
+  const load = useCallback(async () => {
+    const res = await fetchFpsGames();
+    if (!mountedRef.current || !res) return;
+    setSupported(res.supported);
+    setGamesByKey(new Map(res.games.map(g => [g.gameKey, g])));
+  }, []);
 
   useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      const res = await fetchFpsGames();
-      if (cancelled || !res) return;
-      setSupported(res.supported);
-      setGamesByKey(new Map(res.games.map(g => [g.gameKey, g])));
-    };
+    mountedRef.current = true;
     void load();
     const timer = window.setInterval(() => {
       if (document.visibilityState === 'visible') void load();
     }, REFETCH_MS);
     return () => {
-      cancelled = true;
+      mountedRef.current = false;
       window.clearInterval(timer);
     };
-  }, []);
+  }, [load]);
 
-  return { supported, gamesByKey };
+  const refetch = useCallback(() => { void load(); }, [load]);
+
+  return { supported, gamesByKey, refetch };
 }

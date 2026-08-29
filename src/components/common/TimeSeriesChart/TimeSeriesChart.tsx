@@ -307,6 +307,16 @@ export function TimeSeriesChart({
     return pad.top + lineChartH - ((v - minV) / span) * lineChartH;
   }, [minV, maxV, lineChartH, pad.top]);
 
+  // A series with its own fixedYDomain maps through this instead of the
+  // shared yFor above, so its pixel height never depends on what else is
+  // plotted (see TimeSeriesSeries.fixedYDomain).
+  const yForSeries = useCallback((s: TimeSeriesSeries) => {
+    if (!s.fixedYDomain) return yFor;
+    const [fixedMin, fixedMax] = s.fixedYDomain;
+    const span = fixedMax - fixedMin || 1;
+    return (v: number) => pad.top + lineChartH - ((v - fixedMin) / span) * lineChartH;
+  }, [yFor, lineChartH, pad.top]);
+
   const axisLabelX = yAxisSide === 'right' ? width - pad.right + 6 : pad.left - 6;
   const axisLabelAnchor: 'start' | 'end' = yAxisSide === 'right' ? 'start' : 'end';
   const iconLaneX = yAxisSide === 'right' ? pad.left / 2 : width - pad.right / 2;
@@ -681,45 +691,48 @@ export function TimeSeriesChart({
           />
         ))}
 
-        {segmentsBySeries.map(({ s, segments }) => segments.map((segment, si) => {
-          if (segment.length === 0) return null;
-          // A single-point segment (isolated between two gaps) has no line
-          // to draw - a moveto-only path is invisible - so render it as a dot,
-          // unless the series opts out via noDots.
-          if (segment.length === 1) {
-            if (s.noDots) return null;
-            return (
-              <circle
-                key={`${s.id}-${si}`}
-                cx={xFor(segment[0].t)}
-                cy={yFor(segment[0].avg)}
-                r={2.5}
-                fill={s.color}
-              />
-            );
-          }
-          const d = segment.map((p, i) => `${i === 0 ? 'M' : 'L'}${xFor(p.t).toFixed(1)},${yFor(p.avg).toFixed(1)}`).join(' ');
-          return (
-            <g key={`${s.id}-${si}`}>
-              {fillGradient && !s.noFill && (
-                <path
-                  d={`${d} L${xFor(segment[segment.length - 1].t).toFixed(1)},${baselineY.toFixed(1)} L${xFor(segment[0].t).toFixed(1)},${baselineY.toFixed(1)} Z`}
-                  fill={`url(#${gradientId(s.id)})`}
-                  stroke="none"
+        {segmentsBySeries.map(({ s, segments }) => {
+          const yForThis = yForSeries(s);
+          return segments.map((segment, si) => {
+            if (segment.length === 0) return null;
+            // A single-point segment (isolated between two gaps) has no line
+            // to draw - a moveto-only path is invisible - so render it as a dot,
+            // unless the series opts out via noDots.
+            if (segment.length === 1) {
+              if (s.noDots) return null;
+              return (
+                <circle
+                  key={`${s.id}-${si}`}
+                  cx={xFor(segment[0].t)}
+                  cy={yForThis(segment[0].avg)}
+                  r={2.5}
+                  fill={s.color}
                 />
-              )}
-              <path
-                d={d}
-                fill="none"
-                stroke={s.color}
-                strokeWidth="1.6"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                vectorEffect="non-scaling-stroke"
-              />
-            </g>
-          );
-        }))}
+              );
+            }
+            const d = segment.map((p, i) => `${i === 0 ? 'M' : 'L'}${xFor(p.t).toFixed(1)},${yForThis(p.avg).toFixed(1)}`).join(' ');
+            return (
+              <g key={`${s.id}-${si}`}>
+                {fillGradient && !s.noFill && (
+                  <path
+                    d={`${d} L${xFor(segment[segment.length - 1].t).toFixed(1)},${(s.fixedYDomain ? yForThis(s.fixedYDomain[0]) : baselineY).toFixed(1)} L${xFor(segment[0].t).toFixed(1)},${(s.fixedYDomain ? yForThis(s.fixedYDomain[0]) : baselineY).toFixed(1)} Z`}
+                    fill={`url(#${gradientId(s.id)})`}
+                    stroke="none"
+                  />
+                )}
+                <path
+                  d={d}
+                  fill="none"
+                  stroke={s.color}
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  vectorEffect="non-scaling-stroke"
+                />
+              </g>
+            );
+          });
+        })}
         </g>
 
         {ribbonBands.map(({ ribbon, top, bandHeight, segments, maxGapMs: ribbonMaxGapMs, range }, ri) => {

@@ -82,4 +82,17 @@ describe('useFpsGames', () => {
 
     expect(result.current.gamesByKey.size).toBe(0);
   });
+
+  it('refetches on demand via refetch(), picking up a game deleted server-side', async () => {
+    fetchMock.mockResolvedValue({ supported: true, games: [game()] });
+    const { result } = renderHook(() => useFpsGames());
+    await advance(0);
+    expect(result.current.gamesByKey.size).toBe(1);
+
+    fetchMock.mockResolvedValue({ supported: true, games: [] });
+    act(() => { result.current.refetch(); });
+    await flush();
+
+    expect(result.current.gamesByKey.size).toBe(0);
+  });
 });

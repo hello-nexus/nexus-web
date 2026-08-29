@@ -27,9 +27,9 @@
   min-height: 200px;
 }
 
-// ---------- Library ----------
+// ---------- History ----------
 
-.library {
+.history {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -52,47 +52,73 @@
   margin-left: auto;
 }
 
-.rows {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
   overflow-y: auto;
 }
 
-.row {
-  display: grid;
-  grid-template-columns: minmax(0, 2fr) auto repeat(3, minmax(0, 1fr));
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: 10px 14px;
-  background: var(--panel-card-bg);
-  border: 1px solid var(--panel-card-border);
-  border-radius: var(--radius);
-  cursor: pointer;
-  text-align: left;
-  color: inherit;
-  font: inherit;
-
-  &:hover {
-    border-color: var(--panel-accent);
-  }
+.gameCard {
+  padding: 0;
+  overflow: hidden;
+  gap: 0;
 }
 
-.rowName {
+.gameCardArt {
+  width: 100%;
+  aspect-ratio: 231 / 87;
+  background: var(--panel-element-bg);
+}
+
+.gameCardImg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.gameCardPlaceholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.gameCardBody {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px 12px;
+}
+
+.gameCardName {
   @include text-button;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.rowStat {
+.gameCardAvg {
+  @include text-heading;
+  font-size: 20px;
+  margin-top: 2px;
+}
+
+.gameCardSecondary {
   @include text-caption;
+  display: flex;
+  gap: 10px;
   color: var(--text-dim);
   font-variant-numeric: tabular-nums;
+}
+
+.gameCardMeta {
+  @include text-caption;
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-dim);
 }
 
 // ---------- Game detail ----------

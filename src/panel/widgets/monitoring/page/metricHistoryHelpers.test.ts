@@ -838,20 +838,26 @@ describe('findFpsSessionAt / maskFpsPointsToSessions / buildFpsOverlaySeries', (
 
   describe('buildFpsOverlaySeries', () => {
     it('returns null for an empty masked series', () => {
-      expect(buildFpsOverlaySeries([], 'cpu', 'var(--text)')).toBeNull();
+      expect(buildFpsOverlaySeries([], 'var(--text)')).toBeNull();
     });
 
-    it('rescales onto the 0-100 band for percent tabs (cpu/gpu/memory)', () => {
-      const out = buildFpsOverlaySeries([{ t: 1000, avg: 120, max: 240 }], 'cpu', 'var(--text)');
-      expect(out?.points).toEqual([{ t: 1000, avg: 50, max: 100 }]);
+    it('passes raw fps values through unscaled, on the fixed 0-240 domain', () => {
+      const out = buildFpsOverlaySeries([{ t: 1000, avg: 120, max: 240 }], 'var(--text)');
+      expect(out?.points).toEqual([{ t: 1000, avg: 120, max: 240 }]);
+      expect(out?.fixedYDomain).toEqual([0, 240]);
       expect(out?.id).toBe('fps-overlay');
       expect(out?.noFill).toBe(true);
       expect(out?.noDots).toBe(true);
     });
 
-    it('passes raw fps values through unscaled for network/storage', () => {
-      const out = buildFpsOverlaySeries([{ t: 1000, avg: 132, max: 144 }], 'network', 'var(--text)');
-      expect(out?.points).toEqual([{ t: 1000, avg: 132, max: 144 }]);
+    it('extends the domain past 240 only when the data itself exceeds it', () => {
+      const out = buildFpsOverlaySeries([{ t: 1000, avg: 300, max: 320 }], 'var(--text)');
+      expect(out?.fixedYDomain).toEqual([0, 300]);
+    });
+
+    it('never shrinks the domain below 240, even when every point is low', () => {
+      const out = buildFpsOverlaySeries([{ t: 1000, avg: 30, max: 35 }], 'var(--text)');
+      expect(out?.fixedYDomain).toEqual([0, 240]);
     });
   });
 });

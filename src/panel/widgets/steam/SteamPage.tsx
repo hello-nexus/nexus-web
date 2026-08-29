@@ -897,7 +897,7 @@ function personaStatusLabel(t: (key: string) => string, state: number | undefine
 
 // Library-tile capsule (231x87, ~2.66:1). No fallback URL on 404
 // (see GameTile).
-function steamCapsuleUrl(appId: number) {
+export function steamCapsuleUrl(appId: number) {
   return `https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/capsule_231x87.jpg`;
 }
 
