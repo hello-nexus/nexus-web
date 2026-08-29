@@ -956,6 +956,14 @@
   height: calc(var(--_inner-h) / var(--_s));
 }
 
+// The gallery is a photo, so it has to reach the glass edge. At the shared fit
+// its box stops short of the arc on all four sides and the card background
+// shows through as a ring. A square of the circle's full diameter covers the
+// circle - only the corners fall outside it, and the card clips those.
+:global(.panel-card[data-size='2x2round'][data-widget-type='gallery']) .cellScaler {
+  --_fit: 1;
+}
+
 .panelRoot:not([data-surface='q60']) .cellEditorDocked {
   position: fixed;
   // Above the safe-area scrim (z 140) so the focused widget reads sharp on
