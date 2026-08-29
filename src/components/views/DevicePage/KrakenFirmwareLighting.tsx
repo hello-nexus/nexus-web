@@ -47,6 +47,7 @@ export function KrakenFirmwareLightingSection() {
   const [channels, setChannels] = useState<KrakenFirmwareChannel[]>([]);
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [saving, setSaving] = useState<string | null>(null);
+  const [failed, setFailed] = useState<string | null>(null);
   const aliveRef = useRef(true);
 
   useEffect(() => {
@@ -69,14 +70,16 @@ export function KrakenFirmwareLightingSection() {
 
   const save = useCallback(async (channel: KrakenFirmwareChannel, draft: Draft, spec: KrakenEffect) => {
     setSaving(channel.id);
+    setFailed(null);
     try {
-      await setKrakenFirmwareLighting({
+      const ok = await setKrakenFirmwareLighting({
         channel: channel.id,
         effect: draft.effect,
         speed: draft.speed,
         forward: draft.forward,
         colors: draft.colors.slice(0, spec.maxColors),
       });
+      if (aliveRef.current && ok === null) setFailed(channel.id);
     } finally {
       if (aliveRef.current) setSaving(null);
     }
@@ -204,6 +207,12 @@ export function KrakenFirmwareLightingSection() {
                   />
                 </div>
               </>
+            )}
+
+            {failed === channel.id && (
+              <p className={lianli.customNote} data-settings-aside="true">
+                {t('devices.nzxt-kraken.lightingFirmwareFailed')}
+              </p>
             )}
 
             {channel.nexusDriven && (

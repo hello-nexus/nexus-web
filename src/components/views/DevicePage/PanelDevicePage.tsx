@@ -1196,7 +1196,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                   )}
                   {activeTab === 'settings' && surface === 'kraken' && (
                     <div className={styles.settingsContent}>
-                      <KrakenCoolerSettings onSectionNavigate={onSectionNavigate} />
+                      <KrakenCoolerSettings onSectionNavigate={onSectionNavigate} screenStreamed />
                     </div>
                   )}
                   {/* Panel devices with a settings tab (Y70 / Q-series /

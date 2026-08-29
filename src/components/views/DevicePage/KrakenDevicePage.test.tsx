@@ -14,12 +14,17 @@ vi.mock('../../../lib/i18n', () => ({
 const mockGetKrakenState = vi.fn();
 const mockSetKrakenLcd = vi.fn();
 const mockUpload = vi.fn();
+const mockGetFirmwareLighting = vi.fn();
 
 vi.mock('../../../api/nzxt-kraken', () => ({
   getKrakenState: (...args: any[]) => mockGetKrakenState(...args),
   setKrakenLcd: (...args: any[]) => mockSetKrakenLcd(...args),
   uploadKrakenLcdImage: (...args: any[]) => mockUpload(...args),
   encodeKrakenFrame: vi.fn(),
+  // The settings body mounts the firmware-lighting section too; without these the
+  // section's effect rejects and the run fails on an unhandled rejection.
+  getKrakenFirmwareLighting: (...args: any[]) => mockGetFirmwareLighting(...args),
+  setKrakenFirmwareLighting: vi.fn(),
 }));
 
 const connectedState = {
@@ -45,6 +50,7 @@ const connectedState = {
 beforeEach(() => {
   vi.useFakeTimers();
   mockGetKrakenState.mockResolvedValue(connectedState);
+  mockGetFirmwareLighting.mockResolvedValue({ isConnected: true, effects: [], channels: [] });
   mockSetKrakenLcd.mockResolvedValue({});
   mockUpload.mockResolvedValue(true);
 });

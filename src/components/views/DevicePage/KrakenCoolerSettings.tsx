@@ -34,8 +34,12 @@ const LCD_ROTATIONS = [0, 90, 180, 270];
  * and the RGB channel summary. Hosted by the LCD panel page's settings tab, and by
  * KrakenDevicePage when no panel session exists to host it.
  */
-export function KrakenCoolerSettings({ onSectionNavigate }: {
+export function KrakenCoolerSettings({ onSectionNavigate, screenStreamed = false }: {
   onSectionNavigate?: (section: string) => void;
+  // True when a panel session owns the LCD. It re-activates its own bucket every frame,
+  // so a display mode or a still image picked here is overwritten within a frame period;
+  // the controls that lose are hidden rather than left there looking broken.
+  screenStreamed?: boolean;
 }) {
   const { t } = useTranslation();
   const { numberFormat, monitoringTempUnit } = useUnitPrefs();
@@ -45,6 +49,9 @@ export function KrakenCoolerSettings({ onSectionNavigate }: {
   const [uploadError, setUploadError] = useState(false);
   const aliveRef = useRef(true);
   const fileRef = useRef<HTMLInputElement | null>(null);
+  // Set while the brightness thumb is being dragged, so the poll below keeps the local
+  // value instead of snapping it back to whatever the cooler last reported.
+  const brightnessDirtyRef = useRef(false);
 
   const refresh = useCallback(async () => {
     const s = await getKrakenState();
@@ -55,7 +62,9 @@ export function KrakenCoolerSettings({ onSectionNavigate }: {
       return;
     }
     setConnection('connected');
-    setState(s);
+    setState(prev => (prev && brightnessDirtyRef.current
+      ? { ...s, lcdBrightness: prev.lcdBrightness }
+      : s));
   }, []);
 
   useEffect(() => {
@@ -147,6 +156,11 @@ export function KrakenCoolerSettings({ onSectionNavigate }: {
           </p>
         ) : (
           <>
+            {screenStreamed ? (
+              <p className={styles.customNote} data-settings-aside="true">
+                {t('devices.nzxt-kraken.screenOwnedByPanel')}
+              </p>
+            ) : (
             <SettingSelect
               label={t('devices.nzxt-kraken.screenMode')}
               value={state?.lcdMode ?? 'liquid'}
@@ -154,6 +168,7 @@ export function KrakenCoolerSettings({ onSectionNavigate }: {
               options={LCD_MODES.map(m => ({ value: m.value, label: t(m.labelKey) }))}
               disabled={!loaded}
             />
+            )}
 
             <SettingSlider
               editable
@@ -168,10 +183,13 @@ export function KrakenCoolerSettings({ onSectionNavigate }: {
               disabled={!loaded}
               onChange={(v: number, commit?: boolean) => {
                 if (!state) return;
+                brightnessDirtyRef.current = true;
                 setState({ ...state, lcdBrightness: v });
-                if (commit) void commitLcd({ brightness: v });
+                if (commit) void commitLcd({ brightness: v }).finally(() => { brightnessDirtyRef.current = false; });
               }}
-              onCommit={(v: number) => { void commitLcd({ brightness: v }); }}
+              onCommit={(v: number) => {
+                void commitLcd({ brightness: v }).finally(() => { brightnessDirtyRef.current = false; });
+              }}
             />
 
             <SettingSelect
@@ -185,6 +203,8 @@ export function KrakenCoolerSettings({ onSectionNavigate }: {
               disabled={!loaded}
             />
 
+            {!screenStreamed && (
+              <>
             <input
               ref={fileRef}
               type="file"
@@ -209,6 +229,8 @@ export function KrakenCoolerSettings({ onSectionNavigate }: {
               <p className={styles.customNote} data-settings-aside="true">
                 {t('devices.nzxt-kraken.screenUploadFailed')}
               </p>
+            )}
+              </>
             )}
           </>
         )}
