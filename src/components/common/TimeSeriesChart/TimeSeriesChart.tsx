@@ -11,6 +11,7 @@ import {
   avgValueRange,
   clusterChartEvents,
   formatTooltipTimestamp,
+  gapThresholdMs,
   medianSpacingMs,
   medianSpacingOfPoints,
   nearestPoint,
@@ -347,7 +348,7 @@ export function TimeSeriesChart({
   // nearly every one of its points into its own single-point segment.
   const segmentsBySeries = useMemo(
     () => series.map(s => {
-      const gapMs = (medianSpacingOfPoints(s.points) ?? Infinity) * GAP_MULTIPLIER;
+      const gapMs = gapThresholdMs(s.points);
       return { s, segments: splitIntoSegments(s.points, gapMs) };
     }),
     [series],

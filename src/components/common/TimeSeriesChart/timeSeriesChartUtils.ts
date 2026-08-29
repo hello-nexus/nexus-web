@@ -74,6 +74,25 @@ export function medianSpacingOfPoints(points: readonly { t: number }[]): number 
   return pooledMedianDelta([points]);
 }
 
+// A gap at or below this floor always bridges - see gapThresholdMs.
+export const GAP_BRIDGE_FLOOR_MS = 5000;
+
+/**
+ * The gap threshold (ms) above which two consecutive points render as a
+ * broken run instead of a connected one. Derived from the points' own
+ * median spacing (GAP_MULTIPLIER times it) so it self-calibrates to
+ * whatever decimation cadence is actually in view, then floored at
+ * GAP_BRIDGE_FLOOR_MS so a small real-time gap always bridges even when the
+ * local median is tiny. Does not affect the hover tooltip's own
+ * nearest-point attachment distance - that stays derived straight from the
+ * data's median spacing, unchanged.
+ */
+export function gapThresholdMs(points: readonly { t: number }[]): number {
+  const median = medianSpacingOfPoints(points);
+  const relative = median === null ? Infinity : median * GAP_MULTIPLIER;
+  return Math.max(relative, GAP_BRIDGE_FLOOR_MS);
+}
+
 /**
  * Splits a series' points into runs with no gap wider than maxGapMs, so a
  * missing bucket renders as a broken line instead of an interpolated one.

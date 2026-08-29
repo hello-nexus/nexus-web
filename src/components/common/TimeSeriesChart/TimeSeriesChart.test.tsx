@@ -67,6 +67,43 @@ describe('TimeSeriesChart', () => {
     expect(container.querySelectorAll('path[stroke="#8b5cf6"]').length).toBe(2);
   });
 
+  it('bridges a real-time gap of 4s or less with one continuous path, but still breaks past 6s', () => {
+    // Dense, 1s-cadence data (cpu/gpu/fps tick rate) - the exact shape a
+    // single dropped sample used to punch a visible break for, before the
+    // 5s bridge floor. The 4s gap here far exceeds the ~1s median spacing
+    // (so the old relative-only rule would have broken it), but stays under
+    // the 5s floor and renders as one line; the 6s variant stays a break.
+    const bridged: TimeSeriesSeries[] = [
+      {
+        id: 'fps', name: 'FPS', color: '#8b5cf6',
+        points: [
+          { t: 0, avg: 60, max: 60 },
+          { t: 1_000, avg: 61, max: 61 },
+          { t: 2_000, avg: 59, max: 59 },
+          { t: 6_000, avg: 58, max: 58 },
+          { t: 7_000, avg: 60, max: 60 },
+        ],
+      },
+    ];
+    const { container: bridgedContainer } = render(<TimeSeriesChart series={bridged} {...baseProps} />);
+    expect(bridgedContainer.querySelectorAll('path[stroke="#8b5cf6"]').length).toBe(1);
+
+    const broken: TimeSeriesSeries[] = [
+      {
+        id: 'fps', name: 'FPS', color: '#8b5cf6',
+        points: [
+          { t: 0, avg: 60, max: 60 },
+          { t: 1_000, avg: 61, max: 61 },
+          { t: 2_000, avg: 59, max: 59 },
+          { t: 8_000, avg: 58, max: 58 },
+          { t: 9_000, avg: 60, max: 60 },
+        ],
+      },
+    ];
+    const { container: brokenContainer } = render(<TimeSeriesChart series={broken} {...baseProps} />);
+    expect(brokenContainer.querySelectorAll('path[stroke="#8b5cf6"]').length).toBe(2);
+  });
+
   it('renders one connected line across widely (decimated) spaced points, not a break per point', () => {
     // Regression: the gap threshold used to derive from a caller-supplied
     // nominal bucket size, so decimated data (spaced far wider than the
