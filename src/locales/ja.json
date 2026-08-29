@@ -1228,6 +1228,7 @@
   "featuresOnboarding.pillar.monitoring.description": "リアルタイムのセンサー値と履歴。",
   "featuresOnboarding.pillarsLabel": "機能カテゴリ",
   "featuresOnboarding.title": "どこまで制御したいですか？",
+  "frames.card.fpsUnit": "fps",
   "frames.drill.deleteAll": "すべての記録を削除",
   "frames.drill.deleteAllConfirmMessage": "このゲームの記録されたすべてのセッションが完全に削除されます。この操作は元に戻せません。",
   "frames.drill.deleteAllConfirmTitle": "{name}のすべての記録を削除しますか？",

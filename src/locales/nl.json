@@ -1228,6 +1228,7 @@
   "featuresOnboarding.pillar.monitoring.description": "Live sensorwaarden en geschiedenis.",
   "featuresOnboarding.pillarsLabel": "Functiegebieden",
   "featuresOnboarding.title": "Hoeveel controle wil je?",
+  "frames.card.fpsUnit": "fps",
   "frames.drill.deleteAll": "Alle opnamen verwijderen",
   "frames.drill.deleteAllConfirmMessage": "Hiermee worden alle vastgelegde sessies voor dit spel permanent verwijderd. Dit kan niet ongedaan worden gemaakt.",
   "frames.drill.deleteAllConfirmTitle": "Alle opnamen voor {name} verwijderen?",

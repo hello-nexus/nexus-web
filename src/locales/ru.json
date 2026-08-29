@@ -1238,6 +1238,7 @@
   "featuresOnboarding.pillar.monitoring.description": "Показания датчиков в реальном времени и история.",
   "featuresOnboarding.pillarsLabel": "Разделы функций",
   "featuresOnboarding.title": "Какой уровень контроля вам нужен?",
+  "frames.card.fpsUnit": "fps",
   "frames.drill.deleteAll": "Удалить все записи",
   "frames.drill.deleteAllConfirmMessage": "Это навсегда удалит каждую записанную сессию для этой игры. Это действие нельзя отменить.",
   "frames.drill.deleteAllConfirmTitle": "Удалить все записи для {name}?",

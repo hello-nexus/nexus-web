@@ -1228,6 +1228,7 @@
   "featuresOnboarding.pillar.monitoring.description": "Live sensor readouts and history.",
   "featuresOnboarding.pillarsLabel": "Feature pillars",
   "featuresOnboarding.title": "How much control do you want?",
+  "frames.card.fpsUnit": "fps",
   "frames.drill.deleteAll": "Delete all recordings",
   "frames.drill.deleteAllConfirmMessage": "This permanently deletes every recorded session for this game. This cannot be undone.",
   "frames.drill.deleteAllConfirmTitle": "Delete all recordings for {name}?",

@@ -1228,6 +1228,7 @@
   "featuresOnboarding.pillar.monitoring.description": "即時感測器讀數與歷史記錄。",
   "featuresOnboarding.pillarsLabel": "功能模組",
   "featuresOnboarding.title": "您想控制到什麼程度？",
+  "frames.card.fpsUnit": "fps",
   "frames.drill.deleteAll": "刪除所有記錄",
   "frames.drill.deleteAllConfirmMessage": "此操作將永久刪除此遊戲的所有已記錄工作階段，且無法復原。",
   "frames.drill.deleteAllConfirmTitle": "刪除 {name} 的所有記錄？",

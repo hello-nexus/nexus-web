@@ -1238,6 +1238,7 @@
   "featuresOnboarding.pillar.monitoring.description": "Bieżące odczyty czujników i historia.",
   "featuresOnboarding.pillarsLabel": "Obszary funkcji",
   "featuresOnboarding.title": "Ile kontroli chcesz mieć?",
+  "frames.card.fpsUnit": "fps",
   "frames.drill.deleteAll": "Usuń wszystkie nagrania",
   "frames.drill.deleteAllConfirmMessage": "Spowoduje to trwałe usunięcie każdej zarejestrowanej sesji dla tej gry. Tej operacji nie można cofnąć.",
   "frames.drill.deleteAllConfirmTitle": "Usunąć wszystkie nagrania dla {name}?",

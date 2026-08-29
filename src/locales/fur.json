@@ -1228,6 +1228,7 @@
   "featuresOnboarding.pillar.monitoring.description": "Valôrs dai sensôrs in timp reâl e storie.",
   "featuresOnboarding.pillarsLabel": "Aree di funzions",
   "featuresOnboarding.title": "Trop control vuelistu?",
+  "frames.card.fpsUnit": "fps",
   "frames.drill.deleteAll": "Elimine dutis lis regjistrazions",
   "frames.drill.deleteAllConfirmMessage": "Chest al eliminarà par simpri ogni session regjistrade par chest zûc. No si pues tornâ indaûr.",
   "frames.drill.deleteAllConfirmTitle": "Eliminâ dutis lis regjistrazions par {name}?",

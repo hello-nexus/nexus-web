@@ -1228,6 +1228,7 @@
   "featuresOnboarding.pillar.monitoring.description": "Lecturas de sensores en vivo e historial.",
   "featuresOnboarding.pillarsLabel": "Pilares de funciones",
   "featuresOnboarding.title": "¿Cuánto control quieres?",
+  "frames.card.fpsUnit": "fps",
   "frames.drill.deleteAll": "Eliminar todas las grabaciones",
   "frames.drill.deleteAllConfirmMessage": "Esto elimina permanentemente todas las sesiones registradas de este juego. Esta acción no se puede deshacer.",
   "frames.drill.deleteAllConfirmTitle": "¿Eliminar todas las grabaciones de {name}?",

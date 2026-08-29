@@ -1228,6 +1228,7 @@
   "featuresOnboarding.pillar.monitoring.description": "실시간 센서 값과 기록.",
   "featuresOnboarding.pillarsLabel": "기능 영역",
   "featuresOnboarding.title": "얼마나 제어하시겠습니까?",
+  "frames.card.fpsUnit": "fps",
   "frames.drill.deleteAll": "모든 기록 삭제",
   "frames.drill.deleteAllConfirmMessage": "이 게임에 대해 기록된 모든 세션이 영구적으로 삭제됩니다. 이 작업은 취소할 수 없습니다.",
   "frames.drill.deleteAllConfirmTitle": "{name}의 모든 기록을 삭제할까요?",

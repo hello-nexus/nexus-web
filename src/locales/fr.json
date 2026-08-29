@@ -1228,6 +1228,7 @@
   "featuresOnboarding.pillar.monitoring.description": "Relevés de capteurs en direct et historique.",
   "featuresOnboarding.pillarsLabel": "Piliers de fonctionnalités",
   "featuresOnboarding.title": "Quel niveau de contrôle voulez-vous ?",
+  "frames.card.fpsUnit": "fps",
   "frames.drill.deleteAll": "Supprimer tous les enregistrements",
   "frames.drill.deleteAllConfirmMessage": "Cette action supprime définitivement chaque session enregistrée pour ce jeu. Cette action est irréversible.",
   "frames.drill.deleteAllConfirmTitle": "Supprimer tous les enregistrements de {name} ?",

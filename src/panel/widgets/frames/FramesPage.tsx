@@ -216,7 +216,10 @@ function GameCard({
       <div className={styles.gameCardBody}>
         <div className={styles.gameCardName}>{game.name}</div>
         <Badge label={game.store} />
-        <div className={styles.gameCardAvg}>{t('steam.fps.sessionAvg', { value: Math.round(game.avgFps) })}</div>
+        <div className={styles.gameCardAvg}>
+          <span className={styles.gameCardAvgValue}>{Math.round(game.avgFps)}</span>
+          <span className={styles.gameCardAvgUnit}>{t('frames.card.fpsUnit')}</span>
+        </div>
         <div className={styles.gameCardSecondary}>
           <span>{t('steam.stat.fps1pctLow')} {Math.round(game.p1Fps)}</span>
           <span>{t('steam.stat.fps99th')} {Math.round(game.p99Fps)}</span>

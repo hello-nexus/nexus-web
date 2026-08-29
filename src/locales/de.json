@@ -1228,6 +1228,7 @@
   "featuresOnboarding.pillar.monitoring.description": "Live-Sensorwerte und Verlauf.",
   "featuresOnboarding.pillarsLabel": "Funktionsbereiche",
   "featuresOnboarding.title": "Wie viel Kontrolle möchten Sie?",
+  "frames.card.fpsUnit": "fps",
   "frames.drill.deleteAll": "Alle Aufzeichnungen löschen",
   "frames.drill.deleteAllConfirmMessage": "Dies löscht dauerhaft jede aufgezeichnete Sitzung für dieses Spiel. Dies kann nicht rückgängig gemacht werden.",
   "frames.drill.deleteAllConfirmTitle": "Alle Aufzeichnungen für {name} löschen?",

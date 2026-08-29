@@ -1228,6 +1228,7 @@
   "featuresOnboarding.pillar.monitoring.description": "Canlı sensör okumaları ve geçmiş.",
   "featuresOnboarding.pillarsLabel": "Özellik alanları",
   "featuresOnboarding.title": "Ne kadar kontrol istiyorsunuz?",
+  "frames.card.fpsUnit": "fps",
   "frames.drill.deleteAll": "Tüm kayıtları sil",
   "frames.drill.deleteAllConfirmMessage": "Bu işlem, bu oyun için kaydedilen her oturumu kalıcı olarak siler. Bu işlem geri alınamaz.",
   "frames.drill.deleteAllConfirmTitle": "{name} için tüm kayıtlar silinsin mi?",
