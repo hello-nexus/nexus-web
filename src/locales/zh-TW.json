@@ -1245,7 +1245,7 @@
   "frames.stat.hours": "小時",
   "frames.stat.sessions": "工作階段",
   "frames.tab.discover": "探索",
-  "frames.tab.history": "FPS 擷取",
+  "frames.tab.history": "影格擷取",
   "frames.timeline.noData": "此工作階段未記錄 FPS 資料",
   "frames.timeline.tooOld": "早於 7 天的監控記錄",
   "frames.trackingOff.hint": "在設定 > 隱私與資料中開啟，即可開始記錄你的 FPS。",

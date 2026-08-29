@@ -1245,7 +1245,7 @@
   "frames.stat.hours": "Uren",
   "frames.stat.sessions": "Sessies",
   "frames.tab.discover": "Ontdekken",
-  "frames.tab.history": "FPS-opnamen",
+  "frames.tab.history": "Frame-opnamen",
   "frames.timeline.noData": "Geen FPS-gegevens vastgelegd voor deze sessie",
   "frames.timeline.tooOld": "Ouder dan de bewakingsgeschiedenis van 7 dagen",
   "frames.trackingOff.hint": "Zet het aan bij Instellingen > Privacy en gegevens om je FPS te registreren.",

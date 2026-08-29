@@ -1245,7 +1245,7 @@
   "frames.stat.hours": "Stunden",
   "frames.stat.sessions": "Sitzungen",
   "frames.tab.discover": "Entdecken",
-  "frames.tab.history": "FPS-Erfassungen",
+  "frames.tab.history": "Frame-Aufnahmen",
   "frames.timeline.noData": "Für diese Sitzung wurden keine FPS-Daten aufgezeichnet",
   "frames.timeline.tooOld": "Älter als der 7-tägige Überwachungsverlauf",
   "frames.trackingOff.hint": "Aktivieren Sie es unter Einstellungen > Datenschutz & Daten, um Ihre FPS aufzuzeichnen.",

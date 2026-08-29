@@ -1245,7 +1245,7 @@
   "frames.stat.hours": "시간",
   "frames.stat.sessions": "세션",
   "frames.tab.discover": "둘러보기",
-  "frames.tab.history": "FPS 캡처",
+  "frames.tab.history": "프레임 캡처",
   "frames.timeline.noData": "이 세션에 대한 FPS 데이터가 기록되지 않았습니다",
   "frames.timeline.tooOld": "7일간의 모니터링 기록보다 오래되었습니다",
   "frames.trackingOff.hint": "설정 > 개인정보 및 데이터에서 켜면 FPS 기록이 시작됩니다.",

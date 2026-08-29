@@ -1245,7 +1245,7 @@
   "frames.stat.hours": "Saat",
   "frames.stat.sessions": "Oturumlar",
   "frames.tab.discover": "Keşfet",
-  "frames.tab.history": "FPS Yakalamaları",
+  "frames.tab.history": "Kare yakalamaları",
   "frames.timeline.noData": "Bu oturum için FPS verisi kaydedilmedi",
   "frames.timeline.tooOld": "7 günlük izleme geçmişinden daha eski",
   "frames.trackingOff.hint": "FPS'inizi kaydetmeye başlamak için Ayarlar > Gizlilik ve veri bölümünden açın.",

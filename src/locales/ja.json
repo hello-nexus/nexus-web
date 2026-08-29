@@ -1245,7 +1245,7 @@
   "frames.stat.hours": "時間",
   "frames.stat.sessions": "セッション",
   "frames.tab.discover": "見つける",
-  "frames.tab.history": "FPSキャプチャ",
+  "frames.tab.history": "フレームキャプチャ",
   "frames.timeline.noData": "このセッションのFPSデータは記録されていません",
   "frames.timeline.tooOld": "7日間のモニタリング履歴より古いデータです",
   "frames.trackingOff.hint": "設定 > プライバシーとデータでオンにすると、FPSの記録が始まります。",

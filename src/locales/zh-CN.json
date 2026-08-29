@@ -1245,7 +1245,7 @@
   "frames.stat.hours": "小时",
   "frames.stat.sessions": "会话",
   "frames.tab.discover": "发现",
-  "frames.tab.history": "FPS 采集",
+  "frames.tab.history": "帧捕获",
   "frames.timeline.noData": "此会话未记录 FPS 数据",
   "frames.timeline.tooOld": "早于 7 天的监控历史记录",
   "frames.trackingOff.hint": "在设置 > 隐私与数据中开启，即可开始记录你的 FPS。",

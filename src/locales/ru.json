@@ -1255,7 +1255,7 @@
   "frames.stat.hours": "Часы",
   "frames.stat.sessions": "Сессии",
   "frames.tab.discover": "Обзор",
-  "frames.tab.history": "Записи FPS",
+  "frames.tab.history": "Захваты кадров",
   "frames.timeline.noData": "Для этой сессии не записаны данные FPS",
   "frames.timeline.tooOld": "Старше 7-дневной истории мониторинга",
   "frames.trackingOff.hint": "Включите его в Настройки > Конфиденциальность и данные, чтобы начать запись FPS.",

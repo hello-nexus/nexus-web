@@ -1245,7 +1245,7 @@
   "frames.stat.hours": "Ore",
   "frames.stat.sessions": "Sessioni",
   "frames.tab.discover": "Scopri",
-  "frames.tab.history": "Acquisizioni FPS",
+  "frames.tab.history": "Acquisizioni fotogrammi",
   "frames.timeline.noData": "Nessun dato FPS registrato per questa sessione",
   "frames.timeline.tooOld": "Precedente alla cronologia di monitoraggio di 7 giorni",
   "frames.trackingOff.hint": "Attivalo in Impostazioni > Privacy e dati per iniziare a registrare i tuoi FPS.",

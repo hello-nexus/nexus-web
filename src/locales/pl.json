@@ -1255,7 +1255,7 @@
   "frames.stat.hours": "Godziny",
   "frames.stat.sessions": "Sesje",
   "frames.tab.discover": "Odkryj",
-  "frames.tab.history": "Przechwycenia FPS",
+  "frames.tab.history": "Przechwytywanie klatek",
   "frames.timeline.noData": "Brak zarejestrowanych danych FPS dla tej sesji",
   "frames.timeline.tooOld": "Starsze niż 7-dniowa historia monitorowania",
   "frames.trackingOff.hint": "Włącz je w Ustawienia > Prywatność i dane, aby zacząć rejestrować swoje FPS.",
