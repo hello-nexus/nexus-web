@@ -84,8 +84,6 @@ export interface DiscordPresenceBody {
 export const fetchDiscordStatus = () =>
   fetchService<DiscordStatusResponse>('/api/discord/status');
 
-export const launchDiscord = () =>
-  postService('/api/discord/launch', {});
 
 export const setDiscordMute = (enabled: boolean) =>
   postService('/api/discord/voice/mute', { enabled });
