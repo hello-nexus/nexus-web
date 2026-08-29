@@ -5,6 +5,7 @@ import { Card } from '../../../components/common/Card/Card';
 import { ConfirmModal } from '../../../components/common/ConfirmModal/ConfirmModal';
 import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
 import { SearchInput } from '../../../components/common/SearchInput/SearchInput';
+import { SectionHeader } from '../../../components/common/SectionHeader/SectionHeader';
 import { Badge } from '../../../components/common/Badge/Badge';
 import { Button } from '../../../components/common/Button/Button';
 import { StatTile } from '../../../components/common/StatTile/StatTile';
@@ -315,31 +316,23 @@ function GameDetail({
       )}
 
       <div className={styles.detailColumns}>
-        <Card title={t('frames.stat.sessions')} className={styles.detailCol}>
+        <div className={styles.sessionsCol}>
+          <SectionHeader>{t('frames.stat.sessions')}</SectionHeader>
           {sessions.length === 0 ? (
             <EmptyState compact title={t('frames.drill.noSessions')} />
           ) : (
-            <ul className={styles.sessionList}>
+            <div className={styles.sessionScroller}>
               {sessions.map(s => (
-                <li key={s.id}>
-                  <div
-                    className={s.id === selectedSessionId ? `${styles.sessionRow} ${styles.sessionRowActive}` : styles.sessionRow}
-                    role="button"
-                    tabIndex={0}
-                    // Pins the row's own accessible name so it can't absorb
-                    // the nested delete button's aria-label. A real <button>
-                    // can't nest the delete Button (invalid HTML content
-                    // model), so this row uses role="button" instead.
-                    aria-label={formatSessionDate(s.startedUtcMs, timeFormat)}
-                    onClick={() => setSelectedSessionId(s.id)}
-                    onKeyDown={e => {
-                      if (e.target !== e.currentTarget) return;
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        setSelectedSessionId(s.id);
-                      }
-                    }}
-                  >
+                <Card
+                  key={s.id}
+                  compact
+                  onClick={() => setSelectedSessionId(s.id)}
+                  // Pins the card's own accessible name so it can't absorb
+                  // the nested delete button's aria-label.
+                  ariaLabel={formatSessionDate(s.startedUtcMs, timeFormat)}
+                  className={s.id === selectedSessionId ? `${styles.sessionCard} ${styles.sessionCardActive}` : styles.sessionCard}
+                >
+                  <div className={styles.sessionRow}>
                     <span className={styles.sessionMain}>
                       <span>{formatSessionDate(s.startedUtcMs, timeFormat)}</span>
                       <span className={styles.sessionMeta}>
@@ -360,11 +353,11 @@ function GameDetail({
                       onClick={e => { e.stopPropagation(); setPendingDeleteSessionId(s.id); }}
                     />
                   </div>
-                </li>
+                </Card>
               ))}
-            </ul>
+            </div>
           )}
-        </Card>
+        </div>
 
         <Card title={t('frames.drill.timeline')} className={styles.detailCol}>
           {selectedSession ? (

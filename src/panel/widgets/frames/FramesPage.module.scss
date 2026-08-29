@@ -161,15 +161,38 @@
 
 .detailCol {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
-.sessionList {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+// Left detail column: a plain SectionHeader above a scroller of per-session
+// Cards, instead of a "Sessions" container Card - stretched by the grid to
+// the timeline column's height, then clamped by sessionScroller's own
+// overflow so a long session list scrolls internally instead of growing
+// past the timeline card.
+.sessionsCol {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-height: 0;
+}
+
+.sessionScroller {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.sessionCard {
+  flex-shrink: 0;
+}
+
+.sessionCardActive {
+  border-color: var(--panel-accent);
 }
 
 .sessionRow {
@@ -178,22 +201,6 @@
   justify-content: space-between;
   gap: 10px;
   width: 100%;
-  padding: 8px 10px;
-  background: var(--panel-element-bg);
-  border: 1px solid transparent;
-  border-radius: var(--radius);
-  cursor: pointer;
-  text-align: left;
-  color: inherit;
-  font: inherit;
-
-  &:hover {
-    background: var(--panel-element-bg-hover);
-  }
-}
-
-.sessionRowActive {
-  border-color: var(--panel-accent);
 }
 
 .sessionMain {

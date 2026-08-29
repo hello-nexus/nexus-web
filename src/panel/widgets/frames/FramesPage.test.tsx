@@ -203,6 +203,32 @@ describe('FramesPage - game detail', () => {
     expect(fetchMonitoringHistoryMock).toHaveBeenCalledWith({ from: recent.startedUtcMs, to: recent.endedUtcMs, series: 'fps' });
     expect(await screen.findByText('frames.timeline.noData')).toBeInTheDocument();
   });
+
+  it('renders each session as its own card in a scroller (not a shared Sessions card), and switching selection refetches the timeline', async () => {
+    const s1 = session({ id: 's1', avgFps: 100, startedUtcMs: Date.now() - 2000, endedUtcMs: Date.now() - 1000 });
+    const s2 = session({ id: 's2', avgFps: 200, startedUtcMs: Date.now() - 4000, endedUtcMs: Date.now() - 3000 });
+    fetchFpsGameSessionsMock.mockResolvedValue({ sessions: [s1, s2] });
+    renderPage('steam:730');
+    await flush();
+
+    // "Sessions" labels both the stat tile and the session-list section
+    // header - neither is a Card title (which would render an <h4>), since
+    // the list is a plain SectionHeader above a scroller now, not a Card.
+    const sessionsLabels = await screen.findAllByText('frames.stat.sessions');
+    expect(sessionsLabels.some(el => el.tagName === 'H4')).toBe(false);
+
+    // Each session gets its own delete button, one per card.
+    expect(screen.getAllByRole('button', { name: 'frames.session.deleteAria' })).toHaveLength(2);
+
+    // The first session is auto-selected on load.
+    expect(fetchMonitoringHistoryMock).toHaveBeenCalledWith({ from: s1.startedUtcMs, to: s1.endedUtcMs, series: 'fps' });
+
+    fetchMonitoringHistoryMock.mockClear();
+    fireEvent.click(screen.getByText('steam.fps.sessionAvg(value=200)'));
+    await flush();
+
+    expect(fetchMonitoringHistoryMock).toHaveBeenCalledWith({ from: s2.startedUtcMs, to: s2.endedUtcMs, series: 'fps' });
+  });
 });
 
 describe('FramesPage - deleting a single session', () => {
