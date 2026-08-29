@@ -519,26 +519,6 @@ $dot-offline: var(--text-dim);
   gap: 10px;
 }
 
-.statTile {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 12px 14px;
-  background: var(--panel-card-bg);
-  border: 1px solid var(--panel-card-border);
-  border-radius: var(--radius);
-}
-
-.statTileValue {
-  @include text-heading;
-  font-size: 20px;
-}
-
-.statTileLabel {
-  @include text-caption;
-  color: var(--text-dim);
-}
-
 .drillColumns {
   display: grid;
   grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
@@ -685,17 +665,6 @@ $dot-offline: var(--text-dim);
   @include text-body;
   font-variant-numeric: tabular-nums;
   font-weight: var(--weight-strong);
-}
-
-.fpsCappedBadge {
-  @include text-caption;
-  margin-left: 6px;
-  padding: 1px 6px;
-  border-radius: var(--radius);
-  background: var(--panel-element-bg-hover);
-  color: var(--text-dim);
-  font-weight: var(--weight-heading);
-  vertical-align: middle;
 }
 
 .drillNewsList {

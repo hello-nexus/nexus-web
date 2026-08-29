@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SteamPage } from './SteamPage';
 import {
@@ -14,7 +14,8 @@ import {
   fetchSteamUserStats,
   type SteamOwnedGame,
 } from '../../../api/steam';
-import { fetchFpsGameSessions, fetchFpsGames, type FpsGamesResponse, type FpsSessionsResponse } from '../../../api/fps';
+import { fetchFpsGames, type FpsGamesResponse } from '../../../api/fps';
+import { requestOpenFramesGame } from '../frames/framesNav';
 
 vi.mock('../../../api/steam', () => ({
   fetchSteamStatus: vi.fn(),
@@ -32,8 +33,11 @@ vi.mock('../../../api/steam', () => ({
 
 vi.mock('../../../api/fps', () => ({
   fetchFpsGames: vi.fn(),
-  fetchFpsGameSessions: vi.fn(),
   steamGameKey: (appId: number) => `steam:${appId}`,
+}));
+
+vi.mock('../frames/framesNav', () => ({
+  requestOpenFramesGame: vi.fn(),
 }));
 
 vi.mock('../../../hooks/useUiSettings', () => ({
@@ -90,7 +94,6 @@ beforeEach(() => {
   vi.mocked(fetchSteamUserStats).mockResolvedValue([]);
   vi.mocked(fetchSteamCurrentPlayers).mockResolvedValue(null);
   vi.mocked(fetchFpsGames).mockResolvedValue(fpsGames());
-  vi.mocked(fetchFpsGameSessions).mockResolvedValue({ sessions: [] });
 });
 
 afterEach(() => {
@@ -121,43 +124,48 @@ describe('SteamPage - GameTile FPS chip', () => {
     await screen.findByText('Counter-Strike 2');
     expect(screen.queryByText(/steam\.fps\.chip\(/)).not.toBeInTheDocument();
   });
+
+  it('keeps the tile\'s own accessible name pinned to the game name, not absorbing the nested chip\'s label', async () => {
+    // A button with no aria-label of its own would otherwise inherit the
+    // nested chip's aria-label text into its computed accessible name.
+    render(<SteamPage />);
+    await flush();
+
+    expect(await screen.findByRole('button', { name: 'Counter-Strike 2' })).toBeInTheDocument();
+  });
 });
 
-describe('SteamPage - drilldown FPS section', () => {
-  it('shows avg / 1% low / 99th stat tiles and the recent sessions list', async () => {
-    const sessions: FpsSessionsResponse = {
-      sessions: [
-        { id: 's1', startedUtcMs: 0, endedUtcMs: 0, focusedSec: 2400, validSec: 2400,
-          avgFps: 138, p1Fps: 95, p99Fps: 210, minFps: 50, maxFps: 240,
-          dispW: 2560, dispH: 1440, refreshHz: 144, fullscreen: true, capped: false, capValue: 0 },
-        { id: 's2', startedUtcMs: 0, endedUtcMs: 0, focusedSec: 1200, validSec: 1200,
-          avgFps: 144, p1Fps: 140, p99Fps: 144, minFps: 138, maxFps: 144,
-          dispW: 1920, dispH: 1080, refreshHz: 144, fullscreen: true, capped: true, capValue: 144 },
-      ],
-    };
-    vi.mocked(fetchFpsGameSessions).mockResolvedValue(sessions);
+describe('SteamPage - FPS chip deep-links into Frames', () => {
+  it('opens Frames for the chip\'s own game without opening the Steam drilldown', async () => {
+    render(<SteamPage />);
+    await flush();
 
+    const chip = await screen.findByRole('button', { name: 'steam.fps.chipAriaLabel(name=Counter-Strike 2)' });
+    fireEvent.click(chip);
+
+    expect(requestOpenFramesGame).toHaveBeenCalledWith('steam:730');
+    // The tile's own click (opening the Steam drilldown) never fires.
+    expect(screen.queryByText('steam.action.back')).not.toBeInTheDocument();
+  });
+
+  it('activates on Enter and Space, same as a click', async () => {
+    render(<SteamPage />);
+    await flush();
+    vi.mocked(requestOpenFramesGame).mockClear();
+
+    const chip = await screen.findByRole('button', { name: 'steam.fps.chipAriaLabel(name=Counter-Strike 2)' });
+    fireEvent.keyDown(chip, { key: 'Enter' });
+    expect(requestOpenFramesGame).toHaveBeenCalledTimes(1);
+
+    fireEvent.keyDown(chip, { key: ' ' });
+    expect(requestOpenFramesGame).toHaveBeenCalledTimes(2);
+  });
+
+  it('no longer renders any FPS stats or sessions inside the Steam drilldown itself', async () => {
     render(<SteamPage />);
     await flush();
 
     fireEvent.click(await screen.findByText('Counter-Strike 2'));
-    await flush();
-
-    expect(await screen.findByText('132')).toBeInTheDocument();
-    expect(screen.getByText('90')).toBeInTheDocument();
-    expect(screen.getByText('201')).toBeInTheDocument();
-
-    await waitFor(() => expect(fetchFpsGameSessions).toHaveBeenCalledWith('steam:730'));
-    expect(await screen.findByText('2560×1440 @ 144 Hz · 40m')).toBeInTheDocument();
-    expect(screen.getByText('1920×1080 @ 144 Hz · 20m')).toBeInTheDocument();
-    expect(screen.getByText('steam.fps.capped')).toBeInTheDocument();
-  });
-
-  it('renders no FPS section for a game with no summary or sessions', async () => {
-    render(<SteamPage />);
-    await flush();
-
-    fireEvent.click(await screen.findByText('Team Fortress 2'));
     await flush();
 
     expect(screen.queryByText('steam.stat.fpsAvg')).not.toBeInTheDocument();

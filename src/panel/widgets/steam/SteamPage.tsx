@@ -22,12 +22,14 @@ import {
   type SteamStatusResponse,
   type SteamUserStat,
 } from '../../../api/steam';
-import { fetchFpsGameSessions, steamGameKey, type FpsGameSummary, type FpsSession } from '../../../api/fps';
+import { steamGameKey, type FpsGameSummary } from '../../../api/fps';
+import { requestOpenFramesGame } from '../frames/framesNav';
 import { Button } from '../../../components/common/Button/Button';
 import { Card } from '../../../components/common/Card/Card';
 import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
 import { SearchInput } from '../../../components/common/SearchInput/SearchInput';
 import { Select } from '../../../components/common/Select/Select';
+import { StatTile } from '../../../components/common/StatTile/StatTile';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { useFpsGames } from '../../../hooks/useFpsGames';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
@@ -198,7 +200,6 @@ export function SteamPage() {
                 friends={friends}
                 ownedGames={ownedGames}
                 onBack={handleBack}
-                fpsSummary={fpsGamesByKey.get(steamGameKey(view.appId))}
               />
             )}
           </>
@@ -560,6 +561,10 @@ function GameTile({
       <button
         type="button"
         className={styles.gameTile}
+        // Pins the tile's own accessible name so it can't absorb the nested
+        // FPS chip's aria-label (a button with no name of its own inherits
+        // descendant text into its computed name).
+        aria-label={game.name}
         onClick={() => onOpen(game.appId, game.name)}
       >
         <div className={styles.gameTileArtWrap}>
@@ -578,7 +583,22 @@ function GameTile({
             />
           )}
           {fps && (
-            <span className={styles.fpsChip}>
+            <span
+              role="button"
+              tabIndex={0}
+              className={styles.fpsChip}
+              aria-label={t('steam.fps.chipAriaLabel', { name: game.name })}
+              onClick={e => {
+                e.stopPropagation();
+                requestOpenFramesGame(steamGameKey(game.appId));
+              }}
+              onKeyDown={e => {
+                if (e.key !== 'Enter' && e.key !== ' ') return;
+                e.preventDefault();
+                e.stopPropagation();
+                requestOpenFramesGame(steamGameKey(game.appId));
+              }}
+            >
               {t('steam.fps.chip', { value: Math.round(fps.avgFps) })}
             </span>
           )}
@@ -607,14 +627,12 @@ function DrillView({
   friends,
   ownedGames,
   onBack,
-  fpsSummary,
 }: {
   appId: number;
   fallbackName: string;
   friends: SteamFriendSummary[];
   ownedGames: SteamOwnedGame[];
   onBack: () => void;
-  fpsSummary?: FpsGameSummary;
 }) {
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
@@ -625,7 +643,6 @@ function DrillView({
   const [news, setNews] = useState<SteamNewsItem[]>([]);
   const [playerCount, setPlayerCount] = useState<number | null>(null);
   const [hideUnlocked, setHideUnlocked] = useState(false);
-  const [fpsSessions, setFpsSessions] = useState<FpsSession[]>([]);
 
   // Reuse the parent's already-polled owned-games array instead of
   // firing a per-drill GetOwnedGames.
@@ -646,8 +663,6 @@ function DrillView({
     });
     fetchSteamUserStats(appId).then(s => { if (!cancelled && s) setStats(s); });
     fetchSteamNews(appId, 6, 320).then(n => { if (!cancelled && n) setNews(n); });
-    setFpsSessions([]);
-    fetchFpsGameSessions(steamGameKey(appId)).then(r => { if (!cancelled && r) setFpsSessions(r.sessions); });
     return () => { cancelled = true; };
   }, [appId]);
 
@@ -752,13 +767,6 @@ function DrillView({
           label={t('steam.stat.playersNow')}
           value={playerCount !== null ? formatNumber(playerCount, numberFormat) : '-'}
         />
-        {fpsSummary && (
-          <>
-            <StatTile label={t('steam.stat.fpsAvg')} value={`${Math.round(fpsSummary.avgFps)}`} />
-            <StatTile label={t('steam.stat.fps1pctLow')} value={`${Math.round(fpsSummary.p1Fps)}`} />
-            <StatTile label={t('steam.stat.fps99th')} value={`${Math.round(fpsSummary.p99Fps)}`} />
-          </>
-        )}
       </section>
 
       <div className={styles.drillColumns}>
@@ -820,27 +828,6 @@ function DrillView({
             </Card>
           )}
 
-          {fpsSessions.length > 0 && (
-            <Card title={t('steam.drill.recentFpsSessions')}>
-              <ul className={styles.statList}>
-                {fpsSessions.map(s => (
-                  <li key={s.id} className={styles.statRow}>
-                    <span className={styles.statKey}>
-                      {`${s.dispW}×${s.dispH} @ ${s.refreshHz} Hz · ${formatMinutes(Math.round(s.focusedSec / 60))}`}
-                    </span>
-                    <span className={styles.statValue}>
-                      {t('steam.fps.sessionAvg', { value: Math.round(s.avgFps) })}
-                      {s.capped && (
-                        <HoverTooltip body={t('steam.fps.cappedTooltip', { value: Math.round(s.capValue) })} side="top">
-                          <span className={styles.fpsCappedBadge}>{t('steam.fps.capped')}</span>
-                        </HoverTooltip>
-                      )}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </Card>
-          )}
         </section>
 
         <section className={styles.drillCol}>
@@ -881,15 +868,6 @@ function DrillView({
           </Card>
         </section>
       </div>
-    </div>
-  );
-}
-
-function StatTile({ label, value }: { label: string; value: string }) {
-  return (
-    <div className={styles.statTile}>
-      <span className={styles.statTileValue}>{value}</span>
-      <span className={styles.statTileLabel}>{label}</span>
     </div>
   );
 }

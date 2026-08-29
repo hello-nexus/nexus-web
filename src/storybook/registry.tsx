@@ -8,6 +8,7 @@ import { Sparkline } from '../components/common/Sparkline/Sparkline';
 import { SensorCard } from '../components/common/SensorCard/SensorCard';
 import { Card } from '../components/common/Card/Card';
 import { InfoList, InfoRow } from '../components/common/InfoList/InfoList';
+import { StatTile } from '../components/common/StatTile/StatTile';
 import { SystemSpecsPanel } from '../components/common/SystemSpecsPanel/SystemSpecsPanel';
 import { Avatar } from '../components/common/Avatar/Avatar';
 import { Slider } from '../components/common/Slider/Slider';
@@ -437,6 +438,15 @@ function PreviewInfoList() {
       <InfoRow label="Wireless" value="Yes" tone="accent" />
       <InfoRow label="Firmware" value="1.4.2" tone="dim" />
     </InfoList>
+  );
+}
+
+function PreviewStatTile() {
+  return (
+    <div style={{ display: 'flex', gap: '10px' }}>
+      <StatTile label="Avg FPS" value="132" />
+      <StatTile label="Sessions" value="5" />
+    </div>
   );
 }
 
@@ -2120,6 +2130,11 @@ export const REGISTRY: StorybookEntry[] = [
     name: 'InfoList / InfoRow', category: 'cards',
     filePath: 'src/components/common/InfoList/InfoList.tsx',
     description: 'Bounded widget of label/value rows. Use for compact device meta, status keys, or any vertical key/value listing. Tones: accent / good / warn / bad / dim.', Preview: PreviewInfoList,
+  },
+  {
+    name: 'StatTile', category: 'cards',
+    filePath: 'src/components/common/StatTile/StatTile.tsx',
+    description: 'A boxed value + label pair for a stat-tile row or grid - the Steam per-game drilldown and the Frames game detail both render their avg/1% low/99th/sessions/hours stats through this.', Preview: PreviewStatTile,
   },
   {
     name: 'SystemSpecsPanel', category: 'cards',
