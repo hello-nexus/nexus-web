@@ -31,10 +31,12 @@ import { SearchInput } from '../../../components/common/SearchInput/SearchInput'
 import { Select } from '../../../components/common/Select/Select';
 import { StatTile } from '../../../components/common/StatTile/StatTile';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
+import { useFpsEstimates } from '../../../hooks/useFpsEstimates';
 import { useFpsGames } from '../../../hooks/useFpsGames';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { formatNumber, localizeNumbers, type NumberFormat } from '../../../lib/units';
+import type { FpsTableGameItem } from '../../../types/fps-estimates';
 import { SteamLogo } from './SteamLogo';
 import { SteamSettings } from './SteamSettings';
 import styles from './SteamPage.module.scss';
@@ -88,6 +90,7 @@ export function SteamPage() {
   // immediately instead of leaving the setup screen up for a poll cycle.
   const [configRev, setConfigRev] = useState(0);
   const { gamesByKey: fpsGamesByKey } = useFpsGames();
+  const { gamesByKey: communityByKey } = useFpsEstimates();
 
   const currentGame = useMemo(() => {
     const appId = Number(profile?.gameId);
@@ -192,6 +195,7 @@ export function SteamPage() {
                 setSort={setSort}
                 onOpenGame={handleOpenDrill}
                 fpsGamesByKey={fpsGamesByKey}
+                communityByKey={communityByKey}
               />
             ) : (
               <DrillView
@@ -251,6 +255,7 @@ function EntryView({
   setSort,
   onOpenGame,
   fpsGamesByKey,
+  communityByKey,
 }: {
   ownedGames: SteamOwnedGame[];
   friends: SteamFriendSummary[];
@@ -262,6 +267,7 @@ function EntryView({
   setSort: (s: SortKey) => void;
   onOpenGame: (appId: number, name: string) => void;
   fpsGamesByKey: ReadonlyMap<string, FpsGameSummary>;
+  communityByKey: ReadonlyMap<string, FpsTableGameItem>;
 }) {
   const { t } = useTranslation();
   const filtered = useMemo(() => {
@@ -316,7 +322,7 @@ function EntryView({
             />
           </div>
         ) : (
-          <VirtualizedLibrary games={filtered} onOpenGame={onOpenGame} fpsGamesByKey={fpsGamesByKey} />
+          <VirtualizedLibrary games={filtered} onOpenGame={onOpenGame} fpsGamesByKey={fpsGamesByKey} communityByKey={communityByKey} />
         )}
       </main>
 
@@ -407,10 +413,12 @@ function VirtualizedLibrary({
   games,
   onOpenGame,
   fpsGamesByKey,
+  communityByKey,
 }: {
   games: SteamOwnedGame[];
   onOpenGame: (appId: number, name: string) => void;
   fpsGamesByKey: ReadonlyMap<string, FpsGameSummary>;
+  communityByKey: ReadonlyMap<string, FpsTableGameItem>;
 }) {
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const rafRef = useRef<number | null>(null);
@@ -513,6 +521,7 @@ function VirtualizedLibrary({
               game={game}
               onOpen={onOpenGame}
               fps={fpsGamesByKey.get(steamGameKey(game.appId))}
+              community={communityByKey.get(steamGameKey(game.appId))}
             />
           ))}
         </div>
@@ -533,13 +542,18 @@ function GameTile({
   game,
   onOpen,
   fps,
+  community,
 }: {
   game: SteamOwnedGame;
   onOpen: (appId: number, name: string) => void;
   fps?: FpsGameSummary;
+  community?: FpsTableGameItem;
 }) {
   const { t } = useTranslation();
   const [failed, setFailed] = useState(false);
+  // Local FPS data wins when both exist; the community estimate is a
+  // fallback for a game this install has never recorded a session for.
+  const chipValue = fps ? Math.round(fps.avgFps) : community ? Math.round(community.avg) : null;
   // The tile's own tooltip already shows the (possibly truncated) game name;
   // when FPS data exists it gains a second line rather than opening a nested
   // tooltip on the chip itself.
@@ -553,6 +567,11 @@ function GameTile({
           count: fps.sessions,
         })}
       </div>
+    </>
+  ) : community ? (
+    <>
+      <div>{game.name}</div>
+      <div className={styles.gameTileTooltipFps}>{t('steam.fps.communityTooltip')}</div>
     </>
   ) : game.name;
 
@@ -582,7 +601,7 @@ function GameTile({
               onError={() => setFailed(true)}
             />
           )}
-          {fps && (
+          {chipValue !== null && (
             <span
               role="button"
               tabIndex={0}
@@ -599,7 +618,7 @@ function GameTile({
                 requestOpenFramesGame(steamGameKey(game.appId));
               }}
             >
-              {t('steam.fps.chip', { value: Math.round(fps.avgFps) })}
+              {fps ? t('steam.fps.chip', { value: chipValue }) : t('steam.fps.communityChip', { value: chipValue })}
             </span>
           )}
         </div>

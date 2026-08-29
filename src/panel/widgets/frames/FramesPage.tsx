@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Film, Trash2 } from 'lucide-react';
+import { ArrowLeft, Film, Trash2, Users } from 'lucide-react';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { Card } from '../../../components/common/Card/Card';
 import { ConfirmModal } from '../../../components/common/ConfirmModal/ConfirmModal';
@@ -20,11 +20,13 @@ import {
   type FpsSession,
 } from '../../../api/fps';
 import { fetchMonitoringHistory } from '../../../api/monitoringHistory';
+import { useFpsEstimates } from '../../../hooks/useFpsEstimates';
 import { useFpsGames } from '../../../hooks/useFpsGames';
 import { useSystemSpecs } from '../../../hooks/useSystemSpecs';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { hour12OptionFor, localizeNumbers, type NumberFormat, type TimeFormat } from '../../../lib/units';
+import type { FpsTableGameItem } from '../../../types/fps-estimates';
 import { steamCapsuleUrl } from '../steam/SteamPage';
 import styles from './FramesPage.module.scss';
 
@@ -43,8 +45,8 @@ interface FramesPageProps {
 /**
  * Frames: the local FPS history browser. A History tab (every game with
  * sessions) leading into a per-game detail (stats, sessions, the selected
- * session's own timeline), plus a Discover tab for the community-estimate
- * placeholder. Page-only - see panel/widgets/frames/index.ts.
+ * session's own timeline), plus a Discover tab for community FPS estimates
+ * on this rig. Page-only - see panel/widgets/frames/index.ts.
  */
 export function FramesPage({ tab, onTabChange }: FramesPageProps) {
   const { t } = useTranslation();
@@ -452,6 +454,7 @@ function SessionTimeline({
 function DiscoverTab() {
   const { t } = useTranslation();
   const { specs } = useSystemSpecs(true);
+  const { status, games, resClass } = useFpsEstimates();
 
   const rows = specs
     ? [
@@ -467,10 +470,79 @@ function DiscoverTab() {
       <Card title={t('frames.rig.title')}>
         <SystemSpecsPanel rows={rows} loading={!specs} />
       </Card>
-      <div className={styles.emptyWrap}>
-        <EmptyState title={t('frames.rig.estimatesComingSoon')} />
-      </div>
+      {status === 'empty' && (
+        <div className={styles.emptyWrap}>
+          <EmptyState
+            icon={<Users size={28} />}
+            title={t('frames.discover.empty.title')}
+            hint={t('frames.discover.empty.hint')}
+          />
+        </div>
+      )}
+      {status === 'ready' && (
+        <div className={styles.discover}>
+          <SectionHeader>{t('frames.discover.title')}</SectionHeader>
+          <div className={styles.cardGrid}>
+            {games.map(game => (
+              <DiscoverGameCard key={game.gameKey} game={game} ownResClass={resClass} />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+function formatResClass(resClass: string): string {
+  return resClass.replace(/^(\d+)x(\d+)$/, '$1×$2');
+}
+
+function DiscoverGameCard({ game, ownResClass }: { game: FpsTableGameItem; ownResClass: string | null }) {
+  const { t } = useTranslation();
+  const [artFailed, setArtFailed] = useState(false);
+  const showCapsule = game.steamAppId !== null && !artFailed;
+  const showResBasis = !!game.resBasis && game.resBasis !== ownResClass;
+
+  return (
+    <Card compact className={styles.gameCard}>
+      <div className={styles.gameCardArt}>
+        {showCapsule ? (
+          <img
+            className={styles.gameCardImg}
+            src={steamCapsuleUrl(game.steamAppId as number)}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            onError={() => setArtFailed(true)}
+          />
+        ) : (
+          <div className={styles.gameCardPlaceholder} aria-hidden="true">
+            <Film size={20} />
+          </div>
+        )}
+      </div>
+      <div className={styles.gameCardBody}>
+        <div className={styles.gameCardName}>{game.title}</div>
+        <div className={styles.gameCardAvg}>
+          <span className={styles.gameCardAvgValue}>{Math.round(game.avg)}</span>
+          <span className={styles.gameCardAvgUnit}>{t('frames.card.fpsUnit')}</span>
+        </div>
+        <div className={styles.gameCardSecondary}>
+          <span className={styles.gameCardSecondaryValue}>{Math.round(game.p1)}</span>
+          <span className={styles.gameCardSecondaryLabel}>{t('steam.stat.fps1pctLow')}</span>
+          <span className={styles.gameCardSecondaryValue}>{Math.round(game.p99)}</span>
+          <span className={styles.gameCardSecondaryLabel}>{t('steam.stat.fps99th')}</span>
+        </div>
+        <div className={styles.discoverMeta}>
+          <Badge label={t(`frames.discover.confidence.${game.confidence}`)} />
+          <span className={styles.discoverLevel}>{t(`frames.discover.level.${game.level}`)}</span>
+        </div>
+        <div className={styles.discoverBasedOn}>
+          {t('frames.discover.basedOn', { count: game.installs })}
+          {showResBasis && ` · ${t('frames.discover.resBasis', { res: formatResClass(game.resBasis as string) })}`}
+        </div>
+      </div>
+    </Card>
   );
 }
 

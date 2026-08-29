@@ -257,3 +257,31 @@
   gap: 1rem;
   min-height: 0;
 }
+
+.discover {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 0;
+}
+
+.discoverMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.discoverLevel {
+  @include text-caption;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.discoverBasedOn {
+  @include text-caption;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
