@@ -77,6 +77,10 @@ export interface PanelDeviceRecord {
   // Response-only: false when the bound monitor is currently unplugged,
   // undefined/null when topology is unknown (treat as attached).
   displayAttached?: boolean | null;
+  // Response-only: true while a streamed-panel session drives this record (the
+  // Kraken LCD, a D213 board). Such a panel has neither a curated device nor a
+  // display behind it, so nothing else marks it as present.
+  streamed?: boolean | null;
 }
 
 export interface PanelDevicePatch {

@@ -24,6 +24,8 @@ export const DEFAULT_SURFACE_DPI: Record<PanelSurface, number> = {
   desktop: 144,
   // Promoted OS monitors: a desk-distance density estimate (27" 1440p ≈ 109).
   monitor: 110,
+  // 640px across roughly 2.7in of round glass.
+  kraken: 240,
 };
 
 export function clampNumber(value: number, min: number, max: number) {

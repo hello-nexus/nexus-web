@@ -28,6 +28,8 @@ const SIZE_AREA: Record<PanelWidgetSize, number> = {
   '2x4': 8,
   '4x2': 8,
   '4x4': 16,
+  // Same cell footprint as 2x2; only the mask differs.
+  '2x2round': 4,
 };
 
 // Pick the size from `allowed` closest in area to `requested`. Ties prefer

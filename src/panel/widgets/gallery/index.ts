@@ -22,7 +22,7 @@ export const galleryApp: AppManifest = {
     icon: ImageIcon,
     // 2x4 kept so the gallery stays available on Q-series single-widget
     // surfaces.
-    sizes: ['2x2', '2x4', '4x2', '4x4'],
+    sizes: ['2x2', '2x4', '4x2', '4x4', '2x2round'],
     defaultSize: '4x4',
     supportsImmersive: { portrait: true, landscape: true },
     hasConfig: true,

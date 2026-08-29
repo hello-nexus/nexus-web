@@ -15,7 +15,7 @@ export const clockApp: AppManifest = {
     type: 'clock',
     i18nKey: 'panel.widget.clock',
     icon: Clock,
-    sizes: ['2x2', '2x4', '4x2', '4x4'],
+    sizes: ['2x2', '2x4', '4x2', '4x4', '2x2round'],
     defaultSize: '4x2',
     supportsImmersive: { portrait: true, landscape: true },
     hasConfig: true,

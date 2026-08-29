@@ -11,7 +11,7 @@ import { fetchServiceBlob } from '../../../api/service';
 import { useTranslation } from '../../../lib/i18n';
 import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
 import type { WidgetProps } from '../types';
-import { surfaceSupportsTouch } from '../../types';
+import { surfaceSupportsTouch, widgetLayoutSize } from '../../types';
 import { PanelMixerSlider } from '../common/PanelMixerSlider';
 import { usePanelPreview } from '../common/PanelPreviewContext';
 import { mediaArtSignature } from './mediaArt';
@@ -45,8 +45,9 @@ export function MediaWidget({ widget, surface, deviceTouch }: WidgetProps) {
   const { sessions } = useMedia(!preview);
   const [artAsset, setArtAsset] = useState<MediaArtAsset>({ key: '', signature: '', url: '' });
   const showControls = surface ? surfaceSupportsTouch(surface, deviceTouch) : true;
-  const compact = widget.size === '2x2';
-  const tall = widget.size === '2x4';
+  const size = widgetLayoutSize(widget.size);
+  const compact = size === '2x2';
+  const tall = size === '2x4';
   // Tall (2x4) is a portrait card (art over centered metadata +
   // controls) with no room for the persistent volume mixer rail.
   const volumeBridge = useSystemVolume(showControls && !compact && !tall && !preview);

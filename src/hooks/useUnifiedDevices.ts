@@ -106,6 +106,7 @@ const CURATED_ICONS: Record<string, string> = {
   'lianli-wireless': '/assets/devices/lianli.svg',
   strimer: '/assets/devices/device.svg',
   tryx: '/assets/devices/tryx.svg',
+  'nzxt-kraken': '/assets/devices/nzxt.svg',
   streamdeck: '/assets/devices/elgato.svg',
 };
 
@@ -130,6 +131,9 @@ const CURATED_SHORT_NAMES: Record<string, string> = {
   'lianli-wireless': 'Lian Li Uni Fan Wireless',
   strimer: 'Lian Li Strimer',
   tryx: 'Tryx Panorama',
+  // The Kraken's row is its LCD panel entry, whose record is named for the
+  // display; the row is the whole cooler.
+  'nzxt-kraken': 'NZXT Kraken',
 };
 
 const FALLBACK_ICON = '/assets/devices/device.svg';

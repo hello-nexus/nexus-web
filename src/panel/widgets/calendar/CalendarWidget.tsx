@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { WidgetProps } from '../types';
-import type { PanelWidgetSize } from '../../types';
+import { widgetLayoutSize, type PanelWidgetSize } from '../../types';
 import { useTranslation } from '../../../lib/i18n';
 import { buildMonthCells, resolveWeekStart, weekdayInitials, type WeekStartConfig } from './calendar';
 import styles from './CalendarWidget.module.scss';
@@ -26,12 +26,13 @@ export function CalendarWidget({ widget }: WidgetProps) {
   const showGrid = (widget.config?.showGrid as boolean | undefined) ?? false;
   const weekStartCfg = (widget.config?.weekStart as WeekStartConfig | undefined) ?? 'auto';
 
-  if (!showGrid) return <DateCard now={now} locale={language} size={widget.size} />;
+  const size = widgetLayoutSize(widget.size);
+  if (!showGrid) return <DateCard now={now} locale={language} size={size} />;
   return (
     <MonthView
       now={now}
       locale={language}
-      size={widget.size}
+      size={size}
       weekStart={resolveWeekStart(weekStartCfg, language)}
     />
   );

@@ -9,7 +9,7 @@ export const mediaApp: AppManifest = {
     type: 'media',
     i18nKey: 'panel.widget.media',
     icon: Music,
-    sizes: ['2x2', '2x4', '4x2'],
+    sizes: ['2x2', '2x4', '4x2', '2x2round'],
     defaultSize: '4x2',
     supportsImmersive: { portrait: true, landscape: true },
     hasConfig: true,

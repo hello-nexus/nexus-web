@@ -9,7 +9,7 @@ export const calendarApp: AppManifest = {
     type: 'calendar',
     i18nKey: 'panel.widget.calendar',
     icon: CalendarDays,
-    sizes: ['2x2', '2x4', '4x2', '4x4'],
+    sizes: ['2x2', '2x4', '4x2', '4x4', '2x2round'],
     defaultSize: '4x2',
     supportsImmersive: { portrait: true, landscape: true },
     hasConfig: true,

@@ -1,4 +1,5 @@
 import { Fragment, type CSSProperties } from 'react';
+import { widgetLayoutSize } from '../../types';
 import {
   Sun, Cloud, CloudSun, CloudFog, CloudDrizzle, CloudRain,
   CloudSnow, CloudRainWind, CloudLightning, HelpCircle, Droplet, Wind,
@@ -81,10 +82,11 @@ export function WeatherPreview({ widget }: WidgetProps) {
     return Number.isNaN(parsed.getTime()) ? date.slice(5) : (t(DAY_LABEL_KEYS[parsed.getDay()]) || date.slice(5));
   }
 
-  const wide = widget.size === '4x2';
-  const large = widget.size === '4x4';
-  const compact = widget.size === '2x2';
-  const portrait = widget.size === '2x4';
+  const size = widgetLayoutSize(widget.size);
+  const wide = size === '4x2';
+  const large = size === '4x4';
+  const compact = size === '2x2';
+  const portrait = size === '2x4';
 
   const hourlyItems = (snap.hourly ?? []).slice(0, 6);
   const dailyItems = (snap.daily ?? []).slice(0, 5);
