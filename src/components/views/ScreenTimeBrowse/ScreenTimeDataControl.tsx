@@ -1,15 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from '../../../lib/i18n';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { DatePicker } from '../../common/DatePicker/DatePicker';
 import { DeviceModal } from '../../common/DeviceModal/DeviceModal';
-import { Toggle } from '../../common/Toggle/Toggle';
 import {
   deleteScreenTimeAll,
   deleteScreenTimeDay,
   deleteScreenTimeRange,
-  getTrackingStatus,
-  setTrackingEnabled,
 } from '../../../hooks/useScreenTimeBrowse';
 import styles from './ScreenTimeDataControl.module.scss';
 
@@ -23,7 +20,6 @@ interface ScreenTimeDataControlProps {
 
 export function ScreenTimeDataControl({ open, onClose, onChanged }: ScreenTimeDataControlProps) {
   const { t } = useTranslation();
-  const [tracking, setTracking] = useState(true);
   const [range, setRange] = useState<Range>('today');
   const today = todayIso();
   const [customFrom, setCustomFrom] = useState(addDays(today, -7));
@@ -32,19 +28,9 @@ export function ScreenTimeDataControl({ open, onClose, onChanged }: ScreenTimeDa
   const [busy, setBusy] = useState(false);
   const [resultMsg, setResultMsg] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!open) return;
-    getTrackingStatus().then(s => { if (s) setTracking(s.enabled); });
-  }, [open]);
-
   const handleClose = () => {
     setResultMsg(null);
     onClose();
-  };
-
-  const onToggleTracking = async (enabled: boolean) => {
-    setTracking(enabled);
-    await setTrackingEnabled(enabled);
   };
 
   const requestClear = () => {
@@ -88,18 +74,6 @@ export function ScreenTimeDataControl({ open, onClose, onChanged }: ScreenTimeDa
     <>
       <DeviceModal open={open} onClose={handleClose} title={t('settings.screentime.title')}>
         <div className={styles.content}>
-          <div className={styles.toggleRow}>
-            <div className={styles.toggleInfo}>
-              <div className={styles.toggleLabel}>{t('settings.screentime.tracking')}</div>
-              <div className={styles.toggleDesc}>{t('settings.screentime.trackingDesc')}</div>
-            </div>
-            <Toggle
-              checked={tracking}
-              onChange={onToggleTracking}
-              ariaLabel={t('settings.screentime.tracking')}
-            />
-          </div>
-
           <div className={styles.section}>
             <div className={styles.sectionTitle}>{t('settings.screentime.clearTitle')}</div>
             <div className={styles.radios}>

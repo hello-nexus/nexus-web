@@ -79,6 +79,9 @@ export const setFpsTrackingEnabled = (enabled: boolean) =>
 export const deleteFpsAll = () =>
   deleteService<FpsDeleteResult>('/api/fps/all');
 
+export const deleteFpsRange = (from: string, to: string) =>
+  deleteService<FpsDeleteResult>(`/api/fps/range?from=${from}&to=${to}`);
+
 export const fetchFpsGames = () =>
   fetchService<FpsGamesResponse>('/api/fps/games');
 

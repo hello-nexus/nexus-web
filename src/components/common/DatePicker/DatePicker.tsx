@@ -82,7 +82,11 @@ export function DatePicker({ value, max, min, onChange, ariaLabel }: DatePickerP
   const canGoPrev = !min || monthStart(viewMonth) > min || viewMonth > min.slice(0, 7);
 
   return (
-    <div ref={wrapRef} className={styles.wrap}>
+    <div
+      ref={wrapRef}
+      className={styles.wrap}
+      onKeyDown={e => { if (e.key === 'Enter') e.stopPropagation(); }}
+    >
       <button
         type="button"
         className={styles.trigger}

@@ -617,18 +617,27 @@ export async function postServiceForm<T>(path: string, form: FormData): Promise<
  * this is a LocalhostOnly desktop affordance in every current caller anyway.
  */
 export async function putServiceBytes(path: string, bytes: Uint8Array, contentType: string): Promise<Response | null> {
+  return sendServiceBytes('PUT', path, bytes, contentType);
+}
+
+/** POST variant of <see cref="putServiceBytes"/>, for routes that create rather than replace. */
+export async function postServiceBytes(path: string, bytes: Uint8Array, contentType: string): Promise<Response | null> {
+  return sendServiceBytes('POST', path, bytes, contentType);
+}
+
+async function sendServiceBytes(method: 'PUT' | 'POST', path: string, bytes: Uint8Array, contentType: string): Promise<Response | null> {
   if (isTunnelActive() || blockedLocalhostFetch()) return null;
   try {
     const token = await getToken();
     const headers: Record<string, string> = { 'Content-Type': contentType };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     const body = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
-    let response = await fetch(resolveHttp(path), { ...loopbackFetchInit, method: 'PUT', headers, body });
+    let response = await fetch(resolveHttp(path), { ...loopbackFetchInit, method, headers, body });
     if (response.status === 401) {
       const newToken = await handleUnauthorized();
       if (newToken) {
         headers['Authorization'] = `Bearer ${newToken}`;
-        response = await fetch(resolveHttp(path), { ...loopbackFetchInit, method: 'PUT', headers, body });
+        response = await fetch(resolveHttp(path), { ...loopbackFetchInit, method, headers, body });
       }
     }
     if (!response.ok) return null;

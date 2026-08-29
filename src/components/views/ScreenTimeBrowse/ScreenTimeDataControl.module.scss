@@ -4,36 +4,6 @@
   gap: 1.25rem;
 }
 
-.toggleRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.75rem;
-  background: var(--surface);
-  border: var(--border-width) solid transparent;
-  border-radius: var(--radius);
-}
-
-.toggleInfo {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  min-width: 0;
-}
-
-.toggleLabel {
-  font-size: var(--type-body);
-  font-weight: var(--weight-heading);
-  color: var(--text);
-}
-
-.toggleDesc {
-  font-size: var(--type-small);
-  color: var(--text-dim);
-  margin-top: 0.25rem;
-}
-
 .section {
   display: flex;
   flex-direction: column;

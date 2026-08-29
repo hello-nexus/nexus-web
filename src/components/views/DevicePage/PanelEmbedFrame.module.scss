@@ -11,6 +11,12 @@
   border-radius: 0;
 }
 
+// The Kraken's glass is round: it shows the inscribed circle of the square
+// frame we push, so the preview is only WYSIWYG masked to the same circle.
+.container[data-surface='kraken'] {
+  border-radius: 50%;
+}
+
 // The iframe itself is rendered at device-native canvas dimensions and
 // CSS-transformed to fit the available space. transform-origin is top-left
 // so the simulator hugs the container's top-left and pointer hit testing

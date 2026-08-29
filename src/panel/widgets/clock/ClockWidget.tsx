@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { WidgetProps } from '../types';
+import { widgetLayoutSize } from '../../types';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { resolveHour12 } from '../../../lib/units';
 import { CLOCK_DESIGNS, type ClockLayout } from './designs';
@@ -49,7 +50,9 @@ export function ClockWidget({ widget }: WidgetProps) {
       showSeconds={showSeconds}
       showDate={showDate}
       showTimezone={showTimezone}
-      size={widget.size}
+      // The round tile lays out as a 2x2 and the scaler shrinks the result, so the
+      // designs read the layout size; a round-specific rung would shrink it twice.
+      size={widgetLayoutSize(widget.size)}
       hour12={hour12}
       useAccentColor={useAccentColor}
       layout={layout}

@@ -106,3 +106,43 @@ describe('buildPanelDevices Nexus Link off state', () => {
     expect(devices).toHaveLength(0);
   });
 });
+
+describe('buildPanelDevices streamed panels', () => {
+  function krakenRecord(): PanelDeviceRecord {
+    return {
+      id: 'rec-lcd',
+      displayName: 'NZXT Kraken LCD',
+      firstSeenAt: 0,
+      lastSeenAt: 1,
+      streamed: true,
+      capabilities: { surface: 'kraken', touch: false, cssWidth: 640, cssHeight: 640, dpr: 1 },
+    };
+  }
+
+  it('lists a live streamed panel as an editable panel', () => {
+    const device = firstDevice(krakenRecord());
+
+    expect(device.id).toBe('stream:rec-lcd');
+    expect(device.panelRecordId).toBe('rec-lcd');
+    expect(device.runtimeSurface).toBe('kraken');
+    expect(device.modalKind).toBe('panel-editor');
+    expect(device.capabilities.layout).toBe(true);
+    // Host-rendered glass: nothing to launch, no display controls, no touch.
+    expect(device.capabilities.launchClose).toBe(false);
+    expect(device.capabilities.displayControls).toBe(false);
+    expect(device.capabilities.touch).toBe(false);
+  });
+
+  it('hides a record whose stream session is gone', () => {
+    const record = { ...krakenRecord(), streamed: false };
+
+    expect(buildPanelDevices({
+      curatedDevices: [],
+      phoneSessions: [],
+      records: [record],
+      status: null,
+      simulatedPanels: [],
+      labels: LABELS,
+    })).toHaveLength(0);
+  });
+});

@@ -3,6 +3,7 @@ import {
   normalizePanelWidgetSize,
   type PanelSurface,
   type PanelWidgetSize,
+  singleWidgetSurfaceSize,
 } from '../types';
 
 // Grid is 4 columns wide on the short axis by default. Phone landscape keeps
@@ -80,6 +81,8 @@ export function sizeToSpan(size: PanelWidgetSize | string): GridSpan {
     case '2x4': return { cols: 2, rows: 4 };
     case '4x2': return { cols: 4, rows: 2 };
     case '4x4': return { cols: 4, rows: 4 };
+    // Round is a 2x2 block; only its rendering is circular.
+    case '2x2round': return { cols: 2, rows: 2 };
   }
 }
 
@@ -136,13 +139,20 @@ export function panelGridCapacityForCanvas(
   const y70Landscape = surface === 'y70' && width > height
     && columns === undefined && rows === undefined;
   const shortAxisSlots = columnsForPhysicalSize(width, height, dpi, sizing);
-  const defaultColumns = surface === 'q60'
-    ? PANEL_Q60_GRID_COLS
+  // A single-widget surface's grid IS its one tile: deriving it from the tile's
+  // span makes the widget fill the glass on any such surface. This reproduces the
+  // Q-series 2x4 exactly and gives the round Kraken glass its 2x2.
+  const singleSpan = (() => {
+    const size = singleWidgetSurfaceSize(surface);
+    return size === undefined ? undefined : sizeToSpan(size);
+  })();
+  const defaultColumns = singleSpan
+    ? singleSpan.cols
     : y70Landscape
       ? PANEL_Y70_LONG_AXIS_CELLS
       : shortAxisSlots;
-  const defaultRows = surface === 'q60'
-    ? PANEL_Q60_GRID_ROWS
+  const defaultRows = singleSpan
+    ? singleSpan.rows
     : y70Landscape
       ? shortAxisSlots
       : surface === 'y70' && height >= width

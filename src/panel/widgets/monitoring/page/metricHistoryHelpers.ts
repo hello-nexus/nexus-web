@@ -359,12 +359,6 @@ export function maxAvgValue(series: readonly TimeSeriesSeries[]): number {
   return max;
 }
 
-// The same fixed FPS ceiling perfDomain.ts uses for the panel's live FPS
-// gauge - the overlay's own fixed floor for its y-domain, extended only by
-// the series' own observed max (see buildFpsOverlaySeries), never by
-// whichever tab's primary axis is showing.
-const FPS_OVERLAY_DOMAIN_FLOOR_MAX = 240;
-
 /** A point in time is "in a game" only while it falls inside a Frames
  *  session's own [startedUtcMs, endedUtcMs] - desktop apps present frames
  *  too, so an unmasked fps series would draw between games as well. */
@@ -382,20 +376,23 @@ export function maskFpsPointsToSessions(
 }
 
 /**
- * The FPS overlay line, on its own fixed [0, 240+] y-domain (TimeSeriesChart's
- * fixedYDomain) - independent of whatever the tab's own primary series axis
- * is doing, so the same fps value renders at the same pixel height on every
- * tab. Extended past 240 only when the window's own data exceeds it.
+ * The FPS overlay line, on its own y-domain (TimeSeriesChart's fixedYDomain)
+ * adaptive to the fps window's own peak - so the highest fps in view fills
+ * the chart height, while staying independent of the tab's primary series
+ * axis, so the same fps renders at the same height on every tab. Computed
+ * from the fps points alone, so it is identical across tabs for the same
+ * window.
  */
 export function buildFpsOverlaySeries(
   maskedPoints: readonly MetricHistoryPoint[],
   color: string,
 ): TimeSeriesSeries | null {
   if (maskedPoints.length === 0) return null;
-  let domainMax = FPS_OVERLAY_DOMAIN_FLOOR_MAX;
+  let observedMax = 0;
   for (const p of maskedPoints) {
-    if (p.avg > domainMax) domainMax = p.avg;
+    if (p.max > observedMax) observedMax = p.max;
   }
+  const domainMax = Math.max(1, Math.ceil(observedMax));
   const points: TimeSeriesPoint[] = maskedPoints.map(p => ({ t: p.t, avg: p.avg, max: p.max }));
   return { id: 'fps-overlay', name: 'FPS', color, points, noFill: true, noDots: true, fixedYDomain: [0, domainMax] };
 }

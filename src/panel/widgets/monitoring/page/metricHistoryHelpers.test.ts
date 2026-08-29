@@ -841,7 +841,7 @@ describe('findFpsSessionAt / maskFpsPointsToSessions / buildFpsOverlaySeries', (
       expect(buildFpsOverlaySeries([], 'var(--text)')).toBeNull();
     });
 
-    it('passes raw fps values through unscaled, on the fixed 0-240 domain', () => {
+    it('passes raw fps values through unscaled, with the domain top at the ceiling of the window\'s own peak', () => {
       const out = buildFpsOverlaySeries([{ t: 1000, avg: 120, max: 240 }], 'var(--text)');
       expect(out?.points).toEqual([{ t: 1000, avg: 120, max: 240 }]);
       expect(out?.fixedYDomain).toEqual([0, 240]);
@@ -850,14 +850,27 @@ describe('findFpsSessionAt / maskFpsPointsToSessions / buildFpsOverlaySeries', (
       expect(out?.noDots).toBe(true);
     });
 
-    it('extends the domain past 240 only when the data itself exceeds it', () => {
-      const out = buildFpsOverlaySeries([{ t: 1000, avg: 300, max: 320 }], 'var(--text)');
-      expect(out?.fixedYDomain).toEqual([0, 300]);
+    it('tracks the observed peak (max, not avg) rather than a fixed ceiling', () => {
+      const out = buildFpsOverlaySeries([{ t: 1000, avg: 400, max: 100 }], 'var(--text)');
+      expect(out?.fixedYDomain).toEqual([0, 100]);
     });
 
-    it('never shrinks the domain below 240, even when every point is low', () => {
+    it('shrinks to the window\'s own peak when every point is low, instead of floor-ing at a fixed ceiling', () => {
       const out = buildFpsOverlaySeries([{ t: 1000, avg: 30, max: 35 }], 'var(--text)');
-      expect(out?.fixedYDomain).toEqual([0, 240]);
+      expect(out?.fixedYDomain).toEqual([0, 35]);
+    });
+
+    it('rounds the peak up to the next whole number and takes the highest max across every point', () => {
+      const out = buildFpsOverlaySeries(
+        [{ t: 1000, avg: 50, max: 59.4 }, { t: 2000, avg: 40, max: 62.1 }],
+        'var(--text)',
+      );
+      expect(out?.fixedYDomain).toEqual([0, 63]);
+    });
+
+    it('floors the domain at 1 rather than 0 when every point is at zero', () => {
+      const out = buildFpsOverlaySeries([{ t: 1000, avg: 0, max: 0 }], 'var(--text)');
+      expect(out?.fixedYDomain).toEqual([0, 1]);
     });
   });
 });

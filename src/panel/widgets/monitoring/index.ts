@@ -16,7 +16,7 @@ export const monitoringApp: AppManifest = {
     type: 'monitoring',
     i18nKey: 'panel.widget.monitoring',
     icon: Activity,
-    sizes: ['2x2', '2x4', '4x2', '4x4'],
+    sizes: ['2x2', '2x4', '4x2', '4x4', '2x2round'],
     defaultSize: '4x4',
     supportsImmersive: { portrait: true, landscape: true },
     hasConfig: true,
