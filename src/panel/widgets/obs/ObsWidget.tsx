@@ -3,7 +3,6 @@ import { Clapperboard, Radio, RadioTower, RefreshCw, Video } from 'lucide-react'
 import {
   connectObs,
   fetchObsStatus,
-  launchObs,
   setObsScene,
   toggleObsRecording,
   toggleObsStreaming,
@@ -158,16 +157,9 @@ export function ObsWidget({ widget, onConfigure }: WidgetProps) {
                 </button>
               )
               : (
-                <>
-                  {reason === 'offline' && (
-                    <button type="button" className="panel-chip" onClick={() => run(launchObs)} disabled={busy}>
-                      {t('panel.widget.obs.launch')}
-                    </button>
-                  )}
-                  <button type="button" className="panel-chip" onClick={() => run(connectObs)} disabled={busy}>
-                    {t('panel.widget.obs.connect')}
-                  </button>
-                </>
+                <button type="button" className="panel-chip" onClick={() => run(connectObs)} disabled={busy}>
+                  {t('panel.widget.obs.connect')}
+                </button>
               )}
           </div>
         </div>

@@ -1,10 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingRow, SettingSelect, SettingToggle } from '../../common/SettingRow/SettingRow';
 import {
   fetchDiscordPresence,
-  launchDiscord,
   saveDiscordPresence,
   type DiscordPresenceResponse,
 } from '../../../api/discord';
@@ -102,13 +100,8 @@ export function DiscordPresenceSection({ serviceOnline }: { serviceOnline: boole
         onChange={preset => { void update({ preset }); }}
         disabled={busy || !presence.enabled}
       />
-      {/* Only worth offering while presence is on but cannot attach. */}
       {presence.enabled && !presence.connected && (
-        <SettingRow label={t('discord.presence.discordClosed')} icon={<CircleAlert />} iconLeading="subtle">
-          <Button onClick={() => { void launchDiscord(); }} disabled={busy}>
-            {t('discord.launch')}
-          </Button>
-        </SettingRow>
+        <SettingRow label={t('discord.presence.discordClosed')} icon={<CircleAlert />} iconLeading="subtle" />
       )}
     </SettingsSection>
   );
