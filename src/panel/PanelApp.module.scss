@@ -1720,17 +1720,19 @@
   padding: 6%;
   text-align: center;
   color: var(--text);
-  // One scrim layer still leaves the widget's own text legible through the
-  // notice; stacking the token composites it opaque enough to read against.
-  background-image:
-    linear-gradient(var(--panel-scrim-bg), var(--panel-scrim-bg)),
-    linear-gradient(var(--panel-scrim-bg), var(--panel-scrim-bg)),
-    linear-gradient(var(--panel-scrim-bg), var(--panel-scrim-bg));
+  background: var(--panel-scrim-bg);
   border-radius: inherit;
 }
 
+// Sized off the widget's SHORT side (a fixed px cap read tiny on the big
+// single-widget tiles, where the whole panel is one 2x4/round cell). The panel
+// runtime already scales with the surface, so one ratio holds everywhere.
 %cellNoticeIcon {
-  width: min(30%, 34px);
+  --_notice-side: calc(
+    min(var(--panel-span-cols, 1), var(--panel-span-rows, 1)) * var(--panel-cell-size, 90px)
+  );
+  width: calc(var(--_notice-side) * 0.34);
+  max-width: 55%;
   height: auto;
   flex: 0 0 auto;
 }
