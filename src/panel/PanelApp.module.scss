@@ -533,6 +533,15 @@
   --_grid-h: calc(var(--_rows) * var(--panel-row-size) + (var(--_rows) - 1) * var(--_gap));
 }
 
+// Wide cooler glass (1600x720 Wonder Vision) carries a single 4x2 tile whose
+// cells are non-square, so the square --panel-content-scale reference overflows
+// the card height and spills the widget onto the glass below it. Same per-axis
+// fix as q60/y70 above.
+.panelRoot[data-surface='lcd-wide'] .cellScaler {
+  --_grid-w: calc(var(--_cols) * var(--panel-cell-size) + (var(--_cols) - 1) * var(--_gap));
+  --_grid-h: calc(var(--_rows) * var(--panel-row-size) + (var(--_rows) - 1) * var(--_gap));
+}
+
 // Promoted-monitor cells are non-square (the integer column/row split leaves
 // a remainder on each axis independently); --panel-content-scale = min(cell,
 // row) collapses --_content to the short axis, leaving a horizontal inset

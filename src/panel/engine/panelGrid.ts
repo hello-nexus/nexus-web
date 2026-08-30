@@ -30,6 +30,7 @@ export const DEFAULT_SURFACE_DPI: Record<PanelSurface, number> = {
   // family because the record carries the real pixel size and DPI only scales text.
   'lcd-round': 210,
   'lcd-square': 210,
+  'lcd-wide': 210,
 };
 
 export function clampNumber(value: number, min: number, max: number) {

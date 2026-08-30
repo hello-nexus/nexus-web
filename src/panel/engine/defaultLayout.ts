@@ -21,7 +21,8 @@ function buildLayout(surface: PanelLayout['surface']): PanelLayout {
   // Single-widget surfaces borrow the Q60's defaults: one tile, no pager.
   const sourceKey = surface === 'monitor'
     ? 'desktop'
-    : (surface === 'kraken' || surface === 'lcd-round' || surface === 'lcd-square')
+    : (surface === 'kraken' || surface === 'lcd-round' || surface === 'lcd-square'
+        || surface === 'lcd-wide')
       ? 'q60'
       : surface;
   const src = defaults?.panel.layouts[sourceKey];

@@ -7,11 +7,13 @@ export const PANEL_WIDGET_SIZES = ['1x1', '2x2', '2x4', '4x2', '4x4', '2x2round'
 export type PanelWidgetSize = typeof PANEL_WIDGET_SIZES[number];
 // 'monitor' = a user-promoted OS monitor hosting a fullscreen kiosk
 // (service-stamped surface; see PanelSurfaces.Monitor in nexus-service).
-// 'lcd-round' / 'lcd-square' = a cooler LCD fed pushed JPEG frames. Unlike 'kraken'
-// these are not one model's resolution: the panel record carries the real pixel size,
-// so a 480x480 Galahad II LCD and a 240x240 ID-Cooling FX-LCD share 'lcd-round'.
+// 'lcd-round' / 'lcd-square' / 'lcd-wide' = a cooler LCD fed pushed JPEG frames. Unlike
+// 'kraken' these are not one model's resolution: the panel record carries the real pixel
+// size, so a 480x480 Galahad II LCD and a 240x240 ID-Cooling FX-LCD share 'lcd-round'.
+// The three differ only in the shape of the one tile they carry, which the surface picks.
 export type PanelSurface =
-  | 'y70' | 'q60' | 'phone' | 'desktop' | 'monitor' | 'kraken' | 'lcd-round' | 'lcd-square';
+  | 'y70' | 'q60' | 'phone' | 'desktop' | 'monitor' | 'kraken'
+  | 'lcd-round' | 'lcd-square' | 'lcd-wide';
 
 // Whether a surface accepts direct pointer input. Q60 is display-only;
 // desktop, phone, Y70 support interactive widget controls (desktop via mouse).
@@ -22,7 +24,7 @@ export function surfaceSupportsTouch(surface: PanelSurface, deviceTouch?: boolea
   if (surface === 'monitor') return deviceTouch === true;
   // Cooler glass is a framebuffer on a USB pipe with no input path at all.
   return surface !== 'q60' && surface !== 'kraken'
-    && surface !== 'lcd-round' && surface !== 'lcd-square';
+    && surface !== 'lcd-round' && surface !== 'lcd-square' && surface !== 'lcd-wide';
 }
 
 // Whether the operator at this surface has a usable text-entry method: desktop
@@ -62,6 +64,9 @@ export const SINGLE_WIDGET_SURFACE_SIZE: Readonly<Partial<Record<PanelSurface, P
   // Cooler LCDs: one tile, masked to the glass's shape.
   'lcd-round': '2x2round',
   'lcd-square': '2x2',
+  // Wide cooler glass (a 1600x720 Thermalright Wonder Vision): a landscape tile.
+  // Like the rest of the family it stays one widget with no pager and no placing.
+  'lcd-wide': '4x2',
 };
 
 export function singleWidgetSurfaceSize(surface: PanelSurface): PanelWidgetSize | undefined {
@@ -86,10 +91,11 @@ export function isSingleWidgetSurface(surface: PanelSurface): boolean {
 //
 // Derived from SINGLE_WIDGET_SURFACE_SIZE, minus the sizes multi-widget surfaces
 // also offer. '2x4' and '2x2round' are genuinely reserved - a Q60 strip and round
-// glass - but square cooler glass takes a plain '2x2', and reserving that would
-// hide an ordinary size from the picker everywhere and snap existing widgets off it.
+// glass - but square cooler glass takes a plain '2x2' and wide glass a plain '4x2',
+// and reserving either would hide an ordinary size from the picker everywhere and
+// snap existing widgets off it.
 const SHARED_WITH_MULTI_WIDGET_SURFACES: ReadonlySet<PanelWidgetSize> =
-  new Set<PanelWidgetSize>(['2x2']);
+  new Set<PanelWidgetSize>(['2x2', '4x2']);
 
 export const SINGLE_WIDGET_SIZES: ReadonlySet<PanelWidgetSize> = new Set(
   Object.values(SINGLE_WIDGET_SURFACE_SIZE).filter(
