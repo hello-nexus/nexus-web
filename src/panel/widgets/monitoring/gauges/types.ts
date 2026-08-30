@@ -1,6 +1,15 @@
 /** Monitoring gauge line weight in px. Mirror of --gauge-line-thickness (variables.scss). */
 export const GAUGE_LINE_THICKNESS = 3.2;
 
+/**
+ * Where a full-circle gauge's outermost stroke ends, in its 100-unit viewBox:
+ * 96% of the 50-unit half-width. Every design in FRAME_FILLING_DESIGNS draws to
+ * exactly this edge so one multiplier (--gauge-figure-scale) grows them all by
+ * the same amount against a round frame. Subtract half the stroke width when
+ * deriving a centre-line radius from it.
+ */
+export const GAUGE_FIGURE_OUTER = 48;
+
 export interface GaugeProps {
   value: number;
   rawValue: number;

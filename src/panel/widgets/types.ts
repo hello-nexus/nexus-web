@@ -181,12 +181,4 @@ export interface AppManifest {
     point: { x: number; y: number };
     widget: PanelWidget;
   }) => WidgetEditInitialSelection | undefined;
-  // Fraction of the round tile's diameter this widget should lay out into,
-  // 0-1. The round tile (2x2round, the Kraken glass) defaults to the circle's
-  // inscribed square (0.707) so a square-tile layout stops short of the arc on
-  // every side. A widget whose CURRENT config draws its own circular frame -
-  // a monitoring rim gauge, a round clock face - returns 1 so it paints edge
-  // to edge instead. Returning undefined keeps the default. Only consulted on
-  // 2x2round; every other size ignores it.
-  roundFit?: (widget: PanelWidget) => number | undefined;
 }

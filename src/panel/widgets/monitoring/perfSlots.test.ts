@@ -265,6 +265,10 @@ describe('perfSlots', () => {
       expect(isFullBleedRound('2x2round', { slotCount: 1, slot0_design: 'caterpillar' })).toBe(true);
       expect(isFullBleedRound('2x2round', { slotCount: 1, slot0_design: 'waterLevel' })).toBe(true);
       expect(isFullBleedRound('2x2round', { slotCount: 1, slot0_design: 'arc270' })).toBe(true);
+      expect(isFullBleedRound('2x2round', { slotCount: 1, slot0_design: 'backdrop' })).toBe(true);
+      // Part-circles keep their own proportions and never scale up.
+      expect(isFullBleedRound('2x2round', { slotCount: 1, slot0_design: 'halfgauge' })).toBe(false);
+      expect(isFullBleedRound('2x2round', { slotCount: 1, slot0_design: 'wedge' })).toBe(false);
       // A rectangular layout at the full diameter would run off the arc.
       expect(isFullBleedRound('2x2round', { slotCount: 1, slot0_design: 'sparkline' })).toBe(false);
       expect(isFullBleedRound('2x2round', { slotCount: 1, slot0_design: 'text' })).toBe(false);

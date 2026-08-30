@@ -244,9 +244,7 @@ export function MonitoringWidget({ widget, selectedSlot, onSelectSlot }: WidgetP
     : count === 2 && (widget.size === '4x4' || widget.size === '2x4') ? styles.grid2row
     : count === 2 ? styles.grid2col
     : styles.solo;
-  // A round-glass design that paints its own rim collar owns the whole disc:
-  // drop the tile padding so it reaches the edge the manifest's roundFit just
-  // widened the scaler to.
+  // A frame-filling design on the round glass scales its figure to the rim.
   const fullBleed = isFullBleedRound(widget.size, widget.config);
 
   return (

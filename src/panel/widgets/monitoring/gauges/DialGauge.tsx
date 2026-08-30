@@ -1,10 +1,19 @@
 import { GaugeValue } from './GaugeValue';
+import { GAUGE_FIGURE_OUTER } from './types';
 import type { GaugeProps } from './types';
 import styles from './DialGauge.module.scss';
 
 const START = 135;
 const SWEEP = 270;
 const TICKS = 19;
+const STROKE = 2.6;
+// The dial's proportions are kept; only the outer tick ring is pinned to the
+// shared figure edge, and every other radius rides the same factor.
+const TICK_OUTER = GAUGE_FIGURE_OUTER - STROKE / 2;
+const SCALE = TICK_OUTER / 43;
+const TICK_INNER = 36 * SCALE;
+const NEEDLE = 33 * SCALE;
+const HUB = 4.5 * SCALE;
 
 function polar(r: number, deg: number): [number, number] {
   const rad = (deg * Math.PI) / 180;
@@ -13,11 +22,11 @@ function polar(r: number, deg: number): [number, number] {
 
 export function DialGauge({ value, formatted, label }: GaugeProps) {
   const clamped = Math.max(0, Math.min(100, value));
-  const [nx, ny] = polar(33, START + (clamped / 100) * SWEEP);
+  const [nx, ny] = polar(NEEDLE, START + (clamped / 100) * SWEEP);
   const ticks = Array.from({ length: TICKS }, (_, i) => {
     const deg = START + (i / (TICKS - 1)) * SWEEP;
-    const [x1, y1] = polar(43, deg);
-    const [x2, y2] = polar(36, deg);
+    const [x1, y1] = polar(TICK_OUTER, deg);
+    const [x2, y2] = polar(TICK_INNER, deg);
     return { x1, y1, x2, y2, on: i / (TICKS - 1) <= clamped / 100 + 1e-9 };
   });
 
@@ -36,7 +45,7 @@ export function DialGauge({ value, formatted, label }: GaugeProps) {
             />
           ))}
           <line x1="50" y1="50" x2={nx.toFixed(2)} y2={ny.toFixed(2)} className={styles.needle} />
-          <circle cx="50" cy="50" r="4.5" className={styles.hub} />
+          <circle cx="50" cy="50" r={HUB.toFixed(2)} className={styles.hub} />
         </svg>
       </div>
       <div className={styles.info}>

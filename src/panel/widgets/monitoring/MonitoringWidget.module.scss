@@ -31,10 +31,14 @@
   }
 }
 
-// Round glass with a rim design: the gauge paints the whole disc, so the tile
-// contributes no padding and the selection ring follows the circle.
+// Round glass with a frame-filling design: the tile contributes no padding, the
+// figure grows by the reciprocal of the card's inscribed-square fit so its
+// normalized outer edge lands on the glass, and the selection ring follows the
+// circle. The value and caption are outside the scaled layer, so they keep
+// their size.
 .fullBleed {
   padding: 0;
+  --gauge-figure-scale: calc(1 / var(--panel-round-fit, 0.85));
 
   .slotSelectable {
     border-radius: 50%;

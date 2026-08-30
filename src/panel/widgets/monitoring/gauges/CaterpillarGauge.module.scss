@@ -12,12 +12,14 @@
 
 .svg {
   position: absolute;
-  top: 6px;
-  right: 6px;
-  bottom: 6px;
-  left: 6px;
-  width: calc(100% - 12px);
-  height: calc(100% - 12px);
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform: scale(var(--gauge-figure-scale, 1));
+  transform-origin: 50% 50%;
 }
 
 .trackRing,

@@ -5,7 +5,6 @@ import { MonitoringWidget } from './MonitoringWidget';
 import { MonitoringPreview } from './MonitoringPreview';
 import { MonitoringTouch } from './MonitoringTouch';
 import { MonitoringSettings } from './MonitoringSettings';
-import { isFullBleedRound } from './perfSlots';
 
 // Code-split: Page only loads when the dashboard navigates into the
 // immersive view. Widget + Touch stay eager so panel cells render
@@ -29,10 +28,6 @@ export const monitoringApp: AppManifest = {
   Page: MonitoringPage,
   Touch: MonitoringTouch,
   Settings: MonitoringSettings,
-  // A rim design owns the whole disc, so the round tile lays it out at the full
-  // diameter instead of the inscribed square. Every other config keeps the
-  // default inset - a rectangular gauge at fit 1 would run off the arc.
-  roundFit: widget => (isFullBleedRound(widget.size, widget.config) ? 1 : undefined),
   resolveInitialSelection: ({ point, widget }) => {
     // MonitoringWidget stamps `data-monitoring-slot-index` on each slot
     // div/button (multi-slot layouts only; micro has no per-slot selection).

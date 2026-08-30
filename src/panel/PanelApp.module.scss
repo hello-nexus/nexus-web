@@ -943,10 +943,8 @@
 :global(.panel-card[data-size='2x2round']) .cellScaler {
   // Wider than the inscribed square, so the corners cross the arc and the card
   // clips them; the edge midpoints stay inside it. Widgets centre their content,
-  // so what the corners lose is padding. A widget whose CURRENT config paints
-  // its own circular frame (a monitoring rim gauge) raises this per-cell
-  // through --panel-round-fit - AppManifest.roundFit -> registry.roundFitStyle.
-  // The per-type rules below set --_fit directly, so they outrank it by design.
+  // so what the corners lose is padding. Declared on the card (tokens.scss) so a
+  // widget scaling a figure to the frame can divide by the same number.
   --_fit: var(--panel-round-fit, 0.85);
   --_inner-w: calc(var(--_round-side) * var(--_fit));
   --_inner-h: calc(var(--_round-side) * var(--_fit));

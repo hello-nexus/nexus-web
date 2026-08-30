@@ -1,8 +1,10 @@
 import { GaugeValue } from './GaugeValue';
+import { GAUGE_FIGURE_OUTER } from './types';
 import type { GaugeProps } from './types';
 import styles from './Arc270Gauge.module.scss';
 
-const RADIUS = 38;
+const STROKE = 9;
+const RADIUS = GAUGE_FIGURE_OUTER - STROKE / 2;
 // 270 deg arc starting at 7 o'clock (bottom-left) sweeping clockwise
 // to 5 o'clock (bottom-right) - the bottom 90 deg is the visible gap.
 const ARC_DEG = 270;

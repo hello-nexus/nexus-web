@@ -206,6 +206,10 @@
 // the card instead (see the 2x2round rule in PanelApp.module.scss, which paints
 // deliberately wider than the inscribed square), so the two do not stack.
 .panel-card[data-size='2x2round'] {
+  // Square inside the circle that a widget lays out into, as a fraction of the
+  // diameter. Corners cross the arc and the card clips them; edge midpoints
+  // stay inside. Read back by any widget that scales a figure to the frame.
+  --panel-round-fit: 0.85;
   border-radius: 50%;
   padding: 8%;
   // Round glass has no corners to anchor to, and the bezel eats anything that

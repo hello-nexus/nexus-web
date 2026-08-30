@@ -216,9 +216,8 @@ export function resolveSlotDesign(
 
 // Whether a monitoring widget's stored config fills the round glass edge to
 // edge: a single slot showing a design whose figure is already a circle or arc
-// (FRAME_FILLING_DESIGNS). One source of truth for the tile's own padding and
-// for the manifest's roundFit override, which have to agree or the gauge is
-// drawn at the full diameter inside a padded box.
+// (FRAME_FILLING_DESIGNS), so the tile drops its padding and scales the figure
+// up by the reciprocal of the card's fit.
 export function isFullBleedRound(
   size: PanelWidgetSize,
   config: Record<string, PanelConfigValue> | undefined,

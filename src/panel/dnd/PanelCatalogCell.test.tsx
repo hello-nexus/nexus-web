@@ -12,7 +12,6 @@ vi.mock('../../lib/i18n', () => ({
 vi.mock('../widgets/registry', () => ({
   lookupApp: (type: string) =>
     type === 'missing' ? undefined : { meta: { i18nKey: `panel.widget.${type}` }, Widget: () => <div>stub</div> },
-  roundFitStyle: () => undefined,
 }));
 
 const widget: PanelWidget = { id: 'w1', type: 'clock', size: '2x2', col: 0, row: 0 };
