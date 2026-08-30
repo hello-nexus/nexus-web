@@ -356,8 +356,10 @@ export function PanelTouchCell({
         </div>
         {editHint && (
           <div className={styles.cellEditHint} aria-hidden="true">
-            <Settings className={styles.cellEditHintIcon} />
-            <span className={styles.cellEditHintLabel}>{t('panel.simulator.editWidget')}</span>
+            <div className={styles.cellEditHintContent}>
+              <Settings className={styles.cellEditHintIcon} />
+              <span className={styles.cellEditHintLabel}>{t('panel.simulator.editWidget')}</span>
+            </div>
           </div>
         )}
       </div>
@@ -489,17 +491,19 @@ export function PanelCatalogCell({
         </div>
         {addedStage && (
           <div className={styles.cellAdded} data-stage={addedStage} aria-hidden="true">
-            {addedStage === 'added' ? (
-              <>
-                <Check className={styles.cellAddedIcon} />
-                <span className={styles.cellAddedLabel}>{t('panel.add.added')}</span>
-              </>
-            ) : (
-              <>
-                <Settings className={styles.cellAddedIcon} />
-                <span className={styles.cellAddedLabel}>{t('panel.add.clickToEdit')}</span>
-              </>
-            )}
+            <div className={styles.cellAddedContent}>
+              {addedStage === 'added' ? (
+                <>
+                  <Check className={styles.cellAddedIcon} />
+                  <span className={styles.cellAddedLabel}>{t('panel.add.added')}</span>
+                </>
+              ) : (
+                <>
+                  <Settings className={styles.cellAddedIcon} />
+                  <span className={styles.cellAddedLabel}>{t('panel.add.clickToEdit')}</span>
+                </>
+              )}
+            </div>
           </div>
         )}
       </div>
