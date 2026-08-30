@@ -23,9 +23,8 @@
     grid-column: 1 / -1;
   }
 
-  // The small cells get roughly a third of the tile height. At the full value
-  // size the reading plus its caption overflow that, and .slot clips - so the
-  // caption was cut off mid-glyph. Both shrink here; the top slot is unchanged.
+  // The small cells get roughly a third of the tile height; at the full value
+  // size the reading plus its caption overflow it and .slot clips.
   > *:not(:first-child) {
     --gauge-value-size: 1.7em;
     --type-gauge-caption: calc(var(--type-tiny) * 0.85);
@@ -38,11 +37,9 @@
   padding-bottom: 12%;
 }
 
-// Round glass with a frame-filling design: the tile contributes no padding, the
-// figure grows by the reciprocal of the card's inscribed-square fit so its
-// normalized outer edge lands on the glass, and the selection ring follows the
-// circle. The value and caption are outside the scaled layer, so they keep
-// their size.
+// Round glass with a frame-filling design: no tile padding, and the figure grows
+// by the reciprocal of the card's inscribed-square fit so its outer edge reaches
+// the glass. Only the figure layer scales; value and caption keep their size.
 .fullBleed {
   padding: 0;
   --gauge-figure-scale: calc(1 / var(--panel-round-fit, 0.85));

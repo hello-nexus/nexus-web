@@ -84,12 +84,10 @@ export const GAUGE_DESIGN_KEYS: GaugeDesignKey[] = [
   'caterpillar', 'tickring', 'halfgauge', 'arc270', 'wedge', 'dial',
 ];
 
-// Designs whose figure already fills its box as a shape a round frame can hold:
-// the full circles, all drawn to the shared GAUGE_FIGURE_OUTER edge, plus the
-// full-bleed history fill. A round tile multiplies these by
-// --gauge-figure-scale; Half Gauge and Wedge are part-circles that keep their
-// own proportions, and every remaining design lays out rectangularly and would
-// run off the arc. Nothing here is per-device or per-widget.
+// Designs a round tile scales by --gauge-figure-scale. Membership needs the
+// figure layer to measure the whole slot box: Dial, Half Gauge and Wedge stack
+// theirs above an info row, so scaling reaches neither the frame nor the
+// circle's centre.
 export const FRAME_FILLING_DESIGNS: ReadonlySet<GaugeDesignKey> = new Set<GaugeDesignKey>([
-  'caterpillar', 'waterLevel', 'tickring', 'arc270', 'dial', 'backdrop',
+  'caterpillar', 'waterLevel', 'tickring', 'arc270', 'backdrop',
 ]);

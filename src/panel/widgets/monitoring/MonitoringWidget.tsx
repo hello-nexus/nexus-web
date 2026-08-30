@@ -196,9 +196,8 @@ export function MonitoringWidget({ widget, selectedSlot, onSelectSlot }: WidgetP
   const slotConfigs = Array.from({ length: count }, (_, i) => ({
     device: ((widget.config?.[`slot${i}_device`] as DeviceKey | undefined) ?? DEFAULT_SLOTS[i]?.device ?? 'cpu'),
     sensorName: ((widget.config?.[`slot${i}_sensor`] as string | undefined) ?? DEFAULT_SLOTS[i]?.sensor ?? ''),
-    // Clamped to what the slot may show: a Hero small cell and the round
-    // glass each carry their own design set, and a stored design from before
-    // the layout switch would otherwise render outside its picker.
+    // Clamped to what the slot may show: a Hero small cell narrows the set, and
+    // a design stored before the layout switch would render outside its picker.
     design: resolveSlotDesign(
       widget.size,
       layout,

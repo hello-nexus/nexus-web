@@ -89,10 +89,9 @@ export function microSupportsSize(rawSize: PanelWidgetSize): boolean {
   return size === '2x2' || size === '4x2' || size === '2x4';
 }
 
-// Whether a (size, count) pair signals the Micro layout. All three inputs are
-// required - count=4 means Micro on 2x2/4x2/2x4 but multi on 4x4, and count=3
-// with the hero flag is the Hero layout, not Micro.
-export function isMicroLayout(size: PanelWidgetSize, count: number, hero = false): boolean {
+// count=4 means Micro on 2x2/4x2/2x4 but multi on 4x4, and count=3 with the
+// hero flag is the Hero layout - so all three inputs decide this, none default.
+export function isMicroLayout(size: PanelWidgetSize, count: number, hero: boolean): boolean {
   if (!microSupportsSize(size)) return false;
   if (isHeroLayout(size, count, hero)) return false;
   return (count >= MICRO_MIN_COUNT && count <= MICRO_MAX_COUNT) || isWideMicroCount(count);
@@ -137,8 +136,8 @@ export function isHeroLayout(size: PanelWidgetSize, count: number, hero: boolean
   return hero === true && count === HERO_SLOT_COUNT && heroSupportsSize(size);
 }
 
-// One entry in the editor's slot picker. `count` alone was the whole
-// vocabulary until the Hero layout, which reuses count 3.
+// One entry in the editor's slot picker. Hero reuses count 3, so the flag is
+// part of the identity.
 export interface SlotLayout {
   count: number;
   hero: boolean;
@@ -153,9 +152,7 @@ export function slotLayoutOptionsForSize(rawSize: PanelWidgetSize): SlotLayout[]
   const options: SlotLayout[] = slotCountOptionsForSize(rawSize).map(count => ({ count, hero: false }));
   if (!heroSupportsSize(rawSize)) return options;
   // Hero holds three independent multi-sensor slots, so it belongs with the
-  // other multi-sensor layouts rather than after the Micro counts: insert it
-  // ahead of the first Micro entry (right after the 2-slot option on 2x4, the
-  // 1-slot one on 2x2), not at the end.
+  // other multi-sensor layouts: ahead of the first Micro entry, not at the end.
   const firstMicro = options.findIndex(o => isMicroLayout(rawSize, o.count, o.hero));
   const hero: SlotLayout = { count: HERO_SLOT_COUNT, hero: true };
   if (firstMicro < 0) options.push(hero);
@@ -172,9 +169,7 @@ export function resolvedSlotLayoutForSize(
   return { count, hero: isHeroLayout(size, count, configuredHero) };
 }
 
-// Reads both stored keys off a widget's config. Every caller that needs the
-// layout goes through this so the `slotCount` / `slotHero` pair is decoded in
-// exactly one place.
+// Decodes the stored `slotCount` / `slotHero` pair.
 export function resolvedSlotLayout(
   size: PanelWidgetSize,
   config: Record<string, PanelConfigValue> | undefined,
@@ -216,19 +211,21 @@ export function resolveSlotDesign(
   return allowed.includes(design) ? design : allowed[0];
 }
 
-// Whether a monitoring widget's stored config fills the round glass edge to
-// edge: a single slot showing a design whose figure is already a circle or arc
-// (FRAME_FILLING_DESIGNS), so the tile drops its padding and scales the figure
-// up by the reciprocal of the card's fit.
+// Whether this design on this size fills the round glass edge to edge, so the
+// tile drops its padding and scales the figure by the reciprocal of the card's
+// fit. Shared by the live tile and the catalog preview.
+export function designFillsRoundFrame(size: PanelWidgetSize, design: GaugeDesignKey): boolean {
+  return size === '2x2round' && FRAME_FILLING_DESIGNS.has(design);
+}
+
 export function isFullBleedRound(
   size: PanelWidgetSize,
   config: Record<string, PanelConfigValue> | undefined,
 ): boolean {
   if (size !== '2x2round') return false;
-  const layout = resolvedSlotLayout(size, config);
-  if (layout.count !== 1) return false;
+  if (resolvedSlotLayout(size, config).count !== 1) return false;
   const stored = (config?.slot0_design as GaugeDesignKey | undefined)
     ?? DEFAULT_SLOTS[0]?.design
-    ?? 'sparkline';
-  return FRAME_FILLING_DESIGNS.has(resolveSlotDesign(size, layout, 0, stored));
+    ?? DEFAULT_DESIGN;
+  return designFillsRoundFrame(size, stored);
 }

@@ -56,29 +56,29 @@ describe('perfSlots', () => {
 
   describe('isMicroLayout', () => {
     it('treats 3 and 4 as Micro on supported sizes', () => {
-      expect(isMicroLayout('2x2', 3)).toBe(true);
-      expect(isMicroLayout('2x2', 4)).toBe(true);
-      expect(isMicroLayout('4x2', 3)).toBe(true);
-      expect(isMicroLayout('4x2', 4)).toBe(true);
-      expect(isMicroLayout('2x4', 3)).toBe(true);
-      expect(isMicroLayout('2x4', 4)).toBe(true);
+      expect(isMicroLayout('2x2', 3, false)).toBe(true);
+      expect(isMicroLayout('2x2', 4, false)).toBe(true);
+      expect(isMicroLayout('4x2', 3, false)).toBe(true);
+      expect(isMicroLayout('4x2', 4, false)).toBe(true);
+      expect(isMicroLayout('2x4', 3, false)).toBe(true);
+      expect(isMicroLayout('2x4', 4, false)).toBe(true);
     });
 
     it('treats the wide 6/8 counts as Micro on the wide 4x2 and the tall 2x4', () => {
-      expect(isMicroLayout('4x2', 6)).toBe(true);
-      expect(isMicroLayout('4x2', 8)).toBe(true);
-      expect(isMicroLayout('2x4', 6)).toBe(true);
-      expect(isMicroLayout('2x4', 8)).toBe(true);
+      expect(isMicroLayout('4x2', 6, false)).toBe(true);
+      expect(isMicroLayout('4x2', 8, false)).toBe(true);
+      expect(isMicroLayout('2x4', 6, false)).toBe(true);
+      expect(isMicroLayout('2x4', 8, false)).toBe(true);
     });
 
     it('still treats count=4 on 4x4 as multi (not Micro)', () => {
-      expect(isMicroLayout('4x4', 4)).toBe(false);
-      expect(isMicroLayout('4x4', 2)).toBe(false);
+      expect(isMicroLayout('4x4', 4, false)).toBe(false);
+      expect(isMicroLayout('4x4', 2, false)).toBe(false);
     });
 
     it('rejects sub-Micro counts even on supported sizes', () => {
-      expect(isMicroLayout('2x2', 1)).toBe(false);
-      expect(isMicroLayout('4x2', 2)).toBe(false);
+      expect(isMicroLayout('2x2', 1, false)).toBe(false);
+      expect(isMicroLayout('4x2', 2, false)).toBe(false);
     });
   });
 
@@ -204,7 +204,7 @@ describe('perfSlots', () => {
     });
 
     it('takes count 3 away from Micro only when the hero flag is set', () => {
-      expect(isMicroLayout('2x4', 3)).toBe(true);
+      expect(isMicroLayout('2x4', 3, false)).toBe(true);
       expect(isMicroLayout('2x4', 3, true)).toBe(false);
       expect(isHeroLayout('2x4', 3, true)).toBe(true);
       // The flag alone is not enough: the count and the size both have to fit.
@@ -266,9 +266,10 @@ describe('perfSlots', () => {
       expect(isFullBleedRound('2x2round', { slotCount: 1, slot0_design: 'waterLevel' })).toBe(true);
       expect(isFullBleedRound('2x2round', { slotCount: 1, slot0_design: 'arc270' })).toBe(true);
       expect(isFullBleedRound('2x2round', { slotCount: 1, slot0_design: 'backdrop' })).toBe(true);
-      // Part-circles keep their own proportions and never scale up.
+      // A figure stacked above an info row cannot reach the frame by scaling.
       expect(isFullBleedRound('2x2round', { slotCount: 1, slot0_design: 'halfgauge' })).toBe(false);
       expect(isFullBleedRound('2x2round', { slotCount: 1, slot0_design: 'wedge' })).toBe(false);
+      expect(isFullBleedRound('2x2round', { slotCount: 1, slot0_design: 'dial' })).toBe(false);
       // A rectangular layout at the full diameter would run off the arc.
       expect(isFullBleedRound('2x2round', { slotCount: 1, slot0_design: 'sparkline' })).toBe(false);
       expect(isFullBleedRound('2x2round', { slotCount: 1, slot0_design: 'text' })).toBe(false);

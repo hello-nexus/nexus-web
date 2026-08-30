@@ -7,10 +7,10 @@ const START = 135;
 const SWEEP = 270;
 const TICKS = 19;
 const STROKE = 2.6;
-// The dial's proportions are kept; only the outer tick ring is pinned to the
-// shared figure edge, and every other radius rides the same factor.
 const TICK_OUTER = GAUGE_FIGURE_OUTER - STROKE / 2;
-const SCALE = TICK_OUTER / 43;
+// Radius the dial's other features were drawn against before normalization.
+const DESIGNED_TICK_OUTER = 43;
+const SCALE = TICK_OUTER / DESIGNED_TICK_OUTER;
 const TICK_INNER = 36 * SCALE;
 const NEEDLE = 33 * SCALE;
 const HUB = 4.5 * SCALE;
