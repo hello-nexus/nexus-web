@@ -1762,26 +1762,44 @@
   left: 0;
   z-index: 2;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  // Flex gap is a no-op on 83; space through the child margin below.
-  @include vgap(6px);
-  padding: 6%;
   text-align: center;
   color: var(--text);
   background: var(--panel-scrim-bg);
   border-radius: inherit;
 }
 
-// Sized off the widget's SHORT side (a fixed px cap read tiny on the big
-// single-widget tiles, where the whole panel is one 2x4/round cell). The panel
-// runtime already scales with the surface, so one ratio holds everywhere.
+// A notice paints OUTSIDE the widget's own .cellScaler, so it does not inherit
+// the panel's content zoom: authored px would render against whatever raw CSS
+// px the surface happens to have - unreadably small on a dense panel. Do what
+// .cellScaler does and lay the contents out against the 90px design base, then
+// scale by --panel-scale, so the notice reads the same relative size on every
+// surface.
+%cellNoticeContent {
+  --_notice-scale: var(--panel-scale, 1);
+  // Design-space box: scaled by --_notice-scale it covers the card, so the
+  // label wraps where the card's edge actually is.
+  width: calc(100% / var(--_notice-scale));
+  padding: 6%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  // Flex gap is a no-op on 83; space through the child margin below.
+  @include vgap(4px);
+  transform: scale(var(--_notice-scale));
+  transform-origin: center center;
+  // As a flex item the design-space box (wider than the card whenever the
+  // scale is > 1) would shrink back to the card, and the transform would then
+  // overshoot it. Same pin .cellScaler needs.
+  flex-shrink: 0;
+}
+
+// Design-space width: one design cell is 90px, so the glyph keeps the same
+// fraction of the widget it had before the scaler wrapped it.
 %cellNoticeIcon {
-  --_notice-side: calc(
-    min(var(--panel-span-cols, 1), var(--panel-span-rows, 1)) * var(--panel-cell-size, 90px)
-  );
-  width: calc(var(--_notice-side) * 0.34);
+  width: calc(min(var(--panel-span-cols, 1), var(--panel-span-rows, 1)) * 30px);
   max-width: 55%;
   height: auto;
   flex: 0 0 auto;
@@ -1796,6 +1814,10 @@
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--ease-fast) ease-out;
+}
+
+.cellEditHintContent {
+  @extend %cellNoticeContent;
 }
 
 .cellEditHintIcon {
@@ -1829,6 +1851,10 @@
 
 .cellAdded[data-stage='edit'] {
   color: var(--panel-accent);
+}
+
+.cellAddedContent {
+  @extend %cellNoticeContent;
 }
 
 .cellAddedIcon {
