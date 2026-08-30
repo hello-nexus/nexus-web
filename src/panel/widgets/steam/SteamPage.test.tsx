@@ -16,6 +16,8 @@ import {
 } from '../../../api/steam';
 import { fetchFpsGames, type FpsGamesResponse } from '../../../api/fps';
 import { requestOpenFramesGame } from '../frames/framesNav';
+import type { UseFpsEstimatesResult } from '../../../hooks/useFpsEstimates';
+import type { FpsTableGameItem } from '../../../types/fps-estimates';
 
 vi.mock('../../../api/steam', () => ({
   fetchSteamStatus: vi.fn(),
@@ -38,6 +40,11 @@ vi.mock('../../../api/fps', () => ({
 
 vi.mock('../frames/framesNav', () => ({
   requestOpenFramesGame: vi.fn(),
+}));
+
+let fpsEstimatesResult: UseFpsEstimatesResult = { status: 'unresolved', games: [], gamesByKey: new Map(), resClass: null };
+vi.mock('../../../hooks/useFpsEstimates', () => ({
+  useFpsEstimates: () => fpsEstimatesResult,
 }));
 
 vi.mock('../../../hooks/useUiSettings', () => ({
@@ -68,6 +75,15 @@ function fpsGames(): FpsGamesResponse {
   };
 }
 
+function estimateGame(overrides: Partial<FpsTableGameItem> = {}): FpsTableGameItem {
+  return {
+    gameKey: 'steam:730', title: 'Counter-Strike 2', steamAppId: 730, level: 3,
+    avg: 118.6, p1: 80, p50: 116, p99: 140, min: 60, max: 160, sessions: 30, installs: 9,
+    confidence: 'medium', lowerBound: false,
+    ...overrides,
+  };
+}
+
 // Panel widgets have no real layout engine under jsdom - the virtualized
 // library's ResizeObserver-driven sizing reads clientWidth/clientHeight, which
 // jsdom reports as 0 for every element, collapsing the visible tile slice to
@@ -94,6 +110,7 @@ beforeEach(() => {
   vi.mocked(fetchSteamUserStats).mockResolvedValue([]);
   vi.mocked(fetchSteamCurrentPlayers).mockResolvedValue(null);
   vi.mocked(fetchFpsGames).mockResolvedValue(fpsGames());
+  fpsEstimatesResult = { status: 'unresolved', games: [], gamesByKey: new Map(), resClass: null };
 });
 
 afterEach(() => {
@@ -132,6 +149,43 @@ describe('SteamPage - GameTile FPS chip', () => {
     await flush();
 
     expect(await screen.findByRole('button', { name: 'Counter-Strike 2' })).toBeInTheDocument();
+  });
+});
+
+describe('SteamPage - GameTile community FPS fallback', () => {
+  it('shows the community estimate for a game with no local FPS data', async () => {
+    vi.mocked(fetchFpsGames).mockResolvedValue({ supported: true, games: [] });
+    const estimate = estimateGame();
+    fpsEstimatesResult = {
+      status: 'ready', games: [estimate], gamesByKey: new Map([[estimate.gameKey, estimate]]), resClass: '2560x1440',
+    };
+    render(<SteamPage />);
+    await flush();
+
+    expect(await screen.findByText('steam.fps.communityChip(value=119)')).toBeInTheDocument();
+    expect(screen.queryByText(/^steam\.fps\.chip\(/)).not.toBeInTheDocument();
+  });
+
+  it('prefers local FPS data over a community estimate for the same game', async () => {
+    const estimate = estimateGame();
+    fpsEstimatesResult = {
+      status: 'ready', games: [estimate], gamesByKey: new Map([[estimate.gameKey, estimate]]), resClass: '2560x1440',
+    };
+    render(<SteamPage />);
+    await flush();
+
+    expect(await screen.findByText('steam.fps.chip(value=132)')).toBeInTheDocument();
+    expect(screen.queryByText('steam.fps.communityChip(value=119)')).not.toBeInTheDocument();
+  });
+
+  it('does not show a chip when neither local nor community data exists for a game', async () => {
+    vi.mocked(fetchFpsGames).mockResolvedValue({ supported: true, games: [] });
+    render(<SteamPage />);
+    await flush();
+
+    await screen.findByText('Counter-Strike 2');
+    expect(screen.queryByText(/steam\.fps\.chip\(/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/steam\.fps\.communityChip\(/)).not.toBeInTheDocument();
   });
 });
 

@@ -3,8 +3,10 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { FramesPage } from './FramesPage';
 import type { FpsGameSummary, FpsSessionsResponse } from '../../../api/fps';
+import type { UseFpsEstimatesResult } from '../../../hooks/useFpsEstimates';
 import type { UseFpsGamesResult } from '../../../hooks/useFpsGames';
 import type { SystemSpecs } from '../../../hooks/useSystemSpecs';
+import type { FpsTableGameItem } from '../../../types/fps-estimates';
 
 const getFpsTrackingStatusMock = vi.fn();
 const fetchFpsGameSessionsMock = vi.fn();
@@ -33,6 +35,11 @@ vi.mock('../../../hooks/useSystemSpecs', () => ({
   useSystemSpecs: () => ({ specs: systemSpecs }),
 }));
 
+let fpsEstimatesResult: UseFpsEstimatesResult = { status: 'loading', games: [], gamesByKey: new Map(), resClass: null };
+vi.mock('../../../hooks/useFpsEstimates', () => ({
+  useFpsEstimates: () => fpsEstimatesResult,
+}));
+
 vi.mock('../../../hooks/useUiSettings', () => ({
   useUnitPrefs: () => ({ monitoringTempUnit: 'c', timeFormat: 'system', numberFormat: 'system' }),
 }));
@@ -58,6 +65,15 @@ function gamesByKey(...entries: FpsGameSummary[]): UseFpsGamesResult['gamesByKey
   return new Map(entries.map(g => [g.gameKey, g]));
 }
 
+function estimateGame(overrides: Partial<FpsTableGameItem> = {}): FpsTableGameItem {
+  return {
+    gameKey: 'steam:730', title: 'Counter-Strike 2', steamAppId: 730, level: 3,
+    avg: 220, p1: 140, p50: 218, p99: 260, min: 90, max: 300, sessions: 40, installs: 12,
+    confidence: 'medium', lowerBound: false,
+    ...overrides,
+  };
+}
+
 function session(overrides: Partial<FpsSessionsResponse['sessions'][number]> = {}) {
   return {
     id: 's1', startedUtcMs: Date.now() - 1000, endedUtcMs: Date.now(), focusedSec: 600, validSec: 600,
@@ -74,6 +90,7 @@ const flush = () => act(async () => {
 beforeEach(() => {
   fpsGamesResult = { supported: true, gamesByKey: new Map(), refetch: refetchGamesMock };
   systemSpecs = null;
+  fpsEstimatesResult = { status: 'loading', games: [], gamesByKey: new Map(), resClass: null };
   getFpsTrackingStatusMock.mockReset().mockResolvedValue({ enabled: true });
   fetchFpsGameSessionsMock.mockReset().mockResolvedValue({ sessions: [] });
   deleteFpsSessionMock.mockReset().mockResolvedValue({ deleted: 1 });
@@ -330,17 +347,77 @@ describe('FramesPage - deleting all recordings for a game', () => {
 });
 
 describe('FramesPage - Discover tab', () => {
-  it('shows spec rows once loaded and the estimates-coming-soon note', async () => {
+  beforeEach(() => {
     systemSpecs = {
       pcName: 'Nexus-PC', osBuild: '26100', processor: 'Ryzen 9 9950X3D', motherboard: 'X670E',
       memory: '32 GB', storage: '2 TB NVMe', graphicsCard: 'RTX 5080', monitor: '2560x1440 @ 165Hz',
       soundCard: 'Realtek', networkCard: 'Intel',
     };
+  });
+
+  it('shows the rig spec rows regardless of estimate status', async () => {
+    fpsEstimatesResult = { status: 'loading', games: [], gamesByKey: new Map(), resClass: null };
     renderPage('discover');
     await flush();
 
     expect(await screen.findByText('Ryzen 9 9950X3D')).toBeInTheDocument();
     expect(screen.getByText('RTX 5080')).toBeInTheDocument();
-    expect(screen.getByText('frames.rig.estimatesComingSoon')).toBeInTheDocument();
+  });
+
+  it('is silent (no estimates section) while the rig cannot be resolved', async () => {
+    fpsEstimatesResult = { status: 'unresolved', games: [], gamesByKey: new Map(), resClass: null };
+    renderPage('discover');
+    await flush();
+
+    expect(screen.queryByText('frames.discover.title')).not.toBeInTheDocument();
+    expect(screen.queryByText('frames.discover.empty.title')).not.toBeInTheDocument();
+  });
+
+  it('shows the no-community-data empty state when the table has no games yet', async () => {
+    fpsEstimatesResult = { status: 'empty', games: [], gamesByKey: new Map(), resClass: '2560x1440' };
+    renderPage('discover');
+    await flush();
+
+    expect(await screen.findByText('frames.discover.empty.title')).toBeInTheDocument();
+    expect(screen.getByText('frames.discover.empty.hint')).toBeInTheDocument();
+  });
+
+  it('lists a community estimate with its avg, level label, confidence, and based-on count', async () => {
+    const estimate = estimateGame();
+    fpsEstimatesResult = {
+      status: 'ready', games: [estimate], gamesByKey: new Map([[estimate.gameKey, estimate]]), resClass: '2560x1440',
+    };
+    renderPage('discover');
+    await flush();
+
+    expect(await screen.findByText('frames.discover.title')).toBeInTheDocument();
+    expect(screen.getByText('Counter-Strike 2')).toBeInTheDocument();
+    expect(screen.getByText('220')).toBeInTheDocument();
+    expect(screen.getByText('frames.discover.level.3')).toBeInTheDocument();
+    expect(screen.getByText('frames.discover.confidence.medium')).toBeInTheDocument();
+    expect(screen.getByText('frames.discover.basedOn(count=12)')).toBeInTheDocument();
+  });
+
+  it('adds an at-resolution note when the estimate came from a different resClass than the rig', async () => {
+    const estimate = estimateGame({ resBasis: '3840x2160' });
+    fpsEstimatesResult = {
+      status: 'ready', games: [estimate], gamesByKey: new Map([[estimate.gameKey, estimate]]), resClass: '2560x1440',
+    };
+    renderPage('discover');
+    await flush();
+
+    expect(await screen.findByText(/frames\.discover\.resBasis\(res=3840×2160\)/)).toBeInTheDocument();
+  });
+
+  it('omits the at-resolution note when resBasis matches the rig own resClass', async () => {
+    const estimate = estimateGame({ resBasis: '2560x1440' });
+    fpsEstimatesResult = {
+      status: 'ready', games: [estimate], gamesByKey: new Map([[estimate.gameKey, estimate]]), resClass: '2560x1440',
+    };
+    renderPage('discover');
+    await flush();
+
+    expect(await screen.findByText('Counter-Strike 2')).toBeInTheDocument();
+    expect(screen.queryByText(/frames\.discover\.resBasis/)).not.toBeInTheDocument();
   });
 });

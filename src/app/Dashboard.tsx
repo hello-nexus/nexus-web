@@ -70,6 +70,8 @@ import { getSidebarAppMeta } from './sidebarApps';
 import { SidebarColumn } from './SidebarColumn';
 import { CrossZoneDragProvider } from './CrossZoneDrag';
 import { CommandPaletteProvider } from '../search/CommandPaletteProvider';
+import { requestSearchScroll } from '../search/scroll';
+import { fireSearchSignal } from '../search/signals';
 import { useSearchSignal } from '../search/signals';
 import { checkHelloGreetingOnce } from '../search/helloGreetingStore';
 import { PairPhoneModal } from './PairPhoneModal';
@@ -98,6 +100,9 @@ const WHATS_NEW_SHOWN_KEY = 'nexus.whatsNewShownFor';
 // Query param the Windows tray appends when an update balloon is clicked; must
 // match BalloonKind.UpdateReady's path in nexus-service TrayIcon.cs.
 const OPEN_UPDATE_PARAM = 'openUpdate';
+// The conflict-shutdown toast's "Open Settings" button opens the dashboard
+// here; a query param is the only way a click reaches an already-open window.
+const MANAGE_CONFLICTS_PARAM = 'manageConflicts';
 
 // True only the first time it sees a given version. The service holds
 // justUpdatedTo for a fixed window after an update, so a window close+reopen
@@ -538,6 +543,9 @@ export function Dashboard() {
     if (activeView === 'profiles') return t('settings.tab.profiles');
     if (activeView === 'account') return t('account.title');
     if (activeView === 'tools') return t('settings.tab.tools');
+    // Gated views keep their own title on the Placeholder a release build
+    // renders, rather than falling through to the generic "Apps" label.
+    if (activeView === 'store') return t('apps.tabs.store');
     // A specific device page shows the device's own name; the all-devices
     // landing keeps the generic "Devices" label.
     if (activeView === 'device') {
@@ -704,6 +712,28 @@ export function Dashboard() {
     void handleUpdateOpen();
   }, [openUpdateRequested, handleUpdateOpen]);
 
+  // Same read-during-render reason as openUpdate above: useRoute's initial
+  // redirect strips the query before any effect runs.
+  const [manageConflictsRequested] = useState(() => {
+    try { return new URLSearchParams(window.location.search).has(MANAGE_CONFLICTS_PARAM); }
+    catch { return false; }
+  });
+  const manageConflictsParamRef = useRef(false);
+  useEffect(() => {
+    if (!manageConflictsRequested || manageConflictsParamRef.current) return;
+    manageConflictsParamRef.current = true;
+    const url = new URL(window.location.href);
+    if (url.searchParams.has(MANAGE_CONFLICTS_PARAM)) {
+      url.searchParams.delete(MANAGE_CONFLICTS_PARAM);
+      window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
+    }
+    navigate('system', 'settings', 'general');
+    // Fired after navigating: the signal is held until General mounts and
+    // subscribes, which is what opens the modal.
+    requestSearchScroll('set-conflict-apps');
+    fireSearchSignal('conflict-apps');
+  }, [manageConflictsRequested, navigate]);
+
   // Bump on every offline -> online transition so the profile dropdown
   // remounts and replays its fade-in once.
   const wasOnlineRef = useRef(online);
@@ -781,7 +811,7 @@ export function Dashboard() {
       );
       case 'diagnostics': return <FeatureGate feature="diagnostics"><DiagnosticsPage serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} tab={subtab} onTabChange={setSubtab} /></FeatureGate>;
       case 'frames':      return <FramesPage tab={subtab} onTabChange={setSubtab} />;
-      case 'store':      return <StorePage />;
+      case 'store':      return DEV_TOOLS ? <StorePage /> : <Placeholder title={activeView} />;
       case 'clock':      return <ClockPage />;
       case 'steam':      return <SteamPage />;
       case 'gallery':    return <GalleryPage />;

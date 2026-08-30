@@ -144,6 +144,12 @@ export interface CoolingPrefs {
 
 export interface UiPrefs {
   showConflictAlerts: boolean;
+  // Shut down detected conflicting apps once at service start. Off by default.
+  autoKillConflictsAtStartup?: boolean;
+  // Catalog ids the user opted OUT of that startup shutdown. Stored as
+  // exclusions rather than an allow-list so an app added to the service's
+  // catalog later is covered without the client rewriting the list.
+  conflictAutoKillExclusions?: string[];
   // Order of the user's pinnable sidebar apps after the locked Dashboard
   // row. Optional because nexus-service does not implement this field yet:
   // GET /preferences never returns it and POST /preferences silently drops

@@ -4,6 +4,7 @@
 // committed .env.development points `npm run dev` at a local API.
 
 import type { BenchmarkVersionInfo, LeaderboardResponse } from '../types/benchmark';
+import type { FpsSignatureParams, FpsSignatureResponse, FpsTableResponse } from '../types/fps-estimates';
 import type { GameScoresResponse, GameType } from '../types/games';
 import { authFetchWithStatus } from './service';
 
@@ -115,6 +116,50 @@ export async function getGameScores(gameType: GameType, limit = 20): Promise<Gam
       `/cloud/games/scores?${qs.toString()}`,
       `${BASE}/games/scores?${qs.toString()}`,
     );
+    if (r.ok) return r.data;
+    if (!r.retryable) return null;
+    if (attempt < 2) await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)));
+  }
+  return null;
+}
+
+/**
+ * GET /fps/signature - resolves a rig to a signature key and the ladder
+ * levels that already have community data. Same cold-start retry shape as
+ * getLeaderboard. `res` is the only field the cloud route requires; every
+ * other field is best-effort and degrades the match to a looser ladder level
+ * when absent or unrecognized.
+ */
+export async function getFpsSignature(params: FpsSignatureParams): Promise<FpsSignatureResponse | null> {
+  const qs = new URLSearchParams();
+  if (params.gpu) qs.set('gpu', params.gpu);
+  if (params.cpu) qs.set('cpu', params.cpu);
+  if (params.mobo) qs.set('mobo', params.mobo);
+  if (params.ramBytes != null) qs.set('ramBytes', String(params.ramBytes));
+  qs.set('res', params.res);
+  if (params.hz != null) qs.set('hz', String(params.hz));
+  const suffix = `?${qs.toString()}`;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const r = await readApi<FpsSignatureResponse>(
+      `/cloud/fps/signature${suffix}`,
+      `${BASE}/fps/signature${suffix}`,
+    );
+    if (r.ok) return r.data;
+    if (!r.retryable) return null;
+    if (attempt < 2) await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)));
+  }
+  return null;
+}
+
+/**
+ * GET /fps/table/{sigKey} - the per-game community FPS estimates for a
+ * resolved signature. `games` is an empty array (not an error) whenever the
+ * cloud has no data yet for that hardware class.
+ */
+export async function getFpsTable(sigKey: string): Promise<FpsTableResponse | null> {
+  const path = `/fps/table/${encodeURIComponent(sigKey)}`;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const r = await readApi<FpsTableResponse>(`/cloud${path}`, `${BASE}${path}`);
     if (r.ok) return r.data;
     if (!r.retryable) return null;
     if (attempt < 2) await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)));

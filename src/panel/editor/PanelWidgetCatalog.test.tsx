@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PanelWidgetCatalog } from './PanelWidgetCatalog';
 import type { PanelSurface } from '../types';
 
@@ -86,14 +86,35 @@ vi.mock('../dnd/PanelDragCells', () => ({
     label,
     disabled,
     onClick,
+    addedStage,
+    onEditAdded,
+    onPointerLeave,
   }: {
     widget: { size: string };
     label: string;
     disabled?: boolean;
     onClick: () => void;
+    addedStage?: 'added' | 'edit' | null;
+    onEditAdded?: () => void;
+    onPointerLeave?: () => void;
   }) => (
-    <button type="button" data-size={widget.size} disabled={disabled} onClick={onClick}>
+    <button
+      type="button"
+      data-size={widget.size}
+      disabled={disabled}
+      // Mirrors the real cell: while the overlay is up the card edits (or does
+      // nothing) instead of adding again, and leaving it clears the overlay.
+      onClick={() => {
+        if (addedStage) {
+          if (addedStage === 'edit') onEditAdded?.();
+          return;
+        }
+        onClick();
+      }}
+      onPointerLeave={onPointerLeave}
+    >
       {label}
+      {addedStage && <span data-testid={`added-${label}`}>{addedStage}</span>}
     </button>
   ),
 }));
@@ -254,6 +275,86 @@ describe('PanelWidgetCatalog', () => {
 
       expect(screen.getByRole('button', { name: 'panel.widget.lighting' })).toBeDisabled();
       expect(screen.getByRole('status')).toHaveTextContent('panel.add.someTooLarge');
+    });
+  });
+
+  // NEX-6: after an add, the desktop catalog holds a confirmation over the card
+  // that was clicked - a checkmark, then a prompt that opens the placed widget.
+  describe('post-add overlay', () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('shows the added beat, then the edit beat, and opens the placed widget', () => {
+      vi.useFakeTimers();
+      const onEditWidget = vi.fn();
+      render(
+        <PanelWidgetCatalog
+          surface="desktop"
+          variant="desktop-modal"
+          onAdd={() => 'w-1'}
+          onEditWidget={onEditWidget}
+        />,
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: /panel.widget.clock/ }));
+      expect(screen.getByTestId('added-panel.widget.clock')).toHaveTextContent('added');
+
+      act(() => { vi.advanceTimersByTime(1000); });
+      expect(screen.getByTestId('added-panel.widget.clock')).toHaveTextContent('edit');
+
+      fireEvent.click(screen.getByRole('button', { name: /panel.widget.clock/ }));
+      expect(onEditWidget).toHaveBeenCalledWith('w-1');
+    });
+
+    it('clears the overlay when the pointer leaves the card', () => {
+      render(
+        <PanelWidgetCatalog
+          surface="desktop"
+          variant="desktop-modal"
+          onAdd={() => 'w-1'}
+          onEditWidget={vi.fn()}
+        />,
+      );
+
+      const card = screen.getByRole('button', { name: /panel.widget.clock/ });
+      fireEvent.click(card);
+      expect(screen.getByTestId('added-panel.widget.clock')).toBeInTheDocument();
+
+      fireEvent.pointerLeave(card);
+      expect(screen.queryByTestId('added-panel.widget.clock')).toBeNull();
+    });
+
+    // On-device (phone/kiosk) the add sheet closes on add, so the overlay would
+    // never be seen - and there is no pointer to leave the card.
+    it('does not add again while the overlay is up', () => {
+      const onAdd = vi.fn(() => 'w-1');
+      render(
+        <PanelWidgetCatalog
+          surface="desktop"
+          variant="desktop-modal"
+          onAdd={onAdd}
+          onEditWidget={vi.fn()}
+        />,
+      );
+
+      const card = screen.getByRole('button', { name: /panel.widget.clock/ });
+      fireEvent.click(card);
+      fireEvent.click(card);
+
+      expect(onAdd).toHaveBeenCalledTimes(1);
+
+      fireEvent.pointerLeave(card);
+      fireEvent.click(card);
+      expect(onAdd).toHaveBeenCalledTimes(2);
+    });
+
+    it('stays out of the on-device sheet', () => {
+      render(<PanelWidgetCatalog surface="y70" onAdd={() => 'w-1'} onEditWidget={vi.fn()} />);
+
+      fireEvent.click(screen.getByRole('button', { name: /panel.widget.clock/ }));
+
+      expect(screen.queryByTestId('added-panel.widget.clock')).toBeNull();
     });
   });
 });

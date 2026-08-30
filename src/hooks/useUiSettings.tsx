@@ -64,6 +64,9 @@ export interface UiSettingsValue {
   // Held apart from accentColor so the slot survives picking a preset.
   customAccentColor: string;
   showConflictAlerts: boolean;
+  autoKillConflictsAtStartup: boolean;
+  /** Catalog ids excluded from the startup shutdown; every other known app is included. */
+  conflictAutoKillExclusions: string[];
   monitoringDetailedCollapsed: string[];
   monitoringEventsEnabled: boolean;
   monitoringFpsOverlayEnabled: boolean;
@@ -209,6 +212,8 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     accentColor: src.general.accentColor,
     customAccentColor: src.general.customAccentColor,
     showConflictAlerts: src.general.showConflictAlerts,
+    autoKillConflictsAtStartup: src.general.autoKillConflictsAtStartup,
+    conflictAutoKillExclusions: src.general.conflictAutoKillExclusions,
     monitoringDetailedCollapsed: src.general.monitoringDetailedCollapsed,
     monitoringEventsEnabled: src.general.monitoringEventsEnabled,
     monitoringFpsOverlayEnabled: src.general.monitoringFpsOverlayEnabled,
@@ -273,6 +278,8 @@ function toNexusSettings(src: UiSettingsValue): NexusSettings {
       accentSource: src.accentSource,
       startOnLogin: src.startOnLogin,
       showConflictAlerts: src.showConflictAlerts,
+      autoKillConflictsAtStartup: src.autoKillConflictsAtStartup,
+      conflictAutoKillExclusions: src.conflictAutoKillExclusions,
       monitoringDetailedCollapsed: src.monitoringDetailedCollapsed,
       monitoringEventsEnabled: src.monitoringEventsEnabled,
       monitoringFpsOverlayEnabled: src.monitoringFpsOverlayEnabled,
@@ -332,8 +339,10 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.preferredGpuId !== undefined) cooling.preferredGpuId = patch.preferredGpuId;
   if (Object.keys(cooling).length > 0) out.cooling = cooling;
   // ui block
-  const ui: Partial<{ showConflictAlerts: boolean; pinnedSidebarApps: string[]; recentSidebarApps: string[]; oemAppSeeded: boolean; lightingDashboardMode: DashboardMode; coolingDashboardMode: DashboardMode }> = {};
+  const ui: Partial<{ showConflictAlerts: boolean; autoKillConflictsAtStartup: boolean; conflictAutoKillExclusions: string[]; pinnedSidebarApps: string[]; recentSidebarApps: string[]; oemAppSeeded: boolean; lightingDashboardMode: DashboardMode; coolingDashboardMode: DashboardMode }> = {};
   if (patch.showConflictAlerts !== undefined) ui.showConflictAlerts = patch.showConflictAlerts;
+  if (patch.autoKillConflictsAtStartup !== undefined) ui.autoKillConflictsAtStartup = patch.autoKillConflictsAtStartup;
+  if (patch.conflictAutoKillExclusions !== undefined) ui.conflictAutoKillExclusions = patch.conflictAutoKillExclusions;
   if (patch.pinnedSidebarApps !== undefined) ui.pinnedSidebarApps = patch.pinnedSidebarApps;
   if (patch.recentSidebarApps !== undefined) ui.recentSidebarApps = patch.recentSidebarApps;
   if (patch.oemAppSeeded !== undefined) ui.oemAppSeeded = patch.oemAppSeeded;
@@ -426,6 +435,8 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
     backgroundMode: (server.theme?.backgroundMode as BackgroundMode) || base.backgroundMode,
     accentSource: (server.theme?.accentSource as AccentSource) || base.accentSource,
     showConflictAlerts: server.ui?.showConflictAlerts ?? base.showConflictAlerts,
+    autoKillConflictsAtStartup: server.ui?.autoKillConflictsAtStartup ?? base.autoKillConflictsAtStartup,
+    conflictAutoKillExclusions: server.ui?.conflictAutoKillExclusions ?? base.conflictAutoKillExclusions,
     // Unknown/absent values keep the local value (older services omit them).
     lightingDashboardMode: server.ui?.lightingDashboardMode === 'simple' || server.ui?.lightingDashboardMode === 'advanced'
       ? server.ui.lightingDashboardMode
