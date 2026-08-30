@@ -102,6 +102,7 @@ const STREAMED_FAMILY_ICONS: Partial<Record<string, string>> = {
   'lianli-galahad2-lcd': '/assets/devices/lianli.svg',
   'corsair-xc7-lcd': '/assets/devices/corsair.svg',
   'corsair-capellix-lcd': '/assets/devices/corsair.svg',
+  'lianli-screen88': '/assets/devices/lianli.svg',
 };
 
 // The curated device a streamed panel belongs to. Claiming it merges the two into
