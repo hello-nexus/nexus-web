@@ -23,12 +23,19 @@
     grid-column: 1 / -1;
   }
 
-  // The small cells carry a full-size caption under a much smaller value than
-  // the headline slot has, so the label competes with the reading. Shrink it
-  // there only; the top slot keeps the standard caption.
+  // The small cells get roughly a third of the tile height. At the full value
+  // size the reading plus its caption overflow that, and .slot clips - so the
+  // caption was cut off mid-glyph. Both shrink here; the top slot is unchanged.
   > *:not(:first-child) {
+    --gauge-value-size: 1.7em;
     --gauge-caption-size: calc(var(--type-tiny) * 0.85);
   }
+}
+
+// Round glass: the bottom row sits where the arc is already cutting in, so the
+// grid gives up height at the bottom and both rows ride up clear of it.
+:global(.panel-card[data-size='2x2round']) .gridHero {
+  padding-bottom: 12%;
 }
 
 // Round glass with a frame-filling design: the tile contributes no padding, the

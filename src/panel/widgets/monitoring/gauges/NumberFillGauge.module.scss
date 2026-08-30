@@ -35,7 +35,7 @@
   // Grid items default to a max-content minimum, which would keep the
   // clamp above from reaching the value.
   min-width: 0;
-  font-size: 2.4em;
+  font-size: var(--gauge-value-size, 2.4em);
   font-weight: var(--weight-display);
   letter-spacing: -0.02em;
   line-height: 1;
