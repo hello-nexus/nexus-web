@@ -12,6 +12,50 @@
 .grid2row { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
 .grid2x2 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
 
+// Hero: the first slot spans the top row, the other two share the bottom one.
+// The top row is the taller of the two so the headline sensor reads as the
+// primary one rather than as a third equal cell.
+.gridHero {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1.3fr 1fr;
+
+  > *:first-child {
+    grid-column: 1 / -1;
+  }
+
+  // The small cells get roughly a third of the tile height; at the full value
+  // size the reading plus its caption overflow it and .slot clips.
+  > *:not(:first-child) {
+    --gauge-value-size: 1.7em;
+    --type-gauge-caption: calc(var(--type-tiny) * 0.85);
+  }
+}
+
+// Round glass: the bottom row sits where the arc is already cutting in, so the
+// grid gives up height at the bottom and both rows ride up clear of it.
+:global(.panel-card[data-size='2x2round']) .gridHero {
+  padding-bottom: 12%;
+}
+
+// Round glass with a frame-filling design: no tile padding, and the figure grows
+// by the reciprocal of the card's inscribed-square fit so its outer edge reaches
+// the glass. Only the figure layer scales; value and caption keep their size.
+.fullBleed {
+  padding: 0;
+  --gauge-figure-scale: calc(1 / var(--panel-round-fit, 0.85));
+
+  // The figure is scaled past its box on purpose, so the slot and the gauge
+  // root must not clip it - the card's own circular mask is what should.
+  .slot,
+  .slot > * {
+    overflow: visible;
+  }
+
+  .slotSelectable {
+    border-radius: 50%;
+  }
+}
+
 .slot {
   display: flex;
   flex-direction: column;

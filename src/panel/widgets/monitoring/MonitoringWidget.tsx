@@ -16,7 +16,7 @@ import type { WidgetProps } from '../types';
 import { useSharedSensorHistory } from '../common/useSharedSensorHistory';
 import { GAUGE_DESIGNS } from './gauges';
 import type { GaugeDesignKey, GaugeProps } from './gauges';
-import { DEFAULT_SLOTS, isExtrasBackedDevice, isMicroLayout, resolvedSlotCountForSize } from './perfSlots';
+import { DEFAULT_DESIGN, DEFAULT_SLOTS, isExtrasBackedDevice, isFullBleedRound, isHeroLayout, isMicroLayout, resolvedSlotLayout, resolveSlotDesign } from './perfSlots';
 import type { DeviceKey } from './perfSlots';
 import { prefixedSensorLabel } from './sensorNames';
 import { extrasSensorsForDevice, smartStorageSensors } from './sensorCategories';
@@ -186,8 +186,9 @@ export function percentForSensor(device: DeviceKey, sensor: HardwareSensor | und
 }
 
 export function MonitoringWidget({ widget, selectedSlot, onSelectSlot }: WidgetProps) {
-  const count = resolvedSlotCountForSize(widget.size, widget.config?.slotCount as number | undefined);
-  const isMicro = isMicroLayout(widget.size, count);
+  const layout = resolvedSlotLayout(widget.size, widget.config);
+  const count = layout.count;
+  const isMicro = isMicroLayout(widget.size, count, layout.hero);
 
   // Slot configs for both modes. In Micro mode the slot{N}_* keys are read
   // only to decide whether the lazy fps/network hooks need to subscribe; the
@@ -195,7 +196,14 @@ export function MonitoringWidget({ widget, selectedSlot, onSelectSlot }: WidgetP
   const slotConfigs = Array.from({ length: count }, (_, i) => ({
     device: ((widget.config?.[`slot${i}_device`] as DeviceKey | undefined) ?? DEFAULT_SLOTS[i]?.device ?? 'cpu'),
     sensorName: ((widget.config?.[`slot${i}_sensor`] as string | undefined) ?? DEFAULT_SLOTS[i]?.sensor ?? ''),
-    design: ((widget.config?.[`slot${i}_design`] as GaugeDesignKey | undefined) ?? DEFAULT_SLOTS[i]?.design ?? 'sparkline'),
+    // Clamped to what the slot may show: a Hero small cell narrows the set, and
+    // a design stored before the layout switch would render outside its picker.
+    design: resolveSlotDesign(
+      widget.size,
+      layout,
+      i,
+      ((widget.config?.[`slot${i}_design`] as GaugeDesignKey | undefined) ?? DEFAULT_SLOTS[i]?.design ?? DEFAULT_DESIGN),
+    ),
     scale: ((widget.config?.[`slot${i}_scale`] as ScaleMode | undefined) ?? DEFAULT_SCALE_MODE),
     fixedMin: widget.config?.[`slot${i}_min`] as number | undefined,
     fixedMax: widget.config?.[`slot${i}_max`] as number | undefined,
@@ -230,13 +238,16 @@ export function MonitoringWidget({ widget, selectedSlot, onSelectSlot }: WidgetP
     ? 0
     : Math.max(0, Math.min(selectedSlot, count - 1));
 
-  const layoutClass = count >= 4 ? styles.grid2x2
+  const layoutClass = isHeroLayout(widget.size, count, layout.hero) ? styles.gridHero
+    : count >= 4 ? styles.grid2x2
     : count === 2 && (widget.size === '4x4' || widget.size === '2x4') ? styles.grid2row
     : count === 2 ? styles.grid2col
     : styles.solo;
+  // A frame-filling design on the round glass scales its figure to the rim.
+  const fullBleed = isFullBleedRound(widget.size, widget.config);
 
   return (
-    <div className={`${styles.performance} ${layoutClass}`}>
+    <div className={`${styles.performance} ${layoutClass}${fullBleed ? ` ${styles.fullBleed}` : ''}`}>
       {slotConfigs.map(({ device, sensorName, design, scale, fixedMin, fixedMax, labelOverride, labelMode }, i) => {
         return (
           <PerfSlot

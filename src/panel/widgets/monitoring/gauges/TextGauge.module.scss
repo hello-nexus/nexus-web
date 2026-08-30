@@ -13,7 +13,9 @@
 }
 
 .value {
-  font-size: 2.4em;
+  // Overridable so a layout can fit the reading to a short cell; the Hero
+  // layout's small cells do (see MonitoringWidget.module.scss).
+  font-size: var(--gauge-value-size, 2.4em);
   font-weight: var(--weight-display);
   letter-spacing: -0.02em;
   line-height: 1;
@@ -21,7 +23,7 @@
 }
 
 .label {
-  font-size: var(--type-tiny);
+  font-size: var(--type-gauge-caption);
   font-weight: var(--weight-strong);
   color: var(--text-dim);
   letter-spacing: 0.04em;

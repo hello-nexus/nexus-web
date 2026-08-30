@@ -1,10 +1,12 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { GaugeValue } from './GaugeValue';
+import { GAUGE_FIGURE_OUTER } from './types';
 import type { GaugeProps } from './types';
 import styles from './WaterLevelGauge.module.scss';
 
-// Ring inset from the stage edge, matching the pre-measure CSS geometry.
-const INSET = 12;
+// The vessel is a fraction of the stage's short side, matching the shared
+// figure edge every other full-circle design draws to (GAUGE_FIGURE_OUTER).
+const FIGURE_FRACTION = GAUGE_FIGURE_OUTER / 50;
 
 export function WaterLevelGauge({ value, formatted, label }: GaugeProps) {
   const fillPercent = Math.max(0, Math.min(100, value));
@@ -18,7 +20,7 @@ export function WaterLevelGauge({ value, formatted, label }: GaugeProps) {
       const w = el.clientWidth;
       const h = el.clientHeight;
       if (w <= 0 || h <= 0) return;
-      setSize(Math.max(0, Math.min(w, h) - INSET));
+      setSize(Math.max(0, Math.min(w, h) * FIGURE_FRACTION));
     };
     measure();
     const ro = new ResizeObserver(measure);

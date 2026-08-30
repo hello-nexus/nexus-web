@@ -1,4 +1,5 @@
-import { widgetLayoutSize, type PanelWidgetSize } from '../../types';
+import { widgetLayoutSize, type PanelConfigValue, type PanelWidgetSize } from '../../types';
+import { FRAME_FILLING_DESIGNS, GAUGE_DESIGN_KEYS } from './gauges';
 import type { GaugeDesignKey } from './gauges';
 
 // 'fan' is kept only so a widget saved before the motherboard category
@@ -50,11 +51,13 @@ export const MICRO_WIDE_COUNTS = [6, 8] as const;
 export const MICRO_DESIGN_KEYS: GaugeDesignKey[] = ['bar', 'fill', 'backdrop'];
 export const DEFAULT_MICRO_DESIGN: GaugeDesignKey = 'bar';
 
+export const DEFAULT_DESIGN: GaugeDesignKey = 'caterpillar';
+
 export const DEFAULT_SLOTS: SlotConfig[] = [
-  { device: 'quick', sensor: 'summary/cpu-usage',    design: 'sparkline' },
+  { device: 'quick', sensor: 'summary/cpu-usage',    design: DEFAULT_DESIGN },
   { device: 'quick', sensor: 'summary/memory-usage', design: 'halfgauge' },
-  { device: 'quick', sensor: 'summary/cpu-temp',     design: 'sparkline' },
-  { device: 'quick', sensor: 'summary/vram-usage',   design: 'sparkline' },
+  { device: 'quick', sensor: 'summary/cpu-temp',     design: DEFAULT_DESIGN },
+  { device: 'quick', sensor: 'summary/vram-usage',   design: DEFAULT_DESIGN },
 ];
 
 // Default slot count for a freshly-resized widget when no explicit count is
@@ -86,10 +89,11 @@ export function microSupportsSize(rawSize: PanelWidgetSize): boolean {
   return size === '2x2' || size === '4x2' || size === '2x4';
 }
 
-// Whether a (size, count) pair signals the Micro layout. Both inputs are
-// required - count=4 means Micro on 2x2/4x2/2x4 but multi on 4x4.
-export function isMicroLayout(size: PanelWidgetSize, count: number): boolean {
+// count=4 means Micro on 2x2/4x2/2x4 but multi on 4x4, and count=3 with the
+// hero flag is the Hero layout - so all three inputs decide this, none default.
+export function isMicroLayout(size: PanelWidgetSize, count: number, hero: boolean): boolean {
   if (!microSupportsSize(size)) return false;
+  if (isHeroLayout(size, count, hero)) return false;
   return (count >= MICRO_MIN_COUNT && count <= MICRO_MAX_COUNT) || isWideMicroCount(count);
 }
 
@@ -113,4 +117,115 @@ export function resolvedSlotCountForSize(
   const options = slotCountOptionsForSize(size);
   if (options.includes(configuredCount)) return configuredCount;
   return defaultSlotCountForSize(size);
+}
+
+// The Hero layout: one large slot across the top with two small ones side by
+// side beneath. It shares its slot count with the Micro layout on the same
+// sizes, so the two are told apart by the stored `slotHero` flag, never by
+// count alone.
+export const HERO_SLOT_COUNT = 3;
+
+// Only the tall/square tiles have a sensible big-over-two-small split; the wide
+// 4x2 would give each bottom slot a sliver, and 4x4 already has the 2x2 grid.
+export function heroSupportsSize(rawSize: PanelWidgetSize): boolean {
+  const size = widgetLayoutSize(rawSize);
+  return size === '2x2' || size === '2x4';
+}
+
+export function isHeroLayout(size: PanelWidgetSize, count: number, hero: boolean | undefined): boolean {
+  return hero === true && count === HERO_SLOT_COUNT && heroSupportsSize(size);
+}
+
+// One entry in the editor's slot picker. Hero reuses count 3, so the flag is
+// part of the identity.
+export interface SlotLayout {
+  count: number;
+  hero: boolean;
+}
+
+// Stable React key / aria discriminator for a picker entry.
+export function slotLayoutKey(layout: SlotLayout): string {
+  return layout.hero ? `hero${layout.count}` : String(layout.count);
+}
+
+export function slotLayoutOptionsForSize(rawSize: PanelWidgetSize): SlotLayout[] {
+  const options: SlotLayout[] = slotCountOptionsForSize(rawSize).map(count => ({ count, hero: false }));
+  if (!heroSupportsSize(rawSize)) return options;
+  // Hero holds three independent multi-sensor slots, so it belongs with the
+  // other multi-sensor layouts: ahead of the first Micro entry, not at the end.
+  const firstMicro = options.findIndex(o => isMicroLayout(rawSize, o.count, o.hero));
+  const hero: SlotLayout = { count: HERO_SLOT_COUNT, hero: true };
+  if (firstMicro < 0) options.push(hero);
+  else options.splice(firstMicro, 0, hero);
+  return options;
+}
+
+export function resolvedSlotLayoutForSize(
+  size: PanelWidgetSize,
+  configuredCount: number | undefined,
+  configuredHero: boolean | undefined,
+): SlotLayout {
+  const count = resolvedSlotCountForSize(size, configuredCount);
+  return { count, hero: isHeroLayout(size, count, configuredHero) };
+}
+
+// Decodes the stored `slotCount` / `slotHero` pair.
+export function resolvedSlotLayout(
+  size: PanelWidgetSize,
+  config: Record<string, PanelConfigValue> | undefined,
+): SlotLayout {
+  return resolvedSlotLayoutForSize(
+    size,
+    config?.slotCount as number | undefined,
+    config?.slotHero === true,
+  );
+}
+
+// The Hero layout's small slots hold a reading and nothing else, so they are
+// limited to the two value-first designs. On 2x2 that includes the top slot -
+// the whole tile is barely larger than one 2x4 hero cell.
+export const HERO_SMALL_DESIGN_KEYS: GaugeDesignKey[] = ['text', 'numberfill'];
+
+// Which gauge designs a given slot may use. Every size offers the same list -
+// no surface has designs of its own - unless the Hero layout narrows it.
+export function designKeysForSlot(
+  size: PanelWidgetSize,
+  layout: SlotLayout,
+  slotIndex: number,
+): GaugeDesignKey[] {
+  if (!isHeroLayout(size, layout.count, layout.hero)) return GAUGE_DESIGN_KEYS;
+  if (slotIndex > 0 || widgetLayoutSize(size) === '2x2') return HERO_SMALL_DESIGN_KEYS;
+  return GAUGE_DESIGN_KEYS;
+}
+
+// Clamp a stored design to what the slot currently allows, so a layout or size
+// change never renders a design the picker no longer offers (e.g. a Sparkline
+// left in a slot that just became a Hero small cell).
+export function resolveSlotDesign(
+  size: PanelWidgetSize,
+  layout: SlotLayout,
+  slotIndex: number,
+  design: GaugeDesignKey,
+): GaugeDesignKey {
+  const allowed = designKeysForSlot(size, layout, slotIndex);
+  return allowed.includes(design) ? design : allowed[0];
+}
+
+// Whether this design on this size fills the round glass edge to edge, so the
+// tile drops its padding and scales the figure by the reciprocal of the card's
+// fit. Shared by the live tile and the catalog preview.
+export function designFillsRoundFrame(size: PanelWidgetSize, design: GaugeDesignKey): boolean {
+  return size === '2x2round' && FRAME_FILLING_DESIGNS.has(design);
+}
+
+export function isFullBleedRound(
+  size: PanelWidgetSize,
+  config: Record<string, PanelConfigValue> | undefined,
+): boolean {
+  if (size !== '2x2round') return false;
+  if (resolvedSlotLayout(size, config).count !== 1) return false;
+  const stored = (config?.slot0_design as GaugeDesignKey | undefined)
+    ?? DEFAULT_SLOTS[0]?.design
+    ?? DEFAULT_DESIGN;
+  return designFillsRoundFrame(size, stored);
 }

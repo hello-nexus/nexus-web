@@ -1,8 +1,12 @@
 import { GaugeValue } from './GaugeValue';
+import { GAUGE_FIGURE_OUTER } from './types';
 import type { GaugeProps } from './types';
 import styles from './TickRingGauge.module.scss';
 
 const TICKS = 60;
+const STROKE = 2.8;
+const OUTER = GAUGE_FIGURE_OUTER - STROKE / 2;
+const INNER = OUTER - 10;
 
 function polar(r: number, deg: number): [number, number] {
   const rad = (deg * Math.PI) / 180;
@@ -18,8 +22,8 @@ export function TickRingGauge({ value, formatted, label }: GaugeProps) {
       <svg className={styles.svg} viewBox="0 0 100 100" aria-hidden="true">
         {Array.from({ length: TICKS }, (_, i) => {
           const deg = -90 + (i / TICKS) * 360;
-          const [x1, y1] = polar(47, deg);
-          const [x2, y2] = polar(37, deg);
+          const [x1, y1] = polar(OUTER, deg);
+          const [x2, y2] = polar(INNER, deg);
           return (
             <line
               key={i}

@@ -12,7 +12,18 @@ import {
   microSupportsSize,
   resolvedSlotCountForSize,
   slotCountOptionsForSize,
+  HERO_SLOT_COUNT,
+  HERO_SMALL_DESIGN_KEYS,
+  designKeysForSlot,
+  heroSupportsSize,
+  isFullBleedRound,
+  isHeroLayout,
+  resolveSlotDesign,
+  resolvedSlotLayout,
+  slotLayoutKey,
+  slotLayoutOptionsForSize,
 } from './perfSlots';
+import { FRAME_FILLING_DESIGNS, GAUGE_DESIGN_KEYS } from './gauges';
 
 describe('perfSlots', () => {
   describe('slotCountOptionsForSize', () => {
@@ -45,29 +56,29 @@ describe('perfSlots', () => {
 
   describe('isMicroLayout', () => {
     it('treats 3 and 4 as Micro on supported sizes', () => {
-      expect(isMicroLayout('2x2', 3)).toBe(true);
-      expect(isMicroLayout('2x2', 4)).toBe(true);
-      expect(isMicroLayout('4x2', 3)).toBe(true);
-      expect(isMicroLayout('4x2', 4)).toBe(true);
-      expect(isMicroLayout('2x4', 3)).toBe(true);
-      expect(isMicroLayout('2x4', 4)).toBe(true);
+      expect(isMicroLayout('2x2', 3, false)).toBe(true);
+      expect(isMicroLayout('2x2', 4, false)).toBe(true);
+      expect(isMicroLayout('4x2', 3, false)).toBe(true);
+      expect(isMicroLayout('4x2', 4, false)).toBe(true);
+      expect(isMicroLayout('2x4', 3, false)).toBe(true);
+      expect(isMicroLayout('2x4', 4, false)).toBe(true);
     });
 
     it('treats the wide 6/8 counts as Micro on the wide 4x2 and the tall 2x4', () => {
-      expect(isMicroLayout('4x2', 6)).toBe(true);
-      expect(isMicroLayout('4x2', 8)).toBe(true);
-      expect(isMicroLayout('2x4', 6)).toBe(true);
-      expect(isMicroLayout('2x4', 8)).toBe(true);
+      expect(isMicroLayout('4x2', 6, false)).toBe(true);
+      expect(isMicroLayout('4x2', 8, false)).toBe(true);
+      expect(isMicroLayout('2x4', 6, false)).toBe(true);
+      expect(isMicroLayout('2x4', 8, false)).toBe(true);
     });
 
     it('still treats count=4 on 4x4 as multi (not Micro)', () => {
-      expect(isMicroLayout('4x4', 4)).toBe(false);
-      expect(isMicroLayout('4x4', 2)).toBe(false);
+      expect(isMicroLayout('4x4', 4, false)).toBe(false);
+      expect(isMicroLayout('4x4', 2, false)).toBe(false);
     });
 
     it('rejects sub-Micro counts even on supported sizes', () => {
-      expect(isMicroLayout('2x2', 1)).toBe(false);
-      expect(isMicroLayout('4x2', 2)).toBe(false);
+      expect(isMicroLayout('2x2', 1, false)).toBe(false);
+      expect(isMicroLayout('4x2', 2, false)).toBe(false);
     });
   });
 
@@ -156,6 +167,119 @@ describe('perfSlots', () => {
       expect(isExtrasBackedDevice('storage')).toBe(false);
       expect(isExtrasBackedDevice('smart')).toBe(false);
       expect(isExtrasBackedDevice('motherboard')).toBe(false);
+    });
+  });
+  describe('hero layout', () => {
+    it('is offered on the tall and square tiles only', () => {
+      expect(heroSupportsSize('2x4')).toBe(true);
+      expect(heroSupportsSize('2x2')).toBe(true);
+      // The round glass lays out as 2x2.
+      expect(heroSupportsSize('2x2round')).toBe(true);
+      expect(heroSupportsSize('4x2')).toBe(false);
+      expect(heroSupportsSize('4x4')).toBe(false);
+    });
+
+    it('places one hero entry after the multi-sensor counts, before the Micro ones', () => {
+      expect(slotLayoutOptionsForSize('2x4')).toEqual([
+        { count: 2, hero: false },
+        { count: HERO_SLOT_COUNT, hero: true },
+        { count: MICRO_MIN_COUNT, hero: false },
+        { count: MICRO_MAX_COUNT, hero: false },
+        { count: MICRO_WIDE_COUNTS[0], hero: false },
+        { count: MICRO_WIDE_COUNTS[1], hero: false },
+      ]);
+      expect(slotLayoutOptionsForSize('2x2')).toEqual([
+        { count: 1, hero: false },
+        { count: HERO_SLOT_COUNT, hero: true },
+        { count: MICRO_MIN_COUNT, hero: false },
+        { count: MICRO_MAX_COUNT, hero: false },
+      ]);
+      expect(slotLayoutOptionsForSize('4x2').some(o => o.hero)).toBe(false);
+      expect(slotLayoutOptionsForSize('4x4').some(o => o.hero)).toBe(false);
+    });
+
+    it('keys the picker entries apart at the shared count', () => {
+      expect(slotLayoutKey({ count: 3, hero: false })).toBe('3');
+      expect(slotLayoutKey({ count: 3, hero: true })).toBe('hero3');
+    });
+
+    it('takes count 3 away from Micro only when the hero flag is set', () => {
+      expect(isMicroLayout('2x4', 3, false)).toBe(true);
+      expect(isMicroLayout('2x4', 3, true)).toBe(false);
+      expect(isHeroLayout('2x4', 3, true)).toBe(true);
+      // The flag alone is not enough: the count and the size both have to fit.
+      expect(isHeroLayout('2x4', 4, true)).toBe(false);
+      expect(isHeroLayout('4x2', 3, true)).toBe(false);
+    });
+
+    it('drops the hero flag when the size cannot hold the layout', () => {
+      expect(resolvedSlotLayout('2x4', { slotCount: 3, slotHero: true })).toEqual({ count: 3, hero: true });
+      expect(resolvedSlotLayout('2x4', { slotCount: 3 })).toEqual({ count: 3, hero: false });
+      // 4x4 has no count-3 option at all, so the count resolves to its default
+      // and the hero flag cannot survive.
+      expect(resolvedSlotLayout('4x4', { slotCount: 3, slotHero: true })).toEqual({ count: 4, hero: false });
+      expect(resolvedSlotLayout('4x2', { slotCount: 3, slotHero: true })).toEqual({ count: 3, hero: false });
+    });
+  });
+
+  describe('designKeysForSlot', () => {
+    it('narrows the hero small cells to the value-first designs', () => {
+      const hero = { count: HERO_SLOT_COUNT, hero: true };
+      expect(designKeysForSlot('2x4', hero, 0)).toEqual(GAUGE_DESIGN_KEYS);
+      expect(designKeysForSlot('2x4', hero, 1)).toEqual(HERO_SMALL_DESIGN_KEYS);
+      expect(designKeysForSlot('2x4', hero, 2)).toEqual(HERO_SMALL_DESIGN_KEYS);
+    });
+
+    it('narrows every 2x2 hero cell, the top one included', () => {
+      const hero = { count: HERO_SLOT_COUNT, hero: true };
+      expect(designKeysForSlot('2x2', hero, 0)).toEqual(HERO_SMALL_DESIGN_KEYS);
+      expect(designKeysForSlot('2x2', hero, 1)).toEqual(HERO_SMALL_DESIGN_KEYS);
+    });
+
+    it('offers the same design list on the round glass as anywhere else', () => {
+      expect(designKeysForSlot('2x2round', { count: 1, hero: false }, 0)).toEqual(GAUGE_DESIGN_KEYS);
+      expect(designKeysForSlot('2x2', { count: 1, hero: false }, 0)).toEqual(GAUGE_DESIGN_KEYS);
+      expect(designKeysForSlot('4x4', { count: 4, hero: false }, 0)).toEqual(GAUGE_DESIGN_KEYS);
+    });
+
+    it('has no design outside the shared list', () => {
+      for (const key of FRAME_FILLING_DESIGNS) expect(GAUGE_DESIGN_KEYS).toContain(key);
+    });
+  });
+
+  describe('resolveSlotDesign', () => {
+    it('clamps a design the slot no longer offers to the first allowed one', () => {
+      const hero = { count: HERO_SLOT_COUNT, hero: true };
+      expect(resolveSlotDesign('2x4', hero, 1, 'sparkline')).toBe(HERO_SMALL_DESIGN_KEYS[0]);
+      expect(resolveSlotDesign('2x4', hero, 1, 'numberfill')).toBe('numberfill');
+    });
+
+    it('leaves an allowed design alone', () => {
+      expect(resolveSlotDesign('4x4', { count: 4, hero: false }, 0, 'sparkline')).toBe('sparkline');
+      expect(resolveSlotDesign('2x2round', { count: 1, hero: false }, 0, 'caterpillar')).toBe('caterpillar');
+    });
+  });
+
+  describe('isFullBleedRound', () => {
+    it('is true only for a single-slot round tile on a frame-filling design', () => {
+      expect(isFullBleedRound('2x2round', { slotCount: 1, slot0_design: 'caterpillar' })).toBe(true);
+      expect(isFullBleedRound('2x2round', { slotCount: 1, slot0_design: 'waterLevel' })).toBe(true);
+      expect(isFullBleedRound('2x2round', { slotCount: 1, slot0_design: 'arc270' })).toBe(true);
+      expect(isFullBleedRound('2x2round', { slotCount: 1, slot0_design: 'backdrop' })).toBe(true);
+      // A figure stacked above an info row cannot reach the frame by scaling.
+      expect(isFullBleedRound('2x2round', { slotCount: 1, slot0_design: 'halfgauge' })).toBe(false);
+      expect(isFullBleedRound('2x2round', { slotCount: 1, slot0_design: 'wedge' })).toBe(false);
+      expect(isFullBleedRound('2x2round', { slotCount: 1, slot0_design: 'dial' })).toBe(false);
+      // A rectangular layout at the full diameter would run off the arc.
+      expect(isFullBleedRound('2x2round', { slotCount: 1, slot0_design: 'sparkline' })).toBe(false);
+      expect(isFullBleedRound('2x2round', { slotCount: 1, slot0_design: 'text' })).toBe(false);
+      expect(isFullBleedRound('2x2round', { slotCount: 4, slot0_design: 'caterpillar' })).toBe(false);
+      // Only the round tile scales a design up; a square 2x2 is unchanged.
+      expect(isFullBleedRound('2x2', { slotCount: 1, slot0_design: 'caterpillar' })).toBe(false);
+    });
+
+    it('is true for a round tile that has never been configured, since the default fills the frame', () => {
+      expect(isFullBleedRound('2x2round', undefined)).toBe(true);
     });
   });
 });

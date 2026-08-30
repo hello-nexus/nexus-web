@@ -943,8 +943,9 @@
 :global(.panel-card[data-size='2x2round']) .cellScaler {
   // Wider than the inscribed square, so the corners cross the arc and the card
   // clips them; the edge midpoints stay inside it. Widgets centre their content,
-  // so what the corners lose is padding.
-  --_fit: 0.85;
+  // so what the corners lose is padding. Declared on the card (tokens.scss) so a
+  // widget scaling a figure to the frame can divide by the same number.
+  --_fit: var(--panel-round-fit, 0.85);
   --_inner-w: calc(var(--_round-side) * var(--_fit));
   --_inner-h: calc(var(--_round-side) * var(--_fit));
   --_s: calc(var(--panel-scale, 1) * var(--_fit));

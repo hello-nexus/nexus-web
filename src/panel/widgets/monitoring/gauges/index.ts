@@ -83,3 +83,11 @@ export const GAUGE_DESIGN_KEYS: GaugeDesignKey[] = [
   'waterLevel',
   'caterpillar', 'tickring', 'halfgauge', 'arc270', 'wedge', 'dial',
 ];
+
+// Designs a round tile scales by --gauge-figure-scale. Membership needs the
+// figure layer to measure the whole slot box: Dial, Half Gauge and Wedge stack
+// theirs above an info row, so scaling reaches neither the frame nor the
+// circle's centre.
+export const FRAME_FILLING_DESIGNS: ReadonlySet<GaugeDesignKey> = new Set<GaugeDesignKey>([
+  'caterpillar', 'waterLevel', 'tickring', 'arc270', 'backdrop',
+]);

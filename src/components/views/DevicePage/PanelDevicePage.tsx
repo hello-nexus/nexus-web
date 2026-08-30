@@ -4,8 +4,8 @@ import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SIZE_ICONS } from '../../../panel/widgets/common/SizeIcons';
 import { WidgetControlGroup } from '../../../panel/widgets/common/WidgetControlGroup';
-import { slotCountOptionsForSize, resolvedSlotCountForSize } from '../../../panel/widgets/monitoring/perfSlots';
-import { SlotCountIcon } from '../../../panel/widgets/monitoring/SlotCountIcons';
+import { slotLayoutOptionsForSize, resolvedSlotCountForSize, resolvedSlotLayout, slotLayoutKey, type SlotLayout } from '../../../panel/widgets/monitoring/perfSlots';
+import { SlotLayoutIcon } from '../../../panel/widgets/monitoring/SlotCountIcons';
 import {
   appendWidget,
   patchWidgetById,
@@ -1438,8 +1438,8 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeMode = 'dark'
   // manifest capability shared by monitoring and the deck, NOT a monitoring
   // type check. Gate the interactive preview + slot wiring on this flag.
   const usesSlotSelection = !!def?.meta.usesSlotSelection;
-  const slotCountOptions = isMonitoringWidget ? slotCountOptionsForSize(widget.size) : [];
-  const slotCount = resolvedSlotCountForSize(widget.size, widget.config?.slotCount as number | undefined);
+  const slotLayoutOptions = isMonitoringWidget ? slotLayoutOptionsForSize(widget.size) : [];
+  const slotLayout = resolvedSlotLayout(widget.size, widget.config);
   const [selectedMonitoringSlot, setSelectedMonitoringSlot] = useState(0);
   const [deckEditView, setDeckEditView] = useState<DeckEditView>({ page: 0, folderPath: [] });
 
@@ -1452,9 +1452,9 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeMode = 'dark'
     onResize(widget.id, size);
   };
 
-  const handleSlotCount = (n: number) => {
-    setSelectedMonitoringSlot(slot => Math.min(slot, n - 1));
-    handleConfigUpdate({ slotCount: n });
+  const handleSlotLayout = (layout: SlotLayout) => {
+    setSelectedMonitoringSlot(slot => Math.min(slot, layout.count - 1));
+    handleConfigUpdate({ slotCount: layout.count, slotHero: layout.hero });
   };
 
   const Icon = def?.meta.icon;
@@ -1497,7 +1497,7 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeMode = 'dark'
               data-theme={themeMode}
               style={{ ...themeStyle, width: previewW, height: previewH }}
             >
-              <div className={`panel-card ${styles.inlineSettingsPreviewCard}`}>
+              <div className={`panel-card ${styles.inlineSettingsPreviewCard}`} data-size={widget.size} data-widget-type={widget.type}>
                 <ErrorBoundary label={widget.type}>
                   <Comp
                     widget={widget}
@@ -1517,7 +1517,7 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeMode = 'dark'
       </div>
 
       <div className={styles.inlineSettingsBody}>
-        {(sizes.length > 1 || slotCountOptions.length > 1) && (
+        {(sizes.length > 1 || slotLayoutOptions.length > 1) && (
           <div className={styles.inlineControlsRow}>
             {sizes.length > 1 && (
               <WidgetControlGroup title={isMonitoringWidget ? t('devices.panels.widgetSettings.layout') : t('devices.panels.widgetSettings.size')}>
@@ -1537,19 +1537,24 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeMode = 'dark'
                 })}
               </WidgetControlGroup>
             )}
-            {isMonitoringWidget && slotCountOptions.length > 0 && (
+            {isMonitoringWidget && slotLayoutOptions.length > 0 && (
               <WidgetControlGroup title={t('devices.panels.widgetSettings.slots')}>
-                {slotCountOptions.map(n => (
-                  <IconLabelButton
-                    key={n}
-                    className={styles.inlineIconButton}
-                    active={n === slotCount}
-                    icon={<SlotCountIcon count={n} size={widget.size} aria-hidden="true" />}
-                    ariaLabel={t('devices.panels.widgetSettings.slotCount', { count: n })}
-                    title={t('devices.panels.widgetSettings.slotCount', { count: n })}
-                    onPress={() => handleSlotCount(n)}
-                  />
-                ))}
+                {slotLayoutOptions.map(option => {
+                  const slotLabel = option.hero
+                    ? t('devices.panels.widgetSettings.slotHero')
+                    : t('devices.panels.widgetSettings.slotCount', { count: option.count });
+                  return (
+                    <IconLabelButton
+                      key={slotLayoutKey(option)}
+                      className={styles.inlineIconButton}
+                      active={option.count === slotLayout.count && option.hero === slotLayout.hero}
+                      icon={<SlotLayoutIcon layout={option} size={widget.size} aria-hidden="true" />}
+                      ariaLabel={slotLabel}
+                      title={slotLabel}
+                      onPress={() => handleSlotLayout(option)}
+                    />
+                  );
+                })}
               </WidgetControlGroup>
             )}
           </div>

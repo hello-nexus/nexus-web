@@ -9,15 +9,18 @@ import { canEditFreeText } from '../../types';
 import { Select } from '../../../components/common/Select/Select';
 import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
 import { TextInput } from '../../../components/common/TextInput/TextInput';
-import { GAUGE_DESIGN_KEYS, GAUGE_DESIGN_LABELS } from '../monitoring/gauges';
+import { GAUGE_DESIGN_LABELS } from '../monitoring/gauges';
 import { DESIGN_ICONS } from '../monitoring/gauges/DesignIcons';
 import type { GaugeDesignKey } from '../monitoring/gauges';
 import {
+  DEFAULT_DESIGN,
   DEFAULT_MICRO_DESIGN,
   DEFAULT_SLOTS,
+  designKeysForSlot,
   isMicroLayout,
   MICRO_DESIGN_KEYS,
-  resolvedSlotCountForSize,
+  resolvedSlotLayout,
+  resolveSlotDesign,
 } from '../monitoring/perfSlots';
 import type { DeviceKey } from '../monitoring/perfSlots';
 import { buildNetworkSensors, NETWORK_SENSOR_TOTAL } from '../monitoring/networkSensors';
@@ -246,9 +249,10 @@ export function LabelControls({
 export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, selectedSlot = 0 }: WidgetSettingsProps) {
   const { t } = useTranslation();
   const sensors = useSensors(true);
-  const count = resolvedSlotCountForSize(widget.size, (widget.config?.slotCount as number | undefined));
+  const layout = resolvedSlotLayout(widget.size, widget.config);
+  const count = layout.count;
   const activeSlot = Math.max(0, Math.min(selectedSlot, count - 1));
-  const isMicro = isMicroLayout(widget.size, count);
+  const isMicro = isMicroLayout(widget.size, count, layout.hero);
 
   const slotConfigs = Array.from({ length: count }, (_, i) => {
     const device = ((widget.config?.[`slot${i}_device`] as DeviceKey | undefined) ?? DEFAULT_SLOTS[i]?.device ?? 'cpu');
@@ -256,7 +260,12 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
     const effectiveSensorName = device === 'network' && !sensorName ? NETWORK_SENSOR_TOTAL
       : device === 'fps' && !sensorName ? 'FPS'
       : sensorName;
-    const design = ((widget.config?.[`slot${i}_design`] as GaugeDesignKey | undefined) ?? DEFAULT_SLOTS[i]?.design ?? 'sparkline');
+    const design = resolveSlotDesign(
+      widget.size,
+      layout,
+      i,
+      ((widget.config?.[`slot${i}_design`] as GaugeDesignKey | undefined) ?? DEFAULT_SLOTS[i]?.design ?? DEFAULT_DESIGN),
+    );
     const scale = ((widget.config?.[`slot${i}_scale`] as ScaleMode | undefined) ?? DEFAULT_SCALE_MODE);
     const fixedMin = widget.config?.[`slot${i}_min`] as number | undefined;
     const fixedMax = widget.config?.[`slot${i}_max`] as number | undefined;
@@ -524,7 +533,7 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
 
           <SettingsSection title={t('monitoring.settings.design')}>
             <div className={styles.designRow}>
-              {GAUGE_DESIGN_KEYS.map(k => {
+              {designKeysForSlot(widget.size, layout, activeSlot).map(k => {
                 const Icon = DESIGN_ICONS[k];
                 const active = k === activeConfig.design;
                 return (

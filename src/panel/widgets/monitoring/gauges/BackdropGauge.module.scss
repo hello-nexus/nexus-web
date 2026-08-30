@@ -20,6 +20,8 @@
   // Mask the full-bleed trace to rounded corners, matching the Filled Line graph.
   border-radius: var(--panel-element-radius);
   overflow: hidden;
+  transform: scale(var(--gauge-figure-scale, 1));
+  transform-origin: 50% 50%;
 
   :global(svg) {
     display: block;

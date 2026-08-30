@@ -1,8 +1,11 @@
 import { GaugeValue } from './GaugeValue';
+import { GAUGE_FIGURE_OUTER } from './types';
 import type { GaugeProps } from './types';
 import styles from './CaterpillarGauge.module.scss';
 
-const RADIUS = 38;
+const STROKE = 9;
+// Centre line of a stroke whose outer edge lands on the shared figure edge.
+const RADIUS = GAUGE_FIGURE_OUTER - STROKE / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
 export function CaterpillarGauge({ value, formatted, label }: GaugeProps) {

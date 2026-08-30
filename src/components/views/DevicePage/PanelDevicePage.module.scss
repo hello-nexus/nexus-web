@@ -363,6 +363,15 @@
   overflow: hidden;
 }
 
+// The round card's own rules (panel/styles/tokens.scss) apply here, so the
+// preview is a circle like the canvas. No .cellScaler inserts an inscribed
+// square in this path, so the widget box is the whole card and a figure scaling
+// to the frame has nothing to divide out.
+:global(.panel-card).inlineSettingsPreviewCard[data-size='2x2round'] {
+  --panel-round-fit: 1;
+  padding: 0;
+}
+
 .inlineSettingsBody {
   flex: 1;
   min-height: 0;

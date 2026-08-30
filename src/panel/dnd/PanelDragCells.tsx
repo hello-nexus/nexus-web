@@ -338,7 +338,8 @@ export function PanelTouchCell({
     >
       <div
         className={`panel-card ${styles.cell} ${pressHint ? styles.cellPressHint : ''}`}
-        data-size={widget.size} data-widget-type={widget.type}
+        data-size={widget.size}
+        data-widget-type={widget.type}
       >
         <div className={styles.cellScaler}>
           <Comp

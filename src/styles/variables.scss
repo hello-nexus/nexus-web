@@ -217,6 +217,9 @@
   --type-small: 0.84rem;     //  ~13px - buttons, action chips, tabular nums
   --type-mini: 0.75rem;      //  12px - badges, eyebrows, table headers
   --type-tiny: 0.6875rem;    //  11px - timestamps, footnotes, sensor units
+  // Caption under a gauge reading; a layout with short cells overrides it
+  // (the monitoring Hero layout's small slots).
+  --type-gauge-caption: var(--type-tiny);
 
   // Legacy semantic aliases. New code should use the text mixins instead.
   --weight-heading: 700;

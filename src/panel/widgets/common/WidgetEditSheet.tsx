@@ -9,16 +9,20 @@ import {
 } from 'react';
 import { Trash2, X } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
+import { pluralKey } from '../../../lib/pluralKey';
 import { lookupApp, sizesForSurface } from '../registry';
 import { SIZE_ICONS } from './SizeIcons';
 import { WidgetControlGroup } from './WidgetControlGroup';
 import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
 import { useModalA11y } from '../../../components/common/Overlay/useModalA11y';
 import {
-  slotCountOptionsForSize,
+  slotLayoutOptionsForSize,
   resolvedSlotCountForSize,
+  resolvedSlotLayout,
+  slotLayoutKey,
+  type SlotLayout,
 } from '../monitoring/perfSlots';
-import { SlotCountIcon } from '../monitoring/SlotCountIcons';
+import { SlotLayoutIcon } from '../monitoring/SlotCountIcons';
 import type {
   PanelConfigValue,
   PanelSurface,
@@ -120,7 +124,7 @@ export function WidgetEditSheet({
   onEditViewChange,
   keepOpenOnTarget,
 }: WidgetEditSheetProps) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const def = lookupApp(widget.type);
   const Settings = def?.Settings;
   const sizes = def ? sizesForSurface(def.meta, surface) : [];
@@ -128,10 +132,8 @@ export function WidgetEditSheet({
   // Slot selection is a manifest capability (monitoring + deck), distinct from
   // the monitoring-only size/slot-count controls above.
   const usesSlotSelection = !!def?.meta.usesSlotSelection;
-  const slotCountOptions = isMonitoringWidget ? slotCountOptionsForSize(widget.size) : [];
-  const slotCount = isMonitoringWidget
-    ? resolvedSlotCountForSize(widget.size, widget.config?.slotCount as number | undefined)
-    : 0;
+  const slotLayoutOptions = isMonitoringWidget ? slotLayoutOptionsForSize(widget.size) : [];
+  const slotLayout = isMonitoringWidget ? resolvedSlotLayout(widget.size, widget.config) : undefined;
   const [internalSelectedSlot, setInternalSelectedSlot] = useState(0);
   const slotControlled = externalSelectedSlot !== undefined;
   const selectedMonitoringSlot = slotControlled ? externalSelectedSlot : internalSelectedSlot;
@@ -240,9 +242,9 @@ export function WidgetEditSheet({
     onResize(widget.id, size);
   }, [isMonitoringWidget, onResize, widget.config, widget.id, setSelectedMonitoringSlot]);
 
-  const handleSlotCount = (n: number) => {
-    setSelectedMonitoringSlot(prev => Math.min(prev, n - 1));
-    onUpdate(widget.id, { slotCount: n });
+  const handleSlotLayout = (layout: SlotLayout) => {
+    setSelectedMonitoringSlot(prev => Math.min(prev, layout.count - 1));
+    onUpdate(widget.id, { slotCount: layout.count, slotHero: layout.hero });
   };
 
   const sheetStyle = {
@@ -281,7 +283,7 @@ export function WidgetEditSheet({
         </button>
       </header>
 
-      {(sizes.length > 1 || slotCountOptions.length > 1) && (
+      {(sizes.length > 1 || slotLayoutOptions.length > 1) && (
       <div className={styles.actions}>
         <div className={styles.controlPicker}>
           {sizes.length > 1 && (
@@ -302,19 +304,24 @@ export function WidgetEditSheet({
               })}
             </WidgetControlGroup>
           )}
-          {isMonitoringWidget && slotCountOptions.length > 0 && (
+          {isMonitoringWidget && slotLayoutOptions.length > 0 && (
             <WidgetControlGroup title={t('panel.widget.editSheet.slots')}>
-              {slotCountOptions.map(n => (
-                <IconLabelButton
-                  key={n}
-                  className={styles.controlButton}
-                  active={n === slotCount}
-                  icon={<SlotCountIcon count={n} size={widget.size} aria-hidden="true" />}
-                  ariaLabel={`${n} ${n === 1 ? 'slot' : 'slots'}`}
-                  title={`${n} ${n === 1 ? 'slot' : 'slots'}`}
-                  onPress={() => handleSlotCount(n)}
-                />
-              ))}
+              {slotLayoutOptions.map(option => {
+                const slotLabel = option.hero
+                  ? t('panel.editor.slotHero')
+                  : t(pluralKey('panel.editor.slotCount', language, option.count), { count: option.count });
+                return (
+                  <IconLabelButton
+                    key={slotLayoutKey(option)}
+                    className={styles.controlButton}
+                    active={option.count === slotLayout?.count && option.hero === slotLayout?.hero}
+                    icon={<SlotLayoutIcon layout={option} size={widget.size} aria-hidden="true" />}
+                    ariaLabel={slotLabel}
+                    title={slotLabel}
+                    onPress={() => handleSlotLayout(option)}
+                  />
+                );
+              })}
             </WidgetControlGroup>
           )}
         </div>

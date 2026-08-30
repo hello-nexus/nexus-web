@@ -3,6 +3,7 @@ import { widgetLayoutSize } from '../../types';
 import type { WidgetProps } from '../types';
 import { GAUGE_DESIGNS } from './gauges';
 import type { GaugeDesignKey, GaugeProps } from './gauges';
+import { DEFAULT_DESIGN, designFillsRoundFrame } from './perfSlots';
 import type { DeviceKey } from './perfSlots';
 import { prefixedSensorLabel } from './sensorNames';
 import { getPanelSensorHist } from '../../../lib/monitoringStore';
@@ -26,11 +27,10 @@ interface PreviewSlot {
   spike?: number;
 }
 
-// Catalog preview composition mirrors the shipped default monitoring tile
-// (install-defaults.json): CPU usage as a filled line, memory usage as a half
-// gauge - the two side-by-side gauges that fill the 4x2 picker tile.
+// CPU usage in the default design, memory usage as a half gauge - the two
+// side-by-side gauges that fill the 4x2 picker tile.
 const PREVIEW_SLOTS: PreviewSlot[] = [
-  { device: 'quick', sensor: 'summary/cpu-usage',    label: 'CPU Usage',    design: 'sparkline', base: 40, swing: 22, spike: 0.24 },
+  { device: 'quick', sensor: 'summary/cpu-usage',    label: 'CPU Usage',    design: DEFAULT_DESIGN, base: 40, swing: 22, spike: 0.24 },
   { device: 'quick', sensor: 'summary/memory-usage', label: 'Memory Usage', design: 'halfgauge', base: 63, swing: 3 },
 ];
 
@@ -91,9 +91,11 @@ export function MonitoringPreview({ widget }: WidgetProps) {
     : size === '4x4' || size === '2x4'
       ? styles.grid2row
       : styles.grid2col;
+  const fullBleed = slots.length === 1
+    && designFillsRoundFrame(widget.size, slots[0].design);
 
   return (
-    <div className={`${styles.performance} ${layoutClass}`}>
+    <div className={`${styles.performance} ${layoutClass}${fullBleed ? ` ${styles.fullBleed}` : ''}`}>
       {slots.map(({ key, design, props }) => {
         const Gauge = GAUGE_DESIGNS[design] ?? GAUGE_DESIGNS.sparkline;
         return (

@@ -1,6 +1,9 @@
 /** Monitoring gauge line weight in px. Mirror of --gauge-line-thickness (variables.scss). */
 export const GAUGE_LINE_THICKNESS = 3.2;
 
+/** Outer stroke edge shared by every full-circle gauge, in its 100-unit viewBox. */
+export const GAUGE_FIGURE_OUTER = 48;
+
 export interface GaugeProps {
   value: number;
   rawValue: number;
