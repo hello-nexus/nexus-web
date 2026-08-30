@@ -200,7 +200,9 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font: 600 11px/1 var(--panel-font);
+  // 1.25 = Lexend's content box; the caption ellipsizes, so a tighter line
+  // box clips its own descenders (see styles/_text.scss).
+  font: 600 11px/1.25 var(--panel-font);
   color: var(--text-dim);
   letter-spacing: 0.06em;
   text-transform: uppercase;
