@@ -13,6 +13,7 @@ import { GAUGE_DESIGN_LABELS } from '../monitoring/gauges';
 import { DESIGN_ICONS } from '../monitoring/gauges/DesignIcons';
 import type { GaugeDesignKey } from '../monitoring/gauges';
 import {
+  DEFAULT_DESIGN,
   DEFAULT_MICRO_DESIGN,
   DEFAULT_SLOTS,
   designKeysForSlot,
@@ -263,7 +264,7 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
       widget.size,
       layout,
       i,
-      ((widget.config?.[`slot${i}_design`] as GaugeDesignKey | undefined) ?? DEFAULT_SLOTS[i]?.design ?? 'sparkline'),
+      ((widget.config?.[`slot${i}_design`] as GaugeDesignKey | undefined) ?? DEFAULT_SLOTS[i]?.design ?? DEFAULT_DESIGN),
     );
     const scale = ((widget.config?.[`slot${i}_scale`] as ScaleMode | undefined) ?? DEFAULT_SCALE_MODE);
     const fixedMin = widget.config?.[`slot${i}_min`] as number | undefined;

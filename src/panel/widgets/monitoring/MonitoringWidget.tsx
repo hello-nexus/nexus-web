@@ -16,7 +16,7 @@ import type { WidgetProps } from '../types';
 import { useSharedSensorHistory } from '../common/useSharedSensorHistory';
 import { GAUGE_DESIGNS } from './gauges';
 import type { GaugeDesignKey, GaugeProps } from './gauges';
-import { DEFAULT_SLOTS, isExtrasBackedDevice, isFullBleedRound, isHeroLayout, isMicroLayout, resolvedSlotLayout, resolveSlotDesign } from './perfSlots';
+import { DEFAULT_DESIGN, DEFAULT_SLOTS, isExtrasBackedDevice, isFullBleedRound, isHeroLayout, isMicroLayout, resolvedSlotLayout, resolveSlotDesign } from './perfSlots';
 import type { DeviceKey } from './perfSlots';
 import { prefixedSensorLabel } from './sensorNames';
 import { extrasSensorsForDevice, smartStorageSensors } from './sensorCategories';
@@ -203,7 +203,7 @@ export function MonitoringWidget({ widget, selectedSlot, onSelectSlot }: WidgetP
       widget.size,
       layout,
       i,
-      ((widget.config?.[`slot${i}_design`] as GaugeDesignKey | undefined) ?? DEFAULT_SLOTS[i]?.design ?? 'sparkline'),
+      ((widget.config?.[`slot${i}_design`] as GaugeDesignKey | undefined) ?? DEFAULT_SLOTS[i]?.design ?? DEFAULT_DESIGN),
     ),
     scale: ((widget.config?.[`slot${i}_scale`] as ScaleMode | undefined) ?? DEFAULT_SCALE_MODE),
     fixedMin: widget.config?.[`slot${i}_min`] as number | undefined,

@@ -1,5 +1,5 @@
 import { PerfSlot } from './MonitoringWidget';
-import { DEFAULT_SLOTS, isExtrasBackedDevice, isMicroLayout, resolvedSlotLayout, resolveSlotDesign } from './perfSlots';
+import { DEFAULT_DESIGN, DEFAULT_SLOTS, isExtrasBackedDevice, isMicroLayout, resolvedSlotLayout, resolveSlotDesign } from './perfSlots';
 import type { DeviceKey } from './perfSlots';
 import type { GaugeDesignKey } from './gauges';
 import { ImmersiveLayout } from '../common/ImmersiveLayout';
@@ -34,7 +34,7 @@ export function MonitoringTouch({ widget, immersiveGrid }: WidgetProps) {
       widget.size,
       layout,
       i,
-      ((widget.config?.[`slot${i}_design`] as GaugeDesignKey | undefined) ?? DEFAULT_SLOTS[i]?.design ?? 'sparkline'),
+      ((widget.config?.[`slot${i}_design`] as GaugeDesignKey | undefined) ?? DEFAULT_SLOTS[i]?.design ?? DEFAULT_DESIGN),
     ),
   }));
 

@@ -51,11 +51,13 @@ export const MICRO_WIDE_COUNTS = [6, 8] as const;
 export const MICRO_DESIGN_KEYS: GaugeDesignKey[] = ['bar', 'fill', 'backdrop'];
 export const DEFAULT_MICRO_DESIGN: GaugeDesignKey = 'bar';
 
+export const DEFAULT_DESIGN: GaugeDesignKey = 'caterpillar';
+
 export const DEFAULT_SLOTS: SlotConfig[] = [
-  { device: 'quick', sensor: 'summary/cpu-usage',    design: 'sparkline' },
+  { device: 'quick', sensor: 'summary/cpu-usage',    design: DEFAULT_DESIGN },
   { device: 'quick', sensor: 'summary/memory-usage', design: 'halfgauge' },
-  { device: 'quick', sensor: 'summary/cpu-temp',     design: 'sparkline' },
-  { device: 'quick', sensor: 'summary/vram-usage',   design: 'sparkline' },
+  { device: 'quick', sensor: 'summary/cpu-temp',     design: DEFAULT_DESIGN },
+  { device: 'quick', sensor: 'summary/vram-usage',   design: DEFAULT_DESIGN },
 ];
 
 // Default slot count for a freshly-resized widget when no explicit count is

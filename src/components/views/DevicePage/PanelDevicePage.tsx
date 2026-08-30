@@ -1497,7 +1497,7 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeMode = 'dark'
               data-theme={themeMode}
               style={{ ...themeStyle, width: previewW, height: previewH }}
             >
-              <div className={`panel-card ${styles.inlineSettingsPreviewCard}`}>
+              <div className={`panel-card ${styles.inlineSettingsPreviewCard}`} data-size={widget.size} data-widget-type={widget.type}>
                 <ErrorBoundary label={widget.type}>
                   <Comp
                     widget={widget}

@@ -1,8 +1,9 @@
 import { useMemo } from 'react';
 import { widgetLayoutSize } from '../../types';
 import type { WidgetProps } from '../types';
-import { GAUGE_DESIGNS } from './gauges';
+import { FRAME_FILLING_DESIGNS, GAUGE_DESIGNS } from './gauges';
 import type { GaugeDesignKey, GaugeProps } from './gauges';
+import { DEFAULT_DESIGN } from './perfSlots';
 import type { DeviceKey } from './perfSlots';
 import { prefixedSensorLabel } from './sensorNames';
 import { getPanelSensorHist } from '../../../lib/monitoringStore';
@@ -27,10 +28,10 @@ interface PreviewSlot {
 }
 
 // Catalog preview composition mirrors the shipped default monitoring tile
-// (install-defaults.json): CPU usage as a filled line, memory usage as a half
-// gauge - the two side-by-side gauges that fill the 4x2 picker tile.
+// (install-defaults.json): CPU usage in the default design, memory usage as a
+// half gauge - the two side-by-side gauges that fill the 4x2 picker tile.
 const PREVIEW_SLOTS: PreviewSlot[] = [
-  { device: 'quick', sensor: 'summary/cpu-usage',    label: 'CPU Usage',    design: 'sparkline', base: 40, swing: 22, spike: 0.24 },
+  { device: 'quick', sensor: 'summary/cpu-usage',    label: 'CPU Usage',    design: DEFAULT_DESIGN, base: 40, swing: 22, spike: 0.24 },
   { device: 'quick', sensor: 'summary/memory-usage', label: 'Memory Usage', design: 'halfgauge', base: 63, swing: 3 },
 ];
 
@@ -91,9 +92,14 @@ export function MonitoringPreview({ widget }: WidgetProps) {
     : size === '4x4' || size === '2x4'
       ? styles.grid2row
       : styles.grid2col;
+  // Matches the live tile: on the round glass a frame-filling design drops the
+  // padding and scales to the rim.
+  const fullBleed = widget.size === '2x2round'
+    && slots.length === 1
+    && FRAME_FILLING_DESIGNS.has(slots[0].design);
 
   return (
-    <div className={`${styles.performance} ${layoutClass}`}>
+    <div className={`${styles.performance} ${layoutClass}${fullBleed ? ` ${styles.fullBleed}` : ''}`}>
       {slots.map(({ key, design, props }) => {
         const Gauge = GAUGE_DESIGNS[design] ?? GAUGE_DESIGNS.sparkline;
         return (

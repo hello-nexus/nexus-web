@@ -277,8 +277,8 @@ describe('perfSlots', () => {
       expect(isFullBleedRound('2x2', { slotCount: 1, slot0_design: 'caterpillar' })).toBe(false);
     });
 
-    it('is false for a round tile that has never been configured', () => {
-      expect(isFullBleedRound('2x2round', undefined)).toBe(false);
+    it('is true for a round tile that has never been configured, since the default fills the frame', () => {
+      expect(isFullBleedRound('2x2round', undefined)).toBe(true);
     });
   });
 });
