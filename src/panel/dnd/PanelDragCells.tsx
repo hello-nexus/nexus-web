@@ -358,7 +358,7 @@ export function PanelTouchCell({
           <div className={styles.cellEditHint} aria-hidden="true">
             <div className={styles.cellEditHintContent}>
               <Settings className={styles.cellEditHintIcon} />
-              <span className={styles.cellEditHintLabel}>{t('panel.simulator.editWidget')}</span>
+              <span className={styles.cellEditHintLabel}>{t('panel.widget.editWidget')}</span>
             </div>
           </div>
         )}
@@ -500,7 +500,7 @@ export function PanelCatalogCell({
               ) : (
                 <>
                   <Settings className={styles.cellAddedIcon} />
-                  <span className={styles.cellAddedLabel}>{t('panel.add.clickToEdit')}</span>
+                  <span className={styles.cellAddedLabel}>{t('panel.widget.editWidget')}</span>
                 </>
               )}
             </div>
