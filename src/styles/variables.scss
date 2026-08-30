@@ -228,6 +228,14 @@
   --weight-display: 800;    // hero numerals, pairing codes
   --weight-small: 400;
 
+  /* Line height. Lexend's content box is 1.25em (hhea ascent 1000, descent
+     -250 at 1000 upem), so anything tighter puts the descender of g/y/p/q
+     outside the line box and any overflow:hidden ancestor crops it there.
+     This is the floor for text that ellipsizes, and the only sanctioned way
+     to set line-height on its own - the text-* mixins remain preferred when
+     the whole type bundle fits. See styles/_text.scss. */
+  --leading-tight: 1.25;
+
   // Page width contract. Constrained surfaces (the Tools page) cap at this
   // value so dense label/value lists stay readable.
   --page-content-max: 720px;

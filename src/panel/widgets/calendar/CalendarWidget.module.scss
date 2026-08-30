@@ -26,7 +26,7 @@
   // ellipsize, so they clip themselves, and the card's line-height: 1 left
   // every descender (and the accented capitals of fr/pt/tr/vi) outside the
   // box - "August" lost the tail of its g on every size.
-  line-height: 1.25;
+  line-height: var(--leading-tight);
   font-weight: var(--weight-body);
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -47,7 +47,7 @@
 
 .monthYear {
   font-size: 0.5em;
-  line-height: 1.25;
+  line-height: var(--leading-tight);
   font-weight: var(--weight-body);
   color: var(--text-dim);
   max-width: 100%;
@@ -107,7 +107,7 @@
 
 .header {
   font-size: 0.9em;
-  line-height: 1.25;
+  line-height: var(--leading-tight);
   font-weight: var(--weight-display);
   letter-spacing: -0.01em;
   overflow: hidden;
