@@ -648,6 +648,30 @@
   align-items: stretch;
   min-width: 0;
   min-height: 0;
+  // Declared here as well as on .cellScaler because the round card sizes ITSELF
+  // from these (see the 2x2round rule below). The scaler cannot just inherit
+  // them: the q60/y70/monitor --_grid-w/--_grid-h overrides above are scoped to
+  // .cellScaler, and a declaration on the element beats an inherited value, so
+  // the scaler must keep its own copy or those three surfaces regress. The two
+  // therefore agree only where no per-surface override applies - true for every
+  // surface that renders a round tile, which is kraken alone (krakenRoundSize
+  // .test.ts pins that). Widen those overrides to .cellWrap before allowing
+  // 2x2round anywhere else.
+  --_content: var(--panel-content-scale, var(--panel-cell-size, 172px));
+  --_cols: var(--panel-span-cols, 1);
+  --_rows: var(--panel-span-rows, 1);
+  --_gap: var(--panel-gap, 10px);
+  --_margin-x: var(--panel-widget-card-margin-x, 0px);
+  --_label-strip: var(--panel-widget-label-strip, 0px);
+  --_bottom-gap: var(--panel-widget-card-bottom-gap, 0px);
+  --_grid-w: calc(var(--_cols) * var(--_content) + (var(--_cols) - 1) * var(--_gap));
+  --_grid-h: calc(var(--_rows) * var(--_content) + (var(--_rows) - 1) * var(--_gap));
+  --_card-w: calc(var(--_grid-w) - 2 * var(--_margin-x));
+  --_card-h: calc(var(--_grid-h) - var(--_label-strip) - var(--_bottom-gap));
+  // Largest square that fits the card box; round tiles use it on both axes.
+  // min() rather than aspect-ratio, which is Chromium 88 and over the panel
+  // runtime's 83 floor (chromium83Floor.test.ts).
+  --_round-side: min(var(--_card-w), var(--_card-h));
   // dnd-kit applies its transition + transform inline; this default covers
   // the untracked case so press feedback on the cell doesn't jitter the
   // wrapper. Opacity + filter transitions cross-fade the context-menu dim
@@ -880,6 +904,10 @@
   --_card-h: calc(var(--_grid-h) - var(--_label-strip) - var(--_bottom-gap));
   --_inner-w: calc(var(--_card-w) - 2 * var(--_inner-pad));
   --_inner-h: calc(var(--_card-h) - 2 * var(--_inner-pad));
+  // The scaler's own, not the wrapper's: --_card-w/-h above are re-declared
+  // here so the per-surface --_grid-* overrides apply, and this must derive
+  // from those. See the note on .cellWrap.
+  --_round-side: min(var(--_card-w), var(--_card-h));
   --_s: var(--panel-scale, 1);
   width: calc(var(--_inner-w) / var(--_s));
   height: calc(var(--_inner-h) / var(--_s));
@@ -896,18 +924,29 @@
   flex-shrink: 0;
 }
 
-// Round glass: a widget laid out for the square tile overflows the circle at
-// every corner, so the scaler paints into the tile's inscribed square and
-// scales its whole subtree to match. Scaling the box and the transform by the
-// same factor leaves the CSS-px layout identical to 2x2, so widgets come out
-// uniformly smaller rather than cropped or re-flowed.
+// A rectangular tile stretches to whatever the grid area leaves after the label
+// strip, which on a square 2x2 area is wider than it is tall - and a 50% radius
+// on that box paints an ellipse. Square the card instead. align-self centres it
+// horizontally; on the block axis it is flush with the top of the card area,
+// which is where the label strip already put it.
+.cell[data-size='2x2round'] {
+  flex: 0 0 auto;
+  align-self: center;
+  width: var(--_round-side);
+  height: var(--_round-side);
+}
+
+// Round glass: the scaler paints a square inside the circle and scales its whole
+// subtree to match. Scaling the box and the transform by the same factor leaves
+// the CSS-px layout identical to a 2x2, so widgets keep their proportions rather
+// than being cropped or re-flowed.
 :global(.panel-card[data-size='2x2round']) .cellScaler {
-  // The circle's inscribed square: content that fills its box edge to edge (the
-  // monitoring graphs) then stops short of the arc on every side instead of
-  // running off the top and bottom of the glass.
-  --_fit: 0.707;
-  --_inner-w: calc(var(--_card-w) * var(--_fit));
-  --_inner-h: calc(var(--_card-h) * var(--_fit));
+  // Wider than the inscribed square, so the corners cross the arc and the card
+  // clips them; the edge midpoints stay inside it. Widgets centre their content,
+  // so what the corners lose is padding.
+  --_fit: 0.85;
+  --_inner-w: calc(var(--_round-side) * var(--_fit));
+  --_inner-h: calc(var(--_round-side) * var(--_fit));
   --_s: calc(var(--panel-scale, 1) * var(--_fit));
   // The round card stretches every direct child to fill it (the `> *` rule in
   // panel/styles/tokens.scss), and that selector outranks the plain .cellScaler
@@ -915,6 +954,14 @@
   // bottom of the glass. Restate the box at this specificity to win it back.
   width: calc(var(--_inner-w) / var(--_s));
   height: calc(var(--_inner-h) / var(--_s));
+}
+
+// The gallery is a photo, so it has to reach the glass edge. At the shared fit
+// its box stops short of the arc on all four sides and the card background
+// shows through as a ring. A square of the circle's full diameter covers the
+// circle - only the corners fall outside it, and the card clips those.
+:global(.panel-card[data-size='2x2round'][data-widget-type='gallery']) .cellScaler {
+  --_fit: 1;
 }
 
 .panelRoot:not([data-surface='q60']) .cellEditorDocked {
