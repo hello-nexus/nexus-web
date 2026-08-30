@@ -244,61 +244,6 @@ function FillIcon(p: P) {
   );
 }
 
-// Round-tile designs: each icon shows the collar riding the outer edge, which
-// is what separates them from the inset Ring / Tick Ring / 3-4 Gauge designs.
-function RimRingIcon(p: P) {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...p}>
-      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.25" />
-      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeDasharray="44 63" transform="rotate(-90 12 12)" />
-    </svg>
-  );
-}
-
-function RimTicksIcon(p: P) {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...p}>
-      {Array.from({ length: 16 }, (_, i) => {
-        const deg = -90 + (i / 16) * 360;
-        const rad = (deg * Math.PI) / 180;
-        return (
-          <line
-            key={i}
-            x1={(12 + 11 * Math.cos(rad)).toFixed(2)}
-            y1={(12 + 11 * Math.sin(rad)).toFixed(2)}
-            x2={(12 + 7.5 * Math.cos(rad)).toFixed(2)}
-            y2={(12 + 7.5 * Math.sin(rad)).toFixed(2)}
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            opacity={i < 10 ? 1 : 0.25}
-          />
-        );
-      })}
-    </svg>
-  );
-}
-
-function RimArcIcon(p: P) {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...p}>
-      <path d="M6.5 20.66 A 10 10 0 1 1 17.5 20.66" stroke="currentColor" strokeWidth="3" strokeLinecap="round" opacity="0.25" />
-      <path d="M6.5 20.66 A 10 10 0 0 1 4.34 6.5" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function OrbIcon(p: P) {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...p}>
-      <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.18" />
-      <clipPath id="orb-icon-clip"><circle cx="12" cy="12" r="10" /></clipPath>
-      <rect x="2" y="14" width="20" height="8" fill="currentColor" opacity="0.4" clipPath="url(#orb-icon-clip)" />
-      <rect x="2" y="14" width="20" height="1.6" fill="currentColor" clipPath="url(#orb-icon-clip)" />
-    </svg>
-  );
-}
-
 export const DESIGN_ICONS: Record<string, React.FC<P>> = {
   sparkline: AreaIcon,
   text: ValueIcon,
@@ -322,8 +267,4 @@ export const DESIGN_ICONS: Record<string, React.FC<P>> = {
   tickring: TickRingIcon,
   backdrop: BackdropIcon,
   fill: FillIcon,
-  rimring: RimRingIcon,
-  rimticks: RimTicksIcon,
-  rimarc: RimArcIcon,
-  orb: OrbIcon,
 };

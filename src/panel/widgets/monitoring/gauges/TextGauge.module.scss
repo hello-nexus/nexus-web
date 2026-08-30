@@ -21,7 +21,9 @@
 }
 
 .label {
-  font-size: var(--type-tiny);
+  // Overridable so a layout can shrink the caption without touching the value;
+  // the Hero layout's small cells do (see MonitoringWidget.module.scss).
+  font-size: var(--gauge-caption-size, var(--type-tiny));
   font-weight: var(--weight-strong);
   color: var(--text-dim);
   letter-spacing: 0.04em;

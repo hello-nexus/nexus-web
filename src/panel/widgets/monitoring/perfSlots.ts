@@ -1,5 +1,5 @@
 import { widgetLayoutSize, type PanelConfigValue, type PanelWidgetSize } from '../../types';
-import { GAUGE_DESIGN_KEYS, ROUND_DESIGN_KEYS, ROUND_FULL_BLEED_DESIGNS } from './gauges';
+import { FRAME_FILLING_DESIGNS, GAUGE_DESIGN_KEYS } from './gauges';
 import type { GaugeDesignKey } from './gauges';
 
 // 'fan' is kept only so a widget saved before the motherboard category
@@ -149,7 +149,15 @@ export function slotLayoutKey(layout: SlotLayout): string {
 
 export function slotLayoutOptionsForSize(rawSize: PanelWidgetSize): SlotLayout[] {
   const options: SlotLayout[] = slotCountOptionsForSize(rawSize).map(count => ({ count, hero: false }));
-  if (heroSupportsSize(rawSize)) options.push({ count: HERO_SLOT_COUNT, hero: true });
+  if (!heroSupportsSize(rawSize)) return options;
+  // Hero holds three independent multi-sensor slots, so it belongs with the
+  // other multi-sensor layouts rather than after the Micro counts: insert it
+  // ahead of the first Micro entry (right after the 2-slot option on 2x4, the
+  // 1-slot one on 2x2), not at the end.
+  const firstMicro = options.findIndex(o => isMicroLayout(rawSize, o.count, o.hero));
+  const hero: SlotLayout = { count: HERO_SLOT_COUNT, hero: true };
+  if (firstMicro < 0) options.push(hero);
+  else options.splice(firstMicro, 0, hero);
   return options;
 }
 
@@ -181,15 +189,13 @@ export function resolvedSlotLayout(
 // the whole tile is barely larger than one 2x4 hero cell.
 export const HERO_SMALL_DESIGN_KEYS: GaugeDesignKey[] = ['text', 'numberfill'];
 
-// Which gauge designs a given slot may use. The round glass adds its own
-// rim-hugging set in front of the shared ones; every other size gets the shared
-// list unless the Hero layout narrows it.
+// Which gauge designs a given slot may use. Every size offers the same list -
+// no surface has designs of its own - unless the Hero layout narrows it.
 export function designKeysForSlot(
   size: PanelWidgetSize,
   layout: SlotLayout,
   slotIndex: number,
 ): GaugeDesignKey[] {
-  if (size === '2x2round' && layout.count === 1) return [...ROUND_DESIGN_KEYS, ...GAUGE_DESIGN_KEYS];
   if (!isHeroLayout(size, layout.count, layout.hero)) return GAUGE_DESIGN_KEYS;
   if (slotIndex > 0 || widgetLayoutSize(size) === '2x2') return HERO_SMALL_DESIGN_KEYS;
   return GAUGE_DESIGN_KEYS;
@@ -208,10 +214,11 @@ export function resolveSlotDesign(
   return allowed.includes(design) ? design : allowed[0];
 }
 
-// Whether a monitoring widget's stored config paints the round glass edge to
-// edge: a single slot showing one of the rim designs. One source of truth for
-// the tile's own padding and for the manifest's roundFit override, which have
-// to agree or the gauge is drawn at the full diameter inside a padded box.
+// Whether a monitoring widget's stored config fills the round glass edge to
+// edge: a single slot showing a design whose figure is already a circle or arc
+// (FRAME_FILLING_DESIGNS). One source of truth for the tile's own padding and
+// for the manifest's roundFit override, which have to agree or the gauge is
+// drawn at the full diameter inside a padded box.
 export function isFullBleedRound(
   size: PanelWidgetSize,
   config: Record<string, PanelConfigValue> | undefined,
@@ -222,5 +229,5 @@ export function isFullBleedRound(
   const stored = (config?.slot0_design as GaugeDesignKey | undefined)
     ?? DEFAULT_SLOTS[0]?.design
     ?? 'sparkline';
-  return ROUND_FULL_BLEED_DESIGNS.has(resolveSlotDesign(size, layout, 0, stored));
+  return FRAME_FILLING_DESIGNS.has(resolveSlotDesign(size, layout, 0, stored));
 }

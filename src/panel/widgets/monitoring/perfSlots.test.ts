@@ -23,7 +23,7 @@ import {
   slotLayoutKey,
   slotLayoutOptionsForSize,
 } from './perfSlots';
-import { GAUGE_DESIGN_KEYS, ROUND_DESIGN_KEYS } from './gauges';
+import { FRAME_FILLING_DESIGNS, GAUGE_DESIGN_KEYS } from './gauges';
 
 describe('perfSlots', () => {
   describe('slotCountOptionsForSize', () => {
@@ -179,20 +179,20 @@ describe('perfSlots', () => {
       expect(heroSupportsSize('4x4')).toBe(false);
     });
 
-    it('appends one hero entry to the sizes that support it', () => {
+    it('places one hero entry after the multi-sensor counts, before the Micro ones', () => {
       expect(slotLayoutOptionsForSize('2x4')).toEqual([
         { count: 2, hero: false },
+        { count: HERO_SLOT_COUNT, hero: true },
         { count: MICRO_MIN_COUNT, hero: false },
         { count: MICRO_MAX_COUNT, hero: false },
         { count: MICRO_WIDE_COUNTS[0], hero: false },
         { count: MICRO_WIDE_COUNTS[1], hero: false },
-        { count: HERO_SLOT_COUNT, hero: true },
       ]);
       expect(slotLayoutOptionsForSize('2x2')).toEqual([
         { count: 1, hero: false },
+        { count: HERO_SLOT_COUNT, hero: true },
         { count: MICRO_MIN_COUNT, hero: false },
         { count: MICRO_MAX_COUNT, hero: false },
-        { count: HERO_SLOT_COUNT, hero: true },
       ]);
       expect(slotLayoutOptionsForSize('4x2').some(o => o.hero)).toBe(false);
       expect(slotLayoutOptionsForSize('4x4').some(o => o.hero)).toBe(false);
@@ -236,15 +236,14 @@ describe('perfSlots', () => {
       expect(designKeysForSlot('2x2', hero, 1)).toEqual(HERO_SMALL_DESIGN_KEYS);
     });
 
-    it('offers the rim designs first on the single-slot round glass', () => {
-      const keys = designKeysForSlot('2x2round', { count: 1, hero: false }, 0);
-      expect(keys.slice(0, ROUND_DESIGN_KEYS.length)).toEqual(ROUND_DESIGN_KEYS);
-      expect(keys).toEqual([...ROUND_DESIGN_KEYS, ...GAUGE_DESIGN_KEYS]);
+    it('offers the same design list on the round glass as anywhere else', () => {
+      expect(designKeysForSlot('2x2round', { count: 1, hero: false }, 0)).toEqual(GAUGE_DESIGN_KEYS);
+      expect(designKeysForSlot('2x2', { count: 1, hero: false }, 0)).toEqual(GAUGE_DESIGN_KEYS);
+      expect(designKeysForSlot('4x4', { count: 4, hero: false }, 0)).toEqual(GAUGE_DESIGN_KEYS);
     });
 
-    it('keeps the rim designs off every other size and count', () => {
-      expect(designKeysForSlot('2x2', { count: 1, hero: false }, 0)).toEqual(GAUGE_DESIGN_KEYS);
-      expect(designKeysForSlot('2x2round', { count: 4, hero: false }, 0)).toEqual(GAUGE_DESIGN_KEYS);
+    it('has no design outside the shared list', () => {
+      for (const key of FRAME_FILLING_DESIGNS) expect(GAUGE_DESIGN_KEYS).toContain(key);
     });
   });
 
@@ -253,23 +252,25 @@ describe('perfSlots', () => {
       const hero = { count: HERO_SLOT_COUNT, hero: true };
       expect(resolveSlotDesign('2x4', hero, 1, 'sparkline')).toBe(HERO_SMALL_DESIGN_KEYS[0]);
       expect(resolveSlotDesign('2x4', hero, 1, 'numberfill')).toBe('numberfill');
-      // A rim design outside the round glass has nowhere to render.
-      expect(resolveSlotDesign('2x2', { count: 1, hero: false }, 0, 'rimring')).toBe(GAUGE_DESIGN_KEYS[0]);
     });
 
     it('leaves an allowed design alone', () => {
       expect(resolveSlotDesign('4x4', { count: 4, hero: false }, 0, 'sparkline')).toBe('sparkline');
-      expect(resolveSlotDesign('2x2round', { count: 1, hero: false }, 0, 'rimring')).toBe('rimring');
+      expect(resolveSlotDesign('2x2round', { count: 1, hero: false }, 0, 'caterpillar')).toBe('caterpillar');
     });
   });
 
   describe('isFullBleedRound', () => {
-    it('is true only for a single-slot round tile on a rim design', () => {
-      expect(isFullBleedRound('2x2round', { slotCount: 1, slot0_design: 'rimring' })).toBe(true);
-      expect(isFullBleedRound('2x2round', { slotCount: 1, slot0_design: 'orb' })).toBe(true);
+    it('is true only for a single-slot round tile on a frame-filling design', () => {
+      expect(isFullBleedRound('2x2round', { slotCount: 1, slot0_design: 'caterpillar' })).toBe(true);
+      expect(isFullBleedRound('2x2round', { slotCount: 1, slot0_design: 'waterLevel' })).toBe(true);
+      expect(isFullBleedRound('2x2round', { slotCount: 1, slot0_design: 'arc270' })).toBe(true);
+      // A rectangular layout at the full diameter would run off the arc.
       expect(isFullBleedRound('2x2round', { slotCount: 1, slot0_design: 'sparkline' })).toBe(false);
-      expect(isFullBleedRound('2x2round', { slotCount: 4, slot0_design: 'rimring' })).toBe(false);
-      expect(isFullBleedRound('2x2', { slotCount: 1, slot0_design: 'rimring' })).toBe(false);
+      expect(isFullBleedRound('2x2round', { slotCount: 1, slot0_design: 'text' })).toBe(false);
+      expect(isFullBleedRound('2x2round', { slotCount: 4, slot0_design: 'caterpillar' })).toBe(false);
+      // Only the round tile scales a design up; a square 2x2 is unchanged.
+      expect(isFullBleedRound('2x2', { slotCount: 1, slot0_design: 'caterpillar' })).toBe(false);
     });
 
     it('is false for a round tile that has never been configured', () => {
