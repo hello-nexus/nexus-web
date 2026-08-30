@@ -12,6 +12,29 @@
 .grid2row { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
 .grid2x2 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
 
+// Hero: the first slot spans the top row, the other two share the bottom one.
+// The top row is the taller of the two so the headline sensor reads as the
+// primary one rather than as a third equal cell.
+.gridHero {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1.3fr 1fr;
+
+  > *:first-child {
+    grid-column: 1 / -1;
+  }
+}
+
+// Round glass with a rim design: the gauge paints the whole disc, so the tile
+// contributes no padding and the selection ring follows the circle.
+.fullBleed {
+  padding: 0;
+  gap: 0;
+
+  .slotSelectable {
+    border-radius: 50%;
+  }
+}
+
 .slot {
   display: flex;
   flex-direction: column;

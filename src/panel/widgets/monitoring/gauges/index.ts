@@ -22,6 +22,10 @@ import { DialGauge } from './DialGauge';
 import { TickRingGauge } from './TickRingGauge';
 import { BackdropGauge } from './BackdropGauge';
 import { FillGauge } from './FillGauge';
+import { RimRingGauge } from './RimRingGauge';
+import { RimTicksGauge } from './RimTicksGauge';
+import { RimArcGauge } from './RimArcGauge';
+import { OrbGauge } from './OrbGauge';
 
 export type { GaugeProps, GaugeDesignKey };
 
@@ -48,6 +52,10 @@ export const GAUGE_DESIGNS: Record<GaugeDesignKey, ComponentType<GaugeProps>> = 
   tickring: TickRingGauge,
   backdrop: BackdropGauge,
   fill: FillGauge,
+  rimring: RimRingGauge,
+  rimticks: RimTicksGauge,
+  rimarc: RimArcGauge,
+  orb: OrbGauge,
 };
 
 export const GAUGE_DESIGN_LABELS: Record<GaugeDesignKey, string> = {
@@ -73,6 +81,10 @@ export const GAUGE_DESIGN_LABELS: Record<GaugeDesignKey, string> = {
   tickring: 'Tick Ring',
   backdrop: 'Backdrop',
   fill: 'Fill',
+  rimring: 'Rim Ring',
+  rimticks: 'Rim Ticks',
+  rimarc: 'Rim Arc',
+  orb: 'Orb',
 };
 
 export const GAUGE_DESIGN_KEYS: GaugeDesignKey[] = [
@@ -83,3 +95,16 @@ export const GAUGE_DESIGN_KEYS: GaugeDesignKey[] = [
   'waterLevel',
   'caterpillar', 'tickring', 'halfgauge', 'arc270', 'wedge', 'dial',
 ];
+
+// Round-tile designs. Offered only on the 2x2round glass (the Kraken LCD),
+// which is why they are absent from GAUGE_DESIGN_KEYS above: each one paints a
+// collar on the rim, so it needs the whole disc rather than the inscribed
+// square a square-tile design lays out in.
+export const ROUND_DESIGN_KEYS: GaugeDesignKey[] = [
+  'rimring', 'rimticks', 'rimarc', 'orb',
+];
+
+// Designs that own the disc edge to edge. The round tile renders these at the
+// full diameter instead of the inscribed square - see AppManifest.roundFit and
+// the [data-size='2x2round'] .cellScaler rule in PanelApp.module.scss.
+export const ROUND_FULL_BLEED_DESIGNS: ReadonlySet<GaugeDesignKey> = new Set(ROUND_DESIGN_KEYS);

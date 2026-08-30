@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { Boxes } from 'lucide-react';
 import { appIconComponent } from '../../components/icons/AppIconImage';
 import { MarketplaceWidget } from './marketplace/MarketplaceWidget';
@@ -18,6 +19,7 @@ import {
   singleWidgetSurfaceSize,
   surfaceSupportsTouch,
   type PanelSurface,
+  type PanelWidget,
   type PanelWidgetSize,
 } from '../types';
 
@@ -275,3 +277,13 @@ export function pickerSizeFor(meta: AppManifest['meta'], surface?: PanelSurface,
   return meta.defaultSize;
 }
 
+// Inline style carrying a widget's round-tile fit fraction to the cell. The
+// `.panel-card[data-size='2x2round'] .cellScaler` rule reads
+// --panel-round-fit and falls back to the inscribed square, so a widget that
+// declares nothing renders exactly as before.
+export function roundFitStyle(widget: PanelWidget): CSSProperties | undefined {
+  if (widget.size !== '2x2round') return undefined;
+  const fit = lookupApp(widget.type)?.roundFit?.(widget);
+  if (fit === undefined) return undefined;
+  return { '--panel-round-fit': fit } as CSSProperties;
+}

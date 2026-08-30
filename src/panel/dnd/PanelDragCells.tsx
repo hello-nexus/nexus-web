@@ -3,7 +3,7 @@ import { useDroppable } from '@dnd-kit/core';
 import { useSortable } from '@dnd-kit/sortable';
 import type { CSSProperties } from 'react';
 import { sizeToSpan } from '../engine/grid';
-import { lookupApp } from '../widgets/registry';
+import { lookupApp, roundFitStyle } from '../widgets/registry';
 import type { DeckEditView } from '../widgets/types';
 import { WidgetCellLabel } from '../widgets/common/WidgetCellLabel';
 import { PanelPreviewProvider } from '../widgets/common/PanelPreviewContext';
@@ -272,7 +272,7 @@ export function PanelTouchCell({
         {...attributes}
         {...listeners}
       >
-        <div className={`panel-card ${styles.cell}`} data-size={widget.size}>
+        <div className={`panel-card ${styles.cell}`} data-size={widget.size} style={roundFitStyle(widget)}>
           <div className={styles.cellScaler} style={{ pointerEvents: 'none' }}>
             <Comp widget={widget} surface={surface} deviceTouch={deviceTouch} />
           </div>
@@ -336,6 +336,7 @@ export function PanelTouchCell({
       <div
         className={`panel-card ${styles.cell} ${pressHint ? styles.cellPressHint : ''}`}
         data-size={widget.size}
+        style={roundFitStyle(widget)}
       >
         <div className={styles.cellScaler}>
           <Comp
@@ -443,7 +444,7 @@ export function PanelCatalogCell({
       onClick={disabled ? undefined : onClick}
       onKeyDown={disabled ? undefined : onKeyDown}
     >
-      <div className={`panel-card ${styles.cell}`} data-size={widget.size}>
+      <div className={`panel-card ${styles.cell}`} data-size={widget.size} style={roundFitStyle(widget)}>
         <div className={styles.cellScaler} style={{ pointerEvents: 'none' }}>
           <ErrorBoundary label={widget.type}>
             <PanelPreviewProvider value={true}>
@@ -507,7 +508,7 @@ export function PanelDragOverlayCell({
           '--panel-span-rows': span.rows,
         } as CSSProperties}
       >
-        <div className={`panel-card ${styles.cell}`} data-size={widget.size}>
+        <div className={`panel-card ${styles.cell}`} data-size={widget.size} style={roundFitStyle(widget)}>
           <div className={styles.cellScaler} style={{ pointerEvents: 'none' }}>
             <Comp widget={widget} surface={surface} deviceTouch={deviceTouch} />
           </div>

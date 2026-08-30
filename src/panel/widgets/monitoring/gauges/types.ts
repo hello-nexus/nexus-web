@@ -34,4 +34,9 @@ export type GaugeDesignKey =
   | 'dial'
   | 'tickring'
   | 'backdrop'
-  | 'fill';
+  | 'fill'
+  // Round-tile only (see ROUND_DESIGN_KEYS).
+  | 'rimring'
+  | 'rimticks'
+  | 'rimarc'
+  | 'orb';

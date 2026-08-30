@@ -6,8 +6,8 @@ import { lookupApp, sizesForSurface } from '../widgets/registry';
 import type { DeckEditView } from '../widgets/types';
 import { SIZE_ICONS } from '../widgets/common/SizeIcons';
 import { WidgetControlGroup } from '../widgets/common/WidgetControlGroup';
-import { SlotCountIcon } from '../widgets/monitoring/SlotCountIcons';
-import { slotCountOptionsForSize, resolvedSlotCountForSize } from '../widgets/monitoring/perfSlots';
+import { SlotLayoutIcon } from '../widgets/monitoring/SlotCountIcons';
+import { slotLayoutOptionsForSize, resolvedSlotCountForSize, resolvedSlotLayout, slotLayoutKey, type SlotLayout } from '../widgets/monitoring/perfSlots';
 import { PanelWidgetCatalog } from './PanelWidgetCatalog';
 import { PanelHostNameSetting } from './PanelHostNameSetting';
 import type { PanelBackdrop } from '../background/panelBackground';
@@ -167,10 +167,10 @@ export function PanelEditorSheet({
   const isMonitoringWidget = editingWidget?.type === 'monitoring';
   const usesSlotSelection = !!def?.meta.usesSlotSelection;
   const widgetSizes = editingWidget && def ? sizesForSurface(def.meta, surface, deviceTouch) : [];
-  const slotCountOptions = editingWidget && isMonitoringWidget ? slotCountOptionsForSize(editingWidget.size) : [];
-  const slotCount = editingWidget && isMonitoringWidget
-    ? resolvedSlotCountForSize(editingWidget.size, editingWidget.config?.slotCount as number | undefined)
-    : 0;
+  const slotLayoutOptions = editingWidget && isMonitoringWidget ? slotLayoutOptionsForSize(editingWidget.size) : [];
+  const slotLayout = editingWidget && isMonitoringWidget
+    ? resolvedSlotLayout(editingWidget.size, editingWidget.config)
+    : undefined;
   const editingSpan = editingWidget ? sizeToSpan(editingWidget.size) : null;
   const editorStyle = {
     ...panelThemeStyle,
@@ -239,10 +239,10 @@ export function PanelEditorSheet({
     onResize(editingWidget.id, size);
   };
 
-  const handleSlotCount = (n: number) => {
+  const handleSlotLayout = (layout: SlotLayout) => {
     if (!editingWidget) return;
-    onSelectedMonitoringSlotChange(Math.min(selectedMonitoringSlot, n - 1));
-    onUpdate(editingWidget.id, { slotCount: n });
+    onSelectedMonitoringSlotChange(Math.min(selectedMonitoringSlot, layout.count - 1));
+    onUpdate(editingWidget.id, { slotCount: layout.count, slotHero: layout.hero });
   };
 
   return (
@@ -301,7 +301,7 @@ export function PanelEditorSheet({
 
         {mode === 'settings' && editingWidget && def && (
           <div className={styles.settingsBody}>
-            {(widgetSizes.length > 1 || slotCountOptions.length > 1) && (
+            {(widgetSizes.length > 1 || slotLayoutOptions.length > 1) && (
               <div className={styles.editorActions}>
                 <div className={styles.controlPicker}>
                   {widgetSizes.length > 1 && (
@@ -322,19 +322,21 @@ export function PanelEditorSheet({
                       })}
                     </WidgetControlGroup>
                   )}
-                  {isMonitoringWidget && slotCountOptions.length > 0 && (
+                  {isMonitoringWidget && slotLayoutOptions.length > 0 && (
                     <WidgetControlGroup title={t('panel.editor.slots')}>
-                      {slotCountOptions.map(n => {
-                        const slotLabel = t(pluralKey('panel.editor.slotCount', language, n), { count: n });
+                      {slotLayoutOptions.map(option => {
+                        const slotLabel = option.hero
+                          ? t('panel.editor.slotHero')
+                          : t(pluralKey('panel.editor.slotCount', language, option.count), { count: option.count });
                         return (
                           <IconLabelButton
-                            key={n}
+                            key={slotLayoutKey(option)}
                             className={styles.editorControlButton}
-                            active={n === slotCount}
-                            icon={<SlotCountIcon count={n} size={editingWidget.size} aria-hidden="true" />}
+                            active={option.count === slotLayout?.count && option.hero === slotLayout?.hero}
+                            icon={<SlotLayoutIcon layout={option} size={editingWidget.size} aria-hidden="true" />}
                             ariaLabel={slotLabel}
                             title={slotLabel}
-                            onPress={() => handleSlotCount(n)}
+                            onPress={() => handleSlotLayout(option)}
                           />
                         );
                       })}

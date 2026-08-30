@@ -1,6 +1,6 @@
 import type { SVGProps } from 'react';
 import type { PanelWidgetSize } from '../../types';
-import { isMicroLayout, isTwoColumnMicro } from './perfSlots';
+import { isMicroLayout, isTwoColumnMicro, type SlotLayout } from './perfSlots';
 
 type IconProps = SVGProps<SVGSVGElement>;
 
@@ -148,18 +148,38 @@ export function EightSlotsIcon(props: IconProps) {
   );
 }
 
-export function SlotCountIcon({
-  count,
+// Hero: one wide slot across the top, two small ones beneath. Shares its count
+// with the Micro 3-row layout, so it is drawn from the hero flag, not the count.
+export function HeroSlotsIcon(props: IconProps) {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+      <rect x="3.5" y="4" width="17" height="7" rx="2" stroke="currentColor" strokeWidth="1.8" />
+      <rect x="3.5" y="13" width="8" height="7" rx="2" stroke="currentColor" strokeWidth="1.8" />
+      <rect x="12.5" y="13" width="8" height="7" rx="2" stroke="currentColor" strokeWidth="1.8" />
+      <circle cx="7.4" cy="7.5" r="1" fill="currentColor" />
+      <path d="M10.4 7.5H17" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" opacity="0.45" />
+      <circle cx="6.4" cy="15.6" r="0.9" fill="currentColor" />
+      <circle cx="15.4" cy="15.6" r="0.9" fill="currentColor" />
+      <path d="M5.9 18.1H9.1" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" opacity="0.45" />
+      <path d="M14.9 18.1H18.1" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" opacity="0.45" />
+    </svg>
+  );
+}
+
+export function SlotLayoutIcon({
+  layout,
   size,
   ...props
-}: IconProps & { count: number; size: PanelWidgetSize }) {
+}: IconProps & { layout: SlotLayout; size: PanelWidgetSize }) {
+  const { count } = layout;
+  if (layout.hero) return <HeroSlotsIcon {...props} />;
   // 6/8 split into two columns only on the wide 4x2; the tall 2x4 stacks them
   // in one column (single-column rows icons).
   if (count >= 8) return isTwoColumnMicro(size, count) ? <EightSlotsIcon {...props} /> : <EightRowsIcon {...props} />;
   if (count === 6) return isTwoColumnMicro(size, count) ? <SixSlotsIcon {...props} /> : <SixRowsIcon {...props} />;
   // Micro 3/4 render as a single column of rows (horizontal lines); count=4 on
   // 4x4 is the multi-sensor 2x2 grid instead, so gate on the Micro layout.
-  if (isMicroLayout(size, count)) {
+  if (isMicroLayout(size, count, layout.hero)) {
     return count === 3 ? <ThreeRowsIcon {...props} /> : <FourRowsIcon {...props} />;
   }
   if (count >= 4) return <FourSlotsIcon {...props} />;

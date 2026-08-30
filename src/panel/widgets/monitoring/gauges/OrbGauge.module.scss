@@ -1,0 +1,64 @@
+@use '../../../styles/flexGap' as *;
+
+.orb {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+}
+
+.vessel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--gauge-track);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.fill {
+  width: 100%;
+  // Same body color the Filled Line gauge uses for its area.
+  background: color-mix(in srgb, var(--panel-accent-glow) 40%, transparent);
+  border-top: var(--gauge-line-thickness) solid var(--panel-accent);
+}
+
+.overlay {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 68%;
+  min-width: 0;
+  pointer-events: none;
+
+  @include vgap(4px);
+}
+
+.value {
+  font-size: 2.6em;
+  font-weight: var(--weight-display);
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--text);
+}
+
+.label {
+  font-size: var(--type-tiny);
+  font-weight: var(--weight-strong);
+  color: var(--text-dim);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}

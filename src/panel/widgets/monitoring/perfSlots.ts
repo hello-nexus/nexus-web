@@ -1,4 +1,5 @@
-import { widgetLayoutSize, type PanelWidgetSize } from '../../types';
+import { widgetLayoutSize, type PanelConfigValue, type PanelWidgetSize } from '../../types';
+import { GAUGE_DESIGN_KEYS, ROUND_DESIGN_KEYS, ROUND_FULL_BLEED_DESIGNS } from './gauges';
 import type { GaugeDesignKey } from './gauges';
 
 // 'fan' is kept only so a widget saved before the motherboard category
@@ -86,10 +87,12 @@ export function microSupportsSize(rawSize: PanelWidgetSize): boolean {
   return size === '2x2' || size === '4x2' || size === '2x4';
 }
 
-// Whether a (size, count) pair signals the Micro layout. Both inputs are
-// required - count=4 means Micro on 2x2/4x2/2x4 but multi on 4x4.
-export function isMicroLayout(size: PanelWidgetSize, count: number): boolean {
+// Whether a (size, count) pair signals the Micro layout. All three inputs are
+// required - count=4 means Micro on 2x2/4x2/2x4 but multi on 4x4, and count=3
+// with the hero flag is the Hero layout, not Micro.
+export function isMicroLayout(size: PanelWidgetSize, count: number, hero = false): boolean {
   if (!microSupportsSize(size)) return false;
+  if (isHeroLayout(size, count, hero)) return false;
   return (count >= MICRO_MIN_COUNT && count <= MICRO_MAX_COUNT) || isWideMicroCount(count);
 }
 
@@ -113,4 +116,111 @@ export function resolvedSlotCountForSize(
   const options = slotCountOptionsForSize(size);
   if (options.includes(configuredCount)) return configuredCount;
   return defaultSlotCountForSize(size);
+}
+
+// The Hero layout: one large slot across the top with two small ones side by
+// side beneath. It shares its slot count with the Micro layout on the same
+// sizes, so the two are told apart by the stored `slotHero` flag, never by
+// count alone.
+export const HERO_SLOT_COUNT = 3;
+
+// Only the tall/square tiles have a sensible big-over-two-small split; the wide
+// 4x2 would give each bottom slot a sliver, and 4x4 already has the 2x2 grid.
+export function heroSupportsSize(rawSize: PanelWidgetSize): boolean {
+  const size = widgetLayoutSize(rawSize);
+  return size === '2x2' || size === '2x4';
+}
+
+export function isHeroLayout(size: PanelWidgetSize, count: number, hero: boolean | undefined): boolean {
+  return hero === true && count === HERO_SLOT_COUNT && heroSupportsSize(size);
+}
+
+// One entry in the editor's slot picker. `count` alone was the whole
+// vocabulary until the Hero layout, which reuses count 3.
+export interface SlotLayout {
+  count: number;
+  hero: boolean;
+}
+
+// Stable React key / aria discriminator for a picker entry.
+export function slotLayoutKey(layout: SlotLayout): string {
+  return layout.hero ? `hero${layout.count}` : String(layout.count);
+}
+
+export function slotLayoutOptionsForSize(rawSize: PanelWidgetSize): SlotLayout[] {
+  const options: SlotLayout[] = slotCountOptionsForSize(rawSize).map(count => ({ count, hero: false }));
+  if (heroSupportsSize(rawSize)) options.push({ count: HERO_SLOT_COUNT, hero: true });
+  return options;
+}
+
+export function resolvedSlotLayoutForSize(
+  size: PanelWidgetSize,
+  configuredCount: number | undefined,
+  configuredHero: boolean | undefined,
+): SlotLayout {
+  const count = resolvedSlotCountForSize(size, configuredCount);
+  return { count, hero: isHeroLayout(size, count, configuredHero) };
+}
+
+// Reads both stored keys off a widget's config. Every caller that needs the
+// layout goes through this so the `slotCount` / `slotHero` pair is decoded in
+// exactly one place.
+export function resolvedSlotLayout(
+  size: PanelWidgetSize,
+  config: Record<string, PanelConfigValue> | undefined,
+): SlotLayout {
+  return resolvedSlotLayoutForSize(
+    size,
+    config?.slotCount as number | undefined,
+    config?.slotHero === true,
+  );
+}
+
+// The Hero layout's small slots hold a reading and nothing else, so they are
+// limited to the two value-first designs. On 2x2 that includes the top slot -
+// the whole tile is barely larger than one 2x4 hero cell.
+export const HERO_SMALL_DESIGN_KEYS: GaugeDesignKey[] = ['text', 'numberfill'];
+
+// Which gauge designs a given slot may use. The round glass adds its own
+// rim-hugging set in front of the shared ones; every other size gets the shared
+// list unless the Hero layout narrows it.
+export function designKeysForSlot(
+  size: PanelWidgetSize,
+  layout: SlotLayout,
+  slotIndex: number,
+): GaugeDesignKey[] {
+  if (size === '2x2round' && layout.count === 1) return [...ROUND_DESIGN_KEYS, ...GAUGE_DESIGN_KEYS];
+  if (!isHeroLayout(size, layout.count, layout.hero)) return GAUGE_DESIGN_KEYS;
+  if (slotIndex > 0 || widgetLayoutSize(size) === '2x2') return HERO_SMALL_DESIGN_KEYS;
+  return GAUGE_DESIGN_KEYS;
+}
+
+// Clamp a stored design to what the slot currently allows, so a layout or size
+// change never renders a design the picker no longer offers (e.g. a Sparkline
+// left in a slot that just became a Hero small cell).
+export function resolveSlotDesign(
+  size: PanelWidgetSize,
+  layout: SlotLayout,
+  slotIndex: number,
+  design: GaugeDesignKey,
+): GaugeDesignKey {
+  const allowed = designKeysForSlot(size, layout, slotIndex);
+  return allowed.includes(design) ? design : allowed[0];
+}
+
+// Whether a monitoring widget's stored config paints the round glass edge to
+// edge: a single slot showing one of the rim designs. One source of truth for
+// the tile's own padding and for the manifest's roundFit override, which have
+// to agree or the gauge is drawn at the full diameter inside a padded box.
+export function isFullBleedRound(
+  size: PanelWidgetSize,
+  config: Record<string, PanelConfigValue> | undefined,
+): boolean {
+  if (size !== '2x2round') return false;
+  const layout = resolvedSlotLayout(size, config);
+  if (layout.count !== 1) return false;
+  const stored = (config?.slot0_design as GaugeDesignKey | undefined)
+    ?? DEFAULT_SLOTS[0]?.design
+    ?? 'sparkline';
+  return ROUND_FULL_BLEED_DESIGNS.has(resolveSlotDesign(size, layout, 0, stored));
 }

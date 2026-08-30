@@ -1,5 +1,5 @@
 import { PerfSlot } from './MonitoringWidget';
-import { DEFAULT_SLOTS, isExtrasBackedDevice, isMicroLayout, resolvedSlotCountForSize } from './perfSlots';
+import { DEFAULT_SLOTS, isExtrasBackedDevice, isMicroLayout, resolvedSlotLayout, resolveSlotDesign } from './perfSlots';
 import type { DeviceKey } from './perfSlots';
 import type { GaugeDesignKey } from './gauges';
 import { ImmersiveLayout } from '../common/ImmersiveLayout';
@@ -23,13 +23,19 @@ import styles from './MonitoringTouch.module.scss';
  *             paginates (2 cells per page on phone).
  */
 export function MonitoringTouch({ widget, immersiveGrid }: WidgetProps) {
-  const slotCount = resolvedSlotCountForSize(widget.size, widget.config?.slotCount as number | undefined);
-  const isMicro = isMicroLayout(widget.size, slotCount);
+  const layout = resolvedSlotLayout(widget.size, widget.config);
+  const slotCount = layout.count;
+  const isMicro = isMicroLayout(widget.size, slotCount, layout.hero);
 
   const slotConfigs = Array.from({ length: slotCount }, (_, i) => ({
     device: ((widget.config?.[`slot${i}_device`] as DeviceKey | undefined) ?? DEFAULT_SLOTS[i]?.device ?? 'cpu'),
     sensorName: ((widget.config?.[`slot${i}_sensor`] as string | undefined) ?? DEFAULT_SLOTS[i]?.sensor ?? ''),
-    design: ((widget.config?.[`slot${i}_design`] as GaugeDesignKey | undefined) ?? DEFAULT_SLOTS[i]?.design ?? 'sparkline'),
+    design: resolveSlotDesign(
+      widget.size,
+      layout,
+      i,
+      ((widget.config?.[`slot${i}_design`] as GaugeDesignKey | undefined) ?? DEFAULT_SLOTS[i]?.design ?? 'sparkline'),
+    ),
   }));
 
   const microDevice = widget.config?.micro_device as DeviceKey | undefined;
