@@ -28,7 +28,7 @@
   // caption was cut off mid-glyph. Both shrink here; the top slot is unchanged.
   > *:not(:first-child) {
     --gauge-value-size: 1.7em;
-    --gauge-caption-size: calc(var(--type-tiny) * 0.85);
+    --type-gauge-caption: calc(var(--type-tiny) * 0.85);
   }
 }
 
