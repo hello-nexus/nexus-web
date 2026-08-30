@@ -13,7 +13,8 @@
 
 // The Kraken's glass is round: it shows the inscribed circle of the square
 // frame we push, so the preview is only WYSIWYG masked to the same circle.
-.container[data-surface='kraken'] {
+.container[data-surface='kraken'],
+.container[data-surface='lcd-round'] {
   border-radius: 50%;
 }
 

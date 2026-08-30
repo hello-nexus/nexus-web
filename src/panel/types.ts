@@ -7,7 +7,11 @@ export const PANEL_WIDGET_SIZES = ['1x1', '2x2', '2x4', '4x2', '4x4', '2x2round'
 export type PanelWidgetSize = typeof PANEL_WIDGET_SIZES[number];
 // 'monitor' = a user-promoted OS monitor hosting a fullscreen kiosk
 // (service-stamped surface; see PanelSurfaces.Monitor in nexus-service).
-export type PanelSurface = 'y70' | 'q60' | 'phone' | 'desktop' | 'monitor' | 'kraken';
+// 'lcd-round' / 'lcd-square' = a cooler LCD fed pushed JPEG frames. Unlike 'kraken'
+// these are not one model's resolution: the panel record carries the real pixel size,
+// so a 480x480 Galahad II LCD and a 240x240 ID-Cooling FX-LCD share 'lcd-round'.
+export type PanelSurface =
+  | 'y70' | 'q60' | 'phone' | 'desktop' | 'monitor' | 'kraken' | 'lcd-round' | 'lcd-square';
 
 // Whether a surface accepts direct pointer input. Q60 is display-only;
 // desktop, phone, Y70 support interactive widget controls (desktop via mouse).
@@ -16,8 +20,9 @@ export type PanelSurface = 'y70' | 'q60' | 'phone' | 'desktop' | 'monitor' | 'kr
 // plain monitors are glanceable displays like the Q-series.
 export function surfaceSupportsTouch(surface: PanelSurface, deviceTouch?: boolean): boolean {
   if (surface === 'monitor') return deviceTouch === true;
-  // The Kraken LCD is a framebuffer on a USB pipe with no input path at all.
-  return surface !== 'q60' && surface !== 'kraken';
+  // Cooler glass is a framebuffer on a USB pipe with no input path at all.
+  return surface !== 'q60' && surface !== 'kraken'
+    && surface !== 'lcd-round' && surface !== 'lcd-square';
 }
 
 // Whether the operator at this surface has a usable text-entry method: desktop
@@ -54,6 +59,9 @@ export const SINGLE_WIDGET_SURFACE_SIZE: Readonly<Partial<Record<PanelSurface, P
   q60: '2x4',
   // 640x640 round glass: one circular tile.
   kraken: '2x2round',
+  // Cooler LCDs: one tile, masked to the glass's shape.
+  'lcd-round': '2x2round',
+  'lcd-square': '2x2',
 };
 
 export function singleWidgetSurfaceSize(surface: PanelSurface): PanelWidgetSize | undefined {
@@ -75,9 +83,17 @@ export function isSingleWidgetSurface(surface: PanelSurface): boolean {
 // Sizes reserved for single-widget surfaces. Multi-widget surfaces hide them
 // from the size picker and snap persisted widgets to the nearest non-reserved
 // size on reconcile.
+//
+// Derived from SINGLE_WIDGET_SURFACE_SIZE, minus the sizes multi-widget surfaces
+// also offer. '2x4' and '2x2round' are genuinely reserved - a Q60 strip and round
+// glass - but square cooler glass takes a plain '2x2', and reserving that would
+// hide an ordinary size from the picker everywhere and snap existing widgets off it.
+const SHARED_WITH_MULTI_WIDGET_SURFACES: ReadonlySet<PanelWidgetSize> =
+  new Set<PanelWidgetSize>(['2x2']);
+
 export const SINGLE_WIDGET_SIZES: ReadonlySet<PanelWidgetSize> = new Set(
   Object.values(SINGLE_WIDGET_SURFACE_SIZE).filter(
-    (s): s is PanelWidgetSize => s !== undefined,
+    (s): s is PanelWidgetSize => s !== undefined && !SHARED_WITH_MULTI_WIDGET_SURFACES.has(s),
   ),
 );
 

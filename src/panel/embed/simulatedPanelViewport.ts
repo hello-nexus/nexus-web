@@ -33,6 +33,9 @@ export const SURFACE_DPR: Record<string, number> = {
   // canvas is 1:1 (KrakenPanelDiscovery reports dpr 1). The DPI-derived
   // fallback is an Android density convention and would shrink the glass.
   kraken: 1,
+  // Same reasoning as the Kraken: the service pushes native-resolution frames.
+  'lcd-round': 1,
+  'lcd-square': 1,
 };
 
 export interface SimulatedPanelCssViewport {

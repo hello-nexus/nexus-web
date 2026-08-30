@@ -26,6 +26,10 @@ export const DEFAULT_SURFACE_DPI: Record<PanelSurface, number> = {
   monitor: 110,
   // 640px across roughly 2.7in of round glass.
   kraken: 240,
+  // Cooler LCDs run 240-480px across 1.5-2.4in of glass; one estimate covers the
+  // family because the record carries the real pixel size and DPI only scales text.
+  'lcd-round': 210,
+  'lcd-square': 210,
 };
 
 export function clampNumber(value: number, min: number, max: number) {

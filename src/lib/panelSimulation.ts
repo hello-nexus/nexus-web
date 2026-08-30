@@ -44,6 +44,12 @@ export const SIMULATED_PANEL_PRESETS: readonly SimulatedPanelDefinition[] = [
   // NZXT Kraken LCD: 2.36" 640x640 round glass, one tile. Matches the streamed
   // record KrakenPanelDiscovery reports (640x640 @ dpr 1).
   { id: 'kraken', name: 'NZXT Kraken LCD', surface: 'kraken', width: 640, height: 640, dpi: 271 },
+  // Cooler LCDs fed pushed JPEG frames. One preset per distinct panel geometry rather
+  // than per model: 'lcd-round' at 480 covers the Galahad II LCD and the Corsair XC7,
+  // and the Elite Capellix is the same glass without the circular mask.
+  { id: 'lcd-round-480', name: 'Cooler LCD 480 Round', surface: 'lcd-round', width: 480, height: 480, dpi: 210 },
+  { id: 'lcd-square-480', name: 'Cooler LCD 480', surface: 'lcd-square', width: 480, height: 480, dpi: 210 },
+  { id: 'lcd-round-240', name: 'Cooler LCD 240 Round', surface: 'lcd-round', width: 240, height: 240, dpi: 160 },
   // Corsair Xeneon Edge 14.5" 2560x720 strip; rides the promoted-monitor
   // surface (a real one registers via POST /displays/{id}/panel).
   { id: 'xeneon-edge', name: 'Xeneon Edge', surface: 'monitor', width: 2560, height: 720, dpi: 183 },

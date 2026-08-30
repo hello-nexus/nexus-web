@@ -18,7 +18,12 @@ function buildLayout(surface: PanelLayout['surface']): PanelLayout {
   // large-canvas shape (mirrors PanelLayoutDefaults in nexus-service).
   // Promoted monitors seed from desktop; the Kraken's round single-tile glass seeds
   // from the Q-series, the other single-widget surface.
-  const sourceKey = surface === 'monitor' ? 'desktop' : surface === 'kraken' ? 'q60' : surface;
+  // Single-widget surfaces borrow the Q60's defaults: one tile, no pager.
+  const sourceKey = surface === 'monitor'
+    ? 'desktop'
+    : (surface === 'kraken' || surface === 'lcd-round' || surface === 'lcd-square')
+      ? 'q60'
+      : surface;
   const src = defaults?.panel.layouts[sourceKey];
   return {
     layoutSchemaVersion: src?.layoutSchemaVersion ?? 2,

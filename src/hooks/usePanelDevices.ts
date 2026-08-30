@@ -85,12 +85,23 @@ const STREAMED_PANEL_CAPABILITIES: PanelDeviceCapabilities = {
 const SIMULATED_SURFACE_CAPABILITIES: Partial<Record<PanelSurface, PanelDeviceCapabilities>> = {
   y70: Y70_CAPABILITIES,
   kraken: STREAMED_PANEL_CAPABILITIES,
+  'lcd-round': STREAMED_PANEL_CAPABILITIES,
+  'lcd-square': STREAMED_PANEL_CAPABILITIES,
 };
 
 // Per-surface branding for streamed panels; they carry no curated device id to
 // look an icon up from.
 const STREAMED_PANEL_ICONS: Partial<Record<PanelSurface, string>> = {
   kraken: '/assets/devices/nzxt.svg',
+};
+
+// Finer-grained branding for streamed panels whose surface is shared by more than one
+// model. The service stamps capabilities.family with the handler id; the cooler-LCD
+// surfaces need this because 'lcd-round' alone cannot tell a Lian Li from an ID-Cooling.
+const STREAMED_FAMILY_ICONS: Partial<Record<string, string>> = {
+  'lianli-galahad2-lcd': '/assets/devices/lianli.svg',
+  'corsair-xc7-lcd': '/assets/devices/corsair.svg',
+  'corsair-capellix-lcd': '/assets/devices/corsair.svg',
 };
 
 // The curated device a streamed panel belongs to. Claiming it merges the two into
@@ -310,7 +321,9 @@ export function buildPanelDevices({
       runtimeSurface: surface,
       previewSize: cssWidth > 0 && cssHeight > 0 ? { width: cssWidth, height: cssHeight } : undefined,
       previewDpr: record.capabilities?.dpr,
-      iconSrc: (surface && STREAMED_PANEL_ICONS[surface]) ?? PANEL_MONITOR_ICON,
+      iconSrc: (record.capabilities?.family ? STREAMED_FAMILY_ICONS[record.capabilities.family] : undefined)
+        ?? (surface && STREAMED_PANEL_ICONS[surface])
+        ?? PANEL_MONITOR_ICON,
       capabilities: STREAMED_PANEL_CAPABILITIES,
       modalKind: 'panel-editor',
     });
