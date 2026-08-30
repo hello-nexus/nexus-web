@@ -47,6 +47,13 @@
   padding: 0;
   --gauge-figure-scale: calc(1 / var(--panel-round-fit, 0.85));
 
+  // The figure is scaled past its box on purpose, so the slot and the gauge
+  // root must not clip it - the card's own circular mask is what should.
+  .slot,
+  .slot > * {
+    overflow: visible;
+  }
+
   .slotSelectable {
     border-radius: 50%;
   }
