@@ -18,6 +18,7 @@ import { useSearchSignal } from '../search/signals';
 import { TopSearch } from '../search/TopSearch';
 import { DISCORD_INVITE_URL } from '../lib/externalLinks';
 import { CaptionButtons } from './CaptionButtons';
+import { GameModeChip } from './GameModeChip';
 import { usePageChrome } from './PageChrome';
 import { useWindowDragRegion } from './useWindowDragRegion';
 import { ConnectedProfileSlot, ConflictStatusSlot, UpdateStatusSlot } from './sidebar';
@@ -222,6 +223,7 @@ export function TopBar({
             </button>
           </HoverTooltip>
         )}
+        {!focusMode && <GameModeChip online={online} onNavigateSettings={onNavigateSettings} />}
       </div>
 
       {/* History arrows: pinned immediately to the left of the centered search
