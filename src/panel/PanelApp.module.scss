@@ -1786,6 +1786,9 @@
   justify-content: center;
   // Flex gap is a no-op on 83; space through the child margin below.
   @include vgap(4px);
+  // The design-space box is one cell wide on the smallest widget, where a
+  // long compound word in de/nl/tr does not fit on a line of its own.
+  overflow-wrap: anywhere;
   transform: scale(var(--_notice-scale));
   transform-origin: center center;
   // As a flex item the design-space box (wider than the card whenever the
@@ -1824,7 +1827,7 @@
 }
 
 .cellEditHintLabel {
-  @include text-caption;
+  @include text-button;
 }
 
 // Preview cells read as buttons, and only a real pointer can hover.
@@ -1861,7 +1864,7 @@
 }
 
 .cellAddedLabel {
-  @include text-caption;
+  @include text-button;
 }
 
 @keyframes cellAddedIn {
