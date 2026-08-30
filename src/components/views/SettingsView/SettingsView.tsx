@@ -63,6 +63,8 @@ export function SettingsView({ serviceOnline, connectionState, platform, tab: ur
       accentSource: ui.accentSource,
       startOnLogin: ui.startOnLogin,
       showConflictAlerts: ui.showConflictAlerts,
+      autoKillConflictsAtStartup: ui.autoKillConflictsAtStartup,
+      conflictAutoKillExclusions: ui.conflictAutoKillExclusions,
       monitoringDetailedCollapsed: ui.monitoringDetailedCollapsed,
       monitoringEventsEnabled: ui.monitoringEventsEnabled,
       monitoringFpsOverlayEnabled: ui.monitoringFpsOverlayEnabled,

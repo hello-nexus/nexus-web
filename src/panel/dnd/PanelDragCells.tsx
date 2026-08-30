@@ -1,4 +1,5 @@
 import { createPortal } from 'react-dom';
+import { Check, Settings } from 'lucide-react';
 import { useDroppable } from '@dnd-kit/core';
 import { useSortable } from '@dnd-kit/sortable';
 import type { CSSProperties } from 'react';
@@ -131,6 +132,7 @@ export function PanelTouchCell({
   onContextMenu,
   cellPointers,
   onSimulatorClick,
+  editHint = false,
   previewLayout = null,
   onSectionNavigate,
   onConfigureWidget,
@@ -161,6 +163,7 @@ export function PanelTouchCell({
     onPointerCancel: (e: React.PointerEvent) => void;
   };
   onSimulatorClick?: () => void;
+  editHint?: boolean;
   previewLayout?: PanelLayout | null;
   onSectionNavigate?: DashboardSectionNavigate;
   onConfigureWidget?: (widget: PanelWidget) => void;
@@ -272,7 +275,7 @@ export function PanelTouchCell({
         {...attributes}
         {...listeners}
       >
-        <div className={`panel-card ${styles.cell}`} data-size={widget.size} style={roundFitStyle(widget)}>
+        <div className={`panel-card ${styles.cell}`} data-size={widget.size} data-widget-type={widget.type} style={roundFitStyle(widget)}>
           <div className={styles.cellScaler} style={{ pointerEvents: 'none' }}>
             <Comp widget={widget} surface={surface} deviceTouch={deviceTouch} />
           </div>
@@ -336,6 +339,7 @@ export function PanelTouchCell({
       <div
         className={`panel-card ${styles.cell} ${pressHint ? styles.cellPressHint : ''}`}
         data-size={widget.size}
+        data-widget-type={widget.type}
         style={roundFitStyle(widget)}
       >
         <div className={styles.cellScaler}>
@@ -352,6 +356,12 @@ export function PanelTouchCell({
             onConfigure={onConfigureWidget ? () => onConfigureWidget(widget) : undefined}
           />
         </div>
+        {editHint && (
+          <div className={styles.cellEditHint} aria-hidden="true">
+            <Settings className={styles.cellEditHintIcon} />
+            <span className={styles.cellEditHintLabel}>{t('panel.simulator.editWidget')}</span>
+          </div>
+        )}
       </div>
       <div className={styles.cellLabelStrip}>
         <WidgetCellLabel label={labelText} />
@@ -393,6 +403,9 @@ export function PanelCatalogCell({
   disabled = false,
   onClick,
   showLabel = true,
+  addedStage = null,
+  onEditAdded,
+  onPointerLeave,
 }: {
   widget: PanelWidget;
   surface?: PanelSurface;
@@ -404,17 +417,37 @@ export function PanelCatalogCell({
   onClick?: () => void;
   /** Presentational mounts (marketing phone mock) drop the name strip. */
   showLabel?: boolean;
+  /**
+   * Post-add confirmation over this card's preview: 'added' is the checkmark
+   * beat, 'edit' the follow-up that points at the widget's settings. Desktop
+   * catalog only; it stays up until the pointer leaves the card, which is also
+   * what re-arms a second add of the same widget.
+   */
+  addedStage?: 'added' | 'edit' | null;
+  onEditAdded?: () => void;
+  onPointerLeave?: () => void;
 }) {
+  const { t } = useTranslation();
   const def = lookupApp(widget.type);
   const span = sizeToSpan(widget.size);
   if (!def) return null;
   // Prefer a static preview facet so streaming-data tiles (monitoring) show
   // frozen mock data in the catalog instead of animating live.
   const Comp = def.Preview ?? def.Widget;
+  // One activation path for click and keyboard: while the post-add overlay is
+  // up the card adds nothing - the 'edit' beat opens the placed widget, and a
+  // second add needs the overlay dismissed first (pointer out, or focus away).
+  const activate = () => {
+    if (addedStage) {
+      if (addedStage === 'edit') onEditAdded?.();
+      return;
+    }
+    onClick?.();
+  };
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (onClick && (e.key === 'Enter' || e.key === ' ')) {
       e.preventDefault();
-      onClick();
+      activate();
     }
   };
   return (
@@ -441,10 +474,14 @@ export function PanelCatalogCell({
       aria-label={label}
       aria-pressed={selected || undefined}
       aria-disabled={disabled || undefined}
-      onClick={disabled ? undefined : onClick}
+      onClick={disabled ? undefined : activate}
       onKeyDown={disabled ? undefined : onKeyDown}
+      // pointerleave covers touch and pen (a tap's implicit release) as well as
+      // the mouse; blur is the keyboard equivalent of moving off the card.
+      onPointerLeave={onPointerLeave}
+      onBlur={onPointerLeave}
     >
-      <div className={`panel-card ${styles.cell}`} data-size={widget.size} style={roundFitStyle(widget)}>
+      <div className={`panel-card ${styles.cell}`} data-size={widget.size} data-widget-type={widget.type} style={roundFitStyle(widget)}>
         <div className={styles.cellScaler} style={{ pointerEvents: 'none' }}>
           <ErrorBoundary label={widget.type}>
             <PanelPreviewProvider value={true}>
@@ -452,6 +489,21 @@ export function PanelCatalogCell({
             </PanelPreviewProvider>
           </ErrorBoundary>
         </div>
+        {addedStage && (
+          <div className={styles.cellAdded} data-stage={addedStage} aria-hidden="true">
+            {addedStage === 'added' ? (
+              <>
+                <Check className={styles.cellAddedIcon} />
+                <span className={styles.cellAddedLabel}>{t('panel.add.added')}</span>
+              </>
+            ) : (
+              <>
+                <Settings className={styles.cellAddedIcon} />
+                <span className={styles.cellAddedLabel}>{t('panel.add.clickToEdit')}</span>
+              </>
+            )}
+          </div>
+        )}
       </div>
       {showLabel && (
         <div className={styles.cellLabelStrip}>
@@ -508,7 +560,7 @@ export function PanelDragOverlayCell({
           '--panel-span-rows': span.rows,
         } as CSSProperties}
       >
-        <div className={`panel-card ${styles.cell}`} data-size={widget.size} style={roundFitStyle(widget)}>
+        <div className={`panel-card ${styles.cell}`} data-size={widget.size} data-widget-type={widget.type} style={roundFitStyle(widget)}>
           <div className={styles.cellScaler} style={{ pointerEvents: 'none' }}>
             <Comp widget={widget} surface={surface} deviceTouch={deviceTouch} />
           </div>

@@ -80,6 +80,13 @@ const STREAMED_PANEL_CAPABILITIES: PanelDeviceCapabilities = {
   touch: false,
 };
 
+// Simulated presets whose real counterpart is not an ordinary widget panel.
+// Anything absent falls back to WIDGET_PANEL_CAPABILITIES.
+const SIMULATED_SURFACE_CAPABILITIES: Partial<Record<PanelSurface, PanelDeviceCapabilities>> = {
+  y70: Y70_CAPABILITIES,
+  kraken: STREAMED_PANEL_CAPABILITIES,
+};
+
 // Per-surface branding for streamed panels; they carry no curated device id to
 // look an icon up from.
 const STREAMED_PANEL_ICONS: Partial<Record<PanelSurface, string>> = {
@@ -260,7 +267,9 @@ export function buildPanelDevices({
       previewSize: { width: panel.width, height: panel.height },
       previewDpi: panel.dpi,
       iconSrc: panelIconForSource(panel.id),
-      capabilities: panel.surface === 'y70' ? Y70_CAPABILITIES : WIDGET_PANEL_CAPABILITIES,
+      // A simulated panel claims the capabilities its real counterpart has:
+      // the Kraken's round glass is driven host-side with no digitizer.
+      capabilities: SIMULATED_SURFACE_CAPABILITIES[panel.surface] ?? WIDGET_PANEL_CAPABILITIES,
       modalKind: panel.surface === 'y70' ? 'y70-compat' : 'panel-editor',
     });
   }

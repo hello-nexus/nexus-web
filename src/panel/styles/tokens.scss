@@ -202,15 +202,22 @@
 
 // Round glass (the Kraken LCD). The size is only offered on square surfaces, so
 // a 50% radius is a true circle rather than an ellipse. The padding here is the
-// inset for plain children; the widget scaler ignores it and paints the circle's
-// inscribed square instead (see the 2x2round rule in PanelApp.module.scss), so
-// the two do not stack.
+// inset for plain children; the widget scaler ignores it and sizes itself from
+// the card instead (see the 2x2round rule in PanelApp.module.scss, which paints
+// deliberately wider than the inscribed square), so the two do not stack.
 .panel-card[data-size='2x2round'] {
   border-radius: 50%;
   padding: 8%;
   // Round glass has no corners to anchor to, and the bezel eats anything that
   // reaches them, so the tile centres its content instead of top-left aligning it.
   display: grid;
+  // One track the size of the content box. Without it the row track auto-sizes
+  // to the child, and the widget scaler lays out at card/--panel-scale - larger
+  // than the card whenever the scale is below 1, as in the add-widget catalog -
+  // so the track grew to fit, place-items had nothing to centre against on the
+  // block axis, and the box sat top-aligned with its centre below the circle's.
+  grid-template-columns: 100%;
+  grid-template-rows: 100%;
   place-items: center;
   text-align: center;
 

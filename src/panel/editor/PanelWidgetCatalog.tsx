@@ -54,9 +54,17 @@ const SIZE_PREF_KEYS: readonly CatalogPreferredSize[] = ['2x2', '4x2'];
 
 type CatalogEntry = ReturnType<typeof getCatalogEntries>[number];
 
+// How long the checkmark holds before the overlay switches to "click to edit".
+const ADDED_BEAT_MS = 900;
+
 export interface PanelWidgetCatalogProps {
   surface: PanelSurface;
-  onAdd: (type: string, size: PanelWidgetSize) => void;
+  // Returns the id of the widget that landed, when the host can report one -
+  // the desktop catalog uses it to offer "click to edit" right after the add.
+  onAdd: (type: string, size: PanelWidgetSize) => string | void;
+  // Opens the just-added widget's settings. Desktop catalog only; without it
+  // the post-add overlay is not shown.
+  onEditWidget?: (widgetId: string) => void;
   // Whether the target grid still has a free slot for a widget of a given
   // size. Cards that would not fit are dimmed and unclickable, with a notice
   // naming the reason. Omitted on surfaces that can spill onto a new page:
@@ -88,6 +96,7 @@ export interface PanelWidgetCatalogProps {
 export function PanelWidgetCatalog({
   surface,
   onAdd,
+  onEditWidget,
   canAddSize,
   placedTypes,
   searchable = true,
@@ -101,6 +110,16 @@ export function PanelWidgetCatalog({
 }: PanelWidgetCatalogProps) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
+  // Post-add confirmation on the card that was just clicked (desktop catalog
+  // only): a checkmark beat, then a "click to edit" beat that opens the placed
+  // widget. It holds until the pointer leaves the card - leaving and coming
+  // back is what re-arms adding a second instance of the same widget.
+  const [added, setAdded] = useState<{ type: string; widgetId: string; stage: 'added' | 'edit' } | null>(null);
+  useEffect(() => {
+    if (!added || added.stage !== 'added') return;
+    const id = setTimeout(() => setAdded(prev => (prev && prev.stage === 'added' ? { ...prev, stage: 'edit' } : prev)), ADDED_BEAT_MS);
+    return () => clearTimeout(id);
+  }, [added]);
   const [preferredSize, setPreferredSize] = usePersistentState<CatalogPreferredSize>(CATALOG_SIZE_KEY, '2x2');
   const changePreferredSize = (key: string) => setPreferredSize(key === '4x2' ? '4x2' : '2x2');
   const sizePrefOptions = SIZE_PREF_KEYS.map(size => ({
@@ -259,7 +278,15 @@ export function PanelWidgetCatalog({
           label={def ? t(def.meta.i18nKey) || w.type : w.type}
           selected={selectedWidgetType === w.type}
           disabled={!addable}
-          onClick={() => onAdd(w.type, w.size)}
+          onClick={() => {
+            const widgetId = onAdd(w.type, w.size);
+            if (variant === 'desktop-modal' && onEditWidget && typeof widgetId === 'string') {
+              setAdded({ type: w.type, widgetId, stage: 'added' });
+            }
+          }}
+          addedStage={added?.type === w.type ? added.stage : null}
+          onEditAdded={added?.type === w.type ? () => onEditWidget?.(added.widgetId) : undefined}
+          onPointerLeave={added?.type === w.type ? () => setAdded(null) : undefined}
         />
       );
     });
