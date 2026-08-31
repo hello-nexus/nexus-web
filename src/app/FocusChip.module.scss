@@ -63,7 +63,7 @@
 
 .label {
   @extend %labelType;
-  color: var(--text);
+  color: var(--accent);
 }
 
 .labelMeasure {

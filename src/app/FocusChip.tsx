@@ -15,6 +15,11 @@ import styles from './FocusChip.module.scss';
 // obvious room to spare.
 const MIN_LABEL_GAP_PX = 32;
 
+// Hysteresis: dropping the label needs it to be this much MORE cramped than
+// showing it did. A drag-resize crosses the threshold continuously, and
+// without a dead band the label flickers on every frame it passes through.
+const LABEL_HIDE_SLACK_PX = 24;
+
 /**
  * Focus indicator and switch in the top bar's left cluster, next to the
  * fullscreen toggle. The icon is the active mode's own, falling back to the
@@ -29,6 +34,9 @@ export function FocusChip({ online }: { online: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLSpanElement>(null);
   const [labelFits, setLabelFits] = useState(false);
+  // Mirrors labelFits for the measurement, which must not re-create itself (and
+  // with it the observer) every time the answer flips.
+  const labelFitsRef = useRef(false);
   useClickOutside(ref, () => setOpen(false), open);
 
   const active = status?.modes.find(m => m.id === status.activeModeId) ?? null;
@@ -60,12 +68,18 @@ export function FocusChip({ online }: { online: boolean }) {
       ? arrows.getBoundingClientRect().left
       : headerBox.left + headerBox.width / 2 - searchWidth / 2;
 
-    const bare = wrap.getBoundingClientRect().right - (labelFits ? needed : 0);
-    setLabelFits(boundary - bare - MIN_LABEL_GAP_PX >= needed);
-  }, [labelFits]);
+    const showing = labelFitsRef.current;
+    const bare = wrap.getBoundingClientRect().right - (showing ? needed : 0);
+    const room = boundary - bare - MIN_LABEL_GAP_PX;
+    const next = showing ? room >= needed - LABEL_HIDE_SLACK_PX : room >= needed;
+    if (next === showing) return;
+    labelFitsRef.current = next;
+    setLabelFits(next);
+  }, []);
 
   useLayoutEffect(() => {
     if (!label) {
+      labelFitsRef.current = false;
       setLabelFits(false);
       return;
     }
