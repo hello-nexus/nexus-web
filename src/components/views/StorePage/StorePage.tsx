@@ -51,8 +51,8 @@ const SUBTITLE_MAX = 40;
  * description, trimmed at a word - the full text is what the About section is
  * for.
  */
-function shortDescription(app: { tagline: string; description: string }): string {
-  const raw = (app.tagline || app.description).trim();
+function shortDescription(app: { tagline?: string; description?: string }): string {
+  const raw = (app.tagline || app.description || '').trim();
   if (!raw) return '';
   const sentence = raw.split(/(?<=[.!?])\s/)[0].replace(/[.]$/, '');
   if (sentence.length <= SUBTITLE_MAX) return sentence;

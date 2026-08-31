@@ -28,7 +28,8 @@ export interface StoreApp {
   name: string;
   /** App Store-style subtitle; empty for an app that has not set one, which is why cards fall back to the description. */
   tagline: string;
-  description: string;
+  /** Optional on the wire: a catalog older than the field omits it entirely, so a client must not assume a string. */
+  description?: string;
   publisher: string;
   category: string;
   iconUrl: string | null;
@@ -37,6 +38,7 @@ export interface StoreApp {
 }
 
 export interface StoreAppDetail extends StoreApp {
+  description: string;
   screenshots: string[];
   versions: Array<{ version: string; releasedAt: string; minNexusVersion: string }>;
 }

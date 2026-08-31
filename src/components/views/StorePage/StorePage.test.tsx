@@ -135,3 +135,16 @@ describe('StorePage subtitle', () => {
     expect(await screen.findByText('Feed the fish')).toBeInTheDocument();
   });
 });
+
+describe('StorePage against an older catalog', () => {
+  it('renders a card when the catalog omits description entirely', async () => {
+    // The deployed catalog predates the field; a client that assumes a string
+    // throws on the first card and takes the whole page with it.
+    const noDescription: Partial<StoreApp> = { ...app };
+    delete noDescription.description;
+    fetchStoreApps.mockResolvedValue([noDescription]);
+    render(<StorePage />);
+
+    expect(await screen.findByText('Aquarium')).toBeInTheDocument();
+  });
+});
