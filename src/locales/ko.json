@@ -2037,7 +2037,7 @@
   "lighting.gameSync.signal.receiving": "{activeApp}에서 수신 중",
   "lighting.gameSync.signal.receivingUnknown": "게임이 조명을 제어하고 있습니다.",
   "lighting.gpuInitializingNotice": "조명을 위해 그래픽 카드를 준비하는 중입니다. 완료될 때까지 장치는 꺼진 상태로 유지됩니다.",
-  "lighting.gpuNotice.pickGpu": "GPU 선택",
+  "lighting.gpuPickGpu": "GPU 선택",
   "lighting.gpuUnavailableNotice": "이 PC에 사용 가능한 GPU가 없어 효과가 여기서 미리보기로 표시되지만 장치에는 적용되지 않습니다.",
   "lighting.layoutPresets.apps": "앱으로 실행...",
   "lighting.layoutPresets.appsClear": "모두 지우기",

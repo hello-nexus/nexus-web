@@ -2037,7 +2037,7 @@
   "lighting.gameSync.signal.receiving": "Empfange von {activeApp}",
   "lighting.gameSync.signal.receivingUnknown": "Ein Spiel steuert Ihre Beleuchtung.",
   "lighting.gpuInitializingNotice": "Die Grafikkarte wird für die Beleuchtung vorbereitet - Ihre Geräte bleiben bis zum Abschluss dunkel.",
-  "lighting.gpuNotice.pickGpu": "GPU wählen",
+  "lighting.gpuPickGpu": "GPU wählen",
   "lighting.gpuUnavailableNotice": "Kein nutzbarer GPU auf diesem PC - der Effekt wird hier als Vorschau angezeigt, leuchtet Ihre Geräte aber nicht.",
   "lighting.layoutPresets.apps": "Mit Apps auslösen...",
   "lighting.layoutPresets.appsClear": "Alle entfernen",

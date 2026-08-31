@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'react';
-import { Hourglass } from 'lucide-react';
+import {  } from 'lucide-react';
 import { useShaderRenderer } from '../../../hooks/useShaderRenderer';
 import { useTranslation } from '../../../lib/i18n';
 import type { EffectState } from '../../../types/lighting';
 import { CanvasNoticeBar } from '../../../components/common/CanvasNoticeBar';
-import { gpuNoticeKey, type GpuState } from '../../../components/common/CanvasNoticeBar/gpuNotice';
+import { gpuNotice, type GpuState } from '../../../components/common/CanvasNoticeBar/gpuNotice';
 import styles from './LightingWidget.module.scss';
 
 /**
@@ -24,7 +24,7 @@ export function LightingShaderPreview({ effect, state, gpuAvailable, gpuState, p
     stateRef.current = state;
   }, [state]);
   const { ready, error } = useShaderRenderer(canvasRef, effect, stateRef, undefined, undefined, paused);
-  const noticeKey = gpuNoticeKey(gpuState, gpuAvailable);
+  const notice = gpuNotice(gpuState, gpuAvailable);
 
   return (
     <div style={{ position: 'absolute', inset: 0 }}>
@@ -34,8 +34,8 @@ export function LightingShaderPreview({ effect, state, gpuAvailable, gpuState, p
         data-ready={ready && !error ? 'true' : 'false'}
         aria-hidden="true"
       />
-      <CanvasNoticeBar visible={noticeKey != null} message={noticeKey ? t(noticeKey) : ''}
-        icon={noticeKey === 'lighting.gpuInitializingNotice' ? <Hourglass size={12} /> : undefined} />
+      <CanvasNoticeBar visible={notice != null} message={notice ? t(notice.key) : ''}
+        tone={notice?.tone} />
     </div>
   );
 }

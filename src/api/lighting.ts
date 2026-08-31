@@ -52,9 +52,8 @@ export async function fetchShaderSource(name: string): Promise<ShaderSource | nu
 
 export interface LightingStatusResponse {
   gpuAvailable: boolean;
-  /** "ready" | "initializing" | "unavailable" - see LightingStatus. */
   gpuState?: 'ready' | 'initializing' | 'unavailable';
-  /** True when a second adapter exists to move rendering to. Windows-only. */
+  /** A second adapter exists to move rendering to. */
   gpuCanSwitch?: boolean;
   /** True while an RGB device detection pass or bridge reconnect is in flight. */
   scanning: boolean;

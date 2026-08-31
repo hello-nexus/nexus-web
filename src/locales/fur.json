@@ -2037,7 +2037,7 @@
   "lighting.gameSync.signal.receiving": "Daûr a ricevi di {activeApp}",
   "lighting.gameSync.signal.receivingUnknown": "Un zûc al controle la tô iluminazion.",
   "lighting.gpuInitializingNotice": "Daûr a preparâ la schede grafiche pe iluminazion - i tiei dispositîfs a restin scûrs fin che al finis.",
-  "lighting.gpuNotice.pickGpu": "Sielç GPU",
+  "lighting.gpuPickGpu": "Sielç GPU",
   "lighting.gpuUnavailableNotice": "Nissun GPU disponibil su chest PC - l'efiet al mostre chi la anteprime, ma nol luminarà i tiei dispositîfs.",
   "lighting.layoutPresets.apps": "Ative cun aplicazions...",
   "lighting.layoutPresets.appsClear": "Nete dut",

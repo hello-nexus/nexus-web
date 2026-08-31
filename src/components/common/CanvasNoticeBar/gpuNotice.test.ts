@@ -1,20 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { gpuNoticeKey } from './gpuNotice';
+import { gpuNotice } from './gpuNotice';
 
-describe('gpuNoticeKey', () => {
+describe('gpuNotice', () => {
   it('says nothing once a context exists', () => {
-    expect(gpuNoticeKey('ready', true)).toBeNull();
+    expect(gpuNotice('ready', true)).toBeNull();
   });
 
   it('separates a card that is still coming up from one that is missing', () => {
-    // Both render black on the devices, but only one is the user's to fix.
-    expect(gpuNoticeKey('initializing', false)).toBe('lighting.gpuInitializingNotice');
-    expect(gpuNoticeKey('unavailable', false)).toBe('lighting.gpuUnavailableNotice');
+    // Both render black on the devices; only one is the user's to fix.
+    expect(gpuNotice('initializing', false)).toEqual({ key: 'lighting.gpuInitializingNotice', tone: 'wait' });
+    expect(gpuNotice('unavailable', false)).toEqual({ key: 'lighting.gpuUnavailableNotice', tone: 'fault' });
   });
 
   it('falls back to the boolean when the service predates gpuState', () => {
-    expect(gpuNoticeKey(undefined, false)).toBe('lighting.gpuUnavailableNotice');
-    expect(gpuNoticeKey(undefined, true)).toBeNull();
-    expect(gpuNoticeKey(undefined, undefined)).toBeNull();
+    expect(gpuNotice(undefined, false)?.key).toBe('lighting.gpuUnavailableNotice');
+    expect(gpuNotice(undefined, true)).toBeNull();
+    expect(gpuNotice(undefined, undefined)).toBeNull();
   });
 });

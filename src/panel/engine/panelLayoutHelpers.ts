@@ -1,4 +1,5 @@
 import type { CollisionDetection } from '@dnd-kit/core';
+import type { SettingsTabKey } from '../../components/views/SettingsView/SettingsView';
 import { snapStride } from './grid';
 import type { PanelLayout, PanelWidget } from '../types';
 import { isPageOnlyAppKey } from '../../app/pageOnlyApps';
@@ -13,10 +14,8 @@ export interface DashboardSectionNavigatePayload {
   // Optional deep-link key. Currently used by the devices widget to
   // ask DevicesPage to auto-open the modal for a specific device.
   deviceKey?: string;
-  // Settings deep-link: which tab to open and which SettingRow anchorId to
-  // scroll to and shine. Used by the lighting canvas notice to hand the user
-  // straight to the render-GPU picker.
-  settingsTab?: string;
+  // Settings deep-link: tab to open, plus the SettingRow anchorId to reveal.
+  settingsTab?: SettingsTabKey;
   settingsAnchor?: string;
 }
 

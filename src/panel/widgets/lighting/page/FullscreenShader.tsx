@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Hourglass } from 'lucide-react';
+import {  } from 'lucide-react';
 import type { AudioSnapshot } from '../../../../hooks/useAudioState';
 import type { EffectState, EffectTemplateBundle } from '../../../../types/lighting';
 import { useShaderRenderer } from '../../../../hooks/useShaderRenderer';
 import { useTranslation } from '../../../../lib/i18n';
 import { CanvasNoticeBar } from '../../../../components/common/CanvasNoticeBar';
-import { gpuNoticeKey, type GpuState } from '../../../../components/common/CanvasNoticeBar/gpuNotice';
+import { gpuNotice, type GpuState } from '../../../../components/common/CanvasNoticeBar/gpuNotice';
 import { AnimateDrawer } from './AnimateDrawer';
 import styles from './FullscreenShader.module.scss';
 
@@ -36,7 +36,7 @@ export function FullscreenShader({
   onTemplateSelect, onChange, onCommit, onReset, onClose, onPrev, onNext, panelSlots, gpuAvailable, gpuState, paused,
 }: FullscreenShaderProps) {
   const { t } = useTranslation();
-  const noticeKey = gpuNoticeKey(gpuState, gpuAvailable);
+  const notice = gpuNotice(gpuState, gpuAvailable);
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef(state);
@@ -91,8 +91,8 @@ export function FullscreenShader({
   return (
     <div ref={containerRef} className={styles.container} onMouseMove={handleMouseMove}>
       <canvas ref={canvasRef} className={styles.canvas} onClick={handleCanvasClick} />
-      <CanvasNoticeBar visible={noticeKey != null} message={noticeKey ? t(noticeKey) : ''}
-        icon={noticeKey === 'lighting.gpuInitializingNotice' ? <Hourglass size={12} /> : undefined} />
+      <CanvasNoticeBar visible={notice != null} message={notice ? t(notice.key) : ''}
+        tone={notice?.tone} />
       {loading && <div className={styles.overlay}>{t('lighting.fullscreen.loadingShader')}</div>}
       {error && <div className={styles.overlay}>{error}</div>}
       <button type="button" aria-label={t('lighting.fullscreen.prevEffect')} className={`${styles.navZone} ${styles.navZoneLeft}`} onClick={onPrev}>

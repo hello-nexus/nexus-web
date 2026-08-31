@@ -22,6 +22,12 @@
   color: rgb(255 200 0 / 0.85);
 }
 
+// A self-resolving wait is not an alert.
+.iconWait {
+  composes: icon;
+  color: rgb(255 255 255 / 0.6);
+}
+
 .message {
   min-width: 0;
 }
@@ -29,5 +35,5 @@
 .action {
   flex-shrink: 0;
   margin-left: auto;
-  pointer-events: auto; // the bar is pointer-events: none
+  pointer-events: auto; // the bar itself is click-through
 }

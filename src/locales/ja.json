@@ -2037,7 +2037,7 @@
   "lighting.gameSync.signal.receiving": "{activeApp} から受信中",
   "lighting.gameSync.signal.receivingUnknown": "ゲームが照明を制御しています。",
   "lighting.gpuInitializingNotice": "ライティング用にグラフィックカードを準備しています。完了するまでデバイスは消灯したままです。",
-  "lighting.gpuNotice.pickGpu": "GPUを選択",
+  "lighting.gpuPickGpu": "GPUを選択",
   "lighting.gpuUnavailableNotice": "このPCに使用可能なGPUがないため、エフェクトはここでプレビューされますが、デバイスは点灯しません。",
   "lighting.layoutPresets.apps": "アプリで起動...",
   "lighting.layoutPresets.appsClear": "すべて解除",

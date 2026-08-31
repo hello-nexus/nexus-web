@@ -145,13 +145,11 @@ function loadDeviceOrder(): string[] {
 export function LightingPage({ serviceOnline, serviceState, connectionState, activeProfileId, platform = '', onSectionNavigate }: LightingViewProps) {
   const { t, language } = useTranslation();
   const { mode, setMode, rawSync, setRawSync, synced, paused: syncedPaused } = useLightingSync(serviceOnline, activeProfileId);
-  // The service reports whether a second adapter exists; reading it from the
-  // lighting status avoids subscribing this page to the monitoring topics just
-  // to count GPUs. Offered only for a card that FAILED - during "initializing"
-  // the picker would restart the service and discard the very context the
-  // notice is asking the user to wait for.
-  const canPickRenderGpu = (platform === 'windows' || platform === 'linux')
-    && (serviceState.lighting?.gpuCanSwitch ?? false)
+  // gpuCanSwitch comes from the same enumeration the Settings picker gates on,
+  // so the shortcut never lands on a tab with no GPU control. Offered only for a
+  // card that failed: while initializing, the picker restarts the service and
+  // discards the context the notice is waiting for.
+  const canPickRenderGpu = (serviceState.lighting?.gpuCanSwitch ?? false)
     && serviceState.lighting?.gpuState === 'unavailable';
   const handlePickRenderGpu = useCallback(() => {
     onSectionNavigate?.('settings', { settingsTab: 'lighting-cooling', settingsAnchor: 'set-render-gpu' });

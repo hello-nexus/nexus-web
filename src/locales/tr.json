@@ -2037,7 +2037,7 @@
   "lighting.gameSync.signal.receiving": "{activeApp} kaynağından alınıyor",
   "lighting.gameSync.signal.receivingUnknown": "Bir oyun aydınlatmanızı yönetiyor.",
   "lighting.gpuInitializingNotice": "Aydınlatma için ekran kartı hazırlanıyor - işlem bitene kadar cihazlarınız kapalı kalır.",
-  "lighting.gpuNotice.pickGpu": "GPU seç",
+  "lighting.gpuPickGpu": "GPU seç",
   "lighting.gpuUnavailableNotice": "Bu PC'de kullanılabilir GPU yok - efekt burada önizleniyor, ancak cihazlarınızı aydınlatmayacak.",
   "lighting.layoutPresets.apps": "Uygulamalarla tetikle...",
   "lighting.layoutPresets.appsClear": "Tümünü temizle",

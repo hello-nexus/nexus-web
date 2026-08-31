@@ -15,9 +15,8 @@ describe('CanvasNoticeBar', () => {
   });
 
   it('offers the fix-it action and calls back on click', () => {
-    // The bar is pointer-events: none so canvas drags pass through it; the
-    // button opts back in. A regression here is silent - the notice still
-    // paints, the button just stops responding.
+    // The bar is click-through; a regression here is silent - the notice still
+    // paints and the button stops responding.
     const onClick = vi.fn();
     render(<CanvasNoticeBar visible message="No usable GPU" action={{ label: 'Choose GPU', onClick }} />);
     fireEvent.click(screen.getByRole('button', { name: 'Choose GPU' }));
