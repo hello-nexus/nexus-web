@@ -72,6 +72,7 @@ import { saveBlobToFile } from '../../../lib/saveFile';
 import { sanitizeFileName } from '../../../panel/widgets/lighting/page/mappingUtils';
 import { QSeriesCoolerSettings } from './QSeriesCoolerSettings';
 import { KrakenCoolerSettings } from './KrakenCoolerSettings';
+import { CorsairLcdSettings } from './CorsairLcdSettings';
 import { useFirmwareStatus } from '../../../hooks/useFirmwareStatus';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { Button } from '../../common/Button/Button';
@@ -327,6 +328,9 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // tab (brightness/backlight/contrast/RGB) must stay reachable even when
   // this host implements neither DDC nor OS rotation.
   const isXeneonEdgePanel = isMonitorPanel && recordFamily === 'xeneon-edge';
+  // The iCUE LINK cooler's LCD: its screen module's own controls live in this tab, the
+  // way the Kraken's cooler does. Other 'lcd-round' panels have no control channel.
+  const isCorsairLinkLcdPanel = recordFamily === 'corsair-link-lcd' && !isSimulated;
   // The Xeneon Edge's native settings block (msgid 0x0e read, ~1s on the
   // bench) - null hides the whole block until the read completes.
   const [xeneonSettings, setXeneonSettings] = useState<XeneonEdgeSettingsValues | null>(null);
@@ -1223,7 +1227,10 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                       <QSeriesCoolerSettings />
                     </div>
                   )}
-                  {activeTab === 'settings' && surfaceSupportsMountOrientation(surface) && !isSimulated && (
+                  {/* The iCUE LINK LCD rotates in firmware across all four quarter turns
+                      (its own section below), so the software flip would double-apply. */}
+                  {activeTab === 'settings' && surfaceSupportsMountOrientation(surface) && !isSimulated
+                    && !isCorsairLinkLcdPanel && (
                     <div className={styles.settingsContent}>
                       <SettingsSection title={t('devices.lcd.mounting')} boxClassName={styles.deviceSettingsBox}>
                         <SettingToggle
@@ -1245,6 +1252,11 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                           }}
                         />
                       </SettingsSection>
+                    </div>
+                  )}
+                  {activeTab === 'settings' && isCorsairLinkLcdPanel && (
+                    <div className={styles.settingsContent}>
+                      <CorsairLcdSettings />
                     </div>
                   )}
                   {activeTab === 'settings' && surface === 'kraken' && !isSimulated && (
