@@ -157,6 +157,19 @@ export const UI_ELEMENTS = {
   'ui-clockface': {
     properties: ['nowMs', 'design', 'tz', 'showSeconds', 'showDate', 'hour12', 'useAccentColor', 'size'],
   },
+  // First-party 3D avatar (three.js), rendered host-side and driven by
+  // signals: `dance`/`listening`/`energy` map to the pack's NexusBridge
+  // signals (media:playing / discord:talking-silent / system:energy);
+  // `reaction` is a one-shot "TriggerName#seq" (seq increments so a repeat
+  // re-fires) played directly on the animator; `intro` plays the walk-in +
+  // camera push-in once on mount (default false); `interactive` toggles
+  // pointer orbit/zoom (default true), applied only inside the panel's
+  // fullscreen immersive overlay - in a tile the canvas is always inert so a
+  // tap falls through to tap-to-immersive. `pack` is a URL to a pack
+  // directory or an encrypted .nxpack container.
+  'ui-avatar': {
+    properties: ['pack', 'dance', 'listening', 'energy', 'reaction', 'intro', 'interactive', 'demo'],
+  },
   // Standard page header - gives SDK pages the same title/tab chrome native pages
   // use. `tabs` is [{ key, label, disabled? }]; the host fires `change` with the key.
   'ui-viewheader': {

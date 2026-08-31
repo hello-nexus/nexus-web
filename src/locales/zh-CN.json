@@ -3300,6 +3300,7 @@
   "screentime.weekAverage": "日均",
   "screentime.weekTitle": "最近 7 天",
   "screentime.weekTotal": "本周总计",
+  "sdk.avatar.loadError": "无法加载此角色。",
   "sdk.copybutton.copied": "已复制到剪贴板",
   "sdk.copybutton.copy": "复制到剪贴板",
   "sdk.mediaimport.choose": "选择视频",

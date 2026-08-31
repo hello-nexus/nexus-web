@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from 'react';
 import { usePanelSheetSwipe } from '../engine/usePanelSheetSwipe';
 import { ImmersiveExitProvider } from './immersiveExit';
+import { PanelImmersiveProvider } from '../widgets/common/PanelImmersiveContext';
 import { useModalA11y } from '../../components/common/Overlay/useModalA11y';
 import { useTranslation } from '../../lib/i18n';
 import styles from './PanelImmersiveOverlay.module.scss';
@@ -185,7 +186,9 @@ export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, them
       onPointerMove={handlePointerMove}
     >
       <div className={styles.body}>
-        <ImmersiveExitProvider value={beginExit}>{children}</ImmersiveExitProvider>
+        <ImmersiveExitProvider value={beginExit}>
+          <PanelImmersiveProvider value={true}>{children}</PanelImmersiveProvider>
+        </ImmersiveExitProvider>
       </div>
       <button
         type="button"

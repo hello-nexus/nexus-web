@@ -22,9 +22,13 @@ export interface SdkMarketplaceWidgetProps {
   listing: AppInstalledListing;
   size: string;
   instanceId: string;
+  /** Worker render surface. 'immersive' spawns a SEPARATE worker (own
+   *  keep-alive cache key) so closing the fullscreen overlay never disposes
+   *  the tile's live worker. Default 'cell'. */
+  sandboxSurface?: 'cell' | 'immersive';
 }
 
-export function SdkMarketplaceWidget({ listing, instanceId }: SdkMarketplaceWidgetProps) {
+export function SdkMarketplaceWidget({ listing, instanceId, sandboxSurface }: SdkMarketplaceWidgetProps) {
   const { t } = useTranslation();
   const preview = usePanelPreview();
   const { entryUrl, failed: bundleFailed } = useSdkBundle(listing.id);
@@ -63,6 +67,7 @@ export function SdkMarketplaceWidget({ listing, instanceId }: SdkMarketplaceWidg
       entryUrl={entryUrl}
       widgetId={listing.id}
       instanceId={instanceId}
+      surface={sandboxSurface}
       settings={settings}
       netFetch={netFetch}
       sensorsRead={sensorsRead}

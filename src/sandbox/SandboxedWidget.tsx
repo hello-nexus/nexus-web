@@ -3,6 +3,7 @@
 // renders the worker's remote tree as real @hellonexus/ui components. A pure
 // flex-fill container, like DeclarativeWidget, since the panel cell sizes it.
 
+import { DEV_TOOLS } from '../lib/devTools';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { RemoteTree } from './RemoteTree';
 import { SdkErrorBoundary } from './SdkErrorBoundary';
@@ -22,9 +23,13 @@ export interface SandboxedWidgetProps {
   netFetch?: string[];
   /** Cert/manifest sensors.read pattern allowlist (e.g. ["cpu.*"]). */
   sensorsRead?: string[];
-  /** Which surface to render: 'cell' (panel tile, default) or 'page' (expanded
-   *  full view). The page is a separate worker render of the same bundle. */
-  surface?: 'cell' | 'page';
+  /** Which surface to render: 'cell' (panel tile, default), 'page' (expanded
+   *  full view), or 'immersive' (fullscreen overlay). Each is a separate
+   *  worker render of the same bundle - the distinct cache key keeps an
+   *  immersive mount from adopting (and then disposing) the tile's live
+   *  worker. The worker itself only ever sees the published 'cell' | 'page'
+   *  contract; 'immersive' collapses to 'cell' in its init context. */
+  surface?: 'cell' | 'page' | 'immersive';
   /** Catalog preview - host I/O stubbed (persistLocal no-op, dispatch resolves
    *  { ok: false }); the app branches via the SDK's usePreview(). */
   preview?: boolean;
@@ -107,8 +112,12 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
       const context: SandboxContext = {
         instanceId,
         widgetId,
-        surface: surface ?? 'cell',
+        // 'immersive' is host-side only (own worker + cache key); the worker
+        // contract (useSurface) knows 'cell' | 'page', and the immersive
+        // worker renders the cell face.
+        surface: surface === 'page' ? 'page' : 'cell',
         preview: !!preview,
+        devTools: DEV_TOOLS,
         size,
         settings: settings ?? {},
         local: readLocal(widgetId, instanceId),
