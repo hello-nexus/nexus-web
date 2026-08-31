@@ -1,4 +1,4 @@
-import { BellOff, Cloud, Gamepad2, MonitorOff, SquareDashed } from 'lucide-react';
+import { BellOff, Cloud, Gamepad2, MonitorOff } from 'lucide-react';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingSelect, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { useGameMode } from '../../../hooks/useGameMode';
@@ -20,10 +20,7 @@ export function GameModeSection({ serviceOnline }: { serviceOnline: boolean }) {
   const disabled = !serviceOnline || !status;
 
   return (
-    <SettingsSection
-      title={t('gameMode.title')}
-      description={<span>{t('gameMode.description')}</span>}
-    >
+    <SettingsSection title={t('gameMode.title')}>
       <SettingSelect
         label={t('gameMode.state.label')}
         anchorId="set-game-mode"
@@ -63,16 +60,6 @@ export function GameModeSection({ serviceOnline }: { serviceOnline: boolean }) {
         description={t('gameMode.displaysOff.description')}
         checked={effects?.turnPanelDisplaysOff ?? false}
         onChange={() => void setEffects({ turnPanelDisplaysOff: !effects?.turnPanelDisplaysOff })}
-        disabled={disabled}
-      />
-      <SettingToggle
-        label={t('gameMode.renderStop.label')}
-        anchorId="set-game-mode-rendering"
-        icon={<SquareDashed />}
-        iconLeading="subtle"
-        description={t('gameMode.renderStop.description')}
-        checked={effects?.stopPanelRendering ?? false}
-        onChange={() => void setEffects({ stopPanelRendering: !effects?.stopPanelRendering })}
         disabled={disabled}
       />
     </SettingsSection>

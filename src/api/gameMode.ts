@@ -16,7 +16,6 @@ export interface GameModeEffects {
   holdNotifications: boolean;
   holdBackgroundNetwork: boolean;
   turnPanelDisplaysOff: boolean;
-  stopPanelRendering: boolean;
   exitGraceSeconds: number;
 }
 

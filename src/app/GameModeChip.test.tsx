@@ -26,7 +26,6 @@ function statusFor(overrides: Partial<GameModeStatus> = {}): GameModeStatus {
       holdNotifications: true,
       holdBackgroundNetwork: true,
       turnPanelDisplaysOff: false,
-      stopPanelRendering: false,
       exitGraceSeconds: 30,
     },
     ...overrides,
@@ -39,10 +38,18 @@ describe('GameModeChip', () => {
     status = null;
   });
 
-  it('renders nothing while Game Mode is inactive', () => {
-    status = statusFor({ active: false });
-    const { container } = render(<GameModeChip online onNavigateSettings={() => {}} />);
-    expect(container).toBeEmptyDOMElement();
+  it('stays visible while inactive so it can switch the mode on', () => {
+    status = statusFor({ active: false, reason: '', games: [] });
+    render(<GameModeChip online onNavigateSettings={() => {}} />);
+    expect(screen.getByText('gameMode.title')).toBeInTheDocument();
+  });
+
+  it('switches the mode on from the popover while inactive', () => {
+    status = statusFor({ active: false, reason: '', games: [] });
+    render(<GameModeChip online onNavigateSettings={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: /gameMode.title/ }));
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'gameMode.state.on' }));
+    expect(setState).toHaveBeenCalledWith('on');
   });
 
   it('renders nothing before the first status arrives', () => {
