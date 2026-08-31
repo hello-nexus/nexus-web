@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Boxes, ChevronLeft, Sparkles } from 'lucide-react';
+import { Boxes, ChevronLeft, ShoppingBag } from 'lucide-react';
 import { Card } from '../../common/Card/Card';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
@@ -42,9 +42,23 @@ function iconFor(app: { id: string; iconUrl: string | null }, installed?: Instal
   return app.iconUrl ?? installed?.iconUrl ?? null;
 }
 
-/** The App Store subtitle line: the app's own one-liner, never the publisher. */
+/** App Store subtitles are 30 characters; past this a card line stops being a subtitle. */
+const SUBTITLE_MAX = 40;
+
+/**
+ * The App Store subtitle line: the app's own short line, never the publisher.
+ * An app that set no tagline falls back to the first sentence of its
+ * description, trimmed at a word - the full text is what the About section is
+ * for.
+ */
 function shortDescription(app: { tagline: string; description: string }): string {
-  return app.tagline || app.description;
+  const raw = (app.tagline || app.description).trim();
+  if (!raw) return '';
+  const sentence = raw.split(/(?<=[.!?])\s/)[0].replace(/[.]$/, '');
+  if (sentence.length <= SUBTITLE_MAX) return sentence;
+  const cut = sentence.slice(0, SUBTITLE_MAX);
+  const lastSpace = cut.lastIndexOf(' ');
+  return `${(lastSpace > 0 ? cut.slice(0, lastSpace) : cut).trimEnd()}\u2026`;
 }
 
 function InstallButton({ app, installedVersion, onNeedsSignIn }: {
@@ -121,7 +135,7 @@ function AppCard({ app, installed, onOpen }: {
       onClick={onOpen}
       icon={<AppIcon app={app} installed={installed} />}
       title={app.name}
-      subtitle={shortDescription(app)}
+      subtitle={<span className={styles.cardSubtitle}>{shortDescription(app)}</span>}
       truncateSubtitle
     >
       {installed && <span className={styles.installedTag}>{t('store.installed')}</span>}
@@ -133,7 +147,7 @@ function StoreBanner() {
   const { t } = useTranslation();
   return (
     <div className={styles.banner}>
-      <Sparkles className={styles.bannerIcon} size={22} aria-hidden={true} />
+      <ShoppingBag className={styles.bannerIcon} size={22} aria-hidden={true} />
       <div className={styles.bannerText}>
         <h2 className={styles.bannerTitle}>{t('store.banner.title')}</h2>
         <p className={styles.bannerBody}>{t('store.banner.body')}</p>
@@ -172,7 +186,7 @@ function AppDetail({ appId, onBack, installed, onNeedsSignIn }: {
       <Card
         icon={<AppIcon app={app} installed={installed} large />}
         title={app.name}
-        subtitle={shortDescription(app)}
+        subtitle={<span className={styles.cardSubtitle}>{shortDescription(app)}</span>}
         actions={(
           <div className={styles.cardActions}>
             <InstallButton app={app} installedVersion={installed?.version} onNeedsSignIn={onNeedsSignIn} />

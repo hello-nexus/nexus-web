@@ -112,6 +112,12 @@
 
 
 
+// Card subtitles are monospaced by default (they usually carry an id); an
+// app's one-liner is prose.
+.cardSubtitle {
+  font-family: var(--font-sans);
+}
+
 .installedTag,
 .installedVersion {
   font-size: var(--type-tiny);
@@ -233,9 +239,15 @@
   border-top: var(--border-width) solid var(--separator);
 }
 
+// The shared modal box, same recipe as ConfirmModal/PromptModal: Overlay's
+// surface paints nothing and every consumer brings its own chrome.
 .signInModal {
-  width: min(26rem, 92vw);
-  padding: 1.5rem;
+  background: var(--backdrop-base);
+  border: 1px solid transparent;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  width: min(420px, 100%);
+  padding: 1.5rem 1.5rem 1.25rem;
 }
 
 .signInBody {

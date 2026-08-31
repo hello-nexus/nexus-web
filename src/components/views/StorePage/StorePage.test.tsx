@@ -48,7 +48,7 @@ const app: StoreApp = {
   id: 'com.hellonexus.aquarium',
   name: 'Aquarium',
   tagline: '',
-  description: 'A pixel-art fish you can feed.',
+  description: 'A pixel-art fish you can feed. Tap the water to drop food; the fish swims over, eats, and grows.',
   publisher: 'Nexus',
   category: 'other',
   iconUrl: null,
@@ -77,10 +77,12 @@ describe('StorePage storefront', () => {
     expect(screen.getByText('store.section.apps')).toBeInTheDocument();
   });
 
-  it('gives a card the app one-liner, never the publisher, and no Install button', async () => {
+  it('gives a card a short line from the app, never the publisher, and no Install button', async () => {
     render(<StorePage />);
 
-    expect(await screen.findByText('A pixel-art fish you can feed.')).toBeInTheDocument();
+    // The subtitle is the first sentence only; the rest is what About is for.
+    expect(await screen.findByText('A pixel-art fish you can feed')).toBeInTheDocument();
+    expect(screen.queryByText(/Tap the water/)).not.toBeInTheDocument();
     expect(screen.queryByText('Nexus')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'store.install' })).not.toBeInTheDocument();
     expect(screen.queryByText('store.noRatings')).not.toBeInTheDocument();
@@ -112,5 +114,24 @@ describe('StorePage app page', () => {
     expect(await screen.findByText('store.installedVersion version=1.0.1')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'store.update' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'store.delete' })).toBeInTheDocument();
+  });
+});
+
+describe('StorePage subtitle', () => {
+  it('trims a long one-liner at a word rather than running the card wide', async () => {
+    fetchStoreApps.mockResolvedValue([{
+      ...app,
+      description: 'Ninomae Inanis as an interactive character companion that lives on the panel',
+    }]);
+    render(<StorePage />);
+
+    expect(await screen.findByText('Ninomae Inanis as an interactive\u2026')).toBeInTheDocument();
+  });
+
+  it('prefers a tagline the app set over its description', async () => {
+    fetchStoreApps.mockResolvedValue([{ ...app, tagline: 'Feed the fish' }]);
+    render(<StorePage />);
+
+    expect(await screen.findByText('Feed the fish')).toBeInTheDocument();
   });
 });
