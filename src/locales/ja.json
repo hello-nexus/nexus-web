@@ -2835,7 +2835,6 @@
   "panel.widget.advancedMode": "詳細モード",
   "panel.widget.benchmark": "ベンチマーク",
   "panel.widget.blocks": "ブロック",
-  "panel.widget.blocks.best": "自己ベスト: {score}",
   "panel.widget.blocks.boardLabel": "ブロックのゲームボード",
   "panel.widget.blocks.combo": "コンボ x{combo}",
   "panel.widget.blocks.gameOver.anonymous": "匿名",

@@ -2861,7 +2861,6 @@
   "panel.widget.advancedMode": "Tryb zaawansowany",
   "panel.widget.benchmark": "Benchmark",
   "panel.widget.blocks": "Bloki",
-  "panel.widget.blocks.best": "Rekord: {score}",
   "panel.widget.blocks.boardLabel": "Plansza gry Bloki",
   "panel.widget.blocks.combo": "Combo x{combo}",
   "panel.widget.blocks.gameOver.anonymous": "Anonimowy",

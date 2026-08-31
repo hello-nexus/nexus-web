@@ -2835,7 +2835,6 @@
   "panel.widget.advancedMode": "Gelişmiş mod",
   "panel.widget.benchmark": "Benchmark",
   "panel.widget.blocks": "Bloklar",
-  "panel.widget.blocks.best": "Rekor: {score}",
   "panel.widget.blocks.boardLabel": "Bloklar oyun tahtası",
   "panel.widget.blocks.combo": "Kombo x{combo}",
   "panel.widget.blocks.gameOver.anonymous": "Anonim",

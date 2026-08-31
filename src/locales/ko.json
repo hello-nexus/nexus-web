@@ -2835,7 +2835,6 @@
   "panel.widget.advancedMode": "고급 모드",
   "panel.widget.benchmark": "벤치마크",
   "panel.widget.blocks": "블록",
-  "panel.widget.blocks.best": "최고 기록: {score}",
   "panel.widget.blocks.boardLabel": "블록 게임 보드",
   "panel.widget.blocks.combo": "콤보 x{combo}",
   "panel.widget.blocks.gameOver.anonymous": "익명",

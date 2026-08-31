@@ -2835,7 +2835,6 @@
   "panel.widget.advancedMode": "Modo avanzado",
   "panel.widget.benchmark": "Benchmark",
   "panel.widget.blocks": "Bloques",
-  "panel.widget.blocks.best": "Récord: {score}",
   "panel.widget.blocks.boardLabel": "Tablero de Bloques",
   "panel.widget.blocks.combo": "Combo x{combo}",
   "panel.widget.blocks.gameOver.anonymous": "Anónimo",

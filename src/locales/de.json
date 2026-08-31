@@ -2835,7 +2835,6 @@
   "panel.widget.advancedMode": "Erweiterter Modus",
   "panel.widget.benchmark": "Benchmark",
   "panel.widget.blocks": "Blöcke",
-  "panel.widget.blocks.best": "Rekord: {score}",
   "panel.widget.blocks.boardLabel": "Blöcke-Spielfeld",
   "panel.widget.blocks.combo": "Kombo x{combo}",
   "panel.widget.blocks.gameOver.anonymous": "Anonym",

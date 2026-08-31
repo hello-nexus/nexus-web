@@ -2861,7 +2861,6 @@
   "panel.widget.advancedMode": "Расширенный режим",
   "panel.widget.benchmark": "Бенчмарк",
   "panel.widget.blocks": "Блоки",
-  "panel.widget.blocks.best": "Рекорд: {score}",
   "panel.widget.blocks.boardLabel": "Игровое поле «Блоки»",
   "panel.widget.blocks.combo": "Комбо x{combo}",
   "panel.widget.blocks.gameOver.anonymous": "Аноним",

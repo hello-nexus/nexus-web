@@ -99,11 +99,19 @@ const PREVIEW_CONTENT: Record<string, string[]> = {
   // The mocked t() returns keys, so the fixture's machineName surfaces as the
   // idle 'transfer.sendTo' status line rather than 'Nexus-PC' itself.
   transfer: ['transfer.photo', 'transfer.clipboard', 'transfer.sendTo'],
-  // The mocked t() drops interpolation params, so the best-score fixture
-  // value never renders - assert on the keys the tile always shows instead.
-  snake: ['panel.widget.snake.best', 'panel.widget.snake.play'],
-  blocks: ['panel.widget.blocks.best', 'panel.widget.blocks.play'],
+  // Static tiles - no fixture at all, so assert on the keys they always show.
+  // Title keys go in EXACT_PREVIEW_CONTENT: they are prefixes of the play key,
+  // so a substring match on them would pass with the title element deleted.
+  snake: ['panel.widget.snake.play'],
+  blocks: ['panel.widget.blocks.play'],
   processes: ['chrome', 'Nexus', '12.4%', '8.2%', '2.7 GB'],
+};
+
+// Same contract as PREVIEW_CONTENT, matched whole-string - for text that is a
+// prefix of other text the same tile renders.
+const EXACT_PREVIEW_CONTENT: Record<string, string[]> = {
+  snake: ['panel.widget.snake'],
+  blocks: ['panel.widget.blocks'],
 };
 
 function panelWidget(type: string, size: PanelWidgetSize): PanelWidget {
@@ -178,11 +186,15 @@ describe('widget preview mode', () => {
     }
 
     const expected = PREVIEW_CONTENT[type];
-    if (expected) {
+    const expectedExact = EXACT_PREVIEW_CONTENT[type];
+    if (expected || expectedExact) {
       it(`${type} preview shows fixture content`, () => {
         renderPreview(type, pickerSize);
-        for (const text of expected) {
+        for (const text of expected ?? []) {
           expect(screen.getAllByText(text, { exact: false }).length).toBeGreaterThan(0);
+        }
+        for (const text of expectedExact ?? []) {
+          expect(screen.getAllByText(text, { exact: true }).length).toBeGreaterThan(0);
         }
       });
     }

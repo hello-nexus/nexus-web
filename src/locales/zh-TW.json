@@ -2835,7 +2835,6 @@
   "panel.widget.advancedMode": "進階模式",
   "panel.widget.benchmark": "基準測試",
   "panel.widget.blocks": "方塊",
-  "panel.widget.blocks.best": "最高分: {score}",
   "panel.widget.blocks.boardLabel": "方塊遊戲面板",
   "panel.widget.blocks.combo": "連擊 x{combo}",
   "panel.widget.blocks.gameOver.anonymous": "匿名",
