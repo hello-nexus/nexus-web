@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import hoverGuard from './scripts/hover-guard-postcss'
 import { readFileSync } from 'fs'
 import { resolve } from 'path'
 
@@ -36,6 +37,10 @@ const officialBuild = (() => {
 
 export default defineConfig({
   plugins: [react()],
+  // Runs after the sass preprocessor, so it sees resolved selectors rather
+  // than the `&:hover` most of them are authored as. Pairs with
+  // src/lib/hoverGuard.ts.
+  css: { postcss: { plugins: [hoverGuard()] } },
   define: {
     __APP_VERSION__: JSON.stringify(appVersion),
     __SERVICE_BUILD__: JSON.stringify(isServiceBuild),
