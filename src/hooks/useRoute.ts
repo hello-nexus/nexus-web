@@ -8,6 +8,7 @@ import { useState, useEffect, useCallback, useRef, startTransition } from 'react
  *   /system                    → redirect to /system/dashboard
  *   /system/:view              → MonitoringView, LightingView, etc.
  *   /system/:view/:subtab      → e.g. /system/monitoring/cpu
+ *   /store, /store/:appId      → the storefront, top-level rather than under /system
  *   /touch                     → panel kiosk entrypoint (handled before this hook)
  */
 
@@ -26,6 +27,9 @@ const DEFAULT_SETTINGS_SUBTAB = 'general';
 
 const VALID_SECTIONS: readonly string[] = ['system'];
 
+/** Lives at /store rather than /system/store; still a 'system' section view internally. */
+const STORE_VIEW = 'store';
+
 function isSection(s: string): s is Section {
   return VALID_SECTIONS.includes(s);
 }
@@ -33,6 +37,12 @@ function isSection(s: string): s is Section {
 function parsePath(): Route {
   const parts = window.location.pathname.split('/').filter(Boolean);
   const rawSection = parts[0] || '';
+
+  // The store is a storefront, not a system surface, so it owns a top-level
+  // path: /store and /store/<appId>. Everything else stays under /system.
+  if (rawSection === STORE_VIEW) {
+    return { section: 'system', view: STORE_VIEW, subtab: parts[1] || null };
+  }
 
   // Handle legacy flat routes (e.g. /monitoring, /cooling, /settings)
   const SERVICE_VIEWS = ['dashboard', 'monitoring', 'lighting', 'cooling', 'devices', 'device', 'displays', 'clock', 'gallery', 'settings', 'profiles', 'account', 'tools'];
@@ -75,6 +85,9 @@ function normalizeSystemRoute(route: Route): Route {
 }
 
 function buildPath(section: Section, view?: string | null, subtab?: string | null): string {
+  if (view === STORE_VIEW) {
+    return subtab ? `/${STORE_VIEW}/${subtab}` : `/${STORE_VIEW}`;
+  }
   let path = `/${section}`;
   if (view) {
     path += `/${view}`;

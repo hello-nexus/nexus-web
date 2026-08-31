@@ -77,4 +77,29 @@ describe('useRoute', () => {
     expect(result.current.subtab).toBe('general');
     expect(window.location.pathname).toBe('/system/settings/general');
   });
+  it('keeps the store at a top-level path rather than under /system', () => {
+    const { result } = renderHook(() => useRoute());
+
+    act(() => result.current.navigate('system', 'store'));
+
+    expect(result.current.view).toBe('store');
+    expect(window.location.pathname).toBe('/store');
+  });
+
+  it('carries an app id in the store path, dots and all', () => {
+    const { result } = renderHook(() => useRoute());
+
+    act(() => result.current.navigate('system', 'store', 'com.hellonexus.aquarium'));
+
+    expect(window.location.pathname).toBe('/store/com.hellonexus.aquarium');
+  });
+
+  it('opens the app a /store deep link names', () => {
+    window.history.replaceState(null, '', '/store/com.hellonexus.aquarium');
+
+    const { result } = renderHook(() => useRoute());
+
+    expect(result.current.view).toBe('store');
+    expect(result.current.subtab).toBe('com.hellonexus.aquarium');
+  });
 });
