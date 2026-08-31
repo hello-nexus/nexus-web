@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ArrowLeft, Film, Trash2, Users } from 'lucide-react';
+import { EpicIcon, SteamIcon } from '../../../components/icons/PlatformIcons';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { Card } from '../../../components/common/Card/Card';
 import { ConfirmModal } from '../../../components/common/ConfirmModal/ConfirmModal';
@@ -210,10 +211,10 @@ function GameCard({
       </div>
       <div className={styles.gameCardBody}>
         <div className={styles.gameCardName}>{game.name}</div>
-        <Badge label={game.store} />
         <div className={styles.gameCardAvg}>
           <span className={styles.gameCardAvgValue}>{Math.round(game.avgFps)}</span>
           <span className={styles.gameCardAvgUnit}>{t('frames.card.fpsUnit')}</span>
+          <StoreMark store={game.store} />
         </div>
         <div className={styles.gameCardSecondary}>
           <span className={styles.gameCardSecondaryValue}>{Math.round(game.p1Fps)}</span>
@@ -498,6 +499,17 @@ function DiscoverTab() {
  */
 // Below this an image is square enough to be an icon rather than a capsule.
 const SQUARE_ART_RATIO = 1.3;
+
+/** The store a game came from, as its own mark; unknown stores keep the text badge. */
+function StoreMark({ store }: { store: string }) {
+  const key = store.toLowerCase();
+  if (key !== 'steam' && key !== 'epic') return <Badge label={store} />;
+  return (
+    <span className={styles.gameCardStore} title={store} aria-label={store} role="img">
+      {key === 'steam' ? <SteamIcon size={16} /> : <EpicIcon size={16} />}
+    </span>
+  );
+}
 
 function GameArt({ gameKey, imgClass, iconClass, placeholder }: {
   gameKey: string;

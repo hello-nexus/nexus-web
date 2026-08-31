@@ -47,3 +47,29 @@ export function PlatformIcon({ platform, size = 14 }: { platform: string; size?:
   if (platform === 'macos') return <AppleIcon size={size} />;
   return <TuxIcon size={size} />;
 }
+
+// Steam's mark, path from the CC0 simple-icons set (the mark itself remains a
+// Valve trademark - nominative use, labelling which store a game came from).
+export function SteamIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+      <path
+        fillRule="evenodd"
+        d="M12 2a10 10 0 0 0-9.97 9.3l5.35 2.2a2.83 2.83 0 0 1 1.6-.5h.14l2.38-3.45v-.05a3.77 3.77 0 1 1 3.77 3.77h-.09l-3.4 2.42v.12a2.83 2.83 0 0 1-5.6.5L2.36 14.8A10 10 0 1 0 12 2ZM7.9 15.15l1.22.5a2.14 2.14 0 1 0 1.18-2.9l1.27.53a1.58 1.58 0 1 1-1.22 2.9l-2.45-1.03Zm11.4-5.65a2.51 2.51 0 1 0-5.02 0 2.51 2.51 0 0 0 5.02 0Zm-4.4 0a1.89 1.89 0 1 1 3.78 0 1.89 1.89 0 0 1-3.78 0Z"
+      />
+    </svg>
+  );
+}
+
+// Epic's shield with its E carved out via even-odd (hand-drawn to the mark's
+// proportions, not a traced Epic asset). Nominative use, as above.
+export function EpicIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+      <path
+        fillRule="evenodd"
+        d="M4.6 2h14.8c.88 0 1.6.72 1.6 1.6v10.2c0 1.6-.9 2.6-2.6 3.5l-5.5 2.9c-.56.3-1.24.3-1.8 0l-5.5-2.9C3.9 16.4 3 15.4 3 13.8V3.6C3 2.72 3.72 2 4.6 2Zm4.2 4v9.2h6.4v-1.9h-4.3v-1.8h3.5V9.7h-3.5V7.9h4.2V6H8.8Z"
+      />
+    </svg>
+  );
+}

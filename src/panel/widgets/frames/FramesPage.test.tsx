@@ -196,7 +196,21 @@ describe('FramesPage - History tab states', () => {
 
     fireEvent.error(container.querySelector('img[src*="/art"]')!);
     expect(container.querySelector('img[src*="/art"]')).toBeNull();
-    expect(screen.getAllByText('epic').length).toBeGreaterThan(0);
+  });
+
+  it('marks the store with its own glyph beside the fps reading', async () => {
+    fpsGamesResult = {
+      supported: true,
+      gamesByKey: gamesByKey(game(), game({ gameKey: 'epic:foo', name: 'Some Epic Game', store: 'epic', steamAppId: null })),
+      refetch: refetchGamesMock,
+    };
+    renderPage();
+    await flush();
+    await screen.findByText('Counter-Strike 2');
+
+    // Labelled rather than written out: the glyph replaced the text badge.
+    expect(screen.getByRole('img', { name: 'steam' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'epic' })).toBeInTheDocument();
   });
 
   it('shows the 1% low value and its dim label under the avg, and drops the 99th percentile from the card face', async () => {

@@ -139,6 +139,15 @@
   color: var(--text-dim);
 }
 
+// Opposite the fps reading on its own row, where the old text badge used to
+// sit under the title.
+.gameCardStore {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  color: var(--text-dim);
+}
+
 .gameCardSecondary {
   display: flex;
   align-items: baseline;
