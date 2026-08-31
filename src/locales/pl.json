@@ -70,7 +70,6 @@
   "account.purchases.description": "Aplikacje pobrane na tym koncie, bezpłatne i płatne.",
   "account.purchases.empty": "Nie pobrano jeszcze żadnej aplikacji.",
   "account.purchases.free": "Bezpłatna",
-  "account.purchases.installed": "Zainstalowano",
   "account.purchases.notInstalled": "Nie ma jej na tym komputerze",
   "account.purchases.price": "Cena",
   "account.purchases.size": "Rozmiar na dysku",

@@ -70,7 +70,6 @@
   "account.purchases.description": "使用此帳戶下載過的應用程式，包含免費與付費。",
   "account.purchases.empty": "你還沒有下載任何應用程式。",
   "account.purchases.free": "免費",
-  "account.purchases.installed": "安裝時間",
   "account.purchases.notInstalled": "不在這台電腦上",
   "account.purchases.price": "價格",
   "account.purchases.size": "占用空間",

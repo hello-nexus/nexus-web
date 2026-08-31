@@ -89,7 +89,8 @@ export interface StorePurchase {
   /** When the account first got the app. Null for an app installed here with no purchase record. */
   acquiredAt: string | null;
   priceCents: number;
-  listed: boolean;
+  /** Null for a local-only row: the store knows nothing about the app either way. */
+  listed: boolean | null;
   installedVersion: string | null;
   installedAt: string | null;
   sizeBytes: number | null;

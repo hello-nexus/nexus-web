@@ -70,7 +70,6 @@
   "account.purchases.description": "Apps you have downloaded with this account, free or paid.",
   "account.purchases.empty": "You have not downloaded any apps yet.",
   "account.purchases.free": "Free",
-  "account.purchases.installed": "Installed",
   "account.purchases.notInstalled": "Not on this PC",
   "account.purchases.price": "Price",
   "account.purchases.size": "Size on disk",

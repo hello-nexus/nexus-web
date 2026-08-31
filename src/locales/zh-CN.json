@@ -70,7 +70,6 @@
   "account.purchases.description": "使用此帐户下载过的应用，包括免费和付费。",
   "account.purchases.empty": "你还没有下载过应用。",
   "account.purchases.free": "免费",
-  "account.purchases.installed": "安装时间",
   "account.purchases.notInstalled": "不在此电脑上",
   "account.purchases.price": "价格",
   "account.purchases.size": "占用空间",

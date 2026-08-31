@@ -36,13 +36,14 @@ const purchase = (over: Partial<StorePurchase> = {}): StorePurchase => ({
 beforeEach(() => fetchStoreLibrary.mockReset());
 
 describe('AccountPurchasesSection', () => {
-  it('lists the purchase with its version and size on disk', async () => {
+  it('lists the purchase with its version and size on disk, and no install date', async () => {
     fetchStoreLibrary.mockResolvedValue({ signedIn: true, offline: false, purchases: [purchase()] });
     render(<AccountPurchasesSection onOpenStoreApp={vi.fn()} />);
 
     expect(await screen.findByText('Aquarium')).toBeInTheDocument();
     expect(screen.getByText('1.0.2')).toBeInTheDocument();
     expect(screen.getByText('2 MB')).toBeInTheDocument();
+    expect(screen.queryByText('account.purchases.installed')).toBeNull();
     expect(screen.getByText('account.purchases.free')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'account.purchases.uninstall' })).toBeInTheDocument();
   });
@@ -64,5 +65,30 @@ describe('AccountPurchasesSection', () => {
     render(<AccountPurchasesSection />);
 
     expect(await screen.findByText('account.purchases.empty')).toBeInTheDocument();
+  });
+});
+
+describe('AccountPurchasesSection store link', () => {
+  it('links a local-only row to the store, since no verdict is not "delisted"', async () => {
+    fetchStoreLibrary.mockResolvedValue({
+      signedIn: false,
+      offline: false,
+      purchases: [purchase({ acquiredAt: null, listed: null })],
+    });
+    render(<AccountPurchasesSection onOpenStoreApp={vi.fn()} />);
+
+    expect(await screen.findByRole('button', { name: 'account.purchases.viewInStore' })).toBeInTheDocument();
+  });
+
+  it('hides the link for an app the store has delisted', async () => {
+    fetchStoreLibrary.mockResolvedValue({
+      signedIn: true,
+      offline: false,
+      purchases: [purchase({ listed: false })],
+    });
+    render(<AccountPurchasesSection onOpenStoreApp={vi.fn()} />);
+
+    await screen.findByText('Aquarium');
+    expect(screen.queryByRole('button', { name: 'account.purchases.viewInStore' })).toBeNull();
   });
 });

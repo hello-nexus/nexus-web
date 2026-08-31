@@ -70,7 +70,6 @@
   "account.purchases.description": "このアカウントでダウンロードしたアプリ（無料・有料）。",
   "account.purchases.empty": "まだアプリをダウンロードしていません。",
   "account.purchases.free": "無料",
-  "account.purchases.installed": "インストール日",
   "account.purchases.notInstalled": "この PC にはありません",
   "account.purchases.price": "価格",
   "account.purchases.size": "ディスク使用量",

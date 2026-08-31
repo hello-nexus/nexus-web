@@ -74,8 +74,6 @@ export function AccountPurchasesSection({ onOpenStoreApp }: AccountPurchasesSect
                 <>
                   <dt>{t('account.purchases.version')}</dt>
                   <dd>{purchase.installedVersion}</dd>
-                  <dt>{t('account.purchases.installed')}</dt>
-                  <dd>{formatDate(purchase.installedAt)}</dd>
                   <dt>{t('account.purchases.size')}</dt>
                   <dd>{formatBytes(purchase.sizeBytes ?? 0, numberFormat)}</dd>
                 </>
@@ -89,7 +87,9 @@ export function AccountPurchasesSection({ onOpenStoreApp }: AccountPurchasesSect
           </div>
 
           <div className={styles.actions}>
-            {onOpenStoreApp && purchase.listed && (
+            {/* Only a store that says "delisted" hides the link; a local-only
+                row has no verdict, and its app is usually still listed. */}
+            {onOpenStoreApp && purchase.listed !== false && (
               <Button
                 type="button"
                 tone="neutral"
@@ -104,6 +104,7 @@ export function AccountPurchasesSection({ onOpenStoreApp }: AccountPurchasesSect
               <RemoveAppButton
                 app={{ id: purchase.appId, name: purchase.name }}
                 label={t('account.purchases.uninstall')}
+                iconOnly
                 onRemoved={() => { void load(); }}
               />
             )}

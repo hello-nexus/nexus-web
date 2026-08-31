@@ -70,7 +70,6 @@
   "account.purchases.description": "Приложения, загруженные с этим аккаунтом, бесплатные и платные.",
   "account.purchases.empty": "Вы ещё не загрузили ни одного приложения.",
   "account.purchases.free": "Бесплатно",
-  "account.purchases.installed": "Установлено",
   "account.purchases.notInstalled": "Нет на этом ПК",
   "account.purchases.price": "Цена",
   "account.purchases.size": "Размер на диске",

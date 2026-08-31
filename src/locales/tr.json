@@ -70,7 +70,6 @@
   "account.purchases.description": "Bu hesapla indirdiğin uygulamalar, ücretsiz veya ücretli.",
   "account.purchases.empty": "Henüz hiç uygulama indirmedin.",
   "account.purchases.free": "Ücretsiz",
-  "account.purchases.installed": "Yüklendi",
   "account.purchases.notInstalled": "Bu bilgisayarda yok",
   "account.purchases.price": "Fiyat",
   "account.purchases.size": "Diskteki boyut",
