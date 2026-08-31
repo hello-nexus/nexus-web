@@ -14,8 +14,8 @@
 
 .icon {
   color: var(--text);
-  width: 32px;
-  height: 32px;
+  width: 48px;
+  height: 48px;
 }
 
 .title {
@@ -24,39 +24,21 @@
   color: var(--text);
 }
 
-.best {
-  font-size: var(--type-small);
-  color: var(--text-dim);
-  font-family: var(--font-mono);
-}
-
-.play {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
+// Descendant selector outweighs Button's own single-class tone rule, which
+// otherwise wins or loses on chunk link order.
+.main .play {
+  // Keeps the press on the cell; the cell is what opens the game.
+  pointer-events: none;
   margin-top: var(--space-xs);
-  padding: var(--space-xs) var(--space-sm);
-  border: 1px solid var(--panel-border);
-  border-radius: var(--radius-sm);
-  background: var(--panel-card-bg);
-  color: var(--text-dim);
-  font-size: var(--type-small);
-  text-transform: uppercase;
-  font-weight: var(--weight-strong);
-
-  svg {
-    flex-shrink: 0;
-    width: 14px;
-    height: 14px;
-  }
+  color: var(--text);
 }
 
 // Roomier 4x2 face: the wider tile has the width to spare, so scale the icon
 // and title up to match (kept balanced against the 2x2 baseline above).
 .widget[data-size='4x2'] {
   .icon {
-    width: 40px;
-    height: 40px;
+    width: 64px;
+    height: 64px;
   }
 
   .title {

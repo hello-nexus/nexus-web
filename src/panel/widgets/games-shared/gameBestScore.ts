@@ -30,8 +30,3 @@ export function recordBestScore(gameType: GameType, score: number): number {
   }
   return current;
 }
-
-/** Highest local best across several game types, for a tile that shares one "Best" figure across difficulties. */
-export function getBestScoreAcross(gameTypes: readonly GameType[]): number {
-  return Math.max(0, ...gameTypes.map(getBestScore));
-}

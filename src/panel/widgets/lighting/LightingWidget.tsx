@@ -53,6 +53,7 @@ import { useStateChangePulse } from '../common/useStateChangePulse';
 import { usePanelPreview } from '../common/PanelPreviewContext';
 import { LightingLivePreview } from './LightingLivePreview';
 import { LightingShaderPreview } from './LightingShaderPreview';
+import type { GpuState } from '../../../components/common/CanvasNoticeBar/gpuNotice';
 import type { WidgetProps } from '../types';
 import styles from './LightingWidget.module.scss';
 
@@ -71,6 +72,7 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
   const simpleMode = preview || !resolveAdvancedMode(widget.config, ui.widgetAdvancedMode);
   const [mode, setMode] = useState<LightingMode>(preview ? LIGHTING_PREVIEW_MODE : 'none');
   const [gpuAvailable, setGpuAvailable] = useState(true);
+  const [gpuState, setGpuState] = useState<GpuState | undefined>(undefined);
   const [activeDeviceCount, setActiveDeviceCount] = useState(0);
   // WS-synced from /lighting/current (re-hydrated on the 'lighting' topic), so
   // the shader preview freezes when lighting is paused from any surface.
@@ -159,6 +161,7 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
     ]);
     if (seq !== hydrateSeqRef.current) return;
     setGpuAvailable(lightStatus?.gpuAvailable ?? true);
+    setGpuState(lightStatus?.gpuState);
     // Static drives devices individually, so the widget reports how many are
     // lit rather than naming one effect.
     setActiveDeviceCount((deviceList?.devices ?? [])
@@ -541,7 +544,7 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
                           fully occludes this one, so only one WebGL context runs
                           at a time. The shader source is cached, so the remount
                           on close is instant. */}
-                      {!shaderFullscreen && <LightingShaderPreview effect={activeEffect} state={animateState} gpuAvailable={gpuAvailable} paused={paused} />}
+                      {!shaderFullscreen && <LightingShaderPreview effect={activeEffect} state={animateState} gpuAvailable={gpuAvailable} gpuState={gpuState} paused={paused} />}
                     </button>
                   )
                   : <LightingLivePreview />}
@@ -562,7 +565,7 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
             data-panel-no-sheet-swipe="true"
             aria-label={t('lighting.fullscreen.exit')}
           >
-            <LightingShaderPreview effect={activeEffect} state={animateState} gpuAvailable={gpuAvailable} paused={paused} />
+            <LightingShaderPreview effect={activeEffect} state={animateState} gpuAvailable={gpuAvailable} gpuState={gpuState} paused={paused} />
           </button>
         )}
       </div>

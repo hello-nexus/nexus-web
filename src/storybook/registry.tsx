@@ -1781,8 +1781,17 @@ function PreviewAvatar() {
 
 function PreviewCanvasNoticeBar() {
   return (
-    <div style={{ position: 'relative', width: '100%', height: 56, background: '#111', borderRadius: 6, overflow: 'hidden' }}>
-      <CanvasNoticeBar visible message="No usable GPU on this PC - this effect previews here but won't light your devices." />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ position: 'relative', width: '100%', height: 56, background: '#111', borderRadius: 6, overflow: 'hidden' }}>
+        <CanvasNoticeBar visible tone="wait" message="Setting up the graphics card for lighting - your devices stay dark until it finishes." />
+      </div>
+      <div style={{ position: 'relative', width: '100%', height: 56, background: '#111', borderRadius: 6, overflow: 'hidden' }}>
+        <CanvasNoticeBar
+          visible
+          message="No usable GPU on this PC, so this effect previews here but won't light your devices."
+          action={{ label: 'Choose GPU', onClick: () => {} }}
+        />
+      </div>
     </div>
   );
 }
@@ -2539,7 +2548,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'CanvasNoticeBar', category: 'status',
     filePath: 'src/components/common/CanvasNoticeBar/CanvasNoticeBar.tsx',
-    description: 'Bottom-docked translucent notice bar overlaid on a preview canvas. pointer-events: none so it never blocks canvas interaction. Used to warn that a GPU shader effect previews in the browser but won\'t run on the service (no usable GPU).',
+    description: 'Bottom-docked translucent notice bar overlaid on a preview canvas. Click-through except for the optional action button. tone="wait" is the self-resolving state (GPU still initializing); the default fault tone warns that a shader effect previews in the browser but won\'t run on the service.',
     Preview: PreviewCanvasNoticeBar,
   },
 

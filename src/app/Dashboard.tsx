@@ -786,6 +786,12 @@ export function Dashboard() {
       case 'lighting':   return <FeatureGate feature="lighting"><LightingPage serviceOnline={online} serviceState={serviceState} connectionState={status.state} activeProfileId={profilesHook.activeId} platform={status.ping?.platform ?? ''} onSectionNavigate={(target, payload) => {
         // The LED-map hub composition panel deep-links to a device page.
         if (target === 'device' && payload?.deviceKey) { navigate('system', 'device', payload.deviceKey); return; }
+        // The canvas GPU notice deep-links to the render-GPU picker.
+        if (target === 'settings' && payload?.settingsTab) {
+          navigate('system', 'settings', payload.settingsTab);
+          if (payload.settingsAnchor) requestSearchScroll(payload.settingsAnchor);
+          return;
+        }
         setView(target);
       }} /></FeatureGate>;
       case 'smart-lights': return <SmartLightsPage onSectionNavigate={(target) => setView(target)} />;

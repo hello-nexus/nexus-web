@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { getBestScore, getBestScoreAcross, recordBestScore } from './gameBestScore';
+import { getBestScore, recordBestScore } from './gameBestScore';
 
 describe('gameBestScore', () => {
   beforeEach(() => {
@@ -28,23 +28,11 @@ describe('gameBestScore', () => {
     expect(getBestScore('snake-hard')).toBe(40);
   });
 
-  it('reports the highest across several game types', () => {
-    recordBestScore('snake-easy', 10);
-    recordBestScore('snake-medium', 25);
-    recordBestScore('snake-hard', 15);
-    expect(getBestScoreAcross(['snake-easy', 'snake-medium', 'snake-hard'])).toBe(25);
-  });
-
-  it('reports 0 across untouched game types', () => {
-    expect(getBestScoreAcross(['snake-easy', 'snake-medium', 'snake-hard'])).toBe(0);
-  });
-
   it('reads 0 instead of throwing when storage access is blocked', () => {
     const getItemSpy = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
       throw new DOMException('Access is denied for this document.', 'SecurityError');
     });
     expect(getBestScore('snake-easy')).toBe(0);
-    expect(getBestScoreAcross(['snake-easy', 'snake-medium', 'snake-hard'])).toBe(0);
     getItemSpy.mockRestore();
   });
 
