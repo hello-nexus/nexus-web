@@ -17,6 +17,7 @@ vi.mock('../../../api/fps', () => ({
   fetchFpsGameSessions: (gameKey: string, limit?: number) => fetchFpsGameSessionsMock(gameKey, limit),
   deleteFpsSession: (id: string) => deleteFpsSessionMock(id),
   deleteFpsGame: (gameKey: string) => deleteFpsGameMock(gameKey),
+  fpsGameArtUrl: (gameKey: string) => `/api/fps/games/${encodeURIComponent(gameKey)}/art`,
 }));
 
 const fetchMonitoringHistoryMock = vi.fn();
@@ -158,7 +159,9 @@ describe('FramesPage - History tab states', () => {
     expect(screen.getByText('Team Fortress 2')).toBeInTheDocument();
   });
 
-  it('shows a Steam capsule image for a steam game and a store-badge placeholder for a non-steam one', async () => {
+  it('asks the service for art on every game, whatever its store', async () => {
+    // Both stores go through /art: the service redirects a steam key to the
+    // store CDN and answers a non-steam one with the executable's icon.
     fpsGamesResult = {
       supported: true,
       gamesByKey: gamesByKey(game(), game({ gameKey: 'epic:foo', name: 'Some Epic Game', store: 'epic', steamAppId: null })),
@@ -168,8 +171,10 @@ describe('FramesPage - History tab states', () => {
     await flush();
     await screen.findByText('Counter-Strike 2');
 
-    expect(container.querySelector('img[src*="steamstatic"]')).toBeInTheDocument();
-    expect(screen.getAllByText('epic')).toHaveLength(2);
+    const art = Array.from(container.querySelectorAll('img[src*="/art"]'))
+      .map(img => img.getAttribute('src'));
+    expect(art).toContain('/api/fps/games/steam%3A730/art');
+    expect(art).toContain('/api/fps/games/epic%3Afoo/art');
   });
 
   it('shows the 1% low value and its dim label under the avg, and drops the 99th percentile from the card face', async () => {
