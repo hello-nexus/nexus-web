@@ -149,16 +149,16 @@ export function HoverTooltip({ title, body, side = 'bottom', children }: HoverTo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  // Chromium fires no blur for an element that becomes disabled, so a
-  // focus-opened tooltip whose trigger disabled itself on click would latch
-  // open - any press outside the trigger dismisses it.
+  // Any press dismisses, the trigger's own included: a click is a commit, and
+  // the thing it commits to (a menu, a modal, a state change) is the feedback
+  // from that point on - a tooltip left hanging over the menu it just opened
+  // is the same stale-hover artifact the CSS guard clears. Nothing re-opens it
+  // until the pointer leaves and comes back. This also covers Chromium firing
+  // no blur for an element that disables itself on click, which would
+  // otherwise latch a focus-opened tooltip open.
   useEffect(() => {
     if (!open) return;
-    const onPointerDown = (e: PointerEvent) => {
-      const el = triggerRef.current;
-      if (el && e.target instanceof Node && el.contains(e.target)) return;
-      close();
-    };
+    const onPointerDown = () => close();
     window.addEventListener('pointerdown', onPointerDown, true);
     return () => window.removeEventListener('pointerdown', onPointerDown, true);
     // close reads refs / stable setters only.
@@ -203,7 +203,13 @@ export function HoverTooltip({ title, body, side = 'bottom', children }: HoverTo
     onPointerLeave: chain(childProps.onPointerLeave, (e: React.PointerEvent) => {
       if (e.pointerType !== 'touch') close();
     }),
-    onPointerDown: chain(childProps.onPointerDown, () => { pointerFocusRef.current = true; }),
+    // close() as well as the window listener above: a press landing before the
+    // open delay elapses has no listener attached yet, and would otherwise pop
+    // the tooltip open a moment after the click.
+    onPointerDown: chain(childProps.onPointerDown, () => {
+      pointerFocusRef.current = true;
+      close();
+    }),
     onPointerCancel: chain(childProps.onPointerCancel, () => { pointerFocusRef.current = false; }),
     onClick: chain(childProps.onClick, () => { pointerFocusRef.current = false; }),
     // Keyboard focus opens immediately (no delay) - tabbing to the element is
