@@ -1,7 +1,7 @@
 // Thin client for the local service's FPS routes: the local-data toggle +
 // purge (Privacy & Data) and the per-game summary/session data the Steam
 // page reads. Envelope-free like screentime/steam - plain JSON payloads.
-import { deleteService, fetchService, postService } from './service';
+import { deleteService, fetchService, postService, resolveHttp, tokenParam } from './service';
 
 export interface FpsTrackingStatus {
   enabled: boolean;
@@ -69,6 +69,14 @@ export interface FpsRangeSession {
 export interface FpsSessionsInRangeResponse {
   sessions: FpsRangeSession[];
 }
+
+/** Cover art for one game: the service redirects to the store CDN, or serves
+ *  the installed executable's icon when the store has none. 404 when neither
+ *  exists, which leaves the caller on its placeholder. */
+export const fpsGameArtUrl = (gameKey: string) => {
+  const auth = tokenParam();
+  return resolveHttp(`/api/fps/games/${encodeURIComponent(gameKey)}/art`) + (auth ? `?${auth}` : '');
+};
 
 export const getFpsTrackingStatus = () =>
   fetchService<FpsTrackingStatus>('/api/fps/tracking');

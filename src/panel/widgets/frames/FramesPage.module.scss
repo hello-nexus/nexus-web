@@ -78,6 +78,16 @@
   object-fit: cover;
 }
 
+// An executable icon, not store art: square, low-resolution, and centred on the
+// same ground the placeholder uses rather than stretched to the capsule frame.
+.gameCardIcon {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 12%;
+  object-fit: contain;
+}
+
 .gameCardPlaceholder {
   display: flex;
   align-items: center;
