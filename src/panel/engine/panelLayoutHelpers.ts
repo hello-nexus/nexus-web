@@ -13,6 +13,11 @@ export interface DashboardSectionNavigatePayload {
   // Optional deep-link key. Currently used by the devices widget to
   // ask DevicesPage to auto-open the modal for a specific device.
   deviceKey?: string;
+  // Settings deep-link: which tab to open and which SettingRow anchorId to
+  // scroll to and shine. Used by the lighting canvas notice to hand the user
+  // straight to the render-GPU picker.
+  settingsTab?: string;
+  settingsAnchor?: string;
 }
 
 export type DashboardSectionNavigate =

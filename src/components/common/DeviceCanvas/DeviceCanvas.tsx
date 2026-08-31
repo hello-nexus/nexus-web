@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Settings, Eye, Maximize2, Minimize2, RotateCw, RotateCcw, Power, PowerOff } from 'lucide-react';
+import { Eye, Hourglass, Maximize2, Minimize2, Power, PowerOff, RotateCcw, RotateCw, Settings } from 'lucide-react';
 import type { LightingDevice, LedMapEntry } from '../../../api/lighting';
 import { saveDeviceLayout, identifyLightingDevice } from '../../../api/lighting';
 import type { AudioSnapshot } from '../../../hooks/useAudioState';
@@ -10,6 +10,7 @@ import { isMultiSelectModifier } from '../../../lib/platform';
 import { paintLedFrame } from '../../../lib/ledFrame';
 import type { EffectState } from '../../../types/lighting';
 import { CanvasNoticeBar } from '../CanvasNoticeBar';
+import { gpuNoticeKey, type GpuState } from '../CanvasNoticeBar/gpuNotice';
 import { DeviceContextMenu, type DeviceMenuItem } from './DeviceContextMenu';
 import styles from './DeviceCanvas.module.scss';
 
@@ -56,6 +57,11 @@ interface DeviceCanvasProps {
   /** Set power on/off for one or many device ids; caller persists to the active preset and pushes undo. */
   onSetDevicesPower?: (ids: string[], on: boolean) => void;
   gpuAvailable?: boolean;
+  gpuState?: GpuState;
+  /** Offered in the GPU notice when the box has a second card to fall back to.
+   *  Absent = no alternative, so the notice states the problem without a
+   *  fix-it the user cannot act on. */
+  onPickRenderGpu?: () => void;
 }
 
 const CW = 1000;
@@ -828,7 +834,8 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
   );
 });
 
-export function DeviceCanvas({ devices, canvasPixels, canvasW, canvasH, selectedIds, primaryDeviceId, onSelectDevice, onSetSelection, shaderEffect, shaderState, shaderPaused, audioRef, hiddenFrameIds, selectedDeviceLeds, onOpenSettings, onDragActiveChange, onBeforeLayoutSave, onLayoutCommit, onSetDevicesPower, gpuAvailable }: DeviceCanvasProps) {
+export function DeviceCanvas({ devices, canvasPixels, canvasW, canvasH, selectedIds, primaryDeviceId, onSelectDevice, onSetSelection, shaderEffect, shaderState, shaderPaused, audioRef, hiddenFrameIds, selectedDeviceLeds, onOpenSettings, onDragActiveChange, onBeforeLayoutSave, onLayoutCommit, onSetDevicesPower, gpuAvailable, gpuState, onPickRenderGpu }: DeviceCanvasProps) {
+  const noticeKey = gpuNoticeKey(gpuState, gpuAvailable);
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const glCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -847,7 +854,12 @@ export function DeviceCanvas({ devices, canvasPixels, canvasW, canvasH, selected
       <CanvasBackground canvasPixels={canvasPixels} canvasW={canvasW} canvasH={canvasH} />
       <canvas ref={glCanvasRef} className={`${styles.glCanvas} ${ready ? styles.glCanvasReady : ''}`} />
       <DeviceOverlays devices={visibleDevices} selectedIds={selectedIds} primaryDeviceId={primaryDeviceId} onSelectDevice={onSelectDevice} onSetSelection={onSetSelection} containerRef={containerRef} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={onOpenSettings} onDragActiveChange={onDragActiveChange} onBeforeLayoutSave={onBeforeLayoutSave} onLayoutCommit={onLayoutCommit} onSetDevicesPower={onSetDevicesPower} />
-      <CanvasNoticeBar visible={gpuAvailable === false && shaderEffect != null} message={t('lighting.gpuUnavailableNotice')} />
+      <CanvasNoticeBar
+        visible={noticeKey != null && shaderEffect != null}
+        message={noticeKey ? t(noticeKey) : ''}
+        icon={noticeKey === 'lighting.gpuInitializingNotice' ? <Hourglass size={12} /> : undefined}
+        action={onPickRenderGpu ? { label: t('lighting.gpuNotice.pickGpu'), onClick: onPickRenderGpu } : undefined}
+      />
     </div>
   );
 }

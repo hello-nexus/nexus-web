@@ -25,3 +25,9 @@
 .message {
   min-width: 0;
 }
+
+.action {
+  flex-shrink: 0;
+  margin-left: auto;
+  pointer-events: auto; // the bar is pointer-events: none
+}

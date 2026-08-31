@@ -2007,6 +2007,8 @@
   "lighting.gameSync.signal.idle": "Wachten op een game...",
   "lighting.gameSync.signal.receiving": "Ontvangen van {activeApp}",
   "lighting.gameSync.signal.receivingUnknown": "Een game stuurt je verlichting aan.",
+  "lighting.gpuInitializingNotice": "De grafische kaart wordt voorbereid voor verlichting - je apparaten blijven donker tot dat klaar is.",
+  "lighting.gpuNotice.pickGpu": "GPU kiezen",
   "lighting.gpuUnavailableNotice": "Geen bruikbare GPU op deze pc, dus dit effect wordt hier als voorbeeld getoond maar verlicht je apparaten niet.",
   "lighting.layoutPresets.apps": "Activeren met apps...",
   "lighting.layoutPresets.appsClear": "Alles wissen",

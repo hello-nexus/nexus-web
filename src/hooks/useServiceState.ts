@@ -23,6 +23,14 @@ interface LightingStatus {
    *  button gate on this, not on effect-engine state. */
   rgbRunning: boolean;
   gpuAvailable: boolean;
+  /** Finer than `gpuAvailable`, which cannot tell "no usable card" apart from
+   *  "the driver is still handing one over". A cold-boot GL context can take
+   *  tens of seconds, and every lighting mode is shader-rendered, so devices
+   *  are dark for the whole wait - the two states need different copy. */
+  gpuState?: 'ready' | 'initializing' | 'unavailable';
+  /** True when this box has a second adapter to move rendering to, so the
+   *  notice can offer the picker instead of a dead end. Windows-only. */
+  gpuCanSwitch?: boolean;
   scanning: boolean;
 }
 

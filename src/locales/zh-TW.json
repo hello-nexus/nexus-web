@@ -2007,6 +2007,8 @@
   "lighting.gameSync.signal.idle": "等待遊戲...",
   "lighting.gameSync.signal.receiving": "正在從 {activeApp} 接收",
   "lighting.gameSync.signal.receivingUnknown": "遊戲正在控制您的燈光。",
+  "lighting.gpuInitializingNotice": "正在為燈效準備顯示卡，完成前裝置將保持熄滅。",
+  "lighting.gpuNotice.pickGpu": "選擇 GPU",
   "lighting.gpuUnavailableNotice": "此PC沒有可用的GPU，效果在此處預覽，但不會點亮您的裝置。",
   "lighting.layoutPresets.apps": "透過應用程式觸發...",
   "lighting.layoutPresets.appsClear": "全部清除",
