@@ -25,6 +25,11 @@ vi.mock('../../../api/store', () => ({
 
 const installed: Array<{ id: string; version: string; iconUrl: string | null }> = [];
 
+vi.mock('./StoreSignInModal', () => ({
+  StoreSignInModal: ({ open, onSignedIn }: { open: boolean; onSignedIn: () => void }) =>
+    (open ? <button type="button" onClick={onSignedIn}>signed-in</button> : null),
+}));
+
 vi.mock('../../../widgets/marketplaceRegistry', () => ({
   getAllMarketplaceListings: () => installed,
   loadMarketplaceApps: () => Promise.resolve(),
@@ -97,7 +102,8 @@ describe('StorePage app page', () => {
     fireEvent.click(await screen.findByText('Aquarium'));
     fireEvent.click(await screen.findByRole('button', { name: 'store.install' }));
 
-    await waitFor(() => expect(screen.getByText('store.signIn.body')).toBeInTheDocument());
+    // The dialog is stubbed in this file; its presence is the assertion.
+    await waitFor(() => expect(screen.getByRole('button', { name: 'signed-in' })).toBeInTheDocument());
   });
 
   it('offers no Delete for an app that is not installed', async () => {
@@ -146,5 +152,20 @@ describe('StorePage against an older catalog', () => {
     render(<StorePage />);
 
     expect(await screen.findByText('Aquarium')).toBeInTheDocument();
+  });
+});
+
+describe('StorePage sign-in', () => {
+  it('signs the whole app in, not just the install: the shared account state is refreshed', async () => {
+    installStoreApp.mockResolvedValueOnce({ appId: app.id, version: '1.0.2', ok: false, reason: 'sign_in_required' });
+    installStoreApp.mockResolvedValueOnce({ appId: app.id, version: '1.0.2', ok: true });
+    const accounts = { activeAccountId: null, activeAccount: null, refresh: vi.fn().mockResolvedValue(undefined) };
+    render(<StorePage tab={app.id} onTabChange={vi.fn()} accounts={accounts} />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'store.install' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'signed-in' }));
+
+    await waitFor(() => expect(accounts.refresh).toHaveBeenCalled());
+    await waitFor(() => expect(installStoreApp).toHaveBeenCalledTimes(2));
   });
 });

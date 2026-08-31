@@ -817,7 +817,7 @@ export function Dashboard() {
       );
       case 'diagnostics': return <FeatureGate feature="diagnostics"><DiagnosticsPage serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} tab={subtab} onTabChange={setSubtab} /></FeatureGate>;
       case 'frames':      return <FramesPage tab={subtab} onTabChange={setSubtab} />;
-      case 'store':      return DEV_TOOLS ? <StorePage tab={subtab} onTabChange={setSubtab} /> : <Placeholder title={activeView} />;
+      case 'store':      return DEV_TOOLS ? <StorePage tab={subtab} onTabChange={setSubtab} accounts={cloudAccounts} /> : <Placeholder title={activeView} />;
       case 'clock':      return <ClockPage />;
       case 'steam':      return <SteamPage />;
       case 'gallery':    return <GalleryPage />;

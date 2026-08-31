@@ -11,6 +11,7 @@ import {
 import {
   getAllMarketplaceListings, loadMarketplaceApps, subscribeMarketplaceRegistry,
 } from '../../../widgets/marketplaceRegistry';
+import type { UseCloudAccountsResult } from '../../../hooks/useCloudAccounts';
 import { RemoveAppButton } from './RemoveAppButton';
 import { StoreSignInModal } from './StoreSignInModal';
 import styles from './StorePage.module.scss';
@@ -266,10 +267,12 @@ function AppDetail({ appId, onBack, installed, onNeedsSignIn }: {
  * decides which releases it is offered - so the page renders what it is given
  * rather than filtering locally.
  */
-export function StorePage({ tab, onTabChange }: {
+export function StorePage({ tab, onTabChange, accounts }: {
   /** Route segment: the open app's id, so a store page is linkable. */
   tab?: string | null;
   onTabChange?: (tab: string) => void;
+  /** The app's shared account state: signing in from the store dialog signs the whole app in, so the top bar and account page have to hear about it. */
+  accounts?: UseCloudAccountsResult;
 }) {
   const { t } = useTranslation();
   const installed = useInstalled();
@@ -302,8 +305,9 @@ export function StorePage({ tab, onTabChange }: {
   const handleSignedIn = useCallback(() => {
     const retry = pendingInstall;
     setPendingInstall(null);
+    void accounts?.refresh();
     retry?.();
-  }, [pendingInstall]);
+  }, [accounts, pendingInstall]);
 
   return (
     <div className={styles.app}>
