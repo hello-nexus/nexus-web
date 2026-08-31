@@ -7,6 +7,11 @@ import { fetchFpsSessionsInRange, type FpsRangeSession } from '../api/fps';
 // through. Mirrors useMonitoringEvents' own domain-debounce.
 const DOMAIN_DEBOUNCE_MS = 250;
 
+// The service reports the run in progress as a session ending "now", so only a
+// refetch reveals a game started since the last one. Without this a live
+// dashboard shows nothing until the domain stops moving.
+const LIVE_REFRESH_MS = 5000;
+
 export interface UseFpsSessionsInRangeResult {
   sessions: FpsRangeSession[];
   loading: boolean;
@@ -31,14 +36,14 @@ export function useFpsSessionsInRange(domain: readonly [number, number], enabled
     return () => { mountedRef.current = false; };
   }, []);
 
-  const load = useCallback((from: number, to: number) => {
+  const load = useCallback((from: number, to: number, quiet = false) => {
     const seq = ++seqRef.current;
-    setLoading(true);
+    if (!quiet) setLoading(true);
     void (async () => {
       const result = await fetchFpsSessionsInRange(from, to);
       if (!mountedRef.current || seq !== seqRef.current) return;
       setSessions(result?.sessions ?? []);
-      setLoading(false);
+      if (!quiet) setLoading(false);
     })();
   }, []);
 
@@ -62,6 +67,20 @@ export function useFpsSessionsInRange(domain: readonly [number, number], enabled
       }
     };
   }, [enabled, from, to, load]);
+
+  // Latest domain without re-arming the poll below on every live-follow tick.
+  const domainRef = useRef<readonly [number, number]>(domain);
+  useEffect(() => { domainRef.current = [from, to]; }, [from, to]);
+
+  useEffect(() => {
+    if (!enabled) return;
+    const id = window.setInterval(() => {
+      const [f, t] = domainRef.current;
+      // Quiet: a background refresh must not re-render the page every 5s.
+      load(f, t, true);
+    }, LIVE_REFRESH_MS);
+    return () => window.clearInterval(id);
+  }, [enabled, load]);
 
   return { sessions, loading };
 }

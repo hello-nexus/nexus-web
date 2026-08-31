@@ -1,0 +1,72 @@
+.mode {
+  & + & { margin-top: 0.4rem; }
+}
+
+.modeIcon {
+  display: flex;
+  align-items: center;
+  color: var(--text-dim);
+}
+
+.rowActions {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+}
+
+.fieldLabel {
+  color: var(--text);
+  font-size: var(--type-body);
+}
+
+.nameInput {
+  width: 16rem;
+  max-width: 60%;
+}
+
+.iconPicker {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.2rem;
+  max-width: 60%;
+}
+
+.iconChoice,
+.iconChoiceActive {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+
+  &:hover:not(:disabled) { background: var(--bg-card-hover); color: var(--text); }
+  &:disabled { opacity: 0.35; cursor: default; }
+}
+
+.iconChoiceActive {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}

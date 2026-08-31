@@ -13,22 +13,45 @@ interface PageChromeValue {
   // Stable across renders so a page's registration effect doesn't re-fire when
   // `settings` itself changes.
   register: (action: PageSettingsAction | null) => void;
+  // Top bar slot a page portals its tab strip into while fullscreen is on, so
+  // the page keeps the vertical space it just gained. A portal, not a node in
+  // context: these strips carry live values and re-render at meter rate, which
+  // through context state would re-render the whole shell that often.
+  tabsSlot: HTMLElement | null;
+  setTabsSlot: (el: HTMLElement | null) => void;
+  // Pages render their own strip only when this is false.
+  fullscreen: boolean;
 }
 
 const PageChromeContext = createContext<PageChromeValue | null>(null);
 
-export function PageChromeProvider({ children }: { children: ReactNode }) {
+export function PageChromeProvider({ children, fullscreen = false }: {
+  children: ReactNode;
+  fullscreen?: boolean;
+}) {
   const [settings, setSettings] = useState<PageSettingsAction | null>(null);
+  const [tabsSlot, setTabsSlotState] = useState<HTMLElement | null>(null);
   const register = useCallback((action: PageSettingsAction | null) => {
     setSettings(action);
   }, []);
-  const value = useMemo(() => ({ settings, register }), [settings, register]);
+  const setTabsSlot = useCallback((el: HTMLElement | null) => {
+    setTabsSlotState(el);
+  }, []);
+  const value = useMemo(
+    () => ({ settings, register, tabsSlot, setTabsSlot, fullscreen }),
+    [settings, register, tabsSlot, setTabsSlot, fullscreen],
+  );
   return <PageChromeContext.Provider value={value}>{children}</PageChromeContext.Provider>;
 }
 
-// Read the registered page-settings action (top bar). Null outside the provider.
+// Read the registered page chrome. Null outside the provider.
 export function usePageChrome(): PageChromeValue | null {
   return useContext(PageChromeContext);
+}
+
+/** True while the active page is in fullscreen; false on surfaces with no provider. */
+export function useIsFullscreen(): boolean {
+  return usePageChrome()?.fullscreen ?? false;
 }
 
 /**
@@ -51,3 +74,8 @@ export function usePageSettingsAction(action: PageSettingsAction, enabled = true
   }, [register, onOpen, label, enabled]);
 }
 
+/** The top bar's tab slot while fullscreen is on; portal a tab strip into it. Null when there is nowhere to put one. */
+export function usePageTabsSlot(): HTMLElement | null {
+  const chrome = usePageChrome();
+  return chrome?.fullscreen ? chrome.tabsSlot : null;
+}

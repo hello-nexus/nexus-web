@@ -1,0 +1,107 @@
+.wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  // Breathing room from the fullscreen toggle on its left.
+  margin-left: 0.4rem;
+}
+
+// Icon + chevron only, sized to sit level with the sibling icon buttons.
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 0.1rem;
+  height: 28px;
+  padding: 0 0.3rem 0 0.4rem;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-dim);
+  font-family: inherit;
+  cursor: pointer;
+  transition: background var(--ease-fast), color var(--ease-fast);
+
+  // Never while open: the menu IS the feedback, so the trigger drops back to
+  // its resting look the moment it is clicked.
+  &:hover:not(.chipOpen) { background: var(--bg-card-hover); color: var(--text); }
+
+  svg { flex-shrink: 0; }
+}
+
+// Active: the mode's icon takes the accent over a soft accent ground, while
+// the chevron stays regular text so the control still reads as a switcher.
+.chipActive {
+  background: var(--accent-soft);
+  color: var(--text);
+
+  .icon { color: var(--accent); }
+
+  &:hover:not(.chipOpen) { background: var(--accent-glow-shadow); }
+}
+
+// Open carries no background of its own: it used to paint --bg-card-hover,
+// which is the hover colour, so clicking the chip left it looking hovered.
+.icon {
+  display: flex;
+  align-items: center;
+  color: inherit;
+}
+
+.caret {
+  color: var(--text-dim);
+  opacity: 0.8;
+}
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: var(--z-dropdown);
+  min-width: 180px;
+  padding: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-elevated);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-xl);
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border: none;
+  border-radius: calc(var(--radius-sm) - 2px);
+  background: transparent;
+  color: var(--text-dim);
+  font-size: var(--type-small);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--ease-fast), color var(--ease-fast);
+
+  &:hover {
+    background: var(--bg-card-hover);
+    color: var(--text);
+  }
+
+  svg { flex-shrink: 0; }
+}
+
+.itemActive { color: var(--accent); }
+
+.itemIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  flex-shrink: 0;
+}
+
+.separator {
+  height: 1px;
+  margin: 0.3rem 0.4rem;
+  background: var(--border);
+}

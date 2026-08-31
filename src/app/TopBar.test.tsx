@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { UseProfilesResult } from '../hooks/useProfiles';
 import type { UseCloudAccountsResult } from '../hooks/useCloudAccounts';
 
-// Focus mode's top-bar changes touch a lot of sibling chrome (alerts, update
+// Fullscreen mode's top-bar changes touch a lot of sibling chrome (alerts, update
 // status, the profile slot) that each carry their own provider/network
 // dependencies unrelated to this change. Stub them so this test isolates the
 // conditional rendering TopBar itself owns.
@@ -67,9 +67,9 @@ function renderTopBar(overrides: Partial<Parameters<typeof TopBar>[0]> = {}) {
       onNavigateAccount={() => {}}
       isWindowsApp
       isMacApp={false}
-      focusCapable={false}
-      focusMode={false}
-      onToggleFocusMode={() => {}}
+      fullscreenCapable={false}
+      fullscreen={false}
+      onToggleFullscreen={() => {}}
       {...overrides}
     />,
   );
@@ -77,28 +77,28 @@ function renderTopBar(overrides: Partial<Parameters<typeof TopBar>[0]> = {}) {
 
 describe('TopBar focus mode', () => {
   it('does not render the Focus toggle on a non-capable page', () => {
-    renderTopBar({ focusCapable: false });
-    expect(screen.queryByLabelText('topbar.focus')).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('topbar.focus.exit')).not.toBeInTheDocument();
+    renderTopBar({ fullscreenCapable: false });
+    expect(screen.queryByLabelText('topbar.fullscreen')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('topbar.fullscreen.exit')).not.toBeInTheDocument();
   });
 
   it('renders the Focus toggle immediately after the collapse button on a capable page', () => {
-    renderTopBar({ focusCapable: true, focusMode: false });
+    renderTopBar({ fullscreenCapable: true, fullscreen: false });
     const collapse = screen.getByLabelText('sidebar.collapse');
-    const focus = screen.getByLabelText('topbar.focus');
+    const focus = screen.getByLabelText('topbar.fullscreen');
     // Both live in the same left cluster, collapse first.
     expect(collapse.compareDocumentPosition(focus) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it('calls onToggleFocusMode when the Focus button is clicked', () => {
-    const onToggleFocusMode = vi.fn();
-    renderTopBar({ focusCapable: true, focusMode: false, onToggleFocusMode });
-    fireEvent.click(screen.getByLabelText('topbar.focus'));
-    expect(onToggleFocusMode).toHaveBeenCalledTimes(1);
+  it('calls onToggleFullscreen when the Focus button is clicked', () => {
+    const onToggleFullscreen = vi.fn();
+    renderTopBar({ fullscreenCapable: true, fullscreen: false, onToggleFullscreen });
+    fireEvent.click(screen.getByLabelText('topbar.fullscreen'));
+    expect(onToggleFullscreen).toHaveBeenCalledTimes(1);
   });
 
   it('strips the bar to the Focus toggle + window controls while active', () => {
-    renderTopBar({ focusCapable: true, focusMode: true, hasSidebar: true, isWindowsApp: true });
+    renderTopBar({ fullscreenCapable: true, fullscreen: true, hasSidebar: true, isWindowsApp: true });
 
     // Hidden: collapse toggle, page title/search pill, alerts, update status,
     // overflow menu, profile slot.
@@ -110,12 +110,12 @@ describe('TopBar focus mode', () => {
     expect(screen.queryByLabelText('topbar.menu')).not.toBeInTheDocument();
 
     // Kept: the Focus (exit) toggle and the window controls.
-    expect(screen.getByLabelText('topbar.focus.exit')).toBeInTheDocument();
+    expect(screen.getByLabelText('topbar.fullscreen.exit')).toBeInTheDocument();
     expect(screen.getByLabelText('app.window.close')).toBeInTheDocument();
   });
 
   it('shows the page title again once Focus mode is off', () => {
-    renderTopBar({ focusCapable: true, focusMode: false });
+    renderTopBar({ fullscreenCapable: true, fullscreen: false });
     expect(screen.getByText('Monitoring')).toBeInTheDocument();
   });
 });
@@ -157,9 +157,9 @@ function renderTopBarWithSettingsAction(
         onNavigateAccount={() => {}}
         isWindowsApp
         isMacApp={false}
-        focusCapable={false}
-        focusMode={false}
-        onToggleFocusMode={() => {}}
+        fullscreenCapable={false}
+        fullscreen={false}
+        onToggleFullscreen={() => {}}
         {...overrides}
       />
     </PageChromeProvider>,
@@ -181,7 +181,7 @@ describe('TopBar page settings action', () => {
   });
 
   it('hides the settings button in Focus mode', () => {
-    renderTopBarWithSettingsAction(vi.fn(), { focusCapable: true, focusMode: true });
+    renderTopBarWithSettingsAction(vi.fn(), { fullscreenCapable: true, fullscreen: true });
     expect(screen.queryByRole('button', { name: 'monitoring.settings' })).not.toBeInTheDocument();
   });
 });

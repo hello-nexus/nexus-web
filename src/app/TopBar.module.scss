@@ -53,6 +53,23 @@
   flex: 0 0 auto;
 }
 
+// Fullscreen page tabs, lifted out of the page body into the left cluster.
+// Empty (and zero-width) whenever no page portals into it.
+.pageTabs {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  // Breathing room from the fullscreen toggle, which the cluster's own
+  // 0.15rem gap does not give.
+  margin-left: 0.4rem;
+
+  &:empty { display: none; }
+
+  // The strip carries the page's own tab styling; only its outer margins need
+  // neutralising for the bar's tighter row.
+  nav { margin: 0; }
+}
+
 // Pinned immediately to the left of the absolutely-centered search pill: its
 // right edge sits half-a-pill-width left of the window centerline, minus a gap.
 .navArrows {

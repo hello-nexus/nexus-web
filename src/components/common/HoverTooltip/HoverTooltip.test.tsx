@@ -70,11 +70,24 @@ describe('HoverTooltip', () => {
     expect(screen.queryByRole('tooltip')).toBeNull();
   });
 
-  it('stays open on a press on the trigger itself', () => {
+  it('dismisses on a press on the trigger itself', () => {
+    // A click is a commit; whatever it opens is the feedback from then on, so
+    // the tooltip must not hang over the menu its own trigger just opened.
     const btn = renderTrigger();
     fireEvent.focus(btn);
-    fireEvent.pointerDown(btn);
     expect(screen.getByRole('tooltip')).toBeInTheDocument();
+    fireEvent.pointerDown(btn);
+    expect(screen.queryByRole('tooltip')).toBeNull();
+  });
+
+  it('cancels an open still inside its delay when the trigger is pressed', () => {
+    vi.useFakeTimers();
+    const btn = renderTrigger();
+    fireEvent.pointerOver(btn, { pointerType: 'mouse' });
+    fireEvent.pointerDown(btn);
+    act(() => { vi.advanceTimersByTime(TOOLTIP_OPEN_DELAY_MS + 1); });
+    expect(screen.queryByRole('tooltip')).toBeNull();
+    vi.useRealTimers();
   });
 
   it('never opens from a touch pointer enter', () => {
