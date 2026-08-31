@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ArrowLeft, Film, Trash2, Users } from 'lucide-react';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { Card } from '../../../components/common/Card/Card';
@@ -193,26 +193,20 @@ function GameCard({
   onOpen: () => void;
 }) {
   const { t } = useTranslation();
-  const [artFailed, setArtFailed] = useState(false);
-  const isCapsule = game.store === 'steam';
 
   return (
     <Card interactive onClick={onOpen} className={styles.gameCard} compact>
       <div className={styles.gameCardArt}>
-        {!artFailed ? (
-          <img
-            className={isCapsule ? styles.gameCardImg : styles.gameCardIcon}
-            src={fpsGameArtUrl(game.gameKey)}
-            alt=""
-            loading="lazy"
-            decoding="async"
-            onError={() => setArtFailed(true)}
-          />
-        ) : (
-          <div className={styles.gameCardPlaceholder}>
-            <Badge label={game.store} />
-          </div>
-        )}
+        <GameArt
+          gameKey={game.gameKey}
+          imgClass={styles.gameCardImg}
+          iconClass={styles.gameCardIcon}
+          placeholder={(
+            <div className={styles.gameCardPlaceholder}>
+              <Badge label={game.store} />
+            </div>
+          )}
+        />
       </div>
       <div className={styles.gameCardBody}>
         <div className={styles.gameCardName}>{game.name}</div>
@@ -492,33 +486,68 @@ function DiscoverTab() {
   );
 }
 
+/**
+ * Cover art with a two-step fallback: whatever the service resolves first, then
+ * the installed executable's icon when that fails to load (a legacy store url
+ * is a guess and 404s for anything published after Valve moved art behind a
+ * content hash), then the caller's own placeholder.
+ *
+ * Icon or capsule is decided from what actually loaded rather than the store,
+ * since a steam game can end up on the icon too: a roughly square image is
+ * contained and centred, a wide one fills the frame.
+ */
+// Below this an image is square enough to be an icon rather than a capsule.
+const SQUARE_ART_RATIO = 1.3;
+
+function GameArt({ gameKey, imgClass, iconClass, placeholder }: {
+  gameKey: string;
+  imgClass: string;
+  iconClass: string;
+  placeholder: ReactNode;
+}) {
+  const [stage, setStage] = useState<'store' | 'icon' | 'failed'>('store');
+  const [square, setSquare] = useState(false);
+
+  if (stage === 'failed') return <>{placeholder}</>;
+
+  return (
+    <img
+      key={stage}
+      className={square ? iconClass : imgClass}
+      src={fpsGameArtUrl(gameKey, stage === 'icon')}
+      alt=""
+      loading="lazy"
+      decoding="async"
+      onLoad={e => {
+        const img = e.currentTarget;
+        setSquare(img.naturalHeight > 0 && img.naturalWidth / img.naturalHeight < SQUARE_ART_RATIO);
+      }}
+      onError={() => setStage(stage === 'store' ? 'icon' : 'failed')}
+    />
+  );
+}
+
 function formatResClass(resClass: string): string {
   return resClass.replace(/^(\d+)x(\d+)$/, '$1×$2');
 }
 
 function DiscoverGameCard({ game, ownResClass }: { game: FpsTableGameItem; ownResClass: string | null }) {
   const { t } = useTranslation();
-  const [artFailed, setArtFailed] = useState(false);
-  const isCapsule = game.steamAppId !== null;
   const showResBasis = !!game.resBasis && game.resBasis !== ownResClass;
 
   return (
     <Card compact className={styles.gameCard}>
       <div className={styles.gameCardArt}>
-        {!artFailed ? (
-          <img
-            className={isCapsule ? styles.gameCardImg : styles.gameCardIcon}
-            src={fpsGameArtUrl(game.gameKey)}
-            alt=""
-            loading="lazy"
-            decoding="async"
-            onError={() => setArtFailed(true)}
-          />
-        ) : (
-          <div className={styles.gameCardPlaceholder} aria-hidden="true">
-            <Film size={20} />
-          </div>
-        )}
+        <GameArt
+          gameKey={game.gameKey}
+          imgClass={styles.gameCardImg}
+          iconClass={styles.gameCardIcon}
+          placeholder={(
+            <div className={styles.gameCardPlaceholder} aria-hidden="true">
+              <Film size={20} />
+            </div>
+          )}
+        />
       </div>
       <div className={styles.gameCardBody}>
         <div className={styles.gameCardName}>{game.title}</div>
