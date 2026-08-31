@@ -4,8 +4,9 @@
   position: relative;
   display: flex;
   align-items: center;
-  // Breathing room from the fullscreen toggle on its left.
-  margin-left: 0.4rem;
+  // Breathing room from the fullscreen toggle on its left, which sits closer
+  // than the cluster's own gap allows for.
+  margin-left: 0.7rem;
 }
 
 // Icon + chevron only, sized to sit level with the sibling icon buttons.
