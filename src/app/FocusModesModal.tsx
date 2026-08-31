@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BellOff, ChevronDown, ChevronRight, Cloud, MonitorOff, Plus, Trash2 } from 'lucide-react';
+import { BellOff, ChevronDown, ChevronRight, Cloud, MonitorOff, Plus, Trash2, X } from 'lucide-react';
 import { Button } from '../components/common/Button/Button';
 import { Overlay } from '../components/common/Overlay/Overlay';
 import { SettingsSection } from '../components/common/SettingsSection/SettingsSection';
@@ -47,8 +47,19 @@ export function FocusModesModal({ open, onClose, serviceOnline }: {
   return (
     <Overlay open={open} onClose={onClose} variant="dialog"
       className={styles.modal} ariaLabel={t('focus.title')}>
-      <h2 className={styles.title}>{t('focus.title')}</h2>
+      <div className={styles.header}>
+        <h2 className={styles.title}>{t('focus.title')}</h2>
+        <button
+          type="button"
+          className={styles.closeBtn}
+          onClick={onClose}
+          aria-label={t('app.window.close')}
+        >
+          <X size={18} />
+        </button>
+      </div>
 
+      <div className={styles.body}>
       <SettingsSection
         action={
           <Button
@@ -191,9 +202,6 @@ export function FocusModesModal({ open, onClose, serviceOnline }: {
       })}
 
       </SettingsSection>
-
-      <div className={styles.actions}>
-        <Button tone="accent" onClick={onClose}>{t('app.window.close')}</Button>
       </div>
 
       <ConfirmModal
