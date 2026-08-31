@@ -114,6 +114,8 @@
   "account.sync.neverSyncedYet": "Nog nooit gesynchroniseerd",
   "account.sync.syncNow": "Nu synchroniseren",
   "account.sync.title": "Profielsynchronisatie",
+  "account.tab.account": "Account",
+  "account.tab.purchases": "Aankopen",
   "account.title": "Account",
   "account.username.description": "Je gebruikersnaam kan eens per 24 uur worden gewijzigd.",
   "account.username.error.cooldown": "Je kunt je gebruikersnaam maar eens per 24 uur wijzigen.",

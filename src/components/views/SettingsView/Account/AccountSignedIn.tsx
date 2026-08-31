@@ -6,19 +6,31 @@ import { AccountDevicesSection } from './AccountDevicesSection';
 import { AccountPurchasesSection } from './AccountPurchasesSection';
 import styles from './Account.module.scss';
 
+export type AccountSignedInTab = 'account' | 'purchases';
+
 interface AccountSignedInProps {
   backend: AuthBackend;
   account: AuthAccount;
   accounts: UseCloudAccountsResult;
   recoveryFresh: boolean;
   onRecoveryFreshConsumed: () => void;
+  /** Which tab the route names; the caller owns the tab strip. */
+  tab: AccountSignedInTab;
   /** Opens an app's store page from Manage purchases. */
   onOpenStoreApp?: (appId: string) => void;
 }
 
 // Identity and devices only. Cloud profile backup and cross-machine import
 // live under Manage Profiles, next to the profiles they act on.
-export function AccountSignedIn({ backend, account, accounts, recoveryFresh, onRecoveryFreshConsumed, onOpenStoreApp }: AccountSignedInProps) {
+export function AccountSignedIn({ backend, account, accounts, recoveryFresh, onRecoveryFreshConsumed, tab, onOpenStoreApp }: AccountSignedInProps) {
+  if (tab === 'purchases') {
+    return (
+      <div className={styles.tabPanel}>
+        <AccountPurchasesSection onOpenStoreApp={onOpenStoreApp} />
+      </div>
+    );
+  }
+
   return (
     <div className={styles.tabPanel}>
       <AccountAuthenticationSection
@@ -31,8 +43,6 @@ export function AccountSignedIn({ backend, account, accounts, recoveryFresh, onR
       />
 
       <AccountDevicesSection backend={backend} prefillFromLocalSpecs />
-
-      <AccountPurchasesSection onOpenStoreApp={onOpenStoreApp} />
 
       <AccountDangerZoneSection
         backend={backend}

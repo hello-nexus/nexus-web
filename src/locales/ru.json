@@ -114,6 +114,8 @@
   "account.sync.neverSyncedYet": "Ещё не синхронизировано",
   "account.sync.syncNow": "Синхронизировать сейчас",
   "account.sync.title": "Синхронизация профилей",
+  "account.tab.account": "Аккаунт",
+  "account.tab.purchases": "Покупки",
   "account.title": "Аккаунт",
   "account.username.description": "Имя пользователя можно менять не чаще одного раза в 24 часа.",
   "account.username.error.cooldown": "Изменить имя пользователя можно только один раз в 24 часа.",

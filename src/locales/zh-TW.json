@@ -114,6 +114,8 @@
   "account.sync.neverSyncedYet": "尚未同步",
   "account.sync.syncNow": "立即同步",
   "account.sync.title": "設定檔同步",
+  "account.tab.account": "帳戶",
+  "account.tab.purchases": "購買項目",
   "account.title": "帳戶",
   "account.username.description": "使用者名稱每 24 小時只能變更一次。",
   "account.username.error.cooldown": "你每 24 小時只能變更一次使用者名稱。",

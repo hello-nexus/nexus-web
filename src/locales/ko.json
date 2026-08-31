@@ -114,6 +114,8 @@
   "account.sync.neverSyncedYet": "아직 동기화되지 않음",
   "account.sync.syncNow": "지금 동기화",
   "account.sync.title": "프로필 동기화",
+  "account.tab.account": "계정",
+  "account.tab.purchases": "구매",
   "account.title": "계정",
   "account.username.description": "사용자 이름은 24시간에 한 번 변경할 수 있습니다.",
   "account.username.error.cooldown": "사용자 이름은 24시간에 한 번만 변경할 수 있습니다.",

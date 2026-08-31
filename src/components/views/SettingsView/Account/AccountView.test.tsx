@@ -115,3 +115,18 @@ describe('AccountView sign-in refreshes the accounts hook', () => {
     await waitFor(() => expect(accounts.refresh).toHaveBeenCalled());
   });
 });
+
+describe('AccountView tabs', () => {
+  it('keeps the account sections on the first tab and purchases on the second', async () => {
+    const { unmount } = renderView(null, 'acct-1');
+
+    expect(await screen.findByText('account.authentication.title')).toBeInTheDocument();
+    expect(screen.queryByText('account.purchases.title')).toBeNull();
+    unmount();
+
+    renderView('purchases', 'acct-1');
+
+    expect(await screen.findByText('account.purchases.title')).toBeInTheDocument();
+    expect(screen.queryByText('account.authentication.title')).toBeNull();
+  });
+});

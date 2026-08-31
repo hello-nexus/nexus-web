@@ -114,6 +114,8 @@
   "account.sync.neverSyncedYet": "まだ同期されていません",
   "account.sync.syncNow": "今すぐ同期",
   "account.sync.title": "プロファイル同期",
+  "account.tab.account": "アカウント",
+  "account.tab.purchases": "購入",
   "account.title": "アカウント",
   "account.username.description": "ユーザー名は24時間に1回変更できます。",
   "account.username.error.cooldown": "ユーザー名は24時間に1回のみ変更できます。",

@@ -114,6 +114,8 @@
   "account.sync.neverSyncedYet": "Never synced yet",
   "account.sync.syncNow": "Sync now",
   "account.sync.title": "Profile sync",
+  "account.tab.account": "Account",
+  "account.tab.purchases": "Purchases",
   "account.title": "Account",
   "account.username.description": "Your username can be changed once every 24 hours.",
   "account.username.error.cooldown": "You can only change your username once every 24 hours.",

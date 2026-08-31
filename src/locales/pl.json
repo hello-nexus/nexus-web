@@ -114,6 +114,8 @@
   "account.sync.neverSyncedYet": "Jeszcze nie zsynchronizowano",
   "account.sync.syncNow": "Synchronizuj teraz",
   "account.sync.title": "Synchronizacja profili",
+  "account.tab.account": "Konto",
+  "account.tab.purchases": "Zakupy",
   "account.title": "Konto",
   "account.username.description": "Nazwę użytkownika możesz zmienić raz na 24 godziny.",
   "account.username.error.cooldown": "Nazwę użytkownika możesz zmienić tylko raz na 24 godziny.",

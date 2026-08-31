@@ -114,6 +114,8 @@
   "account.sync.neverSyncedYet": "Henüz senkronize edilmedi",
   "account.sync.syncNow": "Şimdi senkronize et",
   "account.sync.title": "Profil senkronizasyonu",
+  "account.tab.account": "Hesap",
+  "account.tab.purchases": "Satın alımlar",
   "account.title": "Hesap",
   "account.username.description": "Kullanıcı adınızı 24 saatte bir değiştirebilirsiniz.",
   "account.username.error.cooldown": "Kullanıcı adınızı yalnızca 24 saatte bir değiştirebilirsiniz.",

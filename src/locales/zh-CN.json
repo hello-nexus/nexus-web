@@ -114,6 +114,8 @@
   "account.sync.neverSyncedYet": "尚未同步",
   "account.sync.syncNow": "立即同步",
   "account.sync.title": "配置同步",
+  "account.tab.account": "帐户",
+  "account.tab.purchases": "购买项目",
   "account.title": "账户",
   "account.username.description": "用户名每 24 小时只能更改一次。",
   "account.username.error.cooldown": "你每 24 小时只能更改一次用户名。",
