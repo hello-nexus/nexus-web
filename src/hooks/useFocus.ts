@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   createFocusMode, deleteFocusMode, getFocus, reorderFocusModes,
-  setFocusActive, updateFocusMode,
+  resetFocusModes, setFocusActive, updateFocusMode,
   type FocusMode, type FocusStatus, type FocusTrigger,
 } from '../api/focus';
 import { useTopicCallback } from './useMultiplexSocket';
@@ -14,6 +14,7 @@ export interface UseFocusResult {
   updateMode: (id: string, patch: Partial<Omit<FocusMode, 'id' | 'builtIn'>>) => Promise<void>;
   removeMode: (id: string) => Promise<void>;
   reorder: (modeIds: string[]) => Promise<void>;
+  resetModes: () => Promise<void>;
 }
 
 /**
@@ -55,5 +56,6 @@ export function useFocus(enabled: boolean): UseFocusResult {
     updateMode: useCallback(async (id, patch) => apply(await updateFocusMode(id, patch)), [apply]),
     removeMode: useCallback(async (id: string) => apply(await deleteFocusMode(id)), [apply]),
     reorder: useCallback(async (ids: string[]) => apply(await reorderFocusModes(ids)), [apply]),
+    resetModes: useCallback(async () => apply(await resetFocusModes()), [apply]),
   };
 }

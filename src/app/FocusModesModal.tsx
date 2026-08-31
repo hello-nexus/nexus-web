@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { BellOff, ChevronDown, ChevronRight, Cloud, MonitorOff, Plus, Trash2, X } from 'lucide-react';
+import { BellOff, Cloud, MonitorOff, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { Button } from '../components/common/Button/Button';
-import { Overlay } from '../components/common/Overlay/Overlay';
-import { SettingsSection } from '../components/common/SettingsSection/SettingsSection';
-import { SettingSelect, SettingToggle } from '../components/common/SettingRow/SettingRow';
+import { CollapsibleSection } from '../components/common/CollapsibleSection/CollapsibleSection';
 import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
+import { DeviceModal } from '../components/common/DeviceModal/DeviceModal';
+import { SettingSelect, SettingToggle } from '../components/common/SettingRow/SettingRow';
 import { FOCUS_ICON_KEYS, focusIcon } from './focusIcons';
 import { useFocus } from '../hooks/useFocus';
 import { useTranslation } from '../lib/i18n';
@@ -26,9 +26,10 @@ export function FocusModesModal({ open, onClose, serviceOnline }: {
   serviceOnline: boolean;
 }) {
   const { t } = useTranslation();
-  const { status, addMode, updateMode, removeMode, reorder } = useFocus(serviceOnline);
+  const { status, addMode, updateMode, removeMode, reorder, resetModes } = useFocus(serviceOnline);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<FocusMode | null>(null);
+  const [resetOpen, setResetOpen] = useState(false);
 
   const modes = status?.modes ?? [];
   const triggers = status?.availableTriggers ?? ['manual'];
@@ -42,166 +43,139 @@ export function FocusModesModal({ open, onClose, serviceOnline }: {
     void reorder(next);
   };
 
-  if (!open) return null;
-
   return (
-    <Overlay open={open} onClose={onClose} variant="dialog"
-      className={styles.modal} ariaLabel={t('focus.title')}>
-      <div className={styles.header}>
-        <h2 className={styles.title}>{t('focus.title')}</h2>
-        <button
-          type="button"
-          className={styles.closeBtn}
-          onClick={onClose}
-          aria-label={t('app.window.close')}
-        >
-          <X size={18} />
-        </button>
-      </div>
-
-      <div className={styles.body}>
-      <SettingsSection
-        action={
-          <Button
-            size="sm"
-            tone="neutral"
-            icon={<Plus size={14} />}
-            disabled={disabled}
-            onClick={() => void addMode({
-              name: t('focus.mode.newName'),
-              icon: 'focus',
-              trigger: 'manual',
-            })}
-          >
-            {t('focus.mode.add')}
-          </Button>
-        }
-      >
-      {modes.map((mode, index) => {
-        const expanded = expandedId === mode.id;
-        return (
-          <div key={mode.id} className={styles.mode}>
-            <div className={styles.header}>
-              <button
-                type="button"
-                className={styles.disclosure}
-                onClick={() => setExpandedId(expanded ? null : mode.id)}
-                aria-expanded={expanded}
-              >
-                {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                <span className={styles.modeIcon}>{focusIcon(mode.icon, 16)}</span>
-                <span className={styles.modeName}>{mode.name}</span>
-                {mode.id === status?.activeModeId && (
-                  <span className={styles.activeBadge}>{t('focus.activeNow')}</span>
-                )}
-              </button>
-              <div className={styles.headerActions}>
-                <button
-                  type="button"
-                  className={styles.iconAction}
-                  disabled={disabled || index === 0}
-                  onClick={() => move(index, -1)}
-                  aria-label={t('focus.mode.moveUp')}
-                >
-                  ↑
-                </button>
-                <button
-                  type="button"
-                  className={styles.iconAction}
-                  disabled={disabled || index === modes.length - 1}
-                  onClick={() => move(index, 1)}
-                  aria-label={t('focus.mode.moveDown')}
-                >
-                  ↓
-                </button>
-                {!mode.builtIn && (
-                  <button
-                    type="button"
-                    className={styles.iconAction}
-                    disabled={disabled}
-                    onClick={() => setPendingDelete(mode)}
-                    aria-label={t('focus.mode.remove')}
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                )}
-              </div>
+    <DeviceModal open={open} onClose={onClose} title={t('focus.title')} medium>
+      {modes.map((mode, index) => (
+        <CollapsibleSection
+          key={mode.id}
+          boxed
+          className={styles.mode}
+          title={mode.name}
+          titleAfter={<span className={styles.modeIcon}>{focusIcon(mode.icon, 15)}</span>}
+          open={expandedId === mode.id}
+          onToggle={() => setExpandedId(expandedId === mode.id ? null : mode.id)}
+          rightInteractive
+          right={
+            <div className={styles.rowActions}>
+              <Button
+                size="sm"
+                tone="ghost"
+                icon={<span aria-hidden>↑</span>}
+                aria-label={t('focus.mode.moveUp')}
+                disabled={disabled || index === 0}
+                onClick={() => move(index, -1)}
+              />
+              <Button
+                size="sm"
+                tone="ghost"
+                icon={<span aria-hidden>↓</span>}
+                aria-label={t('focus.mode.moveDown')}
+                disabled={disabled || index === modes.length - 1}
+                onClick={() => move(index, 1)}
+              />
+              {!mode.builtIn && (
+                <Button
+                  size="sm"
+                  tone="ghost"
+                  icon={<Trash2 size={14} />}
+                  aria-label={t('focus.mode.remove')}
+                  disabled={disabled}
+                  onClick={() => setPendingDelete(mode)}
+                />
+              )}
             </div>
+          }
+        >
+          <label className={styles.field}>
+            <span className={styles.fieldLabel}>{t('focus.mode.name')}</span>
+            <input
+              className={styles.textInput}
+              value={mode.name}
+              maxLength={MAX_NAME_LENGTH}
+              disabled={disabled}
+              onChange={e => void updateMode(mode.id, { name: e.target.value })}
+            />
+          </label>
 
-            {expanded && (
-              <div className={styles.body}>
-                <label className={styles.field}>
-                  <span className={styles.fieldLabel}>{t('focus.mode.name')}</span>
-                  <input
-                    className={styles.textInput}
-                    value={mode.name}
-                    maxLength={MAX_NAME_LENGTH}
-                    disabled={disabled}
-                    onChange={e => void updateMode(mode.id, { name: e.target.value })}
-                  />
-                </label>
-
-                <div className={styles.field}>
-                  <span className={styles.fieldLabel}>{t('focus.mode.icon')}</span>
-                  <div className={styles.iconPicker}>
-                    {FOCUS_ICON_KEYS.map(key => (
-                      <button
-                        key={key}
-                        type="button"
-                        className={key === mode.icon ? styles.iconChoiceActive : styles.iconChoice}
-                        disabled={disabled}
-                        onClick={() => void updateMode(mode.id, { icon: key })}
-                        aria-label={key}
-                        aria-pressed={key === mode.icon}
-                      >
-                        {focusIcon(key, 16)}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <SettingSelect
-                  label={t('focus.mode.trigger')}
-                  value={mode.trigger}
-                  options={triggers.map(id => ({ value: id, label: t(`focus.trigger.${id}`) }))}
-                  onChange={value => void updateMode(mode.id, { trigger: value as FocusTrigger })}
+          <div className={styles.field}>
+            <span className={styles.fieldLabel}>{t('focus.mode.icon')}</span>
+            <div className={styles.iconPicker}>
+              {FOCUS_ICON_KEYS.map(key => (
+                <button
+                  key={key}
+                  type="button"
+                  className={key === mode.icon ? styles.iconChoiceActive : styles.iconChoice}
                   disabled={disabled}
-                />
-
-                <SettingToggle
-                  label={t('focus.holdNotifications.label')}
-                  icon={<BellOff />}
-                  iconLeading="subtle"
-                  description={t('focus.holdNotifications.description')}
-                  checked={mode.holdNotifications}
-                  onChange={() => void updateMode(mode.id, { holdNotifications: !mode.holdNotifications })}
-                  disabled={disabled}
-                />
-                <SettingToggle
-                  label={t('focus.holdTraffic.label')}
-                  icon={<Cloud />}
-                  iconLeading="subtle"
-                  description={t('focus.holdTraffic.description')}
-                  checked={mode.holdBackgroundTraffic}
-                  onChange={() => void updateMode(mode.id, { holdBackgroundTraffic: !mode.holdBackgroundTraffic })}
-                  disabled={disabled}
-                />
-                <SettingToggle
-                  label={t('focus.panelsOff.label')}
-                  icon={<MonitorOff />}
-                  iconLeading="subtle"
-                  description={t('focus.panelsOff.description')}
-                  checked={mode.turnPanelDisplaysOff}
-                  onChange={() => void updateMode(mode.id, { turnPanelDisplaysOff: !mode.turnPanelDisplaysOff })}
-                  disabled={disabled}
-                />
-              </div>
-            )}
+                  onClick={() => void updateMode(mode.id, { icon: key })}
+                  aria-label={key}
+                  aria-pressed={key === mode.icon}
+                >
+                  {focusIcon(key, 16)}
+                </button>
+              ))}
+            </div>
           </div>
-        );
-      })}
 
-      </SettingsSection>
+          <SettingSelect
+            label={t('focus.mode.trigger')}
+            value={mode.trigger}
+            options={triggers.map(id => ({ value: id, label: t(`focus.trigger.${id}`) }))}
+            onChange={value => void updateMode(mode.id, { trigger: value as FocusTrigger })}
+            disabled={disabled}
+          />
+          <SettingToggle
+            label={t('focus.holdNotifications.label')}
+            icon={<BellOff />}
+            iconLeading="subtle"
+            description={t('focus.holdNotifications.description')}
+            checked={mode.holdNotifications}
+            onChange={() => void updateMode(mode.id, { holdNotifications: !mode.holdNotifications })}
+            disabled={disabled}
+          />
+          <SettingToggle
+            label={t('focus.holdTraffic.label')}
+            icon={<Cloud />}
+            iconLeading="subtle"
+            description={t('focus.holdTraffic.description')}
+            checked={mode.holdBackgroundTraffic}
+            onChange={() => void updateMode(mode.id, { holdBackgroundTraffic: !mode.holdBackgroundTraffic })}
+            disabled={disabled}
+          />
+          <SettingToggle
+            label={t('focus.panelsOff.label')}
+            icon={<MonitorOff />}
+            iconLeading="subtle"
+            description={t('focus.panelsOff.description')}
+            checked={mode.turnPanelDisplaysOff}
+            onChange={() => void updateMode(mode.id, { turnPanelDisplaysOff: !mode.turnPanelDisplaysOff })}
+            disabled={disabled}
+          />
+        </CollapsibleSection>
+      ))}
+
+      <div className={styles.footer}>
+        <Button
+          size="sm"
+          tone="ghost"
+          icon={<RotateCcw size={14} />}
+          disabled={disabled}
+          onClick={() => setResetOpen(true)}
+        >
+          {t('focus.mode.reset')}
+        </Button>
+        <Button
+          size="sm"
+          tone="neutral"
+          icon={<Plus size={14} />}
+          disabled={disabled}
+          onClick={() => void addMode({
+            name: t('focus.mode.newName'),
+            icon: 'focus',
+            trigger: 'manual',
+          })}
+        >
+          {t('focus.mode.add')}
+        </Button>
       </div>
 
       <ConfirmModal
@@ -215,6 +189,15 @@ export function FocusModesModal({ open, onClose, serviceOnline }: {
         }}
         onCancel={() => setPendingDelete(null)}
       />
-    </Overlay>
+
+      <ConfirmModal
+        open={resetOpen}
+        title={t('focus.mode.resetConfirm.title')}
+        message={t('focus.mode.resetConfirm.body')}
+        confirmLabel={t('focus.mode.reset')}
+        onConfirm={() => { void resetModes(); setResetOpen(false); }}
+        onCancel={() => setResetOpen(false)}
+      />
+    </DeviceModal>
   );
 }

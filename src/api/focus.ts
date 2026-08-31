@@ -52,5 +52,8 @@ export const updateFocusMode = (id: string, patch: Partial<Omit<FocusMode, 'id' 
 export const deleteFocusMode = (id: string) =>
   deleteService<FocusStatus>(`/api/focus/modes/${encodeURIComponent(id)}`);
 
+export const resetFocusModes = () =>
+  postService<FocusStatus>('/api/focus/reset', {});
+
 export const reorderFocusModes = (modeIds: string[]) =>
   postService<FocusStatus>('/api/focus/modes/order', { modeIds });

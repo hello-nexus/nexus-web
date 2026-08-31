@@ -19,7 +19,7 @@ vi.mock('../hooks/useFocus', () => ({
   useFocus: () => ({
     status, activate, turnOff,
     addMode: vi.fn(), updateMode: vi.fn(),
-    removeMode: vi.fn(), reorder: vi.fn(),
+    removeMode: vi.fn(), reorder: vi.fn(), resetModes: vi.fn(),
   }),
 }));
 
