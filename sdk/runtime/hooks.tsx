@@ -42,6 +42,13 @@ export function usePreview(): boolean {
   return useStore().preview;
 }
 
+/** True when the host is an internal DEV_TOOLS build. Static for the render.
+ *  Use it to relax a ship-time availability gate on an internal machine; never
+ *  to unlock something a shipped build must refuse. */
+export function useDevTools(): boolean {
+  return useStore().devTools;
+}
+
 /** Per-instance local state bag. Persisted by the host across reloads; the
  *  setter merges, doing a shallow `localUpdate`-style merge. */
 export function useLocalState<T extends object>(

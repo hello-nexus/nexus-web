@@ -25,6 +25,8 @@ export interface WidgetContextInit {
   surface?: WidgetSurface;
   /** Catalog preview render: host I/O is stubbed; default false. */
   preview?: boolean;
+  /** Host is a DEV_TOOLS build; default false. */
+  devTools?: boolean;
   size: { width: number; height: number };
   settings: Record<string, unknown>;
   local: Record<string, unknown>;
@@ -42,6 +44,7 @@ export interface WidgetStore {
   readonly widgetId: string;
   readonly surface: WidgetSurface;
   readonly preview: boolean;
+  readonly devTools: boolean;
   readonly api: WidgetHostApi;
   getSnapshot(): WidgetState;
   subscribe(cb: () => void): () => void;
@@ -62,6 +65,7 @@ export function createStore(init: WidgetContextInit): WidgetStore {
     widgetId: init.widgetId,
     surface: init.surface ?? 'cell',
     preview: init.preview ?? false,
+    devTools: init.devTools ?? false,
     api: init.api,
     getSnapshot: () => state,
     subscribe: (cb) => { subs.add(cb); return () => { subs.delete(cb); }; },

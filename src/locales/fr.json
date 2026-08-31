@@ -3524,6 +3524,7 @@
   "screentime.weekAverage": "Moyenne quotidienne",
   "screentime.weekTitle": "7 derniers jours",
   "screentime.weekTotal": "Total semaine",
+  "sdk.avatar.loadError": "Impossible de charger ce personnage.",
   "sdk.copybutton.copied": "Copié dans le presse-papiers",
   "sdk.copybutton.copy": "Copier dans le presse-papiers",
   "sdk.mediaimport.choose": "Choisir une vidéo",

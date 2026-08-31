@@ -3524,6 +3524,7 @@
   "screentime.weekAverage": "Dagelijks gemiddelde",
   "screentime.weekTitle": "Afgelopen 7 dagen",
   "screentime.weekTotal": "Weektotaal",
+  "sdk.avatar.loadError": "Kan dit personage niet laden.",
   "sdk.copybutton.copied": "Gekopieerd naar klembord",
   "sdk.copybutton.copy": "Kopiëren naar klembord",
   "sdk.mediaimport.choose": "Video kiezen",

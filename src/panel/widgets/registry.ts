@@ -163,7 +163,7 @@ export function getCatalogEntries(): Array<[string, AppManifest]> {
 // Panel-engine sizes the marketplace synthetic AppManifest accepts.
 // The manifest may declare any string here; anything outside this set
 // falls through the filter so a typo can't crash the picker.
-const VALID_MARKETPLACE_SIZES: ReadonlyArray<PanelWidgetSize> = ['1x1', '2x2', '4x2', '4x4'];
+const VALID_MARKETPLACE_SIZES: ReadonlyArray<PanelWidgetSize> = ['1x1', '2x2', '2x4', '4x2', '4x4'];
 
 // One shared immersive adapter for every SDK app: makeWidgetTouchView returns a
 // new component per call, so building it inline would remount the sandbox on
