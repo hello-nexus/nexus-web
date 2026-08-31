@@ -516,6 +516,23 @@
   display: none;
 }
 
+// Wide cooler glass carries one landscape tile. Nothing else declares
+// --panel-row-size for this surface, so the per-axis .cellScaler override below
+// would read an undefined var and poison --_grid-h through to the height.
+.panelRoot[data-surface='lcd-wide'] {
+  --panel-cell-size: calc((100vw - 2 * var(--panel-page-padding, 0px) - (var(--panel-columns) - 1) * var(--panel-gap, 0px)) / var(--panel-columns));
+  --panel-row-size: calc((100vh - 2 * var(--panel-page-padding, 0px) - (var(--panel-rows) - 1) * var(--panel-gap, 0px)) / var(--panel-rows));
+  --panel-content-scale: min(var(--panel-cell-size), var(--panel-row-size));
+}
+
+// Rows split the height rather than inheriting the square cell size, which is
+// wider than the glass is tall and overflows the clipped root.
+.panelRoot[data-surface='lcd-wide'] .grid {
+  height: 100%;
+  grid-template-rows: repeat(var(--panel-rows), 1fr);
+  grid-auto-rows: 1fr;
+}
+
 // Q60 cells are non-square (~236w × ~203h); --panel-content-scale = min(cell,
 // row) collapses --_content to the short axis, leaving a ~33px gap that reads
 // as a border. Size the content box per-axis from the real cell dims so it
@@ -529,6 +546,15 @@
 // from the real row size so the content box fills the card height instead of
 // being clipped to the square --panel-content-scale reference.
 .panelRoot[data-surface='y70'] .cellScaler {
+  --_grid-w: calc(var(--_cols) * var(--panel-cell-size) + (var(--_cols) - 1) * var(--_gap));
+  --_grid-h: calc(var(--_rows) * var(--panel-row-size) + (var(--_rows) - 1) * var(--_gap));
+}
+
+// Wide cooler glass (1600x720 Wonder Vision) carries a single 4x2 tile whose
+// cells are non-square, so the square --panel-content-scale reference overflows
+// the card height and spills the widget onto the glass below it. Same per-axis
+// fix as q60/y70 above.
+.panelRoot[data-surface='lcd-wide'] .cellScaler {
   --_grid-w: calc(var(--_cols) * var(--panel-cell-size) + (var(--_cols) - 1) * var(--_gap));
   --_grid-h: calc(var(--_rows) * var(--panel-row-size) + (var(--_rows) - 1) * var(--_gap));
 }

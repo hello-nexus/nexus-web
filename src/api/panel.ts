@@ -71,6 +71,10 @@ export interface PanelDeviceRecord {
   // Edge): true = the sensor drives display rotation, false = the user's
   // orientation picker applies instead. Absent/null = on.
   autoOrient?: boolean;
+  // Pushed-frame cooler LCDs: how the glass is mounted. Applied to the bytes in
+  // the service transport, so everything else renders upright. Absent/null = off.
+  flip180?: boolean;
+  mirror?: boolean;
   // Display-bound panels: false = turned off (record + config kept; no
   // kiosk). Absent/null = on.
   enabled?: boolean | null;
@@ -111,6 +115,9 @@ export interface PanelDevicePatch {
   // Display-bound records with a physical orientation sensor only; ignored
   // for other panels.
   autoOrient?: boolean;
+  // Pushed-frame cooler LCDs only; ignored for other panels.
+  flip180?: boolean;
+  mirror?: boolean;
   capabilities?: PanelDeviceCapabilitiesDto;
 }
 

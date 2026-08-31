@@ -49,6 +49,7 @@ export const SIMULATED_PANEL_PRESETS: readonly SimulatedPanelDefinition[] = [
   // and the Elite Capellix is the same glass without the circular mask.
   { id: 'lcd-round-480', name: 'Cooler LCD 480 Round', surface: 'lcd-round', width: 480, height: 480, dpi: 210 },
   { id: 'lcd-square-480', name: 'Cooler LCD 480', surface: 'lcd-square', width: 480, height: 480, dpi: 210 },
+  { id: 'lcd-wide-1600', name: 'Cooler LCD 1600 Wide', surface: 'lcd-wide', width: 1600, height: 720, dpi: 210 },
   { id: 'lcd-round-240', name: 'Cooler LCD 240 Round', surface: 'lcd-round', width: 240, height: 240, dpi: 160 },
   // Corsair Xeneon Edge 14.5" 2560x720 strip; rides the promoted-monitor
   // surface (a real one registers via POST /displays/{id}/panel).

@@ -36,6 +36,7 @@ export const SURFACE_DPR: Record<string, number> = {
   // Same reasoning as the Kraken: the service pushes native-resolution frames.
   'lcd-round': 1,
   'lcd-square': 1,
+  'lcd-wide': 1,
 };
 
 export interface SimulatedPanelCssViewport {
