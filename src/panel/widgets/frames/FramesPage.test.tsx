@@ -171,10 +171,31 @@ describe('FramesPage - History tab states', () => {
     await flush();
     await screen.findByText('Counter-Strike 2');
 
-    const art = Array.from(container.querySelectorAll('img[src*="/art"]'))
-      .map(img => img.getAttribute('src'));
-    expect(art).toContain('/api/fps/games/steam%3A730/art');
-    expect(art).toContain('/api/fps/games/epic%3Afoo/art');
+    const art = Array.from(container.querySelectorAll('img[src*="/art"]'));
+    expect(art.map(img => img.getAttribute('src'))).toEqual([
+      '/api/fps/games/steam%3A730/art',
+      '/api/fps/games/epic%3Afoo/art',
+    ]);
+    // Store art fills the capsule frame; an executable icon is contained and
+    // centred instead, so the two carry different classes.
+    expect(art[0].className).not.toEqual(art[1].className);
+  });
+
+  it('falls back to the store badge when art fails to load', async () => {
+    fpsGamesResult = {
+      supported: true,
+      gamesByKey: gamesByKey(game({ gameKey: 'epic:foo', name: 'Some Epic Game', store: 'epic', steamAppId: null })),
+      refetch: refetchGamesMock,
+    };
+    const { container } = renderPage();
+    await flush();
+    await screen.findByText('Some Epic Game');
+
+    const img = container.querySelector('img[src*="/art"]')!;
+    fireEvent.error(img);
+
+    expect(container.querySelector('img[src*="/art"]')).toBeNull();
+    expect(screen.getAllByText('epic').length).toBeGreaterThan(0);
   });
 
   it('shows the 1% low value and its dim label under the avg, and drops the 99th percentile from the card face', async () => {

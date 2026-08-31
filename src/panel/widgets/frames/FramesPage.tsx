@@ -194,8 +194,6 @@ function GameCard({
 }) {
   const { t } = useTranslation();
   const [artFailed, setArtFailed] = useState(false);
-  // A store capsule fills the frame; an executable icon is square and small, so
-  // it sits centred on the placeholder ground instead of being stretched.
   const isCapsule = game.store === 'steam';
 
   return (
