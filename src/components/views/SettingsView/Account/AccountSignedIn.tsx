@@ -3,6 +3,7 @@ import type { UseCloudAccountsResult } from '../../../../hooks/useCloudAccounts'
 import { AccountAuthenticationSection } from './AccountAuthenticationSection';
 import { AccountDangerZoneSection } from './AccountDangerZoneSection';
 import { AccountDevicesSection } from './AccountDevicesSection';
+import { AccountPurchasesSection } from './AccountPurchasesSection';
 import styles from './Account.module.scss';
 
 interface AccountSignedInProps {
@@ -11,11 +12,13 @@ interface AccountSignedInProps {
   accounts: UseCloudAccountsResult;
   recoveryFresh: boolean;
   onRecoveryFreshConsumed: () => void;
+  /** Opens an app's store page from Manage purchases. */
+  onOpenStoreApp?: (appId: string) => void;
 }
 
 // Identity and devices only. Cloud profile backup and cross-machine import
 // live under Manage Profiles, next to the profiles they act on.
-export function AccountSignedIn({ backend, account, accounts, recoveryFresh, onRecoveryFreshConsumed }: AccountSignedInProps) {
+export function AccountSignedIn({ backend, account, accounts, recoveryFresh, onRecoveryFreshConsumed, onOpenStoreApp }: AccountSignedInProps) {
   return (
     <div className={styles.tabPanel}>
       <AccountAuthenticationSection
@@ -28,6 +31,8 @@ export function AccountSignedIn({ backend, account, accounts, recoveryFresh, onR
       />
 
       <AccountDevicesSection backend={backend} prefillFromLocalSpecs />
+
+      <AccountPurchasesSection onOpenStoreApp={onOpenStoreApp} />
 
       <AccountDangerZoneSection
         backend={backend}

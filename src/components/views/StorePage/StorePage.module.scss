@@ -17,12 +17,61 @@
   font-size: var(--type-small);
 }
 
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+// The storefront's one piece of chrome: the store is a preview, and the banner
+// is what says so before the user reads the (short) app list as the whole store.
+.banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.5rem;
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.bannerIcon {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+  color: var(--accent);
+}
+
+.bannerText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.bannerTitle {
+  margin: 0;
+  @include text-heading;
+  color: var(--text);
+}
+
+.bannerBody {
+  margin: 0;
+  @include text-body;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}
+
+.sectionTitle {
+  margin: 0.5rem 0 0;
+  @include text-label;
+  color: var(--text-dim);
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
   gap: 0.75rem;
-  padding: 1rem;
-  overflow-y: auto;
 }
 
 // The icon sits in a fixed box: app icons arrive as SVGs of any aspect and
@@ -61,24 +110,10 @@
   flex-shrink: 0;
 }
 
-.rating {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.1rem;
-}
 
-.starOn {
-  color: var(--accent);
-  fill: currentcolor;
-}
 
-.starOff {
-  color: var(--separator);
-}
-
-.ratingCount,
-.ratingEmpty {
-  margin-left: 0.35rem;
+.installedTag,
+.installedVersion {
   font-size: var(--type-tiny);
   color: var(--text-dim);
 }
@@ -191,20 +226,21 @@
   flex-shrink: 0;
 }
 
-.remove {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--separator);
-  background: none;
-  color: var(--text-dim);
-  cursor: pointer;
+.detailFooter {
+  display: flex;
+  justify-content: flex-start;
+  padding-top: 0.5rem;
+  border-top: var(--border-width) solid var(--separator);
+}
 
-  &:hover {
-    border-color: var(--danger);
-    color: var(--danger);
-  }
+.signInModal {
+  width: min(26rem, 92vw);
+  padding: 1.5rem;
+}
+
+.signInBody {
+  margin: 0 0 0.5rem;
+  @include text-body;
+  font-size: var(--type-small);
+  color: var(--text-dim);
 }

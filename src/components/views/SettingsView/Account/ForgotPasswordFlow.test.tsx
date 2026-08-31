@@ -67,3 +67,22 @@ describe('ForgotPasswordFlow cancel', () => {
     expect(() => fireEvent.click(screen.getByRole('button', { name: 'account.recovery.cancel' }))).not.toThrow();
   });
 });
+
+describe('ForgotPasswordFlow refused start', () => {
+  it('keeps the email form and reports the failure instead of polling for a link that was never sent', async () => {
+    render(
+      <ForgotPasswordFlow
+        backend={makeBackend({ recoveryStart: vi.fn().mockResolvedValue(null) })}
+        onBackToSignIn={vi.fn()}
+        onRecoveryApproved={vi.fn()}
+      />,
+    );
+
+    fireEvent.input(screen.getByLabelText('account.recovery.email'), { target: { value: 'user@example.com' } });
+    fireEvent.click(screen.getByRole('button', { name: 'account.recovery.submit' }));
+
+    await waitFor(() => expect(screen.getByText('account.recovery.startFailed')).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: 'account.recovery.submit' })).toBeInTheDocument();
+    expect(screen.queryByText('account.recovery.expiredTitle')).not.toBeInTheDocument();
+  });
+});

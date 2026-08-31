@@ -811,13 +811,13 @@ export function Dashboard() {
       );
       case 'diagnostics': return <FeatureGate feature="diagnostics"><DiagnosticsPage serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} tab={subtab} onTabChange={setSubtab} /></FeatureGate>;
       case 'frames':      return <FramesPage tab={subtab} onTabChange={setSubtab} />;
-      case 'store':      return DEV_TOOLS ? <StorePage /> : <Placeholder title={activeView} />;
+      case 'store':      return DEV_TOOLS ? <StorePage tab={subtab} onTabChange={setSubtab} /> : <Placeholder title={activeView} />;
       case 'clock':      return <ClockPage />;
       case 'steam':      return <SteamPage />;
       case 'gallery':    return <GalleryPage />;
       case 'settings':   return <SettingsView serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} tab={subtab} onTabChange={setSubtab} />;
       case 'profiles':   return <ProfilesView serviceOnline={online} connectionState={status.state} profiles={profilesHook} tab={subtab} onTabChange={setSubtab} />;
-      case 'account':    return DEV_TOOLS && OFFICIAL_BUILD ? <AccountView serviceOnline={online} connectionState={status.state} accounts={cloudAccounts} tab={subtab} onTabChange={setSubtab} /> : <Placeholder title={activeView} />;
+      case 'account':    return DEV_TOOLS && OFFICIAL_BUILD ? <AccountView serviceOnline={online} connectionState={status.state} accounts={cloudAccounts} tab={subtab} onTabChange={setSubtab} onOpenStoreApp={appId => navigate('system', 'store', appId)} /> : <Placeholder title={activeView} />;
       case 'tools':      return DEV_TOOLS ? <ToolsView serviceOnline={online} connectionState={status.state} /> : <Placeholder title={activeView} />;
       default: {
         // Page-capable marketplace (SDK) widget: render its bundle's page surface

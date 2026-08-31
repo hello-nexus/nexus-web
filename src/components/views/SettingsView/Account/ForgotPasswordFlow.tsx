@@ -25,6 +25,7 @@ export function ForgotPasswordFlow({ backend, onBackToSignIn, onRecoveryApproved
   const { t } = useTranslation();
   const [phase, setPhase] = useState<ForgotPhase>('email');
   const [email, setEmail] = useState('');
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     if (phase !== 'pending') return;
@@ -50,7 +51,15 @@ export function ForgotPasswordFlow({ backend, onBackToSignIn, onRecoveryApproved
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
-    await backend.recoveryStart(email.trim());
+    setFailed(false);
+    // A refused start (throttled, offline) sent no link, so advancing to the
+    // pending phase would poll for a grant that does not exist and report it as
+    // an expired link.
+    const started = await backend.recoveryStart(email.trim());
+    if (!started) {
+      setFailed(true);
+      return;
+    }
     setPhase('pending');
   };
 
@@ -70,6 +79,7 @@ export function ForgotPasswordFlow({ backend, onBackToSignIn, onRecoveryApproved
               ariaLabel={t('account.recovery.email')}
             />
           </label>
+          {failed && <p className={styles.error}>{t('account.recovery.startFailed')}</p>}
           <Button type="submit" tone="accent" disabled={!email.trim()}>
             {t('account.recovery.submit')}
           </Button>

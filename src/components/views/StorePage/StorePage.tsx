@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Boxes, ChevronLeft, Star, Trash2 } from 'lucide-react';
+import { Boxes, ChevronLeft, Sparkles } from 'lucide-react';
 import { Card } from '../../common/Card/Card';
-import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { useTranslation } from '../../../lib/i18n';
@@ -12,15 +11,15 @@ import {
 import {
   getAllMarketplaceListings, loadMarketplaceApps, subscribeMarketplaceRegistry,
 } from '../../../widgets/marketplaceRegistry';
-import { findAppUsage, removeAppEverywhere, type AppUsage } from '../../../api/storeUsage';
-import { postService } from '../../../api/service';
+import { RemoveAppButton } from './RemoveAppButton';
+import { StoreSignInModal } from './StoreSignInModal';
 import styles from './StorePage.module.scss';
 
 type InstallState = 'idle' | 'working' | 'failed';
 
 interface InstalledInfo { version: string; iconUrl?: string | null }
 
-/** Installed apps by id, so a listing can offer Install / Installed / Update. */
+/** Installed apps by id, so a listing can offer Get / Installed / Update. */
 function useInstalled(): Map<string, InstalledInfo> {
   const [installed, setInstalled] = useState(() => installedMap());
   useEffect(() => {
@@ -43,25 +42,14 @@ function iconFor(app: { id: string; iconUrl: string | null }, installed?: Instal
   return app.iconUrl ?? installed?.iconUrl ?? null;
 }
 
-function Stars({ rating }: { rating: { average: number; count: number } }) {
-  const { t } = useTranslation();
-  if (rating.count === 0) return <span className={styles.ratingEmpty}>{t('store.noRatings')}</span>;
-  return (
-    <span className={styles.rating}>
-      {[1, 2, 3, 4, 5].map(n => (
-        <Star
-          key={n}
-          size={12}
-          className={n <= Math.round(rating.average) ? styles.starOn : styles.starOff}
-          aria-hidden={true}
-        />
-      ))}
-      <span className={styles.ratingCount}>{rating.average.toFixed(1)} ({rating.count})</span>
-    </span>
-  );
+/** The App Store subtitle line: the app's own one-liner, never the publisher. */
+function shortDescription(app: { tagline: string; description: string }): string {
+  return app.tagline || app.description;
 }
 
-function InstallButton({ app, installedVersion }: { app: StoreApp; installedVersion?: string }) {
+function InstallButton({ app, installedVersion, onNeedsSignIn }: {
+  app: StoreApp; installedVersion?: string; onNeedsSignIn: (retry: () => void) => void;
+}) {
   const { t } = useTranslation();
   const [state, setState] = useState<InstallState>('idle');
   const latest = app.latest;
@@ -75,10 +63,15 @@ function InstallButton({ app, installedVersion }: { app: StoreApp; installedVers
       // the app appear without a reload.
       await loadMarketplaceApps();
       setState('idle');
-    } else {
-      setState('failed');
+      return;
     }
-  }, [app.id, latest]);
+    setState('idle');
+    if (res?.reason === 'sign_in_required') {
+      onNeedsSignIn(() => { void install(); });
+      return;
+    }
+    setState('failed');
+  }, [app.id, latest, onNeedsSignIn]);
 
   if (!latest) return <span className={styles.incompatible}>{t('store.incompatible')}</span>;
 
@@ -93,58 +86,11 @@ function InstallButton({ app, installedVersion }: { app: StoreApp; installedVers
     <button
       type="button"
       className={`${styles.install} ${state === 'failed' ? styles.installFailed : ''}`}
-      onClick={install}
+      onClick={() => { void install(); }}
       disabled={state === 'working' || upToDate}
     >
       {label}
     </button>
-  );
-}
-
-/**
- * Uninstall, after showing where the app is placed. The panel reconciler drops
- * orphaned widgets silently, so a user who uninstalls without being told would
- * find widgets simply missing from panels they were not thinking about.
- */
-function RemoveButton({ app }: { app: { id: string; name: string } }) {
-  const { t } = useTranslation();
-  const [usage, setUsage] = useState<AppUsage | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  const ask = useCallback(async () => {
-    setUsage(await findAppUsage(app.id, t('nav.dashboard')));
-  }, [app.id, t]);
-
-  const confirm = useCallback(async () => {
-    setBusy(true);
-    await removeAppEverywhere(app.id);
-    await postService('/apps-api/uninstall', { id: app.id });
-    await loadMarketplaceApps();
-    setBusy(false);
-    setUsage(null);
-  }, [app.id]);
-
-  // Just the place, the way the user names it. A count only when it is there
-  // more than once, since "Dashboard (1)" reads like a bug.
-  const bullets = (usage?.places ?? []).map(p =>
-    p.count > 1 ? `${p.name} (${p.count})` : p.name);
-
-  return (
-    <>
-      <button type="button" className={styles.remove} onClick={ask} aria-label={t('store.remove')}>
-        <Trash2 size={15} aria-hidden={true} />
-      </button>
-      <ConfirmModal
-        open={usage !== null}
-        title={t('store.removeTitle', { name: app.name })}
-        message={usage && usage.total > 0 ? t('store.removeUsed') : t('store.removeUnused')}
-        bullets={bullets}
-        confirmLabel={t('store.remove')}
-        confirmDisabled={busy}
-        onConfirm={() => { void confirm(); }}
-        onCancel={() => setUsage(null)}
-      />
-    </>
   );
 }
 
@@ -161,34 +107,44 @@ function AppIcon({ app, installed, large }: {
   );
 }
 
+/**
+ * Storefront card: icon, name, one line of copy. No Get button and no rating -
+ * getting an app is a decision made on its page, the way the App Store does it.
+ */
 function AppCard({ app, installed, onOpen }: {
   app: StoreApp; installed?: InstalledInfo; onOpen: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <Card
       interactive
       onClick={onOpen}
-      disableInteractiveRole
       icon={<AppIcon app={app} installed={installed} />}
       title={app.name}
-      subtitle={app.tagline || app.publisher}
+      subtitle={shortDescription(app)}
       truncateSubtitle
-      actions={(
-        // The card itself opens the detail view, so its own buttons must not
-        // bubble - a click on Install or Remove would otherwise navigate too.
-        <div className={styles.cardActions} onClick={e => e.stopPropagation()}>
-          <InstallButton app={app} installedVersion={installed?.version} />
-          {installed && <RemoveButton app={app} />}
-        </div>
-      )}
     >
-      <Stars rating={app.rating} />
+      {installed && <span className={styles.installedTag}>{t('store.installed')}</span>}
     </Card>
   );
 }
 
-function AppDetail({ appId, onBack, installed }: {
+function StoreBanner() {
+  const { t } = useTranslation();
+  return (
+    <div className={styles.banner}>
+      <Sparkles className={styles.bannerIcon} size={22} aria-hidden={true} />
+      <div className={styles.bannerText}>
+        <h2 className={styles.bannerTitle}>{t('store.banner.title')}</h2>
+        <p className={styles.bannerBody}>{t('store.banner.body')}</p>
+      </div>
+    </div>
+  );
+}
+
+function AppDetail({ appId, onBack, installed, onNeedsSignIn }: {
   appId: string; onBack: () => void; installed?: InstalledInfo;
+  onNeedsSignIn: (retry: () => void) => void;
 }) {
   const { t } = useTranslation();
   const [app, setApp] = useState<StoreAppDetail | null>(null);
@@ -216,15 +172,18 @@ function AppDetail({ appId, onBack, installed }: {
       <Card
         icon={<AppIcon app={app} installed={installed} large />}
         title={app.name}
-        subtitle={app.publisher}
+        subtitle={shortDescription(app)}
         actions={(
           <div className={styles.cardActions}>
-            <InstallButton app={app} installedVersion={installed?.version} />
-            {installed && <RemoveButton app={app} />}
+            <InstallButton app={app} installedVersion={installed?.version} onNeedsSignIn={onNeedsSignIn} />
           </div>
         )}
       >
-        <Stars rating={app.rating} />
+        {installed && (
+          <span className={styles.installedVersion}>
+            {t('store.installedVersion', { version: installed.version })}
+          </span>
+        )}
       </Card>
 
       {app.screenshots.length > 0 && (
@@ -259,8 +218,6 @@ function AppDetail({ appId, onBack, installed }: {
                 </dd>
               </>
             )}
-            <dt>{t('store.spec.page')}</dt>
-            <dd>{app.latest.hasPage ? t('store.value.hasFeature') : t('store.value.noFeature')}</dd>
             <dt>{t('store.spec.touch')}</dt>
             <dd>
               {app.latest.requiresTouch
@@ -280,6 +237,12 @@ function AppDetail({ appId, onBack, installed }: {
           </dl>
         </SettingsSection>
       )}
+
+      {installed && (
+        <div className={styles.detailFooter}>
+          <RemoveAppButton app={{ id: app.id, name: app.name }} label={t('store.delete')} />
+        </div>
+      )}
     </div>
   );
 }
@@ -289,12 +252,25 @@ function AppDetail({ appId, onBack, installed }: {
  * decides which releases it is offered - so the page renders what it is given
  * rather than filtering locally.
  */
-export function StorePage() {
+export function StorePage({ tab, onTabChange }: {
+  /** Route segment: the open app's id, so a store page is linkable. */
+  tab?: string | null;
+  onTabChange?: (tab: string) => void;
+}) {
   const { t } = useTranslation();
   const installed = useInstalled();
   const [apps, setApps] = useState<StoreApp[] | null>(null);
   const [failed, setFailed] = useState(false);
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [localOpenId, setLocalOpenId] = useState<string | null>(null);
+  // Install to resume once a session exists - the modal is opened by a refused
+  // install, so signing in finishes what the user already asked for.
+  const [pendingInstall, setPendingInstall] = useState<(() => void) | null>(null);
+
+  const openId = onTabChange ? (tab ?? null) : localOpenId;
+  const open = useCallback((id: string | null) => {
+    if (onTabChange) onTabChange(id ?? '');
+    else setLocalOpenId(id);
+  }, [onTabChange]);
 
   useEffect(() => {
     let alive = true;
@@ -305,29 +281,55 @@ export function StorePage() {
     return () => { alive = false; };
   }, []);
 
+  const handleNeedsSignIn = useCallback((retry: () => void) => {
+    setPendingInstall(() => retry);
+  }, []);
+
+  const handleSignedIn = useCallback(() => {
+    const retry = pendingInstall;
+    setPendingInstall(null);
+    retry?.();
+  }, [pendingInstall]);
+
   return (
     <div className={styles.app}>
       <ViewHeader title={t('apps.tabs.store')} />
       {openId ? (
-        <AppDetail appId={openId} onBack={() => setOpenId(null)} installed={installed.get(openId)} />
-      ) : failed ? (
-        <div className={styles.notice}>{t('store.unavailable')}</div>
-      ) : !apps ? (
-        <div className={styles.notice}>{t('store.loading')}</div>
-      ) : apps.length === 0 ? (
-        <div className={styles.notice}>{t('store.empty')}</div>
+        <AppDetail
+          appId={openId}
+          onBack={() => open(null)}
+          installed={installed.get(openId)}
+          onNeedsSignIn={handleNeedsSignIn}
+        />
       ) : (
-        <div className={styles.grid}>
-          {apps.map(app => (
-            <AppCard
-              key={app.id}
-              app={app}
-              installed={installed.get(app.id)}
-              onOpen={() => setOpenId(app.id)}
-            />
-          ))}
+        <div className={styles.body}>
+          <StoreBanner />
+          <h2 className={styles.sectionTitle}>{t('store.section.apps')}</h2>
+          {failed ? (
+            <div className={styles.notice}>{t('store.unavailable')}</div>
+          ) : !apps ? (
+            <div className={styles.notice}>{t('store.loading')}</div>
+          ) : apps.length === 0 ? (
+            <div className={styles.notice}>{t('store.empty')}</div>
+          ) : (
+            <div className={styles.grid}>
+              {apps.map(app => (
+                <AppCard
+                  key={app.id}
+                  app={app}
+                  installed={installed.get(app.id)}
+                  onOpen={() => open(app.id)}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
+      <StoreSignInModal
+        open={pendingInstall !== null}
+        onClose={() => setPendingInstall(null)}
+        onSignedIn={handleSignedIn}
+      />
     </div>
   );
 }

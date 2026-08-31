@@ -1,0 +1,83 @@
+@use '../../../../styles/text' as *;
+
+.empty {
+  margin: 0;
+  @include text-body;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}
+
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 0.75rem 0;
+
+  & + & {
+    border-top: var(--border-width) solid var(--separator);
+  }
+}
+
+// Fixed box: app icons arrive as SVGs of any aspect and PNGs of any size.
+.iconBox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex-shrink: 0;
+  padding: 0.3rem;
+  border: var(--border-width) solid var(--separator);
+  border-radius: var(--radius-small);
+  background: var(--bg-elevated);
+  overflow: hidden;
+}
+
+.icon {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.iconFallback {
+  width: 1.75rem;
+  height: 1.75rem;
+  color: var(--text-dim);
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.name {
+  @include text-body;
+  color: var(--text);
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.15rem 0.75rem;
+  margin: 0;
+  font-size: var(--type-tiny);
+
+  dt {
+    color: var(--text-dim);
+  }
+
+  dd {
+    margin: 0;
+    color: var(--text);
+  }
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}

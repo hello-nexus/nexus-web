@@ -15,6 +15,8 @@ interface AccountViewProps {
   /** The route's subtab segment (/system/account/<tab>) - drives the signed-out flow. */
   tab: string | null;
   onTabChange: (tab: string) => void;
+  /** Opens an app's store page from Manage purchases. */
+  onOpenStoreApp?: (appId: string) => void;
 }
 
 const SIGNED_OUT_SUBTABS: readonly AccountSignedOutSubtab[] = ['login', 'register', 'recover'];
@@ -25,7 +27,7 @@ function isSignedOutSubtab(value: string | null): value is AccountSignedOutSubta
 
 // Standalone Account page, reached from the top-bar profile menu's "Manage
 // account" entry - mirrors ProfilesView's page shell/wiring pattern.
-export function AccountView({ serviceOnline, connectionState, accounts, tab, onTabChange }: AccountViewProps) {
+export function AccountView({ serviceOnline, connectionState, accounts, tab, onTabChange, onOpenStoreApp }: AccountViewProps) {
   // Set when the user just came back from password recovery: the service
   // grants a recovery-fresh session that authorizes password change AND
   // account deletion without the current password, so AccountSignedIn hides
@@ -78,6 +80,7 @@ export function AccountView({ serviceOnline, connectionState, accounts, tab, onT
               accounts={accounts}
               recoveryFresh={recoveryFresh}
               onRecoveryFreshConsumed={handleRecoveryFreshConsumed}
+              onOpenStoreApp={onOpenStoreApp}
             />
           )}
       </div>
