@@ -1,3 +1,5 @@
+@use '../styles/text' as *;
+
 .wrap {
   position: relative;
   display: flex;
@@ -45,6 +47,30 @@
   display: flex;
   align-items: center;
   color: inherit;
+}
+
+// Shared by the rendered label and its hidden twin, so the twin's measurement
+// is exactly what rendering would cost. The gap lives in padding rather than a
+// margin: only the box width is measured.
+%labelType {
+  padding-left: 0.4rem;
+  max-width: 14rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  @include text-button;
+}
+
+.label {
+  @extend %labelType;
+  color: var(--text);
+}
+
+.labelMeasure {
+  @extend %labelType;
+  position: absolute;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .caret {
