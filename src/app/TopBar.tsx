@@ -236,7 +236,7 @@ export function TopBar({
           pill. Desktop-app build only; hidden in fullscreen along with the
           rest of the bar's navigation chrome. */}
       {__SERVICE_BUILD__ && !fullscreen && (
-        <div className={styles.navArrows}>
+        <div className={styles.navArrows} data-topbar-arrows>
           <HoverTooltip body={t('nav.back')} side="bottom">
             <button type="button" className={styles.iconButton}
               onClick={goBack} disabled={!canGoBack} aria-label={t('nav.back')}>
