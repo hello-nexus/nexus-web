@@ -82,7 +82,7 @@ describe('FocusChip', () => {
   // jsdom lays nothing out, so the fit test is driven by stubbed geometry: a
   // header wide enough for the label, or too narrow for it.
   function layOutBar({ roomy }: { roomy: boolean }) {
-    const width = roomy ? 1600 : 380;
+    const width = roomy ? 1600 : 240;
     Element.prototype.getBoundingClientRect = function () {
       if (this.tagName === 'HEADER') return { left: 0, right: width, width, top: 0, bottom: 40, height: 40, x: 0, y: 0, toJSON: () => ({}) } as DOMRect;
       // The hidden twin and the chip wrapper: a short label beside a chip that

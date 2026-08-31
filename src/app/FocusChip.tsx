@@ -9,9 +9,11 @@ import { useTranslation } from '../lib/i18n';
 import { focusIcon } from './focusIcons';
 import styles from './FocusChip.module.scss';
 
-// The window must stay draggable, so the label is only offered space the bar
-// can spare beside it.
-const MIN_DRAG_PX = 120;
+// Breathing room between the label and whatever the bar puts next to it. The
+// rest of the header stays draggable either way, so this is a visual gap, not
+// a drag budget - reserving a slab of it kept the label hidden on windows with
+// obvious room to spare.
+const MIN_LABEL_GAP_PX = 32;
 
 /**
  * Focus indicator and switch in the top bar's left cluster, next to the
@@ -59,7 +61,7 @@ export function FocusChip({ online }: { online: boolean }) {
       : headerBox.left + headerBox.width / 2 - searchWidth / 2;
 
     const bare = wrap.getBoundingClientRect().right - (labelFits ? needed : 0);
-    setLabelFits(boundary - bare - MIN_DRAG_PX >= needed);
+    setLabelFits(boundary - bare - MIN_LABEL_GAP_PX >= needed);
   }, [labelFits]);
 
   useLayoutEffect(() => {
