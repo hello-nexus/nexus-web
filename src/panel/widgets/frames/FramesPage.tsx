@@ -11,7 +11,7 @@ import { Button } from '../../../components/common/Button/Button';
 import { StatTile } from '../../../components/common/StatTile/StatTile';
 import { SystemSpecsPanel } from '../../../components/common/SystemSpecsPanel/SystemSpecsPanel';
 import { TimeSeriesChart } from '../../../components/common/TimeSeriesChart/TimeSeriesChart';
-import {
+import { fpsGameArtUrl,
   deleteFpsGame,
   deleteFpsSession,
   fetchFpsGameSessions,
@@ -27,7 +27,6 @@ import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { hour12OptionFor, localizeNumbers, type NumberFormat, type TimeFormat } from '../../../lib/units';
 import type { FpsTableGameItem } from '../../../types/fps-estimates';
-import { steamCapsuleUrl } from '../steam/SteamPage';
 import styles from './FramesPage.module.scss';
 
 const SESSIONS_LIMIT = 50;
@@ -195,15 +194,15 @@ function GameCard({
 }) {
   const { t } = useTranslation();
   const [artFailed, setArtFailed] = useState(false);
-  const showCapsule = game.store === 'steam' && game.steamAppId !== null && !artFailed;
+  const isCapsule = game.store === 'steam';
 
   return (
     <Card interactive onClick={onOpen} className={styles.gameCard} compact>
       <div className={styles.gameCardArt}>
-        {showCapsule ? (
+        {!artFailed ? (
           <img
-            className={styles.gameCardImg}
-            src={steamCapsuleUrl(game.steamAppId as number)}
+            className={isCapsule ? styles.gameCardImg : styles.gameCardIcon}
+            src={fpsGameArtUrl(game.gameKey)}
             alt=""
             loading="lazy"
             decoding="async"
@@ -500,16 +499,16 @@ function formatResClass(resClass: string): string {
 function DiscoverGameCard({ game, ownResClass }: { game: FpsTableGameItem; ownResClass: string | null }) {
   const { t } = useTranslation();
   const [artFailed, setArtFailed] = useState(false);
-  const showCapsule = game.steamAppId !== null && !artFailed;
+  const isCapsule = game.steamAppId !== null;
   const showResBasis = !!game.resBasis && game.resBasis !== ownResClass;
 
   return (
     <Card compact className={styles.gameCard}>
       <div className={styles.gameCardArt}>
-        {showCapsule ? (
+        {!artFailed ? (
           <img
-            className={styles.gameCardImg}
-            src={steamCapsuleUrl(game.steamAppId as number)}
+            className={isCapsule ? styles.gameCardImg : styles.gameCardIcon}
+            src={fpsGameArtUrl(game.gameKey)}
             alt=""
             loading="lazy"
             decoding="async"

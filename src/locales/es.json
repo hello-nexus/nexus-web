@@ -2040,6 +2040,8 @@
   "lighting.gameSync.signal.idle": "Esperando un juego...",
   "lighting.gameSync.signal.receiving": "Recibiendo de {activeApp}",
   "lighting.gameSync.signal.receivingUnknown": "Un juego está controlando tu iluminación.",
+  "lighting.gpuInitializingNotice": "Preparando la tarjeta gráfica para la iluminación: tus dispositivos permanecerán apagados hasta que termine.",
+  "lighting.gpuPickGpu": "Elegir GPU",
   "lighting.gpuUnavailableNotice": "Sin GPU disponible en este PC - el efecto se previsualiza aquí, pero no iluminará tus dispositivos.",
   "lighting.layoutPresets.apps": "Activar con aplicaciones...",
   "lighting.layoutPresets.appsClear": "Quitar todo",

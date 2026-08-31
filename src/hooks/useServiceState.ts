@@ -23,6 +23,11 @@ interface LightingStatus {
    *  button gate on this, not on effect-engine state. */
   rgbRunning: boolean;
   gpuAvailable: boolean;
+  /** Separates "no usable card" from "still handing one over"; `gpuAvailable`
+   *  is false for both. */
+  gpuState?: 'ready' | 'initializing' | 'unavailable';
+  /** A second adapter exists to move rendering to. */
+  gpuCanSwitch?: boolean;
   scanning: boolean;
 }
 

@@ -2061,6 +2061,8 @@
   "lighting.gameSync.signal.idle": "Ожидание игры...",
   "lighting.gameSync.signal.receiving": "Получение от {activeApp}",
   "lighting.gameSync.signal.receivingUnknown": "Игра управляет вашим освещением.",
+  "lighting.gpuInitializingNotice": "Идёт подготовка видеокарты к подсветке - устройства не светятся, пока она не завершится.",
+  "lighting.gpuPickGpu": "Выбрать GPU",
   "lighting.gpuUnavailableNotice": "На этом ПК нет подходящего GPU - эффект отображается в режиме предпросмотра, но устройства не загорятся.",
   "lighting.layoutPresets.apps": "Запускать приложениями...",
   "lighting.layoutPresets.appsClear": "Очистить все",

@@ -2061,6 +2061,8 @@
   "lighting.gameSync.signal.idle": "Oczekiwanie na grę...",
   "lighting.gameSync.signal.receiving": "Odbieranie od {activeApp}",
   "lighting.gameSync.signal.receivingUnknown": "Gra steruje Twoim oświetleniem.",
+  "lighting.gpuInitializingNotice": "Przygotowywanie karty graficznej do podświetlenia - urządzenia pozostaną wygaszone do zakończenia.",
+  "lighting.gpuPickGpu": "Wybierz GPU",
   "lighting.gpuUnavailableNotice": "Brak użytecznego GPU na tym PC - efekt jest wyświetlany tu w podglądzie, ale urządzenia pozostaną ciemne.",
   "lighting.layoutPresets.apps": "Uruchom aplikacjami...",
   "lighting.layoutPresets.appsClear": "Wyczyść wszystko",

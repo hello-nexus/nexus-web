@@ -2040,6 +2040,8 @@
   "lighting.gameSync.signal.idle": "等待游戏...",
   "lighting.gameSync.signal.receiving": "正在从 {activeApp} 接收",
   "lighting.gameSync.signal.receivingUnknown": "游戏正在控制您的灯光。",
+  "lighting.gpuInitializingNotice": "正在为灯效准备显卡，完成前设备将保持熄灭。",
+  "lighting.gpuPickGpu": "选择 GPU",
   "lighting.gpuUnavailableNotice": "此PC没有可用的GPU，效果在此处预览，但不会点亮您的设备。",
   "lighting.layoutPresets.apps": "通过应用触发...",
   "lighting.layoutPresets.appsClear": "全部清除",

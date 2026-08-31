@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import {  } from 'lucide-react';
 import type { AudioSnapshot } from '../../../../hooks/useAudioState';
 import type { EffectState, EffectTemplateBundle } from '../../../../types/lighting';
 import { useShaderRenderer } from '../../../../hooks/useShaderRenderer';
 import { useTranslation } from '../../../../lib/i18n';
 import { CanvasNoticeBar } from '../../../../components/common/CanvasNoticeBar';
+import { gpuNotice, type GpuState } from '../../../../components/common/CanvasNoticeBar/gpuNotice';
 import { AnimateDrawer } from './AnimateDrawer';
 import styles from './FullscreenShader.module.scss';
 
@@ -23,6 +25,7 @@ interface FullscreenShaderProps {
   /** Preset slots used as a background by ≥1 panel (panel badge). */
   panelSlots?: Set<number> | null;
   gpuAvailable?: boolean;
+  gpuState?: GpuState;
   /** Freezes the shader clock so fullscreen holds the same frame the paused
    *  lighting engine and the main canvas preview are holding. */
   paused?: boolean;
@@ -30,9 +33,10 @@ interface FullscreenShaderProps {
 
 export function FullscreenShader({
   effect, state, bundle, canReset, audioRef,
-  onTemplateSelect, onChange, onCommit, onReset, onClose, onPrev, onNext, panelSlots, gpuAvailable, paused,
+  onTemplateSelect, onChange, onCommit, onReset, onClose, onPrev, onNext, panelSlots, gpuAvailable, gpuState, paused,
 }: FullscreenShaderProps) {
   const { t } = useTranslation();
+  const notice = gpuNotice(gpuState, gpuAvailable);
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef(state);
@@ -87,7 +91,8 @@ export function FullscreenShader({
   return (
     <div ref={containerRef} className={styles.container} onMouseMove={handleMouseMove}>
       <canvas ref={canvasRef} className={styles.canvas} onClick={handleCanvasClick} />
-      <CanvasNoticeBar visible={gpuAvailable === false} message={t('lighting.gpuUnavailableNotice')} />
+      <CanvasNoticeBar visible={notice != null} message={notice ? t(notice.key) : ''}
+        tone={notice?.tone} />
       {loading && <div className={styles.overlay}>{t('lighting.fullscreen.loadingShader')}</div>}
       {error && <div className={styles.overlay}>{error}</div>}
       <button type="button" aria-label={t('lighting.fullscreen.prevEffect')} className={`${styles.navZone} ${styles.navZoneLeft}`} onClick={onPrev}>

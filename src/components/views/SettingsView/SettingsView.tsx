@@ -22,7 +22,7 @@ interface SettingsViewProps {
   onTabChange: (tab: string) => void;
 }
 
-type SettingsTabKey = 'general' | 'appearance' | 'lighting-cooling' | 'monitoring' | 'privacy';
+export type SettingsTabKey = 'general' | 'appearance' | 'lighting-cooling' | 'monitoring' | 'privacy';
 
 // Single source of truth for the settings tab strip - key, translated label,
 // icon, and tab validity (isValidTab below) all derive from this list so they

@@ -145,6 +145,15 @@ function loadDeviceOrder(): string[] {
 export function LightingPage({ serviceOnline, serviceState, connectionState, activeProfileId, platform = '', onSectionNavigate }: LightingViewProps) {
   const { t, language } = useTranslation();
   const { mode, setMode, rawSync, setRawSync, synced, paused: syncedPaused } = useLightingSync(serviceOnline, activeProfileId);
+  // gpuCanSwitch comes from the same enumeration the Settings picker gates on,
+  // so the shortcut never lands on a tab with no GPU control. Offered only for a
+  // card that failed: while initializing, the picker restarts the service and
+  // discards the context the notice is waiting for.
+  const canPickRenderGpu = (serviceState.lighting?.gpuCanSwitch ?? false)
+    && serviceState.lighting?.gpuState === 'unavailable';
+  const handlePickRenderGpu = useCallback(() => {
+    onSectionNavigate?.('settings', { settingsTab: 'lighting-cooling', settingsAnchor: 'set-render-gpu' });
+  }, [onSectionNavigate]);
   // Game Sync requires the Windows Chroma capture shim; hide it on non-Windows
   // (empty platform = ping not yet resolved, keep hidden to avoid a flash).
   const isWindows = platform === 'windows';
@@ -1978,7 +1987,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
               )}
               {showCanvas && (
               <div className={styles.canvasArea}>
-                <DeviceCanvas devices={canvasDevices} canvasPixels={frames.canvasPixels} canvasW={frames.canvasW} canvasH={frames.canvasH} selectedIds={selectedDeviceIds} primaryDeviceId={primaryDeviceId} onSelectDevice={handleSelectDevice} onSetSelection={handleSetSelection} shaderEffect={shaderMode ? activeEffect : null} shaderState={shaderMode ? previewState : null} shaderPaused={paused} audioRef={audioRef} hiddenFrameIds={hiddenFrameIds} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={handleOpenSettings} onDragActiveChange={handleDragActiveChange} onBeforeLayoutSave={handleBeforeLayoutSave} onLayoutCommit={handleLayoutCommit} onSetDevicesPower={handleSetDevicesPower} gpuAvailable={serviceState.lighting?.gpuAvailable ?? true} />
+                <DeviceCanvas devices={canvasDevices} canvasPixels={frames.canvasPixels} canvasW={frames.canvasW} canvasH={frames.canvasH} selectedIds={selectedDeviceIds} primaryDeviceId={primaryDeviceId} onSelectDevice={handleSelectDevice} onSetSelection={handleSetSelection} shaderEffect={shaderMode ? activeEffect : null} shaderState={shaderMode ? previewState : null} shaderPaused={paused} audioRef={audioRef} hiddenFrameIds={hiddenFrameIds} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={handleOpenSettings} onDragActiveChange={handleDragActiveChange} onBeforeLayoutSave={handleBeforeLayoutSave} onLayoutCommit={handleLayoutCommit} onSetDevicesPower={handleSetDevicesPower} gpuAvailable={serviceState.lighting?.gpuAvailable ?? true} gpuState={serviceState.lighting?.gpuState} onPickRenderGpu={canPickRenderGpu ? handlePickRenderGpu : undefined} />
                 {effectiveMode === 'gif' && <MediaCanvasNotice />}
                 {shaderMode && activeEffect && currentState && (
                   <>
@@ -2124,6 +2133,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           onPrev={handlePrevEffect}
           onNext={handleNextEffect}
           gpuAvailable={serviceState.lighting?.gpuAvailable ?? true}
+          gpuState={serviceState.lighting?.gpuState}
           paused={paused}
         />
       )}
