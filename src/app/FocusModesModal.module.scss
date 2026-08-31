@@ -35,16 +35,9 @@
   font-size: var(--type-body);
 }
 
-.textInput {
+.nameInput {
   width: 16rem;
   max-width: 60%;
-  padding: 0.35rem 0.5rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: var(--text);
-  font-family: inherit;
-  font-size: var(--type-small);
 }
 
 .iconPicker {

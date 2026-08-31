@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { BellOff, Cloud, MonitorOff, Plus, RotateCcw, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, BellOff, Cloud, MonitorOff, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { Button } from '../components/common/Button/Button';
 import { CollapsibleSection } from '../components/common/CollapsibleSection/CollapsibleSection';
 import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
 import { DeviceModal } from '../components/common/DeviceModal/DeviceModal';
 import { SettingSelect, SettingToggle } from '../components/common/SettingRow/SettingRow';
+import { TextInput } from '../components/common/TextInput/TextInput';
 import { FOCUS_ICON_KEYS, focusIcon } from './focusIcons';
 import { useFocus } from '../hooks/useFocus';
 import { useTranslation } from '../lib/i18n';
@@ -30,10 +31,20 @@ export function FocusModesModal({ open, onClose, serviceOnline }: {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<FocusMode | null>(null);
   const [resetOpen, setResetOpen] = useState(false);
+  // The field is a draft until it is committed: a PATCH per keystroke writes
+  // settings.json on every letter, and the service ignores an empty name, so a
+  // controlled field could never be cleared to retype.
+  const [nameDraft, setNameDraft] = useState<{ id: string; value: string } | null>(null);
 
   const modes = status?.modes ?? [];
   const triggers = status?.availableTriggers ?? ['manual'];
   const disabled = !serviceOnline || !status;
+
+  const commitName = (mode: FocusMode) => {
+    const draft = nameDraft?.id === mode.id ? nameDraft.value.trim() : null;
+    setNameDraft(null);
+    if (draft && draft !== mode.name) void updateMode(mode.id, { name: draft });
+  };
 
   const move = (index: number, delta: number) => {
     const next = modes.map(m => m.id);
@@ -60,7 +71,7 @@ export function FocusModesModal({ open, onClose, serviceOnline }: {
               <Button
                 size="sm"
                 tone="ghost"
-                icon={<span aria-hidden>↑</span>}
+                icon={<ArrowUp size={14} />}
                 aria-label={t('focus.mode.moveUp')}
                 disabled={disabled || index === 0}
                 onClick={() => move(index, -1)}
@@ -68,7 +79,7 @@ export function FocusModesModal({ open, onClose, serviceOnline }: {
               <Button
                 size="sm"
                 tone="ghost"
-                icon={<span aria-hidden>↓</span>}
+                icon={<ArrowDown size={14} />}
                 aria-label={t('focus.mode.moveDown')}
                 disabled={disabled || index === modes.length - 1}
                 onClick={() => move(index, 1)}
@@ -86,16 +97,21 @@ export function FocusModesModal({ open, onClose, serviceOnline }: {
             </div>
           }
         >
-          <label className={styles.field}>
+          <div className={styles.field}>
             <span className={styles.fieldLabel}>{t('focus.mode.name')}</span>
-            <input
-              className={styles.textInput}
-              value={mode.name}
-              maxLength={MAX_NAME_LENGTH}
-              disabled={disabled}
-              onChange={e => void updateMode(mode.id, { name: e.target.value })}
-            />
-          </label>
+            <div className={styles.nameInput}>
+              <TextInput
+                value={nameDraft?.id === mode.id ? nameDraft.value : mode.name}
+                maxLength={MAX_NAME_LENGTH}
+                disabled={disabled}
+                size="sm"
+                ariaLabel={t('focus.mode.name')}
+                onInput={value => setNameDraft({ id: mode.id, value })}
+                onSubmit={() => commitName(mode)}
+                onBlur={() => commitName(mode)}
+              />
+            </div>
+          </div>
 
           <div className={styles.field}>
             <span className={styles.fieldLabel}>{t('focus.mode.icon')}</span>

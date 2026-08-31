@@ -36,14 +36,14 @@ export function useFpsSessionsInRange(domain: readonly [number, number], enabled
     return () => { mountedRef.current = false; };
   }, []);
 
-  const load = useCallback((from: number, to: number) => {
+  const load = useCallback((from: number, to: number, quiet = false) => {
     const seq = ++seqRef.current;
-    setLoading(true);
+    if (!quiet) setLoading(true);
     void (async () => {
       const result = await fetchFpsSessionsInRange(from, to);
       if (!mountedRef.current || seq !== seqRef.current) return;
       setSessions(result?.sessions ?? []);
-      setLoading(false);
+      if (!quiet) setLoading(false);
     })();
   }, []);
 
@@ -76,7 +76,8 @@ export function useFpsSessionsInRange(domain: readonly [number, number], enabled
     if (!enabled) return;
     const id = window.setInterval(() => {
       const [f, t] = domainRef.current;
-      load(f, t);
+      // Quiet: a background refresh must not re-render the page every 5s.
+      load(f, t, true);
     }, LIVE_REFRESH_MS);
     return () => window.clearInterval(id);
   }, [enabled, load]);

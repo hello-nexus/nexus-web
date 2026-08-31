@@ -99,11 +99,15 @@ export function FocusChip({ online }: { online: boolean }) {
           </button>
         </div>
       )}
-      <FocusModesModal
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        serviceOnline={online}
-      />
+      {/* Mounted only while open: it runs its own useFocus, so leaving it
+          mounted doubles the status fetch and the topic subscription. */}
+      {settingsOpen && (
+        <FocusModesModal
+          open
+          onClose={() => setSettingsOpen(false)}
+          serviceOnline={online}
+        />
+      )}
     </div>
   );
 }

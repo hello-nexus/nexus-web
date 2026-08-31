@@ -1,4 +1,4 @@
-import type { AtRule, Plugin } from 'postcss'
+import type { Plugin } from 'postcss'
 
 // Clears :hover the moment a mouse press lands, app-wide.
 //
@@ -12,15 +12,33 @@ import type { AtRule, Plugin } from 'postcss'
 // one inside :not(), and a hashed name is unreachable from the runtime.
 //
 // The guard rides in :where() so it contributes zero specificity: rules keep
-// the exact weight and order they were authored with. That costs the panel
-// bundle, whose floor is Chromium 83 (:where() arrived in 88) and which would
-// drop the whole rule - so files under src/panel/ are left alone. They render
-// on touch screens, where nothing hovers in the first place. The one other
+// the exact weight and order they were authored with. :where() is Chrome 88 and
+// the panel's floor is Chromium 83, which drops a rule it cannot parse, so
+// src/panel/ files are skipped. Shared component CSS the panel also loads still
+// carries the guard and loses those :hover rules on a Q60 - harmless on a touch
+// screen, where nothing hovers. The one other
 // blind spot is src/styles/editable.module.scss: vite reaches it through
 // `composes: ... from`, which resolves outside this pipeline. Its single
 // :hover sits on a label that turns into an input on click, so the stale
 // highlight it would leave is never on screen.
 const GUARD = ':where(html:not([data-nx-hover="off"]))'
+
+/**
+ * True when :hover applies to the element the rule selects, rather than sitting
+ * inside a functional pseudo-class argument. `x:not(:hover)` matches the
+ * UNhovered element, so guarding it inverts the rule: standing the guard down
+ * would drop the resting style instead of the hovered one.
+ */
+function hasTopLevelHover(selector: string): boolean {
+  let depth = 0
+  for (let i = 0; i < selector.length; i++) {
+    const ch = selector[i]
+    if (ch === '(' || ch === '[') depth++
+    else if (ch === ')' || ch === ']') depth--
+    else if (depth === 0 && selector.startsWith(':hover', i)) return true
+  }
+  return false
+}
 
 /** Splits a selector list on commas that are not inside brackets. */
 function splitSelectors(selector: string): string[] {
@@ -49,13 +67,10 @@ export default function hoverGuard(): Plugin {
 
       root.walkRules(rule => {
         if (!rule.selector.includes(':hover')) return
-        // Inside @keyframes a "selector" is a percentage step, never a :hover.
-        const parent = rule.parent as AtRule | undefined
-        if (parent?.type === 'atrule' && /keyframes$/.test(parent.name)) return
 
         rule.selectors = splitSelectors(rule.selector).map(part => {
           const one = part.trim()
-          return one.includes(':hover') ? `${GUARD} ${one}` : one
+          return hasTopLevelHover(one) ? `${GUARD} ${one}` : one
         })
       })
     },

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   createFocusMode, deleteFocusMode, getFocus, reorderFocusModes,
   resetFocusModes, setFocusActive, updateFocusMode,
@@ -24,10 +24,14 @@ export interface UseFocusResult {
  */
 export function useFocus(enabled: boolean): UseFocusResult {
   const [status, setStatus] = useState<FocusStatus | null>(null);
+  // Every mutation broadcasts, so a refetch is always in flight beside the
+  // response to a newer mutation; without a sequence the slower one wins.
+  const seqRef = useRef(0);
 
   const refresh = useCallback(async () => {
+    const seq = ++seqRef.current;
     const next = await getFocus();
-    if (next) setStatus(next);
+    if (next && seq === seqRef.current) setStatus(next);
   }, []);
 
   useEffect(() => {
@@ -45,6 +49,7 @@ export function useFocus(enabled: boolean): UseFocusResult {
   // Every mutation answers with the full status, so the UI never waits on the
   // topic round-trip to show what it just did.
   const apply = useCallback((next: FocusStatus | null) => {
+    seqRef.current++;
     if (next) setStatus(next);
   }, []);
 

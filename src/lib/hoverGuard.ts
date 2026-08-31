@@ -32,12 +32,19 @@ function release() {
 
 function onMove(e: PointerEvent) {
   if (!suppressed) return;
+  // A stray touch move must not release a suppression a mouse press opened.
+  if (e.pointerType !== 'mouse') return;
   if (Math.abs(e.clientX - originX) < MOVE_THRESHOLD_PX
     && Math.abs(e.clientY - originY) < MOVE_THRESHOLD_PX) return;
   release();
 }
 
+let started = false;
+
 export function initHoverGuard() {
+  // A second call (hot reload) would stack duplicate listeners.
+  if (started) return;
+  started = true;
   // Capture phase: the mark must be up before any handler can re-render and
   // paint the element in its hovered state.
   document.addEventListener('pointerdown', suppress, true);
