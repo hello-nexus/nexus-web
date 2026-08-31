@@ -81,6 +81,15 @@ export function widgetLayoutSize(size: PanelWidgetSize): PanelWidgetSize {
   return size === '2x2round' ? '2x2' : size;
 }
 
+// Cooler glass fed pushed frames: the service can turn the bytes for a pump head
+// mounted upside down. The Kraken is excluded - its transport has no such filter.
+const MOUNT_ORIENTABLE_SURFACES: ReadonlySet<PanelSurface> =
+  new Set<PanelSurface>(['lcd-round', 'lcd-square', 'lcd-wide']);
+
+export function surfaceSupportsMountOrientation(surface: PanelSurface): boolean {
+  return MOUNT_ORIENTABLE_SURFACES.has(surface);
+}
+
 export function isSingleWidgetSurface(surface: PanelSurface): boolean {
   return singleWidgetSurfaceSize(surface) !== undefined;
 }

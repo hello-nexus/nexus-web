@@ -26,7 +26,7 @@ import { normalizePanelLayout } from '../../../panel/engine/usePanelLayout';
 import { repaginatePanelLayout } from '../../../panel/engine/paginate';
 import { simulatedPanelEditorCapacity } from '../../../panel/embed/simulatedPanelViewport';
 import { getPanelGridSizingSettings } from '../../../lib/panelSimulation';
-import { isSingleWidgetSurface, singleWidgetSurfaceSize } from '../../../panel/types';
+import { isSingleWidgetSurface, singleWidgetSurfaceSize, surfaceSupportsMountOrientation } from '../../../panel/types';
 import { supportsDesktopWallpaper } from '../../../panel/device/wiredPanel';
 import { fetchService, postService } from '../../../api/service';
 import {
@@ -266,6 +266,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // Per-panel persisted settings off the device record (promoted monitors).
   const [recordReserve, setRecordReserve] = useState(true);
   const [recordAutoOrient, setRecordAutoOrient] = useState(true);
+  const [recordFlip180, setRecordFlip180] = useState(false);
+  const [recordMirror, setRecordMirror] = useState(false);
   const [recordTouch, setRecordTouch] = useState<boolean | undefined>(undefined);
   // Curated display family (capabilities.family, e.g. 'xeneon-edge') off the
   // matched record - drives which promoted-monitor-only settings apply.
@@ -378,7 +380,9 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     // Same for the Kraken: the glass is a panel, the cooler around it is the
     // settings tab. A simulated one has no cooler to talk to, so the tab would
     // open empty.
-    || (surface === 'kraken' && !isSimulated);
+    || (surface === 'kraken' && !isSimulated)
+    // Cooler glass fed pushed frames: the tab hosts its mount orientation.
+    || (surfaceSupportsMountOrientation(surface) && !isSimulated);
   const activeTab: Tab = tab === 'settings' && !settingsAvailable ? 'widgets' : tab;
   // Simulator and real hardware share one code path: theme, layout,
   // brightness, orientation, screen-on, and auto-launch all read/write the
@@ -450,6 +454,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       // Per-panel persisted settings (promoted monitors).
       setRecordReserve(match?.reserveMonitor ?? true);
       setRecordAutoOrient(match?.autoOrient ?? true);
+      setRecordFlip180(match?.flip180 ?? false);
+      setRecordMirror(match?.mirror ?? false);
       setRecordFamily(match?.capabilities?.family);
       if (match?.capabilities?.orientation) setOrientation(normalizeOrientation(match.capabilities.orientation));
       const touchFromRecord = match?.capabilities?.touch ?? device?.capabilities.touch;
@@ -1215,6 +1221,32 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         hardwareResetBusy={resettingHardware}
                       />
                       <QSeriesCoolerSettings />
+                    </div>
+                  )}
+                  {activeTab === 'settings' && surfaceSupportsMountOrientation(surface) && !isSimulated && (
+                    <div className={styles.settingsContent}>
+                      <SettingsSection title={t('devices.lcd.mounting')} boxClassName={styles.deviceSettingsBox}>
+                        <SettingToggle
+                          label={t('devices.lcd.flip180')}
+                          description={t('devices.lcd.flip180Hint')}
+                          checked={recordFlip180}
+                          onChange={() => {
+                            const next = !recordFlip180;
+                            setRecordFlip180(next);
+                            if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { flip180: next }).catch(() => {});
+                          }}
+                        />
+                        <SettingToggle
+                          label={t('devices.lcd.mirror')}
+                          description={t('devices.lcd.mirrorHint')}
+                          checked={recordMirror}
+                          onChange={() => {
+                            const next = !recordMirror;
+                            setRecordMirror(next);
+                            if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { mirror: next }).catch(() => {});
+                          }}
+                        />
+                      </SettingsSection>
                     </div>
                   )}
                   {activeTab === 'settings' && surface === 'kraken' && !isSimulated && (
