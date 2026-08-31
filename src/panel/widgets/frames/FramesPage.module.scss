@@ -65,14 +65,16 @@
   gap: 0;
 }
 
+// 460x215 is what the store's header image actually is; the older 231x87
+// capsule ratio cropped a fifth of its height away under object-fit: cover.
+//
 // The children are taken out of flow so none of them can size this box: a
 // percentage height does not resolve against an aspect-ratio parent, so a
-// square icon fell back to its intrinsic height and grew the card. Steam
-// capsules hid it by already matching the ratio.
+// square icon fell back to its intrinsic height and grew the card.
 .gameCardArt {
   position: relative;
   width: 100%;
-  aspect-ratio: 231 / 87;
+  aspect-ratio: 460 / 215;
   overflow: hidden;
   background: var(--panel-element-bg);
 }
