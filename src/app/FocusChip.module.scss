@@ -21,8 +21,8 @@
   cursor: pointer;
   transition: background var(--ease-fast), color var(--ease-fast);
 
-  // Not while open: the menu it opened is the feedback, and a hover on top of
-  // the open state reads as two states at once.
+  // Never while open: the menu IS the feedback, so the trigger drops back to
+  // its resting look the moment it is clicked.
   &:hover:not(.chipOpen) { background: var(--bg-card-hover); color: var(--text); }
 
   svg { flex-shrink: 0; }
@@ -39,8 +39,8 @@
   &:hover:not(.chipOpen) { background: var(--accent-glow-shadow); }
 }
 
-.chipOpen { background: var(--bg-card-hover); }
-
+// Open carries no background of its own: it used to paint --bg-card-hover,
+// which is the hover colour, so clicking the chip left it looking hovered.
 .icon {
   display: flex;
   align-items: center;
