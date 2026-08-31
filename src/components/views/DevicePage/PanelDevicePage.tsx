@@ -1228,7 +1228,6 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                       <SettingsSection title={t('devices.lcd.mounting')} boxClassName={styles.deviceSettingsBox}>
                         <SettingToggle
                           label={t('devices.lcd.flip180')}
-                          description={t('devices.lcd.flip180Hint')}
                           checked={recordFlip180}
                           onChange={() => {
                             const next = !recordFlip180;
@@ -1238,7 +1237,6 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         />
                         <SettingToggle
                           label={t('devices.lcd.mirror')}
-                          description={t('devices.lcd.mirrorHint')}
                           checked={recordMirror}
                           onChange={() => {
                             const next = !recordMirror;
