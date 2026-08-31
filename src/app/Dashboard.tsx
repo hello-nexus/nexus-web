@@ -57,7 +57,7 @@ import { useTranslation } from '../lib/i18n';
 import { applyThemeMode, applyAccentColor, cachePreferencesLocally } from '../lib/settings';
 import type { Preferences } from '../api/profiles';
 import type { Language, ThemeMode } from '../lib/settings';
-import { FOCUS_CAPABLE_VIEWS, NAV_ICONS, PORTAL_NAV_KEYS } from './sidebarNav';
+import { FULLSCREEN_CAPABLE_VIEWS, NAV_ICONS, PORTAL_NAV_KEYS } from './sidebarNav';
 import { PageVersionLabel } from './sidebar';
 import { TopBar } from './TopBar';
 import { PageChromeProvider } from './PageChrome';
@@ -516,22 +516,22 @@ export function Dashboard() {
   const portalNavActive = section !== 'system' ? section : '';
 
   // Focus mode: full-width, chrome-stripped view of a single focus-capable
-  // page (see FOCUS_CAPABLE_VIEWS). focusCapable re-derives every render from
-  // the active route; focusActive (not the raw focusMode state) is what every
+  // page (see FULLSCREEN_CAPABLE_VIEWS). fullscreenCapable re-derives every render from
+  // the active route; fullscreenActive (not the raw fullscreen state) is what every
   // layout consumer below reads, so a route change that leaves a capable page
   // drops the full-width layout in the SAME commit instead of one render
   // later - a navigate() that bypasses the (now-hidden) TopBar entirely, e.g.
   // the command palette shortcut, would otherwise paint one frame of the new
   // page under the old page's full-width chrome. The effect then clears the
-  // underlying focusMode state so Focus doesn't silently resume if the user
+  // underlying fullscreen state so Focus doesn't silently resume if the user
   // later returns to a capable page.
-  const focusCapable = section === 'system' && FOCUS_CAPABLE_VIEWS.has(activeView);
-  const [focusMode, setFocusMode] = useState(false);
-  const focusActive = focusMode && focusCapable;
+  const fullscreenCapable = section === 'system' && FULLSCREEN_CAPABLE_VIEWS.has(activeView);
+  const [fullscreen, setFullscreen] = useState(false);
+  const fullscreenActive = fullscreen && fullscreenCapable;
   useEffect(() => {
-    if (!focusCapable && focusMode) setFocusMode(false);
-  }, [focusCapable, focusMode]);
-  const toggleFocusMode = useCallback(() => setFocusMode(f => !f), []);
+    if (!fullscreenCapable && fullscreen) setFullscreen(false);
+  }, [fullscreenCapable, fullscreen]);
+  const toggleFocusMode = useCallback(() => setFullscreen(f => !f), []);
 
   // Page name shown in the top-bar search pill. Portal sections use their
   // nav.section label; inside /system the active view resolves through the
@@ -856,11 +856,11 @@ export function Dashboard() {
       <CrossZoneDragProvider>
       <CommandPaletteProvider navigate={navigate} onPairPhone={() => setPairPhoneOpen(true)}>
       <ToastProvider>
-      <PageChromeProvider>
+      <PageChromeProvider fullscreen={fullscreenActive}>
       <div className={classNames(styles.layout, {
         [styles.layoutCompact]: compact,
         [styles.layoutWindowsApp]: isWindowsAppShell(),
-        [styles.layoutFocusMode]: focusActive,
+        [styles.layoutFullscreen]: fullscreenActive,
       })}>
         <AppBackdrop />
         <BackgroundEffects />
@@ -918,14 +918,14 @@ export function Dashboard() {
               onNavigateAccount={handleNavigateAccount}
               isWindowsApp={isWindowsAppShell()}
               isMacApp={isMacAppShell()}
-              focusCapable={focusCapable}
-              focusMode={focusActive}
-              onToggleFocusMode={toggleFocusMode}
+              fullscreenCapable={fullscreenCapable}
+              fullscreen={fullscreenActive}
+              onToggleFullscreen={toggleFocusMode}
             />
             <PageVersionLabel />
             {/* Body row: sidebar (/system only, and never in Focus mode) + content */}
             <div className={styles.bodyRow}>
-              {hasSidebar && !focusActive && (
+              {hasSidebar && !fullscreenActive && (
                 <SidebarColumn
                   compact={compact}
                   online={online}

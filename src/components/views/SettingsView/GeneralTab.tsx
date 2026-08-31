@@ -5,7 +5,7 @@ import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingToggle, SettingSelect, SettingSlider, SettingRow } from '../../common/SettingRow/SettingRow';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { ManageConflictAppsModal } from './ManageConflictAppsModal';
-import { GameModeSection } from './GameModeSection';
+import { FocusSection } from './FocusSection';
 import { fetchAutoStart, setAutoStart as postAutoStart } from '../../../api/autoStart';
 import { postService } from '../../../api/service';
 import { resetOnboarding } from '../../../api/onboarding';
@@ -248,7 +248,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
         </SettingsSection>
       )}
 
-      <GameModeSection serviceOnline={serviceOnline} />
+      <FocusSection serviceOnline={serviceOnline} />
 
       <SettingsSection title={t('settings.conflictApps.title')}>
         <SettingToggle

@@ -27,7 +27,7 @@ const uiAnchorIds = () => {
     '../components/views/SettingsView/LightingCoolingSection.tsx',
     '../components/views/SettingsView/AiIntegrationSection.tsx',
     '../components/views/SettingsView/DiscordPresenceSection.tsx',
-    '../components/views/SettingsView/GameModeSection.tsx',
+    '../components/views/SettingsView/FocusSection.tsx',
   ];
   const found = new Set<string>();
   for (const f of files) {

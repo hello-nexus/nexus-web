@@ -64,7 +64,7 @@
 // page-width variables every routed page's body/header already reads
 // (.pageBody, .pageBodyFill, ViewHeader) so the active page fills the window
 // instead of centering under the normal max-width.
-.layoutFocusMode {
+.layoutFullscreen {
   --page-max: none;
   --page-content-max: none;
 }

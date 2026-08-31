@@ -39,7 +39,9 @@ import { appsToProcessListItems, currentAppValueMap, reconcileLiveWithWindow, ze
 import { buildLiveUsageByName } from './page/processDetailHelpers';
 import { formatRate } from './page/shared';
 import { formatTabChipValue, tabChipLoadPercent, TAB_CHIP_PERCENT_MIN_WIDTH, TAB_CHIP_RATE_MIN_WIDTH, ROW_VALUE_RATE_MIN_WIDTH } from './page/tabChipValue';
-import { usePageSettingsAction } from '../../../app/PageChrome';
+import { createPortal } from 'react-dom';
+import { Tabs } from '../../../components/common/Tabs/Tabs';
+import { useIsFullscreen, usePageTabsSlot } from '../../../app/PageChrome';
 import { useSensorHistoryFeed } from '../common/useSharedSensorHistory';
 import styles from './MonitoringPage.module.scss';
 
@@ -135,17 +137,13 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
   // tab's own line is percent-of-RAM).
   const memoryTotalMb = deriveMemoryTotalMb(memUsed?.value, tabChipLoadPercent('memory', sensors.cpu, sensors.gpu, sensors.memory));
 
+  const fullscreen = useIsFullscreen();
+  const tabsSlot = usePageTabsSlot();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const openSettings = useCallback(() => setSettingsOpen(true), []);
   // Top-bar settings gear opens the GPU picker modal; register only when there
   // is more than one GPU to choose from (same modal the "Change" title-row
   // link opens).
-  // Always registered: the dialog carries the timeline event toggles, which
-  // are worth opening for on any machine, not just a multi-GPU one.
-  usePageSettingsAction(
-    { onOpen: openSettings, label: t('monitoring.settings.open') },
-    serviceOnline,
-  );
 
   // An unrecognized or legacy tab (e.g. the removed 'overview') renders the
   // default without rewriting the URL - render-only, matching the existing
@@ -488,12 +486,24 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
         onConfirm={onCreateCustomEvent}
         onCancel={() => setAddEventAtMs(null)}
       />
-      <ViewHeader
-        title={t('nav.monitoring')}
-        tabs={tabs}
-        activeTab={tab}
-        onTabChange={onTabChange}
-      />
+      {fullscreen && tabsSlot
+        ? createPortal(
+            <Tabs
+              tabs={tabs}
+              activeKey={tab}
+              onChange={k => onTabChange?.(k)}
+              ariaLabel={t('nav.monitoring')}
+            />,
+            tabsSlot,
+          )
+        : (
+          <ViewHeader
+            title={t('nav.monitoring')}
+            tabs={tabs}
+            activeTab={tab}
+            onTabChange={onTabChange}
+          />
+        )}
       <div className={`${styles.tabContent} pageBodyFill`}>
         {tab === 'detailed' ? (
           <DetailedTab sensors={sensors} />

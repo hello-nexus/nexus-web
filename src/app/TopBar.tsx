@@ -18,7 +18,7 @@ import { useSearchSignal } from '../search/signals';
 import { TopSearch } from '../search/TopSearch';
 import { DISCORD_INVITE_URL } from '../lib/externalLinks';
 import { CaptionButtons } from './CaptionButtons';
-import { GameModeChip } from './GameModeChip';
+import { FocusChip } from './FocusChip';
 import { usePageChrome } from './PageChrome';
 import { useWindowDragRegion } from './useWindowDragRegion';
 import { ConnectedProfileSlot, ConflictStatusSlot, UpdateStatusSlot } from './sidebar';
@@ -71,13 +71,13 @@ interface TopBarProps {
   // True only inside the Nexus macOS shell. The native traffic lights overlay
   // the top-left, so the left cluster is inset past them.
   isMacApp: boolean;
-  // True when the active page opted into Focus mode (see FOCUS_CAPABLE_VIEWS
-  // in sidebarNav.tsx). The Focus toggle only renders for these pages.
-  focusCapable: boolean;
-  // Current Focus mode state, owned by Dashboard - also drives the sidebar
+  // True when the active page opted into Fullscreen mode (see
+  // FULLSCREEN_CAPABLE_VIEWS in sidebarNav.tsx).
+  fullscreenCapable: boolean;
+  // Current Fullscreen state, owned by Dashboard - also drives the sidebar
   // visibility and the page-width layout.
-  focusMode: boolean;
-  onToggleFocusMode: () => void;
+  fullscreen: boolean;
+  onToggleFullscreen: () => void;
 }
 
 // The "..." overflow menu: Settings / Check for updates / Dev tools / Discord / About.
@@ -165,9 +165,9 @@ export function TopBar({
   onNavigateAccount,
   isWindowsApp,
   isMacApp,
-  focusCapable,
-  focusMode,
-  onToggleFocusMode,
+  fullscreenCapable,
+  fullscreen,
+  onToggleFullscreen,
 }: TopBarProps) {
   const { t } = useTranslation();
   const [aboutOpen, setAboutOpen] = useState(false);
@@ -178,6 +178,7 @@ export function TopBar({
   // settings action (Monitoring registers one).
   const pageChrome = usePageChrome();
   const pageSettings = pageChrome?.settings ?? null;
+  const setTabsSlot = pageChrome?.setTabsSlot;
   // Empty areas of the bar drag the window (Windows shell only); see hook.
   const dragRegion = useWindowDragRegion();
 
@@ -196,7 +197,7 @@ export function TopBar({
       })}
     >
       <div className={styles.leftCluster}>
-        {hasSidebar && !focusMode && (
+        {hasSidebar && !fullscreen && (
           <HoverTooltip body={compact ? t('sidebar.expand') : t('sidebar.collapse')} side="bottom">
             <button
               type="button"
@@ -208,28 +209,33 @@ export function TopBar({
             </button>
           </HoverTooltip>
         )}
-        {/* Focus toggle: immediately right of the collapse button. Only
-            renders on pages that opted in (FOCUS_CAPABLE_VIEWS); stays visible
-            in Focus mode itself since it's the only way back. */}
-        {focusCapable && (
-          <HoverTooltip body={focusMode ? t('topbar.focus.exit') : t('topbar.focus')} side="bottom">
+        {/* Fullscreen toggle: immediately right of the collapse button. Only
+            renders on pages that opted in (FULLSCREEN_CAPABLE_VIEWS); stays
+            visible in fullscreen since it's the only way back. */}
+        {fullscreenCapable && (
+          <HoverTooltip body={fullscreen ? t('topbar.fullscreen.exit') : t('topbar.fullscreen')} side="bottom">
             <button
               type="button"
               className={styles.iconButton}
-              onClick={onToggleFocusMode}
-              aria-label={focusMode ? t('topbar.focus.exit') : t('topbar.focus')}
+              onClick={onToggleFullscreen}
+              aria-label={fullscreen ? t('topbar.fullscreen.exit') : t('topbar.fullscreen')}
             >
-              {focusMode ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+              {fullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
             </button>
           </HoverTooltip>
         )}
-        {!focusMode && <GameModeChip online={online} onNavigateSettings={onNavigateSettings} />}
+        {!fullscreen && <FocusChip online={online} onNavigateSettings={onNavigateSettings} />}
+        {/* Page tabs move up here in fullscreen. Inside leftCluster so they
+            inherit the macOS traffic-light inset, and every tab is a <button>,
+            which the drag region already excludes - so the bar still drags
+            from the empty space to their right. */}
+        <div className={styles.pageTabs} ref={setTabsSlot} />
       </div>
 
       {/* History arrows: pinned immediately to the left of the centered search
-          pill. Desktop-app build only; hidden in Focus mode along with the
+          pill. Desktop-app build only; hidden in fullscreen along with the
           rest of the bar's navigation chrome. */}
-      {__SERVICE_BUILD__ && !focusMode && (
+      {__SERVICE_BUILD__ && !fullscreen && (
         <div className={styles.navArrows}>
           <HoverTooltip body={t('nav.back')} side="bottom">
             <button type="button" className={styles.iconButton}
@@ -250,8 +256,8 @@ export function TopBar({
           docked search (TopSearch); otherwise a display-only title (panel
           kiosk / iOS). The page name is the document's primary heading - the
           in-page <h1>s were removed when titles moved into the top bar.
-          Hidden entirely in Focus mode. */}
-      {!focusMode && (palette ? (
+          Hidden entirely in fullscreen. */}
+      {!fullscreen && (palette ? (
         <TopSearch pageTitle={pageTitle} online={online} platform={platform} />
       ) : (
         <div className={styles.searchBar}>
@@ -264,7 +270,7 @@ export function TopBar({
           Hidden in Focus mode. The mac shell's drag-strip carve-out mirrors
           this cluster's geometry (MacAppWindow.IsTopBarButtonColumn) - width
           changes here need the matching constants updated there. */}
-      {!focusMode && pageSettings && (
+      {!fullscreen && pageSettings && (
         <div className={styles.pageSettings}>
           <HoverTooltip body={pageSettings.label} side="bottom">
             <button
@@ -284,12 +290,12 @@ export function TopBar({
             and update-available (green). Each hides itself when inactive.
             All hidden in Focus mode along with the rest of this cluster - only
             the window controls (below) survive it. */}
-        {!focusMode && <ConflictStatusSlot serviceOnline={online} />}
-        {!focusMode && OFFICIAL_BUILD && <UpdateStatusSlot serviceOnline={online} onOpen={onOpenUpdate} onInstall={onInstall} />}
-        {!focusMode && (
+        {!fullscreen && <ConflictStatusSlot serviceOnline={online} />}
+        {!fullscreen && OFFICIAL_BUILD && <UpdateStatusSlot serviceOnline={online} onOpen={onOpenUpdate} onInstall={onInstall} />}
+        {!fullscreen && (
           <TopBarMenu onNavigateSettings={onNavigateSettings} onNavigateTools={onNavigateTools} onOpenAbout={() => setAboutOpen(true)} onOpenUpdate={onOpenUpdate} />
         )}
-        {!focusMode && (
+        {!fullscreen && (
           <div className={styles.profileSlot}>
             {online ? (
               <ConnectedProfileSlot connectEpoch={connectEpoch}>
