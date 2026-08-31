@@ -1286,8 +1286,6 @@
   "focus.holdTraffic.description": "Telemetrie, Update-Prüfungen und Cloud-Uploads aufschieben. Selbst gestartete Vorgänge laufen weiter.",
   "focus.holdTraffic.label": "Hintergrund-Datenverkehr pausieren",
   "focus.mode.add": "Modus hinzufügen",
-  "focus.mode.autoActivate.game": "Aktivieren, wenn ein Spiel läuft",
-  "focus.mode.autoActivate.obs": "Aktivieren, wenn OBS live geht",
   "focus.mode.icon": "Symbol",
   "focus.mode.moveDown": "Nach unten",
   "focus.mode.moveUp": "Nach oben",

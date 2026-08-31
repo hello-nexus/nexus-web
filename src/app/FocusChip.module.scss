@@ -2,6 +2,8 @@
   position: relative;
   display: flex;
   align-items: center;
+  // Breathing room from the fullscreen toggle on its left.
+  margin-left: 0.4rem;
 }
 
 // Icon + chevron only, sized to sit level with the sibling icon buttons.

@@ -59,6 +59,9 @@
   display: flex;
   align-items: center;
   min-width: 0;
+  // Breathing room from the fullscreen toggle, which the cluster's own
+  // 0.15rem gap does not give.
+  margin-left: 0.4rem;
 
   &:empty { display: none; }
 

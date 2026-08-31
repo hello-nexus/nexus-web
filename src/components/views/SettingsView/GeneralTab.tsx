@@ -5,7 +5,6 @@ import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingToggle, SettingSelect, SettingSlider, SettingRow } from '../../common/SettingRow/SettingRow';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { ManageConflictAppsModal } from './ManageConflictAppsModal';
-import { FocusSection } from './FocusSection';
 import { fetchAutoStart, setAutoStart as postAutoStart } from '../../../api/autoStart';
 import { postService } from '../../../api/service';
 import { resetOnboarding } from '../../../api/onboarding';
@@ -247,8 +246,6 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
           />
         </SettingsSection>
       )}
-
-      <FocusSection serviceOnline={serviceOnline} />
 
       <SettingsSection title={t('settings.conflictApps.title')}>
         <SettingToggle

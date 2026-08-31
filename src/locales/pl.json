@@ -1296,8 +1296,6 @@
   "focus.holdTraffic.description": "Odłóż telemetrię, sprawdzanie aktualizacji i przesyłanie do chmury. To, co uruchomisz sam, działa dalej.",
   "focus.holdTraffic.label": "Wstrzymaj ruch w tle",
   "focus.mode.add": "Dodaj tryb",
-  "focus.mode.autoActivate.game": "Aktywuj, gdy działa gra",
-  "focus.mode.autoActivate.obs": "Aktywuj, gdy OBS wejdzie na żywo",
   "focus.mode.icon": "Ikona",
   "focus.mode.moveDown": "W dół",
   "focus.mode.moveUp": "W górę",

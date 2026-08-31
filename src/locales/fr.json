@@ -1286,8 +1286,6 @@
   "focus.holdTraffic.description": "Différer la télémétrie, la recherche de mises à jour et les envois vers le cloud. Ce que vous lancez vous-même continue.",
   "focus.holdTraffic.label": "Suspendre le trafic en arrière-plan",
   "focus.mode.add": "Ajouter un mode",
-  "focus.mode.autoActivate.game": "Activer quand un jeu tourne",
-  "focus.mode.autoActivate.obs": "Activer quand OBS passe en direct",
   "focus.mode.icon": "Icône",
   "focus.mode.moveDown": "Descendre",
   "focus.mode.moveUp": "Monter",

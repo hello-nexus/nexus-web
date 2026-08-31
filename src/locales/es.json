@@ -1286,8 +1286,6 @@
   "focus.holdTraffic.description": "Aplazar la telemetría, la búsqueda de actualizaciones y las subidas a la nube. Lo que inicies tú sigue funcionando.",
   "focus.holdTraffic.label": "Pausar el tráfico en segundo plano",
   "focus.mode.add": "Añadir modo",
-  "focus.mode.autoActivate.game": "Activar cuando se ejecute un juego",
-  "focus.mode.autoActivate.obs": "Activar cuando OBS se ponga en directo",
   "focus.mode.icon": "Icono",
   "focus.mode.moveDown": "Bajar",
   "focus.mode.moveUp": "Subir",

@@ -1286,8 +1286,6 @@
   "focus.holdTraffic.description": "Telemetrie, updatecontroles en cloud-uploads uitstellen. Wat je zelf start, blijft werken.",
   "focus.holdTraffic.label": "Achtergrondverkeer pauzeren",
   "focus.mode.add": "Modus toevoegen",
-  "focus.mode.autoActivate.game": "Activeren wanneer een game draait",
-  "focus.mode.autoActivate.obs": "Activeren wanneer OBS live gaat",
   "focus.mode.icon": "Pictogram",
   "focus.mode.moveDown": "Omlaag",
   "focus.mode.moveUp": "Omhoog",

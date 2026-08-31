@@ -224,7 +224,7 @@ export function TopBar({
             </button>
           </HoverTooltip>
         )}
-        {!fullscreen && <FocusChip online={online} onNavigateSettings={onNavigateSettings} />}
+        {!fullscreen && <FocusChip online={online} />}
         {/* Page tabs move up here in fullscreen. Inside leftCluster so they
             inherit the macOS traffic-light inset, and every tab is a <button>,
             which the drag region already excludes - so the bar still drags

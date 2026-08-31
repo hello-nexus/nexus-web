@@ -1286,8 +1286,6 @@
   "focus.holdTraffic.description": "テレメトリ、更新の確認、クラウドへのアップロードを延期します。自分で開始した処理はそのまま実行されます。",
   "focus.holdTraffic.label": "バックグラウンド通信を一時停止",
   "focus.mode.add": "モードを追加",
-  "focus.mode.autoActivate.game": "ゲームの実行中に有効化",
-  "focus.mode.autoActivate.obs": "OBS の配信開始時に有効化",
   "focus.mode.icon": "アイコン",
   "focus.mode.moveDown": "下へ",
   "focus.mode.moveUp": "上へ",

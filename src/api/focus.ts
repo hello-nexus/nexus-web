@@ -19,7 +19,6 @@ export interface FocusMode {
   icon: string;
   /** Built-in modes can be renamed and retuned, never deleted. */
   builtIn: boolean;
-  autoActivate: boolean;
   trigger: FocusTrigger;
   holdNotifications: boolean;
   holdBackgroundTraffic: boolean;

@@ -67,6 +67,12 @@
 .layoutFullscreen {
   --page-max: none;
   --page-content-max: none;
+  // Without the width cap, page content can exceed a small window and give the
+  // DOCUMENT a scrollbar. A scrollbar gutter is not hit-testable by page
+  // elements, so its bottom-right corner swallows the window-resize strip
+  // underneath and the window can no longer be resized from that corner.
+  // Content that needs to scroll does so in the page body (pageBodyFill).
+  overflow: hidden;
 }
 
 // Resize strips - one along each edge of the window. They catch

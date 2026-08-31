@@ -1286,8 +1286,6 @@
   "focus.holdTraffic.description": "Rimanda telemetria, controllo aggiornamenti e caricamenti sul cloud. Ciò che avvii tu continua a funzionare.",
   "focus.holdTraffic.label": "Sospendi il traffico in background",
   "focus.mode.add": "Aggiungi modalità",
-  "focus.mode.autoActivate.game": "Attiva quando un gioco è in esecuzione",
-  "focus.mode.autoActivate.obs": "Attiva quando OBS va in diretta",
   "focus.mode.icon": "Icona",
   "focus.mode.moveDown": "Sposta giù",
   "focus.mode.moveUp": "Sposta su",

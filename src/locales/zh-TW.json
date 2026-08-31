@@ -1286,8 +1286,6 @@
   "focus.holdTraffic.description": "延後遙測、更新檢查與雲端上傳。你自己啟動的作業仍會繼續。",
   "focus.holdTraffic.label": "暫停背景流量",
   "focus.mode.add": "新增模式",
-  "focus.mode.autoActivate.game": "遊戲執行時啟用",
-  "focus.mode.autoActivate.obs": "OBS 開播時啟用",
   "focus.mode.icon": "圖示",
   "focus.mode.moveDown": "下移",
   "focus.mode.moveUp": "上移",

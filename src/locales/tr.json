@@ -1286,8 +1286,6 @@
   "focus.holdTraffic.description": "Telemetriyi, güncelleme denetimlerini ve buluta yüklemeleri ertele. Kendi başlattıkların çalışmaya devam eder.",
   "focus.holdTraffic.label": "Arka plan trafiğini duraklat",
   "focus.mode.add": "Mod ekle",
-  "focus.mode.autoActivate.game": "Bir oyun çalışırken etkinleştir",
-  "focus.mode.autoActivate.obs": "OBS yayına girdiğinde etkinleştir",
   "focus.mode.icon": "Simge",
   "focus.mode.moveDown": "Aşağı taşı",
   "focus.mode.moveUp": "Yukarı taşı",

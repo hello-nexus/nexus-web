@@ -1286,8 +1286,6 @@
   "focus.holdTraffic.description": "推迟遥测、更新检查和云端上传。你自己发起的操作仍会继续。",
   "focus.holdTraffic.label": "暂停后台流量",
   "focus.mode.add": "添加模式",
-  "focus.mode.autoActivate.game": "游戏运行时启用",
-  "focus.mode.autoActivate.obs": "OBS 开播时启用",
   "focus.mode.icon": "图标",
   "focus.mode.moveDown": "下移",
   "focus.mode.moveUp": "上移",

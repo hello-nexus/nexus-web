@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import classNames from 'classnames';
 import { ChevronDown, Settings } from 'lucide-react';
+import { FocusModesModal } from './FocusModesModal';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { useClickOutside } from '../hooks/useClickOutside';
 import { useFocus } from '../hooks/useFocus';
@@ -13,13 +14,11 @@ import styles from './FocusChip.module.scss';
  * fullscreen toggle. Icon plus a chevron, no label: the icon is the active
  * mode's own, falling back to the generic focus mark while nothing is active.
  */
-export function FocusChip({ online, onNavigateSettings }: {
-  online: boolean;
-  onNavigateSettings: () => void;
-}) {
+export function FocusChip({ online }: { online: boolean }) {
   const { t } = useTranslation();
   const { status, activate, turnOff } = useFocus(online);
   const [open, setOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useClickOutside(ref, () => setOpen(false), open);
 
@@ -55,7 +54,7 @@ export function FocusChip({ online, onNavigateSettings }: {
           aria-haspopup="menu"
           aria-expanded={open}
         >
-          <span className={styles.icon}>{focusIcon(active?.icon ?? 'focus', 16)}</span>
+          <span className={styles.icon}>{focusIcon(active?.icon ?? 'focus', 19)}</span>
           <ChevronDown size={12} className={styles.caret} />
         </button>
       </HoverTooltip>
@@ -93,13 +92,18 @@ export function FocusChip({ online, onNavigateSettings }: {
             type="button"
             role="menuitem"
             className={styles.item}
-            onClick={() => { setOpen(false); onNavigateSettings(); }}
+            onClick={() => { setOpen(false); setSettingsOpen(true); }}
           >
             <span className={styles.itemIcon}><Settings size={14} /></span>
             {t('nav.settings')}
           </button>
         </div>
       )}
+      <FocusModesModal
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        serviceOnline={online}
+      />
     </div>
   );
 }

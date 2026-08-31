@@ -1286,8 +1286,6 @@
   "focus.holdTraffic.description": "Defer telemetry, update checks and cloud uploads. Anything you start yourself still runs.",
   "focus.holdTraffic.label": "Pause background traffic",
   "focus.mode.add": "Add mode",
-  "focus.mode.autoActivate.game": "Activate when a game is running",
-  "focus.mode.autoActivate.obs": "Activate when OBS goes live",
   "focus.mode.icon": "Icon",
   "focus.mode.moveDown": "Move down",
   "focus.mode.moveUp": "Move up",

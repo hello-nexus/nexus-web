@@ -1296,8 +1296,6 @@
   "focus.holdTraffic.description": "Отложить телеметрию, проверку обновлений и выгрузку в облако. То, что вы запустили сами, продолжит работать.",
   "focus.holdTraffic.label": "Приостановить фоновый трафик",
   "focus.mode.add": "Добавить режим",
-  "focus.mode.autoActivate.game": "Активировать, когда запущена игра",
-  "focus.mode.autoActivate.obs": "Активировать, когда OBS выходит в эфир",
   "focus.mode.icon": "Значок",
   "focus.mode.moveDown": "Вниз",
   "focus.mode.moveUp": "Вверх",

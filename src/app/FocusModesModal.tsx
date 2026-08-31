@@ -1,21 +1,26 @@
 import { useState } from 'react';
 import { BellOff, ChevronDown, ChevronRight, Cloud, Focus, MonitorOff, Plus, Trash2 } from 'lucide-react';
-import { Button } from '../../common/Button/Button';
-import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
-import { SettingSelect, SettingToggle } from '../../common/SettingRow/SettingRow';
-import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
-import { FOCUS_ICON_KEYS, focusIcon } from '../../../app/focusIcons';
-import { useFocus } from '../../../hooks/useFocus';
-import { useTranslation } from '../../../lib/i18n';
-import type { FocusMode, FocusTrigger } from '../../../api/focus';
-import styles from './FocusSection.module.scss';
+import { Button } from '../components/common/Button/Button';
+import { Overlay } from '../components/common/Overlay/Overlay';
+import { SettingSelect, SettingToggle } from '../components/common/SettingRow/SettingRow';
+import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
+import { FOCUS_ICON_KEYS, focusIcon } from './focusIcons';
+import { useFocus } from '../hooks/useFocus';
+import { useTranslation } from '../lib/i18n';
+import type { FocusMode, FocusTrigger } from '../api/focus';
+import styles from './FocusModesModal.module.scss';
 
 /**
- * The focus-mode list: every mode can be renamed, re-iconed, retriggered and
+ * The only place focus modes are managed, opened from the top bar chip's
+ * Settings entry. Every mode can be renamed, re-iconed, retriggered and
  * retuned, and non-built-in ones removed. Order is precedence - the first mode
  * whose trigger fires wins when two could activate.
  */
-export function FocusSection({ serviceOnline }: { serviceOnline: boolean }) {
+export function FocusModesModal({ open, onClose, serviceOnline }: {
+  open: boolean;
+  onClose: () => void;
+  serviceOnline: boolean;
+}) {
   const { t } = useTranslation();
   const { status, addMode, updateMode, removeMode, reorder, setEnabled } = useFocus(serviceOnline);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -33,10 +38,14 @@ export function FocusSection({ serviceOnline }: { serviceOnline: boolean }) {
     void reorder(next);
   };
 
+  if (!open) return null;
+
   return (
-    <SettingsSection
-      title={t('focus.title')}
-      action={
+    <Overlay open={open} onClose={onClose} variant="dialog"
+      className={styles.modal} ariaLabel={t('focus.title')}>
+      <div className={styles.head}>
+        <h2 className={styles.title}>{t('focus.title')}</h2>
+        {
         <Button
           size="sm"
           tone="neutral"
@@ -49,12 +58,11 @@ export function FocusSection({ serviceOnline }: { serviceOnline: boolean }) {
           })}
         >
           {t('focus.mode.add')}
-        </Button>
-      }
-    >
+        </Button>}
+      </div>
+
       <SettingToggle
         label={t('focus.enabled.label')}
-        anchorId="set-focus"
         icon={<Focus />}
         iconLeading="subtle"
         description={t('focus.enabled.description')}
@@ -154,15 +162,6 @@ export function FocusSection({ serviceOnline }: { serviceOnline: boolean }) {
                   disabled={disabled}
                 />
 
-                {mode.trigger !== 'manual' && (
-                  <SettingToggle
-                    label={t(`focus.mode.autoActivate.${mode.trigger}`)}
-                    checked={mode.autoActivate}
-                    onChange={() => void updateMode(mode.id, { autoActivate: !mode.autoActivate })}
-                    disabled={disabled}
-                  />
-                )}
-
                 <SettingToggle
                   label={t('focus.holdNotifications.label')}
                   icon={<BellOff />}
@@ -196,6 +195,10 @@ export function FocusSection({ serviceOnline }: { serviceOnline: boolean }) {
         );
       })}
 
+      <div className={styles.actions}>
+        <Button tone="accent" onClick={onClose}>{t('app.window.close')}</Button>
+      </div>
+
       <ConfirmModal
         open={!!pendingDelete}
         title={t('focus.mode.removeConfirm.title')}
@@ -207,6 +210,6 @@ export function FocusSection({ serviceOnline }: { serviceOnline: boolean }) {
         }}
         onCancel={() => setPendingDelete(null)}
       />
-    </SettingsSection>
+    </Overlay>
   );
 }

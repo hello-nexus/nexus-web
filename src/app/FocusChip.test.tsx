@@ -10,6 +10,11 @@ const activate = vi.fn();
 const turnOff = vi.fn();
 let status: FocusStatus | null = null;
 
+vi.mock('./FocusModesModal', () => ({
+  FocusModesModal: ({ open }: { open: boolean }) =>
+    open ? <div data-testid="focus-modes-modal" /> : null,
+}));
+
 vi.mock('../hooks/useFocus', () => ({
   useFocus: () => ({
     status, activate, turnOff,
@@ -26,7 +31,6 @@ function mode(overrides: Partial<FocusMode> = {}): FocusMode {
     name: 'Game Mode',
     icon: 'gamepad',
     builtIn: true,
-    autoActivate: true,
     trigger: 'game',
     holdNotifications: true,
     holdBackgroundTraffic: true,
@@ -57,25 +61,25 @@ describe('FocusChip', () => {
   });
 
   it('renders nothing before the first status arrives', () => {
-    const { container } = render(<FocusChip online onNavigateSettings={() => {}} />);
+    const { container } = render(<FocusChip online />);
     expect(container).toBeEmptyDOMElement();
   });
 
   it('stays visible while idle so it can switch a mode on', () => {
     status = statusFor();
-    render(<FocusChip online onNavigateSettings={() => {}} />);
+    render(<FocusChip online />);
     expect(screen.getByRole('button', { name: 'focus.title' })).toBeInTheDocument();
   });
 
   it('names the active mode on the control', () => {
     status = statusFor({ activeModeId: 'streaming', reason: 'auto' });
-    render(<FocusChip online onNavigateSettings={() => {}} />);
+    render(<FocusChip online />);
     expect(screen.getByRole('button', { name: 'focus.title: Streaming Mode' })).toBeInTheDocument();
   });
 
   it('lists every mode, then Off, then Settings', () => {
     status = statusFor();
-    render(<FocusChip online onNavigateSettings={() => {}} />);
+    render(<FocusChip online />);
     fireEvent.click(screen.getByRole('button', { name: 'focus.title' }));
 
     const entries = screen.getAllByRole('menuitemradio').map(el => el.textContent);
@@ -85,7 +89,7 @@ describe('FocusChip', () => {
 
   it('activates the mode that was picked', () => {
     status = statusFor();
-    render(<FocusChip online onNavigateSettings={() => {}} />);
+    render(<FocusChip online />);
     fireEvent.click(screen.getByRole('button', { name: 'focus.title' }));
     fireEvent.click(screen.getByRole('menuitemradio', { name: 'Streaming Mode' }));
     expect(activate).toHaveBeenCalledWith('streaming');
@@ -93,18 +97,19 @@ describe('FocusChip', () => {
 
   it('turns focus off from the Off entry', () => {
     status = statusFor({ activeModeId: 'game', reason: 'auto' });
-    render(<FocusChip online onNavigateSettings={() => {}} />);
+    render(<FocusChip online />);
     fireEvent.click(screen.getByRole('button', { name: 'focus.title: Game Mode' }));
     fireEvent.click(screen.getByRole('menuitemradio', { name: 'focus.off' }));
     expect(turnOff).toHaveBeenCalled();
   });
 
-  it('opens settings from the popover', () => {
+  it('opens the modes modal from the popover', () => {
     status = statusFor();
-    const onNavigateSettings = vi.fn();
-    render(<FocusChip online onNavigateSettings={onNavigateSettings} />);
+    render(<FocusChip online />);
     fireEvent.click(screen.getByRole('button', { name: 'focus.title' }));
+    expect(screen.queryByTestId('focus-modes-modal')).not.toBeInTheDocument();
+
     fireEvent.click(screen.getByRole('menuitem', { name: /nav.settings/ }));
-    expect(onNavigateSettings).toHaveBeenCalled();
+    expect(screen.getByTestId('focus-modes-modal')).toBeInTheDocument();
   });
 });
