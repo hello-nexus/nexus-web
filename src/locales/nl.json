@@ -1279,8 +1279,6 @@
   "focus.effect.notifications": "meldingen vastgehouden",
   "focus.effect.panelsOff": "panelen uit",
   "focus.effect.traffic": "verkeer gepauzeerd",
-  "focus.enabled.description": "Uit schort alle modi op zonder ze te wijzigen.",
-  "focus.enabled.label": "Focusmodi",
   "focus.holdNotifications.description": "Systeemmeldingen in de wachtrij zetten en tonen zodra de modus eindigt.",
   "focus.holdNotifications.label": "Meldingen vasthouden",
   "focus.holdTraffic.description": "Telemetrie, updatecontroles en cloud-uploads uitstellen. Wat je zelf start, blijft werken.",

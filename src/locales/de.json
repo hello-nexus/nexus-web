@@ -1279,8 +1279,6 @@
   "focus.effect.notifications": "Benachrichtigungen zurückgehalten",
   "focus.effect.panelsOff": "Panels aus",
   "focus.effect.traffic": "Datenverkehr pausiert",
-  "focus.enabled.description": "Aus setzt alle Modi aus, ohne sie zu ändern.",
-  "focus.enabled.label": "Fokusmodi",
   "focus.holdNotifications.description": "Systembenachrichtigungen sammeln und nach dem Modus anzeigen.",
   "focus.holdNotifications.label": "Benachrichtigungen zurückhalten",
   "focus.holdTraffic.description": "Telemetrie, Update-Prüfungen und Cloud-Uploads aufschieben. Selbst gestartete Vorgänge laufen weiter.",

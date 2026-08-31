@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { BellOff, ChevronDown, ChevronRight, Cloud, Focus, MonitorOff, Plus, Trash2 } from 'lucide-react';
+import { BellOff, ChevronDown, ChevronRight, Cloud, MonitorOff, Plus, Trash2 } from 'lucide-react';
 import { Button } from '../components/common/Button/Button';
 import { Overlay } from '../components/common/Overlay/Overlay';
+import { SettingsSection } from '../components/common/SettingsSection/SettingsSection';
 import { SettingSelect, SettingToggle } from '../components/common/SettingRow/SettingRow';
 import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
 import { FOCUS_ICON_KEYS, focusIcon } from './focusIcons';
@@ -9,6 +10,9 @@ import { useFocus } from '../hooks/useFocus';
 import { useTranslation } from '../lib/i18n';
 import type { FocusMode, FocusTrigger } from '../api/focus';
 import styles from './FocusModesModal.module.scss';
+
+// Matches FocusRoutes.MaxNameLength: the name rides the top bar chip.
+const MAX_NAME_LENGTH = 10;
 
 /**
  * The only place focus modes are managed, opened from the top bar chip's
@@ -22,7 +26,7 @@ export function FocusModesModal({ open, onClose, serviceOnline }: {
   serviceOnline: boolean;
 }) {
   const { t } = useTranslation();
-  const { status, addMode, updateMode, removeMode, reorder, setEnabled } = useFocus(serviceOnline);
+  const { status, addMode, updateMode, removeMode, reorder } = useFocus(serviceOnline);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<FocusMode | null>(null);
 
@@ -43,34 +47,25 @@ export function FocusModesModal({ open, onClose, serviceOnline }: {
   return (
     <Overlay open={open} onClose={onClose} variant="dialog"
       className={styles.modal} ariaLabel={t('focus.title')}>
-      <div className={styles.head}>
-        <h2 className={styles.title}>{t('focus.title')}</h2>
-        {
-        <Button
-          size="sm"
-          tone="neutral"
-          icon={<Plus size={14} />}
-          disabled={disabled}
-          onClick={() => void addMode({
-            name: t('focus.mode.newName'),
-            icon: 'focus',
-            trigger: 'manual',
-          })}
-        >
-          {t('focus.mode.add')}
-        </Button>}
-      </div>
+      <h2 className={styles.title}>{t('focus.title')}</h2>
 
-      <SettingToggle
-        label={t('focus.enabled.label')}
-        icon={<Focus />}
-        iconLeading="subtle"
-        description={t('focus.enabled.description')}
-        checked={status?.enabled ?? true}
-        onChange={() => void setEnabled(!(status?.enabled ?? true))}
-        disabled={disabled}
-      />
-
+      <SettingsSection
+        action={
+          <Button
+            size="sm"
+            tone="neutral"
+            icon={<Plus size={14} />}
+            disabled={disabled}
+            onClick={() => void addMode({
+              name: t('focus.mode.newName'),
+              icon: 'focus',
+              trigger: 'manual',
+            })}
+          >
+            {t('focus.mode.add')}
+          </Button>
+        }
+      >
       {modes.map((mode, index) => {
         const expanded = expandedId === mode.id;
         return (
@@ -129,7 +124,7 @@ export function FocusModesModal({ open, onClose, serviceOnline }: {
                   <input
                     className={styles.textInput}
                     value={mode.name}
-                    maxLength={40}
+                    maxLength={MAX_NAME_LENGTH}
                     disabled={disabled}
                     onChange={e => void updateMode(mode.id, { name: e.target.value })}
                   />
@@ -194,6 +189,8 @@ export function FocusModesModal({ open, onClose, serviceOnline }: {
           </div>
         );
       })}
+
+      </SettingsSection>
 
       <div className={styles.actions}>
         <Button tone="accent" onClick={onClose}>{t('app.window.close')}</Button>

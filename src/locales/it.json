@@ -1279,8 +1279,6 @@
   "focus.effect.notifications": "notifiche trattenute",
   "focus.effect.panelsOff": "pannelli spenti",
   "focus.effect.traffic": "traffico sospeso",
-  "focus.enabled.description": "Disattivarlo sospende tutte le modalità senza modificarle.",
-  "focus.enabled.label": "Modalità di concentrazione",
   "focus.holdNotifications.description": "Accoda le notifiche di sistema e mostrale al termine della modalità.",
   "focus.holdNotifications.label": "Trattieni le notifiche",
   "focus.holdTraffic.description": "Rimanda telemetria, controllo aggiornamenti e caricamenti sul cloud. Ciò che avvii tu continua a funzionare.",

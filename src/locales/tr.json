@@ -1279,8 +1279,6 @@
   "focus.effect.notifications": "bildirimler bekletiliyor",
   "focus.effect.panelsOff": "paneller kapalı",
   "focus.effect.traffic": "trafik duraklatıldı",
-  "focus.enabled.description": "Kapatmak, hiçbirini değiştirmeden tüm modları askıya alır.",
-  "focus.enabled.label": "Odak modları",
   "focus.holdNotifications.description": "Sistem bildirimlerini sıraya al ve mod bittiğinde göster.",
   "focus.holdNotifications.label": "Bildirimleri beklet",
   "focus.holdTraffic.description": "Telemetriyi, güncelleme denetimlerini ve buluta yüklemeleri ertele. Kendi başlattıkların çalışmaya devam eder.",

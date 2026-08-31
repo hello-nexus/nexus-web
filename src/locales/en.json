@@ -1279,8 +1279,6 @@
   "focus.effect.notifications": "notifications held",
   "focus.effect.panelsOff": "panels off",
   "focus.effect.traffic": "traffic paused",
-  "focus.enabled.description": "Off suspends every mode without changing any of them.",
-  "focus.enabled.label": "Focus modes",
   "focus.holdNotifications.description": "Queue system notifications and show them when the mode ends.",
   "focus.holdNotifications.label": "Hold notifications",
   "focus.holdTraffic.description": "Defer telemetry, update checks and cloud uploads. Anything you start yourself still runs.",

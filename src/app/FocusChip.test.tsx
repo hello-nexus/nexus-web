@@ -18,7 +18,7 @@ vi.mock('./FocusModesModal', () => ({
 vi.mock('../hooks/useFocus', () => ({
   useFocus: () => ({
     status, activate, turnOff,
-    setEnabled: vi.fn(), addMode: vi.fn(), updateMode: vi.fn(),
+    addMode: vi.fn(), updateMode: vi.fn(),
     removeMode: vi.fn(), reorder: vi.fn(),
   }),
 }));
@@ -42,12 +42,11 @@ function mode(overrides: Partial<FocusMode> = {}): FocusMode {
 
 function statusFor(overrides: Partial<FocusStatus> = {}): FocusStatus {
   return {
-    enabled: true,
     activeModeId: null,
     reason: '',
     activatedUtcMs: 0,
     games: [],
-    modes: [mode(), mode({ id: 'streaming', name: 'Streaming Mode', icon: 'broadcast', trigger: 'obs' })],
+    modes: [mode(), mode({ id: 'streaming', name: 'Streaming', icon: 'broadcast', trigger: 'obs' })],
     availableTriggers: ['manual', 'game', 'obs'],
     ...overrides,
   };
@@ -74,7 +73,7 @@ describe('FocusChip', () => {
   it('names the active mode on the control', () => {
     status = statusFor({ activeModeId: 'streaming', reason: 'auto' });
     render(<FocusChip online />);
-    expect(screen.getByRole('button', { name: 'focus.title: Streaming Mode' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'focus.title: Streaming' })).toBeInTheDocument();
   });
 
   it('lists every mode, then Off, then Settings', () => {
@@ -83,7 +82,7 @@ describe('FocusChip', () => {
     fireEvent.click(screen.getByRole('button', { name: 'focus.title' }));
 
     const entries = screen.getAllByRole('menuitemradio').map(el => el.textContent);
-    expect(entries).toEqual(['Game Mode', 'Streaming Mode', 'focus.off']);
+    expect(entries).toEqual(['Game Mode', 'Streaming', 'focus.off']);
     expect(screen.getByRole('menuitem', { name: /nav.settings/ })).toBeInTheDocument();
   });
 
@@ -91,7 +90,7 @@ describe('FocusChip', () => {
     status = statusFor();
     render(<FocusChip online />);
     fireEvent.click(screen.getByRole('button', { name: 'focus.title' }));
-    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Streaming Mode' }));
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Streaming' }));
     expect(activate).toHaveBeenCalledWith('streaming');
   });
 

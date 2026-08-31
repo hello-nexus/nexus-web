@@ -1279,8 +1279,6 @@
   "focus.effect.notifications": "通知を保留中",
   "focus.effect.panelsOff": "パネルオフ",
   "focus.effect.traffic": "通信一時停止中",
-  "focus.enabled.description": "オフにすると、設定を変えずにすべてのモードを停止します。",
-  "focus.enabled.label": "フォーカスモード",
   "focus.holdNotifications.description": "システム通知をためておき、モードの終了時に表示します。",
   "focus.holdNotifications.label": "通知を保留",
   "focus.holdTraffic.description": "テレメトリ、更新の確認、クラウドへのアップロードを延期します。自分で開始した処理はそのまま実行されます。",

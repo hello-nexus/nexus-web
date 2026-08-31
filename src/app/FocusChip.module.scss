@@ -21,7 +21,9 @@
   cursor: pointer;
   transition: background var(--ease-fast), color var(--ease-fast);
 
-  &:hover { background: var(--bg-card-hover); color: var(--text); }
+  // Not while open: the menu it opened is the feedback, and a hover on top of
+  // the open state reads as two states at once.
+  &:hover:not(.chipOpen) { background: var(--bg-card-hover); color: var(--text); }
 
   svg { flex-shrink: 0; }
 }
@@ -34,7 +36,7 @@
 
   .icon { color: var(--accent); }
 
-  &:hover { background: var(--accent-glow-shadow); }
+  &:hover:not(.chipOpen) { background: var(--accent-glow-shadow); }
 }
 
 .chipOpen { background: var(--bg-card-hover); }

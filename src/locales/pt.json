@@ -1279,8 +1279,6 @@
   "focus.effect.notifications": "notificações retidas",
   "focus.effect.panelsOff": "painéis desligados",
   "focus.effect.traffic": "tráfego em pausa",
-  "focus.enabled.description": "Desativar suspende todos os modos sem os alterar.",
-  "focus.enabled.label": "Modos de foco",
   "focus.holdNotifications.description": "Colocar as notificações do sistema em fila e mostrá-las quando o modo terminar.",
   "focus.holdNotifications.label": "Reter notificações",
   "focus.holdTraffic.description": "Adiar telemetria, verificação de atualizações e envios para a nuvem. O que iniciar continua a funcionar.",

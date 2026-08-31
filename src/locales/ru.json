@@ -1289,8 +1289,6 @@
   "focus.effect.notifications": "уведомления задержаны",
   "focus.effect.panelsOff": "панели выключены",
   "focus.effect.traffic": "трафик приостановлен",
-  "focus.enabled.description": "Выключение приостанавливает все режимы, не меняя их.",
-  "focus.enabled.label": "Режимы фокуса",
   "focus.holdNotifications.description": "Накапливать системные уведомления и показывать их после выхода из режима.",
   "focus.holdNotifications.label": "Задерживать уведомления",
   "focus.holdTraffic.description": "Отложить телеметрию, проверку обновлений и выгрузку в облако. То, что вы запустили сами, продолжит работать.",

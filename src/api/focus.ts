@@ -27,7 +27,6 @@ export interface FocusMode {
 }
 
 export interface FocusStatus {
-  enabled: boolean;
   activeModeId: string | null;
   /** 'auto' | 'manual' | '' while inactive. */
   reason: string;
@@ -43,9 +42,6 @@ export const getFocus = () => fetchService<FocusStatus>('/api/focus');
 /** Activates one mode by id; null turns the active one off. */
 export const setFocusActive = (modeId: string | null) =>
   postService<FocusStatus>('/api/focus/active', { modeId });
-
-export const setFocusEnabled = (enabled: boolean) =>
-  postService<FocusStatus>('/api/focus/enabled', { enabled });
 
 export const createFocusMode = (body: { name: string; icon: string; trigger: FocusTrigger }) =>
   postService<FocusStatus>('/api/focus/modes', body);

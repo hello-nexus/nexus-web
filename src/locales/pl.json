@@ -1289,8 +1289,6 @@
   "focus.effect.notifications": "powiadomienia wstrzymane",
   "focus.effect.panelsOff": "panele wyłączone",
   "focus.effect.traffic": "ruch wstrzymany",
-  "focus.enabled.description": "Wyłączenie zawiesza wszystkie tryby bez ich zmiany.",
-  "focus.enabled.label": "Tryby skupienia",
   "focus.holdNotifications.description": "Kolejkuj powiadomienia systemowe i pokaż je po zakończeniu trybu.",
   "focus.holdNotifications.label": "Wstrzymaj powiadomienia",
   "focus.holdTraffic.description": "Odłóż telemetrię, sprawdzanie aktualizacji i przesyłanie do chmury. To, co uruchomisz sam, działa dalej.",

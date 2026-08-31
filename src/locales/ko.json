@@ -1279,8 +1279,6 @@
   "focus.effect.notifications": "알림 보류됨",
   "focus.effect.panelsOff": "패널 꺼짐",
   "focus.effect.traffic": "트래픽 일시 중지됨",
-  "focus.enabled.description": "끄면 모든 모드를 변경하지 않고 일시 중단합니다.",
-  "focus.enabled.label": "집중 모드",
   "focus.holdNotifications.description": "시스템 알림을 모아 두었다가 모드가 끝나면 표시합니다.",
   "focus.holdNotifications.label": "알림 보류",
   "focus.holdTraffic.description": "원격 분석, 업데이트 확인, 클라우드 업로드를 미룹니다. 직접 시작한 작업은 계속 실행됩니다.",

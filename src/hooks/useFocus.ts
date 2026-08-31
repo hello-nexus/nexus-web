@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   createFocusMode, deleteFocusMode, getFocus, reorderFocusModes,
-  setFocusActive, setFocusEnabled, updateFocusMode,
+  setFocusActive, updateFocusMode,
   type FocusMode, type FocusStatus, type FocusTrigger,
 } from '../api/focus';
 import { useTopicCallback } from './useMultiplexSocket';
@@ -10,7 +10,6 @@ export interface UseFocusResult {
   status: FocusStatus | null;
   activate: (modeId: string) => Promise<void>;
   turnOff: () => Promise<void>;
-  setEnabled: (enabled: boolean) => Promise<void>;
   addMode: (body: { name: string; icon: string; trigger: FocusTrigger }) => Promise<void>;
   updateMode: (id: string, patch: Partial<Omit<FocusMode, 'id' | 'builtIn'>>) => Promise<void>;
   removeMode: (id: string) => Promise<void>;
@@ -52,7 +51,6 @@ export function useFocus(enabled: boolean): UseFocusResult {
     status,
     activate: useCallback(async (modeId: string) => apply(await setFocusActive(modeId)), [apply]),
     turnOff: useCallback(async () => apply(await setFocusActive(null)), [apply]),
-    setEnabled: useCallback(async (on: boolean) => apply(await setFocusEnabled(on)), [apply]),
     addMode: useCallback(async body => apply(await createFocusMode(body)), [apply]),
     updateMode: useCallback(async (id, patch) => apply(await updateFocusMode(id, patch)), [apply]),
     removeMode: useCallback(async (id: string) => apply(await deleteFocusMode(id)), [apply]),

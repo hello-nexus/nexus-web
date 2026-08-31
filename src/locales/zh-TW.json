@@ -1279,8 +1279,6 @@
   "focus.effect.notifications": "通知已暫緩",
   "focus.effect.panelsOff": "面板已關閉",
   "focus.effect.traffic": "流量已暫停",
-  "focus.enabled.description": "關閉會暫停所有模式，且不變更它們。",
-  "focus.enabled.label": "專注模式",
   "focus.holdNotifications.description": "將系統通知排入佇列，在模式結束後顯示。",
   "focus.holdNotifications.label": "暫緩通知",
   "focus.holdTraffic.description": "延後遙測、更新檢查與雲端上傳。你自己啟動的作業仍會繼續。",
