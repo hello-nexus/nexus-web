@@ -8,9 +8,11 @@ const mockItems = vi.hoisted(() => ({
   current: [] as { id: string; name: string; sourceId: string }[],
 }));
 
-vi.mock('../../../api/gallery', () => ({
+// Only the network call is stubbed; the width helpers are the real ones, so a
+// drift between them and the service's buckets shows up here.
+vi.mock('../../../api/gallery', async importOriginal => ({
+  ...(await importOriginal<typeof import('../../../api/gallery')>()),
   fetchGalleryItems: vi.fn(() => Promise.resolve({ items: mockItems.current })),
-  galleryItemFileUrl: (id: string) => `/gallery/items/${id}/file`,
 }));
 
 vi.mock('../../../api/service', () => ({

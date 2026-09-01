@@ -8,7 +8,8 @@ const mockState = vi.hoisted(() => ({
   bridgeAvailable: false,
 }));
 
-vi.mock('../../../../api/gallery', () => ({
+vi.mock('../../../../api/gallery', async importOriginal => ({
+  ...(await importOriginal<typeof import('../../../../api/gallery')>()),
   GALLERY_ERROR_DUPLICATE: 'duplicate',
   fetchGallerySources: vi.fn(() => Promise.resolve({ sources: mockState.sources })),
   fetchGalleryItems: vi.fn(() => Promise.resolve({ items: mockState.items })),
@@ -17,7 +18,6 @@ vi.mock('../../../../api/gallery', () => ({
   excludeGalleryItem: vi.fn(() => Promise.resolve(true)),
   restoreGalleryExclusions: vi.fn(() => Promise.resolve(true)),
   pickGalleryPaths: vi.fn(() => Promise.resolve({ paths: ['/home/user/Pictures'] })),
-  galleryItemFileUrl: (id: string) => `/gallery/items/${id}/file`,
 }));
 
 vi.mock('../../../../api/service', () => ({

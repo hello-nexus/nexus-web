@@ -6,7 +6,13 @@ import { usePanelPreview } from '../common/PanelPreviewContext';
 import { previewWallpaperUri } from '../common/previewAssets';
 import { Button } from '../../../components/common/Button/Button';
 import { useTranslation } from '../../../lib/i18n';
-import { recallGalleryPosition, rememberGalleryPosition, useGalleryImageLoader, useGalleryItems } from './useGallery';
+import {
+  recallGalleryPosition,
+  rememberGalleryPosition,
+  useGalleryImageLoader,
+  useGalleryItems,
+  useGalleryRenderWidth,
+} from './useGallery';
 import type { WidgetProps } from '../types';
 import styles from './GalleryWidget.module.scss';
 
@@ -35,7 +41,11 @@ export function GalleryWidget({ widget, immersive, onSectionNavigate }: WidgetPr
   const fitWhole = immersive || ((widget.config?.fit as boolean | undefined) ?? false);
 
   const { items, loaded } = useGalleryItems();
-  const { getUrl, load, retain } = useGalleryImageLoader();
+  // Images are fetched at the size this viewer actually paints, not at the
+  // photo's own resolution: a full-resolution phone JPEG is megabytes the
+  // panel has to pull over its transport and decode in its WebView.
+  const { boxRef, width } = useGalleryRenderWidth();
+  const { getUrl, load, retain } = useGalleryImageLoader(width);
 
   const [index, setIndex] = useState(0);
   const count = items.length;
@@ -107,9 +117,10 @@ export function GalleryWidget({ widget, immersive, onSectionNavigate }: WidgetPr
     }
   }, [count, items, load, widget.id]);
 
-  // Keep only prev/current/next blobs alive (full-res photos are heavy on
-  // panel WebViews); prefetch the neighbors so manual nav and the slideshow
-  // swap without a loading gap.
+  // Keep prev/current/next alive and prefetch them so manual nav and the
+  // slideshow swap without a loading gap. The window stays narrow: the service
+  // serves the untouched original for formats it will not flatten
+  // (animated/alpha), and those are heavy on the panel WebViews.
   useEffect(() => {
     if (preview || !current) return;
     if (pendingRestoreRef.current) {
@@ -182,7 +193,7 @@ export function GalleryWidget({ widget, immersive, onSectionNavigate }: WidgetPr
   const url = current ? getUrl(current.id) : null;
 
   return (
-    <div className={styles.viewer} data-arrows-visible={arrowsVisible ? 'true' : 'false'}>
+    <div ref={boxRef} className={styles.viewer} data-arrows-visible={arrowsVisible ? 'true' : 'false'}>
       {url && current && (
         <img
           key={current.id}

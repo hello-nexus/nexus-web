@@ -75,6 +75,35 @@ export async function restoreGalleryExclusions(sourceId: string): Promise<boolea
 export const pickGalleryPaths = (folder: boolean) =>
   postService<GalleryPickResponse>('/gallery/pick', { folder });
 
-export function galleryItemFileUrl(id: string): string {
-  return `/gallery/items/${encodeURIComponent(id)}/file`;
+// Derivative widths the service will encode, ascending. Keep in lockstep with
+// GalleryResizeCache.Buckets in nexus-service Gallery/GalleryResizeCache.cs.
+// An off-list width is snapped up server-side, so drift here costs a wasted
+// cache entry rather than a wrong image.
+export const GALLERY_WIDTHS = [320, 480, 640, 960, 1280, 1920];
+
+// Nominal CSS width of a grid cell. The grid is auto-fill/minmax, so cells
+// vary; this is the upper end, snapped and DPR-scaled by galleryThumbWidth.
+const GALLERY_THUMB_CSS_WIDTH = 280;
+
+/** Derivative width for a gallery grid thumbnail on this display. */
+export function galleryThumbWidth(): number {
+  const dpr = Math.min(typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1, 2);
+  return snapGalleryWidth(Math.ceil(GALLERY_THUMB_CSS_WIDTH * dpr));
+}
+
+// Used when a viewer has not been measured yet (no layout, jsdom). Loading a
+// mid-sized derivative beats blocking on a measurement that may never arrive.
+export const GALLERY_DEFAULT_WIDTH = 640;
+
+/** Rounds a rendered pixel width up onto the nearest service bucket. */
+export function snapGalleryWidth(px: number): number {
+  return GALLERY_WIDTHS.find(w => px <= w) ?? GALLERY_WIDTHS[GALLERY_WIDTHS.length - 1];
+}
+
+// `width` requests a panel-sized JPEG instead of the user's original file.
+// The service falls back to the original whenever it cannot derive one
+// (animated/alpha formats, no ffmpeg), so callers never handle a resize error.
+export function galleryItemFileUrl(id: string, width?: number): string {
+  const path = `/gallery/items/${encodeURIComponent(id)}/file`;
+  return typeof width === 'number' && width > 0 ? `${path}?w=${width}` : path;
 }
