@@ -1,5 +1,5 @@
 import { getToken, handleUnauthorized } from './auth';
-import { deleteService, fetchService, isTunnelActive, isRemoteOrigin, postService, relayRequestWithStatus, resolveHttp } from './service';
+import { deleteService, fetchService, isTunnelActive, isRemoteOrigin, postService, relayRequestWithStatus, RELAY_BOOT_TIMEOUT_MS, resolveHttp } from './service';
 import { deriveDeviceLabel } from '../lib/platform';
 import type { PanelLayout, PanelSurface } from '../panel/types';
 
@@ -138,7 +138,8 @@ export async function allocatePanelDeviceWithStatus(
   // to - tunnel the alloc over the relay so the panel registers without a
   // doomed mixed-content http://localhost call. Same status contract.
   if (isTunnelActive()) {
-    const { response, status } = await relayRequestWithStatus('POST', '/panel/devices', { displayName, capabilities });
+    const { response, status } = await relayRequestWithStatus(
+      'POST', '/panel/devices', { displayName, capabilities }, { timeoutMs: RELAY_BOOT_TIMEOUT_MS });
     if (!response || !response.ok) return { ok: false, status };
     return { ok: true, record: (await response.json()) as PanelDeviceRecord };
   }
@@ -235,7 +236,8 @@ export type PanelDevicePatchResult =
 
 export async function patchPanelDeviceWithStatus(id: string, patch: PanelDevicePatch): Promise<PanelDevicePatchResult> {
   if (isTunnelActive()) {
-    const { response, status } = await relayRequestWithStatus('POST', `/panel/devices/${encodeURIComponent(id)}`, patch);
+    const { response, status } = await relayRequestWithStatus(
+      'POST', `/panel/devices/${encodeURIComponent(id)}`, patch, { timeoutMs: RELAY_BOOT_TIMEOUT_MS });
     if (!response || !response.ok) return { ok: false, status };
     return { ok: true, record: (await response.json()) as PanelDeviceRecord };
   }

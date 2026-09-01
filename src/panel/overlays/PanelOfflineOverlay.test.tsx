@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { PanelOfflineOverlay } from './PanelOfflineOverlay';
 
@@ -15,7 +15,19 @@ const baseProps = {
   onOpenNativePairing: () => {},
 };
 
+/** The wrapper's find-computer bridge, which now gates every pairing button
+ *  here (a bare /r/pair link is an invalid-link dead end). */
+function setNativeBridge() {
+  const findComputer = vi.fn();
+  (window as { nexusNative?: { findComputer: () => void } }).nexusNative = { findComputer };
+  return findComputer;
+}
+
 describe('PanelOfflineOverlay', () => {
+  afterEach(() => {
+    delete (window as { nexusNative?: unknown }).nexusNative;
+  });
+
   it('renders nothing when state is online', () => {
     const { container } = render(
       <PanelOfflineOverlay {...baseProps} state="online" surface="y70" />,
@@ -80,6 +92,7 @@ describe('PanelOfflineOverlay', () => {
   });
 
   it('renders full WiFi offline card for phone without nexus_link=usb', () => {
+    setNativeBridge();
     render(
       <PanelOfflineOverlay
         {...baseProps}
@@ -94,6 +107,7 @@ describe('PanelOfflineOverlay', () => {
   });
 
   it('renders pick-device button on phone when native bridge is available', () => {
+    setNativeBridge();
     const onOpen = vi.fn();
     render(
       <PanelOfflineOverlay
@@ -110,7 +124,9 @@ describe('PanelOfflineOverlay', () => {
     expect(screen.getByText('connection.lost.newDevice')).toBeInTheDocument();
   });
 
-  it('hides pick-device button on phone when native bridge is unavailable but still shows new-device link', () => {
+  it('hides both pairing affordances on a phone outside the native app', () => {
+    // No wrapper => no QR scanner to reach. The old /r/pair link landed on
+    // PairRedirect's invalid-link page, so hiding it is the fix, not a loss.
     render(
       <PanelOfflineOverlay
         {...baseProps}
@@ -120,7 +136,22 @@ describe('PanelOfflineOverlay', () => {
       />,
     );
     expect(screen.queryByText('connection.lost.pickDevice')).toBeNull();
-    expect(screen.getByText('connection.lost.newDevice')).toBeInTheDocument();
+    expect(screen.queryByText('connection.lost.newDevice')).toBeNull();
+    expect(document.querySelector('a[href="/r/pair"]')).toBeNull();
+  });
+
+  it('routes new-device to the native pairing surface, never to a bare /r/pair link', () => {
+    const findComputer = setNativeBridge();
+    render(
+      <PanelOfflineOverlay
+        {...baseProps}
+        state="offline-installed"
+        surface="phone"
+      />,
+    );
+    fireEvent.click(screen.getByText('connection.lost.newDevice'));
+    expect(findComputer).toHaveBeenCalledTimes(1);
+    expect(document.querySelector('a[href="/r/pair"]')).toBeNull();
   });
 
   it('shows the relay-turned-off popup when relayDisabled, with a retry button', () => {
@@ -156,6 +187,7 @@ describe('PanelOfflineOverlay', () => {
   });
 
   it('sessionEnded shows the disconnected terminal card and trumps sessionRevoked/relayDisabled', () => {
+    setNativeBridge();
     render(
       <PanelOfflineOverlay
         {...baseProps}

@@ -24,6 +24,8 @@ vi.mock('./service', () => ({
   // remote-origin fail-closed guard in panel.ts doesn't short-circuit it.
   isRemoteOrigin: false,
   relayRequestWithStatus: (...args: unknown[]) => relayWithStatusMock(...(args as [string, string, unknown?])),
+  // The boot-path bound panel.ts passes through on the alloc/patch calls.
+  RELAY_BOOT_TIMEOUT_MS: 6000,
   resolveHttp: (path: string) => `http://localhost:9400${path}`,
   // Unused by the relay path but imported by panel.ts.
   fetchService: vi.fn(),

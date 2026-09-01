@@ -468,16 +468,43 @@ function base64ToBytes(b64: string): ArrayBuffer {
  * the LAN. Used only when isTunnelActive(); the LAN path is the unchanged
  * window.fetch below.
  */
+/**
+ * Bound on a boot-path relay request. The tunnel is a WS-framed request, not a
+ * fetch, so there is no AbortController to hang it on: an unreachable host
+ * leaves the promise pending indefinitely. Callers that gate a whole screen on
+ * the answer (the panel pair gate, the service ping) pass this so the screen
+ * can fail over to something with a way out instead of spinning.
+ */
+export const RELAY_BOOT_TIMEOUT_MS = 6000;
+
+async function withTimeout<T>(work: Promise<T>, timeoutMs: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      work,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error('relay request timed out')), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
+}
+
 export async function relayRequestWithStatus(
   method: RelayHttpMethod,
   path: string,
   body?: unknown,
+  opts?: { timeoutMs?: number },
 ): Promise<{ response: Response | null; status: number }> {
   try {
     const hasBody = body !== undefined;
     const payload = hasBody ? JSON.stringify(body) : null;
     const contentType = hasBody ? 'application/json' : null;
-    const res = await tunnelRequest(method, path, payload, contentType);
+    const request = tunnelRequest(method, path, payload, contentType);
+    // A timed-out request lands on the same `status: 0` transport-failure
+    // contract every caller already handles.
+    const res = opts?.timeoutMs ? await withTimeout(request, opts.timeoutMs) : await request;
     return { response: toResponse(res.status, res.body, res.contentType, res.base64), status: res.status };
   } catch {
     return { response: null, status: 0 };
@@ -682,7 +709,9 @@ export async function fetchServiceBlobWithHeaders(path: string): Promise<{ blob:
  * mixed-content-blocked); the host answers it over the rid_http channel. */
 export async function pingService(): Promise<PingResponse | null> {
   if (isTunnelActive()) {
-    const { response } = await relayRequestWithStatus('GET', '/ping');
+    // Same 3s bound as the direct path below: without it an unreachable host
+    // parks the status hook in 'checking' and the panel spins with no chrome.
+    const { response } = await relayRequestWithStatus('GET', '/ping', undefined, { timeoutMs: 3000 });
     if (!response || !response.ok) return null;
     return (await response.json()) as PingResponse;
   }
