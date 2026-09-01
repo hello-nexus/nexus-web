@@ -1399,6 +1399,7 @@
   "gallery.panel.next": "Следующее изображение",
   "gallery.panel.prev": "Предыдущее изображение",
   "gallery.settings.fit": "Вписывать изображение целиком",
+  "gallery.settings.image": "Изображение",
   "gallery.settings.interval": "Интервал",
   "gallery.settings.intervalSeconds": "{seconds} с",
   "gallery.settings.manageHint": "Изображениями галереи можно управлять на странице «Галерея» в десктопном приложении.",

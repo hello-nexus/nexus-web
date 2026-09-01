@@ -1389,6 +1389,7 @@
   "gallery.panel.next": "Volgende afbeelding",
   "gallery.panel.prev": "Vorige afbeelding",
   "gallery.settings.fit": "Hele afbeelding passend maken",
+  "gallery.settings.image": "Afbeelding",
   "gallery.settings.interval": "Interval",
   "gallery.settings.intervalSeconds": "{seconds}s",
   "gallery.settings.manageHint": "Om galerij-afbeeldingen te beheren, open je de Galerij-pagina in de desktop-app.",

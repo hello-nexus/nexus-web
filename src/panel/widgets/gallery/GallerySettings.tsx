@@ -1,8 +1,9 @@
-import { ImageIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ImageIcon } from 'lucide-react';
 import type { WidgetSettingsProps } from '../types';
-import { SettingsSelect, SettingsSection, SettingsToggle, SettingsHint } from '../common/SettingsRow/SettingsRow';
+import { SettingsRow, SettingsSelect, SettingsSection, SettingsToggle, SettingsHint } from '../common/SettingsRow/SettingsRow';
 import { Button } from '../../../components/common/Button/Button';
 import { useTranslation } from '../../../lib/i18n';
+import { useGalleryItems } from './useGallery';
 import styles from './GallerySettings.module.scss';
 
 const INTERVAL_SECONDS = [5, 10, 15, 30, 60];
@@ -14,6 +15,17 @@ export function GallerySettings({ widget, onUpdate, onSectionNavigate }: WidgetS
   const mode = ((widget.config?.mode as string | undefined) ?? 'single');
   const interval = String(((widget.config?.interval as number | undefined) ?? 10));
   const fit = ((widget.config?.fit as boolean | undefined) ?? false);
+  // Same config field the tile's nav arrows write, so a pick here and a pick
+  // on the canvas or the device are the same edit.
+  const pickedId = widget.config?.imageId as string | undefined;
+  const { items } = useGalleryItems();
+  const pickedIndex = pickedId ? items.findIndex(i => i.id === pickedId) : -1;
+  const current = pickedIndex >= 0 ? pickedIndex : 0;
+  const step = (delta: 1 | -1) => {
+    if (items.length === 0) return;
+    const next = items[((current + delta) % items.length + items.length) % items.length];
+    onUpdate({ imageId: next.id });
+  };
 
   return (
     <div className={styles.settings}>
@@ -42,6 +54,28 @@ export function GallerySettings({ widget, onUpdate, onSectionNavigate }: WidgetS
             />
           )}
         </div>
+        {mode === 'single' && items.length > 0 && (
+          <SettingsRow label={t('gallery.settings.image')} description={items[current]?.name} descriptionBelow>
+            <div className={styles.picker}>
+              <Button
+                size="sm"
+                tone="neutral"
+                icon={<ChevronLeft size={14} />}
+                aria-label={t('gallery.panel.prev')}
+                disabled={items.length < 2}
+                onClick={() => step(-1)}
+              />
+              <Button
+                size="sm"
+                tone="neutral"
+                icon={<ChevronRight size={14} />}
+                aria-label={t('gallery.panel.next')}
+                disabled={items.length < 2}
+                onClick={() => step(1)}
+              />
+            </div>
+          </SettingsRow>
+        )}
         <SettingsToggle
           label={t('gallery.settings.fit')}
           checked={fit}

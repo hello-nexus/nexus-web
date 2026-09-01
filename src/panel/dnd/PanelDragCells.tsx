@@ -128,6 +128,7 @@ export function PanelTouchCell({
   editView,
   onEditViewChange,
   onUpdate,
+  editorPreview = false,
   clickthrough = false,
   onContextMenu,
   cellPointers,
@@ -154,6 +155,7 @@ export function PanelTouchCell({
   editView?: DeckEditView;
   onEditViewChange?: (view: DeckEditView) => void;
   onUpdate?: (config: Record<string, PanelConfigValue>) => void;
+  editorPreview?: boolean;
   clickthrough?: boolean;
   onContextMenu: (e: React.MouseEvent) => void;
   cellPointers: {
@@ -351,6 +353,7 @@ export function PanelTouchCell({
             editView={editView}
             onEditViewChange={onEditViewChange}
             onUpdate={onUpdate}
+            editorPreview={editorPreview}
             onSectionNavigate={onSectionNavigate}
             onConfigure={onConfigureWidget ? () => onConfigureWidget(widget) : undefined}
           />

@@ -1,9 +1,12 @@
+import type React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import styles from './PanelArrowButton.module.scss';
 
 interface PanelArrowButtonProps {
   side: 'prev' | 'next';
-  onClick: () => void;
+  // Receives the event so a caller inside a click-to-edit cell can stop
+  // the tap from reaching the cell handler behind it.
+  onClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
   ariaLabel: string;
   disabled?: boolean;
   // Caller-scoped overrides (size/position per surface). The base look lives

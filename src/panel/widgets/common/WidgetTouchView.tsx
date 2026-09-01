@@ -11,11 +11,19 @@ import styles from './WidgetTouchView.module.scss';
  * portrait, fills the column in landscape.
  */
 export function makeWidgetTouchView(Component: ComponentType<WidgetProps>): ComponentType<WidgetProps> {
-  return function WidgetImmersiveAdapter({ widget, surface, deviceTouch, immersiveGrid }: WidgetProps) {
+  return function WidgetImmersiveAdapter({ widget, surface, deviceTouch, immersiveGrid, onUpdate, editorPreview }: WidgetProps) {
     const fullsize = useMemo(() => ({ ...widget, size: '4x4' as const }), [widget]);
     const cell = (
       <div className={styles.immersive}>
-        <Component widget={fullsize} surface={surface} deviceTouch={deviceTouch} />
+        {/* onUpdate rides along so a pick made fullscreen persists like one
+            made on the tile - without it the gallery's arrows are inert here. */}
+        <Component
+          widget={fullsize}
+          surface={surface}
+          deviceTouch={deviceTouch}
+          onUpdate={onUpdate}
+          editorPreview={editorPreview}
+        />
       </div>
     );
     return (
