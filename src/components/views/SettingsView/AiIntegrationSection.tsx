@@ -1,5 +1,5 @@
 import { type ReactNode, useEffect, useRef, useState } from 'react';
-import { Activity, Bot, Box, Brain, Eye, EyeOff, Fan, History, IdCard, KeyRound, Lightbulb, RefreshCcwDot } from 'lucide-react';
+import { Activity, Bot, Box, Brain, Eye, EyeOff, Fan, History, IdCard, KeyRound, Lightbulb, RefreshCcwDot, Server } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingRow, SettingToggle } from '../../common/SettingRow/SettingRow';
@@ -9,7 +9,7 @@ import { Badge } from '../../common/Badge/Badge';
 import { UsageBar } from '../../common/UsageBar/UsageBar';
 import {
   fetchAiStatus, postAiConfig, rotateAiToken,
-  fetchAssistantStatus, installRuntime, removeRuntime,
+  fetchAssistantStatus, installRuntime, removeRuntime, setUseSystemOllama,
   pullModel, removeModel, selectModel,
   type AiCapabilities, type AiStatusResponse,
   type AiAssistantStatus, type AiAssistantProgressFrame,
@@ -218,6 +218,8 @@ export function AiIntegrationSection({ serviceOnline, numberFormat = DEFAULT_NUM
   };
 
   const doInstallRuntime = () => void runAssistantMutation(installRuntime);
+
+  const doSetUseSystemOllama = (enabled: boolean) => void runAssistantMutation(() => setUseSystemOllama(enabled));
 
   const doRemoveRuntime = async () => {
     await runAssistantMutation(removeRuntime);
@@ -438,6 +440,15 @@ export function AiIntegrationSection({ serviceOnline, numberFormat = DEFAULT_NUM
                       )}
                     </div>
                   </SettingRow>
+                  <SettingToggle
+                    label={t('settings.ai.assistant.runtime.useSystem.label')}
+                    icon={<Server />}
+                    iconLeading="subtle"
+                    description={t('settings.ai.assistant.runtime.useSystem.description')}
+                    checked={assistant.useSystemOllama}
+                    onChange={doSetUseSystemOllama}
+                    disabled={!serviceOnline || assistantBusy}
+                  />
                   {assistantActionError && <p className={styles.note}>{t('settings.ai.assistant.actionError')}</p>}
 
                   <SettingRow

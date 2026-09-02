@@ -21,6 +21,13 @@ import type { PanelConfigValue, PanelSurface, PanelWidget, PanelWidgetSize } fro
 
 export interface WidgetProps {
   widget: PanelWidget;
+  // This panel's own device record id (PanelDeviceRecord.id), passed by
+  // PanelKioskContent (a real device kiosk) and PanelSimulatorContent (the
+  // device-page simulator). Undefined for the desktop dashboard's own "My
+  // Computer" preview (PanelEmbeddedContent), which has no backing device
+  // record. The deck widget uses it to route a privileged key press through
+  // /panel/deck/dispatch.
+  deviceId?: string;
   surface?: PanelSurface;
   // Companion to `surface` for surfaceSupportsTouch: 'monitor' is interactive
   // per-DEVICE (a promoted Xeneon Edge has a digitizer, a plain monitor does

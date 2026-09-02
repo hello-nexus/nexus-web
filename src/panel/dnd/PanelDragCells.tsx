@@ -112,6 +112,7 @@ export function EmptyCellDroppable({ pageId, col, row }: { pageId: string; col: 
 
 export function PanelTouchCell({
   widget,
+  deviceId,
   surface,
   deviceTouch,
   rearranging,
@@ -139,6 +140,7 @@ export function PanelTouchCell({
   onConfigureWidget,
 }: {
   widget: PanelWidget;
+  deviceId?: string;
   surface?: PanelSurface;
   deviceTouch?: boolean;
   rearranging: boolean;
@@ -279,7 +281,7 @@ export function PanelTouchCell({
       >
         <div className={`panel-card ${styles.cell}`} data-size={widget.size} data-widget-type={widget.type}>
           <div className={styles.cellScaler} style={{ pointerEvents: 'none' }}>
-            <Comp widget={widget} surface={surface} deviceTouch={deviceTouch} />
+            <Comp widget={widget} deviceId={deviceId} surface={surface} deviceTouch={deviceTouch} />
           </div>
         </div>
         <div className={styles.cellLabelStrip}>
@@ -346,6 +348,7 @@ export function PanelTouchCell({
         <div className={styles.cellScaler}>
           <Comp
             widget={widget}
+            deviceId={deviceId}
             surface={surface}
             deviceTouch={deviceTouch}
             selectedSlot={selectedSlot}

@@ -1356,6 +1356,18 @@
   color: #f87171;
 }
 
+.editorForbiddenNotice {
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  margin: 0 0 12px;
+  border-radius: var(--radius);
+  background: rgb(248 113 113 / 0.12);
+  color: var(--text);
+  font-size: var(--type-small);
+  flex-shrink: 0;
+}
+
 .settingsBody {
   min-height: 0;
   overflow-y: auto;

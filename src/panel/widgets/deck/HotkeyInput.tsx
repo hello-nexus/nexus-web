@@ -7,6 +7,7 @@ import styles from './HotkeyInput.module.scss';
 interface HotkeyInputProps {
   value: string;
   onChange: (keys: string) => void;
+  disabled?: boolean;
 }
 
 const MOD_CODES = new Set([
@@ -40,7 +41,7 @@ function codeToToken(code: string): string {
  * categorized preset list (mirrors Stream Deck's own hotkey picker) without
  * requiring a capture at all.
  */
-export function HotkeyInput({ value, onChange }: HotkeyInputProps) {
+export function HotkeyInput({ value, onChange, disabled = false }: HotkeyInputProps) {
   const { t } = useTranslation();
   const [capturing, setCapturing] = useState(false);
 
@@ -85,10 +86,12 @@ export function HotkeyInput({ value, onChange }: HotkeyInputProps) {
         options={presetOptions}
         placeholder={t('panel.settings.deck.hotkeyPreset.placeholder')}
         ariaLabel={t('panel.settings.deck.hotkeyPreset.placeholder')}
+        disabled={disabled}
       />
       <button
         type="button"
         className={styles.field}
+        disabled={disabled}
         onClick={() => setCapturing(true)}
         onBlur={() => setCapturing(false)}
         onKeyDown={capturing ? onKeyDown : undefined}

@@ -5,7 +5,7 @@ import { DndContext, PointerSensor, useSensor, useSensors, closestCenter, type D
 import type { WidgetProps } from '../types';
 import { DeckGrid } from './DeckGrid';
 import { innerGridForSize, readDeckConfig, resolveViewSlots, padSlots, swapSlots, deckConfigPatch } from './deckLayout';
-import { executeDeckAction } from './deckExecutor';
+import { executeDeckAction, isPrivilegedDeckAction } from './deckExecutor';
 import { useDeckLiveState } from './useDeckState';
 import { toggleBranchSlot, withPageIndicatorDisplay } from './deckIcons';
 import { usePanelPreview } from '../common/PanelPreviewContext';
@@ -15,7 +15,7 @@ import styles from './DeckGrid.module.scss';
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 
-export function DeckWidget({ widget, selectedSlot, onSelectSlot, editView, onEditViewChange, onUpdate }: WidgetProps) {
+export function DeckWidget({ widget, deviceId, selectedSlot, onSelectSlot, editView, onEditViewChange, onUpdate }: WidgetProps) {
   const { t } = useTranslation();
   const preview = usePanelPreview();
   const parsed = readDeckConfig(widget);
@@ -70,6 +70,21 @@ export function DeckWidget({ widget, selectedSlot, onSelectSlot, editView, onEdi
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slots, flips, live, page, deck.pages.length, editing]);
 
+  // A privileged action routes through /panel/deck/dispatch so the service
+  // executes the STORED slot server-side instead of taking its parameters
+  // (file path / key chord / text / audio file) over the wire. No deviceId
+  // (the desktop dashboard's own "My Computer" preview, which has no backing
+  // panel device record) keeps every action on its unchanged direct route.
+  const dispatchAction = (action: DeckAction, i: number, branch?: 'on' | 'off') => {
+    if (deviceId && isPrivilegedDeckAction(action)) {
+      const location = { deviceId, widgetId: widget.id, page, folderPath, slot: i };
+      if (branch) void executeDeckAction(action, location, branch);
+      else void executeDeckAction(action, location);
+      return;
+    }
+    void executeDeckAction(action);
+  };
+
   const onCell = (i: number) => {
     if (editing) { onSelectSlot?.(i); return; }
     const slot = slots[i];
@@ -80,7 +95,7 @@ export function DeckWidget({ widget, selectedSlot, onSelectSlot, editView, onEdi
       const key = keyFor(i);
       const target = !toggleOn(a, key);
       if (live.isOn(a.state) === undefined) setFlips(prev => ({ ...prev, [key]: target }));
-      void executeDeckAction(target ? a.on : a.off);
+      dispatchAction(target ? a.on : a.off, i, target ? 'on' : 'off');
       return;
     }
     if (a.type === 'page') {
@@ -91,7 +106,7 @@ export function DeckWidget({ widget, selectedSlot, onSelectSlot, editView, onEdi
       return;
     }
     if (a.type === 'pageIndicator') return;
-    void executeDeckAction(a);
+    dispatchAction(a, i);
   };
 
   const onDragEnd = (e: DragEndEvent) => {
