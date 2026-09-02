@@ -136,6 +136,11 @@ const WIDGET_RESIZE_MOTION_MS = 220;
 interface PanelLayoutState {
   layout: PanelLayout;
   loaded: boolean;
+  // 403 deck_action_requires_desktop from the last save attempt (phone
+  // session, privileged deck action) - see usePanelLayout. Undefined on
+  // layout sources that can never hit it (the embedded dashboard, the
+  // device-page simulator).
+  saveForbidden?: boolean;
   setLayout: (next: PanelLayout) => void;
 }
 
@@ -333,7 +338,7 @@ export function PanelContent({
   usePanelPageScrollLock(kioskBehavior);
   useTopic('panel/phone/presence', kioskBehavior && surface === 'phone');
   usePhonePanelManifest(kioskBehavior && surface === 'phone');
-  const { layout, loaded, setLayout } = layoutState;
+  const { layout, loaded, saveForbidden, setLayout } = layoutState;
   const panelTheme = usePanelTheme(deviceId ?? null, kioskBehavior);
   // Simulator gets its theme from the parent via postMessage (local fetch
   // stays disabled), so effectiveTheme uses the parent-supplied state
@@ -1546,6 +1551,7 @@ export function PanelContent({
                           <ErrorBoundary key={w.id} label={w.type}>
                             <PanelTouchCell
                               widget={w}
+                              deviceId={deviceId}
                               surface={surface}
                               deviceTouch={deviceTouch}
                               rearranging={touch.rearranging}
@@ -1788,6 +1794,7 @@ export function PanelContent({
           deviceTouch={deviceTouch}
           touchPanelChrome={touchPanelChrome}
           editingWidget={sheetMode === 'settings' ? editingWidget : null}
+          saveForbidden={saveForbidden}
           panelTheme={panelTheme.theme}
           gridColumns={runtimeGrid.columns}
           gridRows={runtimeGrid.rows}

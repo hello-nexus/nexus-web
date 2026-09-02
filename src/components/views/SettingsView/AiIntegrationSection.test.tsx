@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AiIntegrationSection } from './AiIntegrationSection';
 import {
   fetchAiStatus, postAiConfig, rotateAiToken, type AiStatusResponse,
-  fetchAssistantStatus, installRuntime, removeRuntime, pullModel, removeModel, selectModel,
+  fetchAssistantStatus, installRuntime, removeRuntime, setUseSystemOllama, pullModel, removeModel, selectModel,
   type AiAssistantStatus, type AiAssistantProgressFrame, type AssistantCatalogModel,
 } from '../../../api/aiIntegration';
 
@@ -24,6 +24,7 @@ vi.mock('../../../api/aiIntegration', () => ({
   fetchAssistantStatus: vi.fn(),
   installRuntime: vi.fn(),
   removeRuntime: vi.fn(),
+  setUseSystemOllama: vi.fn(),
   pullModel: vi.fn(),
   removeModel: vi.fn(),
   selectModel: vi.fn(),
@@ -65,6 +66,7 @@ function makeAssistantStatus(overrides: Partial<AiAssistantStatus> = {}): AiAssi
   return {
     runtimeState: 'notInstalled',
     systemOllamaDetected: false,
+    useSystemOllama: false,
     downloadProgress: null,
     installedModels: [],
     activeModel: '',
@@ -450,6 +452,25 @@ describe('AiIntegrationSection - assistant', () => {
     expect(await screen.findByText('settings.ai.assistant.runtime.status.systemDetected')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'settings.ai.assistant.runtime.download' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'settings.ai.assistant.runtime.remove' })).not.toBeInTheDocument();
+  });
+
+  it('the use-system-Ollama toggle is off by default and opts in on click', async () => {
+    vi.mocked(fetchAiStatus).mockResolvedValue(makeStatus({ enabled: true }));
+    vi.mocked(fetchAssistantStatus).mockResolvedValue(makeAssistantStatus());
+    vi.mocked(setUseSystemOllama).mockResolvedValue(
+      makeAssistantStatus({ runtimeState: 'running', systemOllamaDetected: true, useSystemOllama: true }),
+    );
+    render(<AiIntegrationSection serviceOnline />);
+
+    const toggle = await screen.findByRole('switch', { name: 'settings.ai.assistant.runtime.useSystem.label' });
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
+
+    fireEvent.click(toggle);
+    expect(setUseSystemOllama).toHaveBeenCalledWith(true);
+    await waitFor(() => expect(toggle).toHaveAttribute('aria-checked', 'true'));
+    // Adopting the system runtime hides the download/remove controls, same as
+    // detection arriving any other way.
+    expect(screen.queryByRole('button', { name: 'settings.ai.assistant.runtime.download' })).not.toBeInTheDocument();
   });
 
   it('shows the model catalog with a recommended badge, and downloading a model calls pullModel', async () => {

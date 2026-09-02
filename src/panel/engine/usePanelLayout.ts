@@ -22,6 +22,14 @@ import {
 
 const REMOVED_WIDGET_TYPES = new Set(['y70-controls']);
 
+// PanelRoutes' 403 ApiResponse.Fail body for a phone-session layout save that
+// introduces a privileged deck action (DeckLayoutPolicy). A 403 on this route
+// can also come from the Pair Remote killswitch or a non-panel session, which
+// this msg check excludes.
+const DECK_ACTION_REQUIRES_DESKTOP_MSG = 'deck_action_requires_desktop';
+
+const SAVE_FORBIDDEN_NOTICE_MS = 5000;
+
 const SIZE_AREA: Record<PanelWidgetSize, number> = {
   '1x1': 1,
   '2x2': 4,
@@ -112,6 +120,14 @@ interface UsePanelLayoutResult {
    * tight loop with the auto-paginate effect.
    */
   deviceMissing: boolean;
+  /**
+   * True right after the server rejected a save with 403 deck_action_requires_
+   * desktop (a phone session tried to introduce a privileged deck action).
+   * The layout still applied locally - only the persisted copy was refused -
+   * so this only drives a transient notice, not a rollback. Clears on the
+   * next save attempt or after a few seconds.
+   */
+  saveForbidden: boolean;
   setLayout: (next: PanelLayout) => void;
 }
 
@@ -163,6 +179,7 @@ export function usePanelLayout(deviceId: string, surface: PanelSurface, deviceTo
   const [layout, setLayoutState] = useState<PanelLayout>(() => defaultLayoutForSurface(surface));
   const [loaded, setLoaded] = useState(false);
   const [deviceMissing, setDeviceMissing] = useState(false);
+  const [saveForbidden, setSaveForbidden] = useState(false);
   const writeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Mirror of `deviceMissing` so setLayout (whose deps must stay stable)
   // can read the latest value without rebinding on every change.
@@ -232,6 +249,7 @@ export function usePanelLayout(deviceId: string, surface: PanelSurface, deviceTo
       writeTimer.current = null;
       patchPanelDeviceWithStatus(deviceId, { layout: normalized }).then(result => {
         if (result.ok) {
+          setSaveForbidden(false);
           broadcastLayoutChanged();
         } else if (result.status === 404) {
           // Device went away mid-session: stop persisting until something
@@ -240,10 +258,24 @@ export function usePanelLayout(deviceId: string, surface: PanelSurface, deviceTo
           // setDeviceMissing only kicks in next render.
           deviceMissingRef.current = true;
           setDeviceMissing(true);
+        } else if (result.status === 403 && result.msg === DECK_ACTION_REQUIRES_DESKTOP_MSG) {
+          // A phone session tried to introduce a privileged deck action
+          // (PanelRoutes' DeckLayoutPolicy) - the desktop app owns those.
+          // Refetch so local state snaps back to the stored copy: the
+          // refused edit stays showing (and re-patching) otherwise, and a
+          // later press on the divergent key would fire the stale action.
+          setSaveForbidden(true);
+          fetchLayout();
         }
       });
     }, 250);
-  }, [deviceId, surface, deviceTouch]);
+  }, [deviceId, surface, deviceTouch, fetchLayout]);
+
+  useEffect(() => {
+    if (!saveForbidden) return undefined;
+    const timer = window.setTimeout(() => setSaveForbidden(false), SAVE_FORBIDDEN_NOTICE_MS);
+    return () => window.clearTimeout(timer);
+  }, [saveForbidden]);
 
   useEffect(() => () => {
     if (writeTimer.current) {
@@ -252,5 +284,5 @@ export function usePanelLayout(deviceId: string, surface: PanelSurface, deviceTo
     }
   }, []);
 
-  return { layout, loaded, deviceMissing, setLayout };
+  return { layout, loaded, deviceMissing, saveForbidden, setLayout };
 }

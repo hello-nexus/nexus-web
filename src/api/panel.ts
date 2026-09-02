@@ -232,13 +232,25 @@ export async function fetchPanelDeviceWithStatus(id: string): Promise<PanelDevic
 
 export type PanelDevicePatchResult =
   | { ok: true; record: PanelDeviceRecord }
-  | { ok: false; status: number };
+  | { ok: false; status: number; msg?: string };
+
+// Reads the ApiResponse.Fail body's `msg` off a failed response, so a caller
+// can distinguish which 403 (or other error) this was. Never throws - an
+// empty or non-JSON body just yields no msg.
+async function readErrorMsg(response: Response | null): Promise<string | undefined> {
+  if (!response) return undefined;
+  try {
+    return ((await response.json()) as { msg?: string })?.msg;
+  } catch {
+    return undefined;
+  }
+}
 
 export async function patchPanelDeviceWithStatus(id: string, patch: PanelDevicePatch): Promise<PanelDevicePatchResult> {
   if (isTunnelActive()) {
     const { response, status } = await relayRequestWithStatus(
       'POST', `/panel/devices/${encodeURIComponent(id)}`, patch, { timeoutMs: RELAY_BOOT_TIMEOUT_MS });
-    if (!response || !response.ok) return { ok: false, status };
+    if (!response || !response.ok) return { ok: false, status, msg: await readErrorMsg(response) };
     return { ok: true, record: (await response.json()) as PanelDeviceRecord };
   }
   if (isRemoteOrigin) return { ok: false, status: 0 };
@@ -258,7 +270,7 @@ export async function patchPanelDeviceWithStatus(id: string, patch: PanelDeviceP
         res = await fetch(url, buildInit());
       }
     }
-    if (!res.ok) return { ok: false, status: res.status };
+    if (!res.ok) return { ok: false, status: res.status, msg: await readErrorMsg(res) };
     return { ok: true, record: (await res.json()) as PanelDeviceRecord };
   } catch {
     return { ok: false, status: 0 };

@@ -7,8 +7,9 @@ vi.mock('../../../api/service', () => ({
   fetchService: (...a: unknown[]) => fetchService(...a),
 }));
 
-import { executeDeckAction, parseHotkey } from './deckExecutor';
+import { executeDeckAction, isPrivilegedDeckAction, parseHotkey, type DeckDispatchLocation } from './deckExecutor';
 import { onDeckOpenMonitoring } from './deckMonitoringNav';
+import type { DeckAction } from './types';
 
 describe('parseHotkey', () => {
   it('parses modifiers + a letter', () => {
@@ -212,5 +213,97 @@ describe('executeDeckAction → playAudio', () => {
   it('passes an undefined volume through unchanged (server-side default)', async () => {
     await executeDeckAction({ type: 'playAudio', path: '/tmp/boop.wav' });
     expect(postService).toHaveBeenCalledWith('/system/audio/play', { path: '/tmp/boop.wav', volume: undefined });
+  });
+});
+
+describe('isPrivilegedDeckAction', () => {
+  it('is true for each desktop-token-only action type', () => {
+    expect(isPrivilegedDeckAction({ type: 'openFile', path: '' })).toBe(true);
+    expect(isPrivilegedDeckAction({ type: 'openFolder', path: '' })).toBe(true);
+    expect(isPrivilegedDeckAction({ type: 'hotkey', keys: 'ctrl+c' })).toBe(true);
+    expect(isPrivilegedDeckAction({ type: 'hotkeySwitch', keysA: 'a', keysB: 'b' })).toBe(true);
+    expect(isPrivilegedDeckAction({ type: 'text', text: 'hi' })).toBe(true);
+    expect(isPrivilegedDeckAction({ type: 'playAudio', path: '' })).toBe(true);
+  });
+
+  it('is false for an ordinary action', () => {
+    expect(isPrivilegedDeckAction({ type: 'openUrl', url: 'https://x.com' })).toBe(false);
+    expect(isPrivilegedDeckAction({ type: 'power', action: 'lock' })).toBe(false);
+  });
+
+  it('is true for a sequence carrying a privileged step anywhere in it', () => {
+    const action: DeckAction = {
+      type: 'sequence',
+      steps: [
+        { action: { type: 'openUrl', url: 'https://x.com' } },
+        { action: { type: 'hotkey', keys: 'ctrl+c' } },
+      ],
+    };
+    expect(isPrivilegedDeckAction(action)).toBe(true);
+  });
+
+  it('is false for a sequence with no privileged step', () => {
+    const action: DeckAction = {
+      type: 'sequence',
+      steps: [{ action: { type: 'openUrl', url: 'https://x.com' } }],
+    };
+    expect(isPrivilegedDeckAction(action)).toBe(false);
+  });
+
+  it('checks both branches of a toggle', () => {
+    const onPrivileged: DeckAction = { type: 'toggle', on: { type: 'text', text: 'hi' }, off: { type: 'power', action: 'lock' } };
+    const offPrivileged: DeckAction = { type: 'toggle', on: { type: 'power', action: 'lock' }, off: { type: 'text', text: 'hi' } };
+    const neitherPrivileged: DeckAction = { type: 'toggle', on: { type: 'power', action: 'lock' }, off: { type: 'openUrl', url: 'x' } };
+    expect(isPrivilegedDeckAction(onPrivileged)).toBe(true);
+    expect(isPrivilegedDeckAction(offPrivileged)).toBe(true);
+    expect(isPrivilegedDeckAction(neitherPrivileged)).toBe(false);
+  });
+});
+
+describe('executeDeckAction → /panel/deck/dispatch', () => {
+  beforeEach(() => { postService.mockClear(); fetchService.mockClear(); });
+
+  const location: DeckDispatchLocation = { deviceId: 'dev1', widgetId: 'w1', page: 0, folderPath: [2], slot: 3 };
+
+  it('a privileged action dispatches server-side instead of hitting its own route', async () => {
+    await executeDeckAction({ type: 'hotkey', keys: 'ctrl+c' }, location);
+    expect(postService).toHaveBeenCalledTimes(1);
+    expect(postService).toHaveBeenCalledWith('/panel/deck/dispatch', {
+      deviceId: 'dev1', widgetId: 'w1', page: 0, folderPath: [2], slot: 3,
+    });
+  });
+
+  it('carries the resolved toggle branch on the dispatch body', async () => {
+    await executeDeckAction({ type: 'text', text: 'hi' }, location, 'off');
+    expect(postService).toHaveBeenCalledWith('/panel/deck/dispatch', {
+      deviceId: 'dev1', widgetId: 'w1', page: 0, folderPath: [2], slot: 3, branch: 'off',
+    });
+  });
+
+  it('a sequence containing a privileged step dispatches once as a whole, never running any step locally', async () => {
+    const action: DeckAction = {
+      type: 'sequence',
+      steps: [
+        { action: { type: 'openUrl', url: 'https://x.com' } },
+        { action: { type: 'hotkey', keys: 'ctrl+c' } },
+      ],
+    };
+    await executeDeckAction(action, location);
+    expect(postService).toHaveBeenCalledTimes(1);
+    expect(postService).toHaveBeenCalledWith('/panel/deck/dispatch', {
+      deviceId: 'dev1', widgetId: 'w1', page: 0, folderPath: [2], slot: 3,
+    });
+  });
+
+  it('a non-privileged action ignores the location and takes its usual direct route', async () => {
+    await executeDeckAction({ type: 'openUrl', url: 'https://x.com' }, location);
+    expect(postService).toHaveBeenCalledWith('/system/open-url', { url: 'https://x.com' });
+    expect(postService).not.toHaveBeenCalledWith('/panel/deck/dispatch', expect.anything());
+  });
+
+  it('a privileged action with no location falls back to its own direct route', async () => {
+    await executeDeckAction({ type: 'hotkey', keys: 'ctrl+c' });
+    expect(postService).toHaveBeenCalledWith('/system/input/keys', { key: 'KeyC', ctrl: true, shift: false, alt: false, meta: false });
+    expect(postService).not.toHaveBeenCalledWith('/panel/deck/dispatch', expect.anything());
   });
 });

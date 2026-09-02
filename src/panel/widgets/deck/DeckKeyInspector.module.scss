@@ -212,6 +212,14 @@ textarea.input { resize: vertical; min-height: 2.4rem; }
   .kindIcon { color: var(--deck-settings-accent); }
 }
 
+// Desktop-only action kind on a phone-companion session (DeckLayoutPolicy)
+.kindItemLocked {
+  opacity: 0.45;
+  cursor: not-allowed;
+
+  &:hover { background: transparent; }
+}
+
 // Glyphs used as ChipGroup labels for the B/I/U title-style chips.
 .boldGlyph { font-weight: 700; }
 .italicGlyph { font-style: italic; }

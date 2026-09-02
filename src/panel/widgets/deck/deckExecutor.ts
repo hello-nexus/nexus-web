@@ -5,7 +5,7 @@ import { mediaIdle, playCurrentOrFirstMedia } from '../../../api/mediaLibrary';
 import { controlMedia } from '../../../hooks/useMedia';
 import type { MediaSession } from '../../../hooks/useMedia';
 import { requestOpenMonitoring } from './deckMonitoringNav';
-import type { DeckAction, DeckMonitoringPress, DeckSequenceStep, DeckSystemAction, DeckNexusAction } from './types';
+import type { DeckAction, DeckActionType, DeckMonitoringPress, DeckSequenceStep, DeckSystemAction, DeckNexusAction } from './types';
 
 const DEFAULT_GAP_MS = 60;
 const VOLUME_STEP = 0.05;
@@ -18,12 +18,60 @@ const delay = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 interface VolumeState { supported: boolean; volume: number; muted: boolean; }
 interface DisplayInfo { id: string; brightness?: number; }
 
+// Action types whose own route (POST /system/open-path, /system/input/keys,
+// /system/input/text, /system/audio/play) requires a desktop token - a panel/
+// phone session gets 403. These route through /panel/deck/dispatch instead,
+// which executes the STORED action server-side.
+export const PRIVILEGED_DECK_ACTION_TYPES: ReadonlySet<DeckActionType> = new Set([
+  'openFile', 'openFolder', 'hotkey', 'hotkeySwitch', 'text', 'playAudio',
+]);
+
+/** True when `action` is, or transitively contains (a sequence step, either
+ * toggle branch), one of PRIVILEGED_DECK_ACTION_TYPES. */
+export function isPrivilegedDeckAction(action: DeckAction): boolean {
+  if (PRIVILEGED_DECK_ACTION_TYPES.has(action.type)) return true;
+  if (action.type === 'sequence') return action.steps.some(step => isPrivilegedDeckAction(step.action));
+  if (action.type === 'toggle') return isPrivilegedDeckAction(action.on) || isPrivilegedDeckAction(action.off);
+  return false;
+}
+
+// Where a pressed slot lives, so a privileged action can be re-resolved and
+// executed server-side from the panel device's own stored layout instead of
+// carrying its (file path / key chord / text / audio file) parameters over
+// the wire. Only constructed once a real deviceId exists (the desktop
+// dashboard's own "My Computer" preview has no backing panel device record,
+// so a press there falls through to the direct REST path below unchanged).
+export interface DeckDispatchLocation {
+  deviceId: string;
+  widgetId: string;
+  page: number;
+  folderPath: readonly number[];
+  slot: number;
+}
+
 /**
  * Dispatch a single deck action via direct REST. Folder navigation is resolved
  * in the widget, not here. A toggle defaults to its `on` branch; the widget
  * normally unwraps toggles against live state before calling this.
+ *
+ * `location` is supplied only at the top of a press (never from a recursive
+ * call, e.g. a sequence step): when present and `action` is privileged, the
+ * whole action is dispatched server-side in one call instead of running here.
+ * `branch` names the toggle branch the widget resolved from live state -
+ * meaningful only alongside `location`.
  */
-export async function executeDeckAction(action: DeckAction): Promise<void> {
+export async function executeDeckAction(action: DeckAction, location?: DeckDispatchLocation, branch?: 'on' | 'off'): Promise<void> {
+  if (location && isPrivilegedDeckAction(action)) {
+    await postService('/panel/deck/dispatch', {
+      deviceId: location.deviceId,
+      widgetId: location.widgetId,
+      page: location.page,
+      folderPath: location.folderPath,
+      slot: location.slot,
+      ...(branch ? { branch } : {}),
+    });
+    return;
+  }
   switch (action.type) {
     case 'launchApp':
       await postService(`/shortcuts/launch?targetId=${encodeURIComponent(action.appId)}`, {});

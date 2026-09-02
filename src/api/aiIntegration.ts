@@ -88,6 +88,9 @@ export interface AssistantBusy {
 export interface AiAssistantStatus {
   runtimeState: AssistantRuntimeState;
   systemOllamaDetected: boolean;
+  // User opt-in: an Ollama already listening on the default port is only
+  // detected/adopted while this is true.
+  useSystemOllama: boolean;
   downloadProgress: AssistantDownloadProgress | null;
   installedModels: AssistantInstalledModel[];
   activeModel: string;
@@ -117,6 +120,9 @@ export const fetchAssistantStatus = () =>
 
 export const installRuntime = () =>
   postService<AiAssistantStatus>('/ai/assistant/runtime/install', {});
+
+export const setUseSystemOllama = (enabled: boolean) =>
+  postService<AiAssistantStatus>('/ai/assistant/runtime/use-system', { enabled });
 
 export const removeRuntime = () =>
   postService<AiAssistantStatus>('/ai/assistant/runtime/remove', {});
