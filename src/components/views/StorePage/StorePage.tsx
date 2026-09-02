@@ -3,6 +3,7 @@ import {
   Boxes, ChevronLeft, Hand, HardDrive, LayoutGrid, Ruler, ShieldCheck, ShoppingBag, Tag,
 } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
+import { Card } from '../../common/Card/Card';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { useTranslation } from '../../../lib/i18n';
 import {
@@ -101,12 +102,11 @@ function InstallButton({ app, installedVersion, onNeedsSignIn }: {
   return (
     <Button
       type="button"
-      size="sm"
-      pill
       tone={upToDate ? 'neutral' : state === 'failed' ? 'danger' : 'accent'}
       loading={state === 'working'}
       disabled={state === 'working' || upToDate}
-      onClick={() => { void install(); }}
+      // The row's whole card opens the app page; getting the app must not.
+      onClick={e => { e.stopPropagation(); void install(); }}
     >
       {label}
     </Button>
@@ -126,24 +126,27 @@ function AppIcon({ app, installed, size = 'row' }: {
   );
 }
 
-/** Opening the page and getting the app are separate controls: a row-wide click target would nest a button in a button. */
+// disableInteractiveRole: the Install button inside is the focusable control;
+// role="button" here would nest a focusable descendant inside a button role.
 function AppRow({ app, installed, onOpen, onNeedsSignIn }: {
   app: StoreApp; installed?: InstalledInfo; onOpen: () => void;
   onNeedsSignIn: (retry: () => void) => void;
 }) {
   return (
-    <div className={styles.row}>
-      <button type="button" className={styles.rowOpen} onClick={onOpen}>
-        <AppIcon app={app} installed={installed} />
-        <span className={styles.rowText}>
-          <span className={styles.rowTitle}>{app.name}</span>
-          <span className={styles.rowSubtitle}>{shortDescription(app)}</span>
-        </span>
-      </button>
+    <Card
+      interactive
+      disableInteractiveRole
+      onClick={onOpen}
+      className={styles.row}
+      icon={<AppIcon app={app} installed={installed} />}
+      title={app.name}
+      subtitle={<span className={styles.rowSubtitle}>{shortDescription(app)}</span>}
+      truncateSubtitle
+    >
       <div className={styles.rowActions}>
         <InstallButton app={app} installedVersion={installed?.version} onNeedsSignIn={onNeedsSignIn} />
       </div>
-    </div>
+    </Card>
   );
 }
 

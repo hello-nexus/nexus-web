@@ -69,75 +69,32 @@
   color: var(--text);
 }
 
-// The column gap has to stay wide enough that two adjacent rows never read as one.
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(26rem, 1fr));
-  column-gap: 2.5rem;
-  row-gap: 0;
+  grid-template-columns: repeat(auto-fill, minmax(24rem, 1fr));
+  gap: 0.75rem;
 }
 
-// .rowActions insets by these two so the button lines up under the copy, not the icon.
+// Card's own header gap; .rowActions matches it so the button lines up under
+// the copy rather than under the icon.
 $row-icon: 3.5rem;
-$row-gap: 0.85rem;
+$card-gap: 0.6rem;
 
 .row {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.85rem 0;
-  border-bottom: 1px solid var(--separator);
+  align-content: start;
 }
 
-.rowOpen {
-  display: flex;
-  align-items: center;
-  gap: $row-gap;
-  padding: 0;
-  border: none;
-  background: none;
-  text-align: left;
-  cursor: pointer;
-
-  &:hover .rowTitle {
-    color: var(--accent);
-  }
-
-  &:focus-visible {
-    @include focus-ring;
-  }
-}
-
-.rowText {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  min-width: 0;
-}
-
-.rowTitle {
-  @include text-body;
-  font-weight: var(--weight-strong);
-  color: var(--text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
+// Card subtitles are monospaced by default (they usually carry an id); an
+// app's one-liner is prose.
 .rowSubtitle {
-  @include text-body;
-  font-size: var(--type-small);
-  color: var(--text-dim);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-family: var(--font-sans);
 }
 
 .rowActions {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding-left: calc(#{$row-icon} + #{$row-gap});
+  padding-left: calc(#{$row-icon} + #{$card-gap});
 }
 
 // The icon sits in a fixed box: app icons arrive as SVGs of any aspect and

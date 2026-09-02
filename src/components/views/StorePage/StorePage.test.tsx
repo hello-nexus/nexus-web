@@ -94,6 +94,29 @@ describe('StorePage storefront', () => {
   });
 });
 
+describe('StorePage row card', () => {
+  it('opens the app page from anywhere on the card', async () => {
+    render(<StorePage />);
+
+    // The subtitle is card chrome, not a control: the container is the target.
+    fireEvent.click(await screen.findByText('A pixel-art fish you can feed'));
+
+    expect(await screen.findByText('store.spec.widget')).toBeInTheDocument();
+    expect(screen.queryByText('store.banner.title')).not.toBeInTheDocument();
+  });
+
+  it('keeps Install from opening the page it sits on', async () => {
+    installStoreApp.mockResolvedValue({ appId: app.id, version: '1.0.2', ok: true });
+    render(<StorePage />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'store.install' }));
+
+    // Still the storefront: the click must not bubble to the card.
+    expect(screen.getByText('store.section.apps')).toBeInTheDocument();
+    await waitFor(() => expect(installStoreApp).toHaveBeenCalled());
+  });
+});
+
 describe('StorePage app page', () => {
   it('opens the sign-in dialog when the service refuses the install without an account', async () => {
     installStoreApp.mockResolvedValue({ appId: app.id, version: '1.0.2', ok: false, reason: 'sign_in_required' });
