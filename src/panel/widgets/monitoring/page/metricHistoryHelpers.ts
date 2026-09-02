@@ -359,17 +359,21 @@ export function maxAvgValue(series: readonly TimeSeriesSeries[]): number {
   return max;
 }
 
+type MaskableFpsSession = FpsRangeSession & { inProgress?: boolean };
+
 /** A point in time is "in a game" only while it falls inside a Frames
  *  session's own [startedUtcMs, endedUtcMs] - desktop apps present frames
- *  too, so an unmasked fps series would draw between games as well. */
-export function findFpsSessionAt(sessions: readonly FpsRangeSession[], t: number): FpsRangeSession | null {
-  return sessions.find(s => t >= s.startedUtcMs && t <= s.endedUtcMs) ?? null;
+ *  too, so an unmasked fps series would draw between games as well. A session
+ *  flagged in progress is open-ended: its reported end is only the snapshot
+ *  time of the last fetch. */
+export function findFpsSessionAt<T extends MaskableFpsSession>(sessions: readonly T[], t: number): T | null {
+  return sessions.find(s => t >= s.startedUtcMs && (s.inProgress === true || t <= s.endedUtcMs)) ?? null;
 }
 
 /** Drops every fps point that falls outside every known session's range. */
 export function maskFpsPointsToSessions(
   points: readonly MetricHistoryPoint[],
-  sessions: readonly FpsRangeSession[],
+  sessions: readonly MaskableFpsSession[],
 ): MetricHistoryPoint[] {
   if (sessions.length === 0) return [];
   return points.filter(p => findFpsSessionAt(sessions, p.t) !== null);
