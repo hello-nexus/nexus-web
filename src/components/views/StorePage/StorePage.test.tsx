@@ -82,14 +82,14 @@ describe('StorePage storefront', () => {
     expect(screen.getByText('store.section.apps')).toBeInTheDocument();
   });
 
-  it('gives a card a short line from the app, never the publisher, and no Install button', async () => {
+  it('gives a row a short line from the app, never the publisher, and its own Install button', async () => {
     render(<StorePage />);
 
-    // The subtitle is the first sentence only; the rest is what About is for.
+    // The subtitle is the first sentence only; the rest is what the description is for.
     expect(await screen.findByText('A pixel-art fish you can feed')).toBeInTheDocument();
     expect(screen.queryByText(/Tap the water/)).not.toBeInTheDocument();
     expect(screen.queryByText('Nexus')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'store.install' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'store.install' })).toBeInTheDocument();
     expect(screen.queryByText('store.noRatings')).not.toBeInTheDocument();
   });
 });
@@ -120,6 +120,43 @@ describe('StorePage app page', () => {
     expect(await screen.findByText('store.installedVersion version=1.0.1')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'store.update' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'store.delete' })).toBeInTheDocument();
+  });
+});
+
+describe('StorePage app page layout', () => {
+  it('reads the capabilities as a highlight strip, not a definition table', async () => {
+    render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
+
+    expect(await screen.findByText('store.spec.widget')).toBeInTheDocument();
+    expect(screen.getByText('store.value.hasFeature')).toBeInTheDocument();
+    expect(screen.getByText('2x2')).toBeInTheDocument();
+    expect(screen.getByText('store.value.touchAny')).toBeInTheDocument();
+    expect(screen.getByText('1.0.2')).toBeInTheDocument();
+  });
+
+  it('omits the sizes cell for an app that declares no widget', async () => {
+    fetchStoreApp.mockResolvedValue({
+      ...detail,
+      latest: { ...version, hasWidget: false, sizes: [] },
+    });
+    render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
+
+    expect(await screen.findByText('store.value.noFeature')).toBeInTheDocument();
+    expect(screen.queryByText('store.spec.widgetSizes')).not.toBeInTheDocument();
+  });
+
+  it('names each screenshot and puts the full description below them, with no section headings', async () => {
+    fetchStoreApp.mockResolvedValue({
+      ...detail,
+      screenshots: ['/apps-api/store/media/com.hellonexus.aquarium/media/one.png'],
+    });
+    render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
+
+    expect(await screen.findByAltText('store.screenshotAlt name=Aquarium index=1')).toBeInTheDocument();
+    expect(screen.getByText(/Tap the water/)).toBeInTheDocument();
+    expect(screen.queryByText('store.section.preview')).not.toBeInTheDocument();
+    expect(screen.queryByText('store.section.about')).not.toBeInTheDocument();
+    expect(screen.queryByText('store.section.details')).not.toBeInTheDocument();
   });
 });
 
