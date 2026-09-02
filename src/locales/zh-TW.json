@@ -1389,6 +1389,7 @@
   "gallery.panel.next": "下一張",
   "gallery.panel.prev": "上一張",
   "gallery.settings.fit": "顯示完整圖片",
+  "gallery.settings.image": "圖片",
   "gallery.settings.interval": "間隔",
   "gallery.settings.intervalSeconds": "{seconds} 秒",
   "gallery.settings.manageHint": "在桌面應用程式的圖庫頁面管理圖庫圖片。",

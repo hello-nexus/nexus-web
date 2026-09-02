@@ -1389,6 +1389,7 @@
   "gallery.panel.next": "Sonraki görsel",
   "gallery.panel.prev": "Önceki görsel",
   "gallery.settings.fit": "Görselin tamamını sığdır",
+  "gallery.settings.image": "Resim",
   "gallery.settings.interval": "Aralık",
   "gallery.settings.intervalSeconds": "{seconds} sn",
   "gallery.settings.manageHint": "Galeri görsellerini masaüstü uygulamasındaki Galeri sayfasından yönetin.",

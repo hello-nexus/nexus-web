@@ -1561,7 +1561,10 @@ export function PanelContent({
                               onSelectSlot={sheetMode === 'settings' && editingWidgetId === w.id && lookupApp(w.type)?.meta.usesSlotSelection ? setSelectedMonitoringSlot : undefined}
                               editView={sheetMode === 'settings' && editingWidgetId === w.id && lookupApp(w.type)?.meta.usesSlotSelection ? deckEditView : undefined}
                               onEditViewChange={sheetMode === 'settings' && editingWidgetId === w.id && lookupApp(w.type)?.meta.usesSlotSelection ? setDeckEditView : undefined}
-                              onUpdate={sheetMode === 'settings' && editingWidgetId === w.id && lookupApp(w.type)?.meta.usesSlotSelection ? (cfg => updateWidgetConfig(w.id, cfg)) : undefined}
+                              onUpdate={(lookupApp(w.type)?.meta.persistsFromTile
+                                || (sheetMode === 'settings' && editingWidgetId === w.id && lookupApp(w.type)?.meta.usesSlotSelection))
+                                ? (cfg => updateWidgetConfig(w.id, cfg)) : undefined}
+                              editorPreview={simulator}
                               clickthrough={embedded && surface === 'desktop' && Boolean(onSectionNavigate) && isDashboardClickthroughType(w.type)}
                               onContextMenu={surfaceSupportsTouch(surface, deviceTouch) ? e => touch.handleContextMenu(e, w) : (e => e.preventDefault())}
                               cellPointers={surfaceSupportsTouch(surface, deviceTouch) ? touch.bindCellPointers(w) : noopCellPointers}

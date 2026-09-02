@@ -1550,6 +1550,11 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeMode = 'dark'
                     onSelectSlot={usesSlotSelection ? setSelectedMonitoringSlot : undefined}
                     editView={usesSlotSelection ? deckEditView : undefined}
                     onEditViewChange={usesSlotSelection ? setDeckEditView : undefined}
+                    // Same semantics as the canvas tile: this preview shows the
+                    // same nav arrows, so pressing one has to mean the same
+                    // thing rather than moving a throwaway view.
+                    onUpdate={def.meta.persistsFromTile ? handleConfigUpdate : undefined}
+                    editorPreview={def.meta.persistsFromTile ? true : undefined}
                   />
                 </ErrorBoundary>
               </div>

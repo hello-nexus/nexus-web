@@ -1389,6 +1389,7 @@
   "gallery.panel.next": "次の画像",
   "gallery.panel.prev": "前の画像",
   "gallery.settings.fit": "画像全体を表示",
+  "gallery.settings.image": "画像",
   "gallery.settings.interval": "間隔",
   "gallery.settings.intervalSeconds": "{seconds}秒",
   "gallery.settings.manageHint": "ギャラリー画像の管理は、デスクトップアプリのギャラリーページから行います。",

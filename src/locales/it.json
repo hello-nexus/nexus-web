@@ -1389,6 +1389,7 @@
   "gallery.panel.next": "Immagine successiva",
   "gallery.panel.prev": "Immagine precedente",
   "gallery.settings.fit": "Adatta l'intera immagine",
+  "gallery.settings.image": "Immagine",
   "gallery.settings.interval": "Intervallo",
   "gallery.settings.intervalSeconds": "{seconds} s",
   "gallery.settings.manageHint": "Per gestire le immagini della galleria, apri la pagina Galleria nell'app desktop.",

@@ -1399,6 +1399,7 @@
   "gallery.panel.next": "Następny obraz",
   "gallery.panel.prev": "Poprzedni obraz",
   "gallery.settings.fit": "Dopasuj cały obraz",
+  "gallery.settings.image": "Obraz",
   "gallery.settings.interval": "Odstęp",
   "gallery.settings.intervalSeconds": "{seconds} s",
   "gallery.settings.manageHint": "Obrazami galerii zarządzasz na stronie Galeria w aplikacji na komputer.",

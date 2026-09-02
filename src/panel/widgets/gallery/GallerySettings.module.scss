@@ -11,3 +11,10 @@
   display: flex;
   flex-direction: column;
 }
+
+// Prev/next pair for the picked image; mirrors the tile's nav arrows so a
+// pick made here and one made on the canvas are the same edit.
+.picker {
+  display: flex;
+  gap: 6px;
+}
