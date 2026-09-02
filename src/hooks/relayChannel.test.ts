@@ -124,6 +124,17 @@ async function flushFake(): Promise<void> {
   for (let i = 0; i < 6; i++) await vi.advanceTimersByTimeAsync(0);
 }
 
+// Pumps fake timers until `ready()` holds. A fixed pump count races the real
+// crypto.subtle work on the rekey path: a slower machine has not resolved the
+// key derivation by the time the assertions run, which is why these passed on
+// a dev box and failed only on CI. Bounded, so a genuine regression still
+// fails instead of hanging.
+async function pumpUntil(ready: () => boolean, stepMs = 0, maxRounds = 300): Promise<void> {
+  for (let i = 0; i < maxRounds && !ready(); i++) {
+    await vi.advanceTimersByTimeAsync(stepMs);
+  }
+}
+
 // Walk the handshake up to the point where the client has sent its sealed claim
 // and is awaiting the reply. Returns the connSalt so the reply can be sealed.
 function driveToAwaitingReply(ws: FakeWebSocket): string {
@@ -427,13 +438,13 @@ describe('RelayChannel - v2 in-band rekey', () => {
     expect(opened).toBe(false); // still waiting on the hn reply / timeout
 
     await vi.advanceTimersByTimeAsync(REKEY_TIMEOUT_MS);
-    await flushFake();
+    await pumpUntil(() => opened);
     expect(opened).toBe(true);
     expect(channel.readyState).toBe(RelayChannel.OPEN);
 
     const k0 = await deriveK0(connSalt);
     channel.send('{"sub":["monitoring"]}');
-    await flushFake();
+    await pumpUntil(() => binaryFramesSent(ws).length >= 2);
     const frames = binaryFramesSent(ws);
     expect(frames).toHaveLength(2);
     const sent = await openFrame(k0, new Uint8Array(frames[1]));

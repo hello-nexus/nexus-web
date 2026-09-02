@@ -184,6 +184,17 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+// Pumps fake timers until `ready()` holds. A fixed pump count races the real
+// crypto.subtle work on the rekey path: a slower machine has not resolved the
+// key derivation by the time the assertions run, which is why these passed on
+// a dev box and failed only on CI. Bounded, so a genuine regression still
+// fails instead of hanging.
+async function pumpUntil(ready: () => boolean, stepMs = 0, maxRounds = 300): Promise<void> {
+  for (let i = 0; i < maxRounds && !ready(); i++) {
+    await vi.advanceTimersByTimeAsync(stepMs);
+  }
+}
+
 describe('relayFetch (REST-over-relay tunnel)', () => {
   it('opens the tunnel on rid_http and resolves a sealed response for a GET', async () => {
     const res = await relayFetch(TOKEN, RELAY_URL, 'GET', '/panel/devices');
@@ -340,11 +351,11 @@ describe('relayFetch v2 in-band rekey', () => {
     MockRelaySocket.hostMode = 'silent';
 
     const promise = relayFetch(TOKEN, RELAY_URL, 'GET', '/panel/devices');
-    // Each crypto.subtle-backed await (key derivation, seal) needs its own
-    // small pump round under fake timers, so advance in small steps rather
-    // than one lump REKEY_TIMEOUT_MS jump - a step taken before the rekey
-    // fallback timer is even armed wouldn't count toward it.
-    for (let i = 0; i < 40; i++) await vi.advanceTimersByTimeAsync(100); // 4000ms total, well past REKEY_TIMEOUT_MS
+    // Small steps rather than one lump REKEY_TIMEOUT_MS jump: a step taken
+    // before the rekey fallback timer is even armed would not count toward it.
+    // Driven by the frame count rather than a fixed round count so the real
+    // crypto.subtle work is actually waited for, however slow the machine.
+    await pumpUntil(() => MockRelaySocket.receivedFrames.length >= 2, 100, 120);
 
     const res = await promise;
     expect(res.status).toBe(200);
