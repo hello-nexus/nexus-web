@@ -201,12 +201,12 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
   const appsWindow = useMetricHistoryApps(isMetricTab && appsSeriesParam !== '', appsSeriesParam, history.domain[0], history.domain[1], history.following);
 
   // Page-level, independent of which tab is active or selected - see
-  // useDiskIoRate (the service has no push-driven disk-throughput topic, so
-  // this polls the history endpoint's own trailing edge directly instead of
-  // depending on whichever tab's own history.series happens to include it).
+  // useDiskIoRate, which tracks the same 'monitoring/history-tail' push
+  // useMetricHistory reads, but as its own subscription decoupled from
+  // whichever tab's own seriesQuery happens to include disk-read/disk-write.
   // Paused while the Storage tab itself is active: its own useMetricHistory
   // instance already fetches disk-read/disk-write for the chart, so reading
-  // that series instead avoids polling the same endpoint twice in parallel.
+  // that series instead avoids a second subscription for the same data.
   const isStorageTab = tab === 'storage';
   const diskIoRate = useDiskIoRate(serviceOnline && !isStorageTab);
   const storageBytesPerSec = isStorageTab ? currentDiskRateBytesPerSec(history.series) : diskIoRate;

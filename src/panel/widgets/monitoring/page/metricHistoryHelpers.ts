@@ -445,13 +445,12 @@ export function sumSilhouette(seriesList: readonly MetricHistorySeries[]): TimeS
 
 /**
  * The Storage tab-chip's live value: disk-read + disk-write summed at the
- * newest timestamp either series has in `series`. Disk has no push-driven
- * live feed (unlike cpu/gpu/memory's sensor topics or network's per-process
- * feed - see monitoringStore.ts). Called two ways in MonitoringPage: directly
- * on `history.series` while the Storage tab itself is active (its own
- * useMetricHistory instance already fetches disk-read/disk-write for the
- * chart, so this is free), and indirectly via useDiskIoRate's own dedicated
- * poll on every other tab (where `history.series` holds a different metric).
+ * newest timestamp either series has in `series`. Called directly on
+ * `history.series` in MonitoringPage while the Storage tab itself is active
+ * (its own useMetricHistory instance already fetches disk-read/disk-write
+ * for the chart, so this is free) - every other tab reads useDiskIoRate's
+ * own independently tracked value instead, since `history.series` there
+ * holds a different metric.
  */
 export function currentDiskRateBytesPerSec(series: readonly MetricHistorySeries[]): number {
   const read = series.find(s => s.id === 'disk-read');

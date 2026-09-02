@@ -1,11 +1,23 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useDiskIoRate } from './useDiskIoRate';
-import type { MetricHistoryFetchResult, MetricHistoryQuery } from '../api/monitoringHistory';
+import type { MetricHistoryFetchResult, MetricHistoryQuery, MetricHistoryResponse } from '../api/monitoringHistory';
 
 const fetchMock = vi.fn<(query: MetricHistoryQuery) => Promise<MetricHistoryFetchResult>>();
 vi.mock('../api/monitoringHistory', () => ({
   fetchMonitoringHistory: (query: MetricHistoryQuery) => fetchMock(query),
+}));
+
+// The hook subscribes to exactly one topic ('monitoring/history-tail'),
+// mirroring useStreamDecks.test.ts's capture idiom. mockConnected backs
+// useMultiplex()?.connected for the reconnect-refetch tests.
+let capturedTailPush: ((data: unknown) => void) | null = null;
+let mockConnected = true;
+vi.mock('./useMultiplexSocket', () => ({
+  useTopicCallback: (_topic: string, enabled: boolean, cb: (data: unknown) => void) => {
+    capturedTailPush = enabled ? cb : null;
+  },
+  useMultiplex: () => ({ connected: mockConnected }),
 }));
 
 function resp(readAvg: number, writeAvg: number): MetricHistoryFetchResult {
@@ -24,19 +36,26 @@ function resp(readAvg: number, writeAvg: number): MetricHistoryFetchResult {
   };
 }
 
+/** A 'monitoring/history-tail' push frame - series omitted from `values`
+ *  carry empty points, matching a series with no fresh value that tick. */
+function tailFrame(values: Partial<Record<'disk-read' | 'disk-write', number>>): MetricHistoryResponse {
+  const seriesFor = (id: 'disk-read' | 'disk-write') => ({
+    id, kind: 'disk' as const, name: id,
+    points: id in values ? [{ t: 1, avg: values[id]!, max: values[id]! }] : [],
+  });
+  return { supported: true, retentionDays: 7, stepSeconds: 1, series: [seriesFor('disk-read'), seriesFor('disk-write')] };
+}
+
 const flush = () => act(async () => {
   for (let i = 0; i < 10; i++) await Promise.resolve();
 });
-
-async function advance(ms: number) {
-  await act(async () => { await vi.advanceTimersByTimeAsync(ms); });
-  await flush();
-}
 
 beforeEach(() => {
   vi.useFakeTimers();
   fetchMock.mockReset();
   fetchMock.mockResolvedValue(resp(100, 50));
+  capturedTailPush = null;
+  mockConnected = true;
 });
 
 afterEach(() => {
@@ -45,40 +64,34 @@ afterEach(() => {
 });
 
 describe('useDiskIoRate', () => {
-  it('polls disk-read,disk-write on mount and reports the summed rate, independent of any active tab', async () => {
+  it('fetches disk-read,disk-write once on mount and reports the summed rate, independent of any active tab', async () => {
     const { result } = renderHook(() => useDiskIoRate(true));
     await flush();
     expect(fetchMock).toHaveBeenCalledWith(expect.objectContaining({ series: 'disk-read,disk-write' }));
     expect(result.current).toBe(150);
   });
 
-  it('keeps polling at a 1Hz cadence while enabled', async () => {
-    renderHook(() => useDiskIoRate(true));
-    await flush();
-    fetchMock.mockClear();
-    await advance(1000);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    await advance(1000);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-  });
-
-  it('reports 0 and does not poll while disabled', async () => {
+  it('reports 0 and does not fetch while disabled', async () => {
     const { result } = renderHook(() => useDiskIoRate(false));
     await flush();
     expect(fetchMock).not.toHaveBeenCalled();
     expect(result.current).toBe(0);
   });
 
-  it('drops a stale response superseded by a newer poll', async () => {
+  it('drops a stale bootstrap response superseded by a newer one', async () => {
     let resolveFirst!: (v: MetricHistoryFetchResult) => void;
     fetchMock.mockImplementationOnce(() => new Promise(res => { resolveFirst = res; }));
 
-    const { result } = renderHook(() => useDiskIoRate(true));
+    const { result, rerender } = renderHook(() => useDiskIoRate(true));
     await flush();
     expect(result.current).toBe(0);
 
     fetchMock.mockResolvedValueOnce(resp(200, 200));
-    await advance(1000);
+    mockConnected = false;
+    rerender();
+    mockConnected = true;
+    rerender();
+    await flush();
     expect(result.current).toBe(400);
 
     // The FIRST (now-stale) request resolves late - it must not regress the
@@ -86,5 +99,75 @@ describe('useDiskIoRate', () => {
     resolveFirst(resp(10, 10));
     await flush();
     expect(result.current).toBe(400);
+  });
+
+  it('updates the rate from a live-tail push with zero fetches after bootstrap', async () => {
+    const { result } = renderHook(() => useDiskIoRate(true));
+    await flush();
+    fetchMock.mockClear();
+
+    act(() => { capturedTailPush?.(tailFrame({ 'disk-read': 300, 'disk-write': 40 })); });
+
+    expect(result.current).toBe(340);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('leaves the value unchanged when a pushed frame has empty points for both disk series', async () => {
+    const { result } = renderHook(() => useDiskIoRate(true));
+    await flush();
+    expect(result.current).toBe(150);
+
+    act(() => { capturedTailPush?.(tailFrame({})); });
+
+    expect(result.current).toBe(150);
+  });
+
+  it('updates only the half with a fresh point, carrying the other half forward', async () => {
+    const { result } = renderHook(() => useDiskIoRate(true));
+    await flush();
+    expect(result.current).toBe(150); // read=100, write=50
+
+    act(() => { capturedTailPush?.(tailFrame({ 'disk-read': 500 })); }); // write has no point this tick
+
+    expect(result.current).toBe(550); // 500 + carried-forward 50
+  });
+
+  it('reconnect triggers exactly one refetch', async () => {
+    const { rerender } = renderHook(() => useDiskIoRate(true));
+    await flush();
+    fetchMock.mockClear();
+
+    mockConnected = false;
+    rerender();
+    mockConnected = true;
+    rerender();
+    await flush();
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(expect.objectContaining({ series: 'disk-read,disk-write' }));
+  });
+
+  it('does not refetch on a steady connection - only on an actual drop-then-reconnect', async () => {
+    const { rerender } = renderHook(() => useDiskIoRate(true));
+    await flush();
+    fetchMock.mockClear();
+
+    rerender(); // connected stays true throughout - no edge to react to
+    await flush();
+
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('stops the subscription and clears the rate on disable', async () => {
+    const { result, rerender } = renderHook(
+      ({ enabled }: { enabled: boolean }) => useDiskIoRate(enabled),
+      { initialProps: { enabled: true } },
+    );
+    await flush();
+    expect(result.current).toBe(150);
+
+    rerender({ enabled: false });
+    expect(result.current).toBe(0);
+    expect(capturedTailPush).toBeNull();
   });
 });
