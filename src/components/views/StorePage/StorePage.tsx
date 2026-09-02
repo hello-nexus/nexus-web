@@ -45,23 +45,16 @@ function iconFor(app: { id: string; iconUrl: string | null }, installed?: Instal
   return app.iconUrl ?? installed?.iconUrl ?? null;
 }
 
-/** App Store subtitles are 30 characters; past this a card line stops being a subtitle. */
-const SUBTITLE_MAX = 40;
-
 /**
- * The App Store subtitle line: the app's own short line, never the publisher.
- * An app that set no tagline falls back to the first sentence of its
- * description, trimmed at a word - the full text is what the description under
- * the screenshots is for.
+ * The app's own short line, never the publisher. An app that set no tagline
+ * falls back to the first sentence of its description; the full text is what
+ * the description under the screenshots is for. Never abbreviated here - a
+ * card clips its own line in CSS, the app page shows it whole.
  */
 function shortDescription(app: { tagline?: string; description?: string }): string {
   const raw = (app.tagline || app.description || '').trim();
   if (!raw) return '';
-  const sentence = raw.split(/(?<=[.!?])\s/)[0].replace(/[.]$/, '');
-  if (sentence.length <= SUBTITLE_MAX) return sentence;
-  const cut = sentence.slice(0, SUBTITLE_MAX);
-  const lastSpace = cut.lastIndexOf(' ');
-  return `${(lastSpace > 0 ? cut.slice(0, lastSpace) : cut).trimEnd()}…`;
+  return raw.split(/(?<=[.!?])\s/)[0].replace(/[.]$/, '');
 }
 
 function InstallButton({ app, installedVersion, onNeedsSignIn }: {
@@ -221,17 +214,19 @@ function useHighlights(latest: StoreVersion): Highlight[] {
 function Highlights({ latest }: { latest: StoreVersion }) {
   const highlights = useHighlights(latest);
   return (
-    <dl className={styles.highlights}>
-      {highlights.map(h => (
-        <div key={h.key} className={styles.highlight}>
-          <dt className={styles.highlightLabel}>{h.label}</dt>
-          <dd className={styles.highlightBody}>
-            <span className={styles.highlightIcon}>{h.icon}</span>
-            <span className={styles.highlightValue}>{h.value}</span>
-          </dd>
-        </div>
-      ))}
-    </dl>
+    <Card className={styles.highlightsCard}>
+      <dl className={styles.highlights}>
+        {highlights.map(h => (
+          <div key={h.key} className={styles.highlight}>
+            <dt className={styles.highlightLabel}>{h.label}</dt>
+            <dd className={styles.highlightBody}>
+              <span className={styles.highlightIcon}>{h.icon}</span>
+              <span className={styles.highlightValue}>{h.value}</span>
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </Card>
   );
 }
 
@@ -269,7 +264,7 @@ function AppDetail({ appId, onBack, installed, onNeedsSignIn }: {
           <p className={styles.heroSubtitle}>{shortDescription(app)}</p>
           <div className={styles.heroActions}>
             <InstallButton app={app} installedVersion={installed?.version} onNeedsSignIn={onNeedsSignIn} />
-            {installed && <RemoveAppButton app={{ id: app.id, name: app.name }} label={t('store.delete')} />}
+            {installed && <RemoveAppButton app={{ id: app.id, name: app.name }} label={t('store.delete')} iconOnly />}
           </div>
           {installed && (
             <span className={styles.installedVersion}>

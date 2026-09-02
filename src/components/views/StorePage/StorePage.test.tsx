@@ -184,14 +184,16 @@ describe('StorePage app page layout', () => {
 });
 
 describe('StorePage subtitle', () => {
-  it('trims a long one-liner at a word rather than running the card wide', async () => {
+  it('never abbreviates the line: the card clips its own width in CSS', async () => {
     fetchStoreApps.mockResolvedValue([{
       ...app,
       description: 'Ninomae Inanis as an interactive character companion that lives on the panel',
     }]);
     render(<StorePage />);
 
-    expect(await screen.findByText('Ninomae Inanis as an interactive\u2026')).toBeInTheDocument();
+    expect(await screen.findByText(
+      'Ninomae Inanis as an interactive character companion that lives on the panel',
+    )).toBeInTheDocument();
   });
 
   it('prefers a tagline the app set over its description', async () => {

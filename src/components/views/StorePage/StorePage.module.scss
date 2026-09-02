@@ -189,8 +189,11 @@ $card-gap: 0.6rem;
   color: var(--text);
 }
 
+// The app page shows the line whole: it wraps rather than clipping, so a
+// subtitle is never read as a truncated fragment.
 .heroSubtitle {
   margin: 0;
+  max-width: 44rem;
   @include text-body;
   color: var(--text-dim);
 }
@@ -202,15 +205,17 @@ $card-gap: 0.6rem;
   margin-top: 0.4rem;
 }
 
+.highlightsCard {
+  padding: 0.25rem 0;
+}
+
 // Scrolls sideways rather than wrapping: a wrap strands the last cell on its own line.
 .highlights {
   display: flex;
   align-items: stretch;
   gap: 0;
   margin: 0;
-  padding: 1rem 0;
-  border-top: 1px solid var(--separator);
-  border-bottom: 1px solid var(--separator);
+  padding: 0.75rem 0.5rem;
   overflow-x: auto;
 }
 
