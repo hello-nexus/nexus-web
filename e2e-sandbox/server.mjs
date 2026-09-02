@@ -80,7 +80,7 @@ await build({
       VITE_SERVICE_PROTOCOL: 'http:', VITE_SERVICE_HOST: 'localhost', VITE_SERVICE_PORT: String(PORT),
       DEV: false, PROD: true, MODE: 'production', BASE_URL: '/',
     }),
-    __APP_VERSION__: '"harness"', __SERVICE_BUILD__: 'false', __DEV_TOOLS__: 'false',
+    __APP_VERSION__: '"harness"', __SERVICE_BUILD__: 'false', __DEV_TOOLS__: 'false', __OFFICIAL_BUILD__: 'false',
   },
   logLevel: 'warning',
 });

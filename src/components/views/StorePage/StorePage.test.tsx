@@ -82,15 +82,48 @@ describe('StorePage storefront', () => {
     expect(screen.getByText('store.section.apps')).toBeInTheDocument();
   });
 
-  it('gives a card a short line from the app, never the publisher, and no Install button', async () => {
+  it('gives a row a short line from the app, never the publisher, and its own Install button', async () => {
     render(<StorePage />);
 
-    // The subtitle is the first sentence only; the rest is what About is for.
+    // The subtitle is the first sentence only; the rest is what the description is for.
     expect(await screen.findByText('A pixel-art fish you can feed')).toBeInTheDocument();
     expect(screen.queryByText(/Tap the water/)).not.toBeInTheDocument();
     expect(screen.queryByText('Nexus')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'store.install' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'store.install' })).toBeInTheDocument();
     expect(screen.queryByText('store.noRatings')).not.toBeInTheDocument();
+  });
+});
+
+describe('StorePage row card', () => {
+  it('opens the app page from anywhere on the card', async () => {
+    render(<StorePage />);
+
+    // The subtitle is card chrome, not a control: the container is the target.
+    fireEvent.click(await screen.findByText('A pixel-art fish you can feed'));
+
+    expect(await screen.findByText('store.spec.widget')).toBeInTheDocument();
+    expect(screen.queryByText('store.banner.title')).not.toBeInTheDocument();
+  });
+
+  it('leaves a keyboard route to the app page: the title is a real control', async () => {
+    render(<StorePage />);
+
+    // The card's own onClick is mouse-only (disableInteractiveRole), so the
+    // title has to carry the keyboard path.
+    fireEvent.click(await screen.findByRole('button', { name: 'Aquarium' }));
+
+    expect(await screen.findByText('store.spec.widget')).toBeInTheDocument();
+  });
+
+  it('keeps Install from opening the page it sits on', async () => {
+    installStoreApp.mockResolvedValue({ appId: app.id, version: '1.0.2', ok: true });
+    render(<StorePage />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'store.install' }));
+
+    // Still the storefront: the click must not bubble to the card.
+    expect(screen.getByText('store.section.apps')).toBeInTheDocument();
+    await waitFor(() => expect(installStoreApp).toHaveBeenCalled());
   });
 });
 
@@ -123,15 +156,62 @@ describe('StorePage app page', () => {
   });
 });
 
+describe('StorePage app page layout', () => {
+  it('reads the capabilities as a highlight strip, not a definition table', async () => {
+    render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
+
+    expect(await screen.findByText('store.spec.widget')).toBeInTheDocument();
+    expect(screen.getByText('store.value.hasFeature')).toBeInTheDocument();
+    expect(screen.getByText('2x2')).toBeInTheDocument();
+    expect(screen.getByText('store.value.touchAny')).toBeInTheDocument();
+    expect(screen.getByText('1.0.2')).toBeInTheDocument();
+  });
+
+  it('omits the sizes cell for an app that declares no widget', async () => {
+    fetchStoreApp.mockResolvedValue({
+      ...detail,
+      latest: { ...version, hasWidget: false, sizes: [] },
+    });
+    render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
+
+    expect(await screen.findByText('store.value.noFeature')).toBeInTheDocument();
+    expect(screen.queryByText('store.spec.widgetSizes')).not.toBeInTheDocument();
+  });
+
+  it('shows no subtitle for an app with no tagline, rather than repeating its description', async () => {
+    render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
+
+    await screen.findByText('store.spec.widget');
+    // The description block carries this sentence; the hero must not also.
+    expect(screen.getAllByText(/A pixel-art fish you can feed/)).toHaveLength(1);
+  });
+
+  it('names each screenshot and puts the full description below them, with no section headings', async () => {
+    fetchStoreApp.mockResolvedValue({
+      ...detail,
+      screenshots: ['/apps-api/store/media/com.hellonexus.aquarium/media/one.png'],
+    });
+    render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
+
+    expect(await screen.findByAltText('store.screenshotAlt name=Aquarium index=1')).toBeInTheDocument();
+    expect(screen.getByText(/Tap the water/)).toBeInTheDocument();
+    expect(screen.queryByText('store.section.preview')).not.toBeInTheDocument();
+    expect(screen.queryByText('store.section.about')).not.toBeInTheDocument();
+    expect(screen.queryByText('store.section.details')).not.toBeInTheDocument();
+  });
+});
+
 describe('StorePage subtitle', () => {
-  it('trims a long one-liner at a word rather than running the card wide', async () => {
+  it('never abbreviates the line: the card clips its own width in CSS', async () => {
     fetchStoreApps.mockResolvedValue([{
       ...app,
       description: 'Ninomae Inanis as an interactive character companion that lives on the panel',
     }]);
     render(<StorePage />);
 
-    expect(await screen.findByText('Ninomae Inanis as an interactive\u2026')).toBeInTheDocument();
+    expect(await screen.findByText(
+      'Ninomae Inanis as an interactive character companion that lives on the panel',
+    )).toBeInTheDocument();
   });
 
   it('prefers a tagline the app set over its description', async () => {
