@@ -147,9 +147,12 @@ function mergeTail(prev: readonly MetricHistorySeries[], tail: readonly MetricHi
 }
 
 /** The push topic broadcasts every tracked series regardless of which tab is
- *  active - filters it down to what the active seriesQuery would have asked
- *  for, mirroring the server-side filtering the old tail fetch relied on. */
+ *  active - filters it down to only the ids/kinds the active seriesQuery
+ *  names, since a series outside that set has no business entering
+ *  `series`/`fineSnapshotRef`. An empty query names every series (matches
+ *  the server's own `series=` param contract). */
 function seriesMatchesQuery(s: MetricHistorySeries, query: string): boolean {
+  if (query === '') return true;
   return query.split(',').some(token => token === s.id || token === s.kind);
 }
 
@@ -207,6 +210,11 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
   const silhouetteSeqRef = useRef(0);
   const viewportSeqRef = useRef(0);
   const tailSeqRef = useRef(0);
+  // True for the span between a runTailGapFill() call starting and its
+  // response committing - gates the reconnect effect below so it doesn't
+  // fire a redundant concurrent fetch while the bootstrap request (or a
+  // gap-detected one) is still in flight.
+  const tailInFlightRef = useRef(false);
   const lastLoadedTRef = useRef<number | null>(null);
   const cacheRef = useRef(new MonitoringHistoryCache());
   const silhouetteRef = useRef(silhouette);
@@ -559,9 +567,12 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
     const to = Math.max(base, minTo ?? base) + LIVE_TAIL_POLL_MS * 2;
     const from = (lastLoadedTRef.current ?? base - LIVE_TAIL_BOOTSTRAP_MS) + 1;
     const seq = ++tailSeqRef.current;
+    tailInFlightRef.current = true;
     void (async () => {
       const result = await fetchMonitoringHistory({ from, to, maxPoints: LIVE_TAIL_MAX_POINTS, series: seriesQueryRef.current });
-      if (!mountedRef.current || seq !== tailSeqRef.current || !result.data) return;
+      if (!mountedRef.current || seq !== tailSeqRef.current) return;
+      tailInFlightRef.current = false;
+      if (!result.data) return;
       const tail = result.data.series;
       const t = newestT(tail);
       if (t === null) return;
@@ -591,11 +602,13 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
   // Reconnect fetch: a dropped socket misses every push tick until it
   // reopens, so backfill the hole with one fetch rather than leave it.
   // Edge-detected off `connected` (the multiplex context has no reconnect
-  // counter) so a steady connection never refetches.
+  // counter) so a steady connection never refetches. Skipped while the
+  // bootstrap fetch (or a gap-detected one) is still in flight - that
+  // request already covers the need once it lands.
   const socketConnected = useMultiplex()?.connected ?? false;
   const prevSocketConnectedRef = useRef(socketConnected);
   useEffect(() => {
-    if (tailActive && socketConnected && !prevSocketConnectedRef.current) runTailGapFill();
+    if (tailActive && socketConnected && !prevSocketConnectedRef.current && !tailInFlightRef.current) runTailGapFill();
     prevSocketConnectedRef.current = socketConnected;
   }, [tailActive, socketConnected, runTailGapFill]);
 

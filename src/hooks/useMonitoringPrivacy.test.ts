@@ -238,4 +238,101 @@ describe('useMonitoringPrivacy', () => {
     // Dropped - must not overwrite request B's already-committed state.
     expect(result.current.sessions).toEqual(secondSessions);
   });
+
+  it('skips the reconnect-triggered refetch while the initial fetch is still in flight', async () => {
+    let resolveFetch!: (v: { data: PrivacyResponse | null; mocked: boolean; unsupported: boolean }) => void;
+    fetchMock.mockReturnValueOnce(new Promise(res => { resolveFetch = res; }));
+
+    const { rerender } = renderHook(() => useMonitoringPrivacy(true));
+    // The mount's own load() is in flight (fetchMock's return value is
+    // still pending).
+    fetchMock.mockClear();
+
+    mockConnected = false;
+    rerender();
+    mockConnected = true;
+    rerender();
+    await advance(0);
+
+    // No second concurrent fetch fired while loadInFlightRef was true.
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    await act(async () => {
+      resolveFetch({ data: emptyResp(), mocked: false, unsupported: false });
+      await Promise.resolve();
+    });
+    await flush();
+  });
+
+  it('a push landing while the fetch is in flight survives it, instead of being overwritten by the GET\'s still-open session', async () => {
+    let resolveFetch!: (v: { data: PrivacyResponse | null; mocked: boolean; unsupported: boolean }) => void;
+    fetchMock.mockReturnValueOnce(new Promise(res => { resolveFetch = res; }));
+
+    const { result } = renderHook(() => useMonitoringPrivacy(true));
+    // The mount's own load() is in flight.
+    act(() => { capturedPrivacyPush?.(session({ app: 'C:\\chrome.exe', start: NOW - 1000, end: NOW - 200 })); });
+
+    await act(async () => {
+      // Resolves with the session still open, as of before the end push.
+      resolveFetch({
+        data: { supported: true, retentionDays: 7, sessions: [session({ app: 'C:\\chrome.exe', start: NOW - 1000, end: null })] },
+        mocked: false, unsupported: false,
+      });
+      await Promise.resolve();
+    });
+    await flush();
+
+    const match = result.current.sessions.find(s => s.app === 'C:\\chrome.exe');
+    expect(match?.end).toBe(NOW - 200);
+  });
+
+  it('a push clears a stale error state', async () => {
+    fetchMock.mockResolvedValue({ data: null, mocked: false, unsupported: false });
+    const { result } = renderHook(() => useMonitoringPrivacy(true));
+    await advance(0);
+    expect(result.current.error).toBe(true);
+
+    act(() => { capturedPrivacyPush?.(session({ app: 'C:\\chrome.exe', start: NOW })); });
+
+    expect(result.current.error).toBe(false);
+  });
+
+  it('retries once after a failed load, recovering on success', async () => {
+    fetchMock.mockResolvedValue({ data: null, mocked: false, unsupported: false });
+    const { result } = renderHook(() => useMonitoringPrivacy(true));
+    await advance(0);
+    expect(result.current.error).toBe(true);
+    fetchMock.mockClear();
+
+    fetchMock.mockResolvedValue({ data: emptyResp(), mocked: false, unsupported: false });
+    await advance(30_000); // the one bounded error-retry delay
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(result.current.error).toBe(false);
+  });
+
+  it('does not schedule a second retry if the one bounded retry also fails', async () => {
+    fetchMock.mockResolvedValue({ data: null, mocked: false, unsupported: false });
+    const { result } = renderHook(() => useMonitoringPrivacy(true));
+    await advance(0);
+    fetchMock.mockClear();
+
+    await advance(30_000); // the one retry fires and also fails
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(result.current.error).toBe(true);
+    fetchMock.mockClear();
+
+    await advance(120_000); // no further automatic retry - not a poll loop
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('advances asOfMs on a coarse interval so an ended session ages out of "recent" on its own', async () => {
+    const { result } = renderHook(() => useMonitoringPrivacy(true));
+    await advance(0);
+    const initialAsOf = result.current.asOfMs;
+
+    await advance(60_000); // the asOfMs tick cadence
+
+    expect(result.current.asOfMs).toBeGreaterThan(initialAsOf);
+  });
 });

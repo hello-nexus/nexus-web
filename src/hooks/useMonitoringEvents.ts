@@ -13,9 +13,10 @@ import { useMultiplex, useTopicCallback } from './useMultiplexSocket';
 // through. refetch() bypasses this and fires immediately.
 const DOMAIN_DEBOUNCE_MS = 250;
 
-// Past coveredTo by more than this, a domain move needs a real fetch - wider
-// than one live-tail tick (~1s) so plain following never crosses it; the
-// push subscriptions keep coverage current within it.
+// Past coveredTo by more than this, a following domain move needs a real
+// fetch - wider than one live-tail tick so plain following never crosses
+// it; the push subscriptions keep coverage current within it. Only applies
+// while following - see the `following` param on useMonitoringEvents.
 const DOMAIN_TO_COVERAGE_SLACK_MS = 5_000;
 
 // iconKindForCapability already collapses both graphicsCapture variants to
@@ -119,11 +120,17 @@ export interface UseMonitoringEventsResult {
  * the 'monitoring/events'/'monitoring/privacy' push topics instead of
  * refetching on every live-tail tick. Debounced + seq-guarded like
  * useMetricHistory - a stale in-flight response never overwrites a newer
- * one. A failed privacy fetch (unsupported or errored) never blocks stored
- * events from rendering; a failed stored-events fetch leaves the previously
- * loaded stored events in place rather than flashing the timeline empty.
+ * one, and a push that lands while a fetch is in flight is buffered and
+ * replayed on top of that fetch's result rather than lost to it. A failed
+ * privacy fetch (unsupported or errored) never blocks stored events from
+ * rendering; a failed stored-events fetch leaves the previously loaded
+ * stored events in place rather than flashing the timeline empty.
+ * `following` gates whether a domain move can trust-extend coverage
+ * (see DOMAIN_TO_COVERAGE_SLACK_MS) - that trust only holds at the live
+ * edge the push subscriptions actually track; a detached historical pan
+ * fetches on any move past known coverage.
  */
-export function useMonitoringEvents(domain: [number, number], enabled: boolean): UseMonitoringEventsResult {
+export function useMonitoringEvents(domain: [number, number], enabled: boolean, following: boolean): UseMonitoringEventsResult {
   const [events, setEvents] = useState<TimelineEvent[]>([]);
   const [loading, setLoading] = useState(false);
   const storedRef = useRef<MonitoringEventDto[]>([]);
@@ -138,10 +145,19 @@ export function useMonitoringEvents(domain: [number, number], enabled: boolean):
   const forcedRef = useRef(false);
   // The [from, to] window `events` is currently known-complete for. Null
   // until the first fetch lands, forcing that one unconditionally. `to`
-  // trust-extends to the domain's own `to` on a settle that doesn't need a
-  // real fetch - see DOMAIN_TO_COVERAGE_SLACK_MS.
+  // trust-extends to the domain's own `to` on a following settle that
+  // doesn't need a real fetch - see DOMAIN_TO_COVERAGE_SLACK_MS.
   const coveredFromRef = useRef<number | null>(null);
   const coveredToRef = useRef<number | null>(null);
+  // True for the span between a load() call starting and its response
+  // committing - gates the reconnect effect (skip a redundant concurrent
+  // fetch while one is already in flight) and buffers pushes that land
+  // mid-flight so they survive load()'s wholesale replace of storedRef/
+  // privacyRef (RISK: a push landing after the GET was issued postdates its
+  // response and would otherwise be silently discarded on commit).
+  const loadInFlightRef = useRef(false);
+  const pendingEventPushesRef = useRef<MonitoringEventDto[]>([]);
+  const pendingPrivacyPushesRef = useRef<PrivacySession[]>([]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -150,6 +166,9 @@ export function useMonitoringEvents(domain: [number, number], enabled: boolean):
 
   const load = useCallback((from: number, to: number) => {
     const seq = ++seqRef.current;
+    loadInFlightRef.current = true;
+    pendingEventPushesRef.current = [];
+    pendingPrivacyPushesRef.current = [];
     setLoading(true);
     void (async () => {
       const [storedOutcome, privacyOutcome] = await Promise.allSettled([
@@ -157,8 +176,15 @@ export function useMonitoringEvents(domain: [number, number], enabled: boolean):
         fetchMonitoringPrivacy({ from, to }),
       ]);
       if (!mountedRef.current || seq !== seqRef.current) return;
-      if (storedOutcome.status === 'fulfilled') storedRef.current = storedOutcome.value;
-      if (privacyOutcome.status === 'fulfilled') privacyRef.current = privacyOutcome.value.data?.sessions ?? [];
+      loadInFlightRef.current = false;
+      let nextStored = storedOutcome.status === 'fulfilled' ? storedOutcome.value : storedRef.current;
+      let nextPrivacy = privacyOutcome.status === 'fulfilled' ? (privacyOutcome.value.data?.sessions ?? []) : privacyRef.current;
+      for (const event of pendingEventPushesRef.current) nextStored = upsertStoredEvent(nextStored, event);
+      for (const session of pendingPrivacyPushesRef.current) nextPrivacy = upsertPrivacySession(nextPrivacy, session);
+      pendingEventPushesRef.current = [];
+      pendingPrivacyPushesRef.current = [];
+      storedRef.current = nextStored;
+      privacyRef.current = nextPrivacy;
       coveredFromRef.current = from;
       coveredToRef.current = to;
       setEvents(mergeTimelineEvents(storedRef.current, privacyRef.current));
@@ -174,6 +200,9 @@ export function useMonitoringEvents(domain: [number, number], enabled: boolean):
       // after the toggle went off, and with a pinned (frozen) domain the
       // effect never runs again to clear them.
       seqRef.current++;
+      loadInFlightRef.current = false;
+      pendingEventPushesRef.current = [];
+      pendingPrivacyPushesRef.current = [];
       storedRef.current = [];
       privacyRef.current = [];
       coveredFromRef.current = null;
@@ -187,12 +216,13 @@ export function useMonitoringEvents(domain: [number, number], enabled: boolean):
     const needsFetch = forced
       || coveredFromRef.current === null || coveredToRef.current === null
       || from < coveredFromRef.current
-      || to > coveredToRef.current + DOMAIN_TO_COVERAGE_SLACK_MS;
+      || (following ? to > coveredToRef.current + DOMAIN_TO_COVERAGE_SLACK_MS : to > coveredToRef.current);
     if (!needsFetch) {
-      // Nothing past the last real fetch is missing - the push
-      // subscriptions below have kept storedRef/privacyRef current for
-      // anything that happened since, so trust that instead of fetching.
-      coveredToRef.current = to;
+      // Trust-extension only holds at the live edge, where the push
+      // subscriptions actually keep coverage current - a detached pan
+      // within already-fetched coverage needs no update at all. Math.max
+      // guards a leftward pan from shrinking coveredTo back down.
+      if (following && coveredToRef.current !== null) coveredToRef.current = Math.max(coveredToRef.current, to);
       return;
     }
     if (debounceRef.current !== null) window.clearTimeout(debounceRef.current);
@@ -206,7 +236,7 @@ export function useMonitoringEvents(domain: [number, number], enabled: boolean):
         debounceRef.current = null;
       }
     };
-  }, [enabled, from, to, refetchNonce, load]);
+  }, [enabled, from, to, following, refetchNonce, load]);
 
   const refetch = useCallback(() => {
     forcedRef.current = true;
@@ -217,15 +247,19 @@ export function useMonitoringEvents(domain: [number, number], enabled: boolean):
   // a real fetch rather than trust coverage the push subscriptions couldn't
   // actually maintain during the outage. Edge-detected off `connected` (no
   // reconnect counter on the multiplex context, matching useMetricHistory).
+  // Skipped while a load is already in flight (e.g. the initial bootstrap
+  // fetch racing the socket's own first open) - that request already covers
+  // the need once it lands, so firing a second one is redundant.
   const connected = useMultiplex()?.connected ?? false;
   const prevConnectedRef = useRef(connected);
   useEffect(() => {
-    if (enabled && connected && !prevConnectedRef.current) refetch();
+    if (enabled && connected && !prevConnectedRef.current && !loadInFlightRef.current) refetch();
     prevConnectedRef.current = connected;
   }, [enabled, connected, refetch]);
 
   useTopicCallback('monitoring/events', enabled, (raw) => {
     const event = normaliseEventDto(raw as MonitoringEventDto);
+    if (loadInFlightRef.current) pendingEventPushesRef.current.push(event);
     const next = upsertStoredEvent(storedRef.current, event);
     if (next === storedRef.current) return;
     storedRef.current = next;
@@ -235,6 +269,7 @@ export function useMonitoringEvents(domain: [number, number], enabled: boolean):
 
   useTopicCallback('monitoring/privacy', enabled, (raw) => {
     const session = normalisePrivacySession(raw as PrivacySession);
+    if (loadInFlightRef.current) pendingPrivacyPushesRef.current.push(session);
     const next = upsertPrivacySession(privacyRef.current, session);
     if (next === privacyRef.current) return;
     privacyRef.current = next;

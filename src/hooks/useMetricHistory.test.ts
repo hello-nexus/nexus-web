@@ -728,35 +728,39 @@ describe('useMetricHistory', () => {
   });
 
   it('drops a stale tail gap-fill response that resolves after a newer one already landed', async () => {
-    const { result, rerender } = renderHook(() => useMetricHistory(true, 'cpu'));
-    await advance(0);
+    fetchMock.mockResolvedValue({ data: emptyResp(), mocked: false, unsupported: false });
+    const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
+    await advance(0); // mount settles - lastLoadedTRef stays null (emptyResp everywhere)
+
+    // Establishes a known lastLoadedT via a clean, non-gapped push.
+    act(() => { capturedTailPush?.(resp('cpu', [{ t: NOW, avg: 0, max: 0 }])); });
 
     const first = deferred<{ data: MetricHistoryResponse | null; mocked: boolean; unsupported: boolean }>();
     fetchMock.mockImplementationOnce(() => first.promise);
-    mockConnected = false;
-    rerender();
-    mockConnected = true;
-    rerender(); // reconnect #1 - fetch held pending
+    // A gap - triggers gap-fill #1, held pending. (Two overlapping
+    // reconnects can no longer produce this race - the second one is
+    // skipped while the first is in flight - so two gap-detecting pushes
+    // are used instead to exercise the same seq-guard.)
+    act(() => { capturedTailPush?.(resp('cpu', [{ t: NOW + 5_000, avg: 5, max: 5 }])); });
 
     const second = deferred<{ data: MetricHistoryResponse | null; mocked: boolean; unsupported: boolean }>();
     fetchMock.mockImplementationOnce(() => second.promise);
-    mockConnected = false;
-    rerender();
-    mockConnected = true;
-    rerender(); // reconnect #2 - fetch held pending
+    // Another gap on top of that - triggers gap-fill #2, held pending.
+    act(() => { capturedTailPush?.(resp('cpu', [{ t: NOW + 10_000, avg: 10, max: 10 }])); });
 
-    // Newer gap-fill (seq 2) resolves before the older one (seq 1).
+    // Newer gap-fill (#2) resolves before the older one (#1).
     await act(async () => {
-      second.resolve({ data: resp('cpu', [{ t: NOW + 2000, avg: 20, max: 22 }]), mocked: false, unsupported: false });
+      second.resolve({ data: resp('cpu', [{ t: NOW + 9_000, avg: 20, max: 22 }]), mocked: false, unsupported: false });
       await Promise.resolve();
     });
     await act(async () => {
-      first.resolve({ data: resp('cpu', [{ t: NOW + 1000, avg: 10, max: 12 }]), mocked: false, unsupported: false });
+      first.resolve({ data: resp('cpu', [{ t: NOW + 4_000, avg: 10, max: 12 }]), mocked: false, unsupported: false });
       await Promise.resolve();
     });
 
     const cpu = result.current.series.find(s => s.id === 'cpu');
-    expect(cpu?.points).toEqual([{ t: NOW + 2000, avg: 20, max: 22 }]);
+    expect(cpu?.points).not.toContainEqual({ t: NOW + 4_000, avg: 10, max: 12 });
+    expect(cpu?.points).toContainEqual({ t: NOW + 9_000, avg: 20, max: 22 });
   });
 
   it('clamps the strip to a narrower server retention window', async () => {
@@ -1058,5 +1062,46 @@ describe('useMetricHistory', () => {
     await advance(3_500);
 
     expect(fetchMock).toHaveBeenCalledWith(expect.objectContaining({ from: NOW - 6 * HOUR, to: NOW - 5 * HOUR }));
+  });
+
+  it('a push whose newest t goes backwards triggers no fetch and does not regress lastLoadedTRef/nowRef', async () => {
+    fetchMock.mockResolvedValue({ data: emptyResp(), mocked: false, unsupported: false });
+    const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
+    await advance(0);
+
+    act(() => { capturedTailPush?.(resp('cpu', [{ t: NOW + 5000, avg: 5, max: 5 }])); });
+    const domainAfterFirst = result.current.domain[1];
+    fetchMock.mockClear();
+
+    // A straggler - its newest point is BEFORE the last one already known
+    // (e.g. a stale frame delivered late around a reconnect).
+    act(() => { capturedTailPush?.(resp('cpu', [{ t: NOW + 1000, avg: 1, max: 1 }])); });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(result.current.domain[1]).toBe(domainAfterFirst);
+  });
+
+  it('skips the reconnect-triggered gap-fill while the bootstrap fetch is still in flight', async () => {
+    const pending = deferred<{ data: MetricHistoryResponse | null; mocked: boolean; unsupported: boolean }>();
+    fetchMock.mockImplementation(async q => (q.maxPoints === 50 ? pending.promise : { data: emptyResp(), mocked: false, unsupported: false }));
+
+    const { rerender } = renderHook(() => useMetricHistory(true, 'cpu'));
+    // The mount's own bootstrap gap-fill (maxPoints=50) is in flight.
+    fetchMock.mockClear();
+
+    mockConnected = false;
+    rerender();
+    mockConnected = true;
+    rerender();
+    await advance(0);
+
+    // No second concurrent maxPoints=50 fetch fired while tailInFlightRef
+    // was true.
+    expect(fetchMock.mock.calls.some(([q]) => q.maxPoints === 50)).toBe(false);
+
+    await act(async () => {
+      pending.resolve({ data: emptyResp(), mocked: false, unsupported: false });
+      await Promise.resolve();
+    });
   });
 });

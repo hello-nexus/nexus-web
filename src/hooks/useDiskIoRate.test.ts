@@ -82,20 +82,25 @@ describe('useDiskIoRate', () => {
     let resolveFirst!: (v: MetricHistoryFetchResult) => void;
     fetchMock.mockImplementationOnce(() => new Promise(res => { resolveFirst = res; }));
 
-    const { result, rerender } = renderHook(() => useDiskIoRate(true));
+    const { result, rerender } = renderHook(
+      ({ enabled }: { enabled: boolean }) => useDiskIoRate(enabled),
+      { initialProps: { enabled: true } },
+    );
     await flush();
     expect(result.current).toBe(0);
+    // Request A is in flight.
 
     fetchMock.mockResolvedValueOnce(resp(200, 200));
-    mockConnected = false;
-    rerender();
-    mockConnected = true;
-    rerender();
+    // Toggled off then back on before A resolves - the reconnect trigger
+    // can no longer overlap a still-in-flight bootstrap, so an
+    // enabled-toggle is used instead to fire request B.
+    rerender({ enabled: false });
+    rerender({ enabled: true });
     await flush();
     expect(result.current).toBe(400);
 
-    // The FIRST (now-stale) request resolves late - it must not regress the
-    // already-newer value.
+    // The FIRST (older, now-stale) request resolves late - it must not
+    // regress the already-newer value.
     resolveFirst(resp(10, 10));
     await flush();
     expect(result.current).toBe(400);
@@ -169,5 +174,75 @@ describe('useDiskIoRate', () => {
     rerender({ enabled: false });
     expect(result.current).toBe(0);
     expect(capturedTailPush).toBeNull();
+  });
+
+  it('decays a half to 0 after EMPTY_TICKS_BEFORE_ZERO consecutive empty pushes, instead of holding it forever', async () => {
+    const { result } = renderHook(() => useDiskIoRate(true));
+    await flush();
+    expect(result.current).toBe(150); // read=100, write=50
+
+    for (let i = 0; i < 4; i++) {
+      act(() => { capturedTailPush?.(tailFrame({})); });
+    }
+    expect(result.current).toBe(150); // still under the decay threshold
+
+    act(() => { capturedTailPush?.(tailFrame({})); }); // 5th consecutive empty tick
+    expect(result.current).toBe(0);
+  });
+
+  it('resumes updating a half immediately once a fresh point arrives after it decayed to 0', async () => {
+    const { result } = renderHook(() => useDiskIoRate(true));
+    await flush();
+
+    for (let i = 0; i < 5; i++) {
+      act(() => { capturedTailPush?.(tailFrame({})); });
+    }
+    expect(result.current).toBe(0);
+
+    act(() => { capturedTailPush?.(tailFrame({ 'disk-read': 200, 'disk-write': 10 })); });
+    expect(result.current).toBe(210);
+  });
+
+  it('a bootstrap fetch resets a half to 0 rather than carrying forward when its window has no point for it', async () => {
+    const { result, rerender } = renderHook(() => useDiskIoRate(true));
+    await flush();
+    expect(result.current).toBe(150); // read=100, write=50
+
+    fetchMock.mockResolvedValueOnce({
+      mocked: false, unsupported: false,
+      data: {
+        supported: true, retentionDays: 7, stepSeconds: 1,
+        series: [{ id: 'disk-read', kind: 'disk', name: 'Disk Read', points: [{ t: 1, avg: 300, max: 300 }] }],
+      },
+    });
+    mockConnected = false;
+    rerender();
+    mockConnected = true;
+    rerender();
+    await flush();
+
+    expect(result.current).toBe(300); // write reset to 0, not carried forward as 50
+  });
+
+  it('skips the reconnect-triggered refetch while the bootstrap fetch is still in flight', async () => {
+    let resolveBootstrap!: (v: MetricHistoryFetchResult) => void;
+    fetchMock.mockReturnValueOnce(new Promise(res => { resolveBootstrap = res; }));
+
+    const { rerender } = renderHook(() => useDiskIoRate(true));
+    // The mount's own bootstrap is in flight.
+    fetchMock.mockClear();
+
+    mockConnected = false;
+    rerender();
+    mockConnected = true;
+    rerender();
+    await flush();
+
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    await act(async () => {
+      resolveBootstrap(resp(100, 50));
+      await Promise.resolve();
+    });
   });
 });

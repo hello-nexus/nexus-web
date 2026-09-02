@@ -264,7 +264,7 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
   // Timeline events overlay. The global toggle gates fetching too, so an
   // uninterested user pays nothing for the feature.
   const eventsEnabled = settings.monitoringEventsEnabled;
-  const { events: allEvents, refetch: refetchEvents } = useMonitoringEvents(history.domain, eventsEnabled);
+  const { events: allEvents, refetch: refetchEvents } = useMonitoringEvents(history.domain, eventsEnabled, history.following);
   const { visibleEvents } = useEventKindVisibility();
   const events = useMemo(() => visibleEvents(allEvents), [visibleEvents, allEvents]);
   const [eventsModalKey, setEventsModalKey] = useState<string | null>(null);
