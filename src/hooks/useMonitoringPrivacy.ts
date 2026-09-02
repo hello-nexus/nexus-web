@@ -22,8 +22,6 @@ export interface UseMonitoringPrivacyResult {
   supported: boolean;
 }
 
-type LoadOutcome = 'ok' | 'error' | 'unsupported';
-
 /**
  * Loads the local service's privacy-access sessions (webcam/microphone/
  * location/screen capture) once on enable and again on socket reconnect,
@@ -55,13 +53,13 @@ export function useMonitoringPrivacy(enabled: boolean): UseMonitoringPrivacyResu
     return () => { mountedRef.current = false; };
   }, []);
 
-  const load = useCallback(async (): Promise<LoadOutcome> => {
+  const load = useCallback(async (): Promise<void> => {
     const seq = ++seqRef.current;
     setLoading(true);
     const to = Date.now();
     const result = await fetchMonitoringPrivacy({ from: to - WINDOW_MS, to });
     // A newer load (from this or a later effect instance) already started.
-    if (!mountedRef.current || seq !== seqRef.current) return 'ok';
+    if (!mountedRef.current || seq !== seqRef.current) return;
     setLoading(false);
     if (result.data) {
       sessionsRef.current = result.data.sessions;
@@ -70,14 +68,13 @@ export function useMonitoringPrivacy(enabled: boolean): UseMonitoringPrivacyResu
       setSupported(result.data.supported);
       setMocked(result.mocked);
       setError(false);
-      return result.data.supported ? 'ok' : 'unsupported';
+      return;
     }
     if (result.unsupported) {
       setSupported(false);
-      return 'unsupported';
+      return;
     }
     setError(true);
-    return 'error';
   }, []);
 
   useEffect(() => {

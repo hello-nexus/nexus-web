@@ -681,6 +681,41 @@ describe('useMetricHistory', () => {
     expect(fetchMock).toHaveBeenCalledWith(expect.objectContaining({ maxPoints: 50, series: 'cpu' }));
   });
 
+  it('a gap-triggering push anchors the backfill fetch at the actual hole, not past it', async () => {
+    fetchMock.mockResolvedValue({ data: emptyResp(), mocked: false, unsupported: false });
+    renderHook(() => useMetricHistory(true, 'cpu'));
+    await advance(0);
+
+    // Establishes a known lastLoadedT via a clean, non-gapped push.
+    act(() => { capturedTailPush?.(resp('cpu', [{ t: NOW + 1000, avg: 1, max: 1 }])); });
+    fetchMock.mockClear();
+
+    // Skips two ticks (NOW+2000, NOW+3000 never arrived) - only the newest
+    // point is in this frame.
+    act(() => { capturedTailPush?.(resp('cpu', [{ t: NOW + 4000, avg: 4, max: 4 }])); });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [[query]] = fetchMock.mock.calls;
+    // The hole is [NOW+1001, NOW+3999] - anchoring `from` off the pushed
+    // frame's own t (instead of the pre-push lastLoadedT) would request
+    // NOW+4001 onward and never actually cover it.
+    expect(query.from).toBe(NOW + 1001);
+    expect(query.to).toBeGreaterThanOrEqual(NOW + 4000);
+  });
+
+  it('does not gap-fetch a push landing within jitter tolerance of the expected next tick', async () => {
+    fetchMock.mockResolvedValue({ data: emptyResp(), mocked: false, unsupported: false });
+    renderHook(() => useMetricHistory(true, 'cpu'));
+    await advance(0);
+
+    act(() => { capturedTailPush?.(resp('cpu', [{ t: NOW + 1000, avg: 1, max: 1 }])); });
+    fetchMock.mockClear();
+
+    act(() => { capturedTailPush?.(resp('cpu', [{ t: NOW + 2300, avg: 2, max: 2 }])); });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('does not gap-fetch on a steady connection, only on an actual drop-then-reconnect', async () => {
     const { rerender } = renderHook(() => useMetricHistory(true, 'cpu'));
     await advance(0);

@@ -28,6 +28,10 @@ const LIVE_TAIL_MAX_POINTS = 50;
 // Fallback lookback for the very first tail poll (before any viewport
 // response has reported a newest point).
 const LIVE_TAIL_BOOTSTRAP_MS = 5_000;
+// Slack on the live-tail gap check - a push landing this far past the
+// expected next tick still counts as on-time, so per-tick server timing
+// jitter alone never triggers a gap-fill fetch.
+const TAIL_GAP_TOLERANCE_MS = 500;
 
 // A viewport left unchanged for this long warms the cache for the
 // immediately adjacent (same-width) windows, so a subsequent pan in either
@@ -547,9 +551,12 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
   // than the client clock - a client/relay clock skew against the client's
   // Date.now() could otherwise request a window where from > to and freeze
   // the tail.
-  const runTailGapFill = useCallback(() => {
+  // minTo widens the fetch past a known point beyond `to`'s usual +2 ticks
+  // of margin - a multi-tick gap needs the fetch to reach at least as far as
+  // the frame that revealed it, not just one tick past the last known point.
+  const runTailGapFill = useCallback((minTo?: number) => {
     const base = lastLoadedTRef.current ?? nowRef.current;
-    const to = base + LIVE_TAIL_POLL_MS * 2;
+    const to = Math.max(base, minTo ?? base) + LIVE_TAIL_POLL_MS * 2;
     const from = (lastLoadedTRef.current ?? base - LIVE_TAIL_BOOTSTRAP_MS) + 1;
     const seq = ++tailSeqRef.current;
     void (async () => {
@@ -604,11 +611,12 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
       if (lastPhaseRef.current !== 'drag') setSeries(prev => mergeTail(prev, relevant));
     }
     bumpNow(relevant);
+    // A gap after a drop: this frame's newest point lands more than a tick
+    // (plus jitter tolerance) past the last one we had. Reads lastLoadedTRef
+    // before advancing it below - runTailGapFill anchors its fetch on that
+    // ref, so backfilling into the actual hole needs it still at prevT.
+    if (prevT !== null && t > prevT + LIVE_TAIL_POLL_MS + TAIL_GAP_TOLERANCE_MS) runTailGapFill(t);
     if (t > (prevT ?? -Infinity)) lastLoadedTRef.current = t;
-    // A gap after a drop: this frame's newest point isn't the very next
-    // tick after the last one we had, so a fetch backfills the hole instead
-    // of leaving it.
-    if (prevT !== null && t !== prevT + LIVE_TAIL_POLL_MS) runTailGapFill();
   });
 
   const setRange = useCallback((key: PresetKey) => {
