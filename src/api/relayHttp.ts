@@ -8,9 +8,12 @@
 // Channel: ONE lazily-opened relay WS (client role) keyed off the stored
 // session token - rid_http = deriveHttpRid(relayRoot), fresh connSalt + aeadKey
 // per connection. Reuses the exact relay wire protocol (client hello → peer-up
-// → BINARY frames) + seal/open crypto as RelayChannel; the only difference is
-// the payload framing: id-multiplexed request/response instead of the `{t,d}`
-// stream.
+// → hello2/hn rekey → BINARY frames) + seal/open crypto as RelayChannel; the
+// only difference is the payload framing: id-multiplexed request/response
+// instead of the `{t,d}` stream. `request()` awaits the internal `ready` gate,
+// which only resolves once the rekey handshake settles (K1, or K0 fallback for
+// a legacy host), so no real request is ever sealed under a key the handshake
+// might still replace.
 //
 // Tunnel protocol (sealed frames over rid_http; dir client→PC = 2, PC→client = 1):
 //   request:  {"id":N,"method":"GET|POST|PUT|DELETE|PATCH","path":"/panel/…",
@@ -24,11 +27,16 @@
 import {
   DIR_CLIENT_TO_HOST,
   DIR_HOST_TO_CLIENT,
+  REKEY_HELLO2,
+  REKEY_TIMEOUT_MS,
+  base64UrlDecode,
   base64UrlNoPad,
   deriveAeadKey,
   deriveHttpRid,
+  deriveRekeyedAeadKey,
   deriveRelayRoot,
   open as openFrame,
+  parseHostNonce,
   seal,
 } from './relayCrypto';
 import {
@@ -63,11 +71,17 @@ const REQUEST_TIMEOUT_MS = 20000;
  */
 class RelayHttpTunnel {
   private ws: WebSocket | null = null;
+  private relayRoot: Uint8Array | null = null;
   private aeadKey: CryptoKey | null = null;
   private sendCounter = 0;
   private peerUp = false;
   private dead = false;
   private peerUpTimer: ReturnType<typeof setTimeout> | undefined;
+  // True once the post-peer-up hello2/hn rekey handshake has resolved, either
+  // by switching aeadKey to K1 or falling back to K0 for a legacy host. Gates
+  // the `ready` resolve and request-frame handling.
+  private rekeyDone = false;
+  private rekeyTimer: ReturnType<typeof setTimeout> | undefined;
   // Resolves once the relay reports peer-up (the host's rid_http link is up);
   // rejects if the open fails / times out. Awaited before sealing any request.
   private readonly ready: Promise<void>;
@@ -100,6 +114,7 @@ class RelayHttpTunnel {
     let rid: string;
     try {
       const relayRoot = await deriveRelayRoot(this.token);
+      this.relayRoot = relayRoot;
       rid = await deriveHttpRid(relayRoot);
       this.aeadKey = await deriveAeadKey(relayRoot, this.connSalt);
     } catch {
@@ -156,7 +171,7 @@ class RelayHttpTunnel {
       if (parsed.e === 'peer-up') {
         clearTimeout(this.peerUpTimer);
         this.peerUp = true;
-        this.readyResolve();
+        void this.beginRekey();
       } else {
         this.die(new Error(`relay http: control ${parsed.e ?? 'unknown'}`));
       }
@@ -164,7 +179,8 @@ class RelayHttpTunnel {
     }
 
     // After peer-up: TEXT is a relay control frame (peer-down); BINARY is an
-    // encrypted host→client sealed response.
+    // encrypted host→client frame - the rekey handshake's first reply until
+    // rekeyDone, then a sealed response.
     if (typeof e.data === 'string') {
       let parsed: { e?: string };
       try { parsed = JSON.parse(e.data) as { e?: string }; } catch { return; }
@@ -175,6 +191,12 @@ class RelayHttpTunnel {
     if (!this.aeadKey) return;
     const frame = e.data instanceof ArrayBuffer ? new Uint8Array(e.data) : null;
     if (!frame) return;
+
+    if (!this.rekeyDone) {
+      await this.handleRekeyFrame(frame);
+      return;
+    }
+
     let opened;
     try {
       opened = await openFrame(this.aeadKey, frame);
@@ -185,10 +207,89 @@ class RelayHttpTunnel {
       return;
     }
     if (opened.dir !== DIR_HOST_TO_CLIENT) { this.die(new Error('relay http: wrong direction')); return; }
+    if (parseHostNonce(opened.plaintext) !== null) {
+      // An hn frame after the handshake already settled means the host and
+      // client disagree on the key (e.g. the host switched to K1 only after
+      // our fallback timer had already committed us to K0) - unrecoverable;
+      // die() so relayFetch drops this tunnel and opens a fresh one.
+      this.die(new Error('relay http: hn after handshake settled (key desync)'));
+      return;
+    }
 
     let resp: HttpTunnelResponseWire;
     try { resp = JSON.parse(opened.plaintext) as HttpTunnelResponseWire; } catch { return; }
     this.tracker.resolve(resp);
+  }
+
+  /** Seal {"c":"hello2"} under K0 as the first request frame and arm the fallback timeout. */
+  private async beginRekey(): Promise<void> {
+    if (!this.aeadKey || !this.ws) { this.die(new Error('relay http: no key/socket for rekey')); return; }
+    let helloFrame: Uint8Array;
+    try {
+      // Consumes sendCounter's 0 so a legacy K0 fallback's first real request
+      // (which does NOT reset the counter) never reuses it under the same key.
+      helloFrame = await seal(this.aeadKey, DIR_CLIENT_TO_HOST, this.sendCounter++, REKEY_HELLO2);
+    } catch {
+      this.die(new Error('relay http: hello2 seal failed'));
+      return;
+    }
+    if (this.dead || !this.ws) return;
+    try {
+      const out = new ArrayBuffer(helloFrame.byteLength);
+      new Uint8Array(out).set(helloFrame);
+      this.ws.send(out);
+    } catch {
+      this.die(new Error('relay http: hello2 send failed'));
+      return;
+    }
+    this.rekeyTimer = setTimeout(() => {
+      // No host frame at all within the window ⇒ legacy host; fall back to K0.
+      if (!this.rekeyDone) this.finishRekey();
+    }, REKEY_TIMEOUT_MS);
+  }
+
+  /** The first BINARY frame after hello2: either the v2 host's hn reply, or a legacy host's first real response. */
+  private async handleRekeyFrame(frame: Uint8Array): Promise<void> {
+    clearTimeout(this.rekeyTimer);
+    if (!this.aeadKey) { this.die(new Error('relay http: no key')); return; }
+    let opened;
+    try {
+      opened = await openFrame(this.aeadKey, frame);
+    } catch {
+      // Tag-verify failure is a channel error, not a legacy-fallback signal.
+      this.die(new Error('relay http: tag verify failed'));
+      return;
+    }
+    if (opened.dir !== DIR_HOST_TO_CLIENT) { this.die(new Error('relay http: wrong direction')); return; }
+
+    const hn = parseHostNonce(opened.plaintext);
+    if (hn && this.relayRoot) {
+      let k1: CryptoKey;
+      try {
+        k1 = await deriveRekeyedAeadKey(this.relayRoot, this.connSalt, base64UrlDecode(hn));
+      } catch {
+        this.die(new Error('relay http: rekey derive failed'));
+        return;
+      }
+      this.aeadKey = k1;
+      this.sendCounter = 0;
+      this.finishRekey();
+      return;
+    }
+
+    // Legacy host: this frame is a real response (e.g. its 403/id:0 answer to
+    // hello2); route it through the normal id match, a no-op on an unknown id.
+    let wire: HttpTunnelResponseWire | null = null;
+    try { wire = JSON.parse(opened.plaintext) as HttpTunnelResponseWire; } catch { /* not JSON: nothing to match */ }
+    if (wire) this.tracker.resolve(wire);
+    this.finishRekey();
+  }
+
+  private finishRekey(): void {
+    if (this.rekeyDone || this.dead) return;
+    clearTimeout(this.rekeyTimer);
+    this.rekeyDone = true;
+    this.readyResolve();
   }
 
   /** Seal an HTTP request frame and await the sealed response matched by id. */
@@ -230,7 +331,8 @@ class RelayHttpTunnel {
     if (this.dead) return;
     this.dead = true;
     clearTimeout(this.peerUpTimer);
-    // Reject the ready gate (a no-op if it already resolved at peer-up).
+    clearTimeout(this.rekeyTimer);
+    // Reject the ready gate (a no-op if it already resolved post-rekey).
     this.readyReject(err);
     this.tracker.rejectAll(err);
     if (this.ws) {

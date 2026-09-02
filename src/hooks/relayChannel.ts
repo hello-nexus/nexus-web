@@ -12,9 +12,14 @@
 // Connection handshake (relay wire protocol):
 //   1. open WSS to the relay URL;
 //   2. send the client hello TEXT {v:1, role:"client", rid, salt:<b64url 16B>};
-//   3. wait for the relay's TEXT {"e":"peer-up"} - only THEN is onopen fired
-//      (the LAN socket's onopen analogue: the host is present and ready);
-//   4. after peer-up, BINARY frames carry the encrypted multiplex stream.
+//   3. wait for the relay's TEXT {"e":"peer-up"};
+//   4. seal {"c":"hello2"} under K0 as the first BINARY frame, then wait up to
+//      REKEY_TIMEOUT_MS for the host's reply: an {"c":"hn",...} frame rekeys
+//      to K1 (defeats a same-connSalt replay across connections); anything
+//      else, or no reply, falls back to K0 (a legacy host) - either way onopen
+//      fires only once this resolves (the LAN socket's onopen analogue: the
+//      host is present, ready, and the channel key is settled);
+//   5. after that, BINARY frames carry the encrypted multiplex stream.
 // A peer-down / close / handshake timeout fires onclose, returning the hook to
 // its normal backoff. The relay itself never sees the AEAD key - it only sees
 // rid + connSalt, both public.
@@ -22,12 +27,17 @@
 import {
   DIR_CLIENT_TO_HOST,
   DIR_HOST_TO_CLIENT,
+  REKEY_HELLO2,
+  REKEY_TIMEOUT_MS,
+  base64UrlDecode,
   base64UrlNoPad,
   deriveAeadKey,
+  deriveRekeyedAeadKey,
   derivePairRoot,
   deriveRelayRoot,
   deriveRid,
   open as openFrame,
+  parseHostNonce,
   seal,
 } from '../api/relayCrypto';
 
@@ -60,6 +70,7 @@ export class RelayChannel {
   private readonly url: string;
   private readonly token: string;
   private ws: WebSocket | null = null;
+  private relayRoot: Uint8Array | null = null;
   private aeadKey: CryptoKey | null = null;
   private sendCounter = 0;
   private peerUp = false;
@@ -67,6 +78,18 @@ export class RelayChannel {
   // connSalt is fresh per connection ⇒ a fresh aeadKey ⇒ the (dir,counter)
   // nonce space never repeats across connections.
   private readonly connSalt: Uint8Array;
+  // True once the post-peer-up hello2/hn rekey handshake has resolved, either
+  // by switching aeadKey to K1 or falling back to K0 for a legacy host. Gates
+  // onopen and multiplex frame handling.
+  private rekeyDone = false;
+  private rekeyTimer: ReturnType<typeof setTimeout> | undefined;
+  // Chains each handleMessage call onto the previous one's completion so the
+  // (async) AEAD decrypts settle in delivery order - the relay WS delivers
+  // frames in order, but nothing otherwise guarantees two concurrently-kicked-
+  // off decrypts RESOLVE in that order, which would let a second BINARY frame
+  // arriving before the first settles slip into handleRekeyFrame while
+  // rekeyDone is still false and have its plaintext silently discarded.
+  private inbox: Promise<void> = Promise.resolve();
 
   constructor(url: string, token: string) {
     this.url = url;
@@ -79,6 +102,7 @@ export class RelayChannel {
     let rid: string;
     try {
       const relayRoot = await deriveRelayRoot(this.token);
+      this.relayRoot = relayRoot;
       rid = await deriveRid(relayRoot);
       this.aeadKey = await deriveAeadKey(relayRoot, this.connSalt);
     } catch {
@@ -116,7 +140,9 @@ export class RelayChannel {
       }, RELAY_PEER_UP_TIMEOUT_MS);
     };
 
-    socket.onmessage = (e) => { void this.handleMessage(e); };
+    socket.onmessage = (e) => {
+      this.inbox = this.inbox.then(() => this.handleMessage(e)).catch(() => this.close());
+    };
 
     socket.onclose = (e) => {
       clearTimeout(this.peerUpTimer);
@@ -147,8 +173,7 @@ export class RelayChannel {
       if (parsed.e === 'peer-up') {
         clearTimeout(this.peerUpTimer);
         this.peerUp = true;
-        this.readyState = RelayChannel.OPEN;
-        this.onopen?.(new Event('open'));
+        void this.beginRekey();
       } else {
         // no-host, peer-down before peer-up, or an unknown control frame.
         this.close();
@@ -157,7 +182,8 @@ export class RelayChannel {
     }
 
     // After peer-up: TEXT is a relay control frame (peer-down); BINARY is an
-    // encrypted host→client multiplex frame.
+    // encrypted host→client frame - the rekey handshake's first reply until
+    // rekeyDone, then the multiplex stream.
     if (typeof e.data === 'string') {
       let parsed: { e?: string };
       try { parsed = JSON.parse(e.data) as { e?: string }; } catch { return; }
@@ -168,10 +194,25 @@ export class RelayChannel {
     if (!this.aeadKey) return;
     const frame = e.data instanceof ArrayBuffer ? new Uint8Array(e.data) : null;
     if (!frame) return;
+
+    if (!this.rekeyDone) {
+      await this.handleRekeyFrame(frame);
+      return;
+    }
+
     try {
       const opened = await openFrame(this.aeadKey, frame);
       // Only accept host→client frames; reject our own direction reflected back.
       if (opened.dir !== DIR_HOST_TO_CLIENT) { this.close(); return; }
+      if (parseHostNonce(opened.plaintext) !== null) {
+        // An hn frame after the handshake already settled means the host and
+        // client disagree on the key (e.g. the host switched to K1 only after
+        // our fallback timer had already committed us to K0) - unrecoverable;
+        // close so the caller rebuilds a fresh connection instead of every
+        // later send silently failing against a host that dropped to K1.
+        this.close();
+        return;
+      }
       this.onmessage?.(new MessageEvent('message', { data: opened.plaintext }));
     } catch {
       // Tag-verify failure ⇒ forged/tampered frame ⇒ drop it and close the
@@ -180,9 +221,81 @@ export class RelayChannel {
     }
   }
 
+  /** Seal {"c":"hello2"} under K0 as the first frame and arm the fallback timeout. */
+  private async beginRekey(): Promise<void> {
+    if (!this.aeadKey || !this.ws) { this.close(); return; }
+    let helloFrame: Uint8Array;
+    try {
+      // Consumes sendCounter's 0 so a legacy K0 fallback's first real send
+      // (which does NOT reset the counter) never reuses it under the same key.
+      helloFrame = await seal(this.aeadKey, DIR_CLIENT_TO_HOST, this.sendCounter++, REKEY_HELLO2);
+    } catch {
+      this.close();
+      return;
+    }
+    if (this.readyState === RelayChannel.CLOSED || !this.ws) return;
+    try {
+      const out = new ArrayBuffer(helloFrame.byteLength);
+      new Uint8Array(out).set(helloFrame);
+      this.ws.send(out);
+    } catch {
+      this.close();
+      return;
+    }
+    this.rekeyTimer = setTimeout(() => {
+      // No host frame at all within the window ⇒ legacy host; fall back to K0.
+      if (!this.rekeyDone) this.finishRekey(null);
+    }, REKEY_TIMEOUT_MS);
+  }
+
+  /** The first BINARY frame after hello2: either the v2 host's hn reply, or a legacy host's first real frame. */
+  private async handleRekeyFrame(frame: Uint8Array): Promise<void> {
+    clearTimeout(this.rekeyTimer);
+    if (!this.aeadKey) { this.close(); return; }
+    let opened;
+    try {
+      opened = await openFrame(this.aeadKey, frame);
+    } catch {
+      // Tag-verify failure is a channel error, not a legacy-fallback signal.
+      this.close();
+      return;
+    }
+    if (opened.dir !== DIR_HOST_TO_CLIENT) { this.close(); return; }
+
+    const hn = parseHostNonce(opened.plaintext);
+    if (hn && this.relayRoot) {
+      let k1: CryptoKey;
+      try {
+        k1 = await deriveRekeyedAeadKey(this.relayRoot, this.connSalt, base64UrlDecode(hn));
+      } catch {
+        this.close();
+        return;
+      }
+      this.aeadKey = k1;
+      this.sendCounter = 0;
+      this.finishRekey(null);
+      return;
+    }
+
+    // Legacy host: this frame is real multiplex data under K0, not an hn reply.
+    this.finishRekey(opened.plaintext);
+  }
+
+  /** Resolve the rekey handshake: go OPEN, optionally deliver a legacy-fallback frame's plaintext first. */
+  private finishRekey(pendingPlaintext: string | null): void {
+    if (this.rekeyDone || this.readyState === RelayChannel.CLOSED) return;
+    clearTimeout(this.rekeyTimer);
+    this.rekeyDone = true;
+    this.readyState = RelayChannel.OPEN;
+    this.onopen?.(new Event('open'));
+    if (pendingPlaintext !== null) {
+      this.onmessage?.(new MessageEvent('message', { data: pendingPlaintext }));
+    }
+  }
+
   /** Seal a multiplex TEXT frame and send it as BINARY to the relay. */
   send(text: string): void {
-    if (!this.peerUp || !this.aeadKey || !this.ws) return;
+    if (this.readyState !== RelayChannel.OPEN || !this.aeadKey || !this.ws) return;
     const counter = this.sendCounter++;
     void seal(this.aeadKey, DIR_CLIENT_TO_HOST, counter, text)
       .then((frame) => {
@@ -200,6 +313,7 @@ export class RelayChannel {
 
   close(): void {
     clearTimeout(this.peerUpTimer);
+    clearTimeout(this.rekeyTimer);
     const wasClosed = this.readyState === RelayChannel.CLOSED;
     this.readyState = RelayChannel.CLOSED;
     if (this.ws) {
