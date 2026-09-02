@@ -2360,6 +2360,7 @@
   "monitoring.history.process.frozenNotice": "Vengono mostrati solo valori in tempo reale - la cronologia per questa finestra non è ancora disponibile.",
   "monitoring.history.process.group.apps": "App",
   "monitoring.history.process.group.background": "Processi in background",
+  "monitoring.history.process.noMatches": "Nessun processo corrisponde a \"{query}\"",
   "monitoring.history.process.openDetails": "Apri i dettagli per {name}",
   "monitoring.history.process.searchPlaceholder": "Cerca…",
   "monitoring.history.process.snapshotAt": "Snapshot alle {time}",

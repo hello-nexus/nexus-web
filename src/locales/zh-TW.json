@@ -2360,6 +2360,7 @@
   "monitoring.history.process.frozenNotice": "僅顯示即時數值 - 此時間範圍的歷史資料尚無法使用。",
   "monitoring.history.process.group.apps": "應用程式",
   "monitoring.history.process.group.background": "背景處理程序",
+  "monitoring.history.process.noMatches": "沒有符合「{query}」的處理程序",
   "monitoring.history.process.openDetails": "開啟 {name} 的詳細資料",
   "monitoring.history.process.searchPlaceholder": "搜尋…",
   "monitoring.history.process.snapshotAt": "{time}的快照",

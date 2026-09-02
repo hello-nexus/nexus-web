@@ -2360,6 +2360,7 @@
   "monitoring.history.process.frozenNotice": "Showing live values - history for this window isn't available yet.",
   "monitoring.history.process.group.apps": "Apps",
   "monitoring.history.process.group.background": "Background processes",
+  "monitoring.history.process.noMatches": "No processes match \"{query}\"",
   "monitoring.history.process.openDetails": "Open details for {name}",
   "monitoring.history.process.searchPlaceholder": "Search…",
   "monitoring.history.process.snapshotAt": "Snapshot at {time}",

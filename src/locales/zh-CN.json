@@ -2360,6 +2360,7 @@
   "monitoring.history.process.frozenNotice": "仅显示实时数值 - 该时间段的历史数据暂不可用。",
   "monitoring.history.process.group.apps": "应用",
   "monitoring.history.process.group.background": "后台进程",
+  "monitoring.history.process.noMatches": "没有匹配“{query}”的进程",
   "monitoring.history.process.openDetails": "打开 {name} 的详情",
   "monitoring.history.process.searchPlaceholder": "搜索…",
   "monitoring.history.process.snapshotAt": "{time}的快照",

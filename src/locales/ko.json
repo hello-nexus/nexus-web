@@ -2360,6 +2360,7 @@
   "monitoring.history.process.frozenNotice": "실시간 값만 표시됩니다 - 이 기간의 기록은 아직 제공되지 않습니다.",
   "monitoring.history.process.group.apps": "앱",
   "monitoring.history.process.group.background": "백그라운드 프로세스",
+  "monitoring.history.process.noMatches": "\"{query}\"와(과) 일치하는 프로세스 없음",
   "monitoring.history.process.openDetails": "{name}의 상세 정보 열기",
   "monitoring.history.process.searchPlaceholder": "검색…",
   "monitoring.history.process.snapshotAt": "{time} 스냅샷",
