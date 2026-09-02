@@ -6,6 +6,7 @@ import styles from './DeckGrid.module.scss';
 
 vi.mock('../common/AppPicker', () => ({ useAppIcon: () => null }));
 vi.mock('./useDeckImage', () => ({ useDeckImage: (id?: string) => (id ? 'blob:mock-image' : null) }));
+vi.mock('./useSiteIcon', () => ({ useSiteIcon: (url?: string) => (url === 'https://has-icon.example' ? 'blob:mock-site-icon' : null) }));
 
 describe('DeckGrid backCell (physical folder views)', () => {
   it('renders every slot with no leading cell when backCell is absent (touch widget path, unchanged)', () => {
@@ -336,5 +337,43 @@ describe('DeckGrid transparent background', () => {
     );
     const cell = container.querySelector('[data-deck-slot-index="0"]') as HTMLElement;
     expect(cell.style.getPropertyValue('--deck-accent')).toBe('#000000');
+  });
+});
+
+describe('DeckGrid icon sources', () => {
+  const renderSlot = (slot: DeckSlot) =>
+    render(<DeckGrid slots={[slot]} cols={1} rows={1} selectable={false} onCell={() => {}} />).container;
+
+  it('shows the site icon on a url key instead of the stock globe', () => {
+    const container = renderSlot({ action: { type: 'openUrl', url: 'https://has-icon.example' } });
+    expect(container.querySelector('img[src="blob:mock-site-icon"]')).not.toBeNull();
+    expect(container.querySelector('svg.lucide-globe')).toBeNull();
+  });
+
+  it('falls back to the globe when the site has no icon', () => {
+    const container = renderSlot({ action: { type: 'openUrl', url: 'https://no-icon.example' } });
+    expect(container.querySelector('img[src="blob:mock-site-icon"]')).toBeNull();
+    expect(container.querySelector('svg.lucide-globe')).not.toBeNull();
+  });
+
+  it('keeps an explicitly picked icon over the site icon', () => {
+    const container = renderSlot({
+      action: { type: 'openUrl', url: 'https://has-icon.example' },
+      icon: { kind: 'lucide', value: 'Star' },
+    });
+    expect(container.querySelector('img[src="blob:mock-site-icon"]')).toBeNull();
+    expect(container.querySelector('svg.lucide-star')).not.toBeNull();
+  });
+
+  it('keeps the app placeholder on an icon-only app slot with no action', () => {
+    const container = renderSlot({ icon: { kind: 'app', value: 'Discord' } });
+    expect(container.querySelector('svg.lucide-app-window')).not.toBeNull();
+    expect(container.querySelector('svg.lucide-plus')).toBeNull();
+  });
+
+  it('falls back to the action icon, not AppWindow, when an exe key has no extractable icon', () => {
+    const container = renderSlot({ action: { type: 'openFile', path: 'C:\\Games\\Hades\\Hades.exe' } });
+    expect(container.querySelector('svg.lucide-file-text')).not.toBeNull();
+    expect(container.querySelector('svg.lucide-app-window')).toBeNull();
   });
 });

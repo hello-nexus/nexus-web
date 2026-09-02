@@ -4,8 +4,9 @@ import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { useTranslation } from '../../../lib/i18n';
 import { DeviceContextMenu, type DeviceMenuItem } from '../../../components/common/DeviceCanvas/DeviceContextMenu';
 import { useAppIcon } from '../common/AppPicker';
+import { useSiteIcon } from './useSiteIcon';
 import { useDeckImage } from './useDeckImage';
-import { DECK_ICONS, autoIconName, deckCategory, categoryColor } from './deckIcons';
+import { DECK_ICONS, autoIconName, deckCategory, categoryColor, slotAppId, slotSiteUrl } from './deckIcons';
 import { resolveDeckTitleStyle, titleFontSizeCss } from './deckTitleStyle';
 import { DeckMonitoringCell } from './DeckMonitoringCell';
 import { DeckWeatherCell } from './DeckWeatherCell';
@@ -37,8 +38,9 @@ function useCellVisual(slot: DeckSlot, liveSrc?: string): { accent: string; cont
   const action = slot.action;
   const isFolder = !!slot.folder;
   const icon = slot.icon;
-  const appId = action?.type === 'launchApp' ? action.appId : icon?.kind === 'app' ? icon.value : undefined;
+  const appId = slotAppId(icon, action);
   const appIconUrl = useAppIcon(appId); // unconditional (null for undefined appId)
+  const siteIconUrl = useSiteIcon(slotSiteUrl(action)); // unconditional (null for a non-url action)
   const imageIconUrl = useDeckImage(icon?.kind === 'image' ? icon.value : undefined); // unconditional
   // A slot with an explicit icon isn't "empty" even before an action is chosen,
   // so a picked icon renders immediately (not only after picking an action).
@@ -83,7 +85,11 @@ function useCellVisual(slot: DeckSlot, liveSrc?: string): { accent: string; cont
   } else if (appId) {
     iconEl = appIconUrl
       ? <img src={appIconUrl} className={styles.appIcon} alt="" />
-      : <span className={styles.icon}>{renderLucide('AppWindow')}</span>;
+      // An icon-only app slot has no action to derive a glyph from, so it keeps
+      // the app placeholder rather than autoIconName's add-a-key Plus.
+      : <span className={styles.icon}>{renderLucide(action ? autoIconName(action, isFolder) : 'AppWindow')}</span>;
+  } else if (siteIconUrl) {
+    iconEl = <img src={siteIconUrl} className={styles.appIcon} alt="" />;
   } else if (!empty) {
     iconEl = <span className={styles.icon}>{renderLucide(autoIconName(action, isFolder))}</span>;
   } else {
