@@ -75,13 +75,27 @@
   gap: 0.75rem;
 }
 
-// Card's own header gap; .rowActions matches it so the button lines up under
-// the copy rather than under the icon.
+// $card-gap mirrors .headerMain's gap in Card.module.scss; .rowActions insets
+// by it plus the icon so the button lines up under the copy, not the icon.
 $row-icon: 3.5rem;
 $card-gap: 0.6rem;
 
-.row {
-  align-content: start;
+// The card opens the app page on click, but a bare div carries no keyboard
+// route; the title is the focusable control that does.
+.rowTitle {
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover { color: var(--accent); }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
 }
 
 // Card subtitles are monospaced by default (they usually carry an id); an
@@ -95,6 +109,12 @@ $card-gap: 0.6rem;
   align-items: center;
   gap: 0.5rem;
   padding-left: calc(#{$row-icon} + #{$card-gap});
+
+  // A disabled button swallows the click without bubbling, which would make
+  // an installed app's whole pill a dead spot on an otherwise clickable card.
+  button:disabled {
+    pointer-events: none;
+  }
 }
 
 // The icon sits in a fixed box: app icons arrive as SVGs of any aspect and

@@ -45,12 +45,7 @@ function iconFor(app: { id: string; iconUrl: string | null }, installed?: Instal
   return app.iconUrl ?? installed?.iconUrl ?? null;
 }
 
-/**
- * The app's own short line, never the publisher. An app that set no tagline
- * falls back to the first sentence of its description; the full text is what
- * the description under the screenshots is for. Never abbreviated here - a
- * card clips its own line in CSS, the app page shows it whole.
- */
+/** The app's own short line: its tagline, else the first sentence of its description. Never abbreviated - a card clips its own line in CSS. */
 function shortDescription(app: { tagline?: string; description?: string }): string {
   const raw = (app.tagline || app.description || '').trim();
   if (!raw) return '';
@@ -96,7 +91,6 @@ function InstallButton({ app, installedVersion, onNeedsSignIn }: {
     <Button
       type="button"
       tone={upToDate ? 'neutral' : state === 'failed' ? 'danger' : 'accent'}
-      loading={state === 'working'}
       disabled={state === 'working' || upToDate}
       // The row's whole card opens the app page; getting the app must not.
       onClick={e => { e.stopPropagation(); void install(); }}
@@ -130,9 +124,12 @@ function AppRow({ app, installed, onOpen, onNeedsSignIn }: {
       interactive
       disableInteractiveRole
       onClick={onOpen}
-      className={styles.row}
       icon={<AppIcon app={app} installed={installed} />}
-      title={app.name}
+      title={(
+        <button type="button" className={styles.rowTitle} onClick={e => { e.stopPropagation(); onOpen(); }}>
+          {app.name}
+        </button>
+      )}
       subtitle={<span className={styles.rowSubtitle}>{shortDescription(app)}</span>}
       truncateSubtitle
     >
@@ -160,7 +157,7 @@ interface Highlight { key: string; icon: ReactNode; label: string; value: string
 
 const HIGHLIGHT_ICON = 30;
 
-/** Sizes and the Nexus floor are omitted when the app declares neither, rather than rendered empty. */
+/** The sizes and Nexus-floor cells are each dropped when the app declares nothing for them. */
 function useHighlights(latest: StoreVersion): Highlight[] {
   const { t } = useTranslation();
   const out: Highlight[] = [
@@ -177,7 +174,7 @@ function useHighlights(latest: StoreVersion): Highlight[] {
       icon: <Ruler size={HIGHLIGHT_ICON} aria-hidden={true} />,
       label: t('store.spec.widgetSizes'),
       // Deduped: sizes is wire data and a repeat renders twice.
-      value: [...new Set(latest.sizes)].join('  ·  '),
+      value: [...new Set(latest.sizes)].join(' · '),
     });
   }
   out.push(
@@ -264,7 +261,7 @@ function AppDetail({ appId, onBack, installed, onNeedsSignIn }: {
         <AppIcon app={app} installed={installed} size="hero" />
         <div className={styles.heroMain}>
           <h1 className={styles.heroTitle}>{app.name}</h1>
-          <p className={styles.heroSubtitle}>{shortDescription(app)}</p>
+          {app.tagline.trim() && <p className={styles.heroSubtitle}>{app.tagline.trim()}</p>}
           <div className={styles.heroActions}>
             <InstallButton app={app} installedVersion={installed?.version} onNeedsSignIn={onNeedsSignIn} />
           </div>

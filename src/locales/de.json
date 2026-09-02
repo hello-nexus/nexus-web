@@ -3840,7 +3840,7 @@
   "store.removeUnused": "Diese App wird nirgends verwendet.",
   "store.removeUsed": "Diese App wird an diesen Orten verwendet. Beim Entfernen wird sie auch dort gelöscht.",
   "store.retry": "Wiederholen",
-  "store.screenshotAlt": "{name} Screenshot {index}",
+  "store.screenshotAlt": "Screenshot {index} von {name}",
   "store.section.apps": "Apps",
   "store.signIn.body": "Apps sind an ein kostenloses Nexus-Konto gebunden. Melde dich an oder erstelle eines, um fortzufahren.",
   "store.signIn.title": "Zum Laden von Apps anmelden",

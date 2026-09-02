@@ -105,6 +105,16 @@ describe('StorePage row card', () => {
     expect(screen.queryByText('store.banner.title')).not.toBeInTheDocument();
   });
 
+  it('leaves a keyboard route to the app page: the title is a real control', async () => {
+    render(<StorePage />);
+
+    // The card's own onClick is mouse-only (disableInteractiveRole), so the
+    // title has to carry the keyboard path.
+    fireEvent.click(await screen.findByRole('button', { name: 'Aquarium' }));
+
+    expect(await screen.findByText('store.spec.widget')).toBeInTheDocument();
+  });
+
   it('keeps Install from opening the page it sits on', async () => {
     installStoreApp.mockResolvedValue({ appId: app.id, version: '1.0.2', ok: true });
     render(<StorePage />);
@@ -166,6 +176,14 @@ describe('StorePage app page layout', () => {
 
     expect(await screen.findByText('store.value.noFeature')).toBeInTheDocument();
     expect(screen.queryByText('store.spec.widgetSizes')).not.toBeInTheDocument();
+  });
+
+  it('shows no subtitle for an app with no tagline, rather than repeating its description', async () => {
+    render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
+
+    await screen.findByText('store.spec.widget');
+    // The description block carries this sentence; the hero must not also.
+    expect(screen.getAllByText(/A pixel-art fish you can feed/)).toHaveLength(1);
   });
 
   it('names each screenshot and puts the full description below them, with no section headings', async () => {

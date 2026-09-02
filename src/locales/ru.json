@@ -3867,7 +3867,7 @@
   "store.removeUnused": "Это приложение нигде не используется.",
   "store.removeUsed": "Это приложение используется здесь. Удаление уберёт его и оттуда.",
   "store.retry": "Повторить",
-  "store.screenshotAlt": "Скриншот {index} — {name}",
+  "store.screenshotAlt": "Скриншот {index} приложения {name}",
   "store.section.apps": "Приложения",
   "store.signIn.body": "Приложения привязаны к бесплатному аккаунту Nexus. Войдите или создайте аккаунт, чтобы продолжить.",
   "store.signIn.title": "Войдите, чтобы загружать приложения",
