@@ -2360,6 +2360,7 @@
   "monitoring.history.process.frozenNotice": "Mostrando apenas valores ao vivo - o histórico desta janela ainda não está disponível.",
   "monitoring.history.process.group.apps": "Aplicativos",
   "monitoring.history.process.group.background": "Processos em segundo plano",
+  "monitoring.history.process.noMatches": "Nenhum processo corresponde a \"{query}\"",
   "monitoring.history.process.openDetails": "Abrir detalhes de {name}",
   "monitoring.history.process.searchPlaceholder": "Pesquisar…",
   "monitoring.history.process.snapshotAt": "Snapshot às {time}",

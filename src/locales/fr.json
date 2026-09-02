@@ -2360,6 +2360,7 @@
   "monitoring.history.process.frozenNotice": "Valeurs en direct uniquement - l'historique de cette période n'est pas encore disponible.",
   "monitoring.history.process.group.apps": "Applications",
   "monitoring.history.process.group.background": "Processus en arrière-plan",
+  "monitoring.history.process.noMatches": "Aucun processus ne correspond à «{query}»",
   "monitoring.history.process.openDetails": "Ouvrir les détails pour {name}",
   "monitoring.history.process.searchPlaceholder": "Rechercher…",
   "monitoring.history.process.snapshotAt": "Instantané à {time}",

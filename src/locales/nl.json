@@ -2360,6 +2360,7 @@
   "monitoring.history.process.frozenNotice": "Live waarden worden getoond - geschiedenis voor dit venster is nog niet beschikbaar.",
   "monitoring.history.process.group.apps": "Apps",
   "monitoring.history.process.group.background": "Achtergrondprocessen",
+  "monitoring.history.process.noMatches": "Geen processen komen overeen met \"{query}\"",
   "monitoring.history.process.openDetails": "Details openen voor {name}",
   "monitoring.history.process.searchPlaceholder": "Zoeken…",
   "monitoring.history.process.snapshotAt": "Momentopname om {time}",

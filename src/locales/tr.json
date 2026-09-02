@@ -2360,6 +2360,7 @@
   "monitoring.history.process.frozenNotice": "Yalnızca anlık değerler gösteriliyor - bu pencereye ait geçmiş henüz kullanılamıyor.",
   "monitoring.history.process.group.apps": "Uygulamalar",
   "monitoring.history.process.group.background": "Arka plan işlemleri",
+  "monitoring.history.process.noMatches": "\"{query}\" ile eşleşen işlem yok",
   "monitoring.history.process.openDetails": "{name} için ayrıntıları aç",
   "monitoring.history.process.searchPlaceholder": "Ara…",
   "monitoring.history.process.snapshotAt": "{time} anlık görüntüsü",

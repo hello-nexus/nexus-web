@@ -805,6 +805,14 @@ describe('resolveSelectedFrame (point-in-time snapshot)', () => {
 });
 
 describe('findFpsSessionAt / maskFpsPointsToSessions / buildFpsOverlaySeries', () => {
+  it('treats a session flagged in progress as open-ended past its reported end', () => {
+    const live = { id: 'live', gameKey: 'g', name: 'G', store: 'steam', startedUtcMs: 1000, endedUtcMs: 5000, avgFps: 60, inProgress: true };
+    const done = { ...live, id: 'done', startedUtcMs: 100, endedUtcMs: 500, inProgress: false };
+    expect(findFpsSessionAt([live, done], 9000)?.id).toBe('live');
+    expect(findFpsSessionAt([done], 900)).toBeNull();
+    expect(maskFpsPointsToSessions([{ t: 400, avg: 1, max: 1 }, { t: 700, avg: 1, max: 1 }, { t: 9000, avg: 1, max: 1 }], [live, done]).map(p => p.t)).toEqual([400, 9000]);
+  });
+
   function fpsSession(over: Partial<FpsRangeSession> = {}): FpsRangeSession {
     return { id: 's1', gameKey: 'steam:730', name: 'Counter-Strike 2', store: 'steam', startedUtcMs: 1000, endedUtcMs: 2000, avgFps: 132, ...over };
   }

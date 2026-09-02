@@ -2383,6 +2383,7 @@
   "monitoring.history.process.frozenNotice": "Отображаются только текущие значения - история за этот период пока недоступна.",
   "monitoring.history.process.group.apps": "Приложения",
   "monitoring.history.process.group.background": "Фоновые процессы",
+  "monitoring.history.process.noMatches": "Нет процессов по запросу «{query}»",
   "monitoring.history.process.openDetails": "Открыть подробности о {name}",
   "monitoring.history.process.searchPlaceholder": "Поиск…",
   "monitoring.history.process.snapshotAt": "Снимок в {time}",

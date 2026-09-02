@@ -2360,6 +2360,7 @@
   "monitoring.history.process.frozenNotice": "ライブ値のみを表示しています - この期間の履歴はまだ利用できません。",
   "monitoring.history.process.group.apps": "アプリ",
   "monitoring.history.process.group.background": "バックグラウンド プロセス",
+  "monitoring.history.process.noMatches": "「{query}」に一致するプロセスはありません",
   "monitoring.history.process.openDetails": "{name} の詳細を開く",
   "monitoring.history.process.searchPlaceholder": "検索…",
   "monitoring.history.process.snapshotAt": "{time}のスナップショット",
