@@ -152,11 +152,17 @@ $card-gap: 0.6rem;
   overflow-y: auto;
 }
 
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
 .back {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  align-self: flex-start;
   background: none;
   border: none;
   padding: 0;

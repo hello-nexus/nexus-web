@@ -252,10 +252,13 @@ function AppDetail({ appId, onBack, installed, onNeedsSignIn }: {
 
   return (
     <div className={styles.detail}>
-      <button type="button" className={styles.back} onClick={onBack}>
-        <ChevronLeft size={16} aria-hidden={true} />
-        {t('store.back')}
-      </button>
+      <div className={styles.topBar}>
+        <button type="button" className={styles.back} onClick={onBack}>
+          <ChevronLeft size={16} aria-hidden={true} />
+          {t('store.back')}
+        </button>
+        {installed && <RemoveAppButton app={{ id: app.id, name: app.name }} label={t('store.delete')} iconOnly />}
+      </div>
 
       <header className={styles.hero}>
         <AppIcon app={app} installed={installed} size="hero" />
@@ -264,7 +267,6 @@ function AppDetail({ appId, onBack, installed, onNeedsSignIn }: {
           <p className={styles.heroSubtitle}>{shortDescription(app)}</p>
           <div className={styles.heroActions}>
             <InstallButton app={app} installedVersion={installed?.version} onNeedsSignIn={onNeedsSignIn} />
-            {installed && <RemoveAppButton app={{ id: app.id, name: app.name }} label={t('store.delete')} iconOnly />}
           </div>
           {installed && (
             <span className={styles.installedVersion}>
