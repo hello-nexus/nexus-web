@@ -448,6 +448,9 @@ export interface PanelPhonePairCodeRequestFrame {
   reason: PanelPhonePairCodeCancelReason | '';
 }
 
+/** Bound on the QR claim; an aborted claim surfaces as the pair-expired gate. */
+const CLAIM_TIMEOUT_MS = 8000;
+
 export async function claimPanelPhonePairing(pairToken: string, deviceId: string): Promise<PanelPhoneClaimResponse | null> {
   // resolveHttp points at http://localhost on a remote origin. The remote pair
   // flow claims over the relay (pairOverInternet) and lands on /panel/phone
@@ -458,11 +461,18 @@ export async function claimPanelPhonePairing(pairToken: string, deviceId: string
     // `deviceId` is the stable per-device id (carried from the LAN-direct
     // redirect's ?deviceId=, else this origin's own id) so the service dedups a
     // re-pair of the same device instead of minting a duplicate session.
+    // Hard timeout, same reasoning as pingService's: an https->localhost
+    // request can stall indefinitely on a browser's private-network preflight.
+    // The pair gate cannot offer Retry during the claim (its effect is not
+    // cancellable), so this bound is the only thing that ends a stalled claim.
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), CLAIM_TIMEOUT_MS);
     const res = await fetch(resolveHttp('/panel/phone/claim'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ pairToken, deviceId, deviceName: deriveDeviceLabel() }),
-    });
+      signal: controller.signal,
+    }).finally(() => clearTimeout(timer));
     if (!res.ok) {
       try { return (await res.json()) as PanelPhoneClaimResponse; }
       catch { return null; }

@@ -709,9 +709,12 @@ export async function fetchServiceBlobWithHeaders(path: string): Promise<{ blob:
  * mixed-content-blocked); the host answers it over the rid_http channel. */
 export async function pingService(): Promise<PingResponse | null> {
   if (isTunnelActive()) {
-    // Same 3s bound as the direct path below: without it an unreachable host
-    // parks the status hook in 'checking' and the panel spins with no chrome.
-    const { response } = await relayRequestWithStatus('GET', '/ping', undefined, { timeoutMs: 3000 });
+    // Bounded, but NOT at the direct path's 3s: that one is a localhost fetch,
+    // this is phone -> regional relay -> PC, where a healthy cellular link can
+    // exceed 3s and would read as "service offline". Generous enough to only
+    // catch a genuinely unreachable host, which otherwise parks the status hook
+    // in 'checking' and leaves the panel spinning.
+    const { response } = await relayRequestWithStatus('GET', '/ping', undefined, { timeoutMs: 8000 });
     if (!response || !response.ok) return null;
     return (await response.json()) as PingResponse;
   }

@@ -187,6 +187,10 @@ describe('PanelEntrypoint allocate-or-recover', () => {
 });
 
 describe('PanelEntrypoint failure gate', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('offers a Find your computer escape and calls the native bridge', async () => {
     // Native wrapper present: the gate is otherwise a dead end inside the app.
     const findComputer = vi.fn();
@@ -274,7 +278,32 @@ describe('PanelEntrypoint failure gate', () => {
     expect(screen.getByText('panel.gate.slow')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'panel.gate.findComputer' }));
     expect(findComputer).toHaveBeenCalledTimes(1);
-    vi.useRealTimers();
+    // Retry re-runs allocate, so it belongs on this state.
+    expect(screen.getByRole('button', { name: 'panel.gate.retry' })).toBeInTheDocument();
+  });
+
+  it('withholds Retry while the QR claim is in flight', async () => {
+    vi.useFakeTimers();
+    (window as { nexusNative?: { findComputer: () => void } }).nexusNative = { findComputer: vi.fn() };
+    // Claiming has no cancellable effect: a Retry here would abandon this
+    // promise and let it setState over a mounted panel.
+    claimMock.mockImplementationOnce(() => new Promise(() => {}));
+
+    render(
+      <PanelEntrypoint
+        initialDeviceId={null}
+        isPhonePair
+        pairToken="pair-token"
+        pairDeviceId={null}
+        pairSpki={null}
+      />,
+    );
+
+    await act(async () => { vi.advanceTimersByTime(4000); });
+
+    expect(screen.getByText('panel.gate.slow')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'panel.gate.retry' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'panel.gate.findComputer' })).toBeInTheDocument();
   });
 
   it('hides the Pair again escape when the 401 happens during a fresh QR claim\'s own allocate step', async () => {

@@ -215,7 +215,7 @@ export function PanelEntrypoint({ initialDeviceId, isPhonePair, pairToken, pairD
   }, []);
 
   if (state === 'claiming' || state === 'allocating') {
-    return <PanelEntrypointGate onRetry={retry} />;
+    return <PanelEntrypointGate onRetry={state === 'allocating' ? retry : undefined} />;
   }
   if (state === 'failed') {
     return (
@@ -251,7 +251,7 @@ const GATE_SLOW_MS = 4000;
  * host produced (a silent ~20s spin inside the native wrapper). The copy shows
  * immediately; the exits appear once the wait stops looking normal.
  */
-function PanelEntrypointGate({ onRetry }: { onRetry: () => void }) {
+function PanelEntrypointGate({ onRetry }: { onRetry?: () => void }) {
   const { t } = useTranslation();
   const [slow, setSlow] = useState(false);
   useEffect(() => {
@@ -268,9 +268,15 @@ function PanelEntrypointGate({ onRetry }: { onRetry: () => void }) {
         {slow && (
           <>
             <p className={styles.panelPairGateBody}>{t('panel.gate.slow')}</p>
-            <button type="button" className={styles.panelPairGateRetry} onClick={onRetry}>
-              {t('panel.gate.retry')}
-            </button>
+            {/* Retry re-runs the allocate step only. During the QR claim it
+                would abandon an in-flight claim whose effect cannot be
+                cancelled (its deps never change), and the stale promise would
+                then setState over an already-mounted panel. */}
+            {onRetry && (
+              <button type="button" className={styles.panelPairGateRetry} onClick={onRetry}>
+                {t('panel.gate.retry')}
+              </button>
+            )}
             {canFindComputer && (
               <button
                 type="button"
