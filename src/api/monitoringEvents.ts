@@ -86,7 +86,9 @@ async function requestJson<T>(path: string, opts?: RequestOpts): Promise<{ data:
   }
 }
 
-function normaliseEventDto(dto: MonitoringEventDto): MonitoringEventDto {
+/** Exported so the 'monitoring/events' push handler (useMonitoringEvents.ts)
+ *  normalises a pushed frame the same way a GET response is normalised. */
+export function normaliseEventDto(dto: MonitoringEventDto): MonitoringEventDto {
   return { ...dto, detail: dto.detail ?? null };
 }
 

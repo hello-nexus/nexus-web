@@ -1,13 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { fetchMonitoringEvents, type MonitoringEventDto, type MonitoringEventKind, type TimelineEvent } from '../api/monitoringEvents';
+import {
+  fetchMonitoringEvents, normaliseEventDto,
+  type MonitoringEventDto, type MonitoringEventKind, type TimelineEvent,
+} from '../api/monitoringEvents';
 import { fetchMonitoringPrivacy, type PrivacySession } from '../api/monitoringPrivacy';
 import { appDisplayName, iconKindForCapability, type PrivacyIconKind } from '../panel/widgets/monitoring/page/privacyHelpers';
+import { useMultiplex, useTopicCallback } from './useMultiplexSocket';
 
 // Trailing debounce for a moving `domain` (the caller re-renders this on
 // every live-follow tick) - resets on every domain change, so a continuously
 // sliding window never fetches; only a pause at least this long lets it
 // through. refetch() bypasses this and fires immediately.
 const DOMAIN_DEBOUNCE_MS = 250;
+
+// A `to` this far past the last fetched/pushed coverage still counts as
+// covered - comfortably larger than a single live-tail push tick's ~1s
+// advance (LIVE_TAIL_POLL_MS in useMetricHistory), so a domain that's only
+// sliding forward with the live tail never itself crosses this and forces a
+// fetch; the 'monitoring/events'/'monitoring/privacy' push subscriptions are
+// what keep coverage current past the last real fetch while connected.
+const DOMAIN_TO_COVERAGE_SLACK_MS = 5_000;
 
 // iconKindForCapability already collapses both graphicsCapture variants to
 // 'screen', so the four privacy event kinds are exactly its four icon kinds
@@ -49,6 +61,54 @@ export function mergeTimelineEvents(stored: readonly MonitoringEventDto[], priva
   return [...storedEvents, ...privacyEvents].sort((a, b) => a.t - b.t);
 }
 
+/** Merges one pushed stored event into `list`, ascending by t. Replaces an
+ *  existing entry with the same id in place; returns `list` itself (same
+ *  reference) when the push carries no actual change, so a duplicate/replay
+ *  frame never triggers a re-render. */
+export function upsertStoredEvent(list: readonly MonitoringEventDto[], event: MonitoringEventDto): MonitoringEventDto[] {
+  const idx = list.findIndex(e => e.id === event.id);
+  if (idx !== -1) {
+    const existing = list[idx];
+    if (existing.t === event.t && existing.kind === event.kind && existing.label === event.label
+        && existing.detail === event.detail && existing.custom === event.custom) {
+      return list as MonitoringEventDto[];
+    }
+    const next = list.slice();
+    next[idx] = event;
+    return next;
+  }
+  const insertAt = list.findIndex(e => e.t > event.t);
+  const next = list.slice();
+  if (insertAt === -1) next.push(event); else next.splice(insertAt, 0, event);
+  return next;
+}
+
+/** The wire omits `end` (rather than sending null) while a capability is
+ *  still in use - normalises a pushed session to the PrivacySession shape
+ *  GET already guarantees, so an open session compares equal across pushes. */
+export function normalisePrivacySession(session: PrivacySession): PrivacySession {
+  return { ...session, end: session.end ?? null };
+}
+
+/** Merges one pushed privacy session into `list`, identified by
+ *  (app, capability, start) - the same identity mergeTimelineEvents keys a
+ *  privacy TimelineEvent on. A start push inserts a new open session; the
+ *  matching end push replaces it in place. Returns `list` itself when the
+ *  push carries no actual change. */
+export function upsertPrivacySession(list: readonly PrivacySession[], session: PrivacySession): PrivacySession[] {
+  const idx = list.findIndex(s => s.app === session.app && s.capability === session.capability && s.start === session.start);
+  if (idx !== -1) {
+    if (list[idx].end === session.end) return list as PrivacySession[];
+    const next = list.slice();
+    next[idx] = session;
+    return next;
+  }
+  const insertAt = list.findIndex(s => s.start > session.start);
+  const next = list.slice();
+  if (insertAt === -1) next.push(session); else next.splice(insertAt, 0, session);
+  return next;
+}
+
 export interface UseMonitoringEventsResult {
   /** Ascending by t, privacy + stored merged. */
   events: TimelineEvent[];
@@ -58,7 +118,9 @@ export interface UseMonitoringEventsResult {
 
 /**
  * Fetches stored monitoring events and privacy-access sessions for `domain`
- * and merges them into one timeline. Debounced + seq-guarded like
+ * and merges them into one timeline, then keeps that coverage current via
+ * the 'monitoring/events'/'monitoring/privacy' push topics instead of
+ * refetching on every live-tail tick. Debounced + seq-guarded like
  * useMetricHistory - a stale in-flight response never overwrites a newer
  * one. A failed privacy fetch (unsupported or errored) never blocks stored
  * events from rendering; a failed stored-events fetch leaves the previously
@@ -77,6 +139,12 @@ export function useMonitoringEvents(domain: [number, number], enabled: boolean):
   // can tell "explicit refetch" apart from "domain moved" and skip the
   // debounce for the former.
   const forcedRef = useRef(false);
+  // The [from, to] window `events` is currently known-complete for. Null
+  // until the first fetch lands, forcing that one unconditionally. `to`
+  // trust-extends to the domain's own `to` on a settle that doesn't need a
+  // real fetch - see DOMAIN_TO_COVERAGE_SLACK_MS.
+  const coveredFromRef = useRef<number | null>(null);
+  const coveredToRef = useRef<number | null>(null);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -94,6 +162,8 @@ export function useMonitoringEvents(domain: [number, number], enabled: boolean):
       if (!mountedRef.current || seq !== seqRef.current) return;
       if (storedOutcome.status === 'fulfilled') storedRef.current = storedOutcome.value;
       if (privacyOutcome.status === 'fulfilled') privacyRef.current = privacyOutcome.value.data?.sessions ?? [];
+      coveredFromRef.current = from;
+      coveredToRef.current = to;
       setEvents(mergeTimelineEvents(storedRef.current, privacyRef.current));
       setLoading(false);
     })();
@@ -109,12 +179,25 @@ export function useMonitoringEvents(domain: [number, number], enabled: boolean):
       seqRef.current++;
       storedRef.current = [];
       privacyRef.current = [];
+      coveredFromRef.current = null;
+      coveredToRef.current = null;
       setEvents([]);
       setLoading(false);
       return;
     }
     const forced = forcedRef.current;
     forcedRef.current = false;
+    const needsFetch = forced
+      || coveredFromRef.current === null || coveredToRef.current === null
+      || from < coveredFromRef.current
+      || to > coveredToRef.current + DOMAIN_TO_COVERAGE_SLACK_MS;
+    if (!needsFetch) {
+      // Nothing past the last real fetch is missing - the push
+      // subscriptions below have kept storedRef/privacyRef current for
+      // anything that happened since, so trust that instead of fetching.
+      coveredToRef.current = to;
+      return;
+    }
     if (debounceRef.current !== null) window.clearTimeout(debounceRef.current);
     debounceRef.current = window.setTimeout(() => {
       debounceRef.current = null;
@@ -132,6 +215,36 @@ export function useMonitoringEvents(domain: [number, number], enabled: boolean):
     forcedRef.current = true;
     setRefetchNonce(n => n + 1);
   }, []);
+
+  // A dropped socket misses whatever pushed while it was down - resync with
+  // a real fetch rather than trust coverage the push subscriptions couldn't
+  // actually maintain during the outage. Edge-detected off `connected` (no
+  // reconnect counter on the multiplex context, matching useMetricHistory).
+  const connected = useMultiplex()?.connected ?? false;
+  const prevConnectedRef = useRef(connected);
+  useEffect(() => {
+    if (enabled && connected && !prevConnectedRef.current) refetch();
+    prevConnectedRef.current = connected;
+  }, [enabled, connected, refetch]);
+
+  useTopicCallback('monitoring/events', enabled, (raw) => {
+    const event = normaliseEventDto(raw as MonitoringEventDto);
+    const next = upsertStoredEvent(storedRef.current, event);
+    if (next === storedRef.current) return;
+    storedRef.current = next;
+    if (coveredToRef.current !== null) coveredToRef.current = Math.max(coveredToRef.current, event.t);
+    setEvents(mergeTimelineEvents(storedRef.current, privacyRef.current));
+  });
+
+  useTopicCallback('monitoring/privacy', enabled, (raw) => {
+    const session = normalisePrivacySession(raw as PrivacySession);
+    const next = upsertPrivacySession(privacyRef.current, session);
+    if (next === privacyRef.current) return;
+    privacyRef.current = next;
+    const pushedT = session.end ?? session.start;
+    if (coveredToRef.current !== null) coveredToRef.current = Math.max(coveredToRef.current, pushedT);
+    setEvents(mergeTimelineEvents(storedRef.current, privacyRef.current));
+  });
 
   return { events, refetch, loading };
 }
