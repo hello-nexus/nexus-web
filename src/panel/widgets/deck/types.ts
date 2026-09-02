@@ -65,10 +65,16 @@ export interface DeckPageAction {
 }
 
 // ── Live monitoring tile ──
-// v1 category set - excludes network/fps (name-keyed, source-mismatched
-// between web and service) and the extras-topic categories (memoryModule,
-// battery, cooler, psu, embeddedController).
-export type DeckMonitoringCategory = 'quick' | 'cpu' | 'gpu' | 'memory' | 'motherboard' | 'storage';
+// Every category the monitoring widget's own picker offers, in that picker's
+// order (sensorPicker.ts' DEVICE_OPTION_KEYS). The one DeviceKey left out is
+// the legacy 'fan', which neither picker offers. 'network' resolves to the
+// NIC-summed aggregate (networkSensors.ts' buildNicNetworkSensors), not the
+// widget's per-process sums - that is the only network source nexus-service
+// can reproduce for the physical-deck render.
+export type DeckMonitoringCategory =
+  | 'quick' | 'cpu' | 'gpu' | 'memory' | 'memoryModule' | 'motherboard'
+  | 'storage' | 'smart' | 'network' | 'fps'
+  | 'battery' | 'cooler' | 'psu' | 'embeddedController';
 export type DeckMonitoringStyle = 'line' | 'segments' | 'backdrop' | 'number';
 export type DeckMonitoringPress = 'none' | 'taskManager' | 'monitoringPage';
 

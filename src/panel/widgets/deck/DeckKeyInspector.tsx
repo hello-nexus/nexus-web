@@ -7,7 +7,7 @@ import { DECK_SWATCHES } from '../../../lib/settings';
 import { fetchService, isDirectActive, isRelayActive, pickSystemPath } from '../../../api/service';
 import { isMacAppShell, isWindowsAppShell } from '../../../app/windowActions';
 import { useSensors } from '../../../hooks/useSensors';
-import { EMPTY_SENSOR_EXTRAS } from '../../../hooks/useSensorExtras';
+import { useSensorExtras } from '../../../hooks/useSensorExtras';
 import { CollapsibleSection } from '../../../components/common/CollapsibleSection/CollapsibleSection';
 import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
 import { ChipGroup } from '../../../components/common/ChipGroup/ChipGroup';
@@ -31,6 +31,7 @@ import {
 } from './deckTitleStyle';
 import { DECK_ICONS, autoIconName } from './deckIcons';
 import { DECK_MONITORING_CATEGORIES, resolveMonitoringSensor } from './deckMonitoring';
+import { buildNicNetworkSensors } from '../monitoring/networkSensors';
 import { CATEGORY_LABEL_KEYS, selectedSensorValue, sensorsForDevice, visibleDeviceKeys } from '../monitoring/sensorPicker';
 import { labelForDevice } from '../monitoring/MonitoringWidget';
 import { LabelControls, SCALE_OPTIONS, parseFixedRangeInput } from '../monitoring/MonitoringSettings';
@@ -608,11 +609,20 @@ function MonitoringFields({ action, onChange, surface, desktopEditor }: {
 }) {
   const { t } = useTranslation();
   const sensors = useSensors(true);
-  const categoryOptions = visibleDeviceKeys(DECK_MONITORING_CATEGORIES, action.category, sensors, [], EMPTY_SENSOR_EXTRAS)
+  // Hiding empty categories (visibleDeviceKeys below) needs every
+  // extras-backed category's real sensor count up front, not just the
+  // selected one - so the inspector subscribes while open, matching
+  // MonitoringSettings' own always-on subscription. It is transient, mounted
+  // only while a key is being edited. FPS deliberately has no subscription
+  // (it would start ETW capture): the picker falls back to
+  // FPS_SENSOR_TEMPLATE, again as the widget's settings pane does.
+  const extras = useSensorExtras(true);
+  const networkSensors = buildNicNetworkSensors(extras.nics);
+  const categoryOptions = visibleDeviceKeys(DECK_MONITORING_CATEGORIES, action.category, sensors, networkSensors, extras)
     .map(category => ({ value: category, label: t(CATEGORY_LABEL_KEYS[category]) }));
-  const sensorOptions = sensorsForDevice(sensors, [], EMPTY_SENSOR_EXTRAS, action.category);
+  const sensorOptions = sensorsForDevice(sensors, networkSensors, extras, action.category);
   const sensorValue = selectedSensorValue(sensorOptions, action.sensor);
-  const activeSensor = resolveMonitoringSensor(sensors, action.category, sensorValue);
+  const activeSensor = resolveMonitoringSensor(sensors, action.category, sensorValue, [], networkSensors, extras);
 
   // action.sensor starts '' (defaultActionFor has no live sensor data to pick
   // from) and must self-heal off a stale id after a category swap too - seed
