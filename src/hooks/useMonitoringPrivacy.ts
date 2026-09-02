@@ -27,13 +27,12 @@ type LoadOutcome = 'ok' | 'error' | 'unsupported';
 /**
  * Loads the local service's privacy-access sessions (webcam/microphone/
  * location/screen capture) once on enable and again on socket reconnect,
- * then keeps the list current via the 'monitoring/privacy' push topic
- * instead of polling. Same unsupported discipline as useMetricHistory: a
- * service that predates the route reports `supported: false` rather than an
- * error, and no further load is attempted (no user-facing retry surface
- * exists for this passive indicator). A transient failure reports
- * `error: true`; recovery comes from the next enable, reconnect, or push -
- * there is no periodic retry poll here anymore.
+ * then keeps the list current via the 'monitoring/privacy' push topic. Same
+ * unsupported discipline as useMetricHistory: a service that predates the
+ * route reports `supported: false` and no further load is attempted (no
+ * user-facing retry surface exists for this passive indicator). A transient
+ * failure reports `error: true`, recovered only by the next enable,
+ * reconnect, or push.
  */
 export function useMonitoringPrivacy(enabled: boolean): UseMonitoringPrivacyResult {
   const [sessions, setSessions] = useState<PrivacySession[]>([]);
@@ -90,7 +89,7 @@ export function useMonitoringPrivacy(enabled: boolean): UseMonitoringPrivacyResu
   // a real fetch. Edge-detected off `connected` (no reconnect counter on the
   // multiplex context, matching useMetricHistory/useMonitoringEvents).
   // Gated on `supported` too - a confirmed-unsupported route stays off for
-  // the rest of this instance's life, same as it did under the old poll.
+  // the rest of this instance's life.
   const connected = useMultiplex()?.connected ?? false;
   const prevConnectedRef = useRef(connected);
   useEffect(() => {

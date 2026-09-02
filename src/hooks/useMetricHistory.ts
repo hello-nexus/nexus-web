@@ -540,13 +540,13 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
   }, [enabled, supported, error]);
 
   // Live tail: the service pushes 'monitoring/history-tail' once per second
-  // while subscribed, replacing what used to be a 1s HTTP poll. One HTTP
-  // fetch still covers what the push can't: the bootstrap point before the
-  // first push lands, and whatever ticks were missed while the socket was
-  // down. `to` is anchored to the server time base (lastLoadedTRef, or
-  // nowRef before any response has landed) rather than the client clock - a
-  // client/relay clock skew against the client's Date.now() could otherwise
-  // request a window where from > to and freeze the tail.
+  // while subscribed. One HTTP fetch still covers what the push can't: the
+  // bootstrap point before the first push lands, and whatever ticks were
+  // missed while the socket was down. `to` is anchored to the server time
+  // base (lastLoadedTRef, or nowRef before any response has landed) rather
+  // than the client clock - a client/relay clock skew against the client's
+  // Date.now() could otherwise request a window where from > to and freeze
+  // the tail.
   const runTailGapFill = useCallback(() => {
     const base = lastLoadedTRef.current ?? nowRef.current;
     const to = base + LIVE_TAIL_POLL_MS * 2;
@@ -567,15 +567,15 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
     })();
   }, [bumpNow]);
 
-  // Subscribed regardless of `following`/drag phase, same as the old poll -
-  // this is what keeps nowRef (the server time base) advancing while the
-  // user browses a detached historical window, so backToLive() and a brush
-  // drag back to the live edge re-anchor to the actual current time rather
-  // than whatever moment the user happened to detach at.
+  // Subscribed regardless of `following`/drag phase - this is what keeps
+  // nowRef (the server time base) advancing while the user browses a
+  // detached historical window, so backToLive() and a brush drag back to
+  // the live edge re-anchor to the actual current time rather than whatever
+  // moment the user happened to detach at.
   const tailActive = enabled && supported && !error;
 
   // Bootstrap fetch: seeds lastLoadedTRef/nowRef before the first push
-  // frame lands, same role the original poll's first tick played.
+  // frame lands.
   useEffect(() => {
     if (!tailActive) return;
     runTailGapFill();

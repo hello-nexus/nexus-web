@@ -13,12 +13,9 @@ import { useMultiplex, useTopicCallback } from './useMultiplexSocket';
 // through. refetch() bypasses this and fires immediately.
 const DOMAIN_DEBOUNCE_MS = 250;
 
-// A `to` this far past the last fetched/pushed coverage still counts as
-// covered - comfortably larger than a single live-tail push tick's ~1s
-// advance (LIVE_TAIL_POLL_MS in useMetricHistory), so a domain that's only
-// sliding forward with the live tail never itself crosses this and forces a
-// fetch; the 'monitoring/events'/'monitoring/privacy' push subscriptions are
-// what keep coverage current past the last real fetch while connected.
+// Past coveredTo by more than this, a domain move needs a real fetch - wider
+// than one live-tail tick (~1s) so plain following never crosses it; the
+// push subscriptions keep coverage current within it.
 const DOMAIN_TO_COVERAGE_SLACK_MS = 5_000;
 
 // iconKindForCapability already collapses both graphicsCapture variants to
