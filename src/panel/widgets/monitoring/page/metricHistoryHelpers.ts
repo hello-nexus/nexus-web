@@ -75,6 +75,13 @@ const RANGE_MATCH_TOLERANCE_MS = 1_000;
 // deriving a sub-floor sixth.
 const STRIP_TO_BOX_RATIO = 6;
 
+// A wheel-zoom anchor within this fraction of the box's right end counts as
+// "at the live edge" while following, the way TimelineBrush snaps its box
+// edge to the strip's live end within SNAP_PX - the cursor is rarely on the
+// plot's last pixel, and losing the live slide on every zoom-in would be a
+// constant surprise.
+const LIVE_EDGE_SNAP_FRACTION = 0.03;
+
 export function windowMsForRangeKey(key: RangeKey): number | null {
   return RANGE_OPTIONS.find(o => o.key === key)?.windowMs ?? null;
 }
@@ -93,6 +100,21 @@ export function rangeKeyForWindow(windowMs: number): RangeKey {
  *  then simply fills it). */
 export function defaultBoxWidthMs(stripWidthMs: number): number {
   return Math.min(stripWidthMs, Math.max(MIN_BOX_WINDOW_MS, stripWidthMs / STRIP_TO_BOX_RATIO));
+}
+
+/** The box after one wheel-zoom notch over the hero chart: scaled by
+ *  `factor` (>1 widens) about `anchorT`, which keeps its fractional position
+ *  in the box so the point under the cursor stays under the cursor - the
+ *  equivalent of stretching the seek-bar highlight from both ends at once.
+ *  Floored at MIN_BOX_WINDOW_MS and capped at the strip, shifting rather
+ *  than truncating when the scaled box would overrun either strip edge. */
+export function zoomBoxAround(from: number, to: number, stripFrom: number, stripTo: number, anchorT: number, factor: number): [number, number] {
+  const width = to - from;
+  const nextWidth = Math.round(Math.min(stripTo - stripFrom, Math.max(MIN_BOX_WINDOW_MS, width * factor)));
+  const anchor = Math.min(Math.max(anchorT, from), to);
+  const fraction = width > 0 ? (anchor - from) / width : 0.5;
+  const nextFrom = Math.round(anchor - fraction * nextWidth);
+  return clampSpanShift(nextFrom, nextFrom + nextWidth, stripFrom, stripTo);
 }
 
 export interface ViewportState {
@@ -117,6 +139,7 @@ export type ViewportAction =
   | { type: 'setRange'; key: PresetKey; now: number }
   | { type: 'brushChange'; from: number; to: number; now: number }
   | { type: 'chartDragSelect'; from: number; to: number; now: number; retentionMs: number }
+  | { type: 'wheelZoom'; anchorT: number; factor: number; now: number }
   | { type: 'tick'; now: number }
   | { type: 'retentionClamp'; retentionMs: number; now: number }
   | { type: 'backToLive'; now: number }
@@ -214,6 +237,18 @@ export function viewportReducer(state: ViewportState, action: ViewportAction): V
         rangeKey: 'custom', lastPresetKey: state.lastPresetKey,
         following: boxTo >= action.now,
       };
+    }
+    case 'wheelZoom': {
+      let [from, to] = zoomBoxAround(state.from, state.to, state.stripFrom, state.stripTo, action.anchorT, action.factor);
+      if (state.following && state.to - action.anchorT <= (state.to - state.from) * LIVE_EDGE_SNAP_FRACTION) {
+        from = state.to - (to - from);
+        to = state.to;
+      }
+      if (from === state.from && to === state.to) return state;
+      // Landing on the strip's right edge is where a zoom-out ends up by
+      // construction (the box is capped at the strip), not the reattach
+      // intent brushChange reads into it - a detached strip stays put.
+      return { ...state, from, to, following: to >= action.now };
     }
     case 'tick': {
       if (!state.following) return state;

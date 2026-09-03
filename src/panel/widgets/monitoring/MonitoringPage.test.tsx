@@ -131,7 +131,7 @@ vi.mock('../../../hooks/useMetricHistory', () => ({
     rangeKey: '30m', lastPresetKey: '30m', following: true,
     loading: false, error: false, mocked: false, supported: true, retentionDays: 7,
     stepSeconds: 1, viewportGeneration: 1,
-    setRange: () => {}, onBrushChange: () => {}, onChartDragSelect: () => {}, detach: () => {}, backToLive: () => {}, retry: () => {},
+    setRange: () => {}, onBrushChange: () => {}, onChartDragSelect: () => {}, onChartWheelZoom: () => false, detach: () => {}, backToLive: () => {}, retry: () => {},
     ...historyOverride,
   }),
 }));

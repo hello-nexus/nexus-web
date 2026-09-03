@@ -50,7 +50,7 @@ vi.mock('../../../hooks/useMetricHistory', () => ({
     silhouette: [], series: [], domain: [0, 1], stripDomain: [0, 1], rangeKey: '3h', lastPresetKey: '3h',
     following: true, dragging: false, loading: false, error: false, mocked: false, supported: true,
     retentionDays: 7, stepSeconds: null, viewportGeneration: 0,
-    setRange: vi.fn(), onBrushChange: vi.fn(), onChartDragSelect: vi.fn(), detach: vi.fn(), backToLive: vi.fn(), retry: vi.fn(),
+    setRange: vi.fn(), onBrushChange: vi.fn(), onChartDragSelect: vi.fn(), onChartWheelZoom: vi.fn(), detach: vi.fn(), backToLive: vi.fn(), retry: vi.fn(),
   })),
 }));
 

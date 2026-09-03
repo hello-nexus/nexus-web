@@ -75,6 +75,100 @@ describe('useMetricHistory', () => {
     expect(fetchMock).toHaveBeenCalledWith(expect.objectContaining({ from: NOW - 5 * MINUTE, to: NOW, series: 'cpu', maxPoints: 800 }));
   });
 
+  describe('wheel zoom (a synthetic brush resize about the cursor time)', () => {
+    it('narrows the window about the anchor as a drag, then settles into one fine fetch of the zoomed window', async () => {
+      const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
+      await advance(0);
+      fetchMock.mockClear();
+      const [from0, to0] = result.current.domain;
+      const anchor = (from0 + to0) / 2;
+
+      let changed = false;
+      act(() => { changed = result.current.onChartWheelZoom(anchor, 0.5); });
+
+      expect(changed).toBe(true);
+      const [from1, to1] = result.current.domain;
+      expect(to1 - from1).toBeCloseTo((to0 - from0) / 2, -2);
+      expect((anchor - from1) / (to1 - from1)).toBeCloseTo(0.5, 3);
+      expect(result.current.dragging).toBe(true);
+      expect(result.current.following).toBe(false);
+      // Mid-gesture: no settled viewport fetch yet (only the 180ms paused-drag
+      // refetch could fire, and not this soon).
+      await advance(100);
+      expect(fetchMock.mock.calls.some(([q]) => q.maxPoints === 800)).toBe(false);
+
+      await advance(300);
+      expect(result.current.dragging).toBe(false);
+      expect(fetchMock.mock.calls.some(([q]) => q.maxPoints === 800 && q.from === from1 && q.to === to1)).toBe(true);
+    });
+
+    it('compounds notches that land inside the settle window and settles once', async () => {
+      const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
+      await advance(0);
+      fetchMock.mockClear();
+      const [from0, to0] = result.current.domain;
+      const anchor = (from0 + to0) / 2;
+
+      // 0.75 three times over the 5-minute default box stays above the
+      // 1-minute MIN_BOX_WINDOW_MS floor, so the product is observable.
+      act(() => { result.current.onChartWheelZoom(anchor, 0.75); });
+      await advance(50);
+      act(() => { result.current.onChartWheelZoom(anchor, 0.75); });
+      await advance(50);
+      act(() => { result.current.onChartWheelZoom(anchor, 0.75); });
+
+      const [from1, to1] = result.current.domain;
+      expect(to1 - from1).toBeCloseTo((to0 - from0) * 0.75 ** 3, -2);
+      expect(result.current.dragging).toBe(true);
+
+      await advance(400);
+      expect(result.current.dragging).toBe(false);
+      const settled = fetchMock.mock.calls.filter(([q]) => q.maxPoints === 800 && q.from === from1 && q.to === to1);
+      expect(settled.length).toBeGreaterThanOrEqual(1);
+      expect(settled.length).toBeLessThanOrEqual(2);
+    });
+
+    it('widens no further than the strip and never re-anchors a detached strip to now', async () => {
+      const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
+      await advance(0);
+      // A chart drag-select in the past re-derives a strip whose own right
+      // edge sits behind now, so filling it is not the live edge.
+      act(() => { result.current.onChartDragSelect(NOW - 20 * MINUTE, NOW - 15 * MINUTE); });
+      await advance(0);
+      const [stripFrom, stripTo] = result.current.stripDomain;
+      expect(stripTo).toBeLessThan(NOW);
+      expect(result.current.following).toBe(false);
+
+      act(() => { result.current.onChartWheelZoom(NOW - 17 * MINUTE, 1000); });
+      await advance(400);
+
+      expect(result.current.domain).toEqual([stripFrom, stripTo]);
+      expect(result.current.stripDomain).toEqual([stripFrom, stripTo]);
+      expect(result.current.following).toBe(false);
+
+      // Already filling the strip: a further zoom-out changes nothing and
+      // says so, so the chart lets the wheel through to the page.
+      let changed = true;
+      act(() => { changed = result.current.onChartWheelZoom(NOW - 17 * MINUTE, 2); });
+      expect(changed).toBe(false);
+    });
+
+    it('ignores notches while a real brush drag is held, without disturbing that drag', async () => {
+      const { result } = renderHook(() => useMetricHistory(true, 'cpu'));
+      await advance(0);
+      act(() => { result.current.onBrushChange(NOW - 10 * MINUTE, NOW - 5 * MINUTE, 'drag'); });
+      const held = result.current.domain;
+
+      let changed = true;
+      act(() => { changed = result.current.onChartWheelZoom(NOW - 7 * MINUTE, 0.5); });
+      await advance(400);
+
+      expect(changed).toBe(false);
+      expect(result.current.domain).toEqual(held);
+      expect(result.current.dragging).toBe(true);
+    });
+  });
+
   describe('during-drag debounced fine refetch (upgrades the pan to real data without waiting for release)', () => {
     it('does not fire while a continuous stream of drag events keeps arriving faster than the debounce', async () => {
       const { result } = renderHook(() => useMetricHistory(true, 'cpu'));

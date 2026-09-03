@@ -1,0 +1,16 @@
+// Small metadata chips. Mixins only - no class selectors - so a .module.scss
+// can @use it without CSS-Modules hashing surprises (same contract as
+// _scrollbar.scss).
+
+// Calendar-day qualifier stacked with a time (the seek bar's edge labels,
+// the chart tooltip's timestamp): a subtle neutral fill so it reads as
+// metadata beside the time, not as a control.
+@mixin day-badge {
+  white-space: nowrap;
+  padding: 0 6px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--text-dim) 16%, transparent);
+  font-size: var(--type-tiny);
+  line-height: 1.5;
+  color: var(--text-dim);
+}
