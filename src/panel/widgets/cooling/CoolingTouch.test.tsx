@@ -82,7 +82,7 @@ vi.mock('../../../api/minihub', async (importOriginal) => {
   };
 });
 
-import { applyProfile } from '../../../api/cooling';
+import { applyProfile, fetchFanChannels } from '../../../api/cooling';
 
 const widget = { id: 'w-cooling', type: 'cooling', size: '4x4', col: 0, row: 0 } as PanelWidget;
 
@@ -175,6 +175,63 @@ describe('CoolingTouch', () => {
     fireEvent.click(groupToggle);
     expect(screen.queryByText('Hub Fan 1')).toBeNull();
     expect(screen.getByText('CPU Fan')).toBeInTheDocument();
+  });
+
+  // The lighting device picker's shape: bulk buttons over selectable cards.
+  it('selects every fan and clears the selection from the Devices tab', async () => {
+    renderTouch();
+    fireEvent.click(await screen.findByRole('tab', { name: 'lighting.rightPane.devices' }));
+    const selectAll = await screen.findByRole('button', { name: /lighting.ledMap.selectAll/ });
+    const selectNone = screen.getByRole('button', { name: /lighting.ledMap.selectNone/ });
+    // Nothing selected yet, so only select-all is live.
+    expect(selectNone).toBeDisabled();
+
+    fireEvent.click(selectAll);
+    await waitFor(() => expect(selectAll).toBeDisabled());
+    expect(selectNone).toBeEnabled();
+    // The unresponsive header is not listed, so it never joins the selection.
+    expect(JSON.parse(localStorage.getItem('nexus.cooling.selectedFans') ?? '[]').sort())
+      .toEqual(['fan-case', 'fan-cpu']);
+
+    fireEvent.click(selectNone);
+    await waitFor(() => expect(selectNone).toBeDisabled());
+    expect(JSON.parse(localStorage.getItem('nexus.cooling.selectedFans') ?? '[]')).toEqual([]);
+  });
+
+  // The selection is shared with the desktop rail, as the lighting one is.
+  it('restores a stored selection and drops fans that are gone', async () => {
+    localStorage.setItem('nexus.cooling.selectedFans', JSON.stringify(['fan-cpu', 'ghost-fan']));
+    renderTouch();
+    fireEvent.click(await screen.findByRole('tab', { name: 'lighting.rightPane.devices' }));
+    await waitFor(() => expect(
+      JSON.parse(localStorage.getItem('nexus.cooling.selectedFans') ?? '[]'),
+    ).toEqual(['fan-cpu']));
+  });
+
+  // A hub's cooling mode is one byte for the whole hub, and a curve cannot
+  // drive it from firmware mode - so the batch assign hands the hub over once.
+  it('switches a hub to software once when a curve is bound to several of its fans', async () => {
+    const { setNp50LiveCoolingMode } = await import('../../../api/np50');
+    const { getNp50ConnectionState } = await import('../../../api/np50');
+    vi.mocked(getNp50ConnectionState).mockResolvedValueOnce({
+      deviceId: 'np50:AB12', coolingMode: 'Motherboard',
+    } as Awaited<ReturnType<typeof getNp50ConnectionState>>);
+    // Once, not for the rest of the file: clearAllMocks resets calls, not impls.
+    vi.mocked(fetchFanChannels).mockResolvedValueOnce({
+      channels: [
+        { id: 'hub-1', name: 'Hub Fan 1', dutyPercent: 35, rpm: 900, mode: 'Auto',
+          classification: 'Controllable', calibrated: true, deviceId: 'np50:AB12', deviceName: 'HYTE NP50' },
+        { id: 'hub-2', name: 'Hub Fan 2', dutyPercent: 35, rpm: 910, mode: 'Auto',
+          classification: 'Controllable', calibrated: true, deviceId: 'np50:AB12', deviceName: 'HYTE NP50' },
+      ],
+    });
+    localStorage.setItem('nexus.cooling.selectedFans', JSON.stringify(['hub-1', 'hub-2']));
+    renderTouch();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'My Graph Curve' }));
+
+    await waitFor(() => expect(setNp50LiveCoolingMode).toHaveBeenCalled());
+    expect(setNp50LiveCoolingMode).toHaveBeenCalledTimes(1);
   });
 
   it('applies a preset optimistically on tap', async () => {

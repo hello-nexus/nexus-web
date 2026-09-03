@@ -1,5 +1,6 @@
 import { useMemo, type ReactNode } from 'react';
-import { Power } from 'lucide-react';
+import { Ban, CheckCheck, Power } from 'lucide-react';
+import { Button } from '../../../../components/common/Button/Button';
 import { CollapsibleSection } from '../../../../components/common/CollapsibleSection/CollapsibleSection';
 import { usePersistentState } from '../../../../hooks/usePersistentState';
 import { useTranslation } from '../../../../lib/i18n';
@@ -102,7 +103,15 @@ function FansSection({ cooling, liveChannels }: {
   liveChannels: FanChannel[];
 }) {
   const { t } = useTranslation();
-  const { curves, fanStates, hubModes, calibrating, selectedCurveId } = cooling;
+  const { curves, fanStates, hubModes, calibrating, selectedCurveId, selectedFanIds } = cooling;
+
+  // Only the fans this tab actually lists, so select-all cannot reach a card
+  // the panel hides.
+  const selectableIds = useMemo(() => {
+    const listed = new Set(liveChannels.map(c => c.id));
+    return cooling.selectableFanIds.filter(id => listed.has(id));
+  }, [cooling.selectableFanIds, liveChannels]);
+  const allSelected = selectableIds.length > 0 && selectableIds.every(id => selectedFanIds.has(id));
 
   // Per-hub-group collapse state, same persistence key as the desktop page so
   // the choice carries across surfaces on the same install.
@@ -125,6 +134,10 @@ function FansSection({ cooling, liveChannels }: {
     <FanCard
       key={ch.id} channel={ch} state={fanStates[ch.id]} curves={curves}
       compact
+      selected={selectedFanIds.has(ch.id)}
+      onSelect={() => cooling.toggleFanSelection(ch.id)}
+      onSelectOnly={() => cooling.setSelectedFanIds(new Set([ch.id]))}
+      bulk={cooling.bulkForFan(ch)}
       calibrating={calibrating}
       canCreateCurve={cooling.canAddCurve}
       highlighted={highlightedFanIds.has(ch.id)}
@@ -174,6 +187,28 @@ function FansSection({ cooling, liveChannels }: {
 
   return (
     <div className={styles.fanCol}>
+      {selectableIds.length > 0 && (
+        <div className={styles.bulkRow}>
+          <Button
+            tone="ghost"
+            size="sm"
+            icon={<CheckCheck />}
+            disabled={allSelected}
+            onClick={() => cooling.setSelectedFanIds(new Set(selectableIds))}
+          >
+            {t('lighting.ledMap.selectAll')}
+          </Button>
+          <Button
+            tone="ghost"
+            size="sm"
+            icon={<Ban />}
+            disabled={selectedFanIds.size === 0}
+            onClick={() => cooling.setSelectedFanIds(new Set())}
+          >
+            {t('lighting.ledMap.selectNone')}
+          </Button>
+        </div>
+      )}
       {cooling.activeMode === 'off' && (
         <div className={pageStyles.offStatus}
           role="status"

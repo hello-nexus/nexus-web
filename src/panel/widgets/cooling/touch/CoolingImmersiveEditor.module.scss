@@ -25,3 +25,10 @@
   @include text-caption;
   color: var(--text-dim);
 }
+
+// Flush right above the list, the shape the lighting device picker uses.
+.bulkRow {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
