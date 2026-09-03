@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { pumpUntil, waitFor } from '../__tests__/asyncWait';
 import {
   DIR_CLIENT_TO_HOST,
   DIR_HOST_TO_CLIENT,
@@ -184,17 +185,6 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-// Pumps fake timers until `ready()` holds. A fixed pump count races the real
-// crypto.subtle work on the rekey path: a slower machine has not resolved the
-// key derivation by the time the assertions run, which is why these passed on
-// a dev box and failed only on CI. Bounded, so a genuine regression still
-// fails instead of hanging.
-async function pumpUntil(ready: () => boolean, stepMs = 0, maxRounds = 300): Promise<void> {
-  for (let i = 0; i < maxRounds && !ready(); i++) {
-    await vi.advanceTimersByTimeAsync(stepMs);
-  }
-}
-
 describe('relayFetch (REST-over-relay tunnel)', () => {
   it('opens the tunnel on rid_http and resolves a sealed response for a GET', async () => {
     const res = await relayFetch(TOKEN, RELAY_URL, 'GET', '/panel/devices');
@@ -311,9 +301,7 @@ describe('relayFetch v2 in-band rekey', () => {
 
     // Tag-verify fails under K1 ⇒ the tunnel dies (async decrypt) ⇒ wait for
     // that teardown to finish before the next relayFetch opens a fresh one.
-    for (let i = 0; i < 10 && inst.readyState !== MockRelaySocket.CLOSED; i++) {
-      await new Promise((r) => setTimeout(r, 0));
-    }
+    await waitFor(() => inst.readyState === MockRelaySocket.CLOSED);
     expect(inst.readyState).toBe(MockRelaySocket.CLOSED);
 
     const res = await relayFetch(TOKEN, RELAY_URL, 'GET', '/panel/second');
@@ -355,7 +343,7 @@ describe('relayFetch v2 in-band rekey', () => {
     // before the rekey fallback timer is even armed would not count toward it.
     // Driven by the frame count rather than a fixed round count so the real
     // crypto.subtle work is actually waited for, however slow the machine.
-    await pumpUntil(() => MockRelaySocket.receivedFrames.length >= 2, 100, 120);
+    await pumpUntil(() => MockRelaySocket.receivedFrames.length >= 2, 100);
 
     const res = await promise;
     expect(res.status).toBe(200);
@@ -369,9 +357,7 @@ describe('relayFetch v2 in-band rekey', () => {
     const inst = MockRelaySocket.instances[0];
 
     await inst.sendSealed({ c: 'hn', hn: 'yQ' });
-    for (let i = 0; i < 10 && inst.readyState !== MockRelaySocket.CLOSED; i++) {
-      await new Promise((r) => setTimeout(r, 0));
-    }
+    await waitFor(() => inst.readyState === MockRelaySocket.CLOSED);
     expect(inst.readyState).toBe(MockRelaySocket.CLOSED);
 
     // The old tunnel is dead; the next relayFetch opens a fresh one.
@@ -383,7 +369,7 @@ describe('relayFetch v2 in-band rekey', () => {
   it('rejects the pending request when the hn field is not valid base64url', async () => {
     MockRelaySocket.hostMode = 'silent';
     const pending = relayFetch(TOKEN, RELAY_URL, 'GET', '/panel/devices');
-    for (let i = 0; i < 10; i++) await new Promise((r) => setTimeout(r, 0));
+    await waitFor(() => MockRelaySocket.instances.length >= 1);
     expect(MockRelaySocket.instances).toHaveLength(1);
     const inst = MockRelaySocket.instances[0];
 
@@ -396,7 +382,7 @@ describe('relayFetch v2 in-band rekey', () => {
   it('RelayHttpTunnel.die() during the handshake wait rejects a queued request()', async () => {
     MockRelaySocket.hostMode = 'silent';
     const pending = relayFetch(TOKEN, RELAY_URL, 'GET', '/panel/devices');
-    for (let i = 0; i < 10; i++) await new Promise((r) => setTimeout(r, 0));
+    await waitFor(() => MockRelaySocket.instances.length >= 1);
     expect(MockRelaySocket.instances).toHaveLength(1);
 
     MockRelaySocket.instances[0].close();

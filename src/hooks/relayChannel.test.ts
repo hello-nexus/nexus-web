@@ -1,11 +1,11 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { pumpUntil, waitFor } from '../__tests__/asyncWait';
 import { RelayChannel, pairOverRelay } from './relayChannel';
 import {
   DIR_CLIENT_TO_HOST,
   DIR_HOST_TO_CLIENT,
   REKEY_HELLO2,
-  REKEY_TIMEOUT_MS,
   base64UrlNoPad,
   deriveAeadKey,
   deriveRekeyedAeadKey,
@@ -105,34 +105,22 @@ function connSaltFromHello(ws: FakeWebSocket): string {
 // the macrotask queue) before constructing the WebSocket, so yield to the event
 // loop until the fake socket has been created.
 async function awaitSocket(): Promise<FakeWebSocket> {
-  for (let i = 0; i < 50 && !FakeWebSocket.last; i++) await tick();
+  await waitFor(() => FakeWebSocket.last !== null);
   if (!FakeWebSocket.last) throw new Error('socket was never constructed');
   return FakeWebSocket.last;
 }
 
-// Same as awaitSocket, but under vi.useFakeTimers() - advances the fake clock
-// (which also flushes pending microtasks, including crypto.subtle) instead of
-// yielding via a real setTimeout.
+// Same as awaitSocket(), but under vi.useFakeTimers().
 async function awaitSocketFake(): Promise<FakeWebSocket> {
-  for (let i = 0; i < 50 && !FakeWebSocket.last; i++) await vi.advanceTimersByTimeAsync(0);
+  await pumpUntil(() => FakeWebSocket.last !== null);
   if (!FakeWebSocket.last) throw new Error('socket was never constructed');
   return FakeWebSocket.last;
 }
 
 // Same as flush(), but under vi.useFakeTimers().
-async function flushFake(): Promise<void> {
+async function flushFake(until?: () => boolean): Promise<void> {
   for (let i = 0; i < 6; i++) await vi.advanceTimersByTimeAsync(0);
-}
-
-// Pumps fake timers until `ready()` holds. A fixed pump count races the real
-// crypto.subtle work on the rekey path: a slower machine has not resolved the
-// key derivation by the time the assertions run, which is why these passed on
-// a dev box and failed only on CI. Bounded, so a genuine regression still
-// fails instead of hanging.
-async function pumpUntil(ready: () => boolean, stepMs = 0, maxRounds = 300): Promise<void> {
-  for (let i = 0; i < maxRounds && !ready(); i++) {
-    await vi.advanceTimersByTimeAsync(stepMs);
-  }
+  if (until) await pumpUntil(until);
 }
 
 // Walk the handshake up to the point where the client has sent its sealed claim
@@ -268,7 +256,7 @@ describe('RelayChannel - no-host fast fail', () => {
 
     // Relay says no host is present → channel closes at once, never opens.
     ws.emitText(JSON.stringify({ e: 'no-host' }));
-    await flush();
+    await flush(() => channel.readyState === RelayChannel.CLOSED);
 
     expect(channel.readyState).toBe(RelayChannel.CLOSED);
     expect(closed).toBe(true);
@@ -322,7 +310,7 @@ describe('RelayChannel - v2 in-band rekey', () => {
     ws.emitOpen();
     const connSalt = connSaltFromHello(ws);
     ws.emitText(JSON.stringify({ e: 'peer-up' }));
-    await flush();
+    await flush(() => binaryFramesSent(ws).length >= 1);
 
     const frames = binaryFramesSent(ws);
     expect(frames).toHaveLength(1);
@@ -354,7 +342,7 @@ describe('RelayChannel - v2 in-band rekey', () => {
     const hostNonce = crypto.getRandomValues(new Uint8Array(16));
     const hnFrame = await sealUnderKey(k0, DIR_HOST_TO_CLIENT, 0, JSON.stringify({ c: 'hn', hn: base64UrlNoPad(hostNonce) }));
     ws.emitBinary(hnFrame);
-    await flush();
+    await flush(() => opened);
 
     expect(opened).toBe(true);
     expect(channel.readyState).toBe(RelayChannel.OPEN);
@@ -373,14 +361,14 @@ describe('RelayChannel - v2 in-band rekey', () => {
     // A host frame sealed under K1 counter 0 is accepted.
     const k1Frame = await sealUnderKey(k1, DIR_HOST_TO_CLIENT, 0, '{"t":"monitoring","d":{}}');
     ws.emitBinary(k1Frame);
-    await flush();
+    await flush(() => received.length >= 1);
     expect(received).toEqual(['{"t":"monitoring","d":{}}']);
 
     // A frame sealed under the superseded K0 fails tag-verify under K1 and
     // closes the channel, exactly like any other tampered frame.
     const k0Frame = await sealUnderKey(k0, DIR_HOST_TO_CLIENT, 1, '{"t":"stale","d":{}}');
     ws.emitBinary(k0Frame);
-    await flush();
+    await flush(() => closed);
     expect(closed).toBe(true);
     expect(received).toEqual(['{"t":"monitoring","d":{}}']);
   });
@@ -404,7 +392,7 @@ describe('RelayChannel - v2 in-band rekey', () => {
     // A legacy (v1) host answers hello2 with real multiplex data, not hn.
     const dataFrame = await sealUnderKey(k0, DIR_HOST_TO_CLIENT, 0, '{"t":"monitoring","d":{"cpu":1}}');
     ws.emitBinary(dataFrame);
-    await flush();
+    await flush(() => opened);
 
     expect(opened).toBe(true);
     expect(channel.readyState).toBe(RelayChannel.OPEN);
@@ -413,7 +401,7 @@ describe('RelayChannel - v2 in-band rekey', () => {
     // The next app send stays on K0, counter continuing from 1 - counter 0
     // under K0 was already spent by hello2 and must never be reused.
     channel.send('{"sub":["monitoring"]}');
-    await flush();
+    await flush(() => binaryFramesSent(ws).length >= 2);
     const frames = binaryFramesSent(ws);
     expect(frames).toHaveLength(2);
     const sent = await openFrame(k0, new Uint8Array(frames[1]));
@@ -440,7 +428,7 @@ describe('RelayChannel - v2 in-band rekey', () => {
     // Stepped rather than one REKEY_TIMEOUT_MS jump: a jump taken before the
     // fallback timer is armed (the hello2 crypto is real async work) would
     // not count toward it.
-    await pumpUntil(() => opened, 100, (REKEY_TIMEOUT_MS / 100) * 4);
+    await pumpUntil(() => opened, 100);
     expect(opened).toBe(true);
     expect(channel.readyState).toBe(RelayChannel.OPEN);
 
@@ -474,7 +462,7 @@ describe('RelayChannel - v2 in-band rekey', () => {
     const tampered = new ArrayBuffer(good.byteLength);
     new Uint8Array(tampered).set(good);
     ws.emitBinary(tampered);
-    await flush();
+    await flush(() => closed);
 
     expect(opened).toBe(false);
     expect(closed).toBe(true);
@@ -499,7 +487,7 @@ describe('RelayChannel - v2 in-band rekey', () => {
     // A validly-sealed frame (tag verifies) whose hn value is not base64url.
     const badHn = await sealUnderKey(k0, DIR_HOST_TO_CLIENT, 0, JSON.stringify({ c: 'hn', hn: '!!!not base64!!!' }));
     ws.emitBinary(badHn);
-    await flush();
+    await flush(() => closed);
 
     expect(opened).toBe(false);
     expect(closed).toBe(true);
@@ -526,7 +514,7 @@ describe('RelayChannel - v2 in-band rekey', () => {
     const k0 = await deriveK0(connSalt);
     const dataFrame = await sealUnderKey(k0, DIR_HOST_TO_CLIENT, 0, '{"t":"monitoring","d":{"cpu":1}}');
     ws.emitBinary(dataFrame);
-    await flush();
+    await flush(() => opened);
     expect(opened).toBe(true);
     expect(channel.readyState).toBe(RelayChannel.OPEN);
 
@@ -534,7 +522,7 @@ describe('RelayChannel - v2 in-band rekey', () => {
     // timer already committed us to K0) is an unrecoverable key desync.
     const lateHn = await sealUnderKey(k0, DIR_HOST_TO_CLIENT, 1, JSON.stringify({ c: 'hn', hn: 'yQ' }));
     ws.emitBinary(lateHn);
-    await flush();
+    await flush(() => received.length >= 1);
 
     expect(received).toEqual(['{"t":"monitoring","d":{"cpu":1}}']);
     expect(closed).toBe(true);
@@ -542,9 +530,12 @@ describe('RelayChannel - v2 in-band rekey', () => {
 });
 
 // Yield to the event loop a few turns so chained crypto.subtle-backed awaits
-// (derive → seal → send, or open() → parse → resolve) all settle.
-async function flush(): Promise<void> {
+// (derive → seal → send, or open() → parse → resolve) all settle. A positive
+// assertion passes its condition as `until`: the turns alone are a race
+// against the real crypto on a loaded runner.
+async function flush(until?: () => boolean): Promise<void> {
   for (let i = 0; i < 6; i++) await tick();
+  if (until) await waitFor(until);
 }
 
 function tick(): Promise<void> {
