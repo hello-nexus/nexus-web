@@ -23,8 +23,9 @@ vi.mock('./service', () => ({
   // The "stays on LAN" case flips this false (service-served origin) so the
   // remote-origin fail-closed guard in panel.ts doesn't short-circuit it.
   isRemoteOrigin: false,
-  relayRequestWithStatus: (...args: unknown[]) => relayWithStatusMock(...(args as [string, string, unknown?])),
-  // The boot-path bound panel.ts passes through on the alloc/patch calls.
+  relayRequestWithStatus: (...args: unknown[]) =>
+    relayWithStatusMock(...(args as [string, string, unknown?, { timeoutMs?: number }?])),
+  // The boot-path bound panel.ts passes through on every device call.
   RELAY_BOOT_TIMEOUT_MS: 6000,
   resolveHttp: (path: string) => `http://localhost:9400${path}`,
   // Unused by the relay path but imported by panel.ts.
@@ -38,6 +39,7 @@ vi.mock('./auth', () => ({
   handleUnauthorized: vi.fn(async () => ''),
 }));
 
+import { RELAY_BOOT_TIMEOUT_MS } from './service';
 import {
   allocatePanelDeviceWithStatus,
   fetchPanelDeviceWithStatus,
@@ -90,6 +92,20 @@ describe('panel.ts *WithStatus relay routing', () => {
     expect(directFetch).not.toHaveBeenCalled();
     expect((relayWithStatusMock.mock.calls[0])[0]).toBe('GET');
     expect((relayWithStatusMock.mock.calls[0])[1]).toBe('/panel/devices/dev-1');
+  });
+
+  it('bounds every relay panel-device call, so a dead tunnel cannot hang the panel gate', async () => {
+    vi.stubGlobal('fetch', vi.fn());
+
+    await allocatePanelDeviceWithStatus({ surface: 'phone' });
+    await patchPanelDeviceWithStatus('dev-1', { displayName: 'x' });
+    await fetchPanelDeviceWithStatus('dev-1');
+
+    // The fetch is the one that gates PanelApp's loading screen: unbounded, it
+    // parked the user on a spinner with no way out.
+    for (const call of relayWithStatusMock.mock.calls) {
+      expect(call[3]).toEqual({ timeoutMs: RELAY_BOOT_TIMEOUT_MS });
+    }
   });
 
   it('surfaces the relay HTTP status on a non-2xx (e.g. 403 over the relay)', async () => {

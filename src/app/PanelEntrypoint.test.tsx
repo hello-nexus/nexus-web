@@ -207,8 +207,8 @@ describe('PanelEntrypoint failure gate', () => {
       />,
     );
 
-    const button = await screen.findByRole('button', { name: 'panel.gate.findComputer' });
-    fireEvent.click(button);
+    await screen.findByText('panel.gate.fail.serviceHeadline');
+    fireEvent.click(screen.getByRole('button', { name: 'panel.gate.findComputer' }));
     expect(findComputer).toHaveBeenCalledTimes(1);
   });
 
@@ -252,7 +252,7 @@ describe('PanelEntrypoint failure gate', () => {
     expect(document.querySelector('a[href="/r/pair"]')).toBeNull();
   });
 
-  it('shows the waiting gate with copy, then escapes, instead of a bare spinner', async () => {
+  it('shows the waiting gate with copy and an immediate escape, not a bare spinner', async () => {
     vi.useFakeTimers();
     const findComputer = vi.fn();
     (window as { nexusNative?: { findComputer: () => void } }).nexusNative = { findComputer };
@@ -269,16 +269,19 @@ describe('PanelEntrypoint failure gate', () => {
       />,
     );
 
-    // Copy is there from the first frame; the exits wait out the slow window.
+    // The ESCAPE is live from the first frame - a connect the user wants out
+    // of must be escapable immediately, not after the slow window elapses.
     expect(screen.getByText('panel.gate.connecting')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'panel.gate.findComputer' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'panel.gate.findComputer' }));
+    expect(findComputer).toHaveBeenCalledTimes(1);
+    // Retry issues a second allocate, so it waits: a frame-one tap would
+    // orphan the device record the in-flight one is about to create.
+    expect(screen.queryByRole('button', { name: 'panel.gate.retry' })).toBeNull();
+    expect(screen.queryByText('panel.gate.slow')).toBeNull();
 
     await act(async () => { vi.advanceTimersByTime(4000); });
 
     expect(screen.getByText('panel.gate.slow')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'panel.gate.findComputer' }));
-    expect(findComputer).toHaveBeenCalledTimes(1);
-    // Retry re-runs allocate, so it belongs on this state.
     expect(screen.getByRole('button', { name: 'panel.gate.retry' })).toBeInTheDocument();
   });
 
