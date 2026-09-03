@@ -118,14 +118,19 @@ async function flushAsync(ticks = 8): Promise<void> {
   }
 }
 
-// Pumps fake timers in `stepMs` slices until `ready()` holds. A fixed round
-// count races the real crypto.subtle work on the rekey path: a slow runner
-// has not armed the REKEY_TIMEOUT_MS fallback by the time fixed rounds have
-// elapsed, so the fallback never fires and the test hangs. Bounded, so a
-// genuine regression still fails instead of hanging.
-async function pumpUntil(ready: () => boolean, stepMs = 0, maxRounds = 300): Promise<void> {
-  for (let i = 0; i < maxRounds && !ready(); i++) {
+// Pumps fake timers in `stepMs` slices until `ready()` holds, bounded by REAL
+// time so a genuine regression still fails instead of hanging. Captured before
+// any vi.useFakeTimers() so the bound and the yield below stay real.
+const realSetTimeout = globalThis.setTimeout;
+const realNow = Date.now;
+async function pumpUntil(ready: () => boolean, stepMs = 0, maxRealMs = 10_000): Promise<void> {
+  const start = realNow();
+  while (!ready() && realNow() - start < maxRealMs) {
     await vi.advanceTimersByTimeAsync(stepMs);
+    // One fake-timer round yields a single event-loop turn, and crypto.subtle
+    // resolves off the loop (the threadpool), so a loaded runner needs real
+    // time between rounds, not more rounds.
+    await new Promise<void>((resolve) => realSetTimeout(resolve, 1));
   }
 }
 
@@ -284,7 +289,7 @@ describe('RtcRuntimeChannel sealed framing', () => {
       const opened = vi.fn();
       channel.onopen = opened;
 
-      await pumpUntil(() => opened.mock.calls.length > 0, 100, 200); // past REKEY_TIMEOUT_MS, however slow the crypto
+      await pumpUntil(() => opened.mock.calls.length > 0, 100); // past REKEY_TIMEOUT_MS, however slow the crypto
       expect(opened).toHaveBeenCalledTimes(1);
       expect(channel.readyState).toBe(RtcRuntimeChannel.OPEN);
 
@@ -626,7 +631,7 @@ describe('RtcHttpTunnel', () => {
       const tunnel = new RtcHttpTunnel(dc as unknown as RTCDataChannel, await deriveTestRoot(), fromHex(KAT.connSalt), k0, vi.fn());
 
       const pending = tunnel.request('GET', '/panel/devices', null, null);
-      await pumpUntil(() => dc.sent.length >= 2, 100, 200); // past REKEY_TIMEOUT_MS, however slow the crypto
+      await pumpUntil(() => dc.sent.length >= 2, 100); // past REKEY_TIMEOUT_MS, however slow the crypto
 
       expect(dc.sent).toHaveLength(2); // [0] hello2, [1] the real request, both under K0
       const req = await openFrame(k0, new Uint8Array(dc.sent[1]));
@@ -856,7 +861,7 @@ describe('openRtcDirect', () => {
 
       let settled = false;
       const promise = openRtcDirect('session-token').finally(() => { settled = true; });
-      await pumpUntil(() => settled, 100, 200); // past REKEY_TIMEOUT_MS, however slow the crypto
+      await pumpUntil(() => settled, 100); // past REKEY_TIMEOUT_MS, however slow the crypto
 
       const conn = await promise;
       expect(conn.runtime.readyState).toBe(RtcRuntimeChannel.OPEN);

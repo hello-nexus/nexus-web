@@ -5,7 +5,6 @@ import {
   DIR_CLIENT_TO_HOST,
   DIR_HOST_TO_CLIENT,
   REKEY_HELLO2,
-  REKEY_TIMEOUT_MS,
   base64UrlNoPad,
   deriveAeadKey,
   deriveRekeyedAeadKey,
@@ -124,14 +123,19 @@ async function flushFake(): Promise<void> {
   for (let i = 0; i < 6; i++) await vi.advanceTimersByTimeAsync(0);
 }
 
-// Pumps fake timers until `ready()` holds. A fixed pump count races the real
-// crypto.subtle work on the rekey path: a slower machine has not resolved the
-// key derivation by the time the assertions run, which is why these passed on
-// a dev box and failed only on CI. Bounded, so a genuine regression still
-// fails instead of hanging.
-async function pumpUntil(ready: () => boolean, stepMs = 0, maxRounds = 300): Promise<void> {
-  for (let i = 0; i < maxRounds && !ready(); i++) {
+// Pumps fake timers in `stepMs` slices until `ready()` holds, bounded by REAL
+// time so a genuine regression still fails instead of hanging. Captured before
+// any vi.useFakeTimers() so the bound and the yield below stay real.
+const realSetTimeout = globalThis.setTimeout;
+const realNow = Date.now;
+async function pumpUntil(ready: () => boolean, stepMs = 0, maxRealMs = 10_000): Promise<void> {
+  const start = realNow();
+  while (!ready() && realNow() - start < maxRealMs) {
     await vi.advanceTimersByTimeAsync(stepMs);
+    // One fake-timer round yields a single event-loop turn, and crypto.subtle
+    // resolves off the loop (the threadpool), so a loaded runner needs real
+    // time between rounds, not more rounds.
+    await new Promise<void>((resolve) => realSetTimeout(resolve, 1));
   }
 }
 
@@ -440,7 +444,7 @@ describe('RelayChannel - v2 in-band rekey', () => {
     // Stepped rather than one REKEY_TIMEOUT_MS jump: a jump taken before the
     // fallback timer is armed (the hello2 crypto is real async work) would
     // not count toward it.
-    await pumpUntil(() => opened, 100, (REKEY_TIMEOUT_MS / 100) * 4);
+    await pumpUntil(() => opened, 100);
     expect(opened).toBe(true);
     expect(channel.readyState).toBe(RelayChannel.OPEN);
 
