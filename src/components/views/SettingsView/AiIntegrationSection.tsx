@@ -44,7 +44,7 @@ const CAPABILITY_ICONS: Record<CapabilityKey, ReactNode> = {
 // the real token's length so the mask alone never leaks a size hint.
 const TOKEN_MASK = '•'.repeat(24);
 
-type TFunction = (key: string, params?: Record<string, string | number>) => string;
+type TFunction = ReturnType<typeof useTranslation>['t'];
 
 // Splits the translated hint on the literal {guide} token and injects the
 // docs link there, same idiom as buildTelemetryConsentDescription.
