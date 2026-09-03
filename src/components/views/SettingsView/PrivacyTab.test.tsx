@@ -104,6 +104,48 @@ describe('PrivacyTab - Nexus 2 import entry visibility', () => {
   });
 });
 
+describe('PrivacyTab - local data store row grouping', () => {
+  // Finds the nearest ancestor that contains both nodes, without depending on
+  // the CSS module's hashed class names.
+  function commonAncestor(a: Element, b: Element): Element {
+    let node: Element | null = a;
+    while (node) {
+      if (node.contains(b)) return node;
+      node = node.parentElement;
+    }
+    throw new Error('no common ancestor');
+  }
+
+  it('keeps each row and its own clear-data line out of its siblings\' group, so the section box divider falls between rows', async () => {
+    vi.mocked(fetchNexus2Status).mockResolvedValue(status({ importAvailable: false }));
+    renderTab();
+
+    const screenTimeLabel = await screen.findByText('settings.screentime.title');
+    const fpsLabel = screen.getByText('settings.localDataStore.fps.label');
+    const historyLabel = screen.getByText('settings.localDataStore.monitoringHistory.label');
+    const clearButtons = screen.getAllByRole('button', { name: 'settings.localDataStore.clearButton' });
+    expect(clearButtons).toHaveLength(3);
+
+    const screenTimeGroup = commonAncestor(screenTimeLabel, clearButtons[0]);
+    const fpsGroup = commonAncestor(fpsLabel, clearButtons[1]);
+    const historyGroup = commonAncestor(historyLabel, clearButtons[2]);
+
+    // Each row's own group holds only that row's label and clear button -
+    // the bug had all three rows and clear buttons as siblings of ONE shared
+    // box, so this ancestor would have been the box itself for every pair.
+    expect(screenTimeGroup.contains(fpsLabel)).toBe(false);
+    expect(screenTimeGroup.contains(clearButtons[1])).toBe(false);
+    expect(fpsGroup.contains(historyLabel)).toBe(false);
+    expect(fpsGroup.contains(clearButtons[2])).toBe(false);
+
+    // The three groups are direct siblings under the same section box, so
+    // the box's `> * + *` divider rule lands between them.
+    expect(screenTimeGroup.parentElement).toBe(fpsGroup.parentElement);
+    expect(fpsGroup.parentElement).toBe(historyGroup.parentElement);
+    expect(screenTimeGroup.parentElement?.children).toHaveLength(3);
+  });
+});
+
 describe('PrivacyTab - shared import dialog reuse', () => {
   it('opens the shared import dialog on the Nexus 2 source, closed by default', async () => {
     vi.mocked(fetchNexus2Status).mockResolvedValue(status());

@@ -73,82 +73,91 @@ export function LocalDataStoreSection({ serviceOnline }: LocalDataStoreSectionPr
   return (
     <>
       <SettingsSection title={t('settings.localDataStore.title')}>
-        <SettingRow
-          label={t('settings.screentime.title')}
-          icon={<Hourglass />}
-          iconLeading="subtle"
-          anchorId="set-screentime"
-          description={t('settings.screentime.trackingDesc')}
-        >
-          {screenTimeOn !== null && (
-            <Toggle
-              checked={screenTimeOn}
-              onChange={toggleScreenTime}
-              disabled={!serviceOnline || togglingScreenTime}
-              ariaLabel={t('settings.screentime.tracking')}
-            />
-          )}
-        </SettingRow>
-        <div className={styles.clearRow} data-settings-aside="true">
-          <Button
-            type="button"
-            tone="danger"
-            size="sm"
-            icon={<Trash2 size={14} />}
-            onClick={() => setClearScope('screenTime')}
-            disabled={!serviceOnline}
+        {/* One box child per row: its clear-data line is part of the row, not
+            a separate setting, so the box's divider lands between rows
+            instead of between a row and its own clear-data line. */}
+        <div className={styles.rowGroup}>
+          <SettingRow
+            label={t('settings.screentime.title')}
+            icon={<Hourglass />}
+            iconLeading="subtle"
+            anchorId="set-screentime"
+            description={t('settings.screentime.trackingDesc')}
           >
-            {t('settings.localDataStore.clearButton')}
-          </Button>
+            {screenTimeOn !== null && (
+              <Toggle
+                checked={screenTimeOn}
+                onChange={toggleScreenTime}
+                disabled={!serviceOnline || togglingScreenTime}
+                ariaLabel={t('settings.screentime.tracking')}
+              />
+            )}
+          </SettingRow>
+          <div className={styles.clearRow}>
+            <Button
+              type="button"
+              tone="danger"
+              size="sm"
+              icon={<Trash2 size={14} />}
+              onClick={() => setClearScope('screenTime')}
+              disabled={!serviceOnline}
+            >
+              {t('settings.localDataStore.clearButton')}
+            </Button>
+          </div>
         </div>
 
-        <SettingRow
-          label={t('settings.localDataStore.fps.label')}
-          icon={<Film />}
-          iconLeading="subtle"
-          anchorId="set-fps-tracking"
-          description={t('settings.localDataStore.fps.description')}
-        >
-          {fpsOn !== null && (
-            <Toggle
-              checked={fpsOn}
-              onChange={toggleFps}
-              disabled={!serviceOnline || togglingFps}
-              ariaLabel={t('settings.localDataStore.fps.label')}
-            />
-          )}
-        </SettingRow>
-        <div className={styles.clearRow} data-settings-aside="true">
-          <Button
-            type="button"
-            tone="danger"
-            size="sm"
-            icon={<Trash2 size={14} />}
-            onClick={() => setClearScope('fps')}
-            disabled={!serviceOnline}
+        <div className={styles.rowGroup}>
+          <SettingRow
+            label={t('settings.localDataStore.fps.label')}
+            icon={<Film />}
+            iconLeading="subtle"
+            anchorId="set-fps-tracking"
+            description={t('settings.localDataStore.fps.description')}
           >
-            {t('settings.localDataStore.clearButton')}
-          </Button>
+            {fpsOn !== null && (
+              <Toggle
+                checked={fpsOn}
+                onChange={toggleFps}
+                disabled={!serviceOnline || togglingFps}
+                ariaLabel={t('settings.localDataStore.fps.label')}
+              />
+            )}
+          </SettingRow>
+          <div className={styles.clearRow}>
+            <Button
+              type="button"
+              tone="danger"
+              size="sm"
+              icon={<Trash2 size={14} />}
+              onClick={() => setClearScope('fps')}
+              disabled={!serviceOnline}
+            >
+              {t('settings.localDataStore.clearButton')}
+            </Button>
+          </div>
         </div>
 
-        <SettingRow
-          label={t('settings.localDataStore.monitoringHistory.label')}
-          icon={<LineChart />}
-          iconLeading="subtle"
-          anchorId="set-monitoring-history-purge"
-          description={t('settings.localDataStore.monitoringHistory.description')}
-        />
-        <div className={styles.clearRow} data-settings-aside="true">
-          <Button
-            type="button"
-            tone="danger"
-            size="sm"
-            icon={<Trash2 size={14} />}
-            onClick={() => setClearScope('monitoringHistory')}
-            disabled={!serviceOnline}
-          >
-            {t('settings.localDataStore.clearButton')}
-          </Button>
+        <div className={styles.rowGroup}>
+          <SettingRow
+            label={t('settings.localDataStore.monitoringHistory.label')}
+            icon={<LineChart />}
+            iconLeading="subtle"
+            anchorId="set-monitoring-history-purge"
+            description={t('settings.localDataStore.monitoringHistory.description')}
+          />
+          <div className={styles.clearRow}>
+            <Button
+              type="button"
+              tone="danger"
+              size="sm"
+              icon={<Trash2 size={14} />}
+              onClick={() => setClearScope('monitoringHistory')}
+              disabled={!serviceOnline}
+            >
+              {t('settings.localDataStore.clearButton')}
+            </Button>
+          </div>
         </div>
       </SettingsSection>
 

@@ -17,6 +17,7 @@ import {
 import { useTopic } from '../../../hooks/useMultiplexSocket';
 import { useTranslation } from '../../../lib/i18n';
 import { DEV_TOOLS } from '../../../lib/devTools';
+import { AI_INTEGRATION_GUIDE_URL } from '../../../lib/externalLinks';
 import { formatBytes } from '../DiagnosticsView/diagnosticsHelpers';
 import { DEFAULT_NUMBER_FORMAT, type NumberFormat } from '../../../lib/units';
 import { isAssistantTransient, progressPercent } from './assistantProgress';
@@ -42,6 +43,23 @@ const CAPABILITY_ICONS: Record<CapabilityKey, ReactNode> = {
 // Decorative placeholder for the masked token - its length is unrelated to
 // the real token's length so the mask alone never leaks a size hint.
 const TOKEN_MASK = '•'.repeat(24);
+
+type TFunction = (key: string, params?: Record<string, string | number>) => string;
+
+// Splits the translated hint on the literal {guide} token and injects the
+// docs link there, same idiom as buildTelemetryConsentDescription.
+function buildAiHint(t: TFunction): ReactNode {
+  const [before, after] = t('settings.ai.hint').split('{guide}');
+  return (
+    <>
+      {before}
+      <a href={AI_INTEGRATION_GUIDE_URL} target="_blank" rel="noopener noreferrer">
+        {t('settings.ai.guideLink')}
+      </a>
+      {after}
+    </>
+  );
+}
 
 /**
  * "AI Integration" settings: the master MCP-endpoint toggle plus, once
@@ -398,7 +416,7 @@ export function AiIntegrationSection({ serviceOnline, numberFormat = DEFAULT_NUM
                   <InfoRow label={t('settings.ai.error.label')} value={status.lastError} tone="bad" />
                 )}
               </InfoList>
-              <p className={styles.note}>{t('settings.ai.hint')}</p>
+              <p className={styles.note}>{buildAiHint(t)}</p>
 
               {assistant !== null && (
                 <>

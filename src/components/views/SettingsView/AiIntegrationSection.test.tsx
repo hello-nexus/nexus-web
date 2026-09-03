@@ -124,6 +124,16 @@ describe('AiIntegrationSection', () => {
     expect(screen.queryByText('secret-token')).not.toBeInTheDocument();
   });
 
+  it('renders the AI Integration guide link with the docs URL when enabled', async () => {
+    vi.mocked(fetchAiStatus).mockResolvedValue(makeStatus({ enabled: true }));
+    render(<AiIntegrationSection serviceOnline />);
+
+    const guideLink = await screen.findByRole('link', { name: 'settings.ai.guideLink' });
+    expect(guideLink).toHaveAttribute('href', 'https://hellonexus.com/docs/guides/monitoring/ai-integration');
+    expect(guideLink).toHaveAttribute('target', '_blank');
+    expect(guideLink).toHaveAttribute('rel', 'noopener noreferrer');
+  });
+
   it('reveals the token on click and re-masks on a second click', async () => {
     vi.mocked(fetchAiStatus).mockResolvedValue(makeStatus({ enabled: true, token: 'secret-token' }));
     render(<AiIntegrationSection serviceOnline />);
