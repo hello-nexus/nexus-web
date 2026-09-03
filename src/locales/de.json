@@ -377,6 +377,7 @@
   "cooling.fan.selectOnly": "Nur {name} auswählen",
   "cooling.fanRole.generic": "Normaler Lüfter",
   "cooling.fanRole.picker": "Lüftergerät markieren",
+  "cooling.immersive.customActive": "Eine benutzerdefinierte Lüftereinstellung ist aktiv. Verwalten Sie sie in der Desktop-App.",
   "cooling.label.cpu": "CPU",
   "cooling.label.curveEditor": "Kurven-Editor",
   "cooling.label.curves": "Kurven",

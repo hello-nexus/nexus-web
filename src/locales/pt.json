@@ -377,6 +377,7 @@
   "cooling.fan.selectOnly": "Selecionar apenas {name}",
   "cooling.fanRole.generic": "Ventoinha genérica",
   "cooling.fanRole.picker": "Definir dispositivo da ventoinha",
+  "cooling.immersive.customActive": "Está ativa uma configuração de ventoinhas personalizada. Faça a sua gestão na aplicação de computador.",
   "cooling.label.cpu": "CPU",
   "cooling.label.curveEditor": "Editor de curva",
   "cooling.label.curves": "Curvas",

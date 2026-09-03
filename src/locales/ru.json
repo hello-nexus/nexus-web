@@ -379,6 +379,7 @@
   "cooling.fan.selectOnly": "Выбрать только {name}",
   "cooling.fanRole.generic": "Обычный вентилятор",
   "cooling.fanRole.picker": "Указать устройство вентилятора",
+  "cooling.immersive.customActive": "Активна пользовательская настройка вентиляторов. Управляйте ею в десктопном приложении.",
   "cooling.label.cpu": "ЦП",
   "cooling.label.curveEditor": "Редактор кривой",
   "cooling.label.curves": "Кривые",

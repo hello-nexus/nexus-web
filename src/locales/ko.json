@@ -377,6 +377,7 @@
   "cooling.fan.selectOnly": "{name}만 선택",
   "cooling.fanRole.generic": "일반 팬",
   "cooling.fanRole.picker": "팬 장치 지정",
+  "cooling.immersive.customActive": "사용자 정의 팬 설정이 활성화되어 있습니다. 데스크톱 앱에서 관리하세요.",
   "cooling.label.cpu": "CPU",
   "cooling.label.curveEditor": "커브 편집기",
   "cooling.label.curves": "커브",

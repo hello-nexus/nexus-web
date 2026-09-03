@@ -379,6 +379,7 @@
   "cooling.fan.selectOnly": "Zaznacz tylko {name}",
   "cooling.fanRole.generic": "Zwykły wentylator",
   "cooling.fanRole.picker": "Ustaw urządzenie wentylatora",
+  "cooling.immersive.customActive": "Aktywna jest własna konfiguracja wentylatorów. Zarządzaj nią w aplikacji na komputer.",
   "cooling.label.cpu": "CPU",
   "cooling.label.curveEditor": "Edytor krzywej",
   "cooling.label.curves": "Krzywe",

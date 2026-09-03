@@ -377,6 +377,7 @@
   "cooling.fan.selectOnly": "Sélectionner uniquement {name}",
   "cooling.fanRole.generic": "Ventilateur générique",
   "cooling.fanRole.picker": "Définir l'appareil du ventilateur",
+  "cooling.immersive.customActive": "Une configuration de ventilateurs personnalisée est active. Gérez-la depuis l'application de bureau.",
   "cooling.label.cpu": "CPU",
   "cooling.label.curveEditor": "Editeur de courbe",
   "cooling.label.curves": "Courbes",

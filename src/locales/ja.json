@@ -377,6 +377,7 @@
   "cooling.fan.selectOnly": "{name} のみを選択",
   "cooling.fanRole.generic": "汎用ファン",
   "cooling.fanRole.picker": "ファンのデバイスを設定",
+  "cooling.immersive.customActive": "カスタムのファン設定が有効です。デスクトップアプリから管理してください。",
   "cooling.label.cpu": "CPU",
   "cooling.label.curveEditor": "カーブエディター",
   "cooling.label.curves": "カーブ",

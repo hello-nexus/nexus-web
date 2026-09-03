@@ -377,6 +377,7 @@
   "cooling.fan.selectOnly": "Select only {name}",
   "cooling.fanRole.generic": "Generic fan",
   "cooling.fanRole.picker": "Mark fan device",
+  "cooling.immersive.customActive": "A custom fan setup is active. Manage it from the desktop app.",
   "cooling.label.cpu": "CPU",
   "cooling.label.curveEditor": "Curve Editor",
   "cooling.label.curves": "Curves",
