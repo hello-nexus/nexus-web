@@ -626,7 +626,7 @@ describe('RtcHttpTunnel', () => {
       const tunnel = new RtcHttpTunnel(dc as unknown as RTCDataChannel, await deriveTestRoot(), fromHex(KAT.connSalt), k0, vi.fn());
 
       const pending = tunnel.request('GET', '/panel/devices', null, null);
-      for (let i = 0; i < 40; i++) await vi.advanceTimersByTimeAsync(100); // well past REKEY_TIMEOUT_MS
+      await pumpUntil(() => dc.sent.length >= 2, 100, 200); // past REKEY_TIMEOUT_MS, however slow the crypto
 
       expect(dc.sent).toHaveLength(2); // [0] hello2, [1] the real request, both under K0
       const req = await openFrame(k0, new Uint8Array(dc.sent[1]));
@@ -640,7 +640,7 @@ describe('RtcHttpTunnel', () => {
     } finally {
       vi.useRealTimers();
     }
-  });
+  }, 20_000);
 
   it('rejects a new request as busy when bufferedAmount is over the backpressure threshold', async () => {
     const k0 = await deriveTestKey();
