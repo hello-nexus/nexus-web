@@ -112,18 +112,35 @@ describe('CoolingTouch', () => {
     expect(screen.getByText('cooling.status.gpu')).toBeInTheDocument();
   });
 
-  it('shows the pinned curve editor with the selector chips (page layout)', async () => {
+  // Two tabs from the lighting immersive's shared editor shell. Curves leads,
+  // so a fresh open lands on the graph.
+  it('splits the editor into a Devices and a Curves tab, opening on Curves', async () => {
+    renderTouch();
+    const devicesTab = await screen.findByRole('tab', { name: 'lighting.rightPane.devices' });
+    const curvesTab = screen.getByRole('tab', { name: 'cooling.label.curves' });
+    expect(curvesTab).toHaveAttribute('aria-selected', 'true');
+    expect(devicesTab).toHaveAttribute('aria-selected', 'false');
+    // Cooling has no third pane to tune, unlike lighting.
+    expect(screen.getAllByRole('tab')).toHaveLength(2);
+  });
+
+  it('shows the curve selector above the graph, over the curve options', async () => {
     renderTouch();
     // The selected curve's chip carries aria-current; the dashed add chip and
     // the curve-type radio chips come from the shared pinned CurveCard.
     const chip = await screen.findByRole('button', { name: 'My Graph Curve' });
     await waitFor(() => expect(chip).toHaveAttribute('aria-current', 'true'));
-    expect(screen.getByRole('button', { name: /cooling.curves.add/ })).toBeInTheDocument();
-    expect(screen.getByRole('radiogroup', { name: 'cooling.curve.type.label' })).toBeInTheDocument();
+    const addChip = screen.getByRole('button', { name: /cooling.curves.add/ });
+    const options = screen.getByRole('radiogroup', { name: 'cooling.curve.type.label' });
+    expect(options).toBeInTheDocument();
+    // Document order is the layout contract: chips first, then the card.
+    expect(chip.compareDocumentPosition(options) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(addChip.compareDocumentPosition(options) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it('lists connected fans beside the curve editor and hides unresponsive hardware', async () => {
+  it('lists connected fans on the Devices tab and hides unresponsive hardware', async () => {
     renderTouch();
+    fireEvent.click(await screen.findByRole('tab', { name: 'lighting.rightPane.devices' }));
     expect(await screen.findByText('CPU Fan')).toBeInTheDocument();
     expect(screen.getByText('Case Fan')).toBeInTheDocument();
     expect(screen.queryByText('Dead Header')).toBeNull();
@@ -150,6 +167,7 @@ describe('CoolingTouch', () => {
       ],
     } as Awaited<ReturnType<typeof fetchFanChannels>>);
     renderTouch();
+    fireEvent.click(await screen.findByRole('tab', { name: 'lighting.rightPane.devices' }));
     const groupToggle = await screen.findByRole('button', { name: 'HYTE NP50' });
     expect(groupToggle).toBeInTheDocument();
     expect(await screen.findByText('Hub Fan 1')).toBeInTheDocument();
