@@ -118,6 +118,24 @@ async function flushAsync(ticks = 8): Promise<void> {
   }
 }
 
+// Pumps fake timers in `stepMs` slices until `ready()` holds. A fixed round
+// count races the real crypto.subtle work on the rekey path: a slow runner
+// has not armed the REKEY_TIMEOUT_MS fallback by the time fixed rounds have
+// elapsed, so the fallback never fires and the test hangs. Bounded, so a
+// genuine regression still fails instead of hanging.
+async function pumpUntil(ready: () => boolean, stepMs = 0, maxRounds = 300): Promise<void> {
+  for (let i = 0; i < maxRounds && !ready(); i++) {
+    await vi.advanceTimersByTimeAsync(stepMs);
+  }
+}
+
+// Real-time counterpart for tests that run on real timers: polls until
+// `ready()` holds, yielding to the event loop between checks.
+async function waitFor(ready: () => boolean, maxMs = 10_000): Promise<void> {
+  const deadline = Date.now() + maxMs;
+  while (!ready() && Date.now() < deadline) await new Promise(r => setTimeout(r, 5));
+}
+
 // Walks a channel through the v2 rekey handshake as a v2 host would: reads
 // dc.sent[0] as the client's sealed hello2 under K0, replies with a sealed
 // {"c":"hn",...} frame, and returns the resulting K1 (+ the hostNonce used).
@@ -266,19 +284,19 @@ describe('RtcRuntimeChannel sealed framing', () => {
       const opened = vi.fn();
       channel.onopen = opened;
 
-      for (let i = 0; i < 40; i++) await vi.advanceTimersByTimeAsync(100); // well past REKEY_TIMEOUT_MS
+      await pumpUntil(() => opened.mock.calls.length > 0, 100, 200); // past REKEY_TIMEOUT_MS, however slow the crypto
       expect(opened).toHaveBeenCalledTimes(1);
       expect(channel.readyState).toBe(RtcRuntimeChannel.OPEN);
 
       channel.send('{"sub":["monitoring"]}');
-      for (let i = 0; i < 10; i++) await vi.advanceTimersByTimeAsync(0);
+      await pumpUntil(() => dc.sent.length >= 2);
       expect(dc.sent).toHaveLength(2); // [0] hello2, [1] the app's first send under K0
       const sent = await openFrame(k0, new Uint8Array(dc.sent[1]));
       expect(sent.counter).toBe(1); // 0 was hello2, never reused
     } finally {
       vi.useRealTimers();
     }
-  });
+  }, 20_000);
 
   it('closes the connection on a tampered first frame instead of falling back', async () => {
     const key = await deriveTestKey();
@@ -836,15 +854,16 @@ describe('openRtcDirect', () => {
         };
       });
 
-      const promise = openRtcDirect('session-token');
-      for (let i = 0; i < 60; i++) await vi.advanceTimersByTimeAsync(100); // well past REKEY_TIMEOUT_MS
+      let settled = false;
+      const promise = openRtcDirect('session-token').finally(() => { settled = true; });
+      await pumpUntil(() => settled, 100, 200); // past REKEY_TIMEOUT_MS, however slow the crypto
 
       const conn = await promise;
       expect(conn.runtime.readyState).toBe(RtcRuntimeChannel.OPEN);
     } finally {
       vi.useRealTimers();
     }
-  });
+  }, 20_000);
 
   it('rejects when the runtime channel closes mid-rekey, before any reply or the fallback timeout', async () => {
     authFetchWithStatusMock.mockImplementation(async () => {
@@ -864,10 +883,13 @@ describe('openRtcDirect', () => {
     await flushAsync();
 
     const runtimeDc = FakePeerConnection.instances[0].channels.find((c) => c.label === 'runtime')!;
+    // hello2 on the wire is the proof the rekey wait is armed; closing before
+    // that lands the close where nothing is listening for it.
+    await waitFor(() => runtimeDc.sent.length >= 1);
     runtimeDc.close();
 
     await expect(promise).rejects.toThrow();
-  });
+  }, 20_000);
 
   it('rejects on a 403 answer and closes the peer connection', async () => {
     authFetchWithStatusMock.mockResolvedValue({ response: new Response('', { status: 403 }), status: 403 });

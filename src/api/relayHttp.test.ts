@@ -361,7 +361,7 @@ describe('relayFetch v2 in-band rekey', () => {
     expect(res.status).toBe(200);
     expect(MockRelaySocket.receivedFrames[0].plaintext).toBe(REKEY_HELLO2);
     expect(MockRelaySocket.receivedFrames[1].counter).toBe(1); // continues from hello2's 0, never reused
-  });
+  }, 20_000);
 
   it('tears the tunnel down when an hn frame arrives after the handshake already settled (key desync)', async () => {
     await relayFetch(TOKEN, RELAY_URL, 'GET', '/panel/first'); // opens the tunnel and rekeys to K1

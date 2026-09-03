@@ -437,8 +437,10 @@ describe('RelayChannel - v2 in-band rekey', () => {
 
     expect(opened).toBe(false); // still waiting on the hn reply / timeout
 
-    await vi.advanceTimersByTimeAsync(REKEY_TIMEOUT_MS);
-    await pumpUntil(() => opened);
+    // Stepped rather than one REKEY_TIMEOUT_MS jump: a jump taken before the
+    // fallback timer is armed (the hello2 crypto is real async work) would
+    // not count toward it.
+    await pumpUntil(() => opened, 100, (REKEY_TIMEOUT_MS / 100) * 4);
     expect(opened).toBe(true);
     expect(channel.readyState).toBe(RelayChannel.OPEN);
 
@@ -449,7 +451,7 @@ describe('RelayChannel - v2 in-band rekey', () => {
     expect(frames).toHaveLength(2);
     const sent = await openFrame(k0, new Uint8Array(frames[1]));
     expect(sent.counter).toBe(1); // 0 was hello2, never reused
-  });
+  }, 20_000);
 
   it('closes the channel on a tampered first host frame instead of falling back', async () => {
     globalThis.WebSocket = FakeWebSocket as unknown as typeof WebSocket;
