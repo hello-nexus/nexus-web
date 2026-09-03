@@ -201,7 +201,12 @@ export type PanelDeviceFetchResult =
 // auto-persist loop when the kiosk holds an id the server no longer knows.
 export async function fetchPanelDeviceWithStatus(id: string): Promise<PanelDeviceFetchResult> {
   if (isTunnelActive()) {
-    const { response, status } = await relayRequestWithStatus('GET', `/panel/devices/${encodeURIComponent(id)}`);
+    // Bounded: the panel's loading gate is up until this settles, and an
+    // unreachable PC leaves the tunnel request pending indefinitely. On
+    // timeout the caller gets status 0 and stops auto-persisting, so the
+    // default layout it is still holding cannot overwrite the stored one.
+    const { response, status } = await relayRequestWithStatus(
+      'GET', `/panel/devices/${encodeURIComponent(id)}`, undefined, { timeoutMs: RELAY_BOOT_TIMEOUT_MS });
     if (response && response.ok) return { found: true, record: (await response.json()) as PanelDeviceRecord };
     return { found: false, status };
   }

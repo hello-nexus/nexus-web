@@ -53,6 +53,43 @@ describe('usePanelLayout device-missing guard', () => {
     expect(patchMock).not.toHaveBeenCalled();
   });
 
+  it('suppresses patch when the fetch never reached the record (relay timeout)', async () => {
+    // status 0 is the bounded relay tunnel giving up. `layout` is still the
+    // local default at that point, so persisting would overwrite whatever the
+    // user actually has stored on the PC - data loss on a slow-but-alive
+    // tunnel, where the follow-up PATCH succeeds.
+    fetchMock.mockResolvedValue({ found: false, status: 0 });
+
+    const { result } = renderHook(() => usePanelLayout('phone-id', 'phone'));
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+    expect(result.current.deviceMissing).toBe(true);
+
+    act(() => {
+      result.current.setLayout(defaultLayoutForSurface('phone'));
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+
+    expect(patchMock).not.toHaveBeenCalled();
+  });
+
+  it('suppresses patch when the fetch throws', async () => {
+    fetchMock.mockRejectedValue(new Error('offline'));
+
+    const { result } = renderHook(() => usePanelLayout('phone-id', 'phone'));
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+
+    act(() => {
+      result.current.setLayout(defaultLayoutForSurface('phone'));
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+
+    expect(patchMock).not.toHaveBeenCalled();
+  });
+
   it('persists layout normally when the device exists', async () => {
     const liveRecord = {
       id: 'live',
