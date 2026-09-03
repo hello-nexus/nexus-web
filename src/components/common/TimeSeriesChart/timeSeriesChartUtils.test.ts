@@ -18,6 +18,8 @@ import {
   valueDomain,
   type TimeSeriesPoint,
   type TimeSeriesSeries,
+  formatTooltipTimestampParts,
+  wheelZoomFactor,
 } from './timeSeriesChartUtils';
 
 function pt(t: number, avg: number, max = avg): TimeSeriesPoint {
@@ -355,6 +357,96 @@ describe('formatTooltipTimestamp', () => {
   it('includes seconds when stepSeconds is sub-minute', () => {
     const t = new Date(2026, 6, 8, 14, 32, 15).getTime();
     expect(formatTooltipTimestamp(t, sameDayNowMs, 'system', 'en-US', 1)).toMatch(/:\d{2}:\d{2}/);
+  });
+});
+
+describe('formatTooltipTimestampParts', () => {
+  const nowMs = new Date('2026-07-08T12:00:00Z').getTime();
+
+  it('includes minutes precision regardless of a coarser axis-tick format', () => {
+    const t = new Date('2026-06-10T14:32:00Z').getTime();
+    expect(formatTooltipTimestampParts(t, nowMs, 'system', 'en-US').time).toMatch(/\d{1,2}:\d{2}/);
+  });
+
+  it('omits the year when the timestamp falls in the same year as now', () => {
+    const t = new Date('2026-06-10T14:32:00Z').getTime();
+    expect(formatTooltipTimestampParts(t, nowMs, 'system', 'en-US').day).not.toContain('2026');
+  });
+
+  it('includes the year when the timestamp falls in a different year than now', () => {
+    const t = new Date('2024-06-10T14:32:00Z').getTime();
+    expect(formatTooltipTimestampParts(t, nowMs, 'system', 'en-US').day).toContain('2024');
+  });
+
+  // The Units > Time format setting, not the browser locale, decides the hour
+  // cycle - an en-US user who picks 24-hour must not get AM/PM back.
+  it('honours the Time format setting over the locale default', () => {
+    const t = new Date('2026-06-10T14:32:00Z').getTime();
+    expect(formatTooltipTimestampParts(t, nowMs, '24h', 'en-US').time).not.toMatch(/[AP]M/i);
+    expect(formatTooltipTimestampParts(t, nowMs, '12h', 'de-DE').time).toMatch(/[AP]M/i);
+  });
+
+  it('formats according to the supplied locale', () => {
+    const t = new Date('2026-06-10T14:32:00Z').getTime();
+    const de = formatTooltipTimestampParts(t, nowMs, 'system', 'de-DE');
+    const en = formatTooltipTimestampParts(t, nowMs, 'system', 'en-US');
+    expect(de.day).not.toBe(en.day);
+  });
+
+  // Local-time constructors (not UTC ISO strings) so the same-day/
+  // different-day boundary is independent of the test runner's timezone,
+  // matching the getFullYear/getMonth/getDate (local) getters the
+  // implementation itself uses - same approach as formatBrushEdgeLabels'
+  // own tests in metricHistoryHelpers.test.ts.
+  const sameDayNowMs = new Date(2026, 6, 8, 12, 0, 0).getTime();
+
+  it('carries no day when the timestamp falls on the same calendar day as now', () => {
+    const t = new Date(2026, 6, 8, 9, 15, 0).getTime();
+    const formatted = formatTooltipTimestampParts(t, sameDayNowMs, 'system', 'en-US');
+    expect(formatted.day).toBeNull();
+    expect(formatted.time).toMatch(/\d{1,2}:\d{2}/);
+  });
+
+  it('carries the day, separate from the time, when the timestamp falls on a different calendar day than now, even within the same week', () => {
+    const t = new Date(2026, 6, 7, 9, 15, 0).getTime();
+    const formatted = formatTooltipTimestampParts(t, sameDayNowMs, 'system', 'en-US');
+    expect(formatted.day).toMatch(/Jul/);
+    expect(formatted.time).not.toMatch(/Jul/);
+  });
+
+  it('omits seconds by default (no stepSeconds supplied)', () => {
+    const t = new Date(2026, 6, 8, 14, 32, 15).getTime();
+    expect(formatTooltipTimestampParts(t, sameDayNowMs, 'system', 'en-US').time).not.toMatch(/:\d{2}:\d{2}/);
+  });
+
+  it('omits seconds when stepSeconds is 60 or coarser', () => {
+    const t = new Date(2026, 6, 8, 14, 32, 15).getTime();
+    expect(formatTooltipTimestampParts(t, sameDayNowMs, 'system', 'en-US', 60).time).not.toMatch(/:\d{2}:\d{2}/);
+  });
+
+  it('includes seconds when stepSeconds is sub-minute', () => {
+    const t = new Date(2026, 6, 8, 14, 32, 15).getTime();
+    expect(formatTooltipTimestampParts(t, sameDayNowMs, 'system', 'en-US', 1).time).toMatch(/:\d{2}:\d{2}/);
+  });
+});
+
+describe('wheelZoomFactor', () => {
+  it('widens on wheel down and narrows on wheel up, symmetrically', () => {
+    const out = wheelZoomFactor(100, 0);
+    const back = wheelZoomFactor(-100, 0);
+    expect(out).toBeGreaterThan(1);
+    expect(back).toBeLessThan(1);
+    expect(out * back).toBeCloseTo(1, 10);
+  });
+
+  it('scales a finer trackpad delta proportionally (a smaller step than one mouse notch)', () => {
+    expect(wheelZoomFactor(10, 0)).toBeGreaterThan(1);
+    expect(wheelZoomFactor(10, 0)).toBeLessThan(wheelZoomFactor(100, 0));
+  });
+
+  it('normalises line and page delta modes to pixels rather than treating them as pixel counts', () => {
+    expect(wheelZoomFactor(3, 1)).toBeGreaterThan(wheelZoomFactor(3, 0));
+    expect(wheelZoomFactor(1, 2)).toBeGreaterThan(wheelZoomFactor(1, 1));
   });
 });
 

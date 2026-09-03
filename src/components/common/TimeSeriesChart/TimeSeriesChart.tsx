@@ -10,7 +10,8 @@ import {
   GAP_MULTIPLIER,
   avgValueRange,
   clusterChartEvents,
-  formatTooltipTimestamp,
+  formatTooltipTimestampParts,
+  wheelZoomFactor,
   gapThresholdMs,
   medianSpacingMs,
   medianSpacingOfPoints,
@@ -161,6 +162,12 @@ export interface TimeSeriesChartProps {
    *  onRangeSelect, never this. Independent of onRangeSelect; either or both
    *  may be supplied. */
   onPointClick?: (t: number) => void;
+  /** Mouse wheel over the plot: `factor` (>1 on wheel down) is the scale to
+   *  apply to the visible window about `anchorT`, the time under the cursor.
+   *  Opt-in. Return true to consume the event (the page does not scroll);
+   *  false lets it fall through, e.g. once the window cannot zoom further.
+   *  Mostly-horizontal wheel motion is never offered. */
+  onWheelZoom?: (anchorT: number, factor: number) => boolean;
   /** Renders a thin event lane along the top of the chart, one marker per
    *  event. Omit (the default, `undefined`) to render no lane at all and
    *  keep the plot at its original layout, byte-identical to before this
@@ -224,7 +231,7 @@ const EVENT_CLUSTER_THRESHOLD_PX = EVENT_MARKER_SIZE;
 export function TimeSeriesChart({
   series, height = 260, valueFormat, xTickFormat, xTickCount = 5, yTickCount = 5,
   avgLabel, maxLabel, bands, showLegend = true, domain, tooltipExtra, yDomain,
-  fillGradient = false, hideSeriesRows = false, onRangeSelect, stepSeconds, tooltipHeaderExtra,
+  fillGradient = false, hideSeriesRows = false, onRangeSelect, stepSeconds, tooltipHeaderExtra, onWheelZoom,
   events, onEventClick, onAddEventAt, renderEventTooltip,
   yAxisSide = 'left', ribbons, selectedT, onPointClick, singleValueTooltip = false,
 }: TimeSeriesChartProps) {
@@ -242,6 +249,7 @@ export function TimeSeriesChart({
   // grows by the same amount pad.top did, cancelling out.
   const effectiveHeight = height + (hasEventsLane ? EVENT_LANE_HEIGHT : 0);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
   const [width, setWidth] = useState(440);
   const [hoverT, setHoverT] = useState<number | null>(null);
   // Clips the data marks to the plot rect so a point just outside a forced
@@ -503,6 +511,30 @@ export function TimeSeriesChart({
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [isDragging]);
 
+  // Wheel zoom, opt-in via onWheelZoom. A native non-passive listener:
+  // React registers its own `wheel` handlers passively, so the
+  // preventDefault that keeps the page from scrolling under the gesture
+  // only works from here. Registered once per svg mount and dispatched
+  // through a ref, so the per-tick `domain` prop does not churn the listener.
+  const wheelHandlerRef = useRef<(e: WheelEvent) => void>(() => {});
+  useLayoutEffect(() => {
+    wheelHandlerRef.current = (e: WheelEvent) => {
+      if (!onWheelZoom || Math.abs(e.deltaY) <= Math.abs(e.deltaX) || isDragging) return;
+      const svg = svgRef.current;
+      if (!svg) return;
+      const anchorT = pxToT(tToPx(e.clientX, svg.getBoundingClientRect()));
+      if (anchorT !== null && onWheelZoom(anchorT, wheelZoomFactor(e.deltaY, e.deltaMode))) e.preventDefault();
+    };
+  });
+  const wheelEnabled = onWheelZoom !== undefined && domainT !== null;
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg || !wheelEnabled) return;
+    const onWheel = (e: WheelEvent) => wheelHandlerRef.current(e);
+    svg.addEventListener('wheel', onWheel, { passive: false });
+    return () => svg.removeEventListener('wheel', onWheel);
+  }, [wheelEnabled]);
+
   if (!domainT) {
     return (
       <div ref={wrapRef} className={styles.chartWrap}>
@@ -512,6 +544,7 @@ export function TimeSeriesChart({
   }
 
   const hoverX = tooltip && !isDragging ? xFor(tooltip.t) : null;
+  const tooltipStamp = tooltip && !isDragging ? formatTooltipTimestampParts(tooltip.t, nowMs, timeFormat, language, stepSeconds) : null;
   const baselineY = yFor(minV);
   const selectionX0 = dragStartT !== null && dragCurT !== null ? Math.min(xFor(dragStartT), xFor(dragCurT)) : null;
   const selectionX1 = dragStartT !== null && dragCurT !== null ? Math.max(xFor(dragStartT), xFor(dragCurT)) : null;
@@ -542,6 +575,7 @@ export function TimeSeriesChart({
   return (
     <div ref={wrapRef} className={styles.chartWrap}>
       <svg
+        ref={svgRef}
         className={(onRangeSelect || onPointClick) ? `${styles.chart} ${styles.chartSelectable}` : styles.chart}
         width={width}
         height={effectiveHeight}
@@ -861,7 +895,10 @@ export function TimeSeriesChart({
       {tooltip && !isDragging && (
         <ChartHoverTooltip ref={tooltipRef}>
           <ChartTooltipHeader>
-            <span>{formatTooltipTimestamp(tooltip.t, nowMs, timeFormat, language, stepSeconds)}</span>
+            <span className={styles.tooltipStamp}>
+              <span>{tooltipStamp?.time}</span>
+              {tooltipStamp?.day && <span className={styles.tooltipDay}>{tooltipStamp.day}</span>}
+            </span>
             {tooltipHeaderExtra?.(tooltip.t)}
           </ChartTooltipHeader>
           {!hideSeriesRows && tooltip.rows.map(row => (

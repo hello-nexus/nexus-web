@@ -142,6 +142,7 @@ export function CoolingHistorySection({ history, episodes }: CoolingHistorySecti
             bands={bands}
             tooltipHeaderExtra={tooltipHeaderRpm ?? undefined}
             onRangeSelect={history.onChartDragSelect}
+            onWheelZoom={history.onChartWheelZoom}
             stepSeconds={history.stepSeconds}
             yAxisSide="right"
             singleValueTooltip

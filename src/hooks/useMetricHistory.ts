@@ -22,6 +22,10 @@ const VIEWPORT_REDECIMATE_MS = 60_000;
 // pause at least this long lets it through, upgrading the panned view to
 // freshly fetched fine data in place.
 const DRAG_FINE_REFRESH_MS = 180;
+// A wheel-zoom gesture is a synthetic brush drag (see onChartWheelZoom): its
+// 'end' fires this long after the last notch, so a burst of notches settles
+// into one fetch instead of one per notch.
+const WHEEL_SETTLE_MS = 250;
 
 const LIVE_TAIL_POLL_MS = 1_000;
 const LIVE_TAIL_MAX_POINTS = 50;
@@ -74,7 +78,7 @@ export interface UseMetricHistoryResult {
    *  appear once the effective step is sub-minute). */
   stepSeconds: number | null;
   /** Bumped only by an explicit navigation action - setRange, onBrushChange,
-   *  onChartDragSelect, backToLive, or retry. NOT bumped by a live-follow
+   *  onChartDragSelect, onChartWheelZoom, backToLive, or retry. NOT bumped by a live-follow
    *  tick sliding the same window, nor by the periodic silhouette/viewport
    *  redecimation timers refreshing the same window in place. A caller that
    *  needs to know "the window the user is looking at meaningfully changed"
@@ -90,6 +94,15 @@ export interface UseMetricHistoryResult {
   /** A drag-select directly on the hero chart - sets the chart window to the
    *  exact selection and re-derives a strip around it, going 'custom'. */
   onChartDragSelect: (from: number, to: number) => void;
+  /** A mouse-wheel notch over the hero chart - scales the chart window by
+   *  `factor` about `anchorT` (the time under the cursor) within the strip,
+   *  exactly as resizing the TimelineBrush box would; the strip and rangeKey
+   *  are untouched. Rendered as a drag (live pan of the fine snapshot,
+   *  frozen Y ceiling) that settles WHEEL_SETTLE_MS after the last notch.
+   *  Returns false when the notch changed nothing (box already at the floor
+   *  or filling the strip, or a brush drag is held), so the chart can let
+   *  the wheel fall through to the page. */
+  onChartWheelZoom: (anchorT: number, factor: number) => boolean;
   /** Stops the live edge from advancing (following goes false) without
    *  otherwise touching the box/strip - a plain chart click's own detach,
    *  the same live/scrubbed transition a TimelineBrush drag off the live
@@ -243,6 +256,21 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
     }
   }, []);
 
+  // Pending synthetic 'end' for a wheel-zoom gesture - reset by every notch,
+  // superseded by any real brush event (commitBoxPhase clears it), and
+  // cancelled with the drag-fine timer wherever the drag phase is force-ended.
+  const wheelSettleTimerRef = useRef<number | null>(null);
+  const clearWheelSettleTimer = useCallback(() => {
+    if (wheelSettleTimerRef.current !== null) {
+      window.clearTimeout(wheelSettleTimerRef.current);
+      wheelSettleTimerRef.current = null;
+    }
+  }, []);
+  const clearDragTimers = useCallback(() => {
+    clearDragFineTimer();
+    clearWheelSettleTimer();
+  }, [clearDragFineTimer, clearWheelSettleTimer]);
+
   useEffect(() => {
     mountedRef.current = true;
     return () => {
@@ -252,9 +280,9 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
       // survives) against leaving the ref stuck for any in-flight closure
       // still holding it.
       lastPhaseRef.current = 'end';
-      clearDragFineTimer();
+      clearDragTimers();
     };
-  }, [clearDragFineTimer]);
+  }, [clearDragTimers]);
 
   // TimelineBrush can unmount without ever emitting its own 'end' event:
   // MetricHistorySection swaps to its <EmptyState> message box on `error`
@@ -272,9 +300,9 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
     if (error || !supported) {
       lastPhaseRef.current = 'end';
       setDragging(false);
-      clearDragFineTimer();
+      clearDragTimers();
     }
-  }, [error, supported, clearDragFineTimer]);
+  }, [error, supported, clearDragTimers]);
 
   const bumpNow = useCallback((seriesList: readonly MetricHistorySeries[]) => {
     const t = newestT(seriesList);
@@ -635,7 +663,7 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
   const setRange = useCallback((key: PresetKey) => {
     lastPhaseRef.current = 'end';
     setDragging(false);
-    clearDragFineTimer();
+    clearDragTimers();
     setViewport(prev => {
       const next = viewportReducer(prev, { type: 'setRange', key, now: nowRef.current });
       // A wide preset (e.g. 7d) picked on a shorter-retention install must
@@ -645,12 +673,17 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
     setFetchEpoch(e => e + 1);
     setStripEpoch(e => e + 1);
     setViewportGeneration(g => g + 1);
-  }, [clearDragFineTimer]);
+  }, [clearDragTimers]);
 
-  const onBrushChange = useCallback((from: number, to: number, phase: 'drag' | 'end') => {
+  // The phase bookkeeping shared by a TimelineBrush event and a wheel-zoom
+  // notch, once the viewport itself has been dispatched: a 'drag' renders
+  // live off the fine snapshot and arms the paused-drag refetch, an 'end'
+  // cancels that and lets the settled viewport fetch run. Either supersedes
+  // a pending wheel settle.
+  const commitBoxPhase = useCallback((from: number, to: number, phase: 'drag' | 'end') => {
+    clearWheelSettleTimer();
     lastPhaseRef.current = phase;
     setDragging(phase === 'drag');
-    setViewport(prev => viewportReducer(prev, { type: 'brushChange', from, to, now: nowRef.current }));
     if (phase === 'drag') {
       // Live rendering while dragging (item 29): pan/clip the fine snapshot
       // (see renderFinePanSlice) - independent of the fetchEpoch bump below,
@@ -666,19 +699,47 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
     }
     setFetchEpoch(e => e + 1);
     setViewportGeneration(g => g + 1);
-  }, [renderFinePanSlice, scheduleDragFineRefresh, clearDragFineTimer]);
+  }, [clearWheelSettleTimer, renderFinePanSlice, scheduleDragFineRefresh, clearDragFineTimer]);
+
+  const onBrushChange = useCallback((from: number, to: number, phase: 'drag' | 'end') => {
+    setViewport(prev => viewportReducer(prev, { type: 'brushChange', from, to, now: nowRef.current }));
+    commitBoxPhase(from, to, phase);
+  }, [commitBoxPhase]);
+
+  const onChartWheelZoom = useCallback((anchorT: number, factor: number) => {
+    // A held TimelineBrush drag (a 'drag' phase that no wheel settle owns)
+    // keeps the box; a wheel settle firing under it would flip the phase to
+    // 'end' and reopen the settled-fetch gate mid-gesture.
+    if (lastPhaseRef.current === 'drag' && wheelSettleTimerRef.current === null) return false;
+    const action = { type: 'wheelZoom' as const, anchorT, factor, now: nowRef.current };
+    // Pre-advance the ref: notches can land faster than React commits, and
+    // each must compound on the previous one rather than re-derive the same
+    // step from a stale box. The commit effect re-syncs it to the state
+    // React actually settled on.
+    const next = viewportReducer(viewportRef.current, action);
+    if (next === viewportRef.current) return false;
+    viewportRef.current = next;
+    setViewport(prev => viewportReducer(prev, action));
+    commitBoxPhase(next.from, next.to, 'drag');
+    wheelSettleTimerRef.current = window.setTimeout(() => {
+      wheelSettleTimerRef.current = null;
+      const { from, to } = viewportRef.current;
+      commitBoxPhase(from, to, 'end');
+    }, WHEEL_SETTLE_MS);
+    return true;
+  }, [commitBoxPhase]);
 
   const onChartDragSelect = useCallback((from: number, to: number) => {
     lastPhaseRef.current = 'end';
     setDragging(false);
-    clearDragFineTimer();
+    clearDragTimers();
     setViewport(prev => viewportReducer(prev, {
       type: 'chartDragSelect', from, to, now: nowRef.current, retentionMs: retentionDaysRef.current * DAY_MS,
     }));
     setFetchEpoch(e => e + 1);
     setStripEpoch(e => e + 1);
     setViewportGeneration(g => g + 1);
-  }, [clearDragFineTimer]);
+  }, [clearDragTimers]);
 
   // No fetchEpoch/stripEpoch/viewportGeneration bump - the box/strip domain
   // is untouched (unlike setRange/onChartDragSelect/backToLive), so there is
@@ -686,19 +747,19 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
   const detach = useCallback(() => {
     lastPhaseRef.current = 'end';
     setDragging(false);
-    clearDragFineTimer();
+    clearDragTimers();
     setViewport(prev => viewportReducer(prev, { type: 'detach' }));
-  }, [clearDragFineTimer]);
+  }, [clearDragTimers]);
 
   const backToLive = useCallback(() => {
     lastPhaseRef.current = 'end';
     setDragging(false);
-    clearDragFineTimer();
+    clearDragTimers();
     setViewport(prev => viewportReducer(prev, { type: 'backToLive', now: nowRef.current }));
     setFetchEpoch(e => e + 1);
     setStripEpoch(e => e + 1);
     setViewportGeneration(g => g + 1);
-  }, [clearDragFineTimer]);
+  }, [clearDragTimers]);
 
   // Resetting error/supported (rather than calling loadSilhouette directly)
   // re-arms the gated silhouette-poll effect above, which fires its own
@@ -707,12 +768,12 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
   const retry = useCallback(() => {
     lastPhaseRef.current = 'end';
     setDragging(false);
-    clearDragFineTimer();
+    clearDragTimers();
     setSupported(true);
     setError(false);
     setFetchEpoch(e => e + 1);
     setViewportGeneration(g => g + 1);
-  }, [clearDragFineTimer]);
+  }, [clearDragTimers]);
 
   return {
     silhouette,
@@ -733,6 +794,7 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
     setRange,
     onBrushChange,
     onChartDragSelect,
+    onChartWheelZoom,
     detach,
     backToLive,
     retry,

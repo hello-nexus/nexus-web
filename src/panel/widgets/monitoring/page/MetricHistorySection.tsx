@@ -504,6 +504,7 @@ export function MetricHistorySection({
             tooltipExtra={tooltipExtra}
             tooltipHeaderExtra={tooltipHeaderTemp ?? undefined}
             onRangeSelect={history.onChartDragSelect}
+            onWheelZoom={history.onChartWheelZoom}
             stepSeconds={history.stepSeconds}
             yAxisSide="right"
             ribbons={ribbons}
