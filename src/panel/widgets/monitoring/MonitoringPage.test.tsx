@@ -1228,10 +1228,11 @@ describe('MonitoringPage', () => {
       fpsOverlayState = false;
     });
 
-    it('is off by default', () => {
+    it('is on by default', () => {
+      fpsOverlayState = true;
       render(<MonitoringPage serviceOnline={true} connectionState="online" tab="cpu" onTabChange={vi.fn()} />);
-      const toggle = screen.getByRole('button', { name: 'monitoring.fpsOverlay.show' });
-      expect(toggle).toHaveAttribute('aria-pressed', 'false');
+      const toggle = screen.getByRole('button', { name: 'monitoring.fpsOverlay.hide' });
+      expect(toggle).toHaveAttribute('aria-pressed', 'true');
     });
 
     it('persists the toggle through useUiSettings.update and reflects the new state', () => {

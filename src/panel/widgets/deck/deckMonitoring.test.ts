@@ -1,10 +1,16 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import {
-  DECK_MONITORING_CATEGORIES,
+  DECK_MONITORING_CATEGORIES, deckCategoryUsesExtras, deckCategoryUsesFps,
   monitoringFillFraction, monitoringFixedDomain, monitoringLineDomain, monitoringSensorKey, monitoringTileDomain, resolveMonitoringSensor,
 } from './deckMonitoring';
-import type { SensorState } from '../../../hooks/useSensors';
+import { DEVICE_OPTION_KEYS } from '../monitoring/sensorPicker';
+import { EMPTY_SENSOR_EXTRAS, type SensorExtras } from '../../../hooks/useSensorExtras';
+import type { HardwareSensor, SensorState } from '../../../hooks/useSensors';
+
+function sensor(id: string, name: string, type: string, value: number): HardwareSensor {
+  return { id, name, type, value, units: '', formatted: String(value), parent: { id: 'p', name: 'P' } };
+}
 
 function sensorState(overrides: Partial<SensorState> = {}): SensorState {
   return {
@@ -16,8 +22,25 @@ function sensorState(overrides: Partial<SensorState> = {}): SensorState {
 }
 
 describe('DECK_MONITORING_CATEGORIES', () => {
-  it('is exactly the v1 wire-contract category set', () => {
-    expect(DECK_MONITORING_CATEGORIES).toEqual(['quick', 'cpu', 'gpu', 'memory', 'motherboard', 'storage']);
+  it('offers every category the monitoring widget picker does, in the same order', () => {
+    expect(DECK_MONITORING_CATEGORIES).toEqual(DEVICE_OPTION_KEYS);
+  });
+
+  it('never offers the legacy fan category', () => {
+    expect(DECK_MONITORING_CATEGORIES).not.toContain('fan');
+  });
+});
+
+describe('deckCategoryUsesExtras', () => {
+  it('covers the extras-topic categories plus network', () => {
+    const usesExtras = DECK_MONITORING_CATEGORIES.filter(deckCategoryUsesExtras);
+    expect(usesExtras).toEqual(['memoryModule', 'network', 'battery', 'cooler', 'psu', 'embeddedController']);
+  });
+});
+
+describe('deckCategoryUsesFps', () => {
+  it('is true for fps alone', () => {
+    expect(DECK_MONITORING_CATEGORIES.filter(deckCategoryUsesFps)).toEqual(['fps']);
   });
 });
 
@@ -27,6 +50,14 @@ describe('monitoringSensorKey', () => {
   });
   it('falls back to "default" for an unset sensor id', () => {
     expect(monitoringSensorKey('quick', '')).toBe('quick::default');
+  });
+
+  // The widget's PerfSlot builds `network::Network Total` for a series summed
+  // from per-process rates; a deck key sums NIC throughput under the same
+  // name, so the two must not share one buffer.
+  it('scopes network away from the monitoring widget PerfSlot key', () => {
+    expect(monitoringSensorKey('network', 'Network Total')).toBe('deck-network::Network Total');
+    expect(monitoringSensorKey('network', 'Network Total')).not.toBe('network::Network Total');
   });
 });
 
@@ -38,11 +69,30 @@ describe('resolveMonitoringSensor', () => {
         { id: 'b', name: 'CPU Package', type: 'Temperature', value: 55, units: '°C', formatted: '55 °C', parent: { id: 'cpu', name: 'CPU' } },
       ],
     });
-    expect(resolveMonitoringSensor(sensors, 'cpu', 'b')?.name).toBe('CPU Package');
+    expect(resolveMonitoringSensor(sensors, 'cpu', 'b', [], [], EMPTY_SENSOR_EXTRAS)?.name).toBe('CPU Package');
   });
 
   it('returns undefined for an empty category array', () => {
-    expect(resolveMonitoringSensor(sensorState(), 'gpu', 'x')).toBeUndefined();
+    expect(resolveMonitoringSensor(sensorState(), 'gpu', 'x', [], [], EMPTY_SENSOR_EXTRAS)).toBeUndefined();
+  });
+
+  it('resolves an extras-topic category out of the passed extras', () => {
+    const extras: SensorExtras = {
+      ...EMPTY_SENSOR_EXTRAS,
+      memoryModules: [{ id: 'dimm0', name: 'DIMM 0', sensors: [sensor('d0', 'Temperature', 'Temperature', 41)] }],
+    };
+    expect(resolveMonitoringSensor(sensorState(), 'memoryModule', 'd0', [], [], extras)?.value).toBe(41);
+  });
+
+  it('resolves the NIC-summed network aggregate by name, the value the picker stores', () => {
+    const networkSensors = [sensor('network-total', 'Network Total', 'Rate', 2048)];
+    expect(resolveMonitoringSensor(sensorState(), 'network', 'Network Total', [], networkSensors, EMPTY_SENSOR_EXTRAS)?.value)
+      .toBe(2048);
+  });
+
+  it('resolves an fps sensor by name', () => {
+    const fpsSensors = [sensor('fps/current', 'FPS', 'Framerate', 144)];
+    expect(resolveMonitoringSensor(sensorState(), 'fps', 'FPS', fpsSensors, [], EMPTY_SENSOR_EXTRAS)?.value).toBe(144);
   });
 });
 

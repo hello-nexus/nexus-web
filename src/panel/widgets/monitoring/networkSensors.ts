@@ -1,4 +1,5 @@
 import type { NetworkData } from '../../../hooks/useNetworkMonitor';
+import type { ExtrasComponent } from '../../../hooks/useSensorExtras';
 import type { HardwareSensor } from '../../../hooks/useSensors';
 
 export const NETWORK_SENSOR_IN = 'Network In';
@@ -19,6 +20,55 @@ export function buildNetworkSensors(network: NetworkData): HardwareSensor[] {
     networkSensor('network-in', NETWORK_SENSOR_IN, network.totalRateIn),
     networkSensor('network-out', NETWORK_SENSOR_OUT, network.totalRateOut),
   ];
+}
+
+/**
+ * The same three aggregate sensors as buildNetworkSensors, summed instead
+ * over the NIC throughput sensors carried by the "extras" topic. This is the
+ * one network source nexus-web and nexus-service can read identically -
+ * nexus-service's SensorSnapshotResolver builds these three from the same
+ * components - so a deck monitoring key, whose physical Stream Deck twin is
+ * rendered service-side, resolves against these rather than
+ * buildNetworkSensors' web-only per-process sums.
+ *
+ * Direction comes from the sensor name, the only discriminator both sensor
+ * providers share: LibreHardwareMonitor names them "Download Speed" /
+ * "Upload Speed", LinuxSensorProvider "<iface> RX" / "<iface> TX". Adapters
+ * reporting no throughput sensor at all, or only a non-directional one
+ * ("Network Utilization"), yield [], which hides the category from a picker
+ * instead of offering three flat zeros.
+ */
+export function buildNicNetworkSensors(nics: readonly ExtrasComponent[]): HardwareSensor[] {
+  let bytesIn = 0;
+  let bytesOut = 0;
+  let matched = false;
+  for (const nic of nics) {
+    for (const sensor of nic.sensors ?? []) {
+      if (sensor.type !== 'Throughput') continue;
+      const direction = nicThroughputDirection(sensor.name);
+      if (!direction) continue;
+      // The adapter counts as present even when this reading is unusable, so
+      // one bad NIC hides neither the category nor the other adapters' rates.
+      matched = true;
+      const value = Number.isFinite(sensor.value) ? Math.max(0, sensor.value) : 0;
+      if (direction === 'in') bytesIn += value;
+      else bytesOut += value;
+    }
+  }
+  if (!matched) return [];
+  return [
+    networkSensor('network-total', NETWORK_SENSOR_TOTAL, bytesIn + bytesOut),
+    networkSensor('network-in', NETWORK_SENSOR_IN, bytesIn),
+    networkSensor('network-out', NETWORK_SENSOR_OUT, bytesOut),
+  ];
+}
+
+/** Kept behaviourally identical to nexus-service's SensorSnapshotResolver.NicThroughputDirection. */
+function nicThroughputDirection(name: string): 'in' | 'out' | null {
+  const lower = name.toLowerCase();
+  if (lower.includes('download') || lower.endsWith(' rx')) return 'in';
+  if (lower.includes('upload') || lower.endsWith(' tx')) return 'out';
+  return null;
 }
 
 export function networkSensorOptions(): { value: string; label: string }[] {

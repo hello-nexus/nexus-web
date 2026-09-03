@@ -359,17 +359,21 @@ export function maxAvgValue(series: readonly TimeSeriesSeries[]): number {
   return max;
 }
 
+type MaskableFpsSession = FpsRangeSession & { inProgress?: boolean };
+
 /** A point in time is "in a game" only while it falls inside a Frames
  *  session's own [startedUtcMs, endedUtcMs] - desktop apps present frames
- *  too, so an unmasked fps series would draw between games as well. */
-export function findFpsSessionAt(sessions: readonly FpsRangeSession[], t: number): FpsRangeSession | null {
-  return sessions.find(s => t >= s.startedUtcMs && t <= s.endedUtcMs) ?? null;
+ *  too, so an unmasked fps series would draw between games as well. A session
+ *  flagged in progress is open-ended: its reported end is only the snapshot
+ *  time of the last fetch. */
+export function findFpsSessionAt<T extends MaskableFpsSession>(sessions: readonly T[], t: number): T | null {
+  return sessions.find(s => t >= s.startedUtcMs && (s.inProgress === true || t <= s.endedUtcMs)) ?? null;
 }
 
 /** Drops every fps point that falls outside every known session's range. */
 export function maskFpsPointsToSessions(
   points: readonly MetricHistoryPoint[],
-  sessions: readonly FpsRangeSession[],
+  sessions: readonly MaskableFpsSession[],
 ): MetricHistoryPoint[] {
   if (sessions.length === 0) return [];
   return points.filter(p => findFpsSessionAt(sessions, p.t) !== null);
@@ -445,13 +449,12 @@ export function sumSilhouette(seriesList: readonly MetricHistorySeries[]): TimeS
 
 /**
  * The Storage tab-chip's live value: disk-read + disk-write summed at the
- * newest timestamp either series has in `series`. Disk has no push-driven
- * live feed (unlike cpu/gpu/memory's sensor topics or network's per-process
- * feed - see monitoringStore.ts). Called two ways in MonitoringPage: directly
- * on `history.series` while the Storage tab itself is active (its own
- * useMetricHistory instance already fetches disk-read/disk-write for the
- * chart, so this is free), and indirectly via useDiskIoRate's own dedicated
- * poll on every other tab (where `history.series` holds a different metric).
+ * newest timestamp either series has in `series`. Called directly on
+ * `history.series` in MonitoringPage while the Storage tab itself is active
+ * (its own useMetricHistory instance already fetches disk-read/disk-write
+ * for the chart, so this is free) - every other tab reads useDiskIoRate's
+ * own independently tracked value instead, since `history.series` there
+ * holds a different metric.
  */
 export function currentDiskRateBytesPerSec(series: readonly MetricHistorySeries[]): number {
   const read = series.find(s => s.id === 'disk-read');

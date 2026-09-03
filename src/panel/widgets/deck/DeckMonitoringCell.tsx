@@ -11,6 +11,9 @@
 import type { CSSProperties } from 'react';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useSensors } from '../../../hooks/useSensors';
+import { useSensorExtras } from '../../../hooks/useSensorExtras';
+import { useFpsSensors } from '../../../hooks/useFpsSensors';
+import { buildNicNetworkSensors } from '../monitoring/networkSensors';
 import { useSharedSensorHistory } from '../common/useSharedSensorHistory';
 import { usePanelPreview } from '../common/PanelPreviewContext';
 import { Sparkline } from '../../../components/common/Sparkline/Sparkline';
@@ -18,7 +21,7 @@ import { formatSensorValue } from '../monitoring/sensorValueFormat';
 import { splitFormatted } from '../monitoring/gauges/format';
 import { labelForDevice } from '../monitoring/MonitoringWidget';
 import {
-  DECK_MONITORING_DEFAULT_COLOR,
+  DECK_MONITORING_DEFAULT_COLOR, deckCategoryUsesExtras, deckCategoryUsesFps,
   monitoringFillFraction, monitoringFixedDomain, monitoringLineDomain, monitoringSensorKey, monitoringTileDomain, resolveMonitoringSensor,
 } from './deckMonitoring';
 import { resolveDeckTitleStyle, titleFontSizeCss } from './deckTitleStyle';
@@ -77,7 +80,15 @@ export function DeckMonitoringCell({ action, title }: DeckMonitoringCellProps) {
   const preview = usePanelPreview();
   const { monitoringTempUnit, numberFormat } = useUnitPrefs();
   const sensors = useSensors(!preview);
-  const sensor = preview ? undefined : resolveMonitoringSensor(sensors, action.category, action.sensor);
+  // Gated per category, not per mount: the "extras" topic makes the service
+  // gather DIMM/battery/PSU/NIC sensors, and the "fps" topic starts ETW
+  // capture, so a tile on any other category must not hold either open.
+  const extras = useSensorExtras(!preview && deckCategoryUsesExtras(action.category));
+  const fpsSensors = useFpsSensors(!preview && deckCategoryUsesFps(action.category));
+  const networkSensors = buildNicNetworkSensors(extras.nics);
+  const sensor = preview
+    ? undefined
+    : resolveMonitoringSensor(sensors, action.category, action.sensor, fpsSensors, networkSensors, extras);
   const rawValue = preview ? PREVIEW_VALUE : (sensor?.value ?? 0);
   const key = monitoringSensorKey(action.category, action.sensor);
   // Never pushes/subscribes while preview - see useSharedSensorHistory's

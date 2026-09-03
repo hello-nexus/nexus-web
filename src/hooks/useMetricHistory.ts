@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { fetchMonitoringHistory, type MetricHistorySeries } from '../api/monitoringHistory';
+import { fetchMonitoringHistory, type MetricHistoryResponse, type MetricHistorySeries } from '../api/monitoringHistory';
 import { MonitoringHistoryCache, sliceToWindow } from '../lib/monitoringHistoryCache';
+import { useMultiplex, useTopicCallback } from './useMultiplexSocket';
 import {
   initViewport,
   viewportReducer,
@@ -27,6 +28,10 @@ const LIVE_TAIL_MAX_POINTS = 50;
 // Fallback lookback for the very first tail poll (before any viewport
 // response has reported a newest point).
 const LIVE_TAIL_BOOTSTRAP_MS = 5_000;
+// Slack on the live-tail gap check - a push landing this far past the
+// expected next tick still counts as on-time, so per-tick server timing
+// jitter alone never triggers a gap-fill fetch.
+const TAIL_GAP_TOLERANCE_MS = 500;
 
 // A viewport left unchanged for this long warms the cache for the
 // immediately adjacent (same-width) windows, so a subsequent pan in either
@@ -141,6 +146,16 @@ function mergeTail(prev: readonly MetricHistorySeries[], tail: readonly MetricHi
   return [...merged, ...added];
 }
 
+/** The push topic broadcasts every tracked series regardless of which tab is
+ *  active - filters it down to only the ids/kinds the active seriesQuery
+ *  names, since a series outside that set has no business entering
+ *  `series`/`fineSnapshotRef`. An empty query names every series (matches
+ *  the server's own `series=` param contract). */
+function seriesMatchesQuery(s: MetricHistorySeries, query: string): boolean {
+  if (query === '') return true;
+  return query.split(',').some(token => token === s.id || token === s.kind);
+}
+
 /**
  * Owns the monitoring history chart's data: a decimated silhouette over the
  * current seek-bar STRIP (for the TimelineBrush minimap, refetched whenever
@@ -195,6 +210,11 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
   const silhouetteSeqRef = useRef(0);
   const viewportSeqRef = useRef(0);
   const tailSeqRef = useRef(0);
+  // True for the span between a runTailGapFill() call starting and its
+  // response committing - gates the reconnect effect below so it doesn't
+  // fire a redundant concurrent fetch while the bootstrap request (or a
+  // gap-detected one) is still in flight.
+  const tailInFlightRef = useRef(false);
   const lastLoadedTRef = useRef<number | null>(null);
   const cacheRef = useRef(new MonitoringHistoryCache());
   const silhouetteRef = useRef(silhouette);
@@ -531,50 +551,86 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
     return () => window.clearInterval(timer);
   }, [enabled, supported, error]);
 
-  // Live tail: poll just the new edge every second REGARDLESS of following -
-  // this is what keeps nowRef (the server time base) advancing while the
-  // user browses a detached historical window, so backToLive() and a brush
-  // drag back to the live edge re-anchor to the actual current time rather
-  // than whatever moment the user happened to detach at (nowRef would
-  // otherwise freeze the instant following goes false, since the box's own
-  // fetches keep re-requesting the same static historical window and never
-  // observe a newer point). The DISPLAYED series only merges the tail while
-  // following AND not mid-drag (read from viewportRef/lastPhaseRef, not the
-  // effect's own closed-over `viewport`, so this doesn't need following in
-  // its dependency array and therefore doesn't tear the interval down and
-  // rebuild it on every attach/detach) - a detached scrub must never have
-  // its history mutated out from under it, and a drag that keeps following
-  // true throughout (the box's right edge pinned at "now") must not have
-  // its own frozen-snapshot pan (renderFinePanSlice) stomped by a
-  // concurrent tail merge. The frozen snapshot itself still absorbs the
-  // tail regardless of drag phase, so it is current again the moment the
-  // drag ends. `to` is anchored to the server time base (lastLoadedTRef, or
-  // nowRef before any response has landed) rather than the client clock - a
-  // client/relay clock skew against the client's Date.now() could
-  // otherwise request a window where from > to and freeze the tail.
+  // Live tail: the service pushes 'monitoring/history-tail' once per second
+  // while subscribed. One HTTP fetch still covers what the push can't: the
+  // bootstrap point before the first push lands, and whatever ticks were
+  // missed while the socket was down. `to` is anchored to the server time
+  // base (lastLoadedTRef, or nowRef before any response has landed) rather
+  // than the client clock - a client/relay clock skew against the client's
+  // Date.now() could otherwise request a window where from > to and freeze
+  // the tail.
+  // minTo widens the fetch past a known point beyond `to`'s usual +2 ticks
+  // of margin - a multi-tick gap needs the fetch to reach at least as far as
+  // the frame that revealed it, not just one tick past the last known point.
+  const runTailGapFill = useCallback((minTo?: number) => {
+    const base = lastLoadedTRef.current ?? nowRef.current;
+    const to = Math.max(base, minTo ?? base) + LIVE_TAIL_POLL_MS * 2;
+    const from = (lastLoadedTRef.current ?? base - LIVE_TAIL_BOOTSTRAP_MS) + 1;
+    const seq = ++tailSeqRef.current;
+    tailInFlightRef.current = true;
+    void (async () => {
+      const result = await fetchMonitoringHistory({ from, to, maxPoints: LIVE_TAIL_MAX_POINTS, series: seriesQueryRef.current });
+      if (!mountedRef.current || seq !== tailSeqRef.current) return;
+      tailInFlightRef.current = false;
+      if (!result.data) return;
+      const tail = result.data.series;
+      const t = newestT(tail);
+      if (t === null) return;
+      if (viewportRef.current.following) {
+        fineSnapshotRef.current = mergeTail(fineSnapshotRef.current, tail);
+        if (lastPhaseRef.current !== 'drag') setSeries(prev => mergeTail(prev, tail));
+      }
+      bumpNow(tail);
+      if (t > (lastLoadedTRef.current ?? -Infinity)) lastLoadedTRef.current = t;
+    })();
+  }, [bumpNow]);
+
+  // Subscribed regardless of `following`/drag phase - this is what keeps
+  // nowRef (the server time base) advancing while the user browses a
+  // detached historical window, so backToLive() and a brush drag back to
+  // the live edge re-anchor to the actual current time rather than whatever
+  // moment the user happened to detach at.
+  const tailActive = enabled && supported && !error;
+
+  // Bootstrap fetch: seeds lastLoadedTRef/nowRef before the first push
+  // frame lands.
   useEffect(() => {
-    if (!enabled || !supported || error) return;
-    const timer = window.setInterval(() => {
-      const base = lastLoadedTRef.current ?? nowRef.current;
-      const to = base + LIVE_TAIL_POLL_MS * 2;
-      const from = (lastLoadedTRef.current ?? base - LIVE_TAIL_BOOTSTRAP_MS) + 1;
-      const seq = ++tailSeqRef.current;
-      void (async () => {
-        const result = await fetchMonitoringHistory({ from, to, maxPoints: LIVE_TAIL_MAX_POINTS, series: seriesQuery });
-        if (!mountedRef.current || seq !== tailSeqRef.current || !result.data) return;
-        const tail = result.data.series;
-        const t = newestT(tail);
-        if (t === null) return;
-        if (viewportRef.current.following) {
-          fineSnapshotRef.current = mergeTail(fineSnapshotRef.current, tail);
-          if (lastPhaseRef.current !== 'drag') setSeries(prev => mergeTail(prev, tail));
-        }
-        bumpNow(tail);
-        if (t > (lastLoadedTRef.current ?? -Infinity)) lastLoadedTRef.current = t;
-      })();
-    }, LIVE_TAIL_POLL_MS);
-    return () => window.clearInterval(timer);
-  }, [enabled, seriesQuery, bumpNow, supported, error]);
+    if (!tailActive) return;
+    runTailGapFill();
+  }, [tailActive, runTailGapFill]);
+
+  // Reconnect fetch: a dropped socket misses every push tick until it
+  // reopens, so backfill the hole with one fetch rather than leave it.
+  // Edge-detected off `connected` (the multiplex context has no reconnect
+  // counter) so a steady connection never refetches. Skipped while the
+  // bootstrap fetch (or a gap-detected one) is still in flight - that
+  // request already covers the need once it lands.
+  const socketConnected = useMultiplex()?.connected ?? false;
+  const prevSocketConnectedRef = useRef(socketConnected);
+  useEffect(() => {
+    if (tailActive && socketConnected && !prevSocketConnectedRef.current && !tailInFlightRef.current) runTailGapFill();
+    prevSocketConnectedRef.current = socketConnected;
+  }, [tailActive, socketConnected, runTailGapFill]);
+
+  useTopicCallback('monitoring/history-tail', tailActive, (raw) => {
+    const payload = raw as MetricHistoryResponse | null;
+    if (!payload) return;
+    const relevant = payload.series.filter(s => seriesMatchesQuery(s, seriesQueryRef.current));
+    const t = newestT(relevant);
+    if (t === null) return;
+    const prevT = lastLoadedTRef.current;
+    if (viewportRef.current.following) {
+      fineSnapshotRef.current = mergeTail(fineSnapshotRef.current, relevant);
+      if (lastPhaseRef.current !== 'drag') setSeries(prev => mergeTail(prev, relevant));
+    }
+    bumpNow(relevant);
+    // A gap after a drop: this frame's newest point lands more than a tick
+    // (plus jitter tolerance) past the last one we had. Reads lastLoadedTRef
+    // before advancing it below - runTailGapFill anchors its fetch on that
+    // ref, so backfilling into the actual hole needs it still at prevT.
+    if (prevT !== null && t > prevT + LIVE_TAIL_POLL_MS + TAIL_GAP_TOLERANCE_MS) runTailGapFill(t);
+    if (t > (prevT ?? -Infinity)) lastLoadedTRef.current = t;
+  });
 
   const setRange = useCallback((key: PresetKey) => {
     lastPhaseRef.current = 'end';
