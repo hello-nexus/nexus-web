@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react';
-import { FolderOpen, Image as ImageIcon, Upload } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { FolderInput, FolderOpen, Image as ImageIcon, Upload } from 'lucide-react';
 import { useTranslation } from '../../lib/i18n';
 import { HoverTooltip } from '../../components/common/HoverTooltip/HoverTooltip';
 import { Button } from '../../components/common/Button/Button';
@@ -8,20 +8,41 @@ import { EmptyState } from '../../components/common/EmptyState/EmptyState';
 import { ConfirmModal } from '../../components/common/ConfirmModal/ConfirmModal';
 import { MediaGrid } from '../widgets/lighting/effecteditor/MediaGrid';
 import { MediaCropper, type NormalizedCrop } from '../../components/common/MediaCropper/MediaCropper';
-import { serializeCrop } from '../../components/common/MediaCropper/mediaCrop';
+import { centerCropForAspect, serializeCrop } from '../../components/common/MediaCropper/mediaCrop';
 import { useBackgroundMedia } from './useBackgroundMedia';
 import {
+  type BackgroundMediaItem,
   backgroundMediaStagePreviewUrl,
   cancelBackgroundMediaStage,
   commitBackgroundMedia,
   deleteBackgroundMedia,
   openBackgroundMediaFolder,
+  probeBackgroundMediaStageSize,
   stageBackgroundMedia,
 } from '../../api/panelBackgroundMedia';
 import type { MediaItem } from '../../api/mediaLibrary';
 import styles from '../widgets/lighting/LightingPage.module.scss';
 
 const BG_THUMB_ASPECT = 720 / 1280;
+
+// Mirrors PanelBgImporter's accepted extensions so a folder's stray files
+// (sidecars, thumbnails, documents) are skipped here instead of each costing
+// an upload the service rejects.
+const FOLDER_IMPORT_EXTENSIONS = new Set([
+  '.jpg', '.jpeg', '.png', '.bmp', '.webp', '.tiff', '.tif',
+  '.gif', '.mp4', '.webm', '.mov', '.avi', '.mkv', '.wmv', '.m4v', '.mpg', '.mpeg',
+]);
+
+function folderImportCandidates(files: FileList | null): File[] {
+  return Array.from(files ?? [])
+    .filter(file => {
+      const dot = file.name.lastIndexOf('.');
+      return dot >= 0 && FOLDER_IMPORT_EXTENSIONS.has(file.name.slice(dot).toLowerCase());
+    })
+    .sort((a, b) => (a.webkitRelativePath || a.name).localeCompare(b.webkitRelativePath || b.name, undefined, { numeric: true }));
+}
+
+type FolderFileOutcome = BackgroundMediaItem | 'failed' | 'unreachable';
 
 export function BackgroundMediaPicker({
   deviceId,
@@ -42,11 +63,21 @@ export function BackgroundMediaPicker({
   const { items, thumbs, refresh, removeLocal } = useBackgroundMedia(deviceId);
   const [importing, setImporting] = useState(false);
   const [importingName, setImportingName] = useState<string | null>(null);
+  const [importProgress, setImportProgress] = useState<{ n: number; total: number } | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
   const [cropState, setCropState] = useState<{ stageId: string; src: string } | null>(null);
   const [converting, setConverting] = useState(false);
   const fileRef = useRef<HTMLInputElement | null>(null);
+  const folderRef = useRef<HTMLInputElement | null>(null);
+  // Closing the theme sheet mid-folder unmounts this picker; the loop stops
+  // at its next file rather than uploading on and selecting from a dead
+  // instance over whatever the user picked meanwhile.
+  const aliveRef = useRef(true);
+  useEffect(() => {
+    aliveRef.current = true;
+    return () => { aliveRef.current = false; };
+  }, []);
 
   const adaptedItems: MediaItem[] = items.map(item => ({
     ...item,
@@ -71,6 +102,69 @@ export function BackgroundMediaPicker({
     setImporting(false);
     setImportingName(null);
     setCropState({ stageId: result.stageId, src: backgroundMediaStagePreviewUrl(deviceId, result.stageId) });
+  };
+
+  // One folder file, start to finish: the cropper's default (largest centred
+  // crop at the panel aspect) stands in for the user's crop. The service
+  // being unreachable ends the whole folder; a file it refuses is counted
+  // and the rest continue.
+  const importFolderFile = async (file: File): Promise<FolderFileOutcome> => {
+    const staged = await stageBackgroundMedia(deviceId, file);
+    if (!staged) return 'unreachable';
+    if (staged.error) return 'failed';
+    const size = await probeBackgroundMediaStageSize(deviceId, staged.stageId);
+    if (!size) {
+      cancelBackgroundMediaStage(deviceId, staged.stageId).catch(() => {});
+      return 'failed';
+    }
+    const crop = serializeCrop(centerCropForAspect(deviceAspect, size.w, size.h));
+    const result = await commitBackgroundMedia(deviceId, staged.stageId, crop, deviceW, deviceH);
+    if (!result || result.error || !result.item) {
+      cancelBackgroundMediaStage(deviceId, staged.stageId).catch(() => {});
+      return result ? 'failed' : 'unreachable';
+    }
+    return result.item;
+  };
+
+  const handleFolderImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = folderImportCandidates(e.target.files);
+    e.target.value = '';
+    setImportError(null);
+    if (files.length === 0) {
+      setImportError(t('lighting.controls.importFolderEmpty'));
+      return;
+    }
+    setImporting(true);
+    let first: BackgroundMediaItem | null = null;
+    let failed = 0;
+    let error: string | null = null;
+    for (let i = 0; i < files.length; i++) {
+      setImportingName(files[i].name);
+      setImportProgress({ n: i + 1, total: files.length });
+      const outcome = await importFolderFile(files[i]);
+      if (!aliveRef.current) return;
+      if (outcome === 'unreachable') {
+        error = t('lighting.controls.importNetworkError');
+        break;
+      }
+      if (outcome === 'failed') {
+        failed++;
+        continue;
+      }
+      if (!first) first = outcome;
+    }
+    if (!error && failed > 0) {
+      error = t('lighting.controls.importFolderPartial', { failed, total: files.length });
+    }
+    setImporting(false);
+    setImportingName(null);
+    setImportProgress(null);
+    setImportError(error);
+    if (first) {
+      await refresh();
+      if (!aliveRef.current) return;
+      onSelect(first.id, first.type);
+    }
   };
 
   const handleCropConfirm = async (crop: NormalizedCrop) => {
@@ -133,6 +227,10 @@ export function BackgroundMediaPicker({
     await handleDelete(id);
   };
 
+  const importingLabel = importProgress
+    ? t('lighting.controls.importingCount', importProgress)
+    : t('lighting.controls.importing');
+
   return (
     <>
       {cropState && (
@@ -154,6 +252,16 @@ export function BackgroundMediaPicker({
           >
             {importing ? t('lighting.controls.importing') : t('lighting.controls.import')}
           </Button>
+          <HoverTooltip body={t('lighting.controls.importFolderHint')} side="bottom">
+            <Button
+              type="button"
+              icon={<FolderInput size={16} aria-hidden />}
+              onClick={() => folderRef.current?.click()}
+              disabled={importing}
+            >
+              {t('lighting.controls.importFolder')}
+            </Button>
+          </HoverTooltip>
           <HoverTooltip body={t('lighting.controls.mediaManageFolder')} side="bottom">
             <Button
               className={styles.manageFolderBtn}
@@ -169,6 +277,14 @@ export function BackgroundMediaPicker({
             className={styles.hiddenInput}
             accept="image/*,video/*,.gif"
             onChange={handleImport}
+          />
+          <input
+            ref={folderRef}
+            type="file"
+            className={styles.hiddenInput}
+            webkitdirectory=""
+            multiple
+            onChange={handleFolderImport}
           />
         </div>
         {importError && <p className={styles.mediaError}>{importError}</p>}
@@ -204,8 +320,8 @@ export function BackgroundMediaPicker({
               thumbUrl={null}
               active={false}
               onClick={() => { /* importing */ }}
-              meta={t('lighting.controls.importing')}
-              thumbOverlay={<span className={styles.mediaSpinner} role="status" aria-label={t('lighting.controls.importing')} />}
+              meta={importingLabel}
+              thumbOverlay={<span className={styles.mediaSpinner} role="status" aria-label={importingLabel} />}
               ariaLabel={importingName}
               thumbAspect={BG_THUMB_ASPECT}
             />

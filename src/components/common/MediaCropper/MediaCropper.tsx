@@ -5,8 +5,10 @@ import { clampNumber } from '../../../panel/engine/panelGrid';
 import { DeviceModal } from '../DeviceModal/DeviceModal';
 import { Button } from '../Button/Button';
 import {
+  centerCropForAspect as centerCropFor,
   flipHorizontal,
   flipVertical,
+  normAspectFor as normAspect,
   normalizeRotate,
   type NormalizedCrop,
   type Orientation,
@@ -76,19 +78,15 @@ export function MediaCropper({ src, kind = 'image', aspect, initialCrop, busy, o
     [intrinsic, orient.rotate],
   );
 
-  // Normalized w/h ratio that yields the target pixel aspect for the oriented
-  // source: (w*ow)/(h*oh) = aspect  =>  w/h = aspect*oh/ow.
   const normAspectFor = useCallback(
-    (ow: number, oh: number) => (ow && oh ? aspect * oh / ow : aspect),
+    (ow: number, oh: number) => normAspect(aspect, ow, oh),
     [aspect],
   );
 
-  const centerCropForAspect = useCallback((ow: number, oh: number): NormalizedCrop => {
-    const r = normAspectFor(ow, oh);
-    const w = r <= 1 ? r : 1;
-    const h = r <= 1 ? 1 : 1 / r;
-    return { x: (1 - w) / 2, y: (1 - h) / 2, w, h };
-  }, [normAspectFor]);
+  const centerCropForAspect = useCallback(
+    (ow: number, oh: number): NormalizedCrop => centerCropFor(aspect, ow, oh),
+    [aspect],
+  );
 
   // On-screen footprint of the oriented media, contain-fit into the wrapper,
   // and the pre-rotation element box that, once rotated, renders to it.

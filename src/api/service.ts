@@ -611,11 +611,12 @@ export async function patchService<T>(path: string, body: unknown): Promise<T | 
   return r ? (await r.json()) as T : null;
 }
 
-export async function postServiceForm<T>(path: string, form: FormData): Promise<T | null> {
-  // Form uploads can't be JSON-tunneled (the relay HTTP frame carries a string
-  // body, not multipart). On a remote origin there's no localhost to reach, so
-  // rather than fire a doomed mixed-content request, fail closed like a
-  // non-2xx. (Media import is a LAN/desktop affordance; off-LAN it's a no-op.)
+// Multipart POST with the bearer retry. Form uploads can't be JSON-tunneled
+// (the relay HTTP frame carries a string body, not multipart). On a remote
+// origin there's no localhost to reach, so rather than fire a doomed
+// mixed-content request, fail closed like a non-2xx. (Media import is a
+// LAN/desktop affordance; off-LAN it's a no-op.)
+async function postForm(path: string, form: FormData): Promise<Response | null> {
   if (isTunnelActive() || blockedLocalhostFetch()) return null;
   try {
     const token = await getToken();
@@ -629,11 +630,43 @@ export async function postServiceForm<T>(path: string, form: FormData): Promise<
         response = await fetch(resolveHttp(path), { ...loopbackFetchInit, method: 'POST', headers, body: form });
       }
     }
-    if (!response.ok) return null;
+    return response;
+  } catch {
+    return null;
+  }
+}
+
+export async function postServiceForm<T>(path: string, form: FormData): Promise<T | null> {
+  const response = await postForm(path, form);
+  if (!response?.ok) return null;
+  try {
     return (await response.json()) as T;
   } catch {
     return null;
   }
+}
+
+/** The service answered an upload and did not accept it. */
+export interface ServiceRefusal { error: true; msg: string }
+
+// postServiceForm for a caller that must tell a refused upload from an
+// unreachable service: any answer the service gave without accepting comes
+// back as an {error, msg} body (the route's own message, else the HTTP
+// status), and null is reserved for a request that never got an answer.
+export async function postServiceFormResult<T extends { error: boolean; msg: string }>(
+  path: string,
+  form: FormData,
+): Promise<T | ServiceRefusal | null> {
+  const response = await postForm(path, form);
+  if (!response) return null;
+  let body: (Partial<T> & { detail?: string; title?: string }) | null = null;
+  try {
+    body = await response.json();
+  } catch {
+    // Not JSON: the status carries what there is.
+  }
+  if (response.ok && body) return body as T;
+  return { error: true, msg: body?.msg || body?.detail || body?.title || `HTTP ${response.status}` };
 }
 
 /**

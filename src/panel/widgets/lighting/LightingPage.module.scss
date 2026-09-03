@@ -751,7 +751,7 @@
 .mediaSection { display: flex; flex-direction: column; gap: 0.75rem; min-height: 0; }
 // Only the gif mode gives this column a definite height to stretch into.
 .controlsFill .mediaSection { flex: 1; }
-.mediaHeader { display: flex; align-items: center; }
+.mediaHeader { display: flex; align-items: center; gap: 0.5rem; }
 // Trails the row; Import Media leads it.
 .manageFolderBtn { margin-left: auto; }
 .hiddenInput { display: none; }

@@ -1,4 +1,4 @@
-import { deleteService, fetchService, postService, postServiceForm, resolveHttp, tokenParam } from './service';
+import { deleteService, fetchService, postService, postServiceFormResult, resolveHttp, type ServiceRefusal, tokenParam } from './service';
 
 export interface BackgroundMediaItem {
   id: string;
@@ -14,10 +14,17 @@ export interface BackgroundMediaItem {
 export const fetchBackgroundMediaLibrary = (deviceId: string) =>
   fetchService<{ items: BackgroundMediaItem[] }>(`/panel/devices/${encodeURIComponent(deviceId)}/background-media/library`);
 
-export async function stageBackgroundMedia(deviceId: string, file: File): Promise<{ stageId: string; error: boolean; msg: string } | null> {
+export interface BackgroundMediaStageResult { stageId: string; error: boolean; msg: string }
+
+// Stage and commit answer a refusal (oversize, unsupported, unreadable) with
+// its message and null only when the service is unreachable, so a folder
+// import can count a bad file and carry on.
+export async function stageBackgroundMedia(deviceId: string, file: File): Promise<BackgroundMediaStageResult | ServiceRefusal | null> {
   const form = new FormData();
-  form.append('file', file);
-  return postServiceForm<{ stageId: string; error: boolean; msg: string }>(`/panel/devices/${encodeURIComponent(deviceId)}/background-media/stage`, form);
+  // Chromium names a directory-picked file by its folder-relative path
+  // ("photos/sub/a.jpg"); the bare name keeps the wire identical to a single pick.
+  form.append('file', file, file.name);
+  return postServiceFormResult<BackgroundMediaStageResult>(`/panel/devices/${encodeURIComponent(deviceId)}/background-media/stage`, form);
 }
 
 export function backgroundMediaStagePreviewUrl(deviceId: string, stageId: string): string {
@@ -26,13 +33,29 @@ export function backgroundMediaStagePreviewUrl(deviceId: string, stageId: string
   return tok ? `${base}?${tok}` : base;
 }
 
-export async function commitBackgroundMedia(deviceId: string, stageId: string, crop: string, w: number, h: number): Promise<{ item: BackgroundMediaItem | null; error: boolean; msg: string } | null> {
+/**
+ * Pixel size of a staged upload's preview frame. The preview is the same
+ * oriented frame the cropper measures, so a crop computed from it lands
+ * exactly where the cropper's default would.
+ */
+export function probeBackgroundMediaStageSize(deviceId: string, stageId: string): Promise<{ w: number; h: number } | null> {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => resolve(img.naturalWidth && img.naturalHeight ? { w: img.naturalWidth, h: img.naturalHeight } : null);
+    img.onerror = () => resolve(null);
+    img.src = backgroundMediaStagePreviewUrl(deviceId, stageId);
+  });
+}
+
+export interface BackgroundMediaCommitResult { item: BackgroundMediaItem | null; error: boolean; msg: string }
+
+export async function commitBackgroundMedia(deviceId: string, stageId: string, crop: string, w: number, h: number): Promise<BackgroundMediaCommitResult | ServiceRefusal | null> {
   const form = new FormData();
   form.append('stageId', stageId);
   form.append('crop', crop);
   form.append('w', String(w));
   form.append('h', String(h));
-  return postServiceForm<{ item: BackgroundMediaItem | null; error: boolean; msg: string }>(`/panel/devices/${encodeURIComponent(deviceId)}/background-media/commit`, form);
+  return postServiceFormResult<BackgroundMediaCommitResult>(`/panel/devices/${encodeURIComponent(deviceId)}/background-media/commit`, form);
 }
 
 export async function cancelBackgroundMediaStage(deviceId: string, stageId: string): Promise<void> {
