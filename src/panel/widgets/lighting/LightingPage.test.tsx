@@ -10,6 +10,7 @@ const setRawSyncMock = vi.hoisted(() => vi.fn());
 const profileRef = vi.hoisted(() => ({ current: 'old' }));
 const devicesRef = vi.hoisted(() => ({ current: [] as unknown[] }));
 const canvasDeviceIds = vi.hoisted(() => ({ current: [] as string[] }));
+const canvasFocusIds = vi.hoisted(() => ({ current: [] as string[] }));
 
 vi.mock('../../../hooks/useLightingSync', async (importOriginal) => ({
   // normalizeSync is the shared sync-string classifier; keep the real one so
@@ -102,9 +103,23 @@ vi.mock('../../../components/views/PageSkeleton/PageSkeleton', () => ({
 }));
 
 vi.mock('../../../components/common/DeviceCanvas/DeviceCanvas', () => ({
-  DeviceCanvas: ({ devices }: { devices: { id: string }[] }) => {
+  // Two stand-ins for the canvas gestures that move the focus: a tap on empty
+  // space, and a marquee that lands on one frame. Neither may touch the
+  // device-list selection.
+  DeviceCanvas: ({ devices, selectedIds, onSelectDevice, onSetSelection }: {
+    devices: { id: string }[];
+    selectedIds: Set<string>;
+    onSelectDevice: (id: string | null) => void;
+    onSetSelection: (ids: Set<string>, primary: string | null) => void;
+  }) => {
     canvasDeviceIds.current = devices.map(d => d.id);
-    return <div data-testid="device-canvas" />;
+    canvasFocusIds.current = [...selectedIds];
+    return (
+      <>
+        <button type="button" data-testid="device-canvas" onClick={() => onSelectDevice(null)} />
+        <button type="button" data-testid="canvas-marquee" onClick={() => onSetSelection(new Set(['dev-a']), 'dev-a')} />
+      </>
+    );
   },
 }));
 
@@ -254,6 +269,7 @@ describe('LightingPage selection in a drive-everything mode', () => {
     profileRef.current = 'old';
     devicesRef.current = [makeDevice('dev-a', 'Device A'), makeDevice('dev-b', 'Device B')];
     canvasDeviceIds.current = [];
+    canvasFocusIds.current = [];
     vi.clearAllMocks();
     localStorage.clear();
     // These tests exercise the advanced page; the fresh-install default is simple.
@@ -283,5 +299,49 @@ describe('LightingPage selection in a drive-everything mode', () => {
     fireEvent.click(await findByLabelText('lighting.ledMap.selectAll'));
 
     await waitFor(() => expect(canvasDeviceIds.current).toEqual(['dev-a', 'dev-b']));
+  });
+
+  it('keeps every selected frame drawn when a canvas click clears the focus', async () => {
+    const { findByTestId, findByLabelText } = render(
+      <UiSettingsProvider>
+        <LightingPage serviceOnline serviceState={{ cooling: null, lighting: null, panel: null }} activeProfileId="old" />
+      </UiSettingsProvider>,
+    );
+
+    const canvas = await findByTestId('device-canvas');
+    await waitFor(() => expect(canvasFocusIds.current).toEqual(['dev-a', 'dev-b']));
+
+    fireEvent.click(canvas);
+
+    // Focus empties (every frame recedes), the frames themselves stay drawn,
+    // and the device list keeps its selection - "select none" is still live.
+    await waitFor(() => expect(canvasFocusIds.current).toEqual([]));
+    expect(canvasDeviceIds.current).toEqual(['dev-a', 'dev-b']);
+    expect(await findByLabelText('lightingOnboarding.selectNone')).not.toBeDisabled();
+  });
+
+  it('narrows the focus on a canvas marquee, and hands it back on a list change', async () => {
+    const { findByTestId, findByLabelText } = render(
+      <UiSettingsProvider>
+        <LightingPage serviceOnline serviceState={{ cooling: null, lighting: null, panel: null }} activeProfileId="old" />
+      </UiSettingsProvider>,
+    );
+
+    const marquee = await findByTestId('canvas-marquee');
+    await waitFor(() => expect(canvasFocusIds.current).toEqual(['dev-a', 'dev-b']));
+
+    fireEvent.click(marquee);
+
+    // Focus narrows to the swept frame; both frames stay drawn.
+    await waitFor(() => expect(canvasFocusIds.current).toEqual(['dev-a']));
+    expect(canvasDeviceIds.current).toEqual(['dev-a', 'dev-b']);
+
+    // A device-list change owns the focus again, rather than leaving it stuck
+    // on what the marquee swept.
+    fireEvent.click(await findByLabelText('lightingOnboarding.selectNone'));
+    await waitFor(() => expect(canvasDeviceIds.current).toEqual([]));
+    fireEvent.click(await findByLabelText('lighting.ledMap.selectAll'));
+
+    await waitFor(() => expect(canvasFocusIds.current).toEqual(['dev-a', 'dev-b']));
   });
 });

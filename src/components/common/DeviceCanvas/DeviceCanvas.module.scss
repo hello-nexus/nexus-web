@@ -2,6 +2,9 @@
   // The canvas is a full-saturation surface in both themes, so its frame lines
   // and scrims stay fixed where a theme token would flip with the background.
   --frame-line: rgb(255 255 255 / 0.85);
+  // The receded rung of --frame-line, on the same alpha ladder the receded
+  // label already uses: readable as a frame, never mistaken for a focused one.
+  --frame-line-dim: rgb(255 255 255 / var(--alpha-medium));
   --frame-halo: rgb(0 0 0 / var(--alpha-strong));
   --frame-scrim: rgb(0 0 0 / var(--alpha-strong));
   position: relative;
@@ -72,8 +75,8 @@
     .resizeHandle { opacity: 1; }
   }
 
-  // The canvas only ever draws the selection, so a selected frame keeps the
-  // white outline; the accent is left to the states that need to stand out.
+  // A focused frame keeps the full white outline; the accent is left to the
+  // states that need to stand out.
   &.selected {
     z-index: 8;
     .resizeHandle { opacity: 1; }
@@ -88,14 +91,19 @@
     .resizeHandle::before { background: var(--accent); }
   }
 
-  // While a selection is active the unselected frames recede so the selection
-  // reads as the focus: no border, no drop-shadow. This wins over :hover, so a
-  // receded frame shows no border or resize handle until selected.
+  // Unfocused frames recede so the focused one reads as the subject: a faint
+  // outline, no halo. They stay on the canvas and stay clickable, so hover
+  // firms the outline back up; the resize handle stays hidden, since resizing
+  // a frame the click has not yet focused is never what the pointer meant.
+  // (Hovering the NAME still reveals it - see .labelHover below.)
   &.deemphasized {
-    border-color: transparent;
+    border-color: var(--frame-line-dim);
     box-shadow: none;
 
-    &:hover .resizeHandle { opacity: 0; }
+    &:hover {
+      border-color: var(--frame-line);
+      .resizeHandle { opacity: 0; }
+    }
   }
 
   // De-collision can park a name away from its frame, so pointing at the name is

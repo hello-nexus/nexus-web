@@ -191,21 +191,51 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const handleDragActiveChange = useCallback((active: boolean) => {
     deviceDraggingRef.current = active;
   }, []);
-  // Multi-selection on the canvas + right-side device panel. The set drives
-  // visual highlighting on both surfaces; `primaryDeviceId` is the single
-  // device used for LED-dot rendering on the canvas and for the LED-map
-  // fetch effect below (only one device's positions are visualised at a
-  // time, even when several are selected for group drag).
+  // Device-list selection: which devices the canvas draws, and what a Static
+  // pick lands on. `primaryDeviceId` is the single device used for LED-dot
+  // rendering on the canvas and for the LED-map fetch effect below (only one
+  // device's positions are visualised at a time, even when several are
+  // selected for group drag).
   const [selectedDeviceIds, setSelectedDeviceIds] = usePersistentIdSet(SELECTED_DEVICES_STORAGE_KEY);
   const [primaryDeviceId, setPrimaryDeviceId] = usePersistentState<string | null>(PRIMARY_DEVICE_STORAGE_KEY, null);
-  const handleSelectDevice = useCallback((id: string | null) => {
-    setSelectedDeviceIds(id ? new Set([id]) : new Set());
-    setPrimaryDeviceId(id);
-  }, [setPrimaryDeviceId, setSelectedDeviceIds]);
+  // Canvas focus: which of the drawn frames take the frame-level edits (drag,
+  // resize, rotate, power, LED dots). Kept apart from the list selection so a
+  // click on empty canvas recedes the frames instead of clearing the canvas.
+  // null = nothing singled out, so every drawn frame is focused; the empty set
+  // is the explicit "nothing focused" a canvas click produces.
+  const [canvasFocus, setCanvasFocus] = useState<Set<string> | null>(null);
+  const canvasFocusIds = canvasFocus ?? selectedDeviceIds;
   const handleSetSelection = useCallback((ids: Set<string>, primary: string | null) => {
     setSelectedDeviceIds(ids);
     setPrimaryDeviceId(primary);
+    setCanvasFocus(null);
   }, [setPrimaryDeviceId, setSelectedDeviceIds]);
+  // Canvas taps and marquees move the focus only - the device list keeps its
+  // selection, so every frame it picked stays drawn.
+  const handleFocusDevice = useCallback((id: string | null) => {
+    setCanvasFocus(id ? new Set([id]) : new Set());
+    setPrimaryDeviceId(id);
+  }, [setPrimaryDeviceId]);
+  const handleSetFocus = useCallback((ids: Set<string>, primary: string | null) => {
+    setCanvasFocus(ids);
+    setPrimaryDeviceId(primary);
+  }, [setPrimaryDeviceId]);
+  // The list selection also shrinks without passing through those handlers -
+  // the seed below, and the prune that drops devices which stopped being
+  // selectable (unplugged, or their LEDs switched off). A focus id for a frame
+  // the canvas no longer draws would keep the group-drag branch armed on a
+  // one-frame canvas, so drop it here.
+  useEffect(() => {
+    setCanvasFocus(prev => {
+      if (prev === null) return prev;
+      const next = new Set([...prev].filter(id => selectedDeviceIds.has(id)));
+      if (next.size === prev.size) return prev;
+      // Losing the last focused frame to an unplug is not the user asking for
+      // "nothing focused", so fall back to the drawn set rather than dimming
+      // every frame behind their back.
+      return next.size === 0 ? null : next;
+    });
+  }, [selectedDeviceIds]);
   const handleBeforeLayoutSave = useCallback(() => {
     pushLayoutRef.current?.({ layouts: devicesToLayouts(devicesRef.current), power: devicesToPower(devicesRef.current), activeId: layoutActiveIdRef.current, powerIds: [] });
   }, []);
@@ -1692,9 +1722,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // The canvas previews the shared effect canvas, which Static does not sample
   // and Off has nothing to show on. Game Sync substitutes its own activity block.
   const showCanvas = effectiveMode !== 'static' && effectiveMode !== 'none' && effectiveMode !== 'gamesync';
-  // The modes that reach every device lock their cards' checkmark on, so the
-  // highlight is the only per-device signal left - the canvas draws exactly
-  // the devices it highlights.
+  // The device list is the canvas filter: the canvas draws exactly what the
+  // list has selected. Which of those frames is focused is the canvas's own
+  // state (`canvasFocusIds`), so a canvas click never removes a frame.
   const canvasDevices = useMemo(
     () => visibleDevices.filter(d => selectedDeviceIds.has(d.id)),
     [visibleDevices, selectedDeviceIds],
@@ -1987,7 +2017,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
               )}
               {showCanvas && (
               <div className={styles.canvasArea}>
-                <DeviceCanvas devices={canvasDevices} canvasPixels={frames.canvasPixels} canvasW={frames.canvasW} canvasH={frames.canvasH} selectedIds={selectedDeviceIds} primaryDeviceId={primaryDeviceId} onSelectDevice={handleSelectDevice} onSetSelection={handleSetSelection} shaderEffect={shaderMode ? activeEffect : null} shaderState={shaderMode ? previewState : null} shaderPaused={paused} audioRef={audioRef} hiddenFrameIds={hiddenFrameIds} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={handleOpenSettings} onDragActiveChange={handleDragActiveChange} onBeforeLayoutSave={handleBeforeLayoutSave} onLayoutCommit={handleLayoutCommit} onSetDevicesPower={handleSetDevicesPower} gpuAvailable={serviceState.lighting?.gpuAvailable ?? true} gpuState={serviceState.lighting?.gpuState} onPickRenderGpu={canPickRenderGpu ? handlePickRenderGpu : undefined} />
+                <DeviceCanvas devices={canvasDevices} canvasPixels={frames.canvasPixels} canvasW={frames.canvasW} canvasH={frames.canvasH} selectedIds={canvasFocusIds} primaryDeviceId={primaryDeviceId} onSelectDevice={handleFocusDevice} onSetSelection={handleSetFocus} shaderEffect={shaderMode ? activeEffect : null} shaderState={shaderMode ? previewState : null} shaderPaused={paused} audioRef={audioRef} hiddenFrameIds={hiddenFrameIds} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={handleOpenSettings} onDragActiveChange={handleDragActiveChange} onBeforeLayoutSave={handleBeforeLayoutSave} onLayoutCommit={handleLayoutCommit} onSetDevicesPower={handleSetDevicesPower} gpuAvailable={serviceState.lighting?.gpuAvailable ?? true} gpuState={serviceState.lighting?.gpuState} onPickRenderGpu={canPickRenderGpu ? handlePickRenderGpu : undefined} />
                 {effectiveMode === 'gif' && <MediaCanvasNotice />}
                 {shaderMode && activeEffect && currentState && (
                   <>
