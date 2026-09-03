@@ -8,7 +8,6 @@ import {
   type DragStartEvent,
 } from '@dnd-kit/core';
 import { SortableContext, type SortingStrategy } from '@dnd-kit/sortable';
-import { Spinner } from '../components/common/Spinner/Spinner';
 import { usePanelLayout } from './engine/usePanelLayout';
 import { useDashboardLayout } from './engine/useDashboardLayout';
 import { useOemAppSeed } from './engine/useOemAppSeed';
@@ -103,6 +102,7 @@ import {
   usePhonePanelManifest,
 } from './device/panelPhone';
 import { useNativeSettingsBridge } from './device/panelNativeBridge';
+import { PanelLoadingGate } from './PanelLoadingGate';
 import {
   type EditorDockMotion,
   buildEditorDockMotionStyle,
@@ -1530,7 +1530,7 @@ export function PanelContent({
           />
         )}
         {!loaded ? (
-          <div className={styles.loading}><Spinner size={28} /></div>
+          <PanelLoadingGate surface={surface} />
         ) : (
           <>
             <div className={styles.panelStage}>

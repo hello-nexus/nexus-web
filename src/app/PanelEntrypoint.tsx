@@ -239,17 +239,16 @@ export function PanelEntrypoint({ initialDeviceId, isPhonePair, pairToken, pairD
   return <PanelWrapper deviceId={deviceId} wired={isWiredPanel(inferredSurface)} />;
 }
 
-/** Milliseconds of waiting before the gate offers a way out. Long enough that a
- *  healthy boot never flashes the escape hatches, short enough that an
- *  unreachable host does not read as a hang. */
+/** Milliseconds of waiting before the gate explains itself. Long enough that a
+ *  healthy boot never flashes the "taking longer" copy. The exits do NOT wait
+ *  on this - a connect the user wants out of must be escapable immediately. */
 const GATE_SLOW_MS = 4000;
 
 /**
  * The pre-panel waiting screen. Never a bare spinner: this owns the whole
  * viewport before PanelApp mounts and before any in-panel chrome exists, so
  * with nothing on it the user is stuck - which is exactly what an unreachable
- * host produced (a silent ~20s spin inside the native wrapper). The copy shows
- * immediately; the exits appear once the wait stops looking normal.
+ * host produced (a silent ~20s spin inside the native wrapper).
  */
 function PanelEntrypointGate({ onRetry }: { onRetry?: () => void }) {
   const { t } = useTranslation();
@@ -265,28 +264,28 @@ function PanelEntrypointGate({ onRetry }: { onRetry?: () => void }) {
       <div className={styles.panelPairGateCard}>
         <Spinner size={28} />
         <h2 className={styles.panelPairGateTitle}>{t('panel.gate.connecting')}</h2>
-        {slow && (
-          <>
-            <p className={styles.panelPairGateBody}>{t('panel.gate.slow')}</p>
-            {/* Retry re-runs the allocate step only. During the QR claim it
-                would abandon an in-flight claim whose effect cannot be
-                cancelled (its deps never change), and the stale promise would
-                then setState over an already-mounted panel. */}
-            {onRetry && (
-              <button type="button" className={styles.panelPairGateRetry} onClick={onRetry}>
-                {t('panel.gate.retry')}
-              </button>
-            )}
-            {canFindComputer && (
-              <button
-                type="button"
-                className={`${styles.panelPairGateRetry} ${styles.panelPairGateSecondary}`}
-                onClick={openFindComputer}
-              >
-                {t('panel.gate.findComputer')}
-              </button>
-            )}
-          </>
+        {slow && <p className={styles.panelPairGateBody}>{t('panel.gate.slow')}</p>}
+        {/* Retry ISSUES work, so it waits out the slow window: a tap while the
+            first allocate is still in flight leaves that one to complete
+            server-side and orphan its device record. The escape below issues
+            nothing and is live immediately - that is the one the user needs.
+            Retry also re-runs the allocate step only; during the QR claim it
+            would abandon an in-flight claim whose effect cannot be cancelled
+            (its deps never change), and the stale promise would then setState
+            over an already-mounted panel. */}
+        {slow && onRetry && (
+          <button type="button" className={styles.panelPairGateRetry} onClick={onRetry}>
+            {t('panel.gate.retry')}
+          </button>
+        )}
+        {canFindComputer && (
+          <button
+            type="button"
+            className={`${styles.panelPairGateRetry} ${styles.panelPairGateSecondary}`}
+            onClick={openFindComputer}
+          >
+            {t('panel.gate.findComputer')}
+          </button>
         )}
       </div>
     </div>

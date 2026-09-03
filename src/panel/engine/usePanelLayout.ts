@@ -203,13 +203,23 @@ export function usePanelLayout(deviceId: string, surface: PanelSurface, deviceTo
         deviceMissingRef.current = true;
         setLayoutState(normalizePanelLayout(defaultLayoutForSurface(surface), surface, deviceTouch));
         setDeviceMissing(true);
+      } else {
+        // We never reached the record (network, 401 after re-pair, or the
+        // bounded relay timeout). `layout` is still the local default, so
+        // auto-persist MUST stay off: `loaded` flips below either way, and
+        // the debounced write would otherwise overwrite the stored layout
+        // with that default. A later successful refetch clears the flag.
+        deviceMissingRef.current = true;
+        setDeviceMissing(true);
       }
-      // Other failures (network, 401 after re-pair) leave layout state
-      // intact and let the next refetch retry. fetchPanelDeviceWithStatus
-      // never throws today, so the .catch below only guards against a
-      // future refactor that surfaces exceptions.
+      // fetchPanelDeviceWithStatus never throws today, so the .catch below
+      // only guards against a future refactor that surfaces exceptions.
       setLoaded(true);
     }).catch(() => {
+      // Same reasoning as the un-found branch above: nothing was loaded, so
+      // the default layout must never be persisted over the stored one.
+      deviceMissingRef.current = true;
+      setDeviceMissing(true);
       setLoaded(true);
     });
   }, [deviceId, surface, deviceTouch]);
