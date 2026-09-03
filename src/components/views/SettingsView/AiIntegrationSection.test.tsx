@@ -39,6 +39,10 @@ vi.mock('../../../hooks/useMultiplexSocket', () => ({
   useTopic: (topic: string) => (topic === 'aiAssistant' ? assistantWs.frame : null),
 }));
 
+// Build flavour under test; vitest's DEV env makes the real const always true.
+const build = vi.hoisted(() => ({ devTools: true }));
+vi.mock('../../../lib/devTools', () => ({ get DEV_TOOLS() { return build.devTools; } }));
+
 function makeStatus(overrides: Partial<AiStatusResponse> = {}): AiStatusResponse {
   return {
     enabled: false,
@@ -80,6 +84,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   Object.assign(navigator, { clipboard: { writeText: vi.fn().mockResolvedValue(undefined) } });
   assistantWs.frame = null;
+  build.devTools = true;
   vi.mocked(fetchAssistantStatus).mockResolvedValue(makeAssistantStatus());
 });
 
@@ -352,6 +357,18 @@ describe('AiIntegrationSection', () => {
 });
 
 describe('AiIntegrationSection - assistant', () => {
+  it('release build: keeps the MCP rows, renders no runtime/model rows, and never fetches assistant status', async () => {
+    build.devTools = false;
+    vi.mocked(fetchAiStatus).mockResolvedValue(makeStatus({ enabled: true, token: 'secret-token' }));
+    vi.mocked(fetchAssistantStatus).mockResolvedValue(makeAssistantStatus({ runtimeState: 'installed', catalog: [QWEN_4B] }));
+    render(<AiIntegrationSection serviceOnline />);
+
+    expect(await screen.findByText('settings.ai.token.label')).toBeInTheDocument();
+    expect(screen.queryByText('settings.ai.assistant.runtime.label')).not.toBeInTheDocument();
+    expect(screen.queryByText('settings.ai.assistant.model.label')).not.toBeInTheDocument();
+    expect(fetchAssistantStatus).not.toHaveBeenCalled();
+  });
+
   it('shows the not-installed runtime state with a download button, and installing starts the runtime', async () => {
     vi.mocked(fetchAiStatus).mockResolvedValue(makeStatus({ enabled: true }));
     vi.mocked(fetchAssistantStatus).mockResolvedValue(makeAssistantStatus());

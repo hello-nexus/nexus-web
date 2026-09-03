@@ -66,6 +66,10 @@ vi.mock('../lib/backgroundEffects', () => ({
   emitRadialBloomFromElement: vi.fn(),
 }));
 
+// Build flavour under test; vitest's DEV env makes the real const always true.
+const build = vi.hoisted(() => ({ devTools: true }));
+vi.mock('../lib/devTools', () => ({ get DEV_TOOLS() { return build.devTools; } }));
+
 function makeAssistantStatus(overrides: Partial<AiAssistantStatus> = {}): AiAssistantStatus {
   return {
     runtimeState: 'notInstalled',
@@ -100,10 +104,25 @@ function openPalette() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  build.devTools = true;
   vi.mocked(buildEntries).mockReturnValue([]);
 });
 
 describe('TopSearch - AI assistant entry', () => {
+  it('never asks the assistant in a release build: no status fetch, no ask entry, no glow', async () => {
+    build.devTools = false;
+    vi.mocked(fetchAssistantStatus).mockResolvedValue(READY_STATUS);
+    renderSearch();
+    const input = openPalette();
+
+    fireEvent.change(input, { target: { value: 'how do I change my rgb colors' } });
+    expect(await screen.findByText('search.noresults query=how do I change my rgb colors')).toBeInTheDocument();
+
+    expect(fetchAssistantStatus).not.toHaveBeenCalled();
+    expect(screen.queryByText('search.ai.ask.title')).not.toBeInTheDocument();
+    expect(input.closest(`.${styles.pill}`)?.className).not.toContain(styles.pillAi);
+  });
+
   it('offers the ask entry once the assistant reports a ready runtime + active installed model', async () => {
     vi.mocked(fetchAssistantStatus).mockResolvedValue(READY_STATUS);
     renderSearch();

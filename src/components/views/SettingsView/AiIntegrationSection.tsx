@@ -16,6 +16,7 @@ import {
 } from '../../../api/aiIntegration';
 import { useTopic } from '../../../hooks/useMultiplexSocket';
 import { useTranslation } from '../../../lib/i18n';
+import { DEV_TOOLS } from '../../../lib/devTools';
 import { formatBytes } from '../DiagnosticsView/diagnosticsHelpers';
 import { DEFAULT_NUMBER_FORMAT, type NumberFormat } from '../../../lib/units';
 import { isAssistantTransient, progressPercent } from './assistantProgress';
@@ -72,7 +73,8 @@ export function AiIntegrationSection({ serviceOnline, numberFormat = DEFAULT_NUM
   const copyResetTimer = useRef<number | null>(null);
 
   // ── Local AI assistant ──
-  const assistantEnabled = serviceOnline && status?.enabled === true;
+  // Dev-tools builds only; a release build carries the MCP rows alone.
+  const assistantEnabled = DEV_TOOLS && serviceOnline && status?.enabled === true;
   const [assistant, setAssistant] = useState<AiAssistantStatus | null>(null);
   const [assistantMutating, setAssistantMutating] = useState(false);
   const [removeRuntimeConfirmOpen, setRemoveRuntimeConfirmOpen] = useState(false);
