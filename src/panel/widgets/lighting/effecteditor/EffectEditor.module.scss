@@ -4,7 +4,9 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  // Wide enough that the pane's first row of controls reads as its own block
+  // rather than a second row of the tab bar.
+  gap: 14px;
 }
 
 .tabs {

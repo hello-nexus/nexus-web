@@ -36,6 +36,9 @@
   --panel-border: var(--border);
   --panel-border-strong: var(--border-strong);
   --panel-control-bg: var(--bg-card-hover);
+  // Selected tab wears the icon-only mode buttons' ON fill: on a panel they
+  // sit in the same cell, so the two ON states have to read alike.
+  --tab-active-bg: var(--bg-card-hover);
   --panel-control-bg-hover: var(--border);
   --panel-control-bg-active: var(--border-strong);
   --panel-sheet-bg: color-mix(in srgb, var(--bg-elevated) 98%, transparent);

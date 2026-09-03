@@ -20,6 +20,10 @@
   --bg: rgba(0, 0, 0, 0.8);
   --bg-elevated: #0f0f0f;
   --bg-card-hover: #202020;
+  // Selected-tab fill. Must clear --backdrop-base, which the flat background
+  // mode paints the whole canvas with and which --bg-card-hover equals; the
+  // panel re-points this at its own control fill (panel/styles/tokens.scss).
+  --tab-active-bg: var(--border-strong);
   --border: #2a2a2a;
   --border-strong: #3a3a3a;
   // Single border width, always present so revealing a border on hover never
@@ -258,6 +262,7 @@
   --bg: rgba(255, 255, 255, 1);
   --bg-elevated: #ededed;
   --bg-card-hover: #f5f5f5;
+  --tab-active-bg: var(--bg);
   --border: #cacaca;
   --border-strong: #c6c6c6;
   --surface: rgba(255, 255, 255, 0.6);
